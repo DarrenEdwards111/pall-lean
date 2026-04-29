@@ -1239,14 +1239,14 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNorm
           ⟨routeBPaperFaithfulTPhi_canonicalProfileResidualBalance_strictPaperFaithful_proved
             M n hn2 htb hns⟩⟩)
 
-/-- Final strict paper-faithful canonical/profile close-out from the strongest
-checked imported canonical `concreteW` row-embedding frontier.
+/-- Legacy strict paper-faithful canonical/profile close-out from the imported
+canonical `concreteW` row-embedding frontier.
 
 This names the exact upstream concreteW input surface: direct Cook-Levin
 branch shapes, canonical-row transport, canonical H4, and the concrete I1/I2/I3
-local algebra.  The canonical H4 field is intentionally explicit because the
-unaugmented canonical `concreteW` H4 target is separately refuted; replacing it
-by the endpoint/profile-aware target is the honest next mathematical step. -/
+local algebra.  This is retained as a diagnostic bridge only: the live
+paper-faithful route below replaces the raw canonical H4 field by the
+endpoint/profile-aware charged profile cover. -/
 theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_importedConcreteW_strictPaperFaithfulCanonicalProfile
     (hShape :
       forall (M : DTM) (n : Nat) (hn2 : n >= 2) (hn4 : n >= 4)
@@ -1326,6 +1326,31 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictPaperPr
     false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_strictPaperProfileOrbitGlobalAssembly
       M n hn hn2 htb hns hdec
       (hassembly M n hn hn2 htb hns hdec)
+
+/-- Final paper-shaped close-out from canonical-window orbit/profile data plus
+the exact range-row assembled-profile cover.
+
+This mirrors the paper's §9.3--§9.4 chain: canonical windows are assigned
+interface-anonymous profiles, rows are covered by bounded profile/orbit bases,
+and the strict range rows assemble into the global profile span.  It avoids the
+refuted broad coefficient identity and does not require a raw derivative-fixed
+representative condition. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitProfile_rangeRows
+    (hprofile :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        exists D :
+          RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+            M n hn2 htb hns,
+          RouteBPaperFaithfulTPhiStrictRangeRowsGlobalProfileSpanCover D) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly
+    (fun M n hn hn2 htb hns hdec => by
+      rcases hprofile M n hn hn2 htb hns hdec with ⟨D, hrows⟩
+      exact
+        routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly_of_rangeRows
+          D hrows)
 
 /-- Final paper-faithful close-out from the actual local-monoid/profile
 range-row cover data.
@@ -1525,7 +1550,7 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNorm
                     (concreteWEndpointSpanOneStepCharge n hn4) h hadm) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_endpointAugmented_directBranchTransport_concreteEndpointCharge_chargedTargetCover
-    hzero hShape hTransport hI1_univ hI3_univ
+      hzero hShape hTransport hI1_univ hI3_univ
     (fun M n hn2 hn4 htb hns h hadm htr hne hactive =>
       CookLevinEndpointChargedTargetProfileCoverAt_of_generatorCover
         M n hn2 htb hns (concreteWEndpointSpanOneStepCharge n hn4) h hadm
@@ -2065,6 +2090,22 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictPaperP
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly
       hassembly)
 
+/-- Rich-projection discharge from canonical-window orbit/profile data plus
+the exact range-row assembled-profile cover. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitProfile_rangeRows
+    (hprofile :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        exists D :
+          RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+            M n hn2 htb hns,
+          RouteBPaperFaithfulTPhiStrictRangeRowsGlobalProfileSpanCover D) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitProfile_rangeRows
+      hprofile)
+
 /-- Rich-projection discharge from strict range-row profile-cover data. -/
 theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictRangeRowProfileCoverData
     (hcover :
@@ -2436,6 +2477,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_importedConcreteW_strictPaperFaithfulCanonicalProfile
 #print axioms false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_strictPaperProfileOrbitGlobalAssembly
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitProfile_rangeRows
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictRangeRowProfileCoverData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_restrictedRowIdentity_projectedCommonSpan
@@ -2468,6 +2510,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_strictPaperFaithfulCanonicalProfile
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_importedConcreteW_strictPaperFaithfulCanonicalProfile
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitProfile_rangeRows
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictRangeRowProfileCoverData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_restrictedRowIdentity_projectedCommonSpan
