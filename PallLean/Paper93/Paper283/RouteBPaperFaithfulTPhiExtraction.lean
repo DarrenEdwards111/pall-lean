@@ -2986,6 +2986,152 @@ def routeBPaperFaithfulTPhi_canonicalProfileResidualBalance_of_canonicalWindowDa
     simpa [routeBPaperFaithfulTPhiCanonicalWindowRowFamily] using
       D.excludes_two_tag
 
+/-! ### Concrete strict-`TΦ` window decoder -/
+
+/-- Block alphabet for strict `TΦ` derivative windows.
+
+Index `0` is the out-of-range/default block used only when a total decoder is
+applied to a malformed list position.  A genuine strict source coordinate
+`j : Fin (n / 3)` is encoded as block `j.val + 1`. -/
+abbrev RouteBPaperFaithfulTPhiStrictBlockIdx (n : ℕ) : Type :=
+  Fin (n / 3 + 1)
+
+/-- The local operation alphabet for the strict first pass.  The strict `TΦ`
+coefficient audit is currently differentiating source coordinates; the
+finite-local-monoid refinement can replace this singleton alphabet with the
+compiler's real local symbols without changing the downstream interface. -/
+abbrev RouteBPaperFaithfulTPhiStrictLocalOp : Type :=
+  Fin 1
+
+/-- Linear order on strict window symbols.  Since the strict local-op alphabet
+has one element, ordering by the block coordinate is injective. -/
+def routeBPaperFaithfulTPhiStrictProdLinearOrder (n : ℕ) :
+    LinearOrder
+      (RouteBPaperFaithfulTPhiStrictBlockIdx n ×
+        RouteBPaperFaithfulTPhiStrictLocalOp) :=
+  LinearOrder.lift' Prod.fst
+    (fun a b h => by
+      exact Prod.ext h (Subsingleton.elim a.2 b.2))
+
+/-- Encode one strict source coordinate as a non-default block. -/
+def routeBPaperFaithfulTPhiStrictBlockOfCoord {n : ℕ}
+    (j : Fin (n / 3)) :
+    RouteBPaperFaithfulTPhiStrictBlockIdx n :=
+  ⟨j.val + 1, by
+    have hj : j.val < n / 3 := j.isLt
+    omega⟩
+
+/-- Total list-position decoder for strict source coordinates.  Genuine
+positions encode `S'[i]`; missing positions encode the default block `0`.
+
+The totality is useful because `rawWindowOf` must produce a length
+`Nat.log 2 n` vector before the admissibility/length hypotheses are available. -/
+def routeBPaperFaithfulTPhiStrictBlockOfList
+    {n : ℕ} (S' : List (Fin (n / 3))) (i : ℕ) :
+    RouteBPaperFaithfulTPhiStrictBlockIdx n :=
+  if h : i < S'.length then
+    routeBPaperFaithfulTPhiStrictBlockOfCoord (S'.get ⟨i, h⟩)
+  else
+    0
+
+/-- Concrete raw strict `TΦ` derivative window: the block component records the
+strict source coordinate at each derivative position, and the local-op
+component is the singleton strict-derivative symbol. -/
+def routeBPaperFaithfulTPhiStrictRawWindowOf
+    (n : ℕ)
+    (S' : List (Fin (n / 3)))
+    (_shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (_α : Fin n →₀ ℕ) :
+    PallLean.Paper93.Window
+      (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+      RouteBPaperFaithfulTPhiStrictLocalOp
+      (Nat.log 2 n) :=
+  List.Vector.ofFn
+    (fun i =>
+      (routeBPaperFaithfulTPhiStrictBlockOfList S' i.val, 0))
+
+@[simp] theorem routeBPaperFaithfulTPhiStrictBlockOfList_of_get
+    {n : ℕ} (S' : List (Fin (n / 3))) (i : ℕ) (h : i < S'.length) :
+    routeBPaperFaithfulTPhiStrictBlockOfList S' i =
+      routeBPaperFaithfulTPhiStrictBlockOfCoord (S'.get ⟨i, h⟩) := by
+  simp [routeBPaperFaithfulTPhiStrictBlockOfList, h]
+
+@[simp] theorem routeBPaperFaithfulTPhiStrictBlockOfList_of_not_lt
+    {n : ℕ} (S' : List (Fin (n / 3))) (i : ℕ) (h : ¬ i < S'.length) :
+    routeBPaperFaithfulTPhiStrictBlockOfList S' i = 0 := by
+  simp [routeBPaperFaithfulTPhiStrictBlockOfList, h]
+
+/-- Specialized canonical-window data for the concrete strict `TΦ` decoder.
+The remaining fields are exactly the finite-local-normal-form obligations:
+choose the canonical scheme for these strict windows, prove the narrowed
+coefficient balance on canonical decoded rows, and prove the two-tag raw
+witness is not canonical for that scheme. -/
+structure RouteBPaperFaithfulTPhiStrictCanonicalWindowData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  scheme :
+    PallLean.Paper93.CanonScheme
+      (BlockIdx := RouteBPaperFaithfulTPhiStrictBlockIdx n)
+      (LocalOp := RouteBPaperFaithfulTPhiStrictLocalOp)
+      (Nat.log 2 n)
+  coeff_balance :
+    RouteBPaperFaithfulTPhiCanonicalProfileNormalizedCoeffBalance
+      M n hn2 htb hns
+      (fun S' shift α => by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n) scheme
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α))
+  excludes_two_tag :
+    RouteBPaperFaithfulTPhiCanonicalProfileExcludesTwoTagUnitShift
+      M n hn2 htb hns
+      (fun S' shift α => by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n) scheme
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α))
+
+/-- The concrete strict decoder instantiates the general canonical-window
+profile data. -/
+noncomputable def routeBPaperFaithfulTPhi_canonicalWindowData_of_strictData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictCanonicalWindowData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiCanonicalWindowProfileData
+      M n hn2 htb hns where
+  BlockIdx := RouteBPaperFaithfulTPhiStrictBlockIdx n
+  LocalOp := RouteBPaperFaithfulTPhiStrictLocalOp
+  blockFintype := inferInstance
+  blockDecEq := inferInstance
+  localFintype := inferInstance
+  localDecEq := inferInstance
+  prodLinearOrder := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+  scheme := D.scheme
+  rawWindowOf := routeBPaperFaithfulTPhiStrictRawWindowOf n
+  coeff_balance := by
+    simpa using D.coeff_balance
+  excludes_two_tag := by
+    simpa using D.excludes_two_tag
+
+/-- The concrete strict decoder feeds the corrected canonical/profile
+residual-balance package. -/
+noncomputable def routeBPaperFaithfulTPhi_canonicalProfileResidualBalance_of_strictData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictCanonicalWindowData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiCanonicalProfileResidualBalance
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_canonicalProfileResidualBalance_of_canonicalWindowData
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_canonicalWindowData_of_strictData
+      M n hn2 htb hns D)
+
 /-- The expanded corrected coefficient balance is exactly enough to discharge
 the named normalized non-singleton coefficient identity. -/
 theorem routeBPaperFaithfulTPhi_normalizedNonSingletonCoeffIdentity_of_coeffBalance
