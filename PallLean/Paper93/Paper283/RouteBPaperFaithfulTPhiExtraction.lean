@@ -4830,6 +4830,109 @@ theorem routeBPaperFaithfulTPhi_normalizedCoeffBalance_forces_unitShift_collapse
   rw [hqAmbient, hdAmbient] at hforce'
   simpa [e, factors, α, p, r, q, d] using hforce'
 
+/-- The collapsed cardinal identity fails on the first genuinely
+non-singleton strict row when both strict coordinates were differentiated and
+the derivative set has even cardinality.  This is the pass/fail test for the
+broad normalized unit-shift target: the target cannot include every
+two-coordinate strict tag inside an even `T`. -/
+theorem routeBPaperFaithfulTPhi_unitShift_collapsedArithmetic_twoTag_noGo
+    {N : ℕ} (T : Finset (Fin N)) (j k : Fin N)
+    (hj : j ∈ T) (hk : k ∈ T) (hjk : j ≠ k)
+    (hEvenT : Even T.card) :
+    ¬
+      (let S : Finset (Fin N) := {j, k}
+       (-1 : ℚ) ^ S.card -
+          (-((S.card : ℚ) * ((-1 : ℚ) ^ (S.card - 1)))) =
+        (2 : ℚ) ^ (S ∩ T).card * (-1) ^ (S \ T).card *
+            (-1) ^ (T \ S).card -
+          (((S ∩ T).card : ℚ) *
+            (((2 : ℚ) * (-1) ^ (T.card - 1)) *
+              ((-1 : ℚ) ^ (S.card - 1))) +
+          ((S \ T).card : ℚ) *
+            ((-((-1 : ℚ) ^ T.card)) *
+              ((-1 : ℚ) ^ (S.card - 1))))) := by
+  classical
+  intro h
+  let S : Finset (Fin N) := {j, k}
+  have hScard : S.card = 2 := by
+    simpa [S] using Finset.card_pair hjk
+  have hSsubT : S ⊆ T := by
+    intro x hx
+    simp [S] at hx
+    rcases hx with rfl | rfl
+    · exact hj
+    · exact hk
+  have hInter : S ∩ T = S := by
+    exact Finset.inter_eq_left.mpr hSsubT
+  have hSdiff : S \ T = ∅ := by
+    exact Finset.sdiff_eq_empty_iff_subset.mpr hSsubT
+  have hTdiffCard : (T \ S).card = T.card - 2 := by
+    rw [Finset.card_sdiff_of_subset hSsubT, hScard]
+  have hcardTge : 2 ≤ T.card := by
+    have hle := Finset.card_le_card hSsubT
+    simpa [hScard] using hle
+  have hEvenTdiff : Even (T.card - 2) := by
+    obtain ⟨m, hm⟩ := hEvenT
+    refine ⟨m - 1, ?_⟩
+    omega
+  have hpowT : (-1 : ℚ) ^ T.card = 1 :=
+    Even.neg_one_pow hEvenT
+  have hpowTpred : (-1 : ℚ) ^ (T.card - 1) = -1 := by
+    have hodd : Odd (T.card - 1) := by
+      obtain ⟨m, hm⟩ := hEvenT
+      refine ⟨m - 1, ?_⟩
+      omega
+    exact Odd.neg_one_pow hodd
+  have hpowTdiff : (-1 : ℚ) ^ (T \ S).card = 1 := by
+    rw [hTdiffCard]
+    exact Even.neg_one_pow hEvenTdiff
+  have h' :
+      ((-1 : ℚ) ^ S.card -
+          (-((S.card : ℚ) * ((-1 : ℚ) ^ (S.card - 1)))) =
+        (2 : ℚ) ^ (S ∩ T).card * (-1) ^ (S \ T).card *
+            (-1) ^ (T \ S).card -
+          (((S ∩ T).card : ℚ) *
+            (((2 : ℚ) * (-1) ^ (T.card - 1)) *
+              ((-1 : ℚ) ^ (S.card - 1))) +
+          ((S \ T).card : ℚ) *
+            ((-((-1 : ℚ) ^ T.card)) *
+              ((-1 : ℚ) ^ (S.card - 1))))) := by
+    simpa [S] using h
+  simp [hScard, hInter, hSdiff, hpowT, hpowTpred, hpowTdiff] at h'
+  norm_num at h'
+
+/-- Concrete no-go form for the broad normalized coefficient-balance target:
+if an even derivative set contains two distinct strict source coordinates, the
+collapsed arithmetic test rules out the current broad unit-shift balance. -/
+theorem routeBPaperFaithfulTPhi_not_normalizedCoeffBalance_of_twoDifferentiatedStrictTags_even
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (T : Finset (Fin (n / 3))) (j k : Fin (n / 3))
+    (hTcard : T.card = Nat.log 2 n)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (T.toList.map (cookLevinStrictFOBFlatMap n)))
+    (hj : j ∈ T) (hk : k ∈ T) (hjk : j ≠ k)
+    (hEvenT : Even T.card)
+    (hα :
+      ∀ i : Fin n,
+        SymmetricPower.tagMonomial
+          (({j, k} : Finset (Fin (n / 3))).map
+            ⟨cookLevinStrictFOBFlatMap n,
+              cookLevinStrictFOBFlatMap_injective n⟩) ≠
+          Finsupp.single i 1) :
+    ¬ RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedCoeffBalance
+        M n hn2 htb hns := by
+  intro hbalance
+  have hcollapsed :=
+    routeBPaperFaithfulTPhi_normalizedCoeffBalance_forces_unitShift_collapsedArithmetic
+      M n hn2 htb hns hbalance ({j, k} : Finset (Fin (n / 3))) T
+      hTcard hadm hα
+  exact
+    routeBPaperFaithfulTPhi_unitShift_collapsedArithmetic_twoTag_noGo
+      T j k hj hk hjk hEvenT hcollapsed
+
 /-- Actual constant coefficient of the intended strict `TΦ` derivative row,
 for the list-shaped source-row interface.  Repeated derivative coordinates are
 excluded by `hSnd`; the coefficient is the expected Boolean sign
