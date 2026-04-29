@@ -5156,6 +5156,7 @@ def RouteBPaperFaithfulTPhiStrictRangeRowsGlobalProfileSpanCover
         (↑(routeBPaperFaithfulTPhiStrictGlobalProfileBasis D) :
           Set (MvPolynomial (Fin n) ℚ))
 
+
 /-- A global assembled-profile span cover proves the exact strict ambient
 `TΦ` rank upper bound.  This is the formal matrix-rank assembly step: once the
 rows are covered by the finite union of profile-local bases, finrank is bounded
@@ -9381,6 +9382,48 @@ theorem routeBPaperFaithfulTPhi_strictAmbientGlobalProfileSpanCover_of_rangeRows
     have hmem := hrange S' shift' hSlen' hshiftDegree' hshiftVars' hadm'
     rw [← hrename, ← hS']
     simpa [routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow] using hmem
+
+/-- The full ambient assembled-profile cover is equivalent to the range-row
+assembled-profile cover.  Off-range strict-FOB rows vanish; all-range rows are
+exactly the source-coordinate rows re-expanded along `cookLevinStrictFOBFlatMap`.
+This packages the remaining proof obligation in its paper-faithful range-row
+form, with no arbitrary projected-containment detour. -/
+theorem routeBPaperFaithfulTPhi_strictAmbientGlobalProfileSpanCover_iff_rangeRows
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictAmbientGlobalProfileSpanCover D ↔
+      RouteBPaperFaithfulTPhiStrictRangeRowsGlobalProfileSpanCover D := by
+  constructor
+  · intro hcover S' shift hSlen hshiftDegree hshiftVars hadm
+    apply hcover
+    unfold MultilinearSPDP.mlBlockedSpdpSubspace
+    exact Submodule.subset_span
+      ⟨S'.map (cookLevinStrictFOBFlatMap n),
+        MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift,
+        by simpa [List.length_map] using hSlen,
+        (MvPolynomial.totalDegree_rename_le (cookLevinStrictFOBFlatMap n) shift).trans
+          hshiftDegree,
+        hshiftVars,
+        hadm,
+        rfl⟩
+  · exact routeBPaperFaithfulTPhi_strictAmbientGlobalProfileSpanCover_of_rangeRows D
+
+/-- Constructor from the exact remaining range-row cover to the paper global
+assembly. -/
+theorem routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly_of_rangeRows
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns)
+    (hrange : RouteBPaperFaithfulTPhiStrictRangeRowsGlobalProfileSpanCover D) :
+    RouteBPaperFaithfulTPhiStrictPaperProfileOrbitGlobalAssembly
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly_of_globalProfileSpanCover
+    D
+    ((routeBPaperFaithfulTPhi_strictAmbientGlobalProfileSpanCover_iff_rangeRows D).mpr
+      hrange)
 
 /-- A budgeted projected zero-profile common span gives the strict-`TΦ`
 projected P-side bound once the strict projected P-window is contained in that
