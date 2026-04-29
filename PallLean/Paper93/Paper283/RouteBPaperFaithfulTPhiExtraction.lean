@@ -4576,6 +4576,108 @@ structure RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalLocalProfileCompres
         zeroProfileLocalTypeSpace alphabet
           (profileOfCanonicalRow S' shift α hSlen hshiftDegree hshiftVars hadm hrow)
 
+
+/-- Concrete canonical-window/profile-compression data for the strict `TΦ`
+row family.
+
+This is the paper §9.3 object in Lean form.  The profile type is attached to
+canonical windows produced by `routeBPaperFaithfulTPhiStrictCanonScheme` on
+`routeBPaperFaithfulTPhiStrictRawWindowOf`; each profile carries a bounded
+local basis, and each narrowed canonical derivative row is proved to lie in the
+basis span of the profile selected by its canonical window.
+
+This is deliberately a direct row-in-profile-space surface.  It does not route
+through zero-profile shifted rows, residual balance, or a broad row identity. -/
+structure RouteBPaperFaithfulTPhiStrictCanonicalWindowProfileCompressionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileType : Type
+  [profileTypeFintype : Fintype profileType]
+  localDim : ℕ
+  localBasis : profileType → Finset (MvPolynomial (Fin n) ℚ)
+  localBasis_card_le : ∀ ρ, (localBasis ρ).card ≤ localDim
+  profileBudget_le : Fintype.card profileType * localDim ≤
+    withinProfileBound (Nat.log 2 n)
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      profileType
+  canonicalRow_mem_profileSpan :
+    ∀ (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily
+          M n hn2 htb hns S' shift α),
+      mlProj
+          (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+            SPDP.iterDerivList (S'.map (cookLevinStrictFOBFlatMap n))
+              ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+                (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) ∈
+        Submodule.span ℚ
+          (↑(localBasis
+            (profileOfCanonicalWindow
+              (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+              hrow.1.1)) : Set (MvPolynomial (Fin n) ℚ))
+
+attribute [instance] RouteBPaperFaithfulTPhiStrictCanonicalWindowProfileCompressionData.profileTypeFintype
+
+/-- The concrete canonical-window/profile data gives the `ZeroProfileLocalTypeAlphabet`
+needed by the downstream common-span API. -/
+noncomputable def RouteBPaperFaithfulTPhiStrictCanonicalWindowProfileCompressionData.toLocalTypeAlphabet
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D :
+      RouteBPaperFaithfulTPhiStrictCanonicalWindowProfileCompressionData
+        M n hn2 htb hns) :
+    ZeroProfileLocalTypeAlphabet n (Nat.log 2 n) where
+  type := D.profileType
+  typeFintype := inferInstance
+  localDim := D.localDim
+  localBasis := D.localBasis
+  localBasis_card_le := D.localBasis_card_le
+  profileSymmetricPowerBudget_le := D.profileBudget_le
+
+/-- The concrete canonical-window/profile data instantiates the paper-faithful
+local-profile compression surface. -/
+noncomputable def routeBPaperFaithfulTPhi_strictCanonicalWindowProfileCompression_to_localProfileCompression
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictCanonicalWindowProfileCompressionData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalLocalProfileCompression
+      M n hn2 htb hns where
+  alphabet := D.toLocalTypeAlphabet
+  profileOfCanonicalRow := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    exact
+      D.profileOfCanonicalWindow
+        (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+        hrow.1.1
+  canonicalRow_mem_profileSpace := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    exact
+      D.canonicalRow_mem_profileSpan
+        S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+
 /-- The paper-local-profile-compression surface is exactly a direct narrowed
 classifier.  This bridge is intentionally definition-level: the mathematical
 content is the canonical row membership in the local profile space, not any
@@ -4716,6 +4818,21 @@ theorem routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalCommonSpanWithBudget
     M n hn2 htb hns
     (routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalProfileClassifierObligation_of_localProfileCompression
       M n hn2 htb hns C)
+
+/-- Concrete canonical-window/profile compression closes the narrowed classifier
+obligation. -/
+theorem routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalProfileClassifierObligation_of_strictCanonicalWindowProfileCompression
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictCanonicalWindowProfileCompressionData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalProfileClassifierObligation
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalProfileClassifierObligation_of_localProfileCompression
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictCanonicalWindowProfileCompression_to_localProfileCompression
+      M n hn2 htb hns D)
 
 
 /-- The narrowed classifier obligation is equivalent to the narrowed bounded
