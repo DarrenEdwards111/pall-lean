@@ -9826,6 +9826,81 @@ theorem routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly_of_localTy
     (routeBPaperFaithfulTPhi_strictProfileSubspaceClassifier_of_localTypeNormalForm_rowIdentity
       M n hn2 htb hns hlocal hrow)
 
+/-- The source-coordinate restricted zero-profile row identity supplies the
+identity-projection strict range-row identity needed by the local-type
+normal-form classifier route. -/
+theorem routeBPaperFaithfulTPhi_identityRangeRowIdentity_of_restrictedIdentity
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hrestricted :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedZeroProfileRowIdentity
+        M n hn2 htb hns
+        (LinearMap.id :
+          MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)) :
+    RouteBPaperFaithfulTPhiRangePWindowZeroProfileRowIdentity
+      M n hn2 htb hns
+      (LinearMap.id :
+        MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ) :=
+  routeBPaperFaithfulTPhi_rangePWindowZeroProfileRowIdentity_of_restricted
+    M n hn2 htb hns
+    (LinearMap.id :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+    hrestricted
+
+/-- Restricted source-coordinate row equality is enough for the strict
+local-type normal-form route, after all-range strict-FOB reduction. -/
+theorem routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly_of_localTypeNormalForm_restrictedIdentity
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hlocal :
+      CookLevinZeroProfileLocalTypeNormalFormObligation M n hn2 htb hns)
+    (hrestricted :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedZeroProfileRowIdentity
+        M n hn2 htb hns
+        (LinearMap.id :
+          MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)) :
+    RouteBPaperFaithfulTPhiStrictPaperProfileOrbitGlobalAssembly
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly_of_localTypeNormalForm_rowIdentity
+    M n hn2 htb hns hlocal
+    (routeBPaperFaithfulTPhi_identityRangeRowIdentity_of_restrictedIdentity
+      M n hn2 htb hns hrestricted)
+
+/-- Paper-scale obstruction for trying to close the strict local-type route by
+proving the full unquotiented Cook-Levin local normal-form obligation.  The
+remaining paper-faithful route must use a projected/quotiented profile
+condition instead of this full zero-profile local type target. -/
+theorem routeBPaperFaithfulTPhi_not_localTypeNormalFormObligation_two_pow_804
+    (M : DTM)
+    (hn : (2 : ℕ) ^ 804 ≥ 2)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ (2 : ℕ) ^ 804) :
+    ¬ CookLevinZeroProfileLocalTypeNormalFormObligation M
+      ((2 : ℕ) ^ 804) hn htb hns :=
+  not_CookLevinZeroProfileLocalTypeNormalFormObligation_two_pow_804
+    M hn htb hns
+
+/-- The requested full local normal-form obligation together with the
+identity-projection strict range-row identity is inconsistent at paper scale:
+the unquotiented local normal-form side already hits the singleton-shift
+budget obstruction. -/
+theorem routeBPaperFaithfulTPhi_not_localTypeNormalForm_and_identityRangeRowIdentity_two_pow_804
+    (M : DTM)
+    (hn : (2 : ℕ) ^ 804 ≥ 2)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ (2 : ℕ) ^ 804) :
+    ¬ (CookLevinZeroProfileLocalTypeNormalFormObligation M
+        ((2 : ℕ) ^ 804) hn htb hns ∧
+      RouteBPaperFaithfulTPhiRangePWindowZeroProfileRowIdentity
+        M ((2 : ℕ) ^ 804) hn htb hns
+        (LinearMap.id :
+          MvPolynomial (Fin ((2 : ℕ) ^ 804)) ℚ →ₗ[ℚ]
+            MvPolynomial (Fin ((2 : ℕ) ^ 804)) ℚ)) := by
+  intro h
+  exact
+    (routeBPaperFaithfulTPhi_not_localTypeNormalFormObligation_two_pow_804
+      M hn htb hns) h.1
+
 /-- A budgeted projected zero-profile common span gives the strict-`TΦ`
 projected P-side bound once the strict projected P-window is contained in that
 span. -/
