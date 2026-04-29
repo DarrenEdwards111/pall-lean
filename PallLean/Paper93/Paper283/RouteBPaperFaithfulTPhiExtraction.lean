@@ -1938,6 +1938,54 @@ theorem routeBPaperFaithfulTPhi_strictProfileSubspaceContainment_of_classifierOb
     routeBPaperFaithfulTPhi_strictProfileSubspaceContainment_of_classifier
       M n hn2 htb hns C
 
+/-- A bounded common span can be packaged as a one-type strict `TΦ` local
+classifier.  This is the reverse packaging direction: once the row family has
+been compressed into a finite span of size `withinProfileBound`, it supplies a
+finite local alphabet/classifier automatically. -/
+noncomputable def routeBPaperFaithfulTPhi_strictProfileSubspaceClassifier_of_commonSpanWithBudget
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcommon :
+      RouteBPaperFaithfulTPhiRangePWindowCommonSpanWithBudget
+        M n hn2 htb hns (withinProfileBound (Nat.log 2 n))) :
+    RouteBPaperFaithfulTPhiStrictProfileSubspaceClassifier
+      M n hn2 htb hns := by
+  classical
+  let G : Finset (MvPolynomial (Fin n) ℚ) := Classical.choose hcommon
+  have hspec := Classical.choose_spec hcommon
+  let hG_card : G.card ≤ withinProfileBound (Nat.log 2 n) := hspec.1
+  let hG_span : routeBPaperFaithfulTPhiRangePWindowSubspace M n hn2 htb hns ≤
+      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ)) := hspec.2
+  refine
+    { alphabet :=
+        { type := PUnit
+          typeFintype := inferInstance
+          localDim := withinProfileBound (Nat.log 2 n)
+          localBasis := fun _ => G
+          localBasis_card_le := fun _ => hG_card
+          profileSymmetricPowerBudget_le := by simp }
+      rowType := ?_
+      row_mem_typeSpace := ?_ }
+  · intro S' shift hSlen hshiftDegree hshiftVars hadm
+    exact PUnit.unit
+  · intro S' shift hSlen hshiftDegree hshiftVars hadm
+    apply hG_span
+    unfold routeBPaperFaithfulTPhiRangePWindowSubspace
+    exact Submodule.subset_span
+      ⟨S', shift, hSlen, hshiftDegree, hshiftVars, hadm, rfl⟩
+
+/-- Bounded common-span form gives the classifier-obligation form. -/
+theorem routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation_of_commonSpanWithBudget
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcommon :
+      RouteBPaperFaithfulTPhiRangePWindowCommonSpanWithBudget
+        M n hn2 htb hns (withinProfileBound (Nat.log 2 n))) :
+    RouteBPaperFaithfulTPhiStrictProfileSubspaceClassifierObligation
+      M n hn2 htb hns :=
+  ⟨routeBPaperFaithfulTPhi_strictProfileSubspaceClassifier_of_commonSpanWithBudget
+      M n hn2 htb hns hcommon⟩
+
 /-- The strict profile/subspace frontier is enough to produce the bounded
 common-span package consumed by the dimension/rank assembly. -/
 theorem routeBPaperFaithfulTPhi_rangePWindowCommonSpanWithBudget_of_strictProfileSubspaceContainment
@@ -1952,6 +2000,29 @@ theorem routeBPaperFaithfulTPhi_rangePWindowCommonSpanWithBudget_of_strictProfil
   exact
     routeBPaperFaithfulTPhi_rangePWindowCommonSpanWithBudget_of_profileSubspace
       M n hn2 htb hns A hprofile
+
+/-- The strict classifier obligation and the bounded common-span package are
+equivalent frontiers.  The forward direction uses the classifier's finite
+alphabet basis; the reverse direction packages any bounded span as a one-type
+classifier. -/
+theorem routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation_iff_commonSpanWithBudget
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    RouteBPaperFaithfulTPhiStrictProfileSubspaceClassifierObligation
+        M n hn2 htb hns ↔
+      RouteBPaperFaithfulTPhiRangePWindowCommonSpanWithBudget
+        M n hn2 htb hns (withinProfileBound (Nat.log 2 n)) := by
+  constructor
+  · intro hclassifier
+    exact
+      routeBPaperFaithfulTPhi_rangePWindowCommonSpanWithBudget_of_strictProfileSubspaceContainment
+        M n hn2 htb hns
+        (routeBPaperFaithfulTPhi_strictProfileSubspaceContainment_of_classifierObligation
+          M n hn2 htb hns hclassifier)
+  · intro hcommon
+    exact
+      routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation_of_commonSpanWithBudget
+        M n hn2 htb hns hcommon
 
 /-- Range-only strict-`TΦ` containment in a selected projected zero-profile
 span. -/
