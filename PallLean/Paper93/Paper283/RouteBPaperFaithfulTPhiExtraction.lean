@@ -5471,6 +5471,62 @@ structure RouteBPaperFaithfulTPhiStrictRangeRowProfileCoverData
 
 attribute [instance] RouteBPaperFaithfulTPhiStrictRangeRowProfileCoverData.profileTypeFintype
 
+/-- The existing strict local-monoid/profile classifier instantiates the
+range-row profile-cover data needed by global assembly.
+
+The classifier supplies the genuine local type for each row and membership in
+that type's local span.  This constructor packages those local spans into one
+assembled profile basis for the row-cover data: the window profile type is the
+single assembled profile, and its basis is the union of the classifier's local
+profile bases. -/
+noncomputable def routeBPaperFaithfulTPhi_strictRangeRowProfileCoverData_of_classifier
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (C :
+      RouteBPaperFaithfulTPhiStrictProfileSubspaceClassifier
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictRangeRowProfileCoverData
+      M n hn2 htb hns where
+  profileType := PUnit
+  profileTypeFintype := inferInstance
+  localDim := withinProfileBound (Nat.log 2 n)
+  localBasis := fun _ => zeroProfileLocalTypeGlobalBasis C.alphabet
+  localBasis_card_le := fun _ =>
+    zeroProfileLocalTypeGlobalBasis_card_le_withinProfileBound C.alphabet
+  profileBudget_le := by simp
+  profileOfCanonicalWindow := by
+    intro _w _hw
+    exact PUnit.unit
+  canonicalRangeRow_mem_profileSpan := by
+    classical
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    have hlocal :
+        routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+            M n hn2 htb hns S' shift ∈
+          zeroProfileLocalTypeSpace C.alphabet
+            (C.rowType S' shift hSlen hshiftDegree hshiftVars hadm) := by
+      simpa [routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow] using
+        C.row_mem_typeSpace S' shift hSlen hshiftDegree hshiftVars hadm
+    simpa [zeroProfileLocalTypeGlobalBasis] using
+      (zeroProfileLocalTypeSpace_le_globalBasis_span C.alphabet
+        (C.rowType S' shift hSlen hshiftDegree hshiftVars hadm)) hlocal
+
+/-- Classifier-obligation form: the local-monoid/profile row classifier
+constructs the range-row profile-cover data. -/
+theorem routeBPaperFaithfulTPhi_strictRangeRowProfileCoverData_of_classifierObligation
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hclassifier :
+      RouteBPaperFaithfulTPhiStrictProfileSubspaceClassifierObligation
+        M n hn2 htb hns) :
+    Nonempty
+      (RouteBPaperFaithfulTPhiStrictRangeRowProfileCoverData
+        M n hn2 htb hns) := by
+  rcases hclassifier with ⟨C⟩
+  exact
+    ⟨routeBPaperFaithfulTPhi_strictRangeRowProfileCoverData_of_classifier
+      M n hn2 htb hns C⟩
+
 /-- Range-row profile-cover data is a special case of the existing orbit-rank
 package, by using the identity orbit equivalence and restricting its membership
 field to the narrower paper-faithful canonical rows. -/
@@ -9647,6 +9703,36 @@ theorem routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly_of_rangeRo
       M n hn2 htb hns D)
     (routeBPaperFaithfulTPhi_strictRangeRowsGlobalProfileSpanCover_of_rangeRowProfileCoverData
       M n hn2 htb hns D)
+
+/-- The strict local-monoid/profile classifier closes the paper-faithful global
+profile/orbit assembly through the range-row cover theorem. -/
+theorem routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly_of_profileSubspaceClassifier
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (C :
+      RouteBPaperFaithfulTPhiStrictProfileSubspaceClassifier
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictPaperProfileOrbitGlobalAssembly
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly_of_rangeRowProfileCoverData
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictRangeRowProfileCoverData_of_classifier
+      M n hn2 htb hns C)
+
+/-- Obligation form: proving the actual local-monoid/profile classifier is
+enough for the strict paper-faithful global assembly. -/
+theorem routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly_of_profileSubspaceClassifierObligation
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hclassifier :
+      RouteBPaperFaithfulTPhiStrictProfileSubspaceClassifierObligation
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictPaperProfileOrbitGlobalAssembly
+      M n hn2 htb hns := by
+  rcases hclassifier with ⟨C⟩
+  exact
+    routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly_of_profileSubspaceClassifier
+      M n hn2 htb hns C
 
 /-- A budgeted projected zero-profile common span gives the strict-`TΦ`
 projected P-side bound once the strict projected P-window is contained in that
