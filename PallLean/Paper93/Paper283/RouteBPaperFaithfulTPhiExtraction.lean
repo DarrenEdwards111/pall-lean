@@ -6591,6 +6591,76 @@ theorem routeBPaperFaithfulTPhi_not_normalizedCoeffBalance_of_twoDifferentiatedS
     routeBPaperFaithfulTPhi_unitShift_collapsedArithmetic_twoTag_noGo
       T j k hj hk hjk hEvenT hcollapsed
 
+/-- The same two-tag arithmetic obstruction rules out the restricted residual
+balance for the canonical singleton quotient projection.  This pins the exact
+failure point for the current restricted-row route: if the row family admits an
+even derivative set containing two distinct strict source tags, then the
+restricted residual identity would imply the already-refuted normalized
+coefficient balance. -/
+theorem routeBPaperFaithfulTPhi_not_restrictedResidualBalance_of_twoDifferentiatedStrictTags_even
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (T : Finset (Fin (n / 3))) (j k : Fin (n / 3))
+    (hTcard : T.card = Nat.log 2 n)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (T.toList.map (cookLevinStrictFOBFlatMap n)))
+    (hj : j ∈ T) (hk : k ∈ T) (hjk : j ≠ k)
+    (hEvenT : Even T.card)
+    (hα :
+      ∀ i : Fin n,
+        SymmetricPower.tagMonomial
+          (({j, k} : Finset (Fin (n / 3))).map
+            ⟨cookLevinStrictFOBFlatMap n,
+              cookLevinStrictFOBFlatMap_injective n⟩) ≠
+          Finsupp.single i 1) :
+    ¬ RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+        M n hn2 htb hns
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) := by
+  intro hres
+  exact
+    routeBPaperFaithfulTPhi_not_normalizedCoeffBalance_of_twoDifferentiatedStrictTags_even
+      M n hn2 htb hns T j k hTcard hadm hj hk hjk hEvenT hα
+      (routeBPaperFaithfulTPhi_coeffBalance_of_restrictedResidualBalance
+        M n hn2 htb hns hres)
+
+/-- Consequently the restricted zero-profile row identity itself cannot be
+proved for the canonical singleton quotient projection over such a two-tag
+even derivative set.  This is the formal obstruction requested instead of a
+fake close: the broad restricted identity remains too strong unless the
+row-family/canonical-profile gate excludes or absorbs these multi-tag probes. -/
+theorem routeBPaperFaithfulTPhi_not_restrictedZeroProfileRowIdentity_of_twoDifferentiatedStrictTags_even
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (T : Finset (Fin (n / 3))) (j k : Fin (n / 3))
+    (hTcard : T.card = Nat.log 2 n)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (T.toList.map (cookLevinStrictFOBFlatMap n)))
+    (hj : j ∈ T) (hk : k ∈ T) (hjk : j ≠ k)
+    (hEvenT : Even T.card)
+    (hα :
+      ∀ i : Fin n,
+        SymmetricPower.tagMonomial
+          (({j, k} : Finset (Fin (n / 3))).map
+            ⟨cookLevinStrictFOBFlatMap n,
+              cookLevinStrictFOBFlatMap_injective n⟩) ≠
+          Finsupp.single i 1) :
+    ¬ RouteBPaperFaithfulTPhiRangePWindowRestrictedZeroProfileRowIdentity
+        M n hn2 htb hns
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) := by
+  exact
+    routeBPaperFaithfulTPhi_rangePWindowRestrictedZeroProfileRowIdentity_noGo_of_not_restrictedResidualBalance
+      M n hn2 htb hns
+      (zeroProfileQuotientBySingletonShiftProjection
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
+      (routeBPaperFaithfulTPhi_not_restrictedResidualBalance_of_twoDifferentiatedStrictTags_even
+        M n hn2 htb hns T j k hTcard hadm hj hk hjk hEvenT hα)
+
 /-- Actual constant coefficient of the intended strict `TΦ` derivative row,
 for the list-shaped source-row interface.  Repeated derivative coordinates are
 excluded by `hSnd`; the coefficient is the expected Boolean sign
