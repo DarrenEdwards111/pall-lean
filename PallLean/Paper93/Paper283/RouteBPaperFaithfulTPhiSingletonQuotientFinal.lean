@@ -1097,6 +1097,55 @@ theorem routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_norm
     routeBPaperFaithfulTPhi_not_normalizedCoeffBalance_of_twoDifferentiatedStrictTags_even
       M n hn2 htb hns T j k hTcard hadm hj hk hjk hEvenT hα hbalance
 
+/-- Paper-faithful strict `TΦ` close-out from concrete row embeddings plus the
+narrowed canonical/profile residual-balance package.
+
+This is the replacement for the refuted range-wide normalized coefficient
+balance certificate.  The coefficient calculation is consumed only through the
+canonical/profile row family selected by the strict normal-form data. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_canonicalProfileResidualBalance
+    (hcert :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        exists hn4 : n >= 4,
+          PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+            M n hn2 htb hns hn4 ∧
+          Nonempty
+            (RouteBPaperFaithfulTPhiCanonicalProfileResidualBalance
+              M n hn2 htb hns)) :
+    NoBoundedSATDeciderAtPaperScale := by
+  intro M n hn hn2 htb hns hdec
+  rcases hcert M n hn hn2 htb hns hdec with
+    ⟨hn4, hrows, ⟨hprofile⟩⟩
+  have _hrestricted :
+      RouteBPaperFaithfulTPhiCanonicalProfileRestrictedNormalizedCoeffIdentity
+        M n hn2 htb hns hprofile.canonicalRow :=
+    routeBPaperFaithfulTPhi_canonicalProfileRestrictedNormalizedCoeffIdentity_of_residualBalance
+      M n hn2 htb hns hprofile
+  exact
+    false_of_routeBPaperFaithfulTPhi_canonical_from_concreteW_rowEmbeddings
+      M n hn hn2 htb hns hdec hn4 hrows
+
+/-- The proved strict paper-faithful canonical/profile coefficient theorem
+supplies the narrowed residual-balance package for the concreteW close-out. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_strictPaperFaithfulCanonicalProfile
+    (hrows :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        exists hn4 : n >= 4,
+          PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+            M n hn2 htb hns hn4) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_canonicalProfileResidualBalance
+    (fun M n hn hn2 htb hns hdec => by
+      rcases hrows M n hn hn2 htb hns hdec with ⟨hn4, hrow⟩
+      exact
+        ⟨hn4, hrow,
+          ⟨routeBPaperFaithfulTPhi_canonicalProfileResidualBalance_strictPaperFaithful_proved
+            M n hn2 htb hns⟩⟩)
+
 /-- Uniform concrete row embeddings plus the range-only residual balance rule
 out bounded SAT deciders through the semantic singleton normalizer. -/
 theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_residualBalance
@@ -1512,6 +1561,40 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNor
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedCoeffBalance
       hcert)
 
+/-- Rich-projection discharge from concrete row embeddings plus the narrowed
+canonical/profile residual-balance package.  This is the paper-faithful
+replacement for the refuted broad range-wide coefficient-balance close-out. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_canonicalProfileResidualBalance
+    (hcert :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        exists hn4 : n >= 4,
+          PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+            M n hn2 htb hns hn4 ∧
+          Nonempty
+            (RouteBPaperFaithfulTPhiCanonicalProfileResidualBalance
+              M n hn2 htb hns)) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_canonicalProfileResidualBalance
+      hcert)
+
+/-- Rich-projection discharge using the proved strict paper-faithful
+canonical/profile coefficient package. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_strictPaperFaithfulCanonicalProfile
+    (hrows :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        exists hn4 : n >= 4,
+          PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+            M n hn2 htb hns hn4) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_strictPaperFaithfulCanonicalProfile
+      hrows)
+
 /-- Rich-projection discharge from concrete row embeddings and range-only
 residual balance through the semantic singleton normalizer. -/
 theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_residualBalance
@@ -1721,6 +1804,8 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedCoeff
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedCoeffBalance
 #print axioms routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedCoeffBalance_certificate_noGo_of_twoDifferentiatedStrictTags_even
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_canonicalProfileResidualBalance
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_strictPaperFaithfulCanonicalProfile
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_residualBalance
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_concreteSingletonQuotient_strictFOB
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonQuotient_concreteW_rowEmbeddings_rangeRestrictedResidualBalance
@@ -1740,6 +1825,8 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedRows
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedCoeff
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedCoeffBalance
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_canonicalProfileResidualBalance
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_strictPaperFaithfulCanonicalProfile
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_residualBalance
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_concreteSingletonQuotient_strictFOB
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuotient_concreteW_rowEmbeddings_rangeRestrictedResidualBalance
