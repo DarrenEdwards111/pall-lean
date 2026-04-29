@@ -5017,6 +5017,77 @@ theorem routeBPaperFaithfulTPhi_strictCanonicalPWindowSubspace_finrank_le_of_mat
   exact hrank.trans D.profileBudget_le
 
 
+
+/-- Exact strict ambient `TΦ` SPDP-rank upper-bound target for a chosen orbit
+profile package.
+
+This is deliberately stronger than the narrowed canonical matrix frontier: it
+bounds the whole ambient SPDP subspace, including all admissible shifts and
+rows, by the same finite profile budget carried by `D`.  Proving this is the
+full global finite-local-monoid / canonical-window orbit assembly theorem. -/
+def RouteBPaperFaithfulTPhiStrictAmbientMlRankUpper
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns) : Prop :=
+  MultilinearSPDP.mlBlockedSpdpRank
+    (cook_levin_compilation M n hn2 htb hns).partition
+    (Nat.log 2 n) (Nat.log 2 n)
+    ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+      (compiledPoly (cook_levin_compilation M n hn2 htb hns))) ≤
+    Fintype.card D.profileType * D.localDim
+
+/-- Projected zero-profile containment plus a projected common-span budget gives
+exactly the strict ambient `TΦ` SPDP-rank upper bound requested.
+
+This is a safe bridge: the real content remains the full projected containment
+of the ambient SPDP subspace and the finite projected common-span budget. -/
+theorem routeBPaperFaithfulTPhi_strictAmbientMlRankUpper_of_projectedCommonSpanWithBudget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+    (hspan :
+      ZeroProfileProjectedCommonSpanWithBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        project (Fintype.card D.profileType * D.localDim))
+    (hcontrol :
+      RouteBPaperFaithfulTPhiProjectedPWindowControlledByZeroProfileProjection
+        M n hn2 htb hns project) :
+    RouteBPaperFaithfulTPhiStrictAmbientMlRankUpper
+      M n hn2 htb hns D := by
+  unfold RouteBPaperFaithfulTPhiStrictAmbientMlRankUpper
+  unfold MultilinearSPDP.mlBlockedSpdpRank
+  let T : Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+    zeroProfileProjectedShiftSpan (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+      project
+  let S : Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+    MultilinearSPDP.mlBlockedSpdpSubspace
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns)))
+  have hTfinite : Module.Finite ℚ ↥T := by
+    simpa [T] using
+      (zeroProfileProjectedShiftSpan_finite (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        project)
+  have hST : S ≤ T := by
+    simpa [S, T] using hcontrol
+  have hmono : Module.finrank ℚ ↥S ≤ Module.finrank ℚ ↥T := by
+    exact @Submodule.finrank_mono ℚ (MvPolynomial (Fin n) ℚ)
+      _ _ _ _ S T hTfinite hST
+  have hTbound : Module.finrank ℚ ↥T ≤ Fintype.card D.profileType * D.localDim := by
+    simpa [T] using
+      (zeroProfileProjectedShiftSpan_finrank_le_of_commonSpanWithBudget
+        (κ := Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        project hspan)
+  simpa [S, T] using hmono.trans hTbound
+
 /-- An exact SPDP-rank upper bound for the strict ambient `TΦ` polynomial closes
 the matrix/global frontier.  This is the direct bridge from a genuine
 matrix-level Lemma 27/31 assembly to the narrowed canonical row subspace. -/
