@@ -1302,6 +1302,60 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_restrictedRow
         routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation_of_restrictedRowIdentity_projectedCommonSpan
           M n hn2 htb hns project hspan hrow)
 
+/-- Final paper-faithful close-out from quotient certificate data and the
+semantic restricted residual-balance row algebra for the selected projection.
+
+This is the corrected projected/quotient branch: the certificate supplies the
+bounded projected profile span, and residual balance supplies the restricted
+row identity after projection. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_quotientTypeCertificate_restrictedResidualBalance
+    (hcert :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        exists typeBudget : Nat,
+        exists cert :
+          ZeroProfileQuotientTypeSpaceCertificate (Nat.log 2 n)
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+            typeBudget,
+          typeBudget <= withinProfileBound (Nat.log 2 n) ∧
+          RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+            M n hn2 htb hns cert.project) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation
+    (fun M n hn hn2 htb hns hdec => by
+      rcases hcert M n hn hn2 htb hns hdec with
+        ⟨typeBudget, cert, hbudget, hres⟩
+      exact
+        routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation_of_quotientTypeCertificate_restrictedResidualBalance
+          M n hn2 htb hns cert hres hbudget)
+
+/-- Obligation-level version of the quotient semantic residual-balance
+close-out. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_quotientTypeNormalFormObligation_restrictedResidualBalance
+    (hcert :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        exists typeBudget : Nat,
+          CookLevinZeroProfileQuotientTypeNormalFormObligation
+            M n hn2 htb hns typeBudget ∧
+          (∀ cert :
+            ZeroProfileQuotientTypeSpaceCertificate (Nat.log 2 n)
+              (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+              typeBudget,
+            RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+              M n hn2 htb hns cert.project) ∧
+          typeBudget <= withinProfileBound (Nat.log 2 n)) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation
+    (fun M n hn hn2 htb hns hdec => by
+      rcases hcert M n hn hn2 htb hns hdec with
+        ⟨typeBudget, hquot, hres, hbudget⟩
+      exact
+        routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation_of_quotientTypeNormalFormObligation_restrictedResidualBalance
+          M n hn2 htb hns hquot hres hbudget)
+
 /-- Final strict paper-faithful close-out through the endpoint/profile-aware
 replacement for canonical `concreteW` H4.
 
@@ -1925,6 +1979,48 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_restrictedRo
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_restrictedRowIdentity_projectedCommonSpan
       hprojected)
 
+/-- Rich-projection discharge from quotient certificate data and semantic
+restricted residual balance. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_quotientTypeCertificate_restrictedResidualBalance
+    (hcert :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        exists typeBudget : Nat,
+        exists cert :
+          ZeroProfileQuotientTypeSpaceCertificate (Nat.log 2 n)
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+            typeBudget,
+          typeBudget <= withinProfileBound (Nat.log 2 n) ∧
+          RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+            M n hn2 htb hns cert.project) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_quotientTypeCertificate_restrictedResidualBalance
+      hcert)
+
+/-- Rich-projection discharge from quotient normal-form obligation data and
+semantic restricted residual balance. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_quotientTypeNormalFormObligation_restrictedResidualBalance
+    (hcert :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        exists typeBudget : Nat,
+          CookLevinZeroProfileQuotientTypeNormalFormObligation
+            M n hn2 htb hns typeBudget ∧
+          (∀ cert :
+            ZeroProfileQuotientTypeSpaceCertificate (Nat.log 2 n)
+              (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+              typeBudget,
+            RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+              M n hn2 htb hns cert.project) ∧
+          typeBudget <= withinProfileBound (Nat.log 2 n)) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_quotientTypeNormalFormObligation_restrictedResidualBalance
+      hcert)
+
 /-- Rich-projection discharge through the endpoint/profile-aware replacement
 for canonical `concreteW` H4. -/
 theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_endpointAugmented_directBranchTransport_concreteEndpointCharge_chargedTargetCover
@@ -2208,6 +2304,8 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictRangeRowProfileCoverData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_restrictedRowIdentity_projectedCommonSpan
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_quotientTypeCertificate_restrictedResidualBalance
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_quotientTypeNormalFormObligation_restrictedResidualBalance
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_endpointAugmented_directBranchTransport_concreteEndpointCharge_chargedTargetCover
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_endpointAugmented_directBranchTransport_concreteEndpointCharge_chargedGeneratorCover
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_residualBalance
@@ -2236,6 +2334,8 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictRangeRowProfileCoverData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_restrictedRowIdentity_projectedCommonSpan
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_quotientTypeCertificate_restrictedResidualBalance
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_quotientTypeNormalFormObligation_restrictedResidualBalance
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_endpointAugmented_directBranchTransport_concreteEndpointCharge_chargedTargetCover
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_endpointAugmented_directBranchTransport_concreteEndpointCharge_chargedGeneratorCover
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_residualBalance

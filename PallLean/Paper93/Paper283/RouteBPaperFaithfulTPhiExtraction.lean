@@ -9315,6 +9315,64 @@ theorem routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation_of_res
     (routeBPaperFaithfulTPhi_rangePWindowCommonSpanWithBudget_of_restrictedRowIdentity_projectedCommonSpan
       M n hn2 htb hns project hspan hrow)
 
+/-- Quotient-certificate semantic route to the strict profile-subspace
+classifier obligation.
+
+This is deliberately not the broad raw row identity.  The projected span comes
+from the quotient type-space certificate, and the row algebra is the semantic
+restricted residual-balance statement for that certificate's selected
+projection. -/
+theorem routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation_of_quotientTypeCertificate_restrictedResidualBalance
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {typeBudget : ℕ}
+    (cert :
+      ZeroProfileQuotientTypeSpaceCertificate (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        typeBudget)
+    (hres :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+        M n hn2 htb hns cert.project)
+    (hbudget : typeBudget ≤ withinProfileBound (Nat.log 2 n)) :
+    RouteBPaperFaithfulTPhiStrictProfileSubspaceClassifierObligation
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation_of_restrictedRowIdentity_projectedCommonSpan
+    M n hn2 htb hns cert.project
+    (zeroProfileProjectedCommonSpanWithBudget_mono
+      (κ := Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+      cert.project
+      (cookLevinZeroProfileProjectedCommonSpanWithBudget_of_quotientTypeCertificate
+        M n hn2 htb hns cert)
+      hbudget)
+    (routeBPaperFaithfulTPhi_rangePWindowRestrictedZeroProfileRowIdentity_of_restrictedResidualBalance
+      M n hn2 htb hns cert.project hres)
+
+/-- Existential quotient-normal-form version of the semantic classifier route.
+The residual-balance proof is required only for the selected quotient
+certificate; no raw range-wide identity is asserted. -/
+theorem routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation_of_quotientTypeNormalFormObligation_restrictedResidualBalance
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {typeBudget : ℕ}
+    (hquot :
+      CookLevinZeroProfileQuotientTypeNormalFormObligation
+        M n hn2 htb hns typeBudget)
+    (hres :
+      ∀ cert :
+        ZeroProfileQuotientTypeSpaceCertificate (Nat.log 2 n)
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+          typeBudget,
+        RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+          M n hn2 htb hns cert.project)
+    (hbudget : typeBudget ≤ withinProfileBound (Nat.log 2 n)) :
+    RouteBPaperFaithfulTPhiStrictProfileSubspaceClassifierObligation
+      M n hn2 htb hns := by
+  rcases hquot with ⟨cert⟩
+  exact
+    routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation_of_quotientTypeCertificate_restrictedResidualBalance
+      M n hn2 htb hns cert (hres cert) hbudget
+
 private theorem routeBPaperFaithfulTPhi_strictFOB_preimageList
     (n : ℕ) (S : List (Fin n))
     (hS : ∀ v ∈ S, v ∈ Set.range (cookLevinStrictFOBFlatMap n)) :
