@@ -4133,6 +4133,147 @@ theorem routeBPaperFaithfulTPhi_unitShift_derivative_correctionSummand
     rw [hsingle, hshift]
   simpa [e, p, r, d, α] using hmain
 
+/-- Collapse the zero-profile singleton-normalizer correction sum over the
+strict tagged support.  This is the finite-sum form of the pointwise
+zero-profile correction summand. -/
+theorem routeBPaperFaithfulTPhi_unitShift_zeroProfile_correctionSumOnStrictSupport
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : Finset (Fin (n / 3))) :
+    let e : Fin (n / 3) ↪ Fin n :=
+      ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩;
+    let q : MvPolynomial (Fin n) ℚ :=
+      mlProj
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+            (1 : MvPolynomial (Fin (n / 3)) ℚ) *
+          cookLevinZeroProfileBaseProduct M n hn2 htb hns);
+    let α : Fin n →₀ ℕ := SymmetricPower.tagMonomial (S.map e);
+    (∑ j ∈ S,
+      MvPolynomial.coeff (Finsupp.single (e j) 1) q *
+        MvPolynomial.coeff α
+          (mlProj
+            (MvPolynomial.X (e j) *
+              cookLevinZeroProfileBaseProduct M n hn2 htb hns))) =
+      ∑ j ∈ S, -((-1 : ℚ) ^ (S.erase j).card) := by
+  classical
+  let e : Fin (n / 3) ↪ Fin n :=
+    ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩
+  let q : MvPolynomial (Fin n) ℚ :=
+    mlProj
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+          (1 : MvPolynomial (Fin (n / 3)) ℚ) *
+        cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+  let α : Fin n →₀ ℕ := SymmetricPower.tagMonomial (S.map e)
+  refine Finset.sum_congr rfl ?_
+  intro j hj
+  simpa [e, q, α] using
+    routeBPaperFaithfulTPhi_unitShift_zeroProfile_correctionSummand
+      M n hn2 htb hns S j hj
+
+/-- The zero-profile strict-support correction sum is a single cardinality
+factor, because every erased strict tag has cardinality `|S|-1`. -/
+theorem routeBPaperFaithfulTPhi_unitShift_zeroProfile_correctionSumOnStrictSupport_card
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : Finset (Fin (n / 3))) :
+    let e : Fin (n / 3) ↪ Fin n :=
+      ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩;
+    let q : MvPolynomial (Fin n) ℚ :=
+      mlProj
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+            (1 : MvPolynomial (Fin (n / 3)) ℚ) *
+          cookLevinZeroProfileBaseProduct M n hn2 htb hns);
+    let α : Fin n →₀ ℕ := SymmetricPower.tagMonomial (S.map e);
+    (∑ j ∈ S,
+      MvPolynomial.coeff (Finsupp.single (e j) 1) q *
+        MvPolynomial.coeff α
+          (mlProj
+            (MvPolynomial.X (e j) *
+              cookLevinZeroProfileBaseProduct M n hn2 htb hns))) =
+      -((S.card : ℚ) * ((-1 : ℚ) ^ (S.card - 1))) := by
+  classical
+  let e : Fin (n / 3) ↪ Fin n :=
+    ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩
+  let q : MvPolynomial (Fin n) ℚ :=
+    mlProj
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+          (1 : MvPolynomial (Fin (n / 3)) ℚ) *
+        cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+  let α : Fin n →₀ ℕ := SymmetricPower.tagMonomial (S.map e)
+  have hsum :=
+    routeBPaperFaithfulTPhi_unitShift_zeroProfile_correctionSumOnStrictSupport
+      M n hn2 htb hns S
+  have hconst :
+      (∑ j ∈ S, -((-1 : ℚ) ^ (S.erase j).card)) =
+        ∑ _j ∈ S, -((-1 : ℚ) ^ (S.card - 1)) := by
+    refine Finset.sum_congr rfl ?_
+    intro j hj
+    rw [Finset.card_erase_of_mem hj]
+  have hsumConst :
+      (∑ _j ∈ S, -((-1 : ℚ) ^ (S.card - 1))) =
+        -((S.card : ℚ) * ((-1 : ℚ) ^ (S.card - 1))) := by
+    simp [Finset.sum_const]
+  calc
+    (∑ j ∈ S,
+      MvPolynomial.coeff (Finsupp.single (e j) 1) q *
+        MvPolynomial.coeff α
+          (mlProj
+            (MvPolynomial.X (e j) *
+              cookLevinZeroProfileBaseProduct M n hn2 htb hns)))
+        = ∑ j ∈ S, -((-1 : ℚ) ^ (S.erase j).card) := by
+          simpa [e, q, α] using hsum
+    _ = ∑ _j ∈ S, -((-1 : ℚ) ^ (S.card - 1)) := hconst
+    _ = -((S.card : ℚ) * ((-1 : ℚ) ^ (S.card - 1))) := hsumConst
+
+/-- Collapse the derivative singleton-normalizer correction sum over the
+strict tagged support.  This leaves only the explicit membership-in-`T`
+coefficient factor. -/
+theorem routeBPaperFaithfulTPhi_unitShift_derivative_correctionSumOnStrictSupport
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S T : Finset (Fin (n / 3))) :
+    let e : Fin (n / 3) ↪ Fin n :=
+      ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩;
+    let p : MvPolynomial (Fin n) ℚ :=
+      compiledPoly (cook_levin_compilation M n hn2 htb hns);
+    let r : MvPolynomial (Fin (n / 3)) ℚ :=
+      MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) p;
+    let d : MvPolynomial (Fin n) ℚ :=
+      MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (mlProj ((1 : MvPolynomial (Fin (n / 3)) ℚ) *
+          SPDP.iterDerivList T.toList r));
+    let α : Fin n →₀ ℕ := SymmetricPower.tagMonomial (S.map e);
+    (∑ j ∈ S,
+      MvPolynomial.coeff (Finsupp.single (e j) 1) d *
+        MvPolynomial.coeff α
+          (mlProj
+            (MvPolynomial.X (e j) *
+              cookLevinZeroProfileBaseProduct M n hn2 htb hns))) =
+      ∑ j ∈ S,
+        ((2 : ℚ) ^ (({j} : Finset (Fin (n / 3))) ∩ T).card *
+            (-1) ^ (({j} : Finset (Fin (n / 3))) \ T).card *
+            (-1) ^ (T \ ({j} : Finset (Fin (n / 3)))).card) *
+          ((-1 : ℚ) ^ (S.erase j).card) := by
+  classical
+  let e : Fin (n / 3) ↪ Fin n :=
+    ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩
+  let p : MvPolynomial (Fin n) ℚ :=
+    compiledPoly (cook_levin_compilation M n hn2 htb hns)
+  let r : MvPolynomial (Fin (n / 3)) ℚ :=
+    MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+      (cookLevinStrictFOBFlatMap_injective n) p
+  let d : MvPolynomial (Fin n) ℚ :=
+    MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+      (mlProj ((1 : MvPolynomial (Fin (n / 3)) ℚ) *
+        SPDP.iterDerivList T.toList r))
+  let α : Fin n →₀ ℕ := SymmetricPower.tagMonomial (S.map e)
+  refine Finset.sum_congr rfl ?_
+  intro j hj
+  simpa [e, p, r, d, α] using
+    routeBPaperFaithfulTPhi_unitShift_derivative_correctionSummand
+      M n hn2 htb hns S T j hj
+
 /-- Plugging the explicit strict tag coefficient formulas into the expanded
 normalized coefficient-balance gate leaves exactly the singleton-normalizer
 correction identity.  This is the coefficient audit for the normalized
