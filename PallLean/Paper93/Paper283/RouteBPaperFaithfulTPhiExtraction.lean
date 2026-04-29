@@ -4819,6 +4819,74 @@ theorem routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalCommonSpanWithBudget
     (routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalProfileClassifierObligation_of_localProfileCompression
       M n hn2 htb hns C)
 
+
+/-- A narrowed bounded common span instantiates the concrete canonical-window
+profile-compression data with a one-profile alphabet.
+
+This is the explicit data-level constructor: the profile alphabet has one
+profile, its local basis is the bounded spanning family `G`, the budget is
+`G.card ≤ withinProfileBound`, and row membership is obtained by the narrowed
+canonical P-window subspace inclusion.  It is useful as a sanity check and as a
+bridge from any independently proved paper Lemma-31/common-span theorem into
+the canonical-window profile data surface. -/
+noncomputable def routeBPaperFaithfulTPhi_strictCanonicalWindowProfileCompressionData_of_commonSpanWithBudget
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcommon :
+      RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCommonSpanWithBudget
+        M n hn2 htb hns (withinProfileBound (Nat.log 2 n))) :
+    RouteBPaperFaithfulTPhiStrictCanonicalWindowProfileCompressionData
+      M n hn2 htb hns := by
+  classical
+  let G : Finset (MvPolynomial (Fin n) ℚ) := Classical.choose hcommon
+  have hspec := Classical.choose_spec hcommon
+  let hG_card : G.card ≤ withinProfileBound (Nat.log 2 n) := hspec.1
+  let hG_span :
+      routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalPWindowSubspace
+          M n hn2 htb hns ≤
+        Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ)) := hspec.2
+  refine
+    { profileType := PUnit
+      profileTypeFintype := inferInstance
+      localDim := withinProfileBound (Nat.log 2 n)
+      localBasis := fun _ => G
+      localBasis_card_le := fun _ => hG_card
+      profileBudget_le := by simp
+      profileOfCanonicalWindow := ?_
+      canonicalRow_mem_profileSpan := ?_ }
+  · intro w hw
+    exact PUnit.unit
+  · intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    apply hG_span
+    unfold routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalPWindowSubspace
+    exact Submodule.subset_span
+      ⟨S', shift, α, hSlen, hshiftDegree, hshiftVars, hadm, hrow, rfl⟩
+
+/-- The concrete canonical-window profile data and the narrowed bounded common
+span package are equivalent frontiers.  The reverse direction is the one-profile
+instantiation above; the forward direction uses the already established local
+profile-compression bridge. -/
+theorem routeBPaperFaithfulTPhi_strictCanonicalWindowProfileCompressionData_iff_commonSpanWithBudget
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Nonempty
+        (RouteBPaperFaithfulTPhiStrictCanonicalWindowProfileCompressionData
+          M n hn2 htb hns) ↔
+      RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCommonSpanWithBudget
+        M n hn2 htb hns (withinProfileBound (Nat.log 2 n)) := by
+  constructor
+  · intro hD
+    rcases hD with ⟨D⟩
+    exact
+      routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalCommonSpanWithBudget_of_localProfileCompression
+        M n hn2 htb hns
+        (routeBPaperFaithfulTPhi_strictCanonicalWindowProfileCompression_to_localProfileCompression
+          M n hn2 htb hns D)
+  · intro hcommon
+    exact
+      ⟨routeBPaperFaithfulTPhi_strictCanonicalWindowProfileCompressionData_of_commonSpanWithBudget
+        M n hn2 htb hns hcommon⟩
+
 /-- Concrete canonical-window/profile compression closes the narrowed classifier
 obligation. -/
 theorem routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalProfileClassifierObligation_of_strictCanonicalWindowProfileCompression
@@ -4878,6 +4946,22 @@ theorem routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalCommonSpanWithBudget
   unfold routeBPaperFaithfulTPhiRangePWindowSubspace
   exact Submodule.subset_span
     ⟨S', shift, hSlen, hshiftDegree, hshiftVars, hadm, rfl⟩
+
+/-- The old range-wide common span also instantiates the concrete narrowed
+canonical-window profile data by first restricting to the narrowed row surface.
+This is a compatibility bridge only; it does not use residual or row identity. -/
+noncomputable def routeBPaperFaithfulTPhi_strictCanonicalWindowProfileCompressionData_of_rangeCommonSpanWithBudget
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcommon :
+      RouteBPaperFaithfulTPhiRangePWindowCommonSpanWithBudget
+        M n hn2 htb hns (withinProfileBound (Nat.log 2 n))) :
+    RouteBPaperFaithfulTPhiStrictCanonicalWindowProfileCompressionData
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_strictCanonicalWindowProfileCompressionData_of_commonSpanWithBudget
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalCommonSpanWithBudget_of_rangeCommonSpanWithBudget
+      M n hn2 htb hns hcommon)
 
 /-- The old range-wide classifier obligation also implies the narrowed
 classifier obligation, simply by restricting the row surface. -/
