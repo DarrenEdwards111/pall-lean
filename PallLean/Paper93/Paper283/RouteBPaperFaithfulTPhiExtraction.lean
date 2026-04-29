@@ -1839,6 +1839,105 @@ def RouteBPaperFaithfulTPhiStrictProfileSubspaceContainment
     RouteBPaperFaithfulTPhiRangePWindowControlledByProfileSubspace
       M n hn2 htb hns A
 
+/-- Concrete finite local alphabet/classifier for strict `TΦ` range-window
+rows.
+
+This is the proof object the paper asks for after canonical/profile
+compression: assign every admissible strict `TΦ` row to a bounded local type and
+prove the row lies in that type's finite-dimensional span.  Supplying an
+inhabitant of this structure proves the abstract
+`RouteBPaperFaithfulTPhiStrictProfileSubspaceContainment` frontier. -/
+structure RouteBPaperFaithfulTPhiStrictProfileSubspaceClassifier
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  alphabet : ZeroProfileLocalTypeAlphabet n (Nat.log 2 n)
+  rowType :
+    ∀ (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ),
+      S'.length = Nat.log 2 n →
+      shift.totalDegree ≤ Nat.log 2 n →
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+        (S'.map (cookLevinStrictFOBFlatMap n)).toFinset →
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n)) →
+      alphabet.type
+  row_mem_typeSpace :
+    ∀ (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n))),
+      mlProj
+          (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+            SPDP.iterDerivList (S'.map (cookLevinStrictFOBFlatMap n))
+              ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+                (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) ∈
+        zeroProfileLocalTypeSpace alphabet
+          (rowType S' shift hSlen hshiftDegree hshiftVars hadm)
+
+/-- A strict finite local classifier proves the profile-subspace containment
+for its alphabet. -/
+theorem routeBPaperFaithfulTPhi_rangePWindowControlledByProfileSubspace_of_classifier
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (C :
+      RouteBPaperFaithfulTPhiStrictProfileSubspaceClassifier
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiRangePWindowControlledByProfileSubspace
+      M n hn2 htb hns C.alphabet := by
+  classical
+  exact
+    (routeBPaperFaithfulTPhi_rangePWindowControlledByProfileSubspace_iff_generatorReduction
+      M n hn2 htb hns C.alphabet).mpr
+      (fun S' shift hSlen hshiftDegree hshiftVars hadm =>
+        (zeroProfileLocalTypeSpace_le_compressedProfileSpan C.alphabet
+          (C.rowType S' shift hSlen hshiftDegree hshiftVars hadm))
+          (C.row_mem_typeSpace S' shift hSlen hshiftDegree hshiftVars hadm))
+
+/-- The concrete finite local classifier is exactly enough to inhabit the
+strict profile/subspace frontier. -/
+theorem routeBPaperFaithfulTPhi_strictProfileSubspaceContainment_of_classifier
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (C :
+      RouteBPaperFaithfulTPhiStrictProfileSubspaceClassifier
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictProfileSubspaceContainment
+      M n hn2 htb hns :=
+  ⟨C.alphabet,
+    routeBPaperFaithfulTPhi_rangePWindowControlledByProfileSubspace_of_classifier
+      M n hn2 htb hns C⟩
+
+/-- Classifier-obligation form of the remaining paper-faithful strict `TΦ`
+frontier. -/
+def RouteBPaperFaithfulTPhiStrictProfileSubspaceClassifierObligation
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  Nonempty
+    (RouteBPaperFaithfulTPhiStrictProfileSubspaceClassifier
+      M n hn2 htb hns)
+
+/-- Classifier-obligation bridge to the abstract profile/subspace frontier. -/
+theorem routeBPaperFaithfulTPhi_strictProfileSubspaceContainment_of_classifierObligation
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hclassifier :
+      RouteBPaperFaithfulTPhiStrictProfileSubspaceClassifierObligation
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictProfileSubspaceContainment
+      M n hn2 htb hns := by
+  rcases hclassifier with ⟨C⟩
+  exact
+    routeBPaperFaithfulTPhi_strictProfileSubspaceContainment_of_classifier
+      M n hn2 htb hns C
+
 /-- The strict profile/subspace frontier is enough to produce the bounded
 common-span package consumed by the dimension/rank assembly. -/
 theorem routeBPaperFaithfulTPhi_rangePWindowCommonSpanWithBudget_of_strictProfileSubspaceContainment
