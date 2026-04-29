@@ -5089,6 +5089,73 @@ def RouteBPaperFaithfulTPhiStrictAmbientGlobalProfileSpanCover
       (↑(routeBPaperFaithfulTPhiStrictGlobalProfileBasis D) :
         Set (MvPolynomial (Fin n) ℚ))
 
+
+/-- Generator-by-generator form of the ambient assembled-profile cover. -/
+def RouteBPaperFaithfulTPhiStrictAmbientGlobalProfileGeneratorCover
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns) : Prop :=
+  ∀ (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ),
+    S.length = Nat.log 2 n →
+    shift.totalDegree ≤ Nat.log 2 n →
+    shift.vars ⊆ S.toFinset →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition S →
+    mlProj
+        (shift * SPDP.iterDerivList S
+          ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+            (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) ∈
+      Submodule.span ℚ
+        (↑(routeBPaperFaithfulTPhiStrictGlobalProfileBasis D) :
+          Set (MvPolynomial (Fin n) ℚ))
+
+/-- The ambient cover is exactly the generator-by-generator cover. -/
+theorem routeBPaperFaithfulTPhi_strictAmbientGlobalProfileSpanCover_iff_generatorCover
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictAmbientGlobalProfileSpanCover D ↔
+      RouteBPaperFaithfulTPhiStrictAmbientGlobalProfileGeneratorCover D := by
+  constructor
+  · intro hcover S shift hSlen hshiftDegree hshiftVars hadm
+    apply hcover
+    unfold MultilinearSPDP.mlBlockedSpdpSubspace
+    exact Submodule.subset_span
+      ⟨S, shift, hSlen, hshiftDegree, hshiftVars, hadm, rfl⟩
+  · intro hgen
+    unfold RouteBPaperFaithfulTPhiStrictAmbientGlobalProfileSpanCover
+    unfold MultilinearSPDP.mlBlockedSpdpSubspace
+    refine Submodule.span_le.mpr ?_
+    intro q hq
+    rcases hq with ⟨S, shift, hSlen, hshiftDegree, hshiftVars, hadm, rfl⟩
+    exact hgen S shift hSlen hshiftDegree hshiftVars hadm
+
+/-- Range-row form of the assembled-profile cover.  This is the exact
+canonicalization frontier left by the paper route: after off-range strict-FOB
+rows vanish, every all-range source-coordinate row must land in the assembled
+finite profile basis. -/
+def RouteBPaperFaithfulTPhiStrictRangeRowsGlobalProfileSpanCover
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns) : Prop :=
+  ∀ (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ),
+    S'.length = Nat.log 2 n →
+    shift.totalDegree ≤ Nat.log 2 n →
+    (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+      (S'.map (cookLevinStrictFOBFlatMap n)).toFinset →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (S'.map (cookLevinStrictFOBFlatMap n)) →
+    routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+        M n hn2 htb hns S' shift ∈
+      Submodule.span ℚ
+        (↑(routeBPaperFaithfulTPhiStrictGlobalProfileBasis D) :
+          Set (MvPolynomial (Fin n) ℚ))
+
 /-- A global assembled-profile span cover proves the exact strict ambient
 `TΦ` rank upper bound.  This is the formal matrix-rank assembly step: once the
 rows are covered by the finite union of profile-local bases, finrank is bounded
@@ -9242,6 +9309,78 @@ theorem routeBPaperFaithfulTPhi_pSideBound_of_strictAmbientMlRankUpper
       (routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns) :=
   routeBPaperFaithfulTPhi_pSideBound_of_strictPaperProfileOrbitGlobalAssembly
     M n hn2 htb hns ⟨D, hrank⟩
+
+/-- All ambient strict-`TΦ` rows reduce to range rows: off-range derivative
+queries vanish, and all-range queries pull back along the strict first-of-block
+embedding.  Thus a range-row assembled-profile cover proves the full ambient
+assembled-profile cover. -/
+theorem routeBPaperFaithfulTPhi_strictAmbientGlobalProfileSpanCover_of_rangeRows
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns)
+    (hrange : RouteBPaperFaithfulTPhiStrictRangeRowsGlobalProfileSpanCover D) :
+    RouteBPaperFaithfulTPhiStrictAmbientGlobalProfileSpanCover D := by
+  classical
+  refine
+    (routeBPaperFaithfulTPhi_strictAmbientGlobalProfileSpanCover_iff_generatorCover D).mpr ?_
+  intro S shift hSlen hshiftDegree hshiftVars hadm
+  by_cases hoff : ∃ v ∈ S, v ∉ Set.range (cookLevinStrictFOBFlatMap n)
+  · have hlhs :
+        mlProj
+            (shift * SPDP.iterDerivList S
+              ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+                (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) = 0 := by
+      rw [routeBPaperFaithfulTPhiAmbientGauge_compiledPoly_eq_reexpandedStrictFOB
+        M n hn2 htb hns]
+      exact
+        routeBPaperFaithfulTPhi_strictFOB_offRangeDerivativeRow_zero
+          n S shift
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns)) hoff
+    rw [hlhs]
+    exact Submodule.zero_mem _
+  · have hall : ∀ v ∈ S, v ∈ Set.range (cookLevinStrictFOBFlatMap n) := by
+      intro v hv
+      by_contra hvnot
+      exact hoff ⟨v, hv, hvnot⟩
+    rcases routeBPaperFaithfulTPhi_strictFOB_preimageList n S hall with
+      ⟨S', hS'⟩
+    let shift' :=
+      MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) shift
+    have hshiftRange :
+        ↑shift.vars ⊆ Set.range (cookLevinStrictFOBFlatMap n) := by
+      intro v hv
+      exact hall v (List.mem_toFinset.mp (hshiftVars hv))
+    have hrename :
+        MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift' = shift := by
+      simpa [shift'] using
+        routeBPaperFaithfulTPhi_rename_restrictStrictFOB_of_vars_range
+          n shift hshiftRange
+    have hSlen' : S'.length = Nat.log 2 n := by
+      have hmapLen :
+          (S'.map (cookLevinStrictFOBFlatMap n)).length = Nat.log 2 n := by
+        rw [hS']
+        exact hSlen
+      simpa [List.length_map] using hmapLen
+    have hshiftDegree' : shift'.totalDegree ≤ Nat.log 2 n :=
+      (MultilinearSPDP.restrictPoly_totalDegree_le ℚ
+        (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) shift).trans hshiftDegree
+    have hshiftVars' :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift').vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset := by
+      rw [hrename, hS']
+      exact hshiftVars
+    have hadm' :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)) := by
+      rw [hS']
+      exact hadm
+    have hmem := hrange S' shift' hSlen' hshiftDegree' hshiftVars' hadm'
+    rw [← hrename, ← hS']
+    simpa [routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow] using hmem
 
 /-- A budgeted projected zero-profile common span gives the strict-`TΦ`
 projected P-side bound once the strict projected P-window is contained in that
