@@ -3382,6 +3382,102 @@ abbrev RouteBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffBalance
     (routeBPaperFaithfulTPhiStrictUnmarkedCanonicalRowFamily
       M n hn2 htb hns)
 
+/-- Fully expanded Cook-Levin coefficient computation needed for the strict
+unmarked finite-local-normal-form rows.
+
+This is intentionally separated from the row-family packaging: the
+shortlex/order work proves that marked two-tag probes are not canonical, but
+the remaining positive proof is still an algebraic coefficient identity for
+all unmarked strict coefficient probes and arbitrary admissible shifts. -/
+def RouteBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffAlgebra
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∀ (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ),
+    S'.length = Nat.log 2 n →
+    shift.totalDegree ≤ Nat.log 2 n →
+    (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+      (S'.map (cookLevinStrictFOBFlatMap n)).toFinset →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (S'.map (cookLevinStrictFOBFlatMap n)) →
+    ∀ α : Fin n →₀ ℕ,
+      (∀ i : Fin n, α ≠ Finsupp.single i 1) →
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n))
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)) →
+      ¬ routeBPaperFaithfulTPhiStrictWindowHasMarkedCoeff
+        (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α) →
+      let factors : Fin (cookLevinFactorList M n hn2 htb hns).length →
+          MvPolynomial (Fin n) ℚ :=
+        fun i => (cookLevinFactorList M n hn2 htb hns).get i
+      let p : MvPolynomial (Fin n) ℚ :=
+        compiledPoly (cook_levin_compilation M n hn2 htb hns)
+      let r : MvPolynomial (Fin (n / 3)) ℚ :=
+        MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+          (cookLevinStrictFOBFlatMap_injective n) p
+      let q : MvPolynomial (Fin n) ℚ :=
+        mlProj
+          (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+            cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+      let d : MvPolynomial (Fin n) ℚ :=
+        MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+          (mlProj (shift * SPDP.iterDerivList S' r))
+      MvPolynomial.coeff α q -
+          ∑ i : Fin n,
+            MvPolynomial.coeff (Finsupp.single i 1) q *
+              MvPolynomial.coeff α
+                (mlProj (MvPolynomial.X i * Finset.univ.prod factors)) =
+        MvPolynomial.coeff α d -
+          ∑ i : Fin n,
+            MvPolynomial.coeff (Finsupp.single i 1) d *
+              MvPolynomial.coeff α
+                (mlProj (MvPolynomial.X i * Finset.univ.prod factors))
+
+theorem routeBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffBalance_of_algebra
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (halgebra :
+      RouteBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffAlgebra
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffBalance
+      M n hn2 htb hns := by
+  classical
+  intro S' shift hSlen hshiftDegree hshiftVars hadm α hα hrow
+  exact
+    halgebra S' shift hSlen hshiftDegree hshiftVars hadm α hα
+      hrow.1 hrow.2
+
+theorem routeBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffAlgebra_of_balance
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hbalance :
+      RouteBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffBalance
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffAlgebra
+      M n hn2 htb hns := by
+  classical
+  intro S' shift hSlen hshiftDegree hshiftVars hadm α hα hcan hunmarked
+  exact
+    hbalance S' shift hSlen hshiftDegree hshiftVars hadm α hα
+      ⟨hcan, hunmarked⟩
+
+theorem routeBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffBalance_iff_algebra
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    RouteBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffBalance
+        M n hn2 htb hns ↔
+      RouteBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffAlgebra
+        M n hn2 htb hns :=
+  ⟨routeBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffAlgebra_of_balance
+      M n hn2 htb hns,
+    routeBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffBalance_of_algebra
+      M n hn2 htb hns⟩
+
 theorem routeBPaperFaithfulTPhiStrictUnmarkedCanonicalRowFamily_excludes_two_tag
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
