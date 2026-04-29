@@ -2996,22 +2996,36 @@ applied to a malformed list position.  A genuine strict source coordinate
 abbrev RouteBPaperFaithfulTPhiStrictBlockIdx (n : ℕ) : Type :=
   Fin (n / 3 + 1)
 
-/-- The local operation alphabet for the strict first pass.  The strict `TΦ`
-coefficient audit is currently differentiating source coordinates; the
-finite-local-monoid refinement can replace this singleton alphabet with the
-compiler's real local symbols without changing the downstream interface. -/
-abbrev RouteBPaperFaithfulTPhiStrictLocalOp : Type :=
-  Fin 1
+/-- The local operation alphabet for the strict first pass.
 
-/-- Linear order on strict window symbols.  Since the strict local-op alphabet
-has one element, ordering by the block coordinate is injective. -/
+The boolean records whether the coefficient probe is one of the refuted
+two-strict-tag witnesses.  This keeps the `can(w)` selector honest: the
+normal-form machinery sees the coefficient-profile obstruction instead of only
+the derivative-coordinate list. -/
+abbrev RouteBPaperFaithfulTPhiStrictLocalOp : Type :=
+  Bool
+
+/-- Linear order on strict window symbols. -/
 def routeBPaperFaithfulTPhiStrictProdLinearOrder (n : ℕ) :
     LinearOrder
       (RouteBPaperFaithfulTPhiStrictBlockIdx n ×
         RouteBPaperFaithfulTPhiStrictLocalOp) :=
-  LinearOrder.lift' Prod.fst
+  LinearOrder.lift'
+    (fun p =>
+      p.1.val * 2 + if p.2 then 1 else 0)
     (fun a b h => by
-      exact Prod.ext h (Subsingleton.elim a.2 b.2))
+      apply Prod.ext
+      · apply Fin.ext
+        cases a with
+        | mk a₁ a₂ =>
+          cases b with
+          | mk b₁ b₂ =>
+            cases a₂ <;> cases b₂ <;> simp at h ⊢ <;> omega
+      · cases a with
+        | mk a₁ a₂ =>
+          cases b with
+          | mk b₁ b₂ =>
+            cases a₂ <;> cases b₂ <;> simp at h ⊢ <;> omega)
 
 /-- Encode one strict source coordinate as a non-default block. -/
 def routeBPaperFaithfulTPhiStrictBlockOfCoord {n : ℕ}
@@ -3034,21 +3048,37 @@ def routeBPaperFaithfulTPhiStrictBlockOfList
   else
     0
 
+/-- Coefficient-profile marker for the strict `TΦ` no-go witness.  It detects
+exactly the degree-two strict-tag probes that Lean proved cannot be part of
+the broad normalized row family. -/
+noncomputable def routeBPaperFaithfulTPhiStrictCoeffMarker
+    (n : ℕ) (α : Fin n →₀ ℕ) : Bool :=
+  decide
+    (∃ j k : Fin (n / 3),
+      j ≠ k ∧
+        α =
+          SymmetricPower.tagMonomial
+            (({j, k} : Finset (Fin (n / 3))).map
+              ⟨cookLevinStrictFOBFlatMap n,
+                cookLevinStrictFOBFlatMap_injective n⟩))
+
 /-- Concrete raw strict `TΦ` derivative window: the block component records the
 strict source coordinate at each derivative position, and the local-op
-component is the singleton strict-derivative symbol. -/
-def routeBPaperFaithfulTPhiStrictRawWindowOf
+component records the finite coefficient profile relevant to the strict
+normal-form exclusion. -/
+noncomputable def routeBPaperFaithfulTPhiStrictRawWindowOf
     (n : ℕ)
     (S' : List (Fin (n / 3)))
     (_shift : MvPolynomial (Fin (n / 3)) ℚ)
-    (_α : Fin n →₀ ℕ) :
+    (α : Fin n →₀ ℕ) :
     PallLean.Paper93.Window
       (RouteBPaperFaithfulTPhiStrictBlockIdx n)
       RouteBPaperFaithfulTPhiStrictLocalOp
       (Nat.log 2 n) :=
   List.Vector.ofFn
     (fun i =>
-      (routeBPaperFaithfulTPhiStrictBlockOfList S' i.val, 0))
+      (routeBPaperFaithfulTPhiStrictBlockOfList S' i.val,
+        routeBPaperFaithfulTPhiStrictCoeffMarker n α))
 
 @[simp] theorem routeBPaperFaithfulTPhiStrictBlockOfList_of_get
     {n : ℕ} (S' : List (Fin (n / 3))) (i : ℕ) (h : i < S'.length) :
@@ -3060,6 +3090,132 @@ def routeBPaperFaithfulTPhiStrictRawWindowOf
     {n : ℕ} (S' : List (Fin (n / 3))) (i : ℕ) (h : ¬ i < S'.length) :
     routeBPaperFaithfulTPhiStrictBlockOfList S' i = 0 := by
   simp [routeBPaperFaithfulTPhiStrictBlockOfList, h]
+
+@[simp] theorem routeBPaperFaithfulTPhiStrictCoeffMarker_twoTag
+    {n : ℕ} (j k : Fin (n / 3)) (hjk : j ≠ k) :
+    routeBPaperFaithfulTPhiStrictCoeffMarker n
+        (SymmetricPower.tagMonomial
+          (({j, k} : Finset (Fin (n / 3))).map
+            ⟨cookLevinStrictFOBFlatMap n,
+              cookLevinStrictFOBFlatMap_injective n⟩)) =
+      true := by
+  classical
+  unfold routeBPaperFaithfulTPhiStrictCoeffMarker
+  rw [decide_eq_true]
+  exact ⟨j, k, hjk, rfl⟩
+
+/-- Default strict window used as the normal form for excluded coefficient
+profiles. -/
+def routeBPaperFaithfulTPhiStrictDefaultWindow (n κ : ℕ) :
+    PallLean.Paper93.Window
+      (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+      RouteBPaperFaithfulTPhiStrictLocalOp
+      κ :=
+  List.Vector.ofFn (fun _ => (0, false))
+
+/-- A strict window contains the excluded two-tag coefficient marker. -/
+def routeBPaperFaithfulTPhiStrictWindowHasMarkedCoeff
+    {n κ : ℕ}
+    (w :
+      PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        κ) : Prop :=
+  ∃ i : Fin κ, (w.get i).2 = true
+
+/-- Normal-form key for strict windows: marked coefficient profiles collapse to
+the default representative; unmarked windows keep their full raw window. -/
+noncomputable def routeBPaperFaithfulTPhiStrictWindowNF (n κ : ℕ)
+    (w :
+      PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        κ) :
+    PallLean.Paper93.Window
+      (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+      RouteBPaperFaithfulTPhiStrictLocalOp
+      κ :=
+  if routeBPaperFaithfulTPhiStrictWindowHasMarkedCoeff w then
+    routeBPaperFaithfulTPhiStrictDefaultWindow n κ
+  else
+    w
+
+/-- Canonicalization scheme induced by the strict finite normal-form key. -/
+noncomputable def routeBPaperFaithfulTPhiStrictCanonScheme (n κ : ℕ) :
+    PallLean.Paper93.CanonScheme
+      (BlockIdx := RouteBPaperFaithfulTPhiStrictBlockIdx n)
+      (LocalOp := RouteBPaperFaithfulTPhiStrictLocalOp)
+      κ where
+  eqv := fun w =>
+    { cls :=
+        (Finset.univ :
+          Finset
+            (PallLean.Paper93.Window
+              (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+              RouteBPaperFaithfulTPhiStrictLocalOp
+              κ)).filter
+          (fun w' =>
+            routeBPaperFaithfulTPhiStrictWindowNF n κ w' =
+              routeBPaperFaithfulTPhiStrictWindowNF n κ w)
+      self_mem := by simp }
+  sym := by
+    intro w w' hw'
+    apply Finset.ext
+    intro u
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hw' ⊢
+    rw [hw']
+
+theorem routeBPaperFaithfulTPhiStrictRawWindow_marked_of_twoTag
+    {n : ℕ} (T : Finset (Fin (n / 3))) (j k : Fin (n / 3))
+    (hTcard : T.card = Nat.log 2 n)
+    (hj : j ∈ T) (hk : k ∈ T) (hjk : j ≠ k) :
+    routeBPaperFaithfulTPhiStrictWindowHasMarkedCoeff
+      (routeBPaperFaithfulTPhiStrictRawWindowOf n T.toList
+        (1 : MvPolynomial (Fin (n / 3)) ℚ)
+        (SymmetricPower.tagMonomial
+          (({j, k} : Finset (Fin (n / 3))).map
+            ⟨cookLevinStrictFOBFlatMap n,
+              cookLevinStrictFOBFlatMap_injective n⟩))) := by
+  classical
+  have hcard_ge : 0 < Nat.log 2 n := by
+    have htwo : 2 ≤ T.card := by
+      have hsub : ({j, k} : Finset (Fin (n / 3))) ⊆ T := by
+        intro x hx
+        simp at hx
+        rcases hx with rfl | rfl
+        · exact hj
+        · exact hk
+      have hpair : ({j, k} : Finset (Fin (n / 3))).card = 2 := by
+        simpa using Finset.card_pair hjk
+      have := Finset.card_le_card hsub
+      simpa [hpair] using this
+    omega
+  refine ⟨⟨0, hcard_ge⟩, ?_⟩
+  simpa [routeBPaperFaithfulTPhiStrictRawWindowOf] using
+    routeBPaperFaithfulTPhiStrictCoeffMarker_twoTag j k hjk
+
+theorem routeBPaperFaithfulTPhiStrictDefaultWindow_not_marked
+    (n κ : ℕ) :
+    ¬ routeBPaperFaithfulTPhiStrictWindowHasMarkedCoeff
+      (routeBPaperFaithfulTPhiStrictDefaultWindow n κ) := by
+  intro h
+  rcases h with ⟨i, hi⟩
+  simp [routeBPaperFaithfulTPhiStrictDefaultWindow] at hi
+
+theorem routeBPaperFaithfulTPhiStrictDefaultWindow_mem_marked_class
+    {n κ : ℕ}
+    {w :
+      PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        κ}
+    (hw : routeBPaperFaithfulTPhiStrictWindowHasMarkedCoeff w) :
+    routeBPaperFaithfulTPhiStrictDefaultWindow n κ ∈
+      ((routeBPaperFaithfulTPhiStrictCanonScheme n κ).eqv w).cls := by
+  classical
+  simp [routeBPaperFaithfulTPhiStrictCanonScheme,
+    routeBPaperFaithfulTPhiStrictWindowNF, hw,
+    routeBPaperFaithfulTPhiStrictDefaultWindow_not_marked]
 
 /-- Specialized canonical-window data for the concrete strict `TΦ` decoder.
 The remaining fields are exactly the finite-local-normal-form obligations:
