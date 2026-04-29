@@ -10001,6 +10001,59 @@ theorem routeBPaperFaithfulTPhi_projectedPSideBound_of_quotientTypeNormalFormObl
       (hcontrol project ⟨project, hidem, hkills, hspan⟩)
       hbudget
 
+/-- Certificate-level quotient route: the quotient certificate supplies the
+projected common span, and the strict row algebra is exactly the restricted
+residual-balance identity for the certificate's selected projection. -/
+theorem routeBPaperFaithfulTPhi_projectedPSideBound_of_quotientTypeCertificate_restrictedResidualBalance
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {typeBudget : ℕ}
+    (cert :
+      ZeroProfileQuotientTypeSpaceCertificate (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        typeBudget)
+    (hres :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+        M n hn2 htb hns cert.project)
+    (hbudget : typeBudget ≤ n ^ 200) :
+    SATDeciderGaugePSideBound M n hn2 htb hns
+      (routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns) :=
+  routeBPaperFaithfulTPhi_projectedPSideBound_of_zeroProfileProjectedCommonSpanWithBudget
+    M n hn2 htb hns cert.project
+    (cookLevinZeroProfileProjectedCommonSpanWithBudget_of_quotientTypeCertificate
+      M n hn2 htb hns cert)
+    (routeBPaperFaithfulTPhi_projectedPWindowControlledByZeroProfileProjection_of_rangeRestrictedRowIdentity
+      M n hn2 htb hns cert.project
+      (routeBPaperFaithfulTPhi_rangePWindowRestrictedZeroProfileRowIdentity_of_restrictedResidualBalance
+        M n hn2 htb hns cert.project hres))
+    hbudget
+
+/-- Obligation-level quotient route with the selected certificate exposed to
+the row algebra.  This is the non-overfitted form of the remaining target:
+prove restricted residual balance for whichever quotient certificate witnesses
+the projected normal form. -/
+theorem routeBPaperFaithfulTPhi_projectedPSideBound_of_quotientTypeNormalFormObligation_restrictedResidualBalance
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {typeBudget : ℕ}
+    (hquot :
+      CookLevinZeroProfileQuotientTypeNormalFormObligation
+        M n hn2 htb hns typeBudget)
+    (hres :
+      ∀ cert :
+        ZeroProfileQuotientTypeSpaceCertificate (Nat.log 2 n)
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+          typeBudget,
+        RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+          M n hn2 htb hns cert.project)
+    (hbudget : typeBudget ≤ n ^ 200) :
+    SATDeciderGaugePSideBound M n hn2 htb hns
+      (routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns) := by
+  rcases hquot with ⟨cert⟩
+  exact
+    routeBPaperFaithfulTPhi_projectedPSideBound_of_quotientTypeCertificate_restrictedResidualBalance
+      M n hn2 htb hns cert (hres cert) hbudget
+
 private theorem routeBPaperFaithfulTPhi_finrank_sup_le_add
     {V : Type*} [AddCommGroup V] [Module ℚ V]
     (U W : Submodule ℚ V)
@@ -10518,6 +10571,52 @@ theorem false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_quotientTypeNorma
       routeBPaperFaithfulTPhi_projectedPWindowControlledByZeroProfileProjection_of_rangeRestrictedRowIdentity
         M n hn2 htb hns project (hrow project hproject))
     hbudget
+
+/-- Final strict-`TΦ` hook from an explicit quotient type certificate and the
+restricted residual-balance row algebra for its selected projection. -/
+theorem false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_quotientTypeCertificate_restrictedResidualBalance
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    {typeBudget : ℕ}
+    (cert :
+      ZeroProfileQuotientTypeSpaceCertificate (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        typeBudget)
+    (hres :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+        M n hn2 htb hns cert.project)
+    (hbudget : typeBudget ≤ n ^ 200) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_projectedLogWindow
+    M n hn hn2 htb hns hdec
+    (routeBPaperFaithfulTPhi_projectedPSideBound_of_quotientTypeCertificate_restrictedResidualBalance
+      M n hn2 htb hns cert hres hbudget)
+
+/-- Final strict-`TΦ` hook from the existential quotient normal-form
+obligation, with the residual-balance proof stated for the selected quotient
+certificate. -/
+theorem false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_quotientTypeNormalFormObligation_restrictedResidualBalance
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    {typeBudget : ℕ}
+    (hquot :
+      CookLevinZeroProfileQuotientTypeNormalFormObligation
+        M n hn2 htb hns typeBudget)
+    (hres :
+      ∀ cert :
+        ZeroProfileQuotientTypeSpaceCertificate (Nat.log 2 n)
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+          typeBudget,
+        RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+          M n hn2 htb hns cert.project)
+    (hbudget : typeBudget ≤ n ^ 200) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_projectedLogWindow
+    M n hn hn2 htb hns hdec
+    (routeBPaperFaithfulTPhi_projectedPSideBound_of_quotientTypeNormalFormObligation_restrictedResidualBalance
+      M n hn2 htb hns hquot hres hbudget)
 
 /-- Strict-`TΦ` projected/log-window final hook from quotiented zero-profile
 data and the strict projected P-window containment. -/
