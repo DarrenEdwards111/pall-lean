@@ -4522,6 +4522,76 @@ structure RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalProfileClassifier
         zeroProfileLocalTypeSpace alphabet
           (rowType S' shift α hSlen hshiftDegree hshiftVars hadm hrow)
 
+
+/-! ### Paper §9.3–§9.4 local profile compression surface -/
+
+/-- Paper-faithful local-profile compression data for narrowed strict `TΦ`
+canonical derivative rows.
+
+This is the Lean surface corresponding to the paper's §9.3–§9.4 route:
+canonicalize derivative windows, compress each live interface to a finite local
+monoid normal form, then place rows with the same interface-anonymous profile in
+a bounded symmetric-power/profile space.  Notice what is *not* present here:
+there is no equality with zero-profile shifted base-product rows and no broad
+residual/row-identity hypothesis. -/
+structure RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalLocalProfileCompression
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  alphabet : ZeroProfileLocalTypeAlphabet n (Nat.log 2 n)
+  profileOfCanonicalRow :
+    ∀ (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ),
+      S'.length = Nat.log 2 n →
+      shift.totalDegree ≤ Nat.log 2 n →
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+        (S'.map (cookLevinStrictFOBFlatMap n)).toFinset →
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n)) →
+      routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily
+        M n hn2 htb hns S' shift α →
+      alphabet.type
+  canonicalRow_mem_profileSpace :
+    ∀ (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily
+          M n hn2 htb hns S' shift α),
+      mlProj
+          (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+            SPDP.iterDerivList (S'.map (cookLevinStrictFOBFlatMap n))
+              ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+                (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) ∈
+        zeroProfileLocalTypeSpace alphabet
+          (profileOfCanonicalRow S' shift α hSlen hshiftDegree hshiftVars hadm hrow)
+
+/-- The paper-local-profile-compression surface is exactly a direct narrowed
+classifier.  This bridge is intentionally definition-level: the mathematical
+content is the canonical row membership in the local profile space, not any
+residual identity with zero-profile base-product rows. -/
+noncomputable def routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalProfileClassifier_of_localProfileCompression
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (C :
+      RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalLocalProfileCompression
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalProfileClassifier
+      M n hn2 htb hns where
+  alphabet := C.alphabet
+  rowType := C.profileOfCanonicalRow
+  row_mem_typeSpace := C.canonicalRow_mem_profileSpace
+
 /-- A direct narrow classifier proves the narrowed profile/subspace frontier. -/
 theorem routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalProfileSubspaceContainment_of_classifier
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
@@ -4618,6 +4688,34 @@ theorem routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalCommonSpanWithBudget
   exact
     routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalCommonSpanWithBudget_of_profileSubspace
       M n hn2 htb hns A hA
+
+/-- Paper-faithful local profile compression proves the narrowed classifier
+obligation. -/
+theorem routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalProfileClassifierObligation_of_localProfileCompression
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (C :
+      RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalLocalProfileCompression
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalProfileClassifierObligation
+      M n hn2 htb hns :=
+  ⟨routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalProfileClassifier_of_localProfileCompression
+      M n hn2 htb hns C⟩
+
+/-- Paper-faithful local profile compression closes the narrowed bounded
+common-span consumer. -/
+theorem routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalCommonSpanWithBudget_of_localProfileCompression
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (C :
+      RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalLocalProfileCompression
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCommonSpanWithBudget
+      M n hn2 htb hns (withinProfileBound (Nat.log 2 n)) :=
+  routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalCommonSpanWithBudget_of_classifierObligation
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalProfileClassifierObligation_of_localProfileCompression
+      M n hn2 htb hns C)
 
 
 /-- The narrowed classifier obligation is equivalent to the narrowed bounded
