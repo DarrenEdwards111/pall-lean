@@ -3607,6 +3607,30 @@ theorem routeBPaperFaithfulTPhi_unitShift_zeroProfileRow_constantCoeff
     (by intro i; simp)]
   exact cookLevinZeroProfileBaseProduct_coeff_zero M n hn2 htb hns
 
+/-- Full strict tag-monomial coefficient of the unit-shift zero-profile row.
+The constant-coefficient lemma above is the `S = ∅` specialization; this
+computes every strict first-of-block coefficient on the source side. -/
+theorem routeBPaperFaithfulTPhi_unitShift_zeroProfileRow_tagCoeff
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : Finset (Fin (n / 3))) :
+    let e : Fin (n / 3) ↪ Fin n :=
+      ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩
+    MvPolynomial.coeff (SymmetricPower.tagMonomial (S.map e))
+      (mlProj
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+            (1 : MvPolynomial (Fin (n / 3)) ℚ) *
+          cookLevinZeroProfileBaseProduct M n hn2 htb hns)) =
+      (-1 : ℚ) ^ S.card := by
+  classical
+  let e : Fin (n / 3) ↪ Fin n :=
+    ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩
+  rw [map_one, one_mul]
+  rw [cookLevinZeroProfileBaseProduct_eq_compiledPoly M n hn2 htb hns]
+  exact
+    _root_.Step4Compiler.Step252.coeff_mlProj_compiled_strictFOB_tag
+      M n hn2 htb hns S
+
 /-- For unit shift, the singleton-residual gate forces the extracted strict
 derivative row to have constant coefficient `1`.  This is the first concrete
 row-family test before any higher coefficient comparison is attempted. -/
@@ -3707,6 +3731,73 @@ theorem routeBPaperFaithfulTPhi_unitShift_derivative_constantCoeff_finset
           (mlProj (SPDP.iterDerivList T.toList r)) := by
               simp [q]
     _ = (-1 : ℚ) ^ T.card := hcoeff
+
+/-- Full strict tag-monomial coefficient of the intended strict `TΦ`
+derivative row, indexed by source and derivative finite sets.  This is the
+higher/nonconstant coefficient analogue of
+`routeBPaperFaithfulTPhi_unitShift_derivative_constantCoeff_finset`. -/
+theorem routeBPaperFaithfulTPhi_unitShift_derivative_tagCoeff_finset
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S T : Finset (Fin (n / 3))) :
+    let e : Fin (n / 3) ↪ Fin n :=
+      ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩
+    let p : MvPolynomial (Fin n) ℚ :=
+      compiledPoly (cook_levin_compilation M n hn2 htb hns)
+    let r : MvPolynomial (Fin (n / 3)) ℚ :=
+      MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) p
+    MvPolynomial.coeff (SymmetricPower.tagMonomial (S.map e))
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (mlProj
+          ((1 : MvPolynomial (Fin (n / 3)) ℚ) *
+            SPDP.iterDerivList T.toList r))) =
+      (2 : ℚ) ^ (S ∩ T).card * (-1) ^ (S \ T).card *
+        (-1) ^ (T \ S).card := by
+  classical
+  let f := cookLevinStrictFOBFlatMap n
+  let hf := cookLevinStrictFOBFlatMap_injective n
+  let e : Fin (n / 3) ↪ Fin n := ⟨f, hf⟩
+  let p : MvPolynomial (Fin n) ℚ :=
+    compiledPoly (cook_levin_compilation M n hn2 htb hns)
+  let r : MvPolynomial (Fin (n / 3)) ℚ :=
+    MultilinearSPDP.restrictPoly ℚ f hf p
+  let q : MvPolynomial (Fin (n / 3)) ℚ :=
+    mlProj ((1 : MvPolynomial (Fin (n / 3)) ℚ) *
+      SPDP.iterDerivList T.toList r)
+  have hrename :
+      MvPolynomial.coeff (SymmetricPower.tagMonomial (S.map e))
+        (MvPolynomial.rename f q) =
+      MvPolynomial.coeff (SymmetricPower.tagMonomial S) q := by
+    have hcoeff :=
+      MvPolynomial.coeff_rename_mapDomain f hf q
+        (SymmetricPower.tagMonomial S)
+    have hmap :=
+      _root_.Step4Compiler.Step252.strictFOB_mapDomain_tagMonomial_eq
+        f hf S
+    simpa [e, hmap] using hcoeff
+  have hcoeff :
+      MvPolynomial.coeff (SymmetricPower.tagMonomial S)
+        (mlProj (SPDP.iterDerivList T.toList r)) =
+      (2 : ℚ) ^ (S ∩ T).card * (-1) ^ (S \ T).card *
+        (-1) ^ (T \ S).card := by
+    have hgeneral :=
+      _root_.Step4Compiler.Step252.coeff_mlProj_strictFOB_restrict_compiled_general
+        M n hn2 htb hns S T
+    simpa [p, r, f, hf] using hgeneral
+  calc
+    MvPolynomial.coeff (SymmetricPower.tagMonomial (S.map e))
+        (MvPolynomial.rename f
+          (mlProj
+            ((1 : MvPolynomial (Fin (n / 3)) ℚ) *
+              SPDP.iterDerivList T.toList r)))
+        = MvPolynomial.coeff (SymmetricPower.tagMonomial (S.map e))
+            (MvPolynomial.rename f q) := by simp [q]
+    _ = MvPolynomial.coeff (SymmetricPower.tagMonomial S) q := hrename
+    _ = MvPolynomial.coeff (SymmetricPower.tagMonomial S)
+          (mlProj (SPDP.iterDerivList T.toList r)) := by simp [q]
+    _ = (2 : ℚ) ^ (S ∩ T).card * (-1) ^ (S \ T).card *
+          (-1) ^ (T \ S).card := hcoeff
 
 /-- Actual constant coefficient of the intended strict `TΦ` derivative row,
 for the list-shaped source-row interface.  Repeated derivative coordinates are

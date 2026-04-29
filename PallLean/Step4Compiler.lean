@@ -52986,6 +52986,15 @@ private theorem strictFOB_mapDomain_tagMonomial {n m : ℕ}
       exact hj ⟨i, hfi⟩
     simp [hnot]
 
+/-- Public form of the strict first-of-block tag-monomial map-domain
+calculation, used by the Route B extraction file. -/
+theorem strictFOB_mapDomain_tagMonomial_eq {n m : ℕ}
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (S : Finset (Fin n)) :
+    Finsupp.mapDomain f (SymmetricPower.tagMonomial S) =
+      SymmetricPower.tagMonomial (S.map ⟨f, hf⟩) :=
+  strictFOB_mapDomain_tagMonomial f hf S
+
 private theorem strictFOB_toList_map_perm {α β : Type} [DecidableEq α] [DecidableEq β]
     (e : α ↪ β) (S : Finset α) :
     (S.toList.map e).Perm ((S.map e).toList) := by
@@ -53099,6 +53108,42 @@ theorem coeff_mlProj_strictFOB_restrict_compiled_general
   · intro s hs
     rw [Finset.mem_toList] at hs
     simp [cookLevinStrictFOBFlatMap_image_fob n T s hs]
+  · exact cookLevinStrictFOBFlatMap_image_fob n S
+  · intro v hv
+    simp at hv
+    exact hv
+
+/-- Ambient strict first-of-block coefficient of the undifferentiated
+Cook-Levin compiled polynomial.  This is the `T = ∅` source-side coefficient
+needed by Route B's unit-shift residual row algebra. -/
+theorem coeff_mlProj_compiled_strictFOB_tag
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : Finset (Fin (n / 3))) :
+    MvPolynomial.coeff (SymmetricPower.tagMonomial
+        (S.map ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩))
+      (MultilinearSPDP.mlProj
+        (PaperFaithfulSeparation.compiledPoly
+          (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns))) =
+      (-1 : ℚ) ^ S.card := by
+  classical
+  let e : Fin (n / 3) ↪ Fin n :=
+    ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩
+  rw [MultilinearSPDP.coeff_mlProj_of_isMultilinear_mono _ _
+    (SymmetricPower.tagMonomial_isMultilinear (S.map e))]
+  rw [← IterDerivHelpers.iterDerivList_nil
+    (PaperFaithfulSeparation.compiledPoly
+      (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns))]
+  rw [CrossTermVanishing.coeff_iterDeriv_compiledPoly_eq_boolFactor
+    M hn htb hns ([] : List (Fin n)) (S.map e)
+    (Finset.univ.filter (fun v : Fin n => 3 ∣ v.val))]
+  · rw [show ([] : List (Fin n)) = (∅ : Finset (Fin n)).toList by simp]
+    rw [← SymmetricPower.boolFactorDerivProd_eq_iterDerivList
+      (∅ : Finset (Fin n))]
+    rw [SymmetricPower.coeff_tagMonomial_boolFactorDerivProd_general]
+    simp [e]
+  · intro s hs
+    simp at hs
   · exact cookLevinStrictFOBFlatMap_image_fob n S
   · intro v hv
     simp at hv
