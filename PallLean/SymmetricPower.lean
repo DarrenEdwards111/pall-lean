@@ -1667,6 +1667,17 @@ theorem coeff_tagMonomial_boolFactorDerivProd_samesize {N : ℕ}
     (2 : ℚ) ^ (S ∩ S').card := by
   exact coeff_tag_iterDeriv_boolFactor_prod_samesize S S' hcard
 
+/-- General coefficient formula for the Boolean derivative-product row.  The
+same-size theorem above is the Gram-matrix specialization used for the lower
+bound; Route B's residual tests also need the off-size cases, especially the
+constant coefficient where `S = ∅`. -/
+theorem coeff_tagMonomial_boolFactorDerivProd_general {N : ℕ}
+    (S S' : Finset (Fin N)) :
+    MvPolynomial.coeff (tagMonomial S) (boolFactorDerivProd S') =
+      (2 : ℚ) ^ (S ∩ S').card * (-1) ^ (S \ S').card *
+        (-1) ^ (S' \ S).card := by
+  exact coeff_tag_iterDeriv_boolFactor_prod_general S S'
+
 -- The nonzero diagonal entry.
 theorem coeff_tagMonomial_self_ne_zero {N : ℕ} (S : Finset (Fin N)) :
     MvPolynomial.coeff (tagMonomial S) (boolFactorDerivProd S) ≠ 0 := by

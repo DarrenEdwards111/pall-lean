@@ -3651,6 +3651,128 @@ theorem routeBPaperFaithfulTPhi_singletonResidual_forces_unitShift_derivative_co
         M n hn2 htb hns
   exact hbalance.symm.trans hleft
 
+/-- Actual constant coefficient of the intended strict `TΦ` derivative row,
+indexed by a canonical finite derivative set.  This is the concrete
+Cook-Levin coefficient computation behind the unit-shift residual test. -/
+theorem routeBPaperFaithfulTPhi_unitShift_derivative_constantCoeff_finset
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (T : Finset (Fin (n / 3))) :
+    let p : MvPolynomial (Fin n) ℚ :=
+      compiledPoly (cook_levin_compilation M n hn2 htb hns)
+    let r : MvPolynomial (Fin (n / 3)) ℚ :=
+      MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) p
+    MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (mlProj
+          ((1 : MvPolynomial (Fin (n / 3)) ℚ) *
+            SPDP.iterDerivList T.toList r))) =
+      (-1 : ℚ) ^ T.card := by
+  classical
+  let p : MvPolynomial (Fin n) ℚ :=
+    compiledPoly (cook_levin_compilation M n hn2 htb hns)
+  let r : MvPolynomial (Fin (n / 3)) ℚ :=
+    MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+      (cookLevinStrictFOBFlatMap_injective n) p
+  let q : MvPolynomial (Fin (n / 3)) ℚ :=
+    mlProj ((1 : MvPolynomial (Fin (n / 3)) ℚ) * SPDP.iterDerivList T.toList r)
+  have hrename :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) q) =
+      MvPolynomial.coeff (0 : Fin (n / 3) →₀ ℕ) q := by
+    simpa using
+      (MvPolynomial.coeff_rename_mapDomain (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) q
+        (0 : Fin (n / 3) →₀ ℕ))
+  have hcoeff :
+      MvPolynomial.coeff (0 : Fin (n / 3) →₀ ℕ)
+        (mlProj (SPDP.iterDerivList T.toList r)) =
+      (-1 : ℚ) ^ T.card := by
+    have hgeneral :=
+      _root_.Step4Compiler.Step252.coeff_mlProj_strictFOB_restrict_compiled_general
+        M n hn2 htb hns (∅ : Finset (Fin (n / 3))) T
+    simpa [SymmetricPower.tagMonomial, Finset.card_empty, p, r] using hgeneral
+  calc
+    MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+          (mlProj
+            ((1 : MvPolynomial (Fin (n / 3)) ℚ) *
+              SPDP.iterDerivList T.toList r)))
+        = MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+            (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) q) := by
+              simp [q]
+    _ = MvPolynomial.coeff (0 : Fin (n / 3) →₀ ℕ) q := hrename
+    _ = MvPolynomial.coeff (0 : Fin (n / 3) →₀ ℕ)
+          (mlProj (SPDP.iterDerivList T.toList r)) := by
+              simp [q]
+    _ = (-1 : ℚ) ^ T.card := hcoeff
+
+/-- Actual constant coefficient of the intended strict `TΦ` derivative row,
+for the list-shaped source-row interface.  Repeated derivative coordinates are
+excluded by `hSnd`; the coefficient is the expected Boolean sign
+`(-1)^|S'|`. -/
+theorem routeBPaperFaithfulTPhi_unitShift_derivative_constantCoeff
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S' : List (Fin (n / 3)))
+    (hSnd : S'.Nodup) :
+    let p : MvPolynomial (Fin n) ℚ :=
+      compiledPoly (cook_levin_compilation M n hn2 htb hns)
+    let r : MvPolynomial (Fin (n / 3)) ℚ :=
+      MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) p
+    MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (mlProj
+          ((1 : MvPolynomial (Fin (n / 3)) ℚ) *
+            SPDP.iterDerivList S' r))) =
+      (-1 : ℚ) ^ S'.length := by
+  classical
+  let T : Finset (Fin (n / 3)) := S'.toFinset
+  let p : MvPolynomial (Fin n) ℚ :=
+    compiledPoly (cook_levin_compilation M n hn2 htb hns)
+  let r : MvPolynomial (Fin (n / 3)) ℚ :=
+    MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+      (cookLevinStrictFOBFlatMap_injective n) p
+  have hperm : S'.Perm T.toList := by
+    simpa [T] using (List.toFinset_toList hSnd).symm
+  have hiter :
+      SPDP.iterDerivList S' r = SPDP.iterDerivList T.toList r := by
+    exact IterDerivHelpers.iterDerivList_perm hperm r
+  have hfinset :=
+    routeBPaperFaithfulTPhi_unitShift_derivative_constantCoeff_finset
+      M n hn2 htb hns T
+  have hcard : T.card = S'.length := by
+    simpa [T] using List.toFinset_card_of_nodup hSnd
+  simpa [p, r, hiter, hcard] using hfinset
+
+/-- Even strict derivative rows pass the unit-shift constant-coefficient test:
+their extracted derivative constant term is `1`. -/
+theorem routeBPaperFaithfulTPhi_unitShift_derivative_constantCoeff_one_of_even_length
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S' : List (Fin (n / 3)))
+    (hSnd : S'.Nodup)
+    (hEven : Even S'.length) :
+    let p : MvPolynomial (Fin n) ℚ :=
+      compiledPoly (cook_levin_compilation M n hn2 htb hns)
+    let r : MvPolynomial (Fin (n / 3)) ℚ :=
+      MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) p
+    MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (mlProj
+          ((1 : MvPolynomial (Fin (n / 3)) ℚ) *
+            SPDP.iterDerivList S' r))) = (1 : ℚ) := by
+  classical
+  have hcoeff :=
+    routeBPaperFaithfulTPhi_unitShift_derivative_constantCoeff
+      M n hn2 htb hns S' hSnd
+  have hpow : (-1 : ℚ) ^ S'.length = 1 :=
+    Even.neg_one_pow hEven
+  simpa [hpow] using hcoeff
+
 /-- Unit-shift no-go form: one admissible strict derivative list whose
 extracted derivative row has constant coefficient different from `1` rules out
 the singleton-residual target. -/
@@ -3680,6 +3802,39 @@ theorem routeBPaperFaithfulTPhi_not_singletonResidual_of_unitShift_derivative_co
   exact hcoeff_ne
     (routeBPaperFaithfulTPhi_singletonResidual_forces_unitShift_derivative_constantCoeff_one
       M n hn2 htb hns hres S' hSlen hadm)
+
+/-- Odd strict derivative rows fail the unit-shift singleton-residual constant
+test.  Thus the residual target can only be viable for strict row families
+whose intended row length is even, or after an additional normalization that
+changes this sign. -/
+theorem routeBPaperFaithfulTPhi_not_singletonResidual_of_unitShift_odd_length
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S' : List (Fin (n / 3)))
+    (hSnd : S'.Nodup)
+    (hSlen : S'.length = Nat.log 2 n)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n)))
+    (hOdd : Odd S'.length) :
+    ¬ RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalFormResidual
+        M n hn2 htb hns := by
+  classical
+  refine
+    routeBPaperFaithfulTPhi_not_singletonResidual_of_unitShift_derivative_constantCoeff_ne_one
+      M n hn2 htb hns S' hSlen hadm ?_
+  have hcoeff :=
+    routeBPaperFaithfulTPhi_unitShift_derivative_constantCoeff
+      M n hn2 htb hns S' hSnd
+  have hpow : (-1 : ℚ) ^ S'.length = -1 := by
+    exact (neg_one_pow_eq_neg_one_iff_odd
+      (by norm_num : (-1 : ℚ) ≠ 1)).mpr hOdd
+  dsimp only
+  intro hEq
+  have hbad : (-1 : ℚ) ^ S'.length = 1 := hcoeff.symm.trans hEq
+  rw [hpow] at hbad
+  norm_num at hbad
 
 /-- Any proof of the strict singleton-normal-form identity must prove that the
 renamed restricted derivative row has no degree-one singleton coefficients.

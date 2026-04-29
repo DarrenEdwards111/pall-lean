@@ -53049,6 +53049,61 @@ theorem coeff_mlProj_strictFOB_restrict_compiled_samesize
     (cookLevinStrictFOBFlatMap_image_fob n T)]
   rw [strictFOB_card_map_inter e S T]
 
+/-- Route B strict first-of-block restricted coefficient matrix, without the
+same-size specialization.  The same-size theorem above is enough for the
+identity-minor lower bound; the residual/no-go tests need the off-size
+coefficients, in particular the constant coefficient obtained by `S = ∅`. -/
+theorem coeff_mlProj_strictFOB_restrict_compiled_general
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S T : Finset (Fin (n / 3))) :
+    MvPolynomial.coeff (SymmetricPower.tagMonomial S)
+      (MultilinearSPDP.mlProj (SPDP.iterDerivList T.toList
+        (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+          (cookLevinStrictFOBFlatMap_injective n)
+          (PaperFaithfulSeparation.compiledPoly
+            (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns))))) =
+      (2 : ℚ) ^ (S ∩ T).card * (-1) ^ (S \ T).card *
+        (-1) ^ (T \ S).card := by
+  classical
+  let f := cookLevinStrictFOBFlatMap n
+  let hf := cookLevinStrictFOBFlatMap_injective n
+  let e : Fin (n / 3) ↪ Fin n := ⟨f, hf⟩
+  rw [MultilinearSPDP.iterDerivList_restrictPoly ℚ f hf]
+  rw [MultilinearSPDP.coeff_mlProj_of_isMultilinear_mono _ _
+    (SymmetricPower.tagMonomial_isMultilinear S)]
+  rw [strictFOB_coeff_restrictPoly_eq_coeff_mapDomain f hf]
+  rw [strictFOB_mapDomain_tagMonomial f hf S]
+  rw [← MultilinearSPDP.coeff_mlProj_of_isMultilinear_mono _ _
+    (SymmetricPower.tagMonomial_isMultilinear (S.map e))]
+  have hperm : (T.toList.map f).Perm ((T.map e).toList) := by
+    simp only [e, f, hf]
+    exact strictFOB_toList_map_perm ⟨cookLevinStrictFOBFlatMap n,
+      cookLevinStrictFOBFlatMap_injective n⟩ T
+  rw [IterDerivHelpers.iterDerivList_perm hperm]
+  rw [MultilinearSPDP.coeff_mlProj_of_isMultilinear_mono _ _
+    (SymmetricPower.tagMonomial_isMultilinear (S.map e))]
+  rw [CrossTermVanishing.coeff_iterDeriv_compiledPoly_eq_boolFactor
+    M hn htb hns ((T.map e).toList) (S.map e)
+    (Finset.univ.filter (fun v : Fin n => 3 ∣ v.val))]
+  · rw [← SymmetricPower.boolFactorDerivProd_eq_iterDerivList (T.map e)]
+    rw [SymmetricPower.coeff_tagMonomial_boolFactorDerivProd_general]
+    rw [strictFOB_card_map_inter e S T]
+    have hsdiff :
+        ((S.map e) \ (T.map e)).card = (S \ T).card := by
+      rw [← Finset.map_sdiff, Finset.card_map]
+    have htdiff :
+        ((T.map e) \ (S.map e)).card = (T \ S).card := by
+      rw [← Finset.map_sdiff, Finset.card_map]
+    rw [hsdiff, htdiff]
+  · intro s hs
+    rw [Finset.mem_toList] at hs
+    simp [cookLevinStrictFOBFlatMap_image_fob n T s hs]
+  · exact cookLevinStrictFOBFlatMap_image_fob n S
+  · intro v hv
+    simp at hv
+    exact hv
+
 private theorem strictFOB_linearIndependent_of_tag_coeff_gram {N κ : ℕ} (_hκ : κ ≥ 1)
     {F : Finset (Finset (Fin N))}
     (hcard : ∀ S ∈ F, S.card = κ)
