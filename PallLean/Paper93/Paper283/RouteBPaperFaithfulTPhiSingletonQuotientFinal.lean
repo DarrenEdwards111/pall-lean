@@ -995,6 +995,33 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNorm
     false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_singletonNormalForm_projectedTypeBudget_normalizedRows_fixedDerivative
       M n hn hn2 htb hns hdec hbudget hnorm hfix
 
+/-- Uniform singleton-quotient certificate close-out from the corrected
+semantic coefficient target and the selected derivative representative
+condition.  This is the projected/quotient branch: it does not assert a raw
+range-wide row identity. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonQuotient_projectedTypeBudget_normalizedCoeff_fixedDerivative
+    (hcert :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i) <=
+          withinProfileBound (Nat.log 2 n) ∧
+        RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedNonSingletonCoeffIdentity
+          M n hn2 htb hns ∧
+        RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonQuotientDerivativeFixed
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale := by
+  intro M n hn hn2 htb hns hdec
+  rcases hcert M n hn hn2 htb hns hdec with
+    ⟨hbudget, hcoeff, hfix⟩
+  exact
+    false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_singletonNormalForm_projectedTypeBudget_normalizedRows_fixedDerivative
+      M n hn hn2 htb hns hdec hbudget
+      (routeBPaperFaithfulTPhi_singletonNormalizedRowIdentity_of_normalizedNonSingletonCoeff
+        M n hn2 htb hns hcoeff)
+      hfix
+
 /-- Uniform concrete row embeddings plus normalized singleton-normalizer row
 identity rule out bounded SAT deciders at paper scale.  The normalizer common
 span and `+ n` singleton residual budget are discharged internally. -/
@@ -1802,6 +1829,26 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNor
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_projectedTypeBudget_normalizedRows_fixedDerivative
       hcert)
 
+/-- Rich-projection discharge through the concrete singleton quotient
+certificate, using the corrected semantic coefficient target plus fixed
+derivative representatives. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuotient_projectedTypeBudget_normalizedCoeff_fixedDerivative
+    (hcert :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i) <=
+          withinProfileBound (Nat.log 2 n) ∧
+        RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedNonSingletonCoeffIdentity
+          M n hn2 htb hns ∧
+        RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonQuotientDerivativeFixed
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonQuotient_projectedTypeBudget_normalizedCoeff_fixedDerivative
+      hcert)
+
 /-- Legacy rich-projection discharge from concrete row embeddings and
 normalized singleton-normalizer row identity. -/
 theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedRows
@@ -2292,6 +2339,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_projectedTypeBudget_normalizedCoeff
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_projectedTypeBudget_normalizedCoeffBalance
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_projectedTypeBudget_normalizedRows_fixedDerivative
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonQuotient_projectedTypeBudget_normalizedCoeff_fixedDerivative
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedRows
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedCoeff
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedCoeffBalance
@@ -2324,6 +2372,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_projectedTypeBudget_normalizedCoeff
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_projectedTypeBudget_normalizedCoeffBalance
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_projectedTypeBudget_normalizedRows_fixedDerivative
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuotient_projectedTypeBudget_normalizedCoeff_fixedDerivative
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedRows
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedCoeff
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedCoeffBalance

@@ -9373,6 +9373,49 @@ theorem routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation_of_quo
     routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation_of_quotientTypeCertificate_restrictedResidualBalance
       M n hn2 htb hns cert (hres cert) hbudget
 
+/-- Concrete singleton-quotient certificate route from the semantic
+normal-form row algebra.
+
+This is the projected/quotient strict `TΦ` close-out used by the paper-faithful
+branch: the singleton quotient certificate supplies the bounded type space, the
+normalized non-singleton coefficient computation supplies the singleton
+residual, and the derivative-fixed condition is the explicit representative
+condition needed to turn quotient residuals into the selected projected row
+identity. -/
+theorem routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation_of_singletonQuotientTypeCertificate_normalizedCoeff_derivativeFixed
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcoeff :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedNonSingletonCoeffIdentity
+        M n hn2 htb hns)
+    (hfix :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonQuotientDerivativeFixed
+        M n hn2 htb hns)
+    (hbudget :
+      zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i) ≤
+        withinProfileBound (Nat.log 2 n)) :
+    RouteBPaperFaithfulTPhiStrictProfileSubspaceClassifierObligation
+      M n hn2 htb hns := by
+  let cert :=
+    zeroProfileSingletonQuotientTypeSpaceCertificate_projectedFinrank
+      (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+  have hnorm :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalizedRowIdentity
+        M n hn2 htb hns :=
+    routeBPaperFaithfulTPhi_singletonNormalizedRowIdentity_of_normalizedNonSingletonCoeff
+      M n hn2 htb hns hcoeff
+  have hres :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+        M n hn2 htb hns cert.project := by
+    simpa [cert, zeroProfileSingletonQuotientTypeSpaceCertificate_projectedFinrank] using
+      routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientResidualBalance_of_normalizedRows_derivativeFixed
+        M n hn2 htb hns hnorm hfix
+  exact
+    routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation_of_quotientTypeCertificate_restrictedResidualBalance
+      M n hn2 htb hns cert hres hbudget
+
 private theorem routeBPaperFaithfulTPhi_strictFOB_preimageList
     (n : ℕ) (S : List (Fin n))
     (hS : ∀ v ∈ S, v ∈ Set.range (cookLevinStrictFOBFlatMap n)) :
@@ -10170,6 +10213,30 @@ theorem routeBPaperFaithfulTPhi_projectedPSideBound_of_singletonQuotientTypeCert
   exact
     routeBPaperFaithfulTPhi_projectedPSideBound_of_quotientTypeCertificate_restrictedResidualBalance
       M n hn2 htb hns cert hres hbudget
+
+/-- Concrete singleton-quotient P-side bound from the normalized
+non-singleton coefficient computation and the selected derivative
+representative condition. -/
+theorem routeBPaperFaithfulTPhi_projectedPSideBound_of_singletonQuotientTypeCertificate_normalizedCoeff_derivativeFixed
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcoeff :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedNonSingletonCoeffIdentity
+        M n hn2 htb hns)
+    (hfix :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonQuotientDerivativeFixed
+        M n hn2 htb hns)
+    (hbudget :
+      zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i) ≤
+        n ^ 200) :
+    SATDeciderGaugePSideBound M n hn2 htb hns
+      (routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns) :=
+  routeBPaperFaithfulTPhi_projectedPSideBound_of_singletonQuotientTypeCertificate_normalizedRows_derivativeFixed
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_singletonNormalizedRowIdentity_of_normalizedNonSingletonCoeff
+      M n hn2 htb hns hcoeff)
+    hfix hbudget
 
 private theorem routeBPaperFaithfulTPhi_finrank_sup_le_add
     {V : Type*} [AddCommGroup V] [Module ℚ V]
