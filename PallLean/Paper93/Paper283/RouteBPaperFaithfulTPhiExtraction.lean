@@ -3448,9 +3448,13 @@ theorem routeBPaperFaithfulTPhiStrictCanonScheme_excludes_two_tag
     routeBPaperFaithfulTPhiStrictRawWindow_twoTag_not_isCanonical
       T j k hTcard hj hk hjk
 
-/-- Strict finite-local-normal-form row family for the corrected coefficient
-balance: the decoded row must already be canonical for the strict scheme and
-must not carry the marked two-tag coefficient profile. -/
+/-- Broad strict finite-local-normal-form row family: the decoded row must
+already be canonical for the strict scheme and must not carry the marked
+two-tag coefficient profile.
+
+This family is useful as a diagnostic boundary, but it is not the final
+paper-faithful coefficient target: it still admits the zero-profile odd
+unit-shift rows refuted below. -/
 def routeBPaperFaithfulTPhiStrictUnmarkedCanonicalRowFamily
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
@@ -3466,9 +3470,12 @@ def routeBPaperFaithfulTPhiStrictUnmarkedCanonicalRowFamily
         ¬ routeBPaperFaithfulTPhiStrictWindowHasMarkedCoeff
           (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
 
-/-- The next coefficient-balance target after the two-tag exclusion: prove the
-normalized coefficient identity only for strict rows that are both canonical
-finite-local-normal-form rows and unmarked. -/
+/-- Diagnostic broad coefficient-balance target for strict rows that are both
+canonical finite-local-normal-form rows and unmarked.
+
+This is intentionally not the final Route B target: Lean proves below that
+its fully expanded algebraic form is too wide when odd unit-shift zero-profile
+rows are available. -/
 abbrev RouteBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffBalance
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
@@ -3477,13 +3484,13 @@ abbrev RouteBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffBalance
     (routeBPaperFaithfulTPhiStrictUnmarkedCanonicalRowFamily
       M n hn2 htb hns)
 
-/-- Fully expanded Cook-Levin coefficient computation needed for the strict
+/-- Fully expanded Cook-Levin coefficient computation for the broad strict
 unmarked finite-local-normal-form rows.
 
-This is intentionally separated from the row-family packaging: the
-shortlex/order work proves that marked two-tag probes are not canonical, but
-the remaining positive proof is still an algebraic coefficient identity for
-all unmarked strict coefficient probes and arbitrary admissible shifts. -/
+This is intentionally kept as a named diagnostic target, not as a paper claim:
+the theorem
+`routeBPaperFaithfulTPhi_not_strictUnmarkedCanonicalCoeffAlgebra_of_unitShift_odd_length`
+shows that this all-unmarked/all-admissible pointwise algebra is too broad. -/
 def RouteBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffAlgebra
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
@@ -3683,6 +3690,88 @@ theorem routeBPaperFaithfulTPhiStrictUnmarkedCanonicalRowFamily_excludes_two_tag
     (routeBPaperFaithfulTPhiStrictRawWindow_marked_of_twoTag
       T j k hTcard hj hk hjk)
 
+/-- Paper-faithful strict canonical row family after the two discovered
+normal-form gates.
+
+Besides canonicality and the two-tag marker exclusion, this predicate records
+the missing normalization/parity gate for the zero coefficient profile: a
+unit-shift zero-profile row can only be consumed by the pointwise coefficient
+identity when its strict derivative length is even.  Odd rows are handled by
+the obstruction theorem rather than silently included in the positive target.
+-/
+def routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    RouteBPaperFaithfulTPhiCanonicalProfileRowFamily
+      M n hn2 htb hns :=
+  fun S' shift α =>
+    routeBPaperFaithfulTPhiStrictUnmarkedCanonicalRowFamily
+        M n hn2 htb hns S' shift α ∧
+      (shift = (1 : MvPolynomial (Fin (n / 3)) ℚ) →
+        α = (0 : Fin n →₀ ℕ) →
+        S'.Nodup →
+        Even S'.length)
+
+/-- The replacement strict coefficient target: the normalized coefficient
+identity is only requested on canonical, unmarked rows that also satisfy the
+unit-shift zero-profile parity/normalization gate. -/
+abbrev RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffBalance
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  RouteBPaperFaithfulTPhiCanonicalProfileNormalizedCoeffBalance
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily
+      M n hn2 htb hns)
+
+theorem routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily_excludes_two_tag
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    RouteBPaperFaithfulTPhiCanonicalProfileExcludesTwoTagUnitShift
+      M n hn2 htb hns
+      (routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily
+        M n hn2 htb hns) := by
+  classical
+  intro T j k hj hk hjk _hEven hTcard _hadm hrow
+  exact hrow.1.2
+    (routeBPaperFaithfulTPhiStrictRawWindow_marked_of_twoTag
+      T j k hTcard hj hk hjk)
+
+theorem routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily_excludes_odd_zero_unitShift
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S' : List (Fin (n / 3)))
+    (hSnd : S'.Nodup)
+    (hOdd : Odd S'.length) :
+    ¬ routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily
+        M n hn2 htb hns S'
+        (1 : MvPolynomial (Fin (n / 3)) ℚ)
+        (0 : Fin n →₀ ℕ) := by
+  intro hrow
+  have hEven : Even S'.length := hrow.2 rfl rfl hSnd
+  rcases hEven with ⟨a, ha⟩
+  rcases hOdd with ⟨b, hb⟩
+  omega
+
+def routeBPaperFaithfulTPhi_canonicalProfileResidualBalance_of_strictPaperFaithfulCoeffBalance
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hbalance :
+      RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffBalance
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiCanonicalProfileResidualBalance
+      M n hn2 htb hns where
+  canonicalRow :=
+    routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily
+      M n hn2 htb hns
+  coeff_balance := hbalance
+  excludes_two_tag :=
+    routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily_excludes_two_tag
+      M n hn2 htb hns
+
+/-- Backward-compatible diagnostic packager for the broad unmarked target.
+Prefer
+`routeBPaperFaithfulTPhi_canonicalProfileResidualBalance_of_strictPaperFaithfulCoeffBalance`
+for new Route B work. -/
 def routeBPaperFaithfulTPhi_canonicalProfileResidualBalance_of_strictUnmarkedCoeffBalance
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
@@ -6157,6 +6246,30 @@ theorem routeBPaperFaithfulTPhi_not_strictUnmarkedCanonicalCoeffAlgebra_of_unitS
     hleft.symm.trans (hbalance.trans hright)
   rw [hpow] at hbad
   norm_num at hbad
+
+/-- The old broad unmarked canonical balance is refuted by the same odd
+unit-shift zero-profile probe.  This records that the remaining positive
+Route B target must use the paper-faithful parity/normalization/profile row
+family, not merely canonicality plus the two-tag marker exclusion. -/
+theorem routeBPaperFaithfulTPhi_not_strictUnmarkedCanonicalCoeffBalance_of_unitShift_odd_length
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S' : List (Fin (n / 3)))
+    (hSnd : S'.Nodup)
+    (hSlen : S'.length = Nat.log 2 n)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n)))
+    (hOdd : Odd S'.length) :
+    ¬ RouteBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffBalance
+        M n hn2 htb hns := by
+  intro hbalance
+  exact
+    routeBPaperFaithfulTPhi_not_strictUnmarkedCanonicalCoeffAlgebra_of_unitShift_odd_length
+      M n hn2 htb hns S' hSnd hSlen hadm hOdd
+      ((routeBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffBalance_iff_algebra
+        M n hn2 htb hns).mp hbalance)
 
 /-- Any proof of the strict singleton-normal-form identity must prove that the
 renamed restricted derivative row has no degree-one singleton coefficients.
