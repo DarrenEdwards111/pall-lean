@@ -5654,6 +5654,84 @@ structure RouteBPaperFaithfulTPhiStrictPaperRangeRowProfileCoverData
 
 attribute [instance] RouteBPaperFaithfulTPhiStrictPaperRangeRowProfileCoverData.profileTypeFintype
 
+/-- Paper §9.3 local-monoid/profile analysis for strict `TΦ` range rows.
+
+This is the direct interface-anonymous normal-form version of the row-cover
+fact.  Its profiles are the finite local-monoid normal forms from canonical
+windows, not the derivative-count `ProfileHistogram` used internally by the
+generic Cook-Levin Leibniz expansion.  The total budget is therefore the
+paper's sum-over-profiles budget `combinedProfileBound`: number of profiles
+times the within-profile local dimension.
+-/
+structure RouteBPaperFaithfulTPhiStrictCanonicalWindowLocalMonoidProfileAnalysis
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileType : Type
+  [profileTypeFintype : Fintype profileType]
+  localDim : ℕ
+  localBasis : profileType → Finset (MvPolynomial (Fin n) ℚ)
+  localBasis_card_le : ∀ ρ, (localBasis ρ).card ≤ localDim
+  profileBudget_le : Fintype.card profileType * localDim ≤
+    combinedProfileBound (Nat.log 2 n)
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      profileType
+  canonicalRangeRow_mem_localProfileSpan :
+    ∀ (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α),
+      routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+          M n hn2 htb hns S' shift ∈
+        Submodule.span ℚ
+          (↑(localBasis
+            (profileOfCanonicalWindow
+              (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+              hrow.1)) : Set (MvPolynomial (Fin n) ℚ))
+
+attribute [instance]
+  RouteBPaperFaithfulTPhiStrictCanonicalWindowLocalMonoidProfileAnalysis.profileTypeFintype
+
+/-- The actual local-monoid/profile analysis instantiates the corrected
+paper-shaped range-row cover data without passing through a one-profile
+classifier or a broad projected row identity. -/
+noncomputable def routeBPaperFaithfulTPhi_strictPaperRangeRowProfileCoverData_of_localMonoidProfileCover
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (A :
+      RouteBPaperFaithfulTPhiStrictCanonicalWindowLocalMonoidProfileAnalysis
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictPaperRangeRowProfileCoverData
+      M n hn2 htb hns where
+  profileType := A.profileType
+  profileTypeFintype := inferInstance
+  localDim := A.localDim
+  localBasis := A.localBasis
+  localBasis_card_le := A.localBasis_card_le
+  profileBudget_le := A.profileBudget_le
+  profileOfCanonicalWindow := A.profileOfCanonicalWindow
+  canonicalRangeRow_mem_profileSpan := A.canonicalRangeRow_mem_localProfileSpan
+
 /-- The finite basis chosen for one bounded profile from the exact
 within-profile Cook-Levin lemma. -/
 noncomputable def routeBPaperFaithfulTPhi_strictProfileBasisOfLocalMonoidAnalysis
@@ -5826,6 +5904,28 @@ theorem routeBPaperFaithfulTPhi_strictPaperRangeRowsGlobalProfileSpanCover_of_lo
       RouteBPaperFaithfulTPhiStrictPaperRangeRowsGlobalProfileSpanCover D := by
   let D :=
     routeBPaperFaithfulTPhi_strictPaperRangeRowProfileCoverData_of_localMonoidProfileAnalysis
+      M n hn2 htb hns A
+  exact
+    ⟨D,
+      routeBPaperFaithfulTPhi_strictPaperRangeRowsGlobalProfileSpanCover_of_paperRangeRowProfileCoverData
+        M n hn2 htb hns D⟩
+
+/-- Local-monoid/profile analysis gives the corrected strict range-row global
+profile-span cover.  This is the paper-shaped close-out for the row-cover
+step: canonical windows select finite normal-form profiles, each row lands in
+the selected profile span, then the global basis is the finite union over
+profiles. -/
+theorem routeBPaperFaithfulTPhi_strictPaperRangeRowsGlobalProfileSpanCover_of_localMonoidProfileCover
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (A :
+      RouteBPaperFaithfulTPhiStrictCanonicalWindowLocalMonoidProfileAnalysis
+        M n hn2 htb hns) :
+    ∃ D : RouteBPaperFaithfulTPhiStrictPaperRangeRowProfileCoverData
+        M n hn2 htb hns,
+      RouteBPaperFaithfulTPhiStrictPaperRangeRowsGlobalProfileSpanCover D := by
+  let D :=
+    routeBPaperFaithfulTPhi_strictPaperRangeRowProfileCoverData_of_localMonoidProfileCover
       M n hn2 htb hns A
   exact
     ⟨D,
