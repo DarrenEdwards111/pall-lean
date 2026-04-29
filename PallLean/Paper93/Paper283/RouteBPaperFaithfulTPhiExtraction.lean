@@ -2187,6 +2187,16 @@ theorem coeff_mlProj_X_mul_of_isMultilinear
   rw [MultilinearSPDP.coeff_mlProj_of_isMultilinear_mono _ _ hα]
   rw [MvPolynomial.coeff_X_mul']
 
+theorem coeff_zero_mlProj_X_mul
+    {n : ℕ} (p : MvPolynomial (Fin n) ℚ) (i : Fin n) :
+    MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+      (mlProj (MvPolynomial.X i * p)) = 0 := by
+  have hzero : Finsupp.IsMultilinear (0 : Fin n →₀ ℕ) := by
+    intro v
+    simp
+  rw [coeff_mlProj_X_mul_of_isMultilinear p i (0 : Fin n →₀ ℕ) hzero]
+  simp
+
 /-- Support of a strict tag monomial is exactly the tagged finset. -/
 theorem tagMonomial_mem_support_iff {N : ℕ}
     (S : Finset (Fin N)) (v : Fin N) :
@@ -3202,6 +3212,41 @@ theorem routeBPaperFaithfulTPhiStrictDefaultWindow_not_marked
   rcases h with ⟨i, hi⟩
   simp [routeBPaperFaithfulTPhiStrictDefaultWindow] at hi
 
+@[simp] theorem routeBPaperFaithfulTPhiStrictWindowNF_eq_self_of_unmarked
+    {n κ : ℕ}
+    {w :
+      PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        κ}
+    (hw : ¬ routeBPaperFaithfulTPhiStrictWindowHasMarkedCoeff w) :
+    routeBPaperFaithfulTPhiStrictWindowNF n κ w = w := by
+  simp [routeBPaperFaithfulTPhiStrictWindowNF, hw]
+
+@[simp] theorem routeBPaperFaithfulTPhiStrictCoeffMarker_zero
+    (n : ℕ) :
+    routeBPaperFaithfulTPhiStrictCoeffMarker n
+        (0 : Fin n →₀ ℕ) =
+      false := by
+  classical
+  unfold routeBPaperFaithfulTPhiStrictCoeffMarker
+  rw [decide_eq_false_iff_not]
+  intro h
+  rcases h with ⟨j, k, _hjk, hα⟩
+  have hval :=
+    congrArg (fun β : Fin n →₀ ℕ => β (cookLevinStrictFOBFlatMap n j)) hα
+  simp [SymmetricPower.tagMonomial_apply] at hval
+
+theorem routeBPaperFaithfulTPhiStrictRawWindow_zero_unmarked
+    (n : ℕ) (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ) :
+    ¬ routeBPaperFaithfulTPhiStrictWindowHasMarkedCoeff
+      (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift
+        (0 : Fin n →₀ ℕ)) := by
+  intro h
+  rcases h with ⟨i, hi⟩
+  simp [routeBPaperFaithfulTPhiStrictRawWindowOf] at hi
+
 theorem routeBPaperFaithfulTPhiStrictDefaultWindow_mem_marked_class
     {n κ : ℕ}
     {w :
@@ -3292,6 +3337,56 @@ theorem routeBPaperFaithfulTPhiStrictCanWindow_eq_default_of_marked
         (routeBPaperFaithfulTPhiStrictDefaultWindow n κ)
         (routeBPaperFaithfulTPhiStrictDefaultWindow_mem_marked_class hw)
   · exact routeBPaperFaithfulTPhiStrictDefaultWindow_le n κ _
+
+theorem routeBPaperFaithfulTPhiStrictCanWindow_eq_self_of_unmarked
+    {n κ : ℕ}
+    {w :
+      PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        κ}
+    (hw : ¬ routeBPaperFaithfulTPhiStrictWindowHasMarkedCoeff w) :
+    letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+    PallLean.Paper93.canWindow
+      (κ := κ) (routeBPaperFaithfulTPhiStrictCanonScheme n κ) w = w := by
+  classical
+  letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+  apply le_antisymm
+  · exact
+      PallLean.Paper93.canWindow_le
+        (κ := κ) (routeBPaperFaithfulTPhiStrictCanonScheme n κ) w
+        w
+        ((routeBPaperFaithfulTPhiStrictCanonScheme n κ).eqv w).self_mem
+  · have hmem :
+        PallLean.Paper93.canWindow
+            (κ := κ) (routeBPaperFaithfulTPhiStrictCanonScheme n κ) w ∈
+          ((routeBPaperFaithfulTPhiStrictCanonScheme n κ).eqv w).cls :=
+        PallLean.Paper93.canWindow_mem_class
+          (κ := κ) (routeBPaperFaithfulTPhiStrictCanonScheme n κ) w
+    simp only [routeBPaperFaithfulTPhiStrictCanonScheme, Finset.mem_filter,
+      Finset.mem_univ, true_and] at hmem
+    rw [routeBPaperFaithfulTPhiStrictWindowNF_eq_self_of_unmarked hw] at hmem
+    change
+      routeBPaperFaithfulTPhiStrictWindowNF n κ
+          (PallLean.Paper93.canWindow
+            (κ := κ) (routeBPaperFaithfulTPhiStrictCanonScheme n κ) w) =
+        w at hmem
+    by_cases hc :
+        routeBPaperFaithfulTPhiStrictWindowHasMarkedCoeff
+          (PallLean.Paper93.canWindow
+            (κ := κ) (routeBPaperFaithfulTPhiStrictCanonScheme n κ) w)
+    · have hdef :
+          routeBPaperFaithfulTPhiStrictDefaultWindow n κ = w := by
+        rw [routeBPaperFaithfulTPhiStrictWindowNF, if_pos hc] at hmem
+        exact hmem
+      rw [← hdef]
+      exact routeBPaperFaithfulTPhiStrictDefaultWindow_le n κ _
+    · have hcw :
+          PallLean.Paper93.canWindow
+              (κ := κ) (routeBPaperFaithfulTPhiStrictCanonScheme n κ) w = w := by
+        rw [routeBPaperFaithfulTPhiStrictWindowNF, if_neg hc] at hmem
+        exact hmem
+      rw [hcw]
 
 theorem routeBPaperFaithfulTPhiStrict_not_isCanonical_of_marked
     {n κ : ℕ}
@@ -3437,6 +3532,103 @@ def RouteBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffAlgebra
             MvPolynomial.coeff (Finsupp.single i 1) d *
               MvPolynomial.coeff α
                 (mlProj (MvPolynomial.X i * Finset.univ.prod factors))
+
+theorem routeBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffAlgebra_forces_unitShift_constantCoeff_balance
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (halgebra :
+      RouteBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffAlgebra
+        M n hn2 htb hns)
+    (S' : List (Fin (n / 3)))
+    (hSlen : S'.length = Nat.log 2 n)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n))) :
+    let p : MvPolynomial (Fin n) ℚ :=
+      compiledPoly (cook_levin_compilation M n hn2 htb hns)
+    let r : MvPolynomial (Fin (n / 3)) ℚ :=
+      MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) p
+    let q : MvPolynomial (Fin n) ℚ :=
+      mlProj
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+            (1 : MvPolynomial (Fin (n / 3)) ℚ) *
+          cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+    let d : MvPolynomial (Fin n) ℚ :=
+      MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (mlProj
+          ((1 : MvPolynomial (Fin (n / 3)) ℚ) *
+            SPDP.iterDerivList S' r))
+    MvPolynomial.coeff (0 : Fin n →₀ ℕ) q =
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ) d := by
+  classical
+  let factors : Fin (cookLevinFactorList M n hn2 htb hns).length →
+      MvPolynomial (Fin n) ℚ :=
+    fun i => (cookLevinFactorList M n hn2 htb hns).get i
+  let p : MvPolynomial (Fin n) ℚ :=
+    compiledPoly (cook_levin_compilation M n hn2 htb hns)
+  let r : MvPolynomial (Fin (n / 3)) ℚ :=
+    MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+      (cookLevinStrictFOBFlatMap_injective n) p
+  let q : MvPolynomial (Fin n) ℚ :=
+    mlProj
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+          (1 : MvPolynomial (Fin (n / 3)) ℚ) *
+        cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+  let d : MvPolynomial (Fin n) ℚ :=
+    MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+      (mlProj
+        ((1 : MvPolynomial (Fin (n / 3)) ℚ) *
+          SPDP.iterDerivList S' r))
+  have hα : ∀ i : Fin n, (0 : Fin n →₀ ℕ) ≠ Finsupp.single i 1 := by
+    intro i hi
+    have hval := congrArg (fun β : Fin n →₀ ℕ => β i) hi
+    simp at hval
+  have hunmarked :
+      ¬ routeBPaperFaithfulTPhiStrictWindowHasMarkedCoeff
+        (routeBPaperFaithfulTPhiStrictRawWindowOf n S'
+          (1 : MvPolynomial (Fin (n / 3)) ℚ)
+          (0 : Fin n →₀ ℕ)) :=
+    routeBPaperFaithfulTPhiStrictRawWindow_zero_unmarked n S'
+      (1 : MvPolynomial (Fin (n / 3)) ℚ)
+  have hcan :
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n))
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S'
+              (1 : MvPolynomial (Fin (n / 3)) ℚ)
+              (0 : Fin n →₀ ℕ))) := by
+    letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+    exact
+      routeBPaperFaithfulTPhiStrictCanWindow_eq_self_of_unmarked
+        (n := n) (κ := Nat.log 2 n) hunmarked
+  have hbalance :=
+    halgebra S' (1 : MvPolynomial (Fin (n / 3)) ℚ)
+      hSlen (by simp) (by simp) hadm
+      (0 : Fin n →₀ ℕ) hα hcan hunmarked
+  have hsumq :
+      (∑ i : Fin n,
+        MvPolynomial.coeff (Finsupp.single i 1) q *
+          MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+            (mlProj (MvPolynomial.X i * Finset.univ.prod factors))) = 0 := by
+    refine Finset.sum_eq_zero ?_
+    intro i _hi
+    rw [coeff_zero_mlProj_X_mul, mul_zero]
+  have hsumd :
+      (∑ i : Fin n,
+        MvPolynomial.coeff (Finsupp.single i 1) d *
+          MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+            (mlProj (MvPolynomial.X i * Finset.univ.prod factors))) = 0 := by
+    refine Finset.sum_eq_zero ?_
+    intro i _hi
+    rw [coeff_zero_mlProj_X_mul, mul_zero]
+  dsimp only at hbalance
+  rw [hsumq, hsumd, sub_zero, sub_zero] at hbalance
+  simpa [p, r, q, d] using hbalance
 
 theorem routeBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffBalance_of_algebra
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
@@ -5925,6 +6117,44 @@ theorem routeBPaperFaithfulTPhi_not_singletonResidual_of_unitShift_odd_length
   dsimp only
   intro hEq
   have hbad : (-1 : ℚ) ^ S'.length = 1 := hcoeff.symm.trans hEq
+  rw [hpow] at hbad
+  norm_num at hbad
+
+/-- The broad strict-unmarked algebra target is still too wide if it admits an
+odd unit-shift strict derivative row.  The zero coefficient profile is
+unmarked and canonical for the strict normal-form scheme, so the algebra would
+force the same constant-coefficient equality that the existing Cook-Levin
+unit-shift computation refutes. -/
+theorem routeBPaperFaithfulTPhi_not_strictUnmarkedCanonicalCoeffAlgebra_of_unitShift_odd_length
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S' : List (Fin (n / 3)))
+    (hSnd : S'.Nodup)
+    (hSlen : S'.length = Nat.log 2 n)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n)))
+    (hOdd : Odd S'.length) :
+    ¬ RouteBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffAlgebra
+        M n hn2 htb hns := by
+  classical
+  intro halgebra
+  have hbalance :=
+    routeBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffAlgebra_forces_unitShift_constantCoeff_balance
+      M n hn2 htb hns halgebra S' hSlen hadm
+  have hleft :=
+    routeBPaperFaithfulTPhi_unitShift_zeroProfileRow_constantCoeff
+      M n hn2 htb hns
+  have hright :=
+    routeBPaperFaithfulTPhi_unitShift_derivative_constantCoeff
+      M n hn2 htb hns S' hSnd
+  have hpow : (-1 : ℚ) ^ S'.length = -1 := by
+    exact (neg_one_pow_eq_neg_one_iff_odd
+      (by norm_num : (-1 : ℚ) ≠ 1)).mpr hOdd
+  dsimp only at hbalance hright
+  have hbad : (1 : ℚ) = (-1 : ℚ) ^ S'.length :=
+    hleft.symm.trans (hbalance.trans hright)
   rw [hpow] at hbad
   norm_num at hbad
 
