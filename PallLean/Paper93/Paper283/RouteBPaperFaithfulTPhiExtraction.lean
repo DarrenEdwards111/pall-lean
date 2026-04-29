@@ -6205,6 +6205,59 @@ theorem routeBPaperFaithfulTPhi_normalizedNonSingletonCoeffIdentity_of_coeffBala
   simpa [p, r, q, d] using
     hbalance S' shift hSlen hshiftDegree hshiftVars hadm α hα
 
+/-- The compact normalized non-singleton coefficient identity is equivalent to
+the expanded balance form after unfolding the singleton normalizer. -/
+theorem routeBPaperFaithfulTPhi_coeffBalance_of_normalizedNonSingletonCoeffIdentity
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcoeff :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedNonSingletonCoeffIdentity
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedCoeffBalance
+        M n hn2 htb hns := by
+  classical
+  intro S' shift hSlen hshiftDegree hshiftVars hadm α hα
+  let factors : Fin (cookLevinFactorList M n hn2 htb hns).length →
+      MvPolynomial (Fin n) ℚ :=
+    fun i => (cookLevinFactorList M n hn2 htb hns).get i
+  let p : MvPolynomial (Fin n) ℚ :=
+    compiledPoly (cook_levin_compilation M n hn2 htb hns)
+  let r : MvPolynomial (Fin (n / 3)) ℚ :=
+    MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+      (cookLevinStrictFOBFlatMap_injective n) p
+  let q : MvPolynomial (Fin n) ℚ :=
+    mlProj
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+        cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+  let d : MvPolynomial (Fin n) ℚ :=
+    MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+      (mlProj (shift * SPDP.iterDerivList S' r))
+  have hrow :
+      MvPolynomial.coeff α (zeroProfileSingletonNormalFormProjection factors q) =
+        MvPolynomial.coeff α (zeroProfileSingletonNormalFormProjection factors d) := by
+    simpa [factors, p, r, q, d] using
+      hcoeff S' shift hSlen hshiftDegree hshiftVars hadm α hα
+  have hq :=
+    zeroProfileSingletonNormalFormProjection_coeff factors q α
+  have hd :=
+    zeroProfileSingletonNormalFormProjection_coeff factors d α
+  rw [hq, hd] at hrow
+  simpa [factors, p, r, q, d] using hrow
+
+/-- The compact normalized non-singleton coefficient identity is equivalent to
+the expanded balance form. -/
+theorem routeBPaperFaithfulTPhi_normalizedNonSingletonCoeffIdentity_iff_coeffBalance
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedNonSingletonCoeffIdentity
+        M n hn2 htb hns ↔
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedCoeffBalance
+        M n hn2 htb hns :=
+  ⟨routeBPaperFaithfulTPhi_coeffBalance_of_normalizedNonSingletonCoeffIdentity
+      M n hn2 htb hns,
+    routeBPaperFaithfulTPhi_normalizedNonSingletonCoeffIdentity_of_coeffBalance
+      M n hn2 htb hns⟩
+
 /-- Normalized row equality is equivalent to the expanded coefficient-balance
 form used by the proof-facing strict `TΦ` gate. -/
 theorem routeBPaperFaithfulTPhi_coeffBalance_of_singletonNormalizedRowIdentity
@@ -8440,6 +8493,37 @@ theorem routeBPaperFaithfulTPhi_not_normalizedCoeffBalance_of_twoDifferentiatedS
   exact
     routeBPaperFaithfulTPhi_unitShift_collapsedArithmetic_twoTag_noGo
       T j k hj hk hjk hEvenT hcollapsed
+
+/-- The compact non-singleton normalized coefficient identity has the same
+two-tag obstruction as the expanded balance form.  Thus the range-wide
+non-singleton target is still too broad; the paper-faithful route must use the
+narrowed canonical/profile row family. -/
+theorem routeBPaperFaithfulTPhi_not_normalizedNonSingletonCoeffIdentity_of_twoDifferentiatedStrictTags_even
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (T : Finset (Fin (n / 3))) (j k : Fin (n / 3))
+    (hTcard : T.card = Nat.log 2 n)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (T.toList.map (cookLevinStrictFOBFlatMap n)))
+    (hj : j ∈ T) (hk : k ∈ T) (hjk : j ≠ k)
+    (hEvenT : Even T.card)
+    (hα :
+      ∀ i : Fin n,
+        SymmetricPower.tagMonomial
+          (({j, k} : Finset (Fin (n / 3))).map
+            ⟨cookLevinStrictFOBFlatMap n,
+              cookLevinStrictFOBFlatMap_injective n⟩) ≠
+          Finsupp.single i 1) :
+    ¬ RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedNonSingletonCoeffIdentity
+        M n hn2 htb hns := by
+  intro hcoeff
+  exact
+    routeBPaperFaithfulTPhi_not_normalizedCoeffBalance_of_twoDifferentiatedStrictTags_even
+      M n hn2 htb hns T j k hTcard hadm hj hk hjk hEvenT hα
+      (routeBPaperFaithfulTPhi_coeffBalance_of_normalizedNonSingletonCoeffIdentity
+        M n hn2 htb hns hcoeff)
 
 /-- The same two-tag arithmetic obstruction rules out the restricted residual
 balance for the canonical singleton quotient projection.  This pins the exact
@@ -12196,6 +12280,8 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_postSpanBoun
 #print axioms routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientResidualBalance_iff_singletonResidual_and_derivativeFixed
 #print axioms routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientResidualBalance_of_singletonResidual_derivativeFixed
 #print axioms routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientResidualBalance_of_normalizedRows_derivativeFixed
+#print axioms routeBPaperFaithfulTPhi_normalizedNonSingletonCoeffIdentity_iff_coeffBalance
+#print axioms routeBPaperFaithfulTPhi_not_normalizedNonSingletonCoeffIdentity_of_twoDifferentiatedStrictTags_even
 #print axioms routeBPaperFaithfulTPhi_rangePWindowZeroProfileRowIdentity_of_restricted
 #print axioms routeBPaperFaithfulTPhi_projectedPWindowGenerator_mem_zeroProfileProjection_of_rangeRowIdentity
 #print axioms routeBPaperFaithfulTPhi_projectedPWindowControlledByZeroProfileProjection_of_rangeRowIdentity

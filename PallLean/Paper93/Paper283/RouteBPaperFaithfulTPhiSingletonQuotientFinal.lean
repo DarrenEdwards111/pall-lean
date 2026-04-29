@@ -1151,6 +1151,45 @@ theorem routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_norm
     routeBPaperFaithfulTPhi_not_normalizedCoeffBalance_of_twoDifferentiatedStrictTags_even
       M n hn2 htb hns T j k hTcard hadm hj hk hjk hEvenT hα hbalance
 
+/-- The same obstruction rules out the compact broad non-singleton coefficient
+identity.  The compact form is just the singleton-normalizer projection
+equality; after unfolding the normalizer it is equivalent to the expanded
+balance refuted above. -/
+theorem routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedNonSingletonCoeff_certificate_noGo_of_twoDifferentiatedStrictTags_even
+    (hcert :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        exists hn4 : n >= 4,
+          PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+            M n hn2 htb hns hn4 ∧
+          RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedNonSingletonCoeffIdentity
+            M n hn2 htb hns)
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804)
+    (hn2 : n >= 2) (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hdec : DecidesSAT M)
+    (T : Finset (Fin (n / 3))) (j k : Fin (n / 3))
+    (hTcard : T.card = Nat.log 2 n)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (T.toList.map (cookLevinStrictFOBFlatMap n)))
+    (hj : j ∈ T) (hk : k ∈ T) (hjk : j ≠ k)
+    (hEvenT : Even T.card)
+    (hα :
+      ∀ i : Fin n,
+        SymmetricPower.tagMonomial
+          (({j, k} : Finset (Fin (n / 3))).map
+            ⟨cookLevinStrictFOBFlatMap n,
+              cookLevinStrictFOBFlatMap_injective n⟩) ≠
+          Finsupp.single i 1) :
+    False := by
+  rcases hcert M n hn hn2 htb hns hdec with
+    ⟨_hn4, _hrows, hcoeff⟩
+  exact
+    routeBPaperFaithfulTPhi_not_normalizedNonSingletonCoeffIdentity_of_twoDifferentiatedStrictTags_even
+      M n hn2 htb hns T j k hTcard hadm hj hk hjk hEvenT hα hcoeff
+
 /-- Paper-faithful strict `TΦ` close-out from concrete row embeddings plus the
 narrowed canonical/profile residual-balance package.
 
@@ -2391,6 +2430,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedCoeff
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedCoeffBalance
 #print axioms routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedCoeffBalance_certificate_noGo_of_twoDifferentiatedStrictTags_even
+#print axioms routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedNonSingletonCoeff_certificate_noGo_of_twoDifferentiatedStrictTags_even
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_canonicalProfileResidualBalance
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_strictPaperFaithfulCanonicalProfile
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_importedConcreteW_strictPaperFaithfulCanonicalProfile
