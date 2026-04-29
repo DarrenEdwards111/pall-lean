@@ -9288,6 +9288,33 @@ theorem routeBPaperFaithfulTPhi_rangePWindowCommonSpanWithBudget_of_restrictedRo
     (routeBPaperFaithfulTPhi_rangePWindowZeroProfileRowIdentity_of_restricted
       M n hn2 htb hns project hrow)
 
+/-- Projected zero-profile common span plus the restricted source-coordinate
+row identity supplies the concrete strict profile-subspace classifier
+obligation.
+
+This is the paper-faithful replacement for the refuted unquotiented
+local-type-normal-form route: the quotient/profile analysis provides the
+projected span, while the strict row algebra is only required after projection
+on source-coordinate rows. -/
+theorem routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation_of_restrictedRowIdentity_projectedCommonSpan
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+    (hspan :
+      ZeroProfileProjectedCommonSpanWithBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        project (withinProfileBound (Nat.log 2 n)))
+    (hrow :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedZeroProfileRowIdentity
+        M n hn2 htb hns project) :
+    RouteBPaperFaithfulTPhiStrictProfileSubspaceClassifierObligation
+      M n hn2 htb hns :=
+  (routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation_iff_commonSpanWithBudget
+    M n hn2 htb hns).mpr
+    (routeBPaperFaithfulTPhi_rangePWindowCommonSpanWithBudget_of_restrictedRowIdentity_projectedCommonSpan
+      M n hn2 htb hns project hspan hrow)
+
 private theorem routeBPaperFaithfulTPhi_strictFOB_preimageList
     (n : ℕ) (S : List (Fin n))
     (hS : ∀ v ∈ S, v ∈ Set.range (cookLevinStrictFOBFlatMap n)) :

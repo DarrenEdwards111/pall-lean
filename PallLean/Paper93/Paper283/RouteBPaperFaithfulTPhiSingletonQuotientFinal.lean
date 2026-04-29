@@ -1274,6 +1274,34 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictProfile
         M n hn2 htb hns
         (hclassifier M n hn hn2 htb hns hdec))
 
+/-- Final paper-faithful close-out from projected profile compression plus
+restricted strict-row identity.
+
+This is the quotient/profile-aware route to the strict classifier obligation:
+the projected normal-form analysis supplies the bounded common span, and the
+remaining row algebra is only the source-coordinate restricted projected
+identity. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_restrictedRowIdentity_projectedCommonSpan
+    (hprojected :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        exists project :
+          MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ,
+          ZeroProfileProjectedCommonSpanWithBudget (Nat.log 2 n)
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+            project (withinProfileBound (Nat.log 2 n)) ∧
+          RouteBPaperFaithfulTPhiRangePWindowRestrictedZeroProfileRowIdentity
+            M n hn2 htb hns project) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation
+    (fun M n hn hn2 htb hns hdec => by
+      rcases hprojected M n hn hn2 htb hns hdec with
+        ⟨project, hspan, hrow⟩
+      exact
+        routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation_of_restrictedRowIdentity_projectedCommonSpan
+          M n hn2 htb hns project hspan hrow)
+
 /-- Final strict paper-faithful close-out through the endpoint/profile-aware
 replacement for canonical `concreteW` H4.
 
@@ -1878,6 +1906,25 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictProfil
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation
       hclassifier)
 
+/-- Rich-projection discharge from projected profile compression plus
+restricted strict-row identity. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_restrictedRowIdentity_projectedCommonSpan
+    (hprojected :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        exists project :
+          MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ,
+          ZeroProfileProjectedCommonSpanWithBudget (Nat.log 2 n)
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+            project (withinProfileBound (Nat.log 2 n)) ∧
+          RouteBPaperFaithfulTPhiRangePWindowRestrictedZeroProfileRowIdentity
+            M n hn2 htb hns project) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_restrictedRowIdentity_projectedCommonSpan
+      hprojected)
+
 /-- Rich-projection discharge through the endpoint/profile-aware replacement
 for canonical `concreteW` H4. -/
 theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_endpointAugmented_directBranchTransport_concreteEndpointCharge_chargedTargetCover
@@ -2160,6 +2207,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictRangeRowProfileCoverData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_restrictedRowIdentity_projectedCommonSpan
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_endpointAugmented_directBranchTransport_concreteEndpointCharge_chargedTargetCover
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_endpointAugmented_directBranchTransport_concreteEndpointCharge_chargedGeneratorCover
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_residualBalance
@@ -2187,6 +2235,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictRangeRowProfileCoverData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_restrictedRowIdentity_projectedCommonSpan
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_endpointAugmented_directBranchTransport_concreteEndpointCharge_chargedTargetCover
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_endpointAugmented_directBranchTransport_concreteEndpointCharge_chargedGeneratorCover
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_residualBalance
