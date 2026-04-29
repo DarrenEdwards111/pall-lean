@@ -4338,6 +4338,234 @@ theorem routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily_excludes_od
   rcases hOdd with ⟨b, hb⟩
   omega
 
+
+/-! ### Narrow strict paper-faithful profile/subspace consumer -/
+
+/-- The strict paper-faithful canonical P-window subspace.
+
+Unlike `routeBPaperFaithfulTPhiRangePWindowSubspace`, this subspace is gated by
+`routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily`; it therefore
+only contains the narrowed canonical/profile rows for which the coefficient
+algebra above is valid.  This is the subspace consumer to use for the
+paper-faithful route, not the broad restricted residual/row-identity targets. -/
+noncomputable def routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalPWindowSubspace
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+  Submodule.span ℚ
+    { q : MvPolynomial (Fin n) ℚ |
+      ∃ (S' : List (Fin (n / 3)))
+        (shift : MvPolynomial (Fin (n / 3)) ℚ)
+        (α : Fin n →₀ ℕ),
+        S'.length = Nat.log 2 n ∧
+        shift.totalDegree ≤ Nat.log 2 n ∧
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset ∧
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)) ∧
+        routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily
+          M n hn2 htb hns S' shift α ∧
+        q =
+          mlProj
+            (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+              SPDP.iterDerivList (S'.map (cookLevinStrictFOBFlatMap n))
+                ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+                  (compiledPoly
+                    (cook_levin_compilation M n hn2 htb hns)))) }
+
+/-- Bounded common-span target for the narrowed strict paper-faithful canonical
+P-window subspace. -/
+def RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCommonSpanWithBudget
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (budget : ℕ) : Prop :=
+  ∃ G : Finset (MvPolynomial (Fin n) ℚ),
+    G.card ≤ budget ∧
+    routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalPWindowSubspace
+        M n hn2 htb hns ≤
+      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ))
+
+/-- Narrow canonical/profile-subspace containment: only the
+paper-faithful canonical row family is consumed. -/
+def RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalControlledByProfileSubspace
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (A : ZeroProfileLocalTypeAlphabet n (Nat.log 2 n)) : Prop :=
+  routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalPWindowSubspace
+      M n hn2 htb hns ≤
+    zeroProfileLocalTypeCompressedProfileSpan A
+
+/-- Generator form of the narrow profile/subspace consumer.  The `hrow` input
+is the important gate: downstream proofs may only consume rows in
+`routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily`. -/
+def RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalProfileGeneratorReduction
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (A : ZeroProfileLocalTypeAlphabet n (Nat.log 2 n)) : Prop :=
+  ∀ (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (α : Fin n →₀ ℕ),
+    S'.length = Nat.log 2 n →
+    shift.totalDegree ≤ Nat.log 2 n →
+    (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+      (S'.map (cookLevinStrictFOBFlatMap n)).toFinset →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (S'.map (cookLevinStrictFOBFlatMap n)) →
+    routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily
+      M n hn2 htb hns S' shift α →
+    mlProj
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+          SPDP.iterDerivList (S'.map (cookLevinStrictFOBFlatMap n))
+            ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) ∈
+      zeroProfileLocalTypeCompressedProfileSpan A
+
+/-- The narrow profile-subspace containment is exactly its generator-membership
+form. -/
+theorem routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalControlledByProfileSubspace_iff_generatorReduction
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (A : ZeroProfileLocalTypeAlphabet n (Nat.log 2 n)) :
+    RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalControlledByProfileSubspace
+        M n hn2 htb hns A ↔
+      RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalProfileGeneratorReduction
+        M n hn2 htb hns A := by
+  classical
+  constructor
+  · intro hcontrol S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    apply hcontrol
+    unfold routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalPWindowSubspace
+    exact Submodule.subset_span
+      ⟨S', shift, α, hSlen, hshiftDegree, hshiftVars, hadm, hrow, rfl⟩
+  · intro hgen
+    unfold RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalControlledByProfileSubspace
+    unfold routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalPWindowSubspace
+    refine Submodule.span_le.mpr ?_
+    intro q hq
+    rcases hq with
+      ⟨S', shift, α, hSlen, hshiftDegree, hshiftVars, hadm, hrow, rfl⟩
+    exact hgen S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+
+/-- A narrow profile-subspace containment gives the bounded common-span form for
+exactly the narrowed canonical row subspace. -/
+theorem routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalCommonSpanWithBudget_of_profileSubspace
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (A : ZeroProfileLocalTypeAlphabet n (Nat.log 2 n))
+    (hprofile :
+      RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalControlledByProfileSubspace
+        M n hn2 htb hns A) :
+    RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCommonSpanWithBudget
+      M n hn2 htb hns (withinProfileBound (Nat.log 2 n)) := by
+  classical
+  refine ⟨zeroProfileLocalTypeGlobalBasis A,
+    zeroProfileLocalTypeGlobalBasis_card_le_withinProfileBound A, ?_⟩
+  simpa [RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalControlledByProfileSubspace,
+    zeroProfileLocalTypeCompressedProfileSpan] using hprofile
+
+/-- The narrow strict paper-faithful profile/subspace frontier.  This is the
+final local-normal-form obligation after the coefficient algebra has been
+closed: classify only the narrowed canonical row family into a bounded profile
+alphabet. -/
+def RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalProfileSubspaceContainment
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∃ A : ZeroProfileLocalTypeAlphabet n (Nat.log 2 n),
+    RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalControlledByProfileSubspace
+      M n hn2 htb hns A
+
+/-- Direct classifier for the narrowed strict paper-faithful row family.  This
+bypasses `RouteBPaperFaithfulTPhiStrictCanonicalWindowData`: no raw
+`CanonScheme` predicate is needed unless a later proof wants to connect back to
+`can(w)`. -/
+structure RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalProfileClassifier
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  alphabet : ZeroProfileLocalTypeAlphabet n (Nat.log 2 n)
+  rowType :
+    ∀ (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ),
+      S'.length = Nat.log 2 n →
+      shift.totalDegree ≤ Nat.log 2 n →
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+        (S'.map (cookLevinStrictFOBFlatMap n)).toFinset →
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n)) →
+      routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily
+        M n hn2 htb hns S' shift α →
+      alphabet.type
+  row_mem_typeSpace :
+    ∀ (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily
+          M n hn2 htb hns S' shift α),
+      mlProj
+          (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+            SPDP.iterDerivList (S'.map (cookLevinStrictFOBFlatMap n))
+              ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+                (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) ∈
+        zeroProfileLocalTypeSpace alphabet
+          (rowType S' shift α hSlen hshiftDegree hshiftVars hadm hrow)
+
+/-- A direct narrow classifier proves the narrowed profile/subspace frontier. -/
+theorem routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalProfileSubspaceContainment_of_classifier
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (C :
+      RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalProfileClassifier
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalProfileSubspaceContainment
+      M n hn2 htb hns := by
+  classical
+  refine ⟨C.alphabet, ?_⟩
+  exact
+    (routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalControlledByProfileSubspace_iff_generatorReduction
+      M n hn2 htb hns C.alphabet).mpr
+      (fun S' shift α hSlen hshiftDegree hshiftVars hadm hrow =>
+        (zeroProfileLocalTypeSpace_le_compressedProfileSpan C.alphabet
+          (C.rowType S' shift α hSlen hshiftDegree hshiftVars hadm hrow))
+          (C.row_mem_typeSpace S' shift α hSlen hshiftDegree hshiftVars hadm hrow))
+
+/-- Classifier-obligation form of the remaining narrowed profile frontier. -/
+def RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalProfileClassifierObligation
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  Nonempty
+    (RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalProfileClassifier
+      M n hn2 htb hns)
+
+/-- The remaining classifier obligation closes the narrowed profile/subspace
+frontier and hence the narrowed bounded common-span consumer. -/
+theorem routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalCommonSpanWithBudget_of_classifierObligation
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hclassifier :
+      RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalProfileClassifierObligation
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCommonSpanWithBudget
+      M n hn2 htb hns (withinProfileBound (Nat.log 2 n)) := by
+  rcases hclassifier with ⟨C⟩
+  rcases routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalProfileSubspaceContainment_of_classifier
+      M n hn2 htb hns C with ⟨A, hA⟩
+  exact
+    routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalCommonSpanWithBudget_of_profileSubspace
+      M n hn2 htb hns A hA
+
 def routeBPaperFaithfulTPhi_canonicalProfileResidualBalance_of_strictPaperFaithfulCoeffBalance
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
@@ -6902,6 +7130,33 @@ theorem routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffAlgebra_proved
       M n hn2 htb hns :=
   (routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffBalance_iff_algebra
     M n hn2 htb hns).mp
+    (routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffBalance_proved
+      M n hn2 htb hns)
+
+
+/-- Direct corollary: the proved narrowed coefficient balance supplies the
+narrowed normalized coefficient identity without passing the balance as an
+argument. -/
+theorem routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRestrictedNormalizedCoeffIdentity_proved
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRestrictedNormalizedCoeffIdentity
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRestrictedNormalizedCoeffIdentity_of_balance
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffBalance_proved
+      M n hn2 htb hns)
+
+/-- Direct corollary: the proved narrowed coefficient balance packages the
+paper-faithful canonical/profile residual-balance data with the strict
+paper-faithful row family. -/
+def routeBPaperFaithfulTPhi_canonicalProfileResidualBalance_strictPaperFaithful_proved
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    RouteBPaperFaithfulTPhiCanonicalProfileResidualBalance
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_canonicalProfileResidualBalance_of_strictPaperFaithfulCoeffBalance
+    M n hn2 htb hns
     (routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffBalance_proved
       M n hn2 htb hns)
 
