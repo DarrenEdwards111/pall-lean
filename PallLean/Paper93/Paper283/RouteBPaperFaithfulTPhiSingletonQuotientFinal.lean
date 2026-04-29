@@ -16,6 +16,7 @@ namespace PallLean.Paper93.Paper283
 open MvPolynomial
 open PaperFaithfulSeparation
 open TuringMachine
+open Step4Compiler.Step252
 open SymmetricPowerBound
 open WithinProfileBound
 open PallLean.Paper93.DeepMath.PathB
@@ -1057,6 +1058,45 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNorm
     false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_singletonNormalForm_concreteW_rowEmbeddings_normalizedCoeffBalance
       M n hn hn2 htb hns hdec hn4 hrows hbalance
 
+/-- The broad concreteW + normalized-coefficient-balance certificate cannot
+be the final paper-faithful close-out whenever the two-differentiated strict
+tag obstruction is present.  The corrected route must use the narrowed
+canonical/profile row family instead of a range-wide coefficient balance. -/
+theorem routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedCoeffBalance_certificate_noGo_of_twoDifferentiatedStrictTags_even
+    (hcert :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        exists hn4 : n >= 4,
+          PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+            M n hn2 htb hns hn4 ∧
+          RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedCoeffBalance
+            M n hn2 htb hns)
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804)
+    (hn2 : n >= 2) (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hdec : DecidesSAT M)
+    (T : Finset (Fin (n / 3))) (j k : Fin (n / 3))
+    (hTcard : T.card = Nat.log 2 n)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (T.toList.map (cookLevinStrictFOBFlatMap n)))
+    (hj : j ∈ T) (hk : k ∈ T) (hjk : j ≠ k)
+    (hEvenT : Even T.card)
+    (hα :
+      ∀ i : Fin n,
+        SymmetricPower.tagMonomial
+          (({j, k} : Finset (Fin (n / 3))).map
+            ⟨cookLevinStrictFOBFlatMap n,
+              cookLevinStrictFOBFlatMap_injective n⟩) ≠
+          Finsupp.single i 1) :
+    False := by
+  rcases hcert M n hn hn2 htb hns hdec with
+    ⟨_hn4, _hrows, hbalance⟩
+  exact
+    routeBPaperFaithfulTPhi_not_normalizedCoeffBalance_of_twoDifferentiatedStrictTags_even
+      M n hn2 htb hns T j k hTcard hadm hj hk hjk hEvenT hα hbalance
+
 /-- Uniform concrete row embeddings plus the range-only residual balance rule
 out bounded SAT deciders through the semantic singleton normalizer. -/
 theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_residualBalance
@@ -1680,6 +1720,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedRows
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedCoeff
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedCoeffBalance
+#print axioms routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedCoeffBalance_certificate_noGo_of_twoDifferentiatedStrictTags_even
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_residualBalance
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_concreteSingletonQuotient_strictFOB
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonQuotient_concreteW_rowEmbeddings_rangeRestrictedResidualBalance
