@@ -4374,6 +4374,39 @@ noncomputable def routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalPWindowSubs
                   (compiledPoly
                     (cook_levin_compilation M n hn2 htb hns)))) }
 
+
+/-- The narrowed strict canonical P-window row subspace is contained in the
+ordinary SPDP subspace of the strict ambient `TΦ` polynomial.
+
+This is the formal bridge from the row-family presentation to the matrix/SPDP
+rank object: every generator in the narrowed canonical family is still an SPDP
+generator with derivative list `S'.map cookLevinStrictFOBFlatMap` and multiplier
+`rename cookLevinStrictFOBFlatMap shift`. -/
+theorem routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalPWindowSubspace_le_mlBlockedSpdpSubspace
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalPWindowSubspace
+        M n hn2 htb hns ≤
+      MultilinearSPDP.mlBlockedSpdpSubspace
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns))) := by
+  classical
+  unfold routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalPWindowSubspace
+  refine Submodule.span_le.mpr ?_
+  intro q hq
+  rcases hq with
+    ⟨S', shift, α, hSlen, hshiftDegree, hshiftVars, hadm, _hrow, rfl⟩
+  apply Submodule.subset_span
+  refine ⟨S'.map (cookLevinStrictFOBFlatMap n),
+    MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift, ?_, ?_, ?_, hadm, rfl⟩
+  · simpa [List.length_map] using hSlen
+  · exact le_trans
+      (MvPolynomial.totalDegree_rename_le (cookLevinStrictFOBFlatMap n) shift)
+      hshiftDegree
+  · exact hshiftVars
+
 /-- Bounded common-span target for the narrowed strict paper-faithful canonical
 P-window subspace. -/
 def RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCommonSpanWithBudget
@@ -4982,6 +5015,31 @@ theorem routeBPaperFaithfulTPhi_strictCanonicalPWindowSubspace_finrank_le_of_mat
         M n hn2 htb hns) ≤ withinProfileBound (Nat.log 2 n) := by
   rcases hfrontier with ⟨D, hrank⟩
   exact hrank.trans D.profileBudget_le
+
+
+/-- An exact SPDP-rank upper bound for the strict ambient `TΦ` polynomial closes
+the matrix/global frontier.  This is the direct bridge from a genuine
+matrix-level Lemma 27/31 assembly to the narrowed canonical row subspace. -/
+theorem routeBPaperFaithfulTPhi_strictCanonicalWindowMatrixRankFrontier_of_mlRankUpper
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns)
+    (hrank :
+      MultilinearSPDP.mlBlockedSpdpRank
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns))) ≤
+        Fintype.card D.profileType * D.localDim) :
+    RouteBPaperFaithfulTPhiStrictCanonicalWindowMatrixRankFrontier
+      M n hn2 htb hns := by
+  refine ⟨D, ?_⟩
+  have hle :=
+    Submodule.finrank_mono
+      (routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalPWindowSubspace_le_mlBlockedSpdpSubspace
+        M n hn2 htb hns)
+  exact hle.trans hrank
 
 /-- Literal bounded common-span data is a sufficient, stronger way to obtain
 the matrix/global rank frontier.  This keeps the old common-span route as a
