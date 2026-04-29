@@ -2711,6 +2711,139 @@ def RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedCoeffBalance
               MvPolynomial.coeff α
                 (mlProj (MvPolynomial.X i * Finset.univ.prod factors))
 
+/-- Type of paper-faithful canonical/profile row-family selectors for the
+strict `TΦ` coefficient audit.
+
+The broad balance above quantifies over arbitrary strict differentiated rows
+`S'` and arbitrary non-singleton coefficient probes `α`.  The manuscript's
+Route B path is narrower: derivative windows are first canonicalized by
+`can(w)`, local update words are reduced to finite monoid normal forms, and
+the extracted target is compared after the block-local `N ◦ TΦ`
+normalization.  This is deliberately only a type alias, not a default
+predicate: the concrete selector must be supplied from the canonical-window /
+finite-local-normal-form construction. -/
+abbrev RouteBPaperFaithfulTPhiCanonicalProfileRowFamily
+    (M : DTM) (n : ℕ) (_hn2 : n ≥ 2)
+    (_htb : M.timeBound ≤ 4) (_hns : M.numStates ≤ n) :=
+  ∀ (_S' : List (Fin (n / 3)))
+    (_shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (_α : Fin n →₀ ℕ), Prop
+
+/-- Canonical/profile-local replacement for the refuted broad normalized
+coefficient balance.
+
+This is the row-algebra target suggested by the paper: only coefficient probes
+belonging to the canonical window/profile row family are consumed.  The
+selector is explicit so the next proof must connect it to `can(w)` and finite
+local normal forms, instead of silently ranging over arbitrary multi-tag
+strict rows. -/
+def RouteBPaperFaithfulTPhiCanonicalProfileNormalizedCoeffBalance
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (canonicalRow :
+      RouteBPaperFaithfulTPhiCanonicalProfileRowFamily
+        M n hn2 htb hns) : Prop :=
+  ∀ (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ),
+    S'.length = Nat.log 2 n →
+    shift.totalDegree ≤ Nat.log 2 n →
+    (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+      (S'.map (cookLevinStrictFOBFlatMap n)).toFinset →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (S'.map (cookLevinStrictFOBFlatMap n)) →
+    ∀ α : Fin n →₀ ℕ,
+      (∀ i : Fin n, α ≠ Finsupp.single i 1) →
+      canonicalRow S' shift α →
+      let factors : Fin (cookLevinFactorList M n hn2 htb hns).length →
+          MvPolynomial (Fin n) ℚ :=
+        fun i => (cookLevinFactorList M n hn2 htb hns).get i
+      let p : MvPolynomial (Fin n) ℚ :=
+        compiledPoly (cook_levin_compilation M n hn2 htb hns)
+      let r : MvPolynomial (Fin (n / 3)) ℚ :=
+        MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+          (cookLevinStrictFOBFlatMap_injective n) p
+      let q : MvPolynomial (Fin n) ℚ :=
+        mlProj
+          (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+            cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+      let d : MvPolynomial (Fin n) ℚ :=
+        MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+          (mlProj (shift * SPDP.iterDerivList S' r))
+      MvPolynomial.coeff α q -
+          ∑ i : Fin n,
+            MvPolynomial.coeff (Finsupp.single i 1) q *
+              MvPolynomial.coeff α
+                (mlProj (MvPolynomial.X i * Finset.univ.prod factors)) =
+        MvPolynomial.coeff α d -
+          ∑ i : Fin n,
+            MvPolynomial.coeff (Finsupp.single i 1) d *
+              MvPolynomial.coeff α
+                (mlProj (MvPolynomial.X i * Finset.univ.prod factors))
+
+/-- The old broad balance implies the canonical/profile-local balance for any
+chosen canonical row family.  The converse is intentionally absent: Route B
+should not re-expand the canonical target back to arbitrary strict rows. -/
+theorem routeBPaperFaithfulTPhi_canonicalProfileNormalizedCoeffBalance_of_broad
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (canonicalRow :
+      ∀ (_S' : List (Fin (n / 3)))
+        (_shift : MvPolynomial (Fin (n / 3)) ℚ)
+        (_α : Fin n →₀ ℕ), Prop)
+    (hbalance :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedCoeffBalance
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiCanonicalProfileNormalizedCoeffBalance
+      M n hn2 htb hns canonicalRow := by
+  intro S' shift hlen hdeg hvars hadm α hα _hcanonical
+  exact hbalance S' shift hlen hdeg hvars hadm α hα
+
+/-- Safety condition for the canonical/profile row family: it must exclude the
+two-differentiated-strict-tag unit-shift witness that refutes the broad
+normalized balance.
+
+This is the Lean-facing form of the paper correction: `can(w)`/finite local
+normal forms must select a row family whose `S,T` relationship is not the
+arbitrary two-tag configuration exposed by the no-go theorem below. -/
+def RouteBPaperFaithfulTPhiCanonicalProfileExcludesTwoTagUnitShift
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (canonicalRow :
+      RouteBPaperFaithfulTPhiCanonicalProfileRowFamily
+        M n hn2 htb hns) : Prop :=
+  ∀ (T : Finset (Fin (n / 3))) (j k : Fin (n / 3)),
+    j ∈ T →
+    k ∈ T →
+    j ≠ k →
+    Even T.card →
+    T.card = Nat.log 2 n →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (T.toList.map (cookLevinStrictFOBFlatMap n)) →
+    ¬ canonicalRow T.toList (1 : MvPolynomial (Fin (n / 3)) ℚ)
+      (SymmetricPower.tagMonomial
+        (({j, k} : Finset (Fin (n / 3))).map
+          ⟨cookLevinStrictFOBFlatMap n,
+            cookLevinStrictFOBFlatMap_injective n⟩))
+
+/-- Corrected canonical/profile residual-balance package for the strict `TΦ`
+route.  It combines the narrowed coefficient computation with the explicit
+two-tag exclusion that Lean proved necessary for any paper-faithful
+canonical-window/profile target. -/
+structure RouteBPaperFaithfulTPhiCanonicalProfileResidualBalance
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  canonicalRow :
+    RouteBPaperFaithfulTPhiCanonicalProfileRowFamily
+      M n hn2 htb hns
+  coeff_balance :
+    RouteBPaperFaithfulTPhiCanonicalProfileNormalizedCoeffBalance
+      M n hn2 htb hns canonicalRow
+  excludes_two_tag :
+    RouteBPaperFaithfulTPhiCanonicalProfileExcludesTwoTagUnitShift
+      M n hn2 htb hns canonicalRow
+
 /-- The expanded corrected coefficient balance is exactly enough to discharge
 the named normalized non-singleton coefficient identity. -/
 theorem routeBPaperFaithfulTPhi_normalizedNonSingletonCoeffIdentity_of_coeffBalance
