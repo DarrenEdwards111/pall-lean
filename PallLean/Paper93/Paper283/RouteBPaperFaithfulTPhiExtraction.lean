@@ -3217,6 +3217,200 @@ theorem routeBPaperFaithfulTPhiStrictDefaultWindow_mem_marked_class
     routeBPaperFaithfulTPhiStrictWindowNF, hw,
     routeBPaperFaithfulTPhiStrictDefaultWindow_not_marked]
 
+private theorem routeBPaperFaithfulTPhi_list_replicate_min_le
+    {α : Type} [LinearOrder α] (a : α)
+    (ha : ∀ x : α, a ≤ x) :
+    ∀ l : List α, List.replicate l.length a ≤ l
+  | [] => by simp
+  | x :: xs => by
+      have hx : a ≤ x := ha x
+      have ht : List.replicate xs.length a ≤ xs :=
+        routeBPaperFaithfulTPhi_list_replicate_min_le a ha xs
+      rw [le_iff_lt_or_eq] at hx
+      rcases hx with hx | rfl
+      · rw [le_iff_lt_or_eq]
+        left
+        exact List.Lex.rel hx
+      · simpa [List.length_cons, List.replicate] using
+          List.cons_le_cons a ht
+
+theorem routeBPaperFaithfulTPhiStrictDefaultWindow_le
+    (n κ : ℕ)
+    (w :
+      PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        κ) :
+    letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+    routeBPaperFaithfulTPhiStrictDefaultWindow n κ ≤ w := by
+  classical
+  letI lin := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+  change (routeBPaperFaithfulTPhiStrictDefaultWindow n κ).toList ≤
+    w.toList
+  rw [show (routeBPaperFaithfulTPhiStrictDefaultWindow n κ).toList =
+      List.replicate κ
+        ((0, false) :
+          RouteBPaperFaithfulTPhiStrictBlockIdx n ×
+            RouteBPaperFaithfulTPhiStrictLocalOp) by
+    simp [routeBPaperFaithfulTPhiStrictDefaultWindow]]
+  have ha :
+      ∀ x :
+        RouteBPaperFaithfulTPhiStrictBlockIdx n ×
+          RouteBPaperFaithfulTPhiStrictLocalOp,
+        @LE.le _ lin.toLE
+          ((0, false) :
+            RouteBPaperFaithfulTPhiStrictBlockIdx n ×
+              RouteBPaperFaithfulTPhiStrictLocalOp) x := by
+    intro p
+    cases p with
+    | mk b op =>
+        cases b with
+        | mk bv bh =>
+            cases op <;>
+              change 0 ≤ bv * 2 + (if _ then 1 else 0) <;> omega
+  simpa [w.toList_length] using
+    (routeBPaperFaithfulTPhi_list_replicate_min_le _ ha w.toList)
+
+theorem routeBPaperFaithfulTPhiStrictCanWindow_eq_default_of_marked
+    {n κ : ℕ}
+    {w :
+      PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        κ}
+    (hw : routeBPaperFaithfulTPhiStrictWindowHasMarkedCoeff w) :
+    letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+    PallLean.Paper93.canWindow
+      (κ := κ) (routeBPaperFaithfulTPhiStrictCanonScheme n κ) w =
+      routeBPaperFaithfulTPhiStrictDefaultWindow n κ := by
+  classical
+  letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+  apply le_antisymm
+  · exact
+      PallLean.Paper93.canWindow_le
+        (κ := κ) (routeBPaperFaithfulTPhiStrictCanonScheme n κ) w
+        (routeBPaperFaithfulTPhiStrictDefaultWindow n κ)
+        (routeBPaperFaithfulTPhiStrictDefaultWindow_mem_marked_class hw)
+  · exact routeBPaperFaithfulTPhiStrictDefaultWindow_le n κ _
+
+theorem routeBPaperFaithfulTPhiStrict_not_isCanonical_of_marked
+    {n κ : ℕ}
+    {w :
+      PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        κ}
+    (hw : routeBPaperFaithfulTPhiStrictWindowHasMarkedCoeff w) :
+    letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+    ¬ PallLean.Paper93.IsCanonical
+      (κ := κ) (routeBPaperFaithfulTPhiStrictCanonScheme n κ) w := by
+  classical
+  letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+  intro hcan
+  have hdef : routeBPaperFaithfulTPhiStrictDefaultWindow n κ = w := by
+    simpa [PallLean.Paper93.IsCanonical] using
+      (routeBPaperFaithfulTPhiStrictCanWindow_eq_default_of_marked hw).symm.trans
+        hcan
+  have hnot := routeBPaperFaithfulTPhiStrictDefaultWindow_not_marked n κ
+  exact hnot (hdef.symm ▸ hw)
+
+theorem routeBPaperFaithfulTPhiStrictRawWindow_twoTag_not_isCanonical
+    {n : ℕ} (T : Finset (Fin (n / 3))) (j k : Fin (n / 3))
+    (hTcard : T.card = Nat.log 2 n)
+    (hj : j ∈ T) (hk : k ∈ T) (hjk : j ≠ k) :
+    letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+    ¬ PallLean.Paper93.IsCanonical
+      (κ := Nat.log 2 n)
+      (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n))
+      (routeBPaperFaithfulTPhiStrictRawWindowOf n T.toList
+        (1 : MvPolynomial (Fin (n / 3)) ℚ)
+        (SymmetricPower.tagMonomial
+          (({j, k} : Finset (Fin (n / 3))).map
+            ⟨cookLevinStrictFOBFlatMap n,
+              cookLevinStrictFOBFlatMap_injective n⟩))) := by
+  classical
+  letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+  exact
+    routeBPaperFaithfulTPhiStrict_not_isCanonical_of_marked
+      (routeBPaperFaithfulTPhiStrictRawWindow_marked_of_twoTag
+        T j k hTcard hj hk hjk)
+
+theorem routeBPaperFaithfulTPhiStrictCanonScheme_excludes_two_tag
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    RouteBPaperFaithfulTPhiCanonicalProfileExcludesTwoTagUnitShift
+      M n hn2 htb hns
+      (fun S' shift α => by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n))
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)) := by
+  classical
+  intro T j k hj hk hjk _hEven hTcard _hadm
+  exact
+    routeBPaperFaithfulTPhiStrictRawWindow_twoTag_not_isCanonical
+      T j k hTcard hj hk hjk
+
+/-- Strict finite-local-normal-form row family for the corrected coefficient
+balance: the decoded row must already be canonical for the strict scheme and
+must not carry the marked two-tag coefficient profile. -/
+def routeBPaperFaithfulTPhiStrictUnmarkedCanonicalRowFamily
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    RouteBPaperFaithfulTPhiCanonicalProfileRowFamily
+      M n hn2 htb hns :=
+  fun S' shift α => by
+    letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+    exact
+      PallLean.Paper93.IsCanonical
+          (κ := Nat.log 2 n)
+          (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n))
+          (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α) ∧
+        ¬ routeBPaperFaithfulTPhiStrictWindowHasMarkedCoeff
+          (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+
+/-- The next coefficient-balance target after the two-tag exclusion: prove the
+normalized coefficient identity only for strict rows that are both canonical
+finite-local-normal-form rows and unmarked. -/
+abbrev RouteBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffBalance
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  RouteBPaperFaithfulTPhiCanonicalProfileNormalizedCoeffBalance
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhiStrictUnmarkedCanonicalRowFamily
+      M n hn2 htb hns)
+
+theorem routeBPaperFaithfulTPhiStrictUnmarkedCanonicalRowFamily_excludes_two_tag
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    RouteBPaperFaithfulTPhiCanonicalProfileExcludesTwoTagUnitShift
+      M n hn2 htb hns
+      (routeBPaperFaithfulTPhiStrictUnmarkedCanonicalRowFamily
+        M n hn2 htb hns) := by
+  classical
+  intro T j k hj hk hjk _hEven hTcard _hadm hrow
+  exact hrow.2
+    (routeBPaperFaithfulTPhiStrictRawWindow_marked_of_twoTag
+      T j k hTcard hj hk hjk)
+
+def routeBPaperFaithfulTPhi_canonicalProfileResidualBalance_of_strictUnmarkedCoeffBalance
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hbalance :
+      RouteBPaperFaithfulTPhiStrictUnmarkedCanonicalCoeffBalance
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiCanonicalProfileResidualBalance
+      M n hn2 htb hns where
+  canonicalRow :=
+    routeBPaperFaithfulTPhiStrictUnmarkedCanonicalRowFamily
+      M n hn2 htb hns
+  coeff_balance := hbalance
+  excludes_two_tag :=
+    routeBPaperFaithfulTPhiStrictUnmarkedCanonicalRowFamily_excludes_two_tag
+      M n hn2 htb hns
+
 /-- Specialized canonical-window data for the concrete strict `TΦ` decoder.
 The remaining fields are exactly the finite-local-normal-form obligations:
 choose the canonical scheme for these strict windows, prove the narrowed
