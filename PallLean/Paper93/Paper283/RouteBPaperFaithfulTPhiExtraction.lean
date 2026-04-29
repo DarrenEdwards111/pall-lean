@@ -7,6 +7,7 @@ import PallLean.Paper93.DeepMath.PathB.ConcreteWRowEmbeddingsClosure
 import PallLean.Paper93.DeepMath.PathB.PerTypeSpanningTemplateCollapseBridge
 import PallLean.Paper93.DeepMath.PathB.ActiveProfileEndpointAugmentedProgress
 import PallLean.Paper93.DeepMath.PathB.ActiveProfileEndpointAugmentedProofProgress
+import PallLean.Paper93.CanonicalizationMap
 import PallLean.Paper93.Paper283.RouteBTransportPSideBound
 import PallLean.Paper93.Paper283.RouteBZeroProfileProjectedPWindowProgress
 import PallLean.Paper93.Paper283.RouteBChargedShiftClosureProgress
@@ -2843,6 +2844,147 @@ structure RouteBPaperFaithfulTPhiCanonicalProfileResidualBalance
   excludes_two_tag :
     RouteBPaperFaithfulTPhiCanonicalProfileExcludesTwoTagUnitShift
       M n hn2 htb hns canonicalRow
+
+/-- Concrete data that instantiates the strict `TΦ` canonical/profile row
+selector from the paper's canonical-window map.
+
+The fields deliberately separate the syntactic decoding of a strict
+coefficient query into a window from the two mathematical facts still needed:
+the canonical family excludes the refuted two-tag raw witness, and the
+normalized coefficient identity holds on the selected canonical rows. -/
+structure RouteBPaperFaithfulTPhiCanonicalWindowProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  BlockIdx : Type
+  LocalOp : Type
+  blockFintype : Fintype BlockIdx
+  blockDecEq : DecidableEq BlockIdx
+  localFintype : Fintype LocalOp
+  localDecEq : DecidableEq LocalOp
+  prodLinearOrder : LinearOrder (BlockIdx × LocalOp)
+  scheme :
+    PallLean.Paper93.CanonScheme
+      (BlockIdx := BlockIdx) (LocalOp := LocalOp) (Nat.log 2 n)
+  rawWindowOf :
+    List (Fin (n / 3)) →
+      MvPolynomial (Fin (n / 3)) ℚ →
+        (Fin n →₀ ℕ) →
+          PallLean.Paper93.Window BlockIdx LocalOp (Nat.log 2 n)
+  coeff_balance :
+    RouteBPaperFaithfulTPhiCanonicalProfileNormalizedCoeffBalance
+      M n hn2 htb hns
+      (fun S' shift α => by
+        letI := blockFintype
+        letI := blockDecEq
+        letI := localFintype
+        letI := localDecEq
+        letI := prodLinearOrder
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n) scheme (rawWindowOf S' shift α))
+  excludes_two_tag :
+    RouteBPaperFaithfulTPhiCanonicalProfileExcludesTwoTagUnitShift
+      M n hn2 htb hns
+      (fun S' shift α => by
+        letI := blockFintype
+        letI := blockDecEq
+        letI := localFintype
+        letI := localDecEq
+        letI := prodLinearOrder
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n) scheme (rawWindowOf S' shift α))
+
+/-- The canonical representative selected by `can(w)` for a decoded strict
+`TΦ` coefficient query. -/
+noncomputable def routeBPaperFaithfulTPhiCanonicalWindowOf
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D :
+      RouteBPaperFaithfulTPhiCanonicalWindowProfileData
+        M n hn2 htb hns)
+    (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (α : Fin n →₀ ℕ) :
+    PallLean.Paper93.Window D.BlockIdx D.LocalOp (Nat.log 2 n) := by
+  letI := D.blockFintype
+  letI := D.blockDecEq
+  letI := D.localFintype
+  letI := D.localDecEq
+  letI := D.prodLinearOrder
+  exact
+    PallLean.Paper93.canWindow
+      (κ := Nat.log 2 n) D.scheme (D.rawWindowOf S' shift α)
+
+/-- The decoded query is in the selected canonical/profile row family exactly
+when its raw decoded window is already fixed by `can(w)`. -/
+def routeBPaperFaithfulTPhiCanonicalWindowRowFamily
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D :
+      RouteBPaperFaithfulTPhiCanonicalWindowProfileData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiCanonicalProfileRowFamily
+      M n hn2 htb hns :=
+  fun S' shift α => by
+    letI := D.blockFintype
+    letI := D.blockDecEq
+    letI := D.localFintype
+    letI := D.localDecEq
+    letI := D.prodLinearOrder
+    exact
+      PallLean.Paper93.IsCanonical
+        (κ := Nat.log 2 n) D.scheme (D.rawWindowOf S' shift α)
+
+/-- The `can(w)` representative of any decoded strict query is canonical. -/
+theorem routeBPaperFaithfulTPhiCanonicalWindowOf_isCanonical
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D :
+      RouteBPaperFaithfulTPhiCanonicalWindowProfileData
+        M n hn2 htb hns)
+    (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (α : Fin n →₀ ℕ) :
+    by
+      letI := D.blockFintype
+      letI := D.blockDecEq
+      letI := D.localFintype
+      letI := D.localDecEq
+      letI := D.prodLinearOrder
+      exact
+        PallLean.Paper93.IsCanonical
+          (κ := Nat.log 2 n) D.scheme
+          (routeBPaperFaithfulTPhiCanonicalWindowOf D S' shift α) := by
+  classical
+  letI := D.blockFintype
+  letI := D.blockDecEq
+  letI := D.localFintype
+  letI := D.localDecEq
+  letI := D.prodLinearOrder
+  dsimp [routeBPaperFaithfulTPhiCanonicalWindowOf]
+  exact
+    PallLean.Paper93.isCanonical_canWindow
+      (κ := Nat.log 2 n) D.scheme (D.rawWindowOf S' shift α)
+
+/-- The canonical-window decoding data instantiates the corrected
+canonical/profile residual-balance package. -/
+def routeBPaperFaithfulTPhi_canonicalProfileResidualBalance_of_canonicalWindowData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiCanonicalWindowProfileData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiCanonicalProfileResidualBalance
+      M n hn2 htb hns where
+  canonicalRow :=
+    routeBPaperFaithfulTPhiCanonicalWindowRowFamily D
+  coeff_balance := by
+    simpa [routeBPaperFaithfulTPhiCanonicalWindowRowFamily] using
+      D.coeff_balance
+  excludes_two_tag := by
+    simpa [routeBPaperFaithfulTPhiCanonicalWindowRowFamily] using
+      D.excludes_two_tag
 
 /-- The expanded corrected coefficient balance is exactly enough to discharge
 the named normalized non-singleton coefficient identity. -/
