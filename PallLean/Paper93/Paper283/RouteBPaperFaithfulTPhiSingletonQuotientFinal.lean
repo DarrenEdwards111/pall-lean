@@ -1366,9 +1366,9 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictRangeRo
         RouteBPaperFaithfulTPhiStrictRangeRowProfileCoverData
           M n hn2 htb hns) :
     NoBoundedSATDeciderAtPaperScale :=
-  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitProfile_rangeRows
     (fun M n hn hn2 htb hns hdec =>
-      routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly_of_rangeRowProfileCoverData
+      routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitRankData_exists_rangeRowsGlobalProfileSpanCover_of_rangeRowProfileCoverData
         M n hn2 htb hns
         (hcover M n hn hn2 htb hns hdec))
 

@@ -5629,11 +5629,12 @@ noncomputable def routeBPaperFaithfulTPhi_strictOrbitRankData_of_rangeRowProfile
 
 /-- The local-monoid/profile row-cover theorem for strict `TΦ` range rows.
 
-The proof picks a singleton coefficient probe for each source-coordinate row.
-Singleton probes are unmarked, hence their strict raw windows are canonical
-under the strict scheme.  The profile-cover membership field gives local span
-membership, and the finite global profile basis is the union of all local bases,
-so the row lies in the assembled global span. -/
+The input data is the paper-shaped row fact: canonical-window profiles, bounded
+local profile bases, and local span membership for every canonical profile-cover
+row.  The proof only chooses a fixed unmarked coefficient representative in
+order to select the canonical profile for the source-coordinate row; the actual
+row membership comes from `canonicalRangeRow_mem_profileSpan`, and the final
+step is the paper's sum-over-profiles assembly into the finite global basis. -/
 theorem routeBPaperFaithfulTPhi_strictRangeRowsGlobalProfileSpanCover_of_rangeRowProfileCoverData
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
@@ -5694,6 +5695,28 @@ theorem routeBPaperFaithfulTPhi_strictRangeRowsGlobalProfileSpanCover_of_rangeRo
     unfold routeBPaperFaithfulTPhiStrictGlobalProfileBasis
     exact Finset.mem_biUnion.mpr ⟨ρ, Finset.mem_univ ρ, hq⟩
   exact (Submodule.span_mono hsubset) hmem
+
+/-- Exact paper-shaped construction requested by the global assembly step.
+
+Given the local-monoid/profile range-row membership theorem, construct the
+canonical-window orbit/rank data `D` and prove the actual strict range-row
+global profile-span cover for that same `D`.  This is intentionally the live
+row-cover surface, not a projected identity or broad common-span shortcut. -/
+theorem routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitRankData_exists_rangeRowsGlobalProfileSpanCover_of_rangeRowProfileCoverData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictRangeRowProfileCoverData
+        M n hn2 htb hns) :
+    ∃ D' : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+        M n hn2 htb hns,
+      RouteBPaperFaithfulTPhiStrictRangeRowsGlobalProfileSpanCover D' := by
+  refine
+    ⟨routeBPaperFaithfulTPhi_strictOrbitRankData_of_rangeRowProfileCoverData
+        M n hn2 htb hns D, ?_⟩
+  exact
+    routeBPaperFaithfulTPhi_strictRangeRowsGlobalProfileSpanCover_of_rangeRowProfileCoverData
+      M n hn2 htb hns D
 
 /-- Literal profile-compression data gives an orbit-rank frontier by taking the
 identity orbit equivalence. -/
