@@ -3799,6 +3799,123 @@ theorem routeBPaperFaithfulTPhi_unitShift_derivative_tagCoeff_finset
     _ = (2 : ℚ) ^ (S ∩ T).card * (-1) ^ (S \ T).card *
           (-1) ^ (T \ S).card := hcoeff
 
+/-- Plugging the explicit strict tag coefficient formulas into the expanded
+normalized coefficient-balance gate leaves exactly the singleton-normalizer
+correction identity.  This is the coefficient audit for the normalized
+`TΦ` route: the raw zero-profile and extracted derivative coefficients are
+computed, so the remaining work is precisely the correction-sum conversion. -/
+theorem routeBPaperFaithfulTPhi_normalizedCoeffBalance_forces_unitShift_strictTagCorrection
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hbalance :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedCoeffBalance
+        M n hn2 htb hns)
+    (S T : Finset (Fin (n / 3)))
+    (hTcard : T.card = Nat.log 2 n)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (T.toList.map (cookLevinStrictFOBFlatMap n)))
+    (hα :
+      ∀ i : Fin n,
+        SymmetricPower.tagMonomial
+          (S.map ⟨cookLevinStrictFOBFlatMap n,
+            cookLevinStrictFOBFlatMap_injective n⟩) ≠
+          Finsupp.single i 1) :
+    let e : Fin (n / 3) ↪ Fin n :=
+      ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩
+    let factors : Fin (cookLevinFactorList M n hn2 htb hns).length →
+        MvPolynomial (Fin n) ℚ :=
+      fun i => (cookLevinFactorList M n hn2 htb hns).get i
+    let α : Fin n →₀ ℕ := SymmetricPower.tagMonomial (S.map e)
+    let p : MvPolynomial (Fin n) ℚ :=
+      compiledPoly (cook_levin_compilation M n hn2 htb hns)
+    let r : MvPolynomial (Fin (n / 3)) ℚ :=
+      MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) p
+    let q : MvPolynomial (Fin n) ℚ :=
+      mlProj
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+            (1 : MvPolynomial (Fin (n / 3)) ℚ) *
+          cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+    let d : MvPolynomial (Fin n) ℚ :=
+      MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (mlProj ((1 : MvPolynomial (Fin (n / 3)) ℚ) *
+          SPDP.iterDerivList T.toList r))
+    (-1 : ℚ) ^ S.card -
+        ∑ i : Fin n,
+          MvPolynomial.coeff (Finsupp.single i 1) q *
+            MvPolynomial.coeff α
+              (mlProj (MvPolynomial.X i * Finset.univ.prod factors)) =
+      (2 : ℚ) ^ (S ∩ T).card * (-1) ^ (S \ T).card *
+          (-1) ^ (T \ S).card -
+        ∑ i : Fin n,
+          MvPolynomial.coeff (Finsupp.single i 1) d *
+            MvPolynomial.coeff α
+              (mlProj (MvPolynomial.X i * Finset.univ.prod factors)) := by
+  classical
+  let e : Fin (n / 3) ↪ Fin n :=
+    ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩
+  let factors : Fin (cookLevinFactorList M n hn2 htb hns).length →
+      MvPolynomial (Fin n) ℚ :=
+    fun i => (cookLevinFactorList M n hn2 htb hns).get i
+  let α : Fin n →₀ ℕ := SymmetricPower.tagMonomial (S.map e)
+  let p : MvPolynomial (Fin n) ℚ :=
+    compiledPoly (cook_levin_compilation M n hn2 htb hns)
+  let r : MvPolynomial (Fin (n / 3)) ℚ :=
+    MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+      (cookLevinStrictFOBFlatMap_injective n) p
+  let q : MvPolynomial (Fin n) ℚ :=
+    mlProj
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+          (1 : MvPolynomial (Fin (n / 3)) ℚ) *
+        cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+  let d : MvPolynomial (Fin n) ℚ :=
+    MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+      (mlProj ((1 : MvPolynomial (Fin (n / 3)) ℚ) *
+        SPDP.iterDerivList T.toList r))
+  have hlen : T.toList.length = Nat.log 2 n := by
+    simpa [hTcard] using T.length_toList
+  have hdeg :
+      (1 : MvPolynomial (Fin (n / 3)) ℚ).totalDegree ≤ Nat.log 2 n := by
+    simp
+  have hvars :
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (1 : MvPolynomial (Fin (n / 3)) ℚ)).vars ⊆
+        (T.toList.map (cookLevinStrictFOBFlatMap n)).toFinset := by
+    simp
+  have hα' : ∀ i : Fin n, α ≠ Finsupp.single i 1 := by
+    simpa [α, e] using hα
+  have hbal :=
+    hbalance T.toList (1 : MvPolynomial (Fin (n / 3)) ℚ)
+      hlen hdeg hvars hadm α hα'
+  have hq :
+      MvPolynomial.coeff α q = (-1 : ℚ) ^ S.card := by
+    simpa [α, q, e] using
+      routeBPaperFaithfulTPhi_unitShift_zeroProfileRow_tagCoeff
+        M n hn2 htb hns S
+  have hd :
+      MvPolynomial.coeff α d =
+        (2 : ℚ) ^ (S ∩ T).card * (-1) ^ (S \ T).card *
+          (-1) ^ (T \ S).card := by
+    simpa [α, d, p, r, e] using
+      routeBPaperFaithfulTPhi_unitShift_derivative_tagCoeff_finset
+        M n hn2 htb hns S T
+  have hbal' :
+      MvPolynomial.coeff α q -
+          ∑ i : Fin n,
+            MvPolynomial.coeff (Finsupp.single i 1) q *
+              MvPolynomial.coeff α
+                (mlProj (MvPolynomial.X i * Finset.univ.prod factors)) =
+        MvPolynomial.coeff α d -
+          ∑ i : Fin n,
+            MvPolynomial.coeff (Finsupp.single i 1) d *
+              MvPolynomial.coeff α
+                (mlProj (MvPolynomial.X i * Finset.univ.prod factors)) := by
+    simpa [factors, p, r, q, d, α] using hbal
+  rw [hq, hd] at hbal'
+  simpa [factors, p, r, q, d, α] using hbal'
+
 /-- Actual constant coefficient of the intended strict `TΦ` derivative row,
 for the list-shaped source-row interface.  Repeated derivative coordinates are
 excluded by `hSnd`; the coefficient is the expected Boolean sign
