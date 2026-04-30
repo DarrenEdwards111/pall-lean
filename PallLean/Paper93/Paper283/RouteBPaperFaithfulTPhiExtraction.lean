@@ -8,6 +8,7 @@ import PallLean.Paper93.DeepMath.PathB.PerTypeSpanningTemplateCollapseBridge
 import PallLean.Paper93.DeepMath.PathB.ActiveProfileEndpointAugmentedProgress
 import PallLean.Paper93.DeepMath.PathB.ActiveProfileEndpointAugmentedProofProgress
 import PallLean.Paper93.CanonicalizationMap
+import PallLean.Paper93.InterfaceProfile
 import PallLean.Paper93.Paper283.RouteBTransportPSideBound
 import PallLean.Paper93.Paper283.RouteBZeroProfileProjectedPWindowProgress
 import PallLean.Paper93.Paper283.RouteBChargedShiftClosureProgress
@@ -5826,6 +5827,106 @@ structure RouteBPaperFaithfulTPhiStrictCanonicalWindowLocalMonoidProfileData
 attribute [instance]
   RouteBPaperFaithfulTPhiStrictCanonicalWindowLocalMonoidProfileData.profileTypeFintype
 
+/-- Realizable interface-anonymous profile subtype from paper §9.3,
+Definition 21 and Lemma 29, specialized to the strict `TΦ` profile budget. -/
+abbrev RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+    (LocalNormalForm : Type) [Fintype LocalNormalForm]
+    [DecidableEq LocalNormalForm] (κ : ℕ) : Type :=
+  { h : PallLean.Paper93.InterfaceAnonymousProfile LocalNormalForm //
+      h ∈ PallLean.Paper93.RealizableProfiles LocalNormalForm κ }
+
+/-- Paper §9.3 local-monoid profile data in its literal interface-anonymous
+histogram form.
+
+This is deliberately narrower than the generic `BoundedProfile`/post-span
+bridge: profiles are realizable histograms over a finite normal-form alphabet
+`Σ^{≤q}`, the profile-count field is Lemma 29, the local-dimension field is
+Lemma 31, and the row-membership field is exactly the selected canonical-window
+profile span. -/
+structure RouteBPaperFaithfulTPhiStrictInterfaceAnonymousLocalMonoidProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  localNormalForm : Type
+  [localNormalFormFintype : Fintype localNormalForm]
+  [localNormalFormDecidableEq : DecidableEq localNormalForm]
+  profileCount_le :
+    Fintype.card
+        (RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          localNormalForm (Nat.log 2 n)) ≤
+      profileCount (Nat.log 2 n)
+  localDim : ℕ
+  localDim_le :
+    localDim ≤ withinProfileBound (Nat.log 2 n)
+  localBasis :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      localNormalForm (Nat.log 2 n) →
+      Finset (MvPolynomial (Fin n) ℚ)
+  localBasis_card_le : ∀ ρ, (localBasis ρ).card ≤ localDim
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        localNormalForm (Nat.log 2 n)
+  canonicalRangeRow_mem_interfaceProfileSpan :
+    ∀ (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α),
+      routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+          M n hn2 htb hns S' shift ∈
+        Submodule.span ℚ
+          (↑(localBasis
+            (profileOfCanonicalWindow
+              (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+              hrow.1)) : Set (MvPolynomial (Fin n) ℚ))
+
+attribute [instance]
+  RouteBPaperFaithfulTPhiStrictInterfaceAnonymousLocalMonoidProfileData.localNormalFormFintype
+attribute [instance]
+  RouteBPaperFaithfulTPhiStrictInterfaceAnonymousLocalMonoidProfileData.localNormalFormDecidableEq
+
+/-- Literal interface-anonymous local-monoid data instantiates the existing
+separated paper §9.3--§9.4 profile data. -/
+noncomputable def routeBPaperFaithfulTPhi_strictCanonicalWindowLocalMonoidProfileData_of_interfaceAnonymousLocalMonoidProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousLocalMonoidProfileData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictCanonicalWindowLocalMonoidProfileData
+      M n hn2 htb hns where
+  profileType :=
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      D.localNormalForm (Nat.log 2 n)
+  profileTypeFintype := inferInstance
+  profileCount_le := D.profileCount_le
+  localDim := D.localDim
+  localDim_le := D.localDim_le
+  localBasis := D.localBasis
+  localBasis_card_le := D.localBasis_card_le
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalRangeRow_mem_localProfileSpan :=
+    D.canonicalRangeRow_mem_interfaceProfileSpan
+
 /-- The separated paper bounds compose to the corrected combined budget. -/
 theorem routeBPaperFaithfulTPhi_strictLocalMonoidProfileData_budget_le
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
@@ -6158,6 +6259,22 @@ theorem routeBPaperFaithfulTPhi_strictPaperRangeRowsGlobalProfileSpanCover_of_lo
   routeBPaperFaithfulTPhi_strictPaperRangeRowsGlobalProfileSpanCover_of_localMonoidProfileCover
     M n hn2 htb hns
     (routeBPaperFaithfulTPhi_strictCanonicalWindowLocalMonoidProfileAnalysis_of_data
+      M n hn2 htb hns D)
+
+/-- Literal interface-anonymous local-monoid data gives the actual
+paper-shaped strict range-row cover by the existing global assembly. -/
+theorem routeBPaperFaithfulTPhi_strictPaperRangeRowsGlobalProfileSpanCover_of_interfaceAnonymousLocalMonoidProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousLocalMonoidProfileData
+        M n hn2 htb hns) :
+    ∃ C : RouteBPaperFaithfulTPhiStrictPaperRangeRowProfileCoverData
+        M n hn2 htb hns,
+      RouteBPaperFaithfulTPhiStrictPaperRangeRowsGlobalProfileSpanCover C :=
+  routeBPaperFaithfulTPhi_strictPaperRangeRowsGlobalProfileSpanCover_of_localMonoidProfileData
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictCanonicalWindowLocalMonoidProfileData_of_interfaceAnonymousLocalMonoidProfileData
       M n hn2 htb hns D)
 
 /-- Cardinality bound for the corrected paper-shaped assembled profile basis. -/
