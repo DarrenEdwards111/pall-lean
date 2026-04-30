@@ -6146,6 +6146,51 @@ noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileOf
       (κ := κ) h hmass).val = h :=
   rfl
 
+/-- Every realizable strict interface-anonymous `ConstraintType` profile has
+exactly the live-interface mass used to construct the profile type.
+
+This closes the Lemma-29 realizability side for the literal interface-profile
+surface: once a canonical-window selector lands in
+`RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles ConstraintType κ`, its
+histogram is not merely bounded by `κ`; its total mass is exactly `κ`. -/
+theorem routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfile_mass_eq
+    {κ : ℕ}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles ConstraintType κ) :
+    profileMass ρ.val = κ := by
+  classical
+  rcases Finset.mem_image.mp ρ.property with ⟨f, hf, hρ⟩
+  have hsum : (∑ σ : ConstraintType, (f σ : ℕ)) = κ :=
+    (Finset.mem_filter.mp hf).2
+  have hpoint : ∀ σ : ConstraintType, ρ.val σ = (f σ : ℕ) := by
+    intro σ
+    exact (congrFun hρ σ).symm
+  calc
+    profileMass ρ.val = ∑ σ : ConstraintType, ρ.val σ := rfl
+    _ = ∑ σ : ConstraintType, (f σ : ℕ) := by
+      exact Finset.sum_congr rfl (fun σ _ => hpoint σ)
+    _ = κ := hsum
+
+/-- The exact-mass fact specialized to any canonical-window selector valued in
+literal `ConstraintType` interface profiles. -/
+theorem routeBPaperFaithfulTPhi_strictConstraintTypeProfileSelector_mass_eq
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictConstraintTypeInterfaceProfileData
+      M n hn2 htb hns)
+    (w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n))
+    (hw : by
+      letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+      exact
+        PallLean.Paper93.IsCanonical
+          (κ := Nat.log 2 n)
+          (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) :
+    profileMass ((D.profileOfCanonicalWindow w hw).val) = Nat.log 2 n :=
+  routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfile_mass_eq
+    (D.profileOfCanonicalWindow w hw)
+
 /-- The bounded-profile view of a realizable `ConstraintType` interface
 profile. -/
 noncomputable def routeBPaperFaithfulTPhi_strictBoundedProfileOfConstraintTypeInterfaceProfile
