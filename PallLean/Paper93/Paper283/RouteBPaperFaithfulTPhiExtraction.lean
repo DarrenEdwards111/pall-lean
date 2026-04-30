@@ -6182,6 +6182,165 @@ structure RouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData
             (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
             hrow.1)
 
+/-- The literal selected `V_h` row span for strict `TΦ` canonical windows.
+
+For a fixed canonical-window profile selector, this is the subspace spanned by
+all strict canonical derivative rows whose selected interface-anonymous
+`ConstraintType` profile is `ρ`.  This matches the paper's `V_h` surface:
+membership is by profile selection, while the nontrivial Lemma-31 content is
+the separate finite-dimensional bound for each such selected span. -/
+noncomputable def routeBPaperFaithfulTPhiStrictConstraintTypeCanonicalProfileRowSpan
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (profileOfCanonicalWindow :
+      ∀ w : PallLean.Paper93.Window
+          (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+          RouteBPaperFaithfulTPhiStrictLocalOp
+          (Nat.log 2 n),
+        (by
+          letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+          exact
+            PallLean.Paper93.IsCanonical
+              (κ := Nat.log 2 n)
+              (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+        RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+    (ρ :
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)) :
+    Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+  Submodule.span ℚ
+    { row : MvPolynomial (Fin n) ℚ |
+      ∃ (S' : List (Fin (n / 3)))
+        (shift : MvPolynomial (Fin (n / 3)) ℚ)
+        (α : Fin n →₀ ℕ)
+        (_hSlen : S'.length = Nat.log 2 n)
+        (_hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+        (_hshiftVars :
+          (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+            (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+        (_hadm :
+          SPDP.isBlockAdmissible
+            (cook_levin_compilation M n hn2 htb hns).partition
+            (S'.map (cookLevinStrictFOBFlatMap n)))
+        (hrow :
+          routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+            M n hn2 htb hns S' shift α),
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ ∧
+          row =
+            routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+              M n hn2 htb hns S' shift }
+
+/-- A selected strict canonical derivative row belongs to its literal selected
+`V_h` row span by construction. -/
+theorem routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow_mem_constraintTypeCanonicalProfileRowSpan
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (profileOfCanonicalWindow :
+      ∀ w : PallLean.Paper93.Window
+          (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+          RouteBPaperFaithfulTPhiStrictLocalOp
+          (Nat.log 2 n),
+        (by
+          letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+          exact
+            PallLean.Paper93.IsCanonical
+              (κ := Nat.log 2 n)
+              (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+        RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+    (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (α : Fin n →₀ ℕ)
+    (hSlen : S'.length = Nat.log 2 n)
+    (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+    (hshiftVars :
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+        (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n)))
+    (hrow :
+      routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+        M n hn2 htb hns S' shift α) :
+    routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+        M n hn2 htb hns S' shift ∈
+      routeBPaperFaithfulTPhiStrictConstraintTypeCanonicalProfileRowSpan
+        M n hn2 htb hns profileOfCanonicalWindow
+        (profileOfCanonicalWindow
+          (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+          hrow.1) := by
+  classical
+  refine Submodule.subset_span ?_
+  refine ⟨S', shift, α, hSlen, hshiftDegree, hshiftVars, hadm, hrow, ?_, rfl⟩
+  rfl
+
+/-- Paper-shaped Lemma-31 row-span data for strict `TΦ`.
+
+This is the exact final mathematical obligation after removing the selected
+post-span over-specification: choose the canonical-window interface profile,
+take `V_h` to be the row span of all rows with that selected profile, and prove
+the Lemma-31 finite-dimensional bound for each selected row span.  The row
+membership field of `RouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData`
+then follows definitionally from the span, not from any one-bucket Leibniz
+collapse. -/
+structure RouteBPaperFaithfulTPhiStrictCanonicalProfileRowSpanData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  canonicalProfileRowSpan_finite :
+    ∀ ρ,
+      Module.Finite ℚ
+        ↥(routeBPaperFaithfulTPhiStrictConstraintTypeCanonicalProfileRowSpan
+          M n hn2 htb hns profileOfCanonicalWindow ρ)
+  canonicalProfileRowSpan_finrank_le :
+    ∀ ρ,
+      Module.finrank ℚ
+          ↥(routeBPaperFaithfulTPhiStrictConstraintTypeCanonicalProfileRowSpan
+            M n hn2 htb hns profileOfCanonicalWindow ρ) ≤
+        withinProfileBound (Nat.log 2 n)
+
+/-- The literal selected row-span `V_h` data instantiates the final
+profile-subspace surface. -/
+noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData_of_canonicalProfileRowSpanData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictCanonicalProfileRowSpanData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData
+      M n hn2 htb hns where
+  profileSubspace :=
+    routeBPaperFaithfulTPhiStrictConstraintTypeCanonicalProfileRowSpan
+      M n hn2 htb hns D.profileOfCanonicalWindow
+  profileSubspace_finite :=
+    D.canonicalProfileRowSpan_finite
+  profileSubspace_finrank_le :=
+    D.canonicalProfileRowSpan_finrank_le
+  profileOfCanonicalWindow :=
+    D.profileOfCanonicalWindow
+  canonicalRangeRow_mem_constraintTypeProfileSubspace := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    exact
+      routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow_mem_constraintTypeCanonicalProfileRowSpan
+        M n hn2 htb hns D.profileOfCanonicalWindow
+        S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+
 /-- Strict `TΦ` `ConstraintType` post-span selection data.
 
 This is a strictly stronger Cook-Levin specialization, not the final
