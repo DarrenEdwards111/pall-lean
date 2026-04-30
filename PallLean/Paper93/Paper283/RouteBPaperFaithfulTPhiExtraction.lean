@@ -5712,6 +5712,102 @@ structure RouteBPaperFaithfulTPhiStrictCanonicalWindowLocalMonoidProfileAnalysis
 attribute [instance]
   RouteBPaperFaithfulTPhiStrictCanonicalWindowLocalMonoidProfileAnalysis.profileTypeFintype
 
+/-- Paper §9.3--§9.4 local-monoid profile data with the two real bounds kept
+separate.
+
+This is the non-shortcut surface for the remaining strict `TΦ` row-cover
+content.  The profile count bound is Lemma 29's interface-anonymous profile
+compression, while the local dimension bound is Lemma 31's within-profile
+span bound.  The combined budget is deliberately not an input field; it is
+derived below as `profileCount * withinProfileBound = combinedProfileBound`.
+-/
+structure RouteBPaperFaithfulTPhiStrictCanonicalWindowLocalMonoidProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileType : Type
+  [profileTypeFintype : Fintype profileType]
+  profileCount_le :
+    Fintype.card profileType ≤ profileCount (Nat.log 2 n)
+  localDim : ℕ
+  localDim_le :
+    localDim ≤ withinProfileBound (Nat.log 2 n)
+  localBasis : profileType → Finset (MvPolynomial (Fin n) ℚ)
+  localBasis_card_le : ∀ ρ, (localBasis ρ).card ≤ localDim
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      profileType
+  canonicalRangeRow_mem_localProfileSpan :
+    ∀ (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α),
+      routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+          M n hn2 htb hns S' shift ∈
+        Submodule.span ℚ
+          (↑(localBasis
+            (profileOfCanonicalWindow
+              (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+              hrow.1)) : Set (MvPolynomial (Fin n) ℚ))
+
+attribute [instance]
+  RouteBPaperFaithfulTPhiStrictCanonicalWindowLocalMonoidProfileData.profileTypeFintype
+
+/-- The separated paper bounds compose to the corrected combined budget. -/
+theorem routeBPaperFaithfulTPhi_strictLocalMonoidProfileData_budget_le
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D :
+      RouteBPaperFaithfulTPhiStrictCanonicalWindowLocalMonoidProfileData
+        M n hn2 htb hns) :
+    Fintype.card D.profileType * D.localDim ≤
+      combinedProfileBound (Nat.log 2 n) := by
+  calc
+    Fintype.card D.profileType * D.localDim
+        ≤ profileCount (Nat.log 2 n) * withinProfileBound (Nat.log 2 n) :=
+      Nat.mul_le_mul D.profileCount_le D.localDim_le
+    _ = combinedProfileBound (Nat.log 2 n) := rfl
+
+/-- Constructor from the paper's separated Lemma 29/Lemma 31 data to the
+existing final analysis object. -/
+noncomputable def routeBPaperFaithfulTPhi_strictCanonicalWindowLocalMonoidProfileAnalysis_of_data
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictCanonicalWindowLocalMonoidProfileData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictCanonicalWindowLocalMonoidProfileAnalysis
+      M n hn2 htb hns where
+  profileType := D.profileType
+  profileTypeFintype := inferInstance
+  localDim := D.localDim
+  localBasis := D.localBasis
+  localBasis_card_le := D.localBasis_card_le
+  profileBudget_le :=
+    routeBPaperFaithfulTPhi_strictLocalMonoidProfileData_budget_le D
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalRangeRow_mem_localProfileSpan :=
+    D.canonicalRangeRow_mem_localProfileSpan
+
 /-- The actual local-monoid/profile analysis instantiates the corrected
 paper-shaped range-row cover data without passing through a one-profile
 classifier or a broad projected row identity. -/
@@ -5931,6 +6027,21 @@ theorem routeBPaperFaithfulTPhi_strictPaperRangeRowsGlobalProfileSpanCover_of_lo
     ⟨D,
       routeBPaperFaithfulTPhi_strictPaperRangeRowsGlobalProfileSpanCover_of_paperRangeRowProfileCoverData
         M n hn2 htb hns D⟩
+
+/-- Paper-shaped range-row cover from separated local-monoid profile data. -/
+theorem routeBPaperFaithfulTPhi_strictPaperRangeRowsGlobalProfileSpanCover_of_localMonoidProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictCanonicalWindowLocalMonoidProfileData
+        M n hn2 htb hns) :
+    ∃ C : RouteBPaperFaithfulTPhiStrictPaperRangeRowProfileCoverData
+        M n hn2 htb hns,
+      RouteBPaperFaithfulTPhiStrictPaperRangeRowsGlobalProfileSpanCover C :=
+  routeBPaperFaithfulTPhi_strictPaperRangeRowsGlobalProfileSpanCover_of_localMonoidProfileCover
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictCanonicalWindowLocalMonoidProfileAnalysis_of_data
+      M n hn2 htb hns D)
 
 /-- Cardinality bound for the corrected paper-shaped assembled profile basis. -/
 theorem routeBPaperFaithfulTPhi_strictPaperGlobalProfileBasis_card_le
@@ -10482,6 +10593,21 @@ theorem routeBPaperFaithfulTPhi_pSideBound_of_strictCanonicalWindowLocalMonoidPr
   exact
     routeBPaperFaithfulTPhi_pSideBound_of_strictPaperRangeRowsGlobalProfileSpanCover
       M n hn2 htb hns D hrange
+
+/-- P-side close-out from the separated paper Lemma 29/Lemma 31 local-monoid
+profile data. -/
+theorem routeBPaperFaithfulTPhi_pSideBound_of_strictCanonicalWindowLocalMonoidProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictCanonicalWindowLocalMonoidProfileData
+        M n hn2 htb hns) :
+    SATDeciderGaugePSideBound M n hn2 htb hns
+      (routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns) :=
+  routeBPaperFaithfulTPhi_pSideBound_of_strictCanonicalWindowLocalMonoidProfileAnalysis
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictCanonicalWindowLocalMonoidProfileAnalysis_of_data
+      M n hn2 htb hns D)
 
 /-- The paper-faithful global assembly immediately gives the strict ambient
 `TΦ` P-side rank bound for the actual gauge.  This is the replacement for the
