@@ -6262,6 +6262,67 @@ structure RouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData
             (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
             hrow.1)
 
+/-- Source-coordinate literal interface-profile local-basis data for strict
+`TΦ`.
+
+This is the most concrete paper-faithful Lemma 31 target after strict
+first-of-block restriction: for each selected `ConstraintType` interface
+profile it supplies an explicit bounded source-coordinate local basis, and the
+selected restricted Cook-Levin derivative row lies in the span of that basis.
+The ambient strict theorem is obtained only by rename transport. -/
+structure RouteBPaperFaithfulTPhiStrictSourceConstraintTypeInterfaceProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  sourceLocalDim : ℕ
+  sourceLocalDim_le :
+    sourceLocalDim ≤ withinProfileBound (Nat.log 2 n)
+  sourceLocalBasis :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) →
+      Finset (MvPolynomial (Fin (n / 3)) ℚ)
+  sourceLocalBasis_card_le : ∀ ρ, (sourceLocalBasis ρ).card ≤ sourceLocalDim
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  canonicalSourceRow_mem_constraintTypeProfileSpan :
+    ∀ (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α),
+      mlProj
+          (shift *
+            SPDP.iterDerivList S'
+              (MultilinearSPDP.restrictPoly ℚ
+                (cookLevinStrictFOBFlatMap n)
+                (cookLevinStrictFOBFlatMap_injective n)
+                (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) ∈
+        Submodule.span ℚ
+          (↑(sourceLocalBasis
+            (profileOfCanonicalWindow
+              (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+              hrow.1)) : Set (MvPolynomial (Fin (n / 3)) ℚ))
+
 /-- Source-coordinate selected profile-subspace data for strict `TΦ`.
 
 This is the paper-faithful place where the raw Lemma 31/local-monoid theorem
@@ -6324,6 +6385,34 @@ structure RouteBPaperFaithfulTPhiStrictSourceConstraintTypeProfileSubspaceData
           (profileOfCanonicalWindow
             (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
             hrow.1)
+
+/-- Source local-basis data instantiates source selected profile-subspace data
+by taking each source `V_h` to be the span of its source local basis. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceProfileSubspaceData_of_sourceInterfaceProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceConstraintTypeInterfaceProfileData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceConstraintTypeProfileSubspaceData
+      M n hn2 htb hns where
+  sourceProfileSubspace := fun ρ =>
+    Submodule.span ℚ
+      (↑(D.sourceLocalBasis ρ) : Set (MvPolynomial (Fin (n / 3)) ℚ))
+  sourceProfileSubspace_finite := by
+    intro ρ
+    exact Module.Finite.span_of_finite ℚ
+      (Finset.finite_toSet (D.sourceLocalBasis ρ))
+  sourceProfileSubspace_finrank_le := by
+    intro ρ
+    exact
+      (finrank_span_finset_le_card (D.sourceLocalBasis ρ)).trans
+        ((D.sourceLocalBasis_card_le ρ).trans D.sourceLocalDim_le)
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalSourceRow_mem_constraintTypeProfileSubspace := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    simpa using
+      D.canonicalSourceRow_mem_constraintTypeProfileSpan
+        S' shift α hSlen hshiftDegree hshiftVars hadm hrow
 
 /-- Rename a source-coordinate selected profile subspace back to the ambient
 strict first-of-block coordinates. -/
@@ -6400,6 +6489,25 @@ noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceDat
           M n hn2 htb hns S' shift
     rw [hroweq]
     exact ⟨srcRow, hsrc, rfl⟩
+
+/-- Source literal local-basis data gives ambient strict selected `V_h` data.
+
+This is just composition of the two checked adapters: source local bases first
+instantiate source selected subspaces, then rename transports those subspaces to
+the ambient strict first-of-block coordinates. It deliberately does not infer a
+selected profile from an ambient `iSup` membership and does not use a common
+ambient span. -/
+noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData_of_sourceInterfaceProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceConstraintTypeInterfaceProfileData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData_of_sourceProfileSubspaceData
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictSourceProfileSubspaceData_of_sourceInterfaceProfileData
+      M n hn2 htb hns D)
 
 /-- The literal selected `V_h` row span for strict `TΦ` canonical windows.
 
