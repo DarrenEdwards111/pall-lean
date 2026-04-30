@@ -6402,6 +6402,77 @@ noncomputable def routeBPaperFaithfulTPhi_strictCanonicalProfileRowSpanData_of_i
       _ ≤ D.localDim := D.localBasis_card_le ρ
       _ ≤ withinProfileBound (Nat.log 2 n) := D.localDim_le
 
+
+/-- Literal selected row-span data supplies explicit interface-profile local
+bases by choosing a finite basis of each row-span `V_h`.
+
+Together with
+`routeBPaperFaithfulTPhi_strictCanonicalProfileRowSpanData_of_interfaceProfileData`,
+this records that the interface-basis formulation and the literal row-span
+formulation are equivalent packaging of the same Lemma-31 obligation.  No
+post-span collapse or ambient common-span argument is used. -/
+noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData_of_canonicalProfileRowSpanData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictCanonicalProfileRowSpanData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictConstraintTypeInterfaceProfileData
+      M n hn2 htb hns where
+  localDim := withinProfileBound (Nat.log 2 n)
+  localDim_le := le_rfl
+  localBasis := fun ρ =>
+    letI := D.canonicalProfileRowSpan_finite ρ
+    basisImageFinset
+      (routeBPaperFaithfulTPhiStrictConstraintTypeCanonicalProfileRowSpan
+        M n hn2 htb hns D.profileOfCanonicalWindow ρ)
+  localBasis_card_le := by
+    intro ρ
+    letI := D.canonicalProfileRowSpan_finite ρ
+    exact
+      (basisImageFinset_card_le
+        (routeBPaperFaithfulTPhiStrictConstraintTypeCanonicalProfileRowSpan
+          M n hn2 htb hns D.profileOfCanonicalWindow ρ)).trans
+        (D.canonicalProfileRowSpan_finrank_le ρ)
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalRangeRow_mem_constraintTypeProfileSpan := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    let ρ :=
+      D.profileOfCanonicalWindow
+        (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α) hrow.1
+    have hmem :
+        routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+            M n hn2 htb hns S' shift ∈
+          routeBPaperFaithfulTPhiStrictConstraintTypeCanonicalProfileRowSpan
+            M n hn2 htb hns D.profileOfCanonicalWindow ρ := by
+      simpa [ρ] using
+        routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow_mem_constraintTypeCanonicalProfileRowSpan
+          M n hn2 htb hns D.profileOfCanonicalWindow
+          S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    letI := D.canonicalProfileRowSpan_finite ρ
+    have hspan :
+        Submodule.span ℚ
+            (↑(basisImageFinset
+              (routeBPaperFaithfulTPhiStrictConstraintTypeCanonicalProfileRowSpan
+                M n hn2 htb hns D.profileOfCanonicalWindow ρ)) :
+              Set (MvPolynomial (Fin n) ℚ)) =
+          routeBPaperFaithfulTPhiStrictConstraintTypeCanonicalProfileRowSpan
+            M n hn2 htb hns D.profileOfCanonicalWindow ρ := by
+      letI := D.canonicalProfileRowSpan_finite ρ
+      exact span_basisImageFinset_eq
+        (routeBPaperFaithfulTPhiStrictConstraintTypeCanonicalProfileRowSpan
+          M n hn2 htb hns D.profileOfCanonicalWindow ρ)
+    change
+      routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+          M n hn2 htb hns S' shift ∈
+        Submodule.span ℚ
+          (↑(basisImageFinset
+            (routeBPaperFaithfulTPhiStrictConstraintTypeCanonicalProfileRowSpan
+              M n hn2 htb hns D.profileOfCanonicalWindow ρ)) :
+            Set (MvPolynomial (Fin n) ℚ))
+    rw [hspan]
+    exact hmem
+
 /-- The literal selected row-span `V_h` data instantiates the final
 profile-subspace surface. -/
 noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData_of_canonicalProfileRowSpanData
