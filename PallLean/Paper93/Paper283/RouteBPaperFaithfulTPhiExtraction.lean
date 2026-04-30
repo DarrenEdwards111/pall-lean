@@ -6822,6 +6822,153 @@ structure RouteBPaperFaithfulTPhiStrictSourceCanonicalProfileRowSpanData
             M n hn2 htb hns profileOfCanonicalWindow ρ) ≤
         withinProfileBound (Nat.log 2 n)
 
+/-- Source local-type compression data for the literal selected source row spans.
+
+This is a paper-faithful local-normal-form surface for Lemma 31: for each
+selected `ConstraintType` profile `ρ`, provide a bounded local-type alphabet in
+source coordinates, assign every source row selecting `ρ` to one local type,
+and prove the row lies in that type's local span.  The row-span finrank bound is
+then a formal consequence of the local-type budget, not a common/global-span
+shortcut across unrelated profiles. -/
+structure RouteBPaperFaithfulTPhiStrictSourceLocalTypeCompressionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceAlphabet :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) →
+      ZeroProfileLocalTypeAlphabet (n / 3) (Nat.log 2 n)
+  sourceRowType :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α),
+      profileOfCanonicalWindow
+          (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+          hrow.1 = ρ →
+        (sourceAlphabet ρ).type
+  sourceRow_mem_localTypeSpace :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ),
+      routeBPaperFaithfulTPhiStrictSourceCanonicalDerivativeRow
+          M n hn2 htb hns S' shift ∈
+        zeroProfileLocalTypeSpace (sourceAlphabet ρ)
+          (sourceRowType ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ)
+
+/-- A source local-type compression datum bounds the literal selected source
+row spans.  The only substantive hypothesis is the selected local-type
+membership field of `D`; this theorem just assembles the finite-dimensional
+budget. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceCanonicalProfileRowSpanData_of_sourceLocalTypeCompressionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceLocalTypeCompressionData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceCanonicalProfileRowSpanData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceCanonicalProfileRowSpan_finite := by
+    intro ρ
+    let U := routeBPaperFaithfulTPhiStrictSourceConstraintTypeCanonicalProfileRowSpan
+      M n hn2 htb hns D.profileOfCanonicalWindow ρ
+    let W := zeroProfileLocalTypeCompressedProfileSpan (D.sourceAlphabet ρ)
+    have hle : U ≤ W := by
+      unfold U
+      refine Submodule.span_le.mpr ?_
+      intro row hrowmem
+      rcases hrowmem with
+        ⟨S', shift, α, hSlen, hshiftDegree, hshiftVars, hadm, hrow, hρ, rfl⟩
+      exact
+        (zeroProfileLocalTypeSpace_le_compressedProfileSpan
+          (D.sourceAlphabet ρ)
+          (D.sourceRowType ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ))
+          (D.sourceRow_mem_localTypeSpace
+            ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ)
+    letI : Module.Finite ℚ ↥W := by
+      exact Module.Finite.span_of_finite ℚ
+        (Finset.finite_toSet (zeroProfileLocalTypeGlobalBasis (D.sourceAlphabet ρ)))
+    exact Module.Finite.of_injective
+      ((Submodule.inclusion hle) : U →ₗ[ℚ] W)
+      (Submodule.inclusion_injective hle)
+  sourceCanonicalProfileRowSpan_finrank_le := by
+    intro ρ
+    let U := routeBPaperFaithfulTPhiStrictSourceConstraintTypeCanonicalProfileRowSpan
+      M n hn2 htb hns D.profileOfCanonicalWindow ρ
+    let W := zeroProfileLocalTypeCompressedProfileSpan (D.sourceAlphabet ρ)
+    have hle : U ≤ W := by
+      unfold U
+      refine Submodule.span_le.mpr ?_
+      intro row hrowmem
+      rcases hrowmem with
+        ⟨S', shift, α, hSlen, hshiftDegree, hshiftVars, hadm, hrow, hρ, rfl⟩
+      exact
+        (zeroProfileLocalTypeSpace_le_compressedProfileSpan
+          (D.sourceAlphabet ρ)
+          (D.sourceRowType ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ))
+          (D.sourceRow_mem_localTypeSpace
+            ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ)
+    letI : Module.Finite ℚ ↥W := by
+      exact Module.Finite.span_of_finite ℚ
+        (Finset.finite_toSet (zeroProfileLocalTypeGlobalBasis (D.sourceAlphabet ρ)))
+    letI : Module.Finite ℚ ↥U :=
+      Module.Finite.of_injective
+        ((Submodule.inclusion hle) : U →ₗ[ℚ] W)
+        (Submodule.inclusion_injective hle)
+    calc
+      Module.finrank ℚ ↥U ≤ Module.finrank ℚ ↥W :=
+        Submodule.finrank_mono hle
+      _ ≤ (zeroProfileLocalTypeGlobalBasis (D.sourceAlphabet ρ)).card := by
+        simpa [W, zeroProfileLocalTypeCompressedProfileSpan] using
+          finrank_span_finset_le_card
+            (zeroProfileLocalTypeGlobalBasis (D.sourceAlphabet ρ))
+      _ ≤ withinProfileBound (Nat.log 2 n) :=
+        zeroProfileLocalTypeGlobalBasis_card_le_withinProfileBound
+          (D.sourceAlphabet ρ)
+
 /-- Source row-span data instantiates source selected profile-subspace data by
 choosing the literal selected source row span as `V_h`. -/
 noncomputable def routeBPaperFaithfulTPhi_strictSourceProfileSubspaceData_of_sourceCanonicalProfileRowSpanData
