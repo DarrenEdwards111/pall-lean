@@ -6323,6 +6323,105 @@ structure RouteBPaperFaithfulTPhiStrictSourceConstraintTypeInterfaceProfileData
               (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
               hrow.1)) : Set (MvPolynomial (Fin (n / 3)) ℚ))
 
+/-- Restrict an ambient strict `ConstraintType` local basis back to source
+first-of-block coordinates. -/
+noncomputable def routeBPaperFaithfulTPhi_strictRestrictedAmbientLocalBasis
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictConstraintTypeInterfaceProfileData
+      M n hn2 htb hns)
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n)) :
+    Finset (MvPolynomial (Fin (n / 3)) ℚ) :=
+  (D.localBasis ρ).image
+    (MultilinearSPDP.restrictPoly ℚ
+      (cookLevinStrictFOBFlatMap n)
+      (cookLevinStrictFOBFlatMap_injective n))
+
+/-- Ambient strict `ConstraintType` interface-profile data gives source
+interface-profile data by restricting each selected ambient local basis.
+
+This is a checked source/ambient equivalence step, not a shortcut: selected
+ambient row membership is first restricted along the injective strict
+first-of-block map, and the source row is identified with that restriction by
+`restrictPoly_rename` plus the already proved strict row rename identity. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceInterfaceProfileData_of_constraintTypeInterfaceProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictConstraintTypeInterfaceProfileData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceConstraintTypeInterfaceProfileData
+      M n hn2 htb hns where
+  sourceLocalDim := D.localDim
+  sourceLocalDim_le := D.localDim_le
+  sourceLocalBasis := routeBPaperFaithfulTPhi_strictRestrictedAmbientLocalBasis D
+  sourceLocalBasis_card_le := by
+    intro ρ
+    exact (Finset.card_image_le.trans (D.localBasis_card_le ρ))
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalSourceRow_mem_constraintTypeProfileSpan := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    let f := cookLevinStrictFOBFlatMap n
+    let hf := cookLevinStrictFOBFlatMap_injective n
+    let srcRow : MvPolynomial (Fin (n / 3)) ℚ :=
+      mlProj
+        (shift *
+          SPDP.iterDerivList S'
+            (MultilinearSPDP.restrictPoly ℚ
+              (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n)
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+    let ambRow : MvPolynomial (Fin n) ℚ :=
+      routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+        M n hn2 htb hns S' shift
+    let ρ :=
+      D.profileOfCanonicalWindow
+        (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α) hrow.1
+    have hamb : ambRow ∈
+        Submodule.span ℚ
+          (↑(D.localBasis ρ) : Set (MvPolynomial (Fin n) ℚ)) := by
+      simpa [ambRow, ρ] using
+        D.canonicalRangeRow_mem_constraintTypeProfileSpan
+          S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    have hmap :
+        (MultilinearSPDP.restrictPoly ℚ f hf) ambRow ∈
+          Submodule.map
+            (MultilinearSPDP.restrictPoly ℚ f hf).toLinearMap
+            (Submodule.span ℚ
+              (↑(D.localBasis ρ) : Set (MvPolynomial (Fin n) ℚ))) :=
+      ⟨ambRow, hamb, rfl⟩
+    have hspan :
+        Submodule.map
+            (MultilinearSPDP.restrictPoly ℚ f hf).toLinearMap
+            (Submodule.span ℚ
+              (↑(D.localBasis ρ) : Set (MvPolynomial (Fin n) ℚ))) =
+          Submodule.span ℚ
+            (↑(routeBPaperFaithfulTPhi_strictRestrictedAmbientLocalBasis D ρ) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ)) := by
+      rw [Submodule.map_span]
+      apply congrArg (Submodule.span ℚ)
+      ext p
+      simp [routeBPaperFaithfulTPhi_strictRestrictedAmbientLocalBasis, f]
+    have hamb_eq : ambRow = MvPolynomial.rename f srcRow := by
+      simpa [ambRow, srcRow, f,
+        routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow] using
+        routeBPaperFaithfulTPhi_rangePWindowRow_eq_renamedRestrictedRow
+          M n hn2 htb hns S' shift
+    have hsrc_eq : srcRow = (MultilinearSPDP.restrictPoly ℚ f hf) ambRow := by
+      calc
+        srcRow = (MultilinearSPDP.restrictPoly ℚ f hf)
+            (MvPolynomial.rename f srcRow) := by
+              simpa [f, hf] using
+                (MultilinearSPDP.restrictPoly_rename ℚ f hf srcRow).symm
+        _ = (MultilinearSPDP.restrictPoly ℚ f hf) ambRow := by
+              rw [← hamb_eq]
+    change srcRow ∈
+      Submodule.span ℚ
+        (↑(routeBPaperFaithfulTPhi_strictRestrictedAmbientLocalBasis D ρ) :
+          Set (MvPolynomial (Fin (n / 3)) ℚ))
+    rw [hsrc_eq]
+    exact hspan ▸ hmap
+
 /-- Rename the explicit source-coordinate local basis for a strict
 `ConstraintType` interface profile into the ambient strict first-of-block
 coordinates. -/
@@ -6404,6 +6503,30 @@ noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileDa
           M n hn2 htb hns S' shift
     rw [hroweq]
     exact hspan ▸ hmap
+
+/-- Ambient strict interface-profile data and source explicit local-basis data
+are equivalent theorem surfaces under the checked strict first-of-block
+restriction/rename transport.  This is still packaging around the same selected
+profile membership theorem; it does not infer selected membership from an
+ambient `iSup` or any common-span argument. -/
+theorem routeBPaperFaithfulTPhi_strictSourceInterfaceProfileData_nonempty_iff_constraintTypeInterfaceProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Nonempty
+        (RouteBPaperFaithfulTPhiStrictSourceConstraintTypeInterfaceProfileData
+          M n hn2 htb hns) ↔
+      Nonempty
+        (RouteBPaperFaithfulTPhiStrictConstraintTypeInterfaceProfileData
+          M n hn2 htb hns) := by
+  constructor
+  · intro h
+    rcases h with ⟨D⟩
+    exact ⟨routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData_of_sourceInterfaceProfileData_direct
+      M n hn2 htb hns D⟩
+  · intro h
+    rcases h with ⟨D⟩
+    exact ⟨routeBPaperFaithfulTPhi_strictSourceInterfaceProfileData_of_constraintTypeInterfaceProfileData
+      M n hn2 htb hns D⟩
 
 /-- Source-coordinate selected profile-subspace data for strict `TΦ`.
 
@@ -7873,6 +7996,53 @@ noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileDa
     M n hn2 htb hns
     (routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData_of_postSpanSelectionData
       M n hn2 htb hns D)
+
+/-- Optional stronger selected post-span data constructs the source local-type
+compression object by the checked route
+
+`selected post-span → ambient interface basis → restricted source basis → source
+local type`.
+
+No selected membership is inferred from the generic all-profile `iSup`: it is
+exactly the selected post-span field of `D`, then functorially restricted along
+the strict first-of-block injection. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLocalTypeCompressionData_of_postSpanSelectionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictConstraintTypePostSpanSelectionData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceLocalTypeCompressionData
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_strictSourceLocalTypeCompressionData_of_sourceInterfaceProfileData
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictSourceInterfaceProfileData_of_constraintTypeInterfaceProfileData
+      M n hn2 htb hns
+      (routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData_of_postSpanSelectionData
+        M n hn2 htb hns D))
+
+/-- Bounded-profile local-monoid analysis with the real exact-mass selector
+constructs the requested source local-type compression object.
+
+This is the paper-faithful packaged object: the only mathematical input is the
+selected Cook-Levin local-monoid/profile membership in `A`; Lemma-29 exact mass
+converts that selected bounded profile to a realizable `ConstraintType` profile,
+and the source object is obtained by the verified first-of-block
+restriction/rename transport. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLocalTypeCompressionData_of_localMonoidProfileAnalysis_exactMass
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (A : RouteBPaperFaithfulTPhiStrictLocalMonoidProfileAnalysis
+      M n hn2 htb hns)
+    (hmass :
+      ∀ w hw,
+        profileMass ((A.profileOfCanonicalWindow w hw).toHistogram) =
+          Nat.log 2 n) :
+    RouteBPaperFaithfulTPhiStrictSourceLocalTypeCompressionData
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_strictSourceLocalTypeCompressionData_of_postSpanSelectionData
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictConstraintTypePostSpanSelectionData_of_localMonoidProfileAnalysis_exactMass
+      M n hn2 htb hns A hmass)
 
 /-- The same optional stronger selected realizable `ConstraintType` post-span
 data instantiates the bounded-profile local-monoid analysis by forgetting only
