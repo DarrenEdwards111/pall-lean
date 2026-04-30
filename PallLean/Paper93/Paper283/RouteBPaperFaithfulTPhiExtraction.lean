@@ -9,6 +9,7 @@ import PallLean.Paper93.DeepMath.PathB.ActiveProfileEndpointAugmentedProgress
 import PallLean.Paper93.DeepMath.PathB.ActiveProfileEndpointAugmentedProofProgress
 import PallLean.Paper93.CanonicalizationMap
 import PallLean.Paper93.InterfaceProfile
+import PallLean.Paper93.TemplateCollapseDischarge
 import PallLean.Paper93.Paper283.RouteBTransportPSideBound
 import PallLean.Paper93.Paper283.RouteBZeroProfileProjectedPWindowProgress
 import PallLean.Paper93.Paper283.RouteBChargedShiftClosureProgress
@@ -6049,6 +6050,153 @@ structure RouteBPaperFaithfulTPhiStrictConstraintTypeInterfaceProfileData
             (profileOfCanonicalWindow
               (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
               hrow.1)) : Set (MvPolynomial (Fin n) ℚ))
+
+/-- A realizable strict interface-anonymous `ConstraintType` profile has each
+coordinate bounded by its total live-interface budget. -/
+theorem routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfile_component_le
+    {κ : ℕ}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles ConstraintType κ)
+    (τ : ConstraintType) :
+    ρ.val τ ≤ κ := by
+  classical
+  rcases Finset.mem_image.mp ρ.property with ⟨f, hf, hρ⟩
+  have hsum : (∑ σ : ConstraintType, (f σ : ℕ)) = κ := by
+    exact (Finset.mem_filter.mp hf).2
+  have hcoord : ρ.val τ = (f τ : ℕ) := by
+    exact (congrFun hρ τ).symm
+  have hle_sum : (f τ : ℕ) ≤ ∑ σ : ConstraintType, (f σ : ℕ) :=
+    Finset.single_le_sum
+      (fun σ _ => Nat.zero_le (f σ : ℕ)) (Finset.mem_univ τ)
+  omega
+
+/-- The bounded-profile view of a realizable `ConstraintType` interface
+profile. -/
+noncomputable def routeBPaperFaithfulTPhi_strictBoundedProfileOfConstraintTypeInterfaceProfile
+    {κ : ℕ}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles ConstraintType κ) :
+    BoundedProfile κ :=
+  ⟨ρ.val,
+    routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfile_component_le ρ⟩
+
+/-- Strict `TΦ` `ConstraintType` profile-subspace data.
+
+This is narrower than supplying finite local bases directly.  For each
+realizable interface-anonymous profile, it supplies the actual profile
+subspace and its within-profile dimension bound; the finite basis used
+downstream is then chosen mechanically from a basis of that subspace.  The
+remaining mathematical content is the canonical-window profile selector and
+selected row membership in the selected profile subspace. -/
+structure RouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileSubspace :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) →
+      Submodule ℚ (MvPolynomial (Fin n) ℚ)
+  profileSubspace_finite :
+    ∀ ρ, Module.Finite ℚ ↥(profileSubspace ρ)
+  profileSubspace_finrank_le :
+    ∀ ρ,
+      Module.finrank ℚ ↥(profileSubspace ρ) ≤
+        withinProfileBound (Nat.log 2 n)
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  canonicalRangeRow_mem_constraintTypeProfileSubspace :
+    ∀ (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α),
+      routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+          M n hn2 htb hns S' shift ∈
+        profileSubspace
+          (profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1)
+
+/-- The basis selected from a strict `ConstraintType` profile subspace. -/
+noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceBasis
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D :
+      RouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData
+        M n hn2 htb hns)
+    (ρ :
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)) :
+    Finset (MvPolynomial (Fin n) ℚ) :=
+  letI := D.profileSubspace_finite ρ
+  basisImageFinset (D.profileSubspace ρ)
+
+/-- Profile-subspace data instantiates the stricter `ConstraintType`
+interface-profile data; local bases are no longer an assumption. -/
+noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData_of_profileSubspaceData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictConstraintTypeInterfaceProfileData
+      M n hn2 htb hns where
+  localDim := withinProfileBound (Nat.log 2 n)
+  localDim_le := le_rfl
+  localBasis :=
+    routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceBasis D
+  localBasis_card_le := by
+    intro ρ
+    letI := D.profileSubspace_finite ρ
+    exact
+      (basisImageFinset_card_le (D.profileSubspace ρ)).trans
+        (D.profileSubspace_finrank_le ρ)
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalRangeRow_mem_constraintTypeProfileSpan := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    let ρ :=
+      D.profileOfCanonicalWindow
+        (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α) hrow.1
+    have hmem :
+        routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+            M n hn2 htb hns S' shift ∈
+          D.profileSubspace ρ := by
+      simpa [ρ] using
+        D.canonicalRangeRow_mem_constraintTypeProfileSubspace
+          S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    have hspan :
+        Submodule.span ℚ
+            (↑(routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceBasis
+              D ρ) : Set (MvPolynomial (Fin n) ℚ)) =
+          D.profileSubspace ρ := by
+      letI := D.profileSubspace_finite ρ
+      exact span_basisImageFinset_eq (D.profileSubspace ρ)
+    change
+      routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+          M n hn2 htb hns S' shift ∈
+        Submodule.span ℚ
+          (↑(routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceBasis
+            D ρ) : Set (MvPolynomial (Fin n) ℚ))
+    rw [hspan]
+    exact hmem
 
 /-- The actual Cook-Levin interface alphabet has the four profile bins used by
 paper §9 Lemma 29. -/
