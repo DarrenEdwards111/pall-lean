@@ -1434,6 +1434,22 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictBounded
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
+/-- Final close-out from the actual four-valued Cook-Levin interface alphabet
+version of the strict `TΦ` interface-anonymous local-monoid profile data. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictConstraintTypeInterfaceProfileData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictBoundedInterfaceAnonymousLocalMonoidProfileData
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictBoundedInterfaceAnonymousLocalMonoidProfileData_of_constraintTypeInterfaceProfileData
+        M n hn2 htb hns
+        (hdata M n hn hn2 htb hns hdec))
+
 /-- Paper-faithful strict `TΦ` contradiction from the corrected range-row
 profile cover data and its actual range-row global span theorem.
 
@@ -2351,6 +2367,20 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictBounde
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictBoundedInterfaceAnonymousLocalMonoidProfileData
       hdata)
 
+/-- Rich-projection discharge from the actual four-valued Cook-Levin
+interface-alphabet version of strict interface-anonymous profile data. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictConstraintTypeInterfaceProfileData
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData
+      hdata)
+
 /-- Rich-projection discharge from the corrected paper-shaped strict range-row
 cover theorem.
 
@@ -2794,6 +2824,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictCanonicalWindowLocalMonoidProfileData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictInterfaceAnonymousLocalMonoidProfileData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictBoundedInterfaceAnonymousLocalMonoidProfileData
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData
 #print axioms false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_strictLocalMonoidProfileAnalysis
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictLocalMonoidProfileAnalysis
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitProfile_rangeRows
@@ -2833,6 +2864,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictCanonicalWindowLocalMonoidProfileData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictInterfaceAnonymousLocalMonoidProfileData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictBoundedInterfaceAnonymousLocalMonoidProfileData
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictLocalMonoidProfileAnalysis
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitProfile_rangeRows
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictRangeRowProfileCoverData

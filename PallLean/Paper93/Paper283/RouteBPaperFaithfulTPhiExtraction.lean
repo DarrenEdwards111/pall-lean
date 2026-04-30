@@ -5994,6 +5994,91 @@ attribute [instance]
 attribute [instance]
   RouteBPaperFaithfulTPhiStrictBoundedInterfaceAnonymousLocalMonoidProfileData.localNormalFormDecidableEq
 
+/-- Strict `TΦ` interface-anonymous local-monoid profile data with the
+paper's actual Cook-Levin four-valued interface alphabet.
+
+This is narrower than the bounded-alphabet surface: the local normal forms are
+not an arbitrary finite type with a cardinality proof.  They are exactly the
+`ConstraintType` alphabet used by the compiled coefficient-basis interface
+spaces.  The remaining live facts are therefore the profile selector, Lemma 31
+local bases for these profiles, and selected canonical row membership. -/
+structure RouteBPaperFaithfulTPhiStrictConstraintTypeInterfaceProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  localDim : ℕ
+  localDim_le :
+    localDim ≤ withinProfileBound (Nat.log 2 n)
+  localBasis :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) →
+      Finset (MvPolynomial (Fin n) ℚ)
+  localBasis_card_le : ∀ ρ, (localBasis ρ).card ≤ localDim
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  canonicalRangeRow_mem_constraintTypeProfileSpan :
+    ∀ (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α),
+      routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+          M n hn2 htb hns S' shift ∈
+        Submodule.span ℚ
+          (↑(localBasis
+            (profileOfCanonicalWindow
+              (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+              hrow.1)) : Set (MvPolynomial (Fin n) ℚ))
+
+/-- The actual Cook-Levin interface alphabet has the four profile bins used by
+paper §9 Lemma 29. -/
+theorem routeBPaperFaithfulTPhi_strictConstraintType_card_le_four :
+    Fintype.card ConstraintType ≤ 4 := by
+  simpa [SymmetricPowerBound.constraintType_card]
+
+/-- The concrete `ConstraintType` profile surface instantiates the bounded
+interface-anonymous surface without any arbitrary alphabet choice. -/
+noncomputable def routeBPaperFaithfulTPhi_strictBoundedInterfaceAnonymousLocalMonoidProfileData_of_constraintTypeInterfaceProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictConstraintTypeInterfaceProfileData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictBoundedInterfaceAnonymousLocalMonoidProfileData
+      M n hn2 htb hns where
+  localNormalForm := ConstraintType
+  localNormalFormFintype := inferInstance
+  localNormalFormDecidableEq := inferInstance
+  localNormalForm_card_le :=
+    routeBPaperFaithfulTPhi_strictConstraintType_card_le_four
+  localDim := D.localDim
+  localDim_le := D.localDim_le
+  localBasis := D.localBasis
+  localBasis_card_le := D.localBasis_card_le
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalRangeRow_mem_interfaceProfileSpan :=
+    D.canonicalRangeRow_mem_constraintTypeProfileSpan
+
 /-- Bounded finite-normal-form alphabet data instantiates the literal
 interface-anonymous profile data, with Lemma 29 deriving `profileCount_le`. -/
 noncomputable def routeBPaperFaithfulTPhi_strictInterfaceAnonymousLocalMonoidProfileData_of_boundedInterfaceAnonymousLocalMonoidProfileData
