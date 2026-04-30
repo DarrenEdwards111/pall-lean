@@ -1515,6 +1515,28 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceC
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
+/-- Final paper-shaped close-out from source local-type compression data
+for strict `TΦ`.
+
+This is the paper's Lemma-31 local-monoid surface in source coordinates: a
+profile-specific finite local-type alphabet classifies exactly the rows
+selecting each literal `ConstraintType` profile.  The proof only converts that
+local-type compression datum into the literal selected source row-span bound,
+then uses the already checked final route. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceLocalTypeCompressionData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceLocalTypeCompressionData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceCanonicalProfileRowSpanData
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictSourceCanonicalProfileRowSpanData_of_sourceLocalTypeCompressionData
+        M n hn2 htb hns
+        (hdata M n hn hn2 htb hns hdec))
+
 /-- Final paper-shaped close-out from source-coordinate explicit local-basis
 data for strict `TΦ`.
 
@@ -2536,6 +2558,20 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSource
     CookLevinRichProjectionDischarge :=
   cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceCanonicalProfileRowSpanData
+      hdata)
+
+/-- Rich-projection discharge from source local-type compression data for
+strict `TΦ`. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceLocalTypeCompressionData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceLocalTypeCompressionData
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceLocalTypeCompressionData
       hdata)
 
 /-- Rich-projection discharge from source-coordinate strict `ConstraintType`
