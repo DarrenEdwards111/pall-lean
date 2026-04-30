@@ -5932,6 +5932,25 @@ theorem routeBPaperFaithfulTPhi_strictPaperRangeRowsGlobalProfileSpanCover_of_lo
       routeBPaperFaithfulTPhi_strictPaperRangeRowsGlobalProfileSpanCover_of_paperRangeRowProfileCoverData
         M n hn2 htb hns D⟩
 
+/-- Cardinality bound for the corrected paper-shaped assembled profile basis. -/
+theorem routeBPaperFaithfulTPhi_strictPaperGlobalProfileBasis_card_le
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictPaperRangeRowProfileCoverData
+      M n hn2 htb hns) :
+    (routeBPaperFaithfulTPhiStrictPaperGlobalProfileBasis D).card ≤
+      Fintype.card D.profileType * D.localDim := by
+  classical
+  unfold routeBPaperFaithfulTPhiStrictPaperGlobalProfileBasis
+  calc
+    (Finset.univ.biUnion D.localBasis).card ≤
+        ∑ ρ : D.profileType, (D.localBasis ρ).card :=
+      Finset.card_biUnion_le
+    _ ≤ ∑ _ρ : D.profileType, D.localDim := by
+      exact Finset.sum_le_sum (fun ρ _ => D.localBasis_card_le ρ)
+    _ = Fintype.card D.profileType * D.localDim := by
+      simp [Finset.sum_const, Finset.card_univ, mul_comm]
+
 /-- The existing strict local-monoid/profile classifier instantiates the
 range-row profile-cover data needed by global assembly.
 
@@ -10236,6 +10255,233 @@ theorem routeBPaperFaithfulTPhi_withinProfileBound_log_le_pow_200
         _ ≤ n ^ 192 := by
           exact Nat.pow_le_pow_left hn2 192
     _ = n ^ 200 := by ring
+
+/-- The corrected paper budget also fits under the ambient `n^200` gauge
+envelope.  This is the arithmetic envelope for the §9.3--§9.4
+sum-over-profiles route: profile count times local dimension is
+`combinedProfileBound κ = (κ+1)^12`, still far below the final `n^200`
+budget used by Route B. -/
+theorem routeBPaperFaithfulTPhi_combinedProfileBound_log_le_pow_200
+    (n : ℕ) (hn2 : n ≥ 2) :
+    combinedProfileBound (Nat.log 2 n) ≤ n ^ 200 := by
+  rw [SymmetricPowerBound.combinedProfileBound_eq]
+  have hbase : Nat.log 2 n + 1 ≤ 2 * n := by
+    have hlog : Nat.log 2 n ≤ n := Nat.log_le_self 2 n
+    omega
+  calc
+    (Nat.log 2 n + 1) ^ 12 ≤ (2 * n) ^ 12 :=
+      Nat.pow_le_pow_left hbase 12
+    _ = 2 ^ 12 * n ^ 12 := by ring
+    _ ≤ n ^ 188 * n ^ 12 := by
+      apply Nat.mul_le_mul_right
+      calc
+        (2 : ℕ) ^ 12 = 4096 := by norm_num
+        _ ≤ 2 ^ 188 := by norm_num
+        _ ≤ n ^ 188 := by
+          exact Nat.pow_le_pow_left hn2 188
+    _ = n ^ 200 := by ring
+
+/-- Corrected paper-shaped ambient global span cover for the assembled
+local-monoid profile basis.  This mirrors the older orbit-rank cover, but
+keeps the paper's combined profile budget instead of forcing the data through
+the one-profile `withinProfileBound` package. -/
+def RouteBPaperFaithfulTPhiStrictPaperAmbientGlobalProfileSpanCover
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictPaperRangeRowProfileCoverData
+      M n hn2 htb hns) : Prop :=
+  MultilinearSPDP.mlBlockedSpdpSubspace
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns))) ≤
+    Submodule.span ℚ
+      (↑(routeBPaperFaithfulTPhiStrictPaperGlobalProfileBasis D) :
+        Set (MvPolynomial (Fin n) ℚ))
+
+/-- Generator-by-generator form of the corrected paper ambient profile cover. -/
+def RouteBPaperFaithfulTPhiStrictPaperAmbientGlobalProfileGeneratorCover
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictPaperRangeRowProfileCoverData
+      M n hn2 htb hns) : Prop :=
+  ∀ (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ),
+    S.length = Nat.log 2 n →
+    shift.totalDegree ≤ Nat.log 2 n →
+    shift.vars ⊆ S.toFinset →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition S →
+    mlProj
+        (shift * SPDP.iterDerivList S
+          ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+            (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) ∈
+      Submodule.span ℚ
+        (↑(routeBPaperFaithfulTPhiStrictPaperGlobalProfileBasis D) :
+          Set (MvPolynomial (Fin n) ℚ))
+
+/-- The corrected paper ambient cover is equivalent to its generator form. -/
+theorem routeBPaperFaithfulTPhi_strictPaperAmbientGlobalProfileSpanCover_iff_generatorCover
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictPaperRangeRowProfileCoverData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictPaperAmbientGlobalProfileSpanCover D ↔
+      RouteBPaperFaithfulTPhiStrictPaperAmbientGlobalProfileGeneratorCover D := by
+  constructor
+  · intro hcover S shift hSlen hshiftDegree hshiftVars hadm
+    apply hcover
+    unfold MultilinearSPDP.mlBlockedSpdpSubspace
+    exact Submodule.subset_span
+      ⟨S, shift, hSlen, hshiftDegree, hshiftVars, hadm, rfl⟩
+  · intro hgen
+    unfold RouteBPaperFaithfulTPhiStrictPaperAmbientGlobalProfileSpanCover
+    unfold MultilinearSPDP.mlBlockedSpdpSubspace
+    refine Submodule.span_le.mpr ?_
+    intro q hq
+    rcases hq with ⟨S, shift, hSlen, hshiftDegree, hshiftVars, hadm, rfl⟩
+    exact hgen S shift hSlen hshiftDegree hshiftVars hadm
+
+/-- Range rows assemble into the corrected paper ambient cover.  The proof is
+the same strict first-of-block reduction as the orbit-rank route, but the
+target basis is the corrected finite union of local-monoid profile bases. -/
+theorem routeBPaperFaithfulTPhi_strictPaperAmbientGlobalProfileSpanCover_of_rangeRows
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictPaperRangeRowProfileCoverData
+      M n hn2 htb hns)
+    (hrange : RouteBPaperFaithfulTPhiStrictPaperRangeRowsGlobalProfileSpanCover D) :
+    RouteBPaperFaithfulTPhiStrictPaperAmbientGlobalProfileSpanCover D := by
+  classical
+  refine
+    (routeBPaperFaithfulTPhi_strictPaperAmbientGlobalProfileSpanCover_iff_generatorCover D).mpr ?_
+  intro S shift hSlen hshiftDegree hshiftVars hadm
+  by_cases hoff : ∃ v ∈ S, v ∉ Set.range (cookLevinStrictFOBFlatMap n)
+  · have hlhs :
+        mlProj
+            (shift * SPDP.iterDerivList S
+              ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+                (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) = 0 := by
+      rw [routeBPaperFaithfulTPhiAmbientGauge_compiledPoly_eq_reexpandedStrictFOB
+        M n hn2 htb hns]
+      exact
+        routeBPaperFaithfulTPhi_strictFOB_offRangeDerivativeRow_zero
+          n S shift
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns)) hoff
+    rw [hlhs]
+    exact Submodule.zero_mem _
+  · have hall : ∀ v ∈ S, v ∈ Set.range (cookLevinStrictFOBFlatMap n) := by
+      intro v hv
+      by_contra hvnot
+      exact hoff ⟨v, hv, hvnot⟩
+    rcases routeBPaperFaithfulTPhi_strictFOB_preimageList n S hall with
+      ⟨S', hS'⟩
+    let shift' :=
+      MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) shift
+    have hshiftRange :
+        ↑shift.vars ⊆ Set.range (cookLevinStrictFOBFlatMap n) := by
+      intro v hv
+      exact hall v (List.mem_toFinset.mp (hshiftVars hv))
+    have hrename :
+        MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift' = shift := by
+      simpa [shift'] using
+        routeBPaperFaithfulTPhi_rename_restrictStrictFOB_of_vars_range
+          n shift hshiftRange
+    have hSlen' : S'.length = Nat.log 2 n := by
+      have hmapLen :
+          (S'.map (cookLevinStrictFOBFlatMap n)).length = Nat.log 2 n := by
+        rw [hS']
+        exact hSlen
+      simpa [List.length_map] using hmapLen
+    have hshiftDegree' : shift'.totalDegree ≤ Nat.log 2 n :=
+      (MultilinearSPDP.restrictPoly_totalDegree_le ℚ
+        (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) shift).trans hshiftDegree
+    have hshiftVars' :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift').vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset := by
+      rw [hrename, hS']
+      exact hshiftVars
+    have hadm' :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)) := by
+      rw [hS']
+      exact hadm
+    have hmem := hrange S' shift' hSlen' hshiftDegree' hshiftVars' hadm'
+    rw [← hrename, ← hS']
+    simpa [routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow] using hmem
+
+/-- The corrected paper ambient cover gives the strict ambient rank bound
+against `#profiles * localDim`. -/
+theorem routeBPaperFaithfulTPhi_strictPaperAmbientMlRankUpper_of_globalProfileSpanCover
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictPaperRangeRowProfileCoverData
+      M n hn2 htb hns)
+    (hcover : RouteBPaperFaithfulTPhiStrictPaperAmbientGlobalProfileSpanCover D) :
+    MultilinearSPDP.mlBlockedSpdpRank
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns))) ≤
+      Fintype.card D.profileType * D.localDim := by
+  unfold MultilinearSPDP.mlBlockedSpdpRank
+  have hmono :
+      Module.finrank ℚ
+          (MultilinearSPDP.mlBlockedSpdpSubspace
+            (cook_levin_compilation M n hn2 htb hns).partition
+            (Nat.log 2 n) (Nat.log 2 n)
+            ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) ≤
+        Module.finrank ℚ
+          (Submodule.span ℚ
+            (↑(routeBPaperFaithfulTPhiStrictPaperGlobalProfileBasis D) :
+              Set (MvPolynomial (Fin n) ℚ))) :=
+    Submodule.finrank_mono hcover
+  exact hmono.trans
+    ((finrank_span_finset_le_card
+        (routeBPaperFaithfulTPhiStrictPaperGlobalProfileBasis D)).trans
+      (routeBPaperFaithfulTPhi_strictPaperGlobalProfileBasis_card_le D))
+
+/-- Corrected paper-shaped P-side close-out from the local-monoid profile
+range-row cover.  This is the intended §9.3--§9.4 route: row membership in
+canonical-window profile spans, finite union over profiles, combined budget,
+then the ambient `n^200` gauge envelope. -/
+theorem routeBPaperFaithfulTPhi_pSideBound_of_strictPaperRangeRowsGlobalProfileSpanCover
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictPaperRangeRowProfileCoverData
+      M n hn2 htb hns)
+    (hrange : RouteBPaperFaithfulTPhiStrictPaperRangeRowsGlobalProfileSpanCover D) :
+    SATDeciderGaugePSideBound M n hn2 htb hns
+      (routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns) := by
+  unfold SATDeciderGaugePSideBound
+  exact
+    (routeBPaperFaithfulTPhi_strictPaperAmbientMlRankUpper_of_globalProfileSpanCover
+      D
+      (routeBPaperFaithfulTPhi_strictPaperAmbientGlobalProfileSpanCover_of_rangeRows
+        D hrange)).trans
+      (D.profileBudget_le.trans
+        (routeBPaperFaithfulTPhi_combinedProfileBound_log_le_pow_200 n hn2))
+
+/-- The actual canonical-window local-monoid/profile analysis closes the
+P-side bound through the corrected paper-shaped range-row cover. -/
+theorem routeBPaperFaithfulTPhi_pSideBound_of_strictCanonicalWindowLocalMonoidProfileAnalysis
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (A :
+      RouteBPaperFaithfulTPhiStrictCanonicalWindowLocalMonoidProfileAnalysis
+        M n hn2 htb hns) :
+    SATDeciderGaugePSideBound M n hn2 htb hns
+      (routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns) := by
+  rcases
+    routeBPaperFaithfulTPhi_strictPaperRangeRowsGlobalProfileSpanCover_of_localMonoidProfileCover
+      M n hn2 htb hns A with
+    ⟨D, hrange⟩
+  exact
+    routeBPaperFaithfulTPhi_pSideBound_of_strictPaperRangeRowsGlobalProfileSpanCover
+      M n hn2 htb hns D hrange
 
 /-- The paper-faithful global assembly immediately gives the strict ambient
 `TΦ` P-side rank bound for the actual gauge.  This is the replacement for the
