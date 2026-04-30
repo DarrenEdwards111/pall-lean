@@ -7983,6 +7983,122 @@ structure RouteBPaperFaithfulTPhiStrictSourceLocalMonoidClassifier
         zeroProfileLocalTypeSpace (sourceAlphabet ρ)
           (sourceRowType ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ)
 
+/-- Variables of a source shift are supported on the source derivative list
+whenever the renamed ambient shift is supported on the renamed derivative list.
+
+This is the small checked support-transport step needed to feed source rows into
+the existing `ZeroProfileGeneratorTypeMap` API. -/
+theorem routeBPaperFaithfulTPhi_sourceShift_vars_subset_of_renamed_subset
+    (n : ℕ) (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (hshiftVars :
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+        (S'.map (cookLevinStrictFOBFlatMap n)).toFinset) :
+    shift.vars ⊆ S'.toFinset := by
+  classical
+  let f := cookLevinStrictFOBFlatMap n
+  let hf := cookLevinStrictFOBFlatMap_injective n
+  intro x hx
+  have hfx_vars : f x ∈ (MvPolynomial.rename f shift).vars := by
+    rw [MvPolynomial.vars_def] at hx ⊢
+    rw [MvPolynomial.degrees_rename_of_injective hf]
+    exact Multiset.mem_toFinset.mpr
+      (Multiset.mem_map.mpr ⟨x, Multiset.mem_toFinset.mp hx, rfl⟩)
+  have hfx_mem : f x ∈ (S'.map f).toFinset := hshiftVars hfx_vars
+  rw [List.mem_toFinset] at hfx_mem ⊢
+  rcases List.mem_map.mp hfx_mem with ⟨y, hy, hyx⟩
+  have hy_eq : y = x := hf hyx
+  simpa [hy_eq] using hy
+
+/-- Derivative-row local type map for one selected source profile.
+
+This is the derivative analogue of the existing zero-profile generator type-map
+API: it classifies shifted derivative rows of the restricted factor product,
+rather than only shifted product rows.  This is exactly the local-monoid row-map
+shape needed by strict `TΦ`. -/
+structure RouteBPaperFaithfulTPhiStrictSourceDerivativeTypeMap
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (A : ZeroProfileLocalTypeAlphabet (n / 3) (Nat.log 2 n)) where
+  rowType :
+    ∀ (S' : List (Fin (n / 3))), S'.length ≤ Nat.log 2 n →
+      ∀ shift : MvPolynomial (Fin (n / 3)) ℚ, shift.vars ⊆ S'.toFinset →
+        A.type
+  row_mem_typeSpace :
+    ∀ (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ) (hshift : shift.vars ⊆ S'.toFinset),
+        mlProj
+            (shift *
+              SPDP.iterDerivList S'
+                (Finset.univ.prod
+                  (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                    M n hn2 htb hns))) ∈
+          zeroProfileLocalTypeSpace A (rowType S' hS shift hshift)
+
+/-- Profile-wise source derivative type maps for the restricted strict `TΦ`
+Cook-Levin factors.
+
+This is the concrete local-monoid row-map surface below the raw classifier:
+each selected interface profile supplies a bounded source local-type alphabet
+and a derivative-row type map for the restricted factor product.  It remains
+profile-local and selected; no global/common span or selected post-span collapse
+is introduced. -/
+structure RouteBPaperFaithfulTPhiStrictSourceLocalMonoidGeneratorMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceAlphabet :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) →
+      ZeroProfileLocalTypeAlphabet (n / 3) (Nat.log 2 n)
+  sourceDerivativeTypeMap :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      RouteBPaperFaithfulTPhiStrictSourceDerivativeTypeMap
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+        (sourceAlphabet ρ)
+
+/-- Profile-wise source derivative type maps instantiate the raw source
+local-monoid classifier.
+
+The only nontrivial transport here is support: the canonical-row API gives
+support of the renamed ambient shift on the renamed derivative list, and
+`routeBPaperFaithfulTPhi_sourceShift_vars_subset_of_renamed_subset` converts it
+back to source-coordinate support.  Row membership itself is exactly the
+profile-local derivative type-map membership. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLocalMonoidClassifier_of_generatorMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (G : RouteBPaperFaithfulTPhiStrictSourceLocalMonoidGeneratorMaps
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceLocalMonoidClassifier
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := G.profileOfCanonicalWindow
+  sourceAlphabet := G.sourceAlphabet
+  sourceRowType := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    exact (G.sourceDerivativeTypeMap ρ).rowType S' (le_of_eq hSlen) shift
+      (routeBPaperFaithfulTPhi_sourceShift_vars_subset_of_renamed_subset
+        n S' shift hshiftVars)
+  productRow_mem_localTypeSpace := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    exact (G.sourceDerivativeTypeMap ρ).row_mem_typeSpace
+      S' (le_of_eq hSlen) shift
+      (routeBPaperFaithfulTPhi_sourceShift_vars_subset_of_renamed_subset
+        n S' shift hshiftVars)
+
 /-- A raw restricted-factor local-monoid classifier instantiates the source
 local-type compression object consumed by the selected `V_h` route.
 
