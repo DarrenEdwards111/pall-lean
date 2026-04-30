@@ -6899,6 +6899,103 @@ structure RouteBPaperFaithfulTPhiStrictSourceLocalTypeCompressionData
         zeroProfileLocalTypeSpace (sourceAlphabet ρ)
           (sourceRowType ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ)
 
+/-- Source explicit local-basis data is a degenerate source local-type
+compression datum, with one local type for each selected `ConstraintType`
+profile.
+
+This is packaging only: it preserves the selected profile and source basis
+already supplied by the input data.  It does not introduce a common span across
+profiles and does not prove the Cook-Levin local-monoid algebra. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLocalTypeCompressionData_of_sourceInterfaceProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceConstraintTypeInterfaceProfileData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceLocalTypeCompressionData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceAlphabet := fun ρ =>
+    { type := PUnit
+      typeFintype := inferInstance
+      localDim := D.sourceLocalDim
+      localBasis := fun _ => D.sourceLocalBasis ρ
+      localBasis_card_le := fun _ => D.sourceLocalBasis_card_le ρ
+      profileSymmetricPowerBudget_le := by
+        simpa using D.sourceLocalDim_le }
+  sourceRowType := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    exact PUnit.unit
+  sourceRow_mem_localTypeSpace := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    have hsrc := D.canonicalSourceRow_mem_constraintTypeProfileSpan
+      S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    simpa [routeBPaperFaithfulTPhiStrictSourceCanonicalDerivativeRow,
+      zeroProfileLocalTypeSpace, hρ]
+      using hsrc
+
+/-- Source local-type compression data supplies source explicit local bases by
+taking the profile-specific compressed local-type basis.
+
+This is the converse packaging direction to the one-type adapter above.  The
+row first lands in its selected local type, then in that same profile's
+compressed source basis; no ambient `iSup`, post-span collapse, or global
+common-span argument is used. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceInterfaceProfileData_of_sourceLocalTypeCompressionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceLocalTypeCompressionData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceConstraintTypeInterfaceProfileData
+      M n hn2 htb hns where
+  sourceLocalDim := withinProfileBound (Nat.log 2 n)
+  sourceLocalDim_le := le_rfl
+  sourceLocalBasis := fun ρ => zeroProfileLocalTypeGlobalBasis (D.sourceAlphabet ρ)
+  sourceLocalBasis_card_le := by
+    intro ρ
+    exact zeroProfileLocalTypeGlobalBasis_card_le_withinProfileBound (D.sourceAlphabet ρ)
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalSourceRow_mem_constraintTypeProfileSpan := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    let ρ :=
+      D.profileOfCanonicalWindow
+        (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α) hrow.1
+    have hlocal := D.sourceRow_mem_localTypeSpace
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow rfl
+    have hcompressed :
+        routeBPaperFaithfulTPhiStrictSourceCanonicalDerivativeRow
+            M n hn2 htb hns S' shift ∈
+          zeroProfileLocalTypeCompressedProfileSpan (D.sourceAlphabet ρ) :=
+      (zeroProfileLocalTypeSpace_le_compressedProfileSpan
+        (D.sourceAlphabet ρ)
+        (D.sourceRowType ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow rfl))
+        hlocal
+    simpa [routeBPaperFaithfulTPhiStrictSourceCanonicalDerivativeRow,
+      zeroProfileLocalTypeCompressedProfileSpan, ρ]
+      using hcompressed
+
+/-- Source local-type compression and explicit source local-basis data are the
+same remaining theorem surface up to paper-faithful packaging.  The equivalence
+is deliberately profile-wise: it does not pass through an all-profile `iSup`, a
+selected post-span claim, or any common ambient span. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLocalTypeCompressionData_nonempty_iff_sourceInterfaceProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Nonempty
+        (RouteBPaperFaithfulTPhiStrictSourceLocalTypeCompressionData
+          M n hn2 htb hns) ↔
+      Nonempty
+        (RouteBPaperFaithfulTPhiStrictSourceConstraintTypeInterfaceProfileData
+          M n hn2 htb hns) := by
+  constructor
+  · intro h
+    rcases h with ⟨D⟩
+    exact ⟨routeBPaperFaithfulTPhi_strictSourceInterfaceProfileData_of_sourceLocalTypeCompressionData
+      M n hn2 htb hns D⟩
+  · intro h
+    rcases h with ⟨D⟩
+    exact ⟨routeBPaperFaithfulTPhi_strictSourceLocalTypeCompressionData_of_sourceInterfaceProfileData
+      M n hn2 htb hns D⟩
+
 /-- A source local-type compression datum bounds the literal selected source
 row spans.  The only substantive hypothesis is the selected local-type
 membership field of `D`; this theorem just assembles the finite-dimensional
