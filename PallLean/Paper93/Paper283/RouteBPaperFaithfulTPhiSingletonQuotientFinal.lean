@@ -1395,6 +1395,40 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictCanonic
       M n hn hn2 htb hns hdec
       (hdata M n hn hn2 htb hns hdec)
 
+/-- Paper-faithful strict `TΦ` contradiction from the actual
+local-monoid/profile analysis, through the separated Lemma 29/Lemma 31 data
+surface. -/
+theorem false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_strictLocalMonoidProfileAnalysis
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804)
+    (hn2 : n >= 2) (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hdec : DecidesSAT M)
+    (hanalysis :
+      RouteBPaperFaithfulTPhiStrictLocalMonoidProfileAnalysis
+        M n hn2 htb hns) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_projectedLogWindow
+    M n hn hn2 htb hns hdec
+    (routeBPaperFaithfulTPhi_pSideBound_of_strictLocalMonoidProfileAnalysis
+      M n hn2 htb hns hanalysis)
+
+/-- Final close-out from the actual local-monoid/profile row analysis.  This
+keeps the paper's logical shape explicit: canonical-window profile selection,
+separate profile-count and local-dimension bounds, and row membership in the
+selected profile span. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictLocalMonoidProfileAnalysis
+    (hanalysis :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictLocalMonoidProfileAnalysis
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale := by
+  intro M n hn hn2 htb hns hdec
+  exact
+    false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_strictLocalMonoidProfileAnalysis
+      M n hn hn2 htb hns hdec
+      (hanalysis M n hn hn2 htb hns hdec)
+
 /-- Final paper-shaped close-out from canonical-window orbit/profile data plus
 the exact range-row assembled-profile cover.
 
@@ -2186,6 +2220,20 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictCanoni
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictCanonicalWindowLocalMonoidProfileData
       hdata)
 
+/-- Rich-projection discharge from the actual local-monoid/profile analysis,
+routed through the separated paper data surface. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictLocalMonoidProfileAnalysis
+    (hanalysis :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictLocalMonoidProfileAnalysis
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictLocalMonoidProfileAnalysis
+      hanalysis)
+
 /-- Rich-projection discharge from canonical-window orbit/profile data plus
 the exact range-row assembled-profile cover. -/
 theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitProfile_rangeRows
@@ -2577,6 +2625,8 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictCanonicalWindowLocalMonoidProfileAnalysis
 #print axioms false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_strictCanonicalWindowLocalMonoidProfileData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictCanonicalWindowLocalMonoidProfileData
+#print axioms false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_strictLocalMonoidProfileAnalysis
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictLocalMonoidProfileAnalysis
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitProfile_rangeRows
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictRangeRowProfileCoverData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation
@@ -2612,6 +2662,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictCanonicalWindowLocalMonoidProfileAnalysis
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictCanonicalWindowLocalMonoidProfileData
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictLocalMonoidProfileAnalysis
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitProfile_rangeRows
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictRangeRowProfileCoverData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation
