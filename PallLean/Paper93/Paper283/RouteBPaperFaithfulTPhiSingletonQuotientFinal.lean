@@ -1537,6 +1537,27 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceL
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
+/-- Final paper-shaped close-out from the raw source local-monoid classifier
+for strict `TΦ`.
+
+This is now the most algebra-facing final hypothesis: it asks directly for a
+profile-selected local-monoid/type classifier for the restricted Cook-Levin
+product rows.  The proof only rewrites the strict source row to the restricted
+product and passes through the already checked source local-type route. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceLocalMonoidClassifier
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceLocalMonoidClassifier
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceLocalTypeCompressionData
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictSourceLocalTypeCompressionData_of_sourceLocalMonoidClassifier
+        M n hn2 htb hns
+        (hdata M n hn hn2 htb hns hdec))
+
 /-- Final paper-shaped close-out from source-coordinate explicit local-basis
 data for strict `TΦ`.
 
@@ -2572,6 +2593,20 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSource
     CookLevinRichProjectionDischarge :=
   cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceLocalTypeCompressionData
+      hdata)
+
+/-- Rich-projection discharge from the raw source local-monoid classifier for
+strict `TΦ`. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceLocalMonoidClassifier
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceLocalMonoidClassifier
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceLocalMonoidClassifier
       hdata)
 
 /-- Rich-projection discharge from source-coordinate strict `ConstraintType`
