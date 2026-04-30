@@ -2284,6 +2284,42 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictCanoni
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictCanonicalWindowLocalMonoidProfileData
       hdata)
 
+/-- Rich-projection discharge from the corrected paper-shaped strict range-row
+cover theorem.
+
+This is the discharge analogue of
+`noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictPaperRangeRowsGlobalProfileSpanCover`:
+the input is not a broad classifier or quotient identity, but the actual
+finite local-monoid profile data together with the strict range-row global
+cover for that same data. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictPaperRangeRowsGlobalProfileSpanCover
+    (hcover :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        exists D :
+          RouteBPaperFaithfulTPhiStrictPaperRangeRowProfileCoverData
+            M n hn2 htb hns,
+          RouteBPaperFaithfulTPhiStrictPaperRangeRowsGlobalProfileSpanCover D) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictPaperRangeRowsGlobalProfileSpanCover
+      hcover)
+
+/-- Rich-projection discharge from corrected paper-shaped range-row profile
+cover data with the combined profile budget. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictPaperRangeRowProfileCoverData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictPaperRangeRowProfileCoverData
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictPaperRangeRowProfileCoverData
+      hdata)
+
 /-- Rich-projection discharge from the actual local-monoid/profile analysis,
 routed through the separated paper data surface. -/
 theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictLocalMonoidProfileAnalysis
