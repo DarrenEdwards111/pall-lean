@@ -6473,6 +6473,37 @@ noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileDa
     rw [hspan]
     exact hmem
 
+
+/-- Paper-faithful packaging equivalence between the selected interface-profile
+basis formulation and the literal selected row-span `V_h` formulation.
+
+This is intentionally only an equivalence of final surfaces: it does not turn
+ambient `iSup` membership into selected-profile membership, does not assert a
+single exact post-span collapse, and does not prove the raw local-monoid
+Lemma-31 compression.  It records that once the real selected `V_h` finite
+bound is proved, the interface-profile basis surface and row-span surface are
+interchangeable without changing the mathematical target. -/
+theorem routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData_nonempty_iff_canonicalProfileRowSpanData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Nonempty
+        (RouteBPaperFaithfulTPhiStrictConstraintTypeInterfaceProfileData
+          M n hn2 htb hns) ↔
+      Nonempty
+        (RouteBPaperFaithfulTPhiStrictCanonicalProfileRowSpanData
+          M n hn2 htb hns) := by
+  constructor
+  · intro hD
+    rcases hD with ⟨D⟩
+    exact
+      ⟨routeBPaperFaithfulTPhi_strictCanonicalProfileRowSpanData_of_interfaceProfileData
+        M n hn2 htb hns D⟩
+  · intro hD
+    rcases hD with ⟨D⟩
+    exact
+      ⟨routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData_of_canonicalProfileRowSpanData
+        M n hn2 htb hns D⟩
+
 /-- The literal selected row-span `V_h` data instantiates the final
 profile-subspace surface. -/
 noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData_of_canonicalProfileRowSpanData
