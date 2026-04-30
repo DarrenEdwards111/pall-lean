@@ -6111,6 +6111,41 @@ theorem routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfile_component_l
       (fun σ _ => Nat.zero_le (f σ : ℕ)) (Finset.mem_univ τ)
   omega
 
+/-- Package an exact-mass `ConstraintType` histogram as a realizable strict
+interface-anonymous profile.
+
+This is the honest bridge between the older bounded-profile surface and the
+literal Lemma-29 interface-profile surface: a bounded/admissible histogram is
+not automatically a realizable interface profile.  We require the missing
+paper fact explicitly, namely that the selected histogram has total mass
+exactly the live-window budget `κ`. -/
+noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileOfMassEq
+    {κ : ℕ} (h : ProfileHistogram) (hmass : profileMass h = κ) :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles ConstraintType κ := by
+  classical
+  refine ⟨h, ?_⟩
+  refine Finset.mem_image.mpr ?_
+  let f : ConstraintType → Fin (κ + 1) := fun τ =>
+    ⟨h τ, by
+      have hcoord_le_sum : h τ ≤ ∑ σ : ConstraintType, h σ :=
+        Finset.single_le_sum
+          (fun σ _ => Nat.zero_le (h σ)) (Finset.mem_univ τ)
+      have hsum_eq : (∑ σ : ConstraintType, h σ) = κ := by
+        simpa [profileMass] using hmass
+      have hcoord_le : h τ ≤ κ := hcoord_le_sum.trans (le_of_eq hsum_eq)
+      exact Nat.lt_succ_of_le hcoord_le⟩
+  refine ⟨f, ?_, ?_⟩
+  · have hsum_eq : (∑ σ : ConstraintType, h σ) = κ := by
+      simpa [profileMass] using hmass
+    simpa [f] using hsum_eq
+  · rfl
+
+@[simp] theorem routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileOfMassEq_val
+    {κ : ℕ} (h : ProfileHistogram) (hmass : profileMass h = κ) :
+    (routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileOfMassEq
+      (κ := κ) h hmass).val = h :=
+  rfl
+
 /-- The bounded-profile view of a realizable `ConstraintType` interface
 profile. -/
 noncomputable def routeBPaperFaithfulTPhi_strictBoundedProfileOfConstraintTypeInterfaceProfile
@@ -6588,6 +6623,36 @@ structure RouteBPaperFaithfulTPhiStrictConstraintTypePostSpanSelectionData
             hrow.1).val)
   exactWithinProfile :
     CookLevinExactWithinProfileFinrankLemma M n hn2 htb hns
+
+/-- Convert the bounded-profile local-monoid analysis into literal
+`ConstraintType` post-span selection data when the selected bounded profiles
+are known to have exact live-interface mass.
+
+This is deliberately *not* the forbidden `iSup`/selected-profile shortcut.
+The row membership still comes from the selected-profile field of
+`RouteBPaperFaithfulTPhiStrictLocalMonoidProfileAnalysis`; this theorem only
+packages its selected histogram as the stricter Lemma-29 realizable
+`ConstraintType` profile, using the explicit mass-equality hypothesis. -/
+noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypePostSpanSelectionData_of_localMonoidProfileAnalysis_exactMass
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (A : RouteBPaperFaithfulTPhiStrictLocalMonoidProfileAnalysis
+      M n hn2 htb hns)
+    (hmass :
+      ∀ w hw,
+        profileMass ((A.profileOfCanonicalWindow w hw).toHistogram) =
+          Nat.log 2 n) :
+    RouteBPaperFaithfulTPhiStrictConstraintTypePostSpanSelectionData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := fun w hw =>
+    routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileOfMassEq
+      ((A.profileOfCanonicalWindow w hw).toHistogram) (hmass w hw)
+  canonicalRangeRow_mem_constraintTypePostSpan := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    simpa using
+      A.canonicalRangeRow_mem_profilePostSpan
+        S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+  exactWithinProfile := A.exactWithinProfile
 
 /-- The actual selected Cook-Levin profile post-span for a realizable strict
 `ConstraintType` interface profile. -/
