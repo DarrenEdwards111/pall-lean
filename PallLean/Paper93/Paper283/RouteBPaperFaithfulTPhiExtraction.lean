@@ -7735,6 +7735,63 @@ noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeSelectedPostSpan
     (cookLevinConstraintType M n hn2 htb hns)
     ρ.val
 
+/-- Selected-profile Leibniz ownership gives selected post-span membership for
+a product-form Cook-Levin row.
+
+This is the honest algebraic strengthening missing from the generic `iSup`
+cover: every bounded Leibniz distribution contributing to this one row must
+already belong to the *same selected* derivative-count profile `h`.  Under that
+ownership hypothesis, the post-processed row lands in the selected
+`allBoundedProfilePostSpan` directly.
+
+The theorem is intentionally product-form.  It does not rewrite the strict
+ambient-gauge row into a product row, does not infer selected membership from an
+`iSup`, and does not introduce a common/global span.  The remaining strict
+`TΦ` paper step is precisely to prove the analogous ownership hypothesis for
+its canonical-window local-monoid selector. -/
+theorem routeBPaperFaithfulTPhi_productRow_mem_selected_allBoundedProfilePostSpan_of_leibnizOwnership
+    {n L : ℕ}
+    (B : SPDP.BlockPartition n) (κ ℓ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (shift : MvPolynomial (Fin n) ℚ)
+    (hSlen : S.length ≤ κ)
+    (hshiftVars : shift.vars ⊆ S.toFinset)
+    (h : ProfileHistogram)
+    (hown :
+      boundedDistribDerivProds Finset.univ factors S S.length ⊆
+        boundedProfileClassifiedSet factors constraintType S h) :
+    mlProj (shift * SPDP.iterDerivList S (Finset.univ.prod factors)) ∈
+      allBoundedProfilePostSpan B κ ℓ factors constraintType h := by
+  classical
+  have hLeibniz :
+      SPDP.iterDerivList S (Finset.univ.prod factors) ∈
+        Submodule.span ℚ
+          (boundedDistribDerivProds Finset.univ factors S S.length) :=
+    iterDerivList_finset_prod_mem_bounded_span S factors
+  have hpost :
+      mlProj (shift * SPDP.iterDerivList S (Finset.univ.prod factors)) ∈
+        Submodule.span ℚ
+          ((fun g => mlProj (shift * g)) ''
+            boundedDistribDerivProds Finset.univ factors S S.length) :=
+    SymmetricPower.mlProj_mul_mem_span_image shift
+      (boundedDistribDerivProds Finset.univ factors S S.length)
+      (SPDP.iterDerivList S (Finset.univ.prod factors)) hLeibniz
+  have hselected :
+      Submodule.span ℚ
+          ((fun g => mlProj (shift * g)) ''
+            boundedDistribDerivProds Finset.univ factors S S.length) ≤
+        boundedProfilePostSpan factors constraintType S shift h := by
+    apply Submodule.span_le.mpr
+    intro q hq
+    rcases hq with ⟨g, hg, rfl⟩
+    exact Submodule.subset_span ⟨g, hown hg, rfl⟩
+  exact
+    (boundedProfilePostSpan_le_allBoundedProfilePostSpan
+      B κ ℓ factors constraintType h S hSlen shift hshiftVars)
+      (hselected hpost)
+
 /-- Product-form Cook-Levin rows land in the supremum over all
 derivative-count profile post-spans.
 
