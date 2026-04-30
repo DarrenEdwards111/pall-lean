@@ -4828,6 +4828,48 @@ noncomputable def routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
         ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
           (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
 
+/-- Strict canonical derivative rows are literal generators of the strict
+ambient `TΦ` SPDP subspace.
+
+This is the row-level fact used by the paper's profile decomposition: the row
+is first a strict ambient SPDP row, and only then must the canonical
+local-monoid/profile analysis place it into the profile subspace selected by
+its canonical window. -/
+theorem routeBPaperFaithfulTPhi_strictCanonicalDerivativeRow_mem_ambientSpdpSubspace
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (hSlen : S'.length = Nat.log 2 n)
+    (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+    (hshiftVars :
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+        (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n))) :
+    routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+        M n hn2 htb hns S' shift ∈
+      mlBlockedSpdpSubspace
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns))) := by
+  exact
+    Submodule.subset_span
+      ⟨S'.map (cookLevinStrictFOBFlatMap n),
+        MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift,
+        by simpa using hSlen,
+        by
+          exact le_trans
+            (MvPolynomial.totalDegree_rename_le
+              (cookLevinStrictFOBFlatMap n) shift)
+            hshiftDegree,
+        hshiftVars,
+        hadm,
+        rfl⟩
+
 /-- Paper-faithful orbit/profile rank data for narrowed strict `TΦ` canonical
 rows.
 
@@ -6137,12 +6179,14 @@ structure RouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData
 
 /-- Strict `TΦ` `ConstraintType` post-span selection data.
 
-This is the Cook-Levin local-monoid/profile row-cover obligation in the
-interface-anonymous `ConstraintType` language: a canonical window selects a
+This is a stronger Cook-Levin specialization of the paper-shaped
+local-monoid/profile row-cover obligation: a canonical window selects a
 realizable `ConstraintType` profile, and the corresponding strict derivative
-row lies in the actual all-bounded-profile post-span for that selected profile.
-The finite profile subspaces are then recovered from the exact within-profile
-finrank theorem, rather than supplied as arbitrary bases. -/
+row lies in the single all-bounded derivative-count post-span for that selected
+profile.  The paper's direct logical shape is the weaker
+`RouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData`, where Lemma
+31 supplies a profile subspace `V_h`; this post-span surface is only accepted
+when the selected profile subspace is known to be this concrete post-span. -/
 structure RouteBPaperFaithfulTPhiStrictConstraintTypePostSpanSelectionData
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
