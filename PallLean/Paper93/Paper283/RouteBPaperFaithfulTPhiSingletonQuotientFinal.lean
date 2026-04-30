@@ -1450,9 +1450,14 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstra
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
-/-- Final close-out from strict `ConstraintType` profile-subspace data.  The
-finite local bases are chosen mechanically from the supplied subspaces rather
-than accepted as an input field. -/
+/-- Final paper-shaped close-out from strict `ConstraintType`
+profile-subspace data.
+
+This is the intended final local-monoid/profile target: each canonical window
+selects a realizable interface profile, and the corresponding whole strict row
+lands in the selected paper subspace `V_h`.  The finite local bases are chosen
+mechanically from the supplied subspaces rather than accepted as an input
+field. -/
 theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData
     (hdata :
       forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
@@ -1467,10 +1472,13 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstra
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
-/-- Final close-out from strict `ConstraintType` post-span selection data.
-The selected profile subspace is the actual Cook-Levin all-bounded-profile
-post-span for the selected realizable interface profile, packaged directly as
-the literal interface-profile data. -/
+/-- Optional stronger close-out from strict `ConstraintType` post-span
+selection data.
+
+This is not the final paper-shaped target.  It specializes `V_h` to the exact
+Cook-Levin all-bounded derivative-count post-span for the selected realizable
+interface profile, which requires an additional single-selected-bucket collapse
+not supplied by the generic Leibniz `iSup` theorem. -/
 theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypePostSpanSelectionData
     (hdata :
       forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
@@ -2416,8 +2424,9 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictConstr
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData
       hdata)
 
-/-- Rich-projection discharge from strict `ConstraintType` profile-subspace
-data, with local bases generated from the profile subspaces. -/
+/-- Rich-projection discharge from the paper-shaped strict `ConstraintType`
+profile-subspace target, with local bases generated from the selected
+subspaces `V_h`. -/
 theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData
     (hdata :
       forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
@@ -2430,8 +2439,8 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictConstr
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData
       hdata)
 
-/-- Rich-projection discharge from strict `ConstraintType` post-span selection
-data. -/
+/-- Rich-projection discharge from the optional stronger strict
+`ConstraintType` post-span selection adapter. -/
 theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictConstraintTypePostSpanSelectionData
     (hdata :
       forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)

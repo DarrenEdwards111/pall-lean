@@ -6127,7 +6127,12 @@ realizable interface-anonymous profile, it supplies the actual profile
 subspace and its within-profile dimension bound; the finite basis used
 downstream is then chosen mechanically from a basis of that subspace.  The
 remaining mathematical content is the canonical-window profile selector and
-selected row membership in the selected profile subspace. -/
+selected row membership in the selected profile subspace `V_h`.
+
+This is the paper-faithful final local-monoid/profile surface.  It does not
+assert that a whole Leibniz-expanded derivative row belongs to one exact
+derivative-count post-span; it only asks for the selected profile subspace
+containment supplied by the paper's Lemma-31 analysis. -/
 structure RouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
@@ -6179,14 +6184,18 @@ structure RouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData
 
 /-- Strict `TΦ` `ConstraintType` post-span selection data.
 
-This is a stronger Cook-Levin specialization of the paper-shaped
-local-monoid/profile row-cover obligation: a canonical window selects a
-realizable `ConstraintType` profile, and the corresponding strict derivative
-row lies in the single all-bounded derivative-count post-span for that selected
-profile.  The paper's direct logical shape is the weaker
+This is a strictly stronger Cook-Levin specialization, not the final
+paper-shaped obligation: it says a canonical window selects a realizable
+`ConstraintType` profile, and the corresponding strict derivative row lies in
+the single all-bounded derivative-count post-span for that selected profile.
+The generic Leibniz decomposition only gives the supremum over exact
+derivative-count post-spans, so this surface requires an additional
+single-selected-profile collapse theorem.  The paper's direct logical shape is
+the weaker
 `RouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData`, where Lemma
 31 supplies a profile subspace `V_h`; this post-span surface is only accepted
-when the selected profile subspace is known to be this concrete post-span. -/
+when the selected profile subspace is independently known to be this concrete
+post-span. -/
 structure RouteBPaperFaithfulTPhiStrictConstraintTypePostSpanSelectionData
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
@@ -6323,8 +6332,27 @@ theorem routeBPaperFaithfulTPhi_compiledPoly_row_mem_allConstraintTypePostSpan_i
       (cookLevinConstraintType M n hn2 htb hns)
       (compiledPoly (cook_levin_compilation M n hn2 htb hns)) hp) hrow
 
+/-- Logical obstruction behind the selected-profile mismatch: membership in a
+supremum of subspaces does not imply membership in an arbitrary selected
+summand.
+
+The strict `TΦ` generic Leibniz theorem above therefore cannot by itself prove
+the stronger `PostSpanSelectionData` field.  The paper-shaped final target is
+selected `V_h` containment, where `V_h` may contain the whole normalized
+canonical row, not a single exact derivative-count bucket. -/
+theorem routeBPaperFaithfulTPhi_iSup_membership_does_not_imply_selected_subspace :
+    ¬ (∀ (V : Bool → Submodule ℚ ℚ) (selected : Bool) (x : ℚ),
+        x ∈ (⨆ b : Bool, V b) → x ∈ V selected) := by
+  intro h
+  let V : Bool → Submodule ℚ ℚ := fun b => if b then ⊥ else ⊤
+  have hx : (1 : ℚ) ∈ (⨆ b : Bool, V b) := by
+    exact (le_iSup V false) (by simp [V])
+  have hselected : (1 : ℚ) ∈ V true := h V true 1 hx
+  simp [V] at hselected
+
 /-- Exact within-profile finrank supplies the dimension bound for the selected
-strict `ConstraintType` profile post-span. -/
+strict `ConstraintType` profile post-span, in the optional stronger post-span
+specialization. -/
 theorem routeBPaperFaithfulTPhi_strictConstraintTypeSelectedPostSpan_finrank_le
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
     {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
@@ -6341,8 +6369,12 @@ theorem routeBPaperFaithfulTPhi_strictConstraintTypeSelectedPostSpan_finrank_le
   simpa [routeBPaperFaithfulTPhi_strictConstraintTypeSelectedPostSpan] using
     D.exactWithinProfile ρ.val
 
-/-- Post-span selection data instantiates the stricter profile-subspace data:
-the subspace for a profile is the actual selected Cook-Levin post-span. -/
+/-- Optional stronger post-span selection data instantiates the paper-faithful
+profile-subspace data by taking `V_h` to be the selected Cook-Levin post-span.
+
+This is only an adapter from a stronger theorem into the real final surface;
+the final proof target is `RouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData`
+itself. -/
 noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData_of_postSpanSelectionData
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
@@ -6466,14 +6498,14 @@ noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileDa
     rw [hspan]
     exact hmem
 
-/-- Selected realizable `ConstraintType` post-span data supplies the literal
-interface-profile data.
+/-- Optional stronger selected realizable `ConstraintType` post-span data
+supplies the literal interface-profile data.
 
-This is the Lemma-31 packaging step in paper shape: a canonical window selects
-one realizable interface profile, the local basis is chosen from that selected
-profile subspace, and membership is inherited from the selected profile
-post-span.  No all-profile supremum, one-bucket classifier, or raw row identity
-is used. -/
+This is an adapter from the stronger exact-post-span statement into the
+paper-shaped interface-profile data.  It should not be read as the final proof
+surface; the paper-faithful target is the selected `V_h` containment encoded by
+`RouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData` or the
+equivalent interface-basis form. -/
 noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData_of_postSpanSelectionData
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
@@ -6487,13 +6519,12 @@ noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileDa
     (routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData_of_postSpanSelectionData
       M n hn2 htb hns D)
 
-/-- The same selected realizable `ConstraintType` post-span data instantiates
-the bounded-profile local-monoid analysis by forgetting only the realizability
-certificate to a bounded histogram.
+/-- The same optional stronger selected realizable `ConstraintType` post-span
+data instantiates the bounded-profile local-monoid analysis by forgetting only
+the realizability certificate to a bounded histogram.
 
-This keeps the logical shape honest: the selected profile is still the one
-chosen by the canonical window, and the row-membership proof is still the
-selected post-span membership field. -/
+This is a compatibility adapter for older bounded-profile APIs; it remains
+stronger than the paper's `V_h` profile-subspace target. -/
 noncomputable def routeBPaperFaithfulTPhi_strictLocalMonoidProfileAnalysis_of_constraintTypePostSpanSelectionData
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
