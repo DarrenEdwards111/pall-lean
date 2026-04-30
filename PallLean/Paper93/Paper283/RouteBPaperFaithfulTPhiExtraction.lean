@@ -6383,6 +6383,40 @@ noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceBas
   letI := D.profileSubspace_finite ρ
   basisImageFinset (D.profileSubspace ρ)
 
+/-- Literal `ConstraintType` interface-profile data instantiates the
+profile-subspace surface by taking `V_h` to be the span of the local Lemma-31
+basis for profile `h`.
+
+This is the paper-shaped direction: profiles remain the realizable
+interface-anonymous `ConstraintType` histograms, and row membership is exactly
+the selected local profile-span membership supplied by the local-monoid/profile
+analysis. -/
+noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData_of_interfaceProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictConstraintTypeInterfaceProfileData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData
+      M n hn2 htb hns where
+  profileSubspace := fun ρ =>
+    Submodule.span ℚ
+      (↑(D.localBasis ρ) : Set (MvPolynomial (Fin n) ℚ))
+  profileSubspace_finite := by
+    intro ρ
+    exact Module.Finite.span_of_finite ℚ (Finset.finite_toSet (D.localBasis ρ))
+  profileSubspace_finrank_le := by
+    intro ρ
+    exact
+      (finrank_span_finset_le_card (D.localBasis ρ)).trans
+        ((D.localBasis_card_le ρ).trans D.localDim_le)
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalRangeRow_mem_constraintTypeProfileSubspace := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    simpa using
+      D.canonicalRangeRow_mem_constraintTypeProfileSpan
+        S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+
 /-- Profile-subspace data instantiates the stricter `ConstraintType`
 interface-profile data; local bases are no longer an assumption. -/
 noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData_of_profileSubspaceData
