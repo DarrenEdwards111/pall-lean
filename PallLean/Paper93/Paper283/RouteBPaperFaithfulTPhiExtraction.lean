@@ -7119,6 +7119,59 @@ theorem routeBPaperFaithfulTPhi_strictSourceLocalTypeCompressionData_nonempty_if
     exact ⟨routeBPaperFaithfulTPhi_strictSourceLocalTypeCompressionData_of_sourceInterfaceProfileData
       M n hn2 htb hns D⟩
 
+/-- Source local-type compression data directly supplies the paper-faithful
+selected source subspaces `V_h`.
+
+Here `V_h` is the compressed local-monoid/interface-profile span attached to the
+selected profile `h`; the whole strict source row lands in that `V_h` through
+its selected local type.  This is the faithful route requested by the paper: it
+contains the complete normalized row in a selected local-profile subspace
+without claiming that every Leibniz summand has one derivative-count profile. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceProfileSubspaceData_of_sourceLocalTypeCompressionData_direct
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceLocalTypeCompressionData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceConstraintTypeProfileSubspaceData
+      M n hn2 htb hns where
+  sourceProfileSubspace := fun ρ =>
+    zeroProfileLocalTypeCompressedProfileSpan (D.sourceAlphabet ρ)
+  sourceProfileSubspace_finite := by
+    intro ρ
+    exact Module.Finite.span_of_finite ℚ
+      (Finset.finite_toSet (zeroProfileLocalTypeGlobalBasis (D.sourceAlphabet ρ)))
+  sourceProfileSubspace_finrank_le := by
+    intro ρ
+    let W := zeroProfileLocalTypeCompressedProfileSpan (D.sourceAlphabet ρ)
+    letI : Module.Finite ℚ ↥W := by
+      exact Module.Finite.span_of_finite ℚ
+        (Finset.finite_toSet (zeroProfileLocalTypeGlobalBasis (D.sourceAlphabet ρ)))
+    calc
+      Module.finrank ℚ ↥W ≤
+          (zeroProfileLocalTypeGlobalBasis (D.sourceAlphabet ρ)).card := by
+        simpa [W, zeroProfileLocalTypeCompressedProfileSpan] using
+          finrank_span_finset_le_card (zeroProfileLocalTypeGlobalBasis (D.sourceAlphabet ρ))
+      _ ≤ withinProfileBound (Nat.log 2 n) :=
+        zeroProfileLocalTypeGlobalBasis_card_le_withinProfileBound (D.sourceAlphabet ρ)
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalSourceRow_mem_constraintTypeProfileSubspace := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    let ρ :=
+      D.profileOfCanonicalWindow
+        (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α) hrow.1
+    have hlocal := D.sourceRow_mem_localTypeSpace
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow rfl
+    have hV :
+        routeBPaperFaithfulTPhiStrictSourceCanonicalDerivativeRow
+            M n hn2 htb hns S' shift ∈
+          zeroProfileLocalTypeCompressedProfileSpan (D.sourceAlphabet ρ) :=
+      (zeroProfileLocalTypeSpace_le_compressedProfileSpan
+        (D.sourceAlphabet ρ)
+        (D.sourceRowType ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow rfl))
+        hlocal
+    simpa [routeBPaperFaithfulTPhiStrictSourceCanonicalDerivativeRow, ρ]
+      using hV
+
 /-- A source local-type compression datum bounds the literal selected source
 row spans.  The only substantive hypothesis is the selected local-type
 membership field of `D`; this theorem just assembles the finite-dimensional
