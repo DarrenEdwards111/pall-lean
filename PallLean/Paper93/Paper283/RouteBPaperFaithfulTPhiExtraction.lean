@@ -6204,6 +6204,81 @@ noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeSelectedPostSpan
     (cookLevinConstraintType M n hn2 htb hns)
     ρ.val
 
+/-- Product-form Cook-Levin rows land in the supremum over all
+derivative-count profile post-spans.
+
+This is the strongest profile-membership fact supplied directly by the
+generic Leibniz decomposition: `iterDerivList` of the product expands into a
+span of distributed factor derivatives, and those distributed terms are then
+classified by their derivative-count profiles.  It deliberately does not pick
+one selected profile; that selection is the remaining strict `TΦ`
+local-monoid/profile content. -/
+theorem routeBPaperFaithfulTPhi_compiledPoly_row_mem_allConstraintTypePostSpan_iSup
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin n))
+    (shift : MvPolynomial (Fin n) ℚ)
+    (hSlen : S.length = Nat.log 2 n)
+    (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+    (hshiftVars : shift.vars ⊆ S.toFinset)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition S) :
+    mlProj
+        (shift * SPDP.iterDerivList S
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns))) ∈
+      ⨆ h : ProfileHistogram,
+        allBoundedProfilePostSpan
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n)
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+          (cookLevinConstraintType M n hn2 htb hns)
+          h := by
+  classical
+  let factors : Fin (cookLevinFactorList M n hn2 htb hns).length →
+      MvPolynomial (Fin n) ℚ :=
+    fun i => (cookLevinFactorList M n hn2 htb hns).get i
+  have hp :
+      compiledPoly (cook_levin_compilation M n hn2 htb hns) =
+        Finset.univ.prod factors := by
+    let factorList : List (MvPolynomial (Fin n) ℚ) :=
+      cookLevinFactorList M n hn2 htb hns
+    have hcompiled :
+        compiledPoly (cook_levin_compilation M n hn2 htb hns) =
+          factorList.prod := by
+      simpa [factorList, cookLevinFactorList] using
+        compiledPoly_eq_constraints_prod M n hn2 htb hns
+    have hprod :
+        factorList.prod =
+          Finset.univ.prod (fun i : Fin factorList.length => factorList.get i) := by
+      rw [← Fin.prod_univ_getElem]
+      simp [List.get_eq_getElem]
+    calc
+      compiledPoly (cook_levin_compilation M n hn2 htb hns)
+          = factorList.prod := hcompiled
+      _ = Finset.univ.prod (fun i : Fin factorList.length => factorList.get i) :=
+          hprod
+      _ = Finset.univ.prod factors := by
+          simp [factors, factorList]
+  have hrow :
+      mlProj
+          (shift * SPDP.iterDerivList S
+            (compiledPoly (cook_levin_compilation M n hn2 htb hns))) ∈
+        mlBlockedSpdpSubspace
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n)
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns)) := by
+    exact
+      Submodule.subset_span
+        ⟨S, shift, hSlen, hshiftDegree, hshiftVars, hadm, rfl⟩
+  exact
+    (mlBlockedSpdpSubspace_le_allBoundedProfilePostSpan_iSup
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      factors
+      (cookLevinConstraintType M n hn2 htb hns)
+      (compiledPoly (cook_levin_compilation M n hn2 htb hns)) hp) hrow
+
 /-- Exact within-profile finrank supplies the dimension bound for the selected
 strict `ConstraintType` profile post-span. -/
 theorem routeBPaperFaithfulTPhi_strictConstraintTypeSelectedPostSpan_finrank_le
