@@ -6679,6 +6679,242 @@ noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceDat
     (routeBPaperFaithfulTPhi_strictSourceProfileSubspaceData_of_sourceInterfaceProfileData
       M n hn2 htb hns D)
 
+/-- Source-coordinate strict canonical derivative row: the actual restricted
+Cook-Levin derivative row before ambient first-of-block rename transport. -/
+noncomputable def routeBPaperFaithfulTPhiStrictSourceCanonicalDerivativeRow
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ) :
+    MvPolynomial (Fin (n / 3)) ℚ :=
+  mlProj
+    (shift *
+      SPDP.iterDerivList S'
+        (MultilinearSPDP.restrictPoly ℚ
+          (cookLevinStrictFOBFlatMap n)
+          (cookLevinStrictFOBFlatMap_injective n)
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+
+/-- Literal selected source-coordinate `V_h` row span for strict `TΦ` canonical
+windows.
+
+This is the tightest source-side Lemma 31 target: for each selected
+interface-anonymous `ConstraintType` profile, take the span of exactly the
+source rows selecting that profile. Membership is by construction; the real
+paper content is the finite-dimensional local-monoid compression bound for
+these selected source spans. -/
+noncomputable def routeBPaperFaithfulTPhiStrictSourceConstraintTypeCanonicalProfileRowSpan
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (profileOfCanonicalWindow :
+      ∀ w : PallLean.Paper93.Window
+          (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+          RouteBPaperFaithfulTPhiStrictLocalOp
+          (Nat.log 2 n),
+        (by
+          letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+          exact
+            PallLean.Paper93.IsCanonical
+              (κ := Nat.log 2 n)
+              (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+        RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+    (ρ :
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)) :
+    Submodule ℚ (MvPolynomial (Fin (n / 3)) ℚ) :=
+  Submodule.span ℚ
+    { row : MvPolynomial (Fin (n / 3)) ℚ |
+      ∃ (S' : List (Fin (n / 3)))
+        (shift : MvPolynomial (Fin (n / 3)) ℚ)
+        (α : Fin n →₀ ℕ)
+        (_hSlen : S'.length = Nat.log 2 n)
+        (_hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+        (_hshiftVars :
+          (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+            (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+        (_hadm :
+          SPDP.isBlockAdmissible
+            (cook_levin_compilation M n hn2 htb hns).partition
+            (S'.map (cookLevinStrictFOBFlatMap n)))
+        (hrow :
+          routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+            M n hn2 htb hns S' shift α),
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ ∧
+          row =
+            routeBPaperFaithfulTPhiStrictSourceCanonicalDerivativeRow
+              M n hn2 htb hns S' shift }
+
+/-- A selected source strict canonical derivative row belongs to its literal
+selected source `V_h` row span by construction. -/
+theorem routeBPaperFaithfulTPhiStrictSourceCanonicalDerivativeRow_mem_constraintTypeCanonicalProfileRowSpan
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (profileOfCanonicalWindow :
+      ∀ w : PallLean.Paper93.Window
+          (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+          RouteBPaperFaithfulTPhiStrictLocalOp
+          (Nat.log 2 n),
+        (by
+          letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+          exact
+            PallLean.Paper93.IsCanonical
+              (κ := Nat.log 2 n)
+              (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+        RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+    (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (α : Fin n →₀ ℕ)
+    (hSlen : S'.length = Nat.log 2 n)
+    (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+    (hshiftVars :
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+        (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n)))
+    (hrow :
+      routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+        M n hn2 htb hns S' shift α) :
+    routeBPaperFaithfulTPhiStrictSourceCanonicalDerivativeRow
+        M n hn2 htb hns S' shift ∈
+      routeBPaperFaithfulTPhiStrictSourceConstraintTypeCanonicalProfileRowSpan
+        M n hn2 htb hns profileOfCanonicalWindow
+        (profileOfCanonicalWindow
+          (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α) hrow.1) := by
+  refine Submodule.subset_span ?_
+  exact ⟨S', shift, α, hSlen, hshiftDegree, hshiftVars, hadm, hrow, rfl, rfl⟩
+
+/-- Source literal selected canonical-profile row-span data.
+
+This is now the exact remaining Lemma 31 compression theorem in source
+coordinates: the selected row span has finite dimension and the paper's
+within-profile bound. -/
+structure RouteBPaperFaithfulTPhiStrictSourceCanonicalProfileRowSpanData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceCanonicalProfileRowSpan_finite :
+    ∀ ρ,
+      Module.Finite ℚ
+        ↥(routeBPaperFaithfulTPhiStrictSourceConstraintTypeCanonicalProfileRowSpan
+          M n hn2 htb hns profileOfCanonicalWindow ρ)
+  sourceCanonicalProfileRowSpan_finrank_le :
+    ∀ ρ,
+      Module.finrank ℚ
+          ↥(routeBPaperFaithfulTPhiStrictSourceConstraintTypeCanonicalProfileRowSpan
+            M n hn2 htb hns profileOfCanonicalWindow ρ) ≤
+        withinProfileBound (Nat.log 2 n)
+
+/-- Source row-span data instantiates source selected profile-subspace data by
+choosing the literal selected source row span as `V_h`. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceProfileSubspaceData_of_sourceCanonicalProfileRowSpanData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceCanonicalProfileRowSpanData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceConstraintTypeProfileSubspaceData
+      M n hn2 htb hns where
+  sourceProfileSubspace :=
+    routeBPaperFaithfulTPhiStrictSourceConstraintTypeCanonicalProfileRowSpan
+      M n hn2 htb hns D.profileOfCanonicalWindow
+  sourceProfileSubspace_finite := D.sourceCanonicalProfileRowSpan_finite
+  sourceProfileSubspace_finrank_le := D.sourceCanonicalProfileRowSpan_finrank_le
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalSourceRow_mem_constraintTypeProfileSubspace := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    simpa [routeBPaperFaithfulTPhiStrictSourceCanonicalDerivativeRow] using
+      routeBPaperFaithfulTPhiStrictSourceCanonicalDerivativeRow_mem_constraintTypeCanonicalProfileRowSpan
+        M n hn2 htb hns D.profileOfCanonicalWindow
+        S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+
+/-- Source profile-subspace data bounds the literal selected source row span.
+This proves the row-span and source-subspace formulations are equivalent
+packaging, not distinct mathematical assumptions. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceCanonicalProfileRowSpanData_of_sourceProfileSubspaceData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceConstraintTypeProfileSubspaceData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceCanonicalProfileRowSpanData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceCanonicalProfileRowSpan_finite := by
+    intro ρ
+    let U := routeBPaperFaithfulTPhiStrictSourceConstraintTypeCanonicalProfileRowSpan
+      M n hn2 htb hns D.profileOfCanonicalWindow ρ
+    let V := D.sourceProfileSubspace ρ
+    have hle : U ≤ V := by
+      unfold U
+      refine Submodule.span_le.mpr ?_
+      intro row hrowmem
+      rcases hrowmem with
+        ⟨S', shift, α, hSlen, hshiftDegree, hshiftVars, hadm, hrow, hρ, rfl⟩
+      have hsrc := D.canonicalSourceRow_mem_constraintTypeProfileSubspace
+        S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+      simpa [routeBPaperFaithfulTPhiStrictSourceCanonicalDerivativeRow, hρ] using hsrc
+    letI : Module.Finite ℚ ↥V := D.sourceProfileSubspace_finite ρ
+    exact Module.Finite.of_injective
+      ((Submodule.inclusion hle) : U →ₗ[ℚ] V)
+      (Submodule.inclusion_injective hle)
+  sourceCanonicalProfileRowSpan_finrank_le := by
+    intro ρ
+    let U := routeBPaperFaithfulTPhiStrictSourceConstraintTypeCanonicalProfileRowSpan
+      M n hn2 htb hns D.profileOfCanonicalWindow ρ
+    let V := D.sourceProfileSubspace ρ
+    have hle : U ≤ V := by
+      unfold U
+      refine Submodule.span_le.mpr ?_
+      intro row hrowmem
+      rcases hrowmem with
+        ⟨S', shift, α, hSlen, hshiftDegree, hshiftVars, hadm, hrow, hρ, rfl⟩
+      have hsrc := D.canonicalSourceRow_mem_constraintTypeProfileSubspace
+        S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+      simpa [routeBPaperFaithfulTPhiStrictSourceCanonicalDerivativeRow, hρ] using hsrc
+    letI : Module.Finite ℚ ↥V := D.sourceProfileSubspace_finite ρ
+    letI : Module.Finite ℚ ↥U :=
+      Module.Finite.of_injective
+        ((Submodule.inclusion hle) : U →ₗ[ℚ] V)
+        (Submodule.inclusion_injective hle)
+    exact (Submodule.finrank_mono hle).trans (D.sourceProfileSubspace_finrank_le ρ)
+
+/-- Source row-span and source selected-subspace data are equivalent theorem
+surfaces for the same paper-faithful Lemma 31 obligation. -/
+theorem routeBPaperFaithfulTPhi_strictSourceCanonicalProfileRowSpanData_nonempty_iff_sourceProfileSubspaceData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Nonempty
+        (RouteBPaperFaithfulTPhiStrictSourceCanonicalProfileRowSpanData
+          M n hn2 htb hns) ↔
+      Nonempty
+        (RouteBPaperFaithfulTPhiStrictSourceConstraintTypeProfileSubspaceData
+          M n hn2 htb hns) := by
+  constructor
+  · intro h
+    rcases h with ⟨D⟩
+    exact ⟨routeBPaperFaithfulTPhi_strictSourceProfileSubspaceData_of_sourceCanonicalProfileRowSpanData
+      M n hn2 htb hns D⟩
+  · intro h
+    rcases h with ⟨D⟩
+    exact ⟨routeBPaperFaithfulTPhi_strictSourceCanonicalProfileRowSpanData_of_sourceProfileSubspaceData
+      M n hn2 htb hns D⟩
+
 /-- The literal selected `V_h` row span for strict `TΦ` canonical windows.
 
 For a fixed canonical-window profile selector, this is the subspace spanned by
