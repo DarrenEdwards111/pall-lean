@@ -6496,6 +6496,94 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceProfileSubspaceData_of_sou
       D.canonicalSourceRow_mem_constraintTypeProfileSpan
         S' shift α hSlen hshiftDegree hshiftVars hadm hrow
 
+/-- Source selected profile-subspace data supplies explicit source local bases
+by choosing a finite basis of each selected source `V_h`.
+
+This is the source-coordinate analogue of the ambient profile-subspace to
+interface-profile adapter. It is still just packaging: the hard paper content is
+proving the selected source subspaces and their finrank bounds from the actual
+local-monoid/interface algebra. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceInterfaceProfileData_of_sourceProfileSubspaceData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceConstraintTypeProfileSubspaceData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceConstraintTypeInterfaceProfileData
+      M n hn2 htb hns where
+  sourceLocalDim := withinProfileBound (Nat.log 2 n)
+  sourceLocalDim_le := le_rfl
+  sourceLocalBasis := fun ρ =>
+    letI := D.sourceProfileSubspace_finite ρ
+    basisImageFinset (D.sourceProfileSubspace ρ)
+  sourceLocalBasis_card_le := by
+    intro ρ
+    letI := D.sourceProfileSubspace_finite ρ
+    exact
+      (basisImageFinset_card_le (D.sourceProfileSubspace ρ)).trans
+        (D.sourceProfileSubspace_finrank_le ρ)
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalSourceRow_mem_constraintTypeProfileSpan := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    let ρ :=
+      D.profileOfCanonicalWindow
+        (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α) hrow.1
+    have hmem :
+        mlProj
+            (shift *
+              SPDP.iterDerivList S'
+                (MultilinearSPDP.restrictPoly ℚ
+                  (cookLevinStrictFOBFlatMap n)
+                  (cookLevinStrictFOBFlatMap_injective n)
+                  (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) ∈
+          D.sourceProfileSubspace ρ := by
+      simpa [ρ] using
+        D.canonicalSourceRow_mem_constraintTypeProfileSubspace
+          S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    letI := D.sourceProfileSubspace_finite ρ
+    have hspan :
+        Submodule.span ℚ
+            (↑(basisImageFinset (D.sourceProfileSubspace ρ)) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ)) =
+          D.sourceProfileSubspace ρ := by
+      exact span_basisImageFinset_eq (D.sourceProfileSubspace ρ)
+    change
+      mlProj
+          (shift *
+            SPDP.iterDerivList S'
+              (MultilinearSPDP.restrictPoly ℚ
+                (cookLevinStrictFOBFlatMap n)
+                (cookLevinStrictFOBFlatMap_injective n)
+                (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) ∈
+        Submodule.span ℚ
+          (↑(basisImageFinset (D.sourceProfileSubspace ρ)) :
+            Set (MvPolynomial (Fin (n / 3)) ℚ))
+    rw [hspan]
+    exact hmem
+
+/-- Source interface-basis data and source selected profile-subspace data are
+equivalent packaging of the same source-coordinate Lemma 31 obligation.
+
+The statement is intentionally only an equivalence of theorem surfaces; it does
+not construct the local-monoid bases from Cook-Levin algebra. -/
+theorem routeBPaperFaithfulTPhi_strictSourceInterfaceProfileData_nonempty_iff_sourceProfileSubspaceData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Nonempty
+        (RouteBPaperFaithfulTPhiStrictSourceConstraintTypeInterfaceProfileData
+          M n hn2 htb hns) ↔
+      Nonempty
+        (RouteBPaperFaithfulTPhiStrictSourceConstraintTypeProfileSubspaceData
+          M n hn2 htb hns) := by
+  constructor
+  · intro h
+    rcases h with ⟨D⟩
+    exact ⟨routeBPaperFaithfulTPhi_strictSourceProfileSubspaceData_of_sourceInterfaceProfileData
+      M n hn2 htb hns D⟩
+  · intro h
+    rcases h with ⟨D⟩
+    exact ⟨routeBPaperFaithfulTPhi_strictSourceInterfaceProfileData_of_sourceProfileSubspaceData
+      M n hn2 htb hns D⟩
+
 /-- Rename a source-coordinate selected profile subspace back to the ambient
 strict first-of-block coordinates. -/
 noncomputable def routeBPaperFaithfulTPhi_strictRenamedSourceProfileSubspace
