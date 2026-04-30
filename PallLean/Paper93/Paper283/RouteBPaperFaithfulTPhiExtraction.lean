@@ -5604,6 +5604,60 @@ structure RouteBPaperFaithfulTPhiStrictLocalMonoidProfileAnalysis
   exactWithinProfile :
     CookLevinExactWithinProfileFinrankLemma M n hn2 htb hns
 
+/-- Constructor for the actual paper-shaped local-monoid/profile analysis.
+
+The hypothesis `hmem` is deliberately the single selected-profile row-membership
+fact.  The generic Cook-Levin all-profile cover is not accepted here: the paper
+step still has to explain which canonical-window profile owns the strict
+ambient-gauge row. -/
+noncomputable def routeBPaperFaithfulTPhi_strictLocalMonoidProfileAnalysis_of_postSpanSelection
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (profileOfCanonicalWindow :
+      ∀ w : PallLean.Paper93.Window
+          (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+          RouteBPaperFaithfulTPhiStrictLocalOp
+          (Nat.log 2 n),
+        (by
+          letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+          exact
+            PallLean.Paper93.IsCanonical
+              (κ := Nat.log 2 n)
+              (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+        BoundedProfile (Nat.log 2 n))
+    (hmem :
+      ∀ (S' : List (Fin (n / 3)))
+        (shift : MvPolynomial (Fin (n / 3)) ℚ)
+        (α : Fin n →₀ ℕ)
+        (hSlen : S'.length = Nat.log 2 n)
+        (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+        (hshiftVars :
+          (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+            (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+        (hadm :
+          SPDP.isBlockAdmissible
+            (cook_levin_compilation M n hn2 htb hns).partition
+            (S'.map (cookLevinStrictFOBFlatMap n)))
+        (hrow :
+          routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+            M n hn2 htb hns S' shift α),
+        routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+            M n hn2 htb hns S' shift ∈
+          allBoundedProfilePostSpan
+            (cook_levin_compilation M n hn2 htb hns).partition
+            (Nat.log 2 n) (Nat.log 2 n)
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+            (cookLevinConstraintType M n hn2 htb hns)
+            ((profileOfCanonicalWindow
+              (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+              hrow.1).toHistogram))
+    (hexact : CookLevinExactWithinProfileFinrankLemma M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictLocalMonoidProfileAnalysis
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := profileOfCanonicalWindow
+  canonicalRangeRow_mem_profilePostSpan := hmem
+  exactWithinProfile := hexact
+
 /-- Paper-shaped range-row profile-cover data with the correct combined
 profile budget. -/
 structure RouteBPaperFaithfulTPhiStrictPaperRangeRowProfileCoverData
