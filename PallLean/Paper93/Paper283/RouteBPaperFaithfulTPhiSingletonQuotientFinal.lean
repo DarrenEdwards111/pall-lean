@@ -1395,6 +1395,70 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictCanonic
       M n hn hn2 htb hns hdec
       (hdata M n hn hn2 htb hns hdec)
 
+/-- Paper-faithful strict `TΦ` contradiction from the corrected range-row
+profile cover data and its actual range-row global span theorem.
+
+This is the non-shortcut row-cover endpoint: the data carries the separated
+profile count/local dimension budget through `combinedProfileBound`, and
+`hrange` is the literal strict range-row assembled-profile cover for the same
+data. -/
+theorem false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_strictPaperRangeRowsGlobalProfileSpanCover
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804)
+    (hn2 : n >= 2) (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hdec : DecidesSAT M)
+    (D :
+      RouteBPaperFaithfulTPhiStrictPaperRangeRowProfileCoverData
+        M n hn2 htb hns)
+    (hrange :
+      RouteBPaperFaithfulTPhiStrictPaperRangeRowsGlobalProfileSpanCover D) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_projectedLogWindow
+    M n hn hn2 htb hns hdec
+    (routeBPaperFaithfulTPhi_pSideBound_of_strictPaperRangeRowsGlobalProfileSpanCover
+      M n hn2 htb hns D hrange)
+
+/-- Final close-out from the corrected paper-shaped strict range-row cover
+surface.
+
+This is the exact §9.3--§9.4 shape: construct the finite local-monoid profile
+data `D`, prove the range rows land in the assembled profile span for that same
+`D`, then use the combined profile budget. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictPaperRangeRowsGlobalProfileSpanCover
+    (hcover :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        exists D :
+          RouteBPaperFaithfulTPhiStrictPaperRangeRowProfileCoverData
+            M n hn2 htb hns,
+          RouteBPaperFaithfulTPhiStrictPaperRangeRowsGlobalProfileSpanCover D) :
+    NoBoundedSATDeciderAtPaperScale := by
+  intro M n hn hn2 htb hns hdec
+  rcases hcover M n hn hn2 htb hns hdec with ⟨D, hrange⟩
+  exact
+    false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_strictPaperRangeRowsGlobalProfileSpanCover
+      M n hn hn2 htb hns hdec D hrange
+
+/-- Final close-out from corrected paper-shaped range-row profile-cover data.
+
+Unlike the legacy `RouteBPaperFaithfulTPhiStrictRangeRowProfileCoverData`
+consumer below, this theorem uses the corrected combined profile budget and the
+finite union over interface-anonymous local-monoid profiles. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictPaperRangeRowProfileCoverData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictPaperRangeRowProfileCoverData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictPaperRangeRowsGlobalProfileSpanCover
+    (fun M n hn hn2 htb hns hdec =>
+      let D := hdata M n hn hn2 htb hns hdec
+      ⟨D,
+        routeBPaperFaithfulTPhi_strictPaperRangeRowsGlobalProfileSpanCover_of_paperRangeRowProfileCoverData
+          M n hn2 htb hns D⟩)
+
 /-- Paper-faithful strict `TΦ` contradiction from the actual
 local-monoid/profile analysis, through the separated Lemma 29/Lemma 31 data
 surface. -/
