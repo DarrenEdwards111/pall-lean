@@ -6315,6 +6315,93 @@ structure RouteBPaperFaithfulTPhiStrictCanonicalProfileRowSpanData
             M n hn2 htb hns profileOfCanonicalWindow ρ) ≤
         withinProfileBound (Nat.log 2 n)
 
+/-- The literal canonical-profile row span is contained in any selected
+interface-profile basis span that contains every selected canonical row.
+
+This is the precise Lemma-31 reduction for the row-span `V_h`: once the local
+monoid/interface analysis supplies the bounded basis span for each selected
+profile, the literal row span is a subspace of that finite bounded span. -/
+theorem routeBPaperFaithfulTPhi_strictCanonicalProfileRowSpan_le_interfaceProfileSpan
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictConstraintTypeInterfaceProfileData
+        M n hn2 htb hns)
+    (ρ :
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)) :
+    routeBPaperFaithfulTPhiStrictConstraintTypeCanonicalProfileRowSpan
+        M n hn2 htb hns D.profileOfCanonicalWindow ρ ≤
+      Submodule.span ℚ
+        (↑(D.localBasis ρ) : Set (MvPolynomial (Fin n) ℚ)) := by
+  classical
+  unfold routeBPaperFaithfulTPhiStrictConstraintTypeCanonicalProfileRowSpan
+  refine Submodule.span_le.mpr ?_
+  intro row hrow
+  rcases hrow with
+    ⟨S', shift, α, hSlen, hshiftDegree, hshiftVars, hadm, hcanon, hρ, rfl⟩
+  have hmem :=
+    D.canonicalRangeRow_mem_constraintTypeProfileSpan
+      S' shift α hSlen hshiftDegree hshiftVars hadm hcanon
+  simpa [hρ] using hmem
+
+/-- Interface-profile Lemma-31 data bounds the literal selected row-span
+`V_h`.
+
+This closes the row-span dimension question relative to the real paper input:
+the selected local basis/span field.  No selected exact post-span collapse is
+used; the proof is just `rowSpan ≤ span(localBasis h)` plus the finite basis
+cardinality bound. -/
+noncomputable def routeBPaperFaithfulTPhi_strictCanonicalProfileRowSpanData_of_interfaceProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictConstraintTypeInterfaceProfileData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictCanonicalProfileRowSpanData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalProfileRowSpan_finite := by
+    intro ρ
+    let U :=
+      routeBPaperFaithfulTPhiStrictConstraintTypeCanonicalProfileRowSpan
+        M n hn2 htb hns D.profileOfCanonicalWindow ρ
+    let V := Submodule.span ℚ
+      (↑(D.localBasis ρ) : Set (MvPolynomial (Fin n) ℚ))
+    have hle : U ≤ V := by
+      simpa [U, V] using
+        routeBPaperFaithfulTPhi_strictCanonicalProfileRowSpan_le_interfaceProfileSpan
+          M n hn2 htb hns D ρ
+    haveI hVfin : Module.Finite ℚ ↥V := by
+      exact Module.Finite.span_of_finite ℚ (Finset.finite_toSet (D.localBasis ρ))
+    exact Module.Finite.of_injective
+      ((Submodule.inclusion hle) : U →ₗ[ℚ] V)
+      (Submodule.inclusion_injective hle)
+  canonicalProfileRowSpan_finrank_le := by
+    intro ρ
+    let U :=
+      routeBPaperFaithfulTPhiStrictConstraintTypeCanonicalProfileRowSpan
+        M n hn2 htb hns D.profileOfCanonicalWindow ρ
+    let V := Submodule.span ℚ
+      (↑(D.localBasis ρ) : Set (MvPolynomial (Fin n) ℚ))
+    have hle : U ≤ V := by
+      simpa [U, V] using
+        routeBPaperFaithfulTPhi_strictCanonicalProfileRowSpan_le_interfaceProfileSpan
+          M n hn2 htb hns D ρ
+    haveI hVfin : Module.Finite ℚ ↥V := by
+      exact Module.Finite.span_of_finite ℚ (Finset.finite_toSet (D.localBasis ρ))
+    haveI hUfin : Module.Finite ℚ ↥U :=
+      Module.Finite.of_injective
+        ((Submodule.inclusion hle) : U →ₗ[ℚ] V)
+        (Submodule.inclusion_injective hle)
+    calc
+      Module.finrank ℚ ↥U ≤ Module.finrank ℚ ↥V :=
+        Submodule.finrank_mono hle
+      _ ≤ (D.localBasis ρ).card := by
+        simpa [V] using finrank_span_finset_le_card (D.localBasis ρ)
+      _ ≤ D.localDim := D.localBasis_card_le ρ
+      _ ≤ withinProfileBound (Nat.log 2 n) := D.localDim_le
+
 /-- The literal selected row-span `V_h` data instantiates the final
 profile-subspace surface. -/
 noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData_of_canonicalProfileRowSpanData
