@@ -1508,9 +1508,9 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceC
         RouteBPaperFaithfulTPhiStrictSourceConstraintTypeInterfaceProfileData
           M n hn2 htb hns) :
     NoBoundedSATDeciderAtPaperScale :=
-  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData
     (fun M n hn hn2 htb hns hdec =>
-      routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData_of_sourceInterfaceProfileData
+      routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData_of_sourceInterfaceProfileData_direct
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
