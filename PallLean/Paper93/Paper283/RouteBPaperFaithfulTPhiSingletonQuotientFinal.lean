@@ -1467,6 +1467,23 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstra
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
+/-- Final close-out from strict `ConstraintType` post-span selection data.
+The selected profile subspace is the actual Cook-Levin all-bounded-profile
+post-span for the selected realizable interface profile. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypePostSpanSelectionData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictConstraintTypePostSpanSelectionData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData_of_postSpanSelectionData
+        M n hn2 htb hns
+        (hdata M n hn hn2 htb hns hdec))
+
 /-- Paper-faithful strict `TΦ` contradiction from the corrected range-row
 profile cover data and its actual range-row global span theorem.
 
@@ -2412,6 +2429,20 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictConstr
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData
       hdata)
 
+/-- Rich-projection discharge from strict `ConstraintType` post-span selection
+data. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictConstraintTypePostSpanSelectionData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictConstraintTypePostSpanSelectionData
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypePostSpanSelectionData
+      hdata)
+
 /-- Rich-projection discharge from the corrected paper-shaped strict range-row
 cover theorem.
 
@@ -2857,6 +2888,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictBoundedInterfaceAnonymousLocalMonoidProfileData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypePostSpanSelectionData
 #print axioms false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_strictLocalMonoidProfileAnalysis
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictLocalMonoidProfileAnalysis
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitProfile_rangeRows
@@ -2898,6 +2930,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictBoundedInterfaceAnonymousLocalMonoidProfileData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictConstraintTypePostSpanSelectionData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictLocalMonoidProfileAnalysis
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitProfile_rangeRows
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictRangeRowProfileCoverData

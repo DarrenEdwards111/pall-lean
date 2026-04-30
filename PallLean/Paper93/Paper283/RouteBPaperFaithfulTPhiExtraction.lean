@@ -6135,6 +6135,121 @@ structure RouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData
             (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
             hrow.1)
 
+/-- Strict `TΦ` `ConstraintType` post-span selection data.
+
+This is the Cook-Levin local-monoid/profile row-cover obligation in the
+interface-anonymous `ConstraintType` language: a canonical window selects a
+realizable `ConstraintType` profile, and the corresponding strict derivative
+row lies in the actual all-bounded-profile post-span for that selected profile.
+The finite profile subspaces are then recovered from the exact within-profile
+finrank theorem, rather than supplied as arbitrary bases. -/
+structure RouteBPaperFaithfulTPhiStrictConstraintTypePostSpanSelectionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  canonicalRangeRow_mem_constraintTypePostSpan :
+    ∀ (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α),
+      routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+          M n hn2 htb hns S' shift ∈
+        allBoundedProfilePostSpan
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n)
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+          (cookLevinConstraintType M n hn2 htb hns)
+          ((profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1).val)
+  exactWithinProfile :
+    CookLevinExactWithinProfileFinrankLemma M n hn2 htb hns
+
+/-- The actual selected Cook-Levin profile post-span for a realizable strict
+`ConstraintType` interface profile. -/
+noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeSelectedPostSpan
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (ρ :
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)) :
+    Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+  allBoundedProfilePostSpan
+    (cook_levin_compilation M n hn2 htb hns).partition
+    (Nat.log 2 n) (Nat.log 2 n)
+    (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+    (cookLevinConstraintType M n hn2 htb hns)
+    ρ.val
+
+/-- Exact within-profile finrank supplies the dimension bound for the selected
+strict `ConstraintType` profile post-span. -/
+theorem routeBPaperFaithfulTPhi_strictConstraintTypeSelectedPostSpan_finrank_le
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D :
+      RouteBPaperFaithfulTPhiStrictConstraintTypePostSpanSelectionData
+        M n hn2 htb hns)
+    (ρ :
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)) :
+    Module.finrank ℚ
+        ↥(routeBPaperFaithfulTPhi_strictConstraintTypeSelectedPostSpan
+          M n hn2 htb hns ρ) ≤
+      withinProfileBound (Nat.log 2 n) := by
+  simpa [routeBPaperFaithfulTPhi_strictConstraintTypeSelectedPostSpan] using
+    D.exactWithinProfile ρ.val
+
+/-- Post-span selection data instantiates the stricter profile-subspace data:
+the subspace for a profile is the actual selected Cook-Levin post-span. -/
+noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData_of_postSpanSelectionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictConstraintTypePostSpanSelectionData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData
+      M n hn2 htb hns where
+  profileSubspace :=
+    routeBPaperFaithfulTPhi_strictConstraintTypeSelectedPostSpan
+      M n hn2 htb hns
+  profileSubspace_finite := by
+    intro ρ
+    dsimp [routeBPaperFaithfulTPhi_strictConstraintTypeSelectedPostSpan]
+    infer_instance
+  profileSubspace_finrank_le := by
+    intro ρ
+    exact
+      routeBPaperFaithfulTPhi_strictConstraintTypeSelectedPostSpan_finrank_le D ρ
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalRangeRow_mem_constraintTypeProfileSubspace := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    simpa [routeBPaperFaithfulTPhi_strictConstraintTypeSelectedPostSpan] using
+      D.canonicalRangeRow_mem_constraintTypePostSpan
+        S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+
 /-- The basis selected from a strict `ConstraintType` profile subspace. -/
 noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceBasis
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
