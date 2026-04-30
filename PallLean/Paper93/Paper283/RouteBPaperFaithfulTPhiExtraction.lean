@@ -7792,6 +7792,110 @@ theorem routeBPaperFaithfulTPhi_productRow_mem_selected_allBoundedProfilePostSpa
       B κ ℓ factors constraintType h S hSlen shift hshiftVars)
       (hselected hpost)
 
+/-- Source-coordinate restricted Cook-Levin factors used by the strict
+first-of-block `TΦ` row. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Fin (cookLevinFactorList M n hn2 htb hns).length →
+      MvPolynomial (Fin (n / 3)) ℚ :=
+  fun i =>
+    MultilinearSPDP.restrictPoly ℚ
+      (cookLevinStrictFOBFlatMap n)
+      (cookLevinStrictFOBFlatMap_injective n)
+      ((cookLevinFactorList M n hn2 htb hns).get i)
+
+/-- The source-coordinate strict `TΦ` polynomial is the product of the
+restricted Cook-Levin factors. -/
+theorem routeBPaperFaithfulTPhi_restrict_compiledPoly_eq_sourceRestrictedFactors_prod
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    MultilinearSPDP.restrictPoly ℚ
+        (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns)) =
+      Finset.univ.prod
+        (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+          M n hn2 htb hns) := by
+  let f := cookLevinStrictFOBFlatMap n
+  let hf := cookLevinStrictFOBFlatMap_injective n
+  let factorList : List (MvPolynomial (Fin n) ℚ) :=
+    cookLevinFactorList M n hn2 htb hns
+  have hcompiled :
+      compiledPoly (cook_levin_compilation M n hn2 htb hns) =
+        factorList.prod := by
+    simpa [factorList, cookLevinFactorList] using
+      compiledPoly_eq_constraints_prod M n hn2 htb hns
+  calc
+    MultilinearSPDP.restrictPoly ℚ f hf
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns))
+        = MultilinearSPDP.restrictPoly ℚ f hf factorList.prod := by
+            rw [hcompiled]
+    _ = Finset.univ.prod
+          (fun i : Fin factorList.length =>
+            MultilinearSPDP.restrictPoly ℚ f hf (factorList.get i)) := by
+            rw [show factorList.prod =
+                Finset.univ.prod
+                  (fun i : Fin factorList.length => factorList.get i) by
+              rw [← Fin.prod_univ_getElem]
+              simp [List.get_eq_getElem]]
+            rw [map_prod]
+    _ = Finset.univ.prod
+          (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+            M n hn2 htb hns) := by
+            simp [routeBPaperFaithfulTPhi_strictSourceRestrictedFactors,
+              factorList, f]
+
+/-- Faithful source-coordinate selected-profile post-span membership from a
+selected Leibniz-ownership theorem for the restricted Cook-Levin factors.
+
+This is the strict `TΦ` source analogue of the product-form ownership bridge.
+The hypothesis is deliberately explicit: all bounded Leibniz distributions of
+the restricted product for this source row must classify to the selected
+histogram `h`.  The theorem only turns that selected ownership into selected
+source post-span membership. -/
+theorem routeBPaperFaithfulTPhi_strictSourceRow_mem_selected_restrictedProfilePostSpan_of_leibnizOwnership
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (hSlen : S'.length ≤ Nat.log 2 n)
+    (hshiftVars : shift.vars ⊆ S'.toFinset)
+    (h : ProfileHistogram)
+    (hown :
+      boundedDistribDerivProds Finset.univ
+          (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+            M n hn2 htb hns) S' S'.length ⊆
+        boundedProfileClassifiedSet
+          (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+            M n hn2 htb hns)
+          (cookLevinConstraintType M n hn2 htb hns) S' h) :
+    mlProj
+        (shift * SPDP.iterDerivList S'
+          (MultilinearSPDP.restrictPoly ℚ
+            (cookLevinStrictFOBFlatMap n)
+            (cookLevinStrictFOBFlatMap_injective n)
+            (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) ∈
+      allBoundedProfilePostSpan
+        (MultilinearSPDP.pullbackPartition
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (cookLevinStrictFOBFlatMap n))
+        (Nat.log 2 n) (Nat.log 2 n)
+        (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+          M n hn2 htb hns)
+        (cookLevinConstraintType M n hn2 htb hns) h := by
+  rw [routeBPaperFaithfulTPhi_restrict_compiledPoly_eq_sourceRestrictedFactors_prod]
+  exact
+    routeBPaperFaithfulTPhi_productRow_mem_selected_allBoundedProfilePostSpan_of_leibnizOwnership
+      (MultilinearSPDP.pullbackPartition
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (cookLevinStrictFOBFlatMap n))
+      (Nat.log 2 n) (Nat.log 2 n)
+      (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+        M n hn2 htb hns)
+      (cookLevinConstraintType M n hn2 htb hns)
+      S' shift hSlen hshiftVars h hown
+
 /-- Product-form Cook-Levin rows land in the supremum over all
 derivative-count profile post-spans.
 
