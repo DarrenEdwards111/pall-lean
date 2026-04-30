@@ -7899,6 +7899,113 @@ theorem routeBPaperFaithfulTPhi_restrict_compiledPoly_eq_sourceRestrictedFactors
             simp [routeBPaperFaithfulTPhi_strictSourceRestrictedFactors,
               factorList, f]
 
+/-- Raw source-coordinate local-monoid classifier for strict `TΦ` restricted
+Cook-Levin factors.
+
+This is the paper-faithful algebraic surface underneath
+`RouteBPaperFaithfulTPhiStrictSourceLocalTypeCompressionData`: for each selected
+interface profile `ρ`, provide a bounded source local-type alphabet, classify
+each canonical strict source row, and prove the product-form row for the
+restricted factors lands in the selected local-type span.  Unlike the optional
+selected post-span route, this does **not** require all Leibniz summands to have
+one derivative-count profile; the whole normalized row is owned by the selected
+local-monoid type. -/
+structure RouteBPaperFaithfulTPhiStrictSourceLocalMonoidClassifier
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceAlphabet :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) →
+      ZeroProfileLocalTypeAlphabet (n / 3) (Nat.log 2 n)
+  sourceRowType :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α),
+      profileOfCanonicalWindow
+          (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+          hrow.1 = ρ →
+        (sourceAlphabet ρ).type
+  productRow_mem_localTypeSpace :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ),
+      mlProj
+          (shift *
+            SPDP.iterDerivList S'
+              (Finset.univ.prod
+                (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                  M n hn2 htb hns))) ∈
+        zeroProfileLocalTypeSpace (sourceAlphabet ρ)
+          (sourceRowType ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ)
+
+/-- A raw restricted-factor local-monoid classifier instantiates the source
+local-type compression object consumed by the selected `V_h` route.
+
+The only rewrite here is the checked identity that the strict source polynomial
+is the product of the restricted Cook-Levin factors.  All mathematical content
+remains in `C.productRow_mem_localTypeSpace`. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLocalTypeCompressionData_of_sourceLocalMonoidClassifier
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (C : RouteBPaperFaithfulTPhiStrictSourceLocalMonoidClassifier
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceLocalTypeCompressionData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := C.profileOfCanonicalWindow
+  sourceAlphabet := C.sourceAlphabet
+  sourceRowType := C.sourceRowType
+  sourceRow_mem_localTypeSpace := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    unfold routeBPaperFaithfulTPhiStrictSourceCanonicalDerivativeRow
+    rw [routeBPaperFaithfulTPhi_restrict_compiledPoly_eq_sourceRestrictedFactors_prod]
+    exact C.productRow_mem_localTypeSpace
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+
 /-- Faithful source-coordinate selected-profile post-span membership from a
 selected Leibniz-ownership theorem for the restricted Cook-Levin factors.
 
