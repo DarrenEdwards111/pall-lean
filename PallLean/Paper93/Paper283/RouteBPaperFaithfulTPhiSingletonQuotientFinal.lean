@@ -1472,6 +1472,48 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstra
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
+/-- Final paper-shaped close-out from source-coordinate strict
+`ConstraintType` profile-subspace data.
+
+This is only the checked rename/restriction bridge: the source-coordinate
+selected `V_h` theorem is transported to the ambient strict `V_h` target.  It
+does not infer selected membership from an ambient supremum and does not use a
+common/global span. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceConstraintTypeProfileSubspaceData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceConstraintTypeProfileSubspaceData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData_of_sourceProfileSubspaceData
+        M n hn2 htb hns
+        (hdata M n hn hn2 htb hns hdec))
+
+/-- Final paper-shaped close-out from source-coordinate explicit local-basis
+data for strict `TΦ`.
+
+This is the sharpest current source-side Lemma 31 surface: the input supplies
+literal source local bases and selected source row membership; the rest is just
+finite-span packaging plus rename transport to the already checked ambient
+strict `V_h` close-out. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceConstraintTypeInterfaceProfileData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceConstraintTypeInterfaceProfileData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData_of_sourceInterfaceProfileData
+        M n hn2 htb hns
+        (hdata M n hn hn2 htb hns hdec))
+
 /-- Final paper-shaped close-out from literal selected canonical-profile
 row-span data.
 
@@ -2458,6 +2500,34 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictConstr
     CookLevinRichProjectionDischarge :=
   cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData
+      hdata)
+
+/-- Rich-projection discharge from source-coordinate strict `ConstraintType`
+profile-subspace data. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceConstraintTypeProfileSubspaceData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceConstraintTypeProfileSubspaceData
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceConstraintTypeProfileSubspaceData
+      hdata)
+
+/-- Rich-projection discharge from source-coordinate explicit local-basis data
+for strict `TΦ`. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceConstraintTypeInterfaceProfileData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceConstraintTypeInterfaceProfileData
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceConstraintTypeInterfaceProfileData
       hdata)
 
 /-- Rich-projection discharge from literal selected canonical-profile row-span
