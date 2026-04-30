@@ -5904,6 +5904,120 @@ attribute [instance]
 attribute [instance]
   RouteBPaperFaithfulTPhiStrictInterfaceAnonymousLocalMonoidProfileData.localNormalFormDecidableEq
 
+/-- Lemma 29 profile count for strict interface-anonymous profiles, derived
+from the actual realizable-histogram finset and a four-bin local normal-form
+alphabet. -/
+theorem routeBPaperFaithfulTPhi_strictInterfaceAnonymousProfiles_card_le_profileCount
+    (LocalNormalForm : Type) [Fintype LocalNormalForm]
+    [DecidableEq LocalNormalForm]
+    (hcard : Fintype.card LocalNormalForm ≤ 4) (κ : ℕ) :
+    Fintype.card
+        (RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          LocalNormalForm κ) ≤
+      profileCount κ := by
+  classical
+  calc
+    Fintype.card
+        (RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          LocalNormalForm κ)
+        = (PallLean.Paper93.RealizableProfiles LocalNormalForm κ).card := by
+          simp [RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles]
+    _ ≤ (κ + 1) ^ Fintype.card LocalNormalForm :=
+          PallLean.Paper93.profileCompression_card_bound LocalNormalForm κ
+    _ ≤ (κ + 1) ^ 4 :=
+          Nat.pow_le_pow_right (by omega) hcard
+    _ = profileCount κ := rfl
+
+/-- Literal interface-anonymous local-monoid profile data with the Lemma 29
+profile-count bound derived from a bounded finite normal-form alphabet.
+
+Compared with
+`RouteBPaperFaithfulTPhiStrictInterfaceAnonymousLocalMonoidProfileData`, this
+is the sharper paper-shaped construction surface: the profile count is no
+longer supplied directly.  The remaining mathematical fields are exactly the
+finite `Σ^{≤q}` alphabet bound, Lemma 31 local bases, and selected canonical
+row membership. -/
+structure RouteBPaperFaithfulTPhiStrictBoundedInterfaceAnonymousLocalMonoidProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  localNormalForm : Type
+  [localNormalFormFintype : Fintype localNormalForm]
+  [localNormalFormDecidableEq : DecidableEq localNormalForm]
+  localNormalForm_card_le : Fintype.card localNormalForm ≤ 4
+  localDim : ℕ
+  localDim_le :
+    localDim ≤ withinProfileBound (Nat.log 2 n)
+  localBasis :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      localNormalForm (Nat.log 2 n) →
+      Finset (MvPolynomial (Fin n) ℚ)
+  localBasis_card_le : ∀ ρ, (localBasis ρ).card ≤ localDim
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        localNormalForm (Nat.log 2 n)
+  canonicalRangeRow_mem_interfaceProfileSpan :
+    ∀ (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α),
+      routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+          M n hn2 htb hns S' shift ∈
+        Submodule.span ℚ
+          (↑(localBasis
+            (profileOfCanonicalWindow
+              (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+              hrow.1)) : Set (MvPolynomial (Fin n) ℚ))
+
+attribute [instance]
+  RouteBPaperFaithfulTPhiStrictBoundedInterfaceAnonymousLocalMonoidProfileData.localNormalFormFintype
+attribute [instance]
+  RouteBPaperFaithfulTPhiStrictBoundedInterfaceAnonymousLocalMonoidProfileData.localNormalFormDecidableEq
+
+/-- Bounded finite-normal-form alphabet data instantiates the literal
+interface-anonymous profile data, with Lemma 29 deriving `profileCount_le`. -/
+noncomputable def routeBPaperFaithfulTPhi_strictInterfaceAnonymousLocalMonoidProfileData_of_boundedInterfaceAnonymousLocalMonoidProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictBoundedInterfaceAnonymousLocalMonoidProfileData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousLocalMonoidProfileData
+      M n hn2 htb hns where
+  localNormalForm := D.localNormalForm
+  localNormalFormFintype := inferInstance
+  localNormalFormDecidableEq := inferInstance
+  profileCount_le :=
+    routeBPaperFaithfulTPhi_strictInterfaceAnonymousProfiles_card_le_profileCount
+      D.localNormalForm D.localNormalForm_card_le (Nat.log 2 n)
+  localDim := D.localDim
+  localDim_le := D.localDim_le
+  localBasis := D.localBasis
+  localBasis_card_le := D.localBasis_card_le
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalRangeRow_mem_interfaceProfileSpan :=
+    D.canonicalRangeRow_mem_interfaceProfileSpan
+
 /-- Literal interface-anonymous local-monoid data instantiates the existing
 separated paper §9.3--§9.4 profile data. -/
 noncomputable def routeBPaperFaithfulTPhi_strictCanonicalWindowLocalMonoidProfileData_of_interfaceAnonymousLocalMonoidProfileData
