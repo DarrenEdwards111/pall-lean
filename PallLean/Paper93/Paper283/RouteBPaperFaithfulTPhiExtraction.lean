@@ -6466,6 +6466,53 @@ noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileDa
     rw [hspan]
     exact hmem
 
+/-- Selected realizable `ConstraintType` post-span data supplies the literal
+interface-profile data.
+
+This is the Lemma-31 packaging step in paper shape: a canonical window selects
+one realizable interface profile, the local basis is chosen from that selected
+profile subspace, and membership is inherited from the selected profile
+post-span.  No all-profile supremum, one-bucket classifier, or raw row identity
+is used. -/
+noncomputable def routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData_of_postSpanSelectionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictConstraintTypePostSpanSelectionData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictConstraintTypeInterfaceProfileData
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData_of_profileSubspaceData
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData_of_postSpanSelectionData
+      M n hn2 htb hns D)
+
+/-- The same selected realizable `ConstraintType` post-span data instantiates
+the bounded-profile local-monoid analysis by forgetting only the realizability
+certificate to a bounded histogram.
+
+This keeps the logical shape honest: the selected profile is still the one
+chosen by the canonical window, and the row-membership proof is still the
+selected post-span membership field. -/
+noncomputable def routeBPaperFaithfulTPhi_strictLocalMonoidProfileAnalysis_of_constraintTypePostSpanSelectionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictConstraintTypePostSpanSelectionData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictLocalMonoidProfileAnalysis
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := fun w hw =>
+    routeBPaperFaithfulTPhi_strictBoundedProfileOfConstraintTypeInterfaceProfile
+      (D.profileOfCanonicalWindow w hw)
+  canonicalRangeRow_mem_profilePostSpan := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    simpa [routeBPaperFaithfulTPhi_strictBoundedProfileOfConstraintTypeInterfaceProfile,
+      BoundedProfile.toHistogram] using
+      D.canonicalRangeRow_mem_constraintTypePostSpan
+        S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+  exactWithinProfile := D.exactWithinProfile
+
 /-- The actual Cook-Levin interface alphabet has the four profile bins used by
 paper §9 Lemma 29. -/
 theorem routeBPaperFaithfulTPhi_strictConstraintType_card_le_four :

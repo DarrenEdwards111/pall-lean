@@ -1469,7 +1469,8 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstra
 
 /-- Final close-out from strict `ConstraintType` post-span selection data.
 The selected profile subspace is the actual Cook-Levin all-bounded-profile
-post-span for the selected realizable interface profile. -/
+post-span for the selected realizable interface profile, packaged directly as
+the literal interface-profile data. -/
 theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypePostSpanSelectionData
     (hdata :
       forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
@@ -1478,9 +1479,9 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstra
         RouteBPaperFaithfulTPhiStrictConstraintTypePostSpanSelectionData
           M n hn2 htb hns) :
     NoBoundedSATDeciderAtPaperScale :=
-  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData
     (fun M n hn hn2 htb hns hdec =>
-      routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData_of_postSpanSelectionData
+      routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData_of_postSpanSelectionData
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
