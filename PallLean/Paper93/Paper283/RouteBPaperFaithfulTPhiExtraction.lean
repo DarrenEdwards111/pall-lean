@@ -8010,6 +8010,119 @@ theorem routeBPaperFaithfulTPhi_sourceShift_vars_subset_of_renamed_subset
   have hy_eq : y = x := hf hyx
   simpa [hy_eq] using hy
 
+/-- Source-coordinate selected profile-subspace ownership for individual
+bounded Leibniz terms.
+
+This is the paper-faithful Lemma 31 algebra surface at the level actually
+needed by the final route: each selected interface profile supplies a bounded
+source `V_h`, and every bounded Leibniz product term contributing to a canonical
+strict source row lies in that same selected `V_h` after the allowed shift and
+`mlProj`.  Since `V_h` is a submodule, the finite Leibniz sum then gives the
+whole derivative row.  This avoids the earlier over-strong requirement that all
+terms lie in one `zeroProfileLocalTypeSpace`, and it does not classify all terms
+by one derivative-count histogram or pass through an ambient `iSup`. -/
+structure RouteBPaperFaithfulTPhiStrictSourceLeibnizProfileSubspaceData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  sourceProfileSubspace :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) →
+      Submodule ℚ (MvPolynomial (Fin (n / 3)) ℚ)
+  sourceProfileSubspace_finite :
+    ∀ ρ, Module.Finite ℚ ↥(sourceProfileSubspace ρ)
+  sourceProfileSubspace_finrank_le :
+    ∀ ρ,
+      Module.finrank ℚ ↥(sourceProfileSubspace ρ) ≤
+        withinProfileBound (Nat.log 2 n)
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  leibnizTerm_mem_sourceProfileSubspace :
+    ∀ (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (g : MvPolynomial (Fin (n / 3)) ℚ),
+        g ∈ boundedDistribDerivProds Finset.univ
+            (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+              M n hn2 htb hns) S' S'.length →
+        mlProj (shift * g) ∈
+          sourceProfileSubspace
+            (profileOfCanonicalWindow
+              (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+              hrow.1)
+
+/-- Individual selected-`V_h` ownership of the bounded Leibniz terms proves the
+source selected profile-subspace data consumed by the final strict `TΦ` route.
+
+The proof is exactly the finite Leibniz expansion plus linearity of the selected
+submodule: no selected post-span collapse, no common span, and no claim that the
+Leibniz summands share one histogram. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceProfileSubspaceData_of_leibnizProfileSubspaceData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceLeibnizProfileSubspaceData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceConstraintTypeProfileSubspaceData
+      M n hn2 htb hns where
+  sourceProfileSubspace := D.sourceProfileSubspace
+  sourceProfileSubspace_finite := D.sourceProfileSubspace_finite
+  sourceProfileSubspace_finrank_le := D.sourceProfileSubspace_finrank_le
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalSourceRow_mem_constraintTypeProfileSubspace := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    rw [routeBPaperFaithfulTPhi_restrict_compiledPoly_eq_sourceRestrictedFactors_prod]
+    let factors := routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+      M n hn2 htb hns
+    let ρ := D.profileOfCanonicalWindow
+      (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α) hrow.1
+    have hLeibniz :
+        SPDP.iterDerivList S' (Finset.univ.prod factors) ∈
+          Submodule.span ℚ
+            (boundedDistribDerivProds Finset.univ factors S' S'.length) :=
+      iterDerivList_finset_prod_mem_bounded_span S' factors
+    have hpost :
+        mlProj (shift * SPDP.iterDerivList S' (Finset.univ.prod factors)) ∈
+          Submodule.span ℚ
+            ((fun g => mlProj (shift * g)) ''
+              boundedDistribDerivProds Finset.univ factors S' S'.length) :=
+      SymmetricPower.mlProj_mul_mem_span_image shift
+        (boundedDistribDerivProds Finset.univ factors S' S'.length)
+        (SPDP.iterDerivList S' (Finset.univ.prod factors)) hLeibniz
+    have hspan :
+        Submodule.span ℚ
+            ((fun g => mlProj (shift * g)) ''
+              boundedDistribDerivProds Finset.univ factors S' S'.length) ≤
+          D.sourceProfileSubspace ρ := by
+      refine Submodule.span_le.mpr ?_
+      intro q hq
+      rcases hq with ⟨g, hg, rfl⟩
+      exact D.leibnizTerm_mem_sourceProfileSubspace
+        S' shift α hSlen hshiftDegree hshiftVars hadm hrow g
+        (by simpa [factors] using hg)
+    exact hspan hpost
+
 /-- Leibniz-term local type map for one selected source profile.
 
 This is the most granular honest form of the remaining local-monoid algebra:
