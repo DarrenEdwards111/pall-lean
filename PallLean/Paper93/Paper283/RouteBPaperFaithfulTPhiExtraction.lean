@@ -8010,6 +8010,35 @@ theorem routeBPaperFaithfulTPhi_sourceShift_vars_subset_of_renamed_subset
   have hy_eq : y = x := hf hyx
   simpa [hy_eq] using hy
 
+/-- Leibniz-term local type map for one selected source profile.
+
+This is the most granular honest form of the remaining local-monoid algebra:
+for one selected profile-local type, every bounded Leibniz distribution term
+contributing to the restricted strict `TΦ` derivative row lands in that same
+local type space after multiplication by the allowed shift and post-processing
+by `mlProj`.  Summing those terms then gives the derivative-row type map below.
+
+Unlike selected post-span ownership, this does not assert that all Leibniz terms
+share a derivative-count histogram; it only asks the selected local-monoid type
+space to contain the finite Leibniz expansion for the normalized row. -/
+structure RouteBPaperFaithfulTPhiStrictSourceLeibnizTypeMap
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (A : ZeroProfileLocalTypeAlphabet (n / 3) (Nat.log 2 n)) where
+  rowType :
+    ∀ (S' : List (Fin (n / 3))), S'.length ≤ Nat.log 2 n →
+      ∀ shift : MvPolynomial (Fin (n / 3)) ℚ, shift.vars ⊆ S'.toFinset →
+        A.type
+  leibnizTerm_mem_typeSpace :
+    ∀ (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ) (hshift : shift.vars ⊆ S'.toFinset)
+      (g : MvPolynomial (Fin (n / 3)) ℚ),
+        g ∈ boundedDistribDerivProds Finset.univ
+            (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+              M n hn2 htb hns) S' S'.length →
+        mlProj (shift * g) ∈
+          zeroProfileLocalTypeSpace A (rowType S' hS shift hshift)
+
 /-- Derivative-row local type map for one selected source profile.
 
 This is the derivative analogue of the existing zero-profile generator type-map
@@ -8034,6 +8063,50 @@ structure RouteBPaperFaithfulTPhiStrictSourceDerivativeTypeMap
                   (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
                     M n hn2 htb hns))) ∈
           zeroProfileLocalTypeSpace A (rowType S' hS shift hshift)
+
+/-- A Leibniz-term local type map proves the derivative-row local type map by
+linearity of the finite Leibniz expansion.
+
+This is an actual proof step, not packaging: `iterDerivList` of the restricted
+factor product is first placed in the span of bounded Leibniz products, then
+`mlProj (shift * ·)` maps that span into the selected local type space. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceDerivativeTypeMap_of_leibnizTypeMap
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {A : ZeroProfileLocalTypeAlphabet (n / 3) (Nat.log 2 n)}
+    (L : RouteBPaperFaithfulTPhiStrictSourceLeibnizTypeMap
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns) A) :
+    RouteBPaperFaithfulTPhiStrictSourceDerivativeTypeMap
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns) A where
+  rowType := L.rowType
+  row_mem_typeSpace := by
+    intro S' hS shift hshift
+    let factors := routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+      M n hn2 htb hns
+    have hLeibniz :
+        SPDP.iterDerivList S' (Finset.univ.prod factors) ∈
+          Submodule.span ℚ
+            (boundedDistribDerivProds Finset.univ factors S' S'.length) :=
+      iterDerivList_finset_prod_mem_bounded_span S' factors
+    have hpost :
+        mlProj (shift * SPDP.iterDerivList S' (Finset.univ.prod factors)) ∈
+          Submodule.span ℚ
+            ((fun g => mlProj (shift * g)) ''
+              boundedDistribDerivProds Finset.univ factors S' S'.length) :=
+      SymmetricPower.mlProj_mul_mem_span_image shift
+        (boundedDistribDerivProds Finset.univ factors S' S'.length)
+        (SPDP.iterDerivList S' (Finset.univ.prod factors)) hLeibniz
+    have hselected :
+        Submodule.span ℚ
+            ((fun g => mlProj (shift * g)) ''
+              boundedDistribDerivProds Finset.univ factors S' S'.length) ≤
+          zeroProfileLocalTypeSpace A (L.rowType S' hS shift hshift) := by
+      refine Submodule.span_le.mpr ?_
+      intro q hq
+      rcases hq with ⟨g, hg, rfl⟩
+      exact L.leibnizTerm_mem_typeSpace S' hS shift hshift g (by simpa [factors] using hg)
+    exact hselected hpost
+
 
 /-- Profile-wise source derivative type maps for the restricted strict `TΦ`
 Cook-Levin factors.
@@ -8098,6 +8171,42 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceLocalMonoidClassifier_of_g
       S' (le_of_eq hSlen) shift
       (routeBPaperFaithfulTPhi_sourceShift_vars_subset_of_renamed_subset
         n S' shift hshiftVars)
+
+/-- Profile-wise Leibniz-term maps instantiate the profile-wise derivative
+type-map package. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLocalMonoidGeneratorMaps_of_leibnizMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (profileOfCanonicalWindow :
+      ∀ w : PallLean.Paper93.Window
+          (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+          RouteBPaperFaithfulTPhiStrictLocalOp
+          (Nat.log 2 n),
+        (by
+          letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+          exact
+            PallLean.Paper93.IsCanonical
+              (κ := Nat.log 2 n)
+              (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+        RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+    (sourceAlphabet :
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n) →
+        ZeroProfileLocalTypeAlphabet (n / 3) (Nat.log 2 n))
+    (leibnizMap :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        RouteBPaperFaithfulTPhiStrictSourceLeibnizTypeMap
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          (sourceAlphabet ρ)) :
+    RouteBPaperFaithfulTPhiStrictSourceLocalMonoidGeneratorMaps
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := profileOfCanonicalWindow
+  sourceAlphabet := sourceAlphabet
+  sourceDerivativeTypeMap := fun ρ =>
+    routeBPaperFaithfulTPhi_strictSourceDerivativeTypeMap_of_leibnizTypeMap
+      M n hn2 htb hns (leibnizMap ρ)
 
 /-- A raw restricted-factor local-monoid classifier instantiates the source
 local-type compression object consumed by the selected `V_h` route.
