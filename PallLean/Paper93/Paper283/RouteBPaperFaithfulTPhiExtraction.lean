@@ -8713,6 +8713,259 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
   ((Finset.univ : Finset (Fin ((cookLevinFactorList M n hn2 htb hns).length))).toList.map
     (fun i => (d i).map (step i))).foldr (fun xs acc => xs ++ acc) []
 
+
+/-- Finite endomorphism monoid used for local transition actions.
+
+Lean's `Function.End` gives the right multiplication but does not expose the
+finite/decidable instances we need here.  This wrapper is just the concrete
+finite transformation monoid on a finite local state space. -/
+structure RouteBPaperFaithfulTPhiFiniteEnd (α : Type) where
+  toFun : α → α
+
+instance (α : Type) : CoeFun (RouteBPaperFaithfulTPhiFiniteEnd α)
+    (fun _ => α → α) where
+  coe f := f.toFun
+
+instance (α : Type) : One (RouteBPaperFaithfulTPhiFiniteEnd α) where
+  one := ⟨id⟩
+
+instance (α : Type) : Mul (RouteBPaperFaithfulTPhiFiniteEnd α) where
+  mul f g := ⟨fun x => f (g x)⟩
+
+instance (α : Type) : Monoid (RouteBPaperFaithfulTPhiFiniteEnd α) where
+  one_mul := by
+    intro f
+    cases f
+    rfl
+  mul_one := by
+    intro f
+    cases f
+    rfl
+  mul_assoc := by
+    intro f g h
+    cases f
+    cases g
+    cases h
+    rfl
+
+noncomputable instance (α : Type) [Fintype α] [DecidableEq α] :
+    Fintype (RouteBPaperFaithfulTPhiFiniteEnd α) :=
+  Fintype.ofEquiv (α → α)
+    { toFun := fun f => ⟨f⟩
+      invFun := fun f => f.toFun
+      left_inv := by intro f; rfl
+      right_inv := by intro f; cases f; rfl }
+
+noncomputable instance (α : Type) [Fintype α] [DecidableEq α] :
+    DecidableEq (RouteBPaperFaithfulTPhiFiniteEnd α) := by
+  intro f g
+  let e : RouteBPaperFaithfulTPhiFiniteEnd α ≃ (α → α) :=
+    { toFun := fun f => f.toFun
+      invFun := fun f => ⟨f⟩
+      left_inv := by intro f; cases f; rfl
+      right_inv := by intro f; rfl }
+  exact e.decidableEq f g
+
+/-- One atomic factor-local derivative event in the strict source Leibniz word.
+It records both the Cook-Levin factor receiving the derivative and the strict
+source coordinate being differentiated, so the local word does not collapse to
+a coordinate histogram. -/
+structure RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  factor : Fin ((cookLevinFactorList M n hn2 htb hns).length)
+  coord : Fin (n / 3)
+
+noncomputable instance routeBPaperFaithfulTPhiStrictSourceLeibnizEventDecidableEq
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    DecidableEq (RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns) := by
+  intro e f
+  let φ : RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns ≃
+      (Fin ((cookLevinFactorList M n hn2 htb hns).length) × Fin (n / 3)) :=
+    { toFun := fun e => (e.factor, e.coord)
+      invFun := fun p => { factor := p.1, coord := p.2 }
+      left_inv := by intro e; cases e; rfl
+      right_inv := by intro p; cases p; rfl }
+  exact φ.decidableEq e f
+
+noncomputable instance routeBPaperFaithfulTPhiStrictSourceLeibnizEventFintype
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Fintype (RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns) :=
+  Fintype.ofEquiv
+    (Fin ((cookLevinFactorList M n hn2 htb hns).length) × Fin (n / 3))
+    { toFun := fun p => { factor := p.1, coord := p.2 }
+      invFun := fun e => (e.factor, e.coord)
+      left_inv := by intro p; cases p; rfl
+      right_inv := by intro e; cases e; rfl }
+
+/-- Fixed-size finite trace state for the bounded local Leibniz word.  The
+slots retain the ordered factor-local events up to the paper window bound
+`κ = log n`; the transition generators append one event. -/
+structure RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (κ : ℕ) where
+  len : Fin (κ + 1)
+  slot : Fin κ → Option
+    (RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns)
+
+noncomputable instance routeBPaperFaithfulTPhiStrictSourceLeibnizTraceStateDecidableEq
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (κ : ℕ) :
+    DecidableEq (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+      M n hn2 htb hns κ) := by
+  intro s t
+  let φ : RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState M n hn2 htb hns κ ≃
+      (Fin (κ + 1) ×
+        (Fin κ → Option
+          (RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns))) :=
+    { toFun := fun s => (s.len, s.slot)
+      invFun := fun p => { len := p.1, slot := p.2 }
+      left_inv := by intro s; cases s; rfl
+      right_inv := by intro p; cases p; rfl }
+  exact φ.decidableEq s t
+
+noncomputable instance routeBPaperFaithfulTPhiStrictSourceLeibnizTraceStateFintype
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (κ : ℕ) :
+    Fintype (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+      M n hn2 htb hns κ) :=
+  Fintype.ofEquiv
+    (Fin (κ + 1) ×
+      (Fin κ → Option
+        (RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns)))
+    { toFun := fun p => { len := p.1, slot := p.2 }
+      invFun := fun s => (s.len, s.slot)
+      left_inv := by intro p; cases p; rfl
+      right_inv := by intro s; cases s; rfl }
+
+/-- Append one factor-local event to a bounded trace state, saturating at the
+window bound.  Saturation is harmless for the actual witnessed words, whose
+length is separately bounded by `S'.length ≤ κ`; it makes the transition space
+a total finite monoid action. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n} {κ : ℕ}
+    (e : RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns κ) :=
+  ⟨fun s =>
+    if h : s.len.val < κ then
+      { len := ⟨s.len.val + 1, by omega⟩
+        slot := fun j =>
+          if j.val = s.len.val then some e else s.slot j }
+    else
+      s⟩
+
+/-- The concrete finite generator list: one append transition for every
+factor-local strict source derivative event. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (κ : ℕ) :
+    List (RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns κ)) :=
+  (Finset.univ : Finset
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns)).toList.map
+    (fun e => routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend
+      (κ := κ) e)
+
+/-- Concrete factor/coordinate transition used by the strict source Leibniz
+word. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (κ : ℕ)
+    (i : Fin ((cookLevinFactorList M n hn2 htb hns).length))
+    (v : Fin (n / 3)) :
+    RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns κ) :=
+  routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend
+    (κ := κ)
+    ({ factor := i, coord := v } :
+      RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns)
+
+
+/-- Concrete bounded-trace local transition monoid data for strict source
+Leibniz words.
+
+This specializes the abstract transition-monoid surface to the paper's bounded
+local word mechanism: normal forms are finite transformations of a bounded
+trace state, and each generator appends one factor-local derivative event
+`(factor, coord)`.  The remaining field is exactly the local algebra/basis
+membership proof for the selected normal form. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizBoundedTraceMonoidData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceLocalDim :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) → ℕ
+  sourceLocalBasis :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      RouteBPaperFaithfulTPhiFiniteEnd
+        (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+          M n hn2 htb hns (Nat.log 2 n)) →
+        Finset (MvPolynomial (Fin (n / 3)) ℚ)
+  sourceLocalBasis_card_le :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (ν : RouteBPaperFaithfulTPhiFiniteEnd
+        (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+          M n hn2 htb hns (Nat.log 2 n))),
+        (sourceLocalBasis ρ ν).card ≤ sourceLocalDim ρ
+  sourceProfileSymmetricPowerBudget_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      Fintype.card
+          (RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns (Nat.log 2 n))) *
+          sourceLocalDim ρ ≤
+        withinProfileBound (Nat.log 2 n)
+  leibnizTraceWord_mem_normalFormSpace :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        mlProj
+            (shift *
+              Finset.univ.prod
+                (fun i =>
+                  SPDP.iterDerivList (d i)
+                    ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                      M n hn2 htb hns) i))) ∈
+          Submodule.span ℚ
+            (↑(sourceLocalBasis ρ
+              ((PallLean.Paper93.NF
+                (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+                  M n hn2 htb hns (Nat.log 2 n))
+                ((routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+                  (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+                    M n hn2 htb hns (Nat.log 2 n)) d).prod)).prod)) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ))
+
 /-- Paper-faithful transition-monoid data for witnessed strict `TΦ` Leibniz
 words.
 
@@ -8793,6 +9046,45 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalTransitionMono
                 ((routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
                   (sourceStep ρ) d).prod)).prod)) :
               Set (MvPolynomial (Fin (n / 3)) ℚ))
+
+/-- The concrete bounded-trace monoid data instantiates the abstract transition
+monoid surface by fixing the finite local state space and the append-event
+generators. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalTransitionMonoidData_of_boundedTraceMonoidData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizBoundedTraceMonoidData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalTransitionMonoidData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceNormalForm := fun _ =>
+    RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns (Nat.log 2 n))
+  sourceNormalFormFintype := by
+    intro ρ
+    infer_instance
+  sourceNormalFormMonoid := by
+    intro ρ
+    infer_instance
+  sourceNormalFormDecidableEq := by
+    intro ρ
+    infer_instance
+  sourceStep := fun _ =>
+    routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+      M n hn2 htb hns (Nat.log 2 n)
+  sourceGenerators := fun _ =>
+    routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+      M n hn2 htb hns (Nat.log 2 n)
+  sourceLocalDim := D.sourceLocalDim
+  sourceLocalBasis := D.sourceLocalBasis
+  sourceLocalBasis_card_le := D.sourceLocalBasis_card_le
+  sourceProfileSymmetricPowerBudget_le := D.sourceProfileSymmetricPowerBudget_le
+  leibnizTransitionWord_mem_normalFormSpace := by
+    intro ρ S' hS shift hshift d hd_elts hlen
+    exact D.leibnizTraceWord_mem_normalFormSpace
+      ρ S' hS shift hshift d hd_elts hlen
 
 /-- A transition-monoid datum instantiates the finite local normal-form surface
 by taking the witnessed word to be the flattened factor-local Leibniz transition
