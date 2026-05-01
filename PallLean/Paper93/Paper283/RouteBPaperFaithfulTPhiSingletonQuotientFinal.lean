@@ -1515,6 +1515,29 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceC
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
+
+/-- Final paper-shaped close-out from individual source Leibniz-term local-type
+compression data for strict `TΦ`.
+
+This is the currently most atomic paper-faithful close-out surface: each
+bounded Leibniz product term is classified into the selected profile's local
+normal-form type space, and the finite Leibniz expansion then assembles the
+selected source `V_h`.  No selected post-span collapse, one-histogram claim, or
+ambient `iSup` shortcut is used. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeCompressionData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceLeibnizLocalTypeCompressionData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceConstraintTypeProfileSubspaceData
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictSourceProfileSubspaceData_of_leibnizLocalTypeCompressionData
+        M n hn2 htb hns
+        (hdata M n hn hn2 htb hns hdec))
+
 /-- Final paper-shaped close-out from source local-type compression data
 for strict `TΦ`.
 
@@ -2579,6 +2602,21 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSource
     CookLevinRichProjectionDischarge :=
   cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceCanonicalProfileRowSpanData
+      hdata)
+
+
+/-- Rich-projection discharge from individual source Leibniz-term local-type
+compression data for strict `TΦ`. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeCompressionData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceLeibnizLocalTypeCompressionData
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeCompressionData
       hdata)
 
 /-- Rich-projection discharge from source local-type compression data for

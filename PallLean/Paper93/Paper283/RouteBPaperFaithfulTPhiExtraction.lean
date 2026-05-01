@@ -8472,6 +8472,57 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceLocalMonoidGeneratorMaps_o
     routeBPaperFaithfulTPhi_strictSourceDerivativeTypeMap_of_leibnizTypeMap
       M n hn2 htb hns (leibnizMap ρ)
 
+
+/-- Profile-wise Leibniz-term maps instantiate the profile-wise local-type
+compression datum.
+
+This is the same atomic local algebra as the older Leibniz map surface, but
+indexed by the selected canonical-window profile.  The construction only uses
+source support transport from the ambient strict first-of-block support fact; it
+does not collapse Leibniz terms to one derivative-count profile and does not use
+any ambient all-profile supremum. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeCompressionData_of_leibnizMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (profileOfCanonicalWindow :
+      ∀ w : PallLean.Paper93.Window
+          (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+          RouteBPaperFaithfulTPhiStrictLocalOp
+          (Nat.log 2 n),
+        (by
+          letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+          exact
+            PallLean.Paper93.IsCanonical
+              (κ := Nat.log 2 n)
+              (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+        RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+    (sourceAlphabet :
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n) →
+        ZeroProfileLocalTypeAlphabet (n / 3) (Nat.log 2 n))
+    (leibnizMap :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        RouteBPaperFaithfulTPhiStrictSourceLeibnizTypeMap
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          (sourceAlphabet ρ)) :
+    RouteBPaperFaithfulTPhiStrictSourceLeibnizLocalTypeCompressionData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := profileOfCanonicalWindow
+  sourceAlphabet := sourceAlphabet
+  leibnizTermType := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ g hg
+    exact (leibnizMap ρ).rowType S' (le_of_eq hSlen) shift
+      (routeBPaperFaithfulTPhi_sourceShift_vars_subset_of_renamed_subset
+        n S' shift hshiftVars)
+  leibnizTerm_mem_localTypeSpace := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ g hg
+    exact (leibnizMap ρ).leibnizTerm_mem_typeSpace
+      S' (le_of_eq hSlen) shift
+      (routeBPaperFaithfulTPhi_sourceShift_vars_subset_of_renamed_subset
+        n S' shift hshiftVars) g hg
+
 /-- A raw restricted-factor local-monoid classifier instantiates the source
 local-type compression object consumed by the selected `V_h` route.
 
