@@ -8,6 +8,7 @@ import PallLean.Paper93.DeepMath.PathB.PerTypeSpanningTemplateCollapseBridge
 import PallLean.Paper93.DeepMath.PathB.ActiveProfileEndpointAugmentedProgress
 import PallLean.Paper93.DeepMath.PathB.ActiveProfileEndpointAugmentedProofProgress
 import PallLean.Paper93.CanonicalizationMap
+import PallLean.Paper93.ShortlexNormalForm
 import PallLean.Paper93.InterfaceProfile
 import PallLean.Paper93.TemplateCollapseDischarge
 import PallLean.Paper93.Paper283.RouteBTransportPSideBound
@@ -8594,6 +8595,148 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalTypeMaps
                       M n hn2 htb hns) i))) ∈
           zeroProfileLocalTypeSpace (sourceAlphabet ρ)
             (leibnizWitnessType ρ S' hS shift hshift d hd_elts hlen)
+
+
+
+/-- Paper-faithful finite local-monoid normal-form data for witnessed strict
+`TΦ` Leibniz words.
+
+This is one level more concrete than `WitnessedLeibnizLocalTypeMaps`: the local
+type alphabet for each selected canonical-window profile is a finite local
+monoid in the sense of paper §9.3, and the label is the shortlex normal form of
+the actual local update word attached to the bounded Leibniz distribution
+witness.
+
+The membership field remains the real mathematical obligation: prove that the
+projected shifted Leibniz word lies in the span of the basis for its own finite
+local normal form.  No selected post-span collapse, common-span shortcut, or
+single derivative-count histogram is introduced here. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalMonoidNormalForms
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceNormalForm :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) → Type
+  sourceNormalFormFintype :
+    ∀ ρ, Fintype (sourceNormalForm ρ)
+  sourceNormalFormMonoid :
+    ∀ ρ, Monoid (sourceNormalForm ρ)
+  sourceNormalFormDecidableEq :
+    ∀ ρ, DecidableEq (sourceNormalForm ρ)
+  sourceGenerators :
+    ∀ ρ, List (sourceNormalForm ρ)
+  sourceLocalDim :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) → ℕ
+  sourceLocalBasis :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      sourceNormalForm ρ → Finset (MvPolynomial (Fin (n / 3)) ℚ)
+  sourceLocalBasis_card_le :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (ν : sourceNormalForm ρ),
+        (sourceLocalBasis ρ ν).card ≤ sourceLocalDim ρ
+  sourceProfileSymmetricPowerBudget_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      Fintype.card (sourceNormalForm ρ) * sourceLocalDim ρ ≤
+        withinProfileBound (Nat.log 2 n)
+  leibnizWitnessWord :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (_hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (_hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        List (sourceNormalForm ρ)
+  leibnizWitness_mem_normalFormSpace :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        letI := sourceNormalFormMonoid ρ
+        letI := sourceNormalFormFintype ρ
+        letI := sourceNormalFormDecidableEq ρ
+        mlProj
+            (shift *
+              Finset.univ.prod
+                (fun i =>
+                  SPDP.iterDerivList (d i)
+                    ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                      M n hn2 htb hns) i))) ∈
+          Submodule.span ℚ
+            (↑(sourceLocalBasis ρ
+              ((PallLean.Paper93.NF (sourceGenerators ρ)
+                ((leibnizWitnessWord ρ S' hS shift hshift d hd_elts hlen).prod)).prod)) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ))
+
+/-- The local monoid normal-form data induces a zero-profile local type
+alphabet by using finite monoid normal-form labels. -/
+noncomputable def RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalMonoidNormalForms.sourceAlphabet
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalMonoidNormalForms
+      M n hn2 htb hns)
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n)) :
+    ZeroProfileLocalTypeAlphabet (n / 3) (Nat.log 2 n) where
+  type := D.sourceNormalForm ρ
+  typeFintype := D.sourceNormalFormFintype ρ
+  localDim := D.sourceLocalDim ρ
+  localBasis := D.sourceLocalBasis ρ
+  localBasis_card_le := D.sourceLocalBasis_card_le ρ
+  profileSymmetricPowerBudget_le := by
+    letI := D.sourceNormalFormFintype ρ
+    exact D.sourceProfileSymmetricPowerBudget_le ρ
+
+/-- Forget the explicit finite local-monoid normal forms into the witnessed
+local-type map surface.  This preserves the witness word and only changes the
+container expected by the downstream Route B assembly. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalTypeMaps_of_localMonoidNormalForms
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalMonoidNormalForms
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalTypeMaps
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceAlphabet := fun ρ => D.sourceAlphabet ρ
+  leibnizWitnessType := by
+    intro ρ S' hS shift hshift d hd_elts hlen
+    letI := D.sourceNormalFormMonoid ρ
+    letI := D.sourceNormalFormFintype ρ
+    letI := D.sourceNormalFormDecidableEq ρ
+    exact
+      ((PallLean.Paper93.NF (D.sourceGenerators ρ)
+        ((D.leibnizWitnessWord ρ S' hS shift hshift d hd_elts hlen).prod)).prod)
+  leibnizWitness_mem_typeSpace := by
+    intro ρ S' hS shift hshift d hd_elts hlen
+    exact D.leibnizWitness_mem_normalFormSpace
+      ρ S' hS shift hshift d hd_elts hlen
 
 /-- Selecting the bounded-distribution witness in `hg` turns the witness-level
 local-word classifier into the per-term local-type interface.
