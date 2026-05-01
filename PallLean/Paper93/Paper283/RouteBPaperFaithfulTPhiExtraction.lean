@@ -8530,6 +8530,109 @@ structure RouteBPaperFaithfulTPhiStrictSourceLeibnizLocalTypeMaps
           zeroProfileLocalTypeSpace (sourceAlphabet ρ)
             (leibnizTermType ρ S' hS shift hshift g hg)
 
+
+/-- Witness-level profile-wise Leibniz local-type maps for strict `TΦ`.
+
+This is the paper's product-rule/local-word surface one step below the raw
+`g ∈ boundedDistribDerivProds` formulation: the local type is assigned from the
+actual bounded derivative distribution witness `d` (the list of local updates
+falling on each restricted Cook-Levin factor).  The adapter below then recovers
+the previous per-term map by selecting the witness contained in `hg`.
+
+This is intentionally not a histogram collapse: `d` is kept term-by-term, and
+the target type may depend on the complete bounded local update word, not just
+on a global derivative-count profile. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalTypeMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceAlphabet :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) →
+      ZeroProfileLocalTypeAlphabet (n / 3) (Nat.log 2 n)
+  leibnizWitnessType :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (_hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (_hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        (sourceAlphabet ρ).type
+  leibnizWitness_mem_typeSpace :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        mlProj
+            (shift *
+              Finset.univ.prod
+                (fun i =>
+                  SPDP.iterDerivList (d i)
+                    ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                      M n hn2 htb hns) i))) ∈
+          zeroProfileLocalTypeSpace (sourceAlphabet ρ)
+            (leibnizWitnessType ρ S' hS shift hshift d hd_elts hlen)
+
+/-- Selecting the bounded-distribution witness in `hg` turns the witness-level
+local-word classifier into the per-term local-type interface.
+
+This adapter is only witness unpacking: it does not identify different
+Leibniz terms, does not quotient by a derivative-count histogram, and does not
+route through a global/common span. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeMaps_of_witnessedLeibnizLocalTypeMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalTypeMaps
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceLeibnizLocalTypeMaps
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceAlphabet := D.sourceAlphabet
+  leibnizTermType := by
+    intro ρ S' hS shift hshift g hg
+    let d := Classical.choose hg
+    have hspec := Classical.choose_spec hg
+    have hlen' :
+        ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length := by
+      simpa [d] using hspec.2.2
+    exact D.leibnizWitnessType ρ S' hS shift hshift d hspec.1 hlen'
+  leibnizTerm_mem_typeSpace := by
+    intro ρ S' hS shift hshift g hg
+    let d := Classical.choose hg
+    have hspec := Classical.choose_spec hg
+    have hlen' :
+        ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length := by
+      simpa [d] using hspec.2.2
+    change mlProj (shift * g) ∈
+      zeroProfileLocalTypeSpace (D.sourceAlphabet ρ)
+        (D.leibnizWitnessType ρ S' hS shift hshift d hspec.1 hlen')
+    simpa [hspec.2.1] using
+      D.leibnizWitness_mem_typeSpace ρ S' hS shift hshift d hspec.1 hlen'
+
 /-- Profile-wise Leibniz-term maps instantiate the profile-wise local-type
 compression datum.
 
