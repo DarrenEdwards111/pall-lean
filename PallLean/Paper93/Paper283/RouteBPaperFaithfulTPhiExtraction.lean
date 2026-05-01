@@ -8887,6 +8887,70 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
     ({ factor := i, coord := v } :
       RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns)
 
+/-- Every atomic append transition is one of the concrete local generators. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend_mem_generators
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (κ : ℕ)
+    (e : RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns) :
+    routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend (κ := κ) e ∈
+      routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns κ := by
+  classical
+  simp [routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators]
+
+/-- Each concrete factor/coordinate step used in a Leibniz witness is a member
+of the local generator list. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep_mem_generators
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (κ : ℕ)
+    (i : Fin ((cookLevinFactorList M n hn2 htb hns).length))
+    (v : Fin (n / 3)) :
+    routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+        M n hn2 htb hns κ i v ∈
+      routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns κ := by
+  classical
+  simpa [routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep] using
+    routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend_mem_generators
+      M n hn2 htb hns κ
+      ({ factor := i, coord := v } :
+        RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns)
+
+/-- Membership in a right-folded append flattening is membership in one of the
+local lists.  Kept local so the concrete transition-word proof below does not
+use any set-level or span-level shortcut. -/
+theorem routeBPaperFaithfulTPhi_mem_foldr_append
+    {α : Type} (x : α) (l : List (List α)) :
+    x ∈ l.foldr (fun xs acc => xs ++ acc) [] ↔ ∃ xs ∈ l, x ∈ xs := by
+  induction l with
+  | nil => simp
+  | cons xs rest ih => simp [ih, or_and_right, exists_or]
+
+/-- Every letter in the witnessed strict-source Leibniz transition word is one
+of the concrete append-event generators.  This is the paper's finite local-word
+condition, stated before any normal-form or span argument is applied. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord_traceStep_mem_generators
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (κ : ℕ)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (g : RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns κ))
+    (hg : g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+        M n hn2 htb hns κ) d) :
+    g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+      M n hn2 htb hns κ := by
+  classical
+  rw [routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord,
+    routeBPaperFaithfulTPhi_mem_foldr_append] at hg
+  rcases hg with ⟨xs, hxs, hgxs⟩
+  rcases List.mem_map.mp hxs with ⟨i, _hi, rfl⟩
+  rcases List.mem_map.mp hgxs with ⟨v, _hv, rfl⟩
+  exact routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep_mem_generators
+    M n hn2 htb hns κ i v
+
 
 /-- Concrete bounded-trace local transition monoid data for strict source
 Leibniz words.
