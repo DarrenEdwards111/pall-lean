@@ -9030,6 +9030,134 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizBoundedTraceMonoidD
                     M n hn2 htb hns (Nat.log 2 n)) d).prod)).prod)) :
               Set (MvPolynomial (Fin (n / 3)) ℚ))
 
+
+/-- Build the local basis attached to a normal form by folding the bases of the
+letters in that shortlex word.  This is a word-level basis construction: it does
+not replace all rows by a common ambient span. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceTraceNormalFormLetterBasis
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n))
+    (letterBasis :
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n) →
+      RouteBPaperFaithfulTPhiFiniteEnd
+        (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+          M n hn2 htb hns (Nat.log 2 n)) →
+      Finset (MvPolynomial (Fin (n / 3)) ℚ))
+    (ν : RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns (Nat.log 2 n))) :
+    Finset (MvPolynomial (Fin (n / 3)) ℚ) :=
+  (PallLean.Paper93.NF
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+      M n hn2 htb hns (Nat.log 2 n)) ν).foldr
+    (fun g acc => letterBasis ρ g ∪ acc) ∅
+
+/-- Bounded-trace monoid data whose local basis is assembled from the shortlex
+normal-form word's letters.
+
+This is more specific than an arbitrary normal-form basis: each basis is the
+finite union of per-local-transition-letter bases along `NF generators ν`.
+The remaining proof is still the atomic row-membership statement for the exact
+witnessed Leibniz word. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizTraceLetterBasisData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceLocalDim :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) → ℕ
+  sourceLetterBasis :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      RouteBPaperFaithfulTPhiFiniteEnd
+        (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+          M n hn2 htb hns (Nat.log 2 n)) →
+        Finset (MvPolynomial (Fin (n / 3)) ℚ)
+  sourceNormalFormLetterBasis_card_le :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (ν : RouteBPaperFaithfulTPhiFiniteEnd
+        (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+          M n hn2 htb hns (Nat.log 2 n))),
+        (routeBPaperFaithfulTPhi_strictSourceTraceNormalFormLetterBasis
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          ρ sourceLetterBasis ν).card ≤ sourceLocalDim ρ
+  sourceProfileSymmetricPowerBudget_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      Fintype.card
+          (RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns (Nat.log 2 n))) *
+          sourceLocalDim ρ ≤
+        withinProfileBound (Nat.log 2 n)
+  leibnizTraceWord_mem_normalFormLetterBasis :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        mlProj
+            (shift *
+              Finset.univ.prod
+                (fun i =>
+                  SPDP.iterDerivList (d i)
+                    ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                      M n hn2 htb hns) i))) ∈
+          Submodule.span ℚ
+            (↑(routeBPaperFaithfulTPhi_strictSourceTraceNormalFormLetterBasis
+              (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+              ρ sourceLetterBasis
+              ((PallLean.Paper93.NF
+                (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+                  M n hn2 htb hns (Nat.log 2 n))
+                ((routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+                  (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+                    M n hn2 htb hns (Nat.log 2 n)) d).prod)).prod)) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ))
+
+/-- Letter-basis data instantiates bounded-trace monoid data by using the basis
+assembled from the shortlex normal-form letters. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizBoundedTraceMonoidData_of_traceLetterBasisData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizTraceLetterBasisData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizBoundedTraceMonoidData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceLocalDim := D.sourceLocalDim
+  sourceLocalBasis := fun ρ ν =>
+    routeBPaperFaithfulTPhi_strictSourceTraceNormalFormLetterBasis
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+      ρ D.sourceLetterBasis ν
+  sourceLocalBasis_card_le := D.sourceNormalFormLetterBasis_card_le
+  sourceProfileSymmetricPowerBudget_le := D.sourceProfileSymmetricPowerBudget_le
+  leibnizTraceWord_mem_normalFormSpace := by
+    intro ρ S' hS shift hshift d hd_elts hlen
+    exact D.leibnizTraceWord_mem_normalFormLetterBasis
+      ρ S' hS shift hshift d hd_elts hlen
+
 /-- Paper-faithful transition-monoid data for witnessed strict `TΦ` Leibniz
 words.
 
