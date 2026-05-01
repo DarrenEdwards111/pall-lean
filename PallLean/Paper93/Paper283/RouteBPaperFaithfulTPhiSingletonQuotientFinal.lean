@@ -1516,6 +1516,7 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceC
         (hdata M n hn hn2 htb hns hdec))
 
 
+
 /-- Final paper-shaped close-out from individual source Leibniz-term local-type
 compression data for strict `TΦ`.
 
@@ -1535,6 +1536,27 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceL
   noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceConstraintTypeProfileSubspaceData
     (fun M n hn hn2 htb hns hdec =>
       routeBPaperFaithfulTPhi_strictSourceProfileSubspaceData_of_leibnizLocalTypeCompressionData
+        M n hn2 htb hns
+        (hdata M n hn hn2 htb hns hdec))
+
+/-- Final paper-shaped close-out from concrete profile-wise Leibniz local-type
+maps for strict `TΦ`.
+
+This is the sharpest named target after the latest reduction: prove the
+profile-wise local normal-form map for each bounded Leibniz term, and the
+already checked route assembles it into selected source `V_h` containment and
+then the final no-decider theorem. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeMaps
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceLeibnizLocalTypeMaps
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeCompressionData
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeCompressionData_of_leibnizLocalTypeMaps
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
@@ -2604,6 +2626,21 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSource
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceCanonicalProfileRowSpanData
       hdata)
 
+
+
+/-- Rich-projection discharge from concrete profile-wise Leibniz local-type maps
+for strict `TΦ`. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeMaps
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceLeibnizLocalTypeMaps
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeMaps
+      hdata)
 
 /-- Rich-projection discharge from individual source Leibniz-term local-type
 compression data for strict `TΦ`. -/
