@@ -8073,6 +8073,142 @@ structure RouteBPaperFaithfulTPhiStrictSourceLeibnizProfileSubspaceData
               (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
               hrow.1)
 
+
+/-- Source-coordinate local-type compression for individual bounded Leibniz
+terms.
+
+This is the next paper-faithful atomic surface below the selected source
+`V_h`: for the selected interface profile `ρ`, every bounded Leibniz product
+term contributing to the normalized strict source row is assigned a local type,
+and its shifted `mlProj` lies in that local-type span.  Passing from this datum
+to a selected `V_h` is only the Lemma-31 finite-dimensional assembly; it does
+not assert a single derivative-count histogram, a selected post-span collapse,
+or any ambient all-profile `iSup` shortcut. -/
+structure RouteBPaperFaithfulTPhiStrictSourceLeibnizLocalTypeCompressionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceAlphabet :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) →
+      ZeroProfileLocalTypeAlphabet (n / 3) (Nat.log 2 n)
+  leibnizTermType :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α),
+      profileOfCanonicalWindow
+          (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+          hrow.1 = ρ →
+      ∀ g : MvPolynomial (Fin (n / 3)) ℚ,
+        g ∈ boundedDistribDerivProds Finset.univ
+            (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+              M n hn2 htb hns) S' S'.length →
+        (sourceAlphabet ρ).type
+  leibnizTerm_mem_localTypeSpace :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (g : MvPolynomial (Fin (n / 3)) ℚ)
+      (hg :
+        g ∈ boundedDistribDerivProds Finset.univ
+            (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+              M n hn2 htb hns) S' S'.length),
+        mlProj (shift * g) ∈
+          zeroProfileLocalTypeSpace (sourceAlphabet ρ)
+            (leibnizTermType ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ g hg)
+
+/-- Individual Leibniz-term local-type compression assembles the selected
+source `V_h` term-ownership datum.
+
+The selected `V_h` is the compressed local-type span for the selected profile.
+The proof is purely local: each bounded Leibniz term first lands in its own
+selected local-type span, then in the compressed span for the same profile. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizProfileSubspaceData_of_leibnizLocalTypeCompressionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceLeibnizLocalTypeCompressionData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceLeibnizProfileSubspaceData
+      M n hn2 htb hns where
+  sourceProfileSubspace := fun ρ =>
+    zeroProfileLocalTypeCompressedProfileSpan (D.sourceAlphabet ρ)
+  sourceProfileSubspace_finite := by
+    intro ρ
+    exact Module.Finite.span_of_finite ℚ
+      (Finset.finite_toSet (zeroProfileLocalTypeGlobalBasis (D.sourceAlphabet ρ)))
+  sourceProfileSubspace_finrank_le := by
+    intro ρ
+    let W := zeroProfileLocalTypeCompressedProfileSpan (D.sourceAlphabet ρ)
+    letI : Module.Finite ℚ ↥W := by
+      exact Module.Finite.span_of_finite ℚ
+        (Finset.finite_toSet (zeroProfileLocalTypeGlobalBasis (D.sourceAlphabet ρ)))
+    calc
+      Module.finrank ℚ ↥W ≤
+          (zeroProfileLocalTypeGlobalBasis (D.sourceAlphabet ρ)).card := by
+        simpa [W, zeroProfileLocalTypeCompressedProfileSpan] using
+          finrank_span_finset_le_card (zeroProfileLocalTypeGlobalBasis (D.sourceAlphabet ρ))
+      _ ≤ withinProfileBound (Nat.log 2 n) :=
+        zeroProfileLocalTypeGlobalBasis_card_le_withinProfileBound (D.sourceAlphabet ρ)
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  leibnizTerm_mem_sourceProfileSubspace := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow g hg
+    let ρ :=
+      D.profileOfCanonicalWindow
+        (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α) hrow.1
+    have hlocal := D.leibnizTerm_mem_localTypeSpace
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow rfl g hg
+    have hcompressed :
+        mlProj (shift * g) ∈
+          zeroProfileLocalTypeCompressedProfileSpan (D.sourceAlphabet ρ) :=
+      (zeroProfileLocalTypeSpace_le_compressedProfileSpan
+        (D.sourceAlphabet ρ)
+        (D.leibnizTermType ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow rfl g hg))
+        hlocal
+    simpa [ρ] using hcompressed
 /-- Individual selected-`V_h` ownership of the bounded Leibniz terms proves the
 source selected profile-subspace data consumed by the final strict `TΦ` route.
 
@@ -8122,6 +8258,21 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceProfileSubspaceData_of_lei
         S' shift α hSlen hshiftDegree hshiftVars hadm hrow g
         (by simpa [factors] using hg)
     exact hspan hpost
+
+
+/-- Individual Leibniz-term local-type compression directly supplies the
+source selected profile-subspace data consumed by the final strict `TΦ` route. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceProfileSubspaceData_of_leibnizLocalTypeCompressionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceLeibnizLocalTypeCompressionData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceConstraintTypeProfileSubspaceData
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_strictSourceProfileSubspaceData_of_leibnizProfileSubspaceData
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizProfileSubspaceData_of_leibnizLocalTypeCompressionData
+      M n hn2 htb hns D)
 
 /-- Leibniz-term local type map for one selected source profile.
 
