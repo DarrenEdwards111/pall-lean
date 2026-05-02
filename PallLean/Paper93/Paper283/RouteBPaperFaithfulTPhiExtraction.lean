@@ -9148,6 +9148,117 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordLetterBasis
     M n hn2 htb hns d).foldr
     (fun g acc => letterBasis ρ g ∪ acc) ∅
 
+
+/-- Basis assembled along the generator-word normal form, where every basis
+lookup receives a certified generator letter.  This is the paper's local
+`Σ`-letter interface: the basis cannot be indexed by an arbitrary monoid
+endomorphism, only by an element accompanied by proof of membership in the
+concrete trace-generator alphabet. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n))
+    (letterBasis :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        { g : RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns (Nat.log 2 n)) //
+          g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+            M n hn2 htb hns (Nat.log 2 n) } →
+          Finset (MvPolynomial (Fin (n / 3)) ℚ))
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3))) :
+    Finset (MvPolynomial (Fin (n / 3)) ℚ) :=
+  (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+    M n hn2 htb hns d).attach.foldr
+    (fun g acc =>
+      letterBasis ρ
+        ⟨g.1,
+          routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+            M n hn2 htb hns d g.1 g.2⟩ ∪ acc) ∅
+
+/-- The exact remaining Cook--Levin local-basis datum at the generator-letter
+level.
+
+This is intentionally *not* an arbitrary normal-form or common-span interface:
+the basis is folded over the generator-word shortlex normal form of the exact
+bounded Leibniz witness, and each basis lookup is given a certified concrete
+append-event generator.  The open mathematical payload is now precisely the
+atomic membership of the Cook--Levin derivative row in that folded local basis,
+plus the paper's finite budget bounds. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordGeneratorBasisData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceLocalDim :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) → ℕ
+  sourceGeneratorLetterBasis :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      { g : RouteBPaperFaithfulTPhiFiniteEnd
+          (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+            M n hn2 htb hns (Nat.log 2 n)) //
+        g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+          M n hn2 htb hns (Nat.log 2 n) } →
+        Finset (MvPolynomial (Fin (n / 3)) ℚ)
+  sourceNFOfWordGeneratorBasis_card_le :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3))),
+        (routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          ρ sourceGeneratorLetterBasis d).card ≤ sourceLocalDim ρ
+  sourceProfileSymmetricPowerBudget_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      Fintype.card
+          { g : RouteBPaperFaithfulTPhiFiniteEnd
+              (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+                M n hn2 htb hns (Nat.log 2 n)) //
+            g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+              M n hn2 htb hns (Nat.log 2 n) } *
+          sourceLocalDim ρ ≤
+        withinProfileBound (Nat.log 2 n)
+  leibnizTraceWord_mem_NFOfWordGeneratorBasis :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        mlProj
+            (shift *
+              Finset.univ.prod
+                (fun i =>
+                  SPDP.iterDerivList (d i)
+                    ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                      M n hn2 htb hns) i))) ∈
+          Submodule.span ℚ
+            (↑(routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis
+              (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+              ρ sourceGeneratorLetterBasis d) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ))
+
 /-- Bounded-trace monoid data whose local basis is assembled from the shortlex
 normal-form word's letters.
 
