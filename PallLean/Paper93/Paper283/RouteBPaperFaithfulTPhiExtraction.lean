@@ -9055,6 +9055,8 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceTraceNormalFormLetterBasis
       M n hn2 htb hns (Nat.log 2 n)) ν).foldr
     (fun g acc => letterBasis ρ g ∪ acc) ∅
 
+
+
 /-- Bounded-trace monoid data whose local basis is assembled from the shortlex
 normal-form word's letters.
 
@@ -9157,6 +9159,41 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizBoundedTra
     intro ρ S' hS shift hshift d hd_elts hlen
     exact D.leibnizTraceWord_mem_normalFormLetterBasis
       ρ S' hS shift hshift d hd_elts hlen
+
+/-- Certified trace-letter basis data for witnessed strict `TΦ` Leibniz words.
+
+This strengthens `TraceLetterBasisData` with the paper's generator-alphabet
+condition: the shortlex normal-form letters for the witnessed word must be
+actual concrete append-event generators.  The basis itself is still assembled
+letter-by-letter by the next interface, but this certification rules out using
+arbitrary non-generator monoid elements as hidden basis labels. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizCertifiedTraceLetterBasisData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) extends
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizTraceLetterBasisData
+      M n hn2 htb hns where
+  leibnizNF_letters_mem_generators :
+    ∀ (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3))),
+      ∀ g ∈ PallLean.Paper93.NF
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+          M n hn2 htb hns (Nat.log 2 n))
+        ((routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+          (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+            M n hn2 htb hns (Nat.log 2 n)) d).prod),
+        g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+          M n hn2 htb hns (Nat.log 2 n)
+
+/-- Forget the generator-alphabet certificate and keep the underlying
+trace-letter basis data. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizTraceLetterBasisData_of_certifiedTraceLetterBasisData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizCertifiedTraceLetterBasisData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizTraceLetterBasisData
+      M n hn2 htb hns :=
+  D.toRouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizTraceLetterBasisData
 
 /-- Paper-faithful transition-monoid data for witnessed strict `TΦ` Leibniz
 words.
