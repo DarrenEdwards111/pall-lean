@@ -9327,6 +9327,97 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLett
           routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
             M n hn2 htb hns d g.1 g.2⟩ ∪ acc) ∅
 
+/-- Atomic row membership extracted from witnessed `NFOfWord` local-basis maps.
+
+This is the paper-faithful Cook--Levin local-basis membership statement with no
+common-span detour: the row is proved in the span of the basis obtained by
+folding certified generator-letter bases along the witnessed local type's word.
+The accompanying `leibnizWitnessType_word_eq_NFOfWord` field identifies this
+word with the exact `NFOfWord` of the strict-source Leibniz transition word. -/
+theorem routeBPaperFaithfulTPhi_strictSource_leibnizWitness_mem_sourceTypeWordGeneratorBasis_of_NFOfWordLocalBasisMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordLocalBasisMaps
+      M n hn2 htb hns)
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n))
+    (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (hshift : shift.vars ⊆ S'.toFinset)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+    (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+        (d i).length ≤ S'.length) :
+      let τ := D.leibnizWitnessType ρ S' hS shift hshift d hd_elts hlen
+      mlProj
+          (shift *
+            Finset.univ.prod
+              (fun i =>
+                SPDP.iterDerivList (d i)
+                  ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                    M n hn2 htb hns) i))) ∈
+        Submodule.span ℚ
+          (↑((D.sourceTypeWord ρ τ).attach.foldr
+            (fun g acc =>
+              D.sourceGeneratorLetterBasis ρ
+                ⟨g.1, D.sourceTypeWord_letters_mem_generators ρ τ g.1 g.2⟩ ∪ acc)
+            ∅) : Set (MvPolynomial (Fin (n / 3)) ℚ)) := by
+  classical
+  let τ := D.leibnizWitnessType ρ S' hS shift hshift d hd_elts hlen
+  have hmem :=
+    D.leibnizWitness_mem_NFOfWordTypeSpace
+      ρ S' hS shift hshift d hd_elts hlen
+  have hbasis := D.sourceTypeLocalBasis_eq_wordGeneratorBasis ρ τ
+  simpa [zeroProfileLocalTypeSpace, hbasis, τ] using hmem
+
+/-- The witnessed local type really is the exact `NFOfWord` type, and its row
+membership is in the generator-letter basis assembled from that same witnessed
+word.
+
+This keeps the paper object visible without rewriting it through the older
+finite-endomorphism normal form: the theorem returns the witnessed type, its
+`NFOfWord` equality certificate, and the local-basis span membership together. -/
+theorem routeBPaperFaithfulTPhi_strictSource_leibnizWitness_NFOfWordType_and_mem_sourceTypeWordGeneratorBasis
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordLocalBasisMaps
+      M n hn2 htb hns)
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n))
+    (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (hshift : shift.vars ⊆ S'.toFinset)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+    (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+        (d i).length ≤ S'.length) :
+      ∃ τ : (D.sourceAlphabet ρ).type,
+        D.sourceTypeWord ρ τ =
+          routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+            M n hn2 htb hns d ∧
+        mlProj
+            (shift *
+              Finset.univ.prod
+                (fun i =>
+                  SPDP.iterDerivList (d i)
+                    ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                      M n hn2 htb hns) i))) ∈
+          Submodule.span ℚ
+            (↑((D.sourceTypeWord ρ τ).attach.foldr
+              (fun g acc =>
+                D.sourceGeneratorLetterBasis ρ
+                  ⟨g.1, D.sourceTypeWord_letters_mem_generators ρ τ g.1 g.2⟩ ∪ acc)
+              ∅) : Set (MvPolynomial (Fin (n / 3)) ℚ)) := by
+  classical
+  refine ⟨D.leibnizWitnessType ρ S' hS shift hshift d hd_elts hlen, ?_, ?_⟩
+  · exact D.leibnizWitnessType_word_eq_NFOfWord
+      ρ S' hS shift hshift d hd_elts hlen
+  · exact
+      routeBPaperFaithfulTPhi_strictSource_leibnizWitness_mem_sourceTypeWordGeneratorBasis_of_NFOfWordLocalBasisMaps
+        M n hn2 htb hns D ρ S' hS shift hshift d hd_elts hlen
+
 /-- The exact remaining Cook--Levin local-basis datum at the generator-letter
 level.
 
