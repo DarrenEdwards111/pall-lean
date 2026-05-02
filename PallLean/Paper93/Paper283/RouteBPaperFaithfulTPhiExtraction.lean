@@ -9215,6 +9215,48 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordLocalTypeMa
           zeroProfileLocalTypeSpace (sourceAlphabet ρ)
             (leibnizWitnessType ρ S' hS shift hshift d hd_elts hlen)
 
+/-- Strengthened witnessed `NFOfWord` local-type data whose local basis is
+itself assembled letter-by-letter from certified concrete trace generators.
+
+This prevents the remaining local type from hiding an arbitrary basis behind a
+word label: every type records its normal-form word and its basis is exactly the
+finite union of the per-generator local bases along that word. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordLocalBasisMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) extends
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordLocalTypeMaps
+      M n hn2 htb hns where
+  sourceGeneratorLetterBasis :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      { g : RouteBPaperFaithfulTPhiFiniteEnd
+          (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+            M n hn2 htb hns (Nat.log 2 n)) //
+        g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+          M n hn2 htb hns (Nat.log 2 n) } →
+        Finset (MvPolynomial (Fin (n / 3)) ℚ)
+  sourceTypeLocalBasis_eq_wordGeneratorBasis :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (τ : (sourceAlphabet ρ).type),
+        (sourceAlphabet ρ).localBasis τ =
+          (sourceTypeWord ρ τ).attach.foldr
+            (fun g acc =>
+              sourceGeneratorLetterBasis ρ
+                ⟨g.1, sourceTypeWord_letters_mem_generators ρ τ g.1 g.2⟩ ∪ acc)
+            ∅
+
+/-- Forget the word-assembled-basis certificate and keep the witnessed
+`NFOfWord` local-type data. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordLocalTypeMaps_of_NFOfWordLocalBasisMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordLocalBasisMaps
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordLocalTypeMaps
+      M n hn2 htb hns :=
+  D.toRouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordLocalTypeMaps
+
 /-- Forget the witnessed `NFOfWord` certification into the existing witnessed
 local-type-map interface.  This adapter performs no algebraic weakening; it only
 forgets the recorded equality saying the type word is exactly the paper's

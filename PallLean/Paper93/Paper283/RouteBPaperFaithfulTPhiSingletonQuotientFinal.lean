@@ -1579,6 +1579,24 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceW
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
+/-- Final close-out from witnessed `NFOfWord` local bases assembled
+letter-by-letter from concrete trace generators. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordLocalBasisMaps
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordLocalBasisMaps
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalTypeMaps
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalTypeMaps_of_NFOfWordLocalTypeMaps
+        M n hn2 htb hns
+        (routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordLocalTypeMaps_of_NFOfWordLocalBasisMaps
+          M n hn2 htb hns
+          (hdata M n hn hn2 htb hns hdec)))
+
 /-- Final close-out from witnessed `NFOfWord` local-type maps.
 
 This route keeps the local type label tied to the paper's generator-word
@@ -2800,6 +2818,20 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSource
     CookLevinRichProjectionDischarge :=
   cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalTypeMaps
+      hdata)
+
+/-- Rich-projection discharge from witnessed `NFOfWord` local bases assembled
+letter-by-letter from concrete trace generators. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordLocalBasisMaps
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordLocalBasisMaps
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordLocalBasisMaps
       hdata)
 
 /-- Rich-projection discharge from witnessed `NFOfWord` local-type maps. -/
