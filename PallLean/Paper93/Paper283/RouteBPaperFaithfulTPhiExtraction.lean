@@ -9246,6 +9246,46 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordLocalBasisM
                 ⟨g.1, sourceTypeWord_letters_mem_generators ρ τ g.1 g.2⟩ ∪ acc)
             ∅
 
+/-- Budgeted version of the witnessed `NFOfWord` local-basis maps.
+
+This is the next paper-faithful target before final close-out: the local basis
+is still the witnessed `NFOfWord` generator-letter fold for each local type, but
+we now expose the finite-dimensional budget that must be proved for those
+folded bases.  This deliberately budgets the per-type generator-word basis;
+it does not replace the family by a common span or collapse it to a histogram. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBudgetedLocalBasisMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) extends
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordLocalBasisMaps
+      M n hn2 htb hns where
+  sourceLocalDim :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) → ℕ
+  sourceTypeWordGeneratorBasis_card_le :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (τ : (sourceAlphabet ρ).type),
+        ((sourceTypeWord ρ τ).attach.foldr
+          (fun g acc =>
+            sourceGeneratorLetterBasis ρ
+              ⟨g.1, sourceTypeWord_letters_mem_generators ρ τ g.1 g.2⟩ ∪ acc)
+          ∅).card ≤ sourceLocalDim ρ
+  sourceLocalDim_le_alphabetDim :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      sourceLocalDim ρ ≤ (sourceAlphabet ρ).localDim
+
+/-- Forget only the explicit budget fields and keep the paper-faithful witnessed
+`NFOfWord` local-basis maps. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordLocalBasisMaps_of_budgetedLocalBasisMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBudgetedLocalBasisMaps
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordLocalBasisMaps
+      M n hn2 htb hns :=
+  D.toRouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordLocalBasisMaps
+
 /-- Forget the word-assembled-basis certificate and keep the witnessed
 `NFOfWord` local-type data. -/
 noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordLocalTypeMaps_of_NFOfWordLocalBasisMaps
