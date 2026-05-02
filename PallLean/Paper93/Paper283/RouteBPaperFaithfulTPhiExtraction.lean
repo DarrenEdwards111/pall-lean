@@ -9125,6 +9125,112 @@ theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_gen
       (routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord_traceStep_mem_generators
         M n hn2 htb hns (Nat.log 2 n) d)
 
+/-- Paper-faithful witnessed `NFOfWord` local-type data.
+
+This surface bypasses the total finite-monoid `NF` label entirely: every
+witnessed Leibniz distribution is assigned a local type whose recorded word is
+*definitionally the generator-word shortlex normal form* of the exact transition
+word.  The remaining membership field is therefore the real Cook--Levin local
+basis proof for that witnessed `Σ*` normal form, not a common span or fallback
+normal-form argument. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordLocalTypeMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceAlphabet :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) →
+      ZeroProfileLocalTypeAlphabet (n / 3) (Nat.log 2 n)
+  sourceTypeWord :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      (sourceAlphabet ρ).type →
+        List (RouteBPaperFaithfulTPhiFiniteEnd
+          (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+            M n hn2 htb hns (Nat.log 2 n)))
+  sourceTypeWord_letters_mem_generators :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (τ : (sourceAlphabet ρ).type),
+      ∀ g ∈ sourceTypeWord ρ τ,
+        g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+          M n hn2 htb hns (Nat.log 2 n)
+  leibnizWitnessType :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (_hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (_hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        (sourceAlphabet ρ).type
+  leibnizWitnessType_word_eq_NFOfWord :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        sourceTypeWord ρ
+            (leibnizWitnessType ρ S' hS shift hshift d hd_elts hlen) =
+          routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+            M n hn2 htb hns d
+  leibnizWitness_mem_NFOfWordTypeSpace :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        mlProj
+            (shift *
+              Finset.univ.prod
+                (fun i =>
+                  SPDP.iterDerivList (d i)
+                    ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                      M n hn2 htb hns) i))) ∈
+          zeroProfileLocalTypeSpace (sourceAlphabet ρ)
+            (leibnizWitnessType ρ S' hS shift hshift d hd_elts hlen)
+
+/-- Forget the witnessed `NFOfWord` certification into the existing witnessed
+local-type-map interface.  This adapter performs no algebraic weakening; it only
+forgets the recorded equality saying the type word is exactly the paper's
+`NFOfWord` of the transition word. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalTypeMaps_of_NFOfWordLocalTypeMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordLocalTypeMaps
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalTypeMaps
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceAlphabet := D.sourceAlphabet
+  leibnizWitnessType := D.leibnizWitnessType
+  leibnizWitness_mem_typeSpace := D.leibnizWitness_mem_NFOfWordTypeSpace
+
 /-- Basis assembled along the generator-word shortlex normal form of the exact
 witnessed strict-source Leibniz trace.  This is the next paper-faithful target
 for the atomic Cook--Levin local basis proof: the fold is over certified
