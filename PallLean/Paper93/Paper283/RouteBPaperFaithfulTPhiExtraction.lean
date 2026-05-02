@@ -9057,6 +9057,97 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceTraceNormalFormLetterBasis
 
 
 
+
+/-- Generator-word normal form for the exact witnessed strict-source Leibniz
+transition word.  Unlike the total monoid `NF`, this uses the already witnessed
+word as the non-empty generator-word fallback, so the normal form lives in the
+concrete trace generator alphabet `Σ*`. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3))) :
+    List (RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns (Nat.log 2 n))) :=
+  PallLean.Paper93.NFOfWord
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+      M n hn2 htb hns (Nat.log 2 n))
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+        M n hn2 htb hns (Nat.log 2 n)) d)
+
+/-- The generator-word normal form represents the same concrete trace update as
+the flattened bounded product-rule witness word. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_represents
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3))) :
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+      M n hn2 htb hns d).prod =
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+          M n hn2 htb hns (Nat.log 2 n)) d).prod := by
+  classical
+  simpa [routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord] using
+    PallLean.Paper93.NFOfWord_represents
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns (Nat.log 2 n))
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+          M n hn2 htb hns (Nat.log 2 n)) d)
+
+/-- Every letter of the generator-word normal form of the witnessed Leibniz
+trace is a concrete append-event generator.  This is the paper's `Σ*` normal
+form statement, proved from the exact witnessed transition word rather than
+assumed for an arbitrary monoid element. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3))) :
+    ∀ g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+      M n hn2 htb hns d,
+      g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns (Nat.log 2 n) := by
+  classical
+  simpa [routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord] using
+    PallLean.Paper93.NFOfWord_letters_mem
+      (M := RouteBPaperFaithfulTPhiFiniteEnd
+        (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+          M n hn2 htb hns (Nat.log 2 n)))
+      (generators := routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns (Nat.log 2 n))
+      (w := routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+          M n hn2 htb hns (Nat.log 2 n)) d)
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord_traceStep_mem_generators
+        M n hn2 htb hns (Nat.log 2 n) d)
+
+/-- Basis assembled along the generator-word shortlex normal form of the exact
+witnessed strict-source Leibniz trace.  This is the next paper-faithful target
+for the atomic Cook--Levin local basis proof: the fold is over certified
+`Σ`-letters, not over arbitrary finite-monoid elements. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordLetterBasis
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n))
+    (letterBasis :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        RouteBPaperFaithfulTPhiFiniteEnd
+          (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+            M n hn2 htb hns (Nat.log 2 n)) →
+          Finset (MvPolynomial (Fin (n / 3)) ℚ))
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3))) :
+    Finset (MvPolynomial (Fin (n / 3)) ℚ) :=
+  (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+    M n hn2 htb hns d).foldr
+    (fun g acc => letterBasis ρ g ∪ acc) ∅
+
 /-- Bounded-trace monoid data whose local basis is assembled from the shortlex
 normal-form word's letters.
 

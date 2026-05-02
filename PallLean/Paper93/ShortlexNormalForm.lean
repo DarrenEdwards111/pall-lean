@@ -274,5 +274,124 @@ theorem NF_represents {M : Type} [Monoid M] [Fintype M] [DecidableEq M]
     pickShortlex_mem _ (repCandidates_ne_nil generators g)
   exact repCandidates_prod generators g _ hmem
 
+
+/-!
+## Generator-word normal forms for reachable words
+
+The global `NF` above includes a singleton fallback `[g]` so it is total for
+all monoid elements.  For paper routes where we already have a concrete word
+`w ∈ Σ*`, the faithful object is a normal form chosen from generator words
+representing `w.prod`.  The definitions below keep the witness word as the
+non-empty fallback, so every letter of `NFOfWord generators w` is a generator
+provided every letter of `w` is.
+-/
+
+/-- Words of exactly length `n` over the concrete generator alphabet, realised
+as monoid words by indexing into `generators`. -/
+noncomputable def generatorWordsOfLength {M : Type} (generators : List M) (n : ℕ) :
+    List (List M) :=
+  (Finset.univ : Finset (List.Vector (Fin generators.length) n)).toList.map
+    (fun v => v.toList.map (fun i => generators.get i))
+
+/-- Generator words of length at most `N`. -/
+noncomputable def generatorWordsUpTo {M : Type} (generators : List M) (N : ℕ) :
+    List (List M) :=
+  (List.range (N + 1)).flatMap (generatorWordsOfLength generators)
+
+/-- Every letter in a generated word belongs to the generator list. -/
+theorem mem_generators_of_mem_generatorWordsOfLength {M : Type}
+    {generators : List M} {n : ℕ} {w : List M}
+    (hw : w ∈ generatorWordsOfLength generators n) :
+    ∀ x ∈ w, x ∈ generators := by
+  classical
+  unfold generatorWordsOfLength at hw
+  simp only [List.mem_map, Finset.mem_toList, Finset.mem_univ, true_and] at hw
+  rcases hw with ⟨v, rfl⟩
+  intro x hx
+  simp only [List.mem_map] at hx
+  rcases hx with ⟨i, _hi, rfl⟩
+  exact generators.get_mem i
+
+/-- Every letter in a generated bounded word belongs to the generator list. -/
+theorem mem_generators_of_mem_generatorWordsUpTo {M : Type}
+    {generators : List M} {N : ℕ} {w : List M}
+    (hw : w ∈ generatorWordsUpTo generators N) :
+    ∀ x ∈ w, x ∈ generators := by
+  classical
+  unfold generatorWordsUpTo at hw
+  simp only [List.mem_flatMap, List.mem_range] at hw
+  rcases hw with ⟨n, _hn, hwn⟩
+  exact mem_generators_of_mem_generatorWordsOfLength hwn
+
+/-- Candidate generator representatives for the product of a witnessed word.
+The witnessed word itself is kept as the head, making the list non-empty while
+preserving paper faithfulness when `w` is already a generator word. -/
+noncomputable def generatorRepCandidates {M : Type} [Monoid M] [Fintype M] [DecidableEq M]
+    (generators : List M) (w : List M) : List (List M) :=
+  w :: (generatorWordsUpTo generators (Fintype.card M + 1)).filter
+    (fun u => decide (u.prod = w.prod))
+
+/-- Candidate list for a witnessed generator word is non-empty. -/
+theorem generatorRepCandidates_ne_nil {M : Type} [Monoid M] [Fintype M] [DecidableEq M]
+    (generators : List M) (w : List M) :
+    generatorRepCandidates generators w ≠ [] := by
+  unfold generatorRepCandidates
+  simp
+
+/-- Every generator representative candidate has the same product as the
+witness word. -/
+theorem generatorRepCandidates_prod {M : Type} [Monoid M] [Fintype M] [DecidableEq M]
+    (generators : List M) (w : List M) :
+    ∀ u ∈ generatorRepCandidates generators w, u.prod = w.prod := by
+  intro u hu
+  unfold generatorRepCandidates at hu
+  rcases List.mem_cons.mp hu with hhead | htail
+  · subst hhead
+    rfl
+  · rw [List.mem_filter] at htail
+    exact of_decide_eq_true htail.2
+
+/-- Every letter in every generator representative candidate is a declared
+generator, assuming the witnessed fallback word itself is. -/
+theorem generatorRepCandidates_letters_mem {M : Type} [Monoid M] [Fintype M] [DecidableEq M]
+    {generators : List M} {w u : List M}
+    (hwgen : ∀ x ∈ w, x ∈ generators)
+    (hu : u ∈ generatorRepCandidates generators w) :
+    ∀ x ∈ u, x ∈ generators := by
+  unfold generatorRepCandidates at hu
+  rcases List.mem_cons.mp hu with hhead | htail
+  · subst hhead
+    exact hwgen
+  · rw [List.mem_filter] at htail
+    exact mem_generators_of_mem_generatorWordsUpTo htail.1
+
+/-- Shortlex normal form for an already witnessed generator word.  Unlike the
+total `NF`, this representative is chosen from `Σ*` with the original word as
+the non-empty fallback. -/
+noncomputable def NFOfWord {M : Type} [Monoid M] [Fintype M] [DecidableEq M]
+    (generators : List M) (w : List M) : List M :=
+  pickShortlex (generatorRepCandidates generators w)
+
+/-- `NFOfWord` represents the same monoid element as the witnessed word. -/
+theorem NFOfWord_represents {M : Type} [Monoid M] [Fintype M] [DecidableEq M]
+    (generators : List M) (w : List M) :
+    (NFOfWord generators w).prod = w.prod := by
+  unfold NFOfWord
+  have hmem : pickShortlex (generatorRepCandidates generators w) ∈
+      generatorRepCandidates generators w :=
+    pickShortlex_mem _ (generatorRepCandidates_ne_nil generators w)
+  exact generatorRepCandidates_prod generators w _ hmem
+
+/-- Every letter of `NFOfWord` is a generator when the witnessed word is. -/
+theorem NFOfWord_letters_mem {M : Type} [Monoid M] [Fintype M] [DecidableEq M]
+    {generators : List M} {w : List M}
+    (hwgen : ∀ x ∈ w, x ∈ generators) :
+    ∀ x ∈ NFOfWord generators w, x ∈ generators := by
+  unfold NFOfWord
+  have hmem : pickShortlex (generatorRepCandidates generators w) ∈
+      generatorRepCandidates generators w :=
+    pickShortlex_mem _ (generatorRepCandidates_ne_nil generators w)
+  exact generatorRepCandidates_letters_mem hwgen hmem
+
 end Paper93
 end PallLean
