@@ -9743,6 +9743,22 @@ theorem routeBPaperFaithfulTPhi_span_seededAttachFoldedUnion_le_of_seed_and_fora
   exact routeBPaperFaithfulTPhi_span_seededFoldedUnion_le_of_seed_and_forall_mem
     w.attach B₀ B U hseed (by intro g _hg; exact hB g)
 
+/-- Dependent attached-fold congruence for generator-certified bases.
+
+If two words are equal, folding a basis over their attached letters gives the
+same finite set even when the basis index carries a proof that the letter is a
+certified generator.  The proof terms disappear by proof irrelevance after the
+word equality is substituted. -/
+theorem routeBPaperFaithfulTPhi_attachFoldedUnion_congr_word
+    {α β : Type} [DecidableEq β]
+    (w v : List α) (h : w = v) (P : α → Prop)
+    (B : {g : α // P g} → Finset β)
+    (hw : ∀ g ∈ w, P g) (hv : ∀ g ∈ v, P g) :
+    (w.attach.foldr (fun g acc => B ⟨g.1, hw g.1 g.2⟩ ∪ acc) ∅) =
+      (v.attach.foldr (fun g acc => B ⟨g.1, hv g.1 g.2⟩ ∪ acc) ∅) := by
+  subst h
+  simp
+
 /-- Basis assembled along the generator-word normal form, where every basis
 lookup receives a certified generator letter.  This is the paper's local
 `Σ`-letter interface: the basis cannot be indexed by an arbitrary monoid
@@ -10441,6 +10457,107 @@ theorem routeBPaperFaithfulTPhi_strictSource_leibnizWitness_NFOfWordType_and_mem
   · exact
       routeBPaperFaithfulTPhi_strictSource_leibnizWitness_mem_sourceTypeWordGeneratorBasis_of_NFOfWordLocalBasisMaps
         M n hn2 htb hns D ρ S' hS shift hshift d hd_elts hlen
+
+/-- Extract exact `NFOfWord` generator-basis row membership directly from the
+witnessed local-basis maps.
+
+This cashes in the recorded equality between the local type's word and the
+paper's witnessed `NFOfWord`; the only rewrite is a dependent attached-fold
+congruence over equal words.  No common span or total-`NF` replacement is used. -/
+theorem routeBPaperFaithfulTPhi_strictSource_leibnizWitness_mem_NFOfWordGeneratorBasis_of_NFOfWordLocalBasisMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordLocalBasisMaps
+      M n hn2 htb hns)
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n))
+    (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (hshift : shift.vars ⊆ S'.toFinset)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+    (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+        (d i).length ≤ S'.length) :
+      mlProj
+          (shift *
+            Finset.univ.prod
+              (fun i =>
+                SPDP.iterDerivList (d i)
+                  ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                    M n hn2 htb hns) i))) ∈
+        Submodule.span ℚ
+          (↑(routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis
+            (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+            ρ D.sourceGeneratorLetterBasis d) :
+            Set (MvPolynomial (Fin (n / 3)) ℚ)) := by
+  classical
+  rcases routeBPaperFaithfulTPhi_strictSource_leibnizWitness_NFOfWordType_and_mem_sourceTypeWordGeneratorBasis
+      M n hn2 htb hns D ρ S' hS shift hshift d hd_elts hlen with
+    ⟨τ, hword, hmem⟩
+  have hfold :
+      ((D.sourceTypeWord ρ τ).attach.foldr
+          (fun g acc =>
+            D.sourceGeneratorLetterBasis ρ
+              ⟨g.1, D.sourceTypeWord_letters_mem_generators ρ τ g.1 g.2⟩ ∪ acc)
+          ∅) =
+        routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          ρ D.sourceGeneratorLetterBasis d := by
+    unfold routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis
+    exact routeBPaperFaithfulTPhi_attachFoldedUnion_congr_word
+      (D.sourceTypeWord ρ τ)
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+        M n hn2 htb hns d)
+      hword
+      (fun g => g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns (Nat.log 2 n))
+      (D.sourceGeneratorLetterBasis ρ)
+      (D.sourceTypeWord_letters_mem_generators ρ τ)
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+        M n hn2 htb hns d)
+  simpa [hfold] using hmem
+
+/-- Budgeted witnessed local-basis maps plus explicit generator-basis budgets
+produce the exact `NFOfWord` generator-basis maps.  The row membership is not an
+extra assumption: it is extracted from the witnessed local type's basis equality
+and word equality. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordBudgetedGeneratorBasisMaps_of_budgetedLocalBasisMaps_and_generatorBudgets
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBudgetedLocalBasisMaps
+      M n hn2 htb hns)
+    (hcard :
+      ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+            ConstraintType (Nat.log 2 n))
+        (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+          List (Fin (n / 3))),
+          (routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis
+            (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+            ρ D.sourceGeneratorLetterBasis d).card ≤ D.sourceLocalDim ρ)
+    (hbudget :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        Fintype.card
+            { g : RouteBPaperFaithfulTPhiFiniteEnd
+                (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+                  M n hn2 htb hns (Nat.log 2 n)) //
+              g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+                M n hn2 htb hns (Nat.log 2 n) } *
+            D.sourceLocalDim ρ ≤
+          withinProfileBound (Nat.log 2 n)) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBudgetedGeneratorBasisMaps
+      M n hn2 htb hns where
+  toRouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBudgetedLocalBasisMaps := D
+  sourceNFOfWordGeneratorBasis_card_le := hcard
+  sourceProfileGeneratorBudget_le := hbudget
+  leibnizTraceWord_mem_NFOfWordGeneratorBasis := by
+    intro ρ S' hS shift hshift d hd_elts hlen
+    exact
+      routeBPaperFaithfulTPhi_strictSource_leibnizWitness_mem_NFOfWordGeneratorBasis_of_NFOfWordLocalBasisMaps
+        M n hn2 htb hns
+        D.toRouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordLocalBasisMaps
+        ρ S' hS shift hshift d hd_elts hlen
 
 /-- The exact remaining Cook--Levin local-basis datum at the generator-letter
 level.
