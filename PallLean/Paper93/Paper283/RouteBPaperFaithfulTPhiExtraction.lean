@@ -9484,6 +9484,34 @@ theorem routeBPaperFaithfulTPhi_span_foldedUnion_le_of_forall_mem
       · exact hB g (by simp) hx
       · exact ih (by intro y hy; exact hB y (by simp [hy])) hx
 
+/-- Membership in one letter basis implies membership in the basis folded over
+the whole word.  This is the elementary union-introduction lemma used by the
+exact `NFOfWord` generator-letter route. -/
+theorem routeBPaperFaithfulTPhi_mem_foldedUnion_of_mem
+    {α β : Type} [DecidableEq β]
+    (w : List α) (B : α → Finset β)
+    {g : α} (hg : g ∈ w) {x : β} (hx : x ∈ B g) :
+    x ∈ w.foldr (fun g acc => B g ∪ acc) ∅ := by
+  induction w with
+  | nil => simp at hg
+  | cons a rest ih =>
+      simp only [List.foldr_cons, Finset.mem_union]
+      simp only [List.mem_cons] at hg
+      rcases hg with rfl | hg
+      · exact Or.inl hx
+      · exact Or.inr (ih hg)
+
+/-- Dependent attached-word version of
+`routeBPaperFaithfulTPhi_mem_foldedUnion_of_mem`: if a row lies in the basis for
+one certified letter of the witnessed word, then it lies in the folded
+attached-word basis. -/
+theorem routeBPaperFaithfulTPhi_mem_attachFoldedUnion_of_mem
+    {α β : Type} [DecidableEq β]
+    (w : List α) (B : {g : α // g ∈ w} → Finset β)
+    (g : {g : α // g ∈ w}) {x : β} (hx : x ∈ B g) :
+    x ∈ w.attach.foldr (fun g acc => B g ∪ acc) ∅ := by
+  exact routeBPaperFaithfulTPhi_mem_foldedUnion_of_mem (w.attach) B (by simp) hx
+
 /-- Attached folded word bases span a target submodule once every attached
 letter basis lies in that target.
 
