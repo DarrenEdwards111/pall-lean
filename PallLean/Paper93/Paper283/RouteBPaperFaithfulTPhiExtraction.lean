@@ -9910,6 +9910,94 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisAsTota
     else
       ∅
 
+/-- The total-normal-form compatibility basis inherits a length-times-budget
+bound from the certified generator-letter bases.
+
+Non-generator total-`NF` labels contribute the empty basis via
+`routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisAsTotal`; generator
+labels use their certified per-letter budget.  This keeps the total-normal-form
+budget explicit instead of hiding it behind an arbitrary local basis. -/
+theorem routeBPaperFaithfulTPhi_strictSourceTotalNormalFormGeneratorLetterBasis_card_le_length_mul
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n))
+    (letterBasis :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        { g : RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns (Nat.log 2 n)) //
+          g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+            M n hn2 htb hns (Nat.log 2 n) } →
+          Finset (MvPolynomial (Fin (n / 3)) ℚ))
+    (C : ℕ)
+    (hletter : ∀ g, (letterBasis ρ g).card ≤ C)
+    (ν : RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns (Nat.log 2 n))) :
+    (routeBPaperFaithfulTPhi_strictSourceTraceNormalFormLetterBasis
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+      ρ
+      (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisAsTotal
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+        letterBasis)
+      ν).card ≤
+      (PallLean.Paper93.NF
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+          M n hn2 htb hns (Nat.log 2 n)) ν).length * C := by
+  classical
+  unfold routeBPaperFaithfulTPhi_strictSourceTraceNormalFormLetterBasis
+  apply routeBPaperFaithfulTPhi_foldedUnion_card_le_length_mul
+  intro g _hg
+  unfold routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisAsTotal
+  by_cases hgen : g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+      M n hn2 htb hns (Nat.log 2 n)
+  · simpa [hgen] using hletter ⟨g, hgen⟩
+  · simp [hgen]
+
+/-- Discharge form for the total-normal-form compatibility basis budget:
+if the total normal-form length times the certified per-letter budget fits in
+`sourceLocalDim ρ`, then the total-normal-form folded basis has that dimension
+bound. -/
+theorem routeBPaperFaithfulTPhi_strictSourceTotalNormalFormGeneratorLetterBasis_card_le_of_length_budget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n))
+    (letterBasis :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        { g : RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns (Nat.log 2 n)) //
+          g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+            M n hn2 htb hns (Nat.log 2 n) } →
+          Finset (MvPolynomial (Fin (n / 3)) ℚ))
+    (sourceLocalDim :
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n) → ℕ)
+    (C : ℕ)
+    (hletter : ∀ g, (letterBasis ρ g).card ≤ C)
+    (ν : RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns (Nat.log 2 n)))
+    (hbudget :
+      (PallLean.Paper93.NF
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+          M n hn2 htb hns (Nat.log 2 n)) ν).length * C ≤ sourceLocalDim ρ) :
+    (routeBPaperFaithfulTPhi_strictSourceTraceNormalFormLetterBasis
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+      ρ
+      (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisAsTotal
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+        letterBasis)
+      ν).card ≤ sourceLocalDim ρ := by
+  exact
+    (routeBPaperFaithfulTPhi_strictSourceTotalNormalFormGeneratorLetterBasis_card_le_length_mul
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+      ρ letterBasis C hletter ν).trans hbudget
+
 /-- A concrete sufficient condition for the explicit `NFOfWord → total NF`
 transfer bridge: every letter basis appearing in the witnessed generator-word
 normal form lies in the downstream total-normal-form span.
