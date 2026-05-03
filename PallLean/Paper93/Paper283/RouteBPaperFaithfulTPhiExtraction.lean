@@ -10020,6 +10020,116 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordSingleLette
                   routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
                     M n hn2 htb hns d g hg⟩
 
+/-- Seed-or-letter form of the witnessed `NFOfWord` generator-basis payload.
+
+This is the faithful proof-facing interface for `Σ*`: the Cook--Levin row is
+proved either in the explicit zero-letter seed component, or in one concrete
+certified generator-letter local basis belonging to the witnessed `NFOfWord`.
+The seed branch is necessary because a shortlex generator-word normal form may
+be empty; we do not fabricate a letter or collapse to a common/global span. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordSeededGeneratorBasisMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) extends
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBudgetedLocalBasisMaps
+      M n hn2 htb hns where
+  sourceEmptyWordBasis :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      Finset (MvPolynomial (Fin (n / 3)) ℚ)
+  sourceSeededNFOfWordGeneratorBasis_card_le :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3))),
+        (routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordSeededGeneratorLetterBasis
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          ρ sourceEmptyWordBasis sourceGeneratorLetterBasis d).card ≤ sourceLocalDim ρ
+  sourceSeededProfileGeneratorBudget_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      (Fintype.card
+          { g : RouteBPaperFaithfulTPhiFiniteEnd
+              (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+                M n hn2 htb hns (Nat.log 2 n)) //
+            g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+              M n hn2 htb hns (Nat.log 2 n) } + 1) *
+          sourceLocalDim ρ ≤
+        withinProfileBound (Nat.log 2 n)
+  leibnizTraceWord_mem_seedOrSingleNFOfWordGeneratorComponent :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        let row :=
+          mlProj
+            (shift *
+              Finset.univ.prod
+                (fun i =>
+                  SPDP.iterDerivList (d i)
+                    ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                      M n hn2 htb hns) i)))
+        row ∈ sourceEmptyWordBasis ρ ∨
+          ∃ g : RouteBPaperFaithfulTPhiFiniteEnd
+              (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+                M n hn2 htb hns (Nat.log 2 n)),
+            ∃ hg : g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+                M n hn2 htb hns d,
+              row ∈ sourceGeneratorLetterBasis ρ
+                ⟨g,
+                  routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+                    M n hn2 htb hns d g hg⟩
+
+/-- Seed-or-letter payload injects into the seeded witnessed `NFOfWord` span.
+This is the exact bridge for the faithful empty/nonempty split; it does not
+convert the seed case into a fake generator-letter proof. -/
+theorem routeBPaperFaithfulTPhi_strictSourceWitnessedLeibniz_mem_seededNFOfWordGeneratorBasis_of_seededGeneratorBasisMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordSeededGeneratorBasisMaps
+      M n hn2 htb hns)
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n))
+    (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (hshift : shift.vars ⊆ S'.toFinset)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+    (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+        (d i).length ≤ S'.length) :
+      let row :=
+        mlProj
+          (shift *
+            Finset.univ.prod
+              (fun i =>
+                SPDP.iterDerivList (d i)
+                  ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                    M n hn2 htb hns) i)))
+      row ∈ Submodule.span ℚ
+        (↑(routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordSeededGeneratorLetterBasis
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          ρ D.sourceEmptyWordBasis D.sourceGeneratorLetterBasis d) :
+          Set (MvPolynomial (Fin (n / 3)) ℚ)) := by
+  classical
+  intro row
+  rcases D.leibnizTraceWord_mem_seedOrSingleNFOfWordGeneratorComponent
+      ρ S' hS shift hshift d hd_elts hlen with hseed | hletter
+  · exact
+      routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordSeededGeneratorLetterBasis_span_mem_of_empty_mem
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+        ρ D.sourceEmptyWordBasis D.sourceGeneratorLetterBasis d hseed
+  · rcases hletter with ⟨g, hg, hrow⟩
+    exact
+      routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordSeededGeneratorLetterBasis_span_mem_of_letter_mem
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+        ρ D.sourceEmptyWordBasis D.sourceGeneratorLetterBasis d g hg hrow
+
 /-- A single certified generator-letter row proof supplies the folded
 `NFOfWord` generator-basis maps expected by the downstream route. -/
 noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordBudgetedGeneratorBasisMaps_of_singleLetterGeneratorBasisMaps
