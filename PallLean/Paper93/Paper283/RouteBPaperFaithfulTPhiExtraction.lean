@@ -13545,6 +13545,73 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasis_of_ev
     (routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceGenerator
       M n hn2 htb hns (Nat.log 2 n) g)
 
+/-- The exact per-profile maximum size of the event-indexed local bases. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceEventLetterBasisMaxCard
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (eventBasis :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns →
+          Finset (MvPolynomial (Fin (n / 3)) ℚ))
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n)) : ℕ :=
+  (Finset.univ.sup fun e => (eventBasis ρ e).card)
+
+/-- Every event-indexed local basis is bounded by the exact event maximum. -/
+theorem routeBPaperFaithfulTPhi_strictSourceEventLetterBasis_card_le_maxCard
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (eventBasis :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns →
+          Finset (MvPolynomial (Fin (n / 3)) ℚ))
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n))
+    (e : RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns) :
+    (eventBasis ρ e).card ≤
+      routeBPaperFaithfulTPhi_strictSourceEventLetterBasisMaxCard
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+        eventBasis ρ := by
+  classical
+  unfold routeBPaperFaithfulTPhi_strictSourceEventLetterBasisMaxCard
+  exact Finset.le_sup
+    (s := (Finset.univ : Finset
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns)))
+    (f := fun e => (eventBasis ρ e).card) (Finset.mem_univ e)
+
+/-- The generator-letter maximum induced by an event basis is bounded by the
+corresponding event-basis maximum. -/
+theorem routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisMaxCard_le_eventMaxCard
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (eventBasis :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns →
+          Finset (MvPolynomial (Fin (n / 3)) ℚ))
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n)) :
+    routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisMaxCard
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+        (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasis_of_eventBasis
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          eventBasis) ρ ≤
+      routeBPaperFaithfulTPhi_strictSourceEventLetterBasisMaxCard
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+        eventBasis ρ := by
+  classical
+  unfold routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisMaxCard
+  apply Finset.sup_le
+  intro g _hg
+  unfold routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasis_of_eventBasis
+  exact routeBPaperFaithfulTPhi_strictSourceEventLetterBasis_card_le_maxCard
+    (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+    eventBasis ρ
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceGenerator
+      M n hn2 htb hns (Nat.log 2 n) g)
+
 /-- Event-basis version of the current sharp bounded-word final payload.
 
 The free `sourceGeneratorLetterBasis` has been replaced by a basis indexed by
@@ -13770,6 +13837,142 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBoundedWord
                     M n hn2 htb hns (Nat.log 2 n)) d).prod)).prod)) :
               Set (MvPolynomial (Fin (n / 3)) ℚ)) :
             Set (MvPolynomial (Fin (n / 3)) ℚ))
+
+/-- Event-indexed final payload with the cardinality budget stated using the
+exact event-basis maximum directly. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventMaxQFinalMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceLocalDim :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) → ℕ
+  sourceEventLetterBasis :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns →
+        Finset (MvPolynomial (Fin (n / 3)) ℚ)
+  sourceBoundedWordEventMaxBudget_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWordLengthBound
+          M n hn2 htb hns *
+        routeBPaperFaithfulTPhi_strictSourceEventLetterBasisMaxCard
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          sourceEventLetterBasis ρ ≤ sourceLocalDim ρ
+  sourceBoundedWordProfileBudget_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      Fintype.card (RouteBPaperFaithfulTPhiStrictSourceNFOfWordBoundedWord
+        M n hn2 htb hns) * sourceLocalDim ρ ≤
+        withinProfileBound (Nat.log 2 n)
+  leibnizWitness_mem_boundedNFOfWordBasis :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        mlProj
+            (shift *
+              Finset.univ.prod
+                (fun i =>
+                  SPDP.iterDerivList (d i)
+                    ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                      M n hn2 htb hns) i))) ∈
+          Submodule.span ℚ
+            (↑(((routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+              M n hn2 htb hns d).attach.foldr
+              (fun g acc =>
+                routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasis_of_eventBasis
+                  (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+                  sourceEventLetterBasis ρ
+                  ⟨g.1,
+                    routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+                      M n hn2 htb hns d g.1 g.2⟩ ∪ acc)
+              ∅) : Finset (MvPolynomial (Fin (n / 3)) ℚ)) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ))
+  sourceTotalFiniteEndBudget_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      Fintype.card
+          (RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns (Nat.log 2 n))) *
+          sourceLocalDim ρ ≤
+        withinProfileBound (Nat.log 2 n)
+  nfOfWordLetterBasis_le_totalNormalFormBasis :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      g (hg : g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+          M n hn2 htb hns d),
+        ↑(routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasis_of_eventBasis
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          sourceEventLetterBasis ρ
+          ⟨g,
+            routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+              M n hn2 htb hns d g hg⟩) ⊆
+          (Submodule.span ℚ
+            (↑(routeBPaperFaithfulTPhi_strictSourceTraceNormalFormLetterBasis
+              (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+              ρ
+              (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisAsTotal
+                (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+                (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasis_of_eventBasis
+                  (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+                  sourceEventLetterBasis))
+              ((PallLean.Paper93.NF
+                (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+                  M n hn2 htb hns (Nat.log 2 n))
+                ((routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+                  (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+                    M n hn2 htb hns (Nat.log 2 n)) d).prod)).prod)) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ)) :
+            Set (MvPolynomial (Fin (n / 3)) ℚ))
+
+/-- Event-max final payload instantiates the event-basis `q` final surface. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventBasisQFinalMaps_of_eventMaxQFinalMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventMaxQFinalMaps
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventBasisQFinalMaps
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceLocalDim := D.sourceLocalDim
+  sourceEventLetterBasis := D.sourceEventLetterBasis
+  sourceBoundedWordMaxCardBudget_le := by
+    intro ρ
+    exact
+      (Nat.mul_le_mul_left
+        (routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWordLengthBound
+          M n hn2 htb hns)
+        (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisMaxCard_le_eventMaxCard
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          D.sourceEventLetterBasis ρ)).trans
+        (D.sourceBoundedWordEventMaxBudget_le ρ)
+  sourceBoundedWordProfileBudget_le := D.sourceBoundedWordProfileBudget_le
+  leibnizWitness_mem_boundedNFOfWordBasis := D.leibnizWitness_mem_boundedNFOfWordBasis
+  sourceTotalFiniteEndBudget_le := D.sourceTotalFiniteEndBudget_le
+  nfOfWordLetterBasis_le_totalNormalFormBasis := D.nfOfWordLetterBasis_le_totalNormalFormBasis
 
 /-- Event-indexed final payload instantiates the generator-letter `q` final
 surface by unpacking each trace-generator into its append event. -/
