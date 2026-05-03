@@ -13838,6 +13838,172 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBoundedWord
               Set (MvPolynomial (Fin (n / 3)) ℚ)) :
             Set (MvPolynomial (Fin (n / 3)) ℚ))
 
+/-- The concrete polynomial atom associated to one strict-source Leibniz event:
+the multilinear projection of the single-coordinate derivative of that event's
+Cook--Levin factor. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizEventAtom
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (e : RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns) :
+    MvPolynomial (Fin (n / 3)) ℚ :=
+  mlProj (SPDP.iterDerivList [e.coord]
+    ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+      M n hn2 htb hns) e.factor))
+
+/-- The singleton basis attached to a concrete strict-source Leibniz event. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizEventAtomBasis
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (e : RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns) :
+    Finset (MvPolynomial (Fin (n / 3)) ℚ) :=
+  {routeBPaperFaithfulTPhi_strictSourceLeibnizEventAtom
+    M n hn2 htb hns e}
+
+/-- Event atom bases are singleton-sized. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizEventAtomBasis_card_le_one
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (e : RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns) :
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizEventAtomBasis
+      M n hn2 htb hns e).card ≤ 1 := by
+  classical
+  simp [routeBPaperFaithfulTPhi_strictSourceLeibnizEventAtomBasis]
+
+/-- Profile-independent singleton event atom bases. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceEventAtomLetterBasis
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns →
+        Finset (MvPolynomial (Fin (n / 3)) ℚ) :=
+  fun _ e => routeBPaperFaithfulTPhi_strictSourceLeibnizEventAtomBasis
+    M n hn2 htb hns e
+
+/-- The exact event maximum for singleton event atom bases is bounded by `1`. -/
+theorem routeBPaperFaithfulTPhi_strictSourceEventAtomLetterBasisMaxCard_le_one
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n)) :
+    routeBPaperFaithfulTPhi_strictSourceEventLetterBasisMaxCard
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+      (routeBPaperFaithfulTPhi_strictSourceEventAtomLetterBasis
+        M n hn2 htb hns) ρ ≤ 1 := by
+  classical
+  unfold routeBPaperFaithfulTPhi_strictSourceEventLetterBasisMaxCard
+  apply Finset.sup_le
+  intro e _he
+  exact routeBPaperFaithfulTPhi_strictSourceLeibnizEventAtomBasis_card_le_one
+    M n hn2 htb hns e
+
+/-- Final payload with event bases fixed to the concrete singleton derivative
+atoms.  This is the current atomic Cook--Levin surface: the remaining row field
+must prove the product-rule Leibniz row lies in the folded span of these exact
+single-event derivative atoms. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQFinalMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceLocalDim :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) → ℕ
+  sourceBoundedWordAtomBudget_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWordLengthBound
+        M n hn2 htb hns ≤ sourceLocalDim ρ
+  sourceBoundedWordProfileBudget_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      Fintype.card (RouteBPaperFaithfulTPhiStrictSourceNFOfWordBoundedWord
+        M n hn2 htb hns) * sourceLocalDim ρ ≤
+        withinProfileBound (Nat.log 2 n)
+  leibnizWitness_mem_boundedNFOfWordAtomBasis :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        mlProj
+            (shift *
+              Finset.univ.prod
+                (fun i =>
+                  SPDP.iterDerivList (d i)
+                    ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                      M n hn2 htb hns) i))) ∈
+          Submodule.span ℚ
+            (↑(((routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+              M n hn2 htb hns d).attach.foldr
+              (fun g acc =>
+                routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasis_of_eventBasis
+                  (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+                  (routeBPaperFaithfulTPhi_strictSourceEventAtomLetterBasis
+                    M n hn2 htb hns) ρ
+                  ⟨g.1,
+                    routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+                      M n hn2 htb hns d g.1 g.2⟩ ∪ acc)
+              ∅) : Finset (MvPolynomial (Fin (n / 3)) ℚ)) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ))
+  sourceTotalFiniteEndBudget_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      Fintype.card
+          (RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns (Nat.log 2 n))) *
+          sourceLocalDim ρ ≤
+        withinProfileBound (Nat.log 2 n)
+  nfOfWordAtomBasis_le_totalNormalFormBasis :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      g (hg : g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+          M n hn2 htb hns d),
+        ↑(routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasis_of_eventBasis
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          (routeBPaperFaithfulTPhi_strictSourceEventAtomLetterBasis
+            M n hn2 htb hns) ρ
+          ⟨g,
+            routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+              M n hn2 htb hns d g hg⟩) ⊆
+          (Submodule.span ℚ
+            (↑(routeBPaperFaithfulTPhi_strictSourceTraceNormalFormLetterBasis
+              (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+              ρ
+              (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisAsTotal
+                (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+                (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasis_of_eventBasis
+                  (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+                  (routeBPaperFaithfulTPhi_strictSourceEventAtomLetterBasis
+                    M n hn2 htb hns)))
+              ((PallLean.Paper93.NF
+                (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+                  M n hn2 htb hns (Nat.log 2 n))
+                ((routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+                  (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+                    M n hn2 htb hns (Nat.log 2 n)) d).prod)).prod)) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ)) :
+            Set (MvPolynomial (Fin (n / 3)) ℚ))
+
 /-- Event-indexed final payload with the cardinality budget stated using the
 exact event-basis maximum directly. -/
 structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventMaxQFinalMaps
@@ -13947,6 +14113,43 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventMaxQFi
                     M n hn2 htb hns (Nat.log 2 n)) d).prod)).prod)) :
               Set (MvPolynomial (Fin (n / 3)) ℚ)) :
             Set (MvPolynomial (Fin (n / 3)) ℚ))
+
+/-- Concrete singleton event-atom payload instantiates the event-max final
+surface. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventMaxQFinalMaps_of_eventAtomQFinalMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQFinalMaps
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventMaxQFinalMaps
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceLocalDim := D.sourceLocalDim
+  sourceEventLetterBasis :=
+    routeBPaperFaithfulTPhi_strictSourceEventAtomLetterBasis M n hn2 htb hns
+  sourceBoundedWordEventMaxBudget_le := by
+    intro ρ
+    have hmul :
+        routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWordLengthBound
+            M n hn2 htb hns *
+          routeBPaperFaithfulTPhi_strictSourceEventLetterBasisMaxCard
+            (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+            (routeBPaperFaithfulTPhi_strictSourceEventAtomLetterBasis
+              M n hn2 htb hns) ρ ≤
+        routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWordLengthBound
+            M n hn2 htb hns * 1 :=
+      Nat.mul_le_mul_left _
+        (routeBPaperFaithfulTPhi_strictSourceEventAtomLetterBasisMaxCard_le_one
+          M n hn2 htb hns ρ)
+    have hbudget :
+        routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWordLengthBound
+            M n hn2 htb hns * 1 ≤ D.sourceLocalDim ρ := by
+      simpa using D.sourceBoundedWordAtomBudget_le ρ
+    exact hmul.trans hbudget
+  sourceBoundedWordProfileBudget_le := D.sourceBoundedWordProfileBudget_le
+  leibnizWitness_mem_boundedNFOfWordBasis := D.leibnizWitness_mem_boundedNFOfWordAtomBasis
+  sourceTotalFiniteEndBudget_le := D.sourceTotalFiniteEndBudget_le
+  nfOfWordLetterBasis_le_totalNormalFormBasis := D.nfOfWordAtomBasis_le_totalNormalFormBasis
 
 /-- Event-max final payload instantiates the event-basis `q` final surface. -/
 noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventBasisQFinalMaps_of_eventMaxQFinalMaps
