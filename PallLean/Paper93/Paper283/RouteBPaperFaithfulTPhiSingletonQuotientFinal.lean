@@ -1765,6 +1765,27 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceW
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
+/-- Final close-out from the seeded witnessed `NFOfWord` payload plus explicit
+total-normal-form transfer.
+
+This is the faithful final surface for the `Σ*` route: the Cook--Levin row is
+proved either in the zero-letter seed basis or in one certified witnessed
+normal-form letter basis, then a separate transfer field moves that seeded basis
+into the downstream total-normal-form interface. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordSeededGeneratorBasisTransferMaps
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordSeededGeneratorBasisTransferMaps
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizTraceLetterBasisData
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizTraceLetterBasisData_of_seededNFOfWordGeneratorBasisTransferMaps
+        M n hn2 htb hns
+        (hdata M n hn hn2 htb hns hdec))
+
 /-- Final paper-shaped close-out from source local-type compression data
 for strict `TΦ`.
 

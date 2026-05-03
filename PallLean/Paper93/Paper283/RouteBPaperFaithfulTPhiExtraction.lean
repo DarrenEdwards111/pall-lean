@@ -10933,6 +10933,64 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordGe
   nfOfWordGeneratorBasis_span_le_totalNormalFormBasis :=
     D.nfOfWordGeneratorBasis_span_le_totalNormalFormBasis
 
+/-- Seed-or-letter `NFOfWord` payload together with explicit transfer into the
+legacy total-normal-form close-out.
+
+The row proof itself remains in the seeded paper `Σ*` basis; the only forgetting
+performed here is the separately supplied span inclusion from that seeded basis
+into the downstream total-normal-form basis. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordSeededGeneratorBasisTransferMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) extends
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordSeededGeneratorBasisMaps
+      M n hn2 htb hns where
+  sourceTotalNormalFormGeneratorBasis_card_le :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (ν : RouteBPaperFaithfulTPhiFiniteEnd
+        (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+          M n hn2 htb hns (Nat.log 2 n))),
+        (routeBPaperFaithfulTPhi_strictSourceTraceNormalFormLetterBasis
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          ρ
+          (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisAsTotal
+            (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+            sourceGeneratorLetterBasis)
+          ν).card ≤ sourceLocalDim ρ
+  sourceTotalFiniteEndBudget_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      Fintype.card
+          (RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns (Nat.log 2 n))) *
+          sourceLocalDim ρ ≤
+        withinProfileBound (Nat.log 2 n)
+  seededNFOfWordGeneratorBasis_span_le_totalNormalFormBasis :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3))),
+        Submodule.span ℚ
+            (↑(routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordSeededGeneratorLetterBasis
+              (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+              ρ sourceEmptyWordBasis sourceGeneratorLetterBasis d) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ)) ≤
+          Submodule.span ℚ
+            (↑(routeBPaperFaithfulTPhi_strictSourceTraceNormalFormLetterBasis
+              (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+              ρ
+              (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisAsTotal
+                (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+                sourceGeneratorLetterBasis)
+              ((PallLean.Paper93.NF
+                (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+                  M n hn2 htb hns (Nat.log 2 n))
+                ((routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+                  (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+                    M n hn2 htb hns (Nat.log 2 n)) d).prod)).prod)) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ))
+
 /-- Bounded-trace monoid data whose local basis is assembled from the shortlex
 normal-form word's letters.
 
@@ -11035,6 +11093,36 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizTraceLette
     intro ρ S' hS shift hshift d hd_elts hlen
     exact D.nfOfWordGeneratorBasis_span_le_totalNormalFormBasis ρ d
       (D.leibnizTraceWord_mem_NFOfWordGeneratorBasis
+        ρ S' hS shift hshift d hd_elts hlen)
+
+/-- Forget the seeded `NFOfWord` transfer maps directly into the trace-letter
+basis data consumed by the existing final close-out.
+
+The proof first inserts the row into the seeded witnessed `Σ*` basis, then uses
+the explicit seeded-transfer field.  No seed case is coerced into a generator
+letter. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizTraceLetterBasisData_of_seededNFOfWordGeneratorBasisTransferMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordSeededGeneratorBasisTransferMaps
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizTraceLetterBasisData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceLocalDim := D.sourceLocalDim
+  sourceLetterBasis :=
+    routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisAsTotal
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+      D.sourceGeneratorLetterBasis
+  sourceNormalFormLetterBasis_card_le :=
+    D.sourceTotalNormalFormGeneratorBasis_card_le
+  sourceProfileSymmetricPowerBudget_le := D.sourceTotalFiniteEndBudget_le
+  leibnizTraceWord_mem_normalFormLetterBasis := by
+    intro ρ S' hS shift hshift d hd_elts hlen
+    exact D.seededNFOfWordGeneratorBasis_span_le_totalNormalFormBasis ρ d
+      (routeBPaperFaithfulTPhi_strictSourceWitnessedLeibniz_mem_seededNFOfWordGeneratorBasis_of_seededGeneratorBasisMaps
+        M n hn2 htb hns
+        D.toRouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordSeededGeneratorBasisMaps
         ρ S' hS shift hshift d hd_elts hlen)
 
 /-- Letter-basis data instantiates bounded-trace monoid data by using the basis
