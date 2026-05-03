@@ -13220,6 +13220,104 @@ theorem routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_of_witness_toLis
         M n hn2 htb hns d := by
   rfl
 
+/-- The explicit length bound `q` for strict-source bounded `NFOfWord` local
+words: the maximum of the witnessed product-rule window and the finite local
+monoid search radius. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWordLengthBound
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : ℕ :=
+  max (Nat.log 2 n)
+    (Fintype.card (RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns (Nat.log 2 n))) + 1)
+
+/-- Every explicit bounded `NFOfWord` local word has length at most its `q`. -/
+theorem routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_toList_length_le
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (τ : RouteBPaperFaithfulTPhiStrictSourceNFOfWordBoundedWord
+      M n hn2 htb hns) :
+    (routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_toList
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns) τ).length ≤
+      routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWordLengthBound
+        M n hn2 htb hns := by
+  classical
+  unfold routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_toList
+  unfold routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWordLengthBound
+  simpa [List.Vector.toList_length] using Nat.le_of_lt_succ τ.1.1.isLt
+
+/-- The folded basis for any explicit bounded generator word is bounded by
+`q` times the exact per-profile maximum generator-letter basis size. -/
+theorem routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWordBasis_card_le_lengthBound_mul_maxCard
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n))
+    (letterBasis :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        { g : RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns (Nat.log 2 n)) //
+          g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+            M n hn2 htb hns (Nat.log 2 n) } →
+          Finset (MvPolynomial (Fin (n / 3)) ℚ))
+    (τ : RouteBPaperFaithfulTPhiStrictSourceNFOfWordBoundedWord
+      M n hn2 htb hns) :
+    ((routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_toList
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns) τ).attach.foldr
+      (fun g acc =>
+        letterBasis ρ
+          ⟨g.1,
+            routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_letters_mem_generators
+              (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+              τ g.1 g.2⟩ ∪ acc)
+      ∅).card ≤
+      routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWordLengthBound
+        M n hn2 htb hns *
+        routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisMaxCard
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          letterBasis ρ := by
+  classical
+  have hcard :=
+    routeBPaperFaithfulTPhi_attachFoldedUnion_card_le_length_mul
+      (routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_toList
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns) τ)
+      (fun g =>
+        letterBasis ρ
+          ⟨g.1,
+            routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_letters_mem_generators
+              (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+              τ g.1 g.2⟩)
+      (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisMaxCard
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+        letterBasis ρ)
+      (by
+        intro g
+        exact routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasis_card_le_maxCard
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          letterBasis ρ _)
+  exact hcard.trans
+    (Nat.mul_le_mul_right
+      (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisMaxCard
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+        letterBasis ρ)
+      (routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_toList_length_le
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns) τ))
+
+/-- The finite-end normal-form radius is bounded by the explicit bounded-word
+length `q`. -/
+theorem routeBPaperFaithfulTPhi_strictSource_finiteEndLength_le_boundedWordLengthBound
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Fintype.card (RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns (Nat.log 2 n))) + 1 ≤
+      routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWordLengthBound
+        M n hn2 htb hns := by
+  unfold routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWordLengthBound
+  exact Nat.le_max_right _ _
+
 /-- Final payload with the local type alphabet fixed to the explicit bounded
 `NFOfWord` generator-word alphabet.
 
@@ -13405,6 +13503,151 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordMaxCardFina
             Set (MvPolynomial (Fin (n / 3)) ℚ))
 
 set_option maxHeartbeats 1000000
+/-- Bounded-word final payload with the two cardinality obligations reduced to
+one explicit `q * maxCard` arithmetic budget.
+
+The budget uses the actual bounded-word length `q = max(κ, |M|+1)` and the
+exact finite maximum of the certified generator-letter basis sizes. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBoundedWordQFinalMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceLocalDim :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) → ℕ
+  sourceGeneratorLetterBasis :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      { g : RouteBPaperFaithfulTPhiFiniteEnd
+          (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+            M n hn2 htb hns (Nat.log 2 n)) //
+        g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+          M n hn2 htb hns (Nat.log 2 n) } →
+        Finset (MvPolynomial (Fin (n / 3)) ℚ)
+  sourceBoundedWordMaxCardBudget_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWordLengthBound
+          M n hn2 htb hns *
+        routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisMaxCard
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          sourceGeneratorLetterBasis ρ ≤ sourceLocalDim ρ
+  sourceBoundedWordProfileBudget_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      Fintype.card (RouteBPaperFaithfulTPhiStrictSourceNFOfWordBoundedWord
+        M n hn2 htb hns) * sourceLocalDim ρ ≤
+        withinProfileBound (Nat.log 2 n)
+  leibnizWitness_mem_boundedNFOfWordBasis :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        mlProj
+            (shift *
+              Finset.univ.prod
+                (fun i =>
+                  SPDP.iterDerivList (d i)
+                    ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                      M n hn2 htb hns) i))) ∈
+          Submodule.span ℚ
+            (↑(((routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+              M n hn2 htb hns d).attach.foldr
+              (fun g acc =>
+                sourceGeneratorLetterBasis ρ
+                  ⟨g.1,
+                    routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+                      M n hn2 htb hns d g.1 g.2⟩ ∪ acc)
+              ∅) : Finset (MvPolynomial (Fin (n / 3)) ℚ)) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ))
+  sourceTotalFiniteEndBudget_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      Fintype.card
+          (RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns (Nat.log 2 n))) *
+          sourceLocalDim ρ ≤
+        withinProfileBound (Nat.log 2 n)
+  nfOfWordLetterBasis_le_totalNormalFormBasis :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      g (hg : g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+          M n hn2 htb hns d),
+        ↑(sourceGeneratorLetterBasis ρ
+          ⟨g,
+            routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+              M n hn2 htb hns d g hg⟩) ⊆
+          (Submodule.span ℚ
+            (↑(routeBPaperFaithfulTPhi_strictSourceTraceNormalFormLetterBasis
+              (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+              ρ
+              (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisAsTotal
+                (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+                sourceGeneratorLetterBasis)
+              ((PallLean.Paper93.NF
+                (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+                  M n hn2 htb hns (Nat.log 2 n))
+                ((routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+                  (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+                    M n hn2 htb hns (Nat.log 2 n)) d).prod)).prod)) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ)) :
+            Set (MvPolynomial (Fin (n / 3)) ℚ))
+
+/-- The `q * maxCard` final payload instantiates the previous bounded-word
+final surface. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordBoundedWordFinalMaps_of_qFinalMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBoundedWordQFinalMaps
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBoundedWordFinalMaps
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceLocalDim := D.sourceLocalDim
+  sourceGeneratorLetterBasis := D.sourceGeneratorLetterBasis
+  sourceBoundedWordBasis_card_le := by
+    intro ρ τ
+    exact
+      (routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWordBasis_card_le_lengthBound_mul_maxCard
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+        ρ D.sourceGeneratorLetterBasis τ).trans
+        (D.sourceBoundedWordMaxCardBudget_le ρ)
+  sourceBoundedWordProfileBudget_le := D.sourceBoundedWordProfileBudget_le
+  leibnizWitness_mem_boundedNFOfWordBasis := D.leibnizWitness_mem_boundedNFOfWordBasis
+  sourceMaxCardFiniteEndBudget_le := by
+    intro ρ
+    exact
+      (Nat.mul_le_mul_right
+        (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisMaxCard
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          D.sourceGeneratorLetterBasis ρ)
+        (routeBPaperFaithfulTPhi_strictSource_finiteEndLength_le_boundedWordLengthBound
+          M n hn2 htb hns)).trans
+        (D.sourceBoundedWordMaxCardBudget_le ρ)
+  sourceTotalFiniteEndBudget_le := D.sourceTotalFiniteEndBudget_le
+  nfOfWordLetterBasis_le_totalNormalFormBasis := D.nfOfWordLetterBasis_le_totalNormalFormBasis
+
 /-- The explicit bounded-word final payload instantiates the max-card final
 surface. -/
 noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordMaxCardFinalMaps_of_boundedWordFinalMaps
