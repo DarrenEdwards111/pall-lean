@@ -12649,6 +12649,108 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordSe
         ρ emptyBasis D.sourceGeneratorLetterBasis d
         (hseedTransfer ρ d) (hletterTransfer ρ d)
 
+/-- The exact per-profile maximum size of the certified strict-source
+generator-letter bases.
+
+This is a real finite maximum over the paper's generator alphabet, not a hidden
+ambient/common basis. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisMaxCard
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (letterBasis :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        { g : RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns (Nat.log 2 n)) //
+          g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+            M n hn2 htb hns (Nat.log 2 n) } →
+          Finset (MvPolynomial (Fin (n / 3)) ℚ))
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n)) : ℕ :=
+  (Finset.univ.sup fun g => (letterBasis ρ g).card)
+
+/-- Every certified generator-letter basis is bounded by the exact per-profile
+finite maximum. -/
+theorem routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasis_card_le_maxCard
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (letterBasis :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        { g : RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns (Nat.log 2 n)) //
+          g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+            M n hn2 htb hns (Nat.log 2 n) } →
+          Finset (MvPolynomial (Fin (n / 3)) ℚ))
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n))
+    (g : { g : RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns (Nat.log 2 n)) //
+          g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+            M n hn2 htb hns (Nat.log 2 n) }) :
+    (letterBasis ρ g).card ≤
+      routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisMaxCard
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+        letterBasis ρ := by
+  classical
+  unfold routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisMaxCard
+  exact Finset.le_sup (s := (Finset.univ : Finset { g : RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns (Nat.log 2 n)) //
+          g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+            M n hn2 htb hns (Nat.log 2 n) }))
+    (f := fun g => (letterBasis ρ g).card) (Finset.mem_univ g)
+
+/-- Total-normal-form compatibility cardinality using the exact per-profile
+maximum generator-letter basis size. -/
+theorem routeBPaperFaithfulTPhi_strictSourceTotalNormalFormGeneratorLetterBasis_card_le_of_maxCard_budget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n))
+    (letterBasis :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        { g : RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns (Nat.log 2 n)) //
+          g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+            M n hn2 htb hns (Nat.log 2 n) } →
+          Finset (MvPolynomial (Fin (n / 3)) ℚ))
+    (sourceLocalDim :
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n) → ℕ)
+    (ν : RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns (Nat.log 2 n)))
+    (hbudget :
+      (Fintype.card (RouteBPaperFaithfulTPhiFiniteEnd
+        (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+          M n hn2 htb hns (Nat.log 2 n))) + 1) *
+          routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisMaxCard
+            (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+            letterBasis ρ ≤ sourceLocalDim ρ) :
+    (routeBPaperFaithfulTPhi_strictSourceTraceNormalFormLetterBasis
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+      ρ
+      (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisAsTotal
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+        letterBasis)
+      ν).card ≤ sourceLocalDim ρ :=
+  routeBPaperFaithfulTPhi_strictSourceTotalNormalFormGeneratorLetterBasis_card_le_of_finiteEnd_budget
+    (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+    ρ letterBasis sourceLocalDim
+    (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisMaxCard
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+      letterBasis ρ)
+    (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasis_card_le_maxCard
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+      letterBasis ρ)
+    ν hbudget
+
 /-- Direct exact-`NFOfWord` final-transfer surface without a universal `d`
 cardinality obligation.
 
@@ -12945,6 +13047,78 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizTraceLette
     exact D.seededNFOfWordGeneratorBasis_span_le_totalNormalFormBasis ρ d
       (D.leibnizTraceWord_mem_seededNFOfWordGeneratorBasis
         ρ S' hS shift hshift d hd_elts hlen)
+
+/-- Constructor for the direct exact-`NFOfWord` final-transfer surface using
+the exact per-profile maximum of the certified generator-letter basis sizes.
+
+Compared with `..._and_transferBudgets`, this removes the artificial global
+`C` and `hletterCard` assumption.  The remaining cardinality budget is stated
+only for the real finite maximum of the existing paper generator-letter bases. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordDirectTransferMaps_of_budgetedLocalBasisMaps_and_maxCardTransferBudgets
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBudgetedLocalBasisMaps
+      M n hn2 htb hns)
+    (hmaxCardBudget :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        (Fintype.card (RouteBPaperFaithfulTPhiFiniteEnd
+          (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+            M n hn2 htb hns (Nat.log 2 n))) + 1) *
+          routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisMaxCard
+            (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+            D.sourceGeneratorLetterBasis ρ ≤ D.sourceLocalDim ρ)
+    (htotalBudget :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        Fintype.card
+            (RouteBPaperFaithfulTPhiFiniteEnd
+              (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+                M n hn2 htb hns (Nat.log 2 n))) *
+            D.sourceLocalDim ρ ≤
+          withinProfileBound (Nat.log 2 n))
+    (hletterTransfer :
+      ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+            ConstraintType (Nat.log 2 n))
+        (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+          List (Fin (n / 3)))
+        g (hg : g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+            M n hn2 htb hns d),
+          ↑(D.sourceGeneratorLetterBasis ρ
+            ⟨g,
+              routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+                M n hn2 htb hns d g hg⟩) ⊆
+            (Submodule.span ℚ
+              (↑(routeBPaperFaithfulTPhi_strictSourceTraceNormalFormLetterBasis
+                (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+                ρ
+                (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisAsTotal
+                  (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+                  D.sourceGeneratorLetterBasis)
+                ((PallLean.Paper93.NF
+                  (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+                    M n hn2 htb hns (Nat.log 2 n))
+                  ((routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+                    (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+                      M n hn2 htb hns (Nat.log 2 n)) d).prod)).prod)) :
+                Set (MvPolynomial (Fin (n / 3)) ℚ)) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ))) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordDirectTransferMaps
+      M n hn2 htb hns where
+  toRouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBudgetedLocalBasisMaps := D
+  sourceTotalNormalFormGeneratorBasis_card_le := by
+    intro ρ ν
+    exact
+      routeBPaperFaithfulTPhi_strictSourceTotalNormalFormGeneratorLetterBasis_card_le_of_maxCard_budget
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+        ρ D.sourceGeneratorLetterBasis D.sourceLocalDim ν (hmaxCardBudget ρ)
+  sourceTotalFiniteEndBudget_le := htotalBudget
+  nfOfWordGeneratorBasis_span_le_totalNormalFormBasis := by
+    intro ρ d
+    exact
+      routeBPaperFaithfulTPhi_strictSource_NFOfWordGeneratorBasis_span_le_totalNormalFormBasis_of_letterwise_mem
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+        ρ D.sourceGeneratorLetterBasis d (hletterTransfer ρ d)
 
 /-- Forget direct exact-`NFOfWord` transfer maps into trace-letter final data.
 The row proof is extracted from the witnessed local basis and then transferred
