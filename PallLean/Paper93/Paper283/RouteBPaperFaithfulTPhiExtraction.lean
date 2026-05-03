@@ -8713,6 +8713,34 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
   ((Finset.univ : Finset (Fin ((cookLevinFactorList M n hn2 htb hns).length))).toList.map
     (fun i => (d i).map (step i))).foldr (fun xs acc => xs ++ acc) []
 
+/-- The witnessed strict-source Leibniz transition word has exactly the total
+number of derivative events in the distribution `d`.  This is the paper's local
+word length accounting before any normal-form or span argument is applied. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord_length
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {σ : Type}
+    (step : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      Fin (n / 3) → σ)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3))) :
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord step d).length =
+      ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length), (d i).length := by
+  classical
+  unfold routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+  have hfold :
+      (((Finset.univ : Finset (Fin ((cookLevinFactorList M n hn2 htb hns).length))).toList.map
+        (fun i => (d i).map (step i))).foldr (fun xs acc => xs ++ acc) []).length =
+        ((Finset.univ : Finset (Fin ((cookLevinFactorList M n hn2 htb hns).length))).toList.map
+          (fun i => (d i).length)).sum := by
+    induction ((Finset.univ : Finset (Fin ((cookLevinFactorList M n hn2 htb hns).length))).toList) with
+    | nil => simp
+    | cons x xs ih => simp [ih]
+  rw [hfold]
+  exact Finset.sum_map_toList
+    (Finset.univ : Finset (Fin ((cookLevinFactorList M n hn2 htb hns).length)))
+    (fun i => (d i).length)
+
 
 /-- Finite endomorphism monoid used for local transition actions.
 
@@ -9097,6 +9125,44 @@ theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_represents
       (routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
         (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
           M n hn2 htb hns (Nat.log 2 n)) d)
+
+/-- Length bound for the exact witnessed generator-word normal form.
+
+The bound is stated in terms of the concrete derivative distribution length
+`S'.length` and the finite trace-monoid search radius.  This is the budget
+accounting needed for generator-letter local bases, while keeping the paper's
+`NFOfWord` witness route explicit. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_length_le_max
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S' : List (Fin (n / 3)))
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+        (d i).length ≤ S'.length) :
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+      M n hn2 htb hns d).length ≤
+      max S'.length
+        (Fintype.card (RouteBPaperFaithfulTPhiFiniteEnd
+          (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+            M n hn2 htb hns (Nat.log 2 n))) + 1) := by
+  classical
+  have hnf := PallLean.Paper93.NFOfWord_length_le_max
+    (M := RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns (Nat.log 2 n)))
+    (generators := routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+      M n hn2 htb hns (Nat.log 2 n))
+    (w := routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+        M n hn2 htb hns (Nat.log 2 n)) d)
+  have hwlen :
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+          M n hn2 htb hns (Nat.log 2 n)) d).length ≤ S'.length := by
+    rw [routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord_length]
+    exact hlen
+  exact hnf.trans (max_le_max hwlen (le_rfl))
 
 /-- Every letter of the generator-word normal form of the witnessed Leibniz
 trace is a concrete append-event generator.  This is the paper's `Σ*` normal

@@ -298,6 +298,29 @@ noncomputable def generatorWordsUpTo {M : Type} (generators : List M) (N : ℕ) 
     List (List M) :=
   (List.range (N + 1)).flatMap (generatorWordsOfLength generators)
 
+/-- A generated word of exactly length `n` has length `n`. -/
+theorem length_of_mem_generatorWordsOfLength {M : Type}
+    {generators : List M} {n : ℕ} {w : List M}
+    (hw : w ∈ generatorWordsOfLength generators n) :
+    w.length = n := by
+  classical
+  unfold generatorWordsOfLength at hw
+  simp only [List.mem_map, Finset.mem_toList, Finset.mem_univ, true_and] at hw
+  rcases hw with ⟨v, rfl⟩
+  simp
+
+/-- A generated word of length at most `N` has length at most `N`. -/
+theorem length_of_mem_generatorWordsUpTo {M : Type}
+    {generators : List M} {N : ℕ} {w : List M}
+    (hw : w ∈ generatorWordsUpTo generators N) :
+    w.length ≤ N := by
+  classical
+  unfold generatorWordsUpTo at hw
+  simp only [List.mem_flatMap, List.mem_range] at hw
+  rcases hw with ⟨n, hn, hmem⟩
+  have hlen := length_of_mem_generatorWordsOfLength hmem
+  omega
+
 /-- Every letter in a generated word belongs to the generator list. -/
 theorem mem_generators_of_mem_generatorWordsOfLength {M : Type}
     {generators : List M} {n : ℕ} {w : List M}
@@ -371,6 +394,35 @@ the non-empty fallback. -/
 noncomputable def NFOfWord {M : Type} [Monoid M] [Fintype M] [DecidableEq M]
     (generators : List M) (w : List M) : List M :=
   pickShortlex (generatorRepCandidates generators w)
+
+/-- `NFOfWord` is bounded either by the witnessed word length (the paper
+fallback) or by the finite generated-search radius.  This keeps the witnessed
+`Σ*` object explicit while exposing the length quantity needed for later local
+basis budgets. -/
+theorem NFOfWord_length_le_max {M : Type} [Monoid M] [Fintype M] [DecidableEq M]
+    (generators : List M) (w : List M) :
+    (NFOfWord generators w).length ≤ max w.length (Fintype.card M + 1) := by
+  classical
+  unfold NFOfWord
+  have hmem : pickShortlex (generatorRepCandidates generators w) ∈
+      generatorRepCandidates generators w :=
+    pickShortlex_mem _ (generatorRepCandidates_ne_nil generators w)
+  unfold generatorRepCandidates at hmem
+  rcases List.mem_cons.mp hmem with hhead | htail
+  · change (pickShortlex
+        (w :: (generatorWordsUpTo generators (Fintype.card M + 1)).filter
+          (fun u => decide (u.prod = w.prod)))).length ≤
+      max w.length (Fintype.card M + 1)
+    rw [hhead]
+    exact Nat.le_max_left _ _
+  · rw [List.mem_filter] at htail
+    have hle :
+        (pickShortlex
+          (w :: (generatorWordsUpTo generators (Fintype.card M + 1)).filter
+            (fun u => decide (u.prod = w.prod)))).length ≤
+          Fintype.card M + 1 :=
+      length_of_mem_generatorWordsUpTo htail.1
+    exact hle.trans (Nat.le_max_right _ _)
 
 /-- `NFOfWord` represents the same monoid element as the witnessed word. -/
 theorem NFOfWord_represents {M : Type} [Monoid M] [Fintype M] [DecidableEq M]
