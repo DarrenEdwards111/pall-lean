@@ -9441,6 +9441,49 @@ theorem routeBPaperFaithfulTPhi_attachFoldedUnion_card_le_length_mul
     (routeBPaperFaithfulTPhi_foldedUnion_card_le_length_mul
       (w.attach) B C (by intro g _hg; exact hB g))
 
+/-- Folded word bases are monotone under letterwise inclusion.
+
+This is the transfer primitive needed for the paper-faithful `NFOfWord` bridge:
+a later proof may move from the exact witnessed generator-word basis into a
+compatible downstream basis by proving inclusion at each actual word letter,
+not by replacing the family with a common/global span. -/
+theorem routeBPaperFaithfulTPhi_foldedUnion_subset_of_forall_subset
+    {α β : Type} [DecidableEq β]
+    (w : List α) (B C : α → Finset β)
+    (hBC : ∀ g ∈ w, B g ⊆ C g) :
+    w.foldr (fun g acc => B g ∪ acc) ∅ ⊆
+      w.foldr (fun g acc => C g ∪ acc) ∅ := by
+  intro x hx
+  induction w with
+  | nil => simp at hx
+  | cons g rest ih =>
+      simp only [List.foldr_cons, Finset.mem_union] at hx ⊢
+      rcases hx with hx | hx
+      · exact Or.inl (hBC g (by simp) hx)
+      · exact Or.inr (ih (by intro y hy; exact hBC y (by simp [hy])) hx)
+
+/-- If every letter basis in a folded word basis lies in a target submodule,
+then the span of the whole folded basis lies in that target submodule.
+
+This exposes the exact non-shortcut proof obligation for `NFOfWord → downstream
+basis` transfer: prove membership letter-by-letter for the witnessed word, then
+span closure does the bookkeeping. -/
+theorem routeBPaperFaithfulTPhi_span_foldedUnion_le_of_forall_mem
+    {α V : Type} [DecidableEq V] [AddCommMonoid V] [Module ℚ V]
+    (w : List α) (B : α → Finset V) (U : Submodule ℚ V)
+    (hB : ∀ g ∈ w, ↑(B g) ⊆ (U : Set V)) :
+    Submodule.span ℚ (↑(w.foldr (fun g acc => B g ∪ acc) ∅) : Set V) ≤ U := by
+  refine Submodule.span_le.mpr ?_
+  intro x hx
+  induction w with
+  | nil => simp at hx
+  | cons g rest ih =>
+      change x ∈ (B g ∪ rest.foldr (fun g acc => B g ∪ acc) ∅) at hx
+      simp only [Finset.mem_union] at hx
+      rcases hx with hx | hx
+      · exact hB g (by simp) hx
+      · exact ih (by intro y hy; exact hB y (by simp [hy])) hx
+
 /-- Basis assembled along the generator-word normal form, where every basis
 lookup receives a certified generator letter.  This is the paper's local
 `Σ`-letter interface: the basis cannot be indexed by an arbitrary monoid
