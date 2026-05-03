@@ -1806,6 +1806,25 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceW
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
+/-- Final close-out from the direct exact-`NFOfWord` transfer maps.
+
+This is the leanest current paper-faithful surface: witnessed local-basis maps
+supply row membership, and only total-normal-form card/budget plus letterwise
+transfer remain in the data. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordDirectTransferMaps
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordDirectTransferMaps
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizTraceLetterBasisData
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizTraceLetterBasisData_of_directNFOfWordTransferMaps
+        M n hn2 htb hns
+        (hdata M n hn hn2 htb hns hdec))
+
 /-- Final paper-shaped close-out from source local-type compression data
 for strict `TΦ`.
 
