@@ -10458,6 +10458,60 @@ theorem routeBPaperFaithfulTPhi_strictSource_leibnizWitness_NFOfWordType_and_mem
       routeBPaperFaithfulTPhi_strictSource_leibnizWitness_mem_sourceTypeWordGeneratorBasis_of_NFOfWordLocalBasisMaps
         M n hn2 htb hns D ρ S' hS shift hshift d hd_elts hlen
 
+/-- The exact `NFOfWord` generator-letter basis inherits its cardinality bound
+from the witnessed local type's folded basis bound.
+
+This uses only the recorded equality between the local type word and the paper's
+`NFOfWord`, plus dependent attached-fold congruence. -/
+theorem routeBPaperFaithfulTPhi_strictSource_NFOfWordGeneratorBasis_card_le_of_budgetedLocalBasisMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBudgetedLocalBasisMaps
+      M n hn2 htb hns)
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n))
+    (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (hshift : shift.vars ⊆ S'.toFinset)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+    (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+        (d i).length ≤ S'.length) :
+    (routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+      ρ D.sourceGeneratorLetterBasis d).card ≤ D.sourceLocalDim ρ := by
+  classical
+  let τ := D.leibnizWitnessType ρ S' hS shift hshift d hd_elts hlen
+  have hword : D.sourceTypeWord ρ τ =
+      routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+        M n hn2 htb hns d := by
+    exact D.leibnizWitnessType_word_eq_NFOfWord
+      ρ S' hS shift hshift d hd_elts hlen
+  have hfold :
+      ((D.sourceTypeWord ρ τ).attach.foldr
+          (fun g acc =>
+            D.sourceGeneratorLetterBasis ρ
+              ⟨g.1, D.sourceTypeWord_letters_mem_generators ρ τ g.1 g.2⟩ ∪ acc)
+          ∅) =
+        routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          ρ D.sourceGeneratorLetterBasis d := by
+    unfold routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis
+    exact routeBPaperFaithfulTPhi_attachFoldedUnion_congr_word
+      (D.sourceTypeWord ρ τ)
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+        M n hn2 htb hns d)
+      hword
+      (fun g => g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns (Nat.log 2 n))
+      (D.sourceGeneratorLetterBasis ρ)
+      (D.sourceTypeWord_letters_mem_generators ρ τ)
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+        M n hn2 htb hns d)
+  rw [← hfold]
+  exact D.sourceTypeWordGeneratorBasis_card_le ρ τ
+
 /-- Extract exact `NFOfWord` generator-basis row membership directly from the
 witnessed local-basis maps.
 
