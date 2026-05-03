@@ -1745,6 +1745,26 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceW
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
+/-- Final close-out from the single-letter witnessed `NFOfWord` payload plus
+explicit total-normal-form transfer.
+
+This is the most local current final surface: the Cook--Levin row is supplied in
+one certified generator-letter basis for the witnessed `NFOfWord`, then the
+existing adapter injects it into the folded generator-basis transfer route. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordSingleLetterGeneratorBasisTransferMaps
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordSingleLetterGeneratorBasisTransferMaps
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordBudgetedGeneratorBasisTransferMaps
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordBudgetedGeneratorBasisTransferMaps_of_singleLetterGeneratorBasisTransferMaps
+        M n hn2 htb hns
+        (hdata M n hn hn2 htb hns hdec))
+
 /-- Final paper-shaped close-out from source local-type compression data
 for strict `TΦ`.
 
