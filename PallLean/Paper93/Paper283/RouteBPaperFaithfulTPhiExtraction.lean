@@ -9910,6 +9910,75 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisAsTota
     else
       ∅
 
+/-- A concrete sufficient condition for the explicit `NFOfWord → total NF`
+transfer bridge: every letter basis appearing in the witnessed generator-word
+normal form lies in the downstream total-normal-form span.
+
+The point of the statement is the quantification over `g ∈ NFOfWord ... d`.
+The bridge is discharged by actual witnessed letters only; it does not replace
+those letters by a common span or silently identify `NFOfWord` with total `NF`. -/
+theorem routeBPaperFaithfulTPhi_strictSource_NFOfWordGeneratorBasis_span_le_totalNormalFormBasis_of_letterwise_mem
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n))
+    (letterBasis :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        { g : RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns (Nat.log 2 n)) //
+          g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+            M n hn2 htb hns (Nat.log 2 n) } →
+          Finset (MvPolynomial (Fin (n / 3)) ℚ))
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (hletter :
+      ∀ g (hg : g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+          M n hn2 htb hns d),
+        ↑(letterBasis ρ
+          ⟨g,
+            routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+              M n hn2 htb hns d g hg⟩) ⊆
+          (Submodule.span ℚ
+            (↑(routeBPaperFaithfulTPhi_strictSourceTraceNormalFormLetterBasis
+              (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+              ρ
+              (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisAsTotal
+                (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+                letterBasis)
+              ((PallLean.Paper93.NF
+                (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+                  M n hn2 htb hns (Nat.log 2 n))
+                ((routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+                  (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+                    M n hn2 htb hns (Nat.log 2 n)) d).prod)).prod)) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ)) :
+            Set (MvPolynomial (Fin (n / 3)) ℚ))) :
+    Submodule.span ℚ
+        (↑(routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          ρ letterBasis d) : Set (MvPolynomial (Fin (n / 3)) ℚ)) ≤
+      Submodule.span ℚ
+        (↑(routeBPaperFaithfulTPhi_strictSourceTraceNormalFormLetterBasis
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          ρ
+          (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisAsTotal
+            (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+            letterBasis)
+          ((PallLean.Paper93.NF
+            (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+              M n hn2 htb hns (Nat.log 2 n))
+            ((routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+              (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+                M n hn2 htb hns (Nat.log 2 n)) d).prod)).prod)) :
+          Set (MvPolynomial (Fin (n / 3)) ℚ)) := by
+  classical
+  unfold routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis
+  apply routeBPaperFaithfulTPhi_span_foldedUnion_le_of_forall_mem
+  intro g _hg x hx
+  exact hletter g.1 g.2 hx
+
 /-- Paper-faithful generator-word basis data together with the explicit bridge
 needed by the legacy total-`NF` close-out.
 
@@ -9969,6 +10038,84 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordGeneratorBa
                   (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
                     M n hn2 htb hns (Nat.log 2 n)) d).prod)).prod)) :
               Set (MvPolynomial (Fin (n / 3)) ℚ))
+
+
+/-- Constructor for the explicit `NFOfWord` transfer-data layer from the
+standalone generator-basis data plus honest total-normal-form obligations.
+
+The transfer input is deliberately letterwise over the witnessed `NFOfWord`;
+the constructor merely packages it into the span inclusion required by the
+legacy downstream route. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordGeneratorBasisTransferData_of_generatorBasisData_and_letterwiseTotalTransfer
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordGeneratorBasisData
+      M n hn2 htb hns)
+    (htotalCard :
+      ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+            ConstraintType (Nat.log 2 n))
+        (ν : RouteBPaperFaithfulTPhiFiniteEnd
+          (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+            M n hn2 htb hns (Nat.log 2 n))),
+          (routeBPaperFaithfulTPhi_strictSourceTraceNormalFormLetterBasis
+            (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+            ρ
+            (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisAsTotal
+              (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+              D.sourceGeneratorLetterBasis)
+            ν).card ≤ D.sourceLocalDim ρ)
+    (htotalBudget :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        Fintype.card
+            (RouteBPaperFaithfulTPhiFiniteEnd
+              (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+                M n hn2 htb hns (Nat.log 2 n))) *
+            D.sourceLocalDim ρ ≤
+          withinProfileBound (Nat.log 2 n))
+    (hletterTransfer :
+      ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+            ConstraintType (Nat.log 2 n))
+        (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+          List (Fin (n / 3)))
+        g (hg : g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+            M n hn2 htb hns d),
+          ↑(D.sourceGeneratorLetterBasis ρ
+            ⟨g,
+              routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+                M n hn2 htb hns d g hg⟩) ⊆
+            (Submodule.span ℚ
+              (↑(routeBPaperFaithfulTPhi_strictSourceTraceNormalFormLetterBasis
+                (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+                ρ
+                (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisAsTotal
+                  (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+                  D.sourceGeneratorLetterBasis)
+                ((PallLean.Paper93.NF
+                  (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+                    M n hn2 htb hns (Nat.log 2 n))
+                  ((routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+                    (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+                      M n hn2 htb hns (Nat.log 2 n)) d).prod)).prod)) :
+                Set (MvPolynomial (Fin (n / 3)) ℚ)) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ))) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordGeneratorBasisTransferData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceLocalDim := D.sourceLocalDim
+  sourceGeneratorLetterBasis := D.sourceGeneratorLetterBasis
+  sourceNFOfWordGeneratorBasis_card_le := D.sourceNFOfWordGeneratorBasis_card_le
+  sourceProfileSymmetricPowerBudget_le := D.sourceProfileSymmetricPowerBudget_le
+  leibnizTraceWord_mem_NFOfWordGeneratorBasis :=
+    D.leibnizTraceWord_mem_NFOfWordGeneratorBasis
+  sourceTotalNormalFormGeneratorBasis_card_le := htotalCard
+  sourceTotalFiniteEndBudget_le := htotalBudget
+  nfOfWordGeneratorBasis_span_le_totalNormalFormBasis := by
+    intro ρ d
+    exact
+      routeBPaperFaithfulTPhi_strictSource_NFOfWordGeneratorBasis_span_le_totalNormalFormBasis_of_letterwise_mem
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+        ρ D.sourceGeneratorLetterBasis d (hletterTransfer ρ d)
 
 /-- Budgeted witnessed `NFOfWord` generator-basis maps with the explicit
 transfer bridge required by the legacy downstream total-normal-form route.
