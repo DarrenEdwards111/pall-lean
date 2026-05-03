@@ -9484,6 +9484,21 @@ theorem routeBPaperFaithfulTPhi_span_foldedUnion_le_of_forall_mem
       · exact hB g (by simp) hx
       · exact ih (by intro y hy; exact hB y (by simp [hy])) hx
 
+/-- Attached folded word bases span a target submodule once every attached
+letter basis lies in that target.
+
+This is the dependent-typed version used by the strict `NFOfWord` route, where
+a basis may depend on the proof that a letter occurs in the witnessed word.  It
+keeps the proof obligation letterwise instead of replacing the family by any
+common/global span. -/
+theorem routeBPaperFaithfulTPhi_span_attachFoldedUnion_le_of_forall_mem
+    {α V : Type} [DecidableEq V] [AddCommMonoid V] [Module ℚ V]
+    (w : List α) (B : {g : α // g ∈ w} → Finset V) (U : Submodule ℚ V)
+    (hB : ∀ g, ↑(B g) ⊆ (U : Set V)) :
+    Submodule.span ℚ (↑(w.attach.foldr (fun g acc => B g ∪ acc) ∅) : Set V) ≤ U := by
+  exact routeBPaperFaithfulTPhi_span_foldedUnion_le_of_forall_mem
+    (w.attach) B U (by intro g _hg; exact hB g)
+
 /-- Basis assembled along the generator-word normal form, where every basis
 lookup receives a certified generator letter.  This is the paper's local
 `Σ`-letter interface: the basis cannot be indexed by an arbitrary monoid
