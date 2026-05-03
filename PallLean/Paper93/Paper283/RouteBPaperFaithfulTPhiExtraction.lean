@@ -9608,6 +9608,43 @@ theorem routeBPaperFaithfulTPhi_mem_seededAttachFoldedUnion_of_letter_mem
   exact routeBPaperFaithfulTPhi_mem_seededFoldedUnion_of_mem
     w.attach B₀ B (by simp) hx
 
+/-- The ordinary folded basis embeds into the seeded folded basis. -/
+theorem routeBPaperFaithfulTPhi_foldedUnion_subset_seededFoldedUnion
+    {α β : Type} [DecidableEq β]
+    (w : List α) (B₀ : Finset β) (B : α → Finset β) :
+    w.foldr (fun g acc => B g ∪ acc) ∅ ⊆
+      routeBPaperFaithfulTPhi_seededFoldedUnion w B₀ B := by
+  intro x hx
+  induction w with
+  | nil => simp at hx
+  | cons g rest ih =>
+      simp only [List.foldr_cons, Finset.mem_union] at hx
+      unfold routeBPaperFaithfulTPhi_seededFoldedUnion
+      simp only [List.foldr_cons, Finset.mem_union]
+      rcases hx with hx | hx
+      · exact Or.inl hx
+      · exact Or.inr (ih hx)
+
+/-- The ordinary attached folded basis embeds into the seeded attached folded
+basis.  This is just union bookkeeping: adding the explicit empty-word seed does
+not alter or weaken the witnessed-letter basis. -/
+theorem routeBPaperFaithfulTPhi_attachFoldedUnion_subset_seededAttachFoldedUnion
+    {α β : Type} [DecidableEq β]
+    (w : List α) (B₀ : Finset β) (B : {g : α // g ∈ w} → Finset β) :
+    w.attach.foldr (fun g acc => B g ∪ acc) ∅ ⊆
+      routeBPaperFaithfulTPhi_seededAttachFoldedUnion w B₀ B := by
+  exact routeBPaperFaithfulTPhi_foldedUnion_subset_seededFoldedUnion w.attach B₀ B
+
+/-- Span-level version: the exact witnessed-letter folded basis is contained in
+the exact seeded witnessed basis. -/
+theorem routeBPaperFaithfulTPhi_span_attachFoldedUnion_le_seededAttachFoldedUnion
+    {α V : Type} [DecidableEq V] [AddCommMonoid V] [Module ℚ V]
+    (w : List α) (B₀ : Finset V) (B : {g : α // g ∈ w} → Finset V) :
+    Submodule.span ℚ (↑(w.attach.foldr (fun g acc => B g ∪ acc) ∅) : Set V) ≤
+      Submodule.span ℚ (↑(routeBPaperFaithfulTPhi_seededAttachFoldedUnion w B₀ B) : Set V) := by
+  exact Submodule.span_mono
+    (routeBPaperFaithfulTPhi_attachFoldedUnion_subset_seededAttachFoldedUnion w B₀ B)
+
 /-- Seed membership gives span membership in the whole seeded attached basis.
 This is the honest empty-`NFOfWord` insertion rule. -/
 theorem routeBPaperFaithfulTPhi_span_seededAttachFoldedUnion_mem_of_seed_mem
@@ -11347,6 +11384,97 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordSeededGener
                   (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
                     M n hn2 htb hns (Nat.log 2 n)) d).prod)).prod)) :
               Set (MvPolynomial (Fin (n / 3)) ℚ))
+
+/-- The exact witnessed `NFOfWord` letter-basis span embeds into the seeded
+witnessed `NFOfWord` span for any explicit empty-word seed. -/
+theorem routeBPaperFaithfulTPhi_strictSource_NFOfWordGeneratorBasis_span_le_seededNFOfWordGeneratorBasis
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n))
+    (emptyBasis :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+          Finset (MvPolynomial (Fin (n / 3)) ℚ))
+    (letterBasis :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        { g : RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns (Nat.log 2 n)) //
+          g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+            M n hn2 htb hns (Nat.log 2 n) } →
+          Finset (MvPolynomial (Fin (n / 3)) ℚ))
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3))) :
+    Submodule.span ℚ
+        (↑(routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          ρ letterBasis d) : Set (MvPolynomial (Fin (n / 3)) ℚ)) ≤
+      Submodule.span ℚ
+        (↑(routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordSeededGeneratorLetterBasis
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          ρ emptyBasis letterBasis d) : Set (MvPolynomial (Fin (n / 3)) ℚ)) := by
+  classical
+  unfold routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis
+  unfold routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordSeededGeneratorLetterBasis
+  exact routeBPaperFaithfulTPhi_span_attachFoldedUnion_le_seededAttachFoldedUnion
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+      M n hn2 htb hns d)
+    (emptyBasis ρ)
+    (fun g =>
+      letterBasis ρ
+        ⟨g.1,
+          routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+            M n hn2 htb hns d g.1 g.2⟩)
+
+/-- Promote existing exact `NFOfWord` generator-basis maps into the seeded-span
+surface by explicitly adding an empty-word seed.  The row proof is transported
+from the old witnessed-letter span into the larger seeded witnessed span; the
+seed remains visible and separately budgeted. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordSeededGeneratorBasisSpanMaps_of_generatorBasisMaps_and_emptySeed
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBudgetedGeneratorBasisMaps
+      M n hn2 htb hns)
+    (emptyBasis :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        Finset (MvPolynomial (Fin (n / 3)) ℚ))
+    (hseededCard :
+      ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+            ConstraintType (Nat.log 2 n))
+        (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+          List (Fin (n / 3))),
+        (routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordSeededGeneratorLetterBasis
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          ρ emptyBasis D.sourceGeneratorLetterBasis d).card ≤ D.sourceLocalDim ρ)
+    (hseededBudget :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        (Fintype.card
+            { g : RouteBPaperFaithfulTPhiFiniteEnd
+                (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+                  M n hn2 htb hns (Nat.log 2 n)) //
+              g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+                M n hn2 htb hns (Nat.log 2 n) } + 1) *
+            D.sourceLocalDim ρ ≤
+          withinProfileBound (Nat.log 2 n)) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordSeededGeneratorBasisSpanMaps
+      M n hn2 htb hns where
+  toRouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBudgetedLocalBasisMaps :=
+    D.toRouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBudgetedLocalBasisMaps
+  sourceEmptyWordBasis := emptyBasis
+  sourceSeededNFOfWordGeneratorBasis_card_le := hseededCard
+  sourceSeededProfileGeneratorBudget_le := hseededBudget
+  leibnizTraceWord_mem_seededNFOfWordGeneratorBasis := by
+    intro ρ S' hS shift hshift d hd_elts hlen
+    exact
+      (routeBPaperFaithfulTPhi_strictSource_NFOfWordGeneratorBasis_span_le_seededNFOfWordGeneratorBasis
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+        ρ emptyBasis D.sourceGeneratorLetterBasis d)
+        (D.leibnizTraceWord_mem_NFOfWordGeneratorBasis
+          ρ S' hS shift hshift d hd_elts hlen)
 
 /-- Constructor for the final seeded-span transfer maps from atomic
 paper-faithful obligations.
