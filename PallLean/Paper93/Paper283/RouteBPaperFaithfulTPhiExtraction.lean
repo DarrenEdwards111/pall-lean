@@ -9367,6 +9367,62 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLett
           routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
             M n hn2 htb hns d g.1 g.2⟩ ∪ acc) ∅
 
+/-- Budgeted witnessed local-basis maps with the exact generator-word row
+payload exposed at the `NFOfWord` surface.
+
+This is deliberately stronger than a local-type membership certificate but still
+paper-faithful: it asks for the Cook--Levin row in the span of the basis folded
+along the exact generator-word shortlex normal form, together with the generator
+alphabet budget needed downstream.  It does not pass through a common span,
+histogram, or total finite-monoid normal form. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBudgetedGeneratorBasisMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) extends
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBudgetedLocalBasisMaps
+      M n hn2 htb hns where
+  sourceNFOfWordGeneratorBasis_card_le :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3))),
+        (routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          ρ sourceGeneratorLetterBasis d).card ≤ sourceLocalDim ρ
+  sourceProfileGeneratorBudget_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      Fintype.card
+          { g : RouteBPaperFaithfulTPhiFiniteEnd
+              (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+                M n hn2 htb hns (Nat.log 2 n)) //
+            g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+              M n hn2 htb hns (Nat.log 2 n) } *
+          sourceLocalDim ρ ≤
+        withinProfileBound (Nat.log 2 n)
+  leibnizTraceWord_mem_NFOfWordGeneratorBasis :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        mlProj
+            (shift *
+              Finset.univ.prod
+                (fun i =>
+                  SPDP.iterDerivList (d i)
+                    ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                      M n hn2 htb hns) i))) ∈
+          Submodule.span ℚ
+            (↑(routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis
+              (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+              ρ sourceGeneratorLetterBasis d) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ))
+
 /-- Atomic row membership extracted from witnessed `NFOfWord` local-basis maps.
 
 This is the paper-faithful Cook--Levin local-basis membership statement with no
@@ -9537,6 +9593,25 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordGeneratorBa
               (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
               ρ sourceGeneratorLetterBasis d) :
               Set (MvPolynomial (Fin (n / 3)) ℚ))
+
+/-- Promote the budgeted witnessed `NFOfWord` generator-basis maps to the
+standalone generator-basis data consumed by the downstream route.  This adapter
+forgets the local-type scaffolding only after the exact generator-word row
+membership and budgets have been exposed explicitly. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordGeneratorBasisData_of_budgetedGeneratorBasisMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBudgetedGeneratorBasisMaps
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordGeneratorBasisData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceLocalDim := D.sourceLocalDim
+  sourceGeneratorLetterBasis := D.sourceGeneratorLetterBasis
+  sourceNFOfWordGeneratorBasis_card_le := D.sourceNFOfWordGeneratorBasis_card_le
+  sourceProfileSymmetricPowerBudget_le := D.sourceProfileGeneratorBudget_le
+  leibnizTraceWord_mem_NFOfWordGeneratorBasis :=
+    D.leibnizTraceWord_mem_NFOfWordGeneratorBasis
 
 /-- Extend a generator-letter basis to arbitrary finite-endomorphism labels by
 returning the empty basis on non-generator labels.
