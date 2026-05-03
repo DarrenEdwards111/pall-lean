@@ -1844,6 +1844,24 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceW
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
+/-- Final close-out from the explicit bounded-word `NFOfWord` payload.
+
+This fixes the local type alphabet to the actual bounded concrete generator
+words `Σ^{≤q}` before passing to the max-card final surface. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordBoundedWordFinalMaps
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBoundedWordFinalMaps
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordMaxCardFinalMaps
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordMaxCardFinalMaps_of_boundedWordFinalMaps
+        M n hn2 htb hns
+        (hdata M n hn hn2 htb hns hdec))
+
 /-- Final paper-shaped close-out from source local-type compression data
 for strict `TΦ`.
 
