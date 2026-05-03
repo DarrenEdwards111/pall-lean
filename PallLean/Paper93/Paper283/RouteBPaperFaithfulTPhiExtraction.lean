@@ -9512,6 +9512,20 @@ theorem routeBPaperFaithfulTPhi_mem_attachFoldedUnion_of_mem
     x ∈ w.attach.foldr (fun g acc => B g ∪ acc) ∅ := by
   exact routeBPaperFaithfulTPhi_mem_foldedUnion_of_mem (w.attach) B (by simp) hx
 
+/-- If a row belongs to one certified attached-letter basis, it belongs to the
+span of the entire attached folded-word basis.
+
+This is the exact insertion step needed by the `NFOfWord` generator-letter
+route: prove the Cook--Levin row in one concrete certified local component, then
+inject it into the full folded basis without any common/global span. -/
+theorem routeBPaperFaithfulTPhi_span_attachFoldedUnion_mem_of_mem
+    {α V : Type} [DecidableEq V] [AddCommMonoid V] [Module ℚ V]
+    (w : List α) (B : {g : α // g ∈ w} → Finset V)
+    (g : {g : α // g ∈ w}) {x : V} (hx : x ∈ B g) :
+    x ∈ Submodule.span ℚ (↑(w.attach.foldr (fun g acc => B g ∪ acc) ∅) : Set V) := by
+  exact Submodule.subset_span
+    (routeBPaperFaithfulTPhi_mem_attachFoldedUnion_of_mem w B g hx)
+
 /-- Attached folded word bases span a target submodule once every attached
 letter basis lies in that target.
 
