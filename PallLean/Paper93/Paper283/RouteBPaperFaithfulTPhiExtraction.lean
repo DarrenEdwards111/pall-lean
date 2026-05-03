@@ -9747,6 +9747,92 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBudgetedGen
               ρ sourceGeneratorLetterBasis d) :
               Set (MvPolynomial (Fin (n / 3)) ℚ))
 
+/-- Single-letter form of the witnessed `NFOfWord` generator-basis payload.
+
+This is a sharper proof-facing interface than the folded-span field: it asks the
+Cook--Levin row to be proved in one concrete certified generator-letter local
+basis belonging to the witnessed `NFOfWord`.  The adapter below injects that row
+into the full folded-word span using `routeBPaperFaithfulTPhi_span_attachFoldedUnion_mem_of_mem`.
+This keeps the final payload local and paper-faithful rather than hiding it in a
+common/global span. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordSingleLetterGeneratorBasisMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) extends
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBudgetedLocalBasisMaps
+      M n hn2 htb hns where
+  sourceNFOfWordGeneratorBasis_card_le :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3))),
+        (routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          ρ sourceGeneratorLetterBasis d).card ≤ sourceLocalDim ρ
+  sourceProfileGeneratorBudget_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      Fintype.card
+          { g : RouteBPaperFaithfulTPhiFiniteEnd
+              (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+                M n hn2 htb hns (Nat.log 2 n)) //
+            g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+              M n hn2 htb hns (Nat.log 2 n) } *
+          sourceLocalDim ρ ≤
+        withinProfileBound (Nat.log 2 n)
+  leibnizTraceWord_mem_singleNFOfWordGeneratorLetter :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        ∃ g : RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns (Nat.log 2 n)),
+          ∃ hg : g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+              M n hn2 htb hns d,
+            mlProj
+                (shift *
+                  Finset.univ.prod
+                    (fun i =>
+                      SPDP.iterDerivList (d i)
+                        ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                          M n hn2 htb hns) i))) ∈
+              sourceGeneratorLetterBasis ρ
+                ⟨g,
+                  routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+                    M n hn2 htb hns d g hg⟩
+
+/-- A single certified generator-letter row proof supplies the folded
+`NFOfWord` generator-basis maps expected by the downstream route. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordBudgetedGeneratorBasisMaps_of_singleLetterGeneratorBasisMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordSingleLetterGeneratorBasisMaps
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBudgetedGeneratorBasisMaps
+      M n hn2 htb hns where
+  toRouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBudgetedLocalBasisMaps :=
+    D.toRouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBudgetedLocalBasisMaps
+  sourceNFOfWordGeneratorBasis_card_le := D.sourceNFOfWordGeneratorBasis_card_le
+  sourceProfileGeneratorBudget_le := D.sourceProfileGeneratorBudget_le
+  leibnizTraceWord_mem_NFOfWordGeneratorBasis := by
+    intro ρ S' hS shift hshift d hd_elts hlen
+    rcases D.leibnizTraceWord_mem_singleNFOfWordGeneratorLetter
+      ρ S' hS shift hshift d hd_elts hlen with ⟨g, hg, hrow⟩
+    exact routeBPaperFaithfulTPhi_span_attachFoldedUnion_mem_of_mem
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+        M n hn2 htb hns d)
+      (fun y => D.sourceGeneratorLetterBasis ρ
+        ⟨y.1,
+          routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+            M n hn2 htb hns d y.1 y.2⟩)
+      ⟨g, hg⟩ hrow
+
 /-- Atomic row membership extracted from witnessed `NFOfWord` local-basis maps.
 
 This is the paper-faithful Cook--Levin local-basis membership statement with no
