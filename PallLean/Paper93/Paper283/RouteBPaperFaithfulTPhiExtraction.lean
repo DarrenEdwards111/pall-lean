@@ -9956,6 +9956,110 @@ theorem routeBPaperFaithfulTPhi_strictSourceTotalNormalFormGeneratorLetterBasis_
   · simpa [hgen] using hletter ⟨g, hgen⟩
   · simp [hgen]
 
+/-- Uniform total-normal-form compatibility budget using the finite-endomorphism
+normal-form length bound.
+
+This is the explicit arithmetic form needed by the transfer-data layer: the
+legacy total `NF` basis is bounded by `(card finiteEnd + 1)` times the certified
+per-generator-letter budget. -/
+theorem routeBPaperFaithfulTPhi_strictSourceTotalNormalFormGeneratorLetterBasis_card_le_finiteEnd_mul
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n))
+    (letterBasis :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        { g : RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns (Nat.log 2 n)) //
+          g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+            M n hn2 htb hns (Nat.log 2 n) } →
+          Finset (MvPolynomial (Fin (n / 3)) ℚ))
+    (C : ℕ)
+    (hletter : ∀ g, (letterBasis ρ g).card ≤ C)
+    (ν : RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns (Nat.log 2 n))) :
+    (routeBPaperFaithfulTPhi_strictSourceTraceNormalFormLetterBasis
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+      ρ
+      (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisAsTotal
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+        letterBasis)
+      ν).card ≤
+      (Fintype.card (RouteBPaperFaithfulTPhiFiniteEnd
+        (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+          M n hn2 htb hns (Nat.log 2 n))) + 1) * C := by
+  classical
+  have hcard :=
+    routeBPaperFaithfulTPhi_strictSourceTotalNormalFormGeneratorLetterBasis_card_le_length_mul
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+      ρ letterBasis C hletter ν
+  have hlen :
+      (PallLean.Paper93.NF
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+          M n hn2 htb hns (Nat.log 2 n)) ν).length ≤
+        Fintype.card (RouteBPaperFaithfulTPhiFiniteEnd
+          (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+            M n hn2 htb hns (Nat.log 2 n))) + 1 := by
+    unfold PallLean.Paper93.NF
+    have hmem : PallLean.Paper93.pickShortlex
+          (PallLean.Paper93.repCandidates
+            (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+              M n hn2 htb hns (Nat.log 2 n)) ν) ∈
+        PallLean.Paper93.repCandidates
+          (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+            M n hn2 htb hns (Nat.log 2 n)) ν :=
+      PallLean.Paper93.pickShortlex_mem _
+        (PallLean.Paper93.repCandidates_ne_nil
+          (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+            M n hn2 htb hns (Nat.log 2 n)) ν)
+    exact PallLean.Paper93.repCandidates_length_le
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns (Nat.log 2 n)) ν _ hmem
+  exact hcard.trans (Nat.mul_le_mul_right C hlen)
+
+/-- Discharge form for the total-normal-form compatibility basis budget using
+the uniform finite-endomorphism length bound. -/
+theorem routeBPaperFaithfulTPhi_strictSourceTotalNormalFormGeneratorLetterBasis_card_le_of_finiteEnd_budget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n))
+    (letterBasis :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        { g : RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns (Nat.log 2 n)) //
+          g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+            M n hn2 htb hns (Nat.log 2 n) } →
+          Finset (MvPolynomial (Fin (n / 3)) ℚ))
+    (sourceLocalDim :
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n) → ℕ)
+    (C : ℕ)
+    (hletter : ∀ g, (letterBasis ρ g).card ≤ C)
+    (ν : RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns (Nat.log 2 n)))
+    (hbudget :
+      (Fintype.card (RouteBPaperFaithfulTPhiFiniteEnd
+        (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+          M n hn2 htb hns (Nat.log 2 n))) + 1) * C ≤ sourceLocalDim ρ) :
+    (routeBPaperFaithfulTPhi_strictSourceTraceNormalFormLetterBasis
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+      ρ
+      (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisAsTotal
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+        letterBasis)
+      ν).card ≤ sourceLocalDim ρ := by
+  exact
+    (routeBPaperFaithfulTPhi_strictSourceTotalNormalFormGeneratorLetterBasis_card_le_finiteEnd_mul
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+      ρ letterBasis C hletter ν).trans hbudget
+
 /-- Discharge form for the total-normal-form compatibility basis budget:
 if the total normal-form length times the certified per-letter budget fits in
 `sourceLocalDim ρ`, then the total-normal-form folded basis has that dimension
