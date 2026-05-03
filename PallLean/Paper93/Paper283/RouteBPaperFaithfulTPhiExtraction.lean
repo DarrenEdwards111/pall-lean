@@ -9403,6 +9403,44 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordLetterBasis
     (fun g acc => letterBasis ρ g ∪ acc) ∅
 
 
+/-- Cardinality of a word-folded union is bounded by word length times a
+uniform per-letter budget.  This is the arithmetic core behind the later
+`NFOfWord` generator-letter basis bounds; it counts the actual word letters and
+never replaces the basis family by a common ambient span. -/
+theorem routeBPaperFaithfulTPhi_foldedUnion_card_le_length_mul
+    {α β : Type} [DecidableEq β]
+    (w : List α) (B : α → Finset β) (C : ℕ)
+    (hB : ∀ g ∈ w, (B g).card ≤ C) :
+    (w.foldr (fun g acc => B g ∪ acc) ∅).card ≤ w.length * C := by
+  induction w with
+  | nil => simp
+  | cons g rest ih =>
+      have hg : (B g).card ≤ C := hB g (by simp)
+      have hrest : ∀ x ∈ rest, (B x).card ≤ C := by
+        intro x hx
+        exact hB x (by simp [hx])
+      have hih := ih hrest
+      calc
+        (List.foldr (fun g acc => B g ∪ acc) ∅ (g :: rest)).card
+            = (B g ∪ rest.foldr (fun g acc => B g ∪ acc) ∅).card := by simp
+        _ ≤ (B g).card + (rest.foldr (fun g acc => B g ∪ acc) ∅).card :=
+          Finset.card_union_le _ _
+        _ ≤ C + rest.length * C := Nat.add_le_add hg hih
+        _ = (g :: rest).length * C := by simp [Nat.succ_mul, Nat.add_comm]
+
+/-- Attached version of `routeBPaperFaithfulTPhi_foldedUnion_card_le_length_mul`.
+This is the form used by `NFOfWord` bases: the fold ranges over word letters
+paired with their membership proof, so each local basis can depend on the
+certificate that the letter came from the witnessed word. -/
+theorem routeBPaperFaithfulTPhi_attachFoldedUnion_card_le_length_mul
+    {α β : Type} [DecidableEq β]
+    (w : List α) (B : {g : α // g ∈ w} → Finset β) (C : ℕ)
+    (hB : ∀ g, (B g).card ≤ C) :
+    (w.attach.foldr (fun g acc => B g ∪ acc) ∅).card ≤ w.length * C := by
+  simpa [List.length_attach] using
+    (routeBPaperFaithfulTPhi_foldedUnion_card_le_length_mul
+      (w.attach) B C (by intro g _hg; exact hB g))
+
 /-- Basis assembled along the generator-word normal form, where every basis
 lookup receives a certified generator letter.  This is the paper's local
 `Σ`-letter interface: the basis cannot be indexed by an arbitrary monoid
@@ -9432,6 +9470,126 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLett
         ⟨g.1,
           routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
             M n hn2 htb hns d g.1 g.2⟩ ∪ acc) ∅
+
+/-- The exact generator-letter `NFOfWord` basis inherits a length-times-budget
+cardinality bound from uniform per-letter budgets.  This is deliberately stated
+before the downstream `sourceLocalDim` field: the only compression used here is
+counting the actual witnessed normal-form letters. -/
+theorem routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis_card_le_length_mul
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n))
+    (letterBasis :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        { g : RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns (Nat.log 2 n)) //
+          g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+            M n hn2 htb hns (Nat.log 2 n) } →
+          Finset (MvPolynomial (Fin (n / 3)) ℚ))
+    (C : ℕ)
+    (hletter : ∀ g, (letterBasis ρ g).card ≤ C)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3))) :
+    (routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+      ρ letterBasis d).card ≤
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+        M n hn2 htb hns d).length * C := by
+  classical
+  unfold routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis
+  exact routeBPaperFaithfulTPhi_attachFoldedUnion_card_le_length_mul
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+      M n hn2 htb hns d)
+    (fun g =>
+      letterBasis ρ
+        ⟨g.1,
+          routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+            M n hn2 htb hns d g.1 g.2⟩)
+    C
+    (by intro g; exact hletter _)
+
+/-- Cardinality bound for the exact `NFOfWord` generator-letter basis using the
+already-proved witnessed-word length accounting.  The right-hand side is the
+paper-faithful budget quantity: the larger of the derivative-distribution length
+and the finite generated-search radius, times the per-letter basis budget. -/
+theorem routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis_card_le_max_mul
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n))
+    (letterBasis :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        { g : RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns (Nat.log 2 n)) //
+          g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+            M n hn2 htb hns (Nat.log 2 n) } →
+          Finset (MvPolynomial (Fin (n / 3)) ℚ))
+    (C : ℕ)
+    (hletter : ∀ g, (letterBasis ρ g).card ≤ C)
+    (S' : List (Fin (n / 3)))
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+        (d i).length ≤ S'.length) :
+    (routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+      ρ letterBasis d).card ≤
+      max S'.length
+        (Fintype.card (RouteBPaperFaithfulTPhiFiniteEnd
+          (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+            M n hn2 htb hns (Nat.log 2 n))) + 1) * C := by
+  classical
+  have hcard :=
+    routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis_card_le_length_mul
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+      ρ letterBasis C hletter d
+  have hlenNF :=
+    routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_length_le_max
+      M n hn2 htb hns S' d hlen
+  exact hcard.trans (Nat.mul_le_mul_right C hlenNF)
+
+/-- Discharge form for the `sourceNFOfWordGeneratorBasis_card_le` obligation:
+if the concrete per-letter bases have budget `C`, and the witnessed `NFOfWord`
+length times `C` fits inside the chosen local dimension, then the exact folded
+generator-letter basis has that local-dimension bound.  This keeps the future
+instantiation honest: all that remains is the Cook--Levin per-letter budget plus
+the explicit length/local-dimension arithmetic. -/
+theorem routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis_card_le_of_length_budget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n))
+    (letterBasis :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        { g : RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns (Nat.log 2 n)) //
+          g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+            M n hn2 htb hns (Nat.log 2 n) } →
+          Finset (MvPolynomial (Fin (n / 3)) ℚ))
+    (sourceLocalDim :
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n) → ℕ)
+    (C : ℕ)
+    (hletter : ∀ g, (letterBasis ρ g).card ≤ C)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (hbudget :
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+        M n hn2 htb hns d).length * C ≤ sourceLocalDim ρ) :
+    (routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+      ρ letterBasis d).card ≤ sourceLocalDim ρ := by
+  exact
+    (routeBPaperFaithfulTPhi_strictSourceTraceNFOfWordGeneratorLetterBasis_card_le_length_mul
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+      ρ letterBasis C hletter d).trans hbudget
 
 /-- Budgeted witnessed local-basis maps with the exact generator-word row
 payload exposed at the `NFOfWord` surface.
