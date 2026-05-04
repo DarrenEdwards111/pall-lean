@@ -14069,6 +14069,60 @@ theorem routeBPaperFaithfulTPhi_zeroProfileShiftMonomialImagesOn_subset_shiftedE
       (zeroProfileShiftSupportSetFamily (n / 3) (Nat.log 2 n))
   exact Finset.mem_image.mpr ⟨T, hTmem, rfl⟩
 
+/-- If the event word recovered from the witnessed normal form has the same
+per-factor derivative distribution as the paper distribution `d`, up to
+permutation inside each factor, then the paper shifted Leibniz row lies in the
+finite admissible shift-support basis for that branch.
+
+This is the faithful invariant: finite-end products and shortlex normal forms
+may change presentation order, while `iterDerivList` is permutation-invariant. -/
+theorem routeBPaperFaithfulTPhi_strictSource_leibnizWitness_mem_shiftedBranchSupportBasis_of_eventWordDistrib_perm
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (hshift : shift.vars ⊆ S'.toFinset)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (events : List (RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent
+      M n hn2 htb hns))
+    (hperm : ∀ i,
+      (routeBPaperFaithfulTPhi_strictSourceEventWordDistrib events i).Perm (d i)) :
+      mlProj
+          (shift *
+            Finset.univ.prod
+              (fun i =>
+                SPDP.iterDerivList (d i)
+                  ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                    M n hn2 htb hns) i))) ∈
+        Submodule.span ℚ
+          (↑(routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchSupportBasis
+            M n hn2 htb hns events) :
+            Set (MvPolynomial (Fin (n / 3)) ℚ)) := by
+  classical
+  have hfun :
+      (fun i : Fin ((cookLevinFactorList M n hn2 htb hns).length) =>
+        SPDP.iterDerivList (d i)
+          ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+            M n hn2 htb hns) i)) =
+      (fun i : Fin ((cookLevinFactorList M n hn2 htb hns).length) =>
+        SPDP.iterDerivList
+          (routeBPaperFaithfulTPhi_strictSourceEventWordDistrib events i)
+          ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+            M n hn2 htb hns) i)) := by
+    funext i
+    exact (IterDerivHelpers.iterDerivList_perm (hperm i).symm
+      ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+        M n hn2 htb hns) i))
+  rw [hfun]
+  have hmem := mlProj_mul_mem_span_shiftMonomialImagesOn_of_vars_subset
+    S'.toFinset shift
+    (routeBPaperFaithfulTPhi_strictSourceEventWordBranchProduct
+      M n hn2 htb hns events) hshift
+  exact (Submodule.span_mono
+    (routeBPaperFaithfulTPhi_zeroProfileShiftMonomialImagesOn_subset_shiftedEventWordBranchSupportBasis
+      M n hn2 htb hns events S'.toFinset ((List.toFinset_card_le S').trans hS))) hmem
+
 /-- If the event word recovered from the witnessed normal form has exactly the
 same per-factor derivative distribution as the paper distribution `d`, then the
 paper shifted Leibniz row lies in the finite admissible shift-support basis for
@@ -14147,7 +14201,7 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordShiftedBran
         M n hn2 htb hns) *
       zeroProfileShiftSupportSetCount (n / 3) (Nat.log 2 n) ≤
       withinProfileBound (Nat.log 2 n)
-  leibnizWitness_eventWordDistrib_eq :
+  leibnizWitness_eventWordDistrib_perm :
     ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
           ConstraintType (Nat.log 2 n))
       (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
@@ -14159,13 +14213,13 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordShiftedBran
       (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
           (d i).length ≤ S'.length)
       (i : Fin ((cookLevinFactorList M n hn2 htb hns).length)),
-      routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+      (routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
         (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
           M n hn2 htb hns
           (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
             M n hn2 htb hns d)
           (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
-            M n hn2 htb hns d)) i = d i
+            M n hn2 htb hns d)) i).Perm (d i)
 
 /-- Shifted branch-support local-type payload instantiates the witnessed
 `NFOfWord` local-type route. -/
@@ -14211,7 +14265,7 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordLo
     simpa [zeroProfileLocalTypeSpace,
       routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_of_witness_toList,
       routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_eventWord]
-      using routeBPaperFaithfulTPhi_strictSource_leibnizWitness_mem_shiftedBranchSupportBasis_of_eventWordDistrib_eq
+      using routeBPaperFaithfulTPhi_strictSource_leibnizWitness_mem_shiftedBranchSupportBasis_of_eventWordDistrib_perm
         M n hn2 htb hns S' hS shift hshift d
         (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
           M n hn2 htb hns
@@ -14219,7 +14273,7 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordLo
             M n hn2 htb hns d)
           (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
             M n hn2 htb hns d))
-        (D.leibnizWitness_eventWordDistrib_eq
+        (D.leibnizWitness_eventWordDistrib_perm
           ρ S' hS shift hshift d hd_elts hlen)
 
 /-- Singleton basis for one product-rule branch event word. -/
