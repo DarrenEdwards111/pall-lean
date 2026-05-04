@@ -9126,6 +9126,45 @@ theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_represents
         (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
           M n hn2 htb hns (Nat.log 2 n)) d)
 
+/-- The witnessed generator-word normal form is no longer than the original
+strict-source Leibniz transition word.  This is the shortlex fallback fact that
+prevents normal-form representatives from adding saturation-only junk beyond
+the actual product-rule witness length. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_length_le_witness
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3))) :
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+      M n hn2 htb hns d).length ≤
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+          M n hn2 htb hns (Nat.log 2 n)) d).length := by
+  simpa [routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord] using
+    PallLean.Paper93.NFOfWord_length_le_witness
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns (Nat.log 2 n))
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+          M n hn2 htb hns (Nat.log 2 n)) d)
+
+/-- Under the paper Leibniz witness length hypothesis, the witnessed
+`NFOfWord` also fits inside the trace window. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_length_le_window
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+        (d i).length ≤ S'.length) :
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+      M n hn2 htb hns d).length ≤ Nat.log 2 n := by
+  have hnf := routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_length_le_witness
+    M n hn2 htb hns d
+  rw [routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord_length] at hnf
+  exact hnf.trans (hlen.trans hS)
+
 /-- Length bound for the exact witnessed generator-word normal form.
 
 The bound is stated in terms of the concrete derivative distribution length

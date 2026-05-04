@@ -225,6 +225,44 @@ theorem foldr_shortlex_mem {M : Type} [Fintype M] [DecidableEq M] :
         · right
           exact List.mem_cons_of_mem _ hih
 
+/-- The shortlex fold never returns a word longer than its seed. -/
+theorem foldr_shortlex_length_le_seed {M : Type} [Fintype M] [DecidableEq M] :
+    ∀ (xs : List (List M)) (seed : List M),
+      (xs.foldr (fun w acc => if shortlexLE w acc then w else acc) seed).length ≤
+        seed.length := by
+  intro xs
+  induction xs with
+  | nil =>
+      intro seed
+      simp
+  | cons x xs ih =>
+      intro seed
+      simp only [List.foldr_cons]
+      let acc := xs.foldr (fun w acc => if shortlexLE w acc then w else acc) seed
+      by_cases h : shortlexLE x acc
+      · rw [if_pos h]
+        have hxacc : x.length ≤ acc.length := by
+          by_cases hlt : x.length < acc.length
+          · exact Nat.le_of_lt hlt
+          · by_cases hgt : x.length > acc.length
+            · have hfalse : shortlexLE x acc = false := by
+                simp [shortlexLE, hlt, hgt]
+              rw [hfalse] at h
+              contradiction
+            · exact Nat.le_of_not_gt hgt
+        exact hxacc.trans (by simpa [acc] using ih seed)
+      · rw [if_neg h]
+        exact ih seed
+
+/-- `pickShortlex` never returns a word longer than the head seed of a nonempty
+candidate list. -/
+theorem pickShortlex_length_le_head {M : Type} [Fintype M] [DecidableEq M]
+    (x : List M) (xs : List (List M)) :
+    (pickShortlex (x :: xs)).length ≤ x.length := by
+  unfold pickShortlex
+  simp only [List.headD_cons]
+  exact foldr_shortlex_length_le_seed (x :: xs) x
+
 /-- `pickShortlex` returns an element of its non-empty argument list. -/
 theorem pickShortlex_mem {M : Type} [Fintype M] [DecidableEq M]
     (cands : List (List M)) (hne : cands ≠ []) :
@@ -423,6 +461,15 @@ theorem NFOfWord_length_le_max {M : Type} [Monoid M] [Fintype M] [DecidableEq M]
           Fintype.card M + 1 :=
       length_of_mem_generatorWordsUpTo htail.1
     exact hle.trans (Nat.le_max_right _ _)
+
+/-- `NFOfWord` is no longer than its witnessed fallback word.  This is the
+shortlex-fallback fact used by faithful finite-trace routes: the normal form
+cannot introduce saturation-only junk past the witnessed word length. -/
+theorem NFOfWord_length_le_witness {M : Type} [Monoid M] [Fintype M] [DecidableEq M]
+    (generators : List M) (w : List M) :
+    (NFOfWord generators w).length ≤ w.length := by
+  unfold NFOfWord generatorRepCandidates
+  exact pickShortlex_length_le_head w _
 
 /-- `NFOfWord` represents the same monoid element as the witnessed word. -/
 theorem NFOfWord_represents {M : Type} [Monoid M] [Fintype M] [DecidableEq M]
