@@ -3142,6 +3142,39 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSource
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalTransitionMonoidData
       hdata)
 
+/-- Paper Route B close-out surface, named to match `p-vs-np1.pdf` Lemma 29,
+Lemma 31, Theorem 261/264, and Theorem 263.
+
+This is intentionally the transition-monoid/profile-compression route rather
+than the raw shifted-support enumeration route.  The input datum carries the
+paper's two load-bearing facts: normal-form preservation of the local action and
+the symmetric/profile budget
+`Fintype.card sourceNormalForm * sourceLocalDim ≤ withinProfileBound`.
+-/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_profileCompressionTransitionMonoid
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalTransitionMonoidData
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalTransitionMonoidData
+    hdata
+
+/-- Paper Route B no-decider close-out through the same profile-compressed
+transition-monoid surface.  This is the no-decider form of the theorem above. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_profileCompressionTransitionMonoid
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalTransitionMonoidData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalTransitionMonoidData
+    hdata
+
 /-- Rich-projection discharge from the concrete bounded-trace transition monoid
 for witnessed strict `TΦ` Leibniz words. -/
 theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizBoundedTraceMonoidData
@@ -3210,6 +3243,139 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSource
     CookLevinRichProjectionDischarge :=
   cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeCompressionData
+      hdata)
+
+/-- Paper Route B final local-algebra close-out in the most direct
+profile-compression form currently available.
+
+This uses the actual Lemma-31 selected-profile `V_h` route: each bounded
+Leibniz product term is classified into the selected interface-anonymous local
+type space, the finite Leibniz expansion assembles the row, and the existing
+profile/symmetric-power budget supplies the final P-side bound.  No raw
+shift-support enumeration is used. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizLocalTypeMaps
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceLeibnizLocalTypeMaps
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeMaps
+      hdata)
+
+/-- No-decider form of the paper Route B final local-algebra close-out. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizLocalTypeMaps
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceLeibnizLocalTypeMaps
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeMaps
+    hdata
+
+/-- Paper Route B close-out from the atomic per-profile Leibniz type-map
+family.
+
+This is the sharpest current payload surface: for each selected
+interface-anonymous profile `ρ`, provide its finite local type alphabet and a
+Leibniz-term type map.  The constructor in `RouteBPaperFaithfulTPhiExtraction`
+then builds `RouteBPaperFaithfulTPhiStrictSourceLeibnizLocalTypeMaps`, and the
+already checked final chain closes. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTypeMaps
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceLeibnizTypeMapFamily
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizLocalTypeMaps
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeMaps_of_leibnizTypeMapFamily
+        M n hn2 htb hns (hdata M n hn hn2 htb hns hdec))
+
+/-- No-decider form of the atomic per-profile Leibniz type-map close-out. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTypeMaps
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceLeibnizTypeMapFamily
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizLocalTypeMaps
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeMaps_of_leibnizTypeMapFamily
+        M n hn2 htb hns (hdata M n hn hn2 htb hns hdec))
+
+/-- Paper Route B close-out from the term-dependent selected local-type family.
+
+This is the faithful atomic surface for Lemma 31: every bounded Leibniz summand
+is assigned its own selected profile-local type before the finite Leibniz
+expansion is assembled.  It is therefore strictly closer to the paper than the
+uniform-row type-map package above. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTermTypeFamily
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceLeibnizTermTypeFamily
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizLocalTypeMaps
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeMaps_of_leibnizTermTypeFamily
+        M n hn2 htb hns (hdata M n hn hn2 htb hns hdec))
+
+/-- No-decider form of the term-dependent selected local-type-family close-out. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTermTypeFamily
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceLeibnizTermTypeFamily
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizLocalTypeMaps
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeMaps_of_leibnizTermTypeFamily
+        M n hn2 htb hns (hdata M n hn hn2 htb hns hdec))
+
+/-- Paper Route B close-out from witnessed product-rule Leibniz local words via
+the term-dependent selected local-type-family surface.
+
+This explicitly factors the witnessed `d`-word route through the newer
+term-family interface, so the final chain remains tied to the actual Leibniz
+distribution witnesses rather than to support enumeration or any common-span
+replacement. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTermTypeFamily_of_witnessedLocalTypeMaps
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalTypeMaps
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTermTypeFamily
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictSourceLeibnizTermTypeFamily_of_witnessedLeibnizLocalTypeMaps
+        M n hn2 htb hns (hdata M n hn hn2 htb hns hdec))
+
+/-- Rich-projection form of the witnessed-word-to-term-family close-out. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTermTypeFamily_of_witnessedLocalTypeMaps
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalTypeMaps
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTermTypeFamily_of_witnessedLocalTypeMaps
       hdata)
 
 /-- Rich-projection discharge from source local-type compression data for
@@ -3747,6 +3913,13 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitProfile_rangeRows
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictRangeRowProfileCoverData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizLocalTypeMaps
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTypeMaps
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTermTypeFamily
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTypeMaps
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTermTypeFamily
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalTransitionMonoidData
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_profileCompressionTransitionMonoid
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_restrictedRowIdentity_projectedCommonSpan
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_quotientTypeCertificate_restrictedResidualBalance
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_quotientTypeNormalFormObligation_restrictedResidualBalance
@@ -3788,6 +3961,10 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitProfile_rangeRows
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictRangeRowProfileCoverData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizLocalTypeMaps
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTermTypeFamily
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalTransitionMonoidData
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_profileCompressionTransitionMonoid
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_restrictedRowIdentity_projectedCommonSpan
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_quotientTypeCertificate_restrictedResidualBalance
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_quotientTypeNormalFormObligation_restrictedResidualBalance

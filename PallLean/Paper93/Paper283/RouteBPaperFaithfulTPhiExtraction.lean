@@ -8531,6 +8531,163 @@ structure RouteBPaperFaithfulTPhiStrictSourceLeibnizLocalTypeMaps
           zeroProfileLocalTypeSpace (sourceAlphabet ρ)
             (leibnizTermType ρ S' hS shift hshift g hg)
 
+/-- Profile-wise Leibniz type maps instantiate the concrete profile-wise
+Leibniz local-type map surface.
+
+This is only a repackaging of the exact selected-profile local algebra: each
+profile supplies a paper §9 local type alphabet and a Leibniz-term type map for
+that alphabet.  It does not pass through raw shifted-support enumeration, a
+single derivative-count histogram, or an ambient common span. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeMaps_of_leibnizTypeMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (profileOfCanonicalWindow :
+      ∀ w : PallLean.Paper93.Window
+          (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+          RouteBPaperFaithfulTPhiStrictLocalOp
+          (Nat.log 2 n),
+        (by
+          letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+          exact
+            PallLean.Paper93.IsCanonical
+              (κ := Nat.log 2 n)
+              (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+        RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+    (sourceAlphabet :
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n) →
+        ZeroProfileLocalTypeAlphabet (n / 3) (Nat.log 2 n))
+    (leibnizMap :
+      ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n),
+        RouteBPaperFaithfulTPhiStrictSourceLeibnizTypeMap
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          (sourceAlphabet ρ)) :
+    RouteBPaperFaithfulTPhiStrictSourceLeibnizLocalTypeMaps
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := profileOfCanonicalWindow
+  sourceAlphabet := sourceAlphabet
+  leibnizTermType := by
+    intro ρ S' hS shift hshift g hg
+    exact (leibnizMap ρ).rowType S' hS shift hshift
+  leibnizTerm_mem_typeSpace := by
+    intro ρ S' hS shift hshift g hg
+    exact (leibnizMap ρ).leibnizTerm_mem_typeSpace S' hS shift hshift g hg
+
+/-- Atomic paper Route B payload: a selected-profile family of Leibniz type maps.
+
+This is a `Type`-valued package rather than an existential `Prop`, because it
+contains concrete finite alphabets and type-map data.  It is exactly the data
+needed to instantiate `RouteBPaperFaithfulTPhiStrictSourceLeibnizLocalTypeMaps`
+without drifting to support enumeration or common-span shortcuts. -/
+structure RouteBPaperFaithfulTPhiStrictSourceLeibnizTypeMapFamily
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceAlphabet :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) →
+      ZeroProfileLocalTypeAlphabet (n / 3) (Nat.log 2 n)
+  leibnizMap :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      RouteBPaperFaithfulTPhiStrictSourceLeibnizTypeMap
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+        (sourceAlphabet ρ)
+
+/-- Unpack the atomic type-map family into the existing local-type-map surface. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeMaps_of_leibnizTypeMapFamily
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (F : RouteBPaperFaithfulTPhiStrictSourceLeibnizTypeMapFamily
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceLeibnizLocalTypeMaps
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeMaps_of_leibnizTypeMaps
+    M n hn2 htb hns F.profileOfCanonicalWindow F.sourceAlphabet F.leibnizMap
+
+/-- Atomic paper Route B payload with term-dependent selected local types.
+
+This is the faithful Lemma-31 surface: for each selected interface-anonymous
+profile, each bounded Leibniz product term may choose its own local type in the
+profile's finite alphabet.  That matches the paper's local-normal-form/type
+classification before the finite Leibniz expansion is assembled.  In
+particular, this does **not** force all summands of a derivative row into one
+uniform type and does not collapse them to a shifted-support set or a single
+histogram. -/
+structure RouteBPaperFaithfulTPhiStrictSourceLeibnizTermTypeFamily
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceAlphabet :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) →
+      ZeroProfileLocalTypeAlphabet (n / 3) (Nat.log 2 n)
+  leibnizTermType :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (g : MvPolynomial (Fin (n / 3)) ℚ),
+        g ∈ boundedDistribDerivProds Finset.univ
+            (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+              M n hn2 htb hns) S' S'.length →
+        (sourceAlphabet ρ).type
+  leibnizTerm_mem_typeSpace :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (g : MvPolynomial (Fin (n / 3)) ℚ)
+      (hg :
+        g ∈ boundedDistribDerivProds Finset.univ
+            (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+              M n hn2 htb hns) S' S'.length),
+        mlProj (shift * g) ∈
+          zeroProfileLocalTypeSpace (sourceAlphabet ρ)
+            (leibnizTermType ρ S' hS shift hshift g hg)
+
+/-- Unpack the term-dependent selected local-type family into the existing
+local-type-map surface.  This is pure field projection; no mathematical content
+is weakened or hidden. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeMaps_of_leibnizTermTypeFamily
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (F : RouteBPaperFaithfulTPhiStrictSourceLeibnizTermTypeFamily
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceLeibnizLocalTypeMaps
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := F.profileOfCanonicalWindow
+  sourceAlphabet := F.sourceAlphabet
+  leibnizTermType := F.leibnizTermType
+  leibnizTerm_mem_typeSpace := F.leibnizTerm_mem_typeSpace
 
 /-- Witness-level profile-wise Leibniz local-type maps for strict `TΦ`.
 
@@ -13563,6 +13720,24 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordMaxCardFina
             Set (MvPolynomial (Fin (n / 3)) ℚ))
 
 set_option maxHeartbeats 1000000
+/-- A strict-source trace generator carries an explicit concrete append-event
+witness because the generator list is exactly the image of the Cook--Levin
+factor/coordinate event alphabet. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerator_event_exists
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (κ : ℕ)
+    (g : { g : RouteBPaperFaithfulTPhiFiniteEnd
+          (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+            M n hn2 htb hns κ) //
+        g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+          M n hn2 htb hns κ }) :
+    ∃ e : RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns,
+      routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend (κ := κ) e = g.1 := by
+  classical
+  rcases g with ⟨g, hg⟩
+  unfold routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators at hg
+  simpa only [List.mem_map, Finset.mem_toList, Finset.mem_univ, true_and] using hg
+
 /-- Recover the concrete append event witnessing membership of a strict-source
 trace generator in the generator list. -/
 noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceGenerator
@@ -13573,11 +13748,59 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceGener
             M n hn2 htb hns κ) //
         g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
           M n hn2 htb hns κ }) :
-    RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns := by
+    RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns :=
+  Classical.choose
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerator_event_exists
+      M n hn2 htb hns κ g)
+
+/-- The event decoded from a concrete trace generator is a genuine witness for
+that generator.  This keeps the decoding tied to the certified generator-list
+membership, rather than introducing a separate/global alphabet. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceGenerator_spec
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (κ : ℕ)
+    (g : { g : RouteBPaperFaithfulTPhiFiniteEnd
+          (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+            M n hn2 htb hns κ) //
+        g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+          M n hn2 htb hns κ }) :
+    routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend
+        (κ := κ)
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceGenerator
+          M n hn2 htb hns κ g) = g.1 :=
+  Classical.choose_spec
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerator_event_exists
+      M n hn2 htb hns κ g)
+
+/-- Decoding a concrete factor/coordinate trace step recovers the same event.
+
+This is the point where the finite-trace representation is used faithfully: the
+membership proof in the generator list is unpacked, and append-injectivity reads
+back the unique event from the first free trace slot. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceStep
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hlog : 0 < Nat.log 2 n)
+    (i : Fin ((cookLevinFactorList M n hn2 htb hns).length))
+    (v : Fin (n / 3)) :
+    routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceGenerator
+      M n hn2 htb hns (Nat.log 2 n)
+      ⟨routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+          M n hn2 htb hns (Nat.log 2 n) i v,
+        routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep_mem_generators
+          M n hn2 htb hns (Nat.log 2 n) i v⟩ =
+      ({ factor := i, coord := v } :
+        RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns) := by
   classical
-  unfold routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators at g
-  simp only [List.mem_map, Finset.mem_toList, Finset.mem_univ, true_and] at g
-  exact Classical.choose g.2
+  apply routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend_injective
+    M n hn2 htb hns (Nat.log 2 n) hlog
+  simpa [routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep] using
+    routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceGenerator_spec
+      M n hn2 htb hns (Nat.log 2 n)
+      ⟨routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+          M n hn2 htb hns (Nat.log 2 n) i v,
+        routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep_mem_generators
+          M n hn2 htb hns (Nat.log 2 n) i v⟩
 
 /-- Event-indexed local bases induce generator-letter bases by unpacking the
 certified append-event witness for each concrete trace generator.
@@ -15343,6 +15566,46 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeMaps_of_wi
     (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalTypeMaps
       M n hn2 htb hns) :
     RouteBPaperFaithfulTPhiStrictSourceLeibnizLocalTypeMaps
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceAlphabet := D.sourceAlphabet
+  leibnizTermType := by
+    intro ρ S' hS shift hshift g hg
+    let d := Classical.choose hg
+    have hspec := Classical.choose_spec hg
+    have hlen' :
+        ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length := by
+      simpa [d] using hspec.2.2
+    exact D.leibnizWitnessType ρ S' hS shift hshift d hspec.1 hlen'
+  leibnizTerm_mem_typeSpace := by
+    intro ρ S' hS shift hshift g hg
+    let d := Classical.choose hg
+    have hspec := Classical.choose_spec hg
+    have hlen' :
+        ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length := by
+      simpa [d] using hspec.2.2
+    change mlProj (shift * g) ∈
+      zeroProfileLocalTypeSpace (D.sourceAlphabet ρ)
+        (D.leibnizWitnessType ρ S' hS shift hshift d hspec.1 hlen')
+    simpa [hspec.2.1] using
+      D.leibnizWitness_mem_typeSpace ρ S' hS shift hshift d hspec.1 hlen'
+
+/-- Selecting the bounded-distribution witness in `hg` also gives the newer
+term-dependent selected local-type family.
+
+This is the paper-faithful bridge from the product-rule witness surface to the
+atomic Lemma-31 term-family surface: the local type is chosen from the actual
+Leibniz distribution witness for the term `g`.  The construction is pure
+witness unpacking; it does not replace the local word by a shifted-support set,
+a derivative-count histogram, or a global/common span. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizTermTypeFamily_of_witnessedLeibnizLocalTypeMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalTypeMaps
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceLeibnizTermTypeFamily
       M n hn2 htb hns where
   profileOfCanonicalWindow := D.profileOfCanonicalWindow
   sourceAlphabet := D.sourceAlphabet
