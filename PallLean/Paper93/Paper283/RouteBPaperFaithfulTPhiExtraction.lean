@@ -14004,6 +14004,129 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQF
               Set (MvPolynomial (Fin (n / 3)) ℚ)) :
             Set (MvPolynomial (Fin (n / 3)) ℚ))
 
+/-- Event-atom final payload with the local dimension fixed to the actual
+bounded-word length `q`.
+
+Since each event atom basis is a singleton and every witnessed bounded word has
+length at most `q`, the atom-cardinality budget is no longer a separate field. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceBoundedWordProfileBudget_le :
+    Fintype.card (RouteBPaperFaithfulTPhiStrictSourceNFOfWordBoundedWord
+        M n hn2 htb hns) *
+      routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWordLengthBound
+        M n hn2 htb hns ≤
+        withinProfileBound (Nat.log 2 n)
+  leibnizWitness_mem_boundedNFOfWordAtomBasis :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        mlProj
+            (shift *
+              Finset.univ.prod
+                (fun i =>
+                  SPDP.iterDerivList (d i)
+                    ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                      M n hn2 htb hns) i))) ∈
+          Submodule.span ℚ
+            (↑(((routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+              M n hn2 htb hns d).attach.foldr
+              (fun g acc =>
+                routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasis_of_eventBasis
+                  (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+                  (routeBPaperFaithfulTPhi_strictSourceEventAtomLetterBasis
+                    M n hn2 htb hns) ρ
+                  ⟨g.1,
+                    routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+                      M n hn2 htb hns d g.1 g.2⟩ ∪ acc)
+              ∅) : Finset (MvPolynomial (Fin (n / 3)) ℚ)) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ))
+  sourceTotalFiniteEndBudget_le :
+    Fintype.card
+        (RouteBPaperFaithfulTPhiFiniteEnd
+          (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+            M n hn2 htb hns (Nat.log 2 n))) *
+        routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWordLengthBound
+          M n hn2 htb hns ≤
+      withinProfileBound (Nat.log 2 n)
+  nfOfWordAtomBasis_le_totalNormalFormBasis :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      g (hg : g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+          M n hn2 htb hns d),
+        ↑(routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasis_of_eventBasis
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          (routeBPaperFaithfulTPhi_strictSourceEventAtomLetterBasis
+            M n hn2 htb hns) ρ
+          ⟨g,
+            routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+              M n hn2 htb hns d g hg⟩) ⊆
+          (Submodule.span ℚ
+            (↑(routeBPaperFaithfulTPhi_strictSourceTraceNormalFormLetterBasis
+              (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+              ρ
+              (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasisAsTotal
+                (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+                (routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasis_of_eventBasis
+                  (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+                  (routeBPaperFaithfulTPhi_strictSourceEventAtomLetterBasis
+                    M n hn2 htb hns)))
+              ((PallLean.Paper93.NF
+                (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+                  M n hn2 htb hns (Nat.log 2 n))
+                ((routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+                  (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+                    M n hn2 htb hns (Nat.log 2 n)) d).prod)).prod)) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ)) :
+            Set (MvPolynomial (Fin (n / 3)) ℚ))
+
+/-- Fixed-`q` event-atom payload instantiates the preceding atom final surface. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQFinalMaps_of_qDimFinalMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQFinalMaps
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceLocalDim := fun _ =>
+    routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWordLengthBound
+      M n hn2 htb hns
+  sourceBoundedWordAtomBudget_le := by
+    intro ρ
+    rfl
+  sourceBoundedWordProfileBudget_le := by
+    intro ρ
+    exact D.sourceBoundedWordProfileBudget_le
+  leibnizWitness_mem_boundedNFOfWordAtomBasis := D.leibnizWitness_mem_boundedNFOfWordAtomBasis
+  sourceTotalFiniteEndBudget_le := by
+    intro ρ
+    exact D.sourceTotalFiniteEndBudget_le
+  nfOfWordAtomBasis_le_totalNormalFormBasis := D.nfOfWordAtomBasis_le_totalNormalFormBasis
+
 /-- Event-indexed final payload with the cardinality budget stated using the
 exact event-basis maximum directly. -/
 structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventMaxQFinalMaps
