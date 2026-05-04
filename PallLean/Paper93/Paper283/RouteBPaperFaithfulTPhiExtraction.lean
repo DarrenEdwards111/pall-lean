@@ -8900,6 +8900,27 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
     (fun e => routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend
       (κ := κ) e)
 
+/-- Append transitions are injective as soon as the trace window is nonempty:
+apply both transitions to the empty trace and read slot `0`.  This is the core
+finite-trace recovery fact needed for the `NFOfWord` permutation invariant. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend_injective
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (κ : ℕ)
+    (hκ : 0 < κ) :
+    Function.Injective
+      (fun e : RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns =>
+        routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend (κ := κ) e) := by
+  classical
+  intro e₁ e₂ h
+  have happ := congrFun (congrArg RouteBPaperFaithfulTPhiFiniteEnd.toFun h)
+    ({ len := ⟨0, by omega⟩
+       slot := fun _ => none } :
+      RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState M n hn2 htb hns κ)
+  have hslot := congrArg
+    (fun s : RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState M n hn2 htb hns κ =>
+      s.slot ⟨0, hκ⟩) happ
+  simpa [routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend, hκ] using hslot
+
 /-- Concrete factor/coordinate transition used by the strict source Leibniz
 word. -/
 noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
