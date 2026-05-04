@@ -9025,6 +9025,15 @@ noncomputable instance routeBPaperFaithfulTPhiStrictSourceLeibnizTraceStateFinty
       left_inv := by intro p; cases p; rfl
       right_inv := by intro s; cases s; rfl }
 
+/-- Empty bounded trace state.  This is the concrete state from which the
+finite-trace readout reads a product-rule word. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizTraceEmpty
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (κ : ℕ) :
+    RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+      M n hn2 htb hns κ :=
+  { len := ⟨0, by omega⟩, slot := fun _ => none }
+
 /-- Append one factor-local event to a bounded trace state, saturating at the
 window bound.  Saturation is harmless for the actual witnessed words, whose
 length is separately bounded by `S'.length ≤ κ`; it makes the transition space
@@ -13842,6 +13851,58 @@ theorem routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceStep
           M n hn2 htb hns (Nat.log 2 n) i v,
         routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep_mem_generators
           M n hn2 htb hns (Nat.log 2 n) i v⟩
+
+/-- A bounded concrete generator word records its length when evaluated from
+the empty trace.  This is the whole-word no-saturation length readout: every
+letter is first decoded through its certified generator-list membership, then
+executed as the corresponding append transition. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGeneratorWord_prod_empty_len_val
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (κ : ℕ)
+    (w : List (RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns κ)))
+    (hw : ∀ g ∈ w,
+      g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns κ)
+    (hlen : w.length ≤ κ) :
+    ((w.prod)
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceEmpty
+        M n hn2 htb hns κ)).len.val = w.length := by
+  classical
+  induction w with
+  | nil => rfl
+  | cons g gs ih =>
+      have hgs : gs.length ≤ κ := by
+        simp at hlen
+        omega
+      have hgslt : gs.length < κ := by
+        simp at hlen
+        omega
+      have ih' := ih
+        (by
+          intro x hx
+          exact hw x (by simp [hx])) hgs
+      have hg : g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+          M n hn2 htb hns κ := hw g (by simp)
+      let s := (gs.prod)
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceEmpty
+          M n hn2 htb hns κ)
+      have hslen : s.len.val = gs.length := ih'
+      have hlt : s.len.val < κ := by
+        rw [hslen]
+        exact hgslt
+      rcases routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerator_event_exists
+        M n hn2 htb hns κ ⟨g, hg⟩ with ⟨e, he⟩
+      have hg_eq : g =
+          routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend
+            (κ := κ) e := he.symm
+      rw [List.prod_cons, hg_eq]
+      change ((routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend
+        (κ := κ) e) s).len.val = gs.length + 1
+      rw [routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend_len_val_of_lt
+        e s hlt]
+      omega
 
 /-- Event-indexed local bases induce generator-letter bases by unpacking the
 certified append-event witness for each concrete trace generator.
