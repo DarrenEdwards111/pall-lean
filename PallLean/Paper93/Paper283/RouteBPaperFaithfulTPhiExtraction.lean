@@ -14050,14 +14050,24 @@ theorem routeBPaperFaithfulTPhi_zeroProfileShiftMonomialImagesOn_subset_shiftedE
   intro q hq
   unfold zeroProfileShiftMonomialImagesOn at hq
   rcases Finset.mem_image.mp hq with ⟨T, hT, rfl⟩
+  have hTmem :
+      T ∈ zeroProfileShiftSupportSetFamily (n / 3) (Nat.log 2 n) := by
+    unfold zeroProfileShiftSupportSetFamily
+    apply Finset.mem_filter.mpr
+    constructor
+    · exact Finset.mem_powerset.mpr (by intro x _; simp)
+    · exact (Finset.card_le_card (Finset.mem_powerset.mp hT)).trans hV
   unfold routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchSupportBasis
-  apply Finset.mem_image.mpr
-  refine ⟨T, ?_, rfl⟩
-  unfold zeroProfileShiftSupportSetFamily
-  apply Finset.mem_filter.mpr
-  constructor
-  · exact Finset.mem_powerset.mpr (by intro x _; simp)
-  · exact (Finset.card_le_card (Finset.mem_powerset.mp hT)).trans hV
+  change mlProj (T.prod (fun i => MvPolynomial.X i) *
+      routeBPaperFaithfulTPhi_strictSourceEventWordBranchProduct
+        M n hn2 htb hns events) ∈
+    Finset.image
+      (fun T : Finset (Fin (n / 3)) =>
+        mlProj (T.prod (fun i => MvPolynomial.X i) *
+          routeBPaperFaithfulTPhi_strictSourceEventWordBranchProduct
+            M n hn2 htb hns events))
+      (zeroProfileShiftSupportSetFamily (n / 3) (Nat.log 2 n))
+  exact Finset.mem_image.mpr ⟨T, hTmem, rfl⟩
 
 /-- If the event word recovered from the witnessed normal form has exactly the
 same per-factor derivative distribution as the paper distribution `d`, then the
@@ -14106,7 +14116,7 @@ theorem routeBPaperFaithfulTPhi_strictSource_leibnizWitness_mem_shiftedBranchSup
       M n hn2 htb hns events) hshift
   exact (Submodule.span_mono
     (routeBPaperFaithfulTPhi_zeroProfileShiftMonomialImagesOn_subset_shiftedEventWordBranchSupportBasis
-      M n hn2 htb hns events S'.toFinset (by simpa using hS))) hmem
+      M n hn2 htb hns events S'.toFinset ((List.toFinset_card_le S').trans hS))) hmem
 
 /-- Shifted branch-support local-type payload for the witnessed strict-source
 `NFOfWord` route.
