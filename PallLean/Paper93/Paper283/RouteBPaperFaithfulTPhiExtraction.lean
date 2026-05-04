@@ -13921,6 +13921,109 @@ theorem routeBPaperFaithfulTPhi_strictSourceEventWordBranchAtomBasis_card_le_one
   classical
   simp [routeBPaperFaithfulTPhi_strictSourceEventWordBranchAtomBasis]
 
+/-- Branch-atom local-type payload for the witnessed strict-source `NFOfWord`
+route.
+
+This is the corrected product-rule shape: a local type is the explicit bounded
+`NFOfWord` generator word, and its local basis is the singleton product-branch
+atom associated to that whole word.  This deliberately does not try to span a
+product branch by individual one-event atoms. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBranchAtomLocalTypeMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceProfileBranchBudget_le :
+    Fintype.card (RouteBPaperFaithfulTPhiStrictSourceNFOfWordBoundedWord
+        M n hn2 htb hns) * 1 ≤
+      withinProfileBound (Nat.log 2 n)
+  leibnizWitness_mem_branchAtomBasis :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        mlProj
+            (shift *
+              Finset.univ.prod
+                (fun i =>
+                  SPDP.iterDerivList (d i)
+                    ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                      M n hn2 htb hns) i))) ∈
+          Submodule.span ℚ
+            (↑(routeBPaperFaithfulTPhi_strictSourceEventWordBranchAtomBasis
+              M n hn2 htb hns
+              (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+                M n hn2 htb hns
+                (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+                  M n hn2 htb hns d)
+                (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+                  M n hn2 htb hns d))) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ))
+
+/-- Branch-atom local-type payload instantiates the paper-faithful witnessed
+`NFOfWord` local-type route. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordLocalTypeMaps_of_branchAtomLocalTypeMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBranchAtomLocalTypeMaps
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordLocalTypeMaps
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceAlphabet := fun ρ =>
+    { type := RouteBPaperFaithfulTPhiStrictSourceNFOfWordBoundedWord
+        M n hn2 htb hns
+      localDim := 1
+      localBasis := fun τ =>
+        routeBPaperFaithfulTPhi_strictSourceEventWordBranchAtomBasis
+          M n hn2 htb hns
+          (routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_eventWord
+            M n hn2 htb hns τ)
+      localBasis_card_le := by
+        intro τ
+        exact routeBPaperFaithfulTPhi_strictSourceEventWordBranchAtomBasis_card_le_one
+          M n hn2 htb hns _
+      profileSymmetricPowerBudget_le := D.sourceProfileBranchBudget_le }
+  sourceTypeWord := fun _ τ =>
+    routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_toList
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns) τ
+  sourceTypeWord_letters_mem_generators := by
+    intro ρ τ
+    exact routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_letters_mem_generators
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns) τ
+  leibnizWitnessType := by
+    intro ρ S' hS shift hshift d hd_elts hlen
+    exact routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_of_witness
+      M n hn2 htb hns S' hS d hlen
+  leibnizWitnessType_word_eq_NFOfWord := by
+    intro ρ S' hS shift hshift d hd_elts hlen
+    exact routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_of_witness_toList
+      M n hn2 htb hns S' hS d hlen
+  leibnizWitness_mem_NFOfWordTypeSpace := by
+    intro ρ S' hS shift hshift d hd_elts hlen
+    simpa [zeroProfileLocalTypeSpace,
+      routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_of_witness_toList,
+      routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_eventWord]
+      using D.leibnizWitness_mem_branchAtomBasis
+        ρ S' hS shift hshift d hd_elts hlen
+
 /-- The concrete polynomial atom associated to one strict-source Leibniz event:
 the multilinear projection of the single-coordinate derivative of that event's
 Cook--Levin factor. -/
