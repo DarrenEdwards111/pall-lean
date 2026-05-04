@@ -13904,6 +13904,135 @@ theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGeneratorWord_prod_empty
         e s hlt]
       omega
 
+/-- Boundary slot readout for a nonempty bounded generator word: after the tail
+has filled exactly `gs.length` slots, the head generator appends its decoded
+event into that first free slot.  This is the first whole-word slot readout
+needed for the `NFOfWord` permutation invariant. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGeneratorWord_prod_empty_slot_boundary
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (κ : ℕ)
+    (g : RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns κ))
+    (hg : g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+      M n hn2 htb hns κ)
+    (gs : List (RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns κ)))
+    (hgs_mem : ∀ x ∈ gs,
+      x ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns κ)
+    (hlen : (g :: gs).length ≤ κ) :
+    ((List.prod (g :: gs))
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceEmpty
+        M n hn2 htb hns κ)).slot
+        ⟨gs.length, by simp at hlen; omega⟩ =
+      some (routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceGenerator
+        M n hn2 htb hns κ ⟨g, hg⟩) := by
+  classical
+  have hgs : gs.length ≤ κ := by
+    simp at hlen
+    omega
+  have hgslt : gs.length < κ := by
+    simp at hlen
+    omega
+  let s := (gs.prod)
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceEmpty
+      M n hn2 htb hns κ)
+  have hslen : s.len.val = gs.length :=
+    routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGeneratorWord_prod_empty_len_val
+      M n hn2 htb hns κ gs hgs_mem hgs
+  have hlt : s.len.val < κ := by
+    rw [hslen]
+    exact hgslt
+  let eg := routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceGenerator
+    M n hn2 htb hns κ ⟨g, hg⟩
+  have hspec :
+      routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend
+          (κ := κ) eg = g := by
+    exact routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceGenerator_spec
+      M n hn2 htb hns κ ⟨g, hg⟩
+  have hg_eq : g =
+      routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend
+        (κ := κ) eg := hspec.symm
+  change ((List.prod (g :: gs))
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceEmpty
+        M n hn2 htb hns κ)).slot
+        ⟨gs.length, by simp at hlen; omega⟩ = some eg
+  rw [List.prod_cons, hg_eq]
+  change ((routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend
+      (κ := κ) eg) s).slot
+        ⟨gs.length, by simp at hlen; omega⟩ = some eg
+  have hfin : (⟨gs.length, by simp at hlen; omega⟩ : Fin κ) =
+      ⟨s.len.val, hlt⟩ := by
+    apply Fin.ext
+    simp [hslen]
+  rw [hfin]
+  exact routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend_slot_new_of_lt
+    eg s hlt
+
+/-- Prefix-slot preservation for a nonempty bounded generator word: before the
+head generator writes its event into the first free slot, all already-filled
+tail slots are left exactly as they were.  Together with the boundary-slot
+lemma, this gives the faithful whole-word trace readout by the actual append
+semantics. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGeneratorWord_prod_empty_slot_old
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (κ : ℕ)
+    (g : RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns κ))
+    (hg : g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+      M n hn2 htb hns κ)
+    (gs : List (RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns κ)))
+    (hgs_mem : ∀ x ∈ gs,
+      x ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns κ)
+    (hlen : (g :: gs).length ≤ κ)
+    (q : Fin κ) (hq : q.val < gs.length) :
+    ((List.prod (g :: gs))
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceEmpty
+        M n hn2 htb hns κ)).slot q =
+    ((gs.prod)
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceEmpty
+        M n hn2 htb hns κ)).slot q := by
+  classical
+  have hgs : gs.length ≤ κ := by
+    simp at hlen
+    omega
+  have hgslt : gs.length < κ := by
+    simp at hlen
+    omega
+  let s := (gs.prod)
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceEmpty
+      M n hn2 htb hns κ)
+  have hslen : s.len.val = gs.length :=
+    routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGeneratorWord_prod_empty_len_val
+      M n hn2 htb hns κ gs hgs_mem hgs
+  have hlt : s.len.val < κ := by
+    rw [hslen]
+    exact hgslt
+  let eg := routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceGenerator
+    M n hn2 htb hns κ ⟨g, hg⟩
+  have hspec :
+      routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend
+          (κ := κ) eg = g := by
+    exact routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceGenerator_spec
+      M n hn2 htb hns κ ⟨g, hg⟩
+  have hg_eq : g =
+      routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend
+        (κ := κ) eg := hspec.symm
+  rw [List.prod_cons, hg_eq]
+  change ((routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend
+      (κ := κ) eg) s).slot q = s.slot q
+  have hq_ne : q.val ≠ s.len.val := by
+    rw [hslen]
+    omega
+  exact routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend_slot_old_of_lt
+    eg s hlt q hq_ne
+
 /-- Event-indexed local bases induce generator-letter bases by unpacking the
 certified append-event witness for each concrete trace generator.
 
