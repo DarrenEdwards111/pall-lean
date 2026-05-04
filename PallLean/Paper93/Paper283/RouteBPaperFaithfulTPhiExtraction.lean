@@ -14166,6 +14166,243 @@ def routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
     List (Fin (n / 3)) :=
   events.filterMap fun e => if e.factor = i then some e.coord else none
 
+/-- Distribution through concatenation.  This is the local list-level algebra
+needed for the finite-trace permutation invariant: factor ownership is read
+from the event labels and no global coordinate histogram is introduced. -/
+theorem routeBPaperFaithfulTPhi_strictSourceEventWordDistrib_append
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (events₁ events₂ : List (RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent
+      M n hn2 htb hns))
+    (i : Fin ((cookLevinFactorList M n hn2 htb hns).length)) :
+    routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+        (events₁ ++ events₂) i =
+      routeBPaperFaithfulTPhi_strictSourceEventWordDistrib events₁ i ++
+        routeBPaperFaithfulTPhi_strictSourceEventWordDistrib events₂ i := by
+  simp [routeBPaperFaithfulTPhi_strictSourceEventWordDistrib,
+    List.filterMap_append]
+
+/-- A same-factor event contributes exactly its coordinate to that factor's
+Leibniz distribution. -/
+theorem routeBPaperFaithfulTPhi_strictSourceEventWordDistrib_cons_same
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (i : Fin ((cookLevinFactorList M n hn2 htb hns).length))
+    (v : Fin (n / 3))
+    (events : List (RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent
+      M n hn2 htb hns)) :
+    routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+        (({ factor := i, coord := v } :
+          RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent
+            M n hn2 htb hns) :: events) i =
+      v :: routeBPaperFaithfulTPhi_strictSourceEventWordDistrib events i := by
+  simp [routeBPaperFaithfulTPhi_strictSourceEventWordDistrib]
+
+/-- A different-factor event is invisible to this factor's Leibniz
+distribution. -/
+theorem routeBPaperFaithfulTPhi_strictSourceEventWordDistrib_cons_ne
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {i j : Fin ((cookLevinFactorList M n hn2 htb hns).length)}
+    (hji : j ≠ i)
+    (v : Fin (n / 3))
+    (events : List (RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent
+      M n hn2 htb hns)) :
+    routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+        (({ factor := j, coord := v } :
+          RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent
+            M n hn2 htb hns) :: events) i =
+      routeBPaperFaithfulTPhi_strictSourceEventWordDistrib events i := by
+  simp [routeBPaperFaithfulTPhi_strictSourceEventWordDistrib, hji]
+
+/-- A block of events all owned by `i` decodes to exactly the coordinate list
+for `i`. -/
+theorem routeBPaperFaithfulTPhi_strictSourceEventWordDistrib_map_same
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (i : Fin ((cookLevinFactorList M n hn2 htb hns).length))
+    (vs : List (Fin (n / 3))) :
+    routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+        (vs.map (fun v =>
+          ({ factor := i, coord := v } :
+            RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent
+              M n hn2 htb hns))) i = vs := by
+  rw [routeBPaperFaithfulTPhi_strictSourceEventWordDistrib,
+    List.filterMap_map]
+  have hfun :
+      ((fun e : RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent
+            M n hn2 htb hns =>
+          if e.factor = i then some e.coord else none) ∘
+        fun v : Fin (n / 3) =>
+          ({ factor := i, coord := v } :
+            RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent
+              M n hn2 htb hns)) =
+        (fun v : Fin (n / 3) => some v) := by
+    funext v
+    simp
+  rw [hfun]
+  simp
+
+/-- A block of events owned by another factor contributes nothing to `i`'s
+distribution. -/
+theorem routeBPaperFaithfulTPhi_strictSourceEventWordDistrib_map_ne
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {i j : Fin ((cookLevinFactorList M n hn2 htb hns).length)}
+    (hji : j ≠ i)
+    (vs : List (Fin (n / 3))) :
+    routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+        (vs.map (fun v =>
+          ({ factor := j, coord := v } :
+            RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent
+              M n hn2 htb hns))) i = [] := by
+  rw [routeBPaperFaithfulTPhi_strictSourceEventWordDistrib,
+    List.filterMap_map]
+  have hfun :
+      ((fun e : RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent
+            M n hn2 htb hns =>
+          if e.factor = i then some e.coord else none) ∘
+        fun v : Fin (n / 3) =>
+          ({ factor := j, coord := v } :
+            RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent
+              M n hn2 htb hns)) =
+        (fun _v : Fin (n / 3) => none) := by
+    funext v
+    simp [hji]
+  rw [hfun]
+  simp
+
+/-- The event-labelled version of the witnessed product-rule word over an
+explicit factor list.  This mirrors `strictSourceLeibnizTransitionWord`, but its
+letters are the paper events themselves rather than finite endomorphisms. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizEventTransitionWordOnFactors
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (is : List (Fin ((cookLevinFactorList M n hn2 htb hns).length))) :
+    List (RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns) :=
+  (is.map (fun j =>
+    (d j).map (fun v =>
+      ({ factor := j, coord := v } :
+        RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns)))).foldr
+    (fun xs acc => xs ++ acc) []
+
+/-- If a factor does not occur in the explicit factor list, its decoded
+distribution is empty. -/
+theorem routeBPaperFaithfulTPhi_strictSourceEventTransitionWordOnFactors_distrib_eq_nil_of_not_mem
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (is : List (Fin ((cookLevinFactorList M n hn2 htb hns).length)))
+    (i : Fin ((cookLevinFactorList M n hn2 htb hns).length))
+    (hnot : i ∉ is) :
+    routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizEventTransitionWordOnFactors
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns) d is) i = [] := by
+  induction is with
+  | nil =>
+      simp [routeBPaperFaithfulTPhi_strictSourceLeibnizEventTransitionWordOnFactors,
+        routeBPaperFaithfulTPhi_strictSourceEventWordDistrib]
+  | cons j js ih =>
+      have hji : j ≠ i := by
+        intro h
+        apply hnot
+        simp [h]
+      have hnot_tail : i ∉ js := by
+        intro hi
+        apply hnot
+        simp [hi]
+      rw [routeBPaperFaithfulTPhi_strictSourceLeibnizEventTransitionWordOnFactors]
+      simp only [List.map_cons, List.foldr_cons]
+      rw [routeBPaperFaithfulTPhi_strictSourceEventWordDistrib_append]
+      rw [routeBPaperFaithfulTPhi_strictSourceEventWordDistrib_map_ne hji]
+      simpa [routeBPaperFaithfulTPhi_strictSourceLeibnizEventTransitionWordOnFactors]
+        using ih hnot_tail
+
+/-- For a duplicate-free explicit factor list containing `i`, the event-labelled
+product-rule word decodes to exactly `d i` up to permutation.  The proof follows
+the paper's factor-indexed Leibniz distribution, not a global histogram. -/
+theorem routeBPaperFaithfulTPhi_strictSourceEventTransitionWordOnFactors_distrib_perm
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (is : List (Fin ((cookLevinFactorList M n hn2 htb hns).length)) )
+    (i : Fin ((cookLevinFactorList M n hn2 htb hns).length))
+    (hmem : i ∈ is) (hnodup : is.Nodup) :
+    (routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizEventTransitionWordOnFactors
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns) d is) i).Perm
+      (d i) := by
+  revert i
+  induction is with
+  | nil =>
+      intro i hmem
+      simp at hmem
+  | cons j js ih =>
+      rw [List.nodup_cons] at hnodup
+      intro i hmem
+      by_cases hji : j = i
+      · subst hji
+        have hnot_tail : j ∉ js := hnodup.1
+        have htail :=
+          routeBPaperFaithfulTPhi_strictSourceEventTransitionWordOnFactors_distrib_eq_nil_of_not_mem
+            (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+            d js j hnot_tail
+        rw [routeBPaperFaithfulTPhi_strictSourceLeibnizEventTransitionWordOnFactors]
+        simp only [List.map_cons, List.foldr_cons]
+        rw [routeBPaperFaithfulTPhi_strictSourceEventWordDistrib_append]
+        rw [routeBPaperFaithfulTPhi_strictSourceEventWordDistrib_map_same]
+        have htail' :
+            routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+              (List.foldr (fun xs acc => xs ++ acc) []
+                (List.map (fun j =>
+                  List.map (fun v =>
+                    ({ factor := j, coord := v } :
+                      RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent
+                        M n hn2 htb hns)) (d j)) js)) j = [] := by
+          simpa [routeBPaperFaithfulTPhi_strictSourceLeibnizEventTransitionWordOnFactors]
+            using htail
+        rw [htail']
+        simp
+      · have hmem_tail : i ∈ js := by
+          have hcases := List.mem_cons.mp hmem
+          rcases hcases with hij | hi
+          · exact False.elim (hji hij.symm)
+          · exact hi
+        have hperm := ih hnodup.2 i hmem_tail
+        rw [routeBPaperFaithfulTPhi_strictSourceLeibnizEventTransitionWordOnFactors]
+        simp only [List.map_cons, List.foldr_cons]
+        rw [routeBPaperFaithfulTPhi_strictSourceEventWordDistrib_append]
+        rw [routeBPaperFaithfulTPhi_strictSourceEventWordDistrib_map_ne hji]
+        simpa using hperm
+
+/-- The event-labelled raw product-rule word has the paper's per-factor
+Leibniz distribution.  This is the raw-word half of the remaining
+`NFOfWord` permutation invariant. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizEventTransitionWord_distrib_perm
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (i : Fin ((cookLevinFactorList M n hn2 htb hns).length)) :
+    (routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizEventTransitionWordOnFactors
+        (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns) d
+        (Finset.univ : Finset
+          (Fin ((cookLevinFactorList M n hn2 htb hns).length))).toList) i).Perm
+      (d i) := by
+  exact routeBPaperFaithfulTPhi_strictSourceEventTransitionWordOnFactors_distrib_perm
+    (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+    d
+    (Finset.univ : Finset
+      (Fin ((cookLevinFactorList M n hn2 htb hns).length))).toList
+    i
+    ((Finset.mem_toList).mpr (Finset.mem_univ i))
+    (Finset.nodup_toList _)
+
 /-- The product-rule branch polynomial associated to an event word: for each
 factor, take the iterated derivative by the coordinates owned by that factor,
 then multiply across factors and multilinearly project. -/
