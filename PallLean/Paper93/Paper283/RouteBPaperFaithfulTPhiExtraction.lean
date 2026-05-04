@@ -9044,6 +9044,47 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend
     else
       s⟩
 
+/-- In the non-saturated regime, one trace append advances the recorded length
+by exactly one.  This is the local no-saturation readout fact used by the
+finite-trace permutation route. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend_len_val_of_lt
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n} {κ : ℕ}
+    (e : RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns)
+    (s : RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+      M n hn2 htb hns κ)
+    (h : s.len.val < κ) :
+    ((routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend
+      (κ := κ) e) s).len.val = s.len.val + 1 := by
+  simp [routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend, h]
+
+/-- In the non-saturated regime, one trace append writes the appended event in
+the first free slot. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend_slot_new_of_lt
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n} {κ : ℕ}
+    (e : RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns)
+    (s : RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+      M n hn2 htb hns κ)
+    (h : s.len.val < κ) :
+    ((routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend
+      (κ := κ) e) s).slot ⟨s.len.val, h⟩ = some e := by
+  simp [routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend, h]
+
+/-- In the non-saturated regime, one trace append leaves every old/non-target
+slot unchanged. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend_slot_old_of_lt
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n} {κ : ℕ}
+    (e : RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns)
+    (s : RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+      M n hn2 htb hns κ)
+    (h : s.len.val < κ)
+    (j : Fin κ) (hj : j.val ≠ s.len.val) :
+    ((routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend
+      (κ := κ) e) s).slot j = s.slot j := by
+  simp [routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend, h, hj]
+
 /-- The concrete finite generator list: one append transition for every
 factor-local strict source derivative event. -/
 noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
