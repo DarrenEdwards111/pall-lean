@@ -14443,6 +14443,95 @@ theorem routeBPaperFaithfulTPhi_getElem?_append_single_boundary
   rw [List.getElem?_append]
   simp
 
+/-- Decoding certified trace-generator words preserves length. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord_length
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (w : List (RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns (Nat.log 2 n))))
+    (hw : ∀ g ∈ w,
+      g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns (Nat.log 2 n)) :
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+      M n hn2 htb hns w hw).length = w.length := by
+  unfold routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+  simp
+
+/-- Whole-word slot readout from the empty trace.  Because the finite-endomorphism
+product applies the tail first and then the head, the trace slots read the
+reverse of the certified generator event word.  This is the paper-faithful
+finite-trace sequence theorem: it is proved from the concrete append semantics
+and certified generator membership, not from a support count or histogram. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGeneratorWord_prod_empty_slot_readout
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (w : List (RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns (Nat.log 2 n))))
+    (hw : ∀ g ∈ w,
+      g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns (Nat.log 2 n))
+    (hlen : w.length ≤ Nat.log 2 n)
+    (k : ℕ) (hk : k < w.length) :
+    ((w.prod)
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceEmpty
+        M n hn2 htb hns (Nat.log 2 n))).slot
+        ⟨k, lt_of_lt_of_le hk hlen⟩ =
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+        M n hn2 htb hns w hw).reverse[k]? := by
+  classical
+  revert k
+  induction w with
+  | nil =>
+      intro k hk
+      simp at hk
+  | cons g gs ih =>
+      intro k hk
+      have hg : g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+          M n hn2 htb hns (Nat.log 2 n) := hw g (by simp)
+      have hgs_mem : ∀ x ∈ gs,
+          x ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+            M n hn2 htb hns (Nat.log 2 n) := by
+        intro x hx
+        exact hw x (by simp [hx])
+      have hgs_len : gs.length ≤ Nat.log 2 n := by
+        simp at hlen
+        omega
+      by_cases hk_tail : k < gs.length
+      · have ihk := ih hgs_mem hgs_len k hk_tail
+        have hold :=
+          routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGeneratorWord_prod_empty_slot_old
+            M n hn2 htb hns (Nat.log 2 n) g hg gs hgs_mem hlen
+            ⟨k, lt_of_lt_of_le hk hlen⟩ hk_tail
+        rw [hold, ihk]
+        rw [routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord_cons]
+        rw [List.reverse_cons]
+        rw [routeBPaperFaithfulTPhi_getElem?_append_single_left]
+        · rw [List.length_reverse]
+          unfold routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+          simpa using hk_tail
+      · have hk_eq : k = gs.length := by
+          simp at hk
+          omega
+        subst hk_eq
+        have hbound :=
+          routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGeneratorWord_prod_empty_slot_boundary
+            M n hn2 htb hns (Nat.log 2 n) g hg gs hgs_mem hlen
+        rw [routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord_cons]
+        rw [List.reverse_cons]
+        rw [List.getElem?_append]
+        simp [List.length_reverse,
+          routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord_length]
+        have hhead :
+            routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceGenerator
+              M n hn2 htb hns (Nat.log 2 n) ⟨g, hg⟩ =
+            routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceGenerator
+              M n hn2 htb hns (Nat.log 2 n) ⟨g, hw g (by simp)⟩ := by
+          exact routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceGenerator_proof_irrel
+            M n hn2 htb hns (Nat.log 2 n) g _ _
+        simpa [hhead] using hbound
+
 /-- The event word represented by an explicit bounded `NFOfWord` local type. -/
 noncomputable def routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_eventWord
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
