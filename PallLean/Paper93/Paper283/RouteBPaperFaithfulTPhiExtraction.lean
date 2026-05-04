@@ -14371,6 +14371,78 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGenerato
     routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceGenerator
       M n hn2 htb hns (Nat.log 2 n) ⟨g.1, hw g.1 g.2⟩
 
+/-- Decoding a certified trace generator is independent of the particular proof
+of generator-list membership.  This small proof-irrelevance adapter keeps the
+subsequent word-readout lemmas focused on concrete letters rather than proof
+terms attached to `List.attach`. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceGenerator_proof_irrel
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (κ : ℕ)
+    (g : RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns κ))
+    (hg₁ hg₂ : g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+      M n hn2 htb hns κ) :
+    routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceGenerator
+        M n hn2 htb hns κ ⟨g, hg₁⟩ =
+      routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceGenerator
+        M n hn2 htb hns κ ⟨g, hg₂⟩ := by
+  congr
+
+/-- Empty generator words decode to the empty event word. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord_nil
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hw : ∀ g ∈ ([] : List (RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns (Nat.log 2 n)))),
+      g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns (Nat.log 2 n)) :
+    routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+      M n hn2 htb hns [] hw = [] := by
+  rfl
+
+/-- Decoding a cons generator word gives the decoded head event followed by the
+faithfully decoded tail.  This is the list-level counterpart of the trace-slot
+boundary/old-slot readout lemmas. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord_cons
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (g : RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns (Nat.log 2 n)))
+    (gs : List (RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns (Nat.log 2 n))))
+    (hw : ∀ x ∈ g :: gs,
+      x ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns (Nat.log 2 n)) :
+    routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+        M n hn2 htb hns (g :: gs) hw =
+      routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceGenerator
+        M n hn2 htb hns (Nat.log 2 n) ⟨g, hw g (by simp)⟩ ::
+        routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+          M n hn2 htb hns gs
+          (by intro x hx; exact hw x (by simp [hx])) := by
+  classical
+  unfold routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+  simp
+
+/-- Reading before a final appended singleton only sees the prefix. -/
+theorem routeBPaperFaithfulTPhi_getElem?_append_single_left
+    {α : Type} (xs : List α) (a : α) (k : ℕ) (hk : k < xs.length) :
+    (xs ++ [a])[k]? = xs[k]? := by
+  rw [List.getElem?_append]
+  simp [hk]
+
+/-- Reading exactly at the boundary of a singleton append returns the appended
+letter. -/
+theorem routeBPaperFaithfulTPhi_getElem?_append_single_boundary
+    {α : Type} (xs : List α) (a : α) :
+    (xs ++ [a])[xs.length]? = some a := by
+  rw [List.getElem?_append]
+  simp
+
 /-- The event word represented by an explicit bounded `NFOfWord` local type. -/
 noncomputable def routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_eventWord
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
