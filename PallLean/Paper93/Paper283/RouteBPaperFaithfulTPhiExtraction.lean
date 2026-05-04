@@ -14532,6 +14532,88 @@ theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGeneratorWord_prod_empty
             M n hn2 htb hns (Nat.log 2 n) g _ _
         simpa [hhead] using hbound
 
+/-- Equal bounded certified trace-generator products have the same decoded trace
+sequence, read in slot order.  The conclusion is stated on reversed event words
+because the finite-endomorphism product applies the tail before the head.  This
+is the product-equality bridge needed for `NFOfWord_represents`: equality of
+trace endomorphisms is converted back into equality of the actually recorded
+bounded trace events, using length and slot readout rather than a bag/count
+argument. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizEventWord_reverse_eq_of_prod_eq
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (w₁ w₂ : List (RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns (Nat.log 2 n))))
+    (hw₁ : ∀ g ∈ w₁,
+      g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns (Nat.log 2 n))
+    (hw₂ : ∀ g ∈ w₂,
+      g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns (Nat.log 2 n))
+    (hlen₁ : w₁.length ≤ Nat.log 2 n)
+    (hlen₂ : w₂.length ≤ Nat.log 2 n)
+    (hprod : w₁.prod = w₂.prod) :
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+      M n hn2 htb hns w₁ hw₁).reverse =
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+        M n hn2 htb hns w₂ hw₂).reverse := by
+  classical
+  let empty := routeBPaperFaithfulTPhi_strictSourceLeibnizTraceEmpty
+    M n hn2 htb hns (Nat.log 2 n)
+  let s₁ := w₁.prod empty
+  let s₂ := w₂.prod empty
+  have hstate : s₁ = s₂ := by
+    simp [s₁, s₂, hprod]
+  have hlen_s₁ : s₁.len.val = w₁.length := by
+    simpa [s₁, empty] using
+      routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGeneratorWord_prod_empty_len_val
+        M n hn2 htb hns (Nat.log 2 n) w₁ hw₁ hlen₁
+  have hlen_s₂ : s₂.len.val = w₂.length := by
+    simpa [s₂, empty] using
+      routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGeneratorWord_prod_empty_len_val
+        M n hn2 htb hns (Nat.log 2 n) w₂ hw₂ hlen₂
+  have hlen_eq : w₁.length = w₂.length := by
+    have h := congrArg
+      (fun s : RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+          M n hn2 htb hns (Nat.log 2 n) => s.len.val) hstate
+    change s₁.len.val = s₂.len.val at h
+    rw [hlen_s₁, hlen_s₂] at h
+    exact h
+  apply List.ext_getElem?
+  intro k
+  by_cases hk₁ : k <
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+        M n hn2 htb hns w₁ hw₁).reverse.length
+  · have hk_w₁ : k < w₁.length := by
+      rw [List.length_reverse] at hk₁
+      rw [routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord_length]
+        at hk₁
+      exact hk₁
+    have hk_w₂ : k < w₂.length := by
+      omega
+    have hread₁ :=
+      routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGeneratorWord_prod_empty_slot_readout
+        M n hn2 htb hns w₁ hw₁ hlen₁ k hk_w₁
+    have hread₂ :=
+      routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGeneratorWord_prod_empty_slot_readout
+        M n hn2 htb hns w₂ hw₂ hlen₂ k hk_w₂
+    have hslot : s₁.slot ⟨k, lt_of_lt_of_le hk_w₁ hlen₁⟩ =
+        s₂.slot ⟨k, lt_of_lt_of_le hk_w₂ hlen₂⟩ := by
+      rw [hstate]
+    rw [← hread₁, ← hread₂]
+    simpa [s₁, s₂] using hslot
+  · have hk₂ : ¬ k <
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+          M n hn2 htb hns w₂ hw₂).reverse.length := by
+      intro hk
+      apply hk₁
+      rw [List.length_reverse] at hk ⊢
+      rw [routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord_length]
+        at hk ⊢
+      omega
+    rw [List.getElem?_eq_none (by omega), List.getElem?_eq_none (by omega)]
+
 /-- The event word represented by an explicit bounded `NFOfWord` local type. -/
 noncomputable def routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_eventWord
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
