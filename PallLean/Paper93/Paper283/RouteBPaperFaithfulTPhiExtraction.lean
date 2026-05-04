@@ -13838,6 +13838,89 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBoundedWord
               Set (MvPolynomial (Fin (n / 3)) ℚ)) :
             Set (MvPolynomial (Fin (n / 3)) ℚ))
 
+/-- Recover the concrete event word carried by a word of certified strict-source
+trace generators.
+
+This is the correction to the naive singleton-event view: a local word denotes
+an ordered product-rule branch, not a bag of independent one-letter spans. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (w : List (RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns (Nat.log 2 n))))
+    (hw : ∀ g ∈ w,
+      g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns (Nat.log 2 n)) :
+    List (RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns) :=
+  w.attach.map fun g =>
+    routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceGenerator
+      M n hn2 htb hns (Nat.log 2 n) ⟨g.1, hw g.1 g.2⟩
+
+/-- The event word represented by an explicit bounded `NFOfWord` local type. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_eventWord
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (τ : RouteBPaperFaithfulTPhiStrictSourceNFOfWordBoundedWord
+      M n hn2 htb hns) :
+    List (RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns) :=
+  routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_toList
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns) τ)
+    (routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_letters_mem_generators
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns) τ)
+
+/-- For a concrete event word, collect the coordinates assigned to one
+Cook--Levin factor.  This keeps factor ownership explicit and does not collapse
+all derivatives to a global histogram. -/
+def routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (events : List (RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent
+      M n hn2 htb hns))
+    (i : Fin ((cookLevinFactorList M n hn2 htb hns).length)) :
+    List (Fin (n / 3)) :=
+  events.filterMap fun e => if e.factor = i then some e.coord else none
+
+/-- The product-rule branch polynomial associated to an event word: for each
+factor, take the iterated derivative by the coordinates owned by that factor,
+then multiply across factors and multilinearly project. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceEventWordBranchAtom
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (events : List (RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent
+      M n hn2 htb hns)) :
+    MvPolynomial (Fin (n / 3)) ℚ :=
+  mlProj
+    (Finset.univ.prod
+      (fun i : Fin ((cookLevinFactorList M n hn2 htb hns).length) =>
+        SPDP.iterDerivList
+          (routeBPaperFaithfulTPhi_strictSourceEventWordDistrib events i)
+          ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+            M n hn2 htb hns) i)))
+
+/-- Singleton basis for one product-rule branch event word. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceEventWordBranchAtomBasis
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (events : List (RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent
+      M n hn2 htb hns)) :
+    Finset (MvPolynomial (Fin (n / 3)) ℚ) :=
+  {routeBPaperFaithfulTPhi_strictSourceEventWordBranchAtom
+    M n hn2 htb hns events}
+
+/-- Product-branch atom bases are singleton-sized. -/
+theorem routeBPaperFaithfulTPhi_strictSourceEventWordBranchAtomBasis_card_le_one
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (events : List (RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent
+      M n hn2 htb hns)) :
+    (routeBPaperFaithfulTPhi_strictSourceEventWordBranchAtomBasis
+      M n hn2 htb hns events).card ≤ 1 := by
+  classical
+  simp [routeBPaperFaithfulTPhi_strictSourceEventWordBranchAtomBasis]
+
 /-- The concrete polynomial atom associated to one strict-source Leibniz event:
 the multilinear projection of the single-coordinate derivative of that event's
 Cook--Levin factor. -/
