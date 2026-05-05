@@ -14844,6 +14844,295 @@ theorem routeBPaperFaithfulTPhi_strictSourceEventWordDistrib_map_ne
   rw [hfun]
   simp
 
+/-- Distribution through concatenation for decoded certified generator event
+words.  This is still a sequence-level trace statement: the proof peels the
+left word by concrete cons decoding and only then distributes factor ownership,
+so it does not collapse to an ambient histogram. -/
+theorem routeBPaperFaithfulTPhi_strictSourceDecodedEventWordDistrib_append
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (xs ys : List (RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns (Nat.log 2 n))))
+    (hw : ∀ g ∈ xs ++ ys,
+      g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns (Nat.log 2 n))
+    (i : Fin ((cookLevinFactorList M n hn2 htb hns).length)) :
+    routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+        M n hn2 htb hns (xs ++ ys) hw) i =
+      routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+          M n hn2 htb hns xs
+          (by intro g hg; exact hw g (by simp [hg]))) i ++
+      routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+          M n hn2 htb hns ys
+          (by intro g hg; exact hw g (by simp [hg]))) i := by
+  classical
+  induction xs with
+  | nil =>
+      simp [routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord,
+        routeBPaperFaithfulTPhi_strictSourceEventWordDistrib]
+  | cons x xs ih =>
+      change routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+          (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+            M n hn2 htb hns (x :: (xs ++ ys)) hw) i = _
+      have hleft :=
+        routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord_cons
+          M n hn2 htb hns x (xs ++ ys) hw
+      rw [hleft]
+      conv_rhs =>
+        rw [routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord_cons]
+      by_cases hfac :
+          (routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceGenerator
+            M n hn2 htb hns (Nat.log 2 n) ⟨x, hw x (by simp)⟩).factor = i
+      · simp [routeBPaperFaithfulTPhi_strictSourceEventWordDistrib, hfac]
+        change routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+            (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+              M n hn2 htb hns (xs ++ ys) _) i =
+          routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+            (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+              M n hn2 htb hns xs _) i ++
+          routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+            (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+              M n hn2 htb hns ys _) i
+        rw [ih]
+      · simp [routeBPaperFaithfulTPhi_strictSourceEventWordDistrib, hfac]
+        change routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+            (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+              M n hn2 htb hns (xs ++ ys) _) i =
+          routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+            (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+              M n hn2 htb hns xs _) i ++
+          routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+            (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+              M n hn2 htb hns ys _) i
+        rw [ih]
+
+/-- A block of concrete trace-step generators for one factor decodes to exactly
+that factor's event-labelled coordinate block. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfTraceStepMap
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (i : Fin ((cookLevinFactorList M n hn2 htb hns).length))
+    (vs : List (Fin (n / 3)))
+    (hw : ∀ g ∈ vs.map
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+          M n hn2 htb hns (Nat.log 2 n) i),
+      g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns (Nat.log 2 n)) :
+    routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+      M n hn2 htb hns
+      (vs.map (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+        M n hn2 htb hns (Nat.log 2 n) i)) hw =
+    vs.map (fun v =>
+      ({factor := i, coord := v} :
+        RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns)) := by
+  classical
+  have hlog : 0 < Nat.log 2 n := Nat.log_pos (by omega) hn2
+  induction vs with
+  | nil =>
+      simp [routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord]
+  | cons v vs ih =>
+      simp only [List.map_cons]
+      rw [routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord_cons]
+      rw [ih]
+      simp [routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_of_traceStep
+        M n hn2 htb hns hlog i v]
+
+/-- If a factor does not occur in the explicit factor list, the decoded
+concrete trace-step word contributes no coordinates to that factor.  This is
+the finite-trace analogue of the event-labelled nil lemma: it decodes actual
+generators first, then reads the factor labels. -/
+theorem routeBPaperFaithfulTPhi_strictSourceDecodedTransitionWordOnFactors_distrib_eq_nil_of_not_mem
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (is : List (Fin ((cookLevinFactorList M n hn2 htb hns).length)))
+    (i : Fin ((cookLevinFactorList M n hn2 htb hns).length))
+    (hnot : i ∉ is)
+    (hw : ∀ g ∈ (is.map (fun j =>
+      (d j).map (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+        M n hn2 htb hns (Nat.log 2 n) j))).foldr (fun xs acc => xs ++ acc) [],
+      g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns (Nat.log 2 n)) :
+    routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+        M n hn2 htb hns
+        ((is.map (fun j =>
+          (d j).map (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+            M n hn2 htb hns (Nat.log 2 n) j))).foldr (fun xs acc => xs ++ acc) []) hw) i = [] := by
+  classical
+  induction is with
+  | nil =>
+      simp [routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord,
+        routeBPaperFaithfulTPhi_strictSourceEventWordDistrib]
+  | cons j js ih =>
+      have hji : j ≠ i := by
+        intro h
+        apply hnot
+        simp [h]
+      have hnot_tail : i ∉ js := by
+        intro hi
+        apply hnot
+        simp [hi]
+      simp only [List.map_cons, List.foldr_cons]
+      rw [routeBPaperFaithfulTPhi_strictSourceDecodedEventWordDistrib_append]
+      have hblock :=
+        routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfTraceStepMap
+          M n hn2 htb hns j (d j)
+          (by intro g hg; exact hw g (by simp [hg]))
+      rw [hblock]
+      rw [routeBPaperFaithfulTPhi_strictSourceEventWordDistrib_map_ne hji]
+      have htail := ih hnot_tail (by intro g hg; exact hw g (by simp [hg]))
+      simpa using htail
+
+
+/-- For a duplicate-free explicit factor list containing `i`, the decoded
+concrete trace-step word has exactly the factorwise Leibniz distribution `d i`
+up to permutation.  This is the strict finite-trace route: concrete generators
+decode to witnessed events block-by-block, then factorwise distributions are
+transported; no global support/histogram collapse is used. -/
+theorem routeBPaperFaithfulTPhi_strictSourceDecodedTransitionWordOnFactors_distrib_perm
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (is : List (Fin ((cookLevinFactorList M n hn2 htb hns).length)))
+    (i : Fin ((cookLevinFactorList M n hn2 htb hns).length))
+    (hmem : i ∈ is) (hnodup : is.Nodup)
+    (hw : ∀ g ∈ (is.map (fun j =>
+      (d j).map (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+        M n hn2 htb hns (Nat.log 2 n) j))).foldr (fun xs acc => xs ++ acc) [],
+      g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns (Nat.log 2 n)) :
+    (routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+        M n hn2 htb hns
+        ((is.map (fun j =>
+          (d j).map (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+            M n hn2 htb hns (Nat.log 2 n) j))).foldr (fun xs acc => xs ++ acc) []) hw) i).Perm
+      (d i) := by
+  classical
+  revert i
+  induction is with
+  | nil =>
+      intro i hmem
+      simp at hmem
+  | cons j js ih =>
+      rw [List.nodup_cons] at hnodup
+      intro i hmem
+      by_cases hji : j = i
+      · subst hji
+        have hnot_tail : j ∉ js := hnodup.1
+        have htail := routeBPaperFaithfulTPhi_strictSourceDecodedTransitionWordOnFactors_distrib_eq_nil_of_not_mem
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          d js j hnot_tail
+          (by intro g hg; exact hw g (by simp [hg]))
+        simp only [List.map_cons, List.foldr_cons]
+        rw [routeBPaperFaithfulTPhi_strictSourceDecodedEventWordDistrib_append]
+        have hblock :=
+          routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfTraceStepMap
+            M n hn2 htb hns j (d j)
+            (by intro g hg; exact hw g (by simp [hg]))
+        rw [hblock]
+        rw [routeBPaperFaithfulTPhi_strictSourceEventWordDistrib_map_same]
+        rw [htail]
+        simp
+      · have hmem_tail : i ∈ js := by
+          have hcases := List.mem_cons.mp hmem
+          rcases hcases with hij | hi
+          · exact False.elim (hji hij.symm)
+          · exact hi
+        have hperm := ih hnodup.2 (by intro g hg; exact hw g (by simp [hg])) i hmem_tail
+        simp only [List.map_cons, List.foldr_cons]
+        rw [routeBPaperFaithfulTPhi_strictSourceDecodedEventWordDistrib_append]
+        have hblock :=
+          routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfTraceStepMap
+            M n hn2 htb hns j (d j)
+            (by intro g hg; exact hw g (by simp [hg]))
+        rw [hblock]
+        rw [routeBPaperFaithfulTPhi_strictSourceEventWordDistrib_map_ne hji]
+        simpa using hperm
+
+/-- The raw concrete product-rule transition word, after decoding its trace-step
+generators, has exactly the paper factorwise Leibniz distribution. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord_decoded_distrib_perm
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (i : Fin ((cookLevinFactorList M n hn2 htb hns).length)) :
+    (routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+        M n hn2 htb hns
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+          (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+            M n hn2 htb hns (Nat.log 2 n)) d)
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord_traceStep_mem_generators
+          M n hn2 htb hns (Nat.log 2 n) d)) i).Perm (d i) := by
+  classical
+  unfold routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+  exact routeBPaperFaithfulTPhi_strictSourceDecodedTransitionWordOnFactors_distrib_perm
+    (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+    d
+    (Finset.univ : Finset
+      (Fin ((cookLevinFactorList M n hn2 htb hns).length))).toList
+    i
+    ((Finset.mem_toList).mpr (Finset.mem_univ i))
+    (Finset.nodup_toList _)
+    _
+
+
+/-- The witnessed `NFOfWord` event word preserves the paper factorwise Leibniz
+distribution up to per-factor permutation.  The proof first recovers the raw
+event word from finite-trace product equality, then transports factorwise
+`filterMap` distributions to the raw decoded transition word. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_eventWordDistrib_perm
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+        (d i).length ≤ S'.length)
+    (i : Fin ((cookLevinFactorList M n hn2 htb hns).length)) :
+    (routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+        M n hn2 htb hns
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+          M n hn2 htb hns d)
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+          M n hn2 htb hns d)) i).Perm (d i) := by
+  classical
+  have hnf_raw :=
+    routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_eventWord_perm_raw
+      M n hn2 htb hns S' hS d hlen
+  have hdist_raw := routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord_decoded_distrib_perm
+    (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns) d i
+  have hdist_nf :
+      (routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+          M n hn2 htb hns
+          (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+            M n hn2 htb hns d)
+          (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+            M n hn2 htb hns d)) i).Perm
+        (routeBPaperFaithfulTPhi_strictSourceEventWordDistrib
+          (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+            M n hn2 htb hns
+            (routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+              (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+                M n hn2 htb hns (Nat.log 2 n)) d)
+            (routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord_traceStep_mem_generators
+              M n hn2 htb hns (Nat.log 2 n) d)) i) := by
+    simpa [routeBPaperFaithfulTPhi_strictSourceEventWordDistrib] using
+      hnf_raw.filterMap (fun e => if e.factor = i then some e.coord else none)
+  exact hdist_nf.trans hdist_raw
+
+
 /-- The event-labelled version of the witnessed product-rule word over an
 explicit factor list.  This mirrors `strictSourceLeibnizTransitionWord`, but its
 letters are the paper events themselves rather than finite endomorphisms. -/
@@ -15312,6 +15601,48 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordShiftedBran
             M n hn2 htb hns d)
           (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
             M n hn2 htb hns d)) i).Perm (d i)
+
+/-- Once the finite-trace distribution theorem is proved, the shifted branch
+support payload only needs the canonical profile selector and the paper
+symmetric-power budget.  The factorwise `NFOfWord` permutation field is filled
+by the strict trace reconstruction theorem above. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordShiftedBranchSupportBudgetData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceShiftedBranchBudget_le :
+    Fintype.card (RouteBPaperFaithfulTPhiStrictSourceNFOfWordBoundedWord
+        M n hn2 htb hns) *
+      zeroProfileShiftSupportSetCount (n / 3) (Nat.log 2 n) ≤
+      withinProfileBound (Nat.log 2 n)
+
+/-- The strict finite-trace theorem discharges the witnessed local permutation
+field for shifted branch-support local types. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceShiftedBranchSupportLocalTypeMaps_of_budgetData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordShiftedBranchSupportBudgetData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordShiftedBranchSupportLocalTypeMaps
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceShiftedBranchBudget_le := D.sourceShiftedBranchBudget_le
+  leibnizWitness_eventWordDistrib_perm := by
+    intro ρ S' hS shift hshift d hd_elts hlen i
+    exact routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_eventWordDistrib_perm
+      M n hn2 htb hns S' hS d hlen i
 
 /-- Shifted branch-support local-type payload instantiates the witnessed
 `NFOfWord` local-type route. -/
