@@ -15715,6 +15715,90 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateSpan
           Submodule.span ℚ (↑(sourceTemplateBasis ρ) :
             Set (MvPolynomial (Fin (n / 3)) ℚ))
 
+/-- Paper-faithful derivation of selected profile-template span data from an
+exact fixed-profile template-collapse surface.
+
+This package exposes the remaining Lemma-31 algebra in the right shape.  The
+basis for each selected interface profile is obtained from the abstract
+fixed-profile template-collapse theorem for that exact profile.  A witnessed
+Leibniz row may use that basis only after proving its factor-indexed derivative
+count profile is exactly the selected profile.  This is the intended paper
+route: exact profile classification plus profile-template/symmetric-power
+collapse, not raw support enumeration, not a global/common span, and not a
+histogram-only replacement of the local word. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizExactProfileTemplateCollapseData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  sourcePartition : SPDP.BlockPartition (n / 3)
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceTemplateCollapse :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      AbstractProfileTemplateCollapseAtProfile sourcePartition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+          M n hn2 htb hns)
+        (cookLevinConstraintType M n hn2 htb hns) ρ.val
+  leibnizWitness_profile_eq :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (_hS : S'.length ≤ Nat.log 2 n)
+      (_shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (_hshift : _shift.vars ⊆ S'.toFinset)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (_hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (_hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        derivCountProfile (cookLevinConstraintType M n hn2 htb hns) d = ρ.val
+
+/-- Exact-profile template-collapse data instantiates the selected
+profile-template span surface.
+
+The proof of row membership is the formal fixed-profile inclusion: once the
+witnessed distribution has derivative-count profile `ρ.val`, the row is an
+actual element of `allBoundedProfilePostSpan ... ρ.val`, hence lies in the
+basis chosen by `sourceTemplateCollapse ρ`. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizProfileTemplateSpanData_of_exactProfileTemplateCollapseData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizExactProfileTemplateCollapseData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateSpanData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceTemplateBasis := fun ρ => Classical.choose (D.sourceTemplateCollapse ρ)
+  sourceTemplateBasis_card_le := by
+    intro ρ
+    exact (Classical.choose_spec (D.sourceTemplateCollapse ρ)).2
+  leibnizWitness_mem_profileTemplateSpan := by
+    intro ρ S' hS shift hshift d hd_elts hlen
+    let G := Classical.choose (D.sourceTemplateCollapse ρ)
+    have hG := Classical.choose_spec (D.sourceTemplateCollapse ρ)
+    apply hG.1
+    apply Submodule.subset_span
+    simp only [Set.mem_iUnion, Set.mem_image]
+    refine ⟨S', hS, shift, hshift,
+      Finset.univ.prod
+        (fun i =>
+          SPDP.iterDerivList (d i)
+            ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+              M n hn2 htb hns) i)), ?_, rfl⟩
+    refine ⟨d, hd_elts, rfl, ?_, hlen⟩
+    exact D.leibnizWitness_profile_eq ρ S' hS shift hshift d hd_elts hlen
+
 /-- The selected profile-template span data instantiates the witnessed
 Leibniz local-type surface using exactly one profile-local template span per
 selected profile.  The budget is discharged by
