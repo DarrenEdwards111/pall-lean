@@ -17444,6 +17444,87 @@ structure RouteBPaperFaithfulTPhiStrictSourceCanonicalRowDerivProfileTemplateCol
           (d i).length ≤ S'.length),
         derivCountProfile (cookLevinConstraintType M n hn2 htb hns) d = ρ.val
 
+/-- Split final-data surface: a global fixed-profile template-collapse theorem
+for the strict source factors plus the row-selected derivative-profile equality.
+
+This is the clean separation of the two remaining paper obligations.  The
+first field is the Lemma-31/symmetric-power template-collapse theorem, stated
+for all derivative-count profiles of the strict source factor family.  The
+second field is the canonical-row local selector theorem: every bounded
+product-rule distribution has the derivative-count profile selected by that
+same canonical row/window.
+
+The adapter below merely specializes the all-profile template theorem to
+`ρ.val`; the row profile itself remains guarded by `hρ`. -/
+structure RouteBPaperFaithfulTPhiStrictSourceTemplateCollapseAndRowDerivProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceTemplateCollapseAll :
+    AbstractWithinProfileTemplateCollapse
+      (MultilinearSPDP.pullbackPartition
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (cookLevinStrictFOBFlatMap n))
+      (Nat.log 2 n) (Nat.log 2 n)
+      (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+        M n hn2 htb hns)
+      (cookLevinConstraintType M n hn2 htb hns)
+  canonicalRow_derivProfile_eq :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (_hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (_hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        derivCountProfile (cookLevinConstraintType M n hn2 htb hns) d = ρ.val
+
+/-- The split template-collapse + row-profile equality surface instantiates the
+row-derivative-profile frontier. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceCanonicalRowDerivProfileTemplateCollapseData_of_templateCollapseAndRowDerivProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceTemplateCollapseAndRowDerivProfileData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceCanonicalRowDerivProfileTemplateCollapseData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceTemplateCollapse := by
+    intro ρ
+    exact D.sourceTemplateCollapseAll ρ.val
+  canonicalRow_derivProfile_eq := D.canonicalRow_derivProfile_eq
+
 /-- Pointwise row-selected derivative-profile equality gives selected Leibniz
 ownership by unpacking the bounded product-rule distribution witness. -/
 noncomputable def routeBPaperFaithfulTPhi_strictSourceCanonicalRowLeibnizOwnershipTemplateCollapseData_of_derivProfileTemplateCollapseData

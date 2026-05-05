@@ -2055,6 +2055,31 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceC
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
+/-- Final paper-shaped close-out from split strict-source template-collapse and
+row-selected derivative-profile data.
+
+This is now the clean two-obligation paper surface: Lemma-31/symmetric-power
+collapse for the strict source factor family, plus the row-local proof that the
+canonical selector equals the derivative-count profile of every product-rule
+distribution. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceTemplateCollapseAndRowDerivProfileData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceTemplateCollapseAndRowDerivProfileData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceCanonicalRowExactProfileTemplateCollapseData
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictSourceCanonicalRowExactProfileTemplateCollapseData_of_leibnizOwnershipTemplateCollapseData
+        M n hn2 htb hns
+        (routeBPaperFaithfulTPhi_strictSourceCanonicalRowLeibnizOwnershipTemplateCollapseData_of_derivProfileTemplateCollapseData
+          M n hn2 htb hns
+          (routeBPaperFaithfulTPhi_strictSourceCanonicalRowDerivProfileTemplateCollapseData_of_templateCollapseAndRowDerivProfileData
+            M n hn2 htb hns
+            (hdata M n hn hn2 htb hns hdec))))
+
 /-- Final paper-shaped close-out from row-selected derivative-profile equality
 plus fixed-profile template-collapse data for strict `TΦ`.
 
@@ -3553,6 +3578,20 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSource
     CookLevinRichProjectionDischarge :=
   cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceCanonicalRowExactProfileTemplateCollapseData
+      hdata)
+
+/-- Rich-projection discharge from split strict-source template-collapse and
+row-selected derivative-profile data. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceTemplateCollapseAndRowDerivProfileData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceTemplateCollapseAndRowDerivProfileData
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceTemplateCollapseAndRowDerivProfileData
       hdata)
 
 /-- Rich-projection discharge from row-selected derivative-profile equality plus
