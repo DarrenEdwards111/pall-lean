@@ -2055,6 +2055,28 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceC
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
+/-- Final paper-shaped close-out from row-selected derivative-profile equality
+plus fixed-profile template-collapse data for strict `TΦ`.
+
+This is the pointwise product-rule profile frontier: every bounded
+factor-derivative distribution for a canonical row must have derivative-count
+profile equal to the profile selected by that row/window. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceCanonicalRowDerivProfileTemplateCollapseData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceCanonicalRowDerivProfileTemplateCollapseData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceCanonicalRowExactProfileTemplateCollapseData
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictSourceCanonicalRowExactProfileTemplateCollapseData_of_leibnizOwnershipTemplateCollapseData
+        M n hn2 htb hns
+        (routeBPaperFaithfulTPhi_strictSourceCanonicalRowLeibnizOwnershipTemplateCollapseData_of_derivProfileTemplateCollapseData
+          M n hn2 htb hns
+          (hdata M n hn hn2 htb hns hdec)))
+
 /-- Final paper-shaped close-out from selected-profile Leibniz ownership plus
 fixed-profile template-collapse data for strict `TΦ`.
 
@@ -3531,6 +3553,20 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSource
     CookLevinRichProjectionDischarge :=
   cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceCanonicalRowExactProfileTemplateCollapseData
+      hdata)
+
+/-- Rich-projection discharge from row-selected derivative-profile equality plus
+fixed-profile template-collapse data for strict `TΦ`. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceCanonicalRowDerivProfileTemplateCollapseData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceCanonicalRowDerivProfileTemplateCollapseData
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceCanonicalRowDerivProfileTemplateCollapseData
       hdata)
 
 /-- Rich-projection discharge from selected-profile Leibniz ownership plus

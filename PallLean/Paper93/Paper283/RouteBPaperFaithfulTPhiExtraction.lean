@@ -17375,6 +17375,93 @@ structure RouteBPaperFaithfulTPhiStrictSourceCanonicalRowLeibnizOwnershipTemplat
             M n hn2 htb hns)
           (cookLevinConstraintType M n hn2 htb hns) S' ρ.val
 
+/-- Row-selected derivative-profile equality plus fixed-profile
+Template-collapse.
+
+This is one step closer to the literal paper algebra than the subset ownership
+surface above: instead of assuming the whole bounded Leibniz set is already a
+subset of the selected profile class, it asks for the pointwise statement that
+any bounded product-rule distribution for the canonical row has derivative-count
+profile equal to the profile selected by that same row/window.  The adapter
+below turns this exact equality into the classified-set ownership inclusion by
+unpacking `boundedDistribDerivProds`.
+
+The profile parameter remains guarded by the row's `hρ`; this avoids the older
+incorrect arbitrary-`ρ` shape. -/
+structure RouteBPaperFaithfulTPhiStrictSourceCanonicalRowDerivProfileTemplateCollapseData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceTemplateCollapse :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      AbstractProfileTemplateCollapseAtProfile
+        (MultilinearSPDP.pullbackPartition
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (cookLevinStrictFOBFlatMap n))
+        (Nat.log 2 n) (Nat.log 2 n)
+        (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+          M n hn2 htb hns)
+        (cookLevinConstraintType M n hn2 htb hns) ρ.val
+  canonicalRow_derivProfile_eq :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (_hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (_hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        derivCountProfile (cookLevinConstraintType M n hn2 htb hns) d = ρ.val
+
+/-- Pointwise row-selected derivative-profile equality gives selected Leibniz
+ownership by unpacking the bounded product-rule distribution witness. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceCanonicalRowLeibnizOwnershipTemplateCollapseData_of_derivProfileTemplateCollapseData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceCanonicalRowDerivProfileTemplateCollapseData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceCanonicalRowLeibnizOwnershipTemplateCollapseData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceTemplateCollapse := D.sourceTemplateCollapse
+  canonicalRow_leibnizOwnership := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ g hg
+    rcases hg with ⟨d, hd_elts, hg_eq, hlen⟩
+    refine ⟨d, hd_elts, hg_eq, ?_, hlen⟩
+    exact D.canonicalRow_derivProfile_eq
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+
 /-- Leibniz-ownership/template-collapse data supplies the corrected canonical
 row exact-profile data.  The selected post-span membership is obtained by the
 checked product-rule ownership theorem, with the selected profile supplied by
