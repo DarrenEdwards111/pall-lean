@@ -1560,6 +1560,29 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceL
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
+/-- Final close-out from selected profile-template span data.
+
+This is the paper-faithful replacement for the now-ruled-out shifted-support
+budget: for each selected interface profile, the witnessed Leibniz row is
+placed in a profile-template/symmetric-power span of cardinality
+`profileTemplateBound ρ.val`, then the existing local-type route performs the
+final assembly. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizProfileTemplateSpanData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateSpanData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeMaps
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeMaps_of_witnessedLeibnizLocalTypeMaps
+        M n hn2 htb hns
+        (routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalTypeMaps_of_profileTemplateSpanData
+          M n hn2 htb hns
+          (hdata M n hn hn2 htb hns hdec)))
+
 /-- Final close-out from witnessed local Leibniz words.
 
 This is the closest formal surface to the paper's bounded product-rule word:

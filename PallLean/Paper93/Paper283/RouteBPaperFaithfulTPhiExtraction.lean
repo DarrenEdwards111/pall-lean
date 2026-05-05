@@ -15657,6 +15657,97 @@ theorem routeBPaperFaithfulTPhi_not_sourceShiftedBranchBudget_twoPow804
   exact (not_le_of_gt hlt) hle
 
 
+/-- Paper-profile/symmetric-power replacement for the false shifted-support
+budget.
+
+For each selected strict interface profile `ρ`, this datum supplies the actual
+profile-template finite family whose size is bounded by the paper's symmetric
+power count `profileTemplateBound ρ.val`.  The witnessed Leibniz row is then
+proved directly in the span for that same selected profile.
+
+This is intentionally not a raw shifted-support enumeration: the budget is the
+profile-template/symmetric-power bound for the selected profile, and the
+adapter below turns it into the existing witnessed local-type surface with a
+single profile-local template span.  It also does not introduce a global/common
+span across unrelated profiles. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateSpanData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceTemplateBasis :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) →
+      Finset (MvPolynomial (Fin (n / 3)) ℚ)
+  sourceTemplateBasis_card_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      (sourceTemplateBasis ρ).card ≤ profileTemplateBound ρ.val
+  leibnizWitness_mem_profileTemplateSpan :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        mlProj
+            (shift *
+              Finset.univ.prod
+                (fun i =>
+                  SPDP.iterDerivList (d i)
+                    ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                      M n hn2 htb hns) i))) ∈
+          Submodule.span ℚ (↑(sourceTemplateBasis ρ) :
+            Set (MvPolynomial (Fin (n / 3)) ℚ))
+
+/-- The selected profile-template span data instantiates the witnessed
+Leibniz local-type surface using exactly one profile-local template span per
+selected profile.  The budget is discharged by
+`profileTemplateBound_le_withinProfileBound`, not by shifted-support counting. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalTypeMaps_of_profileTemplateSpanData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateSpanData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalTypeMaps
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceAlphabet := fun ρ =>
+    { type := PUnit
+      typeFintype := inferInstance
+      localDim := profileTemplateBound ρ.val
+      localBasis := fun _ => D.sourceTemplateBasis ρ
+      localBasis_card_le := fun _ => D.sourceTemplateBasis_card_le ρ
+      profileSymmetricPowerBudget_le := by
+        have hadm : ProfileAdmissible (Nat.log 2 n) ρ.val := by
+          exact le_of_eq (routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfile_mass_eq ρ)
+        simpa using profileTemplateBound_le_withinProfileBound
+          (Nat.log 2 n) ρ.val hadm }
+  leibnizWitnessType := by
+    intro ρ S' hS shift hshift d hd_elts hlen
+    exact PUnit.unit
+  leibnizWitness_mem_typeSpace := by
+    intro ρ S' hS shift hshift d hd_elts hlen
+    simpa [zeroProfileLocalTypeSpace] using
+      D.leibnizWitness_mem_profileTemplateSpan
+        ρ S' hS shift hshift d hd_elts hlen
+
+
 /-- Once the finite-trace distribution theorem is proved, the shifted branch
 support payload only needs the canonical profile selector and the paper
 symmetric-power budget.  The factorwise `NFOfWord` permutation field is filled
