@@ -15602,6 +15602,61 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordShiftedBran
           (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
             M n hn2 htb hns d)) i).Perm (d i)
 
+set_option exponentiation.threshold 1000
+
+/-- Large-scale parameter `2^804` still satisfies the ambient lower bound. -/
+private theorem routeBPaperFaithfulTPhi_hn2_twoPow804 : (2 : ℕ) ≤ (2 : ℕ) ^ 804 := by
+  exact Nat.le_trans (by norm_num : (2:ℕ) ≤ 2)
+    (Nat.pow_le_pow_right (by norm_num : (1:ℕ) ≤ 2) (by norm_num : 1 ≤ 804))
+
+/-- The bounded `NFOfWord` alphabet is nonempty: the empty certified word is
+always present. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_empty_twoPow804
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ (2 : ℕ) ^ 804) :
+    RouteBPaperFaithfulTPhiStrictSourceNFOfWordBoundedWord
+      M ((2 : ℕ) ^ 804) routeBPaperFaithfulTPhi_hn2_twoPow804 htb hns := by
+  classical
+  refine ⟨⟨⟨0, by simp⟩, ⟨[], rfl⟩⟩, ?_⟩
+  intro g hg
+  simp at hg
+
+/-- Diagnostic no-shortcut lemma: at the paper scale `n = 2^804`, the raw
+shift-support budget cannot fit inside `withinProfileBound`.  This records why
+the final Route B close must use the paper profile/symmetric-power local-type
+counting route rather than enumerating shifted supports over the ambient source
+variables. -/
+theorem routeBPaperFaithfulTPhi_not_sourceShiftedBranchBudget_twoPow804
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ (2 : ℕ) ^ 804) :
+    ¬ Fintype.card (RouteBPaperFaithfulTPhiStrictSourceNFOfWordBoundedWord
+        M ((2 : ℕ) ^ 804) routeBPaperFaithfulTPhi_hn2_twoPow804 htb hns) *
+      zeroProfileShiftSupportSetCount (((2 : ℕ) ^ 804) / 3)
+        (Nat.log 2 ((2 : ℕ) ^ 804)) ≤
+      withinProfileBound (Nat.log 2 ((2 : ℕ) ^ 804)) := by
+  classical
+  intro hbudget
+  have hcard : 1 ≤ Fintype.card (RouteBPaperFaithfulTPhiStrictSourceNFOfWordBoundedWord
+        M ((2 : ℕ) ^ 804) routeBPaperFaithfulTPhi_hn2_twoPow804 htb hns) := by
+    exact Fintype.card_pos_iff.mpr ⟨routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_empty_twoPow804 M htb hns⟩
+  have hcount : ((2 : ℕ) ^ 804) / 3 ≤
+      zeroProfileShiftSupportSetCount (((2 : ℕ) ^ 804) / 3)
+        (Nat.log 2 ((2 : ℕ) ^ 804)) := by
+    rw [Nat.log_pow (by norm_num : 1 < 2) 804]
+    exact zeroProfileShiftSupportSetCount_ge_ambient_of_one_le (((2 : ℕ) ^ 804) / 3) 804 (by norm_num)
+  have hmul : zeroProfileShiftSupportSetCount (((2 : ℕ) ^ 804) / 3)
+        (Nat.log 2 ((2 : ℕ) ^ 804)) ≤
+      Fintype.card (RouteBPaperFaithfulTPhiStrictSourceNFOfWordBoundedWord
+        M ((2 : ℕ) ^ 804) routeBPaperFaithfulTPhi_hn2_twoPow804 htb hns) *
+      zeroProfileShiftSupportSetCount (((2 : ℕ) ^ 804) / 3)
+        (Nat.log 2 ((2 : ℕ) ^ 804)) := by
+    exact Nat.le_mul_of_pos_left _ hcard
+  have hle : ((2 : ℕ) ^ 804) / 3 ≤ withinProfileBound (Nat.log 2 ((2 : ℕ) ^ 804)) :=
+    hcount.trans (hmul.trans hbudget)
+  have hlt : withinProfileBound (Nat.log 2 ((2 : ℕ) ^ 804)) < ((2 : ℕ) ^ 804) / 3 := by
+    rw [Nat.log_pow (by norm_num : 1 < 2) 804]
+    norm_num [withinProfileBound]
+  exact (not_le_of_gt hlt) hle
+
+
 /-- Once the finite-trace distribution theorem is proved, the shifted branch
 support payload only needs the canonical profile selector and the paper
 symmetric-power budget.  The factorwise `NFOfWord` permutation field is filled
