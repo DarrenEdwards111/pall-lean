@@ -7859,6 +7859,106 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
       (cookLevinStrictFOBFlatMap_injective n)
       ((cookLevinFactorList M n hn2 htb hns).get i)
 
+/-- Corrected exact-profile template-collapse frontier for canonical strict
+source rows.
+
+Unlike the earlier witnessed-Leibniz span surface, this is selected-row
+faithful: a row may use the template basis for `ρ` only under the actual proof
+`hρ` that its canonical window selects `ρ`.  The mathematical content left is
+therefore exactly the paper's local Lemma-31 bridge for the strict source
+factors plus the row's exact fixed-profile membership.  There is no arbitrary
+`ρ`, no raw shifted-support enumeration, and no global/common span across
+profiles. -/
+structure RouteBPaperFaithfulTPhiStrictSourceCanonicalRowExactProfileTemplateCollapseData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  sourcePartition : SPDP.BlockPartition (n / 3)
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceTemplateCollapse :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      AbstractProfileTemplateCollapseAtProfile sourcePartition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+          M n hn2 htb hns)
+        (cookLevinConstraintType M n hn2 htb hns) ρ.val
+  canonicalSourceRow_mem_allBoundedProfilePostSpan :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ),
+      routeBPaperFaithfulTPhiStrictSourceCanonicalDerivativeRow
+          M n hn2 htb hns S' shift ∈
+        allBoundedProfilePostSpan sourcePartition
+          (Nat.log 2 n) (Nat.log 2 n)
+          (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+            M n hn2 htb hns)
+          (cookLevinConstraintType M n hn2 htb hns) ρ.val
+
+/-- Exact-profile template-collapse data instantiates the canonical source
+local-type compression datum with one local type per selected profile.
+
+The adapter only chooses the fixed-profile basis from `sourceTemplateCollapse`
+and applies the fixed-profile inclusion to the row's own selected profile. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLocalTypeCompressionData_of_canonicalRowExactProfileTemplateCollapseData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceCanonicalRowExactProfileTemplateCollapseData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceLocalTypeCompressionData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceAlphabet := fun ρ =>
+    { type := PUnit
+      typeFintype := inferInstance
+      localDim := profileTemplateBound ρ.val
+      localBasis := fun _ => Classical.choose (D.sourceTemplateCollapse ρ)
+      localBasis_card_le := fun _ =>
+        (Classical.choose_spec (D.sourceTemplateCollapse ρ)).2
+      profileSymmetricPowerBudget_le := by
+        have hadm : ProfileAdmissible (Nat.log 2 n) ρ.val := by
+          exact le_of_eq (routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfile_mass_eq ρ)
+        simpa using profileTemplateBound_le_withinProfileBound
+          (Nat.log 2 n) ρ.val hadm }
+  sourceRowType := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    exact PUnit.unit
+  sourceRow_mem_localTypeSpace := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    have hG := Classical.choose_spec (D.sourceTemplateCollapse ρ)
+    have hmem := D.canonicalSourceRow_mem_allBoundedProfilePostSpan
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    simpa [zeroProfileLocalTypeSpace] using hG.1 hmem
+
 /-- The source-coordinate strict `TΦ` polynomial is the product of the
 restricted Cook-Levin factors. -/
 theorem routeBPaperFaithfulTPhi_restrict_compiledPoly_eq_sourceRestrictedFactors_prod
