@@ -17306,6 +17306,103 @@ theorem routeBPaperFaithfulTPhi_strictSourceRow_mem_selected_restrictedProfilePo
       (cookLevinConstraintType M n hn2 htb hns)
       S' shift hSlen hshiftVars h hown
 
+/-- Selected-profile Leibniz ownership plus fixed-profile template-collapse
+instantiates the canonical-row exact-profile frontier.
+
+This is the next paper-faithful algebra surface below
+`RouteBPaperFaithfulTPhiStrictSourceCanonicalRowExactProfileTemplateCollapseData`:
+for each canonical strict source row, every bounded product-rule distribution
+must classify to the profile selected by that same row/window.  The formal
+adapter then uses the product-form Leibniz theorem above to place the whole
+canonical row in the selected `allBoundedProfilePostSpan`.
+
+No shifted-support enumeration is used here, and no membership is transported
+through an all-profile `iSup` or common/global span. -/
+structure RouteBPaperFaithfulTPhiStrictSourceCanonicalRowLeibnizOwnershipTemplateCollapseData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceTemplateCollapse :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      AbstractProfileTemplateCollapseAtProfile
+        (MultilinearSPDP.pullbackPartition
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (cookLevinStrictFOBFlatMap n))
+        (Nat.log 2 n) (Nat.log 2 n)
+        (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+          M n hn2 htb hns)
+        (cookLevinConstraintType M n hn2 htb hns) ρ.val
+  canonicalRow_leibnizOwnership :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ),
+      boundedDistribDerivProds Finset.univ
+          (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+            M n hn2 htb hns) S' S'.length ⊆
+        boundedProfileClassifiedSet
+          (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+            M n hn2 htb hns)
+          (cookLevinConstraintType M n hn2 htb hns) S' ρ.val
+
+/-- Leibniz-ownership/template-collapse data supplies the corrected canonical
+row exact-profile data.  The selected post-span membership is obtained by the
+checked product-rule ownership theorem, with the selected profile supplied by
+`hρ`. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceCanonicalRowExactProfileTemplateCollapseData_of_leibnizOwnershipTemplateCollapseData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceCanonicalRowLeibnizOwnershipTemplateCollapseData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceCanonicalRowExactProfileTemplateCollapseData
+      M n hn2 htb hns where
+  sourcePartition :=
+    MultilinearSPDP.pullbackPartition
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (cookLevinStrictFOBFlatMap n)
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceTemplateCollapse := D.sourceTemplateCollapse
+  canonicalSourceRow_mem_allBoundedProfilePostSpan := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    have hsrcVars : shift.vars ⊆ S'.toFinset :=
+      routeBPaperFaithfulTPhi_sourceShift_vars_subset_of_renamed_subset
+        n S' shift hshiftVars
+    have hown := D.canonicalRow_leibnizOwnership
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    simpa [routeBPaperFaithfulTPhiStrictSourceCanonicalDerivativeRow] using
+      routeBPaperFaithfulTPhi_strictSourceRow_mem_selected_restrictedProfilePostSpan_of_leibnizOwnership
+        M n hn2 htb hns S' shift (le_of_eq hSlen) hsrcVars ρ.val hown
+
 /-- Product-form Cook-Levin rows land in the supremum over all
 derivative-count profile post-spans.
 
