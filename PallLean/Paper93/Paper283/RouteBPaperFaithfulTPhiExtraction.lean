@@ -14614,6 +14614,104 @@ theorem routeBPaperFaithfulTPhi_strictSourceLeibnizEventWord_reverse_eq_of_prod_
       omega
     rw [List.getElem?_eq_none (by omega), List.getElem?_eq_none (by omega)]
 
+/-- The witnessed `NFOfWord` and the raw product-rule transition word decode to
+the same slot-ordered trace event sequence, under the paper's bounded Leibniz
+length hypothesis.  This is the direct `NFOfWord_represents` instantiation of
+the trace product-equality bridge. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_eventWord_reverse_eq_raw
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+        (d i).length ≤ S'.length) :
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+      M n hn2 htb hns
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+        M n hn2 htb hns d)
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+        M n hn2 htb hns d)).reverse =
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+      M n hn2 htb hns
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+          M n hn2 htb hns (Nat.log 2 n)) d)
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord_traceStep_mem_generators
+        M n hn2 htb hns (Nat.log 2 n) d)).reverse := by
+  classical
+  have hraw_len :
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+          M n hn2 htb hns (Nat.log 2 n)) d).length ≤ Nat.log 2 n := by
+    rw [routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord_length]
+    exact hlen.trans hS
+  have hnf_len :=
+    routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_length_le_window
+      M n hn2 htb hns S' hS d hlen
+  exact routeBPaperFaithfulTPhi_strictSourceLeibnizEventWord_reverse_eq_of_prod_eq
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+      M n hn2 htb hns d)
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+        M n hn2 htb hns (Nat.log 2 n)) d)
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+      M n hn2 htb hns d)
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord_traceStep_mem_generators
+      M n hn2 htb hns (Nat.log 2 n) d)
+    hnf_len hraw_len
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_represents
+      M n hn2 htb hns d)
+
+/-- Consequently, the witnessed `NFOfWord` decoded event word is a permutation
+of the raw product-rule decoded event word.  The permutation is obtained only
+after recovering the exact slot sequence from product equality, then forgetting
+order via list reversal. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_eventWord_perm_raw
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+        (d i).length ≤ S'.length) :
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+      M n hn2 htb hns
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+        M n hn2 htb hns d)
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+        M n hn2 htb hns d)).Perm
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+      M n hn2 htb hns
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+          M n hn2 htb hns (Nat.log 2 n)) d)
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord_traceStep_mem_generators
+        M n hn2 htb hns (Nat.log 2 n) d)) := by
+  classical
+  let a := routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+      M n hn2 htb hns d)
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+      M n hn2 htb hns d)
+  let b := routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep
+        M n hn2 htb hns (Nat.log 2 n)) d)
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTransitionWord_traceStep_mem_generators
+      M n hn2 htb hns (Nat.log 2 n) d)
+  have hrev : a.reverse = b.reverse := by
+    simpa [a, b] using
+      routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_eventWord_reverse_eq_raw
+        M n hn2 htb hns S' hS d hlen
+  have h1 : a.Perm a.reverse := (List.reverse_perm a).symm
+  have h2 : a.reverse.Perm b.reverse := by
+    rw [hrev]
+  exact h1.trans (h2.trans (List.reverse_perm b))
+
 /-- The event word represented by an explicit bounded `NFOfWord` local type. -/
 noncomputable def routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_eventWord
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
