@@ -3401,6 +3401,39 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTermTypeFamily_of_witnessedLocalTypeMaps
       hdata)
 
+/-- Paper Route B close-out from selected profile-template span data through
+the term-dependent Lemma-31 surface.
+
+This names the exact no-shortcut chain: selected interface profile →
+profile-template/symmetric-power span → witnessed Leibniz product-rule word →
+term-dependent local type family → final Route B contradiction. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_profileTemplateSpanData_viaTermFamily
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateSpanData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTermTypeFamily
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictSourceLeibnizTermTypeFamily_of_profileTemplateSpanData
+        M n hn2 htb hns (hdata M n hn hn2 htb hns hdec))
+
+/-- Rich-projection form of the profile-template-span close-out through the
+term-family surface. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_profileTemplateSpanData_viaTermFamily
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateSpanData
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_profileTemplateSpanData_viaTermFamily
+      hdata)
+
 /-- Rich-projection discharge from source local-type compression data for
 strict `TΦ`. -/
 theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceLocalTypeCompressionData
@@ -3939,8 +3972,10 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizLocalTypeMaps
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTypeMaps
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTermTypeFamily
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_profileTemplateSpanData_viaTermFamily
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTypeMaps
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTermTypeFamily
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_profileTemplateSpanData_viaTermFamily
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalTransitionMonoidData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_profileCompressionTransitionMonoid
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_restrictedRowIdentity_projectedCommonSpan

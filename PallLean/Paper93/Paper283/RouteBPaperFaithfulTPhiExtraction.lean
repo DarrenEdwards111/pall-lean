@@ -15747,6 +15747,64 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalTypeM
       D.leibnizWitness_mem_profileTemplateSpan
         ρ S' hS shift hshift d hd_elts hlen
 
+/-- Profile-template span data also gives the atomic term-dependent Lemma-31
+surface.
+
+This is the paper-faithful route with all intermediate structure exposed:
+the selected profile supplies a profile-template basis bounded by the symmetric
+power count; the witnessed product-rule distribution is unpacked for each
+bounded Leibniz term; and the resulting term type is the unique local type of
+that selected profile-template span.  The construction is only adapter glue: it
+does not enumerate raw shifted supports, does not merge unrelated selected
+profiles into a common span, and does not replace the local word by a derivative
+histogram. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizTermTypeFamily_of_profileTemplateSpanData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateSpanData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceLeibnizTermTypeFamily
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceAlphabet := fun ρ =>
+    { type := PUnit
+      typeFintype := inferInstance
+      localDim := profileTemplateBound ρ.val
+      localBasis := fun _ => D.sourceTemplateBasis ρ
+      localBasis_card_le := fun _ => D.sourceTemplateBasis_card_le ρ
+      profileSymmetricPowerBudget_le := by
+        have hadm : ProfileAdmissible (Nat.log 2 n) ρ.val := by
+          exact le_of_eq (routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfile_mass_eq ρ)
+        simpa using profileTemplateBound_le_withinProfileBound
+          (Nat.log 2 n) ρ.val hadm }
+  leibnizTermType := by
+    intro ρ S' hS shift hshift g hg
+    exact PUnit.unit
+  leibnizTerm_mem_typeSpace := by
+    intro ρ S' hS shift hshift g hg
+    let d := Classical.choose hg
+    have hspec := Classical.choose_spec hg
+    have hlen' :
+        ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length := by
+      simpa [d] using hspec.2.2
+    change mlProj (shift * g) ∈
+      zeroProfileLocalTypeSpace
+        { type := PUnit
+          typeFintype := inferInstance
+          localDim := profileTemplateBound ρ.val
+          localBasis := fun _ => D.sourceTemplateBasis ρ
+          localBasis_card_le := fun _ => D.sourceTemplateBasis_card_le ρ
+          profileSymmetricPowerBudget_le := by
+            have hadm : ProfileAdmissible (Nat.log 2 n) ρ.val := by
+              exact le_of_eq (routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfile_mass_eq ρ)
+            simpa using profileTemplateBound_le_withinProfileBound
+              (Nat.log 2 n) ρ.val hadm }
+        PUnit.unit
+    simpa [zeroProfileLocalTypeSpace, hspec.2.1] using
+      D.leibnizWitness_mem_profileTemplateSpan
+        ρ S' hS shift hshift d hspec.1 hlen'
+
 
 /-- Once the finite-trace distribution theorem is proved, the shifted branch
 support payload only needs the canonical profile selector and the paper
