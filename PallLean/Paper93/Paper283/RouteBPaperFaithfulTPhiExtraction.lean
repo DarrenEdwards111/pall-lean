@@ -16037,6 +16037,59 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateSpa
         n S' shift hshiftVars)
       d hd_elts hlen
 
+/-- Generic local-type global-basis cardinality bound against an explicit budget.
+
+This is the same finite union count used for `withinProfileBound`, but with the
+budget supplied explicitly.  It lets the Route B selected-profile route target
+`profileTemplateBound ρ.val` directly instead of falling back to the coarser
+within-profile envelope. -/
+theorem routeBPaperFaithfulTPhi_zeroProfileLocalTypeGlobalBasis_card_le_of_budget
+    {n κ : ℕ}
+    (A : ZeroProfileLocalTypeAlphabet n κ)
+    (hbudget : @Fintype.card A.type A.typeFintype * A.localDim ≤ profileTemplateBound
+      (zeroProfileHistogram : ProfileHistogram)) :
+    (zeroProfileLocalTypeGlobalBasis A).card ≤ profileTemplateBound
+      (zeroProfileHistogram : ProfileHistogram) := by
+  classical
+  letI : Fintype A.type := A.typeFintype
+  have hcard :
+      (Finset.univ.biUnion A.localBasis).card ≤
+        (Finset.univ : Finset A.type).card * A.localDim :=
+    Finset.card_biUnion_le_card_mul
+      (Finset.univ : Finset A.type) A.localBasis A.localDim
+      (by
+        intro τ _hτ
+        exact A.localBasis_card_le τ)
+  have htype_card :
+      (Finset.univ : Finset A.type).card = Fintype.card A.type :=
+    Finset.card_univ
+  simpa [zeroProfileLocalTypeGlobalBasis, htype_card] using
+    hcard.trans hbudget
+
+/-- Generic local-type global-basis cardinality bound against a selected
+profile-template budget. -/
+theorem routeBPaperFaithfulTPhi_zeroProfileLocalTypeGlobalBasis_card_le_profileTemplate_of_budget
+    {n κ : ℕ}
+    (A : ZeroProfileLocalTypeAlphabet n κ)
+    (h : ProfileHistogram)
+    (hbudget : @Fintype.card A.type A.typeFintype * A.localDim ≤ profileTemplateBound h) :
+    (zeroProfileLocalTypeGlobalBasis A).card ≤ profileTemplateBound h := by
+  classical
+  letI : Fintype A.type := A.typeFintype
+  have hcard :
+      (Finset.univ.biUnion A.localBasis).card ≤
+        (Finset.univ : Finset A.type).card * A.localDim :=
+    Finset.card_biUnion_le_card_mul
+      (Finset.univ : Finset A.type) A.localBasis A.localDim
+      (by
+        intro τ _hτ
+        exact A.localBasis_card_le τ)
+  have htype_card :
+      (Finset.univ : Finset A.type).card = Fintype.card A.type :=
+    Finset.card_univ
+  simpa [zeroProfileLocalTypeGlobalBasis, htype_card] using
+    hcard.trans hbudget
+
 /-- Term-dependent Lemma-31 local-type data with the **profile-template**
 budget exposed.
 
@@ -17435,6 +17488,112 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalTypeM
     intro ρ S' hS shift hshift d hd_elts hlen
     exact D.leibnizWitness_mem_normalFormSpace
       ρ S' hS shift hshift d hd_elts hlen
+
+/-- Witness-level local-type maps with the exact selected profile-template
+budget exposed.
+
+The local type and membership are still term/witness-dependent; the new field
+only strengthens the cardinality budget from the broad `withinProfileBound` to
+the paper's selected `profileTemplateBound ρ.val`. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateLocalTypeMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) extends
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalTypeMaps
+      M n hn2 htb hns where
+  sourceProfileTemplateBudget_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      @Fintype.card (sourceAlphabet ρ).type (sourceAlphabet ρ).typeFintype * (sourceAlphabet ρ).localDim ≤
+        profileTemplateBound ρ.val
+
+/-- Witness-level local-type maps with exact profile-template budget instantiate
+`ProfileTemplateTermFamilyData`.
+
+This is the direct Lemma-31 path: choose the actual bounded-distribution witness
+inside `hg`, keep its local type, and use the exact selected-profile template
+budget to bound the assembled local basis. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceProfileTemplateTermFamilyData_of_witnessedProfileTemplateLocalTypeMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateLocalTypeMaps
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceProfileTemplateTermFamilyData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceAlphabet := D.sourceAlphabet
+  leibnizTermType := by
+    intro ρ S' hS shift hshift g hg
+    let d := Classical.choose hg
+    have hspec := Classical.choose_spec hg
+    have hlen' :
+        ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length := by
+      simpa [d] using hspec.2.2
+    exact D.leibnizWitnessType ρ S' hS shift hshift d hspec.1 hlen'
+  leibnizTerm_mem_typeSpace := by
+    intro ρ S' hS shift hshift g hg
+    let d := Classical.choose hg
+    have hspec := Classical.choose_spec hg
+    have hlen' :
+        ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length := by
+      simpa [d] using hspec.2.2
+    change mlProj (shift * g) ∈
+      zeroProfileLocalTypeSpace (D.sourceAlphabet ρ)
+        (D.leibnizWitnessType ρ S' hS shift hshift d hspec.1 hlen')
+    simpa [hspec.2.1] using
+      D.leibnizWitness_mem_typeSpace ρ S' hS shift hshift d hspec.1 hlen'
+  sourceTemplateBasis_card_le_profileTemplateBound := by
+    intro ρ
+    exact routeBPaperFaithfulTPhi_zeroProfileLocalTypeGlobalBasis_card_le_profileTemplate_of_budget
+      (D.sourceAlphabet ρ) ρ.val (D.sourceProfileTemplateBudget_le ρ)
+
+/-- Finite local-monoid normal forms with the exact selected profile-template
+budget exposed.  This is the concrete Lemma-31 counting surface: the finite
+normal-form alphabet times its local basis dimension is bounded by the product
+`∏_τ C(h τ + 2, 2)` for the selected row profile. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) extends
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalMonoidNormalForms
+      M n hn2 htb hns where
+  sourceProfileTemplateBudget_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      @Fintype.card (sourceNormalForm ρ) (sourceNormalFormFintype ρ) * sourceLocalDim ρ ≤
+        profileTemplateBound ρ.val
+
+/-- Exact-budget local monoid normal forms instantiate the exact-budget
+witnessed local-type maps. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizProfileTemplateLocalTypeMaps_of_profileTemplateLocalMonoidNormalForms
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateLocalTypeMaps
+      M n hn2 htb hns where
+  toRouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalTypeMaps :=
+    routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalTypeMaps_of_localMonoidNormalForms
+      M n hn2 htb hns
+      D.toRouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalMonoidNormalForms
+  sourceProfileTemplateBudget_le := by
+    intro ρ
+    simpa [RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalMonoidNormalForms.sourceAlphabet]
+      using D.sourceProfileTemplateBudget_le ρ
+
+/-- Exact-budget local monoid normal forms instantiate the selected
+profile-template term-family surface. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceProfileTemplateTermFamilyData_of_profileTemplateLocalMonoidNormalForms
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceProfileTemplateTermFamilyData
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_strictSourceProfileTemplateTermFamilyData_of_witnessedProfileTemplateLocalTypeMaps
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizProfileTemplateLocalTypeMaps_of_profileTemplateLocalMonoidNormalForms
+      M n hn2 htb hns D)
 
 /-- Selecting the bounded-distribution witness in `hg` turns the witness-level
 local-word classifier into the per-term local-type interface.
