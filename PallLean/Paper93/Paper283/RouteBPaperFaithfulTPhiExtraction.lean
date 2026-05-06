@@ -15938,6 +15938,140 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedProfileTemplateSpanData
 
 
 
+/-- Selected shifted-branch-atom profile-template span data.
+
+This is the row-shape-correct frontier after the singleton shifted-atom lemma:
+for the row-selected profile `ρ`, the **shifted** branch atom determined by the
+actual `NFOfWord` witness must lie in the selected profile-template span.  The
+basis remains profile-local and bounded by `profileTemplateBound ρ.val`; the
+shift is not enumerated into a support family and no common/global span is
+introduced. -/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomProfileTemplateSpanData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceTemplateBasis :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) →
+      Finset (MvPolynomial (Fin (n / 3)) ℚ)
+  sourceTemplateBasis_card_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      (sourceTemplateBasis ρ).card ≤ profileTemplateBound ρ.val
+  selectedShiftedBranchAtom_mem_profileTemplateSpan :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtom
+          M n hn2 htb hns shift
+          (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+            M n hn2 htb hns
+            (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+              M n hn2 htb hns d)
+            (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+              M n hn2 htb hns d)) ∈
+          Submodule.span ℚ (↑(sourceTemplateBasis ρ) :
+            Set (MvPolynomial (Fin (n / 3)) ℚ))
+
+/-- A selected shifted-branch-atom template span gives the selected Leibniz
+witness template span.
+
+The only algebraic step is the already-proved singleton shifted-atom membership
+plus span monotonicity from that singleton into the selected profile-template
+span.  This preserves the selected profile guard `hρ` and the actual witness
+`d`. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateSpanData_of_selectedShiftedBranchAtomProfileTemplateSpanData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomProfileTemplateSpanData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedProfileTemplateSpanData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceTemplateBasis := D.sourceTemplateBasis
+  sourceTemplateBasis_card_le := D.sourceTemplateBasis_card_le
+  selectedLeibnizWitness_mem_profileTemplateSpan := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+    let events :=
+      routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+        M n hn2 htb hns
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+          M n hn2 htb hns d)
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+          M n hn2 htb hns d)
+    have hsingle :
+        mlProj
+            (shift *
+              Finset.univ.prod
+                (fun i =>
+                  SPDP.iterDerivList (d i)
+                    ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                      M n hn2 htb hns) i))) ∈
+          Submodule.span ℚ
+            (↑(routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtomBasis
+              M n hn2 htb hns shift events) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ)) := by
+      exact routeBPaperFaithfulTPhi_strictSource_leibnizWitness_mem_shiftedBranchAtomBasis_of_eventWordDistrib_perm
+        M n hn2 htb hns shift d events
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_eventWordDistrib_perm
+          M n hn2 htb hns S' (le_of_eq hSlen) d hlen)
+    have hatom :
+        routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtom
+          M n hn2 htb hns shift events ∈
+          Submodule.span ℚ (↑(D.sourceTemplateBasis ρ) :
+            Set (MvPolynomial (Fin (n / 3)) ℚ)) :=
+      D.selectedShiftedBranchAtom_mem_profileTemplateSpan
+        ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+    have hle :
+        Submodule.span ℚ
+            (↑(routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtomBasis
+              M n hn2 htb hns shift events) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ)) ≤
+          Submodule.span ℚ (↑(D.sourceTemplateBasis ρ) :
+            Set (MvPolynomial (Fin (n / 3)) ℚ)) := by
+      refine Submodule.span_le.mpr ?_
+      intro x hx
+      simp [routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtomBasis] at hx
+      simpa [hx]
+        using hatom
+    exact hle hsingle
+
+
 /-- Explicit row-guarded profile-template expansion data.
 
 This is a more concrete, paper-faithful way to supply the selected
