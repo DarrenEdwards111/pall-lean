@@ -15889,6 +15889,34 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedProfileTemplateSpanData
           Submodule.span ℚ (↑(sourceTemplateBasis ρ) :
             Set (MvPolynomial (Fin (n / 3)) ℚ))
 
+
+/-- The older all-`ρ` profile-template span package specializes to the guarded
+selected-profile frontier.
+
+This is only a monotone adapter from a stronger hypothesis to the corrected
+paper-faithful surface.  It does not make the all-`ρ` package the preferred
+frontier; it records that any proof which already supplies profile-template
+membership uniformly for every profile can be consumed by the stricter
+row-selected API by simply ignoring the row metadata and applying the uniform
+membership field at the selected `ρ`. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateSpanData_of_profileTemplateSpanData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateSpanData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedProfileTemplateSpanData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceTemplateBasis := D.sourceTemplateBasis
+  sourceTemplateBasis_card_le := D.sourceTemplateBasis_card_le
+  selectedLeibnizWitness_mem_profileTemplateSpan := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+    exact D.leibnizWitness_mem_profileTemplateSpan
+      ρ S' (le_of_eq hSlen) shift
+      (routeBPaperFaithfulTPhi_sourceShift_vars_subset_of_renamed_subset
+        n S' shift hshiftVars)
+      d hd_elts hlen
+
 /-- Row-guarded selected profile-template span data instantiates the atomic
 Leibniz local-type compression surface.
 
