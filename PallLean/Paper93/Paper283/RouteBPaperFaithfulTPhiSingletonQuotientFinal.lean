@@ -1582,6 +1582,27 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceS
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
+/-- Final close-out from term-dependent Lemma-31 local-type data whose
+assembled selected-profile basis satisfies the paper profile-template bound.
+
+This is the no-shortcut bridge from actual local word/type algebra to the
+row-guarded selected profile-template frontier: every bounded Leibniz witness is
+kept visible, routed through its own local type, and only then assembled into
+that same selected profile's finite template basis. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceProfileTemplateTermFamilyData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceProfileTemplateTermFamilyData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateSpanData
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateSpanData_of_profileTemplateTermFamilyData
+        M n hn2 htb hns
+        (hdata M n hn hn2 htb hns hdec))
+
 /-- Final close-out from explicit guarded profile-template expansions.
 
 This is the concrete Lemma-31-facing form of the selected-profile frontier: the
@@ -3224,6 +3245,20 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSource
       hdata)
 
 
+/-- Rich-projection discharge from term-dependent Lemma-31 data with the selected
+profile-template budget exposed. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceProfileTemplateTermFamilyData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceProfileTemplateTermFamilyData
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceProfileTemplateTermFamilyData
+      hdata)
+
 /-- Rich-projection discharge from row-guarded selected profile-template span
 data. -/
 theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateSpanData
@@ -4220,12 +4255,14 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTermTypeFamily
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_profileTemplateSpanData_viaTermFamily
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateSpanData
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceProfileTemplateTermFamilyData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateExpansionData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_exactProfileTemplateCollapse
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTypeMaps
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTermTypeFamily
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_profileTemplateSpanData_viaTermFamily
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateSpanData
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceProfileTemplateTermFamilyData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateExpansionData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_exactProfileTemplateCollapse
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalTransitionMonoidData

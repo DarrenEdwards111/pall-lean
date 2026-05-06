@@ -16037,6 +16037,80 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateSpa
         n S' shift hshiftVars)
       d hd_elts hlen
 
+/-- Term-dependent Lemma-31 local-type data with the **profile-template**
+budget exposed.
+
+This is the concrete paper-faithful bridge between the local-word/type surface
+and the selected profile-template span surface.  The local type assigned to a
+bounded Leibniz term may still depend on the actual product-rule witness/term;
+the only extra field is the symmetric-power/profile-template cardinality bound
+for the selected profile's assembled local basis.
+
+Crucially, this is not a shifted-support enumeration and not a common/global
+span: the basis is still indexed by the row-selected profile `ρ`, and the
+membership proof below routes each actual bounded Leibniz witness through its
+own term-dependent local type before forgetting only to that selected profile's
+finite template basis. -/
+structure RouteBPaperFaithfulTPhiStrictSourceProfileTemplateTermFamilyData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) extends
+    RouteBPaperFaithfulTPhiStrictSourceLeibnizTermTypeFamily
+      M n hn2 htb hns where
+  sourceTemplateBasis_card_le_profileTemplateBound :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      (zeroProfileLocalTypeGlobalBasis (sourceAlphabet ρ)).card ≤
+        profileTemplateBound ρ.val
+
+/-- A term-dependent Lemma-31 family with a selected profile-template budget
+instantiates the row-guarded selected profile-template span frontier.
+
+The proof keeps all selected data visible: the profile is selected by `hρ`, the
+Leibniz distribution witness `d` is used to build the actual bounded product
+term, and membership first lands in that term's own local type space.  The only
+forgetful step is the legitimate finite-dimensional assembly into the
+same selected profile's `zeroProfileLocalTypeGlobalBasis`. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateSpanData_of_profileTemplateTermFamilyData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceProfileTemplateTermFamilyData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedProfileTemplateSpanData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceTemplateBasis := fun ρ =>
+    zeroProfileLocalTypeGlobalBasis (D.sourceAlphabet ρ)
+  sourceTemplateBasis_card_le :=
+    D.sourceTemplateBasis_card_le_profileTemplateBound
+  selectedLeibnizWitness_mem_profileTemplateSpan := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+    let g : MvPolynomial (Fin (n / 3)) ℚ :=
+      Finset.univ.prod
+        (fun i =>
+          SPDP.iterDerivList (d i)
+            ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+              M n hn2 htb hns) i))
+    have hg :
+        g ∈ boundedDistribDerivProds Finset.univ
+            (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+              M n hn2 htb hns) S' S'.length := by
+      refine ⟨d, hd_elts, ?_, ?_⟩
+      · simp [g]
+      · simpa using hlen
+    have hlocal := D.leibnizTerm_mem_typeSpace ρ S' (le_of_eq hSlen) shift
+      (routeBPaperFaithfulTPhi_sourceShift_vars_subset_of_renamed_subset
+        n S' shift hshiftVars) g hg
+    have hcompressed :
+        mlProj (shift * g) ∈
+          zeroProfileLocalTypeCompressedProfileSpan (D.sourceAlphabet ρ) :=
+      (zeroProfileLocalTypeSpace_le_compressedProfileSpan
+        (D.sourceAlphabet ρ)
+        (D.leibnizTermType ρ S' (le_of_eq hSlen) shift
+          (routeBPaperFaithfulTPhi_sourceShift_vars_subset_of_renamed_subset
+            n S' shift hshiftVars) g hg)) hlocal
+    simpa [g, zeroProfileLocalTypeCompressedProfileSpan]
+      using hcompressed
+
 /-- Row-guarded selected profile-template span data instantiates the atomic
 Leibniz local-type compression surface.
 
