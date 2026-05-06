@@ -15402,6 +15402,50 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtom
             ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
               M n hn2 htb hns) i)))
 
+/-- Permutation invariance of the shifted branch atom itself.
+
+If the event word decodes factorwise to a derivative distribution `d` up to
+permutation, then the shifted event-word branch atom is definitionally the same
+as the shifted Leibniz product formed from `d`.  This is the equality form used
+when transporting local-algebra membership; it only uses factorwise
+`iterDerivList` permutation invariance and keeps the actual shift. -/
+theorem routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtom_eq_of_eventWordDistrib_perm
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (events : List (RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent
+      M n hn2 htb hns))
+    (hperm : ∀ i,
+      (routeBPaperFaithfulTPhi_strictSourceEventWordDistrib events i).Perm (d i)) :
+    routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtom
+        M n hn2 htb hns shift events =
+      mlProj
+        (shift *
+          Finset.univ.prod
+            (fun i : Fin ((cookLevinFactorList M n hn2 htb hns).length) =>
+              SPDP.iterDerivList (d i)
+                ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                  M n hn2 htb hns) i))) := by
+  classical
+  have hfun :
+      (fun i : Fin ((cookLevinFactorList M n hn2 htb hns).length) =>
+        SPDP.iterDerivList
+          (routeBPaperFaithfulTPhi_strictSourceEventWordDistrib events i)
+          ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+            M n hn2 htb hns) i)) =
+      (fun i : Fin ((cookLevinFactorList M n hn2 htb hns).length) =>
+        SPDP.iterDerivList (d i)
+          ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+            M n hn2 htb hns) i)) := by
+    funext i
+    exact IterDerivHelpers.iterDerivList_perm (hperm i)
+      ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+        M n hn2 htb hns) i)
+  simp [routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtom, hfun]
+
+
 /-- Singleton basis for one shifted product-rule branch event word. -/
 noncomputable def routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtomBasis
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
@@ -16210,6 +16254,104 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomCompiledBa
             (fun τ =>
               interfaceSpace_compiledBasis
                 sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ)
+
+/-- Compiled-basis shifted Leibniz-product profile data.
+
+This is one step below the event-word branch atom: the remaining local-algebra
+payload is stated for the actual bounded Leibniz distribution `d`.  The adapter
+back to branch atoms uses only the already-proved `NFOfWord` factorwise
+distribution permutation and the equality form of `iterDerivList` permutation. -/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductCompiledBasisProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  sourcePartition : SPDP.BlockPartition (n / 3)
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  selectedShiftedLeibnizProduct_mem_compiledBasisProfileSubspace :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        mlProj
+          (shift *
+            Finset.univ.prod
+              (fun i : Fin ((cookLevinFactorList M n hn2 htb hns).length) =>
+                SPDP.iterDerivList (d i)
+                  ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                    M n hn2 htb hns) i))) ∈
+          profileSubspace ρ.val
+            (fun τ =>
+              interfaceSpace_compiledBasis
+                sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ)
+
+/-- The shifted Leibniz-product payload instantiates the event-word branch-atom
+payload.  The only rewrite is the factorwise `NFOfWord` distribution
+permutation theorem, converted to equality of the shifted branch atom. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedBranchAtomCompiledBasisProfileData_of_shiftedLeibnizProductData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductCompiledBasisProfileData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomCompiledBasisProfileData
+      M n hn2 htb hns where
+  sourcePartition := D.sourcePartition
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  selectedShiftedBranchAtom_mem_compiledBasisProfileSubspace := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+    let events :=
+      routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+        M n hn2 htb hns
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+          M n hn2 htb hns d)
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+          M n hn2 htb hns d)
+    have hSle : S'.length ≤ Nat.log 2 n := by
+      rw [hSlen]
+    have hperm : ∀ i,
+        (routeBPaperFaithfulTPhi_strictSourceEventWordDistrib events i).Perm (d i) := by
+      intro i
+      exact routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_eventWordDistrib_perm
+        M n hn2 htb hns S' hSle d hlen i
+    have heq :=
+      routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtom_eq_of_eventWordDistrib_perm
+        M n hn2 htb hns shift d events hperm
+    rw [heq]
+    exact D.selectedShiftedLeibnizProduct_mem_compiledBasisProfileSubspace
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+
 
 /-- The compiled-basis profile package is the concrete in-repo
 Lemma-31/symmetric-power package: finite and `≤ 3` local dimensions are supplied
