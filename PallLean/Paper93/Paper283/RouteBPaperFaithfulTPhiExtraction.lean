@@ -15815,17 +15815,19 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateSpan
           Submodule.span ℚ (↑(sourceTemplateBasis ρ) :
             Set (MvPolynomial (Fin (n / 3)) ℚ))
 
-/-- Paper-faithful derivation of selected profile-template span data from an
-exact fixed-profile template-collapse surface.
+/-- Sufficient exact derivative-profile route to selected profile-template span
+data.
 
-This package exposes the remaining Lemma-31 algebra in the right shape.  The
-basis for each selected interface profile is obtained from the abstract
-fixed-profile template-collapse theorem for that exact profile.  A witnessed
-Leibniz row may use that basis only after proving its factor-indexed derivative
-count profile is exactly the selected profile.  This is the intended paper
-route: exact profile classification plus profile-template/symmetric-power
-collapse, not raw support enumeration, not a global/common span, and not a
-histogram-only replacement of the local word. -/
+This package is intentionally marked as a *sufficient strengthening*, not the
+primary paper-faithful frontier.  It derives selected profile-template span data
+from fixed-profile template-collapse plus the stronger fact that a witnessed
+factor-derivative distribution has derivative-count profile exactly equal to
+the selected row profile.  That can be useful when available, but the paper's
+main Lemma-31 route is the term-dependent local-type family below: it does not
+require all product-rule summands to collapse to one derivative-count profile.
+
+Kept as a checked adapter only; do not use it as a shortcut replacement for the
+local word/type algebra. -/
 structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizExactProfileTemplateCollapseData
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
@@ -17375,19 +17377,19 @@ structure RouteBPaperFaithfulTPhiStrictSourceCanonicalRowLeibnizOwnershipTemplat
             M n hn2 htb hns)
           (cookLevinConstraintType M n hn2 htb hns) S' ρ.val
 
-/-- Row-selected derivative-profile equality plus fixed-profile
-Template-collapse.
+/-- Sufficient row-selected derivative-profile route.
 
-This is one step closer to the literal paper algebra than the subset ownership
-surface above: instead of assuming the whole bounded Leibniz set is already a
-subset of the selected profile class, it asks for the pointwise statement that
-any bounded product-rule distribution for the canonical row has derivative-count
-profile equal to the profile selected by that same row/window.  The adapter
-below turns this exact equality into the classified-set ownership inclusion by
+This is a deliberately strong sufficient condition: it asks for the pointwise
+statement that any bounded product-rule distribution for the canonical row has
+derivative-count profile equal to the profile selected by that same row/window.
+The adapter below turns this equality into classified-set ownership by
 unpacking `boundedDistribDerivProds`.
 
-The profile parameter remains guarded by the row's `hρ`; this avoids the older
-incorrect arbitrary-`ρ` shape. -/
+This is **not** the preferred paper frontier, because the paper-faithful
+Lemma-31 route may classify different Leibniz summands by term-dependent local
+word/type data rather than forcing them to share one derivative-count profile.
+The profile parameter is still guarded by `hρ`, so this remains sound as a
+sufficient route when such an equality theorem is genuinely proved. -/
 structure RouteBPaperFaithfulTPhiStrictSourceCanonicalRowDerivProfileTemplateCollapseData
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
@@ -17444,18 +17446,17 @@ structure RouteBPaperFaithfulTPhiStrictSourceCanonicalRowDerivProfileTemplateCol
           (d i).length ≤ S'.length),
         derivCountProfile (cookLevinConstraintType M n hn2 htb hns) d = ρ.val
 
-/-- Split final-data surface: a global fixed-profile template-collapse theorem
-for the strict source factors plus the row-selected derivative-profile equality.
+/-- Split sufficient data surface for the strong derivative-profile route.
 
-This is the clean separation of the two remaining paper obligations.  The
-first field is the Lemma-31/symmetric-power template-collapse theorem, stated
-for all derivative-count profiles of the strict source factor family.  The
-second field is the canonical-row local selector theorem: every bounded
-product-rule distribution has the derivative-count profile selected by that
-same canonical row/window.
+This separates two sufficient obligations: an all-profile fixed-template
+collapse theorem for the strict source factor family, and the strong row-local
+claim that every bounded product-rule distribution has the row-selected
+derivative-count profile.  It is retained as a sound adapter surface, but the
+primary paper-faithful endpoint remains the term-dependent local-type family,
+which does not require collapsing all Leibniz summands to one profile.
 
-The adapter below merely specializes the all-profile template theorem to
-`ρ.val`; the row profile itself remains guarded by `hρ`. -/
+The adapter below only specializes the all-profile template theorem to `ρ.val`;
+the selected row profile itself remains guarded by `hρ`. -/
 structure RouteBPaperFaithfulTPhiStrictSourceTemplateCollapseAndRowDerivProfileData
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where

@@ -2055,13 +2055,13 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceC
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
-/-- Final paper-shaped close-out from split strict-source template-collapse and
-row-selected derivative-profile data.
+/-- Final close-out from the split sufficient derivative-profile route.
 
-This is now the clean two-obligation paper surface: Lemma-31/symmetric-power
-collapse for the strict source factor family, plus the row-local proof that the
-canonical selector equals the derivative-count profile of every product-rule
-distribution. -/
+This remains a checked sufficient route, but it is stronger than the actual
+paper Lemma-31 local-word frontier: it asks all product-rule distributions for a
+canonical row to share the row-selected derivative-count profile.  Prefer the
+term-dependent local-type/profile-template span close-outs above unless this
+strong equality theorem has genuinely been proved. -/
 theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceTemplateCollapseAndRowDerivProfileData
     (hdata :
       forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
@@ -3520,12 +3520,14 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_profileTemplateSpanData_viaTermFamily
       hdata)
 
-/-- No-decider close-out from exact-profile template-collapse data.
+/-- No-decider close-out from the sufficient exact-profile template-collapse
+route.
 
-This is the sharper paper-faithful frontier: the remaining algebra must supply
-fixed-profile template-collapse for the strict source factors and prove each
-witnessed Leibniz distribution has exactly the selected profile before the row
-is admitted to that profile's template span. -/
+This route is sound when the strong per-witness derivative-profile equality is
+available, but it is not the primary paper frontier: the preferred no-shortcut
+Route B surface is the term-dependent local-type family / profile-template span
+chain above, which preserves local Leibniz word data instead of requiring all
+summands to share one derivative-count profile. -/
 theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_exactProfileTemplateCollapse
     (hdata :
       forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
