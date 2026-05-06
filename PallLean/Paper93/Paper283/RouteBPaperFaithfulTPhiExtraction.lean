@@ -17595,6 +17595,126 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceProfileTemplateTermFamilyD
     (routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizProfileTemplateLocalTypeMaps_of_profileTemplateLocalMonoidNormalForms
       M n hn2 htb hns D)
 
+/-- Branch-atom local-type payload with the exact selected profile-template
+budget.
+
+This is the profile-template replacement for the older branch-atom surface whose
+budget landed only in `withinProfileBound`.  The local type remains the concrete
+bounded `NFOfWord` witness word and the basis remains the singleton
+product-branch atom for that whole word; the only strengthened obligation is
+the paper budget `profileTemplateBound ρ.val` for the same selected profile. -/
+structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBranchAtomProfileTemplateLocalTypeMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceProfileBranchTemplateBudget_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      Fintype.card (RouteBPaperFaithfulTPhiStrictSourceNFOfWordBoundedWord
+        M n hn2 htb hns) * 1 ≤ profileTemplateBound ρ.val
+  leibnizWitness_mem_branchAtomBasis :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        mlProj
+            (shift *
+              Finset.univ.prod
+                (fun i =>
+                  SPDP.iterDerivList (d i)
+                    ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                      M n hn2 htb hns) i))) ∈
+          Submodule.span ℚ
+            (↑(routeBPaperFaithfulTPhi_strictSourceEventWordBranchAtomBasis
+              M n hn2 htb hns
+              (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+                M n hn2 htb hns
+                (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+                  M n hn2 htb hns d)
+                (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+                  M n hn2 htb hns d))) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ))
+
+/-- Exact-profile branch-atom payload instantiates the exact profile-template
+witnessed local-type maps.
+
+The adapter keeps the local word as the concrete bounded `NFOfWord` witness and
+uses the singleton whole-branch atom basis.  No shifted support, global/common
+span, arbitrary profile, or histogram-only collapse is introduced. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizProfileTemplateLocalTypeMaps_of_branchAtomProfileTemplateLocalTypeMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBranchAtomProfileTemplateLocalTypeMaps
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateLocalTypeMaps
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceAlphabet := fun ρ =>
+    { type := RouteBPaperFaithfulTPhiStrictSourceNFOfWordBoundedWord
+        M n hn2 htb hns
+      localDim := 1
+      localBasis := fun τ =>
+        routeBPaperFaithfulTPhi_strictSourceEventWordBranchAtomBasis
+          M n hn2 htb hns
+          (routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_eventWord
+            M n hn2 htb hns τ)
+      localBasis_card_le := by
+        intro τ
+        exact routeBPaperFaithfulTPhi_strictSourceEventWordBranchAtomBasis_card_le_one
+          M n hn2 htb hns _
+      profileSymmetricPowerBudget_le := by
+        have hadm : ProfileAdmissible (Nat.log 2 n) ρ.val := by
+          exact le_of_eq (routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfile_mass_eq ρ)
+        exact (D.sourceProfileBranchTemplateBudget_le ρ).trans
+          (profileTemplateBound_le_withinProfileBound
+            (Nat.log 2 n) ρ.val hadm) }
+  leibnizWitnessType := by
+    intro ρ S' hS shift hshift d hd_elts hlen
+    exact routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_of_witness
+      M n hn2 htb hns S' hS d hlen
+  leibnizWitness_mem_typeSpace := by
+    intro ρ S' hS shift hshift d hd_elts hlen
+    simpa [zeroProfileLocalTypeSpace,
+      routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_of_witness_toList,
+      routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_eventWord]
+      using D.leibnizWitness_mem_branchAtomBasis
+        ρ S' hS shift hshift d hd_elts hlen
+  sourceProfileTemplateBudget_le := by
+    intro ρ
+    simpa using D.sourceProfileBranchTemplateBudget_le ρ
+
+/-- Exact-profile branch-atom payload instantiates the selected profile-template
+term-family surface. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceProfileTemplateTermFamilyData_of_branchAtomProfileTemplateLocalTypeMaps
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBranchAtomProfileTemplateLocalTypeMaps
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceProfileTemplateTermFamilyData
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_strictSourceProfileTemplateTermFamilyData_of_witnessedProfileTemplateLocalTypeMaps
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizProfileTemplateLocalTypeMaps_of_branchAtomProfileTemplateLocalTypeMaps
+      M n hn2 htb hns D)
+
 /-- Selecting the bounded-distribution witness in `hg` turns the witness-level
 local-word classifier into the per-term local-type interface.
 
