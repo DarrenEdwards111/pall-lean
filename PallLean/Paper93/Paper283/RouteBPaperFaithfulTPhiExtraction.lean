@@ -15412,6 +15412,53 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtom
   {routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtom
     M n hn2 htb hns shift events}
 
+/-- Permutation-invariant membership in the **singleton shifted branch atom**.
+
+This is the sharp, paper-faithful branch statement: the actual shift is kept in
+the atom, and the witnessed finite-trace `NFOfWord` may reorder events only up
+to the permutation invariance of `iterDerivList`.  No shifted-support
+enumeration or common span is used here. -/
+theorem routeBPaperFaithfulTPhi_strictSource_leibnizWitness_mem_shiftedBranchAtomBasis_of_eventWordDistrib_perm
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (events : List (RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent
+      M n hn2 htb hns))
+    (hperm : ∀ i,
+      (routeBPaperFaithfulTPhi_strictSourceEventWordDistrib events i).Perm (d i)) :
+      mlProj
+          (shift *
+            Finset.univ.prod
+              (fun i =>
+                SPDP.iterDerivList (d i)
+                  ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                    M n hn2 htb hns) i))) ∈
+        Submodule.span ℚ
+          (↑(routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtomBasis
+            M n hn2 htb hns shift events) :
+            Set (MvPolynomial (Fin (n / 3)) ℚ)) := by
+  classical
+  have hfun :
+      (fun i : Fin ((cookLevinFactorList M n hn2 htb hns).length) =>
+        SPDP.iterDerivList (d i)
+          ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+            M n hn2 htb hns) i)) =
+      (fun i : Fin ((cookLevinFactorList M n hn2 htb hns).length) =>
+        SPDP.iterDerivList
+          (routeBPaperFaithfulTPhi_strictSourceEventWordDistrib events i)
+          ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+            M n hn2 htb hns) i)) := by
+    funext i
+    exact (IterDerivHelpers.iterDerivList_perm (hperm i).symm
+      ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+        M n hn2 htb hns) i))
+  rw [hfun]
+  exact Submodule.subset_span (by
+    simp [routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtomBasis,
+      routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtom])
+
 /-- Shifted product-branch atom bases are singleton-sized. -/
 theorem routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtomBasis_card_le_one
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
