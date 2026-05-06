@@ -16255,6 +16255,105 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomCompiledBa
               interfaceSpace_compiledBasis
                 sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ)
 
+/-- Compiled-basis local-algebra split for the selected shifted Leibniz product.
+
+This is the exact local algebra decomposition behind the final membership.  It
+separates the two mathematical tasks without changing the target:
+
+* first prove the unshifted product of the actual differentiated restricted
+  factors lies in the selected compiled-basis profile subspace;
+* then prove the selected row's shift followed by `mlProj` preserves that same
+  selected profile subspace.
+
+Both fields keep the selected `ρ/hρ`, actual shift, actual bounded Leibniz
+witness `d`, and the concrete `interfaceSpace_compiledBasis` family. -/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductCompiledBasisLocalAlgebraData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  sourcePartition : SPDP.BlockPartition (n / 3)
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  selectedUnshiftedLeibnizProduct_mem_compiledBasisProfileSubspace :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        Finset.univ.prod
+          (fun i : Fin ((cookLevinFactorList M n hn2 htb hns).length) =>
+            SPDP.iterDerivList (d i)
+              ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                M n hn2 htb hns) i)) ∈
+          profileSubspace ρ.val
+            (fun τ =>
+              interfaceSpace_compiledBasis
+                sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ)
+  selectedShift_mlProj_closure_compiledBasisProfileSubspace :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (p : MvPolynomial (Fin (n / 3)) ℚ),
+        p ∈ profileSubspace ρ.val
+            (fun τ =>
+              interfaceSpace_compiledBasis
+                sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ) →
+        mlProj (shift * p) ∈ profileSubspace ρ.val
+            (fun τ =>
+              interfaceSpace_compiledBasis
+                sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ)
+
+
+
 /-- Compiled-basis shifted Leibniz-product profile data.
 
 This is one step below the event-word branch atom: the remaining local-algebra
@@ -16316,6 +16415,30 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductCompil
             (fun τ =>
               interfaceSpace_compiledBasis
                 sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ)
+
+/-- The local-algebra split recombines to the shifted Leibniz-product compiled
+basis profile surface. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductCompiledBasisProfileData_of_localAlgebraData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductCompiledBasisLocalAlgebraData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductCompiledBasisProfileData
+      M n hn2 htb hns where
+  sourcePartition := D.sourcePartition
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  selectedShiftedLeibnizProduct_mem_compiledBasisProfileSubspace := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+    exact D.selectedShift_mlProj_closure_compiledBasisProfileSubspace
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+      (Finset.univ.prod
+        (fun i : Fin ((cookLevinFactorList M n hn2 htb hns).length) =>
+          SPDP.iterDerivList (d i)
+            ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+              M n hn2 htb hns) i)))
+      (D.selectedUnshiftedLeibnizProduct_mem_compiledBasisProfileSubspace
+        ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen)
+
 
 /-- The shifted Leibniz-product payload instantiates the event-word branch-atom
 payload.  The only rewrite is the factorwise `NFOfWord` distribution
