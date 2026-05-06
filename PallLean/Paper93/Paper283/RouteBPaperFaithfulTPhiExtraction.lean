@@ -11,6 +11,7 @@ import PallLean.Paper93.CanonicalizationMap
 import PallLean.Paper93.ShortlexNormalForm
 import PallLean.Paper93.InterfaceProfile
 import PallLean.Paper93.TemplateCollapseDischarge
+import PallLean.Paper93.TensorDimBound
 import PallLean.Paper93.Paper283.RouteBTransportPSideBound
 import PallLean.Paper93.Paper283.RouteBZeroProfileProjectedPWindowProgress
 import PallLean.Paper93.Paper283.RouteBChargedShiftClosureProgress
@@ -16077,6 +16078,136 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomProfileSub
               M n hn2 htb hns d)
             (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
               M n hn2 htb hns d)) ∈ profileSubspace ρ
+
+/-- Selected shifted-branch-atom symmetric-profile data.
+
+This is the paper §9 / Lemma-31 algebraic shape specialized to the strict
+`TΦ` source variables.  A single per-interface family `interfaceSpace τ` of
+local spaces is supplied, each finite and of dimension at most three; the
+selected profile subspace is exactly
+`profileSubspace ρ.val interfaceSpace`, hence has the literal paper budget
+`profileTemplateBound ρ.val` by the symmetric-power count.
+
+The only remaining mathematical membership field is the faithful local-word
+claim that the actual shifted branch atom for the `NFOfWord` witness lies in
+that same selected symmetric-profile subspace. -/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomSymmetricProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  interfaceSpace : ConstraintType → Submodule ℚ (MvPolynomial (Fin (n / 3)) ℚ)
+  interfaceSpace_finite : ∀ τ, Module.Finite ℚ ↥(interfaceSpace τ)
+  interfaceSpace_finrank_le_three :
+    ∀ τ, Module.finrank ℚ ↥(interfaceSpace τ) ≤ 3
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  selectedShiftedBranchAtom_mem_symmetricProfileSubspace :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtom
+          M n hn2 htb hns shift
+          (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+            M n hn2 htb hns
+            (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+              M n hn2 htb hns d)
+            (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+              M n hn2 htb hns d)) ∈
+          profileSubspace ρ.val interfaceSpace
+
+/-- The symmetric-profile Lemma-31 package instantiates the selected
+profile-subspace frontier.  The finrank bound is exactly
+`profileTemplateBound ρ.val`, obtained from `profileSubspace_finrank_bound`;
+the membership target remains the actual shifted branch atom in the selected
+profile subspace. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedBranchAtomProfileSubspaceData_of_symmetricProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomSymmetricProfileData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomProfileSubspaceData
+      M n hn2 htb hns where
+  profileSubspace := fun ρ => profileSubspace ρ.val D.interfaceSpace
+  profileSubspace_finite := by
+    intro ρ
+    classical
+    unfold profileSubspace
+    set d : ConstraintType → ℕ :=
+      fun τ => Module.finrank ℚ ↥(D.interfaceSpace τ) with hd_def
+    let b : ∀ τ, Module.Basis (Fin (d τ)) ℚ ↥(D.interfaceSpace τ) :=
+      fun τ => by
+        letI := D.interfaceSpace_finite τ
+        exact Module.finBasis ℚ ↥(D.interfaceSpace τ)
+    have hle :
+        profileSubspace ρ.val D.interfaceSpace ≤
+          Submodule.span ℚ
+            (Set.range
+              (profileSymProd D.interfaceSpace b :
+                ProfileIndex ρ.val d → MvPolynomial (Fin (n / 3)) ℚ)) :=
+      profileSubspace_le_profileSymProd_span D.interfaceSpace b
+    haveI hfin_big : Module.Finite ℚ
+        ↥(Submodule.span ℚ
+          (Set.range
+            (profileSymProd D.interfaceSpace b :
+              ProfileIndex ρ.val d → MvPolynomial (Fin (n / 3)) ℚ))) := by
+      apply Module.Finite.span_of_finite
+      exact Set.finite_range _
+    exact Module.Finite.of_injective
+      ((Submodule.inclusion hle) :
+        profileSubspace ρ.val D.interfaceSpace →ₗ[ℚ]
+          Submodule.span ℚ
+            (Set.range
+              (profileSymProd D.interfaceSpace b :
+                ProfileIndex ρ.val d → MvPolynomial (Fin (n / 3)) ℚ)))
+      (Submodule.inclusion_injective hle)
+  profileSubspace_finrank_le := by
+    intro ρ
+    simpa [profileTemplateBound] using
+      (profileSubspace_finrank_bound
+        (N := n / 3)
+        (Iface := ConstraintType)
+        ρ.val D.interfaceSpace
+        D.interfaceSpace_finite
+        D.interfaceSpace_finrank_le_three)
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  selectedShiftedBranchAtom_mem_profileSubspace := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+    exact D.selectedShiftedBranchAtom_mem_symmetricProfileSubspace
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+
 
 /-- Extract the selected profile-template basis from the profile-local subspace
 frontier.

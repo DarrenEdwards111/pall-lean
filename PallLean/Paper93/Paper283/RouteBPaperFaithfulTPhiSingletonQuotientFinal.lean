@@ -1685,6 +1685,27 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceS
         (hdata M n hn hn2 htb hns hdec))
 
 
+/-- Final close-out from selected shifted-branch-atom symmetric-profile data.
+
+This is the Lemma-31/symmetric-power form: a dimension-≤3 local interface
+family plus membership of the actual shifted branch atom in
+`profileSubspace ρ.val interfaceSpace`; the paper template budget is then
+obtained by the formal symmetric-power dimension bound. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedShiftedBranchAtomSymmetricProfileData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomSymmetricProfileData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedShiftedBranchAtomProfileSubspaceData
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictSourceSelectedShiftedBranchAtomProfileSubspaceData_of_symmetricProfileData
+        M n hn2 htb hns
+        (hdata M n hn hn2 htb hns hdec))
+
+
 /-- Final close-out from explicit guarded profile-template expansions.
 
 This is the concrete Lemma-31-facing form of the selected-profile frontier: the
@@ -3398,6 +3419,21 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSource
       hdata)
 
 
+/-- Rich-projection discharge from selected shifted-branch-atom symmetric-profile
+data. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedShiftedBranchAtomSymmetricProfileData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomSymmetricProfileData
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedShiftedBranchAtomSymmetricProfileData
+      hdata)
+
+
 /-- Rich-projection discharge from row-guarded selected profile-template span
 data. -/
 theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateSpanData
@@ -4396,6 +4432,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateSpanData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedShiftedBranchAtomProfileTemplateSpanData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedShiftedBranchAtomProfileSubspaceData
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedShiftedBranchAtomSymmetricProfileData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceProfileTemplateTermFamilyData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceBranchAtomProfileTemplateLocalTypeMaps
@@ -4407,6 +4444,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateSpanData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedShiftedBranchAtomProfileTemplateSpanData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedShiftedBranchAtomProfileSubspaceData
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedShiftedBranchAtomSymmetricProfileData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceProfileTemplateTermFamilyData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceBranchAtomProfileTemplateLocalTypeMaps
