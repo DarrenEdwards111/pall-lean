@@ -15890,6 +15890,101 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedProfileTemplateSpanData
             Set (MvPolynomial (Fin (n / 3)) ℚ))
 
 
+
+/-- Explicit row-guarded profile-template expansion data.
+
+This is a more concrete, paper-faithful way to supply the selected
+profile-template span: for the row-selected profile `ρ`, each actual bounded
+Leibniz witness `d` is expressed as a finite linear combination of the
+profile-local template basis.  The basis remains selected by `hρ`; the witness
+`d` remains explicit; and the statement is an expansion in the local template
+basis, not a shifted-support enumeration or a common/global span. -/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedProfileTemplateExpansionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceTemplateBasis :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) →
+      Finset (MvPolynomial (Fin (n / 3)) ℚ)
+  sourceTemplateBasis_card_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      (sourceTemplateBasis ρ).card ≤ profileTemplateBound ρ.val
+  selectedLeibnizWitness_templateExpansion :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        ∃ coeff : MvPolynomial (Fin (n / 3)) ℚ → ℚ,
+          mlProj
+              (shift *
+                Finset.univ.prod
+                  (fun i =>
+                    SPDP.iterDerivList (d i)
+                      ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                        M n hn2 htb hns) i))) =
+            ∑ b ∈ sourceTemplateBasis ρ, coeff b • b
+
+/-- An explicit selected template expansion gives selected template-span data.
+
+The proof is purely linear algebra: a finite sum of scalar multiples of members
+of the selected profile-local basis lies in that selected basis span. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateSpanData_of_selectedProfileTemplateExpansionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedProfileTemplateExpansionData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedProfileTemplateSpanData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceTemplateBasis := D.sourceTemplateBasis
+  sourceTemplateBasis_card_le := D.sourceTemplateBasis_card_le
+  selectedLeibnizWitness_mem_profileTemplateSpan := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+    rcases D.selectedLeibnizWitness_templateExpansion
+        ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen with
+      ⟨coeff, hcoeff⟩
+    rw [hcoeff]
+    apply Submodule.sum_mem
+    intro b hb
+    apply Submodule.smul_mem
+    exact Submodule.subset_span hb
+
 /-- The older all-`ρ` profile-template span package specializes to the guarded
 selected-profile frontier.
 
