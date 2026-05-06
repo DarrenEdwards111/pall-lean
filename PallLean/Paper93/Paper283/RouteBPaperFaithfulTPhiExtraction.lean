@@ -15815,6 +15815,136 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateSpan
           Submodule.span ℚ (↑(sourceTemplateBasis ρ) :
             Set (MvPolynomial (Fin (n / 3)) ℚ))
 
+
+/-- Selected, row-guarded profile-template span data.
+
+This is the paper-faithful profile-template frontier used by the strict source
+Route B assembly: the template basis is still profile-local and bounded by the
+symmetric-power count for that selected profile, but membership is required
+only for the profile `ρ` selected by the canonical row/window, carried by the
+explicit proof `hρ`.
+
+This avoids the two shortcut failures at once: it is not an arbitrary-`ρ`
+profile span, and it does not force all Leibniz summands of a row to share a
+single derivative-count histogram.  The local word/witness `d` remains visible
+in the membership statement. -/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedProfileTemplateSpanData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  sourceTemplateBasis :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) →
+      Finset (MvPolynomial (Fin (n / 3)) ℚ)
+  sourceTemplateBasis_card_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      (sourceTemplateBasis ρ).card ≤ profileTemplateBound ρ.val
+  selectedLeibnizWitness_mem_profileTemplateSpan :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        mlProj
+            (shift *
+              Finset.univ.prod
+                (fun i =>
+                  SPDP.iterDerivList (d i)
+                    ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                      M n hn2 htb hns) i))) ∈
+          Submodule.span ℚ (↑(sourceTemplateBasis ρ) :
+            Set (MvPolynomial (Fin (n / 3)) ℚ))
+
+/-- Row-guarded selected profile-template span data instantiates the atomic
+Leibniz local-type compression surface.
+
+The adapter uses the selected profile's own template basis as the unique local
+type space.  Membership is proved by unpacking the actual bounded product-rule
+witness for `g` and applying the row-guarded selected-span field with the same
+`hρ`.  No arbitrary profile admission, derivative-profile collapse, shifted
+support enumeration, or common span is introduced here. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeCompressionData_of_selectedProfileTemplateSpanData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedProfileTemplateSpanData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceLeibnizLocalTypeCompressionData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceAlphabet := fun ρ =>
+    { type := PUnit
+      typeFintype := inferInstance
+      localDim := profileTemplateBound ρ.val
+      localBasis := fun _ => D.sourceTemplateBasis ρ
+      localBasis_card_le := fun _ => D.sourceTemplateBasis_card_le ρ
+      profileSymmetricPowerBudget_le := by
+        have hadm : ProfileAdmissible (Nat.log 2 n) ρ.val := by
+          exact le_of_eq (routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfile_mass_eq ρ)
+        simpa using profileTemplateBound_le_withinProfileBound
+          (Nat.log 2 n) ρ.val hadm }
+  leibnizTermType := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ g hg
+    exact PUnit.unit
+  leibnizTerm_mem_localTypeSpace := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ g hg
+    let d := Classical.choose hg
+    have hspec := Classical.choose_spec hg
+    have hlen' :
+        ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length := by
+      simpa [d] using hspec.2.2
+    change mlProj (shift * g) ∈
+      zeroProfileLocalTypeSpace
+        { type := PUnit
+          typeFintype := inferInstance
+          localDim := profileTemplateBound ρ.val
+          localBasis := fun _ => D.sourceTemplateBasis ρ
+          localBasis_card_le := fun _ => D.sourceTemplateBasis_card_le ρ
+          profileSymmetricPowerBudget_le := by
+            have hadmρ : ProfileAdmissible (Nat.log 2 n) ρ.val := by
+              exact le_of_eq (routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfile_mass_eq ρ)
+            simpa using profileTemplateBound_le_withinProfileBound
+              (Nat.log 2 n) ρ.val hadmρ }
+        PUnit.unit
+    simpa [zeroProfileLocalTypeSpace, hspec.2.1] using
+      D.selectedLeibnizWitness_mem_profileTemplateSpan
+        ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+        d hspec.1 hlen'
+
 /-- Sufficient exact derivative-profile route to selected profile-template span
 data.
 

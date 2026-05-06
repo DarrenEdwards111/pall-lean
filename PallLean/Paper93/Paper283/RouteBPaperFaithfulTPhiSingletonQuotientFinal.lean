@@ -1560,6 +1560,28 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceL
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
+
+/-- Final close-out from row-guarded selected profile-template span data.
+
+This is the corrected paper-faithful profile-template frontier: the membership
+claim is guarded by the canonical row's selected profile proof `hρ`, so no
+arbitrary profile span is used.  Each bounded product-rule witness remains
+visible, and the adapter goes directly through individual Leibniz local-type
+compression rather than through a one-histogram or common-span shortcut. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateSpanData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceSelectedProfileTemplateSpanData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeCompressionData
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeCompressionData_of_selectedProfileTemplateSpanData
+        M n hn2 htb hns
+        (hdata M n hn hn2 htb hns hdec))
+
 /-- Final close-out from selected profile-template span data.
 
 This is the paper-faithful replacement for the now-ruled-out shifted-support
@@ -3182,6 +3204,21 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSource
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeMaps
       hdata)
 
+
+/-- Rich-projection discharge from row-guarded selected profile-template span
+data. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateSpanData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceSelectedProfileTemplateSpanData
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateSpanData
+      hdata)
+
 /-- Rich-projection discharge from witnessed local Leibniz words for strict
 `TΦ`. -/
 theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalTypeMaps
@@ -4149,10 +4186,12 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTypeMaps
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTermTypeFamily
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_profileTemplateSpanData_viaTermFamily
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateSpanData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_exactProfileTemplateCollapse
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTypeMaps
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_leibnizTermTypeFamily
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_profileTemplateSpanData_viaTermFamily
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateSpanData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_paperRouteB_exactProfileTemplateCollapse
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalTransitionMonoidData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_profileCompressionTransitionMonoid
