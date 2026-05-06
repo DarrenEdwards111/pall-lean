@@ -16008,6 +16008,111 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomProfileTem
           Submodule.span ℚ (↑(sourceTemplateBasis ρ) :
             Set (MvPolynomial (Fin (n / 3)) ℚ))
 
+/-- Selected shifted-branch-atom profile-subspace data.
+
+This is the linear-subspace form of the final Lemma-31 payload: for each
+selected profile, provide the actual profile-local template subspace, prove its
+finite rank is at most `profileTemplateBound ρ.val`, and prove the selected
+shifted branch atom lies in that same profile's subspace.  The later finite
+basis is extracted canonically via `basisImageFinset`; this is linear algebra,
+not a common/global span or support enumeration. -/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomProfileSubspaceData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileSubspace :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n) →
+      Submodule ℚ (MvPolynomial (Fin (n / 3)) ℚ)
+  profileSubspace_finite :
+    ∀ ρ, Module.Finite ℚ ↥(profileSubspace ρ)
+  profileSubspace_finrank_le :
+    ∀ ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n),
+      Module.finrank ℚ ↥(profileSubspace ρ) ≤ profileTemplateBound ρ.val
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  selectedShiftedBranchAtom_mem_profileSubspace :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtom
+          M n hn2 htb hns shift
+          (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+            M n hn2 htb hns
+            (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+              M n hn2 htb hns d)
+            (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+              M n hn2 htb hns d)) ∈ profileSubspace ρ
+
+/-- Extract the selected profile-template basis from the profile-local subspace
+frontier.
+
+The extracted basis is still selected by `ρ` and bounded by
+`profileTemplateBound ρ.val`; membership uses `span_basisImageFinset_eq` for
+the same selected profile. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedBranchAtomProfileTemplateSpanData_of_profileSubspaceData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomProfileSubspaceData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomProfileTemplateSpanData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceTemplateBasis := fun ρ =>
+    letI := D.profileSubspace_finite ρ
+    basisImageFinset (D.profileSubspace ρ)
+  sourceTemplateBasis_card_le := by
+    intro ρ
+    letI := D.profileSubspace_finite ρ
+    exact (basisImageFinset_card_le (D.profileSubspace ρ)).trans
+      (D.profileSubspace_finrank_le ρ)
+  selectedShiftedBranchAtom_mem_profileTemplateSpan := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+    letI := D.profileSubspace_finite ρ
+    have hspan :
+        Submodule.span ℚ
+            (↑(basisImageFinset (D.profileSubspace ρ)) :
+              Set (MvPolynomial (Fin (n / 3)) ℚ)) = D.profileSubspace ρ :=
+      span_basisImageFinset_eq (D.profileSubspace ρ)
+    rw [hspan]
+    exact D.selectedShiftedBranchAtom_mem_profileSubspace
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+
+
 /-- A selected shifted-branch-atom template span gives the selected Leibniz
 witness template span.
 
