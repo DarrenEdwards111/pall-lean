@@ -15985,6 +15985,31 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateSpa
     apply Submodule.smul_mem
     exact Submodule.subset_span hb
 
+/-- Selected template-span data also yields an explicit finite expansion.
+
+This closes the small linear-algebra gap between the span-membership frontier
+and the coefficient-expansion frontier.  It uses `Submodule.mem_span_finset` at
+the **same row-selected local basis** `sourceTemplateBasis ρ`; no new
+mathematical shortcut is introduced.  The selected profile is still carried by
+`hρ`, and the actual Leibniz witness `d` remains the quantified term whose
+projection is expanded. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateExpansionData_of_selectedProfileTemplateSpanData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedProfileTemplateSpanData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedProfileTemplateExpansionData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceTemplateBasis := D.sourceTemplateBasis
+  sourceTemplateBasis_card_le := D.sourceTemplateBasis_card_le
+  selectedLeibnizWitness_templateExpansion := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+    have hmem := D.selectedLeibnizWitness_mem_profileTemplateSpan
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+    rcases (Submodule.mem_span_finset.mp hmem) with ⟨coeff, _hsupp, hsum⟩
+    exact ⟨coeff, hsum.symm⟩
+
 /-- The older all-`ρ` profile-template span package specializes to the guarded
 selected-profile frontier.
 
