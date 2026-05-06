@@ -16148,6 +16148,98 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomSymmetricP
               M n hn2 htb hns d)) ∈
           profileSubspace ρ.val interfaceSpace
 
+/-- Selected shifted-branch-atom compiled-basis symmetric-profile data.
+
+This fixes the Lemma-31 local interface family to the in-repo compiled-basis
+spaces `interfaceSpace_compiledBasis sourcePartition (log₂ n) (log₂ n) τ`.
+The remaining field is only the concrete local-algebra membership of the actual
+shifted branch atom in the selected profile's symmetric product subspace. -/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomCompiledBasisProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  sourcePartition : SPDP.BlockPartition (n / 3)
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  selectedShiftedBranchAtom_mem_compiledBasisProfileSubspace :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtom
+          M n hn2 htb hns shift
+          (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+            M n hn2 htb hns
+            (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+              M n hn2 htb hns d)
+            (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+              M n hn2 htb hns d)) ∈
+          profileSubspace ρ.val
+            (fun τ =>
+              interfaceSpace_compiledBasis
+                sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ)
+
+/-- The compiled-basis profile package is the concrete in-repo
+Lemma-31/symmetric-power package: finite and `≤ 3` local dimensions are supplied
+by `interfaceSpace_compiledBasis_finite` and
+`interfaceSpace_compiledBasis_finrank_le_three`; only the shifted-atom
+membership is mathematical payload. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedBranchAtomSymmetricProfileData_of_compiledBasisProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomCompiledBasisProfileData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomSymmetricProfileData
+      M n hn2 htb hns where
+  interfaceSpace := fun τ =>
+    interfaceSpace_compiledBasis D.sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ
+  interfaceSpace_finite := by
+    intro τ
+    exact interfaceSpace_compiledBasis_finite
+      D.sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ
+  interfaceSpace_finrank_le_three := by
+    intro τ
+    exact interfaceSpace_compiledBasis_finrank_le_three
+      D.sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  selectedShiftedBranchAtom_mem_symmetricProfileSubspace := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+    exact D.selectedShiftedBranchAtom_mem_compiledBasisProfileSubspace
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+
+
 /-- The symmetric-profile Lemma-31 package instantiates the selected
 profile-subspace frontier.  The finrank bound is exactly
 `profileTemplateBound ρ.val`, obtained from `profileSubspace_finrank_bound`;
