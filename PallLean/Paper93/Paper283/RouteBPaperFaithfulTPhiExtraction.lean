@@ -16910,6 +16910,62 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedCompiledBasisProfileSubspac
             (fun τ => interfaceSpace_compiledBasis sourcePartition
               (Nat.log 2 n) (Nat.log 2 n) τ)
 
+
+/-- Row slot-expansion data gives the direct compiled-basis profile-subspace
+row target.
+
+This is the direct Lemma-31 packaging of the row expansion: the selected
+canonical row is rewritten as its finite linear combination of same-selected
+profile anonymous interface-slot products, and each product is inserted into
+`profileSubspace ρ.val` using the concrete compiled-basis spaces.  No
+common/global span, all-profile `iSup`, shifted-support enumeration, raw
+derivative-profile collapse, or one-product forcing is used. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedCompiledBasisProfileSubspaceRowData_of_rowInterfaceSlotExpansionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedRowInterfaceSlotExpansionData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedCompiledBasisProfileSubspaceRowData
+      M n hn2 htb hns where
+  sourcePartition := D.sourcePartition
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalSourceRow_mem_compiledBasisProfileSubspace := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    letI := D.rowExpansionIndexFintype
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    rw [D.canonicalSourceRow_eq_rowInterfaceSlotExpansion
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ]
+    apply Submodule.sum_mem
+    intro t ht
+    apply Submodule.smul_mem
+    apply Submodule.subset_span
+    refine ⟨(fun σ : ConstraintType =>
+        ∏ j : Fin (ρ.val σ),
+          D.rowExpansionSlotContribution ρ S' shift α hSlen hshiftDegree
+            hshiftVars hadm hrow hρ t σ j), ?_, ?_⟩
+    · intro σ
+      apply Submodule.subset_span
+      refine ⟨D.rowExpansionSlotContribution ρ S' shift α hSlen hshiftDegree
+          hshiftVars hadm hrow hρ t σ, ?_, rfl⟩
+      intro j
+      exact D.rowExpansionSlotContribution_mem_compiledBasis
+        ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j
+    · rfl
+
+/-- The older one-product row factorization also gives the direct compiled-basis
+profile-subspace row target, via the singleton-index expansion adapter. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedCompiledBasisProfileSubspaceRowData_of_rowInterfaceSlotFactorizationData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedRowInterfaceSlotFactorizationData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedCompiledBasisProfileSubspaceRowData
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_strictSourceSelectedCompiledBasisProfileSubspaceRowData_of_rowInterfaceSlotExpansionData
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictSourceSelectedRowInterfaceSlotExpansionData_of_rowInterfaceSlotFactorizationData
+      M n hn2 htb hns D)
+
 /-- Per-Leibniz-term selected compiled-basis membership implies the direct
 compiled-basis row membership.
 
