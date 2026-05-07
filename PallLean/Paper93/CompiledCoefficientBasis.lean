@@ -407,6 +407,25 @@ theorem canonicalInterfacePolynomial_mem_interfaceSpace_compiledBasis
         (canonicalInterfaceGenerators B κ ℓ σ : Set (MvPolynomial (Fin N) ℚ)) from
       canonicalInterfacePolynomial_mem_generators B κ ℓ σ j)
 
+
+/-- The canonical generator has the expected one-hot coordinate expansion in
+its own three-slot compiled-basis alphabet.  This is the coefficient-level
+endpoint used by the local-chart route when a chart transport has reduced a
+renamed concrete row slot to a fixed canonical generator. -/
+theorem canonicalInterfacePolynomial_eq_oneHot_basisExpansion
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (σ : ConstraintType)
+    (j : Fin d₀) :
+    canonicalInterfacePolynomial B κ ℓ σ j =
+      ∑ k : Fin d₀, (if k = j then (1 : ℚ) else 0) •
+        canonicalInterfacePolynomial B κ ℓ σ k := by
+  classical
+  rw [Finset.sum_eq_single j]
+  · simp
+  · intro k _hk hkj
+    simp [hkj]
+  · intro hj
+    simp at hj
+
 /-- Every active compiled local type contains the constant local row. The
 dormant `transitionRight` type remains zero-generated. -/
 theorem one_mem_interfaceSpace_compiledBasis_of_not_transitionRight
