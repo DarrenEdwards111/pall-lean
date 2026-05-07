@@ -16416,6 +16416,190 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductCompil
               interfaceSpace_compiledBasis
                 sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ)
 
+/-- Paper-faithful interface-contribution form of Lemma 31 for the selected
+strict-source Leibniz product.
+
+This is the route used in the paper: the selected profile `ρ.val` counts
+interface-anonymous local normal forms, not raw derivative hits.  Therefore the
+witness does not ask for `derivCountProfile ... d = ρ.val`.  Instead it asks for
+a decomposition of the actual unshifted Leibniz product into one contribution
+per compressed interface type `σ`, with that contribution lying in
+`Sym^{ρ.val σ}(Wσ)` for the concrete compiled-basis interface space `Wσ`.
+
+The row's actual shift and `mlProj` closure is kept as a separate selected-row
+field, so no global/common/all-profile span is introduced. -/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterfaceContributionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  sourcePartition : SPDP.BlockPartition (n / 3)
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  interfaceContribution :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        ConstraintType → MvPolynomial (Fin (n / 3)) ℚ
+  interfaceContribution_mem_symPower :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length)
+      (σ : ConstraintType),
+        interfaceContribution ρ S' shift α hSlen hshiftDegree hshiftVars
+          hadm hrow hρ d hd_elts hlen σ ∈
+          PallLean.SymTensorPowerDim.symPower ℚ (ρ.val σ)
+            (interfaceSpace_compiledBasis
+              sourcePartition (Nat.log 2 n) (Nat.log 2 n) σ)
+  unshiftedLeibnizProduct_eq_interfaceProduct :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        Finset.univ.prod
+          (fun i : Fin ((cookLevinFactorList M n hn2 htb hns).length) =>
+            SPDP.iterDerivList (d i)
+              ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                M n hn2 htb hns) i)) =
+          ∏ σ : ConstraintType,
+            interfaceContribution ρ S' shift α hSlen hshiftDegree hshiftVars
+              hadm hrow hρ d hd_elts hlen σ
+  selectedShift_mlProj_closure_compiledBasisProfileSubspace :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (p : MvPolynomial (Fin (n / 3)) ℚ),
+        p ∈ profileSubspace ρ.val
+            (fun τ =>
+              interfaceSpace_compiledBasis
+                sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ) →
+        mlProj (shift * p) ∈ profileSubspace ρ.val
+            (fun τ =>
+              interfaceSpace_compiledBasis
+                sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ)
+
+/-- The paper-faithful interface-contribution data instantiates the split local
+algebra frontier.  The unshifted product is inserted as a generator of the
+selected `profileSubspace` using the supplied per-interface symmetric-power
+memberships and product equality. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductCompiledBasisLocalAlgebraData_of_interfaceContributionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterfaceContributionData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductCompiledBasisLocalAlgebraData
+      M n hn2 htb hns where
+  sourcePartition := D.sourcePartition
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  selectedUnshiftedLeibnizProduct_mem_compiledBasisProfileSubspace := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+    apply Submodule.subset_span
+    refine ⟨D.interfaceContribution ρ S' shift α hSlen hshiftDegree hshiftVars
+        hadm hrow hρ d hd_elts hlen, ?_, ?_⟩
+    · intro σ
+      exact D.interfaceContribution_mem_symPower
+        ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen σ
+    · exact (D.unshiftedLeibnizProduct_eq_interfaceProduct
+        ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen)
+  selectedShift_mlProj_closure_compiledBasisProfileSubspace :=
+    D.selectedShift_mlProj_closure_compiledBasisProfileSubspace
+
+
 /-- The local-algebra split recombines to the shifted Leibniz-product compiled
 basis profile surface. -/
 noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductCompiledBasisProfileData_of_localAlgebraData
