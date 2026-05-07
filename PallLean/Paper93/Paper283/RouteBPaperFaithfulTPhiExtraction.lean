@@ -16847,6 +16847,143 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedRowInterfaceSlotEx
     simpa using D.canonicalSourceRow_eq_rowInterfaceSlotProduct
       ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
 
+
+/-- Concrete compiled-basis profile-subspace row data.
+
+This is the direct Lemma-31 target in source coordinates: for the row-selected
+realizable `ConstraintType` profile `ρ`, the actual canonical source row lies in
+
+`profileSubspace ρ.val (interfaceSpace_compiledBasis sourcePartition q q)`.
+
+It is weaker than an explicit slot expansion, but it is exactly the paper's
+`⊗_σ Sym^{h(σ)}(W_σ)` containment.  It still uses the concrete compiled-basis
+interface spaces and keeps the selected profile fixed; it does not introduce a
+common/global span, an all-profile `iSup`, shifted-support enumeration, or raw
+derivative-profile collapse. -/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedCompiledBasisProfileSubspaceRowData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  sourcePartition : SPDP.BlockPartition (n / 3)
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  canonicalSourceRow_mem_compiledBasisProfileSubspace :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ),
+        mlProj
+          (shift *
+            SPDP.iterDerivList S'
+              (MultilinearSPDP.restrictPoly ℚ
+                (cookLevinStrictFOBFlatMap n)
+                (cookLevinStrictFOBFlatMap_injective n)
+                (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) ∈
+          profileSubspace ρ.val
+            (fun τ => interfaceSpace_compiledBasis sourcePartition
+              (Nat.log 2 n) (Nat.log 2 n) τ)
+
+/-- Concrete compiled-basis profile-subspace row data instantiates the selected
+source profile-subspace package.  The only extra work is the already-proved
+profile-subspace dimension bound for the compiled-basis interface spaces. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceProfileSubspaceData_of_compiledBasisProfileSubspaceRowData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedCompiledBasisProfileSubspaceRowData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceConstraintTypeProfileSubspaceData
+      M n hn2 htb hns where
+  sourceProfileSubspace := fun ρ =>
+    profileSubspace ρ.val
+      (fun τ => interfaceSpace_compiledBasis D.sourcePartition
+        (Nat.log 2 n) (Nat.log 2 n) τ)
+  sourceProfileSubspace_finite := by
+    intro ρ
+    unfold profileSubspace
+    set W : ConstraintType → Submodule ℚ (MvPolynomial (Fin (n / 3)) ℚ) :=
+      fun τ => interfaceSpace_compiledBasis D.sourcePartition
+        (Nat.log 2 n) (Nat.log 2 n) τ
+    set d : ConstraintType → ℕ := fun τ => Module.finrank ℚ ↥(W τ)
+    let b : ∀ τ, Module.Basis (Fin (d τ)) ℚ ↥(W τ) :=
+      fun τ => by
+        haveI : Module.Finite ℚ ↥(W τ) := by
+          dsimp [W]
+          exact interfaceSpace_compiledBasis_finite D.sourcePartition
+            (Nat.log 2 n) (Nat.log 2 n) τ
+        exact Module.finBasis ℚ ↥(W τ)
+    have hle :
+        profileSubspace ρ.val W ≤
+          Submodule.span ℚ
+            (Set.range (profileSymProd W b :
+              ProfileIndex ρ.val d → MvPolynomial (Fin (n / 3)) ℚ)) :=
+      profileSubspace_le_profileSymProd_span W b
+    haveI hfin_big : Module.Finite ℚ
+        ↥(Submodule.span ℚ
+          (Set.range (profileSymProd W b :
+            ProfileIndex ρ.val d → MvPolynomial (Fin (n / 3)) ℚ))) := by
+      apply Module.Finite.span_of_finite
+      exact Set.finite_range _
+    exact Module.Finite.of_injective
+      ((Submodule.inclusion hle) : _ →ₗ[ℚ] _)
+      (Submodule.inclusion_injective hle)
+  sourceProfileSubspace_finrank_le := by
+    intro ρ
+    have hfin : ∀ τ, Module.Finite ℚ
+        ↥(interfaceSpace_compiledBasis D.sourcePartition
+          (Nat.log 2 n) (Nat.log 2 n) τ) := by
+      intro τ
+      exact interfaceSpace_compiledBasis_finite D.sourcePartition
+        (Nat.log 2 n) (Nat.log 2 n) τ
+    have hdim : ∀ τ, Module.finrank ℚ
+        ↥(interfaceSpace_compiledBasis D.sourcePartition
+          (Nat.log 2 n) (Nat.log 2 n) τ) ≤ 3 := by
+      intro τ
+      exact interfaceSpace_compiledBasis_finrank_le_three D.sourcePartition
+        (Nat.log 2 n) (Nat.log 2 n) τ
+    have htempl := profileSubspace_finrank_bound
+      (Iface := ConstraintType) ρ.val
+      (fun τ => interfaceSpace_compiledBasis D.sourcePartition
+        (Nat.log 2 n) (Nat.log 2 n) τ) hfin hdim
+    have hadm : ProfileAdmissible (Nat.log 2 n) ρ.val := by
+      exact le_of_eq (routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfile_mass_eq ρ)
+    exact htempl.trans
+      (profileTemplateBound_le_withinProfileBound (Nat.log 2 n) ρ.val hadm)
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalSourceRow_mem_constraintTypeProfileSubspace := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    let ρ := D.profileOfCanonicalWindow
+      (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α) hrow.1
+    simpa [ρ] using
+      D.canonicalSourceRow_mem_compiledBasisProfileSubspace
+        ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow rfl
+
 /-- Row-level interface slot factorization instantiates the selected source
 profile-subspace datum.  This is the paper-faithful Lemma-31 row route: insert
 the complete row as one generator of `profileSubspace ρ.val W`, then use the
