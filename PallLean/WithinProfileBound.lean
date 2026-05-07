@@ -1877,6 +1877,122 @@ noncomputable def cookLevinCanonicalInterfaceFamily :
         MvPolynomial.X cookLevinLocalCoord1}
   | ConstraintType.transitionRight => {1}
 
+
+/-- The canonical local-coordinate `W_σ` for Cook-Levin interfaces.
+
+This is the paper-faithful reading of `W_σ`: a subspace in fixed local compiled
+coordinates `Fin maxConstraintArity`, before any placement into ambient/source
+variables.  Actual Cook-Levin variables are related to it only by a placement
+map, never by pretending they are the global variables `0` and `1`. -/
+noncomputable def cookLevinCanonicalLocalInterfaceSpace
+    (τ : ConstraintType) :
+    Submodule ℚ (MvPolynomial (Fin maxConstraintArity) ℚ) :=
+  Submodule.span ℚ
+    (↑(cookLevinCanonicalInterfaceFamily τ) :
+      Set (MvPolynomial (Fin maxConstraintArity) ℚ))
+
+/-- The local-coordinate canonical `W_σ` is finite-dimensional. -/
+theorem cookLevinCanonicalLocalInterfaceSpace_finite
+    (τ : ConstraintType) :
+    Module.Finite ℚ ↥(cookLevinCanonicalLocalInterfaceSpace τ) := by
+  classical
+  unfold cookLevinCanonicalLocalInterfaceSpace
+  exact Module.Finite.span_of_finite ℚ
+    (Finset.finite_toSet (cookLevinCanonicalInterfaceFamily τ))
+
+/-- Sharp `d₀ = 3` cardinal bound for the canonical local-coordinate interface
+family. -/
+theorem cookLevinCanonicalInterfaceFamily_card_le_three
+    (τ : ConstraintType) :
+    (cookLevinCanonicalInterfaceFamily τ).card ≤ 3 := by
+  cases τ
+  · change ({1, MvPolynomial.X cookLevinLocalCoord0} :
+        Finset (MvPolynomial (Fin maxConstraintArity) ℚ)).card ≤ 3
+    exact le_trans Finset.card_le_two (by norm_num)
+  · change ({1, MvPolynomial.X cookLevinLocalCoord0,
+        MvPolynomial.X cookLevinLocalCoord1} :
+        Finset (MvPolynomial (Fin maxConstraintArity) ℚ)).card ≤ 3
+    exact Finset.card_le_three
+  · change ({1, MvPolynomial.X cookLevinLocalCoord0,
+        MvPolynomial.X cookLevinLocalCoord1} :
+        Finset (MvPolynomial (Fin maxConstraintArity) ℚ)).card ≤ 3
+    exact Finset.card_le_three
+  · simp [cookLevinCanonicalInterfaceFamily]
+
+/-- The paper's local-coordinate `W_σ` has dimension at most `d₀ = 3`. -/
+theorem cookLevinCanonicalLocalInterfaceSpace_finrank_le_three
+    (τ : ConstraintType) :
+    Module.finrank ℚ ↥(cookLevinCanonicalLocalInterfaceSpace τ) ≤ 3 := by
+  classical
+  have hcard :
+      Module.finrank ℚ
+          (Submodule.span ℚ
+            (↑(cookLevinCanonicalInterfaceFamily τ) :
+              Set (MvPolynomial (Fin maxConstraintArity) ℚ))) ≤
+        (cookLevinCanonicalInterfaceFamily τ).card := by
+    simpa using
+      finrank_span_finset_le_card (R := ℚ)
+        (cookLevinCanonicalInterfaceFamily τ)
+  simpa [cookLevinCanonicalLocalInterfaceSpace] using
+    hcard.trans (cookLevinCanonicalInterfaceFamily_card_le_three τ)
+
+/-- Every canonical local template belongs to its local-coordinate `W_σ`. -/
+theorem cookLevinCanonicalInterfaceFamily_mem_localInterfaceSpace
+    {τ : ConstraintType}
+    {p : MvPolynomial (Fin maxConstraintArity) ℚ}
+    (hp : p ∈ cookLevinCanonicalInterfaceFamily τ) :
+    p ∈ cookLevinCanonicalLocalInterfaceSpace τ := by
+  unfold cookLevinCanonicalLocalInterfaceSpace
+  exact Submodule.subset_span hp
+
+/-- Placing a local template into source/ambient variables lands in the placed
+copy of the corresponding local `W_σ`.  This is the formal replacement for the
+invalid global-chart move `X_v ∈ span{X₀, X₁, ...}`. -/
+theorem placedCookLevinInterface_mem_of_mem_local
+    {n : ℕ} (place : Fin maxConstraintArity → Fin n)
+    {τ : ConstraintType}
+    {p : MvPolynomial (Fin maxConstraintArity) ℚ}
+    (hp : p ∈ cookLevinCanonicalInterfaceFamily τ) :
+    MvPolynomial.rename place p ∈
+      placedCookLevinInterfaceSpan place (cookLevinCanonicalInterfaceFamily τ) := by
+  unfold placedCookLevinInterfaceSpan placedCookLevinInterface
+  exact Submodule.subset_span (Finset.mem_image.mpr ⟨p, hp, rfl⟩)
+
+/-- A placed local `W_σ` copy is still finite-dimensional. -/
+theorem placedCookLevinInterfaceSpan_finite
+    {n : ℕ} (place : Fin maxConstraintArity → Fin n)
+    (τ : ConstraintType) :
+    Module.Finite ℚ
+      ↥(placedCookLevinInterfaceSpan place (cookLevinCanonicalInterfaceFamily τ)) := by
+  classical
+  unfold placedCookLevinInterfaceSpan
+  exact Module.Finite.span_of_finite ℚ
+    (Finset.finite_toSet
+      (placedCookLevinInterface place (cookLevinCanonicalInterfaceFamily τ)))
+
+/-- A placed local `W_σ` copy has the same `d₀ = 3` dimension budget. -/
+theorem placedCookLevinInterfaceSpan_finrank_le_three
+    {n : ℕ} (place : Fin maxConstraintArity → Fin n)
+    (τ : ConstraintType) :
+    Module.finrank ℚ
+        ↥(placedCookLevinInterfaceSpan place (cookLevinCanonicalInterfaceFamily τ)) ≤ 3 := by
+  classical
+  have hcard :
+      Module.finrank ℚ
+          (Submodule.span ℚ
+            (↑(placedCookLevinInterface place (cookLevinCanonicalInterfaceFamily τ)) :
+              Set (MvPolynomial (Fin n) ℚ))) ≤
+        (placedCookLevinInterface place (cookLevinCanonicalInterfaceFamily τ)).card := by
+    simpa using
+      finrank_span_finset_le_card (R := ℚ)
+        (placedCookLevinInterface place (cookLevinCanonicalInterfaceFamily τ))
+  have himg :
+      (placedCookLevinInterface place (cookLevinCanonicalInterfaceFamily τ)).card ≤
+        (cookLevinCanonicalInterfaceFamily τ).card := by
+    unfold placedCookLevinInterface
+    exact Finset.card_image_le
+  exact hcard.trans (himg.trans (cookLevinCanonicalInterfaceFamily_card_le_three τ))
+
 /-- Every canonical typewise interface has the advertised constant-size local
 template bound. -/
 theorem cookLevinCanonicalInterfaceFamily_card_le
