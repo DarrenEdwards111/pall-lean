@@ -17655,6 +17655,28 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedCompiledBasisProfi
         ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j
     · rfl
 
+
+/-- Direct renamed-canonical local-chart expansion gives the direct
+compiled-basis profile-subspace row target.
+
+This keeps the final selected Lemma-31 target unchanged:
+`profileSubspace ρ.val (interfaceSpace_compiledBasis sourcePartition log log)`.
+The only row-shape input is an explicit finite expansion by renamed canonical
+interface generators, plus the concrete proof that each renamed generator lies
+in the corresponding compiled-basis `Wσ`.  No chart is collapsed to the fixed
+canonical `0/1` variables inside this adapter. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedCompiledBasisProfileSubspaceRowData_of_renamedCanonicalInterfaceExpansionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedRowRenamedCanonicalInterfaceExpansionData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedCompiledBasisProfileSubspaceRowData
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_strictSourceSelectedCompiledBasisProfileSubspaceRowData_of_rowInterfaceSlotExpansionData
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictSourceSelectedRowInterfaceSlotExpansionData_of_renamedCanonicalInterfaceExpansionData
+      M n hn2 htb hns D)
+
 /-- The older one-product row factorization also gives the direct compiled-basis
 profile-subspace row target, via the singleton-index expansion adapter. -/
 noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedCompiledBasisProfileSubspaceRowData_of_rowInterfaceSlotFactorizationData
