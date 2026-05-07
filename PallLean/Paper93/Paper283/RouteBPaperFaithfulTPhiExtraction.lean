@@ -18263,6 +18263,87 @@ theorem routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedLocalInterfaceExpan
     (D.rowExpansionPlace ρ S' shift α hSlen hshiftDegree
       hshiftVars hadm hrow hρ t σ j) σ
 
+
+/-- Paper-faithful quotient/symmetric descent data from placed local interfaces
+to the selected profile subspace.
+
+This is the real descent seam: after the row has been expanded into placed
+local-coordinate templates, the paper identifies those local copies through the
+compiled-coordinate quotient and symmetric product, producing the selected
+`profileSubspace ρ.val interfaceSpace`.  The field below asks exactly for each
+placed local product term to descend to that selected `V_h`; the adapter proves
+all remaining linear assembly (sum and scalar closure) with no global/common
+span and no fixed-chart collapse. -/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceQuotientDescentData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  placedExpansionData :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceExpansionData
+      M n hn2 htb hns
+  interfaceSpace : ConstraintType → Submodule ℚ (MvPolynomial (Fin (n / 3)) ℚ)
+  interfaceSpace_finite : ∀ τ, Module.Finite ℚ ↥(interfaceSpace τ)
+  interfaceSpace_finrank_le_three :
+    ∀ τ, Module.finrank ℚ ↥(interfaceSpace τ) ≤ 3
+  placedLocalProduct_descends_to_selectedProfileSubspace :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        placedExpansionData.profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (t : placedExpansionData.rowExpansionIndex ρ S' shift α hSlen hshiftDegree
+          hshiftVars hadm hrow hρ),
+        (∏ σ : ConstraintType,
+          ∏ j : Fin (ρ.val σ),
+            MvPolynomial.rename
+              (placedExpansionData.rowExpansionPlace ρ S' shift α hSlen hshiftDegree
+                hshiftVars hadm hrow hρ t σ j)
+              (placedExpansionData.rowExpansionLocalTemplate ρ S' shift α hSlen hshiftDegree
+                hshiftVars hadm hrow hρ t σ j)) ∈
+          profileSubspace ρ.val interfaceSpace
+
+/-- The quotient/symmetric descent datum gives the local compiled-profile row
+target.  This theorem proves the linear assembly from termwise descent:
+rewrite the selected row by its placed-local expansion, then close under finite
+sums and scalar multiplication inside the same selected `profileSubspace`. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedLocalCompiledProfileSubspaceRowData_of_placedLocalInterfaceQuotientDescentData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceQuotientDescentData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedLocalCompiledProfileSubspaceRowData
+      M n hn2 htb hns where
+  interfaceSpace := D.interfaceSpace
+  interfaceSpace_finite := D.interfaceSpace_finite
+  interfaceSpace_finrank_le_three := D.interfaceSpace_finrank_le_three
+  profileOfCanonicalWindow := D.placedExpansionData.profileOfCanonicalWindow
+  canonicalSourceRow_mem_localCompiledProfileSubspace := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    letI := D.placedExpansionData.rowExpansionIndexFintype
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    rw [D.placedExpansionData.canonicalSourceRow_eq_placedLocalInterfaceExpansion
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ]
+    apply Submodule.sum_mem
+    intro t ht
+    apply Submodule.smul_mem
+    exact D.placedLocalProduct_descends_to_selectedProfileSubspace
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t
+
 /-- Concrete compiled-basis profile-subspace row data.
 
 This is the direct Lemma-31 target in source coordinates: for the row-selected
