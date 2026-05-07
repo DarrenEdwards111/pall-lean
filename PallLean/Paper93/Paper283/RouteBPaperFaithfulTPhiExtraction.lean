@@ -16910,6 +16910,65 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedCompiledBasisProfileSubspac
             (fun τ => interfaceSpace_compiledBasis sourcePartition
               (Nat.log 2 n) (Nat.log 2 n) τ)
 
+/-- Per-Leibniz-term selected compiled-basis membership implies the direct
+compiled-basis row membership.
+
+This is a faithful linearity reduction: expand the derivative of the product by
+the bounded Leibniz rule, then use the hypothesis that **each actual bounded
+product-rule term**, after the same selected shift and `mlProj`, lies in the
+same selected compiled-basis profile subspace.  It does not classify terms by
+raw derivative histograms, does not use an all-profile supremum, and does not
+replace the selected row by a common/global span. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedCompiledBasisProfileSubspaceRowData_of_shiftedLeibnizProductCompiledBasisProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductCompiledBasisProfileData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedCompiledBasisProfileSubspaceRowData
+      M n hn2 htb hns where
+  sourcePartition := D.sourcePartition
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalSourceRow_mem_compiledBasisProfileSubspace := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    rw [routeBPaperFaithfulTPhi_restrict_compiledPoly_eq_sourceRestrictedFactors_prod]
+    let factors := routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+      M n hn2 htb hns
+    let target : Submodule ℚ (MvPolynomial (Fin (n / 3)) ℚ) :=
+      profileSubspace ρ.val
+        (fun τ => interfaceSpace_compiledBasis D.sourcePartition
+          (Nat.log 2 n) (Nat.log 2 n) τ)
+    have hLeibniz :
+        SPDP.iterDerivList S' (Finset.univ.prod factors) ∈
+          Submodule.span ℚ
+            (boundedDistribDerivProds Finset.univ factors S' S'.length) := by
+      simpa [factors] using
+        iterDerivList_finset_prod_mem_bounded_span S' factors
+    have hpost :
+        mlProj (shift * SPDP.iterDerivList S' (Finset.univ.prod factors)) ∈
+          Submodule.span ℚ
+            ((fun g => mlProj (shift * g)) ''
+              boundedDistribDerivProds Finset.univ factors S' S'.length) := by
+      exact SymmetricPower.mlProj_mul_mem_span_image shift
+        (boundedDistribDerivProds Finset.univ factors S' S'.length)
+        (SPDP.iterDerivList S' (Finset.univ.prod factors)) hLeibniz
+    have hspan :
+        Submodule.span ℚ
+            ((fun g => mlProj (shift * g)) ''
+              boundedDistribDerivProds Finset.univ factors S' S'.length) ≤ target := by
+      apply Submodule.span_le.mpr
+      intro q hq
+      rcases hq with ⟨g, hg, rfl⟩
+      rcases hg with ⟨d, hd_elts, hg_eq, hlen⟩
+      have hlen' :
+          ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+            (d i).length ≤ S'.length := by
+        simpa using hlen
+      have hterm := D.selectedShiftedLeibnizProduct_mem_compiledBasisProfileSubspace
+        ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen'
+      simpa [target, factors, hg_eq]
+        using hterm
+    exact hspan hpost
+
 /-- Concrete compiled-basis profile-subspace row data instantiates the selected
 source profile-subspace package.  The only extra work is the already-proved
 profile-subspace dimension bound for the compiled-basis interface spaces. -/
