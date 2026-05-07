@@ -16884,6 +16884,100 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedRowCanonicalInterfaceExpans
                     (rowExpansionCanonicalSlot ρ S' shift α hSlen hshiftDegree
                       hshiftVars hadm hrow hρ t σ j))
 
+
+/-- Local-chart transport data for the selected row expansion.
+
+This is the honest bridge exposed by the remaining Lemma-31 work.  The row is
+first expanded using its actual local-chart slot polynomials.  A separate
+transport field identifies each such slot with the corresponding canonical
+compiled-basis chart generator.  This prevents the false shortcut of treating
+arbitrary Cook-Levin variables as the fixed `X₀/X₁` chart without proof. -/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedRowLocalChartTransportExpansionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  rowExpansionData :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedRowInterfaceSlotExpansionData
+      M n hn2 htb hns
+  rowExpansionCanonicalSlot :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        rowExpansionData.profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ),
+        rowExpansionData.rowExpansionIndex ρ S' shift α hSlen hshiftDegree
+          hshiftVars hadm hrow hρ →
+        ∀ σ : ConstraintType, Fin (ρ.val σ) → Fin d₀
+  rowExpansionSlot_transport_to_canonicalChart :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        rowExpansionData.profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (t : rowExpansionData.rowExpansionIndex ρ S' shift α hSlen hshiftDegree
+          hshiftVars hadm hrow hρ)
+      (σ : ConstraintType) (j : Fin (ρ.val σ)),
+        rowExpansionData.rowExpansionSlotContribution ρ S' shift α hSlen hshiftDegree
+          hshiftVars hadm hrow hρ t σ j =
+          canonicalInterfacePolynomial rowExpansionData.sourcePartition
+            (Nat.log 2 n) (Nat.log 2 n) σ
+            (rowExpansionCanonicalSlot ρ S' shift α hSlen hshiftDegree
+              hshiftVars hadm hrow hρ t σ j)
+
+/-- Local-chart transport data instantiates the canonical-interface expansion
+surface.  The proof rewrites the already supplied row expansion slot-by-slot
+through the explicit transport equalities. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedRowCanonicalInterfaceExpansionData_of_localChartTransportExpansionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedRowLocalChartTransportExpansionData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedRowCanonicalInterfaceExpansionData
+      M n hn2 htb hns where
+  sourcePartition := D.rowExpansionData.sourcePartition
+  profileOfCanonicalWindow := D.rowExpansionData.profileOfCanonicalWindow
+  rowExpansionIndex := D.rowExpansionData.rowExpansionIndex
+  rowExpansionIndexFintype := D.rowExpansionData.rowExpansionIndexFintype
+  rowExpansionCoeff := D.rowExpansionData.rowExpansionCoeff
+  rowExpansionCanonicalSlot := D.rowExpansionCanonicalSlot
+  canonicalSourceRow_eq_canonicalInterfaceExpansion := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    have hrowExp := D.rowExpansionData.canonicalSourceRow_eq_rowInterfaceSlotExpansion
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    rw [hrowExp]
+    simp [D.rowExpansionSlot_transport_to_canonicalChart]
+
 /-- Canonical-interface expansion data instantiates the general row slot
 expansion surface by interpreting each slot as the chosen canonical compiled
 basis generator. -/
