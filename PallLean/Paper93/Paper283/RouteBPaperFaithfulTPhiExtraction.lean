@@ -17837,6 +17837,123 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedRowInterfaceSlotEx
       ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
 
 
+
+/-- Local compiled-coordinate profile-subspace row data.
+
+This is the corrected paper reading of Lemma 31: `W_σ` is supplied as a local
+compiled-coordinate interface space, not forced to be the fixed global
+`X₀/X₁` span.  Each `W_σ` is still finite-dimensional with dimension at most
+three, so the same profile-template bound applies.  The row membership target is
+exactly `profileSubspace ρ.val interfaceSpace` for the selected profile `ρ`.
+This avoids the false raw-polynomial claim that arbitrary Cook-Levin variables
+belong to the fixed canonical chart span. -/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedLocalCompiledProfileSubspaceRowData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  interfaceSpace : ConstraintType → Submodule ℚ (MvPolynomial (Fin (n / 3)) ℚ)
+  interfaceSpace_finite : ∀ τ, Module.Finite ℚ ↥(interfaceSpace τ)
+  interfaceSpace_finrank_le_three :
+    ∀ τ, Module.finrank ℚ ↥(interfaceSpace τ) ≤ 3
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  canonicalSourceRow_mem_localCompiledProfileSubspace :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ),
+        mlProj
+          (shift *
+            SPDP.iterDerivList S'
+              (MultilinearSPDP.restrictPoly ℚ
+                (cookLevinStrictFOBFlatMap n)
+                (cookLevinStrictFOBFlatMap_injective n)
+                (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) ∈
+          profileSubspace ρ.val interfaceSpace
+
+/-- Local compiled-coordinate row data instantiates the source profile-subspace
+surface.  This is the paper-faithful route when `W_σ` is interpreted as the
+local compiled-coordinate space of Lemma 31 rather than a fixed global chart. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceProfileSubspaceData_of_localCompiledProfileSubspaceRowData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedLocalCompiledProfileSubspaceRowData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceConstraintTypeProfileSubspaceData
+      M n hn2 htb hns where
+  sourceProfileSubspace := fun ρ => profileSubspace ρ.val D.interfaceSpace
+  sourceProfileSubspace_finite := by
+    intro ρ
+    unfold profileSubspace
+    set W : ConstraintType → Submodule ℚ (MvPolynomial (Fin (n / 3)) ℚ) :=
+      D.interfaceSpace
+    set d : ConstraintType → ℕ := fun τ => Module.finrank ℚ ↥(W τ)
+    let b : ∀ τ, Module.Basis (Fin (d τ)) ℚ ↥(W τ) :=
+      fun τ => by
+        haveI : Module.Finite ℚ ↥(W τ) := by
+          dsimp [W]
+          exact D.interfaceSpace_finite τ
+        exact Module.finBasis ℚ ↥(W τ)
+    have hle :
+        profileSubspace ρ.val W ≤
+          Submodule.span ℚ
+            (Set.range (profileSymProd W b :
+              ProfileIndex ρ.val d → MvPolynomial (Fin (n / 3)) ℚ)) :=
+      profileSubspace_le_profileSymProd_span W b
+    haveI hfin_big : Module.Finite ℚ
+        ↥(Submodule.span ℚ
+          (Set.range (profileSymProd W b :
+            ProfileIndex ρ.val d → MvPolynomial (Fin (n / 3)) ℚ))) := by
+      apply Module.Finite.span_of_finite
+      exact Set.finite_range _
+    exact Module.Finite.of_injective
+      ((Submodule.inclusion hle) : _ →ₗ[ℚ] _)
+      (Submodule.inclusion_injective hle)
+  sourceProfileSubspace_finrank_le := by
+    intro ρ
+    have htempl := profileSubspace_finrank_bound
+      (Iface := ConstraintType) ρ.val D.interfaceSpace
+      D.interfaceSpace_finite D.interfaceSpace_finrank_le_three
+    have hadm : ProfileAdmissible (Nat.log 2 n) ρ.val := by
+      exact le_of_eq (routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfile_mass_eq ρ)
+    exact htempl.trans
+      (profileTemplateBound_le_withinProfileBound (Nat.log 2 n) ρ.val hadm)
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalSourceRow_mem_constraintTypeProfileSubspace := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    let ρ := D.profileOfCanonicalWindow
+      (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α) hrow.1
+    simpa [ρ] using
+      D.canonicalSourceRow_mem_localCompiledProfileSubspace
+        ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow rfl
+
 /-- Concrete compiled-basis profile-subspace row data.
 
 This is the direct Lemma-31 target in source coordinates: for the row-selected

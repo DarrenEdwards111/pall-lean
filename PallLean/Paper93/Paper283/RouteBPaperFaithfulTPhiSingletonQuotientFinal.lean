@@ -1515,6 +1515,25 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceS
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
+/-- Final close-out from local compiled-coordinate profile-subspace row data.
+
+This is the paper-faithful `W_σ` route: the interface family is supplied as the
+local compiled-coordinate family itself, finite with dimension at most three,
+and the selected canonical source row lies in `profileSubspace ρ.val W`. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedLocalCompiledProfileSubspaceRowData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceSelectedLocalCompiledProfileSubspaceRowData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceConstraintTypeProfileSubspaceData
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictSourceProfileSubspaceData_of_localCompiledProfileSubspaceRowData
+        M n hn2 htb hns
+        (hdata M n hn hn2 htb hns hdec))
+
 /-- Final paper-shaped close-out from row-level source interface slot
 expansion data.
 
@@ -4222,6 +4241,20 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSource
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedCompiledBasisProfileSubspaceRowData
       hdata)
 
+/-- Rich-projection discharge from local compiled-coordinate profile-subspace
+row data. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedLocalCompiledProfileSubspaceRowData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceSelectedLocalCompiledProfileSubspaceRowData
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedLocalCompiledProfileSubspaceRowData
+      hdata)
+
 /-- Rich-projection discharge from row-level source interface slot expansion
 data. -/
 theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedRowInterfaceSlotExpansionData
@@ -4784,6 +4817,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductInterfaceContributionData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductInterfaceSlotFactorizationData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedCompiledBasisProfileSubspaceRowData
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedLocalCompiledProfileSubspaceRowData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedRowInterfaceSlotExpansionData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedRowCanonicalInterfaceExpansionData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedRowRenamedCanonicalInterfaceExpansionData
@@ -4806,6 +4840,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductInterfaceContributionData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductInterfaceSlotFactorizationData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedCompiledBasisProfileSubspaceRowData
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedLocalCompiledProfileSubspaceRowData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedRowInterfaceSlotExpansionData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedRowCanonicalInterfaceExpansionData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedRowRenamedCanonicalInterfaceExpansionData
