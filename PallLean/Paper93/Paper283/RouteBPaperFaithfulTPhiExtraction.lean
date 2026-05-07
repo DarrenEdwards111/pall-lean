@@ -16722,6 +16722,200 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedRowInterfaceSlotExpansionDa
                   rowExpansionSlotContribution ρ S' shift α hSlen hshiftDegree
                     hshiftVars hadm hrow hρ t σ j)
 
+
+/-- Canonical compiled-basis row expansion for the selected Lemma-31 row.
+
+This is a stricter, more concrete version of the row slot expansion: each local
+slot is not merely an arbitrary element of `Wσ`; it is one of the compiler's
+three canonical interface polynomials `canonicalInterfacePolynomial ... σ j`.
+The only remaining mathematical content is the finite linear-combination
+equality for the actual selected canonical row. -/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedRowCanonicalInterfaceExpansionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  sourcePartition : SPDP.BlockPartition (n / 3)
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  rowExpansionIndex :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ), Type
+  rowExpansionIndexFintype :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ),
+        Fintype (rowExpansionIndex ρ S' shift α hSlen hshiftDegree
+          hshiftVars hadm hrow hρ)
+  rowExpansionCoeff :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ),
+        rowExpansionIndex ρ S' shift α hSlen hshiftDegree
+          hshiftVars hadm hrow hρ → ℚ
+  rowExpansionCanonicalSlot :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ),
+        rowExpansionIndex ρ S' shift α hSlen hshiftDegree
+          hshiftVars hadm hrow hρ →
+        ∀ σ : ConstraintType, Fin (ρ.val σ) → Fin d₀
+  canonicalSourceRow_eq_canonicalInterfaceExpansion :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ),
+        letI := rowExpansionIndexFintype ρ S' shift α hSlen hshiftDegree
+          hshiftVars hadm hrow hρ
+        mlProj
+          (shift *
+            SPDP.iterDerivList S'
+              (MultilinearSPDP.restrictPoly ℚ
+                (cookLevinStrictFOBFlatMap n)
+                (cookLevinStrictFOBFlatMap_injective n)
+                (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) =
+          ∑ t : rowExpansionIndex ρ S' shift α hSlen hshiftDegree
+              hshiftVars hadm hrow hρ,
+            rowExpansionCoeff ρ S' shift α hSlen hshiftDegree
+              hshiftVars hadm hrow hρ t •
+              (∏ σ : ConstraintType,
+                ∏ j : Fin (ρ.val σ),
+                  canonicalInterfacePolynomial sourcePartition
+                    (Nat.log 2 n) (Nat.log 2 n) σ
+                    (rowExpansionCanonicalSlot ρ S' shift α hSlen hshiftDegree
+                      hshiftVars hadm hrow hρ t σ j))
+
+/-- Canonical-interface expansion data instantiates the general row slot
+expansion surface by interpreting each slot as the chosen canonical compiled
+basis generator. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedRowInterfaceSlotExpansionData_of_canonicalInterfaceExpansionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedRowCanonicalInterfaceExpansionData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedRowInterfaceSlotExpansionData
+      M n hn2 htb hns where
+  sourcePartition := D.sourcePartition
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  rowExpansionIndex := D.rowExpansionIndex
+  rowExpansionIndexFintype := D.rowExpansionIndexFintype
+  rowExpansionCoeff := D.rowExpansionCoeff
+  rowExpansionSlotContribution := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j
+    exact canonicalInterfacePolynomial D.sourcePartition
+      (Nat.log 2 n) (Nat.log 2 n) σ
+      (D.rowExpansionCanonicalSlot ρ S' shift α hSlen hshiftDegree
+        hshiftVars hadm hrow hρ t σ j)
+  rowExpansionSlotContribution_mem_compiledBasis := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j
+    exact canonicalInterfacePolynomial_mem_interfaceSpace_compiledBasis
+      D.sourcePartition (Nat.log 2 n) (Nat.log 2 n) σ
+      (D.rowExpansionCanonicalSlot ρ S' shift α hSlen hshiftDegree
+        hshiftVars hadm hrow hρ t σ j)
+  canonicalSourceRow_eq_rowInterfaceSlotExpansion := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    exact D.canonicalSourceRow_eq_canonicalInterfaceExpansion
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+
 /-- A row-level interface-slot expansion instantiates the selected source
 profile-subspace datum.
 

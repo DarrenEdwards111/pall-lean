@@ -1536,6 +1536,27 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceS
         M n hn2 htb hns
         (hdata M n hn hn2 htb hns hdec))
 
+
+/-- Final close-out from canonical compiled-basis row expansion data.
+
+This is the most concrete row-level Lemma-31 surface currently exposed: every
+anonymous interface slot is one of the compiler's canonical `d₀ = 3` local
+basis polynomials, and the actual selected row is their finite linear
+combination at the same selected profile. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedRowCanonicalInterfaceExpansionData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceSelectedRowCanonicalInterfaceExpansionData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedRowInterfaceSlotExpansionData
+    (fun M n hn hn2 htb hns hdec =>
+      routeBPaperFaithfulTPhi_strictSourceSelectedRowInterfaceSlotExpansionData_of_canonicalInterfaceExpansionData
+        M n hn2 htb hns
+        (hdata M n hn hn2 htb hns hdec))
+
 /-- Final paper-shaped close-out from row-level source interface slot
 factorization data.
 
@@ -4196,6 +4217,20 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSource
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedRowInterfaceSlotExpansionData
       hdata)
 
+
+/-- Rich-projection discharge from canonical compiled-basis row expansion data. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedRowCanonicalInterfaceExpansionData
+    (hdata :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        RouteBPaperFaithfulTPhiStrictSourceSelectedRowCanonicalInterfaceExpansionData
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedRowCanonicalInterfaceExpansionData
+      hdata)
+
 /-- Rich-projection discharge from row-level source interface slot
 factorization data. -/
 theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedRowInterfaceSlotFactorizationData
@@ -4718,6 +4753,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductInterfaceSlotFactorizationData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedCompiledBasisProfileSubspaceRowData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedRowInterfaceSlotExpansionData
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedRowCanonicalInterfaceExpansionData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedRowInterfaceSlotFactorizationData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceProfileTemplateTermFamilyData
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms
@@ -4738,6 +4774,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductInterfaceSlotFactorizationData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedCompiledBasisProfileSubspaceRowData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedRowInterfaceSlotExpansionData
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedRowCanonicalInterfaceExpansionData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceSelectedRowInterfaceSlotFactorizationData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceProfileTemplateTermFamilyData
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms
