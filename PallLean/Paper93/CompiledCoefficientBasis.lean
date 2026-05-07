@@ -310,6 +310,82 @@ theorem canonicalInterfacePolynomial_transitionLeft_linearSlot
       canonicalLocalX := by
   norm_num [canonicalInterfacePolynomial, canonicalInterfaceLinearSlot, d₀]
 
+
+/-! ## Local-chart transport for canonical interface generators
+
+The canonical compiled-basis chart is written with local coordinates `0` and
+`1`.  A concrete Cook-Levin row may live at arbitrary coordinates.  The lemmas
+below make the transport explicit: renaming the local chart by a coordinate map
+sends the canonical generators to the corresponding row-local polynomials. -/
+
+theorem rename_canonicalLocalX_eq_X {N : ℕ} (hN : 0 < N)
+    (χ : Fin N → Fin N) :
+    MvPolynomial.rename χ (canonicalLocalX : MvPolynomial (Fin N) ℚ) =
+      MvPolynomial.X (χ ⟨0, hN⟩) := by
+  simp [canonicalLocalX, hN]
+
+theorem rename_canonicalLocalX1_eq_X {N : ℕ} (hN : 1 < N)
+    (χ : Fin N → Fin N) :
+    MvPolynomial.rename χ (canonicalLocalX1 : MvPolynomial (Fin N) ℚ) =
+      MvPolynomial.X (χ ⟨1, hN⟩) := by
+  simp [canonicalLocalX1, hN]
+
+theorem rename_canonicalLocalBoolFactor_eq_boolFactor {N : ℕ} (hN : 0 < N)
+    (χ : Fin N → Fin N) :
+    MvPolynomial.rename χ (canonicalLocalBoolFactor : MvPolynomial (Fin N) ℚ) =
+      SymmetricPower.boolFactor N (χ ⟨0, hN⟩) := by
+  simp [canonicalLocalBoolFactor, hN, SymmetricPower.boolFactor]
+
+theorem rename_canonicalInterfacePolynomial_booleanity_linearSlot_eq_X
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (hN : 0 < N)
+    (χ : Fin N → Fin N) :
+    MvPolynomial.rename χ
+        (canonicalInterfacePolynomial B κ ℓ ConstraintType.booleanity
+          canonicalInterfaceLinearSlot) =
+      MvPolynomial.X (χ ⟨0, hN⟩) := by
+  rw [canonicalInterfacePolynomial_booleanity_linearSlot]
+  exact rename_canonicalLocalX_eq_X hN χ
+
+theorem rename_canonicalInterfacePolynomial_booleanity_factorSlot_eq_boolFactor
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (hN : 0 < N)
+    (χ : Fin N → Fin N) :
+    MvPolynomial.rename χ
+        (canonicalInterfacePolynomial B κ ℓ ConstraintType.booleanity
+          canonicalInterfaceFactorSlot) =
+      SymmetricPower.boolFactor N (χ ⟨0, hN⟩) := by
+  rw [canonicalInterfacePolynomial_booleanity_factorSlot]
+  exact rename_canonicalLocalBoolFactor_eq_boolFactor hN χ
+
+theorem rename_canonicalInterfacePolynomial_adjacency_linearSlot_eq_X
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (hN : 0 < N)
+    (χ : Fin N → Fin N) :
+    MvPolynomial.rename χ
+        (canonicalInterfacePolynomial B κ ℓ ConstraintType.adjacency
+          canonicalInterfaceLinearSlot) =
+      MvPolynomial.X (χ ⟨0, hN⟩) := by
+  rw [canonicalInterfacePolynomial_adjacency_linearSlot]
+  exact rename_canonicalLocalX_eq_X hN χ
+
+theorem rename_canonicalInterfacePolynomial_adjacency_secondSlot_eq_X
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (hN : 1 < N)
+    (χ : Fin N → Fin N) :
+    MvPolynomial.rename χ
+        (canonicalInterfacePolynomial B κ ℓ ConstraintType.adjacency
+          canonicalInterfaceFactorSlot) =
+      MvPolynomial.X (χ ⟨1, hN⟩) := by
+  rw [canonicalInterfacePolynomial_adjacency_secondSlot]
+  exact rename_canonicalLocalX1_eq_X hN χ
+
+theorem rename_canonicalInterfacePolynomial_transitionLeft_linearSlot_eq_X
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (hN : 0 < N)
+    (χ : Fin N → Fin N) :
+    MvPolynomial.rename χ
+        (canonicalInterfacePolynomial B κ ℓ ConstraintType.transitionLeft
+          canonicalInterfaceLinearSlot) =
+      MvPolynomial.X (χ ⟨0, hN⟩) := by
+  rw [canonicalInterfacePolynomial_transitionLeft_linearSlot]
+  exact rename_canonicalLocalX_eq_X hN χ
+
 theorem canonicalInterfacePolynomial_mem_generators
     {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (σ : ConstraintType)
     (j : Fin d₀) :
