@@ -15,6 +15,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBConcreteLocalDerivativeFacts
 import PallLean.Paper93.DeepMath.PathB.RouteBSupportCompatibleAllocationCover
 import PallLean.Paper93.DeepMath.PathB.RouteBLengthPrunedAllocationCover
 import PallLean.Paper93.DeepMath.PathB.RouteBRowFaithfulLengthPrunedKR
+import PallLean.Paper93.DeepMath.PathB.RouteBTouchedConstraintKR
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -158,5 +159,13 @@ theorem SAT_path_B_rowFaithfulLengthPrunedKR_TPhi_extraction_move
     (hKR : Step247UniformRowFaithfulLengthPrunedKRData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_rowFaithfulLengthPrunedKRData_TPhi hKR
+
+/-- Touched-constraint KR exposure: support-compatible allocations are forced to
+be empty outside the concrete constraints whose support intersects the row `S`.
+The final KR count may therefore range over touched constraints only. -/
+theorem SAT_path_B_touchedConstraintKR_TPhi_extraction_move
+    (hTouched : Step247UniformTouchedConstraintKRData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_touchedConstraintKRData_TPhi hTouched
 
 end PallLean.Paper93.DeepMath.PathB
