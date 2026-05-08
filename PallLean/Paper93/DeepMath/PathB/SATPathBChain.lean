@@ -11,6 +11,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBFactorRowCover
 import PallLean.Paper93.DeepMath.PathB.RouteBLeibnizTermCover
 import PallLean.Paper93.DeepMath.PathB.RouteBLeibnizAllocationCover
 import PallLean.Paper93.DeepMath.PathB.RouteBConcreteConstraintAllocationCover
+import PallLean.Paper93.DeepMath.PathB.RouteBConcreteLocalDerivativeFacts
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -119,5 +120,14 @@ theorem SAT_path_B_concreteConstraintAllocationCover_TPhi_extraction_move
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_concreteConstraintAllocationCoverData_TPhi
     hConcrete
+
+/-- Local-derivative SAT-chain exposure: each allocated concrete factor
+derivative is now known to use ≤10 variables and have degree ≤6; a KR cover
+allowed to use those true local facts is enough to close Route B. -/
+theorem SAT_path_B_localDerivativeAllocationCover_TPhi_extraction_move
+    (hLocal : Step247UniformConcreteLocalDerivativeAllocationCoverData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_localDerivativeAllocationCoverData_TPhi
+    hLocal
 
 end PallLean.Paper93.DeepMath.PathB
