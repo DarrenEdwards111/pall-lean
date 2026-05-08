@@ -7,6 +7,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBWidthRankPSide
 import PallLean.Paper93.DeepMath.PathB.RouteBCompilerLocalityPSide
 import PallLean.Paper93.DeepMath.PathB.RouteBPlainCookLevinQPSide
 import PallLean.Paper93.DeepMath.PathB.RouteBFactorLocalCookLevin
+import PallLean.Paper93.DeepMath.PathB.RouteBFactorRowCover
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -81,5 +82,14 @@ theorem SAT_path_B_factorLocalKR_TPhi_extraction_move
     (hKR : Step247UniformFactorLocalKRData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_factorLocalKRData_TPhi hKR
+
+/-- Row-cover SAT-chain exposure: the remaining paper §40.2 obligation is now
+stated generator-by-generator for rows
+`mlProj (m * ∂_S (∏ᵢ (1 - Cᵢ)))`. A uniform row cover by one finite family
+`G` of size `≤ n^200` is enough to close Route B. -/
+theorem SAT_path_B_factorRowCover_TPhi_extraction_move
+    (hRows : Step247UniformFactorRowCoverData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_factorRowCoverData_TPhi hRows
 
 end PallLean.Paper93.DeepMath.PathB
