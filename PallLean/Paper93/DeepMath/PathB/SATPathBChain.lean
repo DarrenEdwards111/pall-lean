@@ -5,6 +5,7 @@ import PallLean.Paper93.DeepMath.PathB.PathBToExistingChain
 import PallLean.Paper93.DeepMath.PathB.RouteBExtractionMove
 import PallLean.Paper93.DeepMath.PathB.RouteBWidthRankPSide
 import PallLean.Paper93.DeepMath.PathB.RouteBCompilerLocalityPSide
+import PallLean.Paper93.DeepMath.PathB.RouteBPlainCookLevinQPSide
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -60,5 +61,14 @@ theorem SAT_path_B_compilerLocality_TPhi_extraction_move
     (hCL : Step247UniformCompilerLocalityData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_compilerLocalityData_TPhi hCL
+
+/-- Plain-product SAT-chain exposure: it is enough to prove the P-side rank
+bound directly for `cookLevinQ` at the pullback partition. This is the correct
+place for the factor-local Khatri--Rao proof, before the `rename σ.inlU`
+transport to Step247 `full_output`. -/
+theorem SAT_path_B_plainCookLevinQ_TPhi_extraction_move
+    (hQ : Step247UniformPlainCookLevinQPSideBound) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_plainCookLevinQPSideBound_TPhi hQ
 
 end PallLean.Paper93.DeepMath.PathB
