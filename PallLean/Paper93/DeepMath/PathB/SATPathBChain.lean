@@ -12,6 +12,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBLeibnizTermCover
 import PallLean.Paper93.DeepMath.PathB.RouteBLeibnizAllocationCover
 import PallLean.Paper93.DeepMath.PathB.RouteBConcreteConstraintAllocationCover
 import PallLean.Paper93.DeepMath.PathB.RouteBConcreteLocalDerivativeFacts
+import PallLean.Paper93.DeepMath.PathB.RouteBSupportCompatibleAllocationCover
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -129,5 +130,14 @@ theorem SAT_path_B_localDerivativeAllocationCover_TPhi_extraction_move
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_localDerivativeAllocationCoverData_TPhi
     hLocal
+
+/-- Support-compatible SAT-chain exposure: allocations differentiating any local
+constraint outside its own support are proved zero rows, so the KR cover only
+has to cover support-compatible allocated products. -/
+theorem SAT_path_B_supportCompatibleAllocationCover_TPhi_extraction_move
+    (hSupp : Step247UniformSupportCompatibleAllocationCoverData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_supportCompatibleAllocationCoverData_TPhi
+    hSupp
 
 end PallLean.Paper93.DeepMath.PathB
