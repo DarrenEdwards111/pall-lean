@@ -4,6 +4,7 @@ import PallLean.Paper93.DeepMath.PathB.SATTiedGauge
 import PallLean.Paper93.DeepMath.PathB.PathBToExistingChain
 import PallLean.Paper93.DeepMath.PathB.RouteBExtractionMove
 import PallLean.Paper93.DeepMath.PathB.RouteBWidthRankPSide
+import PallLean.Paper93.DeepMath.PathB.RouteBCompilerLocalityPSide
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -50,5 +51,14 @@ theorem SAT_path_B_widthRank_TPhi_extraction_move
     (hWR : Step247UniformWidthRankData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_widthRankData_TPhi hWR
+
+/-- Lower-level SAT-chain exposure: the P-side hypothesis is stated directly as
+paper §40.2 compiler-locality / CEW / Khatri--Rao data for the full Step247
+compiler output. This is the surface to discharge by the real deterministic
+compiler analysis. -/
+theorem SAT_path_B_compilerLocality_TPhi_extraction_move
+    (hCL : Step247UniformCompilerLocalityData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_compilerLocalityData_TPhi hCL
 
 end PallLean.Paper93.DeepMath.PathB
