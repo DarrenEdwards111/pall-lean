@@ -13,6 +13,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBLeibnizAllocationCover
 import PallLean.Paper93.DeepMath.PathB.RouteBConcreteConstraintAllocationCover
 import PallLean.Paper93.DeepMath.PathB.RouteBConcreteLocalDerivativeFacts
 import PallLean.Paper93.DeepMath.PathB.RouteBSupportCompatibleAllocationCover
+import PallLean.Paper93.DeepMath.PathB.RouteBLengthPrunedAllocationCover
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -139,5 +140,13 @@ theorem SAT_path_B_supportCompatibleAllocationCover_TPhi_extraction_move
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_supportCompatibleAllocationCoverData_TPhi
     hSupp
+
+/-- Length-pruned SAT-chain exposure: because every concrete Cook--Levin factor
+has degree ≤6, allocations of length >6 to a single factor are zero rows.  The
+KR cover only has to cover support-compatible allocations with local length ≤6. -/
+theorem SAT_path_B_lengthPrunedAllocationCover_TPhi_extraction_move
+    (hLen : Step247UniformLengthPrunedAllocationCoverData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_lengthPrunedAllocationCoverData_TPhi hLen
 
 end PallLean.Paper93.DeepMath.PathB
