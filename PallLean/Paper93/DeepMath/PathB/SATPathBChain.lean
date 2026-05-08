@@ -6,6 +6,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBExtractionMove
 import PallLean.Paper93.DeepMath.PathB.RouteBWidthRankPSide
 import PallLean.Paper93.DeepMath.PathB.RouteBCompilerLocalityPSide
 import PallLean.Paper93.DeepMath.PathB.RouteBPlainCookLevinQPSide
+import PallLean.Paper93.DeepMath.PathB.RouteBFactorLocalCookLevin
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -70,5 +71,15 @@ theorem SAT_path_B_plainCookLevinQ_TPhi_extraction_move
     (hQ : Step247UniformPlainCookLevinQPSideBound) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_plainCookLevinQPSideBound_TPhi hQ
+
+/-- Factor-local SAT-chain exposure: the only remaining P-side work is the
+finite Khatri--Rao row-span construction for the actual Cook--Levin product
+`∏ᵢ (1 - Cᵢ)`. The factor-local structural facts are now proved separately;
+this theorem shows that the KR data is enough for the full Route B `T_Φ`
+closure. -/
+theorem SAT_path_B_factorLocalKR_TPhi_extraction_move
+    (hKR : Step247UniformFactorLocalKRData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_factorLocalKRData_TPhi hKR
 
 end PallLean.Paper93.DeepMath.PathB
