@@ -14,6 +14,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBConcreteConstraintAllocationCover
 import PallLean.Paper93.DeepMath.PathB.RouteBConcreteLocalDerivativeFacts
 import PallLean.Paper93.DeepMath.PathB.RouteBSupportCompatibleAllocationCover
 import PallLean.Paper93.DeepMath.PathB.RouteBLengthPrunedAllocationCover
+import PallLean.Paper93.DeepMath.PathB.RouteBRowFaithfulLengthPrunedKR
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -148,5 +149,14 @@ theorem SAT_path_B_lengthPrunedAllocationCover_TPhi_extraction_move
     (hLen : Step247UniformLengthPrunedAllocationCoverData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_lengthPrunedAllocationCoverData_TPhi hLen
+
+/-- Row-faithful length-pruned KR exposure: the final KR family only has to
+cover nonzero concrete allocations arising from actual strict-κ SPDP rows, with
+`S.length = log₂ n`, multiplier degree/vars constraints, and block
+admissibility retained. -/
+theorem SAT_path_B_rowFaithfulLengthPrunedKR_TPhi_extraction_move
+    (hKR : Step247UniformRowFaithfulLengthPrunedKRData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_rowFaithfulLengthPrunedKRData_TPhi hKR
 
 end PallLean.Paper93.DeepMath.PathB
