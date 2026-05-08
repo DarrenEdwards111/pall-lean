@@ -10,6 +10,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBFactorLocalCookLevin
 import PallLean.Paper93.DeepMath.PathB.RouteBFactorRowCover
 import PallLean.Paper93.DeepMath.PathB.RouteBLeibnizTermCover
 import PallLean.Paper93.DeepMath.PathB.RouteBLeibnizAllocationCover
+import PallLean.Paper93.DeepMath.PathB.RouteBConcreteConstraintAllocationCover
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -109,5 +110,14 @@ theorem SAT_path_B_leibnizAllocationCover_TPhi_extraction_move
     (hAlloc : Step247UniformLeibnizAllocationCoverData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_allocationCoverData_TPhi hAlloc
+
+/-- Concrete constraint-allocation SAT-chain exposure: the factor index is now
+literally the finite type of positions in the Cook--Levin constraint list, with
+factor `(1 - Cᵢ)`. Cover those allocated products and Route B closes. -/
+theorem SAT_path_B_concreteConstraintAllocationCover_TPhi_extraction_move
+    (hConcrete : Step247UniformConcreteConstraintAllocationCoverData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_concreteConstraintAllocationCoverData_TPhi
+    hConcrete
 
 end PallLean.Paper93.DeepMath.PathB
