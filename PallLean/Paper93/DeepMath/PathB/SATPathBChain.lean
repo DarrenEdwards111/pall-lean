@@ -8,6 +8,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBCompilerLocalityPSide
 import PallLean.Paper93.DeepMath.PathB.RouteBPlainCookLevinQPSide
 import PallLean.Paper93.DeepMath.PathB.RouteBFactorLocalCookLevin
 import PallLean.Paper93.DeepMath.PathB.RouteBFactorRowCover
+import PallLean.Paper93.DeepMath.PathB.RouteBLeibnizTermCover
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -91,5 +92,13 @@ theorem SAT_path_B_factorRowCover_TPhi_extraction_move
     (hRows : Step247UniformFactorRowCoverData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_factorRowCoverData_TPhi hRows
+
+/-- Leibniz-term SAT-chain exposure: after iterated Leibniz expansion, it is
+enough to cover every distributed derivative product term after multiplication
+by `m` and `mlProj`. This is the current paper-faithful KR construction seam. -/
+theorem SAT_path_B_leibnizTermCover_TPhi_extraction_move
+    (hTerms : Step247UniformLeibnizTermCoverData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_leibnizTermCoverData_TPhi hTerms
 
 end PallLean.Paper93.DeepMath.PathB
