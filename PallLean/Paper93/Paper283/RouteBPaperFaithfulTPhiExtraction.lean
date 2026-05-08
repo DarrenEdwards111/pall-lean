@@ -18319,6 +18319,50 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceQuot
           profileSubspace ρ.val interfaceSpace
 
 
+
+/-- Paper-faithful selected local-chart quotient data.
+
+This is the concrete quotient/coordinate-identification layer: after local
+Cook-Levin factors have been expanded as placed templates, the quotient chooses
+one selected local chart for each constraint type `σ`, and every slot placement
+is transported to that chart.  This avoids the false claim that arbitrary raw
+source variables live in one global `X₀/X₁` span: the equality of placements is
+an explicit quotient-normalized chart condition. -/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceSelectedChartData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  placedExpansionData :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceExpansionData
+      M n hn2 htb hns
+  selectedPlace : ConstraintType → Fin maxConstraintArity → Fin (n / 3)
+  rowExpansionPlace_eq_selectedPlace :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        placedExpansionData.profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (t : placedExpansionData.rowExpansionIndex ρ S' shift α hSlen hshiftDegree
+          hshiftVars hadm hrow hρ)
+      (σ : ConstraintType) (j : Fin (ρ.val σ)),
+        placedExpansionData.rowExpansionPlace ρ S' shift α hSlen hshiftDegree
+          hshiftVars hadm hrow hρ t σ j = selectedPlace σ
+
 /-- Slotwise quotient descent from placed local templates to the selected local
 `W_σ` family.
 
@@ -18366,6 +18410,41 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceSlot
             hshiftVars hadm hrow hρ t σ j)
           (placedExpansionData.rowExpansionLocalTemplate ρ S' shift α hSlen hshiftDegree
             hshiftVars hadm hrow hρ t σ j) ∈ interfaceSpace σ
+
+/-- A selected-chart quotient supplies slotwise descent into the corresponding
+selected `W_σ` family.
+
+The selected type space is the placed local interface span at the selected
+chart for that type.  Slot membership is then the existing coefficient-level
+local template membership, rewritten through the explicit quotient chart
+equality. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedLocalInterfaceSlotQuotientData_of_selectedChartData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceSelectedChartData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceSlotQuotientData
+      M n hn2 htb hns where
+  placedExpansionData := D.placedExpansionData
+  interfaceSpace := fun σ =>
+    placedCookLevinInterfaceSpan (D.selectedPlace σ)
+      (cookLevinCanonicalInterfaceFamily σ)
+  interfaceSpace_finite := by
+    intro σ
+    exact placedCookLevinInterfaceSpan_finite (D.selectedPlace σ) σ
+  interfaceSpace_finrank_le_three := by
+    intro σ
+    exact placedCookLevinInterfaceSpan_finrank_le_three (D.selectedPlace σ) σ
+  placedLocalSlot_descends_to_interfaceSpace := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j
+    have hmem :=
+      routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedLocalInterfaceExpansion_slot_mem_placedW
+        M n hn2 htb hns D.placedExpansionData ρ S' shift α
+        hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j
+    have hplace := D.rowExpansionPlace_eq_selectedPlace
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j
+    simpa [hplace]
+      using hmem
 
 /-- Slotwise quotient descent proves termwise symmetric-profile descent.
 
