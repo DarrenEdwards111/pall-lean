@@ -2,6 +2,8 @@ import PallLean.Paper93.DeepMath.PathB.SATDeciderHypothesis
 import PallLean.Paper93.DeepMath.PathB.SATDeciderRankStatement
 import PallLean.Paper93.DeepMath.PathB.SATTiedGauge
 import PallLean.Paper93.DeepMath.PathB.PathBToExistingChain
+import PallLean.Paper93.DeepMath.PathB.RouteBExtractionMove
+import PallLean.Paper93.DeepMath.PathB.RouteBWidthRankPSide
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -28,5 +30,25 @@ theorem SAT_path_B_chain :
   · intros n 𝒥
     exact ⟨1, identity_isAmplituhedronGauge_any 𝒥⟩
   · exact SATDecider_implies_False
+
+/-- Route B's paper-faithful extraction move, exposed at the SAT chain level:
+a uniform P-side bound on the full Step247 Cook-Levin compiler output rules
+out bounded SAT deciders by the actual `T_Φ` extraction sandwich. -/
+theorem SAT_path_B_TPhi_extraction_move
+    (hP : ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804)
+      (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+      ProjectedIdentityMinorConcrete.CookLevinProjectedPSideBound
+        M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_cookLevin_TPhi_projectedPSideBound hP
+
+/-- Same SAT-chain exposure, but with the P-side hypothesis stated in the
+paper's §40.2 Width⇒Rank form: a Theorem216 Khatri--Rao spanning witness on
+the **full Step247 compiler output** plus absolute-constant digitisation.
+This is the non-shortcut Route B surface. -/
+theorem SAT_path_B_widthRank_TPhi_extraction_move
+    (hWR : Step247UniformWidthRankData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_widthRankData_TPhi hWR
 
 end PallLean.Paper93.DeepMath.PathB
