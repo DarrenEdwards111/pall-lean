@@ -49,6 +49,7 @@ open SymmetricPowerBound
 open WithinProfileBound
 open PallLean.Paper93.Spanning
 open PallLean.Paper93.DeepMath.PathB
+open PallLean.SymTensorPowerDim (symPower)
 
 attribute [local instance] Classical.dec
 
@@ -18316,6 +18317,94 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceQuot
               (placedExpansionData.rowExpansionLocalTemplate ρ S' shift α hSlen hshiftDegree
                 hshiftVars hadm hrow hρ t σ j)) ∈
           profileSubspace ρ.val interfaceSpace
+
+
+/-- Slotwise quotient descent from placed local templates to the selected local
+`W_σ` family.
+
+This is one level below termwise product descent: every placed local template
+slot has already been transported/quotiented into the selected type space
+`interfaceSpace σ`.  The adapter proves the symmetric-power regrouping for each
+product term, then delegates only the already-proved linear row assembly. -/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceSlotQuotientData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  placedExpansionData :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceExpansionData
+      M n hn2 htb hns
+  interfaceSpace : ConstraintType → Submodule ℚ (MvPolynomial (Fin (n / 3)) ℚ)
+  interfaceSpace_finite : ∀ τ, Module.Finite ℚ ↥(interfaceSpace τ)
+  interfaceSpace_finrank_le_three :
+    ∀ τ, Module.finrank ℚ ↥(interfaceSpace τ) ≤ 3
+  placedLocalSlot_descends_to_interfaceSpace :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        placedExpansionData.profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (t : placedExpansionData.rowExpansionIndex ρ S' shift α hSlen hshiftDegree
+          hshiftVars hadm hrow hρ)
+      (σ : ConstraintType) (j : Fin (ρ.val σ)),
+        MvPolynomial.rename
+          (placedExpansionData.rowExpansionPlace ρ S' shift α hSlen hshiftDegree
+            hshiftVars hadm hrow hρ t σ j)
+          (placedExpansionData.rowExpansionLocalTemplate ρ S' shift α hSlen hshiftDegree
+            hshiftVars hadm hrow hρ t σ j) ∈ interfaceSpace σ
+
+/-- Slotwise quotient descent proves termwise symmetric-profile descent.
+
+For each type `σ`, the product over the `ρ.val σ` slots is a generator of
+`Sym^{ρ.val σ}(W_σ)` because each slot lies in `W_σ`.  The product over types
+is therefore a generator of `profileSubspace ρ.val W`. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedLocalInterfaceQuotientDescentData_of_slotQuotientData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceSlotQuotientData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceQuotientDescentData
+      M n hn2 htb hns where
+  placedExpansionData := D.placedExpansionData
+  interfaceSpace := D.interfaceSpace
+  interfaceSpace_finite := D.interfaceSpace_finite
+  interfaceSpace_finrank_le_three := D.interfaceSpace_finrank_le_three
+  placedLocalProduct_descends_to_selectedProfileSubspace := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t
+    apply Submodule.subset_span
+    refine ⟨(fun σ : ConstraintType =>
+        ∏ j : Fin (ρ.val σ),
+          MvPolynomial.rename
+            (D.placedExpansionData.rowExpansionPlace ρ S' shift α hSlen hshiftDegree
+              hshiftVars hadm hrow hρ t σ j)
+            (D.placedExpansionData.rowExpansionLocalTemplate ρ S' shift α hSlen hshiftDegree
+              hshiftVars hadm hrow hρ t σ j)), ?_, rfl⟩
+    intro σ
+    unfold symPower
+    apply Submodule.subset_span
+    refine ⟨(fun j : Fin (ρ.val σ) =>
+        MvPolynomial.rename
+          (D.placedExpansionData.rowExpansionPlace ρ S' shift α hSlen hshiftDegree
+            hshiftVars hadm hrow hρ t σ j)
+          (D.placedExpansionData.rowExpansionLocalTemplate ρ S' shift α hSlen hshiftDegree
+            hshiftVars hadm hrow hρ t σ j)), ?_, rfl⟩
+    intro j
+    exact D.placedLocalSlot_descends_to_interfaceSpace
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j
 
 /-- The quotient/symmetric descent datum gives the local compiled-profile row
 target.  This theorem proves the linear assembly from termwise descent:
