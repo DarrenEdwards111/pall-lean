@@ -673,6 +673,104 @@ structure UntouchedBackgroundZeroProfileLocalNFGeneratorActionData
             M n hn2 htb hns hn4 monoid typeBudget monoid_card_le_typeBudget).chart
               rowNF).W
 
+
+/-- Raw generator-trace action data for the exact filtered untouched background.
+
+This is the form closest to the Cook--Levin gadget calculation: the row theorem
+is proved for the unnormalized product of witnessed generator traces.  The
+bridge below transports it to the shortlex `NFOfWord` normal forms using the
+representation theorem for `NFOfWord`, keeping the semantic proof separate from
+normal-form canonicalization. -/
+structure UntouchedBackgroundZeroProfileRawGeneratorTraceActionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : (cookLevinTableau M n hn2 htb hns).numVars ≥ 4)
+    (Srow : Finset (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (typeBudget : ℕ) where
+  monoid : ZeroProfileFiniteLocalMonoid
+  monoid_card_le_typeBudget : Fintype.card monoid.localMonoid ≤ typeBudget
+  rawFactorWord :
+    Fin (untouchedBackgroundFactorList M n hn2 htb hns Srow.toList).length →
+      List monoid.localMonoid
+  rawFactorWord_letters :
+    ∀ i, ∀ a ∈ rawFactorWord i, a ∈ monoid.generators
+  rawShiftWord :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars)),
+      R.length ≤ Nat.log 2 n →
+      ∀ shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ,
+        shift.vars ⊆ R.toFinset → List monoid.localMonoid
+  rawShiftWord_letters :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+      (hR : R.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+      (hshift : shift.vars ⊆ R.toFinset),
+      ∀ a ∈ rawShiftWord R hR shift hshift, a ∈ monoid.generators
+  row_mem_rawWordNormalForm :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+      (hR : R.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+      (hshift : shift.vars ⊆ R.toFinset),
+      let rowNF := (rawShiftWord R hR shift hshift).prod *
+        (List.ofFn (fun i : Fin
+          (untouchedBackgroundFactorList M n hn2 htb hns Srow.toList).length =>
+            (rawFactorWord i).prod)).prod
+      MultilinearSPDP.mlProj (shift *
+          Finset.univ.prod
+            (fun i : Fin (untouchedBackgroundFactorList M n hn2 htb hns Srow.toList).length =>
+              (untouchedBackgroundFactorList M n hn2 htb hns Srow.toList).get i)) ∈
+        profileSubspace zeroProfileHistogram
+          ((untouchedBackgroundZeroProfileConcreteDataOfLocalMonoid
+            M n hn2 htb hns hn4 monoid typeBudget monoid_card_le_typeBudget).chart
+              rowNF).W
+
+/-- Raw witnessed generator traces transport to shortlex-normalized
+`NFOfWord` traces.  This is only normal-form rewriting: the Cook--Levin semantic
+row theorem remains the `row_mem_rawWordNormalForm` field. -/
+noncomputable def untouchedBackgroundLocalNFGeneratorActionData_of_rawTraceActionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : (cookLevinTableau M n hn2 htb hns).numVars ≥ 4)
+    (Srow : Finset (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    {typeBudget : ℕ}
+    (T : UntouchedBackgroundZeroProfileRawGeneratorTraceActionData
+      M n hn2 htb hns hn4 Srow typeBudget) :
+    UntouchedBackgroundZeroProfileLocalNFGeneratorActionData
+      M n hn2 htb hns hn4 Srow typeBudget where
+  monoid := T.monoid
+  monoid_card_le_typeBudget := T.monoid_card_le_typeBudget
+  rawFactorWord := T.rawFactorWord
+  rawFactorWord_letters := T.rawFactorWord_letters
+  rawShiftWord := T.rawShiftWord
+  rawShiftWord_letters := T.rawShiftWord_letters
+  row_mem_NFOfWordNormalForm := by
+    intro R hR shift hshift
+    have hshiftProd :
+        (PallLean.Paper93.NFOfWord T.monoid.generators
+          (T.rawShiftWord R hR shift hshift)).prod =
+            (T.rawShiftWord R hR shift hshift).prod :=
+      PallLean.Paper93.NFOfWord_represents T.monoid.generators
+        (T.rawShiftWord R hR shift hshift)
+    have hfactorFun :
+        (fun i : Fin (untouchedBackgroundFactorList M n hn2 htb hns Srow.toList).length =>
+          (PallLean.Paper93.NFOfWord T.monoid.generators
+            (T.rawFactorWord i)).prod) =
+        (fun i : Fin (untouchedBackgroundFactorList M n hn2 htb hns Srow.toList).length =>
+          (T.rawFactorWord i).prod) := by
+      funext i
+      exact PallLean.Paper93.NFOfWord_represents T.monoid.generators
+        (T.rawFactorWord i)
+    have hfactorProd :
+        (List.ofFn (fun i : Fin
+          (untouchedBackgroundFactorList M n hn2 htb hns Srow.toList).length =>
+            (PallLean.Paper93.NFOfWord T.monoid.generators
+              (T.rawFactorWord i)).prod)).prod =
+        (List.ofFn (fun i : Fin
+          (untouchedBackgroundFactorList M n hn2 htb hns Srow.toList).length =>
+            (T.rawFactorWord i).prod)).prod := by
+      simp [hfactorFun]
+    simpa [hshiftProd, hfactorProd] using
+      T.row_mem_rawWordNormalForm R hR shift hshift
+
 /-- Shortlex-normalized generator traces induce generator-word action data by
 replacing every raw trace by its `NFOfWord` representative. -/
 noncomputable def untouchedBackgroundLocalGeneratorActionData_of_NFGeneratorActionData
@@ -842,6 +940,24 @@ noncomputable def untouchedBackgroundConcreteNormalFormClassifier_of_localNFGene
     (untouchedBackgroundLocalGeneratorActionData_of_NFGeneratorActionData
       M n hn2 htb hns hn4 S NFD)
 
+
+/-- Raw generator-trace data constructs the concrete untouched-background
+normal-form classifier via shortlex `NFOfWord` normalization. -/
+noncomputable def untouchedBackgroundConcreteNormalFormClassifier_of_rawTraceActionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : (cookLevinTableau M n hn2 htb hns).numVars ≥ 4)
+    (S : Finset (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    {typeBudget : ℕ}
+    (T : UntouchedBackgroundZeroProfileRawGeneratorTraceActionData
+      M n hn2 htb hns hn4 S typeBudget) :
+    UntouchedBackgroundConcreteNormalFormClassifier M n hn2 htb hns S
+      (zeroProfileSymmetricProfileDim zeroProfileHistogram) :=
+  untouchedBackgroundConcreteNormalFormClassifier_of_localNFGeneratorActionData
+    M n hn2 htb hns hn4 S
+    (untouchedBackgroundLocalNFGeneratorActionData_of_rawTraceActionData
+      M n hn2 htb hns hn4 S T)
+
 /-- The shifted-row form of the exact filtered untouched-background normal form
 constructs the concrete untouched-background classifier. -/
 noncomputable def untouchedBackgroundConcreteNormalFormClassifier_of_zeroProfileShiftRows
@@ -1002,6 +1118,8 @@ theorem rowWindowBackgroundNormalFormProductBasis_card_le_pow_add
 #print axioms untouchedBackgroundZeroProfilePostSpan_le_of_perTypeSpanning_concreteW
 #print axioms untouchedBackgroundZeroProfilePerTypeSpanning_of_shiftRows_concreteW
 #print axioms untouchedBackgroundConcreteNormalFormClassifier_of_zeroProfileShiftRows
+#print axioms untouchedBackgroundLocalNFGeneratorActionData_of_rawTraceActionData
+#print axioms untouchedBackgroundConcreteNormalFormClassifier_of_rawTraceActionData
 #print axioms untouchedBackgroundLocalGeneratorActionData_of_NFGeneratorActionData
 #print axioms untouchedBackgroundConcreteNormalFormClassifier_of_localNFGeneratorActionData
 #print axioms untouchedBackgroundLocalMonoidActionData_of_generatorActionData
