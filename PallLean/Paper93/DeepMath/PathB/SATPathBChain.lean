@@ -25,6 +25,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBTouchedWindowKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedConcreteWindowKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedWindowSourceKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedTypedSourceKR
+import PallLean.Paper93.DeepMath.PathB.RouteBTouchedActualTypeKR
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -248,5 +249,12 @@ theorem SAT_path_B_touchedTypedSourceKR_TPhi_extraction_move
     (hData : Step247UniformTouchedTypedSourceKRData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_touchedTypedSourceKRData_TPhi hData
+
+/-- Actual-type KR exposure: the emitted interface symbol now uses the concrete
+`cookLevinConstraintType` of every selected non-dormant source. -/
+theorem SAT_path_B_touchedActualTypeKR_TPhi_extraction_move
+    (hData : Step247UniformTouchedActualTypeKRData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_touchedActualTypeKRData_TPhi hData
 
 end PallLean.Paper93.DeepMath.PathB
