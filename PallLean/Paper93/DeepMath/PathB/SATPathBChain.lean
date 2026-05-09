@@ -21,6 +21,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBTouchedMonomialShiftKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedMonomialInterfaceUniqueKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedMonomialInterfaceSpanKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedMonomialInterfaceFiniteSpanKR
+import PallLean.Paper93.DeepMath.PathB.RouteBTouchedMonomialCodedFiniteSpanKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedIncidenceCountKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedConstantKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedLocalAlphabetKR
@@ -225,6 +226,13 @@ theorem SAT_path_B_touchedMonomialInterfaceFiniteSpanKR_TPhi_extraction_move
     (hData : Step247UniformTouchedMonomialInterfaceFiniteSpanData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_touchedMonomialInterfaceFiniteSpanData_TPhi hData
+
+/-- Coded finite-span exposure: the actual paper local chart may use any
+absolute constant alphabet `C₃`, with a bounded local basis per coded word. -/
+theorem SAT_path_B_touchedMonomialCodedFiniteSpanKR_TPhi_extraction_move
+    (hData : Step247UniformTouchedMonomialCodedFiniteSpanData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_touchedMonomialCodedFiniteSpanData_TPhi hData
 
 /-- Incidence-count split KR exposure: the final KR obligation now also carries
 the real union-bound count over row-variable incidence fibres. -/
