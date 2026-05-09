@@ -20,6 +20,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBTouchedSplitKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedIncidenceCountKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedConstantKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedLocalAlphabetKR
+import PallLean.Paper93.DeepMath.PathB.RouteBTouchedExtractorKR
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -203,5 +204,13 @@ theorem SAT_path_B_touchedLocalAlphabetKR_TPhi_extraction_move
     (hData : Step247UniformTouchedLocalAlphabetKRData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_touchedLocalAlphabetKRData_TPhi hData
+
+/-- Extractor KR exposure: the classifier is now a per-position local-state
+extractor `Fin(log n) → Fin C₃`; the classified word is assembled from those
+local states and interpreted back to the exact split row. -/
+theorem SAT_path_B_touchedExtractorKR_TPhi_extraction_move
+    (hData : Step247UniformTouchedExtractorKRData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_touchedExtractorKRData_TPhi hData
 
 end PallLean.Paper93.DeepMath.PathB
