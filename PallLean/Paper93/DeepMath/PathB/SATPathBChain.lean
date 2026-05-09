@@ -22,6 +22,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBTouchedConstantKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedLocalAlphabetKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedExtractorKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedWindowKR
+import PallLean.Paper93.DeepMath.PathB.RouteBTouchedConcreteWindowKR
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -221,5 +222,13 @@ theorem SAT_path_B_touchedWindowKR_TPhi_extraction_move
     (hData : Step247UniformTouchedWindowKRData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_touchedWindowKRData_TPhi hData
+
+/-- Concrete-window KR exposure: each per-position window state is now backed by
+an actual row variable and optional touched Cook--Levin constraint, with support
+proofs for every non-dormant window. -/
+theorem SAT_path_B_touchedConcreteWindowKR_TPhi_extraction_move
+    (hData : Step247UniformTouchedConcreteWindowKRData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_touchedConcreteWindowKRData_TPhi hData
 
 end PallLean.Paper93.DeepMath.PathB
