@@ -364,6 +364,150 @@ noncomputable def untouchedBackgroundConstraintTypeFamily
             untouchedBackgroundConstraintIdxList] using i))
 
 
+
+/-- The real Cook--Levin type map restricted to the exact filtered untouched
+background list, preserving the original touched-row list `S`. -/
+noncomputable def untouchedBackgroundConstraintTypeFamilyForList
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars)) :
+    Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length →
+      SymmetricPowerBound.ConstraintType :=
+  fun i =>
+    cookLevinConstraintIdxType M n hn2 htb hns
+      ((untouchedBackgroundConstraintIdxList M n hn2 htb hns S).get
+        (by
+          simpa [untouchedBackgroundFactorList,
+            untouchedBackgroundConstraintIdxList] using i))
+
+/-- List-indexed exact zero-profile per-generator row containment for the
+filtered untouched background family.
+
+This is the final-assembly-facing version of
+`UntouchedBackgroundZeroProfilePerTypeSpanning_concreteW`: the exact filtered
+factor family and its restricted Cook--Levin type map are both indexed by the
+original row list `S`, not by `S.toFinset.toList`. -/
+def UntouchedBackgroundZeroProfilePerTypeSpanning_concreteW_forList
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : (cookLevinTableau M n hn2 htb hns).numVars ≥ 4)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars)) : Prop :=
+  let factors : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length →
+      MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ :=
+    fun i => (untouchedBackgroundFactorList M n hn2 htb hns S).get i
+  let ctype := untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S
+  ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (_hR : R.length ≤ Nat.log 2 n)
+    (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+    (_hshift : shift.vars ⊆ R.toFinset)
+    (g : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ),
+    g ∈ WithinProfileBound.boundedProfileClassifiedSet factors ctype R zeroProfileHistogram →
+      MultilinearSPDP.mlProj (shift * g) ∈
+        profileSubspace zeroProfileHistogram
+          (zeroProfileConcreteLocalChart_concreteW
+            (n := (cookLevinTableau M n hn2 htb hns).numVars)
+            hn4 zeroProfileHistogram).W
+
+/-- List-indexed shifted-base-product form of the exact filtered untouched
+background zero-profile obligation. -/
+def UntouchedBackgroundZeroProfileShiftRows_concreteW_forList
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : (cookLevinTableau M n hn2 htb hns).numVars ≥ 4)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars)) : Prop :=
+  let factors : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length →
+      MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ :=
+    fun i => (untouchedBackgroundFactorList M n hn2 htb hns S).get i
+  ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (_hR : R.length ≤ Nat.log 2 n)
+    (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+    (_hshift : shift.vars ⊆ R.toFinset),
+      MultilinearSPDP.mlProj (shift * Finset.univ.prod factors) ∈
+        profileSubspace zeroProfileHistogram
+          (zeroProfileConcreteLocalChart_concreteW
+            (n := (cookLevinTableau M n hn2 htb hns).numVars)
+            hn4 zeroProfileHistogram).W
+
+/-- List-indexed zero-profile per-generator containment implies list-indexed
+shifted-base-product control. -/
+theorem untouchedBackgroundZeroProfileShiftRows_of_perTypeSpanning_concreteW_forList
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : (cookLevinTableau M n hn2 htb hns).numVars ≥ 4)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (hspan : UntouchedBackgroundZeroProfilePerTypeSpanning_concreteW_forList
+      M n hn2 htb hns hn4 S) :
+    UntouchedBackgroundZeroProfileShiftRows_concreteW_forList
+      M n hn2 htb hns hn4 S := by
+  classical
+  intro R hR shift hshift
+  let factors : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length →
+      MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ :=
+    fun i => (untouchedBackgroundFactorList M n hn2 htb hns S).get i
+  let ctype := untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S
+  have hg : Finset.univ.prod factors ∈
+      WithinProfileBound.boundedProfileClassifiedSet factors ctype R zeroProfileHistogram := by
+    rw [boundedProfileClassifiedSet_zeroProfile_eq_singleton factors ctype R]
+    simp
+  exact hspan R hR shift hshift (Finset.univ.prod factors) hg
+
+/-- List-indexed shifted-base-product control implies list-indexed per-generator
+zero-profile containment. -/
+theorem untouchedBackgroundZeroProfilePerTypeSpanning_of_shiftRows_concreteW_forList
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : (cookLevinTableau M n hn2 htb hns).numVars ≥ 4)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (hshiftRows : UntouchedBackgroundZeroProfileShiftRows_concreteW_forList
+      M n hn2 htb hns hn4 S) :
+    UntouchedBackgroundZeroProfilePerTypeSpanning_concreteW_forList
+      M n hn2 htb hns hn4 S := by
+  classical
+  intro R hR shift hshift g hg
+  let factors : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length →
+      MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ :=
+    fun i => (untouchedBackgroundFactorList M n hn2 htb hns S).get i
+  let ctype := untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S
+  have hg_single : g ∈ ({Finset.univ.prod factors} : Set
+      (MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)) := by
+    rwa [boundedProfileClassifiedSet_zeroProfile_eq_singleton factors ctype R] at hg
+  have hg_eq : g = Finset.univ.prod factors := by
+    simpa using hg_single
+  rw [hg_eq]
+  exact hshiftRows R hR shift hshift
+
+
+/-- List-indexed zero-profile per-generator containment gives the post-span
+containment consumed by the list-indexed concrete classifier constructor. -/
+theorem untouchedBackgroundZeroProfilePostSpan_le_of_perTypeSpanning_concreteW_forList
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : (cookLevinTableau M n hn2 htb hns).numVars ≥ 4)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (hspan : UntouchedBackgroundZeroProfilePerTypeSpanning_concreteW_forList
+      M n hn2 htb hns hn4 S) :
+    WithinProfileBound.allBoundedProfilePostSpan
+        (cookLevinTableau M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (fun i : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+          (untouchedBackgroundFactorList M n hn2 htb hns S).get i)
+        (untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S)
+        zeroProfileHistogram
+      ≤ profileSubspace zeroProfileHistogram
+          (zeroProfileConcreteLocalChart_concreteW
+            (n := (cookLevinTableau M n hn2 htb hns).numVars)
+            hn4 zeroProfileHistogram).W := by
+  classical
+  let factors : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length →
+      MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ :=
+    fun i => (untouchedBackgroundFactorList M n hn2 htb hns S).get i
+  let ctype := untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S
+  refine Submodule.span_le.mpr ?_
+  intro q hq
+  simp only [Set.mem_iUnion, Set.mem_image] at hq
+  obtain ⟨R, hR, shift, hshift, g, hg, rfl⟩ := hq
+  exact hspan R hR shift hshift g hg
+
 /-- Exact zero-profile per-generator row containment for the filtered untouched
 background family.
 
@@ -1227,6 +1371,101 @@ structure UntouchedBackgroundConcreteNormalFormClassifierForList
         MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
     data
 
+
+/-- A list-indexed zero-profile post-span containment constructs the concrete
+row classifier for the exact filtered untouched background over the original
+row list `S`. -/
+noncomputable def untouchedBackgroundConcreteNormalFormClassifierForList_of_zeroProfilePostSpan
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : (cookLevinTableau M n hn2 htb hns).numVars ≥ 4)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (hpost :
+      WithinProfileBound.allBoundedProfilePostSpan
+          (cookLevinTableau M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n)
+          (fun i : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+            (untouchedBackgroundFactorList M n hn2 htb hns S).get i)
+          (untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S)
+          zeroProfileHistogram
+        ≤ profileSubspace zeroProfileHistogram
+            (zeroProfileConcreteLocalChart_concreteW
+              (n := (cookLevinTableau M n hn2 htb hns).numVars)
+              hn4 zeroProfileHistogram).W) :
+    UntouchedBackgroundConcreteNormalFormClassifierForList M n hn2 htb hns S
+      (zeroProfileSymmetricProfileDim zeroProfileHistogram) where
+  data := zeroProfileConcreteNormalFormData_singletonZeroProfile_concreteW
+    (n := (cookLevinTableau M n hn2 htb hns).numVars)
+    (κ := Nat.log 2 n) hn4
+  rowMap := by
+    classical
+    refine
+      { rowNormalForm := fun _ _ _ _ => PUnit.unit
+        projected_row_mem_profileSubspace := ?_ }
+    intro R hR shift hshift
+    let factors : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length →
+        MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ :=
+      fun i => (untouchedBackgroundFactorList M n hn2 htb hns S).get i
+    let ctype := untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S
+    have hrowSet :
+        MultilinearSPDP.mlProj (shift * Finset.univ.prod factors) ∈
+          zeroProfileShiftImageSet (Nat.log 2 n) factors := by
+      simp only [zeroProfileShiftImageSet, Set.mem_iUnion,
+        Set.mem_singleton_iff]
+      exact ⟨R, hR, shift, hshift, rfl⟩
+    have hrowPost :
+        MultilinearSPDP.mlProj (shift * Finset.univ.prod factors) ∈
+          WithinProfileBound.allBoundedProfilePostSpan
+            (cookLevinTableau M n hn2 htb hns).partition
+            (Nat.log 2 n) (Nat.log 2 n)
+            factors ctype zeroProfileHistogram := by
+      rw [allBoundedProfilePostSpan_zeroProfile_eq_shiftImageSpan
+        (cookLevinTableau M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n) factors ctype]
+      exact Submodule.subset_span hrowSet
+    have hmem :
+        MultilinearSPDP.mlProj (shift * Finset.univ.prod factors) ∈
+          profileSubspace zeroProfileHistogram
+            (zeroProfileConcreteLocalChart_concreteW
+              (n := (cookLevinTableau M n hn2 htb hns).numVars)
+              hn4 zeroProfileHistogram).W := by
+      exact hpost hrowPost
+    simpa [LinearMap.id_apply, factors, ctype,
+      zeroProfileConcreteNormalFormData_singletonZeroProfile_concreteW,
+      zeroProfileConcreteNormalFormData_singletonZeroProfile] using hmem
+
+/-- The list-indexed paper §9.3 zero-profile per-generator theorem constructs
+the concrete untouched-background classifier for the exact list `S`. -/
+noncomputable def untouchedBackgroundConcreteNormalFormClassifierForList_of_zeroProfilePerTypeSpanning
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : (cookLevinTableau M n hn2 htb hns).numVars ≥ 4)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (hspan : UntouchedBackgroundZeroProfilePerTypeSpanning_concreteW_forList
+      M n hn2 htb hns hn4 S) :
+    UntouchedBackgroundConcreteNormalFormClassifierForList M n hn2 htb hns S
+      (zeroProfileSymmetricProfileDim zeroProfileHistogram) :=
+  untouchedBackgroundConcreteNormalFormClassifierForList_of_zeroProfilePostSpan
+    M n hn2 htb hns hn4 S
+    (untouchedBackgroundZeroProfilePostSpan_le_of_perTypeSpanning_concreteW_forList
+      M n hn2 htb hns hn4 S hspan)
+
+/-- List-indexed shifted-base-product control constructs the concrete
+untouched-background classifier for the exact list `S`. -/
+noncomputable def untouchedBackgroundConcreteNormalFormClassifierForList_of_zeroProfileShiftRows
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : (cookLevinTableau M n hn2 htb hns).numVars ≥ 4)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (hshiftRows : UntouchedBackgroundZeroProfileShiftRows_concreteW_forList
+      M n hn2 htb hns hn4 S) :
+    UntouchedBackgroundConcreteNormalFormClassifierForList M n hn2 htb hns S
+      (zeroProfileSymmetricProfileDim zeroProfileHistogram) :=
+  untouchedBackgroundConcreteNormalFormClassifierForList_of_zeroProfilePerTypeSpanning
+    M n hn2 htb hns hn4 S
+    (untouchedBackgroundZeroProfilePerTypeSpanning_of_shiftRows_concreteW_forList
+      M n hn2 htb hns hn4 S hshiftRows)
+
 /-- A list-indexed concrete classifier induces the projected normal-form row map
 needed by the list-faithful touched/background product bridge. -/
 noncomputable def UntouchedBackgroundConcreteNormalFormClassifierForList.toProjectedRowMap
@@ -1441,6 +1680,13 @@ theorem rowWindowBackgroundNormalFormProductBasis_card_le_pow_add
 #print axioms untouchedBackgroundConcreteNormalFormClassifier_of_zeroProfilePerTypeSpanning
 #print axioms UntouchedBackgroundConcreteNormalFormClassifier.toFiniteClassifier
 #print axioms UntouchedBackgroundConcreteNormalFormClassifier.toProjectedRowMap
+#print axioms untouchedBackgroundConstraintTypeFamilyForList
+#print axioms untouchedBackgroundZeroProfileShiftRows_of_perTypeSpanning_concreteW_forList
+#print axioms untouchedBackgroundZeroProfilePerTypeSpanning_of_shiftRows_concreteW_forList
+#print axioms untouchedBackgroundZeroProfilePostSpan_le_of_perTypeSpanning_concreteW_forList
+#print axioms untouchedBackgroundConcreteNormalFormClassifierForList_of_zeroProfilePostSpan
+#print axioms untouchedBackgroundConcreteNormalFormClassifierForList_of_zeroProfilePerTypeSpanning
+#print axioms untouchedBackgroundConcreteNormalFormClassifierForList_of_zeroProfileShiftRows
 #print axioms UntouchedBackgroundConcreteNormalFormClassifierForList.toProjectedRowMap
 #print axioms touchedMonomialSplitRow_mem_rowWindowProductBasis_of_concreteBackgroundConcreteNormalForm_list
 #print axioms untouchedBackgroundConcreteNormalFormForListGlobalBasis_card_le
