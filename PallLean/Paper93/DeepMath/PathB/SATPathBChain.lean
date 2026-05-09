@@ -18,6 +18,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBRowFaithfulLengthPrunedKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedConstraintKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedSplitKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedMonomialShiftKR
+import PallLean.Paper93.DeepMath.PathB.RouteBTouchedMonomialInterfaceUniqueKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedIncidenceCountKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedConstantKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedLocalAlphabetKR
@@ -198,6 +199,14 @@ theorem SAT_path_B_touchedMonomialShiftKR_TPhi_extraction_move
     (hData : Step247UniformTouchedMonomialShiftKRData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_touchedMonomialShiftKRData_TPhi hData
+
+/-- Monomial-interface uniqueness exposure: the finite local word is proved
+complete only for monomial-shift rows; arbitrary polynomial shifts enter later
+by the monomial-shift linearity bridge. -/
+theorem SAT_path_B_touchedMonomialInterfaceUniqueKR_TPhi_extraction_move
+    (hData : Step247UniformTouchedMonomialInterfaceUniqueData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_touchedMonomialInterfaceUniqueData_TPhi hData
 
 /-- Incidence-count split KR exposure: the final KR obligation now also carries
 the real union-bound count over row-variable incidence fibres. -/
