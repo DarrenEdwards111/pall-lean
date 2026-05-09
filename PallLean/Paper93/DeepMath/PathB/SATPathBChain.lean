@@ -17,6 +17,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBLengthPrunedAllocationCover
 import PallLean.Paper93.DeepMath.PathB.RouteBRowFaithfulLengthPrunedKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedConstraintKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedSplitKR
+import PallLean.Paper93.DeepMath.PathB.RouteBTouchedMonomialShiftKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedIncidenceCountKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedConstantKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedLocalAlphabetKR
@@ -190,6 +191,13 @@ theorem SAT_path_B_touchedSplitKR_TPhi_extraction_move
     (hSplit : Step247UniformTouchedSplitKRData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_touchedSplitKRData_TPhi hSplit
+
+/-- Monomial-shift KR exposure: the finite local classifier only has to cover
+monomial shift rows; arbitrary polynomial shifts are recovered by linearity. -/
+theorem SAT_path_B_touchedMonomialShiftKR_TPhi_extraction_move
+    (hData : Step247UniformTouchedMonomialShiftKRData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_touchedMonomialShiftKRData_TPhi hData
 
 /-- Incidence-count split KR exposure: the final KR obligation now also carries
 the real union-bound count over row-variable incidence fibres. -/
