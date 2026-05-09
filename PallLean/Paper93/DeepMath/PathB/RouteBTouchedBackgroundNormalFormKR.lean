@@ -302,6 +302,57 @@ def UntouchedBackgroundZeroProfilePerTypeSpanning_concreteW
             (n := (cookLevinTableau M n hn2 htb hns).numVars)
             hn4 zeroProfileHistogram).W
 
+
+/-- Shifted-base-product form of the exact filtered untouched-background
+zero-profile normal-form obligation.
+
+By the zero-profile classification theorem, no factor receives derivatives;
+the whole untouched side is the shifted product of the exact filtered
+background factors.  This is the concrete §9.3 local-monoid/profile target for
+the untouched background. -/
+def UntouchedBackgroundZeroProfileShiftRows_concreteW
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : (cookLevinTableau M n hn2 htb hns).numVars ≥ 4)
+    (Srow : Finset (Fin (cookLevinTableau M n hn2 htb hns).numVars)) : Prop :=
+  let factors : Fin (untouchedBackgroundFactorList M n hn2 htb hns Srow.toList).length →
+      MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ :=
+    fun i => (untouchedBackgroundFactorList M n hn2 htb hns Srow.toList).get i
+  ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (_hR : R.length ≤ Nat.log 2 n)
+    (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+    (_hshift : shift.vars ⊆ R.toFinset),
+      MultilinearSPDP.mlProj (shift * Finset.univ.prod factors) ∈
+        profileSubspace zeroProfileHistogram
+          (zeroProfileConcreteLocalChart_concreteW
+            (n := (cookLevinTableau M n hn2 htb hns).numVars)
+            hn4 zeroProfileHistogram).W
+
+/-- Shifted-base-product control implies the per-generator zero-profile
+containment for the exact filtered untouched factor family. -/
+theorem untouchedBackgroundZeroProfilePerTypeSpanning_of_shiftRows_concreteW
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : (cookLevinTableau M n hn2 htb hns).numVars ≥ 4)
+    (Srow : Finset (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (hshiftRows : UntouchedBackgroundZeroProfileShiftRows_concreteW
+      M n hn2 htb hns hn4 Srow) :
+    UntouchedBackgroundZeroProfilePerTypeSpanning_concreteW
+      M n hn2 htb hns hn4 Srow := by
+  classical
+  intro R hR shift hshift g hg
+  let factors : Fin (untouchedBackgroundFactorList M n hn2 htb hns Srow.toList).length →
+      MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ :=
+    fun i => (untouchedBackgroundFactorList M n hn2 htb hns Srow.toList).get i
+  let ctype := untouchedBackgroundConstraintTypeFamily M n hn2 htb hns Srow
+  have hg_single : g ∈ ({Finset.univ.prod factors} : Set
+      (MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)) := by
+    rwa [boundedProfileClassifiedSet_zeroProfile_eq_singleton factors ctype R] at hg
+  have hg_eq : g = Finset.univ.prod factors := by
+    simpa using hg_single
+  rw [hg_eq]
+  exact hshiftRows R hR shift hshift
+
 /-- The exact zero-profile per-generator containment for the filtered untouched
 background family gives the post-span containment consumed by the concrete
 classifier constructor.
@@ -406,6 +457,7 @@ noncomputable def untouchedBackgroundConcreteNormalFormClassifier_of_zeroProfile
       zeroProfileConcreteNormalFormData_singletonZeroProfile] using hmem
 
 
+
 /-- The paper §9.3 zero-profile per-generator normal form for the exact
 filtered untouched family constructs the concrete untouched-background
 classifier directly. -/
@@ -422,6 +474,22 @@ noncomputable def untouchedBackgroundConcreteNormalFormClassifier_of_zeroProfile
     M n hn2 htb hns hn4 S
     (untouchedBackgroundZeroProfilePostSpan_le_of_perTypeSpanning_concreteW
       M n hn2 htb hns hn4 S hspan)
+
+/-- The shifted-row form of the exact filtered untouched-background normal form
+constructs the concrete untouched-background classifier. -/
+noncomputable def untouchedBackgroundConcreteNormalFormClassifier_of_zeroProfileShiftRows
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : (cookLevinTableau M n hn2 htb hns).numVars ≥ 4)
+    (S : Finset (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (hshiftRows : UntouchedBackgroundZeroProfileShiftRows_concreteW
+      M n hn2 htb hns hn4 S) :
+    UntouchedBackgroundConcreteNormalFormClassifier M n hn2 htb hns S
+      (zeroProfileSymmetricProfileDim zeroProfileHistogram) :=
+  untouchedBackgroundConcreteNormalFormClassifier_of_zeroProfilePerTypeSpanning
+    M n hn2 htb hns hn4 S
+    (untouchedBackgroundZeroProfilePerTypeSpanning_of_shiftRows_concreteW
+      M n hn2 htb hns hn4 S hshiftRows)
 
 /-- The concrete untouched-background classifier induces the existing finite
 normal-form row classifier.  This exposes the actual finite alphabet selected
@@ -565,6 +633,8 @@ theorem rowWindowBackgroundNormalFormProductBasis_card_le_pow_add
 #print axioms untouchedBackgroundConstraintIdxList_map_factor_eq
 #print axioms untouchedBackgroundConcreteNormalFormClassifier_of_zeroProfilePostSpan
 #print axioms untouchedBackgroundZeroProfilePostSpan_le_of_perTypeSpanning_concreteW
+#print axioms untouchedBackgroundZeroProfilePerTypeSpanning_of_shiftRows_concreteW
+#print axioms untouchedBackgroundConcreteNormalFormClassifier_of_zeroProfileShiftRows
 #print axioms untouchedBackgroundConcreteNormalFormClassifier_of_zeroProfilePerTypeSpanning
 #print axioms UntouchedBackgroundConcreteNormalFormClassifier.toFiniteClassifier
 #print axioms UntouchedBackgroundConcreteNormalFormClassifier.toProjectedRowMap
