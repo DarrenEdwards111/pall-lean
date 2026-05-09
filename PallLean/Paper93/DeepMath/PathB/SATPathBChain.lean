@@ -16,6 +16,8 @@ import PallLean.Paper93.DeepMath.PathB.RouteBSupportCompatibleAllocationCover
 import PallLean.Paper93.DeepMath.PathB.RouteBLengthPrunedAllocationCover
 import PallLean.Paper93.DeepMath.PathB.RouteBRowFaithfulLengthPrunedKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedConstraintKR
+import PallLean.Paper93.DeepMath.PathB.RouteBTouchedSplitKR
+import PallLean.Paper93.DeepMath.PathB.RouteBTouchedIncidenceCountKR
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -167,5 +169,21 @@ theorem SAT_path_B_touchedConstraintKR_TPhi_extraction_move
     (hTouched : Step247UniformTouchedConstraintKRData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_touchedConstraintKRData_TPhi hTouched
+
+/-- Split-touched KR exposure: the final KR obligation is written as the exact
+product over touched constraints times the exact product over untouched
+constraints.  This keeps the Cook--Levin background product visible and avoids
+silently discarding the untouched factors. -/
+theorem SAT_path_B_touchedSplitKR_TPhi_extraction_move
+    (hSplit : Step247UniformTouchedSplitKRData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_touchedSplitKRData_TPhi hSplit
+
+/-- Incidence-count split KR exposure: the final KR obligation now also carries
+the real union-bound count over row-variable incidence fibres. -/
+theorem SAT_path_B_touchedIncidenceSplitKR_TPhi_extraction_move
+    (hData : Step247UniformTouchedIncidenceSplitKRData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_touchedIncidenceSplitKRData_TPhi hData
 
 end PallLean.Paper93.DeepMath.PathB
