@@ -570,6 +570,76 @@ structure UntouchedBackgroundZeroProfileLocalMonoidConcreteClassifier
       M n hn2 htb hns hn4 monoid typeBudget monoid_card_le_typeBudget)
 
 
+
+/-- Generator-word data for the exact filtered untouched local-monoid action.
+
+This is the next paper-faithful refinement of the action seam: factor and shift
+normal forms are not arbitrary monoid elements, but products of words over the
+finite local generator list from §9.3.  Coefficients and gadget semantics remain
+in the row-membership theorem; the finite alphabet only records generator-word
+normal forms. -/
+structure UntouchedBackgroundZeroProfileLocalGeneratorActionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : (cookLevinTableau M n hn2 htb hns).numVars ≥ 4)
+    (Srow : Finset (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (typeBudget : ℕ) where
+  monoid : ZeroProfileFiniteLocalMonoid
+  monoid_card_le_typeBudget : Fintype.card monoid.localMonoid ≤ typeBudget
+  factorWord :
+    Fin (untouchedBackgroundFactorList M n hn2 htb hns Srow.toList).length →
+      List monoid.localMonoid
+  factorWord_letters :
+    ∀ i, ∀ a ∈ factorWord i, a ∈ monoid.generators
+  shiftWord :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars)),
+      R.length ≤ Nat.log 2 n →
+      ∀ shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ,
+        shift.vars ⊆ R.toFinset → List monoid.localMonoid
+  shiftWord_letters :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+      (hR : R.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+      (hshift : shift.vars ⊆ R.toFinset),
+      ∀ a ∈ shiftWord R hR shift hshift, a ∈ monoid.generators
+  row_mem_generatorWordNormalForm :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+      (hR : R.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+      (hshift : shift.vars ⊆ R.toFinset),
+      let rowNF := (shiftWord R hR shift hshift).prod *
+        (List.ofFn (fun i : Fin
+          (untouchedBackgroundFactorList M n hn2 htb hns Srow.toList).length =>
+            (factorWord i).prod)).prod
+      MultilinearSPDP.mlProj (shift *
+          Finset.univ.prod
+            (fun i : Fin (untouchedBackgroundFactorList M n hn2 htb hns Srow.toList).length =>
+              (untouchedBackgroundFactorList M n hn2 htb hns Srow.toList).get i)) ∈
+        profileSubspace zeroProfileHistogram
+          ((untouchedBackgroundZeroProfileConcreteDataOfLocalMonoid
+            M n hn2 htb hns hn4 monoid typeBudget monoid_card_le_typeBudget).chart
+              rowNF).W
+
+/-- Generator-word local data induces local-monoid action data by evaluating
+factor and shift words in the finite local monoid. -/
+noncomputable def untouchedBackgroundLocalMonoidActionData_of_generatorActionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : (cookLevinTableau M n hn2 htb hns).numVars ≥ 4)
+    (Srow : Finset (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    {typeBudget : ℕ}
+    (G : UntouchedBackgroundZeroProfileLocalGeneratorActionData
+      M n hn2 htb hns hn4 Srow typeBudget) :
+    UntouchedBackgroundZeroProfileLocalMonoidActionData
+      M n hn2 htb hns hn4 Srow typeBudget where
+  monoid := G.monoid
+  monoid_card_le_typeBudget := G.monoid_card_le_typeBudget
+  factorElement := fun i => (G.factorWord i).prod
+  shiftElement := fun R hR shift hshift => (G.shiftWord R hR shift hshift).prod
+  row_mem_productNormalForm := by
+    intro R hR shift hshift
+    exact G.row_mem_generatorWordNormalForm R hR shift hshift
+
 /-- The local-monoid action data gives the concrete row-map classifier by using
 `shiftElement * product factorElement` as the row normal form.  The product is a
 list product, so the order of the exact filtered factor list is preserved and
@@ -652,6 +722,23 @@ noncomputable def untouchedBackgroundConcreteNormalFormClassifier_of_localMonoid
     M n hn2 htb hns hn4 S
     (untouchedBackgroundLocalMonoidConcreteClassifier_of_actionData
       M n hn2 htb hns hn4 S A)
+
+/-- Generator-word finite local-monoid data constructs the concrete
+untouched-background normal-form classifier. -/
+noncomputable def untouchedBackgroundConcreteNormalFormClassifier_of_localGeneratorActionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : (cookLevinTableau M n hn2 htb hns).numVars ≥ 4)
+    (S : Finset (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    {typeBudget : ℕ}
+    (G : UntouchedBackgroundZeroProfileLocalGeneratorActionData
+      M n hn2 htb hns hn4 S typeBudget) :
+    UntouchedBackgroundConcreteNormalFormClassifier M n hn2 htb hns S
+      (zeroProfileSymmetricProfileDim zeroProfileHistogram) :=
+  untouchedBackgroundConcreteNormalFormClassifier_of_localMonoidActionData
+    M n hn2 htb hns hn4 S
+    (untouchedBackgroundLocalMonoidActionData_of_generatorActionData
+      M n hn2 htb hns hn4 S G)
 
 /-- The shifted-row form of the exact filtered untouched-background normal form
 constructs the concrete untouched-background classifier. -/
@@ -813,6 +900,8 @@ theorem rowWindowBackgroundNormalFormProductBasis_card_le_pow_add
 #print axioms untouchedBackgroundZeroProfilePostSpan_le_of_perTypeSpanning_concreteW
 #print axioms untouchedBackgroundZeroProfilePerTypeSpanning_of_shiftRows_concreteW
 #print axioms untouchedBackgroundConcreteNormalFormClassifier_of_zeroProfileShiftRows
+#print axioms untouchedBackgroundLocalMonoidActionData_of_generatorActionData
+#print axioms untouchedBackgroundConcreteNormalFormClassifier_of_localGeneratorActionData
 #print axioms untouchedBackgroundLocalMonoidConcreteClassifier_of_actionData
 #print axioms untouchedBackgroundConcreteNormalFormClassifier_of_localMonoidActionData
 #print axioms untouchedBackgroundZeroProfileShiftRows_of_localMonoidConcreteClassifier
