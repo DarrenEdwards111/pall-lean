@@ -121,6 +121,97 @@ theorem untouchedBackgroundNormalFormGlobalBasis_card_le
     (zeroProfileProjectedNormalFormGlobalBasis F).card ≤ typeBudget :=
   zeroProfileProjectedNormalFormGlobalBasis_card_le_typeBudget F
 
+
+/-- List-indexed version of the touched local monomial span theorem.
+
+The final monomial-interface datum carries the row as a list `S`, not as an
+arbitrary `Finset` coerced back through `toList`.  This theorem keeps that exact
+list visible in the row-window and touched-product definitions. -/
+theorem mlProj_touchedMonomialLocalPart_mem_rowWindowMonomialSpan_list
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (T : Finset (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (alloc : cookLevinConstraintIdx M n hn2 htb hns →
+      List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (hT : T ⊆ S.toFinset) :
+    MultilinearSPDP.mlProj
+      (touchedShiftMonomial T *
+        touchedAllocatedProductOnly M n hn2 htb hns S alloc) ∈
+      Submodule.span ℚ
+        (↑(MlProjFar.mlMonomialBasis
+          (cookLevinRowLocalWindow M n hn2 htb hns S)) : Set
+          (MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)) := by
+  classical
+  apply MlProjFar.mlProj_in_span_of_vars_subset
+  · intro α hα
+    exact WithinProfileBound.isMultilinear_of_mem_mlProj_support
+      (touchedShiftMonomial T *
+        touchedAllocatedProductOnly M n hn2 htb hns S alloc) α hα
+  · intro v hv
+    have hvars :
+        (touchedShiftMonomial T *
+          touchedAllocatedProductOnly M n hn2 htb hns S alloc).vars ⊆
+          cookLevinRowLocalWindow M n hn2 htb hns S := by
+      intro w hw
+      have hmul := MvPolynomial.vars_mul
+        (touchedShiftMonomial T)
+        (touchedAllocatedProductOnly M n hn2 htb hns S alloc) hw
+      simp only [Finset.mem_union] at hmul
+      rcases hmul with hleft | hright
+      · unfold touchedShiftMonomial at hleft
+        have hsubset := MvPolynomial.vars_prod
+          (s := T) (fun v => MvPolynomial.X v :
+            Fin (cookLevinTableau M n hn2 htb hns).numVars →
+              MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+        have hprod := hsubset hleft
+        rw [Finset.mem_biUnion] at hprod
+        rcases hprod with ⟨x, hxT, hwx⟩
+        simp only [MvPolynomial.vars_X, Finset.mem_singleton] at hwx
+        subst w
+        unfold cookLevinRowLocalWindow
+        rw [Finset.mem_biUnion]
+        exact ⟨x, hT hxT, mem_cookLevinVarLocalWindow_self _ x⟩
+      · exact touchedAllocatedProductOnly_vars_subset_rowLocalWindow
+          M n hn2 htb hns S alloc hright
+    exact hvars (WithinProfileBound.vars_mlProj_subset
+      (touchedShiftMonomial T *
+        touchedAllocatedProductOnly M n hn2 htb hns S alloc) hv)
+
+/-- List-indexed projected-background span bridge.
+
+This is the exact shape needed by `TouchedMonomialInterfaceDatum`: the split row,
+row window, touched constraints, and untouched background all use the original
+list `S`, avoiding any `Finset.toList` normalization shortcut. -/
+theorem touchedMonomialSplitRow_mem_rowWindowProductBasis_of_projectedBackgroundSpan_list
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (T : Finset (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (alloc : cookLevinConstraintIdx M n hn2 htb hns →
+      List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (hT : T ⊆ S.toFinset)
+    (hout : ∀ i, i ∉ cookLevinTouchedConstraints M n hn2 htb hns S → alloc i = [])
+    (B : Finset (MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ))
+    (hB : MultilinearSPDP.mlProj
+        (untouchedBackgroundProduct M n hn2 htb hns S) ∈
+      Submodule.span ℚ (↑B : Set (MvPolynomial
+        (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ))) :
+    touchedMonomialSplitRow M n hn2 htb hns S T alloc ∈
+      Submodule.span ℚ
+        (↑(mlProjProductBasis
+          (MlProjFar.mlMonomialBasis
+            (cookLevinRowLocalWindow M n hn2 htb hns S)) B) : Set
+          (MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)) := by
+  rw [touchedMonomialSplitRow_eq_mlProj_local_mul_background
+    M n hn2 htb hns S T alloc hout]
+  exact mlProj_mul_mem_span_productBasis_of_bothProjected
+    (MlProjFar.mlMonomialBasis
+      (cookLevinRowLocalWindow M n hn2 htb hns S)) B
+    (mlProj_touchedMonomialLocalPart_mem_rowWindowMonomialSpan_list
+      M n hn2 htb hns S T alloc hT)
+    hB
+
 /-- Main bridge: an identity-projected zero-profile normal-form row map for an
 exact untouched-background factorization supplies the background span consumed
 by the touched/background Khatri--Rao composition theorem. -/
@@ -1248,6 +1339,8 @@ theorem rowWindowBackgroundNormalFormProductBasis_card_le_pow_add
 #print axioms untouchedBackgroundConcreteNormalFormClassifier_of_zeroProfilePerTypeSpanning
 #print axioms UntouchedBackgroundConcreteNormalFormClassifier.toFiniteClassifier
 #print axioms UntouchedBackgroundConcreteNormalFormClassifier.toProjectedRowMap
+#print axioms mlProj_touchedMonomialLocalPart_mem_rowWindowMonomialSpan_list
+#print axioms touchedMonomialSplitRow_mem_rowWindowProductBasis_of_projectedBackgroundSpan_list
 #print axioms touchedMonomialSplitRow_mem_rowWindowProductBasis_of_concreteBackgroundConcreteNormalForm
 #print axioms untouchedBackgroundConcreteNormalFormGlobalBasis_card_le
 #print axioms rowWindowBackgroundConcreteNormalFormProductBasis_card_le_pow_add
