@@ -24,6 +24,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBTouchedExtractorKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedWindowKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedConcreteWindowKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedWindowSourceKR
+import PallLean.Paper93.DeepMath.PathB.RouteBTouchedTypedSourceKR
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -239,5 +240,13 @@ theorem SAT_path_B_touchedWindowSourceKR_TPhi_extraction_move
     (hData : Step247UniformTouchedWindowSourceKRData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_touchedWindowSourceKRData_TPhi hData
+
+/-- Typed-source KR exposure: the emitted interface symbol is now forced from a
+Cook--Levin constraint-type map and bounded local state; non-dormant windows use
+the type of their selected source. -/
+theorem SAT_path_B_touchedTypedSourceKR_TPhi_extraction_move
+    (hData : Step247UniformTouchedTypedSourceKRData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_touchedTypedSourceKRData_TPhi hData
 
 end PallLean.Paper93.DeepMath.PathB
