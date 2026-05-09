@@ -475,6 +475,99 @@ noncomputable def untouchedBackgroundConcreteNormalFormClassifier_of_zeroProfile
     (untouchedBackgroundZeroProfilePostSpan_le_of_perTypeSpanning_concreteW
       M n hn2 htb hns hn4 S hspan)
 
+
+/-- Concrete zero-profile normal-form data induced by a finite local monoid for
+the exact filtered untouched background.
+
+Every monoid normal form is interpreted at the all-zero derivative profile, and
+its concrete chart is the same `concreteW` zero-profile chart.  The only budget
+requirement is the actual finite monoid cardinality bound. -/
+noncomputable def untouchedBackgroundZeroProfileConcreteDataOfLocalMonoid
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : (cookLevinTableau M n hn2 htb hns).numVars ≥ 4)
+    (A : ZeroProfileFiniteLocalMonoid) (typeBudget : ℕ)
+    (hbudget : Fintype.card A.localMonoid ≤ typeBudget) :
+    ZeroProfileConcreteNormalFormData
+      (cookLevinTableau M n hn2 htb hns).numVars (Nat.log 2 n) typeBudget where
+  normalForm := A.localMonoid
+  normalFormFintype := inferInstance
+  profile := fun _ => zeroProfileHistogram
+  profile_admissible := fun _ => zeroProfileHistogram_admissible (Nat.log 2 n)
+  chart := fun _ =>
+    zeroProfileConcreteLocalChart_concreteW
+      (n := (cookLevinTableau M n hn2 htb hns).numVars)
+      hn4 zeroProfileHistogram
+  totalProfileBudget_le := by
+    classical
+    simpa [zeroProfileSymmetricProfileDim, zeroProfileHistogram]
+      using hbudget
+
+/-- A finite-local-monoid concrete row classifier for the exact filtered
+untouched-background shifted rows.
+
+This is the literal §9.3 source of the shifted-row theorem: rows are classified
+by elements of a finite local monoid (with shortlex normal forms available from
+`ZeroProfileFiniteLocalMonoid.normalFormWord`), and the row-map proof places
+each shifted product row in the concrete zero-profile chart selected by that
+monoid normal form. -/
+structure UntouchedBackgroundZeroProfileLocalMonoidConcreteClassifier
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : (cookLevinTableau M n hn2 htb hns).numVars ≥ 4)
+    (Srow : Finset (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (typeBudget : ℕ) where
+  monoid : ZeroProfileFiniteLocalMonoid
+  monoid_card_le_typeBudget : Fintype.card monoid.localMonoid ≤ typeBudget
+  rowMap : ZeroProfileConcreteNormalFormRowMap
+    (fun i : Fin (untouchedBackgroundFactorList M n hn2 htb hns Srow.toList).length =>
+      (untouchedBackgroundFactorList M n hn2 htb hns Srow.toList).get i)
+    (LinearMap.id :
+      MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ →ₗ[ℚ]
+        MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+    (untouchedBackgroundZeroProfileConcreteDataOfLocalMonoid
+      M n hn2 htb hns hn4 monoid typeBudget monoid_card_le_typeBudget)
+
+/-- The finite-local-monoid concrete classifier supplies the exact shifted-row
+normal-form theorem for the filtered untouched background. -/
+theorem untouchedBackgroundZeroProfileShiftRows_of_localMonoidConcreteClassifier
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : (cookLevinTableau M n hn2 htb hns).numVars ≥ 4)
+    (Srow : Finset (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    {typeBudget : ℕ}
+    (C : UntouchedBackgroundZeroProfileLocalMonoidConcreteClassifier
+      M n hn2 htb hns hn4 Srow typeBudget) :
+    UntouchedBackgroundZeroProfileShiftRows_concreteW
+      M n hn2 htb hns hn4 Srow := by
+  classical
+  intro R hR shift hshift
+  let D := untouchedBackgroundZeroProfileConcreteDataOfLocalMonoid
+    M n hn2 htb hns hn4 C.monoid typeBudget C.monoid_card_le_typeBudget
+  have hrow := C.rowMap.projected_row_mem_profileSubspace R hR shift hshift
+  simpa [D, untouchedBackgroundZeroProfileConcreteDataOfLocalMonoid,
+    LinearMap.id_apply] using hrow
+
+/-- A finite-local-monoid concrete classifier constructs the concrete
+untouched-background normal-form classifier used by the touched/background
+Khatri--Rao composition. -/
+noncomputable def untouchedBackgroundConcreteNormalFormClassifier_of_localMonoidConcreteClassifier
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : (cookLevinTableau M n hn2 htb hns).numVars ≥ 4)
+    (S : Finset (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    {typeBudget : ℕ}
+    (C : UntouchedBackgroundZeroProfileLocalMonoidConcreteClassifier
+      M n hn2 htb hns hn4 S typeBudget) :
+    UntouchedBackgroundConcreteNormalFormClassifier M n hn2 htb hns S
+      (zeroProfileSymmetricProfileDim zeroProfileHistogram) :=
+  untouchedBackgroundConcreteNormalFormClassifier_of_zeroProfilePerTypeSpanning
+    M n hn2 htb hns hn4 S
+    (untouchedBackgroundZeroProfilePerTypeSpanning_of_shiftRows_concreteW
+      M n hn2 htb hns hn4 S
+      (untouchedBackgroundZeroProfileShiftRows_of_localMonoidConcreteClassifier
+        M n hn2 htb hns hn4 S C))
+
 /-- The shifted-row form of the exact filtered untouched-background normal form
 constructs the concrete untouched-background classifier. -/
 noncomputable def untouchedBackgroundConcreteNormalFormClassifier_of_zeroProfileShiftRows
@@ -635,6 +728,8 @@ theorem rowWindowBackgroundNormalFormProductBasis_card_le_pow_add
 #print axioms untouchedBackgroundZeroProfilePostSpan_le_of_perTypeSpanning_concreteW
 #print axioms untouchedBackgroundZeroProfilePerTypeSpanning_of_shiftRows_concreteW
 #print axioms untouchedBackgroundConcreteNormalFormClassifier_of_zeroProfileShiftRows
+#print axioms untouchedBackgroundZeroProfileShiftRows_of_localMonoidConcreteClassifier
+#print axioms untouchedBackgroundConcreteNormalFormClassifier_of_localMonoidConcreteClassifier
 #print axioms untouchedBackgroundConcreteNormalFormClassifier_of_zeroProfilePerTypeSpanning
 #print axioms UntouchedBackgroundConcreteNormalFormClassifier.toFiniteClassifier
 #print axioms UntouchedBackgroundConcreteNormalFormClassifier.toProjectedRowMap
