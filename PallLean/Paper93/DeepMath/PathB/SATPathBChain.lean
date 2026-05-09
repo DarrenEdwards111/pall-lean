@@ -29,6 +29,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBTouchedActualTypeKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedCanonicalSourceKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedCanonicalInterfaceKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedRowInterfaceKR
+import PallLean.Paper93.DeepMath.PathB.RouteBTouchedRowInterfaceUniqueKR
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -283,5 +284,12 @@ theorem SAT_path_B_touchedRowInterfaceKR_TPhi_extraction_move
     (hData : Step247UniformTouchedRowInterfaceKRData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_touchedRowInterfaceKRData_TPhi hData
+
+/-- Row-interface uniqueness exposure: the exact interpreter is constructed
+from the paper §9.3 local-normal-form uniqueness/fibre theorem. -/
+theorem SAT_path_B_touchedRowInterfaceUniqueKR_TPhi_extraction_move
+    (hData : Step247UniformTouchedRowInterfaceUniqueData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_touchedRowInterfaceUniqueData_TPhi hData
 
 end PallLean.Paper93.DeepMath.PathB
