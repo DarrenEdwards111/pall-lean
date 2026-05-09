@@ -26,6 +26,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBTouchedConcreteWindowKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedWindowSourceKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedTypedSourceKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedActualTypeKR
+import PallLean.Paper93.DeepMath.PathB.RouteBTouchedCanonicalSourceKR
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -256,5 +257,13 @@ theorem SAT_path_B_touchedActualTypeKR_TPhi_extraction_move
     (hData : Step247UniformTouchedActualTypeKRData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_touchedActualTypeKRData_TPhi hData
+
+/-- Canonical-source KR exposure: source selection is no longer arbitrary; every
+window uses the least constraint in the actual row-variable support fibre, or is
+dormant when that fibre is empty. -/
+theorem SAT_path_B_touchedCanonicalSourceKR_TPhi_extraction_move
+    (hData : Step247UniformTouchedCanonicalSourceKRData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_touchedCanonicalSourceKRData_TPhi hData
 
 end PallLean.Paper93.DeepMath.PathB
