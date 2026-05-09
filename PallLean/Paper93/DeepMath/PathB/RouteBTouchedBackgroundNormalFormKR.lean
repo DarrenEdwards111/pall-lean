@@ -328,6 +328,35 @@ def UntouchedBackgroundZeroProfileShiftRows_concreteW
             (n := (cookLevinTableau M n hn2 htb hns).numVars)
             hn4 zeroProfileHistogram).W
 
+
+/-- Exact zero-profile per-generator containment implies shifted-base-product
+control for the filtered untouched background.
+
+This is the converse of the zero-profile singleton reduction below: the all-zero
+profile classified set contains exactly the untouched base product, so the
+per-type/profile theorem applies to that product without changing the filtered
+factor family. -/
+theorem untouchedBackgroundZeroProfileShiftRows_of_perTypeSpanning_concreteW
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : (cookLevinTableau M n hn2 htb hns).numVars ≥ 4)
+    (Srow : Finset (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (hspan : UntouchedBackgroundZeroProfilePerTypeSpanning_concreteW
+      M n hn2 htb hns hn4 Srow) :
+    UntouchedBackgroundZeroProfileShiftRows_concreteW
+      M n hn2 htb hns hn4 Srow := by
+  classical
+  intro R hR shift hshift
+  let factors : Fin (untouchedBackgroundFactorList M n hn2 htb hns Srow.toList).length →
+      MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ :=
+    fun i => (untouchedBackgroundFactorList M n hn2 htb hns Srow.toList).get i
+  let ctype := untouchedBackgroundConstraintTypeFamily M n hn2 htb hns Srow
+  have hg : Finset.univ.prod factors ∈
+      WithinProfileBound.boundedProfileClassifiedSet factors ctype R zeroProfileHistogram := by
+    rw [boundedProfileClassifiedSet_zeroProfile_eq_singleton factors ctype R]
+    simp
+  exact hspan R hR shift hshift (Finset.univ.prod factors) hg
+
 /-- Shifted-base-product control implies the per-generator zero-profile
 containment for the exact filtered untouched factor family. -/
 theorem untouchedBackgroundZeroProfilePerTypeSpanning_of_shiftRows_concreteW
@@ -1201,6 +1230,7 @@ theorem rowWindowBackgroundNormalFormProductBasis_card_le_pow_add
 #print axioms untouchedBackgroundConstraintIdxList_map_factor_eq
 #print axioms untouchedBackgroundConcreteNormalFormClassifier_of_zeroProfilePostSpan
 #print axioms untouchedBackgroundZeroProfilePostSpan_le_of_perTypeSpanning_concreteW
+#print axioms untouchedBackgroundZeroProfileShiftRows_of_perTypeSpanning_concreteW
 #print axioms untouchedBackgroundZeroProfilePerTypeSpanning_of_shiftRows_concreteW
 #print axioms untouchedBackgroundConcreteNormalFormClassifier_of_zeroProfileShiftRows
 #print axioms untouchedBackgroundRawTraceActionData_of_shiftRows_and_words
