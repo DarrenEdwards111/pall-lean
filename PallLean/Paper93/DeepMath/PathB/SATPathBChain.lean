@@ -18,6 +18,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBRowFaithfulLengthPrunedKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedConstraintKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedSplitKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedIncidenceCountKR
+import PallLean.Paper93.DeepMath.PathB.RouteBTouchedConstantKR
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -185,5 +186,13 @@ theorem SAT_path_B_touchedIncidenceSplitKR_TPhi_extraction_move
     (hData : Step247UniformTouchedIncidenceSplitKRData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_touchedIncidenceSplitKRData_TPhi hData
+
+/-- Constant-`C₃` KR exposure: the remaining generator-family obligation is now
+in the paper's actual `C₃^κ` form, converted to `n^200` only by the Step 223
+`C₃^log n = n^O(1)` arithmetic. -/
+theorem SAT_path_B_touchedConstantSplitKR_TPhi_extraction_move
+    (hData : Step247UniformTouchedConstantSplitKRData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_touchedConstantSplitKRData_TPhi hData
 
 end PallLean.Paper93.DeepMath.PathB
