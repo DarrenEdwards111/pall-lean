@@ -27,6 +27,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBTouchedWindowSourceKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedTypedSourceKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedActualTypeKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedCanonicalSourceKR
+import PallLean.Paper93.DeepMath.PathB.RouteBTouchedCanonicalInterfaceKR
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -265,5 +266,13 @@ theorem SAT_path_B_touchedCanonicalSourceKR_TPhi_extraction_move
     (hData : Step247UniformTouchedCanonicalSourceKRData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_touchedCanonicalSourceKRData_TPhi hData
+
+/-- Canonical-interface KR exposure: source, constraint type, and local state are
+all derived from the concrete Cook--Levin support/type data; only the exact
+canonical-word interpretation theorem remains. -/
+theorem SAT_path_B_touchedCanonicalInterfaceKR_TPhi_extraction_move
+    (hData : Step247UniformTouchedCanonicalInterfaceKRData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_touchedCanonicalInterfaceKRData_TPhi hData
 
 end PallLean.Paper93.DeepMath.PathB
