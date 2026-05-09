@@ -1204,6 +1204,108 @@ noncomputable def UntouchedBackgroundConcreteNormalFormClassifier.toFiniteClassi
         MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
     C.data C.rowMap
 
+
+/-- List-indexed concrete §9.3 normal-form classifier data for the exact
+untouched background associated to a touched-row list `S`.
+
+This is the final-assembly-facing version of
+`UntouchedBackgroundConcreteNormalFormClassifier`: the factor family is
+`untouchedBackgroundFactorList ... S` for the original list, not a `Finset`
+converted back to an arbitrary list. -/
+structure UntouchedBackgroundConcreteNormalFormClassifierForList
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (typeBudget : ℕ) where
+  data : ZeroProfileConcreteNormalFormData
+    (cookLevinTableau M n hn2 htb hns).numVars (Nat.log 2 n) typeBudget
+  rowMap : ZeroProfileConcreteNormalFormRowMap
+    (fun i : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+      (untouchedBackgroundFactorList M n hn2 htb hns S).get i)
+    (LinearMap.id :
+      MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ →ₗ[ℚ]
+        MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+    data
+
+/-- A list-indexed concrete classifier induces the projected normal-form row map
+needed by the list-faithful touched/background product bridge. -/
+noncomputable def UntouchedBackgroundConcreteNormalFormClassifierForList.toProjectedRowMap
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars)}
+    {typeBudget : ℕ}
+    (C : UntouchedBackgroundConcreteNormalFormClassifierForList
+      M n hn2 htb hns S typeBudget) :
+    ZeroProfileProjectedNormalFormRowMap
+      (fun i : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+        (untouchedBackgroundFactorList M n hn2 htb hns S).get i)
+      (LinearMap.id :
+        MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ →ₗ[ℚ]
+          MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+      (zeroProfileProjectedNormalFormFamily_of_concreteData C.data) :=
+  zeroProfileProjectedNormalFormRowMap_of_concreteRowMap
+    (fun i : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+      (untouchedBackgroundFactorList M n hn2 htb hns S).get i)
+    (LinearMap.id :
+      MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ →ₗ[ℚ]
+        MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+    C.data C.rowMap
+
+/-- A list-indexed concrete §9.3 untouched-background classifier supplies the
+exact background normal-form span used by the list-faithful touched/local
+Khatri--Rao product basis. -/
+theorem touchedMonomialSplitRow_mem_rowWindowProductBasis_of_concreteBackgroundConcreteNormalForm_list
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (T : Finset (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (alloc : cookLevinConstraintIdx M n hn2 htb hns →
+      List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (hT : T ⊆ S.toFinset)
+    (hout : ∀ i, i ∉ cookLevinTouchedConstraints M n hn2 htb hns S → alloc i = [])
+    {typeBudget : ℕ}
+    (C : UntouchedBackgroundConcreteNormalFormClassifierForList
+      M n hn2 htb hns S typeBudget) :
+    touchedMonomialSplitRow M n hn2 htb hns S T alloc ∈
+      Submodule.span ℚ
+        (↑(mlProjProductBasis
+          (MlProjFar.mlMonomialBasis
+            (cookLevinRowLocalWindow M n hn2 htb hns S))
+          (zeroProfileProjectedNormalFormGlobalBasis
+            (zeroProfileProjectedNormalFormFamily_of_concreteData C.data))) : Set
+          (MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)) := by
+  let factors : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length →
+      MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ :=
+    fun i => (untouchedBackgroundFactorList M n hn2 htb hns S).get i
+  let F := zeroProfileProjectedNormalFormFamily_of_concreteData C.data
+  have hB :
+      MultilinearSPDP.mlProj
+          (untouchedBackgroundProduct M n hn2 htb hns S) ∈
+        Submodule.span ℚ
+          (↑(zeroProfileProjectedNormalFormGlobalBasis F) : Set
+            (MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)) := by
+    exact mlProj_untouchedBackground_mem_normalFormGlobalBasis_of_idRowMap
+      M n hn2 htb hns S factors F C.toProjectedRowMap
+      (untouchedBackgroundFactorFamily_prod_eq M n hn2 htb hns S)
+  exact touchedMonomialSplitRow_mem_rowWindowProductBasis_of_projectedBackgroundSpan_list
+    M n hn2 htb hns S T alloc hT hout
+    (zeroProfileProjectedNormalFormGlobalBasis F) hB
+
+/-- The list-indexed concrete classifier's global projected basis obeys its
+concrete profile/symmetric-power budget. -/
+theorem untouchedBackgroundConcreteNormalFormForListGlobalBasis_card_le
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars)}
+    {typeBudget : ℕ}
+    (C : UntouchedBackgroundConcreteNormalFormClassifierForList
+      M n hn2 htb hns S typeBudget) :
+    (zeroProfileProjectedNormalFormGlobalBasis
+      (zeroProfileProjectedNormalFormFamily_of_concreteData C.data)).card ≤
+        typeBudget :=
+  zeroProfileProjectedNormalFormGlobalBasis_card_le_typeBudget
+    (zeroProfileProjectedNormalFormFamily_of_concreteData C.data)
+
 /-- The same concrete classifier induces the projected normal-form row map
 needed by the touched/background product-composition theorem. -/
 noncomputable def UntouchedBackgroundConcreteNormalFormClassifier.toProjectedRowMap
@@ -1339,6 +1441,9 @@ theorem rowWindowBackgroundNormalFormProductBasis_card_le_pow_add
 #print axioms untouchedBackgroundConcreteNormalFormClassifier_of_zeroProfilePerTypeSpanning
 #print axioms UntouchedBackgroundConcreteNormalFormClassifier.toFiniteClassifier
 #print axioms UntouchedBackgroundConcreteNormalFormClassifier.toProjectedRowMap
+#print axioms UntouchedBackgroundConcreteNormalFormClassifierForList.toProjectedRowMap
+#print axioms touchedMonomialSplitRow_mem_rowWindowProductBasis_of_concreteBackgroundConcreteNormalForm_list
+#print axioms untouchedBackgroundConcreteNormalFormForListGlobalBasis_card_le
 #print axioms mlProj_touchedMonomialLocalPart_mem_rowWindowMonomialSpan_list
 #print axioms touchedMonomialSplitRow_mem_rowWindowProductBasis_of_projectedBackgroundSpan_list
 #print axioms touchedMonomialSplitRow_mem_rowWindowProductBasis_of_concreteBackgroundConcreteNormalForm
