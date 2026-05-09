@@ -19,6 +19,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBTouchedConstraintKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedSplitKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedIncidenceCountKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedConstantKR
+import PallLean.Paper93.DeepMath.PathB.RouteBTouchedLocalAlphabetKR
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -194,5 +195,13 @@ theorem SAT_path_B_touchedConstantSplitKR_TPhi_extraction_move
     (hData : Step247UniformTouchedConstantSplitKRData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_touchedConstantSplitKRData_TPhi hData
+
+/-- Local-alphabet KR exposure: the remaining obligation is now a classifier
+from each exact split row to a length-`log n` word over the fixed local alphabet
+`Fin C₃`, with generators the image of the word interpretation map. -/
+theorem SAT_path_B_touchedLocalAlphabetKR_TPhi_extraction_move
+    (hData : Step247UniformTouchedLocalAlphabetKRData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_touchedLocalAlphabetKRData_TPhi hData
 
 end PallLean.Paper93.DeepMath.PathB
