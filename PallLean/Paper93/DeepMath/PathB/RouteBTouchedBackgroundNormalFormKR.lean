@@ -21,6 +21,7 @@ open PaperFaithfulCompilation
 open PaperFaithfulSeparation
 open TuringMachine
 open Step4Compiler
+open SymmetricPowerBound
 open scoped BigOperators
 
 /-- The exact list of untouched Cook--Levin constraint factors for a touched
@@ -1372,6 +1373,179 @@ structure UntouchedBackgroundConcreteNormalFormClassifierForList
     data
 
 
+/-! ## List-indexed §9.3 local-monoid/profile classifier
+
+The zero-profile constructors below are still useful for the current Route B
+gate, but the paper-faithful source object is more structured: a finite local
+monoid supplies canonical shortlex normal forms (§9.3, Lemmas 24--25), and a
+profile map sends each canonical local action to its interface-anonymous
+histogram (§9.3, Definition 21 / Lemma 29).  The concrete chart attached to a
+monoid element is the symmetric-power/profile chart `V_h` for that histogram,
+not an ambient or singleton span.
+-/
+
+/-- Concrete normal-form data induced by a finite local monoid together with
+the paper §9.3 profile interpretation of its canonical elements.
+
+This is the non-singleton/profile-aware variant of
+`untouchedBackgroundZeroProfileConcreteDataOfLocalMonoid`: normal forms are
+local-monoid elements, each element carries its own admissible histogram, and
+the budget is the sum of the corresponding symmetric-profile dimensions. -/
+noncomputable def untouchedBackgroundConcreteDataOfLocalMonoidProfiles
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (A : ZeroProfileFiniteLocalMonoid)
+    (profile : A.localMonoid → ProfileHistogram)
+    (profile_admissible : ∀ g, ProfileAdmissible (Nat.log 2 n) (profile g))
+    (chart : ∀ g, ZeroProfileConcreteLocalChart
+      (cookLevinTableau M n hn2 htb hns).numVars (profile g))
+    (typeBudget : ℕ)
+    (hbudget :
+      (∑ g : A.localMonoid, zeroProfileSymmetricProfileDim (profile g)) ≤
+        typeBudget) :
+    ZeroProfileConcreteNormalFormData
+      (cookLevinTableau M n hn2 htb hns).numVars (Nat.log 2 n) typeBudget where
+  normalForm := A.localMonoid
+  normalFormFintype := inferInstance
+  profile := profile
+  profile_admissible := profile_admissible
+  chart := chart
+  totalProfileBudget_le := hbudget
+
+/-- List-indexed paper §9.3 local-monoid/profile classifier for the exact
+untouched background.
+
+This is the faithful object wanted before collapsing to the downstream
+`UntouchedBackgroundConcreteNormalFormClassifierForList`: it keeps the exact
+filtered factor list `untouchedBackgroundFactorList ... S`, classifies rows by
+finite local-monoid normal forms, and attaches each normal form to its genuine
+interface-anonymous profile chart. -/
+structure UntouchedBackgroundProfileLocalMonoidConcreteClassifierForList
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (typeBudget : ℕ) where
+  monoid : ZeroProfileFiniteLocalMonoid
+  profile : monoid.localMonoid → ProfileHistogram
+  profile_admissible :
+    ∀ g, ProfileAdmissible (Nat.log 2 n) (profile g)
+  chart : ∀ g, ZeroProfileConcreteLocalChart
+    (cookLevinTableau M n hn2 htb hns).numVars (profile g)
+  totalProfileBudget_le :
+    (∑ g : monoid.localMonoid,
+        zeroProfileSymmetricProfileDim (profile g)) ≤ typeBudget
+  rowMap : ZeroProfileConcreteNormalFormRowMap
+    (fun i : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+      (untouchedBackgroundFactorList M n hn2 htb hns S).get i)
+    (LinearMap.id :
+      MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ →ₗ[ℚ]
+        MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+    (untouchedBackgroundConcreteDataOfLocalMonoidProfiles
+      M n hn2 htb hns monoid profile profile_admissible chart
+      typeBudget totalProfileBudget_le)
+
+/-- A profile-aware finite-local-monoid classifier is already the concrete
+list-indexed untouched-background normal-form classifier after forgetting the
+reason why its normal forms are canonical §9.3 monoid/profile types. -/
+noncomputable def untouchedBackgroundConcreteNormalFormClassifierForList_of_profileLocalMonoidClassifier
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    {typeBudget : ℕ}
+    (C : UntouchedBackgroundProfileLocalMonoidConcreteClassifierForList
+      M n hn2 htb hns S typeBudget) :
+    UntouchedBackgroundConcreteNormalFormClassifierForList
+      M n hn2 htb hns S typeBudget where
+  data := untouchedBackgroundConcreteDataOfLocalMonoidProfiles
+    M n hn2 htb hns C.monoid C.profile C.profile_admissible C.chart
+    typeBudget C.totalProfileBudget_le
+  rowMap := C.rowMap
+
+/-- Ordered local-monoid action data for the list-indexed profile-aware
+classifier.
+
+The row normal form is the shift action followed by the ordered product of the
+exact filtered untouched factor actions.  We deliberately use `List.prod`, not
+`Finset.prod`, because §9.3 only supplies a finite local monoid, not a
+commutative one. -/
+structure UntouchedBackgroundProfileLocalMonoidActionDataForList
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (typeBudget : ℕ) where
+  monoid : ZeroProfileFiniteLocalMonoid
+  profile : monoid.localMonoid → ProfileHistogram
+  profile_admissible :
+    ∀ g, ProfileAdmissible (Nat.log 2 n) (profile g)
+  chart : ∀ g, ZeroProfileConcreteLocalChart
+    (cookLevinTableau M n hn2 htb hns).numVars (profile g)
+  totalProfileBudget_le :
+    (∑ g : monoid.localMonoid,
+        zeroProfileSymmetricProfileDim (profile g)) ≤ typeBudget
+  factorElement :
+    Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length →
+      monoid.localMonoid
+  shiftElement :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars)),
+      R.length ≤ Nat.log 2 n →
+      ∀ shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ,
+        shift.vars ⊆ R.toFinset → monoid.localMonoid
+  row_mem_productProfile :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+      (hR : R.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+      (hshift : shift.vars ⊆ R.toFinset),
+      let rowNF := shiftElement R hR shift hshift *
+        (List.ofFn factorElement).prod
+      MultilinearSPDP.mlProj (shift *
+          Finset.univ.prod
+            (fun i : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+              (untouchedBackgroundFactorList M n hn2 htb hns S).get i)) ∈
+        profileSubspace (profile rowNF) (chart rowNF).W
+
+/-- Ordered local-monoid action data constructs the profile-aware list-indexed
+classifier by using the ordered product normal form as the row classifier. -/
+noncomputable def untouchedBackgroundProfileLocalMonoidClassifierForList_of_actionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    {typeBudget : ℕ}
+    (A : UntouchedBackgroundProfileLocalMonoidActionDataForList
+      M n hn2 htb hns S typeBudget) :
+    UntouchedBackgroundProfileLocalMonoidConcreteClassifierForList
+      M n hn2 htb hns S typeBudget where
+  monoid := A.monoid
+  profile := A.profile
+  profile_admissible := A.profile_admissible
+  chart := A.chart
+  totalProfileBudget_le := A.totalProfileBudget_le
+  rowMap :=
+    { rowNormalForm := fun R hR shift hshift =>
+        A.shiftElement R hR shift hshift * (List.ofFn A.factorElement).prod
+      projected_row_mem_profileSubspace := by
+        intro R hR shift hshift
+        simpa [untouchedBackgroundConcreteDataOfLocalMonoidProfiles,
+          LinearMap.id_apply] using
+          A.row_mem_productProfile R hR shift hshift }
+
+/-- Final convenience constructor: a list-indexed §9.3 local-monoid/profile
+action theorem directly supplies the exact untouched-background concrete
+normal-form classifier used by Route B. -/
+noncomputable def untouchedBackgroundConcreteNormalFormClassifierForList_of_profileLocalMonoidActionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    {typeBudget : ℕ}
+    (A : UntouchedBackgroundProfileLocalMonoidActionDataForList
+      M n hn2 htb hns S typeBudget) :
+    UntouchedBackgroundConcreteNormalFormClassifierForList
+      M n hn2 htb hns S typeBudget :=
+  untouchedBackgroundConcreteNormalFormClassifierForList_of_profileLocalMonoidClassifier
+    M n hn2 htb hns S
+    (untouchedBackgroundProfileLocalMonoidClassifierForList_of_actionData
+      M n hn2 htb hns S A)
+
+
 /-- A list-indexed zero-profile post-span containment constructs the concrete
 row classifier for the exact filtered untouched background over the original
 row list `S`. -/
@@ -1686,6 +1860,10 @@ theorem rowWindowBackgroundNormalFormProductBasis_card_le_pow_add
 #print axioms untouchedBackgroundZeroProfilePostSpan_le_of_perTypeSpanning_concreteW_forList
 #print axioms untouchedBackgroundConcreteNormalFormClassifierForList_of_zeroProfilePostSpan
 #print axioms untouchedBackgroundConcreteNormalFormClassifierForList_of_zeroProfilePerTypeSpanning
+#print axioms untouchedBackgroundConcreteDataOfLocalMonoidProfiles
+#print axioms untouchedBackgroundConcreteNormalFormClassifierForList_of_profileLocalMonoidClassifier
+#print axioms untouchedBackgroundProfileLocalMonoidClassifierForList_of_actionData
+#print axioms untouchedBackgroundConcreteNormalFormClassifierForList_of_profileLocalMonoidActionData
 #print axioms untouchedBackgroundConcreteNormalFormClassifierForList_of_zeroProfileShiftRows
 #print axioms UntouchedBackgroundConcreteNormalFormClassifierForList.toProjectedRowMap
 #print axioms touchedMonomialSplitRow_mem_rowWindowProductBasis_of_concreteBackgroundConcreteNormalForm_list
