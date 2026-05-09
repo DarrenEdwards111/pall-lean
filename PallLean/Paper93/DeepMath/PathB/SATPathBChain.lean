@@ -28,6 +28,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBTouchedTypedSourceKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedActualTypeKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedCanonicalSourceKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedCanonicalInterfaceKR
+import PallLean.Paper93.DeepMath.PathB.RouteBTouchedRowInterfaceKR
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -274,5 +275,13 @@ theorem SAT_path_B_touchedCanonicalInterfaceKR_TPhi_extraction_move
     (hData : Step247UniformTouchedCanonicalInterfaceKRData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_touchedCanonicalInterfaceKRData_TPhi hData
+
+/-- Row-interface KR exposure: the local state is derived from the actual SPDP
+row/window data (`m` and `alloc`) together with the canonical support-fibre
+source, matching the paper's row-local normal-form dependency. -/
+theorem SAT_path_B_touchedRowInterfaceKR_TPhi_extraction_move
+    (hData : Step247UniformTouchedRowInterfaceKRData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_touchedRowInterfaceKRData_TPhi hData
 
 end PallLean.Paper93.DeepMath.PathB
