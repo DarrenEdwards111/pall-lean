@@ -1778,6 +1778,231 @@ theorem untouchedBackgroundConstraintTypeTraceGenerator_mem (κ : ℕ)
     untouchedBackgroundConstraintTypeTraceLocalMonoid
   simp
 
+/-- Concrete local atoms for the untouched-background row word.  Factor atoms
+record the filtered Cook--Levin constraint type; `shift` records the presence of
+a row-local shift/monomial operation without putting machine-dependent
+coefficients into the finite alphabet. -/
+inductive UntouchedBackgroundTraceAtom where
+  | factor : ConstraintType → UntouchedBackgroundTraceAtom
+  | shift : UntouchedBackgroundTraceAtom
+  deriving DecidableEq, Fintype
+
+/-- Bounded ordered trace state for the full untouched-background row word,
+including both factor-type atoms and shift atoms. -/
+structure UntouchedBackgroundAtomTraceState (κ : ℕ) where
+  len : Fin (κ + 1)
+  slot : Fin κ → Option UntouchedBackgroundTraceAtom
+
+noncomputable instance untouchedBackgroundAtomTraceStateDecidableEq
+    (κ : ℕ) : DecidableEq (UntouchedBackgroundAtomTraceState κ) := by
+  intro s t
+  let e : UntouchedBackgroundAtomTraceState κ ≃
+      (Fin (κ + 1) × (Fin κ → Option UntouchedBackgroundTraceAtom)) :=
+    { toFun := fun s => (s.len, s.slot)
+      invFun := fun p => { len := p.1, slot := p.2 }
+      left_inv := by intro s; cases s; rfl
+      right_inv := by intro p; cases p; rfl }
+  exact e.decidableEq s t
+
+noncomputable instance untouchedBackgroundAtomTraceStateFintype
+    (κ : ℕ) : Fintype (UntouchedBackgroundAtomTraceState κ) :=
+  Fintype.ofEquiv (Fin (κ + 1) × (Fin κ → Option UntouchedBackgroundTraceAtom))
+    { toFun := fun p => { len := p.1, slot := p.2 }
+      invFun := fun s => (s.len, s.slot)
+      left_inv := by intro p; cases p; rfl
+      right_inv := by intro s; cases s; rfl }
+
+/-- Empty full row-atom trace. -/
+noncomputable def untouchedBackgroundAtomTraceEmpty (κ : ℕ) :
+    UntouchedBackgroundAtomTraceState κ where
+  len := ⟨0, by omega⟩
+  slot := fun _ => none
+
+/-- Append one full row atom, saturating at the Route B window bound so the
+action is total on a finite state space. -/
+noncomputable def untouchedBackgroundAtomTraceAppend {κ : ℕ}
+    (a : UntouchedBackgroundTraceAtom) :
+    UntouchedBackgroundFiniteEnd (UntouchedBackgroundAtomTraceState κ) :=
+  ⟨fun s =>
+    if h : s.len.val < κ then
+      { len := ⟨s.len.val + 1, by omega⟩
+        slot := fun j => if j.val = s.len.val then some a else s.slot j }
+    else
+      s⟩
+
+/-- The profile of a full row-atom trace counts only factor-type atoms; shift
+atoms affect the local monoid normal form but not the `ConstraintType`
+histogram. -/
+noncomputable def untouchedBackgroundAtomTraceProfile {κ : ℕ}
+    (s : UntouchedBackgroundAtomTraceState κ) : ProfileHistogram :=
+  fun τ => Fintype.card
+    { j : Fin κ // s.slot j = some (UntouchedBackgroundTraceAtom.factor τ) }
+
+/-- The factor-only profile read from a full atom trace is admissible because
+occupied factor slots inject into the bounded trace slots. -/
+theorem untouchedBackgroundAtomTraceProfile_admissible {κ : ℕ}
+    (s : UntouchedBackgroundAtomTraceState κ) :
+    ProfileAdmissible κ (untouchedBackgroundAtomTraceProfile s) := by
+  classical
+  unfold ProfileAdmissible profileMass untouchedBackgroundAtomTraceProfile
+  rw [← Fintype.card_sigma]
+  simpa [Fintype.card_fin] using
+    (Fintype.card_le_of_injective
+      (fun x : Sigma (fun τ : ConstraintType =>
+          { j : Fin κ // s.slot j = some (UntouchedBackgroundTraceAtom.factor τ) }) =>
+        x.2.1) (by
+    intro x y hxy
+    cases x with
+    | mk τx jx =>
+      cases y with
+      | mk τy jy =>
+        cases jx with
+        | mk jx hjx =>
+          cases jy with
+          | mk jy hjy =>
+            simp only at hxy
+            subst jy
+            have hτ : τx = τy := by
+              have hsome :
+                  some (UntouchedBackgroundTraceAtom.factor τx) =
+                    some (UntouchedBackgroundTraceAtom.factor τy) := by
+                rw [← hjx, hjy]
+              injection hsome with hatom
+              injection hatom
+            subst hτ
+            rfl))
+
+/-- Profile of a full atom-trace monoid element, read by applying it to the
+empty trace. -/
+noncomputable def untouchedBackgroundAtomTraceActionProfile (κ : ℕ)
+    (g : UntouchedBackgroundFiniteEnd (UntouchedBackgroundAtomTraceState κ)) :
+    ProfileHistogram :=
+  untouchedBackgroundAtomTraceProfile (g (untouchedBackgroundAtomTraceEmpty κ))
+
+/-- Every full atom-trace action profile is admissible. -/
+theorem untouchedBackgroundAtomTraceActionProfile_admissible (κ : ℕ)
+    (g : UntouchedBackgroundFiniteEnd (UntouchedBackgroundAtomTraceState κ)) :
+    ProfileAdmissible κ (untouchedBackgroundAtomTraceActionProfile κ g) :=
+  untouchedBackgroundAtomTraceProfile_admissible _
+
+/-- Concrete finite local monoid for full untouched-background raw traces: one
+generator for each factor type and one generator for a shift atom. -/
+noncomputable def untouchedBackgroundAtomTraceLocalMonoid (κ : ℕ) :
+    ZeroProfileFiniteLocalMonoid where
+  localMonoid := UntouchedBackgroundFiniteEnd (UntouchedBackgroundAtomTraceState κ)
+  generators :=
+    (Finset.univ : Finset UntouchedBackgroundTraceAtom).toList.map
+      (fun a => untouchedBackgroundAtomTraceAppend (κ := κ) a)
+
+/-- Generator for one filtered Cook--Levin factor type in the full atom trace. -/
+noncomputable def untouchedBackgroundAtomTraceFactorGenerator (κ : ℕ)
+    (τ : ConstraintType) :
+    (untouchedBackgroundAtomTraceLocalMonoid κ).localMonoid :=
+  untouchedBackgroundAtomTraceAppend (κ := κ)
+    (UntouchedBackgroundTraceAtom.factor τ)
+
+/-- Generator for a row-local shift atom. -/
+noncomputable def untouchedBackgroundAtomTraceShiftGenerator (κ : ℕ) :
+    (untouchedBackgroundAtomTraceLocalMonoid κ).localMonoid :=
+  untouchedBackgroundAtomTraceAppend (κ := κ) UntouchedBackgroundTraceAtom.shift
+
+/-- Factor-type generators belong to the displayed full atom alphabet. -/
+theorem untouchedBackgroundAtomTraceFactorGenerator_mem (κ : ℕ)
+    (τ : ConstraintType) :
+    untouchedBackgroundAtomTraceFactorGenerator κ τ ∈
+      (untouchedBackgroundAtomTraceLocalMonoid κ).generators := by
+  classical
+  unfold untouchedBackgroundAtomTraceFactorGenerator untouchedBackgroundAtomTraceLocalMonoid
+  simp
+
+/-- The shift generator belongs to the displayed full atom alphabet. -/
+theorem untouchedBackgroundAtomTraceShiftGenerator_mem (κ : ℕ) :
+    untouchedBackgroundAtomTraceShiftGenerator κ ∈
+      (untouchedBackgroundAtomTraceLocalMonoid κ).generators := by
+  classical
+  unfold untouchedBackgroundAtomTraceShiftGenerator untouchedBackgroundAtomTraceLocalMonoid
+  simp
+
+/-- Fully concrete atom-trace compiled-chart row theorem.  The shift word is no
+longer arbitrary: it is the list of `R.length` copies of the single shift
+atom.  Coefficients of `shift` remain in the polynomial scalar side, not in the
+finite local alphabet. -/
+structure UntouchedBackgroundConcreteAtomTraceCompiledChartRowsForList
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (B : SPDP.BlockPartition (cookLevinTableau M n hn2 htb hns).numVars)
+    (ℓ typeBudget : ℕ) where
+  totalProfileBudget_le :
+    (∑ g : (untouchedBackgroundAtomTraceLocalMonoid
+        (Nat.log 2 n)).localMonoid,
+        zeroProfileSymmetricProfileDim
+          (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) g)) ≤
+      typeBudget
+  row_mem_atomTraceProfile :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+      (hR : R.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+      (hshift : shift.vars ⊆ R.toFinset),
+      let ctype := untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S
+      let shiftWord := List.replicate R.length
+        (untouchedBackgroundAtomTraceShiftGenerator (Nat.log 2 n))
+      let rowNF := shiftWord.prod *
+        (List.ofFn (fun i : Fin
+          (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+            ([untouchedBackgroundAtomTraceFactorGenerator (Nat.log 2 n)
+              (ctype i)] : List
+                (untouchedBackgroundAtomTraceLocalMonoid
+                  (Nat.log 2 n)).localMonoid).prod)).prod
+      MultilinearSPDP.mlProj (shift *
+          Finset.univ.prod
+            (fun i : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+              (untouchedBackgroundFactorList M n hn2 htb hns S).get i)) ∈
+        profileSubspace
+          (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)
+          (zeroProfileConcreteLocalChart_compiledCoefficientBasis
+            B (Nat.log 2 n) ℓ
+            (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)).W
+
+/-- The fully concrete atom trace theorem feeds directly into the raw-trace
+normal-form classifier pipeline. -/
+noncomputable def untouchedBackgroundProfileRawGeneratorTraceActionDataForList_of_atomTraceCompiledChartRows
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (B : SPDP.BlockPartition (cookLevinTableau M n hn2 htb hns).numVars)
+    (ℓ : ℕ) {typeBudget : ℕ}
+    (A : UntouchedBackgroundConcreteAtomTraceCompiledChartRowsForList
+      M n hn2 htb hns S B ℓ typeBudget) :
+    UntouchedBackgroundProfileRawGeneratorTraceActionDataForList
+      M n hn2 htb hns S typeBudget where
+  monoid := untouchedBackgroundAtomTraceLocalMonoid (Nat.log 2 n)
+  profile := untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n)
+  profile_admissible := untouchedBackgroundAtomTraceActionProfile_admissible (Nat.log 2 n)
+  chart := fun g => zeroProfileConcreteLocalChart_compiledCoefficientBasis
+    B (Nat.log 2 n) ℓ (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) g)
+  totalProfileBudget_le := A.totalProfileBudget_le
+  rawFactorWord := fun i =>
+    [untouchedBackgroundAtomTraceFactorGenerator (Nat.log 2 n)
+      (untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S i)]
+  rawFactorWord_letters := by
+    intro i a ha
+    simp only [List.mem_singleton] at ha
+    subst a
+    exact untouchedBackgroundAtomTraceFactorGenerator_mem (Nat.log 2 n)
+      (untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S i)
+  rawShiftWord := fun R _hR _shift _hshift =>
+    List.replicate R.length (untouchedBackgroundAtomTraceShiftGenerator (Nat.log 2 n))
+  rawShiftWord_letters := by
+    intro R hR shift hshift a ha
+    simp only [List.mem_replicate] at ha
+    rcases ha with ⟨_, haeq⟩
+    subst a
+    exact untouchedBackgroundAtomTraceShiftGenerator_mem (Nat.log 2 n)
+  row_mem_rawWordProfile := by
+    intro R hR shift hshift
+    simpa using A.row_mem_atomTraceProfile R hR shift hshift
+
 /-- Type-generator local alphabet data for the exact list-indexed untouched
 background.
 
@@ -2189,6 +2414,24 @@ noncomputable def untouchedBackgroundConcreteNormalFormClassifierForList_of_prof
     (untouchedBackgroundProfileRawGeneratorTraceActionDataForList_of_typeGeneratorActionData
       M n hn2 htb hns S A)
 
+/-- Concrete atom-trace compiled-chart data directly supplies the downstream
+normal-form classifier with both factor and shift atoms fixed in the finite
+local alphabet. -/
+noncomputable def untouchedBackgroundConcreteNormalFormClassifierForList_of_atomTraceCompiledChartRows
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (B : SPDP.BlockPartition (cookLevinTableau M n hn2 htb hns).numVars)
+    (ℓ : ℕ) {typeBudget : ℕ}
+    (A : UntouchedBackgroundConcreteAtomTraceCompiledChartRowsForList
+      M n hn2 htb hns S B ℓ typeBudget) :
+    UntouchedBackgroundConcreteNormalFormClassifierForList
+      M n hn2 htb hns S typeBudget :=
+  untouchedBackgroundConcreteNormalFormClassifierForList_of_profileRawTraceActionData
+    M n hn2 htb hns S
+    (untouchedBackgroundProfileRawGeneratorTraceActionDataForList_of_atomTraceCompiledChartRows
+      M n hn2 htb hns S B ℓ A)
+
 /-- Concrete constraint-type trace action data directly supplies the downstream
 normal-form classifier; this is the fixed finite local alphabet/action seam for
 the exact filtered untouched background. -/
@@ -2539,6 +2782,10 @@ theorem rowWindowBackgroundNormalFormProductBasis_card_le_pow_add
 #print axioms untouchedBackgroundConcreteNormalFormClassifierForList_of_zeroProfilePostSpan
 #print axioms untouchedBackgroundConcreteNormalFormClassifierForList_of_zeroProfilePerTypeSpanning
 #print axioms untouchedBackgroundConcreteDataOfLocalMonoidProfiles
+#print axioms untouchedBackgroundAtomTraceProfile_admissible
+#print axioms untouchedBackgroundAtomTraceActionProfile_admissible
+#print axioms untouchedBackgroundProfileRawGeneratorTraceActionDataForList_of_atomTraceCompiledChartRows
+#print axioms untouchedBackgroundConcreteNormalFormClassifierForList_of_atomTraceCompiledChartRows
 #print axioms untouchedBackgroundConstraintTypeTraceProfile_admissible
 #print axioms untouchedBackgroundConstraintTypeTraceActionProfile_admissible
 #print axioms untouchedBackgroundConcreteConstraintTypeTraceActionDataForList_of_compiledChartRows
