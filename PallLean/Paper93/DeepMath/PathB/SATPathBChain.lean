@@ -23,6 +23,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBTouchedLocalAlphabetKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedExtractorKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedWindowKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedConcreteWindowKR
+import PallLean.Paper93.DeepMath.PathB.RouteBTouchedWindowSourceKR
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -230,5 +231,13 @@ theorem SAT_path_B_touchedConcreteWindowKR_TPhi_extraction_move
     (hData : Step247UniformTouchedConcreteWindowKRData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_touchedConcreteWindowKRData_TPhi hData
+
+/-- Source-fibre KR exposure: every non-dormant selected source must lie in the
+actual support fibre of the row variable at that KR position; touchedness is
+then proved from support-fibre membership. -/
+theorem SAT_path_B_touchedWindowSourceKR_TPhi_extraction_move
+    (hData : Step247UniformTouchedWindowSourceKRData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_touchedWindowSourceKRData_TPhi hData
 
 end PallLean.Paper93.DeepMath.PathB
