@@ -1503,6 +1503,201 @@ structure UntouchedBackgroundProfileLocalMonoidActionDataForList
               (untouchedBackgroundFactorList M n hn2 htb hns S).get i)) ∈
         profileSubspace (profile rowNF) (chart rowNF).W
 
+/-- Shortlex-normalized generator trace data for the list-indexed
+profile-aware classifier.
+
+This is the paper §9.3 canonical-window surface: each exact untouched factor
+and each shift row is witnessed by a raw word over the fixed finite generator
+list, but the row normal form used for classification is the shortlex
+`NFOfWord` product.  The profile/chart is evaluated at that canonical product,
+so the downstream row map is genuinely profile-aware rather than the singleton
+zero-profile collapse. -/
+structure UntouchedBackgroundProfileLocalNFGeneratorActionDataForList
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (typeBudget : ℕ) where
+  monoid : ZeroProfileFiniteLocalMonoid
+  profile : monoid.localMonoid → ProfileHistogram
+  profile_admissible :
+    ∀ g, ProfileAdmissible (Nat.log 2 n) (profile g)
+  chart : ∀ g, ZeroProfileConcreteLocalChart
+    (cookLevinTableau M n hn2 htb hns).numVars (profile g)
+  totalProfileBudget_le :
+    (∑ g : monoid.localMonoid,
+        zeroProfileSymmetricProfileDim (profile g)) ≤ typeBudget
+  rawFactorWord :
+    Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length →
+      List monoid.localMonoid
+  rawFactorWord_letters :
+    ∀ i, ∀ a ∈ rawFactorWord i, a ∈ monoid.generators
+  rawShiftWord :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars)),
+      R.length ≤ Nat.log 2 n →
+      ∀ shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ,
+        shift.vars ⊆ R.toFinset → List monoid.localMonoid
+  rawShiftWord_letters :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+      (hR : R.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+      (hshift : shift.vars ⊆ R.toFinset),
+      ∀ a ∈ rawShiftWord R hR shift hshift, a ∈ monoid.generators
+  row_mem_NFOfWordProfile :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+      (hR : R.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+      (hshift : shift.vars ⊆ R.toFinset),
+      let rowNF := (PallLean.Paper93.NFOfWord monoid.generators
+          (rawShiftWord R hR shift hshift)).prod *
+        (List.ofFn (fun i : Fin
+          (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+            (PallLean.Paper93.NFOfWord monoid.generators
+              (rawFactorWord i)).prod)).prod
+      MultilinearSPDP.mlProj (shift *
+          Finset.univ.prod
+            (fun i : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+              (untouchedBackgroundFactorList M n hn2 htb hns S).get i)) ∈
+        profileSubspace (profile rowNF) (chart rowNF).W
+
+/-- Raw generator trace data for the list-indexed profile-aware classifier.
+
+This is the form the eventual Cook--Levin gadget calculation should prove:
+rows are first described by raw local generator traces.  The bridge below
+canonicalizes those traces with `NFOfWord`, keeping semantic row membership
+separate from shortlex normalization. -/
+structure UntouchedBackgroundProfileRawGeneratorTraceActionDataForList
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (typeBudget : ℕ) where
+  monoid : ZeroProfileFiniteLocalMonoid
+  profile : monoid.localMonoid → ProfileHistogram
+  profile_admissible :
+    ∀ g, ProfileAdmissible (Nat.log 2 n) (profile g)
+  chart : ∀ g, ZeroProfileConcreteLocalChart
+    (cookLevinTableau M n hn2 htb hns).numVars (profile g)
+  totalProfileBudget_le :
+    (∑ g : monoid.localMonoid,
+        zeroProfileSymmetricProfileDim (profile g)) ≤ typeBudget
+  rawFactorWord :
+    Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length →
+      List monoid.localMonoid
+  rawFactorWord_letters :
+    ∀ i, ∀ a ∈ rawFactorWord i, a ∈ monoid.generators
+  rawShiftWord :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars)),
+      R.length ≤ Nat.log 2 n →
+      ∀ shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ,
+        shift.vars ⊆ R.toFinset → List monoid.localMonoid
+  rawShiftWord_letters :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+      (hR : R.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+      (hshift : shift.vars ⊆ R.toFinset),
+      ∀ a ∈ rawShiftWord R hR shift hshift, a ∈ monoid.generators
+  row_mem_rawWordProfile :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+      (hR : R.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+      (hshift : shift.vars ⊆ R.toFinset),
+      let rowNF := (rawShiftWord R hR shift hshift).prod *
+        (List.ofFn (fun i : Fin
+          (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+            (rawFactorWord i).prod)).prod
+      MultilinearSPDP.mlProj (shift *
+          Finset.univ.prod
+            (fun i : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+              (untouchedBackgroundFactorList M n hn2 htb hns S).get i)) ∈
+        profileSubspace (profile rowNF) (chart rowNF).W
+
+/-- Raw witnessed generator traces transport to shortlex-normalized traces by
+`NFOfWord_represents`.  This is the exact §9.3 separation between local gadget
+semantics and canonical normal-form selection. -/
+noncomputable def untouchedBackgroundProfileLocalNFGeneratorActionDataForList_of_rawTraceActionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    {typeBudget : ℕ}
+    (T : UntouchedBackgroundProfileRawGeneratorTraceActionDataForList
+      M n hn2 htb hns S typeBudget) :
+    UntouchedBackgroundProfileLocalNFGeneratorActionDataForList
+      M n hn2 htb hns S typeBudget where
+  monoid := T.monoid
+  profile := T.profile
+  profile_admissible := T.profile_admissible
+  chart := T.chart
+  totalProfileBudget_le := T.totalProfileBudget_le
+  rawFactorWord := T.rawFactorWord
+  rawFactorWord_letters := T.rawFactorWord_letters
+  rawShiftWord := T.rawShiftWord
+  rawShiftWord_letters := T.rawShiftWord_letters
+  row_mem_NFOfWordProfile := by
+    intro R hR shift hshift
+    have hshiftProd :
+        (PallLean.Paper93.NFOfWord T.monoid.generators
+          (T.rawShiftWord R hR shift hshift)).prod =
+          (T.rawShiftWord R hR shift hshift).prod :=
+      PallLean.Paper93.NFOfWord_represents T.monoid.generators
+        (T.rawShiftWord R hR shift hshift)
+    have hfactorFun :
+        (fun i : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+            (PallLean.Paper93.NFOfWord T.monoid.generators
+              (T.rawFactorWord i)).prod) =
+          (fun i : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+            (T.rawFactorWord i).prod) := by
+      funext i
+      exact PallLean.Paper93.NFOfWord_represents T.monoid.generators
+        (T.rawFactorWord i)
+    have hfactorProd :
+        (List.ofFn (fun i : Fin
+          (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+            (PallLean.Paper93.NFOfWord T.monoid.generators
+              (T.rawFactorWord i)).prod)).prod =
+          (List.ofFn (fun i : Fin
+            (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+            (T.rawFactorWord i).prod)).prod := by
+      simp [hfactorFun]
+    have hrowNF :
+        (PallLean.Paper93.NFOfWord T.monoid.generators
+            (T.rawShiftWord R hR shift hshift)).prod *
+          (List.ofFn (fun i : Fin
+            (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+              (PallLean.Paper93.NFOfWord T.monoid.generators
+                (T.rawFactorWord i)).prod)).prod =
+        (T.rawShiftWord R hR shift hshift).prod *
+          (List.ofFn (fun i : Fin
+            (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+              (T.rawFactorWord i).prod)).prod := by
+      rw [hshiftProd, hfactorProd]
+    rw [hrowNF]
+    exact T.row_mem_rawWordProfile R hR shift hshift
+
+/-- Shortlex-normalized trace data induces ordered local-monoid action data by
+using the normalized factor and shift products as the selected local actions. -/
+noncomputable def untouchedBackgroundProfileLocalMonoidActionDataForList_of_NFGeneratorActionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    {typeBudget : ℕ}
+    (NFD : UntouchedBackgroundProfileLocalNFGeneratorActionDataForList
+      M n hn2 htb hns S typeBudget) :
+    UntouchedBackgroundProfileLocalMonoidActionDataForList
+      M n hn2 htb hns S typeBudget where
+  monoid := NFD.monoid
+  profile := NFD.profile
+  profile_admissible := NFD.profile_admissible
+  chart := NFD.chart
+  totalProfileBudget_le := NFD.totalProfileBudget_le
+  factorElement := fun i =>
+    (PallLean.Paper93.NFOfWord NFD.monoid.generators
+      (NFD.rawFactorWord i)).prod
+  shiftElement := fun R hR shift hshift =>
+    (PallLean.Paper93.NFOfWord NFD.monoid.generators
+      (NFD.rawShiftWord R hR shift hshift)).prod
+  row_mem_productProfile := by
+    intro R hR shift hshift
+    exact NFD.row_mem_NFOfWordProfile R hR shift hshift
+
 /-- Ordered local-monoid action data constructs the profile-aware list-indexed
 classifier by using the ordered product normal form as the row classifier. -/
 noncomputable def untouchedBackgroundProfileLocalMonoidClassifierForList_of_actionData
@@ -1527,6 +1722,40 @@ noncomputable def untouchedBackgroundProfileLocalMonoidClassifierForList_of_acti
         simpa [untouchedBackgroundConcreteDataOfLocalMonoidProfiles,
           LinearMap.id_apply] using
           A.row_mem_productProfile R hR shift hshift }
+
+/-- Raw profile-aware generator traces directly produce the list-indexed
+profile-aware concrete classifier. -/
+noncomputable def untouchedBackgroundProfileLocalMonoidClassifierForList_of_rawTraceActionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    {typeBudget : ℕ}
+    (T : UntouchedBackgroundProfileRawGeneratorTraceActionDataForList
+      M n hn2 htb hns S typeBudget) :
+    UntouchedBackgroundProfileLocalMonoidConcreteClassifierForList
+      M n hn2 htb hns S typeBudget :=
+  untouchedBackgroundProfileLocalMonoidClassifierForList_of_actionData
+    M n hn2 htb hns S
+    (untouchedBackgroundProfileLocalMonoidActionDataForList_of_NFGeneratorActionData
+      M n hn2 htb hns S
+      (untouchedBackgroundProfileLocalNFGeneratorActionDataForList_of_rawTraceActionData
+        M n hn2 htb hns S T))
+
+/-- Raw profile-aware generator traces directly produce the downstream concrete
+normal-form classifier used by the touched/background Route B bridge. -/
+noncomputable def untouchedBackgroundConcreteNormalFormClassifierForList_of_profileRawTraceActionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    {typeBudget : ℕ}
+    (T : UntouchedBackgroundProfileRawGeneratorTraceActionDataForList
+      M n hn2 htb hns S typeBudget) :
+    UntouchedBackgroundConcreteNormalFormClassifierForList
+      M n hn2 htb hns S typeBudget :=
+  untouchedBackgroundConcreteNormalFormClassifierForList_of_profileLocalMonoidClassifier
+    M n hn2 htb hns S
+    (untouchedBackgroundProfileLocalMonoidClassifierForList_of_rawTraceActionData
+      M n hn2 htb hns S T)
 
 /-- Final convenience constructor: a list-indexed §9.3 local-monoid/profile
 action theorem directly supplies the exact untouched-background concrete
@@ -1861,6 +2090,10 @@ theorem rowWindowBackgroundNormalFormProductBasis_card_le_pow_add
 #print axioms untouchedBackgroundConcreteNormalFormClassifierForList_of_zeroProfilePostSpan
 #print axioms untouchedBackgroundConcreteNormalFormClassifierForList_of_zeroProfilePerTypeSpanning
 #print axioms untouchedBackgroundConcreteDataOfLocalMonoidProfiles
+#print axioms untouchedBackgroundProfileLocalNFGeneratorActionDataForList_of_rawTraceActionData
+#print axioms untouchedBackgroundProfileLocalMonoidActionDataForList_of_NFGeneratorActionData
+#print axioms untouchedBackgroundProfileLocalMonoidClassifierForList_of_rawTraceActionData
+#print axioms untouchedBackgroundConcreteNormalFormClassifierForList_of_profileRawTraceActionData
 #print axioms untouchedBackgroundConcreteNormalFormClassifierForList_of_profileLocalMonoidClassifier
 #print axioms untouchedBackgroundProfileLocalMonoidClassifierForList_of_actionData
 #print axioms untouchedBackgroundConcreteNormalFormClassifierForList_of_profileLocalMonoidActionData
