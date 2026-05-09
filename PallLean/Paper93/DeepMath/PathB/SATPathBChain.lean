@@ -21,6 +21,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBTouchedIncidenceCountKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedConstantKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedLocalAlphabetKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedExtractorKR
+import PallLean.Paper93.DeepMath.PathB.RouteBTouchedWindowKR
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -212,5 +213,13 @@ theorem SAT_path_B_touchedExtractorKR_TPhi_extraction_move
     (hData : Step247UniformTouchedExtractorKRData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_touchedExtractorKRData_TPhi hData
+
+/-- Window KR exposure: the per-position extractor state is now an actual paper
+interface-local symbol `(ConstraintType, Fin 4)`, encoded into the fixed
+16-symbol local alphabet. -/
+theorem SAT_path_B_touchedWindowKR_TPhi_extraction_move
+    (hData : Step247UniformTouchedWindowKRData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_touchedWindowKRData_TPhi hData
 
 end PallLean.Paper93.DeepMath.PathB
