@@ -37,6 +37,52 @@ noncomputable def routeBLocalTemplateOfCanonicalSlot
     MvPolynomial (Fin maxConstraintArity) ℚ :=
   canonicalInterfacePolynomial routeBLocalInterfaceBlockPartition 0 0 σ j
 
+
+/-- Paper-faithful placed quotient/normal-form data.
+
+This is the manuscript's correction to the false global-chart move.  A placed
+Cook--Levin slot is not asserted to lie directly in one fixed raw `X₀/X₁` span.
+Instead, one supplies a quotient/normal-form construction whose output is the
+slotwise selected-chart quotient datum already consumed by `Paper283`.
+
+Concretely, the intended mathematical content of `slotQuotientData` is:
+
+* choose the selected interface-anonymous chart for each constraint type `σ`;
+* quotient/normalise every concrete placement into that chart in the compiled
+  blocked/diagonal coefficient basis;
+* prove the normalised local template lies in the constant-dimensional `W_σ`;
+* then let the existing symmetric-power/profile assembly handle products.
+
+This wrapper deliberately replaces the old attempted proof target “all concrete
+placements live in one raw chart” with the paper-faithful normal-form seam. -/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedInterfaceNormalFormData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  slotQuotientData :
+    PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceSlotQuotientData
+      M n hn2 htb hns
+
+/-- Normal-form data instantiates the checked placed quotient/descent datum:
+normalise individual placements first, then use the existing
+symmetric/profile-subspace assembly. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedLocalInterfaceQuotientDescentData_of_interfaceNormalFormData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedInterfaceNormalFormData
+      M n hn2 htb hns) :
+    PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceQuotientDescentData
+      M n hn2 htb hns :=
+  PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedLocalInterfaceQuotientDescentData_of_slotQuotientData
+    M n hn2 htb hns D.slotQuotientData
+
+/-- Uniform paper-faithful normal-form data at Step 247 scale. -/
+def Step247UniformRouteBPaperFaithfulTPhiPlacedInterfaceNormalFormData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedInterfaceNormalFormData
+        M n hn2 htb hns)
+
 /-- Uniform paper-faithful placed quotient/descent data for strict `TΦ`.
 
 This is the replacement theorem surface for the false unplaced background-chart
@@ -49,6 +95,16 @@ def Step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData : Prop :=
     Nonempty
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceQuotientDescentData
         M n hn2 htb hns)
+
+/-- The manuscript's quotient-normal-form theorem supplies the placed
+quotient/descent datum used by the already-checked Route B chain. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData_of_interfaceNormalFormData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiPlacedInterfaceNormalFormData) :
+    Step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedLocalInterfaceQuotientDescentData_of_interfaceNormalFormData
+    M n hn2 htb hns D⟩
 
 /-- Uniform placed quotient/descent data gives the strict source selected
 profile-subspace datum.
@@ -241,6 +297,16 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
         (step247UniformRouteBPaperFaithfulTPhiPSideBound_of_placedQuotientDescent
           hData M n hn hn2 htb hns))
 
+/-- Paper-faithful close-out: the explicit placed interface normal-form seam is
+sufficient to close the strict `TΦ` Route-B path.  This is the theorem surface
+matching the manuscript's quotient/normal-form solution rather than the false
+raw global-chart target. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedInterfaceNormalFormData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiPlacedInterfaceNormalFormData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescent
+    (step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData_of_interfaceNormalFormData hData)
+
 /-! ## Axiom audit anchors -/
 
 #print axioms step247UniformRouteBPaperFaithfulTPhiStrictSourceProfileSubspaceData_of_placedQuotientDescent
@@ -250,5 +316,6 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
 #print axioms false_of_routeBPaperFaithfulTPhi_targetPSideBound
 #print axioms step247UniformRouteBPaperFaithfulTPhiPSideBound_of_placedQuotientDescent
 #print axioms noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescent
+#print axioms noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedInterfaceNormalFormData
 
 end PallLean.Paper93.DeepMath.PathB
