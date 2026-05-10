@@ -21,7 +21,21 @@ open PaperFaithfulCompilation
 open PaperFaithfulSeparation
 open TuringMachine
 open Step4Compiler
+open SymmetricPowerBound
+open WithinProfileBound
 open scoped BigOperators
+
+/-- A one-block dummy partition for fixed local Cook--Levin interface templates.
+The canonical interface polynomials ignore the partition parameter. -/
+def routeBLocalInterfaceBlockPartition : SPDP.BlockPartition maxConstraintArity where
+  numBlocks := 1
+  assign := fun _ => 0
+
+/-- The local template corresponding to a canonical interface slot. -/
+noncomputable def routeBLocalTemplateOfCanonicalSlot
+    (σ : ConstraintType) (j : Fin d₀) :
+    MvPolynomial (Fin maxConstraintArity) ℚ :=
+  canonicalInterfacePolynomial routeBLocalInterfaceBlockPartition 0 0 σ j
 
 /-- Uniform paper-faithful placed quotient/descent data for strict `TΦ`.
 

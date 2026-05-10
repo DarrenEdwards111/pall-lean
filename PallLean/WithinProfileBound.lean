@@ -1868,7 +1868,9 @@ by constraint type rather than accidentally tied to ambient variables `0` and
 `1`. -/
 noncomputable def cookLevinCanonicalInterfaceFamily :
     CookLevinLocalInterfaceFamily
-  | ConstraintType.booleanity => {1, MvPolynomial.X cookLevinLocalCoord0}
+  | ConstraintType.booleanity =>
+      {1, MvPolynomial.X cookLevinLocalCoord0,
+        SymmetricPower.boolFactor maxConstraintArity cookLevinLocalCoord0}
   | ConstraintType.adjacency =>
       {1, MvPolynomial.X cookLevinLocalCoord0,
         MvPolynomial.X cookLevinLocalCoord1}
@@ -1906,9 +1908,10 @@ theorem cookLevinCanonicalInterfaceFamily_card_le_three
     (τ : ConstraintType) :
     (cookLevinCanonicalInterfaceFamily τ).card ≤ 3 := by
   cases τ
-  · change ({1, MvPolynomial.X cookLevinLocalCoord0} :
+  · change ({1, MvPolynomial.X cookLevinLocalCoord0,
+        SymmetricPower.boolFactor maxConstraintArity cookLevinLocalCoord0} :
         Finset (MvPolynomial (Fin maxConstraintArity) ℚ)).card ≤ 3
-    exact le_trans Finset.card_le_two (by norm_num)
+    exact Finset.card_le_three
   · change ({1, MvPolynomial.X cookLevinLocalCoord0,
         MvPolynomial.X cookLevinLocalCoord1} :
         Finset (MvPolynomial (Fin maxConstraintArity) ℚ)).card ≤ 3
@@ -1999,9 +2002,10 @@ theorem cookLevinCanonicalInterfaceFamily_card_le
     (τ : ConstraintType) :
     (cookLevinCanonicalInterfaceFamily τ).card ≤ localInterfaceDimBound := by
   cases τ
-  · change ({1, MvPolynomial.X cookLevinLocalCoord0} :
+  · change ({1, MvPolynomial.X cookLevinLocalCoord0,
+        SymmetricPower.boolFactor maxConstraintArity cookLevinLocalCoord0} :
         Finset (MvPolynomial (Fin maxConstraintArity) ℚ)).card ≤ localInterfaceDimBound
-    exact le_trans Finset.card_le_two (by change 2 ≤ 10 ^ 2; norm_num)
+    exact le_trans Finset.card_le_three (by change 3 ≤ 10 ^ 2; norm_num)
   · change ({1, MvPolynomial.X cookLevinLocalCoord0,
         MvPolynomial.X cookLevinLocalCoord1} :
         Finset (MvPolynomial (Fin maxConstraintArity) ℚ)).card ≤ localInterfaceDimBound
@@ -2172,7 +2176,9 @@ theorem cookLevin_booleanity_local_interface_step
     exact Submodule.span_mono (by
       intro x hx
       simp [placedCookLevinInterface, cookLevinCanonicalInterfaceFamily, place] at hx ⊢
-      exact hx) hp
+      rcases hx with hx | hx
+      · exact Or.inl hx
+      · exact Or.inr (Or.inl hx)) hp
   rw [hfactor]
   by_cases hoff : ∃ x ∈ d, x ≠ bv
   · have hz :=
