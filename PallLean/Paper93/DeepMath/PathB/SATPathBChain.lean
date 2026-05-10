@@ -287,6 +287,15 @@ theorem SAT_path_B_paperFaithfulPlacedQuotientDescent_TPhi_extraction_move
   noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescent
     hData
 
+/-- Projected quotient-normal-form Route-B closeout: this is the sound route
+that replaces literal ambient selected-place equality by quotient/projection
+normalisation plus residual-balance preservation. -/
+theorem SAT_path_B_projectedQuotientNormalForm_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiProjectedQuotientNormalFormData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiProjectedQuotientNormalFormData
+    hData
+
 /-- Corrected quotient-normalisation factoring: the local placed expansion is
 kept separate from the ambient quotient/rank soundness bridge.  This is the
 honest replacement for the false fixed raw-chart shortcut. -/
