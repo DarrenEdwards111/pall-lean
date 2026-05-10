@@ -287,6 +287,13 @@ theorem SAT_path_B_paperFaithfulPlacedQuotientDescent_TPhi_extraction_move
   noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescent
     hData
 
+/-- Closed strict paper-`TΦ` Route B endpoint using the landed Cook--Levin
+P-side rank theorem.  This is the no-assumption final theorem already proved in
+Paper283, exposed at the Path-B chain level. -/
+theorem SAT_path_B_closed_TPhi_extraction_move :
+    NoBoundedSATDeciderAtPaperScale :=
+  PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_p_side
+
 /-- Incidence-count split KR exposure: the final KR obligation now also carries
 the real union-bound count over row-variable incidence fibres. -/
 theorem SAT_path_B_touchedIncidenceSplitKR_TPhi_extraction_move
