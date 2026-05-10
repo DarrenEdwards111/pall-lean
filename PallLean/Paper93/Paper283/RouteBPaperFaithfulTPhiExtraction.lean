@@ -22319,6 +22319,28 @@ noncomputable def routeBPaperFaithfulTPhi_strictBoundedInterfaceAnonymousLocalMo
   canonicalRangeRow_mem_interfaceProfileSpan :=
     D.canonicalRangeRow_mem_constraintTypeProfileSpan
 
+/-- Selected `ConstraintType` profile-subspace data instantiates the bounded
+interface-anonymous local-monoid surface.
+
+This is the honest adapter from Lemma-31 `V_h` data into the literal bounded
+profile route: choose `ConstraintType` as the finite normal-form alphabet and
+mechanically extract finite bases from the selected profile subspaces.  The
+mathematical content remains exactly the selected `V_h` membership and
+within-profile dimension bound supplied by `D`; no raw placement/global-chart
+claim is introduced. -/
+noncomputable def routeBPaperFaithfulTPhi_strictBoundedInterfaceAnonymousLocalMonoidProfileData_of_profileSubspaceData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictBoundedInterfaceAnonymousLocalMonoidProfileData
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_strictBoundedInterfaceAnonymousLocalMonoidProfileData_of_constraintTypeInterfaceProfileData
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData_of_profileSubspaceData
+      M n hn2 htb hns D)
+
 /-- Bounded finite-normal-form alphabet data instantiates the literal
 interface-anonymous profile data, with Lemma 29 deriving `profileCount_le`. -/
 noncomputable def routeBPaperFaithfulTPhi_strictInterfaceAnonymousLocalMonoidProfileData_of_boundedInterfaceAnonymousLocalMonoidProfileData

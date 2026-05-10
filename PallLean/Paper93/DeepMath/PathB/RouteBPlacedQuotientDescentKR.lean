@@ -269,6 +269,23 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiStrictConstraintTypeProfi
       (step247UniformRouteBPaperFaithfulTPhiStrictSourceProfileSubspaceData_of_placedQuotientDescent
         hData M n hn hn2 htb hns)
 
+/-- Uniform placed quotient/descent data supplies the bounded
+interface-anonymous local-monoid/profile datum.
+
+This records that the placed-quotient route is not a parallel shortcut: after
+slotwise/product descent it constructs the selected `V_h` profile-subspace data,
+then this adapter packages that data in the paper's bounded normal-form/profile
+surface. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiBoundedInterfaceAnonymousLocalMonoidProfileData_of_placedQuotientDescent
+    (hData : Step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData) :
+    Step247UniformRouteBPaperFaithfulTPhiBoundedInterfaceAnonymousLocalMonoidProfileData := by
+  intro M n hn hn2 htb hns
+  exact
+    ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictBoundedInterfaceAnonymousLocalMonoidProfileData_of_profileSubspaceData
+      M n hn2 htb hns
+      (step247UniformRouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData_of_placedQuotientDescent
+        hData M n hn hn2 htb hns)⟩
+
 /-- A selected strict `ConstraintType` profile-subspace datum gives the actual
 paper `TΦ` P-side bound.
 
