@@ -372,6 +372,58 @@ theorem SAT_path_B_paperFaithfulSourceCanonicalRowExactProfileTemplateCollapse_T
   PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceCanonicalRowExactProfileTemplateCollapseData
     hData
 
+/-- Row-interface-slot expansion seam for the strict source row.
+
+This is the most literal currently exposed Lemma-31 source target: for the
+selected canonical-window profile, expand the row as a finite linear
+combination of products of exactly `ρ.val σ` slots, with each slot living in
+its concrete compiled-basis interface space `Wσ`.  It avoids the old false
+single global chart and does not collapse the selected row into a broad
+residual-balance shortcut. -/
+theorem SAT_path_B_paperFaithfulSourceSelectedRowInterfaceSlotExpansion_TPhi_extraction_move
+    (hData :
+      ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804)
+        (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (_hdec : DecidesSAT M),
+        PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowInterfaceSlotExpansionData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedRowInterfaceSlotExpansionData
+    hData
+
+/-- Renamed canonical-interface expansion seam.
+
+This keeps the selected-profile finite expansion after the source/ambient
+rename transport has been made explicit.  It is a sufficient route into the
+same selected `V_h` profile-subspace bound, not a replacement by a common span. -/
+theorem SAT_path_B_paperFaithfulSourceSelectedRowRenamedCanonicalInterfaceExpansion_TPhi_extraction_move
+    (hData :
+      ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804)
+        (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (_hdec : DecidesSAT M),
+        PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowRenamedCanonicalInterfaceExpansionData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedRowRenamedCanonicalInterfaceExpansionData
+    hData
+
+/-- Local compiled-profile row seam.
+
+This exposes the Route-B target where Lemma 31 is interpreted as a local
+compiled-coordinate profile-subspace statement: each `Wσ` is supplied with
+finite rank at most three, and the selected canonical source row lands in the
+selected profile product space `profileSubspace ρ.val W`. -/
+theorem SAT_path_B_paperFaithfulSourceSelectedLocalCompiledProfileSubspaceRow_TPhi_extraction_move
+    (hData :
+      ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804)
+        (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (_hdec : DecidesSAT M),
+        PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedLocalCompiledProfileSubspaceRowData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceSelectedLocalCompiledProfileSubspaceRowData
+    hData
+
 /-- Paper-faithful placed quotient/descent exposure: this is the replacement
 surface for the broken unplaced atom-trace chart route.  It keeps the exact
 placed Cook--Levin local-interface expansion and then descends to the selected
