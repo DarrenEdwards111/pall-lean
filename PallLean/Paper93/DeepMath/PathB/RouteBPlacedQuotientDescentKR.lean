@@ -436,6 +436,34 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
         (step247UniformRouteBPaperFaithfulTPhiPSideBound_of_placedQuotientDescent
           hData M n hn hn2 htb hns))
 
+
+/-- Uniform full finite-normal-form alphabet data at Step 247 scale.
+
+Unlike the four-bin bounded surface, this keeps the paper's actual finite
+normal-form alphabet explicit and carries the final assembled profile budget
+directly against the ambient `n^200` envelope. -/
+def Step247UniformRouteBPaperFaithfulTPhiLooseInterfaceAnonymousLocalMonoidProfileData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictLooseInterfaceAnonymousLocalMonoidProfileData
+        M n hn2 htb hns)
+
+/-- Full finite-normal-form alphabet data gives the strict ambient `TΦ` P-side
+bound, with no `ConstraintType` four-bin collapse. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiPSideBound_of_looseInterfaceAnonymousLocalMonoidProfileData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiLooseInterfaceAnonymousLocalMonoidProfileData) :
+    ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+      (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+      SATDeciderGaugePSideBound M n hn2 htb hns
+        (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiAmbientGauge
+          M n hn2 htb hns) := by
+  intro M n hn hn2 htb hns
+  let D := Classical.choice (hData M n hn hn2 htb hns)
+  exact
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_pSideBound_of_strictLooseInterfaceAnonymousLocalMonoidProfileData
+      M n hn2 htb hns D
+
 /-- Uniform bounded local-monoid/profile data closes the full strict `TΦ`
 Route-B contradiction.
 
@@ -452,6 +480,20 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
       (routeBPaperFaithfulTPhi_targetRank_le_of_ambientGaugePSideBound
         M n hn2 htb hns
         (step247UniformRouteBPaperFaithfulTPhiPSideBound_of_boundedInterfaceAnonymousLocalMonoidProfileData
+          hData M n hn hn2 htb hns))
+
+
+/-- Uniform full finite-normal-form alphabet data closes the strict `TΦ` Route-B
+contradiction without collapsing `Σ^{≤q}` to four raw constraint bins. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiLooseInterfaceAnonymousLocalMonoidProfileData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiLooseInterfaceAnonymousLocalMonoidProfileData) :
+    NoBoundedSATDeciderAtPaperScale := by
+  intro M n hn hn2 htb hns hdec
+  exact
+    false_of_routeBPaperFaithfulTPhi_targetPSideBound M n hn hn2 htb hns
+      (routeBPaperFaithfulTPhi_targetRank_le_of_ambientGaugePSideBound
+        M n hn2 htb hns
+        (step247UniformRouteBPaperFaithfulTPhiPSideBound_of_looseInterfaceAnonymousLocalMonoidProfileData
           hData M n hn hn2 htb hns))
 
 /-- Paper-faithful close-out: the explicit placed interface normal-form seam is

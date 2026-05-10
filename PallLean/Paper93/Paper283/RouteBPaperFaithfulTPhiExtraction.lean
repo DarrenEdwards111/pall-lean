@@ -27271,6 +27271,443 @@ theorem routeBPaperFaithfulTPhi_pSideBound_of_strictPaperRangeRowsGlobalProfileS
       (D.profileBudget_le.trans
         (routeBPaperFaithfulTPhi_combinedProfileBound_log_le_pow_200 n hn2))
 
+
+/-! ## Full finite-normal-form alphabet route
+
+The preceding `combinedProfileBound` route specializes the profile-count budget
+to the four-bin `ConstraintType` envelope.  The paper's literal Route B uses a
+finite normal-form alphabet `Σ^{≤q}`.  The following "loose" cover surface keeps
+that finite alphabet explicit and asks only for the final assembled basis budget
+against the ambient `n^200` envelope.  This is the correct target for the full
+`AlphabetWord q` route: prove the profile-count arithmetic for the chosen
+constant `q`, then prove Lemma 31 row membership for the corresponding selected
+`V_h` spaces. -/
+
+/-- Paper range-row profile-cover data with an arbitrary finite normal-form
+profile type and a direct final `n^200` assembled-basis budget. -/
+structure RouteBPaperFaithfulTPhiStrictLoosePaperRangeRowProfileCoverData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileType : Type
+  [profileTypeFintype : Fintype profileType]
+  localDim : ℕ
+  localBasis : profileType → Finset (MvPolynomial (Fin n) ℚ)
+  localBasis_card_le : ∀ ρ, (localBasis ρ).card ≤ localDim
+  profileBudget_le_pow200 : Fintype.card profileType * localDim ≤ n ^ 200
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      profileType
+  canonicalRangeRow_mem_profileSpan :
+    ∀ (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α),
+      routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+          M n hn2 htb hns S' shift ∈
+        Submodule.span ℚ
+          (↑(localBasis
+            (profileOfCanonicalWindow
+              (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+              hrow.1)) : Set (MvPolynomial (Fin n) ℚ))
+
+attribute [instance]
+  RouteBPaperFaithfulTPhiStrictLoosePaperRangeRowProfileCoverData.profileTypeFintype
+
+/-- Global assembled basis for the full finite-normal-form alphabet route. -/
+noncomputable def routeBPaperFaithfulTPhiStrictLoosePaperGlobalProfileBasis
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictLoosePaperRangeRowProfileCoverData
+      M n hn2 htb hns) :
+    Finset (MvPolynomial (Fin n) ℚ) :=
+  Finset.univ.biUnion D.localBasis
+
+/-- Cardinality of the assembled loose full-alphabet basis. -/
+theorem routeBPaperFaithfulTPhi_strictLoosePaperGlobalProfileBasis_card_le
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictLoosePaperRangeRowProfileCoverData
+      M n hn2 htb hns) :
+    (routeBPaperFaithfulTPhiStrictLoosePaperGlobalProfileBasis D).card ≤
+      Fintype.card D.profileType * D.localDim := by
+  classical
+  unfold routeBPaperFaithfulTPhiStrictLoosePaperGlobalProfileBasis
+  calc
+    (Finset.univ.biUnion D.localBasis).card ≤
+        ∑ ρ : D.profileType, (D.localBasis ρ).card :=
+      Finset.card_biUnion_le
+    _ ≤ ∑ _ρ : D.profileType, D.localDim := by
+      exact Finset.sum_le_sum (fun ρ _ => D.localBasis_card_le ρ)
+    _ = Fintype.card D.profileType * D.localDim := by
+      simp [Finset.sum_const, Finset.card_univ, mul_comm]
+
+/-- Strict range rows are covered by the loose full-alphabet global basis. -/
+def RouteBPaperFaithfulTPhiStrictLoosePaperRangeRowsGlobalProfileSpanCover
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictLoosePaperRangeRowProfileCoverData
+      M n hn2 htb hns) : Prop :=
+  ∀ (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ),
+    S'.length = Nat.log 2 n →
+    shift.totalDegree ≤ Nat.log 2 n →
+    (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+      (S'.map (cookLevinStrictFOBFlatMap n)).toFinset →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (S'.map (cookLevinStrictFOBFlatMap n)) →
+    routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+        M n hn2 htb hns S' shift ∈
+      Submodule.span ℚ
+        (↑(routeBPaperFaithfulTPhiStrictLoosePaperGlobalProfileBasis D) :
+          Set (MvPolynomial (Fin n) ℚ))
+
+/-- The loose data itself supplies the range-row global-basis cover. -/
+theorem routeBPaperFaithfulTPhi_strictLoosePaperRangeRowsGlobalProfileSpanCover_of_data
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictLoosePaperRangeRowProfileCoverData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictLoosePaperRangeRowsGlobalProfileSpanCover D := by
+  classical
+  intro S' shift hSlen hshiftDegree hshiftVars hadm
+  let i0 : Fin n := ⟨0, by omega⟩
+  let α : Fin n →₀ ℕ := Finsupp.single i0 1
+  have hunmarked :
+      ¬ routeBPaperFaithfulTPhiStrictWindowHasMarkedCoeff
+        (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α) := by
+    simpa [α] using
+      routeBPaperFaithfulTPhiStrictRawWindow_singleton_unmarked
+        n S' shift i0
+  have hcan :
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n))
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)) := by
+    letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+    exact
+      routeBPaperFaithfulTPhiStrictCanWindow_eq_self_of_unmarked
+        (n := n) (κ := Nat.log 2 n) hunmarked
+  have hrow :
+      routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α := by
+    exact ⟨hcan, hunmarked⟩
+  let ρ :=
+    D.profileOfCanonicalWindow
+      (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α) hcan
+  have hmem :
+      routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+          M n hn2 htb hns S' shift ∈
+        Submodule.span ℚ (↑(D.localBasis ρ) : Set (MvPolynomial (Fin n) ℚ)) := by
+    simpa [ρ] using
+      D.canonicalRangeRow_mem_profileSpan
+        S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+  have hsubset :
+      (↑(D.localBasis ρ) : Set (MvPolynomial (Fin n) ℚ)) ⊆
+        (↑(routeBPaperFaithfulTPhiStrictLoosePaperGlobalProfileBasis D) :
+          Set (MvPolynomial (Fin n) ℚ)) := by
+    intro q hq
+    change q ∈ routeBPaperFaithfulTPhiStrictLoosePaperGlobalProfileBasis D
+    unfold routeBPaperFaithfulTPhiStrictLoosePaperGlobalProfileBasis
+    exact Finset.mem_biUnion.mpr ⟨ρ, Finset.mem_univ ρ, hq⟩
+  exact (Submodule.span_mono hsubset) hmem
+
+/-- Loose full-alphabet ambient global span cover. -/
+def RouteBPaperFaithfulTPhiStrictLoosePaperAmbientGlobalProfileSpanCover
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictLoosePaperRangeRowProfileCoverData
+      M n hn2 htb hns) : Prop :=
+  MultilinearSPDP.mlBlockedSpdpSubspace
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns))) ≤
+    Submodule.span ℚ
+      (↑(routeBPaperFaithfulTPhiStrictLoosePaperGlobalProfileBasis D) :
+        Set (MvPolynomial (Fin n) ℚ))
+
+/-- Generator form for the loose full-alphabet ambient cover. -/
+def RouteBPaperFaithfulTPhiStrictLoosePaperAmbientGlobalProfileGeneratorCover
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictLoosePaperRangeRowProfileCoverData
+      M n hn2 htb hns) : Prop :=
+  ∀ (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ),
+    S.length = Nat.log 2 n →
+    shift.totalDegree ≤ Nat.log 2 n →
+    shift.vars ⊆ S.toFinset →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition S →
+    mlProj
+        (shift * SPDP.iterDerivList S
+          ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+            (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) ∈
+      Submodule.span ℚ
+        (↑(routeBPaperFaithfulTPhiStrictLoosePaperGlobalProfileBasis D) :
+          Set (MvPolynomial (Fin n) ℚ))
+
+/-- Loose ambient cover iff generator cover. -/
+theorem routeBPaperFaithfulTPhi_strictLoosePaperAmbientGlobalProfileSpanCover_iff_generatorCover
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictLoosePaperRangeRowProfileCoverData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictLoosePaperAmbientGlobalProfileSpanCover D ↔
+      RouteBPaperFaithfulTPhiStrictLoosePaperAmbientGlobalProfileGeneratorCover D := by
+  constructor
+  · intro hcover S shift hSlen hshiftDegree hshiftVars hadm
+    apply hcover
+    unfold MultilinearSPDP.mlBlockedSpdpSubspace
+    exact Submodule.subset_span
+      ⟨S, shift, hSlen, hshiftDegree, hshiftVars, hadm, rfl⟩
+  · intro hgen
+    unfold RouteBPaperFaithfulTPhiStrictLoosePaperAmbientGlobalProfileSpanCover
+    unfold MultilinearSPDP.mlBlockedSpdpSubspace
+    refine Submodule.span_le.mpr ?_
+    intro q hq
+    rcases hq with ⟨S, shift, hSlen, hshiftDegree, hshiftVars, hadm, rfl⟩
+    exact hgen S shift hSlen hshiftDegree hshiftVars hadm
+
+/-- First-of-block reduction transports loose range-row cover to ambient cover. -/
+theorem routeBPaperFaithfulTPhi_strictLoosePaperAmbientGlobalProfileSpanCover_of_rangeRows
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictLoosePaperRangeRowProfileCoverData
+      M n hn2 htb hns)
+    (hrange : RouteBPaperFaithfulTPhiStrictLoosePaperRangeRowsGlobalProfileSpanCover D) :
+    RouteBPaperFaithfulTPhiStrictLoosePaperAmbientGlobalProfileSpanCover D := by
+  classical
+  refine
+    (routeBPaperFaithfulTPhi_strictLoosePaperAmbientGlobalProfileSpanCover_iff_generatorCover D).mpr ?_
+  intro S shift hSlen hshiftDegree hshiftVars hadm
+  by_cases hoff : ∃ v ∈ S, v ∉ Set.range (cookLevinStrictFOBFlatMap n)
+  · have hlhs :
+        mlProj
+            (shift * SPDP.iterDerivList S
+              ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+                (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) = 0 := by
+      rw [routeBPaperFaithfulTPhiAmbientGauge_compiledPoly_eq_reexpandedStrictFOB
+        M n hn2 htb hns]
+      exact
+        routeBPaperFaithfulTPhi_strictFOB_offRangeDerivativeRow_zero
+          n S shift
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns)) hoff
+    rw [hlhs]
+    exact Submodule.zero_mem _
+  · have hall : ∀ v ∈ S, v ∈ Set.range (cookLevinStrictFOBFlatMap n) := by
+      intro v hv
+      by_contra hvnot
+      exact hoff ⟨v, hv, hvnot⟩
+    rcases routeBPaperFaithfulTPhi_strictFOB_preimageList n S hall with
+      ⟨S', hS'⟩
+    let shift' :=
+      MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) shift
+    have hshiftRange :
+        ↑shift.vars ⊆ Set.range (cookLevinStrictFOBFlatMap n) := by
+      intro v hv
+      exact hall v (List.mem_toFinset.mp (hshiftVars hv))
+    have hrename :
+        MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift' = shift := by
+      simpa [shift'] using
+        routeBPaperFaithfulTPhi_rename_restrictStrictFOB_of_vars_range
+          n shift hshiftRange
+    have hSlen' : S'.length = Nat.log 2 n := by
+      have hmapLen :
+          (S'.map (cookLevinStrictFOBFlatMap n)).length = Nat.log 2 n := by
+        rw [hS']
+        exact hSlen
+      simpa [List.length_map] using hmapLen
+    have hshiftDegree' : shift'.totalDegree ≤ Nat.log 2 n :=
+      (MultilinearSPDP.restrictPoly_totalDegree_le ℚ
+        (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) shift).trans hshiftDegree
+    have hshiftVars' :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift').vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset := by
+      rw [hrename, hS']
+      exact hshiftVars
+    have hadm' :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)) := by
+      rw [hS']
+      exact hadm
+    have hmem := hrange S' shift' hSlen' hshiftDegree' hshiftVars' hadm'
+    rw [← hrename, ← hS']
+    simpa [routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow] using hmem
+
+/-- Loose full-alphabet ambient cover gives rank at most the assembled budget. -/
+theorem routeBPaperFaithfulTPhi_strictLoosePaperAmbientMlRankUpper_of_globalProfileSpanCover
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictLoosePaperRangeRowProfileCoverData
+      M n hn2 htb hns)
+    (hcover : RouteBPaperFaithfulTPhiStrictLoosePaperAmbientGlobalProfileSpanCover D) :
+    MultilinearSPDP.mlBlockedSpdpRank
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns))) ≤
+      Fintype.card D.profileType * D.localDim := by
+  unfold MultilinearSPDP.mlBlockedSpdpRank
+  have hmono :
+      Module.finrank ℚ
+          (MultilinearSPDP.mlBlockedSpdpSubspace
+            (cook_levin_compilation M n hn2 htb hns).partition
+            (Nat.log 2 n) (Nat.log 2 n)
+            ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) ≤
+        Module.finrank ℚ
+          (Submodule.span ℚ
+            (↑(routeBPaperFaithfulTPhiStrictLoosePaperGlobalProfileBasis D) :
+              Set (MvPolynomial (Fin n) ℚ))) :=
+    Submodule.finrank_mono hcover
+  exact hmono.trans
+    ((finrank_span_finset_le_card
+        (routeBPaperFaithfulTPhiStrictLoosePaperGlobalProfileBasis D)).trans
+      (routeBPaperFaithfulTPhi_strictLoosePaperGlobalProfileBasis_card_le D))
+
+/-- P-side closeout for the full finite-normal-form alphabet route. -/
+theorem routeBPaperFaithfulTPhi_pSideBound_of_strictLoosePaperRangeRowsGlobalProfileSpanCover
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictLoosePaperRangeRowProfileCoverData
+      M n hn2 htb hns)
+    (hrange : RouteBPaperFaithfulTPhiStrictLoosePaperRangeRowsGlobalProfileSpanCover D) :
+    SATDeciderGaugePSideBound M n hn2 htb hns
+      (routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns) := by
+  unfold SATDeciderGaugePSideBound
+  exact
+    (routeBPaperFaithfulTPhi_strictLoosePaperAmbientMlRankUpper_of_globalProfileSpanCover
+      D
+      (routeBPaperFaithfulTPhi_strictLoosePaperAmbientGlobalProfileSpanCover_of_rangeRows
+        D hrange)).trans D.profileBudget_le_pow200
+
+/-- Literal arbitrary finite-normal-form profile data for the full Route B
+alphabet route.  This is the general version needed for `AlphabetWord q`; the
+assembled budget is stated directly against `n^200`, so no four-bin collapse is
+used. -/
+structure RouteBPaperFaithfulTPhiStrictLooseInterfaceAnonymousLocalMonoidProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  localNormalForm : Type
+  [localNormalFormFintype : Fintype localNormalForm]
+  [localNormalFormDecidableEq : DecidableEq localNormalForm]
+  localDim : ℕ
+  localBasis :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      localNormalForm (Nat.log 2 n) →
+      Finset (MvPolynomial (Fin n) ℚ)
+  localBasis_card_le : ∀ ρ, (localBasis ρ).card ≤ localDim
+  profileBudget_le_pow200 :
+    Fintype.card
+        (RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          localNormalForm (Nat.log 2 n)) * localDim ≤ n ^ 200
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        localNormalForm (Nat.log 2 n)
+  canonicalRangeRow_mem_interfaceProfileSpan :
+    ∀ (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α),
+      routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+          M n hn2 htb hns S' shift ∈
+        Submodule.span ℚ
+          (↑(localBasis
+            (profileOfCanonicalWindow
+              (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+              hrow.1)) : Set (MvPolynomial (Fin n) ℚ))
+
+attribute [instance]
+  RouteBPaperFaithfulTPhiStrictLooseInterfaceAnonymousLocalMonoidProfileData.localNormalFormFintype
+attribute [instance]
+  RouteBPaperFaithfulTPhiStrictLooseInterfaceAnonymousLocalMonoidProfileData.localNormalFormDecidableEq
+
+/-- Loose interface-anonymous normal-form data packages into the loose global
+range-row cover data. -/
+noncomputable def routeBPaperFaithfulTPhi_strictLoosePaperRangeRowProfileCoverData_of_looseInterfaceAnonymousLocalMonoidProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictLooseInterfaceAnonymousLocalMonoidProfileData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictLoosePaperRangeRowProfileCoverData
+      M n hn2 htb hns where
+  profileType :=
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      D.localNormalForm (Nat.log 2 n)
+  profileTypeFintype := inferInstance
+  localDim := D.localDim
+  localBasis := D.localBasis
+  localBasis_card_le := D.localBasis_card_le
+  profileBudget_le_pow200 := D.profileBudget_le_pow200
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalRangeRow_mem_profileSpan := D.canonicalRangeRow_mem_interfaceProfileSpan
+
+/-- Full finite-normal-form alphabet data closes the strict `TΦ` P-side bound
+without a four-bin `ConstraintType` collapse. -/
+theorem routeBPaperFaithfulTPhi_pSideBound_of_strictLooseInterfaceAnonymousLocalMonoidProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictLooseInterfaceAnonymousLocalMonoidProfileData
+      M n hn2 htb hns) :
+    SATDeciderGaugePSideBound M n hn2 htb hns
+      (routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns) := by
+  let C :=
+    routeBPaperFaithfulTPhi_strictLoosePaperRangeRowProfileCoverData_of_looseInterfaceAnonymousLocalMonoidProfileData
+      M n hn2 htb hns D
+  exact
+    routeBPaperFaithfulTPhi_pSideBound_of_strictLoosePaperRangeRowsGlobalProfileSpanCover
+      M n hn2 htb hns C
+      (routeBPaperFaithfulTPhi_strictLoosePaperRangeRowsGlobalProfileSpanCover_of_data
+        M n hn2 htb hns C)
+
 /-- The actual canonical-window local-monoid/profile analysis closes the
 P-side bound through the corrected paper-shaped range-row cover. -/
 theorem routeBPaperFaithfulTPhi_pSideBound_of_strictCanonicalWindowLocalMonoidProfileAnalysis

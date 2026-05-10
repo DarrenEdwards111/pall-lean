@@ -287,6 +287,19 @@ theorem SAT_path_B_paperFaithfulCanonicalWindowLocalMonoidProfileData_TPhi_extra
   PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictCanonicalWindowLocalMonoidProfileData
     hData
 
+
+/-- Full finite-normal-form alphabet Route-B closeout.
+
+This is the option-2 path: keep the paper's finite `Σ^{≤q}` normal-form
+alphabet explicit and prove the assembled profile budget directly under the
+ambient `n^200` envelope, rather than proving a collapse to four
+`ConstraintType` bins. -/
+theorem SAT_path_B_paperFaithfulLooseInterfaceAnonymousLocalMonoidProfile_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiLooseInterfaceAnonymousLocalMonoidProfileData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiLooseInterfaceAnonymousLocalMonoidProfileData
+    hData
+
 /-- Literal bounded local-monoid/profile Route-B closeout.
 
 This is the corrected paper §9.3--§9.4 refactor: the local normal-form alphabet
