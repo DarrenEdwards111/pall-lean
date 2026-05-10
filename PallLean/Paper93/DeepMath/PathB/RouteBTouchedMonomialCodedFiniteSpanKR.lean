@@ -45,6 +45,22 @@ def CookLevinTouchedMonomialCodedFiniteSpanData
         ((Set.range (localBasis (codeOf D))) : Set
           (MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ))
 
+/-- The fixed-interface finite-span theorem is a special case of the coded
+finite-span target, with `C₃ = 16` and the canonical interface word as the code.
+This is only a packaging bridge: it does not replace the paper's local chart
+proof, but it ensures any eventual fixed-interface chart theorem lands directly
+in the final coded Route B target. -/
+theorem touchedMonomialCodedFiniteSpan_of_interfaceFiniteSpan
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hfinite : CookLevinTouchedMonomialInterfaceFiniteSpanData
+      M n hn2 htb hns) :
+    CookLevinTouchedMonomialCodedFiniteSpanData M n hn2 htb hns := by
+  rcases hfinite with ⟨localBasis, hrow⟩
+  refine ⟨16, ?_, (fun D => D.word), localBasis, ?_⟩
+  · decide
+  · intro D
+    exact hrow D
 /-- Global generator set from coded words and bounded basis slots. -/
 noncomputable def touchedMonomialCodedFiniteGeneratorSet
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
@@ -151,6 +167,16 @@ def Step247UniformTouchedMonomialCodedFiniteSpanData : Prop :=
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
     CookLevinTouchedMonomialCodedFiniteSpanData M n hn2 htb hns
 
+
+/-- Uniform fixed-interface finite-span data supplies the final coded finite-span
+Route B target. -/
+theorem step247UniformTouchedMonomialCodedFiniteSpanData_of_interfaceFiniteSpan
+    (hfinite : Step247UniformTouchedMonomialInterfaceFiniteSpanData) :
+    Step247UniformTouchedMonomialCodedFiniteSpanData := by
+  intro M n hn hn2 htb hns
+  exact touchedMonomialCodedFiniteSpan_of_interfaceFiniteSpan
+    M n hn2 htb hns (hfinite M n hn hn2 htb hns)
+
 /-- Uniform coded finite-span data supplies uniform monomial-shift KR data. -/
 theorem step247UniformTouchedMonomialShiftKRData_of_monomialCodedFiniteSpan
     (hData : Step247UniformTouchedMonomialCodedFiniteSpanData) :
@@ -169,6 +195,8 @@ theorem noBoundedSATDeciderAtPaperScale_of_touchedMonomialCodedFiniteSpanData_TP
 
 /-! ## Axiom audit anchors -/
 
+#print axioms touchedMonomialCodedFiniteSpan_of_interfaceFiniteSpan
+#print axioms step247UniformTouchedMonomialCodedFiniteSpanData_of_interfaceFiniteSpan
 #print axioms touchedMonomialCodedFiniteGeneratorSet_card_le
 #print axioms C_mul_C_pow_log_le_C_sq_pow_log
 #print axioms touchedMonomialCodedFiniteGeneratorSet_card_le_n_pow_200
