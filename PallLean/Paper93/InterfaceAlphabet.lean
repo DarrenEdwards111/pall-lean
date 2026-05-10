@@ -99,5 +99,26 @@ theorem card_AlphabetWord (q : ℕ) :
   rw [← Fin.sum_univ_eq_sum_range
     (f := fun k => Fintype.card InterfaceType ^ k)]
 
+/-- First nontrivial bounded-word alphabet already has 17 normal-form words.
+
+This is a formal guardrail for Route B: the paper's literal `Σ^{≤q}` alphabet
+should not be silently identified with the four raw `ConstraintType` bins unless
+a genuine quotient/collapse theorem has been proved. -/
+theorem card_AlphabetWord_one :
+    Fintype.card (AlphabetWord 1) = 17 := by
+  rw [card_AlphabetWord]
+  simp [card_InterfaceType]
+
+/-- Consequently, the literal `Σ^{≤1}` normal-form alphabet does not satisfy
+the four-bin `ConstraintType` profile-count hypothesis.
+
+The existing four-bin closeout is therefore paper-faithful only after an
+explicit proof that the strict `TΦ` quotient collapses the local monoid normal
+forms to four profile-relevant bins. -/
+theorem not_card_AlphabetWord_one_le_four :
+    ¬ Fintype.card (AlphabetWord 1) ≤ 4 := by
+  rw [card_AlphabetWord_one]
+  norm_num
+
 end Paper93
 end PallLean
