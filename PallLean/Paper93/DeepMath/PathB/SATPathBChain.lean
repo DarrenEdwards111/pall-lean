@@ -302,6 +302,76 @@ theorem SAT_path_B_paperFaithfulConstraintTypeProfileSubspace_TPhi_extraction_mo
   PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData
     hData
 
+/-- Literal selected-row-span version of the paper-faithful Lemma-31 seam.
+
+This is the `V_h = span{canonical strict rows selecting h}` formulation.  The
+row-membership field is constructive by `Submodule.subset_span`; the remaining
+content is exactly the finite-dimensional within-profile bound for each
+selected row span.  This avoids both the false global chart and the stronger
+post-span/residual-balance shortcuts. -/
+theorem SAT_path_B_paperFaithfulCanonicalProfileRowSpan_TPhi_extraction_move
+    (hData :
+      ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804)
+        (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (_hdec : DecidesSAT M),
+        PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictCanonicalProfileRowSpanData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictCanonicalProfileRowSpanData
+    hData
+
+/-- Source-coordinate literal selected-row-span seam.
+
+This is the strict first-of-block source version of the same `V_h` target, prior
+to ambient rename transport.  It is often the most convenient place to prove the
+real Lemma-31 compression because the local words/types live in source
+coordinates. -/
+theorem SAT_path_B_paperFaithfulSourceCanonicalProfileRowSpan_TPhi_extraction_move
+    (hData :
+      ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804)
+        (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (_hdec : DecidesSAT M),
+        PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceCanonicalProfileRowSpanData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceCanonicalProfileRowSpanData
+    hData
+
+/-- Source local-type compression seam for the real Lemma-31 proof.
+
+This is the term/local-monoid normal-form target below the selected row-span
+surface: for each selected interface profile, classify the canonical source row
+into a bounded local-type alphabet and prove membership in that same selected
+local-type space. -/
+theorem SAT_path_B_paperFaithfulSourceLocalTypeCompression_TPhi_extraction_move
+    (hData :
+      ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804)
+        (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (_hdec : DecidesSAT M),
+        PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceLocalTypeCompressionData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceLocalTypeCompressionData
+    hData
+
+/-- Exact-profile template-collapse sufficient seam for the strict source row.
+
+This exposes the checked route
+`selected template collapse + selected row post-span membership → source
+local-type compression → selected V_h → strict TΦ contradiction`.  It is kept as
+a sound sufficient surface; it does not replace the more general local-monoid
+classification target above. -/
+theorem SAT_path_B_paperFaithfulSourceCanonicalRowExactProfileTemplateCollapse_TPhi_extraction_move
+    (hData :
+      ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804)
+        (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (_hdec : DecidesSAT M),
+        PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceCanonicalRowExactProfileTemplateCollapseData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceCanonicalRowExactProfileTemplateCollapseData
+    hData
+
 /-- Paper-faithful placed quotient/descent exposure: this is the replacement
 surface for the broken unplaced atom-trace chart route.  It keeps the exact
 placed Cook--Levin local-interface expansion and then descends to the selected
