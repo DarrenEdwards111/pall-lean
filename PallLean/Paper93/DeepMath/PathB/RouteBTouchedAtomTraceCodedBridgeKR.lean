@@ -53,6 +53,55 @@ def CookLevinTouchedMonomialAtomTraceCodedBasisData
             ((Set.range (localBasis (codeOf D))) : Set
               (MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ))
 
+/-- Exact-budget version of the atom-trace coded-basis datum.
+
+The only background input per row is the canonical exact-budget local-chart
+row theorem; the arbitrary `typeBudget` parameter is eliminated by
+`untouchedBackgroundAtomTraceExactTypeBudget`. -/
+def CookLevinTouchedMonomialAtomTraceExactCodedBasisData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∃ (C₃ : ℕ)
+    (_hC₃ : Nat.log 2 (C₃ ^ 2) + 1 ≤ 200)
+    (codeOf : TouchedMonomialInterfaceDatum M n hn2 htb hns →
+      touchedKRWords C₃ (Nat.log 2 n))
+    (localBasis : touchedKRWords C₃ (Nat.log 2 n) → Fin C₃ →
+      MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ),
+    ∀ D : TouchedMonomialInterfaceDatum M n hn2 htb hns,
+      ∃ (B : SPDP.BlockPartition (cookLevinTableau M n hn2 htb hns).numVars)
+        (ℓ : ℕ)
+        (A : UntouchedBackgroundConcreteAtomTraceExactCompiledChartRowsForList
+          M n hn2 htb hns D.S B ℓ),
+        ∀ p ∈ mlProjProductBasis
+            (MlProjFar.mlMonomialBasis
+              (cookLevinRowLocalWindow M n hn2 htb hns D.S))
+            (zeroProfileProjectedNormalFormGlobalBasis
+              (zeroProfileProjectedNormalFormFamily_of_concreteData
+                (untouchedBackgroundConcreteNormalFormClassifierForList_of_atomTraceCompiledChartRows
+                  M n hn2 htb hns D.S B ℓ
+                    (untouchedBackgroundConcreteAtomTraceCompiledChartRowsForList_of_exact
+                      M n hn2 htb hns D.S B ℓ A)).data)),
+          p ∈ Submodule.span ℚ
+            ((Set.range (localBasis (codeOf D))) : Set
+              (MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ))
+
+/-- Exact-budget atom-trace coded basis data forgets to the budgeted bridge. -/
+theorem touchedMonomialAtomTraceCodedBasisData_of_exact
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hData : CookLevinTouchedMonomialAtomTraceExactCodedBasisData
+      M n hn2 htb hns) :
+    CookLevinTouchedMonomialAtomTraceCodedBasisData M n hn2 htb hns := by
+  classical
+  rcases hData with ⟨C₃, hC₃, codeOf, localBasis, hrowBasis⟩
+  refine ⟨C₃, hC₃, codeOf, localBasis, ?_⟩
+  intro D
+  rcases hrowBasis D with ⟨B, ℓ, A, hbasis⟩
+  refine ⟨B, ℓ, untouchedBackgroundAtomTraceExactTypeBudget n,
+    untouchedBackgroundConcreteAtomTraceCompiledChartRowsForList_of_exact
+      M n hn2 htb hns D.S B ℓ A, ?_⟩
+  simpa using hbasis
+
 /-- Concrete atom-trace coded basis data supplies the final coded finite-span
 Route B target.  The proof is just the faithful composition: exact touched row
 → concrete background product basis → per-code local basis span. -/
@@ -100,6 +149,7 @@ theorem step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceCodedBasis
 
 /-! ## Axiom audit anchors -/
 
+#print axioms touchedMonomialAtomTraceCodedBasisData_of_exact
 #print axioms touchedMonomialCodedFiniteSpan_of_atomTraceCodedBasis
 #print axioms step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceCodedBasis
 

@@ -1964,6 +1964,73 @@ structure UntouchedBackgroundConcreteAtomTraceCompiledChartRowsForList
             B (Nat.log 2 n) ℓ
             (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)).W
 
+/-- The exact atom-trace profile budget for the full finite local action monoid.
+
+Keeping this as a definition lets downstream instantiations avoid carrying a
+separate arbitrary `typeBudget`: the budget is literally the paper §9.3 sum of
+symmetric-profile dimensions over the concrete finite local action monoid. -/
+noncomputable def untouchedBackgroundAtomTraceExactTypeBudget (n : ℕ) : ℕ :=
+  ∑ g : (untouchedBackgroundAtomTraceLocalMonoid (Nat.log 2 n)).localMonoid,
+    zeroProfileSymmetricProfileDim
+      (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) g)
+
+/-- Fully concrete atom-trace row theorem with the canonical exact budget.
+
+This is the leanest remaining local-chart obligation: prove the actual
+Cook--Levin row membership in the compiled coefficient-basis chart for the
+profile read from the concrete atom trace.  The finite-budget field is then
+forced by `untouchedBackgroundAtomTraceExactTypeBudget`; no arbitrary/global
+budget is introduced. -/
+structure UntouchedBackgroundConcreteAtomTraceExactCompiledChartRowsForList
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (B : SPDP.BlockPartition (cookLevinTableau M n hn2 htb hns).numVars)
+    (ℓ : ℕ) where
+  row_mem_atomTraceProfile :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+      (hR : R.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+      (hshift : shift.vars ⊆ R.toFinset),
+      let ctype := untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S
+      let shiftWord := List.replicate R.length
+        (untouchedBackgroundAtomTraceShiftGenerator (Nat.log 2 n))
+      let rowNF := shiftWord.prod *
+        (List.ofFn (fun i : Fin
+          (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+            ([untouchedBackgroundAtomTraceFactorGenerator (Nat.log 2 n)
+              (ctype i)] : List
+                (untouchedBackgroundAtomTraceLocalMonoid
+                  (Nat.log 2 n)).localMonoid).prod)).prod
+      MultilinearSPDP.mlProj (shift *
+          Finset.univ.prod
+            (fun i : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+              (untouchedBackgroundFactorList M n hn2 htb hns S).get i)) ∈
+        profileSubspace
+          (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)
+          (zeroProfileConcreteLocalChart_compiledCoefficientBasis
+            B (Nat.log 2 n) ℓ
+            (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)).W
+
+/-- Exact-budget atom-trace row data instantiates the previous budgeted
+compiled-chart row package. -/
+noncomputable def untouchedBackgroundConcreteAtomTraceCompiledChartRowsForList_of_exact
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (B : SPDP.BlockPartition (cookLevinTableau M n hn2 htb hns).numVars)
+    (ℓ : ℕ)
+    (A : UntouchedBackgroundConcreteAtomTraceExactCompiledChartRowsForList
+      M n hn2 htb hns S B ℓ) :
+    UntouchedBackgroundConcreteAtomTraceCompiledChartRowsForList
+      M n hn2 htb hns S B ℓ
+        (untouchedBackgroundAtomTraceExactTypeBudget n) where
+  totalProfileBudget_le := by
+    rfl
+  row_mem_atomTraceProfile := by
+    intro R hR shift hshift
+    simpa using A.row_mem_atomTraceProfile R hR shift hshift
+
 /-- The fully concrete atom trace theorem feeds directly into the raw-trace
 normal-form classifier pipeline. -/
 noncomputable def untouchedBackgroundProfileRawGeneratorTraceActionDataForList_of_atomTraceCompiledChartRows
@@ -2784,6 +2851,8 @@ theorem rowWindowBackgroundNormalFormProductBasis_card_le_pow_add
 #print axioms untouchedBackgroundConcreteDataOfLocalMonoidProfiles
 #print axioms untouchedBackgroundAtomTraceProfile_admissible
 #print axioms untouchedBackgroundAtomTraceActionProfile_admissible
+#print axioms untouchedBackgroundAtomTraceExactTypeBudget
+#print axioms untouchedBackgroundConcreteAtomTraceCompiledChartRowsForList_of_exact
 #print axioms untouchedBackgroundProfileRawGeneratorTraceActionDataForList_of_atomTraceCompiledChartRows
 #print axioms untouchedBackgroundConcreteNormalFormClassifierForList_of_atomTraceCompiledChartRows
 #print axioms untouchedBackgroundConstraintTypeTraceProfile_admissible

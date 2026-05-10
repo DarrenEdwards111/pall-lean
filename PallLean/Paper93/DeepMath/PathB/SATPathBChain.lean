@@ -244,6 +244,22 @@ theorem SAT_path_B_touchedAtomTraceCodedBasisKR_TPhi_extraction_move
   noBoundedSATDeciderAtPaperScale_of_touchedMonomialCodedFiniteSpanData_TPhi
     (step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceCodedBasis hData)
 
+/-- Exact-budget atom-trace coded-basis exposure: same as the atom-trace
+coded-basis seam, but with the background type budget fixed to the literal
+finite local monoid profile sum. -/
+theorem SAT_path_B_touchedAtomTraceExactCodedBasisKR_TPhi_extraction_move
+    (hData : ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804)
+      (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+      CookLevinTouchedMonomialAtomTraceExactCodedBasisData M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_touchedMonomialCodedFiniteSpanData_TPhi
+    (by
+      intro M n hn hn2 htb hns
+      exact touchedMonomialCodedFiniteSpan_of_atomTraceCodedBasis
+        M n hn2 htb hns
+        (touchedMonomialAtomTraceCodedBasisData_of_exact
+          M n hn2 htb hns (hData M n hn hn2 htb hns)))
+
 /-- Incidence-count split KR exposure: the final KR obligation now also carries
 the real union-bound count over row-variable incidence fibres. -/
 theorem SAT_path_B_touchedIncidenceSplitKR_TPhi_extraction_move
