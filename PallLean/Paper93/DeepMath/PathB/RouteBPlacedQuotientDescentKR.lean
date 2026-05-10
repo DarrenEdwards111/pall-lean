@@ -87,6 +87,25 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedInterfaceEquivaria
     PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceEquivariantQuotientMapData
       M n hn2 htb hns
 
+
+/-- Slotwise normal-form data yields the explicit quotient-map normal form by
+using the actual placement map as the quotient map on row slots.
+
+This makes the quotient-map seam constructive relative to the already-proved
+slot descent data: no ambient/global chart equality is introduced, and the
+landing proof is exactly the row-local selected `W_σ` membership carried by the
+slot datum. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedInterfaceEquivariantQuotientMapNormalFormData_of_interfaceNormalFormData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedInterfaceNormalFormData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedInterfaceEquivariantQuotientMapNormalFormData
+      M n hn2 htb hns where
+  quotientMapData :=
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedLocalInterfaceEquivariantQuotientMapData_of_slotQuotientData
+      M n hn2 htb hns D.slotQuotientData
+
 /-- Equivariant quotient-map normal form instantiates the slotwise normal-form
 data consumed by the existing placed quotient/descent chain. -/
 noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedInterfaceNormalFormData_of_equivariantQuotientMapNormalFormData
@@ -128,6 +147,16 @@ def Step247UniformRouteBPaperFaithfulTPhiPlacedInterfaceEquivariantQuotientMapNo
     Nonempty
       (RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedInterfaceEquivariantQuotientMapNormalFormData
         M n hn2 htb hns)
+
+/-- Uniform slotwise normal-form data also supplies the explicit equivariant
+quotient-map surface. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiPlacedInterfaceEquivariantQuotientMapNormalFormData_of_interfaceNormalFormData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiPlacedInterfaceNormalFormData) :
+    Step247UniformRouteBPaperFaithfulTPhiPlacedInterfaceEquivariantQuotientMapNormalFormData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedInterfaceEquivariantQuotientMapNormalFormData_of_interfaceNormalFormData
+    M n hn2 htb hns D⟩
 
 /-- Equivariant quotient-map normal forms supply the slotwise normal-form data. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiPlacedInterfaceNormalFormData_of_equivariantQuotientMapNormalFormData
