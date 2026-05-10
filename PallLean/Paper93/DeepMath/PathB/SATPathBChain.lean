@@ -288,6 +288,18 @@ theorem SAT_path_B_paperFaithfulCanonicalWindowLocalMonoidProfileData_TPhi_extra
     hData
 
 
+
+/-- Concrete `AlphabetWord 1` Route-B closeout.
+
+This is the first instantiated option-2 endpoint: profile-count arithmetic for
+`Σ^{≤1}` is proved, so the only hypothesis is the selected Lemma-31 profile row
+data for the literal normal-form word alphabet. -/
+theorem SAT_path_B_paperFaithfulAlphabetWordOneLocalMonoidProfile_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiAlphabetWordOneLocalMonoidProfileData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiAlphabetWordOneLocalMonoidProfileData
+    hData
+
 /-- Full finite-normal-form alphabet Route-B closeout.
 
 This is the option-2 path: keep the paper's finite `Σ^{≤q}` normal-form

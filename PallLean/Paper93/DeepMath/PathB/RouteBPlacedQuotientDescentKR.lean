@@ -437,6 +437,7 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
           hData M n hn hn2 htb hns))
 
 
+
 /-- Uniform full finite-normal-form alphabet data at Step 247 scale.
 
 Unlike the four-bin bounded surface, this keeps the paper's actual finite
@@ -464,6 +465,29 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiPSideBound_of_looseInterf
     PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_pSideBound_of_strictLooseInterfaceAnonymousLocalMonoidProfileData
       M n hn2 htb hns D
 
+/-- Uniform `AlphabetWord 1` local-monoid/profile data at Step 247 scale.
+
+This is the first concrete option-2 target: the normal-form alphabet is the
+literal finite word alphabet `Σ^{≤1}`, and the profile-count arithmetic is
+proved in `RouteBPaperFaithfulTPhiExtraction`.  The remaining mathematical
+content is exactly the selected Lemma-31 row membership for those profiles. -/
+def Step247UniformRouteBPaperFaithfulTPhiAlphabetWordOneLocalMonoidProfileData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictAlphabetWordOneLocalMonoidProfileData
+        M n hn2 htb hns)
+
+/-- `AlphabetWord 1` data supplies the loose full-alphabet Step247 datum. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiLooseInterfaceAnonymousLocalMonoidProfileData_of_alphabetWordOneProfileData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiAlphabetWordOneLocalMonoidProfileData) :
+    Step247UniformRouteBPaperFaithfulTPhiLooseInterfaceAnonymousLocalMonoidProfileData := by
+  intro M n hn hn2 htb hns
+  exact
+    ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictLooseInterfaceAnonymousLocalMonoidProfileData_of_alphabetWordOneProfileData
+      M n hn2 htb hns
+      (Classical.choice (hData M n hn hn2 htb hns))⟩
+
 /-- Uniform bounded local-monoid/profile data closes the full strict `TΦ`
 Route-B contradiction.
 
@@ -483,6 +507,7 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
           hData M n hn hn2 htb hns))
 
 
+
 /-- Uniform full finite-normal-form alphabet data closes the strict `TΦ` Route-B
 contradiction without collapsing `Σ^{≤q}` to four raw constraint bins. -/
 theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiLooseInterfaceAnonymousLocalMonoidProfileData
@@ -495,6 +520,14 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
         M n hn2 htb hns
         (step247UniformRouteBPaperFaithfulTPhiPSideBound_of_looseInterfaceAnonymousLocalMonoidProfileData
           hData M n hn hn2 htb hns))
+
+/-- Uniform `AlphabetWord 1` profile data closes the strict `TΦ` Route-B
+contradiction through the full finite-normal-form alphabet route. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiAlphabetWordOneLocalMonoidProfileData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiAlphabetWordOneLocalMonoidProfileData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiLooseInterfaceAnonymousLocalMonoidProfileData
+    (step247UniformRouteBPaperFaithfulTPhiLooseInterfaceAnonymousLocalMonoidProfileData_of_alphabetWordOneProfileData hData)
 
 /-- Paper-faithful close-out: the explicit placed interface normal-form seam is
 sufficient to close the strict `TΦ` Route-B path.  This is the theorem surface

@@ -10,6 +10,7 @@ import PallLean.Paper93.DeepMath.PathB.ActiveProfileEndpointAugmentedProofProgre
 import PallLean.Paper93.CanonicalizationMap
 import PallLean.Paper93.ShortlexNormalForm
 import PallLean.Paper93.InterfaceProfile
+import PallLean.Paper93.InterfaceAlphabet
 import PallLean.Paper93.TemplateCollapseDischarge
 import PallLean.Paper93.TensorDimBound
 import PallLean.Paper93.Paper283.RouteBTransportPSideBound
@@ -27608,6 +27609,7 @@ theorem routeBPaperFaithfulTPhi_pSideBound_of_strictLoosePaperRangeRowsGlobalPro
       (routeBPaperFaithfulTPhi_strictLoosePaperAmbientGlobalProfileSpanCover_of_rangeRows
         D hrange)).trans D.profileBudget_le_pow200
 
+
 /-- Literal arbitrary finite-normal-form profile data for the full Route B
 alphabet route.  This is the general version needed for `AlphabetWord q`; the
 assembled budget is stated directly against `n^200`, so no four-bin collapse is
@@ -27707,6 +27709,140 @@ theorem routeBPaperFaithfulTPhi_pSideBound_of_strictLooseInterfaceAnonymousLocal
       M n hn2 htb hns C
       (routeBPaperFaithfulTPhi_strictLoosePaperRangeRowsGlobalProfileSpanCover_of_data
         M n hn2 htb hns C)
+
+/-- Profile-count bound for the first nontrivial full normal-form alphabet
+`Σ^{≤1}`.
+
+This is the literal `AlphabetWord 1` version of Lemma 29: the profile count is
+bounded by `(κ+1)^17`, since `|AlphabetWord 1| = 17`.  It deliberately does not
+identify normal-form words with the four raw `ConstraintType` bins. -/
+theorem routeBPaperFaithfulTPhi_strictAlphabetWordOneProfiles_card_le_pow17
+    (κ : ℕ) :
+    Fintype.card
+        (RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          (PallLean.Paper93.AlphabetWord 1) κ) ≤
+      (κ + 1) ^ 17 := by
+  classical
+  calc
+    Fintype.card
+        (RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          (PallLean.Paper93.AlphabetWord 1) κ)
+        = (PallLean.Paper93.RealizableProfiles
+            (PallLean.Paper93.AlphabetWord 1) κ).card := by
+          simp [RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles]
+    _ ≤ (κ + 1) ^ Fintype.card (PallLean.Paper93.AlphabetWord 1) :=
+          PallLean.Paper93.profileCompression_card_bound
+            (PallLean.Paper93.AlphabetWord 1) κ
+    _ = (κ + 1) ^ 17 := by
+          rw [PallLean.Paper93.card_AlphabetWord_one]
+
+/-- Arithmetic envelope for the full `AlphabetWord 1` normal-form route.
+
+Lemma 29 gives `(log n + 1)^17` profile classes, while Lemma 31 contributes the
+same `(log n + 1)^8` within-profile dimension bound.  Their product is bounded
+by the ambient `n^200` Route B gauge budget. -/
+theorem routeBPaperFaithfulTPhi_alphabetWordOneProfileBudget_log_le_pow_200
+    (n : ℕ) (hn2 : n ≥ 2) :
+    (Nat.log 2 n + 1) ^ 17 * withinProfileBound (Nat.log 2 n) ≤ n ^ 200 := by
+  rw [WithinProfileBound.withinProfileBound_eq_pow8]
+  have hbase : Nat.log 2 n + 1 ≤ 2 * n := by
+    have hlog : Nat.log 2 n ≤ n := Nat.log_le_self 2 n
+    omega
+  calc
+    (Nat.log 2 n + 1) ^ 17 * (Nat.log 2 n + 1) ^ 8
+        = (Nat.log 2 n + 1) ^ 25 := by ring
+    _ ≤ (2 * n) ^ 25 := Nat.pow_le_pow_left hbase 25
+    _ = 2 ^ 25 * n ^ 25 := by ring
+    _ ≤ n ^ 175 * n ^ 25 := by
+      apply Nat.mul_le_mul_right
+      calc
+        (2 : ℕ) ^ 25 ≤ 2 ^ 175 := by
+          exact Nat.pow_le_pow_left (by norm_num : (2 : ℕ) ≤ 2) 25 |>.trans (by norm_num)
+        _ ≤ n ^ 175 := by
+          exact Nat.pow_le_pow_left hn2 175
+    _ = n ^ 200 := by ring
+
+/-- Full `AlphabetWord 1` interface-anonymous normal-form data.
+
+This is option 2 specialized to the first nontrivial literal finite
+normal-form alphabet `Σ^{≤1}`: Lemma 29's profile-count arithmetic is proved
+above, and this structure asks only for Lemma 31's selected local bases and row
+membership for the actual normal-form profiles. -/
+structure RouteBPaperFaithfulTPhiStrictAlphabetWordOneLocalMonoidProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  localDim : ℕ
+  localDim_le : localDim ≤ withinProfileBound (Nat.log 2 n)
+  localBasis :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      (PallLean.Paper93.AlphabetWord 1) (Nat.log 2 n) →
+      Finset (MvPolynomial (Fin n) ℚ)
+  localBasis_card_le : ∀ ρ, (localBasis ρ).card ≤ localDim
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        (PallLean.Paper93.AlphabetWord 1) (Nat.log 2 n)
+  canonicalRangeRow_mem_alphabetWordOneProfileSpan :
+    ∀ (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α),
+      routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+          M n hn2 htb hns S' shift ∈
+        Submodule.span ℚ
+          (↑(localBasis
+            (profileOfCanonicalWindow
+              (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+              hrow.1)) : Set (MvPolynomial (Fin n) ℚ))
+
+/-- `AlphabetWord 1` data instantiates the loose full-alphabet Route B surface. -/
+noncomputable def routeBPaperFaithfulTPhi_strictLooseInterfaceAnonymousLocalMonoidProfileData_of_alphabetWordOneProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictAlphabetWordOneLocalMonoidProfileData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictLooseInterfaceAnonymousLocalMonoidProfileData
+      M n hn2 htb hns where
+  localNormalForm := PallLean.Paper93.AlphabetWord 1
+  localNormalFormFintype := inferInstance
+  localNormalFormDecidableEq := inferInstance
+  localDim := D.localDim
+  localBasis := D.localBasis
+  localBasis_card_le := D.localBasis_card_le
+  profileBudget_le_pow200 := by
+    calc
+      Fintype.card
+          (RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+            (PallLean.Paper93.AlphabetWord 1) (Nat.log 2 n)) * D.localDim
+          ≤ (Nat.log 2 n + 1) ^ 17 * withinProfileBound (Nat.log 2 n) :=
+            Nat.mul_le_mul
+              (routeBPaperFaithfulTPhi_strictAlphabetWordOneProfiles_card_le_pow17
+                (Nat.log 2 n)) D.localDim_le
+      _ ≤ n ^ 200 :=
+            routeBPaperFaithfulTPhi_alphabetWordOneProfileBudget_log_le_pow_200 n hn2
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalRangeRow_mem_interfaceProfileSpan :=
+    D.canonicalRangeRow_mem_alphabetWordOneProfileSpan
 
 /-- The actual canonical-window local-monoid/profile analysis closes the
 P-side bound through the corrected paper-shaped range-row cover. -/
