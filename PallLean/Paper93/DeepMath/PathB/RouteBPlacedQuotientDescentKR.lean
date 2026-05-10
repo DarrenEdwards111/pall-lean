@@ -356,6 +356,77 @@ theorem cookLevinRichProjectionDischarge_of_step247UniformRouteBPaperFaithfulTPh
   PallLean.Paper93.Paper283.cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_quotientTypeCertificate_restrictedResidualBalance
     hData
 
+/-- Concrete singleton-quotient data instantiates the selected projected
+quotient-normal-form gate.
+
+This is the paper-faithful closure surface after the selected-certificate
+refactor: concrete per-type row embeddings discharge the projected quotient
+budget, normalized non-singleton coefficients give the selected normalized row,
+and the derivative fixed-representative condition supplies residual balance for
+the chosen singleton quotient projection. -/
+theorem step247UniformRouteBPaperFaithfulTPhiProjectedQuotientNormalFormData_of_singletonQuotient_concreteW_normalizedCoeff_fixedDerivative
+    (hcert :
+      ∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (_hdec : DecidesSAT M),
+        ∃ hn4 : n ≥ 4,
+          PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+            M n hn2 htb hns hn4 ∧
+          PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedNonSingletonCoeffIdentity
+            M n hn2 htb hns ∧
+          PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonQuotientDerivativeFixed
+            M n hn2 htb hns) :
+    Step247UniformRouteBPaperFaithfulTPhiProjectedQuotientNormalFormData := by
+  intro M n hn hn2 htb hns hdec
+  rcases hcert M n hn hn2 htb hns hdec with
+    ⟨hn4, hRowEmbeddings, hcoeff, hfix⟩
+  let typeBudget : Nat :=
+    zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+  let cert : ZeroProfileQuotientTypeSpaceCertificate (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+      typeBudget :=
+    zeroProfileSingletonQuotientTypeSpaceCertificate_projectedFinrank
+      (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+  refine ⟨typeBudget, cert, ?_, ?_⟩
+  · exact
+      PallLean.Paper93.Paper283.cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_concreteW_rowEmbeddings
+        M n hn2 htb hns hn4 hRowEmbeddings
+  · have hnorm :
+        PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalizedRowIdentity
+          M n hn2 htb hns :=
+      PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_singletonNormalizedRowIdentity_of_normalizedNonSingletonCoeff
+        M n hn2 htb hns hcoeff
+    have hresSingleton :
+        PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+          M n hn2 htb hns
+          (zeroProfileQuotientBySingletonShiftProjection
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) :=
+      PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientResidualBalance_of_normalizedRows_derivativeFixed
+        M n hn2 htb hns hnorm hfix
+    simpa [cert, typeBudget, zeroProfileSingletonQuotientTypeSpaceCertificate_projectedFinrank]
+      using hresSingleton
+
+/-- Closeout from the concrete selected singleton-quotient data, routed through
+the selected projected quotient-normal-form gate above. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi_singletonQuotient_concreteW_normalizedCoeff_fixedDerivative
+    (hcert :
+      ∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (_hdec : DecidesSAT M),
+        ∃ hn4 : n ≥ 4,
+          PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+            M n hn2 htb hns hn4 ∧
+          PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedNonSingletonCoeffIdentity
+            M n hn2 htb hns ∧
+          PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonQuotientDerivativeFixed
+            M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiProjectedQuotientNormalFormData
+    (step247UniformRouteBPaperFaithfulTPhiProjectedQuotientNormalFormData_of_singletonQuotient_concreteW_normalizedCoeff_fixedDerivative
+      hcert)
+
 /-- Ambient quotient/rank soundness for the placed local-interface expansion.
 
 This is the precise remaining bridge if one replaces the false fixed raw chart

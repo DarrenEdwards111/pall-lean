@@ -43,6 +43,8 @@ namespace PallLean.Paper93.DeepMath.PathB
 open PallLean.Paper93.DeepMath.NFrame
 open PallLean.Paper93.DeepMath.GadgetRank
 open PallLean.Paper93.DeepMath.BridgeB
+open PaperFaithfulSeparation
+open TuringMachine
 
 /-- Path B for SAT deciders: combining
     (1) the rank chain on the compiled gadget (kernel-only),
@@ -295,6 +297,25 @@ theorem SAT_path_B_projectedQuotientNormalForm_TPhi_extraction_move
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiProjectedQuotientNormalFormData
     hData
+
+/-- Concrete selected singleton-quotient Route-B closeout: concrete per-type
+row embeddings plus normalized coefficients and fixed derivative representative
+instantiate the selected projected quotient-normal-form gate. -/
+theorem SAT_path_B_singletonQuotient_concreteW_normalizedCoeff_fixedDerivative_TPhi_extraction_move
+    (hcert :
+      ∀ (M : TuringMachine.DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (_hdec : DecidesSAT M),
+        ∃ hn4 : n ≥ 4,
+          PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+            M n hn2 htb hns hn4 ∧
+          PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedNonSingletonCoeffIdentity
+            M n hn2 htb hns ∧
+          PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonQuotientDerivativeFixed
+            M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi_singletonQuotient_concreteW_normalizedCoeff_fixedDerivative
+    hcert
 
 /-- Corrected quotient-normalisation factoring: the local placed expansion is
 kept separate from the ambient quotient/rank soundness bridge.  This is the
