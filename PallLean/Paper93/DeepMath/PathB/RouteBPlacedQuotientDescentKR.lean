@@ -14,6 +14,7 @@ through the already checked Paper283 placed-local quotient machinery.
 -/
 
 set_option exponentiation.threshold 1024
+set_option maxHeartbeats 800000
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -37,6 +38,16 @@ noncomputable def routeBLocalTemplateOfCanonicalSlot
     MvPolynomial (Fin maxConstraintArity) ℚ :=
   canonicalInterfacePolynomial routeBLocalInterfaceBlockPartition 0 0 σ j
 
+/-- Uniform placed-expansion data: the row has first been expanded into actual
+placed local Cook--Levin interface templates.  This is strictly weaker than the
+ambient selected-chart quotient descent below: it records the honest local
+expansion before any quotient/rank soundness claim is made. -/
+def Step247UniformRouteBPaperFaithfulTPhiPlacedExpansionData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceExpansionData
+        M n hn2 htb hns)
 
 /-- Paper-faithful placed quotient/normal-form data.
 
@@ -306,6 +317,36 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescent
     (step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData_of_interfaceNormalFormData hData)
+
+/-- Ambient quotient/rank soundness for the placed local-interface expansion.
+
+This is the precise remaining bridge if one replaces the false fixed raw chart
+claim by a genuine quotient-normalisation step: from the placed local expansion,
+produce the already checked `PlacedQuotientDescentData` consumed by the Route B
+rank chain.  Keeping this as a named implication prevents silently smuggling in
+ambient selected-chart equality. -/
+def Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessData : Prop :=
+  Step247UniformRouteBPaperFaithfulTPhiPlacedExpansionData →
+    Step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData
+
+/-- Placed expansion plus the explicit ambient quotient/rank soundness bridge
+supplies the checked placed quotient/descent datum. -/
+theorem step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData_of_placedExpansionData_and_ambientQuotientSoundness
+    (hExpansion : Step247UniformRouteBPaperFaithfulTPhiPlacedExpansionData)
+    (hSound : Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessData) :
+    Step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData :=
+  hSound hExpansion
+
+/-- Close-out through the corrected quotient-normalisation factoring: the local
+placed expansion is separated from the ambient quotient/rank soundness bridge,
+then the existing checked Route B descent closes the no-decider statement. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedExpansionData_and_ambientQuotientSoundness
+    (hExpansion : Step247UniformRouteBPaperFaithfulTPhiPlacedExpansionData)
+    (hSound : Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescent
+    (step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData_of_placedExpansionData_and_ambientQuotientSoundness
+      hExpansion hSound)
 
 /-! ## Axiom audit anchors -/
 

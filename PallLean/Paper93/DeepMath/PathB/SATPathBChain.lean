@@ -287,6 +287,16 @@ theorem SAT_path_B_paperFaithfulPlacedQuotientDescent_TPhi_extraction_move
   noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescent
     hData
 
+/-- Corrected quotient-normalisation factoring: the local placed expansion is
+kept separate from the ambient quotient/rank soundness bridge.  This is the
+honest replacement for the false fixed raw-chart shortcut. -/
+theorem SAT_path_B_paperFaithfulPlacedExpansion_withAmbientQuotientSoundness_TPhi_extraction_move
+    (hExpansion : Step247UniformRouteBPaperFaithfulTPhiPlacedExpansionData)
+    (hSound : Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedExpansionData_and_ambientQuotientSoundness
+    hExpansion hSound
+
 /-- Incidence-count split KR exposure: the final KR obligation now also carries
 the real union-bound count over row-variable incidence fibres. -/
 theorem SAT_path_B_touchedIncidenceSplitKR_TPhi_extraction_move
