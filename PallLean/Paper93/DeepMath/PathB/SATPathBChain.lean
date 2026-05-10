@@ -256,6 +256,52 @@ theorem SAT_path_B_touchedAtomTraceExactCodedBasisKR_TPhi_extraction_move
   noBoundedSATDeciderAtPaperScale_of_touchedMonomialCodedFiniteSpanData_TPhi
     (step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceExactCodedBasis hData)
 
+/-- Paper-faithful canonical-window/local-monoid Route-B exposure.
+
+This is the literal §9.3--§9.4 closure surface from `p vs np1.pdf`: canonical
+windows are classified by interface-anonymous local-monoid profiles; Lemma 29
+bounds the number of profiles; Lemma 31 bounds each selected profile subspace;
+and selected canonical rows land in their own `V_h`.  No global chart,
+all-profile common span, or broad residual-balance identity is used. -/
+theorem SAT_path_B_paperFaithfulCanonicalWindowLocalMonoidProfileAnalysis_TPhi_extraction_move
+    (hAnalysis :
+      ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804)
+        (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (_hdec : DecidesSAT M),
+        PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictCanonicalWindowLocalMonoidProfileAnalysis
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictCanonicalWindowLocalMonoidProfileAnalysis
+    hAnalysis
+
+/-- Same paper-faithful Route-B exposure with Lemma 29 and Lemma 31 kept as
+separate data fields before the combined profile budget is derived. -/
+theorem SAT_path_B_paperFaithfulCanonicalWindowLocalMonoidProfileData_TPhi_extraction_move
+    (hData :
+      ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804)
+        (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (_hdec : DecidesSAT M),
+        PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictCanonicalWindowLocalMonoidProfileData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictCanonicalWindowLocalMonoidProfileData
+    hData
+
+/-- Tightest current paper-faithful local-monoid/profile seam: prove selected
+`ConstraintType` profile subspace containment for each canonical strict `TΦ`
+row.  This is the direct Lean analogue of Lemma 31's selected `V_h` row
+membership plus its within-profile dimension bound. -/
+theorem SAT_path_B_paperFaithfulConstraintTypeProfileSubspace_TPhi_extraction_move
+    (hData :
+      ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804)
+        (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (_hdec : DecidesSAT M),
+        PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData
+    hData
+
 /-- Paper-faithful placed quotient/descent exposure: this is the replacement
 surface for the broken unplaced atom-trace chart route.  It keeps the exact
 placed Cook--Levin local-interface expansion and then descends to the selected
