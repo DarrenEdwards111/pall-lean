@@ -22,6 +22,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBTouchedMonomialInterfaceUniqueKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedMonomialInterfaceSpanKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedMonomialInterfaceFiniteSpanKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedMonomialCodedFiniteSpanKR
+import PallLean.Paper93.DeepMath.PathB.RouteBTouchedAtomTraceCodedBridgeKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedIncidenceCountKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedConstantKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedLocalAlphabetKR
@@ -233,6 +234,15 @@ theorem SAT_path_B_touchedMonomialCodedFiniteSpanKR_TPhi_extraction_move
     (hData : Step247UniformTouchedMonomialCodedFiniteSpanData) :
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_touchedMonomialCodedFiniteSpanData_TPhi hData
+
+/-- Atom-trace coded-basis exposure: the exact touched row is routed through
+the concrete untouched-background atom-trace classifier and then into the
+per-code local basis span. -/
+theorem SAT_path_B_touchedAtomTraceCodedBasisKR_TPhi_extraction_move
+    (hData : Step247UniformTouchedMonomialAtomTraceCodedBasisData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_touchedMonomialCodedFiniteSpanData_TPhi
+    (step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceCodedBasis hData)
 
 /-- Incidence-count split KR exposure: the final KR obligation now also carries
 the real union-bound count over row-variable incidence fibres. -/
