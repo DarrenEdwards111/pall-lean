@@ -279,6 +279,14 @@ noncomputable def SAT_path_B_paperFaithfulPlacedQuotientDescent_TPhi_pSideBound
           M n hn2 htb hns) :=
   step247UniformRouteBPaperFaithfulTPhiPSideBound_of_placedQuotientDescent hData
 
+/-- Paper-faithful placed quotient/descent exposure, closed all the way to the
+final no-bounded-SAT-decider theorem for strict `TΦ`. -/
+theorem SAT_path_B_paperFaithfulPlacedQuotientDescent_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescent
+    hData
+
 /-- Incidence-count split KR exposure: the final KR obligation now also carries
 the real union-bound count over row-variable incidence fibres. -/
 theorem SAT_path_B_touchedIncidenceSplitKR_TPhi_extraction_move
