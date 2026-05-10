@@ -457,6 +457,16 @@ theorem SAT_path_B_paperFaithfulPlacedQuotientDescent_TPhi_extraction_move
   noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescent
     hData
 
+/-- Explicit equivariant quotient-map Route-B closeout.  This is the sharpened
+paper-faithful seam: provide quotient maps, finite selected `W_σ`, landing, and
+row-slot equivariance; the existing slot/product/profile assembly closes the
+strict `TΦ` path. -/
+theorem SAT_path_B_paperFaithfulEquivariantQuotientMapNormalForm_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiPlacedInterfaceEquivariantQuotientMapNormalFormData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedInterfaceEquivariantQuotientMapNormalFormData
+    hData
+
 /-- Projected quotient-normal-form Route-B closeout: this is the sound route
 that replaces literal ambient selected-place equality by quotient/projection
 normalisation plus residual-balance preservation. -/

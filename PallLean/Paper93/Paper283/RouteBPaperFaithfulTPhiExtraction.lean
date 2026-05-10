@@ -18363,6 +18363,78 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceSele
         placedExpansionData.rowExpansionPlace ρ S' shift α hSlen hshiftDegree
           hshiftVars hadm hrow hρ t σ j = selectedPlace σ
 
+/-- Explicit quotient/equivariance-map form of the placed local-interface
+descent.
+
+This is the honest replacement for the invalid global-chart shortcut.  A slot
+is not required to literally live in one fixed selected placement.  Instead we
+expose a typewise quotient/normalisation map from its concrete placement and
+local template into the selected finite-dimensional interface space `W_σ`, and
+we separately require the equivariance/preservation identity saying that, on
+the actual row slots, this quotient-normal form represents the same placed
+polynomial.
+
+Thus the remaining mathematical theorem is explicit: construct `quotientMap`,
+prove it lands in a three-dimensional `W_σ`, and prove its row-slot
+equivariance.  The adapter below then performs only the already-checked
+slotwise/profile assembly. -/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceEquivariantQuotientMapData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  placedExpansionData :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceExpansionData
+      M n hn2 htb hns
+  interfaceSpace : ConstraintType → Submodule ℚ (MvPolynomial (Fin (n / 3)) ℚ)
+  interfaceSpace_finite : ∀ τ, Module.Finite ℚ ↥(interfaceSpace τ)
+  interfaceSpace_finrank_le_three :
+    ∀ τ, Module.finrank ℚ ↥(interfaceSpace τ) ≤ 3
+  quotientMap :
+    ConstraintType →
+      (Fin maxConstraintArity → Fin (n / 3)) →
+      MvPolynomial (Fin maxConstraintArity) ℚ →
+      MvPolynomial (Fin (n / 3)) ℚ
+  quotientMap_mem_interfaceSpace :
+    ∀ (σ : ConstraintType)
+      (place : Fin maxConstraintArity → Fin (n / 3))
+      (p : MvPolynomial (Fin maxConstraintArity) ℚ),
+        p ∈ cookLevinCanonicalInterfaceFamily σ →
+        quotientMap σ place p ∈ interfaceSpace σ
+  quotientMap_preserves_rowSlot :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        placedExpansionData.profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (t : placedExpansionData.rowExpansionIndex ρ S' shift α hSlen hshiftDegree
+          hshiftVars hadm hrow hρ)
+      (σ : ConstraintType) (j : Fin (ρ.val σ)),
+        quotientMap σ
+          (placedExpansionData.rowExpansionPlace ρ S' shift α hSlen hshiftDegree
+            hshiftVars hadm hrow hρ t σ j)
+          (placedExpansionData.rowExpansionLocalTemplate ρ S' shift α hSlen hshiftDegree
+            hshiftVars hadm hrow hρ t σ j) =
+        MvPolynomial.rename
+          (placedExpansionData.rowExpansionPlace ρ S' shift α hSlen hshiftDegree
+            hshiftVars hadm hrow hρ t σ j)
+          (placedExpansionData.rowExpansionLocalTemplate ρ S' shift α hSlen hshiftDegree
+            hshiftVars hadm hrow hρ t σ j)
+
 /-- Slotwise quotient descent from placed local templates to the selected local
 `W_σ` family.
 
@@ -18410,6 +18482,35 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceSlot
             hshiftVars hadm hrow hρ t σ j)
           (placedExpansionData.rowExpansionLocalTemplate ρ S' shift α hSlen hshiftDegree
             hshiftVars hadm hrow hρ t σ j) ∈ interfaceSpace σ
+
+/-- An explicit quotient/equivariance map supplies the slotwise quotient data.
+
+The proof is intentionally small: use the quotient map's membership theorem in
+`W_σ`, then rewrite by the row-slot equivariance identity.  No selected-place
+equality or global chart collapse is used. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedLocalInterfaceSlotQuotientData_of_equivariantQuotientMapData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceEquivariantQuotientMapData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceSlotQuotientData
+      M n hn2 htb hns where
+  placedExpansionData := D.placedExpansionData
+  interfaceSpace := D.interfaceSpace
+  interfaceSpace_finite := D.interfaceSpace_finite
+  interfaceSpace_finrank_le_three := D.interfaceSpace_finrank_le_three
+  placedLocalSlot_descends_to_interfaceSpace := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j
+    have hmem := D.quotientMap_mem_interfaceSpace σ
+      (D.placedExpansionData.rowExpansionPlace ρ S' shift α hSlen hshiftDegree
+        hshiftVars hadm hrow hρ t σ j)
+      (D.placedExpansionData.rowExpansionLocalTemplate ρ S' shift α hSlen hshiftDegree
+        hshiftVars hadm hrow hρ t σ j)
+      (D.placedExpansionData.rowExpansionLocalTemplate_mem
+        ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j)
+    rw [← D.quotientMap_preserves_rowSlot
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j]
+    exact hmem
 
 /-- A selected-chart quotient supplies slotwise descent into the corresponding
 selected `W_σ` family.

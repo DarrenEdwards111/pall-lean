@@ -74,6 +74,32 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedInterfaceNormalFor
     PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceSlotQuotientData
       M n hn2 htb hns
 
+/-- Explicit equivariant quotient-map normal form.
+
+This is the sharper, paper-faithful seam: rather than asking for slot descent
+as a black box, it asks for a typewise quotient/normalisation map plus the
+row-slot equivariance identity.  The Paper283 adapter then derives slot descent
+without any global selected-chart equality. -/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedInterfaceEquivariantQuotientMapNormalFormData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  quotientMapData :
+    PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceEquivariantQuotientMapData
+      M n hn2 htb hns
+
+/-- Equivariant quotient-map normal form instantiates the slotwise normal-form
+data consumed by the existing placed quotient/descent chain. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedInterfaceNormalFormData_of_equivariantQuotientMapNormalFormData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedInterfaceEquivariantQuotientMapNormalFormData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedInterfaceNormalFormData
+      M n hn2 htb hns where
+  slotQuotientData :=
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedLocalInterfaceSlotQuotientData_of_equivariantQuotientMapData
+      M n hn2 htb hns D.quotientMapData
+
 /-- Normal-form data instantiates the checked placed quotient/descent datum:
 normalise individual placements first, then use the existing
 symmetric/profile-subspace assembly. -/
@@ -94,6 +120,23 @@ def Step247UniformRouteBPaperFaithfulTPhiPlacedInterfaceNormalFormData : Prop :=
     Nonempty
       (RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedInterfaceNormalFormData
         M n hn2 htb hns)
+
+/-- Uniform equivariant quotient-map normal-form data at Step 247 scale. -/
+def Step247UniformRouteBPaperFaithfulTPhiPlacedInterfaceEquivariantQuotientMapNormalFormData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedInterfaceEquivariantQuotientMapNormalFormData
+        M n hn2 htb hns)
+
+/-- Equivariant quotient-map normal forms supply the slotwise normal-form data. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiPlacedInterfaceNormalFormData_of_equivariantQuotientMapNormalFormData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiPlacedInterfaceEquivariantQuotientMapNormalFormData) :
+    Step247UniformRouteBPaperFaithfulTPhiPlacedInterfaceNormalFormData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedInterfaceNormalFormData_of_equivariantQuotientMapNormalFormData
+    M n hn2 htb hns D⟩
 
 /-- Uniform paper-faithful placed quotient/descent data for strict `TΦ`.
 
@@ -319,6 +362,14 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
   noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescent
     (step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData_of_interfaceNormalFormData hData)
 
+/-- SAT contradiction from the explicit equivariant quotient-map normal-form
+seam. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedInterfaceEquivariantQuotientMapNormalFormData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiPlacedInterfaceEquivariantQuotientMapNormalFormData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedInterfaceNormalFormData
+    (step247UniformRouteBPaperFaithfulTPhiPlacedInterfaceNormalFormData_of_equivariantQuotientMapNormalFormData hData)
+
 /-- Projected quotient-normal-form obligation for the strict `TΦ` route.
 
 This is the sound replacement for the impossible ambient selected-place equality:
@@ -467,5 +518,6 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
 #print axioms step247UniformRouteBPaperFaithfulTPhiPSideBound_of_placedQuotientDescent
 #print axioms noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescent
 #print axioms noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedInterfaceNormalFormData
+#print axioms noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedInterfaceEquivariantQuotientMapNormalFormData
 
 end PallLean.Paper93.DeepMath.PathB
