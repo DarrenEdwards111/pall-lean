@@ -103,6 +103,101 @@ noncomputable def routeBPaperFaithfulTPhi_pSideBound_of_strictConstraintTypeProf
           (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData_of_profileSubspaceData
             M n hn2 htb hns D))))
 
+/-- The ambient strict-`TΦ` gauge P-side bound also bounds the strict coupled
+same-target sheet.
+
+The proof uses only the verified first-of-block identification and injective
+rename rank preservation: the target is the unrenamed restricted sheet at the
+pullback partition, while the ambient gauge is its re-expansion by the same
+first-of-block rename. -/
+theorem routeBPaperFaithfulTPhi_targetRank_le_of_ambientGaugePSideBound
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hP : SATDeciderGaugePSideBound M n hn2 htb hns
+      (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiAmbientGauge
+        M n hn2 htb hns)) :
+    MultilinearSPDP.mlBlockedSpdpRank
+      (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiTarget
+        M n hn2 htb hns
+        (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)).coupledPartition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiTarget
+        M n hn2 htb hns
+        (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)).coupledPoly ≤
+      n ^ 200 := by
+  let p : MvPolynomial (Fin (n / 3)) ℚ :=
+    MultilinearSPDP.restrictPoly ℚ (Step4Compiler.Step252.cookLevinStrictFOBFlatMap n)
+      (Step4Compiler.Step252.cookLevinStrictFOBFlatMap_injective n)
+      (compiledPoly (cook_levin_compilation M n hn2 htb hns))
+  have hrename :
+      MultilinearSPDP.mlBlockedSpdpRank
+          (MultilinearSPDP.pullbackPartition
+            (cook_levin_compilation M n hn2 htb hns).partition
+            (Step4Compiler.Step252.cookLevinStrictFOBFlatMap n))
+          (Nat.log 2 n) (Nat.log 2 n) p ≤
+        MultilinearSPDP.mlBlockedSpdpRank
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n)
+          (MvPolynomial.rename (Step4Compiler.Step252.cookLevinStrictFOBFlatMap n) p) :=
+    PaperFaithfulCompilation.mlBlockedSpdpRank_rename_ge
+      (Step4Compiler.Step252.cookLevinStrictFOBFlatMap n) (Step4Compiler.Step252.cookLevinStrictFOBFlatMap_injective n)
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n) p
+  have hambient :
+      MultilinearSPDP.mlBlockedSpdpRank
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n)
+          (MvPolynomial.rename (Step4Compiler.Step252.cookLevinStrictFOBFlatMap n) p) ≤ n ^ 200 := by
+    simpa [SATDeciderGaugePSideBound, p,
+      PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiAmbientGauge_compiledPoly_eq_reexpandedStrictFOB]
+      using hP
+  have hflat := hrename.trans hambient
+  simpa [PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiTarget,
+    Step4Compiler.Step252.cookLevinStrictFOBTarget, p,
+    Step4Compiler.Step252.cookLevinStrictFOB_pullbackPartition_eq_flat M n hn2 htb hns
+      (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) rfl,
+    Step4Compiler.Step252.cookLevinStrictFOB_restrict_embedded_Q_eq_restrict_compiledPoly M n hn2 htb hns]
+    using hflat
+
+/-- Target P-side rank plus the strict same-target NP lower bound closes the
+paper-scale contradiction, using the target itself as the paper source in the
+Theorem-207 transport inequality. -/
+theorem false_of_routeBPaperFaithfulTPhi_targetPSideBound
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hTarget :
+      MultilinearSPDP.mlBlockedSpdpRank
+        (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiTarget
+          M n hn2 htb hns
+          (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)).coupledPartition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiTarget
+          M n hn2 htb hns
+          (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)).coupledPoly ≤
+        n ^ 200) :
+    False := by
+  let target := PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiTarget
+    M n hn2 htb hns
+    (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+  let source : GlobalGodMoveGauge.Theorem207PaperSource M n hn hn2 htb hns :=
+    { sourceVars := target.coupledVars
+      sourcePartition := target.coupledPartition
+      sourcePoly := target.coupledPoly }
+  exact
+    GlobalGodMoveGauge.theorem207PaperSource_transport_false
+      M n hn hn2 htb hns target source
+      (by
+        refine ⟨?_⟩
+        simpa [source, target, GlobalGodMoveGauge.Theorem207PaperSource.spdpRank]
+          using hTarget)
+      (by
+        refine ⟨?_⟩
+        simp [source, target, GlobalGodMoveGauge.Theorem207PaperSource.spdpRank])
+      (routeB_strong_np_from_same_target_identity_minor
+        (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_identity_minor_data
+          M n hn hn2 htb hns
+          (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) rfl))
+
 /-- Uniform placed quotient/descent data closes the strict paper `TΦ` P-side
 rank surface, without routing through the old unplaced atom-trace chart. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiPSideBound_of_placedQuotientDescent
@@ -119,11 +214,27 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiPSideBound_of_placedQuoti
       (step247UniformRouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData_of_placedQuotientDescent
         hData M n hn hn2 htb hns)
 
+/-- Uniform placed quotient/descent data closes the full paper-scale SAT
+contradiction for the strict `TΦ` Route-B path. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescent
+    (hData : Step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData) :
+    NoBoundedSATDeciderAtPaperScale := by
+  intro M n hn hn2 htb hns hdec
+  exact
+    false_of_routeBPaperFaithfulTPhi_targetPSideBound M n hn hn2 htb hns
+      (routeBPaperFaithfulTPhi_targetRank_le_of_ambientGaugePSideBound
+        M n hn2 htb hns
+        (step247UniformRouteBPaperFaithfulTPhiPSideBound_of_placedQuotientDescent
+          hData M n hn hn2 htb hns))
+
 /-! ## Axiom audit anchors -/
 
 #print axioms step247UniformRouteBPaperFaithfulTPhiStrictSourceProfileSubspaceData_of_placedQuotientDescent
 #print axioms step247UniformRouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData_of_placedQuotientDescent
 #print axioms routeBPaperFaithfulTPhi_pSideBound_of_strictConstraintTypeProfileSubspaceData
+#print axioms routeBPaperFaithfulTPhi_targetRank_le_of_ambientGaugePSideBound
+#print axioms false_of_routeBPaperFaithfulTPhi_targetPSideBound
 #print axioms step247UniformRouteBPaperFaithfulTPhiPSideBound_of_placedQuotientDescent
+#print axioms noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescent
 
 end PallLean.Paper93.DeepMath.PathB
