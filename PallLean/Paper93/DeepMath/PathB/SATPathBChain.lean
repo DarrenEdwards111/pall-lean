@@ -23,6 +23,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBTouchedMonomialInterfaceSpanKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedMonomialInterfaceFiniteSpanKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedMonomialCodedFiniteSpanKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedAtomTraceCodedBridgeKR
+import PallLean.Paper93.DeepMath.PathB.RouteBPlacedQuotientDescentKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedIncidenceCountKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedConstantKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedLocalAlphabetKR
@@ -252,6 +253,19 @@ theorem SAT_path_B_touchedAtomTraceExactCodedBasisKR_TPhi_extraction_move
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_touchedMonomialCodedFiniteSpanData_TPhi
     (step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceExactCodedBasis hData)
+
+/-- Paper-faithful placed quotient/descent exposure: this is the replacement
+surface for the broken unplaced atom-trace chart route.  It keeps the exact
+placed Cook--Levin local-interface expansion and then descends to the selected
+interface-anonymous profile subspace. -/
+noncomputable def SAT_path_B_paperFaithfulPlacedQuotientDescent_TPhi_profileSubspace
+    (hData : Step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData) :
+    ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804)
+      (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+      PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData
+        M n hn2 htb hns :=
+  step247UniformRouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData_of_placedQuotientDescent
+    hData
 
 /-- Incidence-count split KR exposure: the final KR obligation now also carries
 the real union-bound count over row-variable incidence fibres. -/
