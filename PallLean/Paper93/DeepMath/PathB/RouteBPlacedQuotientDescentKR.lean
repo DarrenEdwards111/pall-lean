@@ -322,30 +322,30 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
 /-- Projected quotient-normal-form obligation for the strict `TΦ` route.
 
 This is the sound replacement for the impossible ambient selected-place equality:
-normalise by a quotient/projection, prove the zero-profile quotient type budget,
-prove semantic restricted residual balance for every certificate, and only then
-use the existing rich-projection/no-decider bridge. -/
+choose a quotient/normal-form certificate, prove its projected type budget, and
+prove semantic restricted residual balance for that chosen projection.  The
+existential certificate is deliberate and paper-faithful: the manuscript chooses
+a normal form/projection rather than requiring residual balance for every
+possible quotient certificate. -/
 def Step247UniformRouteBPaperFaithfulTPhiProjectedQuotientNormalFormData : Prop :=
   ∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (_hdec : DecidesSAT M),
     ∃ typeBudget : Nat,
-      CookLevinZeroProfileQuotientTypeNormalFormObligation
-        M n hn2 htb hns typeBudget ∧
-      (∀ cert :
-        ZeroProfileQuotientTypeSpaceCertificate (Nat.log 2 n)
-          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
-          typeBudget,
-        PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
-          M n hn2 htb hns cert.project) ∧
-      typeBudget ≤ withinProfileBound (Nat.log 2 n)
+    ∃ cert :
+      ZeroProfileQuotientTypeSpaceCertificate (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        typeBudget,
+      typeBudget ≤ withinProfileBound (Nat.log 2 n) ∧
+      PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+        M n hn2 htb hns cert.project
 
 /-- The projected quotient-normal-form route closes the no-bounded-SAT-decider
 statement without asserting that all placed slots live in one ambient chart. -/
 theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiProjectedQuotientNormalFormData
     (hData : Step247UniformRouteBPaperFaithfulTPhiProjectedQuotientNormalFormData) :
     NoBoundedSATDeciderAtPaperScale :=
-  PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_quotientTypeNormalFormObligation_restrictedResidualBalance
+  PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_quotientTypeCertificate_restrictedResidualBalance
     hData
 
 /-- The same projected quotient-normal-form route yields the rich-projection
@@ -353,7 +353,7 @@ discharge used by the broader Route-B bridge. -/
 theorem cookLevinRichProjectionDischarge_of_step247UniformRouteBPaperFaithfulTPhiProjectedQuotientNormalFormData
     (hData : Step247UniformRouteBPaperFaithfulTPhiProjectedQuotientNormalFormData) :
     CookLevinRichProjectionDischarge :=
-  PallLean.Paper93.Paper283.cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_quotientTypeNormalFormObligation_restrictedResidualBalance
+  PallLean.Paper93.Paper283.cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_quotientTypeCertificate_restrictedResidualBalance
     hData
 
 /-- Ambient quotient/rank soundness for the placed local-interface expansion.
