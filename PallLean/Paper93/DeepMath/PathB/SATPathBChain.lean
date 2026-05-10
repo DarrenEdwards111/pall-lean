@@ -267,6 +267,18 @@ noncomputable def SAT_path_B_paperFaithfulPlacedQuotientDescent_TPhi_profileSubs
   step247UniformRouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData_of_placedQuotientDescent
     hData
 
+/-- Same placed quotient/descent exposure, pushed all the way to the strict
+paper `TΦ` P-side rank bound.  The remaining mathematical obligation is now
+exactly the placed quotient/descent data, not the old atom-trace chart. -/
+noncomputable def SAT_path_B_paperFaithfulPlacedQuotientDescent_TPhi_pSideBound
+    (hData : Step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData) :
+    ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804)
+      (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+      SATDeciderGaugePSideBound M n hn2 htb hns
+        (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiAmbientGauge
+          M n hn2 htb hns) :=
+  step247UniformRouteBPaperFaithfulTPhiPSideBound_of_placedQuotientDescent hData
+
 /-- Incidence-count split KR exposure: the final KR obligation now also carries
 the real union-bound count over row-variable incidence fibres. -/
 theorem SAT_path_B_touchedIncidenceSplitKR_TPhi_extraction_move

@@ -77,9 +77,53 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiStrictConstraintTypeProfi
       (step247UniformRouteBPaperFaithfulTPhiStrictSourceProfileSubspaceData_of_placedQuotientDescent
         hData M n hn hn2 htb hns)
 
+/-- A selected strict `ConstraintType` profile-subspace datum gives the actual
+paper `TΦ` P-side bound.
+
+This is the close-out from the new placed route to the landed Route-B rank
+surface: convert the selected subspace data to interface-profile data, then to
+the finite local-monoid/profile package, and finally use the checked global
+profile-span assembly. -/
+noncomputable def routeBPaperFaithfulTPhi_pSideBound_of_strictConstraintTypeProfileSubspaceData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData
+      M n hn2 htb hns) :
+    SATDeciderGaugePSideBound M n hn2 htb hns
+      (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiAmbientGauge
+        M n hn2 htb hns) :=
+  PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_pSideBound_of_strictCanonicalWindowLocalMonoidProfileData
+    M n hn2 htb hns
+    (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictCanonicalWindowLocalMonoidProfileData_of_interfaceAnonymousLocalMonoidProfileData
+      M n hn2 htb hns
+      (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictInterfaceAnonymousLocalMonoidProfileData_of_boundedInterfaceAnonymousLocalMonoidProfileData
+        M n hn2 htb hns
+        (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictBoundedInterfaceAnonymousLocalMonoidProfileData_of_constraintTypeInterfaceProfileData
+          M n hn2 htb hns
+          (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData_of_profileSubspaceData
+            M n hn2 htb hns D))))
+
+/-- Uniform placed quotient/descent data closes the strict paper `TΦ` P-side
+rank surface, without routing through the old unplaced atom-trace chart. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiPSideBound_of_placedQuotientDescent
+    (hData : Step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData) :
+    ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+      (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+      SATDeciderGaugePSideBound M n hn2 htb hns
+        (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiAmbientGauge
+          M n hn2 htb hns) := by
+  intro M n hn hn2 htb hns
+  exact
+    routeBPaperFaithfulTPhi_pSideBound_of_strictConstraintTypeProfileSubspaceData
+      M n hn2 htb hns
+      (step247UniformRouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData_of_placedQuotientDescent
+        hData M n hn hn2 htb hns)
+
 /-! ## Axiom audit anchors -/
 
 #print axioms step247UniformRouteBPaperFaithfulTPhiStrictSourceProfileSubspaceData_of_placedQuotientDescent
 #print axioms step247UniformRouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData_of_placedQuotientDescent
+#print axioms routeBPaperFaithfulTPhi_pSideBound_of_strictConstraintTypeProfileSubspaceData
+#print axioms step247UniformRouteBPaperFaithfulTPhiPSideBound_of_placedQuotientDescent
 
 end PallLean.Paper93.DeepMath.PathB
