@@ -287,6 +287,20 @@ theorem SAT_path_B_paperFaithfulCanonicalWindowLocalMonoidProfileData_TPhi_extra
   PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictCanonicalWindowLocalMonoidProfileData
     hData
 
+/-- Literal bounded local-monoid/profile Route-B closeout.
+
+This is the corrected paper §9.3--§9.4 refactor: the local normal-form alphabet
+is supplied as finite monoid quotient data, Lemma 29 bounds the number of
+interface-anonymous profiles, and Lemma 31 supplies selected within-profile
+row-span membership.  This theorem deliberately sits above the narrower
+`ConstraintType` specialization, so the final route need not identify
+normal-form words with raw constraint types. -/
+theorem SAT_path_B_paperFaithfulBoundedInterfaceAnonymousLocalMonoidProfile_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiBoundedInterfaceAnonymousLocalMonoidProfileData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiBoundedInterfaceAnonymousLocalMonoidProfileData
+    hData
+
 /-- Tightest current paper-faithful local-monoid/profile seam: prove selected
 `ConstraintType` profile subspace containment for each canonical strict `TΦ`
 row.  This is the direct Lean analogue of Lemma 31's selected `V_h` row

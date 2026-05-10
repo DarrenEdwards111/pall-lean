@@ -180,6 +180,44 @@ def Step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData : Prop :=
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceQuotientDescentData
         M n hn2 htb hns)
 
+/-- Uniform bounded local-monoid/profile data at Step 247 scale.
+
+This is the direct paper §9.3--§9.4 surface: the normal-form alphabet is an
+explicit finite local-monoid quotient alphabet, not necessarily the raw
+`ConstraintType` chart.  The data object contains Lemma 29's bounded profile
+count and Lemma 31's selected within-profile row-span membership; the closeout
+below only performs the already-checked global Route-B assembly. -/
+def Step247UniformRouteBPaperFaithfulTPhiBoundedInterfaceAnonymousLocalMonoidProfileData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictBoundedInterfaceAnonymousLocalMonoidProfileData
+        M n hn2 htb hns)
+
+/-- Bounded interface-anonymous local-monoid/profile data gives the strict
+ambient `TΦ` P-side bound.
+
+This route is the paper-faithful refactor of Lemma 31: bounded normal forms
+feed interface-anonymous profile data, then canonical-window local-monoid data,
+and finally the existing profile/orbit matrix assembly.  No fixed global chart
+or all-profile common span is introduced here. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiPSideBound_of_boundedInterfaceAnonymousLocalMonoidProfileData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiBoundedInterfaceAnonymousLocalMonoidProfileData) :
+    ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+      (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+      SATDeciderGaugePSideBound M n hn2 htb hns
+        (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiAmbientGauge
+          M n hn2 htb hns) := by
+  intro M n hn hn2 htb hns
+  let D := Classical.choice (hData M n hn hn2 htb hns)
+  exact
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_pSideBound_of_strictCanonicalWindowLocalMonoidProfileData
+      M n hn2 htb hns
+      (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictCanonicalWindowLocalMonoidProfileData_of_interfaceAnonymousLocalMonoidProfileData
+        M n hn2 htb hns
+        (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictInterfaceAnonymousLocalMonoidProfileData_of_boundedInterfaceAnonymousLocalMonoidProfileData
+          M n hn2 htb hns D))
+
 /-- The manuscript's quotient-normal-form theorem supplies the placed
 quotient/descent datum used by the already-checked Route B chain. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData_of_interfaceNormalFormData
@@ -379,6 +417,24 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
       (routeBPaperFaithfulTPhi_targetRank_le_of_ambientGaugePSideBound
         M n hn2 htb hns
         (step247UniformRouteBPaperFaithfulTPhiPSideBound_of_placedQuotientDescent
+          hData M n hn hn2 htb hns))
+
+/-- Uniform bounded local-monoid/profile data closes the full strict `TΦ`
+Route-B contradiction.
+
+This is the corrected top-level closeout for the paper route: prove the
+finite local-monoid normal forms and selected Lemma-31 profile subspaces, then
+the existing same-target extraction/NP lower-bound sandwich rules out bounded
+SAT deciders. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiBoundedInterfaceAnonymousLocalMonoidProfileData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiBoundedInterfaceAnonymousLocalMonoidProfileData) :
+    NoBoundedSATDeciderAtPaperScale := by
+  intro M n hn hn2 htb hns hdec
+  exact
+    false_of_routeBPaperFaithfulTPhi_targetPSideBound M n hn hn2 htb hns
+      (routeBPaperFaithfulTPhi_targetRank_le_of_ambientGaugePSideBound
+        M n hn2 htb hns
+        (step247UniformRouteBPaperFaithfulTPhiPSideBound_of_boundedInterfaceAnonymousLocalMonoidProfileData
           hData M n hn hn2 htb hns))
 
 /-- Paper-faithful close-out: the explicit placed interface normal-form seam is
