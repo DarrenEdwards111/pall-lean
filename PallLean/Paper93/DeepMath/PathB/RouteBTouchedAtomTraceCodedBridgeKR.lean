@@ -147,10 +147,35 @@ theorem step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceCodedBasis
   exact touchedMonomialCodedFiniteSpan_of_atomTraceCodedBasis
     M n hn2 htb hns (hData M n hn hn2 htb hns)
 
+/-- Uniform exact-budget concrete atom-trace coded basis data. -/
+def Step247UniformTouchedMonomialAtomTraceExactCodedBasisData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    CookLevinTouchedMonomialAtomTraceExactCodedBasisData M n hn2 htb hns
+
+/-- Uniform exact-budget atom-trace coded basis data forgets to the budgeted
+atom-trace coded-basis bridge. -/
+theorem step247UniformTouchedMonomialAtomTraceCodedBasisData_of_exact
+    (hData : Step247UniformTouchedMonomialAtomTraceExactCodedBasisData) :
+    Step247UniformTouchedMonomialAtomTraceCodedBasisData := by
+  intro M n hn hn2 htb hns
+  exact touchedMonomialAtomTraceCodedBasisData_of_exact
+    M n hn2 htb hns (hData M n hn hn2 htb hns)
+
+/-- Uniform exact-budget atom-trace coded basis data closes the final coded
+finite-span target. -/
+theorem step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceExactCodedBasis
+    (hData : Step247UniformTouchedMonomialAtomTraceExactCodedBasisData) :
+    Step247UniformTouchedMonomialCodedFiniteSpanData :=
+  step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceCodedBasis
+    (step247UniformTouchedMonomialAtomTraceCodedBasisData_of_exact hData)
+
 /-! ## Axiom audit anchors -/
 
 #print axioms touchedMonomialAtomTraceCodedBasisData_of_exact
 #print axioms touchedMonomialCodedFiniteSpan_of_atomTraceCodedBasis
+#print axioms step247UniformTouchedMonomialAtomTraceCodedBasisData_of_exact
 #print axioms step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceCodedBasis
+#print axioms step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceExactCodedBasis
 
 end PallLean.Paper93.DeepMath.PathB
