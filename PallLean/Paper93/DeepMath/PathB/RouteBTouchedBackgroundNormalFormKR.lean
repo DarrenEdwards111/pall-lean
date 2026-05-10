@@ -2012,6 +2012,91 @@ structure UntouchedBackgroundConcreteAtomTraceExactCompiledChartRowsForList
             B (Nat.log 2 n) ℓ
             (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)).W
 
+/-- Local-algebra split of the exact atom-trace row theorem.
+
+This is the paper-faithful algebraic decomposition of `row_mem_atomTraceProfile`:
+first put the exact untouched Cook--Levin background product in the selected
+compiled-basis profile subspace, then prove that multiplying by the row-local
+shift and applying `mlProj` preserves that same selected subspace.  The selected
+profile is still the one read from the concrete atom-trace normal form; no
+ambient/global span and no dropped background factors are introduced. -/
+structure UntouchedBackgroundConcreteAtomTraceExactLocalAlgebraRowsForList
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (B : SPDP.BlockPartition (cookLevinTableau M n hn2 htb hns).numVars)
+    (ℓ : ℕ) where
+  unshifted_background_mem_atomTraceProfile :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+      (hR : R.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+      (hshift : shift.vars ⊆ R.toFinset),
+      let ctype := untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S
+      let shiftWord := List.replicate R.length
+        (untouchedBackgroundAtomTraceShiftGenerator (Nat.log 2 n))
+      let rowNF := shiftWord.prod *
+        (List.ofFn (fun i : Fin
+          (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+            ([untouchedBackgroundAtomTraceFactorGenerator (Nat.log 2 n)
+              (ctype i)] : List
+                (untouchedBackgroundAtomTraceLocalMonoid
+                  (Nat.log 2 n)).localMonoid).prod)).prod
+      Finset.univ.prod
+          (fun i : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+            (untouchedBackgroundFactorList M n hn2 htb hns S).get i) ∈
+        profileSubspace
+          (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)
+          (zeroProfileConcreteLocalChart_compiledCoefficientBasis
+            B (Nat.log 2 n) ℓ
+            (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)).W
+  shift_mlProj_closure_atomTraceProfile :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+      (hR : R.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+      (hshift : shift.vars ⊆ R.toFinset)
+      (p : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ),
+      let ctype := untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S
+      let shiftWord := List.replicate R.length
+        (untouchedBackgroundAtomTraceShiftGenerator (Nat.log 2 n))
+      let rowNF := shiftWord.prod *
+        (List.ofFn (fun i : Fin
+          (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+            ([untouchedBackgroundAtomTraceFactorGenerator (Nat.log 2 n)
+              (ctype i)] : List
+                (untouchedBackgroundAtomTraceLocalMonoid
+                  (Nat.log 2 n)).localMonoid).prod)).prod
+      p ∈ profileSubspace
+          (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)
+          (zeroProfileConcreteLocalChart_compiledCoefficientBasis
+            B (Nat.log 2 n) ℓ
+            (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)).W →
+      MultilinearSPDP.mlProj (shift * p) ∈
+        profileSubspace
+          (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)
+          (zeroProfileConcreteLocalChart_compiledCoefficientBasis
+            B (Nat.log 2 n) ℓ
+            (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)).W
+
+/-- The local-algebra split supplies the exact atom-trace compiled-chart row
+theorem. -/
+noncomputable def untouchedBackgroundConcreteAtomTraceExactCompiledChartRowsForList_of_localAlgebra
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (B : SPDP.BlockPartition (cookLevinTableau M n hn2 htb hns).numVars)
+    (ℓ : ℕ)
+    (A : UntouchedBackgroundConcreteAtomTraceExactLocalAlgebraRowsForList
+      M n hn2 htb hns S B ℓ) :
+    UntouchedBackgroundConcreteAtomTraceExactCompiledChartRowsForList
+      M n hn2 htb hns S B ℓ where
+  row_mem_atomTraceProfile := by
+    intro R hR shift hshift
+    exact A.shift_mlProj_closure_atomTraceProfile R hR shift hshift
+      (Finset.univ.prod
+        (fun i : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+          (untouchedBackgroundFactorList M n hn2 htb hns S).get i))
+      (A.unshifted_background_mem_atomTraceProfile R hR shift hshift)
+
 /-- Exact-budget atom-trace row data instantiates the previous budgeted
 compiled-chart row package. -/
 noncomputable def untouchedBackgroundConcreteAtomTraceCompiledChartRowsForList_of_exact
@@ -2852,6 +2937,7 @@ theorem rowWindowBackgroundNormalFormProductBasis_card_le_pow_add
 #print axioms untouchedBackgroundAtomTraceProfile_admissible
 #print axioms untouchedBackgroundAtomTraceActionProfile_admissible
 #print axioms untouchedBackgroundAtomTraceExactTypeBudget
+#print axioms untouchedBackgroundConcreteAtomTraceExactCompiledChartRowsForList_of_localAlgebra
 #print axioms untouchedBackgroundConcreteAtomTraceCompiledChartRowsForList_of_exact
 #print axioms untouchedBackgroundProfileRawGeneratorTraceActionDataForList_of_atomTraceCompiledChartRows
 #print axioms untouchedBackgroundConcreteNormalFormClassifierForList_of_atomTraceCompiledChartRows
