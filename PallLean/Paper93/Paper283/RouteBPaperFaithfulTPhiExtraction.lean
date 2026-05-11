@@ -22289,6 +22289,60 @@ theorem routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDi
   intro ρ S' hS shift hshift d hd_elts hlen
   exact hmem ρ S' hS shift hshift d hd_elts hlen
 
+/-- Converse spine direction: the fixed-`q` row witness is precisely the
+pointwise target-membership statement. -/
+theorem routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetMembership_of_rowWitness
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hrow :
+      RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimRowWitness
+        M n hn2 htb hns) :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+      routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetRow
+          M n hn2 htb hns S' shift d ∈
+        routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetSpan
+          M n hn2 htb hns ρ d := by
+  intro ρ S' hS shift hshift d hd_elts hlen
+  exact hrow ρ S' hS shift hshift d hd_elts hlen
+
+/-- Exact logical equivalence of the fixed-`q` row frontier and target
+membership frontier. -/
+theorem routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_rowWitness_iff_targetMembership
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    (RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimRowWitness
+      M n hn2 htb hns) ↔
+    (∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+      routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetRow
+          M n hn2 htb hns S' shift d ∈
+        routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetSpan
+          M n hn2 htb hns ρ d) := by
+  constructor
+  · intro hrow
+    exact routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetMembership_of_rowWitness
+      M n hn2 htb hns hrow
+  · intro hmem
+    exact routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_rowWitness_of_targetMembership
+      M n hn2 htb hns hmem
+
 /-- Event-atom final payload with the local dimension fixed to the actual
 bounded-word length `q`.
 
