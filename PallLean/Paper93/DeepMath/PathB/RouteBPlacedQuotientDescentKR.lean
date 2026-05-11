@@ -562,6 +562,18 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInte
     (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtomData_of_indexedBranchAtomData
       hData)
 
+/-- Uniform fixed-`q` singleton event-atom `NFOfWord` data at Step 247 scale.
+
+This is the currently most atomic strict-source local Cook--Levin algebra
+surface: concrete singleton event atoms and the exact bounded-word-length
+`q` local dimension budget. -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalMaps : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps
+        M n hn2 htb hns)
+
 /-- Uniform shifted Leibniz-product slot-product plus profile-uniform shift
 closure data at Step 247 scale.
 

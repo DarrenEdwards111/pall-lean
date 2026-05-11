@@ -443,15 +443,12 @@ basis letters are the concrete singleton derivative atoms, the local dimension
 is the actual bounded-word length `q`, and the remaining row proof is exact
 membership of the witnessed product-rule row in that folded atom basis. -/
 theorem SAT_path_B_paperFaithfulSourceEventAtomQDimFinalMaps_TPhi_extraction_move
-    (hData :
-      ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804)
-        (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-        (_hdec : DecidesSAT M),
-        PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps
-          M n hn2 htb hns) :
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalMaps) :
     NoBoundedSATDeciderAtPaperScale :=
   PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps
-    hData
+    (fun M n hn hn2 htb hns hdec => by
+      rcases hData M n hn hn2 htb hns with ⟨D⟩
+      exact D)
 
 /-- Exact-profile template-collapse sufficient seam for the strict source row.
 
