@@ -22189,6 +22189,46 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQD
               Set (MvPolynomial (Fin (n / 3)) ℚ)) :
             Set (MvPolynomial (Fin (n / 3)) ℚ))
 
+/-- Target projected row polynomial at the fixed-`q` singleton event-atom frontier. -/
+abbrev routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetRow
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3))) :
+    MvPolynomial (Fin (n / 3)) ℚ :=
+  mlProj
+    (shift *
+      Finset.univ.prod
+        (fun i =>
+          SPDP.iterDerivList (d i)
+            ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+              M n hn2 htb hns) i)))
+
+/-- Target folded singleton event-atom span at the fixed-`q` frontier. -/
+abbrev routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetSpan
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType (Nat.log 2 n))
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3))) :
+    Submodule ℚ (MvPolynomial (Fin (n / 3)) ℚ) :=
+  Submodule.span ℚ
+    (↑(((routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+      M n hn2 htb hns d).attach.foldr
+      (fun g acc =>
+        routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasis_of_eventBasis
+          (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+          (routeBPaperFaithfulTPhi_strictSourceEventAtomLetterBasis
+            M n hn2 htb hns) ρ
+          ⟨g.1,
+            routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+              M n hn2 htb hns d g.1 g.2⟩ ∪ acc)
+      ∅) : Finset (MvPolynomial (Fin (n / 3)) ℚ)) :
+      Set (MvPolynomial (Fin (n / 3)) ℚ))
+
 /-- Hard fixed-`q` local row-membership witness at singleton event-atom granularity. -/
 abbrev RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimRowWitness
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
@@ -22223,6 +22263,31 @@ abbrev RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimR
                     M n hn2 htb hns d g.1 g.2⟩ ∪ acc)
             ∅) : Finset (MvPolynomial (Fin (n / 3)) ℚ)) :
             Set (MvPolynomial (Fin (n / 3)) ℚ))
+
+/-- Spine entry: proving target-row membership in the target folded event-atom
+span pointwise is exactly the fixed-`q` row-witness obligation. -/
+theorem routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_rowWitness_of_targetMembership
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hmem :
+      ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+            ConstraintType (Nat.log 2 n))
+        (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+        (shift : MvPolynomial (Fin (n / 3)) ℚ)
+        (hshift : shift.vars ⊆ S'.toFinset)
+        (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+          List (Fin (n / 3)))
+        (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+        (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+            (d i).length ≤ S'.length),
+          routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetRow
+              M n hn2 htb hns S' shift d ∈
+            routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetSpan
+              M n hn2 htb hns ρ d) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimRowWitness
+      M n hn2 htb hns := by
+  intro ρ S' hS shift hshift d hd_elts hlen
+  exact hmem ρ S' hS shift hshift d hd_elts hlen
 
 /-- Event-atom final payload with the local dimension fixed to the actual
 bounded-word length `q`.
