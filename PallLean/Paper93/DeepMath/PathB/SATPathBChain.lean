@@ -454,14 +454,7 @@ and the remaining constructor obligation is isolated as a builder from each
 budget payload to a full fixed-`q` final payload. -/
 theorem SAT_path_B_paperFaithfulSourceEventAtomQDimFinalMaps_fromBudgetAndBuilder_TPhi_extraction_move
     (hBudget : Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimBudgetData)
-    (hBuild :
-      ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804)
-        (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
-        PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData
-          M n hn2 htb hns →
-        Nonempty
-          (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps
-            M n hn2 htb hns)) :
+    (hBuild : Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalBuilder) :
     NoBoundedSATDeciderAtPaperScale :=
   PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps
     (fun M n hn hn2 htb hns hdec =>

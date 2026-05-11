@@ -586,6 +586,19 @@ def Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalMaps : Prop :=
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps
         M n hn2 htb hns)
 
+/-- Uniform fixed-`q` builder from budget scaffolds to full final payloads.
+
+This isolates the single remaining hard local-algebra obligation after the seam
+split. -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalBuilder : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData
+      M n hn2 htb hns →
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps
+        M n hn2 htb hns)
+
 /-- Any Step247 fixed-`q` final payload yields the corresponding budget scaffold. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimBudgetData_of_finalMaps
     (hData : Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalMaps) :
@@ -594,6 +607,13 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimBudget
   rcases hData M n hn hn2 htb hns with ⟨D⟩
   exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData_of_qDimFinalMaps
     M n hn2 htb hns D⟩
+
+/-- Any Step247 fixed-`q` final payload induces a budget-to-final builder. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalBuilder_of_finalMaps
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalMaps) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalBuilder := by
+  intro M n hn hn2 htb hns D
+  exact hData M n hn hn2 htb hns
 
 /-- Uniform shifted Leibniz-product slot-product plus profile-uniform shift
 closure data at Step 247 scale.
