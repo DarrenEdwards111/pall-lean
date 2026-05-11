@@ -300,6 +300,15 @@ theorem SAT_path_B_paperFaithfulAlphabetWordOneLocalMonoidProfile_TPhi_extractio
   noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiAlphabetWordOneLocalMonoidProfileData
     hData
 
+/-- The placed quotient/descent construction closes SAT through the concrete
+`AlphabetWord 1` option-2 route, not through a four-bin profile-count budget. -/
+theorem SAT_path_B_paperFaithfulAlphabetWordOneLocalMonoidProfile_of_placedQuotientDescent_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  SAT_path_B_paperFaithfulAlphabetWordOneLocalMonoidProfile_TPhi_extraction_move
+    (step247UniformRouteBPaperFaithfulTPhiAlphabetWordOneLocalMonoidProfileData_of_placedQuotientDescent
+      hData)
+
 /-- Full finite-normal-form alphabet Route-B closeout.
 
 This is the option-2 path: keep the paper's finite `Σ^{≤q}` normal-form

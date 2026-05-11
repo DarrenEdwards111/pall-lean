@@ -478,6 +478,27 @@ def Step247UniformRouteBPaperFaithfulTPhiAlphabetWordOneLocalMonoidProfileData :
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictAlphabetWordOneLocalMonoidProfileData
         M n hn2 htb hns)
 
+/-- The placed quotient/descent construction also supplies the concrete
+`AlphabetWord 1` option-2 datum.
+
+The selected `V_h` row membership is first obtained as the existing strict
+`ConstraintType` profile-subspace datum, converted to selected interface bases,
+and then embedded into the literal `Σ^{≤1}` profile space. The full
+17-symbol profile count remains the one used by the downstream budget. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiAlphabetWordOneLocalMonoidProfileData_of_placedQuotientDescent
+    (hData : Step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData) :
+    Step247UniformRouteBPaperFaithfulTPhiAlphabetWordOneLocalMonoidProfileData := by
+  intro M n hn hn2 htb hns
+  let Dsub :=
+    step247UniformRouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData_of_placedQuotientDescent
+      hData M n hn hn2 htb hns
+  let Dct :=
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileData_of_profileSubspaceData
+      M n hn2 htb hns Dsub
+  exact
+    ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictAlphabetWordOneLocalMonoidProfileData_of_constraintTypeInterfaceProfileData
+      M n hn2 htb hns Dct⟩
+
 /-- `AlphabetWord 1` data supplies the loose full-alphabet Step247 datum. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiLooseInterfaceAnonymousLocalMonoidProfileData_of_alphabetWordOneProfileData
     (hData : Step247UniformRouteBPaperFaithfulTPhiAlphabetWordOneLocalMonoidProfileData) :

@@ -27762,6 +27762,242 @@ theorem routeBPaperFaithfulTPhi_alphabetWordOneProfileBudget_log_le_pow_200
           exact Nat.pow_le_pow_left hn2 175
     _ = n ^ 200 := by ring
 
+/-- Classical decidable equality for the literal paper normal-form alphabet
+`Σ^{≤q}`. The alphabet is finite; this instance is used only to form the
+realizable-profile finsets. -/
+noncomputable instance routeBPaperFaithfulTPhi_alphabetWordDecidableEq (q : ℕ) :
+    DecidableEq (PallLean.Paper93.AlphabetWord q) :=
+  Classical.decEq _
+
+/-- Embed the four Cook--Levin coarse factor types as length-one words in the
+literal paper alphabet `Σ^{≤1}`. This is an injection into the full alphabet,
+not a collapse of that alphabet back to four bins. -/
+noncomputable def routeBPaperFaithfulTPhi_alphabetWordOneOfConstraintType
+    (τ : ConstraintType) : PallLean.Paper93.AlphabetWord 1 :=
+  ⟨⟨1, by norm_num⟩,
+    { val :=
+        [({ constraintType := τ, localState := (0 : Fin 4) } :
+          PallLean.Paper93.InterfaceType)]
+      property := by simp }⟩
+
+/-- Read the coarse factor type attached to a length-one word; non-length-one
+words are routed to a harmless default. Only the embedded words are used for
+selected strict `TΦ` rows below. -/
+noncomputable def routeBPaperFaithfulTPhi_constraintTypeOfAlphabetWordOne
+    (w : PallLean.Paper93.AlphabetWord 1) : ConstraintType :=
+  if h : w.1.val = 1 then
+    (w.2.get ⟨0, by omega⟩).constraintType
+  else
+    ConstraintType.booleanity
+
+@[simp] theorem routeBPaperFaithfulTPhi_constraintTypeOfAlphabetWordOne_ofConstraintType
+    (τ : ConstraintType) :
+    routeBPaperFaithfulTPhi_constraintTypeOfAlphabetWordOne
+        (routeBPaperFaithfulTPhi_alphabetWordOneOfConstraintType τ) = τ := by
+  unfold routeBPaperFaithfulTPhi_constraintTypeOfAlphabetWordOne
+    routeBPaperFaithfulTPhi_alphabetWordOneOfConstraintType
+  simp
+  rfl
+
+theorem routeBPaperFaithfulTPhi_alphabetWordOneOfConstraintType_injective :
+    Function.Injective routeBPaperFaithfulTPhi_alphabetWordOneOfConstraintType := by
+  intro τ υ hτυ
+  have h := congrArg routeBPaperFaithfulTPhi_constraintTypeOfAlphabetWordOne hτυ
+  simpa using h
+
+/-- A realizable strict interface-anonymous profile over any finite local
+alphabet has total mass equal to its window budget. -/
+theorem routeBPaperFaithfulTPhi_strictInterfaceAnonymousProfile_mass_eq
+    {LocalNormalForm : Type} [Fintype LocalNormalForm]
+    [DecidableEq LocalNormalForm] {κ : ℕ}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      LocalNormalForm κ) :
+    (∑ σ : LocalNormalForm, ρ.val σ) = κ := by
+  classical
+  rcases Finset.mem_image.mp ρ.property with ⟨f, hf, hρ⟩
+  have hsum : (∑ σ : LocalNormalForm, (f σ : ℕ)) = κ :=
+    (Finset.mem_filter.mp hf).2
+  have hpoint : ∀ σ : LocalNormalForm, ρ.val σ = (f σ : ℕ) := by
+    intro σ
+    exact (congrFun hρ σ).symm
+  calc
+    (∑ σ : LocalNormalForm, ρ.val σ)
+        = ∑ σ : LocalNormalForm, (f σ : ℕ) :=
+          Finset.sum_congr rfl (fun σ _ => hpoint σ)
+    _ = κ := hsum
+
+/-- Push a selected four-bin `ConstraintType` profile into the full
+`AlphabetWord 1` histogram by assigning mass only to the embedded length-one
+words. The other 13 normal forms remain present with zero mass. -/
+noncomputable def routeBPaperFaithfulTPhi_pushConstraintTypeHistToAlphabetWordOne
+    {κ : ℕ}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType κ) :
+    PallLean.Paper93.InterfaceAnonymousProfile
+      (PallLean.Paper93.AlphabetWord 1) := by
+  classical
+  exact fun w =>
+    ∑ τ ∈ (Finset.univ.filter
+      (fun τ : ConstraintType =>
+        routeBPaperFaithfulTPhi_alphabetWordOneOfConstraintType τ = w)),
+      ρ.val τ
+
+theorem routeBPaperFaithfulTPhi_pushConstraintTypeHistToAlphabetWordOne_mass_eq
+    {κ : ℕ}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType κ) :
+    (∑ w : PallLean.Paper93.AlphabetWord 1,
+      routeBPaperFaithfulTPhi_pushConstraintTypeHistToAlphabetWordOne ρ w) = κ := by
+  classical
+  have hf :=
+    Finset.sum_fiberwise (s := (Finset.univ : Finset ConstraintType))
+      (g := routeBPaperFaithfulTPhi_alphabetWordOneOfConstraintType)
+      (f := fun τ => ρ.val τ)
+  have hm := routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfile_mass_eq ρ
+  simpa [routeBPaperFaithfulTPhi_pushConstraintTypeHistToAlphabetWordOne,
+    SymmetricPowerBound.profileMass] using hf.trans hm
+
+/-- The pushed `AlphabetWord 1` histogram is a realizable literal
+interface-anonymous profile. -/
+noncomputable def routeBPaperFaithfulTPhi_pushConstraintTypeProfileToAlphabetWordOne
+    {κ : ℕ}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType κ) :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      (PallLean.Paper93.AlphabetWord 1) κ := by
+  classical
+  refine ⟨routeBPaperFaithfulTPhi_pushConstraintTypeHistToAlphabetWordOne ρ, ?_⟩
+  refine Finset.mem_image.mpr ?_
+  let f : PallLean.Paper93.AlphabetWord 1 → Fin (κ + 1) := fun w =>
+    ⟨routeBPaperFaithfulTPhi_pushConstraintTypeHistToAlphabetWordOne ρ w, by
+      have hle :
+          routeBPaperFaithfulTPhi_pushConstraintTypeHistToAlphabetWordOne ρ w ≤
+            ∑ w : PallLean.Paper93.AlphabetWord 1,
+              routeBPaperFaithfulTPhi_pushConstraintTypeHistToAlphabetWordOne ρ w :=
+        Finset.single_le_sum
+          (fun x _ => Nat.zero_le
+            (routeBPaperFaithfulTPhi_pushConstraintTypeHistToAlphabetWordOne ρ x))
+          (Finset.mem_univ w)
+      rw [routeBPaperFaithfulTPhi_pushConstraintTypeHistToAlphabetWordOne_mass_eq ρ] at hle
+      exact Nat.lt_succ_of_le hle⟩
+  exact ⟨f,
+    by
+      simpa [f] using
+        routeBPaperFaithfulTPhi_pushConstraintTypeHistToAlphabetWordOne_mass_eq ρ,
+    rfl⟩
+
+/-- Project an `AlphabetWord 1` profile back to the coarse `ConstraintType`
+histogram by summing over all full normal forms whose first symbol carries the
+given coarse type. -/
+noncomputable def routeBPaperFaithfulTPhi_projectAlphabetWordOneHistToConstraintType
+    {κ : ℕ}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      (PallLean.Paper93.AlphabetWord 1) κ) :
+    ProfileHistogram := by
+  classical
+  exact fun τ =>
+    ∑ w ∈ (Finset.univ.filter
+      (fun w : PallLean.Paper93.AlphabetWord 1 =>
+        routeBPaperFaithfulTPhi_constraintTypeOfAlphabetWordOne w = τ)),
+      ρ.val w
+
+theorem routeBPaperFaithfulTPhi_projectAlphabetWordOneHistToConstraintType_mass_eq
+    {κ : ℕ}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      (PallLean.Paper93.AlphabetWord 1) κ) :
+    profileMass
+      (routeBPaperFaithfulTPhi_projectAlphabetWordOneHistToConstraintType ρ) = κ := by
+  classical
+  unfold profileMass routeBPaperFaithfulTPhi_projectAlphabetWordOneHistToConstraintType
+  have hf :=
+    Finset.sum_fiberwise
+      (s := (Finset.univ : Finset (PallLean.Paper93.AlphabetWord 1)))
+      (g := routeBPaperFaithfulTPhi_constraintTypeOfAlphabetWordOne)
+      (f := fun w => ρ.val w)
+  simpa using
+    hf.trans
+      (routeBPaperFaithfulTPhi_strictInterfaceAnonymousProfile_mass_eq ρ)
+
+/-- Any literal `AlphabetWord 1` profile has a realizable coarse
+`ConstraintType` projection. -/
+noncomputable def routeBPaperFaithfulTPhi_projectAlphabetWordOneProfileToConstraintType
+    {κ : ℕ}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      (PallLean.Paper93.AlphabetWord 1) κ) :
+    RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles ConstraintType κ :=
+  routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileOfMassEq
+    (routeBPaperFaithfulTPhi_projectAlphabetWordOneHistToConstraintType ρ)
+    (routeBPaperFaithfulTPhi_projectAlphabetWordOneHistToConstraintType_mass_eq ρ)
+
+@[simp] theorem routeBPaperFaithfulTPhi_project_pushAlphabetWordOneProfile_val
+    {κ : ℕ}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType κ) :
+    (routeBPaperFaithfulTPhi_projectAlphabetWordOneProfileToConstraintType
+      (routeBPaperFaithfulTPhi_pushConstraintTypeProfileToAlphabetWordOne ρ)).val =
+      ρ.val := by
+  classical
+  funext τ
+  unfold routeBPaperFaithfulTPhi_projectAlphabetWordOneProfileToConstraintType
+    routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfileOfMassEq
+    routeBPaperFaithfulTPhi_projectAlphabetWordOneHistToConstraintType
+    routeBPaperFaithfulTPhi_pushConstraintTypeProfileToAlphabetWordOne
+    routeBPaperFaithfulTPhi_pushConstraintTypeHistToAlphabetWordOne
+  dsimp
+  change
+      (∑ w ∈ (Finset.univ.filter
+        (fun w : PallLean.Paper93.AlphabetWord 1 =>
+          routeBPaperFaithfulTPhi_constraintTypeOfAlphabetWordOne w = τ)),
+        ∑ τ' ∈ (Finset.univ.filter
+          (fun τ' : ConstraintType =>
+            routeBPaperFaithfulTPhi_alphabetWordOneOfConstraintType τ' = w)),
+          ρ.val τ') = ρ.val τ
+  calc
+    (∑ w ∈ (Finset.univ.filter
+        (fun w : PallLean.Paper93.AlphabetWord 1 =>
+          routeBPaperFaithfulTPhi_constraintTypeOfAlphabetWordOne w = τ)),
+        ∑ τ' ∈ (Finset.univ.filter
+          (fun τ' : ConstraintType =>
+            routeBPaperFaithfulTPhi_alphabetWordOneOfConstraintType τ' = w)),
+          ρ.val τ')
+        = ∑ τ' ∈ (Finset.univ.filter
+            (fun τ' : ConstraintType =>
+              routeBPaperFaithfulTPhi_alphabetWordOneOfConstraintType τ' =
+                routeBPaperFaithfulTPhi_alphabetWordOneOfConstraintType τ)),
+            ρ.val τ' := by
+          apply Finset.sum_eq_single
+            (routeBPaperFaithfulTPhi_alphabetWordOneOfConstraintType τ)
+          · intro b hb hbne
+            simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hb
+            apply Finset.sum_eq_zero
+            intro τ' hτ'
+            simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hτ'
+            have hτeq : τ' = τ := by
+              calc
+                τ' = routeBPaperFaithfulTPhi_constraintTypeOfAlphabetWordOne
+                      (routeBPaperFaithfulTPhi_alphabetWordOneOfConstraintType τ') := by
+                    rw [routeBPaperFaithfulTPhi_constraintTypeOfAlphabetWordOne_ofConstraintType]
+                _ = routeBPaperFaithfulTPhi_constraintTypeOfAlphabetWordOne b := by
+                    rw [hτ']
+                _ = τ := hb
+            subst τ'
+            exact False.elim (hbne hτ'.symm)
+          · intro hnot
+            exfalso
+            apply hnot
+            simp
+    _ = ρ.val τ := by
+          apply Finset.sum_eq_single τ
+          · intro τ' hτ' hne
+            simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hτ'
+            exact False.elim
+              (hne
+                (routeBPaperFaithfulTPhi_alphabetWordOneOfConstraintType_injective hτ'))
+          · intro hnot
+            exfalso
+            apply hnot
+            simp
+
 /-- Full `AlphabetWord 1` interface-anonymous normal-form data.
 
 This is option 2 specialized to the first nontrivial literal finite
@@ -27814,6 +28050,48 @@ structure RouteBPaperFaithfulTPhiStrictAlphabetWordOneLocalMonoidProfileData
             (profileOfCanonicalWindow
               (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
               hrow.1)) : Set (MvPolynomial (Fin n) ℚ))
+
+/-- Existing selected `ConstraintType` Lemma-31 data can be lifted into the full
+`AlphabetWord 1` route by embedding the selected coarse profile into the literal
+normal-form alphabet and using projection for arbitrary full-alphabet profiles.
+
+This keeps the full `Σ^{≤1}` profile space explicit: profiles over the extra
+normal forms exist and are counted in the `(κ+1)^17` budget; the selected strict
+`TΦ` rows occupy the embedded length-one slice. -/
+noncomputable def routeBPaperFaithfulTPhi_strictAlphabetWordOneLocalMonoidProfileData_of_constraintTypeInterfaceProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictConstraintTypeInterfaceProfileData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictAlphabetWordOneLocalMonoidProfileData
+      M n hn2 htb hns where
+  localDim := D.localDim
+  localDim_le := D.localDim_le
+  localBasis := fun ρ =>
+    D.localBasis
+      (routeBPaperFaithfulTPhi_projectAlphabetWordOneProfileToConstraintType ρ)
+  localBasis_card_le := by
+    intro ρ
+    exact D.localBasis_card_le
+      (routeBPaperFaithfulTPhi_projectAlphabetWordOneProfileToConstraintType ρ)
+  profileOfCanonicalWindow := fun w hw =>
+    routeBPaperFaithfulTPhi_pushConstraintTypeProfileToAlphabetWordOne
+      (D.profileOfCanonicalWindow w hw)
+  canonicalRangeRow_mem_alphabetWordOneProfileSpan := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    let ρC :=
+      D.profileOfCanonicalWindow
+        (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+        hrow.1
+    have hproj :
+        routeBPaperFaithfulTPhi_projectAlphabetWordOneProfileToConstraintType
+          (routeBPaperFaithfulTPhi_pushConstraintTypeProfileToAlphabetWordOne ρC) = ρC := by
+      apply Subtype.ext
+      exact routeBPaperFaithfulTPhi_project_pushAlphabetWordOneProfile_val ρC
+    have hmem :=
+      D.canonicalRangeRow_mem_constraintTypeProfileSpan
+        S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    simpa [ρC, hproj] using hmem
 
 /-- `AlphabetWord 1` data instantiates the loose full-alphabet Route B surface. -/
 noncomputable def routeBPaperFaithfulTPhi_strictLooseInterfaceAnonymousLocalMonoidProfileData_of_alphabetWordOneProfileData
