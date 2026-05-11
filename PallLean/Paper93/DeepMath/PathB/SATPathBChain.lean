@@ -402,6 +402,57 @@ theorem SAT_path_B_paperFaithfulSourceLocalTypeCompression_TPhi_extraction_move
   PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceLocalTypeCompressionData
     hData
 
+/-- Branch-atom profile-template local-type seam.
+
+This is the paper-faithful atomic Lemma-31 surface below source local-type
+compression: local types are the concrete bounded `NFOfWord` witness words,
+local bases are singleton whole-branch atoms, and the budget is the selected
+`profileTemplateBound ρ.val`.  No common/global span or derivative-histogram
+collapse is introduced. -/
+theorem SAT_path_B_paperFaithfulSourceBranchAtomProfileTemplateLocalTypeMaps_TPhi_extraction_move
+    (hData :
+      ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804)
+        (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (_hdec : DecidesSAT M),
+        PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordBranchAtomProfileTemplateLocalTypeMaps
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceBranchAtomProfileTemplateLocalTypeMaps
+    hData
+
+/-- Exact-budget local-monoid normal-form seam.
+
+This keeps the witnessed Leibniz local word explicit and asks for finite normal
+forms with the literal selected-profile budget `profileTemplateBound ρ.val`.
+It is the no-shortcut local monoid route into the source local-type theorem. -/
+theorem SAT_path_B_paperFaithfulSourceProfileTemplateLocalMonoidNormalForms_TPhi_extraction_move
+    (hData :
+      ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804)
+        (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (_hdec : DecidesSAT M),
+        PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms
+    hData
+
+/-- Fixed-`q` singleton event-atom `NFOfWord` seam.
+
+This is the currently most atomic exposed Cook--Levin local-algebra target: the
+basis letters are the concrete singleton derivative atoms, the local dimension
+is the actual bounded-word length `q`, and the remaining row proof is exact
+membership of the witnessed product-rule row in that folded atom basis. -/
+theorem SAT_path_B_paperFaithfulSourceEventAtomQDimFinalMaps_TPhi_extraction_move
+    (hData :
+      ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804)
+        (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (_hdec : DecidesSAT M),
+        PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps
+    hData
+
 /-- Exact-profile template-collapse sufficient seam for the strict source row.
 
 This exposes the checked route
