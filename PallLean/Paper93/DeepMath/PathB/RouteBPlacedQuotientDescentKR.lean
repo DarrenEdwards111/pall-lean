@@ -413,6 +413,25 @@ def Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFacto
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterfaceSlotFactorizationData
         M n hn2 htb hns)
 
+/-- Uniform exact shifted Leibniz-product interface-slot factorization data at
+Step 247 scale, with no profile-uniform shift-closure obligation.  This is the
+slot-product half consumed by the coherent branch-atom route. -/
+def Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExactInterfaceSlotFactorizationData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductExactInterfaceSlotFactorizationData
+        M n hn2 htb hns)
+
+/-- The legacy slot-factorization seam forgets to the exact slot-product seam. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExactInterfaceSlotFactorizationData_of_interfaceSlotFactorizationData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData) :
+    Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExactInterfaceSlotFactorizationData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductExactInterfaceSlotFactorizationData_of_interfaceSlotFactorizationData
+    M n hn2 htb hns D⟩
+
 /-- Uniform shifted Leibniz-product slot-product row-shift data at Step 247
 scale.
 

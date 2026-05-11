@@ -19705,6 +19705,145 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterf
               interfaceSpace_compiledBasis
                 sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ)
 
+/-- Exact slot-level paper-faithful interface normal-form factorization, without
+any profile-uniform shift-closure obligation.
+
+This is the literal slot product data used by the non-uniform branch-atom route:
+each selected bounded Leibniz product is factored into exactly `ρ.val σ`
+compiled-basis slots of every anonymous interface type `σ`.  The shifted
+membership is supplied separately by branch-atom data, so this surface avoids the
+overstrong claim that multiplication by an arbitrary selected shift preserves an
+entire profile subspace. -/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductExactInterfaceSlotFactorizationData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  sourcePartition : SPDP.BlockPartition (n / 3)
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  interfaceSlotContribution :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length)
+      (σ : ConstraintType),
+        Fin (ρ.val σ) → MvPolynomial (Fin (n / 3)) ℚ
+  interfaceSlotContribution_mem_compiledBasis :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length)
+      (σ : ConstraintType) (j : Fin (ρ.val σ)),
+        interfaceSlotContribution ρ S' shift α hSlen hshiftDegree hshiftVars
+          hadm hrow hρ d hd_elts hlen σ j ∈
+          interfaceSpace_compiledBasis
+            sourcePartition (Nat.log 2 n) (Nat.log 2 n) σ
+  unshiftedLeibnizProduct_eq_interfaceSlotProduct :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        Finset.univ.prod
+          (fun i : Fin ((cookLevinFactorList M n hn2 htb hns).length) =>
+            SPDP.iterDerivList (d i)
+              ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                M n hn2 htb hns) i)) =
+          ∏ σ : ConstraintType,
+            ∏ j : Fin (ρ.val σ),
+              interfaceSlotContribution ρ S' shift α hSlen hshiftDegree
+                hshiftVars hadm hrow hρ d hd_elts hlen σ j
+
+/-- Forget the profile-uniform closure field from the legacy slot-factorization
+surface, retaining only the exact slot product payload. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductExactInterfaceSlotFactorizationData_of_interfaceSlotFactorizationData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterfaceSlotFactorizationData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductExactInterfaceSlotFactorizationData
+      M n hn2 htb hns where
+  sourcePartition := D.sourcePartition
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  interfaceSlotContribution := D.interfaceSlotContribution
+  interfaceSlotContribution_mem_compiledBasis := D.interfaceSlotContribution_mem_compiledBasis
+  unshiftedLeibnizProduct_eq_interfaceSlotProduct := D.unshiftedLeibnizProduct_eq_interfaceSlotProduct
+
 /-- Row-specific slot-product shift data for the selected Leibniz summands.
 
 This is the paper-faithful replacement for the too-strong profile-uniform
@@ -19897,7 +20036,7 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterf
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
   slotData :
-    RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterfaceSlotFactorizationData
+    RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductExactInterfaceSlotFactorizationData
       M n hn2 htb hns
   branchAtomData :
     RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomCompiledBasisProfileData
@@ -20433,7 +20572,9 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProd
       M n hn2 htb hns) :
     RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtomData
       M n hn2 htb hns where
-  slotData := D
+  slotData :=
+    routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductExactInterfaceSlotFactorizationData_of_interfaceSlotFactorizationData
+      M n hn2 htb hns D
   branchAtomData :=
     routeBPaperFaithfulTPhi_strictSourceSelectedShiftedBranchAtomCompiledBasisProfileData_of_shiftedLeibnizProductData
       M n hn2 htb hns
