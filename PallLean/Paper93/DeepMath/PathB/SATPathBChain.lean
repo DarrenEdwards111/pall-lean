@@ -708,6 +708,17 @@ theorem SAT_path_B_paperFaithfulShiftedLeibnizProductInterfaceSlotFactorization_
     (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceContributionData_of_interfaceSlotFactorizationData
       hData)
 
+/-- Row-specific slot-product shift exposure: exact slot products plus the
+selected shifted membership for each bounded Leibniz term supply the shifted
+Leibniz-product profile seam without asserting profile-uniform operator
+closure. -/
+theorem SAT_path_B_paperFaithfulShiftedLeibnizProductInterfaceSlotProductRowShift_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  SAT_path_B_paperFaithfulShiftedLeibnizProductCompiledBasisProfile_TPhi_extraction_move
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisProfileData_of_interfaceSlotProductRowShiftData
+      hData)
+
 /-- Uniform-shift-closure slot-product exposure: the slot product construction
 plus a profile-uniform shift/`mlProj` closure theorem supplies the previous
 slot-factorization seam. -/

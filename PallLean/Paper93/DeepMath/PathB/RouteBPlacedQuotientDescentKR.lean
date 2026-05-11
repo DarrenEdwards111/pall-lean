@@ -413,6 +413,29 @@ def Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFacto
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterfaceSlotFactorizationData
         M n hn2 htb hns)
 
+/-- Uniform shifted Leibniz-product slot-product row-shift data at Step 247
+scale.
+
+This is the row-specific replacement for the overly strong uniform operator
+closure seam: each bounded Leibniz term has an exact compiled-basis slot product
+and the selected row shift/`mlProj` is proved only for that term. -/
+def Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterfaceSlotProductRowShiftData
+        M n hn2 htb hns)
+
+/-- Row-specific slot-product shift data directly instantiates shifted Leibniz
+product profile membership. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisProfileData_of_interfaceSlotProductRowShiftData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftData) :
+    Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisProfileData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductCompiledBasisProfileData_of_interfaceSlotProductRowShiftData
+    M n hn2 htb hns D⟩
+
 /-- Uniform shifted Leibniz-product slot-product plus profile-uniform shift
 closure data at Step 247 scale.
 
