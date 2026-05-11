@@ -633,6 +633,30 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimRowWit
   exact PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_rowWitness_of_targetMembership
     M n hn2 htb hns (hTarget M n hn hn2 htb hns)
 
+/-- At Step247 scale, fixed-`q` row-witness and target-membership frontiers are
+logically equivalent instance-by-instance. -/
+theorem step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimRowWitness_iff_targetMembership
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimRowWitness
+      M n hn2 htb hns) ↔
+    (∀ (ρ : PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((PallLean.Paper93.Paper283.cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((PallLean.Paper93.Paper283.cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+      PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetRow
+          M n hn2 htb hns S' shift d ∈
+        PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetSpan
+          M n hn2 htb hns ρ d) :=
+  PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_rowWitness_iff_targetMembership
+    M n hn2 htb hns
+
 /-- Any Step247 fixed-`q` final payload yields the corresponding budget scaffold. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimBudgetData_of_finalMaps
     (hData : Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalMaps) :
