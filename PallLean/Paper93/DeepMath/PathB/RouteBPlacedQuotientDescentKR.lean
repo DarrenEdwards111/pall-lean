@@ -385,6 +385,61 @@ def Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocal
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductCompiledBasisLocalAlgebraData
         M n hn2 htb hns)
 
+/-- Uniform shifted Leibniz-product interface-contribution data at Step 247
+scale.
+
+This is the next lower paper-faithful seam: for each selected profile, split the
+unshifted bounded Leibniz product into one contribution per interface type, prove
+each contribution is in the corresponding symmetric power of the compiled-basis
+space, and keep the selected shift/`mlProj` closure obligation. -/
+def Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceContributionData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterfaceContributionData
+        M n hn2 htb hns)
+
+/-- Uniform shifted Leibniz-product interface-slot factorization data at Step
+247 scale.
+
+This is the literal local-slot Lemma-31 target: produce exactly `ρ.val σ`
+compiled-basis local slots for every interface type `σ`, prove the unshifted
+Leibniz product is their anonymous product, and prove selected shift/`mlProj`
+closure. -/
+def Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterfaceSlotFactorizationData
+        M n hn2 htb hns)
+
+/-- Interface-contribution data instantiates the local-algebra seam. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData_of_interfaceContributionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceContributionData) :
+    Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductCompiledBasisLocalAlgebraData_of_interfaceContributionData
+    M n hn2 htb hns D⟩
+
+/-- Slot factorization data instantiates interface-contribution data. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceContributionData_of_interfaceSlotFactorizationData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData) :
+    Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceContributionData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductInterfaceContributionData_of_interfaceSlotFactorizationData
+    M n hn2 htb hns D⟩
+
+/-- Slot factorization data therefore supplies the shifted Leibniz local-algebra
+source seam. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData_of_interfaceSlotFactorizationData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData) :
+    Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData :=
+  step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData_of_interfaceContributionData
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceContributionData_of_interfaceSlotFactorizationData
+      hData)
+
 /-- Local-algebra membership/closure gives shifted Leibniz-product membership. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisProfileData_of_localAlgebraData
     (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData) :

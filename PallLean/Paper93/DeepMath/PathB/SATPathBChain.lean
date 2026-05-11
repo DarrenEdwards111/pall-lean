@@ -688,4 +688,24 @@ theorem SAT_path_B_paperFaithfulShiftedLeibnizProductLocalAlgebra_TPhi_extractio
     (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisProfileData_of_localAlgebraData
       hData)
 
+/-- Interface-contribution exposure: it is enough to split every unshifted
+bounded Leibniz product into one symmetric-power contribution per interface
+type, plus the selected shift/`mlProj` closure. -/
+theorem SAT_path_B_paperFaithfulShiftedLeibnizProductInterfaceContribution_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceContributionData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  SAT_path_B_paperFaithfulShiftedLeibnizProductLocalAlgebra_TPhi_extraction_move
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData_of_interfaceContributionData
+      hData)
+
+/-- Interface-slot factorization exposure: the remaining local proof can be
+stated in the most literal Lemma-31 form, with exactly `ρ.val σ` compiled-basis
+slots for each selected interface type. -/
+theorem SAT_path_B_paperFaithfulShiftedLeibnizProductInterfaceSlotFactorization_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  SAT_path_B_paperFaithfulShiftedLeibnizProductInterfaceContribution_TPhi_extraction_move
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceContributionData_of_interfaceSlotFactorizationData
+      hData)
+
 end PallLean.Paper93.DeepMath.PathB
