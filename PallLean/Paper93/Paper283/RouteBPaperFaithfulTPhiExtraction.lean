@@ -17475,6 +17475,192 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedRowInterfaceSlotEx
     exact D.canonicalSourceRow_eq_renamedCanonicalInterfaceExpansion
       ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
 
+/-- Expand a product of interface slots after each slot has been expanded in the
+canonical three-slot compiled-basis alphabet. -/
+theorem routeBPaperFaithfulTPhi_prod_slot_basisExpansion
+    {N κ : ℕ}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles ConstraintType κ)
+    (slot : ∀ σ : ConstraintType, Fin (ρ.val σ) → MvPolynomial (Fin N) ℚ)
+    (coeff : ∀ σ : ConstraintType, Fin (ρ.val σ) → Fin d₀ → ℚ)
+    (basis : ∀ σ : ConstraintType, Fin d₀ → MvPolynomial (Fin N) ℚ)
+    (hslot : ∀ σ j, slot σ j = ∑ k : Fin d₀, coeff σ j k • basis σ k) :
+    (∏ σ : ConstraintType, ∏ j : Fin (ρ.val σ), slot σ j) =
+      ∑ f : { f : ∀ σ : ConstraintType, Fin (ρ.val σ) → Fin d₀ //
+          f ∈ Fintype.piFinset
+            (fun σ : ConstraintType =>
+              Fintype.piFinset (fun _ : Fin (ρ.val σ) =>
+                (Finset.univ : Finset (Fin d₀)))) },
+        (∏ σ : ConstraintType, ∏ j : Fin (ρ.val σ), coeff σ j (f.1 σ j)) •
+          (∏ σ : ConstraintType, ∏ j : Fin (ρ.val σ), basis σ (f.1 σ j)) := by
+  classical
+  calc
+    (∏ σ : ConstraintType, ∏ j : Fin (ρ.val σ), slot σ j)
+        = ∑ f ∈ Fintype.piFinset
+          (fun σ : ConstraintType =>
+            Fintype.piFinset (fun _ : Fin (ρ.val σ) =>
+              (Finset.univ : Finset (Fin d₀)))),
+        (∏ σ : ConstraintType, ∏ j : Fin (ρ.val σ), coeff σ j (f σ j)) •
+          (∏ σ : ConstraintType, ∏ j : Fin (ρ.val σ), basis σ (f σ j)) := by
+          calc
+            (∏ σ : ConstraintType, ∏ j : Fin (ρ.val σ), slot σ j)
+                = ∏ σ : ConstraintType, ∏ j : Fin (ρ.val σ),
+                    ∑ k : Fin d₀, coeff σ j k • basis σ k := by
+                  simp [hslot]
+            _ = ∏ σ : ConstraintType,
+                  ∑ fσ ∈ Fintype.piFinset
+                      (fun _ : Fin (ρ.val σ) => (Finset.univ : Finset (Fin d₀))),
+                    ∏ j : Fin (ρ.val σ), coeff σ j (fσ j) • basis σ (fσ j) := by
+                  congr with σ
+                  rw [Finset.prod_univ_sum]
+            _ = ∑ f ∈ Fintype.piFinset
+                  (fun σ : ConstraintType =>
+                    Fintype.piFinset (fun _ : Fin (ρ.val σ) =>
+                      (Finset.univ : Finset (Fin d₀)))),
+                  ∏ σ : ConstraintType, ∏ j : Fin (ρ.val σ),
+                    coeff σ j (f σ j) • basis σ (f σ j) := by
+                  rw [Finset.prod_univ_sum]
+            _ = ∑ f ∈ Fintype.piFinset
+                  (fun σ : ConstraintType =>
+                    Fintype.piFinset (fun _ : Fin (ρ.val σ) =>
+                      (Finset.univ : Finset (Fin d₀)))),
+                (∏ σ : ConstraintType, ∏ j : Fin (ρ.val σ), coeff σ j (f σ j)) •
+                  (∏ σ : ConstraintType, ∏ j : Fin (ρ.val σ), basis σ (f σ j)) := by
+                  refine Finset.sum_congr rfl ?_
+                  intro f hf
+                  simp only [Algebra.smul_def]
+                  simp only [map_prod, Finset.prod_mul_distrib]
+    _ = ∑ f : { f : ∀ σ : ConstraintType, Fin (ρ.val σ) → Fin d₀ //
+          f ∈ Fintype.piFinset
+            (fun σ : ConstraintType =>
+              Fintype.piFinset (fun _ : Fin (ρ.val σ) =>
+                (Finset.univ : Finset (Fin d₀)))) },
+        (∏ σ : ConstraintType, ∏ j : Fin (ρ.val σ), coeff σ j (f.1 σ j)) •
+          (∏ σ : ConstraintType, ∏ j : Fin (ρ.val σ), basis σ (f.1 σ j)) := by
+          rw [← Finset.sum_attach]
+          rfl
+
+/-- Any row-slot expansion whose slots lie in the compiled-basis interface
+spaces can be expanded into the canonical three-slot interface generator
+family.  This is the finite Lemma-31 linear-combination step: each slot is first
+written in the canonical `d₀ = 3` basis, and the product of slot sums is
+expanded by finite distributivity. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedRowCanonicalInterfaceExpansionData_of_rowInterfaceSlotExpansionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedRowInterfaceSlotExpansionData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedRowCanonicalInterfaceExpansionData
+      M n hn2 htb hns where
+  sourcePartition := D.sourcePartition
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  rowExpansionIndex := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    exact Σ t : D.rowExpansionIndex ρ S' shift α hSlen hshiftDegree
+          hshiftVars hadm hrow hρ,
+        { f : ∀ σ : ConstraintType, Fin (ρ.val σ) → Fin d₀ //
+          f ∈ Fintype.piFinset
+            (fun σ : ConstraintType =>
+              Fintype.piFinset (fun _ : Fin (ρ.val σ) =>
+                (Finset.univ : Finset (Fin d₀)))) }
+  rowExpansionIndexFintype := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    classical
+    letI := D.rowExpansionIndexFintype ρ S' shift α hSlen hshiftDegree
+      hshiftVars hadm hrow hρ
+    infer_instance
+  rowExpansionCoeff := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ tf
+    classical
+    exact
+      D.rowExpansionCoeff ρ S' shift α hSlen hshiftDegree
+        hshiftVars hadm hrow hρ tf.1 *
+        (∏ σ : ConstraintType, ∏ j : Fin (ρ.val σ),
+          canonicalInterfacePolynomial_basisCoeffOfMem
+            D.sourcePartition (Nat.log 2 n) (Nat.log 2 n) σ
+            (D.rowExpansionSlotContribution ρ S' shift α hSlen hshiftDegree
+              hshiftVars hadm hrow hρ tf.1 σ j)
+            (D.rowExpansionSlotContribution_mem_compiledBasis ρ S' shift α
+              hSlen hshiftDegree hshiftVars hadm hrow hρ tf.1 σ j)
+            (tf.2.1 σ j))
+  rowExpansionCanonicalSlot := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ tf σ j
+    exact tf.2.1 σ j
+  canonicalSourceRow_eq_canonicalInterfaceExpansion := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    classical
+    letI := D.rowExpansionIndexFintype ρ S' shift α hSlen hshiftDegree
+      hshiftVars hadm hrow hρ
+    have hrowExp := D.canonicalSourceRow_eq_rowInterfaceSlotExpansion
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    rw [hrowExp]
+    rw [Fintype.sum_sigma]
+    refine Finset.sum_congr rfl ?_
+    intro t ht
+    let slot : ∀ σ : ConstraintType, Fin (ρ.val σ) → MvPolynomial (Fin (n / 3)) ℚ :=
+      fun σ j => D.rowExpansionSlotContribution ρ S' shift α hSlen hshiftDegree
+        hshiftVars hadm hrow hρ t σ j
+    let coeff : ∀ σ : ConstraintType, Fin (ρ.val σ) → Fin d₀ → ℚ :=
+      fun σ j => canonicalInterfacePolynomial_basisCoeffOfMem
+        D.sourcePartition (Nat.log 2 n) (Nat.log 2 n) σ
+        (D.rowExpansionSlotContribution ρ S' shift α hSlen hshiftDegree
+          hshiftVars hadm hrow hρ t σ j)
+        (D.rowExpansionSlotContribution_mem_compiledBasis ρ S' shift α
+          hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j)
+    let basis : ∀ σ : ConstraintType, Fin d₀ → MvPolynomial (Fin (n / 3)) ℚ :=
+      fun σ k => canonicalInterfacePolynomial D.sourcePartition
+        (Nat.log 2 n) (Nat.log 2 n) σ k
+    have hslot : ∀ σ j, slot σ j = ∑ k : Fin d₀, coeff σ j k • basis σ k := by
+      intro σ j
+      dsimp [slot, coeff, basis]
+      exact canonicalInterfacePolynomial_basisCoeffOfMem_spec
+        D.sourcePartition (Nat.log 2 n) (Nat.log 2 n) σ
+        (D.rowExpansionSlotContribution ρ S' shift α hSlen hshiftDegree
+          hshiftVars hadm hrow hρ t σ j)
+        (D.rowExpansionSlotContribution_mem_compiledBasis ρ S' shift α
+          hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j)
+    have hprod := routeBPaperFaithfulTPhi_prod_slot_basisExpansion
+      (N := n / 3) (κ := Nat.log 2 n) ρ slot coeff basis hslot
+    rw [hprod]
+    simp only [Finset.smul_sum, smul_smul, mul_assoc]
+    refine Finset.sum_congr rfl ?_
+    intro f hf
+    simp [slot, coeff, basis, mul_comm, mul_left_comm, mul_assoc]
+
+
+/-- A canonical-interface expansion is the identity-chart case of the
+renamed-canonical expansion surface.  This removes one layer of the remaining
+Lemma-31 source stack without assuming any fixed chart for arbitrary concrete
+placements: the chart map is literally `id` because the input data is already in
+the canonical compiled-basis coordinates. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedRowRenamedCanonicalInterfaceExpansionData_of_canonicalInterfaceExpansionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedRowCanonicalInterfaceExpansionData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedRowRenamedCanonicalInterfaceExpansionData
+      M n hn2 htb hns where
+  sourcePartition := D.sourcePartition
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  rowExpansionIndex := D.rowExpansionIndex
+  rowExpansionIndexFintype := D.rowExpansionIndexFintype
+  rowExpansionCoeff := D.rowExpansionCoeff
+  rowExpansionCanonicalSlot := D.rowExpansionCanonicalSlot
+  rowExpansionChartMap := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j
+    exact id
+  renamedCanonicalSlot_mem_compiledBasis := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j
+    simpa using
+      canonicalInterfacePolynomial_mem_interfaceSpace_compiledBasis
+        D.sourcePartition (Nat.log 2 n) (Nat.log 2 n) σ
+        (D.rowExpansionCanonicalSlot ρ S' shift α hSlen hshiftDegree
+          hshiftVars hadm hrow hρ t σ j)
+  canonicalSourceRow_eq_renamedCanonicalInterfaceExpansion := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    rw [D.canonicalSourceRow_eq_canonicalInterfaceExpansion
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ]
+    simp
+
 /-- Coefficient-level renamed-canonical expansion instantiates the renamed
 canonical expansion surface.  The only membership proof is the finite basis
 expansion into the three canonical compiled-basis slots. -/

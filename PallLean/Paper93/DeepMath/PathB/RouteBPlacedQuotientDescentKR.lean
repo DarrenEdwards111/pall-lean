@@ -345,6 +345,69 @@ def Step247UniformRouteBPaperFaithfulTPhiRenamedCanonicalInterfaceExpansionData 
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowRenamedCanonicalInterfaceExpansionData
         M n hn2 htb hns)
 
+/-- Uniform row-interface-slot expansion data at Step 247 scale.
+
+This is the literal selected-row Lemma-31 source surface: the row is already a
+finite sum of products of concrete compiled-basis interface slots.  The adapter
+below expands each slot into the canonical three-generator interface alphabet by
+finite linear algebra and distributivity. -/
+def Step247UniformRouteBPaperFaithfulTPhiInterfaceSlotExpansionData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowInterfaceSlotExpansionData
+        M n hn2 htb hns)
+
+/-- Uniform canonical-interface expansion data at Step 247 scale.  This is now
+the remaining source target after identity-chart transport into the
+renamed-canonical surface and then placed quotient/descent. -/
+def Step247UniformRouteBPaperFaithfulTPhiCanonicalInterfaceExpansionData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowCanonicalInterfaceExpansionData
+        M n hn2 htb hns)
+
+/-- Row-interface-slot expansion gives canonical-interface expansion by expanding
+each concrete interface slot in the canonical compiled-basis generator family. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiCanonicalInterfaceExpansionData_of_interfaceSlotExpansionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiInterfaceSlotExpansionData) :
+    Step247UniformRouteBPaperFaithfulTPhiCanonicalInterfaceExpansionData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedRowCanonicalInterfaceExpansionData_of_rowInterfaceSlotExpansionData
+    M n hn2 htb hns D⟩
+
+/-- Canonical-interface expansion gives renamed-canonical expansion by the
+identity-chart adapter. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiRenamedCanonicalInterfaceExpansionData_of_canonicalInterfaceExpansionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiCanonicalInterfaceExpansionData) :
+    Step247UniformRouteBPaperFaithfulTPhiRenamedCanonicalInterfaceExpansionData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedRowRenamedCanonicalInterfaceExpansionData_of_canonicalInterfaceExpansionData
+    M n hn2 htb hns D⟩
+
+/-- Canonical-interface expansion therefore supplies the actual placed
+quotient/descent source datum. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData_of_canonicalInterfaceExpansionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiCanonicalInterfaceExpansionData) :
+    Step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  have hN2 : 2 ≤ n / 3 := by
+    have hpow : 6 ≤ 2 ^ 804 := by
+      calc
+        6 ≤ 2 ^ 3 := by norm_num
+        _ ≤ 2 ^ 804 := by
+          exact Nat.pow_le_pow_right (by norm_num) (by norm_num)
+    have h6 : 6 ≤ n := le_trans hpow hn
+    omega
+  exact ⟨routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedLocalInterfaceQuotientDescentData_of_renamedCanonicalInterfaceExpansionData
+    M n hn2 htb hns hN2
+    (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedRowRenamedCanonicalInterfaceExpansionData_of_canonicalInterfaceExpansionData
+      M n hn2 htb hns D)⟩
+
 /-- Paper-scale renamed-canonical expansion gives the actual placed
 quotient/descent source datum.  The only arithmetic used here is that
 `n ≥ 2^804` gives at least two first-of-block source coordinates after `/ 3`,

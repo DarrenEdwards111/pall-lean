@@ -426,6 +426,52 @@ theorem canonicalInterfacePolynomial_eq_oneHot_basisExpansion
   · intro hj
     simp at hj
 
+
+/-- Any element of the compiled-basis interface space has coordinates in the
+canonical three-slot interface generator family. -/
+theorem canonicalInterfacePolynomial_basisExpansion_of_mem_interfaceSpace_compiledBasis
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (σ : ConstraintType)
+    (p : MvPolynomial (Fin N) ℚ)
+    (hp : p ∈ interfaceSpace_compiledBasis B κ ℓ σ) :
+    ∃ c : Fin d₀ → ℚ,
+      p = ∑ k : Fin d₀, c k • canonicalInterfacePolynomial B κ ℓ σ k := by
+  classical
+  unfold interfaceSpace_compiledBasis canonicalInterfaceGenerators at hp
+  rw [Finset.coe_image, Finset.coe_univ] at hp
+  rcases (Fintype.mem_span_image_iff_exists_fun (R := ℚ)
+    (v := canonicalInterfacePolynomial B κ ℓ σ)
+    (s := (Set.univ : Set (Fin d₀)))).mp hp with ⟨c, hc⟩
+  refine ⟨fun k => c ⟨k, by simp⟩, ?_⟩
+  rw [← hc]
+  apply Finset.sum_bij (fun i _ => i.1)
+  · intro i _; simp
+  · intro i _ j _ hij; exact Subtype.ext hij
+  · intro b _; exact ⟨⟨b, by simp⟩, by simp, rfl⟩
+  · intro i _; rfl
+
+/-- Chosen coordinates of an interface-space element in the canonical three-slot
+compiled-basis generator family. -/
+noncomputable def canonicalInterfacePolynomial_basisCoeffOfMem
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (σ : ConstraintType)
+    (p : MvPolynomial (Fin N) ℚ)
+    (hp : p ∈ interfaceSpace_compiledBasis B κ ℓ σ) : Fin d₀ → ℚ :=
+  Classical.choose
+    (canonicalInterfacePolynomial_basisExpansion_of_mem_interfaceSpace_compiledBasis
+      B κ ℓ σ p hp)
+
+/-- The chosen canonical coordinates expand back to the original interface-space
+row. -/
+theorem canonicalInterfacePolynomial_basisCoeffOfMem_spec
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (σ : ConstraintType)
+    (p : MvPolynomial (Fin N) ℚ)
+    (hp : p ∈ interfaceSpace_compiledBasis B κ ℓ σ) :
+    p = ∑ k : Fin d₀,
+      canonicalInterfacePolynomial_basisCoeffOfMem B κ ℓ σ p hp k •
+        canonicalInterfacePolynomial B κ ℓ σ k :=
+  Classical.choose_spec
+    (canonicalInterfacePolynomial_basisExpansion_of_mem_interfaceSpace_compiledBasis
+      B κ ℓ σ p hp)
+
 /-- Every active compiled local type contains the constant local row. The
 dormant `transitionRight` type remains zero-generated. -/
 theorem one_mem_interfaceSpace_compiledBasis_of_not_transitionRight
