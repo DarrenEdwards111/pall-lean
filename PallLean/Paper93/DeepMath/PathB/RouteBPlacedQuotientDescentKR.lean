@@ -562,6 +562,18 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInte
     (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtomData_of_indexedBranchAtomData
       hData)
 
+/-- Uniform fixed-`q` singleton event-atom budget data at Step 247 scale.
+
+This is the bookkeeping half of the strict-source local Cook--Levin seam:
+profile selector, finite budgets, and atom-to-total-normal-form embedding,
+without the hard row-membership obligation. -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimBudgetData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData
+        M n hn2 htb hns)
+
 /-- Uniform fixed-`q` singleton event-atom `NFOfWord` data at Step 247 scale.
 
 This is the currently most atomic strict-source local Cook--Levin algebra
@@ -573,6 +585,15 @@ def Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalMaps : Prop :=
     Nonempty
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps
         M n hn2 htb hns)
+
+/-- Any Step247 fixed-`q` final payload yields the corresponding budget scaffold. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimBudgetData_of_finalMaps
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalMaps) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimBudgetData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData_of_qDimFinalMaps
+    M n hn2 htb hns D⟩
 
 /-- Uniform shifted Leibniz-product slot-product plus profile-uniform shift
 closure data at Step 247 scale.

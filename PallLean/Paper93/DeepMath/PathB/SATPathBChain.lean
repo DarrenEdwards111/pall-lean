@@ -436,6 +436,16 @@ theorem SAT_path_B_paperFaithfulSourceProfileTemplateLocalMonoidNormalForms_TPhi
   PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms
     hData
 
+/-- Fixed-`q` singleton event-atom budget seam.
+
+This is the bookkeeping half of the local-algebra target: finite bounds and
+basis embedding only, with no row-membership closure claim. -/
+theorem SAT_path_B_paperFaithfulSourceEventAtomQDimBudgetData_fromFinalMaps
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalMaps) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimBudgetData :=
+  step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimBudgetData_of_finalMaps
+    hData
+
 /-- Fixed-`q` singleton event-atom `NFOfWord` seam.
 
 This is the currently most atomic exposed Cook--Levin local-algebra target: the
@@ -446,9 +456,8 @@ theorem SAT_path_B_paperFaithfulSourceEventAtomQDimFinalMaps_TPhi_extraction_mov
     (hData : Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalMaps) :
     NoBoundedSATDeciderAtPaperScale :=
   PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps
-    (fun M n hn hn2 htb hns hdec => by
-      rcases hData M n hn hn2 htb hns with ⟨D⟩
-      exact D)
+    (fun M n hn hn2 htb hns hdec =>
+      Classical.choice (hData M n hn hn2 htb hns))
 
 /-- Exact-profile template-collapse sufficient seam for the strict source row.
 
