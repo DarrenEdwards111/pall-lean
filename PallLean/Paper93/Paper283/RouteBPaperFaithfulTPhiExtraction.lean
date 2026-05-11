@@ -22189,6 +22189,41 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQD
               Set (MvPolynomial (Fin (n / 3)) ℚ)) :
             Set (MvPolynomial (Fin (n / 3)) ℚ))
 
+/-- Hard fixed-`q` local row-membership witness at singleton event-atom granularity. -/
+abbrev RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimRowWitness
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n))
+    (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (hshift : shift.vars ⊆ S'.toFinset)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+    (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+        (d i).length ≤ S'.length),
+      mlProj
+          (shift *
+            Finset.univ.prod
+              (fun i =>
+                SPDP.iterDerivList (d i)
+                  ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                    M n hn2 htb hns) i))) ∈
+        Submodule.span ℚ
+          (↑(((routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+            M n hn2 htb hns d).attach.foldr
+            (fun g acc =>
+              routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasis_of_eventBasis
+                (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+                (routeBPaperFaithfulTPhi_strictSourceEventAtomLetterBasis
+                  M n hn2 htb hns) ρ
+                ⟨g.1,
+                  routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+                    M n hn2 htb hns d g.1 g.2⟩ ∪ acc)
+            ∅) : Finset (MvPolynomial (Fin (n / 3)) ℚ)) :
+            Set (MvPolynomial (Fin (n / 3)) ℚ))
+
 /-- Event-atom final payload with the local dimension fixed to the actual
 bounded-word length `q`.
 
@@ -22217,36 +22252,8 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQD
         M n hn2 htb hns ≤
         withinProfileBound (Nat.log 2 n)
   leibnizWitness_mem_boundedNFOfWordAtomBasis :
-    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
-          ConstraintType (Nat.log 2 n))
-      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
-      (shift : MvPolynomial (Fin (n / 3)) ℚ)
-      (hshift : shift.vars ⊆ S'.toFinset)
-      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
-        List (Fin (n / 3)))
-      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
-      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
-          (d i).length ≤ S'.length),
-        mlProj
-            (shift *
-              Finset.univ.prod
-                (fun i =>
-                  SPDP.iterDerivList (d i)
-                    ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
-                      M n hn2 htb hns) i))) ∈
-          Submodule.span ℚ
-            (↑(((routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
-              M n hn2 htb hns d).attach.foldr
-              (fun g acc =>
-                routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasis_of_eventBasis
-                  (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
-                  (routeBPaperFaithfulTPhi_strictSourceEventAtomLetterBasis
-                    M n hn2 htb hns) ρ
-                  ⟨g.1,
-                    routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
-                      M n hn2 htb hns d g.1 g.2⟩ ∪ acc)
-              ∅) : Finset (MvPolynomial (Fin (n / 3)) ℚ)) :
-              Set (MvPolynomial (Fin (n / 3)) ℚ))
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimRowWitness
+      M n hn2 htb hns
   sourceTotalFiniteEndBudget_le :
     Fintype.card
         (RouteBPaperFaithfulTPhiFiniteEnd
@@ -22308,36 +22315,8 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEv
     (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData
       M n hn2 htb hns)
     (hrow :
-      ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
-            ConstraintType (Nat.log 2 n))
-        (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
-        (shift : MvPolynomial (Fin (n / 3)) ℚ)
-        (hshift : shift.vars ⊆ S'.toFinset)
-        (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
-          List (Fin (n / 3)))
-        (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
-        (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
-            (d i).length ≤ S'.length),
-          mlProj
-              (shift *
-                Finset.univ.prod
-                  (fun i =>
-                    SPDP.iterDerivList (d i)
-                      ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
-                        M n hn2 htb hns) i))) ∈
-            Submodule.span ℚ
-              (↑(((routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
-                M n hn2 htb hns d).attach.foldr
-                (fun g acc =>
-                  routeBPaperFaithfulTPhi_strictSourceGeneratorLetterBasis_of_eventBasis
-                    (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
-                    (routeBPaperFaithfulTPhi_strictSourceEventAtomLetterBasis
-                      M n hn2 htb hns) ρ
-                    ⟨g.1,
-                      routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
-                        M n hn2 htb hns d g.1 g.2⟩ ∪ acc)
-                ∅) : Finset (MvPolynomial (Fin (n / 3)) ℚ)) :
-                Set (MvPolynomial (Fin (n / 3)) ℚ))) :
+      RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimRowWitness
+        M n hn2 htb hns) :
     RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps
       M n hn2 htb hns where
   profileOfCanonicalWindow := D.profileOfCanonicalWindow

@@ -461,6 +461,17 @@ theorem SAT_path_B_paperFaithfulSourceEventAtomQDimFinalMaps_fromBudgetAndBuilde
       let D := Classical.choice (hBudget M n hn hn2 htb hns)
       Classical.choice (hBuild M n hn hn2 htb hns D))
 
+/-- Fixed-`q` singleton event-atom closeout directly from split budget plus
+uniform row-membership witness. -/
+theorem SAT_path_B_paperFaithfulSourceEventAtomQDimFinalMaps_fromBudgetAndRowWitness_TPhi_extraction_move
+    (hBudget : Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimBudgetData)
+    (hRow : Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimRowWitness) :
+    NoBoundedSATDeciderAtPaperScale :=
+  SAT_path_B_paperFaithfulSourceEventAtomQDimFinalMaps_fromBudgetAndBuilder_TPhi_extraction_move
+    hBudget
+    (step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalBuilder_of_budgetData_and_rowWitness
+      hRow)
+
 /-- Fixed-`q` singleton event-atom `NFOfWord` seam.
 
 This is the currently most atomic exposed Cook--Levin local-algebra target: the

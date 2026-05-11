@@ -599,6 +599,13 @@ def Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalBuilder : Prop 
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps
         M n hn2 htb hns)
 
+/-- Uniform hard row-membership witness at the fixed-`q` event-atom frontier. -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimRowWitness : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimRowWitness
+      M n hn2 htb hns
+
 /-- Any Step247 fixed-`q` final payload yields the corresponding budget scaffold. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimBudgetData_of_finalMaps
     (hData : Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalMaps) :
@@ -614,6 +621,17 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalB
     Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalBuilder := by
   intro M n hn hn2 htb hns D
   exact hData M n hn hn2 htb hns
+
+/-- Budget scaffolds plus a uniform row witness assemble the fixed-`q` final
+builder directly. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalBuilder_of_budgetData_and_rowWitness
+    (hRow : Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimRowWitness) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalBuilder := by
+  intro M n hn hn2 htb hns D
+  exact ⟨
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps_of_budgetData
+      M n hn2 htb hns D (hRow M n hn hn2 htb hns)
+  ⟩
 
 /-- Uniform shifted Leibniz-product slot-product plus profile-uniform shift
 closure data at Step 247 scale.
