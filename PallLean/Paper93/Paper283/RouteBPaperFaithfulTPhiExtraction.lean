@@ -19310,6 +19310,83 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedCompiledBasisProfi
         using hterm
     exact hspan hpost
 
+/-- Shifted branch-atom compiled-basis membership gives the direct selected row
+profile-subspace membership.
+
+This is the same bounded-Leibniz linear assembly as the shifted-product adapter,
+but it uses the witnessed `NFOfWord` branch atom as the local object.  Each
+bounded product-rule term is rewritten to its shifted branch atom by the
+factorwise distribution-permutation theorem, then inserted into the same
+selected compiled-basis profile subspace. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedCompiledBasisProfileSubspaceRowData_of_shiftedBranchAtomCompiledBasisProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomCompiledBasisProfileData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedCompiledBasisProfileSubspaceRowData
+      M n hn2 htb hns where
+  sourcePartition := D.sourcePartition
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalSourceRow_mem_compiledBasisProfileSubspace := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    rw [routeBPaperFaithfulTPhi_restrict_compiledPoly_eq_sourceRestrictedFactors_prod]
+    let factors := routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+      M n hn2 htb hns
+    let target : Submodule ℚ (MvPolynomial (Fin (n / 3)) ℚ) :=
+      profileSubspace ρ.val
+        (fun τ => interfaceSpace_compiledBasis D.sourcePartition
+          (Nat.log 2 n) (Nat.log 2 n) τ)
+    have hLeibniz :
+        SPDP.iterDerivList S' (Finset.univ.prod factors) ∈
+          Submodule.span ℚ
+            (boundedDistribDerivProds Finset.univ factors S' S'.length) := by
+      simpa [factors] using
+        iterDerivList_finset_prod_mem_bounded_span S' factors
+    have hpost :
+        mlProj (shift * SPDP.iterDerivList S' (Finset.univ.prod factors)) ∈
+          Submodule.span ℚ
+            ((fun g => mlProj (shift * g)) ''
+              boundedDistribDerivProds Finset.univ factors S' S'.length) := by
+      exact SymmetricPower.mlProj_mul_mem_span_image shift
+        (boundedDistribDerivProds Finset.univ factors S' S'.length)
+        (SPDP.iterDerivList S' (Finset.univ.prod factors)) hLeibniz
+    have hspan :
+        Submodule.span ℚ
+            ((fun g => mlProj (shift * g)) ''
+              boundedDistribDerivProds Finset.univ factors S' S'.length) ≤ target := by
+      apply Submodule.span_le.mpr
+      intro q hq
+      rcases hq with ⟨g, hg, rfl⟩
+      rcases hg with ⟨d, hd_elts, hg_eq, hlen⟩
+      have hlen' :
+          ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+            (d i).length ≤ S'.length := by
+        simpa using hlen
+      let events :=
+        routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+          M n hn2 htb hns
+          (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+            M n hn2 htb hns d)
+          (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+            M n hn2 htb hns d)
+      have hSle : S'.length ≤ Nat.log 2 n := by
+        rw [hSlen]
+      have hperm : ∀ i,
+          (routeBPaperFaithfulTPhi_strictSourceEventWordDistrib events i).Perm (d i) := by
+        intro i
+        exact routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_eventWordDistrib_perm
+          M n hn2 htb hns S' hSle d hlen' i
+      have heq :=
+        routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtom_eq_of_eventWordDistrib_perm
+          M n hn2 htb hns shift d events hperm
+      have hterm := D.selectedShiftedBranchAtom_mem_compiledBasisProfileSubspace
+        ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen'
+      rw [hg_eq]
+      exact (by
+        simpa [target, factors] using (heq ▸ hterm))
+    exact hspan hpost
+
+
 /-- Concrete compiled-basis profile-subspace row data instantiates the selected
 source profile-subspace package.  The only extra work is the already-proved
 profile-subspace dimension bound for the compiled-basis interface spaces. -/

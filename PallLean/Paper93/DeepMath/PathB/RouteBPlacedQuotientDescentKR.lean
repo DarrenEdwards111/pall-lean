@@ -345,6 +345,19 @@ def Step247UniformRouteBPaperFaithfulTPhiRenamedCanonicalInterfaceExpansionData 
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowRenamedCanonicalInterfaceExpansionData
         M n hn2 htb hns)
 
+/-- Uniform shifted branch-atom compiled-basis profile data at Step 247 scale.
+
+This is the term-local Lemma-31 source surface: every bounded Leibniz branch
+atom selected by the witnessed normal-form word lies in the same selected
+compiled-basis profile subspace.  The adapter below linearly assembles these
+term-local memberships into the selected full source-row membership. -/
+def Step247UniformRouteBPaperFaithfulTPhiShiftedBranchAtomCompiledBasisProfileData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomCompiledBasisProfileData
+        M n hn2 htb hns)
+
 /-- Uniform direct profile-subspace row data at Step 247 scale.
 
 This is the literal Lemma-31 containment surface: the selected canonical source
@@ -357,6 +370,16 @@ def Step247UniformRouteBPaperFaithfulTPhiCompiledBasisProfileSubspaceRowData : P
     Nonempty
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedCompiledBasisProfileSubspaceRowData
         M n hn2 htb hns)
+
+/-- Shifted branch-atom profile membership linearly assembles into the direct
+selected source-row profile-subspace membership. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiCompiledBasisProfileSubspaceRowData_of_shiftedBranchAtomCompiledBasisProfileData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedBranchAtomCompiledBasisProfileData) :
+    Step247UniformRouteBPaperFaithfulTPhiCompiledBasisProfileSubspaceRowData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedCompiledBasisProfileSubspaceRowData_of_shiftedBranchAtomCompiledBasisProfileData
+    M n hn2 htb hns D⟩
 
 /-- Uniform row-interface-slot expansion data at Step 247 scale.
 
