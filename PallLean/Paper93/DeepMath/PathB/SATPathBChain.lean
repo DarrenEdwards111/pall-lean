@@ -729,6 +729,17 @@ theorem SAT_path_B_paperFaithfulShiftedLeibnizProductInterfaceSlotProductRowShif
     (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftData_of_slotProductBranchAtomData
       hData)
 
+/-- Coherent factor-indexed slot-product plus shifted branch-atom exposure:
+the concrete factor-index classification instantiates the exact anonymous slot
+product, and the independent branch-atom payload supplies the shifted selected
+row membership. -/
+theorem SAT_path_B_paperFaithfulShiftedLeibnizProductInterfaceSlotProductRowShiftFromIndexedBranchAtom_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromIndexedBranchAtomData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  SAT_path_B_paperFaithfulShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtom_TPhi_extraction_move
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtomData_of_indexedBranchAtomData
+      hData)
+
 /-- Slot-factorization exposure through the coherent branch-atom row-shift
 route.  This is definitionally coherent: the branch-atom data is derived from
 the same slot-factorization package, so there is no separate partition/profile
