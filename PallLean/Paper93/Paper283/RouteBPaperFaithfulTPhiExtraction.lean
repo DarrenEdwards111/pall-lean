@@ -19885,6 +19885,92 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProd
     exact D.selectedShiftedInterfaceSlotProduct_mem_compiledBasisProfileSubspace
       ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
 
+/-- Coherent slot-product and shifted-branch-atom data for the row-specific
+shift seam.
+
+The slot factorization supplies the exact anonymous compiled-basis product for
+each unshifted bounded Leibniz term.  The branch-atom payload supplies the
+selected shifted membership for the same term after the standard event-word
+permutation rewrite.  The two coherence fields ensure they use the same source
+partition and canonical-window profile selector. -/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtomData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  slotData :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterfaceSlotFactorizationData
+      M n hn2 htb hns
+  branchAtomData :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomCompiledBasisProfileData
+      M n hn2 htb hns
+  branchAtom_sourcePartition_eq_slot :
+    branchAtomData.sourcePartition = slotData.sourcePartition
+  branchAtom_profileOfCanonicalWindow_eq_slot :
+    ∀ w hw,
+      branchAtomData.profileOfCanonicalWindow w hw =
+        slotData.profileOfCanonicalWindow w hw
+
+/-- Coherent exact slot factorization plus shifted branch-atom membership closes
+ the row-specific shifted slot-product seam.
+
+This is the non-uniform route: the selected `shift`/`mlProj` membership is
+transported from the actual branch atom for the same bounded Leibniz term, then
+rewritten across the exact slot-product equality. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductInterfaceSlotProductRowShiftData_of_slotProductBranchAtomData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtomData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterfaceSlotProductRowShiftData
+      M n hn2 htb hns where
+  sourcePartition := D.slotData.sourcePartition
+  profileOfCanonicalWindow := D.slotData.profileOfCanonicalWindow
+  interfaceSlotContribution := D.slotData.interfaceSlotContribution
+  interfaceSlotContribution_mem_compiledBasis := D.slotData.interfaceSlotContribution_mem_compiledBasis
+  unshiftedLeibnizProduct_eq_interfaceSlotProduct := D.slotData.unshiftedLeibnizProduct_eq_interfaceSlotProduct
+  selectedShiftedInterfaceSlotProduct_mem_compiledBasisProfileSubspace := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+    let events :=
+      routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+        M n hn2 htb hns
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+          M n hn2 htb hns d)
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+          M n hn2 htb hns d)
+    have hSle : S'.length ≤ Nat.log 2 n := by
+      rw [hSlen]
+    have hperm : ∀ i,
+        (routeBPaperFaithfulTPhi_strictSourceEventWordDistrib events i).Perm (d i) := by
+      intro i
+      exact routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_eventWordDistrib_perm
+        M n hn2 htb hns S' hSle d hlen i
+    have heq :=
+      routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtom_eq_of_eventWordDistrib_perm
+        M n hn2 htb hns shift d events hperm
+    have hρ_branch :
+        D.branchAtomData.profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ := by
+      rw [D.branchAtom_profileOfCanonicalWindow_eq_slot]
+      exact hρ
+    have hbranch := D.branchAtomData.selectedShiftedBranchAtom_mem_compiledBasisProfileSubspace
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ_branch d hd_elts hlen
+    have hleibniz :
+        mlProj
+          (shift *
+            Finset.univ.prod
+              (fun i : Fin ((cookLevinFactorList M n hn2 htb hns).length) =>
+                SPDP.iterDerivList (d i)
+                  ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                    M n hn2 htb hns) i))) ∈
+          profileSubspace ρ.val
+            (fun τ =>
+              interfaceSpace_compiledBasis
+                D.slotData.sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ) := by
+      simpa [D.branchAtom_sourcePartition_eq_slot] using (heq ▸ hbranch)
+    have hslot := D.slotData.unshiftedLeibnizProduct_eq_interfaceSlotProduct
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+    simpa [hslot] using hleibniz
+
 
 /-- Slot-product factorization plus profile-uniform shift closure.
 

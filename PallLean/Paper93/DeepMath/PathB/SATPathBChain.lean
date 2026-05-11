@@ -719,6 +719,16 @@ theorem SAT_path_B_paperFaithfulShiftedLeibnizProductInterfaceSlotProductRowShif
     (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisProfileData_of_interfaceSlotProductRowShiftData
       hData)
 
+/-- Coherent exact slot-product plus shifted branch-atom exposure: this closes
+ the row-specific shifted slot-product seam without profile-uniform operator
+ closure. -/
+theorem SAT_path_B_paperFaithfulShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtom_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtomData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  SAT_path_B_paperFaithfulShiftedLeibnizProductInterfaceSlotProductRowShift_TPhi_extraction_move
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftData_of_slotProductBranchAtomData
+      hData)
+
 /-- Uniform-shift-closure slot-product exposure: the slot product construction
 plus a profile-uniform shift/`mlProj` closure theorem supplies the previous
 slot-factorization seam. -/
