@@ -476,9 +476,9 @@ theorem SAT_path_B_paperFaithfulSourceEventAtomQDimFinalMaps_fromBudgetAndTarget
     (hBudget : Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimBudgetData)
     (hTarget : Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimTargetMembership) :
     NoBoundedSATDeciderAtPaperScale :=
-  SAT_path_B_paperFaithfulSourceEventAtomQDimFinalMaps_fromBudgetAndRowWitness_TPhi_extraction_move
+  SAT_path_B_paperFaithfulSourceEventAtomQDimFinalMaps_fromBudgetAndBuilder_TPhi_extraction_move
     hBudget
-    (step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimRowWitness_of_targetMembership
+    (step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalBuilder_of_budgetData_and_targetMembership
       hTarget)
 
 /-- Fixed-`q` singleton event-atom closeout directly from split budget plus

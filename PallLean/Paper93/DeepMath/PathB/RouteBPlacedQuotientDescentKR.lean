@@ -694,6 +694,17 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalB
       M n hn2 htb hns D (hRow M n hn hn2 htb hns)
   ⟩
 
+/-- Budget scaffolds plus uniform target-membership data assemble the fixed-`q`
+final builder directly. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalBuilder_of_budgetData_and_targetMembership
+    (hTarget : Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimTargetMembership) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalBuilder := by
+  intro M n hn hn2 htb hns D
+  exact ⟨
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps_of_budgetData_and_targetMembership
+      M n hn2 htb hns D (hTarget M n hn hn2 htb hns)
+  ⟩
+
 /-- Uniform shifted Leibniz-product slot-product plus profile-uniform shift
 closure data at Step 247 scale.
 
