@@ -791,6 +791,18 @@ theorem SAT_path_B_paperFaithfulShiftedLeibnizProductInterfaceSlotProductRowShif
     (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtomData_of_indexedBranchAtomData
       hData)
 
+/-- Disjoint-covering factor-fiber exposure below the indexed branch-atom seam.
+
+Here the concrete slot fibers are required to partition the Cook--Levin factor
+indices; the indexed product identity is derived by finite-product algebra
+rather than assumed. -/
+theorem SAT_path_B_paperFaithfulShiftedLeibnizProductInterfaceSlotProductRowShiftFromIndexedFiberPartitionBranchAtom_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromIndexedFiberPartitionBranchAtomData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  SAT_path_B_paperFaithfulShiftedLeibnizProductInterfaceSlotProductRowShiftFromIndexedBranchAtom_TPhi_extraction_move
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromIndexedBranchAtomData_of_indexedFiberPartitionBranchAtomData
+      hData)
+
 /-- Slot-factorization exposure through the coherent branch-atom row-shift
 route.  This is definitionally coherent: the branch-atom data is derived from
 the same slot-factorization package, so there is no separate partition/profile

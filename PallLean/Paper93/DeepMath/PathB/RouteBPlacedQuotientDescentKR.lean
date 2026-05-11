@@ -451,6 +451,28 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExac
   exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductExactInterfaceSlotFactorizationData_of_indexedInterfaceSlotFactorizationData
     M n hn2 htb hns D⟩
 
+/-- Uniform factor-fiber partition data at Step 247 scale.
+
+This is the disjoint-covering version of the factor-indexed slot seam: the
+exact product identity is derived from the fiber partition rather than carried
+as a raw field. -/
+def Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData
+        M n hn2 htb hns)
+
+/-- A uniform factor-fiber partition instantiates the existing factor-indexed
+slot-factorization data. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFactorizationData_of_fiberPartitionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData) :
+    Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFactorizationData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFactorizationData_of_fiberPartitionData
+    M n hn2 htb hns D⟩
+
 /-- Uniform coherent factor-indexed slot classification plus shifted branch-atom
 data. -/
 def Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromIndexedBranchAtomData : Prop :=
@@ -501,6 +523,24 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInte
   intro M n hn hn2 htb hns
   rcases hData M n hn hn2 htb hns with ⟨D⟩
   exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductInterfaceSlotProductRowShiftData_of_slotProductBranchAtomData
+    M n hn2 htb hns D⟩
+
+/-- Uniform coherent factor-fiber partition plus shifted branch-atom data. -/
+def Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromIndexedFiberPartitionBranchAtomData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterfaceSlotProductRowShiftFromIndexedFiberPartitionBranchAtomData
+        M n hn2 htb hns)
+
+/-- Coherent factor-fiber partitions plus branch atoms instantiate the existing
+indexed-slot branch-atom route. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromIndexedBranchAtomData_of_indexedFiberPartitionBranchAtomData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromIndexedFiberPartitionBranchAtomData) :
+    Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromIndexedBranchAtomData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductInterfaceSlotProductRowShiftFromIndexedBranchAtomData_of_indexedFiberPartitionBranchAtomData
     M n hn2 htb hns D⟩
 
 /-- Coherent indexed slots plus branch atoms instantiate the exact-slot
