@@ -18910,6 +18910,270 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedCompiledBasisProfileSubspac
               (Nat.log 2 n) (Nat.log 2 n) τ)
 
 
+/-- Explicit finite slot expansion of one symmetric power element.
+
+This is just the constructive content of `p ∈ symPower k W`: choose the finite
+linear combination from the defining span and expose each ordered local slot.
+It is used below to turn the direct Lemma-31 profile-subspace membership into
+the row-local interface-slot expansion surface. -/
+structure RouteBPaperFaithfulTPhiSymPowerSlotExpansionData {N : ℕ}
+    (W : Submodule ℚ (MvPolynomial (Fin N) ℚ)) (k : ℕ)
+    (p : MvPolynomial (Fin N) ℚ) where
+  idx : Type*
+  [idxFintype : Fintype idx]
+  coeff : idx → ℚ
+  slot : idx → Fin k → MvPolynomial (Fin N) ℚ
+  slot_mem : ∀ t j, slot t j ∈ W
+  eq_sum : p = ∑ t : idx, coeff t • ∏ j : Fin k, slot t j
+attribute [instance] RouteBPaperFaithfulTPhiSymPowerSlotExpansionData.idxFintype
+
+noncomputable def routeBPaperFaithfulTPhi_symPowerSlotExpansionDataOfMem {N : ℕ}
+    (W : Submodule ℚ (MvPolynomial (Fin N) ℚ)) (k : ℕ)
+    (p : MvPolynomial (Fin N) ℚ)
+    (hp : p ∈ symPower ℚ k W) :
+    RouteBPaperFaithfulTPhiSymPowerSlotExpansionData W k p := by
+  classical
+  unfold symPower at hp
+  let ex := (Submodule.mem_span_iff_exists_finset_subset (R := ℚ)
+    (s := { p : MvPolynomial (Fin N) ℚ |
+      ∃ f : Fin k → MvPolynomial (Fin N) ℚ,
+        (∀ i, f i ∈ W) ∧ p = ∏ i, f i }) (x := p)).mp hp
+  let c := Classical.choose ex
+  let ex_t := Classical.choose_spec ex
+  let t := Classical.choose ex_t
+  have htpack := Classical.choose_spec ex_t
+  have hts : ↑t ⊆ { p : MvPolynomial (Fin N) ℚ |
+      ∃ f : Fin k → MvPolynomial (Fin N) ℚ,
+        (∀ i, f i ∈ W) ∧ p = ∏ i, f i } := htpack.1
+  have hsum : ∑ a ∈ t, c a • a = p := htpack.2.2
+  refine {
+    idx := { q : MvPolynomial (Fin N) ℚ // q ∈ t }
+    coeff := fun q => c q.1
+    slot := fun q => Classical.choose (hts q.2)
+    slot_mem := ?_
+    eq_sum := ?_ }
+  · intro q j
+    exact (Classical.choose_spec (hts q.2)).1 j
+  · rw [← hsum]
+    rw [← Finset.sum_attach]
+    refine Finset.sum_congr rfl ?_
+    intro q hq
+    have hqeq := (Classical.choose_spec (hts q.2)).2
+    exact congrArg (fun x => c q.1 • x) hqeq
+
+structure RouteBPaperFaithfulTPhiProfileSubspaceSlotExpansionData {N : ℕ} {Iface : Type*} [Fintype Iface]
+    (h : Iface → ℕ) (W : Iface → Submodule ℚ (MvPolynomial (Fin N) ℚ))
+    (p : MvPolynomial (Fin N) ℚ) where
+  idx : Type*
+  [idxFintype : Fintype idx]
+  coeff : idx → ℚ
+  slot : idx → ∀ σ : Iface, Fin (h σ) → MvPolynomial (Fin N) ℚ
+  slot_mem : ∀ t σ j, slot t σ j ∈ W σ
+  eq_sum : p = ∑ t : idx, coeff t • ∏ σ : Iface, ∏ j : Fin (h σ), slot t σ j
+attribute [instance] RouteBPaperFaithfulTPhiProfileSubspaceSlotExpansionData.idxFintype
+
+theorem routeBPaperFaithfulTPhi_prod_profile_symPowerSlotExpansion
+    {N : ℕ} {Iface : Type*} [Fintype Iface] [DecidableEq Iface]
+    (h : Iface → ℕ) (W : Iface → Submodule ℚ (MvPolynomial (Fin N) ℚ))
+    (f : Iface → MvPolynomial (Fin N) ℚ)
+    (E : ∀ σ, RouteBPaperFaithfulTPhiSymPowerSlotExpansionData (W σ) (h σ) (f σ)) :
+    letI : ∀ σ, Fintype (E σ).idx := fun σ => (E σ).idxFintype
+    (∏ σ : Iface, f σ) =
+      ∑ g : ∀ σ : Iface, (E σ).idx,
+        (∏ σ : Iface, (E σ).coeff (g σ)) •
+          (∏ σ : Iface, ∏ j : Fin (h σ), (E σ).slot (g σ) j) := by
+  classical
+  letI : ∀ σ, Fintype (E σ).idx := fun σ => (E σ).idxFintype
+  calc
+    (∏ σ : Iface, f σ)
+        = ∏ σ : Iface, ∑ a : (E σ).idx,
+            (E σ).coeff a • ∏ j : Fin (h σ), (E σ).slot a j := by
+          apply Finset.prod_congr rfl
+          intro σ hσ
+          exact (E σ).eq_sum
+    _ = ∑ m ∈ Fintype.piFinset (fun σ : Iface => (Finset.univ : Finset (E σ).idx)),
+          ∏ σ : Iface, (E σ).coeff (m σ) • ∏ j : Fin (h σ), (E σ).slot (m σ) j := by
+          rw [Finset.prod_univ_sum]
+    _ = ∑ m : (∀ σ : Iface, (E σ).idx),
+          ∏ σ : Iface, (E σ).coeff (m σ) • ∏ j : Fin (h σ), (E σ).slot (m σ) j := by
+          rw [show (Fintype.piFinset (fun σ : Iface => (Finset.univ : Finset (E σ).idx)) :
+              Finset (∀ σ : Iface, (E σ).idx)) = (Finset.univ : Finset (∀ σ : Iface, (E σ).idx)) from
+            Fintype.piFinset_univ]
+    _ = ∑ g : ∀ σ : Iface, (E σ).idx,
+        (∏ σ : Iface, (E σ).coeff (g σ)) •
+          (∏ σ : Iface, ∏ j : Fin (h σ), (E σ).slot (g σ) j) := by
+          refine Finset.sum_congr rfl ?_
+          intro g hg
+          simp only [Algebra.smul_def]
+          simp only [map_prod, Finset.prod_mul_distrib]
+
+noncomputable def routeBPaperFaithfulTPhi_profileSubspaceSlotExpansionDataOfMem {N : ℕ} {Iface : Type*}
+    [Fintype Iface] [DecidableEq Iface]
+    (h : Iface → ℕ) (W : Iface → Submodule ℚ (MvPolynomial (Fin N) ℚ))
+    (p : MvPolynomial (Fin N) ℚ)
+    (hp : p ∈ profileSubspace h W) :
+    RouteBPaperFaithfulTPhiProfileSubspaceSlotExpansionData h W p := by
+  classical
+  unfold profileSubspace at hp
+  let ex := (Submodule.mem_span_iff_exists_finset_subset (R := ℚ)
+    (s := { p : MvPolynomial (Fin N) ℚ |
+      ∃ f : Iface → MvPolynomial (Fin N) ℚ,
+        (∀ σ : Iface, f σ ∈ symPower ℚ (h σ) (W σ)) ∧
+        p = ∏ σ : Iface, f σ }) (x := p)).mp hp
+  let c := Classical.choose ex
+  let ex_t := Classical.choose_spec ex
+  let t := Classical.choose ex_t
+  have htpack := Classical.choose_spec ex_t
+  have hts : ↑t ⊆ { p : MvPolynomial (Fin N) ℚ |
+      ∃ f : Iface → MvPolynomial (Fin N) ℚ,
+        (∀ σ : Iface, f σ ∈ symPower ℚ (h σ) (W σ)) ∧
+        p = ∏ σ : Iface, f σ } := htpack.1
+  have hsum : ∑ a ∈ t, c a • a = p := htpack.2.2
+  let genF : { q : MvPolynomial (Fin N) ℚ // q ∈ t } → Iface → MvPolynomial (Fin N) ℚ :=
+    fun q => Classical.choose (hts q.2)
+  let genE : ∀ q : { q : MvPolynomial (Fin N) ℚ // q ∈ t }, ∀ σ : Iface,
+      RouteBPaperFaithfulTPhiSymPowerSlotExpansionData (W σ) (h σ) (genF q σ) :=
+    fun q σ => routeBPaperFaithfulTPhi_symPowerSlotExpansionDataOfMem (W σ) (h σ) (genF q σ)
+      ((Classical.choose_spec (hts q.2)).1 σ)
+  refine {
+    idx := Σ q : { q : MvPolynomial (Fin N) ℚ // q ∈ t }, ∀ σ : Iface, (genE q σ).idx
+    idxFintype := by
+      classical
+      infer_instance
+    coeff := fun qg => c qg.1.1 * ∏ σ : Iface, (genE qg.1 σ).coeff (qg.2 σ)
+    slot := fun qg σ => (genE qg.1 σ).slot (qg.2 σ)
+    slot_mem := ?_
+    eq_sum := ?_ }
+  · intro qg σ j
+    exact (genE qg.1 σ).slot_mem (qg.2 σ) j
+  · rw [← hsum]
+    rw [← Finset.sum_attach]
+    rw [Fintype.sum_sigma]
+    refine Finset.sum_congr rfl ?_
+    intro q hq
+    have hqeq := (Classical.choose_spec (hts q.2)).2
+    have hprod := routeBPaperFaithfulTPhi_prod_profile_symPowerSlotExpansion h W (genF q) (genE q)
+    calc
+      c q.1 • q.1 = c q.1 • ∏ σ : Iface, genF q σ := by
+        exact congrArg (fun x => c q.1 • x) hqeq
+      _ = c q.1 •
+          (∑ g : ∀ σ : Iface, (genE q σ).idx,
+            (∏ σ : Iface, (genE q σ).coeff (g σ)) •
+              (∏ σ : Iface, ∏ j : Fin (h σ), (genE q σ).slot (g σ) j)) := by
+        exact congrArg (fun x => c q.1 • x) hprod
+      _ = ∑ g : ∀ σ : Iface, (genE q σ).idx,
+          (c q.1 * ∏ σ : Iface, (genE q σ).coeff (g σ)) •
+            (∏ σ : Iface, ∏ j : Fin (h σ), (genE q σ).slot (g σ) j) := by
+        simp [Finset.smul_sum, smul_smul, mul_assoc]
+
+
+/-- Direct profile-subspace row membership gives the explicit row-local
+interface-slot expansion requested by the source seam.
+
+This is not a new mathematical assumption: it unfolds the defining span of
+`profileSubspace` into a finite coefficient/index/slot package, preserving the
+selected profile `ρ` and concrete compiled-basis spaces. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedRowInterfaceSlotExpansionData_of_compiledBasisProfileSubspaceRowData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedCompiledBasisProfileSubspaceRowData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedRowInterfaceSlotExpansionData
+      M n hn2 htb hns where
+  sourcePartition := D.sourcePartition
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  rowExpansionIndex := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    exact (routeBPaperFaithfulTPhi_profileSubspaceSlotExpansionDataOfMem
+      ρ.val
+      (fun τ => interfaceSpace_compiledBasis D.sourcePartition
+        (Nat.log 2 n) (Nat.log 2 n) τ)
+      (mlProj
+        (shift *
+          SPDP.iterDerivList S'
+            (MultilinearSPDP.restrictPoly ℚ
+              (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n)
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns)))))
+      (D.canonicalSourceRow_mem_compiledBasisProfileSubspace
+        ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ)).idx
+  rowExpansionIndexFintype := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    exact (routeBPaperFaithfulTPhi_profileSubspaceSlotExpansionDataOfMem
+      ρ.val
+      (fun τ => interfaceSpace_compiledBasis D.sourcePartition
+        (Nat.log 2 n) (Nat.log 2 n) τ)
+      (mlProj
+        (shift *
+          SPDP.iterDerivList S'
+            (MultilinearSPDP.restrictPoly ℚ
+              (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n)
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns)))))
+      (D.canonicalSourceRow_mem_compiledBasisProfileSubspace
+        ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ)).idxFintype
+  rowExpansionCoeff := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    exact (routeBPaperFaithfulTPhi_profileSubspaceSlotExpansionDataOfMem
+      ρ.val
+      (fun τ => interfaceSpace_compiledBasis D.sourcePartition
+        (Nat.log 2 n) (Nat.log 2 n) τ)
+      (mlProj
+        (shift *
+          SPDP.iterDerivList S'
+            (MultilinearSPDP.restrictPoly ℚ
+              (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n)
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns)))))
+      (D.canonicalSourceRow_mem_compiledBasisProfileSubspace
+        ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ)).coeff
+  rowExpansionSlotContribution := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    exact (routeBPaperFaithfulTPhi_profileSubspaceSlotExpansionDataOfMem
+      ρ.val
+      (fun τ => interfaceSpace_compiledBasis D.sourcePartition
+        (Nat.log 2 n) (Nat.log 2 n) τ)
+      (mlProj
+        (shift *
+          SPDP.iterDerivList S'
+            (MultilinearSPDP.restrictPoly ℚ
+              (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n)
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns)))))
+      (D.canonicalSourceRow_mem_compiledBasisProfileSubspace
+        ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ)).slot
+  rowExpansionSlotContribution_mem_compiledBasis := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j
+    exact (routeBPaperFaithfulTPhi_profileSubspaceSlotExpansionDataOfMem
+      ρ.val
+      (fun τ => interfaceSpace_compiledBasis D.sourcePartition
+        (Nat.log 2 n) (Nat.log 2 n) τ)
+      (mlProj
+        (shift *
+          SPDP.iterDerivList S'
+            (MultilinearSPDP.restrictPoly ℚ
+              (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n)
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns)))))
+      (D.canonicalSourceRow_mem_compiledBasisProfileSubspace
+        ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ)).slot_mem t σ j
+  canonicalSourceRow_eq_rowInterfaceSlotExpansion := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    exact (routeBPaperFaithfulTPhi_profileSubspaceSlotExpansionDataOfMem
+      ρ.val
+      (fun τ => interfaceSpace_compiledBasis D.sourcePartition
+        (Nat.log 2 n) (Nat.log 2 n) τ)
+      (mlProj
+        (shift *
+          SPDP.iterDerivList S'
+            (MultilinearSPDP.restrictPoly ℚ
+              (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n)
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns)))))
+      (D.canonicalSourceRow_mem_compiledBasisProfileSubspace
+        ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ)).eq_sum
+
+
 /-- Row slot-expansion data gives the direct compiled-basis profile-subspace
 row target.
 

@@ -345,6 +345,19 @@ def Step247UniformRouteBPaperFaithfulTPhiRenamedCanonicalInterfaceExpansionData 
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowRenamedCanonicalInterfaceExpansionData
         M n hn2 htb hns)
 
+/-- Uniform direct profile-subspace row data at Step 247 scale.
+
+This is the literal Lemma-31 containment surface: the selected canonical source
+row lies in the concrete compiled-basis profile subspace
+`profileSubspace ρ.val W`.  The adapter below unfolds that span into the
+explicit finite coefficient/index/slot expansion. -/
+def Step247UniformRouteBPaperFaithfulTPhiCompiledBasisProfileSubspaceRowData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedCompiledBasisProfileSubspaceRowData
+        M n hn2 htb hns)
+
 /-- Uniform row-interface-slot expansion data at Step 247 scale.
 
 This is the literal selected-row Lemma-31 source surface: the row is already a
@@ -357,6 +370,16 @@ def Step247UniformRouteBPaperFaithfulTPhiInterfaceSlotExpansionData : Prop :=
     Nonempty
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowInterfaceSlotExpansionData
         M n hn2 htb hns)
+
+/-- Direct profile-subspace row membership gives the explicit row-interface-slot
+expansion by unfolding the defining span of `profileSubspace`. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiInterfaceSlotExpansionData_of_compiledBasisProfileSubspaceRowData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiCompiledBasisProfileSubspaceRowData) :
+    Step247UniformRouteBPaperFaithfulTPhiInterfaceSlotExpansionData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedRowInterfaceSlotExpansionData_of_compiledBasisProfileSubspaceRowData
+    M n hn2 htb hns D⟩
 
 /-- Uniform canonical-interface expansion data at Step 247 scale.  This is now
 the remaining source target after identity-chart transport into the
