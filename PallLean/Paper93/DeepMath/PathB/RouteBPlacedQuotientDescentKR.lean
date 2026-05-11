@@ -705,6 +705,46 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalB
       M n hn2 htb hns D (hTarget M n hn hn2 htb hns)
   ⟩
 
+/-- Instance-level equivalence: fixed-`q` final payloads are exactly budget
+scaffolds plus target-membership data. -/
+theorem step247RouteBPaperFaithfulTPhiSourceEventAtomQDimFinalMaps_iff_budget_and_targetMembership
+    (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    (Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps
+        M n hn2 htb hns)) ↔
+    (Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData
+        M n hn2 htb hns)
+      ∧
+      (∀ (ρ : PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+            ConstraintType (Nat.log 2 n))
+        (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+        (shift : MvPolynomial (Fin (n / 3)) ℚ)
+        (hshift : shift.vars ⊆ S'.toFinset)
+        (d : Fin ((PallLean.Paper93.Paper283.cookLevinFactorList M n hn2 htb hns).length) →
+          List (Fin (n / 3)))
+        (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+        (hlen : ∑ i : Fin ((PallLean.Paper93.Paper283.cookLevinFactorList M n hn2 htb hns).length),
+            (d i).length ≤ S'.length),
+        PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetRow
+            M n hn2 htb hns S' shift d ∈
+          PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetSpan
+            M n hn2 htb hns ρ d)) := by
+  constructor
+  · intro hFinal
+    rcases hFinal with ⟨D⟩
+    refine ⟨?_, ?_⟩
+    · exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData_of_qDimFinalMaps
+        M n hn2 htb hns D⟩
+    · exact PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetMembership_of_qDimFinalMaps
+        M n hn2 htb hns D
+  · intro h
+    rcases h with ⟨hBudget, hTarget⟩
+    rcases hBudget with ⟨B⟩
+    exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps_of_budgetData_and_targetMembership
+      M n hn2 htb hns B hTarget⟩
+
 /-- Uniform shifted Leibniz-product slot-product plus profile-uniform shift
 closure data at Step 247 scale.
 
