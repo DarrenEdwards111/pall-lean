@@ -89,6 +89,110 @@ theorem routeB_rename_localTemplateOfCanonicalSlot_eq_rename_canonicalInterfaceP
       canonicalLocalBoolFactor, SymmetricPower.boolFactor, maxConstraintArity,
       h0N, h1N]
 
+/-- A renamed-canonical interface expansion is already a placed local-interface
+expansion: each renamed canonical slot is represented by placing the fixed
+local canonical template through the explicit row chart.  This is the concrete
+bridge from the coefficient/local-chart Lemma-31 surface to the placed
+Cook--Levin local-interface surface. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedLocalInterfaceExpansionData_of_renamedCanonicalInterfaceExpansionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hN2 : 2 ≤ n / 3)
+    (D : PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowRenamedCanonicalInterfaceExpansionData
+      M n hn2 htb hns) :
+    PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceExpansionData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  rowExpansionIndex := D.rowExpansionIndex
+  rowExpansionIndexFintype := D.rowExpansionIndexFintype
+  rowExpansionCoeff := D.rowExpansionCoeff
+  rowExpansionPlace := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j
+    exact fun k =>
+      D.rowExpansionChartMap ρ S' shift α hSlen hshiftDegree
+        hshiftVars hadm hrow hρ t σ j (routeBLocalAmbientCoord (n / 3) hN2 k)
+  rowExpansionLocalTemplate := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j
+    exact routeBLocalTemplateOfCanonicalSlot σ
+      (D.rowExpansionCanonicalSlot ρ S' shift α hSlen hshiftDegree
+        hshiftVars hadm hrow hρ t σ j)
+  rowExpansionLocalTemplate_mem := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j
+    exact routeBLocalTemplateOfCanonicalSlot_mem_localInterfaceSpace σ
+      (D.rowExpansionCanonicalSlot ρ S' shift α hSlen hshiftDegree
+        hshiftVars hadm hrow hρ t σ j)
+  canonicalSourceRow_eq_placedLocalInterfaceExpansion := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    have hslot :
+        ∀ (t : D.rowExpansionIndex ρ S' shift α hSlen hshiftDegree
+              hshiftVars hadm hrow hρ)
+          (σ : ConstraintType) (j : Fin (ρ.val σ)),
+          MvPolynomial.rename
+              (fun k => D.rowExpansionChartMap ρ S' shift α hSlen hshiftDegree
+                hshiftVars hadm hrow hρ t σ j (routeBLocalAmbientCoord (n / 3) hN2 k))
+              (routeBLocalTemplateOfCanonicalSlot σ
+                (D.rowExpansionCanonicalSlot ρ S' shift α hSlen hshiftDegree
+                  hshiftVars hadm hrow hρ t σ j)) =
+            MvPolynomial.rename
+              (D.rowExpansionChartMap ρ S' shift α hSlen hshiftDegree
+                hshiftVars hadm hrow hρ t σ j)
+              (canonicalInterfacePolynomial D.sourcePartition
+                (Nat.log 2 n) (Nat.log 2 n) σ
+                (D.rowExpansionCanonicalSlot ρ S' shift α hSlen hshiftDegree
+                  hshiftVars hadm hrow hρ t σ j)) := by
+      intro t σ j
+      exact routeB_rename_localTemplateOfCanonicalSlot_eq_rename_canonicalInterfacePolynomial
+        hN2
+        (D.rowExpansionChartMap ρ S' shift α hSlen hshiftDegree
+          hshiftVars hadm hrow hρ t σ j)
+        D.sourcePartition (Nat.log 2 n) (Nat.log 2 n) σ
+        (D.rowExpansionCanonicalSlot ρ S' shift α hSlen hshiftDegree
+          hshiftVars hadm hrow hρ t σ j)
+    rw [D.canonicalSourceRow_eq_renamedCanonicalInterfaceExpansion
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ]
+    simp [hslot]
+
+/-- Renamed-canonical interface expansion supplies the full placed
+quotient/descent datum by taking the selected `W_σ` to be the compiled-basis
+interface space and using the coordinate bridge slotwise.  The product/profile
+assembly is then exactly the already-checked slot-quotient descent adapter. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedLocalInterfaceQuotientDescentData_of_renamedCanonicalInterfaceExpansionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hN2 : 2 ≤ n / 3)
+    (D : PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowRenamedCanonicalInterfaceExpansionData
+      M n hn2 htb hns) :
+    PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceQuotientDescentData
+      M n hn2 htb hns :=
+  PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedLocalInterfaceQuotientDescentData_of_slotQuotientData
+    M n hn2 htb hns
+    { placedExpansionData :=
+        routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedLocalInterfaceExpansionData_of_renamedCanonicalInterfaceExpansionData
+          M n hn2 htb hns hN2 D
+      interfaceSpace := fun σ =>
+        interfaceSpace_compiledBasis D.sourcePartition (Nat.log 2 n) (Nat.log 2 n) σ
+      interfaceSpace_finite := by
+        intro σ
+        exact interfaceSpace_compiledBasis_finite D.sourcePartition
+          (Nat.log 2 n) (Nat.log 2 n) σ
+      interfaceSpace_finrank_le_three := by
+        intro σ
+        exact interfaceSpace_compiledBasis_finrank_le_three D.sourcePartition
+          (Nat.log 2 n) (Nat.log 2 n) σ
+      placedLocalSlot_descends_to_interfaceSpace := by
+        intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j
+        change
+          MvPolynomial.rename
+              (fun k => D.rowExpansionChartMap ρ S' shift α hSlen hshiftDegree
+                hshiftVars hadm hrow hρ t σ j (routeBLocalAmbientCoord (n / 3) hN2 k))
+              (routeBLocalTemplateOfCanonicalSlot σ
+                (D.rowExpansionCanonicalSlot ρ S' shift α hSlen hshiftDegree
+                  hshiftVars hadm hrow hρ t σ j)) ∈
+            interfaceSpace_compiledBasis D.sourcePartition (Nat.log 2 n) (Nat.log 2 n) σ
+        rw [routeB_rename_localTemplateOfCanonicalSlot_eq_rename_canonicalInterfacePolynomial]
+        exact D.renamedCanonicalSlot_mem_compiledBasis
+          ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j }
+
 /-- Uniform placed-expansion data: the row has first been expanded into actual
 placed local Cook--Levin interface templates.  This is strictly weaker than the
 ambient selected-chart quotient descent below: it records the honest local
@@ -229,6 +333,37 @@ def Step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData : Prop :=
     Nonempty
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceQuotientDescentData
         M n hn2 htb hns)
+
+/-- Uniform renamed-canonical interface expansion data at Step 247 scale.
+This is the concrete coefficient/local-chart Lemma-31 source surface; the
+adapter below turns it into the placed quotient/descent datum, not merely into a
+no-decider wrapper. -/
+def Step247UniformRouteBPaperFaithfulTPhiRenamedCanonicalInterfaceExpansionData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowRenamedCanonicalInterfaceExpansionData
+        M n hn2 htb hns)
+
+/-- Paper-scale renamed-canonical expansion gives the actual placed
+quotient/descent source datum.  The only arithmetic used here is that
+`n ≥ 2^804` gives at least two first-of-block source coordinates after `/ 3`,
+so the canonical local coordinates `0,1` can be embedded into the source arity. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData_of_renamedCanonicalInterfaceExpansionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiRenamedCanonicalInterfaceExpansionData) :
+    Step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  have hN2 : 2 ≤ n / 3 := by
+    have hpow : 6 ≤ 2 ^ 804 := by
+      calc
+        6 ≤ 2 ^ 3 := by norm_num
+        _ ≤ 2 ^ 804 := by
+          exact Nat.pow_le_pow_right (by norm_num) (by norm_num)
+    have h6 : 6 ≤ n := le_trans hpow hn
+    omega
+  exact ⟨routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedLocalInterfaceQuotientDescentData_of_renamedCanonicalInterfaceExpansionData
+    M n hn2 htb hns hN2 D⟩
 
 /-- Uniform bounded local-monoid/profile data at Step 247 scale.
 
