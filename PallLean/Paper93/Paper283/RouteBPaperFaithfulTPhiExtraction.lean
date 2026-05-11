@@ -18135,7 +18135,7 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceExpa
           hshiftVars hadm hrow hρ)
       (σ : ConstraintType) (j : Fin (ρ.val σ)),
         rowExpansionLocalTemplate ρ S' shift α hSlen hshiftDegree
-          hshiftVars hadm hrow hρ t σ j ∈ cookLevinCanonicalInterfaceFamily σ
+          hshiftVars hadm hrow hρ t σ j ∈ cookLevinCanonicalLocalInterfaceSpace σ
   canonicalSourceRow_eq_placedLocalInterfaceExpansion :
     ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
           ConstraintType (Nat.log 2 n))
@@ -18220,7 +18220,7 @@ theorem routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedLocalInterfaceExpan
         (D.rowExpansionPlace ρ S' shift α hSlen hshiftDegree
           hshiftVars hadm hrow hρ t σ j)
         (cookLevinCanonicalInterfaceFamily σ) := by
-  exact placedCookLevinInterface_mem_of_mem_local
+  exact placedCookLevinInterface_mem_of_mem_localInterfaceSpace
     (D.rowExpansionPlace ρ S' shift α hSlen hshiftDegree
       hshiftVars hadm hrow hρ t σ j)
     (D.rowExpansionLocalTemplate_mem ρ S' shift α hSlen hshiftDegree

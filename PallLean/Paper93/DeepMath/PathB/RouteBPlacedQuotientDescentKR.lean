@@ -39,6 +39,56 @@ noncomputable def routeBLocalTemplateOfCanonicalSlot
     MvPolynomial (Fin maxConstraintArity) ℚ :=
   canonicalInterfacePolynomial routeBLocalInterfaceBlockPartition 0 0 σ j
 
+/-- Every canonical slot template lands in the local-coordinate Cook--Levin
+interface space.  This is deliberately stated at the subspace level rather than
+as literal finite-family membership: the canonical normal form includes zero
+slots for dormant/unused positions, while the nonzero local template family need
+not list `0` as a generator. -/
+theorem routeBLocalTemplateOfCanonicalSlot_mem_localInterfaceSpace
+    (σ : ConstraintType) (j : Fin d₀) :
+    routeBLocalTemplateOfCanonicalSlot σ j ∈
+      cookLevinCanonicalLocalInterfaceSpace σ := by
+  classical
+  fin_cases σ <;> fin_cases j
+  all_goals first
+    | exact Submodule.zero_mem _
+    | (unfold routeBLocalTemplateOfCanonicalSlot cookLevinCanonicalLocalInterfaceSpace
+       apply Submodule.subset_span
+       simp [canonicalInterfacePolynomial, cookLevinCanonicalInterfaceFamily,
+         canonicalLocalX, canonicalLocalX1, canonicalLocalBoolFactor,
+         SymmetricPower.boolFactor, cookLevinLocalCoord0, cookLevinLocalCoord1,
+         maxConstraintArity])
+
+/-- Embed the fixed local Cook--Levin arity into an ambient coordinate set with
+at least two coordinates.  Coordinates `0` and `1` are preserved; all higher
+local coordinates are harmlessly sent to `0` because the Route-B canonical
+interface templates only use the first two local coordinates. -/
+noncomputable def routeBLocalAmbientCoord (N : ℕ) (hN2 : 2 ≤ N) :
+    Fin maxConstraintArity → Fin N :=
+  fun k =>
+    if h0 : k.1 = 0 then ⟨0, by omega⟩
+    else if h1 : k.1 = 1 then ⟨1, by omega⟩
+    else ⟨0, by omega⟩
+
+/-- Placing a local canonical slot and then applying a chart map agrees with
+renaming the corresponding ambient canonical interface polynomial by that chart
+map.  This is the concrete coordinate bridge needed to turn renamed-canonical
+row expansions into placed local-interface expansions without a fixed global
+chart collapse. -/
+theorem routeB_rename_localTemplateOfCanonicalSlot_eq_rename_canonicalInterfacePolynomial
+    {N : ℕ} (hN2 : 2 ≤ N) (f : Fin N → Fin N)
+    (B : SPDP.BlockPartition N) (κ ℓ : ℕ) (σ : ConstraintType) (j : Fin d₀) :
+    MvPolynomial.rename (fun k => f (routeBLocalAmbientCoord N hN2 k))
+      (routeBLocalTemplateOfCanonicalSlot σ j) =
+    MvPolynomial.rename f (canonicalInterfacePolynomial B κ ℓ σ j) := by
+  have h0N : 0 < N := by omega
+  have h1N : 1 < N := by omega
+  fin_cases σ <;> fin_cases j <;>
+    simp [routeBLocalTemplateOfCanonicalSlot, routeBLocalAmbientCoord,
+      canonicalInterfacePolynomial, canonicalLocalX, canonicalLocalX1,
+      canonicalLocalBoolFactor, SymmetricPower.boolFactor, maxConstraintArity,
+      h0N, h1N]
+
 /-- Uniform placed-expansion data: the row has first been expanded into actual
 placed local Cook--Levin interface templates.  This is strictly weaker than the
 ambient selected-chart quotient descent below: it records the honest local

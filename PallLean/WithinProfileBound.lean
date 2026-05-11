@@ -1961,6 +1961,55 @@ theorem placedCookLevinInterface_mem_of_mem_local
   unfold placedCookLevinInterfaceSpan placedCookLevinInterface
   exact Submodule.subset_span (Finset.mem_image.mpr ⟨p, hp, rfl⟩)
 
+/-- Placing any vector of the local-coordinate `W_σ` lands in the corresponding
+placed copy.  This is the span-linear form of
+`placedCookLevinInterface_mem_of_mem_local`, needed for canonical normal forms
+whose finite alphabet contains a zero slot even when zero is not listed as a
+literal generator of the nonzero local template family. -/
+theorem placedCookLevinInterface_mem_of_mem_localInterfaceSpace
+    {n : ℕ} (place : Fin maxConstraintArity → Fin n)
+    {τ : ConstraintType}
+    {p : MvPolynomial (Fin maxConstraintArity) ℚ}
+    (hp : p ∈ cookLevinCanonicalLocalInterfaceSpace τ) :
+    MvPolynomial.rename place p ∈
+      placedCookLevinInterfaceSpan place (cookLevinCanonicalInterfaceFamily τ) := by
+  classical
+  unfold cookLevinCanonicalLocalInterfaceSpace at hp
+  unfold placedCookLevinInterfaceSpan placedCookLevinInterface
+  refine Submodule.span_induction
+    (p := fun q (_ : q ∈ Submodule.span ℚ
+        (↑(cookLevinCanonicalInterfaceFamily τ) :
+          Set (MvPolynomial (Fin maxConstraintArity) ℚ))) =>
+      MvPolynomial.rename place q ∈
+        Submodule.span ℚ
+          ((Finset.image (MvPolynomial.rename place)
+            (cookLevinCanonicalInterfaceFamily τ) :
+            Finset (MvPolynomial (Fin n) ℚ)) : Set (MvPolynomial (Fin n) ℚ)))
+    ?hgen ?hzero ?hadd ?hsmul hp
+  · intro q hq
+    exact Submodule.subset_span (Finset.mem_image.mpr ⟨q, hq, rfl⟩)
+  · simpa using (Submodule.zero_mem
+      (Submodule.span ℚ
+        ((Finset.image (MvPolynomial.rename place)
+          (cookLevinCanonicalInterfaceFamily τ) :
+          Finset (MvPolynomial (Fin n) ℚ)) : Set (MvPolynomial (Fin n) ℚ))))
+  · intro q r _ _ hq hr
+    simpa [map_add] using
+      (Submodule.add_mem
+        (Submodule.span ℚ
+          ((Finset.image (MvPolynomial.rename place)
+            (cookLevinCanonicalInterfaceFamily τ) :
+            Finset (MvPolynomial (Fin n) ℚ)) : Set (MvPolynomial (Fin n) ℚ)))
+        hq hr)
+  · intro a q _ hq
+    simpa [map_smul] using
+      (Submodule.smul_mem
+        (Submodule.span ℚ
+          ((Finset.image (MvPolynomial.rename place)
+            (cookLevinCanonicalInterfaceFamily τ) :
+            Finset (MvPolynomial (Fin n) ℚ)) : Set (MvPolynomial (Fin n) ℚ)))
+        a hq)
+
 /-- A placed local `W_σ` copy is still finite-dimensional. -/
 theorem placedCookLevinInterfaceSpan_finite
     {n : ℕ} (place : Fin maxConstraintArity → Fin n)
