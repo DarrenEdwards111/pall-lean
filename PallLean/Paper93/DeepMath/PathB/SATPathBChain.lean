@@ -654,4 +654,38 @@ theorem SAT_path_B_touchedRowInterfaceUniqueKR_TPhi_extraction_move
     NoBoundedSATDeciderAtPaperScale :=
   noBoundedSATDeciderAtPaperScale_of_touchedRowInterfaceUniqueData_TPhi hData
 
+/-- Shifted branch-atom compiled-basis profile exposure: proving every
+witnessed shifted `NFOfWord` branch atom lies in the selected compiled-basis
+profile subspace closes the placed quotient/descent Route-B chain. -/
+theorem SAT_path_B_paperFaithfulShiftedBranchAtomCompiledBasisProfile_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedBranchAtomCompiledBasisProfileData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescent
+    (step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData_of_renamedCanonicalInterfaceExpansionData
+      (step247UniformRouteBPaperFaithfulTPhiRenamedCanonicalInterfaceExpansionData_of_canonicalInterfaceExpansionData
+        (step247UniformRouteBPaperFaithfulTPhiCanonicalInterfaceExpansionData_of_interfaceSlotExpansionData
+          (step247UniformRouteBPaperFaithfulTPhiInterfaceSlotExpansionData_of_compiledBasisProfileSubspaceRowData
+            (step247UniformRouteBPaperFaithfulTPhiCompiledBasisProfileSubspaceRowData_of_shiftedBranchAtomCompiledBasisProfileData
+              hData)))))
+
+/-- Shifted Leibniz-product compiled-basis profile exposure: the product-level
+local membership rewrites to the witnessed branch-atom surface, then follows
+the same placed quotient/descent chain. -/
+theorem SAT_path_B_paperFaithfulShiftedLeibnizProductCompiledBasisProfile_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisProfileData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  SAT_path_B_paperFaithfulShiftedBranchAtomCompiledBasisProfile_TPhi_extraction_move
+    (step247UniformRouteBPaperFaithfulTPhiShiftedBranchAtomCompiledBasisProfileData_of_shiftedLeibnizProductData
+      hData)
+
+/-- Shifted Leibniz local-algebra exposure: it is enough to prove the unshifted
+bounded Leibniz product is in the selected profile subspace and that the
+selected shift/`mlProj` operation preserves that subspace. -/
+theorem SAT_path_B_paperFaithfulShiftedLeibnizProductLocalAlgebra_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  SAT_path_B_paperFaithfulShiftedLeibnizProductCompiledBasisProfile_TPhi_extraction_move
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisProfileData_of_localAlgebraData
+      hData)
+
 end PallLean.Paper93.DeepMath.PathB

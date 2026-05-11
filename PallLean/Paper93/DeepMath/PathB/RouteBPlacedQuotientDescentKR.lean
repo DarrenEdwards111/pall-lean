@@ -358,6 +358,60 @@ def Step247UniformRouteBPaperFaithfulTPhiShiftedBranchAtomCompiledBasisProfileDa
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomCompiledBasisProfileData
         M n hn2 htb hns)
 
+/-- Uniform shifted Leibniz-product compiled-basis profile data at Step 247
+scale.
+
+This is one level below the shifted branch-atom surface: it proves membership
+for each actual bounded Leibniz distribution product after the selected shift
+and `mlProj`.  The adapter below uses the already-proved `NFOfWord`
+distribution-permutation theorem to rewrite each such product as its witnessed
+shifted branch atom. -/
+def Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisProfileData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductCompiledBasisProfileData
+        M n hn2 htb hns)
+
+/-- Uniform shifted Leibniz-product local-algebra data at Step 247 scale.
+
+This is the sharper local-algebra source seam: first place the unshifted
+bounded Leibniz product in the selected compiled-basis profile subspace, then
+prove the selected row shift plus `mlProj` preserves that same subspace. -/
+def Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductCompiledBasisLocalAlgebraData
+        M n hn2 htb hns)
+
+/-- Local-algebra membership/closure gives shifted Leibniz-product membership. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisProfileData_of_localAlgebraData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData) :
+    Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisProfileData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductCompiledBasisProfileData_of_localAlgebraData
+    M n hn2 htb hns D⟩
+
+/-- Shifted Leibniz-product membership gives shifted branch-atom membership by
+the witnessed `NFOfWord` permutation bridge. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedBranchAtomCompiledBasisProfileData_of_shiftedLeibnizProductData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisProfileData) :
+    Step247UniformRouteBPaperFaithfulTPhiShiftedBranchAtomCompiledBasisProfileData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedBranchAtomCompiledBasisProfileData_of_shiftedLeibnizProductData
+    M n hn2 htb hns D⟩
+
+/-- Local-algebra data therefore supplies the shifted branch-atom source seam. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedBranchAtomCompiledBasisProfileData_of_localAlgebraData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData) :
+    Step247UniformRouteBPaperFaithfulTPhiShiftedBranchAtomCompiledBasisProfileData :=
+  step247UniformRouteBPaperFaithfulTPhiShiftedBranchAtomCompiledBasisProfileData_of_shiftedLeibnizProductData
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisProfileData_of_localAlgebraData
+      hData)
+
 /-- Uniform direct profile-subspace row data at Step 247 scale.
 
 This is the literal Lemma-31 containment surface: the selected canonical source
