@@ -413,6 +413,28 @@ def Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFacto
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterfaceSlotFactorizationData
         M n hn2 htb hns)
 
+/-- Uniform shifted Leibniz-product slot-product plus profile-uniform shift
+closure data at Step 247 scale.
+
+This is a sharper version of the slot seam: the product slot construction is
+unchanged, but the shift/`mlProj` closure is stated uniformly for the selected
+profile subspace rather than depending on the canonical profile-selector proof. -/
+def Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductUniformShiftClosureData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterfaceSlotProductUniformShiftClosureData
+        M n hn2 htb hns)
+
+/-- Uniform shift-closure slot-product data instantiates slot factorization. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData_of_slotProductUniformShiftClosureData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductUniformShiftClosureData) :
+    Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductInterfaceSlotFactorizationData_of_slotProductUniformShiftClosureData
+    M n hn2 htb hns D⟩
+
 /-- Interface-contribution data instantiates the local-algebra seam. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData_of_interfaceContributionData
     (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceContributionData) :

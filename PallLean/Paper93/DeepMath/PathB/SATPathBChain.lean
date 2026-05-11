@@ -708,4 +708,14 @@ theorem SAT_path_B_paperFaithfulShiftedLeibnizProductInterfaceSlotFactorization_
     (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceContributionData_of_interfaceSlotFactorizationData
       hData)
 
+/-- Uniform-shift-closure slot-product exposure: the slot product construction
+plus a profile-uniform shift/`mlProj` closure theorem supplies the previous
+slot-factorization seam. -/
+theorem SAT_path_B_paperFaithfulShiftedLeibnizProductInterfaceSlotProductUniformShiftClosure_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductUniformShiftClosureData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  SAT_path_B_paperFaithfulShiftedLeibnizProductInterfaceSlotFactorization_TPhi_extraction_move
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData_of_slotProductUniformShiftClosureData
+      hData)
+
 end PallLean.Paper93.DeepMath.PathB
