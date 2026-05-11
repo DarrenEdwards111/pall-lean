@@ -446,6 +446,28 @@ theorem SAT_path_B_paperFaithfulSourceEventAtomQDimBudgetData_fromFinalMaps
   step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimBudgetData_of_finalMaps
     hData
 
+/-- Fixed-`q` singleton event-atom seam from split budget plus an explicit
+final-map builder.
+
+This keeps the seam split honest: budget bookkeeping is supplied separately,
+and the remaining constructor obligation is isolated as a builder from each
+budget payload to a full fixed-`q` final payload. -/
+theorem SAT_path_B_paperFaithfulSourceEventAtomQDimFinalMaps_fromBudgetAndBuilder_TPhi_extraction_move
+    (hBudget : Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimBudgetData)
+    (hBuild :
+      ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804)
+        (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData
+          M n hn2 htb hns →
+        Nonempty
+          (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps
+            M n hn2 htb hns)) :
+    NoBoundedSATDeciderAtPaperScale :=
+  PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps
+    (fun M n hn hn2 htb hns hdec =>
+      let D := Classical.choice (hBudget M n hn hn2 htb hns)
+      Classical.choice (hBuild M n hn hn2 htb hns D))
+
 /-- Fixed-`q` singleton event-atom `NFOfWord` seam.
 
 This is the currently most atomic exposed Cook--Levin local-algebra target: the
