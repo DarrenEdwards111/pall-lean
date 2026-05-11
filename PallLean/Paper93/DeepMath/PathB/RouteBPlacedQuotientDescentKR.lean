@@ -599,12 +599,39 @@ def Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalBuilder : Prop 
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps
         M n hn2 htb hns)
 
+/-- Uniform target-row membership statement at the fixed-`q` event-atom frontier. -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimTargetMembership : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    ∀ (ρ : PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (hshift : shift.vars ⊆ S'.toFinset)
+      (d : Fin ((PallLean.Paper93.Paper283.cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((PallLean.Paper93.Paper283.cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+      PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetRow
+          M n hn2 htb hns S' shift d ∈
+        PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetSpan
+          M n hn2 htb hns ρ d
+
 /-- Uniform hard row-membership witness at the fixed-`q` event-atom frontier. -/
 def Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimRowWitness : Prop :=
   ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
     PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimRowWitness
       M n hn2 htb hns
+
+/-- Target-membership data implies the fixed-`q` row witness. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimRowWitness_of_targetMembership
+    (hTarget : Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimTargetMembership) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimRowWitness := by
+  intro M n hn hn2 htb hns
+  exact PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_rowWitness_of_targetMembership
+    M n hn2 htb hns (hTarget M n hn hn2 htb hns)
 
 /-- Any Step247 fixed-`q` final payload yields the corresponding budget scaffold. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimBudgetData_of_finalMaps
