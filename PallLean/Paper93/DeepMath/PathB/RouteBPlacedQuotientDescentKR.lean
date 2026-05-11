@@ -642,6 +642,16 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimBudget
   exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData_of_qDimFinalMaps
     M n hn2 htb hns D⟩
 
+/-- Any Step247 fixed-`q` final payload induces target-row membership data. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimTargetMembership_of_finalMaps
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalMaps) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimTargetMembership := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetMembership_of_qDimFinalMaps
+      M n hn2 htb hns D
+
 /-- Any Step247 fixed-`q` final payload induces a budget-to-final builder. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalBuilder_of_finalMaps
     (hData : Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalMaps) :

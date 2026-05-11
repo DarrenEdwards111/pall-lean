@@ -461,6 +461,15 @@ theorem SAT_path_B_paperFaithfulSourceEventAtomQDimFinalMaps_fromBudgetAndBuilde
       let D := Classical.choice (hBudget M n hn hn2 htb hns)
       Classical.choice (hBuild M n hn hn2 htb hns D))
 
+/-- Fixed-`q` singleton event-atom closeout routed through the explicit
+uniform target-membership frontier. -/
+theorem SAT_path_B_paperFaithfulSourceEventAtomQDimFinalMaps_viaTargetMembership_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalMaps) :
+    NoBoundedSATDeciderAtPaperScale :=
+  SAT_path_B_paperFaithfulSourceEventAtomQDimFinalMaps_fromBudgetAndTargetMembership_TPhi_extraction_move
+    (step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimBudgetData_of_finalMaps hData)
+    (step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimTargetMembership_of_finalMaps hData)
+
 /-- Fixed-`q` singleton event-atom closeout directly from split budget plus
 uniform target-row membership. -/
 theorem SAT_path_B_paperFaithfulSourceEventAtomQDimFinalMaps_fromBudgetAndTargetMembership_TPhi_extraction_move
