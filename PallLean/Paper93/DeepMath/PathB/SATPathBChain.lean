@@ -729,6 +729,17 @@ theorem SAT_path_B_paperFaithfulShiftedLeibnizProductInterfaceSlotProductRowShif
     (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftData_of_slotProductBranchAtomData
       hData)
 
+/-- Slot-factorization exposure through the coherent branch-atom row-shift
+route.  This is definitionally coherent: the branch-atom data is derived from
+the same slot-factorization package, so there is no separate partition/profile
+selector to reconcile. -/
+theorem SAT_path_B_paperFaithfulShiftedLeibnizProductInterfaceSlotFactorization_viaRowShiftBranchAtom_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  SAT_path_B_paperFaithfulShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtom_TPhi_extraction_move
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtomData_of_interfaceSlotFactorizationData
+      hData)
+
 /-- Uniform-shift-closure slot-product exposure: the slot product construction
 plus a profile-uniform shift/`mlProj` closure theorem supplies the previous
 slot-factorization seam. -/

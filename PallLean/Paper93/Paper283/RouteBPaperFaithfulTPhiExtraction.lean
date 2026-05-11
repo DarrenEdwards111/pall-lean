@@ -20419,6 +20419,35 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedBranchAtomC
     exact D.selectedShiftedLeibnizProduct_mem_compiledBasisProfileSubspace
       ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
 
+/-- Slot-factorization data is a single upstream source for both halves of the
+row-shift-from-branch-atom package.
+
+The branch-atom payload is derived from the slot-factorization payload through
+the existing interface-contribution/local-algebra/Leibniz-product adapters, so
+partition and canonical-profile selector coherence are definitional.  This closes
+the bookkeeping seam: no independent profile selector has to be reconciled. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtomData_of_interfaceSlotFactorizationData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterfaceSlotFactorizationData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtomData
+      M n hn2 htb hns where
+  slotData := D
+  branchAtomData :=
+    routeBPaperFaithfulTPhi_strictSourceSelectedShiftedBranchAtomCompiledBasisProfileData_of_shiftedLeibnizProductData
+      M n hn2 htb hns
+      (routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductCompiledBasisProfileData_of_localAlgebraData
+        M n hn2 htb hns
+        (routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductCompiledBasisLocalAlgebraData_of_interfaceContributionData
+          M n hn2 htb hns
+          (routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductInterfaceContributionData_of_interfaceSlotFactorizationData
+            M n hn2 htb hns D)))
+  branchAtom_sourcePartition_eq_slot := rfl
+  branchAtom_profileOfCanonicalWindow_eq_slot := by
+    intro w hw
+    rfl
+
 
 /-- The compiled-basis profile package is the concrete in-repo
 Lemma-31/symmetric-power package: finite and `≤ 3` local dimensions are supplied
