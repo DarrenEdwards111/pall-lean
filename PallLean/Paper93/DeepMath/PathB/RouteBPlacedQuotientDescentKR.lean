@@ -1295,6 +1295,20 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
     (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms_of_boundedTraceMonoidData
       hData)
 
+/-- Step247 closeout from fixed-`q` event-atom budget scaffolding plus
+pointwise target-membership witness. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetAndTargetMembership
+    (hBudget : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData)
+    (hMem : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimTargetMembership) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData
+    (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData_of_traceLetterBasisData
+      (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizTraceLetterBasisData_of_NFOfWordDirectTransferMaps
+        (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordDirectTransferMaps_of_NFOfWordMaxCardFinalMaps
+          (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordMaxCardFinalMaps_of_NFOfWordEventAtomQDimFinalMaps
+            (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps_of_budgetData_and_targetMembership
+              hBudget hMem)))))
+
 /-- Step247 closeout from fixed-`q` event-atom budget scaffolding plus row
 witness.
 
@@ -1306,13 +1320,10 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
     (hBudget : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData)
     (hRow : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimRowWitness) :
     NoBoundedSATDeciderAtPaperScale :=
-  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData
-    (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData_of_traceLetterBasisData
-      (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizTraceLetterBasisData_of_NFOfWordDirectTransferMaps
-        (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordDirectTransferMaps_of_NFOfWordMaxCardFinalMaps
-          (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordMaxCardFinalMaps_of_NFOfWordEventAtomQDimFinalMaps
-            (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps_of_budgetData_and_rowWitness
-              hBudget hRow)))))
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetAndTargetMembership
+    hBudget
+    (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimTargetMembership_of_rowWitness
+      hRow)
 
 
 /-- Uniform sufficient exact-profile template-collapse data at Step 247 scale.
