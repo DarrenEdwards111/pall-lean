@@ -141,4 +141,16 @@ theorem P_ne_NP_canonical_routeB_placedExpansion_viaRenamedCanonicalAndChartMapI
 
 #print axioms P_ne_NP_canonical_routeB_placedExpansion_viaRenamedCanonicalAndChartMapIdentity_conditional
 
+/-- Canonical Route-B closure from uniform canonical-interface expansion data.
+This removes the chart-transport seam entirely by using the already checked
+canonical-interface -> placed-quotient-descent adapter. -/
+theorem P_ne_NP_canonical_routeB_canonicalInterfaceExpansion_conditional
+    (hCan : Step247UniformRouteBPaperFaithfulTPhiCanonicalInterfaceExpansionData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_placedQuotientDescent_conditional
+    (step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData_of_canonicalInterfaceExpansionData
+      hCan)
+
+#print axioms P_ne_NP_canonical_routeB_canonicalInterfaceExpansion_conditional
+
 end PallLean.Paper93.DeepMath.PathB
