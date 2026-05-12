@@ -1032,6 +1032,31 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
 
 
 
+/-- Uniform concrete transition-monoid data at Step 247 scale.
+
+This is the paper-faithful source of the local-monoid normal forms: the normal
+form type is a finite monoid, the generator list is fixed, and the Leibniz word
+is the actual flattened transition word.  The only hard mathematical field left
+inside the payload is the row membership in the normal-form local basis. -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalTransitionMonoidData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalTransitionMonoidData
+        M n hn2 htb hns)
+
+/-- Uniform bounded-trace local monoid data at Step 247 scale.
+
+Here the finite local monoid is concretely the bounded append-event trace action
+used in §9: normal forms are finite endomorphisms of the bounded trace state and
+generators append factor-local derivative events. -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizBoundedTraceMonoidData
+        M n hn2 htb hns)
+
 /-- Uniform witnessed Leibniz local-monoid normal forms at Step 247 scale.
 
 This is the paper §9 local-closure surface: the bounded Leibniz product word is
@@ -1046,6 +1071,38 @@ def Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormal
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalMonoidNormalForms
         M n hn2 htb hns)
 
+/-- Concrete transition-monoid data instantiates the Step247 local normal-form
+surface by taking the witness word to be the flattened transition word. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms_of_localTransitionMonoidData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalTransitionMonoidData) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms := by
+  intro M n hn hn2 htb hns
+  exact ⟨
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalMonoidNormalForms_of_transitionMonoidData
+      M n hn2 htb hns
+      (Classical.choice (hData M n hn hn2 htb hns))⟩
+
+/-- Bounded-trace monoid data instantiates the concrete transition-monoid
+surface with the finite append-event trace monoid. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalTransitionMonoidData_of_boundedTraceMonoidData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalTransitionMonoidData := by
+  intro M n hn hn2 htb hns
+  exact ⟨
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalTransitionMonoidData_of_boundedTraceMonoidData
+      M n hn2 htb hns
+      (Classical.choice (hData M n hn hn2 htb hns))⟩
+
+/-- Bounded-trace monoid data gives the exact local-monoid normal-form Step247
+surface.  This packages the concrete choices for `sourceNormalForm`, finite
+instances, generators, local bases, budget, and the normal-form row membership. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms_of_boundedTraceMonoidData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms :=
+  step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms_of_localTransitionMonoidData
+    (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalTransitionMonoidData_of_boundedTraceMonoidData
+      hData)
+
 /-- Paper-faithful local-monoid normal forms close Route B directly.
 
 The closeout uses the checked `TΦ` chain from witnessed local monoid normal
@@ -1058,6 +1115,14 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
     PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalMonoidNormalForms
       (fun M n hn hn2 htb hns _hdec =>
         Classical.choice (hData M n hn hn2 htb hns))
+
+/-- Paper-faithful closeout from the concrete bounded-trace monoid surface. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms
+    (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms_of_boundedTraceMonoidData
+      hData)
 
 
 /-- Uniform full finite-normal-form alphabet data at Step 247 scale.

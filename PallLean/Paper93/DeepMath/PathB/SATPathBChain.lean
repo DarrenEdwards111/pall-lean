@@ -448,6 +448,17 @@ theorem SAT_path_B_paperFaithfulSourceWitnessedLeibnizLocalMonoidNormalForms_TPh
   noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms
     hData
 
+/-- Concrete bounded-trace local-monoid seam at Step247 scale.
+
+This is the proof-facing version of the paper §9 construction: instantiate the
+finite monoid as bounded append-event traces, then the generic local-normal-form
+closeout above fires. -/
+theorem SAT_path_B_paperFaithfulSourceWitnessedLeibnizBoundedTraceMonoidData_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData
+    hData
+
 /-- Exact-profile template-collapse sufficient seam for the strict source row.
 
 This exposes the checked route
