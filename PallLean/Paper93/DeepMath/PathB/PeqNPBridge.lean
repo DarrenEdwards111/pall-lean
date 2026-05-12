@@ -79,4 +79,15 @@ theorem P_ne_NP_canonical_routeB_placedExpansion_conditional
 
 #print axioms P_ne_NP_canonical_routeB_placedExpansion_conditional
 
+/-- Canonical conditional closure from placed expansion plus the concrete
+via-canonical bridge decomposition of ambient quotient soundness. -/
+theorem P_ne_NP_canonical_routeB_placedExpansion_viaCanonicalInterface_conditional
+    (hExp : Step247UniformRouteBPaperFaithfulTPhiPlacedExpansionData)
+    (hVia : Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaCanonicalInterfaceExpansionData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_placedExpansion_conditional hExp
+    (step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessData_of_viaCanonicalInterfaceExpansionData hVia)
+
+#print axioms P_ne_NP_canonical_routeB_placedExpansion_viaCanonicalInterface_conditional
+
 end PallLean.Paper93.DeepMath.PathB

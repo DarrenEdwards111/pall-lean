@@ -1695,6 +1695,14 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
     (step247UniformRouteBPaperFaithfulTPhiProjectedQuotientNormalFormData_of_singletonQuotient_concreteW_normalizedCoeff_fixedDerivative
       hcert)
 
+/-- A concrete decomposition of the ambient quotient/rank bridge:
+from placed local expansion, recover the canonical-interface expansion surface.
+Combined with the checked canonical→placed-quotient adapter, this yields the
+ambient quotient soundness implication. -/
+def Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaCanonicalInterfaceExpansionData : Prop :=
+  Step247UniformRouteBPaperFaithfulTPhiPlacedExpansionData →
+    Step247UniformRouteBPaperFaithfulTPhiCanonicalInterfaceExpansionData
+
 /-- Ambient quotient/rank soundness for the placed local-interface expansion.
 
 This is the precise remaining bridge if one replaces the false fixed raw chart
@@ -1705,6 +1713,17 @@ ambient selected-chart equality. -/
 def Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessData : Prop :=
   Step247UniformRouteBPaperFaithfulTPhiPlacedExpansionData →
     Step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData
+
+/-- If the placed expansion can be promoted to canonical-interface expansion,
+the ambient quotient/rank soundness bridge follows by the existing checked
+canonical→placed-quotient adapter. -/
+theorem step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessData_of_viaCanonicalInterfaceExpansionData
+    (hVia : Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaCanonicalInterfaceExpansionData) :
+    Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessData := by
+  intro hExpansion
+  exact
+    step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData_of_canonicalInterfaceExpansionData
+      (hVia hExpansion)
 
 /-- Placed expansion plus the explicit ambient quotient/rank soundness bridge
 supplies the checked placed quotient/descent datum. -/
