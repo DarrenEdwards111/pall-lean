@@ -1058,6 +1058,34 @@ def Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtom
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps
         M n hn2 htb hns)
 
+/-- Uniform fixed-`q` event-atom budget scaffolding at Step 247 scale. -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData
+        M n hn2 htb hns)
+
+/-- Uniform fixed-`q` pointwise target-membership witness at Step 247 scale. -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimTargetMembership : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (∀ (ρ : PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+            ConstraintType (Nat.log 2 n))
+        (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+        (shift : MvPolynomial (Fin (n / 3)) ℚ)
+        (hshift : shift.vars ⊆ S'.toFinset)
+        (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+          List (Fin (n / 3)))
+        (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+        (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+            (d i).length ≤ S'.length),
+          PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetRow
+              M n hn2 htb hns S' shift d ∈
+            PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetSpan
+              M n hn2 htb hns ρ d)
+
 /-- Uniform minimal max-card `NFOfWord` final payload at Step 247 scale.
 
 This is the sharp paper-faithful end surface before direct-transfer maps:
@@ -1162,6 +1190,19 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFO
     PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordDirectTransferMaps_of_maxCardFinalMaps
       M n hn2 htb hns
       (Classical.choice (hData M n hn hn2 htb hns))⟩
+
+/-- Event-atom budget scaffolding plus pointwise target-membership witness
+instantiates fixed-`q` event-atom final maps. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps_of_budgetData_and_targetMembership
+    (hBudget : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData)
+    (hMem : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimTargetMembership) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps := by
+  intro M n hn hn2 htb hns
+  exact ⟨
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps_of_budgetData_and_targetMembership
+      M n hn2 htb hns
+      (Classical.choice (hBudget M n hn hn2 htb hns))
+      (Classical.choice (hMem M n hn hn2 htb hns))⟩
 
 /-- Direct exact-`NFOfWord` transfer data instantiates the trace-letter payload. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizTraceLetterBasisData_of_NFOfWordDirectTransferMaps
