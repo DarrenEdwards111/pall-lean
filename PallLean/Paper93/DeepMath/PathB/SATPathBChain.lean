@@ -448,6 +448,19 @@ theorem SAT_path_B_paperFaithfulSourceWitnessedLeibnizLocalMonoidNormalForms_TPh
   noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms
     hData
 
+/-- Trace-letter basis seam at Step247 scale.
+
+This is the direct proof-facing source for the bounded-trace monoid route:
+provide letter-wise bases for the exact normal-form trace word, then assemble
+bounded-trace normal-form spaces and close Route B through the same strict `TΦ`
+chain. -/
+theorem SAT_path_B_paperFaithfulSourceWitnessedLeibnizTraceLetterBasisData_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizTraceLetterBasisData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData
+    (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData_of_traceLetterBasisData
+      hData)
+
 /-- Concrete bounded-trace local-monoid seam at Step247 scale.
 
 This is the proof-facing version of the paper §9 construction: instantiate the

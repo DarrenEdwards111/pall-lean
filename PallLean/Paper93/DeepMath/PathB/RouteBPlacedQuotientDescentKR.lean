@@ -1045,6 +1045,19 @@ def Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalTransitionMo
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalTransitionMonoidData
         M n hn2 htb hns)
 
+/-- Uniform trace-letter basis data at Step 247 scale.
+
+This is the direct source payload for the bounded-trace monoid seam: for each
+bounded machine/window instance, provide profile-local letter bases for concrete
+trace generators together with the witnessed Leibniz row membership for the
+exact normal-form word. -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizTraceLetterBasisData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizTraceLetterBasisData
+        M n hn2 htb hns)
+
 /-- Uniform bounded-trace local monoid data at Step 247 scale.
 
 Here the finite local monoid is concretely the bounded append-event trace action
@@ -1079,6 +1092,17 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLoc
   intro M n hn hn2 htb hns
   exact ⟨
     PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalMonoidNormalForms_of_transitionMonoidData
+      M n hn2 htb hns
+      (Classical.choice (hData M n hn hn2 htb hns))⟩
+
+/-- Trace-letter basis data instantiates bounded-trace monoid data by assembling
+normal-form bases from trace-generator letters. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData_of_traceLetterBasisData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizTraceLetterBasisData) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData := by
+  intro M n hn hn2 htb hns
+  exact ⟨
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizBoundedTraceMonoidData_of_traceLetterBasisData
       M n hn2 htb hns
       (Classical.choice (hData M n hn hn2 htb hns))⟩
 
