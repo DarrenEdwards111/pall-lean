@@ -21676,6 +21676,53 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalTypeM
       D.leibnizWitness_mem_profileTemplateSpan
         ρ S' hS shift hshift d hd_elts hlen
 
+/-- Profile-template span data also instantiates the explicit finite
+local-monoid normal-form surface.
+
+The finite monoid here is the one-element profile-local normal form: all of the
+paper-specific compression is carried by the selected profile-template basis
+`sourceTemplateBasis ρ`, whose cardinality is bounded by
+`profileTemplateBound ρ.val`.  This is not a shifted-support enumeration and it
+keeps the row-membership theorem at the witnessed Leibniz-product level. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalMonoidNormalForms_of_profileTemplateSpanData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateSpanData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalMonoidNormalForms
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceNormalForm := fun _ => PUnit
+  sourceNormalFormFintype := by
+    intro ρ
+    infer_instance
+  sourceNormalFormMonoid := by
+    intro ρ
+    infer_instance
+  sourceNormalFormDecidableEq := by
+    intro ρ
+    infer_instance
+  sourceGenerators := fun _ => []
+  sourceLocalDim := fun ρ => profileTemplateBound ρ.val
+  sourceLocalBasis := fun ρ _ => D.sourceTemplateBasis ρ
+  sourceLocalBasis_card_le := by
+    intro ρ ν
+    exact D.sourceTemplateBasis_card_le ρ
+  sourceProfileSymmetricPowerBudget_le := by
+    intro ρ
+    have hadm : ProfileAdmissible (Nat.log 2 n) ρ.val := by
+      exact le_of_eq (routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfile_mass_eq ρ)
+    simpa using profileTemplateBound_le_withinProfileBound
+      (Nat.log 2 n) ρ.val hadm
+  leibnizWitnessWord := by
+    intro ρ S' hS shift hshift d hd_elts hlen
+    exact []
+  leibnizWitness_mem_normalFormSpace := by
+    intro ρ S' hS shift hshift d hd_elts hlen
+    simpa using
+      D.leibnizWitness_mem_profileTemplateSpan
+        ρ S' hS shift hshift d hd_elts hlen
+
 /-- Profile-template span data also gives the atomic term-dependent Lemma-31
 surface.
 
