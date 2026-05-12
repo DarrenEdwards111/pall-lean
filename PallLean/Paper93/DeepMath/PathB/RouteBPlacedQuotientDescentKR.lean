@@ -1213,6 +1213,33 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
           hData M n hn hn2 htb hns))
 
 
+/-- Uniform witnessed Leibniz local-monoid normal forms at Step 247 scale.
+
+This is the paper §9 local-closure surface: the bounded Leibniz product word is
+classified by the selected finite local monoid/normal-form alphabet, and row
+membership is in the basis for that normal form.  This is deliberately **not**
+the singleton event-atom linear span used only as an over-refined diagnostic
+frontier below. -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalMonoidNormalForms
+        M n hn2 htb hns)
+
+/-- Paper-faithful local-monoid normal forms close Route B directly.
+
+The closeout uses the checked `TΦ` chain from witnessed local monoid normal
+forms through local-type/profile assembly and the same-target NP lower bound.
+No singleton event-atom product-span claim is inserted. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms) :
+    NoBoundedSATDeciderAtPaperScale := by
+  exact
+    PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalMonoidNormalForms
+      (fun M n hn hn2 htb hns _hdec =>
+        Classical.choice (hData M n hn hn2 htb hns))
+
 
 /-- Uniform full finite-normal-form alphabet data at Step 247 scale.
 

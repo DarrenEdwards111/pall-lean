@@ -436,6 +436,18 @@ theorem SAT_path_B_paperFaithfulSourceProfileTemplateLocalMonoidNormalForms_TPhi
   PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms
     hData
 
+/-- Paper §9 local-monoid normal-form seam at Step247 scale.
+
+This is the route to work on for closure: prove finite selected local monoid
+normal forms for the witnessed Leibniz words, then the existing Route-B closeout
+fires.  It intentionally bypasses the over-strict singleton event-atom
+product-span frontier below. -/
+theorem SAT_path_B_paperFaithfulSourceWitnessedLeibnizLocalMonoidNormalForms_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms
+    hData
+
 /-- Fixed-`q` singleton event-atom budget seam.
 
 This is the bookkeeping half of the local-algebra target: finite bounds and
