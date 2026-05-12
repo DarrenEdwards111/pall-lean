@@ -1045,6 +1045,18 @@ def Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalTransitionMo
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalTransitionMonoidData
         M n hn2 htb hns)
 
+/-- Uniform minimal max-card `NFOfWord` final payload at Step 247 scale.
+
+This is the sharp paper-faithful end surface before direct-transfer maps:
+exact witnessed word-assembled local bases, exact finite max-card budget,
+total profile budget, and explicit letterwise transfer. -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordMaxCardFinalMaps : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordMaxCardFinalMaps
+        M n hn2 htb hns)
+
 /-- Uniform direct exact-`NFOfWord` transfer data at Step 247 scale.
 
 This is the focused constructive seam immediately before trace-letter final
@@ -1105,6 +1117,16 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLoc
   intro M n hn hn2 htb hns
   exact ⟨
     PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalMonoidNormalForms_of_transitionMonoidData
+      M n hn2 htb hns
+      (Classical.choice (hData M n hn hn2 htb hns))⟩
+
+/-- Max-card final maps instantiate direct exact-`NFOfWord` transfer maps. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordDirectTransferMaps_of_NFOfWordMaxCardFinalMaps
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordMaxCardFinalMaps) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordDirectTransferMaps := by
+  intro M n hn hn2 htb hns
+  exact ⟨
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordDirectTransferMaps_of_maxCardFinalMaps
       M n hn2 htb hns
       (Classical.choice (hData M n hn hn2 htb hns))⟩
 

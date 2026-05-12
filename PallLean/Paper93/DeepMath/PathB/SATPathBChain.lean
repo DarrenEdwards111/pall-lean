@@ -448,6 +448,20 @@ theorem SAT_path_B_paperFaithfulSourceWitnessedLeibnizLocalMonoidNormalForms_TPh
   noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms
     hData
 
+/-- Max-card `NFOfWord` final-map seam at Step247 scale.
+
+This is the sharp paper-faithful Step247 surface: exact witnessed
+word-assembled local bases + finite max-card budget + total profile budget +
+letterwise transfer, then the strict `TΦ` closeout chain fires. -/
+theorem SAT_path_B_paperFaithfulSourceWitnessedLeibnizNFOfWordMaxCardFinalMaps_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordMaxCardFinalMaps) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData
+    (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData_of_traceLetterBasisData
+      (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizTraceLetterBasisData_of_NFOfWordDirectTransferMaps
+        (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordDirectTransferMaps_of_NFOfWordMaxCardFinalMaps
+          hData)))
+
 /-- Direct exact-`NFOfWord` transfer seam at Step247 scale.
 
 This is the immediate constructive predecessor of trace-letter final data:
