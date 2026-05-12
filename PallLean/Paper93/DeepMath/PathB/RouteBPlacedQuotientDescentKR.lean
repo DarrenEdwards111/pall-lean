@@ -608,10 +608,10 @@ def Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimTargetMembership : P
       (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
       (shift : MvPolynomial (Fin (n / 3)) ℚ)
       (hshift : shift.vars ⊆ S'.toFinset)
-      (d : Fin ((PallLean.Paper93.Paper283.cookLevinFactorList M n hn2 htb hns).length) →
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
         List (Fin (n / 3)))
       (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
-      (hlen : ∑ i : Fin ((PallLean.Paper93.Paper283.cookLevinFactorList M n hn2 htb hns).length),
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
           (d i).length ≤ S'.length),
       PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetRow
           M n hn2 htb hns S' shift d ∈
@@ -645,10 +645,10 @@ theorem step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimRowWitness_iff_t
       (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
       (shift : MvPolynomial (Fin (n / 3)) ℚ)
       (hshift : shift.vars ⊆ S'.toFinset)
-      (d : Fin ((PallLean.Paper93.Paper283.cookLevinFactorList M n hn2 htb hns).length) →
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
         List (Fin (n / 3)))
       (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
-      (hlen : ∑ i : Fin ((PallLean.Paper93.Paper283.cookLevinFactorList M n hn2 htb hns).length),
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
           (d i).length ≤ S'.length),
       PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetRow
           M n hn2 htb hns S' shift d ∈
@@ -722,10 +722,10 @@ theorem step247RouteBPaperFaithfulTPhiSourceEventAtomQDimFinalMaps_iff_budget_an
         (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
         (shift : MvPolynomial (Fin (n / 3)) ℚ)
         (hshift : shift.vars ⊆ S'.toFinset)
-        (d : Fin ((PallLean.Paper93.Paper283.cookLevinFactorList M n hn2 htb hns).length) →
+        (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
           List (Fin (n / 3)))
         (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
-        (hlen : ∑ i : Fin ((PallLean.Paper93.Paper283.cookLevinFactorList M n hn2 htb hns).length),
+        (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
             (d i).length ≤ S'.length),
         PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetRow
             M n hn2 htb hns S' shift d ∈

@@ -466,9 +466,10 @@ uniform target-membership frontier. -/
 theorem SAT_path_B_paperFaithfulSourceEventAtomQDimFinalMaps_viaTargetMembership_TPhi_extraction_move
     (hData : Step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalMaps) :
     NoBoundedSATDeciderAtPaperScale :=
-  SAT_path_B_paperFaithfulSourceEventAtomQDimFinalMaps_fromBudgetAndTargetMembership_TPhi_extraction_move
+  SAT_path_B_paperFaithfulSourceEventAtomQDimFinalMaps_fromBudgetAndBuilder_TPhi_extraction_move
     (step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimBudgetData_of_finalMaps hData)
-    (step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimTargetMembership_of_finalMaps hData)
+    (step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimFinalBuilder_of_budgetData_and_targetMembership
+      (step247UniformRouteBPaperFaithfulTPhiSourceEventAtomQDimTargetMembership_of_finalMaps hData))
 
 /-- Fixed-`q` singleton event-atom closeout directly from split budget plus
 uniform target-row membership. -/

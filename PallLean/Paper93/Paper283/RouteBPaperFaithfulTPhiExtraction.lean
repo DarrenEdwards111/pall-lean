@@ -22190,7 +22190,7 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQD
             Set (MvPolynomial (Fin (n / 3)) ℚ))
 
 /-- Target projected row polynomial at the fixed-`q` singleton event-atom frontier. -/
-abbrev routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetRow
+noncomputable abbrev routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetRow
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (S' : List (Fin (n / 3)))
@@ -22207,7 +22207,7 @@ abbrev routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim
               M n hn2 htb hns) i)))
 
 /-- Target folded singleton event-atom span at the fixed-`q` frontier. -/
-abbrev routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetSpan
+noncomputable abbrev routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetSpan
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
