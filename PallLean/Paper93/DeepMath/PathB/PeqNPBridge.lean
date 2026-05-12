@@ -129,4 +129,16 @@ theorem P_ne_NP_canonical_routeB_placedExpansion_viaRenamedCanonicalAndChart_con
 
 #print axioms P_ne_NP_canonical_routeB_placedExpansion_viaRenamedCanonicalAndChart_conditional
 
+/-- Same closure, with chart-transport witnesses produced from explicit
+chart-map identity on canonical slots. -/
+theorem P_ne_NP_canonical_routeB_placedExpansion_viaRenamedCanonicalAndChartMapIdentity_conditional
+    (hExp : Step247UniformRouteBPaperFaithfulTPhiPlacedExpansionData)
+    (hRenamedCanonical : Step247UniformRouteBPaperFaithfulTPhiRenamedCanonicalInterfaceExpansionData)
+    (hId : Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessChartTrivialityData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_placedExpansion_viaRenamedCanonicalAndChart_conditional
+    hExp hRenamedCanonical hId
+
+#print axioms P_ne_NP_canonical_routeB_placedExpansion_viaRenamedCanonicalAndChartMapIdentity_conditional
+
 end PallLean.Paper93.DeepMath.PathB

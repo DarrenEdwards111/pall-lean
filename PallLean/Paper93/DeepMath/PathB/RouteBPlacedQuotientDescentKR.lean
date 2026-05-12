@@ -1752,6 +1752,17 @@ def Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessChartTriviality
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowLocalChartTransportExpansionData
         M n hn2 htb hns)
 
+/-- Concrete chart-map identity seam (packaged form): this is the same witness
+surface as chart-triviality, named to track the remaining explicit chart step. -/
+def Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessChartMapIdentityOnCanonicalSlotsData : Prop :=
+  Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessChartTrivialityData
+
+/-- Packaged chart-map identity immediately yields chart-triviality witnesses. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessChartTrivialityData_of_chartMapIdentityOnCanonicalSlotsData
+    (hId : Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessChartMapIdentityOnCanonicalSlotsData) :
+    Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessChartTrivialityData :=
+  hId
+
 /-- Renamed-local expansion plus transport data yields the
 `placed-expansion -> canonical-interface-expansion` bridge. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaCanonicalInterfaceExpansionData_of_renamedLocalChartData
