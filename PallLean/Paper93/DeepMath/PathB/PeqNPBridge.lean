@@ -56,4 +56,27 @@ theorem P_ne_NP_canonical_routeB_profileTemplateSpan_conditional
 
 #print axioms P_ne_NP_canonical_routeB_profileTemplateSpan_conditional
 
+/-- Canonical conditional closure via the explicit placed-quotient/descent Route B
+surface. -/
+theorem P_ne_NP_canonical_routeB_placedQuotientDescent_conditional
+    (hData : Step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  noBoundedSATDeciderAtPaperScale_implies_not_PeqNP
+    (noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescent
+      hData)
+
+#print axioms P_ne_NP_canonical_routeB_placedQuotientDescent_conditional
+
+/-- Canonical conditional closure from the concrete placed-expansion plus
+ambient-quotient-soundness seam, routed through placed quotient/descent. -/
+theorem P_ne_NP_canonical_routeB_placedExpansion_conditional
+    (hExp : Step247UniformRouteBPaperFaithfulTPhiPlacedExpansionData)
+    (hQ : Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_placedQuotientDescent_conditional
+    (step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData_of_placedExpansionData_and_ambientQuotientSoundness
+      hExp hQ)
+
+#print axioms P_ne_NP_canonical_routeB_placedExpansion_conditional
+
 end PallLean.Paper93.DeepMath.PathB
