@@ -448,6 +448,19 @@ theorem SAT_path_B_paperFaithfulSourceWitnessedLeibnizLocalMonoidNormalForms_TPh
   noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms
     hData
 
+/-- Direct exact-`NFOfWord` transfer seam at Step247 scale.
+
+This is the immediate constructive predecessor of trace-letter final data:
+exact witnessed `NFOfWord` basis transfer maps are converted to trace-letter
+bases, then to bounded-trace monoid data, and the strict `TΦ` closeout fires. -/
+theorem SAT_path_B_paperFaithfulSourceWitnessedLeibnizNFOfWordDirectTransferMaps_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordDirectTransferMaps) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData
+    (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData_of_traceLetterBasisData
+      (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizTraceLetterBasisData_of_NFOfWordDirectTransferMaps
+        hData))
+
 /-- Trace-letter basis seam at Step247 scale.
 
 This is the direct proof-facing source for the bounded-trace monoid route:
