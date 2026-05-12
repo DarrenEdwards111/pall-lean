@@ -1045,6 +1045,19 @@ def Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalTransitionMo
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalTransitionMonoidData
         M n hn2 htb hns)
 
+/-- Uniform fixed-`q` event-atom final payload at Step 247 scale.
+
+This is the tight pre-max-card constructive surface: local dimension is fixed to
+the actual bounded-word length cap `q`, event-atom bases are singleton, and the
+remaining key field is the witnessed row membership for the exact bounded
+`NFOfWord` atom basis. -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps
+        M n hn2 htb hns)
+
 /-- Uniform minimal max-card `NFOfWord` final payload at Step 247 scale.
 
 This is the sharp paper-faithful end surface before direct-transfer maps:
@@ -1119,6 +1132,26 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLoc
     PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalMonoidNormalForms_of_transitionMonoidData
       M n hn2 htb hns
       (Classical.choice (hData M n hn hn2 htb hns))⟩
+
+/-- Fixed-`q` event-atom final maps instantiate max-card final maps. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordMaxCardFinalMaps_of_NFOfWordEventAtomQDimFinalMaps
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordMaxCardFinalMaps := by
+  intro M n hn hn2 htb hns
+  exact ⟨
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordMaxCardFinalMaps_of_boundedWordFinalMaps
+      M n hn2 htb hns
+      (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordBoundedWordFinalMaps_of_qFinalMaps
+        M n hn2 htb hns
+        (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordBoundedWordQFinalMaps_of_eventBasisQFinalMaps
+          M n hn2 htb hns
+          (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventBasisQFinalMaps_of_eventMaxQFinalMaps
+            M n hn2 htb hns
+            (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventMaxQFinalMaps_of_eventAtomQFinalMaps
+              M n hn2 htb hns
+              (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQFinalMaps_of_qDimFinalMaps
+                M n hn2 htb hns
+                (Classical.choice (hData M n hn hn2 htb hns)))))))⟩
 
 /-- Max-card final maps instantiate direct exact-`NFOfWord` transfer maps. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordDirectTransferMaps_of_NFOfWordMaxCardFinalMaps

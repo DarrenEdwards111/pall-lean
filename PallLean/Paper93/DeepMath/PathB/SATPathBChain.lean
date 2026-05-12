@@ -448,6 +448,22 @@ theorem SAT_path_B_paperFaithfulSourceWitnessedLeibnizLocalMonoidNormalForms_TPh
   noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms
     hData
 
+/-- Fixed-`q` event-atom final-map seam at Step247 scale.
+
+This is the most explicit bounded-word witness seam currently exposed at
+Step247: `q`-bounded event-atom local bases plus the row-membership witness,
+then the checked `q→...→max-card→direct-transfer→trace-letter→bounded-trace`
+chain closes Route B. -/
+theorem SAT_path_B_paperFaithfulSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData
+    (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData_of_traceLetterBasisData
+      (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizTraceLetterBasisData_of_NFOfWordDirectTransferMaps
+        (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordDirectTransferMaps_of_NFOfWordMaxCardFinalMaps
+          (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordMaxCardFinalMaps_of_NFOfWordEventAtomQDimFinalMaps
+            hData))))
+
 /-- Max-card `NFOfWord` final-map seam at Step247 scale.
 
 This is the sharp paper-faithful Step247 surface: exact witnessed
