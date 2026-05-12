@@ -1169,6 +1169,34 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLoc
       M n hn2 htb hns
       (Classical.choice (hData M n hn hn2 htb hns))⟩
 
+/-- Forget fixed-`q` final payload down to budget scaffolding only. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData_of_qDimFinalMaps
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData := by
+  intro M n hn hn2 htb hns
+  exact ⟨
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData_of_qDimFinalMaps
+      M n hn2 htb hns
+      (Classical.choice (hData M n hn hn2 htb hns))⟩
+
+/-- Any fixed-`q` final payload yields the row-witness seam directly. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimRowWitness_of_qDimFinalMaps
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimRowWitness := by
+  intro M n hn hn2 htb hns
+  exact ⟨
+    (Classical.choice (hData M n hn hn2 htb hns)).leibnizWitness_mem_boundedNFOfWordAtomBasis⟩
+
+/-- Any fixed-`q` final payload yields pointwise target-membership witness. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimTargetMembership_of_qDimFinalMaps
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimTargetMembership := by
+  intro M n hn hn2 htb hns
+  refine ⟨?_⟩
+  exact
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetMembership_of_qDimFinalMaps
+      M n hn2 htb hns (Classical.choice (hData M n hn hn2 htb hns))
+
 /-- Fixed-`q` event-atom final maps instantiate max-card final maps. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordMaxCardFinalMaps_of_NFOfWordEventAtomQDimFinalMaps
     (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps) :
@@ -1324,6 +1352,17 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
     hBudget
     (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimTargetMembership_of_rowWitness
       hRow)
+
+/-- Step247 closeout from fixed-`q` event-atom final maps via budget+row
+extraction. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps_via_budgetAndRowWitness
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetAndRowWitness
+    (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData_of_qDimFinalMaps
+      hData)
+    (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimRowWitness_of_qDimFinalMaps
+      hData)
 
 
 /-- Uniform sufficient exact-profile template-collapse data at Step 247 scale.
