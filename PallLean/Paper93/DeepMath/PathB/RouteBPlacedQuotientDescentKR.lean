@@ -1703,6 +1703,40 @@ def Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaCanonicalInt
   Step247UniformRouteBPaperFaithfulTPhiPlacedExpansionData →
     Step247UniformRouteBPaperFaithfulTPhiCanonicalInterfaceExpansionData
 
+/-- Finer decomposition surface (part 1): from placed expansion, build renamed
+local-chart expansion data. -/
+def Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaRenamedLocalChartExpansionData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowRenamedLocalChartExpansionData
+        M n hn2 htb hns)
+
+/-- Finer decomposition surface (part 2): provide local-chart transport data
+for each renamed-local expansion witness. -/
+def Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessChartTrivialityData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowRenamedLocalChartExpansionData
+      M n hn2 htb hns),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowLocalChartTransportExpansionData
+        M n hn2 htb hns)
+
+/-- Renamed-local expansion plus transport data yields the
+`placed-expansion -> canonical-interface-expansion` bridge. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaCanonicalInterfaceExpansionData_of_renamedLocalChartData
+    (hRenamed : Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaRenamedLocalChartExpansionData)
+    (hChart : Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessChartTrivialityData) :
+    Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaCanonicalInterfaceExpansionData := by
+  intro _
+  intro M n hn hn2 htb hns
+  rcases hRenamed M n hn hn2 htb hns with ⟨D⟩
+  let Dtransport := Classical.choice (hChart M n hn hn2 htb hns D)
+  exact
+    ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedRowCanonicalInterfaceExpansionData_of_localChartTransportExpansionData
+      M n hn2 htb hns Dtransport⟩
+
 /-- Ambient quotient/rank soundness for the placed local-interface expansion.
 
 This is the precise remaining bridge if one replaces the false fixed raw chart

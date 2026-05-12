@@ -90,4 +90,17 @@ theorem P_ne_NP_canonical_routeB_placedExpansion_viaCanonicalInterface_condition
 
 #print axioms P_ne_NP_canonical_routeB_placedExpansion_viaCanonicalInterface_conditional
 
+/-- Canonical conditional closure from placed expansion plus the finer
+renamed-local-chart decomposition of the ambient quotient soundness bridge. -/
+theorem P_ne_NP_canonical_routeB_placedExpansion_viaRenamedLocalChart_conditional
+    (hExp : Step247UniformRouteBPaperFaithfulTPhiPlacedExpansionData)
+    (hRenamed : Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaRenamedLocalChartExpansionData)
+    (hChart : Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessChartTrivialityData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_placedExpansion_viaCanonicalInterface_conditional hExp
+    (PallLean.Paper93.DeepMath.PathB.step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaCanonicalInterfaceExpansionData_of_renamedLocalChartData
+      hRenamed hChart)
+
+#print axioms P_ne_NP_canonical_routeB_placedExpansion_viaRenamedLocalChart_conditional
+
 end PallLean.Paper93.DeepMath.PathB
