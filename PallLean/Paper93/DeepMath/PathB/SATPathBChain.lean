@@ -436,6 +436,24 @@ theorem SAT_path_B_paperFaithfulSourceProfileTemplateLocalMonoidNormalForms_TPhi
   PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms
     hData
 
+/-- Step247 seam: selected-profile template span data.
+
+This is the paper-faithful bypass of the failed singleton event-atom span: each
+selected profile gets its own finite template basis plus witnessed row
+membership, then the exact-budget local-monoid adapter closes Route B. -/
+theorem SAT_path_B_paperFaithfulSourceWitnessedLeibnizProfileTemplateSpanData_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateSpanData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  PallLean.Paper93.DeepMath.PathB.noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateSpanData
+    hData
+
+/-- Step247 seam: exact-budget selected-profile local-monoid normal forms. -/
+theorem SAT_path_B_paperFaithfulSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms) :
+    NoBoundedSATDeciderAtPaperScale :=
+  PallLean.Paper93.DeepMath.PathB.noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms
+    hData
+
 /-- Paper §9 local-monoid normal-form seam at Step247 scale.
 
 This is the route to work on for closure: prove finite selected local monoid

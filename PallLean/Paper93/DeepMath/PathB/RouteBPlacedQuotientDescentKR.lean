@@ -1158,6 +1158,58 @@ def Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormal
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalMonoidNormalForms
         M n hn2 htb hns)
 
+/-- Uniform selected profile-template span data at Step 247 scale.
+
+This is the local-monoid/max-card replacement frontier for the failed
+singleton event-atom product span: give each selected profile its own
+profile-template basis, bounded by `profileTemplateBound`, and prove the
+witnessed Leibniz row lies in that selected span. -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateSpanData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateSpanData
+        M n hn2 htb hns)
+
+/-- Uniform exact-budget profile-template local-monoid normal forms at Step 247
+scale.  This exposes the exact Lemma-31-sized budget rather than merely the
+coarser `withinProfileBound` budget. -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms
+        M n hn2 htb hns)
+
+/-- Profile-template span data instantiates the exact-budget profile-template
+local-monoid normal-form Step247 surface. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms_of_profileTemplateSpanData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateSpanData) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms := by
+  intro M n hn hn2 htb hns
+  exact ⟨
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms_of_profileTemplateSpanData
+      M n hn2 htb hns
+      (Classical.choice (hData M n hn hn2 htb hns))⟩
+
+/-- Exact-budget profile-template local-monoid normal forms forget to the
+general local-monoid normal-form Step247 surface. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms_of_profileTemplateLocalMonoidNormalForms
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms := by
+  intro M n hn hn2 htb hns
+  exact ⟨
+    (Classical.choice (hData M n hn hn2 htb hns)).toRouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalMonoidNormalForms⟩
+
+/-- Profile-template span data forgets to the general local-monoid normal-form
+Step247 surface through the exact-budget one-element monoid construction. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms_of_profileTemplateSpanData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateSpanData) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms :=
+  step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms_of_profileTemplateLocalMonoidNormalForms
+    (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms_of_profileTemplateSpanData
+      hData)
+
 /-- Concrete transition-monoid data instantiates the Step247 local normal-form
 surface by taking the witness word to be the flattened transition word. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms_of_localTransitionMonoidData
@@ -1314,6 +1366,24 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
     PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalMonoidNormalForms
       (fun M n hn hn2 htb hns _hdec =>
         Classical.choice (hData M n hn hn2 htb hns))
+
+/-- Paper-faithful closeout from exact-budget selected-profile local-monoid
+normal forms. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms
+    (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms_of_profileTemplateLocalMonoidNormalForms
+      hData)
+
+/-- Paper-faithful closeout from selected-profile template span data via the
+exact-budget one-element local-monoid route. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateSpanData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateSpanData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms
+    (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms_of_profileTemplateSpanData
+      hData)
 
 /-- Paper-faithful closeout from the concrete bounded-trace monoid surface. -/
 theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData

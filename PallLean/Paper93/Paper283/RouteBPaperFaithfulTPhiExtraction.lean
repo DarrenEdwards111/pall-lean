@@ -23261,6 +23261,27 @@ structure RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateLoca
       @Fintype.card (sourceNormalForm ρ) (sourceNormalFormFintype ρ) * sourceLocalDim ρ ≤
         profileTemplateBound ρ.val
 
+/-- Profile-template span data instantiates the exact-budget local-monoid
+normal-form surface.
+
+This is the one-element local-monoid route with the paper's selected
+profile-template budget exposed explicitly: the finite normal-form alphabet is
+`PUnit`, the local basis is the selected template basis for `ρ`, and the budget
+is exactly `1 * profileTemplateBound ρ.val ≤ profileTemplateBound ρ.val`. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms_of_profileTemplateSpanData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateSpanData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateLocalMonoidNormalForms
+      M n hn2 htb hns where
+  toRouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizLocalMonoidNormalForms :=
+    routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalMonoidNormalForms_of_profileTemplateSpanData
+      M n hn2 htb hns D
+  sourceProfileTemplateBudget_le := by
+    intro ρ
+    simp [routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizLocalMonoidNormalForms_of_profileTemplateSpanData]
+
 /-- Exact-budget local monoid normal forms instantiate the exact-budget
 witnessed local-type maps. -/
 noncomputable def routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizProfileTemplateLocalTypeMaps_of_profileTemplateLocalMonoidNormalForms
