@@ -448,6 +448,19 @@ theorem SAT_path_B_paperFaithfulSourceWitnessedLeibnizLocalMonoidNormalForms_TPh
   noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms
     hData
 
+/-- Fixed-`q` event-atom budget + row-witness seam at Step247 scale. -/
+theorem SAT_path_B_paperFaithfulSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetAndRowWitness_TPhi_extraction_move
+    (hBudget : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData)
+    (hRow : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimRowWitness) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData
+    (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData_of_traceLetterBasisData
+      (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizTraceLetterBasisData_of_NFOfWordDirectTransferMaps
+        (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordDirectTransferMaps_of_NFOfWordMaxCardFinalMaps
+          (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordMaxCardFinalMaps_of_NFOfWordEventAtomQDimFinalMaps
+            (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps_of_budgetData_and_rowWitness
+              hBudget hRow)))))
+
 /-- Fixed-`q` event-atom budget + target-membership seam at Step247 scale.
 
 This is the exact construction input for the event-atom `q`-final surface:

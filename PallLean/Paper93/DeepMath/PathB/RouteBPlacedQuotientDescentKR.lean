@@ -1066,6 +1066,14 @@ def Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtom
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData
         M n hn2 htb hns)
 
+/-- Uniform fixed-`q` row-witness seam at Step 247 scale. -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimRowWitness : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimRowWitness
+        M n hn2 htb hns)
+
 /-- Uniform fixed-`q` pointwise target-membership witness at Step 247 scale. -/
 def Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimTargetMembership : Prop :=
   ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
@@ -1191,6 +1199,15 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFO
       M n hn2 htb hns
       (Classical.choice (hData M n hn hn2 htb hns))⟩
 
+/-- Row-witness seam implies pointwise target-membership seam. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimTargetMembership_of_rowWitness
+    (hRow : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimRowWitness) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimTargetMembership := by
+  intro M n hn hn2 htb hns
+  refine ⟨?_⟩
+  exact PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetMembership_of_rowWitness
+    M n hn2 htb hns (Classical.choice (hRow M n hn hn2 htb hns))
+
 /-- Event-atom budget scaffolding plus pointwise target-membership witness
 instantiates fixed-`q` event-atom final maps. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps_of_budgetData_and_targetMembership
@@ -1203,6 +1220,17 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFO
       M n hn2 htb hns
       (Classical.choice (hBudget M n hn hn2 htb hns))
       (Classical.choice (hMem M n hn hn2 htb hns))⟩
+
+/-- Event-atom budget scaffolding plus row witness instantiates fixed-`q`
+event-atom final maps. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps_of_budgetData_and_rowWitness
+    (hBudget : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData)
+    (hRow : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimRowWitness) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps :=
+  step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps_of_budgetData_and_targetMembership
+    hBudget
+    (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimTargetMembership_of_rowWitness
+      hRow)
 
 /-- Direct exact-`NFOfWord` transfer data instantiates the trace-letter payload. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizTraceLetterBasisData_of_NFOfWordDirectTransferMaps
