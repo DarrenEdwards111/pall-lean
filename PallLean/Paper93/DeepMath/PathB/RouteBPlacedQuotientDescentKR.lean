@@ -1741,6 +1741,15 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessV
     ⟨routeBPaperFaithfulTPhi_strictSourceSelectedRowRenamedLocalChartExpansionData_of_renamedCanonicalInterfaceExpansionData
       M n hn2 htb hns D⟩
 
+/-- Canonical-interface expansion also supplies the renamed-local-chart surface
+through the identity-chart renamed-canonical adapter. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaRenamedLocalChartExpansionData_of_canonicalInterfaceExpansionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiCanonicalInterfaceExpansionData) :
+    Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaRenamedLocalChartExpansionData :=
+  step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaRenamedLocalChartExpansionData_of_renamedCanonicalInterfaceExpansionData
+    (step247UniformRouteBPaperFaithfulTPhiRenamedCanonicalInterfaceExpansionData_of_canonicalInterfaceExpansionData
+      hData)
+
 /-- Finer decomposition surface (part 2): provide local-chart transport data
 for each renamed-local expansion witness. -/
 def Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessChartTrivialityData : Prop :=
@@ -1763,6 +1772,17 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessC
     Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessChartTrivialityData :=
   hId
 
+/-- Weaker chart-transport seam: only the chosen renamed-local witness at each
+`(M,n,...)` needs transport data (rather than all possible witnesses). -/
+def Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessChartTrivialityAlongRenamedLocalChartData
+    (hRenamed : Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaRenamedLocalChartExpansionData) : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    let D := Classical.choice (hRenamed M n _hn hn2 htb hns)
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowLocalChartTransportExpansionData
+        M n hn2 htb hns)
+
 /-- Renamed-local expansion plus transport data yields the
 `placed-expansion -> canonical-interface-expansion` bridge. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaCanonicalInterfaceExpansionData_of_renamedLocalChartData
@@ -1773,6 +1793,19 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessV
   intro M n hn hn2 htb hns
   rcases hRenamed M n hn hn2 htb hns with ⟨D⟩
   let Dtransport := Classical.choice (hChart M n hn hn2 htb hns D)
+  exact
+    ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedRowCanonicalInterfaceExpansionData_of_localChartTransportExpansionData
+      M n hn2 htb hns Dtransport⟩
+
+/-- Variant using the weaker along-chosen-witness chart-transport seam. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaCanonicalInterfaceExpansionData_of_renamedLocalChartDataAlong
+    (hRenamed : Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaRenamedLocalChartExpansionData)
+    (hChart : Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessChartTrivialityAlongRenamedLocalChartData hRenamed) :
+    Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaCanonicalInterfaceExpansionData := by
+  intro _
+  intro M n hn hn2 htb hns
+  let D := Classical.choice (hRenamed M n hn hn2 htb hns)
+  let Dtransport := Classical.choice (hChart M n hn hn2 htb hns)
   exact
     ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedRowCanonicalInterfaceExpansionData_of_localChartTransportExpansionData
       M n hn2 htb hns Dtransport⟩
