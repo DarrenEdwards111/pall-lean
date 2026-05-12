@@ -485,6 +485,16 @@ theorem SAT_path_B_paperFaithfulSourceWitnessedLeibnizBoundedTraceMonoidData_TPh
   noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData
     hData
 
+/-- Step247 exact-profile template-collapse sufficient seam.
+
+This is the Step247-uniform wrapper of the checked sufficient route through
+`RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizExactProfileTemplateCollapseData`. -/
+theorem SAT_path_B_paperFaithfulSourceWitnessedLeibnizExactProfileTemplateCollapseData_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizExactProfileTemplateCollapseData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizExactProfileTemplateCollapseData
+    hData
+
 /-- Exact-profile template-collapse sufficient seam for the strict source row.
 
 This exposes the checked route

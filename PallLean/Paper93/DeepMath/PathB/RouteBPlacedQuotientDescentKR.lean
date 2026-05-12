@@ -1172,6 +1172,28 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
       hData)
 
 
+/-- Uniform sufficient exact-profile template-collapse data at Step 247 scale.
+
+This is a checked sufficient route (not the primary frontier): if each bounded
+instance provides exact-profile template-collapse payload for the witnessed
+Leibniz word, the paper-faithful strict `TΦ` closeout follows. -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizExactProfileTemplateCollapseData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizExactProfileTemplateCollapseData
+        M n hn2 htb hns)
+
+/-- Step247 closeout through the sufficient exact-profile template-collapse
+route. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizExactProfileTemplateCollapseData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizExactProfileTemplateCollapseData) :
+    NoBoundedSATDeciderAtPaperScale := by
+  exact
+    PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_paperRouteB_exactProfileTemplateCollapse
+      (fun M n hn hn2 htb hns _hdec =>
+        Classical.choice (hData M n hn hn2 htb hns))
+
 /-- Uniform full finite-normal-form alphabet data at Step 247 scale.
 
 Unlike the four-bin bounded surface, this keeps the paper's actual finite
