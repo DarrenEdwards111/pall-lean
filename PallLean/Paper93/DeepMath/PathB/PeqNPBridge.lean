@@ -98,9 +98,35 @@ theorem P_ne_NP_canonical_routeB_placedExpansion_viaRenamedLocalChart_conditiona
     (hChart : Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessChartTrivialityData) :
     ∀ (_ : PeqNP_Paper), False :=
   P_ne_NP_canonical_routeB_placedExpansion_viaCanonicalInterface_conditional hExp
-    (PallLean.Paper93.DeepMath.PathB.step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaCanonicalInterfaceExpansionData_of_renamedLocalChartData
+    (step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaCanonicalInterfaceExpansionData_of_renamedLocalChartData
       hRenamed hChart)
 
 #print axioms P_ne_NP_canonical_routeB_placedExpansion_viaRenamedLocalChart_conditional
+
+/-- Same closure, using the already exposed uniform renamed-canonical
+interface-expansion seam to provide renamed-local-chart data. -/
+theorem P_ne_NP_canonical_routeB_placedExpansion_viaRenamedCanonicalAndChart_conditional
+    (hExp : Step247UniformRouteBPaperFaithfulTPhiPlacedExpansionData)
+    (hRenamedCanonical : Step247UniformRouteBPaperFaithfulTPhiRenamedCanonicalInterfaceExpansionData)
+    (hChart : Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessChartTrivialityData) :
+    ∀ (_ : PeqNP_Paper), False := by
+  have hRenamed :
+      Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaRenamedLocalChartExpansionData := by
+    intro M n hn hn2 htb hns
+    rcases hRenamedCanonical M n hn hn2 htb hns with ⟨D⟩
+    exact
+      ⟨{ rowExpansionData :=
+            PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedRowInterfaceSlotExpansionData_of_renamedCanonicalInterfaceExpansionData
+              M n hn2 htb hns D
+         , rowExpansionCanonicalSlot := D.rowExpansionCanonicalSlot
+         , rowExpansionChartMap := D.rowExpansionChartMap
+         , rowExpansionSlot_transport_to_renamedCanonicalChart := by
+              intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j
+              rfl }⟩
+  exact
+    P_ne_NP_canonical_routeB_placedExpansion_viaRenamedLocalChart_conditional
+      hExp hRenamed hChart
+
+#print axioms P_ne_NP_canonical_routeB_placedExpansion_viaRenamedCanonicalAndChart_conditional
 
 end PallLean.Paper93.DeepMath.PathB

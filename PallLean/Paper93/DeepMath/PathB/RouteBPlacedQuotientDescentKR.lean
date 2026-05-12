@@ -1712,6 +1712,35 @@ def Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaRenamedLocal
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowRenamedLocalChartExpansionData
         M n hn2 htb hns)
 
+/-- A renamed-canonical interface expansion directly instantiates renamed
+local-chart expansion data by reading row slots as renamed canonical slots. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedRowRenamedLocalChartExpansionData_of_renamedCanonicalInterfaceExpansionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowRenamedCanonicalInterfaceExpansionData
+      M n hn2 htb hns) :
+    PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowRenamedLocalChartExpansionData
+      M n hn2 htb hns where
+  rowExpansionData :=
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedRowInterfaceSlotExpansionData_of_renamedCanonicalInterfaceExpansionData
+      M n hn2 htb hns D
+  rowExpansionCanonicalSlot := D.rowExpansionCanonicalSlot
+  rowExpansionChartMap := D.rowExpansionChartMap
+  rowExpansionSlot_transport_to_renamedCanonicalChart := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j
+    rfl
+
+/-- Existing uniform renamed-canonical expansion data supplies the finer
+uniform renamed-local-chart expansion surface. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaRenamedLocalChartExpansionData_of_renamedCanonicalInterfaceExpansionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiRenamedCanonicalInterfaceExpansionData) :
+    Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessViaRenamedLocalChartExpansionData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact
+    ⟨routeBPaperFaithfulTPhi_strictSourceSelectedRowRenamedLocalChartExpansionData_of_renamedCanonicalInterfaceExpansionData
+      M n hn2 htb hns D⟩
+
 /-- Finer decomposition surface (part 2): provide local-chart transport data
 for each renamed-local expansion witness. -/
 def Step247UniformRouteBPaperFaithfulTPhiAmbientQuotientSoundnessChartTrivialityData : Prop :=
