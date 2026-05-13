@@ -19829,6 +19829,44 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductExactI
               interfaceSlotContribution ρ S' shift α hSlen hshiftDegree
                 hshiftVars hadm hrow hρ d hd_elts hlen σ j
 
+/-- The missing selected-shift closure field needed to upgrade exact slot data
+into full witnessed slot-factorization data. -/
+def RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductSelectedShiftClosureFieldOnExactInterfaceSlotFactorizationData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductExactInterfaceSlotFactorizationData
+      M n hn2 htb hns) : Prop :=
+  ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n))
+    (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (α : Fin n →₀ ℕ)
+    (hSlen : S'.length = Nat.log 2 n)
+    (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+    (hshiftVars :
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+        (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n)))
+    (hrow :
+      routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+        M n hn2 htb hns S' shift α)
+    (hρ :
+      D.profileOfCanonicalWindow
+          (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+          hrow.1 = ρ)
+    (p : MvPolynomial (Fin (n / 3)) ℚ),
+      p ∈ profileSubspace ρ.val
+          (fun τ =>
+            interfaceSpace_compiledBasis
+              D.sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ) →
+      mlProj (shift * p) ∈ profileSubspace ρ.val
+          (fun τ =>
+            interfaceSpace_compiledBasis
+              D.sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ)
+
 /-- Build full slot-factorization data from exact slot data plus the missing
 selected-shift/`mlProj` closure field.
 
@@ -19840,36 +19878,8 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProd
     (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductExactInterfaceSlotFactorizationData
       M n hn2 htb hns)
     (hClosure :
-      ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
-            ConstraintType (Nat.log 2 n))
-        (S' : List (Fin (n / 3)))
-        (shift : MvPolynomial (Fin (n / 3)) ℚ)
-        (α : Fin n →₀ ℕ)
-        (hSlen : S'.length = Nat.log 2 n)
-        (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
-        (hshiftVars :
-          (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
-            (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
-        (hadm :
-          SPDP.isBlockAdmissible
-            (cook_levin_compilation M n hn2 htb hns).partition
-            (S'.map (cookLevinStrictFOBFlatMap n)))
-        (hrow :
-          routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
-            M n hn2 htb hns S' shift α)
-        (hρ :
-          D.profileOfCanonicalWindow
-              (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
-              hrow.1 = ρ)
-        (p : MvPolynomial (Fin (n / 3)) ℚ),
-          p ∈ profileSubspace ρ.val
-              (fun τ =>
-                interfaceSpace_compiledBasis
-                  D.sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ) →
-          mlProj (shift * p) ∈ profileSubspace ρ.val
-              (fun τ =>
-                interfaceSpace_compiledBasis
-                  D.sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ)) :
+      RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductSelectedShiftClosureFieldOnExactInterfaceSlotFactorizationData
+        M n hn2 htb hns D) :
     RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterfaceSlotFactorizationData
       M n hn2 htb hns where
   sourcePartition := D.sourcePartition

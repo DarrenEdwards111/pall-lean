@@ -210,6 +210,18 @@ theorem P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization
 
 #print axioms P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_conditional
 
+/-- Paper-faithful constructive split for witnessed slot-factorization closure:
+exact slot data plus selected-shift closure witness suffice. -/
+theorem P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_of_exactSlotAndSelectedShiftClosure_conditional
+    (hExact : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExactInterfaceSlotFactorizationData)
+    (hClosure : Step247UniformRouteBPaperFaithfulTPhiSelectedShiftClosureOnExactInterfaceSlotFactorizationData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_conditional
+    (PallLean.Paper93.DeepMath.PathB.step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData_of_exactInterfaceSlotFactorizationData_and_selectedShiftClosure
+      hExact hClosure)
+
+#print axioms P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_of_exactSlotAndSelectedShiftClosure_conditional
+
 /-- Canonical Route-B closure from uniform-shift-closure slot-product data,
 by instantiating interface-slot factorization first. -/
 theorem P_ne_NP_canonical_routeB_shiftedLeibnizProductUniformShiftClosure_conditional
