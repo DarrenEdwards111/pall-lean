@@ -221,4 +221,48 @@ theorem P_ne_NP_canonical_routeB_shiftedLeibnizProductUniformShiftClosure_condit
 
 #print axioms P_ne_NP_canonical_routeB_shiftedLeibnizProductUniformShiftClosure_conditional
 
+/-- Canonical Route-B closure from shifted Leibniz-product compiled-basis
+profile membership. -/
+theorem P_ne_NP_canonical_routeB_shiftedLeibnizProductCompiledBasisProfile_conditional
+    (hProf : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisProfileData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_shiftedBranchAtomCompiledBasisProfile_conditional
+    (step247UniformRouteBPaperFaithfulTPhiShiftedBranchAtomCompiledBasisProfileData_of_shiftedLeibnizProductData
+      hProf)
+
+#print axioms P_ne_NP_canonical_routeB_shiftedLeibnizProductCompiledBasisProfile_conditional
+
+/-- Canonical Route-B closure from row-specific shifted slot-product row-shift
+seam. -/
+theorem P_ne_NP_canonical_routeB_shiftedLeibnizProductRowShift_conditional
+    (hRowShift : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_shiftedLeibnizProductCompiledBasisProfile_conditional
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisProfileData_of_interfaceSlotProductRowShiftData
+      hRowShift)
+
+#print axioms P_ne_NP_canonical_routeB_shiftedLeibnizProductRowShift_conditional
+
+/-- Canonical Route-B closure from coherent indexed-slot + branch-atom row-shift
+seam. -/
+theorem P_ne_NP_canonical_routeB_shiftedLeibnizProductIndexedBranchRowShift_conditional
+    (hIdx : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromIndexedBranchAtomData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_shiftedLeibnizProductRowShift_conditional
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftData_of_indexedBranchAtomData
+      hIdx)
+
+#print axioms P_ne_NP_canonical_routeB_shiftedLeibnizProductIndexedBranchRowShift_conditional
+
+/-- Canonical Route-B closure from coherent indexed-fiber-partition +
+branch-atom row-shift seam (the lower indexed-fiber branch). -/
+theorem P_ne_NP_canonical_routeB_shiftedLeibnizProductIndexedFiberBranchRowShift_conditional
+    (hFib : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromIndexedFiberPartitionBranchAtomData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_shiftedLeibnizProductIndexedBranchRowShift_conditional
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromIndexedBranchAtomData_of_indexedFiberPartitionBranchAtomData
+      hFib)
+
+#print axioms P_ne_NP_canonical_routeB_shiftedLeibnizProductIndexedFiberBranchRowShift_conditional
+
 end PallLean.Paper93.DeepMath.PathB
