@@ -174,4 +174,29 @@ theorem P_ne_NP_canonical_routeB_compiledBasisProfileSubspaceRow_conditional
 
 #print axioms P_ne_NP_canonical_routeB_compiledBasisProfileSubspaceRow_conditional
 
+/-- Canonical Route-B closure from shifted branch-atom compiled-basis profile
+membership via the checked linear assembly into selected-row profile-subspace
+membership. -/
+theorem P_ne_NP_canonical_routeB_shiftedBranchAtomCompiledBasisProfile_conditional
+    (hBranch : Step247UniformRouteBPaperFaithfulTPhiShiftedBranchAtomCompiledBasisProfileData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_compiledBasisProfileSubspaceRow_conditional
+    (step247UniformRouteBPaperFaithfulTPhiCompiledBasisProfileSubspaceRowData_of_shiftedBranchAtomCompiledBasisProfileData
+      hBranch)
+
+#print axioms P_ne_NP_canonical_routeB_shiftedBranchAtomCompiledBasisProfile_conditional
+
+/-- Canonical Route-B closure from shifted Leibniz-product local-algebra data,
+following the paper-faithful chain:
+local-algebra -> shifted-product profile -> shifted-branch-atom profile ->
+selected-row profile-subspace -> canonical closure. -/
+theorem P_ne_NP_canonical_routeB_shiftedLeibnizProductLocalAlgebra_conditional
+    (hLocalAlg : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_shiftedBranchAtomCompiledBasisProfile_conditional
+    (step247UniformRouteBPaperFaithfulTPhiShiftedBranchAtomCompiledBasisProfileData_of_localAlgebraData
+      hLocalAlg)
+
+#print axioms P_ne_NP_canonical_routeB_shiftedLeibnizProductLocalAlgebra_conditional
+
 end PallLean.Paper93.DeepMath.PathB
