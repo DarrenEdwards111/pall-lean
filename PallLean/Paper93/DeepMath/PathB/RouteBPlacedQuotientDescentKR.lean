@@ -1690,6 +1690,27 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
     (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateSpanData_of_exactProfileTemplateCollapseData
       hData)
 
+/-- Step247-uniform canonical-row exact-profile template-collapse seam.
+
+This is the directly available lower-level sufficient object in the current
+library (it carries the decider hypothesis explicitly). -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceCanonicalRowExactProfileTemplateCollapseData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (_hdec : DecidesSAT M),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceCanonicalRowExactProfileTemplateCollapseData
+        M n hn2 htb hns)
+
+/-- Canonical-row exact-profile template-collapse closes Route B at Step247
+scale. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceCanonicalRowExactProfileTemplateCollapseData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceCanonicalRowExactProfileTemplateCollapseData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceCanonicalRowExactProfileTemplateCollapseData
+    (fun M n hn hn2 htb hns hdec =>
+      Classical.choice (hData M n hn hn2 htb hns hdec))
+
 /-- Uniform full finite-normal-form alphabet data at Step 247 scale.
 
 Unlike the four-bin bounded surface, this keeps the paper's actual finite

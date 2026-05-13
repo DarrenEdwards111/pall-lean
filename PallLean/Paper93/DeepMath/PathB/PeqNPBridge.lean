@@ -79,6 +79,17 @@ theorem P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_exactProfileTempla
 
 #print axioms P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_exactProfileTemplateCollapse_conditional
 
+/-- Route-B closeout from the currently available canonical-row exact-profile
+collapse seam (decider-parameterized), with no stronger slot/fiber assumptions. -/
+theorem P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_canonicalRowExactProfileTemplateCollapse_conditional
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceCanonicalRowExactProfileTemplateCollapseData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  noBoundedSATDeciderAtPaperScale_implies_not_PeqNP
+    (noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceCanonicalRowExactProfileTemplateCollapseData
+      hData)
+
+#print axioms P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_canonicalRowExactProfileTemplateCollapse_conditional
+
 /-- Canonical conditional closure via the explicit placed-quotient/descent Route B
 surface. -/
 theorem P_ne_NP_canonical_routeB_placedQuotientDescent_conditional
