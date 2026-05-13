@@ -19829,6 +19829,56 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductExactI
               interfaceSlotContribution ρ S' shift α hSlen hshiftDegree
                 hshiftVars hadm hrow hρ d hd_elts hlen σ j
 
+/-- Build full slot-factorization data from exact slot data plus the missing
+selected-shift/`mlProj` closure field.
+
+This isolates the only extra ingredient needed to pass from the exact
+paper-faithful slot-product payload to the witnessed slot-factorization seam. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductInterfaceSlotFactorizationData_of_exactInterfaceSlotFactorizationData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductExactInterfaceSlotFactorizationData
+      M n hn2 htb hns)
+    (hClosure :
+      ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+            ConstraintType (Nat.log 2 n))
+        (S' : List (Fin (n / 3)))
+        (shift : MvPolynomial (Fin (n / 3)) ℚ)
+        (α : Fin n →₀ ℕ)
+        (hSlen : S'.length = Nat.log 2 n)
+        (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+        (hshiftVars :
+          (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+            (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+        (hadm :
+          SPDP.isBlockAdmissible
+            (cook_levin_compilation M n hn2 htb hns).partition
+            (S'.map (cookLevinStrictFOBFlatMap n)))
+        (hrow :
+          routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+            M n hn2 htb hns S' shift α)
+        (hρ :
+          D.profileOfCanonicalWindow
+              (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+              hrow.1 = ρ)
+        (p : MvPolynomial (Fin (n / 3)) ℚ),
+          p ∈ profileSubspace ρ.val
+              (fun τ =>
+                interfaceSpace_compiledBasis
+                  D.sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ) →
+          mlProj (shift * p) ∈ profileSubspace ρ.val
+              (fun τ =>
+                interfaceSpace_compiledBasis
+                  D.sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ)) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterfaceSlotFactorizationData
+      M n hn2 htb hns where
+  sourcePartition := D.sourcePartition
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  interfaceSlotContribution := D.interfaceSlotContribution
+  interfaceSlotContribution_mem_compiledBasis := D.interfaceSlotContribution_mem_compiledBasis
+  unshiftedLeibnizProduct_eq_interfaceSlotProduct := D.unshiftedLeibnizProduct_eq_interfaceSlotProduct
+  selectedShift_mlProj_closure_compiledBasisProfileSubspace := hClosure
+
 /-- Factor-indexed exact slot factorization.
 
 This is one level below the anonymous exact slot-product surface.  It classifies
