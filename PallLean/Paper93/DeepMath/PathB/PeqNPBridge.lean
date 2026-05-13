@@ -302,6 +302,19 @@ theorem P_ne_NP_canonical_routeB_shiftedLeibnizProductIndexedFiberPlusBranchPair
 
 #print axioms P_ne_NP_canonical_routeB_shiftedLeibnizProductIndexedFiberPlusBranchPaired_conditional
 
+/-- Canonical paper-faithful **primary** bottom-seam closure for Route B.
+
+This is the manuscript-faithful preferred lower seam: uniform shifted
+Leibniz-product slot-product data with profile-uniform shift closure.
+From this seam alone, `PeqNP_Paper` is contradictory. -/
+theorem P_ne_NP_canonical_routeB_bottomSeam_primary_paperFaithful_conditional
+    (hUniform :
+      Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductUniformShiftClosureData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_shiftedLeibnizProductUniformShiftClosure_conditional hUniform
+
+#print axioms P_ne_NP_canonical_routeB_bottomSeam_primary_paperFaithful_conditional
+
 /-- Canonical bottom-seam closure bundle for Route B.
 
 If **any** one of these paper-faithful bottom seams is available, then
