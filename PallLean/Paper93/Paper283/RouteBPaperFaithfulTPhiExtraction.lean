@@ -2930,6 +2930,54 @@ theorem sub_mem_singletonShiftSubspace_of_zeroProfileSingletonNormalFormProjecti
     simpa [sub_eq_add_neg] using Submodule.add_mem _ hq hneg
   simpa [h, sub_eq_add_neg, add_assoc, add_comm, add_left_comm] using hadd
 
+/-- Kernel form for the explicit singleton normalizer: with unit constant term in
+its base product, the normalizer kills exactly the singleton-shift subspace. -/
+theorem zeroProfileSingletonNormalFormProjection_apply_eq_zero_iff
+    {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hconst :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (Finset.univ.prod factors) = (1 : ℚ))
+    (q : MvPolynomial (Fin n) ℚ) :
+    zeroProfileSingletonNormalFormProjection factors q = 0 ↔
+      q ∈ zeroProfileSingletonShiftSubspace factors := by
+  constructor
+  · intro hq
+    have hEq :
+        zeroProfileSingletonNormalFormProjection factors q =
+          zeroProfileSingletonNormalFormProjection factors 0 := by
+      simpa using hq
+    simpa using
+      (sub_mem_singletonShiftSubspace_of_zeroProfileSingletonNormalFormProjection_eq
+        factors (q := q) (d := 0) hEq)
+  · intro hq
+    exact LinearMap.mem_ker.mp
+      (zeroProfileSingletonNormalFormProjection_singletonShiftSubspace_le_ker
+        factors hconst hq)
+
+/-- Equality form for the explicit singleton normalizer: under the same unit
+constant-term condition, two rows have the same normalized representative iff
+their difference is singleton-shift noise. -/
+theorem zeroProfileSingletonNormalFormProjection_eq_iff_sub_mem_singletonShiftSubspace
+    {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hconst :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (Finset.univ.prod factors) = (1 : ℚ))
+    (q d : MvPolynomial (Fin n) ℚ) :
+    zeroProfileSingletonNormalFormProjection factors q =
+        zeroProfileSingletonNormalFormProjection factors d ↔
+      q - d ∈ zeroProfileSingletonShiftSubspace factors := by
+  constructor
+  · intro h
+    exact
+      sub_mem_singletonShiftSubspace_of_zeroProfileSingletonNormalFormProjection_eq
+        factors (q := q) (d := d) h
+  · intro h
+    exact
+      zeroProfileSingletonNormalFormProjection_eq_of_sub_mem_singletonShiftSubspace
+        factors hconst h
+
 /-- Semantic strict-`TΦ` residual target for the explicit singleton normalizer:
 the strict derivative row must be the canonical normal form of the matching
 zero-profile row. -/
