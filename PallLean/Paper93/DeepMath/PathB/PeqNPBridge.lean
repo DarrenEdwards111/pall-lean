@@ -56,6 +56,18 @@ theorem P_ne_NP_canonical_routeB_profileTemplateSpan_conditional
 
 #print axioms P_ne_NP_canonical_routeB_profileTemplateSpan_conditional
 
+/-- Route-B closeout in the literal paper Lemma-31/Profile-Compression shape:
+selected profile-template span data (the symmetric-profile subspace seam) implies
+`PeqNP_Paper → False`.  This is definitionally the same closure as
+`P_ne_NP_canonical_routeB_profileTemplateSpan_conditional`, kept as an explicit
+paper-text anchor. -/
+theorem P_ne_NP_canonical_routeB_lemma31_profileSubspace_conditional
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateSpanData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_profileTemplateSpan_conditional hData
+
+#print axioms P_ne_NP_canonical_routeB_lemma31_profileSubspace_conditional
+
 /-- Canonical conditional closure via the explicit placed-quotient/descent Route B
 surface. -/
 theorem P_ne_NP_canonical_routeB_placedQuotientDescent_conditional
@@ -453,6 +465,8 @@ This theorem is a citation-friendly aggregator over the direct canonical
 closures already proved above. -/
 theorem P_ne_NP_canonical_routeB_bottomSeams_bundle_conditional
     (hUniform :
+      Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateSpanData
+      ∨
       Step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData
       ∨
       (∃ hFib : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData,
@@ -468,12 +482,14 @@ theorem P_ne_NP_canonical_routeB_bottomSeams_bundle_conditional
           let DBr := Classical.choice (hBranch M n _hn hn2 htb hns)
           ∀ w hw, DBr.profileOfCanonicalWindow w hw = DFib.profileOfCanonicalWindow w hw))) :
     ∀ (_ : PeqNP_Paper), False := by
-  rcases hUniform with hShift | hPair
-  · exact P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_of_exactSlotWithSelectedShiftClosure_conditional hShift
-  · rcases hPair with ⟨hFib, hBranch, hPartEq, hProfEq⟩
-    exact
-      P_ne_NP_canonical_routeB_shiftedLeibnizProductIndexedFiberPlusBranchPaired_conditional
-        hFib hBranch hPartEq hProfEq
+  rcases hUniform with hProf | hRest
+  · exact P_ne_NP_canonical_routeB_profileTemplateSpan_conditional hProf
+  · rcases hRest with hShift | hPair
+    · exact P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_of_exactSlotWithSelectedShiftClosure_conditional hShift
+    · rcases hPair with ⟨hFib, hBranch, hPartEq, hProfEq⟩
+      exact
+        P_ne_NP_canonical_routeB_shiftedLeibnizProductIndexedFiberPlusBranchPaired_conditional
+          hFib hBranch hPartEq hProfEq
 
 #print axioms P_ne_NP_canonical_routeB_bottomSeams_bundle_conditional
 
