@@ -302,4 +302,39 @@ theorem P_ne_NP_canonical_routeB_shiftedLeibnizProductIndexedFiberPlusBranchPair
 
 #print axioms P_ne_NP_canonical_routeB_shiftedLeibnizProductIndexedFiberPlusBranchPaired_conditional
 
+/-- Canonical bottom-seam closure bundle for Route B.
+
+If **any** one of these paper-faithful bottom seams is available, then
+`PeqNP_Paper` is contradictory:
+1) uniform-shift-closure slot-product seam,
+2) indexed-fiber + branch-atom paired seam (with compatibility).
+
+This theorem is a citation-friendly aggregator over the direct canonical
+closures already proved above. -/
+theorem P_ne_NP_canonical_routeB_bottomSeams_bundle_conditional
+    (hUniform :
+      Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductUniformShiftClosureData
+      ∨
+      (∃ hFib : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData,
+        ∃ hBranch : Step247UniformRouteBPaperFaithfulTPhiShiftedBranchAtomCompiledBasisProfileData,
+        (∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+          (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+          let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+          let DBr := Classical.choice (hBranch M n _hn hn2 htb hns)
+          DBr.sourcePartition = DFib.sourcePartition) ∧
+        (∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+          (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+          let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+          let DBr := Classical.choice (hBranch M n _hn hn2 htb hns)
+          ∀ w hw, DBr.profileOfCanonicalWindow w hw = DFib.profileOfCanonicalWindow w hw))) :
+    ∀ (_ : PeqNP_Paper), False := by
+  rcases hUniform with hShift | hPair
+  · exact P_ne_NP_canonical_routeB_shiftedLeibnizProductUniformShiftClosure_conditional hShift
+  · rcases hPair with ⟨hFib, hBranch, hPartEq, hProfEq⟩
+    exact
+      P_ne_NP_canonical_routeB_shiftedLeibnizProductIndexedFiberPlusBranchPaired_conditional
+        hFib hBranch hPartEq hProfEq
+
+#print axioms P_ne_NP_canonical_routeB_bottomSeams_bundle_conditional
+
 end PallLean.Paper93.DeepMath.PathB
