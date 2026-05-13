@@ -68,6 +68,17 @@ theorem P_ne_NP_canonical_routeB_lemma31_profileSubspace_conditional
 
 #print axioms P_ne_NP_canonical_routeB_lemma31_profileSubspace_conditional
 
+/-- Route-B closeout through exact-profile template-collapse data, routed into
+the literal Lemma-31 profile-subspace seam. -/
+theorem P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_exactProfileTemplateCollapse_conditional
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizExactProfileTemplateCollapseData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_lemma31_profileSubspace_conditional
+    (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateSpanData_of_exactProfileTemplateCollapseData
+      hData)
+
+#print axioms P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_exactProfileTemplateCollapse_conditional
+
 /-- Canonical conditional closure via the explicit placed-quotient/descent Route B
 surface. -/
 theorem P_ne_NP_canonical_routeB_placedQuotientDescent_conditional

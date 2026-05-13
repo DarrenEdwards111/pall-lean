@@ -1671,6 +1671,25 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
       (fun M n hn hn2 htb hns _hdec =>
         Classical.choice (hData M n hn hn2 htb hns))
 
+/-- Exact-profile template-collapse data constructs the Route-B Lemma-31
+selected profile-template span seam uniformly at Step247 scale. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateSpanData_of_exactProfileTemplateCollapseData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizExactProfileTemplateCollapseData) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateSpanData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizProfileTemplateSpanData_of_exactProfileTemplateCollapseData
+    M n hn2 htb hns D⟩
+
+/-- Paper-faithful Lemma-31 closeout routed through exact-profile
+template-collapse data. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizExactProfileTemplateCollapseData_via_profileTemplateSpan
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizExactProfileTemplateCollapseData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateSpanData
+    (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateSpanData_of_exactProfileTemplateCollapseData
+      hData)
+
 /-- Uniform full finite-normal-form alphabet data at Step 247 scale.
 
 Unlike the four-bin bounded surface, this keeps the paper's actual finite
