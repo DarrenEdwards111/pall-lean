@@ -464,6 +464,18 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInte
   exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductInterfaceSlotFactorizationData_of_exactInterfaceSlotFactorizationData
     M n hn2 htb hns D (hClosure M n hn hn2 htb hns D)⟩
 
+/-- Exact slot data plus a closure rule for every exact slot witness directly
+constructs the paired paper-faithful seam.  This removes the detour through the
+legacy full slot-factorization payload when the proof has already separated the
+existence of exact slots from the selected-shift closure lemma. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData_of_exactInterfaceSlotFactorizationData_and_selectedShiftClosure
+    (hExact : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExactInterfaceSlotFactorizationData)
+    (hClosure : Step247UniformRouteBPaperFaithfulTPhiSelectedShiftClosureOnExactInterfaceSlotFactorizationData) :
+    Step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData := by
+  intro M n hn hn2 htb hns
+  rcases hExact M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨D, hClosure M n hn hn2 htb hns D⟩
+
 /-- Any witnessed slot-factorization seam canonically yields the paired exact
 slot + selected-shift-closure seam. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData_of_interfaceSlotFactorizationData

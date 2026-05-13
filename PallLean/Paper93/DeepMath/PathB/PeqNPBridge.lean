@@ -344,6 +344,20 @@ theorem P_ne_NP_canonical_routeB_bottomSeam_primary_paperFaithful_conditional
 
 #print axioms P_ne_NP_canonical_routeB_bottomSeam_primary_paperFaithful_conditional
 
+/-- Canonical primary bottom-seam closure from separated exact-slot existence
+and selected-shift closure.  This is the final-existence-theorem shape: the
+proof may now construct exact slots and the shift-closure rule independently,
+then pair them constructively before closing `PeqNP_Paper`. -/
+theorem P_ne_NP_canonical_routeB_bottomSeam_primary_from_exactSlot_and_selectedShiftClosure_conditional
+    (hExact : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExactInterfaceSlotFactorizationData)
+    (hClosure : Step247UniformRouteBPaperFaithfulTPhiSelectedShiftClosureOnExactInterfaceSlotFactorizationData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_bottomSeam_primary_paperFaithful_conditional
+    (step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData_of_exactInterfaceSlotFactorizationData_and_selectedShiftClosure
+      hExact hClosure)
+
+#print axioms P_ne_NP_canonical_routeB_bottomSeam_primary_from_exactSlot_and_selectedShiftClosure_conditional
+
 /-- Canonical bottom-seam closure bundle for Route B.
 
 If **any** one of these paper-faithful bottom seams is available, then
