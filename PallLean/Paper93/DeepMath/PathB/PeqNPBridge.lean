@@ -211,16 +211,17 @@ theorem P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization
 #print axioms P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_conditional
 
 /-- Paper-faithful constructive split for witnessed slot-factorization closure:
-exact slot data plus selected-shift closure witness suffice. -/
-theorem P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_of_exactSlotAndSelectedShiftClosure_conditional
-    (hExact : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExactInterfaceSlotFactorizationData)
-    (hClosure : Step247UniformRouteBPaperFaithfulTPhiSelectedShiftClosureOnExactInterfaceSlotFactorizationData) :
-    ∀ (_ : PeqNP_Paper), False :=
-  P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_conditional
-    (PallLean.Paper93.DeepMath.PathB.step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData_of_exactInterfaceSlotFactorizationData_and_selectedShiftClosure
-      hExact hClosure)
+a paired exact-slot payload with its selected-shift closure field suffices. -/
+theorem P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_of_exactSlotWithSelectedShiftClosure_conditional
+    (hData : Step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData) :
+    ∀ (_ : PeqNP_Paper), False := by
+  apply P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_conditional
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D, hClosure⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductInterfaceSlotFactorizationData_of_exactInterfaceSlotFactorizationData
+    M n hn2 htb hns D hClosure⟩
 
-#print axioms P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_of_exactSlotAndSelectedShiftClosure_conditional
+#print axioms P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_of_exactSlotWithSelectedShiftClosure_conditional
 
 /-- Canonical Route-B closure from uniform-shift-closure slot-product data,
 by instantiating interface-slot factorization first. -/

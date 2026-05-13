@@ -433,6 +433,26 @@ def Step247UniformRouteBPaperFaithfulTPhiSelectedShiftClosureOnExactInterfaceSlo
     PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductSelectedShiftClosureFieldOnExactInterfaceSlotFactorizationData
       M n hn2 htb hns D
 
+/-- Paper-faithful paired exact-slot seam: for each machine/scale witness, we
+construct an exact-slot payload together with its selected-shift closure field. -/
+def Step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    ∃ D : PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductExactInterfaceSlotFactorizationData
+          M n hn2 htb hns,
+      PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductSelectedShiftClosureFieldOnExactInterfaceSlotFactorizationData
+        M n hn2 htb hns D
+
+/-- Paired exact-slot + selected-shift-closure seam upgrades directly to full
+witnessed slot-factorization data at Step 247 scale. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData_of_exactInterfaceSlotFactorizationWithSelectedShiftClosureData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData) :
+    Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D, hClosure⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductInterfaceSlotFactorizationData_of_exactInterfaceSlotFactorizationData
+    M n hn2 htb hns D hClosure⟩
+
 /-- Exact slot data + selected-shift closure witness upgrades to full witnessed
 slot-factorization data at Step 247 scale. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData_of_exactInterfaceSlotFactorizationData_and_selectedShiftClosure
