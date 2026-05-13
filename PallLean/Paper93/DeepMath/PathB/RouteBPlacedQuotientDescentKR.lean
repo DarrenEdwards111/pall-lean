@@ -1711,6 +1711,24 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
     (fun M n hn hn2 htb hns hdec =>
       Classical.choice (hData M n hn hn2 htb hns hdec))
 
+/-- Step247-uniform source local-monoid classifier seam (paper Lemma-31
+algebra-facing frontier). -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidClassifierData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (_hdec : DecidesSAT M),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceLocalMonoidClassifier
+        M n hn2 htb hns)
+
+/-- The source local-monoid classifier seam closes Route B at Step247 scale. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidClassifierData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidClassifierData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceLocalMonoidClassifier
+    (fun M n hn hn2 htb hns hdec =>
+      Classical.choice (hData M n hn hn2 htb hns hdec))
+
 /-- Uniform full finite-normal-form alphabet data at Step 247 scale.
 
 Unlike the four-bin bounded surface, this keeps the paper's actual finite

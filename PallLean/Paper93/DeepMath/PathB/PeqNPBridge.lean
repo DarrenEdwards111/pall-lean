@@ -90,6 +90,17 @@ theorem P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_canonicalRowExactP
 
 #print axioms P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_canonicalRowExactProfileTemplateCollapse_conditional
 
+/-- Route-B closeout from the source local-monoid classifier seam (the
+algebra-facing Lemma-31 frontier). -/
+theorem P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_sourceLocalMonoidClassifier_conditional
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidClassifierData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  noBoundedSATDeciderAtPaperScale_implies_not_PeqNP
+    (noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidClassifierData
+      hData)
+
+#print axioms P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_sourceLocalMonoidClassifier_conditional
+
 /-- Canonical conditional closure via the explicit placed-quotient/descent Route B
 surface. -/
 theorem P_ne_NP_canonical_routeB_placedQuotientDescent_conditional
