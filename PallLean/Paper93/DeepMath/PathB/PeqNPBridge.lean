@@ -265,4 +265,41 @@ theorem P_ne_NP_canonical_routeB_shiftedLeibnizProductIndexedFiberBranchRowShift
 
 #print axioms P_ne_NP_canonical_routeB_shiftedLeibnizProductIndexedFiberBranchRowShift_conditional
 
+/-- Canonical Route-B closure from paired lower seams:
+(indexed fiber-partition slot data) + (shifted branch-atom data), together with
+uniform source-partition/profile compatibility, assembled into the coherent
+indexed-fiber+branch-atom row-shift seam. -/
+theorem P_ne_NP_canonical_routeB_shiftedLeibnizProductIndexedFiberPlusBranchPaired_conditional
+    (hFib : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData)
+    (hBranch : Step247UniformRouteBPaperFaithfulTPhiShiftedBranchAtomCompiledBasisProfileData)
+    (hPartEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+        let DBr := Classical.choice (hBranch M n _hn hn2 htb hns)
+        DBr.sourcePartition = DFib.sourcePartition)
+    (hProfEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+        let DBr := Classical.choice (hBranch M n _hn hn2 htb hns)
+        ∀ w hw, DBr.profileOfCanonicalWindow w hw = DFib.profileOfCanonicalWindow w hw) :
+    ∀ (_ : PeqNP_Paper), False := by
+  have hCoherent :
+      Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromIndexedFiberPartitionBranchAtomData := by
+    intro M n hn hn2 htb hns
+    let DFib := Classical.choice (hFib M n hn hn2 htb hns)
+    let DBr := Classical.choice (hBranch M n hn hn2 htb hns)
+    refine ⟨{ indexedSlotPartitionData := DFib
+            , branchAtomData := DBr
+            , branchAtom_sourcePartition_eq_indexedSlotPartition := ?_
+            , branchAtom_profileOfCanonicalWindow_eq_indexedSlotPartition := ?_ }⟩
+    · simpa [DFib, DBr] using (hPartEq M n hn hn2 htb hns)
+    · intro w hw
+      simpa [DFib, DBr] using (hProfEq M n hn hn2 htb hns w hw)
+  exact
+    P_ne_NP_canonical_routeB_shiftedLeibnizProductIndexedFiberBranchRowShift_conditional hCoherent
+
+#print axioms P_ne_NP_canonical_routeB_shiftedLeibnizProductIndexedFiberPlusBranchPaired_conditional
+
 end PallLean.Paper93.DeepMath.PathB
