@@ -317,14 +317,15 @@ theorem P_ne_NP_canonical_routeB_shiftedLeibnizProductIndexedFiberPlusBranchPair
 
 /-- Canonical paper-faithful **primary** bottom-seam closure for Route B.
 
-Primary seam is the selected-profile witnessed slot-factorization surface
-(closest to the paper-faithful local normal-form decomposition route).
+Primary seam is the paired exact-slot + selected-shift-closure witnessed
+surface (closest paper-faithful decomposition, without the stronger global
+profile-agnostic closure requirement).
 From this seam alone, `PeqNP_Paper` is contradictory. -/
 theorem P_ne_NP_canonical_routeB_bottomSeam_primary_paperFaithful_conditional
-    (hSlotFac :
-      Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData) :
+    (hPair :
+      Step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData) :
     ∀ (_ : PeqNP_Paper), False :=
-  P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_conditional hSlotFac
+  P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_of_exactSlotWithSelectedShiftClosure_conditional hPair
 
 #print axioms P_ne_NP_canonical_routeB_bottomSeam_primary_paperFaithful_conditional
 
@@ -332,14 +333,14 @@ theorem P_ne_NP_canonical_routeB_bottomSeam_primary_paperFaithful_conditional
 
 If **any** one of these paper-faithful bottom seams is available, then
 `PeqNP_Paper` is contradictory:
-1) primary witnessed slot-factorization seam,
+1) primary paired exact-slot + selected-shift-closure seam,
 2) indexed-fiber + branch-atom paired seam (with compatibility).
 
 This theorem is a citation-friendly aggregator over the direct canonical
 closures already proved above. -/
 theorem P_ne_NP_canonical_routeB_bottomSeams_bundle_conditional
     (hUniform :
-      Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData
+      Step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData
       ∨
       (∃ hFib : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData,
         ∃ hBranch : Step247UniformRouteBPaperFaithfulTPhiShiftedBranchAtomCompiledBasisProfileData,
@@ -355,7 +356,7 @@ theorem P_ne_NP_canonical_routeB_bottomSeams_bundle_conditional
           ∀ w hw, DBr.profileOfCanonicalWindow w hw = DFib.profileOfCanonicalWindow w hw))) :
     ∀ (_ : PeqNP_Paper), False := by
   rcases hUniform with hShift | hPair
-  · exact P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_conditional hShift
+  · exact P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_of_exactSlotWithSelectedShiftClosure_conditional hShift
   · rcases hPair with ⟨hFib, hBranch, hPartEq, hProfEq⟩
     exact
       P_ne_NP_canonical_routeB_shiftedLeibnizProductIndexedFiberPlusBranchPaired_conditional

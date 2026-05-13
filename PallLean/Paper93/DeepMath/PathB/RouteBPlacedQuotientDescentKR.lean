@@ -464,6 +464,25 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInte
   exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductInterfaceSlotFactorizationData_of_exactInterfaceSlotFactorizationData
     M n hn2 htb hns D (hClosure M n hn hn2 htb hns D)⟩
 
+/-- Any witnessed slot-factorization seam canonically yields the paired exact
+slot + selected-shift-closure seam. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData_of_interfaceSlotFactorizationData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData) :
+    Step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  let Dexact := PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductExactInterfaceSlotFactorizationData_of_interfaceSlotFactorizationData
+    M n hn2 htb hns D
+  refine ⟨Dexact, ?_⟩
+  intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ p hp
+  have hρ' :
+      D.profileOfCanonicalWindow
+          (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+          hrow.1 = ρ := by
+    simpa [Dexact] using hρ
+  simpa [Dexact] using D.selectedShift_mlProj_closure_compiledBasisProfileSubspace
+    ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ' p hp
+
 /-- The legacy slot-factorization seam forgets to the exact slot-product seam. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExactInterfaceSlotFactorizationData_of_interfaceSlotFactorizationData
     (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData) :
