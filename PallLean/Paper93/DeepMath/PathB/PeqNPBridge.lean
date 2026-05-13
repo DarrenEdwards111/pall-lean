@@ -153,4 +153,25 @@ theorem P_ne_NP_canonical_routeB_canonicalInterfaceExpansion_conditional
 
 #print axioms P_ne_NP_canonical_routeB_canonicalInterfaceExpansion_conditional
 
+/-- Canonical Route-B closure from explicit row-interface-slot expansion data. -/
+theorem P_ne_NP_canonical_routeB_interfaceSlotExpansion_conditional
+    (hSlot : Step247UniformRouteBPaperFaithfulTPhiInterfaceSlotExpansionData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_canonicalInterfaceExpansion_conditional
+    (step247UniformRouteBPaperFaithfulTPhiCanonicalInterfaceExpansionData_of_interfaceSlotExpansionData
+      hSlot)
+
+#print axioms P_ne_NP_canonical_routeB_interfaceSlotExpansion_conditional
+
+/-- Canonical Route-B closure from direct compiled-basis profile-subspace row
+membership (the literal Lemma-31 row-subspace surface). -/
+theorem P_ne_NP_canonical_routeB_compiledBasisProfileSubspaceRow_conditional
+    (hRow : Step247UniformRouteBPaperFaithfulTPhiCompiledBasisProfileSubspaceRowData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_interfaceSlotExpansion_conditional
+    (step247UniformRouteBPaperFaithfulTPhiInterfaceSlotExpansionData_of_compiledBasisProfileSubspaceRowData
+      hRow)
+
+#print axioms P_ne_NP_canonical_routeB_compiledBasisProfileSubspaceRow_conditional
+
 end PallLean.Paper93.DeepMath.PathB
