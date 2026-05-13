@@ -1736,6 +1736,30 @@ def Step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidClassifierData : Prop 
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceLocalMonoidClassifier
         M n hn2 htb hns)
 
+/-- Step247-uniform source local-type compression seam.
+
+This is the same selected-row algebraic object as the local-monoid classifier,
+but stated in the older `source canonical derivative row` packaging.  The
+Paper283 bridge rewrites that row to the restricted-factor product. -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceLocalTypeCompressionData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (_hdec : DecidesSAT M),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceLocalTypeCompressionData
+        M n hn2 htb hns)
+
+/-- Source local-type compression data yields the source local-monoid classifier
+seam by the checked restricted-factor row identity. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidClassifierData_of_sourceLocalTypeCompressionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceLocalTypeCompressionData) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidClassifierData := by
+  intro M n hn hn2 htb hns hdec
+  rcases hData M n hn hn2 htb hns hdec with ⟨D⟩
+  exact
+    ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceLocalMonoidClassifier_of_sourceLocalTypeCompressionData
+      M n hn2 htb hns D⟩
+
 /-- The source local-monoid classifier seam closes Route B at Step247 scale. -/
 theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidClassifierData
     (hData : Step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidClassifierData) :
@@ -1743,6 +1767,14 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
   PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceLocalMonoidClassifier
     (fun M n hn hn2 htb hns hdec =>
       Classical.choice (hData M n hn hn2 htb hns hdec))
+
+/-- Route-B closeout through source local-type compression data. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceLocalTypeCompressionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceLocalTypeCompressionData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidClassifierData
+    (step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidClassifierData_of_sourceLocalTypeCompressionData
+      hData)
 
 /-- Generator-maps data yields the source local-monoid classifier seam. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidClassifierData_of_sourceLocalMonoidGeneratorMapsData

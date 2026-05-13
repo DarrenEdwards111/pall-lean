@@ -8114,6 +8114,32 @@ theorem routeBPaperFaithfulTPhi_sourceShift_vars_subset_of_renamed_subset
   have hy_eq : y = x := hf hyx
   simpa [hy_eq] using hy
 
+/-- Source local-type compression is equivalently a raw restricted-factor
+local-monoid classifier.
+
+The classifier surface asks for the row written as the product of the restricted
+Cook-Levin factors.  `RouteBPaperFaithfulTPhiStrictSourceLocalTypeCompressionData`
+owns the same row through `routeBPaperFaithfulTPhiStrictSourceCanonicalDerivativeRow`;
+the checked bridge is only
+`routeBPaperFaithfulTPhi_restrict_compiledPoly_eq_sourceRestrictedFactors_prod`. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLocalMonoidClassifier_of_sourceLocalTypeCompressionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceLocalTypeCompressionData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceLocalMonoidClassifier
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceAlphabet := D.sourceAlphabet
+  sourceRowType := D.sourceRowType
+  productRow_mem_localTypeSpace := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    have hmem := D.sourceRow_mem_localTypeSpace
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    unfold routeBPaperFaithfulTPhiStrictSourceCanonicalDerivativeRow at hmem
+    rw [routeBPaperFaithfulTPhi_restrict_compiledPoly_eq_sourceRestrictedFactors_prod] at hmem
+    exact hmem
+
 /-- Source-coordinate selected profile-subspace ownership for individual
 bounded Leibniz terms.
 
