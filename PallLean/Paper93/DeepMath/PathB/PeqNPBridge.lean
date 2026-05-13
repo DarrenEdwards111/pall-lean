@@ -330,6 +330,90 @@ theorem P_ne_NP_canonical_routeB_shiftedLeibnizProductIndexedFiberPlusBranchPair
 
 #print axioms P_ne_NP_canonical_routeB_shiftedLeibnizProductIndexedFiberPlusBranchPaired_conditional
 
+/-- Canonical Route-B closure from the two *separated* paper-faithful bottom
+pieces: exact interface-slot factorization plus row-specific selected-shift
+membership supplied by coherent branch-atom data.
+
+This is deliberately weaker and more paper-faithful than the profile-uniform
+operator-closure seam: it closes only the selected shifted slot products that
+actually occur in the bounded Leibniz expansion. -/
+theorem P_ne_NP_canonical_routeB_bottomSeam_rowSpecific_from_exactSlot_and_branchAtom_conditional
+    (hExact : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExactInterfaceSlotFactorizationData)
+    (hBranch : Step247UniformRouteBPaperFaithfulTPhiShiftedBranchAtomCompiledBasisProfileData)
+    (hPartEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DSlot := Classical.choice (hExact M n _hn hn2 htb hns)
+        let DBr := Classical.choice (hBranch M n _hn hn2 htb hns)
+        DBr.sourcePartition = DSlot.sourcePartition)
+    (hProfEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DSlot := Classical.choice (hExact M n _hn hn2 htb hns)
+        let DBr := Classical.choice (hBranch M n _hn hn2 htb hns)
+        ∀ w hw, DBr.profileOfCanonicalWindow w hw = DSlot.profileOfCanonicalWindow w hw) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_shiftedLeibnizProductRowShift_conditional
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftData_of_slotProductBranchAtomData
+      (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtomData_of_exactSlotData_and_branchAtomData
+        hExact hBranch hPartEq hProfEq))
+
+#print axioms P_ne_NP_canonical_routeB_bottomSeam_rowSpecific_from_exactSlot_and_branchAtom_conditional
+
+/-- Canonical Route-B closure from the fully lower paper-local pair: a
+factor-fiber partition constructs the exact interface slots, and coherent
+branch-atom data supplies selected-shift membership on those exact slot
+products. -/
+theorem P_ne_NP_canonical_routeB_bottomSeam_rowSpecific_from_fiberPartition_and_branchAtom_conditional
+    (hFib : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData)
+    (hBranch : Step247UniformRouteBPaperFaithfulTPhiShiftedBranchAtomCompiledBasisProfileData)
+    (hPartEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+        let DBr := Classical.choice (hBranch M n _hn hn2 htb hns)
+        DBr.sourcePartition = DFib.sourcePartition)
+    (hProfEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+        let DBr := Classical.choice (hBranch M n _hn hn2 htb hns)
+        ∀ w hw, DBr.profileOfCanonicalWindow w hw = DFib.profileOfCanonicalWindow w hw) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_shiftedLeibnizProductRowShift_conditional
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftData_of_slotProductBranchAtomData
+      (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtomData_of_fiberPartitionData_and_branchAtomData
+        hFib hBranch hPartEq hProfEq))
+
+#print axioms P_ne_NP_canonical_routeB_bottomSeam_rowSpecific_from_fiberPartition_and_branchAtom_conditional
+
+/-- Canonical Route-B closure from factor-fiber slots plus local-algebra
+selected-shift data.  The branch-atom membership required by the row-specific
+slot seam is derived internally from the local-algebra payload via the checked
+shifted-Leibniz/product-to-branch-atom bridge. -/
+theorem P_ne_NP_canonical_routeB_bottomSeam_rowSpecific_from_fiberPartition_and_localAlgebra_conditional
+    (hFib : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData)
+    (hLocal : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData)
+    (hPartEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+        let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+        DLoc.sourcePartition = DFib.sourcePartition)
+    (hProfEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+        let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+        ∀ w hw, DLoc.profileOfCanonicalWindow w hw = DFib.profileOfCanonicalWindow w hw) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_shiftedLeibnizProductRowShift_conditional
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftData_of_slotProductBranchAtomData
+      (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtomData_of_fiberPartitionData_and_localAlgebraData
+        hFib hLocal hPartEq hProfEq))
+
+#print axioms P_ne_NP_canonical_routeB_bottomSeam_rowSpecific_from_fiberPartition_and_localAlgebra_conditional
+
 /-- Canonical paper-faithful **primary** bottom-seam closure for Route B.
 
 Primary seam is the paired exact-slot + selected-shift-closure witnessed

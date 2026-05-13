@@ -545,6 +545,18 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInde
   exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFactorizationData_of_fiberPartitionData
     M n hn2 htb hns D⟩
 
+/-- A uniform factor-fiber partition directly instantiates anonymous exact
+interface slots.  This is the constructive exact-slot half of the paper-faithful
+row-specific bottom seam: the disjoint factor fibers give indexed slots, and the
+indexed-slot adapter forgets the fiber labels to the exact anonymous slot
+product. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExactInterfaceSlotFactorizationData_of_fiberPartitionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData) :
+    Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExactInterfaceSlotFactorizationData :=
+  step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExactInterfaceSlotFactorizationData_of_indexedInterfaceSlotFactorizationData
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFactorizationData_of_fiberPartitionData
+      hData)
+
 /-- Uniform coherent factor-indexed slot classification plus shifted branch-atom
 data. -/
 def Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromIndexedBranchAtomData : Prop :=
@@ -586,6 +598,127 @@ def Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProdu
     Nonempty
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtomData
         M n hn2 htb hns)
+
+/-- Exact slot data plus coherent shifted branch-atom data gives the
+row-specific selected-shift closure on those exact slots.
+
+This is the paper-faithful replacement for the over-strong profile-uniform
+operator-closure seam: the slot side supplies the exact anonymous product, and
+the branch-atom side supplies the selected shifted membership for that same
+canonical profile selector and source partition. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtomData_of_exactSlotData_and_branchAtomData
+    (hExact : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExactInterfaceSlotFactorizationData)
+    (hBranch : Step247UniformRouteBPaperFaithfulTPhiShiftedBranchAtomCompiledBasisProfileData)
+    (hPartEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DSlot := Classical.choice (hExact M n _hn hn2 htb hns)
+        let DBr := Classical.choice (hBranch M n _hn hn2 htb hns)
+        DBr.sourcePartition = DSlot.sourcePartition)
+    (hProfEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DSlot := Classical.choice (hExact M n _hn hn2 htb hns)
+        let DBr := Classical.choice (hBranch M n _hn hn2 htb hns)
+        ∀ w hw, DBr.profileOfCanonicalWindow w hw = DSlot.profileOfCanonicalWindow w hw) :
+    Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtomData := by
+  intro M n hn hn2 htb hns
+  let DSlot := Classical.choice (hExact M n hn hn2 htb hns)
+  let DBr := Classical.choice (hBranch M n hn hn2 htb hns)
+  refine ⟨{ slotData := DSlot
+          , branchAtomData := DBr
+          , branchAtom_sourcePartition_eq_slot := ?_
+          , branchAtom_profileOfCanonicalWindow_eq_slot := ?_ }⟩
+  · simpa [DSlot, DBr] using (hPartEq M n hn hn2 htb hns)
+  · intro w hw
+    simpa [DSlot, DBr] using (hProfEq M n hn hn2 htb hns w hw)
+
+/-- Coherent factor-fiber partitions plus branch atoms directly instantiate the
+exact-slot/branch-atom row-specific selected-shift seam.
+
+This simultaneously constructs the two requested uniform bottom pieces from the
+lower, paper-local payloads: exact anonymous interface slots are derived from the
+factor-fiber partition, while selected-shift membership is supplied by the
+coherent branch-atom profile data. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtomData_of_fiberPartitionData_and_branchAtomData
+    (hFib : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData)
+    (hBranch : Step247UniformRouteBPaperFaithfulTPhiShiftedBranchAtomCompiledBasisProfileData)
+    (hPartEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+        let DBr := Classical.choice (hBranch M n _hn hn2 htb hns)
+        DBr.sourcePartition = DFib.sourcePartition)
+    (hProfEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+        let DBr := Classical.choice (hBranch M n _hn hn2 htb hns)
+        ∀ w hw, DBr.profileOfCanonicalWindow w hw = DFib.profileOfCanonicalWindow w hw) :
+    Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtomData := by
+  intro M n hn hn2 htb hns
+  let DFib := Classical.choice (hFib M n hn hn2 htb hns)
+  let DIndexed :=
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFactorizationData_of_fiberPartitionData
+      M n hn2 htb hns DFib
+  let DSlot :=
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductExactInterfaceSlotFactorizationData_of_indexedInterfaceSlotFactorizationData
+      M n hn2 htb hns DIndexed
+  let DBr := Classical.choice (hBranch M n hn hn2 htb hns)
+  refine ⟨{ slotData := DSlot
+          , branchAtomData := DBr
+          , branchAtom_sourcePartition_eq_slot := ?_
+          , branchAtom_profileOfCanonicalWindow_eq_slot := ?_ }⟩
+  · simpa [DFib, DIndexed, DSlot, DBr] using (hPartEq M n hn hn2 htb hns)
+  · intro w hw
+    simpa [DFib, DIndexed, DSlot, DBr] using (hProfEq M n hn hn2 htb hns w hw)
+
+/-- Coherent factor-fiber partitions plus local-algebra data directly instantiate
+the exact-slot/branch-atom row-specific selected-shift seam.
+
+Compared with the branch-atom version, this descends the selected-shift side one
+step: branch-atom membership is derived from the shifted Leibniz local-algebra
+payload by the existing `NFOfWord` permutation bridge.  The only remaining
+coherence is that the local-algebra payload and factor-fiber slot payload choose
+the same source partition and canonical profile selector. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtomData_of_fiberPartitionData_and_localAlgebraData
+    (hFib : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData)
+    (hLocal : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData)
+    (hPartEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+        let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+        DLoc.sourcePartition = DFib.sourcePartition)
+    (hProfEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+        let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+        ∀ w hw, DLoc.profileOfCanonicalWindow w hw = DFib.profileOfCanonicalWindow w hw) :
+    Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftFromBranchAtomData := by
+  intro M n hn hn2 htb hns
+  let DFib := Classical.choice (hFib M n hn hn2 htb hns)
+  let DIndexed :=
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFactorizationData_of_fiberPartitionData
+      M n hn2 htb hns DFib
+  let DSlot :=
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductExactInterfaceSlotFactorizationData_of_indexedInterfaceSlotFactorizationData
+      M n hn2 htb hns DIndexed
+  let DLoc := Classical.choice (hLocal M n hn hn2 htb hns)
+  let DComp :=
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductCompiledBasisProfileData_of_localAlgebraData
+      M n hn2 htb hns DLoc
+  let DBr :=
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedBranchAtomCompiledBasisProfileData_of_shiftedLeibnizProductData
+      M n hn2 htb hns DComp
+  refine ⟨{ slotData := DSlot
+          , branchAtomData := DBr
+          , branchAtom_sourcePartition_eq_slot := ?_
+          , branchAtom_profileOfCanonicalWindow_eq_slot := ?_ }⟩
+  · simpa [DFib, DIndexed, DSlot, DLoc, DComp, DBr] using (hPartEq M n hn hn2 htb hns)
+  · intro w hw
+    simpa [DFib, DIndexed, DSlot, DLoc, DComp, DBr] using (hProfEq M n hn hn2 htb hns w hw)
 
 /-- Coherent exact slot factorization plus shifted branch-atom membership closes
  the row-specific shifted slot-product seam at Step 247 scale. -/
