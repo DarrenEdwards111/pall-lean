@@ -644,6 +644,15 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInte
   exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductInterfaceSlotFactorizationData_of_slotProductUniformShiftClosureData
     M n hn2 htb hns D⟩
 
+/-- Uniform shift-closure slot-product data also instantiates the paired
+paper-faithful seam (exact slots + selected-shift closure witness). -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData_of_slotProductUniformShiftClosureData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductUniformShiftClosureData) :
+    Step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData :=
+  step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData_of_interfaceSlotFactorizationData
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData_of_slotProductUniformShiftClosureData
+      hData)
+
 /-- Interface-contribution data instantiates the local-algebra seam. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData_of_interfaceContributionData
     (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceContributionData) :

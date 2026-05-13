@@ -224,13 +224,28 @@ theorem P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization
 #print axioms P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_of_exactSlotWithSelectedShiftClosure_conditional
 
 /-- Canonical Route-B closure from uniform-shift-closure slot-product data,
-by instantiating interface-slot factorization first. -/
+through the paired paper-faithful exact-slot + selected-shift witness seam. -/
 theorem P_ne_NP_canonical_routeB_shiftedLeibnizProductUniformShiftClosure_conditional
     (hUniform : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductUniformShiftClosureData) :
-    ∀ (_ : PeqNP_Paper), False :=
-  P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_conditional
-    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData_of_slotProductUniformShiftClosureData
-      hUniform)
+    ∀ (_ : PeqNP_Paper), False := by
+  apply P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_of_exactSlotWithSelectedShiftClosure_conditional
+  intro M n hn hn2 htb hns
+  rcases hUniform M n hn hn2 htb hns with ⟨D⟩
+  let Dslot :=
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductInterfaceSlotFactorizationData_of_slotProductUniformShiftClosureData
+      M n hn2 htb hns D
+  let Dexact :=
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductExactInterfaceSlotFactorizationData_of_interfaceSlotFactorizationData
+      M n hn2 htb hns Dslot
+  refine ⟨Dexact, ?_⟩
+  intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ p hp
+  have hρ' :
+      Dslot.profileOfCanonicalWindow
+          (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+          hrow.1 = ρ := by
+    simpa [Dexact, Dslot] using hρ
+  simpa [Dexact, Dslot] using Dslot.selectedShift_mlProj_closure_compiledBasisProfileSubspace
+    ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ' p hp
 
 #print axioms P_ne_NP_canonical_routeB_shiftedLeibnizProductUniformShiftClosure_conditional
 
