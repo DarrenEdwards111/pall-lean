@@ -199,4 +199,26 @@ theorem P_ne_NP_canonical_routeB_shiftedLeibnizProductLocalAlgebra_conditional
 
 #print axioms P_ne_NP_canonical_routeB_shiftedLeibnizProductLocalAlgebra_conditional
 
+/-- Canonical Route-B closure from shifted Leibniz-product interface-slot
+factorization data (paper-faithful slot-factorization seam). -/
+theorem P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_conditional
+    (hSlotFac : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_shiftedLeibnizProductLocalAlgebra_conditional
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData_of_interfaceSlotFactorizationData
+      hSlotFac)
+
+#print axioms P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_conditional
+
+/-- Canonical Route-B closure from uniform-shift-closure slot-product data,
+by instantiating interface-slot factorization first. -/
+theorem P_ne_NP_canonical_routeB_shiftedLeibnizProductUniformShiftClosure_conditional
+    (hUniform : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductUniformShiftClosureData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_conditional
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData_of_slotProductUniformShiftClosureData
+      hUniform)
+
+#print axioms P_ne_NP_canonical_routeB_shiftedLeibnizProductUniformShiftClosure_conditional
+
 end PallLean.Paper93.DeepMath.PathB
