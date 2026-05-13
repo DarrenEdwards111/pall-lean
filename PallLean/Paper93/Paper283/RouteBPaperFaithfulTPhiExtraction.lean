@@ -20732,7 +20732,6 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProd
       ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow p hp
 
 
-
 /-- Paper-faithful interface-contribution form of Lemma 31 for the selected
 strict-source Leibniz product.
 
