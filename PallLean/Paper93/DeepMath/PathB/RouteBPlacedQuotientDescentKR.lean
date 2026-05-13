@@ -1711,6 +1711,21 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
     (fun M n hn hn2 htb hns hdec =>
       Classical.choice (hData M n hn hn2 htb hns hdec))
 
+/-- Step247-uniform source local-monoid generator-maps seam.
+
+This is the minimal additional uniformity layer needed to pass from
+term-level local typing to the strict classifier route: profile-local
+**derivative-row** type maps are provided directly (paper-faithful selected-row
+surface), then promoted to the source local-monoid classifier by existing
+`Paper283` constructors. -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidGeneratorMapsData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (_hdec : DecidesSAT M),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceLocalMonoidGeneratorMaps
+        M n hn2 htb hns)
+
 /-- Step247-uniform source local-monoid classifier seam (paper Lemma-31
 algebra-facing frontier). -/
 def Step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidClassifierData : Prop :=
@@ -1728,6 +1743,24 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
   PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceLocalMonoidClassifier
     (fun M n hn hn2 htb hns hdec =>
       Classical.choice (hData M n hn hn2 htb hns hdec))
+
+/-- Generator-maps data yields the source local-monoid classifier seam. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidClassifierData_of_sourceLocalMonoidGeneratorMapsData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidGeneratorMapsData) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidClassifierData := by
+  intro M n hn hn2 htb hns hdec
+  rcases hData M n hn hn2 htb hns hdec with ⟨G⟩
+  exact
+    ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceLocalMonoidClassifier_of_generatorMaps
+      M n hn2 htb hns G⟩
+
+/-- Route-B closeout through the explicit source generator-maps seam. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidGeneratorMapsData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidGeneratorMapsData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidClassifierData
+    (step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidClassifierData_of_sourceLocalMonoidGeneratorMapsData
+      hData)
 
 /-- Uniform full finite-normal-form alphabet data at Step 247 scale.
 

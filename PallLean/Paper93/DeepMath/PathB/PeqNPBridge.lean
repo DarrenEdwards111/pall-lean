@@ -101,6 +101,17 @@ theorem P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_sourceLocalMonoidC
 
 #print axioms P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_sourceLocalMonoidClassifier_conditional
 
+/-- Same closeout routed through Step247-uniform source generator maps
+(profile-local derivative-row type maps). -/
+theorem P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_sourceLocalMonoidGeneratorMaps_conditional
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidGeneratorMapsData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_sourceLocalMonoidClassifier_conditional
+    (step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidClassifierData_of_sourceLocalMonoidGeneratorMapsData
+      hData)
+
+#print axioms P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_sourceLocalMonoidGeneratorMaps_conditional
+
 /-- Canonical conditional closure via the explicit placed-quotient/descent Route B
 surface. -/
 theorem P_ne_NP_canonical_routeB_placedQuotientDescent_conditional
