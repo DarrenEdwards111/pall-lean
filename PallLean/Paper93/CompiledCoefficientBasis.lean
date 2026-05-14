@@ -394,6 +394,18 @@ theorem rename_canonicalInterfacePolynomial_transitionLeft_linearSlot_eq_X
   rw [canonicalInterfacePolynomial_transitionLeft_linearSlot]
   exact rename_canonicalLocalX_eq_X hN χ
 
+/-- Renaming transports the transition-left second-endpoint canonical slot to
+its concrete row-local endpoint variable. -/
+theorem rename_canonicalInterfacePolynomial_transitionLeft_secondSlot_eq_X
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (hN : 1 < N)
+    (χ : Fin N → Fin N) :
+    MvPolynomial.rename χ
+        (canonicalInterfacePolynomial B κ ℓ ConstraintType.transitionLeft
+          canonicalInterfaceFactorSlot) =
+      MvPolynomial.X (χ ⟨1, hN⟩) := by
+  rw [canonicalInterfacePolynomial_transitionLeft_secondSlot]
+  exact rename_canonicalLocalX1_eq_X hN χ
+
 theorem canonicalInterfacePolynomial_mem_generators
     {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (σ : ConstraintType)
     (j : Fin d₀) :
