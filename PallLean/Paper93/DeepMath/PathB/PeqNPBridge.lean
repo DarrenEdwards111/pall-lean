@@ -191,13 +191,28 @@ theorem P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_sourceLocalMonoidG
 
 #print axioms P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_sourceLocalMonoidGeneratorMaps_conditional
 
+/-- Canonical conditional closure via the direct local compiled-coordinate
+profile-subspace row surface.
+
+This is the paper-faithful Lemma-31 Route-B target: selected canonical rows land
+in their selected `profileSubspace ρ.val W`; no arbitrary shifted Leibniz
+summand is required to preserve the selected profile. -/
+theorem P_ne_NP_canonical_routeB_localCompiledProfileSubspaceRow_conditional
+    (hData : Step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  noBoundedSATDeciderAtPaperScale_implies_not_PeqNP
+    (noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData
+      hData)
+
+#print axioms P_ne_NP_canonical_routeB_localCompiledProfileSubspaceRow_conditional
+
 /-- Canonical conditional closure via the explicit placed-quotient/descent Route B
 surface. -/
 theorem P_ne_NP_canonical_routeB_placedQuotientDescent_conditional
     (hData : Step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData) :
     ∀ (_ : PeqNP_Paper), False :=
-  noBoundedSATDeciderAtPaperScale_implies_not_PeqNP
-    (noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescent
+  P_ne_NP_canonical_routeB_localCompiledProfileSubspaceRow_conditional
+    (step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData_of_placedQuotientDescent
       hData)
 
 #print axioms P_ne_NP_canonical_routeB_placedQuotientDescent_conditional

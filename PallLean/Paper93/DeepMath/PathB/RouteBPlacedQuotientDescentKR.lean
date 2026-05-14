@@ -334,6 +334,20 @@ def Step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData : Prop :=
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowPlacedLocalInterfaceQuotientDescentData
         M n hn2 htb hns)
 
+/-- Uniform local compiled-coordinate profile-subspace row data at Step 247 scale.
+
+This is the direct paper-faithful Lemma-31 row-containment target: for each
+selected canonical source row, the row lies in `profileSubspace ρ.val W` for a
+local compiled-coordinate family `Wσ` of rank at most three.  It deliberately
+avoids the stronger/false requirement that every arbitrary shifted Leibniz
+summand individually land in the same selected profile. -/
+def Step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedLocalCompiledProfileSubspaceRowData
+        M n hn2 htb hns)
+
 /-- Uniform renamed-canonical interface expansion data at Step 247 scale.
 This is the concrete coefficient/local-chart Lemma-31 source surface; the
 adapter below turns it into the placed quotient/descent datum, not merely into a
@@ -1100,6 +1114,35 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData
   exact ⟨routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedLocalInterfaceQuotientDescentData_of_interfaceNormalFormData
     M n hn2 htb hns D⟩
 
+/-- Uniform placed quotient/descent data gives the direct local compiled-coordinate
+profile-subspace row datum.
+
+This is the paper-faithful Route-B move isolated as its own Step247 surface:
+placed local-interface expansion descends slotwise/productwise into the selected
+`profileSubspace ρ.val W`.  No arbitrary Leibniz-summand same-profile closure is
+introduced. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData_of_placedQuotientDescent
+    (hData : Step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData) :
+    Step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedLocalCompiledProfileSubspaceRowData_of_placedLocalInterfaceQuotientDescentData
+    M n hn2 htb hns D⟩
+
+/-- Uniform local compiled-coordinate profile-subspace row data gives the strict
+source selected profile-subspace datum used by the existing P-side bound. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiStrictSourceProfileSubspaceData_of_localCompiledProfileSubspaceRowData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData) :
+    ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+      (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+      PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceConstraintTypeProfileSubspaceData
+        M n hn2 htb hns := by
+  intro M n hn hn2 htb hns
+  let D := Classical.choice (hData M n hn hn2 htb hns)
+  exact
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceProfileSubspaceData_of_localCompiledProfileSubspaceRowData
+      M n hn2 htb hns D
+
 /-- Uniform placed quotient/descent data gives the strict source selected
 profile-subspace datum.
 
@@ -1112,14 +1155,10 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiStrictSourceProfileSubspa
     ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
       (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
       PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceConstraintTypeProfileSubspaceData
-        M n hn2 htb hns := by
-  intro M n hn hn2 htb hns
-  let D := Classical.choice (hData M n hn hn2 htb hns)
-  exact
-    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceProfileSubspaceData_of_localCompiledProfileSubspaceRowData
-      M n hn2 htb hns
-      (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedLocalCompiledProfileSubspaceRowData_of_placedLocalInterfaceQuotientDescentData
-        M n hn2 htb hns D)
+        M n hn2 htb hns :=
+  step247UniformRouteBPaperFaithfulTPhiStrictSourceProfileSubspaceData_of_localCompiledProfileSubspaceRowData
+    (step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData_of_placedQuotientDescent
+      hData)
 
 /-- Uniform placed quotient/descent data also gives the ambient strict
 `ConstraintType` profile-subspace datum by the checked first-of-block rename
@@ -1295,18 +1334,45 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiPSideBound_of_placedQuoti
       (step247UniformRouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData_of_placedQuotientDescent
         hData M n hn hn2 htb hns)
 
-/-- Uniform placed quotient/descent data closes the full paper-scale SAT
-contradiction for the strict `TΦ` Route-B path. -/
-theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescent
-    (hData : Step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData) :
+/-- Uniform local compiled-coordinate profile-subspace row data gives the strict
+paper `TΦ` P-side rank bound. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiPSideBound_of_localCompiledProfileSubspaceRowData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData) :
+    ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+      (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+      SATDeciderGaugePSideBound M n hn2 htb hns
+        (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiAmbientGauge
+          M n hn2 htb hns) := by
+  intro M n hn hn2 htb hns
+  exact
+    routeBPaperFaithfulTPhi_pSideBound_of_strictConstraintTypeProfileSubspaceData
+      M n hn2 htb hns
+      (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData_of_sourceProfileSubspaceData
+        M n hn2 htb hns
+        (step247UniformRouteBPaperFaithfulTPhiStrictSourceProfileSubspaceData_of_localCompiledProfileSubspaceRowData
+          hData M n hn hn2 htb hns))
+
+/-- Uniform local compiled-coordinate profile-subspace row data closes the full
+paper-scale SAT contradiction for the strict `TΦ` Route-B path. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData) :
     NoBoundedSATDeciderAtPaperScale := by
   intro M n hn hn2 htb hns hdec
   exact
     false_of_routeBPaperFaithfulTPhi_targetPSideBound M n hn hn2 htb hns
       (routeBPaperFaithfulTPhi_targetRank_le_of_ambientGaugePSideBound
         M n hn2 htb hns
-        (step247UniformRouteBPaperFaithfulTPhiPSideBound_of_placedQuotientDescent
+        (step247UniformRouteBPaperFaithfulTPhiPSideBound_of_localCompiledProfileSubspaceRowData
           hData M n hn hn2 htb hns))
+
+/-- Uniform placed quotient/descent data closes the full paper-scale SAT
+contradiction for the strict `TΦ` Route-B path. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescent
+    (hData : Step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData
+    (step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData_of_placedQuotientDescent
+      hData)
 
 
 
