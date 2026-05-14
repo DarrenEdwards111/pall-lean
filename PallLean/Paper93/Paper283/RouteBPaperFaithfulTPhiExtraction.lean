@@ -9349,6 +9349,111 @@ theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceStep_mem_generators
       ({ factor := i, coord := v } :
         RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns)
 
+/-- A trace generator is exactly an append transition for some factor/source
+Leibniz event.  This is the finite generator-alphabet image statement used by
+the local-monoid budget. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerator_mem_iff_exists_event
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (κ : ℕ)
+    (g : RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns κ)) :
+    g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+        M n hn2 htb hns κ ↔
+      ∃ e : RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns,
+        routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend
+          (κ := κ) e = g := by
+  classical
+  constructor
+  · intro hg
+    simp [routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators] at hg
+    rcases hg with ⟨e, _he, rfl⟩
+    exact ⟨e, rfl⟩
+  · rintro ⟨e, rfl⟩
+    exact routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend_mem_generators
+      M n hn2 htb hns κ e
+
+/-- The concrete trace-generator alphabet has no more elements than the raw
+factor/source event alphabet.  This is an actual local-monoid compression
+component: the selected generator alphabet is the image of the finite event
+space, not an arbitrary finite monoid subset. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators_subtype_card_le_event_card
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (κ : ℕ) :
+    Fintype.card
+        { g : RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns κ) //
+          g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+            M n hn2 htb hns κ } ≤
+      Fintype.card
+        (RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns) := by
+  classical
+  let toEvent :
+      { g : RouteBPaperFaithfulTPhiFiniteEnd
+          (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+            M n hn2 htb hns κ) //
+        g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+          M n hn2 htb hns κ } →
+        RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns :=
+    fun g => Classical.choose
+      ((routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerator_mem_iff_exists_event
+        M n hn2 htb hns κ g.1).mp g.2)
+  refine Fintype.card_le_of_injective toEvent ?_
+  intro g₁ g₂ h
+  apply Subtype.ext
+  have hg₁ := Classical.choose_spec
+      ((routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerator_mem_iff_exists_event
+        M n hn2 htb hns κ g₁.1).mp g₁.2)
+  have hg₂ := Classical.choose_spec
+      ((routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerator_mem_iff_exists_event
+        M n hn2 htb hns κ g₂.1).mp g₂.2)
+  calc
+    g₁.1 = routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend
+        (κ := κ) (toEvent g₁) := hg₁.symm
+    _ = routeBPaperFaithfulTPhi_strictSourceLeibnizTraceAppend
+        (κ := κ) (toEvent g₂) := by rw [h]
+    _ = g₂.1 := hg₂
+
+/-- Cardinality of the raw factor/source Leibniz event alphabet. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_card
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Fintype.card
+        (RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns) =
+      (cookLevinFactorList M n hn2 htb hns).length * (n / 3) := by
+  classical
+  let φ : RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns ≃
+      (Fin ((cookLevinFactorList M n hn2 htb hns).length) × Fin (n / 3)) :=
+    { toFun := fun e => (e.factor, e.coord)
+      invFun := fun p => { factor := p.1, coord := p.2 }
+      left_inv := by intro e; cases e; rfl
+      right_inv := by intro p; cases p; rfl }
+  calc
+    Fintype.card
+        (RouteBPaperFaithfulTPhiStrictSourceLeibnizEvent M n hn2 htb hns) =
+        Fintype.card
+          (Fin ((cookLevinFactorList M n hn2 htb hns).length) × Fin (n / 3)) :=
+          Fintype.card_congr φ
+    _ = (cookLevinFactorList M n hn2 htb hns).length * (n / 3) := by
+          simp [Fintype.card_prod]
+
+/-- Concrete cardinality bound for the strict-source trace-generator alphabet,
+expanded all the way to factor count times source-coordinate count. -/
+theorem routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators_subtype_card_le_factor_mul_source
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (κ : ℕ) :
+    Fintype.card
+        { g : RouteBPaperFaithfulTPhiFiniteEnd
+            (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+              M n hn2 htb hns κ) //
+          g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+            M n hn2 htb hns κ } ≤
+      (cookLevinFactorList M n hn2 htb hns).length * (n / 3) := by
+  simpa [routeBPaperFaithfulTPhi_strictSourceLeibnizEvent_card M n hn2 htb hns] using
+    routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators_subtype_card_le_event_card
+      M n hn2 htb hns κ
+
 /-- Membership in a right-folded append flattening is membership in one of the
 local lists.  Kept local so the concrete transition-word proof below does not
 use any set-level or span-level shortcut. -/
@@ -13594,6 +13699,116 @@ noncomputable instance routeBPaperFaithfulTPhiStrictSourceNFOfWordBoundedWordFin
   classical
   unfold RouteBPaperFaithfulTPhiStrictSourceNFOfWordBoundedWord
   infer_instance
+
+/-- The bounded `NFOfWord` type injects into bounded-length words over the
+actual trace-generator alphabet.
+
+This is the concrete finite-normal-form counting step needed by Route B: the
+local type count is controlled by `Σ^{≤q}` for the selected generator alphabet,
+not by all finite endomorphisms of the trace state space. -/
+theorem routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_card_le_generatorAlphabetWords
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Fintype.card (RouteBPaperFaithfulTPhiStrictSourceNFOfWordBoundedWord
+        M n hn2 htb hns) ≤
+      Fintype.card
+        (Σ k : Fin ((max (Nat.log 2 n)
+              (Fintype.card (RouteBPaperFaithfulTPhiFiniteEnd
+                (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+                  M n hn2 htb hns (Nat.log 2 n))) + 1)) + 1),
+          List.Vector
+            { g : RouteBPaperFaithfulTPhiFiniteEnd
+                (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+                  M n hn2 htb hns (Nat.log 2 n)) //
+              g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+                M n hn2 htb hns (Nat.log 2 n) } k.val) := by
+  classical
+  let q := max (Nat.log 2 n)
+    (Fintype.card (RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns (Nat.log 2 n))) + 1)
+  let Γ := routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+    M n hn2 htb hns (Nat.log 2 n)
+  let TraceState := RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+    M n hn2 htb hns (Nat.log 2 n)
+  let End := RouteBPaperFaithfulTPhiFiniteEnd TraceState
+  let toGeneratorWords :
+      RouteBPaperFaithfulTPhiStrictSourceNFOfWordBoundedWord M n hn2 htb hns →
+        (Σ k : Fin (q + 1), List.Vector { g : End // g ∈ Γ } k.val) :=
+    fun τ =>
+      ⟨τ.1.1,
+        List.Vector.ofFn (fun i =>
+          ⟨τ.1.2.get i, by
+            exact τ.2 (τ.1.2.get i) (by
+              cases τ.1.2
+              simp [List.Vector.get])⟩)⟩
+  refine Fintype.card_le_of_injective toGeneratorWords ?_
+  intro τ₁ τ₂ hτ
+  apply Subtype.ext
+  cases τ₁ with
+  | mk w₁ hw₁ =>
+  cases τ₂ with
+  | mk w₂ hw₂ =>
+  cases w₁ with
+  | mk k₁ v₁ =>
+  cases w₂ with
+  | mk k₂ v₂ =>
+  dsimp [toGeneratorWords] at hτ ⊢
+  have hh := Sigma.mk.inj_iff.mp hτ
+  have hk : k₁ = k₂ := hh.1
+  cases hk
+  have hvh := hh.2
+  have hvSub := eq_of_heq hvh
+  congr
+  apply List.Vector.ext
+  intro i
+  have hvget := congrArg
+    (fun v : List.Vector { g : End // g ∈ Γ } k₁.val => Subtype.val (v.get i)) hvSub
+  simpa using hvget
+
+/-- The bounded `NFOfWord` local-type count is bounded by the geometric
+bounded-word count over the concrete strict-source generator alphabet. -/
+theorem routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_card_le_sum_generatorAlphabetPowers
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    let q := max (Nat.log 2 n)
+      (Fintype.card (RouteBPaperFaithfulTPhiFiniteEnd
+        (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+          M n hn2 htb hns (Nat.log 2 n))) + 1)
+    let Γcard := Fintype.card
+      { g : RouteBPaperFaithfulTPhiFiniteEnd
+          (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+            M n hn2 htb hns (Nat.log 2 n)) //
+        g ∈ routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+          M n hn2 htb hns (Nat.log 2 n) }
+    Fintype.card (RouteBPaperFaithfulTPhiStrictSourceNFOfWordBoundedWord
+        M n hn2 htb hns) ≤
+      ∑ k ∈ Finset.range (q + 1), Γcard ^ k := by
+  classical
+  dsimp
+  let q := max (Nat.log 2 n)
+    (Fintype.card (RouteBPaperFaithfulTPhiFiniteEnd
+      (RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+        M n hn2 htb hns (Nat.log 2 n))) + 1)
+  let Γ := routeBPaperFaithfulTPhi_strictSourceLeibnizTraceGenerators
+    M n hn2 htb hns (Nat.log 2 n)
+  let TraceState := RouteBPaperFaithfulTPhiStrictSourceLeibnizTraceState
+    M n hn2 htb hns (Nat.log 2 n)
+  let End := RouteBPaperFaithfulTPhiFiniteEnd TraceState
+  calc
+    Fintype.card (RouteBPaperFaithfulTPhiStrictSourceNFOfWordBoundedWord
+        M n hn2 htb hns) ≤
+      Fintype.card (Σ k : Fin (q + 1),
+        List.Vector { g : End // g ∈ Γ } k.val) := by
+          simpa [q, Γ, TraceState, End] using
+            routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_card_le_generatorAlphabetWords
+              M n hn2 htb hns
+    _ = ∑ k ∈ Finset.range (q + 1),
+          Fintype.card { g : End // g ∈ Γ } ^ k := by
+          rw [Fintype.card_sigma]
+          simp_rw [card_vector]
+          rw [← Fin.sum_univ_eq_sum_range
+            (f := fun k => Fintype.card { g : End // g ∈ Γ } ^ k)]
 
 /-- Extract the concrete word represented by a bounded `NFOfWord` local type. -/
 def routeBPaperFaithfulTPhi_strictSourceNFOfWordBoundedWord_toList
