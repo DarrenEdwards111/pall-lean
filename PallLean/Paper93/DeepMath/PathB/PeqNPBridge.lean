@@ -2,6 +2,8 @@ import PallLean.PaperFaithfulSeparation
 import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeRealFrontier
 import PallLean.Paper93.DeepMath.PathB.RouteBWidthRankPSide
 import PallLean.Paper93.DeepMath.PathB.RouteBPlacedQuotientDescentKR
+import PallLean.Paper93.DeepMath.PathB.RouteBTouchedExtractorKR
+import PallLean.Paper93.DeepMath.PathB.RouteBTouchedConcreteWindowKR
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -172,6 +174,49 @@ theorem P_ne_NP_canonical_routeB_placedQuotientDescent_conditional
       hData)
 
 #print axioms P_ne_NP_canonical_routeB_placedQuotientDescent_conditional
+
+/-- Canonical conditional closure through the selected projected quotient
+normal-form route.
+
+This is the sound quotient/normalisation replacement for the false ambient
+selected-place equality route: the supplied datum chooses a quotient certificate,
+proves its projected type budget, and proves residual balance for that chosen
+projection; the closeout then runs through the strict `T_Φ` extraction target. -/
+theorem P_ne_NP_canonical_routeB_projectedQuotientNormalForm_conditional
+    (hData : Step247UniformRouteBPaperFaithfulTPhiProjectedQuotientNormalFormData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  noBoundedSATDeciderAtPaperScale_implies_not_PeqNP
+    (noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiProjectedQuotientNormalFormData
+      hData)
+
+#print axioms P_ne_NP_canonical_routeB_projectedQuotientNormalForm_conditional
+
+/-- Canonical conditional closure from extractor-form touched KR data.
+
+This is the local-state/Khatri--Rao version of the paper Route-B row
+classification: each row is classified by a per-position local-state extractor,
+then interpreted as a length-`log₂ n` word over a fixed local alphabet. -/
+theorem P_ne_NP_canonical_routeB_touchedExtractorKR_conditional
+    (hData : Step247UniformTouchedExtractorKRData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  noBoundedSATDeciderAtPaperScale_implies_not_PeqNP
+    (noBoundedSATDeciderAtPaperScale_of_touchedExtractorKRData_TPhi hData)
+
+#print axioms P_ne_NP_canonical_routeB_touchedExtractorKR_conditional
+
+/-- Canonical conditional closure from concrete-window touched KR data.
+
+This is one level more concrete than the extractor surface: each local KR
+position is backed by an actual row variable, an optional touched Cook--Levin
+constraint, support witnesses, and a finite interface symbol. -/
+theorem P_ne_NP_canonical_routeB_touchedConcreteWindowKR_conditional
+    (hData : Step247UniformTouchedConcreteWindowKRData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_touchedExtractorKR_conditional
+    (step247UniformTouchedExtractorKRData_of_touchedWindowKRData
+      (step247UniformTouchedWindowKRData_of_touchedConcreteWindowKRData hData))
+
+#print axioms P_ne_NP_canonical_routeB_touchedConcreteWindowKR_conditional
 
 /-- Canonical conditional closure from the concrete placed-expansion plus
 ambient-quotient-soundness seam, routed through placed quotient/descent. -/
