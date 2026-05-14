@@ -1450,6 +1450,151 @@ def Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizProfileTemplateSp
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizProfileTemplateSpanData
         M n hn2 htb hns)
 
+/-- Uniform term-dependent Lemma-31 local-type family at Step247 scale.
+
+This is the paper-faithful interface-anonymous profile surface immediately
+below selected profile-template span: for each selected profile, bounded
+Leibniz terms are classified by their own local type, and the assembled local
+basis is bounded by the selected `profileTemplateBound`.  It is deliberately
+term-dependent and profile-selected; no arbitrary-row uniqueness or common
+global span is asserted. -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceProfileTemplateTermFamilyData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceProfileTemplateTermFamilyData
+        M n hn2 htb hns)
+
+/-- Uniform selected profile-template span data at Step247 scale.
+
+This is the row-selected version of the profile-template span frontier: the
+basis is still profile-local and bounded by `profileTemplateBound`, while the
+membership obligation is only for the profile selected by the canonical row. -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceSelectedProfileTemplateSpanData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedProfileTemplateSpanData
+        M n hn2 htb hns)
+
+/-- Term-dependent selected-profile local-type families instantiate the
+selected profile-template span surface by the checked Lemma-31 assembly.
+
+This intentionally targets the selected/row-guarded surface, not the older
+all-`ρ` witnessed span package.  The latter is stronger than the paper needs
+and would reintroduce the profile-uniform detour we are avoiding. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceSelectedProfileTemplateSpanData_of_profileTemplateTermFamilyData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceProfileTemplateTermFamilyData) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceSelectedProfileTemplateSpanData := by
+  intro M n hn hn2 htb hns
+  exact ⟨
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateSpanData_of_profileTemplateTermFamilyData
+      M n hn2 htb hns
+      (Classical.choice (hData M n hn hn2 htb hns))⟩
+
+/-- Uniform Leibniz-term local-type compression at Step247 scale.
+
+This is the paper §9.3/Lemma-31 payload in its term-local form: every bounded
+Leibniz product term for the selected canonical row lands in its own selected
+local-type space, and the later assembly sums these into the selected
+interface-anonymous profile subspace. -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceLeibnizLocalTypeCompressionData
+        M n hn2 htb hns)
+
+/-- Selected profile-template span data gives the Leibniz-term local-type
+compression datum by using the selected template basis as the unique local type
+for that selected profile. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData_of_selectedProfileTemplateSpanData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceSelectedProfileTemplateSpanData) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData := by
+  intro M n hn hn2 htb hns
+  exact ⟨
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeCompressionData_of_selectedProfileTemplateSpanData
+      M n hn2 htb hns
+      (Classical.choice (hData M n hn hn2 htb hns))⟩
+
+/-- Term-dependent local-type families give the selected Leibniz-term
+compression surface through the checked profile-template assembly. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData_of_profileTemplateTermFamilyData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceProfileTemplateTermFamilyData) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData :=
+  step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData_of_selectedProfileTemplateSpanData
+    (step247UniformRouteBPaperFaithfulTPhiSourceSelectedProfileTemplateSpanData_of_profileTemplateTermFamilyData
+      hData)
+
+/-- Leibniz-term local-type compression assembles to the strict source
+`ConstraintType` profile-subspace datum consumed by the `TΦ` P-side bound. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiStrictSourceConstraintTypeProfileSubspaceData_of_sourceLeibnizLocalTypeCompressionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData) :
+    ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+      (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+      PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceConstraintTypeProfileSubspaceData
+        M n hn2 htb hns := by
+  intro M n hn hn2 htb hns
+  exact
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceProfileSubspaceData_of_leibnizLocalTypeCompressionData
+      M n hn2 htb hns
+      (Classical.choice (hData M n hn hn2 htb hns))
+
+/-- Leibniz-term local-type compression transports from strict source
+coordinates to the ambient strict `ConstraintType` profile-subspace datum. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData_of_sourceLeibnizLocalTypeCompressionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData) :
+    ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+      (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+      PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData
+        M n hn2 htb hns := by
+  intro M n hn hn2 htb hns
+  exact
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictConstraintTypeProfileSubspaceData_of_sourceProfileSubspaceData
+      M n hn2 htb hns
+      (step247UniformRouteBPaperFaithfulTPhiStrictSourceConstraintTypeProfileSubspaceData_of_sourceLeibnizLocalTypeCompressionData
+        hData M n hn hn2 htb hns)
+
+/-- Uniform Leibniz-term local-type compression closes the strict `TΦ` P-side
+rank surface through the selected profile-subspace/sum-over-profiles assembly. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiPSideBound_of_sourceLeibnizLocalTypeCompressionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData) :
+    ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+      (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+      SATDeciderGaugePSideBound M n hn2 htb hns
+        (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiAmbientGauge
+          M n hn2 htb hns) := by
+  intro M n hn hn2 htb hns
+  exact
+    routeBPaperFaithfulTPhi_pSideBound_of_strictConstraintTypeProfileSubspaceData
+      M n hn2 htb hns
+      (step247UniformRouteBPaperFaithfulTPhiStrictConstraintTypeProfileSubspaceData_of_sourceLeibnizLocalTypeCompressionData
+        hData M n hn hn2 htb hns)
+
+/-- Full paper-scale SAT contradiction from the term-local Lemma-31 compression
+surface, without arbitrary row uniqueness or profile-uniform closure. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData) :
+    NoBoundedSATDeciderAtPaperScale := by
+  intro M n hn hn2 htb hns hdec
+  exact
+    false_of_routeBPaperFaithfulTPhi_targetPSideBound M n hn hn2 htb hns
+      (routeBPaperFaithfulTPhi_targetRank_le_of_ambientGaugePSideBound
+        M n hn2 htb hns
+        (step247UniformRouteBPaperFaithfulTPhiPSideBound_of_sourceLeibnizLocalTypeCompressionData
+          hData M n hn hn2 htb hns))
+
+/-- Full Route-B closeout from term-dependent selected-profile local-type
+families.  This is the intended paper-faithful path:
+canonical row/profile selection → term-local type membership → selected
+profile subspace → sum over profiles → `TΦ` rank bound. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceProfileTemplateTermFamilyData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceProfileTemplateTermFamilyData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData
+    (step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData_of_profileTemplateTermFamilyData
+      hData)
+
 /-- Uniform exact-budget profile-template local-monoid normal forms at Step 247
 scale.  This exposes the exact Lemma-31-sized budget rather than merely the
 coarser `withinProfileBound` budget. -/
@@ -1663,6 +1808,7 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
   noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms
     (step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizLocalMonoidNormalForms_of_profileTemplateSpanData
       hData)
+
 
 /-- Paper-faithful closeout from the concrete bounded-trace monoid surface. -/
 theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizBoundedTraceMonoidData

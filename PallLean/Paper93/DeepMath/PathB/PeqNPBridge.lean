@@ -120,6 +120,33 @@ theorem P_ne_NP_canonical_routeB_lemma31_profileSubspace_conditional
 
 #print axioms P_ne_NP_canonical_routeB_lemma31_profileSubspace_conditional
 
+/-- Paper-faithful Route-B closeout from the actual Lemma-31 term-local
+profile-template family.
+
+This is the non-deviating path: term-dependent local types assemble into the
+row-selected interface-anonymous profile subspace, the sum-over-profiles bound
+closes the strict `TΦ` P-side rank, and the SAT-decider-specific lower bound
+fires on the extracted target.  It does not use arbitrary row uniqueness. -/
+theorem not_PeqNP_of_step247UniformRouteBPaperFaithfulTPhiSourceProfileTemplateTermFamilyData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceProfileTemplateTermFamilyData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  noBoundedSATDeciderAtPaperScale_implies_not_PeqNP
+    (noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceProfileTemplateTermFamilyData
+      hData)
+
+#print axioms not_PeqNP_of_step247UniformRouteBPaperFaithfulTPhiSourceProfileTemplateTermFamilyData
+
+/-- Canonical Route-B conditional closure at the corrected paper surface:
+canonical windows/profile selection → term-local types → selected profile
+subspace containment/dimension → strict `TΦ` extraction. -/
+theorem P_ne_NP_canonical_routeB_profileTemplateTermFamily_conditional
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceProfileTemplateTermFamilyData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  not_PeqNP_of_step247UniformRouteBPaperFaithfulTPhiSourceProfileTemplateTermFamilyData
+    hData
+
+#print axioms P_ne_NP_canonical_routeB_profileTemplateTermFamily_conditional
+
 /-- Route-B closeout through exact-profile template-collapse data, routed into
 the literal Lemma-31 profile-subspace seam. -/
 theorem P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_exactProfileTemplateCollapse_conditional
