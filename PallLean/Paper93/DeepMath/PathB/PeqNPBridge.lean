@@ -217,6 +217,19 @@ theorem P_ne_NP_canonical_routeB_placedQuotientDescent_conditional
 
 #print axioms P_ne_NP_canonical_routeB_placedQuotientDescent_conditional
 
+/-- Canonical conditional closure from the renamed-canonical Lemma-31 expansion
+through the active local `W_σ` row-containment target.  This is the direct
+paper-faithful four-step route: local `W_σ` construction, slot membership,
+profile-product assembly, and selected `TΦ` row equality. -/
+theorem P_ne_NP_canonical_routeB_renamedCanonicalLocalW_conditional
+    (hData : Step247UniformRouteBPaperFaithfulTPhiRenamedCanonicalInterfaceExpansionData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_localCompiledProfileSubspaceRow_conditional
+    (step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData_of_renamedCanonicalInterfaceExpansionData
+      hData)
+
+#print axioms P_ne_NP_canonical_routeB_renamedCanonicalLocalW_conditional
+
 /-- Canonical conditional closure through the selected projected quotient
 normal-form route.
 

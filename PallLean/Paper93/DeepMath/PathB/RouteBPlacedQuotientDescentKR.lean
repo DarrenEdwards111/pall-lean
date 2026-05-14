@@ -1088,6 +1088,7 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData
   exact ⟨routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedLocalInterfaceQuotientDescentData_of_renamedCanonicalInterfaceExpansionData
     M n hn2 htb hns hN2 D⟩
 
+
 /-- Uniform bounded local-monoid/profile data at Step 247 scale.
 
 This is the direct paper §9.3--§9.4 surface: the normal-form alphabet is an
@@ -1150,6 +1151,29 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubsp
   rcases hData M n hn hn2 htb hns with ⟨D⟩
   exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedLocalCompiledProfileSubspaceRowData_of_placedLocalInterfaceQuotientDescentData
     M n hn2 htb hns D⟩
+
+/-- Renamed-canonical Lemma-31 expansion directly constructs the local
+compiled-coordinate profile row datum.
+
+This is the explicit four-step local `W_σ` construction requested by the
+paper-faithful Route B path:
+
+1. choose the local `W_σ` spaces supplied by the placed quotient/descent datum;
+2. use slotwise descent to prove each placed local slot lands in its `W_σ`;
+3. assemble the slot product into `profileSubspace ρ.val W` by the symmetric
+   profile-product constructor;
+4. rewrite the selected `TΦ` row by the placed-local expansion and close under
+   finite sums/scalars in that same profile subspace.
+
+The work is delegated to the checked Paper283 constructors, but the endpoint is
+now the active local `W_σ` row-containment target rather than the old fixed
+source-chart compiled-basis surface. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData_of_renamedCanonicalInterfaceExpansionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiRenamedCanonicalInterfaceExpansionData) :
+    Step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData :=
+  step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData_of_placedQuotientDescent
+    (step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData_of_renamedCanonicalInterfaceExpansionData
+      hData)
 
 /-- Uniform local compiled-coordinate profile-subspace row data gives the strict
 source selected profile-subspace datum used by the existing P-side bound. -/
