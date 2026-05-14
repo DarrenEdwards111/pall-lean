@@ -33277,6 +33277,109 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_postSpanBoun
 #print axioms routeBPaperFaithfulTPhi_strictFOB_renamedDerivativeRow
 #print axioms routeBPaperFaithfulTPhi_strictFOB_renamedDerivativeRow_restrict
 #print axioms routeBPaperFaithfulTPhi_rangePWindowRow_eq_renamedRestrictedRow
+/-! ### Paper §9.3 compiler-fixed local monoid normal forms
+
+The bounded trace monoid above is intentionally a witnessed bookkeeping device:
+it remembers factor/coordinate events so that later strict-`TΦ` row-membership
+obligations can be stated without losing product-rule ownership.  The paper's
+Lemma 25, however, is the smaller compiler-fixed claim: once the diagonal local
+interface action is fixed, local update words quotient through a finite monoid
+whose state space has constant size.  The following definitions land that
+kernel fact explicitly, independently of `n`, `κ`, or the selected SAT instance.
+-/
+
+/-- A compiler-fixed interface fibre for the Route-B local action model.
+
+This is not the witnessed trace state.  It is the constant-size local state on
+which the diagonal interface update symbols act before words are quotiented by
+the finite monoid, matching paper §9.3 convention (P7). -/
+abbrev routeBPaperFaithfulTPhiCompilerFixedInterfaceSpace : Type := Fin 2
+
+/-- Compiler-fixed finite local monoid of interface transformations.
+
+The cardinality is independent of `n` and of the derivative window length. -/
+abbrev routeBPaperFaithfulTPhiCompilerFixedLocalMonoid : Type :=
+  RouteBPaperFaithfulTPhiFiniteEnd
+    routeBPaperFaithfulTPhiCompilerFixedInterfaceSpace
+
+/-- The two strict local symbols act on the compiler-fixed interface fibre.
+
+`false` is the identity action; `true` is the nontrivial flip.  The precise
+choice is immaterial for the bounded-normal-form theorem; what matters is that
+the action monoid is fixed and finite. -/
+noncomputable def routeBPaperFaithfulTPhiCompilerFixedLocalGenerator
+    (b : RouteBPaperFaithfulTPhiStrictLocalOp) :
+    routeBPaperFaithfulTPhiCompilerFixedLocalMonoid :=
+  if b then
+    ⟨fun x => if x = 0 then 1 else 0⟩
+  else
+    1
+
+/-- Compiler-fixed generator list for the strict Route-B local alphabet. -/
+noncomputable def routeBPaperFaithfulTPhiCompilerFixedLocalGenerators :
+    List routeBPaperFaithfulTPhiCompilerFixedLocalMonoid :=
+  [routeBPaperFaithfulTPhiCompilerFixedLocalGenerator false,
+   routeBPaperFaithfulTPhiCompilerFixedLocalGenerator true]
+
+/-- Paper §9.3 Lemma 25, specialized to the compiler-fixed Route-B local
+monoid: every local monoid element has a shortlex normal form of bounded
+length.  The bound is a literal constant because the monoid is `End(Fin 2)`,
+not the window-sized witnessed trace monoid. -/
+theorem routeBPaperFaithfulTPhi_compilerFixedLocal_NF_length_le :
+    ∃ q : ℕ,
+      ∀ g : routeBPaperFaithfulTPhiCompilerFixedLocalMonoid,
+        (PallLean.Paper93.NF
+          routeBPaperFaithfulTPhiCompilerFixedLocalGenerators g).length ≤ q := by
+  simpa using
+    (PallLean.Paper93.NF_length_bound
+      routeBPaperFaithfulTPhiCompilerFixedLocalGenerators)
+
+/-- Normalization preserves the compiler-fixed local action. -/
+theorem routeBPaperFaithfulTPhi_compilerFixedLocal_NF_represents
+    (g : routeBPaperFaithfulTPhiCompilerFixedLocalMonoid) :
+    (PallLean.Paper93.NF
+        routeBPaperFaithfulTPhiCompilerFixedLocalGenerators g).prod = g := by
+  exact PallLean.Paper93.NF_represents
+    routeBPaperFaithfulTPhiCompilerFixedLocalGenerators g
+
+/-- Word form of the same compiler-fixed normal-form correctness: normalizing a
+witnessed local update word preserves its product/action. -/
+theorem routeBPaperFaithfulTPhi_compilerFixedLocal_NFOfWord_represents
+    (w : List routeBPaperFaithfulTPhiCompilerFixedLocalMonoid) :
+    (PallLean.Paper93.NFOfWord
+        routeBPaperFaithfulTPhiCompilerFixedLocalGenerators w).prod = w.prod := by
+  exact PallLean.Paper93.NFOfWord_represents
+    routeBPaperFaithfulTPhiCompilerFixedLocalGenerators w
+
+/-- Action-level form of normal-form preservation.  This is the row-action
+statement used by Lemma 25/29 before the row object is assembled: replacing a
+local word by its shortlex normal form does not change the resulting interface
+state. -/
+theorem routeBPaperFaithfulTPhi_compilerFixedLocal_NFOfWord_action
+    (w : List routeBPaperFaithfulTPhiCompilerFixedLocalMonoid)
+    (x : routeBPaperFaithfulTPhiCompilerFixedInterfaceSpace) :
+    ((PallLean.Paper93.NFOfWord
+        routeBPaperFaithfulTPhiCompilerFixedLocalGenerators w).prod) x =
+      (w.prod) x := by
+  rw [routeBPaperFaithfulTPhi_compilerFixedLocal_NFOfWord_represents]
+
+/-- Strict-local-op word view of the compiler-fixed action preservation. -/
+theorem routeBPaperFaithfulTPhi_compilerFixedStrictOp_NFOfWord_action
+    (u : List RouteBPaperFaithfulTPhiStrictLocalOp)
+    (x : routeBPaperFaithfulTPhiCompilerFixedInterfaceSpace) :
+    ((PallLean.Paper93.NFOfWord
+        routeBPaperFaithfulTPhiCompilerFixedLocalGenerators
+        (u.map routeBPaperFaithfulTPhiCompilerFixedLocalGenerator)).prod) x =
+      ((u.map routeBPaperFaithfulTPhiCompilerFixedLocalGenerator).prod) x := by
+  exact routeBPaperFaithfulTPhi_compilerFixedLocal_NFOfWord_action
+    (u.map routeBPaperFaithfulTPhiCompilerFixedLocalGenerator) x
+
+#print axioms routeBPaperFaithfulTPhi_compilerFixedLocal_NF_length_le
+#print axioms routeBPaperFaithfulTPhi_compilerFixedLocal_NF_represents
+#print axioms routeBPaperFaithfulTPhi_compilerFixedLocal_NFOfWord_represents
+#print axioms routeBPaperFaithfulTPhi_compilerFixedLocal_NFOfWord_action
+#print axioms routeBPaperFaithfulTPhi_compilerFixedStrictOp_NFOfWord_action
+
 #print axioms routeBPaperFaithfulTPhi_strictFOB_allRangeDerivativeRow
 #print axioms routeBPaperFaithfulTPhi_strictFOB_offRangeSingletonShiftRow_singletonQuotient
 #print axioms routeBPaperFaithfulTPhi_strictFOB_allRangeDerivativeRow_singletonQuotient_iff_projected
