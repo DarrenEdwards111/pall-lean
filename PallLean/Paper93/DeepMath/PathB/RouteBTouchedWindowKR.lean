@@ -43,6 +43,33 @@ def touchedInterfaceStateCode (σ : PallLean.Paper93.InterfaceType) : Fin 16 :=
     have hs : σ.localState.val < 4 := σ.localState.isLt
     omega⟩
 
+/-- The four Cook--Levin constraint-type codes are injective. -/
+theorem touchedConstraintTypeCode_injective :
+    Function.Injective touchedConstraintTypeCode := by
+  intro τ υ h
+  cases τ <;> cases υ <;> simp [touchedConstraintTypeCode] at h ⊢
+
+/-- The `Fin 16` interface-state code loses no information from the concrete
+paper interface symbol.  This is the decoding fact needed by the local
+normal-form uniqueness route: equality of coded KR words implies equality of the
+per-position `(constraint type, local state)` symbols. -/
+theorem touchedInterfaceStateCode_injective :
+    Function.Injective touchedInterfaceStateCode := by
+  intro σ υ h
+  cases σ with
+  | mk τ s =>
+  cases υ with
+  | mk τ' s' =>
+  cases τ <;> cases τ' <;> fin_cases s <;> fin_cases s' <;>
+    simp [touchedInterfaceStateCode, touchedConstraintTypeCode] at h ⊢
+
+/-- Equality of coded interface states is equivalent to equality of the concrete
+interface symbols. -/
+theorem touchedInterfaceStateCode_eq_iff
+    (σ υ : PallLean.Paper93.InterfaceType) :
+    touchedInterfaceStateCode σ = touchedInterfaceStateCode υ ↔ σ = υ :=
+  ⟨fun h => touchedInterfaceStateCode_injective h, fun h => by simpa [h]⟩
+
 /-- Window-form touched KR data.
 
 The per-position state is now a genuine paper interface-local symbol.  The
@@ -118,6 +145,9 @@ theorem noBoundedSATDeciderAtPaperScale_of_touchedWindowKRData_TPhi
 /-! ## Axiom audit anchors -/
 
 #print axioms touchedInterfaceStateCode
+#print axioms touchedConstraintTypeCode_injective
+#print axioms touchedInterfaceStateCode_injective
+#print axioms touchedInterfaceStateCode_eq_iff
 #print axioms touchedInterfaceAlphabet_log_bound
 #print axioms touchedExtractorKRData_of_touchedWindowKRData
 #print axioms step247UniformTouchedExtractorKRData_of_touchedWindowKRData

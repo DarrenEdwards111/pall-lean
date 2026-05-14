@@ -39,6 +39,25 @@ def rowLocalStateCode (inShift inDeriv : Bool) : Fin 4 :=
   | false, true  => ⟨2, by decide⟩
   | true,  true  => ⟨3, by decide⟩
 
+/-- The two-bit row-local state encoding is injective. -/
+theorem rowLocalStateCode_injective :
+    Function.Injective (fun p : Bool × Bool => rowLocalStateCode p.1 p.2) := by
+  intro p q h
+  cases p with
+  | mk ps pd =>
+  cases q with
+  | mk qs qd =>
+  cases ps <;> cases pd <;> cases qs <;> cases qd <;>
+    simp [rowLocalStateCode] at h ⊢
+
+/-- Equality of two-bit row-local state codes is equivalent to equality of the
+underlying shift/derivative bits. -/
+theorem rowLocalStateCode_eq_iff
+    (ps pd qs qd : Bool) :
+    rowLocalStateCode ps pd = rowLocalStateCode qs qd ↔
+      (ps, pd) = (qs, qd) :=
+  ⟨fun h => rowLocalStateCode_injective h, fun h => by cases h; rfl⟩
+
 /-- Whether the row variable at position `j` participates in the derivative
 allocation of the selected canonical source.  Dormant windows have no selected
 derivative source. -/
@@ -168,6 +187,8 @@ theorem noBoundedSATDeciderAtPaperScale_of_touchedRowInterfaceKRData_TPhi
 /-! ## Axiom audit anchors -/
 
 #print axioms rowLocalStateCode
+#print axioms rowLocalStateCode_injective
+#print axioms rowLocalStateCode_eq_iff
 #print axioms canonicalTouchedDerivBit
 #print axioms canonicalTouchedRowLocalState
 #print axioms canonicalTouchedRowInterface

@@ -64,6 +64,88 @@ noncomputable def TouchedRowInterfaceDatum.word
   fun j => touchedInterfaceStateCode
     (canonicalTouchedRowInterface M n hn2 htb hns D.S D.m D.alloc D.hlen j)
 
+/-- Equality of canonical coded row words decodes pointwise to equality of the
+concrete row-interface symbols.  This is the first finite-alphabet normal-form
+payload: after injectivity of `Fin 16`, no information is hidden in the code. -/
+theorem TouchedRowInterfaceDatum.interface_eq_of_word_eq
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {D₁ D₂ : TouchedRowInterfaceDatum M n hn2 htb hns}
+    (hword : D₁.word = D₂.word) (j : Fin (Nat.log 2 n)) :
+    canonicalTouchedRowInterface M n hn2 htb hns D₁.S D₁.m D₁.alloc D₁.hlen j =
+      canonicalTouchedRowInterface M n hn2 htb hns D₂.S D₂.m D₂.alloc D₂.hlen j := by
+  apply touchedInterfaceStateCode_injective
+  simpa [TouchedRowInterfaceDatum.word] using congrFun hword j
+
+/-- The row-interface word determines the concrete four-state local code at
+position `j`. -/
+theorem TouchedRowInterfaceDatum.localState_eq_of_word_eq
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {D₁ D₂ : TouchedRowInterfaceDatum M n hn2 htb hns}
+    (hword : D₁.word = D₂.word) (j : Fin (Nat.log 2 n)) :
+    canonicalTouchedRowLocalState M n hn2 htb hns D₁.S D₁.m D₁.alloc D₁.hlen j =
+      canonicalTouchedRowLocalState M n hn2 htb hns D₂.S D₂.m D₂.alloc D₂.hlen j := by
+  have hif := TouchedRowInterfaceDatum.interface_eq_of_word_eq
+    (D₁ := D₁) (D₂ := D₂) hword j
+  exact congrArg PallLean.Paper93.InterfaceType.localState hif
+
+/-- The decoded local state determines the two concrete row-local bits: whether
+the row variable appears in the shift monomial and whether it appears in the
+selected derivative allocation. -/
+theorem TouchedRowInterfaceDatum.rowLocalBits_eq_of_word_eq
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {D₁ D₂ : TouchedRowInterfaceDatum M n hn2 htb hns}
+    (hword : D₁.word = D₂.word) (j : Fin (Nat.log 2 n)) :
+    (decide (touchedRowVarAt M n hn2 htb hns D₁.S D₁.hlen j ∈ D₁.m.vars),
+        canonicalTouchedDerivBit M n hn2 htb hns D₁.S D₁.hlen D₁.alloc j) =
+      (decide (touchedRowVarAt M n hn2 htb hns D₂.S D₂.hlen j ∈ D₂.m.vars),
+        canonicalTouchedDerivBit M n hn2 htb hns D₂.S D₂.hlen D₂.alloc j) := by
+  apply rowLocalStateCode_injective
+  simpa [canonicalTouchedRowLocalState] using
+    TouchedRowInterfaceDatum.localState_eq_of_word_eq
+      (D₁ := D₁) (D₂ := D₂) hword j
+
+/-- The row-interface word determines the shift-membership bit at position `j`. -/
+theorem TouchedRowInterfaceDatum.shiftBit_eq_of_word_eq
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {D₁ D₂ : TouchedRowInterfaceDatum M n hn2 htb hns}
+    (hword : D₁.word = D₂.word) (j : Fin (Nat.log 2 n)) :
+    decide (touchedRowVarAt M n hn2 htb hns D₁.S D₁.hlen j ∈ D₁.m.vars) =
+      decide (touchedRowVarAt M n hn2 htb hns D₂.S D₂.hlen j ∈ D₂.m.vars) := by
+  exact congrArg Prod.fst
+    (TouchedRowInterfaceDatum.rowLocalBits_eq_of_word_eq
+      (D₁ := D₁) (D₂ := D₂) hword j)
+
+/-- The row-interface word determines the selected derivative-allocation bit at
+position `j`. -/
+theorem TouchedRowInterfaceDatum.derivBit_eq_of_word_eq
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {D₁ D₂ : TouchedRowInterfaceDatum M n hn2 htb hns}
+    (hword : D₁.word = D₂.word) (j : Fin (Nat.log 2 n)) :
+    canonicalTouchedDerivBit M n hn2 htb hns D₁.S D₁.hlen D₁.alloc j =
+      canonicalTouchedDerivBit M n hn2 htb hns D₂.S D₂.hlen D₂.alloc j := by
+  exact congrArg Prod.snd
+    (TouchedRowInterfaceDatum.rowLocalBits_eq_of_word_eq
+      (D₁ := D₁) (D₂ := D₂) hword j)
+
+/-- Equality of row-interface words also determines the emitted actual
+Cook--Levin constraint type at each position.  This is the branch-type component
+of the §9.3 local classifier. -/
+theorem TouchedRowInterfaceDatum.constraintType_eq_of_word_eq
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {D₁ D₂ : TouchedRowInterfaceDatum M n hn2 htb hns}
+    (hword : D₁.word = D₂.word) (j : Fin (Nat.log 2 n)) :
+    (canonicalTouchedRowInterface M n hn2 htb hns D₁.S D₁.m D₁.alloc D₁.hlen j).constraintType =
+      (canonicalTouchedRowInterface M n hn2 htb hns D₂.S D₂.m D₂.alloc D₂.hlen j).constraintType := by
+  have hif := TouchedRowInterfaceDatum.interface_eq_of_word_eq
+    (D₁ := D₁) (D₂ := D₂) hword j
+  exact congrArg PallLean.Paper93.InterfaceType.constraintType hif
+
 /-- The paper §9.3 local-normal-form uniqueness theorem needed for the exact
 row-interface interpreter.
 
@@ -166,6 +248,12 @@ theorem noBoundedSATDeciderAtPaperScale_of_touchedRowInterfaceUniqueData_TPhi
 
 #print axioms TouchedRowInterfaceDatum.row
 #print axioms TouchedRowInterfaceDatum.word
+#print axioms TouchedRowInterfaceDatum.interface_eq_of_word_eq
+#print axioms TouchedRowInterfaceDatum.localState_eq_of_word_eq
+#print axioms TouchedRowInterfaceDatum.rowLocalBits_eq_of_word_eq
+#print axioms TouchedRowInterfaceDatum.shiftBit_eq_of_word_eq
+#print axioms TouchedRowInterfaceDatum.derivBit_eq_of_word_eq
+#print axioms TouchedRowInterfaceDatum.constraintType_eq_of_word_eq
 #print axioms touchedRowInterfaceInterpOfUnique
 #print axioms touchedRowInterfaceInterpOfUnique_choose_word
 #print axioms touchedRowInterfaceKRData_of_unique
