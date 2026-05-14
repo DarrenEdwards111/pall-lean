@@ -166,7 +166,7 @@ placeholder:
 * booleanity: `1`, the canonical local variable, and the canonical booleanity
   factor `1 - X₀(1 - X₀)`;
 * adjacency: `1`, the two canonical endpoint variables;
-* transition-left: `1`, the canonical local variable, and `0`;
+* transition-left: `1`, the two canonical transition endpoint variables;
 * transition-right: dormant, represented by zero slots.
 
 The family is still indexed by `Fin d₀ = Fin 3`, so the paper's `dim W_σ ≤ d₀`
@@ -195,7 +195,7 @@ noncomputable def canonicalInterfacePolynomial
       else if j.1 = 1 then
         canonicalLocalX
       else
-        0
+        canonicalLocalX1
   | ConstraintType.transitionRight =>
       0
 
@@ -309,6 +309,14 @@ theorem canonicalInterfacePolynomial_transitionLeft_linearSlot
         canonicalInterfaceLinearSlot =
       canonicalLocalX := by
   norm_num [canonicalInterfacePolynomial, canonicalInterfaceLinearSlot, d₀]
+
+theorem canonicalInterfacePolynomial_transitionLeft_secondSlot
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) :
+    canonicalInterfacePolynomial B κ ℓ ConstraintType.transitionLeft
+        canonicalInterfaceFactorSlot =
+      canonicalLocalX1 := by
+  simp [canonicalInterfacePolynomial, canonicalInterfaceFactorSlot]
+
 
 
 /-! ## Local-chart transport for canonical interface generators
@@ -579,6 +587,25 @@ theorem firstLocalX_mem_interfaceSpace_compiledBasis_transitionLeft
       interfaceSpace_compiledBasis B κ ℓ ConstraintType.transitionLeft := by
   simpa [canonicalLocalX, hN] using
     canonicalLocalX_mem_interfaceSpace_compiledBasis_transitionLeft B κ ℓ
+
+/-- The transition-left local chart contains the second endpoint variable normal
+form. -/
+theorem canonicalLocalX1_mem_interfaceSpace_compiledBasis_transitionLeft
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) :
+    canonicalLocalX1 ∈
+      interfaceSpace_compiledBasis B κ ℓ ConstraintType.transitionLeft := by
+  have hmem :=
+    canonicalInterfacePolynomial_mem_interfaceSpace_compiledBasis
+      B κ ℓ ConstraintType.transitionLeft canonicalInterfaceFactorSlot
+  rw [canonicalInterfacePolynomial_transitionLeft_secondSlot B κ ℓ] at hmem
+  exact hmem
+
+theorem secondLocalX_mem_interfaceSpace_compiledBasis_transitionLeft
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (hN : 1 < N) :
+    MvPolynomial.X ⟨1, hN⟩ ∈
+      interfaceSpace_compiledBasis B κ ℓ ConstraintType.transitionLeft := by
+  simpa [canonicalLocalX1, hN] using
+    canonicalLocalX1_mem_interfaceSpace_compiledBasis_transitionLeft B κ ℓ
 
 /-- The active compiled local type spaces are no longer bottom: each contains
 the constant local normal form. -/
