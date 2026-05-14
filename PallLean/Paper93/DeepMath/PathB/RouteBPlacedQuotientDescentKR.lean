@@ -973,6 +973,17 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiCompiledBasisProfileSubsp
   exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedCompiledBasisProfileSubspaceRowData_of_shiftedBranchAtomCompiledBasisProfileData
     M n hn2 htb hns D⟩
 
+/-- The concrete compiled-basis row target supplies the local compiled-coordinate
+row target by taking the local spaces `W_σ` to be the compiled-basis interface
+spaces. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData_of_compiledBasisProfileSubspaceRowData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiCompiledBasisProfileSubspaceRowData) :
+    Step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedLocalCompiledProfileSubspaceRowData_of_compiledBasisProfileSubspaceRowData
+    M n hn2 htb hns D⟩
+
 /-- Uniform row-interface-slot expansion data at Step 247 scale.
 
 This is the literal selected-row Lemma-31 source surface: the row is already a
@@ -1364,6 +1375,15 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
         M n hn2 htb hns
         (step247UniformRouteBPaperFaithfulTPhiPSideBound_of_localCompiledProfileSubspaceRowData
           hData M n hn hn2 htb hns))
+
+/-- Uniform concrete compiled-basis profile-subspace row data closes the full
+paper-scale SAT contradiction via the local compiled-coordinate row surface. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiCompiledBasisProfileSubspaceRowData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiCompiledBasisProfileSubspaceRowData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData
+    (step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData_of_compiledBasisProfileSubspaceRowData
+      hData)
 
 /-- Uniform placed quotient/descent data closes the full paper-scale SAT
 contradiction for the strict `TΦ` Route-B path. -/

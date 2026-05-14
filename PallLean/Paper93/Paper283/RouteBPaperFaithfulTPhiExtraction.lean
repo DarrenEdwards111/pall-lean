@@ -19335,6 +19335,35 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedCompiledBasisProfileSubspac
             (fun τ => interfaceSpace_compiledBasis sourcePartition
               (Nat.log 2 n) (Nat.log 2 n) τ)
 
+/-- The concrete compiled-basis Lemma-31 row target is an instance of the
+local compiled-coordinate row target, with `W_σ` chosen to be the corresponding
+compiled-basis interface space.  This is not a new closure assumption: it simply
+forgets the explicit `sourcePartition` field after using it to define the local
+spaces. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedLocalCompiledProfileSubspaceRowData_of_compiledBasisProfileSubspaceRowData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedCompiledBasisProfileSubspaceRowData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedLocalCompiledProfileSubspaceRowData
+      M n hn2 htb hns where
+  interfaceSpace := fun τ => interfaceSpace_compiledBasis D.sourcePartition
+    (Nat.log 2 n) (Nat.log 2 n) τ
+  interfaceSpace_finite := by
+    intro τ
+    exact interfaceSpace_compiledBasis_finite D.sourcePartition
+      (Nat.log 2 n) (Nat.log 2 n) τ
+  interfaceSpace_finrank_le_three := by
+    intro τ
+    exact interfaceSpace_compiledBasis_finrank_le_three D.sourcePartition
+      (Nat.log 2 n) (Nat.log 2 n) τ
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  canonicalSourceRow_mem_localCompiledProfileSubspace := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    simpa using
+      D.canonicalSourceRow_mem_compiledBasisProfileSubspace
+        ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+
 
 /-- Explicit finite slot expansion of one symmetric power element.
 

@@ -361,8 +361,8 @@ membership (the literal Lemma-31 row-subspace surface). -/
 theorem P_ne_NP_canonical_routeB_compiledBasisProfileSubspaceRow_conditional
     (hRow : Step247UniformRouteBPaperFaithfulTPhiCompiledBasisProfileSubspaceRowData) :
     ∀ (_ : PeqNP_Paper), False :=
-  P_ne_NP_canonical_routeB_interfaceSlotExpansion_conditional
-    (step247UniformRouteBPaperFaithfulTPhiInterfaceSlotExpansionData_of_compiledBasisProfileSubspaceRowData
+  P_ne_NP_canonical_routeB_localCompiledProfileSubspaceRow_conditional
+    (step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData_of_compiledBasisProfileSubspaceRowData
       hRow)
 
 #print axioms P_ne_NP_canonical_routeB_compiledBasisProfileSubspaceRow_conditional
