@@ -720,6 +720,71 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInte
   · intro w hw
     simpa [DFib, DIndexed, DSlot, DLoc, DComp, DBr] using (hProfEq M n hn hn2 htb hns w hw)
 
+/-- Coherent factor-fiber partitions plus local-algebra data construct the
+primary paired bottom seam: the factor-fiber payload gives exact anonymous
+interface slots, while the local-algebra payload supplies the selected
+shift/`mlProj` closure field on those exact slots.
+
+This packages the two paper-local constructor obligations without routing
+through the branch-atom row-shift seam and without asserting the known-bad
+profile-agnostic global closure.  The closure is transported only along the
+explicit source-partition/profile-selector coherence hypotheses. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData_of_fiberPartitionData_and_localAlgebraData
+    (hFib : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData)
+    (hLocal : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData)
+    (hPartEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+        let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+        DLoc.sourcePartition = DFib.sourcePartition)
+    (hProfEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+        let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+        ∀ w hw, DLoc.profileOfCanonicalWindow w hw = DFib.profileOfCanonicalWindow w hw) :
+    Step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData := by
+  intro M n hn hn2 htb hns
+  let DFib := Classical.choice (hFib M n hn hn2 htb hns)
+  let DIndexed :=
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFactorizationData_of_fiberPartitionData
+      M n hn2 htb hns DFib
+  let DSlot :=
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductExactInterfaceSlotFactorizationData_of_indexedInterfaceSlotFactorizationData
+      M n hn2 htb hns DIndexed
+  let DLoc := Classical.choice (hLocal M n hn hn2 htb hns)
+  refine ⟨DSlot, ?_⟩
+  intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ p hp
+  have hPart : DLoc.sourcePartition = DSlot.sourcePartition := by
+    simpa [DFib, DIndexed, DSlot, DLoc] using (hPartEq M n hn hn2 htb hns)
+  have hρLoc :
+      DLoc.profileOfCanonicalWindow
+          (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+          hrow.1 = ρ := by
+    have hprof := hProfEq M n hn hn2 htb hns
+      (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+      hrow.1
+    calc
+      DLoc.profileOfCanonicalWindow
+          (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+          hrow.1
+          = DSlot.profileOfCanonicalWindow
+              (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+              hrow.1 := by
+            simpa [DFib, DIndexed, DSlot, DLoc] using hprof
+      _ = ρ := hρ
+  have hpLoc :
+      p ∈ profileSubspace ρ.val
+          (fun τ =>
+            interfaceSpace_compiledBasis
+              DLoc.sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ) := by
+    simpa [hPart] using hp
+  have hclosed :=
+    DLoc.selectedShift_mlProj_closure_compiledBasisProfileSubspace
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρLoc p hpLoc
+  simpa [hPart] using hclosed
+
 /-- Coherent exact slot factorization plus shifted branch-atom membership closes
  the row-specific shifted slot-product seam at Step 247 scale. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftData_of_slotProductBranchAtomData

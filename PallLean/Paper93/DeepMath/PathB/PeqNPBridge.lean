@@ -470,6 +470,35 @@ theorem P_ne_NP_canonical_routeB_bottomSeam_rowSpecific_from_fiberPartition_and_
 
 #print axioms P_ne_NP_canonical_routeB_bottomSeam_rowSpecific_from_fiberPartition_and_localAlgebra_conditional
 
+/-- Canonical Route-B closure from factor-fiber slots plus local-algebra
+selected-shift data, routed through the **primary** paper-faithful bottom seam.
+
+This is the paired exact-slot + selected-shift-closure version of the
+row-specific theorem above: the exact slots come from the factor-fiber
+partition, and the selected-shift closure is transported from the coherent
+local-algebra payload. -/
+theorem P_ne_NP_canonical_routeB_bottomSeam_primary_from_fiberPartition_and_localAlgebra_conditional
+    (hFib : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData)
+    (hLocal : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData)
+    (hPartEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+        let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+        DLoc.sourcePartition = DFib.sourcePartition)
+    (hProfEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+        let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+        ∀ w hw, DLoc.profileOfCanonicalWindow w hw = DFib.profileOfCanonicalWindow w hw) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_of_exactSlotWithSelectedShiftClosure_conditional
+    (step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData_of_fiberPartitionData_and_localAlgebraData
+      hFib hLocal hPartEq hProfEq)
+
+#print axioms P_ne_NP_canonical_routeB_bottomSeam_primary_from_fiberPartition_and_localAlgebra_conditional
+
 /-- Canonical paper-faithful **primary** bottom-seam closure for Route B.
 
 Primary seam is the paired exact-slot + selected-shift-closure witnessed
@@ -503,7 +532,8 @@ theorem P_ne_NP_canonical_routeB_bottomSeam_primary_from_exactSlot_and_selectedS
 If **any** one of these paper-faithful bottom seams is available, then
 `PeqNP_Paper` is contradictory:
 1) primary paired exact-slot + selected-shift-closure seam,
-2) indexed-fiber + branch-atom paired seam (with compatibility).
+2) indexed-fiber + branch-atom paired seam (with compatibility),
+3) indexed-fiber + local-algebra paired seam (with compatibility).
 
 This theorem is a citation-friendly aggregator over the direct canonical
 closures already proved above. -/
@@ -524,16 +554,34 @@ theorem P_ne_NP_canonical_routeB_bottomSeams_bundle_conditional
           (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
           let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
           let DBr := Classical.choice (hBranch M n _hn hn2 htb hns)
-          ∀ w hw, DBr.profileOfCanonicalWindow w hw = DFib.profileOfCanonicalWindow w hw))) :
+          ∀ w hw, DBr.profileOfCanonicalWindow w hw = DFib.profileOfCanonicalWindow w hw))
+      ∨
+      (∃ hFib : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData,
+        ∃ hLocal : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData,
+        (∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+          (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+          let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+          let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+          DLoc.sourcePartition = DFib.sourcePartition) ∧
+        (∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+          (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+          let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+          let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+          ∀ w hw, DLoc.profileOfCanonicalWindow w hw = DFib.profileOfCanonicalWindow w hw))) :
     ∀ (_ : PeqNP_Paper), False := by
   rcases hUniform with hProf | hRest
   · exact P_ne_NP_canonical_routeB_profileTemplateSpan_conditional hProf
-  · rcases hRest with hShift | hPair
+  · rcases hRest with hShift | hRest
     · exact P_ne_NP_canonical_routeB_shiftedLeibnizProductInterfaceSlotFactorization_of_exactSlotWithSelectedShiftClosure_conditional hShift
-    · rcases hPair with ⟨hFib, hBranch, hPartEq, hProfEq⟩
-      exact
-        P_ne_NP_canonical_routeB_shiftedLeibnizProductIndexedFiberPlusBranchPaired_conditional
-          hFib hBranch hPartEq hProfEq
+    · rcases hRest with hBranchPair | hLocalPair
+      · rcases hBranchPair with ⟨hFib, hBranch, hPartEq, hProfEq⟩
+        exact
+          P_ne_NP_canonical_routeB_shiftedLeibnizProductIndexedFiberPlusBranchPaired_conditional
+            hFib hBranch hPartEq hProfEq
+      · rcases hLocalPair with ⟨hFib, hLocal, hPartEq, hProfEq⟩
+        exact
+          P_ne_NP_canonical_routeB_bottomSeam_primary_from_fiberPartition_and_localAlgebra_conditional
+            hFib hLocal hPartEq hProfEq
 
 #print axioms P_ne_NP_canonical_routeB_bottomSeams_bundle_conditional
 
