@@ -15737,6 +15737,49 @@ theorem routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtom_eq_of_eve
   simp [routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtom, hfun]
 
 
+/-- The witnessed `NFOfWord` branch atom is exactly the shifted Leibniz product
+for the original paper distribution `d`.
+
+This is the concrete closeout form of the finite-trace/permutation work: after
+normalising the event word, no residual singleton-span bookkeeping remains.  The
+selected shifted branch atom is literally the `mlProj (shift * Π_i ∂_{d_i} f_i)`
+term that appears in the row-level template-collapse target. -/
+theorem routeBPaperFaithfulTPhi_strictSourceNFOfWord_shiftedBranchAtom_eq_leibnizWitness
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+        (d i).length ≤ S'.length) :
+    routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtom
+        M n hn2 htb hns shift
+        (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+          M n hn2 htb hns
+          (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+            M n hn2 htb hns d)
+          (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+            M n hn2 htb hns d)) =
+      mlProj
+        (shift *
+          Finset.univ.prod
+            (fun i : Fin ((cookLevinFactorList M n hn2 htb hns).length) =>
+              SPDP.iterDerivList (d i)
+                ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                  M n hn2 htb hns) i))) := by
+  exact routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtom_eq_of_eventWordDistrib_perm
+    M n hn2 htb hns shift d
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizEventWordOfGeneratorWord
+      M n hn2 htb hns
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord
+        M n hn2 htb hns d)
+      (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_letters_mem_generators
+        M n hn2 htb hns d))
+    (routeBPaperFaithfulTPhi_strictSourceLeibnizTraceNFOfWord_eventWordDistrib_perm
+      M n hn2 htb hns S' hS d hlen)
+
+
 /-- Singleton basis for one shifted product-rule branch event word. -/
 noncomputable def routeBPaperFaithfulTPhi_strictSourceShiftedEventWordBranchAtomBasis
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
@@ -21669,6 +21712,31 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedProfileTemplateSpa
       simpa [hx]
         using hatom
     exact hle hsingle
+
+
+/-- Selected Leibniz-witness profile-template span data is equivalently strong
+enough for the selected shifted-branch-atom target.
+
+The nontrivial algebra is the concrete `NFOfWord` equality above: the shifted
+branch atom recovered from the normal form is definitionally the same row term
+as the original shifted Leibniz product, after transporting the per-factor event
+distribution by permutation invariance of `iterDerivList`. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedBranchAtomProfileTemplateSpanData_of_selectedProfileTemplateSpanData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedProfileTemplateSpanData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedBranchAtomProfileTemplateSpanData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceTemplateBasis := D.sourceTemplateBasis
+  sourceTemplateBasis_card_le := D.sourceTemplateBasis_card_le
+  selectedShiftedBranchAtom_mem_profileTemplateSpan := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+    rw [routeBPaperFaithfulTPhi_strictSourceNFOfWord_shiftedBranchAtom_eq_leibnizWitness
+      M n hn2 htb hns S' (le_of_eq hSlen) shift d hlen]
+    exact D.selectedLeibnizWitness_mem_profileTemplateSpan
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
 
 
 /-- Explicit row-guarded profile-template expansion data.
