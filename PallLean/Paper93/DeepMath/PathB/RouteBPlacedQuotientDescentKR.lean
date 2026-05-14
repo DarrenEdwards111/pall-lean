@@ -1505,6 +1505,19 @@ def Step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData :
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceLeibnizLocalTypeCompressionData
         M n hn2 htb hns)
 
+/-- Shifted Leibniz-product membership gives the concrete Lemma-31 local-type
+compression datum directly: for every selected interface-anonymous profile use
+its explicit compiled-basis profile-template basis, whose size is bounded by
+`profileTemplateBound ρ.val`, and place each bounded Leibniz product term in the
+corresponding selected local type space. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData_of_shiftedLeibnizProductData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisProfileData) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeCompressionData_of_shiftedLeibnizProductCompiledBasisProfileData
+    M n hn2 htb hns D⟩
+
 /-- Selected profile-template span data gives the Leibniz-term local-type
 compression datum by using the selected template basis as the unique local type
 for that selected profile. -/
@@ -1583,6 +1596,15 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
         M n hn2 htb hns
         (step247UniformRouteBPaperFaithfulTPhiPSideBound_of_sourceLeibnizLocalTypeCompressionData
           hData M n hn hn2 htb hns))
+
+/-- Full paper-scale SAT contradiction from the concrete selected compiled-basis
+profile-template construction for bounded Leibniz product terms. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisProfileData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisProfileData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData
+    (step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData_of_shiftedLeibnizProductData
+      hData)
 
 /-- Full Route-B closeout from term-dependent selected-profile local-type
 families.  This is the intended paper-faithful path:

@@ -19734,7 +19734,180 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedCompiledBasisProfi
         ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen'
       simpa [target, factors, hg_eq]
         using hterm
+
     exact hspan hpost
+
+/-! ### Selected compiled-basis profile templates as local types
+
+The previous adapter proves the selected row after summing the Leibniz
+expansion.  The next construction is the sharper Lemma-31 local-type payload:
+for the selected interface-anonymous profile `ρ`, use the actual symmetric
+profile-template basis of
+
+`profileSubspace ρ.val (interfaceSpace_compiledBasis …)`
+
+as the unique local type.  The basis is the finite family of `profileSymProd`
+templates indexed by the profile's symmetric-power multi-index.  Its cardinality
+is bounded directly by the paper count `profileTemplateBound ρ.val`, and each
+bounded Leibniz product term lands in that selected local type via the supplied
+compiled-basis profile membership theorem.
+-/
+
+/-- The finite template basis for one selected compiled-basis profile. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceCompiledBasisProfileTemplateBasis
+    {n : ℕ} (B : SPDP.BlockPartition (n / 3)) (κ : ℕ)
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType κ) :
+    Finset (MvPolynomial (Fin (n / 3)) ℚ) := by
+  classical
+  let W : ConstraintType → Submodule ℚ (MvPolynomial (Fin (n / 3)) ℚ) :=
+    fun τ => interfaceSpace_compiledBasis B κ κ τ
+  have hW_fin : ∀ τ, Module.Finite ℚ ↥(W τ) := by
+    intro τ
+    exact interfaceSpace_compiledBasis_finite B κ κ τ
+  let d : ConstraintType → ℕ := fun τ => Module.finrank ℚ ↥(W τ)
+  let b : ∀ τ, Module.Basis (Fin (d τ)) ℚ ↥(W τ) :=
+    fun τ => by
+      haveI : Module.Finite ℚ ↥(W τ) := hW_fin τ
+      exact Module.finBasis ℚ ↥(W τ)
+  exact (Finset.univ : Finset (ProfileIndex ρ.val d)).image
+    (profileSymProd W b)
+
+/-- The selected compiled-basis profile-template basis has the literal paper
+cardinality bound `profileTemplateBound ρ.val`. -/
+theorem routeBPaperFaithfulTPhi_strictSourceCompiledBasisProfileTemplateBasis_card_le
+    {n : ℕ} (B : SPDP.BlockPartition (n / 3)) (κ : ℕ)
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType κ) :
+    (routeBPaperFaithfulTPhi_strictSourceCompiledBasisProfileTemplateBasis
+      B κ ρ).card ≤ profileTemplateBound ρ.val := by
+  classical
+  let W : ConstraintType → Submodule ℚ (MvPolynomial (Fin (n / 3)) ℚ) :=
+    fun τ => interfaceSpace_compiledBasis B κ κ τ
+  have hW_fin : ∀ τ, Module.Finite ℚ ↥(W τ) := by
+    intro τ
+    exact interfaceSpace_compiledBasis_finite B κ κ τ
+  let d : ConstraintType → ℕ := fun τ => Module.finrank ℚ ↥(W τ)
+  let b : ∀ τ, Module.Basis (Fin (d τ)) ℚ ↥(W τ) :=
+    fun τ => by
+      haveI : Module.Finite ℚ ↥(W τ) := hW_fin τ
+      exact Module.finBasis ℚ ↥(W τ)
+  have hcard_image :
+      ((Finset.univ : Finset (ProfileIndex ρ.val d)).image
+          (profileSymProd W b)).card ≤
+        Fintype.card (ProfileIndex ρ.val d) := by
+    calc
+      ((Finset.univ : Finset (ProfileIndex ρ.val d)).image
+          (profileSymProd W b)).card
+          ≤ (Finset.univ : Finset (ProfileIndex ρ.val d)).card :=
+            Finset.card_image_le
+      _ = Fintype.card (ProfileIndex ρ.val d) := Finset.card_univ
+  have hd_le : ∀ τ : ConstraintType, d τ ≤ 3 := by
+    intro τ
+    exact interfaceSpace_compiledBasis_finrank_le_three B κ κ τ
+  have hidx : Fintype.card (ProfileIndex ρ.val d) ≤ profileTemplateBound ρ.val := by
+    rw [profileIndex_card]
+    unfold profileTemplateBound
+    exact Finset.prod_le_prod (by intro τ _; exact Nat.zero_le _) (by
+      intro τ _
+      exact multichoose_le_choose_of_dim_le_three (d τ) (ρ.val τ) (hd_le τ))
+  simpa [routeBPaperFaithfulTPhi_strictSourceCompiledBasisProfileTemplateBasis,
+    W, d, b] using hcard_image.trans hidx
+
+/-- The selected profile subspace is spanned by its explicit compiled-basis
+profile-template basis. -/
+theorem routeBPaperFaithfulTPhi_strictSourceCompiledBasisProfileSubspace_le_templateBasisSpan
+    {n : ℕ} (B : SPDP.BlockPartition (n / 3)) (κ : ℕ)
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType κ) :
+    profileSubspace ρ.val
+        (fun τ => interfaceSpace_compiledBasis B κ κ τ) ≤
+      Submodule.span ℚ
+        (↑(routeBPaperFaithfulTPhi_strictSourceCompiledBasisProfileTemplateBasis
+          B κ ρ) : Set (MvPolynomial (Fin (n / 3)) ℚ)) := by
+  classical
+  let W : ConstraintType → Submodule ℚ (MvPolynomial (Fin (n / 3)) ℚ) :=
+    fun τ => interfaceSpace_compiledBasis B κ κ τ
+  have hW_fin : ∀ τ, Module.Finite ℚ ↥(W τ) := by
+    intro τ
+    exact interfaceSpace_compiledBasis_finite B κ κ τ
+  let d : ConstraintType → ℕ := fun τ => Module.finrank ℚ ↥(W τ)
+  let b : ∀ τ, Module.Basis (Fin (d τ)) ℚ ↥(W τ) :=
+    fun τ => by
+      haveI : Module.Finite ℚ ↥(W τ) := hW_fin τ
+      exact Module.finBasis ℚ ↥(W τ)
+  have hprofile : profileSubspace ρ.val W ≤
+      Submodule.span ℚ
+        (Set.range (profileSymProd W b : ProfileIndex ρ.val d → _)) :=
+    profileSubspace_le_profileSymProd_span W b
+  have hrange_le :
+      Submodule.span ℚ
+          (Set.range (profileSymProd W b : ProfileIndex ρ.val d → _)) ≤
+        Submodule.span ℚ
+          (↑((Finset.univ : Finset (ProfileIndex ρ.val d)).image
+              (profileSymProd W b)) : Set (MvPolynomial (Fin (n / 3)) ℚ)) := by
+    refine Submodule.span_mono ?_
+    intro p hp
+    rcases hp with ⟨m, rfl⟩
+    exact Finset.mem_coe.mpr (Finset.mem_image.mpr ⟨m, Finset.mem_univ m, rfl⟩)
+  simpa [routeBPaperFaithfulTPhi_strictSourceCompiledBasisProfileTemplateBasis,
+    W, d, b] using hprofile.trans hrange_le
+
+/-- Selected shifted-Leibniz compiled-basis profile data gives the concrete
+local-type compression payload with one local type per selected profile and the
+explicit profile-template basis as that type's basis. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceLeibnizLocalTypeCompressionData_of_shiftedLeibnizProductCompiledBasisProfileData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductCompiledBasisProfileData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceLeibnizLocalTypeCompressionData
+      M n hn2 htb hns where
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  sourceAlphabet := fun ρ =>
+    { type := PUnit
+      typeFintype := inferInstance
+      localDim := profileTemplateBound ρ.val
+      localBasis := fun _ =>
+        routeBPaperFaithfulTPhi_strictSourceCompiledBasisProfileTemplateBasis
+          D.sourcePartition (Nat.log 2 n) ρ
+      localBasis_card_le := fun _ =>
+        routeBPaperFaithfulTPhi_strictSourceCompiledBasisProfileTemplateBasis_card_le
+          D.sourcePartition (Nat.log 2 n) ρ
+      profileSymmetricPowerBudget_le := by
+        have hadm : ProfileAdmissible (Nat.log 2 n) ρ.val := by
+          exact le_of_eq (routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfile_mass_eq ρ)
+        simpa using profileTemplateBound_le_withinProfileBound
+          (Nat.log 2 n) ρ.val hadm }
+  leibnizTermType := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ g hg
+    exact PUnit.unit
+  leibnizTerm_mem_localTypeSpace := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ g hg
+    rcases hg with ⟨d, hd_elts, hg_eq, hlen⟩
+    have hterm := D.selectedShiftedLeibnizProduct_mem_compiledBasisProfileSubspace
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+    have hspan :=
+      routeBPaperFaithfulTPhi_strictSourceCompiledBasisProfileSubspace_le_templateBasisSpan
+        D.sourcePartition (Nat.log 2 n) ρ hterm
+    change mlProj (shift * g) ∈
+      zeroProfileLocalTypeSpace
+        { type := PUnit
+          typeFintype := inferInstance
+          localDim := profileTemplateBound ρ.val
+          localBasis := fun _ =>
+            routeBPaperFaithfulTPhi_strictSourceCompiledBasisProfileTemplateBasis
+              D.sourcePartition (Nat.log 2 n) ρ
+          localBasis_card_le := fun _ =>
+            routeBPaperFaithfulTPhi_strictSourceCompiledBasisProfileTemplateBasis_card_le
+              D.sourcePartition (Nat.log 2 n) ρ
+          profileSymmetricPowerBudget_le := by
+            have hadm : ProfileAdmissible (Nat.log 2 n) ρ.val := by
+              exact le_of_eq (routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfile_mass_eq ρ)
+            simpa using profileTemplateBound_le_withinProfileBound
+              (Nat.log 2 n) ρ.val hadm }
+        PUnit.unit
+    simpa [zeroProfileLocalTypeSpace, hg_eq] using hspan
 
 /-- Shifted branch-atom compiled-basis membership gives the direct selected row
 profile-subspace membership.
