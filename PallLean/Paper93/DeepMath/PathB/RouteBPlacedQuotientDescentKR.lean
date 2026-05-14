@@ -952,11 +952,22 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedBranchAtomCompiled
 
 /-- Uniform direct profile-subspace row data at Step 247 scale.
 
-This is the literal Lemma-31 containment surface: the selected canonical source
-row lies in the concrete compiled-basis profile subspace
-`profileSubspace ρ.val W`.  The adapter below unfolds that span into the
-explicit finite coefficient/index/slot expansion. -/
+This is the active Lemma-31 containment surface after the placed/local-chart
+correction: the selected canonical source row lands in a concrete
+finite-dimensional compiled-coordinate profile subspace, but the local
+`W_σ` family is carried as data rather than forced to be the old fixed
+source-coordinate `X₀/X₁` chart.  That fixed chart was too strong for placed
+Cook--Levin rows; the paper-faithful object is the local compiled-coordinate
+family with `finrank W_σ ≤ 3`. -/
 def Step247UniformRouteBPaperFaithfulTPhiCompiledBasisProfileSubspaceRowData : Prop :=
+  Step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData
+
+/-- Legacy fixed-chart source-coordinate version of the compiled-basis row
+surface.  This is kept only for adapters that explicitly unfold finite slot
+expansions from the old `interfaceSpace_compiledBasis sourcePartition ...`
+structure.  The active Step247 compiled-basis target above is the placed/local
+compiled-coordinate target, not this fixed-chart specialization. -/
+def Step247UniformRouteBPaperFaithfulTPhiFixedChartCompiledBasisProfileSubspaceRowData : Prop :=
   ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
     Nonempty
@@ -970,19 +981,19 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiCompiledBasisProfileSubsp
     Step247UniformRouteBPaperFaithfulTPhiCompiledBasisProfileSubspaceRowData := by
   intro M n hn hn2 htb hns
   rcases hData M n hn hn2 htb hns with ⟨D⟩
-  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedCompiledBasisProfileSubspaceRowData_of_shiftedBranchAtomCompiledBasisProfileData
-    M n hn2 htb hns D⟩
+  let Drow :=
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedCompiledBasisProfileSubspaceRowData_of_shiftedBranchAtomCompiledBasisProfileData
+      M n hn2 htb hns D
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedLocalCompiledProfileSubspaceRowData_of_compiledBasisProfileSubspaceRowData
+    M n hn2 htb hns Drow⟩
 
 /-- The concrete compiled-basis row target supplies the local compiled-coordinate
 row target by taking the local spaces `W_σ` to be the compiled-basis interface
 spaces. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData_of_compiledBasisProfileSubspaceRowData
     (hData : Step247UniformRouteBPaperFaithfulTPhiCompiledBasisProfileSubspaceRowData) :
-    Step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData := by
-  intro M n hn hn2 htb hns
-  rcases hData M n hn hn2 htb hns with ⟨D⟩
-  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedLocalCompiledProfileSubspaceRowData_of_compiledBasisProfileSubspaceRowData
-    M n hn2 htb hns D⟩
+    Step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData :=
+  hData
 
 /-- Uniform row-interface-slot expansion data at Step 247 scale.
 
@@ -999,8 +1010,8 @@ def Step247UniformRouteBPaperFaithfulTPhiInterfaceSlotExpansionData : Prop :=
 
 /-- Direct profile-subspace row membership gives the explicit row-interface-slot
 expansion by unfolding the defining span of `profileSubspace`. -/
-noncomputable def step247UniformRouteBPaperFaithfulTPhiInterfaceSlotExpansionData_of_compiledBasisProfileSubspaceRowData
-    (hData : Step247UniformRouteBPaperFaithfulTPhiCompiledBasisProfileSubspaceRowData) :
+noncomputable def step247UniformRouteBPaperFaithfulTPhiInterfaceSlotExpansionData_of_fixedChartCompiledBasisProfileSubspaceRowData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiFixedChartCompiledBasisProfileSubspaceRowData) :
     Step247UniformRouteBPaperFaithfulTPhiInterfaceSlotExpansionData := by
   intro M n hn hn2 htb hns
   rcases hData M n hn hn2 htb hns with ⟨D⟩

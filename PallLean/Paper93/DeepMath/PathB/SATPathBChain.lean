@@ -817,13 +817,9 @@ profile subspace closes the placed quotient/descent Route-B chain. -/
 theorem SAT_path_B_paperFaithfulShiftedBranchAtomCompiledBasisProfile_TPhi_extraction_move
     (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedBranchAtomCompiledBasisProfileData) :
     NoBoundedSATDeciderAtPaperScale :=
-  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescent
-    (step247UniformRouteBPaperFaithfulTPhiPlacedQuotientDescentData_of_renamedCanonicalInterfaceExpansionData
-      (step247UniformRouteBPaperFaithfulTPhiRenamedCanonicalInterfaceExpansionData_of_canonicalInterfaceExpansionData
-        (step247UniformRouteBPaperFaithfulTPhiCanonicalInterfaceExpansionData_of_interfaceSlotExpansionData
-          (step247UniformRouteBPaperFaithfulTPhiInterfaceSlotExpansionData_of_compiledBasisProfileSubspaceRowData
-            (step247UniformRouteBPaperFaithfulTPhiCompiledBasisProfileSubspaceRowData_of_shiftedBranchAtomCompiledBasisProfileData
-              hData)))))
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiCompiledBasisProfileSubspaceRowData
+    (step247UniformRouteBPaperFaithfulTPhiCompiledBasisProfileSubspaceRowData_of_shiftedBranchAtomCompiledBasisProfileData
+      hData)
 
 /-- Shifted Leibniz-product compiled-basis profile exposure: the product-level
 local membership rewrites to the witnessed branch-atom surface, then follows
