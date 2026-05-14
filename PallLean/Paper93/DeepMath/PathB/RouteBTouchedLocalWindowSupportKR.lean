@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedMonomialCodedFiniteSpanKR
+import PallLean.Paper93.DeepMath.PathB.RouteBTouchedCanonicalSourceKR
 
 /-!
 # Route B touched local-window support
@@ -201,6 +202,82 @@ theorem cookLevinAllocatedVars_subset_localWindow_of_source
   exact cookLevinConstraint_support_subset_localWindow_of_mem M n hn2 htb hns i v hv
     (hcompat i w (by simpa using hw))
 
+/-- The whole support of the canonical source selected at a KR row position lies
+in the radius-1 local window of the row variable at that position. -/
+theorem cookLevinCanonicalTouchedSource_support_subset_localWindow
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (hlen : S.length = Nat.log 2 n)
+    (j : Fin (Nat.log 2 n))
+    (i : cookLevinConstraintIdx M n hn2 htb hns)
+    (hi : canonicalTouchedSourceIdx M n hn2 htb hns S hlen j = some i) :
+    ((cookLevinTableau M n hn2 htb hns).constraints.get i).support ⊆
+      cookLevinVarLocalWindow (cookLevinTableau M n hn2 htb hns).numVars
+        (touchedRowVarAt M n hn2 htb hns S hlen j) := by
+  classical
+  have hfibre :
+      i ∈ touchedWindowSupportFibre M n hn2 htb hns S hlen j :=
+    canonicalTouchedSourceIdx_mem_fibre M n hn2 htb hns S hlen j i hi
+  have hv :
+      touchedRowVarAt M n hn2 htb hns S hlen j ∈
+        ((cookLevinTableau M n hn2 htb hns).constraints.get i).support := by
+    unfold touchedWindowSupportFibre at hfibre
+    simpa only [Finset.mem_filter, Finset.mem_univ, true_and] using hfibre
+  exact cookLevinConstraint_support_subset_localWindow_of_mem
+    M n hn2 htb hns i (touchedRowVarAt M n hn2 htb hns S hlen j) hv
+
+/-- For the canonical source selected at a KR row position, every derivative
+variable allocated to that source lies in the radius-1 local window of the row
+variable at that position.
+
+This is a concrete local-support step toward the real touched-window normal
+form: once the source is no longer arbitrary but chosen from the actual support
+fibre, compatibility of the derivative allocation forces all selected
+derivative variables into the same constant-size local coordinate window. -/
+theorem cookLevinAllocatedVars_subset_localWindow_of_canonicalTouchedSource
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (hlen : S.length = Nat.log 2 n)
+    (alloc : cookLevinConstraintIdx M n hn2 htb hns →
+      List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (hcompat : ∀ j, ∀ w ∈ alloc j,
+      w ∈ ((cookLevinTableau M n hn2 htb hns).constraints.get j).support)
+    (j : Fin (Nat.log 2 n))
+    (i : cookLevinConstraintIdx M n hn2 htb hns)
+    (hi : canonicalTouchedSourceIdx M n hn2 htb hns S hlen j = some i) :
+    (alloc i).toFinset ⊆
+      cookLevinVarLocalWindow (cookLevinTableau M n hn2 htb hns).numVars
+        (touchedRowVarAt M n hn2 htb hns S hlen j) := by
+  classical
+  have hsupport :=
+    cookLevinCanonicalTouchedSource_support_subset_localWindow
+      M n hn2 htb hns S hlen j i hi
+  intro w hw
+  exact hsupport (hcompat i w (by simpa using hw))
+
+/-- The same local-window containment stated from the canonical source record
+rather than directly from the option-valued source index. -/
+theorem cookLevinAllocatedVars_subset_localWindow_of_canonicalTouchedWindowSource
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (hlen : S.length = Nat.log 2 n)
+    (alloc : cookLevinConstraintIdx M n hn2 htb hns →
+      List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (hcompat : ∀ j, ∀ w ∈ alloc j,
+      w ∈ ((cookLevinTableau M n hn2 htb hns).constraints.get j).support)
+    (j : Fin (Nat.log 2 n))
+    (i : cookLevinConstraintIdx M n hn2 htb hns)
+    (hi : (canonicalTouchedWindowSource M n hn2 htb hns S hlen j).source = some i) :
+    (alloc i).toFinset ⊆
+      cookLevinVarLocalWindow (cookLevinTableau M n hn2 htb hns).numVars
+        (touchedRowVarAt M n hn2 htb hns S hlen j) := by
+  exact
+    cookLevinAllocatedVars_subset_localWindow_of_canonicalTouchedSource
+      M n hn2 htb hns S hlen alloc hcompat j i hi
+
 /-! ## Axiom audit anchors -/
 
 #print axioms cookLevinVarLocalWindow_card_le_three
@@ -212,5 +289,8 @@ theorem cookLevinAllocatedVars_subset_localWindow_of_source
 #print axioms transSkelConstraintList_support_subset_localWindow_of_mem
 #print axioms cookLevinConstraint_support_subset_localWindow_of_mem
 #print axioms cookLevinAllocatedVars_subset_localWindow_of_source
+#print axioms cookLevinCanonicalTouchedSource_support_subset_localWindow
+#print axioms cookLevinAllocatedVars_subset_localWindow_of_canonicalTouchedSource
+#print axioms cookLevinAllocatedVars_subset_localWindow_of_canonicalTouchedWindowSource
 
 end PallLean.Paper93.DeepMath.PathB
