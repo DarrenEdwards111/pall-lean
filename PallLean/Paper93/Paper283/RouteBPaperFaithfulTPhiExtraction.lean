@@ -33321,6 +33321,32 @@ noncomputable def routeBPaperFaithfulTPhiCompilerFixedLocalGenerators :
   [routeBPaperFaithfulTPhiCompilerFixedLocalGenerator false,
    routeBPaperFaithfulTPhiCompilerFixedLocalGenerator true]
 
+/-- The compiler-fixed local monoid has exactly four elements: the four
+endomaps of the two-point interface fibre. -/
+theorem routeBPaperFaithfulTPhi_compilerFixedLocal_card_eq_four :
+    Fintype.card routeBPaperFaithfulTPhiCompilerFixedLocalMonoid = 4 := by
+  decide
+
+/-- Explicit constant bound for the compiler-fixed normal forms: since
+`|End(Fin 2)| = 4`, the shortlex bound `|M| + 1` is `5`. -/
+theorem routeBPaperFaithfulTPhi_compilerFixedLocal_NF_length_le_five
+    (g : routeBPaperFaithfulTPhiCompilerFixedLocalMonoid) :
+    (PallLean.Paper93.NF
+        routeBPaperFaithfulTPhiCompilerFixedLocalGenerators g).length ≤ 5 := by
+  unfold PallLean.Paper93.NF
+  have hmem :
+      PallLean.Paper93.pickShortlex
+          (PallLean.Paper93.repCandidates
+            routeBPaperFaithfulTPhiCompilerFixedLocalGenerators g) ∈
+        PallLean.Paper93.repCandidates
+          routeBPaperFaithfulTPhiCompilerFixedLocalGenerators g :=
+    PallLean.Paper93.pickShortlex_mem _
+      (PallLean.Paper93.repCandidates_ne_nil
+        routeBPaperFaithfulTPhiCompilerFixedLocalGenerators g)
+  have hle := PallLean.Paper93.repCandidates_length_le
+    routeBPaperFaithfulTPhiCompilerFixedLocalGenerators g _ hmem
+  simpa [routeBPaperFaithfulTPhi_compilerFixedLocal_card_eq_four] using hle
+
 /-- Paper §9.3 Lemma 25, specialized to the compiler-fixed Route-B local
 monoid: every local monoid element has a shortlex normal form of bounded
 length.  The bound is a literal constant because the monoid is `End(Fin 2)`,
@@ -33374,6 +33400,8 @@ theorem routeBPaperFaithfulTPhi_compilerFixedStrictOp_NFOfWord_action
   exact routeBPaperFaithfulTPhi_compilerFixedLocal_NFOfWord_action
     (u.map routeBPaperFaithfulTPhiCompilerFixedLocalGenerator) x
 
+#print axioms routeBPaperFaithfulTPhi_compilerFixedLocal_card_eq_four
+#print axioms routeBPaperFaithfulTPhi_compilerFixedLocal_NF_length_le_five
 #print axioms routeBPaperFaithfulTPhi_compilerFixedLocal_NF_length_le
 #print axioms routeBPaperFaithfulTPhi_compilerFixedLocal_NF_represents
 #print axioms routeBPaperFaithfulTPhi_compilerFixedLocal_NFOfWord_represents
