@@ -30,6 +30,34 @@ theorem noBoundedSATDeciderAtPaperScale_implies_not_PeqNP
 
 #print axioms noBoundedSATDeciderAtPaperScale_implies_not_PeqNP
 
+/-- No-seam paper-level closeout.
+
+This theorem exposes the already-checked constructive Step-4 sandwich at the
+Path-B bridge surface with **no Route-B seam argument**: no selected profile
+payload, no fiber partition, no local-algebra closure, and no `GlobalGodMoveGauge.exists_*`
+existential.  It closes `PeqNP_Paper` directly from the compiled-polynomial
+P-side/NP-side rank contradiction recorded in `PaperFaithfulSeparation`.
+
+Axiom audit should match `PaperFaithfulSeparation.P_ne_NP_unconditional_step4_constructive`:
+standard Lean axioms plus the legacy P-side profile-compression axiom, but no
+Route-B bottom-seam assumptions. -/
+theorem P_ne_NP_paper_no_routeB_seams_constructive :
+    ∀ (_ : PeqNP_Paper), False :=
+  PaperFaithfulSeparation.P_ne_NP_unconditional_step4_constructive
+
+#print axioms P_ne_NP_paper_no_routeB_seams_constructive
+
+/-- Type-form alias for the no-seam constructive paper closeout.
+
+`PeqNP_Paper` is a structure/type, not a proposition, so the proposition-form
+statement of its impossibility is `IsEmpty PeqNP_Paper` (equivalently, every
+inhabitant eliminates to `False`). -/
+theorem isEmpty_PeqNP_Paper_no_routeB_seams_constructive :
+    IsEmpty PeqNP_Paper :=
+  ⟨P_ne_NP_paper_no_routeB_seams_constructive⟩
+
+#print axioms isEmpty_PeqNP_Paper_no_routeB_seams_constructive
+
 /-- Conditional paper-faithful closeout: if the Step247 selected-profile
 template-span Route-B seam is available uniformly, then `PeqNP_Paper` is
 contradictory.  This composes the Route-B no-decider theorem with the bridge
