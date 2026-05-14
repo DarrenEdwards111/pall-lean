@@ -2173,6 +2173,39 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
     (step247UniformRouteBPaperFaithfulTPhiSourceCanonicalProfileRowSpanData_of_sourceLocalTypeCompressionData
       hData)
 
+/-- One-shot assembly of the actual Lemma-31 term-local proof into the literal
+source local-type row-compression surface.
+
+The term-level local-type datum owns each bounded Leibniz summand.  Paper283
+already proves the finite Leibniz expansion/linearity step, giving the selected
+source profile subspace for the whole canonical derivative row; we then choose a
+finite basis of that selected `V_h` and package it as a one-type local alphabet.
+This is the honest one-shot move from term-local Lemma 31 to the literal
+canonical-row `V_h` statement. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceLocalTypeCompressionData_of_sourceLeibnizLocalTypeCompressionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceLocalTypeCompressionData := by
+  intro M n hn hn2 htb hns _hdec
+  let Dleib := Classical.choice (hData M n hn hn2 htb hns)
+  let Dprofile :=
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceProfileSubspaceData_of_leibnizLocalTypeCompressionData
+      M n hn2 htb hns Dleib
+  let Dinterface :=
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceInterfaceProfileData_of_sourceProfileSubspaceData
+      M n hn2 htb hns Dprofile
+  exact
+    ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceLocalTypeCompressionData_of_sourceInterfaceProfileData
+      M n hn2 htb hns Dinterface⟩
+
+/-- One-shot Route-B closeout from term-local Lemma-31 compression, explicitly
+through the literal source local-type and canonical row-span surfaces. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData_via_sourceLocalTypeCompression
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceLocalTypeCompressionData
+    (step247UniformRouteBPaperFaithfulTPhiSourceLocalTypeCompressionData_of_sourceLeibnizLocalTypeCompressionData
+      hData)
+
 /-- Generator-maps data yields the source local-monoid classifier seam. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidClassifierData_of_sourceLocalMonoidGeneratorMapsData
     (hData : Step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidGeneratorMapsData) :

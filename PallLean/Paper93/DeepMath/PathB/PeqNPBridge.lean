@@ -219,6 +219,22 @@ theorem P_ne_NP_canonical_routeB_sourceLocalTypeCompression_rowSpan_conditional
 
 #print axioms P_ne_NP_canonical_routeB_sourceLocalTypeCompression_rowSpan_conditional
 
+/-- One-shot canonical Route-B closure from the term-local Lemma-31 compression
+surface.
+
+This is the full corrected chain in one theorem:
+term-local Leibniz compression → selected source `V_h` for the whole canonical
+row → literal canonical profile row-span → strict `TΦ` extraction → SAT
+lower-bound contradiction → `PeqNP_Paper → False`. -/
+theorem P_ne_NP_canonical_routeB_oneShot_from_sourceLeibnizLocalTypeCompression_conditional
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_sourceLocalTypeCompression_rowSpan_conditional
+    (step247UniformRouteBPaperFaithfulTPhiSourceLocalTypeCompressionData_of_sourceLeibnizLocalTypeCompressionData
+      hData)
+
+#print axioms P_ne_NP_canonical_routeB_oneShot_from_sourceLeibnizLocalTypeCompression_conditional
+
 /-- Canonical conditional closure via the direct local compiled-coordinate
 profile-subspace row surface.
 
