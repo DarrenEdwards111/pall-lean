@@ -2122,12 +2122,55 @@ theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhi
     (fun M n hn hn2 htb hns hdec =>
       Classical.choice (hData M n hn hn2 htb hns hdec))
 
-/-- Route-B closeout through source local-type compression data. -/
+/-- Step247-uniform literal source canonical row-span data.
+
+This is the manuscript Lemma-32 surface in source coordinates: after canonical
+window/profile selection, `V_h` is literally the span of selected canonical
+source rows with profile `h`, and the only remaining content is the
+within-profile finite-dimensional bound on those row spans. -/
+def Step247UniformRouteBPaperFaithfulTPhiSourceCanonicalProfileRowSpanData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (_hdec : DecidesSAT M),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceCanonicalProfileRowSpanData
+        M n hn2 htb hns)
+
+/-- Source local-type compression proves the literal source canonical row-span
+bound.
+
+The proof is the concrete Lemma-31→Lemma-32 assembly already checked in
+Paper283: every selected row lands in its selected compressed local-type space,
+so the literal selected row span injects into a finite basis of size
+`withinProfileBound`. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceCanonicalProfileRowSpanData_of_sourceLocalTypeCompressionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceLocalTypeCompressionData) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceCanonicalProfileRowSpanData := by
+  intro M n hn hn2 htb hns hdec
+  rcases hData M n hn hn2 htb hns hdec with ⟨D⟩
+  exact
+    ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceCanonicalProfileRowSpanData_of_sourceLocalTypeCompressionData
+      M n hn2 htb hns D⟩
+
+/-- Literal source canonical row-span data closes Route B at Step247 scale.
+
+This is the row-span/profile route directly: canonical row spans give selected
+source profile subspaces, rank monotonicity transports through strict `TΦ`, and
+the SAT-decider-specific lower bound fires on the extracted coupled sheet. -/
+theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceCanonicalProfileRowSpanData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceCanonicalProfileRowSpanData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_strictSourceCanonicalProfileRowSpanData
+    (fun M n hn hn2 htb hns hdec =>
+      Classical.choice (hData M n hn hn2 htb hns hdec))
+
+/-- Route-B closeout through source local-type compression data, explicitly
+routed via the literal canonical row-span/profile bound. -/
 theorem noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceLocalTypeCompressionData
     (hData : Step247UniformRouteBPaperFaithfulTPhiSourceLocalTypeCompressionData) :
     NoBoundedSATDeciderAtPaperScale :=
-  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidClassifierData
-    (step247UniformRouteBPaperFaithfulTPhiSourceLocalMonoidClassifierData_of_sourceLocalTypeCompressionData
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceCanonicalProfileRowSpanData
+    (step247UniformRouteBPaperFaithfulTPhiSourceCanonicalProfileRowSpanData_of_sourceLocalTypeCompressionData
       hData)
 
 /-- Generator-maps data yields the source local-monoid classifier seam. -/

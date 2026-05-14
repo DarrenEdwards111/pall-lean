@@ -191,6 +191,34 @@ theorem P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_sourceLocalMonoidG
 
 #print axioms P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_sourceLocalMonoidGeneratorMaps_conditional
 
+/-- Canonical conditional closure via the literal source canonical row-span
+surface.
+
+This is the manuscript-faithful Lemma-32 endpoint: canonical windows select a
+profile, `V_h` is the span of selected canonical source rows of that profile,
+that row span has the within-profile bound, and only then the strict `TΦ`
+extraction/lower-bound bridge is applied. -/
+theorem P_ne_NP_canonical_routeB_sourceCanonicalProfileRowSpan_conditional
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceCanonicalProfileRowSpanData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  noBoundedSATDeciderAtPaperScale_implies_not_PeqNP
+    (noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceCanonicalProfileRowSpanData
+      hData)
+
+#print axioms P_ne_NP_canonical_routeB_sourceCanonicalProfileRowSpan_conditional
+
+/-- Canonical conditional closure from source local-type compression, routed
+through the literal canonical row-span/profile bound rather than the old raw-row
+expansion target. -/
+theorem P_ne_NP_canonical_routeB_sourceLocalTypeCompression_rowSpan_conditional
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceLocalTypeCompressionData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_sourceCanonicalProfileRowSpan_conditional
+    (step247UniformRouteBPaperFaithfulTPhiSourceCanonicalProfileRowSpanData_of_sourceLocalTypeCompressionData
+      hData)
+
+#print axioms P_ne_NP_canonical_routeB_sourceLocalTypeCompression_rowSpan_conditional
+
 /-- Canonical conditional closure via the direct local compiled-coordinate
 profile-subspace row surface.
 
