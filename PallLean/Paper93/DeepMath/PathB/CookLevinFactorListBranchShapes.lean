@@ -188,6 +188,57 @@ theorem cookLevinFactorList_transition_segment_cadj_shape
     omega
   · rw [hfactor, hpoly]
 
+/-- The actual direct-branch-shape package for `cookLevinFactorList`.
+
+Unlike the older `CookLevinDirectBranchShapeWitnesses`, the transition branch
+uses the real transition-skeleton factor shape produced by the compiler,
+`1 - c * X_a * X_b`, while still recording that the bookkeeping classifier is
+`ConstraintType.transitionLeft`.  This is the unconditional shape statement
+needed before any separate row-transport / enlarged-interface argument. -/
+def CookLevinActualDirectBranchShapeWitnesses
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∀ i : Fin (cookLevinFactorList M n hn htb hns).length,
+    (∃ v : Fin n,
+        cookLevinConstraintType M n hn htb hns i =
+          ConstraintType.booleanity ∧
+        (cookLevinFactorList M n hn htb hns).get i =
+          (1 - MvPolynomial.X v + (MvPolynomial.X v) ^ 2 :
+              MvPolynomial (Fin n) ℚ)) ∨
+    (∃ a b : Fin n,
+        a ≠ b ∧
+        cookLevinConstraintType M n hn htb hns i =
+          ConstraintType.adjacency ∧
+        (cookLevinFactorList M n hn htb hns).get i =
+          (1 - MvPolynomial.X a * MvPolynomial.X b :
+              MvPolynomial (Fin n) ℚ)) ∨
+    (∃ (c : ℚ) (a b : Fin n),
+        a ≠ b ∧
+        cookLevinConstraintType M n hn htb hns i =
+          ConstraintType.transitionLeft ∧
+        (cookLevinFactorList M n hn htb hns).get i =
+          (1 - MvPolynomial.C c * (MvPolynomial.X a * MvPolynomial.X b) :
+              MvPolynomial (Fin n) ℚ))
+
+/-- The actual branch-shape package is inhabited unconditionally for the
+concrete Cook-Levin factor list. -/
+theorem cookLevinActualDirectBranchShapeWitnesses
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    CookLevinActualDirectBranchShapeWitnesses M n hn htb hns := by
+  classical
+  intro i
+  by_cases hbool : i.1 < n
+  · left
+    exact cookLevinFactorList_booleanity_prefix_shape M n hn htb hns i hbool
+  · by_cases hadj : i.1 < n + (PaperFaithfulSeparation.adjConstraintList n).length
+    · right; left
+      exact cookLevinFactorList_adjacency_segment_shape M n hn htb hns i
+        (Nat.le_of_not_gt hbool) hadj
+    · right; right
+      exact cookLevinFactorList_transition_segment_cadj_shape M n hn htb hns i
+        (Nat.le_of_not_gt hadj)
+
 /-- The remaining transition-tail shape obligation after the true booleanity
 and adjacency branches have been discharged from the actual factor list.
 
@@ -233,6 +284,7 @@ theorem CookLevinDirectBranchShapeWitnesses_of_transitionTailCanonicalShape
 #print axioms cookLevinFactorList_booleanity_prefix_shape
 #print axioms cookLevinFactorList_adjacency_segment_shape
 #print axioms cookLevinFactorList_transition_segment_cadj_shape
+#print axioms cookLevinActualDirectBranchShapeWitnesses
 #print axioms CookLevinDirectBranchShapeWitnesses_of_transitionTailCanonicalShape
 
 end PallLean.Paper93.DeepMath.PathB
