@@ -235,6 +235,32 @@ theorem P_ne_NP_canonical_routeB_oneShot_from_sourceLeibnizLocalTypeCompression_
 
 #print axioms P_ne_NP_canonical_routeB_oneShot_from_sourceLeibnizLocalTypeCompression_conditional
 
+/-- Canonical one-shot closeout from the lowest coherent bottom seam:
+factor-fiber slot partitions plus local-algebra selected-shift closure first
+construct the literal source Leibniz local-type compression witness, then the
+canonical row-span/`TΦ` bridge contradicts `PeqNP_Paper`. -/
+theorem P_ne_NP_canonical_routeB_oneShot_from_fiberPartition_and_localAlgebra_sourceLeibnizLocalTypeCompression_conditional
+    (hFib : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData)
+    (hLocal : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData)
+    (hPartEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+        let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+        DLoc.sourcePartition = DFib.sourcePartition)
+    (hProfEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+        let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+        ∀ w hw, DLoc.profileOfCanonicalWindow w hw = DFib.profileOfCanonicalWindow w hw) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_oneShot_from_sourceLeibnizLocalTypeCompression_conditional
+    (step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData_of_fiberPartitionData_and_localAlgebraData
+      hFib hLocal hPartEq hProfEq)
+
+#print axioms P_ne_NP_canonical_routeB_oneShot_from_fiberPartition_and_localAlgebra_sourceLeibnizLocalTypeCompression_conditional
+
 /-- Canonical conditional closure via the direct local compiled-coordinate
 profile-subspace row surface.
 

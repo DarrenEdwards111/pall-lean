@@ -1660,6 +1660,51 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCom
     (step247UniformRouteBPaperFaithfulTPhiSourceSelectedProfileTemplateSpanData_of_profileTemplateTermFamilyData
       hData)
 
+/-- The paired exact-slot + selected-shift-closure bottom seam directly
+constructs the term-local Leibniz local-type compression datum.
+
+This records the paper-faithful route at the level of the actual missing
+Lemma-31 witness: exact interface slots plus their selected shift closure first
+recover the witnessed slot-factorization seam, then the checked local-algebra
+and compiled-basis profile adapters instantiate the selected Leibniz local-type
+compression surface. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData_of_exactInterfaceSlotFactorizationWithSelectedShiftClosureData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData :=
+  step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData_of_shiftedLeibnizProductData
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisProfileData_of_localAlgebraData
+      (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData_of_interfaceSlotFactorizationData
+        (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData_of_exactInterfaceSlotFactorizationWithSelectedShiftClosureData
+          hData)))
+
+/-- Coherent factor-fiber partitions plus local-algebra data construct the
+term-local Leibniz local-type compression witness from the lowest explicit
+paper seam.
+
+The factor-fiber payload provides exact interface slots; the coherent
+local-algebra payload supplies precisely the selected shift/`mlProj` closure on
+those slots.  The resulting paired seam is then routed through the literal
+Leibniz local-type compression constructor above. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData_of_fiberPartitionData_and_localAlgebraData
+    (hFib : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData)
+    (hLocal : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData)
+    (hPartEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+        let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+        DLoc.sourcePartition = DFib.sourcePartition)
+    (hProfEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+        let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+        ∀ w hw, DLoc.profileOfCanonicalWindow w hw = DFib.profileOfCanonicalWindow w hw) :
+    Step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData :=
+  step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData_of_exactInterfaceSlotFactorizationWithSelectedShiftClosureData
+    (step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData_of_fiberPartitionData_and_localAlgebraData
+      hFib hLocal hPartEq hProfEq)
+
 /-- Leibniz-term local-type compression assembles to the strict source
 `ConstraintType` profile-subspace datum consumed by the `TΦ` P-side bound. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiStrictSourceConstraintTypeProfileSubspaceData_of_sourceLeibnizLocalTypeCompressionData

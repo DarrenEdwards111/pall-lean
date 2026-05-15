@@ -840,6 +840,30 @@ theorem SAT_path_B_paperFaithfulSourceLeibnizLocalTypeCompression_oneShot_TPhi_e
   noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData_via_sourceLocalTypeCompression
     hData
 
+/-- One-shot SAT-chain exposure from the lowest coherent bottom seam:
+factor-fiber slot partitions plus local-algebra selected-shift closure construct
+`Step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData`,
+then close through the same literal `TΦ` extraction move. -/
+theorem SAT_path_B_paperFaithfulSourceLeibnizLocalTypeCompression_from_fiberPartition_and_localAlgebra_TPhi_extraction_move
+    (hFib : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData)
+    (hLocal : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData)
+    (hPartEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+        let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+        DLoc.sourcePartition = DFib.sourcePartition)
+    (hProfEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DFib := Classical.choice (hFib M n _hn hn2 htb hns)
+        let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+        ∀ w hw, DLoc.profileOfCanonicalWindow w hw = DFib.profileOfCanonicalWindow w hw) :
+    NoBoundedSATDeciderAtPaperScale :=
+  SAT_path_B_paperFaithfulSourceLeibnizLocalTypeCompression_oneShot_TPhi_extraction_move
+    (step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData_of_fiberPartitionData_and_localAlgebraData
+      hFib hLocal hPartEq hProfEq)
+
 /-- Shifted Leibniz local-algebra exposure: it is enough to prove the unshifted
 bounded Leibniz product is in the selected profile subspace and that the
 selected shift/`mlProj` operation preserves that subspace. -/
