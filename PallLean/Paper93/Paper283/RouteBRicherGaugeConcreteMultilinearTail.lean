@@ -1524,9 +1524,9 @@ theorem routeBRicherConcreteNPPrependedMultilinearRows_spdpMapPreimage_of_residu
           S shift = 0) :
     RouteBRicherGaugeFiniteRowsSPDPMapPreimage M n hn2 htb hns
       (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns) :=
-  routeBRicherConcreteNPPrependedRows_spdpMapPreimage_of_spdpClosure_kernelCompatibility
+  routeBRicherGaugeFiniteRowsSPDPMapPreimage_of_spdpClosure_kernelCompatibility
     M n hn2 htb hns
-    (routeBRicherMultilinearTailRows M n hn2 htb hns)
+    (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns)
     (routeBRicherConcreteNPPrependedMultilinearRows_spdpClosure
       M n hn2 htb hns)
     ((routeBRicherConcreteNPPrependedMultilinearRows_kernelCompatibility_iff_residualGenerator_zero
@@ -1752,10 +1752,10 @@ theorem routeBRicherConcreteNPPrependedMultilinearRows_spdpMapPreimage_of_unproj
         (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns)) :
     RouteBRicherGaugeFiniteRowsSPDPMapPreimage M n hn2 htb hns
       (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns) :=
-  routeBRicherConcreteNPPrependedRows_spdpMapPreimage_of_rowClosurePackage_unprojectedPreimage
+  routeBRicherGaugeFiniteRowsSPDPMapPreimage_of_unprojectedPreimage
     M n hn2 htb hns
-    (routeBRicherMultilinearTailRows M n hn2 htb hns)
-    (routeBRicherConcreteNPPrependedMultilinearRows_spdpRowClosurePackage
+    (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns)
+    (routeBRicherConcreteNPPrependedMultilinearRows_spdpClosure
       M n hn2 htb hns)
     preimage
 

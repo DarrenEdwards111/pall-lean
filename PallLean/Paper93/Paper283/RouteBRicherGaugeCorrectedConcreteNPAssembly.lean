@@ -191,6 +191,55 @@ theorem routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCom
     (routeBRicherGauge_endpointChargedPWindowBridge_of_activeTypeCaseBlockers_zeroNonScalarCardBound_concreteWEndpointSpanOneStepCharge
       M n hn2 htb hns hn4 hI1 hI3 hbound hactive)
 
+/-- Corrected concrete-NP Route B assembly using endpoint/charged local
+closure and a genuine zero-profile common-span witness.
+
+This is the concrete-head version of the compressed-zero-profile final
+surface: `hzero` supplies the zero-profile span directly, while `hcomm`
+supplies the finite-row projection transport. -/
+theorem routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCommutation_endpointChargedZeroProfileCommonSpan_deltaEqRateKappa
+    {N d : Nat}
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4) (charge : ProfileCharge n)
+    (alpha beta alpha0 : Real) (kappa gadgetN : Nat)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    {eta theta : Real}
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hN : 1 <= N) (hrowCount : m + 1 <= N)
+    (heta : 0 < eta) (htheta : 0 < theta)
+    (halpha : 0 < alpha) (halpha0 : 0 < alpha0)
+    (hkappa : 0 < kappa) (hgadgetN : 2 <= gadgetN)
+    (hI1 :
+      PerTypeProductGrouping (n := n) (endpointAugmentedConcreteW n hn4))
+    (hI2c :
+      EndpointAugmentedConcreteWChargedShiftClosure n hn4 charge)
+    (hI3 :
+      PerTypeMlprojClosure (n := n) (endpointAugmentedConcreteW n hn4))
+    (hzero :
+      CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hactive :
+      CookLevinActiveProfileTypeCaseBlockers M n hn2 htb hns)
+    (hcomm :
+      RouteBRicherGaugeGeneratorCommutation M n hn2 htb hns
+        (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns
+          (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail))) :
+    RouteBPerInstanceCertificate M n hn2 htb hns :=
+  routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCommutation_endpointChargedBridge_deltaEqRateKappa
+    (N := N) (d := d)
+    M n hn hn2 htb hns hn4 charge
+    alpha beta alpha0 kappa gadgetN G chi Phi
+    tail hN hrowCount heta htheta halpha halpha0 hkappa hgadgetN
+    hcomm
+    { localClosure :=
+        endpointAugmentedConcreteW_correctedLocalClosure_of_charged_components
+          n hn4 charge hI1 hI2c hI3
+      cover :=
+        routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_activeTypeCaseBlockers_and_zeroProfileCommonSpan
+          M n hn2 htb hns hn4 hzero hactive }
+
 /-- Stronger corrected reduction with concrete NP data: concreteW row
 embeddings close the active live-profile blockers, the zero-profile support
 side condition closes the non-scalar cardinality bound, and the prepended row
@@ -332,6 +381,7 @@ theorem routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCom
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCommutation_endpointChargedBridge_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCommutation_activeBlockersZeroNonScalar_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCommutation_activeBlockersZeroNonScalar_concreteWEndpointSpanOneStepCharge_deltaEqRateKappa
+#print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCommutation_endpointChargedZeroProfileCommonSpan_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCommutation_rowEmbeddingsZeroSupport_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsSPDPMapPreimage_rowEmbeddings_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCommutation_rowEmbeddings_deltaEqRateKappa

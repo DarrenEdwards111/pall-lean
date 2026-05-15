@@ -116,6 +116,48 @@ noncomputable def routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_livePro
       M n hn2 htb hns hzero hbudget)
     hlive
 
+/-- A compressed finite-dimensional zero-profile span, together with
+live-profile common-span cases, gives the richer-gauge P-window finite-span
+cover.  This is the non-support-card interface: the zero-profile input is a
+subspace/finrank certificate rather than the explicit support basis. -/
+noncomputable def routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_liveProfileCases_zeroCompressedSpan
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    {budget : Nat}
+    (hzero :
+      CookLevinZeroProfileCompressedSpanWithBudget
+        M n hn2 htb hns budget)
+    (hbudget : budget <= withinProfileBound (Nat.log 2 n))
+    (hlive :
+      CookLevinAllBoundedProfileCommonSpanLiveProfileCases
+        M n hn2 htb hns) :
+    RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns :=
+  routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_liveProfileCases
+    M n hn2 htb hns hn4
+    (cookLevinZeroHistogramShiftCommonSpan_of_compressedSpanWithBudget
+      M n hn2 htb hns hzero hbudget)
+    hlive
+
+/-- Final-budget compressed zero-profile common-span interface, together with
+live-profile common-span cases, gives the richer-gauge P-window finite-span
+cover without the support-card route. -/
+noncomputable def routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_liveProfileCases_zeroCompressedCommonSpan
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (hzero :
+      CookLevinZeroProfileCompressedCommonSpan M n hn2 htb hns)
+    (hlive :
+      CookLevinAllBoundedProfileCommonSpanLiveProfileCases
+        M n hn2 htb hns) :
+    RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns :=
+  routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_liveProfileCases
+    M n hn2 htb hns hn4
+    (cookLevinZeroHistogramShiftCommonSpan_of_compressedCommonSpan
+      M n hn2 htb hns hzero)
+    hlive
+
 /-- Direct cardinality-budget variant of the live-profile/non-scalar
 zero-profile P-window route.
 
@@ -234,6 +276,45 @@ noncomputable def routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concret
       M n hn2 htb hns hzero hbudget)
     hRowEmbeddings
 
+/-- Compressed zero-profile subspace variant of the concreteW/non-template
+P-window route. -/
+noncomputable def routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concreteW_zeroCompressedSpan
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    {budget : Nat}
+    (hzero :
+      CookLevinZeroProfileCompressedSpanWithBudget
+        M n hn2 htb hns budget)
+    (hbudget : budget <= withinProfileBound (Nat.log 2 n))
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn2 htb hns hn4) :
+    RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns :=
+  routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concreteW_zeroProfileCommonSpan
+    M n hn2 htb hns hn4
+    (cookLevinZeroHistogramShiftCommonSpan_of_compressedSpanWithBudget
+      M n hn2 htb hns hzero hbudget)
+    hRowEmbeddings
+
+/-- Final-budget compressed zero-profile common-span variant of the
+concreteW/non-template P-window route. -/
+noncomputable def routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concreteW_zeroCompressedCommonSpan
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (hzero :
+      CookLevinZeroProfileCompressedCommonSpan M n hn2 htb hns)
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn2 htb hns hn4) :
+    RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns :=
+  routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concreteW_zeroProfileCommonSpan
+    M n hn2 htb hns hn4
+    (cookLevinZeroHistogramShiftCommonSpan_of_compressedCommonSpan
+      M n hn2 htb hns hzero)
+    hRowEmbeddings
+
 /-- Direct cardinality-budget variant of the concreteW/non-template
 P-window route. -/
 noncomputable def routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concreteW_zeroNonScalarCardBound
@@ -330,12 +411,16 @@ noncomputable def routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concret
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_liveProfileCases
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_liveProfileCases_zeroSupportCardSum
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_liveProfileCases_zeroNonScalarClosure
+#print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_liveProfileCases_zeroCompressedSpan
+#print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_liveProfileCases_zeroCompressedCommonSpan
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_liveProfileCases_zeroNonScalarCardBound
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_liveProfileCases_zeroSupportBaseCard
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concreteW_zeroProfileCommonSpan
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concreteW_zeroSupportCardSum
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concreteW_zeroSupportBaseCard
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concreteW_zeroNonScalarClosure
+#print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concreteW_zeroCompressedSpan
+#print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concreteW_zeroCompressedCommonSpan
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concreteW_zeroNonScalarCardBound
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_templateCollapseAtProfiles
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_templateCollapse

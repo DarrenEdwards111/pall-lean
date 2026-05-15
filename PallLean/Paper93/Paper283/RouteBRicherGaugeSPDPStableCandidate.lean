@@ -551,6 +551,29 @@ theorem routeBRicherSPDPStableCandidate_residualInvisible_iff_kernelCompatibilit
       routeBRicherSPDPStableCandidate_residualInvisible_of_kernelCompatibility
         M n hn2 htb hns tail
 
+/-- Selected-row closure plus residual invisibility proves the exact finite-row
+SPDP map-preimage field for the smaller candidate. -/
+theorem routeBRicherSPDPStableCandidate_spdpMapPreimage_of_selectedRowClosure_residualInvisible
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hclosure :
+      RouteBRicherSPDPStableCandidateSelectedRowClosure
+        M n hn2 htb hns tail)
+    (hinvisible :
+      RouteBRicherSPDPStableCandidateResidualInvisible
+        M n hn2 htb hns tail) :
+    RouteBRicherGaugeFiniteRowsSPDPMapPreimage M n hn2 htb hns
+      (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail) :=
+  routeBRicherGaugeFiniteRowsSPDPMapPreimage_of_spdpClosure_kernelCompatibility
+    M n hn2 htb hns
+    (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail)
+    (routeBRicherSPDPStableCandidate_spdpClosure
+      M n hn2 htb hns tail hclosure)
+    (routeBRicherSPDPStableCandidate_kernelCompatibility_of_residualInvisible
+      M n hn2 htb hns tail hinvisible)
+
 /-- The two named obligations prove generator commutation for the smaller
 finite-row candidate. -/
 theorem routeBRicherSPDPStableCandidate_generatorCommutation
@@ -585,12 +608,10 @@ theorem routeBRicherSPDPStableCandidate_spdpMapPreimage
     RouteBRicherGaugeFiniteRowsSPDPMapPreimage M n hn2 htb hns
       (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail) := by
   exact
-    routeBRicherConcreteNPPrependedRows_spdpMapPreimage_of_spdpClosure_kernelCompatibility
+    routeBRicherSPDPStableCandidate_spdpMapPreimage_of_selectedRowClosure_residualInvisible
       M n hn2 htb hns tail
-      (routeBRicherSPDPStableCandidate_spdpClosure
-        M n hn2 htb hns tail obligations.selected_row_closure)
-      (routeBRicherSPDPStableCandidate_kernelCompatibility_of_residualInvisible
-        M n hn2 htb hns tail obligations.residual_invisible)
+      obligations.selected_row_closure
+      obligations.residual_invisible
 
 /-- The two named obligations prove Route B SPDP subspace containment for the
 smaller finite-row candidate. -/
@@ -687,6 +708,7 @@ theorem routeBPerInstanceCertificate_of_spdpStableCandidate_rowEmbeddings_deltaE
 #print axioms routeBRicherSPDPStableCandidate_kernelCompatibility_of_residualInvisible
 #print axioms routeBRicherSPDPStableCandidate_residualInvisible_of_kernelCompatibility
 #print axioms routeBRicherSPDPStableCandidate_residualInvisible_iff_kernelCompatibility
+#print axioms routeBRicherSPDPStableCandidate_spdpMapPreimage_of_selectedRowClosure_residualInvisible
 #print axioms routeBRicherSPDPStableCandidate_generatorCommutation
 #print axioms routeBRicherSPDPStableCandidate_spdpMapPreimage
 #print axioms routeBRicherSPDPStableCandidate_spdpSubspaceContainment
