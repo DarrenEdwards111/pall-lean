@@ -20693,6 +20693,98 @@ theorem routeBPaperFaithfulTPhi_prod_eq_twoLevelFiberProduct
   exact Fintype.prod_sigma
     (fun p : Sigma (fun s => Fin (m s)) => (fiber p.1 p.2).prod f)
 
+/-- Classifier-shaped source for factor-indexed exact slot factorization.
+
+This is the direct fibre/profile seam: every restricted Cook--Levin factor is
+assigned to one anonymous interface slot `(σ,j)` of the selected realizable
+profile.  The disjointness and cover obligations of the raw fibre partition are
+then pure finite-set facts (preimages of a total slot classifier).  The remaining
+mathematical payload is exactly local: each slot-fibre product must land in the
+compiled-basis interface space for its type. -/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotClassifierData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  sourcePartition : SPDP.BlockPartition (n / 3)
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  factorSlotClassifier :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+          Sigma (fun σ : ConstraintType => Fin (ρ.val σ))
+  factorSlotClassifierContribution_mem_compiledBasis :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length)
+      (σ : ConstraintType) (j : Fin (ρ.val σ)),
+        (Finset.univ.filter (fun i :
+            Fin ((cookLevinFactorList M n hn2 htb hns).length) =>
+          factorSlotClassifier ρ S' shift α hSlen hshiftDegree hshiftVars
+            hadm hrow hρ d hd_elts hlen i = Sigma.mk σ j)).prod (fun i =>
+            SPDP.iterDerivList (d i)
+              ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                M n hn2 htb hns) i)) ∈
+          interfaceSpace_compiledBasis
+            sourcePartition (Nat.log 2 n) (Nat.log 2 n) σ
+
 /-- Partition-shaped constructor for factor-indexed exact slot factorization.
 
 Compared with `RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFactorizationData`,
@@ -20844,6 +20936,60 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexe
                 M n hn2 htb hns) i)) ∈
           interfaceSpace_compiledBasis
             sourcePartition (Nat.log 2 n) (Nat.log 2 n) σ
+
+/-- A total `(σ,j)` classifier canonically induces the disjoint covering slot
+fibres.  This discharges the fibre-partition bookkeeping from one local
+assignment function; the only non-combinatorial premise left in the classifier
+surface is the slot-fibre compiled-basis membership. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData_of_classifierData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotClassifierData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData
+      M n hn2 htb hns where
+  sourcePartition := D.sourcePartition
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  factorSlotFiber := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen σ j
+    exact Finset.univ.filter (fun i :
+      Fin ((cookLevinFactorList M n hn2 htb hns).length) =>
+        D.factorSlotClassifier ρ S' shift α hSlen hshiftDegree hshiftVars
+          hadm hrow hρ d hd_elts hlen i = Sigma.mk σ j)
+  factorSlotFiber_pairwiseDisjoint := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+    classical
+    intro a ha b hb hne
+    change Disjoint
+      (Finset.univ.filter (fun i :
+        Fin ((cookLevinFactorList M n hn2 htb hns).length) =>
+          D.factorSlotClassifier ρ S' shift α hSlen hshiftDegree hshiftVars
+            hadm hrow hρ d hd_elts hlen i = Sigma.mk a.1 a.2))
+      (Finset.univ.filter (fun i :
+        Fin ((cookLevinFactorList M n hn2 htb hns).length) =>
+          D.factorSlotClassifier ρ S' shift α hSlen hshiftDegree hshiftVars
+            hadm hrow hρ d hd_elts hlen i = Sigma.mk b.1 b.2))
+    rw [Finset.disjoint_left]
+    intro x hx hy
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hx hy
+    exact hne ((hy.symm.trans hx).symm)
+  factorSlotFiber_biUnion_eq_univ := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+    classical
+    ext x
+    simp only [Finset.mem_biUnion, Finset.mem_sigma, Finset.mem_univ,
+      Finset.mem_filter, true_and]
+    constructor
+    · intro _
+      trivial
+    · intro _
+      let p := D.factorSlotClassifier ρ S' shift α hSlen hshiftDegree hshiftVars
+        hadm hrow hρ d hd_elts hlen x
+      exact ⟨p, rfl⟩
+  factorSlotContribution_mem_compiledBasis := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen σ j
+    exact D.factorSlotClassifierContribution_mem_compiledBasis
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen σ j
 
 /-- A disjoint-and-covering factor-slot partition supplies the existing indexed
 slot factorization datum. -/
