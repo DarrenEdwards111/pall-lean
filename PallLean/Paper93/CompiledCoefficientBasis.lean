@@ -631,6 +631,154 @@ theorem interfaceSpace_compiledBasis_ne_bot_of_not_transitionRight
   rw [hbot] at hone
   simp at hone
 
+/-! ## Derivative closure of the compiled-basis local interface spaces
+
+The canonical `W_σ = interfaceSpace_compiledBasis ... σ` spaces are closed
+under local partial derivatives of their canonical three-slot generators.  This
+is the per-slot derivative membership needed by the Lemma 31 row-containment
+chain after a concrete Cook--Levin factor has been transported into its local
+compiled-basis chart.
+-/
+
+theorem pderiv_canonicalLocalX_mem_interfaceSpace_compiledBasis_of_not_transitionRight
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (σ : ConstraintType)
+    (hσ : σ ≠ ConstraintType.transitionRight) (v : Fin N) :
+    MvPolynomial.pderiv v (canonicalLocalX : MvPolynomial (Fin N) ℚ) ∈
+      interfaceSpace_compiledBasis B κ ℓ σ := by
+  classical
+  by_cases hN : 0 < N
+  · by_cases hv : v = ⟨0, hN⟩
+    · subst hv
+      simp [canonicalLocalX, hN]
+      exact one_mem_interfaceSpace_compiledBasis_of_not_transitionRight B κ ℓ σ hσ
+    · rw [canonicalLocalX, dif_pos hN]
+      rw [MvPolynomial.pderiv_X_of_ne (fun h => hv h.symm)]
+      exact Submodule.zero_mem _
+  · simp [canonicalLocalX, hN]
+
+theorem pderiv_canonicalLocalX1_mem_interfaceSpace_compiledBasis_of_not_transitionRight
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (σ : ConstraintType)
+    (hσ : σ ≠ ConstraintType.transitionRight) (v : Fin N) :
+    MvPolynomial.pderiv v (canonicalLocalX1 : MvPolynomial (Fin N) ℚ) ∈
+      interfaceSpace_compiledBasis B κ ℓ σ := by
+  classical
+  by_cases hN1 : 1 < N
+  · by_cases hv : v = ⟨1, hN1⟩
+    · subst hv
+      simp [canonicalLocalX1, hN1]
+      exact one_mem_interfaceSpace_compiledBasis_of_not_transitionRight B κ ℓ σ hσ
+    · rw [canonicalLocalX1, dif_pos hN1]
+      rw [MvPolynomial.pderiv_X_of_ne (fun h => hv h.symm)]
+      exact Submodule.zero_mem _
+  · rw [canonicalLocalX1, dif_neg hN1]
+    exact pderiv_canonicalLocalX_mem_interfaceSpace_compiledBasis_of_not_transitionRight
+      B κ ℓ σ hσ v
+
+theorem pderiv_canonicalLocalBoolFactor_mem_interfaceSpace_compiledBasis_booleanity
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (v : Fin N) :
+    MvPolynomial.pderiv v (canonicalLocalBoolFactor : MvPolynomial (Fin N) ℚ) ∈
+      interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity := by
+  classical
+  by_cases hN : 0 < N
+  · let z : Fin N := ⟨0, hN⟩
+    by_cases hv : v = z
+    · subst hv
+      rw [canonicalLocalBoolFactor, dif_pos hN]
+      rw [SymmetricPower.pderiv_boolFactor_self]
+      apply Submodule.add_mem
+      · exact Submodule.neg_mem _
+          (one_mem_interfaceSpace_compiledBasis_of_not_transitionRight
+            B κ ℓ _ (by simp))
+      · simpa [z, Algebra.smul_def, mul_comm] using
+          (Submodule.smul_mem _ (2 : ℚ)
+            (firstLocalX_mem_interfaceSpace_compiledBasis_booleanity B κ ℓ hN))
+    · rw [canonicalLocalBoolFactor, dif_pos hN]
+      rw [SymmetricPower.pderiv_boolFactor_of_ne N v z hv]
+      exact Submodule.zero_mem _
+  · simp [canonicalLocalBoolFactor, hN]
+
+/-- A single local partial derivative of any canonical interface generator stays
+inside its compiled-basis interface space. -/
+theorem pderiv_canonicalInterfacePolynomial_mem_interfaceSpace_compiledBasis
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (σ : ConstraintType)
+    (j : Fin d₀) (v : Fin N) :
+    MvPolynomial.pderiv v (canonicalInterfacePolynomial B κ ℓ σ j) ∈
+      interfaceSpace_compiledBasis B κ ℓ σ := by
+  classical
+  fin_cases σ <;> fin_cases j
+  · simp [canonicalInterfacePolynomial]
+  · simpa [canonicalInterfacePolynomial, canonicalInterfaceLinearSlot] using
+      pderiv_canonicalLocalX_mem_interfaceSpace_compiledBasis_of_not_transitionRight
+        B κ ℓ ConstraintType.booleanity (by simp) v
+  · simpa [canonicalInterfacePolynomial, canonicalInterfaceFactorSlot] using
+      pderiv_canonicalLocalBoolFactor_mem_interfaceSpace_compiledBasis_booleanity
+        B κ ℓ v
+  · simp [canonicalInterfacePolynomial]
+  · simpa [canonicalInterfacePolynomial, canonicalInterfaceLinearSlot] using
+      pderiv_canonicalLocalX_mem_interfaceSpace_compiledBasis_of_not_transitionRight
+        B κ ℓ ConstraintType.adjacency (by simp) v
+  · simpa [canonicalInterfacePolynomial, canonicalInterfaceFactorSlot] using
+      pderiv_canonicalLocalX1_mem_interfaceSpace_compiledBasis_of_not_transitionRight
+        B κ ℓ ConstraintType.adjacency (by simp) v
+  · simp [canonicalInterfacePolynomial]
+  · simpa [canonicalInterfacePolynomial, canonicalInterfaceLinearSlot] using
+      pderiv_canonicalLocalX_mem_interfaceSpace_compiledBasis_of_not_transitionRight
+        B κ ℓ ConstraintType.transitionLeft (by simp) v
+  · simpa [canonicalInterfacePolynomial, canonicalInterfaceFactorSlot] using
+      pderiv_canonicalLocalX1_mem_interfaceSpace_compiledBasis_of_not_transitionRight
+        B κ ℓ ConstraintType.transitionLeft (by simp) v
+  · simp [canonicalInterfacePolynomial]
+  · simp [canonicalInterfacePolynomial]
+  · simp [canonicalInterfacePolynomial]
+
+/-- The whole compiled-basis local interface space is closed under one local
+partial derivative. -/
+theorem pderiv_mem_interfaceSpace_compiledBasis
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (σ : ConstraintType)
+    (p : MvPolynomial (Fin N) ℚ)
+    (hp : p ∈ interfaceSpace_compiledBasis B κ ℓ σ)
+    (v : Fin N) :
+    MvPolynomial.pderiv v p ∈ interfaceSpace_compiledBasis B κ ℓ σ := by
+  classical
+  rcases canonicalInterfacePolynomial_basisExpansion_of_mem_interfaceSpace_compiledBasis
+      B κ ℓ σ p hp with ⟨c, hc⟩
+  rw [hc]
+  rw [map_sum]
+  apply Submodule.sum_mem
+  intro k _
+  simp [Algebra.smul_def]
+  simpa [Algebra.smul_def] using Submodule.smul_mem _ (c k)
+    (pderiv_canonicalInterfacePolynomial_mem_interfaceSpace_compiledBasis
+      B κ ℓ σ k v)
+
+/-- Iterated local partial derivatives of any element of a compiled-basis local
+interface space remain in that same local interface space. -/
+theorem iterDerivList_mem_interfaceSpace_compiledBasis
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (σ : ConstraintType)
+    (p : MvPolynomial (Fin N) ℚ)
+    (hp : p ∈ interfaceSpace_compiledBasis B κ ℓ σ)
+    (S : List (Fin N)) :
+    SPDP.iterDerivList S p ∈ interfaceSpace_compiledBasis B κ ℓ σ := by
+  classical
+  induction S generalizing p with
+  | nil => simpa [SPDP.iterDerivList] using hp
+  | cons v rest ih =>
+      simp only [SPDP.iterDerivList, List.foldl_cons]
+      exact ih (MvPolynomial.pderiv v p)
+        (pderiv_mem_interfaceSpace_compiledBasis B κ ℓ σ p hp v)
+
+/-- Special case: iterated derivatives of the canonical local generators stay
+inside their type's compiled-basis local interface space. -/
+theorem iterDerivList_canonicalInterfacePolynomial_mem_interfaceSpace_compiledBasis
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (σ : ConstraintType)
+    (j : Fin d₀) (S : List (Fin N)) :
+    SPDP.iterDerivList S (canonicalInterfacePolynomial B κ ℓ σ j) ∈
+      interfaceSpace_compiledBasis B κ ℓ σ :=
+  iterDerivList_mem_interfaceSpace_compiledBasis B κ ℓ σ
+    (canonicalInterfacePolynomial B κ ℓ σ j)
+    (canonicalInterfacePolynomial_mem_interfaceSpace_compiledBasis B κ ℓ σ j)
+    S
+
 /-! ## Sanity lemmas linking the compiled basis to the SPDP matrix
 
 We expose a few trivial compatibility lemmas so downstream Lemma 31
@@ -661,5 +809,9 @@ theorem interfaceSpace_compiledBasis_ambient
     {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (σ : ConstraintType) :
     interfaceSpace_compiledBasis B κ ℓ σ ≤
       (⊤ : Submodule ℚ (MvPolynomial (Fin N) ℚ)) := le_top
+
+#print axioms pderiv_canonicalInterfacePolynomial_mem_interfaceSpace_compiledBasis
+#print axioms iterDerivList_mem_interfaceSpace_compiledBasis
+#print axioms iterDerivList_canonicalInterfacePolynomial_mem_interfaceSpace_compiledBasis
 
 end PallLean.Paper93
