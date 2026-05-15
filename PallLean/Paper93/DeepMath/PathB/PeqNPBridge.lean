@@ -870,6 +870,32 @@ theorem P_ne_NP_canonical_routeB_bottomSeam_primary_from_baseSingletonCoefficien
 
 #print axioms P_ne_NP_canonical_routeB_bottomSeam_primary_from_baseSingletonCoefficient_and_selectedShiftClosure_conditional
 
+/-- Canonical primary bottom-seam closure from coefficient-level base singleton
+factor data plus coherent local-algebra selected-shift data.  The coefficient
+payload builds the exact slots; local algebra supplies selected-shift closure on
+those resulting slots. -/
+theorem P_ne_NP_canonical_routeB_bottomSeam_primary_from_baseSingletonCoefficient_and_localAlgebra_conditional
+    (hCoeff : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductBaseSingletonCoefficientExpansionData)
+    (hLocal : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData)
+    (hPartEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DCoeff := Classical.choice (hCoeff M n _hn hn2 htb hns)
+        let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+        DLoc.sourcePartition = DCoeff.sourcePartition)
+    (hProfEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DCoeff := Classical.choice (hCoeff M n _hn hn2 htb hns)
+        let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+        ∀ w hw, DLoc.profileOfCanonicalWindow w hw = DCoeff.profileOfCanonicalWindow w hw) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_bottomSeam_primary_paperFaithful_conditional
+    (step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData_of_baseSingletonCoefficientData_and_localAlgebraData
+      hCoeff hLocal hPartEq hProfEq)
+
+#print axioms P_ne_NP_canonical_routeB_bottomSeam_primary_from_baseSingletonCoefficient_and_localAlgebra_conditional
+
 /-- Canonical bottom-seam closure bundle for Route B.
 
 If **any** one of these paper-faithful bottom seams is available, then

@@ -929,6 +929,78 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactori
       ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρLoc p hpLoc
   simpa [hPart] using hclosed
 
+/-- Coefficient-level base singleton data plus coherent local-algebra data supplies
+the paired exact-slot + selected-shift-closure seam.
+
+The coefficient payload constructs the exact anonymous slots; the local-algebra
+payload supplies selected-shift membership for those same slots, under the usual
+source-partition/profile compatibility equations. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData_of_baseSingletonCoefficientData_and_localAlgebraData
+    (hCoeff : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductBaseSingletonCoefficientExpansionData)
+    (hLocal : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData)
+    (hPartEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DCoeff := Classical.choice (hCoeff M n _hn hn2 htb hns)
+        let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+        DLoc.sourcePartition = DCoeff.sourcePartition)
+    (hProfEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DCoeff := Classical.choice (hCoeff M n _hn hn2 htb hns)
+        let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+        ∀ w hw, DLoc.profileOfCanonicalWindow w hw = DCoeff.profileOfCanonicalWindow w hw) :
+    Step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData := by
+  intro M n hn hn2 htb hns
+  let DCoeff := Classical.choice (hCoeff M n hn hn2 htb hns)
+  let DCls :=
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotClassifierData_of_baseSingletonCoefficientExpansionData
+      M n hn2 htb hns DCoeff
+  let DFib :=
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData_of_classifierData
+      M n hn2 htb hns DCls
+  let DIndexed :=
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFactorizationData_of_fiberPartitionData
+      M n hn2 htb hns DFib
+  let DSlot :=
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductExactInterfaceSlotFactorizationData_of_indexedInterfaceSlotFactorizationData
+      M n hn2 htb hns DIndexed
+  let DLoc := Classical.choice (hLocal M n hn hn2 htb hns)
+  refine ⟨DSlot, ?_⟩
+  intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ p hp
+  have hPart : DLoc.sourcePartition = DSlot.sourcePartition := by
+    simpa [DCoeff, DCls, DFib, DIndexed, DSlot, DLoc] using
+      hPartEq M n hn hn2 htb hns
+  have hρLoc :
+      DLoc.profileOfCanonicalWindow
+          (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+          hrow.1 = ρ := by
+    have hprof := hProfEq M n hn hn2 htb hns
+      (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+      hrow.1
+    calc
+      DLoc.profileOfCanonicalWindow
+          (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+          hrow.1
+          = DSlot.profileOfCanonicalWindow
+              (PallLean.Paper93.Paper283.routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+              hrow.1 := by
+            simpa [DCoeff, DCls, DFib, DIndexed, DSlot, DLoc] using hprof
+      _ = ρ := hρ
+  have hpLoc :
+      p ∈ profileSubspace ρ.val
+          (fun τ =>
+            interfaceSpace_compiledBasis
+              DLoc.sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ) := by
+    simpa [hPart] using hp
+  have hclosed :=
+    DLoc.selectedShift_mlProj_closure_compiledBasisProfileSubspace
+      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρLoc p hpLoc
+  simpa [hPart] using hclosed
+
+#print axioms step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData_of_baseSingletonCoefficientData_and_localAlgebraData
+
+
 /-- Coherent exact slot factorization plus shifted branch-atom membership closes
  the row-specific shifted slot-product seam at Step 247 scale. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotProductRowShiftData_of_slotProductBranchAtomData
