@@ -20931,6 +20931,128 @@ theorem routeBPaperFaithfulTPhi_perFactorDeriv_mem_compiledBasis_of_perFactor_me
     (d i)
 
 
+/-- Singleton slot classifier with only undifferentiated per-factor membership.
+
+This is the sharper constructive target after derivative closure: the local-chart
+work only has to place the raw restricted factor into the right compiled-basis
+interface space.  The bounded Leibniz derivatives are then supplied
+mechanically by
+`routeBPaperFaithfulTPhi_perFactorDeriv_mem_compiledBasis_of_perFactor_mem_compiledBasis`.
+-/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductBaseSingletonInterfaceSlotClassifierData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  sourcePartition : SPDP.BlockPartition (n / 3)
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+        ConstraintType (Nat.log 2 n)
+  factorSlotClassifier :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+          Sigma (fun σ : ConstraintType => Fin (ρ.val σ))
+  slotFactor :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length)
+      (σ : ConstraintType), Fin (ρ.val σ) →
+        Fin ((cookLevinFactorList M n hn2 htb hns).length)
+  slotFactor_classifier_eq :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ) hSlen hshiftDegree hshiftVars hadm hrow hρ
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3))) hd_elts hlen (σ : ConstraintType) (j : Fin (ρ.val σ)),
+        factorSlotClassifier ρ S' shift α hSlen hshiftDegree hshiftVars
+          hadm hrow hρ d hd_elts hlen
+          (slotFactor ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+            d hd_elts hlen σ j) = Sigma.mk σ j
+  factorSlotClassifier_eq_slotFactor :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ) hSlen hshiftDegree hshiftVars hadm hrow hρ
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3))) hd_elts hlen
+      (i : Fin ((cookLevinFactorList M n hn2 htb hns).length))
+      (σ : ConstraintType) (j : Fin (ρ.val σ)),
+        factorSlotClassifier ρ S' shift α hSlen hshiftDegree hshiftVars
+          hadm hrow hρ d hd_elts hlen i = Sigma.mk σ j →
+        i = slotFactor ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+          d hd_elts hlen σ j
+  perFactor_mem_compiledBasis :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ) hSlen hshiftDegree hshiftVars hadm hrow hρ
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3))) hd_elts hlen
+      (i : Fin ((cookLevinFactorList M n hn2 htb hns).length)),
+        (routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+          M n hn2 htb hns) i ∈
+          interfaceSpace_compiledBasis
+            sourcePartition (Nat.log 2 n) (Nat.log 2 n)
+            ((factorSlotClassifier ρ S' shift α hSlen hshiftDegree hshiftVars
+              hadm hrow hρ d hd_elts hlen i).1)
+
 /-- Singleton-classifier source for factor-indexed exact slot factorization.
 
 This is the paper-faithful "one actual differentiated factor per anonymous
@@ -21099,6 +21221,40 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProd
       D.slotFactor_classifier_eq ρ S' shift α hSlen hshiftDegree hshiftVars
         hadm hrow hρ d hd_elts hlen σ j
     simpa [cls, hcls] using hmem
+
+/-- Base singleton classifier data supplies the derivative-aware singleton data. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductSingletonInterfaceSlotClassifierData_of_baseSingletonClassifierData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductBaseSingletonInterfaceSlotClassifierData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductSingletonInterfaceSlotClassifierData
+      M n hn2 htb hns where
+  sourcePartition := D.sourcePartition
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  factorSlotClassifier := D.factorSlotClassifier
+  slotFactor := D.slotFactor
+  slotFactor_classifier_eq := D.slotFactor_classifier_eq
+  factorSlotClassifier_eq_slotFactor := D.factorSlotClassifier_eq_slotFactor
+  perFactorDeriv_mem_compiledBasis := by
+    exact routeBPaperFaithfulTPhi_perFactorDeriv_mem_compiledBasis_of_perFactor_mem_compiledBasis
+      M n hn2 htb hns D.sourcePartition D.profileOfCanonicalWindow
+      D.factorSlotClassifier D.perFactor_mem_compiledBasis
+
+/-- Base singleton classifier data directly supplies the existing indexed
+classifier seam. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotClassifierData_of_baseSingletonClassifierData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductBaseSingletonInterfaceSlotClassifierData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotClassifierData
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotClassifierData_of_singletonClassifierData
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductSingletonInterfaceSlotClassifierData_of_baseSingletonClassifierData
+      M n hn2 htb hns D)
+
 
 
 /-- Partition-shaped constructor for factor-indexed exact slot factorization.
@@ -34211,6 +34367,8 @@ theorem routeBPaperFaithfulTPhi_compilerFixedStrictOp_NFOfWord_action
 
 #print axioms routeBPaperFaithfulTPhi_unshiftedLeibnizProduct_mem_compiledBasisProfileSubspace_of_exactInterfaceSlotFactorizationData
 #print axioms routeBPaperFaithfulTPhi_perFactorDeriv_mem_compiledBasis_of_perFactor_mem_compiledBasis
+#print axioms routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductSingletonInterfaceSlotClassifierData_of_baseSingletonClassifierData
+#print axioms routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotClassifierData_of_baseSingletonClassifierData
 #print axioms routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotClassifierData_of_singletonClassifierData
 #print axioms routeBPaperFaithfulTPhi_compilerFixedFlip_card_eq_two
 #print axioms routeBPaperFaithfulTPhi_compilerFixedFlip_NF_length_le_three
