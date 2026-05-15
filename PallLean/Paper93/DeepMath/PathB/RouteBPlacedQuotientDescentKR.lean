@@ -1101,6 +1101,28 @@ def Step247UniformRouteBPaperFaithfulTPhiInterfaceSlotExpansionData : Prop :=
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedRowInterfaceSlotExpansionData
         M n hn2 htb hns)
 
+/-- Direct row-interface-slot expansion gives the fixed-chart compiled-basis
+profile-row surface by the row-level same-profile slot expansion constructor. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiFixedChartCompiledBasisProfileSubspaceRowData_of_interfaceSlotExpansionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiInterfaceSlotExpansionData) :
+    Step247UniformRouteBPaperFaithfulTPhiFixedChartCompiledBasisProfileSubspaceRowData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedCompiledBasisProfileSubspaceRowData_of_rowInterfaceSlotExpansionData
+    M n hn2 htb hns D⟩
+
+/-- Direct row-interface-slot expansion also gives the active local compiled
+profile-row surface by taking the local family to be the fixed-chart
+`interfaceSpace_compiledBasis` spaces. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData_of_interfaceSlotExpansionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiInterfaceSlotExpansionData) :
+    Step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData := by
+  intro M n hn hn2 htb hns
+  rcases step247UniformRouteBPaperFaithfulTPhiFixedChartCompiledBasisProfileSubspaceRowData_of_interfaceSlotExpansionData
+      hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedLocalCompiledProfileSubspaceRowData_of_compiledBasisProfileSubspaceRowData
+    M n hn2 htb hns D⟩
+
 /-- Direct profile-subspace row membership gives the explicit row-interface-slot
 expansion by unfolding the defining span of `profileSubspace`. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiInterfaceSlotExpansionData_of_fixedChartCompiledBasisProfileSubspaceRowData

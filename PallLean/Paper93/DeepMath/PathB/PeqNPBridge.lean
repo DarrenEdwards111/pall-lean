@@ -542,8 +542,8 @@ theorem P_ne_NP_canonical_routeB_canonicalInterfaceExpansion_conditional
 theorem P_ne_NP_canonical_routeB_interfaceSlotExpansion_conditional
     (hSlot : Step247UniformRouteBPaperFaithfulTPhiInterfaceSlotExpansionData) :
     ∀ (_ : PeqNP_Paper), False :=
-  P_ne_NP_canonical_routeB_canonicalInterfaceExpansion_conditional
-    (step247UniformRouteBPaperFaithfulTPhiCanonicalInterfaceExpansionData_of_interfaceSlotExpansionData
+  P_ne_NP_canonical_routeB_localCompiledProfileSubspaceRow_conditional
+    (step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData_of_interfaceSlotExpansionData
       hSlot)
 
 #print axioms P_ne_NP_canonical_routeB_interfaceSlotExpansion_conditional
