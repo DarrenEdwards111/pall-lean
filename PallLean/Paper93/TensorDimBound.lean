@@ -94,6 +94,32 @@ noncomputable def profileSubspace {N : ℕ} {Iface : Type*} [Fintype Iface]
         (∀ σ : Iface, f σ ∈ symPower ℚ (h σ) (W σ)) ∧
         p = ∏ σ : Iface, f σ }
 
+/-- **Lemma 31 membership constructor.**
+
+If a row/product has profile `h` in the literal sense that, for each interface
+type `σ`, it contributes exactly `h σ` slots and every one of those slots lies
+in the corresponding local space `W σ`, then the full typed product lands in
+the profile subspace `profileSubspace h W`.
+
+This is the non-dimensional half of Lemma 31: it proves membership
+`row/product with profile h ∈ V_h` directly from the defining symmetric-power
+generators, before any finrank/template-count argument is used. -/
+theorem profileProduct_mem_profileSubspace {N : ℕ} {Iface : Type*}
+    [Fintype Iface]
+    (h : Iface → ℕ)
+    (W : Iface → Submodule ℚ (MvPolynomial (Fin N) ℚ))
+    (slot : ∀ σ : Iface, Fin (h σ) → MvPolynomial (Fin N) ℚ)
+    (hslot : ∀ σ j, slot σ j ∈ W σ) :
+    (∏ σ : Iface, ∏ j : Fin (h σ), slot σ j) ∈
+      profileSubspace h W := by
+  classical
+  apply Submodule.subset_span
+  refine ⟨(fun σ : Iface => ∏ j : Fin (h σ), slot σ j), ?_, rfl⟩
+  intro σ
+  unfold symPower
+  apply Submodule.subset_span
+  exact ⟨slot σ, hslot σ, rfl⟩
+
 /-! ## Multilinear expansion over the finite alphabet
 
 The key step: given bases `b σ : Basis (Fin (d σ)) ℚ (W σ)` for each
@@ -359,6 +385,7 @@ theorem profileSubspace_finrank_bound
           (fun σ => Nat.choose (h σ + 2) 2)
           hfac_le
 
+#print axioms profileProduct_mem_profileSubspace
 #print axioms profileSubspace_finrank_bound
 
 end Paper93

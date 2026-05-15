@@ -19237,26 +19237,18 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedRowPlacedLocalInte
   interfaceSpace_finrank_le_three := D.interfaceSpace_finrank_le_three
   placedLocalProduct_descends_to_selectedProfileSubspace := by
     intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t
-    apply Submodule.subset_span
-    refine ⟨(fun σ : ConstraintType =>
-        ∏ j : Fin (ρ.val σ),
+    exact
+      profileProduct_mem_profileSubspace ρ.val D.interfaceSpace
+        (fun σ j =>
           MvPolynomial.rename
             (D.placedExpansionData.rowExpansionPlace ρ S' shift α hSlen hshiftDegree
               hshiftVars hadm hrow hρ t σ j)
             (D.placedExpansionData.rowExpansionLocalTemplate ρ S' shift α hSlen hshiftDegree
-              hshiftVars hadm hrow hρ t σ j)), ?_, rfl⟩
-    intro σ
-    unfold symPower
-    apply Submodule.subset_span
-    refine ⟨(fun j : Fin (ρ.val σ) =>
-        MvPolynomial.rename
-          (D.placedExpansionData.rowExpansionPlace ρ S' shift α hSlen hshiftDegree
-            hshiftVars hadm hrow hρ t σ j)
-          (D.placedExpansionData.rowExpansionLocalTemplate ρ S' shift α hSlen hshiftDegree
-            hshiftVars hadm hrow hρ t σ j)), ?_, rfl⟩
-    intro j
-    exact D.placedLocalSlot_descends_to_interfaceSpace
-      ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j
+              hshiftVars hadm hrow hρ t σ j))
+        (by
+          intro σ j
+          exact D.placedLocalSlot_descends_to_interfaceSpace
+            ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j)
 
 /-- The quotient/symmetric descent datum gives the local compiled-profile row
 target.  This theorem proves the linear assembly from termwise descent:
