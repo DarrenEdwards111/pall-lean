@@ -21798,6 +21798,122 @@ theorem routeBPaperFaithfulTPhi_indexedInterfaceSlotFiberPartition_card_sum_eq_f
 
 #print axioms routeBPaperFaithfulTPhi_indexedInterfaceSlotFiberPartition_card_sum_eq_factorList_length
 
+/-- The actual booleanity segment of the real Cook--Levin factor list. -/
+noncomputable def cookLevinBooleanityFactorSegment
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Finset (Fin (cookLevinFactorList M n hn2 htb hns).length) :=
+  Finset.univ.filter (fun i => i.1 < n)
+
+/-- The actual adjacency segment of the real Cook--Levin factor list. -/
+noncomputable def cookLevinAdjacencyFactorSegment
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Finset (Fin (cookLevinFactorList M n hn2 htb hns).length) :=
+  Finset.univ.filter (fun i =>
+    n ≤ i.1 ∧ i.1 < n + (PaperFaithfulSeparation.adjConstraintList n).length)
+
+/-- The actual transition-left segment of the real Cook--Levin factor list. -/
+noncomputable def cookLevinTransitionLeftFactorSegment
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Finset (Fin (cookLevinFactorList M n hn2 htb hns).length) :=
+  Finset.univ.filter (fun i =>
+    n + (PaperFaithfulSeparation.adjConstraintList n).length ≤ i.1)
+
+/-- Booleanity and adjacency segments are disjoint. -/
+theorem cookLevinBooleanityFactorSegment_disjoint_adjacency
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Disjoint
+      (cookLevinBooleanityFactorSegment M n hn2 htb hns)
+      (cookLevinAdjacencyFactorSegment M n hn2 htb hns) := by
+  classical
+  rw [Finset.disjoint_left]
+  intro i hiB hiA
+  simp [cookLevinBooleanityFactorSegment] at hiB
+  simp [cookLevinAdjacencyFactorSegment] at hiA
+  omega
+
+/-- Booleanity and transition-left segments are disjoint. -/
+theorem cookLevinBooleanityFactorSegment_disjoint_transitionLeft
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Disjoint
+      (cookLevinBooleanityFactorSegment M n hn2 htb hns)
+      (cookLevinTransitionLeftFactorSegment M n hn2 htb hns) := by
+  classical
+  rw [Finset.disjoint_left]
+  intro i hiB hiT
+  simp [cookLevinBooleanityFactorSegment] at hiB
+  simp [cookLevinTransitionLeftFactorSegment] at hiT
+  omega
+
+/-- Adjacency and transition-left segments are disjoint. -/
+theorem cookLevinAdjacencyFactorSegment_disjoint_transitionLeft
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Disjoint
+      (cookLevinAdjacencyFactorSegment M n hn2 htb hns)
+      (cookLevinTransitionLeftFactorSegment M n hn2 htb hns) := by
+  classical
+  rw [Finset.disjoint_left]
+  intro i hiA hiT
+  simp [cookLevinAdjacencyFactorSegment] at hiA
+  simp [cookLevinTransitionLeftFactorSegment] at hiT
+  omega
+
+/-- The three concrete Cook--Levin segments cover all real factor indices. -/
+theorem cookLevinFactorSegments_union_eq_univ
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    cookLevinBooleanityFactorSegment M n hn2 htb hns ∪
+        cookLevinAdjacencyFactorSegment M n hn2 htb hns ∪
+        cookLevinTransitionLeftFactorSegment M n hn2 htb hns = Finset.univ := by
+  classical
+  ext i
+  simp [cookLevinBooleanityFactorSegment, cookLevinAdjacencyFactorSegment,
+    cookLevinTransitionLeftFactorSegment]
+  omega
+
+/-- Every index in the booleanity segment has the canonical booleanity type. -/
+theorem cookLevinConstraintType_eq_booleanity_of_mem_booleanitySegment
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {i : Fin (cookLevinFactorList M n hn2 htb hns).length}
+    (hi : i ∈ cookLevinBooleanityFactorSegment M n hn2 htb hns) :
+    cookLevinConstraintType M n hn2 htb hns i = ConstraintType.booleanity := by
+  classical
+  simp [cookLevinBooleanityFactorSegment] at hi
+  exact cookLevinConstraintType_eq_booleanity M n hn2 htb hns i hi
+
+/-- Every index in the adjacency segment has the canonical adjacency type. -/
+theorem cookLevinConstraintType_eq_adjacency_of_mem_adjacencySegment
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {i : Fin (cookLevinFactorList M n hn2 htb hns).length}
+    (hi : i ∈ cookLevinAdjacencyFactorSegment M n hn2 htb hns) :
+    cookLevinConstraintType M n hn2 htb hns i = ConstraintType.adjacency := by
+  classical
+  simp [cookLevinAdjacencyFactorSegment] at hi
+  exact cookLevinConstraintType_eq_adjacency M n hn2 htb hns i hi.1 hi.2
+
+/-- Every index in the transition-left segment has the canonical transition-left type. -/
+theorem cookLevinConstraintType_eq_transitionLeft_of_mem_transitionLeftSegment
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {i : Fin (cookLevinFactorList M n hn2 htb hns).length}
+    (hi : i ∈ cookLevinTransitionLeftFactorSegment M n hn2 htb hns) :
+    cookLevinConstraintType M n hn2 htb hns i = ConstraintType.transitionLeft := by
+  classical
+  simp [cookLevinTransitionLeftFactorSegment] at hi
+  exact cookLevinConstraintType_eq_transitionLeft M n hn2 htb hns i hi
+
+#print axioms cookLevinFactorSegments_union_eq_univ
+#print axioms cookLevinConstraintType_eq_booleanity_of_mem_booleanitySegment
+#print axioms cookLevinConstraintType_eq_adjacency_of_mem_adjacencySegment
+#print axioms cookLevinConstraintType_eq_transitionLeft_of_mem_transitionLeftSegment
+
 /-- Coefficient-level fibre partition data for the non-singleton Route-B slot
 surface.
 
