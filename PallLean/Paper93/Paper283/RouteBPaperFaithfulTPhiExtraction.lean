@@ -33557,6 +33557,25 @@ theorem routeBPaperFaithfulTPhiStrictWindowCompilerFixedFlipAction_canWindow_app
   rw [routeBPaperFaithfulTPhiStrictWindowCompilerFixedFlipAction_canWindow_eq_of_isCanonical
     (n := n) (κ := κ) w hw]
 
+/-- A canonical raw strict window cannot carry the excluded coefficient marker. -/
+theorem routeBPaperFaithfulTPhiStrictRawWindow_unmarked_of_isCanonical
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {S' : List (Fin (n / 3))}
+    {shift : MvPolynomial (Fin (n / 3)) ℚ} {α : Fin n →₀ ℕ}
+    (hcan : by
+      letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+      exact PallLean.Paper93.IsCanonical
+        (κ := Nat.log 2 n)
+        (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n))
+        (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)) :
+    ¬ routeBPaperFaithfulTPhiStrictWindowHasMarkedCoeff
+        (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α) := by
+  classical
+  letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+  intro hmarked
+  exact (routeBPaperFaithfulTPhiStrict_not_isCanonical_of_marked hmarked) hcan
+
 /-- The compiler-fixed generated local monoid has exactly two elements. -/
 theorem routeBPaperFaithfulTPhi_compilerFixedFlip_card_eq_two :
     Fintype.card routeBPaperFaithfulTPhiCompilerFixedFlipMonoid = 2 := by
