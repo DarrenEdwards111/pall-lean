@@ -21184,6 +21184,159 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductBaseSi
               ((factorSlotClassifier ρ S' shift α hSlen hshiftDegree hshiftVars
                 hadm hrow hρ d hd_elts hlen i).1) k
 
+/-- The singleton classifier/count-inverse fields of the coefficient seam give
+an actual equivalence between Cook-Levin factor indices and the anonymous slots
+of the selected interface profile.
+
+This is useful both constructively and as a guardrail: the base-singleton seam
+can only be inhabited when the selected profile has exactly as many anonymous
+slots as there are real factors. -/
+noncomputable def routeBPaperFaithfulTPhi_baseSingletonCoefficient_factorSlotEquiv
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductBaseSingletonCoefficientExpansionData
+      M n hn2 htb hns)
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+    (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (α : Fin n →₀ ℕ) (hSlen : S'.length = Nat.log 2 n)
+    (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+    (hshiftVars :
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+        (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n)))
+    (hrow :
+      routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+        M n hn2 htb hns S' shift α)
+    (hρ :
+      D.profileOfCanonicalWindow
+          (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+          hrow.1 = ρ)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+    (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+        (d i).length ≤ S'.length) :
+    Fin ((cookLevinFactorList M n hn2 htb hns).length) ≃
+      Sigma (fun σ : ConstraintType => Fin (ρ.val σ)) where
+  toFun := D.factorSlotClassifier ρ S' shift α hSlen hshiftDegree
+    hshiftVars hadm hrow hρ d hd_elts hlen
+  invFun := fun sj =>
+    D.slotFactor ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+      d hd_elts hlen sj.1 sj.2
+  left_inv := by
+    intro i
+    cases hslot : D.factorSlotClassifier ρ S' shift α hSlen hshiftDegree
+        hshiftVars hadm hrow hρ d hd_elts hlen i with
+    | mk σ j =>
+        exact (D.factorSlotClassifier_eq_slotFactor ρ S' shift α hSlen
+          hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen i σ j hslot).symm
+  right_inv := by
+    intro sj
+    cases sj with
+    | mk σ j =>
+        exact D.slotFactor_classifier_eq ρ S' shift α hSlen hshiftDegree
+          hshiftVars hadm hrow hρ d hd_elts hlen σ j
+
+/-- Cardinality consequence of the base-singleton coefficient seam: on any
+selected row, the number of real Cook-Levin factors must equal the mass of the
+selected anonymous interface profile. -/
+theorem routeBPaperFaithfulTPhi_baseSingletonCoefficient_factorList_length_eq_profileMass
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductBaseSingletonCoefficientExpansionData
+      M n hn2 htb hns)
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+    (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (α : Fin n →₀ ℕ) (hSlen : S'.length = Nat.log 2 n)
+    (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+    (hshiftVars :
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+        (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n)))
+    (hrow :
+      routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+        M n hn2 htb hns S' shift α)
+    (hρ :
+      D.profileOfCanonicalWindow
+          (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+          hrow.1 = ρ)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+    (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+        (d i).length ≤ S'.length) :
+    (cookLevinFactorList M n hn2 htb hns).length = profileMass ρ.val := by
+  classical
+  have hcard := Fintype.card_congr
+    (routeBPaperFaithfulTPhi_baseSingletonCoefficient_factorSlotEquiv
+      D ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+      d hd_elts hlen)
+  rw [Fintype.card_fin, Fintype.card_sigma] at hcard
+  simpa [profileMass] using hcard
+
+/-- Since strict interface-anonymous profiles are realizable histograms of
+exact mass `κ`, the base-singleton coefficient seam forces the full real
+factor-list length to be exactly `Nat.log 2 n` on any selected row. -/
+theorem routeBPaperFaithfulTPhi_baseSingletonCoefficient_factorList_length_eq_log
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductBaseSingletonCoefficientExpansionData
+      M n hn2 htb hns)
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+    (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (α : Fin n →₀ ℕ) (hSlen : S'.length = Nat.log 2 n)
+    (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+    (hshiftVars :
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+        (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n)))
+    (hrow :
+      routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+        M n hn2 htb hns S' shift α)
+    (hρ :
+      D.profileOfCanonicalWindow
+          (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+          hrow.1 = ρ)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+    (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+        (d i).length ≤ S'.length) :
+    (cookLevinFactorList M n hn2 htb hns).length = Nat.log 2 n := by
+  rw [routeBPaperFaithfulTPhi_baseSingletonCoefficient_factorList_length_eq_profileMass
+    D ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+    d hd_elts hlen]
+  exact routeBPaperFaithfulTPhi_strictConstraintTypeInterfaceProfile_mass_eq ρ
+
+/-- The real Cook-Levin factor list contains at least the `n` booleanity
+factors. -/
+theorem cookLevinFactorList_length_ge_numVars
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    n ≤ (cookLevinFactorList M n hn2 htb hns).length := by
+  classical
+  simp [cookLevinFactorList, cook_levin_compilation, boolConstraintList_length]
+
+#print axioms routeBPaperFaithfulTPhi_baseSingletonCoefficient_factorSlotEquiv
+#print axioms routeBPaperFaithfulTPhi_baseSingletonCoefficient_factorList_length_eq_profileMass
+#print axioms routeBPaperFaithfulTPhi_baseSingletonCoefficient_factorList_length_eq_log
+#print axioms cookLevinFactorList_length_ge_numVars
+
 /-- Explicit per-factor coordinates in the three canonical generators imply raw
 per-factor membership in the classified compiled-basis interface space. -/
 noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductBaseSingletonClassifierData_of_baseSingletonCoefficientExpansionData
