@@ -563,6 +563,31 @@ def Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSl
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotClassifierData
         M n hn2 htb hns)
 
+/-- Uniform coefficient-level base singleton classifier data at Step 247 scale.
+
+This is now the lowest local-chart target for the exact-slot branch: classify
+each real restricted Cook--Levin factor by an anonymous slot, prove the slot
+counting inverse, and give explicit coordinates of each raw factor in the
+classified three-generator compiled-basis interface space. -/
+def Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductBaseSingletonCoefficientExpansionData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductBaseSingletonCoefficientExpansionData
+        M n hn2 htb hns)
+
+/-- Coefficient-level base singleton data supplies the total classifier seam. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotClassifierData_of_baseSingletonCoefficientExpansionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductBaseSingletonCoefficientExpansionData) :
+    Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotClassifierData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotClassifierData_of_baseSingletonCoefficientExpansionData
+    M n hn2 htb hns D⟩
+
+#print axioms step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotClassifierData_of_baseSingletonCoefficientExpansionData
+
+
 /-- A uniform total slot classifier canonically instantiates the disjoint
 factor-fibre partition seam. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData_of_classifierData
@@ -594,6 +619,18 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExac
   step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExactInterfaceSlotFactorizationData_of_indexedInterfaceSlotFactorizationData
     (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFactorizationData_of_fiberPartitionData
       hData)
+
+/-- Coefficient-level base singleton data directly reaches exact anonymous
+interface-slot factorization. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExactInterfaceSlotFactorizationData_of_baseSingletonCoefficientExpansionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductBaseSingletonCoefficientExpansionData) :
+    Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExactInterfaceSlotFactorizationData :=
+  step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExactInterfaceSlotFactorizationData_of_fiberPartitionData
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData_of_classifierData
+      (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotClassifierData_of_baseSingletonCoefficientExpansionData
+        hData))
+
+#print axioms step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExactInterfaceSlotFactorizationData_of_baseSingletonCoefficientExpansionData
 
 /-- Uniform coherent factor-indexed slot classification plus shifted branch-atom
 data. -/

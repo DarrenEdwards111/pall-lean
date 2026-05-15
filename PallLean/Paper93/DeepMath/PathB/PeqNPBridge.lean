@@ -856,6 +856,20 @@ theorem P_ne_NP_canonical_routeB_bottomSeam_primary_from_exactSlot_and_selectedS
 
 #print axioms P_ne_NP_canonical_routeB_bottomSeam_primary_from_exactSlot_and_selectedShiftClosure_conditional
 
+/-- Canonical primary bottom-seam closure from coefficient-level base singleton
+factor data plus selected-shift closure.  This exposes the current lowest
+paper-faithful local-chart target directly at the `PeqNP_Paper` bridge. -/
+theorem P_ne_NP_canonical_routeB_bottomSeam_primary_from_baseSingletonCoefficient_and_selectedShiftClosure_conditional
+    (hCoeff : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductBaseSingletonCoefficientExpansionData)
+    (hClosure : Step247UniformRouteBPaperFaithfulTPhiSelectedShiftClosureOnExactInterfaceSlotFactorizationData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_bottomSeam_primary_from_exactSlot_and_selectedShiftClosure_conditional
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExactInterfaceSlotFactorizationData_of_baseSingletonCoefficientExpansionData
+      hCoeff)
+    hClosure
+
+#print axioms P_ne_NP_canonical_routeB_bottomSeam_primary_from_baseSingletonCoefficient_and_selectedShiftClosure_conditional
+
 /-- Canonical bottom-seam closure bundle for Route B.
 
 If **any** one of these paper-faithful bottom seams is available, then
