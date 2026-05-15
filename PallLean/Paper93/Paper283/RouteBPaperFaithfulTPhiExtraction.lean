@@ -33458,6 +33458,105 @@ theorem routeBPaperFaithfulTPhiCompilerFixedFlipAction_injective :
         norm_num at h0
       · rfl
 
+/-- The generated two-element monoid really is the strict local alphabet action:
+embedding a generator into `End(Fin 2)` gives exactly the earlier compiler-fixed
+strict-local generator. -/
+theorem routeBPaperFaithfulTPhiCompilerFixedFlipAction_generator
+    (b : RouteBPaperFaithfulTPhiStrictLocalOp) :
+    routeBPaperFaithfulTPhiCompilerFixedFlipAction
+        (routeBPaperFaithfulTPhiCompilerFixedFlipGenerator b) =
+      routeBPaperFaithfulTPhiCompilerFixedLocalGenerator b := by
+  cases b <;> rfl
+
+/-- Word-level compatibility between the explicit generated flip monoid and the
+ambient compiler-fixed local action wrapper.  This is the checked bridge from
+the paper's generated `Mτ` object to the already-existing `End(Wτ)` action
+surface. -/
+theorem routeBPaperFaithfulTPhiCompilerFixedFlipAction_word_prod
+    (u : List RouteBPaperFaithfulTPhiStrictLocalOp) :
+    routeBPaperFaithfulTPhiCompilerFixedFlipAction
+        ((u.map routeBPaperFaithfulTPhiCompilerFixedFlipGenerator).prod) =
+      (u.map routeBPaperFaithfulTPhiCompilerFixedLocalGenerator).prod := by
+  induction u with
+  | nil => rfl
+  | cons b u ih =>
+      simp [List.map_cons, List.prod_cons,
+        routeBPaperFaithfulTPhiCompilerFixedFlipAction_mul,
+        routeBPaperFaithfulTPhiCompilerFixedFlipAction_generator, ih]
+
+/-- Action-level compatibility for strict local words. -/
+theorem routeBPaperFaithfulTPhiCompilerFixedFlipAction_word_prod_apply
+    (u : List RouteBPaperFaithfulTPhiStrictLocalOp)
+    (x : routeBPaperFaithfulTPhiCompilerFixedInterfaceSpace) :
+    routeBPaperFaithfulTPhiCompilerFixedFlipAction
+        ((u.map routeBPaperFaithfulTPhiCompilerFixedFlipGenerator).prod) x =
+      ((u.map routeBPaperFaithfulTPhiCompilerFixedLocalGenerator).prod) x := by
+  rw [routeBPaperFaithfulTPhiCompilerFixedFlipAction_word_prod]
+
+/-- The strict local word carried by a Route-B window. -/
+def routeBPaperFaithfulTPhiStrictWindowLocalWord
+    {n κ : ℕ}
+    (w : PallLean.Paper93.Window
+      (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+      RouteBPaperFaithfulTPhiStrictLocalOp κ) :
+    List RouteBPaperFaithfulTPhiStrictLocalOp :=
+  w.toList.map Prod.snd
+
+/-- Compiler-fixed generated-monoid action of a strict Route-B window. -/
+def routeBPaperFaithfulTPhiStrictWindowCompilerFixedFlipAction
+    {n κ : ℕ}
+    (w : PallLean.Paper93.Window
+      (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+      RouteBPaperFaithfulTPhiStrictLocalOp κ) :
+    routeBPaperFaithfulTPhiCompilerFixedLocalMonoid :=
+  routeBPaperFaithfulTPhiCompilerFixedFlipAction
+    ((routeBPaperFaithfulTPhiStrictWindowLocalWord w).map
+      routeBPaperFaithfulTPhiCompilerFixedFlipGenerator).prod
+
+/-- Canonicalization preserves the compiler-fixed window action on canonical
+windows.  This is the literal `row(w)=row(can w)` action kernel for the checked
+canonical-window surface: once a row is in canonical form, replacing it by its
+canonical representative does not change the generated local action. -/
+theorem routeBPaperFaithfulTPhiStrictWindowCompilerFixedFlipAction_canWindow_eq_of_isCanonical
+    {n κ : ℕ}
+    (w : PallLean.Paper93.Window
+      (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+      RouteBPaperFaithfulTPhiStrictLocalOp κ)
+    (hw : by
+      letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+      exact PallLean.Paper93.IsCanonical
+        (κ := κ) (routeBPaperFaithfulTPhiStrictCanonScheme n κ) w) :
+    routeBPaperFaithfulTPhiStrictWindowCompilerFixedFlipAction
+        (by
+          letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+          exact PallLean.Paper93.canWindow
+            (κ := κ) (routeBPaperFaithfulTPhiStrictCanonScheme n κ) w) =
+      routeBPaperFaithfulTPhiStrictWindowCompilerFixedFlipAction w := by
+  classical
+  letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+  rw [PallLean.Paper93.canWindow_of_isCanonical
+    (κ := κ) (routeBPaperFaithfulTPhiStrictCanonScheme n κ) hw]
+
+/-- Apply-form of canonical-window action preservation. -/
+theorem routeBPaperFaithfulTPhiStrictWindowCompilerFixedFlipAction_canWindow_apply_eq_of_isCanonical
+    {n κ : ℕ}
+    (w : PallLean.Paper93.Window
+      (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+      RouteBPaperFaithfulTPhiStrictLocalOp κ)
+    (hw : by
+      letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+      exact PallLean.Paper93.IsCanonical
+        (κ := κ) (routeBPaperFaithfulTPhiStrictCanonScheme n κ) w)
+    (x : routeBPaperFaithfulTPhiCompilerFixedInterfaceSpace) :
+    routeBPaperFaithfulTPhiStrictWindowCompilerFixedFlipAction
+        (by
+          letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+          exact PallLean.Paper93.canWindow
+            (κ := κ) (routeBPaperFaithfulTPhiStrictCanonScheme n κ) w) x =
+      routeBPaperFaithfulTPhiStrictWindowCompilerFixedFlipAction w x := by
+  rw [routeBPaperFaithfulTPhiStrictWindowCompilerFixedFlipAction_canWindow_eq_of_isCanonical
+    (n := n) (κ := κ) w hw]
+
 /-- The compiler-fixed generated local monoid has exactly two elements. -/
 theorem routeBPaperFaithfulTPhi_compilerFixedFlip_card_eq_two :
     Fintype.card routeBPaperFaithfulTPhiCompilerFixedFlipMonoid = 2 := by
