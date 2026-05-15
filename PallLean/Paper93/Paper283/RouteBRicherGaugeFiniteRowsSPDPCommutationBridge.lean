@@ -72,6 +72,107 @@ def RouteBRicherGaugeFiniteRowsSPDPKernelCompatibility
             (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)) p)
         S shift) = 0
 
+/-! ## Bottom finite-row endpoint
+
+If the selected finite rows span the bottom submodule, then the corresponding
+finite-row candidate gauge has zero range.  The projected SPDP generator is
+therefore zero, giving both finite-row closure and kernel compatibility without
+any additional algebraic hypothesis.  This is the literal bottom endpoint of the
+finite-row Route-B seam; non-bottom instances still use the concrete row
+packages below. -/
+
+theorem routeBRicherFiniteRowsCandidateGauge_apply_eq_zero_of_finiteRowsSubmodule_eq_bot
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hbot : finiteRowsSubmodule rows =
+      (⊥ : Submodule ℚ (SATDeciderGaugeSpace M n hn2 htb hns)))
+    (p : SATDeciderGaugeSpace M n hn2 htb hns) :
+    (routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+      (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)) p = 0 := by
+  classical
+  have hrange := finiteRowsCandidateGauge_range rows
+  have hmem :
+      (routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+        (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)) p ∈
+        LinearMap.range (routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+          (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)) := by
+    exact ⟨p, rfl⟩
+  rw [show LinearMap.range (routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+          (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)) =
+        finiteRowsSubmodule rows by
+      simpa [routeBRicherFiniteRowsCandidateGauge, routeBNFrameCandidateAsSATGauge] using hrange] at hmem
+  rw [hbot] at hmem
+  exact hmem
+
+theorem routeBRicherGaugeFiniteRowsSPDPClosure_of_finiteRowsSubmodule_eq_bot
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hbot : finiteRowsSubmodule rows =
+      (⊥ : Submodule ℚ (SATDeciderGaugeSpace M n hn2 htb hns))) :
+    RouteBRicherGaugeFiniteRowsSPDPClosure M n hn2 htb hns rows := by
+  classical
+  constructor
+  intro _spdpKappa _ell p _S _shift _hSlen _hshiftDegree _hshiftVars _hadm
+  refine ⟨(fun _j : Fin m => 0), ?_⟩
+  have hPi :
+      (routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+        (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)) p = 0 :=
+    routeBRicherFiniteRowsCandidateGauge_apply_eq_zero_of_finiteRowsSubmodule_eq_bot
+      M n hn2 htb hns rows hbot p
+  simp [hPi, routeBSPDPGeneratorRow_zero]
+
+theorem routeBRicherGaugeFiniteRowsSPDPKernelCompatibility_of_finiteRowsSubmodule_eq_bot
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hbot : finiteRowsSubmodule rows =
+      (⊥ : Submodule ℚ (SATDeciderGaugeSpace M n hn2 htb hns))) :
+    RouteBRicherGaugeFiniteRowsSPDPKernelCompatibility M n hn2 htb hns rows := by
+  intro _spdpKappa _ell _p _S _shift _hSlen _hshiftDegree _hshiftVars _hadm
+  exact routeBRicherFiniteRowsCandidateGauge_apply_eq_zero_of_finiteRowsSubmodule_eq_bot
+    M n hn2 htb hns rows hbot _
+
+theorem finiteRowsSubmodule_empty_eq_bot
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (rows : Fin 0 -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    finiteRowsSubmodule rows =
+      (⊥ : Submodule ℚ (SATDeciderGaugeSpace M n hn2 htb hns)) := by
+  classical
+  unfold finiteRowsSubmodule
+  rw [show Set.range rows = (∅ : Set (SATDeciderGaugeSpace M n hn2 htb hns)) by
+    ext p
+    constructor
+    · intro hp
+      rcases hp with ⟨i, rfl⟩
+      exact Fin.elim0 i
+    · intro hp
+      cases hp]
+  simp
+
+theorem routeBRicherGaugeFiniteRowsSPDPClosure_empty
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (rows : Fin 0 -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    RouteBRicherGaugeFiniteRowsSPDPClosure M n hn2 htb hns rows :=
+  routeBRicherGaugeFiniteRowsSPDPClosure_of_finiteRowsSubmodule_eq_bot
+    M n hn2 htb hns rows
+    (finiteRowsSubmodule_empty_eq_bot M n hn2 htb hns rows)
+
+theorem routeBRicherGaugeFiniteRowsSPDPKernelCompatibility_empty
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (rows : Fin 0 -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    RouteBRicherGaugeFiniteRowsSPDPKernelCompatibility M n hn2 htb hns rows :=
+  routeBRicherGaugeFiniteRowsSPDPKernelCompatibility_of_finiteRowsSubmodule_eq_bot
+    M n hn2 htb hns rows
+    (finiteRowsSubmodule_empty_eq_bot M n hn2 htb hns rows)
+
 /-- Strong kernel-generator zero discharges finite-row kernel compatibility.
 
 This is the direct finite-row form of the residual-generator-zero route: if
