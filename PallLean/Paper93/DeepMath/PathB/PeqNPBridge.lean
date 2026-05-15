@@ -283,6 +283,38 @@ theorem P_ne_NP_canonical_routeB_oneShot_from_sourceLeibnizLocalTypeCompression_
 
 #print axioms P_ne_NP_canonical_routeB_oneShot_from_sourceLeibnizLocalTypeCompression_conditional
 
+/-- Canonical one-shot closeout from paired exact-slot factorization plus
+selected-shift closure.
+
+This is the non-degenerate Lemma-31 bottom seam in its already-paired form: the
+exact anonymous interface slots supply the row product decomposition and the
+selected-shift closure supplies the guarded `mlProj` membership, after which the
+checked term-local profile-subspace assembly closes `PeqNP_Paper`. -/
+theorem P_ne_NP_canonical_routeB_oneShot_from_exactSlotWithSelectedShiftClosure_sourceLeibnizLocalTypeCompression_conditional
+    (hData : Step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_oneShot_from_sourceLeibnizLocalTypeCompression_conditional
+    (step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData_of_exactInterfaceSlotFactorizationWithSelectedShiftClosureData
+      hData)
+
+#print axioms P_ne_NP_canonical_routeB_oneShot_from_exactSlotWithSelectedShiftClosure_sourceLeibnizLocalTypeCompression_conditional
+
+/-- Canonical one-shot closeout from the witnessed interface-slot factorization
+surface.
+
+This is stronger than the paired exact-slot seam: a single witnessed slot payload
+already contains both exact anonymous product data and the selected shift closure
+field, so it routes directly through the literal term-local Lemma-31 compression
+chain. -/
+theorem P_ne_NP_canonical_routeB_oneShot_from_interfaceSlotFactorization_sourceLeibnizLocalTypeCompression_conditional
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductInterfaceSlotFactorizationData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_oneShot_from_exactSlotWithSelectedShiftClosure_sourceLeibnizLocalTypeCompression_conditional
+    (step247UniformRouteBPaperFaithfulTPhiExactInterfaceSlotFactorizationWithSelectedShiftClosureData_of_interfaceSlotFactorizationData
+      hData)
+
+#print axioms P_ne_NP_canonical_routeB_oneShot_from_interfaceSlotFactorization_sourceLeibnizLocalTypeCompression_conditional
+
 /-- Canonical one-shot closeout from the lowest coherent bottom seam:
 factor-fiber slot partitions plus local-algebra selected-shift closure first
 construct the literal source Leibniz local-type compression witness, then the
