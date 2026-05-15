@@ -151,3 +151,13 @@ For the Lemma 31 / Property 1 row-containment proof, always state which `W` is b
 - Dead-chain target: `cookLevinProfileSubspace bp (fun τ => concreteW n hn4 (Fin.castLEEmb hn4) τ)`. This reintroduces the fixed canonical coordinate obstruction for variable-dependent booleanity/adjacency rows and should only be used for diagnostics/negative pressure tests, not final closure.
 
 If a proof attempt drifts into `concreteW`, pivot back to `interfaceSpace_compiledBasis` and land the row embeddings there.
+
+### Archived concreteW dead-chain modules
+
+The unused fixed-canonical concreteW closeout/diagnostic modules were moved to:
+
+```text
+archive/routeb-concretew-dead-chain/
+```
+
+These are retained for historical diagnostics only. Do not use them as the final Lemma 31 / Property 1 row-containment path.
