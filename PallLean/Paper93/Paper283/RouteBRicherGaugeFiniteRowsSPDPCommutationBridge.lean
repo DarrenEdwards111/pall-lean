@@ -258,6 +258,28 @@ theorem routeBRicherGaugeFiniteRowsSPDPMapPreimage_of_generatorCommutation
     (routeBRicherGaugeFiniteRowsSPDPGeneratorCommutation_of_generatorCommutation
       M n hn2 htb hns rows hcomm)
 
+/-- Finite-row closure plus kernel/complement compatibility gives the exact
+map-preimage SPDP surface.
+
+This exposes the direct finite-row target consumed by the corrected Route B
+assembly: selected projected generators are closed in the finite span, while
+the residual generator is invisible to the finite-row projection. -/
+theorem routeBRicherGaugeFiniteRowsSPDPMapPreimage_of_spdpClosure_kernelCompatibility
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (closure :
+      RouteBRicherGaugeFiniteRowsSPDPClosure M n hn2 htb hns rows)
+    (hker :
+      RouteBRicherGaugeFiniteRowsSPDPKernelCompatibility
+        M n hn2 htb hns rows) :
+    RouteBRicherGaugeFiniteRowsSPDPMapPreimage M n hn2 htb hns rows :=
+  routeBRicherGaugeFiniteRowsSPDPMapPreimage_of_generatorCommutation
+    M n hn2 htb hns rows
+    (routeBRicherGaugeGeneratorCommutation_of_spdpClosure_kernelCompatibility
+      M n hn2 htb hns rows closure hker)
+
 /-- Concrete finite-row Route B assembly with the SPDP side discharged by
 finite-row generator commutation. -/
 theorem routeBPerInstanceCertificate_of_finiteRowsSPDPGeneratorCommutation_deltaEqRateKappa
@@ -364,6 +386,7 @@ theorem routeBPerInstanceCertificate_of_finiteRowsSPDPGeneralCommutation_deltaEq
 #print axioms routeBRicherGaugeGeneratorCommutation_of_spdpClosure_kernelCompatibility
 #print axioms routeBRicherGaugeFiniteRowsSPDPMapPreimage_of_generatorRowCommutation
 #print axioms routeBRicherGaugeFiniteRowsSPDPMapPreimage_of_generatorCommutation
+#print axioms routeBRicherGaugeFiniteRowsSPDPMapPreimage_of_spdpClosure_kernelCompatibility
 #print axioms routeBPerInstanceCertificate_of_finiteRowsSPDPGeneratorCommutation_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_finiteRowsSPDPGeneralCommutation_deltaEqRateKappa
 

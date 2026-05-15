@@ -214,6 +214,21 @@ theorem zeroProfileShiftSupportSetCount_le_supportCardSumBound {n L : ℕ}
   intro T _hT
   exact Nat.one_le_pow _ _ (by norm_num : 0 < 2)
 
+/-- The concrete support-basis cardinality bound is already at least the
+number of admissible shift supports: every summand is a positive power of
+`2`. -/
+theorem zeroProfileShiftSupportSetCount_le_supportBasisCardBound {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    zeroProfileShiftSupportSetCount n κ ≤
+      zeroProfileShiftSupportBasisCardBound κ factors := by
+  unfold zeroProfileShiftSupportSetCount zeroProfileShiftSupportSetFamily
+    zeroProfileShiftSupportBasisCardBound
+  rw [Finset.card_eq_sum_ones]
+  apply Finset.sum_le_sum
+  intro T _hT
+  exact Nat.one_le_pow _ _ (by norm_num : 0 < 2)
+
 /-- Consequently, for `κ ≥ 1`, the exact finite-sum side condition already
 has ambient-size cost: it is at least `n`, before any Cook-Levin base-product
 variables are counted. -/
@@ -224,6 +239,16 @@ theorem zeroProfileSupportCardSumBound_ge_ambient_of_one_le {n L : ℕ}
     n ≤ zeroProfileSupportCardSumBound κ factors :=
   (zeroProfileShiftSupportSetCount_ge_ambient_of_one_le n κ hκ).trans
     (zeroProfileShiftSupportSetCount_le_supportCardSumBound κ factors)
+
+/-- The support-basis cardinality bound itself has ambient-size cost as soon
+as singleton shifts are admissible. -/
+theorem zeroProfileShiftSupportBasisCardBound_ge_ambient_of_one_le {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hκ : 1 ≤ κ) :
+    n ≤ zeroProfileShiftSupportBasisCardBound κ factors :=
+  (zeroProfileShiftSupportSetCount_ge_ambient_of_one_le n κ hκ).trans
+    (zeroProfileShiftSupportSetCount_le_supportBasisCardBound κ factors)
 
 /-- The external-base-cardinality finite sum has the same ambient-size lower
 bound: singleton shift supports alone already contribute at least `n`. -/
@@ -255,6 +280,20 @@ theorem ambient_le_withinProfileBound_of_zeroProfileSupportCardSumSideCondition
     n ≤ withinProfileBound κ :=
   (zeroProfileSupportCardSumBound_ge_ambient_of_one_le κ factors hκ).trans
     hside
+
+/-- Any proof that the support-basis cardinality bound fits within the
+within-profile budget already implies the ambient-size inequality
+`n ≤ withinProfileBound κ`. -/
+theorem ambient_le_withinProfileBound_of_zeroProfileShiftSupportBasisCardBound_le
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hκ : 1 ≤ κ)
+    (hbound : zeroProfileShiftSupportBasisCardBound κ factors ≤
+      withinProfileBound κ) :
+    n ≤ withinProfileBound κ :=
+  (zeroProfileShiftSupportBasisCardBound_ge_ambient_of_one_le κ factors hκ).trans
+    hbound
 
 /-- If the ambient dimension already exceeds the within-profile budget, the
 exact finite-sum support-cardinality side condition is impossible. -/
@@ -487,12 +526,15 @@ theorem not_CookLevinZeroProfileSupportBaseCardSideCondition_of_withinProfileBou
 
 #print axioms zeroProfileBaseProductVars_card_le_univ
 #print axioms zeroProfileShiftSupportBasisCardBound_le_supportCardSumBound
+#print axioms zeroProfileShiftSupportSetCount_le_supportBasisCardBound
 #print axioms zeroProfileSupportCardSumBound_le_of_base_card_le
 #print axioms zeroProfileSupportCardSumBoundOfBaseCard_le_count_mul_pow
 #print axioms zeroProfileShiftSupportSetCount_le_pow
 #print axioms zeroProfileShiftSupportSetCount_ge_ambient_of_one_le
 #print axioms zeroProfileSupportCardSumBound_ge_ambient_of_one_le
+#print axioms zeroProfileShiftSupportBasisCardBound_ge_ambient_of_one_le
 #print axioms ambient_le_withinProfileBound_of_zeroProfileSupportCardSumSideCondition
+#print axioms ambient_le_withinProfileBound_of_zeroProfileShiftSupportBasisCardBound_le
 #print axioms not_zeroProfileSupportCardSumSideCondition_of_withinProfileBound_lt_ambient
 #print axioms ambient_le_withinProfileBound_of_CookLevinZeroProfileSupportCardSumSideCondition
 #print axioms not_CookLevinZeroProfileSupportCardSumSideCondition_of_withinProfileBound_lt_ambient

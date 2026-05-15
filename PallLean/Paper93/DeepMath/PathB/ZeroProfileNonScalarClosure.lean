@@ -55,6 +55,27 @@ def CookLevinZeroProfileNonScalarClosureWithBudget
         (fun i => (cookLevinFactorList M n hn htb hns).get i)
       ⊆ Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ))
 
+/-- Compressed subspace form of the non-scalar zero-profile closure.  Unlike
+the explicit support-basis route, this asks directly for a finite-dimensional
+carrier of the shifted zero-profile image. -/
+def CookLevinZeroProfileCompressedSpanWithBudget
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (budget : ℕ) : Prop :=
+  ∃ U : Submodule ℚ (MvPolynomial (Fin n) ℚ),
+    zeroProfileShiftImageSet (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      ⊆ U ∧
+    Module.Finite ℚ ↥U ∧
+    Module.finrank ℚ ↥U ≤ budget
+
+/-- Final-budget version of the compressed zero-profile subspace interface. -/
+def CookLevinZeroProfileCompressedCommonSpan
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  CookLevinZeroProfileCompressedSpanWithBudget M n hn htb hns
+    (withinProfileBound (Nat.log 2 n))
+
 /-- Every actual Cook-Levin zero-profile shifted `mlProj` row lies in the
 non-scalar support-basis span. -/
 theorem cookLevinZeroProfileNonScalarBasis_spans_shiftedRows
@@ -89,6 +110,50 @@ theorem cookLevinZeroProfileNonScalarBasis_card_le_cardBound
     zeroProfileShiftSupportBasis_card_le_cardBound (Nat.log 2 n)
       (fun i => (cookLevinFactorList M n hn htb hns).get i)
 
+/-- The support-basis cardinality budget exposed as
+`cookLevinZeroProfileNonScalarCardBound` is already at least the ambient
+variable count.  Thus this concrete budget cannot be proved below
+`withinProfileBound` in any range where the ambient dimension is larger than
+the within-profile budget. -/
+theorem ambient_le_cookLevinZeroProfileNonScalarCardBound
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    n ≤ cookLevinZeroProfileNonScalarCardBound M n hn htb hns := by
+  have hlog_pos : 0 < Nat.log 2 n := Nat.log_pos (by omega) hn
+  have hlog : 1 ≤ Nat.log 2 n := Nat.succ_le_of_lt hlog_pos
+  simpa [cookLevinZeroProfileNonScalarCardBound] using
+    zeroProfileShiftSupportBasisCardBound_ge_ambient_of_one_le
+      (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      hlog
+
+/-- Direct obstruction for the requested concrete non-scalar budget: any proof
+of `cookLevinZeroProfileNonScalarCardBound ≤ withinProfileBound` forces the
+ambient-size inequality `n ≤ withinProfileBound`. -/
+theorem ambient_le_withinProfileBound_of_cookLevinZeroProfileNonScalarCardBound_le
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hbound :
+      cookLevinZeroProfileNonScalarCardBound M n hn htb hns ≤
+        withinProfileBound (Nat.log 2 n)) :
+    n ≤ withinProfileBound (Nat.log 2 n) :=
+  (ambient_le_cookLevinZeroProfileNonScalarCardBound M n hn htb hns).trans
+    hbound
+
+/-- Therefore the concrete support-basis cardinality budget is impossible in
+any range where the within-profile budget is smaller than the ambient variable
+count. -/
+theorem not_cookLevinZeroProfileNonScalarCardBound_le_withinProfileBound_of_withinProfileBound_lt_ambient
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hlt : withinProfileBound (Nat.log 2 n) < n) :
+    ¬ cookLevinZeroProfileNonScalarCardBound M n hn htb hns ≤
+      withinProfileBound (Nat.log 2 n) := by
+  intro hbound
+  exact (not_le_of_gt hlt)
+    (ambient_le_withinProfileBound_of_cookLevinZeroProfileNonScalarCardBound_le
+      M n hn htb hns hbound)
+
 /-- The actual Cook-Levin zero-profile shifted rows admit a non-scalar closure
 with the support-basis cardinality bound. -/
 theorem cookLevinZeroProfileNonScalarClosureWithCardBound
@@ -101,6 +166,21 @@ theorem cookLevinZeroProfileNonScalarClosureWithCardBound
   simpa [cookLevinZeroProfileNonScalarBasis] using
     zeroProfileShiftImageSet_subset_supportBasis_span (Nat.log 2 n)
       (fun i => (cookLevinFactorList M n hn htb hns).get i)
+
+/-- A finite-set non-scalar closure is a compressed finite-dimensional
+subspace closure. -/
+theorem cookLevinZeroProfileCompressedSpanWithBudget_of_nonScalarClosureWithBudget
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {budget : ℕ}
+    (hclosure :
+      CookLevinZeroProfileNonScalarClosureWithBudget M n hn htb hns budget) :
+    CookLevinZeroProfileCompressedSpanWithBudget M n hn htb hns budget := by
+  rcases hclosure with ⟨G, hG_card, hG_span⟩
+  refine ⟨Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ)),
+    hG_span, ?_, ?_⟩
+  · exact Module.Finite.span_of_finite ℚ (Finset.finite_toSet G)
+  · exact (finrank_span_finset_le_card G).trans hG_card
 
 /-- A budgeted non-scalar closure is exactly consumable by the existing
 zero-profile common-span bridge once its budget is at most
@@ -115,6 +195,36 @@ theorem cookLevinZeroHistogramShiftCommonSpan_of_nonScalarClosureWithBudget
     CookLevinZeroHistogramShiftCommonSpan M n hn htb hns := by
   rcases hclosure with ⟨G, hG_card, hG_span⟩
   exact ⟨G, hG_card.trans hbudget, hG_span⟩
+
+/-- A compressed zero-profile subspace closure is consumable by the existing
+zero-profile common-span bridge once its finrank budget is at most
+`withinProfileBound`. -/
+theorem cookLevinZeroHistogramShiftCommonSpan_of_compressedSpanWithBudget
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {budget : ℕ}
+    (hcompressed :
+      CookLevinZeroProfileCompressedSpanWithBudget M n hn htb hns budget)
+    (hbudget : budget ≤ withinProfileBound (Nat.log 2 n)) :
+    CookLevinZeroHistogramShiftCommonSpan M n hn htb hns := by
+  rcases hcompressed with ⟨U, hU_contains, hU_fin, hU_dim⟩
+  letI : Module.Finite ℚ ↥U := hU_fin
+  rcases finite_submodule_le_span_finset_card_le_finrank U with
+    ⟨G, hU_span, hG_card⟩
+  refine ⟨G, hG_card.trans (hU_dim.trans hbudget), ?_⟩
+  intro p hp
+  exact hU_span (hU_contains hp)
+
+/-- Final-budget compressed zero-profile interface, converted to the existing
+zero-profile common-span blocker. -/
+theorem cookLevinZeroHistogramShiftCommonSpan_of_compressedCommonSpan
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcompressed :
+      CookLevinZeroProfileCompressedCommonSpan M n hn htb hns) :
+    CookLevinZeroHistogramShiftCommonSpan M n hn htb hns :=
+  cookLevinZeroHistogramShiftCommonSpan_of_compressedSpanWithBudget
+    M n hn htb hns hcompressed le_rfl
 
 /-- The checked support-cardinality side condition turns the non-scalar package
 into the existing zero-profile common-span blocker. -/
@@ -256,8 +366,14 @@ zero-profile budget, for example the common-span budget
 
 #print axioms cookLevinZeroProfileNonScalarBasis_spans_shiftedRows
 #print axioms cookLevinZeroProfileNonScalarBasis_card_le_cardBound
+#print axioms ambient_le_cookLevinZeroProfileNonScalarCardBound
+#print axioms ambient_le_withinProfileBound_of_cookLevinZeroProfileNonScalarCardBound_le
+#print axioms not_cookLevinZeroProfileNonScalarCardBound_le_withinProfileBound_of_withinProfileBound_lt_ambient
 #print axioms cookLevinZeroProfileNonScalarClosureWithCardBound
+#print axioms cookLevinZeroProfileCompressedSpanWithBudget_of_nonScalarClosureWithBudget
 #print axioms cookLevinZeroHistogramShiftCommonSpan_of_nonScalarCardBound_le
+#print axioms cookLevinZeroHistogramShiftCommonSpan_of_compressedSpanWithBudget
+#print axioms cookLevinZeroHistogramShiftCommonSpan_of_compressedCommonSpan
 #print axioms cookLevinZeroProfileNonScalarCardBound_le_withinProfileBound_of_supportCardSumSideCondition
 #print axioms cookLevinZeroProfileNonScalarCardBound_le_withinProfileBound_of_supportBaseCardSideCondition
 #print axioms cookLevinZeroHistogramShiftCommonSpan_of_nonScalarSupportCardSumSideCondition

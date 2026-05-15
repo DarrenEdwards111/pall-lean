@@ -142,6 +142,74 @@ theorem routeBPerInstanceCertificate_of_finiteRowsGeneralCommutation_activeBlock
       M n hn2 htb hns hn4 charge hI1 hI2c hI3 hbound hactive)
     Q i hrow hextract hsource
 
+/-- Corrected finite-row Route B assembly using endpoint/charged local
+closure and a genuine zero-profile common-span witness.
+
+This is the direct compressed-zero-profile sibling of
+`routeBPerInstanceCertificate_of_finiteRowsGeneralCommutation_activeBlockersZeroNonScalar_deltaEqRateKappa`:
+the P-window side consumes `CookLevinZeroHistogramShiftCommonSpan` itself,
+rather than a support-basis cardinality proof for the non-scalar budget. -/
+theorem routeBPerInstanceCertificate_of_finiteRowsGeneralCommutation_endpointChargedZeroProfileCommonSpan_deltaEqRateKappa
+    {N d : Nat}
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4) (charge : ProfileCharge n)
+    (alpha beta alpha0 : Real) (kappa gadgetN : Nat)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    {eta theta : Real}
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hN : 1 <= N) (hrowCount : m <= N)
+    (heta : 0 < eta) (htheta : 0 < theta)
+    (halpha : 0 < alpha) (halpha0 : 0 < alpha0)
+    (hkappa : 0 < kappa) (hgadgetN : 2 <= gadgetN)
+    (hI1 :
+      PerTypeProductGrouping (n := n) (endpointAugmentedConcreteW n hn4))
+    (hI2c :
+      EndpointAugmentedConcreteWChargedShiftClosure n hn4 charge)
+    (hI3 :
+      PerTypeMlprojClosure (n := n) (endpointAugmentedConcreteW n hn4))
+    (hzero :
+      CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hactive :
+      CookLevinActiveProfileTypeCaseBlockers M n hn2 htb hns)
+    (hcomm :
+      RouteBRicherGaugeGeneratorCommutation M n hn2 htb hns
+        (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows))
+    (Q : CoupledSheetPoly (flatCookLevinUVSplit M n hn2 htb hns))
+    (i : Fin m)
+    (hrow :
+      rows i =
+        CoupledSheetPoly.embed (flatCookLevinUVSplit M n hn2 htb hns) Q)
+    (hextract :
+      routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+          (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns)) =
+        routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+          (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)
+          (CoupledSheetPoly.embed
+            (flatCookLevinUVSplit M n hn2 htb hns) Q))
+    (hsource :
+      SourceIdentityMinorLowerBound n
+        (flatCookLevinUVSplit M n hn2 htb hns)
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n) Q) :
+    RouteBPerInstanceCertificate M n hn2 htb hns :=
+  routeBPerInstanceCertificate_of_finiteRowsGeneralCommutation_endpointChargedBridge_deltaEqRateKappa
+    (N := N) (d := d)
+    M n hn2 htb hns hn4 charge
+    alpha beta alpha0 kappa gadgetN G chi Phi
+    rows hN hrowCount heta htheta halpha halpha0 hkappa hgadgetN
+    hcomm
+    { localClosure :=
+        endpointAugmentedConcreteW_correctedLocalClosure_of_charged_components
+          n hn4 charge hI1 hI2c hI3
+      cover :=
+        routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_activeTypeCaseBlockers_and_zeroProfileCommonSpan
+          M n hn2 htb hns hn4 hzero hactive }
+    Q i hrow hextract hsource
+
 /-- Corrected finite-row Route B assembly using only the P-window cover data
 that the final certificate actually consumes.
 
@@ -414,6 +482,7 @@ theorem routeBPerInstanceCertificate_of_finiteRowsSPDPMapPreimage_rowEmbeddings_
 
 #print axioms routeBPerInstanceCertificate_of_finiteRowsGeneralCommutation_endpointChargedBridge_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_finiteRowsGeneralCommutation_activeBlockersZeroNonScalar_deltaEqRateKappa
+#print axioms routeBPerInstanceCertificate_of_finiteRowsGeneralCommutation_endpointChargedZeroProfileCommonSpan_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_finiteRowsGeneralCommutation_activeBlockersZeroNonScalarCover_deltaEqRateKappa
 #print axioms routeB_activeBlockersZeroNonScalarInputs_of_liveProfiles_zeroSupportCardSum
 #print axioms routeB_activeBlockersZeroNonScalarInputs_of_liveProfiles_zeroSupportBaseCard

@@ -84,6 +84,46 @@ def EndpointAugmentedConcreteWShiftMlprojClosureCharged
   PerTypeShiftMlprojClosureCharged (n := n) charge
     (endpointAugmentedConcreteW n hn4)
 
+/-- Endpoint-specific charge relation: the shift must lie in the endpoint
+repair span, and the charged target increments exactly the chosen
+constraint-type coordinate. -/
+def EndpointSpanTypeIncrementCharge
+    (n : ℕ) (hn4 : n ≥ 4) (τ : ConstraintType) : ProfileCharge n :=
+  fun bpSrc _S shift bpTgt =>
+    shift ∈ concreteWEndpointSpan n hn4 ∧
+      TypeIncrementTarget (n := n) τ bpSrc bpTgt
+
+/-- The adjacency endpoint charge used by the endpoint repair: endpoint-span
+shifts are charged into one additional adjacency-profile factor. -/
+def EndpointSpanAdjacencyIncrementCharge
+    (n : ℕ) (hn4 : n ≥ 4) : ProfileCharge n :=
+  EndpointSpanTypeIncrementCharge n hn4 ConstraintType.adjacency
+
+/-- Endpoint-span shifts satisfy the corrected charged I2 condition for the
+endpoint-augmented concreteW family, charging into any chosen constraint type.
+
+This is the endpoint-specific closure theorem: it does not use canonical raw
+same-profile I2, and its only target-profile content is the named
+`TypeIncrementTarget` relation. -/
+theorem endpointAugmentedConcreteW_chargedShiftClosure_endpointSpanTypeIncrement
+    (n : ℕ) (hn4 : n ≥ 4) (τ : ConstraintType) :
+    EndpointAugmentedConcreteWChargedShiftClosure n hn4
+      (EndpointSpanTypeIncrementCharge n hn4 τ) := by
+  intro bpSrc bpTgt _S _hSlen shift _hshift p hcharge hp
+  have hshiftW : shift ∈ endpointAugmentedConcreteW n hn4 τ := by
+    unfold endpointAugmentedConcreteW
+    exact Submodule.mem_sup_right hcharge.1
+  exact mul_mem_cookLevinProfileSubspace_of_mem_typeIncrement
+    (endpointAugmentedConcreteW n hn4) τ hshiftW hcharge.2 hp
+
+/-- Concrete adjacency-specialised endpoint charged shift closure. -/
+theorem endpointAugmentedConcreteW_chargedShiftClosure_endpointSpanAdjacencyIncrement
+    (n : ℕ) (hn4 : n ≥ 4) :
+    EndpointAugmentedConcreteWChargedShiftClosure n hn4
+      (EndpointSpanAdjacencyIncrementCharge n hn4) :=
+  endpointAugmentedConcreteW_chargedShiftClosure_endpointSpanTypeIncrement
+    n hn4 ConstraintType.adjacency
+
 /-- Endpoint H4, charged I1/I2/I3, and mlProj closure compose to the corrected
 charged I5 package at the endpoint-augmented concreteW family. -/
 theorem endpointAugmentedConcreteW_shiftMlprojClosure_charged_of_components
@@ -135,6 +175,21 @@ theorem endpointAugmentedConcreteW_correctedLocalClosure_of_universal_I1_I3_char
     hI2c
     (hI3_univ n (endpointAugmentedConcreteW n hn4))
 
+/-- Universal I1/I3 packages plus the endpoint-span adjacency charge give the
+corrected endpoint local closure with no raw same-profile I2 assumption. -/
+theorem endpointAugmentedConcreteW_correctedLocalClosure_of_universal_I1_I3_endpointSpanAdjacency
+    (n : ℕ) (hn4 : n ≥ 4)
+    (hI1_univ : PallLean.Paper93.Wiring.PerTypeProductGrouping_universal)
+    (hI3_univ : PallLean.Paper93.Wiring.PerTypeMlprojClosure_universal) :
+    EndpointAugmentedConcreteWCorrectedLocalClosure n hn4
+      (EndpointSpanAdjacencyIncrementCharge n hn4) :=
+  endpointAugmentedConcreteW_correctedLocalClosure_of_universal_I1_I3_chargedShift
+    n hn4 (EndpointSpanAdjacencyIncrementCharge n hn4)
+    hI1_univ
+    (endpointAugmentedConcreteW_chargedShiftClosure_endpointSpanAdjacencyIncrement
+      n hn4)
+    hI3_univ
+
 /-! ## Zero-profile check: charged target, not same-profile target -/
 
 /-- The corrected charged I5 statement sends the one-variable zero-profile
@@ -185,9 +240,12 @@ theorem concreteW_chargedShiftMlprojClosure_zeroProfile_X_mem_at_chargedTarget
 
 #print axioms concreteW_shiftMlprojClosure_charged_of_components
 #print axioms concreteW_perTypeShiftMlprojClosure_charged_of_components
+#print axioms endpointAugmentedConcreteW_chargedShiftClosure_endpointSpanTypeIncrement
+#print axioms endpointAugmentedConcreteW_chargedShiftClosure_endpointSpanAdjacencyIncrement
 #print axioms endpointAugmentedConcreteW_shiftMlprojClosure_charged_of_components
 #print axioms endpointAugmentedConcreteW_correctedLocalClosure_of_charged_components
 #print axioms endpointAugmentedConcreteW_correctedLocalClosure_of_universal_I1_I3_chargedShift
+#print axioms endpointAugmentedConcreteW_correctedLocalClosure_of_universal_I1_I3_endpointSpanAdjacency
 #print axioms concreteW_chargedShiftMlprojClosure_zeroProfile_X_mem_at_chargedTarget
 
 end PallLean.Paper93.DeepMath.PathB

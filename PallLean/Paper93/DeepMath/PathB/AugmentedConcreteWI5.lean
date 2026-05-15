@@ -23,6 +23,8 @@ open PallLean.Paper93
 open PallLean.Paper93.Spanning
 open PallLean.Paper93.Closure
 open PallLean.Paper93.Wiring
+open PallLean.SymTensorPowerDim (symPower)
+open scoped BigOperators
 
 attribute [local instance] Classical.dec
 
@@ -142,6 +144,176 @@ theorem perTypeShiftMlprojClosure_of_charged_sameProfile {n : ℕ}
   intro bp S hSlen shift hshiftvars g hg_prod
   exact h bp bp S hSlen shift hshiftvars g hg_prod rfl
 
+/-! ## Type-increment charged closure
+
+The endpoint repair route uses a genuinely charged target profile: multiplying
+by a shift already lying in one per-type space increments that type's symmetric
+power count.  This is smaller than raw `PerTypeChargedShiftClosure`: the only
+algebraic obligation is membership of the shift in the chosen per-type space,
+plus the explicit target-profile increment.
+-/
+
+/-- The target profile obtained from `bpSrc` by charging one additional factor
+to type `τ`.  If the source profile is already at the bounded radius in that
+coordinate then no bounded target can satisfy this relation, so the relation is
+automatically unavailable. -/
+def TypeIncrementTarget {n : ℕ} (τ : ConstraintType)
+    (bpSrc bpTgt : BoundedProfile (Nat.log 2 n)) : Prop :=
+  bpTgt.toHistogram τ = bpSrc.toHistogram τ + 1 ∧
+    ∀ τ' : ConstraintType, τ' ≠ τ →
+      bpTgt.toHistogram τ' = bpSrc.toHistogram τ'
+
+/-- A charged relation saying that `shift` is itself an element of the
+per-type space `W τ`, and the target profile increments exactly that type. -/
+def PerTypeElementIncrementCharge {n : ℕ}
+    (W : ConstraintType → Submodule ℚ (MvPolynomial (Fin n) ℚ))
+    (τ : ConstraintType) : ProfileCharge n :=
+  fun bpSrc _S shift bpTgt =>
+    shift ∈ W τ ∧ TypeIncrementTarget (n := n) τ bpSrc bpTgt
+
+private theorem mul_mem_symPower_succ_of_mem
+    {n k : ℕ} {W : Submodule ℚ (MvPolynomial (Fin n) ℚ)}
+    {a p : MvPolynomial (Fin n) ℚ}
+    (ha : a ∈ W) (hp : p ∈ symPower ℚ k W) :
+    a * p ∈ symPower ℚ (k + 1) W := by
+  classical
+  unfold symPower at hp ⊢
+  refine Submodule.span_induction
+    (s := { q : MvPolynomial (Fin n) ℚ |
+      ∃ f : Fin k → MvPolynomial (Fin n) ℚ,
+        (∀ i, f i ∈ W) ∧ q = ∏ i, f i })
+    (p := fun q _ =>
+      a * q ∈ Submodule.span ℚ
+        { r : MvPolynomial (Fin n) ℚ |
+          ∃ f : Fin (k + 1) → MvPolynomial (Fin n) ℚ,
+            (∀ i, f i ∈ W) ∧ r = ∏ i, f i })
+    ?_ ?_ ?_ ?_ hp
+  · rintro q ⟨f, hf, rfl⟩
+    refine Submodule.subset_span ?_
+    refine ⟨Fin.cases a f, ?_, ?_⟩
+    · intro i
+      refine Fin.cases ?_ ?_ i
+      · exact ha
+      · intro j
+        exact hf j
+    · rw [Fin.prod_univ_succ]
+      simp
+  · simp
+  · intro p q _ _ hp hq
+    simpa [mul_add] using
+      Submodule.add_mem
+        (Submodule.span ℚ
+          { r : MvPolynomial (Fin n) ℚ |
+            ∃ f : Fin (k + 1) → MvPolynomial (Fin n) ℚ,
+              (∀ i, f i ∈ W) ∧ r = ∏ i, f i })
+        hp hq
+  · intro c p _ hp
+    have hmul_smul : a * (c • p) = c • (a * p) := by
+      rw [smul_eq_C_mul, smul_eq_C_mul]
+      ring
+    rw [hmul_smul]
+    exact Submodule.smul_mem _ c hp
+
+/-- Algebraic core of charged shift closure: if the shift belongs to one
+per-type space and the target profile increments that type, multiplication by
+the shift sends the source profile subspace into the charged target profile
+subspace. -/
+theorem mul_mem_cookLevinProfileSubspace_of_mem_typeIncrement
+    {n : ℕ}
+    (W : ConstraintType → Submodule ℚ (MvPolynomial (Fin n) ℚ))
+    (τ : ConstraintType)
+    {bpSrc bpTgt : BoundedProfile (Nat.log 2 n)}
+    {shift p : MvPolynomial (Fin n) ℚ}
+    (hshift : shift ∈ W τ)
+    (htarget : TypeIncrementTarget (n := n) τ bpSrc bpTgt)
+    (hp : p ∈ cookLevinProfileSubspace bpSrc W) :
+    shift * p ∈ cookLevinProfileSubspace bpTgt W := by
+  classical
+  unfold cookLevinProfileSubspace profileSubspace at hp ⊢
+  refine Submodule.span_induction
+    (s := { q : MvPolynomial (Fin n) ℚ |
+      ∃ f : ConstraintType → MvPolynomial (Fin n) ℚ,
+        (∀ σ : ConstraintType,
+          f σ ∈ symPower ℚ (bpSrc.toHistogram σ) (W σ)) ∧
+        q = ∏ σ : ConstraintType, f σ })
+    (p := fun q _ =>
+      shift * q ∈ Submodule.span ℚ
+        { r : MvPolynomial (Fin n) ℚ |
+          ∃ f : ConstraintType → MvPolynomial (Fin n) ℚ,
+            (∀ σ : ConstraintType,
+              f σ ∈ symPower ℚ (bpTgt.toHistogram σ) (W σ)) ∧
+            r = ∏ σ : ConstraintType, f σ })
+    ?_ ?_ ?_ ?_ hp
+  · rintro q ⟨f, hf, rfl⟩
+    let f' : ConstraintType → MvPolynomial (Fin n) ℚ :=
+      fun σ => if σ = τ then shift * f τ else f σ
+    refine Submodule.subset_span ?_
+    refine ⟨f', ?_, ?_⟩
+    · intro σ
+      by_cases hσ : σ = τ
+      · subst σ
+        have hsym :
+            shift * f τ ∈
+              symPower ℚ (bpSrc.toHistogram τ + 1) (W τ) :=
+          mul_mem_symPower_succ_of_mem hshift (hf τ)
+        simpa [f', htarget.1] using hsym
+      · have hsame := htarget.2 σ hσ
+        simpa [f', hσ, hsame] using hf σ
+    · have hsplit_src :
+          (∏ σ : ConstraintType, f σ) =
+            f τ * Finset.prod (Finset.univ.erase τ) f := by
+        rw [← Finset.mul_prod_erase (Finset.univ : Finset ConstraintType) f
+          (Finset.mem_univ τ)]
+      have hsplit_tgt :
+          (∏ σ : ConstraintType, f' σ) =
+            f' τ * Finset.prod (Finset.univ.erase τ) f' := by
+        rw [← Finset.mul_prod_erase (Finset.univ : Finset ConstraintType) f'
+          (Finset.mem_univ τ)]
+      have herase :
+          Finset.prod (Finset.univ.erase τ) f' =
+            Finset.prod (Finset.univ.erase τ) f := by
+        refine Finset.prod_congr rfl ?_
+        intro σ hσ
+        have hne : σ ≠ τ := (Finset.mem_erase.mp hσ).1
+        simp [f', hne]
+      calc
+        shift * (∏ σ : ConstraintType, f σ)
+            = shift * (f τ * Finset.prod (Finset.univ.erase τ) f) := by
+              rw [hsplit_src]
+        _ = (shift * f τ) * Finset.prod (Finset.univ.erase τ) f := by
+              ring
+        _ = f' τ * Finset.prod (Finset.univ.erase τ) f' := by
+              simp [f', herase]
+        _ = ∏ σ : ConstraintType, f' σ := hsplit_tgt.symm
+  · simp
+  · intro p q _ _ hp hq
+    simpa [mul_add] using
+      Submodule.add_mem
+        (Submodule.span ℚ
+          { r : MvPolynomial (Fin n) ℚ |
+            ∃ f : ConstraintType → MvPolynomial (Fin n) ℚ,
+              (∀ σ : ConstraintType,
+                f σ ∈ symPower ℚ (bpTgt.toHistogram σ) (W σ)) ∧
+              r = ∏ σ : ConstraintType, f σ })
+        hp hq
+  · intro c p _ hp
+    have hmul_smul : shift * (c • p) = c • (shift * p) := by
+      rw [smul_eq_C_mul, smul_eq_C_mul]
+      ring
+    rw [hmul_smul]
+    exact Submodule.smul_mem _ c hp
+
+/-- The type-increment charge relation discharges the corrected charged I2
+side condition for any per-type family `W`. -/
+theorem perTypeChargedShiftClosure_typeIncrement {n : ℕ}
+    (W : ConstraintType → Submodule ℚ (MvPolynomial (Fin n) ℚ))
+    (τ : ConstraintType) :
+    PerTypeChargedShiftClosure (n := n)
+      (PerTypeElementIncrementCharge (n := n) W τ) W := by
+  intro bpSrc bpTgt _S _hSlen shift _hshift p hcharge hp
+  exact mul_mem_cookLevinProfileSubspace_of_mem_typeIncrement
+    W τ hcharge.1 hcharge.2 hp
+
 /-! ## Augmented concreteW specialisation
 
 `augmentedConcreteW` is a conservative wrapper: callers choose the additional
@@ -222,6 +394,8 @@ theorem perTypeShiftMlprojClosure_charged_canonicalAugmentedConcreteW {n : ℕ}
 #print axioms perTypeChargedShiftClosure_sameProfile_of_shiftClosure
 #print axioms perTypeShiftMlprojClosure_charged_sameProfile_from_I1_I2_I3
 #print axioms perTypeShiftMlprojClosure_of_charged_sameProfile
+#print axioms mul_mem_cookLevinProfileSubspace_of_mem_typeIncrement
+#print axioms perTypeChargedShiftClosure_typeIncrement
 #print axioms concreteW_le_augmentedConcreteWWithExtra
 #print axioms perTypeShiftMlprojClosure_charged_augmentedConcreteW
 #print axioms perTypeShiftMlprojClosure_charged_canonicalAugmentedConcreteW
