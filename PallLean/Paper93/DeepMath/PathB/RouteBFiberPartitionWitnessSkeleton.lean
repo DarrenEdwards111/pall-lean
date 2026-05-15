@@ -4,12 +4,12 @@ import PallLean.Paper93.DeepMath.PathB.RouteBPlacedQuotientDescentKR
 /-!
 # Route B fiber-partition seam — gap-isolation skeleton
 
-This file produces an unconditional inhabitant of
+This file produces a kernel-clean inhabitant of
 `Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData`
-**modulo a single `sorry`** at the
-`factorSlotContribution_mem_compiledBasis` field.
+parameterised by the single §40/Lemma-31 membership field
+`factorSlotContribution_mem_compiledBasis`.
 
-The remaining `sorry` is precisely the paper-faithful §40 / Lemma 31
+The remaining explicit hypothesis is precisely the paper-faithful §40 / Lemma 31
 statement: for every realizable interface-anonymous profile `ρ` and every
 selected `(σ, j)` slot, the product of `iterDerivList (d i)
 (restrictedFactors i)` over the corresponding factor-slot fiber lies in
@@ -20,7 +20,7 @@ Fields 1–5 (block partition, canonical profile, single-bucket fiber
 assignment, pairwise disjointness, covering identity) are discharged
 constructively.
 
-Once §40 Lemma 31 lands, this file's `sorry` becomes a real proof.
+Once §40 Lemma 31 lands, its proof supplies the explicit parameter below.
 Note that the canonical Route B closure
 `P_ne_NP_canonical_routeB_bottomSeam_primary_from_fiberPartition_and_localAlgebra_conditional`
 takes *both* a fiber-partition seam and a `…CompiledBasisLocalAlgebraData`
@@ -30,9 +30,8 @@ fiber-partition half. An analogous skeleton for the local-algebra side
 needed before the closure fires end-to-end.
 
 **CLAUDE.md note.** The global "DO NOT SIMPLIFY proofs" rule is
-explicitly relaxed for this file by user request. The sole `sorry`
-isolates the open math gap to one named obligation; the file is a
-gap-marker, not a closure.
+explicitly relaxed for this file by user request. The explicit Lemma-31 parameter isolates the open math gap to one named
+obligation; the file is a gap-marker, not an unconditional closure.
 -/
 
 set_option maxHeartbeats 800000
@@ -75,15 +74,64 @@ noncomputable def routeBFiberSkeleton_canonicalProfile (n : ℕ) :
     · subst h; simp
     · simp [h]
 
-/-- The fiber-partition skeleton witness.
+/-- The exact §40/Lemma-31 membership obligation for the single-bucket
+fiber skeleton below.
 
-Discharges every structural field of
-`RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData`
-except `factorSlotContribution_mem_compiledBasis`, which is left as
-`sorry` and labelled as the §40 / Lemma 31 open obligation. -/
+This is intentionally a `Prop`, not an axiom: callers must supply a proof of
+the genuine compiled-basis membership payload before the skeleton can be
+promoted to Route B data. -/
+def RouteBFiberPartitionWitnessSkeletonLemma31Obligation
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (_root_.Step4Compiler.Step252.cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (_root_.Step4Compiler.Step252.cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (_root_.PaperFaithfulSeparation.cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (_root_.Step4Compiler.Step252.cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        routeBFiberSkeleton_canonicalProfile n = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length)
+      (σ : ConstraintType) (j : Fin (ρ.val σ)),
+        ((if σ = ConstraintType.booleanity ∧ j.val = 0
+          then (Finset.univ :
+            Finset (Fin ((cookLevinFactorList M n hn2 htb hns).length)))
+          else ∅).prod (fun i =>
+            SPDP.iterDerivList (d i)
+              ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                M n hn2 htb hns) i))) ∈
+          interfaceSpace_compiledBasis
+            ({ numBlocks := 1
+               assign := fun _ => ⟨0, by decide⟩ } : SPDP.BlockPartition (n / 3))
+            (Nat.log 2 n) (Nat.log 2 n) σ
+
+/-- The fiber-partition skeleton witness, parameterised by the exact
+§40/Lemma-31 compiled-basis membership obligation.
+
+All finite-combinatorial fields are discharged constructively.  The only
+non-structural mathematical input is the explicit `hLemma31` parameter above;
+there is no proof placeholder and no new axiom. -/
 noncomputable def routeBFiberPartitionWitness_skeleton
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hLemma31 :
+      RouteBFiberPartitionWitnessSkeletonLemma31Obligation
+        M n hn2 htb hns) :
     RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData
       M n hn2 htb hns :=
 { sourcePartition :=
@@ -161,42 +209,37 @@ noncomputable def routeBFiberPartitionWitness_skeleton
     · rw [if_pos (And.intro rfl rfl)]
       exact Finset.mem_univ _
   factorSlotContribution_mem_compiledBasis := by
-    -- **§40 Lemma 31 — the actual paper-faithful open obligation.**
-    --
-    -- For each selected (σ, j) and the fiber `factorSlotFiber σ j`
-    -- defined above (`Finset.univ` at (.booleanity, 0) or `∅`
-    -- otherwise), the product
-    --   `∏ i ∈ fiber, iterDerivList (d i) (restrictedFactors i)`
-    -- must lie in
-    --   `interfaceSpace_compiledBasis sourcePartition (log₂ n) (log₂ n) σ`.
-    --
-    -- Two sub-cases:
-    --   (a) empty fiber → product = 1, need `1 ∈ W_σ`;
-    --   (b) universal fiber at (booleanity, 0) → product = full unshifted
-    --       bounded-Leibniz product, need it ∈ W_{booleanity} (literal
-    --       Lemma 31).
-    --
-    -- Both require the paper's §40 disjoint-fiber-product +
-    -- compiled-basis-containment argument and are not derivable from
-    -- existing in-repo primitives. Hence the single `sorry`.
-    sorry }
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+      d hd_elts hlen σ j
+    exact hLemma31 ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+      hρ d hd_elts hlen σ j }
 
-/-- **Uniform Step-247 wrapping.**
+/-- Uniform §40/Lemma-31 obligation for the skeleton, matching the Step-247
+quantifier shape. -/
+def Step247UniformRouteBFiberPartitionWitnessSkeletonLemma31Obligation : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    RouteBFiberPartitionWitnessSkeletonLemma31Obligation M n hn2 htb hns
 
-Promotes the per-instance skeleton above into the uniform `Prop`
-expected by the Route B PathB closure aggregator. -/
-noncomputable def step247UniformFiberPartitionData_skeleton :
+/-- **Uniform Step-247 wrapping from the real Lemma-31 payload.**
+
+Promotes the per-instance skeleton above into the uniform `Prop` expected by
+the Route B PathB closure aggregator once the non-degenerate §40/Lemma-31
+membership obligation has been supplied. -/
+noncomputable def step247UniformFiberPartitionData_skeleton
+    (hLemma31 : Step247UniformRouteBFiberPartitionWitnessSkeletonLemma31Obligation) :
     Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData := by
-  intro M n _hn hn2 htb hns
-  exact ⟨routeBFiberPartitionWitness_skeleton M n hn2 htb hns⟩
+  intro M n hn hn2 htb hns
+  exact ⟨routeBFiberPartitionWitness_skeleton M n hn2 htb hns
+    (hLemma31 M n hn hn2 htb hns)⟩
 
-/-! ### Sole open obligation summary
+/-! ### Open obligation summary
 
-The `#print axioms` directive below reports the transitive axiom set of
-the skeleton. While field 6 is unproved it will include `sorryAx`.
-Once §40 Lemma 31 lands, replace the `sorry` and this print will
-reduce to `[propext, Classical.choice, Quot.sound]`. -/
+The `#print axioms` directives below report the skeleton wrapper itself as
+kernel-clean: the remaining §40/Lemma-31 content is an explicit hypothesis,
+not a hidden placeholder axiom or bespoke axiom. -/
 
+#print axioms routeBFiberPartitionWitness_skeleton
 #print axioms step247UniformFiberPartitionData_skeleton
 
 end PallLean.Paper93.DeepMath.PathB
