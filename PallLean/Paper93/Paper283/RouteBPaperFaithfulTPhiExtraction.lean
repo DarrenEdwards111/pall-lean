@@ -20458,6 +20458,70 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductExactI
               interfaceSlotContribution ρ S' shift α hSlen hshiftDegree
                 hshiftVars hadm hrow hρ d hd_elts hlen σ j
 
+/-- Exact interface-slot factorization gives the unshifted Leibniz-product half
+of Lemma 31 Property 1.
+
+This is the requested product assembly step: once every actual differentiated
+factor has been assigned to a same-selected-profile interface slot and each slot
+lies in its local `W_σ = interfaceSpace_compiledBasis ... σ`, the product of all
+actual differentiated factors lands in
+`profileSubspace ρ.val (fun σ => W_σ)`.  The selected shift/`mlProj` closure is
+kept separate below, so this theorem does not smuggle in any global same-profile
+shift closure. -/
+theorem routeBPaperFaithfulTPhi_unshiftedLeibnizProduct_mem_compiledBasisProfileSubspace_of_exactInterfaceSlotFactorizationData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductExactInterfaceSlotFactorizationData
+      M n hn2 htb hns) :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        D.profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+        Finset.univ.prod
+          (fun i : Fin ((cookLevinFactorList M n hn2 htb hns).length) =>
+            SPDP.iterDerivList (d i)
+              ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                M n hn2 htb hns) i)) ∈
+          profileSubspace ρ.val
+            (fun τ => interfaceSpace_compiledBasis
+              D.sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ) := by
+  classical
+  intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+  rw [D.unshiftedLeibnizProduct_eq_interfaceSlotProduct
+    ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen]
+  exact
+    profileProduct_mem_profileSubspace ρ.val
+      (fun τ => interfaceSpace_compiledBasis
+        D.sourcePartition (Nat.log 2 n) (Nat.log 2 n) τ)
+      (D.interfaceSlotContribution ρ S' shift α hSlen hshiftDegree hshiftVars
+        hadm hrow hρ d hd_elts hlen)
+      (by
+        intro σ j
+        exact D.interfaceSlotContribution_mem_compiledBasis
+          ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen σ j)
+
 /-- The missing selected-shift closure field needed to upgrade exact slot data
 into full witnessed slot-factorization data. -/
 def RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductSelectedShiftClosureFieldOnExactInterfaceSlotFactorizationData
@@ -33882,6 +33946,7 @@ theorem routeBPaperFaithfulTPhi_compilerFixedStrictOp_NFOfWord_action
   exact routeBPaperFaithfulTPhi_compilerFixedLocal_NFOfWord_action
     (u.map routeBPaperFaithfulTPhiCompilerFixedLocalGenerator) x
 
+#print axioms routeBPaperFaithfulTPhi_unshiftedLeibnizProduct_mem_compiledBasisProfileSubspace_of_exactInterfaceSlotFactorizationData
 #print axioms routeBPaperFaithfulTPhi_compilerFixedFlip_card_eq_two
 #print axioms routeBPaperFaithfulTPhi_compilerFixedFlip_NF_length_le_three
 #print axioms routeBPaperFaithfulTPhi_compilerFixedFlip_NF_represents
