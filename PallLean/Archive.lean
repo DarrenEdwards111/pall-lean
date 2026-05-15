@@ -38,6 +38,7 @@ import PallLean.Archive.RouteB.SingletonEventAtomQDim
 import PallLean.Archive.RestrictionMono
 import PallLean.Archive.SelConClosedCoeffDecomp
 import PallLean.Archive.SelConCoeffReduction
+import PallLean.Archive.SpdpProfileGeneratorsLegacy
 import PallLean.Archive.Separation29
 import PallLean.Archive.SeparationAssembly
 import PallLean.Archive.SeparationFinal
