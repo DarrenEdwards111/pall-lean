@@ -23219,6 +23219,42 @@ abbrev RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimR
             ∅) : Finset (MvPolynomial (Fin (n / 3)) ℚ)) :
             Set (MvPolynomial (Fin (n / 3)) ℚ))
 
+/-- Diagnostic specialization: the fixed-`q` singleton event-atom row witness
+already forces the unshifted Leibniz product row into the linear span of the
+folded singleton event atoms.
+
+This is an honest pressure-test for the event-atom frontier: it is stronger than
+the profile-subspace/product-span Lemma-31 shape, and should not be confused
+with the final paper-faithful closure unless this atom-span membership is proved
+for the actual Cook--Levin rows. -/
+theorem routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_rowWitness_unshiftedProduct_mem_atomSpan
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hrow :
+      RouteBPaperFaithfulTPhiStrictSourceWitnessedLeibnizNFOfWordEventAtomQDimRowWitness
+        M n hn2 htb hns) :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3))) (hS : S'.length ≤ Nat.log 2 n)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length),
+      mlProj
+          ((1 : MvPolynomial (Fin (n / 3)) ℚ) *
+            Finset.univ.prod
+              (fun i =>
+                SPDP.iterDerivList (d i)
+                  ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                    M n hn2 htb hns) i))) ∈
+        routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_targetSpan
+          M n hn2 htb hns ρ d := by
+  intro ρ S' hS d hd_elts hlen
+  exact hrow ρ S' hS (1 : MvPolynomial (Fin (n / 3)) ℚ) (by simp) d hd_elts hlen
+
+#print axioms routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_rowWitness_unshiftedProduct_mem_atomSpan
+
 /-- Spine entry: proving target-row membership in the target folded event-atom
 span pointwise is exactly the fixed-`q` row-witness obligation. -/
 theorem routeBPaperFaithfulTPhi_strictSourceWitnessedLeibnizNFOfWordEventAtomQDim_rowWitness_of_targetMembership
