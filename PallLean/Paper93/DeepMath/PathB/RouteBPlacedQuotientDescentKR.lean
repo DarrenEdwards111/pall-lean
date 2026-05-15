@@ -549,6 +549,46 @@ def Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSl
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData
         M n hn2 htb hns)
 
+/-- Uniform coefficient-level non-singleton fibre data at Step 247 scale.
+
+This is the corrected local-chart endpoint after the singleton guardrail: the
+real Cook--Levin factors are grouped into slot fibres, and each whole fibre
+product is given explicit coordinates in the canonical three-generator compiled
+basis for its anonymous interface type. -/
+def Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberCoefficientExpansionData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberCoefficientExpansionData
+        M n hn2 htb hns)
+
+/-- Coefficient-expanded slot fibres instantiate the fibre-partition seam. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData_of_fiberCoefficientExpansionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberCoefficientExpansionData) :
+    Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData_of_fiberCoefficientExpansionData
+    M n hn2 htb hns D⟩
+
+/-- Coefficient-expanded slot fibres directly supply exact anonymous slots. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExactInterfaceSlotFactorizationData_of_fiberCoefficientExpansionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberCoefficientExpansionData) :
+    Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExactInterfaceSlotFactorizationData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  let DFib :=
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData_of_fiberCoefficientExpansionData
+      M n hn2 htb hns D
+  let DIndexed :=
+    PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFactorizationData_of_fiberPartitionData
+      M n hn2 htb hns DFib
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductExactInterfaceSlotFactorizationData_of_indexedInterfaceSlotFactorizationData
+    M n hn2 htb hns DIndexed⟩
+
+#print axioms step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData_of_fiberCoefficientExpansionData
+#print axioms step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExactInterfaceSlotFactorizationData_of_fiberCoefficientExpansionData
+
 /-- Uniform total slot-classifier data at Step 247 scale.
 
 This is the smaller constructive target below the fibre partition surface: a

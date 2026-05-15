@@ -870,6 +870,21 @@ theorem P_ne_NP_canonical_routeB_bottomSeam_primary_from_baseSingletonCoefficien
 
 #print axioms P_ne_NP_canonical_routeB_bottomSeam_primary_from_baseSingletonCoefficient_and_selectedShiftClosure_conditional
 
+/-- Canonical primary bottom-seam closure from coefficient-level **non-singleton
+fibre** factor data plus selected-shift closure.  This is the corrected
+paper-faithful coefficient endpoint after the singleton guardrail: coefficients
+are attached to whole slot-fibre products rather than to individual factors. -/
+theorem P_ne_NP_canonical_routeB_bottomSeam_primary_from_fiberCoefficient_and_selectedShiftClosure_conditional
+    (hCoeff : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberCoefficientExpansionData)
+    (hClosure : Step247UniformRouteBPaperFaithfulTPhiSelectedShiftClosureOnExactInterfaceSlotFactorizationData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_bottomSeam_primary_from_exactSlot_and_selectedShiftClosure_conditional
+    (step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductExactInterfaceSlotFactorizationData_of_fiberCoefficientExpansionData
+      hCoeff)
+    hClosure
+
+#print axioms P_ne_NP_canonical_routeB_bottomSeam_primary_from_fiberCoefficient_and_selectedShiftClosure_conditional
+
 /-- Canonical primary bottom-seam closure from coefficient-level base singleton
 factor data plus coherent local-algebra selected-shift data.  The coefficient
 payload builds the exact slots; local algebra supplies selected-shift closure on

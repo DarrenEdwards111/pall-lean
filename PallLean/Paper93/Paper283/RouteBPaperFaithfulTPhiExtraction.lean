@@ -21736,6 +21736,114 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexe
           interfaceSpace_compiledBasis
             sourcePartition (Nat.log 2 n) (Nat.log 2 n) σ
 
+/-- Coefficient-level fibre partition data for the non-singleton Route-B slot
+surface.
+
+This is the paper-faithful replacement for the over-strong base-singleton
+coefficient seam.  The real Cook--Levin factor indices are partitioned into
+anonymous interface-slot fibres; each slot contribution is the product over its
+whole fibre, and the local algebra obligation is lowered to explicit
+coordinates of that fibre product in the canonical three-generator compiled
+basis for the slot type. -/
+structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberCoefficientExpansionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    extends RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData
+      M n hn2 htb hns where
+  slotFiberBasisCoeff :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length)
+      (σ : ConstraintType) (j : Fin (ρ.val σ)), Fin d₀ → ℚ
+  slotFiber_eq_basisExpansion :
+    ∀ (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+      (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α)
+      (hρ :
+        profileOfCanonicalWindow
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+            hrow.1 = ρ)
+      (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+        List (Fin (n / 3)))
+      (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+      (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+          (d i).length ≤ S'.length)
+      (σ : ConstraintType) (j : Fin (ρ.val σ)),
+        (factorSlotFiber ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+            d hd_elts hlen σ j).prod (fun i =>
+            SPDP.iterDerivList (d i)
+              ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+                M n hn2 htb hns) i)) =
+          ∑ k : Fin d₀,
+            slotFiberBasisCoeff ρ S' shift α hSlen hshiftDegree hshiftVars
+              hadm hrow hρ d hd_elts hlen σ j k •
+            canonicalInterfacePolynomial sourcePartition
+              (Nat.log 2 n) (Nat.log 2 n) σ k
+
+/-- Explicit coefficient expansions for the non-singleton slot fibres imply the
+compiled-basis membership field required by the fibre-partition seam. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData_of_fiberCoefficientExpansionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberCoefficientExpansionData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData
+      M n hn2 htb hns where
+  sourcePartition := D.sourcePartition
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  factorSlotFiber := D.factorSlotFiber
+  factorSlotFiber_pairwiseDisjoint := D.factorSlotFiber_pairwiseDisjoint
+  factorSlotFiber_biUnion_eq_univ := D.factorSlotFiber_biUnion_eq_univ
+  factorSlotContribution_mem_compiledBasis := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen σ j
+    rw [D.slotFiber_eq_basisExpansion ρ S' shift α hSlen hshiftDegree
+      hshiftVars hadm hrow hρ d hd_elts hlen σ j]
+    apply Submodule.sum_mem
+    intro k hk
+    apply Submodule.smul_mem
+    unfold interfaceSpace_compiledBasis canonicalInterfaceGenerators
+    apply Submodule.subset_span
+    exact Finset.mem_image.mpr ⟨k, Finset.mem_univ k, rfl⟩
+
+#print axioms routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData_of_fiberCoefficientExpansionData
+
 /-- A total `(σ,j)` classifier canonically induces the disjoint covering slot
 fibres.  This discharges the fibre-partition bookkeeping from one local
 assignment function; the only non-combinatorial premise left in the classifier
