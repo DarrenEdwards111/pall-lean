@@ -120,6 +120,26 @@ theorem profileProduct_mem_profileSubspace {N : ℕ} {Iface : Type*}
   apply Submodule.subset_span
   exact ⟨slot σ, hslot σ, rfl⟩
 
+/-- Finite linear combinations of same-profile slot products remain in the same
+profile subspace.  This is the row-level version of Lemma 31 Property 1 used by
+selected Cook--Levin row expansions: each summand has exactly the selected
+profile `h`, and the subspace is closed under finite sums and scalars. -/
+theorem profileSlotExpansion_mem_profileSubspace {N : ℕ} {Iface : Type*}
+    [Fintype Iface] {ι : Type*} [Fintype ι]
+    (h : Iface → ℕ)
+    (W : Iface → Submodule ℚ (MvPolynomial (Fin N) ℚ))
+    (coeff : ι → ℚ)
+    (slot : ι → ∀ σ : Iface, Fin (h σ) → MvPolynomial (Fin N) ℚ)
+    (hslot : ∀ t σ j, slot t σ j ∈ W σ) :
+    (∑ t : ι, coeff t •
+      (∏ σ : Iface, ∏ j : Fin (h σ), slot t σ j)) ∈
+      profileSubspace h W := by
+  classical
+  apply Submodule.sum_mem
+  intro t _
+  exact Submodule.smul_mem _ (coeff t)
+    (profileProduct_mem_profileSubspace h W (slot t) (hslot t))
+
 /-! ## Multilinear expansion over the finite alphabet
 
 The key step: given bases `b σ : Basis (Fin (d σ)) ℚ (W σ)` for each
@@ -386,6 +406,7 @@ theorem profileSubspace_finrank_bound
           hfac_le
 
 #print axioms profileProduct_mem_profileSubspace
+#print axioms profileSlotExpansion_mem_profileSubspace
 #print axioms profileSubspace_finrank_bound
 
 end Paper93

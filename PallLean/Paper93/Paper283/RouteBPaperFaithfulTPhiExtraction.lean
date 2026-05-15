@@ -19657,22 +19657,19 @@ noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedCompiledBasisProfi
       ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
     rw [D.canonicalSourceRow_eq_rowInterfaceSlotExpansion
       ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ]
-    apply Submodule.sum_mem
-    intro t ht
-    apply Submodule.smul_mem
-    apply Submodule.subset_span
-    refine ⟨(fun σ : ConstraintType =>
-        ∏ j : Fin (ρ.val σ),
+    exact
+      profileSlotExpansion_mem_profileSubspace ρ.val
+        (fun τ => interfaceSpace_compiledBasis D.sourcePartition
+          (Nat.log 2 n) (Nat.log 2 n) τ)
+        (D.rowExpansionCoeff ρ S' shift α hSlen hshiftDegree
+          hshiftVars hadm hrow hρ)
+        (fun t σ j =>
           D.rowExpansionSlotContribution ρ S' shift α hSlen hshiftDegree
-            hshiftVars hadm hrow hρ t σ j), ?_, ?_⟩
-    · intro σ
-      apply Submodule.subset_span
-      refine ⟨D.rowExpansionSlotContribution ρ S' shift α hSlen hshiftDegree
-          hshiftVars hadm hrow hρ t σ, ?_, rfl⟩
-      intro j
-      exact D.rowExpansionSlotContribution_mem_compiledBasis
-        ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j
-    · rfl
+            hshiftVars hadm hrow hρ t σ j)
+        (by
+          intro t σ j
+          exact D.rowExpansionSlotContribution_mem_compiledBasis
+            ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ t σ j)
 
 
 /-- Direct renamed-canonical local-chart expansion gives the direct

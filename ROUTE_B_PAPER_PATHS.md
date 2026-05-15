@@ -161,3 +161,20 @@ archive/routeb-concretew-dead-chain/
 ```
 
 These are retained for historical diagnostics only. Do not use them as the final Lemma 31 / Property 1 row-containment path.
+
+## 2026-05-15 — Row-level profile-slot expansion constructor
+
+Added `profileSlotExpansion_mem_profileSubspace` in `PallLean/Paper93/TensorDimBound.lean`.
+This is the row-level Property 1 assembly lemma for finite sums of same-profile
+slot products:
+
+```lean
+∑ t, coeff t • (∏ σ, ∏ j : Fin (h σ), slot t σ j)
+  ∈ profileSubspace h W
+```
+
+from only slotwise membership `∀ t σ j, slot t σ j ∈ W σ`.  The direct
+compiled-basis row adapter now uses this theorem, so the selected row-containment
+step is explicitly routed through the intended `profileSubspace ρ.val
+(interfaceSpace_compiledBasis ...)` target rather than through the archived
+`concreteW` chain.
