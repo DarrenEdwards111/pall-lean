@@ -120,6 +120,60 @@ def RouteBFiberPartitionWitnessSkeletonLemma31Obligation
                assign := fun _ => ⟨0, by decide⟩ } : SPDP.BlockPartition (n / 3))
             (Nat.log 2 n) (Nat.log 2 n) σ
 
+/-- The current single-bucket skeleton obligation exposes the genuinely hard
+case explicitly: its booleanity/zero-slot instance is the full unshifted
+Leibniz product of all restricted Cook--Levin factors, not a background or
+empty-slot artifact.
+
+This lemma is intentionally diagnostic. It prevents the skeleton obligation
+from being mistaken for a harmless bookkeeping field: proving it requires the
+non-degenerate §40/Lemma-31 compiled-basis membership payload for the actual
+factor product. -/
+theorem routeBFiberPartitionWitnessSkeletonLemma31Obligation_fullProduct_mem_booleanity
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (hLemma31 : RouteBFiberPartitionWitnessSkeletonLemma31Obligation
+      M n hn2 htb hns)
+    (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (α : Fin n →₀ ℕ)
+    (hSlen : S'.length = Nat.log 2 n)
+    (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+    (hshiftVars :
+      (MvPolynomial.rename (_root_.Step4Compiler.Step252.cookLevinStrictFOBFlatMap n) shift).vars ⊆
+        (S'.map (_root_.Step4Compiler.Step252.cookLevinStrictFOBFlatMap n)).toFinset)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (_root_.PaperFaithfulSeparation.cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (_root_.Step4Compiler.Step252.cookLevinStrictFOBFlatMap n)))
+    (hrow :
+      routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+        M n hn2 htb hns S' shift α)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+    (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+        (d i).length ≤ S'.length) :
+      Finset.univ.prod (fun i : Fin ((cookLevinFactorList M n hn2 htb hns).length) =>
+          SPDP.iterDerivList (d i)
+            ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+              M n hn2 htb hns) i)) ∈
+        interfaceSpace_compiledBasis
+          ({ numBlocks := 1
+             assign := fun _ => ⟨0, by decide⟩ } : SPDP.BlockPartition (n / 3))
+          (Nat.log 2 n) (Nat.log 2 n) ConstraintType.booleanity := by
+  classical
+  let ρ := routeBFiberSkeleton_canonicalProfile n
+  have hmass : ρ.val ConstraintType.booleanity = Nat.log 2 n := by
+    simp [ρ, routeBFiberSkeleton_canonicalProfile]
+  have hlog_pos : 0 < Nat.log 2 n := Nat.log_pos (by decide) hn2
+  have hbool_pos : 0 < ρ.val ConstraintType.booleanity := by
+    rw [hmass]
+    exact hlog_pos
+  have hmem := hLemma31 ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    rfl d hd_elts hlen ConstraintType.booleanity ⟨0, hbool_pos⟩
+  simpa using hmem
+
 /-- The fiber-partition skeleton witness, parameterised by the exact
 §40/Lemma-31 compiled-basis membership obligation.
 
