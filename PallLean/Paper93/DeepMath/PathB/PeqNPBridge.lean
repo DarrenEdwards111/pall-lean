@@ -147,6 +147,54 @@ theorem P_ne_NP_canonical_routeB_profileTemplateTermFamily_conditional
 
 #print axioms P_ne_NP_canonical_routeB_profileTemplateTermFamily_conditional
 
+/-- Route-B closeout from the fixed-`q` event-atom budget plus row-witness seam.
+
+This is the most explicit current paper-faithful construction target below the
+profile-template family: prove the finite `q`-budget scaffolding and the exact
+row membership in the folded event-atom span, then the existing checked adapter
+chain reaches Lemma-31 profile-subspace compression and contradicts
+`PeqNP_Paper`. -/
+theorem not_PeqNP_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetAndRowWitness
+    (hBudget : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData)
+    (hRow : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimRowWitness) :
+    ∀ (_ : PeqNP_Paper), False :=
+  noBoundedSATDeciderAtPaperScale_implies_not_PeqNP
+    (noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetAndRowWitness
+      hBudget hRow)
+
+#print axioms not_PeqNP_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetAndRowWitness
+
+/-- Canonical Route-B closeout at the fixed-`q` event-atom row-witness seam. -/
+theorem P_ne_NP_canonical_routeB_eventAtomQDimBudgetAndRowWitness_conditional
+    (hBudget : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData)
+    (hRow : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimRowWitness) :
+    ∀ (_ : PeqNP_Paper), False :=
+  not_PeqNP_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetAndRowWitness
+    hBudget hRow
+
+#print axioms P_ne_NP_canonical_routeB_eventAtomQDimBudgetAndRowWitness_conditional
+
+/-- Route-B closeout from fixed-`q` event-atom budget plus pointwise target-membership. -/
+theorem P_ne_NP_canonical_routeB_eventAtomQDimBudgetAndTargetMembership_conditional
+    (hBudget : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetData)
+    (hMem : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimTargetMembership) :
+    ∀ (_ : PeqNP_Paper), False :=
+  noBoundedSATDeciderAtPaperScale_implies_not_PeqNP
+    (noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimBudgetAndTargetMembership
+      hBudget hMem)
+
+#print axioms P_ne_NP_canonical_routeB_eventAtomQDimBudgetAndTargetMembership_conditional
+
+/-- Route-B closeout from the packaged fixed-`q` event-atom final maps. -/
+theorem P_ne_NP_canonical_routeB_eventAtomQDimFinalMaps_conditional
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps) :
+    ∀ (_ : PeqNP_Paper), False :=
+  noBoundedSATDeciderAtPaperScale_implies_not_PeqNP
+    (noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceWitnessedLeibnizNFOfWordEventAtomQDimFinalMaps_via_budgetAndRowWitness
+      hData)
+
+#print axioms P_ne_NP_canonical_routeB_eventAtomQDimFinalMaps_conditional
+
 /-- Route-B closeout through exact-profile template-collapse data, routed into
 the literal Lemma-31 profile-subspace seam. -/
 theorem P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_exactProfileTemplateCollapse_conditional
