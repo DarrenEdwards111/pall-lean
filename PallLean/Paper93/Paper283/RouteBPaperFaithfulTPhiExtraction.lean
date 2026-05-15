@@ -21736,6 +21736,68 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexe
           interfaceSpace_compiledBasis
             sourcePartition (Nat.log 2 n) (Nat.log 2 n) σ
 
+/-- In any disjoint covering slot-fibre partition, the sum of the slot-fibre
+cardinalities is exactly the number of real Cook--Levin factors.  This is the
+cardinality form of the product-reassembly bookkeeping: after the singleton
+seam was ruled out, the remaining paper-faithful route must place many concrete
+factors into some anonymous slots. -/
+theorem routeBPaperFaithfulTPhi_indexedInterfaceSlotFiberPartition_card_sum_eq_factorList_length
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData
+      M n hn2 htb hns)
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+    (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (α : Fin n →₀ ℕ)
+    (hSlen : S'.length = Nat.log 2 n)
+    (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+    (hshiftVars :
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+        (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n)))
+    (hrow :
+      routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+        M n hn2 htb hns S' shift α)
+    (hρ :
+      D.profileOfCanonicalWindow
+          (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+          hrow.1 = ρ)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+    (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+        (d i).length ≤ S'.length) :
+    (∑ p ∈ Finset.univ.sigma
+        (fun σ : ConstraintType => (Finset.univ : Finset (Fin (ρ.val σ)))),
+        (D.factorSlotFiber ρ S' shift α hSlen hshiftDegree hshiftVars
+          hadm hrow hρ d hd_elts hlen p.1 p.2).card) =
+      (cookLevinFactorList M n hn2 htb hns).length := by
+  classical
+  let slots := Finset.univ.sigma
+    (fun σ : ConstraintType => (Finset.univ : Finset (Fin (ρ.val σ))))
+  let fiber := fun p : (σ : ConstraintType) × Fin (ρ.val σ) =>
+    D.factorSlotFiber ρ S' shift α hSlen hshiftDegree hshiftVars
+      hadm hrow hρ d hd_elts hlen p.1 p.2
+  have hcard := Finset.card_biUnion
+    (s := slots) (t := fiber)
+    (D.factorSlotFiber_pairwiseDisjoint ρ S' shift α hSlen hshiftDegree
+      hshiftVars hadm hrow hρ d hd_elts hlen)
+  have hunion := D.factorSlotFiber_biUnion_eq_univ
+    ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+  have hleft : (slots.biUnion fiber).card =
+      (cookLevinFactorList M n hn2 htb hns).length := by
+    rw [hunion]
+    simp
+  rw [hleft] at hcard
+  simpa [slots, fiber] using hcard.symm
+
+#print axioms routeBPaperFaithfulTPhi_indexedInterfaceSlotFiberPartition_card_sum_eq_factorList_length
+
 /-- Coefficient-level fibre partition data for the non-singleton Route-B slot
 surface.
 
