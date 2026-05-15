@@ -142,3 +142,12 @@ Attack in this order:
 2. If too hard, construct `Step247UniformRouteBPaperFaithfulTPhiSourceSelectedProfileTemplateSpanData` directly.
 3. If using local algebra/exact slots, only accept it once it feeds `SourceLeibnizLocalTypeCompressionData` through the profile-template adapters.
 4. Avoid claiming final closure from `EventAtomQDimRowWitness` unless the atom-span proof is real; it is stronger than the paper’s Lemma 31.
+
+## Property 1 Row-Containment Guardrail (2026-05-15)
+
+For the Lemma 31 / Property 1 row-containment proof, always state which `W` is being targeted.
+
+- Correct target: `profileSubspace h (fun σ => interfaceSpace_compiledBasis B κ ℓ σ)` or the local `D.interfaceSpace` adapter that instantiates to that family. This is coordinate/profile-local and connects to the Half-A dimension bound.
+- Dead-chain target: `cookLevinProfileSubspace bp (fun τ => concreteW n hn4 (Fin.castLEEmb hn4) τ)`. This reintroduces the fixed canonical coordinate obstruction for variable-dependent booleanity/adjacency rows and should only be used for diagnostics/negative pressure tests, not final closure.
+
+If a proof attempt drifts into `concreteW`, pivot back to `interfaceSpace_compiledBasis` and land the row embeddings there.
