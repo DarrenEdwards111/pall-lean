@@ -178,3 +178,23 @@ compiled-basis row adapter now uses this theorem, so the selected row-containmen
 step is explicitly routed through the intended `profileSubspace ρ.val
 (interfaceSpace_compiledBasis ...)` target rather than through the archived
 `concreteW` chain.
+
+## 2026-05-15 — Exact slot product assembly
+
+Added the unshifted Leibniz-product membership theorem:
+
+```lean
+routeBPaperFaithfulTPhi_unshiftedLeibnizProduct_mem_compiledBasisProfileSubspace_of_exactInterfaceSlotFactorizationData
+```
+
+It proves the requested product step
+
+```lean
+∏ i, SPDP.iterDerivList (d i) factor_i
+  ∈ profileSubspace ρ.val
+      (fun τ => interfaceSpace_compiledBasis D.sourcePartition log log τ)
+```
+
+from exact interface-slot factorization plus slotwise `interfaceSpace_compiledBasis`
+membership.  The selected shift / `mlProj` closure remains a separate field; no
+`concreteW` or global same-profile shift closure is used.
