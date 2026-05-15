@@ -261,6 +261,35 @@ theorem P_ne_NP_canonical_routeB_oneShot_from_fiberPartition_and_localAlgebra_so
 
 #print axioms P_ne_NP_canonical_routeB_oneShot_from_fiberPartition_and_localAlgebra_sourceLeibnizLocalTypeCompression_conditional
 
+/-- Canonical one-shot closeout from the classifier-level bottom seam.
+
+This is the current sharp target for making Route B unconditional: construct a
+total factor→anonymous-slot classifier, construct the matching local-algebra
+selected-shift package, and prove their source partition/profile selector agree.
+The derived fibre partition is generated internally, so no coherence is lost to
+`Classical.choice` on an intermediate `Nonempty`. -/
+theorem P_ne_NP_canonical_routeB_oneShot_from_classifier_and_localAlgebra_sourceLeibnizLocalTypeCompression_conditional
+    (hCls : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotClassifierData)
+    (hLocal : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData)
+    (hPartEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DCls := Classical.choice (hCls M n _hn hn2 htb hns)
+        let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+        DLoc.sourcePartition = DCls.sourcePartition)
+    (hProfEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DCls := Classical.choice (hCls M n _hn hn2 htb hns)
+        let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+        ∀ w hw, DLoc.profileOfCanonicalWindow w hw = DCls.profileOfCanonicalWindow w hw) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_oneShot_from_sourceLeibnizLocalTypeCompression_conditional
+    (step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData_of_classifierData_and_localAlgebraData
+      hCls hLocal hPartEq hProfEq)
+
+#print axioms P_ne_NP_canonical_routeB_oneShot_from_classifier_and_localAlgebra_sourceLeibnizLocalTypeCompression_conditional
+
 /-- Canonical conditional closure via the direct local compiled-coordinate
 profile-subspace row surface.
 

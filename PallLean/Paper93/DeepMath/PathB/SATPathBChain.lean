@@ -864,6 +864,29 @@ theorem SAT_path_B_paperFaithfulSourceLeibnizLocalTypeCompression_from_fiberPart
     (step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData_of_fiberPartitionData_and_localAlgebraData
       hFib hLocal hPartEq hProfEq)
 
+/-- Classifier-level bottom seam: exact fibre disjointness/cover are generated
+from a total factor→slot classifier, avoiding the noncanonical-choice coherence
+problem of the derived fibre surface. -/
+theorem SAT_path_B_paperFaithfulSourceLeibnizLocalTypeCompression_from_classifier_and_localAlgebra_TPhi_extraction_move
+    (hCls : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotClassifierData)
+    (hLocal : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductCompiledBasisLocalAlgebraData)
+    (hPartEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DCls := Classical.choice (hCls M n _hn hn2 htb hns)
+        let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+        DLoc.sourcePartition = DCls.sourcePartition)
+    (hProfEq :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        let DCls := Classical.choice (hCls M n _hn hn2 htb hns)
+        let DLoc := Classical.choice (hLocal M n _hn hn2 htb hns)
+        ∀ w hw, DLoc.profileOfCanonicalWindow w hw = DCls.profileOfCanonicalWindow w hw) :
+    NoBoundedSATDeciderAtPaperScale :=
+  SAT_path_B_paperFaithfulSourceLeibnizLocalTypeCompression_oneShot_TPhi_extraction_move
+    (step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData_of_classifierData_and_localAlgebraData
+      hCls hLocal hPartEq hProfEq)
+
 /-- Shifted Leibniz local-algebra exposure: it is enough to prove the unshifted
 bounded Leibniz product is in the selected profile subspace and that the
 selected shift/`mlProj` operation preserves that subspace. -/
