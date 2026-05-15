@@ -831,6 +831,15 @@ theorem SAT_path_B_paperFaithfulShiftedLeibnizProductCompiledBasisProfile_TPhi_e
     (step247UniformRouteBPaperFaithfulTPhiShiftedBranchAtomCompiledBasisProfileData_of_shiftedLeibnizProductData
       hData)
 
+/-- One-shot SAT-chain exposure for the corrected paper-faithful Route B seam:
+term-local Lemma-31 compression data directly closes the `TΦ` extraction move
+via the literal source local-type/canonical-row-span assembly. -/
+theorem SAT_path_B_paperFaithfulSourceLeibnizLocalTypeCompression_oneShot_TPhi_extraction_move
+    (hData : Step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_step247UniformRouteBPaperFaithfulTPhiSourceLeibnizLocalTypeCompressionData_via_sourceLocalTypeCompression
+    hData
+
 /-- Shifted Leibniz local-algebra exposure: it is enough to prove the unshifted
 bounded Leibniz product is in the selected profile subspace and that the
 selected shift/`mlProj` operation preserves that subspace. -/
