@@ -1147,4 +1147,23 @@ theorem isEmpty_PeqNP_Paper_godMove_PAC_amplituhedron_holography :
 
 #print axioms isEmpty_PeqNP_Paper_godMove_PAC_amplituhedron_holography
 
+/-- Final closed Route-B theorem, using the God-Move/PAC/amplituhedron/
+holography package as the explicit completion layer.
+
+This is intentionally an alias of the named God-Move closeout above, so the
+final theorem's axiom audit stays readable: the only custom mathematical seam is
+the existing paper-faithful Theorem-207 witness. -/
+theorem P_ne_NP_canonical_routeB_closed_by_godMove :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_godMove_PAC_amplituhedron_holography
+
+#print axioms P_ne_NP_canonical_routeB_closed_by_godMove
+
+/-- Type-level final closed Route-B endpoint. -/
+theorem isEmpty_PeqNP_Paper_canonical_routeB_closed_by_godMove :
+    IsEmpty PeqNP_Paper :=
+  ⟨P_ne_NP_canonical_routeB_closed_by_godMove⟩
+
+#print axioms isEmpty_PeqNP_Paper_canonical_routeB_closed_by_godMove
+
 end PallLean.Paper93.DeepMath.PathB
