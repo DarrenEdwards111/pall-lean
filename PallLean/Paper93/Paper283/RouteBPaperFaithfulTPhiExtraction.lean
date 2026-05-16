@@ -21914,6 +21914,130 @@ theorem cookLevinConstraintType_eq_transitionLeft_of_mem_transitionLeftSegment
 #print axioms cookLevinConstraintType_eq_adjacency_of_mem_adjacencySegment
 #print axioms cookLevinConstraintType_eq_transitionLeft_of_mem_transitionLeftSegment
 
+/-- Slot choices for placing the three actual Cook--Levin factor-list segments
+into selected anonymous profile slots.
+
+This is the precise slot-assignment datum needed after the segment partition:
+when a segment is nonempty, the selected profile must provide an anonymous slot
+of the matching constraint type.  The `Option` fields make empty segments
+honest instead of forcing artificial slots. -/
+structure CookLevinSegmentSlotChoices
+    {κ : ℕ}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType κ) where
+  booleanitySlot : Option (Fin (ρ.val ConstraintType.booleanity))
+  adjacencySlot : Option (Fin (ρ.val ConstraintType.adjacency))
+  transitionLeftSlot : Option (Fin (ρ.val ConstraintType.transitionLeft))
+
+/-- Segment-slot choices cover exactly the three real Cook--Levin segments.
+Empty segments may choose `none`; nonempty segments must choose a concrete slot
+of the corresponding type. -/
+structure CookLevinSegmentSlotChoicesCover
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {κ : ℕ}
+    {ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType κ}
+    (C : CookLevinSegmentSlotChoices ρ) : Prop where
+  booleanity_some_of_nonempty :
+    (cookLevinBooleanityFactorSegment M n hn2 htb hns).Nonempty →
+      ∃ j, C.booleanitySlot = some j
+  adjacency_some_of_nonempty :
+    (cookLevinAdjacencyFactorSegment M n hn2 htb hns).Nonempty →
+      ∃ j, C.adjacencySlot = some j
+  transitionLeft_some_of_nonempty :
+    (cookLevinTransitionLeftFactorSegment M n hn2 htb hns).Nonempty →
+      ∃ j, C.transitionLeftSlot = some j
+
+/-- Segment-to-slot fibre map induced by explicit segment slot choices.  If a
+matching slot is not chosen, the corresponding segment contributes to no slot;
+the cover predicate above is therefore the exact side condition needed for a
+real factor-fibre cover. -/
+noncomputable def cookLevinSegmentSlotFiber
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {κ : ℕ}
+    {ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType κ}
+    (C : CookLevinSegmentSlotChoices ρ)
+    (σ : ConstraintType) (j : Fin (ρ.val σ)) :
+    Finset (Fin (cookLevinFactorList M n hn2 htb hns).length) :=
+  match σ with
+  | ConstraintType.booleanity =>
+      if C.booleanitySlot = some j then
+        cookLevinBooleanityFactorSegment M n hn2 htb hns
+      else ∅
+  | ConstraintType.adjacency =>
+      if C.adjacencySlot = some j then
+        cookLevinAdjacencyFactorSegment M n hn2 htb hns
+      else ∅
+  | ConstraintType.transitionLeft =>
+      if C.transitionLeftSlot = some j then
+        cookLevinTransitionLeftFactorSegment M n hn2 htb hns
+      else ∅
+  | ConstraintType.transitionRight => ∅
+
+/-- The explicit segment-slot map has a clean cover side condition: it covers
+all factors exactly when every nonempty segment has been assigned a matching
+slot. -/
+def CookLevinSegmentSlotFiberCover
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {κ : ℕ}
+    {ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType κ}
+    (C : CookLevinSegmentSlotChoices ρ) : Prop :=
+  (Finset.univ.sigma
+    (fun σ : ConstraintType => (Finset.univ : Finset (Fin (ρ.val σ))))).biUnion
+      (fun p => cookLevinSegmentSlotFiber (M := M) (n := n) (hn2 := hn2)
+        (htb := htb) (hns := hns) C p.1 p.2) = Finset.univ
+
+/-- If the three nonempty real segments have been assigned matching selected
+slots, then the induced segment-slot fibres cover the whole Cook--Levin factor
+index set. -/
+theorem cookLevinSegmentSlotFiberCover_of_choicesCover
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {κ : ℕ}
+    {ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType κ}
+    (C : CookLevinSegmentSlotChoices ρ)
+    (hC : CookLevinSegmentSlotChoicesCover (M := M) (n := n)
+      (hn2 := hn2) (htb := htb) (hns := hns) C) :
+    CookLevinSegmentSlotFiberCover (M := M) (n := n) (hn2 := hn2)
+      (htb := htb) (hns := hns) C := by
+  classical
+  unfold CookLevinSegmentSlotFiberCover
+  ext x
+  constructor
+  · intro _
+    simp
+  · intro _
+    have hxseg :
+        x ∈ cookLevinBooleanityFactorSegment M n hn2 htb hns ∪
+            cookLevinAdjacencyFactorSegment M n hn2 htb hns ∪
+            cookLevinTransitionLeftFactorSegment M n hn2 htb hns := by
+      simpa [cookLevinFactorSegments_union_eq_univ M n hn2 htb hns]
+    simp only [Finset.mem_union] at hxseg
+    rcases hxseg with (hxB | hxA) | hxT
+    · rcases hC.booleanity_some_of_nonempty ⟨x, hxB⟩ with ⟨j, hj⟩
+      refine Finset.mem_biUnion.mpr ?_
+      refine ⟨⟨ConstraintType.booleanity, j⟩, ?_, ?_⟩
+      · simp
+      · simp [cookLevinSegmentSlotFiber, hj, hxB]
+    · rcases hC.adjacency_some_of_nonempty ⟨x, hxA⟩ with ⟨j, hj⟩
+      refine Finset.mem_biUnion.mpr ?_
+      refine ⟨⟨ConstraintType.adjacency, j⟩, ?_, ?_⟩
+      · simp
+      · simp [cookLevinSegmentSlotFiber, hj, hxA]
+    · rcases hC.transitionLeft_some_of_nonempty ⟨x, hxT⟩ with ⟨j, hj⟩
+      refine Finset.mem_biUnion.mpr ?_
+      refine ⟨⟨ConstraintType.transitionLeft, j⟩, ?_, ?_⟩
+      · simp
+      · simp [cookLevinSegmentSlotFiber, hj, hxT]
+
+#print axioms cookLevinSegmentSlotFiberCover_of_choicesCover
+
 /-- Coefficient-level fibre partition data for the non-singleton Route-B slot
 surface.
 
