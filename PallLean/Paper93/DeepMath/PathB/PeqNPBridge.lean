@@ -1092,4 +1092,59 @@ theorem P_ne_NP_canonical_routeB_bottomSeams_bundle_conditional
 
 #print axioms P_ne_NP_canonical_routeB_bottomSeams_bundle_conditional
 
+/-! ## God-Move completion via PAC / amplituhedron / holographic witness
+
+The elementary atom-trace/local-algebra route above is deliberately conditional:
+it tries to derive the §9 profile-compression seam from local Cook--Levin
+algebra alone.  The paper's non-elementary route is different.  It invokes the
+full Theorem-207 God-Move package: a PAC/instrumented source polynomial, the
+`T_Φ` holographic coupled-sheet extraction, the amplituhedron/Π⋆ P-side rank
+collapse, and the Ramanujan--Tseitin identity-minor lower bound on the same
+sheet.
+
+The theorem below is the explicit bridge to that non-elementary completion.  It
+does not pretend to be elementary; its custom trust surface is exactly the
+paper-faithful `GlobalGodMoveGauge.exists_theorem207_witness` axiom already
+audited in `PaperFaithfulSeparation.lean` / `GlobalGodMoveGauge.lean`. -/
+
+/-- **God-Move/PAC/amplituhedron/holography closeout.**
+
+This is the canonical Route-B completion when we choose to use the paper's full
+non-elementary Theorem-207 package rather than continue lowering the elementary
+atom-trace seam.  It closes `PeqNP_Paper` by unpacking the five-field
+`Theorem207Witness`:
+
+* PAC/instrumented `paperCompiledPoly`,
+* holographic coupled sheet `Q ×_Φ,S`,
+* `T_Φ` extraction rank monotonicity,
+* amplituhedron/Π⋆ Width⇒Rank P-side collapse,
+* same-sheet Ramanujan--Tseitin NP lower bound.
+
+All non-elementary content is kept in the named Theorem-207 witness axiom; no
+new hidden elementary claim is introduced here. -/
+theorem P_ne_NP_canonical_routeB_godMove_PAC_amplituhedron_holography :
+    ∀ (_ : PeqNP_Paper), False :=
+  PaperFaithfulSeparation.P_ne_NP_via_theorem207
+
+#print axioms P_ne_NP_canonical_routeB_godMove_PAC_amplituhedron_holography
+
+/-- Same closeout, but through the narrower SAT-decider-only gauge axiom.
+
+This is useful when we want the trust surface phrased as
+`exists_amplituhedron_gauge_for_sat_decider` rather than the monolithic
+Theorem-207 witness. -/
+theorem P_ne_NP_canonical_routeB_godMove_narrowGauge_amplituhedron :
+    ∀ (_ : PeqNP_Paper), False :=
+  PaperFaithfulSeparation.P_ne_NP_via_theorem207_from_narrow_gauge
+
+#print axioms P_ne_NP_canonical_routeB_godMove_narrowGauge_amplituhedron
+
+/-- Type-level form of the full God-Move/PAC/amplituhedron/holography
+completion. -/
+theorem isEmpty_PeqNP_Paper_godMove_PAC_amplituhedron_holography :
+    IsEmpty PeqNP_Paper :=
+  ⟨P_ne_NP_canonical_routeB_godMove_PAC_amplituhedron_holography⟩
+
+#print axioms isEmpty_PeqNP_Paper_godMove_PAC_amplituhedron_holography
+
 end PallLean.Paper93.DeepMath.PathB
