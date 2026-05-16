@@ -85,6 +85,45 @@ def CookLevinTouchedMonomialAtomTraceExactCodedBasisData
             ((Set.range (localBasis (codeOf D))) : Set
               (MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ))
 
+/-- Fibre-product local-algebra version of the exact-budget atom-trace
+coded-basis datum.
+
+This is one layer below the slot-product seam: each profile slot is supplied as
+a finite fibre of concrete untouched Cook--Levin factor indices.  Product
+equality is then pure finite-set partition algebra. -/
+def CookLevinTouchedMonomialAtomTraceExactFiberProductCodedBasisData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∃ (C₃ : ℕ)
+    (_hC₃ : Nat.log 2 (C₃ ^ 2) + 1 ≤ 200)
+    (codeOf : TouchedMonomialInterfaceDatum M n hn2 htb hns →
+      touchedKRWords C₃ (Nat.log 2 n))
+    (localBasis : touchedKRWords C₃ (Nat.log 2 n) → Fin C₃ →
+      MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ),
+    ∀ D : TouchedMonomialInterfaceDatum M n hn2 htb hns,
+      ∃ (B : SPDP.BlockPartition (cookLevinTableau M n hn2 htb hns).numVars)
+        (ℓ : ℕ)
+        (A : UntouchedBackgroundConcreteAtomTraceExactFiberProductLocalAlgebraRowsForList
+          M n hn2 htb hns D.S B ℓ),
+        ∀ p ∈ mlProjProductBasis
+            (MlProjFar.mlMonomialBasis
+              (cookLevinRowLocalWindow M n hn2 htb hns D.S))
+            (zeroProfileProjectedNormalFormGlobalBasis
+              (zeroProfileProjectedNormalFormFamily_of_concreteData
+                (untouchedBackgroundConcreteNormalFormClassifierForList_of_atomTraceCompiledChartRows
+                  M n hn2 htb hns D.S B ℓ
+                    (untouchedBackgroundConcreteAtomTraceCompiledChartRowsForList_of_exact
+                      M n hn2 htb hns D.S B ℓ
+                        (untouchedBackgroundConcreteAtomTraceExactCompiledChartRowsForList_of_localAlgebra
+                          M n hn2 htb hns D.S B ℓ
+                            (untouchedBackgroundConcreteAtomTraceExactLocalAlgebraRowsForList_of_slotProduct
+                              M n hn2 htb hns D.S B ℓ
+                                (untouchedBackgroundConcreteAtomTraceExactSlotProductLocalAlgebraRowsForList_of_fiberProduct
+                                  M n hn2 htb hns D.S B ℓ A))))).data)),
+          p ∈ Submodule.span ℚ
+            ((Set.range (localBasis (codeOf D))) : Set
+              (MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ))
+
 /-- Slot-product local-algebra version of the exact-budget atom-trace
 coded-basis datum.
 
@@ -161,6 +200,25 @@ def CookLevinTouchedMonomialAtomTraceExactLocalAlgebraCodedBasisData
           p ∈ Submodule.span ℚ
             ((Set.range (localBasis (codeOf D))) : Set
               (MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ))
+
+/-- Fibre-product atom-trace coded-basis data supplies the slot-product
+atom-trace coded-basis datum. -/
+theorem touchedMonomialAtomTraceExactSlotProductCodedBasisData_of_fiberProduct
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hData : CookLevinTouchedMonomialAtomTraceExactFiberProductCodedBasisData
+      M n hn2 htb hns) :
+    CookLevinTouchedMonomialAtomTraceExactSlotProductCodedBasisData
+      M n hn2 htb hns := by
+  classical
+  rcases hData with ⟨C₃, hC₃, codeOf, localBasis, hrowBasis⟩
+  refine ⟨C₃, hC₃, codeOf, localBasis, ?_⟩
+  intro D
+  rcases hrowBasis D with ⟨B, ℓ, A, hbasis⟩
+  refine ⟨B, ℓ,
+    untouchedBackgroundConcreteAtomTraceExactSlotProductLocalAlgebraRowsForList_of_fiberProduct
+      M n hn2 htb hns D.S B ℓ A, ?_⟩
+  simpa using hbasis
 
 /-- Slot-product atom-trace coded-basis data supplies the local-algebra
 atom-trace coded-basis datum: the unshifted local-algebra field is inhabited by
@@ -268,12 +326,28 @@ def Step247UniformTouchedMonomialAtomTraceExactCodedBasisData : Prop :=
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
     CookLevinTouchedMonomialAtomTraceExactCodedBasisData M n hn2 htb hns
 
+/-- Uniform fibre-product exact-budget concrete atom-trace coded basis data. -/
+def Step247UniformTouchedMonomialAtomTraceExactFiberProductCodedBasisData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    CookLevinTouchedMonomialAtomTraceExactFiberProductCodedBasisData
+      M n hn2 htb hns
+
 /-- Uniform slot-product exact-budget concrete atom-trace coded basis data. -/
 def Step247UniformTouchedMonomialAtomTraceExactSlotProductCodedBasisData : Prop :=
   ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
     CookLevinTouchedMonomialAtomTraceExactSlotProductCodedBasisData
       M n hn2 htb hns
+
+/-- Uniform fibre-product exact-budget atom-trace data supplies the slot-product
+atom-trace coded-basis data. -/
+theorem step247UniformTouchedMonomialAtomTraceExactSlotProductCodedBasisData_of_fiberProduct
+    (hData : Step247UniformTouchedMonomialAtomTraceExactFiberProductCodedBasisData) :
+    Step247UniformTouchedMonomialAtomTraceExactSlotProductCodedBasisData := by
+  intro M n hn hn2 htb hns
+  exact touchedMonomialAtomTraceExactSlotProductCodedBasisData_of_fiberProduct
+    M n hn2 htb hns (hData M n hn hn2 htb hns)
 
 /-- Uniform local-algebra exact-budget concrete atom-trace coded basis data. -/
 def Step247UniformTouchedMonomialAtomTraceExactLocalAlgebraCodedBasisData : Prop :=
@@ -335,12 +409,23 @@ theorem step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceExactSlotPr
     (step247UniformTouchedMonomialAtomTraceExactLocalAlgebraCodedBasisData_of_slotProduct
       hData)
 
+/-- Uniform fibre-product exact-budget atom-trace coded-basis data closes the
+final coded finite-span target through finite slot-fibre partition data. -/
+theorem step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceExactFiberProductCodedBasis
+    (hData : Step247UniformTouchedMonomialAtomTraceExactFiberProductCodedBasisData) :
+    Step247UniformTouchedMonomialCodedFiniteSpanData :=
+  step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceExactSlotProductCodedBasis
+    (step247UniformTouchedMonomialAtomTraceExactSlotProductCodedBasisData_of_fiberProduct
+      hData)
+
 /-! ## Axiom audit anchors -/
 
+#print axioms touchedMonomialAtomTraceExactSlotProductCodedBasisData_of_fiberProduct
 #print axioms touchedMonomialAtomTraceExactLocalAlgebraCodedBasisData_of_slotProduct
 #print axioms touchedMonomialAtomTraceExactCodedBasisData_of_localAlgebra
 #print axioms touchedMonomialAtomTraceCodedBasisData_of_exact
 #print axioms touchedMonomialCodedFiniteSpan_of_atomTraceCodedBasis
+#print axioms step247UniformTouchedMonomialAtomTraceExactSlotProductCodedBasisData_of_fiberProduct
 #print axioms step247UniformTouchedMonomialAtomTraceExactLocalAlgebraCodedBasisData_of_slotProduct
 #print axioms step247UniformTouchedMonomialAtomTraceExactCodedBasisData_of_localAlgebra
 #print axioms step247UniformTouchedMonomialAtomTraceCodedBasisData_of_exact
@@ -348,5 +433,6 @@ theorem step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceExactSlotPr
 #print axioms step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceExactCodedBasis
 #print axioms step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceExactLocalAlgebraCodedBasis
 #print axioms step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceExactSlotProductCodedBasis
+#print axioms step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceExactFiberProductCodedBasis
 
 end PallLean.Paper93.DeepMath.PathB

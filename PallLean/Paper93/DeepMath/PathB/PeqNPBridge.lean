@@ -267,6 +267,19 @@ theorem P_ne_NP_canonical_routeB_touchedAtomTraceExactSlotProductCodedBasis_cond
 
 #print axioms P_ne_NP_canonical_routeB_touchedAtomTraceExactSlotProductCodedBasis_conditional
 
+/-- Route-B closeout from the fibre-product exact-budget atom-trace coded-basis
+seam.  This is the finite-combinatorial version of the slot-product target:
+slots are products over a disjoint cover of concrete Cook--Levin factor
+indices. -/
+theorem P_ne_NP_canonical_routeB_touchedAtomTraceExactFiberProductCodedBasis_conditional
+    (hData : Step247UniformTouchedMonomialAtomTraceExactFiberProductCodedBasisData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_touchedMonomialCodedFiniteSpan_conditional
+    (step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceExactFiberProductCodedBasis
+      hData)
+
+#print axioms P_ne_NP_canonical_routeB_touchedAtomTraceExactFiberProductCodedBasis_conditional
+
 /-- Route-B closeout through exact-profile template-collapse data, routed into
 the literal Lemma-31 profile-subspace seam. -/
 theorem P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_exactProfileTemplateCollapse_conditional
