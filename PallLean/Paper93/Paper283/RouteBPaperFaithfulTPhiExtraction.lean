@@ -21798,6 +21798,60 @@ theorem routeBPaperFaithfulTPhi_indexedInterfaceSlotFiberPartition_card_sum_eq_f
 
 #print axioms routeBPaperFaithfulTPhi_indexedInterfaceSlotFiberPartition_card_sum_eq_factorList_length
 
+/-- A transition-right anonymous slot in the fibre-partition seam cannot have
+an empty fibre.  Its contribution would be the empty product `1`, but the
+transition-right compiled-basis interface space is zero-generated.
+
+This is a real obstruction for the final construction: the selected profile
+must have no dormant transition-right slots unless actual transition-right
+factors are assigned to them.  In the current Cook--Levin branch split only
+booleanity, adjacency, and transition-left factors are present. -/
+theorem routeBPaperFaithfulTPhi_transitionRight_emptyFiber_false
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData
+      M n hn2 htb hns)
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+          ConstraintType (Nat.log 2 n))
+    (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (α : Fin n →₀ ℕ)
+    (hSlen : S'.length = Nat.log 2 n)
+    (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+    (hshiftVars :
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+        (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n)))
+    (hrow :
+      routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+        M n hn2 htb hns S' shift α)
+    (hρ :
+      D.profileOfCanonicalWindow
+          (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+          hrow.1 = ρ)
+    (d : Fin ((cookLevinFactorList M n hn2 htb hns).length) →
+      List (Fin (n / 3)))
+    (hd_elts : ∀ i, ∀ v ∈ d i, v ∈ S')
+    (hlen : ∑ i : Fin ((cookLevinFactorList M n hn2 htb hns).length),
+        (d i).length ≤ S'.length)
+    (j : Fin (ρ.val ConstraintType.transitionRight))
+    (hempty : D.factorSlotFiber ρ S' shift α hSlen hshiftDegree hshiftVars
+        hadm hrow hρ d hd_elts hlen ConstraintType.transitionRight j = ∅) :
+    False := by
+  classical
+  have hmem := D.factorSlotContribution_mem_compiledBasis ρ S' shift α hSlen
+    hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen
+    ConstraintType.transitionRight j
+  rw [hempty] at hmem
+  simp at hmem
+  exact one_not_mem_interfaceSpace_compiledBasis_transitionRight
+    D.sourcePartition (Nat.log 2 n) (Nat.log 2 n) hmem
+
+#print axioms routeBPaperFaithfulTPhi_transitionRight_emptyFiber_false
+
 /-- The actual booleanity segment of the real Cook--Levin factor list. -/
 noncomputable def cookLevinBooleanityFactorSegment
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)

@@ -631,6 +631,26 @@ theorem interfaceSpace_compiledBasis_ne_bot_of_not_transitionRight
   rw [hbot] at hone
   simp at hone
 
+/-- The dormant transition-right compiled-basis interface space is exactly
+zero-generated.  This is the important guardrail for fibre constructions:
+an empty transition-right slot would contribute the product `1`, which cannot
+belong to this space. -/
+theorem interfaceSpace_compiledBasis_transitionRight_eq_bot
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) :
+    interfaceSpace_compiledBasis B κ ℓ ConstraintType.transitionRight = ⊥ := by
+  classical
+  unfold interfaceSpace_compiledBasis canonicalInterfaceGenerators canonicalInterfacePolynomial
+  simp
+
+/-- The empty product `1` is not a valid transition-right slot contribution. -/
+theorem one_not_mem_interfaceSpace_compiledBasis_transitionRight
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) :
+    (1 : MvPolynomial (Fin N) ℚ) ∉
+      interfaceSpace_compiledBasis B κ ℓ ConstraintType.transitionRight := by
+  classical
+  rw [interfaceSpace_compiledBasis_transitionRight_eq_bot B κ ℓ]
+  simp
+
 /-! ## Derivative closure of the compiled-basis local interface spaces
 
 The canonical `W_σ = interfaceSpace_compiledBasis ... σ` spaces are closed
@@ -810,6 +830,8 @@ theorem interfaceSpace_compiledBasis_ambient
     interfaceSpace_compiledBasis B κ ℓ σ ≤
       (⊤ : Submodule ℚ (MvPolynomial (Fin N) ℚ)) := le_top
 
+#print axioms interfaceSpace_compiledBasis_transitionRight_eq_bot
+#print axioms one_not_mem_interfaceSpace_compiledBasis_transitionRight
 #print axioms pderiv_canonicalInterfacePolynomial_mem_interfaceSpace_compiledBasis
 #print axioms iterDerivList_mem_interfaceSpace_compiledBasis
 #print axioms iterDerivList_canonicalInterfacePolynomial_mem_interfaceSpace_compiledBasis
