@@ -237,6 +237,22 @@ theorem P_ne_NP_canonical_routeB_touchedAtomTraceExactCodedBasis_conditional
 
 #print axioms P_ne_NP_canonical_routeB_touchedAtomTraceExactCodedBasis_conditional
 
+/-- Route-B closeout from the local-algebra exact-budget atom-trace coded-basis
+seam.
+
+This is one diagnostic layer lower than the exact coded-basis closeout: the
+remaining row theorem is split into unshifted background profile membership plus
+shift/`mlProj` closure, while the finite per-code basis obligation is unchanged.
+No gauge, Plücker, positroid, or amplituhedron hypothesis is introduced. -/
+theorem P_ne_NP_canonical_routeB_touchedAtomTraceExactLocalAlgebraCodedBasis_conditional
+    (hData : Step247UniformTouchedMonomialAtomTraceExactLocalAlgebraCodedBasisData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_touchedMonomialCodedFiniteSpan_conditional
+    (step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceExactLocalAlgebraCodedBasis
+      hData)
+
+#print axioms P_ne_NP_canonical_routeB_touchedAtomTraceExactLocalAlgebraCodedBasis_conditional
+
 /-- Route-B closeout through exact-profile template-collapse data, routed into
 the literal Lemma-31 profile-subspace seam. -/
 theorem P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_exactProfileTemplateCollapse_conditional
