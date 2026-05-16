@@ -2478,6 +2478,155 @@ structure UntouchedBackgroundConcreteAtomTraceExactTypeFiberProductLocalAlgebraR
             B (Nat.log 2 n) ℓ
             (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)).W
 
+
+/-- Slot-indexed Cook--Levin factor/type trace data for the exact atom-trace
+row seam.
+
+This is lower than the per-type fibre-product seam: instead of asking for
+arbitrary fibres, it asks for an explicit bijection between the atom-trace
+slots of each `ConstraintType` and the concrete filtered Cook--Levin factors of
+that type.  The constructor below turns this bijection into singleton fibres;
+disjointness and cover are then pure finite-set/equivalence algebra. -/
+structure UntouchedBackgroundConcreteAtomTraceExactTypeSlotFactorLocalAlgebraRowsForList
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (B : SPDP.BlockPartition (cookLevinTableau M n hn2 htb hns).numVars)
+    (ℓ : ℕ) where
+  typeSlotEquiv :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+      (hR : R.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+      (hshift : shift.vars ⊆ R.toFinset),
+      let ctype := untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S
+      let shiftWord := List.replicate R.length
+        (untouchedBackgroundAtomTraceShiftGenerator (Nat.log 2 n))
+      let rowNF := shiftWord.prod *
+        (List.ofFn (fun i : Fin
+          (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+            ([untouchedBackgroundAtomTraceFactorGenerator (Nat.log 2 n)
+              (ctype i)] : List
+                (untouchedBackgroundAtomTraceLocalMonoid
+                  (Nat.log 2 n)).localMonoid).prod)).prod
+      (τ : SymmetricPowerBound.ConstraintType) →
+        Fin ((untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF) τ) ≃
+          { i : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length //
+            ctype i = τ }
+  typeSlotFactor_mem :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+      (hR : R.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+      (hshift : shift.vars ⊆ R.toFinset),
+      let ctype := untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S
+      let shiftWord := List.replicate R.length
+        (untouchedBackgroundAtomTraceShiftGenerator (Nat.log 2 n))
+      let rowNF := shiftWord.prod *
+        (List.ofFn (fun i : Fin
+          (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+            ([untouchedBackgroundAtomTraceFactorGenerator (Nat.log 2 n)
+              (ctype i)] : List
+                (untouchedBackgroundAtomTraceLocalMonoid
+                  (Nat.log 2 n)).localMonoid).prod)).prod
+      ∀ (τ : SymmetricPowerBound.ConstraintType)
+        (j : Fin ((untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF) τ)),
+        (untouchedBackgroundFactorList M n hn2 htb hns S).get
+            ((typeSlotEquiv R hR shift hshift τ j).1) ∈
+          (zeroProfileConcreteLocalChart_compiledCoefficientBasis
+            B (Nat.log 2 n) ℓ
+            (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)).W τ
+  shift_mlProj_closure_atomTraceProfile :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+      (hR : R.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+      (hshift : shift.vars ⊆ R.toFinset)
+      (p : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ),
+      let ctype := untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S
+      let shiftWord := List.replicate R.length
+        (untouchedBackgroundAtomTraceShiftGenerator (Nat.log 2 n))
+      let rowNF := shiftWord.prod *
+        (List.ofFn (fun i : Fin
+          (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+            ([untouchedBackgroundAtomTraceFactorGenerator (Nat.log 2 n)
+              (ctype i)] : List
+                (untouchedBackgroundAtomTraceLocalMonoid
+                  (Nat.log 2 n)).localMonoid).prod)).prod
+      p ∈ profileSubspace
+          (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)
+          (zeroProfileConcreteLocalChart_compiledCoefficientBasis
+            B (Nat.log 2 n) ℓ
+            (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)).W →
+      MultilinearSPDP.mlProj (shift * p) ∈
+        profileSubspace
+          (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)
+          (zeroProfileConcreteLocalChart_compiledCoefficientBasis
+            B (Nat.log 2 n) ℓ
+            (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)).W
+
+/-- Slot-factor data supplies per-type singleton fibre-product data. -/
+noncomputable def untouchedBackgroundConcreteAtomTraceExactTypeFiberProductLocalAlgebraRowsForList_of_typeSlotFactor
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (B : SPDP.BlockPartition (cookLevinTableau M n hn2 htb hns).numVars)
+    (ℓ : ℕ)
+    (A : UntouchedBackgroundConcreteAtomTraceExactTypeSlotFactorLocalAlgebraRowsForList
+      M n hn2 htb hns S B ℓ) :
+    UntouchedBackgroundConcreteAtomTraceExactTypeFiberProductLocalAlgebraRowsForList
+      M n hn2 htb hns S B ℓ where
+  typeFiber := by
+    intro R hR shift hshift
+    dsimp
+    intro τ j
+    exact {((A.typeSlotEquiv R hR shift hshift τ) j).1}
+  typeFiber_subset_type := by
+    intro R hR shift hshift
+    dsimp
+    intro τ j i hi
+    simp only [Finset.mem_singleton] at hi
+    subst hi
+    simpa [Finset.mem_filter] using ((A.typeSlotEquiv R hR shift hshift τ) j).2
+  typeFiber_pairwiseDisjoint := by
+    intro R hR shift hshift
+    dsimp
+    intro τ
+    intro j _hj k _hk hjk
+    show Disjoint ({((A.typeSlotEquiv R hR shift hshift τ) j).1} :
+        Finset (Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length))
+        {((A.typeSlotEquiv R hR shift hshift τ) k).1}
+    rw [Finset.disjoint_left]
+    intro i hi hk
+    simp only [Finset.mem_singleton] at hi hk
+    have hval : ((A.typeSlotEquiv R hR shift hshift τ) j) =
+        ((A.typeSlotEquiv R hR shift hshift τ) k) := by
+      apply Subtype.ext
+      simpa using hi.symm.trans hk
+    exact hjk ((A.typeSlotEquiv R hR shift hshift τ).injective hval)
+  typeFiber_cover_type := by
+    intro R hR shift hshift
+    dsimp
+    intro τ
+    apply Finset.ext
+    intro i
+    constructor
+    · intro hi
+      simp only [Finset.mem_biUnion, Finset.mem_univ, true_and,
+        Finset.mem_singleton] at hi
+      rcases hi with ⟨j, hij⟩
+      subst hij
+      simpa [Finset.mem_filter] using ((A.typeSlotEquiv R hR shift hshift τ) j).2
+    · intro hi
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hi
+      simp only [Finset.mem_biUnion, Finset.mem_univ, true_and,
+        Finset.mem_singleton]
+      refine ⟨(A.typeSlotEquiv R hR shift hshift τ).symm ⟨i, hi⟩, ?_⟩
+      simp
+  typeFiber_product_mem := by
+    intro R hR shift hshift
+    dsimp
+    intro τ j
+    simpa using A.typeSlotFactor_mem R hR shift hshift τ j
+  shift_mlProj_closure_atomTraceProfile := A.shift_mlProj_closure_atomTraceProfile
+
 /-- Per-type fibre-product data supplies the global fibre-product seam. -/
 noncomputable def untouchedBackgroundConcreteAtomTraceExactFiberProductLocalAlgebraRowsForList_of_typeFiberProduct
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)

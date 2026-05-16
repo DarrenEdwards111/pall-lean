@@ -267,6 +267,19 @@ theorem P_ne_NP_canonical_routeB_touchedAtomTraceExactSlotProductCodedBasis_cond
 
 #print axioms P_ne_NP_canonical_routeB_touchedAtomTraceExactSlotProductCodedBasis_conditional
 
+/-- Route-B closeout from the type-slot/factor exact-budget atom-trace
+coded-basis seam.  This lowers the fibre partition to an explicit per-type
+equivalence between atom-trace slots and concrete Cook--Levin factors, carrying
+the selected shift/`mlProj` closure as the remaining algebraic obligation. -/
+theorem P_ne_NP_canonical_routeB_touchedAtomTraceExactTypeSlotFactorCodedBasis_conditional
+    (hData : Step247UniformTouchedMonomialAtomTraceExactTypeSlotFactorCodedBasisData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_touchedMonomialCodedFiniteSpan_conditional
+    (step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceExactTypeSlotFactorCodedBasis
+      hData)
+
+#print axioms P_ne_NP_canonical_routeB_touchedAtomTraceExactTypeSlotFactorCodedBasis_conditional
+
 /-- Route-B closeout from the fibre-product exact-budget atom-trace coded-basis
 seam.  This is the finite-combinatorial version of the slot-product target:
 slots are products over a disjoint cover of concrete Cook--Levin factor
