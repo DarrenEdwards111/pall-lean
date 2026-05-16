@@ -2077,6 +2077,151 @@ structure UntouchedBackgroundConcreteAtomTraceExactLocalAlgebraRowsForList
             B (Nat.log 2 n) ℓ
             (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)).W
 
+/-- Slot-product version of the exact atom-trace local-algebra row theorem.
+
+This lowers the unshifted-background half of
+`UntouchedBackgroundConcreteAtomTraceExactLocalAlgebraRowsForList` to the
+literal Lemma-31 constructor: provide, for the profile read from the concrete
+atom trace, an ordered slot family whose slots lie in the corresponding
+compiled-basis interface spaces and whose typed product is exactly the
+unshifted untouched Cook--Levin background product.  The shift/`mlProj` closure
+field is left explicit because it is the other independent local-algebra
+obligation. -/
+structure UntouchedBackgroundConcreteAtomTraceExactSlotProductLocalAlgebraRowsForList
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (B : SPDP.BlockPartition (cookLevinTableau M n hn2 htb hns).numVars)
+    (ℓ : ℕ) where
+  slot :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+      (hR : R.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+      (hshift : shift.vars ⊆ R.toFinset),
+      let ctype := untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S
+      let shiftWord := List.replicate R.length
+        (untouchedBackgroundAtomTraceShiftGenerator (Nat.log 2 n))
+      let rowNF := shiftWord.prod *
+        (List.ofFn (fun i : Fin
+          (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+            ([untouchedBackgroundAtomTraceFactorGenerator (Nat.log 2 n)
+              (ctype i)] : List
+                (untouchedBackgroundAtomTraceLocalMonoid
+                  (Nat.log 2 n)).localMonoid).prod)).prod
+      (τ : SymmetricPowerBound.ConstraintType) →
+        Fin ((untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF) τ) →
+          MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ
+  slot_mem :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+      (hR : R.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+      (hshift : shift.vars ⊆ R.toFinset),
+      let ctype := untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S
+      let shiftWord := List.replicate R.length
+        (untouchedBackgroundAtomTraceShiftGenerator (Nat.log 2 n))
+      let rowNF := shiftWord.prod *
+        (List.ofFn (fun i : Fin
+          (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+            ([untouchedBackgroundAtomTraceFactorGenerator (Nat.log 2 n)
+              (ctype i)] : List
+                (untouchedBackgroundAtomTraceLocalMonoid
+                  (Nat.log 2 n)).localMonoid).prod)).prod
+      ∀ (τ : SymmetricPowerBound.ConstraintType)
+        (j : Fin ((untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF) τ)),
+        slot R hR shift hshift τ j ∈
+          (zeroProfileConcreteLocalChart_compiledCoefficientBasis
+            B (Nat.log 2 n) ℓ
+            (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)).W τ
+  product_eq :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+      (hR : R.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+      (hshift : shift.vars ⊆ R.toFinset),
+      let ctype := untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S
+      let shiftWord := List.replicate R.length
+        (untouchedBackgroundAtomTraceShiftGenerator (Nat.log 2 n))
+      let rowNF := shiftWord.prod *
+        (List.ofFn (fun i : Fin
+          (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+            ([untouchedBackgroundAtomTraceFactorGenerator (Nat.log 2 n)
+              (ctype i)] : List
+                (untouchedBackgroundAtomTraceLocalMonoid
+                  (Nat.log 2 n)).localMonoid).prod)).prod
+      Finset.univ.prod
+          (fun i : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+            (untouchedBackgroundFactorList M n hn2 htb hns S).get i) =
+        ∏ τ : SymmetricPowerBound.ConstraintType,
+          ∏ j : Fin ((untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF) τ),
+            slot R hR shift hshift τ j
+  shift_mlProj_closure_atomTraceProfile :
+    ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+      (hR : R.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+      (hshift : shift.vars ⊆ R.toFinset)
+      (p : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ),
+      let ctype := untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S
+      let shiftWord := List.replicate R.length
+        (untouchedBackgroundAtomTraceShiftGenerator (Nat.log 2 n))
+      let rowNF := shiftWord.prod *
+        (List.ofFn (fun i : Fin
+          (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+            ([untouchedBackgroundAtomTraceFactorGenerator (Nat.log 2 n)
+              (ctype i)] : List
+                (untouchedBackgroundAtomTraceLocalMonoid
+                  (Nat.log 2 n)).localMonoid).prod)).prod
+      p ∈ profileSubspace
+          (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)
+          (zeroProfileConcreteLocalChart_compiledCoefficientBasis
+            B (Nat.log 2 n) ℓ
+            (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)).W →
+      MultilinearSPDP.mlProj (shift * p) ∈
+        profileSubspace
+          (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)
+          (zeroProfileConcreteLocalChart_compiledCoefficientBasis
+            B (Nat.log 2 n) ℓ
+            (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)).W
+
+/-- Slot-product data proves the unshifted half of the local-algebra seam by
+the existing Lemma-31 slot-product constructor, and carries over the independent
+shift/`mlProj` closure field. -/
+noncomputable def untouchedBackgroundConcreteAtomTraceExactLocalAlgebraRowsForList_of_slotProduct
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (B : SPDP.BlockPartition (cookLevinTableau M n hn2 htb hns).numVars)
+    (ℓ : ℕ)
+    (A : UntouchedBackgroundConcreteAtomTraceExactSlotProductLocalAlgebraRowsForList
+      M n hn2 htb hns S B ℓ) :
+    UntouchedBackgroundConcreteAtomTraceExactLocalAlgebraRowsForList
+      M n hn2 htb hns S B ℓ where
+  unshifted_background_mem_atomTraceProfile := by
+    intro R hR shift hshift
+    rw [A.product_eq R hR shift hshift]
+    exact profileProduct_mem_profileSubspace
+      (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n)
+        ((List.replicate R.length
+          (untouchedBackgroundAtomTraceShiftGenerator (Nat.log 2 n))).prod *
+        (List.ofFn (fun i : Fin
+          (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+            ([untouchedBackgroundAtomTraceFactorGenerator (Nat.log 2 n)
+              ((untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S) i)] :
+                List (untouchedBackgroundAtomTraceLocalMonoid
+                  (Nat.log 2 n)).localMonoid).prod)).prod))
+      (zeroProfileConcreteLocalChart_compiledCoefficientBasis
+        B (Nat.log 2 n) ℓ
+        (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n)
+          ((List.replicate R.length
+            (untouchedBackgroundAtomTraceShiftGenerator (Nat.log 2 n))).prod *
+          (List.ofFn (fun i : Fin
+            (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+              ([untouchedBackgroundAtomTraceFactorGenerator (Nat.log 2 n)
+                ((untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S) i)] :
+                  List (untouchedBackgroundAtomTraceLocalMonoid
+                    (Nat.log 2 n)).localMonoid).prod)).prod))).W
+      (A.slot R hR shift hshift)
+      (A.slot_mem R hR shift hshift)
+  shift_mlProj_closure_atomTraceProfile := A.shift_mlProj_closure_atomTraceProfile
+
 /-- The local-algebra split supplies the exact atom-trace compiled-chart row
 theorem. -/
 noncomputable def untouchedBackgroundConcreteAtomTraceExactCompiledChartRowsForList_of_localAlgebra

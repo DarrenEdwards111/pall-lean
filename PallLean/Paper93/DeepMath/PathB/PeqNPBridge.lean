@@ -253,6 +253,20 @@ theorem P_ne_NP_canonical_routeB_touchedAtomTraceExactLocalAlgebraCodedBasis_con
 
 #print axioms P_ne_NP_canonical_routeB_touchedAtomTraceExactLocalAlgebraCodedBasis_conditional
 
+/-- Route-B closeout from the slot-product exact-budget atom-trace coded-basis
+seam.  This is the current elementary diagnostic target: the unshifted
+background row must be a typed slot product in the compiled-basis profile
+subspace, with shift/`mlProj` closure and the per-code finite basis still
+explicit. -/
+theorem P_ne_NP_canonical_routeB_touchedAtomTraceExactSlotProductCodedBasis_conditional
+    (hData : Step247UniformTouchedMonomialAtomTraceExactSlotProductCodedBasisData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_touchedMonomialCodedFiniteSpan_conditional
+    (step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceExactSlotProductCodedBasis
+      hData)
+
+#print axioms P_ne_NP_canonical_routeB_touchedAtomTraceExactSlotProductCodedBasis_conditional
+
 /-- Route-B closeout through exact-profile template-collapse data, routed into
 the literal Lemma-31 profile-subspace seam. -/
 theorem P_ne_NP_canonical_routeB_lemma31_profileSubspace_from_exactProfileTemplateCollapse_conditional
