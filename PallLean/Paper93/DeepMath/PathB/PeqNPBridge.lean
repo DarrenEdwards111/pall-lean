@@ -4,6 +4,7 @@ import PallLean.Paper93.DeepMath.PathB.RouteBWidthRankPSide
 import PallLean.Paper93.DeepMath.PathB.RouteBPlacedQuotientDescentKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedExtractorKR
 import PallLean.Paper93.DeepMath.PathB.RouteBTouchedConcreteWindowKR
+import PallLean.Paper93.DeepMath.PathB.RouteBTouchedAtomTraceCodedBridgeKR
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -194,6 +195,47 @@ theorem P_ne_NP_canonical_routeB_eventAtomQDimFinalMaps_conditional
       hData)
 
 #print axioms P_ne_NP_canonical_routeB_eventAtomQDimFinalMaps_conditional
+
+/-- Route-B closeout from the touched monomial coded finite-span seam.
+
+This is the KR/product-composition route where each concrete touched row is
+classified by a finite local word and expanded in the bounded local basis for
+that word. -/
+theorem P_ne_NP_canonical_routeB_touchedMonomialCodedFiniteSpan_conditional
+    (hData : Step247UniformTouchedMonomialCodedFiniteSpanData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  noBoundedSATDeciderAtPaperScale_implies_not_PeqNP
+    (noBoundedSATDeciderAtPaperScale_of_touchedMonomialCodedFiniteSpanData_TPhi
+      hData)
+
+#print axioms P_ne_NP_canonical_routeB_touchedMonomialCodedFiniteSpan_conditional
+
+/-- Route-B closeout from the atom-trace coded-basis seam.
+
+The remaining source obligation is the exact §9.3 atom-trace row classifier plus
+per-code local basis; the existing checked bridge converts it to coded
+finite-span data and then to the paper-scale contradiction. -/
+theorem P_ne_NP_canonical_routeB_touchedAtomTraceCodedBasis_conditional
+    (hData : Step247UniformTouchedMonomialAtomTraceCodedBasisData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_touchedMonomialCodedFiniteSpan_conditional
+    (step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceCodedBasis
+      hData)
+
+#print axioms P_ne_NP_canonical_routeB_touchedAtomTraceCodedBasis_conditional
+
+/-- Route-B closeout from the exact-budget atom-trace coded-basis seam.
+
+This fixes the background normal-form type budget to the literal exact
+atom-trace budget before routing through the coded finite-span bridge. -/
+theorem P_ne_NP_canonical_routeB_touchedAtomTraceExactCodedBasis_conditional
+    (hData : Step247UniformTouchedMonomialAtomTraceExactCodedBasisData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_touchedMonomialCodedFiniteSpan_conditional
+    (step247UniformTouchedMonomialCodedFiniteSpanData_of_atomTraceExactCodedBasis
+      hData)
+
+#print axioms P_ne_NP_canonical_routeB_touchedAtomTraceExactCodedBasis_conditional
 
 /-- Route-B closeout through exact-profile template-collapse data, routed into
 the literal Lemma-31 profile-subspace seam. -/
