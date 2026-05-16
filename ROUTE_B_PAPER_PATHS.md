@@ -198,3 +198,19 @@ It proves the requested product step
 from exact interface-slot factorization plus slotwise `interfaceSpace_compiledBasis`
 membership.  The selected shift / `mlProj` closure remains a separate field; no
 `concreteW` or global same-profile shift closure is used.
+
+## 2026-05-16 — Local-interface slot expansion seam
+
+Added a paper-faithful local-chart row seam:
+
+- `RouteBPaperFaithfulTPhiStrictSourceSelectedLocalInterfaceSlotExpansionData`
+- `routeBPaperFaithfulTPhi_strictSourceSelectedLocalCompiledProfileSubspaceRowData_of_localInterfaceSlotExpansionData`
+
+This is the intended Lemma 31 shape when concrete Cook--Levin row slots live in local compiled-coordinate spaces `Wσ`, rather than being forced into the fixed global `X₀/X₁` compiled chart. The adapter assembles the finite row expansion through `profileSlotExpansion_mem_profileSubspace`, matching the paper’s `V_h = ⊗_σ Sym^{h(σ)}(Wσ)` construction.
+
+Also added fixed-chart transition-right guardrails:
+
+- `routeBPaperFaithfulTPhi_rowInterfaceSlotExpansion_productTerm_eq_zero_of_transitionRightSlot`
+- `routeBPaperFaithfulTPhi_rowInterfaceSlotExpansion_row_eq_zero_of_transitionRightSlot`
+
+These show that any fixed compiled-basis row expansion with a positive transition-right slot collapses to zero, so the three-branch Cook--Levin split must either use selected profiles with `transitionRight = 0` or introduce real transition-right local factors.
