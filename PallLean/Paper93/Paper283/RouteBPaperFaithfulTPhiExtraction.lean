@@ -22038,6 +22038,94 @@ theorem cookLevinSegmentSlotFiberCover_of_choicesCover
 
 #print axioms cookLevinSegmentSlotFiberCover_of_choicesCover
 
+/-- The exact positivity condition on a selected interface profile needed to
+choose a real anonymous slot for every nonempty Cook--Levin segment. -/
+structure CookLevinSelectedProfileSegmentSlotLowerBounds
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {κ : ℕ}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType κ) : Prop where
+  booleanity_pos_of_nonempty :
+    (cookLevinBooleanityFactorSegment M n hn2 htb hns).Nonempty →
+      0 < ρ.val ConstraintType.booleanity
+  adjacency_pos_of_nonempty :
+    (cookLevinAdjacencyFactorSegment M n hn2 htb hns).Nonempty →
+      0 < ρ.val ConstraintType.adjacency
+  transitionLeft_pos_of_nonempty :
+    (cookLevinTransitionLeftFactorSegment M n hn2 htb hns).Nonempty →
+      0 < ρ.val ConstraintType.transitionLeft
+
+/-- Positive selected-profile counts give concrete anonymous slots for the real
+segments.  Empty segments are allowed to remain unassigned. -/
+noncomputable def cookLevinSegmentSlotChoices_of_lowerBounds
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {κ : ℕ}
+    {ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType κ}
+    (_H : CookLevinSelectedProfileSegmentSlotLowerBounds (M := M) (n := n)
+      (hn2 := hn2) (htb := htb) (hns := hns) ρ) :
+    CookLevinSegmentSlotChoices ρ where
+  booleanitySlot :=
+    if h : 0 < ρ.val ConstraintType.booleanity then some ⟨0, h⟩ else none
+  adjacencySlot :=
+    if h : 0 < ρ.val ConstraintType.adjacency then some ⟨0, h⟩ else none
+  transitionLeftSlot :=
+    if h : 0 < ρ.val ConstraintType.transitionLeft then some ⟨0, h⟩ else none
+
+/-- The slots chosen from selected-profile lower bounds satisfy the segment
+cover precondition. -/
+theorem cookLevinSegmentSlotChoicesCover_of_lowerBounds
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {κ : ℕ}
+    {ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType κ}
+    (H : CookLevinSelectedProfileSegmentSlotLowerBounds (M := M) (n := n)
+      (hn2 := hn2) (htb := htb) (hns := hns) ρ) :
+    CookLevinSegmentSlotChoicesCover (M := M) (n := n) (hn2 := hn2)
+      (htb := htb) (hns := hns)
+      (cookLevinSegmentSlotChoices_of_lowerBounds (M := M) (n := n)
+        (hn2 := hn2) (htb := htb) (hns := hns) H) := by
+  classical
+  constructor
+  · intro hne
+    refine ⟨⟨0, H.booleanity_pos_of_nonempty hne⟩, ?_⟩
+    simp [cookLevinSegmentSlotChoices_of_lowerBounds,
+      H.booleanity_pos_of_nonempty hne]
+  · intro hne
+    refine ⟨⟨0, H.adjacency_pos_of_nonempty hne⟩, ?_⟩
+    simp [cookLevinSegmentSlotChoices_of_lowerBounds,
+      H.adjacency_pos_of_nonempty hne]
+  · intro hne
+    refine ⟨⟨0, H.transitionLeft_pos_of_nonempty hne⟩, ?_⟩
+    simp [cookLevinSegmentSlotChoices_of_lowerBounds,
+      H.transitionLeft_pos_of_nonempty hne]
+
+/-- Selected-profile lower bounds instantiate the concrete segment-slot fibre
+cover. -/
+theorem cookLevinSegmentSlotFiberCover_of_lowerBounds
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {κ : ℕ}
+    {ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType κ}
+    (H : CookLevinSelectedProfileSegmentSlotLowerBounds (M := M) (n := n)
+      (hn2 := hn2) (htb := htb) (hns := hns) ρ) :
+    CookLevinSegmentSlotFiberCover (M := M) (n := n) (hn2 := hn2)
+      (htb := htb) (hns := hns)
+      (cookLevinSegmentSlotChoices_of_lowerBounds (M := M) (n := n)
+        (hn2 := hn2) (htb := htb) (hns := hns) H) :=
+  cookLevinSegmentSlotFiberCover_of_choicesCover
+    (cookLevinSegmentSlotChoices_of_lowerBounds (M := M) (n := n)
+      (hn2 := hn2) (htb := htb) (hns := hns) H)
+    (cookLevinSegmentSlotChoicesCover_of_lowerBounds (M := M) (n := n)
+      (hn2 := hn2) (htb := htb) (hns := hns) H)
+
+#print axioms cookLevinSegmentSlotChoicesCover_of_lowerBounds
+#print axioms cookLevinSegmentSlotFiberCover_of_lowerBounds
+
 /-- Coefficient-level fibre partition data for the non-singleton Route-B slot
 surface.
 
@@ -22118,6 +22206,52 @@ structure RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexe
               hadm hrow hρ d hd_elts hlen σ j k •
             canonicalInterfacePolynomial sourcePartition
               (Nat.log 2 n) (Nat.log 2 n) σ k
+
+/-- Any slot-fibre partition whose slot products already land in the compiled
+basis canonically supplies explicit three-generator coefficients for every
+slot-fibre product.
+
+This discharges the coefficient-expansion half from the membership half using
+`canonicalInterfacePolynomial_basisCoeffOfMem`: no new algebraic assumption is
+introduced.  The remaining hard content is exactly the paper-local proof of
+`factorSlotContribution_mem_compiledBasis` for the actual Cook--Levin fibres. -/
+noncomputable def routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberCoefficientExpansionData_of_fiberPartitionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberCoefficientExpansionData
+      M n hn2 htb hns where
+  sourcePartition := D.sourcePartition
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  factorSlotFiber := D.factorSlotFiber
+  factorSlotFiber_pairwiseDisjoint := D.factorSlotFiber_pairwiseDisjoint
+  factorSlotFiber_biUnion_eq_univ := D.factorSlotFiber_biUnion_eq_univ
+  factorSlotContribution_mem_compiledBasis := D.factorSlotContribution_mem_compiledBasis
+  slotFiberBasisCoeff := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen σ j
+    exact canonicalInterfacePolynomial_basisCoeffOfMem D.sourcePartition
+      (Nat.log 2 n) (Nat.log 2 n) σ
+      ((D.factorSlotFiber ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+          d hd_elts hlen σ j).prod (fun i =>
+          SPDP.iterDerivList (d i)
+            ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+              M n hn2 htb hns) i)))
+      (D.factorSlotContribution_mem_compiledBasis ρ S' shift α hSlen hshiftDegree
+        hshiftVars hadm hrow hρ d hd_elts hlen σ j)
+  slotFiber_eq_basisExpansion := by
+    intro ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ d hd_elts hlen σ j
+    exact canonicalInterfacePolynomial_basisCoeffOfMem_spec D.sourcePartition
+      (Nat.log 2 n) (Nat.log 2 n) σ
+      ((D.factorSlotFiber ρ S' shift α hSlen hshiftDegree hshiftVars hadm hrow hρ
+          d hd_elts hlen σ j).prod (fun i =>
+          SPDP.iterDerivList (d i)
+            ((routeBPaperFaithfulTPhi_strictSourceRestrictedFactors
+              M n hn2 htb hns) i)))
+      (D.factorSlotContribution_mem_compiledBasis ρ S' shift α hSlen hshiftDegree
+        hshiftVars hadm hrow hρ d hd_elts hlen σ j)
+
+#print axioms routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberCoefficientExpansionData_of_fiberPartitionData
 
 /-- Explicit coefficient expansions for the non-singleton slot fibres imply the
 compiled-basis membership field required by the fibre-partition seam. -/

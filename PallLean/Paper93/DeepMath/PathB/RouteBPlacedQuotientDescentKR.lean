@@ -562,6 +562,18 @@ def Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSl
       (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberCoefficientExpansionData
         M n hn2 htb hns)
 
+/-- A Step-247 fibre partition whose slot products land in the compiled basis
+canonically provides coefficient-expanded slot fibres. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberCoefficientExpansionData_of_fiberPartitionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData) :
+    Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberCoefficientExpansionData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedShiftedLeibnizProductIndexedInterfaceSlotFiberCoefficientExpansionData_of_fiberPartitionData
+    M n hn2 htb hns D⟩
+
+#print axioms step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberCoefficientExpansionData_of_fiberPartitionData
+
 /-- Coefficient-expanded slot fibres instantiate the fibre-partition seam. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberPartitionData_of_fiberCoefficientExpansionData
     (hData : Step247UniformRouteBPaperFaithfulTPhiShiftedLeibnizProductIndexedInterfaceSlotFiberCoefficientExpansionData) :
