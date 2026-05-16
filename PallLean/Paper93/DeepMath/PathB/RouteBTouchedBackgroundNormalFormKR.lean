@@ -2647,6 +2647,107 @@ structure UntouchedBackgroundConcreteAtomTraceExactTypeSlotFactorLocalAlgebraRow
             B (Nat.log 2 n) ℓ
             (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF)).W
 
+/-- A per-type count equality for the atom-trace profile can only hold when
+the filtered Cook--Levin factor list itself fits inside the atom-trace window.
+
+This is the honest saturation obstruction for the concrete count seam: the
+atom-trace profile is admissible at `Nat.log 2 n`, so if it is claimed to count
+every filtered factor by type, then the total number of filtered factors is at
+most `Nat.log 2 n`.  Any unconditional construction of the count field must
+therefore first prove this window bound, or change the trace window. -/
+theorem untouchedBackgroundAtomTrace_typeSlot_count_eq_forces_factor_length_le_log
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (typeSlot_count_eq :
+      ∀ (R : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+        (hR : R.length ≤ Nat.log 2 n)
+        (shift : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+        (hshift : shift.vars ⊆ R.toFinset),
+        let ctype := untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S
+        let shiftWord := List.replicate R.length
+          (untouchedBackgroundAtomTraceShiftGenerator (Nat.log 2 n))
+        let rowNF := shiftWord.prod *
+          (List.ofFn (fun i : Fin
+            (untouchedBackgroundFactorList M n hn2 htb hns S).length =>
+              ([untouchedBackgroundAtomTraceFactorGenerator (Nat.log 2 n)
+                (ctype i)] : List
+                  (untouchedBackgroundAtomTraceLocalMonoid
+                    (Nat.log 2 n)).localMonoid).prod)).prod
+        ∀ τ : SymmetricPowerBound.ConstraintType,
+          Fintype.card { i : Fin (untouchedBackgroundFactorList M n hn2 htb hns S).length //
+              ctype i = τ } =
+            (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF) τ) :
+    (untouchedBackgroundFactorList M n hn2 htb hns S).length ≤ Nat.log 2 n := by
+  classical
+  let L := (untouchedBackgroundFactorList M n hn2 htb hns S).length
+  let ctype := untouchedBackgroundConstraintTypeFamilyForList M n hn2 htb hns S
+  let rowNF : (untouchedBackgroundAtomTraceLocalMonoid (Nat.log 2 n)).localMonoid :=
+    (List.ofFn (fun i : Fin L =>
+      ([untouchedBackgroundAtomTraceFactorGenerator (Nat.log 2 n)
+        (ctype i)] : List
+          (untouchedBackgroundAtomTraceLocalMonoid
+            (Nat.log 2 n)).localMonoid).prod)).prod
+  have hsum_card :
+      (∑ τ : ConstraintType,
+        Fintype.card { i : Fin L // ctype i = τ }) = L := by
+    have hcongr :
+        Fintype.card (Σ τ : ConstraintType, { i : Fin L // ctype i = τ }) =
+          Fintype.card (Fin L) := by
+      refine Fintype.card_congr ?_
+      refine {
+        toFun := fun x => x.2.1
+        invFun := fun i => ⟨ctype i, ⟨i, rfl⟩⟩
+        left_inv := ?_
+        right_inv := ?_ }
+      · intro x
+        cases x with
+        | mk τ y =>
+          cases y with
+          | mk i hi =>
+            cases hi
+            rfl
+      · intro i
+        rfl
+    rw [Fintype.card_sigma] at hcongr
+    simpa [L] using hcongr
+  have hsum_profile :
+      (∑ τ : ConstraintType,
+        Fintype.card { i : Fin L // ctype i = τ }) =
+        profileMass (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF) := by
+    unfold profileMass
+    refine Finset.sum_congr rfl ?_
+    intro τ _hτ
+    simpa [L, ctype, rowNF] using
+      typeSlot_count_eq ([] : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+        (by simp) (1 : MvPolynomial (Fin (cookLevinTableau M n hn2 htb hns).numVars) ℚ)
+        (by simp) τ
+  have hadm :
+      profileMass (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF) ≤
+        Nat.log 2 n := by
+    simpa [ProfileAdmissible] using
+      untouchedBackgroundAtomTraceActionProfile_admissible (Nat.log 2 n) rowNF
+  calc
+    (untouchedBackgroundFactorList M n hn2 htb hns S).length = L := rfl
+    _ = ∑ τ : ConstraintType, Fintype.card { i : Fin L // ctype i = τ } := hsum_card.symm
+    _ = profileMass (untouchedBackgroundAtomTraceActionProfile (Nat.log 2 n) rowNF) := hsum_profile
+    _ ≤ Nat.log 2 n := hadm
+
+/-- Any packaged factor/type-trace datum carries the same window-fit
+obligation: its count field already forces the filtered Cook--Levin factor list
+to fit inside the atom-trace radius. -/
+theorem untouchedBackgroundAtomTrace_factorTypeTrace_forces_factor_length_le_log
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin (cookLevinTableau M n hn2 htb hns).numVars))
+    (B : SPDP.BlockPartition (cookLevinTableau M n hn2 htb hns).numVars)
+    (ℓ : ℕ)
+    (D : UntouchedBackgroundConcreteAtomTraceExactFactorTypeTraceLocalAlgebraRowsForList
+      M n hn2 htb hns S B ℓ) :
+    (untouchedBackgroundFactorList M n hn2 htb hns S).length ≤ Nat.log 2 n :=
+  untouchedBackgroundAtomTrace_typeSlot_count_eq_forces_factor_length_le_log
+    M n hn2 htb hns S D.typeSlot_count_eq
+
 /-- Direct constructor for the exact type-slot/factor atom-trace seam from
 concrete Cook--Levin factor/type trace counts, singleton compiled-basis
 membership, and the selected shift/`mlProj` closure.
