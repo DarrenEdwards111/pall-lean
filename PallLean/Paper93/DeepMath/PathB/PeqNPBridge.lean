@@ -1150,12 +1150,14 @@ theorem isEmpty_PeqNP_Paper_godMove_PAC_amplituhedron_holography :
 /-- Final closed Route-B theorem, using the God-Move/PAC/amplituhedron/
 holography package as the explicit completion layer.
 
-This is intentionally an alias of the named God-Move closeout above, so the
-final theorem's axiom audit stays readable: the only custom mathematical seam is
-the existing paper-faithful Theorem-207 witness. -/
+This uses the **narrow** SAT-decider amplituhedron-gauge seam rather than the
+monolithic `exists_theorem207_witness`.  Thus the final theorem's custom trust
+surface is exactly the missing PAC/holographic/amplituhedron certificate for a
+SAT-decider; all non-SAT-decider gauge cases are already discharged by the zero
+gauge theorem in `GlobalGodMoveGauge`. -/
 theorem P_ne_NP_canonical_routeB_closed_by_godMove :
     ∀ (_ : PeqNP_Paper), False :=
-  P_ne_NP_canonical_routeB_godMove_PAC_amplituhedron_holography
+  P_ne_NP_canonical_routeB_godMove_narrowGauge_amplituhedron
 
 #print axioms P_ne_NP_canonical_routeB_closed_by_godMove
 

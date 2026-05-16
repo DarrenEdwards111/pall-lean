@@ -177,4 +177,51 @@ theorem satDeciderSpecificGaugeSubgoalDischarge_iff_no_bounded_sat_decider :
 #print axioms satDeciderSpecificGaugeSubgoalDischarge_of_no_bounded_sat_decider
 #print axioms satDeciderSpecificGaugeSubgoalDischarge_iff_no_bounded_sat_decider
 
+/-! ## GlobalGodMoveGauge narrow-axiom equivalence
+
+The final Route-B closeout now uses the narrow
+`GlobalGodMoveGauge.exists_amplituhedron_gauge_for_sat_decider` seam.  The
+following proposition states that seam as an ordinary Prop, so its logical
+content can be compared directly with `NoBoundedSATDeciderAtPaperScale`. -/
+
+/-- Prop-form of the narrow Global God-Move / amplituhedron-gauge seam. -/
+def GlobalAmplituhedronGaugeForSatDeciders : Prop :=
+  ∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (_hdec : DecidesSAT M),
+    ∃ (gauge : SATDeciderGaugeMap M n hn2 htb hns),
+      GlobalGodMoveGauge.IsAmplituhedronGauge M n _hn hn2 htb hns gauge
+
+/-- The GlobalGodMoveGauge narrow seam is exactly the explicit three-subgoal
+frontier. -/
+theorem globalAmplituhedronGaugeForSatDeciders_iff_subgoals :
+    GlobalAmplituhedronGaugeForSatDeciders ↔
+      SATDeciderSpecificGaugeSubgoalDischarge := by
+  constructor
+  · intro h M n hn hn2 htb hns hdec
+    obtain ⟨gauge, hgauge⟩ := h M n hn hn2 htb hns hdec
+    exact ⟨gauge,
+      (satDeciderGaugeSubgoals_iff_isAmplituhedronGauge
+        M n hn hn2 htb hns gauge).mpr hgauge⟩
+  · intro h M n hn hn2 htb hns hdec
+    obtain ⟨gauge, hsubgoals⟩ := h M n hn hn2 htb hns hdec
+    exact ⟨gauge,
+      (satDeciderGaugeSubgoals_iff_isAmplituhedronGauge
+        M n hn hn2 htb hns gauge).mp hsubgoals⟩
+
+/-- The narrow Global God-Move/amplituhedron seam is logically equivalent to
+the no-bounded-SAT-decider statement at the paper scale.
+
+This is the honest end state of the closure: the PAC/holographic/amplituhedron
+certificate for SAT-deciders is not a routine linear-map construction.  At the
+paper scale it is exactly as strong as ruling out bounded SAT deciders. -/
+theorem globalAmplituhedronGaugeForSatDeciders_iff_no_bounded_sat_decider :
+    GlobalAmplituhedronGaugeForSatDeciders ↔
+      NoBoundedSATDeciderAtPaperScale := by
+  exact globalAmplituhedronGaugeForSatDeciders_iff_subgoals.trans
+    satDeciderSpecificGaugeSubgoalDischarge_iff_no_bounded_sat_decider
+
+#print axioms globalAmplituhedronGaugeForSatDeciders_iff_subgoals
+#print axioms globalAmplituhedronGaugeForSatDeciders_iff_no_bounded_sat_decider
+
 end PallLean.Paper93.DeepMath.PathB
