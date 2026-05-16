@@ -22180,6 +22180,43 @@ theorem cookLevinSegmentSlotFiberCover_of_lowerBounds
 #print axioms cookLevinSegmentSlotChoicesCover_of_lowerBounds
 #print axioms cookLevinSegmentSlotFiberCover_of_lowerBounds
 
+/-- No selected transition-right slots means there is no anonymous
+transition-right slot to fill. -/
+theorem cookLevin_noTransitionRightSlot_of_profile_zero
+    {κ : ℕ}
+    {ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType κ}
+    (hzero : ρ.val ConstraintType.transitionRight = 0) :
+    IsEmpty (Fin (ρ.val ConstraintType.transitionRight)) := by
+  rw [hzero]
+  infer_instance
+
+/-- Conversely, any selected transition-right slot forces positive
+transition-right mass in the selected profile. -/
+theorem cookLevin_transitionRight_profile_pos_of_slot
+    {κ : ℕ}
+    {ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType κ}
+    (j : Fin (ρ.val ConstraintType.transitionRight)) :
+    0 < ρ.val ConstraintType.transitionRight := by
+  by_contra h
+  have hzero : ρ.val ConstraintType.transitionRight = 0 := Nat.eq_zero_of_not_pos h
+  rw [hzero] at j
+  exact Fin.elim0 j
+
+/-- A selected profile is compatible with the three-segment Cook--Levin split
+only when dormant transition-right mass is absent.  This is the profile-side
+condition needed before the actual three segment fibres can be the whole fibre
+partition. -/
+def CookLevinSelectedProfileNoDormantTransitionRight
+    {κ : ℕ}
+    (ρ : RouteBPaperFaithfulTPhiStrictInterfaceAnonymousProfiles
+      ConstraintType κ) : Prop :=
+  ρ.val ConstraintType.transitionRight = 0
+
+#print axioms cookLevin_noTransitionRightSlot_of_profile_zero
+#print axioms cookLevin_transitionRight_profile_pos_of_slot
+
 /-- Coefficient-level fibre partition data for the non-singleton Route-B slot
 surface.
 
