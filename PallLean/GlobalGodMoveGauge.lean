@@ -1444,15 +1444,48 @@ noncomputable def theorem207Witness_of_bounds
   compiled_p_side_bound := h_p_side
   sheet_np_side_lower_bound := h_np_side
 
-/-- **Rephrased existence axiom.** Equivalent to `exists_theorem207_witness`
+/-- **Same-sheet Theorem-207 polynomial.**
+
+This is the named coupled sheet/paper polynomial on which the remaining
+Theorem-207 bounds are asserted.  Keeping the polynomial as a separate named
+piece exposes the formerly bundled "same polynomial" content: both the P-side
+upper bound and the NP-side lower bound below are about this exact term. -/
+axiom theorem207_same_sheet_poly
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) :
+    MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ
+
+/-- **Theorem-207 P-side bound seam** on the named same-sheet polynomial. -/
+axiom theorem207_same_sheet_p_side_bound
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) :
+    mlBlockedSpdpRank
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (theorem207_same_sheet_poly M n hn hn2 htb hns hdec) ≤ n ^ 200
+
+/-- **Theorem-207 NP-side lower-bound seam** on the same named polynomial. -/
+axiom theorem207_same_sheet_np_side_lower_bound
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) :
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (theorem207_same_sheet_poly M n hn hn2 htb hns hdec)
+
+/-- **Rephrased existence theorem.** Equivalent to `exists_theorem207_witness`
 but with the `extraction_rank_monotone` field discharged implicitly
 via `theorem207Witness_of_bounds`: the two bounds alone suffice.
 
-This is a **strictly narrower axiom** than `exists_theorem207_witness`:
-it asserts just the existence of the two rank bounds on a single
-polynomial, not the full 5-field witness. The 5-field witness is
-derivable via `theorem207Witness_of_bounds`. -/
-axiom exists_theorem207_bounds_on_some_poly
+This theorem is now derived from three more granular seams: the named
+same-sheet polynomial, its P-side upper bound, and its NP-side lower bound.
+The 5-field witness remains derivable via `theorem207Witness_of_bounds`, while
+both hard inequalities are separately auditable. -/
+theorem exists_theorem207_bounds_on_some_poly
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hdec : DecidesSAT M) :
@@ -1464,12 +1497,15 @@ axiom exists_theorem207_bounds_on_some_poly
       Nat.choose (n / 3) (Nat.log 2 n) ≤
         mlBlockedSpdpRank
           (cook_levin_compilation M n hn2 htb hns).partition
-          (Nat.log 2 n) (Nat.log 2 n) q
+          (Nat.log 2 n) (Nat.log 2 n) q := by
+  refine ⟨theorem207_same_sheet_poly M n hn hn2 htb hns hdec, ?_, ?_⟩
+  · exact theorem207_same_sheet_p_side_bound M n hn hn2 htb hns hdec
+  · exact theorem207_same_sheet_np_side_lower_bound M n hn hn2 htb hns hdec
 
-/-- `exists_theorem207_witness` derived from the narrower
-`exists_theorem207_bounds_on_some_poly` axiom. This is the
-axiom-surface reduction: 5 fields → 2 rank-bound claims on a
-single polynomial. -/
+/-- `exists_theorem207_witness` derived from the lowered
+`exists_theorem207_bounds_on_some_poly` theorem.  The load-bearing content is
+now split into a named same-sheet polynomial plus two independent rank-bound
+axioms on that polynomial. -/
 noncomputable def exists_theorem207_witness_from_bounds_axiom
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
@@ -1657,8 +1693,10 @@ depends on. Expected outcomes:
 * `theorem207Witness_of_bounds` —
   **no custom axioms** (axiom-free discharge of field #3 via le_refl).
 * `exists_theorem207_witness_from_bounds_axiom` —
-  only `exists_theorem207_bounds_on_some_poly`
-  (strictly narrower than the 5-field `exists_theorem207_witness`).
+  only the split same-sheet polynomial/P-side/NP-side seams
+  `theorem207_same_sheet_poly`, `theorem207_same_sheet_p_side_bound`, and
+  `theorem207_same_sheet_np_side_lower_bound`
+  (strictly more granular than the 5-field `exists_theorem207_witness`).
 * `theorem207Witness_of_components` / `theorem207Witness_from_component_interfaces` —
   no custom axioms; these are interface assembly helpers.
 * `exists_theorem207_component_interfaces_from_witness_axiom` —
@@ -1715,9 +1753,11 @@ depends on. Expected outcomes:
 -- (Axiom-free: field #3 discharged via le_refl by sheet = q construction.)
 #print axioms exists_theorem207_witness_from_bounds_axiom
 -- Expected: propext, Classical.choice, Quot.sound,
---   GlobalGodMoveGauge.exists_theorem207_bounds_on_some_poly.
--- (Strictly narrower axiom than exists_theorem207_witness:
---  only 2 rank bounds on a single polynomial vs 5-field witness.)
+--   GlobalGodMoveGauge.theorem207_same_sheet_poly,
+--   GlobalGodMoveGauge.theorem207_same_sheet_p_side_bound,
+--   GlobalGodMoveGauge.theorem207_same_sheet_np_side_lower_bound.
+-- (Granular replacement for exists_theorem207_witness:
+--  named same-sheet polynomial + two rank bounds vs 5-field witness.)
 #print axioms theorem207Witness_of_components
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms theorem207Witness_from_component_interfaces

@@ -1228,8 +1228,8 @@ below no longer consumes the monolithic
 `GlobalGodMoveGauge.exists_theorem207_witness` axiom directly: it routes through
 `GlobalGodMoveGauge.exists_theorem207_witness_from_bounds_axiom`, where the
 extraction/rank-monotonicity field is constructed by the identity extraction
-and the remaining assumption is the narrower two-bound package
-`GlobalGodMoveGauge.exists_theorem207_bounds_on_some_poly`.
+and the remaining assumptions are the split same-sheet polynomial, P-side
+bound, and NP-side lower-bound seams.
 
 Thus the public theorem name and witness-shaped proof are preserved, while the
 load-bearing seam is lowered from a five-field witness existential to the two
@@ -1493,7 +1493,7 @@ as a *primitive axiom* in the codebase — that name remains declared as an
 axiom in `GlobalGodMoveGauge.lean`. But for any separation argument, the
 lowered Theorem-207 bounds seam is sufficient; downstream consumers who want
 one axiom for their chain should prefer
-`GlobalGodMoveGauge.exists_theorem207_bounds_on_some_poly`. -/
+the split same-sheet polynomial/P-side/NP-side seams. -/
 theorem exists_amplituhedron_gauge_for_sat_decider_from_theorem207
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
@@ -1595,8 +1595,10 @@ theorem compiled_p_side_bound_from_PAC_pipeline
 
 This is the canonical name for the separation theorem; it forwards to the
 paper-faithful `P_ne_NP_via_theorem207`, whose monolithic Theorem-207 witness
-is now rebuilt from the lowered two-bound seam
-`GlobalGodMoveGauge.exists_theorem207_bounds_on_some_poly`.
+is now rebuilt from the split same-sheet seams
+`GlobalGodMoveGauge.theorem207_same_sheet_poly`,
+`GlobalGodMoveGauge.theorem207_same_sheet_p_side_bound`, and
+`GlobalGodMoveGauge.theorem207_same_sheet_np_side_lower_bound`.
 
 Historical progression of this canonical name:
 
@@ -1624,8 +1626,8 @@ The NP-side (God-Move + identity minor) is axiom-free beyond standard Lean.
 The theorem-207 route `P_ne_NP_via_theorem207` no longer depends on the
 monolithic `GlobalGodMoveGauge.exists_theorem207_witness` axiom.  It constructs
 the `Theorem207Witness` shape from
-`GlobalGodMoveGauge.exists_theorem207_bounds_on_some_poly`, with identity
-extraction supplying the rank-monotonicity field.
+the split same-sheet polynomial/P-side/NP-side seams, with identity extraction
+supplying the rank-monotonicity field.
 
 The prior canonical forms (`P_ne_NP_via_piStar`, `P_ne_NP_via_narrow_axiom`)
 remain available; they use earlier axioms not on the canonical chain.
@@ -1653,17 +1655,21 @@ retains the false axiom for archival reference only. -/
 --       → exists_rank_sandwich_for_sat_decider (one ℕ in sandwich)
 #print axioms P_ne_NP_via_theorem207
 -- Expected: propext, Classical.choice, Quot.sound,
---   GlobalGodMoveGauge.exists_theorem207_bounds_on_some_poly.
+--   GlobalGodMoveGauge.theorem207_same_sheet_poly,
+--   GlobalGodMoveGauge.theorem207_same_sheet_p_side_bound,
+--   GlobalGodMoveGauge.theorem207_same_sheet_np_side_lower_bound.
 -- The monolithic `GlobalGodMoveGauge.exists_theorem207_witness` seam is no
 -- longer consumed here; the identity-extraction field is constructed by
 -- `GlobalGodMoveGauge.theorem207Witness_of_bounds`.
 #print axioms exists_amplituhedron_gauge_for_sat_decider_from_theorem207
 -- Expected: propext, Classical.choice, Quot.sound,
---   GlobalGodMoveGauge.exists_theorem207_bounds_on_some_poly.
--- (Shows the narrow gauge axiom's *statement* is derivable from the lowered
--- Theorem 207 bounds seam + arithmetic — confirming the lowered package already
--- carries the separation-level mathematical content in the bounded-parameter
--- regime.)
+--   GlobalGodMoveGauge.theorem207_same_sheet_poly,
+--   GlobalGodMoveGauge.theorem207_same_sheet_p_side_bound,
+--   GlobalGodMoveGauge.theorem207_same_sheet_np_side_lower_bound.
+-- (Shows the narrow gauge axiom's *statement* is derivable from the split
+-- same-sheet Theorem-207 seams + arithmetic — confirming the lowered package
+-- already carries the separation-level mathematical content in the
+-- bounded-parameter regime.)
 #print axioms P_ne_NP_via_narrow_axiom
 -- Expected: propext, Classical.choice, Quot.sound,
 --   GlobalGodMoveGauge.exists_amplituhedron_gauge_for_sat_decider.
