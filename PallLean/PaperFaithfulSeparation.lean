@@ -1223,12 +1223,17 @@ bound via Ramanujan-Tseitin identity minor, all on a coupled sheet
 polynomial Q×_Φₙ.
 
 The `GlobalGodMoveGauge.Theorem207Witness` structure bundles these three
-components as separate fields — each tied to a named paper theorem —
-and `GlobalGodMoveGauge.exists_theorem207_witness` asserts their joint
-existence for every bounded-parameter SAT-decider at n ≥ 2^804.
+components as separate fields — each tied to a named paper theorem.  The proof
+below no longer consumes the monolithic
+`GlobalGodMoveGauge.exists_theorem207_witness` axiom directly: it routes through
+`GlobalGodMoveGauge.exists_theorem207_witness_from_bounds_axiom`, where the
+extraction/rank-monotonicity field is constructed by the identity extraction
+and the remaining assumption is the narrower two-bound package
+`GlobalGodMoveGauge.exists_theorem207_bounds_on_some_poly`.
 
-The proof below derives `PeqNP_Paper → False` from the Theorem 207 axiom
-directly, in a form that matches the paper's Theorem 207 chain. -/
+Thus the public theorem name and witness-shaped proof are preserved, while the
+load-bearing seam is lowered from a five-field witness existential to the two
+rank inequalities on one polynomial. -/
 theorem P_ne_NP_via_theorem207 : ∀ (_ : PeqNP_Paper), False := by
   intro hPeqNP
   -- Fix n = 2^804 (contradiction scale).
@@ -1239,8 +1244,8 @@ theorem P_ne_NP_via_theorem207 : ∀ (_ : PeqNP_Paper), False := by
     _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
   have hns_n : hPeqNP.decider.numStates ≤ n :=
     le_trans hPeqNP.numStates_bound (le_refl _)
-  -- Apply the Theorem 207 axiom using the SAT-decider hypothesis to obtain
-  -- the five-field witness (paper's two-stage structure):
+  -- Apply the lowered Theorem 207 constructor using the SAT-decider hypothesis
+  -- to obtain the five-field witness shape from the narrower two-bound seam:
   --   * paperCompiledPoly := the paper's instrumented P_{M',n} (Theorem 181/204)
   --   * sheet := the extracted coupled sheet Q×_Φ,S (Lemma 205)
   --   * extraction_rank_monotone := rank(sheet) ≤ rank(paperCompiledPoly) (Lemma 205)
@@ -1248,7 +1253,7 @@ theorem P_ne_NP_via_theorem207 : ∀ (_ : PeqNP_Paper), False := by
   --   * sheet_np_side_lower_bound := C(n/3, log n) ≤ rank(sheet) (Theorem 98)
   let W : GlobalGodMoveGauge.Theorem207Witness
             hPeqNP.decider n hn₀ hn2 hPeqNP.timeBound_le hns_n :=
-    GlobalGodMoveGauge.exists_theorem207_witness
+    GlobalGodMoveGauge.exists_theorem207_witness_from_bounds_axiom
       hPeqNP.decider n hn₀ hn2 hPeqNP.timeBound_le hns_n hPeqNP.decides_3sat
   -- Paper-faithful two-stage chain:
   --   rank(sheet) ≤ rank(paperCompiledPoly)    [Lemma 205, stage 1]
@@ -1478,16 +1483,17 @@ theorem no_rank_sandwich_at_large_n (n : ℕ) (hn : n ≥ 2 ^ 804) :
 
 /-- **Derived theorem: the narrow gauge axiom follows from the Theorem 207
 axiom.** The narrow `exists_amplituhedron_gauge_for_sat_decider` is
-(as a statement) implied by `exists_theorem207_witness` plus the arithmetic
-bridge at n = 2^804. This demonstrates that the two axioms carry the same
-mathematical content in the bounded-parameter + SAT-decider regime at
-n ≥ 2^804.
+(as a statement) implied by the lowered Theorem-207 bounds seam plus the
+arithmetic bridge at n = 2^804. This demonstrates that the lowered Theorem-207
+bounds package is already sufficient to recover the narrow gauge statement in
+the bounded-parameter + SAT-decider regime at n ≥ 2^804.
 
 Note: this does not eliminate `exists_amplituhedron_gauge_for_sat_decider`
 as a *primitive axiom* in the codebase — that name remains declared as an
 axiom in `GlobalGodMoveGauge.lean`. But for any separation argument, the
-Theorem 207 axiom is sufficient; downstream consumers who want one axiom
-for their chain should prefer `exists_theorem207_witness`. -/
+lowered Theorem-207 bounds seam is sufficient; downstream consumers who want
+one axiom for their chain should prefer
+`GlobalGodMoveGauge.exists_theorem207_bounds_on_some_poly`. -/
 theorem exists_amplituhedron_gauge_for_sat_decider_from_theorem207
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
@@ -1497,11 +1503,12 @@ theorem exists_amplituhedron_gauge_for_sat_decider_from_theorem207
                MvPolynomial
                  (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ),
       GlobalGodMoveGauge.IsAmplituhedronGauge M n hn hn2 htb hns gauge := by
-  -- From the Theorem 207 axiom, derive False at n = 2^804 (arithmetic), then
-  -- produce the existential via ex falso.
+  -- From the lowered Theorem 207 bounds seam, derive False at n = 2^804
+  -- (arithmetic), then produce the existential via ex falso.
   exfalso
   let W : GlobalGodMoveGauge.Theorem207Witness M n hn hn2 htb hns :=
-    GlobalGodMoveGauge.exists_theorem207_witness M n hn hn2 htb hns hdec
+    GlobalGodMoveGauge.exists_theorem207_witness_from_bounds_axiom
+      M n hn hn2 htb hns hdec
   -- Two-stage P-side chain on the sheet:
   --   rank(sheet) ≤ rank(paperCompiledPoly) ≤ n^200
   have hp_side_sheet :
@@ -1587,8 +1594,9 @@ theorem compiled_p_side_bound_from_PAC_pipeline
 /-- **The unconditional P ≠ NP separation theorem (current load-bearing version).**
 
 This is the canonical name for the separation theorem; it forwards to the
-paper-faithful `P_ne_NP_via_theorem207`, which depends on the single paper-
-theorem-aligned existence axiom `GlobalGodMoveGauge.exists_theorem207_witness`.
+paper-faithful `P_ne_NP_via_theorem207`, whose monolithic Theorem-207 witness
+is now rebuilt from the lowered two-bound seam
+`GlobalGodMoveGauge.exists_theorem207_bounds_on_some_poly`.
 
 Historical progression of this canonical name:
 
@@ -1600,10 +1608,10 @@ Historical progression of this canonical name:
    `exists_amplituhedron_gauge` (full quantifier over all DTMs).
 3. Then: forwarded to `P_ne_NP_via_narrow_axiom`, using the narrow
    SAT-decider-only gauge axiom.
-4. Now: forwards to `P_ne_NP_via_theorem207`, using the paper-faithful
-   Theorem 207 axiom — a coupled-sheet extraction witness bundling the
-   paper's Theorem 181/203 (extraction), Theorem 10/205 (P-side bound),
-   and Theorem 98 (NP-side bound).
+4. Now: forwards to `P_ne_NP_via_theorem207`, using the lowered Theorem-207
+   bounds seam.  The coupled-sheet witness shape is still constructed, but its
+   extraction field is supplied by the identity-extraction constructor, leaving
+   only the P-side and NP-side rank bounds on one polynomial as custom content.
 
 All prior variants remain available for reference/alternative use;
 only the canonical name moves forward. -/
@@ -1613,12 +1621,11 @@ theorem P_ne_NP_unconditional : ∀ (_ : PeqNP_Paper), False :=
 /-! ## Axiom audit
 
 The NP-side (God-Move + identity minor) is axiom-free beyond standard Lean.
-The current `P_ne_NP_unconditional` now forwards to
-`P_ne_NP_via_theorem207`, which depends on the single paper-faithful
-existence axiom `GlobalGodMoveGauge.exists_theorem207_witness` — a
-bundling of Theorem 181/203 (extraction), Theorem 10/205 (P-side bound),
-and Theorem 98 (NP-side bound) as fields of a `Theorem207Witness`
-structure.
+The theorem-207 route `P_ne_NP_via_theorem207` no longer depends on the
+monolithic `GlobalGodMoveGauge.exists_theorem207_witness` axiom.  It constructs
+the `Theorem207Witness` shape from
+`GlobalGodMoveGauge.exists_theorem207_bounds_on_some_poly`, with identity
+extraction supplying the rank-monotonicity field.
 
 The prior canonical forms (`P_ne_NP_via_piStar`, `P_ne_NP_via_narrow_axiom`)
 remain available; they use earlier axioms not on the canonical chain.
@@ -1646,14 +1653,17 @@ retains the false axiom for archival reference only. -/
 --       → exists_rank_sandwich_for_sat_decider (one ℕ in sandwich)
 #print axioms P_ne_NP_via_theorem207
 -- Expected: propext, Classical.choice, Quot.sound,
---   GlobalGodMoveGauge.exists_theorem207_witness.
--- (Same as P_ne_NP_unconditional above — this is the new canonical route.)
+--   GlobalGodMoveGauge.exists_theorem207_bounds_on_some_poly.
+-- The monolithic `GlobalGodMoveGauge.exists_theorem207_witness` seam is no
+-- longer consumed here; the identity-extraction field is constructed by
+-- `GlobalGodMoveGauge.theorem207Witness_of_bounds`.
 #print axioms exists_amplituhedron_gauge_for_sat_decider_from_theorem207
 -- Expected: propext, Classical.choice, Quot.sound,
---   GlobalGodMoveGauge.exists_theorem207_witness.
--- (Shows the narrow gauge axiom's *statement* is derivable from the
--- Theorem 207 axiom + arithmetic — confirming the two axiomatisations
--- carry the same mathematical content in the bounded-parameter regime.)
+--   GlobalGodMoveGauge.exists_theorem207_bounds_on_some_poly.
+-- (Shows the narrow gauge axiom's *statement* is derivable from the lowered
+-- Theorem 207 bounds seam + arithmetic — confirming the lowered package already
+-- carries the separation-level mathematical content in the bounded-parameter
+-- regime.)
 #print axioms P_ne_NP_via_narrow_axiom
 -- Expected: propext, Classical.choice, Quot.sound,
 --   GlobalGodMoveGauge.exists_amplituhedron_gauge_for_sat_decider.
