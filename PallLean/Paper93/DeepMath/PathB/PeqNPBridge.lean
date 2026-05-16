@@ -548,6 +548,18 @@ theorem P_ne_NP_canonical_routeB_interfaceSlotExpansion_conditional
 
 #print axioms P_ne_NP_canonical_routeB_interfaceSlotExpansion_conditional
 
+/-- Canonical Route-B closure from local-interface-slot expansion data, the
+paper-faithful Lemma-31 shape where the `Wσ` spaces are local compiled-coordinate
+spaces rather than the fixed canonical chart. -/
+theorem P_ne_NP_canonical_routeB_localInterfaceSlotExpansion_conditional
+    (hSlot : Step247UniformRouteBPaperFaithfulTPhiLocalInterfaceSlotExpansionData) :
+    ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_canonical_routeB_localCompiledProfileSubspaceRow_conditional
+    (step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData_of_localInterfaceSlotExpansionData
+      hSlot)
+
+#print axioms P_ne_NP_canonical_routeB_localInterfaceSlotExpansion_conditional
+
 /-- Canonical Route-B closure from direct compiled-basis profile-subspace row
 membership (the literal Lemma-31 row-subspace surface). -/
 theorem P_ne_NP_canonical_routeB_compiledBasisProfileSubspaceRow_conditional

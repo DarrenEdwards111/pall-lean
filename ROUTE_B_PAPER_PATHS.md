@@ -214,3 +214,11 @@ Also added fixed-chart transition-right guardrails:
 - `routeBPaperFaithfulTPhi_rowInterfaceSlotExpansion_row_eq_zero_of_transitionRightSlot`
 
 These show that any fixed compiled-basis row expansion with a positive transition-right slot collapses to zero, so the three-branch Cook--Levin split must either use selected profiles with `transitionRight = 0` or introduce real transition-right local factors.
+
+Step247/PeqNP lift added for the same local slot seam:
+
+- `Step247UniformRouteBPaperFaithfulTPhiLocalInterfaceSlotExpansionData`
+- `step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData_of_localInterfaceSlotExpansionData`
+- `P_ne_NP_canonical_routeB_localInterfaceSlotExpansion_conditional`
+
+So the remaining paper-faithful source obligation can now be stated directly at Step247 scale as local interface-slot expansion data, and the existing Route-B contradiction chain consumes it through the already checked local profile-subspace row route.

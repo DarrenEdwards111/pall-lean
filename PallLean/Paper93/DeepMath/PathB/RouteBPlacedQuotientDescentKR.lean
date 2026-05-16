@@ -1284,6 +1284,30 @@ noncomputable def step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubsp
   exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedLocalCompiledProfileSubspaceRowData_of_compiledBasisProfileSubspaceRowData
     M n hn2 htb hns D⟩
 
+/-- Uniform local-interface-slot expansion data at Step 247 scale.
+
+This is the paper-faithful local-chart Lemma-31 source surface: per-interface
+slots land in row-local compiled-coordinate spaces `Wσ` of dimension at most
+three, then assemble through the symmetric/profile product.  It avoids the
+strong fixed-chart requirement that all concrete Cook--Levin variables already
+be in the canonical `X₀/X₁` chart. -/
+def Step247UniformRouteBPaperFaithfulTPhiLocalInterfaceSlotExpansionData : Prop :=
+  ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    Nonempty
+      (PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiStrictSourceSelectedLocalInterfaceSlotExpansionData
+        M n hn2 htb hns)
+
+/-- Local-interface-slot expansion gives local compiled profile-subspace row
+data by the row-level profile-slot expansion constructor. -/
+noncomputable def step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData_of_localInterfaceSlotExpansionData
+    (hData : Step247UniformRouteBPaperFaithfulTPhiLocalInterfaceSlotExpansionData) :
+    Step247UniformRouteBPaperFaithfulTPhiLocalCompiledProfileSubspaceRowData := by
+  intro M n hn hn2 htb hns
+  rcases hData M n hn hn2 htb hns with ⟨D⟩
+  exact ⟨PallLean.Paper93.Paper283.routeBPaperFaithfulTPhi_strictSourceSelectedLocalCompiledProfileSubspaceRowData_of_localInterfaceSlotExpansionData
+    M n hn2 htb hns D⟩
+
 /-- Direct profile-subspace row membership gives the explicit row-interface-slot
 expansion by unfolding the defining span of `profileSubspace`. -/
 noncomputable def step247UniformRouteBPaperFaithfulTPhiInterfaceSlotExpansionData_of_fixedChartCompiledBasisProfileSubspaceRowData
