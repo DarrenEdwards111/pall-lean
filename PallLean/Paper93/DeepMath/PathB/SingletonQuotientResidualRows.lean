@@ -201,6 +201,52 @@ theorem singletonQuotientResidualRowsKilled_of_killedOnSubspace
     (singletonQuotientResidual_mem_residualSubspace M n hn2 htb hns p)
     hS hm hmvars hadm
 
+/-- Generator-row subspace preservation: each SPDP row of each finite
+singleton-shift generator lands back in the singleton residual subspace.  This
+is stronger than being killed by the quotient, but often the more geometric
+finite check. -/
+def SingletonQuotientResidualGeneratorRowsMemSubspace
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∀ (κ ℓ : Nat) (i : Fin n)
+    (S : List (Fin n)) (m : MvPolynomial (Fin n) Rat),
+    S.length = κ →
+    m.totalDegree ≤ ℓ →
+    m.vars ⊆ S.toFinset →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition S →
+    singletonQuotientSPDPRow S m
+      (mlProj (MvPolynomial.X i *
+        Finset.univ.prod
+          (singletonQuotientCookLevinFactors M n hn2 htb hns))) ∈
+      singletonQuotientResidualSubspace M n hn2 htb hns
+
+/-- Generator-row subspace preservation implies the finite generator rows are
+killed, because the singleton quotient kills the residual subspace. -/
+theorem singletonQuotientResidualGeneratorRowsKilled_of_memSubspace
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hmem : SingletonQuotientResidualGeneratorRowsMemSubspace
+      M n hn2 htb hns) :
+    SingletonQuotientResidualGeneratorRowsKilled M n hn2 htb hns := by
+  intro κ ℓ i S m hS hm hmvars hadm
+  exact LinearMap.mem_ker.mp
+    ((singletonQuotientResidualSubspace_le_ker M n hn2 htb hns)
+      (hmem κ ℓ i S m hS hm hmvars hadm))
+
+/-- Generator-row subspace preservation implies killed rows on the whole
+residual subspace. -/
+theorem singletonQuotientResidualRowsKilledOnSubspace_of_generatorRowsMemSubspace
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hmem : SingletonQuotientResidualGeneratorRowsMemSubspace
+      M n hn2 htb hns) :
+    SingletonQuotientResidualSPDPRowsKilledOnSubspace M n hn2 htb hns :=
+  singletonQuotientResidualRowsKilledOnSubspace_of_generatorsKilled
+    M n hn2 htb hns
+    (singletonQuotientResidualGeneratorRowsKilled_of_memSubspace
+      M n hn2 htb hns hmem)
+
 /-- Generator-level killed rows close `SingletonQuotientResidualRowsKilled`. -/
 theorem singletonQuotientResidualRowsKilled_of_generatorsKilled
     (M : DTM) (n : Nat) (hn2 : n ≥ 2)
@@ -210,6 +256,17 @@ theorem singletonQuotientResidualRowsKilled_of_generatorsKilled
   singletonQuotientResidualRowsKilled_of_killedOnSubspace M n hn2 htb hns
     (singletonQuotientResidualRowsKilledOnSubspace_of_generatorsKilled
       M n hn2 htb hns hgen)
+
+/-- Generator-row subspace preservation closes `SingletonQuotientResidualRowsKilled`. -/
+theorem singletonQuotientResidualRowsKilled_of_generatorRowsMemSubspace
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hmem : SingletonQuotientResidualGeneratorRowsMemSubspace
+      M n hn2 htb hns) :
+    SingletonQuotientResidualRowsKilled M n hn2 htb hns :=
+  singletonQuotientResidualRowsKilled_of_generatorsKilled M n hn2 htb hns
+    (singletonQuotientResidualGeneratorRowsKilled_of_memSubspace
+      M n hn2 htb hns hmem)
 
 /-- The stronger subspace-stability condition closes
 `SingletonQuotientResidualRowsKilled`. -/
@@ -222,6 +279,32 @@ theorem singletonQuotientResidualRowsKilled_of_spdpStable
     (singletonQuotientResidualRowsKilledOnSubspace_of_spdpStable
       M n hn2 htb hns hstable)
 
+/-- If projected rows are fixed and residual generator rows are killed, then
+the full SPDP-compatible singleton-quotient interface follows. -/
+theorem spdpCompatibleSingletonQuotient_of_projectedRowsFixed_and_residualGeneratorsKilled
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hfix : SingletonQuotientProjectedRowsFixed M n hn2 htb hns)
+    (hgen : SingletonQuotientResidualGeneratorRowsKilled M n hn2 htb hns) :
+    SPDPCompatibleSingletonQuotient M n hn2 htb hns :=
+  ⟨hfix,
+    singletonQuotientResidualRowsKilled_of_generatorsKilled
+      M n hn2 htb hns hgen⟩
+
+/-- If projected rows are fixed and residual generator rows land back in the
+residual subspace, then the full SPDP-compatible singleton-quotient interface
+follows. -/
+theorem spdpCompatibleSingletonQuotient_of_projectedRowsFixed_and_generatorRowsMemSubspace
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hfix : SingletonQuotientProjectedRowsFixed M n hn2 htb hns)
+    (hmem : SingletonQuotientResidualGeneratorRowsMemSubspace M n hn2 htb hns) :
+    SPDPCompatibleSingletonQuotient M n hn2 htb hns :=
+  spdpCompatibleSingletonQuotient_of_projectedRowsFixed_and_residualGeneratorsKilled
+    M n hn2 htb hns hfix
+    (singletonQuotientResidualGeneratorRowsKilled_of_memSubspace
+      M n hn2 htb hns hmem)
+
 /-- If projected rows are fixed and the residual subspace is SPDP-stable, then
 the full SPDP-compatible singleton-quotient interface follows. -/
 theorem spdpCompatibleSingletonQuotient_of_projectedRowsFixed_and_residualStable
@@ -232,6 +315,31 @@ theorem spdpCompatibleSingletonQuotient_of_projectedRowsFixed_and_residualStable
     SPDPCompatibleSingletonQuotient M n hn2 htb hns :=
   ⟨hfix,
     singletonQuotientResidualRowsKilled_of_spdpStable M n hn2 htb hns hstable⟩
+
+/-- Projected-row fixedness plus finite residual-generator killed rows closes
+the candidate-specific rank obligation. -/
+theorem singletonQuotientRankObligation_of_projectedRowsFixed_and_residualGeneratorsKilled
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hfix : SingletonQuotientProjectedRowsFixed M n hn2 htb hns)
+    (hgen : SingletonQuotientResidualGeneratorRowsKilled M n hn2 htb hns) :
+    SingletonQuotientSATGaugeRankMonotonicityObligation M n hn2 htb hns :=
+  singletonQuotientRankObligation_of_spdpCompatible M n hn2 htb hns
+    (spdpCompatibleSingletonQuotient_of_projectedRowsFixed_and_residualGeneratorsKilled
+      M n hn2 htb hns hfix hgen)
+
+/-- Projected-row fixedness plus finite residual-generator subspace
+preservation closes the candidate-specific rank obligation. -/
+theorem singletonQuotientRankObligation_of_projectedRowsFixed_and_generatorRowsMemSubspace
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hfix : SingletonQuotientProjectedRowsFixed M n hn2 htb hns)
+    (hmem : SingletonQuotientResidualGeneratorRowsMemSubspace M n hn2 htb hns) :
+    SingletonQuotientSATGaugeRankMonotonicityObligation M n hn2 htb hns :=
+  singletonQuotientRankObligation_of_projectedRowsFixed_and_residualGeneratorsKilled
+    M n hn2 htb hns hfix
+    (singletonQuotientResidualGeneratorRowsKilled_of_memSubspace
+      M n hn2 htb hns hmem)
 
 /-- Residual-subspace SPDP stability plus projected-row fixedness closes the
 candidate-specific rank obligation. -/
@@ -251,11 +359,18 @@ theorem singletonQuotientRankObligation_of_projectedRowsFixed_and_residualStable
 #print axioms singletonQuotientSPDPRow_add
 #print axioms singletonQuotientSPDPRow_smul
 #print axioms singletonQuotientResidualRowsKilledOnSubspace_of_generatorsKilled
+#print axioms singletonQuotientResidualGeneratorRowsKilled_of_memSubspace
+#print axioms singletonQuotientResidualRowsKilledOnSubspace_of_generatorRowsMemSubspace
 #print axioms singletonQuotientResidualRowsKilled_of_generatorsKilled
+#print axioms singletonQuotientResidualRowsKilled_of_generatorRowsMemSubspace
 #print axioms singletonQuotientResidualRowsKilledOnSubspace_of_spdpStable
 #print axioms singletonQuotientResidualRowsKilled_of_killedOnSubspace
 #print axioms singletonQuotientResidualRowsKilled_of_spdpStable
+#print axioms spdpCompatibleSingletonQuotient_of_projectedRowsFixed_and_residualGeneratorsKilled
+#print axioms spdpCompatibleSingletonQuotient_of_projectedRowsFixed_and_generatorRowsMemSubspace
 #print axioms spdpCompatibleSingletonQuotient_of_projectedRowsFixed_and_residualStable
+#print axioms singletonQuotientRankObligation_of_projectedRowsFixed_and_residualGeneratorsKilled
+#print axioms singletonQuotientRankObligation_of_projectedRowsFixed_and_generatorRowsMemSubspace
 #print axioms singletonQuotientRankObligation_of_projectedRowsFixed_and_residualStable
 
 end PallLean.Paper93.DeepMath.PathB
