@@ -56,6 +56,20 @@ theorem singletonQuotientResidualSubspace_le_ker
   exact zeroProfileQuotientBySingletonShiftProjection_singletonShiftSubspace_le_ker
     (singletonQuotientCookLevinFactors M n hn2 htb hns)
 
+/-- Exact kernel form: the singleton quotient kills precisely the residual
+singleton-shift subspace, not a larger hidden space. -/
+theorem singletonQuotientProject_apply_eq_zero_iff_mem_residualSubspace
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (q : SATDeciderGaugeSpace M n hn2 htb hns) :
+    (singletonQuotientProject M n hn2 htb hns) q = 0 ↔
+      q ∈ singletonQuotientResidualSubspace M n hn2 htb hns := by
+  let factors := singletonQuotientCookLevinFactors M n hn2 htb hns
+  let h := zeroProfileSingletonShiftSubspace_isCompl_complement factors
+  change (Submodule.IsCompl.projection h.symm) q = 0 ↔
+    q ∈ zeroProfileSingletonShiftSubspace factors
+  exact Submodule.IsCompl.projection_apply_eq_zero_iff h.symm
+
 /-- Linearity of `iterDerivList` with respect to scalar multiplication. -/
 theorem singletonQuotient_iterDerivList_smul
     {n : Nat} (S : List (Fin n)) (a : Rat)
@@ -230,9 +244,36 @@ theorem singletonQuotientResidualGeneratorRowsKilled_of_memSubspace
       M n hn2 htb hns) :
     SingletonQuotientResidualGeneratorRowsKilled M n hn2 htb hns := by
   intro κ ℓ i S m hS hm hmvars hadm
-  exact LinearMap.mem_ker.mp
-    ((singletonQuotientResidualSubspace_le_ker M n hn2 htb hns)
-      (hmem κ ℓ i S m hS hm hmvars hadm))
+  exact
+    (singletonQuotientProject_apply_eq_zero_iff_mem_residualSubspace
+      M n hn2 htb hns _).mpr
+      (hmem κ ℓ i S m hS hm hmvars hadm)
+
+/-- Conversely, for this exact quotient, killed finite generator rows are not a
+weaker condition: because the kernel is exactly the singleton residual subspace,
+killing is equivalent to landing back in that subspace. -/
+theorem singletonQuotientResidualGeneratorRowsMemSubspace_of_killed
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hkill : SingletonQuotientResidualGeneratorRowsKilled M n hn2 htb hns) :
+    SingletonQuotientResidualGeneratorRowsMemSubspace M n hn2 htb hns := by
+  intro κ ℓ i S m hS hm hmvars hadm
+  exact
+    (singletonQuotientProject_apply_eq_zero_iff_mem_residualSubspace
+      M n hn2 htb hns _).mp
+      (hkill κ ℓ i S m hS hm hmvars hadm)
+
+/-- Exact equivalence for the finite residual-generator bottom seam. -/
+theorem singletonQuotientResidualGeneratorRowsKilled_iff_memSubspace
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    SingletonQuotientResidualGeneratorRowsKilled M n hn2 htb hns ↔
+      SingletonQuotientResidualGeneratorRowsMemSubspace M n hn2 htb hns := by
+  constructor
+  · exact singletonQuotientResidualGeneratorRowsMemSubspace_of_killed
+      M n hn2 htb hns
+  · exact singletonQuotientResidualGeneratorRowsKilled_of_memSubspace
+      M n hn2 htb hns
 
 /-- Generator-row subspace preservation implies killed rows on the whole
 residual subspace. -/
@@ -356,10 +397,13 @@ theorem singletonQuotientRankObligation_of_projectedRowsFixed_and_residualStable
 /-! ## Axiom audit anchors -/
 #print axioms singletonQuotientResidual_mem_residualSubspace
 #print axioms singletonQuotientResidualSubspace_le_ker
+#print axioms singletonQuotientProject_apply_eq_zero_iff_mem_residualSubspace
 #print axioms singletonQuotientSPDPRow_add
 #print axioms singletonQuotientSPDPRow_smul
 #print axioms singletonQuotientResidualRowsKilledOnSubspace_of_generatorsKilled
 #print axioms singletonQuotientResidualGeneratorRowsKilled_of_memSubspace
+#print axioms singletonQuotientResidualGeneratorRowsMemSubspace_of_killed
+#print axioms singletonQuotientResidualGeneratorRowsKilled_iff_memSubspace
 #print axioms singletonQuotientResidualRowsKilledOnSubspace_of_generatorRowsMemSubspace
 #print axioms singletonQuotientResidualRowsKilled_of_generatorsKilled
 #print axioms singletonQuotientResidualRowsKilled_of_generatorRowsMemSubspace
