@@ -91,6 +91,52 @@ theorem routeBVariationalClosure_of_uniformPiPlus
 
 /-! ## Level 2 witness bridge surface -/
 
+/-- `Pi+` as a log-det/N-frame minimizer for one SAT-decider instance.
+
+This is the named Level-2 bridge target: the constructive `Pi+` polynomial
+transform is not merely another route to the final socket; it is realized by the
+same matrix object selected by the Route-B variational problem.  The additional
+`realizes_piPlus_gauge` field is the concrete matrix-to-polynomial identification
+needed to transfer properties in both directions. -/
+structure PiPlusGaugeMinimizesNFrameLagrangian
+    (M : DTM) (n : Nat) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (piP : PiPlusSATTransform M n hn2 htb hns) where
+  alpha : ℝ
+  beta : ℝ
+  lambdaCoeff : ℝ
+  E : Finset (Fin n × Fin n)
+  chi : Fin n → ℤ
+  phi : Fin n → ℝ
+  𝒥 : Finset (Finset (Fin n))
+  Admissible : Matrix (Fin n) (Fin n) ℝ → Prop
+  Astar : Matrix (Fin n) (Fin n) ℝ
+  minimizer :
+    IsLogDetNFrameMinimizer alpha beta lambdaCoeff E chi phi 𝒥 Admissible Astar
+  realizes_piPlus_gauge :
+    MatrixGaugeRealizesSATGauge M n hn hn2 htb hns Astar 𝒥 piP.gauge
+
+/-- The Level-2 bridge immediately identifies `Pi+` with a Route-B minimizer. -/
+theorem piPlusGauge_minimizes_nframeLagrangian
+    (M : DTM) (n : Nat) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (piP : PiPlusSATTransform M n hn2 htb hns)
+    (h : PiPlusGaugeMinimizesNFrameLagrangian M n hn hn2 htb hns piP) :
+    IsLogDetNFrameMinimizer h.alpha h.beta h.lambdaCoeff h.E h.chi h.phi
+      h.𝒥 h.Admissible h.Astar :=
+  h.minimizer
+
+/-- A Level-2 bridge transfers the Route-B minimizer realization into the Route-C
+SAT-gauge subgoals for the same constructive `Pi+` map. -/
+theorem satDeciderGaugeSubgoals_of_piPlusGauge_minimizes_nframeLagrangian
+    (M : DTM) (n : Nat) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (piP : PiPlusSATTransform M n hn2 htb hns)
+    (h : PiPlusGaugeMinimizesNFrameLagrangian M n hn hn2 htb hns piP) :
+    SATDeciderGaugeSubgoals M n hn2 htb hns piP.gauge :=
+  satDeciderGaugeSubgoals_of_matrixGaugeRealizesSATGauge
+    M n hn hn2 htb hns h.Astar h.𝒥 piP.gauge h.realizes_piPlus_gauge
+
 /-- Witness-level bridge data for one SAT-decider instance.
 
 This is the nontrivial convergence theorem we want next: the constructive
@@ -123,6 +169,37 @@ structure PiPlusLogDetMinimizerBridgeData
   minimizer : IsLogDetNFrameMinimizer alpha beta lambdaCoeff E chi phi 𝒥 Admissible Astar
   realizes_same_gauge :
     MatrixGaugeRealizesSATGauge M n hn hn2 htb hns Astar 𝒥 piP.gauge
+
+/-- Conversely, if a `Pi+` transform has the Route-C fields and has been
+identified with a Route-B minimizer, it gives the full witness-level B/C bridge
+data used below. -/
+def logDetBridgeData_of_piPlusGauge_minimizes_nframeLagrangian
+    (M : DTM) (n : Nat) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (piP : PiPlusSATTransform M n hn2 htb hns)
+    (hlocal : piP.block_local_hadamard_lift)
+    (hrank : PiPlusRankInvariant M n hn2 htb hns piP)
+    (hp : PiPlusWidthRankPSide M n hn2 htb hns piP)
+    (hnp : PiPlusIdentityMinorPreservation M n hn2 htb hns piP)
+    (hmin : PiPlusGaugeMinimizesNFrameLagrangian M n hn hn2 htb hns piP) :
+    PiPlusLogDetMinimizerBridgeData M n hn hn2 htb hns := by
+  exact
+    { piP := piP
+      block_local := hlocal
+      rank_invariant := hrank
+      width_rank_p_side := hp
+      identity_minor_preservation := hnp
+      alpha := hmin.alpha
+      beta := hmin.beta
+      lambdaCoeff := hmin.lambdaCoeff
+      E := hmin.E
+      chi := hmin.chi
+      phi := hmin.phi
+      𝒥 := hmin.𝒥
+      Admissible := hmin.Admissible
+      Astar := hmin.Astar
+      minimizer := hmin.minimizer
+      realizes_same_gauge := hmin.realizes_piPlus_gauge }
 
 /-- The witness bridge forgets to ordinary Route C constructive data. -/
 theorem piPlusConstructiveData_of_logDetBridgeData
@@ -189,6 +266,8 @@ theorem routeB_routeC_equivalence_of_logDetMinimizerBridge
 #print axioms routeCFinalSocketClosure_of_routeBVariationalClosure
 #print axioms routeB_routeC_finalSocket_equivalence
 #print axioms routeBVariationalClosure_of_uniformPiPlus
+#print axioms piPlusGauge_minimizes_nframeLagrangian
+#print axioms satDeciderGaugeSubgoals_of_piPlusGauge_minimizes_nframeLagrangian
 #print axioms piPlusConstructiveData_of_logDetBridgeData
 #print axioms satDeciderGaugeSubgoals_of_logDetBridgeData
 #print axioms uniformPiPlus_of_logDetMinimizerBridge
