@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.NFrameLagrangianBundle
 import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeRealFrontier
+import Mathlib.Topology.Order.Compact
 
 /-!
 # N-frame variational route to the amplituhedron/God-Move gauge
@@ -56,6 +57,32 @@ def IsLogDetNFrameMinimizer {n : ℕ}
     ∀ A, Admissible A →
       logDetNFrameAction α β lam E χ Φ 𝒥 Astar ≤
         logDetNFrameAction α β lam E χ Φ 𝒥 A
+
+/-- Direct-method minimizer existence for the real log-det N-frame action.
+
+This is the standard compactness/continuity part of Route B: once a future file
+chooses a nonempty compact admissible matrix domain and proves continuity of the
+real log-det action on it, Lean gives an actual minimizer.  The theorem is
+pure analysis/plumbing; it does **not** prove the minimizer is an amplituhedron
+or God-Move gauge. -/
+theorem exists_logDetNFrameMinimizer_of_compact_continuous {n : ℕ}
+    (α β lam : ℝ)
+    (E : Finset (Fin n × Fin n))
+    (χ : Fin n → ℤ)
+    (Φ : Fin n → ℝ)
+    (𝒥 : Finset (Finset (Fin n)))
+    (Admissible : Matrix (Fin n) (Fin n) ℝ → Prop)
+    (hcompact : IsCompact {A : Matrix (Fin n) (Fin n) ℝ | Admissible A})
+    (hne : ({A : Matrix (Fin n) (Fin n) ℝ | Admissible A}).Nonempty)
+    (hcont : ContinuousOn
+      (fun A : Matrix (Fin n) (Fin n) ℝ =>
+        logDetNFrameAction α β lam E χ Φ 𝒥 A)
+      {A : Matrix (Fin n) (Fin n) ℝ | Admissible A}) :
+    ∃ Astar, IsLogDetNFrameMinimizer α β lam E χ Φ 𝒥 Admissible Astar := by
+  obtain ⟨Astar, hAstar, hmin⟩ := hcompact.exists_isMinOn hne hcont
+  refine ⟨Astar, hAstar, ?_⟩
+  intro A hA
+  exact hmin hA
 
 /-- Route B(i): the log-det minimizer itself is rich enough to force the
 amplituhedron gauge conditions.  This is the optimistic analytic theorem: no
@@ -145,6 +172,7 @@ theorem variationalGodMoveCompressor_iff_no_bounded_sat_decider :
   · exact no_bounded_sat_decider_of_variationalGodMoveCompressor
   · exact variationalGodMoveCompressor_of_no_bounded_sat_decider
 
+#print axioms exists_logDetNFrameMinimizer_of_compact_continuous
 #print axioms logDet_minimizer_bridge_target_iff_isAmplituhedronGauge
 #print axioms globalAmplituhedronGaugeForSatDeciders_of_variationalGodMoveCompressor
 #print axioms no_bounded_sat_decider_of_variationalGodMoveCompressor
