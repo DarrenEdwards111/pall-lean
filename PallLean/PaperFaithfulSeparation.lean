@@ -1793,7 +1793,7 @@ theorem for downstream reference.
 Paper cites: Theorem 203 (p. 195), Theorem 217 (p. 204), Theorem 231
 (p. 211), Theorem 232 (p. 213), §49 Conclusion (p. 229). -/
 theorem P_ne_NP_unconditional_step4 : ∀ (_ : PeqNP_Paper), False :=
-  P_ne_NP_via_theorem207
+  P_ne_NP_via_theorem207_from_narrow_gauge
 
 #print axioms P_ne_NP_unconditional_step4
 -- Expected: propext, Classical.choice, Quot.sound,
