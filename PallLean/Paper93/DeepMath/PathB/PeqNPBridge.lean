@@ -42,7 +42,7 @@ body uses the old arbitrary-compiled-polynomial sandwich.  Route-B work below
 must use the SAT-decider-specific `T_Φ` extraction bridge instead. -/
 theorem P_ne_NP_paper_no_routeB_seams_constructive :
     ∀ (_ : PeqNP_Paper), False :=
-  PaperFaithfulSeparation.P_ne_NP_unconditional_step4_constructive
+  PaperFaithfulSeparation.P_ne_NP_via_theorem207
 
 #print axioms P_ne_NP_paper_no_routeB_seams_constructive
 
