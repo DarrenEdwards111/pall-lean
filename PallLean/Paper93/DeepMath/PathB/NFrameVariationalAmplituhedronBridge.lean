@@ -42,6 +42,18 @@ noncomputable def logDetNFrameAction {n : ℕ}
     (A : Matrix (Fin n) (Fin n) ℝ) : ℝ :=
   SNFAction α β lam n n E χ Φ (amplituhedronBarrier 𝒥) A
 
+/-- Normalized positive cell for the log-det/amplituhedron barrier: positive
+    definite, with every designated principal minor bounded above by `1`.
+
+This is the analytic domain condition under which the zero-barrier theorem
+forces unit principal minors and hence `IsAmplituhedronGauge`. -/
+def NormalizedPositiveCell {n : ℕ}
+    (𝒥 : Finset (Finset (Fin n)))
+    (A : Matrix (Fin n) (Fin n) ℝ) : Prop :=
+  A.PosDef ∧
+    ∀ J ∈ 𝒥,
+      PallLean.Paper93.DeepMath.PathB.Positroid.principalMinor A J ≤ 1
+
 /-- A minimizer of the real log-det N-frame action over a supplied admissible
 matrix domain.  The domain is left explicit so later files can choose the exact
 paper-faithful compact/coercive admissible set. -/
@@ -142,6 +154,43 @@ theorem isAmplituhedronGauge_of_logDet_minimizer_identity_competitor {n : ℕ}
     (minimizer_barrier_eq_zero_of_identity_competitor α β lam E χ Φ 𝒥
       Admissible Astar hmin hI hlam hAstar hminor_le)
 
+/-- Compact/continuous normalized-cell existence theorem for Route B.
+
+Once a future file supplies a concrete paper-faithful admissible domain that is
+compact, contains the identity/reference matrix, lies in the normalized positive
+cell, and makes the log-det action continuous, Lean now produces an actual
+minimizer and immediately upgrades it to `IsAmplituhedronGauge`.
+
+This is the completed analytic plumbing up to the still-open choice/proof of the
+concrete admissible domain. -/
+theorem exists_logDet_minimizer_isAmplituhedronGauge_of_compact_normalized_cell {n : ℕ}
+    (α β lam : ℝ)
+    (E : Finset (Fin n × Fin n))
+    (χ : Fin n → ℤ)
+    (Φ : Fin n → ℝ)
+    (𝒥 : Finset (Finset (Fin n)))
+    (Admissible : Matrix (Fin n) (Fin n) ℝ → Prop)
+    (hcompact : IsCompact {A : Matrix (Fin n) (Fin n) ℝ | Admissible A})
+    (hcont : ContinuousOn
+      (fun A : Matrix (Fin n) (Fin n) ℝ =>
+        logDetNFrameAction α β lam E χ Φ 𝒥 A)
+      {A : Matrix (Fin n) (Fin n) ℝ | Admissible A})
+    (hI : Admissible (1 : Matrix (Fin n) (Fin n) ℝ))
+    (hlam : 0 < lam)
+    (hnorm : ∀ A, Admissible A → NormalizedPositiveCell 𝒥 A) :
+    ∃ Astar,
+      IsLogDetNFrameMinimizer α β lam E χ Φ 𝒥 Admissible Astar ∧
+        IsAmplituhedronGauge Astar 𝒥 := by
+  have hne : ({A : Matrix (Fin n) (Fin n) ℝ | Admissible A}).Nonempty :=
+    ⟨(1 : Matrix (Fin n) (Fin n) ℝ), hI⟩
+  obtain ⟨Astar, hmin⟩ :=
+    exists_logDetNFrameMinimizer_of_compact_continuous α β lam E χ Φ 𝒥
+      Admissible hcompact hne hcont
+  have hcell : NormalizedPositiveCell 𝒥 Astar := hnorm Astar hmin.1
+  refine ⟨Astar, hmin, ?_⟩
+  exact isAmplituhedronGauge_of_logDet_minimizer_identity_competitor
+    α β lam E χ Φ 𝒥 Admissible Astar hmin hI hlam hcell.1 hcell.2
+
 /-- Route B(i): the log-det minimizer itself is rich enough to force the
 amplituhedron gauge conditions.  This is the optimistic analytic theorem: no
 separate positroid algebra would be needed beyond proving this implication. -/
@@ -233,6 +282,7 @@ theorem variationalGodMoveCompressor_iff_no_bounded_sat_decider :
 #print axioms exists_logDetNFrameMinimizer_of_compact_continuous
 #print axioms minimizer_barrier_eq_zero_of_identity_competitor
 #print axioms isAmplituhedronGauge_of_logDet_minimizer_identity_competitor
+#print axioms exists_logDet_minimizer_isAmplituhedronGauge_of_compact_normalized_cell
 #print axioms logDet_minimizer_bridge_target_iff_isAmplituhedronGauge
 #print axioms globalAmplituhedronGaugeForSatDeciders_of_variationalGodMoveCompressor
 #print axioms no_bounded_sat_decider_of_variationalGodMoveCompressor
