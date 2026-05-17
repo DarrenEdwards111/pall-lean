@@ -89,73 +89,51 @@ namespace NFrame
 
 open MvPolynomial
 
-/-! ## 1. Reduction of the Lagrangian to its ℕ-valued shape
+/-! ## 1. Explicit N-Frame objective shape and lower bound
 
-Agent S1's `nframeLagrangian` is the sum
+With the strengthened S1 proxy terms,
 
-    L(Π) = 0 + (finrank (range projection) : ℝ) + 0
+`L(Π) = finrank(range Π) + finrank(range Π) + 1/(1 + finrank(range Π))`
 
-(see `observerConsistencyTerm`, `rankCollapsePenalty`,
-`identityMinorPenalty` in
-`PallLean/Paper93/NFrame/LagrangianFunctional.lean`). We record the
-explicit form as a lemma so the ℕ-valued minimisation argument below
-applies unambiguously. -/
+so `L(Π) = 2r + 1/(1+r)` where `r = finrank(range Π)`. This is
+minimised at `r = 0`, attained by `trivialGauge`. -/
 
-/-- Explicit reduction of the N-Frame Lagrangian to its
-`Module.finrank`-valued form (paper §28.3 Bridge B rank-term
-dominance). -/
-theorem nframeLagrangian_eq_finrank
+/-- Closed form of the current N-Frame Lagrangian proxy in terms of
+`r = finrank(range Π)`. -/
+theorem nframeLagrangian_eq_proxy
     {N : ℕ} (family : ℕ → MvPolynomial (Fin N) ℚ)
     (gauge : CandidateGauge N) :
     nframeLagrangian family gauge =
-      (Module.finrank ℚ (LinearMap.range gauge.projection) : ℝ) := by
+      (2 : ℝ) * (Module.finrank ℚ (LinearMap.range gauge.projection) : ℝ)
+      + 1 / (1 + (Module.finrank ℚ (LinearMap.range gauge.projection) : ℝ)) := by
   unfold nframeLagrangian
   unfold Lagrangian.observerConsistencyTerm
   unfold Lagrangian.rankCollapsePenalty
   unfold Lagrangian.identityMinorPenalty
   ring
 
-/-- The Lagrangian as a ℕ-valued functional — the `finrank` of the
-range of the gauge's underlying linear projection. -/
-noncomputable def lagrangianNat
-    {N : ℕ} (gauge : CandidateGauge N) : ℕ :=
-  Module.finrank ℚ (LinearMap.range gauge.projection)
+/-- Universal lower bound on the strengthened proxy objective at rank `r ≥ 0`:
+`1 ≤ 2r + 1/(1+r)`. -/
+lemma one_le_proxy_of_nonneg (r : ℝ) (hr : 0 ≤ r) :
+    1 ≤ (2 : ℝ) * r + 1 / (1 + r) := by
+  have hden : 0 < 1 + r := by linarith
+  have hnum : 0 ≤ r * (1 + 2 * r) := by nlinarith
+  have hfrac : 0 ≤ (r * (1 + 2 * r)) / (1 + r) :=
+    div_nonneg hnum (le_of_lt hden)
+  have hid : (2 * r + 1 / (1 + r) - 1) = (r * (1 + 2 * r)) / (1 + r) := by
+    field_simp [hden.ne']
+    ring
+  have hnonneg : 0 ≤ 2 * r + 1 / (1 + r) - 1 := by
+    rw [hid]
+    exact hfrac
+  linarith
 
-/-- The ℝ-valued Lagrangian is the `Nat.cast` of the ℕ-valued
-Lagrangian (independent of `family`). -/
-theorem nframeLagrangian_eq_cast_lagrangianNat
-    {N : ℕ} (family : ℕ → MvPolynomial (Fin N) ℚ)
-    (gauge : CandidateGauge N) :
-    nframeLagrangian family gauge = (lagrangianNat gauge : ℝ) := by
-  rw [nframeLagrangian_eq_finrank]
-  rfl
+/-! ## 2. Main minimizer theorem (Π⋆ exists)
 
-/-! ## 2. The ℕ-valued value set and its infimum
-
-We carry out the minimisation at the ℕ-valued level, then re-inject
-into ℝ via `Nat.cast`. -/
-
-/-- The set of ℕ-valued Lagrangian values attained by admissible
-gauges. -/
-def admissibleLagrangianNatValues (N : ℕ) : Set ℕ :=
-  {v : ℕ | ∃ Pi : CandidateGauge N,
-    AdmissibleGauge Pi ∧ lagrangianNat Pi = v}
-
-theorem admissibleLagrangianNatValues_nonempty (N : ℕ) :
-    (admissibleLagrangianNatValues N).Nonempty := by
-  obtain ⟨PiTriv, hAdm⟩ := (admissibleGauge_nonempty : ∃ g : CandidateGauge N, _)
-  exact ⟨lagrangianNat PiTriv, PiTriv, hAdm, rfl⟩
-
-/-- The minimum ℕ-valued Lagrangian value. -/
-noncomputable def lagrangianNatMin (N : ℕ) : ℕ :=
-  sInf (admissibleLagrangianNatValues N)
-
-/-- The minimum is attained. -/
-theorem lagrangianNatMin_mem (N : ℕ) :
-    lagrangianNatMin N ∈ admissibleLagrangianNatValues N :=
-  Nat.sInf_mem (admissibleLagrangianNatValues_nonempty N)
-
-/-! ## 3. The main theorem: existence of Π⋆ as a minimizer -/
+For the strengthened proxy objective, the trivial gauge has rank 0 and
+attains value 1; every gauge has value at least 1 by the lemma above.
+Hence `trivialGauge` is a global minimizer on the current admissible
+surface. -/
 
 /-- **Paper §28.3 Euler–Lagrange existence of Π⋆.**
 
@@ -172,22 +150,25 @@ theorem piStar_exists {N : ℕ}
     ∃ Pi : CandidateGauge N, AdmissibleGauge Pi ∧
       ∀ Pi' : CandidateGauge N, AdmissibleGauge Pi' →
         nframeLagrangian family Pi ≤ nframeLagrangian family Pi' := by
-  obtain ⟨PiStar, hAdm, hval⟩ := lagrangianNatMin_mem N
-  refine ⟨PiStar, hAdm, ?_⟩
-  intro Pi' hAdm'
-  -- Reduce to ℕ-valued comparison.
-  rw [nframeLagrangian_eq_cast_lagrangianNat family PiStar,
-      nframeLagrangian_eq_cast_lagrangianNat family Pi']
-  -- The ℕ-values of all admissible gauges are ≥ the infimum.
-  have hin : lagrangianNat Pi' ∈ admissibleLagrangianNatValues N :=
-    ⟨Pi', hAdm', rfl⟩
-  have hle : lagrangianNatMin N ≤ lagrangianNat Pi' := Nat.sInf_le hin
-  -- Π⋆'s ℕ-value equals the infimum.
-  have heq : lagrangianNat PiStar = lagrangianNatMin N := hval
-  -- Cast to ℝ.
-  have : (lagrangianNat PiStar : ℝ) ≤ (lagrangianNat Pi' : ℝ) := by
-    rw [heq]; exact_mod_cast hle
-  exact this
+  refine ⟨trivialGauge N, ?_, ?_⟩
+  · unfold AdmissibleGauge trivialGauge
+    simp
+  · intro Pi' _hAdm'
+    rw [nframeLagrangian_eq_proxy family (trivialGauge N)]
+    rw [nframeLagrangian_eq_proxy family Pi']
+    have hr : 0 ≤ (Module.finrank ℚ (LinearMap.range Pi'.projection) : ℝ) :=
+      Nat.cast_nonneg _
+    have hbound := one_le_proxy_of_nonneg
+      (Module.finrank ℚ (LinearMap.range Pi'.projection) : ℝ) hr
+    -- trivial gauge has rank 0
+    have htriv : (Module.finrank ℚ (LinearMap.range (trivialGauge N).projection) : ℝ) = 0 := by
+      have hr0 : LinearMap.range ((trivialGauge N).projection) = ⊥ := by
+        simp [trivialGauge]
+      rw [hr0]
+      simp
+    -- Convert both sides to the same normal form.
+    simp [htriv] at hbound ⊢
+    exact hbound
 
 /-! ## 4. Paper §7.1 Theorem 10 / 11 properties of Π⋆
 

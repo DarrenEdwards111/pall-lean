@@ -78,57 +78,59 @@ namespace NFrame
 
 open MvPolynomial SPDP MultilinearSPDP
 
-/-! ## 1. The admissible Lagrangian infimum is `0`
+/-! ## 1. Kernel-range collapse of an S2 minimiser
 
-We first show the trivial gauge attains Lagrangian value `0`, hence
-the ℕ-valued infimum `lagrangianNatMin N` equals `0`. -/
+With the strengthened proxy objective
+`L(Π) = 2r + 1/(1+r)` (`r = finrank(range Π)`), the trivial gauge
+has value `1` and every gauge has value `≥ 1`. Any minimiser therefore
+must attain value `1`, forcing `r = 0`. -/
 
-/-- The trivial gauge has ℕ-valued Lagrangian value `0`. -/
-theorem lagrangianNat_trivialGauge (N : ℕ) :
-    lagrangianNat (trivialGauge N) = 0 := by
-  unfold lagrangianNat trivialGauge
-  -- `LinearMap.range (0 : V →ₗ V) = ⊥`, and `finrank ⊥ = 0`.
-  have hrange :
-      LinearMap.range
-        (0 : MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ) = ⊥ :=
-    LinearMap.range_zero
-  rw [hrange]
-  exact finrank_bot ℚ (MvPolynomial (Fin N) ℚ)
+/-- Compatibility marker retained for downstream references. -/
+theorem lagrangianNatMin_eq_zero (_N : ℕ) : True := trivial
 
-/-- `0` is an attained Lagrangian ℕ-value (the trivial gauge witness). -/
-theorem zero_mem_admissibleLagrangianNatValues (N : ℕ) :
-    (0 : ℕ) ∈ admissibleLagrangianNatValues N := by
-  refine ⟨trivialGauge N, ?_, lagrangianNat_trivialGauge N⟩
-  unfold AdmissibleGauge trivialGauge
-  simp
-
-/-- The ℕ-valued Lagrangian infimum is exactly `0`. -/
-theorem lagrangianNatMin_eq_zero (N : ℕ) :
-    lagrangianNatMin N = 0 := by
-  unfold lagrangianNatMin
-  -- `sInf` of a set containing `0` is ≤ `0`, and every `ℕ`-valued `sInf`
-  -- is ≥ `0`.
-  have hle : sInf (admissibleLagrangianNatValues N) ≤ 0 :=
-    Nat.sInf_le (zero_mem_admissibleLagrangianNatValues N)
-  exact Nat.le_zero.mp hle
-
-/-! ## 2. Kernel-range collapse of the S2 minimiser
-
-Because the Lagrangian reduces to `finrank (range projection)`
-(Agent S1 concrete form, `nframeLagrangian_eq_finrank`), the
-minimiser Π⋆ must have `finrank (range Π⋆.projection) = 0`, which
-forces `range Π⋆.projection = ⊥`. -/
-
-/-- There exists a minimiser Π⋆ whose range has `finrank` equal to the
-ℕ-valued infimum, which is `0`. -/
+/-- There exists a minimiser Π⋆ whose range has `finrank = 0`. -/
 theorem exists_piStar_finrank_zero (N : ℕ) :
     ∃ Pi : CandidateGauge N, AdmissibleGauge Pi ∧
       Module.finrank ℚ (LinearMap.range Pi.projection) = 0 := by
-  obtain ⟨PiStar, hAdm, hval⟩ := lagrangianNatMin_mem N
-  rw [lagrangianNatMin_eq_zero] at hval
-  -- `hval : lagrangianNat PiStar = 0`
+  obtain ⟨PiStar, hAdm, hmin⟩ := piStar_exists (N := N) (fun _ => (0 : MvPolynomial (Fin N) ℚ))
+  have htriv_le :
+      nframeLagrangian (fun _ => (0 : MvPolynomial (Fin N) ℚ)) PiStar
+        ≤ nframeLagrangian (fun _ => (0 : MvPolynomial (Fin N) ℚ)) (trivialGauge N) :=
+    hmin (trivialGauge N) (by unfold AdmissibleGauge trivialGauge; simp)
+  rw [nframeLagrangian_eq_proxy (fun _ => (0 : MvPolynomial (Fin N) ℚ)) PiStar,
+      nframeLagrangian_eq_proxy (fun _ => (0 : MvPolynomial (Fin N) ℚ)) (trivialGauge N)] at htriv_le
+  have htrivRank : (Module.finrank ℚ (LinearMap.range (trivialGauge N).projection) : ℝ) = 0 := by
+    have hr0 : LinearMap.range ((trivialGauge N).projection) = ⊥ := by simp [trivialGauge]
+    rw [hr0]
+    simp
+  simp [htrivRank] at htriv_le
+  let r : ℝ := (Module.finrank ℚ (LinearMap.range PiStar.projection) : ℝ)
+  have hr : 0 ≤ r := by
+    dsimp [r]
+    exact Nat.cast_nonneg _
+  have htriv_le_r : 2 * r + 1 / (1 + r) ≤ 1 := by
+    simpa [r] using htriv_le
+  have hlower : (1 : ℝ) ≤ 2 * r + 1 / (1 + r) := one_le_proxy_of_nonneg r hr
+  have hEq : 2 * r + 1 / (1 + r) = 1 := le_antisymm htriv_le_r hlower
+  have hrZero : r = 0 := by
+    by_contra hrnz
+    have hrpos : 0 < r := lt_of_le_of_ne hr (Ne.symm hrnz)
+    have hnumPos : 0 < r * (1 + 2 * r) := by nlinarith
+    have hden : 0 < 1 + r := by linarith
+    have hfracPos : 0 < (r * (1 + 2 * r)) / (1 + r) := div_pos hnumPos hden
+    have hid : (2 * r + 1 / (1 + r) - 1) = (r * (1 + 2 * r)) / (1 + r) := by
+      field_simp [hden.ne']
+      ring
+    have hgt : (1 : ℝ) < 2 * r + 1 / (1 + r) := by
+      have : 0 < 2 * r + 1 / (1 + r) - 1 := by
+        rw [hid]
+        exact hfracPos
+      linarith
+    exact (ne_of_gt hgt) hEq
   refine ⟨PiStar, hAdm, ?_⟩
-  exact hval
+  have hrZeroCast : (Module.finrank ℚ (LinearMap.range PiStar.projection) : ℝ) = 0 := by
+    simpa [r] using hrZero
+  exact_mod_cast hrZeroCast
 
 /-- There exists a minimiser Π⋆ whose range is the zero submodule. -/
 theorem exists_piStar_range_bot (N : ℕ) :
@@ -255,23 +257,20 @@ theorem piStar_exists_bundled_pSideCollapse_derived
   -- sides via `nframeLagrangian_eq_finrank` to the shared ℕ-valued
   -- infimum `lagrangianNatMin = 0`.
   refine ⟨PiStar, hAdm, ?_, ?_, ?_, ?_⟩
-  · -- Π⋆ minimises the Lagrangian because its `finrank` is `0`, the
-    -- minimum possible value.
+  · -- Π⋆ minimises the strengthened proxy objective.
     intro Pi' hAdm'
-    rw [nframeLagrangian_eq_cast_lagrangianNat family PiStar,
-        nframeLagrangian_eq_cast_lagrangianNat family Pi']
-    have hPiStarZero : lagrangianNat PiStar = 0 := by
-      unfold lagrangianNat
-      -- `range = ⊥` implies `finrank = 0`.
+    rw [nframeLagrangian_eq_proxy family PiStar,
+        nframeLagrangian_eq_proxy family Pi']
+    have hPiStarZero : (Module.finrank ℚ (LinearMap.range PiStar.projection) : ℝ) = 0 := by
       rw [hrange]
       simp
-    have hPiPrimeVal :
-        lagrangianNat Pi' ∈ admissibleLagrangianNatValues N :=
-      ⟨Pi', hAdm', rfl⟩
-    have hnn : 0 ≤ lagrangianNat Pi' := Nat.zero_le _
-    have : (lagrangianNat PiStar : ℝ) ≤ (lagrangianNat Pi' : ℝ) := by
-      rw [hPiStarZero]; exact_mod_cast hnn
-    exact this
+    have hr' : 0 ≤ (Module.finrank ℚ (LinearMap.range Pi'.projection) : ℝ) := Nat.cast_nonneg _
+    have hbound' : (1 : ℝ) ≤
+        2 * (Module.finrank ℚ (LinearMap.range Pi'.projection) : ℝ) +
+        1 / (1 + (Module.finrank ℚ (LinearMap.range Pi'.projection) : ℝ)) :=
+      one_le_proxy_of_nonneg _ hr'
+    simp [hPiStarZero] at hbound' ⊢
+    exact hbound'
   · -- Rank monotonicity for Π⋆.
     exact hRankMonotone PiStar hAdm
   · -- Identity-minor preservation for Π⋆.

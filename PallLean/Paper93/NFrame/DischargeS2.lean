@@ -172,20 +172,20 @@ theorem piStar_exists_derived_properties
   -- Extract the T4 minimiser with trivial range.
   obtain ⟨PiStar, hAdm, hrange⟩ := exists_piStar_range_bot N
   refine ⟨PiStar, hAdm, ?_, ?_, ?_, ?_⟩
-  · -- Π⋆ minimises the Lagrangian. We reproduce the reasoning of
-    -- `piStar_exists_bundled_pSideCollapse_derived`: reduce both sides
-    -- to `lagrangianNat` and use that `PiStar`'s ℕ-value is `0`.
+  · -- Π⋆ minimises the strengthened proxy objective.
     intro Pi' hAdm'
-    rw [nframeLagrangian_eq_cast_lagrangianNat family PiStar,
-        nframeLagrangian_eq_cast_lagrangianNat family Pi']
-    have hPiStarZero : lagrangianNat PiStar = 0 := by
-      unfold lagrangianNat
+    rw [nframeLagrangian_eq_proxy family PiStar,
+        nframeLagrangian_eq_proxy family Pi']
+    have hPiStarZero : (Module.finrank ℚ (LinearMap.range PiStar.projection) : ℝ) = 0 := by
       rw [hrange]
       simp
-    have hnn : 0 ≤ lagrangianNat Pi' := Nat.zero_le _
-    have : (lagrangianNat PiStar : ℝ) ≤ (lagrangianNat Pi' : ℝ) := by
-      rw [hPiStarZero]; exact_mod_cast hnn
-    exact this
+    have hr' : 0 ≤ (Module.finrank ℚ (LinearMap.range Pi'.projection) : ℝ) := Nat.cast_nonneg _
+    have hbound' : (1 : ℝ) ≤
+        2 * (Module.finrank ℚ (LinearMap.range Pi'.projection) : ℝ) +
+        1 / (1 + (Module.finrank ℚ (LinearMap.range Pi'.projection) : ℝ)) :=
+      one_le_proxy_of_nonneg _ hr'
+    simp [hPiStarZero] at hbound' ⊢
+    exact hbound'
   · -- RankMonotoneHypothesis: derived from T4's trivial range.
     exact rankMonotoneHypothesis_of_range_bot B κ ℓ PiStar hrange
   · -- IdentityMinorPreservationHypothesis: passed in by caller.

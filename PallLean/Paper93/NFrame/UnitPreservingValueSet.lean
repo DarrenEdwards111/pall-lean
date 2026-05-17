@@ -55,12 +55,13 @@ theorem unitPreservingLagrangianNatValues_nonempty (N : ℕ) :
   exact ⟨lagrangianNat (unitPreservingConstantsGauge N),
     unitPreservingConstantsGauge_mem_values N⟩
 
-/-- Every unit-preserving admissible gauge has positive natural Lagrangian. -/
+/-- Every unit-preserving admissible gauge has positive natural rank value. -/
 theorem unitPreservingGauge_lagrangianNat_pos
     {N : ℕ} {gauge : CandidateGauge N}
     (h : UnitPreservingAdmissibleGauge gauge) :
-    0 < lagrangianNat gauge :=
-  unitPreserving_lagrangianNat_pos h
+    0 < lagrangianNat gauge := by
+  have hposR : 0 < (lagrangianNat gauge : ℝ) := unitPreserving_lagrangianNat_pos h
+  exact Nat.cast_pos.mp hposR
 
 /-- Every attained unit-preserving value is positive. -/
 theorem unitPreservingLagrangianNatValues_pos
@@ -130,19 +131,43 @@ theorem unitPreserving_minimizer_exists {N : ℕ}
   obtain ⟨PiStar, hUnit, hval⟩ := unitPreservingLagrangianNatMin_mem N
   refine ⟨PiStar, hUnit, ?_⟩
   intro Pi' hUnit'
-  rw [nframeLagrangian_eq_cast_lagrangianNat family PiStar,
-      nframeLagrangian_eq_cast_lagrangianNat family Pi']
-  have hle :
-      unitPreservingLagrangianNatMin N ≤ lagrangianNat Pi' :=
+  rw [nframeLagrangian_eq_proxy family PiStar,
+      nframeLagrangian_eq_proxy family Pi']
+  have hleNat : unitPreservingLagrangianNatMin N ≤ lagrangianNat Pi' :=
     unitPreservingLagrangianNatMin_le hUnit'
-  have heq :
-      lagrangianNat PiStar = unitPreservingLagrangianNatMin N :=
-    hval
-  have hcast :
-      (lagrangianNat PiStar : ℝ) ≤ (lagrangianNat Pi' : ℝ) := by
-    rw [heq]
-    exact_mod_cast hle
-  exact hcast
+  have hStarNat : lagrangianNat PiStar = unitPreservingLagrangianNatMin N := hval
+  have hleRank : (lagrangianNat PiStar : ℝ) ≤ (lagrangianNat Pi' : ℝ) := by
+    rw [hStarNat]
+    exact_mod_cast hleNat
+  let a : ℝ := (lagrangianNat PiStar : ℝ)
+  let b : ℝ := (lagrangianNat Pi' : ℝ)
+  have ha : 0 ≤ a := by
+    dsimp [a]
+    exact Nat.cast_nonneg _
+  have hba : 0 ≤ b - a := by
+    dsimp [a, b]
+    linarith
+  have hmono : 2 * a + 1 / (1 + a) ≤ 2 * b + 1 / (1 + b) := by
+    have hb : 0 ≤ b := by
+      dsimp [b]
+      exact Nat.cast_nonneg _
+    have hden : 0 < (1 + a) * (1 + b) := by positivity
+    have hden_ge_one : 1 ≤ (1 + a) * (1 + b) := by nlinarith [ha, hb]
+    have hinv_le_one : 1 / ((1 + a) * (1 + b)) ≤ 1 := by
+      simpa [one_div] using inv_le_one_of_one_le₀ hden_ge_one
+    have hfacNonneg : 0 ≤ 2 - 1 / ((1 + a) * (1 + b)) := by linarith
+    have hmulNonneg : 0 ≤ (b - a) * (2 - 1 / ((1 + a) * (1 + b))) :=
+      mul_nonneg hba hfacNonneg
+    have hdiff :
+        (2 * b + 1 / (1 + b)) - (2 * a + 1 / (1 + a)) =
+          (b - a) * (2 - 1 / ((1 + a) * (1 + b))) := by
+      field_simp [hden.ne']
+      ring_nf
+    have : 0 ≤ (2 * b + 1 / (1 + b)) - (2 * a + 1 / (1 + a)) := by
+      rw [hdiff]
+      exact hmulNonneg
+    linarith
+  simpa [a, b] using hmono
 
 end NFrame
 end Paper93

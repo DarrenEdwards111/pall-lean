@@ -20,6 +20,11 @@ namespace NFrame
 
 open MvPolynomial
 
+/-- Legacy natural rank functional retained for unit-preserving value-set
+bookkeeping. -/
+noncomputable def lagrangianNat {N : ℕ} (gauge : CandidateGauge N) : ℕ :=
+  Module.finrank ℚ (LinearMap.range gauge.projection)
+
 /-- A strengthened admissibility predicate: the gauge is admissible and fixes
 the constant polynomial row. -/
 def UnitPreservingAdmissibleGauge {N : ℕ} (gauge : CandidateGauge N) : Prop :=
@@ -48,19 +53,19 @@ theorem unitPreserving_range_ne_bot
   rw [h.2] at hzero
   exact (one_ne_zero (α := MvPolynomial (Fin N) ℚ)) hzero
 
-/-- Unit-preserving admissible gauges have positive N-frame rank value. -/
+/-- Unit-preserving admissible gauges have strictly positive range-rank. -/
 theorem unitPreserving_lagrangianNat_pos
     {N : ℕ} {gauge : CandidateGauge N}
     (h : UnitPreservingAdmissibleGauge gauge) :
-    0 < lagrangianNat gauge := by
-  by_contra hnot
-  have hfin : Module.finrank ℚ (LinearMap.range gauge.projection) = 0 := by
-    exact Nat.eq_zero_of_not_pos hnot
-  have _finiteRange : Module.Finite ℚ (LinearMap.range gauge.projection) :=
-    gauge.rank_finite
-  have hrange : LinearMap.range gauge.projection = ⊥ :=
-    Submodule.finrank_eq_zero.mp hfin
-  exact unitPreserving_range_ne_bot h hrange
+    0 < (Module.finrank ℚ (LinearMap.range gauge.projection) : ℝ) := by
+  have hne : Module.finrank ℚ (LinearMap.range gauge.projection) ≠ 0 := by
+    intro hfin
+    have _finiteRange : Module.Finite ℚ (LinearMap.range gauge.projection) :=
+      gauge.rank_finite
+    have hrange : LinearMap.range gauge.projection = ⊥ :=
+      Submodule.finrank_eq_zero.mp hfin
+    exact unitPreserving_range_ne_bot h hrange
+  exact Nat.cast_pos.mpr (Nat.pos_of_ne_zero hne)
 
 /-- Unit-preserving admissibility gives identity-minor preservation for the
 constant-one family. -/
