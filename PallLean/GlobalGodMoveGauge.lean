@@ -1446,28 +1446,45 @@ noncomputable def theorem207Witness_of_bounds
 
 /-- **Same-sheet Theorem-207 polynomial.**
 
-This is the named coupled sheet/paper polynomial on which the remaining
-Theorem-207 bounds are asserted.  Keeping the polynomial as a separate named
-piece exposes the formerly bundled "same polynomial" content: both the P-side
-upper bound and the NP-side lower bound below are about this exact term. -/
-axiom theorem207_same_sheet_poly
+The same-sheet polynomial is now the projected Cook-Levin polynomial selected
+by the chosen amplituhedron gauge `piStar`.  This preserves the public name
+used by downstream Theorem-207 packaging while removing the formerly primitive
+"choose a same-sheet polynomial" seam.
+
+The `DecidesSAT` argument is retained for API stability: the polynomial itself
+is defined uniformly from the bounded Cook-Levin compilation, while the
+SAT-decider hypothesis is consumed only by the NP-side preservation theorem
+below. -/
+noncomputable def theorem207_same_sheet_poly
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (hdec : DecidesSAT M) :
-    MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ
+    (_hdec : DecidesSAT M) :
+    MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ :=
+  piStar M n hn hn2 htb hns
+    (compiledPoly (cook_levin_compilation M n hn2 htb hns))
 
-/-- **Theorem-207 P-side bound seam** on the named same-sheet polynomial. -/
-axiom theorem207_same_sheet_p_side_bound
+/-- **Theorem-207 P-side bound** on the named same-sheet polynomial.
+
+This is no longer a primitive axiom: after unfolding
+`theorem207_same_sheet_poly`, it is exactly the projected P-side property of
+the chosen amplituhedron gauge. -/
+theorem theorem207_same_sheet_p_side_bound
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hdec : DecidesSAT M) :
     mlBlockedSpdpRank
         (cook_levin_compilation M n hn2 htb hns).partition
         (Nat.log 2 n) (Nat.log 2 n)
-        (theorem207_same_sheet_poly M n hn hn2 htb hns hdec) ≤ n ^ 200
+        (theorem207_same_sheet_poly M n hn hn2 htb hns hdec) ≤ n ^ 200 := by
+  simpa [theorem207_same_sheet_poly, mlBlockedSpdpRankProjected] using
+    (piStar_p_side_bound M n hn hn2 htb hns)
 
-/-- **Theorem-207 NP-side lower-bound seam** on the same named polynomial. -/
-axiom theorem207_same_sheet_np_side_lower_bound
+/-- **Theorem-207 NP-side lower bound** on the same named polynomial.
+
+This is likewise no longer primitive: after unfolding the named polynomial, it
+is the SAT-decider-specific identity-minor preservation property of the chosen
+amplituhedron gauge. -/
+theorem theorem207_same_sheet_np_side_lower_bound
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hdec : DecidesSAT M) :
@@ -1475,7 +1492,9 @@ axiom theorem207_same_sheet_np_side_lower_bound
       mlBlockedSpdpRank
         (cook_levin_compilation M n hn2 htb hns).partition
         (Nat.log 2 n) (Nat.log 2 n)
-        (theorem207_same_sheet_poly M n hn hn2 htb hns hdec)
+        (theorem207_same_sheet_poly M n hn hn2 htb hns hdec) := by
+  simpa [theorem207_same_sheet_poly, mlBlockedSpdpRankProjected] using
+    (piStar_preserves_identity_minor_for_sat_deciders M n hn hn2 hdec htb hns)
 
 /-- **Rephrased existence theorem.** Equivalent to `exists_theorem207_witness`
 but with the `extraction_rank_monotone` field discharged implicitly
@@ -1693,10 +1712,9 @@ depends on. Expected outcomes:
 * `theorem207Witness_of_bounds` —
   **no custom axioms** (axiom-free discharge of field #3 via le_refl).
 * `exists_theorem207_witness_from_bounds_axiom` —
-  only the split same-sheet polynomial/P-side/NP-side seams
-  `theorem207_same_sheet_poly`, `theorem207_same_sheet_p_side_bound`, and
-  `theorem207_same_sheet_np_side_lower_bound`
-  (strictly more granular than the 5-field `exists_theorem207_witness`).
+  only `exists_amplituhedron_gauge`; the same-sheet polynomial is now the
+  chosen projected Cook-Levin polynomial, and both same-sheet bounds are
+  theorems derived from the chosen gauge's bundled properties.
 * `theorem207Witness_of_components` / `theorem207Witness_from_component_interfaces` —
   no custom axioms; these are interface assembly helpers.
 * `exists_theorem207_component_interfaces_from_witness_axiom` —
@@ -1753,11 +1771,9 @@ depends on. Expected outcomes:
 -- (Axiom-free: field #3 discharged via le_refl by sheet = q construction.)
 #print axioms exists_theorem207_witness_from_bounds_axiom
 -- Expected: propext, Classical.choice, Quot.sound,
---   GlobalGodMoveGauge.theorem207_same_sheet_poly,
---   GlobalGodMoveGauge.theorem207_same_sheet_p_side_bound,
---   GlobalGodMoveGauge.theorem207_same_sheet_np_side_lower_bound.
--- (Granular replacement for exists_theorem207_witness:
---  named same-sheet polynomial + two rank bounds vs 5-field witness.)
+--   GlobalGodMoveGauge.exists_amplituhedron_gauge.
+-- (`theorem207_same_sheet_poly` is a definition; its P-side and NP-side
+--  bounds are theorems derived from the chosen gauge.)
 #print axioms theorem207Witness_of_components
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms theorem207Witness_from_component_interfaces

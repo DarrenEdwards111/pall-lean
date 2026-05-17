@@ -1107,12 +1107,10 @@ does not pretend to be elementary.  Its custom trust surface now follows the
 lowered Theorem-207 seam audited in `PaperFaithfulSeparation.lean` /
 `GlobalGodMoveGauge.lean`: the monolithic
 `GlobalGodMoveGauge.exists_theorem207_witness` package is rebuilt from the
-split same-sheet seams
-`GlobalGodMoveGauge.theorem207_same_sheet_poly`,
-`GlobalGodMoveGauge.theorem207_same_sheet_p_side_bound`, and
-`GlobalGodMoveGauge.theorem207_same_sheet_np_side_lower_bound`, with the
-extraction rank-monotonicity field supplied by the identity-extraction
-constructor. -/
+single `GlobalGodMoveGauge.exists_amplituhedron_gauge` spec. The same-sheet
+polynomial is the projected Cook-Levin polynomial, the P-side/NP-side bounds
+come from the chosen gauge, and extraction rank-monotonicity is supplied by the
+identity-extraction constructor. -/
 
 /-- **God-Move/PAC/amplituhedron/holography closeout.**
 
@@ -1127,9 +1125,8 @@ atom-trace seam.  It closes `PeqNP_Paper` by unpacking the five-field
 * amplituhedron/Π⋆ Width⇒Rank P-side collapse,
 * same-sheet Ramanujan--Tseitin NP lower bound.
 
-All non-elementary content is kept in the named lowered Theorem-207 same-sheet
-polynomial/P-side/NP-side seams; no new hidden elementary claim is introduced
-here. -/
+All non-elementary content is kept in the named amplituhedron-gauge existence
+seam; no new hidden elementary claim is introduced here. -/
 theorem P_ne_NP_canonical_routeB_godMove_PAC_amplituhedron_holography :
     ∀ (_ : PeqNP_Paper), False :=
   PaperFaithfulSeparation.P_ne_NP_via_theorem207

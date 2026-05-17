@@ -23,12 +23,9 @@ Unlike the legacy `P_ne_NP_unconditional` route, this wrapper does not forward
 through `P_ne_NP_via_rank_sandwich`; unlike the older constructive sandwich
 closeout, it also avoids the known-false legacy
 `SymmetricPower.spdp_profile_generators` P-side axiom.  Its custom surface is
-exactly the split same-sheet Theorem-207 package audited in
-`GlobalGodMoveGauge.lean`:
-
-* `GlobalGodMoveGauge.theorem207_same_sheet_poly`,
-* `GlobalGodMoveGauge.theorem207_same_sheet_p_side_bound`,
-* `GlobalGodMoveGauge.theorem207_same_sheet_np_side_lower_bound`.
+now the single `GlobalGodMoveGauge.exists_amplituhedron_gauge` seam audited in
+`GlobalGodMoveGauge.lean`; the same-sheet polynomial and both same-sheet bounds
+are definitions/theorems derived from the chosen gauge.
 -/
 
 /-- **Final `P ≠ NP` wrapper** (paper §40 Theorem 232, p. 213): re-export
