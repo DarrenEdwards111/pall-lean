@@ -6,6 +6,7 @@ import Mathlib.Logic.Equiv.Basic
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Analysis.Matrix.PosDef
 import PallLean.Paper93.DeepMath.PathB.Positroid.PluckerAbstract
+import PallLean.Paper93.DeepMath.PathB.GaugePropertyDef
 
 /-!
 # Amplituhedron-type positivity barrier (Paper §28.3)
@@ -164,6 +165,82 @@ theorem amplituhedronBarrier_identity_mono {n : ℕ}
       = amplituhedronBarrier 𝒥' (1 : Matrix (Fin n) (Fin n) ℝ) := by
   rw [amplituhedronBarrier_identity n 𝒥, amplituhedronBarrier_identity n 𝒥']
 
+/-! ## Log-det barrier bridge to unit principal minors -/
+
+/-- If all designated positive principal minors are at most `1`, then the
+log-det barrier is nonnegative.  This is the exact sign convention needed for a
+minimization argument on a normalized amplituhedron cell. -/
+theorem amplituhedronBarrier_nonneg_of_principalMinor_le_one {n : ℕ}
+    (𝒥 : Finset (Finset (Fin n)))
+    (A : Matrix (Fin n) (Fin n) ℝ)
+    (hA : A.PosDef)
+    (hminor_le : ∀ J ∈ 𝒥, principalMinor A J ≤ 1) :
+    0 ≤ amplituhedronBarrier 𝒥 A := by
+  unfold amplituhedronBarrier
+  have hsum_nonpos :
+      (∑ J ∈ 𝒥, Real.log (principalMinor A J)) ≤ 0 := by
+    exact Finset.sum_nonpos (fun J hJ =>
+      Real.log_nonpos (le_of_lt (principalMinor_pos_of_posDef hA J))
+        (hminor_le J hJ))
+  linarith
+
+/-- If the normalized log-det barrier is zero, every designated principal minor
+has logarithm zero. -/
+theorem log_principalMinor_eq_zero_of_barrier_eq_zero {n : ℕ}
+    (𝒥 : Finset (Finset (Fin n)))
+    (A : Matrix (Fin n) (Fin n) ℝ)
+    (hA : A.PosDef)
+    (hminor_le : ∀ J ∈ 𝒥, principalMinor A J ≤ 1)
+    (hbarrier : amplituhedronBarrier 𝒥 A = 0) :
+    ∀ J ∈ 𝒥, Real.log (principalMinor A J) = 0 := by
+  intro J hJ
+  unfold amplituhedronBarrier at hbarrier
+  have hsum_zero : (∑ J ∈ 𝒥, Real.log (principalMinor A J)) = 0 := by
+    linarith
+  have hnonpos : ∀ J ∈ 𝒥, Real.log (principalMinor A J) ≤ 0 := fun K hK =>
+    Real.log_nonpos (le_of_lt (principalMinor_pos_of_posDef hA K))
+      (hminor_le K hK)
+  exact (Finset.sum_eq_zero_iff_of_nonpos hnonpos).mp hsum_zero J hJ
+
+/-- If the normalized log-det barrier is zero, every designated principal minor
+is exactly `1`. -/
+theorem principalMinor_eq_one_of_barrier_eq_zero {n : ℕ}
+    (𝒥 : Finset (Finset (Fin n)))
+    (A : Matrix (Fin n) (Fin n) ℝ)
+    (hA : A.PosDef)
+    (hminor_le : ∀ J ∈ 𝒥, principalMinor A J ≤ 1)
+    (hbarrier : amplituhedronBarrier 𝒥 A = 0) :
+    ∀ J ∈ 𝒥, principalMinor A J = 1 := by
+  intro J hJ
+  exact Real.eq_one_of_pos_of_log_eq_zero
+    (principalMinor_pos_of_posDef hA J)
+    (log_principalMinor_eq_zero_of_barrier_eq_zero 𝒥 A hA hminor_le hbarrier J hJ)
+
+/-- On a positive-definite normalized cell, zero log-det barrier is sufficient
+for the amplituhedron gauge condition.  This is the first concrete bridge from
+variational minimization data to `IsAmplituhedronGauge`: the remaining analytic
+work is to prove that the minimizer lies in such a normalized cell and attains
+barrier value zero. -/
+theorem isAmplituhedronGauge_of_barrier_eq_zero {n : ℕ}
+    (𝒥 : Finset (Finset (Fin n)))
+    (A : Matrix (Fin n) (Fin n) ℝ)
+    (hA : A.PosDef)
+    (hminor_le : ∀ J ∈ 𝒥, principalMinor A J ≤ 1)
+    (hbarrier : amplituhedronBarrier 𝒥 A = 0) :
+    IsAmplituhedronGauge A 𝒥 := by
+  refine ⟨hA, ?_⟩
+  intro J hJ e
+  let B : Matrix J J ℝ :=
+    A.submatrix (fun i : J => (i.val : Fin n)) (fun i : J => (i.val : Fin n))
+  have hsub :
+      A.submatrix (fun i => (e i).1) (fun i => (e i).1) =
+        B.submatrix e e := rfl
+  have hpm : principalMinor A J = 1 :=
+    principalMinor_eq_one_of_barrier_eq_zero 𝒥 A hA hminor_le hbarrier J hJ
+  unfold principalMinor at hpm
+  rw [hsub, Matrix.det_submatrix_equiv_self e B]
+  exact hpm
+
 /-!
 ## Axiom audit anchors
 -/
@@ -172,5 +249,9 @@ theorem amplituhedronBarrier_identity_mono {n : ℕ}
 #print axioms principalMinor_pos_of_posDef
 #print axioms amplituhedronBarrier_finite
 #print axioms amplituhedronBarrier_identity_mono
+#print axioms amplituhedronBarrier_nonneg_of_principalMinor_le_one
+#print axioms log_principalMinor_eq_zero_of_barrier_eq_zero
+#print axioms principalMinor_eq_one_of_barrier_eq_zero
+#print axioms isAmplituhedronGauge_of_barrier_eq_zero
 
 end PallLean.Paper93.DeepMath.PathB
