@@ -394,6 +394,174 @@ theorem singletonQuotientRankObligation_of_projectedRowsFixed_and_residualStable
     (spdpCompatibleSingletonQuotient_of_projectedRowsFixed_and_residualStable
       M n hn2 htb hns hfix hstable)
 
+
+/-! ## Direct obstruction: the residual-generator stability target is false
+
+The requested bottom proof cannot be completed for the current singleton
+quotient as stated.  The obstruction is already visible in the admissible
+one-derivative row `S = [i]`, multiplier `m = 1`, applied to the singleton
+shift generator `mlProj (X i * P)`.  Its constant coefficient is `1`, while
+every element of the singleton-shift residual subspace has constant coefficient
+`0`.  Hence the row does **not** land back in the residual subspace, and the
+finite residual-generator killed/membership condition is false for this
+candidate.
+-/
+
+/-- Elements of the singleton-shift residual subspace have zero constant
+coefficient. -/
+theorem zeroProfileSingletonShiftSubspace_coeff_zero
+    {n L : Nat}
+    (factors : Fin L → MvPolynomial (Fin n) Rat)
+    {q : MvPolynomial (Fin n) Rat}
+    (hq : q ∈ zeroProfileSingletonShiftSubspace factors) :
+    MvPolynomial.coeff (0 : Fin n →₀ Nat) q = 0 := by
+  classical
+  unfold zeroProfileSingletonShiftSubspace at hq
+  refine Submodule.span_induction
+    (p := fun q : MvPolynomial (Fin n) Rat => fun _ =>
+      MvPolynomial.coeff (0 : Fin n →₀ Nat) q = 0) ?_ ?_ ?_ ?_ hq
+  · intro row hrow
+    rcases hrow with ⟨i, rfl⟩
+    rw [MultilinearSPDP.coeff_mlProj_of_isMultilinear_mono]
+    · rw [MvPolynomial.coeff_X_mul']
+      simp
+    · intro j
+      simp
+  · simp
+  · intro p q _hp _hq hp0 hq0
+    rw [MvPolynomial.coeff_add, hp0, hq0]
+    simp
+  · intro a p _hp hp0
+    rw [MvPolynomial.coeff_smul, hp0]
+    simp
+
+/-- Constant-coefficient derivative identity used by the singleton obstruction. -/
+theorem coeff_zero_pderiv_eq_coeff_single
+    {n : Nat} (i : Fin n) (p : MvPolynomial (Fin n) Rat) :
+    MvPolynomial.coeff (0 : Fin n →₀ Nat) (MvPolynomial.pderiv i p) =
+      MvPolynomial.coeff (Finsupp.single i 1 : Fin n →₀ Nat) p := by
+  classical
+  conv_lhs => rw [p.as_sum, map_sum, MvPolynomial.coeff_sum]
+  conv_rhs => rw [p.as_sum, MvPolynomial.coeff_sum]
+  refine Finset.sum_congr rfl (fun s _ => ?_)
+  simp only [MvPolynomial.pderiv_monomial, MvPolynomial.coeff_monomial]
+  by_cases hsi : s i = 0
+  · simp only [hsi, Nat.cast_zero, mul_zero]
+    by_cases heq : s = Finsupp.single i 1
+    · exfalso
+      have := Finsupp.ext_iff.mp heq i
+      rw [Finsupp.single_eq_same] at this
+      omega
+    · simp [heq]
+  · have cond_iff : s - (Finsupp.single i 1 : Fin n →₀ Nat) = 0 ↔
+        s = (Finsupp.single i 1 : Fin n →₀ Nat) := by
+      simp only [Finsupp.ext_iff, Finsupp.tsub_apply, Finsupp.single_apply]
+      constructor
+      · intro h j
+        specialize h j
+        by_cases hij : i = j
+        · subst hij
+          simp at h ⊢
+          omega
+        · simp [hij] at h ⊢
+          omega
+      · intro h j
+        specialize h j
+        by_cases hij : i = j
+        · subst hij
+          simp at h ⊢
+          omega
+        · simp [hij] at h ⊢
+          omega
+    by_cases heq : s = (Finsupp.single i 1 : Fin n →₀ Nat)
+    · simp [cond_iff.mpr heq, heq]
+    · have hsub_ne : s - (Finsupp.single i 1 : Fin n →₀ Nat) ≠ 0 := by
+        intro h
+        exact heq (cond_iff.mp h)
+      simp [hsub_ne, heq]
+
+/-- The one-derivative row of the singleton-shift generator has constant
+coefficient `1`. -/
+theorem singletonQuotientSPDPRow_singletonShiftGenerator_coeff_zero_one
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (i : Fin n) :
+    MvPolynomial.coeff (0 : Fin n →₀ Nat)
+      (@singletonQuotientSPDPRow M n hn2 htb hns [i] 1
+        (mlProj (MvPolynomial.X i *
+          Finset.univ.prod
+            (singletonQuotientCookLevinFactors M n hn2 htb hns)))) = 1 := by
+  classical
+  unfold singletonQuotientSPDPRow SPDP.iterDerivList
+  simp only [List.foldl_cons, List.foldl_nil, one_mul]
+  rw [MultilinearSPDP.coeff_mlProj_of_isMultilinear_mono]
+  · rw [coeff_zero_pderiv_eq_coeff_single]
+    rw [MultilinearSPDP.coeff_mlProj_of_isMultilinear_mono]
+    · rw [MvPolynomial.coeff_X_mul']
+      simp only [Finsupp.mem_support_iff, Finsupp.single_eq_same, ne_eq,
+        one_ne_zero, not_false_eq_true, ↓reduceIte]
+      have hsub : (Finsupp.single i 1 : Fin n →₀ Nat) - Finsupp.single i 1 = 0 := by
+        ext j
+        simp
+      rw [hsub]
+      simpa [singletonQuotientCookLevinFactors, cookLevinZeroProfileBaseProduct] using
+        cookLevinZeroProfileBaseProduct_coeff_zero M n hn2 htb hns
+    · intro j
+      by_cases hji : j = i
+      · subst hji
+        simp
+      · simp [Finsupp.single_eq_of_ne hji]
+  · intro j
+    simp
+
+/-- Any singleton list is block-admissible. -/
+theorem isBlockAdmissible_singleton
+    {n : Nat} (B : SPDP.BlockPartition n) (i : Fin n) :
+    SPDP.isBlockAdmissible B [i] := by
+  constructor
+  · simp
+  · intro b
+    by_cases h : B.assign i = b
+    · simp [h]
+    · simp [h]
+
+/-- The stronger residual-subspace membership bottom is false for the current
+singleton quotient. -/
+theorem not_SingletonQuotientResidualGeneratorRowsMemSubspace
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    ¬ SingletonQuotientResidualGeneratorRowsMemSubspace M n hn2 htb hns := by
+  classical
+  intro hmem
+  let i : Fin n := ⟨0, by omega⟩
+  have hadm : SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition [i] :=
+    isBlockAdmissible_singleton _ i
+  have hrowmem := hmem 1 0 i [i] 1 (by simp) (by simp) (by simp) hadm
+  have hzero : MvPolynomial.coeff (0 : Fin n →₀ Nat)
+      (@singletonQuotientSPDPRow M n hn2 htb hns [i] 1
+        (mlProj (MvPolynomial.X i *
+          Finset.univ.prod
+            (singletonQuotientCookLevinFactors M n hn2 htb hns)))) = 0 :=
+    zeroProfileSingletonShiftSubspace_coeff_zero
+      (singletonQuotientCookLevinFactors M n hn2 htb hns) hrowmem
+  have hone :=
+    singletonQuotientSPDPRow_singletonShiftGenerator_coeff_zero_one
+      M n hn2 htb hns i
+  rw [hone] at hzero
+  norm_num at hzero
+
+/-- Because killed rows are equivalent to residual-subspace membership for the
+exact quotient kernel, the finite killed-row bottom is also false. -/
+theorem not_SingletonQuotientResidualGeneratorRowsKilled
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    ¬ SingletonQuotientResidualGeneratorRowsKilled M n hn2 htb hns := by
+  intro hkilled
+  exact not_SingletonQuotientResidualGeneratorRowsMemSubspace M n hn2 htb hns
+    (singletonQuotientResidualGeneratorRowsMemSubspace_of_killed
+      M n hn2 htb hns hkilled)
+
 /-! ## Axiom audit anchors -/
 #print axioms singletonQuotientResidual_mem_residualSubspace
 #print axioms singletonQuotientResidualSubspace_le_ker
@@ -416,5 +584,11 @@ theorem singletonQuotientRankObligation_of_projectedRowsFixed_and_residualStable
 #print axioms singletonQuotientRankObligation_of_projectedRowsFixed_and_residualGeneratorsKilled
 #print axioms singletonQuotientRankObligation_of_projectedRowsFixed_and_generatorRowsMemSubspace
 #print axioms singletonQuotientRankObligation_of_projectedRowsFixed_and_residualStable
+#print axioms zeroProfileSingletonShiftSubspace_coeff_zero
+#print axioms coeff_zero_pderiv_eq_coeff_single
+#print axioms singletonQuotientSPDPRow_singletonShiftGenerator_coeff_zero_one
+#print axioms isBlockAdmissible_singleton
+#print axioms not_SingletonQuotientResidualGeneratorRowsMemSubspace
+#print axioms not_SingletonQuotientResidualGeneratorRowsKilled
 
 end PallLean.Paper93.DeepMath.PathB
