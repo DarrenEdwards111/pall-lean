@@ -2,6 +2,7 @@ import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeMapPiPhi
 import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeNPBridge
 import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugePSideBridge
 import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeRealFrontier
+import PallLean.Paper93.NFrame.UnitPreservingValueSet
 
 /-!
 # Path B R72 amplituhedron frontier surface
@@ -18,6 +19,11 @@ projection exists:
 * the frontier can be strengthened to require a nonzero witness;
 * at the paper scale, the bundled gauge frontier is equivalent to ruling out
   bounded SAT deciders.
+* the current load-bearing surface is now explicitly paired with the PAC
+  rank-monotone compilation bridge and the unit-preserving N-frame minimizer:
+  the amplituhedron/holographic geometry supplies the gauge frontier, PAC
+  supplies the P-side rank transport, and the N-frame layer supplies the
+  canonical nonzero/unit-preserving selector for the proxy Lagrangian.
 
 The final paper-faithful construction still has to build a nontrivial
 projection that obtains the P-side bound without destroying the NP lower bound.
@@ -28,6 +34,7 @@ namespace PallLean.Paper93.DeepMath.PathB
 open PaperFaithfulSeparation
 open TuringMachine
 open MultilinearSPDP
+open MvPolynomial
 
 /-- R72 rank-monotonicity progress: the concrete flat `piPhi` candidate
 discharges the rank field. -/
@@ -85,6 +92,48 @@ def R72AmplituhedronFrontierSurface : Prop :=
     R72NonzeroFrontierSurface ∧
     R72NoBoundedDeciderEquivalenceSurface
 
+/-- R72 PAC/holography bridge: a PAC decomposition of the compiled object
+feeds the Theorem-207 P-side rank slot through the rank-monotone PAC
+calculus.  This is a named Path-B wrapper around
+`PaperFaithfulSeparation.compiled_p_side_bound_from_PAC_pipeline`, so the
+amplituhedron frontier can cite the PAC layer without re-opening the main
+separation file. -/
+def R72HolographicPACBridgeSurface : Prop :=
+  ∀ {N : ℕ} (B : SPDP.BlockPartition N) (κ ℓ : ℕ)
+    (q : MvPolynomial (Fin N) ℚ)
+    (π : PAC.Pipeline N)
+    (rank_q_bound pipeline_factor_bound n_exp_target : ℕ),
+    mlBlockedSpdpRank B (κ + PAC.Pipeline.κShiftSum π)
+      (ℓ + PAC.Pipeline.ℓShiftSum π) q ≤ rank_q_bound →
+    pipeline_factor_bound * rank_q_bound ≤ n_exp_target →
+    N ^ PAC.Pipeline.factorSum π *
+      mlBlockedSpdpRank B (κ + PAC.Pipeline.κShiftSum π)
+        (ℓ + PAC.Pipeline.ℓShiftSum π) q ≤
+    max (N ^ PAC.Pipeline.factorSum π * rank_q_bound)
+        (pipeline_factor_bound * rank_q_bound) ∧
+    mlBlockedSpdpRank B κ ℓ (PAC.applyPipeline π q) ≤
+      N ^ PAC.Pipeline.factorSum π * rank_q_bound
+
+/-- R72 N-frame selector bridge: every polynomial family has a canonical
+unit-preserving admissible minimizer for the N-frame proxy Lagrangian.  This
+is the nonzero/unit-preserving selector layer that should now be paired with
+the amplituhedron/PAC route, rather than the old zero-gauge placeholder. -/
+def R72UnitPreservingNFrameSelectorSurface : Prop :=
+  ∀ {N : ℕ} (family : ℕ → MvPolynomial (Fin N) ℚ),
+    ∃ Pi : PallLean.Paper93.NFrame.CandidateGauge N,
+      PallLean.Paper93.NFrame.UnitPreservingAdmissibleGauge Pi ∧
+      ∀ Pi' : PallLean.Paper93.NFrame.CandidateGauge N,
+        PallLean.Paper93.NFrame.UnitPreservingAdmissibleGauge Pi' →
+          PallLean.Paper93.NFrame.nframeLagrangian family Pi ≤
+            PallLean.Paper93.NFrame.nframeLagrangian family Pi'
+
+/-- Current combined Path-B surface: amplituhedron/holographic frontier + PAC
+rank transport + unit-preserving N-frame minimizer. -/
+def R72AmplituhedronHolographicPACNFrameSurface : Prop :=
+  R72AmplituhedronFrontierSurface ∧
+    R72HolographicPACBridgeSurface ∧
+    R72UnitPreservingNFrameSelectorSurface
+
 theorem r72_flatPiPhi_rankMonotonicity :
     R72FlatPiPhiRankMonotonicitySurface := by
   intro M n hn2 htb hns
@@ -124,6 +173,26 @@ theorem r72_amplituhedron_frontier_surface :
       r72_nonzero_frontier,
       r72_no_bounded_decider_equivalence⟩
 
+theorem r72_holographic_PAC_bridge :
+    R72HolographicPACBridgeSurface := by
+  intro N B κ ℓ q π rank_q_bound pipeline_factor_bound n_exp_target hRankQ hExp
+  exact PaperFaithfulSeparation.compiled_p_side_bound_from_PAC_pipeline
+    B κ ℓ q π rank_q_bound pipeline_factor_bound n_exp_target hRankQ hExp
+
+theorem r72_unitPreserving_nframe_selector :
+    R72UnitPreservingNFrameSelectorSurface := by
+  intro N family
+  exact PallLean.Paper93.NFrame.unitPreserving_minimizer_exists family
+
+/-- Combined theorem for the requested route: use the amplituhedron/
+holographic frontier together with PAC rank transport and the unit-preserving
+N-frame minimizer. -/
+theorem r72_amplituhedron_holographic_PAC_nframe_surface :
+    R72AmplituhedronHolographicPACNFrameSurface :=
+  ⟨r72_amplituhedron_frontier_surface,
+    r72_holographic_PAC_bridge,
+    r72_unitPreserving_nframe_selector⟩
+
 /-!
 ## Axiom audit anchors
 -/
@@ -134,5 +203,8 @@ theorem r72_amplituhedron_frontier_surface :
 #print axioms r72_nonzero_frontier
 #print axioms r72_no_bounded_decider_equivalence
 #print axioms r72_amplituhedron_frontier_surface
+#print axioms r72_holographic_PAC_bridge
+#print axioms r72_unitPreserving_nframe_selector
+#print axioms r72_amplituhedron_holographic_PAC_nframe_surface
 
 end PallLean.Paper93.DeepMath.PathB
