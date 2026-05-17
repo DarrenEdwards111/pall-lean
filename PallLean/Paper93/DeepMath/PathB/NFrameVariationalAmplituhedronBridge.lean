@@ -84,6 +84,64 @@ theorem exists_logDetNFrameMinimizer_of_compact_continuous {n : ℕ}
   intro A hA
   exact hmin hA
 
+/-! ## Zero-barrier minimizer bridge -/
+
+/-- If the admissible domain contains the identity/reference matrix, then a
+log-det N-frame minimizer has nonpositive barrier value.  On a normalized
+positive-definite cell the barrier is also nonnegative, hence the minimizer's
+barrier is exactly zero.
+
+This is the concrete variational step needed after compact minimizer existence:
+identity has barrier `0`, the non-barrier terms are independent of `A`, and
+`λ > 0` lets the minimizer inequality isolate the barrier term. -/
+theorem minimizer_barrier_eq_zero_of_identity_competitor {n : ℕ}
+    (α β lam : ℝ)
+    (E : Finset (Fin n × Fin n))
+    (χ : Fin n → ℤ)
+    (Φ : Fin n → ℝ)
+    (𝒥 : Finset (Finset (Fin n)))
+    (Admissible : Matrix (Fin n) (Fin n) ℝ → Prop)
+    (Astar : Matrix (Fin n) (Fin n) ℝ)
+    (hmin : IsLogDetNFrameMinimizer α β lam E χ Φ 𝒥 Admissible Astar)
+    (hI : Admissible (1 : Matrix (Fin n) (Fin n) ℝ))
+    (hlam : 0 < lam)
+    (hAstar : Astar.PosDef)
+    (hminor_le : ∀ J ∈ 𝒥,
+      PallLean.Paper93.DeepMath.PathB.Positroid.principalMinor Astar J ≤ 1) :
+    amplituhedronBarrier 𝒥 Astar = 0 := by
+  rcases hmin with ⟨_hAstar_adm, hle_all⟩
+  have hle := hle_all (1 : Matrix (Fin n) (Fin n) ℝ) hI
+  unfold logDetNFrameAction SNFAction at hle
+  rw [amplituhedronBarrier_identity n 𝒥] at hle
+  have hbarrier_le : amplituhedronBarrier 𝒥 Astar ≤ 0 := by
+    nlinarith [hle, hlam]
+  have hbarrier_nonneg : 0 ≤ amplituhedronBarrier 𝒥 Astar :=
+    amplituhedronBarrier_nonneg_of_principalMinor_le_one 𝒥 Astar hAstar hminor_le
+  exact le_antisymm hbarrier_le hbarrier_nonneg
+
+/-- A log-det N-frame minimizer in a normalized positive-definite admissible
+cell is an amplituhedron gauge, provided the identity/reference competitor is
+admissible and `λ > 0`.  This composes the variational zero-barrier step with
+the log-det barrier bridge to unit principal minors. -/
+theorem isAmplituhedronGauge_of_logDet_minimizer_identity_competitor {n : ℕ}
+    (α β lam : ℝ)
+    (E : Finset (Fin n × Fin n))
+    (χ : Fin n → ℤ)
+    (Φ : Fin n → ℝ)
+    (𝒥 : Finset (Finset (Fin n)))
+    (Admissible : Matrix (Fin n) (Fin n) ℝ → Prop)
+    (Astar : Matrix (Fin n) (Fin n) ℝ)
+    (hmin : IsLogDetNFrameMinimizer α β lam E χ Φ 𝒥 Admissible Astar)
+    (hI : Admissible (1 : Matrix (Fin n) (Fin n) ℝ))
+    (hlam : 0 < lam)
+    (hAstar : Astar.PosDef)
+    (hminor_le : ∀ J ∈ 𝒥,
+      PallLean.Paper93.DeepMath.PathB.Positroid.principalMinor Astar J ≤ 1) :
+    IsAmplituhedronGauge Astar 𝒥 := by
+  exact isAmplituhedronGauge_of_barrier_eq_zero 𝒥 Astar hAstar hminor_le
+    (minimizer_barrier_eq_zero_of_identity_competitor α β lam E χ Φ 𝒥
+      Admissible Astar hmin hI hlam hAstar hminor_le)
+
 /-- Route B(i): the log-det minimizer itself is rich enough to force the
 amplituhedron gauge conditions.  This is the optimistic analytic theorem: no
 separate positroid algebra would be needed beyond proving this implication. -/
@@ -173,6 +231,8 @@ theorem variationalGodMoveCompressor_iff_no_bounded_sat_decider :
   · exact variationalGodMoveCompressor_of_no_bounded_sat_decider
 
 #print axioms exists_logDetNFrameMinimizer_of_compact_continuous
+#print axioms minimizer_barrier_eq_zero_of_identity_competitor
+#print axioms isAmplituhedronGauge_of_logDet_minimizer_identity_competitor
 #print axioms logDet_minimizer_bridge_target_iff_isAmplituhedronGauge
 #print axioms globalAmplituhedronGaugeForSatDeciders_of_variationalGodMoveCompressor
 #print axioms no_bounded_sat_decider_of_variationalGodMoveCompressor
