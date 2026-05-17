@@ -68,6 +68,8 @@ namespace PallLean
 namespace Paper93
 namespace NFrame
 
+open scoped BigOperators
+
 /-! ## 1. Observer graph (Ramanujan-like path skeleton)
 
 Paper §28.3 p. 137: fix an expander graph `G_n = (V_n, E_n)` on
@@ -86,15 +88,64 @@ evaluated at the skeletal level. -/
 def observerGraph (N : ℕ) : Finset (Fin N × Fin N) :=
   Finset.univ.filter (fun p => p.1.val + 1 = p.2.val)
 
-/-! ## 2. Edge-energy term
+/-! ## 2. Honest graph-Laplacian edge-energy term
 
 Paper §28.3 edge-energy term `α · ∑_{(u,v) ∈ E_n} (Φ_u - Φ_v)²`.
-At the S1 stub level (see `LagrangianFunctional.lean`), gauges
-expose only their projection `Π` (no pinned coordinate map
-`Φ : V_n → ℝ`); hence we use the rank-indexed proxy
-`α · finrank(range Π)`, which reproduces the key non-negativity
-and `α`-scaling properties required by the Lagrangian
-`nframeLagrangian_nonneg` downstream chain.
+This is a real analytic object on a finite observer graph and a vertex field
+`Φ : Fin N → ℝ`, independent of the legacy gauge-rank proxy below.
+-/
+
+/-- **Graph Laplacian edge-energy** of a vertex field on a finite directed edge
+set:
+
+`α · ∑_{(u,v) ∈ E} (Φ u - Φ v)^2`.
+
+For symmetric edge sets this is twice the usual undirected Dirichlet energy;
+for the path skeleton `observerGraph N` it is the directed path energy used as
+the first concrete observer-consistency term. -/
+noncomputable def graphLaplacianEdgeEnergy {N : ℕ} (α : ℝ)
+    (E : Finset (Fin N × Fin N)) (Φ : Fin N → ℝ) : ℝ :=
+  α * E.sum (fun e => (Φ e.1 - Φ e.2) ^ 2)
+
+/-- The unweighted graph edge-energy is a sum of squares. -/
+theorem graphLaplacianEdgeEnergy_sum_nonneg {N : ℕ}
+    (E : Finset (Fin N × Fin N)) (Φ : Fin N → ℝ) :
+    0 ≤ E.sum (fun e => (Φ e.1 - Φ e.2) ^ 2) := by
+  exact Finset.sum_nonneg (fun e _ => sq_nonneg (Φ e.1 - Φ e.2))
+
+/-- **Non-negativity of the honest graph-Laplacian edge-energy.**
+For `0 ≤ α`, `α · ∑(Φ_u - Φ_v)^2 ≥ 0`. -/
+theorem graphLaplacianEdgeEnergy_nonneg {N : ℕ} (α : ℝ) (hα : 0 ≤ α)
+    (E : Finset (Fin N × Fin N)) (Φ : Fin N → ℝ) :
+    0 ≤ graphLaplacianEdgeEnergy α E Φ := by
+  unfold graphLaplacianEdgeEnergy
+  exact mul_nonneg hα (graphLaplacianEdgeEnergy_sum_nonneg E Φ)
+
+/-- The honest edge-energy vanishes on every constant field. -/
+theorem graphLaplacianEdgeEnergy_const {N : ℕ} (α c : ℝ)
+    (E : Finset (Fin N × Fin N)) :
+    graphLaplacianEdgeEnergy α E (fun _ : Fin N => c) = 0 := by
+  unfold graphLaplacianEdgeEnergy
+  simp
+
+/-- The concrete path-skeleton observer energy. -/
+noncomputable def observerGraphEdgeEnergy (N : ℕ) (α : ℝ)
+    (Φ : Fin N → ℝ) : ℝ :=
+  graphLaplacianEdgeEnergy α (observerGraph N) Φ
+
+/-- Non-negativity on the observer path skeleton. -/
+theorem observerGraphEdgeEnergy_nonneg (N : ℕ) (α : ℝ) (hα : 0 ≤ α)
+    (Φ : Fin N → ℝ) :
+    0 ≤ observerGraphEdgeEnergy N α Φ :=
+  graphLaplacianEdgeEnergy_nonneg α hα (observerGraph N) Φ
+
+/-! ## 3. Legacy gauge-rank compatibility wrapper
+
+At the S1-compatible level (see `LagrangianFunctional.lean`), gauges expose
+only their projection `Π`; no canonical coordinate extraction
+`CandidateGauge N → (Fin N → ℝ)` has been fixed.  We therefore keep the old
+rank-indexed wrapper for existing downstream theorems, but the real analytic
+term above is now available for the variational route.
 -/
 
 /-- **Edge-energy term** `α · E_graph(Π)` of the N-Frame Lagrangian
@@ -104,9 +155,8 @@ At the present S1-compatible stub level we return
 `α · finrank(range Π)` as a non-negative real proxy: this scales
 linearly in the edge-energy coefficient `α` and vanishes for the
 rank-zero (trivial) gauge, matching the Euler–Lagrange vertex
-behaviour of paper §28.3. A later refinement may replace the
-`finrank` proxy with the honest graph-Laplacian sum
-`∑_{(u,v) ∈ observerGraph N} (Φ_u - Φ_v)²` once a concrete
+behaviour of paper §28.3. The honest graph-Laplacian sum is now formalised
+above as `observerGraphEdgeEnergy`; this wrapper remains only until a concrete
 coordinate map `Φ : Fin N → ℝ` is attached to `CandidateGauge`. -/
 noncomputable def edgeEnergyTerm {N : ℕ} (α : ℝ)
     (gauge : CandidateGauge N) : ℝ :=
@@ -125,7 +175,7 @@ theorem edgeEnergyTerm_nonneg {N : ℕ} (α : ℝ) (hα : 0 ≤ α)
   unfold edgeEnergyTerm
   exact mul_nonneg hα (Nat.cast_nonneg _)
 
-/-! ## 3. Kernel-only sanity checks
+/-! ## 4. Kernel-only sanity checks
 
 Exercise the public API at elaboration time. The two `example`s
 below are discharged at parse time by the definitions and the
@@ -137,6 +187,12 @@ noncomputable example (N : ℕ) : ℝ :=
 
 example (N : ℕ) : 0 ≤ edgeEnergyTerm (N := N) 0 (trivialGauge N) :=
   edgeEnergyTerm_nonneg 0 le_rfl (trivialGauge N)
+
+#print axioms graphLaplacianEdgeEnergy_sum_nonneg
+#print axioms graphLaplacianEdgeEnergy_nonneg
+#print axioms graphLaplacianEdgeEnergy_const
+#print axioms observerGraphEdgeEnergy_nonneg
+#print axioms edgeEnergyTerm_nonneg
 
 end NFrame
 end Paper93
