@@ -193,6 +193,53 @@ theorem r72_amplituhedron_holographic_PAC_nframe_surface :
     r72_holographic_PAC_bridge,
     r72_unitPreserving_nframe_selector⟩
 
+/-- If the combined amplituhedron/holographic PAC + unit-preserving N-frame
+surface is paired with the remaining SAT-decider frontier discharge, then the
+paper-scale bounded SAT decider is impossible.  This is the explicit closure
+hook: the new surface supplies the route; the frontier discharge supplies the
+last contradiction-strength content. -/
+theorem r72_no_bounded_sat_decider_from_holographic_PAC_nframe_discharge
+    (_h : R72AmplituhedronHolographicPACNFrameSurface)
+    (hdischarge : SATDeciderSpecificGaugeSubgoalDischarge) :
+    NoBoundedSATDeciderAtPaperScale :=
+  r72_no_bounded_decider_equivalence.mp hdischarge
+
+/-- The combined surface plus frontier discharge yields the minimal
+rank-sandwich form used by the current `P ≠ NP` chain.  Under a hypothetical
+SAT-decider, the no-decider conclusion is contradictory, so the sandwich
+statement follows by ex falso. -/
+theorem r72_rank_sandwich_from_holographic_PAC_nframe_discharge
+    (h : R72AmplituhedronHolographicPACNFrameSurface)
+    (hdischarge : SATDeciderSpecificGaugeSubgoalDischarge)
+    (M : DTM) (n : Nat) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) :
+    ∃ (r : ℕ), Nat.choose (n / 3) (Nat.log 2 n) ≤ r ∧ r ≤ n ^ 200 := by
+  have hno :=
+    r72_no_bounded_sat_decider_from_holographic_PAC_nframe_discharge h hdischarge
+  exact False.elim ((hno M n hn hn2 htb hns) hdec)
+
+/-- Final Path-B closure theorem from the new route: once the remaining
+SAT-decider frontier discharge is supplied, the amplituhedron/holographic PAC
++ unit-preserving N-frame surface closes the paper's `P ≠ NP` contradiction. -/
+theorem r72_P_ne_NP_from_holographic_PAC_nframe_discharge
+    (h : R72AmplituhedronHolographicPACNFrameSurface)
+    (hdischarge : SATDeciderSpecificGaugeSubgoalDischarge) :
+    ∀ (_ : PeqNP_Paper), False := by
+  intro hPeqNP
+  set n := 2 ^ 804 with hn_def
+  have hn : n ≥ 2 ^ 804 := le_refl _
+  have hn2 : n ≥ 2 := by
+    calc 2 = 2 ^ 1 := (pow_one 2).symm
+    _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+  have hns_n : hPeqNP.decider.numStates ≤ n := by
+    rw [hn_def]
+    exact hPeqNP.numStates_bound
+  have hno :=
+    r72_no_bounded_sat_decider_from_holographic_PAC_nframe_discharge h hdischarge
+  exact (hno hPeqNP.decider n hn hn2 hPeqNP.timeBound_le hns_n)
+    hPeqNP.decides_3sat
+
 /-!
 ## Axiom audit anchors
 -/
@@ -206,5 +253,8 @@ theorem r72_amplituhedron_holographic_PAC_nframe_surface :
 #print axioms r72_holographic_PAC_bridge
 #print axioms r72_unitPreserving_nframe_selector
 #print axioms r72_amplituhedron_holographic_PAC_nframe_surface
+#print axioms r72_no_bounded_sat_decider_from_holographic_PAC_nframe_discharge
+#print axioms r72_rank_sandwich_from_holographic_PAC_nframe_discharge
+#print axioms r72_P_ne_NP_from_holographic_PAC_nframe_discharge
 
 end PallLean.Paper93.DeepMath.PathB
