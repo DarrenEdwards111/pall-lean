@@ -80,6 +80,26 @@ theorem local_same_window_constant_row_obstruction :
   rw [piPlusHadamard2InvGauge_booleanProjected_pair]
   exact not_exists_constant_mul_pair_eq_X_one
 
+/-- Positive local replacement: the same obstructing row is recovered by a
+one-derivative source row.  This is the kernel-checked reason the corrected
+criterion must be windowed rather than same-window. -/
+theorem local_window_one_row_realization :
+    piPlusHadamard2InvGauge
+      (zeroProfileBooleanNormalize
+        (piPlusHadamard2Gauge
+          ((X (0 : Fin 2)) * (X (1 : Fin 2)) : MvPolynomial (Fin 2) ℚ))) =
+      mlProj
+        ((1 : MvPolynomial (Fin 2) ℚ) *
+          iterDerivList [(0 : Fin 2)]
+            (((X (0 : Fin 2)) * (X (1 : Fin 2))) : MvPolynomial (Fin 2) ℚ)) := by
+  rw [piPlusHadamard2InvGauge_booleanProjected_pair]
+  simp [iterDerivList]
+  symm
+  change mlProj (MvPolynomial.monomial (Finsupp.single (1 : Fin 2) 1) (1 : ℚ)) =
+    MvPolynomial.monomial (Finsupp.single (1 : Fin 2) 1) (1 : ℚ)
+  rw [mlProj_monomial]
+  simp [Finsupp.IsMultilinear]
+
 /-! ## Corrected windowed row certificate -/
 
 /-- Corrected windowed raw-pullback certificate.
@@ -129,5 +149,6 @@ abbrev PaperScalePiPlusBooleanProjectedWindowedRawPullbackRowCertificate
 #print axioms piPlusHadamard2InvGauge_booleanProjected_pair
 #print axioms not_exists_constant_mul_pair_eq_X_one
 #print axioms local_same_window_constant_row_obstruction
+#print axioms local_window_one_row_realization
 
 end PallLean.Paper93.DeepMath.PathC
