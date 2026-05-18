@@ -194,6 +194,48 @@ theorem cookLevinPiPlusBooleanProjectedGauge_paperScale_booleanFactorProd
     M (2 ^ 804) paperScale_ge_two htb hns
     (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
 
+/-- Generic compiled Cook--Levin constraint-product transport through a
+coordinate-built concrete Boolean-projected `Pi+` transform.  This is the raw
+local-factor surface for the derivative/Leibniz assembly: the target compiled
+polynomial is the Boolean normal form of the product of transformed individual
+constraint factors. -/
+theorem piPlusBooleanProjectedGauge_of_blockCoordinates_compiledPoly_constraints
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns) :
+    piPlusBooleanProjectedGauge M n hn2 htb hns
+        (piPlusSATTransform_of_blockCoordinates M n hn2 htb hns D)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns)) =
+      zeroProfileBooleanNormalize
+        ((((cook_levin_compilation M n hn2 htb hns).constraints.map
+          (fun c => (1 : SATDeciderGaugeSpace M n hn2 htb hns) - c.poly)).map
+          (piPlusBooleanProjectedGauge M n hn2 htb hns
+            (piPlusSATTransform_of_blockCoordinates M n hn2 htb hns D))).prod) := by
+  let L : List (SATDeciderGaugeSpace M n hn2 htb hns) :=
+    (cook_levin_compilation M n hn2 htb hns).constraints.map
+      (fun c => (1 : SATDeciderGaugeSpace M n hn2 htb hns) - c.poly)
+  change piPlusBooleanProjectedGauge M n hn2 htb hns
+      (piPlusSATTransform_of_blockCoordinates M n hn2 htb hns D) L.prod =
+    zeroProfileBooleanNormalize
+      ((L.map (piPlusBooleanProjectedGauge M n hn2 htb hns
+        (piPlusSATTransform_of_blockCoordinates M n hn2 htb hns D))).prod)
+  exact piPlusBooleanProjectedGauge_of_blockCoordinates_list_prod
+    M n hn2 htb hns D L
+
+/-- Paper-scale compiled Cook--Levin constraint-product transport through the
+concrete Boolean-projected `Pi+` transform. -/
+theorem cookLevinPiPlusBooleanProjectedGauge_paperScale_compiledPoly_constraints
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) :
+    cookLevinPiPlusBooleanProjectedGauge_paperScale M htb hns
+        (compiledPoly (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns)) =
+      zeroProfileBooleanNormalize
+        ((((cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).constraints.map
+          (fun c => (1 : SATDeciderGaugeSpace M (2 ^ 804) paperScale_ge_two htb hns) - c.poly)).map
+          (cookLevinPiPlusBooleanProjectedGauge_paperScale M htb hns)).prod) := by
+  exact piPlusBooleanProjectedGauge_of_blockCoordinates_compiledPoly_constraints
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+
 /-- Generic factored Cook--Levin-product transport through a coordinate-built
 concrete Boolean-projected `Pi+` transform. -/
 theorem piPlusBooleanProjectedGauge_of_blockCoordinates_cookLevinFactoredPoly
@@ -300,6 +342,8 @@ theorem cookLevinPiPlusSATTransform_paperScale_symm_booleanProjected_mixed_mem_i
 #print axioms cookLevinPiPlusBooleanProjectedGauge_paperScale_list_prod
 #print axioms piPlusBooleanProjectedGauge_of_blockCoordinates_booleanFactorProd
 #print axioms cookLevinPiPlusBooleanProjectedGauge_paperScale_booleanFactorProd
+#print axioms piPlusBooleanProjectedGauge_of_blockCoordinates_compiledPoly_constraints
+#print axioms cookLevinPiPlusBooleanProjectedGauge_paperScale_compiledPoly_constraints
 #print axioms piPlusBooleanProjectedGauge_of_blockCoordinates_cookLevinFactoredPoly
 #print axioms cookLevinPiPlusBooleanProjectedGauge_paperScale_cookLevinFactoredPoly
 #print axioms cookLevinPiPlusSATTransform_paperScale_symm_booleanProjected_mixed
