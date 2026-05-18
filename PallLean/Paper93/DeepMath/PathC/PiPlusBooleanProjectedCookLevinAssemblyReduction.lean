@@ -96,7 +96,43 @@ theorem cookLevinFactoredPoly_eq_explicitBooleanFactors (M : DTM) (n : Nat) :
   unfold cookLevinFactoredPoly
   rw [cookLevinBooleanFactorProd_eq_finRange]
 
-/-- The constant term of the exposed Booleanity product is `1`. -/
+/-- The Cook--Levin Booleanity product is the same product as the existing
+symmetric-power `boolFactorFullProd`. -/
+theorem cookLevinBooleanFactorProd_eq_boolFactorFullProd (n : Nat) :
+    cookLevinBooleanFactorProd n = SymmetricPower.boolFactorFullProd n := by
+  rw [cookLevinBooleanFactorProd_eq_finRange]
+  unfold SymmetricPower.boolFactorFullProd SymmetricPower.boolFactor cookLevinBooleanFactor
+  exact (Fin.prod_univ_def (fun v : Fin n =>
+    (1 : MvPolynomial (Fin n) ℚ) -
+      (MvPolynomial.X v * (1 - MvPolynomial.X v)))).symm
+
+/-- Exact derivative formula for the exposed Booleanity product.  For a nodup
+list of Boolean variables `S`, differentiating the product hits precisely those
+same local factors and leaves the other Booleanity factors untouched. -/
+theorem iterDerivList_cookLevinBooleanFactorProd
+    (n : Nat) (S : List (Fin n)) (hS : S.Nodup) :
+    iterDerivList S (cookLevinBooleanFactorProd n) =
+      (S.map (fun v => MvPolynomial.pderiv v (cookLevinBooleanFactor n v))).prod *
+      ((Finset.univ : Finset (Fin n)) \ S.toFinset).prod
+        (cookLevinBooleanFactor n) := by
+  rw [cookLevinBooleanFactorProd_eq_boolFactorFullProd]
+  unfold SymmetricPower.boolFactorFullProd
+  have h := SymmetricPower.iterDerivList_boolFactor_prod n
+    (Finset.univ : Finset (Fin n)) S hS (by intro v _; simp)
+  simpa [SymmetricPower.boolFactor, cookLevinBooleanFactor] using h
+
+/-- The Booleanity product derivative by a nodup list is a source SPDP generator
+of the Booleanity product itself, with zero multiplier degree. -/
+theorem iterDerivList_cookLevinBooleanFactorProd_mem_inc
+    (n κ : Nat) (B : SPDP.BlockPartition n)
+    (S : List (Fin n)) (hSlen : S.length ≤ κ)
+    (hadm : SPDP.isBlockAdmissible B S) :
+    mlProj ((1 : MvPolynomial (Fin n) ℚ) *
+      iterDerivList S (cookLevinBooleanFactorProd n)) ∈
+      mlBlockedSpdpSubspaceInc B κ 0 (cookLevinBooleanFactorProd n) := by
+  exact Submodule.subset_span
+    ⟨S, (1 : MvPolynomial (Fin n) ℚ), hSlen, by simp, by simp, hadm, rfl⟩
+
 theorem cookLevinBooleanFactorProd_const_one (n : Nat) :
     MvPolynomial.coeff 0 (cookLevinBooleanFactorProd n) = 1 := by
   rw [cookLevinBooleanFactorProd_eq_finRange]
@@ -397,6 +433,9 @@ theorem paperScale_compiledPSubspaceInclusionOneZero_of_rowSpanClassifier
 #print axioms pderiv_cookLevinBooleanFactor_self
 #print axioms pderiv_cookLevinBooleanFactor_ne
 #print axioms cookLevinBooleanFactorProd_eq_finRange
+#print axioms cookLevinBooleanFactorProd_eq_boolFactorFullProd
+#print axioms iterDerivList_cookLevinBooleanFactorProd
+#print axioms iterDerivList_cookLevinBooleanFactorProd_mem_inc
 #print axioms cookLevinFactoredPoly_eq_explicitBooleanFactors
 #print axioms cookLevinBooleanFactorProd_const_one
 #print axioms cookLevinFactoredPoly_const_one
