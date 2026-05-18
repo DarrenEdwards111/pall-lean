@@ -160,6 +160,81 @@ theorem cookLevinPiPlusBooleanProjectedGauge_paperScale_list_prod
     M (2 ^ 804) paperScale_ge_two htb hns
     (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) L
 
+/-- Generic Booleanity-product transport through a coordinate-built concrete
+Boolean-projected `Pi+` transform. -/
+theorem piPlusBooleanProjectedGauge_of_blockCoordinates_booleanFactorProd
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns) :
+    piPlusBooleanProjectedGauge M n hn2 htb hns
+        (piPlusSATTransform_of_blockCoordinates M n hn2 htb hns D)
+        (cookLevinBooleanFactorProd n) =
+      zeroProfileBooleanNormalize
+        (((List.finRange n).map
+          (fun v => piPlusBooleanProjectedGauge M n hn2 htb hns
+            (piPlusSATTransform_of_blockCoordinates M n hn2 htb hns D)
+            (cookLevinBooleanFactor n v))).prod) := by
+  rw [cookLevinBooleanFactorProd_eq_finRange]
+  have h := piPlusBooleanProjectedGauge_of_blockCoordinates_list_prod
+    M n hn2 htb hns D
+    ((List.finRange n).map (fun v => cookLevinBooleanFactor n v))
+  simpa [List.map_map] using h
+
+/-- Paper-scale Booleanity-product transport through the concrete
+Boolean-projected Cook--Levin `Pi+` transform. -/
+theorem cookLevinPiPlusBooleanProjectedGauge_paperScale_booleanFactorProd
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) :
+    cookLevinPiPlusBooleanProjectedGauge_paperScale M htb hns
+        (cookLevinBooleanFactorProd (2 ^ 804)) =
+      zeroProfileBooleanNormalize
+        (((List.finRange (2 ^ 804)).map
+          (fun v => cookLevinPiPlusBooleanProjectedGauge_paperScale M htb hns
+            (cookLevinBooleanFactor (2 ^ 804) v))).prod) := by
+  exact piPlusBooleanProjectedGauge_of_blockCoordinates_booleanFactorProd
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+
+/-- Generic factored Cook--Levin-product transport through a coordinate-built
+concrete Boolean-projected `Pi+` transform. -/
+theorem piPlusBooleanProjectedGauge_of_blockCoordinates_cookLevinFactoredPoly
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns) :
+    piPlusBooleanProjectedGauge M n hn2 htb hns
+        (piPlusSATTransform_of_blockCoordinates M n hn2 htb hns D)
+        (cookLevinFactoredPoly M n) =
+      zeroProfileBooleanNormalize
+        (zeroProfileBooleanNormalize
+          (((List.finRange n).map
+            (fun v => piPlusBooleanProjectedGauge M n hn2 htb hns
+              (piPlusSATTransform_of_blockCoordinates M n hn2 htb hns D)
+              (cookLevinBooleanFactor n v))).prod) *
+          piPlusBooleanProjectedGauge M n hn2 htb hns
+            (piPlusSATTransform_of_blockCoordinates M n hn2 htb hns D)
+            (restFactorProd' M n)) := by
+  unfold cookLevinFactoredPoly
+  rw [piPlusBooleanProjectedGauge_of_blockCoordinates_mul]
+  rw [piPlusBooleanProjectedGauge_of_blockCoordinates_booleanFactorProd]
+
+/-- Paper-scale factored Cook--Levin-product transport through the concrete
+Boolean-projected `Pi+` transform.  This exposes the global product as the
+Boolean normal form of the transported Booleanity side times the transported
+rest side. -/
+theorem cookLevinPiPlusBooleanProjectedGauge_paperScale_cookLevinFactoredPoly
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) :
+    cookLevinPiPlusBooleanProjectedGauge_paperScale M htb hns
+        (cookLevinFactoredPoly M (2 ^ 804)) =
+      zeroProfileBooleanNormalize
+        (zeroProfileBooleanNormalize
+          (((List.finRange (2 ^ 804)).map
+            (fun v => cookLevinPiPlusBooleanProjectedGauge_paperScale M htb hns
+              (cookLevinBooleanFactor (2 ^ 804) v))).prod) *
+          cookLevinPiPlusBooleanProjectedGauge_paperScale M htb hns
+            (restFactorProd' M (2 ^ 804))) := by
+  exact piPlusBooleanProjectedGauge_of_blockCoordinates_cookLevinFactoredPoly
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+
 /-- Paper-scale coordinate atom, rewritten entirely through the public
 `cookLevinPiPlusSATTransform_paperScale` / `cookLevinPiPlusBooleanProjectedGauge_paperScale`
 interfaces. -/
@@ -223,6 +298,10 @@ theorem cookLevinPiPlusSATTransform_paperScale_symm_booleanProjected_mixed_mem_i
 #print axioms piPlusBooleanProjectedGauge_of_blockCoordinates_list_prod
 #print axioms cookLevinPiPlusBooleanProjectedGauge_paperScale_mul
 #print axioms cookLevinPiPlusBooleanProjectedGauge_paperScale_list_prod
+#print axioms piPlusBooleanProjectedGauge_of_blockCoordinates_booleanFactorProd
+#print axioms cookLevinPiPlusBooleanProjectedGauge_paperScale_booleanFactorProd
+#print axioms piPlusBooleanProjectedGauge_of_blockCoordinates_cookLevinFactoredPoly
+#print axioms cookLevinPiPlusBooleanProjectedGauge_paperScale_cookLevinFactoredPoly
 #print axioms cookLevinPiPlusSATTransform_paperScale_symm_booleanProjected_mixed
 #print axioms cookLevinPiPlusSATTransform_paperScale_symm_booleanProjected_mixed_mem_inc
 
