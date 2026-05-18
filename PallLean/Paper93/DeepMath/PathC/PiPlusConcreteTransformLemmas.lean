@@ -13,6 +13,8 @@ homomorphism facts (`map_mul`, coordinate formulas) and then rewrite back to the
 namespace PallLean.Paper93.DeepMath.PathC
 
 open MvPolynomial
+open SPDP
+open MultilinearSPDP
 open PallLean.Paper93.DeepMath.PathB
 open PaperFaithfulSeparation
 open TuringMachine
@@ -83,6 +85,57 @@ theorem cookLevinPiPlusBooleanProjectedGauge_paperScale_apply
           (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) p) := by
   rfl
 
+/-- Paper-scale coordinate atom, rewritten entirely through the public
+`cookLevinPiPlusSATTransform_paperScale` / `cookLevinPiPlusBooleanProjectedGauge_paperScale`
+interfaces. -/
+theorem cookLevinPiPlusSATTransform_paperScale_symm_booleanProjected_mixed
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (i : (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns).blockIndex) :
+    (cookLevinPiPlusSATTransform_paperScale M htb hns).equiv.symm
+      (cookLevinPiPlusBooleanProjectedGauge_paperScale M htb hns
+        ((X (satBlockFalse M (2 ^ 804) paperScale_ge_two htb hns
+              (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) i)) *
+          (X (satBlockTrue M (2 ^ 804) paperScale_ge_two htb hns
+              (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) i)) :
+          SATDeciderGaugeSpace M (2 ^ 804) paperScale_ge_two htb hns)) =
+      (X (satBlockTrue M (2 ^ 804) paperScale_ge_two htb hns
+            (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) i) :
+        SATDeciderGaugeSpace M (2 ^ 804) paperScale_ge_two htb hns) := by
+  rw [cookLevinPiPlusBooleanProjectedGauge_paperScale_apply,
+    cookLevinPiPlusSATTransform_paperScale_symm_apply]
+  exact piPlusSATBlockAlgEquiv_symm_booleanProjected_mixed
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) i
+
+/-- Paper-scale membership form of the coordinate atom using the public concrete
+`Pi+` interfaces. -/
+theorem cookLevinPiPlusSATTransform_paperScale_symm_booleanProjected_mixed_mem_inc
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (i : (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns).blockIndex)
+    (B : SPDP.BlockPartition (cook_levin_compilation M (2 ^ 804)
+      paperScale_ge_two htb hns).numVars)
+    (hadm : SPDP.isBlockAdmissible B
+      [satBlockFalse M (2 ^ 804) paperScale_ge_two htb hns
+        (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) i]) :
+    (cookLevinPiPlusSATTransform_paperScale M htb hns).equiv.symm
+      (cookLevinPiPlusBooleanProjectedGauge_paperScale M htb hns
+        ((X (satBlockFalse M (2 ^ 804) paperScale_ge_two htb hns
+              (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) i)) *
+          (X (satBlockTrue M (2 ^ 804) paperScale_ge_two htb hns
+              (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) i)) :
+          SATDeciderGaugeSpace M (2 ^ 804) paperScale_ge_two htb hns)) ∈
+      mlBlockedSpdpSubspaceInc B 1 0
+        (((X (satBlockFalse M (2 ^ 804) paperScale_ge_two htb hns
+              (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) i)) *
+          (X (satBlockTrue M (2 ^ 804) paperScale_ge_two htb hns
+              (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) i)) :
+          SATDeciderGaugeSpace M (2 ^ 804) paperScale_ge_two htb hns)) := by
+  rw [cookLevinPiPlusBooleanProjectedGauge_paperScale_apply,
+    cookLevinPiPlusSATTransform_paperScale_symm_apply]
+  exact piPlusSATBlockAlgEquiv_symm_booleanProjected_mixed_mem_inc
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) i B hadm
+
 /-! ## Axiom audit anchors -/
 
 #print axioms piPlusSATTransform_of_blockCoordinates_gauge_apply
@@ -91,5 +144,7 @@ theorem cookLevinPiPlusBooleanProjectedGauge_paperScale_apply
 #print axioms cookLevinPiPlusSATTransform_paperScale_gauge_apply
 #print axioms cookLevinPiPlusSATTransform_paperScale_symm_apply
 #print axioms cookLevinPiPlusBooleanProjectedGauge_paperScale_apply
+#print axioms cookLevinPiPlusSATTransform_paperScale_symm_booleanProjected_mixed
+#print axioms cookLevinPiPlusSATTransform_paperScale_symm_booleanProjected_mixed_mem_inc
 
 end PallLean.Paper93.DeepMath.PathC
