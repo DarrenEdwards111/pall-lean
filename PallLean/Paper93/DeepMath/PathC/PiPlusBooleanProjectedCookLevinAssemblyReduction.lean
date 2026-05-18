@@ -29,11 +29,49 @@ open PACLeibniz
 attribute [local instance] Classical.dec
 set_option exponentiation.threshold 1000
 
+/-- A single exposed Booleanity factor `1 - Xᵥ(1-Xᵥ)`. -/
+noncomputable def cookLevinBooleanFactor (n : Nat) (v : Fin n) :
+    MvPolynomial (Fin n) ℚ :=
+  (1 : MvPolynomial (Fin n) ℚ) -
+    (MvPolynomial.X v * (1 - MvPolynomial.X v))
+
 /-- The booleanity-factor product in the Cook--Levin factorization. -/
 noncomputable def cookLevinBooleanFactorProd (n : Nat) :
     MvPolynomial (Fin n) ℚ :=
   ((boolConstraintList n).map
     (fun c => (1 : MvPolynomial (Fin n) ℚ) - c.poly)).prod
+
+/-- The exposed Booleanity factor is exactly the factor produced by `boolLC`. -/
+theorem cookLevinBooleanFactor_eq_boolLC (n : Nat) (v : Fin n) :
+    cookLevinBooleanFactor n v =
+      (1 : MvPolynomial (Fin n) ℚ) - (boolLC n v).poly := by
+  unfold cookLevinBooleanFactor boolLC boolPoly'
+  ring
+
+/-- The exposed Booleanity factor has constant term `1`. -/
+theorem cookLevinBooleanFactor_const_one (n : Nat) (v : Fin n) :
+    MvPolynomial.coeff 0 (cookLevinBooleanFactor n v) = 1 := by
+  unfold cookLevinBooleanFactor
+  rw [← MvPolynomial.constantCoeff_eq, map_sub, map_one]
+  have hmul : MvPolynomial.constantCoeff
+      ((MvPolynomial.X v : MvPolynomial (Fin n) ℚ) *
+        (1 - MvPolynomial.X v)) = 0 := by
+    rw [map_mul, MvPolynomial.constantCoeff_X, zero_mul]
+  rw [hmul, sub_zero]
+
+/-- Differentiating a Booleanity factor in its own coordinate gives
+`-1 + 2Xᵥ`. -/
+theorem pderiv_cookLevinBooleanFactor_self (n : Nat) (v : Fin n) :
+    MvPolynomial.pderiv v (cookLevinBooleanFactor n v) =
+      (-1 : MvPolynomial (Fin n) ℚ) + 2 * MvPolynomial.X v := by
+  simpa [cookLevinBooleanFactor, SymmetricPower.boolFactor] using
+    SymmetricPower.pderiv_boolFactor_self n v
+
+/-- Differentiating a Booleanity factor in a different coordinate gives `0`. -/
+theorem pderiv_cookLevinBooleanFactor_ne (n : Nat) {v w : Fin n} (hvw : w ≠ v) :
+    MvPolynomial.pderiv w (cookLevinBooleanFactor n v) = 0 := by
+  simpa [cookLevinBooleanFactor, SymmetricPower.boolFactor] using
+    SymmetricPower.pderiv_boolFactor_of_ne n w v hvw
 
 /-- The factored Cook--Levin polynomial: booleanity factors times adjacency /
 transition rest factors. -/
@@ -44,19 +82,16 @@ noncomputable def cookLevinFactoredPoly (M : DTM) (n : Nat) :
 /-- The Booleanity product written as the explicit `Fin n` factor list. -/
 theorem cookLevinBooleanFactorProd_eq_finRange (n : Nat) :
     cookLevinBooleanFactorProd n =
-      ((List.finRange n).map (fun v =>
-        (1 : MvPolynomial (Fin n) ℚ) -
-          (MvPolynomial.X v * (1 - MvPolynomial.X v)))).prod := by
+      ((List.finRange n).map (fun v => cookLevinBooleanFactor n v)).prod := by
   unfold cookLevinBooleanFactorProd
   rw [boolConstraintFactors_eq]
+  rfl
 
 /-- The factored Cook--Levin polynomial with the Booleanity side fully exposed as
 `∏ᵥ (1 - Xᵥ(1-Xᵥ))`. -/
 theorem cookLevinFactoredPoly_eq_explicitBooleanFactors (M : DTM) (n : Nat) :
     cookLevinFactoredPoly M n =
-      ((List.finRange n).map (fun v =>
-        (1 : MvPolynomial (Fin n) ℚ) -
-          (MvPolynomial.X v * (1 - MvPolynomial.X v)))).prod *
+      ((List.finRange n).map (fun v => cookLevinBooleanFactor n v)).prod *
         restFactorProd' M n := by
   unfold cookLevinFactoredPoly
   rw [cookLevinBooleanFactorProd_eq_finRange]
@@ -71,15 +106,8 @@ theorem cookLevinBooleanFactorProd_const_one (n : Nat) :
   intro x hx
   rw [List.mem_map] at hx
   rcases hx with ⟨v, _hv, rfl⟩
-  show MvPolynomial.constantCoeff
-      ((1 : MvPolynomial (Fin n) ℚ) -
-        (MvPolynomial.X v * (1 - MvPolynomial.X v))) = 1
-  rw [map_sub, map_one]
-  have hmul : MvPolynomial.constantCoeff
-      ((MvPolynomial.X v : MvPolynomial (Fin n) ℚ) *
-        (1 - MvPolynomial.X v)) = 0 := by
-    rw [map_mul, MvPolynomial.constantCoeff_X, zero_mul]
-  rw [hmul, sub_zero]
+  rw [MvPolynomial.constantCoeff_eq]
+  exact cookLevinBooleanFactor_const_one n v
 
 /-- The full factored Cook--Levin polynomial has constant term `1`; both the
 Booleanity product and the rest product have constant term `1`. -/
@@ -364,6 +392,10 @@ theorem paperScale_compiledPSubspaceInclusionOneZero_of_rowSpanClassifier
 
 /-! ## Axiom audit anchors -/
 
+#print axioms cookLevinBooleanFactor_eq_boolLC
+#print axioms cookLevinBooleanFactor_const_one
+#print axioms pderiv_cookLevinBooleanFactor_self
+#print axioms pderiv_cookLevinBooleanFactor_ne
 #print axioms cookLevinBooleanFactorProd_eq_finRange
 #print axioms cookLevinFactoredPoly_eq_explicitBooleanFactors
 #print axioms cookLevinBooleanFactorProd_const_one
