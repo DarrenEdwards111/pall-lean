@@ -53,6 +53,39 @@ private theorem zeroProfileBooleanNormalize_square_residual_mul_monomial
   rw [zeroProfileBooleanExponent_single_two_add_eq_single_one_add]
   simp
 
+theorem zeroProfileBooleanExponent_add_left_normalized
+    {n : Nat} (α β : Fin n →₀ Nat) :
+    zeroProfileBooleanExponent (zeroProfileBooleanExponent α + β) =
+      zeroProfileBooleanExponent (α + β) := by
+  ext i
+  by_cases hα : α i = 0
+  · by_cases hβ : β i = 0
+    · have hleft : i ∉ (zeroProfileBooleanExponent α + β).support := by
+        simp [Finsupp.mem_support_iff, zeroProfileBooleanExponent_apply, hα, hβ]
+      have hright : i ∉ (α + β).support := by
+        simp [Finsupp.mem_support_iff, hα, hβ]
+      simp [zeroProfileBooleanExponent_apply, hleft, hright]
+    · have hleft : i ∈ (zeroProfileBooleanExponent α + β).support := by
+        simp [Finsupp.mem_support_iff, zeroProfileBooleanExponent_apply, hα, hβ]
+      have hright : i ∈ (α + β).support := by
+        simp [Finsupp.mem_support_iff, hα, hβ]
+      simp [zeroProfileBooleanExponent_apply, hleft, hright]
+  · have hleft : i ∈ (zeroProfileBooleanExponent α + β).support := by
+      simp [Finsupp.mem_support_iff, zeroProfileBooleanExponent_apply, hα]
+    have hright : i ∈ (α + β).support := by
+      simp [Finsupp.mem_support_iff, hα]
+    simp [zeroProfileBooleanExponent_apply, hleft, hright]
+
+theorem zeroProfileBooleanNormalize_normalized_monomial_mul_monomial
+    {n : Nat} (α β : Fin n →₀ Nat) (c d : ℚ) :
+    zeroProfileBooleanNormalize
+      ((zeroProfileBooleanNormalize (monomial α c)) * monomial β d) =
+    zeroProfileBooleanNormalize ((monomial α c : MvPolynomial (Fin n) ℚ) * monomial β d) := by
+  rw [zeroProfileBooleanNormalize_monomial]
+  rw [monomial_mul, monomial_mul]
+  rw [zeroProfileBooleanNormalize_monomial, zeroProfileBooleanNormalize_monomial]
+  rw [zeroProfileBooleanExponent_add_left_normalized]
+
 /-- Multiples of the Boolean square residual vanish under Boolean normalization.
 This is the key quotient-algebra fact needed to peel Booleanity factors off the
 Cook--Levin product: `(Xᵢ²-Xᵢ) q` is zero in the Boolean quotient. -/
@@ -163,6 +196,8 @@ theorem zeroProfileBooleanNormalize_cookLevinBooleanFactorProd
     (1 : MvPolynomial (Fin n) ℚ)
 
 /-! ## Axiom audit anchors -/
+#print axioms zeroProfileBooleanExponent_add_left_normalized
+#print axioms zeroProfileBooleanNormalize_normalized_monomial_mul_monomial
 #print axioms zeroProfileBooleanNormalize_square_residual_mul
 #print axioms zeroProfileBooleanNormalize_boolFactor_mul
 #print axioms zeroProfileBooleanNormalize_boolFactor_listProd_mul
