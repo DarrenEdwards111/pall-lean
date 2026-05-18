@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathC.PiPlusBooleanProjectedCoordinateAtom
 import PallLean.PACLeibniz
+import PallLean.SymmetricPower
 
 /-!
 # Cook--Levin product assembly reduction for Boolean-projected Pi+
@@ -81,16 +82,13 @@ def PiPlusBooleanProjectedWindowedFactoredCompiledRowCertificate
                     piP.equiv.symm
                       (mlProj (m * iterDerivList S
                         (piPlusBooleanProjectedGauge M n hn2 htb hns piP
-                          (compiledPoly
-                            (cook_levin_compilation M n hn2 htb hns))))) =
+                          (cookLevinFactoredPoly M n)))) =
                       mlProj (m' * iterDerivList S'
-                        (compiledPoly
-                          (cook_levin_compilation M n hn2 htb hns)))
+                        (cookLevinFactoredPoly M n))
 
-/-- The factored certificate currently has the same row statement as the
-compiled certificate, but its name records the intended proof route: rewrite
-`compiledPoly` using `compiledPoly_eq_cookLevinFactoredPoly`, then assemble rows
-from the product factors using Leibniz and the coordinate atom. -/
+/-- A certificate proved over the explicit Cook--Levin factor product gives the
+compiled certificate by rewriting both source and target occurrences of
+`compiledPoly`. -/
 theorem compiledRowCertificate_of_factoredCompiledRowCertificate
     (extraK extraL : Nat)
     (M : DTM) (n : Nat) (hn2 : n ≥ 2)
@@ -101,7 +99,10 @@ theorem compiledRowCertificate_of_factoredCompiledRowCertificate
     PiPlusBooleanProjectedWindowedCompiledRowCertificate
       extraK extraL M n hn2 htb hns piP := by
   intro S m hSlen hmdeg hmvars hadm
-  exact hfactored S m hSlen hmdeg hmvars hadm
+  rcases hfactored S m hSlen hmdeg hmvars hadm with
+    ⟨κ', ℓ', S', m', hκ', hℓ', hSlen', hmdeg', hmvars', hadm', hrow⟩
+  refine ⟨κ', ℓ', S', m', hκ', hℓ', hSlen', hmdeg', hmvars', hadm', ?_⟩
+  simpa [compiledPoly_eq_cookLevinFactoredPoly M n hn2 htb hns] using hrow
 
 /-- Paper-scale factored row certificate abbreviation. -/
 abbrev PaperScalePiPlusBooleanProjectedFactoredCompiledRowCertificateOneZero
@@ -147,6 +148,24 @@ theorem iterDerivList_cookLevinFactoredPoly_mem_leibniz_span
   exact iterDerivList_mul_mem_leibniz_span_bounded S
     (cookLevinBooleanFactorProd n) (restFactorProd' M n)
 
+/-- SPDP-row version of the factored Leibniz reduction: after multiplying by the
+row multiplier and applying `mlProj`, the row lies in the span of the projected
+length-bounded Leibniz summands.  This is the exact linear-algebra surface left
+for the Cook--Levin factor classifier. -/
+theorem mlProj_mul_iterDerivList_cookLevinFactoredPoly_mem_leibniz_image_span
+    (M : DTM) (n : Nat) (S : List (Fin n))
+    (m : MvPolynomial (Fin n) ℚ) :
+    mlProj (m * iterDerivList S (cookLevinFactoredPoly M n)) ∈
+      Submodule.span ℚ
+        ((fun q => mlProj (m * q)) ''
+          leibnizGenSetBounded S.length
+            (cookLevinBooleanFactorProd n) (restFactorProd' M n)) := by
+  exact SymmetricPower.mlProj_mul_mem_span_image m
+    (leibnizGenSetBounded S.length
+      (cookLevinBooleanFactorProd n) (restFactorProd' M n))
+    (iterDerivList S (cookLevinFactoredPoly M n))
+    (iterDerivList_cookLevinFactoredPoly_mem_leibniz_span M n S)
+
 /-! ## Axiom audit anchors -/
 
 #print axioms compiledPoly_eq_cookLevinFactoredPoly
@@ -154,5 +173,6 @@ theorem iterDerivList_cookLevinFactoredPoly_mem_leibniz_span
 #print axioms paperScale_compiledRowCertificateOneZero_of_factoredCompiledRowCertificate
 #print axioms paperScale_windowedCompiledRawPullbackMembershipOneZero_of_factoredCompiledRowCertificate
 #print axioms iterDerivList_cookLevinFactoredPoly_mem_leibniz_span
+#print axioms mlProj_mul_iterDerivList_cookLevinFactoredPoly_mem_leibniz_image_span
 
 end PallLean.Paper93.DeepMath.PathC
