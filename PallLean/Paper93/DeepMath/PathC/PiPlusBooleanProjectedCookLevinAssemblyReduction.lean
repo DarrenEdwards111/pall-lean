@@ -41,6 +41,61 @@ noncomputable def cookLevinFactoredPoly (M : DTM) (n : Nat) :
     MvPolynomial (Fin n) ℚ :=
   cookLevinBooleanFactorProd n * restFactorProd' M n
 
+/-- The Booleanity product written as the explicit `Fin n` factor list. -/
+theorem cookLevinBooleanFactorProd_eq_finRange (n : Nat) :
+    cookLevinBooleanFactorProd n =
+      ((List.finRange n).map (fun v =>
+        (1 : MvPolynomial (Fin n) ℚ) -
+          (MvPolynomial.X v * (1 - MvPolynomial.X v)))).prod := by
+  unfold cookLevinBooleanFactorProd
+  rw [boolConstraintFactors_eq]
+
+/-- The factored Cook--Levin polynomial with the Booleanity side fully exposed as
+`∏ᵥ (1 - Xᵥ(1-Xᵥ))`. -/
+theorem cookLevinFactoredPoly_eq_explicitBooleanFactors (M : DTM) (n : Nat) :
+    cookLevinFactoredPoly M n =
+      ((List.finRange n).map (fun v =>
+        (1 : MvPolynomial (Fin n) ℚ) -
+          (MvPolynomial.X v * (1 - MvPolynomial.X v)))).prod *
+        restFactorProd' M n := by
+  unfold cookLevinFactoredPoly
+  rw [cookLevinBooleanFactorProd_eq_finRange]
+
+/-- The constant term of the exposed Booleanity product is `1`. -/
+theorem cookLevinBooleanFactorProd_const_one (n : Nat) :
+    MvPolynomial.coeff 0 (cookLevinBooleanFactorProd n) = 1 := by
+  rw [cookLevinBooleanFactorProd_eq_finRange]
+  rw [← MvPolynomial.constantCoeff_eq, map_list_prod]
+  rw [List.map_map]
+  apply List.prod_eq_one
+  intro x hx
+  rw [List.mem_map] at hx
+  rcases hx with ⟨v, _hv, rfl⟩
+  show MvPolynomial.constantCoeff
+      ((1 : MvPolynomial (Fin n) ℚ) -
+        (MvPolynomial.X v * (1 - MvPolynomial.X v))) = 1
+  rw [map_sub, map_one]
+  have hmul : MvPolynomial.constantCoeff
+      ((MvPolynomial.X v : MvPolynomial (Fin n) ℚ) *
+        (1 - MvPolynomial.X v)) = 0 := by
+    rw [map_mul, MvPolynomial.constantCoeff_X, zero_mul]
+  rw [hmul, sub_zero]
+
+/-- The full factored Cook--Levin polynomial has constant term `1`; both the
+Booleanity product and the rest product have constant term `1`. -/
+theorem cookLevinFactoredPoly_const_one (M : DTM) (n : Nat) :
+    MvPolynomial.coeff 0 (cookLevinFactoredPoly M n) = 1 := by
+  unfold cookLevinFactoredPoly
+  rw [← MvPolynomial.constantCoeff_eq, map_mul]
+  have hbool : MvPolynomial.constantCoeff (cookLevinBooleanFactorProd n) = 1 := by
+    rw [MvPolynomial.constantCoeff_eq]
+    exact cookLevinBooleanFactorProd_const_one n
+  have hrest : MvPolynomial.constantCoeff (restFactorProd' M n) = 1 := by
+    rw [MvPolynomial.constantCoeff_eq]
+    exact restFactorProd'_const_one M n
+  rw [hbool, hrest]
+  norm_num
+
 /-- The compiled polynomial is definitionally/propositionally equal to the
 factored Cook--Levin product. -/
 theorem compiledPoly_eq_cookLevinFactoredPoly
@@ -309,6 +364,10 @@ theorem paperScale_compiledPSubspaceInclusionOneZero_of_rowSpanClassifier
 
 /-! ## Axiom audit anchors -/
 
+#print axioms cookLevinBooleanFactorProd_eq_finRange
+#print axioms cookLevinFactoredPoly_eq_explicitBooleanFactors
+#print axioms cookLevinBooleanFactorProd_const_one
+#print axioms cookLevinFactoredPoly_const_one
 #print axioms compiledPoly_eq_cookLevinFactoredPoly
 #print axioms compiledRowCertificate_of_factoredCompiledRowCertificate
 #print axioms paperScale_compiledRowCertificateOneZero_of_factoredCompiledRowCertificate
