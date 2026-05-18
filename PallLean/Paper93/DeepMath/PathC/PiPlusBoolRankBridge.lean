@@ -139,6 +139,26 @@ theorem map_liftToBool_rawBlockedSpdpSubspaceInc_eq_bool {n : ℕ}
     refine Submodule.mem_map_of_mem ?_
     exact Submodule.subset_span ⟨S, m, hlen, hdeg, hvars, hadm, rfl⟩
 
+/-- Boolean strict row spaces are finite-dimensional, as images of finite raw
+source row spaces under the quotient map. -/
+noncomputable instance boolBlockedSpdpSubspace_finite {n : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : BoolPoly n) :
+    Module.Finite ℚ (boolBlockedSpdpSubspace B κ ℓ p) := by
+  rw [← map_liftToBool_rawBlockedSpdpSubspace_eq_bool]
+  exact Module.Finite.map
+    (rawBlockedSpdpSubspace B κ ℓ (p : MvPolynomial (Fin n) ℚ))
+    (liftToBoolLinearMap n)
+
+/-- Boolean inclusive row spaces are finite-dimensional, as images of finite raw
+source row spaces under the quotient map. -/
+noncomputable instance boolBlockedSpdpSubspaceInc_finite {n : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : BoolPoly n) :
+    Module.Finite ℚ (boolBlockedSpdpSubspaceInc B κ ℓ p) := by
+  rw [← map_liftToBool_rawBlockedSpdpSubspaceInc_eq_bool]
+  exact Module.Finite.map
+    (rawBlockedSpdpSubspaceInc B κ ℓ (p : MvPolynomial (Fin n) ℚ))
+    (liftToBoolLinearMap n)
+
 /-- Membership transport from a raw strict full-ring row certificate into the
 Boolean-ambient strict row space. -/
 theorem liftToBool_mem_boolBlockedSpdpSubspace_of_mem_raw {n : ℕ}
@@ -169,6 +189,8 @@ theorem liftToBool_mem_boolBlockedSpdpSubspaceInc_of_mem_raw {n : ℕ}
 #print axioms rawBlockedSpdpSubspaceInc_finite
 #print axioms map_liftToBool_rawBlockedSpdpSubspace_eq_bool
 #print axioms map_liftToBool_rawBlockedSpdpSubspaceInc_eq_bool
+#print axioms boolBlockedSpdpSubspace_finite
+#print axioms boolBlockedSpdpSubspaceInc_finite
 #print axioms liftToBool_mem_boolBlockedSpdpSubspace_of_mem_raw
 #print axioms liftToBool_mem_boolBlockedSpdpSubspaceInc_of_mem_raw
 
