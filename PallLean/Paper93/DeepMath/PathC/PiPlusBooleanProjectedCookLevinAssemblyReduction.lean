@@ -166,6 +166,97 @@ theorem mlProj_mul_iterDerivList_cookLevinFactoredPoly_mem_leibniz_image_span
     (iterDerivList S (cookLevinFactoredPoly M n))
     (iterDerivList_cookLevinFactoredPoly_mem_leibniz_span M n S)
 
+/-- Generic linear-algebra bridge: if a target row lies in the span of a set
+whose raw `Pi+` pullbacks are already in a source subspace, then the raw pullback
+of the target row is in that source subspace. -/
+theorem piPlusRawPullback_mem_of_mem_span
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (piP : PiPlusSATTransform M n hn2 htb hns)
+    (G : Set (SATDeciderGaugeSpace M n hn2 htb hns))
+    (W : Submodule ℚ (SATDeciderGaugeSpace M n hn2 htb hns))
+    (row : SATDeciderGaugeSpace M n hn2 htb hns)
+    (hrow : row ∈ Submodule.span ℚ G)
+    (hG : ∀ q ∈ G, piP.equiv.symm q ∈ W) :
+    piP.equiv.symm row ∈ W := by
+  let L : SATDeciderGaugeSpace M n hn2 htb hns →ₗ[ℚ]
+      SATDeciderGaugeSpace M n hn2 htb hns := piP.equiv.symm.toLinearMap
+  change L row ∈ W
+  refine Submodule.span_induction
+    (p := fun x _ => L x ∈ W)
+    (by intro q hq; exact hG q hq) ?hzero ?hadd ?hsmul hrow
+  · simpa [L] using W.zero_mem
+  · intro x y _hxmem _hymem hx hy
+    simpa [L, map_add] using W.add_mem hx hy
+  · intro a x _hxmem hx
+    simpa [L, map_smul] using W.smul_mem a hx
+
+/-- A row-span classifier for the factored Cook--Levin target.  It separates the
+remaining product algebra into two explicit obligations:
+
+1. a span expansion for each Boolean-projected target row, and
+2. membership of the raw pullback of every generator in that expansion in the
+   enlarged source SPDP subspace.
+
+This is the precise form in which the Cook--Levin Leibniz summand classifier
+should be proved. -/
+def PiPlusBooleanProjectedFactoredRowSpanClassifier
+    (extraK extraL : Nat)
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (piP : PiPlusSATTransform M n hn2 htb hns) : Prop :=
+  ∀ (S : List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+    (m : SATDeciderGaugeSpace M n hn2 htb hns),
+      S.length = Nat.log 2 n →
+      m.totalDegree ≤ Nat.log 2 n →
+      m.vars ⊆ S.toFinset →
+      isBlockAdmissible (cook_levin_compilation M n hn2 htb hns).partition S →
+      ∃ G : Set (SATDeciderGaugeSpace M n hn2 htb hns),
+        mlProj (m * iterDerivList S
+          (piPlusBooleanProjectedGauge M n hn2 htb hns piP
+            (cookLevinFactoredPoly M n))) ∈ Submodule.span ℚ G ∧
+        ∀ q ∈ G,
+          piP.equiv.symm q ∈
+            mlBlockedSpdpSubspaceInc
+              (cook_levin_compilation M n hn2 htb hns).partition
+              (Nat.log 2 n + extraK) (Nat.log 2 n + extraL)
+              (cookLevinFactoredPoly M n)
+
+/-- The row-span classifier discharges direct factored raw-pullback membership.
+This is weaker and more natural than a single-row equality certificate, and is
+exactly what span-valued Leibniz expansions provide. -/
+theorem factoredRawPullbackMembership_of_rowSpanClassifier
+    (extraK extraL : Nat)
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (piP : PiPlusSATTransform M n hn2 htb hns)
+    (hclass : PiPlusBooleanProjectedFactoredRowSpanClassifier
+      extraK extraL M n hn2 htb hns piP) :
+    ∀ (S : List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+      (m : SATDeciderGaugeSpace M n hn2 htb hns),
+        S.length = Nat.log 2 n →
+        m.totalDegree ≤ Nat.log 2 n →
+        m.vars ⊆ S.toFinset →
+        isBlockAdmissible (cook_levin_compilation M n hn2 htb hns).partition S →
+        piP.equiv.symm
+          (mlProj (m * iterDerivList S
+            (piPlusBooleanProjectedGauge M n hn2 htb hns piP
+              (cookLevinFactoredPoly M n)))) ∈
+          mlBlockedSpdpSubspaceInc
+            (cook_levin_compilation M n hn2 htb hns).partition
+            (Nat.log 2 n + extraK) (Nat.log 2 n + extraL)
+            (cookLevinFactoredPoly M n) := by
+  intro S m hSlen hmdeg hmvars hadm
+  rcases hclass S m hSlen hmdeg hmvars hadm with ⟨G, hspan, hG⟩
+  exact piPlusRawPullback_mem_of_mem_span M n hn2 htb hns piP G
+    (mlBlockedSpdpSubspaceInc
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n + extraK) (Nat.log 2 n + extraL)
+      (cookLevinFactoredPoly M n))
+    (mlProj (m * iterDerivList S
+      (piPlusBooleanProjectedGauge M n hn2 htb hns piP
+        (cookLevinFactoredPoly M n)))) hspan hG
+
 /-! ## Axiom audit anchors -/
 
 #print axioms compiledPoly_eq_cookLevinFactoredPoly
@@ -174,5 +265,7 @@ theorem mlProj_mul_iterDerivList_cookLevinFactoredPoly_mem_leibniz_image_span
 #print axioms paperScale_windowedCompiledRawPullbackMembershipOneZero_of_factoredCompiledRowCertificate
 #print axioms iterDerivList_cookLevinFactoredPoly_mem_leibniz_span
 #print axioms mlProj_mul_iterDerivList_cookLevinFactoredPoly_mem_leibniz_image_span
+#print axioms piPlusRawPullback_mem_of_mem_span
+#print axioms factoredRawPullbackMembership_of_rowSpanClassifier
 
 end PallLean.Paper93.DeepMath.PathC
