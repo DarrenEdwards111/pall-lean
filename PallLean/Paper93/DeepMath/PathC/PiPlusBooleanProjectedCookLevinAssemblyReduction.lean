@@ -257,6 +257,56 @@ theorem factoredRawPullbackMembership_of_rowSpanClassifier
       (piPlusBooleanProjectedGauge M n hn2 htb hns piP
         (cookLevinFactoredPoly M n)))) hspan hG
 
+/-- The row-span classifier discharges the original compiled-polynomial
+raw-pullback membership socket by rewriting the compiled polynomial to the
+explicit factored Cook--Levin product. -/
+theorem compiledRawPullbackMembership_of_factoredRowSpanClassifier
+    (extraK extraL : Nat)
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (piP : PiPlusSATTransform M n hn2 htb hns)
+    (hclass : PiPlusBooleanProjectedFactoredRowSpanClassifier
+      extraK extraL M n hn2 htb hns piP) :
+    PiPlusBooleanProjectedWindowedCompiledRawPullbackMembership
+      extraK extraL M n hn2 htb hns piP := by
+  intro S m hSlen hmdeg hmvars hadm
+  have hfactored := factoredRawPullbackMembership_of_rowSpanClassifier
+    extraK extraL M n hn2 htb hns piP hclass S m hSlen hmdeg hmvars hadm
+  simpa [compiledPoly_eq_cookLevinFactoredPoly M n hn2 htb hns] using hfactored
+
+/-- Paper-scale row-span classifier abbreviation for the one-extra-derivative,
+zero-extra-multiplier window. -/
+abbrev PaperScalePiPlusBooleanProjectedFactoredRowSpanClassifierOneZero
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) : Prop :=
+  PiPlusBooleanProjectedFactoredRowSpanClassifier 1 0
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusSATTransform_paperScale M htb hns)
+
+/-- Paper-scale row-span classification discharges the named P-side Route-C
+raw-pullback membership socket. -/
+theorem paperScale_windowedCompiledRawPullbackMembershipOneZero_of_rowSpanClassifier
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hclass : PaperScalePiPlusBooleanProjectedFactoredRowSpanClassifierOneZero
+      M htb hns) :
+    PaperScalePiPlusBooleanProjectedWindowedCompiledRawPullbackMembershipOneZero
+      M htb hns :=
+  compiledRawPullbackMembership_of_factoredRowSpanClassifier
+    1 0 M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusSATTransform_paperScale M htb hns) hclass
+
+/-- Paper-scale row-span classification also discharges the compiled P-subspace
+inclusion socket used by the final Route-C bridge. -/
+theorem paperScale_compiledPSubspaceInclusionOneZero_of_rowSpanClassifier
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hclass : PaperScalePiPlusBooleanProjectedFactoredRowSpanClassifierOneZero
+      M htb hns) :
+    PaperScalePiPlusBooleanProjectedCompiledPSubspaceInclusionOneZero
+      M htb hns :=
+  paperScalePiPlusBooleanProjectedCompiledPSubspaceInclusionOneZero_of_windowedCompiledRawPullbackMembership
+    M htb hns
+    (paperScale_windowedCompiledRawPullbackMembershipOneZero_of_rowSpanClassifier
+      M htb hns hclass)
+
 /-! ## Axiom audit anchors -/
 
 #print axioms compiledPoly_eq_cookLevinFactoredPoly
@@ -267,5 +317,8 @@ theorem factoredRawPullbackMembership_of_rowSpanClassifier
 #print axioms mlProj_mul_iterDerivList_cookLevinFactoredPoly_mem_leibniz_image_span
 #print axioms piPlusRawPullback_mem_of_mem_span
 #print axioms factoredRawPullbackMembership_of_rowSpanClassifier
+#print axioms compiledRawPullbackMembership_of_factoredRowSpanClassifier
+#print axioms paperScale_windowedCompiledRawPullbackMembershipOneZero_of_rowSpanClassifier
+#print axioms paperScale_compiledPSubspaceInclusionOneZero_of_rowSpanClassifier
 
 end PallLean.Paper93.DeepMath.PathC
