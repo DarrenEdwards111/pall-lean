@@ -103,11 +103,57 @@ theorem piPlusSATBlockAlgEquiv_symm_booleanProjected_mixed :
   apply (piPlusSATBlockAlgEquiv M n hn2 htb hns D).injective
   simp [piPlusSATBlockAlgEquiv_X_true]
 
+/-- Coordinate-level row form of the atom: the repaired mixed-block pullback is
+exactly the one-extra-derivative source SPDP row. -/
+theorem piPlusSATBlockAlgEquiv_symm_booleanProjected_mixed_oneDerivativeRow :
+    (piPlusSATBlockAlgEquiv M n hn2 htb hns D).symm
+      (zeroProfileBooleanNormalize
+        (piPlusSATBlockAlgEquiv M n hn2 htb hns D
+          ((X (satBlockFalse M n hn2 htb hns D i)) *
+            (X (satBlockTrue M n hn2 htb hns D i)) :
+            PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeSpace M n hn2 htb hns))) =
+      mlProj
+        ((1 : PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeSpace M n hn2 htb hns) *
+          SPDP.iterDerivList [satBlockFalse M n hn2 htb hns D i]
+            (((X (satBlockFalse M n hn2 htb hns D i)) *
+              (X (satBlockTrue M n hn2 htb hns D i))) :
+              PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeSpace M n hn2 htb hns)) := by
+  rw [piPlusSATBlockAlgEquiv_symm_booleanProjected_mixed M n hn2 htb hns D i]
+  simp [SPDP.iterDerivList, mlProj_X_block]
+
+/-- Membership form of the coordinate atom: provided the singleton derivative
+list is block-admissible, the repaired mixed-block pullback is a generator of the
+inclusive one-derivative/zero-shift SPDP subspace of the source mixed monomial. -/
+theorem piPlusSATBlockAlgEquiv_symm_booleanProjected_mixed_mem_inc
+    (B : SPDP.BlockPartition (cook_levin_compilation M n hn2 htb hns).numVars)
+    (hadm : SPDP.isBlockAdmissible B [satBlockFalse M n hn2 htb hns D i]) :
+    (piPlusSATBlockAlgEquiv M n hn2 htb hns D).symm
+      (zeroProfileBooleanNormalize
+        (piPlusSATBlockAlgEquiv M n hn2 htb hns D
+          ((X (satBlockFalse M n hn2 htb hns D i)) *
+            (X (satBlockTrue M n hn2 htb hns D i)) :
+            PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeSpace M n hn2 htb hns))) ∈
+      mlBlockedSpdpSubspaceInc B 1 0
+        (((X (satBlockFalse M n hn2 htb hns D i)) *
+          (X (satBlockTrue M n hn2 htb hns D i))) :
+          PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeSpace M n hn2 htb hns) := by
+  rw [piPlusSATBlockAlgEquiv_symm_booleanProjected_mixed_oneDerivativeRow M n hn2 htb hns D i]
+  exact Submodule.subset_span
+    ⟨[satBlockFalse M n hn2 htb hns D i],
+      (1 : PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeSpace M n hn2 htb hns),
+      by simp,
+      by simp,
+      by simp,
+      hadm,
+      rfl⟩
+
 /-! ## Axiom audit anchors -/
 
 #print axioms piPlusSATBlockAlgEquiv_X_false
 #print axioms piPlusSATBlockAlgEquiv_X_true
 #print axioms zeroProfileBooleanNormalize_piPlusSATBlockAlgEquiv_mixed
 #print axioms piPlusSATBlockAlgEquiv_symm_booleanProjected_mixed
+#print axioms piPlusSATBlockAlgEquiv_symm_booleanProjected_mixed_oneDerivativeRow
+#print axioms piPlusSATBlockAlgEquiv_symm_booleanProjected_mixed_mem_inc
 
 end PallLean.Paper93.DeepMath.PathC
