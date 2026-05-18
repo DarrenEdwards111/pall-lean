@@ -49,6 +49,54 @@ noncomputable def rawBlockedSpdpSubspaceInc {n : ℕ}
         isBlockAdmissible B S ∧
         q = m * iterDerivList S p }
 
+/-- Raw strict-κ rows have bounded total degree. -/
+theorem rawBlockedSpdpSubspace_le_restrictTotalDegree {n : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ) :
+    rawBlockedSpdpSubspace B κ ℓ p ≤
+      MvPolynomial.restrictTotalDegree (Fin n) ℚ (ℓ + p.totalDegree) := by
+  apply Submodule.span_le.mpr
+  intro q hq
+  rcases hq with ⟨S, m, _hlen, hdeg, _hvars, _hadm, rfl⟩
+  have hdeg' : (m * iterDerivList S p).totalDegree ≤ ℓ + p.totalDegree :=
+    le_trans (MvPolynomial.totalDegree_mul m (iterDerivList S p))
+      (Nat.add_le_add hdeg (totalDegree_iterDerivList_le S p))
+  exact (MvPolynomial.mem_restrictTotalDegree _ _ _).mpr hdeg'
+
+/-- Raw inclusive-κ rows have bounded total degree. -/
+theorem rawBlockedSpdpSubspaceInc_le_restrictTotalDegree {n : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ) :
+    rawBlockedSpdpSubspaceInc B κ ℓ p ≤
+      MvPolynomial.restrictTotalDegree (Fin n) ℚ (ℓ + p.totalDegree) := by
+  apply Submodule.span_le.mpr
+  intro q hq
+  rcases hq with ⟨S, m, _hlen, hdeg, _hvars, _hadm, rfl⟩
+  have hdeg' : (m * iterDerivList S p).totalDegree ≤ ℓ + p.totalDegree :=
+    le_trans (MvPolynomial.totalDegree_mul m (iterDerivList S p))
+      (Nat.add_le_add hdeg (totalDegree_iterDerivList_le S p))
+  exact (MvPolynomial.mem_restrictTotalDegree _ _ _).mpr hdeg'
+
+/-- Raw strict-κ source spans are finite-dimensional. -/
+noncomputable instance rawBlockedSpdpSubspace_finite {n : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ) :
+    Module.Finite ℚ (rawBlockedSpdpSubspace B κ ℓ p) := by
+  have hle := rawBlockedSpdpSubspace_le_restrictTotalDegree B κ ℓ p
+  have : Module.Finite ℚ (MvPolynomial.restrictTotalDegree (Fin n) ℚ (ℓ + p.totalDegree)) :=
+    MvPolynomial.instFiniteSubtypeMemSubmoduleRestrictTotalDegreeOfFinite _ _ _
+  exact Module.Finite.of_injective
+    (Submodule.inclusion hle)
+    (Submodule.inclusion_injective _)
+
+/-- Raw inclusive-κ source spans are finite-dimensional. -/
+noncomputable instance rawBlockedSpdpSubspaceInc_finite {n : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ) :
+    Module.Finite ℚ (rawBlockedSpdpSubspaceInc B κ ℓ p) := by
+  have hle := rawBlockedSpdpSubspaceInc_le_restrictTotalDegree B κ ℓ p
+  have : Module.Finite ℚ (MvPolynomial.restrictTotalDegree (Fin n) ℚ (ℓ + p.totalDegree)) :=
+    MvPolynomial.instFiniteSubtypeMemSubmoduleRestrictTotalDegreeOfFinite _ _ _
+  exact Module.Finite.of_injective
+    (Submodule.inclusion hle)
+    (Submodule.inclusion_injective _)
+
 /-- Mapping the raw strict-κ full-ring row span through the Boolean quotient map
 is exactly the Boolean-ambient strict row span. -/
 theorem map_liftToBool_rawBlockedSpdpSubspace_eq_bool {n : ℕ}
@@ -115,6 +163,10 @@ theorem liftToBool_mem_boolBlockedSpdpSubspaceInc_of_mem_raw {n : ℕ}
 
 /-! ## Axiom audit anchors -/
 
+#print axioms rawBlockedSpdpSubspace_le_restrictTotalDegree
+#print axioms rawBlockedSpdpSubspaceInc_le_restrictTotalDegree
+#print axioms rawBlockedSpdpSubspace_finite
+#print axioms rawBlockedSpdpSubspaceInc_finite
 #print axioms map_liftToBool_rawBlockedSpdpSubspace_eq_bool
 #print axioms map_liftToBool_rawBlockedSpdpSubspaceInc_eq_bool
 #print axioms liftToBool_mem_boolBlockedSpdpSubspace_of_mem_raw

@@ -31,8 +31,6 @@ into a Boolean strict budget for `T p`. -/
 theorem boolBlockedSpdpRank_map_le_of_monotone_of_rawBudget {n : ℕ}
     {B : BlockPartition n} {T : BoolPoly n →ₗ[ℚ] BoolPoly n}
     {κ ℓ C : ℕ} {p : BoolPoly n}
-    [Module.Finite ℚ (rawBlockedSpdpSubspace B κ ℓ
-      (p : MvPolynomial (Fin n) ℚ))]
     (hmono : BoolRankMonotonicity B T)
     (hraw : RawToBoolRankBudget B κ ℓ C p) :
     boolBlockedSpdpRank B κ ℓ (T p) ≤ C := by
@@ -44,8 +42,6 @@ source budget for `p` into a Boolean inclusive budget for `T p`. -/
 theorem boolBlockedSpdpRankInc_map_le_of_monotone_of_rawBudget {n : ℕ}
     {B : BlockPartition n} {T : BoolPoly n →ₗ[ℚ] BoolPoly n}
     {κ ℓ C : ℕ} {p : BoolPoly n}
-    [Module.Finite ℚ (rawBlockedSpdpSubspaceInc B κ ℓ
-      (p : MvPolynomial (Fin n) ℚ))]
     (hmono : BoolRankMonotonicityInc B T)
     (hraw : RawToBoolRankBudgetInc B κ ℓ C p) :
     boolBlockedSpdpRankInc B κ ℓ (T p) ≤ C := by
@@ -60,9 +56,6 @@ theorem piPlusBoolRank_le_of_rankInvariant_of_rawBudget
     (piP : PiPlusSATTransform M n hn2 htb hns)
     {κ ℓ C : ℕ}
     {p : BoolPoly (cook_levin_compilation M n hn2 htb hns).numVars}
-    [Module.Finite ℚ (rawBlockedSpdpSubspace
-      (cook_levin_compilation M n hn2 htb hns).partition κ ℓ
-      (p : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ))]
     (hinv : PiPlusBoolRankInvariant piP)
     (hraw : RawToBoolRankBudget
       (cook_levin_compilation M n hn2 htb hns).partition κ ℓ C p) :
@@ -81,9 +74,6 @@ theorem piPlusBoolRankInc_le_of_rankInvariantInc_of_rawBudget
     (piP : PiPlusSATTransform M n hn2 htb hns)
     {κ ℓ C : ℕ}
     {p : BoolPoly (cook_levin_compilation M n hn2 htb hns).numVars}
-    [Module.Finite ℚ (rawBlockedSpdpSubspaceInc
-      (cook_levin_compilation M n hn2 htb hns).partition κ ℓ
-      (p : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ))]
     (hinv : PiPlusBoolRankInvariantInc piP)
     (hraw : RawToBoolRankBudgetInc
       (cook_levin_compilation M n hn2 htb hns).partition κ ℓ C p) :

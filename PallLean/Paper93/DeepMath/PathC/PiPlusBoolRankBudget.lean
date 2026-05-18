@@ -40,9 +40,7 @@ noncomputable def rawBlockedSpdpRankInc {n : ℕ}
 rank.  The only mathematical input is that quotient/image maps do not increase
 finrank. -/
 theorem boolBlockedSpdpRank_le_rawBlockedSpdpRank {n : ℕ}
-    (B : BlockPartition n) (κ ℓ : ℕ) (p : BoolPoly n)
-    [Module.Finite ℚ (rawBlockedSpdpSubspace B κ ℓ
-      (p : MvPolynomial (Fin n) ℚ))] :
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : BoolPoly n) :
     boolBlockedSpdpRank B κ ℓ p ≤
       rawBlockedSpdpRank B κ ℓ (p : MvPolynomial (Fin n) ℚ) := by
   unfold boolBlockedSpdpRank rawBlockedSpdpRank
@@ -52,9 +50,7 @@ theorem boolBlockedSpdpRank_le_rawBlockedSpdpRank {n : ℕ}
 /-- Boolean inclusive rank is bounded by the corresponding raw full-ring source
 rank. -/
 theorem boolBlockedSpdpRankInc_le_rawBlockedSpdpRankInc {n : ℕ}
-    (B : BlockPartition n) (κ ℓ : ℕ) (p : BoolPoly n)
-    [Module.Finite ℚ (rawBlockedSpdpSubspaceInc B κ ℓ
-      (p : MvPolynomial (Fin n) ℚ))] :
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : BoolPoly n) :
     boolBlockedSpdpRankInc B κ ℓ p ≤
       rawBlockedSpdpRankInc B κ ℓ (p : MvPolynomial (Fin n) ℚ) := by
   unfold boolBlockedSpdpRankInc rawBlockedSpdpRankInc
@@ -64,8 +60,6 @@ theorem boolBlockedSpdpRankInc_le_rawBlockedSpdpRankInc {n : ℕ}
 /-- A raw strict rank budget immediately gives a Boolean strict rank budget. -/
 theorem boolBlockedSpdpRank_le_of_rawBlockedSpdpRank_le {n : ℕ}
     {B : BlockPartition n} {κ ℓ C : ℕ} {p : BoolPoly n}
-    [Module.Finite ℚ (rawBlockedSpdpSubspace B κ ℓ
-      (p : MvPolynomial (Fin n) ℚ))]
     (hraw : rawBlockedSpdpRank B κ ℓ (p : MvPolynomial (Fin n) ℚ) ≤ C) :
     boolBlockedSpdpRank B κ ℓ p ≤ C :=
   le_trans (boolBlockedSpdpRank_le_rawBlockedSpdpRank B κ ℓ p) hraw
@@ -74,8 +68,6 @@ theorem boolBlockedSpdpRank_le_of_rawBlockedSpdpRank_le {n : ℕ}
 budget. -/
 theorem boolBlockedSpdpRankInc_le_of_rawBlockedSpdpRankInc_le {n : ℕ}
     {B : BlockPartition n} {κ ℓ C : ℕ} {p : BoolPoly n}
-    [Module.Finite ℚ (rawBlockedSpdpSubspaceInc B κ ℓ
-      (p : MvPolynomial (Fin n) ℚ))]
     (hraw : rawBlockedSpdpRankInc B κ ℓ (p : MvPolynomial (Fin n) ℚ) ≤ C) :
     boolBlockedSpdpRankInc B κ ℓ p ≤ C :=
   le_trans (boolBlockedSpdpRankInc_le_rawBlockedSpdpRankInc B κ ℓ p) hraw
@@ -95,8 +87,6 @@ abbrev RawToBoolRankBudgetInc {n : ℕ}
 /-- The strict migration interface discharges the Boolean rank bound. -/
 theorem boolBlockedSpdpRank_le_of_rawToBoolRankBudget {n : ℕ}
     {B : BlockPartition n} {κ ℓ C : ℕ} {p : BoolPoly n}
-    [Module.Finite ℚ (rawBlockedSpdpSubspace B κ ℓ
-      (p : MvPolynomial (Fin n) ℚ))]
     (h : RawToBoolRankBudget B κ ℓ C p) :
     boolBlockedSpdpRank B κ ℓ p ≤ C :=
   boolBlockedSpdpRank_le_of_rawBlockedSpdpRank_le h
@@ -104,8 +94,6 @@ theorem boolBlockedSpdpRank_le_of_rawToBoolRankBudget {n : ℕ}
 /-- The inclusive migration interface discharges the Boolean rank bound. -/
 theorem boolBlockedSpdpRankInc_le_of_rawToBoolRankBudgetInc {n : ℕ}
     {B : BlockPartition n} {κ ℓ C : ℕ} {p : BoolPoly n}
-    [Module.Finite ℚ (rawBlockedSpdpSubspaceInc B κ ℓ
-      (p : MvPolynomial (Fin n) ℚ))]
     (h : RawToBoolRankBudgetInc B κ ℓ C p) :
     boolBlockedSpdpRankInc B κ ℓ p ≤ C :=
   boolBlockedSpdpRankInc_le_of_rawBlockedSpdpRankInc_le h
