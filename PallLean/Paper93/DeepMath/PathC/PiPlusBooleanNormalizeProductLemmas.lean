@@ -86,6 +86,59 @@ theorem zeroProfileBooleanNormalize_normalized_monomial_mul_monomial
   rw [zeroProfileBooleanNormalize_monomial, zeroProfileBooleanNormalize_monomial]
   rw [zeroProfileBooleanExponent_add_left_normalized]
 
+/-- Monomial-left version of quotient product stability. -/
+theorem zeroProfileBooleanNormalize_normalized_monomial_mul
+    {n : Nat} (α : Fin n →₀ Nat) (c : ℚ) (q : MvPolynomial (Fin n) ℚ) :
+    zeroProfileBooleanNormalize
+      ((zeroProfileBooleanNormalize (monomial α c)) * q) =
+    zeroProfileBooleanNormalize ((monomial α c : MvPolynomial (Fin n) ℚ) * q) := by
+  classical
+  rw [show q = q.support.sum (fun β => monomial β (coeff β q)) from MvPolynomial.as_sum q]
+  rw [Finset.mul_sum, Finset.mul_sum]
+  change zeroProfileBooleanNormalizeLinearMap
+      (∑ β ∈ q.support, zeroProfileBooleanNormalize (monomial α c) * monomial β (coeff β q)) =
+    zeroProfileBooleanNormalizeLinearMap
+      (∑ β ∈ q.support, (monomial α c : MvPolynomial (Fin n) ℚ) * monomial β (coeff β q))
+  rw [map_sum, map_sum]
+  apply Finset.sum_congr rfl
+  intro β hβ
+  exact zeroProfileBooleanNormalize_normalized_monomial_mul_monomial α β c (coeff β q)
+
+/-- Boolean normalization of the left factor is invisible under a final Boolean
+normalization after multiplication.  This is the quotient-algebra associativity
+fact used to move between raw products and normalized representatives. -/
+theorem zeroProfileBooleanNormalize_left_normalized_mul
+    {n : Nat} (p q : MvPolynomial (Fin n) ℚ) :
+    zeroProfileBooleanNormalize (zeroProfileBooleanNormalize p * q) =
+      zeroProfileBooleanNormalize (p * q) := by
+  classical
+  induction p using MvPolynomial.induction_on' with
+  | monomial α c =>
+      exact zeroProfileBooleanNormalize_normalized_monomial_mul α c q
+  | add p r hp hr =>
+      rw [zeroProfileBooleanNormalize_add]
+      rw [add_mul, add_mul]
+      rw [zeroProfileBooleanNormalize_add, zeroProfileBooleanNormalize_add]
+      rw [hp, hr]
+
+/-- Boolean normalization of the right factor is invisible under a final Boolean
+normalization after multiplication. -/
+theorem zeroProfileBooleanNormalize_mul_right_normalized
+    {n : Nat} (p q : MvPolynomial (Fin n) ℚ) :
+    zeroProfileBooleanNormalize (p * zeroProfileBooleanNormalize q) =
+      zeroProfileBooleanNormalize (p * q) := by
+  rw [mul_comm p (zeroProfileBooleanNormalize q), mul_comm p q]
+  exact zeroProfileBooleanNormalize_left_normalized_mul q p
+
+/-- Full quotient-algebra product law: normalizing both factors before
+multiplication does not change the final Boolean normal form. -/
+theorem zeroProfileBooleanNormalize_mul_normalized
+    {n : Nat} (p q : MvPolynomial (Fin n) ℚ) :
+    zeroProfileBooleanNormalize (zeroProfileBooleanNormalize p * zeroProfileBooleanNormalize q) =
+      zeroProfileBooleanNormalize (p * q) := by
+  rw [zeroProfileBooleanNormalize_left_normalized_mul p (zeroProfileBooleanNormalize q)]
+  rw [zeroProfileBooleanNormalize_mul_right_normalized p q]
+
 /-- Multiples of the Boolean square residual vanish under Boolean normalization.
 This is the key quotient-algebra fact needed to peel Booleanity factors off the
 Cook--Levin product: `(Xᵢ²-Xᵢ) q` is zero in the Boolean quotient. -/
@@ -198,6 +251,10 @@ theorem zeroProfileBooleanNormalize_cookLevinBooleanFactorProd
 /-! ## Axiom audit anchors -/
 #print axioms zeroProfileBooleanExponent_add_left_normalized
 #print axioms zeroProfileBooleanNormalize_normalized_monomial_mul_monomial
+#print axioms zeroProfileBooleanNormalize_normalized_monomial_mul
+#print axioms zeroProfileBooleanNormalize_left_normalized_mul
+#print axioms zeroProfileBooleanNormalize_mul_right_normalized
+#print axioms zeroProfileBooleanNormalize_mul_normalized
 #print axioms zeroProfileBooleanNormalize_square_residual_mul
 #print axioms zeroProfileBooleanNormalize_boolFactor_mul
 #print axioms zeroProfileBooleanNormalize_boolFactor_listProd_mul
