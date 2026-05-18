@@ -1,4 +1,4 @@
-import PallLean.Paper93.DeepMath.PathC.PiPlusBooleanProjectedCoordinateAtom
+import PallLean.Paper93.DeepMath.PathC.PiPlusBooleanNormalizeProductLemmas
 
 /-!
 # Concrete transform bridge lemmas
@@ -85,6 +85,43 @@ theorem cookLevinPiPlusBooleanProjectedGauge_paperScale_apply
           (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) p) := by
   rfl
 
+/-- Concrete product law for the Boolean-projected gauge: for the coordinate-built
+`Pi+`, projected transport commutes with multiplication up to the final Boolean
+normal form.  This is the global quotient-product commutation needed by the
+factored Cook--Levin assembly. -/
+theorem piPlusBooleanProjectedGauge_of_blockCoordinates_mul
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (p q : SATDeciderGaugeSpace M n hn2 htb hns) :
+    piPlusBooleanProjectedGauge M n hn2 htb hns
+        (piPlusSATTransform_of_blockCoordinates M n hn2 htb hns D) (p * q) =
+      zeroProfileBooleanNormalize
+        (piPlusBooleanProjectedGauge M n hn2 htb hns
+            (piPlusSATTransform_of_blockCoordinates M n hn2 htb hns D) p *
+          piPlusBooleanProjectedGauge M n hn2 htb hns
+            (piPlusSATTransform_of_blockCoordinates M n hn2 htb hns D) q) := by
+  rw [piPlusBooleanProjectedGauge_of_blockCoordinates_apply]
+  rw [piPlusBooleanProjectedGauge_of_blockCoordinates_apply]
+  rw [piPlusBooleanProjectedGauge_of_blockCoordinates_apply]
+  rw [map_mul]
+  exact (zeroProfileBooleanNormalize_mul_normalized
+    (piPlusSATBlockAlgEquiv M n hn2 htb hns D p)
+    (piPlusSATBlockAlgEquiv M n hn2 htb hns D q)).symm
+
+/-- Paper-scale product law for the concrete Boolean-projected Cook--Levin
+`Pi+` transform. -/
+theorem cookLevinPiPlusBooleanProjectedGauge_paperScale_mul
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (p q : SATDeciderGaugeSpace M (2 ^ 804) paperScale_ge_two htb hns) :
+    cookLevinPiPlusBooleanProjectedGauge_paperScale M htb hns (p * q) =
+      zeroProfileBooleanNormalize
+        (cookLevinPiPlusBooleanProjectedGauge_paperScale M htb hns p *
+          cookLevinPiPlusBooleanProjectedGauge_paperScale M htb hns q) := by
+  exact piPlusBooleanProjectedGauge_of_blockCoordinates_mul
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) p q
+
 /-- Paper-scale coordinate atom, rewritten entirely through the public
 `cookLevinPiPlusSATTransform_paperScale` / `cookLevinPiPlusBooleanProjectedGauge_paperScale`
 interfaces. -/
@@ -144,6 +181,8 @@ theorem cookLevinPiPlusSATTransform_paperScale_symm_booleanProjected_mixed_mem_i
 #print axioms cookLevinPiPlusSATTransform_paperScale_gauge_apply
 #print axioms cookLevinPiPlusSATTransform_paperScale_symm_apply
 #print axioms cookLevinPiPlusBooleanProjectedGauge_paperScale_apply
+#print axioms piPlusBooleanProjectedGauge_of_blockCoordinates_mul
+#print axioms cookLevinPiPlusBooleanProjectedGauge_paperScale_mul
 #print axioms cookLevinPiPlusSATTransform_paperScale_symm_booleanProjected_mixed
 #print axioms cookLevinPiPlusSATTransform_paperScale_symm_booleanProjected_mixed_mem_inc
 
