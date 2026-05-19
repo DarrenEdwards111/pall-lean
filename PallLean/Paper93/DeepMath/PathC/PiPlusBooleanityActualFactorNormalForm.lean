@@ -41,6 +41,38 @@ def BlockPiPlusInvMixedMlProjZero : Prop :=
   mlProj (blockPiPlusInvAlgHom ι
     ((X (i, false)) * (X (i, true)) : MvPolynomial (ι × Bool) ℚ)) = 0
 
+/-- The mixed-term identity is unconditional: inverse `Pi+` sends the mixed
+term to a difference of squares, and legacy `mlProj` kills both squares. -/
+theorem blockPiPlusInvMixedMlProjZero_unconditional :
+    BlockPiPlusInvMixedMlProjZero i := by
+  unfold BlockPiPlusInvMixedMlProjZero
+  rw [map_mul]
+  simp only [blockPiPlusInvAlgHom_X_false, blockPiPlusInvAlgHom_X_true]
+  have hprod :
+      (((1 / 2 : ℚ) • (X (i, false) + X (i, true))) *
+          ((1 / 2 : ℚ) • (X (i, false) - X (i, true))) :
+          MvPolynomial (ι × Bool) ℚ) =
+        (1 / 4 : ℚ) •
+          (X (i, false) * X (i, false) - X (i, true) * X (i, true)) := by
+    rw [smul_mul_smul]
+    norm_num
+    rw [← sq_sub_sq]
+    simp [pow_two]
+  rw [hprod]
+  rw [mlProj_smul]
+  have hdiff :
+      mlProj (X (i, false) * X (i, false) - X (i, true) * X (i, true) :
+          MvPolynomial (ι × Bool) ℚ) = 0 := by
+    rw [show mlProj (X (i, false) * X (i, false) - X (i, true) * X (i, true) :
+          MvPolynomial (ι × Bool) ℚ) =
+        mlProj (X (i, false) * X (i, false) : MvPolynomial (ι × Bool) ℚ) -
+          mlProj (X (i, true) * X (i, true) : MvPolynomial (ι × Bool) ℚ) by
+      exact map_sub (mlProjLinearMap (ι × Bool) ℚ) _ _]
+    rw [mlProj_block_X_square_zero i false, mlProj_block_X_square_zero i true]
+    simp
+  rw [hdiff]
+  simp
+
 /-- Exact Boolean-normalization identity needed for the false-side actual
 Booleanity factor. -/
 def BlockBooleanityFalseNormalizedIdentity : Prop :=
@@ -60,6 +92,98 @@ def BlockBooleanityTrueNormalizedIdentity : Prop :=
         X (i, true) * (1 - X (i, true)))) =
     ((1 : MvPolynomial (ι × Bool) ℚ) -
       (2 : ℚ) • (X (i, false) * X (i, true)))
+
+omit [DecidableEq ι] in
+private theorem blockBooleanNormalize_one_block :
+    blockBooleanNormalize (1 : MvPolynomial (ι × Bool) ℚ) = 1 := by
+  rw [show (1 : MvPolynomial (ι × Bool) ℚ) =
+      MvPolynomial.monomial (0 : ι × Bool →₀ ℕ) (1 : ℚ) by
+    rw [MvPolynomial.monomial_zero']; rfl]
+  rw [blockBooleanNormalize_monomial]
+  rw [show blockBooleanExponent (0 : ι × Bool →₀ ℕ) = 0 by
+    ext j
+    simp [blockBooleanExponent]]
+
+private theorem blockBooleanNormalize_mixed_same_block :
+    blockBooleanNormalize (X (i, false) * X (i, true) : MvPolynomial (ι × Bool) ℚ) =
+      (X (i, false) * X (i, true) : MvPolynomial (ι × Bool) ℚ) := by
+  exact BoolPoly.blockBooleanNormalize_X_mul_X_ne (a := (i, false)) (b := (i, true)) (by simp)
+
+/-- False-side actual Booleanity normalization, discharged directly from the
+Boolean quotient algebra. -/
+theorem blockBooleanityFalseNormalizedIdentity_unconditional :
+    BlockBooleanityFalseNormalizedIdentity i := by
+  unfold BlockBooleanityFalseNormalizedIdentity
+  rw [map_sub, map_mul]
+  simp only [map_one, map_sub, blockPiPlusAlgHom_X_false]
+  let xf : MvPolynomial (ι × Bool) ℚ := X (i, false)
+  let xt : MvPolynomial (ι × Bool) ℚ := X (i, true)
+  change blockBooleanNormalize (1 - (xf + xt) * (1 - (xf + xt))) =
+    (1 : MvPolynomial (ι × Bool) ℚ) + (2 : ℚ) • (xf * xt)
+  have hexpand :
+      (1 - (xf + xt) * (1 - (xf + xt)) : MvPolynomial (ι × Bool) ℚ) =
+        1 - xf - xt + xf * xf + xf * xt + xt * xf + xt * xt := by
+    ring
+  rw [hexpand]
+  repeat rw [BoolPoly.blockBooleanNormalize_add]
+  repeat rw [blockBooleanNormalize_sub]
+  rw [blockBooleanNormalize_one_block]
+  rw [blockBooleanNormalize_X]
+  rw [blockBooleanNormalize_X]
+  rw [blockBooleanNormalize_X_mul_X]
+  rw [blockBooleanNormalize_mixed_same_block]
+  rw [show blockBooleanNormalize (xt * xf) = xt * xf by
+    exact BoolPoly.blockBooleanNormalize_X_mul_X_ne (a := (i, true)) (b := (i, false)) (by simp)]
+  rw [blockBooleanNormalize_X_mul_X]
+  change (1 - xf - xt + xf + xf * xt + xt * xf + xt : MvPolynomial (ι × Bool) ℚ) =
+    1 + (2 : ℚ) • (xf * xt)
+  rw [show xt * xf = xf * xt by rw [mul_comm]]
+  simp [smul_eq_C_mul]
+  rw [show (C (2 : ℚ) : MvPolynomial (ι × Bool) ℚ) = 2 by
+    simpa using (MvPolynomial.C_eq_coe_nat (σ := ι × Bool) (R := ℚ) 2)]
+  ring_nf
+
+/-- True-side actual Booleanity normalization.  This is the concrete corrected
+normal form: unlike the false-side branch, it retains an extra linear `true`
+coordinate term. -/
+theorem blockBooleanityTrueNormalizedActualForm :
+    blockBooleanNormalize
+      (blockPiPlusAlgHom ι
+        ((1 : MvPolynomial (ι × Bool) ℚ) -
+          X (i, true) * (1 - X (i, true)))) =
+      ((1 : MvPolynomial (ι × Bool) ℚ) +
+        (2 : ℚ) • X (i, true) -
+        (2 : ℚ) • (X (i, false) * X (i, true))) := by
+  rw [map_sub, map_mul]
+  simp only [map_one, map_sub, blockPiPlusAlgHom_X_true]
+  let xf : MvPolynomial (ι × Bool) ℚ := X (i, false)
+  let xt : MvPolynomial (ι × Bool) ℚ := X (i, true)
+  change blockBooleanNormalize (1 - (xf - xt) * (1 - (xf - xt))) =
+    (1 : MvPolynomial (ι × Bool) ℚ) + (2 : ℚ) • xt - (2 : ℚ) • (xf * xt)
+  have hexpand :
+      (1 - (xf - xt) * (1 - (xf - xt)) : MvPolynomial (ι × Bool) ℚ) =
+        1 - xf + xt + xf * xf - xf * xt - xt * xf + xt * xt := by
+    ring
+  rw [hexpand]
+  repeat rw [BoolPoly.blockBooleanNormalize_add]
+  repeat rw [blockBooleanNormalize_sub]
+  repeat rw [BoolPoly.blockBooleanNormalize_add]
+  repeat rw [blockBooleanNormalize_sub]
+  rw [blockBooleanNormalize_one_block]
+  rw [blockBooleanNormalize_X]
+  rw [blockBooleanNormalize_X]
+  rw [blockBooleanNormalize_X_mul_X]
+  rw [blockBooleanNormalize_mixed_same_block]
+  rw [show blockBooleanNormalize (xt * xf) = xt * xf by
+    exact BoolPoly.blockBooleanNormalize_X_mul_X_ne (a := (i, true)) (b := (i, false)) (by simp)]
+  rw [blockBooleanNormalize_X_mul_X]
+  change (1 - xf + xt + xf - xf * xt - xt * xf + xt : MvPolynomial (ι × Bool) ℚ) =
+    1 + (2 : ℚ) • xt - (2 : ℚ) • (xf * xt)
+  rw [show xt * xf = xf * xt by rw [mul_comm]]
+  simp [smul_eq_C_mul]
+  rw [show (C (2 : ℚ) : MvPolynomial (ι × Bool) ℚ) = 2 by
+    simpa using (MvPolynomial.C_eq_coe_nat (σ := ι × Bool) (R := ℚ) 2)]
+  ring_nf
 
 private theorem mlProj_one_block :
     mlProj (1 : MvPolynomial (ι × Bool) ℚ) = 1 := by
@@ -111,6 +235,9 @@ theorem mlProj_blockPiPlusInv_booleanProjected_booleanity_true_of_exactIdentitie
 /-! ## Axiom audit anchors -/
 
 #print axioms mlProj_block_X_square_zero
+#print axioms blockPiPlusInvMixedMlProjZero_unconditional
+#print axioms blockBooleanityFalseNormalizedIdentity_unconditional
+#print axioms blockBooleanityTrueNormalizedActualForm
 #print axioms mlProj_blockPiPlusInv_booleanProjected_booleanity_false_of_exactIdentities
 #print axioms mlProj_blockPiPlusInv_booleanProjected_booleanity_true_of_exactIdentities
 
