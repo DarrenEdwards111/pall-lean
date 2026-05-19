@@ -23,6 +23,36 @@ set_option exponentiation.threshold 1000
 
 namespace BoolPoly
 
+/-- Projecting the raw strict full-ring row span with the legacy `mlProj` map is
+exactly the legacy multilinear SPDP row span. -/
+theorem map_mlProj_rawBlockedSpdpSubspace_eq_ml {n : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ) :
+    Submodule.map (mlProjLinearMap (Fin n) ℚ)
+        (rawBlockedSpdpSubspace B κ ℓ p) =
+      mlBlockedSpdpSubspace B κ ℓ p := by
+  apply le_antisymm
+  · rw [rawBlockedSpdpSubspace, Submodule.map_span]
+    apply Submodule.span_le.mpr
+    intro q hq
+    rcases hq with ⟨r, hr, rfl⟩
+    rcases hr with ⟨S, m, hlen, hdeg, hvars, hadm, rfl⟩
+    exact Submodule.subset_span ⟨S, m, hlen, hdeg, hvars, hadm, rfl⟩
+  · rw [mlBlockedSpdpSubspace]
+    apply Submodule.span_le.mpr
+    intro q hq
+    rcases hq with ⟨S, m, hlen, hdeg, hvars, hadm, rfl⟩
+    refine Submodule.mem_map_of_mem ?_
+    exact Submodule.subset_span ⟨S, m, hlen, hdeg, hvars, hadm, rfl⟩
+
+/-- The legacy multilinear SPDP rank is bounded by the raw source rank: it is
+the image of the raw source span under `mlProj`. -/
+theorem mlBlockedSpdpRank_le_rawBlockedSpdpRank {n : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ) :
+    mlBlockedSpdpRank B κ ℓ p ≤ rawBlockedSpdpRank B κ ℓ p := by
+  unfold mlBlockedSpdpRank rawBlockedSpdpRank
+  rw [← map_mlProj_rawBlockedSpdpSubspace_eq_ml B κ ℓ p]
+  exact Submodule.finrank_map_le _ _
+
 /-- Raw full-ring source lower bound at the paper-scale NP window, using the
 raw row source that maps exactly into the Boolean row space. -/
 def PaperScaleCookLevinRawSourceNPLowerBound
@@ -82,16 +112,37 @@ def PaperScaleCookLevinLegacyToRawSourceNPRankLower
       (Nat.log 2 (2 ^ 804)) (Nat.log 2 (2 ^ 804))
       (compiledPoly (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns))
 
-/-- Legacy NP lower plus legacy-to-raw transport gives the raw source NP lower. -/
+/-- The legacy-to-raw NP rank transport is automatic: legacy `mlProj` rows are
+the image of raw rows, so image rank cannot exceed source rank. -/
+theorem paperScaleCookLevinLegacyToRawSourceNPRankLower_of_mlProjImage
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) :
+    PaperScaleCookLevinLegacyToRawSourceNPRankLower M htb hns := by
+  unfold PaperScaleCookLevinLegacyToRawSourceNPRankLower
+  exact mlBlockedSpdpRank_le_rawBlockedSpdpRank
+    (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+    (Nat.log 2 (2 ^ 804)) (Nat.log 2 (2 ^ 804))
+    (compiledPoly (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns))
+
+/-- Legacy NP lower gives the raw source NP lower, because legacy rows are the
+`mlProj` image of the raw source rows. -/
+theorem paperScaleCookLevinRawSourceNPLowerBound_of_legacyLower
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hlegacy : PaperScaleCookLevinLegacySourceNPLowerBound M htb hns) :
+    PaperScaleCookLevinRawSourceNPLowerBound M htb hns := by
+  unfold PaperScaleCookLevinLegacySourceNPLowerBound
+    PaperScaleCookLevinRawSourceNPLowerBound at *
+  exact le_trans hlegacy
+    (paperScaleCookLevinLegacyToRawSourceNPRankLower_of_mlProjImage M htb hns)
+
+/-- Legacy NP lower plus legacy-to-raw transport gives the raw source NP lower.
+Kept as a compatibility wrapper for callers that still expose the transport
+field explicitly. -/
 theorem paperScaleCookLevinRawSourceNPLowerBound_of_legacyLower_of_legacyToRawLower
     (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
     (hlegacy : PaperScaleCookLevinLegacySourceNPLowerBound M htb hns)
-    (htransport : PaperScaleCookLevinLegacyToRawSourceNPRankLower M htb hns) :
-    PaperScaleCookLevinRawSourceNPLowerBound M htb hns := by
-  unfold PaperScaleCookLevinLegacySourceNPLowerBound
-    PaperScaleCookLevinLegacyToRawSourceNPRankLower
-    PaperScaleCookLevinRawSourceNPLowerBound at *
-  exact le_trans hlegacy htransport
+    (_htransport : PaperScaleCookLevinLegacyToRawSourceNPRankLower M htb hns) :
+    PaperScaleCookLevinRawSourceNPLowerBound M htb hns :=
+  paperScaleCookLevinRawSourceNPLowerBound_of_legacyLower M htb hns hlegacy
 
 /-- Legacy NP lower plus both transport obligations gives the Boolean source NP
 lower. -/
@@ -117,31 +168,49 @@ theorem paperScaleCookLevinLegacySourceNPLowerBound_of_compiledNPLower
     M (2 ^ 804) (le_rfl : 2 ^ 804 ≥ 2 ^ 804) htb hns
   convert hnp using 2
 
-/-- Fully expanded no-decider surface where the NP source lower is supplied by
-the existing legacy lower theorem plus the two explicit NP transport seams. -/
-theorem no_decidesSAT_at_paperScale_of_boolRowPayloadsAndNPTransportsFromDecider
+/-- No-decider surface where the NP source lower is supplied by the existing
+legacy lower theorem plus only the raw-to-Boolean noncollapse seam.  The
+legacy-to-raw step is now proved. -/
+theorem no_decidesSAT_at_paperScale_of_boolRowPayloadsAndRawToBoolNPTransportFromDecider
     (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
     (HrowInc : DecidesSAT M → PaperScaleCookLevinPiPlusBoolRowPreservationInc M htb hns)
     (Hrow : DecidesSAT M → PaperScaleCookLevinPiPlusBoolRowPreservation M htb hns)
     (HP : DecidesSAT M → PaperScaleCookLevinLegacyBlockedIncPSideRankBoundOneZero M htb hns)
-    (HlegacyToRaw : DecidesSAT M → PaperScaleCookLevinLegacyToRawSourceNPRankLower M htb hns)
     (HrawToBool : DecidesSAT M → PaperScaleCookLevinRawToBoolSourceNPRankLower M htb hns) :
     ¬ DecidesSAT M := by
   apply no_decidesSAT_at_paperScale_of_boolRowPayloadsFromDecider
     M htb hns HrowInc Hrow HP
   intro hdec
-  exact paperScaleCookLevinBoolSourceNPLowerBound_of_legacyLower_of_transports
+  exact paperScaleCookLevinBoolSourceNPLowerBound_of_rawSourceLower_of_rawToBoolLower
     M htb hns
-    (paperScaleCookLevinLegacySourceNPLowerBound_of_compiledNPLower M htb hns)
-    (HlegacyToRaw hdec)
+    (paperScaleCookLevinRawSourceNPLowerBound_of_legacyLower M htb hns
+      (paperScaleCookLevinLegacySourceNPLowerBound_of_compiledNPLower M htb hns))
     (HrawToBool hdec)
+
+/-- Compatibility no-decider surface where callers still provide both NP
+transport seams. -/
+theorem no_decidesSAT_at_paperScale_of_boolRowPayloadsAndNPTransportsFromDecider
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (HrowInc : DecidesSAT M → PaperScaleCookLevinPiPlusBoolRowPreservationInc M htb hns)
+    (Hrow : DecidesSAT M → PaperScaleCookLevinPiPlusBoolRowPreservation M htb hns)
+    (HP : DecidesSAT M → PaperScaleCookLevinLegacyBlockedIncPSideRankBoundOneZero M htb hns)
+    (_HlegacyToRaw : DecidesSAT M → PaperScaleCookLevinLegacyToRawSourceNPRankLower M htb hns)
+    (HrawToBool : DecidesSAT M → PaperScaleCookLevinRawToBoolSourceNPRankLower M htb hns) :
+    ¬ DecidesSAT M :=
+  no_decidesSAT_at_paperScale_of_boolRowPayloadsAndRawToBoolNPTransportFromDecider
+    M htb hns HrowInc Hrow HP HrawToBool
 
 /-! ## Axiom audit anchors -/
 
+#print axioms map_mlProj_rawBlockedSpdpSubspace_eq_ml
+#print axioms mlBlockedSpdpRank_le_rawBlockedSpdpRank
 #print axioms paperScaleCookLevinBoolSourceNPLowerBound_of_rawSourceLower_of_rawToBoolLower
+#print axioms paperScaleCookLevinLegacyToRawSourceNPRankLower_of_mlProjImage
+#print axioms paperScaleCookLevinRawSourceNPLowerBound_of_legacyLower
 #print axioms paperScaleCookLevinRawSourceNPLowerBound_of_legacyLower_of_legacyToRawLower
 #print axioms paperScaleCookLevinBoolSourceNPLowerBound_of_legacyLower_of_transports
 #print axioms paperScaleCookLevinLegacySourceNPLowerBound_of_compiledNPLower
+#print axioms no_decidesSAT_at_paperScale_of_boolRowPayloadsAndRawToBoolNPTransportFromDecider
 #print axioms no_decidesSAT_at_paperScale_of_boolRowPayloadsAndNPTransportsFromDecider
 
 end BoolPoly
