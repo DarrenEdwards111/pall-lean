@@ -130,13 +130,14 @@ transport is already available separately as
 `paperScaleCookLevinRawSourceNPLowerBound_of_legacyLower`. -/
 theorem paperScaleCookLevinBoolRawImageSourceNPRankLower_of_rawLower_of_kernelDisjoint
     (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
-    (hraw : 2 ^ 804 ≤
+    (hraw : Nat.choose ((2 ^ 804) / 3) (Nat.log 2 (2 ^ 804)) ≤
       rawBlockedSpdpRank
         (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
         (Nat.log 2 (2 ^ 804)) (Nat.log 2 (2 ^ 804))
         (compiledPoly (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns)))
     (hker : PaperScaleCookLevinBoolRawImageSourceNPKernelDisjoint M htb hns) :
-    2 ^ 804 ≤ paperScaleCookLevinBoolRawImageSourceNPRank M htb hns := by
+    Nat.choose ((2 ^ 804) / 3) (Nat.log 2 (2 ^ 804)) ≤
+      paperScaleCookLevinBoolRawImageSourceNPRank M htb hns := by
   unfold PaperScaleCookLevinBoolRawImageSourceNPKernelDisjoint at hker
   unfold paperScaleCookLevinBoolRawImageSourceNPRank
   exact le_trans hraw
