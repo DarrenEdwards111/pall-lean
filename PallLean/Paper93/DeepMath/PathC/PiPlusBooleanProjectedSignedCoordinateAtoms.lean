@@ -133,6 +133,56 @@ def SignedCrossAtomMlProjRenameCompatibility
         SPDP.iterDerivList []
           (satSignedCrossAtom M n hn2 htb hns c a b))
 
+/-- Flat SAT-coordinate signed atoms are multilinear when their endpoints are
+distinct. -/
+theorem mlProj_satSignedCrossAtom
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (c : ℚ)
+    {a b : Fin (cook_levin_compilation M n hn2 htb hns).numVars}
+    (hab : a ≠ b) :
+    mlProj (satSignedCrossAtom M n hn2 htb hns c a b) =
+      satSignedCrossAtom M n hn2 htb hns c a b := by
+  unfold satSignedCrossAtom
+  have hmul := mlProj_X_mul_X_ne
+    (σ := Fin (cook_levin_compilation M n hn2 htb hns).numVars)
+    (a := a) (b := b) hab
+  rw [sub_eq_add_neg, mlProj_add]
+  have hone :
+      mlProj (1 : SATDeciderGaugeSpace M n hn2 htb hns) = 1 := by
+    rw [show (1 : SATDeciderGaugeSpace M n hn2 htb hns) =
+        MvPolynomial.monomial 0 1 by rfl, mlProj_monomial]
+    have h0 : Finsupp.IsMultilinear
+        (0 : Fin (cook_levin_compilation M n hn2 htb hns).numVars →₀ ℕ) := by
+      intro x
+      simp
+    rw [if_pos h0]
+  have hneg :
+      mlProj (-(c • (X a * X b : SATDeciderGaugeSpace M n hn2 htb hns))) =
+        -(c • (X a * X b : SATDeciderGaugeSpace M n hn2 htb hns)) := by
+    rw [← neg_one_smul ℚ (c • (X a * X b : SATDeciderGaugeSpace M n hn2 htb hns)),
+      mlProj_smul, mlProj_smul, hmul]
+  rw [hone, hneg]
+
+/-- The `mlProj`/rename compatibility seam is unconditional for signed
+cross-block atoms once the two flat endpoints lie in distinct `Pi+` blocks. -/
+theorem signedCrossAtomMlProjRenameCompatibility_unconditional
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (c : ℚ)
+    (a b : Fin (cook_levin_compilation M n hn2 htb hns).numVars)
+    (hab : (D.coord a).1 ≠ (D.coord b).1) :
+    SignedCrossAtomMlProjRenameCompatibility M n hn2 htb hns D c a b := by
+  unfold SignedCrossAtomMlProjRenameCompatibility
+  simp [SPDP.iterDerivList, blockIterDerivList]
+  rw [mlProj_blockSignedCrossAtom (hij := hab)]
+  have habflat : a ≠ b := by
+    intro h
+    exact hab (by rw [h])
+  rw [mlProj_satSignedCrossAtom M n hn2 htb hns c habflat]
+  exact (satSignedCrossAtom_eq_rename_blockSignedCrossAtom M n hn2 htb hns D c a b).symm
+
 /-- Coordinate conjugation plus the local signed atom certificate and the
 isolated `mlProj`/rename compatibility yields the flat SAT-coordinate signed atom
 row certificate. -/
@@ -175,6 +225,20 @@ abbrev PaperScaleSignedCrossAtomMlProjRenameCompatibility
     M (2 ^ 804) paperScale_ge_two htb hns
     (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) c a b
 
+/-- Paper-scale `mlProj`/rename compatibility is unconditional from distinct
+block endpoints. -/
+theorem paperScaleSignedCrossAtomMlProjRenameCompatibility_unconditional
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (c : ℚ)
+    (a b : Fin (cook_levin_compilation M (2 ^ 804)
+      paperScale_ge_two htb hns).numVars)
+    (hab : ((cookLevinPiPlusBlockCoordinateData_paperScale M htb hns).coord a).1 ≠
+      ((cookLevinPiPlusBlockCoordinateData_paperScale M htb hns).coord b).1) :
+    PaperScaleSignedCrossAtomMlProjRenameCompatibility M htb hns c a b :=
+  signedCrossAtomMlProjRenameCompatibility_unconditional
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) c a b hab
+
 /-- Paper-scale signed coordinate certificate from the isolated conjugation and
 `mlProj`/rename seams. -/
 theorem paperScalePiPlusBooleanProjectedSignedCrossAtomRowCertificate_of_coordinateConjugation
@@ -198,7 +262,10 @@ theorem paperScalePiPlusBooleanProjectedSignedCrossAtomRowCertificate_of_coordin
 
 #print axioms satSignedCrossAtom_eq_rename_blockSignedCrossAtom
 #print axioms rename_symm_blockSignedCrossAtom_zeroDerivativeRow
+#print axioms mlProj_satSignedCrossAtom
+#print axioms signedCrossAtomMlProjRenameCompatibility_unconditional
 #print axioms piPlusBooleanProjectedSignedCrossAtomRowCertificate_of_coordinateConjugation
+#print axioms paperScaleSignedCrossAtomMlProjRenameCompatibility_unconditional
 #print axioms paperScalePiPlusBooleanProjectedSignedCrossAtomRowCertificate_of_coordinateConjugation
 
 end BoolPoly
