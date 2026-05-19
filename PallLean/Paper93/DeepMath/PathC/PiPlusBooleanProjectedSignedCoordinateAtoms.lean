@@ -398,11 +398,42 @@ theorem paperScaleSignedCrossAtomCoordinateConjugation_of_booleanNormalizeRename
     M (2 ^ 804) paperScale_ge_two htb hns
     (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) c a b hnorm
 
+/-- Direct coordinate-conjugation discharge for signed cross atoms.
+
+This proves the seam itself rather than routing through the named compatibility
+hypothesis: rewrite the flat atom into block coordinates, cancel the concrete
+block-Hadamard algebra equivalence on the forward and inverse sides, and use the
+Boolean-ambient monomial normalization transport under `D.coord`. -/
+theorem signedCrossAtomCoordinateConjugation_direct
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (c : ℚ)
+    (a b : Fin (cook_levin_compilation M n hn2 htb hns).numVars) :
+    SignedCrossAtomCoordinateConjugation M n hn2 htb hns D c a b := by
+  unfold SignedCrossAtomCoordinateConjugation
+  rw [satSignedCrossAtom_eq_rename_blockSignedCrossAtom M n hn2 htb hns D c a b]
+  rw [piPlusSATBlockAlgEquiv_rename_symm_apply]
+  change (piPlusSATBlockAlgEquiv M n hn2 htb hns D).symm
+      (zeroProfileBooleanNormalize
+        (MvPolynomial.rename D.coord.symm
+          (blockPiPlusAlgHom D.blockIndex
+            (blockSignedCrossAtom c (D.coord a).1 (D.coord b).1
+              (D.coord a).2 (D.coord b).2)))) =
+    MvPolynomial.rename D.coord.symm
+      (blockPiPlusInvAlgHom D.blockIndex
+        (blockBooleanNormalize
+          (blockPiPlusAlgHom D.blockIndex
+            (blockSignedCrossAtom c (D.coord a).1 (D.coord b).1
+              (D.coord a).2 (D.coord b).2))))
+  rw [zeroProfileBooleanNormalize_rename_equiv_blockBooleanNormalize]
+  rw [piPlusSATBlockAlgEquiv_symm_rename_symm_apply]
+  rfl
+
 /-- The signed cross-atom coordinate-conjugation seam is unconditional.
 
-The algebraic content is exactly that `zeroProfileBooleanNormalize` commutes
-with renaming the block-coordinate Boolean ambient into flat SAT coordinates,
-together with the concrete `Pi+` algebra-equivalence cancellation lemmas. -/
+Kept as the public closeout name; the proof is the direct Boolean-ambient
+conjugation calculation above. -/
 theorem signedCrossAtomCoordinateConjugation_unconditional
     (M : DTM) (n : Nat) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
@@ -410,10 +441,28 @@ theorem signedCrossAtomCoordinateConjugation_unconditional
     (c : ℚ)
     (a b : Fin (cook_levin_compilation M n hn2 htb hns).numVars) :
     SignedCrossAtomCoordinateConjugation M n hn2 htb hns D c a b :=
-  signedCrossAtomCoordinateConjugation_of_booleanNormalizeRename
-    M n hn2 htb hns D c a b
-    (signedCrossAtomBooleanNormalizeRenameCompatibility_unconditional
-      M n hn2 htb hns D c a b)
+  signedCrossAtomCoordinateConjugation_direct M n hn2 htb hns D c a b
+
+/-- In flat SAT coordinates, Boolean-projected block-Hadamard conjugation fixes
+signed cross atoms whose endpoints lie in distinct `Pi+` blocks.  This is the
+coordinate-level `Pi+ ∘ Pi+ = id` algebraic content; the separate `mlProj` row
+bookkeeping remains isolated in `SignedCrossAtomMlProjRenameCompatibility`. -/
+theorem piPlusSATBlockAlgEquiv_symm_booleanProjected_signedCrossAtom_distinct_blocks
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (c : ℚ)
+    (a b : Fin (cook_levin_compilation M n hn2 htb hns).numVars)
+    (hab : (D.coord a).1 ≠ (D.coord b).1) :
+    (piPlusSATBlockAlgEquiv M n hn2 htb hns D).symm
+      (zeroProfileBooleanNormalize
+        (piPlusSATBlockAlgEquiv M n hn2 htb hns D
+          (satSignedCrossAtom M n hn2 htb hns c a b))) =
+      satSignedCrossAtom M n hn2 htb hns c a b := by
+  rw [signedCrossAtomCoordinateConjugation_direct M n hn2 htb hns D c a b]
+  rw [blockPiPlusInvAlgHom_booleanProjected_signedCrossAtom_distinct_blocks
+    (hij := hab)]
+  rw [satSignedCrossAtom_eq_rename_blockSignedCrossAtom M n hn2 htb hns D c a b]
 
 /-- Paper-scale abbreviation for the coordinate conjugation seam. -/
 abbrev PaperScaleSignedCrossAtomCoordinateConjugation
@@ -551,7 +600,9 @@ theorem paperScalePiPlusBooleanProjectedSignedCrossAtomRowCertificate_of_coordin
 #print axioms zeroProfileBooleanNormalize_rename_equiv_blockBooleanNormalize
 #print axioms signedCrossAtomBooleanNormalizeRenameCompatibility_unconditional
 #print axioms signedCrossAtomCoordinateConjugation_of_booleanNormalizeRename
+#print axioms signedCrossAtomCoordinateConjugation_direct
 #print axioms signedCrossAtomCoordinateConjugation_unconditional
+#print axioms piPlusSATBlockAlgEquiv_symm_booleanProjected_signedCrossAtom_distinct_blocks
 #print axioms mlProj_satSignedCrossAtom
 #print axioms signedCrossAtomMlProjRenameCompatibility_unconditional
 #print axioms piPlusBooleanProjectedSignedCrossAtomRowCertificate_of_coordinateConjugation
