@@ -398,6 +398,23 @@ theorem paperScaleSignedCrossAtomCoordinateConjugation_of_booleanNormalizeRename
     M (2 ^ 804) paperScale_ge_two htb hns
     (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) c a b hnorm
 
+/-- The signed cross-atom coordinate-conjugation seam is unconditional.
+
+The algebraic content is exactly that `zeroProfileBooleanNormalize` commutes
+with renaming the block-coordinate Boolean ambient into flat SAT coordinates,
+together with the concrete `Pi+` algebra-equivalence cancellation lemmas. -/
+theorem signedCrossAtomCoordinateConjugation_unconditional
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (c : ℚ)
+    (a b : Fin (cook_levin_compilation M n hn2 htb hns).numVars) :
+    SignedCrossAtomCoordinateConjugation M n hn2 htb hns D c a b :=
+  signedCrossAtomCoordinateConjugation_of_booleanNormalizeRename
+    M n hn2 htb hns D c a b
+    (signedCrossAtomBooleanNormalizeRenameCompatibility_unconditional
+      M n hn2 htb hns D c a b)
+
 /-- Paper-scale abbreviation for the coordinate conjugation seam. -/
 abbrev PaperScaleSignedCrossAtomCoordinateConjugation
     (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
@@ -415,6 +432,17 @@ abbrev PaperScaleSignedCrossAtomMlProjRenameCompatibility
     (a b : Fin (cook_levin_compilation M (2 ^ 804)
       paperScale_ge_two htb hns).numVars) : Prop :=
   SignedCrossAtomMlProjRenameCompatibility
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) c a b
+
+/-- Paper-scale coordinate conjugation is unconditional. -/
+theorem paperScaleSignedCrossAtomCoordinateConjugation_unconditional
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (c : ℚ)
+    (a b : Fin (cook_levin_compilation M (2 ^ 804)
+      paperScale_ge_two htb hns).numVars) :
+    PaperScaleSignedCrossAtomCoordinateConjugation M htb hns c a b :=
+  signedCrossAtomCoordinateConjugation_unconditional
     M (2 ^ 804) paperScale_ge_two htb hns
     (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) c a b
 
@@ -523,12 +551,14 @@ theorem paperScalePiPlusBooleanProjectedSignedCrossAtomRowCertificate_of_coordin
 #print axioms zeroProfileBooleanNormalize_rename_equiv_blockBooleanNormalize
 #print axioms signedCrossAtomBooleanNormalizeRenameCompatibility_unconditional
 #print axioms signedCrossAtomCoordinateConjugation_of_booleanNormalizeRename
+#print axioms signedCrossAtomCoordinateConjugation_unconditional
 #print axioms mlProj_satSignedCrossAtom
 #print axioms signedCrossAtomMlProjRenameCompatibility_unconditional
 #print axioms piPlusBooleanProjectedSignedCrossAtomRowCertificate_of_coordinateConjugation
 #print axioms piPlusBooleanProjectedSignedCrossAtomRowCertificate_of_booleanNormalizeRename
 #print axioms piPlusBooleanProjectedSignedCrossAtomRowCertificate_unconditional
 #print axioms paperScaleSignedCrossAtomCoordinateConjugation_of_booleanNormalizeRename
+#print axioms paperScaleSignedCrossAtomCoordinateConjugation_unconditional
 #print axioms paperScaleSignedCrossAtomBooleanNormalizeRenameCompatibility_unconditional
 #print axioms paperScaleSignedCrossAtomMlProjRenameCompatibility_unconditional
 #print axioms paperScalePiPlusBooleanProjectedSignedCrossAtomRowCertificate_of_booleanNormalizeRename
