@@ -193,6 +193,45 @@ private theorem mlProj_one_block :
   rw [h1, mlProj_monomial]
   exact if_pos (by intro j; simp)
 
+/-- The true-side actual Booleanity row has an unavoidable linear residue on the
+corrected post-pullback `mlProj` surface. -/
+theorem mlProj_blockPiPlusInv_booleanProjected_booleanity_true_actualForm :
+    mlProj (blockPiPlusInvAlgHom ι
+      (blockBooleanNormalize
+        (blockPiPlusAlgHom ι
+          ((1 : MvPolynomial (ι × Bool) ℚ) -
+            X (i, true) * (1 - X (i, true)))))) =
+      ((1 : MvPolynomial (ι × Bool) ℚ) + X (i, false) - X (i, true)) := by
+  rw [blockBooleanityTrueNormalizedActualForm]
+  rw [map_sub, map_add, map_smul, map_smul]
+  have hsub :
+      mlProj (((blockPiPlusInvAlgHom ι) 1 +
+          (2 : ℚ) • (blockPiPlusInvAlgHom ι) (X (i, true))) -
+          (2 : ℚ) • (blockPiPlusInvAlgHom ι) (X (i, false) * X (i, true))) =
+        mlProj ((blockPiPlusInvAlgHom ι) 1 +
+          (2 : ℚ) • (blockPiPlusInvAlgHom ι) (X (i, true))) -
+          mlProj ((2 : ℚ) • (blockPiPlusInvAlgHom ι) (X (i, false) * X (i, true))) := by
+    exact map_sub (mlProjLinearMap (ι × Bool) ℚ) _ _
+  rw [hsub, mlProj_add, mlProj_smul, mlProj_smul]
+  rw [blockPiPlusInvMixedMlProjZero_unconditional i]
+  simp only [smul_zero, sub_zero]
+  simp only [blockPiPlusInvAlgHom_X_true]
+  have hinner :
+      mlProj ((1 / 2 : ℚ) • (X (i, false) - X (i, true)) : MvPolynomial (ι × Bool) ℚ) =
+        (1 / 2 : ℚ) • (X (i, false) - X (i, true)) := by
+    rw [mlProj_smul]
+    rw [show mlProj (X (i, false) - X (i, true) : MvPolynomial (ι × Bool) ℚ) =
+        mlProj (X (i, false) : MvPolynomial (ι × Bool) ℚ) -
+          mlProj (X (i, true) : MvPolynomial (ι × Bool) ℚ) by
+      exact map_sub (mlProjLinearMap (ι × Bool) ℚ) _ _]
+    rw [mlProj_X_block, mlProj_X_block]
+  rw [hinner]
+  rw [map_one]
+  rw [mlProj_one_block]
+  rw [smul_smul]
+  norm_num
+  simp [sub_eq_add_neg, add_assoc]
+
 /-- If the exact false-side Booleanity normalization identities are supplied,
 then the actual Booleanity row normal form is the constant `1`. -/
 theorem mlProj_blockPiPlusInv_booleanProjected_booleanity_false_of_exactIdentities
@@ -209,6 +248,19 @@ theorem mlProj_blockPiPlusInv_booleanProjected_booleanity_false_of_exactIdentiti
   rw [mlProj_add, mlProj_smul]
   rw [hmixed]
   simp [mlProj_one_block]
+
+/-- The false-side actual Booleanity row closes unconditionally on the corrected
+post-pullback `mlProj` surface. -/
+theorem mlProj_blockPiPlusInv_booleanProjected_booleanity_false_unconditional :
+    mlProj (blockPiPlusInvAlgHom ι
+      (blockBooleanNormalize
+        (blockPiPlusAlgHom ι
+          ((1 : MvPolynomial (ι × Bool) ℚ) -
+            X (i, false) * (1 - X (i, false)))))) =
+      (1 : MvPolynomial (ι × Bool) ℚ) :=
+  mlProj_blockPiPlusInv_booleanProjected_booleanity_false_of_exactIdentities
+    i (blockPiPlusInvMixedMlProjZero_unconditional i)
+      (blockBooleanityFalseNormalizedIdentity_unconditional i)
 
 /-- If the exact true-side Booleanity normalization identities are supplied,
 then the actual Booleanity row normal form is the constant `1`. -/
@@ -238,6 +290,8 @@ theorem mlProj_blockPiPlusInv_booleanProjected_booleanity_true_of_exactIdentitie
 #print axioms blockPiPlusInvMixedMlProjZero_unconditional
 #print axioms blockBooleanityFalseNormalizedIdentity_unconditional
 #print axioms blockBooleanityTrueNormalizedActualForm
+#print axioms mlProj_blockPiPlusInv_booleanProjected_booleanity_false_unconditional
+#print axioms mlProj_blockPiPlusInv_booleanProjected_booleanity_true_actualForm
 #print axioms mlProj_blockPiPlusInv_booleanProjected_booleanity_false_of_exactIdentities
 #print axioms mlProj_blockPiPlusInv_booleanProjected_booleanity_true_of_exactIdentities
 
