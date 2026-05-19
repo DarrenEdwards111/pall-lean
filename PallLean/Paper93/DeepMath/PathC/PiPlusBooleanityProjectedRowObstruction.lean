@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathC.PiPlusBooleanityPullbackNormalization
+import PallLean.Paper93.DeepMath.PathC.PiPlusBooleanityActualFactorNormalForm
 
 /-!
 # Projected Booleanity rows: single-row obstruction and span-level replacement
@@ -6,11 +7,11 @@ import PallLean.Paper93.DeepMath.PathC.PiPlusBooleanityPullbackNormalization
 The actual Cook--Levin Booleanity factor is `1 - X(1-X)`.  Even after adding a
 final `mlProj` to the post-`Pi⁺⁻¹` side, asking for a *single* SPDP generator is
 still the wrong interface: the Booleanity factor has both constant and linear
-parts, and the corrected left side is best treated as a span-level row payload.
+parts, and the true-side row contains the partner-coordinate residue.
 
 This file records a small one-variable obstruction showing why the single-row
-surface is too tight, then introduces the replacement span-level Booleanity
-payload to be used by the product assembly seam.
+surface is too tight, then introduces the replacement block-residue span payload
+to be used by the product assembly seam.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathC
@@ -43,9 +44,61 @@ theorem unaryBooleanitySingleRowTooTightDiagnostic :
     UnaryBooleanitySingleRowTooTightDiagnostic := by
   trivial
 
+/-- Flat SAT-coordinate version of the corrected block residue span for actual
+Booleanity rows.  For a variable `v`, the projected Booleanity row is allowed to
+land in the multilinear span of the constant row and both variables in `v`'s
+`Π+` block.  This is the concrete residue surface corresponding to
+`BlockBooleanityActualProjectedResidueSpan`, not a hidden single-row seam. -/
+noncomputable def SATBlockBooleanityActualProjectedResidueSpan
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (v : Fin (cook_levin_compilation M n hn2 htb hns).numVars) :
+    Submodule ℚ (SATDeciderGaugeSpace M n hn2 htb hns) :=
+  Submodule.span ℚ
+    ({(1 : SATDeciderGaugeSpace M n hn2 htb hns),
+      X (satBlockFalse M n hn2 htb hns D (D.coord v).1),
+      X (satBlockTrue M n hn2 htb hns D (D.coord v).1)} :
+      Set (SATDeciderGaugeSpace M n hn2 htb hns))
+
+/-- The constant row is an admitted SAT-level Booleanity residue generator. -/
+theorem one_mem_SATBlockBooleanityActualProjectedResidueSpan
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (v : Fin (cook_levin_compilation M n hn2 htb hns).numVars) :
+    (1 : SATDeciderGaugeSpace M n hn2 htb hns) ∈
+      SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D v := by
+  exact Submodule.subset_span (by simp)
+
+/-- The false coordinate of `v`'s `Π+` block is an admitted SAT-level
+Booleanity residue generator. -/
+theorem X_false_mem_SATBlockBooleanityActualProjectedResidueSpan
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (v : Fin (cook_levin_compilation M n hn2 htb hns).numVars) :
+    (X (satBlockFalse M n hn2 htb hns D (D.coord v).1) :
+      SATDeciderGaugeSpace M n hn2 htb hns) ∈
+      SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D v := by
+  exact Submodule.subset_span (by simp)
+
+/-- The true coordinate of `v`'s `Π+` block is an admitted SAT-level Booleanity
+residue generator. -/
+theorem X_true_mem_SATBlockBooleanityActualProjectedResidueSpan
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (v : Fin (cook_levin_compilation M n hn2 htb hns).numVars) :
+    (X (satBlockTrue M n hn2 htb hns D (D.coord v).1) :
+      SATDeciderGaugeSpace M n hn2 htb hns) ∈
+      SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D v := by
+  exact Submodule.subset_span (by simp)
+
 /-- Span-level corrected Booleanity row certificate.  This is the proper target:
-the Booleanity row is allowed to be a linear combination of admissible projected
-SPDP generators instead of a single generator. -/
+the Booleanity row is allowed to be block-local constant-plus-linear residue
+content instead of being forced into a single source generator or the constant
+row. -/
 def PiPlusBooleanProjectedBooleanityFactorProjectedSpanCertificate
     (M : DTM) (n : Nat) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
@@ -57,19 +110,7 @@ def PiPlusBooleanProjectedBooleanityFactorProjectedSpanCertificate
         (piPlusSATBlockAlgEquiv M n hn2 htb hns D
           (((1 : MvPolynomial (Fin n) ℚ) - (boolLC n v).poly) :
             SATDeciderGaugeSpace M n hn2 htb hns)))) ∈
-    Submodule.span ℚ
-      {r : SATDeciderGaugeSpace M n hn2 htb hns |
-        ∃ (S : List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
-          (m : SATDeciderGaugeSpace M n hn2 htb hns),
-          S.length ≤ 1 ∧
-            m.totalDegree ≤ 0 ∧
-              m.vars ⊆ S.toFinset ∧
-                isBlockAdmissible
-                  (cook_levin_compilation M n hn2 htb hns).partition S ∧
-                r = mlProj
-                  (m * SPDP.iterDerivList S
-                    ((((1 : MvPolynomial (Fin n) ℚ) - (boolLC n v).poly) :
-                      SATDeciderGaugeSpace M n hn2 htb hns)))}
+    SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D v
 
 /-- Span-level Booleanity payload. -/
 def CookLevinBooleanityFactorProjectedSpanPayload
@@ -116,6 +157,10 @@ theorem paperScale_booleanityProjectedRows_of_spanPayload_reduction
 
 /-! ## Axiom audit anchors -/
 
+#print axioms SATBlockBooleanityActualProjectedResidueSpan
+#print axioms one_mem_SATBlockBooleanityActualProjectedResidueSpan
+#print axioms X_false_mem_SATBlockBooleanityActualProjectedResidueSpan
+#print axioms X_true_mem_SATBlockBooleanityActualProjectedResidueSpan
 #print axioms unaryBooleanitySingleRowTooTightDiagnostic
 #print axioms paperScale_booleanityProjectedRows_of_spanPayload_reduction
 

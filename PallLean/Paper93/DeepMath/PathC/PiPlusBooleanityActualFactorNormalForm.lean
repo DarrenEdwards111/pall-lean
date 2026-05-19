@@ -8,7 +8,9 @@ requires the actual factor `1 - X_v(1-X_v)`, not the mixed atom.  This file pins
 the exact block-level polynomial identities needed for that branch and proves the
 final row consequence from those identities.
 
-No payload shape is introduced: these are concrete polynomial equalities.
+The key interface change is local and explicit: the true-side residue is admitted
+as constant-plus-linear multilinear content in a small block span, rather than
+hidden behind the false target that every Booleanity row closes to `1`.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathC
@@ -18,6 +20,7 @@ open MultilinearSPDP
 
 attribute [local instance] Classical.dec
 set_option exponentiation.threshold 1000
+set_option linter.unusedSectionVars false
 
 variable {ι : Type*} [DecidableEq ι] (i : ι)
 
@@ -83,8 +86,9 @@ def BlockBooleanityFalseNormalizedIdentity : Prop :=
     ((1 : MvPolynomial (ι × Bool) ℚ) +
       (2 : ℚ) • (X (i, false) * X (i, true)))
 
-/-- Exact Boolean-normalization identity needed for the true-side actual
-Booleanity factor. -/
+/-- Obsolete over-strong true-side Boolean-normalization target.  The actual
+normal form has a linear residue (see `blockBooleanityTrueNormalizedActualForm`);
+this predicate is retained only to document the old constant-closure seam. -/
 def BlockBooleanityTrueNormalizedIdentity : Prop :=
   blockBooleanNormalize
     (blockPiPlusAlgHom ι
@@ -193,6 +197,38 @@ private theorem mlProj_one_block :
   rw [h1, mlProj_monomial]
   exact if_pos (by intro j; simp)
 
+/-- The corrected local target for actual Booleanity rows: after post-pullback
+multilinearization, Booleanity may contribute the constant row together with the
+linear coordinates of its local `Π+` block.  This matches the paper-level
+multilinear/rank surface rather than the over-strong factor-level expectation
+that every Booleanity row close to the constant `1`. -/
+def BlockBooleanityActualProjectedResidueSpan :
+    Submodule ℚ (MvPolynomial (ι × Bool) ℚ) :=
+  Submodule.span ℚ
+    ({(1 : MvPolynomial (ι × Bool) ℚ), X (i, false), X (i, true)} :
+      Set (MvPolynomial (ι × Bool) ℚ))
+
+/-- The constant row is admitted by the corrected actual-Booleanity residue
+span. -/
+theorem one_mem_blockBooleanityActualProjectedResidueSpan :
+    (1 : MvPolynomial (ι × Bool) ℚ) ∈
+      BlockBooleanityActualProjectedResidueSpan (i := i) := by
+  exact Submodule.subset_span (by simp)
+
+/-- The false linear coordinate is admitted by the corrected actual-Booleanity
+residue span. -/
+theorem X_false_mem_blockBooleanityActualProjectedResidueSpan :
+    (X (i, false) : MvPolynomial (ι × Bool) ℚ) ∈
+      BlockBooleanityActualProjectedResidueSpan (i := i) := by
+  exact Submodule.subset_span (by simp)
+
+/-- The true linear coordinate is admitted by the corrected actual-Booleanity
+residue span. -/
+theorem X_true_mem_blockBooleanityActualProjectedResidueSpan :
+    (X (i, true) : MvPolynomial (ι × Bool) ℚ) ∈
+      BlockBooleanityActualProjectedResidueSpan (i := i) := by
+  exact Submodule.subset_span (by simp)
+
 /-- The true-side actual Booleanity row has an unavoidable linear residue on the
 corrected post-pullback `mlProj` surface. -/
 theorem mlProj_blockPiPlusInv_booleanProjected_booleanity_true_actualForm :
@@ -232,6 +268,26 @@ theorem mlProj_blockPiPlusInv_booleanProjected_booleanity_true_actualForm :
   norm_num
   simp [sub_eq_add_neg, add_assoc]
 
+/-- The true-side actual Booleanity row belongs to the corrected local residue
+span.  This is the paper-faithful replacement for the old over-strong target
+that tried to force true-side Booleanity to close to the constant row. -/
+theorem mlProj_blockPiPlusInv_booleanProjected_booleanity_true_mem_residueSpan :
+    mlProj (blockPiPlusInvAlgHom ι
+      (blockBooleanNormalize
+        (blockPiPlusAlgHom ι
+          ((1 : MvPolynomial (ι × Bool) ℚ) -
+            X (i, true) * (1 - X (i, true)))))) ∈
+      BlockBooleanityActualProjectedResidueSpan (i := i) := by
+  rw [mlProj_blockPiPlusInv_booleanProjected_booleanity_true_actualForm]
+  simpa [sub_eq_add_neg] using
+    (Submodule.add_mem _
+      (Submodule.add_mem _
+        (one_mem_blockBooleanityActualProjectedResidueSpan (i := i))
+        (X_false_mem_blockBooleanityActualProjectedResidueSpan (i := i)))
+      (Submodule.neg_mem _
+        (X_true_mem_blockBooleanityActualProjectedResidueSpan (i := i))))
+
+
 /-- If the exact false-side Booleanity normalization identities are supplied,
 then the actual Booleanity row normal form is the constant `1`. -/
 theorem mlProj_blockPiPlusInv_booleanProjected_booleanity_false_of_exactIdentities
@@ -262,8 +318,21 @@ theorem mlProj_blockPiPlusInv_booleanProjected_booleanity_false_unconditional :
     i (blockPiPlusInvMixedMlProjZero_unconditional i)
       (blockBooleanityFalseNormalizedIdentity_unconditional i)
 
-/-- If the exact true-side Booleanity normalization identities are supplied,
-then the actual Booleanity row normal form is the constant `1`. -/
+/-- The false-side actual Booleanity row belongs to the corrected local residue
+span; in fact it still closes to the constant row. -/
+theorem mlProj_blockPiPlusInv_booleanProjected_booleanity_false_mem_residueSpan :
+    mlProj (blockPiPlusInvAlgHom ι
+      (blockBooleanNormalize
+        (blockPiPlusAlgHom ι
+          ((1 : MvPolynomial (ι × Bool) ℚ) -
+            X (i, false) * (1 - X (i, false)))))) ∈
+      BlockBooleanityActualProjectedResidueSpan (i := i) := by
+  rw [mlProj_blockPiPlusInv_booleanProjected_booleanity_false_unconditional]
+  exact one_mem_blockBooleanityActualProjectedResidueSpan (i := i)
+
+/-- Conditional discharge of the obsolete true-side constant-closure seam.  The
+paper-faithful route does not try to prove this hypothesis; it uses
+`mlProj_blockPiPlusInv_booleanProjected_booleanity_true_mem_residueSpan` instead. -/
 theorem mlProj_blockPiPlusInv_booleanProjected_booleanity_true_of_exactIdentities
     (hmixed : BlockPiPlusInvMixedMlProjZero i)
     (h : BlockBooleanityTrueNormalizedIdentity i) :
@@ -292,6 +361,8 @@ theorem mlProj_blockPiPlusInv_booleanProjected_booleanity_true_of_exactIdentitie
 #print axioms blockBooleanityTrueNormalizedActualForm
 #print axioms mlProj_blockPiPlusInv_booleanProjected_booleanity_false_unconditional
 #print axioms mlProj_blockPiPlusInv_booleanProjected_booleanity_true_actualForm
+#print axioms mlProj_blockPiPlusInv_booleanProjected_booleanity_true_mem_residueSpan
+#print axioms mlProj_blockPiPlusInv_booleanProjected_booleanity_false_mem_residueSpan
 #print axioms mlProj_blockPiPlusInv_booleanProjected_booleanity_false_of_exactIdentities
 #print axioms mlProj_blockPiPlusInv_booleanProjected_booleanity_true_of_exactIdentities
 
