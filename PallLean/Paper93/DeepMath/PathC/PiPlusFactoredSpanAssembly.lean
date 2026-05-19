@@ -83,6 +83,19 @@ structure PaperScaleCookLevinFactoredRowCertificateSpanAssemblyReduction
     PaperScalePiPlusBooleanProjectedFactoredCompiledRowCertificateOneZero
       M htb hns
 
+/-- Rank-aware span-level inputs plus the span-level product assembly reduction
+give the factored compiled-row certificate directly.  This is the preferred
+frontier for the product seam: Booleanity membership and residue rank absorption
+travel together in `hin`. -/
+theorem paperScale_factoredCompiledRowCertificate_of_spanInputs_spanAssemblyReduction
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hin : PaperScaleCookLevinSpanConstraintListAtomicRowInputs M htb hns)
+    (hred : PaperScaleCookLevinFactoredRowCertificateSpanAssemblyReduction
+      M htb hns) :
+    PaperScalePiPlusBooleanProjectedFactoredCompiledRowCertificateOneZero
+      M htb hns :=
+  hred.assemble hin
+
 /-- Span-level Booleanity payload plus the span-level product assembly reduction
 gives the factored compiled-row certificate directly. -/
 theorem paperScale_factoredCompiledRowCertificate_of_booleanitySpan_spanAssemblyReduction
@@ -92,9 +105,25 @@ theorem paperScale_factoredCompiledRowCertificate_of_booleanitySpan_spanAssembly
       M htb hns) :
     PaperScalePiPlusBooleanProjectedFactoredCompiledRowCertificateOneZero
       M htb hns :=
-  hred.assemble
+  paperScale_factoredCompiledRowCertificate_of_spanInputs_spanAssemblyReduction
+    M htb hns
     (paperScale_spanConstraintListAtomicRowInputs_of_booleanitySpan
       M htb hns hbool)
+    hred
+
+/-- Rank-aware span-level inputs close the paper-scale P-side raw-pullback
+membership through the existing factored certificate route. -/
+theorem paperScale_windowedCompiledRawPullbackMembershipOneZero_of_spanInputs_spanAssemblyReduction
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hin : PaperScaleCookLevinSpanConstraintListAtomicRowInputs M htb hns)
+    (hred : PaperScaleCookLevinFactoredRowCertificateSpanAssemblyReduction
+      M htb hns) :
+    PaperScalePiPlusBooleanProjectedWindowedCompiledRawPullbackMembershipOneZero
+      M htb hns :=
+  paperScale_windowedCompiledRawPullbackMembershipOneZero_of_factoredRowCertificate
+    M htb hns
+    (paperScale_factoredCompiledRowCertificate_of_spanInputs_spanAssemblyReduction
+      M htb hns hin hred)
 
 /-- Span-level assembly closes the paper-scale P-side raw-pullback membership
 through the existing factored certificate route. -/
@@ -105,10 +134,36 @@ theorem paperScale_windowedCompiledRawPullbackMembershipOneZero_of_booleanitySpa
       M htb hns) :
     PaperScalePiPlusBooleanProjectedWindowedCompiledRawPullbackMembershipOneZero
       M htb hns :=
-  paperScale_windowedCompiledRawPullbackMembershipOneZero_of_factoredRowCertificate
+  paperScale_windowedCompiledRawPullbackMembershipOneZero_of_spanInputs_spanAssemblyReduction
     M htb hns
-    (paperScale_factoredCompiledRowCertificate_of_booleanitySpan_spanAssemblyReduction
-      M htb hns hbool hred)
+    (paperScale_spanConstraintListAtomicRowInputs_of_booleanitySpan
+      M htb hns hbool)
+    hred
+
+/-- Final contradiction closeout from rank-aware span-level inputs, the
+span-level product assembly reduction, NP-window inclusion, and the existing
+Route-B one-window blockers. -/
+theorem no_decidesSAT_at_paperScale_of_spanInputs_spanAssemblyReduction_npInclusion
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hin : PaperScaleCookLevinSpanConstraintListAtomicRowInputs M htb hns)
+    (hred : PaperScaleCookLevinFactoredRowCertificateSpanAssemblyReduction
+      M htb hns)
+    (hnp : PaperScalePiPlusBooleanProjectedNPWindowSubspaceInclusion M htb hns)
+    (W : SymmetricPowerBound.ConstraintType → Submodule ℚ (MvPolynomial (Fin (2 ^ 804)) ℚ))
+    (W_finite : ∀ τ, Module.Finite ℚ ↥(W τ))
+    (W_dim : ∀ τ, Module.finrank ℚ ↥(W τ) ≤ 3)
+    (zero_common_span :
+      CookLevinOneWindowZeroHistogramShiftCommonSpan
+        M (2 ^ 804) paperScale_ge_two htb hns)
+    (per_type_spanning :
+      CookLevinOneWindowPerTypeSpanningActiveAdmissibleProfileCases
+        M (2 ^ 804) paperScale_ge_two htb hns W) :
+    ¬ DecidesSAT M :=
+  no_decidesSAT_at_paperScale_of_factoredRowCertificate_npInclusion
+    M htb hns
+    (paperScale_factoredCompiledRowCertificate_of_spanInputs_spanAssemblyReduction
+      M htb hns hin hred)
+    hnp W W_finite W_dim zero_common_span per_type_spanning
 
 /-- Final contradiction closeout from the corrected span-level assembly surface,
 NP-window inclusion, and the existing Route-B one-window blockers. -/
@@ -128,19 +183,22 @@ theorem no_decidesSAT_at_paperScale_of_booleanitySpan_spanAssemblyReduction_npIn
       CookLevinOneWindowPerTypeSpanningActiveAdmissibleProfileCases
         M (2 ^ 804) paperScale_ge_two htb hns W) :
     ¬ DecidesSAT M :=
-  no_decidesSAT_at_paperScale_of_factoredRowCertificate_npInclusion
+  no_decidesSAT_at_paperScale_of_spanInputs_spanAssemblyReduction_npInclusion
     M htb hns
-    (paperScale_factoredCompiledRowCertificate_of_booleanitySpan_spanAssemblyReduction
-      M htb hns hbool hred)
-    hnp W W_finite W_dim zero_common_span per_type_spanning
+    (paperScale_spanConstraintListAtomicRowInputs_of_booleanitySpan
+      M htb hns hbool)
+    hred hnp W W_finite W_dim zero_common_span per_type_spanning
 
 /-! ## Axiom audit anchors -/
 
 #print axioms CookLevinSpanConstraintListAtomicRowInputs.booleanity_residue_rank
 #print axioms spanConstraintListAtomicRowInputs_of_booleanitySpan
 #print axioms paperScale_spanConstraintListAtomicRowInputs_of_booleanitySpan
+#print axioms paperScale_factoredCompiledRowCertificate_of_spanInputs_spanAssemblyReduction
 #print axioms paperScale_factoredCompiledRowCertificate_of_booleanitySpan_spanAssemblyReduction
+#print axioms paperScale_windowedCompiledRawPullbackMembershipOneZero_of_spanInputs_spanAssemblyReduction
 #print axioms paperScale_windowedCompiledRawPullbackMembershipOneZero_of_booleanitySpan_spanAssemblyReduction
+#print axioms no_decidesSAT_at_paperScale_of_spanInputs_spanAssemblyReduction_npInclusion
 #print axioms no_decidesSAT_at_paperScale_of_booleanitySpan_spanAssemblyReduction_npInclusion
 
 end BoolPoly
