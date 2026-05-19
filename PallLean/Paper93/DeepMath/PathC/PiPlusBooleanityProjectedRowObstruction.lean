@@ -129,6 +129,44 @@ theorem X_true_mem_SATBlockBooleanityActualProjectedResidueSpan
     unfold SATBlockBooleanityActualProjectedResidueGenerators
     simp)
 
+/-- Uniform rank payload for corrected Booleanity residue spans.  This packages
+local residue absorption at the same granularity as the Booleanity span surface:
+each actual Booleanity row may land in a three-dimensional block-local residue
+space. -/
+def CookLevinBooleanityResidueRankPayload
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns) : Prop :=
+  ∀ v : Fin (cook_levin_compilation M n hn2 htb hns).numVars,
+    Module.finrank ℚ
+      (SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D v) ≤ 3
+
+/-- The corrected Booleanity residue rank payload is unconditional: it follows
+from the explicit three-generator basis `{1, X_false, X_true}`. -/
+theorem cookLevinBooleanityResidueRankPayload_unconditional
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns) :
+    CookLevinBooleanityResidueRankPayload M n hn2 htb hns D := by
+  intro v
+  exact finrank_SATBlockBooleanityActualProjectedResidueSpan_le_three
+    M n hn2 htb hns D v
+
+/-- Paper-scale corrected Booleanity residue rank payload. -/
+abbrev PaperScaleCookLevinBooleanityResidueRankPayload
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) : Prop :=
+  CookLevinBooleanityResidueRankPayload
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+
+/-- Paper-scale corrected Booleanity residue rank payload is unconditional. -/
+theorem paperScale_cookLevinBooleanityResidueRankPayload_unconditional
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) :
+    PaperScaleCookLevinBooleanityResidueRankPayload M htb hns :=
+  cookLevinBooleanityResidueRankPayload_unconditional
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+
 /-- Span-level corrected Booleanity row certificate.  This is the proper target:
 the Booleanity row is allowed to be block-local constant-plus-linear residue
 content instead of being forced into a single source generator or the constant
@@ -194,6 +232,8 @@ theorem paperScale_booleanityProjectedRows_of_spanPayload_reduction
 #print axioms SATBlockBooleanityActualProjectedResidueGenerators
 #print axioms SATBlockBooleanityActualProjectedResidueSpan
 #print axioms finrank_SATBlockBooleanityActualProjectedResidueSpan_le_three
+#print axioms cookLevinBooleanityResidueRankPayload_unconditional
+#print axioms paperScale_cookLevinBooleanityResidueRankPayload_unconditional
 #print axioms one_mem_SATBlockBooleanityActualProjectedResidueSpan
 #print axioms X_false_mem_SATBlockBooleanityActualProjectedResidueSpan
 #print axioms X_true_mem_SATBlockBooleanityActualProjectedResidueSpan

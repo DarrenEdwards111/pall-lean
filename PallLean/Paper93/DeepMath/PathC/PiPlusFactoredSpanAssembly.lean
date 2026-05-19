@@ -36,6 +36,8 @@ structure CookLevinSpanConstraintListAtomicRowInputs
     (D : PiPlusSATBlockCoordinateData M n hn2 htb hns) : Prop where
   booleanity_span :
     CookLevinBooleanityFactorProjectedSpanPayload M n hn2 htb hns D
+  booleanity_residue_rank :
+    CookLevinBooleanityResidueRankPayload M n hn2 htb hns D
   rest_signed : CookLevinRestConstraintSignedCrossRows M n hn2 htb hns D
 
 /-- Once the span-level Booleanity payload is supplied, the full span-level
@@ -48,6 +50,8 @@ theorem spanConstraintListAtomicRowInputs_of_booleanitySpan
       M n hn2 htb hns D) :
     CookLevinSpanConstraintListAtomicRowInputs M n hn2 htb hns D where
   booleanity_span := hbool
+  booleanity_residue_rank :=
+    cookLevinBooleanityResidueRankPayload_unconditional M n hn2 htb hns D
   rest_signed := cookLevinRestConstraintSignedCrossRows_unconditional
     M n hn2 htb hns D
 
@@ -132,6 +136,7 @@ theorem no_decidesSAT_at_paperScale_of_booleanitySpan_spanAssemblyReduction_npIn
 
 /-! ## Axiom audit anchors -/
 
+#print axioms CookLevinSpanConstraintListAtomicRowInputs.booleanity_residue_rank
 #print axioms spanConstraintListAtomicRowInputs_of_booleanitySpan
 #print axioms paperScale_spanConstraintListAtomicRowInputs_of_booleanitySpan
 #print axioms paperScale_factoredCompiledRowCertificate_of_booleanitySpan_spanAssemblyReduction
