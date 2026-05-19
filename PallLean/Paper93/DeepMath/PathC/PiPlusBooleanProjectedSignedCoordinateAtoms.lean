@@ -113,6 +113,26 @@ def SignedCrossAtomCoordinateConjugation
             (blockSignedCrossAtom c (D.coord a).1 (D.coord b).1
               (D.coord a).2 (D.coord b).2))))
 
+/-- Boolean-normalization/rename compatibility for the transformed signed atom.
+This is the concrete normal-form statement needed to finish coordinate
+conjugation. -/
+def SignedCrossAtomBooleanNormalizeRenameCompatibility
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (c : ℚ)
+    (a b : Fin (cook_levin_compilation M n hn2 htb hns).numVars) : Prop :=
+  zeroProfileBooleanNormalize
+    (MvPolynomial.rename D.coord.symm
+      (blockPiPlusAlgHom D.blockIndex
+        (blockSignedCrossAtom c (D.coord a).1 (D.coord b).1
+          (D.coord a).2 (D.coord b).2))) =
+    MvPolynomial.rename D.coord.symm
+      (blockBooleanNormalize
+        (blockPiPlusAlgHom D.blockIndex
+          (blockSignedCrossAtom c (D.coord a).1 (D.coord b).1
+            (D.coord a).2 (D.coord b).2)))
+
 /-- Remaining flat-row compatibility after coordinate conjugation: renaming the
 local zero-derivative row is the same as the flat zero-derivative row.  This is
 the exact `mlProj`/rename bookkeeping left after local atom algebra. -/
@@ -204,6 +224,16 @@ theorem piPlusBooleanProjectedSignedCrossAtomRowCertificate_of_coordinateConjuga
     (hij := hab) c (D.coord a).2 (D.coord b).2
   rw [hlocal]
   exact hml
+
+/-- Paper-scale abbreviation for the Boolean-normalization/rename seam. -/
+abbrev PaperScaleSignedCrossAtomBooleanNormalizeRenameCompatibility
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (c : ℚ)
+    (a b : Fin (cook_levin_compilation M (2 ^ 804)
+      paperScale_ge_two htb hns).numVars) : Prop :=
+  SignedCrossAtomBooleanNormalizeRenameCompatibility
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) c a b
 
 /-- Paper-scale abbreviation for the coordinate conjugation seam. -/
 abbrev PaperScaleSignedCrossAtomCoordinateConjugation
