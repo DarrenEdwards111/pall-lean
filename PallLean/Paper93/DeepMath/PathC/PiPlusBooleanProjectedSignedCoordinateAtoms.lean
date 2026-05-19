@@ -157,6 +157,37 @@ def SignedCrossAtomBooleanNormalizeRenameCompatibility
           (blockSignedCrossAtom c (D.coord a).1 (D.coord b).1
             (D.coord a).2 (D.coord b).2)))
 
+/-- The Boolean-normalization/rename compatibility discharges the coordinate
+conjugation seam once the coordinate-built algebra-equivalence cancellations are
+available. -/
+theorem signedCrossAtomCoordinateConjugation_of_booleanNormalizeRename
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (c : ℚ)
+    (a b : Fin (cook_levin_compilation M n hn2 htb hns).numVars)
+    (hnorm : SignedCrossAtomBooleanNormalizeRenameCompatibility
+      M n hn2 htb hns D c a b) :
+    SignedCrossAtomCoordinateConjugation M n hn2 htb hns D c a b := by
+  unfold SignedCrossAtomCoordinateConjugation
+  rw [satSignedCrossAtom_eq_rename_blockSignedCrossAtom M n hn2 htb hns D c a b]
+  rw [piPlusSATBlockAlgEquiv_rename_symm_apply]
+  change (piPlusSATBlockAlgEquiv M n hn2 htb hns D).symm
+      (zeroProfileBooleanNormalize
+        (MvPolynomial.rename D.coord.symm
+          (blockPiPlusAlgHom D.blockIndex
+            (blockSignedCrossAtom c (D.coord a).1 (D.coord b).1
+              (D.coord a).2 (D.coord b).2)))) =
+    MvPolynomial.rename D.coord.symm
+      (blockPiPlusInvAlgHom D.blockIndex
+        (blockBooleanNormalize
+          (blockPiPlusAlgHom D.blockIndex
+            (blockSignedCrossAtom c (D.coord a).1 (D.coord b).1
+              (D.coord a).2 (D.coord b).2))))
+  rw [hnorm]
+  rw [piPlusSATBlockAlgEquiv_symm_rename_symm_apply]
+  rfl
+
 /-- Remaining flat-row compatibility after coordinate conjugation: renaming the
 local zero-derivative row is the same as the flat zero-derivative row.  This is
 the exact `mlProj`/rename bookkeeping left after local atom algebra. -/
@@ -249,6 +280,27 @@ theorem piPlusBooleanProjectedSignedCrossAtomRowCertificate_of_coordinateConjuga
   rw [hlocal]
   exact hml
 
+/-- The signed SAT-coordinate row certificate now follows from only the Boolean
+normalization/rename seam; the `mlProj`/rename bookkeeping is unconditional for
+distinct blocks. -/
+theorem piPlusBooleanProjectedSignedCrossAtomRowCertificate_of_booleanNormalizeRename
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (c : ℚ)
+    (a b : Fin (cook_levin_compilation M n hn2 htb hns).numVars)
+    (hab : (D.coord a).1 ≠ (D.coord b).1)
+    (hnorm : SignedCrossAtomBooleanNormalizeRenameCompatibility
+      M n hn2 htb hns D c a b) :
+    PiPlusBooleanProjectedSignedCrossAtomRowCertificate
+      M n hn2 htb hns D c a b := by
+  exact piPlusBooleanProjectedSignedCrossAtomRowCertificate_of_coordinateConjugation
+    M n hn2 htb hns D c a b hab
+    (signedCrossAtomCoordinateConjugation_of_booleanNormalizeRename
+      M n hn2 htb hns D c a b hnorm)
+    (signedCrossAtomMlProjRenameCompatibility_unconditional
+      M n hn2 htb hns D c a b hab)
+
 /-- Paper-scale abbreviation for the Boolean-normalization/rename seam. -/
 abbrev PaperScaleSignedCrossAtomBooleanNormalizeRenameCompatibility
     (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
@@ -258,6 +310,22 @@ abbrev PaperScaleSignedCrossAtomBooleanNormalizeRenameCompatibility
   SignedCrossAtomBooleanNormalizeRenameCompatibility
     M (2 ^ 804) paperScale_ge_two htb hns
     (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) c a b
+
+/-- Paper-scale coordinate conjugation from the Boolean-normalization/rename
+compatibility seam. -/
+theorem paperScaleSignedCrossAtomCoordinateConjugation_of_booleanNormalizeRename
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (c : ℚ)
+    (a b : Fin (cook_levin_compilation M (2 ^ 804)
+      paperScale_ge_two htb hns).numVars)
+    (hnorm : PaperScaleSignedCrossAtomBooleanNormalizeRenameCompatibility
+      M htb hns c a b) :
+    SignedCrossAtomCoordinateConjugation
+      M (2 ^ 804) paperScale_ge_two htb hns
+      (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) c a b :=
+  signedCrossAtomCoordinateConjugation_of_booleanNormalizeRename
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) c a b hnorm
 
 /-- Paper-scale abbreviation for the coordinate conjugation seam. -/
 abbrev PaperScaleSignedCrossAtomCoordinateConjugation
@@ -293,6 +361,25 @@ theorem paperScaleSignedCrossAtomMlProjRenameCompatibility_unconditional
     M (2 ^ 804) paperScale_ge_two htb hns
     (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) c a b hab
 
+/-- Paper-scale signed coordinate certificate from only the Boolean-normalization
+/ rename seam. -/
+theorem paperScalePiPlusBooleanProjectedSignedCrossAtomRowCertificate_of_booleanNormalizeRename
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (c : ℚ)
+    (a b : Fin (cook_levin_compilation M (2 ^ 804)
+      paperScale_ge_two htb hns).numVars)
+    (hab : ((cookLevinPiPlusBlockCoordinateData_paperScale M htb hns).coord a).1 ≠
+      ((cookLevinPiPlusBlockCoordinateData_paperScale M htb hns).coord b).1)
+    (hnorm : PaperScaleSignedCrossAtomBooleanNormalizeRenameCompatibility
+      M htb hns c a b) :
+    PiPlusBooleanProjectedSignedCrossAtomRowCertificate
+      M (2 ^ 804) paperScale_ge_two htb hns
+      (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) c a b :=
+  piPlusBooleanProjectedSignedCrossAtomRowCertificate_of_booleanNormalizeRename
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+    c a b hab hnorm
+
 /-- Paper-scale signed coordinate certificate from the isolated conjugation and
 `mlProj`/rename seams. -/
 theorem paperScalePiPlusBooleanProjectedSignedCrossAtomRowCertificate_of_coordinateConjugation
@@ -318,10 +405,14 @@ theorem paperScalePiPlusBooleanProjectedSignedCrossAtomRowCertificate_of_coordin
 #print axioms rename_symm_blockSignedCrossAtom_zeroDerivativeRow
 #print axioms piPlusSATBlockAlgEquiv_rename_symm_apply
 #print axioms piPlusSATBlockAlgEquiv_symm_rename_symm_apply
+#print axioms signedCrossAtomCoordinateConjugation_of_booleanNormalizeRename
 #print axioms mlProj_satSignedCrossAtom
 #print axioms signedCrossAtomMlProjRenameCompatibility_unconditional
 #print axioms piPlusBooleanProjectedSignedCrossAtomRowCertificate_of_coordinateConjugation
+#print axioms piPlusBooleanProjectedSignedCrossAtomRowCertificate_of_booleanNormalizeRename
+#print axioms paperScaleSignedCrossAtomCoordinateConjugation_of_booleanNormalizeRename
 #print axioms paperScaleSignedCrossAtomMlProjRenameCompatibility_unconditional
+#print axioms paperScalePiPlusBooleanProjectedSignedCrossAtomRowCertificate_of_booleanNormalizeRename
 #print axioms paperScalePiPlusBooleanProjectedSignedCrossAtomRowCertificate_of_coordinateConjugation
 
 end BoolPoly
