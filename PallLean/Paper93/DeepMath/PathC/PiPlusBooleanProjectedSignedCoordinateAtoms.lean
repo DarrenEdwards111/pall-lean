@@ -113,6 +113,30 @@ def SignedCrossAtomCoordinateConjugation
             (blockSignedCrossAtom c (D.coord a).1 (D.coord b).1
               (D.coord a).2 (D.coord b).2))))
 
+/-- Forward coordinate-conjugation cancellation for the concrete block-built
+SAT `Pi+` algebra equivalence. -/
+theorem piPlusSATBlockAlgEquiv_rename_symm_apply
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (p : MvPolynomial (D.blockIndex × Bool) ℚ) :
+    piPlusSATBlockAlgEquiv M n hn2 htb hns D (MvPolynomial.rename D.coord.symm p) =
+      MvPolynomial.rename D.coord.symm (blockPiPlusAlgEquiv D.blockIndex p) := by
+  simp [piPlusSATBlockAlgEquiv, AlgEquiv.trans_apply,
+    MvPolynomial.renameEquiv_apply]
+
+/-- Inverse coordinate-conjugation cancellation for the concrete block-built
+SAT `Pi+` algebra equivalence. -/
+theorem piPlusSATBlockAlgEquiv_symm_rename_symm_apply
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (p : MvPolynomial (D.blockIndex × Bool) ℚ) :
+    (piPlusSATBlockAlgEquiv M n hn2 htb hns D).symm
+        (MvPolynomial.rename D.coord.symm p) =
+      MvPolynomial.rename D.coord.symm ((blockPiPlusAlgEquiv D.blockIndex).symm p) := by
+  simp [piPlusSATBlockAlgEquiv, MvPolynomial.renameEquiv_apply]
+
 /-- Boolean-normalization/rename compatibility for the transformed signed atom.
 This is the concrete normal-form statement needed to finish coordinate
 conjugation. -/
@@ -292,6 +316,8 @@ theorem paperScalePiPlusBooleanProjectedSignedCrossAtomRowCertificate_of_coordin
 
 #print axioms satSignedCrossAtom_eq_rename_blockSignedCrossAtom
 #print axioms rename_symm_blockSignedCrossAtom_zeroDerivativeRow
+#print axioms piPlusSATBlockAlgEquiv_rename_symm_apply
+#print axioms piPlusSATBlockAlgEquiv_symm_rename_symm_apply
 #print axioms mlProj_satSignedCrossAtom
 #print axioms signedCrossAtomMlProjRenameCompatibility_unconditional
 #print axioms piPlusBooleanProjectedSignedCrossAtomRowCertificate_of_coordinateConjugation
