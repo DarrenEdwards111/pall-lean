@@ -678,6 +678,27 @@ theorem no_decidesSAT_at_paperScale_of_commutation_productNormalizationReduction
       M htb hns hcomm hprod)
     hpull henv hnp
 
+/-- Product normalization supplies the normalized-polynomial-span side, while the
+local-factor-to-product-choice reduction supplies the allocation-local pullback
+side. -/
+theorem no_decidesSAT_at_paperScale_of_commutation_productNormalization_localFactorToAllocationLocalSpansReduction_routeBEnvelope_npInclusion
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hcomm : PaperScalePiPlusBooleanProjectedNormalizedDerivativeCommutation
+      M htb hns)
+    (hprod : PaperScalePiPlusBooleanProjectedAllocationProductNormalizationReduction
+      M htb hns)
+    (hlocal :
+      PaperScalePiPlusBooleanProjectedOneOneLocalFactorToAllocationLocalSpansPullbackReduction
+        M htb hns)
+    (henv : PaperScaleRouteBSATWindowedIncPSideRankEnvelopeOneOne M htb hns)
+    (hnp : PaperScalePiPlusBooleanProjectedNPWindowSubspaceInclusion M htb hns) :
+    ¬ DecidesSAT M :=
+  no_decidesSAT_at_paperScale_of_commutation_productNormalizationReduction_allocationLocalSpansPullbackReduction_routeBEnvelope_npInclusion
+    M htb hns hcomm hprod
+    (paperScale_allocationLocalSpansPullbackReductionOneOne_of_localFactorToAllocationLocalSpansReduction
+      M htb hns hlocal)
+    henv hnp
+
 /-- Compact closeout package for the current Route-C frontier: product/factor
 normalization supplies the normalized-polynomial-span side, and allocation-local
 span/product-choice pullback supplies the transformed-generator side. -/
@@ -706,6 +727,36 @@ theorem no_decidesSAT_at_paperScale_of_oneOneProductNormalizationAllocationLocal
   no_decidesSAT_at_paperScale_of_commutation_productNormalizationReduction_allocationLocalSpansPullbackReduction_routeBEnvelope_npInclusion
     M htb hns hinputs.commutation hinputs.product_normalization
     hinputs.allocation_local_spans_pullback hinputs.routeB_envelope
+    hinputs.np_subspace_inclusion
+
+/-- Compact closeout package with only the local-factor-to-product-choice seam as
+the transformed-generator-side input.  The local payload itself is unconditional,
+so this exposes the next real product assembly target. -/
+structure PaperScalePiPlusBooleanProjectedOneOneProductNormalizationLocalFactorToAllocationLocalSpansCloseoutInputs
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) : Prop where
+  commutation : PaperScalePiPlusBooleanProjectedNormalizedDerivativeCommutation
+    M htb hns
+  product_normalization :
+    PaperScalePiPlusBooleanProjectedAllocationProductNormalizationReduction
+      M htb hns
+  local_factor_to_allocation_local_spans :
+    PaperScalePiPlusBooleanProjectedOneOneLocalFactorToAllocationLocalSpansPullbackReduction
+      M htb hns
+  routeB_envelope : PaperScaleRouteBSATWindowedIncPSideRankEnvelopeOneOne M htb hns
+  np_subspace_inclusion : PaperScalePiPlusBooleanProjectedNPWindowSubspaceInclusion
+    M htb hns
+
+/-- The product-normalization/local-factor-to-product-choice closeout package
+rules out a SAT decider. -/
+theorem no_decidesSAT_at_paperScale_of_oneOneProductNormalizationLocalFactorToAllocationLocalSpansCloseoutInputs
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hinputs :
+      PaperScalePiPlusBooleanProjectedOneOneProductNormalizationLocalFactorToAllocationLocalSpansCloseoutInputs
+        M htb hns) :
+    ¬ DecidesSAT M :=
+  no_decidesSAT_at_paperScale_of_commutation_productNormalization_localFactorToAllocationLocalSpansReduction_routeBEnvelope_npInclusion
+    M htb hns hinputs.commutation hinputs.product_normalization
+    hinputs.local_factor_to_allocation_local_spans hinputs.routeB_envelope
     hinputs.np_subspace_inclusion
 
 /-- Final envelope closeout using the product/factor normalization reduction as
@@ -776,7 +827,9 @@ theorem no_decidesSAT_at_paperScale_of_oneOneProductNormalizationCloseoutInputs
 #print axioms paperScale_normalizedDerivativeCriterion_of_commutation_and_productNormalizationReduction
 #print axioms paperScale_normalizedDerivativePolynomialSpan_of_commutation_and_productNormalizationReduction
 #print axioms no_decidesSAT_at_paperScale_of_commutation_productNormalizationReduction_allocationLocalSpansPullbackReduction_routeBEnvelope_npInclusion
+#print axioms no_decidesSAT_at_paperScale_of_commutation_productNormalization_localFactorToAllocationLocalSpansReduction_routeBEnvelope_npInclusion
 #print axioms no_decidesSAT_at_paperScale_of_oneOneProductNormalizationAllocationLocalSpansCloseoutInputs
+#print axioms no_decidesSAT_at_paperScale_of_oneOneProductNormalizationLocalFactorToAllocationLocalSpansCloseoutInputs
 #print axioms no_decidesSAT_at_paperScale_of_commutation_productNormalizationReduction_localFactorReduction_routeBEnvelope_npInclusion
 #print axioms no_decidesSAT_at_paperScale_of_oneOneProductNormalizationCloseoutInputs
 
