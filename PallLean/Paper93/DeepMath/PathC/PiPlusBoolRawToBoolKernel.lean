@@ -1117,6 +1117,150 @@ theorem NoLinearTerms_restFactorProd' (M : DTM) (n : Nat) :
   exact NoLinearTerms_list_prod_rest_factors M n _ (by intro lc hlc; exact hlc)
 
 
+/-- Constant coefficient of an ordinary first partial derivative is exactly the
+coefficient of the corresponding linear monomial. -/
+theorem coeff_zero_pderiv_eq_coeff_single {n : Nat} (i : Fin n) (p : MvPolynomial (Fin n) ℚ) :
+    coeff 0 (MvPolynomial.pderiv i p) = coeff (Finsupp.single i 1) p := by
+  rw [show p = p.support.sum (fun β => monomial β (coeff β p)) from MvPolynomial.as_sum p]
+  rw [map_sum]
+  rw [MvPolynomial.coeff_sum]
+  simp only [MvPolynomial.pderiv_monomial, MvPolynomial.coeff_monomial]
+  rw [Finset.sum_eq_single (Finsupp.single i 1)]
+  · simp
+  · intro b hb hbne
+    by_cases hbi : b i = 0
+    · simp [hbi]
+    · rw [if_neg]
+      intro hzero
+      apply hbne
+      ext j
+      by_cases hji : j = i
+      · subst j
+        have hv := congrArg (fun f : Fin n →₀ Nat => f i) hzero
+        simp at hv ⊢
+        omega
+      · have hv := congrArg (fun f : Fin n →₀ Nat => f j) hzero
+        simp [hji] at hv
+        have hb0 : b j = 0 := by exact hv
+        simp [hji, hb0]
+  · intro hnot
+    have hcoeff : coeff (Finsupp.single i 1) p = 0 := by
+      rw [MvPolynomial.mem_support_iff] at hnot
+      exact not_not.mp hnot
+    simp [hcoeff]
+
+/-- A polynomial with no linear terms has first derivatives with zero constant
+coefficient. -/
+theorem coeff_zero_pderiv_eq_zero_of_NoLinearTerms {n : Nat}
+    (i : Fin n) {p : MvPolynomial (Fin n) ℚ} (hp : NoLinearTerms p) :
+    coeff 0 (MvPolynomial.pderiv i p) = 0 := by
+  rw [coeff_zero_pderiv_eq_coeff_single]
+  exact hp i
+
+/-- The local Booleanity factor contributes linear coefficient `-1`: its own
+partial derivative has constant coefficient `-1`. -/
+theorem coeff_zero_pderiv_cookLevinBooleanFactor_self {n : Nat} (i : Fin n) :
+    coeff 0 (MvPolynomial.pderiv i (cookLevinBooleanFactor n i)) = -1 := by
+  rw [pderiv_cookLevinBooleanFactor_self]
+  rw [MvPolynomial.coeff_add]
+  norm_num
+  rw [show (2 * X i : MvPolynomial (Fin n) ℚ) = MvPolynomial.C (2 : ℚ) * X i by rfl]
+  rw [MvPolynomial.coeff_C_mul]
+  have hX0 : coeff 0 (X i : MvPolynomial (Fin n) ℚ) = 0 := by
+    simp [MvPolynomial.X]
+  rw [hX0]
+  norm_num
+
+/-- The full Booleanity product keeps that same first-order contribution: all
+other Booleanity factors have constant coefficient `1`. -/
+theorem coeff_zero_iterDerivList_singleton_cookLevinBooleanFactorProd {n : Nat} (i : Fin n) :
+    coeff 0 (iterDerivList [i] (cookLevinBooleanFactorProd n)) = -1 := by
+  rw [iterDerivList_cookLevinBooleanFactorProd n [i] (by simp)]
+  rw [← MvPolynomial.constantCoeff_eq]
+  rw [map_mul]
+  have hhead : MvPolynomial.constantCoeff
+      (([i].map fun v => MvPolynomial.pderiv v (cookLevinBooleanFactor n v)).prod) = -1 := by
+    simp [MvPolynomial.constantCoeff_eq, coeff_zero_pderiv_cookLevinBooleanFactor_self]
+  have htail : MvPolynomial.constantCoeff
+      (((Finset.univ : Finset (Fin n)) \ [i].toFinset).prod (cookLevinBooleanFactor n)) = 1 := by
+    rw [map_prod]
+    apply Finset.prod_eq_one
+    intro j hj
+    rw [MvPolynomial.constantCoeff_eq]
+    exact cookLevinBooleanFactor_const_one n j
+  rw [hhead, htail]
+  norm_num
+
+/-- Ordinary derivative version of the Booleanity-product linear coefficient. -/
+theorem coeff_zero_pderiv_cookLevinBooleanFactorProd {n : Nat} (i : Fin n) :
+    coeff 0 (MvPolynomial.pderiv i (cookLevinBooleanFactorProd n)) = -1 := by
+  rw [← iterDerivList_singleton_eq_pderiv]
+  exact coeff_zero_iterDerivList_singleton_cookLevinBooleanFactorProd i
+
+/-- The Cook--Levin rest product contributes no first-order term to any partial
+derivative. -/
+theorem coeff_zero_pderiv_restFactorProd' (M : DTM) (n : Nat) (i : Fin n) :
+    coeff 0 (MvPolynomial.pderiv i (restFactorProd' M n)) = 0 := by
+  rw [coeff_zero_pderiv_eq_coeff_single]
+  exact NoLinearTerms_restFactorProd' M n i
+
+/-- In the full factored Cook--Levin polynomial, the Booleanity linear term
+survives multiplication by the rest product: the constant coefficient of every
+first partial derivative is `-1`. -/
+theorem coeff_zero_pderiv_cookLevinFactoredPoly (M : DTM) {n : Nat} (i : Fin n) :
+    coeff 0 (MvPolynomial.pderiv i (cookLevinFactoredPoly M n)) = -1 := by
+  unfold cookLevinFactoredPoly
+  rw [MvPolynomial.pderiv_mul]
+  rw [MvPolynomial.coeff_add]
+  have hleft : coeff 0 (MvPolynomial.pderiv i (cookLevinBooleanFactorProd n) * restFactorProd' M n) = -1 := by
+    rw [← MvPolynomial.constantCoeff_eq]
+    rw [map_mul]
+    rw [MvPolynomial.constantCoeff_eq, coeff_zero_pderiv_cookLevinBooleanFactorProd]
+    rw [restFactorProd'_const_one]
+    norm_num
+  have hright : coeff 0 (cookLevinBooleanFactorProd n * MvPolynomial.pderiv i (restFactorProd' M n)) = 0 := by
+    rw [← MvPolynomial.constantCoeff_eq]
+    rw [map_mul]
+    rw [MvPolynomial.constantCoeff_eq, cookLevinBooleanFactorProd_const_one]
+    rw [coeff_zero_pderiv_restFactorProd']
+    norm_num
+  rw [hleft, hright]
+  norm_num
+
+/-- Hence the full factored Cook--Levin polynomial has nonzero first derivative
+in every coordinate. -/
+theorem pderiv_cookLevinFactoredPoly_ne_zero (M : DTM) {n : Nat} (i : Fin n) :
+    MvPolynomial.pderiv i (cookLevinFactoredPoly M n) ≠ 0 := by
+  intro hzero
+  have hc := congrArg (fun p : MvPolynomial (Fin n) ℚ => coeff 0 p) hzero
+  change coeff 0 (MvPolynomial.pderiv i (cookLevinFactoredPoly M n)) = coeff 0 (0 : MvPolynomial (Fin n) ℚ) at hc
+  rw [coeff_zero_pderiv_cookLevinFactoredPoly, MvPolynomial.coeff_zero] at hc
+  norm_num at hc
+
+
+/-- The full factored Cook--Levin polynomial itself violates raw-to-Boolean
+kernel-disjointness for every partition and every `ℓ ≥ 2`. -/
+theorem not_disjoint_rawBlockedSpdpSubspace_kernel_cookLevinFactoredPoly_any_partition
+    (M : DTM) {n : Nat} (i : Fin n) (B : BlockPartition n) (ℓ : ℕ) (hℓ : 2 ≤ ℓ) :
+    ¬ Disjoint (rawBlockedSpdpSubspace B 1 ℓ (cookLevinFactoredPoly M n))
+      (LinearMap.ker (liftToBoolLinearMap n)) := by
+  exact not_disjoint_rawBlockedSpdpSubspace_kernel_of_pderiv_ne_zero_any_partition
+    i (cookLevinFactoredPoly M n) B ℓ hℓ (pderiv_cookLevinFactoredPoly_ne_zero M i)
+
+/-- Transporting through the proved factorization, the actual compiled
+Cook--Levin polynomial has the same partition-free kernel obstruction. -/
+theorem not_disjoint_rawBlockedSpdpSubspace_kernel_compiledPoly_cookLevin_any_partition
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (i : Fin n) (B : BlockPartition n) (ℓ : ℕ) (hℓ : 2 ≤ ℓ) :
+    ¬ Disjoint
+      (rawBlockedSpdpSubspace B 1 ℓ
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns)))
+      (LinearMap.ker (liftToBoolLinearMap n)) := by
+  rw [compiledPoly_eq_cookLevinFactoredPoly M n hn2 htb hns]
+  exact not_disjoint_rawBlockedSpdpSubspace_kernel_cookLevinFactoredPoly_any_partition
+    M i B ℓ hℓ
+
+
 /-- The square residual is not multilinear as a raw polynomial: the `Xᵢ²`
 coefficient survives before quotienting. -/
 theorem square_residual_not_isMultilinear {n : ℕ} (i : Fin n) :
@@ -1308,6 +1452,13 @@ theorem no_decidesSAT_at_paperScale_of_boolRowPayloadsAndNPKernelDisjointFromDec
 #print axioms NoLinearTerms_sub_quadratic_factor
 #print axioms NoLinearTerms_rest_factor
 #print axioms NoLinearTerms_restFactorProd'
+#print axioms coeff_zero_pderiv_eq_coeff_single
+#print axioms coeff_zero_pderiv_cookLevinBooleanFactorProd
+#print axioms coeff_zero_pderiv_restFactorProd'
+#print axioms coeff_zero_pderiv_cookLevinFactoredPoly
+#print axioms pderiv_cookLevinFactoredPoly_ne_zero
+#print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_cookLevinFactoredPoly_any_partition
+#print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_compiledPoly_cookLevin_any_partition
 #print axioms residualDerivativeRow_ne_zero_of_iterDerivList_singleton_ne_zero
 #print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_of_iterDerivList_singleton_ne_zero
 #print axioms iterDerivList_singleton_eq_zero_of_disjoint_rawBlockedSpdpSubspace_kernel
