@@ -778,6 +778,88 @@ theorem no_decidesSAT_at_paperScale_of_oneOneProductNormalizationAllocationLocal
     hinputs.allocation_local_spans_pullback hinputs.routeB_envelope
     hinputs.np_subspace_inclusion
 
+/-- Unified local-factor product-assembly seam.  It consumes the unconditional
+`(1,1)` local-factor payload once and produces both pieces needed downstream:
+product/factor normalization for Boolean stability and allocation-local
+span/product-choice pullback for the transformed-generator side. -/
+structure PaperScalePiPlusBooleanProjectedOneOneLocalFactorProductAssemblyReduction
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) : Prop where
+  product_assembly_of_local :
+    ∀ (_payload : BoolPoly.PaperScalePiPlusBooleanProjectedOneOneLocalFactorPayload
+        M htb hns),
+      PaperScalePiPlusBooleanProjectedAllocationProductNormalizationReduction
+          M htb hns ∧
+        PaperScalePiPlusBooleanProjectedAllocationLocalSpansPullbackReductionOneOne
+          M htb hns
+
+/-- The unified local-factor product-assembly seam yields product/factor
+normalization. -/
+theorem paperScale_productNormalizationReduction_of_localFactorProductAssemblyReduction
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hred : PaperScalePiPlusBooleanProjectedOneOneLocalFactorProductAssemblyReduction
+      M htb hns) :
+    PaperScalePiPlusBooleanProjectedAllocationProductNormalizationReduction
+      M htb hns :=
+  (hred.product_assembly_of_local
+    (BoolPoly.paperScalePiPlusBooleanProjectedOneOneLocalFactorPayload_unconditional
+      M htb hns)).1
+
+/-- The unified local-factor product-assembly seam yields the allocation-local
+span/product-choice pullback reduction. -/
+theorem paperScale_allocationLocalSpansPullbackReductionOneOne_of_localFactorProductAssemblyReduction
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hred : PaperScalePiPlusBooleanProjectedOneOneLocalFactorProductAssemblyReduction
+      M htb hns) :
+    PaperScalePiPlusBooleanProjectedAllocationLocalSpansPullbackReductionOneOne
+      M htb hns :=
+  (hred.product_assembly_of_local
+    (BoolPoly.paperScalePiPlusBooleanProjectedOneOneLocalFactorPayload_unconditional
+      M htb hns)).2
+
+/-- Commutation plus the unified local-factor product-assembly reduction, Route-B
+`(1,1)` envelope, and NP-side input rule out a SAT decider at paper scale. -/
+theorem no_decidesSAT_at_paperScale_of_commutation_localFactorProductAssemblyReduction_routeBEnvelope_npInclusion
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hcomm : PaperScalePiPlusBooleanProjectedNormalizedDerivativeCommutation
+      M htb hns)
+    (hred : PaperScalePiPlusBooleanProjectedOneOneLocalFactorProductAssemblyReduction
+      M htb hns)
+    (henv : PaperScaleRouteBSATWindowedIncPSideRankEnvelopeOneOne M htb hns)
+    (hnp : PaperScalePiPlusBooleanProjectedNPWindowSubspaceInclusion M htb hns) :
+    ¬ DecidesSAT M :=
+  no_decidesSAT_at_paperScale_of_commutation_productNormalizationReduction_allocationLocalSpansPullbackReduction_routeBEnvelope_npInclusion
+    M htb hns hcomm
+    (paperScale_productNormalizationReduction_of_localFactorProductAssemblyReduction
+      M htb hns hred)
+    (paperScale_allocationLocalSpansPullbackReductionOneOne_of_localFactorProductAssemblyReduction
+      M htb hns hred)
+    henv hnp
+
+/-- Compact closeout package whose remaining product work is the single unified
+local-factor product-assembly reduction. -/
+structure PaperScalePiPlusBooleanProjectedOneOneUnifiedLocalFactorProductAssemblyCloseoutInputs
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) : Prop where
+  commutation : PaperScalePiPlusBooleanProjectedNormalizedDerivativeCommutation
+    M htb hns
+  local_factor_product_assembly :
+    PaperScalePiPlusBooleanProjectedOneOneLocalFactorProductAssemblyReduction
+      M htb hns
+  routeB_envelope : PaperScaleRouteBSATWindowedIncPSideRankEnvelopeOneOne M htb hns
+  np_subspace_inclusion : PaperScalePiPlusBooleanProjectedNPWindowSubspaceInclusion
+    M htb hns
+
+/-- The unified local-factor product-assembly closeout package rules out a SAT
+decider. -/
+theorem no_decidesSAT_at_paperScale_of_oneOneUnifiedLocalFactorProductAssemblyCloseoutInputs
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hinputs :
+      PaperScalePiPlusBooleanProjectedOneOneUnifiedLocalFactorProductAssemblyCloseoutInputs
+        M htb hns) :
+    ¬ DecidesSAT M :=
+  no_decidesSAT_at_paperScale_of_commutation_localFactorProductAssemblyReduction_routeBEnvelope_npInclusion
+    M htb hns hinputs.commutation hinputs.local_factor_product_assembly
+    hinputs.routeB_envelope hinputs.np_subspace_inclusion
+
 /-- Compact closeout package whose two product-assembly inputs are both phrased
 as consumers of the unconditional local-factor payload. -/
 structure PaperScalePiPlusBooleanProjectedOneOneLocalFactorProductAssemblyCloseoutInputs
@@ -906,6 +988,10 @@ theorem no_decidesSAT_at_paperScale_of_oneOneProductNormalizationCloseoutInputs
 #print axioms paperScale_normalizedDerivativeCriterion_of_commutation_and_productNormalizationReduction
 #print axioms paperScale_normalizedDerivativePolynomialSpan_of_commutation_and_productNormalizationReduction
 #print axioms no_decidesSAT_at_paperScale_of_commutation_productNormalizationReduction_allocationLocalSpansPullbackReduction_routeBEnvelope_npInclusion
+#print axioms paperScale_productNormalizationReduction_of_localFactorProductAssemblyReduction
+#print axioms paperScale_allocationLocalSpansPullbackReductionOneOne_of_localFactorProductAssemblyReduction
+#print axioms no_decidesSAT_at_paperScale_of_commutation_localFactorProductAssemblyReduction_routeBEnvelope_npInclusion
+#print axioms no_decidesSAT_at_paperScale_of_oneOneUnifiedLocalFactorProductAssemblyCloseoutInputs
 #print axioms no_decidesSAT_at_paperScale_of_commutation_localFactorToProductNormalization_localFactorToAllocationLocalSpansReduction_routeBEnvelope_npInclusion
 #print axioms no_decidesSAT_at_paperScale_of_commutation_productNormalization_localFactorToAllocationLocalSpansReduction_routeBEnvelope_npInclusion
 #print axioms no_decidesSAT_at_paperScale_of_oneOneProductNormalizationAllocationLocalSpansCloseoutInputs
