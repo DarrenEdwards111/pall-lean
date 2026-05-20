@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathC.PiPlusBooleanityPullbackNormalization
 import PallLean.Paper93.DeepMath.PathC.PiPlusBooleanityActualFactorNormalForm
+import PallLean.Paper93.DeepMath.PathC.PiPlusBooleanProjectedSignedCoordinateAtoms
 
 /-!
 # Projected Booleanity rows: single-row obstruction and span-level replacement
@@ -129,6 +130,136 @@ theorem X_true_mem_SATBlockBooleanityActualProjectedResidueSpan
     unfold SATBlockBooleanityActualProjectedResidueGenerators
     simp)
 
+
+private theorem isMultilinear_mapDomain_equiv {σ τ : Type*}
+    (e : σ ≃ τ) (s : σ →₀ ℕ) :
+    Finsupp.IsMultilinear (Finsupp.mapDomain e s) ↔ Finsupp.IsMultilinear s := by
+  constructor
+  · intro h i
+    have h1 := h (e i)
+    rwa [Finsupp.mapDomain_apply e.injective] at h1
+  · intro h j
+    obtain ⟨i, rfl⟩ : ∃ i, e i = j := ⟨e.symm j, by simp⟩
+    rw [Finsupp.mapDomain_apply e.injective]
+    exact h i
+
+/-- `mlProj` commutes with renaming along an equivalence of variable types.  The
+existing global lemma covers `Fin`-indexed injections; Route-C block-coordinate
+conjugation also needs the equivalence-shaped arbitrary-index form. -/
+private theorem mlProj_rename_equiv {σ τ F : Type*} [CommRing F]
+    (e : σ ≃ τ) (p : MvPolynomial σ F) :
+    mlProj (MvPolynomial.rename e p) = MvPolynomial.rename e (mlProj p) := by
+  induction p using MvPolynomial.induction_on' with
+  | monomial s a =>
+      rw [MvPolynomial.rename_monomial, mlProj_monomial, mlProj_monomial,
+        isMultilinear_mapDomain_equiv e s]
+      split
+      · exact (MvPolynomial.rename_monomial e s a).symm
+      · exact (map_zero (MvPolynomial.rename e)).symm
+  | add p q hp hq =>
+      rw [map_add, mlProj_add, hp, hq, mlProj_add, map_add]
+
+/-- Flat SAT-coordinate version of the false-side actual Booleanity normal form:
+after Boolean normalization and inverse block `Π+`, the corrected `mlProj` row is
+just the constant row. -/
+theorem mlProj_piPlusSATBlockAlgEquiv_symm_booleanProjected_booleanity_false
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (i : D.blockIndex) :
+    mlProj
+      ((piPlusSATBlockAlgEquiv M n hn2 htb hns D).symm
+        (zeroProfileBooleanNormalize
+          (piPlusSATBlockAlgEquiv M n hn2 htb hns D
+            (((1 : MvPolynomial
+                (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ) -
+              X (satBlockFalse M n hn2 htb hns D i) *
+                (1 - X (satBlockFalse M n hn2 htb hns D i))) :
+              SATDeciderGaugeSpace M n hn2 htb hns)))) =
+      (1 : SATDeciderGaugeSpace M n hn2 htb hns) := by
+  let pblock : MvPolynomial (D.blockIndex × Bool) ℚ :=
+    (1 : MvPolynomial (D.blockIndex × Bool) ℚ) -
+      X (i, false) * (1 - X (i, false))
+  have hfactor :
+      (((1 : MvPolynomial
+            (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ) -
+          X (satBlockFalse M n hn2 htb hns D i) *
+            (1 - X (satBlockFalse M n hn2 htb hns D i))) :
+        SATDeciderGaugeSpace M n hn2 htb hns) =
+        MvPolynomial.rename D.coord.symm pblock := by
+    simp [pblock, satBlockFalse, MvPolynomial.rename_X]
+  rw [hfactor]
+  rw [piPlusSATBlockAlgEquiv_rename_symm_apply]
+  rw [zeroProfileBooleanNormalize_rename_equiv_blockBooleanNormalize]
+  rw [piPlusSATBlockAlgEquiv_symm_rename_symm_apply]
+  let inner : MvPolynomial (D.blockIndex × Bool) ℚ :=
+    (blockPiPlusAlgEquiv D.blockIndex).symm
+      (blockBooleanNormalize ((blockPiPlusAlgEquiv D.blockIndex) pblock))
+  have hrename : mlProj (MvPolynomial.rename D.coord.symm inner) =
+      MvPolynomial.rename D.coord.symm (mlProj inner) :=
+    mlProj_rename_equiv D.coord.symm inner
+  change mlProj (MvPolynomial.rename D.coord.symm inner) =
+    (1 : SATDeciderGaugeSpace M n hn2 htb hns)
+  rw [hrename]
+  have hinner : mlProj inner = (1 : MvPolynomial (D.blockIndex × Bool) ℚ) := by
+    unfold inner pblock
+    exact mlProj_blockPiPlusInv_booleanProjected_booleanity_false_unconditional (i := i)
+  rw [hinner]
+  simp
+
+/-- Flat SAT-coordinate version of the true-side actual Booleanity normal form:
+the corrected row is the constant plus the false/true linear residue
+`1 + X_false - X_true`. -/
+theorem mlProj_piPlusSATBlockAlgEquiv_symm_booleanProjected_booleanity_true_actualForm
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (i : D.blockIndex) :
+    mlProj
+      ((piPlusSATBlockAlgEquiv M n hn2 htb hns D).symm
+        (zeroProfileBooleanNormalize
+          (piPlusSATBlockAlgEquiv M n hn2 htb hns D
+            (((1 : MvPolynomial
+                (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ) -
+              X (satBlockTrue M n hn2 htb hns D i) *
+                (1 - X (satBlockTrue M n hn2 htb hns D i))) :
+              SATDeciderGaugeSpace M n hn2 htb hns)))) =
+      ((1 : SATDeciderGaugeSpace M n hn2 htb hns) +
+        X (satBlockFalse M n hn2 htb hns D i) -
+        X (satBlockTrue M n hn2 htb hns D i)) := by
+  let pblock : MvPolynomial (D.blockIndex × Bool) ℚ :=
+    (1 : MvPolynomial (D.blockIndex × Bool) ℚ) -
+      X (i, true) * (1 - X (i, true))
+  have hfactor :
+      (((1 : MvPolynomial
+            (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ) -
+          X (satBlockTrue M n hn2 htb hns D i) *
+            (1 - X (satBlockTrue M n hn2 htb hns D i))) :
+        SATDeciderGaugeSpace M n hn2 htb hns) =
+        MvPolynomial.rename D.coord.symm pblock := by
+    simp [pblock, satBlockTrue, MvPolynomial.rename_X]
+  rw [hfactor]
+  rw [piPlusSATBlockAlgEquiv_rename_symm_apply]
+  rw [zeroProfileBooleanNormalize_rename_equiv_blockBooleanNormalize]
+  rw [piPlusSATBlockAlgEquiv_symm_rename_symm_apply]
+  let inner : MvPolynomial (D.blockIndex × Bool) ℚ :=
+    (blockPiPlusAlgEquiv D.blockIndex).symm
+      (blockBooleanNormalize ((blockPiPlusAlgEquiv D.blockIndex) pblock))
+  have hrename : mlProj (MvPolynomial.rename D.coord.symm inner) =
+      MvPolynomial.rename D.coord.symm (mlProj inner) :=
+    mlProj_rename_equiv D.coord.symm inner
+  change mlProj (MvPolynomial.rename D.coord.symm inner) =
+    ((1 : SATDeciderGaugeSpace M n hn2 htb hns) +
+      X (satBlockFalse M n hn2 htb hns D i) -
+      X (satBlockTrue M n hn2 htb hns D i))
+  rw [hrename]
+  have hinner : mlProj inner =
+      ((1 : MvPolynomial (D.blockIndex × Bool) ℚ) + X (i, false) - X (i, true)) := by
+    unfold inner pblock
+    exact mlProj_blockPiPlusInv_booleanProjected_booleanity_true_actualForm (i := i)
+  rw [hinner]
+  simp [satBlockFalse, satBlockTrue, MvPolynomial.rename_X]
+
 /-- Uniform rank payload for corrected Booleanity residue spans.  This packages
 local residue absorption at the same granularity as the Booleanity span surface:
 each actual Booleanity row may land in a three-dimensional block-local residue
@@ -200,6 +331,69 @@ abbrev PaperScaleCookLevinBooleanityFactorProjectedSpanPayload
     M (2 ^ 804) paperScale_ge_two htb hns
     (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
 
+/-- The span-level Booleanity payload is unconditional.  This discharges the
+local algebra behind the corrected Booleanity interface: false-side coordinates
+close to `1`, while true-side coordinates close to the admitted residue
+`1 + X_false - X_true`. -/
+theorem cookLevinBooleanityFactorProjectedSpanPayload_unconditional
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns) :
+    CookLevinBooleanityFactorProjectedSpanPayload M n hn2 htb hns D := by
+  intro v
+  let i : D.blockIndex := (D.coord v).1
+  by_cases hb : (D.coord v).2 = false
+  · have hpair : D.coord v = (i, false) := by
+      apply Prod.ext
+      · simp [i]
+      · exact hb
+    have hv : v = satBlockFalse M n hn2 htb hns D i := by
+      apply D.coord.injective
+      rw [hpair]
+      simp [satBlockFalse]
+    rw [hv]
+    unfold PiPlusBooleanProjectedBooleanityFactorProjectedSpanCertificate
+    simp only [boolLC, boolPoly']
+    rw [mlProj_piPlusSATBlockAlgEquiv_symm_booleanProjected_booleanity_false]
+    exact one_mem_SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D
+      (satBlockFalse M n hn2 htb hns D i)
+  · have hbtrue : (D.coord v).2 = true := by
+      cases h : (D.coord v).2 with
+      | false => exact False.elim (hb h)
+      | true => rfl
+    have hpair : D.coord v = (i, true) := by
+      apply Prod.ext
+      · simp [i]
+      · exact hbtrue
+    have hv : v = satBlockTrue M n hn2 htb hns D i := by
+      apply D.coord.injective
+      rw [hpair]
+      simp [satBlockTrue]
+    rw [hv]
+    unfold PiPlusBooleanProjectedBooleanityFactorProjectedSpanCertificate
+    simp only [boolLC, boolPoly']
+    rw [mlProj_piPlusSATBlockAlgEquiv_symm_booleanProjected_booleanity_true_actualForm]
+    simpa [sub_eq_add_neg] using
+      (Submodule.add_mem _
+        (Submodule.add_mem _
+          (one_mem_SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D
+            (satBlockTrue M n hn2 htb hns D i))
+          (X_false_mem_SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D
+            (satBlockTrue M n hn2 htb hns D i)))
+        (Submodule.neg_mem _
+          (X_true_mem_SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D
+            (satBlockTrue M n hn2 htb hns D i))))
+
+/-- Paper-scale span-level Booleanity payload, discharged from the concrete
+false/true Booleanity normal forms. -/
+theorem paperScale_cookLevinBooleanityFactorProjectedSpanPayload_unconditional
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) :
+    PaperScaleCookLevinBooleanityFactorProjectedSpanPayload M htb hns :=
+  cookLevinBooleanityFactorProjectedSpanPayload_unconditional
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+
+
 /-- Bridge from span-level Booleanity rows to the previous single-row projected
 payload.  This is intentionally a named reduction: if downstream code insists on
 single generators, it must prove a compression from span rows to that surface. -/
@@ -234,6 +428,10 @@ theorem paperScale_booleanityProjectedRows_of_spanPayload_reduction
 #print axioms finrank_SATBlockBooleanityActualProjectedResidueSpan_le_three
 #print axioms cookLevinBooleanityResidueRankPayload_unconditional
 #print axioms paperScale_cookLevinBooleanityResidueRankPayload_unconditional
+#print axioms mlProj_piPlusSATBlockAlgEquiv_symm_booleanProjected_booleanity_false
+#print axioms mlProj_piPlusSATBlockAlgEquiv_symm_booleanProjected_booleanity_true_actualForm
+#print axioms cookLevinBooleanityFactorProjectedSpanPayload_unconditional
+#print axioms paperScale_cookLevinBooleanityFactorProjectedSpanPayload_unconditional
 #print axioms one_mem_SATBlockBooleanityActualProjectedResidueSpan
 #print axioms X_false_mem_SATBlockBooleanityActualProjectedResidueSpan
 #print axioms X_true_mem_SATBlockBooleanityActualProjectedResidueSpan

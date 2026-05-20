@@ -72,6 +72,29 @@ theorem paperScale_spanConstraintListAtomicRowInputs_of_booleanitySpan
     M (2 ^ 804) paperScale_ge_two htb hns
     (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) hbool
 
+
+/-- The corrected span-level constraint-list inputs are now unconditional: the
+Booleanity span payload is discharged by the false/true actual Booleanity normal
+forms, the Booleanity residue rank is the explicit three-generator bound, and
+rest signed-cross rows were already unconditional. -/
+theorem spanConstraintListAtomicRowInputs_unconditional
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns) :
+    CookLevinSpanConstraintListAtomicRowInputs M n hn2 htb hns D :=
+  spanConstraintListAtomicRowInputs_of_booleanitySpan
+    M n hn2 htb hns D
+    (cookLevinBooleanityFactorProjectedSpanPayload_unconditional
+      M n hn2 htb hns D)
+
+/-- Paper-scale corrected span-level constraint-list inputs, fully discharged. -/
+theorem paperScale_spanConstraintListAtomicRowInputs_unconditional
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) :
+    PaperScaleCookLevinSpanConstraintListAtomicRowInputs M htb hns :=
+  spanConstraintListAtomicRowInputs_unconditional
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+
 /-! ## Product assembly obstruction
 
 The span/rank payload above is real: each actual Booleanity row lands in a
@@ -111,6 +134,8 @@ theorem spanAssemblyReduction_rankOnly_derivativeErasure_obstruction :
 #print axioms CookLevinSpanConstraintListAtomicRowInputs.booleanity_residue_rank
 #print axioms spanConstraintListAtomicRowInputs_of_booleanitySpan
 #print axioms paperScale_spanConstraintListAtomicRowInputs_of_booleanitySpan
+#print axioms spanConstraintListAtomicRowInputs_unconditional
+#print axioms paperScale_spanConstraintListAtomicRowInputs_unconditional
 #print axioms spanAssemblyReduction_rankOnly_derivativeErasure_obstruction
 
 end BoolPoly
