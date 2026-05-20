@@ -95,6 +95,67 @@ def PaperScaleCookLevinRawToBoolSourceNPKernelDisjoint
     (LinearMap.ker (liftToBoolLinearMap
       (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars))
 
+/-- The Boolean square residual is always killed by the raw-to-Boolean quotient
+map.  This is the concrete kernel direction that any NP noncollapse proof must
+exclude from the raw source row span. -/
+theorem square_residual_mem_liftToBool_kernel {n : ℕ} (i : Fin n) :
+    (X i * X i - X i : MvPolynomial (Fin n) ℚ) ∈
+      LinearMap.ker (liftToBoolLinearMap n) := by
+  change liftToBoolLinearMap n (X i * X i - X i : MvPolynomial (Fin n) ℚ) = 0
+  change liftToBool (X i * X i - X i : MvPolynomial (Fin n) ℚ) = 0
+  exact lift_square_residual_eq_zero i
+
+/-- The Boolean square residual is nonzero in the raw polynomial ring.  Hence it
+is a genuine potential kernel witness, not syntactic noise. -/
+theorem square_residual_ne_zero {n : ℕ} (i : Fin n) :
+    (X i * X i - X i : MvPolynomial (Fin n) ℚ) ≠ 0 := by
+  intro h
+  have hc2 := congrArg (fun p : MvPolynomial (Fin n) ℚ =>
+    coeff (Finsupp.single i 2) p) h
+  have hone_two : (Finsupp.single i 1 : Fin n →₀ Nat) ≠ Finsupp.single i 2 := by
+    intro h12
+    have hv := congrArg (fun f : Fin n →₀ Nat => f i) h12
+    simp at hv
+  have hcoeff_x : coeff (Finsupp.single i 2) (X i : MvPolynomial (Fin n) ℚ) = 0 := by
+    simp [MvPolynomial.X, hone_two]
+  have hcoeff_x2 : coeff (Finsupp.single i 2)
+      (X i * X i : MvPolynomial (Fin n) ℚ) = 1 := by
+    rw [← pow_two]
+    rw [MvPolynomial.X_pow_eq_monomial]
+    rw [MvPolynomial.coeff_monomial]
+    simp
+  simp [hcoeff_x, hcoeff_x2] at hc2
+
+/-- Kernel-disjointness fails as soon as the raw source span contains a nonzero
+square residual.  This isolates the exact obstruction to closing the Boolean
+NP-source lower bound by a blanket quotient-injectivity claim. -/
+theorem not_disjoint_liftToBool_kernel_of_square_residual_mem {n : ℕ}
+    (U : Submodule ℚ (MvPolynomial (Fin n) ℚ)) (i : Fin n)
+    (hmem : (X i * X i - X i : MvPolynomial (Fin n) ℚ) ∈ U) :
+    ¬ Disjoint U (LinearMap.ker (liftToBoolLinearMap n)) := by
+  intro hdisj
+  have hzero := Submodule.disjoint_def.mp hdisj
+    (X i * X i - X i : MvPolynomial (Fin n) ℚ)
+    hmem (square_residual_mem_liftToBool_kernel i)
+  exact square_residual_ne_zero i hzero
+
+/-- Paper-scale obstruction surface: to prove the Cook--Levin raw-to-Boolean NP
+kernel-disjointness, one must prove that no Boolean square residual occurs in
+the raw NP source span.  If such a residual is present, the desired
+kernel-disjoint field is false. -/
+theorem not_paperScaleCookLevinRawToBoolSourceNPKernelDisjoint_of_square_residual_mem
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (i : Fin (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars)
+    (hmem : (X i * X i - X i : MvPolynomial
+        (Fin (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars) ℚ) ∈
+      rawBlockedSpdpSubspace
+        (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+        (Nat.log 2 (2 ^ 804)) (Nat.log 2 (2 ^ 804))
+        (compiledPoly (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns))) :
+    ¬ PaperScaleCookLevinRawToBoolSourceNPKernelDisjoint M htb hns := by
+  unfold PaperScaleCookLevinRawToBoolSourceNPKernelDisjoint
+  exact not_disjoint_liftToBool_kernel_of_square_residual_mem _ i hmem
+
 /-- The kernel-disjoint criterion closes the raw-to-Boolean NP rank lower seam. -/
 theorem paperScaleCookLevinRawToBoolSourceNPRankLower_of_imageExact_of_kernelDisjoint
     (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
@@ -130,6 +191,10 @@ theorem no_decidesSAT_at_paperScale_of_boolRowPayloadsAndNPKernelDisjointFromDec
 /-! ## Axiom audit anchors -/
 
 #print axioms rawBlockedSpdpRank_le_boolBlockedSpdpRank_of_image_eq_of_disjoint_ker
+#print axioms square_residual_mem_liftToBool_kernel
+#print axioms square_residual_ne_zero
+#print axioms not_disjoint_liftToBool_kernel_of_square_residual_mem
+#print axioms not_paperScaleCookLevinRawToBoolSourceNPKernelDisjoint_of_square_residual_mem
 #print axioms paperScaleCookLevinRawToBoolSourceNPRankLower_of_imageExact_of_kernelDisjoint
 #print axioms no_decidesSAT_at_paperScale_of_boolRowPayloadsAndNPKernelDisjointFromDecider
 
