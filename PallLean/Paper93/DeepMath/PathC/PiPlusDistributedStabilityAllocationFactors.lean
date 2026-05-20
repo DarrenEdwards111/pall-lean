@@ -179,6 +179,30 @@ theorem finset_prod_mem_span_finiteProductChoiceSet
           exact T.smul_mem c hx
       exact hk
 
+/-- Generator-level Boolean stability of a product-choice set lifts to stability
+of its whole linear span.  This separates the genuinely algebraic normalization
+condition from the linear-span bookkeeping used by the product assembly. -/
+theorem zeroProfileBooleanNormalize_mem_span_finiteProductChoiceSet_of_generatorStable
+    {n : Nat} {ι : Type*} [DecidableEq ι]
+    (s : Finset ι) (A : ι → Set (MvPolynomial (Fin n) ℚ))
+    (hstable : ∀ q ∈ finiteProductChoiceSet s A,
+      zeroProfileBooleanNormalize q ∈ Submodule.span ℚ (finiteProductChoiceSet s A))
+    {p : MvPolynomial (Fin n) ℚ}
+    (hp : p ∈ Submodule.span ℚ (finiteProductChoiceSet s A)) :
+    zeroProfileBooleanNormalize p ∈
+      Submodule.span ℚ (finiteProductChoiceSet s A) := by
+  classical
+  have hmap_le :
+      Submodule.map (zeroProfileBooleanNormalizeLinearMap (n := n))
+        (Submodule.span ℚ (finiteProductChoiceSet s A)) ≤
+      Submodule.span ℚ (finiteProductChoiceSet s A) := by
+    rw [Submodule.map_span_le]
+    intro q hq
+    exact hstable q hq
+  change zeroProfileBooleanNormalizeLinearMap p ∈
+    Submodule.span ℚ (finiteProductChoiceSet s A)
+  exact hmap_le (Submodule.mem_map_of_mem hp)
+
 /-- Normalized finite-product span assembly.  If every locally normalized factor
 lies in its local span, and the pointwise product-choice span is closed under
 Boolean normalization, then the Boolean normal form of the whole product lies in
@@ -198,20 +222,11 @@ theorem zeroProfileBooleanNormalize_finset_prod_mem_span_finiteProductChoiceSet
       Submodule.span ℚ (finiteProductChoiceSet s A) :=
     finset_prod_mem_span_finiteProductChoiceSet s A
       (fun i => zeroProfileBooleanNormalize (p i)) hp
-  have hmap_le :
-      Submodule.map (zeroProfileBooleanNormalizeLinearMap (n := n))
-        (Submodule.span ℚ (finiteProductChoiceSet s A)) ≤
-      Submodule.span ℚ (finiteProductChoiceSet s A) := by
-    rw [Submodule.map_span_le]
-    intro q hq
-    exact hstable q hq
   have hnorm : zeroProfileBooleanNormalize
       (s.prod (fun i => zeroProfileBooleanNormalize (p i))) ∈
-      Submodule.span ℚ (finiteProductChoiceSet s A) := by
-    change zeroProfileBooleanNormalizeLinearMap
-        (s.prod (fun i => zeroProfileBooleanNormalize (p i))) ∈
-      Submodule.span ℚ (finiteProductChoiceSet s A)
-    exact hmap_le (Submodule.mem_map_of_mem hprod)
+      Submodule.span ℚ (finiteProductChoiceSet s A) :=
+    zeroProfileBooleanNormalize_mem_span_finiteProductChoiceSet_of_generatorStable
+      s A hstable hprod
   rw [zeroProfileBooleanNormalize_finset_prod_normalized] at hnorm
   exact hnorm
 
@@ -1273,6 +1288,7 @@ theorem no_decidesSAT_at_paperScale_of_oneOneProductNormalizationCloseoutInputs
 
 #print axioms zeroProfileBooleanNormalize_allocatedDerivativeProduct_eq_normalizedFactorProduct
 #print axioms finset_prod_mem_span_finiteProductChoiceSet
+#print axioms zeroProfileBooleanNormalize_mem_span_finiteProductChoiceSet_of_generatorStable
 #print axioms zeroProfileBooleanNormalize_finset_prod_mem_span_finiteProductChoiceSet
 #print axioms allocatedDerivativeProduct_mem_span_finiteProductChoiceSet
 #print axioms zeroProfileBooleanNormalize_allocatedDerivativeProduct_mem_span_finiteProductChoiceSet
