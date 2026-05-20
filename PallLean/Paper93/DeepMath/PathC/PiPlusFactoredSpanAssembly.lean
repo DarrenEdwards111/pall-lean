@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathC.PiPlusBooleanityProjectedRowObstruction
+import PallLean.Paper93.DeepMath.PathC.PiPlusBoolNPDerivativeErasureObstruction
 
 /-!
 # Span-level Booleanity inputs for factored assembly
@@ -71,240 +72,46 @@ theorem paperScale_spanConstraintListAtomicRowInputs_of_booleanitySpan
     M (2 ^ 804) paperScale_ge_two htb hns
     (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) hbool
 
-/-- Product assembly at the corrected rank-aware span-level surface.
+/-! ## Product assembly obstruction
 
-This replaces the earlier route that tried to compress Booleanity span rows into
-single generators before assembly.  The remaining theorem is precisely the
-Leibniz/product synthesis over the rank-aware bundle: Booleanity span membership,
-Booleanity residue `≤ 3` absorption, and rest signed-cross rows.
+The span/rank payload above is real: each actual Booleanity row lands in a
+three-dimensional residue space.  What it does **not** provide is the
+product-level Leibniz identity needed to turn local residue membership into the
+full factored row certificate.
 
-The socket is now stated at arbitrary scale and for arbitrary window parameters;
-the paper-scale `(1,0)` version below is just a specialization. -/
-structure CookLevinFactoredRowCertificateRankAwareSpanAssemblyReduction
-    (extraK extraL : Nat)
-    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
-    (piP : PiPlusSATTransform M n hn2 htb hns) : Prop where
-  assemble : CookLevinSpanConstraintListAtomicRowInputs M n hn2 htb hns D →
-    PiPlusBooleanProjectedWindowedFactoredCompiledRowCertificate
-      extraK extraL M n hn2 htb hns piP
+The tempting unconditional discharge would silently replace the Booleanity
+product by its Boolean normal form `1` before differentiating.  The exact missing
+identity would be, even in one variable with rest factor `1`,
 
-/-- Paper-scale specialization of the corrected rank-aware product-assembly
-socket. -/
-abbrev PaperScaleCookLevinFactoredRowCertificateRankAwareSpanAssemblyReduction
-    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) : Prop :=
-  CookLevinFactoredRowCertificateRankAwareSpanAssemblyReduction
-    1 0 M (2 ^ 804) paperScale_ge_two htb hns
-    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
-    (cookLevinPiPlusSATTransform_paperScale M htb hns)
+`liftToBool (iterDerivList [0] (cookLevinBooleanFactorProd 1 * 1)) =
+ liftToBool (iterDerivList [0] 1)`.
 
-/-- Backwards-compatible name for the corrected product-assembly socket.  Despite
-its historical name, the input is now explicitly rank-aware via
-`PaperScaleCookLevinSpanConstraintListAtomicRowInputs.booleanity_residue_rank`. -/
-abbrev PaperScaleCookLevinFactoredRowCertificateSpanAssemblyReduction
-    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) : Prop :=
-  PaperScaleCookLevinFactoredRowCertificateRankAwareSpanAssemblyReduction M htb hns
+That identity is false: differentiating `1 - X(1-X)` gives `-1 + 2X`, which is
+nonzero in the Boolean ambient.  Therefore `spanAssemblyReduction` cannot be
+discharged from the rank bound alone.  A real proof must supply the missing
+normalization-aware Leibniz/product algebra, not another named consumer of the
+same hypothesis. -/
 
-/-- Rank-aware span-level inputs plus the generalized span-level product
-assembly reduction give the factored compiled-row certificate directly.  This is
-the reusable frontier for the product seam: Booleanity membership and residue
-rank absorption travel together in `hin`. -/
-theorem factoredCompiledRowCertificate_of_spanInputs_spanAssemblyReduction
-    (extraK extraL : Nat)
-    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
-    (piP : PiPlusSATTransform M n hn2 htb hns)
-    (hin : CookLevinSpanConstraintListAtomicRowInputs M n hn2 htb hns D)
-    (hred : CookLevinFactoredRowCertificateRankAwareSpanAssemblyReduction
-      extraK extraL M n hn2 htb hns D piP) :
-    PiPlusBooleanProjectedWindowedFactoredCompiledRowCertificate
-      extraK extraL M n hn2 htb hns piP :=
-  hred.assemble hin
-
-/-- Span-level Booleanity payload plus the generalized product assembly
-reduction gives the factored compiled-row certificate directly. -/
-theorem factoredCompiledRowCertificate_of_booleanitySpan_spanAssemblyReduction
-    (extraK extraL : Nat)
-    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
-    (piP : PiPlusSATTransform M n hn2 htb hns)
-    (hbool : CookLevinBooleanityFactorProjectedSpanPayload M n hn2 htb hns D)
-    (hred : CookLevinFactoredRowCertificateRankAwareSpanAssemblyReduction
-      extraK extraL M n hn2 htb hns D piP) :
-    PiPlusBooleanProjectedWindowedFactoredCompiledRowCertificate
-      extraK extraL M n hn2 htb hns piP :=
-  factoredCompiledRowCertificate_of_spanInputs_spanAssemblyReduction
-    extraK extraL M n hn2 htb hns D piP
-    (spanConstraintListAtomicRowInputs_of_booleanitySpan
-      M n hn2 htb hns D hbool)
-    hred
-
-/-- Rank-aware span-level inputs plus the generalized span-level product
-assembly reduction discharge the generalized compiled-row certificate.  This
-pushes the corrected Booleanity residue/rank bundle beyond the factored product
-surface into the actual compiled polynomial row surface. -/
-theorem compiledRowCertificate_of_spanInputs_spanAssemblyReduction
-    (extraK extraL : Nat)
-    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
-    (piP : PiPlusSATTransform M n hn2 htb hns)
-    (hin : CookLevinSpanConstraintListAtomicRowInputs M n hn2 htb hns D)
-    (hred : CookLevinFactoredRowCertificateRankAwareSpanAssemblyReduction
-      extraK extraL M n hn2 htb hns D piP) :
-    PiPlusBooleanProjectedWindowedCompiledRowCertificate
-      extraK extraL M n hn2 htb hns piP :=
-  compiledRowCertificate_of_factoredCompiledRowCertificate
-    extraK extraL M n hn2 htb hns piP
-    (factoredCompiledRowCertificate_of_spanInputs_spanAssemblyReduction
-      extraK extraL M n hn2 htb hns D piP hin hred)
-
-/-- Span-level Booleanity payload plus the generalized product assembly
-reduction discharge the generalized compiled-row certificate. -/
-theorem compiledRowCertificate_of_booleanitySpan_spanAssemblyReduction
-    (extraK extraL : Nat)
-    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
-    (piP : PiPlusSATTransform M n hn2 htb hns)
-    (hbool : CookLevinBooleanityFactorProjectedSpanPayload M n hn2 htb hns D)
-    (hred : CookLevinFactoredRowCertificateRankAwareSpanAssemblyReduction
-      extraK extraL M n hn2 htb hns D piP) :
-    PiPlusBooleanProjectedWindowedCompiledRowCertificate
-      extraK extraL M n hn2 htb hns piP :=
-  compiledRowCertificate_of_factoredCompiledRowCertificate
-    extraK extraL M n hn2 htb hns piP
-    (factoredCompiledRowCertificate_of_booleanitySpan_spanAssemblyReduction
-      extraK extraL M n hn2 htb hns D piP hbool hred)
-
-/-- Rank-aware span-level inputs plus the span-level product assembly reduction
-give the paper-scale factored compiled-row certificate directly. -/
-theorem paperScale_factoredCompiledRowCertificate_of_spanInputs_spanAssemblyReduction
-    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
-    (hin : PaperScaleCookLevinSpanConstraintListAtomicRowInputs M htb hns)
-    (hred : PaperScaleCookLevinFactoredRowCertificateSpanAssemblyReduction
-      M htb hns) :
-    PaperScalePiPlusBooleanProjectedFactoredCompiledRowCertificateOneZero
-      M htb hns :=
-  factoredCompiledRowCertificate_of_spanInputs_spanAssemblyReduction
-    1 0 M (2 ^ 804) paperScale_ge_two htb hns
-    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
-    (cookLevinPiPlusSATTransform_paperScale M htb hns)
-    hin hred
-
-/-- Span-level Booleanity payload plus the span-level product assembly reduction
-gives the factored compiled-row certificate directly. -/
-theorem paperScale_factoredCompiledRowCertificate_of_booleanitySpan_spanAssemblyReduction
-    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
-    (hbool : PaperScaleCookLevinBooleanityFactorProjectedSpanPayload M htb hns)
-    (hred : PaperScaleCookLevinFactoredRowCertificateSpanAssemblyReduction
-      M htb hns) :
-    PaperScalePiPlusBooleanProjectedFactoredCompiledRowCertificateOneZero
-      M htb hns :=
-  factoredCompiledRowCertificate_of_booleanitySpan_spanAssemblyReduction
-    1 0 M (2 ^ 804) paperScale_ge_two htb hns
-    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
-    (cookLevinPiPlusSATTransform_paperScale M htb hns)
-    hbool hred
-
-/-- Rank-aware span-level inputs close the paper-scale P-side raw-pullback
-membership through the existing factored certificate route. -/
-theorem paperScale_windowedCompiledRawPullbackMembershipOneZero_of_spanInputs_spanAssemblyReduction
-    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
-    (hin : PaperScaleCookLevinSpanConstraintListAtomicRowInputs M htb hns)
-    (hred : PaperScaleCookLevinFactoredRowCertificateSpanAssemblyReduction
-      M htb hns) :
-    PaperScalePiPlusBooleanProjectedWindowedCompiledRawPullbackMembershipOneZero
-      M htb hns :=
-  paperScale_windowedCompiledRawPullbackMembershipOneZero_of_factoredRowCertificate
-    M htb hns
-    (paperScale_factoredCompiledRowCertificate_of_spanInputs_spanAssemblyReduction
-      M htb hns hin hred)
-
-/-- Span-level assembly closes the paper-scale P-side raw-pullback membership
-through the existing factored certificate route. -/
-theorem paperScale_windowedCompiledRawPullbackMembershipOneZero_of_booleanitySpan_spanAssemblyReduction
-    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
-    (hbool : PaperScaleCookLevinBooleanityFactorProjectedSpanPayload M htb hns)
-    (hred : PaperScaleCookLevinFactoredRowCertificateSpanAssemblyReduction
-      M htb hns) :
-    PaperScalePiPlusBooleanProjectedWindowedCompiledRawPullbackMembershipOneZero
-      M htb hns :=
-  paperScale_windowedCompiledRawPullbackMembershipOneZero_of_spanInputs_spanAssemblyReduction
-    M htb hns
-    (paperScale_spanConstraintListAtomicRowInputs_of_booleanitySpan
-      M htb hns hbool)
-    hred
-
-/-- Final contradiction closeout from rank-aware span-level inputs, the
-span-level product assembly reduction, NP-window inclusion, and the existing
-Route-B one-window blockers. -/
-theorem no_decidesSAT_at_paperScale_of_spanInputs_spanAssemblyReduction_npInclusion
-    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
-    (hin : PaperScaleCookLevinSpanConstraintListAtomicRowInputs M htb hns)
-    (hred : PaperScaleCookLevinFactoredRowCertificateSpanAssemblyReduction
-      M htb hns)
-    (hnp : PaperScalePiPlusBooleanProjectedNPWindowSubspaceInclusion M htb hns)
-    (W : SymmetricPowerBound.ConstraintType → Submodule ℚ (MvPolynomial (Fin (2 ^ 804)) ℚ))
-    (W_finite : ∀ τ, Module.Finite ℚ ↥(W τ))
-    (W_dim : ∀ τ, Module.finrank ℚ ↥(W τ) ≤ 3)
-    (zero_common_span :
-      CookLevinOneWindowZeroHistogramShiftCommonSpan
-        M (2 ^ 804) paperScale_ge_two htb hns)
-    (per_type_spanning :
-      CookLevinOneWindowPerTypeSpanningActiveAdmissibleProfileCases
-        M (2 ^ 804) paperScale_ge_two htb hns W) :
-    ¬ DecidesSAT M :=
-  no_decidesSAT_at_paperScale_of_factoredRowCertificate_npInclusion
-    M htb hns
-    (paperScale_factoredCompiledRowCertificate_of_spanInputs_spanAssemblyReduction
-      M htb hns hin hred)
-    hnp W W_finite W_dim zero_common_span per_type_spanning
-
-/-- Final contradiction closeout from the corrected span-level assembly surface,
-NP-window inclusion, and the existing Route-B one-window blockers. -/
-theorem no_decidesSAT_at_paperScale_of_booleanitySpan_spanAssemblyReduction_npInclusion
-    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
-    (hbool : PaperScaleCookLevinBooleanityFactorProjectedSpanPayload M htb hns)
-    (hred : PaperScaleCookLevinFactoredRowCertificateSpanAssemblyReduction
-      M htb hns)
-    (hnp : PaperScalePiPlusBooleanProjectedNPWindowSubspaceInclusion M htb hns)
-    (W : SymmetricPowerBound.ConstraintType → Submodule ℚ (MvPolynomial (Fin (2 ^ 804)) ℚ))
-    (W_finite : ∀ τ, Module.Finite ℚ ↥(W τ))
-    (W_dim : ∀ τ, Module.finrank ℚ ↥(W τ) ≤ 3)
-    (zero_common_span :
-      CookLevinOneWindowZeroHistogramShiftCommonSpan
-        M (2 ^ 804) paperScale_ge_two htb hns)
-    (per_type_spanning :
-      CookLevinOneWindowPerTypeSpanningActiveAdmissibleProfileCases
-        M (2 ^ 804) paperScale_ge_two htb hns W) :
-    ¬ DecidesSAT M :=
-  no_decidesSAT_at_paperScale_of_spanInputs_spanAssemblyReduction_npInclusion
-    M htb hns
-    (paperScale_spanConstraintListAtomicRowInputs_of_booleanitySpan
-      M htb hns hbool)
-    hred hnp W W_finite W_dim zero_common_span per_type_spanning
+/-- Exact obstruction to an unconditional rank-only discharge of the former
+`spanAssemblyReduction`: Booleanity quotient-normalization does not commute with
+the derivative/product assembly step.  This is the concrete false identity that
+blocks deriving the full factored row certificate from
+`finrank_SATBlockBooleanityActualProjectedResidueSpan_le_three` and profile
+finrank bounds alone. -/
+theorem spanAssemblyReduction_rankOnly_derivativeErasure_obstruction :
+    liftToBool
+        (iterDerivList [0]
+          (cookLevinBooleanFactorProd 1 * (1 : MvPolynomial (Fin 1) ℚ))) ≠
+      liftToBool
+        (iterDerivList [0] (1 : MvPolynomial (Fin 1) ℚ)) :=
+  booleanityDerivativeErasure_oneVar_counterexample
 
 /-! ## Axiom audit anchors -/
 
 #print axioms CookLevinSpanConstraintListAtomicRowInputs.booleanity_residue_rank
-#print axioms CookLevinFactoredRowCertificateRankAwareSpanAssemblyReduction.assemble
-#print axioms PaperScaleCookLevinFactoredRowCertificateRankAwareSpanAssemblyReduction
 #print axioms spanConstraintListAtomicRowInputs_of_booleanitySpan
 #print axioms paperScale_spanConstraintListAtomicRowInputs_of_booleanitySpan
-#print axioms factoredCompiledRowCertificate_of_spanInputs_spanAssemblyReduction
-#print axioms factoredCompiledRowCertificate_of_booleanitySpan_spanAssemblyReduction
-#print axioms compiledRowCertificate_of_spanInputs_spanAssemblyReduction
-#print axioms compiledRowCertificate_of_booleanitySpan_spanAssemblyReduction
-#print axioms paperScale_factoredCompiledRowCertificate_of_spanInputs_spanAssemblyReduction
-#print axioms paperScale_factoredCompiledRowCertificate_of_booleanitySpan_spanAssemblyReduction
-#print axioms paperScale_windowedCompiledRawPullbackMembershipOneZero_of_spanInputs_spanAssemblyReduction
-#print axioms paperScale_windowedCompiledRawPullbackMembershipOneZero_of_booleanitySpan_spanAssemblyReduction
-#print axioms no_decidesSAT_at_paperScale_of_spanInputs_spanAssemblyReduction_npInclusion
-#print axioms no_decidesSAT_at_paperScale_of_booleanitySpan_spanAssemblyReduction_npInclusion
+#print axioms spanAssemblyReduction_rankOnly_derivativeErasure_obstruction
 
 end BoolPoly
 
