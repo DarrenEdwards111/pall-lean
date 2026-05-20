@@ -179,6 +179,42 @@ theorem finset_prod_mem_span_finiteProductChoiceSet
           exact T.smul_mem c hx
       exact hk
 
+/-- Normalized finite-product span assembly.  If every locally normalized factor
+lies in its local span, and the pointwise product-choice span is closed under
+Boolean normalization, then the Boolean normal form of the whole product lies in
+that same product-choice span.  This is the span-level replacement for the too
+strong demand that a normalized product literally be one distributed generator. -/
+theorem zeroProfileBooleanNormalize_finset_prod_mem_span_finiteProductChoiceSet
+    {n : Nat} {ι : Type*} [DecidableEq ι]
+    (s : Finset ι) (A : ι → Set (MvPolynomial (Fin n) ℚ))
+    (p : ι → MvPolynomial (Fin n) ℚ)
+    (hp : ∀ i ∈ s, zeroProfileBooleanNormalize (p i) ∈ Submodule.span ℚ (A i))
+    (hstable : ∀ q ∈ finiteProductChoiceSet s A,
+      zeroProfileBooleanNormalize q ∈ Submodule.span ℚ (finiteProductChoiceSet s A)) :
+    zeroProfileBooleanNormalize (s.prod p) ∈
+      Submodule.span ℚ (finiteProductChoiceSet s A) := by
+  classical
+  have hprod : s.prod (fun i => zeroProfileBooleanNormalize (p i)) ∈
+      Submodule.span ℚ (finiteProductChoiceSet s A) :=
+    finset_prod_mem_span_finiteProductChoiceSet s A
+      (fun i => zeroProfileBooleanNormalize (p i)) hp
+  have hmap_le :
+      Submodule.map (zeroProfileBooleanNormalizeLinearMap (n := n))
+        (Submodule.span ℚ (finiteProductChoiceSet s A)) ≤
+      Submodule.span ℚ (finiteProductChoiceSet s A) := by
+    rw [Submodule.map_span_le]
+    intro q hq
+    exact hstable q hq
+  have hnorm : zeroProfileBooleanNormalize
+      (s.prod (fun i => zeroProfileBooleanNormalize (p i))) ∈
+      Submodule.span ℚ (finiteProductChoiceSet s A) := by
+    change zeroProfileBooleanNormalizeLinearMap
+        (s.prod (fun i => zeroProfileBooleanNormalize (p i))) ∈
+      Submodule.span ℚ (finiteProductChoiceSet s A)
+    exact hmap_le (Submodule.mem_map_of_mem hprod)
+  rw [zeroProfileBooleanNormalize_finset_prod_normalized] at hnorm
+  exact hnorm
+
 /-- Specialization of finite-product span assembly to transformed Cook--Levin
 allocated derivative products.  Once each local derivative factor is in its
 chosen local span, the whole allocated Leibniz product is in the span of all
@@ -214,6 +250,60 @@ theorem allocatedDerivativeProduct_mem_span_finiteProductChoiceSet
       (by
         intro i _hi
         exact hlocal i))
+
+/-- Normalized allocated-product span assembly.  This is the actual allocation
+version of the normalized finite-product theorem: local normalized derivative
+factor spans plus stability of product-choice generators imply that the Boolean
+normal form of the whole allocated derivative product lies in the product-choice
+span. -/
+theorem zeroProfileBooleanNormalize_allocatedDerivativeProduct_mem_span_finiteProductChoiceSet
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (alloc : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length →
+      List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+    (A : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length →
+      Set (MvPolynomial
+        (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ))
+    (hlocal : ∀ i : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length,
+      zeroProfileBooleanNormalize
+        (iterDerivList (alloc i)
+          (piPlusBooleanProjectedTransformedConstraintFactors
+            M n hn2 htb hns D)[i.val]) ∈ Submodule.span ℚ (A i))
+    (hstable : ∀ q ∈ finiteProductChoiceSet Finset.univ A,
+      zeroProfileBooleanNormalize q ∈
+        Submodule.span ℚ (finiteProductChoiceSet Finset.univ A)) :
+    zeroProfileBooleanNormalize
+      (piPlusBooleanProjectedAllocatedDerivativeProduct
+        M n hn2 htb hns D alloc) ∈
+      Submodule.span ℚ (finiteProductChoiceSet Finset.univ A) := by
+  classical
+  rw [zeroProfileBooleanNormalize_allocatedDerivativeProduct_eq_normalizedFactorProduct]
+  let ι := Fin (piPlusBooleanProjectedTransformedConstraintFactors
+    M n hn2 htb hns D).length
+  let N := (cook_levin_compilation M n hn2 htb hns).numVars
+  let p : ι → MvPolynomial (Fin N) ℚ := fun i =>
+    zeroProfileBooleanNormalize
+      (iterDerivList (alloc i)
+        (piPlusBooleanProjectedTransformedConstraintFactors
+          M n hn2 htb hns D)[i.val])
+  change zeroProfileBooleanNormalize ((Finset.univ : Finset ι).prod p) ∈
+    Submodule.span ℚ (finiteProductChoiceSet (Finset.univ : Finset ι) A)
+  refine zeroProfileBooleanNormalize_finset_prod_mem_span_finiteProductChoiceSet
+    (n := N) (ι := ι) (s := (Finset.univ : Finset ι)) (A := A) (p := p) ?_ ?_
+  · intro i _
+    dsimp [p]
+    change zeroProfileBooleanNormalizeLinearMap
+        (zeroProfileBooleanNormalizeLinearMap
+          (iterDerivList (alloc i)
+            (piPlusBooleanProjectedTransformedConstraintFactors
+              M n hn2 htb hns D)[i.val])) ∈ Submodule.span ℚ (A i)
+    rw [← LinearMap.comp_apply, zeroProfileBooleanNormalizeLinearMap_idempotent]
+    exact hlocal i
+  · exact hstable
 
 /-- Raw-pullback assembly for an allocated transformed Leibniz product from
 local factor spans.  If each local derivative factor is in its local span, and
@@ -1183,7 +1273,9 @@ theorem no_decidesSAT_at_paperScale_of_oneOneProductNormalizationCloseoutInputs
 
 #print axioms zeroProfileBooleanNormalize_allocatedDerivativeProduct_eq_normalizedFactorProduct
 #print axioms finset_prod_mem_span_finiteProductChoiceSet
+#print axioms zeroProfileBooleanNormalize_finset_prod_mem_span_finiteProductChoiceSet
 #print axioms allocatedDerivativeProduct_mem_span_finiteProductChoiceSet
+#print axioms zeroProfileBooleanNormalize_allocatedDerivativeProduct_mem_span_finiteProductChoiceSet
 #print axioms allocatedProduct_rawPullback_mem_of_localSpans
 #print axioms paperScale_allocatedProduct_rawPullback_mem_of_localSpans_oneOne
 #print axioms transformedLeibnizGeneratorPullback_of_allocationLocalSpansPullbackReduction
