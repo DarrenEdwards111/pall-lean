@@ -838,6 +838,46 @@ theorem paperScale_allocationLocalSpansPullbackReductionOneOne_of_localFactorPro
     (BoolPoly.paperScalePiPlusBooleanProjectedOneOneLocalFactorPayload_unconditional
       M htb hns)).2
 
+/-- Normalized polynomial span plus the unified local-factor product-assembly
+reduction, explicit Route-B `(1,1)` P-side bound, and NP-side input rule out a
+SAT decider at paper scale.  This is the commutation-free closeout surface: the
+normalized span is supplied directly, while the unified product-assembly seam
+supplies the transformed-generator pullback side. -/
+theorem no_decidesSAT_at_paperScale_of_polynomialSpan_localFactorProductAssemblyReduction_routeB_npInclusion
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hpoly : PaperScalePiPlusBooleanProjectedNormalizedDerivativePolynomialSpan
+      M htb hns)
+    (hred : PaperScalePiPlusBooleanProjectedOneOneLocalFactorProductAssemblyReduction
+      M htb hns)
+    (hpside : PaperScaleRouteBSATWindowedIncPSideRankBoundOneOne M htb hns)
+    (hnp : PaperScalePiPlusBooleanProjectedNPWindowSubspaceInclusion M htb hns) :
+    ¬ DecidesSAT M :=
+  no_decidesSAT_at_paperScale_of_allocationLocalSpansCloseoutInputs_routeB_npInclusion
+    M htb hns
+    { polynomial_span := hpoly
+      allocation_local_spans_pullback :=
+        paperScale_allocationLocalSpansPullbackReductionOneOne_of_localFactorProductAssemblyReduction
+          M htb hns hred }
+    hpside hnp
+
+/-- Normalized polynomial span plus the unified local-factor product-assembly
+reduction, Route-B `(1,1)` envelope, and NP-side input rule out a SAT decider at
+paper scale. -/
+theorem no_decidesSAT_at_paperScale_of_polynomialSpan_localFactorProductAssemblyReduction_routeBEnvelope_npInclusion
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hpoly : PaperScalePiPlusBooleanProjectedNormalizedDerivativePolynomialSpan
+      M htb hns)
+    (hred : PaperScalePiPlusBooleanProjectedOneOneLocalFactorProductAssemblyReduction
+      M htb hns)
+    (henv : PaperScaleRouteBSATWindowedIncPSideRankEnvelopeOneOne M htb hns)
+    (hnp : PaperScalePiPlusBooleanProjectedNPWindowSubspaceInclusion M htb hns) :
+    ¬ DecidesSAT M :=
+  no_decidesSAT_at_paperScale_of_polynomialSpan_localFactorProductAssemblyReduction_routeB_npInclusion
+    M htb hns hpoly hred
+    (paperScale_routeBSATWindowedIncPSideRankBoundOneOne_of_envelope
+      M htb hns henv)
+    hnp
+
 /-- Commutation plus the unified local-factor product-assembly reduction,
 explicit Route-B `(1,1)` P-side bound, and NP-side input rule out a SAT decider
 at paper scale. -/
@@ -889,6 +929,30 @@ structure PaperScalePiPlusBooleanProjectedOneOneUnifiedLocalFactorProductAssembl
   routeB_envelope : PaperScaleRouteBSATWindowedIncPSideRankEnvelopeOneOne M htb hns
   np_subspace_inclusion : PaperScalePiPlusBooleanProjectedNPWindowSubspaceInclusion
     M htb hns
+
+/-- Commutation-free closeout package with direct normalized-polynomial-span
+input and a Route-B `(1,1)` envelope. -/
+structure PaperScalePiPlusBooleanProjectedOneOnePolynomialSpanUnifiedLocalFactorProductAssemblyCloseoutInputs
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) : Prop where
+  polynomial_span : PaperScalePiPlusBooleanProjectedNormalizedDerivativePolynomialSpan
+    M htb hns
+  local_factor_product_assembly :
+    PaperScalePiPlusBooleanProjectedOneOneLocalFactorProductAssemblyReduction
+      M htb hns
+  routeB_envelope : PaperScaleRouteBSATWindowedIncPSideRankEnvelopeOneOne M htb hns
+  np_subspace_inclusion : PaperScalePiPlusBooleanProjectedNPWindowSubspaceInclusion
+    M htb hns
+
+/-- The direct-polynomial-span unified closeout package rules out a SAT decider. -/
+theorem no_decidesSAT_at_paperScale_of_oneOnePolynomialSpanUnifiedLocalFactorProductAssemblyCloseoutInputs
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hinputs :
+      PaperScalePiPlusBooleanProjectedOneOnePolynomialSpanUnifiedLocalFactorProductAssemblyCloseoutInputs
+        M htb hns) :
+    ¬ DecidesSAT M :=
+  no_decidesSAT_at_paperScale_of_polynomialSpan_localFactorProductAssemblyReduction_routeBEnvelope_npInclusion
+    M htb hns hinputs.polynomial_span hinputs.local_factor_product_assembly
+    hinputs.routeB_envelope hinputs.np_subspace_inclusion
 
 /-- Compact closeout package with an explicit Route-B `(1,1)` P-side bound rather
 than a max-window envelope. -/
@@ -1058,6 +1122,9 @@ theorem no_decidesSAT_at_paperScale_of_oneOneProductNormalizationCloseoutInputs
 #print axioms no_decidesSAT_at_paperScale_of_commutation_productNormalizationReduction_allocationLocalSpansPullbackReduction_routeBEnvelope_npInclusion
 #print axioms paperScale_productNormalizationReduction_of_localFactorProductAssemblyReduction
 #print axioms paperScale_allocationLocalSpansPullbackReductionOneOne_of_localFactorProductAssemblyReduction
+#print axioms no_decidesSAT_at_paperScale_of_polynomialSpan_localFactorProductAssemblyReduction_routeB_npInclusion
+#print axioms no_decidesSAT_at_paperScale_of_polynomialSpan_localFactorProductAssemblyReduction_routeBEnvelope_npInclusion
+#print axioms no_decidesSAT_at_paperScale_of_oneOnePolynomialSpanUnifiedLocalFactorProductAssemblyCloseoutInputs
 #print axioms no_decidesSAT_at_paperScale_of_commutation_localFactorProductAssemblyReduction_routeB_npInclusion
 #print axioms no_decidesSAT_at_paperScale_of_commutation_localFactorProductAssemblyReduction_routeBEnvelope_npInclusion
 #print axioms no_decidesSAT_at_paperScale_of_oneOneUnifiedLocalFactorProductAssemblyRankBoundCloseoutInputs
