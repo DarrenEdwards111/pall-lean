@@ -440,6 +440,27 @@ theorem oneVarBooleanityKernelWitness_mem_raw (B : BlockPartition 1) (hadm : isB
     fin_cases v
     simp
 
+/-- The same witness is an actual raw SPDP generator for every shift budget `ℓ ≥ 2`.
+The derivative-window parameter is exact in `rawBlockedSpdpSubspace`, so this
+is a `κ = 1` obstruction rather than a monotone-in-κ statement. -/
+theorem oneVarBooleanityKernelWitness_mem_raw_of_two_le
+    (B : BlockPartition 1) (ℓ : ℕ) (hℓ : 2 ≤ ℓ)
+    (hadm : isBlockAdmissible B [(0 : Fin 1)]) :
+    oneVarBooleanityKernelWitness ∈ rawBlockedSpdpSubspace B 1 ℓ (cookLevinBooleanFactorProd 1) := by
+  unfold oneVarBooleanityKernelWitness rawBlockedSpdpSubspace
+  apply Submodule.subset_span
+  refine ⟨[(0 : Fin 1)], (X (0 : Fin 1) * X (0 : Fin 1) - X (0 : Fin 1)), ?_, ?_, ?_, hadm, rfl⟩
+  · simp
+  · have hdeg : (X (0 : Fin 1) * X (0 : Fin 1) - X (0 : Fin 1) : MvPolynomial (Fin 1) ℚ).totalDegree ≤ 2 := by
+      have h := MvPolynomial.totalDegree_sub (X (0 : Fin 1) * X (0 : Fin 1) : MvPolynomial (Fin 1) ℚ) (X (0 : Fin 1))
+      have hmul := MvPolynomial.totalDegree_mul (X (0 : Fin 1) : MvPolynomial (Fin 1) ℚ) (X (0 : Fin 1))
+      simp [MvPolynomial.totalDegree_X] at h hmul
+      omega
+    exact le_trans hdeg hℓ
+  · intro v hv
+    fin_cases v
+    simp
+
 /-- The witness is killed by Boolean normalization because it contains the square residual. -/
 theorem oneVarBooleanityKernelWitness_mem_kernel :
     oneVarBooleanityKernelWitness ∈ LinearMap.ker (liftToBoolLinearMap 1) := by
@@ -502,8 +523,20 @@ theorem oneVarBooleanityKernelWitness_ne_zero : oneVarBooleanityKernelWitness �
   norm_num at hc0
 
 /-- Thus raw-to-Boolean kernel-disjointness is genuinely false for the
-one-variable Booleanity raw source at shift budget two, whenever the unique
-one-variable window is admissible. -/
+one-variable Booleanity raw source at every shift budget `ℓ ≥ 2`, whenever the
+unique one-variable window is admissible. -/
+theorem not_disjoint_rawBlockedSpdpSubspace_kernel_oneVar_booleanity_of_two_le
+    (B : BlockPartition 1) (ℓ : ℕ) (hℓ : 2 ≤ ℓ)
+    (hadm : isBlockAdmissible B [(0 : Fin 1)]) :
+    ¬ Disjoint (rawBlockedSpdpSubspace B 1 ℓ (cookLevinBooleanFactorProd 1))
+      (LinearMap.ker (liftToBoolLinearMap 1)) := by
+  intro hdisj
+  have hzero := Submodule.disjoint_def.mp hdisj oneVarBooleanityKernelWitness
+    (oneVarBooleanityKernelWitness_mem_raw_of_two_le B ℓ hℓ hadm)
+    oneVarBooleanityKernelWitness_mem_kernel
+  exact oneVarBooleanityKernelWitness_ne_zero hzero
+
+/-- Exact-budget corollary of the general `ℓ ≥ 2` obstruction. -/
 theorem not_disjoint_rawBlockedSpdpSubspace_kernel_oneVar_booleanity_ell_two
     (B : BlockPartition 1)
     (hadm : isBlockAdmissible B [(0 : Fin 1)]) :
@@ -702,9 +735,11 @@ theorem no_decidesSAT_at_paperScale_of_boolRowPayloadsAndNPKernelDisjointFromDec
 #print axioms evalHalfOneVar_eq_zero_of_mem_raw_oneVar_booleanity
 #print axioms square_residual_not_mem_raw_oneVar_booleanity
 #print axioms oneVarBooleanityKernelWitness_mem_raw
+#print axioms oneVarBooleanityKernelWitness_mem_raw_of_two_le
 #print axioms oneVarBooleanityKernelWitness_mem_kernel
 #print axioms oneVarBooleanityKernelWitness_coeff_three
 #print axioms oneVarBooleanityKernelWitness_ne_zero
+#print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_oneVar_booleanity_of_two_le
 #print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_oneVar_booleanity_ell_two
 #print axioms square_residual_mem_liftToBool_kernel
 #print axioms square_residual_ne_zero
