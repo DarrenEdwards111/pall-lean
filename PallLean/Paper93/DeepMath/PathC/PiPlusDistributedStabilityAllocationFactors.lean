@@ -538,6 +538,30 @@ def PiPlusBooleanProjectedAllocatedProductNormalizesToDistributedGenerator
         piPlusBooleanProjectedAllocatedDerivativeProduct
           M n hn2 htb hns D alloc'
 
+/-! ## Product-normalization obstruction
+
+The attempted unconditional discharge of
+`PaperScalePiPlusBooleanProjectedOneOneLocalFactorProductAssemblyReduction` runs
+into a real quotient/product issue, not a missing wrapper.  Boolean
+normalization can collapse a repeated untouched variable (`X * X ↦ X`).  If the
+Leibniz derivative window `S` does not contain that variable, the collapsed
+representative cannot be justified by reallocating a derivative from `S`; the
+normalization-aware product proof must account for this erasure explicitly. -/
+
+/-- Concrete one-variable obstruction for the product-normalization half of the
+local-factor product assembly: Boolean normalization collapses a repeated factor.
+This is the algebraic reason the unconditional Leibniz/product assembly cannot
+be discharged by merely reusing the same allocated derivative product shape. -/
+theorem productNormalization_repeatedUntouchedVariable_obstruction :
+    zeroProfileBooleanNormalize
+        ((X (0 : Fin 1) * X (0 : Fin 1) : MvPolynomial (Fin 1) ℚ)) ≠
+      ((X (0 : Fin 1) * X (0 : Fin 1) : MvPolynomial (Fin 1) ℚ)) := by
+  rw [zeroProfileBooleanNormalize_X_mul_X]
+  intro h
+  have hcoeff1 := congrArg
+    (fun p : MvPolynomial (Fin 1) ℚ => coeff (Finsupp.single (0 : Fin 1) 1) p) h
+  simp [MvPolynomial.X, MvPolynomial.monomial_mul] at hcoeff1
+
 /-- The remaining product/factor reduction for allocation-level stability: every
 admissible concrete allocation normalizes to another distributed generator. -/
 def PiPlusBooleanProjectedAllocationProductNormalizationReduction
@@ -1138,6 +1162,7 @@ theorem no_decidesSAT_at_paperScale_of_oneOneProductNormalizationCloseoutInputs
 #print axioms paperScale_allocationLocalSpansPullbackReductionOneOne_of_localFactorToAllocationLocalSpansReduction
 #print axioms paperScale_factoredRowSpanClassifierOneOne_of_polynomialSpan_and_localFactorToAllocationLocalSpansReduction
 #print axioms no_decidesSAT_at_paperScale_of_polynomialSpan_localFactorToAllocationLocalSpansReduction_routeBEnvelope_npInclusion
+#print axioms productNormalization_repeatedUntouchedVariable_obstruction
 #print axioms allocatedProduct_mem_span_of_normalizesToDistributedGenerator
 #print axioms paperScale_productNormalizationReduction_of_localFactorToProductNormalizationReduction
 #print axioms allocationStability_of_productNormalizationReduction
