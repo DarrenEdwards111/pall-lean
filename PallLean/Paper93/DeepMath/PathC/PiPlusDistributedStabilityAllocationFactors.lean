@@ -282,6 +282,88 @@ theorem paperScale_allocatedProduct_rawPullback_mem_of_localSpans_oneOne
     (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
     m alloc A hlocal hchoice
 
+/-! ## From allocation-local spans to transformed-generator pullback
+
+The previous theorem handles one concrete allocation once its local factors have
+been classified into local spans and every product-choice generator has a source
+pullback.  The next useful seam is the uniform version consumed by the existing
+P-side classifier: every distributed Leibniz generator has such a local-span
+classification.
+-/
+
+/-- Uniform local-span/product-choice reduction for transformed Leibniz
+generator pullback.  For each derivative allocation, it supplies local generator
+sets `A i`, proves every local allocated derivative lies in its local span, and
+proves every pointwise product choice pulls back into the widened source SPDP
+window. -/
+def PiPlusBooleanProjectedAllocationLocalSpansPullbackReduction
+    (extraK extraL : Nat)
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns) : Prop :=
+  ∀ (S : List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+    (m : SATDeciderGaugeSpace M n hn2 htb hns),
+      S.length = Nat.log 2 n →
+      m.totalDegree ≤ Nat.log 2 n →
+      m.vars ⊆ S.toFinset →
+      isBlockAdmissible (cook_levin_compilation M n hn2 htb hns).partition S →
+      ∀ (alloc : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+            M n hn2 htb hns D).length →
+          List (Fin (cook_levin_compilation M n hn2 htb hns).numVars)),
+        (∀ i, ∀ v ∈ alloc i, v ∈ S) →
+        ∃ A : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+            M n hn2 htb hns D).length →
+          Set (SATDeciderGaugeSpace M n hn2 htb hns),
+          (∀ i : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+              M n hn2 htb hns D).length,
+            iterDerivList (alloc i)
+              (piPlusBooleanProjectedTransformedConstraintFactors
+                M n hn2 htb hns D)[i.val] ∈ Submodule.span ℚ (A i)) ∧
+          (∀ q ∈ finiteProductChoiceSet Finset.univ A,
+            (piPlusSATTransform_of_blockCoordinates M n hn2 htb hns D).equiv.symm
+              (mlProj (m * q)) ∈
+                mlBlockedSpdpSubspaceInc
+                  (cook_levin_compilation M n hn2 htb hns).partition
+                  (Nat.log 2 n + extraK) (Nat.log 2 n + extraL)
+                  (cookLevinFactoredPoly M n))
+
+/-- The allocation-local span/product-choice reduction closes the standard
+transformed Leibniz generator pullback payload. -/
+theorem transformedLeibnizGeneratorPullback_of_allocationLocalSpansPullbackReduction
+    (extraK extraL : Nat)
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (hred : PiPlusBooleanProjectedAllocationLocalSpansPullbackReduction
+      extraK extraL M n hn2 htb hns D) :
+    PiPlusBooleanProjectedTransformedLeibnizGeneratorPullback
+      extraK extraL M n hn2 htb hns D := by
+  intro S m hSlen hmdeg hmvars hadm q hq
+  rcases hq with ⟨alloc, halloc, rfl⟩
+  rcases hred S m hSlen hmdeg hmvars hadm alloc halloc with
+    ⟨A, hlocal, hchoice⟩
+  exact allocatedProduct_rawPullback_mem_of_localSpans
+    extraK extraL M n hn2 htb hns D m alloc A hlocal hchoice
+
+/-- Paper-scale `(1,1)` local-span/product-choice reduction. -/
+abbrev PaperScalePiPlusBooleanProjectedAllocationLocalSpansPullbackReductionOneOne
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) : Prop :=
+  PiPlusBooleanProjectedAllocationLocalSpansPullbackReduction 1 1
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+
+/-- Paper-scale `(1,1)` transformed-generator pullback from the local-span /
+product-choice reduction. -/
+theorem paperScale_transformedLeibnizGeneratorPullbackOneOne_of_allocationLocalSpansPullbackReduction
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hred : PaperScalePiPlusBooleanProjectedAllocationLocalSpansPullbackReductionOneOne
+      M htb hns) :
+    PaperScalePiPlusBooleanProjectedTransformedLeibnizGeneratorPullbackOneOne
+      M htb hns :=
+  transformedLeibnizGeneratorPullback_of_allocationLocalSpansPullbackReduction
+    1 1 M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) hred
+
 /-- Product/factor normalization target for one concrete allocation.
 
 It says that Boolean-normalizing the allocated product is itself another
