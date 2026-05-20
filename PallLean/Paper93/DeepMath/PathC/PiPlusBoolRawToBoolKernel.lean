@@ -1261,6 +1261,151 @@ theorem not_disjoint_rawBlockedSpdpSubspace_kernel_compiledPoly_cookLevin_any_pa
     M i B ℓ hℓ
 
 
+/-- Inclusive-κ version of the residual-row membership: once `κ ≥ 1`, the
+singleton derivative window is allowed, so the same Boolean-kernel witness lies
+in the inclusive raw source. -/
+theorem residualDerivativeRow_mem_raw_inc {n : Nat} (i : Fin n) (p : MvPolynomial (Fin n) ℚ)
+    (B : BlockPartition n) (κ ℓ : ℕ) (hκ : 1 ≤ κ) (hℓ : 2 ≤ ℓ) :
+    residualDerivativeRow i p ∈ rawBlockedSpdpSubspaceInc B κ ℓ p := by
+  unfold residualDerivativeRow rawBlockedSpdpSubspaceInc
+  apply Submodule.subset_span
+  refine ⟨[i], (X i * X i - X i), ?_, ?_, ?_, kernel_isBlockAdmissible_singleton B i, rfl⟩
+  · simpa using hκ
+  · have hdeg : (X i * X i - X i : MvPolynomial (Fin n) ℚ).totalDegree ≤ 2 := by
+      have h := MvPolynomial.totalDegree_sub (X i * X i : MvPolynomial (Fin n) ℚ) (X i)
+      have hmul := MvPolynomial.totalDegree_mul (X i : MvPolynomial (Fin n) ℚ) (X i)
+      simp [MvPolynomial.totalDegree_X] at h hmul
+      omega
+    exact le_trans hdeg hℓ
+  · intro v hv
+    have hvu : v ∈ (X i * X i : MvPolynomial (Fin n) ℚ).vars ∪ (X i : MvPolynomial (Fin n) ℚ).vars :=
+      (MvPolynomial.vars_sub_subset (p := (X i * X i : MvPolynomial (Fin n) ℚ)) (q := X i)) hv
+    have hvmul : (X i * X i : MvPolynomial (Fin n) ℚ).vars ⊆
+        (X i : MvPolynomial (Fin n) ℚ).vars ∪ (X i : MvPolynomial (Fin n) ℚ).vars :=
+      MvPolynomial.vars_mul _ _
+    rw [MvPolynomial.vars_X] at hvu
+    simp at hvu
+    rcases hvu with hvi | hvm
+    · simpa using hvi
+    · have hvxi := hvmul hvm
+      rw [MvPolynomial.vars_X] at hvxi
+      simpa using hvxi
+
+/-- Inclusive-κ obstruction: any nonzero first partial derivative prevents
+raw-to-Boolean kernel-disjointness for every `κ ≥ 1`, `ℓ ≥ 2`. -/
+theorem not_disjoint_rawBlockedSpdpSubspaceInc_kernel_of_pderiv_ne_zero
+    {n : Nat} (i : Fin n) (p : MvPolynomial (Fin n) ℚ)
+    (B : BlockPartition n) (κ ℓ : ℕ) (hκ : 1 ≤ κ) (hℓ : 2 ≤ ℓ)
+    (hder : MvPolynomial.pderiv i p ≠ 0) :
+    ¬ Disjoint (rawBlockedSpdpSubspaceInc B κ ℓ p) (LinearMap.ker (liftToBoolLinearMap n)) := by
+  rw [Submodule.disjoint_def]
+  push_neg
+  refine ⟨residualDerivativeRow i p, residualDerivativeRow_mem_raw_inc i p B κ ℓ hκ hℓ,
+    residualDerivativeRow_mem_kernel i p, ?_⟩
+  exact residualDerivativeRow_ne_zero_of_pderiv_ne_zero i p hder
+
+/-- Applying the inclusive obstruction to the actual compiled Cook--Levin
+polynomial: every paper-style inclusive source with `κ ≥ 1` and `ℓ ≥ 2` already
+contains a nonzero Boolean-kernel row. -/
+theorem not_disjoint_rawBlockedSpdpSubspaceInc_kernel_compiledPoly_cookLevin_any_partition
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (i : Fin n) (B : BlockPartition n) (κ ℓ : ℕ) (hκ : 1 ≤ κ) (hℓ : 2 ≤ ℓ) :
+    ¬ Disjoint
+      (rawBlockedSpdpSubspaceInc B κ ℓ
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns)))
+      (LinearMap.ker (liftToBoolLinearMap n)) := by
+  rw [compiledPoly_eq_cookLevinFactoredPoly M n hn2 htb hns]
+  exact not_disjoint_rawBlockedSpdpSubspaceInc_kernel_of_pderiv_ne_zero
+    i (cookLevinFactoredPoly M n) B κ ℓ hκ hℓ (pderiv_cookLevinFactoredPoly_ne_zero M i)
+
+
+/-- Higher-window Boolean residual row: multiply an arbitrary derivative window
+by the square residual in one variable.  This is the exact-κ analogue of
+`residualDerivativeRow`. -/
+noncomputable def residualWindowDerivativeRow {n : Nat} (i : Fin n) (S : List (Fin n))
+    (p : MvPolynomial (Fin n) ℚ) : MvPolynomial (Fin n) ℚ :=
+  (X i * X i - X i) * iterDerivList S p
+
+/-- If `i ∈ S`, the higher-window residual row is an actual exact-window raw
+SPDP row: the multiplier only uses variables from `S` and has degree `2`. -/
+theorem residualWindowDerivativeRow_mem_raw {n : Nat} (i : Fin n) (S : List (Fin n))
+    (p : MvPolynomial (Fin n) ℚ) (B : BlockPartition n) (ℓ : ℕ)
+    (hiS : i ∈ S) (hℓ : 2 ≤ ℓ) (hB : isBlockAdmissible B S) :
+    residualWindowDerivativeRow i S p ∈ rawBlockedSpdpSubspace B S.length ℓ p := by
+  unfold residualWindowDerivativeRow rawBlockedSpdpSubspace
+  apply Submodule.subset_span
+  refine ⟨S, (X i * X i - X i), rfl, ?_, ?_, hB, rfl⟩
+  · have hdeg : (X i * X i - X i : MvPolynomial (Fin n) ℚ).totalDegree ≤ 2 := by
+      have h := MvPolynomial.totalDegree_sub (X i * X i : MvPolynomial (Fin n) ℚ) (X i)
+      have hmul := MvPolynomial.totalDegree_mul (X i : MvPolynomial (Fin n) ℚ) (X i)
+      simp [MvPolynomial.totalDegree_X] at h hmul
+      omega
+    exact le_trans hdeg hℓ
+  · intro v hv
+    have hvu : v ∈ (X i * X i : MvPolynomial (Fin n) ℚ).vars ∪ (X i : MvPolynomial (Fin n) ℚ).vars :=
+      (MvPolynomial.vars_sub_subset (p := (X i * X i : MvPolynomial (Fin n) ℚ)) (q := X i)) hv
+    have hvmul : (X i * X i : MvPolynomial (Fin n) ℚ).vars ⊆
+        (X i : MvPolynomial (Fin n) ℚ).vars ∪ (X i : MvPolynomial (Fin n) ℚ).vars :=
+      MvPolynomial.vars_mul _ _
+    rw [MvPolynomial.vars_X] at hvu
+    simp at hvu
+    rcases hvu with hvi | hvm
+    · subst v
+      simpa using hiS
+    · have hvxi := hvmul hvm
+      rw [MvPolynomial.vars_X] at hvxi
+      simp at hvxi
+      subst v
+      simpa using hiS
+
+/-- Boolean normalization kills every higher-window residual row, independently
+of the derivative payload. -/
+theorem residualWindowDerivativeRow_mem_kernel {n : Nat} (i : Fin n) (S : List (Fin n))
+    (p : MvPolynomial (Fin n) ℚ) :
+    residualWindowDerivativeRow i S p ∈ LinearMap.ker (liftToBoolLinearMap n) := by
+  unfold residualWindowDerivativeRow
+  change liftToBoolLinearMap n ((X i * X i - X i) * iterDerivList S p) = 0
+  apply BoolPoly.ext
+  simp [liftToBoolLinearMap, liftToBool, zeroProfileBooleanNormalize_square_residual_mul]
+
+/-- The residual multiplier is a nonzero divisor over `ℚ`, so a nonzero
+derivative payload gives a nonzero kernel witness. -/
+theorem residualWindowDerivativeRow_ne_zero_of_iterDerivList_ne_zero {n : Nat}
+    (i : Fin n) (S : List (Fin n)) (p : MvPolynomial (Fin n) ℚ)
+    (hder : iterDerivList S p ≠ 0) :
+    residualWindowDerivativeRow i S p ≠ 0 := by
+  unfold residualWindowDerivativeRow
+  exact mul_ne_zero (square_residual_ne_zero i) hder
+
+/-- Exact-κ obstruction: any nonzero admissible derivative window containing
+`i` creates a nonzero row in the Boolean kernel. -/
+theorem not_disjoint_rawBlockedSpdpSubspace_kernel_of_iterDerivList_ne_zero
+    {n : Nat} (i : Fin n) (S : List (Fin n)) (p : MvPolynomial (Fin n) ℚ)
+    (B : BlockPartition n) (ℓ : ℕ) (hiS : i ∈ S) (hℓ : 2 ≤ ℓ)
+    (hB : isBlockAdmissible B S) (hder : iterDerivList S p ≠ 0) :
+    ¬ Disjoint (rawBlockedSpdpSubspace B S.length ℓ p) (LinearMap.ker (liftToBoolLinearMap n)) := by
+  rw [Submodule.disjoint_def]
+  push_neg
+  refine ⟨residualWindowDerivativeRow i S p,
+    residualWindowDerivativeRow_mem_raw i S p B ℓ hiS hℓ hB,
+    residualWindowDerivativeRow_mem_kernel i S p,
+    residualWindowDerivativeRow_ne_zero_of_iterDerivList_ne_zero i S p hder⟩
+
+/-- Conversely, exact-κ kernel-disjointness forces every admissible derivative
+window containing a variable with a Boolean residual multiplier to vanish.  This
+is the higher-window version of the singleton derivative obstruction. -/
+theorem iterDerivList_eq_zero_of_disjoint_rawBlockedSpdpSubspace_kernel
+    {n : Nat} (i : Fin n) (S : List (Fin n)) (p : MvPolynomial (Fin n) ℚ)
+    (B : BlockPartition n) (ℓ : ℕ) (hiS : i ∈ S) (hℓ : 2 ≤ ℓ)
+    (hB : isBlockAdmissible B S)
+    (hdisj : Disjoint (rawBlockedSpdpSubspace B S.length ℓ p)
+      (LinearMap.ker (liftToBoolLinearMap n))) :
+    iterDerivList S p = 0 := by
+  by_contra hder
+  exact not_disjoint_rawBlockedSpdpSubspace_kernel_of_iterDerivList_ne_zero
+    i S p B ℓ hiS hℓ hB hder hdisj
+
+
 /-- The square residual is not multilinear as a raw polynomial: the `Xᵢ²`
 coefficient survives before quotienting. -/
 theorem square_residual_not_isMultilinear {n : ℕ} (i : Fin n) :
@@ -1459,6 +1604,14 @@ theorem no_decidesSAT_at_paperScale_of_boolRowPayloadsAndNPKernelDisjointFromDec
 #print axioms pderiv_cookLevinFactoredPoly_ne_zero
 #print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_cookLevinFactoredPoly_any_partition
 #print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_compiledPoly_cookLevin_any_partition
+#print axioms residualDerivativeRow_mem_raw_inc
+#print axioms not_disjoint_rawBlockedSpdpSubspaceInc_kernel_of_pderiv_ne_zero
+#print axioms not_disjoint_rawBlockedSpdpSubspaceInc_kernel_compiledPoly_cookLevin_any_partition
+#print axioms residualWindowDerivativeRow_mem_raw
+#print axioms residualWindowDerivativeRow_mem_kernel
+#print axioms residualWindowDerivativeRow_ne_zero_of_iterDerivList_ne_zero
+#print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_of_iterDerivList_ne_zero
+#print axioms iterDerivList_eq_zero_of_disjoint_rawBlockedSpdpSubspace_kernel
 #print axioms residualDerivativeRow_ne_zero_of_iterDerivList_singleton_ne_zero
 #print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_of_iterDerivList_singleton_ne_zero
 #print axioms iterDerivList_singleton_eq_zero_of_disjoint_rawBlockedSpdpSubspace_kernel
