@@ -540,6 +540,81 @@ theorem evalBooleanWitnessPoint_booleanityKernelWitness {n : Nat} (i : Fin n) :
   norm_num
 
 
+/-- The universal raw-to-Boolean kernel obstruction attached to a derivative row:
+multiply the row by the Boolean square residual in the same coordinate. -/
+noncomputable def residualDerivativeRow {n : Nat} (i : Fin n) (p : MvPolynomial (Fin n) ℚ) :
+    MvPolynomial (Fin n) ℚ :=
+  (X i * X i - X i) * iterDerivList [i] p
+
+/-- Every residual-multiplied derivative row is an honest raw SPDP row once the
+shift budget can hold the quadratic residual. -/
+theorem residualDerivativeRow_mem_raw {n : Nat} (i : Fin n) (p : MvPolynomial (Fin n) ℚ)
+    (B : BlockPartition n) (ℓ : ℕ) (hℓ : 2 ≤ ℓ)
+    (hadm : isBlockAdmissible B [i]) :
+    residualDerivativeRow i p ∈ rawBlockedSpdpSubspace B 1 ℓ p := by
+  unfold residualDerivativeRow rawBlockedSpdpSubspace
+  apply Submodule.subset_span
+  refine ⟨[i], (X i * X i - X i), ?_, ?_, ?_, hadm, rfl⟩
+  · simp
+  · have hdeg : (X i * X i - X i : MvPolynomial (Fin n) ℚ).totalDegree ≤ 2 := by
+      have h := MvPolynomial.totalDegree_sub (X i * X i : MvPolynomial (Fin n) ℚ) (X i)
+      have hmul := MvPolynomial.totalDegree_mul (X i : MvPolynomial (Fin n) ℚ) (X i)
+      simp [MvPolynomial.totalDegree_X] at h hmul
+      omega
+    exact le_trans hdeg hℓ
+  · intro v hv
+    have hvu : v ∈ (X i * X i : MvPolynomial (Fin n) ℚ).vars ∪ (X i : MvPolynomial (Fin n) ℚ).vars :=
+      (MvPolynomial.vars_sub_subset (p := (X i * X i : MvPolynomial (Fin n) ℚ)) (q := X i)) hv
+    have hvmul : (X i * X i : MvPolynomial (Fin n) ℚ).vars ⊆
+        (X i : MvPolynomial (Fin n) ℚ).vars ∪ (X i : MvPolynomial (Fin n) ℚ).vars :=
+      MvPolynomial.vars_mul _ _
+    rw [MvPolynomial.vars_X] at hvu
+    simp at hvu
+    rcases hvu with hvi | hvm
+    · simpa using hvi
+    · have hvxi := hvmul hvm
+      rw [MvPolynomial.vars_X] at hvxi
+      simpa using hvxi
+
+/-- Every residual-multiplied derivative row is killed by Boolean normalization. -/
+theorem residualDerivativeRow_mem_kernel {n : Nat} (i : Fin n) (p : MvPolynomial (Fin n) ℚ) :
+    residualDerivativeRow i p ∈ LinearMap.ker (liftToBoolLinearMap n) := by
+  unfold residualDerivativeRow
+  change liftToBoolLinearMap n ((X i * X i - X i) * iterDerivList [i] p : MvPolynomial (Fin n) ℚ) = 0
+  change liftToBool ((X i * X i - X i) * iterDerivList [i] p : MvPolynomial (Fin n) ℚ) = 0
+  apply BoolPoly.ext
+  simp [liftToBool, zeroProfileBooleanNormalize_square_residual_mul]
+
+/-- Therefore raw-to-Boolean kernel-disjointness forces each such
+residual-multiplied derivative row to vanish.  Equivalently, any nonzero one is
+a concrete obstruction, not a missing hypothesis. -/
+theorem not_disjoint_rawBlockedSpdpSubspace_kernel_of_residualDerivativeRow_ne_zero
+    {n : Nat} (i : Fin n) (p : MvPolynomial (Fin n) ℚ)
+    (B : BlockPartition n) (ℓ : ℕ) (hℓ : 2 ≤ ℓ)
+    (hadm : isBlockAdmissible B [i])
+    (hne : residualDerivativeRow i p ≠ 0) :
+    ¬ Disjoint (rawBlockedSpdpSubspace B 1 ℓ p) (LinearMap.ker (liftToBoolLinearMap n)) := by
+  intro hdisj
+  have hzero := Submodule.disjoint_def.mp hdisj (residualDerivativeRow i p)
+    (residualDerivativeRow_mem_raw i p B ℓ hℓ hadm)
+    (residualDerivativeRow_mem_kernel i p)
+  exact hne hzero
+
+
+/-- Kernel-disjointness gives the exact algebraic vanishing condition for the
+residual-multiplied derivative row. -/
+theorem residualDerivativeRow_eq_zero_of_disjoint_rawBlockedSpdpSubspace_kernel
+    {n : Nat} (i : Fin n) (p : MvPolynomial (Fin n) ℚ)
+    (B : BlockPartition n) (ℓ : ℕ) (hℓ : 2 ≤ ℓ)
+    (hadm : isBlockAdmissible B [i])
+    (hdisj : Disjoint (rawBlockedSpdpSubspace B 1 ℓ p)
+      (LinearMap.ker (liftToBoolLinearMap n))) :
+    residualDerivativeRow i p = 0 := by
+  exact Submodule.disjoint_def.mp hdisj (residualDerivativeRow i p)
+    (residualDerivativeRow_mem_raw i p B ℓ hℓ hadm)
+    (residualDerivativeRow_mem_kernel i p)
+
+
 /-- The arbitrary-variable Booleanity witness is a raw generator for every shift
 budget `ℓ ≥ 2` (with exact derivative window `κ=1`). -/
 theorem booleanityKernelWitness_mem_raw_of_two_le {n : Nat} (i : Fin n)
@@ -925,6 +1000,10 @@ theorem no_decidesSAT_at_paperScale_of_boolRowPayloadsAndNPKernelDisjointFromDec
 #print axioms evalHalfOneVar_deriv_booleanity
 #print axioms evalHalfOneVar_eq_zero_of_mem_raw_oneVar_booleanity
 #print axioms square_residual_not_mem_raw_oneVar_booleanity
+#print axioms residualDerivativeRow_mem_raw
+#print axioms residualDerivativeRow_mem_kernel
+#print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_of_residualDerivativeRow_ne_zero
+#print axioms residualDerivativeRow_eq_zero_of_disjoint_rawBlockedSpdpSubspace_kernel
 #print axioms booleanityKernelWitness_mem_raw
 #print axioms booleanityKernelWitness_mem_raw_of_two_le
 #print axioms booleanityKernelWitness_mem_kernel
