@@ -71,17 +71,24 @@ theorem paperScale_spanConstraintListAtomicRowInputs_of_booleanitySpan
     M (2 ^ 804) paperScale_ge_two htb hns
     (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) hbool
 
-/-- Product assembly at the corrected span-level surface.
+/-- Product assembly at the corrected rank-aware span-level surface.
 
 This replaces the earlier route that tried to compress Booleanity span rows into
 single generators before assembly.  The remaining theorem is precisely the
-Leibniz/product synthesis over a Booleanity span payload and rest signed-cross
-payload. -/
-structure PaperScaleCookLevinFactoredRowCertificateSpanAssemblyReduction
+Leibniz/product synthesis over the rank-aware bundle: Booleanity span membership,
+Booleanity residue `≤ 3` absorption, and rest signed-cross rows. -/
+structure PaperScaleCookLevinFactoredRowCertificateRankAwareSpanAssemblyReduction
     (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) : Prop where
   assemble : PaperScaleCookLevinSpanConstraintListAtomicRowInputs M htb hns →
     PaperScalePiPlusBooleanProjectedFactoredCompiledRowCertificateOneZero
       M htb hns
+
+/-- Backwards-compatible name for the corrected product-assembly socket.  Despite
+its historical name, the input is now explicitly rank-aware via
+`PaperScaleCookLevinSpanConstraintListAtomicRowInputs.booleanity_residue_rank`. -/
+abbrev PaperScaleCookLevinFactoredRowCertificateSpanAssemblyReduction
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) : Prop :=
+  PaperScaleCookLevinFactoredRowCertificateRankAwareSpanAssemblyReduction M htb hns
 
 /-- Rank-aware span-level inputs plus the span-level product assembly reduction
 give the factored compiled-row certificate directly.  This is the preferred
@@ -192,6 +199,7 @@ theorem no_decidesSAT_at_paperScale_of_booleanitySpan_spanAssemblyReduction_npIn
 /-! ## Axiom audit anchors -/
 
 #print axioms CookLevinSpanConstraintListAtomicRowInputs.booleanity_residue_rank
+#print axioms PaperScaleCookLevinFactoredRowCertificateRankAwareSpanAssemblyReduction.assemble
 #print axioms spanConstraintListAtomicRowInputs_of_booleanitySpan
 #print axioms paperScale_spanConstraintListAtomicRowInputs_of_booleanitySpan
 #print axioms paperScale_factoredCompiledRowCertificate_of_spanInputs_spanAssemblyReduction
