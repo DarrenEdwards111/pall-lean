@@ -988,6 +988,47 @@ theorem iterDerivList_singleton_eq_zero_of_disjoint_rawBlockedSpdpSubspace_kerne
   unfold residualDerivativeRow at hrow
   exact (mul_eq_zero.mp hrow).resolve_left (square_residual_ne_zero i)
 
+/-- Every singleton derivative window is block-admissible for every block
+partition: with one variable, no block can be hit twice. -/
+theorem kernel_isBlockAdmissible_singleton {n : Nat} (B : BlockPartition n) (i : Fin n) :
+    isBlockAdmissible B [i] := by
+  constructor
+  · simp
+  · intro b
+    by_cases h : B.assign i = b
+    · simp [h]
+    · simp [h]
+
+/-- The derivative obstruction is independent of the partition: singleton windows
+are always admissible. -/
+theorem not_disjoint_rawBlockedSpdpSubspace_kernel_of_pderiv_ne_zero_any_partition
+    {n : Nat} (i : Fin n) (p : MvPolynomial (Fin n) ℚ)
+    (B : BlockPartition n) (ℓ : ℕ) (hℓ : 2 ≤ ℓ)
+    (hder : MvPolynomial.pderiv i p ≠ 0) :
+    ¬ Disjoint (rawBlockedSpdpSubspace B 1 ℓ p) (LinearMap.ker (liftToBoolLinearMap n)) := by
+  exact not_disjoint_rawBlockedSpdpSubspace_kernel_of_pderiv_ne_zero
+    i p B ℓ hℓ (kernel_isBlockAdmissible_singleton B i) hder
+
+/-- Consequently the full Booleanity-product obstruction is partition-free.
+For every block partition and every `ℓ ≥ 2`, each coordinate supplies a
+nonzero raw row killed by Boolean normalization. -/
+theorem not_disjoint_rawBlockedSpdpSubspace_kernel_cookLevinBooleanFactorProd_any_partition
+    {n : Nat} (i : Fin n) (B : BlockPartition n) (ℓ : ℕ) (hℓ : 2 ≤ ℓ) :
+    ¬ Disjoint (rawBlockedSpdpSubspace B 1 ℓ (cookLevinBooleanFactorProd n))
+      (LinearMap.ker (liftToBoolLinearMap n)) := by
+  exact not_disjoint_rawBlockedSpdpSubspace_kernel_cookLevinBooleanFactorProd
+    i B ℓ hℓ (kernel_isBlockAdmissible_singleton B i)
+
+/-- The same partition-free obstruction for an individual Cook--Levin
+Booleanity factor. -/
+theorem not_disjoint_rawBlockedSpdpSubspace_kernel_cookLevinBooleanFactor_self_any_partition
+    {n : Nat} (i : Fin n) (B : BlockPartition n) (ℓ : ℕ) (hℓ : 2 ≤ ℓ) :
+    ¬ Disjoint (rawBlockedSpdpSubspace B 1 ℓ (cookLevinBooleanFactor n i))
+      (LinearMap.ker (liftToBoolLinearMap n)) := by
+  exact not_disjoint_rawBlockedSpdpSubspace_kernel_cookLevinBooleanFactor_self
+    i B ℓ hℓ (kernel_isBlockAdmissible_singleton B i)
+
+
 /-- The square residual is not multilinear as a raw polynomial: the `Xᵢ²`
 coefficient survives before quotienting. -/
 theorem square_residual_not_isMultilinear {n : ℕ} (i : Fin n) :
@@ -1171,6 +1212,10 @@ theorem no_decidesSAT_at_paperScale_of_boolRowPayloadsAndNPKernelDisjointFromDec
 #print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_cookLevinBooleanFactor_self
 #print axioms pderiv_cookLevinBooleanFactorProd_ne_zero
 #print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_cookLevinBooleanFactorProd
+#print axioms kernel_isBlockAdmissible_singleton
+#print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_of_pderiv_ne_zero_any_partition
+#print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_cookLevinBooleanFactorProd_any_partition
+#print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_cookLevinBooleanFactor_self_any_partition
 #print axioms residualDerivativeRow_ne_zero_of_iterDerivList_singleton_ne_zero
 #print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_of_iterDerivList_singleton_ne_zero
 #print axioms iterDerivList_singleton_eq_zero_of_disjoint_rawBlockedSpdpSubspace_kernel
