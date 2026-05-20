@@ -4,6 +4,7 @@ namespace PallLean.Paper93.DeepMath.PathC
 
 open MvPolynomial
 open SPDP
+open MultilinearSPDP
 open PallLean.Paper93.DeepMath.PathB
 
 attribute [local instance] Classical.dec
@@ -190,6 +191,30 @@ theorem zeroProfileBooleanNormalize_finset_prod_normalized
 
 /-! ## Normalization-aware derivative algebra -/
 
+/-- For multilinear polynomials, ordinary derivative commutes with Boolean
+normalization.  This is the precise positive form of the derivative-commutation
+principle: the obstruction only appears once repeated exponents are present. -/
+theorem zeroProfileBooleanNormalize_pderiv_of_isMultilinear
+    {n : Nat} (p : MvPolynomial (Fin n) ℚ)
+    (hp : IsMultilinear p) (i : Fin n) :
+    MvPolynomial.pderiv i (zeroProfileBooleanNormalize p) =
+      zeroProfileBooleanNormalize (MvPolynomial.pderiv i p) := by
+  rw [zeroProfileBooleanNormalize_of_support_isMultilinear p hp]
+  rw [zeroProfileBooleanNormalize_of_support_isMultilinear
+    (MvPolynomial.pderiv i p) (isMultilinear_pderiv p hp i)]
+
+/-- For multilinear polynomials, any iterated derivative commutes with Boolean
+normalization.  This gives an actual algebraic discharge of the normalized-row
+commutation step on the multilinear slice. -/
+theorem zeroProfileBooleanNormalize_iterDerivList_of_isMultilinear
+    {n : Nat} (S : List (Fin n)) (p : MvPolynomial (Fin n) ℚ)
+    (hp : IsMultilinear p) :
+    iterDerivList S (zeroProfileBooleanNormalize p) =
+      zeroProfileBooleanNormalize (iterDerivList S p) := by
+  rw [zeroProfileBooleanNormalize_of_support_isMultilinear p hp]
+  rw [zeroProfileBooleanNormalize_of_support_isMultilinear
+    (iterDerivList S p) (isMultilinear_iterDerivList S p hp)]
+
 /-- Formal differentiation after Boolean normalization of a monomial.  The
 coefficient records only whether the variable occurs in the original support,
 because Boolean normalization first collapses every positive exponent to `1`.
@@ -334,6 +359,8 @@ theorem zeroProfileBooleanNormalize_cookLevinBooleanFactorProd
 #print axioms zeroProfileBooleanNormalize_mul_normalized
 #print axioms zeroProfileBooleanNormalize_list_prod_map_normalized
 #print axioms zeroProfileBooleanNormalize_finset_prod_normalized
+#print axioms zeroProfileBooleanNormalize_pderiv_of_isMultilinear
+#print axioms zeroProfileBooleanNormalize_iterDerivList_of_isMultilinear
 #print axioms pderiv_zeroProfileBooleanNormalize_monomial
 #print axioms zeroProfileBooleanNormalize_pderiv_monomial
 #print axioms zeroProfileBooleanNormalize_square_residual_mul
