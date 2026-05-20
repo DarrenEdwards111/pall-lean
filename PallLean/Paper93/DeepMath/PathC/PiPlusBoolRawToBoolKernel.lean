@@ -264,6 +264,86 @@ theorem paperScaleCookLevinRawToBoolSourceNPKernelDisjoint_of_rawSpan_isMultilin
   unfold PaperScaleCookLevinRawToBoolSourceNPKernelDisjoint
   exact disjoint_liftToBool_kernel_of_forall_isMultilinear _ hml
 
+/-! ## Booleanity obstruction to the naive multilinear-source route -/
+
+/-- The shifted derivative of the one-variable Booleanity product is not
+multilinear.  Concretely, `X * ∂(1 - X + X²)` contains the raw monomial
+`2 X²`.  This pins down why the sufficient multilinearity criterion above is
+not automatic for Cook--Levin Booleanity factors. -/
+theorem X_mul_iterDerivList_cookLevinBooleanFactorProd_oneVar_not_isMultilinear :
+    ¬ IsMultilinear
+      ((X (0 : Fin 1)) * iterDerivList [(0 : Fin 1)] (cookLevinBooleanFactorProd 1) :
+        MvPolynomial (Fin 1) ℚ) := by
+  intro hml
+  have hpoly :
+      (X (0 : Fin 1)) * iterDerivList [(0 : Fin 1)] (cookLevinBooleanFactorProd 1) =
+        (X (0 : Fin 1)) * (((-1 : MvPolynomial (Fin 1) ℚ) + 2 * X 0)) := by
+    unfold iterDerivList
+    simp only [List.foldl_cons, List.foldl_nil]
+    rw [cookLevinBooleanFactorProd_eq_finRange]
+    simp [List.finRange]
+    rw [pderiv_cookLevinBooleanFactor_self]
+  have hcoeff : coeff (Finsupp.single (0 : Fin 1) 2)
+      ((X (0 : Fin 1)) * (((-1 : MvPolynomial (Fin 1) ℚ) + 2 * X 0))) = 2 := by
+    ring_nf
+    rw [MvPolynomial.coeff_add]
+    have hneg : coeff (Finsupp.single (0 : Fin 1) 2)
+        (-(X (0 : Fin 1)) : MvPolynomial (Fin 1) ℚ) = 0 := by
+      simp [MvPolynomial.X]
+    rw [hneg]
+    simp only [zero_add]
+    rw [MvPolynomial.X_pow_eq_monomial]
+    change coeff (Finsupp.single (0 : Fin 1) 2)
+      (((MvPolynomial.monomial (Finsupp.single (0 : Fin 1) 2)) (1 : ℚ)) * C (2 : ℚ)) = 2
+    rw [show ((MvPolynomial.monomial (Finsupp.single (0 : Fin 1) 2)) (1 : ℚ)) * C (2 : ℚ) =
+        C (2 : ℚ) * ((MvPolynomial.monomial (Finsupp.single (0 : Fin 1) 2)) (1 : ℚ)) by ring]
+    rw [MvPolynomial.C_mul_monomial]
+    rw [MvPolynomial.coeff_monomial]
+    simp
+  have hsupp : Finsupp.single (0 : Fin 1) 2 ∈
+      ((X (0 : Fin 1)) * (((-1 : MvPolynomial (Fin 1) ℚ) + 2 * X 0)) :
+        MvPolynomial (Fin 1) ℚ).support := by
+    rw [MvPolynomial.mem_support_iff]
+    rw [hcoeff]
+    norm_num
+  rw [hpoly] at hml
+  have hle := hml (Finsupp.single (0 : Fin 1) 2) hsupp (0 : Fin 1)
+  simp at hle
+
+/-- Therefore the generator-level multilinearity condition is false already for
+the minimal Booleanity source when the one active derivative window is
+admissible. -/
+theorem not_RawBlockedSpdpGeneratorsMultilinear_oneVar_booleanity
+    (B : BlockPartition 1)
+    (hadm : isBlockAdmissible B [(0 : Fin 1)]) :
+    ¬ RawBlockedSpdpGeneratorsMultilinear B 1 1 (cookLevinBooleanFactorProd 1) := by
+  intro hgen
+  exact X_mul_iterDerivList_cookLevinBooleanFactorProd_oneVar_not_isMultilinear
+    (hgen [(0 : Fin 1)] (X (0 : Fin 1)) (by simp) (by simp) (by simp) hadm)
+
+/-- The same non-multilinear shifted derivative is an actual raw SPDP generator
+in the one-variable Booleanity source span. -/
+theorem X_mul_iterDerivList_cookLevinBooleanFactorProd_oneVar_mem_rawBlockedSpdpSubspace
+    (B : BlockPartition 1)
+    (hadm : isBlockAdmissible B [(0 : Fin 1)]) :
+    ((X (0 : Fin 1)) * iterDerivList [(0 : Fin 1)] (cookLevinBooleanFactorProd 1) :
+        MvPolynomial (Fin 1) ℚ) ∈ rawBlockedSpdpSubspace B 1 1 (cookLevinBooleanFactorProd 1) := by
+  unfold rawBlockedSpdpSubspace
+  apply Submodule.subset_span
+  exact ⟨[(0 : Fin 1)], X (0 : Fin 1), by simp, by simp, by simp, hadm, rfl⟩
+
+/-- Hence the one-variable Booleanity raw source span is not contained in the
+raw multilinear-support submodule.  The remaining noncollapse theorem must use
+a more delicate invariant than blanket raw multilinearity. -/
+theorem not_rawBlockedSpdpSubspace_le_multilinearSupportSubmodule_oneVar_booleanity
+    (B : BlockPartition 1)
+    (hadm : isBlockAdmissible B [(0 : Fin 1)]) :
+    ¬ rawBlockedSpdpSubspace B 1 1 (cookLevinBooleanFactorProd 1) ≤ multilinearSupportSubmodule 1 := by
+  intro hle
+  exact X_mul_iterDerivList_cookLevinBooleanFactorProd_oneVar_not_isMultilinear
+    ((mem_multilinearSupportSubmodule_iff _).mp
+      (hle (X_mul_iterDerivList_cookLevinBooleanFactorProd_oneVar_mem_rawBlockedSpdpSubspace B hadm)))
+
 /-- The Boolean square residual is always killed by the raw-to-Boolean quotient
 map.  This is the concrete kernel direction that any NP noncollapse proof must
 exclude from the raw source row span. -/
@@ -441,6 +521,10 @@ theorem no_decidesSAT_at_paperScale_of_boolRowPayloadsAndNPKernelDisjointFromDec
 #print axioms paperScaleCookLevinRawToBoolSourceNPKernelDisjoint_iff_normalize_injective_on
 #print axioms paperScaleCookLevinRawToBoolSourceNPKernelDisjoint_of_generators_multilinear
 #print axioms paperScaleCookLevinRawToBoolSourceNPKernelDisjoint_of_rawSpan_isMultilinear
+#print axioms X_mul_iterDerivList_cookLevinBooleanFactorProd_oneVar_not_isMultilinear
+#print axioms not_RawBlockedSpdpGeneratorsMultilinear_oneVar_booleanity
+#print axioms X_mul_iterDerivList_cookLevinBooleanFactorProd_oneVar_mem_rawBlockedSpdpSubspace
+#print axioms not_rawBlockedSpdpSubspace_le_multilinearSupportSubmodule_oneVar_booleanity
 #print axioms square_residual_mem_liftToBool_kernel
 #print axioms square_residual_ne_zero
 #print axioms square_residual_not_isMultilinear
