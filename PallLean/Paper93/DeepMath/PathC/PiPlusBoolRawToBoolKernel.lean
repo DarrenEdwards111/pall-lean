@@ -846,6 +846,44 @@ theorem square_residual_ne_zero {n : ℕ} (i : Fin n) :
     simp
   simp [hcoeff_x, hcoeff_x2] at hc2
 
+/-- Because polynomial rings over `ℚ` are domains, a residual-multiplied
+first-derivative row is nonzero exactly when the derivative row is nonzero. -/
+theorem residualDerivativeRow_ne_zero_of_iterDerivList_singleton_ne_zero
+    {n : Nat} (i : Fin n) (p : MvPolynomial (Fin n) ℚ)
+    (hder : iterDerivList [i] p ≠ 0) :
+    residualDerivativeRow i p ≠ 0 := by
+  unfold residualDerivativeRow
+  exact mul_ne_zero (square_residual_ne_zero i) hder
+
+/-- Thus a nonzero first derivative is already enough to obstruct
+raw-to-Boolean kernel-disjointness at shift budget `ℓ ≥ 2`. -/
+theorem not_disjoint_rawBlockedSpdpSubspace_kernel_of_iterDerivList_singleton_ne_zero
+    {n : Nat} (i : Fin n) (p : MvPolynomial (Fin n) ℚ)
+    (B : BlockPartition n) (ℓ : ℕ) (hℓ : 2 ≤ ℓ)
+    (hadm : isBlockAdmissible B [i])
+    (hder : iterDerivList [i] p ≠ 0) :
+    ¬ Disjoint (rawBlockedSpdpSubspace B 1 ℓ p) (LinearMap.ker (liftToBoolLinearMap n)) := by
+  exact not_disjoint_rawBlockedSpdpSubspace_kernel_of_residualDerivativeRow_ne_zero
+    i p B ℓ hℓ hadm
+    (residualDerivativeRow_ne_zero_of_iterDerivList_singleton_ne_zero i p hder)
+
+/-- Equivalently, if raw-to-Boolean kernel-disjointness holds at shift budget
+`ℓ ≥ 2`, then every admissible singleton first derivative must vanish.  This is
+the sharp algebraic obstruction behind the failed transport: any nonconstant
+first-derivative row creates a Boolean-quotient kernel vector inside the raw
+source. -/
+theorem iterDerivList_singleton_eq_zero_of_disjoint_rawBlockedSpdpSubspace_kernel
+    {n : Nat} (i : Fin n) (p : MvPolynomial (Fin n) ℚ)
+    (B : BlockPartition n) (ℓ : ℕ) (hℓ : 2 ≤ ℓ)
+    (hadm : isBlockAdmissible B [i])
+    (hdisj : Disjoint (rawBlockedSpdpSubspace B 1 ℓ p)
+      (LinearMap.ker (liftToBoolLinearMap n))) :
+    iterDerivList [i] p = 0 := by
+  have hrow := residualDerivativeRow_eq_zero_of_disjoint_rawBlockedSpdpSubspace_kernel
+    i p B ℓ hℓ hadm hdisj
+  unfold residualDerivativeRow at hrow
+  exact (mul_eq_zero.mp hrow).resolve_left (square_residual_ne_zero i)
+
 /-- The square residual is not multilinear as a raw polynomial: the `Xᵢ²`
 coefficient survives before quotienting. -/
 theorem square_residual_not_isMultilinear {n : ℕ} (i : Fin n) :
@@ -1021,6 +1059,9 @@ theorem no_decidesSAT_at_paperScale_of_boolRowPayloadsAndNPKernelDisjointFromDec
 #print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_oneVar_booleanity_ell_two
 #print axioms square_residual_mem_liftToBool_kernel
 #print axioms square_residual_ne_zero
+#print axioms residualDerivativeRow_ne_zero_of_iterDerivList_singleton_ne_zero
+#print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_of_iterDerivList_singleton_ne_zero
+#print axioms iterDerivList_singleton_eq_zero_of_disjoint_rawBlockedSpdpSubspace_kernel
 #print axioms square_residual_not_isMultilinear
 #print axioms square_residual_not_mem_multilinearSupportSubmodule
 #print axioms square_residual_not_mem_of_le_multilinearSupportSubmodule
