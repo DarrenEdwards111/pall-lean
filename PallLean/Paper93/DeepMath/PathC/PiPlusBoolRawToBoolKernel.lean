@@ -846,6 +846,85 @@ theorem square_residual_ne_zero {n : ℕ} (i : Fin n) :
     simp
   simp [hcoeff_x, hcoeff_x2] at hc2
 
+/-- A singleton iterated derivative is just the ordinary partial derivative. -/
+theorem iterDerivList_singleton_eq_pderiv {n : Nat} (i : Fin n) (p : MvPolynomial (Fin n) ℚ) :
+    iterDerivList [i] p = MvPolynomial.pderiv i p := by
+  unfold iterDerivList
+  simp
+
+/-- In ordinary derivative language: the residual derivative row is nonzero as
+soon as the corresponding partial derivative is nonzero. -/
+theorem residualDerivativeRow_ne_zero_of_pderiv_ne_zero
+    {n : Nat} (i : Fin n) (p : MvPolynomial (Fin n) ℚ)
+    (hder : MvPolynomial.pderiv i p ≠ 0) :
+    residualDerivativeRow i p ≠ 0 := by
+  unfold residualDerivativeRow
+  rw [iterDerivList_singleton_eq_pderiv]
+  exact mul_ne_zero (square_residual_ne_zero i) hder
+
+/-- Therefore any nonzero first partial derivative gives a concrete element of
+the raw source lying in the Boolean-normalization kernel. -/
+theorem not_disjoint_rawBlockedSpdpSubspace_kernel_of_pderiv_ne_zero
+    {n : Nat} (i : Fin n) (p : MvPolynomial (Fin n) ℚ)
+    (B : BlockPartition n) (ℓ : ℕ) (hℓ : 2 ≤ ℓ)
+    (hadm : isBlockAdmissible B [i])
+    (hder : MvPolynomial.pderiv i p ≠ 0) :
+    ¬ Disjoint (rawBlockedSpdpSubspace B 1 ℓ p) (LinearMap.ker (liftToBoolLinearMap n)) := by
+  exact not_disjoint_rawBlockedSpdpSubspace_kernel_of_residualDerivativeRow_ne_zero
+    i p B ℓ hℓ hadm (residualDerivativeRow_ne_zero_of_pderiv_ne_zero i p hder)
+
+/-- Equivalently, kernel-disjointness at shift budget `ℓ ≥ 2` forces the
+ordinary first partial derivative to vanish. -/
+theorem pderiv_eq_zero_of_disjoint_rawBlockedSpdpSubspace_kernel
+    {n : Nat} (i : Fin n) (p : MvPolynomial (Fin n) ℚ)
+    (B : BlockPartition n) (ℓ : ℕ) (hℓ : 2 ≤ ℓ)
+    (hadm : isBlockAdmissible B [i])
+    (hdisj : Disjoint (rawBlockedSpdpSubspace B 1 ℓ p)
+      (LinearMap.ker (liftToBoolLinearMap n))) :
+    MvPolynomial.pderiv i p = 0 := by
+  have hrow := residualDerivativeRow_eq_zero_of_disjoint_rawBlockedSpdpSubspace_kernel
+    i p B ℓ hℓ hadm hdisj
+  unfold residualDerivativeRow at hrow
+  rw [iterDerivList_singleton_eq_pderiv] at hrow
+  exact (mul_eq_zero.mp hrow).resolve_left (square_residual_ne_zero i)
+
+
+/-- The exposed Cook--Levin Booleanity factor genuinely depends on its own
+coordinate: its first partial derivative is `-1 + 2Xᵢ`, hence nonzero. -/
+theorem pderiv_cookLevinBooleanFactor_self_ne_zero {n : Nat} (i : Fin n) :
+    MvPolynomial.pderiv i (cookLevinBooleanFactor n i) ≠ 0 := by
+  rw [pderiv_cookLevinBooleanFactor_self]
+  intro h
+  have hc := congrArg (fun p : MvPolynomial (Fin n) ℚ => coeff (Finsupp.single i 1) p) h
+  change coeff (Finsupp.single i 1) ((-1 : MvPolynomial (Fin n) ℚ) + 2 * X i) =
+      coeff (Finsupp.single i 1) (0 : MvPolynomial (Fin n) ℚ) at hc
+  have hzero_ne : (0 : Fin n →₀ Nat) ≠ Finsupp.single i 1 := by
+    intro h0
+    have hv := congrArg (fun f : Fin n →₀ Nat => f i) h0
+    simp at hv
+  have hcoeff_one : coeff (Finsupp.single i 1) (1 : MvPolynomial (Fin n) ℚ) = 0 := by
+    rw [show (1 : MvPolynomial (Fin n) ℚ) = MvPolynomial.C (1 : ℚ) by rfl]
+    rw [MvPolynomial.coeff_C]
+    exact if_neg hzero_ne
+  have hcoeff_X : coeff (Finsupp.single i 1) (MvPolynomial.X i : MvPolynomial (Fin n) ℚ) = 1 := by
+    simp [MvPolynomial.X]
+  rw [show (2 : MvPolynomial (Fin n) ℚ) = MvPolynomial.C (2 : ℚ) by rfl] at hc
+  rw [MvPolynomial.coeff_add, MvPolynomial.coeff_neg, hcoeff_one, MvPolynomial.coeff_C_mul, hcoeff_X, MvPolynomial.coeff_zero] at hc
+  norm_num at hc
+
+/-- Applying the derivative obstruction to an actual Cook--Levin Booleanity
+factor: any admissible singleton window and shift budget `ℓ ≥ 2` already
+contains a nonzero Boolean-kernel row. -/
+theorem not_disjoint_rawBlockedSpdpSubspace_kernel_cookLevinBooleanFactor_self
+    {n : Nat} (i : Fin n) (B : BlockPartition n) (ℓ : ℕ) (hℓ : 2 ≤ ℓ)
+    (hadm : isBlockAdmissible B [i]) :
+    ¬ Disjoint (rawBlockedSpdpSubspace B 1 ℓ (cookLevinBooleanFactor n i))
+      (LinearMap.ker (liftToBoolLinearMap n)) := by
+  exact not_disjoint_rawBlockedSpdpSubspace_kernel_of_pderiv_ne_zero
+    i (cookLevinBooleanFactor n i) B ℓ hℓ hadm
+    (pderiv_cookLevinBooleanFactor_self_ne_zero i)
+
+
 /-- Because polynomial rings over `ℚ` are domains, a residual-multiplied
 first-derivative row is nonzero exactly when the derivative row is nonzero. -/
 theorem residualDerivativeRow_ne_zero_of_iterDerivList_singleton_ne_zero
@@ -1059,6 +1138,12 @@ theorem no_decidesSAT_at_paperScale_of_boolRowPayloadsAndNPKernelDisjointFromDec
 #print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_oneVar_booleanity_ell_two
 #print axioms square_residual_mem_liftToBool_kernel
 #print axioms square_residual_ne_zero
+#print axioms iterDerivList_singleton_eq_pderiv
+#print axioms residualDerivativeRow_ne_zero_of_pderiv_ne_zero
+#print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_of_pderiv_ne_zero
+#print axioms pderiv_eq_zero_of_disjoint_rawBlockedSpdpSubspace_kernel
+#print axioms pderiv_cookLevinBooleanFactor_self_ne_zero
+#print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_cookLevinBooleanFactor_self
 #print axioms residualDerivativeRow_ne_zero_of_iterDerivList_singleton_ne_zero
 #print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_of_iterDerivList_singleton_ne_zero
 #print axioms iterDerivList_singleton_eq_zero_of_disjoint_rawBlockedSpdpSubspace_kernel
