@@ -38,6 +38,39 @@ noncomputable def piPlusBooleanProjectedAllocatedDerivativeProduct
   let L := piPlusBooleanProjectedTransformedConstraintFactors M n hn2 htb hns D
   Finset.univ.prod (fun i : Fin L.length => iterDerivList (alloc i) L[i.val])
 
+/-- Allocated derivative product form of the finite quotient-product law:
+Boolean-normalizing the whole allocated product is the same final normal form as
+first Boolean-normalizing every allocated local derivative factor and then
+multiplying.  This is the first product-level algebraic step after the generic
+finite normalization law. -/
+theorem zeroProfileBooleanNormalize_allocatedDerivativeProduct_eq_normalizedFactorProduct
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (alloc : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length →
+      List (Fin (cook_levin_compilation M n hn2 htb hns).numVars)) :
+    zeroProfileBooleanNormalize
+        (piPlusBooleanProjectedAllocatedDerivativeProduct
+          M n hn2 htb hns D alloc) =
+      zeroProfileBooleanNormalize
+        (Finset.univ.prod (fun i : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+            M n hn2 htb hns D).length =>
+          zeroProfileBooleanNormalize
+            (iterDerivList (alloc i)
+              (piPlusBooleanProjectedTransformedConstraintFactors
+                M n hn2 htb hns D)[i.val]))) := by
+  rw [piPlusBooleanProjectedAllocatedDerivativeProduct]
+  symm
+  exact zeroProfileBooleanNormalize_finset_prod_normalized
+    (s := (Finset.univ : Finset (Fin (piPlusBooleanProjectedTransformedConstraintFactors
+      M n hn2 htb hns D).length)))
+    (p := fun i : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+      M n hn2 htb hns D).length =>
+      iterDerivList (alloc i)
+        (piPlusBooleanProjectedTransformedConstraintFactors
+          M n hn2 htb hns D)[i.val])
+
 /-! ## Pure product-span assembly
 
 The next algebraic move after the Leibniz split is not another socket: if each
@@ -1148,6 +1181,7 @@ theorem no_decidesSAT_at_paperScale_of_oneOneProductNormalizationCloseoutInputs
 
 /-! ## Axiom audit anchors -/
 
+#print axioms zeroProfileBooleanNormalize_allocatedDerivativeProduct_eq_normalizedFactorProduct
 #print axioms finset_prod_mem_span_finiteProductChoiceSet
 #print axioms allocatedDerivativeProduct_mem_span_finiteProductChoiceSet
 #print axioms allocatedProduct_rawPullback_mem_of_localSpans
