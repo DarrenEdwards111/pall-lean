@@ -365,11 +365,13 @@ theorem evalHalfOneVar_deriv_booleanity :
   rw [pderiv_cookLevinBooleanFactor_self]
   simp
 
-/-- Every row in the one-variable Booleanity raw source span vanishes at `X = 1/2`. -/
+/-- Every row in the one-variable Booleanity raw source span vanishes at `X = 1/2`,
+for arbitrary shift-degree budget.  The budget is irrelevant because each raw row
+contains the differentiated Booleanity factor, whose value at `1/2` is zero. -/
 theorem evalHalfOneVar_eq_zero_of_mem_raw_oneVar_booleanity
-    (B : BlockPartition 1)
+    (B : BlockPartition 1) (ℓ : ℕ)
     {x : MvPolynomial (Fin 1) ℚ}
-    (hx : x ∈ rawBlockedSpdpSubspace B 1 1 (cookLevinBooleanFactorProd 1)) :
+    (hx : x ∈ rawBlockedSpdpSubspace B 1 ℓ (cookLevinBooleanFactorProd 1)) :
     evalHalfOneVar x = 0 := by
   unfold rawBlockedSpdpSubspace at hx
   refine Submodule.span_induction (p := fun x _ => evalHalfOneVar x = 0) ?hgen ?hzero ?hadd ?hsmul hx
@@ -403,13 +405,13 @@ theorem evalHalfOneVar_eq_zero_of_mem_raw_oneVar_booleanity
     simpa using Or.inr hx
 
 /-- Consequently, the square residual `X² - X` is not in the one-variable
-Booleanity raw source span.  This is a positive nonmembership result beyond the
-failed blanket multilinearity criterion. -/
-theorem square_residual_not_mem_raw_oneVar_booleanity (B : BlockPartition 1) :
+Booleanity raw source span for any shift-degree budget.  This is a positive
+nonmembership result beyond the failed blanket multilinearity criterion. -/
+theorem square_residual_not_mem_raw_oneVar_booleanity (B : BlockPartition 1) (ℓ : ℕ) :
     (X (0 : Fin 1) * X (0 : Fin 1) - X (0 : Fin 1) : MvPolynomial (Fin 1) ℚ) ∉
-      rawBlockedSpdpSubspace B 1 1 (cookLevinBooleanFactorProd 1) := by
+      rawBlockedSpdpSubspace B 1 ℓ (cookLevinBooleanFactorProd 1) := by
   intro hmem
-  have hzero := evalHalfOneVar_eq_zero_of_mem_raw_oneVar_booleanity B hmem
+  have hzero := evalHalfOneVar_eq_zero_of_mem_raw_oneVar_booleanity B ℓ hmem
   have hval := evalHalfOneVar_square_residual
   rw [hval] at hzero
   norm_num at hzero
