@@ -139,6 +139,35 @@ theorem zeroProfileBooleanNormalize_mul_normalized
   rw [zeroProfileBooleanNormalize_left_normalized_mul p (zeroProfileBooleanNormalize q)]
   rw [zeroProfileBooleanNormalize_mul_right_normalized p q]
 
+
+/-! ## Normalization-aware derivative algebra -/
+
+/-- Formal differentiation after Boolean normalization of a monomial.  The
+coefficient records only whether the variable occurs in the original support,
+because Boolean normalization first collapses every positive exponent to `1`.
+This is the local algebra behind the corrected product synthesis: differentiated
+Boolean representatives use support-incidence coefficients, not raw
+multiplicities. -/
+theorem pderiv_zeroProfileBooleanNormalize_monomial
+    {n : Nat} (i : Fin n) (α : Fin n →₀ Nat) (c : ℚ) :
+    MvPolynomial.pderiv i (zeroProfileBooleanNormalize (MvPolynomial.monomial α c)) =
+      MvPolynomial.monomial (zeroProfileBooleanExponent α - Finsupp.single i 1)
+        (c * zeroProfileBooleanExponent α i) := by
+  simp [MvPolynomial.pderiv_monomial]
+
+/-- Boolean normalization after ordinary formal differentiation of a monomial.
+Compared with `pderiv_zeroProfileBooleanNormalize_monomial`, this retains the
+raw multiplicity `α i`.  The mismatch between these two coefficients is exactly
+why the old commutation target
+`∂(booleanNormalize p) = booleanNormalize(∂p)` is false for repeated variables
+(e.g. `p = Xᵢ²`). -/
+theorem zeroProfileBooleanNormalize_pderiv_monomial
+    {n : Nat} (i : Fin n) (α : Fin n →₀ Nat) (c : ℚ) :
+    zeroProfileBooleanNormalize (MvPolynomial.pderiv i (MvPolynomial.monomial α c)) =
+      MvPolynomial.monomial (zeroProfileBooleanExponent (α - Finsupp.single i 1))
+        (c * α i) := by
+  simp [MvPolynomial.pderiv_monomial]
+
 /-- Multiples of the Boolean square residual vanish under Boolean normalization.
 This is the key quotient-algebra fact needed to peel Booleanity factors off the
 Cook--Levin product: `(Xᵢ²-Xᵢ) q` is zero in the Boolean quotient. -/
@@ -255,6 +284,8 @@ theorem zeroProfileBooleanNormalize_cookLevinBooleanFactorProd
 #print axioms zeroProfileBooleanNormalize_left_normalized_mul
 #print axioms zeroProfileBooleanNormalize_mul_right_normalized
 #print axioms zeroProfileBooleanNormalize_mul_normalized
+#print axioms pderiv_zeroProfileBooleanNormalize_monomial
+#print axioms zeroProfileBooleanNormalize_pderiv_monomial
 #print axioms zeroProfileBooleanNormalize_square_residual_mul
 #print axioms zeroProfileBooleanNormalize_boolFactor_mul
 #print axioms zeroProfileBooleanNormalize_boolFactor_listProd_mul
