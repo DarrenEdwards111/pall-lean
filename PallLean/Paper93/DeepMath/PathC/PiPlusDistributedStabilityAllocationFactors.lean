@@ -38,6 +38,150 @@ noncomputable def piPlusBooleanProjectedAllocatedDerivativeProduct
   let L := piPlusBooleanProjectedTransformedConstraintFactors M n hn2 htb hns D
   Finset.univ.prod (fun i : Fin L.length => iterDerivList (alloc i) L[i.val])
 
+/-! ## Pure product-span assembly
+
+The next algebraic move after the Leibniz split is not another socket: if each
+local allocated factor has already been expressed in its own local span, then
+the product of those local expressions lies in the span of all pointwise choices
+of local generators.  This is the finite-product multilinearity bookkeeping
+needed before specializing the local generator sets to Booleanity-residue and
+signed-row certificates.
+-/
+
+/-- Pointwise products obtained by choosing one generator from each local factor
+set over the finite index set `s`. -/
+noncomputable def finiteProductChoiceSet
+    {n : Nat} {ι : Type*} [DecidableEq ι]
+    (s : Finset ι) (A : ι → Set (MvPolynomial (Fin n) ℚ)) :
+    Set (MvPolynomial (Fin n) ℚ) :=
+  { q | ∃ a : ι → MvPolynomial (Fin n) ℚ,
+      (∀ i ∈ s, a i ∈ A i) ∧ q = s.prod a }
+
+/-- Finite-product span assembly: local span membership for every factor implies
+membership of the whole product in the span of pointwise products of local
+generators. -/
+theorem finset_prod_mem_span_finiteProductChoiceSet
+    {n : Nat} {ι : Type*} [DecidableEq ι]
+    (s : Finset ι) (A : ι → Set (MvPolynomial (Fin n) ℚ))
+    (p : ι → MvPolynomial (Fin n) ℚ)
+    (hp : ∀ i ∈ s, p i ∈ Submodule.span ℚ (A i)) :
+    s.prod p ∈ Submodule.span ℚ (finiteProductChoiceSet s A) := by
+  classical
+  induction s using Finset.induction_on with
+  | empty =>
+      apply Submodule.subset_span
+      refine ⟨fun _ => 1, ?_, ?_⟩
+      · intro i hi
+        simp at hi
+      · simp
+  | insert k s hks ih =>
+      rw [Finset.prod_insert hks]
+      let W : Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+        Submodule.span ℚ (finiteProductChoiceSet (insert k s) A)
+      let T : Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+        { carrier := {x | x * s.prod p ∈ W}
+          zero_mem' := by simp [W]
+          add_mem' := by
+            intro x y hx hy
+            change (x + y) * s.prod p ∈ W
+            rw [add_mul]
+            exact Submodule.add_mem W hx hy
+          smul_mem' := by
+            intro c x hx
+            change (c • x) * s.prod p ∈ W
+            simpa [Algebra.smul_def, mul_assoc] using
+              (Submodule.smul_mem W c hx) }
+      have hk : p k ∈ T := by
+        refine Submodule.span_induction
+          (s := A k) (p := fun x _hx => x ∈ T) ?base ?zero ?add ?smul
+          (hp k (Finset.mem_insert_self k s))
+        · intro x hx
+          change x * s.prod p ∈ W
+          have hsprod :
+              s.prod p ∈ Submodule.span ℚ (finiteProductChoiceSet s A) := by
+            apply ih
+            intro i hi
+            exact hp i (Finset.mem_insert_of_mem hi)
+          let mulx : MvPolynomial (Fin n) ℚ →ₗ[ℚ]
+              MvPolynomial (Fin n) ℚ :=
+            { toFun := fun q => x * q
+              map_add' := fun a b => mul_add x a b
+              map_smul' := by
+                intro c q
+                change x * (c • q) = c • (x * q)
+                rw [Algebra.mul_smul_comm] }
+          have hmap : mulx (s.prod p) ∈
+              Submodule.map mulx
+                (Submodule.span ℚ (finiteProductChoiceSet s A)) :=
+            Submodule.mem_map_of_mem hsprod
+          rw [Submodule.map_span] at hmap
+          apply Submodule.span_mono ?_ hmap
+          intro y hy
+          rcases hy with ⟨z, hz, rfl⟩
+          rcases hz with ⟨a, ha, rfl⟩
+          refine ⟨Function.update a k x, ?_, ?_⟩
+          · intro i hi
+            by_cases hik : i = k
+            · subst i
+              simpa using hx
+            · have his : i ∈ s := (Finset.mem_insert.mp hi).resolve_left hik
+              simpa [Function.update_of_ne hik] using ha i his
+          · rw [Finset.prod_insert hks]
+            simp only [Function.update_self]
+            change x * s.prod a =
+              x * ∏ i ∈ s, Function.update a k x i
+            congr 1
+            apply Finset.prod_congr rfl
+            intro i hi
+            have hne : i ≠ k := by
+              intro hik
+              subst i
+              exact hks hi
+            simp [Function.update_of_ne hne]
+        · change (0 : MvPolynomial (Fin n) ℚ) ∈ T
+          exact T.zero_mem
+        · intro x y _ _ hx hy
+          exact T.add_mem hx hy
+        · intro c x _ hx
+          exact T.smul_mem c hx
+      exact hk
+
+/-- Specialization of finite-product span assembly to transformed Cook--Levin
+allocated derivative products.  Once each local derivative factor is in its
+chosen local span, the whole allocated Leibniz product is in the span of all
+pointwise products of local choices. -/
+theorem allocatedDerivativeProduct_mem_span_finiteProductChoiceSet
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (alloc : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length →
+      List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+    (A : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length →
+      Set (MvPolynomial
+        (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ))
+    (hlocal : ∀ i : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length,
+      iterDerivList (alloc i)
+        (piPlusBooleanProjectedTransformedConstraintFactors
+          M n hn2 htb hns D)[i.val] ∈ Submodule.span ℚ (A i)) :
+    piPlusBooleanProjectedAllocatedDerivativeProduct
+      M n hn2 htb hns D alloc ∈
+      Submodule.span ℚ (finiteProductChoiceSet Finset.univ A) := by
+  classical
+  simpa [piPlusBooleanProjectedAllocatedDerivativeProduct] using
+    (finset_prod_mem_span_finiteProductChoiceSet
+      (s := Finset.univ) (A := A)
+      (p := fun i : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+          M n hn2 htb hns D).length =>
+        iterDerivList (alloc i)
+          (piPlusBooleanProjectedTransformedConstraintFactors
+            M n hn2 htb hns D)[i.val])
+      (by
+        intro i _hi
+        exact hlocal i))
+
 /-- Product/factor normalization target for one concrete allocation.
 
 It says that Boolean-normalizing the allocated product is itself another
@@ -215,6 +359,8 @@ theorem no_decidesSAT_at_paperScale_of_oneOneProductNormalizationCloseoutInputs
 
 /-! ## Axiom audit anchors -/
 
+#print axioms finset_prod_mem_span_finiteProductChoiceSet
+#print axioms allocatedDerivativeProduct_mem_span_finiteProductChoiceSet
 #print axioms allocatedProduct_mem_span_of_normalizesToDistributedGenerator
 #print axioms allocationStability_of_productNormalizationReduction
 #print axioms paperScale_allocationStability_of_productNormalizationReduction
