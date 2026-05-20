@@ -417,6 +417,197 @@ theorem square_residual_not_mem_raw_oneVar_booleanity (B : BlockPartition 1) (�
   norm_num at hzero
 
 
+noncomputable def booleanityKernelWitness {n : Nat} (i : Fin n) : MvPolynomial (Fin n) ℚ :=
+  (X i * X i - X i) * iterDerivList [i] (cookLevinBooleanFactorProd n)
+
+/-- The arbitrary-variable Booleanity witness is a raw SPDP generator at κ=1, ℓ=2. -/
+theorem booleanityKernelWitness_mem_raw {n : Nat} (i : Fin n) (B : BlockPartition n)
+    (hadm : isBlockAdmissible B [i]) :
+    booleanityKernelWitness i ∈ rawBlockedSpdpSubspace B 1 2 (cookLevinBooleanFactorProd n) := by
+  unfold booleanityKernelWitness rawBlockedSpdpSubspace
+  apply Submodule.subset_span
+  refine ⟨[i], (X i * X i - X i), ?_, ?_, ?_, hadm, rfl⟩
+  · simp
+  · have hdeg : (X i * X i - X i : MvPolynomial (Fin n) ℚ).totalDegree ≤ 2 := by
+      have h := MvPolynomial.totalDegree_sub (X i * X i : MvPolynomial (Fin n) ℚ) (X i)
+      have hmul := MvPolynomial.totalDegree_mul (X i : MvPolynomial (Fin n) ℚ) (X i)
+      simp [MvPolynomial.totalDegree_X] at h hmul
+      omega
+    exact hdeg
+  · intro v hv
+    have hvu : v ∈ (X i * X i : MvPolynomial (Fin n) ℚ).vars ∪ (X i : MvPolynomial (Fin n) ℚ).vars :=
+      (MvPolynomial.vars_sub_subset (p := (X i * X i : MvPolynomial (Fin n) ℚ)) (q := X i)) hv
+    have hvmul : (X i * X i : MvPolynomial (Fin n) ℚ).vars ⊆
+        (X i : MvPolynomial (Fin n) ℚ).vars ∪ (X i : MvPolynomial (Fin n) ℚ).vars :=
+      MvPolynomial.vars_mul _ _
+    rw [MvPolynomial.vars_X] at hvu
+    simp at hvu
+    rcases hvu with hvi | hvm
+    · simpa using hvi
+    · have hvxi := hvmul hvm
+      rw [MvPolynomial.vars_X] at hvxi
+      simpa using hvxi
+
+/-- The arbitrary-variable Booleanity witness is killed by Boolean normalization. -/
+theorem booleanityKernelWitness_mem_kernel {n : Nat} (i : Fin n) :
+    booleanityKernelWitness i ∈ LinearMap.ker (liftToBoolLinearMap n) := by
+  unfold booleanityKernelWitness
+  change liftToBoolLinearMap n ((X i * X i - X i) * iterDerivList [i] (cookLevinBooleanFactorProd n) : MvPolynomial (Fin n) ℚ) = 0
+  change liftToBool ((X i * X i - X i) * iterDerivList [i] (cookLevinBooleanFactorProd n) : MvPolynomial (Fin n) ℚ) = 0
+  apply BoolPoly.ext
+  simp [liftToBool, zeroProfileBooleanNormalize_square_residual_mul]
+
+noncomputable def evalBooleanWitnessPoint {n : Nat} (i : Fin n) (p : MvPolynomial (Fin n) ℚ) : ℚ :=
+  MvPolynomial.eval (fun v => if v = i then (2 : ℚ) else 0) p
+
+/-- At the witness point, the local Booleanity factor evaluates to 3. -/
+theorem evalBooleanWitnessPoint_cookLevinBooleanFactor_self {n : Nat} (i : Fin n) :
+    evalBooleanWitnessPoint i (cookLevinBooleanFactor n i) = 3 := by
+  unfold evalBooleanWitnessPoint cookLevinBooleanFactor
+  norm_num
+
+/-- At the witness point, every other Booleanity factor evaluates to 1. -/
+theorem evalBooleanWitnessPoint_cookLevinBooleanFactor_ne {n : Nat} (i j : Fin n) (hji : j ≠ i) :
+    evalBooleanWitnessPoint i (cookLevinBooleanFactor n j) = 1 := by
+  unfold evalBooleanWitnessPoint cookLevinBooleanFactor
+  simp [hji]
+
+/-- The differentiated local Booleanity factor is nonzero at the witness point. -/
+theorem evalBooleanWitnessPoint_pderiv_cookLevinBooleanFactor_self {n : Nat} (i : Fin n) :
+    evalBooleanWitnessPoint i (MvPolynomial.pderiv i (cookLevinBooleanFactor n i)) = 3 := by
+  rw [pderiv_cookLevinBooleanFactor_self]
+  unfold evalBooleanWitnessPoint
+  norm_num
+
+/-- Differentiating the full Booleanity product in coordinate `i` remains nonzero
+at the point `Xᵢ=2`, all other coordinates zero. -/
+theorem evalBooleanWitnessPoint_iterDerivList_singleton_cookLevinBooleanFactorProd
+    {n : Nat} (i : Fin n) :
+    evalBooleanWitnessPoint i (iterDerivList [i] (cookLevinBooleanFactorProd n)) = 3 := by
+  rw [iterDerivList_cookLevinBooleanFactorProd n [i] (by simp)]
+  unfold evalBooleanWitnessPoint
+  rw [map_mul]
+  have hhead : MvPolynomial.eval (fun v => if v = i then (2 : ℚ) else 0)
+      (([i].map fun v => MvPolynomial.pderiv v (cookLevinBooleanFactor n v)).prod) = 3 := by
+    simp [pderiv_cookLevinBooleanFactor_self]
+    norm_num
+  rw [hhead]
+  have htail : MvPolynomial.eval (fun v => if v = i then (2 : ℚ) else 0)
+      (((Finset.univ : Finset (Fin n)) \ [i].toFinset).prod (cookLevinBooleanFactor n)) = 1 := by
+    rw [map_prod]
+    apply Finset.prod_eq_one
+    intro j hj
+    unfold cookLevinBooleanFactor
+    have hji : j ≠ i := by
+      intro hij
+      subst hij
+      simp at hj
+    simp [hji]
+  rw [htail]
+  norm_num
+
+/-- The arbitrary-variable witness is nonzero, as certified by evaluation at
+`Xᵢ=2` and all other variables zero. -/
+theorem evalBooleanWitnessPoint_booleanityKernelWitness {n : Nat} (i : Fin n) :
+    evalBooleanWitnessPoint i (booleanityKernelWitness i) = 6 := by
+  unfold booleanityKernelWitness evalBooleanWitnessPoint
+  rw [map_mul]
+  have hr : MvPolynomial.eval (fun v => if v = i then (2 : ℚ) else 0) (X i * X i - X i : MvPolynomial (Fin n) ℚ) = 2 := by
+    norm_num
+  rw [hr]
+  have hd : MvPolynomial.eval (fun v => if v = i then (2 : ℚ) else 0) (iterDerivList [i] (cookLevinBooleanFactorProd n)) = 3 := by
+    rw [iterDerivList_cookLevinBooleanFactorProd n [i] (by simp)]
+    rw [map_mul]
+    have hhead : MvPolynomial.eval (fun v => if v = i then (2 : ℚ) else 0)
+        (([i].map fun v => MvPolynomial.pderiv v (cookLevinBooleanFactor n v)).prod) = 3 := by
+      simp [pderiv_cookLevinBooleanFactor_self]
+      norm_num
+    rw [hhead]
+    have htail : MvPolynomial.eval (fun v => if v = i then (2 : ℚ) else 0)
+        (((Finset.univ : Finset (Fin n)) \ [i].toFinset).prod (cookLevinBooleanFactor n)) = 1 := by
+      rw [map_prod]
+      apply Finset.prod_eq_one
+      intro j hj
+      unfold cookLevinBooleanFactor
+      have hji : j ≠ i := by
+        intro hij
+        subst hij
+        simp at hj
+      simp [hji]
+    rw [htail]
+    norm_num
+  rw [hd]
+  norm_num
+
+
+/-- The arbitrary-variable Booleanity witness is a raw generator for every shift
+budget `ℓ ≥ 2` (with exact derivative window `κ=1`). -/
+theorem booleanityKernelWitness_mem_raw_of_two_le {n : Nat} (i : Fin n)
+    (B : BlockPartition n) (ℓ : ℕ) (hℓ : 2 ≤ ℓ)
+    (hadm : isBlockAdmissible B [i]) :
+    booleanityKernelWitness i ∈ rawBlockedSpdpSubspace B 1 ℓ (cookLevinBooleanFactorProd n) := by
+  unfold booleanityKernelWitness rawBlockedSpdpSubspace
+  apply Submodule.subset_span
+  refine ⟨[i], (X i * X i - X i), ?_, ?_, ?_, hadm, rfl⟩
+  · simp
+  · have hdeg : (X i * X i - X i : MvPolynomial (Fin n) ℚ).totalDegree ≤ 2 := by
+      have h := MvPolynomial.totalDegree_sub (X i * X i : MvPolynomial (Fin n) ℚ) (X i)
+      have hmul := MvPolynomial.totalDegree_mul (X i : MvPolynomial (Fin n) ℚ) (X i)
+      simp [MvPolynomial.totalDegree_X] at h hmul
+      omega
+    exact le_trans hdeg hℓ
+  · intro v hv
+    have hvu : v ∈ (X i * X i : MvPolynomial (Fin n) ℚ).vars ∪ (X i : MvPolynomial (Fin n) ℚ).vars :=
+      (MvPolynomial.vars_sub_subset (p := (X i * X i : MvPolynomial (Fin n) ℚ)) (q := X i)) hv
+    have hvmul : (X i * X i : MvPolynomial (Fin n) ℚ).vars ⊆
+        (X i : MvPolynomial (Fin n) ℚ).vars ∪ (X i : MvPolynomial (Fin n) ℚ).vars :=
+      MvPolynomial.vars_mul _ _
+    rw [MvPolynomial.vars_X] at hvu
+    simp at hvu
+    rcases hvu with hvi | hvm
+    · simpa using hvi
+    · have hvxi := hvmul hvm
+      rw [MvPolynomial.vars_X] at hvxi
+      simpa using hvxi
+
+/-- Therefore the arbitrary-variable witness is nonzero in the raw polynomial ring. -/
+theorem booleanityKernelWitness_ne_zero {n : Nat} (i : Fin n) :
+    booleanityKernelWitness i ≠ 0 := by
+  intro h
+  have hev := congrArg (evalBooleanWitnessPoint i) h
+  rw [evalBooleanWitnessPoint_booleanityKernelWitness] at hev
+  have hzero : evalBooleanWitnessPoint i (0 : MvPolynomial (Fin n) ℚ) = 0 := by
+    simp [evalBooleanWitnessPoint]
+  rw [hzero] at hev
+  norm_num at hev
+
+/-- Kernel-disjointness is already false for every variable of the full
+`n`-variable Booleanity product at κ=1, ℓ=2, assuming the singleton window is
+admissible. -/
+theorem not_disjoint_rawBlockedSpdpSubspace_kernel_booleanity_singleton
+    {n : Nat} (i : Fin n) (B : BlockPartition n)
+    (hadm : isBlockAdmissible B [i]) :
+    ¬ Disjoint (rawBlockedSpdpSubspace B 1 2 (cookLevinBooleanFactorProd n))
+      (LinearMap.ker (liftToBoolLinearMap n)) := by
+  intro hdisj
+  have hzero := Submodule.disjoint_def.mp hdisj (booleanityKernelWitness i)
+    (booleanityKernelWitness_mem_raw i B hadm)
+    (booleanityKernelWitness_mem_kernel i)
+  exact booleanityKernelWitness_ne_zero i hzero
+
+/-- The same failure persists for every shift budget `ℓ ≥ 2`. -/
+theorem not_disjoint_rawBlockedSpdpSubspace_kernel_booleanity_singleton_of_two_le
+    {n : Nat} (i : Fin n) (B : BlockPartition n) (ℓ : ℕ) (hℓ : 2 ≤ ℓ)
+    (hadm : isBlockAdmissible B [i]) :
+    ¬ Disjoint (rawBlockedSpdpSubspace B 1 ℓ (cookLevinBooleanFactorProd n))
+      (LinearMap.ker (liftToBoolLinearMap n)) := by
+  intro hdisj
+  have hzero := Submodule.disjoint_def.mp hdisj (booleanityKernelWitness i)
+    (booleanityKernelWitness_mem_raw_of_two_le i B ℓ hℓ hadm)
+    (booleanityKernelWitness_mem_kernel i)
+  exact booleanityKernelWitness_ne_zero i hzero
+
+
 /-- A genuine raw-source/kernel witness once shift degree two is allowed:
 `(X²-X) * ∂Booleanity`. -/
 noncomputable def oneVarBooleanityKernelWitness : MvPolynomial (Fin 1) ℚ :=
@@ -734,6 +925,14 @@ theorem no_decidesSAT_at_paperScale_of_boolRowPayloadsAndNPKernelDisjointFromDec
 #print axioms evalHalfOneVar_deriv_booleanity
 #print axioms evalHalfOneVar_eq_zero_of_mem_raw_oneVar_booleanity
 #print axioms square_residual_not_mem_raw_oneVar_booleanity
+#print axioms booleanityKernelWitness_mem_raw
+#print axioms booleanityKernelWitness_mem_raw_of_two_le
+#print axioms booleanityKernelWitness_mem_kernel
+#print axioms evalBooleanWitnessPoint_iterDerivList_singleton_cookLevinBooleanFactorProd
+#print axioms evalBooleanWitnessPoint_booleanityKernelWitness
+#print axioms booleanityKernelWitness_ne_zero
+#print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_booleanity_singleton
+#print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_booleanity_singleton_of_two_le
 #print axioms oneVarBooleanityKernelWitness_mem_raw
 #print axioms oneVarBooleanityKernelWitness_mem_raw_of_two_le
 #print axioms oneVarBooleanityKernelWitness_mem_kernel
