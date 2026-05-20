@@ -118,6 +118,97 @@ theorem disjoint_liftToBool_kernel_iff_normalize_injective_on {n : ℕ}
     have hc := congrArg (fun r : BoolPoly n => (r : MvPolynomial (Fin n) ℚ)) hxker
     simpa [liftToBoolLinearMap, liftToBool, zero] using hc
 
+/-- Submodule of raw polynomials whose every supported monomial is multilinear.
+Unlike the quotient-normal-form space, this is an honest linear subspace of the
+raw polynomial ring. -/
+noncomputable def multilinearSupportSubmodule (n : ℕ) :
+    Submodule ℚ (MvPolynomial (Fin n) ℚ) where
+  carrier := {p | IsMultilinear p}
+  zero_mem' := by
+    intro α hα i
+    simp at hα
+  add_mem' := by
+    intro p q hp hq α hα i
+    have hsub : (p + q).support ⊆ p.support ∪ q.support := Finsupp.support_add
+    have hαu := hsub hα
+    simp only [Finset.mem_union] at hαu
+    cases hαu with
+    | inl hpα => exact hp α hpα i
+    | inr hqα => exact hq α hqα i
+  smul_mem' := by
+    intro c p hp α hα i
+    have hsub : (c • p).support ⊆ p.support := Finsupp.support_smul
+    exact hp α (hsub hα) i
+
+@[simp] theorem mem_multilinearSupportSubmodule_iff {n : ℕ}
+    (p : MvPolynomial (Fin n) ℚ) :
+    p ∈ multilinearSupportSubmodule n ↔ IsMultilinear p := Iff.rfl
+
+/-- Boolean normalization is injective on genuinely multilinear polynomials:
+if every monomial already has all exponents at most one, normalization is the
+identity, so a normalized zero polynomial was zero already. -/
+theorem zeroProfileBooleanNormalize_eq_zero_of_isMultilinear_iff_zero {n : ℕ}
+    (p : MvPolynomial (Fin n) ℚ) (hp : IsMultilinear p) :
+    zeroProfileBooleanNormalize p = 0 ↔ p = 0 := by
+  constructor
+  · intro h
+    rw [zeroProfileBooleanNormalize_of_support_isMultilinear p hp] at h
+    exact h
+  · intro h
+    rw [h]
+    simp
+
+/-- A subspace consisting entirely of multilinear polynomials is disjoint from
+the Boolean-normalization kernel.  This is the clean positive algebraic route
+around square-residual collapse. -/
+theorem disjoint_liftToBool_kernel_of_forall_isMultilinear {n : ℕ}
+    (U : Submodule ℚ (MvPolynomial (Fin n) ℚ))
+    (hU : ∀ x : MvPolynomial (Fin n) ℚ, x ∈ U → IsMultilinear x) :
+    Disjoint U (LinearMap.ker (liftToBoolLinearMap n)) := by
+  rw [disjoint_liftToBool_kernel_iff_normalize_injective_on]
+  intro x hxU hnorm
+  exact (zeroProfileBooleanNormalize_eq_zero_of_isMultilinear_iff_zero x (hU x hxU)).mp hnorm
+
+/-- A subspace contained in the multilinear-support submodule is disjoint from
+the Boolean-normalization kernel. -/
+theorem disjoint_liftToBool_kernel_of_le_multilinearSupportSubmodule {n : ℕ}
+    (U : Submodule ℚ (MvPolynomial (Fin n) ℚ))
+    (hU : U ≤ multilinearSupportSubmodule n) :
+    Disjoint U (LinearMap.ker (liftToBoolLinearMap n)) := by
+  exact disjoint_liftToBool_kernel_of_forall_isMultilinear U
+    (fun x hx => (mem_multilinearSupportSubmodule_iff x).mp (hU hx))
+
+/-- Generator-level multilinearity for a raw strict-κ SPDP source span. -/
+def RawBlockedSpdpGeneratorsMultilinear {n : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ) (q : MvPolynomial (Fin n) ℚ) : Prop :=
+  ∀ (S : List (Fin n)) (m : MvPolynomial (Fin n) ℚ),
+    S.length = κ → m.totalDegree ≤ ℓ → m.vars ⊆ S.toFinset →
+    isBlockAdmissible B S → IsMultilinear (m * iterDerivList S q)
+
+/-- If all raw SPDP generators are multilinear, then the raw source span is
+contained in the multilinear-support submodule. -/
+theorem rawBlockedSpdpSubspace_le_multilinearSupportSubmodule_of_generators {n : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ) (q : MvPolynomial (Fin n) ℚ)
+    (hgen : RawBlockedSpdpGeneratorsMultilinear B κ ℓ q) :
+    rawBlockedSpdpSubspace B κ ℓ q ≤ multilinearSupportSubmodule n := by
+  unfold rawBlockedSpdpSubspace
+  apply Submodule.span_le.mpr
+  intro r hr
+  rcases hr with ⟨S, m, hlen, hdeg, hvars, hadm, rfl⟩
+  exact (mem_multilinearSupportSubmodule_iff _).mpr
+    (hgen S m hlen hdeg hvars hadm)
+
+/-- Generator-level multilinearity closes kernel-disjointness for the raw source
+span. -/
+theorem rawBlockedSpdp_kernelDisjoint_of_generators_multilinear {n : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ) (q : MvPolynomial (Fin n) ℚ)
+    (hgen : RawBlockedSpdpGeneratorsMultilinear B κ ℓ q) :
+    Disjoint (rawBlockedSpdpSubspace B κ ℓ q)
+      (LinearMap.ker (liftToBoolLinearMap n)) := by
+  exact disjoint_liftToBool_kernel_of_le_multilinearSupportSubmodule _
+    (rawBlockedSpdpSubspace_le_multilinearSupportSubmodule_of_generators
+      B κ ℓ q hgen)
+
 /-- Paper-scale kernel-disjointness is exactly restricted injectivity of Boolean
 normalization on the Cook--Levin raw NP source row span. -/
 theorem paperScaleCookLevinRawToBoolSourceNPKernelDisjoint_iff_normalize_injective_on
@@ -132,6 +223,46 @@ theorem paperScaleCookLevinRawToBoolSourceNPKernelDisjoint_iff_normalize_injecti
         zeroProfileBooleanNormalize x = 0 → x = 0 := by
   unfold PaperScaleCookLevinRawToBoolSourceNPKernelDisjoint
   exact disjoint_liftToBool_kernel_iff_normalize_injective_on _
+
+/-- Paper-scale generator-level multilinearity of the Cook--Levin raw NP source
+rows. -/
+def PaperScaleCookLevinRawToBoolSourceNPGeneratorsMultilinear
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) : Prop :=
+  RawBlockedSpdpGeneratorsMultilinear
+    (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+    (Nat.log 2 (2 ^ 804)) (Nat.log 2 (2 ^ 804))
+    (compiledPoly (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns))
+
+/-- If the Cook--Levin raw NP source generators are multilinear, then the
+raw-to-Boolean kernel-disjointness field follows. -/
+theorem paperScaleCookLevinRawToBoolSourceNPKernelDisjoint_of_generators_multilinear
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hgen : PaperScaleCookLevinRawToBoolSourceNPGeneratorsMultilinear M htb hns) :
+    PaperScaleCookLevinRawToBoolSourceNPKernelDisjoint M htb hns := by
+  unfold PaperScaleCookLevinRawToBoolSourceNPKernelDisjoint
+    PaperScaleCookLevinRawToBoolSourceNPGeneratorsMultilinear at *
+  exact rawBlockedSpdp_kernelDisjoint_of_generators_multilinear
+    (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+    (Nat.log 2 (2 ^ 804)) (Nat.log 2 (2 ^ 804))
+    (compiledPoly (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns))
+    hgen
+
+/-- If the Cook--Levin raw NP source row span is multilinear, then the required
+raw-to-Boolean kernel-disjointness follows.  This turns the quotient-noncollapse
+problem into the concrete row-shape theorem: every raw NP source row must already
+be multilinear. -/
+theorem paperScaleCookLevinRawToBoolSourceNPKernelDisjoint_of_rawSpan_isMultilinear
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hml : ∀ x : MvPolynomial
+          (Fin (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars) ℚ,
+        x ∈ rawBlockedSpdpSubspace
+          (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+          (Nat.log 2 (2 ^ 804)) (Nat.log 2 (2 ^ 804))
+          (compiledPoly (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns)) →
+        IsMultilinear x) :
+    PaperScaleCookLevinRawToBoolSourceNPKernelDisjoint M htb hns := by
+  unfold PaperScaleCookLevinRawToBoolSourceNPKernelDisjoint
+  exact disjoint_liftToBool_kernel_of_forall_isMultilinear _ hml
 
 /-- The Boolean square residual is always killed by the raw-to-Boolean quotient
 map.  This is the concrete kernel direction that any NP noncollapse proof must
@@ -163,6 +294,77 @@ theorem square_residual_ne_zero {n : ℕ} (i : Fin n) :
     rw [MvPolynomial.coeff_monomial]
     simp
   simp [hcoeff_x, hcoeff_x2] at hc2
+
+/-- The square residual is not multilinear as a raw polynomial: the `Xᵢ²`
+coefficient survives before quotienting. -/
+theorem square_residual_not_isMultilinear {n : ℕ} (i : Fin n) :
+    ¬ IsMultilinear (X i * X i - X i : MvPolynomial (Fin n) ℚ) := by
+  intro hml
+  have hone_two : (Finsupp.single i 1 : Fin n →₀ Nat) ≠ Finsupp.single i 2 := by
+    intro h12
+    have hv := congrArg (fun f : Fin n →₀ Nat => f i) h12
+    simp at hv
+  have hcoeff_x : coeff (Finsupp.single i 2) (X i : MvPolynomial (Fin n) ℚ) = 0 := by
+    simp [MvPolynomial.X, hone_two]
+  have hcoeff_x2 : coeff (Finsupp.single i 2)
+      (X i * X i : MvPolynomial (Fin n) ℚ) = 1 := by
+    rw [← pow_two]
+    rw [MvPolynomial.X_pow_eq_monomial]
+    rw [MvPolynomial.coeff_monomial]
+    simp
+  have hsupp : Finsupp.single i 2 ∈
+      (X i * X i - X i : MvPolynomial (Fin n) ℚ).support := by
+    rw [MvPolynomial.mem_support_iff]
+    simp [hcoeff_x, hcoeff_x2]
+  have hle := hml (Finsupp.single i 2) hsupp i
+  simp at hle
+
+/-- Equivalently, the square residual is excluded from the multilinear-support
+submodule. -/
+theorem square_residual_not_mem_multilinearSupportSubmodule {n : ℕ} (i : Fin n) :
+    (X i * X i - X i : MvPolynomial (Fin n) ℚ) ∉ multilinearSupportSubmodule n := by
+  intro hmem
+  exact square_residual_not_isMultilinear i
+    ((mem_multilinearSupportSubmodule_iff _).mp hmem)
+
+/-- If a row span is contained in the multilinear-support submodule, then it
+cannot contain any square residual.  This gives a concrete exclusion theorem for
+the simplest Boolean-quotient kernel witnesses. -/
+theorem square_residual_not_mem_of_le_multilinearSupportSubmodule {n : ℕ}
+    (U : Submodule ℚ (MvPolynomial (Fin n) ℚ)) (i : Fin n)
+    (hU : U ≤ multilinearSupportSubmodule n) :
+    (X i * X i - X i : MvPolynomial (Fin n) ℚ) ∉ U := by
+  intro hmem
+  exact square_residual_not_mem_multilinearSupportSubmodule i (hU hmem)
+
+/-- Generator-level multilinearity excludes square residuals from raw SPDP
+source spans. -/
+theorem square_residual_not_mem_rawBlockedSpdpSubspace_of_generators_multilinear {n : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ) (q : MvPolynomial (Fin n) ℚ)
+    (hgen : RawBlockedSpdpGeneratorsMultilinear B κ ℓ q) (i : Fin n) :
+    (X i * X i - X i : MvPolynomial (Fin n) ℚ) ∉ rawBlockedSpdpSubspace B κ ℓ q := by
+  exact square_residual_not_mem_of_le_multilinearSupportSubmodule _ i
+    (rawBlockedSpdpSubspace_le_multilinearSupportSubmodule_of_generators
+      B κ ℓ q hgen)
+
+/-- Paper-scale version: generator-level multilinearity excludes every Boolean
+square residual from the Cook--Levin raw NP source span. -/
+theorem square_residual_not_mem_paperScaleCookLevinRawSource_of_generators_multilinear
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hgen : PaperScaleCookLevinRawToBoolSourceNPGeneratorsMultilinear M htb hns)
+    (i : Fin (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars) :
+    (X i * X i - X i : MvPolynomial
+        (Fin (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars) ℚ) ∉
+      rawBlockedSpdpSubspace
+        (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+        (Nat.log 2 (2 ^ 804)) (Nat.log 2 (2 ^ 804))
+        (compiledPoly (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns)) := by
+  unfold PaperScaleCookLevinRawToBoolSourceNPGeneratorsMultilinear at hgen
+  exact square_residual_not_mem_rawBlockedSpdpSubspace_of_generators_multilinear
+    (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+    (Nat.log 2 (2 ^ 804)) (Nat.log 2 (2 ^ 804))
+    (compiledPoly (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns))
+    hgen i
 
 /-- Kernel-disjointness fails as soon as the raw source span contains a nonzero
 square residual.  This isolates the exact obstruction to closing the Boolean
@@ -229,10 +431,23 @@ theorem no_decidesSAT_at_paperScale_of_boolRowPayloadsAndNPKernelDisjointFromDec
 /-! ## Axiom audit anchors -/
 
 #print axioms rawBlockedSpdpRank_le_boolBlockedSpdpRank_of_image_eq_of_disjoint_ker
+#print axioms multilinearSupportSubmodule
 #print axioms disjoint_liftToBool_kernel_iff_normalize_injective_on
+#print axioms zeroProfileBooleanNormalize_eq_zero_of_isMultilinear_iff_zero
+#print axioms disjoint_liftToBool_kernel_of_forall_isMultilinear
+#print axioms disjoint_liftToBool_kernel_of_le_multilinearSupportSubmodule
+#print axioms rawBlockedSpdpSubspace_le_multilinearSupportSubmodule_of_generators
+#print axioms rawBlockedSpdp_kernelDisjoint_of_generators_multilinear
 #print axioms paperScaleCookLevinRawToBoolSourceNPKernelDisjoint_iff_normalize_injective_on
+#print axioms paperScaleCookLevinRawToBoolSourceNPKernelDisjoint_of_generators_multilinear
+#print axioms paperScaleCookLevinRawToBoolSourceNPKernelDisjoint_of_rawSpan_isMultilinear
 #print axioms square_residual_mem_liftToBool_kernel
 #print axioms square_residual_ne_zero
+#print axioms square_residual_not_isMultilinear
+#print axioms square_residual_not_mem_multilinearSupportSubmodule
+#print axioms square_residual_not_mem_of_le_multilinearSupportSubmodule
+#print axioms square_residual_not_mem_rawBlockedSpdpSubspace_of_generators_multilinear
+#print axioms square_residual_not_mem_paperScaleCookLevinRawSource_of_generators_multilinear
 #print axioms not_disjoint_liftToBool_kernel_of_square_residual_mem
 #print axioms not_paperScaleCookLevinRawToBoolSourceNPKernelDisjoint_of_square_residual_mem
 #print axioms paperScaleCookLevinRawToBoolSourceNPRankLower_of_imageExact_of_kernelDisjoint
