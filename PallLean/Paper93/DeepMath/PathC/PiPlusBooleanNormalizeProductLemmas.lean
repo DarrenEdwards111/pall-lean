@@ -139,6 +139,54 @@ theorem zeroProfileBooleanNormalize_mul_normalized
   rw [zeroProfileBooleanNormalize_left_normalized_mul p (zeroProfileBooleanNormalize q)]
   rw [zeroProfileBooleanNormalize_mul_right_normalized p q]
 
+/-- Boolean normalization commutes with replacing every factor in a finite list
+by its Boolean normal representative, up to the final normal form.  This is the
+finite quotient-product law needed when product assembly first normalizes local
+factors and only then multiplies them. -/
+theorem zeroProfileBooleanNormalize_list_prod_map_normalized
+    {n : Nat} (L : List (MvPolynomial (Fin n) ℚ)) :
+    zeroProfileBooleanNormalize ((L.map zeroProfileBooleanNormalize).prod) =
+      zeroProfileBooleanNormalize L.prod := by
+  induction L with
+  | nil => simp
+  | cons p ps ih =>
+      simp only [List.map_cons, List.prod_cons]
+      calc
+        zeroProfileBooleanNormalize (zeroProfileBooleanNormalize p * (ps.map zeroProfileBooleanNormalize).prod)
+            = zeroProfileBooleanNormalize (p * (ps.map zeroProfileBooleanNormalize).prod) := by
+              rw [zeroProfileBooleanNormalize_left_normalized_mul]
+        _ = zeroProfileBooleanNormalize (p * zeroProfileBooleanNormalize ((ps.map zeroProfileBooleanNormalize).prod)) := by
+              rw [zeroProfileBooleanNormalize_mul_right_normalized]
+        _ = zeroProfileBooleanNormalize (p * zeroProfileBooleanNormalize ps.prod) := by
+              rw [ih]
+        _ = zeroProfileBooleanNormalize (p * ps.prod) := by
+              rw [zeroProfileBooleanNormalize_mul_right_normalized]
+
+/-- Finset form of the finite quotient-product law. -/
+theorem zeroProfileBooleanNormalize_finset_prod_normalized
+    {n : Nat} {ι : Type*} [DecidableEq ι]
+    (s : Finset ι) (p : ι → MvPolynomial (Fin n) ℚ) :
+    zeroProfileBooleanNormalize (s.prod (fun i => zeroProfileBooleanNormalize (p i))) =
+      zeroProfileBooleanNormalize (s.prod p) := by
+  classical
+  induction s using Finset.induction_on with
+  | empty => simp
+  | insert a s has ih =>
+      rw [Finset.prod_insert has, Finset.prod_insert has]
+      calc
+        zeroProfileBooleanNormalize (zeroProfileBooleanNormalize (p a) *
+            s.prod (fun i => zeroProfileBooleanNormalize (p i)))
+            = zeroProfileBooleanNormalize (p a *
+                s.prod (fun i => zeroProfileBooleanNormalize (p i))) := by
+              rw [zeroProfileBooleanNormalize_left_normalized_mul]
+        _ = zeroProfileBooleanNormalize (p a *
+                zeroProfileBooleanNormalize (s.prod (fun i => zeroProfileBooleanNormalize (p i)))) := by
+              rw [zeroProfileBooleanNormalize_mul_right_normalized]
+        _ = zeroProfileBooleanNormalize (p a * zeroProfileBooleanNormalize (s.prod p)) := by
+              rw [ih]
+        _ = zeroProfileBooleanNormalize (p a * s.prod p) := by
+              rw [zeroProfileBooleanNormalize_mul_right_normalized]
+
 
 /-! ## Normalization-aware derivative algebra -/
 
@@ -284,6 +332,8 @@ theorem zeroProfileBooleanNormalize_cookLevinBooleanFactorProd
 #print axioms zeroProfileBooleanNormalize_left_normalized_mul
 #print axioms zeroProfileBooleanNormalize_mul_right_normalized
 #print axioms zeroProfileBooleanNormalize_mul_normalized
+#print axioms zeroProfileBooleanNormalize_list_prod_map_normalized
+#print axioms zeroProfileBooleanNormalize_finset_prod_normalized
 #print axioms pderiv_zeroProfileBooleanNormalize_monomial
 #print axioms zeroProfileBooleanNormalize_pderiv_monomial
 #print axioms zeroProfileBooleanNormalize_square_residual_mul
