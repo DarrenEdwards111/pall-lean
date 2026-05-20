@@ -344,6 +344,77 @@ theorem not_rawBlockedSpdpSubspace_le_multilinearSupportSubmodule_oneVar_boolean
     ((mem_multilinearSupportSubmodule_iff _).mp
       (hle (X_mul_iterDerivList_cookLevinBooleanFactorProd_oneVar_mem_rawBlockedSpdpSubspace B hadm)))
 
+/-- Evaluation at the Booleanity critical point `X = 1/2` in one variable. -/
+noncomputable def evalHalfOneVar (p : MvPolynomial (Fin 1) ℚ) : ℚ :=
+  MvPolynomial.eval (fun _ : Fin 1 => (1/2 : ℚ)) p
+
+/-- The raw square residual does not vanish at `X = 1/2`. -/
+theorem evalHalfOneVar_square_residual :
+    evalHalfOneVar (X (0 : Fin 1) * X (0 : Fin 1) - X (0 : Fin 1) : MvPolynomial (Fin 1) ℚ) = (-1/4 : ℚ) := by
+  simp [evalHalfOneVar]
+  norm_num
+
+/-- The differentiated one-variable Booleanity factor vanishes at `X = 1/2`. -/
+theorem evalHalfOneVar_deriv_booleanity :
+    evalHalfOneVar (iterDerivList [(0 : Fin 1)] (cookLevinBooleanFactorProd 1)) = 0 := by
+  unfold evalHalfOneVar
+  unfold iterDerivList
+  simp only [List.foldl_cons, List.foldl_nil]
+  rw [cookLevinBooleanFactorProd_eq_finRange]
+  simp [List.finRange]
+  rw [pderiv_cookLevinBooleanFactor_self]
+  simp
+
+/-- Every row in the one-variable Booleanity raw source span vanishes at `X = 1/2`. -/
+theorem evalHalfOneVar_eq_zero_of_mem_raw_oneVar_booleanity
+    (B : BlockPartition 1)
+    {x : MvPolynomial (Fin 1) ℚ}
+    (hx : x ∈ rawBlockedSpdpSubspace B 1 1 (cookLevinBooleanFactorProd 1)) :
+    evalHalfOneVar x = 0 := by
+  unfold rawBlockedSpdpSubspace at hx
+  refine Submodule.span_induction (p := fun x _ => evalHalfOneVar x = 0) ?hgen ?hzero ?hadd ?hsmul hx
+  · intro q hq
+    rcases hq with ⟨S, m, hlen, hdeg, hvars, hAdm, rfl⟩
+    have hS : S = [(0 : Fin 1)] := by
+      cases S with
+      | nil => simp at hlen
+      | cons a t =>
+        have ha : a = (0 : Fin 1) := by ext; simp
+        have ht : t = [] := by
+          cases t with
+          | nil => rfl
+          | cons b u => simp at hlen
+        simp [ha, ht]
+    subst S
+    unfold evalHalfOneVar
+    rw [map_mul]
+    have hD : (MvPolynomial.eval (fun _ : Fin 1 => (1 / 2 : ℚ))
+        (iterDerivList [(0 : Fin 1)] (cookLevinBooleanFactorProd 1))) = 0 := by
+      simpa [evalHalfOneVar] using evalHalfOneVar_deriv_booleanity
+    rw [hD]
+    ring
+  · simp [evalHalfOneVar]
+  · intro x y _ _ hx hy
+    unfold evalHalfOneVar at *
+    rw [map_add, hx, hy]
+    ring
+  · intro a x _ hx
+    unfold evalHalfOneVar at *
+    simpa using Or.inr hx
+
+/-- Consequently, the square residual `X² - X` is not in the one-variable
+Booleanity raw source span.  This is a positive nonmembership result beyond the
+failed blanket multilinearity criterion. -/
+theorem square_residual_not_mem_raw_oneVar_booleanity (B : BlockPartition 1) :
+    (X (0 : Fin 1) * X (0 : Fin 1) - X (0 : Fin 1) : MvPolynomial (Fin 1) ℚ) ∉
+      rawBlockedSpdpSubspace B 1 1 (cookLevinBooleanFactorProd 1) := by
+  intro hmem
+  have hzero := evalHalfOneVar_eq_zero_of_mem_raw_oneVar_booleanity B hmem
+  have hval := evalHalfOneVar_square_residual
+  rw [hval] at hzero
+  norm_num at hzero
+
+
 /-- The Boolean square residual is always killed by the raw-to-Boolean quotient
 map.  This is the concrete kernel direction that any NP noncollapse proof must
 exclude from the raw source row span. -/
@@ -525,6 +596,10 @@ theorem no_decidesSAT_at_paperScale_of_boolRowPayloadsAndNPKernelDisjointFromDec
 #print axioms not_RawBlockedSpdpGeneratorsMultilinear_oneVar_booleanity
 #print axioms X_mul_iterDerivList_cookLevinBooleanFactorProd_oneVar_mem_rawBlockedSpdpSubspace
 #print axioms not_rawBlockedSpdpSubspace_le_multilinearSupportSubmodule_oneVar_booleanity
+#print axioms evalHalfOneVar_square_residual
+#print axioms evalHalfOneVar_deriv_booleanity
+#print axioms evalHalfOneVar_eq_zero_of_mem_raw_oneVar_booleanity
+#print axioms square_residual_not_mem_raw_oneVar_booleanity
 #print axioms square_residual_mem_liftToBool_kernel
 #print axioms square_residual_ne_zero
 #print axioms square_residual_not_isMultilinear
