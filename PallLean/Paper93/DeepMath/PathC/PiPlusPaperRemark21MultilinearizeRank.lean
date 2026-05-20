@@ -38,13 +38,26 @@ noncomputable abbrev rkSPDP_multilinearized {n : ℕ}
     (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ) : ℕ :=
   multilinearizedBlockedSpdpRank B κ ℓ p
 
+/-- Direct kernel-clean proof of the paper multilinearization rank step.
+The multilinearized row space is literally the image of the raw SPDP row space
+under `liftToBoolLinearMap`, so the rank inequality is exactly
+`Submodule.finrank_map_le`; no product-normalization or span-product assembly is
+used. -/
+theorem multilinearize_rank_le_direct {n : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ) :
+    rkSPDP_multilinearized B κ ℓ p ≤ rkSPDP B κ ℓ p := by
+  unfold rkSPDP_multilinearized rkSPDP multilinearizedBlockedSpdpRank
+  unfold boolRawImageBlockedSpdpRank rawBlockedSpdpRank boolRawImageBlockedSpdpSubspace
+  exact Submodule.finrank_map_le
+    (liftToBoolLinearMap n) (rawBlockedSpdpSubspace B κ ℓ p)
+
 /-- Remark 21 / Lemma 157, paper-facing name: multilinearization does not
 increase SPDP rank.  Internally, the multilinearized row space is the image of
 the raw row space under `liftToBoolLinearMap`, so this is `finrank_map_le`. -/
 theorem multilinearize_rank_le {n : ℕ}
     (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ) :
     rkSPDP_multilinearized B κ ℓ p ≤ rkSPDP B κ ℓ p :=
-  multilinearizedBlockedSpdpRank_le_rawBlockedSpdpRank B κ ℓ p
+  multilinearize_rank_le_direct B κ ℓ p
 
 /-- Expanded equivalent of `multilinearize_rank_le`, spelling out the actual
 Boolean representative `multilinearize p`. -/
@@ -78,6 +91,7 @@ theorem paperScaleCookLevinPiPlus_bool_normalized_rank_bound_of_rawPostGaugeBoun
 
 /-! ## Axiom audit anchors -/
 
+#print axioms multilinearize_rank_le_direct
 #print axioms multilinearize_rank_le
 #print axioms multilinearize_rank_le_expanded
 #print axioms multilinearize_rank_bound_of_raw_bound
