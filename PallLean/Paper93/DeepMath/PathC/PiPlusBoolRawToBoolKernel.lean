@@ -95,6 +95,44 @@ def PaperScaleCookLevinRawToBoolSourceNPKernelDisjoint
     (LinearMap.ker (liftToBoolLinearMap
       (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars))
 
+/-- Exact kernel-disjointness criterion for the raw-to-Boolean quotient map:
+`U` is disjoint from the Boolean-normalization kernel iff Boolean normalization
+is injective on `U`.  This removes the vague "noncollapse" phrasing: the NP
+transport needs precisely this restricted injectivity statement. -/
+theorem disjoint_liftToBool_kernel_iff_normalize_injective_on {n : ℕ}
+    (U : Submodule ℚ (MvPolynomial (Fin n) ℚ)) :
+    Disjoint U (LinearMap.ker (liftToBoolLinearMap n)) ↔
+      ∀ x : MvPolynomial (Fin n) ℚ, x ∈ U →
+        zeroProfileBooleanNormalize x = 0 → x = 0 := by
+  constructor
+  · intro hdisj x hxU hnorm
+    have hxker : x ∈ LinearMap.ker (liftToBoolLinearMap n) := by
+      change liftToBoolLinearMap n x = 0
+      apply BoolPoly.ext
+      simpa using hnorm
+    exact Submodule.disjoint_def.mp hdisj x hxU hxker
+  · intro hinj
+    rw [Submodule.disjoint_def]
+    intro x hxU hxker
+    apply hinj x hxU
+    have hc := congrArg (fun r : BoolPoly n => (r : MvPolynomial (Fin n) ℚ)) hxker
+    simpa [liftToBoolLinearMap, liftToBool, zero] using hc
+
+/-- Paper-scale kernel-disjointness is exactly restricted injectivity of Boolean
+normalization on the Cook--Levin raw NP source row span. -/
+theorem paperScaleCookLevinRawToBoolSourceNPKernelDisjoint_iff_normalize_injective_on
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) :
+    PaperScaleCookLevinRawToBoolSourceNPKernelDisjoint M htb hns ↔
+      ∀ x : MvPolynomial
+          (Fin (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars) ℚ,
+        x ∈ rawBlockedSpdpSubspace
+          (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+          (Nat.log 2 (2 ^ 804)) (Nat.log 2 (2 ^ 804))
+          (compiledPoly (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns)) →
+        zeroProfileBooleanNormalize x = 0 → x = 0 := by
+  unfold PaperScaleCookLevinRawToBoolSourceNPKernelDisjoint
+  exact disjoint_liftToBool_kernel_iff_normalize_injective_on _
+
 /-- The Boolean square residual is always killed by the raw-to-Boolean quotient
 map.  This is the concrete kernel direction that any NP noncollapse proof must
 exclude from the raw source row span. -/
@@ -191,6 +229,8 @@ theorem no_decidesSAT_at_paperScale_of_boolRowPayloadsAndNPKernelDisjointFromDec
 /-! ## Axiom audit anchors -/
 
 #print axioms rawBlockedSpdpRank_le_boolBlockedSpdpRank_of_image_eq_of_disjoint_ker
+#print axioms disjoint_liftToBool_kernel_iff_normalize_injective_on
+#print axioms paperScaleCookLevinRawToBoolSourceNPKernelDisjoint_iff_normalize_injective_on
 #print axioms square_residual_mem_liftToBool_kernel
 #print axioms square_residual_ne_zero
 #print axioms not_disjoint_liftToBool_kernel_of_square_residual_mem
