@@ -142,6 +142,44 @@ theorem factoredCompiledRowCertificate_of_booleanitySpan_spanAssemblyReduction
       M n hn2 htb hns D hbool)
     hred
 
+/-- Rank-aware span-level inputs plus the generalized span-level product
+assembly reduction discharge the generalized compiled-row certificate.  This
+pushes the corrected Booleanity residue/rank bundle beyond the factored product
+surface into the actual compiled polynomial row surface. -/
+theorem compiledRowCertificate_of_spanInputs_spanAssemblyReduction
+    (extraK extraL : Nat)
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (piP : PiPlusSATTransform M n hn2 htb hns)
+    (hin : CookLevinSpanConstraintListAtomicRowInputs M n hn2 htb hns D)
+    (hred : CookLevinFactoredRowCertificateRankAwareSpanAssemblyReduction
+      extraK extraL M n hn2 htb hns D piP) :
+    PiPlusBooleanProjectedWindowedCompiledRowCertificate
+      extraK extraL M n hn2 htb hns piP :=
+  compiledRowCertificate_of_factoredCompiledRowCertificate
+    extraK extraL M n hn2 htb hns piP
+    (factoredCompiledRowCertificate_of_spanInputs_spanAssemblyReduction
+      extraK extraL M n hn2 htb hns D piP hin hred)
+
+/-- Span-level Booleanity payload plus the generalized product assembly
+reduction discharge the generalized compiled-row certificate. -/
+theorem compiledRowCertificate_of_booleanitySpan_spanAssemblyReduction
+    (extraK extraL : Nat)
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (piP : PiPlusSATTransform M n hn2 htb hns)
+    (hbool : CookLevinBooleanityFactorProjectedSpanPayload M n hn2 htb hns D)
+    (hred : CookLevinFactoredRowCertificateRankAwareSpanAssemblyReduction
+      extraK extraL M n hn2 htb hns D piP) :
+    PiPlusBooleanProjectedWindowedCompiledRowCertificate
+      extraK extraL M n hn2 htb hns piP :=
+  compiledRowCertificate_of_factoredCompiledRowCertificate
+    extraK extraL M n hn2 htb hns piP
+    (factoredCompiledRowCertificate_of_booleanitySpan_spanAssemblyReduction
+      extraK extraL M n hn2 htb hns D piP hbool hred)
+
 /-- Rank-aware span-level inputs plus the span-level product assembly reduction
 give the paper-scale factored compiled-row certificate directly. -/
 theorem paperScale_factoredCompiledRowCertificate_of_spanInputs_spanAssemblyReduction
@@ -259,6 +297,8 @@ theorem no_decidesSAT_at_paperScale_of_booleanitySpan_spanAssemblyReduction_npIn
 #print axioms paperScale_spanConstraintListAtomicRowInputs_of_booleanitySpan
 #print axioms factoredCompiledRowCertificate_of_spanInputs_spanAssemblyReduction
 #print axioms factoredCompiledRowCertificate_of_booleanitySpan_spanAssemblyReduction
+#print axioms compiledRowCertificate_of_spanInputs_spanAssemblyReduction
+#print axioms compiledRowCertificate_of_booleanitySpan_spanAssemblyReduction
 #print axioms paperScale_factoredCompiledRowCertificate_of_spanInputs_spanAssemblyReduction
 #print axioms paperScale_factoredCompiledRowCertificate_of_booleanitySpan_spanAssemblyReduction
 #print axioms paperScale_windowedCompiledRawPullbackMembershipOneZero_of_spanInputs_spanAssemblyReduction
