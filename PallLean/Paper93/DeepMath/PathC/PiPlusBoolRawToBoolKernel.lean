@@ -417,6 +417,105 @@ theorem square_residual_not_mem_raw_oneVar_booleanity (B : BlockPartition 1) (�
   norm_num at hzero
 
 
+/-- A genuine raw-source/kernel witness once shift degree two is allowed:
+`(X²-X) * ∂Booleanity`. -/
+noncomputable def oneVarBooleanityKernelWitness : MvPolynomial (Fin 1) ℚ :=
+  (X (0 : Fin 1) * X (0 : Fin 1) - X (0 : Fin 1)) *
+    iterDerivList [(0 : Fin 1)] (cookLevinBooleanFactorProd 1)
+
+/-- The witness is an actual raw SPDP generator at κ=1, ℓ=2. -/
+theorem oneVarBooleanityKernelWitness_mem_raw (B : BlockPartition 1) (hadm : isBlockAdmissible B [(0 : Fin 1)]) :
+    oneVarBooleanityKernelWitness ∈ rawBlockedSpdpSubspace B 1 2 (cookLevinBooleanFactorProd 1) := by
+  unfold oneVarBooleanityKernelWitness rawBlockedSpdpSubspace
+  apply Submodule.subset_span
+  refine ⟨[(0 : Fin 1)], (X (0 : Fin 1) * X (0 : Fin 1) - X (0 : Fin 1)), ?_, ?_, ?_, hadm, rfl⟩
+  · simp
+  · have hdeg : (X (0 : Fin 1) * X (0 : Fin 1) - X (0 : Fin 1) : MvPolynomial (Fin 1) ℚ).totalDegree ≤ 2 := by
+      have h := MvPolynomial.totalDegree_sub (X (0 : Fin 1) * X (0 : Fin 1) : MvPolynomial (Fin 1) ℚ) (X (0 : Fin 1))
+      have hmul := MvPolynomial.totalDegree_mul (X (0 : Fin 1) : MvPolynomial (Fin 1) ℚ) (X (0 : Fin 1))
+      simp [MvPolynomial.totalDegree_X] at h hmul
+      omega
+    exact hdeg
+  · intro v hv
+    fin_cases v
+    simp
+
+/-- The witness is killed by Boolean normalization because it contains the square residual. -/
+theorem oneVarBooleanityKernelWitness_mem_kernel :
+    oneVarBooleanityKernelWitness ∈ LinearMap.ker (liftToBoolLinearMap 1) := by
+  unfold oneVarBooleanityKernelWitness
+  change liftToBoolLinearMap 1 ((X 0 * X 0 - X 0) * iterDerivList [0] (cookLevinBooleanFactorProd 1) : MvPolynomial (Fin 1) ℚ) = 0
+  change liftToBool ((X 0 * X 0 - X 0) * iterDerivList [0] (cookLevinBooleanFactorProd 1) : MvPolynomial (Fin 1) ℚ) = 0
+  apply BoolPoly.ext
+  simp [liftToBool, zeroProfileBooleanNormalize_square_residual_mul]
+
+/-- Its cubic coefficient is nonzero. -/
+theorem oneVarBooleanityKernelWitness_coeff_three :
+    coeff (Finsupp.single (0 : Fin 1) 3) oneVarBooleanityKernelWitness = 2 := by
+  unfold oneVarBooleanityKernelWitness
+  have hpoly : iterDerivList [(0 : Fin 1)] (cookLevinBooleanFactorProd 1) =
+      ((-1 : MvPolynomial (Fin 1) ℚ) + 2 * X 0) := by
+    unfold iterDerivList
+    simp only [List.foldl_cons, List.foldl_nil]
+    rw [cookLevinBooleanFactorProd_eq_finRange]
+    simp [List.finRange]
+    rw [pderiv_cookLevinBooleanFactor_self]
+  rw [hpoly]
+  ring_nf
+  rw [MvPolynomial.coeff_add]
+  have hleft : coeff (Finsupp.single (0 : Fin 1) 3)
+      ((X (0 : Fin 1)) - X 0 ^ 2 * (3 : MvPolynomial (Fin 1) ℚ)) = 0 := by
+    rw [MvPolynomial.coeff_sub]
+    have hx : coeff (Finsupp.single (0 : Fin 1) 3) (X (0 : Fin 1) : MvPolynomial (Fin 1) ℚ) = 0 := by
+      simp [MvPolynomial.X]
+    rw [hx]
+    have hx2 : coeff (Finsupp.single (0 : Fin 1) 3) (X 0 ^ 2 * (3 : MvPolynomial (Fin 1) ℚ)) = 0 := by
+      rw [MvPolynomial.X_pow_eq_monomial]
+      change coeff (Finsupp.single (0 : Fin 1) 3)
+        (((MvPolynomial.monomial (Finsupp.single (0 : Fin 1) 2)) (1 : ℚ)) * C (3 : ℚ)) = 0
+      rw [show ((MvPolynomial.monomial (Finsupp.single (0 : Fin 1) 2)) (1 : ℚ) * C (3 : ℚ)) =
+          C (3 : ℚ) * ((MvPolynomial.monomial (Finsupp.single (0 : Fin 1) 2)) (1 : ℚ)) by ring]
+      rw [MvPolynomial.C_mul_monomial]
+      rw [MvPolynomial.coeff_monomial]
+      simp
+    rw [hx2]
+    norm_num
+  have hright : coeff (Finsupp.single (0 : Fin 1) 3)
+      (X 0 ^ 3 * (2 : MvPolynomial (Fin 1) ℚ)) = 2 := by
+    rw [MvPolynomial.X_pow_eq_monomial]
+    change coeff (Finsupp.single (0 : Fin 1) 3)
+      (((MvPolynomial.monomial (Finsupp.single (0 : Fin 1) 3)) (1 : ℚ) * C (2 : ℚ))) = 2
+    rw [show ((MvPolynomial.monomial (Finsupp.single (0 : Fin 1) 3)) (1 : ℚ) * C (2 : ℚ)) =
+        C (2 : ℚ) * ((MvPolynomial.monomial (Finsupp.single (0 : Fin 1) 3)) (1 : ℚ)) by ring]
+    rw [MvPolynomial.C_mul_monomial]
+    rw [MvPolynomial.coeff_monomial]
+    simp
+  rw [hleft, hright]
+  norm_num
+
+/-- Therefore the witness is nonzero in the raw polynomial ring. -/
+theorem oneVarBooleanityKernelWitness_ne_zero : oneVarBooleanityKernelWitness ≠ 0 := by
+  intro h
+  have hc := congrArg (fun p : MvPolynomial (Fin 1) ℚ => coeff (Finsupp.single (0 : Fin 1) 3) p) h
+  have hc0 : coeff (Finsupp.single (0 : Fin 1) 3) oneVarBooleanityKernelWitness = 0 := by simpa using hc
+  rw [oneVarBooleanityKernelWitness_coeff_three] at hc0
+  norm_num at hc0
+
+/-- Thus raw-to-Boolean kernel-disjointness is genuinely false for the
+one-variable Booleanity raw source at shift budget two, whenever the unique
+one-variable window is admissible. -/
+theorem not_disjoint_rawBlockedSpdpSubspace_kernel_oneVar_booleanity_ell_two
+    (B : BlockPartition 1)
+    (hadm : isBlockAdmissible B [(0 : Fin 1)]) :
+    ¬ Disjoint (rawBlockedSpdpSubspace B 1 2 (cookLevinBooleanFactorProd 1))
+      (LinearMap.ker (liftToBoolLinearMap 1)) := by
+  intro hdisj
+  have hzero := Submodule.disjoint_def.mp hdisj oneVarBooleanityKernelWitness
+    (oneVarBooleanityKernelWitness_mem_raw B hadm)
+    oneVarBooleanityKernelWitness_mem_kernel
+  exact oneVarBooleanityKernelWitness_ne_zero hzero
+
+
 /-- The Boolean square residual is always killed by the raw-to-Boolean quotient
 map.  This is the concrete kernel direction that any NP noncollapse proof must
 exclude from the raw source row span. -/
@@ -602,6 +701,11 @@ theorem no_decidesSAT_at_paperScale_of_boolRowPayloadsAndNPKernelDisjointFromDec
 #print axioms evalHalfOneVar_deriv_booleanity
 #print axioms evalHalfOneVar_eq_zero_of_mem_raw_oneVar_booleanity
 #print axioms square_residual_not_mem_raw_oneVar_booleanity
+#print axioms oneVarBooleanityKernelWitness_mem_raw
+#print axioms oneVarBooleanityKernelWitness_mem_kernel
+#print axioms oneVarBooleanityKernelWitness_coeff_three
+#print axioms oneVarBooleanityKernelWitness_ne_zero
+#print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_oneVar_booleanity_ell_two
 #print axioms square_residual_mem_liftToBool_kernel
 #print axioms square_residual_ne_zero
 #print axioms square_residual_not_isMultilinear
