@@ -1029,6 +1029,94 @@ theorem not_disjoint_rawBlockedSpdpSubspace_kernel_cookLevinBooleanFactor_self_a
     i B ℓ hℓ (kernel_isBlockAdmissible_singleton B i)
 
 
+/-- A polynomial has no degree-one coordinate monomials.  This isolates the
+linear-part calculation needed to see that the non-Boolean Cook--Levin rest
+factors cannot cancel the Booleanity linear term. -/
+def NoLinearTerms {n : Nat} (p : MvPolynomial (Fin n) ℚ) : Prop :=
+  ∀ i : Fin n, coeff (Finsupp.single i 1) p = 0
+
+/-- The constant polynomial `1` has no linear terms. -/
+theorem NoLinearTerms_one {n : Nat} : NoLinearTerms (1 : MvPolynomial (Fin n) ℚ) := by
+  intro i
+  rw [show (1 : MvPolynomial (Fin n) ℚ) = MvPolynomial.C (1 : ℚ) by rfl]
+  rw [MvPolynomial.coeff_C]
+  have h : (0 : Fin n →₀ Nat) ≠ Finsupp.single i 1 := by
+    intro h0
+    have hv := congrArg (fun f : Fin n →₀ Nat => f i) h0
+    simp at hv
+  exact if_neg h
+
+/-- Products of polynomials with no linear terms again have no linear terms:
+in the coefficient of `Xᵢ`, the antidiagonal only has `(0,1)` and `(1,0)`. -/
+theorem NoLinearTerms_mul {n : Nat} {p q : MvPolynomial (Fin n) ℚ}
+    (hp : NoLinearTerms p) (hq : NoLinearTerms q) : NoLinearTerms (p * q) := by
+  intro i
+  rw [MvPolynomial.coeff_mul]
+  rw [Finsupp.antidiagonal_single]
+  apply Finset.sum_eq_zero
+  intro x hx
+  rw [Finset.mem_map] at hx
+  rcases hx with ⟨y, hy, rfl⟩
+  rcases y with ⟨y1, y2⟩
+  rw [Finset.mem_antidiagonal] at hy
+  have hy_cases : y1 = 0 ∧ y2 = 1 ∨ y1 = 1 ∧ y2 = 0 := by omega
+  rcases hy_cases with ⟨hy1, hy2⟩ | ⟨hy1, hy2⟩
+  · rw [hy1, hy2]; simp [hq i]
+  · rw [hy1, hy2]; simp [hp i]
+
+/-- A factor of the form `1 - c Xₐ X_b` has no linear terms. -/
+theorem NoLinearTerms_sub_quadratic_factor {n : Nat} (c : ℚ) (a b : Fin n) :
+    NoLinearTerms ((1 : MvPolynomial (Fin n) ℚ) - MvPolynomial.C c * (X a * X b)) := by
+  intro i
+  rw [MvPolynomial.coeff_sub]
+  have hone := NoLinearTerms_one (n := n) i
+  rw [hone]
+  suffices hquad : coeff (Finsupp.single i 1) (MvPolynomial.C c * (X a * X b) : MvPolynomial (Fin n) ℚ) = 0 by
+    rw [hquad]; norm_num
+  rw [MvPolynomial.coeff_C_mul]
+  suffices hxab : coeff (Finsupp.single i 1) (X a * X b : MvPolynomial (Fin n) ℚ) = 0 by
+    rw [hxab]; ring
+  rw [MvPolynomial.coeff_mul]
+  rw [Finsupp.antidiagonal_single]
+  apply Finset.sum_eq_zero
+  intro x hx
+  rw [Finset.mem_map] at hx
+  rcases hx with ⟨y, hy, rfl⟩
+  rcases y with ⟨y1, y2⟩
+  rw [Finset.mem_antidiagonal] at hy
+  have hy_cases : y1 = 0 ∧ y2 = 1 ∨ y1 = 1 ∧ y2 = 0 := by omega
+  rcases hy_cases with ⟨hy1, hy2⟩ | ⟨hy1, hy2⟩
+  · rw [hy1, hy2]; simp [MvPolynomial.X]
+  · rw [hy1, hy2]; simp [MvPolynomial.X]
+
+/-- Every non-Boolean Cook--Levin rest factor has no linear terms, because it is
+`1` minus a quadratic adjacency/transition monomial. -/
+theorem NoLinearTerms_rest_factor {M : DTM} {n : Nat} (lc : LocalConstraint n)
+    (hlc : lc ∈ adjConstraintList n ++ transSkelConstraintList M n) :
+    NoLinearTerms ((1 : MvPolynomial (Fin n) ℚ) - lc.poly) := by
+  rcases rest_constraint_cadj_form M n lc hlc with ⟨c, a, hi, hpoly⟩
+  rw [hpoly]
+  exact NoLinearTerms_sub_quadratic_factor c a ⟨a.val + 1, hi⟩
+
+/-- A product of rest factors has no linear terms. -/
+theorem NoLinearTerms_list_prod_rest_factors (M : DTM) (n : Nat)
+    (L : List (LocalConstraint n))
+    (hL : ∀ lc ∈ L, lc ∈ adjConstraintList n ++ transSkelConstraintList M n) :
+    NoLinearTerms ((L.map (fun c => (1 : MvPolynomial (Fin n) ℚ) - c.poly)).prod) := by
+  induction L with
+  | nil => simpa using (NoLinearTerms_one (n := n))
+  | cons lc L ih =>
+      simp only [List.map_cons, List.prod_cons]
+      exact NoLinearTerms_mul (NoLinearTerms_rest_factor lc (hL lc (by simp)))
+        (ih (by intro x hx; exact hL x (by simp [hx])))
+
+/-- The full Cook--Levin rest product has no linear coordinate monomials. -/
+theorem NoLinearTerms_restFactorProd' (M : DTM) (n : Nat) :
+    NoLinearTerms (restFactorProd' M n) := by
+  unfold restFactorProd'
+  exact NoLinearTerms_list_prod_rest_factors M n _ (by intro lc hlc; exact hlc)
+
+
 /-- The square residual is not multilinear as a raw polynomial: the `Xᵢ²`
 coefficient survives before quotienting. -/
 theorem square_residual_not_isMultilinear {n : ℕ} (i : Fin n) :
@@ -1216,6 +1304,10 @@ theorem no_decidesSAT_at_paperScale_of_boolRowPayloadsAndNPKernelDisjointFromDec
 #print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_of_pderiv_ne_zero_any_partition
 #print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_cookLevinBooleanFactorProd_any_partition
 #print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_cookLevinBooleanFactor_self_any_partition
+#print axioms NoLinearTerms_mul
+#print axioms NoLinearTerms_sub_quadratic_factor
+#print axioms NoLinearTerms_rest_factor
+#print axioms NoLinearTerms_restFactorProd'
 #print axioms residualDerivativeRow_ne_zero_of_iterDerivList_singleton_ne_zero
 #print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_of_iterDerivList_singleton_ne_zero
 #print axioms iterDerivList_singleton_eq_zero_of_disjoint_rawBlockedSpdpSubspace_kernel
