@@ -449,6 +449,72 @@ theorem no_decidesSAT_at_paperScale_of_polynomialSpan_allocationLocalSpansPullba
     { polynomial_span := hpoly, allocation_local_spans_pullback := hred }
     henv hnp
 
+/-! ## From local-factor payloads to allocation-local pullback reductions
+
+The rest/Booleanity local payloads are now unconditional.  This names the next
+honest mathematical target: use those local certificates to provide, for every
+Leibniz allocation, local spans for all allocated factors and pullback membership
+for every pointwise product-choice generator.
+-/
+
+/-- The remaining local-to-product-choice seam for the allocation-local pullback
+route.  It consumes the unconditional `(1,1)` local-factor payload and produces
+the allocation-local span/product-choice pullback reduction. -/
+structure PaperScalePiPlusBooleanProjectedOneOneLocalFactorToAllocationLocalSpansPullbackReduction
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) : Prop where
+  allocation_local_spans_of_local :
+    ∀ (_payload : BoolPoly.PaperScalePiPlusBooleanProjectedOneOneLocalFactorPayload
+        M htb hns),
+      PaperScalePiPlusBooleanProjectedAllocationLocalSpansPullbackReductionOneOne
+        M htb hns
+
+/-- Since the local-factor payload is unconditional, the local-to-product-choice
+reduction yields the paper-scale allocation-local span/product-choice pullback
+reduction. -/
+theorem paperScale_allocationLocalSpansPullbackReductionOneOne_of_localFactorToAllocationLocalSpansReduction
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hred :
+      PaperScalePiPlusBooleanProjectedOneOneLocalFactorToAllocationLocalSpansPullbackReduction
+        M htb hns) :
+    PaperScalePiPlusBooleanProjectedAllocationLocalSpansPullbackReductionOneOne
+      M htb hns :=
+  hred.allocation_local_spans_of_local
+    (BoolPoly.paperScalePiPlusBooleanProjectedOneOneLocalFactorPayload_unconditional
+      M htb hns)
+
+/-- Normalized polynomial span plus the local-to-product-choice reduction closes
+the `(1,1)` factored row-span classifier through the allocation-local route. -/
+theorem paperScale_factoredRowSpanClassifierOneOne_of_polynomialSpan_and_localFactorToAllocationLocalSpansReduction
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hpoly : PaperScalePiPlusBooleanProjectedNormalizedDerivativePolynomialSpan
+      M htb hns)
+    (hred :
+      PaperScalePiPlusBooleanProjectedOneOneLocalFactorToAllocationLocalSpansPullbackReduction
+        M htb hns) :
+    PaperScalePiPlusBooleanProjectedFactoredRowSpanClassifierOneOne M htb hns :=
+  paperScale_factoredRowSpanClassifierOneOne_of_polynomialSpan_and_allocationLocalSpansPullbackReduction
+    M htb hns hpoly
+    (paperScale_allocationLocalSpansPullbackReductionOneOne_of_localFactorToAllocationLocalSpansReduction
+      M htb hns hred)
+
+/-- Polynomial span plus the local-to-product-choice reduction plus a Route-B
+`(1,1)` envelope and NP-side input rule out a SAT decider at paper scale. -/
+theorem no_decidesSAT_at_paperScale_of_polynomialSpan_localFactorToAllocationLocalSpansReduction_routeBEnvelope_npInclusion
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hpoly : PaperScalePiPlusBooleanProjectedNormalizedDerivativePolynomialSpan
+      M htb hns)
+    (hred :
+      PaperScalePiPlusBooleanProjectedOneOneLocalFactorToAllocationLocalSpansPullbackReduction
+        M htb hns)
+    (henv : PaperScaleRouteBSATWindowedIncPSideRankEnvelopeOneOne M htb hns)
+    (hnp : PaperScalePiPlusBooleanProjectedNPWindowSubspaceInclusion M htb hns) :
+    ¬ DecidesSAT M :=
+  no_decidesSAT_at_paperScale_of_polynomialSpan_allocationLocalSpansPullbackReduction_routeBEnvelope_npInclusion
+    M htb hns hpoly
+    (paperScale_allocationLocalSpansPullbackReductionOneOne_of_localFactorToAllocationLocalSpansReduction
+      M htb hns hred)
+    henv hnp
+
 /-- Product/factor normalization target for one concrete allocation.
 
 It says that Boolean-normalizing the allocated product is itself another
@@ -701,6 +767,9 @@ theorem no_decidesSAT_at_paperScale_of_oneOneProductNormalizationCloseoutInputs
 #print axioms no_decidesSAT_at_paperScale_of_allocationLocalSpansCloseoutInputs_routeB_npInclusion
 #print axioms no_decidesSAT_at_paperScale_of_allocationLocalSpansCloseoutInputs_routeBEnvelope_npInclusion
 #print axioms no_decidesSAT_at_paperScale_of_polynomialSpan_allocationLocalSpansPullbackReduction_routeBEnvelope_npInclusion
+#print axioms paperScale_allocationLocalSpansPullbackReductionOneOne_of_localFactorToAllocationLocalSpansReduction
+#print axioms paperScale_factoredRowSpanClassifierOneOne_of_polynomialSpan_and_localFactorToAllocationLocalSpansReduction
+#print axioms no_decidesSAT_at_paperScale_of_polynomialSpan_localFactorToAllocationLocalSpansReduction_routeBEnvelope_npInclusion
 #print axioms allocatedProduct_mem_span_of_normalizesToDistributedGenerator
 #print axioms allocationStability_of_productNormalizationReduction
 #print axioms paperScale_allocationStability_of_productNormalizationReduction
