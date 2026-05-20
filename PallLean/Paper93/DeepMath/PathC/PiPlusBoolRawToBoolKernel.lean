@@ -925,6 +925,31 @@ theorem not_disjoint_rawBlockedSpdpSubspace_kernel_cookLevinBooleanFactor_self
     (pderiv_cookLevinBooleanFactor_self_ne_zero i)
 
 
+/-- The full Cook--Levin Booleanity product also genuinely depends on every
+coordinate: evaluating the singleton derivative at the Boolean witness point
+gives `3`, so the ordinary partial derivative is nonzero. -/
+theorem pderiv_cookLevinBooleanFactorProd_ne_zero {n : Nat} (i : Fin n) :
+    MvPolynomial.pderiv i (cookLevinBooleanFactorProd n) ≠ 0 := by
+  intro hzero
+  have heval := congrArg (evalBooleanWitnessPoint i) hzero
+  have hiter := evalBooleanWitnessPoint_iterDerivList_singleton_cookLevinBooleanFactorProd i
+  rw [iterDerivList_singleton_eq_pderiv] at hiter
+  rw [hzero] at hiter
+  simp [evalBooleanWitnessPoint] at hiter
+
+/-- Hence the actual full Booleanity product, not just an isolated factor,
+violates raw-to-Boolean kernel-disjointness at every admissible singleton
+window once `ℓ ≥ 2`. -/
+theorem not_disjoint_rawBlockedSpdpSubspace_kernel_cookLevinBooleanFactorProd
+    {n : Nat} (i : Fin n) (B : BlockPartition n) (ℓ : ℕ) (hℓ : 2 ≤ ℓ)
+    (hadm : isBlockAdmissible B [i]) :
+    ¬ Disjoint (rawBlockedSpdpSubspace B 1 ℓ (cookLevinBooleanFactorProd n))
+      (LinearMap.ker (liftToBoolLinearMap n)) := by
+  exact not_disjoint_rawBlockedSpdpSubspace_kernel_of_pderiv_ne_zero
+    i (cookLevinBooleanFactorProd n) B ℓ hℓ hadm
+    (pderiv_cookLevinBooleanFactorProd_ne_zero i)
+
+
 /-- Because polynomial rings over `ℚ` are domains, a residual-multiplied
 first-derivative row is nonzero exactly when the derivative row is nonzero. -/
 theorem residualDerivativeRow_ne_zero_of_iterDerivList_singleton_ne_zero
@@ -1144,6 +1169,8 @@ theorem no_decidesSAT_at_paperScale_of_boolRowPayloadsAndNPKernelDisjointFromDec
 #print axioms pderiv_eq_zero_of_disjoint_rawBlockedSpdpSubspace_kernel
 #print axioms pderiv_cookLevinBooleanFactor_self_ne_zero
 #print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_cookLevinBooleanFactor_self
+#print axioms pderiv_cookLevinBooleanFactorProd_ne_zero
+#print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_cookLevinBooleanFactorProd
 #print axioms residualDerivativeRow_ne_zero_of_iterDerivList_singleton_ne_zero
 #print axioms not_disjoint_rawBlockedSpdpSubspace_kernel_of_iterDerivList_singleton_ne_zero
 #print axioms iterDerivList_singleton_eq_zero_of_disjoint_rawBlockedSpdpSubspace_kernel
