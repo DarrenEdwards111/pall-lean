@@ -1152,6 +1152,52 @@ theorem projectedIdentityMinorTagCoeffLin_map_eq_top_of_span_le
     ext i
     exact projectedIdentityMinorTagCoeffEquiv_apply_symm (F := F) Φ pack κ a i
 
+/-- The private tag coordinate space has dimension exactly the number of
+projected identity-minor rows. -/
+theorem projectedIdentityMinor_tagCoeffSpace_finrank
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ) :
+    Module.finrank F (Fin (Nat.choose pack.selected.length κ) → F) =
+      Nat.choose pack.selected.length κ := by
+  rw [Module.finrank_fintype_fun_eq_card]
+  exact Fintype.card_fin _
+
+/-- If an ambient finite-dimensional row space contains the projected
+identity-minor span, then its dimension is at least the full private-tag
+coordinate dimension.  This is the quotient-map rank lower bound: the ambient
+tag map sends `W` onto a coordinate space of size `choose |pack| κ`, so `W` must
+have at least that finrank. -/
+theorem nat_choose_le_finrank_of_projectedIdentityMinorSpan_le
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (W : Submodule F (MvPolynomial (Fin (tseitinNumVars Φ)) F))
+    [Module.Finite F W]
+    (hW : projectedIdentityMinorSpan (F := F) Φ pack κ ≤ W) :
+    Nat.choose pack.selected.length κ ≤ Module.finrank F W := by
+  have hmap : Submodule.map (projectedIdentityMinorTagCoeffLin (F := F) Φ pack κ) W = ⊤ :=
+    projectedIdentityMinorTagCoeffLin_map_eq_top_of_span_le (F := F) Φ pack κ W hW
+  have hle := Submodule.finrank_map_le (projectedIdentityMinorTagCoeffLin (F := F) Φ pack κ) W
+  have hcoord : Module.finrank F (Submodule.map
+      (projectedIdentityMinorTagCoeffLin (F := F) Φ pack κ) W) =
+      Nat.choose pack.selected.length κ := by
+    rw [hmap]
+    simp [projectedIdentityMinor_tagCoeffSpace_finrank (F := F) Φ pack κ]
+  omega
+
+/-- Special case for the projected identity-minor span itself, proved via the
+ambient quotient map rather than basis cardinality. -/
+theorem nat_choose_le_finrank_projectedIdentityMinorSpan_from_tag_quotient
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ) :
+    Nat.choose pack.selected.length κ ≤
+      Module.finrank F (projectedIdentityMinorSpan (F := F) Φ pack κ) := by
+  haveI : Module.Finite F (projectedIdentityMinorSpan (F := F) Φ pack κ) :=
+    projectedIdentityMinorSpan_finite (F := F) Φ pack κ
+  exact nat_choose_le_finrank_of_projectedIdentityMinorSpan_le
+    (F := F) Φ pack κ (projectedIdentityMinorSpan (F := F) Φ pack κ) le_rfl
+
+
+
 
 /-- Concrete prescribed-coordinate realization without mentioning `.symm`: the
 signed basis sum has private tag coefficient `a i`. -/
@@ -3770,6 +3816,9 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms projectedIdentityMinorTagCoeffLin_signed_projectedBasis
 #print axioms projectedIdentityMinorTagCoeffLin_map_span_eq_top
 #print axioms projectedIdentityMinorTagCoeffLin_map_eq_top_of_span_le
+#print axioms projectedIdentityMinor_tagCoeffSpace_finrank
+#print axioms nat_choose_le_finrank_of_projectedIdentityMinorSpan_le
+#print axioms nat_choose_le_finrank_projectedIdentityMinorSpan_from_tag_quotient
 #print axioms projectedIdentityMinorSignEquiv
 #print axioms projectedIdentityMinorTagCoeffEquiv
 #print axioms projectedIdentityMinorTagCoeffEquiv_apply
