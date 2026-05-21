@@ -992,6 +992,116 @@ theorem tseitinAt_projected_identity_minor_subspace_superpoly_certificate_inc
   refine ⟨W, hWle, ?_⟩
   exact le_trans (BinomialBound.binomial_lower_bound_concrete n hn20) hWdim
 
+/-- A finite subspace certificate gives a rank lower bound for the ambient
+finite-dimensional row space.  This is the abstract dimension-monotonicity step
+used to turn explicit projected-minor subspaces into SPDP rank lower bounds. -/
+theorem rank_lower_of_finite_subspace_certificate
+    {F M : Type*} [Field F] [AddCommGroup M] [Module F M]
+    (V W : Submodule F M) [Module.Finite F V] [Module.Finite F W] (d : ℕ)
+    (hWV : W ≤ V) (hdim : d ≤ Module.finrank F W) :
+    d ≤ Module.finrank F V := by
+  exact le_trans hdim (Submodule.finrank_mono hWV)
+
+/-- Finite version of the concrete projected identity-minor subspace certificate.
+It records explicitly that the witness subspace is finitely generated, so it can
+feed dimension-monotonicity lemmas without reconstructing its spanning family. -/
+theorem tseitinAt_projected_identity_minor_finite_subspace_certificate
+    (F : Type*) [Field F] [Nontrivial F]
+    (n : ℕ) (hn1024 : n ≥ 2^10) (heven : 2 ∣ n) :
+    ∃ W : Submodule F (MvPolynomial (Fin (tseitinNumVars (tseitinAt n))) F),
+      Module.Finite F W ∧
+      W ≤ mlBlockedSpdpSubspace (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) (Nat.log 2 n) (coupledVerifier F (tseitinAt n)) ∧
+      Nat.choose (n / 30) (Nat.log 2 n) ≤ Module.finrank F W := by
+  have hv := tseitinAt_vertices n (by omega) heven
+  have pack := Tseitin.disjoint_packing_exists (tseitinAt n) (by omega)
+  let κ := Nat.log 2 n
+  let W : Submodule F (MvPolynomial (Fin (tseitinNumVars (tseitinAt n))) F) :=
+    Submodule.span F (Set.range
+      (fun i : Fin (Nat.choose pack.selected.length κ) =>
+        mlProj (IdentityMinor.rowPoly F (tseitinAt n) pack κ i)))
+  refine ⟨W, ?_, ?_, ?_⟩
+  · dsimp [W]
+    exact Module.Finite.span_of_finite F (Set.finite_range _)
+  · dsimp [W]
+    exact coupledVerifier_projected_identity_minor_span_le_mlSubspace
+      (F := F) (tseitinAt n) pack κ κ
+  · have hWfin : Module.finrank F W = Nat.choose pack.selected.length κ := by
+      dsimp [W]
+      exact coupledVerifier_projected_identity_minor_span_finrank
+        (F := F) (tseitinAt n) pack κ
+    rw [hWfin]
+    apply Nat.choose_le_choose
+    have hps := pack.size_bound
+    rw [hv] at hps
+    exact hps
+
+/-- Inclusive-window finite projected-minor subspace certificate. -/
+theorem tseitinAt_projected_identity_minor_finite_subspace_certificate_inc
+    (F : Type*) [Field F] [Nontrivial F]
+    (n : ℕ) (hn1024 : n ≥ 2^10) (heven : 2 ∣ n) (ℓ : ℕ) :
+    ∃ W : Submodule F (MvPolynomial (Fin (tseitinNumVars (tseitinAt n))) F),
+      Module.Finite F W ∧
+      W ≤ mlBlockedSpdpSubspaceInc (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) ℓ (coupledVerifier F (tseitinAt n)) ∧
+      Nat.choose (n / 30) (Nat.log 2 n) ≤ Module.finrank F W := by
+  have hv := tseitinAt_vertices n (by omega) heven
+  have pack := Tseitin.disjoint_packing_exists (tseitinAt n) (by omega)
+  let κ := Nat.log 2 n
+  let W : Submodule F (MvPolynomial (Fin (tseitinNumVars (tseitinAt n))) F) :=
+    Submodule.span F (Set.range
+      (fun i : Fin (Nat.choose pack.selected.length κ) =>
+        mlProj (IdentityMinor.rowPoly F (tseitinAt n) pack κ i)))
+  refine ⟨W, ?_, ?_, ?_⟩
+  · dsimp [W]
+    exact Module.Finite.span_of_finite F (Set.finite_range _)
+  · dsimp [W]
+    exact coupledVerifier_projected_identity_minor_span_le_mlSubspaceInc
+      (F := F) (tseitinAt n) pack κ ℓ
+  · have hWfin : Module.finrank F W = Nat.choose pack.selected.length κ := by
+      dsimp [W]
+      exact coupledVerifier_projected_identity_minor_span_finrank
+        (F := F) (tseitinAt n) pack κ
+    rw [hWfin]
+    apply Nat.choose_le_choose
+    have hps := pack.size_bound
+    rw [hv] at hps
+    exact hps
+
+/-- Rank lower bound derived solely from the finite projected-minor subspace
+certificate. -/
+theorem tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_from_finite_subspace_certificate
+    (F : Type*) [Field F] [Nontrivial F]
+    (n : ℕ) (hn1024 : n ≥ 2^10) (heven : 2 ∣ n) :
+    Nat.choose (n / 30) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) (Nat.log 2 n) (coupledVerifier F (tseitinAt n)) := by
+  obtain ⟨W, hWfinite, hWle, hdim⟩ :=
+    tseitinAt_projected_identity_minor_finite_subspace_certificate F n hn1024 heven
+  haveI : Module.Finite F W := hWfinite
+  dsimp [mlBlockedSpdpRank]
+  exact rank_lower_of_finite_subspace_certificate
+    (mlBlockedSpdpSubspace (IdentityMinor.tseitinPartition (tseitinAt n))
+      (Nat.log 2 n) (Nat.log 2 n) (coupledVerifier F (tseitinAt n)))
+    W (Nat.choose (n / 30) (Nat.log 2 n)) hWle hdim
+
+/-- Inclusive-window rank lower bound derived solely from the finite
+projected-minor subspace certificate. -/
+theorem tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_inc_from_finite_subspace_certificate
+    (F : Type*) [Field F] [Nontrivial F]
+    (n : ℕ) (hn1024 : n ≥ 2^10) (heven : 2 ∣ n) (ℓ : ℕ) :
+    Nat.choose (n / 30) (Nat.log 2 n) ≤
+      mlBlockedSpdpRankInc (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) ℓ (coupledVerifier F (tseitinAt n)) := by
+  obtain ⟨W, hWfinite, hWle, hdim⟩ :=
+    tseitinAt_projected_identity_minor_finite_subspace_certificate_inc F n hn1024 heven ℓ
+  haveI : Module.Finite F W := hWfinite
+  dsimp [mlBlockedSpdpRankInc]
+  exact rank_lower_of_finite_subspace_certificate
+    (mlBlockedSpdpSubspaceInc (IdentityMinor.tseitinPartition (tseitinAt n))
+      (Nat.log 2 n) ℓ (coupledVerifier F (tseitinAt n)))
+    W (Nat.choose (n / 30) (Nat.log 2 n)) hWle hdim
+
 /-- Concrete Tseitin-family version: the disjoint-packing construction gives at
 least `n/30` private clauses, hence the projected multilinear identity minor has
 rank at least `choose (n/30) (log₂ n)` for the coupled verifier. -/
@@ -1001,19 +1111,8 @@ theorem tseitinAt_coupledVerifier_projected_rank_lower_choose_div30
     Nat.choose (n / 30) (Nat.log 2 n) ≤
       mlBlockedSpdpRank (IdentityMinor.tseitinPartition (tseitinAt n))
         (Nat.log 2 n) (Nat.log 2 n) (coupledVerifier F (tseitinAt n)) := by
-  have hv := tseitinAt_vertices n (by omega) heven
-  have pack := Tseitin.disjoint_packing_exists (tseitinAt n) (by omega)
-  let κ := Nat.log 2 n
-  have hκ : κ ≤ pack.selected.length := by
-    have hps := pack.size_bound; rw [hv] at hps
-    exact (log2_le_div30 n (by linarith [show (2:ℕ)^10 = 1024 from by norm_num])).trans hps
-  have hrank : mlBlockedSpdpRank (IdentityMinor.tseitinPartition (tseitinAt n)) κ κ
-      (coupledVerifier F (tseitinAt n)) ≥ Nat.choose pack.selected.length κ := by
-    exact coupledVerifier_projected_identity_minor_rank_lower (F := F) (tseitinAt n) pack κ κ hκ
-  have hchoose : Nat.choose (n / 30) κ ≤ Nat.choose pack.selected.length κ := by
-    apply Nat.choose_le_choose
-    have hps := pack.size_bound; rw [hv] at hps; exact hps
-  exact le_trans hchoose hrank
+  exact tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_from_finite_subspace_certificate
+    F n hn1024 heven
 
 /-- Inclusive-window concrete Tseitin-family version, with arbitrary shift degree
 `ℓ`.  This is the direct paper-window form of the coupled-verifier NP-side
@@ -1024,19 +1123,8 @@ theorem tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_inc
     Nat.choose (n / 30) (Nat.log 2 n) ≤
       mlBlockedSpdpRankInc (IdentityMinor.tseitinPartition (tseitinAt n))
         (Nat.log 2 n) ℓ (coupledVerifier F (tseitinAt n)) := by
-  have hv := tseitinAt_vertices n (by omega) heven
-  have pack := Tseitin.disjoint_packing_exists (tseitinAt n) (by omega)
-  let κ := Nat.log 2 n
-  have hκ : κ ≤ pack.selected.length := by
-    have hps := pack.size_bound; rw [hv] at hps
-    exact (log2_le_div30 n (by linarith [show (2:ℕ)^10 = 1024 from by norm_num])).trans hps
-  have hrank : mlBlockedSpdpRankInc (IdentityMinor.tseitinPartition (tseitinAt n)) κ ℓ
-      (coupledVerifier F (tseitinAt n)) ≥ Nat.choose pack.selected.length κ := by
-    exact coupledVerifier_projected_identity_minor_rank_lower_inc (F := F) (tseitinAt n) pack κ ℓ hκ
-  have hchoose : Nat.choose (n / 30) κ ≤ Nat.choose pack.selected.length κ := by
-    apply Nat.choose_le_choose
-    have hps := pack.size_bound; rw [hv] at hps; exact hps
-  exact le_trans hchoose hrank
+  exact tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_inc_from_finite_subspace_certificate
+    F n hn1024 heven ℓ
 
 /-- Super-polynomial NP-side lower bound for the projected multilinear coupled
 Tseitin verifier.  This composes the paper-faithful projected identity-minor
@@ -3002,6 +3090,11 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms tseitinAt_projected_identity_minor_subspace_certificate_inc
 #print axioms tseitinAt_projected_identity_minor_subspace_superpoly_certificate
 #print axioms tseitinAt_projected_identity_minor_subspace_superpoly_certificate_inc
+#print axioms rank_lower_of_finite_subspace_certificate
+#print axioms tseitinAt_projected_identity_minor_finite_subspace_certificate
+#print axioms tseitinAt_projected_identity_minor_finite_subspace_certificate_inc
+#print axioms tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_from_finite_subspace_certificate
+#print axioms tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_inc_from_finite_subspace_certificate
 #print axioms IdentityMinorPaperFaithful.tagMono_finsupp_isMultilinear
 #print axioms IdentityMinorPaperFaithful.monomial_tagMono_isMultilinear
 #print axioms IdentityMinorPaperFaithful.identity_minor_components_columns_multilinear
