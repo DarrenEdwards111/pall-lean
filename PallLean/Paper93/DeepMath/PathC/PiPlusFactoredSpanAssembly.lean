@@ -39,6 +39,10 @@ structure CookLevinSpanConstraintListAtomicRowInputs
     CookLevinBooleanityFactorProjectedSpanPayload M n hn2 htb hns D
   booleanity_residue_rank :
     CookLevinBooleanityResidueRankPayload M n hn2 htb hns D
+  booleanity_oneHit_derivatives :
+    CookLevinBooleanityFactorOneHitDerivativeResiduePayload M n hn2 htb hns D
+  booleanity_mixed_derivatives :
+    CookLevinBooleanityFactorMixedDerivativeResiduePayload M n hn2 htb hns D
   rest_signed : CookLevinRestConstraintSignedCrossRows M n hn2 htb hns D
 
 /-- Once the span-level Booleanity payload is supplied, the full span-level
@@ -53,6 +57,12 @@ theorem spanConstraintListAtomicRowInputs_of_booleanitySpan
   booleanity_span := hbool
   booleanity_residue_rank :=
     cookLevinBooleanityResidueRankPayload_unconditional M n hn2 htb hns D
+  booleanity_oneHit_derivatives :=
+    cookLevinBooleanityFactorOneHitDerivativeResiduePayload_unconditional
+      M n hn2 htb hns D
+  booleanity_mixed_derivatives :=
+    cookLevinBooleanityFactorMixedDerivativeResiduePayload_unconditional
+      M n hn2 htb hns D
   rest_signed := cookLevinRestConstraintSignedCrossRows_unconditional
     M n hn2 htb hns D
 
@@ -132,6 +142,8 @@ theorem spanAssemblyReduction_rankOnly_derivativeErasure_obstruction :
 /-! ## Axiom audit anchors -/
 
 #print axioms CookLevinSpanConstraintListAtomicRowInputs.booleanity_residue_rank
+#print axioms CookLevinSpanConstraintListAtomicRowInputs.booleanity_oneHit_derivatives
+#print axioms CookLevinSpanConstraintListAtomicRowInputs.booleanity_mixed_derivatives
 #print axioms spanConstraintListAtomicRowInputs_of_booleanitySpan
 #print axioms paperScale_spanConstraintListAtomicRowInputs_of_booleanitySpan
 #print axioms spanConstraintListAtomicRowInputs_unconditional
