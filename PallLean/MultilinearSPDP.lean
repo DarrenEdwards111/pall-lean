@@ -1317,6 +1317,72 @@ theorem identity_minor_projected_rows_span_le_mlSubspaceInc {F : Type*} [Field F
     (identity_minor_projected_rows_span_le_mlSubspace (F := F) Φ B pack κ ℓ hB)
     (mlBlockedSpdpSubspace_le_inc B κ ℓ (coupledVerifier F Φ))
 
+/-- Quotient-map proof that the strict multilinear SPDP row subspace has
+finrank at least the projected identity-minor dimension.  This avoids using the
+projected basis cardinality directly: the ambient tag map sends this row
+subspace onto the full private-tag coordinate space. -/
+theorem nat_choose_le_finrank_mlBlockedSpdpSubspace_from_tag_quotient
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    [Module.Finite F (mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ))]
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    Nat.choose pack.selected.length κ ≤
+      Module.finrank F (mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ)) := by
+  exact nat_choose_le_finrank_of_projectedIdentityMinorSpan_le
+    (F := F) Φ pack κ (mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ))
+    (identity_minor_projected_rows_span_le_mlSubspace (F := F) Φ B pack κ ℓ hB)
+
+/-- Quotient-map proof for the inclusive derivative window. -/
+theorem nat_choose_le_finrank_mlBlockedSpdpSubspaceInc_from_tag_quotient
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    [Module.Finite F (mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ))]
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    Nat.choose pack.selected.length κ ≤
+      Module.finrank F (mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ)) := by
+  exact nat_choose_le_finrank_of_projectedIdentityMinorSpan_le
+    (F := F) Φ pack κ (mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ))
+    (identity_minor_projected_rows_span_le_mlSubspaceInc (F := F) Φ B pack κ ℓ hB)
+
+/-- Rank lower bound for the strict SPDP rank, proved through the ambient
+private-tag quotient map. -/
+theorem identity_minor_projected_rank_lower_from_tag_quotient
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    [Module.Finite F (mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ))]
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    mlBlockedSpdpRank B κ ℓ (coupledVerifier F Φ) ≥
+      Nat.choose pack.selected.length κ := by
+  dsimp [mlBlockedSpdpRank]
+  exact nat_choose_le_finrank_mlBlockedSpdpSubspace_from_tag_quotient
+    (F := F) Φ B pack κ ℓ hB
+
+/-- Rank lower bound for the inclusive SPDP rank, proved through the ambient
+private-tag quotient map. -/
+theorem identity_minor_projected_rank_lower_inc_from_tag_quotient
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    [Module.Finite F (mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ))]
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    mlBlockedSpdpRankInc B κ ℓ (coupledVerifier F Φ) ≥
+      Nat.choose pack.selected.length κ := by
+  dsimp [mlBlockedSpdpRankInc]
+  exact nat_choose_le_finrank_mlBlockedSpdpSubspaceInc_from_tag_quotient
+    (F := F) Φ B pack κ ℓ hB
+
+
 /-- Span-containment proof of the projected identity-minor lower bound: the
 projected identity-minor span has exact binomial dimension and is contained in
 the SPDP row space, so the SPDP rank is at least that binomial dimension. -/
@@ -3832,6 +3898,10 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms projectedIdentityMinor_forall_tag_coeff_zero_iff
 #print axioms identity_minor_projected_rows_span_le_mlSubspace
 #print axioms identity_minor_projected_rows_span_le_mlSubspaceInc
+#print axioms nat_choose_le_finrank_mlBlockedSpdpSubspace_from_tag_quotient
+#print axioms nat_choose_le_finrank_mlBlockedSpdpSubspaceInc_from_tag_quotient
+#print axioms identity_minor_projected_rank_lower_from_tag_quotient
+#print axioms identity_minor_projected_rank_lower_inc_from_tag_quotient
 #print axioms identity_minor_projected_rank_lower_from_span
 #print axioms identity_minor_projected_rank_lower_inc_from_span
 #print axioms coupledVerifier_projected_identity_minor_span_le_mlSubspace
