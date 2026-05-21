@@ -16,6 +16,55 @@ open PaperFaithfulCompilation
 
 namespace ProjectedIdentityMinorConcrete
 
+/-- The concrete Kronecker system obtained by applying
+`IdentityMinorReal.buildKroneckerSystem` to the actual Tseitin disjoint-packing
+clause system.  This names the item-(1) object explicitly: its rows are the
+identity-minor gadget products, and the right-inverse route below places those
+same private-tag coordinates inside the concrete `coupledVerifier` SPDP row
+space. -/
+noncomputable def concreteTseitinKroneckerSystem
+    (Φ : Tseitin.TseitinFormula) (pack : Tseitin.DisjointPacking Φ) (κ : ℕ) :
+    IdentityMinorReal.KroneckerDeltaSystem ℚ (Tseitin.tseitinNumVars Φ)
+      (Nat.choose pack.selected.length κ) :=
+  IdentityMinorReal.buildKroneckerSystem
+    (IdentityMinorReal.tseitinClauseSystem ℚ Φ pack) κ
+
+/-- The `buildKroneckerSystem` rows for the concrete Tseitin clause system are
+linearly independent.  This is the literal `IdentityMinorReal` Kronecker-delta
+minor specialized to the packed clauses of `Φ`. -/
+theorem concreteTseitinKroneckerSystem_rows_linearIndependent
+    (Φ : Tseitin.TseitinFormula) (pack : Tseitin.DisjointPacking Φ) (κ : ℕ) :
+    LinearIndependent ℚ
+      (fun i : Fin (Nat.choose pack.selected.length κ) =>
+        (concreteTseitinKroneckerSystem Φ pack κ).rows i) := by
+  exact IdentityMinorReal.linearIndependent_of_kronecker
+    (concreteTseitinKroneckerSystem Φ pack κ)
+
+/-- Item-(1) bridge, concrete Tseitin form: the explicit
+`IdentityMinorReal.buildKroneckerSystem` attached to a disjoint packing of `Φ`
+is the source identity-minor certificate consumed by the projected/private-tag
+right-inverse machinery, giving the SPDP rank lower bound for the actual
+`coupledVerifier ℚ Φ` at the canonical Tseitin partition. -/
+theorem concreteTseitinKroneckerSystem_feeds_coupledVerifier_rank
+    (Φ : Tseitin.TseitinFormula) (pack : Tseitin.DisjointPacking Φ) (κ ℓ : ℕ) :
+    mlBlockedSpdpRank (IdentityMinor.tseitinPartition Φ) κ ℓ
+      (Tseitin.coupledVerifier ℚ Φ) ≥ Nat.choose pack.selected.length κ := by
+  exact coupledVerifier_projected_identity_minor_rank_lower_from_rightInverse
+    (F := ℚ) Φ pack κ ℓ
+
+/-- Paper-scale Tseitin specialization of the bridge: at `Φ = tseitinAt n` and
+`κ = ℓ = log₂ n`, the concrete coupled verifier carries a minor of size at
+least `choose (n/30) (log₂ n)`.  This is the paper-scale instance to plug into
+Route B before the remaining Property-2 Booleanity/product obligations. -/
+theorem paperScale_tseitinAt_coupledVerifier_identityMinor_bridge
+    (n : ℕ) (hn1024 : n ≥ 2 ^ 10) (heven : 2 ∣ n) :
+    Nat.choose (n / 30) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank (IdentityMinor.tseitinPartition (NPWitness.tseitinAt n))
+        (Nat.log 2 n) (Nat.log 2 n)
+        (Tseitin.coupledVerifier ℚ (NPWitness.tseitinAt n)) := by
+  exact tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_from_rightInverse
+    ℚ n hn1024 heven
+
 /-- Source-side identity-minor lower bound for the concrete Step247
 Cook-Levin partitioned output. -/
 theorem sourceIdentityMinorLowerBound_cookLevin_partitionedOutput
@@ -254,6 +303,9 @@ theorem false_of_cookLevin_concreteW_closureFrontier_projected
 
 /-! ## Axiom audit anchors -/
 
+#print axioms concreteTseitinKroneckerSystem_rows_linearIndependent
+#print axioms concreteTseitinKroneckerSystem_feeds_coupledVerifier_rank
+#print axioms paperScale_tseitinAt_coupledVerifier_identityMinor_bridge
 #print axioms sourceIdentityMinorLowerBound_cookLevin_partitionedOutput
 #print axioms partitionedOutput_cookLevin_projectedIdentityMinorLowerBound
 #print axioms partitionedOutput_cookLevin_projectedCompilerIdentityMinorLowerBound
