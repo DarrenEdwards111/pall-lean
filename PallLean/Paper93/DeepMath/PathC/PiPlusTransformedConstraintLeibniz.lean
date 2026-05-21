@@ -188,6 +188,62 @@ theorem liftToBool_mul_iterDerivList_piPlusBooleanProjectedTransformedConstraint
   exact liftToBool_mul_iterDerivList_finset_prod_mem_span_image Finset.univ
     (fun i : Fin L.length => L[i.val]) S m
 
+/-- Boolean-ambient absorption form of the transformed constraint-product
+Leibniz rule.  If every distributed derivative factor has Boolean lift in a
+Boolean-ambient target space `W`, then the Boolean lift of the whole derivative
+product lies in `W`. -/
+theorem liftToBool_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_of_distribRows
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (S : List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+    (W : Submodule ℚ (BoolPoly n))
+    (hgen : ∀ q ∈ distribDerivProds Finset.univ
+          (fun i : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+              M n hn2 htb hns D).length =>
+            (piPlusBooleanProjectedTransformedConstraintFactors
+              M n hn2 htb hns D)[i.val]) S,
+        BoolPoly.liftToBool q ∈ W) :
+    BoolPoly.liftToBool (iterDerivList S
+        (piPlusBooleanProjectedTransformedConstraintFactors
+          M n hn2 htb hns D).prod) ∈ W := by
+  classical
+  have hrow :=
+    liftToBool_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_distribSpan_image
+      M n hn2 htb hns D S
+  exact (Submodule.span_le.mpr (by
+    intro x hx
+    rcases hx with ⟨q, hq, rfl⟩
+    exact hgen q hq)) hrow
+
+/-- Boolean-ambient row absorption form, with a fixed left multiplier.  This is
+parallel to the `mlProj` absorption theorem but targets the Boolean quotient
+ambient. -/
+theorem liftToBool_mul_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_of_distribRows
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (S : List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+    (m : SATDeciderGaugeSpace M n hn2 htb hns)
+    (W : Submodule ℚ (BoolPoly n))
+    (hgen : ∀ q ∈ distribDerivProds Finset.univ
+          (fun i : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+              M n hn2 htb hns D).length =>
+            (piPlusBooleanProjectedTransformedConstraintFactors
+              M n hn2 htb hns D)[i.val]) S,
+        BoolPoly.liftToBool (m * q) ∈ W) :
+    BoolPoly.liftToBool (m * iterDerivList S
+        (piPlusBooleanProjectedTransformedConstraintFactors
+          M n hn2 htb hns D).prod) ∈ W := by
+  classical
+  have hrow :=
+    liftToBool_mul_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_distribSpan_image
+      M n hn2 htb hns D S m
+  exact (Submodule.span_le.mpr (by
+    intro x hx
+    rcases hx with ⟨q, hq, rfl⟩
+    exact hgen q hq)) hrow
+
 /-- Paper-scale Boolean-ambient Leibniz decomposition for the transformed
 Cook--Levin local-factor product. -/
 theorem paperScale_liftToBool_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_distribSpan_image
@@ -227,6 +283,45 @@ theorem paperScale_liftToBool_mul_iterDerivList_piPlusBooleanProjectedTransforme
   exact liftToBool_mul_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_distribSpan_image
     M (2 ^ 804) paperScale_ge_two htb hns
     (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) S m
+
+/-- Paper-scale Boolean-ambient absorption form of the transformed
+constraint-product Leibniz rule. -/
+theorem paperScale_liftToBool_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_of_distribRows
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (S : List (Fin (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars))
+    (W : Submodule ℚ (BoolPoly (2 ^ 804)))
+    (hgen : ∀ q ∈ distribDerivProds Finset.univ
+          (fun i : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+              M htb hns).length =>
+            (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+              M htb hns)[i.val]) S,
+        BoolPoly.liftToBool q ∈ W) :
+    BoolPoly.liftToBool (iterDerivList S
+        (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+          M htb hns).prod) ∈ W := by
+  exact liftToBool_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_of_distribRows
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) S W hgen
+
+/-- Paper-scale Boolean-ambient row absorption form, with a fixed left
+multiplier. -/
+theorem paperScale_liftToBool_mul_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_of_distribRows
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (S : List (Fin (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars))
+    (m : SATDeciderGaugeSpace M (2 ^ 804) paperScale_ge_two htb hns)
+    (W : Submodule ℚ (BoolPoly (2 ^ 804)))
+    (hgen : ∀ q ∈ distribDerivProds Finset.univ
+          (fun i : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+              M htb hns).length =>
+            (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+              M htb hns)[i.val]) S,
+        BoolPoly.liftToBool (m * q) ∈ W) :
+    BoolPoly.liftToBool (m * iterDerivList S
+        (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+          M htb hns).prod) ∈ W := by
+  exact liftToBool_mul_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_of_distribRows
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) S m W hgen
 
 /-- SPDP-row image form of the transformed constraint-product Leibniz expansion.
 After multiplying by a fixed row multiplier and applying `mlProj`, the row lies
@@ -348,6 +443,10 @@ theorem paperScale_mlProj_mul_iterDerivList_piPlusBooleanProjectedTransformedCon
 #print axioms liftToBool_mul_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_distribSpan_image
 #print axioms paperScale_liftToBool_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_distribSpan_image
 #print axioms paperScale_liftToBool_mul_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_distribSpan_image
+#print axioms liftToBool_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_of_distribRows
+#print axioms liftToBool_mul_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_of_distribRows
+#print axioms paperScale_liftToBool_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_of_distribRows
+#print axioms paperScale_liftToBool_mul_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_of_distribRows
 #print axioms iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_distribSpan
 #print axioms mlProj_mul_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_distribSpan_image
 #print axioms mlProj_mul_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_of_distribRows
