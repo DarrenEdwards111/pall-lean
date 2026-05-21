@@ -2159,6 +2159,133 @@ theorem projectedIdentityMinorRowTagCoeffInc_range_isCompl_ker
       (F := F) Φ B pack κ ℓ hB
 
 
+
+/-- The restricted strict row-space tag-coordinate map is surjective. -/
+theorem projectedIdentityMinorRowTagCoeff_surjective
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    Function.Surjective (projectedIdentityMinorRowTagCoeff (F := F) Φ B pack κ ℓ) := by
+  intro a
+  exact ⟨(projectedIdentityMinorTagCoeffRightInverseToMlSubspace
+      (F := F) Φ B pack κ ℓ hB) a,
+    projectedIdentityMinorTagCoeffRightInverseToMlSubspace_apply_tagCoeff
+      (F := F) Φ B pack κ ℓ hB a⟩
+
+/-- First-isomorphism theorem for strict SPDP rows: quotient by tag-zero rows is
+exactly the private-tag coordinate space. -/
+noncomputable def projectedIdentityMinorRowTagCoeffQuotKerEquiv
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    (mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ) ⧸
+      LinearMap.ker (projectedIdentityMinorRowTagCoeff (F := F) Φ B pack κ ℓ)) ≃ₗ[F]
+      (Fin (Nat.choose pack.selected.length κ) → F) :=
+  (projectedIdentityMinorRowTagCoeff (F := F) Φ B pack κ ℓ).quotKerEquivOfSurjective
+    (projectedIdentityMinorRowTagCoeff_surjective (F := F) Φ B pack κ ℓ hB)
+
+/-- The strict quotient equivalence sends a row class to its private-tag
+coordinates. -/
+theorem projectedIdentityMinorRowTagCoeffQuotKerEquiv_apply_mk
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ)))
+    (q : mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ)) :
+    projectedIdentityMinorRowTagCoeffQuotKerEquiv (F := F) Φ B pack κ ℓ hB
+      (Submodule.Quotient.mk q) =
+      projectedIdentityMinorRowTagCoeff (F := F) Φ B pack κ ℓ q := by
+  exact LinearMap.quotKerEquivOfSurjective_apply_mk
+    (projectedIdentityMinorRowTagCoeff (F := F) Φ B pack κ ℓ)
+    (projectedIdentityMinorRowTagCoeff_surjective (F := F) Φ B pack κ ℓ hB) q
+
+/-- The strict quotient by tag-zero rows has exactly the private-tag dimension. -/
+theorem projectedIdentityMinorRowTagCoeff_quotKer_finrank
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    Module.finrank F
+      (mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ) ⧸
+        LinearMap.ker (projectedIdentityMinorRowTagCoeff (F := F) Φ B pack κ ℓ)) =
+      Nat.choose pack.selected.length κ := by
+  rw [LinearEquiv.finrank_eq
+    (projectedIdentityMinorRowTagCoeffQuotKerEquiv (F := F) Φ B pack κ ℓ hB)]
+  exact projectedIdentityMinor_tagCoeffSpace_finrank (F := F) Φ pack κ
+
+/-- The restricted inclusive row-space tag-coordinate map is surjective. -/
+theorem projectedIdentityMinorRowTagCoeffInc_surjective
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    Function.Surjective (projectedIdentityMinorRowTagCoeffInc (F := F) Φ B pack κ ℓ) := by
+  intro a
+  exact ⟨(projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc
+      (F := F) Φ B pack κ ℓ hB) a,
+    projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_apply_tagCoeff
+      (F := F) Φ B pack κ ℓ hB a⟩
+
+/-- First-isomorphism theorem for inclusive SPDP rows: quotient by tag-zero rows
+is exactly the private-tag coordinate space. -/
+noncomputable def projectedIdentityMinorRowTagCoeffIncQuotKerEquiv
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    (mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ) ⧸
+      LinearMap.ker (projectedIdentityMinorRowTagCoeffInc (F := F) Φ B pack κ ℓ)) ≃ₗ[F]
+      (Fin (Nat.choose pack.selected.length κ) → F) :=
+  (projectedIdentityMinorRowTagCoeffInc (F := F) Φ B pack κ ℓ).quotKerEquivOfSurjective
+    (projectedIdentityMinorRowTagCoeffInc_surjective (F := F) Φ B pack κ ℓ hB)
+
+/-- The inclusive quotient equivalence sends a row class to its private-tag
+coordinates. -/
+theorem projectedIdentityMinorRowTagCoeffIncQuotKerEquiv_apply_mk
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ)))
+    (q : mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ)) :
+    projectedIdentityMinorRowTagCoeffIncQuotKerEquiv (F := F) Φ B pack κ ℓ hB
+      (Submodule.Quotient.mk q) =
+      projectedIdentityMinorRowTagCoeffInc (F := F) Φ B pack κ ℓ q := by
+  exact LinearMap.quotKerEquivOfSurjective_apply_mk
+    (projectedIdentityMinorRowTagCoeffInc (F := F) Φ B pack κ ℓ)
+    (projectedIdentityMinorRowTagCoeffInc_surjective (F := F) Φ B pack κ ℓ hB) q
+
+/-- The inclusive quotient by tag-zero rows has exactly the private-tag dimension. -/
+theorem projectedIdentityMinorRowTagCoeffInc_quotKer_finrank
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    Module.finrank F
+      (mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ) ⧸
+        LinearMap.ker (projectedIdentityMinorRowTagCoeffInc (F := F) Φ B pack κ ℓ)) =
+      Nat.choose pack.selected.length κ := by
+  rw [LinearEquiv.finrank_eq
+    (projectedIdentityMinorRowTagCoeffIncQuotKerEquiv (F := F) Φ B pack κ ℓ hB)]
+  exact projectedIdentityMinor_tagCoeffSpace_finrank (F := F) Φ pack κ
+
 /-- Exact strict row-space dimension split: private-tag dimension plus the
 tag-zero kernel dimension equals the full SPDP row-space dimension. -/
 theorem projectedIdentityMinorRowTagCoeff_finrank_add_ker
@@ -3049,6 +3176,83 @@ theorem coupledVerifierProjectedTagCoeffInc_range_isCompl_ker
     (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
     (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
 
+
+
+/-- Canonical strict row-space tag-coordinate map is surjective. -/
+theorem coupledVerifierProjectedTagCoeff_surjective
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    Function.Surjective
+      (projectedIdentityMinorRowTagCoeff
+        (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ) := by
+  exact projectedIdentityMinorRowTagCoeff_surjective
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+/-- Canonical first-isomorphism theorem for strict coupled-verifier rows. -/
+noncomputable def coupledVerifierProjectedTagCoeffQuotKerEquiv
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    (mlBlockedSpdpSubspace (IdentityMinor.tseitinPartition Φ) κ ℓ
+      (coupledVerifier F Φ) ⧸
+      LinearMap.ker (projectedIdentityMinorRowTagCoeff
+        (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ)) ≃ₗ[F]
+      (Fin (Nat.choose pack.selected.length κ) → F) :=
+  projectedIdentityMinorRowTagCoeffQuotKerEquiv
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+/-- Canonical strict quotient by tag-zero rows has private-tag dimension. -/
+theorem coupledVerifierProjectedTagCoeff_quotKer_finrank
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    Module.finrank F
+      (mlBlockedSpdpSubspace (IdentityMinor.tseitinPartition Φ) κ ℓ
+        (coupledVerifier F Φ) ⧸
+        LinearMap.ker (projectedIdentityMinorRowTagCoeff
+          (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ)) =
+      Nat.choose pack.selected.length κ := by
+  exact projectedIdentityMinorRowTagCoeff_quotKer_finrank
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+/-- Canonical inclusive row-space tag-coordinate map is surjective. -/
+theorem coupledVerifierProjectedTagCoeffInc_surjective
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    Function.Surjective
+      (projectedIdentityMinorRowTagCoeffInc
+        (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ) := by
+  exact projectedIdentityMinorRowTagCoeffInc_surjective
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+/-- Canonical first-isomorphism theorem for inclusive coupled-verifier rows. -/
+noncomputable def coupledVerifierProjectedTagCoeffIncQuotKerEquiv
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    (mlBlockedSpdpSubspaceInc (IdentityMinor.tseitinPartition Φ) κ ℓ
+      (coupledVerifier F Φ) ⧸
+      LinearMap.ker (projectedIdentityMinorRowTagCoeffInc
+        (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ)) ≃ₗ[F]
+      (Fin (Nat.choose pack.selected.length κ) → F) :=
+  projectedIdentityMinorRowTagCoeffIncQuotKerEquiv
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+/-- Canonical inclusive quotient by tag-zero rows has private-tag dimension. -/
+theorem coupledVerifierProjectedTagCoeffInc_quotKer_finrank
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    Module.finrank F
+      (mlBlockedSpdpSubspaceInc (IdentityMinor.tseitinPartition Φ) κ ℓ
+        (coupledVerifier F Φ) ⧸
+        LinearMap.ker (projectedIdentityMinorRowTagCoeffInc
+          (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ)) =
+      Nat.choose pack.selected.length κ := by
+  exact projectedIdentityMinorRowTagCoeffInc_quotKer_finrank
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
 
 /-- Canonical exact strict row-space dimension split for the coupled verifier. -/
 theorem coupledVerifierProjectedTagCoeff_finrank_add_ker
@@ -5745,6 +5949,12 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms projectedIdentityMinorRowTagCoeffInc_range_isCompl_ker
 #print axioms projectedIdentityMinorRowTagCoeff_finrank_add_ker
 #print axioms projectedIdentityMinorRowTagCoeffInc_finrank_add_ker
+#print axioms projectedIdentityMinorRowTagCoeff_surjective
+#print axioms projectedIdentityMinorRowTagCoeffQuotKerEquiv_apply_mk
+#print axioms projectedIdentityMinorRowTagCoeff_quotKer_finrank
+#print axioms projectedIdentityMinorRowTagCoeffInc_surjective
+#print axioms projectedIdentityMinorRowTagCoeffIncQuotKerEquiv_apply_mk
+#print axioms projectedIdentityMinorRowTagCoeffInc_quotKer_finrank
 #print axioms nat_choose_le_finrank_mlBlockedSpdpSubspace_from_rightInverse
 #print axioms nat_choose_le_finrank_mlBlockedSpdpSubspaceInc_from_rightInverse
 #print axioms identity_minor_projected_rank_lower_from_rightInverse
@@ -5793,6 +6003,10 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms coupledVerifierProjectedTagCoeffInc_range_isCompl_ker
 #print axioms coupledVerifierProjectedTagCoeff_finrank_add_ker
 #print axioms coupledVerifierProjectedTagCoeffInc_finrank_add_ker
+#print axioms coupledVerifierProjectedTagCoeff_surjective
+#print axioms coupledVerifierProjectedTagCoeff_quotKer_finrank
+#print axioms coupledVerifierProjectedTagCoeffInc_surjective
+#print axioms coupledVerifierProjectedTagCoeffInc_quotKer_finrank
 #print axioms coupledVerifier_projected_identity_minor_rank_lower_from_rightInverse
 #print axioms coupledVerifier_projected_identity_minor_rank_lower_inc_from_rightInverse
 #print axioms tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_from_rightInverse
