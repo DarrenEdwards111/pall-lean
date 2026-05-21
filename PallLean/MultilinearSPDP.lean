@@ -722,6 +722,80 @@ theorem tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_inc
     have hps := pack.size_bound; rw [hv] at hps; exact hps
   exact le_trans hchoose hrank
 
+/-- Super-polynomial NP-side lower bound for the projected multilinear coupled
+Tseitin verifier.  This composes the paper-faithful projected identity-minor
+rank theorem with the standard binomial estimate, without touching the compiled
+polynomial or any quotient-kernel argument. -/
+theorem coupledVerifier_projected_rank_lower_superpoly
+    (F : Type*) [Field F] [Nontrivial F] :
+    ∃ n₀, ∀ n, n ≥ n₀ → 2 ∣ n →
+      mlBlockedSpdpRank (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) (Nat.log 2 n) (coupledVerifier F (tseitinAt n)) ≥
+          n ^ (Nat.log 2 n / 4) := by
+  obtain ⟨n₀, hn₀⟩ := NPWitness.binomial_lower_bound
+  use max n₀ (2^10)
+  intro n hn heven
+  have hn₀' : n ≥ n₀ := le_trans (le_max_left _ _) hn
+  have hn1024 : n ≥ 2^10 := le_trans (le_max_right _ _) hn
+  exact le_trans
+    (hn₀ n hn₀')
+    (tseitinAt_coupledVerifier_projected_rank_lower_choose_div30
+      F n hn1024 heven)
+
+/-- Inclusive-window super-polynomial NP-side lower bound for the projected
+multilinear coupled Tseitin verifier.  The shift degree is arbitrary because
+the identity-minor rows use the unit shift. -/
+theorem coupledVerifier_projected_rank_lower_superpoly_inc
+    (F : Type*) [Field F] [Nontrivial F] (ℓ : ℕ) :
+    ∃ n₀, ∀ n, n ≥ n₀ → 2 ∣ n →
+      mlBlockedSpdpRankInc (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) ℓ (coupledVerifier F (tseitinAt n)) ≥
+          n ^ (Nat.log 2 n / 4) := by
+  obtain ⟨n₀, hn₀⟩ := NPWitness.binomial_lower_bound
+  use max n₀ (2^10)
+  intro n hn heven
+  have hn₀' : n ≥ n₀ := le_trans (le_max_left _ _) hn
+  have hn1024 : n ≥ 2^10 := le_trans (le_max_right _ _) hn
+  exact le_trans
+    (hn₀ n hn₀')
+    (tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_inc
+      F n hn1024 heven ℓ)
+
+/-- Concrete-threshold version of the coupled-verifier projected NP lower bound. -/
+theorem coupledVerifier_projected_rank_lower_superpoly_concrete
+    (F : Type*) [Field F] [Nontrivial F]
+    (n : ℕ) (hn : n ≥ 2 ^ 804) (heven : 2 ∣ n) :
+      mlBlockedSpdpRank (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) (Nat.log 2 n) (coupledVerifier F (tseitinAt n)) ≥
+          n ^ (Nat.log 2 n / 4) := by
+  have hn1024 : n ≥ 2^10 := by
+    have : (2 : ℕ) ^ 10 ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+    exact le_trans this hn
+  have hn20 : n ≥ 2 ^ 20 := le_trans (by
+    exact Nat.pow_le_pow_right (by omega : 1 ≤ (2 : ℕ)) (by omega : 20 ≤ 804)) hn
+  exact le_trans
+    (BinomialBound.binomial_lower_bound_concrete n hn20)
+    (tseitinAt_coupledVerifier_projected_rank_lower_choose_div30
+      F n hn1024 heven)
+
+/-- Concrete-threshold inclusive-window version of the coupled-verifier projected
+NP lower bound. -/
+theorem coupledVerifier_projected_rank_lower_superpoly_concrete_inc
+    (F : Type*) [Field F] [Nontrivial F] (ℓ : ℕ)
+    (n : ℕ) (hn : n ≥ 2 ^ 804) (heven : 2 ∣ n) :
+      mlBlockedSpdpRankInc (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) ℓ (coupledVerifier F (tseitinAt n)) ≥
+          n ^ (Nat.log 2 n / 4) := by
+  have hn1024 : n ≥ 2^10 := by
+    have : (2 : ℕ) ^ 10 ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+    exact le_trans this hn
+  have hn20 : n ≥ 2 ^ 20 := le_trans (by
+    exact Nat.pow_le_pow_right (by omega : 1 ≤ (2 : ℕ)) (by omega : 20 ≤ 804)) hn
+  exact le_trans
+    (BinomialBound.binomial_lower_bound_concrete n hn20)
+    (tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_inc
+      F n hn1024 heven ℓ)
+
 theorem np_ml_lower_bound (F : Type*) [Field F] [Nontrivial F] :
     ∃ n₀, ∀ n, n ≥ n₀ → 2 ∣ n →
       mlBlockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
@@ -2602,6 +2676,10 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms coupledVerifier_projected_identity_minor_rank_lower_inc
 #print axioms tseitinAt_coupledVerifier_projected_rank_lower_choose_div30
 #print axioms tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_inc
+#print axioms coupledVerifier_projected_rank_lower_superpoly
+#print axioms coupledVerifier_projected_rank_lower_superpoly_inc
+#print axioms coupledVerifier_projected_rank_lower_superpoly_concrete
+#print axioms coupledVerifier_projected_rank_lower_superpoly_concrete_inc
 #print axioms mlBlockedSpdpSubspace_le_inc
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms mlBlockedSpdpSubspaceInc_eq_iSup
