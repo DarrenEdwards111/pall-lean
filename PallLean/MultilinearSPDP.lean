@@ -1441,6 +1441,153 @@ theorem exists_explicit_mlBlockedSpdpSubspaceInc_row_with_tagCoeff
   exact coeff_tagMono_projectedIdentityMinor_signed_basis_sum (F := F) Φ pack κ a i
 
 
+/-- Linear right-inverse from private-tag coordinate space into the strict SPDP
+row space.  It sends a coordinate vector to the corresponding signed projected
+identity-minor combination, viewed inside the row space. -/
+noncomputable def projectedIdentityMinorTagCoeffRightInverseToMlSubspace
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    (Fin (Nat.choose pack.selected.length κ) → F) →ₗ[F]
+      mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ) :=
+  (Submodule.inclusion
+    (identity_minor_projected_rows_span_le_mlSubspace (F := F) Φ B pack κ ℓ hB)).comp
+    ((projectedIdentityMinorTagCoeffEquiv (F := F) Φ pack κ).symm :
+      (Fin (Nat.choose pack.selected.length κ) → F) →ₗ[F]
+        projectedIdentityMinorSpan (F := F) Φ pack κ)
+
+/-- The strict row-space right-inverse really is a right-inverse for private-tag
+coefficient extraction. -/
+theorem projectedIdentityMinorTagCoeffRightInverseToMlSubspace_apply_tagCoeff
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ)))
+    (a : Fin (Nat.choose pack.selected.length κ) → F) :
+    projectedIdentityMinorTagCoeffLin (F := F) Φ pack κ
+      (((projectedIdentityMinorTagCoeffRightInverseToMlSubspace
+          (F := F) Φ B pack κ ℓ hB) a :
+        mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ)) :
+        MvPolynomial (Fin (tseitinNumVars Φ)) F) = a := by
+  ext i
+  exact projectedIdentityMinorTagCoeffEquiv_apply_symm (F := F) Φ pack κ a i
+
+/-- Coordinate form of the right-inverse identity for the strict row-space map. -/
+theorem projectedIdentityMinorTagCoeffRightInverseToMlSubspace_coeff
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ)))
+    (a : Fin (Nat.choose pack.selected.length κ) → F)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+      (((projectedIdentityMinorTagCoeffRightInverseToMlSubspace
+          (F := F) Φ B pack κ ℓ hB) a :
+        mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ)) :
+        MvPolynomial (Fin (tseitinNumVars Φ)) F) = a i := by
+  have h := projectedIdentityMinorTagCoeffRightInverseToMlSubspace_apply_tagCoeff
+    (F := F) Φ B pack κ ℓ hB a
+  exact congrFun h i
+
+/-- The strict row-space right-inverse is injective.  This packages the minor
+coordinates as an actual embedded coordinate space inside the SPDP row space. -/
+theorem projectedIdentityMinorTagCoeffRightInverseToMlSubspace_injective
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    Function.Injective
+      (projectedIdentityMinorTagCoeffRightInverseToMlSubspace
+        (F := F) Φ B pack κ ℓ hB) := by
+  intro a b hab
+  have ha := projectedIdentityMinorTagCoeffRightInverseToMlSubspace_apply_tagCoeff
+    (F := F) Φ B pack κ ℓ hB a
+  have hb := projectedIdentityMinorTagCoeffRightInverseToMlSubspace_apply_tagCoeff
+    (F := F) Φ B pack κ ℓ hB b
+  rw [← ha, ← hb, hab]
+
+/-- Inclusive-window linear right-inverse from private-tag coordinate space into
+the inclusive SPDP row space. -/
+noncomputable def projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    (Fin (Nat.choose pack.selected.length κ) → F) →ₗ[F]
+      mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ) :=
+  (Submodule.inclusion
+    (identity_minor_projected_rows_span_le_mlSubspaceInc (F := F) Φ B pack κ ℓ hB)).comp
+    ((projectedIdentityMinorTagCoeffEquiv (F := F) Φ pack κ).symm :
+      (Fin (Nat.choose pack.selected.length κ) → F) →ₗ[F]
+        projectedIdentityMinorSpan (F := F) Φ pack κ)
+
+/-- The inclusive row-space right-inverse really is a right-inverse for
+private-tag coefficient extraction. -/
+theorem projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_apply_tagCoeff
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ)))
+    (a : Fin (Nat.choose pack.selected.length κ) → F) :
+    projectedIdentityMinorTagCoeffLin (F := F) Φ pack κ
+      (((projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc
+          (F := F) Φ B pack κ ℓ hB) a :
+        mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ)) :
+        MvPolynomial (Fin (tseitinNumVars Φ)) F) = a := by
+  ext i
+  exact projectedIdentityMinorTagCoeffEquiv_apply_symm (F := F) Φ pack κ a i
+
+/-- Coordinate form of the inclusive right-inverse identity. -/
+theorem projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_coeff
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ)))
+    (a : Fin (Nat.choose pack.selected.length κ) → F)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+      (((projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc
+          (F := F) Φ B pack κ ℓ hB) a :
+        mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ)) :
+        MvPolynomial (Fin (tseitinNumVars Φ)) F) = a i := by
+  have h := projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_apply_tagCoeff
+    (F := F) Φ B pack κ ℓ hB a
+  exact congrFun h i
+
+/-- The inclusive row-space right-inverse is injective. -/
+theorem projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_injective
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    Function.Injective
+      (projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc
+        (F := F) Φ B pack κ ℓ hB) := by
+  intro a b hab
+  have ha := projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_apply_tagCoeff
+    (F := F) Φ B pack κ ℓ hB a
+  have hb := projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_apply_tagCoeff
+    (F := F) Φ B pack κ ℓ hB b
+  rw [← ha, ← hb, hab]
+
+
 /-- Quotient-map proof that the strict multilinear SPDP row subspace has
 finrank at least the projected identity-minor dimension.  This avoids using the
 projected basis cardinality directly: the ambient tag map sends this row
@@ -1835,6 +1982,105 @@ theorem exists_explicit_coupledVerifier_projected_row_inc_with_tagCoeff
   exact exists_explicit_mlBlockedSpdpSubspaceInc_row_with_tagCoeff
     (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
     (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd) a
+
+
+/-- Canonical Tseitin linear right-inverse from private-tag coordinates into
+the strict coupled-verifier SPDP row space. -/
+noncomputable def coupledVerifierProjectedTagCoeffRightInverse
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    (Fin (Nat.choose pack.selected.length κ) → F) →ₗ[F]
+      mlBlockedSpdpSubspace (IdentityMinor.tseitinPartition Φ) κ ℓ
+        (coupledVerifier F Φ) :=
+  projectedIdentityMinorTagCoeffRightInverseToMlSubspace
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+/-- Canonical Tseitin right-inverse identity for private-tag extraction. -/
+theorem coupledVerifierProjectedTagCoeffRightInverse_apply_tagCoeff
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (a : Fin (Nat.choose pack.selected.length κ) → F) :
+    projectedIdentityMinorTagCoeffLin (F := F) Φ pack κ
+      (((coupledVerifierProjectedTagCoeffRightInverse (F := F) Φ pack κ ℓ) a :
+        mlBlockedSpdpSubspace (IdentityMinor.tseitinPartition Φ) κ ℓ
+          (coupledVerifier F Φ)) : MvPolynomial (Fin (tseitinNumVars Φ)) F) = a := by
+  exact projectedIdentityMinorTagCoeffRightInverseToMlSubspace_apply_tagCoeff
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd) a
+
+/-- Coordinate form of the canonical strict right-inverse identity. -/
+theorem coupledVerifierProjectedTagCoeffRightInverse_coeff
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (a : Fin (Nat.choose pack.selected.length κ) → F)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+      (((coupledVerifierProjectedTagCoeffRightInverse (F := F) Φ pack κ ℓ) a :
+        mlBlockedSpdpSubspace (IdentityMinor.tseitinPartition Φ) κ ℓ
+          (coupledVerifier F Φ)) : MvPolynomial (Fin (tseitinNumVars Φ)) F) = a i := by
+  have h := coupledVerifierProjectedTagCoeffRightInverse_apply_tagCoeff
+    (F := F) Φ pack κ ℓ a
+  exact congrFun h i
+
+/-- Canonical strict right-inverse is injective. -/
+theorem coupledVerifierProjectedTagCoeffRightInverse_injective
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    Function.Injective (coupledVerifierProjectedTagCoeffRightInverse
+      (F := F) Φ pack κ ℓ) := by
+  exact projectedIdentityMinorTagCoeffRightInverseToMlSubspace_injective
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+/-- Canonical Tseitin linear right-inverse into the inclusive coupled-verifier
+SPDP row space. -/
+noncomputable def coupledVerifierProjectedTagCoeffRightInverseInc
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    (Fin (Nat.choose pack.selected.length κ) → F) →ₗ[F]
+      mlBlockedSpdpSubspaceInc (IdentityMinor.tseitinPartition Φ) κ ℓ
+        (coupledVerifier F Φ) :=
+  projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+/-- Canonical inclusive right-inverse identity for private-tag extraction. -/
+theorem coupledVerifierProjectedTagCoeffRightInverseInc_apply_tagCoeff
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (a : Fin (Nat.choose pack.selected.length κ) → F) :
+    projectedIdentityMinorTagCoeffLin (F := F) Φ pack κ
+      (((coupledVerifierProjectedTagCoeffRightInverseInc (F := F) Φ pack κ ℓ) a :
+        mlBlockedSpdpSubspaceInc (IdentityMinor.tseitinPartition Φ) κ ℓ
+          (coupledVerifier F Φ)) : MvPolynomial (Fin (tseitinNumVars Φ)) F) = a := by
+  exact projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_apply_tagCoeff
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd) a
+
+/-- Coordinate form of the canonical inclusive right-inverse identity. -/
+theorem coupledVerifierProjectedTagCoeffRightInverseInc_coeff
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (a : Fin (Nat.choose pack.selected.length κ) → F)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+      (((coupledVerifierProjectedTagCoeffRightInverseInc (F := F) Φ pack κ ℓ) a :
+        mlBlockedSpdpSubspaceInc (IdentityMinor.tseitinPartition Φ) κ ℓ
+          (coupledVerifier F Φ)) : MvPolynomial (Fin (tseitinNumVars Φ)) F) = a i := by
+  have h := coupledVerifierProjectedTagCoeffRightInverseInc_apply_tagCoeff
+    (F := F) Φ pack κ ℓ a
+  exact congrFun h i
+
+/-- Canonical inclusive right-inverse is injective. -/
+theorem coupledVerifierProjectedTagCoeffRightInverseInc_injective
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    Function.Injective (coupledVerifierProjectedTagCoeffRightInverseInc
+      (F := F) Φ pack κ ℓ) := by
+  exact projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_injective
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
 
 
 
@@ -4351,6 +4597,12 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms signed_projectedIdentityMinor_basis_sum_mem_mlBlockedSpdpSubspaceInc
 #print axioms exists_explicit_mlBlockedSpdpSubspace_row_with_tagCoeff
 #print axioms exists_explicit_mlBlockedSpdpSubspaceInc_row_with_tagCoeff
+#print axioms projectedIdentityMinorTagCoeffRightInverseToMlSubspace_apply_tagCoeff
+#print axioms projectedIdentityMinorTagCoeffRightInverseToMlSubspace_coeff
+#print axioms projectedIdentityMinorTagCoeffRightInverseToMlSubspace_injective
+#print axioms projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_apply_tagCoeff
+#print axioms projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_coeff
+#print axioms projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_injective
 #print axioms nat_choose_le_finrank_mlBlockedSpdpSubspace_from_tag_quotient
 #print axioms nat_choose_le_finrank_mlBlockedSpdpSubspaceInc_from_tag_quotient
 #print axioms identity_minor_projected_rank_lower_from_tag_quotient
@@ -4369,6 +4621,12 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms exists_coupledVerifier_projected_row_inc_with_tagCoeff
 #print axioms exists_explicit_coupledVerifier_projected_row_with_tagCoeff
 #print axioms exists_explicit_coupledVerifier_projected_row_inc_with_tagCoeff
+#print axioms coupledVerifierProjectedTagCoeffRightInverse_apply_tagCoeff
+#print axioms coupledVerifierProjectedTagCoeffRightInverse_coeff
+#print axioms coupledVerifierProjectedTagCoeffRightInverse_injective
+#print axioms coupledVerifierProjectedTagCoeffRightInverseInc_apply_tagCoeff
+#print axioms coupledVerifierProjectedTagCoeffRightInverseInc_coeff
+#print axioms coupledVerifierProjectedTagCoeffRightInverseInc_injective
 #print axioms coupledVerifier_projected_identity_minor_span_finrank
 #print axioms tseitinAt_projected_identity_minor_subspace_certificate
 #print axioms tseitinAt_projected_identity_minor_subspace_certificate_inc
