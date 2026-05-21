@@ -823,6 +823,47 @@ theorem identity_minor_projected_rank_lower_inc {F : Type*} [Field F] [Nontrivia
       Nat.choose pack.selected.length κ := by
   exact identity_minor_projected_rank_lower_inc_from_span (F := F) Φ B pack κ ℓ hB
 
+/-- Canonical-partition projected identity-minor span containment for the
+coupled Tseitin verifier.  This is the paper-faithful NP-window preservation
+statement at the level of subspaces: the full projected minor span embeds in
+the canonical Tseitin SPDP row space. -/
+theorem coupledVerifier_projected_identity_minor_span_le_mlSubspace
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    Submodule.span F (Set.range
+      (fun i : Fin (Nat.choose pack.selected.length κ) =>
+        mlProj (IdentityMinor.rowPoly F Φ pack κ i))) ≤
+      mlBlockedSpdpSubspace (IdentityMinor.tseitinPartition Φ) κ ℓ
+        (coupledVerifier F Φ) := by
+  exact identity_minor_projected_rows_span_le_mlSubspace
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+/-- Inclusive-window canonical span containment for the coupled Tseitin verifier. -/
+theorem coupledVerifier_projected_identity_minor_span_le_mlSubspaceInc
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    Submodule.span F (Set.range
+      (fun i : Fin (Nat.choose pack.selected.length κ) =>
+        mlProj (IdentityMinor.rowPoly F Φ pack κ i))) ≤
+      mlBlockedSpdpSubspaceInc (IdentityMinor.tseitinPartition Φ) κ ℓ
+        (coupledVerifier F Φ) := by
+  exact identity_minor_projected_rows_span_le_mlSubspaceInc
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+/-- Canonical coupled-verifier projected identity-minor span has exact binomial
+dimension.  Together with the two containment lemmas above, this isolates the
+NP-side rank lower bound as pure dimension monotonicity. -/
+theorem coupledVerifier_projected_identity_minor_span_finrank
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ) :
+    Module.finrank F (Submodule.span F (Set.range
+      (fun i : Fin (Nat.choose pack.selected.length κ) =>
+        mlProj (IdentityMinor.rowPoly F Φ pack κ i)))) =
+      Nat.choose pack.selected.length κ := by
+  exact identity_minor_projected_rows_span_finrank (F := F) Φ pack κ
+
 /-- Canonical-partition specialization of the projected identity-minor lower
 bound for the coupled Tseitin verifier.  Selector lists are admissible in
 `IdentityMinor.tseitinPartition`, so the generic projected rank theorem applies
@@ -832,8 +873,8 @@ theorem coupledVerifier_projected_identity_minor_rank_lower {F : Type*} [Field F
     (hκ : κ ≤ pack.selected.length) :
     mlBlockedSpdpRank (IdentityMinor.tseitinPartition Φ) κ ℓ (coupledVerifier F Φ) ≥
       Nat.choose pack.selected.length κ := by
-  exact identity_minor_projected_rank_lower (F := F) Φ (IdentityMinor.tseitinPartition Φ)
-    pack κ ℓ hκ
+  exact identity_minor_projected_rank_lower_from_span
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
     (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
 
 /-- Inclusive-window canonical-partition specialization of the same coupled
@@ -843,8 +884,8 @@ theorem coupledVerifier_projected_identity_minor_rank_lower_inc {F : Type*} [Fie
     (hκ : κ ≤ pack.selected.length) :
     mlBlockedSpdpRankInc (IdentityMinor.tseitinPartition Φ) κ ℓ (coupledVerifier F Φ) ≥
       Nat.choose pack.selected.length κ := by
-  exact identity_minor_projected_rank_lower_inc (F := F) Φ (IdentityMinor.tseitinPartition Φ)
-    pack κ ℓ hκ
+  exact identity_minor_projected_rank_lower_inc_from_span
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
     (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
 
 /-- Concrete Tseitin-family version: the disjoint-packing construction gives at
@@ -2850,6 +2891,9 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms identity_minor_projected_rows_span_le_mlSubspaceInc
 #print axioms identity_minor_projected_rank_lower_from_span
 #print axioms identity_minor_projected_rank_lower_inc_from_span
+#print axioms coupledVerifier_projected_identity_minor_span_le_mlSubspace
+#print axioms coupledVerifier_projected_identity_minor_span_le_mlSubspaceInc
+#print axioms coupledVerifier_projected_identity_minor_span_finrank
 #print axioms IdentityMinorPaperFaithful.tagMono_finsupp_isMultilinear
 #print axioms IdentityMinorPaperFaithful.monomial_tagMono_isMultilinear
 #print axioms IdentityMinorPaperFaithful.identity_minor_components_columns_multilinear
