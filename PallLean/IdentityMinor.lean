@@ -824,6 +824,27 @@ theorem coeff_body_prod_cvFactor [Nontrivial F]
     simp [this]
   · intro h; simp [Finset.mem_antidiagonal] at h
 
+/-- Body-supported coefficients of an identity-minor derivative row are exactly
+the corresponding coefficients of the selected pure gadget product, up to the
+Leibniz sign `(-1)^κ`.
+
+This is the coefficient-level form of the row-purification step: the complement
+verifier factors contain selectors, so they contribute only their constant term
+to body monomials. -/
+theorem coeff_body_rowPoly_eq_signed_gadgetProd [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ))
+    (m : (Fin (tseitinNumVars Φ)) →₀ ℕ)
+    (hbody : CoeffDisjoint.monomSupportedIn m
+      {v : Fin (tseitinNumVars Φ) | v.val < Φ.graph.numEdges + 3 * Φ.clauses.length}) :
+    MvPolynomial.coeff m (rowPoly F Φ pack κ i) =
+      ((-1 : F) ^ κ) *
+        MvPolynomial.coeff m ((getSubset pack κ i).map (clauseGadget F Φ)).prod := by
+  rw [rowPoly_eq_signed_gadgetProd_mul_remaining]
+  rw [mul_assoc, MvPolynomial.coeff_C_mul]
+  rw [coeff_body_prod_cvFactor Φ _ _ _ hbody]
+
+
 /-! ## Step 6d: Diagonal and off-diagonal coefficient computation
 
 For the diagonal case (i = j): coeff τ_i (∏_{C∈S_i} V_C) = ∏(coeff τ_C V_C)

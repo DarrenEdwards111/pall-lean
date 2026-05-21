@@ -736,6 +736,31 @@ theorem projectedIdentityMinorBasis_eq_mlProj_signed_gadgetProd_mul_remaining
   rw [projectedIdentityMinorBasis_apply]
   rw [IdentityMinor.rowPoly_eq_signed_gadgetProd_mul_remaining]
 
+/-- Body-supported multilinear coefficients of projected basis rows are pure
+gadget-product coefficients, up to the Leibniz sign.
+
+This is the projected coefficient-level row-purification statement: after
+`mlProj`, any multilinear body column still ignores the complement verifier
+factors and sees only the selected gadget product. -/
+theorem coeff_body_projectedIdentityMinorBasis_eq_signed_gadgetProd
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ))
+    (m : (Fin (tseitinNumVars Φ)) →₀ ℕ)
+    (hmulti : Finsupp.IsMultilinear m)
+    (hbody : CoeffDisjoint.monomSupportedIn m
+      {v : Fin (tseitinNumVars Φ) | v.val < Φ.graph.numEdges + 3 * Φ.clauses.length}) :
+    MvPolynomial.coeff m
+      (((projectedIdentityMinorBasis (F := F) Φ pack κ i :
+          projectedIdentityMinorSpan (F := F) Φ pack κ) :
+        MvPolynomial (Fin (tseitinNumVars Φ)) F)) =
+      ((-1 : F) ^ κ) *
+        MvPolynomial.coeff m ((IdentityMinor.getSubset pack κ i).map (clauseGadget F Φ)).prod := by
+  rw [projectedIdentityMinorBasis_apply]
+  rw [coeff_mlProj_of_isMultilinear_mono _ _ hmulti]
+  exact IdentityMinor.coeff_body_rowPoly_eq_signed_gadgetProd Φ pack κ i m hbody
+
+
 /-- Each named projected identity-minor basis vector is an actual SPDP row of
 `coupledVerifier`, provided the selected selector list is block-admissible.
 
@@ -3354,6 +3379,7 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms projectedIdentityMinorBasis
 #print axioms projectedIdentityMinorBasis_apply
 #print axioms projectedIdentityMinorBasis_eq_mlProj_signed_gadgetProd_mul_remaining
+#print axioms coeff_body_projectedIdentityMinorBasis_eq_signed_gadgetProd
 #print axioms projectedIdentityMinorBasis_mem_mlSubspace
 #print axioms projectedIdentityMinorBasis_mem_canonical_mlSubspace
 #print axioms subsetSign_mul_self
