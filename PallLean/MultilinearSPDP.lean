@@ -715,6 +715,43 @@ theorem projectedIdentityMinorBasis_apply
   exact Module.Basis.span_apply
     (identity_minor_projected_rows_linearIndependent (F := F) Φ pack κ) i
 
+/-- Each named projected identity-minor basis vector is an actual SPDP row of
+`coupledVerifier`, provided the selected selector list is block-admissible.
+
+This is the explicit row-membership version of the Route-B NP-side bridge: the
+basis vector is definitionally the projected selector-derivative row by
+`projectedIdentityMinorBasis_apply`, and `rowPoly_mem_ml_subspace` exhibits that
+row as a generator of `mlBlockedSpdpSubspace`. -/
+theorem projectedIdentityMinorBasis_mem_mlSubspace
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ))
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    ((projectedIdentityMinorBasis (F := F) Φ pack κ i :
+        projectedIdentityMinorSpan (F := F) Φ pack κ) :
+      MvPolynomial (Fin (tseitinNumVars Φ)) F) ∈
+      mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ) := by
+  rw [projectedIdentityMinorBasis_apply]
+  exact rowPoly_mem_ml_subspace Φ B pack κ ℓ i hB
+
+/-- Canonical-partition specialization: every named projected identity-minor
+basis vector lies in the canonical Tseitin SPDP row space. -/
+theorem projectedIdentityMinorBasis_mem_canonical_mlSubspace
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    ((projectedIdentityMinorBasis (F := F) Φ pack κ i :
+        projectedIdentityMinorSpan (F := F) Φ pack κ) :
+      MvPolynomial (Fin (tseitinNumVars Φ)) F) ∈
+      mlBlockedSpdpSubspace (IdentityMinor.tseitinPartition Φ) κ ℓ
+        (coupledVerifier F Φ) := by
+  exact projectedIdentityMinorBasis_mem_mlSubspace
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ i
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
 /-- The identity-minor sign is self-inverse.  This turns the signed
 Kronecker minor into an honest dual coordinate system. -/
 theorem subsetSign_mul_self {F : Type*} [Field F] [Nontrivial F]
@@ -3295,6 +3332,8 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms projectedIdentityMinorSpan_finite
 #print axioms projectedIdentityMinorBasis
 #print axioms projectedIdentityMinorBasis_apply
+#print axioms projectedIdentityMinorBasis_mem_mlSubspace
+#print axioms projectedIdentityMinorBasis_mem_canonical_mlSubspace
 #print axioms subsetSign_mul_self
 #print axioms projectedIdentityMinorDual
 #print axioms projectedIdentityMinorDual_basis_apply

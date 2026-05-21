@@ -336,6 +336,53 @@ theorem choose_le_mlBlockedSpdpRank_of_disjointClauseSystem_rows
   exact nat_le_mlBlockedSpdpRank_of_kroneckerDeltaSystem_rows
     B κ ℓ p (IdentityMinorReal.buildKroneckerSystem sys κ) hmem
 
+/-- Explicit row-realisation bridge for the remaining Property-3 local gap.
+
+To prove that a concrete abstract identity-minor row belongs to the target SPDP
+row space, it is enough to identify it with one of the projected shifted
+partial-derivative generators of the target polynomial.  This is the exact
+Lean form of “exhibit the gadget-product row as a shifted derivative of `Q`”. -/
+theorem gadgetProd_mem_mlBlockedSpdpSubspace_of_eq_projected_derivative
+    {K : Type*} [Field K]
+    (sys : IdentityMinorReal.DisjointClauseSystem K) (κ ℓ : ℕ)
+    (B : SPDP.BlockPartition sys.numVars)
+    (Q : MvPolynomial (Fin sys.numVars) K)
+    (i : Fin (Nat.choose sys.numClauses κ))
+    (S : List (Fin sys.numVars))
+    (hSlen : S.length = κ)
+    (hSadm : SPDP.isBlockAdmissible B S)
+    (hrow : IdentityMinorReal.gadgetProd sys
+        (IdentityMinorReal.getClauseSubset sys κ i) =
+      mlProj (1 * SPDP.iterDerivList S Q)) :
+    IdentityMinorReal.gadgetProd sys (IdentityMinorReal.getClauseSubset sys κ i) ∈
+      mlBlockedSpdpSubspace B κ ℓ Q := by
+  rw [hrow]
+  exact mlProj_deriv_mem B κ ℓ Q S hSlen hSadm
+
+/-- Pulled-back `u`-sheet version of
+`gadgetProd_mem_mlBlockedSpdpSubspace_of_eq_projected_derivative`, matching the
+Route-B/Cook-Levin source object `Q : CoupledSheetPoly σ`. -/
+theorem gadgetProd_mem_pullback_mlBlockedSpdpSubspace_of_eq_projected_derivative
+    (sys : IdentityMinorReal.DisjointClauseSystem ℚ) (numV : ℕ) (κ ℓ : ℕ)
+    (B : SPDP.BlockPartition ({ numU := sys.numVars, numV := numV } : UVSplit).total)
+    (Q : CoupledSheetPoly ({ numU := sys.numVars, numV := numV } : UVSplit))
+    (i : Fin (Nat.choose sys.numClauses κ))
+    (S : List (Fin sys.numVars))
+    (hSlen : S.length = κ)
+    (hSadm : SPDP.isBlockAdmissible
+      (pullbackPartition B ({ numU := sys.numVars, numV := numV } : UVSplit).inlU) S)
+    (hrow : IdentityMinorReal.gadgetProd sys
+        (IdentityMinorReal.getClauseSubset sys κ i) =
+      mlProj (1 * SPDP.iterDerivList S Q)) :
+    IdentityMinorReal.gadgetProd sys (IdentityMinorReal.getClauseSubset sys κ i) ∈
+      mlBlockedSpdpSubspace
+        (pullbackPartition B ({ numU := sys.numVars, numV := numV } : UVSplit).inlU)
+        κ ℓ Q := by
+  exact gadgetProd_mem_mlBlockedSpdpSubspace_of_eq_projected_derivative
+    sys κ ℓ
+    (pullbackPartition B ({ numU := sys.numVars, numV := numV } : UVSplit).inlU)
+    Q i S hSlen hSadm hrow
+
 /-- A paper-faithful projection over the `u/v` split ambient polynomial space. -/
 abbrev PaperFaithfulProjection (σ : UVSplit) : Type :=
   PMnPoly σ →ₗ[ℚ] PMnPoly σ
@@ -439,6 +486,30 @@ theorem sourceIdentityMinorLowerBound_of_disjointClauseSystem_rows
   exact sourceIdentityMinorLowerBound_of_kroneckerDeltaSystem_rows
     n ({ numU := sys.numVars, numV := numV } : UVSplit) B κ ℓ Q
     (IdentityMinorReal.buildKroneckerSystem sys κ) hcard hmem
+
+/-- If every gadget-product row is exhibited as a projected shifted derivative
+of `Q`, then the disjoint-clause identity minor gives the full source-side
+Route-B lower bound.  This removes the opaque row-membership hypothesis and
+replaces it with concrete derivative witnesses for each row. -/
+theorem sourceIdentityMinorLowerBound_of_disjointClauseSystem_derivative_rows
+    (n numV : ℕ) (sys : IdentityMinorReal.DisjointClauseSystem ℚ)
+    (B : SPDP.BlockPartition ({ numU := sys.numVars, numV := numV } : UVSplit).total)
+    (κ ℓ : ℕ)
+    (Q : CoupledSheetPoly ({ numU := sys.numVars, numV := numV } : UVSplit))
+    (hcard : Nat.choose (n / 3) (Nat.log 2 n) ≤ Nat.choose sys.numClauses κ)
+    (rowS : Fin (Nat.choose sys.numClauses κ) → List (Fin sys.numVars))
+    (hSlen : ∀ i, (rowS i).length = κ)
+    (hSadm : ∀ i, SPDP.isBlockAdmissible
+      (pullbackPartition B ({ numU := sys.numVars, numV := numV } : UVSplit).inlU) (rowS i))
+    (hrow : ∀ i, IdentityMinorReal.gadgetProd sys
+        (IdentityMinorReal.getClauseSubset sys κ i) =
+      mlProj (1 * SPDP.iterDerivList (rowS i) Q)) :
+    SourceIdentityMinorLowerBound n
+      ({ numU := sys.numVars, numV := numV } : UVSplit) B κ ℓ Q := by
+  exact sourceIdentityMinorLowerBound_of_disjointClauseSystem_rows
+    n numV sys B κ ℓ Q hcard
+    (fun i => gadgetProd_mem_pullback_mlBlockedSpdpSubspace_of_eq_projected_derivative
+      sys numV κ ℓ B Q i (rowS i) (hSlen i) (hSadm i) (hrow i))
 
 /-- Projected identity-minor lower bound on the embedded hard object.
 
@@ -835,6 +906,9 @@ theorem false_of_disjointClauseSystem_rows_paperFaithfulProjected
 #print axioms nat_le_blockedSpdpRank_of_card_le_of_dual_kronecker_nonzero_diag
 #print axioms nat_le_mlBlockedSpdpRank_of_kroneckerDeltaSystem_rows
 #print axioms choose_le_mlBlockedSpdpRank_of_disjointClauseSystem_rows
+#print axioms gadgetProd_mem_mlBlockedSpdpSubspace_of_eq_projected_derivative
+#print axioms gadgetProd_mem_pullback_mlBlockedSpdpSubspace_of_eq_projected_derivative
+#print axioms sourceIdentityMinorLowerBound_of_disjointClauseSystem_derivative_rows
 #print axioms sourceIdentityMinorLowerBound_of_dual_kronecker_rows
 #print axioms sourceIdentityMinorLowerBound_of_dual_kronecker_rows_nonzero_diag
 #print axioms sourceIdentityMinorLowerBound_of_kroneckerDeltaSystem_rows
