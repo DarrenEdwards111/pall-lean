@@ -2207,6 +2207,54 @@ theorem projectedIdentityMinorRowTagCoeffQuotKerEquiv_apply_mk
     (projectedIdentityMinorRowTagCoeff (F := F) Φ B pack κ ℓ)
     (projectedIdentityMinorRowTagCoeff_surjective (F := F) Φ B pack κ ℓ hB) q
 
+
+/-- The inverse strict quotient equivalence sends private-tag coordinates to the
+quotient class of the explicit row witness realizing those coordinates. -/
+theorem projectedIdentityMinorRowTagCoeffQuotKerEquiv_symm_apply
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ)))
+    (a : Fin (Nat.choose pack.selected.length κ) → F) :
+    (projectedIdentityMinorRowTagCoeffQuotKerEquiv (F := F) Φ B pack κ ℓ hB).symm a =
+      Submodule.Quotient.mk
+        ((projectedIdentityMinorTagCoeffRightInverseToMlSubspace
+          (F := F) Φ B pack κ ℓ hB) a) := by
+  apply (projectedIdentityMinorRowTagCoeffQuotKerEquiv
+    (F := F) Φ B pack κ ℓ hB).injective
+  rw [projectedIdentityMinorRowTagCoeffQuotKerEquiv_apply_mk]
+  exact ((projectedIdentityMinorRowTagCoeffQuotKerEquiv
+    (F := F) Φ B pack κ ℓ hB).apply_symm_apply a).trans
+    (projectedIdentityMinorTagCoeffRightInverseToMlSubspace_apply_tagCoeff
+      (F := F) Φ B pack κ ℓ hB a).symm
+
+/-- Two strict SPDP rows define the same quotient class precisely when their
+private-tag coordinates agree. -/
+theorem projectedIdentityMinorRowTagCoeff_quotient_mk_eq_iff
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ)))
+    (q r : mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ)) :
+    Submodule.Quotient.mk q =
+      (Submodule.Quotient.mk r : mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ) ⧸
+        LinearMap.ker (projectedIdentityMinorRowTagCoeff (F := F) Φ B pack κ ℓ)) ↔
+    projectedIdentityMinorRowTagCoeff (F := F) Φ B pack κ ℓ q =
+      projectedIdentityMinorRowTagCoeff (F := F) Φ B pack κ ℓ r := by
+  constructor
+  · intro h
+    have h2 := congrArg
+      (projectedIdentityMinorRowTagCoeffQuotKerEquiv (F := F) Φ B pack κ ℓ hB) h
+    simpa [projectedIdentityMinorRowTagCoeffQuotKerEquiv_apply_mk] using h2
+  · intro h
+    apply (projectedIdentityMinorRowTagCoeffQuotKerEquiv
+      (F := F) Φ B pack κ ℓ hB).injective
+    simpa [projectedIdentityMinorRowTagCoeffQuotKerEquiv_apply_mk] using h
+
 /-- The strict quotient by tag-zero rows has exactly the private-tag dimension. -/
 theorem projectedIdentityMinorRowTagCoeff_quotKer_finrank
     {F : Type*} [Field F] [Nontrivial F]
@@ -2269,6 +2317,54 @@ theorem projectedIdentityMinorRowTagCoeffIncQuotKerEquiv_apply_mk
   exact LinearMap.quotKerEquivOfSurjective_apply_mk
     (projectedIdentityMinorRowTagCoeffInc (F := F) Φ B pack κ ℓ)
     (projectedIdentityMinorRowTagCoeffInc_surjective (F := F) Φ B pack κ ℓ hB) q
+
+
+/-- The inverse inclusive quotient equivalence sends private-tag coordinates to
+the quotient class of the explicit inclusive row witness. -/
+theorem projectedIdentityMinorRowTagCoeffIncQuotKerEquiv_symm_apply
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ)))
+    (a : Fin (Nat.choose pack.selected.length κ) → F) :
+    (projectedIdentityMinorRowTagCoeffIncQuotKerEquiv (F := F) Φ B pack κ ℓ hB).symm a =
+      Submodule.Quotient.mk
+        ((projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc
+          (F := F) Φ B pack κ ℓ hB) a) := by
+  apply (projectedIdentityMinorRowTagCoeffIncQuotKerEquiv
+    (F := F) Φ B pack κ ℓ hB).injective
+  rw [projectedIdentityMinorRowTagCoeffIncQuotKerEquiv_apply_mk]
+  exact ((projectedIdentityMinorRowTagCoeffIncQuotKerEquiv
+    (F := F) Φ B pack κ ℓ hB).apply_symm_apply a).trans
+    (projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_apply_tagCoeff
+      (F := F) Φ B pack κ ℓ hB a).symm
+
+/-- Two inclusive SPDP rows define the same quotient class precisely when their
+private-tag coordinates agree. -/
+theorem projectedIdentityMinorRowTagCoeffInc_quotient_mk_eq_iff
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ)))
+    (q r : mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ)) :
+    Submodule.Quotient.mk q =
+      (Submodule.Quotient.mk r : mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ) ⧸
+        LinearMap.ker (projectedIdentityMinorRowTagCoeffInc (F := F) Φ B pack κ ℓ)) ↔
+    projectedIdentityMinorRowTagCoeffInc (F := F) Φ B pack κ ℓ q =
+      projectedIdentityMinorRowTagCoeffInc (F := F) Φ B pack κ ℓ r := by
+  constructor
+  · intro h
+    have h2 := congrArg
+      (projectedIdentityMinorRowTagCoeffIncQuotKerEquiv (F := F) Φ B pack κ ℓ hB) h
+    simpa [projectedIdentityMinorRowTagCoeffIncQuotKerEquiv_apply_mk] using h2
+  · intro h
+    apply (projectedIdentityMinorRowTagCoeffIncQuotKerEquiv
+      (F := F) Φ B pack κ ℓ hB).injective
+    simpa [projectedIdentityMinorRowTagCoeffIncQuotKerEquiv_apply_mk] using h
 
 /-- The inclusive quotient by tag-zero rows has exactly the private-tag dimension. -/
 theorem projectedIdentityMinorRowTagCoeffInc_quotKer_finrank
@@ -3202,6 +3298,41 @@ noncomputable def coupledVerifierProjectedTagCoeffQuotKerEquiv
     (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
     (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
 
+
+/-- The inverse canonical strict quotient equivalence sends coordinates to the
+class of the canonical explicit row witness. -/
+theorem coupledVerifierProjectedTagCoeffQuotKerEquiv_symm_apply
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (a : Fin (Nat.choose pack.selected.length κ) → F) :
+    (coupledVerifierProjectedTagCoeffQuotKerEquiv (F := F) Φ pack κ ℓ).symm a =
+      Submodule.Quotient.mk
+        ((coupledVerifierProjectedTagCoeffRightInverse (F := F) Φ pack κ ℓ) a) := by
+  exact projectedIdentityMinorRowTagCoeffQuotKerEquiv_symm_apply
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd) a
+
+/-- Canonically, two strict coupled-verifier rows are equal modulo tag-zero rows
+precisely when their private-tag coordinates agree. -/
+theorem coupledVerifierProjectedTagCoeff_quotient_mk_eq_iff
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (q r : mlBlockedSpdpSubspace (IdentityMinor.tseitinPartition Φ) κ ℓ
+      (coupledVerifier F Φ)) :
+    Submodule.Quotient.mk q =
+      (Submodule.Quotient.mk r :
+        mlBlockedSpdpSubspace (IdentityMinor.tseitinPartition Φ) κ ℓ
+          (coupledVerifier F Φ) ⧸
+        LinearMap.ker (projectedIdentityMinorRowTagCoeff
+          (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ)) ↔
+    projectedIdentityMinorRowTagCoeff
+      (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ q =
+      projectedIdentityMinorRowTagCoeff
+        (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ r := by
+  exact projectedIdentityMinorRowTagCoeff_quotient_mk_eq_iff
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd) q r
+
 /-- Canonical strict quotient by tag-zero rows has private-tag dimension. -/
 theorem coupledVerifierProjectedTagCoeff_quotKer_finrank
     {F : Type*} [Field F] [Nontrivial F]
@@ -3239,6 +3370,41 @@ noncomputable def coupledVerifierProjectedTagCoeffIncQuotKerEquiv
   projectedIdentityMinorRowTagCoeffIncQuotKerEquiv
     (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
     (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+
+/-- The inverse canonical inclusive quotient equivalence sends coordinates to
+the class of the canonical explicit inclusive row witness. -/
+theorem coupledVerifierProjectedTagCoeffIncQuotKerEquiv_symm_apply
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (a : Fin (Nat.choose pack.selected.length κ) → F) :
+    (coupledVerifierProjectedTagCoeffIncQuotKerEquiv (F := F) Φ pack κ ℓ).symm a =
+      Submodule.Quotient.mk
+        ((coupledVerifierProjectedTagCoeffRightInverseInc (F := F) Φ pack κ ℓ) a) := by
+  exact projectedIdentityMinorRowTagCoeffIncQuotKerEquiv_symm_apply
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd) a
+
+/-- Canonically, two inclusive coupled-verifier rows are equal modulo tag-zero
+rows precisely when their private-tag coordinates agree. -/
+theorem coupledVerifierProjectedTagCoeffInc_quotient_mk_eq_iff
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (q r : mlBlockedSpdpSubspaceInc (IdentityMinor.tseitinPartition Φ) κ ℓ
+      (coupledVerifier F Φ)) :
+    Submodule.Quotient.mk q =
+      (Submodule.Quotient.mk r :
+        mlBlockedSpdpSubspaceInc (IdentityMinor.tseitinPartition Φ) κ ℓ
+          (coupledVerifier F Φ) ⧸
+        LinearMap.ker (projectedIdentityMinorRowTagCoeffInc
+          (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ)) ↔
+    projectedIdentityMinorRowTagCoeffInc
+      (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ q =
+      projectedIdentityMinorRowTagCoeffInc
+        (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ r := by
+  exact projectedIdentityMinorRowTagCoeffInc_quotient_mk_eq_iff
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd) q r
 
 /-- Canonical inclusive quotient by tag-zero rows has private-tag dimension. -/
 theorem coupledVerifierProjectedTagCoeffInc_quotKer_finrank
@@ -5951,9 +6117,13 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms projectedIdentityMinorRowTagCoeffInc_finrank_add_ker
 #print axioms projectedIdentityMinorRowTagCoeff_surjective
 #print axioms projectedIdentityMinorRowTagCoeffQuotKerEquiv_apply_mk
+#print axioms projectedIdentityMinorRowTagCoeffQuotKerEquiv_symm_apply
+#print axioms projectedIdentityMinorRowTagCoeff_quotient_mk_eq_iff
 #print axioms projectedIdentityMinorRowTagCoeff_quotKer_finrank
 #print axioms projectedIdentityMinorRowTagCoeffInc_surjective
 #print axioms projectedIdentityMinorRowTagCoeffIncQuotKerEquiv_apply_mk
+#print axioms projectedIdentityMinorRowTagCoeffIncQuotKerEquiv_symm_apply
+#print axioms projectedIdentityMinorRowTagCoeffInc_quotient_mk_eq_iff
 #print axioms projectedIdentityMinorRowTagCoeffInc_quotKer_finrank
 #print axioms nat_choose_le_finrank_mlBlockedSpdpSubspace_from_rightInverse
 #print axioms nat_choose_le_finrank_mlBlockedSpdpSubspaceInc_from_rightInverse
@@ -6004,8 +6174,12 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms coupledVerifierProjectedTagCoeff_finrank_add_ker
 #print axioms coupledVerifierProjectedTagCoeffInc_finrank_add_ker
 #print axioms coupledVerifierProjectedTagCoeff_surjective
+#print axioms coupledVerifierProjectedTagCoeffQuotKerEquiv_symm_apply
+#print axioms coupledVerifierProjectedTagCoeff_quotient_mk_eq_iff
 #print axioms coupledVerifierProjectedTagCoeff_quotKer_finrank
 #print axioms coupledVerifierProjectedTagCoeffInc_surjective
+#print axioms coupledVerifierProjectedTagCoeffIncQuotKerEquiv_symm_apply
+#print axioms coupledVerifierProjectedTagCoeffInc_quotient_mk_eq_iff
 #print axioms coupledVerifierProjectedTagCoeffInc_quotKer_finrank
 #print axioms coupledVerifier_projected_identity_minor_rank_lower_from_rightInverse
 #print axioms coupledVerifier_projected_identity_minor_rank_lower_inc_from_rightInverse
