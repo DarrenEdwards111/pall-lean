@@ -1203,6 +1203,85 @@ theorem tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_inc
   exact tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_inc_from_finite_subspace_certificate
     F n hn1024 heven ℓ
 
+/-- Asymptotic finite projected-minor subspace certificate for the coupled
+Tseitin verifier: eventually, every even `n` has a finitely generated projected
+identity-minor subspace inside the NP window whose dimension is already at
+least `n^(log₂ n / 4)`. -/
+theorem coupledVerifier_projected_finite_subspace_superpoly_certificate
+    (F : Type*) [Field F] [Nontrivial F] :
+    ∃ n₀, ∀ n, n ≥ n₀ → 2 ∣ n →
+      ∃ W : Submodule F (MvPolynomial (Fin (tseitinNumVars (tseitinAt n))) F),
+        Module.Finite F W ∧
+        W ≤ mlBlockedSpdpSubspace (IdentityMinor.tseitinPartition (tseitinAt n))
+          (Nat.log 2 n) (Nat.log 2 n) (coupledVerifier F (tseitinAt n)) ∧
+        n ^ (Nat.log 2 n / 4) ≤ Module.finrank F W := by
+  obtain ⟨n₀, hn₀⟩ := NPWitness.binomial_lower_bound
+  use max n₀ (2^10)
+  intro n hn heven
+  have hn₀' : n ≥ n₀ := le_trans (le_max_left _ _) hn
+  have hn1024 : n ≥ 2^10 := le_trans (le_max_right _ _) hn
+  obtain ⟨W, hWfinite, hWle, hdim⟩ :=
+    tseitinAt_projected_identity_minor_finite_subspace_certificate F n hn1024 heven
+  refine ⟨W, hWfinite, hWle, ?_⟩
+  exact le_trans (hn₀ n hn₀') hdim
+
+/-- Inclusive-window asymptotic finite projected-minor subspace certificate. -/
+theorem coupledVerifier_projected_finite_subspace_superpoly_certificate_inc
+    (F : Type*) [Field F] [Nontrivial F] (ℓ : ℕ) :
+    ∃ n₀, ∀ n, n ≥ n₀ → 2 ∣ n →
+      ∃ W : Submodule F (MvPolynomial (Fin (tseitinNumVars (tseitinAt n))) F),
+        Module.Finite F W ∧
+        W ≤ mlBlockedSpdpSubspaceInc (IdentityMinor.tseitinPartition (tseitinAt n))
+          (Nat.log 2 n) ℓ (coupledVerifier F (tseitinAt n)) ∧
+        n ^ (Nat.log 2 n / 4) ≤ Module.finrank F W := by
+  obtain ⟨n₀, hn₀⟩ := NPWitness.binomial_lower_bound
+  use max n₀ (2^10)
+  intro n hn heven
+  have hn₀' : n ≥ n₀ := le_trans (le_max_left _ _) hn
+  have hn1024 : n ≥ 2^10 := le_trans (le_max_right _ _) hn
+  obtain ⟨W, hWfinite, hWle, hdim⟩ :=
+    tseitinAt_projected_identity_minor_finite_subspace_certificate_inc F n hn1024 heven ℓ
+  refine ⟨W, hWfinite, hWle, ?_⟩
+  exact le_trans (hn₀ n hn₀') hdim
+
+/-- Asymptotic rank lower bound derived from the asymptotic finite projected-minor
+subspace certificate. -/
+theorem coupledVerifier_projected_rank_lower_superpoly_from_asymptotic_finite_subspace_certificate
+    (F : Type*) [Field F] [Nontrivial F] :
+    ∃ n₀, ∀ n, n ≥ n₀ → 2 ∣ n →
+      mlBlockedSpdpRank (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) (Nat.log 2 n) (coupledVerifier F (tseitinAt n)) ≥
+          n ^ (Nat.log 2 n / 4) := by
+  obtain ⟨n₀, hcert⟩ := coupledVerifier_projected_finite_subspace_superpoly_certificate F
+  use n₀
+  intro n hn heven
+  obtain ⟨W, hWfinite, hWle, hdim⟩ := hcert n hn heven
+  haveI : Module.Finite F W := hWfinite
+  dsimp [mlBlockedSpdpRank]
+  exact rank_lower_of_finite_subspace_certificate
+    (mlBlockedSpdpSubspace (IdentityMinor.tseitinPartition (tseitinAt n))
+      (Nat.log 2 n) (Nat.log 2 n) (coupledVerifier F (tseitinAt n)))
+    W (n ^ (Nat.log 2 n / 4)) hWle hdim
+
+/-- Inclusive-window asymptotic rank lower bound derived from the asymptotic
+finite projected-minor subspace certificate. -/
+theorem coupledVerifier_projected_rank_lower_superpoly_inc_from_asymptotic_finite_subspace_certificate
+    (F : Type*) [Field F] [Nontrivial F] (ℓ : ℕ) :
+    ∃ n₀, ∀ n, n ≥ n₀ → 2 ∣ n →
+      mlBlockedSpdpRankInc (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) ℓ (coupledVerifier F (tseitinAt n)) ≥
+          n ^ (Nat.log 2 n / 4) := by
+  obtain ⟨n₀, hcert⟩ := coupledVerifier_projected_finite_subspace_superpoly_certificate_inc F ℓ
+  use n₀
+  intro n hn heven
+  obtain ⟨W, hWfinite, hWle, hdim⟩ := hcert n hn heven
+  haveI : Module.Finite F W := hWfinite
+  dsimp [mlBlockedSpdpRankInc]
+  exact rank_lower_of_finite_subspace_certificate
+    (mlBlockedSpdpSubspaceInc (IdentityMinor.tseitinPartition (tseitinAt n))
+      (Nat.log 2 n) ℓ (coupledVerifier F (tseitinAt n)))
+    W (n ^ (Nat.log 2 n / 4)) hWle hdim
+
 /-- Super-polynomial NP-side lower bound for the projected multilinear coupled
 Tseitin verifier.  This composes the paper-faithful projected identity-minor
 rank theorem with the standard binomial estimate, without touching the compiled
@@ -1213,15 +1292,7 @@ theorem coupledVerifier_projected_rank_lower_superpoly
       mlBlockedSpdpRank (IdentityMinor.tseitinPartition (tseitinAt n))
         (Nat.log 2 n) (Nat.log 2 n) (coupledVerifier F (tseitinAt n)) ≥
           n ^ (Nat.log 2 n / 4) := by
-  obtain ⟨n₀, hn₀⟩ := NPWitness.binomial_lower_bound
-  use max n₀ (2^10)
-  intro n hn heven
-  have hn₀' : n ≥ n₀ := le_trans (le_max_left _ _) hn
-  have hn1024 : n ≥ 2^10 := le_trans (le_max_right _ _) hn
-  exact le_trans
-    (hn₀ n hn₀')
-    (tseitinAt_coupledVerifier_projected_rank_lower_choose_div30
-      F n hn1024 heven)
+  exact coupledVerifier_projected_rank_lower_superpoly_from_asymptotic_finite_subspace_certificate F
 
 /-- Inclusive-window super-polynomial NP-side lower bound for the projected
 multilinear coupled Tseitin verifier.  The shift degree is arbitrary because
@@ -1232,15 +1303,7 @@ theorem coupledVerifier_projected_rank_lower_superpoly_inc
       mlBlockedSpdpRankInc (IdentityMinor.tseitinPartition (tseitinAt n))
         (Nat.log 2 n) ℓ (coupledVerifier F (tseitinAt n)) ≥
           n ^ (Nat.log 2 n / 4) := by
-  obtain ⟨n₀, hn₀⟩ := NPWitness.binomial_lower_bound
-  use max n₀ (2^10)
-  intro n hn heven
-  have hn₀' : n ≥ n₀ := le_trans (le_max_left _ _) hn
-  have hn1024 : n ≥ 2^10 := le_trans (le_max_right _ _) hn
-  exact le_trans
-    (hn₀ n hn₀')
-    (tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_inc
-      F n hn1024 heven ℓ)
+  exact coupledVerifier_projected_rank_lower_superpoly_inc_from_asymptotic_finite_subspace_certificate F ℓ
 
 /-- Concrete-threshold version of the coupled-verifier projected NP lower bound. -/
 theorem coupledVerifier_projected_rank_lower_superpoly_concrete
@@ -3162,6 +3225,10 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms tseitinAt_projected_identity_minor_finite_subspace_superpoly_certificate_inc
 #print axioms tseitinAt_coupledVerifier_projected_rank_lower_superpoly_from_finite_subspace_certificate
 #print axioms tseitinAt_coupledVerifier_projected_rank_lower_superpoly_inc_from_finite_subspace_certificate
+#print axioms coupledVerifier_projected_finite_subspace_superpoly_certificate
+#print axioms coupledVerifier_projected_finite_subspace_superpoly_certificate_inc
+#print axioms coupledVerifier_projected_rank_lower_superpoly_from_asymptotic_finite_subspace_certificate
+#print axioms coupledVerifier_projected_rank_lower_superpoly_inc_from_asymptotic_finite_subspace_certificate
 #print axioms IdentityMinorPaperFaithful.tagMono_finsupp_isMultilinear
 #print axioms IdentityMinorPaperFaithful.monomial_tagMono_isMultilinear
 #print axioms IdentityMinorPaperFaithful.identity_minor_components_columns_multilinear
