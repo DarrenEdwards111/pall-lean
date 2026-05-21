@@ -925,6 +925,43 @@ theorem coeff_tagMono_prod_diagonal [Nontrivial F]
     rw [CoeffDisjoint.coeff_mul_disjoint hp hq hdisj hmA hmB]
     rw [ih hnd_rest hsel_rest]
 
+/-- The diagonal pure-gadget coefficient for the selected subset equals the
+subset sign with the Leibniz sign removed. -/
+theorem coeff_tagMono_selected_gadgetProd_eq_unsigned_subsetSign [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    MvPolynomial.coeff (tagMono F Φ pack κ i)
+        ((getSubset pack κ i).map (clauseGadget F Φ)).prod =
+      ((getSubset pack κ i).map
+        (fun c => MvPolynomial.coeff (chooseTagMonomial Φ c)
+          (clauseGadget F Φ c))).prod := by
+  unfold tagMono
+  exact coeff_tagMono_prod_diagonal (F := F) Φ pack (getSubset pack κ i)
+    (getSubset_nodup' pack κ i)
+    (fun c hc => getSubset_subset' pack κ i c hc)
+
+/-- The selected tag coefficient of its own derivative row is the signed
+identity-minor diagonal entry.  This is the diagonal case of the minor in a
+standalone row/column form, factoring through the purified body coefficient
+lemma. -/
+theorem coeff_tagMono_rowPoly_self_eq_subsetSign [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    MvPolynomial.coeff (tagMono F Φ pack κ i) (rowPoly F Φ pack κ i) =
+      subsetSign F Φ pack κ i := by
+  have hbody : CoeffDisjoint.monomSupportedIn (tagMono F Φ pack κ i)
+      {v : Fin (tseitinNumVars Φ) | v.val < Φ.graph.numEdges + 3 * Φ.clauses.length} := by
+    unfold tagMono
+    apply CoeffDisjoint.monomSupportedIn_foldl_add
+    intro m hm
+    simp only [List.mem_map] at hm
+    obtain ⟨c, _, rfl⟩ := hm
+    exact fun x hx => chooseTagMonomial_support Φ c x hx
+  rw [coeff_body_rowPoly_eq_signed_gadgetProd Φ pack κ i _ hbody]
+  rw [coeff_tagMono_selected_gadgetProd_eq_unsigned_subsetSign]
+  rfl
+
+
 /-- Two sublists of a nodup list with the same toFinset are equal.
     Standard combinatorial fact: sublist order is uniquely determined by parent order. -/
 -- Helper: membership version

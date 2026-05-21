@@ -761,6 +761,42 @@ theorem coeff_body_projectedIdentityMinorBasis_eq_signed_gadgetProd
   exact IdentityMinor.coeff_body_rowPoly_eq_signed_gadgetProd Φ pack κ i m hbody
 
 
+/-- Projected identity-minor basis rows retain the full Kronecker delta system
+on tag columns.  Multilinear projection does not alter these coefficients
+because the tag monomials are multilinear. -/
+theorem coeff_tagMono_projectedIdentityMinorBasis_kronecker
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i j : Fin (Nat.choose pack.selected.length κ)) :
+    MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+      (((projectedIdentityMinorBasis (F := F) Φ pack κ j :
+          projectedIdentityMinorSpan (F := F) Φ pack κ) :
+        MvPolynomial (Fin (tseitinNumVars Φ)) F)) =
+      if i = j then IdentityMinor.subsetSign F Φ pack κ i else 0 := by
+  rw [projectedIdentityMinorBasis_apply]
+  rw [coeff_mlProj_of_isMultilinear_mono]
+  exact IdentityMinor.kronecker_delta Φ pack κ i j
+  exact tagMono_isMultilinear Φ pack κ i
+
+
+/-- The selected tag coefficient of its own projected basis row is the signed
+identity-minor diagonal entry.  This is the diagonal minor entry after both
+row-purification and multilinear projection. -/
+theorem coeff_tagMono_projectedIdentityMinorBasis_self_eq_subsetSign
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+      (((projectedIdentityMinorBasis (F := F) Φ pack κ i :
+          projectedIdentityMinorSpan (F := F) Φ pack κ) :
+        MvPolynomial (Fin (tseitinNumVars Φ)) F)) =
+      IdentityMinor.subsetSign F Φ pack κ i := by
+  rw [projectedIdentityMinorBasis_apply]
+  rw [coeff_mlProj_of_isMultilinear_mono]
+  exact IdentityMinor.coeff_tagMono_rowPoly_self_eq_subsetSign Φ pack κ i
+  exact tagMono_isMultilinear Φ pack κ i
+
+
 /-- Each named projected identity-minor basis vector is an actual SPDP row of
 `coupledVerifier`, provided the selected selector list is block-admissible.
 
@@ -3380,6 +3416,8 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms projectedIdentityMinorBasis_apply
 #print axioms projectedIdentityMinorBasis_eq_mlProj_signed_gadgetProd_mul_remaining
 #print axioms coeff_body_projectedIdentityMinorBasis_eq_signed_gadgetProd
+#print axioms coeff_tagMono_projectedIdentityMinorBasis_kronecker
+#print axioms coeff_tagMono_projectedIdentityMinorBasis_self_eq_subsetSign
 #print axioms projectedIdentityMinorBasis_mem_mlSubspace
 #print axioms projectedIdentityMinorBasis_mem_canonical_mlSubspace
 #print axioms subsetSign_mul_self
