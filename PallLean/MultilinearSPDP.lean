@@ -1586,6 +1586,76 @@ theorem projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_injective
   have hb := projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_apply_tagCoeff
     (F := F) Φ B pack κ ℓ hB b
   rw [← ha, ← hb, hab]
+/-- The private-tag coordinate space is linearly equivalent to the range of the
+strict right-inverse inside the SPDP row space.  This names the embedded copy of
+the projected identity-minor coordinate space. -/
+noncomputable def projectedIdentityMinorTagCoeffRightInverseRangeEquiv
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    (Fin (Nat.choose pack.selected.length κ) → F) ≃ₗ[F]
+      LinearMap.range (projectedIdentityMinorTagCoeffRightInverseToMlSubspace
+        (F := F) Φ B pack κ ℓ hB) :=
+  LinearEquiv.ofInjective
+    (projectedIdentityMinorTagCoeffRightInverseToMlSubspace
+      (F := F) Φ B pack κ ℓ hB)
+    (projectedIdentityMinorTagCoeffRightInverseToMlSubspace_injective
+      (F := F) Φ B pack κ ℓ hB)
+
+/-- The embedded strict right-inverse range has exactly the binomial private-tag
+dimension. -/
+theorem projectedIdentityMinorTagCoeffRightInverse_range_finrank
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    Module.finrank F (LinearMap.range
+      (projectedIdentityMinorTagCoeffRightInverseToMlSubspace
+        (F := F) Φ B pack κ ℓ hB)) = Nat.choose pack.selected.length κ := by
+  rw [← (projectedIdentityMinorTagCoeffRightInverseRangeEquiv
+    (F := F) Φ B pack κ ℓ hB).finrank_eq]
+  exact projectedIdentityMinor_tagCoeffSpace_finrank (F := F) Φ pack κ
+
+/-- Inclusive-window version: coordinates are linearly equivalent to the range of
+the inclusive right-inverse. -/
+noncomputable def projectedIdentityMinorTagCoeffRightInverseIncRangeEquiv
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    (Fin (Nat.choose pack.selected.length κ) → F) ≃ₗ[F]
+      LinearMap.range (projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc
+        (F := F) Φ B pack κ ℓ hB) :=
+  LinearEquiv.ofInjective
+    (projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc
+      (F := F) Φ B pack κ ℓ hB)
+    (projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_injective
+      (F := F) Φ B pack κ ℓ hB)
+
+/-- The inclusive embedded right-inverse range has exactly the binomial
+private-tag dimension. -/
+theorem projectedIdentityMinorTagCoeffRightInverseInc_range_finrank
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    Module.finrank F (LinearMap.range
+      (projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc
+        (F := F) Φ B pack κ ℓ hB)) = Nat.choose pack.selected.length κ := by
+  rw [← (projectedIdentityMinorTagCoeffRightInverseIncRangeEquiv
+    (F := F) Φ B pack κ ℓ hB).finrank_eq]
+  exact projectedIdentityMinor_tagCoeffSpace_finrank (F := F) Φ pack κ
+
+
 
 /-- Rank lower bound from the explicit split injection of private-tag coordinate
 space into the strict SPDP row space.  This is independent of the quotient-map
@@ -2148,6 +2218,57 @@ theorem coupledVerifierProjectedTagCoeffRightInverseInc_injective
   exact projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_injective
     (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
     (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+/-- The canonical private-tag coordinate space is linearly equivalent to the
+range of the canonical strict right-inverse inside the coupled-verifier SPDP row
+space. -/
+noncomputable def coupledVerifierProjectedTagCoeffRightInverseRangeEquiv
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    (Fin (Nat.choose pack.selected.length κ) → F) ≃ₗ[F]
+      LinearMap.range (coupledVerifierProjectedTagCoeffRightInverse
+        (F := F) Φ pack κ ℓ) :=
+  LinearEquiv.ofInjective
+    (coupledVerifierProjectedTagCoeffRightInverse (F := F) Φ pack κ ℓ)
+    (coupledVerifierProjectedTagCoeffRightInverse_injective
+      (F := F) Φ pack κ ℓ)
+
+/-- The canonical strict embedded coordinate subspace has exactly binomial
+private-tag dimension. -/
+theorem coupledVerifierProjectedTagCoeffRightInverse_range_finrank
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    Module.finrank F (LinearMap.range
+      (coupledVerifierProjectedTagCoeffRightInverse
+        (F := F) Φ pack κ ℓ)) = Nat.choose pack.selected.length κ := by
+  rw [← (coupledVerifierProjectedTagCoeffRightInverseRangeEquiv
+    (F := F) Φ pack κ ℓ).finrank_eq]
+  exact projectedIdentityMinor_tagCoeffSpace_finrank (F := F) Φ pack κ
+
+/-- Inclusive canonical coordinate space/range equivalence. -/
+noncomputable def coupledVerifierProjectedTagCoeffRightInverseIncRangeEquiv
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    (Fin (Nat.choose pack.selected.length κ) → F) ≃ₗ[F]
+      LinearMap.range (coupledVerifierProjectedTagCoeffRightInverseInc
+        (F := F) Φ pack κ ℓ) :=
+  LinearEquiv.ofInjective
+    (coupledVerifierProjectedTagCoeffRightInverseInc (F := F) Φ pack κ ℓ)
+    (coupledVerifierProjectedTagCoeffRightInverseInc_injective
+      (F := F) Φ pack κ ℓ)
+
+/-- The canonical inclusive embedded coordinate subspace has exactly binomial
+private-tag dimension. -/
+theorem coupledVerifierProjectedTagCoeffRightInverseInc_range_finrank
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    Module.finrank F (LinearMap.range
+      (coupledVerifierProjectedTagCoeffRightInverseInc
+        (F := F) Φ pack κ ℓ)) = Nat.choose pack.selected.length κ := by
+  rw [← (coupledVerifierProjectedTagCoeffRightInverseIncRangeEquiv
+    (F := F) Φ pack κ ℓ).finrank_eq]
+  exact projectedIdentityMinor_tagCoeffSpace_finrank (F := F) Φ pack κ
+
 
 
 /-- Canonical strict rank lower bound from the split injection of private-tag
@@ -4791,6 +4912,8 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_apply_tagCoeff
 #print axioms projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_coeff
 #print axioms projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_injective
+#print axioms projectedIdentityMinorTagCoeffRightInverse_range_finrank
+#print axioms projectedIdentityMinorTagCoeffRightInverseInc_range_finrank
 #print axioms nat_choose_le_finrank_mlBlockedSpdpSubspace_from_rightInverse
 #print axioms nat_choose_le_finrank_mlBlockedSpdpSubspaceInc_from_rightInverse
 #print axioms identity_minor_projected_rank_lower_from_rightInverse
@@ -4819,6 +4942,8 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms coupledVerifierProjectedTagCoeffRightInverseInc_apply_tagCoeff
 #print axioms coupledVerifierProjectedTagCoeffRightInverseInc_coeff
 #print axioms coupledVerifierProjectedTagCoeffRightInverseInc_injective
+#print axioms coupledVerifierProjectedTagCoeffRightInverse_range_finrank
+#print axioms coupledVerifierProjectedTagCoeffRightInverseInc_range_finrank
 #print axioms coupledVerifier_projected_identity_minor_rank_lower_from_rightInverse
 #print axioms coupledVerifier_projected_identity_minor_rank_lower_inc_from_rightInverse
 #print axioms tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_from_rightInverse
