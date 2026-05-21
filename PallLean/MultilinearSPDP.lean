@@ -888,6 +888,70 @@ theorem coupledVerifier_projected_identity_minor_rank_lower_inc {F : Type*} [Fie
     (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
     (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
 
+/-- Concrete Tseitin-family projected identity-minor subspace certificate.
+There is an explicit projected identity-minor subspace inside the canonical
+Tseitin NP window whose dimension is at least `choose (n/30) (log₂ n)`.
+This is stronger than the rank inequality: it exposes the actual subspace that
+carries the minor and is the right object for later Π+ transport. -/
+theorem tseitinAt_projected_identity_minor_subspace_certificate
+    (F : Type*) [Field F] [Nontrivial F]
+    (n : ℕ) (hn1024 : n ≥ 2^10) (heven : 2 ∣ n) :
+    ∃ W : Submodule F (MvPolynomial (Fin (tseitinNumVars (tseitinAt n))) F),
+      W ≤ mlBlockedSpdpSubspace (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) (Nat.log 2 n) (coupledVerifier F (tseitinAt n)) ∧
+      Nat.choose (n / 30) (Nat.log 2 n) ≤ Module.finrank F W := by
+  have hv := tseitinAt_vertices n (by omega) heven
+  have pack := Tseitin.disjoint_packing_exists (tseitinAt n) (by omega)
+  let κ := Nat.log 2 n
+  let W : Submodule F (MvPolynomial (Fin (tseitinNumVars (tseitinAt n))) F) :=
+    Submodule.span F (Set.range
+      (fun i : Fin (Nat.choose pack.selected.length κ) =>
+        mlProj (IdentityMinor.rowPoly F (tseitinAt n) pack κ i)))
+  refine ⟨W, ?_, ?_⟩
+  · dsimp [W]
+    exact coupledVerifier_projected_identity_minor_span_le_mlSubspace
+      (F := F) (tseitinAt n) pack κ κ
+  · have hWfin : Module.finrank F W = Nat.choose pack.selected.length κ := by
+      dsimp [W]
+      exact coupledVerifier_projected_identity_minor_span_finrank
+        (F := F) (tseitinAt n) pack κ
+    rw [hWfin]
+    apply Nat.choose_le_choose
+    have hps := pack.size_bound
+    rw [hv] at hps
+    exact hps
+
+/-- Inclusive-window version of the concrete projected identity-minor subspace
+certificate.  The same explicit projected minor span sits inside every
+`|α| ≤ log₂ n` window with arbitrary shift degree `ℓ`. -/
+theorem tseitinAt_projected_identity_minor_subspace_certificate_inc
+    (F : Type*) [Field F] [Nontrivial F]
+    (n : ℕ) (hn1024 : n ≥ 2^10) (heven : 2 ∣ n) (ℓ : ℕ) :
+    ∃ W : Submodule F (MvPolynomial (Fin (tseitinNumVars (tseitinAt n))) F),
+      W ≤ mlBlockedSpdpSubspaceInc (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) ℓ (coupledVerifier F (tseitinAt n)) ∧
+      Nat.choose (n / 30) (Nat.log 2 n) ≤ Module.finrank F W := by
+  have hv := tseitinAt_vertices n (by omega) heven
+  have pack := Tseitin.disjoint_packing_exists (tseitinAt n) (by omega)
+  let κ := Nat.log 2 n
+  let W : Submodule F (MvPolynomial (Fin (tseitinNumVars (tseitinAt n))) F) :=
+    Submodule.span F (Set.range
+      (fun i : Fin (Nat.choose pack.selected.length κ) =>
+        mlProj (IdentityMinor.rowPoly F (tseitinAt n) pack κ i)))
+  refine ⟨W, ?_, ?_⟩
+  · dsimp [W]
+    exact coupledVerifier_projected_identity_minor_span_le_mlSubspaceInc
+      (F := F) (tseitinAt n) pack κ ℓ
+  · have hWfin : Module.finrank F W = Nat.choose pack.selected.length κ := by
+      dsimp [W]
+      exact coupledVerifier_projected_identity_minor_span_finrank
+        (F := F) (tseitinAt n) pack κ
+    rw [hWfin]
+    apply Nat.choose_le_choose
+    have hps := pack.size_bound
+    rw [hv] at hps
+    exact hps
+
 /-- Concrete Tseitin-family version: the disjoint-packing construction gives at
 least `n/30` private clauses, hence the projected multilinear identity minor has
 rank at least `choose (n/30) (log₂ n)` for the coupled verifier. -/
@@ -2894,6 +2958,8 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms coupledVerifier_projected_identity_minor_span_le_mlSubspace
 #print axioms coupledVerifier_projected_identity_minor_span_le_mlSubspaceInc
 #print axioms coupledVerifier_projected_identity_minor_span_finrank
+#print axioms tseitinAt_projected_identity_minor_subspace_certificate
+#print axioms tseitinAt_projected_identity_minor_subspace_certificate_inc
 #print axioms IdentityMinorPaperFaithful.tagMono_finsupp_isMultilinear
 #print axioms IdentityMinorPaperFaithful.monomial_tagMono_isMultilinear
 #print axioms IdentityMinorPaperFaithful.identity_minor_components_columns_multilinear
