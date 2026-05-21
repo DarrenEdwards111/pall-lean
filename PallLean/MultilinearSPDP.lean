@@ -11,6 +11,7 @@ import PallLean.IdentityMinor
 import PallLean.LowDegAnnihilation
 import Mathlib.Tactic
 import Mathlib.LinearAlgebra.Dimension.Finrank
+import Mathlib.LinearAlgebra.Basis.Basic
 
 namespace MultilinearSPDP
 
@@ -690,6 +691,69 @@ theorem projectedIdentityMinorSpan_finite {F : Type*} [Field F]
     Module.Finite F (projectedIdentityMinorSpan (F := F) Φ pack κ) := by
   dsimp [projectedIdentityMinorSpan]
   exact Module.Finite.span_of_finite F (Set.finite_range _)
+
+/-- The projected identity-minor rows form a basis of the named projected
+identity-minor span.  This packages the Kronecker-dual independence and the
+definition of the witness subspace into a reusable coordinate object for later
+transport arguments. -/
+noncomputable def projectedIdentityMinorBasis {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ) :
+    Module.Basis (Fin (Nat.choose pack.selected.length κ)) F
+      (projectedIdentityMinorSpan (F := F) Φ pack κ) :=
+  Module.Basis.span (identity_minor_projected_rows_linearIndependent (F := F) Φ pack κ)
+
+/-- The named basis vector is exactly the corresponding projected identity-minor
+row, viewed inside the projected-minor span. -/
+theorem projectedIdentityMinorBasis_apply
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    ((projectedIdentityMinorBasis (F := F) Φ pack κ i :
+        projectedIdentityMinorSpan (F := F) Φ pack κ) :
+      MvPolynomial (Fin (tseitinNumVars Φ)) F) =
+      mlProj (IdentityMinor.rowPoly F Φ pack κ i) := by
+  exact Module.Basis.span_apply
+    (identity_minor_projected_rows_linearIndependent (F := F) Φ pack κ) i
+
+/-- The identity-minor sign is self-inverse.  This turns the signed
+Kronecker minor into an honest dual coordinate system. -/
+theorem subsetSign_mul_self {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    IdentityMinor.subsetSign F Φ pack κ i *
+      IdentityMinor.subsetSign F Φ pack κ i = 1 := by
+  rcases IdentityMinor.subsetSign_unit (F := F) Φ pack κ i with h | h <;> rw [h] <;> ring
+
+/-- Signed coefficient functional dual to a projected identity-minor basis row.
+It first extracts the private tag coefficient and then multiplies by the same
+`±1` sign, using `sign² = 1` to normalize the diagonal to one. -/
+noncomputable def projectedIdentityMinorDual {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (j : Fin (Nat.choose pack.selected.length κ)) :
+    projectedIdentityMinorSpan (F := F) Φ pack κ →ₗ[F] F :=
+  (IdentityMinor.subsetSign F Φ pack κ j) •
+    ((coeffLin F (IdentityMinor.tagMono F Φ pack κ j)).comp
+      (Submodule.subtype (projectedIdentityMinorSpan (F := F) Φ pack κ)))
+
+/-- The signed tag coefficient functionals are exactly dual to the projected
+identity-minor basis.  This is the explicit Kronecker coordinate form of the
+projected minor and is the cleanest object for later Π+ transport. -/
+theorem projectedIdentityMinorDual_basis_apply
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i j : Fin (Nat.choose pack.selected.length κ)) :
+    projectedIdentityMinorDual (F := F) Φ pack κ j
+      (projectedIdentityMinorBasis (F := F) Φ pack κ i) =
+      if i = j then (1 : F) else 0 := by
+  dsimp [projectedIdentityMinorDual]
+  rw [projectedIdentityMinorBasis_apply]
+  simp only [coeffLin, LinearMap.coe_mk, AddHom.coe_mk]
+  rw [identity_minor_projected_kronecker_delta (F := F) Φ pack κ j i]
+  by_cases h : i = j
+  · subst i
+    simp [subsetSign_mul_self (F := F) Φ pack κ j]
+  · have hji : ¬ j = i := by exact fun h' => h h'.symm
+    simp [h, hji]
 
 /-- The projected identity-minor row span is contained in the multilinear SPDP
 subspace whenever the selector derivative lists are block-admissible.  This is
@@ -3201,6 +3265,11 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms identity_minor_projected_rows_linearIndependent
 #print axioms identity_minor_projected_rows_span_finrank
 #print axioms projectedIdentityMinorSpan_finite
+#print axioms projectedIdentityMinorBasis
+#print axioms projectedIdentityMinorBasis_apply
+#print axioms subsetSign_mul_self
+#print axioms projectedIdentityMinorDual
+#print axioms projectedIdentityMinorDual_basis_apply
 #print axioms identity_minor_projected_rows_span_le_mlSubspace
 #print axioms identity_minor_projected_rows_span_le_mlSubspaceInc
 #print axioms identity_minor_projected_rank_lower_from_span
