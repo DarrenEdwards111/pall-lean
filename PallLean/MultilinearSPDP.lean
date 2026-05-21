@@ -755,6 +755,34 @@ theorem projectedIdentityMinorDual_basis_apply
   · have hji : ¬ j = i := by exact fun h' => h h'.symm
     simp [h, hji]
 
+/-- The signed coefficient functional is exactly the `j`th coordinate map
+of the projected identity-minor basis. -/
+theorem projectedIdentityMinorDual_eq_basis_repr_coord
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (j : Fin (Nat.choose pack.selected.length κ)) :
+    projectedIdentityMinorDual (F := F) Φ pack κ j =
+      ((Finsupp.lapply j : (Fin (Nat.choose pack.selected.length κ) →₀ F) →ₗ[F] F).comp
+        (projectedIdentityMinorBasis (F := F) Φ pack κ).repr.toLinearMap) := by
+  apply Module.Basis.ext (projectedIdentityMinorBasis (F := F) Φ pack κ)
+  intro i
+  rw [projectedIdentityMinorDual_basis_apply]
+  simp only [LinearMap.coe_comp, LinearEquiv.coe_coe, Function.comp_apply, Finsupp.lapply_apply]
+  rw [Module.Basis.repr_self_apply]
+
+/-- Reconstruction in the projected identity-minor witness subspace: every
+witness vector is the finite sum of its signed tag coefficients times the
+projected identity-minor basis rows. -/
+theorem projectedIdentityMinor_dual_reconstruction
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (x : projectedIdentityMinorSpan (F := F) Φ pack κ) :
+    (∑ i : Fin (Nat.choose pack.selected.length κ),
+      projectedIdentityMinorDual (F := F) Φ pack κ i x •
+        projectedIdentityMinorBasis (F := F) Φ pack κ i) = x := by
+  simp [projectedIdentityMinorDual_eq_basis_repr_coord,
+    Module.Basis.sum_repr (projectedIdentityMinorBasis (F := F) Φ pack κ) x]
+
 /-- The projected identity-minor row span is contained in the multilinear SPDP
 subspace whenever the selector derivative lists are block-admissible.  This is
 the clean span-level form of the paper's NP-window preservation: the whole
@@ -3270,6 +3298,8 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms subsetSign_mul_self
 #print axioms projectedIdentityMinorDual
 #print axioms projectedIdentityMinorDual_basis_apply
+#print axioms projectedIdentityMinorDual_eq_basis_repr_coord
+#print axioms projectedIdentityMinor_dual_reconstruction
 #print axioms identity_minor_projected_rows_span_le_mlSubspace
 #print axioms identity_minor_projected_rows_span_le_mlSubspaceInc
 #print axioms identity_minor_projected_rank_lower_from_span
