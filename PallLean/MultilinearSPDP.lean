@@ -652,6 +652,76 @@ theorem identity_minor_projected_rank_lower_inc {F : Type*} [Field F] [Nontrivia
     rcases hsigns a with hs | hs <;> rw [hs] at h0 <;> simp at h0 <;> exact h0
   exact finrank_ge_of_linearIndependent mlV _ R' hli
 
+/-- Canonical-partition specialization of the projected identity-minor lower
+bound for the coupled Tseitin verifier.  Selector lists are admissible in
+`IdentityMinor.tseitinPartition`, so the generic projected rank theorem applies
+without an external admissibility hypothesis. -/
+theorem coupledVerifier_projected_identity_minor_rank_lower {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hκ : κ ≤ pack.selected.length) :
+    mlBlockedSpdpRank (IdentityMinor.tseitinPartition Φ) κ ℓ (coupledVerifier F Φ) ≥
+      Nat.choose pack.selected.length κ := by
+  exact identity_minor_projected_rank_lower (F := F) Φ (IdentityMinor.tseitinPartition Φ)
+    pack κ ℓ hκ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+/-- Inclusive-window canonical-partition specialization of the same coupled
+verifier identity-minor lower bound. -/
+theorem coupledVerifier_projected_identity_minor_rank_lower_inc {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hκ : κ ≤ pack.selected.length) :
+    mlBlockedSpdpRankInc (IdentityMinor.tseitinPartition Φ) κ ℓ (coupledVerifier F Φ) ≥
+      Nat.choose pack.selected.length κ := by
+  exact identity_minor_projected_rank_lower_inc (F := F) Φ (IdentityMinor.tseitinPartition Φ)
+    pack κ ℓ hκ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+/-- Concrete Tseitin-family version: the disjoint-packing construction gives at
+least `n/30` private clauses, hence the projected multilinear identity minor has
+rank at least `choose (n/30) (log₂ n)` for the coupled verifier. -/
+theorem tseitinAt_coupledVerifier_projected_rank_lower_choose_div30
+    (F : Type*) [Field F] [Nontrivial F]
+    (n : ℕ) (hn1024 : n ≥ 2^10) (heven : 2 ∣ n) :
+    Nat.choose (n / 30) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) (Nat.log 2 n) (coupledVerifier F (tseitinAt n)) := by
+  have hv := tseitinAt_vertices n (by omega) heven
+  have pack := Tseitin.disjoint_packing_exists (tseitinAt n) (by omega)
+  let κ := Nat.log 2 n
+  have hκ : κ ≤ pack.selected.length := by
+    have hps := pack.size_bound; rw [hv] at hps
+    exact (log2_le_div30 n (by linarith [show (2:ℕ)^10 = 1024 from by norm_num])).trans hps
+  have hrank : mlBlockedSpdpRank (IdentityMinor.tseitinPartition (tseitinAt n)) κ κ
+      (coupledVerifier F (tseitinAt n)) ≥ Nat.choose pack.selected.length κ := by
+    exact coupledVerifier_projected_identity_minor_rank_lower (F := F) (tseitinAt n) pack κ κ hκ
+  have hchoose : Nat.choose (n / 30) κ ≤ Nat.choose pack.selected.length κ := by
+    apply Nat.choose_le_choose
+    have hps := pack.size_bound; rw [hv] at hps; exact hps
+  exact le_trans hchoose hrank
+
+/-- Inclusive-window concrete Tseitin-family version, with arbitrary shift degree
+`ℓ`.  This is the direct paper-window form of the coupled-verifier NP-side
+minor lower bound. -/
+theorem tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_inc
+    (F : Type*) [Field F] [Nontrivial F]
+    (n : ℕ) (hn1024 : n ≥ 2^10) (heven : 2 ∣ n) (ℓ : ℕ) :
+    Nat.choose (n / 30) (Nat.log 2 n) ≤
+      mlBlockedSpdpRankInc (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) ℓ (coupledVerifier F (tseitinAt n)) := by
+  have hv := tseitinAt_vertices n (by omega) heven
+  have pack := Tseitin.disjoint_packing_exists (tseitinAt n) (by omega)
+  let κ := Nat.log 2 n
+  have hκ : κ ≤ pack.selected.length := by
+    have hps := pack.size_bound; rw [hv] at hps
+    exact (log2_le_div30 n (by linarith [show (2:ℕ)^10 = 1024 from by norm_num])).trans hps
+  have hrank : mlBlockedSpdpRankInc (IdentityMinor.tseitinPartition (tseitinAt n)) κ ℓ
+      (coupledVerifier F (tseitinAt n)) ≥ Nat.choose pack.selected.length κ := by
+    exact coupledVerifier_projected_identity_minor_rank_lower_inc (F := F) (tseitinAt n) pack κ ℓ hκ
+  have hchoose : Nat.choose (n / 30) κ ≤ Nat.choose pack.selected.length κ := by
+    apply Nat.choose_le_choose
+    have hps := pack.size_bound; rw [hv] at hps; exact hps
+  exact le_trans hchoose hrank
+
 theorem np_ml_lower_bound (F : Type*) [Field F] [Nontrivial F] :
     ∃ n₀, ∀ n, n ≥ n₀ → 2 ∣ n →
       mlBlockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
@@ -2528,6 +2598,10 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms identity_minor_components_kronecker_after_mlProj
 #print axioms identity_minor_projected_rank_lower
 #print axioms identity_minor_projected_rank_lower_inc
+#print axioms coupledVerifier_projected_identity_minor_rank_lower
+#print axioms coupledVerifier_projected_identity_minor_rank_lower_inc
+#print axioms tseitinAt_coupledVerifier_projected_rank_lower_choose_div30
+#print axioms tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_inc
 #print axioms mlBlockedSpdpSubspace_le_inc
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms mlBlockedSpdpSubspaceInc_eq_iSup
