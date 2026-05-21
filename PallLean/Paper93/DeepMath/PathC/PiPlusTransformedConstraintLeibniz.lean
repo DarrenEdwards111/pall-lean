@@ -252,6 +252,36 @@ theorem mlProj_mul_iterDerivList_piPlusBooleanProjectedTransformedConstraintFact
     (iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_distribSpan
       M n hn2 htb hns D S)
 
+/-- Submodule absorption form of the transformed constraint-product Leibniz
+expansion.  To prove the projected product row lies in a target row space `W`,
+it suffices to prove that every distributed Leibniz generator row lies in `W`.
+This is the exact assembly rule needed after local Booleanity/rest certificates
+classify the distributed factors. -/
+theorem mlProj_mul_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_of_distribRows
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (S : List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+    (m : SATDeciderGaugeSpace M n hn2 htb hns)
+    (W : Submodule ℚ (SATDeciderGaugeSpace M n hn2 htb hns))
+    (hgen : ∀ q ∈ distribDerivProds Finset.univ
+          (fun i : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+              M n hn2 htb hns D).length =>
+            (piPlusBooleanProjectedTransformedConstraintFactors
+              M n hn2 htb hns D)[i.val]) S,
+        mlProj (m * q) ∈ W) :
+    mlProj (m * iterDerivList S
+        (piPlusBooleanProjectedTransformedConstraintFactors
+          M n hn2 htb hns D).prod) ∈ W := by
+  classical
+  have hrow :=
+    mlProj_mul_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_distribSpan_image
+      M n hn2 htb hns D S m
+  exact (Submodule.span_le.mpr (by
+    intro x hx
+    rcases hx with ⟨q, hq, rfl⟩
+    exact hgen q hq)) hrow
+
 /-- Paper-scale Leibniz expansion for the product of transformed local
 Cook--Levin constraint factors. -/
 theorem paperScale_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_distribSpan
@@ -290,6 +320,26 @@ theorem paperScale_mlProj_mul_iterDerivList_piPlusBooleanProjectedTransformedCon
     M (2 ^ 804) paperScale_ge_two htb hns
     (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) S m
 
+/-- Paper-scale submodule absorption form of the transformed constraint-product
+Leibniz expansion. -/
+theorem paperScale_mlProj_mul_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_of_distribRows
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (S : List (Fin (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars))
+    (m : SATDeciderGaugeSpace M (2 ^ 804) paperScale_ge_two htb hns)
+    (W : Submodule ℚ (SATDeciderGaugeSpace M (2 ^ 804) paperScale_ge_two htb hns))
+    (hgen : ∀ q ∈ distribDerivProds Finset.univ
+          (fun i : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+              M htb hns).length =>
+            (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+              M htb hns)[i.val]) S,
+        mlProj (m * q) ∈ W) :
+    mlProj (m * iterDerivList S
+        (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+          M htb hns).prod) ∈ W := by
+  exact mlProj_mul_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_of_distribRows
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) S m W hgen
+
 /-! ## Axiom audit anchors -/
 
 #print axioms liftToBool_iterDerivList_finset_prod_mem_span_image
@@ -300,7 +350,9 @@ theorem paperScale_mlProj_mul_iterDerivList_piPlusBooleanProjectedTransformedCon
 #print axioms paperScale_liftToBool_mul_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_distribSpan_image
 #print axioms iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_distribSpan
 #print axioms mlProj_mul_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_distribSpan_image
+#print axioms mlProj_mul_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_of_distribRows
 #print axioms paperScale_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_distribSpan
 #print axioms paperScale_mlProj_mul_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_distribSpan_image
+#print axioms paperScale_mlProj_mul_iterDerivList_piPlusBooleanProjectedTransformedConstraintFactors_prod_mem_of_distribRows
 
 end PallLean.Paper93.DeepMath.PathC
