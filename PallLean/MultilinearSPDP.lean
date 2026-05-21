@@ -1587,6 +1587,73 @@ theorem projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_injective
     (F := F) Φ B pack κ ℓ hB b
   rw [← ha, ← hb, hab]
 
+/-- Rank lower bound from the explicit split injection of private-tag coordinate
+space into the strict SPDP row space.  This is independent of the quotient-map
+proof: it uses the constructed linear right-inverse as an actual embedding. -/
+theorem nat_choose_le_finrank_mlBlockedSpdpSubspace_from_rightInverse
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    Nat.choose pack.selected.length κ ≤
+      Module.finrank F (mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ)) := by
+  have h := LinearMap.finrank_le_finrank_of_injective
+    (f := projectedIdentityMinorTagCoeffRightInverseToMlSubspace
+      (F := F) Φ B pack κ ℓ hB)
+    (projectedIdentityMinorTagCoeffRightInverseToMlSubspace_injective
+      (F := F) Φ B pack κ ℓ hB)
+  rw [projectedIdentityMinor_tagCoeffSpace_finrank (F := F) Φ pack κ] at h
+  exact h
+
+/-- Inclusive-window rank lower bound from the explicit split injection. -/
+theorem nat_choose_le_finrank_mlBlockedSpdpSubspaceInc_from_rightInverse
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    Nat.choose pack.selected.length κ ≤
+      Module.finrank F (mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ)) := by
+  have h := LinearMap.finrank_le_finrank_of_injective
+    (f := projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc
+      (F := F) Φ B pack κ ℓ hB)
+    (projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_injective
+      (F := F) Φ B pack κ ℓ hB)
+  rw [projectedIdentityMinor_tagCoeffSpace_finrank (F := F) Φ pack κ] at h
+  exact h
+
+/-- Strict SPDP rank lower bound from the explicit split injection. -/
+theorem identity_minor_projected_rank_lower_from_rightInverse
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    mlBlockedSpdpRank B κ ℓ (coupledVerifier F Φ) ≥
+      Nat.choose pack.selected.length κ := by
+  dsimp [mlBlockedSpdpRank]
+  exact nat_choose_le_finrank_mlBlockedSpdpSubspace_from_rightInverse
+    (F := F) Φ B pack κ ℓ hB
+
+/-- Inclusive SPDP rank lower bound from the explicit split injection. -/
+theorem identity_minor_projected_rank_lower_inc_from_rightInverse
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    mlBlockedSpdpRankInc B κ ℓ (coupledVerifier F Φ) ≥
+      Nat.choose pack.selected.length κ := by
+  dsimp [mlBlockedSpdpRankInc]
+  exact nat_choose_le_finrank_mlBlockedSpdpSubspaceInc_from_rightInverse
+    (F := F) Φ B pack κ ℓ hB
+
+
 
 /-- Quotient-map proof that the strict multilinear SPDP row subspace has
 finrank at least the projected identity-minor dimension.  This avoids using the
@@ -2081,6 +2148,127 @@ theorem coupledVerifierProjectedTagCoeffRightInverseInc_injective
   exact projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_injective
     (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
     (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+
+/-- Canonical strict rank lower bound from the split injection of private-tag
+coordinates into the canonical coupled-verifier SPDP row space. -/
+theorem coupledVerifier_projected_identity_minor_rank_lower_from_rightInverse
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    mlBlockedSpdpRank (IdentityMinor.tseitinPartition Φ) κ ℓ (coupledVerifier F Φ) ≥
+      Nat.choose pack.selected.length κ := by
+  exact identity_minor_projected_rank_lower_from_rightInverse
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+/-- Canonical inclusive rank lower bound from the split injection. -/
+theorem coupledVerifier_projected_identity_minor_rank_lower_inc_from_rightInverse
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    mlBlockedSpdpRankInc (IdentityMinor.tseitinPartition Φ) κ ℓ (coupledVerifier F Φ) ≥
+      Nat.choose pack.selected.length κ := by
+  exact identity_minor_projected_rank_lower_inc_from_rightInverse
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+/-- Concrete Tseitin choose-bound proved via the split injection route. -/
+theorem tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_from_rightInverse
+    (F : Type*) [Field F] [Nontrivial F]
+    (n : ℕ) (hn1024 : n ≥ 2^10) (heven : 2 ∣ n) :
+    Nat.choose (n / 30) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) (Nat.log 2 n) (coupledVerifier F (tseitinAt n)) := by
+  have hv := tseitinAt_vertices n (by omega) heven
+  have pack := Tseitin.disjoint_packing_exists (tseitinAt n) (by omega)
+  have hpack : n / 30 ≤ pack.selected.length := by
+    have hps := pack.size_bound
+    rw [hv] at hps
+    exact hps
+  exact le_trans (Nat.choose_le_choose (Nat.log 2 n) hpack)
+    (coupledVerifier_projected_identity_minor_rank_lower_from_rightInverse
+      (F := F) (tseitinAt n) pack (Nat.log 2 n) (Nat.log 2 n))
+
+/-- Inclusive concrete Tseitin choose-bound proved via the split injection route. -/
+theorem tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_inc_from_rightInverse
+    (F : Type*) [Field F] [Nontrivial F]
+    (n : ℕ) (hn1024 : n ≥ 2^10) (heven : 2 ∣ n) (ℓ : ℕ) :
+    Nat.choose (n / 30) (Nat.log 2 n) ≤
+      mlBlockedSpdpRankInc (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) ℓ (coupledVerifier F (tseitinAt n)) := by
+  have hv := tseitinAt_vertices n (by omega) heven
+  have pack := Tseitin.disjoint_packing_exists (tseitinAt n) (by omega)
+  have hpack : n / 30 ≤ pack.selected.length := by
+    have hps := pack.size_bound
+    rw [hv] at hps
+    exact hps
+  exact le_trans (Nat.choose_le_choose (Nat.log 2 n) hpack)
+    (coupledVerifier_projected_identity_minor_rank_lower_inc_from_rightInverse
+      (F := F) (tseitinAt n) pack (Nat.log 2 n) ℓ)
+
+/-- Concrete-threshold super-polynomial lower bound via the split injection route. -/
+theorem tseitinAt_coupledVerifier_projected_rank_lower_superpoly_from_rightInverse
+    (F : Type*) [Field F] [Nontrivial F]
+    (n : ℕ) (hn : n ≥ 2 ^ 804) (heven : 2 ∣ n) :
+      mlBlockedSpdpRank (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) (Nat.log 2 n) (coupledVerifier F (tseitinAt n)) ≥
+          n ^ (Nat.log 2 n / 4) := by
+  have hn1024 : n ≥ 2^10 := by
+    have : (2 : ℕ) ^ 10 ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+    exact le_trans this hn
+  have hn20 : n ≥ 2 ^ 20 := le_trans (by
+    exact Nat.pow_le_pow_right (by omega : 1 ≤ (2 : ℕ)) (by omega : 20 ≤ 804)) hn
+  exact le_trans (BinomialBound.binomial_lower_bound_concrete n hn20)
+    (tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_from_rightInverse
+      F n hn1024 heven)
+
+/-- Inclusive concrete-threshold super-polynomial lower bound via the split
+injection route. -/
+theorem tseitinAt_coupledVerifier_projected_rank_lower_superpoly_inc_from_rightInverse
+    (F : Type*) [Field F] [Nontrivial F]
+    (n : ℕ) (hn : n ≥ 2 ^ 804) (heven : 2 ∣ n) (ℓ : ℕ) :
+      mlBlockedSpdpRankInc (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) ℓ (coupledVerifier F (tseitinAt n)) ≥
+          n ^ (Nat.log 2 n / 4) := by
+  have hn1024 : n ≥ 2^10 := by
+    have : (2 : ℕ) ^ 10 ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+    exact le_trans this hn
+  have hn20 : n ≥ 2 ^ 20 := le_trans (by
+    exact Nat.pow_le_pow_right (by omega : 1 ≤ (2 : ℕ)) (by omega : 20 ≤ 804)) hn
+  exact le_trans (BinomialBound.binomial_lower_bound_concrete n hn20)
+    (tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_inc_from_rightInverse
+      F n hn1024 heven ℓ)
+
+/-- Asymptotic super-polynomial lower bound via the split injection route. -/
+theorem coupledVerifier_projected_rank_lower_superpoly_from_rightInverse
+    (F : Type*) [Field F] [Nontrivial F] :
+    ∃ n₀, ∀ n, n ≥ n₀ → 2 ∣ n →
+      mlBlockedSpdpRank (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) (Nat.log 2 n) (coupledVerifier F (tseitinAt n)) ≥
+          n ^ (Nat.log 2 n / 4) := by
+  obtain ⟨n₀, hn₀⟩ := NPWitness.binomial_lower_bound
+  use max n₀ (2^10)
+  intro n hn heven
+  have hn₀' : n ≥ n₀ := le_trans (le_max_left _ _) hn
+  have hn1024 : n ≥ 2^10 := le_trans (le_max_right _ _) hn
+  exact le_trans (hn₀ n hn₀')
+    (tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_from_rightInverse
+      F n hn1024 heven)
+
+/-- Inclusive asymptotic super-polynomial lower bound via the split injection route. -/
+theorem coupledVerifier_projected_rank_lower_superpoly_inc_from_rightInverse
+    (F : Type*) [Field F] [Nontrivial F] (ℓ : ℕ) :
+    ∃ n₀, ∀ n, n ≥ n₀ → 2 ∣ n →
+      mlBlockedSpdpRankInc (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) ℓ (coupledVerifier F (tseitinAt n)) ≥
+          n ^ (Nat.log 2 n / 4) := by
+  obtain ⟨n₀, hn₀⟩ := NPWitness.binomial_lower_bound
+  use max n₀ (2^10)
+  intro n hn heven
+  have hn₀' : n ≥ n₀ := le_trans (le_max_left _ _) hn
+  have hn1024 : n ≥ 2^10 := le_trans (le_max_right _ _) hn
+  exact le_trans (hn₀ n hn₀')
+    (tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_inc_from_rightInverse
+      F n hn1024 heven ℓ)
 
 
 
@@ -4603,6 +4791,10 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_apply_tagCoeff
 #print axioms projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_coeff
 #print axioms projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc_injective
+#print axioms nat_choose_le_finrank_mlBlockedSpdpSubspace_from_rightInverse
+#print axioms nat_choose_le_finrank_mlBlockedSpdpSubspaceInc_from_rightInverse
+#print axioms identity_minor_projected_rank_lower_from_rightInverse
+#print axioms identity_minor_projected_rank_lower_inc_from_rightInverse
 #print axioms nat_choose_le_finrank_mlBlockedSpdpSubspace_from_tag_quotient
 #print axioms nat_choose_le_finrank_mlBlockedSpdpSubspaceInc_from_tag_quotient
 #print axioms identity_minor_projected_rank_lower_from_tag_quotient
@@ -4627,6 +4819,14 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms coupledVerifierProjectedTagCoeffRightInverseInc_apply_tagCoeff
 #print axioms coupledVerifierProjectedTagCoeffRightInverseInc_coeff
 #print axioms coupledVerifierProjectedTagCoeffRightInverseInc_injective
+#print axioms coupledVerifier_projected_identity_minor_rank_lower_from_rightInverse
+#print axioms coupledVerifier_projected_identity_minor_rank_lower_inc_from_rightInverse
+#print axioms tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_from_rightInverse
+#print axioms tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_inc_from_rightInverse
+#print axioms tseitinAt_coupledVerifier_projected_rank_lower_superpoly_from_rightInverse
+#print axioms tseitinAt_coupledVerifier_projected_rank_lower_superpoly_inc_from_rightInverse
+#print axioms coupledVerifier_projected_rank_lower_superpoly_from_rightInverse
+#print axioms coupledVerifier_projected_rank_lower_superpoly_inc_from_rightInverse
 #print axioms coupledVerifier_projected_identity_minor_span_finrank
 #print axioms tseitinAt_projected_identity_minor_subspace_certificate
 #print axioms tseitinAt_projected_identity_minor_subspace_certificate_inc
