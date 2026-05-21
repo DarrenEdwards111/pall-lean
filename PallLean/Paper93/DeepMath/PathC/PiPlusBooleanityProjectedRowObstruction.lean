@@ -671,6 +671,156 @@ theorem mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_true_pderiv_false_booleanProje
     simpa [Algebra.smul_def] using h2'
   exact S.neg_mem h2
 
+/-- Variable-level one-hit derivative residue certificate for an actual
+Cook--Levin Booleanity factor.  Unlike the block-index lemmas above, this is
+stated directly for an arbitrary SAT variable `v`; the residue span is selected
+from `v`'s `Π+` block coordinates. -/
+def PiPlusBooleanProjectedBooleanityFactorOneHitDerivativeResidueCertificate
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (v : Fin (cook_levin_compilation M n hn2 htb hns).numVars) : Prop :=
+  mlProj
+    ((piPlusSATBlockAlgEquiv M n hn2 htb hns D).symm
+      (pderiv v
+        (zeroProfileBooleanNormalize
+          (piPlusSATBlockAlgEquiv M n hn2 htb hns D
+            (((1 : MvPolynomial
+                (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ) -
+              X v * (1 - X v)) :
+              SATDeciderGaugeSpace M n hn2 htb hns))))) ∈
+    SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D v
+
+/-- Variable-level one-hit derivative residue payload for all Cook--Levin SAT
+variables. -/
+def CookLevinBooleanityFactorOneHitDerivativeResiduePayload
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns) : Prop :=
+  ∀ v : Fin (cook_levin_compilation M n hn2 htb hns).numVars,
+    PiPlusBooleanProjectedBooleanityFactorOneHitDerivativeResidueCertificate
+      M n hn2 htb hns D v
+
+/-- The one-hit derivative residue payload is unconditional.  The proof splits
+an arbitrary SAT variable into its false/true coordinate in the concrete `Π+`
+block chart and then consumes the lifted block derivative certificates. -/
+theorem cookLevinBooleanityFactorOneHitDerivativeResiduePayload_unconditional
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns) :
+    CookLevinBooleanityFactorOneHitDerivativeResiduePayload M n hn2 htb hns D := by
+  intro v
+  let i : D.blockIndex := (D.coord v).1
+  by_cases hb : (D.coord v).2 = false
+  · have hpair : D.coord v = (i, false) := by
+      apply Prod.ext
+      · simp [i]
+      · exact hb
+    have hv : v = satBlockFalse M n hn2 htb hns D i := by
+      apply D.coord.injective
+      rw [hpair]
+      simp [satBlockFalse]
+    rw [hv]
+    unfold PiPlusBooleanProjectedBooleanityFactorOneHitDerivativeResidueCertificate
+    exact mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_false_booleanProjected_booleanity_false_mem_residueSpan
+      M n hn2 htb hns D i
+  · have hbtrue : (D.coord v).2 = true := by
+      cases h : (D.coord v).2 with
+      | false => exact False.elim (hb h)
+      | true => rfl
+    have hpair : D.coord v = (i, true) := by
+      apply Prod.ext
+      · simp [i]
+      · exact hbtrue
+    have hv : v = satBlockTrue M n hn2 htb hns D i := by
+      apply D.coord.injective
+      rw [hpair]
+      simp [satBlockTrue]
+    rw [hv]
+    unfold PiPlusBooleanProjectedBooleanityFactorOneHitDerivativeResidueCertificate
+    exact mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_true_booleanProjected_booleanity_true_mem_residueSpan
+      M n hn2 htb hns D i
+
+/-- Mixed two-hit derivative residue payload at block granularity: for each
+`Π+` block, both actual Booleanity factors survive the `false`/`true` mixed
+Leibniz allocation only as scalar residues in the corrected SAT residue span. -/
+def CookLevinBooleanityFactorMixedDerivativeResiduePayload
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns) : Prop :=
+  ∀ i : D.blockIndex,
+    mlProj
+      ((piPlusSATBlockAlgEquiv M n hn2 htb hns D).symm
+        (pderiv (satBlockTrue M n hn2 htb hns D i)
+          (pderiv (satBlockFalse M n hn2 htb hns D i)
+            (zeroProfileBooleanNormalize
+              (piPlusSATBlockAlgEquiv M n hn2 htb hns D
+                (((1 : MvPolynomial
+                    (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ) -
+                  X (satBlockFalse M n hn2 htb hns D i) *
+                    (1 - X (satBlockFalse M n hn2 htb hns D i))) :
+                  SATDeciderGaugeSpace M n hn2 htb hns)))))) ∈
+      SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D
+        (satBlockFalse M n hn2 htb hns D i)
+    ∧
+    mlProj
+      ((piPlusSATBlockAlgEquiv M n hn2 htb hns D).symm
+        (pderiv (satBlockTrue M n hn2 htb hns D i)
+          (pderiv (satBlockFalse M n hn2 htb hns D i)
+            (zeroProfileBooleanNormalize
+              (piPlusSATBlockAlgEquiv M n hn2 htb hns D
+                (((1 : MvPolynomial
+                    (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ) -
+                  X (satBlockTrue M n hn2 htb hns D i) *
+                    (1 - X (satBlockTrue M n hn2 htb hns D i))) :
+                  SATDeciderGaugeSpace M n hn2 htb hns)))))) ∈
+      SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D
+        (satBlockTrue M n hn2 htb hns D i)
+
+/-- The mixed two-hit derivative residue payload is unconditional, by the
+explicit SAT-coordinate scalar residue calculations `2` and `-2`. -/
+theorem cookLevinBooleanityFactorMixedDerivativeResiduePayload_unconditional
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns) :
+    CookLevinBooleanityFactorMixedDerivativeResiduePayload M n hn2 htb hns D := by
+  intro i
+  exact ⟨
+    mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_true_pderiv_false_booleanProjected_booleanity_false_mem_residueSpan
+      M n hn2 htb hns D i,
+    mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_true_pderiv_false_booleanProjected_booleanity_true_mem_residueSpan
+      M n hn2 htb hns D i⟩
+
+/-- Paper-scale one-hit derivative residue payload. -/
+abbrev PaperScaleCookLevinBooleanityFactorOneHitDerivativeResiduePayload
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) : Prop :=
+  CookLevinBooleanityFactorOneHitDerivativeResiduePayload
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+
+/-- Paper-scale mixed two-hit derivative residue payload. -/
+abbrev PaperScaleCookLevinBooleanityFactorMixedDerivativeResiduePayload
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) : Prop :=
+  CookLevinBooleanityFactorMixedDerivativeResiduePayload
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+
+/-- Paper-scale one-hit derivative residue payload is unconditional. -/
+theorem paperScale_cookLevinBooleanityFactorOneHitDerivativeResiduePayload_unconditional
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) :
+    PaperScaleCookLevinBooleanityFactorOneHitDerivativeResiduePayload M htb hns :=
+  cookLevinBooleanityFactorOneHitDerivativeResiduePayload_unconditional
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+
+/-- Paper-scale mixed two-hit derivative residue payload is unconditional. -/
+theorem paperScale_cookLevinBooleanityFactorMixedDerivativeResiduePayload_unconditional
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) :
+    PaperScaleCookLevinBooleanityFactorMixedDerivativeResiduePayload M htb hns :=
+  cookLevinBooleanityFactorMixedDerivativeResiduePayload_unconditional
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+
 /-- Uniform rank payload for corrected Booleanity residue spans.  This packages
 local residue absorption at the same granularity as the Booleanity span surface:
 each actual Booleanity row may land in a three-dimensional block-local residue
@@ -849,6 +999,10 @@ theorem paperScale_booleanityProjectedRows_of_spanPayload_reduction
 #print axioms mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_true_pderiv_false_booleanProjected_booleanity_true_actualForm
 #print axioms mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_true_pderiv_false_booleanProjected_booleanity_false_mem_residueSpan
 #print axioms mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_true_pderiv_false_booleanProjected_booleanity_true_mem_residueSpan
+#print axioms cookLevinBooleanityFactorOneHitDerivativeResiduePayload_unconditional
+#print axioms cookLevinBooleanityFactorMixedDerivativeResiduePayload_unconditional
+#print axioms paperScale_cookLevinBooleanityFactorOneHitDerivativeResiduePayload_unconditional
+#print axioms paperScale_cookLevinBooleanityFactorMixedDerivativeResiduePayload_unconditional
 #print axioms cookLevinBooleanityFactorProjectedSpanPayload_unconditional
 #print axioms paperScale_cookLevinBooleanityFactorProjectedSpanPayload_unconditional
 #print axioms one_mem_SATBlockBooleanityActualProjectedResidueSpan
