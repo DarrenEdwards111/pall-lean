@@ -991,7 +991,7 @@ noncomputable def projectedIdentityMinorSignEquiv
   map_smul' := by
     intro c a
     ext i
-    simp [Pi.smul_apply, smul_eq_mul, mul_assoc, mul_comm, mul_left_comm]
+    simp [Pi.smul_apply, smul_eq_mul, mul_assoc, mul_comm]
 
 /-- The private tag coefficient map is a linear equivalence from the projected
 identity-minor span to the standard coordinate space.  It is the usual basis
@@ -1025,6 +1025,53 @@ theorem projectedIdentityMinorTagCoeffEquiv_injective
     (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ) :
     Function.Injective (projectedIdentityMinorTagCoeffEquiv (F := F) Φ pack κ) :=
   (projectedIdentityMinorTagCoeffEquiv (F := F) Φ pack κ).injective
+
+
+/-- Explicit inverse for the tag-coefficient equivalence: prescribed private-tag
+coordinates `a` are realized by the signed sum of projected basis rows. -/
+theorem projectedIdentityMinorTagCoeffEquiv_symm_apply
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (a : Fin (Nat.choose pack.selected.length κ) → F) :
+    (projectedIdentityMinorTagCoeffEquiv (F := F) Φ pack κ).symm a =
+      ∑ i : Fin (Nat.choose pack.selected.length κ),
+        (IdentityMinor.subsetSign F Φ pack κ i * a i) •
+          projectedIdentityMinorBasis (F := F) Φ pack κ i := by
+  dsimp [projectedIdentityMinorTagCoeffEquiv, projectedIdentityMinorSignEquiv]
+  rw [Module.Basis.equivFun_symm_apply]
+
+/-- Prescribed tag coordinates are realized exactly: extracting private tag
+coefficients from the explicit inverse of the tag-coordinate equivalence returns
+the original coordinate function. -/
+theorem projectedIdentityMinorTagCoeffEquiv_apply_symm
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (a : Fin (Nat.choose pack.selected.length κ) → F)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+      (((projectedIdentityMinorTagCoeffEquiv (F := F) Φ pack κ).symm a :
+          projectedIdentityMinorSpan (F := F) Φ pack κ) :
+        MvPolynomial (Fin (tseitinNumVars Φ)) F) = a i := by
+  rw [← projectedIdentityMinorTagCoeffEquiv_apply (F := F) Φ pack κ
+    ((projectedIdentityMinorTagCoeffEquiv (F := F) Φ pack κ).symm a) i]
+  simp
+
+/-- Concrete prescribed-coordinate realization without mentioning `.symm`: the
+signed basis sum has private tag coefficient `a i`. -/
+theorem coeff_tagMono_projectedIdentityMinor_signed_basis_sum
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (a : Fin (Nat.choose pack.selected.length κ) → F)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+      (((∑ j : Fin (Nat.choose pack.selected.length κ),
+          (IdentityMinor.subsetSign F Φ pack κ j * a j) •
+            projectedIdentityMinorBasis (F := F) Φ pack κ j :
+          projectedIdentityMinorSpan (F := F) Φ pack κ) :
+        projectedIdentityMinorSpan (F := F) Φ pack κ) :
+        MvPolynomial (Fin (tseitinNumVars Φ)) F) = a i := by
+  rw [← projectedIdentityMinorTagCoeffEquiv_symm_apply (F := F) Φ pack κ a]
+  exact projectedIdentityMinorTagCoeffEquiv_apply_symm (F := F) Φ pack κ a i
 
 
 /-- Coefficient reconstruction: every vector in the projected minor span is the
@@ -3624,6 +3671,9 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms projectedIdentityMinorTagCoeffEquiv
 #print axioms projectedIdentityMinorTagCoeffEquiv_apply
 #print axioms projectedIdentityMinorTagCoeffEquiv_injective
+#print axioms projectedIdentityMinorTagCoeffEquiv_symm_apply
+#print axioms projectedIdentityMinorTagCoeffEquiv_apply_symm
+#print axioms coeff_tagMono_projectedIdentityMinor_signed_basis_sum
 #print axioms projectedIdentityMinor_coeff_reconstruction
 #print axioms projectedIdentityMinor_eq_zero_of_forall_tag_coeff_zero
 #print axioms projectedIdentityMinor_ext_of_forall_tag_coeff_eq
