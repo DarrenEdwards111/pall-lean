@@ -964,6 +964,67 @@ theorem projectedIdentityMinor_repr_coord_eq_signed_coeff
   rfl
 
 
+/-- Ambient private tag coefficient map for the projected identity-minor window.
+Unlike `projectedIdentityMinorTagCoeffEquiv`, this is defined on the whole
+polynomial space, so it can be restricted to any larger SPDP subspace containing
+the projected minor rows. -/
+noncomputable def projectedIdentityMinorTagCoeffLin
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ) :
+    MvPolynomial (Fin (tseitinNumVars Φ)) F →ₗ[F]
+      (Fin (Nat.choose pack.selected.length κ) → F) where
+  toFun := fun p i => MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i) p
+  map_add' := by
+    intro p q
+    ext i
+    simp
+  map_smul' := by
+    intro c p
+    ext i
+    simp [smul_eq_mul]
+
+/-- Applying the ambient tag-coefficient map is exactly coefficient extraction. -/
+theorem projectedIdentityMinorTagCoeffLin_apply
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (p : MvPolynomial (Fin (tseitinNumVars Φ)) F)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    projectedIdentityMinorTagCoeffLin (F := F) Φ pack κ p i =
+      MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i) p := rfl
+
+/-- On projected identity-minor basis rows, the ambient tag map is the signed
+Kronecker matrix. -/
+theorem projectedIdentityMinorTagCoeffLin_projectedBasis
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i j : Fin (Nat.choose pack.selected.length κ)) :
+    projectedIdentityMinorTagCoeffLin (F := F) Φ pack κ
+      (((projectedIdentityMinorBasis (F := F) Φ pack κ j :
+          projectedIdentityMinorSpan (F := F) Φ pack κ) :
+        MvPolynomial (Fin (tseitinNumVars Φ)) F)) i =
+      if i = j then IdentityMinor.subsetSign F Φ pack κ i else 0 := by
+  exact coeff_tagMono_projectedIdentityMinorBasis_kronecker (F := F) Φ pack κ i j
+
+/-- A signed projected basis row maps to the corresponding standard coordinate
+vector under the ambient tag map. -/
+theorem projectedIdentityMinorTagCoeffLin_signed_projectedBasis
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (j : Fin (Nat.choose pack.selected.length κ)) :
+    projectedIdentityMinorTagCoeffLin (F := F) Φ pack κ
+      ((IdentityMinor.subsetSign F Φ pack κ j : F) •
+        (((projectedIdentityMinorBasis (F := F) Φ pack κ j :
+            projectedIdentityMinorSpan (F := F) Φ pack κ) :
+          MvPolynomial (Fin (tseitinNumVars Φ)) F))) =
+      Pi.single j (1 : F) := by
+  ext i
+  rw [LinearMap.map_smul, Pi.smul_apply]
+  rw [projectedIdentityMinorTagCoeffLin_projectedBasis (F := F) Φ pack κ i j]
+  by_cases h : i = j
+  · subst i
+    simp [subsetSign_mul_self (F := F) Φ pack κ j]
+  · simp [h]
+
 /-- Coordinate-space sign flip for the projected identity minor.  Multiplying
 each coordinate by its `±1` minor sign is a linear equivalence, with itself as
 inverse. -/
@@ -1055,6 +1116,42 @@ theorem projectedIdentityMinorTagCoeffEquiv_apply_symm
   rw [← projectedIdentityMinorTagCoeffEquiv_apply (F := F) Φ pack κ
     ((projectedIdentityMinorTagCoeffEquiv (F := F) Φ pack κ).symm a) i]
   simp
+
+/-- The ambient tag map sends the projected identity-minor span onto the whole
+coordinate space.  This packages the minor as an explicit quotient witness: any
+coordinate vector can be obtained by tag-coefficients of some projected-minor
+span element. -/
+theorem projectedIdentityMinorTagCoeffLin_map_span_eq_top
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ) :
+    Submodule.map (projectedIdentityMinorTagCoeffLin (F := F) Φ pack κ)
+      (projectedIdentityMinorSpan (F := F) Φ pack κ) = ⊤ := by
+  apply le_antisymm
+  · exact le_top
+  · intro a _
+    let x := (projectedIdentityMinorTagCoeffEquiv (F := F) Φ pack κ).symm a
+    refine ⟨(x : MvPolynomial (Fin (tseitinNumVars Φ)) F), x.property, ?_⟩
+    ext i
+    exact projectedIdentityMinorTagCoeffEquiv_apply_symm (F := F) Φ pack κ a i
+
+/-- Any ambient subspace containing the projected identity-minor span also maps
+onto the whole coordinate space under private tag extraction.  This is the
+quotient/rank witness form needed for transporting lower bounds to larger SPDP
+row spaces. -/
+theorem projectedIdentityMinorTagCoeffLin_map_eq_top_of_span_le
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (W : Submodule F (MvPolynomial (Fin (tseitinNumVars Φ)) F))
+    (hW : projectedIdentityMinorSpan (F := F) Φ pack κ ≤ W) :
+    Submodule.map (projectedIdentityMinorTagCoeffLin (F := F) Φ pack κ) W = ⊤ := by
+  apply le_antisymm
+  · exact le_top
+  · intro a _
+    let x := (projectedIdentityMinorTagCoeffEquiv (F := F) Φ pack κ).symm a
+    refine ⟨(x : MvPolynomial (Fin (tseitinNumVars Φ)) F), hW x.property, ?_⟩
+    ext i
+    exact projectedIdentityMinorTagCoeffEquiv_apply_symm (F := F) Φ pack κ a i
+
 
 /-- Concrete prescribed-coordinate realization without mentioning `.symm`: the
 signed basis sum has private tag coefficient `a i`. -/
@@ -3667,6 +3764,12 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms projectedIdentityMinor_dual_reconstruction
 #print axioms projectedIdentityMinor_coeff_eq_signed_repr_coord
 #print axioms projectedIdentityMinor_repr_coord_eq_signed_coeff
+#print axioms projectedIdentityMinorTagCoeffLin
+#print axioms projectedIdentityMinorTagCoeffLin_apply
+#print axioms projectedIdentityMinorTagCoeffLin_projectedBasis
+#print axioms projectedIdentityMinorTagCoeffLin_signed_projectedBasis
+#print axioms projectedIdentityMinorTagCoeffLin_map_span_eq_top
+#print axioms projectedIdentityMinorTagCoeffLin_map_eq_top_of_span_le
 #print axioms projectedIdentityMinorSignEquiv
 #print axioms projectedIdentityMinorTagCoeffEquiv
 #print axioms projectedIdentityMinorTagCoeffEquiv_apply
