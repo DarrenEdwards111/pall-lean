@@ -674,6 +674,93 @@ theorem identity_minor_projected_rows_span_finrank {F : Type*} [Field F] [Nontri
     (identity_minor_projected_rows_linearIndependent (F := F) Φ pack κ)]
   exact Fintype.card_fin _
 
+/-- The projected identity-minor row span is contained in the multilinear SPDP
+subspace whenever the selector derivative lists are block-admissible.  This is
+the clean span-level form of the paper's NP-window preservation: the whole
+projected identity-minor subspace, not merely each row separately, lives inside
+the SPDP row space. -/
+theorem identity_minor_projected_rows_span_le_mlSubspace {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    Submodule.span F (Set.range
+      (fun i : Fin (Nat.choose pack.selected.length κ) =>
+        mlProj (IdentityMinor.rowPoly F Φ pack κ i))) ≤
+      mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ) := by
+  apply Submodule.span_le.mpr
+  rintro q ⟨i, rfl⟩
+  exact rowPoly_mem_ml_subspace Φ B pack κ ℓ i hB
+
+/-- Inclusive-window version of the span containment.  The same projected
+identity-minor span lies in the paper-faithful `|α| ≤ κ` SPDP window because
+the strict `|α| = κ` subspace embeds into the inclusive one. -/
+theorem identity_minor_projected_rows_span_le_mlSubspaceInc {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    Submodule.span F (Set.range
+      (fun i : Fin (Nat.choose pack.selected.length κ) =>
+        mlProj (IdentityMinor.rowPoly F Φ pack κ i))) ≤
+      mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ) := by
+  exact le_trans
+    (identity_minor_projected_rows_span_le_mlSubspace (F := F) Φ B pack κ ℓ hB)
+    (mlBlockedSpdpSubspace_le_inc B κ ℓ (coupledVerifier F Φ))
+
+/-- Span-containment proof of the projected identity-minor lower bound: the
+projected identity-minor span has exact binomial dimension and is contained in
+the SPDP row space, so the SPDP rank is at least that binomial dimension. -/
+theorem identity_minor_projected_rank_lower_from_span {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    mlBlockedSpdpRank B κ ℓ (coupledVerifier F Φ) ≥
+      Nat.choose pack.selected.length κ := by
+  let W : Submodule F (MvPolynomial (Fin (tseitinNumVars Φ)) F) :=
+    Submodule.span F (Set.range
+      (fun i : Fin (Nat.choose pack.selected.length κ) =>
+        mlProj (IdentityMinor.rowPoly F Φ pack κ i)))
+  have hWfin : Module.finrank F W = Nat.choose pack.selected.length κ := by
+    dsimp [W]
+    exact identity_minor_projected_rows_span_finrank (F := F) Φ pack κ
+  have hle : W ≤ mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ) := by
+    dsimp [W]
+    exact identity_minor_projected_rows_span_le_mlSubspace (F := F) Φ B pack κ ℓ hB
+  haveI : Module.Finite F W := Module.Finite.span_of_finite F (Set.finite_range _)
+  have hmono := Submodule.finrank_mono hle
+  dsimp [mlBlockedSpdpRank]
+  omega
+
+/-- Inclusive-window span-containment proof of the projected identity-minor
+lower bound. -/
+theorem identity_minor_projected_rank_lower_inc_from_span {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    mlBlockedSpdpRankInc B κ ℓ (coupledVerifier F Φ) ≥
+      Nat.choose pack.selected.length κ := by
+  let W : Submodule F (MvPolynomial (Fin (tseitinNumVars Φ)) F) :=
+    Submodule.span F (Set.range
+      (fun i : Fin (Nat.choose pack.selected.length κ) =>
+        mlProj (IdentityMinor.rowPoly F Φ pack κ i)))
+  have hWfin : Module.finrank F W = Nat.choose pack.selected.length κ := by
+    dsimp [W]
+    exact identity_minor_projected_rows_span_finrank (F := F) Φ pack κ
+  have hle : W ≤ mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ) := by
+    dsimp [W]
+    exact identity_minor_projected_rows_span_le_mlSubspaceInc (F := F) Φ B pack κ ℓ hB
+  haveI : Module.Finite F W := Module.Finite.span_of_finite F (Set.finite_range _)
+  have hmono := Submodule.finrank_mono hle
+  dsimp [mlBlockedSpdpRankInc]
+  omega
+
 /-- General rank-from-linear-independence for any finite-dimensional submodule -/
 private theorem finrank_ge_of_linearIndependent {R M : Type*} [CommRing R] [AddCommGroup M]
     [Module R M] [Nontrivial R]
@@ -718,27 +805,7 @@ theorem identity_minor_projected_rank_lower {F : Type*} [Field F] [Nontrivial F]
       isBlockAdmissible B (cs.map (selectorIdx Φ))) :
     mlBlockedSpdpRank B κ ℓ (coupledVerifier F Φ) ≥
       Nat.choose pack.selected.length κ := by
-  let c := IdentityMinor.identity_minor_components (F := F) Φ pack κ ℓ hκ
-  obtain ⟨hsigns, _⟩ := IdentityMinor.identity_minor_components_signs
-    (F := F) Φ pack κ ℓ hκ
-  let mlV := mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ)
-  have hmem : ∀ i, mlProj (c.1 i).val ∈ mlV :=
-    fun i => rowPoly_mem_ml_subspace Φ B pack κ ℓ i hB
-  let R' : Fin (Nat.choose pack.selected.length κ) → ↥mlV :=
-    fun i => ⟨mlProj (c.1 i).val, hmem i⟩
-  have hkron' : ∀ i j, MvPolynomial.coeff (c.2.1 i) (R' j).val =
-      if i = j then c.2.2 i else 0 := by
-    intro i j
-    show MvPolynomial.coeff (c.2.1 i) (mlProj (c.1 j).val) = _
-    exact identity_minor_components_kronecker_after_mlProj (F := F) Φ pack κ ℓ hκ i j
-  have hu : ∀ i, c.2.2 i ≠ 0 := by
-    intro i
-    rcases hsigns i with hs | hs <;> rw [hs] <;> simp
-  exact finrank_ge_of_kronecker_dual mlV R'
-    (fun i => coeffLin F (c.2.1 i)) c.2.2 hu (by
-      intro i j
-      simp only [coeffLin, LinearMap.coe_mk, AddHom.coe_mk]
-      exact hkron' i j)
+  exact identity_minor_projected_rank_lower_from_span (F := F) Φ B pack κ ℓ hB
 
 /-- Inclusive-κ version of `identity_minor_projected_rank_lower`.  This is the
 version matching the paper's `|α| ≤ κ` derivative-window convention: the same
@@ -754,29 +821,7 @@ theorem identity_minor_projected_rank_lower_inc {F : Type*} [Field F] [Nontrivia
       isBlockAdmissible B (cs.map (selectorIdx Φ))) :
     mlBlockedSpdpRankInc B κ ℓ (coupledVerifier F Φ) ≥
       Nat.choose pack.selected.length κ := by
-  let c := IdentityMinor.identity_minor_components (F := F) Φ pack κ ℓ hκ
-  obtain ⟨hsigns, _⟩ := IdentityMinor.identity_minor_components_signs
-    (F := F) Φ pack κ ℓ hκ
-  let mlV := mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ)
-  have hmem : ∀ i, mlProj (c.1 i).val ∈ mlV := by
-    intro i
-    exact mlBlockedSpdpSubspace_le_inc B κ ℓ (coupledVerifier F Φ)
-      (rowPoly_mem_ml_subspace Φ B pack κ ℓ i hB)
-  let R' : Fin (Nat.choose pack.selected.length κ) → ↥mlV :=
-    fun i => ⟨mlProj (c.1 i).val, hmem i⟩
-  have hkron' : ∀ i j, MvPolynomial.coeff (c.2.1 i) (R' j).val =
-      if i = j then c.2.2 i else 0 := by
-    intro i j
-    show MvPolynomial.coeff (c.2.1 i) (mlProj (c.1 j).val) = _
-    exact identity_minor_components_kronecker_after_mlProj (F := F) Φ pack κ ℓ hκ i j
-  have hu : ∀ i, c.2.2 i ≠ 0 := by
-    intro i
-    rcases hsigns i with hs | hs <;> rw [hs] <;> simp
-  exact finrank_ge_of_kronecker_dual mlV R'
-    (fun i => coeffLin F (c.2.1 i)) c.2.2 hu (by
-      intro i j
-      simp only [coeffLin, LinearMap.coe_mk, AddHom.coe_mk]
-      exact hkron' i j)
+  exact identity_minor_projected_rank_lower_inc_from_span (F := F) Φ B pack κ ℓ hB
 
 /-- Canonical-partition specialization of the projected identity-minor lower
 bound for the coupled Tseitin verifier.  Selector lists are admissible in
@@ -2801,6 +2846,10 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms identity_minor_projected_row_ne_zero
 #print axioms identity_minor_projected_rows_linearIndependent
 #print axioms identity_minor_projected_rows_span_finrank
+#print axioms identity_minor_projected_rows_span_le_mlSubspace
+#print axioms identity_minor_projected_rows_span_le_mlSubspaceInc
+#print axioms identity_minor_projected_rank_lower_from_span
+#print axioms identity_minor_projected_rank_lower_inc_from_span
 #print axioms IdentityMinorPaperFaithful.tagMono_finsupp_isMultilinear
 #print axioms IdentityMinorPaperFaithful.monomial_tagMono_isMultilinear
 #print axioms IdentityMinorPaperFaithful.identity_minor_components_columns_multilinear
