@@ -2007,6 +2007,157 @@ theorem projectedIdentityMinorRowTagCoeffProjectionInc_residual_eq_zero
   simp
 
 
+
+/-- The embedded strict private-tag coordinate subspace intersects the tag-zero
+kernel trivially. -/
+theorem projectedIdentityMinorRowTagCoeff_range_disjoint_ker
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    Disjoint
+      (LinearMap.range
+        (projectedIdentityMinorTagCoeffRightInverseToMlSubspace
+          (F := F) Φ B pack κ ℓ hB))
+      (LinearMap.ker (projectedIdentityMinorRowTagCoeff (F := F) Φ B pack κ ℓ)) := by
+  rw [Submodule.disjoint_def]
+  intro x hxR hxK
+  rcases hxR with ⟨a, rfl⟩
+  have hzero : a = 0 := by
+    have hk := hxK
+    change projectedIdentityMinorRowTagCoeff (F := F) Φ B pack κ ℓ
+        ((projectedIdentityMinorTagCoeffRightInverseToMlSubspace
+          (F := F) Φ B pack κ ℓ hB) a) = 0 at hk
+    have hright := congrArg (fun f => f a)
+      (projectedIdentityMinorRowTagCoeff_comp_rightInverse
+        (F := F) Φ B pack κ ℓ hB)
+    dsimp only [LinearMap.comp_apply, LinearMap.id_coe, id_eq] at hright
+    rw [hright] at hk
+    exact hk
+  simp [hzero]
+
+/-- The strict SPDP row space is the sum of the embedded private-tag coordinate
+subspace and the tag-zero kernel. -/
+theorem projectedIdentityMinorRowTagCoeff_range_sup_ker
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    LinearMap.range
+        (projectedIdentityMinorTagCoeffRightInverseToMlSubspace
+          (F := F) Φ B pack κ ℓ hB) ⊔
+      LinearMap.ker (projectedIdentityMinorRowTagCoeff (F := F) Φ B pack κ ℓ) = ⊤ := by
+  apply le_antisymm
+  · exact le_top
+  · intro q _
+    have hdecomp := projectedIdentityMinorRowTagCoeff_decompose
+      (F := F) Φ B pack κ ℓ hB q
+    rw [hdecomp]
+    apply Submodule.add_mem_sup
+    · exact ⟨(projectedIdentityMinorRowTagCoeff (F := F) Φ B pack κ ℓ) q, rfl⟩
+    · exact projectedIdentityMinorRowTagCoeff_residual_eq_zero
+        (F := F) Φ B pack κ ℓ hB q
+
+/-- Strict direct-sum statement: the SPDP row space is split by private-tag
+coordinates and tag-zero rows. -/
+theorem projectedIdentityMinorRowTagCoeff_range_isCompl_ker
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    IsCompl
+      (LinearMap.range
+        (projectedIdentityMinorTagCoeffRightInverseToMlSubspace
+          (F := F) Φ B pack κ ℓ hB))
+      (LinearMap.ker (projectedIdentityMinorRowTagCoeff (F := F) Φ B pack κ ℓ)) := by
+  constructor
+  · exact projectedIdentityMinorRowTagCoeff_range_disjoint_ker
+      (F := F) Φ B pack κ ℓ hB
+  · rw [codisjoint_iff]
+    exact projectedIdentityMinorRowTagCoeff_range_sup_ker
+      (F := F) Φ B pack κ ℓ hB
+
+/-- The embedded inclusive private-tag coordinate subspace intersects the
+tag-zero kernel trivially. -/
+theorem projectedIdentityMinorRowTagCoeffInc_range_disjoint_ker
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    Disjoint
+      (LinearMap.range
+        (projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc
+          (F := F) Φ B pack κ ℓ hB))
+      (LinearMap.ker (projectedIdentityMinorRowTagCoeffInc (F := F) Φ B pack κ ℓ)) := by
+  rw [Submodule.disjoint_def]
+  intro x hxR hxK
+  rcases hxR with ⟨a, rfl⟩
+  have hzero : a = 0 := by
+    have hk := hxK
+    change projectedIdentityMinorRowTagCoeffInc (F := F) Φ B pack κ ℓ
+        ((projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc
+          (F := F) Φ B pack κ ℓ hB) a) = 0 at hk
+    have hright := congrArg (fun f => f a)
+      (projectedIdentityMinorRowTagCoeffInc_comp_rightInverse
+        (F := F) Φ B pack κ ℓ hB)
+    dsimp only [LinearMap.comp_apply, LinearMap.id_coe, id_eq] at hright
+    rw [hright] at hk
+    exact hk
+  simp [hzero]
+
+/-- The inclusive SPDP row space is the sum of the embedded private-tag
+coordinate subspace and the tag-zero kernel. -/
+theorem projectedIdentityMinorRowTagCoeffInc_range_sup_ker
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    LinearMap.range
+        (projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc
+          (F := F) Φ B pack κ ℓ hB) ⊔
+      LinearMap.ker (projectedIdentityMinorRowTagCoeffInc (F := F) Φ B pack κ ℓ) = ⊤ := by
+  apply le_antisymm
+  · exact le_top
+  · intro q _
+    have hdecomp := projectedIdentityMinorRowTagCoeffInc_decompose
+      (F := F) Φ B pack κ ℓ hB q
+    rw [hdecomp]
+    apply Submodule.add_mem_sup
+    · exact ⟨(projectedIdentityMinorRowTagCoeffInc (F := F) Φ B pack κ ℓ) q, rfl⟩
+    · exact projectedIdentityMinorRowTagCoeffInc_residual_eq_zero
+        (F := F) Φ B pack κ ℓ hB q
+
+/-- Inclusive direct-sum statement: the SPDP row space is split by private-tag
+coordinates and tag-zero rows. -/
+theorem projectedIdentityMinorRowTagCoeffInc_range_isCompl_ker
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    IsCompl
+      (LinearMap.range
+        (projectedIdentityMinorTagCoeffRightInverseToMlSubspaceInc
+          (F := F) Φ B pack κ ℓ hB))
+      (LinearMap.ker (projectedIdentityMinorRowTagCoeffInc (F := F) Φ B pack κ ℓ)) := by
+  constructor
+  · exact projectedIdentityMinorRowTagCoeffInc_range_disjoint_ker
+      (F := F) Φ B pack κ ℓ hB
+  · rw [codisjoint_iff]
+    exact projectedIdentityMinorRowTagCoeffInc_range_sup_ker
+      (F := F) Φ B pack κ ℓ hB
+
 /-- Rank lower bound from the explicit split injection of private-tag coordinate
 space into the strict SPDP row space.  This is independent of the quotient-map
 proof: it uses the constructed linear right-inverse as an actual embedding. -/
@@ -2775,6 +2926,89 @@ theorem coupledVerifierProjectedTagCoeffProjectionInc_residual_eq_zero
     (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
     (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd) q
 
+
+
+/-- Canonical strict direct-sum complement: embedded private-tag rows intersect
+the tag-zero kernel trivially. -/
+theorem coupledVerifierProjectedTagCoeff_range_disjoint_ker
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    Disjoint
+      (LinearMap.range (coupledVerifierProjectedTagCoeffRightInverse
+        (F := F) Φ pack κ ℓ))
+      (LinearMap.ker (projectedIdentityMinorRowTagCoeff
+        (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ)) := by
+  exact projectedIdentityMinorRowTagCoeff_range_disjoint_ker
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+/-- Canonical strict row space is the sum of embedded private-tag rows and the
+tag-zero kernel. -/
+theorem coupledVerifierProjectedTagCoeff_range_sup_ker
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    LinearMap.range (coupledVerifierProjectedTagCoeffRightInverse
+        (F := F) Φ pack κ ℓ) ⊔
+      LinearMap.ker (projectedIdentityMinorRowTagCoeff
+        (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ) = ⊤ := by
+  exact projectedIdentityMinorRowTagCoeff_range_sup_ker
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+/-- Canonical strict direct-sum statement for private-tag rows and tag-zero
+rows. -/
+theorem coupledVerifierProjectedTagCoeff_range_isCompl_ker
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    IsCompl
+      (LinearMap.range (coupledVerifierProjectedTagCoeffRightInverse
+        (F := F) Φ pack κ ℓ))
+      (LinearMap.ker (projectedIdentityMinorRowTagCoeff
+        (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ)) := by
+  exact projectedIdentityMinorRowTagCoeff_range_isCompl_ker
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+/-- Canonical inclusive direct-sum complement: embedded private-tag rows
+intersect the tag-zero kernel trivially. -/
+theorem coupledVerifierProjectedTagCoeffInc_range_disjoint_ker
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    Disjoint
+      (LinearMap.range (coupledVerifierProjectedTagCoeffRightInverseInc
+        (F := F) Φ pack κ ℓ))
+      (LinearMap.ker (projectedIdentityMinorRowTagCoeffInc
+        (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ)) := by
+  exact projectedIdentityMinorRowTagCoeffInc_range_disjoint_ker
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+/-- Canonical inclusive row space is the sum of embedded private-tag rows and
+the tag-zero kernel. -/
+theorem coupledVerifierProjectedTagCoeffInc_range_sup_ker
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    LinearMap.range (coupledVerifierProjectedTagCoeffRightInverseInc
+        (F := F) Φ pack κ ℓ) ⊔
+      LinearMap.ker (projectedIdentityMinorRowTagCoeffInc
+        (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ) = ⊤ := by
+  exact projectedIdentityMinorRowTagCoeffInc_range_sup_ker
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+/-- Canonical inclusive direct-sum statement for private-tag rows and tag-zero
+rows. -/
+theorem coupledVerifierProjectedTagCoeffInc_range_isCompl_ker
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    IsCompl
+      (LinearMap.range (coupledVerifierProjectedTagCoeffRightInverseInc
+        (F := F) Φ pack κ ℓ))
+      (LinearMap.ker (projectedIdentityMinorRowTagCoeffInc
+        (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ)) := by
+  exact projectedIdentityMinorRowTagCoeffInc_range_isCompl_ker
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
 
 /-- Canonical strict rank lower bound from the split injection of private-tag
 coordinates into the canonical coupled-verifier SPDP row space. -/
@@ -5433,6 +5667,12 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms projectedIdentityMinorRowTagCoeffInc_residual_eq_zero
 #print axioms projectedIdentityMinorRowTagCoeffInc_decompose
 #print axioms projectedIdentityMinorRowTagCoeffProjectionInc_residual_eq_zero
+#print axioms projectedIdentityMinorRowTagCoeff_range_disjoint_ker
+#print axioms projectedIdentityMinorRowTagCoeff_range_sup_ker
+#print axioms projectedIdentityMinorRowTagCoeff_range_isCompl_ker
+#print axioms projectedIdentityMinorRowTagCoeffInc_range_disjoint_ker
+#print axioms projectedIdentityMinorRowTagCoeffInc_range_sup_ker
+#print axioms projectedIdentityMinorRowTagCoeffInc_range_isCompl_ker
 #print axioms nat_choose_le_finrank_mlBlockedSpdpSubspace_from_rightInverse
 #print axioms nat_choose_le_finrank_mlBlockedSpdpSubspaceInc_from_rightInverse
 #print axioms identity_minor_projected_rank_lower_from_rightInverse
@@ -5473,6 +5713,12 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms coupledVerifierProjectedTagCoeffInc_residual_eq_zero
 #print axioms coupledVerifierProjectedTagCoeffInc_decompose
 #print axioms coupledVerifierProjectedTagCoeffProjectionInc_residual_eq_zero
+#print axioms coupledVerifierProjectedTagCoeff_range_disjoint_ker
+#print axioms coupledVerifierProjectedTagCoeff_range_sup_ker
+#print axioms coupledVerifierProjectedTagCoeff_range_isCompl_ker
+#print axioms coupledVerifierProjectedTagCoeffInc_range_disjoint_ker
+#print axioms coupledVerifierProjectedTagCoeffInc_range_sup_ker
+#print axioms coupledVerifierProjectedTagCoeffInc_range_isCompl_ker
 #print axioms coupledVerifier_projected_identity_minor_rank_lower_from_rightInverse
 #print axioms coupledVerifier_projected_identity_minor_rank_lower_inc_from_rightInverse
 #print axioms tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_from_rightInverse
