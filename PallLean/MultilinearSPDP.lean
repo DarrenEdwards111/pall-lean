@@ -952,6 +952,46 @@ theorem tseitinAt_projected_identity_minor_subspace_certificate_inc
     rw [hv] at hps
     exact hps
 
+/-- Concrete-threshold projected identity-minor subspace certificate with the
+full super-polynomial dimension lower bound.  This upgrades the binomial
+subspace certificate using the concrete binomial estimate, so the witness
+subspace itself has dimension at least `n^(log₂ n / 4)`. -/
+theorem tseitinAt_projected_identity_minor_subspace_superpoly_certificate
+    (F : Type*) [Field F] [Nontrivial F]
+    (n : ℕ) (hn : n ≥ 2 ^ 804) (heven : 2 ∣ n) :
+    ∃ W : Submodule F (MvPolynomial (Fin (tseitinNumVars (tseitinAt n))) F),
+      W ≤ mlBlockedSpdpSubspace (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) (Nat.log 2 n) (coupledVerifier F (tseitinAt n)) ∧
+      n ^ (Nat.log 2 n / 4) ≤ Module.finrank F W := by
+  have hn1024 : n ≥ 2^10 := by
+    have : (2 : ℕ) ^ 10 ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+    exact le_trans this hn
+  have hn20 : n ≥ 2 ^ 20 := le_trans (by
+    exact Nat.pow_le_pow_right (by omega : 1 ≤ (2 : ℕ)) (by omega : 20 ≤ 804)) hn
+  obtain ⟨W, hWle, hWdim⟩ :=
+    tseitinAt_projected_identity_minor_subspace_certificate F n hn1024 heven
+  refine ⟨W, hWle, ?_⟩
+  exact le_trans (BinomialBound.binomial_lower_bound_concrete n hn20) hWdim
+
+/-- Inclusive-window concrete-threshold projected identity-minor subspace
+certificate with the full super-polynomial dimension lower bound. -/
+theorem tseitinAt_projected_identity_minor_subspace_superpoly_certificate_inc
+    (F : Type*) [Field F] [Nontrivial F]
+    (n : ℕ) (hn : n ≥ 2 ^ 804) (heven : 2 ∣ n) (ℓ : ℕ) :
+    ∃ W : Submodule F (MvPolynomial (Fin (tseitinNumVars (tseitinAt n))) F),
+      W ≤ mlBlockedSpdpSubspaceInc (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) ℓ (coupledVerifier F (tseitinAt n)) ∧
+      n ^ (Nat.log 2 n / 4) ≤ Module.finrank F W := by
+  have hn1024 : n ≥ 2^10 := by
+    have : (2 : ℕ) ^ 10 ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+    exact le_trans this hn
+  have hn20 : n ≥ 2 ^ 20 := le_trans (by
+    exact Nat.pow_le_pow_right (by omega : 1 ≤ (2 : ℕ)) (by omega : 20 ≤ 804)) hn
+  obtain ⟨W, hWle, hWdim⟩ :=
+    tseitinAt_projected_identity_minor_subspace_certificate_inc F n hn1024 heven ℓ
+  refine ⟨W, hWle, ?_⟩
+  exact le_trans (BinomialBound.binomial_lower_bound_concrete n hn20) hWdim
+
 /-- Concrete Tseitin-family version: the disjoint-packing construction gives at
 least `n/30` private clauses, hence the projected multilinear identity minor has
 rank at least `choose (n/30) (log₂ n)` for the coupled verifier. -/
@@ -2960,6 +3000,8 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms coupledVerifier_projected_identity_minor_span_finrank
 #print axioms tseitinAt_projected_identity_minor_subspace_certificate
 #print axioms tseitinAt_projected_identity_minor_subspace_certificate_inc
+#print axioms tseitinAt_projected_identity_minor_subspace_superpoly_certificate
+#print axioms tseitinAt_projected_identity_minor_subspace_superpoly_certificate_inc
 #print axioms IdentityMinorPaperFaithful.tagMono_finsupp_isMultilinear
 #print axioms IdentityMinorPaperFaithful.monomial_tagMono_isMultilinear
 #print axioms IdentityMinorPaperFaithful.identity_minor_components_columns_multilinear
