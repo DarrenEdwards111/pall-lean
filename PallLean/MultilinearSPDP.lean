@@ -2158,6 +2158,45 @@ theorem projectedIdentityMinorRowTagCoeffInc_range_isCompl_ker
     exact projectedIdentityMinorRowTagCoeffInc_range_sup_ker
       (F := F) Φ B pack κ ℓ hB
 
+
+/-- Exact strict row-space dimension split: private-tag dimension plus the
+tag-zero kernel dimension equals the full SPDP row-space dimension. -/
+theorem projectedIdentityMinorRowTagCoeff_finrank_add_ker
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    Nat.choose pack.selected.length κ +
+      Module.finrank F
+        (LinearMap.ker (projectedIdentityMinorRowTagCoeff (F := F) Φ B pack κ ℓ)) =
+      Module.finrank F (mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ)) := by
+  have hrange := projectedIdentityMinorTagCoeffRightInverse_range_finrank
+    (F := F) Φ B pack κ ℓ hB
+  have hsum := Submodule.finrank_add_eq_of_isCompl
+    (projectedIdentityMinorRowTagCoeff_range_isCompl_ker (F := F) Φ B pack κ ℓ hB)
+  omega
+
+/-- Exact inclusive row-space dimension split: private-tag dimension plus the
+tag-zero kernel dimension equals the full inclusive SPDP row-space dimension. -/
+theorem projectedIdentityMinorRowTagCoeffInc_finrank_add_ker
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    Nat.choose pack.selected.length κ +
+      Module.finrank F
+        (LinearMap.ker (projectedIdentityMinorRowTagCoeffInc (F := F) Φ B pack κ ℓ)) =
+      Module.finrank F (mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ)) := by
+  have hrange := projectedIdentityMinorTagCoeffRightInverseInc_range_finrank
+    (F := F) Φ B pack κ ℓ hB
+  have hsum := Submodule.finrank_add_eq_of_isCompl
+    (projectedIdentityMinorRowTagCoeffInc_range_isCompl_ker (F := F) Φ B pack κ ℓ hB)
+  omega
+
 /-- Rank lower bound from the explicit split injection of private-tag coordinate
 space into the strict SPDP row space.  This is independent of the quotient-map
 proof: it uses the constructed linear right-inverse as an actual embedding. -/
@@ -3007,6 +3046,37 @@ theorem coupledVerifierProjectedTagCoeffInc_range_isCompl_ker
       (LinearMap.ker (projectedIdentityMinorRowTagCoeffInc
         (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ)) := by
   exact projectedIdentityMinorRowTagCoeffInc_range_isCompl_ker
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+
+/-- Canonical exact strict row-space dimension split for the coupled verifier. -/
+theorem coupledVerifierProjectedTagCoeff_finrank_add_ker
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    Nat.choose pack.selected.length κ +
+      Module.finrank F
+        (LinearMap.ker (projectedIdentityMinorRowTagCoeff
+          (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ)) =
+      Module.finrank F
+        (mlBlockedSpdpSubspace (IdentityMinor.tseitinPartition Φ) κ ℓ
+          (coupledVerifier F Φ)) := by
+  exact projectedIdentityMinorRowTagCoeff_finrank_add_ker
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+/-- Canonical exact inclusive row-space dimension split for the coupled verifier. -/
+theorem coupledVerifierProjectedTagCoeffInc_finrank_add_ker
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    Nat.choose pack.selected.length κ +
+      Module.finrank F
+        (LinearMap.ker (projectedIdentityMinorRowTagCoeffInc
+          (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ)) =
+      Module.finrank F
+        (mlBlockedSpdpSubspaceInc (IdentityMinor.tseitinPartition Φ) κ ℓ
+          (coupledVerifier F Φ)) := by
+  exact projectedIdentityMinorRowTagCoeffInc_finrank_add_ker
     (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
     (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
 
@@ -5673,6 +5743,8 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms projectedIdentityMinorRowTagCoeffInc_range_disjoint_ker
 #print axioms projectedIdentityMinorRowTagCoeffInc_range_sup_ker
 #print axioms projectedIdentityMinorRowTagCoeffInc_range_isCompl_ker
+#print axioms projectedIdentityMinorRowTagCoeff_finrank_add_ker
+#print axioms projectedIdentityMinorRowTagCoeffInc_finrank_add_ker
 #print axioms nat_choose_le_finrank_mlBlockedSpdpSubspace_from_rightInverse
 #print axioms nat_choose_le_finrank_mlBlockedSpdpSubspaceInc_from_rightInverse
 #print axioms identity_minor_projected_rank_lower_from_rightInverse
@@ -5719,6 +5791,8 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms coupledVerifierProjectedTagCoeffInc_range_disjoint_ker
 #print axioms coupledVerifierProjectedTagCoeffInc_range_sup_ker
 #print axioms coupledVerifierProjectedTagCoeffInc_range_isCompl_ker
+#print axioms coupledVerifierProjectedTagCoeff_finrank_add_ker
+#print axioms coupledVerifierProjectedTagCoeffInc_finrank_add_ker
 #print axioms coupledVerifier_projected_identity_minor_rank_lower_from_rightInverse
 #print axioms coupledVerifier_projected_identity_minor_rank_lower_inc_from_rightInverse
 #print axioms tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_from_rightInverse
