@@ -29,6 +29,52 @@ def IsMultilinear {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
 def Finsupp.IsMultilinear {σ : Type*} (α : σ →₀ ℕ) : Prop :=
   ∀ i, α i ≤ 1
 
+/-! ## Paper-faithful identity-minor multilinear columns
+
+The paper's NP-side minor is built in the multilinear basis from the start.
+The lemmas below expose that fact for the existing `IdentityMinor` construction:
+the tag exponent vectors, and hence the monomial columns used by the Kronecker
+minor, are square-free. -/
+
+namespace IdentityMinorPaperFaithful
+
+open IdentityMinor
+
+/-- The identity-minor tag exponent vector is square-free. -/
+theorem tagMono_finsupp_isMultilinear {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    Finsupp.IsMultilinear (IdentityMinor.tagMono F Φ pack κ i) := by
+  intro x
+  exact IdentityMinor.tagMono_le_one (F := F) Φ pack κ i x
+
+/-- Therefore each monomial column indexed by a tag exponent is multilinear as
+a polynomial. -/
+theorem monomial_tagMono_isMultilinear {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ)) (a : F) :
+    IsMultilinear (MvPolynomial.monomial (IdentityMinor.tagMono F Φ pack κ i) a) := by
+  intro α hα x
+  have hsub := MvPolynomial.support_monomial_subset hα
+  rw [Finset.mem_singleton] at hsub
+  rw [hsub]
+  exact tagMono_finsupp_isMultilinear (F := F) Φ pack κ i x
+
+/-- The packaged identity-minor components use multilinear column monomials.
+This is the formal version of the paper §27 statement that the minor is already
+constructed in the multilinear basis. -/
+theorem identity_minor_components_columns_multilinear {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hκ : κ ≤ pack.selected.length) :
+    ∀ i, Finsupp.IsMultilinear
+      ((IdentityMinor.identity_minor_components (F := F) Φ pack κ ℓ hκ).2.1 i) := by
+  intro i
+  change Finsupp.IsMultilinear (IdentityMinor.tagMono F Φ pack κ i)
+  exact tagMono_finsupp_isMultilinear (F := F) Φ pack κ i
+
+end IdentityMinorPaperFaithful
+
+
 /-- The multilinear projection as an AddMonoidHom on the underlying Finsupp.
     This gives us additivity for free. -/
 noncomputable def mlProjHom {σ : Type*} [DecidableEq σ] (F : Type*) [CommRing F] :
@@ -474,6 +520,29 @@ theorem tagMono_isMultilinear {F : Type*} [Field F] [Nontrivial F]
     (i : Fin (Nat.choose pack.selected.length κ)) :
     Finsupp.IsMultilinear (IdentityMinor.tagMono F Φ pack κ i) := by
   exact IdentityMinor.tagMono_le_one (F := F) Φ pack κ i
+
+/-- Projection preserves the Kronecker identity-minor coefficients because the
+column tags are square-free.  This is the paper-faithful algebraic bridge from
+the full polynomial rows to the multilinear/projected NP-window rows: no
+quotient-kernel injectivity is used. -/
+theorem identity_minor_components_kronecker_after_mlProj {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hκ : κ ≤ pack.selected.length) :
+    ∀ i j, MvPolynomial.coeff
+      ((IdentityMinor.identity_minor_components (F := F) Φ pack κ ℓ hκ).2.1 i)
+      (mlProj ((IdentityMinor.identity_minor_components (F := F) Φ pack κ ℓ hκ).1 j).val) =
+      if i = j then
+        (IdentityMinor.identity_minor_components (F := F) Φ pack κ ℓ hκ).2.2 i
+      else 0 := by
+  intro i j
+  obtain ⟨_, hkron⟩ := IdentityMinor.identity_minor_components_signs
+    (F := F) Φ pack κ ℓ hκ
+  have hml : Finsupp.IsMultilinear
+      ((IdentityMinor.identity_minor_components (F := F) Φ pack κ ℓ hκ).2.1 i) := by
+    change Finsupp.IsMultilinear (IdentityMinor.tagMono F Φ pack κ i)
+    exact tagMono_isMultilinear Φ pack κ i
+  rw [coeff_mlProj_of_isMultilinear_mono _ _ hml]
+  exact hkron i j
 
 /-- General rank-from-linear-independence for any finite-dimensional submodule -/
 private theorem finrank_ge_of_linearIndependent {R M : Type*} [CommRing R] [AddCommGroup M]
@@ -2362,6 +2431,10 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 
 /-! ## Axiom-freeness checks for the paper-faithful inclusive port -/
 
+#print axioms IdentityMinorPaperFaithful.tagMono_finsupp_isMultilinear
+#print axioms IdentityMinorPaperFaithful.monomial_tagMono_isMultilinear
+#print axioms IdentityMinorPaperFaithful.identity_minor_components_columns_multilinear
+#print axioms identity_minor_components_kronecker_after_mlProj
 #print axioms mlBlockedSpdpSubspace_le_inc
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms mlBlockedSpdpSubspaceInc_eq_iSup
