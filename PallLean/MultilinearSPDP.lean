@@ -544,6 +544,32 @@ theorem identity_minor_components_kronecker_after_mlProj {F : Type*} [Field F] [
   rw [coeff_mlProj_of_isMultilinear_mono _ _ hml]
   exact hkron i j
 
+/-- A Kronecker dual family gives linear independence.  If linear functionals
+`φᵢ` evaluate a vector family `vⱼ` as a diagonal matrix with nonzero diagonal
+`uᵢ`, then no nontrivial finite linear relation among the `vⱼ` can exist: apply
+`φₐ` to a relation containing `vₐ` and the diagonal entry isolates its
+coefficient. -/
+theorem linearIndependent_of_kronecker_dual
+    {F M : Type*} [Field F] [AddCommGroup M] [Module F M]
+    {k : ℕ} (v : Fin k → M) (φ : Fin k → M →ₗ[F] F) (u : Fin k → F)
+    (hu : ∀ i, u i ≠ 0)
+    (hkron : ∀ i j, φ i (v j) = if i = j then u i else 0) :
+    LinearIndependent F v := by
+  rw [linearIndependent_iff']
+  intro S g hg a ha
+  have h0 : φ a (∑ j ∈ S, g j • v j) = 0 := by
+    rw [hg]
+    exact map_zero (φ a)
+  simp only [map_sum, LinearMap.map_smul, smul_eq_mul] at h0
+  have hsub : ∀ j ∈ S, g j * φ a (v j) = if j = a then g j * u a else 0 := by
+    intro j _
+    rw [hkron a j]
+    by_cases h : a = j
+    · subst h; simp
+    · simp [h, show j ≠ a from fun h' => h (h' ▸ rfl)]
+  rw [Finset.sum_congr rfl hsub, Finset.sum_ite_eq' S a, if_pos ha] at h0
+  exact mul_eq_zero.mp h0 |>.resolve_right (hu a)
+
 /-- General rank-from-linear-independence for any finite-dimensional submodule -/
 private theorem finrank_ge_of_linearIndependent {R M : Type*} [CommRing R] [AddCommGroup M]
     [Module R M] [Nontrivial R]
@@ -560,6 +586,20 @@ private theorem finrank_ge_of_linearIndependent {R M : Type*} [CommRing R] [AddC
   have hmono := Submodule.finrank_mono hspan
   simp [Fintype.card_fin] at hcard
   omega
+
+/-- Rank lower bound from a Kronecker dual certificate inside a submodule.  This
+combines `linearIndependent_of_kronecker_dual` with the usual dimension lower
+bound for a linearly independent family contained in a finite-dimensional
+submodule. -/
+theorem finrank_ge_of_kronecker_dual
+    {F M : Type*} [Field F] [AddCommGroup M] [Module F M]
+    (V : Submodule F M) [Module.Finite F V]
+    {k : ℕ} (elements : Fin k → V) (φ : Fin k → M →ₗ[F] F) (u : Fin k → F)
+    (hu : ∀ i, u i ≠ 0)
+    (hkron : ∀ i j, φ i ((elements j).val) = if i = j then u i else 0) :
+    Module.finrank F V ≥ k := by
+  exact finrank_ge_of_linearIndependent V k elements
+    (linearIndependent_of_kronecker_dual (Subtype.val ∘ elements) φ u hu hkron)
 
 /-- The projected identity-minor rows already force a rank lower bound in the
 multilinear SPDP subspace.  This packages the paper-faithful NP-side algebra:
@@ -587,23 +627,14 @@ theorem identity_minor_projected_rank_lower {F : Type*} [Field F] [Nontrivial F]
     intro i j
     show MvPolynomial.coeff (c.2.1 i) (mlProj (c.1 j).val) = _
     exact identity_minor_components_kronecker_after_mlProj (F := F) Φ pack κ ℓ hκ i j
-  have hli : LinearIndependent F (Subtype.val ∘ R') := by
-    rw [linearIndependent_iff']
-    intro S g hg a ha
-    have h0 : (coeffLin F (c.2.1 a))
-        (∑ j ∈ S, g j • (Subtype.val ∘ R') j) = 0 := by rw [hg]; exact map_zero _
-    simp only [map_sum, LinearMap.map_smul, Function.comp, smul_eq_mul] at h0
-    simp only [coeffLin, LinearMap.coe_mk, AddHom.coe_mk] at h0
-    have hsub : ∀ j ∈ S, g j * MvPolynomial.coeff (c.2.1 a) (R' j).val =
-        if j = a then g j * c.2.2 a else 0 := by
-      intro j _
-      rw [hkron' a j]
-      by_cases h : a = j
-      · subst h; simp
-      · simp [h, show j ≠ a from fun h' => h (h' ▸ rfl)]
-    rw [Finset.sum_congr rfl hsub, Finset.sum_ite_eq' S a, if_pos ha] at h0
-    rcases hsigns a with hs | hs <;> rw [hs] at h0 <;> simp at h0 <;> exact h0
-  exact finrank_ge_of_linearIndependent mlV _ R' hli
+  have hu : ∀ i, c.2.2 i ≠ 0 := by
+    intro i
+    rcases hsigns i with hs | hs <;> rw [hs] <;> simp
+  exact finrank_ge_of_kronecker_dual mlV R'
+    (fun i => coeffLin F (c.2.1 i)) c.2.2 hu (by
+      intro i j
+      simp only [coeffLin, LinearMap.coe_mk, AddHom.coe_mk]
+      exact hkron' i j)
 
 /-- Inclusive-κ version of `identity_minor_projected_rank_lower`.  This is the
 version matching the paper's `|α| ≤ κ` derivative-window convention: the same
@@ -634,23 +665,14 @@ theorem identity_minor_projected_rank_lower_inc {F : Type*} [Field F] [Nontrivia
     intro i j
     show MvPolynomial.coeff (c.2.1 i) (mlProj (c.1 j).val) = _
     exact identity_minor_components_kronecker_after_mlProj (F := F) Φ pack κ ℓ hκ i j
-  have hli : LinearIndependent F (Subtype.val ∘ R') := by
-    rw [linearIndependent_iff']
-    intro S g hg a ha
-    have h0 : (coeffLin F (c.2.1 a))
-        (∑ j ∈ S, g j • (Subtype.val ∘ R') j) = 0 := by rw [hg]; exact map_zero _
-    simp only [map_sum, LinearMap.map_smul, Function.comp, smul_eq_mul] at h0
-    simp only [coeffLin, LinearMap.coe_mk, AddHom.coe_mk] at h0
-    have hsub : ∀ j ∈ S, g j * MvPolynomial.coeff (c.2.1 a) (R' j).val =
-        if j = a then g j * c.2.2 a else 0 := by
-      intro j _
-      rw [hkron' a j]
-      by_cases h : a = j
-      · subst h; simp
-      · simp [h, show j ≠ a from fun h' => h (h' ▸ rfl)]
-    rw [Finset.sum_congr rfl hsub, Finset.sum_ite_eq' S a, if_pos ha] at h0
-    rcases hsigns a with hs | hs <;> rw [hs] at h0 <;> simp at h0 <;> exact h0
-  exact finrank_ge_of_linearIndependent mlV _ R' hli
+  have hu : ∀ i, c.2.2 i ≠ 0 := by
+    intro i
+    rcases hsigns i with hs | hs <;> rw [hs] <;> simp
+  exact finrank_ge_of_kronecker_dual mlV R'
+    (fun i => coeffLin F (c.2.1 i)) c.2.2 hu (by
+      intro i j
+      simp only [coeffLin, LinearMap.coe_mk, AddHom.coe_mk]
+      exact hkron' i j)
 
 /-- Canonical-partition specialization of the projected identity-minor lower
 bound for the coupled Tseitin verifier.  Selector lists are admissible in
@@ -2666,6 +2688,8 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 
 /-! ## Axiom-freeness checks for the paper-faithful inclusive port -/
 
+#print axioms linearIndependent_of_kronecker_dual
+#print axioms finrank_ge_of_kronecker_dual
 #print axioms IdentityMinorPaperFaithful.tagMono_finsupp_isMultilinear
 #print axioms IdentityMinorPaperFaithful.monomial_tagMono_isMultilinear
 #print axioms IdentityMinorPaperFaithful.identity_minor_components_columns_multilinear
