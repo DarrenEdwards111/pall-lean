@@ -942,6 +942,28 @@ theorem projectedIdentityMinor_coeff_eq_signed_repr_coord
               MvPolynomial (Fin (tseitinNumVars Φ)) F)) := by ring
     _ = s * ((projectedIdentityMinorBasis (F := F) Φ pack κ).repr x i) := by rw [hcoord]
 
+/-- Basis coordinates are exactly signed private-tag coefficients.  This is the
+coordinate extraction theorem in the forward direction: the raw coefficient is
+not merely separating, it computes the `Basis.repr` coordinate up to the same
+self-inverse sign. -/
+theorem projectedIdentityMinor_repr_coord_eq_signed_coeff
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (x : projectedIdentityMinorSpan (F := F) Φ pack κ)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    ((projectedIdentityMinorBasis (F := F) Φ pack κ).repr x i) =
+      IdentityMinor.subsetSign F Φ pack κ i *
+        MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+          ((x : projectedIdentityMinorSpan (F := F) Φ pack κ) :
+            MvPolynomial (Fin (tseitinNumVars Φ)) F) := by
+  have hcoord : projectedIdentityMinorDual (F := F) Φ pack κ i x =
+      (projectedIdentityMinorBasis (F := F) Φ pack κ).repr x i := by
+    rw [projectedIdentityMinorDual_eq_basis_repr_coord]
+    simp only [LinearMap.coe_comp, LinearEquiv.coe_coe, Function.comp_apply, Finsupp.lapply_apply]
+  rw [← hcoord]
+  rfl
+
+
 /-- Coefficient reconstruction: every vector in the projected minor span is the
 finite sum of projected basis rows weighted by the signed private-tag
 coefficients extracted from that same vector. -/
@@ -957,6 +979,26 @@ theorem projectedIdentityMinor_coeff_reconstruction
         projectedIdentityMinorBasis (F := F) Φ pack κ i) = x := by
   convert projectedIdentityMinor_dual_reconstruction (F := F) Φ pack κ x using 2
 
+/-- Extensionality for the projected identity-minor span: two vectors are equal
+as soon as all their private tag coefficients agree. -/
+theorem projectedIdentityMinor_ext_of_forall_tag_coeff_eq
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (x y : projectedIdentityMinorSpan (F := F) Φ pack κ)
+    (hcoeff : ∀ i : Fin (Nat.choose pack.selected.length κ),
+      MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+        ((x : projectedIdentityMinorSpan (F := F) Φ pack κ) :
+          MvPolynomial (Fin (tseitinNumVars Φ)) F) =
+      MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+        ((y : projectedIdentityMinorSpan (F := F) Φ pack κ) :
+          MvPolynomial (Fin (tseitinNumVars Φ)) F)) :
+    x = y := by
+  apply (projectedIdentityMinorBasis (F := F) Φ pack κ).repr.injective
+  ext i
+  rw [projectedIdentityMinor_repr_coord_eq_signed_coeff (F := F) Φ pack κ x i]
+  rw [projectedIdentityMinor_repr_coord_eq_signed_coeff (F := F) Φ pack κ y i]
+  rw [hcoeff i]
+
 /-- Private tag coefficients separate points of the projected identity-minor
 span.  If all tag coordinates vanish, the span vector itself is zero. -/
 theorem projectedIdentityMinor_eq_zero_of_forall_tag_coeff_zero
@@ -971,6 +1013,23 @@ theorem projectedIdentityMinor_eq_zero_of_forall_tag_coeff_zero
   have hrecon := projectedIdentityMinor_coeff_reconstruction (F := F) Φ pack κ x
   rw [← hrecon]
   simp [hcoeff]
+
+/-- Vanishing of all private tag coefficients is equivalent to vanishing in the
+projected identity-minor span. -/
+theorem projectedIdentityMinor_forall_tag_coeff_zero_iff
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (x : projectedIdentityMinorSpan (F := F) Φ pack κ) :
+    (∀ i : Fin (Nat.choose pack.selected.length κ),
+      MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+        ((x : projectedIdentityMinorSpan (F := F) Φ pack κ) :
+          MvPolynomial (Fin (tseitinNumVars Φ)) F) = 0) ↔ x = 0 := by
+  constructor
+  · intro h
+    exact projectedIdentityMinor_eq_zero_of_forall_tag_coeff_zero (F := F) Φ pack κ x h
+  · intro hx i
+    rw [hx]
+    simp
 
 
 /-- The projected identity-minor row span is contained in the multilinear SPDP
@@ -3497,8 +3556,11 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms projectedIdentityMinorDual_eq_basis_repr_coord
 #print axioms projectedIdentityMinor_dual_reconstruction
 #print axioms projectedIdentityMinor_coeff_eq_signed_repr_coord
+#print axioms projectedIdentityMinor_repr_coord_eq_signed_coeff
 #print axioms projectedIdentityMinor_coeff_reconstruction
 #print axioms projectedIdentityMinor_eq_zero_of_forall_tag_coeff_zero
+#print axioms projectedIdentityMinor_ext_of_forall_tag_coeff_eq
+#print axioms projectedIdentityMinor_forall_tag_coeff_zero_iff
 #print axioms identity_minor_projected_rows_span_le_mlSubspace
 #print axioms identity_minor_projected_rows_span_le_mlSubspaceInc
 #print axioms identity_minor_projected_rank_lower_from_span
