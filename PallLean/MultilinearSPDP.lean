@@ -1317,6 +1317,130 @@ theorem identity_minor_projected_rows_span_le_mlSubspaceInc {F : Type*} [Field F
     (identity_minor_projected_rows_span_le_mlSubspace (F := F) Φ B pack κ ℓ hB)
     (mlBlockedSpdpSubspace_le_inc B κ ℓ (coupledVerifier F Φ))
 
+/-- The explicit signed projected-basis realization of an arbitrary private-tag
+coordinate vector lies in the strict SPDP row space. -/
+theorem signed_projectedIdentityMinor_basis_sum_mem_mlBlockedSpdpSubspace
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ)))
+    (a : Fin (Nat.choose pack.selected.length κ) → F) :
+    (((∑ j : Fin (Nat.choose pack.selected.length κ),
+          (IdentityMinor.subsetSign F Φ pack κ j * a j) •
+            projectedIdentityMinorBasis (F := F) Φ pack κ j :
+          projectedIdentityMinorSpan (F := F) Φ pack κ) :
+        projectedIdentityMinorSpan (F := F) Φ pack κ) :
+        MvPolynomial (Fin (tseitinNumVars Φ)) F) ∈
+      mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ) := by
+  let x : projectedIdentityMinorSpan (F := F) Φ pack κ :=
+    ∑ j : Fin (Nat.choose pack.selected.length κ),
+      (IdentityMinor.subsetSign F Φ pack κ j * a j) •
+        projectedIdentityMinorBasis (F := F) Φ pack κ j
+  change (x : MvPolynomial (Fin (tseitinNumVars Φ)) F) ∈
+    mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ)
+  exact (identity_minor_projected_rows_span_le_mlSubspace (F := F) Φ B pack κ ℓ hB)
+    x.property
+
+/-- Inclusive-window version: the same explicit signed projected-basis
+realization lies in the inclusive SPDP row space. -/
+theorem signed_projectedIdentityMinor_basis_sum_mem_mlBlockedSpdpSubspaceInc
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ)))
+    (a : Fin (Nat.choose pack.selected.length κ) → F) :
+    (((∑ j : Fin (Nat.choose pack.selected.length κ),
+          (IdentityMinor.subsetSign F Φ pack κ j * a j) •
+            projectedIdentityMinorBasis (F := F) Φ pack κ j :
+          projectedIdentityMinorSpan (F := F) Φ pack κ) :
+        projectedIdentityMinorSpan (F := F) Φ pack κ) :
+        MvPolynomial (Fin (tseitinNumVars Φ)) F) ∈
+      mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ) := by
+  exact (identity_minor_projected_rows_span_le_mlSubspaceInc (F := F) Φ B pack κ ℓ hB)
+    (by
+      let x : projectedIdentityMinorSpan (F := F) Φ pack κ :=
+        ∑ j : Fin (Nat.choose pack.selected.length κ),
+          (IdentityMinor.subsetSign F Φ pack κ j * a j) •
+            projectedIdentityMinorBasis (F := F) Φ pack κ j
+      change (x : MvPolynomial (Fin (tseitinNumVars Φ)) F) ∈
+        projectedIdentityMinorSpan (F := F) Φ pack κ
+      exact x.property)
+
+/-- Completely explicit strict SPDP row-space element realizing prescribed
+private-tag coordinates: the witness is the signed sum of projected identity
+minor basis rows. -/
+theorem exists_explicit_mlBlockedSpdpSubspace_row_with_tagCoeff
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ)))
+    (a : Fin (Nat.choose pack.selected.length κ) → F) :
+    ∃ q : mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ),
+      ((q : mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ)) :
+          MvPolynomial (Fin (tseitinNumVars Φ)) F) =
+        (((∑ j : Fin (Nat.choose pack.selected.length κ),
+            (IdentityMinor.subsetSign F Φ pack κ j * a j) •
+              projectedIdentityMinorBasis (F := F) Φ pack κ j :
+            projectedIdentityMinorSpan (F := F) Φ pack κ) :
+          projectedIdentityMinorSpan (F := F) Φ pack κ) :
+          MvPolynomial (Fin (tseitinNumVars Φ)) F) ∧
+      ∀ i : Fin (Nat.choose pack.selected.length κ),
+        MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+          ((q : mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ)) :
+            MvPolynomial (Fin (tseitinNumVars Φ)) F) = a i := by
+  let x : projectedIdentityMinorSpan (F := F) Φ pack κ :=
+    ∑ j : Fin (Nat.choose pack.selected.length κ),
+      (IdentityMinor.subsetSign F Φ pack κ j * a j) •
+        projectedIdentityMinorBasis (F := F) Φ pack κ j
+  have hx : (x : MvPolynomial (Fin (tseitinNumVars Φ)) F) ∈
+      mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ) := by
+    exact (identity_minor_projected_rows_span_le_mlSubspace (F := F) Φ B pack κ ℓ hB)
+      x.property
+  refine ⟨⟨(x : MvPolynomial (Fin (tseitinNumVars Φ)) F), hx⟩, rfl, ?_⟩
+  intro i
+  exact coeff_tagMono_projectedIdentityMinor_signed_basis_sum (F := F) Φ pack κ a i
+
+/-- Inclusive-window explicit SPDP row-space realization by the same signed sum. -/
+theorem exists_explicit_mlBlockedSpdpSubspaceInc_row_with_tagCoeff
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ)))
+    (a : Fin (Nat.choose pack.selected.length κ) → F) :
+    ∃ q : mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ),
+      ((q : mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ)) :
+          MvPolynomial (Fin (tseitinNumVars Φ)) F) =
+        (((∑ j : Fin (Nat.choose pack.selected.length κ),
+            (IdentityMinor.subsetSign F Φ pack κ j * a j) •
+              projectedIdentityMinorBasis (F := F) Φ pack κ j :
+            projectedIdentityMinorSpan (F := F) Φ pack κ) :
+          projectedIdentityMinorSpan (F := F) Φ pack κ) :
+          MvPolynomial (Fin (tseitinNumVars Φ)) F) ∧
+      ∀ i : Fin (Nat.choose pack.selected.length κ),
+        MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+          ((q : mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ)) :
+            MvPolynomial (Fin (tseitinNumVars Φ)) F) = a i := by
+  let x : projectedIdentityMinorSpan (F := F) Φ pack κ :=
+    ∑ j : Fin (Nat.choose pack.selected.length κ),
+      (IdentityMinor.subsetSign F Φ pack κ j * a j) •
+        projectedIdentityMinorBasis (F := F) Φ pack κ j
+  have hx : (x : MvPolynomial (Fin (tseitinNumVars Φ)) F) ∈
+      mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ) := by
+    exact (identity_minor_projected_rows_span_le_mlSubspaceInc (F := F) Φ B pack κ ℓ hB)
+      x.property
+  refine ⟨⟨(x : MvPolynomial (Fin (tseitinNumVars Φ)) F), hx⟩, rfl, ?_⟩
+  intro i
+  exact coeff_tagMono_projectedIdentityMinor_signed_basis_sum (F := F) Φ pack κ a i
+
+
 /-- Quotient-map proof that the strict multilinear SPDP row subspace has
 finrank at least the projected identity-minor dimension.  This avoids using the
 projected basis cardinality directly: the ambient tag map sends this row
@@ -1663,6 +1787,55 @@ theorem exists_coupledVerifier_projected_row_inc_with_tagCoeff
   exact exists_mlBlockedSpdpSubspaceInc_row_with_tagCoeff
     (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
     (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd) a
+
+/-- Canonical Tseitin explicit realization: the signed projected-basis sum itself
+is the strict row-space witness with prescribed private-tag coordinates. -/
+theorem exists_explicit_coupledVerifier_projected_row_with_tagCoeff
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (a : Fin (Nat.choose pack.selected.length κ) → F) :
+    ∃ q : mlBlockedSpdpSubspace (IdentityMinor.tseitinPartition Φ) κ ℓ
+        (coupledVerifier F Φ),
+      ((q : mlBlockedSpdpSubspace (IdentityMinor.tseitinPartition Φ) κ ℓ
+          (coupledVerifier F Φ)) : MvPolynomial (Fin (tseitinNumVars Φ)) F) =
+        (((∑ j : Fin (Nat.choose pack.selected.length κ),
+            (IdentityMinor.subsetSign F Φ pack κ j * a j) •
+              projectedIdentityMinorBasis (F := F) Φ pack κ j :
+            projectedIdentityMinorSpan (F := F) Φ pack κ) :
+          projectedIdentityMinorSpan (F := F) Φ pack κ) :
+          MvPolynomial (Fin (tseitinNumVars Φ)) F) ∧
+      ∀ i : Fin (Nat.choose pack.selected.length κ),
+        MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+          ((q : mlBlockedSpdpSubspace (IdentityMinor.tseitinPartition Φ) κ ℓ
+              (coupledVerifier F Φ)) : MvPolynomial (Fin (tseitinNumVars Φ)) F) = a i := by
+  exact exists_explicit_mlBlockedSpdpSubspace_row_with_tagCoeff
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd) a
+
+/-- Inclusive canonical Tseitin explicit realization by the same signed
+projected-basis sum. -/
+theorem exists_explicit_coupledVerifier_projected_row_inc_with_tagCoeff
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (a : Fin (Nat.choose pack.selected.length κ) → F) :
+    ∃ q : mlBlockedSpdpSubspaceInc (IdentityMinor.tseitinPartition Φ) κ ℓ
+        (coupledVerifier F Φ),
+      ((q : mlBlockedSpdpSubspaceInc (IdentityMinor.tseitinPartition Φ) κ ℓ
+          (coupledVerifier F Φ)) : MvPolynomial (Fin (tseitinNumVars Φ)) F) =
+        (((∑ j : Fin (Nat.choose pack.selected.length κ),
+            (IdentityMinor.subsetSign F Φ pack κ j * a j) •
+              projectedIdentityMinorBasis (F := F) Φ pack κ j :
+            projectedIdentityMinorSpan (F := F) Φ pack κ) :
+          projectedIdentityMinorSpan (F := F) Φ pack κ) :
+          MvPolynomial (Fin (tseitinNumVars Φ)) F) ∧
+      ∀ i : Fin (Nat.choose pack.selected.length κ),
+        MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+          ((q : mlBlockedSpdpSubspaceInc (IdentityMinor.tseitinPartition Φ) κ ℓ
+              (coupledVerifier F Φ)) : MvPolynomial (Fin (tseitinNumVars Φ)) F) = a i := by
+  exact exists_explicit_mlBlockedSpdpSubspaceInc_row_with_tagCoeff
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd) a
+
 
 
 /-- Canonical coupled-verifier projected identity-minor span has exact binomial
@@ -4174,6 +4347,10 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms projectedIdentityMinor_forall_tag_coeff_zero_iff
 #print axioms identity_minor_projected_rows_span_le_mlSubspace
 #print axioms identity_minor_projected_rows_span_le_mlSubspaceInc
+#print axioms signed_projectedIdentityMinor_basis_sum_mem_mlBlockedSpdpSubspace
+#print axioms signed_projectedIdentityMinor_basis_sum_mem_mlBlockedSpdpSubspaceInc
+#print axioms exists_explicit_mlBlockedSpdpSubspace_row_with_tagCoeff
+#print axioms exists_explicit_mlBlockedSpdpSubspaceInc_row_with_tagCoeff
 #print axioms nat_choose_le_finrank_mlBlockedSpdpSubspace_from_tag_quotient
 #print axioms nat_choose_le_finrank_mlBlockedSpdpSubspaceInc_from_tag_quotient
 #print axioms identity_minor_projected_rank_lower_from_tag_quotient
@@ -4190,6 +4367,8 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms coupledVerifier_projected_tagCoeffLin_map_mlBlockedSpdpSubspaceInc_eq_top
 #print axioms exists_coupledVerifier_projected_row_with_tagCoeff
 #print axioms exists_coupledVerifier_projected_row_inc_with_tagCoeff
+#print axioms exists_explicit_coupledVerifier_projected_row_with_tagCoeff
+#print axioms exists_explicit_coupledVerifier_projected_row_inc_with_tagCoeff
 #print axioms coupledVerifier_projected_identity_minor_span_finrank
 #print axioms tseitinAt_projected_identity_minor_subspace_certificate
 #print axioms tseitinAt_projected_identity_minor_subspace_certificate_inc
