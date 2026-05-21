@@ -570,6 +570,54 @@ theorem linearIndependent_of_kronecker_dual
   rw [Finset.sum_congr rfl hsub, Finset.sum_ite_eq' S a, if_pos ha] at h0
   exact mul_eq_zero.mp h0 |>.resolve_right (hu a)
 
+/-- Direct projected Kronecker δ theorem for the identity-minor rows.  The
+square-free tag monomial is not removed by `mlProj`, so the original
+`IdentityMinor.kronecker_delta` survives exactly after projecting the row. -/
+theorem identity_minor_projected_kronecker_delta {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i j : Fin (Nat.choose pack.selected.length κ)) :
+    MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+      (mlProj (IdentityMinor.rowPoly F Φ pack κ j)) =
+        if i = j then IdentityMinor.subsetSign F Φ pack κ i else 0 := by
+  have hml : Finsupp.IsMultilinear (IdentityMinor.tagMono F Φ pack κ i) :=
+    tagMono_isMultilinear Φ pack κ i
+  rw [coeff_mlProj_of_isMultilinear_mono _ _ hml]
+  exact IdentityMinor.kronecker_delta (F := F) Φ pack κ i j
+
+/-- Diagonal projected coefficient: the private tag extracts the row's sign. -/
+theorem identity_minor_projected_diagonal_coeff
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+      (mlProj (IdentityMinor.rowPoly F Φ pack κ i)) =
+        IdentityMinor.subsetSign F Φ pack κ i := by
+  rw [identity_minor_projected_kronecker_delta (F := F) Φ pack κ i i]
+  simp
+
+/-- The diagonal projected coefficient is a unit sign (`±1`). -/
+theorem identity_minor_projected_diagonal_coeff_unit
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+      (mlProj (IdentityMinor.rowPoly F Φ pack κ i)) = 1 ∨
+    MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+      (mlProj (IdentityMinor.rowPoly F Φ pack κ i)) = -1 := by
+  rw [identity_minor_projected_diagonal_coeff (F := F) Φ pack κ i]
+  exact IdentityMinor.subsetSign_unit Φ pack κ i
+
+/-- Off-diagonal projected coefficient vanishing: a private tag for `i` sees no
+projected row indexed by a distinct subset `j`. -/
+theorem identity_minor_projected_offdiag_coeff_zero
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i j : Fin (Nat.choose pack.selected.length κ)) (hij : i ≠ j) :
+    MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+      (mlProj (IdentityMinor.rowPoly F Φ pack κ j)) = 0 := by
+  rw [identity_minor_projected_kronecker_delta (F := F) Φ pack κ i j]
+  simp [hij]
+
 /-- Each projected identity-minor row is nonzero.  The diagonal tag coefficient
 survives `mlProj` because the tag is square-free, and that coefficient is the
 unit `subsetSign`. -/
@@ -584,11 +632,7 @@ theorem identity_minor_projected_row_ne_zero {F : Type*} [Field F] [Nontrivial F
     rcases IdentityMinor.subsetSign_unit (F := F) Φ pack κ i with hs | hs <;> rw [hs] <;> simp
   have hcoeff : MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
       (mlProj (IdentityMinor.rowPoly F Φ pack κ i)) = s := by
-    have hml : Finsupp.IsMultilinear (IdentityMinor.tagMono F Φ pack κ i) :=
-      tagMono_isMultilinear Φ pack κ i
-    rw [coeff_mlProj_of_isMultilinear_mono _ _ hml]
-    rw [IdentityMinor.kronecker_delta (F := F) Φ pack κ i i]
-    simp [s]
+    rw [identity_minor_projected_diagonal_coeff (F := F) Φ pack κ i]
   rw [hzero, MvPolynomial.coeff_zero] at hcoeff
   exact hs_nonzero hcoeff.symm
 
@@ -614,10 +658,21 @@ theorem identity_minor_projected_rows_linearIndependent {F : Type*} [Field F] [N
     signs hu
   intro i j
   simp only [coeffLin, LinearMap.coe_mk, AddHom.coe_mk]
-  have hml : Finsupp.IsMultilinear (IdentityMinor.tagMono F Φ pack κ i) :=
-    tagMono_isMultilinear Φ pack κ i
-  rw [coeff_mlProj_of_isMultilinear_mono _ _ hml]
-  exact IdentityMinor.kronecker_delta (F := F) Φ pack κ i j
+  exact identity_minor_projected_kronecker_delta (F := F) Φ pack κ i j
+
+/-- The projected identity-minor row span has exactly the expected
+binomial dimension.  This packages the Kronecker-dual independence as a clean
+finite-dimensional algebra statement: the projected rows themselves carry a
+`choose(|pack|, κ)`-dimensional identity-minor subspace. -/
+theorem identity_minor_projected_rows_span_finrank {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ) :
+    Module.finrank F (Submodule.span F (Set.range
+      (fun i : Fin (Nat.choose pack.selected.length κ) =>
+        mlProj (IdentityMinor.rowPoly F Φ pack κ i)))) =
+      Nat.choose pack.selected.length κ := by
+  rw [finrank_span_eq_card
+    (identity_minor_projected_rows_linearIndependent (F := F) Φ pack κ)]
+  exact Fintype.card_fin _
 
 /-- General rank-from-linear-independence for any finite-dimensional submodule -/
 private theorem finrank_ge_of_linearIndependent {R M : Type*} [CommRing R] [AddCommGroup M]
@@ -2739,8 +2794,13 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 
 #print axioms linearIndependent_of_kronecker_dual
 #print axioms finrank_ge_of_kronecker_dual
+#print axioms identity_minor_projected_kronecker_delta
+#print axioms identity_minor_projected_diagonal_coeff
+#print axioms identity_minor_projected_diagonal_coeff_unit
+#print axioms identity_minor_projected_offdiag_coeff_zero
 #print axioms identity_minor_projected_row_ne_zero
 #print axioms identity_minor_projected_rows_linearIndependent
+#print axioms identity_minor_projected_rows_span_finrank
 #print axioms IdentityMinorPaperFaithful.tagMono_finsupp_isMultilinear
 #print axioms IdentityMinorPaperFaithful.monomial_tagMono_isMultilinear
 #print axioms IdentityMinorPaperFaithful.identity_minor_components_columns_multilinear
