@@ -320,6 +320,230 @@ theorem zeroProfileBooleanNormalize_allocatedDerivativeProduct_mem_span_finitePr
     exact hlocal i
   · exact hstable
 
+/-- Normalized raw-pullback assembly for an allocated transformed Leibniz
+product.  This is the pullback version of the normalized finite-product theorem:
+local normalized derivative-factor spans, closure of product-choice generators
+under Boolean normalization, and product-choice pullback of rows imply that the
+Boolean-normalized allocated product row pulls back into the enlarged source
+SPDP window. -/
+theorem normalizedAllocatedProduct_rawPullback_mem_of_localNormalizedSpans
+    (extraK extraL : Nat)
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (m : SATDeciderGaugeSpace M n hn2 htb hns)
+    (alloc : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length →
+      List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+    (A : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length →
+      Set (SATDeciderGaugeSpace M n hn2 htb hns))
+    (hlocal : ∀ i : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length,
+      zeroProfileBooleanNormalize
+        (iterDerivList (alloc i)
+          (piPlusBooleanProjectedTransformedConstraintFactors
+            M n hn2 htb hns D)[i.val]) ∈ Submodule.span ℚ (A i))
+    (hstable : ∀ q ∈ finiteProductChoiceSet Finset.univ A,
+      zeroProfileBooleanNormalize q ∈
+        Submodule.span ℚ (finiteProductChoiceSet Finset.univ A))
+    (hchoice : ∀ q ∈ finiteProductChoiceSet Finset.univ A,
+      (piPlusSATTransform_of_blockCoordinates M n hn2 htb hns D).equiv.symm
+        (mlProj (m * q)) ∈
+          mlBlockedSpdpSubspaceInc
+            (cook_levin_compilation M n hn2 htb hns).partition
+            (Nat.log 2 n + extraK) (Nat.log 2 n + extraL)
+            (cookLevinFactoredPoly M n)) :
+    (piPlusSATTransform_of_blockCoordinates M n hn2 htb hns D).equiv.symm
+      (mlProj (m * zeroProfileBooleanNormalize
+        (piPlusBooleanProjectedAllocatedDerivativeProduct
+          M n hn2 htb hns D alloc))) ∈
+          mlBlockedSpdpSubspaceInc
+            (cook_levin_compilation M n hn2 htb hns).partition
+            (Nat.log 2 n + extraK) (Nat.log 2 n + extraL)
+            (cookLevinFactoredPoly M n) := by
+  classical
+  let G : Set (SATDeciderGaugeSpace M n hn2 htb hns) :=
+    (fun q => mlProj (m * q)) '' finiteProductChoiceSet Finset.univ A
+  let W : Submodule ℚ (SATDeciderGaugeSpace M n hn2 htb hns) :=
+    mlBlockedSpdpSubspaceInc
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n + extraK) (Nat.log 2 n + extraL)
+      (cookLevinFactoredPoly M n)
+  have hprod : zeroProfileBooleanNormalize
+        (piPlusBooleanProjectedAllocatedDerivativeProduct
+          M n hn2 htb hns D alloc) ∈
+      Submodule.span ℚ (finiteProductChoiceSet Finset.univ A) :=
+    zeroProfileBooleanNormalize_allocatedDerivativeProduct_mem_span_finiteProductChoiceSet
+      M n hn2 htb hns D alloc A hlocal hstable
+  have hspan : mlProj (m * zeroProfileBooleanNormalize
+        (piPlusBooleanProjectedAllocatedDerivativeProduct
+          M n hn2 htb hns D alloc)) ∈ Submodule.span ℚ G := by
+    simpa [G] using
+      SymmetricPower.mlProj_mul_mem_span_image m
+        (finiteProductChoiceSet Finset.univ A)
+        (zeroProfileBooleanNormalize
+          (piPlusBooleanProjectedAllocatedDerivativeProduct M n hn2 htb hns D alloc))
+        hprod
+  refine piPlusRawPullback_mem_of_mem_span M n hn2 htb hns
+    (piPlusSATTransform_of_blockCoordinates M n hn2 htb hns D) G W
+    (mlProj (m * zeroProfileBooleanNormalize
+      (piPlusBooleanProjectedAllocatedDerivativeProduct
+        M n hn2 htb hns D alloc))) hspan ?_
+  intro q hq
+  rcases hq with ⟨r, hr, rfl⟩
+  exact hchoice r hr
+
+/-- Paper-scale specialization of the normalized allocated-product raw-pullback
+assembly for the widened `(1,1)` source window. -/
+theorem paperScale_normalizedAllocatedProduct_rawPullback_mem_of_localNormalizedSpans_oneOne
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (m : SATDeciderGaugeSpace M (2 ^ 804) paperScale_ge_two htb hns)
+    (alloc : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+        M htb hns).length →
+      List (Fin (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars))
+    (A : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+        M htb hns).length →
+      Set (SATDeciderGaugeSpace M (2 ^ 804) paperScale_ge_two htb hns))
+    (hlocal : ∀ i : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+        M htb hns).length,
+      zeroProfileBooleanNormalize
+        (iterDerivList (alloc i)
+          (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+            M htb hns)[i.val]) ∈ Submodule.span ℚ (A i))
+    (hstable : ∀ q ∈ finiteProductChoiceSet Finset.univ A,
+      zeroProfileBooleanNormalize q ∈
+        Submodule.span ℚ (finiteProductChoiceSet Finset.univ A))
+    (hchoice : ∀ q ∈ finiteProductChoiceSet Finset.univ A,
+      (cookLevinPiPlusSATTransform_paperScale M htb hns).equiv.symm
+        (mlProj (m * q)) ∈
+          mlBlockedSpdpSubspaceInc
+            (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+            (Nat.log 2 (2 ^ 804) + 1) (Nat.log 2 (2 ^ 804) + 1)
+            (cookLevinFactoredPoly M (2 ^ 804))) :
+    (cookLevinPiPlusSATTransform_paperScale M htb hns).equiv.symm
+      (mlProj (m * zeroProfileBooleanNormalize
+        (piPlusBooleanProjectedAllocatedDerivativeProduct
+          M (2 ^ 804) paperScale_ge_two htb hns
+          (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) alloc))) ∈
+          mlBlockedSpdpSubspaceInc
+            (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+            (Nat.log 2 (2 ^ 804) + 1) (Nat.log 2 (2 ^ 804) + 1)
+            (cookLevinFactoredPoly M (2 ^ 804)) :=
+  normalizedAllocatedProduct_rawPullback_mem_of_localNormalizedSpans 1 1
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+    m alloc A hlocal hstable hchoice
+
+/-- Uniform normalized local-span/product-choice reduction for allocated
+transformed products.  For each derivative allocation, it supplies local
+generator sets for the Boolean-normalized local derivatives, proves the finite
+product-choice span is stable under Boolean normalization, and proves every
+pointwise product-choice row pulls back into the source SPDP window. -/
+def PiPlusBooleanProjectedNormalizedAllocationLocalSpansPullbackReduction
+    (extraK extraL : Nat)
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns) : Prop :=
+  ∀ (S : List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+    (m : SATDeciderGaugeSpace M n hn2 htb hns),
+      S.length = Nat.log 2 n →
+      m.totalDegree ≤ Nat.log 2 n →
+      m.vars ⊆ S.toFinset →
+      isBlockAdmissible (cook_levin_compilation M n hn2 htb hns).partition S →
+      ∀ (alloc : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+            M n hn2 htb hns D).length →
+          List (Fin (cook_levin_compilation M n hn2 htb hns).numVars)),
+        (∀ i, ∀ v ∈ alloc i, v ∈ S) →
+        ∃ A : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+            M n hn2 htb hns D).length →
+          Set (SATDeciderGaugeSpace M n hn2 htb hns),
+          (∀ i : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+              M n hn2 htb hns D).length,
+            zeroProfileBooleanNormalize
+              (iterDerivList (alloc i)
+                (piPlusBooleanProjectedTransformedConstraintFactors
+                  M n hn2 htb hns D)[i.val]) ∈ Submodule.span ℚ (A i)) ∧
+          (∀ q ∈ finiteProductChoiceSet Finset.univ A,
+            zeroProfileBooleanNormalize q ∈
+              Submodule.span ℚ (finiteProductChoiceSet Finset.univ A)) ∧
+          (∀ q ∈ finiteProductChoiceSet Finset.univ A,
+            (piPlusSATTransform_of_blockCoordinates M n hn2 htb hns D).equiv.symm
+              (mlProj (m * q)) ∈
+                mlBlockedSpdpSubspaceInc
+                  (cook_levin_compilation M n hn2 htb hns).partition
+                  (Nat.log 2 n + extraK) (Nat.log 2 n + extraL)
+                  (cookLevinFactoredPoly M n))
+
+/-- The normalized local-span/product-choice reduction closes the normalized
+allocated-product pullback for every concrete derivative allocation. -/
+theorem normalizedAllocatedProduct_rawPullback_of_normalizedAllocationLocalSpansPullbackReduction
+    (extraK extraL : Nat)
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (hred : PiPlusBooleanProjectedNormalizedAllocationLocalSpansPullbackReduction
+      extraK extraL M n hn2 htb hns D) :
+    ∀ (S : List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+      (m : SATDeciderGaugeSpace M n hn2 htb hns),
+        S.length = Nat.log 2 n →
+        m.totalDegree ≤ Nat.log 2 n →
+        m.vars ⊆ S.toFinset →
+        isBlockAdmissible (cook_levin_compilation M n hn2 htb hns).partition S →
+        ∀ (alloc : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+              M n hn2 htb hns D).length →
+            List (Fin (cook_levin_compilation M n hn2 htb hns).numVars)),
+          (∀ i, ∀ v ∈ alloc i, v ∈ S) →
+          (piPlusSATTransform_of_blockCoordinates M n hn2 htb hns D).equiv.symm
+            (mlProj (m * zeroProfileBooleanNormalize
+              (piPlusBooleanProjectedAllocatedDerivativeProduct
+                M n hn2 htb hns D alloc))) ∈
+              mlBlockedSpdpSubspaceInc
+                (cook_levin_compilation M n hn2 htb hns).partition
+                (Nat.log 2 n + extraK) (Nat.log 2 n + extraL)
+                (cookLevinFactoredPoly M n) := by
+  intro S m hSlen hmdeg hmvars hadm alloc halloc
+  rcases hred S m hSlen hmdeg hmvars hadm alloc halloc with
+    ⟨A, hlocal, hstable, hchoice⟩
+  exact normalizedAllocatedProduct_rawPullback_mem_of_localNormalizedSpans
+    extraK extraL M n hn2 htb hns D m alloc A hlocal hstable hchoice
+
+/-- Paper-scale `(1,1)` normalized local-span/product-choice reduction. -/
+abbrev PaperScalePiPlusBooleanProjectedNormalizedAllocationLocalSpansPullbackReductionOneOne
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) : Prop :=
+  PiPlusBooleanProjectedNormalizedAllocationLocalSpansPullbackReduction 1 1
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+
+/-- Paper-scale closeout of normalized allocated-product pullback from the
+normalized local-span/product-choice reduction. -/
+theorem paperScale_normalizedAllocatedProduct_rawPullback_of_normalizedAllocationLocalSpansPullbackReduction_oneOne
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hred : PaperScalePiPlusBooleanProjectedNormalizedAllocationLocalSpansPullbackReductionOneOne
+      M htb hns) :
+    ∀ (S : List (Fin (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars))
+      (m : SATDeciderGaugeSpace M (2 ^ 804) paperScale_ge_two htb hns),
+        S.length = Nat.log 2 (2 ^ 804) →
+        m.totalDegree ≤ Nat.log 2 (2 ^ 804) →
+        m.vars ⊆ S.toFinset →
+        isBlockAdmissible (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition S →
+        ∀ (alloc : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+              M htb hns).length →
+            List (Fin (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars)),
+          (∀ i, ∀ v ∈ alloc i, v ∈ S) →
+          (cookLevinPiPlusSATTransform_paperScale M htb hns).equiv.symm
+            (mlProj (m * zeroProfileBooleanNormalize
+              (piPlusBooleanProjectedAllocatedDerivativeProduct
+                M (2 ^ 804) paperScale_ge_two htb hns
+                (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) alloc))) ∈
+              mlBlockedSpdpSubspaceInc
+                (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+                (Nat.log 2 (2 ^ 804) + 1) (Nat.log 2 (2 ^ 804) + 1)
+                (cookLevinFactoredPoly M (2 ^ 804)) :=
+  normalizedAllocatedProduct_rawPullback_of_normalizedAllocationLocalSpansPullbackReduction
+    1 1 M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) hred
+
 /-- Raw-pullback assembly for an allocated transformed Leibniz product from
 local factor spans.  If each local derivative factor is in its local span, and
 if every pointwise product-choice generator has its projected row pullback in
@@ -742,6 +966,34 @@ theorem allocatedProduct_mem_span_of_normalizesToDistributedGenerator
   apply Submodule.subset_span
   refine ⟨alloc', halloc', ?_⟩
   rfl
+
+/-- Absorption form of `allocatedProduct_mem_span_of_normalizesToDistributedGenerator`:
+if every distributed generator row already lands in a target submodule `W`, then
+the Boolean-normalized allocated product lands in `W`.  This removes one more
+explicit span-elimination step from the local-factor assembly proof. -/
+theorem allocatedProduct_mem_of_normalizesToDistributedGenerator_and_distribRows
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (S : List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+    (alloc : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length →
+      List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+    (W : Submodule ℚ (SATDeciderGaugeSpace M n hn2 htb hns))
+    (hnorm : PiPlusBooleanProjectedAllocatedProductNormalizesToDistributedGenerator
+      M n hn2 htb hns D S alloc)
+    (hgen : ∀ q ∈ distribDerivProds Finset.univ
+          (fun i : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+              M n hn2 htb hns D).length =>
+            (piPlusBooleanProjectedTransformedConstraintFactors
+              M n hn2 htb hns D)[i.val]) S,
+        q ∈ W) :
+    zeroProfileBooleanNormalize
+      (piPlusBooleanProjectedAllocatedDerivativeProduct
+        M n hn2 htb hns D alloc) ∈ W := by
+  have hspan := allocatedProduct_mem_span_of_normalizesToDistributedGenerator
+    M n hn2 htb hns D S alloc hnorm
+  exact (Submodule.span_le.mpr hgen) hspan
 
 /-- Product-normalization reduction implies allocation-level Boolean stability. -/
 theorem allocationStability_of_productNormalizationReduction
@@ -1292,6 +1544,10 @@ theorem no_decidesSAT_at_paperScale_of_oneOneProductNormalizationCloseoutInputs
 #print axioms zeroProfileBooleanNormalize_finset_prod_mem_span_finiteProductChoiceSet
 #print axioms allocatedDerivativeProduct_mem_span_finiteProductChoiceSet
 #print axioms zeroProfileBooleanNormalize_allocatedDerivativeProduct_mem_span_finiteProductChoiceSet
+#print axioms normalizedAllocatedProduct_rawPullback_mem_of_localNormalizedSpans
+#print axioms paperScale_normalizedAllocatedProduct_rawPullback_mem_of_localNormalizedSpans_oneOne
+#print axioms normalizedAllocatedProduct_rawPullback_of_normalizedAllocationLocalSpansPullbackReduction
+#print axioms paperScale_normalizedAllocatedProduct_rawPullback_of_normalizedAllocationLocalSpansPullbackReduction_oneOne
 #print axioms allocatedProduct_rawPullback_mem_of_localSpans
 #print axioms paperScale_allocatedProduct_rawPullback_mem_of_localSpans_oneOne
 #print axioms transformedLeibnizGeneratorPullback_of_allocationLocalSpansPullbackReduction
@@ -1306,6 +1562,7 @@ theorem no_decidesSAT_at_paperScale_of_oneOneProductNormalizationCloseoutInputs
 #print axioms no_decidesSAT_at_paperScale_of_polynomialSpan_localFactorToAllocationLocalSpansReduction_routeBEnvelope_npInclusion
 #print axioms productNormalization_repeatedUntouchedVariable_obstruction
 #print axioms allocatedProduct_mem_span_of_normalizesToDistributedGenerator
+#print axioms allocatedProduct_mem_of_normalizesToDistributedGenerator_and_distribRows
 #print axioms paperScale_productNormalizationReduction_of_localFactorToProductNormalizationReduction
 #print axioms allocationStability_of_productNormalizationReduction
 #print axioms paperScale_allocationStability_of_productNormalizationReduction
