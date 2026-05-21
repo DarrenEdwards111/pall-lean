@@ -715,6 +715,27 @@ theorem projectedIdentityMinorBasis_apply
   exact Module.Basis.span_apply
     (identity_minor_projected_rows_linearIndependent (F := F) Φ pack κ) i
 
+/-- Projected basis rows in fully expanded product-rule form.
+
+This combines the coordinate-level projected basis object with the concrete
+Leibniz/product derivative theorem from `IdentityMinor`: each basis vector is
+the multilinear projection of the signed selected-gadget product times the
+undifferentiated verifier factors on the complement. -/
+theorem projectedIdentityMinorBasis_eq_mlProj_signed_gadgetProd_mul_remaining
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    ((projectedIdentityMinorBasis (F := F) Φ pack κ i :
+        projectedIdentityMinorSpan (F := F) Φ pack κ) :
+      MvPolynomial (Fin (tseitinNumVars Φ)) F) =
+      mlProj
+        (C ((-1 : F) ^ κ) *
+          ((IdentityMinor.getSubset pack κ i).map (clauseGadget F Φ)).prod *
+          ((Finset.univ : Finset (Fin Φ.clauses.length)) \
+              (IdentityMinor.getSubset pack κ i).toFinset).prod (IdentityMinor.cvFactor F Φ)) := by
+  rw [projectedIdentityMinorBasis_apply]
+  rw [IdentityMinor.rowPoly_eq_signed_gadgetProd_mul_remaining]
+
 /-- Each named projected identity-minor basis vector is an actual SPDP row of
 `coupledVerifier`, provided the selected selector list is block-admissible.
 
@@ -3332,6 +3353,7 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms projectedIdentityMinorSpan_finite
 #print axioms projectedIdentityMinorBasis
 #print axioms projectedIdentityMinorBasis_apply
+#print axioms projectedIdentityMinorBasis_eq_mlProj_signed_gadgetProd_mul_remaining
 #print axioms projectedIdentityMinorBasis_mem_mlSubspace
 #print axioms projectedIdentityMinorBasis_mem_canonical_mlSubspace
 #print axioms subsetSign_mul_self
