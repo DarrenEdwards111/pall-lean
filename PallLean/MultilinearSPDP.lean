@@ -1551,6 +1551,134 @@ theorem coupledVerifier_projected_identity_minor_rank_lower_inc {F : Type*} [Fie
     (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
     (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
 
+/-- Canonical-partition lower bound through the ambient private-tag quotient map.
+This is the quotient-map version of `coupledVerifier_projected_identity_minor_rank_lower`: the canonical SPDP row space maps onto all private tag coordinates. -/
+theorem coupledVerifier_projected_identity_minor_rank_lower_from_tag_quotient
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    mlBlockedSpdpRank (IdentityMinor.tseitinPartition Φ) κ ℓ (coupledVerifier F Φ) ≥
+      Nat.choose pack.selected.length κ := by
+  exact identity_minor_projected_rank_lower_from_tag_quotient
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+/-- Inclusive canonical-partition lower bound through the ambient private-tag
+quotient map. -/
+theorem coupledVerifier_projected_identity_minor_rank_lower_inc_from_tag_quotient
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ) :
+    mlBlockedSpdpRankInc (IdentityMinor.tseitinPartition Φ) κ ℓ (coupledVerifier F Φ) ≥
+      Nat.choose pack.selected.length κ := by
+  exact identity_minor_projected_rank_lower_inc_from_tag_quotient
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
+
+/-- Concrete Tseitin-family choose-bound proved directly from the private-tag
+quotient map, not via the finite subspace certificate. -/
+theorem tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_from_tag_quotient
+    (F : Type*) [Field F] [Nontrivial F]
+    (n : ℕ) (hn1024 : n ≥ 2^10) (heven : 2 ∣ n) :
+    Nat.choose (n / 30) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) (Nat.log 2 n) (coupledVerifier F (tseitinAt n)) := by
+  have hv := tseitinAt_vertices n (by omega) heven
+  have pack := Tseitin.disjoint_packing_exists (tseitinAt n) (by omega)
+  have hpack : n / 30 ≤ pack.selected.length := by
+    have hps := pack.size_bound
+    rw [hv] at hps
+    exact hps
+  exact le_trans (Nat.choose_le_choose (Nat.log 2 n) hpack)
+    (coupledVerifier_projected_identity_minor_rank_lower_from_tag_quotient
+      (F := F) (tseitinAt n) pack (Nat.log 2 n) (Nat.log 2 n))
+
+/-- Inclusive concrete Tseitin-family choose-bound proved directly from the
+private-tag quotient map. -/
+theorem tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_inc_from_tag_quotient
+    (F : Type*) [Field F] [Nontrivial F]
+    (n : ℕ) (hn1024 : n ≥ 2^10) (heven : 2 ∣ n) (ℓ : ℕ) :
+    Nat.choose (n / 30) (Nat.log 2 n) ≤
+      mlBlockedSpdpRankInc (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) ℓ (coupledVerifier F (tseitinAt n)) := by
+  have hv := tseitinAt_vertices n (by omega) heven
+  have pack := Tseitin.disjoint_packing_exists (tseitinAt n) (by omega)
+  have hpack : n / 30 ≤ pack.selected.length := by
+    have hps := pack.size_bound
+    rw [hv] at hps
+    exact hps
+  exact le_trans (Nat.choose_le_choose (Nat.log 2 n) hpack)
+    (coupledVerifier_projected_identity_minor_rank_lower_inc_from_tag_quotient
+      (F := F) (tseitinAt n) pack (Nat.log 2 n) ℓ)
+
+/-- Concrete-threshold super-polynomial rank lower bound proved directly from
+the private-tag quotient map. -/
+theorem tseitinAt_coupledVerifier_projected_rank_lower_superpoly_from_tag_quotient
+    (F : Type*) [Field F] [Nontrivial F]
+    (n : ℕ) (hn : n ≥ 2 ^ 804) (heven : 2 ∣ n) :
+      mlBlockedSpdpRank (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) (Nat.log 2 n) (coupledVerifier F (tseitinAt n)) ≥
+          n ^ (Nat.log 2 n / 4) := by
+  have hn1024 : n ≥ 2^10 := by
+    have : (2 : ℕ) ^ 10 ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+    exact le_trans this hn
+  have hn20 : n ≥ 2 ^ 20 := le_trans (by
+    exact Nat.pow_le_pow_right (by omega : 1 ≤ (2 : ℕ)) (by omega : 20 ≤ 804)) hn
+  exact le_trans (BinomialBound.binomial_lower_bound_concrete n hn20)
+    (tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_from_tag_quotient
+      F n hn1024 heven)
+
+/-- Inclusive concrete-threshold super-polynomial rank lower bound proved
+directly from the private-tag quotient map. -/
+theorem tseitinAt_coupledVerifier_projected_rank_lower_superpoly_inc_from_tag_quotient
+    (F : Type*) [Field F] [Nontrivial F]
+    (n : ℕ) (hn : n ≥ 2 ^ 804) (heven : 2 ∣ n) (ℓ : ℕ) :
+      mlBlockedSpdpRankInc (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) ℓ (coupledVerifier F (tseitinAt n)) ≥
+          n ^ (Nat.log 2 n / 4) := by
+  have hn1024 : n ≥ 2^10 := by
+    have : (2 : ℕ) ^ 10 ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+    exact le_trans this hn
+  have hn20 : n ≥ 2 ^ 20 := le_trans (by
+    exact Nat.pow_le_pow_right (by omega : 1 ≤ (2 : ℕ)) (by omega : 20 ≤ 804)) hn
+  exact le_trans (BinomialBound.binomial_lower_bound_concrete n hn20)
+    (tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_inc_from_tag_quotient
+      F n hn1024 heven ℓ)
+
+/-- Asymptotic super-polynomial NP-side lower bound proved directly from the
+private-tag quotient map. -/
+theorem coupledVerifier_projected_rank_lower_superpoly_from_tag_quotient
+    (F : Type*) [Field F] [Nontrivial F] :
+    ∃ n₀, ∀ n, n ≥ n₀ → 2 ∣ n →
+      mlBlockedSpdpRank (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) (Nat.log 2 n) (coupledVerifier F (tseitinAt n)) ≥
+          n ^ (Nat.log 2 n / 4) := by
+  obtain ⟨n₀, hn₀⟩ := NPWitness.binomial_lower_bound
+  use max n₀ (2^10)
+  intro n hn heven
+  have hn₀' : n ≥ n₀ := le_trans (le_max_left _ _) hn
+  have hn1024 : n ≥ 2^10 := le_trans (le_max_right _ _) hn
+  exact le_trans (hn₀ n hn₀')
+    (tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_from_tag_quotient
+      F n hn1024 heven)
+
+/-- Inclusive asymptotic super-polynomial NP-side lower bound proved directly
+from the private-tag quotient map. -/
+theorem coupledVerifier_projected_rank_lower_superpoly_inc_from_tag_quotient
+    (F : Type*) [Field F] [Nontrivial F] (ℓ : ℕ) :
+    ∃ n₀, ∀ n, n ≥ n₀ → 2 ∣ n →
+      mlBlockedSpdpRankInc (IdentityMinor.tseitinPartition (tseitinAt n))
+        (Nat.log 2 n) ℓ (coupledVerifier F (tseitinAt n)) ≥
+          n ^ (Nat.log 2 n / 4) := by
+  obtain ⟨n₀, hn₀⟩ := NPWitness.binomial_lower_bound
+  use max n₀ (2^10)
+  intro n hn heven
+  have hn₀' : n ≥ n₀ := le_trans (le_max_left _ _) hn
+  have hn1024 : n ≥ 2^10 := le_trans (le_max_right _ _) hn
+  exact le_trans (hn₀ n hn₀')
+    (tseitinAt_coupledVerifier_projected_rank_lower_choose_div30_inc_from_tag_quotient
+      F n hn1024 heven ℓ)
+
+
+
 /-- Concrete Tseitin-family projected identity-minor subspace certificate.
 There is an explicit projected identity-minor subspace inside the canonical
 Tseitin NP window whose dimension is at least `choose (n/30) (log₂ n)`.
