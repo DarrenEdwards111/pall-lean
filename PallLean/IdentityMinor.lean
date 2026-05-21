@@ -482,6 +482,29 @@ theorem getSubset_subset' (pack : DisjointPacking Φ) (κ : ℕ)
   exact (sublistsLen_get_sublist' pack.selected κ
     (i.cast (subsetList_length pack κ).symm)).subset hc
 
+
+/-- Explicit row decomposition for the concrete identity-minor rows.
+
+Differentiating the coupled verifier by the selector variables in the selected
+κ-subset pulls out exactly the selected clause gadgets, with the expected
+`(-1)^κ` sign, and leaves the undifferentiated verifier factors on the
+complement.  This is the row-level algebra behind the Kronecker minor, exposed
+as a reusable equality rather than hidden inside `kronecker_delta`. -/
+theorem rowPoly_eq_signed_gadgetProd_mul_remaining [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    rowPoly F Φ pack κ i =
+      C ((-1 : F) ^ κ) * ((getSubset pack κ i).map (clauseGadget F Φ)).prod *
+        ((Finset.univ : Finset (Fin Φ.clauses.length)) \ (getSubset pack κ i).toFinset).prod
+          (cvFactor F Φ) := by
+  unfold rowPoly selectorList
+  rw [coupledVerifier_eq_prod Φ]
+  have hnd := getSubset_nodup' pack κ i
+  have hsel : ∀ k ∈ getSubset pack κ i, k ∈ (Finset.univ : Finset (Fin Φ.clauses.length)) :=
+    fun k _ => Finset.mem_univ k
+  rw [iterDeriv_cvProd_eq Φ (getSubset pack κ i) hnd Finset.univ hsel]
+  rw [getSubset_length]
+
 /-- R_i is in blockedSpdpSubspace (with m = 1) -/
 theorem rowPoly_mem_subspace [Field F]
     (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
