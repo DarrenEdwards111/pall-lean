@@ -1415,6 +1415,62 @@ theorem projectedIdentityMinorTagCoeffLin_map_mlBlockedSpdpSubspaceInc_eq_top
 
 
 
+/-- Prescribed private-tag coordinates are realized by an element of the strict
+SPDP row space.  This is the elementwise form of the quotient-surjectivity
+statement above. -/
+theorem exists_mlBlockedSpdpSubspace_row_with_tagCoeff
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ)))
+    (a : Fin (Nat.choose pack.selected.length κ) → F) :
+    ∃ q : mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ),
+      ∀ i : Fin (Nat.choose pack.selected.length κ),
+        MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+          ((q : mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ)) :
+            MvPolynomial (Fin (tseitinNumVars Φ)) F) = a i := by
+  have htop := projectedIdentityMinorTagCoeffLin_map_mlBlockedSpdpSubspace_eq_top
+    (F := F) Φ B pack κ ℓ hB
+  have ha : a ∈ Submodule.map (projectedIdentityMinorTagCoeffLin (F := F) Φ pack κ)
+      (mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ)) := by
+    rw [htop]
+    trivial
+  rcases ha with ⟨p, hp, hpa⟩
+  refine ⟨⟨p, hp⟩, ?_⟩
+  intro i
+  have hi := congrFun hpa i
+  simpa [projectedIdentityMinorTagCoeffLin_apply] using hi
+
+/-- Prescribed private-tag coordinates are realized by an element of the
+inclusive-window SPDP row space. -/
+theorem exists_mlBlockedSpdpSubspaceInc_row_with_tagCoeff
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ)))
+    (a : Fin (Nat.choose pack.selected.length κ) → F) :
+    ∃ q : mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ),
+      ∀ i : Fin (Nat.choose pack.selected.length κ),
+        MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+          ((q : mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ)) :
+            MvPolynomial (Fin (tseitinNumVars Φ)) F) = a i := by
+  have htop := projectedIdentityMinorTagCoeffLin_map_mlBlockedSpdpSubspaceInc_eq_top
+    (F := F) Φ B pack κ ℓ hB
+  have ha : a ∈ Submodule.map (projectedIdentityMinorTagCoeffLin (F := F) Φ pack κ)
+      (mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ)) := by
+    rw [htop]
+    trivial
+  rcases ha with ⟨p, hp, hpa⟩
+  refine ⟨⟨p, hp⟩, ?_⟩
+  intro i
+  have hi := congrFun hpa i
+  simpa [projectedIdentityMinorTagCoeffLin_apply] using hi
+
+
 /-- Span-containment proof of the projected identity-minor lower bound: the
 projected identity-minor span has exact binomial dimension and is contained in
 the SPDP row space, so the SPDP rank is at least that binomial dimension. -/
@@ -1574,6 +1630,39 @@ theorem coupledVerifier_projected_tagCoeffLin_map_mlBlockedSpdpSubspaceInc_eq_to
     (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
     (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd)
 
+
+
+/-- In the canonical Tseitin row space, every prescribed private-tag coordinate
+vector is realized by an actual SPDP row-space element. -/
+theorem exists_coupledVerifier_projected_row_with_tagCoeff
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (a : Fin (Nat.choose pack.selected.length κ) → F) :
+    ∃ q : mlBlockedSpdpSubspace (IdentityMinor.tseitinPartition Φ) κ ℓ
+        (coupledVerifier F Φ),
+      ∀ i : Fin (Nat.choose pack.selected.length κ),
+        MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+          ((q : mlBlockedSpdpSubspace (IdentityMinor.tseitinPartition Φ) κ ℓ
+              (coupledVerifier F Φ)) : MvPolynomial (Fin (tseitinNumVars Φ)) F) = a i := by
+  exact exists_mlBlockedSpdpSubspace_row_with_tagCoeff
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd) a
+
+/-- Inclusive-window canonical version of prescribed private-tag coordinate
+realization. -/
+theorem exists_coupledVerifier_projected_row_inc_with_tagCoeff
+    {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (a : Fin (Nat.choose pack.selected.length κ) → F) :
+    ∃ q : mlBlockedSpdpSubspaceInc (IdentityMinor.tseitinPartition Φ) κ ℓ
+        (coupledVerifier F Φ),
+      ∀ i : Fin (Nat.choose pack.selected.length κ),
+        MvPolynomial.coeff (IdentityMinor.tagMono F Φ pack κ i)
+          ((q : mlBlockedSpdpSubspaceInc (IdentityMinor.tseitinPartition Φ) κ ℓ
+              (coupledVerifier F Φ)) : MvPolynomial (Fin (tseitinNumVars Φ)) F) = a i := by
+  exact exists_mlBlockedSpdpSubspaceInc_row_with_tagCoeff
+    (F := F) Φ (IdentityMinor.tseitinPartition Φ) pack κ ℓ
+    (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general Φ cs hnd) a
 
 
 /-- Canonical coupled-verifier projected identity-minor span has exact binomial
@@ -4091,12 +4180,16 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms identity_minor_projected_rank_lower_inc_from_tag_quotient
 #print axioms projectedIdentityMinorTagCoeffLin_map_mlBlockedSpdpSubspace_eq_top
 #print axioms projectedIdentityMinorTagCoeffLin_map_mlBlockedSpdpSubspaceInc_eq_top
+#print axioms exists_mlBlockedSpdpSubspace_row_with_tagCoeff
+#print axioms exists_mlBlockedSpdpSubspaceInc_row_with_tagCoeff
 #print axioms identity_minor_projected_rank_lower_from_span
 #print axioms identity_minor_projected_rank_lower_inc_from_span
 #print axioms coupledVerifier_projected_identity_minor_span_le_mlSubspace
 #print axioms coupledVerifier_projected_identity_minor_span_le_mlSubspaceInc
 #print axioms coupledVerifier_projected_tagCoeffLin_map_mlBlockedSpdpSubspace_eq_top
 #print axioms coupledVerifier_projected_tagCoeffLin_map_mlBlockedSpdpSubspaceInc_eq_top
+#print axioms exists_coupledVerifier_projected_row_with_tagCoeff
+#print axioms exists_coupledVerifier_projected_row_inc_with_tagCoeff
 #print axioms coupledVerifier_projected_identity_minor_span_finrank
 #print axioms tseitinAt_projected_identity_minor_subspace_certificate
 #print axioms tseitinAt_projected_identity_minor_subspace_certificate_inc
