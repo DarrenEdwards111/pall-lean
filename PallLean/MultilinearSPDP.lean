@@ -561,6 +561,97 @@ private theorem finrank_ge_of_linearIndependent {R M : Type*} [CommRing R] [AddC
   simp [Fintype.card_fin] at hcard
   omega
 
+/-- The projected identity-minor rows already force a rank lower bound in the
+multilinear SPDP subspace.  This packages the paper-faithful NP-side algebra:
+private-support Kronecker tags survive `mlProj`, giving linear independence of
+the projected derivative rows and hence dimension at least `choose L κ`. -/
+theorem identity_minor_projected_rank_lower {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hκ : κ ≤ pack.selected.length)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    mlBlockedSpdpRank B κ ℓ (coupledVerifier F Φ) ≥
+      Nat.choose pack.selected.length κ := by
+  let c := IdentityMinor.identity_minor_components (F := F) Φ pack κ ℓ hκ
+  obtain ⟨hsigns, _⟩ := IdentityMinor.identity_minor_components_signs
+    (F := F) Φ pack κ ℓ hκ
+  let mlV := mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ)
+  have hmem : ∀ i, mlProj (c.1 i).val ∈ mlV :=
+    fun i => rowPoly_mem_ml_subspace Φ B pack κ ℓ i hB
+  let R' : Fin (Nat.choose pack.selected.length κ) → ↥mlV :=
+    fun i => ⟨mlProj (c.1 i).val, hmem i⟩
+  have hkron' : ∀ i j, MvPolynomial.coeff (c.2.1 i) (R' j).val =
+      if i = j then c.2.2 i else 0 := by
+    intro i j
+    show MvPolynomial.coeff (c.2.1 i) (mlProj (c.1 j).val) = _
+    exact identity_minor_components_kronecker_after_mlProj (F := F) Φ pack κ ℓ hκ i j
+  have hli : LinearIndependent F (Subtype.val ∘ R') := by
+    rw [linearIndependent_iff']
+    intro S g hg a ha
+    have h0 : (coeffLin F (c.2.1 a))
+        (∑ j ∈ S, g j • (Subtype.val ∘ R') j) = 0 := by rw [hg]; exact map_zero _
+    simp only [map_sum, LinearMap.map_smul, Function.comp, smul_eq_mul] at h0
+    simp only [coeffLin, LinearMap.coe_mk, AddHom.coe_mk] at h0
+    have hsub : ∀ j ∈ S, g j * MvPolynomial.coeff (c.2.1 a) (R' j).val =
+        if j = a then g j * c.2.2 a else 0 := by
+      intro j _
+      rw [hkron' a j]
+      by_cases h : a = j
+      · subst h; simp
+      · simp [h, show j ≠ a from fun h' => h (h' ▸ rfl)]
+    rw [Finset.sum_congr rfl hsub, Finset.sum_ite_eq' S a, if_pos ha] at h0
+    rcases hsigns a with hs | hs <;> rw [hs] at h0 <;> simp at h0 <;> exact h0
+  exact finrank_ge_of_linearIndependent mlV _ R' hli
+
+/-- Inclusive-κ version of `identity_minor_projected_rank_lower`.  This is the
+version matching the paper's `|α| ≤ κ` derivative-window convention: the same
+projected identity-minor rows belong to the inclusive subspace via the strict →
+inclusive containment, and the Kronecker coefficient functionals give the same
+linear independence certificate. -/
+theorem identity_minor_projected_rank_lower_inc {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hκ : κ ≤ pack.selected.length)
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    mlBlockedSpdpRankInc B κ ℓ (coupledVerifier F Φ) ≥
+      Nat.choose pack.selected.length κ := by
+  let c := IdentityMinor.identity_minor_components (F := F) Φ pack κ ℓ hκ
+  obtain ⟨hsigns, _⟩ := IdentityMinor.identity_minor_components_signs
+    (F := F) Φ pack κ ℓ hκ
+  let mlV := mlBlockedSpdpSubspaceInc B κ ℓ (coupledVerifier F Φ)
+  have hmem : ∀ i, mlProj (c.1 i).val ∈ mlV := by
+    intro i
+    exact mlBlockedSpdpSubspace_le_inc B κ ℓ (coupledVerifier F Φ)
+      (rowPoly_mem_ml_subspace Φ B pack κ ℓ i hB)
+  let R' : Fin (Nat.choose pack.selected.length κ) → ↥mlV :=
+    fun i => ⟨mlProj (c.1 i).val, hmem i⟩
+  have hkron' : ∀ i j, MvPolynomial.coeff (c.2.1 i) (R' j).val =
+      if i = j then c.2.2 i else 0 := by
+    intro i j
+    show MvPolynomial.coeff (c.2.1 i) (mlProj (c.1 j).val) = _
+    exact identity_minor_components_kronecker_after_mlProj (F := F) Φ pack κ ℓ hκ i j
+  have hli : LinearIndependent F (Subtype.val ∘ R') := by
+    rw [linearIndependent_iff']
+    intro S g hg a ha
+    have h0 : (coeffLin F (c.2.1 a))
+        (∑ j ∈ S, g j • (Subtype.val ∘ R') j) = 0 := by rw [hg]; exact map_zero _
+    simp only [map_sum, LinearMap.map_smul, Function.comp, smul_eq_mul] at h0
+    simp only [coeffLin, LinearMap.coe_mk, AddHom.coe_mk] at h0
+    have hsub : ∀ j ∈ S, g j * MvPolynomial.coeff (c.2.1 a) (R' j).val =
+        if j = a then g j * c.2.2 a else 0 := by
+      intro j _
+      rw [hkron' a j]
+      by_cases h : a = j
+      · subst h; simp
+      · simp [h, show j ≠ a from fun h' => h (h' ▸ rfl)]
+    rw [Finset.sum_congr rfl hsub, Finset.sum_ite_eq' S a, if_pos ha] at h0
+    rcases hsigns a with hs | hs <;> rw [hs] at h0 <;> simp at h0 <;> exact h0
+  exact finrank_ge_of_linearIndependent mlV _ R' hli
+
 theorem np_ml_lower_bound (F : Type*) [Field F] [Nontrivial F] :
     ∃ n₀, ∀ n, n ≥ n₀ → 2 ∣ n →
       mlBlockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
@@ -2435,6 +2526,8 @@ theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 #print axioms IdentityMinorPaperFaithful.monomial_tagMono_isMultilinear
 #print axioms IdentityMinorPaperFaithful.identity_minor_components_columns_multilinear
 #print axioms identity_minor_components_kronecker_after_mlProj
+#print axioms identity_minor_projected_rank_lower
+#print axioms identity_minor_projected_rank_lower_inc
 #print axioms mlBlockedSpdpSubspace_le_inc
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms mlBlockedSpdpSubspaceInc_eq_iSup
