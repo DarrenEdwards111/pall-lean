@@ -470,6 +470,207 @@ theorem mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_true_booleanProjected_booleani
         M n hn2 htb hns D (satBlockTrue M n hn2 htb hns D i)
   exact S.sub_mem (S.sub_mem h2 hF) hT
 
+/-- Flat SAT-coordinate mixed two-hit derivative of the false-side actual
+Booleanity factor.  This is the SAT/Cook--Levin lift of the block-level scalar
+residue `2`. -/
+theorem mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_true_pderiv_false_booleanProjected_booleanity_false_actualForm
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (i : D.blockIndex) :
+    mlProj
+      ((piPlusSATBlockAlgEquiv M n hn2 htb hns D).symm
+        (pderiv (satBlockTrue M n hn2 htb hns D i)
+          (pderiv (satBlockFalse M n hn2 htb hns D i)
+            (zeroProfileBooleanNormalize
+              (piPlusSATBlockAlgEquiv M n hn2 htb hns D
+                (((1 : MvPolynomial
+                    (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ) -
+                  X (satBlockFalse M n hn2 htb hns D i) *
+                    (1 - X (satBlockFalse M n hn2 htb hns D i))) :
+                  SATDeciderGaugeSpace M n hn2 htb hns)))))) =
+      (2 : SATDeciderGaugeSpace M n hn2 htb hns) := by
+  let pblock : MvPolynomial (D.blockIndex × Bool) ℚ :=
+    (1 : MvPolynomial (D.blockIndex × Bool) ℚ) -
+      X (i, false) * (1 - X (i, false))
+  have hfactor :
+      (((1 : MvPolynomial
+            (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ) -
+          X (satBlockFalse M n hn2 htb hns D i) *
+            (1 - X (satBlockFalse M n hn2 htb hns D i))) :
+        SATDeciderGaugeSpace M n hn2 htb hns) =
+        MvPolynomial.rename D.coord.symm pblock := by
+    simp [pblock, satBlockFalse, MvPolynomial.rename_X]
+  rw [hfactor]
+  rw [piPlusSATBlockAlgEquiv_rename_symm_apply]
+  rw [zeroProfileBooleanNormalize_rename_equiv_blockBooleanNormalize]
+  rw [show pderiv (satBlockTrue M n hn2 htb hns D i)
+        (pderiv (satBlockFalse M n hn2 htb hns D i)
+          (MvPolynomial.rename D.coord.symm
+            (blockBooleanNormalize ((blockPiPlusAlgEquiv D.blockIndex) pblock)))) =
+      MvPolynomial.rename D.coord.symm
+        (pderiv (i, true) (pderiv (i, false)
+          (blockBooleanNormalize ((blockPiPlusAlgEquiv D.blockIndex) pblock)))) by
+    rw [show pderiv (satBlockFalse M n hn2 htb hns D i)
+        (MvPolynomial.rename D.coord.symm
+          (blockBooleanNormalize ((blockPiPlusAlgEquiv D.blockIndex) pblock))) =
+        MvPolynomial.rename D.coord.symm
+          (pderiv (i, false)
+            (blockBooleanNormalize ((blockPiPlusAlgEquiv D.blockIndex) pblock))) by
+      simp [satBlockFalse]
+      rw [MvPolynomial.pderiv_rename D.coord.symm.injective]]
+    simp [satBlockTrue]
+    rw [MvPolynomial.pderiv_rename D.coord.symm.injective]]
+  rw [piPlusSATBlockAlgEquiv_symm_rename_symm_apply]
+  let inner : MvPolynomial (D.blockIndex × Bool) ℚ :=
+    (blockPiPlusAlgEquiv D.blockIndex).symm
+      (pderiv (i, true) (pderiv (i, false)
+        (blockBooleanNormalize ((blockPiPlusAlgEquiv D.blockIndex) pblock))))
+  have hrename : mlProj (MvPolynomial.rename D.coord.symm inner) =
+      MvPolynomial.rename D.coord.symm (mlProj inner) :=
+    mlProj_rename_equiv D.coord.symm inner
+  change mlProj (MvPolynomial.rename D.coord.symm inner) =
+    (2 : SATDeciderGaugeSpace M n hn2 htb hns)
+  rw [hrename]
+  have hinner : mlProj inner = (2 : MvPolynomial (D.blockIndex × Bool) ℚ) := by
+    unfold inner pblock
+    exact mlProj_blockPiPlusInv_pderiv_true_pderiv_false_booleanProjected_booleanity_false_actualForm (i := i)
+  rw [hinner]
+  exact map_ofNat (MvPolynomial.rename D.coord.symm) 2
+
+/-- Flat SAT-coordinate mixed two-hit derivative of the true-side actual
+Booleanity factor.  This is the SAT/Cook--Levin lift of the block-level scalar
+residue `-2`. -/
+theorem mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_true_pderiv_false_booleanProjected_booleanity_true_actualForm
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (i : D.blockIndex) :
+    mlProj
+      ((piPlusSATBlockAlgEquiv M n hn2 htb hns D).symm
+        (pderiv (satBlockTrue M n hn2 htb hns D i)
+          (pderiv (satBlockFalse M n hn2 htb hns D i)
+            (zeroProfileBooleanNormalize
+              (piPlusSATBlockAlgEquiv M n hn2 htb hns D
+                (((1 : MvPolynomial
+                    (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ) -
+                  X (satBlockTrue M n hn2 htb hns D i) *
+                    (1 - X (satBlockTrue M n hn2 htb hns D i))) :
+                  SATDeciderGaugeSpace M n hn2 htb hns)))))) =
+      -(2 : SATDeciderGaugeSpace M n hn2 htb hns) := by
+  let pblock : MvPolynomial (D.blockIndex × Bool) ℚ :=
+    (1 : MvPolynomial (D.blockIndex × Bool) ℚ) -
+      X (i, true) * (1 - X (i, true))
+  have hfactor :
+      (((1 : MvPolynomial
+            (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ) -
+          X (satBlockTrue M n hn2 htb hns D i) *
+            (1 - X (satBlockTrue M n hn2 htb hns D i))) :
+        SATDeciderGaugeSpace M n hn2 htb hns) =
+        MvPolynomial.rename D.coord.symm pblock := by
+    simp [pblock, satBlockTrue, MvPolynomial.rename_X]
+  rw [hfactor]
+  rw [piPlusSATBlockAlgEquiv_rename_symm_apply]
+  rw [zeroProfileBooleanNormalize_rename_equiv_blockBooleanNormalize]
+  rw [show pderiv (satBlockTrue M n hn2 htb hns D i)
+        (pderiv (satBlockFalse M n hn2 htb hns D i)
+          (MvPolynomial.rename D.coord.symm
+            (blockBooleanNormalize ((blockPiPlusAlgEquiv D.blockIndex) pblock)))) =
+      MvPolynomial.rename D.coord.symm
+        (pderiv (i, true) (pderiv (i, false)
+          (blockBooleanNormalize ((blockPiPlusAlgEquiv D.blockIndex) pblock)))) by
+    rw [show pderiv (satBlockFalse M n hn2 htb hns D i)
+        (MvPolynomial.rename D.coord.symm
+          (blockBooleanNormalize ((blockPiPlusAlgEquiv D.blockIndex) pblock))) =
+        MvPolynomial.rename D.coord.symm
+          (pderiv (i, false)
+            (blockBooleanNormalize ((blockPiPlusAlgEquiv D.blockIndex) pblock))) by
+      simp [satBlockFalse]
+      rw [MvPolynomial.pderiv_rename D.coord.symm.injective]]
+    simp [satBlockTrue]
+    rw [MvPolynomial.pderiv_rename D.coord.symm.injective]]
+  rw [piPlusSATBlockAlgEquiv_symm_rename_symm_apply]
+  let inner : MvPolynomial (D.blockIndex × Bool) ℚ :=
+    (blockPiPlusAlgEquiv D.blockIndex).symm
+      (pderiv (i, true) (pderiv (i, false)
+        (blockBooleanNormalize ((blockPiPlusAlgEquiv D.blockIndex) pblock))))
+  have hrename : mlProj (MvPolynomial.rename D.coord.symm inner) =
+      MvPolynomial.rename D.coord.symm (mlProj inner) :=
+    mlProj_rename_equiv D.coord.symm inner
+  change mlProj (MvPolynomial.rename D.coord.symm inner) =
+    -(2 : SATDeciderGaugeSpace M n hn2 htb hns)
+  rw [hrename]
+  have hinner : mlProj inner = -(2 : MvPolynomial (D.blockIndex × Bool) ℚ) := by
+    unfold inner pblock
+    exact mlProj_blockPiPlusInv_pderiv_true_pderiv_false_booleanProjected_booleanity_true_actualForm (i := i)
+  rw [hinner]
+  rw [map_neg]
+  exact congrArg Neg.neg (map_ofNat (MvPolynomial.rename D.coord.symm) 2)
+
+/-- The lifted false-side mixed two-hit Booleanity derivative is absorbed by
+the SAT-coordinate Booleanity residue span for its `Π+` block. -/
+theorem mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_true_pderiv_false_booleanProjected_booleanity_false_mem_residueSpan
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (i : D.blockIndex) :
+    mlProj
+      ((piPlusSATBlockAlgEquiv M n hn2 htb hns D).symm
+        (pderiv (satBlockTrue M n hn2 htb hns D i)
+          (pderiv (satBlockFalse M n hn2 htb hns D i)
+            (zeroProfileBooleanNormalize
+              (piPlusSATBlockAlgEquiv M n hn2 htb hns D
+                (((1 : MvPolynomial
+                    (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ) -
+                  X (satBlockFalse M n hn2 htb hns D i) *
+                    (1 - X (satBlockFalse M n hn2 htb hns D i))) :
+                  SATDeciderGaugeSpace M n hn2 htb hns)))))) ∈
+      SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D
+        (satBlockFalse M n hn2 htb hns D i) := by
+  rw [mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_true_pderiv_false_booleanProjected_booleanity_false_actualForm]
+  let S := SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D
+    (satBlockFalse M n hn2 htb hns D i)
+  have h1 : (1 : SATDeciderGaugeSpace M n hn2 htb hns) ∈ S := by
+    unfold S
+    exact one_mem_SATBlockBooleanityActualProjectedResidueSpan
+      M n hn2 htb hns D (satBlockFalse M n hn2 htb hns D i)
+  have h2' : ((2 : ℚ) • (1 : SATDeciderGaugeSpace M n hn2 htb hns)) ∈ S :=
+    S.smul_mem (2 : ℚ) h1
+  simpa [Algebra.smul_def] using h2'
+
+/-- The lifted true-side mixed two-hit Booleanity derivative is absorbed by the
+SAT-coordinate Booleanity residue span for its `Π+` block. -/
+theorem mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_true_pderiv_false_booleanProjected_booleanity_true_mem_residueSpan
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (i : D.blockIndex) :
+    mlProj
+      ((piPlusSATBlockAlgEquiv M n hn2 htb hns D).symm
+        (pderiv (satBlockTrue M n hn2 htb hns D i)
+          (pderiv (satBlockFalse M n hn2 htb hns D i)
+            (zeroProfileBooleanNormalize
+              (piPlusSATBlockAlgEquiv M n hn2 htb hns D
+                (((1 : MvPolynomial
+                    (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ) -
+                  X (satBlockTrue M n hn2 htb hns D i) *
+                    (1 - X (satBlockTrue M n hn2 htb hns D i))) :
+                  SATDeciderGaugeSpace M n hn2 htb hns)))))) ∈
+      SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D
+        (satBlockTrue M n hn2 htb hns D i) := by
+  rw [mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_true_pderiv_false_booleanProjected_booleanity_true_actualForm]
+  let S := SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D
+    (satBlockTrue M n hn2 htb hns D i)
+  have h1 : (1 : SATDeciderGaugeSpace M n hn2 htb hns) ∈ S := by
+    unfold S
+    exact one_mem_SATBlockBooleanityActualProjectedResidueSpan
+      M n hn2 htb hns D (satBlockTrue M n hn2 htb hns D i)
+  have h2' : ((2 : ℚ) • (1 : SATDeciderGaugeSpace M n hn2 htb hns)) ∈ S :=
+    S.smul_mem (2 : ℚ) h1
+  have h2 : (2 : SATDeciderGaugeSpace M n hn2 htb hns) ∈ S := by
+    simpa [Algebra.smul_def] using h2'
+  exact S.neg_mem h2
+
 /-- Uniform rank payload for corrected Booleanity residue spans.  This packages
 local residue absorption at the same granularity as the Booleanity span surface:
 each actual Booleanity row may land in a three-dimensional block-local residue
@@ -644,6 +845,10 @@ theorem paperScale_booleanityProjectedRows_of_spanPayload_reduction
 #print axioms mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_true_booleanProjected_booleanity_true_actualForm
 #print axioms mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_false_booleanProjected_booleanity_false_mem_residueSpan
 #print axioms mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_true_booleanProjected_booleanity_true_mem_residueSpan
+#print axioms mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_true_pderiv_false_booleanProjected_booleanity_false_actualForm
+#print axioms mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_true_pderiv_false_booleanProjected_booleanity_true_actualForm
+#print axioms mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_true_pderiv_false_booleanProjected_booleanity_false_mem_residueSpan
+#print axioms mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_true_pderiv_false_booleanProjected_booleanity_true_mem_residueSpan
 #print axioms cookLevinBooleanityFactorProjectedSpanPayload_unconditional
 #print axioms paperScale_cookLevinBooleanityFactorProjectedSpanPayload_unconditional
 #print axioms one_mem_SATBlockBooleanityActualProjectedResidueSpan
