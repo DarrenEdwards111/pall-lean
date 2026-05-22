@@ -1741,6 +1741,92 @@ theorem paperScale_factoredRowSpanClassifierOneOne_of_polynomialSpan_and_allocat
     (paperScale_transformedLeibnizGeneratorPullbackOneOne_of_allocationLocalSpansPullbackReduction
       M htb hns hred)
 
+/-- Normalized polynomial span plus the monotone allocation-local span/product-
+choice reduction closes the `(1,1)` factored row-span classifier directly.  This
+is the classifier-level consumer of the `Aᵢ ⊆ Bᵢ` pullback seam. -/
+theorem paperScale_factoredRowSpanClassifierOneOne_of_polynomialSpan_and_allocationLocalSpansPullbackMonotoneReduction
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hpoly : PaperScalePiPlusBooleanProjectedNormalizedDerivativePolynomialSpan
+      M htb hns)
+    (hred : PaperScalePiPlusBooleanProjectedAllocationLocalSpansPullbackMonotoneReductionOneOne
+      M htb hns) :
+    PaperScalePiPlusBooleanProjectedFactoredRowSpanClassifierOneOne M htb hns :=
+  paperScale_factoredRowSpanClassifierOneOne_of_polynomialSpan_and_generatorPullback
+    M htb hns hpoly
+    (paperScale_transformedLeibnizGeneratorPullbackOneOne_of_allocationLocalSpansPullbackMonotoneReduction
+      M htb hns hred)
+
+/-- Compact P-side closeout package whose remaining product work is exactly the
+monotone allocation-local span/product-choice reduction. -/
+structure PaperScalePiPlusBooleanProjectedOneOneAllocationLocalSpansMonotoneCloseoutInputs
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) : Prop where
+  polynomial_span : PaperScalePiPlusBooleanProjectedNormalizedDerivativePolynomialSpan
+    M htb hns
+  allocation_local_spans_pullback :
+    PaperScalePiPlusBooleanProjectedAllocationLocalSpansPullbackMonotoneReductionOneOne
+      M htb hns
+
+/-- The monotone allocation-local span closeout package yields the `(1,1)`
+factored row-span classifier. -/
+theorem paperScale_factoredRowSpanClassifierOneOne_of_allocationLocalSpansMonotoneCloseoutInputs
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hinputs : PaperScalePiPlusBooleanProjectedOneOneAllocationLocalSpansMonotoneCloseoutInputs
+      M htb hns) :
+    PaperScalePiPlusBooleanProjectedFactoredRowSpanClassifierOneOne M htb hns :=
+  paperScale_factoredRowSpanClassifierOneOne_of_polynomialSpan_and_allocationLocalSpansPullbackMonotoneReduction
+    M htb hns hinputs.polynomial_span hinputs.allocation_local_spans_pullback
+
+/-- Monotone allocation-local span closeout inputs plus explicit Route-B `(1,1)`
+and NP-side inputs rule out a SAT decider at paper scale. -/
+theorem no_decidesSAT_at_paperScale_of_allocationLocalSpansMonotoneCloseoutInputs_routeB_npInclusion
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hinputs : PaperScalePiPlusBooleanProjectedOneOneAllocationLocalSpansMonotoneCloseoutInputs
+      M htb hns)
+    (hpside : PaperScaleRouteBSATWindowedIncPSideRankBoundOneOne M htb hns)
+    (hnp : PaperScalePiPlusBooleanProjectedNPWindowSubspaceInclusion M htb hns) :
+    ¬ DecidesSAT M :=
+  no_decidesSAT_at_paperScale_of_oneOneFinalFrontierData
+    M htb hns
+    { compiled_p_subspace_inclusion :=
+        paperScale_compiledPSubspaceInclusionOneOne_of_rowSpanClassifier
+          M htb hns
+          (paperScale_factoredRowSpanClassifierOneOne_of_allocationLocalSpansMonotoneCloseoutInputs
+            M htb hns hinputs)
+      routeB_windowed_p_side_bound := hpside
+      np_subspace_inclusion := hnp }
+
+/-- Monotone allocation-local span closeout inputs plus a Route-B `(1,1)`
+envelope and NP-side input rule out a SAT decider at paper scale. -/
+theorem no_decidesSAT_at_paperScale_of_allocationLocalSpansMonotoneCloseoutInputs_routeBEnvelope_npInclusion
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hinputs : PaperScalePiPlusBooleanProjectedOneOneAllocationLocalSpansMonotoneCloseoutInputs
+      M htb hns)
+    (henv : PaperScaleRouteBSATWindowedIncPSideRankEnvelopeOneOne M htb hns)
+    (hnp : PaperScalePiPlusBooleanProjectedNPWindowSubspaceInclusion M htb hns) :
+    ¬ DecidesSAT M :=
+  no_decidesSAT_at_paperScale_of_allocationLocalSpansMonotoneCloseoutInputs_routeB_npInclusion
+    M htb hns hinputs
+    (paperScale_routeBSATWindowedIncPSideRankBoundOneOne_of_envelope
+      M htb hns henv)
+    hnp
+
+/-- Polynomial span plus monotone allocation-local span/product-choice reduction
+plus a Route-B `(1,1)` envelope and NP-side input rule out a SAT decider at paper
+scale. -/
+theorem no_decidesSAT_at_paperScale_of_polynomialSpan_allocationLocalSpansPullbackMonotoneReduction_routeBEnvelope_npInclusion
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hpoly : PaperScalePiPlusBooleanProjectedNormalizedDerivativePolynomialSpan
+      M htb hns)
+    (hred : PaperScalePiPlusBooleanProjectedAllocationLocalSpansPullbackMonotoneReductionOneOne
+      M htb hns)
+    (henv : PaperScaleRouteBSATWindowedIncPSideRankEnvelopeOneOne M htb hns)
+    (hnp : PaperScalePiPlusBooleanProjectedNPWindowSubspaceInclusion M htb hns) :
+    ¬ DecidesSAT M :=
+  no_decidesSAT_at_paperScale_of_allocationLocalSpansMonotoneCloseoutInputs_routeBEnvelope_npInclusion
+    M htb hns
+    { polynomial_span := hpoly, allocation_local_spans_pullback := hred }
+    henv hnp
+
 /-- Compact P-side closeout package whose remaining product work is exactly the
 allocation-local span/product-choice reduction. -/
 structure PaperScalePiPlusBooleanProjectedOneOneAllocationLocalSpansCloseoutInputs
@@ -2882,6 +2968,11 @@ theorem no_decidesSAT_at_paperScale_of_oneOneProductNormalizationCloseoutInputs
 #print axioms paperScale_transformedLeibnizGeneratorPullbackOneOne_of_allocationLocalSpansPullbackMonotoneReduction
 #print axioms paperScale_allocationLocalSpansPullbackMonotoneReductionOneOne_of_allocationLocalSpansPullbackReduction
 #print axioms paperScale_transformedLeibnizGeneratorPullbackOneOne_of_allocationLocalSpansPullbackReduction
+#print axioms paperScale_factoredRowSpanClassifierOneOne_of_polynomialSpan_and_allocationLocalSpansPullbackMonotoneReduction
+#print axioms paperScale_factoredRowSpanClassifierOneOne_of_allocationLocalSpansMonotoneCloseoutInputs
+#print axioms no_decidesSAT_at_paperScale_of_allocationLocalSpansMonotoneCloseoutInputs_routeB_npInclusion
+#print axioms no_decidesSAT_at_paperScale_of_allocationLocalSpansMonotoneCloseoutInputs_routeBEnvelope_npInclusion
+#print axioms no_decidesSAT_at_paperScale_of_polynomialSpan_allocationLocalSpansPullbackMonotoneReduction_routeBEnvelope_npInclusion
 #print axioms paperScale_factoredRowSpanClassifierOneOne_of_polynomialSpan_and_allocationLocalSpansPullbackReduction
 #print axioms paperScale_factoredRowSpanClassifierOneOne_of_allocationLocalSpansCloseoutInputs
 #print axioms no_decidesSAT_at_paperScale_of_allocationLocalSpansCloseoutInputs_routeB_npInclusion
