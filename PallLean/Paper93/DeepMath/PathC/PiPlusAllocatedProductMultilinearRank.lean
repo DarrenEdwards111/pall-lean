@@ -706,6 +706,75 @@ theorem paperScale_allocatedDerivativeProduct_rawRank_le_admissibleProfileCover_
     (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
     κ ℓ hrow
 
+
+
+/-! ## Closure via the existing post-shift profile span
+
+The raw `profileSubspace` target is too small for shifted/background rows.  The
+correct closure target is the repository's existing post-shift profile span
+`allBoundedProfilePostSpan`, packaged by `BoundedWithinProfileFinrankClaim`.
+The theorem below is intentionally a direct closeout: the allocated product is a
+literal product of the allocated local factors, so the existing bounded-profile
+rank assembly applies without introducing another abstraction layer. -/
+
+/-- Closure-only adjusted target: once the allocated local-factor family has the
+existing post-shift bounded within-profile finrank claim, the allocated product
+has the combined profile SPDP rank bound. -/
+theorem allocatedDerivativeProduct_rank_le_combinedProfileBound_of_boundedWithinProfileFinrank
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (alloc : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length →
+      List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+    (B : BlockPartition (cook_levin_compilation M n hn2 htb hns).numVars)
+    (κ ℓ : Nat)
+    (constraintType : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length → ConstraintType)
+    (hwithin : BoundedWithinProfileFinrankClaim B κ ℓ
+      (allocatedDerivativeLocalFactors M n hn2 htb hns D alloc)
+      constraintType) :
+    mlBlockedSpdpRank B κ ℓ
+        (piPlusBooleanProjectedAllocatedDerivativeProduct
+          M n hn2 htb hns D alloc) ≤
+      combinedProfileBound κ := by
+  exact rank_bound_of_boundedWithinProfileFinrank B κ ℓ
+    (allocatedDerivativeLocalFactors M n hn2 htb hns D alloc)
+    constraintType
+    (piPlusBooleanProjectedAllocatedDerivativeProduct M n hn2 htb hns D alloc)
+    (piPlusBooleanProjectedAllocatedDerivativeProduct_eq_prod_localFactors
+      M n hn2 htb hns D alloc)
+    hwithin
+
+/-- Paper-scale specialization of the post-shift profile-span closure for the
+allocated derivative product. -/
+theorem paperScale_allocatedDerivativeProduct_rank_le_combinedProfileBound_of_boundedWithinProfileFinrank
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (alloc : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+        M htb hns).length →
+      List (Fin (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars))
+    (κ ℓ : Nat)
+    (constraintType : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+        M htb hns).length → ConstraintType)
+    (hwithin : BoundedWithinProfileFinrankClaim
+      (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition κ ℓ
+      (allocatedDerivativeLocalFactors M (2 ^ 804) paperScale_ge_two htb hns
+        (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) alloc)
+      constraintType) :
+    mlBlockedSpdpRank
+        (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+        κ ℓ
+        (piPlusBooleanProjectedAllocatedDerivativeProduct
+          M (2 ^ 804) paperScale_ge_two htb hns
+          (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) alloc) ≤
+      combinedProfileBound κ := by
+  exact allocatedDerivativeProduct_rank_le_combinedProfileBound_of_boundedWithinProfileFinrank
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+    alloc
+    (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+    κ ℓ constraintType hwithin
+
 /-! ## Axiom audit anchors -/
 
 #print axioms multilinearize_allocatedDerivativeProduct_eq_normalizedFactorProduct
@@ -722,6 +791,8 @@ theorem paperScale_allocatedDerivativeProduct_rawRank_le_admissibleProfileCover_
 #print axioms allocatedDerivativeProduct_admissibleProfileHrow_of_boundedLeibnizSummandCover
 #print axioms allocatedDerivativeProduct_rawRank_le_admissibleProfileCover_of_hrow
 #print axioms paperScale_allocatedDerivativeProduct_rawRank_le_admissibleProfileCover_of_hrow
+#print axioms allocatedDerivativeProduct_rank_le_combinedProfileBound_of_boundedWithinProfileFinrank
+#print axioms paperScale_allocatedDerivativeProduct_rank_le_combinedProfileBound_of_boundedWithinProfileFinrank
 
 end BoolPoly
 
