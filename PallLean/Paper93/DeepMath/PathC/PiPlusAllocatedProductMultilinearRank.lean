@@ -1,6 +1,7 @@
 import PallLean.Paper93.DeepMath.PathC.PiPlusDistributedStabilityAllocationFactors
 import PallLean.Paper93.DeepMath.PathC.PiPlusPaperRemark21MultilinearizeRank
 import PallLean.Paper93.Lemma31ProfileSubspaceCompiledBasis
+import PallLean.Paper93.Closure.ShiftClosure
 
 /-!
 # Allocated product normalization at the rank level
@@ -22,6 +23,7 @@ open PaperFaithfulSeparation
 open TuringMachine
 open WithinProfileBound
 open SymmetricPowerBound
+open PallLean.Paper93.Closure
 
 attribute [local instance] Classical.dec
 set_option exponentiation.threshold 1000
@@ -237,6 +239,171 @@ theorem paperScale_allocatedDerivativeProduct_rawRank_le_profileCover_of_generat
     κ ℓ W hrow hdim
 
 
+/-! ## Private-chart fallback: derivative-image sum plus polynomial shifts
+
+The σ-only `W_τ` bridge is not the right target for Boolean-projected `Pi+`
+factors in private coordinates.  The first unconditional option-2 closeout is
+therefore deliberately chart-indexed: collect the actual `κ`-fold derivative
+images, then close under the SPDP degree-`ℓ` shifts using the existing finite
+`shiftClosure` machinery.  This bypasses any global canonical-interface claim.
+-/
+
+/-- The finite span of all ordered `κ`-fold derivative images of a polynomial.
+The index is `List.Vector (Fin N) κ`, so no quotient or canonical ordering is
+imposed; this is the polynomial-sum envelope before multiplying by SPDP shifts. -/
+noncomputable def kappaDerivativeImageSpan {N : Nat}
+    (κ : Nat) (p : MvPolynomial (Fin N) ℚ) :
+    Submodule ℚ (MvPolynomial (Fin N) ℚ) :=
+  Submodule.span ℚ
+    (Set.range (fun S : List.Vector (Fin N) κ => iterDerivList S.toList p))
+
+instance kappaDerivativeImageSpan_finite {N : Nat}
+    (κ : Nat) (p : MvPolynomial (Fin N) ℚ) :
+    Module.Finite ℚ ↥(kappaDerivativeImageSpan κ p) := by
+  classical
+  apply Module.Finite.span_of_finite
+  exact Set.toFinite _
+
+
+/-- The chart-indexed Leibniz product span: union over ordered `κ`-derivative
+lists of the bounded Leibniz products of a factor family.  A generator is a
+product of differentiated local/private factors, with total derivative mass at
+most `κ`. -/
+noncomputable def kappaLeibnizProductSpan {N L : Nat}
+    (κ : Nat) (factors : Fin L → MvPolynomial (Fin N) ℚ) :
+    Submodule ℚ (MvPolynomial (Fin N) ℚ) :=
+  Submodule.span ℚ
+    (⋃ S : List.Vector (Fin N) κ,
+      boundedDistribDerivProds Finset.univ factors S.toList κ)
+
+/-- The `κ`-derivative image span of a product of local factors is contained in
+`kappaLeibnizProductSpan`.  This is the formal product step of option 2: after
+Leibniz expansion, every derivative image is a linear combination of products
+of differentiated private/local factors with total derivative mass `≤ κ`. -/
+theorem kappaDerivativeImageSpan_prod_le_kappaLeibnizProductSpan {N L : Nat}
+    (κ : Nat) (factors : Fin L → MvPolynomial (Fin N) ℚ) :
+    kappaDerivativeImageSpan κ (Finset.univ.prod factors) ≤
+      kappaLeibnizProductSpan κ factors := by
+  classical
+  apply Submodule.span_le.mpr
+  intro q hq
+  rcases hq with ⟨S, rfl⟩
+  have hmem : iterDerivList S.toList (Finset.univ.prod factors) ∈
+      Submodule.span ℚ (boundedDistribDerivProds Finset.univ factors S.toList S.toList.length) :=
+    iterDerivList_finset_prod_mem_bounded_span S.toList factors
+  have hlen : S.toList.length = κ := S.2
+  have hsub : boundedDistribDerivProds Finset.univ factors S.toList S.toList.length ⊆
+      (⋃ T : List.Vector (Fin N) κ,
+        boundedDistribDerivProds Finset.univ factors T.toList κ) := by
+    intro g hg
+    refine Set.mem_iUnion.mpr ⟨S, ?_⟩
+    simpa [hlen] using hg
+  exact Submodule.span_mono hsub hmem
+
+/-- A concrete row `m * ∂_S p` lies in the shift closure of the finite
+`κ`-derivative image span.  This is the raw linear-algebra bridge for option 2:
+the derivative side is a finite chart-indexed sum, while arbitrary SPDP shifts
+are handled by `shiftClosure`. -/
+theorem rawGenerator_mem_shiftClosure_kappaDerivativeImageSpan {N : Nat}
+    (κ ℓ : Nat) (p : MvPolynomial (Fin N) ℚ)
+    (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ)
+    (hSlen : S.length = κ) (hmdeg : m.totalDegree ≤ ℓ) :
+    m * iterDerivList S p ∈
+      shiftClosure (kappaDerivativeImageSpan κ p) ℓ := by
+  classical
+  let Sv : List.Vector (Fin N) κ := ⟨S, hSlen⟩
+  have hderiv : iterDerivList S p ∈ kappaDerivativeImageSpan κ p := by
+    apply Submodule.subset_span
+    refine ⟨Sv, ?_⟩
+    simp [Sv]
+  have hmap : iterDerivList S p * m ∈
+      Submodule.map (mulByPoly (n := N) m) (kappaDerivativeImageSpan κ p) := by
+    exact ⟨iterDerivList S p, hderiv, rfl⟩
+  have hle : Submodule.map (mulByPoly (n := N) m) (kappaDerivativeImageSpan κ p) ≤
+      shiftClosure (kappaDerivativeImageSpan κ p) ℓ := by
+    exact le_iSup
+      (fun s : { s : MvPolynomial (Fin N) ℚ // s.totalDegree ≤ ℓ } =>
+        Submodule.map (mulByPoly (n := N) s.1) (kappaDerivativeImageSpan κ p))
+      (⟨m, hmdeg⟩ : { s : MvPolynomial (Fin N) ℚ // s.totalDegree ≤ ℓ })
+  exact hle (by simpa [mul_comm] using hmap)
+
+/-- The whole raw SPDP row space is contained in the shift closure of the finite
+`κ`-derivative image span.  This is independent of any canonical `W_τ`. -/
+theorem rawBlockedSpdpSubspace_le_shiftClosure_kappaDerivativeImageSpan {N : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat) (p : MvPolynomial (Fin N) ℚ) :
+    rawBlockedSpdpSubspace B κ ℓ p ≤
+      shiftClosure (kappaDerivativeImageSpan κ p) ℓ := by
+  apply Submodule.span_le.mpr
+  intro q hq
+  rcases hq with ⟨S, m, hSlen, hmdeg, _hmvars, _hadm, rfl⟩
+  exact rawGenerator_mem_shiftClosure_kappaDerivativeImageSpan κ ℓ p S m hSlen hmdeg
+
+/-- Option-2 rank bound in its unconditional finite-sum form.  The private
+chart/product work only has to bound the derivative-image span; the degree-`ℓ`
+shift cost is paid once by `MonoIdx N ℓ`. -/
+theorem rawRank_le_shiftClosure_kappaDerivativeImageSpan {N : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat) (p : MvPolynomial (Fin N) ℚ) :
+    rkSPDP B κ ℓ p ≤
+      Fintype.card (MonoIdx N ℓ) *
+        Module.finrank ℚ ↥(kappaDerivativeImageSpan κ p) := by
+  unfold rkSPDP rawBlockedSpdpRank
+  calc
+    Module.finrank ℚ ↥(rawBlockedSpdpSubspace B κ ℓ p)
+        ≤ Module.finrank ℚ ↥(shiftClosure (kappaDerivativeImageSpan κ p) ℓ) :=
+          Submodule.finrank_mono
+            (rawBlockedSpdpSubspace_le_shiftClosure_kappaDerivativeImageSpan B κ ℓ p)
+    _ ≤ Fintype.card (MonoIdx N ℓ) *
+          Module.finrank ℚ ↥(kappaDerivativeImageSpan κ p) :=
+        finrank_shiftClosure_le (kappaDerivativeImageSpan κ p) ℓ
+
+/-- Allocated-product specialization of the private-chart finite-sum route. -/
+theorem allocatedDerivativeProduct_rank_le_shiftClosure_kappaDerivativeImageSpan
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (alloc : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length →
+      List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+    (B : BlockPartition (cook_levin_compilation M n hn2 htb hns).numVars)
+    (κ ℓ : Nat) :
+    rkSPDP B κ ℓ
+        (piPlusBooleanProjectedAllocatedDerivativeProduct
+          M n hn2 htb hns D alloc) ≤
+      Fintype.card (MonoIdx (cook_levin_compilation M n hn2 htb hns).numVars ℓ) *
+        Module.finrank ℚ ↥(kappaDerivativeImageSpan κ
+          (piPlusBooleanProjectedAllocatedDerivativeProduct
+            M n hn2 htb hns D alloc)) := by
+  exact rawRank_le_shiftClosure_kappaDerivativeImageSpan B κ ℓ
+    (piPlusBooleanProjectedAllocatedDerivativeProduct M n hn2 htb hns D alloc)
+
+/-- Paper-scale specialization of the unconditional private-chart finite-sum
+route for allocated products. -/
+theorem paperScale_allocatedDerivativeProduct_rank_le_shiftClosure_kappaDerivativeImageSpan
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (alloc : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+        M htb hns).length →
+      List (Fin (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars))
+    (κ ℓ : Nat) :
+    rkSPDP
+        (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+        κ ℓ
+        (piPlusBooleanProjectedAllocatedDerivativeProduct
+          M (2 ^ 804) paperScale_ge_two htb hns
+          (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) alloc) ≤
+      Fintype.card (MonoIdx
+        (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars ℓ) *
+        Module.finrank ℚ ↥(kappaDerivativeImageSpan κ
+          (piPlusBooleanProjectedAllocatedDerivativeProduct
+            M (2 ^ 804) paperScale_ge_two htb hns
+            (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) alloc)) := by
+  exact allocatedDerivativeProduct_rank_le_shiftClosure_kappaDerivativeImageSpan
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+    alloc
+    (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+    κ ℓ
+
+
 
 /-! ## Admissible-profile cover for the allocated-product `hrow` classifier -/
 
@@ -390,6 +557,46 @@ theorem piPlusBooleanProjectedAllocatedDerivativeProduct_eq_prod_localFactors
     piPlusBooleanProjectedAllocatedDerivativeProduct M n hn2 htb hns D alloc =
       Finset.univ.prod (allocatedDerivativeLocalFactors M n hn2 htb hns D alloc) := by
   rfl
+
+
+/-- Allocated-product version of the product-span containment.  The derivative
+image span of the Boolean-projected allocated product is contained in the
+Leibniz product span of the allocated local/private factors. -/
+theorem kappaDerivativeImageSpan_allocatedProduct_le_kappaLeibnizProductSpan
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (alloc : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length →
+      List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+    (κ : Nat) :
+    kappaDerivativeImageSpan κ
+        (piPlusBooleanProjectedAllocatedDerivativeProduct
+          M n hn2 htb hns D alloc) ≤
+      kappaLeibnizProductSpan κ
+        (allocatedDerivativeLocalFactors M n hn2 htb hns D alloc) := by
+  rw [piPlusBooleanProjectedAllocatedDerivativeProduct_eq_prod_localFactors]
+  exact kappaDerivativeImageSpan_prod_le_kappaLeibnizProductSpan κ
+    (allocatedDerivativeLocalFactors M n hn2 htb hns D alloc)
+
+/-- Paper-scale allocated-product containment into the private/local Leibniz
+product span. -/
+theorem paperScale_kappaDerivativeImageSpan_allocatedProduct_le_kappaLeibnizProductSpan
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (alloc : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+        M htb hns).length →
+      List (Fin (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars))
+    (κ : Nat) :
+    kappaDerivativeImageSpan κ
+        (piPlusBooleanProjectedAllocatedDerivativeProduct
+          M (2 ^ 804) paperScale_ge_two htb hns
+          (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) alloc) ≤
+      kappaLeibnizProductSpan κ
+        (allocatedDerivativeLocalFactors M (2 ^ 804) paperScale_ge_two htb hns
+          (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) alloc) := by
+  exact kappaDerivativeImageSpan_allocatedProduct_le_kappaLeibnizProductSpan
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) alloc κ
 
 /-- Multiplication by a fixed left factor transports span membership to the
 span of multiplied generators. -/
@@ -777,6 +984,16 @@ theorem paperScale_allocatedDerivativeProduct_rank_le_combinedProfileBound_of_bo
 
 /-! ## Axiom audit anchors -/
 
+#print axioms kappaDerivativeImageSpan
+#print axioms kappaLeibnizProductSpan
+#print axioms kappaDerivativeImageSpan_prod_le_kappaLeibnizProductSpan
+#print axioms kappaDerivativeImageSpan_allocatedProduct_le_kappaLeibnizProductSpan
+#print axioms paperScale_kappaDerivativeImageSpan_allocatedProduct_le_kappaLeibnizProductSpan
+#print axioms rawGenerator_mem_shiftClosure_kappaDerivativeImageSpan
+#print axioms rawBlockedSpdpSubspace_le_shiftClosure_kappaDerivativeImageSpan
+#print axioms rawRank_le_shiftClosure_kappaDerivativeImageSpan
+#print axioms allocatedDerivativeProduct_rank_le_shiftClosure_kappaDerivativeImageSpan
+#print axioms paperScale_allocatedDerivativeProduct_rank_le_shiftClosure_kappaDerivativeImageSpan
 #print axioms multilinearize_allocatedDerivativeProduct_eq_normalizedFactorProduct
 #print axioms allocatedNormalizedFactorProduct_multilinearizedRank_le_rawAllocatedProductRank
 #print axioms rawRank_le_sum_subspaces_of_rawSubspace_le
