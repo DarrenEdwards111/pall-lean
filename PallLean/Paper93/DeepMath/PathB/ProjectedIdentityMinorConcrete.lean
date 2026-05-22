@@ -40,6 +40,49 @@ theorem concreteTseitinKroneckerSystem_rows_linearIndependent
   exact IdentityMinorReal.linearIndependent_of_kronecker
     (concreteTseitinKroneckerSystem Φ pack κ)
 
+/-- Property 3 item (1), paper-scale concrete form.
+
+For the actual paper-scale Tseitin formula `tseitinAt n`, the greedy packed
+clause family gives the promised disjoint-support system; the abstract
+`IdentityMinorReal.buildKroneckerSystem` has its Kronecker δ certificate; and
+that same packed family gives the Kronecker δ rows obtained by differentiating
+the actual `coupledVerifier ℚ (tseitinAt n)` in the selected selector
+coordinates. -/
+theorem paperScale_tseitinAt_coupledVerifier_property3_item1
+    (n : ℕ) (hn1024 : n ≥ 2 ^ 10) (heven : 2 ∣ n) :
+    ∃ pack : Tseitin.DisjointPacking (NPWitness.tseitinAt n),
+      let sys := IdentityMinorReal.tseitinClauseSystem ℚ (NPWitness.tseitinAt n) pack
+      (∀ i j : Fin sys.numClauses, i ≠ j →
+        Disjoint (sys.clauseVars i) (sys.clauseVars j)) ∧
+      (∀ i j : Fin (Nat.choose sys.numClauses (Nat.log 2 n)),
+        MvPolynomial.coeff
+          ((IdentityMinorReal.buildKroneckerSystem sys (Nat.log 2 n)).cols i)
+          ((IdentityMinorReal.buildKroneckerSystem sys (Nat.log 2 n)).rows j) =
+        if i = j then
+          (IdentityMinorReal.buildKroneckerSystem sys (Nat.log 2 n)).signs i
+        else 0) ∧
+      (∀ i j : Fin (Nat.choose pack.selected.length (Nat.log 2 n)),
+        MvPolynomial.coeff
+          (IdentityMinor.tagMono ℚ (NPWitness.tseitinAt n) pack (Nat.log 2 n) i)
+          (IdentityMinor.rowPoly ℚ (NPWitness.tseitinAt n) pack (Nat.log 2 n) j) =
+        if i = j then
+          IdentityMinor.subsetSign ℚ (NPWitness.tseitinAt n) pack (Nat.log 2 n) i
+        else 0) := by
+  have hv := NPWitness.tseitinAt_vertices n (by omega) heven
+  have hverts : (NPWitness.tseitinAt n).graph.numVertices ≥ 100 := by
+    rw [hv]
+    omega
+  let pack := Tseitin.disjoint_packing_exists (NPWitness.tseitinAt n) hverts
+  refine ⟨pack, ?_⟩
+  let sys := IdentityMinorReal.tseitinClauseSystem ℚ (NPWitness.tseitinAt n) pack
+  refine ⟨?_, ?_, ?_⟩
+  · intro i j hij
+    exact sys.disjoint i j hij
+  · intro i j
+    exact (IdentityMinorReal.buildKroneckerSystem sys (Nat.log 2 n)).kronecker i j
+  · intro i j
+    exact IdentityMinor.kronecker_delta (F := ℚ) (NPWitness.tseitinAt n) pack (Nat.log 2 n) i j
+
 /-- Item-(1) bridge, concrete Tseitin form: the explicit
 `IdentityMinorReal.buildKroneckerSystem` attached to a disjoint packing of `Φ`
 is the source identity-minor certificate consumed by the projected/private-tag
@@ -304,6 +347,7 @@ theorem false_of_cookLevin_concreteW_closureFrontier_projected
 /-! ## Axiom audit anchors -/
 
 #print axioms concreteTseitinKroneckerSystem_rows_linearIndependent
+#print axioms paperScale_tseitinAt_coupledVerifier_property3_item1
 #print axioms concreteTseitinKroneckerSystem_feeds_coupledVerifier_rank
 #print axioms paperScale_tseitinAt_coupledVerifier_identityMinor_bridge
 #print axioms sourceIdentityMinorLowerBound_cookLevin_partitionedOutput
