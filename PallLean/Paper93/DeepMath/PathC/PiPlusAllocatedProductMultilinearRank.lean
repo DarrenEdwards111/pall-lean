@@ -818,6 +818,85 @@ theorem paperScale_allocatedDerivativeProduct_rank_le_admissibleWindowCount_mul_
     (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
     κ ℓ Cwin hwin
 
+
+/-- Direct cardinality bound for admissible derivative windows.  This is the
+literal finite-window side before any Lemma-29 quotient/compression: a window is
+an ordered `κ`-tuple of variables, so the admissible subtype injects into
+`Fin κ → Fin N`. -/
+theorem admissibleDerivativeWindow_card_le_pow {N : Nat}
+    (B : BlockPartition N) (κ : Nat) :
+    Fintype.card (AdmissibleDerivativeWindow B κ) ≤ N ^ κ := by
+  classical
+  let φ : AdmissibleDerivativeWindow B κ → (Fin κ → Fin N) := fun S i => S.1.get i
+  have hφ : Function.Injective φ := by
+    intro A B h
+    apply Subtype.ext
+    apply List.Vector.eq
+    apply List.ext_getElem
+    · simp [A.1.2, B.1.2]
+    · intro n hn1 hn2
+      have hnκ : n < κ := by simpa [A.1.2] using hn1
+      have := congrFun h ⟨n, hnκ⟩
+      simpa [φ, List.Vector.get, List.get_eq_getElem] using this
+  calc
+    Fintype.card (AdmissibleDerivativeWindow B κ)
+        ≤ Fintype.card (Fin κ → Fin N) := Fintype.card_le_of_injective φ hφ
+    _ = N ^ κ := by simp [Fintype.card_fin]
+
+/-- Paper-scale admissible-window cardinality bound at the concrete κ=804.  This
+is an unconditional polynomial bound (`n^804` for `n = 2^804`).  It is weaker
+than the paper's Lemma-29/profile-compressed `R^O(1)` count, but sufficient to
+make the tightened option-2 route polynomial at the fixed paper scale. -/
+theorem admissibleDerivativeWindow_card_le_paperScale
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) :
+    Fintype.card (AdmissibleDerivativeWindow
+      (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition 804) ≤
+      (2 ^ 804) ^ 804 := by
+  simpa [cook_levin_compilation] using
+    admissibleDerivativeWindow_card_le_pow
+      (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition 804
+
+/-- Arithmetic closeout for the direct paper-scale option-2 budget:
+`n^804 * 805^804 ≤ n^1000` at `n = 2^804`. -/
+theorem paperScale_directWindowShiftBudget_le_pow1000 :
+    (2 ^ 804) ^ 804 * (804 + 1) ^ 804 ≤ (2 ^ 804) ^ 1000 := by
+  have h805_2pow10 : 804 + 1 ≤ (2 ^ 10 : Nat) := by norm_num
+  have hshift : (804 + 1) ^ 804 ≤ (2 ^ 804) ^ 10 := by
+    calc
+      (804 + 1) ^ 804 ≤ (2 ^ 10 : Nat) ^ 804 :=
+        Nat.pow_le_pow_left h805_2pow10 804
+      _ = (2 ^ 804 : Nat) ^ 10 := by rw [← pow_mul, ← pow_mul]
+  calc
+    (2 ^ 804) ^ 804 * (804 + 1) ^ 804
+        ≤ (2 ^ 804) ^ 804 * (2 ^ 804) ^ 10 :=
+          Nat.mul_le_mul_left _ hshift
+    _ = (2 ^ 804) ^ (804 + 10) := by rw [← pow_add]
+    _ ≤ (2 ^ 804) ^ 1000 := by
+      apply Nat.pow_le_pow_right
+      · norm_num
+      · norm_num
+
+/-- Unconditional paper-scale polynomial closeout for the tightened option-2
+allocated-product route.  This uses the direct ordered-window count above; a
+future Lemma-29 quotient/profile-compression replacement can lower the exponent,
+but the route is already strictly polynomial. -/
+theorem paperScale_allocatedDerivativeProduct_rank_le_pow1000_directWindowCount
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (alloc : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+        M htb hns).length →
+      List (Fin (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars)) :
+    rkSPDP
+        (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+        804 804
+        (piPlusBooleanProjectedAllocatedDerivativeProduct
+          M (2 ^ 804) paperScale_ge_two htb hns
+          (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) alloc) ≤
+      (2 ^ 804) ^ 1000 := by
+  have hrank := paperScale_allocatedDerivativeProduct_rank_le_admissibleWindowCount_mul_polyShift
+    M htb hns alloc 804 804 ((2 ^ 804) ^ 804)
+    (admissibleDerivativeWindow_card_le_paperScale M htb hns)
+  exact hrank.trans paperScale_directWindowShiftBudget_le_pow1000
+
 /-- Allocated-product specialization of the private-chart finite-sum route. -/
 theorem allocatedDerivativeProduct_rank_le_shiftClosure_kappaDerivativeImageSpan
     (M : DTM) (n : Nat) (hn2 : n ≥ 2)
@@ -1446,6 +1525,10 @@ theorem paperScale_allocatedDerivativeProduct_rank_le_combinedProfileBound_of_bo
 
 /-! ## Axiom audit anchors -/
 
+#print axioms admissibleDerivativeWindow_card_le_pow
+#print axioms admissibleDerivativeWindow_card_le_paperScale
+#print axioms paperScale_directWindowShiftBudget_le_pow1000
+#print axioms paperScale_allocatedDerivativeProduct_rank_le_pow1000_directWindowCount
 #print axioms RestrictedMonoIdx
 #print axioms restrictedMonomialShiftClosure
 #print axioms finrank_restrictedMonomialShiftClosure_le
