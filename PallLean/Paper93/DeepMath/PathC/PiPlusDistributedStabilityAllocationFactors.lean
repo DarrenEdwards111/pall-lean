@@ -1153,6 +1153,98 @@ def PiPlusBooleanProjectedNormalizedAllocationLocalSpansPullbackReduction
                   (Nat.log 2 n + extraK) (Nat.log 2 n + extraL)
                   (cookLevinFactoredPoly M n))
 
+/-- Monotone uniform normalized local-span/product-choice reduction for
+allocated transformed products.  It separates compact local certificate spans
+`A i` from the enlarged classifier/product-choice spans `B i` used for Boolean
+stability and raw pullback. -/
+def PiPlusBooleanProjectedNormalizedAllocationLocalSpansPullbackMonotoneReduction
+    (extraK extraL : Nat)
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns) : Prop :=
+  ∀ (S : List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+    (m : SATDeciderGaugeSpace M n hn2 htb hns),
+      S.length = Nat.log 2 n →
+      m.totalDegree ≤ Nat.log 2 n →
+      m.vars ⊆ S.toFinset →
+      isBlockAdmissible (cook_levin_compilation M n hn2 htb hns).partition S →
+      ∀ (alloc : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+            M n hn2 htb hns D).length →
+          List (Fin (cook_levin_compilation M n hn2 htb hns).numVars)),
+        (∀ i, ∀ v ∈ alloc i, v ∈ S) →
+        ∃ A B : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+            M n hn2 htb hns D).length →
+          Set (SATDeciderGaugeSpace M n hn2 htb hns),
+          (∀ i : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+              M n hn2 htb hns D).length,
+            zeroProfileBooleanNormalize
+              (iterDerivList (alloc i)
+                (piPlusBooleanProjectedTransformedConstraintFactors
+                  M n hn2 htb hns D)[i.val]) ∈ Submodule.span ℚ (A i)) ∧
+          (∀ i : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+              M n hn2 htb hns D).length, A i ⊆ B i) ∧
+          (∀ q ∈ finiteProductChoiceSet Finset.univ B,
+            zeroProfileBooleanNormalize q ∈
+              Submodule.span ℚ (finiteProductChoiceSet Finset.univ B)) ∧
+          (∀ q ∈ finiteProductChoiceSet Finset.univ B,
+            (piPlusSATTransform_of_blockCoordinates M n hn2 htb hns D).equiv.symm
+              (mlProj (m * q)) ∈
+                mlBlockedSpdpSubspaceInc
+                  (cook_levin_compilation M n hn2 htb hns).partition
+                  (Nat.log 2 n + extraK) (Nat.log 2 n + extraL)
+                  (cookLevinFactoredPoly M n))
+
+/-- The monotone normalized local-span/product-choice reduction closes the
+normalized allocated-product pullback for every concrete derivative allocation. -/
+theorem normalizedAllocatedProduct_rawPullback_of_normalizedAllocationLocalSpansPullbackMonotoneReduction
+    (extraK extraL : Nat)
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (hred : PiPlusBooleanProjectedNormalizedAllocationLocalSpansPullbackMonotoneReduction
+      extraK extraL M n hn2 htb hns D) :
+    ∀ (S : List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+      (m : SATDeciderGaugeSpace M n hn2 htb hns),
+        S.length = Nat.log 2 n →
+        m.totalDegree ≤ Nat.log 2 n →
+        m.vars ⊆ S.toFinset →
+        isBlockAdmissible (cook_levin_compilation M n hn2 htb hns).partition S →
+        ∀ (alloc : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+              M n hn2 htb hns D).length →
+            List (Fin (cook_levin_compilation M n hn2 htb hns).numVars)),
+          (∀ i, ∀ v ∈ alloc i, v ∈ S) →
+          (piPlusSATTransform_of_blockCoordinates M n hn2 htb hns D).equiv.symm
+            (mlProj (m * zeroProfileBooleanNormalize
+              (piPlusBooleanProjectedAllocatedDerivativeProduct
+                M n hn2 htb hns D alloc))) ∈
+              mlBlockedSpdpSubspaceInc
+                (cook_levin_compilation M n hn2 htb hns).partition
+                (Nat.log 2 n + extraK) (Nat.log 2 n + extraL)
+                (cookLevinFactoredPoly M n) := by
+  intro S m hSlen hmdeg hmvars hadm alloc halloc
+  rcases hred S m hSlen hmdeg hmvars hadm alloc halloc with
+    ⟨A, B, hlocal, hAB, hstable, hchoice⟩
+  exact normalizedAllocatedProduct_rawPullback_mem_of_localNormalizedSpans_mono
+    extraK extraL M n hn2 htb hns D m alloc A B hlocal hAB hstable hchoice
+
+/-- The non-monotone normalized local-span/product-choice reduction is a special
+case of the monotone reduction. -/
+theorem normalizedAllocationLocalSpansPullbackMonotoneReduction_of_normalizedAllocationLocalSpansPullbackReduction
+    (extraK extraL : Nat)
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (hred : PiPlusBooleanProjectedNormalizedAllocationLocalSpansPullbackReduction
+      extraK extraL M n hn2 htb hns D) :
+    PiPlusBooleanProjectedNormalizedAllocationLocalSpansPullbackMonotoneReduction
+      extraK extraL M n hn2 htb hns D := by
+  intro S m hSlen hmdeg hmvars hadm alloc halloc
+  rcases hred S m hSlen hmdeg hmvars hadm alloc halloc with
+    ⟨A, hlocal, hstable, hchoice⟩
+  refine ⟨A, A, hlocal, ?_, hstable, hchoice⟩
+  intro i x hx
+  exact hx
+
 /-- The normalized local-span/product-choice reduction closes the normalized
 allocated-product pullback for every concrete derivative allocation. -/
 theorem normalizedAllocatedProduct_rawPullback_of_normalizedAllocationLocalSpansPullbackReduction
@@ -1185,6 +1277,42 @@ theorem normalizedAllocatedProduct_rawPullback_of_normalizedAllocationLocalSpans
     ⟨A, hlocal, hstable, hchoice⟩
   exact normalizedAllocatedProduct_rawPullback_mem_of_localNormalizedSpans
     extraK extraL M n hn2 htb hns D m alloc A hlocal hstable hchoice
+
+/-- Paper-scale `(1,1)` monotone normalized local-span/product-choice reduction. -/
+abbrev PaperScalePiPlusBooleanProjectedNormalizedAllocationLocalSpansPullbackMonotoneReductionOneOne
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) : Prop :=
+  PiPlusBooleanProjectedNormalizedAllocationLocalSpansPullbackMonotoneReduction 1 1
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+
+/-- Paper-scale closeout of normalized allocated-product pullback from the
+monotone normalized local-span/product-choice reduction. -/
+theorem paperScale_normalizedAllocatedProduct_rawPullback_of_normalizedAllocationLocalSpansPullbackMonotoneReduction_oneOne
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hred : PaperScalePiPlusBooleanProjectedNormalizedAllocationLocalSpansPullbackMonotoneReductionOneOne
+      M htb hns) :
+    ∀ (S : List (Fin (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars))
+      (m : SATDeciderGaugeSpace M (2 ^ 804) paperScale_ge_two htb hns),
+        S.length = Nat.log 2 (2 ^ 804) →
+        m.totalDegree ≤ Nat.log 2 (2 ^ 804) →
+        m.vars ⊆ S.toFinset →
+        isBlockAdmissible (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition S →
+        ∀ (alloc : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+              M htb hns).length →
+            List (Fin (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars)),
+          (∀ i, ∀ v ∈ alloc i, v ∈ S) →
+          (cookLevinPiPlusSATTransform_paperScale M htb hns).equiv.symm
+            (mlProj (m * zeroProfileBooleanNormalize
+              (piPlusBooleanProjectedAllocatedDerivativeProduct
+                M (2 ^ 804) paperScale_ge_two htb hns
+                (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) alloc))) ∈
+              mlBlockedSpdpSubspaceInc
+                (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+                (Nat.log 2 (2 ^ 804) + 1) (Nat.log 2 (2 ^ 804) + 1)
+                (cookLevinFactoredPoly M (2 ^ 804)) :=
+  normalizedAllocatedProduct_rawPullback_of_normalizedAllocationLocalSpansPullbackMonotoneReduction
+    1 1 M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) hred
 
 /-- Paper-scale `(1,1)` normalized local-span/product-choice reduction. -/
 abbrev PaperScalePiPlusBooleanProjectedNormalizedAllocationLocalSpansPullbackReductionOneOne
@@ -1219,6 +1347,17 @@ theorem paperScale_normalizedAllocatedProduct_rawPullback_of_normalizedAllocatio
                 (Nat.log 2 (2 ^ 804) + 1) (Nat.log 2 (2 ^ 804) + 1)
                 (cookLevinFactoredPoly M (2 ^ 804)) :=
   normalizedAllocatedProduct_rawPullback_of_normalizedAllocationLocalSpansPullbackReduction
+    1 1 M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) hred
+
+/-- Paper-scale non-monotone normalized pullback reduction as a monotone one. -/
+theorem paperScale_normalizedAllocationLocalSpansPullbackMonotoneReductionOneOne_of_normalizedAllocationLocalSpansPullbackReduction
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hred : PaperScalePiPlusBooleanProjectedNormalizedAllocationLocalSpansPullbackReductionOneOne
+      M htb hns) :
+    PaperScalePiPlusBooleanProjectedNormalizedAllocationLocalSpansPullbackMonotoneReductionOneOne
+      M htb hns :=
+  normalizedAllocationLocalSpansPullbackMonotoneReduction_of_normalizedAllocationLocalSpansPullbackReduction
     1 1 M (2 ^ 804) paperScale_ge_two htb hns
     (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) hred
 
@@ -1411,6 +1550,61 @@ P-side classifier: every distributed Leibniz generator has such a local-span
 classification.
 -/
 
+/-- Monotone uniform local-span/product-choice reduction for transformed
+Leibniz generator pullback.  It allows compact local factor certificates `A i`
+to be enlarged to product-classifier spans `B i` before proving the product
+choice pullback. -/
+def PiPlusBooleanProjectedAllocationLocalSpansPullbackMonotoneReduction
+    (extraK extraL : Nat)
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns) : Prop :=
+  ∀ (S : List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+    (m : SATDeciderGaugeSpace M n hn2 htb hns),
+      S.length = Nat.log 2 n →
+      m.totalDegree ≤ Nat.log 2 n →
+      m.vars ⊆ S.toFinset →
+      isBlockAdmissible (cook_levin_compilation M n hn2 htb hns).partition S →
+      ∀ (alloc : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+            M n hn2 htb hns D).length →
+          List (Fin (cook_levin_compilation M n hn2 htb hns).numVars)),
+        (∀ i, ∀ v ∈ alloc i, v ∈ S) →
+        ∃ A B : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+            M n hn2 htb hns D).length →
+          Set (SATDeciderGaugeSpace M n hn2 htb hns),
+          (∀ i : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+              M n hn2 htb hns D).length,
+            iterDerivList (alloc i)
+              (piPlusBooleanProjectedTransformedConstraintFactors
+                M n hn2 htb hns D)[i.val] ∈ Submodule.span ℚ (A i)) ∧
+          (∀ i : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+              M n hn2 htb hns D).length, A i ⊆ B i) ∧
+          (∀ q ∈ finiteProductChoiceSet Finset.univ B,
+            (piPlusSATTransform_of_blockCoordinates M n hn2 htb hns D).equiv.symm
+              (mlProj (m * q)) ∈
+                mlBlockedSpdpSubspaceInc
+                  (cook_levin_compilation M n hn2 htb hns).partition
+                  (Nat.log 2 n + extraK) (Nat.log 2 n + extraL)
+                  (cookLevinFactoredPoly M n))
+
+/-- The monotone allocation-local span/product-choice reduction closes the
+standard transformed Leibniz generator pullback payload. -/
+theorem transformedLeibnizGeneratorPullback_of_allocationLocalSpansPullbackMonotoneReduction
+    (extraK extraL : Nat)
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (hred : PiPlusBooleanProjectedAllocationLocalSpansPullbackMonotoneReduction
+      extraK extraL M n hn2 htb hns D) :
+    PiPlusBooleanProjectedTransformedLeibnizGeneratorPullback
+      extraK extraL M n hn2 htb hns D := by
+  intro S m hSlen hmdeg hmvars hadm q hq
+  rcases hq with ⟨alloc, halloc, rfl⟩
+  rcases hred S m hSlen hmdeg hmvars hadm alloc halloc with
+    ⟨A, B, hlocal, hAB, hchoice⟩
+  exact allocatedProduct_rawPullback_mem_of_localSpans_mono
+    extraK extraL M n hn2 htb hns D m alloc A B hlocal hAB hchoice
+
 /-- Uniform local-span/product-choice reduction for transformed Leibniz
 generator pullback.  For each derivative allocation, it supplies local generator
 sets `A i`, proves every local allocated derivative lies in its local span, and
@@ -1465,12 +1659,60 @@ theorem transformedLeibnizGeneratorPullback_of_allocationLocalSpansPullbackReduc
   exact allocatedProduct_rawPullback_mem_of_localSpans
     extraK extraL M n hn2 htb hns D m alloc A hlocal hchoice
 
+/-- The non-monotone allocation-local pullback reduction is a special case of the
+monotone reduction. -/
+theorem allocationLocalSpansPullbackMonotoneReduction_of_allocationLocalSpansPullbackReduction
+    (extraK extraL : Nat)
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (hred : PiPlusBooleanProjectedAllocationLocalSpansPullbackReduction
+      extraK extraL M n hn2 htb hns D) :
+    PiPlusBooleanProjectedAllocationLocalSpansPullbackMonotoneReduction
+      extraK extraL M n hn2 htb hns D := by
+  intro S m hSlen hmdeg hmvars hadm alloc halloc
+  rcases hred S m hSlen hmdeg hmvars hadm alloc halloc with
+    ⟨A, hlocal, hchoice⟩
+  refine ⟨A, A, hlocal, ?_, hchoice⟩
+  intro i x hx
+  exact hx
+
+/-- Paper-scale `(1,1)` monotone local-span/product-choice reduction. -/
+abbrev PaperScalePiPlusBooleanProjectedAllocationLocalSpansPullbackMonotoneReductionOneOne
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) : Prop :=
+  PiPlusBooleanProjectedAllocationLocalSpansPullbackMonotoneReduction 1 1
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+
+/-- Paper-scale `(1,1)` transformed-generator pullback from the monotone local-
+span/product-choice reduction. -/
+theorem paperScale_transformedLeibnizGeneratorPullbackOneOne_of_allocationLocalSpansPullbackMonotoneReduction
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hred : PaperScalePiPlusBooleanProjectedAllocationLocalSpansPullbackMonotoneReductionOneOne
+      M htb hns) :
+    PaperScalePiPlusBooleanProjectedTransformedLeibnizGeneratorPullbackOneOne
+      M htb hns :=
+  transformedLeibnizGeneratorPullback_of_allocationLocalSpansPullbackMonotoneReduction
+    1 1 M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) hred
+
 /-- Paper-scale `(1,1)` local-span/product-choice reduction. -/
 abbrev PaperScalePiPlusBooleanProjectedAllocationLocalSpansPullbackReductionOneOne
     (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) : Prop :=
   PiPlusBooleanProjectedAllocationLocalSpansPullbackReduction 1 1
     M (2 ^ 804) paperScale_ge_two htb hns
     (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+
+/-- Paper-scale non-monotone allocation-local pullback reduction as a monotone one. -/
+theorem paperScale_allocationLocalSpansPullbackMonotoneReductionOneOne_of_allocationLocalSpansPullbackReduction
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hred : PaperScalePiPlusBooleanProjectedAllocationLocalSpansPullbackReductionOneOne
+      M htb hns) :
+    PaperScalePiPlusBooleanProjectedAllocationLocalSpansPullbackMonotoneReductionOneOne
+      M htb hns :=
+  allocationLocalSpansPullbackMonotoneReduction_of_allocationLocalSpansPullbackReduction
+    1 1 M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) hred
 
 /-- Paper-scale `(1,1)` transformed-generator pullback from the local-span /
 product-choice reduction. -/
@@ -2624,13 +2866,21 @@ theorem no_decidesSAT_at_paperScale_of_oneOneProductNormalizationCloseoutInputs
 #print axioms normalizedAllocatedProduct_rawPullback_mem_of_localNormalizedSpans_mono
 #print axioms paperScale_normalizedAllocatedProduct_rawPullback_mem_of_localNormalizedSpans_oneOne
 #print axioms paperScale_normalizedAllocatedProduct_rawPullback_mem_of_localNormalizedSpans_mono_oneOne
+#print axioms normalizedAllocatedProduct_rawPullback_of_normalizedAllocationLocalSpansPullbackMonotoneReduction
+#print axioms normalizedAllocationLocalSpansPullbackMonotoneReduction_of_normalizedAllocationLocalSpansPullbackReduction
 #print axioms normalizedAllocatedProduct_rawPullback_of_normalizedAllocationLocalSpansPullbackReduction
+#print axioms paperScale_normalizedAllocatedProduct_rawPullback_of_normalizedAllocationLocalSpansPullbackMonotoneReduction_oneOne
+#print axioms paperScale_normalizedAllocationLocalSpansPullbackMonotoneReductionOneOne_of_normalizedAllocationLocalSpansPullbackReduction
 #print axioms paperScale_normalizedAllocatedProduct_rawPullback_of_normalizedAllocationLocalSpansPullbackReduction_oneOne
 #print axioms allocatedProduct_rawPullback_mem_of_localSpans
 #print axioms allocatedProduct_rawPullback_mem_of_localSpans_mono
 #print axioms paperScale_allocatedProduct_rawPullback_mem_of_localSpans_oneOne
 #print axioms paperScale_allocatedProduct_rawPullback_mem_of_localSpans_mono_oneOne
+#print axioms transformedLeibnizGeneratorPullback_of_allocationLocalSpansPullbackMonotoneReduction
+#print axioms allocationLocalSpansPullbackMonotoneReduction_of_allocationLocalSpansPullbackReduction
 #print axioms transformedLeibnizGeneratorPullback_of_allocationLocalSpansPullbackReduction
+#print axioms paperScale_transformedLeibnizGeneratorPullbackOneOne_of_allocationLocalSpansPullbackMonotoneReduction
+#print axioms paperScale_allocationLocalSpansPullbackMonotoneReductionOneOne_of_allocationLocalSpansPullbackReduction
 #print axioms paperScale_transformedLeibnizGeneratorPullbackOneOne_of_allocationLocalSpansPullbackReduction
 #print axioms paperScale_factoredRowSpanClassifierOneOne_of_polynomialSpan_and_allocationLocalSpansPullbackReduction
 #print axioms paperScale_factoredRowSpanClassifierOneOne_of_allocationLocalSpansCloseoutInputs
