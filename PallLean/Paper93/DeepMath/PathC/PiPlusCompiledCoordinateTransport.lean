@@ -103,6 +103,79 @@ theorem cookLevinPiPlusSATCoordinateAlgEquiv_paperScale_apply_gauge
     M (2 ^ 804) paperScale_ge_two htb hns
     (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) p
 
+/-- Concrete constraint-type classification for the Boolean-projected `Pi+`
+transformed Cook--Levin factor list.  It mirrors the compiler's three-list
+layout: booleanity prefix, adjacency middle segment, transition-skeleton tail
+(recorded in the existing profile bookkeeping as `transitionLeft`). -/
+noncomputable def cookLevinFactorConstraintType
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns) :
+    Fin (piPlusBooleanProjectedTransformedConstraintFactors M n hn2 htb hns D).length →
+      ConstraintType :=
+  fun i =>
+    if i.1 < n then
+      ConstraintType.booleanity
+    else if i.1 < n + (PaperFaithfulSeparation.adjConstraintList n).length then
+      ConstraintType.adjacency
+    else
+      ConstraintType.transitionLeft
+
+/-- The transformed-factor classifier is `booleanity` on the initial Boolean
+constraint prefix. -/
+theorem cookLevinFactorConstraintType_eq_booleanity
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (i : Fin (piPlusBooleanProjectedTransformedConstraintFactors M n hn2 htb hns D).length)
+    (hi : i.1 < n) :
+    cookLevinFactorConstraintType M n hn2 htb hns D i = ConstraintType.booleanity := by
+  simp [cookLevinFactorConstraintType, hi]
+
+/-- The transformed-factor classifier is `adjacency` on the adjacency segment. -/
+theorem cookLevinFactorConstraintType_eq_adjacency
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (i : Fin (piPlusBooleanProjectedTransformedConstraintFactors M n hn2 htb hns D).length)
+    (hlo : n ≤ i.1)
+    (hi : i.1 < n + (PaperFaithfulSeparation.adjConstraintList n).length) :
+    cookLevinFactorConstraintType M n hn2 htb hns D i = ConstraintType.adjacency := by
+  simp [cookLevinFactorConstraintType, Nat.not_lt.mpr hlo, hi]
+
+/-- The transformed-factor classifier is `transitionLeft` on the transition
+skeleton tail. -/
+theorem cookLevinFactorConstraintType_eq_transitionLeft
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (i : Fin (piPlusBooleanProjectedTransformedConstraintFactors M n hn2 htb hns D).length)
+    (hi : n + (PaperFaithfulSeparation.adjConstraintList n).length ≤ i.1) :
+    cookLevinFactorConstraintType M n hn2 htb hns D i = ConstraintType.transitionLeft := by
+  have hnot_bool : ¬ i.1 < n := Nat.not_lt.mpr (le_trans (Nat.le_add_right _ _) hi)
+  have hnot_adj : ¬ i.1 < n + (PaperFaithfulSeparation.adjConstraintList n).length :=
+    Nat.not_lt.mpr hi
+  simp [cookLevinFactorConstraintType, hnot_bool, hnot_adj]
+
+/-- Paper-scale specialization of the transformed-factor classifier. -/
+noncomputable abbrev cookLevinFactorConstraintType_paperScale
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) :
+    Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale M htb hns).length →
+      ConstraintType :=
+  cookLevinFactorConstraintType M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+
+/-- Same-ambient form of P5 σ-only dependence for the implemented compiled-basis
+interface spaces.  The concrete implementation is independent of `(B, κ, ℓ)`
+and depends only on the constraint type `σ`.  The parameters are therefore
+paper-compatible bookkeeping: they keep the API aligned with the surrounding
+SPDP row-space budget `M^B_{κ,ℓ}`, while P5's σ-only local alphabet is reflected
+by this equality. -/
+theorem interfaceSpace_compiledBasis_eq_of_same_type_sameAmbient
+    {N : Nat} (B B' : BlockPartition N) (κ κ' ℓ ℓ' : Nat) (σ : ConstraintType) :
+    interfaceSpace_compiledBasis B κ ℓ σ = interfaceSpace_compiledBasis B' κ' ℓ' σ := by
+  rfl
+
 /-- Transport of a canonical compiled-basis interface space into the explicit
 compiled block ambient.  This is the fixed `W_τ` chart in compiled coordinates. -/
 noncomputable def compiledBlockInterfaceSpace
@@ -304,6 +377,12 @@ theorem paperScale_compiledBlockProfileSubspace_finrank_le_withinProfileBound
 #print axioms piPlusSATBlockAlgEquiv_eq_coordinate_trans_block_trans_coordinate_symm
 #print axioms piPlusSATCoordinateAlgEquiv_apply_piPlusSATBlockAlgEquiv
 #print axioms cookLevinPiPlusSATCoordinateAlgEquiv_paperScale_apply_gauge
+#print axioms cookLevinFactorConstraintType
+#print axioms cookLevinFactorConstraintType_eq_booleanity
+#print axioms cookLevinFactorConstraintType_eq_adjacency
+#print axioms cookLevinFactorConstraintType_eq_transitionLeft
+#print axioms cookLevinFactorConstraintType_paperScale
+#print axioms interfaceSpace_compiledBasis_eq_of_same_type_sameAmbient
 #print axioms compiledBlockInterfaceSpace
 #print axioms compiledBlockInterfaceSpace_finrank_le_three
 #print axioms mem_compiledBlockInterfaceSpace_of_mem_interfaceSpace_compiledBasis
