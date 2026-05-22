@@ -90,6 +90,30 @@ noncomputable def finiteProductChoiceSet
   { q | ∃ a : ι → MvPolynomial (Fin n) ℚ,
       (∀ i ∈ s, a i ∈ A i) ∧ q = s.prod a }
 
+/-- Pointwise products are monotone in the local generator sets.  This is the
+basic enlargement lemma needed when Booleanity/signed-row local certificates are
+first proved in small hand-built spans and then absorbed into a larger product
+choice space. -/
+theorem finiteProductChoiceSet_mono
+    {n : Nat} {ι : Type*} [DecidableEq ι]
+    (s : Finset ι) {A B : ι → Set (MvPolynomial (Fin n) ℚ)}
+    (hAB : ∀ i ∈ s, A i ⊆ B i) :
+    finiteProductChoiceSet s A ⊆ finiteProductChoiceSet s B := by
+  intro q hq
+  rcases hq with ⟨a, ha, rfl⟩
+  refine ⟨a, ?_, rfl⟩
+  intro i hi
+  exact hAB i hi (ha i hi)
+
+/-- Span form of `finiteProductChoiceSet_mono`. -/
+theorem span_finiteProductChoiceSet_mono
+    {n : Nat} {ι : Type*} [DecidableEq ι]
+    (s : Finset ι) {A B : ι → Set (MvPolynomial (Fin n) ℚ)}
+    (hAB : ∀ i ∈ s, A i ⊆ B i) :
+    Submodule.span ℚ (finiteProductChoiceSet s A) ≤
+      Submodule.span ℚ (finiteProductChoiceSet s B) :=
+  Submodule.span_mono (finiteProductChoiceSet_mono s hAB)
+
 /-- Finite-product span assembly: local span membership for every factor implies
 membership of the whole product in the span of pointwise products of local
 generators. -/
@@ -178,6 +202,63 @@ theorem finset_prod_mem_span_finiteProductChoiceSet
         · intro c x _ hx
           exact T.smul_mem c hx
       exact hk
+
+/-- Finite-product span assembly with local generator enlargement.  This is the
+raw, pre-normalization version of the monotone assembly bridge: local witnesses
+proved in compact sets `A i` may be consumed by a larger common product-choice
+family `B i`. -/
+theorem finset_prod_mem_span_finiteProductChoiceSet_of_mono
+    {n : Nat} {ι : Type*} [DecidableEq ι]
+    (s : Finset ι) (A B : ι → Set (MvPolynomial (Fin n) ℚ))
+    (p : ι → MvPolynomial (Fin n) ℚ)
+    (hp : ∀ i ∈ s, p i ∈ Submodule.span ℚ (A i))
+    (hAB : ∀ i ∈ s, A i ⊆ B i) :
+    s.prod p ∈ Submodule.span ℚ (finiteProductChoiceSet s B) := by
+  exact (span_finiteProductChoiceSet_mono s hAB)
+    (finset_prod_mem_span_finiteProductChoiceSet s A p hp)
+
+/-- Allocated Cook--Levin product assembly with local generator enlargement.
+This bridges concrete local row/Booleanity certificates into a larger product
+classifier before any Boolean quotient normalization is applied. -/
+theorem allocatedDerivativeProduct_mem_span_finiteProductChoiceSet_of_mono
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (alloc : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length →
+      List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+    (A B : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length →
+      Set (MvPolynomial
+        (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ))
+    (hlocal : ∀ i : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length,
+      iterDerivList (alloc i)
+        (piPlusBooleanProjectedTransformedConstraintFactors
+          M n hn2 htb hns D)[i.val] ∈ Submodule.span ℚ (A i))
+    (hAB : ∀ i : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length, A i ⊆ B i) :
+    piPlusBooleanProjectedAllocatedDerivativeProduct
+        M n hn2 htb hns D alloc ∈
+      Submodule.span ℚ (finiteProductChoiceSet Finset.univ B) := by
+  classical
+  rw [piPlusBooleanProjectedAllocatedDerivativeProduct]
+  let ι := Fin (piPlusBooleanProjectedTransformedConstraintFactors
+    M n hn2 htb hns D).length
+  let N := (cook_levin_compilation M n hn2 htb hns).numVars
+  let p : ι → MvPolynomial (Fin N) ℚ := fun i =>
+    iterDerivList (alloc i)
+      (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D)[i.val]
+  change (Finset.univ : Finset ι).prod p ∈
+    Submodule.span ℚ (finiteProductChoiceSet (Finset.univ : Finset ι) B)
+  refine finset_prod_mem_span_finiteProductChoiceSet_of_mono
+    (n := N) (ι := ι) (s := (Finset.univ : Finset ι))
+    (A := A) (B := B) (p := p) ?_ ?_
+  · intro i _
+    exact hlocal i
+  · intro i _
+    exact hAB i
 
 /-- Generator-level Boolean stability of a product-choice set lifts to stability
 of its whole linear span.  This separates the genuinely algebraic normalization
@@ -319,6 +400,84 @@ theorem zeroProfileBooleanNormalize_allocatedDerivativeProduct_mem_span_finitePr
     rw [← LinearMap.comp_apply, zeroProfileBooleanNormalizeLinearMap_idempotent]
     exact hlocal i
   · exact hstable
+
+/-- Normalized finite-product assembly with local generator enlargement.  Local
+factors may first be certified in smaller sets `A i`; if those sets embed into
+larger classifier sets `B i`, and the `B` product-choice span is stable under
+Boolean normalization, then the whole normalized product lands in the larger
+`B` product-choice span. -/
+theorem zeroProfileBooleanNormalize_finset_prod_mem_span_finiteProductChoiceSet_of_mono
+    {n : Nat} {ι : Type*} [DecidableEq ι]
+    (s : Finset ι) (A B : ι → Set (MvPolynomial (Fin n) ℚ))
+    (p : ι → MvPolynomial (Fin n) ℚ)
+    (hp : ∀ i ∈ s, zeroProfileBooleanNormalize (p i) ∈ Submodule.span ℚ (A i))
+    (hAB : ∀ i ∈ s, A i ⊆ B i)
+    (hstable : ∀ q ∈ finiteProductChoiceSet s B,
+      zeroProfileBooleanNormalize q ∈ Submodule.span ℚ (finiteProductChoiceSet s B)) :
+    zeroProfileBooleanNormalize (s.prod p) ∈
+      Submodule.span ℚ (finiteProductChoiceSet s B) := by
+  classical
+  refine zeroProfileBooleanNormalize_finset_prod_mem_span_finiteProductChoiceSet
+    (n := n) (ι := ι) (s := s) (A := B) (p := p) ?_ hstable
+  intro i hi
+  exact (Submodule.span_mono (hAB i hi)) (hp i hi)
+
+/-- Allocated-product version of the monotone normalized finite-product
+assembly.  This is useful when local Booleanity/signed-row derivative residues
+are proved in compact local spans but the product assembly wants a larger common
+classification family. -/
+theorem zeroProfileBooleanNormalize_allocatedDerivativeProduct_mem_span_finiteProductChoiceSet_of_mono
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (alloc : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length →
+      List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+    (A B : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length →
+      Set (MvPolynomial
+        (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ))
+    (hlocal : ∀ i : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length,
+      zeroProfileBooleanNormalize
+        (iterDerivList (alloc i)
+          (piPlusBooleanProjectedTransformedConstraintFactors
+            M n hn2 htb hns D)[i.val]) ∈ Submodule.span ℚ (A i))
+    (hAB : ∀ i : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length, A i ⊆ B i)
+    (hstable : ∀ q ∈ finiteProductChoiceSet Finset.univ B,
+      zeroProfileBooleanNormalize q ∈
+        Submodule.span ℚ (finiteProductChoiceSet Finset.univ B)) :
+    zeroProfileBooleanNormalize
+      (piPlusBooleanProjectedAllocatedDerivativeProduct
+        M n hn2 htb hns D alloc) ∈
+      Submodule.span ℚ (finiteProductChoiceSet Finset.univ B) := by
+  classical
+  rw [zeroProfileBooleanNormalize_allocatedDerivativeProduct_eq_normalizedFactorProduct]
+  let ι := Fin (piPlusBooleanProjectedTransformedConstraintFactors
+    M n hn2 htb hns D).length
+  let N := (cook_levin_compilation M n hn2 htb hns).numVars
+  let p : ι → MvPolynomial (Fin N) ℚ := fun i =>
+    zeroProfileBooleanNormalize
+      (iterDerivList (alloc i)
+        (piPlusBooleanProjectedTransformedConstraintFactors
+          M n hn2 htb hns D)[i.val])
+  change zeroProfileBooleanNormalize ((Finset.univ : Finset ι).prod p) ∈
+    Submodule.span ℚ (finiteProductChoiceSet (Finset.univ : Finset ι) B)
+  refine zeroProfileBooleanNormalize_finset_prod_mem_span_finiteProductChoiceSet_of_mono
+    (n := N) (ι := ι) (s := (Finset.univ : Finset ι))
+    (A := A) (B := B) (p := p) ?_ ?_ hstable
+  · intro i _
+    dsimp [p]
+    change zeroProfileBooleanNormalizeLinearMap
+        (zeroProfileBooleanNormalizeLinearMap
+          (iterDerivList (alloc i)
+            (piPlusBooleanProjectedTransformedConstraintFactors
+              M n hn2 htb hns D)[i.val])) ∈ Submodule.span ℚ (A i)
+    rw [← LinearMap.comp_apply, zeroProfileBooleanNormalizeLinearMap_idempotent]
+    exact hlocal i
+  · intro i _
+    exact hAB i
 
 /-- Target-submodule form of normalized allocated-product assembly.  Instead of
 requiring the product-choice set to be closed under Boolean normalization inside
@@ -1947,11 +2106,17 @@ theorem no_decidesSAT_at_paperScale_of_oneOneProductNormalizationCloseoutInputs
 /-! ## Axiom audit anchors -/
 
 #print axioms zeroProfileBooleanNormalize_allocatedDerivativeProduct_eq_normalizedFactorProduct
+#print axioms finiteProductChoiceSet_mono
+#print axioms span_finiteProductChoiceSet_mono
 #print axioms finset_prod_mem_span_finiteProductChoiceSet
+#print axioms finset_prod_mem_span_finiteProductChoiceSet_of_mono
+#print axioms allocatedDerivativeProduct_mem_span_finiteProductChoiceSet_of_mono
 #print axioms zeroProfileBooleanNormalize_mem_span_finiteProductChoiceSet_of_generatorStable
 #print axioms zeroProfileBooleanNormalize_finset_prod_mem_span_finiteProductChoiceSet
+#print axioms zeroProfileBooleanNormalize_finset_prod_mem_span_finiteProductChoiceSet_of_mono
 #print axioms allocatedDerivativeProduct_mem_span_finiteProductChoiceSet
 #print axioms zeroProfileBooleanNormalize_allocatedDerivativeProduct_mem_span_finiteProductChoiceSet
+#print axioms zeroProfileBooleanNormalize_allocatedDerivativeProduct_mem_span_finiteProductChoiceSet_of_mono
 #print axioms zeroProfileBooleanNormalize_allocatedDerivativeProduct_mem_of_localNormalizedSpans_and_choiceNormalizes
 #print axioms allocationStability_of_localNormalizedSpans_and_choiceNormalizesToDistribSpan
 #print axioms allocationStability_of_localNormalizedChoiceProductReduction
