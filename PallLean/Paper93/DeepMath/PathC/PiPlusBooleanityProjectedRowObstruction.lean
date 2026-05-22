@@ -1,6 +1,7 @@
 import PallLean.Paper93.DeepMath.PathC.PiPlusBooleanityPullbackNormalization
 import PallLean.Paper93.DeepMath.PathC.PiPlusBooleanityActualFactorNormalForm
 import PallLean.Paper93.DeepMath.PathC.PiPlusBooleanProjectedSignedCoordinateAtoms
+import PallLean.SymTensorPowerDim
 
 /-!
 # Projected Booleanity rows: single-row obstruction and span-level replacement
@@ -22,6 +23,7 @@ open SPDP
 open MultilinearSPDP
 open PallLean.Paper93.DeepMath.PathB
 open PallLean.Paper93.Paper283
+open PallLean.SymTensorPowerDim
 open PaperFaithfulSeparation
 open TuringMachine
 
@@ -859,6 +861,37 @@ theorem paperScale_cookLevinBooleanityResidueRankPayload_unconditional
     M (2 ^ 804) paperScale_ge_two htb hns
     (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
 
+/-- One-slot symmetric-power introduction: a row already in a local interface
+space belongs to the first symmetric power of that space.  This is the algebraic
+adapter used below to turn the corrected Booleanity residue-span payload into the
+Route-W `symPower` surface. -/
+theorem mem_symPower_one_of_mem {N : Type*} [DecidableEq N]
+    (W : Submodule ℚ (MvPolynomial N ℚ))
+    {p : MvPolynomial N ℚ} (hp : p ∈ W) :
+    p ∈ symPower ℚ 1 W := by
+  classical
+  unfold symPower
+  refine Submodule.subset_span ?_
+  refine ⟨fun _ : Fin 1 => p, ?_, ?_⟩
+  · intro _
+    exact hp
+  · simp
+
+/-- The concrete post-`Π+`, Boolean-normalized, pulled-back Booleanity row for
+an actual Cook--Levin Booleanity factor indexed by variable `v`.  This is the
+row appearing in the corrected span-level Booleanity certificate. -/
+noncomputable def cookLevinBooleanityPostRow
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (v : Fin n) : SATDeciderGaugeSpace M n hn2 htb hns :=
+  mlProj
+    ((piPlusSATBlockAlgEquiv M n hn2 htb hns D).symm
+      (zeroProfileBooleanNormalize
+        (piPlusSATBlockAlgEquiv M n hn2 htb hns D
+          (((1 : MvPolynomial (Fin n) ℚ) - (boolLC n v).poly) :
+            SATDeciderGaugeSpace M n hn2 htb hns))))
+
 /-- Span-level corrected Booleanity row certificate.  This is the proper target:
 the Booleanity row is allowed to be block-local constant-plus-linear residue
 content instead of being forced into a single source generator or the constant
@@ -868,12 +901,7 @@ def PiPlusBooleanProjectedBooleanityFactorProjectedSpanCertificate
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
     (v : Fin n) : Prop :=
-  mlProj
-    ((piPlusSATBlockAlgEquiv M n hn2 htb hns D).symm
-      (zeroProfileBooleanNormalize
-        (piPlusSATBlockAlgEquiv M n hn2 htb hns D
-          (((1 : MvPolynomial (Fin n) ℚ) - (boolLC n v).poly) :
-            SATDeciderGaugeSpace M n hn2 htb hns)))) ∈
+  cookLevinBooleanityPostRow M n hn2 htb hns D v ∈
     SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D v
 
 /-- Span-level Booleanity payload. -/
@@ -914,6 +942,7 @@ theorem cookLevinBooleanityFactorProjectedSpanPayload_unconditional
       simp [satBlockFalse]
     rw [hv]
     unfold PiPlusBooleanProjectedBooleanityFactorProjectedSpanCertificate
+    unfold cookLevinBooleanityPostRow
     simp only [boolLC, boolPoly']
     rw [mlProj_piPlusSATBlockAlgEquiv_symm_booleanProjected_booleanity_false]
     exact one_mem_SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D
@@ -932,6 +961,7 @@ theorem cookLevinBooleanityFactorProjectedSpanPayload_unconditional
       simp [satBlockTrue]
     rw [hv]
     unfold PiPlusBooleanProjectedBooleanityFactorProjectedSpanCertificate
+    unfold cookLevinBooleanityPostRow
     simp only [boolLC, boolPoly']
     rw [mlProj_piPlusSATBlockAlgEquiv_symm_booleanProjected_booleanity_true_actualForm]
     simpa [sub_eq_add_neg] using
@@ -944,6 +974,39 @@ theorem cookLevinBooleanityFactorProjectedSpanPayload_unconditional
         (Submodule.neg_mem _
           (X_true_mem_SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D
             (satBlockTrue M n hn2 htb hns D i))))
+
+/-- The actual Cook--Levin Booleanity post-row belongs to the first symmetric
+power of its corrected Booleanity residue span.  This is the coefficient-level
+extraction core needed by Route W: the existing false/true Booleanity span
+infrastructure discharges the local algebra, and `mem_symPower_one_of_mem`
+packages the resulting residue row as a one-slot symmetric-power contribution. -/
+theorem cookLevinBooleanity_postRow_mem_symPower
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (v : Fin n) :
+    cookLevinBooleanityPostRow M n hn2 htb hns D v ∈
+      symPower ℚ 1
+        (SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D v) := by
+  exact mem_symPower_one_of_mem
+    (SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D v)
+    ((cookLevinBooleanityFactorProjectedSpanPayload_unconditional
+      M n hn2 htb hns D) v)
+
+/-- Paper-scale actual Cook--Levin Booleanity post-row symmetric-power
+membership. -/
+theorem paperScale_cookLevinBooleanity_postRow_mem_symPower
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (v : Fin (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars) :
+    cookLevinBooleanityPostRow M (2 ^ 804) paperScale_ge_two htb hns
+        (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) v ∈
+      symPower ℚ 1
+        (SATBlockBooleanityActualProjectedResidueSpan
+          M (2 ^ 804) paperScale_ge_two htb hns
+          (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) v) := by
+  exact cookLevinBooleanity_postRow_mem_symPower
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) v
 
 /-- Paper-scale span-level Booleanity payload, discharged from the concrete
 false/true Booleanity normal forms. -/
@@ -989,6 +1052,10 @@ theorem paperScale_booleanityProjectedRows_of_spanPayload_reduction
 #print axioms finrank_SATBlockBooleanityActualProjectedResidueSpan_le_three
 #print axioms cookLevinBooleanityResidueRankPayload_unconditional
 #print axioms paperScale_cookLevinBooleanityResidueRankPayload_unconditional
+#print axioms mem_symPower_one_of_mem
+#print axioms cookLevinBooleanityPostRow
+#print axioms cookLevinBooleanity_postRow_mem_symPower
+#print axioms paperScale_cookLevinBooleanity_postRow_mem_symPower
 #print axioms mlProj_piPlusSATBlockAlgEquiv_symm_booleanProjected_booleanity_false
 #print axioms mlProj_piPlusSATBlockAlgEquiv_symm_booleanProjected_booleanity_true_actualForm
 #print axioms mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_false_booleanProjected_booleanity_false_actualForm
