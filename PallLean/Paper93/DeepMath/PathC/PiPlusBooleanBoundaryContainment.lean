@@ -22,6 +22,7 @@ open MultilinearSPDP
 open SymmetricPowerBound
 open WithinProfileBound
 open PallLean.Paper93
+open PallLean.SymTensorPowerDim
 open PallLean.Paper93.DeepMath.PathB
 open PaperFaithfulSeparation
 open TuringMachine
@@ -77,6 +78,167 @@ def BooleanBoundaryPostSpanGeneratorContainment {N L : Nat}
         zeroProfileBooleanNormalize (mlProj (shift * g)) ∈
           profileSubspace h
             (fun σ : ConstraintType => interfaceSpace_compiledBasis B κ ℓ σ)
+
+/-- Booleanity-only profile with `k` Booleanity slots and zero mass in every
+other constraint type. -/
+def booleanityOnlyProfile (k : Nat) : ProfileHistogram :=
+  fun σ : ConstraintType => if σ = ConstraintType.booleanity then k else 0
+
+@[simp] theorem booleanityOnlyProfile_booleanity (k : Nat) :
+    booleanityOnlyProfile k ConstraintType.booleanity = k := by
+  simp [booleanityOnlyProfile]
+
+@[simp] theorem booleanityOnlyProfile_of_ne_booleanity {k : Nat}
+    {σ : ConstraintType} (hσ : σ ≠ ConstraintType.booleanity) :
+    booleanityOnlyProfile k σ = 0 := by
+  simp [booleanityOnlyProfile, hσ]
+
+/-- A Booleanity-only slot expansion: after Boolean normalization, the row is a
+finite sum of products of `k` Booleanity interface slots.  This is the first
+constraint-type target for Route W; the theorem below converts it into the full
+all-interface slot-expansion shape consumed by `booleanBoundary...`. -/
+def BooleanityFactorSlotExpansion {N : Nat}
+    (B : BlockPartition N) (κ ℓ k : Nat)
+    (row : MvPolynomial (Fin N) ℚ) : Prop :=
+  ∃ (ι : Type) (_ : Fintype ι),
+  ∃ (coeff : ι → ℚ),
+  ∃ (bslot : ι → Fin k → MvPolynomial (Fin N) ℚ),
+    (∀ t j, bslot t j ∈
+      interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity) ∧
+    row = ∑ t : ι, coeff t • (∏ j : Fin k, bslot t j)
+
+/-- Extract an explicit finite Booleanity slot expansion from membership in the
+`k`-fold symmetric power of the Booleanity interface space.  This is the pure
+coefficient-level algebraic core of the Booleanity Route-W step. -/
+theorem booleanityFactorSlotExpansion_of_mem_symPower {N : Nat}
+    (B : BlockPartition N) (κ ℓ k : Nat)
+    (row : MvPolynomial (Fin N) ℚ)
+    (hrow : row ∈ symPower ℚ k
+      (interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity)) :
+    BooleanityFactorSlotExpansion B κ ℓ k row := by
+  classical
+  unfold symPower at hrow
+  rcases (Submodule.mem_span_iff_exists_finset_subset.mp hrow) with
+    ⟨coeff0, t, ht_subset, _hcoeff_support, hsum⟩
+  let ι : Type := {p : MvPolynomial (Fin N) ℚ // p ∈ t}
+  haveI : Fintype ι := inferInstance
+  have hslotWitness : ∀ p : ι,
+      ∃ f : Fin k → MvPolynomial (Fin N) ℚ,
+        (∀ j, f j ∈ interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity) ∧
+        p.1 = ∏ j, f j := by
+    intro p
+    have hp_set : p.1 ∈ { q : MvPolynomial (Fin N) ℚ |
+        ∃ f : Fin k → MvPolynomial (Fin N) ℚ,
+          (∀ j, f j ∈ interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity) ∧
+          q = ∏ j, f j } := ht_subset p.2
+    rcases hp_set with ⟨f, hfmem, hpeq⟩
+    exact ⟨f, hfmem, hpeq⟩
+  choose bslot hbslot_mem hbslot_eq using hslotWitness
+  refine ⟨ι, inferInstance, (fun p : ι => coeff0 p.1), bslot, hbslot_mem, ?_⟩
+  calc
+    row = ∑ p ∈ t, coeff0 p • p := hsum.symm
+    _ = ∑ p : ι, coeff0 p.1 • p.1 := by
+      simpa [ι] using
+        (Finset.sum_subtype (s := t) (p := fun p : MvPolynomial (Fin N) ℚ => p ∈ t)
+          (by intro p; rfl) (f := fun p => coeff0 p • p))
+    _ = ∑ p : ι, coeff0 p.1 • (∏ j : Fin k, bslot p j) := by
+      refine Finset.sum_congr rfl ?_
+      intro p _
+      rw [hbslot_eq p]
+
+/-- Booleanity slot expansion for a normalized projected Cook--Levin row once
+the local Booleanity algebra has placed that row in the Booleanity symmetric
+power.  The `hg` classified-product hypothesis is retained in the statement so
+call sites can pass the exact Route-W generator data unchanged; the algebraic
+payload is the final `hrow` membership. -/
+theorem booleanityFactorSlotExpansion {N L : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat)
+    (factors : Fin L → MvPolynomial (Fin N) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (h : ProfileHistogram)
+    (S : List (Fin N)) (shift : MvPolynomial (Fin N) ℚ)
+    (g : MvPolynomial (Fin N) ℚ)
+    (_hg : g ∈ boundedProfileClassifiedSet factors constraintType S h)
+    (hrow : zeroProfileBooleanNormalize (mlProj (shift * g)) ∈
+      symPower ℚ (h ConstraintType.booleanity)
+        (interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity)) :
+    BooleanityFactorSlotExpansion B κ ℓ (h ConstraintType.booleanity)
+      (zeroProfileBooleanNormalize (mlProj (shift * g))) := by
+  exact booleanityFactorSlotExpansion_of_mem_symPower B κ ℓ
+    (h ConstraintType.booleanity)
+    (zeroProfileBooleanNormalize (mlProj (shift * g))) hrow
+
+/-- A Booleanity-only slot expansion is a full profile slot expansion for the
+profile `booleanityOnlyProfile k`.  The non-Booleanity interfaces contribute
+empty products, so no adjacency/transition slots are required. -/
+theorem fullSlotExpansion_of_booleanityFactorSlotExpansion {N : Nat}
+    (B : BlockPartition N) (κ ℓ k : Nat)
+    (row : MvPolynomial (Fin N) ℚ)
+    (hbool : BooleanityFactorSlotExpansion B κ ℓ k row) :
+    ∃ (ι : Type) (_ : Fintype ι),
+    ∃ (coeff : ι → ℚ),
+    ∃ (slot : ι → ∀ σ : ConstraintType,
+        Fin (booleanityOnlyProfile k σ) → MvPolynomial (Fin N) ℚ),
+      (∀ t σ j, slot t σ j ∈ interfaceSpace_compiledBasis B κ ℓ σ) ∧
+      row = ∑ t : ι, coeff t •
+        (∏ σ : ConstraintType,
+          ∏ j : Fin (booleanityOnlyProfile k σ), slot t σ j) := by
+  classical
+  rcases hbool with ⟨ι, hι, coeff, bslot, hbslot, hrow⟩
+  letI : Fintype ι := hι
+  let slot : ι → ∀ σ : ConstraintType,
+      Fin (booleanityOnlyProfile k σ) → MvPolynomial (Fin N) ℚ :=
+    fun t σ j => by
+      by_cases hσ : σ = ConstraintType.booleanity
+      · subst hσ
+        exact bslot t j
+      · have hz : booleanityOnlyProfile k σ = 0 :=
+          booleanityOnlyProfile_of_ne_booleanity (k := k) hσ
+        exact False.elim (Fin.elim0 (hz ▸ j))
+  refine ⟨ι, hι, coeff, slot, ?_, ?_⟩
+  · intro t σ j
+    by_cases hσ : σ = ConstraintType.booleanity
+    · subst hσ
+      exact hbslot t j
+    · have hz : booleanityOnlyProfile k σ = 0 :=
+        booleanityOnlyProfile_of_ne_booleanity (k := k) hσ
+      exact False.elim (Fin.elim0 (hz ▸ j))
+  · rw [hrow]
+    refine Finset.sum_congr rfl ?_
+    intro t _
+    congr 1
+    rw [show (∏ σ : ConstraintType,
+          ∏ j : Fin (booleanityOnlyProfile k σ), slot t σ j) =
+        ∏ j : Fin (booleanityOnlyProfile k ConstraintType.booleanity),
+          slot t ConstraintType.booleanity j by
+      rw [Fintype.prod_eq_single ConstraintType.booleanity]
+      · intro σ hσ
+        have hz : booleanityOnlyProfile k σ = 0 :=
+          booleanityOnlyProfile_of_ne_booleanity (k := k) hσ
+        haveI : IsEmpty (Fin (booleanityOnlyProfile k σ)) := by
+          rw [hz]
+          infer_instance
+        simp]
+    rfl
+
+/-- Booleanity-only slot expansions feed the generic Route-W finite-slot
+expansion socket.  This is the first-type composition point: once local
+Cook--Levin Booleanity algebra proves `BooleanityFactorSlotExpansion` for a row,
+this theorem supplies exactly the all-interface `hexpand` witness expected by
+`booleanBoundaryPostSpanGeneratorContainment_of_slotExpansion`. -/
+theorem genericSlotWitness_of_booleanityFactorSlotExpansion {N : Nat}
+    (B : BlockPartition N) (κ ℓ k : Nat)
+    (row : MvPolynomial (Fin N) ℚ)
+    (hbool : BooleanityFactorSlotExpansion B κ ℓ k row) :
+    ∃ (ι : Type) (_ : Fintype ι),
+    ∃ (coeff : ι → ℚ),
+    ∃ (slot : ι → ∀ σ : ConstraintType,
+        Fin (booleanityOnlyProfile k σ) → MvPolynomial (Fin N) ℚ),
+      (∀ t σ j, slot t σ j ∈ interfaceSpace_compiledBasis B κ ℓ σ) ∧
+      row = ∑ t : ι, coeff t •
+        (∏ σ : ConstraintType,
+          ∏ j : Fin (booleanityOnlyProfile k σ), slot t σ j) :=
+  fullSlotExpansion_of_booleanityFactorSlotExpansion B κ ℓ k row hbool
 
 /-- Finite same-profile slot expansions are enough to discharge the concrete
 Boolean-boundary generator containment obligation.  This is the coefficient-level
@@ -235,6 +397,10 @@ noncomputable def cookLevinBooleanBoundaryQuotientCompressionCertificate_paperSc
 
 /-! ## Axiom audit anchors -/
 
+#print axioms booleanityFactorSlotExpansion_of_mem_symPower
+#print axioms booleanityFactorSlotExpansion
+#print axioms fullSlotExpansion_of_booleanityFactorSlotExpansion
+#print axioms genericSlotWitness_of_booleanityFactorSlotExpansion
 #print axioms booleanBoundaryPostSpanGeneratorContainment_of_slotExpansion
 #print axioms cookLevinBooleanBoundaryPostSpanGeneratorContainment_paperScale_of_slotExpansion
 #print axioms projectedPostSpanProfileContainment_of_generatorContainment
