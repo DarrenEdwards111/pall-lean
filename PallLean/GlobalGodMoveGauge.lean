@@ -86,21 +86,15 @@ Cook-Levin compilation.  -/
 
 /-- The mathematical content of the Global God-Move Gauge for a specific
 Cook-Levin compilation: a ℚ-linear endomorphism Π on the compiled
-polynomial's variable space, satisfying
+polynomial's variable space, satisfying rank monotonicity, a projected P-side
+bound, and NP-side identity-minor preservation for SAT-deciders.
 
-* (i) **rank monotonicity** — Π does not increase the multilinear blocked
-  SPDP rank of any polynomial,
-* (ii) **projected P-side bound** — applied to *this* DTM's compiled
-  polynomial, the projected rank is at most n²⁰⁰,
-* (iii) **projected NP-side preservation for SAT-deciders** — *if* M decides
-  3-SAT, then applied to the compiled polynomial Π preserves the identity
-  minor lower bound C(n/3, log n) on the projected rank.
-
-Property (i) is the standard rank-decreasing property of any honest
-projection. Property (ii) is the position-multiplicity-collapsing content of
-the paper's amplituhedron geometry. Property (iii) is the load-bearing site
-of `DecidesSAT`: without it, only (ii) applies and no contradiction arises. -/
-structure IsAmplituhedronGauge
+Exponent-parameterized form of the Global God-Move Gauge.  The old
+`IsAmplituhedronGauge` surface is recovered below as the specialization
+`C = 200`; new Property-2 routes can target a different concrete exponent
+without changing the rank-monotonicity or NP-side fields. -/
+structure IsAmplituhedronGaugeWithExponent
+    (C : ℕ)
     (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (gauge : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ →ₗ[ℚ]
@@ -111,12 +105,12 @@ structure IsAmplituhedronGauge
       (p : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ),
     mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition κ ℓ (gauge p) ≤
       mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition κ ℓ p
-  /-- (ii) Projected P-side bound on the COMPILED polynomial. -/
+  /-- (ii) Projected P-side bound on the COMPILED polynomial, parameterized by `C`. -/
   p_side_bound :
     mlBlockedSpdpRank
       (cook_levin_compilation M n hn2 htb hns).partition
       (Nat.log 2 n) (Nat.log 2 n)
-      (gauge (compiledPoly (cook_levin_compilation M n hn2 htb hns))) ≤ n ^ 200
+      (gauge (compiledPoly (cook_levin_compilation M n hn2 htb hns))) ≤ n ^ C
   /-- (iii) Projected NP-side preservation for SAT-deciders.  -/
   preserves_identity_minor_for_sat_deciders : DecidesSAT M →
     Nat.choose (n / 3) (Nat.log 2 n) ≤
@@ -124,6 +118,16 @@ structure IsAmplituhedronGauge
         (cook_levin_compilation M n hn2 htb hns).partition
         (Nat.log 2 n) (Nat.log 2 n)
         (gauge (compiledPoly (cook_levin_compilation M n hn2 htb hns)))
+
+/-- Backward-compatible paper-scale gauge surface, retaining the historical
+`n^200` P-side field while the exponent-general route is developed. -/
+abbrev IsAmplituhedronGauge
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (gauge : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ →ₗ[ℚ]
+         MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ) :
+    Prop :=
+  IsAmplituhedronGaugeWithExponent 200 M n hn hn2 htb hns gauge
 
 /-! ## The existence axiom
 
