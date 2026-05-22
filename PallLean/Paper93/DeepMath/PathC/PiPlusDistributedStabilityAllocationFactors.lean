@@ -849,6 +849,37 @@ theorem paperScale_allocationStability_of_localNormalizedChoiceProductReduction
     M (2 ^ 804) paperScale_ge_two htb hns
     (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) hred
 
+/-- Commutation plus the monotone quotient-aware local product-normalization
+reduction reassemble into the normalized derivative criterion.  This is the
+paper-scale consumer for local certificates proved in smaller spans and then
+enlarged before product synthesis. -/
+theorem paperScale_normalizedDerivativeCriterion_of_commutation_and_localNormalizedChoiceProductMonotoneReduction
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hcomm : PaperScalePiPlusBooleanProjectedNormalizedDerivativeCommutation
+      M htb hns)
+    (hred : PaperScalePiPlusBooleanProjectedLocalNormalizedChoiceProductMonotoneReduction
+      M htb hns) :
+    PaperScalePiPlusBooleanProjectedNormalizedDerivativeCriterion M htb hns :=
+  paperScale_normalizedDerivativeCriterion_of_commutation_and_allocationStability
+    M htb hns hcomm
+    (paperScale_allocationStability_of_localNormalizedChoiceProductMonotoneReduction
+      M htb hns hred)
+
+/-- Commutation plus the monotone quotient-aware local product-normalization
+reduction produce the normalized polynomial span required by the P-side
+classifier. -/
+theorem paperScale_normalizedDerivativePolynomialSpan_of_commutation_and_localNormalizedChoiceProductMonotoneReduction
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hcomm : PaperScalePiPlusBooleanProjectedNormalizedDerivativeCommutation
+      M htb hns)
+    (hred : PaperScalePiPlusBooleanProjectedLocalNormalizedChoiceProductMonotoneReduction
+      M htb hns) :
+    PaperScalePiPlusBooleanProjectedNormalizedDerivativePolynomialSpan M htb hns :=
+  paperScale_normalizedDerivativePolynomialSpan_of_criterion
+    M htb hns
+    (paperScale_normalizedDerivativeCriterion_of_commutation_and_localNormalizedChoiceProductMonotoneReduction
+      M htb hns hcomm hred)
+
 /-- Commutation plus the quotient-aware local product-normalization reduction
 reassemble into the normalized derivative criterion. -/
 theorem paperScale_normalizedDerivativeCriterion_of_commutation_and_localNormalizedChoiceProductReduction
@@ -1657,6 +1688,22 @@ theorem localNormalizedChoiceProductReduction_of_productNormalizationReduction
     refine ⟨alloc', halloc', ?_⟩
     rfl
 
+/-- Exact allocated-product normalization implies the monotone quotient-aware
+local normalized-choice product reduction.  This packages the singleton-span
+exact-normalization proof behind the more flexible `Aᵢ ⊆ Bᵢ` interface. -/
+theorem localNormalizedChoiceProductMonotoneReduction_of_productNormalizationReduction
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (hred : PiPlusBooleanProjectedAllocationProductNormalizationReduction
+      M n hn2 htb hns D) :
+    PiPlusBooleanProjectedLocalNormalizedChoiceProductMonotoneReduction
+      M n hn2 htb hns D :=
+  localNormalizedChoiceProductMonotoneReduction_of_localNormalizedChoiceProductReduction
+    M n hn2 htb hns D
+    (localNormalizedChoiceProductReduction_of_productNormalizationReduction
+      M n hn2 htb hns D hred)
+
 /-- Paper-scale exact product/factor normalization implies the quotient-aware
 local normalized-choice product reduction. -/
 theorem paperScale_localNormalizedChoiceProductReduction_of_productNormalizationReduction
@@ -1666,6 +1713,18 @@ theorem paperScale_localNormalizedChoiceProductReduction_of_productNormalization
     PaperScalePiPlusBooleanProjectedLocalNormalizedChoiceProductReduction
       M htb hns :=
   localNormalizedChoiceProductReduction_of_productNormalizationReduction
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) hred
+
+/-- Paper-scale exact product/factor normalization implies the monotone
+quotient-aware local normalized-choice product reduction. -/
+theorem paperScale_localNormalizedChoiceProductMonotoneReduction_of_productNormalizationReduction
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hred : PaperScalePiPlusBooleanProjectedAllocationProductNormalizationReduction
+      M htb hns) :
+    PaperScalePiPlusBooleanProjectedLocalNormalizedChoiceProductMonotoneReduction
+      M htb hns :=
+  localNormalizedChoiceProductMonotoneReduction_of_productNormalizationReduction
     M (2 ^ 804) paperScale_ge_two htb hns
     (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) hred
 
@@ -1695,6 +1754,20 @@ theorem paperScale_localNormalizedChoiceProductReduction_of_localFactorToProduct
     PaperScalePiPlusBooleanProjectedLocalNormalizedChoiceProductReduction
       M htb hns :=
   paperScale_localNormalizedChoiceProductReduction_of_productNormalizationReduction
+    M htb hns
+    (paperScale_productNormalizationReduction_of_localFactorToProductNormalizationReduction
+      M htb hns hred)
+
+/-- The local-factor-to-product-normalization seam also yields the monotone,
+quotient-aware local normalized-choice product reduction. -/
+theorem paperScale_localNormalizedChoiceProductMonotoneReduction_of_localFactorToProductNormalizationReduction
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hred :
+      PaperScalePiPlusBooleanProjectedOneOneLocalFactorToProductNormalizationReduction
+        M htb hns) :
+    PaperScalePiPlusBooleanProjectedLocalNormalizedChoiceProductMonotoneReduction
+      M htb hns :=
+  paperScale_localNormalizedChoiceProductMonotoneReduction_of_productNormalizationReduction
     M htb hns
     (paperScale_productNormalizationReduction_of_localFactorToProductNormalizationReduction
       M htb hns hred)
@@ -1801,6 +1874,46 @@ theorem no_decidesSAT_at_paperScale_of_commutation_localNormalizedChoiceProductR
       M htb hns hcomm hprod)
     hpull henv hnp
 
+/-- Final no-SAT closeout using the monotone quotient-aware product-normalization
+seam for the normalized-polynomial side and allocation-local spans for the
+transformed Leibniz generator pullback side. -/
+theorem no_decidesSAT_at_paperScale_of_commutation_localNormalizedChoiceProductMonotoneReduction_allocationLocalSpansPullbackReduction_routeBEnvelope_npInclusion
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hcomm : PaperScalePiPlusBooleanProjectedNormalizedDerivativeCommutation
+      M htb hns)
+    (hprod : PaperScalePiPlusBooleanProjectedLocalNormalizedChoiceProductMonotoneReduction
+      M htb hns)
+    (hpull : PaperScalePiPlusBooleanProjectedAllocationLocalSpansPullbackReductionOneOne
+      M htb hns)
+    (henv : PaperScaleRouteBSATWindowedIncPSideRankEnvelopeOneOne M htb hns)
+    (hnp : PaperScalePiPlusBooleanProjectedNPWindowSubspaceInclusion M htb hns) :
+    ¬ DecidesSAT M :=
+  no_decidesSAT_at_paperScale_of_polynomialSpan_allocationLocalSpansPullbackReduction_routeBEnvelope_npInclusion
+    M htb hns
+    (paperScale_normalizedDerivativePolynomialSpan_of_commutation_and_localNormalizedChoiceProductMonotoneReduction
+      M htb hns hcomm hprod)
+    hpull henv hnp
+
+/-- Final no-SAT closeout when both monotone quotient-aware product normalization
+and allocation-local pullback are provided by local-factor reductions. -/
+theorem no_decidesSAT_at_paperScale_of_commutation_localNormalizedChoiceProductMonotoneReduction_localFactorToAllocationLocalSpansReduction_routeBEnvelope_npInclusion
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hcomm : PaperScalePiPlusBooleanProjectedNormalizedDerivativeCommutation
+      M htb hns)
+    (hprod : PaperScalePiPlusBooleanProjectedLocalNormalizedChoiceProductMonotoneReduction
+      M htb hns)
+    (hlocal :
+      PaperScalePiPlusBooleanProjectedOneOneLocalFactorToAllocationLocalSpansPullbackReduction
+        M htb hns)
+    (henv : PaperScaleRouteBSATWindowedIncPSideRankEnvelopeOneOne M htb hns)
+    (hnp : PaperScalePiPlusBooleanProjectedNPWindowSubspaceInclusion M htb hns) :
+    ¬ DecidesSAT M :=
+  no_decidesSAT_at_paperScale_of_commutation_localNormalizedChoiceProductMonotoneReduction_allocationLocalSpansPullbackReduction_routeBEnvelope_npInclusion
+    M htb hns hcomm hprod
+    (paperScale_allocationLocalSpansPullbackReductionOneOne_of_localFactorToAllocationLocalSpansReduction
+      M htb hns hlocal)
+    henv hnp
+
 /-- Final no-SAT closeout when both quotient-aware product normalization and
 allocation-local pullback are provided by local-factor reductions. -/
 theorem no_decidesSAT_at_paperScale_of_commutation_localNormalizedChoiceProductReduction_localFactorToAllocationLocalSpansReduction_routeBEnvelope_npInclusion
@@ -1840,6 +1953,28 @@ theorem no_decidesSAT_at_paperScale_of_commutation_localFactorToProductNormaliza
   no_decidesSAT_at_paperScale_of_commutation_localNormalizedChoiceProductReduction_localFactorToAllocationLocalSpansReduction_routeBEnvelope_npInclusion
     M htb hns hcomm
     (paperScale_localNormalizedChoiceProductReduction_of_localFactorToProductNormalizationReduction
+      M htb hns hprodLocal)
+    hlocal henv hnp
+
+/-- Local-factor exact product normalization can also be weakened to the monotone
+quotient-aware route, exposing the product-classifier enlargement seam in the
+final no-SAT closeout. -/
+theorem no_decidesSAT_at_paperScale_of_commutation_localFactorToProductNormalization_asMonotoneChoice_localFactorToAllocationLocalSpansReduction_routeBEnvelope_npInclusion
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (hcomm : PaperScalePiPlusBooleanProjectedNormalizedDerivativeCommutation
+      M htb hns)
+    (hprodLocal :
+      PaperScalePiPlusBooleanProjectedOneOneLocalFactorToProductNormalizationReduction
+        M htb hns)
+    (hlocal :
+      PaperScalePiPlusBooleanProjectedOneOneLocalFactorToAllocationLocalSpansPullbackReduction
+        M htb hns)
+    (henv : PaperScaleRouteBSATWindowedIncPSideRankEnvelopeOneOne M htb hns)
+    (hnp : PaperScalePiPlusBooleanProjectedNPWindowSubspaceInclusion M htb hns) :
+    ¬ DecidesSAT M :=
+  no_decidesSAT_at_paperScale_of_commutation_localNormalizedChoiceProductMonotoneReduction_localFactorToAllocationLocalSpansReduction_routeBEnvelope_npInclusion
+    M htb hns hcomm
+    (paperScale_localNormalizedChoiceProductMonotoneReduction_of_localFactorToProductNormalizationReduction
       M htb hns hprodLocal)
     hlocal henv hnp
 
@@ -2311,6 +2446,8 @@ theorem no_decidesSAT_at_paperScale_of_oneOneProductNormalizationCloseoutInputs
 #print axioms allocationStability_of_localNormalizedChoiceProductReduction
 #print axioms paperScale_allocationStability_of_localNormalizedChoiceProductMonotoneReduction
 #print axioms paperScale_allocationStability_of_localNormalizedChoiceProductReduction
+#print axioms paperScale_normalizedDerivativeCriterion_of_commutation_and_localNormalizedChoiceProductMonotoneReduction
+#print axioms paperScale_normalizedDerivativePolynomialSpan_of_commutation_and_localNormalizedChoiceProductMonotoneReduction
 #print axioms paperScale_normalizedDerivativeCriterion_of_commutation_and_localNormalizedChoiceProductReduction
 #print axioms paperScale_normalizedDerivativePolynomialSpan_of_commutation_and_localNormalizedChoiceProductReduction
 #print axioms normalizedAllocatedProduct_rawPullback_mem_of_localNormalizedSpans
@@ -2333,9 +2470,12 @@ theorem no_decidesSAT_at_paperScale_of_oneOneProductNormalizationCloseoutInputs
 #print axioms allocatedProduct_mem_span_of_normalizesToDistributedGenerator
 #print axioms allocatedProduct_mem_of_normalizesToDistributedGenerator_and_distribRows
 #print axioms localNormalizedChoiceProductReduction_of_productNormalizationReduction
+#print axioms localNormalizedChoiceProductMonotoneReduction_of_productNormalizationReduction
 #print axioms paperScale_localNormalizedChoiceProductReduction_of_productNormalizationReduction
+#print axioms paperScale_localNormalizedChoiceProductMonotoneReduction_of_productNormalizationReduction
 #print axioms paperScale_productNormalizationReduction_of_localFactorToProductNormalizationReduction
 #print axioms paperScale_localNormalizedChoiceProductReduction_of_localFactorToProductNormalizationReduction
+#print axioms paperScale_localNormalizedChoiceProductMonotoneReduction_of_localFactorToProductNormalizationReduction
 #print axioms allocationStability_of_productNormalizationReduction
 #print axioms paperScale_allocationStability_of_productNormalizationReduction
 #print axioms paperScale_normalizedDerivativeCriterion_of_commutation_and_productNormalizationReduction
@@ -2343,8 +2483,11 @@ theorem no_decidesSAT_at_paperScale_of_oneOneProductNormalizationCloseoutInputs
 #print axioms no_decidesSAT_at_paperScale_of_commutation_productNormalizationReduction_allocationLocalSpansPullbackReduction_routeB_npInclusion
 #print axioms no_decidesSAT_at_paperScale_of_commutation_productNormalizationReduction_allocationLocalSpansPullbackReduction_routeBEnvelope_npInclusion
 #print axioms no_decidesSAT_at_paperScale_of_commutation_localNormalizedChoiceProductReduction_allocationLocalSpansPullbackReduction_routeBEnvelope_npInclusion
+#print axioms no_decidesSAT_at_paperScale_of_commutation_localNormalizedChoiceProductMonotoneReduction_allocationLocalSpansPullbackReduction_routeBEnvelope_npInclusion
 #print axioms no_decidesSAT_at_paperScale_of_commutation_localNormalizedChoiceProductReduction_localFactorToAllocationLocalSpansReduction_routeBEnvelope_npInclusion
+#print axioms no_decidesSAT_at_paperScale_of_commutation_localNormalizedChoiceProductMonotoneReduction_localFactorToAllocationLocalSpansReduction_routeBEnvelope_npInclusion
 #print axioms no_decidesSAT_at_paperScale_of_commutation_localFactorToProductNormalization_asChoice_localFactorToAllocationLocalSpansReduction_routeBEnvelope_npInclusion
+#print axioms no_decidesSAT_at_paperScale_of_commutation_localFactorToProductNormalization_asMonotoneChoice_localFactorToAllocationLocalSpansReduction_routeBEnvelope_npInclusion
 #print axioms paperScale_productNormalizationReduction_of_localFactorProductAssemblyReduction
 #print axioms paperScale_allocationLocalSpansPullbackReductionOneOne_of_localFactorProductAssemblyReduction
 #print axioms paperScale_localNormalizedChoiceProductReduction_of_localFactorProductAssemblyReduction
