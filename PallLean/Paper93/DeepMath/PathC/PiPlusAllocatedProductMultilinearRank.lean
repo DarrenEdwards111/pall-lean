@@ -980,6 +980,24 @@ end AdmissibleProfile
 noncomputable abbrev admissibleProfileCoverCard (κ : Nat) : Nat :=
   Fintype.card (AdmissibleProfile κ)
 
+/-- Lemma-29/profile-compression cardinality bound for the admissible-profile
+cover.  This is the compressed replacement for counting raw ordered derivative
+windows: the raw type `AdmissibleDerivativeWindow B κ` still contains the
+spatial choice of blocks, while the paper §9 quotient keeps only the
+interface-anonymous profile. -/
+theorem admissibleProfileCoverCard_le_profileCount (κ : Nat) :
+    admissibleProfileCoverCard κ ≤ profileCount κ := by
+  classical
+  calc
+    admissibleProfileCoverCard κ ≤ Fintype.card (BoundedProfile κ) :=
+      Fintype.card_le_of_injective
+        (fun ap : AdmissibleProfile κ => ap.toBoundedProfile)
+        (by
+          intro a b h
+          apply Subtype.ext
+          exact congrArg BoundedProfile.toHistogram h)
+    _ ≤ profileCount κ := boundedProfile_card_le_profileCount κ
+
 /-- Enumeration of admissible profiles by `Fin admissibleProfileCoverCard`. -/
 noncomputable abbrev admissibleProfileCoverEnum (κ : Nat) :
     Fin (admissibleProfileCoverCard κ) → AdmissibleProfile κ :=
@@ -1390,6 +1408,34 @@ theorem allocatedDerivativeProduct_rawRank_le_admissibleProfileCover_of_hrow
     hrow
     (admissibleProfileCoverSpace_finrank_le_withinProfileBound B κ ℓ)
 
+/-- Lemma-29 compressed closeout: once rows are classified into admissible
+profiles, the allocated product pays `profileCount κ * withinProfileBound κ`,
+not the raw ordered-window count. -/
+theorem allocatedDerivativeProduct_rawRank_le_combinedProfileBound_of_hrow
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (alloc : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length →
+      List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+    (B : BlockPartition (cook_levin_compilation M n hn2 htb hns).numVars)
+    (κ ℓ : Nat)
+    (hrow : AllocatedDerivativeProductAdmissibleProfileHrow
+      M n hn2 htb hns D alloc B κ ℓ) :
+    rkSPDP B κ ℓ
+        (piPlusBooleanProjectedAllocatedDerivativeProduct
+          M n hn2 htb hns D alloc) ≤
+      combinedProfileBound κ := by
+  calc
+    rkSPDP B κ ℓ
+        (piPlusBooleanProjectedAllocatedDerivativeProduct
+          M n hn2 htb hns D alloc)
+        ≤ admissibleProfileCoverCard κ * withinProfileBound κ :=
+          allocatedDerivativeProduct_rawRank_le_admissibleProfileCover_of_hrow
+            M n hn2 htb hns D alloc B κ ℓ hrow
+    _ ≤ profileCount κ * withinProfileBound κ :=
+          Nat.mul_le_mul_right _ (admissibleProfileCoverCard_le_profileCount κ)
+    _ = combinedProfileBound κ := rfl
 
 
 /-- Direct raw-rank closeout from the profile-local classifier. -/
@@ -1454,6 +1500,76 @@ theorem paperScale_allocatedDerivativeProduct_rawRank_le_admissibleProfileCover_
     (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
     κ ℓ hrow
 
+/-- Paper-scale specialization of the Lemma-29 compressed admissible-profile
+closeout. -/
+theorem paperScale_allocatedDerivativeProduct_rawRank_le_combinedProfileBound_of_hrow
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (alloc : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+        M htb hns).length →
+      List (Fin (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars))
+    (κ ℓ : Nat)
+    (hrow : AllocatedDerivativeProductAdmissibleProfileHrow
+      M (2 ^ 804) paperScale_ge_two htb hns
+      (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+      alloc
+      (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+      κ ℓ) :
+    rkSPDP
+        (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+        κ ℓ
+        (piPlusBooleanProjectedAllocatedDerivativeProduct
+          M (2 ^ 804) paperScale_ge_two htb hns
+          (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) alloc) ≤
+      combinedProfileBound κ := by
+  exact allocatedDerivativeProduct_rawRank_le_combinedProfileBound_of_hrow
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+    alloc
+    (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+    κ ℓ hrow
+
+/-- At the fixed paper scale, the compressed profile budget is below `n^20`. -/
+theorem paperScale_combinedProfileBound_804_le_pow20 :
+    combinedProfileBound 804 ≤ (2 ^ 804) ^ 20 := by
+  rw [combinedProfileBound_eq]
+  have h805 : 804 + 1 ≤ (2 ^ 10 : Nat) := by norm_num
+  calc
+    (804 + 1) ^ 12 ≤ (2 ^ 10 : Nat) ^ 12 := Nat.pow_le_pow_left h805 12
+    _ = (2 : Nat) ^ (10 * 12) := by rw [pow_mul]
+    _ ≤ (2 : Nat) ^ (804 * 20) := Nat.pow_le_pow_right (by norm_num) (by norm_num)
+    _ = (2 ^ 804 : Nat) ^ 20 := by rw [pow_mul]
+
+/-- The compressed `n^20` P-side envelope is strictly below the NP-side
+`n^794` envelope at paper scale. -/
+theorem paperScale_pow20_lt_pow794 :
+    (2 ^ 804 : Nat) ^ 20 < (2 ^ 804 : Nat) ^ 794 := by
+  exact Nat.pow_lt_pow_right (by norm_num : 1 < (2 ^ 804 : Nat)) (by norm_num : 20 < 794)
+
+/-- Separation-side arithmetic consequence of the compressed admissible-profile
+closeout: under the genuine row-to-profile classifier, the paper-scale allocated
+product sits below the NP-side `n^794` lower-bound exponent. -/
+theorem paperScale_allocatedDerivativeProduct_rawRank_lt_pow794_of_hrow
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (alloc : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+        M htb hns).length →
+      List (Fin (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars))
+    (hrow : AllocatedDerivativeProductAdmissibleProfileHrow
+      M (2 ^ 804) paperScale_ge_two htb hns
+      (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+      alloc
+      (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+      804 804) :
+    rkSPDP
+        (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+        804 804
+        (piPlusBooleanProjectedAllocatedDerivativeProduct
+          M (2 ^ 804) paperScale_ge_two htb hns
+          (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) alloc) <
+      (2 ^ 804 : Nat) ^ 794 := by
+  exact lt_of_le_of_lt
+    ((paperScale_allocatedDerivativeProduct_rawRank_le_combinedProfileBound_of_hrow
+      M htb hns alloc 804 804 hrow).trans paperScale_combinedProfileBound_804_le_pow20)
+    paperScale_pow20_lt_pow794
 
 
 /-! ## Closure via the existing post-shift profile span
@@ -1525,6 +1641,12 @@ theorem paperScale_allocatedDerivativeProduct_rank_le_combinedProfileBound_of_bo
 
 /-! ## Axiom audit anchors -/
 
+#print axioms admissibleProfileCoverCard_le_profileCount
+#print axioms allocatedDerivativeProduct_rawRank_le_combinedProfileBound_of_hrow
+#print axioms paperScale_allocatedDerivativeProduct_rawRank_le_combinedProfileBound_of_hrow
+#print axioms paperScale_combinedProfileBound_804_le_pow20
+#print axioms paperScale_pow20_lt_pow794
+#print axioms paperScale_allocatedDerivativeProduct_rawRank_lt_pow794_of_hrow
 #print axioms admissibleDerivativeWindow_card_le_pow
 #print axioms admissibleDerivativeWindow_card_le_paperScale
 #print axioms paperScale_directWindowShiftBudget_le_pow1000
