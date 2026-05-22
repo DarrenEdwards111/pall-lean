@@ -300,6 +300,152 @@ theorem kappaDerivativeImageSpan_prod_le_kappaLeibnizProductSpan {N L : Nat}
     simpa [hlen] using hg
   exact Submodule.span_mono hsub hmem
 
+
+/-- Monomial exponents of total degree at most `ℓ` whose support is contained in
+`S`.  This is the SPDP-restricted shift index for a fixed derivative window. -/
+def RestrictedMonoIdx {N : Nat} (S : Finset (Fin N)) (ℓ : Nat) : Type :=
+  { α : Fin N →₀ Nat // (α.sum fun _ e => e) ≤ ℓ ∧ α.support ⊆ S }
+
+noncomputable instance RestrictedMonoIdx.fintype {N : Nat} (S : Finset (Fin N)) (ℓ : Nat) :
+    Fintype (RestrictedMonoIdx S ℓ) := by
+  classical
+  let φ : RestrictedMonoIdx S ℓ → (Fin N → Fin (ℓ + 1)) := fun α i =>
+    ⟨α.1 i, by
+      by_cases hzero : α.1 i = 0
+      · rw [hzero]; exact Nat.succ_pos _
+      · have hi : i ∈ α.1.support := Finsupp.mem_support_iff.mpr hzero
+        have hle_sum : α.1 i ≤ α.1.sum (fun _ e => e) :=
+          Finset.single_le_sum (fun _ _ => Nat.zero_le _) hi
+        exact Nat.lt_succ_of_le (hle_sum.trans α.2.1)⟩
+  refine Fintype.ofInjective φ ?_
+  intro a b h
+  apply Subtype.ext
+  ext i
+  have hi := congrArg Fin.val (congrFun h i)
+  exact hi
+
+instance RestrictedMonoIdx.finite {N : Nat} (S : Finset (Fin N)) (ℓ : Nat) :
+    Finite (RestrictedMonoIdx S ℓ) := by
+  classical
+  infer_instance
+
+/-- Restricted monomial shift closure for a fixed SPDP derivative window `S`:
+only monomial shifts of degree `≤ ℓ` whose variables lie in `S` are allowed. -/
+noncomputable def restrictedMonomialShiftClosure {N : Nat}
+    (S : Finset (Fin N)) (ℓ : Nat)
+    (W : Submodule ℚ (MvPolynomial (Fin N) ℚ)) :
+    Submodule ℚ (MvPolynomial (Fin N) ℚ) :=
+  ⨆ α : RestrictedMonoIdx S ℓ,
+    W.map (mulByPoly (n := N) (MvPolynomial.monomial α.1 (1 : ℚ)))
+
+instance restrictedMonomialShiftClosure_finite {N : Nat}
+    (S : Finset (Fin N)) (ℓ : Nat)
+    (W : Submodule ℚ (MvPolynomial (Fin N) ℚ)) [Module.Finite ℚ W] :
+    Module.Finite ℚ ↥(restrictedMonomialShiftClosure S ℓ W) := by
+  classical
+  unfold restrictedMonomialShiftClosure
+  haveI : ∀ α : RestrictedMonoIdx S ℓ,
+      Module.Finite ℚ ↥(W.map (mulByPoly (n := N)
+        (MvPolynomial.monomial α.1 (1 : ℚ)))) :=
+    fun α => mulByPoly_map_finite W (MvPolynomial.monomial α.1 (1 : ℚ))
+  infer_instance
+
+/-- Finrank of the fixed-window restricted shift closure is bounded by the
+number of supported degree-`≤ℓ` monomials times `finrank W`. -/
+theorem finrank_restrictedMonomialShiftClosure_le {N : Nat}
+    (S : Finset (Fin N)) (ℓ : Nat)
+    (W : Submodule ℚ (MvPolynomial (Fin N) ℚ)) [Module.Finite ℚ W] :
+    Module.finrank ℚ ↥(restrictedMonomialShiftClosure S ℓ W) ≤
+      Fintype.card (RestrictedMonoIdx S ℓ) * Module.finrank ℚ ↥W := by
+  classical
+  set r : Nat := Fintype.card (RestrictedMonoIdx S ℓ) with hr
+  let e : RestrictedMonoIdx S ℓ ≃ Fin r := Fintype.equivFin (RestrictedMonoIdx S ℓ)
+  let U : Fin r → Submodule ℚ (MvPolynomial (Fin N) ℚ) :=
+    fun i => W.map (mulByPoly (n := N)
+      (MvPolynomial.monomial (e.symm i).1 (1 : ℚ)))
+  haveI : ∀ i, Module.Finite ℚ ↥(U i) := by
+    intro i
+    exact mulByPoly_map_finite W (MvPolynomial.monomial (e.symm i).1 (1 : ℚ))
+  have hreindex : restrictedMonomialShiftClosure S ℓ W =
+      (⨆ i : Fin r, U i : Submodule ℚ (MvPolynomial (Fin N) ℚ)) := by
+    unfold restrictedMonomialShiftClosure
+    apply le_antisymm
+    · refine iSup_le (fun α => ?_)
+      have hα : α = e.symm (e α) := (e.symm_apply_apply α).symm
+      have hstep : W.map (mulByPoly (n := N) (MvPolynomial.monomial α.1 (1 : ℚ))) = U (e α) := by
+        show W.map (mulByPoly (n := N) (MvPolynomial.monomial α.1 (1 : ℚ))) =
+          W.map (mulByPoly (n := N) (MvPolynomial.monomial (e.symm (e α)).1 (1 : ℚ)))
+        rw [← hα]
+      rw [hstep]
+      exact le_iSup (fun i : Fin r => U i) (e α)
+    · refine iSup_le (fun i => ?_)
+      exact le_iSup
+        (fun α : RestrictedMonoIdx S ℓ =>
+          W.map (mulByPoly (n := N) (MvPolynomial.monomial α.1 (1 : ℚ))))
+        (e.symm i)
+  have hsum : (∑ i : Fin r, Module.finrank ℚ ↥(U i)) ≤
+      r * Module.finrank ℚ ↥W := by
+    have hpt : ∀ i : Fin r, Module.finrank ℚ ↥(U i) ≤ Module.finrank ℚ ↥W := by
+      intro i
+      exact mulByPoly_map_finrank_le W (MvPolynomial.monomial (e.symm i).1 (1 : ℚ))
+    calc
+      (∑ i : Fin r, Module.finrank ℚ ↥(U i)) ≤
+          ∑ _ : Fin r, Module.finrank ℚ ↥W := Finset.sum_le_sum (fun i _ => hpt i)
+      _ = r * Module.finrank ℚ ↥W := by
+          rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul]
+  calc
+    Module.finrank ℚ ↥(restrictedMonomialShiftClosure S ℓ W)
+        = Module.finrank ℚ ↥(⨆ i : Fin r, U i) := by rw [hreindex]
+    _ ≤ ∑ i : Fin r, Module.finrank ℚ ↥(U i) :=
+        SPDP.finrank_iSup_fin_le (F := ℚ) r U
+    _ ≤ r * Module.finrank ℚ ↥W := hsum
+
+/-- For a polynomial shift supported on the fixed derivative window, multiplying
+an element of `W` stays in the restricted monomial shift closure. -/
+theorem mul_mem_restrictedMonomialShiftClosure {N : Nat}
+    (S : Finset (Fin N)) (ℓ : Nat)
+    (W : Submodule ℚ (MvPolynomial (Fin N) ℚ))
+    {f m : MvPolynomial (Fin N) ℚ}
+    (hf : f ∈ W) (hmdeg : m.totalDegree ≤ ℓ) (hmvars : m.vars ⊆ S) :
+    f * m ∈ restrictedMonomialShiftClosure S ℓ W := by
+  classical
+  rw [show f * m = f * ∑ β ∈ m.support, MvPolynomial.monomial β (MvPolynomial.coeff β m) by
+    rw [← MvPolynomial.as_sum m]]
+  rw [Finset.mul_sum]
+  refine Submodule.sum_mem _ (fun β hβ => ?_)
+  have hβdeg : (β.sum fun _ e => e) ≤ ℓ := le_trans (le_totalDegree hβ) hmdeg
+  have hβsupp : β.support ⊆ S := by
+    intro x hx
+    exact hmvars ((MvPolynomial.mem_vars x).mpr ⟨β, hβ, hx⟩)
+  let idx : RestrictedMonoIdx S ℓ := ⟨β, hβdeg, hβsupp⟩
+  have hmon :
+      (MvPolynomial.coeff β m) • (f * (MvPolynomial.monomial β (1 : ℚ) : MvPolynomial (Fin N) ℚ)) =
+        f * (MvPolynomial.monomial β (MvPolynomial.coeff β m) : MvPolynomial (Fin N) ℚ) := by
+    rw [show (MvPolynomial.coeff β m) • (f * MvPolynomial.monomial β (1 : ℚ)) =
+            f * (MvPolynomial.coeff β m) • (MvPolynomial.monomial β (1 : ℚ) : MvPolynomial (Fin N) ℚ)
+              from (Algebra.mul_smul_comm _ f (MvPolynomial.monomial β (1 : ℚ))).symm,
+        smul_monomial, smul_eq_mul, mul_one]
+  rw [← hmon]
+  have hfmap : f * (MvPolynomial.monomial β (1 : ℚ) : MvPolynomial (Fin N) ℚ) ∈
+      W.map (mulByPoly (n := N) (MvPolynomial.monomial β (1 : ℚ))) := by
+    exact ⟨f, hf, rfl⟩
+  have hsub : W.map (mulByPoly (n := N) (MvPolynomial.monomial idx.1 (1 : ℚ))) ≤
+      restrictedMonomialShiftClosure S ℓ W := by
+    exact le_iSup
+      (fun α : RestrictedMonoIdx S ℓ =>
+        W.map (mulByPoly (n := N) (MvPolynomial.monomial α.1 (1 : ℚ)))) idx
+  exact (restrictedMonomialShiftClosure S ℓ W).smul_mem (MvPolynomial.coeff β m) (hsub hfmap)
+
+/-- Symmetric form for the actual SPDP row convention. -/
+theorem shift_mul_mem_restrictedMonomialShiftClosure {N : Nat}
+    (S : Finset (Fin N)) (ℓ : Nat)
+    (W : Submodule ℚ (MvPolynomial (Fin N) ℚ))
+    {f m : MvPolynomial (Fin N) ℚ}
+    (hf : f ∈ W) (hmdeg : m.totalDegree ≤ ℓ) (hmvars : m.vars ⊆ S) :
+    m * f ∈ restrictedMonomialShiftClosure S ℓ W := by
+  rw [mul_comm]
+  exact mul_mem_restrictedMonomialShiftClosure S ℓ W hf hmdeg hmvars
+
 /-- A concrete row `m * ∂_S p` lies in the shift closure of the finite
 `κ`-derivative image span.  This is the raw linear-algebra bridge for option 2:
 the derivative side is a finite chart-indexed sum, while arbitrary SPDP shifts
@@ -355,6 +501,322 @@ theorem rawRank_le_shiftClosure_kappaDerivativeImageSpan {N : Nat}
     _ ≤ Fintype.card (MonoIdx N ℓ) *
           Module.finrank ℚ ↥(kappaDerivativeImageSpan κ p) :=
         finrank_shiftClosure_le (kappaDerivativeImageSpan κ p) ℓ
+
+
+/-- Block-admissible ordered derivative windows of length `κ`. -/
+def AdmissibleDerivativeWindow {N : Nat} (B : BlockPartition N) (κ : Nat) : Type :=
+  { S : List.Vector (Fin N) κ // isBlockAdmissible B S.toList }
+
+noncomputable instance AdmissibleDerivativeWindow.fintype {N : Nat}
+    (B : BlockPartition N) (κ : Nat) : Fintype (AdmissibleDerivativeWindow B κ) := by
+  classical
+  let φ : AdmissibleDerivativeWindow B κ → (Fin κ → Fin N) := fun S i => S.1.get i
+  refine Fintype.ofInjective φ ?_
+  intro A B h
+  apply Subtype.ext
+  apply List.Vector.eq
+  apply List.ext_getElem
+  · simp [A.1.2, B.1.2]
+  · intro n hn1 hn2
+    have hnκ : n < κ := by simpa [A.1.2] using hn1
+    have := congrFun h ⟨n, hnκ⟩
+    simpa [φ, List.Vector.get, List.get_eq_getElem] using this
+
+instance AdmissibleDerivativeWindow.finite {N : Nat} (B : BlockPartition N) (κ : Nat) :
+    Finite (AdmissibleDerivativeWindow B κ) := by
+  classical
+  infer_instance
+
+/-- Per-window derivative image: for fixed `S`, this is just the 1-dimensional
+span of the actual derivative row `∂_S p`.  Private charts enter downstream by
+bounding/identifying this derivative image via Leibniz products of private local
+factor charts. -/
+noncomputable def perWindowDerivativeImageSpan {N : Nat}
+    (p : MvPolynomial (Fin N) ℚ) (S : List (Fin N)) :
+    Submodule ℚ (MvPolynomial (Fin N) ℚ) :=
+  Submodule.span ℚ ({iterDerivList S p} : Set (MvPolynomial (Fin N) ℚ))
+
+instance perWindowDerivativeImageSpan_finite {N : Nat}
+    (p : MvPolynomial (Fin N) ℚ) (S : List (Fin N)) :
+    Module.Finite ℚ ↥(perWindowDerivativeImageSpan p S) := by
+  classical
+  apply Module.Finite.span_of_finite
+  exact Set.finite_singleton _
+
+/-- The per-window derivative image has dimension at most one. -/
+theorem perWindowDerivativeImageSpan_finrank_le_one {N : Nat}
+    (p : MvPolynomial (Fin N) ℚ) (S : List (Fin N)) :
+    Module.finrank ℚ ↥(perWindowDerivativeImageSpan p S) ≤ 1 := by
+  classical
+  simpa [perWindowDerivativeImageSpan] using
+    (finrank_span_finset_le_card ({iterDerivList S p} : Finset (MvPolynomial (Fin N) ℚ)))
+
+/-- The SPDP-restricted option-2 cover: for each admissible derivative window
+`S`, close the single derivative image `∂_S p` only under shifts supported on
+`S`.  This is the tightened replacement for the loose global `shiftClosure`. -/
+noncomputable def admissibleRestrictedShiftDerivativeCover {N : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat) (p : MvPolynomial (Fin N) ℚ) :
+    AdmissibleDerivativeWindow B κ → Submodule ℚ (MvPolynomial (Fin N) ℚ) :=
+  fun S => restrictedMonomialShiftClosure S.1.toList.toFinset ℓ
+    (perWindowDerivativeImageSpan p S.1.toList)
+
+/-- Every raw SPDP generator row lands in the admissible-window restricted
+shift cover.  This is the key tightening: the shift support hypothesis
+`m.vars ⊆ S.toFinset` is consumed instead of being forgotten. -/
+theorem rawBlockedSpdpSubspace_le_admissibleRestrictedShiftDerivativeCover {N : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat) (p : MvPolynomial (Fin N) ℚ) :
+    rawBlockedSpdpSubspace B κ ℓ p ≤
+      ⨆ S : AdmissibleDerivativeWindow B κ,
+        admissibleRestrictedShiftDerivativeCover B κ ℓ p S := by
+  classical
+  apply Submodule.span_le.mpr
+  intro q hq
+  rcases hq with ⟨S, m, hSlen, hmdeg, hmvars, hadm, rfl⟩
+  let Sv : List.Vector (Fin N) κ := ⟨S, hSlen⟩
+  let A : AdmissibleDerivativeWindow B κ := ⟨Sv, by simpa [Sv] using hadm⟩
+  have hderiv : iterDerivList S p ∈ perWindowDerivativeImageSpan p S := by
+    exact Submodule.subset_span (by simp [perWindowDerivativeImageSpan])
+  have hrow : m * iterDerivList S p ∈
+      admissibleRestrictedShiftDerivativeCover B κ ℓ p A := by
+    simpa [admissibleRestrictedShiftDerivativeCover, A, Sv] using
+      shift_mul_mem_restrictedMonomialShiftClosure S.toFinset ℓ
+        (perWindowDerivativeImageSpan p S) hderiv hmdeg hmvars
+  exact (le_iSup (fun A : AdmissibleDerivativeWindow B κ =>
+    admissibleRestrictedShiftDerivativeCover B κ ℓ p A) A) hrow
+
+/-- Per-admissible-window finrank bound: only monomials supported in the fixed
+`κ`-window are counted. -/
+theorem admissibleRestrictedShiftDerivativeCover_finrank_le {N : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat) (p : MvPolynomial (Fin N) ℚ)
+    (S : AdmissibleDerivativeWindow B κ) :
+    Module.finrank ℚ ↥(admissibleRestrictedShiftDerivativeCover B κ ℓ p S) ≤
+      Fintype.card (RestrictedMonoIdx S.1.toList.toFinset ℓ) := by
+  classical
+  calc
+    Module.finrank ℚ ↥(admissibleRestrictedShiftDerivativeCover B κ ℓ p S)
+        ≤ Fintype.card (RestrictedMonoIdx S.1.toList.toFinset ℓ) *
+            Module.finrank ℚ ↥(perWindowDerivativeImageSpan p S.1.toList) := by
+          simpa [admissibleRestrictedShiftDerivativeCover] using
+            finrank_restrictedMonomialShiftClosure_le S.1.toList.toFinset ℓ
+              (perWindowDerivativeImageSpan p S.1.toList)
+    _ ≤ Fintype.card (RestrictedMonoIdx S.1.toList.toFinset ℓ) * 1 :=
+          Nat.mul_le_mul_left _ (perWindowDerivativeImageSpan_finrank_le_one p S.1.toList)
+    _ = Fintype.card (RestrictedMonoIdx S.1.toList.toFinset ℓ) := by omega
+
+
+
+/-- Finite-type version of `finrank_iSup_fin_le`, obtained by reindexing through
+`Fintype.equivFin`. -/
+theorem finrank_iSup_fintype_le' {N : Nat} {ι : Type*} [Fintype ι]
+    (U : ι → Submodule ℚ (MvPolynomial (Fin N) ℚ)) [∀ i, Module.Finite ℚ ↥(U i)] :
+    Module.finrank ℚ ↥(⨆ i : ι, U i) ≤ ∑ i : ι, Module.finrank ℚ ↥(U i) := by
+  classical
+  set r : Nat := Fintype.card ι with hr
+  let e : ι ≃ Fin r := Fintype.equivFin ι
+  let V : Fin r → Submodule ℚ (MvPolynomial (Fin N) ℚ) := fun j => U (e.symm j)
+  haveI : ∀ j, Module.Finite ℚ ↥(V j) := by intro j; infer_instance
+  have hreindex : (⨆ i : ι, U i : Submodule ℚ (MvPolynomial (Fin N) ℚ)) = ⨆ j : Fin r, V j := by
+    apply le_antisymm
+    · refine iSup_le (fun i => ?_)
+      have hi : i = e.symm (e i) := (e.symm_apply_apply i).symm
+      have hstep : U i = V (e i) := by
+        show U i = U (e.symm (e i)); rw [← hi]
+      rw [hstep]
+      exact le_iSup (fun j : Fin r => V j) (e i)
+    · refine iSup_le (fun j => ?_)
+      exact le_iSup (fun i : ι => U i) (e.symm j)
+  have hsum : (∑ j : Fin r, Module.finrank ℚ ↥(V j)) = ∑ i : ι, Module.finrank ℚ ↥(U i) := by
+    simpa [V] using
+      (Equiv.sum_comp e.symm (fun i : ι => Module.finrank ℚ ↥(U i)))
+  calc
+    Module.finrank ℚ ↥(⨆ i : ι, U i) = Module.finrank ℚ ↥(⨆ j : Fin r, V j) := by rw [hreindex]
+    _ ≤ ∑ j : Fin r, Module.finrank ℚ ↥(V j) := SPDP.finrank_iSup_fin_le (F := ℚ) r V
+    _ = ∑ i : ι, Module.finrank ℚ ↥(U i) := hsum
+
+/-- The tightened option-2 raw rank bound: rank is bounded by the sum over
+block-admissible derivative windows of the number of supported degree-`≤ℓ`
+shift monomials.  This is the formal target on which Lemma 29/profile
+compression must act to turn the admissible-window sum into `R^O(1)`. -/
+theorem rawRank_le_sum_admissibleRestrictedShiftCounts {N : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat) (p : MvPolynomial (Fin N) ℚ) :
+    rkSPDP B κ ℓ p ≤
+      ∑ S : AdmissibleDerivativeWindow B κ,
+        Fintype.card (RestrictedMonoIdx S.1.toList.toFinset ℓ) := by
+  classical
+  unfold rkSPDP rawBlockedSpdpRank
+  haveI : ∀ S : AdmissibleDerivativeWindow B κ,
+      Module.Finite ℚ ↥(admissibleRestrictedShiftDerivativeCover B κ ℓ p S) := by
+    intro S
+    unfold admissibleRestrictedShiftDerivativeCover
+    infer_instance
+  calc
+    Module.finrank ℚ ↥(rawBlockedSpdpSubspace B κ ℓ p)
+        ≤ Module.finrank ℚ ↥(⨆ S : AdmissibleDerivativeWindow B κ,
+            admissibleRestrictedShiftDerivativeCover B κ ℓ p S) :=
+          Submodule.finrank_mono
+            (rawBlockedSpdpSubspace_le_admissibleRestrictedShiftDerivativeCover B κ ℓ p)
+    _ ≤ ∑ S : AdmissibleDerivativeWindow B κ,
+          Module.finrank ℚ ↥(admissibleRestrictedShiftDerivativeCover B κ ℓ p S) := by
+          simpa using finrank_iSup_fintype_le'
+            (fun S : AdmissibleDerivativeWindow B κ =>
+              admissibleRestrictedShiftDerivativeCover B κ ℓ p S)
+    _ ≤ ∑ S : AdmissibleDerivativeWindow B κ,
+          Fintype.card (RestrictedMonoIdx S.1.toList.toFinset ℓ) :=
+          Finset.sum_le_sum (fun S _ =>
+            admissibleRestrictedShiftDerivativeCover_finrank_le B κ ℓ p S)
+
+/-- Uniformized form: if the number of admissible derivative windows and the
+per-window supported-shift count are bounded, then the tightened route gives a
+polynomial product bound.  Supplying the first hypothesis is precisely the
+Lemma-29/profile-compression content; the second is the fixed-window shift
+count `C(κ+ℓ,ℓ)` or any convenient polynomial upper bound. -/
+theorem rawRank_le_admissibleWindowCount_mul_shiftCount {N : Nat}
+    (B : BlockPartition N) (κ ℓ Cwin Cshift : Nat)
+    (p : MvPolynomial (Fin N) ℚ)
+    (hwin : Fintype.card (AdmissibleDerivativeWindow B κ) ≤ Cwin)
+    (hshift : ∀ S : AdmissibleDerivativeWindow B κ,
+      Fintype.card (RestrictedMonoIdx S.1.toList.toFinset ℓ) ≤ Cshift) :
+    rkSPDP B κ ℓ p ≤ Cwin * Cshift := by
+  classical
+  calc
+    rkSPDP B κ ℓ p ≤
+        ∑ S : AdmissibleDerivativeWindow B κ,
+          Fintype.card (RestrictedMonoIdx S.1.toList.toFinset ℓ) :=
+      rawRank_le_sum_admissibleRestrictedShiftCounts B κ ℓ p
+    _ ≤ ∑ _S : AdmissibleDerivativeWindow B κ, Cshift :=
+      Finset.sum_le_sum (fun S _ => hshift S)
+    _ = Fintype.card (AdmissibleDerivativeWindow B κ) * Cshift := by
+      simp [Finset.sum_const, smul_eq_mul]
+    _ ≤ Cwin * Cshift := Nat.mul_le_mul_right _ hwin
+
+/-- Allocated-product specialization of the tightened admissible-window route. -/
+theorem allocatedDerivativeProduct_rank_le_admissibleWindowCount_mul_shiftCount
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (alloc : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length →
+      List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+    (B : BlockPartition (cook_levin_compilation M n hn2 htb hns).numVars)
+    (κ ℓ Cwin Cshift : Nat)
+    (hwin : Fintype.card (AdmissibleDerivativeWindow B κ) ≤ Cwin)
+    (hshift : ∀ S : AdmissibleDerivativeWindow B κ,
+      Fintype.card (RestrictedMonoIdx S.1.toList.toFinset ℓ) ≤ Cshift) :
+    rkSPDP B κ ℓ
+        (piPlusBooleanProjectedAllocatedDerivativeProduct
+          M n hn2 htb hns D alloc) ≤
+      Cwin * Cshift := by
+  exact rawRank_le_admissibleWindowCount_mul_shiftCount B κ ℓ Cwin Cshift
+    (piPlusBooleanProjectedAllocatedDerivativeProduct M n hn2 htb hns D alloc)
+    hwin hshift
+
+
+/-- Coarse polynomial bound for fixed-window supported shifts: an exponent
+supported on `S` and of total degree `≤ ℓ` is determined by assigning each
+variable of `S` a value in `0..ℓ`.  The sharper stars-and-bars count is
+`Nat.choose (S.card + ℓ) ℓ`; this injection gives the sufficient polynomial
+bound `(ℓ+1)^S.card` without extra combinatorics. -/
+theorem card_RestrictedMonoIdx_le_pow_card {N : Nat}
+    (S : Finset (Fin N)) (ℓ : Nat) :
+    Fintype.card (RestrictedMonoIdx S ℓ) ≤ (ℓ + 1) ^ S.card := by
+  classical
+  let φ : RestrictedMonoIdx S ℓ → ({i // i ∈ S} → Fin (ℓ + 1)) := fun α i =>
+    ⟨α.1 i.1, by
+      by_cases hzero : α.1 i.1 = 0
+      · rw [hzero]; exact Nat.succ_pos _
+      · have hi : i.1 ∈ α.1.support := Finsupp.mem_support_iff.mpr hzero
+        have hle_sum : α.1 i.1 ≤ α.1.sum (fun _ e => e) :=
+          Finset.single_le_sum (fun _ _ => Nat.zero_le _) hi
+        exact Nat.lt_succ_of_le (hle_sum.trans α.2.1)⟩
+  have hφ : Function.Injective φ := by
+    intro a b hab
+    apply Subtype.ext
+    ext i
+    by_cases hi : i ∈ S
+    · have hval := congrArg Fin.val (congrFun hab ⟨i, hi⟩)
+      exact hval
+    · have hai : a.1 i = 0 := by
+        by_contra hne
+        exact hi (a.2.2 (Finsupp.mem_support_iff.mpr hne))
+      have hbi : b.1 i = 0 := by
+        by_contra hne
+        exact hi (b.2.2 (Finsupp.mem_support_iff.mpr hne))
+      rw [hai, hbi]
+  calc
+    Fintype.card (RestrictedMonoIdx S ℓ)
+        ≤ Fintype.card ({i // i ∈ S} → Fin (ℓ + 1)) :=
+          Fintype.card_le_of_injective φ hφ
+    _ = (ℓ + 1) ^ S.card := by
+      simp [Fintype.card_fin]
+
+/-- Since every admissible SPDP window has length `κ`, its support set has
+cardinality at most `κ`; hence the fixed-window shift count is bounded by
+`(ℓ+1)^κ`. -/
+theorem card_RestrictedMonoIdx_admissibleWindow_le {N : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat) (S : AdmissibleDerivativeWindow B κ) :
+    Fintype.card (RestrictedMonoIdx S.1.toList.toFinset ℓ) ≤ (ℓ + 1) ^ κ := by
+  calc
+    Fintype.card (RestrictedMonoIdx S.1.toList.toFinset ℓ)
+        ≤ (ℓ + 1) ^ S.1.toList.toFinset.card :=
+          card_RestrictedMonoIdx_le_pow_card S.1.toList.toFinset ℓ
+    _ ≤ (ℓ + 1) ^ κ := by
+      apply Nat.pow_le_pow_right (Nat.succ_pos ℓ)
+      calc S.1.toList.toFinset.card ≤ S.1.toList.length := List.toFinset_card_le _
+          _ = κ := S.1.2
+
+/-- Concrete polynomial-form tightened route: once Lemma 29/profile compression
+bounds the admissible-window count by `Cwin`, the shift side contributes only
+`(ℓ+1)^κ`. -/
+theorem rawRank_le_admissibleWindowCount_mul_polyShift {N : Nat}
+    (B : BlockPartition N) (κ ℓ Cwin : Nat) (p : MvPolynomial (Fin N) ℚ)
+    (hwin : Fintype.card (AdmissibleDerivativeWindow B κ) ≤ Cwin) :
+    rkSPDP B κ ℓ p ≤ Cwin * (ℓ + 1) ^ κ := by
+  exact rawRank_le_admissibleWindowCount_mul_shiftCount B κ ℓ Cwin ((ℓ + 1) ^ κ)
+    p hwin (card_RestrictedMonoIdx_admissibleWindow_le B κ ℓ)
+
+/-- Allocated-product specialization of the polynomial-form tightened route. -/
+theorem allocatedDerivativeProduct_rank_le_admissibleWindowCount_mul_polyShift
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (alloc : Fin (piPlusBooleanProjectedTransformedConstraintFactors
+        M n hn2 htb hns D).length →
+      List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+    (B : BlockPartition (cook_levin_compilation M n hn2 htb hns).numVars)
+    (κ ℓ Cwin : Nat)
+    (hwin : Fintype.card (AdmissibleDerivativeWindow B κ) ≤ Cwin) :
+    rkSPDP B κ ℓ
+        (piPlusBooleanProjectedAllocatedDerivativeProduct
+          M n hn2 htb hns D alloc) ≤
+      Cwin * (ℓ + 1) ^ κ := by
+  exact rawRank_le_admissibleWindowCount_mul_polyShift B κ ℓ Cwin
+    (piPlusBooleanProjectedAllocatedDerivativeProduct M n hn2 htb hns D alloc) hwin
+
+
+/-- Paper-scale allocated-product specialization of the polynomial-form
+tightened route.  The only remaining external input is the Lemma-29/profile
+compression bound on the number of admissible derivative windows. -/
+theorem paperScale_allocatedDerivativeProduct_rank_le_admissibleWindowCount_mul_polyShift
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804)
+    (alloc : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+        M htb hns).length →
+      List (Fin (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars))
+    (κ ℓ Cwin : Nat)
+    (hwin : Fintype.card (AdmissibleDerivativeWindow
+      (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition κ) ≤ Cwin) :
+    rkSPDP
+        (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+        κ ℓ
+        (piPlusBooleanProjectedAllocatedDerivativeProduct
+          M (2 ^ 804) paperScale_ge_two htb hns
+          (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns) alloc) ≤
+      Cwin * (ℓ + 1) ^ κ := by
+  exact allocatedDerivativeProduct_rank_le_admissibleWindowCount_mul_polyShift
+    M (2 ^ 804) paperScale_ge_two htb hns
+    (cookLevinPiPlusBlockCoordinateData_paperScale M htb hns)
+    alloc
+    (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+    κ ℓ Cwin hwin
 
 /-- Allocated-product specialization of the private-chart finite-sum route. -/
 theorem allocatedDerivativeProduct_rank_le_shiftClosure_kappaDerivativeImageSpan
@@ -984,6 +1446,17 @@ theorem paperScale_allocatedDerivativeProduct_rank_le_combinedProfileBound_of_bo
 
 /-! ## Axiom audit anchors -/
 
+#print axioms RestrictedMonoIdx
+#print axioms restrictedMonomialShiftClosure
+#print axioms finrank_restrictedMonomialShiftClosure_le
+#print axioms mul_mem_restrictedMonomialShiftClosure
+#print axioms AdmissibleDerivativeWindow
+#print axioms rawBlockedSpdpSubspace_le_admissibleRestrictedShiftDerivativeCover
+#print axioms rawRank_le_sum_admissibleRestrictedShiftCounts
+#print axioms card_RestrictedMonoIdx_admissibleWindow_le
+#print axioms rawRank_le_admissibleWindowCount_mul_polyShift
+#print axioms allocatedDerivativeProduct_rank_le_admissibleWindowCount_mul_polyShift
+#print axioms paperScale_allocatedDerivativeProduct_rank_le_admissibleWindowCount_mul_polyShift
 #print axioms kappaDerivativeImageSpan
 #print axioms kappaLeibnizProductSpan
 #print axioms kappaDerivativeImageSpan_prod_le_kappaLeibnizProductSpan
