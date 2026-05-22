@@ -2,27 +2,25 @@ import PallLean.Paper93.DeepMath.PathC.PiPlusBoundaryQuotient
 import PallLean.Paper93.DeepMath.PathC.PiPlusBooleanProjectedAction
 
 /-!
-# Boolean boundary projection candidates (not the paper `can(·)` quotient)
+# Boolean boundary projection candidates
 
-`PiPlusBoundaryQuotient` introduced an abstract linear projection socket.  This
-file records nearby Boolean-normal-form maps that are useful in the existing
-Route-C/Pi+ᵦ pipeline, but they should **not** be confused with the paper's
-canonical-window quotient.
+`PiPlusBoundaryQuotient` introduced an abstract linear projection socket on the
+coefficient-space post-row polynomials.  At this coefficient level, the
+paper-licensed quotient is Boolean/multilinear normal form, i.e.
+`Xᵢ^k = Xᵢ` (paper Remark 21), implemented by `zeroProfileBooleanNormalize`.
 
-Paper-faithfulness correction:
+Level separation:
 
 * operational `Π+` is invertible and block-local; it is transport, not a
   projection;
-* `booleanNormalize` / multilinearization is the Boolean quotient
-  `Xᵢ^k = Xᵢ`, distinct from paper Definition 20;
-* the quotient that gives the shared `W_τ` window structure is `can(·)`, the
-  canonical-window normal form from P6/P7.  See `PiPlusCanonicalWindowRouteW`.
+* `can(·)` is the paper's window-level quotient (Definition 20), used upstream
+  to choose canonical row indices;
+* `booleanNormalize` is the coefficient-level quotient used here to compare
+  post-row polynomials modulo the Boolean ideal.
 
-Thus the maps below remain kernel-clean infrastructure, but Route W full closure
-should instantiate the canonical-window quotient, not silently use either
-`Π+` or Boolean normalization as the paper's `can(·)`. The final map below still
-separates the tempting `booleanNormalize ∘ Π+` composite and records its
-idempotence as an obligation rather than assuming it.
+Thus the actual Route-W certificate projection below is `booleanNormalize`.  The
+final map below still separates the tempting `booleanNormalize ∘ Π+` composite
+and records its idempotence as an obligation rather than assuming it.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathC
@@ -34,8 +32,8 @@ open TuringMachine
 
 attribute [local instance] Classical.dec
 
-/-- Boolean normal-form reduction. This is the Boolean/multilinear quotient
-`Xᵢ^k = Xᵢ`, **not** paper Definition 20's canonical-window map `can(·)`. -/
+/-- Boolean normal-form reduction: the coefficient-level quotient
+`Xᵢ^k = Xᵢ` used by the Route-W boundary certificate. -/
 noncomputable abbrev booleanBoundaryQuotientProject (N : ℕ) :
     MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ :=
   zeroProfileBooleanNormalizeLinearMap (n := N)
@@ -52,7 +50,7 @@ theorem booleanBoundaryQuotientProject_idempotent (N : ℕ) :
 
 /-- Paper-scale Boolean normal-form projection for the Cook--Levin SAT ambient.
 This is intentionally just Boolean normalization, not the preceding invertible
-`Pi+` transport and not the canonical-window quotient `can(·)`. -/
+`Pi+` transport. -/
 noncomputable abbrev cookLevinBoundaryQuotientProject_paperScale
     (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) :
     SATDeciderGaugeSpace M (2 ^ 804) paperScale_ge_two htb hns →ₗ[ℚ]
