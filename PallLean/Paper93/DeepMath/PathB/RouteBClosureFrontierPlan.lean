@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.PeqNPBridge
 import PallLean.Paper93.Paper283.RouteBPaperFaithfulTPhiExtraction
+import PallLean.Step4Compiler
 
 /-!
 # Route B closure frontier plan (clean path)
@@ -42,5 +43,45 @@ theorem routeB_closure_from_templateCollapse_isEmpty
 
 #print axioms routeB_closure_from_templateCollapse
 #print axioms routeB_closure_from_templateCollapse_isEmpty
+
+/-- Honest obstruction: at paper scale, the strict `TΦ` target cannot satisfy a
+polynomial (`n^200`) upper bound at `κ = ℓ = log₂ n`.
+
+This is the direct negation of the attempted P-side seam on the exact target:
+combine the same-target NP lower bound with arithmetic no-sandwich. -/
+theorem cookLevin_pSide_seam_false_at_paperScale
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) :
+    let target := Step4Compiler.Step252.cookLevinStrictFOBTarget M n hn2 htb hns B_total
+    ¬ (MultilinearSPDP.mlBlockedSpdpRank
+          target.coupledPartition
+          (Nat.log 2 n) (Nat.log 2 n)
+          target.coupledPoly
+        ≤ n ^ 200) := by
+  intro target hUpper
+  have hLowerTarget :
+      PaperFaithfulSeparation.GodMoveSameTargetStrongNPLower target := by
+    simpa [target] using
+      (Step4Compiler.Step252.cookLevinStrictFOBTarget_same_target_lower
+        M n hn hn2 htb hns B_total hB_total)
+  have hLower :
+      Nat.choose (n / 3) (Nat.log 2 n) ≤
+        MultilinearSPDP.mlBlockedSpdpRank
+          target.coupledPartition
+          (Nat.log 2 n) (Nat.log 2 n)
+          target.coupledPoly := by
+    simpa [PaperFaithfulSeparation.GodMoveSameTargetStrongNPLower] using hLowerTarget
+  exact (PaperFaithfulSeparation.no_rank_sandwich_at_large_n n hn)
+    ⟨MultilinearSPDP.mlBlockedSpdpRank
+        target.coupledPartition
+        (Nat.log 2 n) (Nat.log 2 n)
+        target.coupledPoly,
+      hLower, hUpper⟩
+
+#print axioms cookLevin_pSide_seam_false_at_paperScale
 
 end PallLean.Paper93.DeepMath.PathB
