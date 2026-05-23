@@ -472,6 +472,116 @@ def CookLevinBooleanBoundaryPostSpanGeneratorContainment_paperScale
       (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale M htb hns)[i.val])
     (cookLevinFactorConstraintType_paperScale M htb hns)
 
+/-- Paper-scale Cook--Levin abbreviation for the full natural-profile Route-W
+classifier type.  Unlike the Booleanity-only bridge, this classifier is allowed
+to assign the row's actual combined profile after shift and projection. -/
+abbrev CookLevinProjectedPostRowProfileClassifier_paperScale
+    (M : TuringMachine.DTM) (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ 2 ^ 804) (κ : Nat) :=
+  ProjectedPostRowProfileClassifier κ
+    (fun i : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+        M htb hns).length =>
+      (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale M htb hns)[i.val])
+    (cookLevinFactorConstraintType_paperScale M htb hns)
+
+/-- Paper-scale full Route-W generator containment socket, indexed by the
+natural/combined projected-row profile rather than the derivative-only profile.
+This is the replacement target for the malformed Booleanity-specific bridge. -/
+def CookLevinNaturallyProfiledProjectedGeneratorContainment_paperScale
+    (M : TuringMachine.DTM) (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ 2 ^ 804) (κ ℓ : Nat)
+    (project : SATDeciderGaugeSpace M (2 ^ 804) paperScale_ge_two htb hns →ₗ[ℚ]
+      SATDeciderGaugeSpace M (2 ^ 804) paperScale_ge_two htb hns)
+    (classifier : CookLevinProjectedPostRowProfileClassifier_paperScale
+      M htb hns κ) : Prop :=
+  NaturallyProfiledProjectedGeneratorContainment
+    (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+    κ ℓ
+    (fun i : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+        M htb hns).length =>
+      (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale M htb hns)[i.val])
+    (cookLevinFactorConstraintType_paperScale M htb hns)
+    project classifier
+
+/-- Paper-scale full Route-W containment from the natural-profile generator
+statement.  This is the span-level structural socket consumed by the natural
+profile Lemma-31 closeout. -/
+theorem cookLevinNaturallyProfiledProjectedPostSpanContainment_paperScale_of_generatorContainment
+    (M : TuringMachine.DTM) (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ 2 ^ 804) (κ ℓ : Nat)
+    (project : SATDeciderGaugeSpace M (2 ^ 804) paperScale_ge_two htb hns →ₗ[ℚ]
+      SATDeciderGaugeSpace M (2 ^ 804) paperScale_ge_two htb hns)
+    (classifier : CookLevinProjectedPostRowProfileClassifier_paperScale
+      M htb hns κ)
+    (hgen : CookLevinNaturallyProfiledProjectedGeneratorContainment_paperScale
+      M htb hns κ ℓ project classifier) :
+    NaturallyProfiledProjectedPostSpanContainment
+      (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+      κ ℓ
+      (fun i : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+          M htb hns).length =>
+        (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale M htb hns)[i.val])
+      (cookLevinFactorConstraintType_paperScale M htb hns)
+      project classifier := by
+  exact naturallyProfiledProjectedPostSpanContainment_of_generatorContainment
+    (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+    κ ℓ
+    (fun i : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+        M htb hns).length =>
+      (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale M htb hns)[i.val])
+    (cookLevinFactorConstraintType_paperScale M htb hns)
+    project classifier hgen
+
+/-- Bundled paper-scale natural-profile Route-W certificate, conditional exactly
+on the local generator containment theorem and projection idempotence. -/
+noncomputable def cookLevinNaturallyProfiledBoundaryQuotientCompressionCertificate_paperScale
+    (M : TuringMachine.DTM) (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ 2 ^ 804) (κ ℓ : Nat)
+    (project : SATDeciderGaugeSpace M (2 ^ 804) paperScale_ge_two htb hns →ₗ[ℚ]
+      SATDeciderGaugeSpace M (2 ^ 804) paperScale_ge_two htb hns)
+    (classifier : CookLevinProjectedPostRowProfileClassifier_paperScale
+      M htb hns κ)
+    (hidem : project.comp project = project)
+    (hgen : CookLevinNaturallyProfiledProjectedGeneratorContainment_paperScale
+      M htb hns κ ℓ project classifier) :
+    NaturallyProfiledBoundaryQuotientCompressionCertificate
+      (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+      κ ℓ
+      (fun i : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+          M htb hns).length =>
+        (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale M htb hns)[i.val])
+      (cookLevinFactorConstraintType_paperScale M htb hns) where
+  project := project
+  classifier := classifier
+  project_idempotent := hidem
+  profile_containment :=
+    cookLevinNaturallyProfiledProjectedPostSpanContainment_paperScale_of_generatorContainment
+      M htb hns κ ℓ project classifier hgen
+
+/-- Default paper-scale natural-profile Route-W certificate using the Boolean
+normal-form quotient project.  The concrete local row theorem supplies `hgen`;
+the dimension bound is then obtained by
+`naturallyProfiledProjectedWithinProfileFinrank_of_boundaryQuotientCertificate`. -/
+noncomputable def cookLevinNaturallyProfiledBoundaryQuotientCompressionCertificate_paperScale_of_booleanBoundary
+    (M : TuringMachine.DTM) (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ 2 ^ 804) (κ ℓ : Nat)
+    (classifier : CookLevinProjectedPostRowProfileClassifier_paperScale
+      M htb hns κ)
+    (hgen : CookLevinNaturallyProfiledProjectedGeneratorContainment_paperScale
+      M htb hns κ ℓ
+        (cookLevinBoundaryQuotientProject_paperScale M htb hns) classifier) :
+    NaturallyProfiledBoundaryQuotientCompressionCertificate
+      (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+      κ ℓ
+      (fun i : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+          M htb hns).length =>
+        (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale M htb hns)[i.val])
+      (cookLevinFactorConstraintType_paperScale M htb hns) :=
+  cookLevinNaturallyProfiledBoundaryQuotientCompressionCertificate_paperScale
+    M htb hns κ ℓ (cookLevinBoundaryQuotientProject_paperScale M htb hns)
+    classifier (cookLevinBoundaryQuotientProject_paperScale_idempotent M htb hns)
+    hgen
+
 /-- Paper-scale Cook--Levin specialization of the same finite slot-expansion
 closeout.  This is the direct next target for Route W: construct `hexpand` for
 Boolean-normalized Cook--Levin transformed constraint generators. -/
@@ -553,6 +663,9 @@ noncomputable def cookLevinBooleanBoundaryQuotientCompressionCertificate_paperSc
 #print axioms genericSlotWitness_of_booleanityFactorSlotExpansion
 #print axioms booleanBoundaryPostSpanGeneratorContainment_of_slotExpansion
 #print axioms cookLevinBooleanBoundaryPostSpanGeneratorContainment_paperScale_of_slotExpansion
+#print axioms cookLevinNaturallyProfiledProjectedPostSpanContainment_paperScale_of_generatorContainment
+#print axioms cookLevinNaturallyProfiledBoundaryQuotientCompressionCertificate_paperScale
+#print axioms cookLevinNaturallyProfiledBoundaryQuotientCompressionCertificate_paperScale_of_booleanBoundary
 #print axioms projectedPostSpanProfileContainment_of_generatorContainment
 #print axioms booleanBoundary_projectedPostSpanProfileContainment_of_generatorContainment
 #print axioms booleanBoundaryQuotientCompressionCertificate_of_generatorContainment
