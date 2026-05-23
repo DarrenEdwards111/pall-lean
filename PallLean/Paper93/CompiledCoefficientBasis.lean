@@ -544,6 +544,44 @@ theorem firstBoolFactor_mem_interfaceSpace_compiledBasis_booleanity
   simpa [canonicalLocalBoolFactor, hN] using
     canonicalLocalBoolFactor_mem_interfaceSpace_compiledBasis_booleanity B κ ℓ
 
+/-- The current Booleanity compiled-basis chart is genuinely one-coordinate:
+in a two-variable ambient it contains the constant row, the first local variable,
+and the first Booleanity factor, but it does **not** contain the second local
+variable.  Thus the corrected Booleanity residue span `{1, X_false, X_true}`
+cannot be aligned with `interfaceSpace_compiledBasis ... .booleanity` by simply
+mapping `X_false` and `X_true` to two distinct coordinates of this chart.  A
+real alignment must either transport to a chart where both residue coordinates
+are represented, or use a different Booleanity interface alphabet. -/
+theorem secondLocalX_not_mem_interfaceSpace_compiledBasis_booleanity
+    (B : BlockPartition 2) (κ ℓ : ℕ) :
+    MvPolynomial.X (⟨1, by decide⟩ : Fin 2) ∉
+      interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity := by
+  classical
+  intro hx
+  let e0 : Fin 2 → ℚ := fun _ => 0
+  let e1 : Fin 2 → ℚ := fun i => if i = (⟨1, by decide⟩ : Fin 2) then 1 else 0
+  have hsame : ∀ p ∈ interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity,
+      MvPolynomial.eval e0 p = MvPolynomial.eval e1 p := by
+    intro p hp
+    unfold interfaceSpace_compiledBasis at hp
+    refine Submodule.span_induction
+      (p := fun q _ => MvPolynomial.eval e0 q = MvPolynomial.eval e1 q)
+      ?mem ?zero ?add ?smul hp
+    · intro q hq
+      unfold canonicalInterfaceGenerators at hq
+      simp only [Finset.mem_coe, Finset.mem_image, Finset.mem_univ, true_and] at hq
+      rcases hq with ⟨j, rfl⟩
+      fin_cases j <;>
+        simp [canonicalInterfacePolynomial, canonicalLocalX,
+          canonicalLocalBoolFactor, SymmetricPower.boolFactor, e0, e1]
+    · simp
+    · intro x y _ _ hx hy
+      simp [map_add, hx, hy]
+    · intro a x _ hx
+      simp [hx]
+  have hc := hsame _ hx
+  norm_num [e0, e1] at hc
+
 /-- The adjacency local chart contains the first endpoint variable. -/
 theorem canonicalLocalX_mem_interfaceSpace_compiledBasis_adjacency
     {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) :
@@ -832,6 +870,7 @@ theorem interfaceSpace_compiledBasis_ambient
 
 #print axioms interfaceSpace_compiledBasis_transitionRight_eq_bot
 #print axioms one_not_mem_interfaceSpace_compiledBasis_transitionRight
+#print axioms secondLocalX_not_mem_interfaceSpace_compiledBasis_booleanity
 #print axioms pderiv_canonicalInterfacePolynomial_mem_interfaceSpace_compiledBasis
 #print axioms iterDerivList_mem_interfaceSpace_compiledBasis
 #print axioms iterDerivList_canonicalInterfacePolynomial_mem_interfaceSpace_compiledBasis
