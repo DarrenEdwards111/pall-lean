@@ -1,4 +1,5 @@
 import PallLean.Paper93.Paper283.RouteBFunctorialTransportCertificate
+import PallLean.Paper93.Paper283.RouteBRicherGaugeConcreteNP
 import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeFinalTarget
 import PallLean.Paper93.DeepMath.PathB.PeqNPBridge
 
@@ -26,6 +27,30 @@ abbrev RouteBTransportCertificateSeam : Prop :=
       (RouteBCookLevinDim M n hn2 htb hns)),
       RouteBFunctorialTransportCertificate M n hn2 htb hns Pi
 
+/-- Bridge theorem: if the richer finite-row concrete NP surface is available
+uniformly (SPDP containment + P-window cover), then the Route-B transport
+certificate seam exists. -/
+theorem routeBTransportCertificateSeam_of_richerConcreteNP_surface
+    (hcontain :
+      ∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (_hdec : DecidesSAT M),
+        RouteBRicherGaugeSPDPSubspaceContainment M n hn2 htb hns
+          (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns
+            (routeBRicherConcreteNPWitnessRows M n hn2 htb hns)))
+    (hcover :
+      ∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (_hdec : DecidesSAT M),
+        RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns) :
+    RouteBTransportCertificateSeam := by
+  intro M n hn hn2 htb hns hdec
+  refine ⟨routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns
+    (routeBRicherConcreteNPWitnessRows M n hn2 htb hns), ?_⟩
+  exact routeBRicherConcreteNP_transportCertificate M n hn hn2 htb hns
+    (hcontain M n hn hn2 htb hns hdec)
+    (hcover M n hn hn2 htb hns hdec)
+
 /-- The transport certificate seam discharges the integrated Route-B final
 projection target for all bounded SAT-decider machines. -/
 theorem cookLevinRichProjectionDischarge_of_transportCertificateSeam
@@ -51,6 +76,7 @@ theorem not_PeqNP_of_transportCertificateSeam
   noBoundedSATDeciderAtPaperScale_implies_not_PeqNP
     (noBoundedSATDeciderAtPaperScale_of_transportCertificateSeam hSeam)
 
+#print axioms routeBTransportCertificateSeam_of_richerConcreteNP_surface
 #print axioms cookLevinRichProjectionDischarge_of_transportCertificateSeam
 #print axioms noBoundedSATDeciderAtPaperScale_of_transportCertificateSeam
 #print axioms not_PeqNP_of_transportCertificateSeam
