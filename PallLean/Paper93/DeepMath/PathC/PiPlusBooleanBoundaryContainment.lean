@@ -168,6 +168,56 @@ theorem booleanityFactorSlotExpansion {N L : Nat}
     (h ConstraintType.booleanity)
     (zeroProfileBooleanNormalize (mlProj (shift * g))) hrow
 
+/-- Profile-classified Booleanity symmetric-power bridge.  This is the precise
+Route-W wiring socket after the local k-fold product result: every generator in
+`boundedProfileClassifiedSet` has its Boolean-normalized projected post-row in
+the `h.booleanity`-fold symmetric power of the compiled-basis Booleanity
+interface space. -/
+def BooleanityProfileClassifiedSymPowerBridge {N L : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat)
+    (factors : Fin L → MvPolynomial (Fin N) ℚ)
+    (constraintType : Fin L → ConstraintType) : Prop :=
+  ∀ (h : ProfileHistogram)
+    (S : List (Fin N)) (shift : MvPolynomial (Fin N) ℚ)
+    (g : MvPolynomial (Fin N) ℚ),
+      g ∈ boundedProfileClassifiedSet factors constraintType S h →
+        zeroProfileBooleanNormalize (mlProj (shift * g)) ∈
+          symPower ℚ (h ConstraintType.booleanity)
+            (interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity)
+
+/-- The profile-classified symmetric-power bridge closes the Booleanity slot
+expansion socket for every classified generator. -/
+theorem booleanityFactorSlotExpansion_of_profileClassifiedBridge {N L : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat)
+    (factors : Fin L → MvPolynomial (Fin N) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (hbridge : BooleanityProfileClassifiedSymPowerBridge B κ ℓ factors constraintType)
+    (h : ProfileHistogram)
+    (S : List (Fin N)) (shift : MvPolynomial (Fin N) ℚ)
+    (g : MvPolynomial (Fin N) ℚ)
+    (hg : g ∈ boundedProfileClassifiedSet factors constraintType S h) :
+    BooleanityFactorSlotExpansion B κ ℓ (h ConstraintType.booleanity)
+      (zeroProfileBooleanNormalize (mlProj (shift * g))) := by
+  exact booleanityFactorSlotExpansion B κ ℓ factors constraintType h S shift g hg
+    (hbridge h S shift g hg)
+
+/-- Booleanity-only specialization of the profile-classified bridge.  For
+`booleanityOnlyProfile k`, the bridge gives exactly a `k`-slot Booleanity
+expansion. -/
+theorem booleanityOnlyFactorSlotExpansion_of_profileClassifiedBridge {N L : Nat}
+    (B : BlockPartition N) (κ ℓ k : Nat)
+    (factors : Fin L → MvPolynomial (Fin N) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (hbridge : BooleanityProfileClassifiedSymPowerBridge B κ ℓ factors constraintType)
+    (S : List (Fin N)) (shift : MvPolynomial (Fin N) ℚ)
+    (g : MvPolynomial (Fin N) ℚ)
+    (hg : g ∈ boundedProfileClassifiedSet factors constraintType S (booleanityOnlyProfile k)) :
+    BooleanityFactorSlotExpansion B κ ℓ k
+      (zeroProfileBooleanNormalize (mlProj (shift * g))) := by
+  simpa using
+    booleanityFactorSlotExpansion_of_profileClassifiedBridge
+      B κ ℓ factors constraintType hbridge (booleanityOnlyProfile k) S shift g hg
+
 /-- A Booleanity-only slot expansion is a full profile slot expansion for the
 profile `booleanityOnlyProfile k`.  The non-Booleanity interfaces contribute
 empty products, so no adjacency/transition slots are required. -/
@@ -399,6 +449,9 @@ noncomputable def cookLevinBooleanBoundaryQuotientCompressionCertificate_paperSc
 
 #print axioms booleanityFactorSlotExpansion_of_mem_symPower
 #print axioms booleanityFactorSlotExpansion
+#print axioms BooleanityProfileClassifiedSymPowerBridge
+#print axioms booleanityFactorSlotExpansion_of_profileClassifiedBridge
+#print axioms booleanityOnlyFactorSlotExpansion_of_profileClassifiedBridge
 #print axioms fullSlotExpansion_of_booleanityFactorSlotExpansion
 #print axioms genericSlotWitness_of_booleanityFactorSlotExpansion
 #print axioms booleanBoundaryPostSpanGeneratorContainment_of_slotExpansion

@@ -1,6 +1,7 @@
 import PallLean.Paper93.DeepMath.PathC.PiPlusBooleanityPullbackNormalization
 import PallLean.Paper93.DeepMath.PathC.PiPlusBooleanityActualFactorNormalForm
 import PallLean.Paper93.DeepMath.PathC.PiPlusBooleanProjectedSignedCoordinateAtoms
+import PallLean.Paper93.CompiledCoefficientBasis
 import PallLean.SymTensorPowerDim
 
 /-!
@@ -21,6 +22,8 @@ namespace PallLean.Paper93.DeepMath.PathC
 open MvPolynomial
 open SPDP
 open MultilinearSPDP
+open SymmetricPowerBound
+open PallLean.Paper93
 open PallLean.Paper93.DeepMath.PathB
 open PallLean.Paper93.Paper283
 open PallLean.SymTensorPowerDim
@@ -975,6 +978,130 @@ theorem cookLevinBooleanityFactorProjectedSpanPayload_unconditional
           (X_true_mem_SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D
             (satBlockTrue M n hn2 htb hns D i))))
 
+/-- Residue-to-interface containment from the three concrete Booleanity residue
+generators.  This is the explicit index-alignment bridge: callers must supply
+that the block-local `1`, `X_false`, and `X_true` rows are represented inside the
+paper compiled-basis Booleanity interface space for the chosen `(B,κ,ℓ)`. -/
+theorem SATBlockBooleanityActualProjectedResidueSpan_le_interfaceSpace_of_generators
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (B : BlockPartition (cook_levin_compilation M n hn2 htb hns).numVars)
+    (κ ℓ : Nat)
+    (v : Fin (cook_levin_compilation M n hn2 htb hns).numVars)
+    (hone : (1 : SATDeciderGaugeSpace M n hn2 htb hns) ∈
+      interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity)
+    (hfalse : (X (satBlockFalse M n hn2 htb hns D (D.coord v).1) :
+        SATDeciderGaugeSpace M n hn2 htb hns) ∈
+      interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity)
+    (htrue : (X (satBlockTrue M n hn2 htb hns D (D.coord v).1) :
+        SATDeciderGaugeSpace M n hn2 htb hns) ∈
+      interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity) :
+    SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D v ≤
+      interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity := by
+  classical
+  unfold SATBlockBooleanityActualProjectedResidueSpan
+  refine Submodule.span_le.mpr ?_
+  intro p hp
+  unfold SATBlockBooleanityActualProjectedResidueGenerators at hp
+  have hp' : p = (1 : SATDeciderGaugeSpace M n hn2 htb hns) ∨
+      p = (X (satBlockFalse M n hn2 htb hns D (D.coord v).1) :
+        SATDeciderGaugeSpace M n hn2 htb hns) ∨
+      p = (X (satBlockTrue M n hn2 htb hns D (D.coord v).1) :
+        SATDeciderGaugeSpace M n hn2 htb hns) := by
+    simpa using hp
+  rcases hp' with hp | hp | hp
+  · subst hp
+    exact hone
+  · subst hp
+    exact hfalse
+  · subst hp
+    exact htrue
+
+/-- Multiplying a symmetric-power element by one interface row raises the
+symmetric-power degree by one. -/
+theorem symPower_mul_left_mem_succ_local
+    {n k : Nat} {W : Submodule ℚ (MvPolynomial (Fin n) ℚ)}
+    {a b : MvPolynomial (Fin n) ℚ}
+    (ha : a ∈ W) (hb : b ∈ symPower ℚ k W) :
+    a * b ∈ symPower ℚ (k + 1) W := by
+  classical
+  unfold symPower at hb ⊢
+  let T : Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+    Submodule.span ℚ
+      {p : MvPolynomial (Fin n) ℚ |
+        ∃ f : Fin (k + 1) → MvPolynomial (Fin n) ℚ,
+          (∀ i, f i ∈ W) ∧ p = ∏ i, f i}
+  change a * b ∈ T
+  refine Submodule.span_induction
+    (p := fun q : MvPolynomial (Fin n) ℚ => fun _ => a * q ∈ T)
+    ?_ ?_ ?_ ?_ hb
+  · rintro q ⟨f, hf, rfl⟩
+    refine Submodule.subset_span ?_
+    let g : Fin (k + 1) → MvPolynomial (Fin n) ℚ := Fin.cases a f
+    refine ⟨g, ?_, ?_⟩
+    · intro i
+      cases i using Fin.cases with
+      | zero => exact ha
+      | succ i => exact hf i
+    · simpa [g] using (Fin.prod_univ_succ g).symm
+  · simp [T]
+  · intro p q _ _ hp hq
+    rw [mul_add]
+    exact Submodule.add_mem T hp hq
+  · intro c q _ hq
+    simpa [smul_eq_C_mul, mul_assoc, mul_left_comm, mul_comm] using
+      Submodule.smul_mem T c hq
+
+/-- Finite products of rows in one interface space lie in the corresponding
+symmetric power. -/
+theorem finset_prod_mem_symPower_of_mem_interface
+    {n : Nat} {ι : Type*} [DecidableEq ι]
+    (W : Submodule ℚ (MvPolynomial (Fin n) ℚ))
+    (s : Finset ι) (row : ι → MvPolynomial (Fin n) ℚ)
+    (hrow : ∀ i ∈ s, row i ∈ W) :
+    s.prod row ∈ symPower ℚ s.card W := by
+  classical
+  induction s using Finset.induction_on with
+  | empty =>
+      unfold symPower
+      refine Submodule.subset_span ?_
+      refine ⟨fun i : Fin 0 => False.elim (Fin.elim0 i), ?_, ?_⟩
+      · intro i
+        exact False.elim (Fin.elim0 i)
+      · simp
+  | insert a s has ih =>
+      rw [Finset.prod_insert has]
+      simpa [has] using
+        symPower_mul_left_mem_succ_local (hrow a (by simp [has]))
+          (ih (by intro i hi; exact hrow i (by simp [hi])))
+
+/-- Products of actual Booleanity post-rows land in the `k`-fold Booleanity
+compiled-basis symmetric power once every local residue span has been aligned
+with the compiled-basis Booleanity interface space. -/
+theorem cookLevinBooleanity_postRow_finsetProd_mem_interface_symPower
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (B : BlockPartition (cook_levin_compilation M n hn2 htb hns).numVars)
+    (κ ℓ : Nat)
+    (s : Finset (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+    (halign : ∀ v ∈ s,
+      SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D v ≤
+        interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity) :
+    s.prod (fun v => cookLevinBooleanityPostRow M n hn2 htb hns D v) ∈
+      symPower ℚ s.card
+        (interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity) := by
+  classical
+  exact finset_prod_mem_symPower_of_mem_interface
+    (interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity) s
+    (fun v => cookLevinBooleanityPostRow M n hn2 htb hns D v)
+    (by
+      intro v hv
+      exact halign v hv
+        ((cookLevinBooleanityFactorProjectedSpanPayload_unconditional
+          M n hn2 htb hns D) v))
+
 /-- The actual Cook--Levin Booleanity post-row belongs to the first symmetric
 power of its corrected Booleanity residue span.  This is the coefficient-level
 extraction core needed by Route W: the existing false/true Booleanity span
@@ -1054,6 +1181,10 @@ theorem paperScale_booleanityProjectedRows_of_spanPayload_reduction
 #print axioms paperScale_cookLevinBooleanityResidueRankPayload_unconditional
 #print axioms mem_symPower_one_of_mem
 #print axioms cookLevinBooleanityPostRow
+#print axioms SATBlockBooleanityActualProjectedResidueSpan_le_interfaceSpace_of_generators
+#print axioms symPower_mul_left_mem_succ_local
+#print axioms finset_prod_mem_symPower_of_mem_interface
+#print axioms cookLevinBooleanity_postRow_finsetProd_mem_interface_symPower
 #print axioms cookLevinBooleanity_postRow_mem_symPower
 #print axioms paperScale_cookLevinBooleanity_postRow_mem_symPower
 #print axioms mlProj_piPlusSATBlockAlgEquiv_symm_booleanProjected_booleanity_false
