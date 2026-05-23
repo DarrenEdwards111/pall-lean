@@ -213,6 +213,71 @@ def BooleanityProfileClassifiedSymPowerBridge {N L : Nat}
           symPower ℚ (h ConstraintType.booleanity)
             (interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity)
 
+/-- Concrete finite-product witness for the Booleanity component of a classified
+post-row.  This is the paper-faithful Route-W shape after the Booleanity
+quotient/project has converted the actual Cook--Levin Booleanity rows into the
+one-coordinate `W_booleanity` chart: the projected row is a finite product of
+exactly `h booleanity` Booleanity slots, and every slot is already in
+`W_booleanity`.
+
+The definition is deliberately independent of Cook--Levin indexing.  Paper-scale
+call sites instantiate `ι` with the Booleanity slots selected by the Leibniz
+distribution (or any equivalent finite slot index type). -/
+def BooleanityProfileClassifiedProductFactorization {N : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat)
+    (h : ProfileHistogram) (row : MvPolynomial (Fin N) ℚ) : Prop :=
+  ∃ (ι : Type) (_ : Fintype ι),
+  ∃ (slot : ι → MvPolynomial (Fin N) ℚ),
+    Fintype.card ι = h ConstraintType.booleanity ∧
+    (∀ i : ι, slot i ∈
+      interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity) ∧
+    row = ∏ i : ι, slot i
+
+/-- A finite product of exactly the Booleanity-profile slots, each already in
+`W_booleanity`, is a member of the corresponding symmetric power.  This is the
+mechanical `(factorization → symPower)` step used by the paper-scale
+Cook--Levin Booleanity closeout. -/
+theorem mem_symPower_of_booleanityProfileClassifiedProductFactorization
+    {N : Nat} (B : BlockPartition N) (κ ℓ : Nat)
+    (h : ProfileHistogram) (row : MvPolynomial (Fin N) ℚ)
+    (hfac : BooleanityProfileClassifiedProductFactorization B κ ℓ h row) :
+    row ∈ symPower ℚ (h ConstraintType.booleanity)
+      (interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity) := by
+  classical
+  rcases hfac with ⟨ι, hι, slot, hcard, hslot, hrow⟩
+  letI : Fintype ι := hι
+  rw [hrow]
+  have hprod : (∏ i : ι, slot i) ∈
+      symPower ℚ (Fintype.card ι)
+        (interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity) := by
+    simpa using
+      BoolPoly.finset_prod_mem_symPower_of_mem_interface
+        (interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity)
+        (Finset.univ : Finset ι) slot
+        (by intro i _; exact hslot i)
+  simpa [hcard] using hprod
+
+/-- Discharge the profile-classified Booleanity symmetric-power bridge from the
+finite-product factorization statement.  This is the reusable Route-W closeout:
+once the Cook--Levin Booleanity generator row has been identified as a product
+of its Booleanity slots after projection/normalization, the existing symmetric
+power product lemma supplies the bridge. -/
+theorem booleanityProfileClassifiedSymPowerBridge_of_productFactorization
+    {N L : Nat} (B : BlockPartition N) (κ ℓ : Nat)
+    (factors : Fin L → MvPolynomial (Fin N) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (hfac : ∀ (h : ProfileHistogram)
+      (S : List (Fin N)) (shift : MvPolynomial (Fin N) ℚ)
+      (g : MvPolynomial (Fin N) ℚ),
+        g ∈ boundedProfileClassifiedSet factors constraintType S h →
+          BooleanityProfileClassifiedProductFactorization B κ ℓ h
+            (zeroProfileBooleanNormalize (mlProj (shift * g)))) :
+    BooleanityProfileClassifiedSymPowerBridge B κ ℓ factors constraintType := by
+  intro h S shift g hg
+  exact mem_symPower_of_booleanityProfileClassifiedProductFactorization
+    B κ ℓ h (zeroProfileBooleanNormalize (mlProj (shift * g)))
+    (hfac h S shift g hg)
+
 /-- The profile-classified symmetric-power bridge closes the Booleanity slot
 expansion socket for every classified generator. -/
 theorem booleanityFactorSlotExpansion_of_profileClassifiedBridge {N L : Nat}
@@ -479,6 +544,9 @@ noncomputable def cookLevinBooleanBoundaryQuotientCompressionCertificate_paperSc
 #print axioms booleanityFactorSlotExpansion
 #print axioms booleanityOneCoordinateBoundaryQuotientCertificate_of_generatorContainment
 #print axioms BooleanityProfileClassifiedSymPowerBridge
+#print axioms BooleanityProfileClassifiedProductFactorization
+#print axioms mem_symPower_of_booleanityProfileClassifiedProductFactorization
+#print axioms booleanityProfileClassifiedSymPowerBridge_of_productFactorization
 #print axioms booleanityFactorSlotExpansion_of_profileClassifiedBridge
 #print axioms booleanityOnlyFactorSlotExpansion_of_profileClassifiedBridge
 #print axioms fullSlotExpansion_of_booleanityFactorSlotExpansion
