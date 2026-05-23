@@ -700,20 +700,7 @@ Leibniz terms with the same type histogram span a subspace factoring through
 `⊗_τ Sym^{h(τ)}(Wτ)`. The arithmetic infrastructure for the resulting dimension
 bound is fully proved; only the descent map construction is axiomatized below. -/
 
-/-- The symmetric power descent bound: proved from the profile cover axiom
-in SymmetricPower.lean via the decomposition
-  finrank(SPDP) ≤ finrank(⨆ profiles) ≤ Σ finrank(profile_i)
-                ≤ (κ+1)^4 × (κ+1)^8 = (κ+1)^12. -/
-theorem leibniz_symmetric_power_descent_bound
-    (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
-    Module.finrank ℚ ↥(mlBlockedSpdpSubspace
-      (cook_levin_compilation M n hn htb hns).partition
-      (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPoly (cook_levin_compilation M n hn htb hns)))
-    ≤ combinedProfileBound (Nat.log 2 n) :=
-  SymmetricPower.leibniz_symmetric_power_descent_bound M n hn htb hns
-
+-- ARCHIVED (inc2): leibniz_symmetric_power_descent_bound re-export (dead, axiom-using) -> Archive/Paper93Unsafe/ProfileCompressionRankBound.lean
 /-! ### Constructing the labeled profile decomposition
 
 The old one-profile placeholder is gone. The honest remaining seam is now explicit:
@@ -2191,43 +2178,7 @@ theorem rank_le_combinedBound_of_hasFixedProfileCoverFamily {N : ℕ}
   rank_le_combinedBound_of_hasFiniteProfileCover B κ ℓ p
     (hasFiniteProfileCover_of_hasFixedProfileCoverFamily B κ ℓ p hfam)
 
-/-- spdp_profile_generators implies HasFiniteProfileCover.
-
-    This shows the new axiom target is strictly weaker than the old one:
-    the explicit generators from spdp_profile_generators immediately give
-    a finite profile cover. -/
-theorem hasFiniteProfileCover_of_spdp_profile_generators
-    (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
-    HasFiniteProfileCover
-      (cook_levin_compilation M n hn htb hns).partition
-      (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPoly (cook_levin_compilation M n hn htb hns)) := by
-  obtain ⟨numP, spaces, hnumP, hfin, hbound, hcover⟩ :=
-    SymmetricPower.product_leibniz_profile_cover M n hn htb hns
-  exact ⟨numP, spaces, le_trans hnumP (by unfold profileCount; rfl), hfin,
-    fun i => le_trans (hbound i) (by unfold withinProfileBound; rfl), hcover⟩
-
-/-- Rerouted assembly theorem via HasFiniteProfileCover.
-
-    This demonstrates the clean factorization: spdp_profile_generators gives
-    HasFiniteProfileCover, which gives the rank bound. The old direct proof
-    through leibniz_symmetric_power_descent_bound is now redundant but kept
-    as rank_bound_from_fixed_profile_factorization_old for comparison.
-
-    Eventually, HasFiniteProfileCover should be constructed directly from the
-    structural profile decomposition + within-profile symmetric power bound,
-    bypassing spdp_profile_generators entirely. -/
-theorem rank_bound_from_fixed_profile_factorization
-    (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
-    mlBlockedSpdpRank
-      (cook_levin_compilation M n hn htb hns).partition
-      (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPoly (cook_levin_compilation M n hn htb hns))
-    ≤ combinedProfileBound (Nat.log 2 n) :=
-  rank_le_combinedBound_of_hasFiniteProfileCover _ _ _ _
-    (hasFiniteProfileCover_of_spdp_profile_generators M n hn htb hns)
+-- ARCHIVED (inc2): hasFiniteProfileCover_of_spdp_profile_generators + rank_bound_from_fixed_profile_factorization (axiom-using) -> Archive/Paper93Unsafe/ProfileCompressionRankBound.lean
 
 /-- Cook-Levin specialization of the honest Step B route.
 
@@ -2264,29 +2215,7 @@ depends on the known-false `spdp_profile_generators` package, so they should be
 treated as compatibility wrappers rather than as the live frontier.
 -/
 
-/-- **Step B theorem** (Profile symmetric power factorization):
-
-    For the Cook-Levin compiled polynomial P = ∏ᵢ(1-Cᵢ) of any P-time DTM,
-    the Leibniz product rule expansion decomposes into at most profileCount(κ)
-    profile classes, each spanning a subspace of dimension ≤ withinProfileBound(κ).
-
-    The mathematical justification:
-    - Each derivative ∂_S P distributes across factors via Leibniz
-    - Terms with the same constraint-type histogram lie in the same profile class
-    - Within a profile, contributions factor through ⊗_τ Sym^{h(τ)}(W_τ)
-    - dim(image) ≤ ∏_τ C(h(τ) + d_τ - 1, d_τ - 1) ≤ withinProfileBound(κ)
-
-    Derived from `rank_bound_from_fixed_profile_factorization` which assembles
-    the profile decomposition from `fixed_profile_factors_through_symmetric_powers`. -/
-theorem profile_symmetric_power_factorization
-    (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
-    mlBlockedSpdpRank
-      (cook_levin_compilation M n hn htb hns).partition
-      (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPoly (cook_levin_compilation M n hn htb hns))
-    ≤ combinedProfileBound (Nat.log 2 n) :=
-  rank_bound_from_fixed_profile_factorization M n hn htb hns
+-- ARCHIVED (inc2): profile_symmetric_power_factorization (unconditional, axiom-using) -> Archive/Paper93Unsafe/ProfileCompressionRankBound.lean
 
 /-- Honest Step B wrapper: the remaining same-profile factorization frontier should
 produce `HasFixedProfileCoverFamily`, and then this theorem gives the Cook-Levin
@@ -2317,28 +2246,6 @@ theorem combinedBound_le_totalProfileBound (κ : ℕ) :
   apply Nat.pow_le_pow_left
   omega
 
-/-- **Main theorem**: profile_compression_rank_bound derived from Steps A+B+C+D.
-
-    The proof:
-    1. Step B bound gives: rank ≤ combinedProfileBound(κ) = (κ+1)^12
-    2. Step D arithmetic: (κ+1)^12 ≤ (3κ+1)^12
-
-    Steps A and C provide the mathematical justification for why
-    combinedProfileBound has the specific value (κ+1)^12:
-    - Step A: local interface dims are O(1), giving the exponent 8 in withinProfileBound
-    - Step C: symmetric power dims satisfy C(m+d-1,d-1) ≤ (m+1)^(d-1) -/
-theorem profile_compression_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
-    mlBlockedSpdpRank
-      (cook_levin_compilation M n hn htb hns).partition
-      (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPoly (cook_levin_compilation M n hn htb hns))
-    ≤ (3 * Nat.log 2 n + 1) ^ 12 := by
-  have h1 := profile_symmetric_power_factorization M n hn htb hns
-  have h2 : combinedProfileBound (Nat.log 2 n) = (Nat.log 2 n + 1) ^ 12 :=
-    combinedProfileBound_eq (Nat.log 2 n)
-  have h3 : (Nat.log 2 n + 1) ^ 12 ≤ (3 * Nat.log 2 n + 1) ^ 12 := by
-    exact Nat.pow_le_pow_left (by omega) 12
-  omega
+-- ARCHIVED (inc2): profile_compression_rank_bound (false bound) -> Archive/Paper93Unsafe/ProfileCompressionRankBound.lean
 
 end SymmetricPowerBound
