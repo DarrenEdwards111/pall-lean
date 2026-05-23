@@ -1,6 +1,7 @@
 import PallLean.Paper93.Paper283.RouteBFunctorialTransportCertificate
 import PallLean.Paper93.Paper283.RouteBRicherGaugeConcreteNP
 import PallLean.Paper93.Paper283.RouteBRicherGaugePWindowCover
+import PallLean.Paper93.Paper283.RouteBRicherGaugeSPDPConcreteScalarClosure
 import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeFinalTarget
 import PallLean.Paper93.DeepMath.PathB.PeqNPBridge
 
@@ -118,11 +119,37 @@ theorem not_PeqNP_of_richerConcreteNP_surface_activeTemplateBlockers
   exact routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_activeTemplateBlockers
     M n hn2 htb hns hn4 (hblock M n hn hn2 htb hns)
 
+/-- Closeout with SPDP side reduced to compiledPoly scalar row-closure
+plus unprojected preimage closure, and P-window side discharged by
+active-template blockers. -/
+theorem not_PeqNP_of_richerConcreteNP_scalarPreimage_activeTemplateBlockers
+    (hscalar :
+      ∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        RouteBRicherConcreteNPCompiledPolyScalarRowClosure M n hn2 htb hns)
+    (hunprojected :
+      ∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        RouteBRicherConcreteNPUnprojectedSPDPPreimageClosure M n hn2 htb hns)
+    (hblock :
+      ∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinActiveProfileTemplateCollapseBlockers M n hn2 htb hns) :
+    ∀ (_ : PeqNP_Paper), False := by
+  apply not_PeqNP_of_richerConcreteNP_surface_activeTemplateBlockers
+  · intro M n hn hn2 htb hns hdec
+    exact routeBRicherConcreteNPWitnessRows_spdpSubspaceContainment_of_compiledPolyScalarRowClosure
+      M n hn2 htb hns
+      (hscalar M n hn hn2 htb hns)
+      (hunprojected M n hn hn2 htb hns)
+  · exact hblock
+
 #print axioms routeBTransportCertificateSeam_of_richerConcreteNP_surface
 #print axioms cookLevinRichProjectionDischarge_of_transportCertificateSeam
 #print axioms noBoundedSATDeciderAtPaperScale_of_transportCertificateSeam
 #print axioms not_PeqNP_of_transportCertificateSeam
 #print axioms not_PeqNP_of_richerConcreteNP_surface
 #print axioms not_PeqNP_of_richerConcreteNP_surface_activeTemplateBlockers
+#print axioms not_PeqNP_of_richerConcreteNP_scalarPreimage_activeTemplateBlockers
 
 end PallLean.Paper93.DeepMath.PathB
