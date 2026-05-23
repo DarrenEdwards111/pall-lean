@@ -978,6 +978,148 @@ theorem cookLevinBooleanityFactorProjectedSpanPayload_unconditional
           (X_true_mem_SATBlockBooleanityActualProjectedResidueSpan M n hn2 htb hns D
             (satBlockTrue M n hn2 htb hns D i))))
 
+/-! ### Paper-faithful one-coordinate Booleanity transport
+
+The SAT-block normal form above exposes two residue coordinates, `X_false` and
+`X_true`, because `Π+` is analysed in the local block chart.  Paper §17.1 and
+§9.2(P5), however, use a per-variable Booleanity interface: the compiled
+`W_τ` chart has one Boolean coordinate, not a two-coordinate
+`{false,true}` alphabet.  The transport below is the paper-faithful bridge: for
+one Booleanity interface, collapse the two block residues belonging to the same
+SAT variable-block to the canonical first coordinate.  Under this one-coordinate
+transport the false row is `1`, and the true row
+`1 + X_false - X_true` also becomes `1`.
+-/
+
+/-- One-coordinate Booleanity collapse map for the local block of `v`.
+
+It sends both SAT-block coordinates in `v`'s `Π+` block to the canonical first
+compiled coordinate and leaves all other coordinates untouched.  This is a
+coordinate transport into the paper's per-variable Booleanity chart; it is not
+an extension of the Booleanity interface alphabet. -/
+noncomputable def booleanityOneCoordinateCollapseMap
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (v : Fin (cook_levin_compilation M n hn2 htb hns).numVars) :
+    Fin (cook_levin_compilation M n hn2 htb hns).numVars →
+      Fin (cook_levin_compilation M n hn2 htb hns).numVars :=
+  fun a =>
+    if (D.coord a).1 = (D.coord v).1 then
+      ⟨0, by
+        have hpos : 0 < n := lt_of_lt_of_le (by norm_num : (0 : Nat) < 2) hn2
+        simpa [PaperFaithfulSeparation.cook_levin_numVars] using hpos⟩
+    else a
+
+/-- False-side Booleanity post-row after the paper-faithful one-coordinate
+collapse. -/
+theorem rename_booleanityOneCoordinateCollapseMap_booleanity_false_eq_one
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (i : D.blockIndex) :
+    MvPolynomial.rename
+        (booleanityOneCoordinateCollapseMap M n hn2 htb hns D
+          (satBlockFalse M n hn2 htb hns D i))
+        (mlProj
+          ((piPlusSATBlockAlgEquiv M n hn2 htb hns D).symm
+            (zeroProfileBooleanNormalize
+              (piPlusSATBlockAlgEquiv M n hn2 htb hns D
+                (((1 : MvPolynomial
+                    (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ) -
+                  X (satBlockFalse M n hn2 htb hns D i) *
+                    (1 - X (satBlockFalse M n hn2 htb hns D i))) :
+                  SATDeciderGaugeSpace M n hn2 htb hns))))) =
+      (1 : SATDeciderGaugeSpace M n hn2 htb hns) := by
+  rw [mlProj_piPlusSATBlockAlgEquiv_symm_booleanProjected_booleanity_false]
+  simp
+
+/-- True-side Booleanity post-row after the paper-faithful one-coordinate
+collapse.  This is the key cancellation: `1 + X_false - X_true` is transported
+to `1 + X₀ - X₀ = 1` in the paper's one-coordinate Booleanity chart. -/
+theorem rename_booleanityOneCoordinateCollapseMap_booleanity_true_eq_one
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (i : D.blockIndex) :
+    MvPolynomial.rename
+        (booleanityOneCoordinateCollapseMap M n hn2 htb hns D
+          (satBlockTrue M n hn2 htb hns D i))
+        (mlProj
+          ((piPlusSATBlockAlgEquiv M n hn2 htb hns D).symm
+            (zeroProfileBooleanNormalize
+              (piPlusSATBlockAlgEquiv M n hn2 htb hns D
+                (((1 : MvPolynomial
+                    (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ) -
+                  X (satBlockTrue M n hn2 htb hns D i) *
+                    (1 - X (satBlockTrue M n hn2 htb hns D i))) :
+                  SATDeciderGaugeSpace M n hn2 htb hns))))) =
+      (1 : SATDeciderGaugeSpace M n hn2 htb hns) := by
+  rw [mlProj_piPlusSATBlockAlgEquiv_symm_booleanProjected_booleanity_true_actualForm]
+  simp [booleanityOneCoordinateCollapseMap, satBlockFalse, satBlockTrue]
+
+/-- The actual Booleanity post-row, after the paper-faithful one-coordinate
+collapse, is the constant row. -/
+theorem rename_booleanityOneCoordinateCollapseMap_cookLevinBooleanityPostRow_eq_one
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (v : Fin n) :
+    MvPolynomial.rename
+        (booleanityOneCoordinateCollapseMap M n hn2 htb hns D v)
+        (cookLevinBooleanityPostRow M n hn2 htb hns D v) =
+      (1 : SATDeciderGaugeSpace M n hn2 htb hns) := by
+  let i : D.blockIndex := (D.coord v).1
+  by_cases hb : (D.coord v).2 = false
+  · have hpair : D.coord v = (i, false) := by
+      apply Prod.ext
+      · simp [i]
+      · exact hb
+    have hv : v = satBlockFalse M n hn2 htb hns D i := by
+      apply D.coord.injective
+      rw [hpair]
+      simp [satBlockFalse]
+    rw [hv]
+    unfold cookLevinBooleanityPostRow
+    simp only [boolLC, boolPoly']
+    exact rename_booleanityOneCoordinateCollapseMap_booleanity_false_eq_one
+      M n hn2 htb hns D i
+  · have hbtrue : (D.coord v).2 = true := by
+      cases h : (D.coord v).2 with
+      | false => exact False.elim (hb h)
+      | true => rfl
+    have hpair : D.coord v = (i, true) := by
+      apply Prod.ext
+      · simp [i]
+      · exact hbtrue
+    have hv : v = satBlockTrue M n hn2 htb hns D i := by
+      apply D.coord.injective
+      rw [hpair]
+      simp [satBlockTrue]
+    rw [hv]
+    unfold cookLevinBooleanityPostRow
+    simp only [boolLC, boolPoly']
+    exact rename_booleanityOneCoordinateCollapseMap_booleanity_true_eq_one
+      M n hn2 htb hns D i
+
+/-- Paper-faithful compiled-basis membership for the transported Booleanity
+post-row.  The row is first transported from the two-residue SAT-block normal
+form into the one-coordinate Booleanity chart, where it is simply the constant
+generator of `W_τ`. -/
+theorem rename_booleanityOneCoordinateCollapseMap_cookLevinBooleanityPostRow_mem_interfaceSpace
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (B : BlockPartition (cook_levin_compilation M n hn2 htb hns).numVars)
+    (κ ℓ : Nat) (v : Fin n) :
+    MvPolynomial.rename
+        (booleanityOneCoordinateCollapseMap M n hn2 htb hns D v)
+        (cookLevinBooleanityPostRow M n hn2 htb hns D v) ∈
+      interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity := by
+  rw [rename_booleanityOneCoordinateCollapseMap_cookLevinBooleanityPostRow_eq_one]
+  exact one_mem_interfaceSpace_compiledBasis_of_not_transitionRight B κ ℓ
+    ConstraintType.booleanity (by simp)
+
 /-- Residue-to-interface containment from the three concrete Booleanity residue
 generators.  This is the explicit index-alignment bridge: callers must supply
 that the block-local `1`, `X_false`, and `X_true` rows are represented inside the
@@ -1187,6 +1329,11 @@ theorem paperScale_booleanityProjectedRows_of_spanPayload_reduction
 #print axioms cookLevinBooleanity_postRow_finsetProd_mem_interface_symPower
 #print axioms cookLevinBooleanity_postRow_mem_symPower
 #print axioms paperScale_cookLevinBooleanity_postRow_mem_symPower
+#print axioms booleanityOneCoordinateCollapseMap
+#print axioms rename_booleanityOneCoordinateCollapseMap_booleanity_false_eq_one
+#print axioms rename_booleanityOneCoordinateCollapseMap_booleanity_true_eq_one
+#print axioms rename_booleanityOneCoordinateCollapseMap_cookLevinBooleanityPostRow_eq_one
+#print axioms rename_booleanityOneCoordinateCollapseMap_cookLevinBooleanityPostRow_mem_interfaceSpace
 #print axioms mlProj_piPlusSATBlockAlgEquiv_symm_booleanProjected_booleanity_false
 #print axioms mlProj_piPlusSATBlockAlgEquiv_symm_booleanProjected_booleanity_true_actualForm
 #print axioms mlProj_piPlusSATBlockAlgEquiv_symm_pderiv_false_booleanProjected_booleanity_false_actualForm
