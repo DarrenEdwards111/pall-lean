@@ -8,6 +8,7 @@ import PallLean.Paper93.DeepMath.Paper93MasterTheorem
 import PallLean.Paper93.DeepMath.PathB.PaperFaithfulRouteBStatus
 import PallLean.Paper93.DeepMath.PathB.PaperFaithfulOption203_205_207
 import PallLean.Paper93.DeepMath.PathB.RouteBTransportSeamClosure
+import PallLean.Paper93.DeepMath.PathB.RouteBNonScalarSeamAdapter
 
 /-!
 # Paper §28.3/§40 Final Readout
@@ -98,5 +99,13 @@ theorem paper93_routeB_nonScalar_transport_conditional
   not_PeqNP_of_nonScalarMapPreimage_activeTemplateBlockers_np hnon hblock hnp
 
 #print axioms paper93_routeB_nonScalar_transport_conditional
+
+/-- Named export for the thin non-scalar adapter layer (Step4 untouched). -/
+theorem paper93_routeB_nonScalar_adapter_conditional
+    (h : RouteBNonScalarSeamAdapterPackage) :
+    ∀ (_ : PeqNP_Paper), False :=
+  not_PeqNP_of_nonScalarSeamAdapterPackage h
+
+#print axioms paper93_routeB_nonScalar_adapter_conditional
 
 end PallLean.Paper93.DeepMath
