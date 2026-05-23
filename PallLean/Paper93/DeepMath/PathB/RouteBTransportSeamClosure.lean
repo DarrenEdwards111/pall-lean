@@ -169,6 +169,27 @@ theorem not_uniform_richerConcreteNP_scalarClosure_at_paperScale_of_PeqNP
     (not_routeBRicherConcreteNPCompiledPolyScalarRowClosure M0 n0 hn20 htb0 hns0)
       (hscalar M0 n0 hn0 hn20 htb0 hns0)
 
+/-- Under `PeqNP_Paper`, if the unprojected-preimage and active-template
+blocker sides both hold uniformly, then the scalar-row closure branch is
+impossible. This cleanly isolates the remaining non-scalar SPDP seam. -/
+theorem not_richerConcreteNP_scalarClosure_of_PeqNP_preimage_blockers
+    (hPeq : PeqNP_Paper)
+    (hunprojected :
+      ∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        RouteBRicherConcreteNPUnprojectedSPDPPreimageClosure M n hn2 htb hns)
+    (hblock :
+      ∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinActiveProfileTemplateCollapseBlockers M n hn2 htb hns) :
+    ¬ (∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        RouteBRicherConcreteNPCompiledPolyScalarRowClosure M n hn2 htb hns) := by
+  intro hscalar
+  exact
+    not_uniform_richerConcreteNP_scalarClosure_at_paperScale_of_PeqNP
+      hPeq hscalar
+
 #print axioms routeBTransportCertificateSeam_of_richerConcreteNP_surface
 #print axioms cookLevinRichProjectionDischarge_of_transportCertificateSeam
 #print axioms noBoundedSATDeciderAtPaperScale_of_transportCertificateSeam
@@ -177,5 +198,6 @@ theorem not_uniform_richerConcreteNP_scalarClosure_at_paperScale_of_PeqNP
 #print axioms not_PeqNP_of_richerConcreteNP_surface_activeTemplateBlockers
 #print axioms not_PeqNP_of_richerConcreteNP_scalarPreimage_activeTemplateBlockers
 #print axioms not_uniform_richerConcreteNP_scalarClosure_at_paperScale_of_PeqNP
+#print axioms not_richerConcreteNP_scalarClosure_of_PeqNP_preimage_blockers
 
 end PallLean.Paper93.DeepMath.PathB
