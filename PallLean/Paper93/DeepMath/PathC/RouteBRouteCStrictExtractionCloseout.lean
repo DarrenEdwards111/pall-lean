@@ -52,6 +52,26 @@ theorem routeB_routeC_finalSocket_closeout_via_strict_TPhi_extraction :
     routeCFinalSocketClosure_via_strict_TPhi_extraction,
     routeB_routeC_finalSocket_equivalence⟩
 
+/-- No-seam B/C final-socket closeout from strict `TΦ` extraction, conditional
+on the paper-faithful template-collapse frontier (which avoids the legacy
+`spdp_profile_generators` package). -/
+theorem routeB_routeC_finalSocket_closeout_via_strict_TPhi_extraction_no_seams
+    (hcollapse :
+      ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        WithinProfileBound.CookLevinProfileTemplateCollapseLemma
+          M n hn2 htb hns) :
+    RouteBVariationalClosure ∧ RouteCFinalSocketClosure ∧
+      (RouteBVariationalClosure ↔ RouteCFinalSocketClosure) := by
+  have hNo : NoBoundedSATDeciderAtPaperScale :=
+    PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_templateCollapse
+      hcollapse
+  have hB : RouteBVariationalClosure :=
+    variationalGodMoveCompressor_of_no_bounded_sat_decider hNo
+  have hC : RouteCFinalSocketClosure :=
+    routeCFinalSocketClosure_of_routeBVariationalClosure hB
+  exact ⟨hB, hC, routeB_routeC_finalSocket_equivalence⟩
+
 /-- `PeqNP_Paper` contradiction transported to the shared B/C final-socket
 presentation.  This is just the strict Route-B extraction closeout together with
 its B/C bridge packaging. -/
@@ -64,12 +84,37 @@ theorem isEmpty_PeqNP_Paper_via_strict_TPhi_BC_closeout :
     IsEmpty PeqNP_Paper :=
   ⟨not_PeqNP_Paper_via_strict_TPhi_BC_closeout⟩
 
+/-- No-seam B/C paper closeout, conditional on template-collapse frontier. -/
+theorem not_PeqNP_Paper_via_strict_TPhi_BC_closeout_no_seams
+    (hcollapse :
+      ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        WithinProfileBound.CookLevinProfileTemplateCollapseLemma
+          M n hn2 htb hns) :
+    ∀ (_ : PeqNP_Paper), False :=
+  noBoundedSATDeciderAtPaperScale_implies_not_PeqNP
+    (PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_templateCollapse
+      hcollapse)
+
+/-- No-seam empty-type packaging for the B/C strict-extraction closeout. -/
+theorem isEmpty_PeqNP_Paper_via_strict_TPhi_BC_closeout_no_seams
+    (hcollapse :
+      ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        WithinProfileBound.CookLevinProfileTemplateCollapseLemma
+          M n hn2 htb hns) :
+    IsEmpty PeqNP_Paper :=
+  ⟨not_PeqNP_Paper_via_strict_TPhi_BC_closeout_no_seams hcollapse⟩
+
 /-! ## Axiom audit anchors -/
 
 #print axioms routeBVariationalClosure_via_strict_TPhi_extraction
 #print axioms routeCFinalSocketClosure_via_strict_TPhi_extraction
 #print axioms routeB_routeC_finalSocket_closeout_via_strict_TPhi_extraction
+#print axioms routeB_routeC_finalSocket_closeout_via_strict_TPhi_extraction_no_seams
 #print axioms not_PeqNP_Paper_via_strict_TPhi_BC_closeout
 #print axioms isEmpty_PeqNP_Paper_via_strict_TPhi_BC_closeout
+#print axioms not_PeqNP_Paper_via_strict_TPhi_BC_closeout_no_seams
+#print axioms isEmpty_PeqNP_Paper_via_strict_TPhi_BC_closeout_no_seams
 
 end PallLean.Paper93.DeepMath.PathC

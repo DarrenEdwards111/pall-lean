@@ -44,10 +44,49 @@ theorem isEmpty_PeqNP_Paper_via_strict_TPhi_extraction :
     IsEmpty PeqNP_Paper :=
   ⟨not_PeqNP_Paper_via_strict_TPhi_extraction⟩
 
+/-- **No-seam Route-B closeout (conditional frontier form).**
+
+This route removes the legacy `spdp_profile_generators` dependency by using the
+paper-faithful template-collapse frontier directly. -/
+theorem noBoundedSATDeciderAtPaperScale_via_strict_TPhi_extraction_no_seams
+    (hcollapse :
+      ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        WithinProfileBound.CookLevinProfileTemplateCollapseLemma
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_templateCollapse
+    hcollapse
+
+/-- No-seam paper-level closeout: `PeqNP_Paper` contradiction from the strict
+`TΦ` extraction plus the template-collapse frontier. -/
+theorem not_PeqNP_Paper_via_strict_TPhi_extraction_no_seams
+    (hcollapse :
+      ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        WithinProfileBound.CookLevinProfileTemplateCollapseLemma
+          M n hn2 htb hns) :
+    ∀ (_ : PeqNP_Paper), False :=
+  noBoundedSATDeciderAtPaperScale_implies_not_PeqNP
+    (noBoundedSATDeciderAtPaperScale_via_strict_TPhi_extraction_no_seams hcollapse)
+
+/-- No-seam empty-type packaging for `PeqNP_Paper`. -/
+theorem isEmpty_PeqNP_Paper_via_strict_TPhi_extraction_no_seams
+    (hcollapse :
+      ∀ (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        WithinProfileBound.CookLevinProfileTemplateCollapseLemma
+          M n hn2 htb hns) :
+    IsEmpty PeqNP_Paper :=
+  ⟨not_PeqNP_Paper_via_strict_TPhi_extraction_no_seams hcollapse⟩
+
 /-! ## Axiom audit anchors -/
 
 #print axioms noBoundedSATDeciderAtPaperScale_via_strict_TPhi_extraction
 #print axioms not_PeqNP_Paper_via_strict_TPhi_extraction
 #print axioms isEmpty_PeqNP_Paper_via_strict_TPhi_extraction
+#print axioms noBoundedSATDeciderAtPaperScale_via_strict_TPhi_extraction_no_seams
+#print axioms not_PeqNP_Paper_via_strict_TPhi_extraction_no_seams
+#print axioms isEmpty_PeqNP_Paper_via_strict_TPhi_extraction_no_seams
 
 end PallLean.Paper93.DeepMath.PathB
