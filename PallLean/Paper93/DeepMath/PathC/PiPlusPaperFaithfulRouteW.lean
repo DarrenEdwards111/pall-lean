@@ -221,10 +221,161 @@ theorem cookLevinRouteWRowIndexedNaturallyProfiledGeneratorContainment_paperScal
     (cookLevinFactorConstraintType_paperScale M htb hns)
     transport hexp
 
+/-! ## Fixed-project uniformisation bridge
+
+The paper-faithful primitive above is row-indexed.  Some already-existing
+boundary-quotient lemmas, however, still consume the older fixed-`project` /
+fixed-`classifier` API.  The next structure records the **extra** datum needed
+to use those lemmas honestly: a uniform fixed projection/classifier which agrees
+with the row-indexed normal-form transport on every generated row.  Without this
+agreement datum, row-indexed Route W should not be silently coerced into the old
+fixed-project interface. -/
+
+/-- Extra uniformisation data allowing a paper-faithful row-indexed Route-W
+transport to be consumed by the older fixed-project boundary-quotient API. -/
+structure RouteWFixedProjectionUniformisation {N L : Nat}
+    (κ : Nat)
+    (factors : Fin L → MvPolynomial (Fin N) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (transport : RouteWRowNormalFormTransport κ factors constraintType) where
+  project : MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ
+  classifier : ProjectedPostRowProfileClassifier κ factors constraintType
+  project_agrees :
+    ∀ (h : ProfileHistogram)
+      (S : List (Fin N)) (_hS : S.length ≤ κ)
+      (shift : MvPolynomial (Fin N) ℚ) (_hshift : shift.vars ⊆ S.toFinset)
+      (g : MvPolynomial (Fin N) ℚ),
+        g ∈ boundedProfileClassifiedSet factors constraintType S h →
+          project (mlProj (shift * g)) =
+            routeWTransportedRow transport h S shift g
+  profile_agrees :
+    ∀ (h : ProfileHistogram)
+      (S : List (Fin N)) (_hS : S.length ≤ κ)
+      (shift : MvPolynomial (Fin N) ℚ) (_hshift : shift.vars ⊆ S.toFinset)
+      (g : MvPolynomial (Fin N) ℚ),
+        g ∈ boundedProfileClassifiedSet factors constraintType S h →
+          classifier.profile h S shift g = transport.profile h S shift g
+
+/-- Row-indexed Route-W containment descends to the old fixed-project generator
+containment only after supplying an explicit uniformisation agreement. -/
+theorem shiftAugmentedNaturallyProfiledProjectedGeneratorContainment_of_rowIndexed_uniformised
+    {N L : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat)
+    (factors : Fin L → MvPolynomial (Fin N) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (transport : RouteWRowNormalFormTransport κ factors constraintType)
+    (uniform : RouteWFixedProjectionUniformisation κ factors constraintType transport)
+    (hrow : RouteWRowIndexedNaturallyProfiledGeneratorContainment
+      B κ ℓ factors constraintType transport) :
+    ShiftAugmentedNaturallyProfiledProjectedGeneratorContainment
+      B κ ℓ factors constraintType uniform.project uniform.classifier := by
+  intro h S hS shift hshift g hg
+  rw [uniform.project_agrees h S hS shift hshift g hg]
+  rw [uniform.profile_agrees h S hS shift hshift g hg]
+  exact hrow h S hS shift hshift g hg
+
+/-- Consequently, a paper-faithful row-indexed containment plus an explicit
+uniformisation gives the existing boundary-quotient compression certificate. -/
+def shiftAugmentedNaturallyProfiledBoundaryQuotientCertificate_of_rowIndexed_uniformised
+    {N L : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat)
+    (factors : Fin L → MvPolynomial (Fin N) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (transport : RouteWRowNormalFormTransport κ factors constraintType)
+    (uniform : RouteWFixedProjectionUniformisation κ factors constraintType transport)
+    (hrow : RouteWRowIndexedNaturallyProfiledGeneratorContainment
+      B κ ℓ factors constraintType transport) :
+    ShiftAugmentedNaturallyProfiledBoundaryQuotientCompressionCertificate
+      B κ ℓ factors constraintType uniform.project uniform.classifier where
+  containment :=
+    shiftAugmentedNaturallyProfiledProjectedPostSpanContainment_of_generatorContainment
+      B κ ℓ factors constraintType uniform.project uniform.classifier
+      (shiftAugmentedNaturallyProfiledProjectedGeneratorContainment_of_rowIndexed_uniformised
+        B κ ℓ factors constraintType transport uniform hrow)
+
+/-- Paper-scale Cook--Levin version of the uniformisation datum. -/
+abbrev CookLevinRouteWFixedProjectionUniformisation_paperScale
+    (M : TuringMachine.DTM) (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ 2 ^ 804) (κ : Nat)
+    (transport : CookLevinRouteWRowNormalFormTransport_paperScale M htb hns κ) :=
+  RouteWFixedProjectionUniformisation κ
+    (fun i : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+        M htb hns).length =>
+      (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+        M htb hns)[i.val])
+    (cookLevinFactorConstraintType_paperScale M htb hns)
+    transport
+
+/-- Paper-scale Cook--Levin boundary-quotient certificate obtained from the
+row-indexed Route-W containment plus an explicit fixed-project uniformisation.
+This is the honest bridge from the paper-faithful Route-W surface back into the
+existing arity-5 finrank closeout. -/
+def cookLevinShiftAugmentedBoundaryQuotientCertificate_paperScale_of_rowIndexed_uniformised
+    (M : TuringMachine.DTM) (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ 2 ^ 804) (κ ℓ : Nat)
+    (transport : CookLevinRouteWRowNormalFormTransport_paperScale M htb hns κ)
+    (uniform : CookLevinRouteWFixedProjectionUniformisation_paperScale
+      M htb hns κ transport)
+    (hrow : CookLevinRouteWRowIndexedNaturallyProfiledGeneratorContainment_paperScale
+      M htb hns κ ℓ transport) :
+    ShiftAugmentedNaturallyProfiledBoundaryQuotientCompressionCertificate
+      (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+      κ ℓ
+      (fun i : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+          M htb hns).length =>
+        (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+          M htb hns)[i.val])
+      (cookLevinFactorConstraintType_paperScale M htb hns)
+      uniform.project uniform.classifier :=
+  shiftAugmentedNaturallyProfiledBoundaryQuotientCertificate_of_rowIndexed_uniformised
+    (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+    κ ℓ
+    (fun i : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+        M htb hns).length =>
+      (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+        M htb hns)[i.val])
+    (cookLevinFactorConstraintType_paperScale M htb hns)
+    transport uniform hrow
+
+/-- The same paper-scale certificate immediately yields the arity-5 projected
+within-profile finrank bound. -/
+theorem cookLevinShiftAugmentedProjectedWithinProfileFinrank_paperScale_of_rowIndexed_uniformised
+    (M : TuringMachine.DTM) (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ 2 ^ 804) (κ ℓ : Nat)
+    (transport : CookLevinRouteWRowNormalFormTransport_paperScale M htb hns κ)
+    (uniform : CookLevinRouteWFixedProjectionUniformisation_paperScale
+      M htb hns κ transport)
+    (hrow : CookLevinRouteWRowIndexedNaturallyProfiledGeneratorContainment_paperScale
+      M htb hns κ ℓ transport) :
+    ShiftAugmentedNaturallyProfiledProjectedWithinProfileFinrankClaim
+      (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+      κ ℓ
+      (fun i : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+          M htb hns).length =>
+        (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+          M htb hns)[i.val])
+      (cookLevinFactorConstraintType_paperScale M htb hns)
+      uniform.project uniform.classifier :=
+  shiftAugmentedNaturallyProfiledProjectedWithinProfileFinrank_of_boundaryQuotientCertificate
+    (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).partition
+    κ ℓ
+    (fun i : Fin (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+        M htb hns).length =>
+      (cookLevinPiPlusBooleanProjectedTransformedConstraintFactors_paperScale
+        M htb hns)[i.val])
+    (cookLevinFactorConstraintType_paperScale M htb hns)
+    uniform.project uniform.classifier
+    (cookLevinShiftAugmentedBoundaryQuotientCertificate_paperScale_of_rowIndexed_uniformised
+      M htb hns κ ℓ transport uniform hrow)
+
 /-! ## Axiom audit anchors -/
 
 #print axioms routeWRowIndexedNaturallyProfiledGeneratorContainment_of_expansion
 #print axioms fixedProjectRouteWTransport
 #print axioms cookLevinRouteWRowIndexedNaturallyProfiledGeneratorContainment_paperScale_of_expansion
+#print axioms shiftAugmentedNaturallyProfiledProjectedGeneratorContainment_of_rowIndexed_uniformised
+#print axioms shiftAugmentedNaturallyProfiledBoundaryQuotientCertificate_of_rowIndexed_uniformised
+#print axioms cookLevinShiftAugmentedBoundaryQuotientCertificate_paperScale_of_rowIndexed_uniformised
+#print axioms cookLevinShiftAugmentedProjectedWithinProfileFinrank_paperScale_of_rowIndexed_uniformised
 
 end PallLean.Paper93.DeepMath.PathC
