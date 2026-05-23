@@ -1126,7 +1126,7 @@ theorem product_leibniz_profile_cover
         (Nat.log 2 n) (Nat.log 2 n)
         (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ ⨆ i, spaces i := by
   obtain ⟨numP, bound, generators, hnumP, hbound, hcover⟩ :=
-    spdp_profile_generators M n hn htb hns
+    spdp_profile_generators_ARCHIVED_DELETED M n hn htb hns
   -- Define the profile subspaces as spans of each profile's generators
   let spaces : Fin numP → Submodule ℚ
       (MvPolynomial (Fin (cook_levin_compilation M n hn htb hns).numVars) ℚ) :=

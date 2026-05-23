@@ -1,4 +1,5 @@
 import PallLean.PaperFaithfulSeparation
+import PallLean.Paper93.DeepMath.PathB.NFrameGodMoveSeam
 
 namespace PallLean.Paper93.DeepMath.PathB
 
@@ -6,9 +7,9 @@ namespace PallLean.Paper93.DeepMath.PathB
     polynomial time. We re-export this for clarity in our Path B chain. -/
 def SATDecider : Type := PaperFaithfulSeparation.PeqNP_Paper
 
-/-- Existence: if there's a SAT decider with the polynomial-time bounds, the paper's
-    `P_ne_NP_unconditional` rejects this (i.e., produces False). -/
-theorem SATDecider_implies_False (decider : SATDecider) : False :=
-  PaperFaithfulSeparation.P_ne_NP_unconditional decider
+/-- Conditional form only: a SAT decider yields contradiction under Bridge-A. -/
+theorem SATDecider_implies_False_under_bridgeA
+    (hBridgeA : NFrameGodMoveBridgeA) (decider : SATDecider) : False :=
+  peqnp_false_of_nframe_godmove_bridgeA hBridgeA decider
 
 end PallLean.Paper93.DeepMath.PathB
