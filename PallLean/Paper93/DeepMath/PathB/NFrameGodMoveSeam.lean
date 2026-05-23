@@ -69,4 +69,13 @@ theorem not_nframe_godmove_bridgeA_of_PeqNP
 
 #print axioms not_nframe_godmove_bridgeA_of_PeqNP
 
+/-- Under `PeqNP_Paper`, Bridge-A would imply a contradiction. -/
+theorem peqnp_false_of_nframe_godmove_bridgeA
+    (hBridgeA : NFrameGodMoveBridgeA) :
+    PaperFaithfulSeparation.PeqNP_Paper → False := by
+  intro hPeq
+  exact (not_nframe_godmove_bridgeA_of_PeqNP hPeq) hBridgeA
+
+#print axioms peqnp_false_of_nframe_godmove_bridgeA
+
 end PallLean.Paper93.DeepMath.PathB
