@@ -220,6 +220,209 @@ noncomputable def interfaceSpace_compiledBasis
     Submodule ℚ (MvPolynomial (Fin N) ℚ) :=
   Submodule.span ℚ (canonicalInterfaceGenerators B κ ℓ σ : Set (MvPolynomial (Fin N) ℚ))
 
+/-! ## Paper-faithful shift-augmented interface chart
+
+The legacy `interfaceSpace_compiledBasis` above is the minimal three-slot local
+normal-form alphabet.  Route W needs the paper's actual `W_σ`: the per-interface
+row chart after the compiled coefficient basis has also absorbed bounded local
+shift rows.  We expose that strengthened chart explicitly here.  It remains
+constant-dimensional: the extra slots are still a fixed local alphabet, not a
+family indexed by ambient variables or by the global compiled-column set. -/
+
+/-- Constant arity of the shift-augmented local chart.  Slots are:
+`1`, first endpoint, second endpoint, endpoint product, and the Booleanity
+factor. -/
+def shiftAugmentedLocalArity : ℕ := 5
+
+/-- Slot 0 in the shift-augmented local chart. -/
+def shiftAugmentedConstSlot : Fin shiftAugmentedLocalArity := ⟨0, by simp [shiftAugmentedLocalArity]⟩
+
+/-- Slot 1 in the shift-augmented local chart. -/
+def shiftAugmentedFirstSlot : Fin shiftAugmentedLocalArity := ⟨1, by simp [shiftAugmentedLocalArity]⟩
+
+/-- Slot 2 in the shift-augmented local chart. -/
+def shiftAugmentedSecondSlot : Fin shiftAugmentedLocalArity := ⟨2, by simp [shiftAugmentedLocalArity]⟩
+
+/-- Slot 3 in the shift-augmented local chart. -/
+def shiftAugmentedPairSlot : Fin shiftAugmentedLocalArity := ⟨3, by simp [shiftAugmentedLocalArity]⟩
+
+/-- Slot 4 in the shift-augmented local chart. -/
+def shiftAugmentedBoolFactorSlot : Fin shiftAugmentedLocalArity := ⟨4, by simp [shiftAugmentedLocalArity]⟩
+
+/-- The local shifted endpoint-pair row.  This is the coefficient-basis normal
+form for a row endpoint multiplied by a local endpoint shift. -/
+noncomputable def canonicalLocalEndpointPair {N : ℕ} : MvPolynomial (Fin N) ℚ :=
+  canonicalLocalX * canonicalLocalX1
+
+/-- Paper-faithful shift-augmented local generator family.
+
+For active types we include the constant, both local endpoints, and the shifted
+endpoint product.  Booleanity also keeps the Booleanity factor slot; adjacency
+and transition-left use the same endpoint-product slot for the shifted local
+row.  The dormant transition-right type stays zero-generated. -/
+noncomputable def shiftAugmentedInterfacePolynomial
+    {N : ℕ} (_B : BlockPartition N) (_κ _ℓ : ℕ) (_σ : ConstraintType)
+    (j : Fin shiftAugmentedLocalArity) : MvPolynomial (Fin N) ℚ :=
+  match _σ with
+  | ConstraintType.booleanity =>
+      if j.1 = 0 then 1
+      else if j.1 = 1 then canonicalLocalX
+      else if j.1 = 2 then canonicalLocalX1
+      else if j.1 = 3 then canonicalLocalEndpointPair
+      else canonicalLocalBoolFactor
+  | ConstraintType.adjacency =>
+      if j.1 = 0 then 1
+      else if j.1 = 1 then canonicalLocalX
+      else if j.1 = 2 then canonicalLocalX1
+      else if j.1 = 3 then canonicalLocalEndpointPair
+      else 0
+  | ConstraintType.transitionLeft =>
+      if j.1 = 0 then 1
+      else if j.1 = 1 then canonicalLocalX
+      else if j.1 = 2 then canonicalLocalX1
+      else if j.1 = 3 then canonicalLocalEndpointPair
+      else 0
+  | ConstraintType.transitionRight =>
+      0
+
+/-- The paper-faithful shift-augmented generator set for `W_σ`. -/
+noncomputable def shiftAugmentedInterfaceGenerators
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (σ : ConstraintType) :
+    Finset (MvPolynomial (Fin N) ℚ) :=
+  (Finset.univ : Finset (Fin shiftAugmentedLocalArity)).image
+    (shiftAugmentedInterfacePolynomial B κ ℓ σ)
+
+/-- Paper-faithful shift-augmented interface space.  This is the Route-W chart
+matching the paper's `W_σ`: local factor rows plus their bounded local shifted
+coefficient-basis rows, with constant arity independent of `N`, `κ`, and `ℓ`. -/
+noncomputable def shiftAugmentedInterfaceSpace_compiledBasis
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (σ : ConstraintType) :
+    Submodule ℚ (MvPolynomial (Fin N) ℚ) :=
+  Submodule.span ℚ
+    (shiftAugmentedInterfaceGenerators B κ ℓ σ : Set (MvPolynomial (Fin N) ℚ))
+
+/-- The shift-augmented chart is finite-dimensional. -/
+theorem shiftAugmentedInterfaceSpace_compiledBasis_finite
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (σ : ConstraintType) :
+    Module.Finite ℚ ↥(shiftAugmentedInterfaceSpace_compiledBasis B κ ℓ σ) := by
+  classical
+  unfold shiftAugmentedInterfaceSpace_compiledBasis
+  exact Module.Finite.span_of_finite ℚ
+    (shiftAugmentedInterfaceGenerators B κ ℓ σ).finite_toSet
+
+/-- The shift-augmented chart still has constant arity. -/
+theorem shiftAugmentedInterfaceGenerators_card_le
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (σ : ConstraintType) :
+    (shiftAugmentedInterfaceGenerators B κ ℓ σ).card ≤ shiftAugmentedLocalArity := by
+  classical
+  unfold shiftAugmentedInterfaceGenerators
+  calc ((Finset.univ : Finset (Fin shiftAugmentedLocalArity)).image
+          (shiftAugmentedInterfacePolynomial B κ ℓ σ)).card
+      ≤ (Finset.univ : Finset (Fin shiftAugmentedLocalArity)).card := Finset.card_image_le
+    _ = shiftAugmentedLocalArity := by simp
+
+/-- Finrank bound for the paper-faithful shift-augmented chart. -/
+theorem shiftAugmentedInterfaceSpace_compiledBasis_finrank_le
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (σ : ConstraintType) :
+    Module.finrank ℚ ↥(shiftAugmentedInterfaceSpace_compiledBasis B κ ℓ σ) ≤
+      shiftAugmentedLocalArity := by
+  classical
+  unfold shiftAugmentedInterfaceSpace_compiledBasis
+  calc Module.finrank ℚ
+          ↥(Submodule.span ℚ
+            (shiftAugmentedInterfaceGenerators B κ ℓ σ : Set (MvPolynomial (Fin N) ℚ)))
+      ≤ (shiftAugmentedInterfaceGenerators B κ ℓ σ).card :=
+          finrank_span_finset_le_card (shiftAugmentedInterfaceGenerators B κ ℓ σ)
+    _ ≤ shiftAugmentedLocalArity :=
+          shiftAugmentedInterfaceGenerators_card_le B κ ℓ σ
+
+/-- The legacy three-slot chart embeds into the paper-faithful shift-augmented
+chart. -/
+theorem interfaceSpace_compiledBasis_le_shiftAugmented
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (σ : ConstraintType) :
+    interfaceSpace_compiledBasis B κ ℓ σ ≤
+      shiftAugmentedInterfaceSpace_compiledBasis B κ ℓ σ := by
+  classical
+  unfold interfaceSpace_compiledBasis shiftAugmentedInterfaceSpace_compiledBasis
+  apply Submodule.span_mono
+  intro p hp
+  unfold canonicalInterfaceGenerators at hp
+  simp only [Finset.mem_coe, Finset.mem_image, Finset.mem_univ, true_and] at hp
+  rcases hp with ⟨j, rfl⟩
+  show canonicalInterfacePolynomial B κ ℓ σ j ∈
+    (shiftAugmentedInterfaceGenerators B κ ℓ σ : Set (MvPolynomial (Fin N) ℚ))
+  unfold shiftAugmentedInterfaceGenerators
+  simp only [Finset.mem_coe, Finset.mem_image, Finset.mem_univ, true_and]
+  fin_cases j
+  · refine ⟨shiftAugmentedConstSlot, ?_⟩
+    cases σ <;> norm_num [canonicalInterfacePolynomial, shiftAugmentedInterfacePolynomial,
+      shiftAugmentedConstSlot, shiftAugmentedLocalArity]
+  · refine ⟨shiftAugmentedFirstSlot, ?_⟩
+    cases σ <;> norm_num [canonicalInterfacePolynomial, shiftAugmentedInterfacePolynomial,
+      canonicalInterfaceLinearSlot, shiftAugmentedFirstSlot, shiftAugmentedLocalArity, d₀]
+  · cases σ
+    · refine ⟨shiftAugmentedBoolFactorSlot, ?_⟩
+      norm_num [canonicalInterfacePolynomial, shiftAugmentedInterfacePolynomial,
+        canonicalInterfaceFactorSlot, shiftAugmentedBoolFactorSlot, shiftAugmentedLocalArity, d₀]
+    · refine ⟨shiftAugmentedSecondSlot, ?_⟩
+      norm_num [canonicalInterfacePolynomial, shiftAugmentedInterfacePolynomial,
+        canonicalInterfaceFactorSlot, shiftAugmentedSecondSlot, shiftAugmentedLocalArity, d₀]
+    · refine ⟨shiftAugmentedSecondSlot, ?_⟩
+      norm_num [canonicalInterfacePolynomial, shiftAugmentedInterfacePolynomial,
+        canonicalInterfaceFactorSlot, shiftAugmentedSecondSlot, shiftAugmentedLocalArity, d₀]
+    · refine ⟨shiftAugmentedConstSlot, ?_⟩
+      norm_num [canonicalInterfacePolynomial, shiftAugmentedInterfacePolynomial,
+        canonicalInterfaceFactorSlot, shiftAugmentedConstSlot, shiftAugmentedLocalArity, d₀]
+
+/-- Any shift-augmented canonical row belongs to the paper-faithful
+shift-augmented interface space. -/
+theorem shiftAugmentedInterfacePolynomial_mem_shiftAugmentedInterfaceSpace
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (σ : ConstraintType)
+    (j : Fin shiftAugmentedLocalArity) :
+    shiftAugmentedInterfacePolynomial B κ ℓ σ j ∈
+      shiftAugmentedInterfaceSpace_compiledBasis B κ ℓ σ := by
+  classical
+  unfold shiftAugmentedInterfaceSpace_compiledBasis
+  apply Submodule.subset_span
+  unfold shiftAugmentedInterfaceGenerators
+  simp only [Finset.mem_coe, Finset.mem_image, Finset.mem_univ, true_and]
+  exact ⟨j, rfl⟩
+
+/-- The paper-faithful Booleanity chart contains the second local coordinate. -/
+theorem canonicalLocalX1_mem_shiftAugmentedInterfaceSpace_booleanity
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) :
+    canonicalLocalX1 ∈
+      shiftAugmentedInterfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity := by
+  have hmem := shiftAugmentedInterfacePolynomial_mem_shiftAugmentedInterfaceSpace
+    B κ ℓ ConstraintType.booleanity shiftAugmentedSecondSlot
+  norm_num [shiftAugmentedInterfacePolynomial, shiftAugmentedSecondSlot,
+    shiftAugmentedLocalArity] at hmem
+  exact hmem
+
+/-- The paper-faithful active charts contain the local shifted endpoint-pair row. -/
+theorem canonicalLocalEndpointPair_mem_shiftAugmentedInterfaceSpace_of_not_transitionRight
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (σ : ConstraintType)
+    (hσ : σ ≠ ConstraintType.transitionRight) :
+    canonicalLocalEndpointPair ∈
+      shiftAugmentedInterfaceSpace_compiledBasis B κ ℓ σ := by
+  have hmem := shiftAugmentedInterfacePolynomial_mem_shiftAugmentedInterfaceSpace
+    B κ ℓ σ shiftAugmentedPairSlot
+  cases σ <;> try contradiction
+  all_goals
+    norm_num [shiftAugmentedInterfacePolynomial, shiftAugmentedPairSlot,
+      shiftAugmentedLocalArity] at hmem
+    exact hmem
+
+/-- Concrete second-coordinate membership in the paper-faithful Booleanity
+chart.  This intentionally supersedes the legacy one-coordinate obstruction for
+Route W uses of the augmented chart. -/
+theorem secondLocalX_mem_shiftAugmentedInterfaceSpace_booleanity
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ) (hN : 1 < N) :
+    MvPolynomial.X ⟨1, hN⟩ ∈
+      shiftAugmentedInterfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity := by
+  simpa [canonicalLocalX1, hN] using
+    canonicalLocalX1_mem_shiftAugmentedInterfaceSpace_booleanity B κ ℓ
+
 /-- The compiled-basis interface space is finite-dimensional as a
 ℚ-module, being the span of a finite set. -/
 theorem interfaceSpace_compiledBasis_finite
@@ -868,6 +1071,10 @@ theorem interfaceSpace_compiledBasis_ambient
     interfaceSpace_compiledBasis B κ ℓ σ ≤
       (⊤ : Submodule ℚ (MvPolynomial (Fin N) ℚ)) := le_top
 
+#print axioms shiftAugmentedInterfaceSpace_compiledBasis_finrank_le
+#print axioms interfaceSpace_compiledBasis_le_shiftAugmented
+#print axioms secondLocalX_mem_shiftAugmentedInterfaceSpace_booleanity
+#print axioms canonicalLocalEndpointPair_mem_shiftAugmentedInterfaceSpace_of_not_transitionRight
 #print axioms interfaceSpace_compiledBasis_transitionRight_eq_bot
 #print axioms one_not_mem_interfaceSpace_compiledBasis_transitionRight
 #print axioms secondLocalX_not_mem_interfaceSpace_compiledBasis_booleanity
