@@ -1,5 +1,6 @@
 import PallLean.Paper93.Paper283.RouteBFunctorialTransportCertificate
 import PallLean.Paper93.Paper283.RouteBRicherGaugeConcreteNP
+import PallLean.Paper93.Paper283.RouteBRicherGaugePWindowCover
 import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeFinalTarget
 import PallLean.Paper93.DeepMath.PathB.PeqNPBridge
 
@@ -94,10 +95,34 @@ theorem not_PeqNP_of_richerConcreteNP_surface
   not_PeqNP_of_transportCertificateSeam
     (routeBTransportCertificateSeam_of_richerConcreteNP_surface hcontain hcover)
 
+/-- Closeout with the P-window side discharged by active-template blockers. -/
+theorem not_PeqNP_of_richerConcreteNP_surface_activeTemplateBlockers
+    (hcontain :
+      ∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (_hdec : DecidesSAT M),
+        RouteBRicherGaugeSPDPSubspaceContainment M n hn2 htb hns
+          (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns
+            (routeBRicherConcreteNPWitnessRows M n hn2 htb hns)))
+    (hblock :
+      ∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinActiveProfileTemplateCollapseBlockers M n hn2 htb hns) :
+    ∀ (_ : PeqNP_Paper), False := by
+  apply not_PeqNP_of_richerConcreteNP_surface hcontain
+  intro M n hn hn2 htb hns hdec
+  have hn4 : n ≥ 4 := by
+    have hpow : (4 : Nat) ≤ 2 ^ 804 := by
+      native_decide
+    exact le_trans hpow hn
+  exact routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_activeTemplateBlockers
+    M n hn2 htb hns hn4 (hblock M n hn hn2 htb hns)
+
 #print axioms routeBTransportCertificateSeam_of_richerConcreteNP_surface
 #print axioms cookLevinRichProjectionDischarge_of_transportCertificateSeam
 #print axioms noBoundedSATDeciderAtPaperScale_of_transportCertificateSeam
 #print axioms not_PeqNP_of_transportCertificateSeam
 #print axioms not_PeqNP_of_richerConcreteNP_surface
+#print axioms not_PeqNP_of_richerConcreteNP_surface_activeTemplateBlockers
 
 end PallLean.Paper93.DeepMath.PathB
