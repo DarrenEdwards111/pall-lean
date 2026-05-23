@@ -465,31 +465,7 @@ theorem profile_compression_rank_bound_of_rawTouchedDerivCommonSpanAtProfile
     (WithinProfileBound.cookLevinAllBoundedProfileCommonSpan_of_rawTouchedDerivCommonSpanAtProfiles
       M n hn htb hns hraw)
 
-/-- **Theorem** (Profile Compression, Paper §9, Theorem 23/92):
-    The compiled polynomial of any P-time DTM has SPDP rank bounded by
-    the total profile bound (3 * log_2 n + 1)^12.
-
-    Previously an axiom; now derived from the HAL 9000 decomposition in
-    `SymmetricPowerBound.lean`. The honest remaining P-side frontier is smaller
-    than this theorem: `WithinProfileBound.CookLevinExactWithinProfileFinrankLemma`,
-    the direct compiled-family within-profile finrank statement for the actual
-    Cook-Levin factor family. This theorem is only the downstream assembly
-    wrapper. -/
-theorem profile_compression_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
-    mlBlockedSpdpRank
-      (cook_levin_compilation M n hn htb hns).partition
-      (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ totalProfileBound n := by
-  have h := SymmetricPowerBound.profile_compression_rank_bound M n hn htb hns
-  have heq : totalProfileBound n = (3 * Nat.log 2 n + 1) ^ 12 := totalProfileBound_eq n
-  rw [heq]
-  calc mlBlockedSpdpRank
-        (cook_levin_compilation M n hn htb hns).partition
-        (Nat.log 2 n) (Nat.log 2 n)
-        (compiledPoly (cook_levin_compilation M n hn htb hns))
-      ≤ (3 * Nat.log 2 n + 1) ^ 12 := h
-    _ = (3 * Nat.log 2 n + 1) ^ 12 := rfl
+-- ARCHIVED (inc3): unconditional profile_compression_rank_bound -> Archive/Paper93Unsafe/ProfileCompressionPSide.lean
 
 /-! ## Assembly: P-side Rank Bound
 
@@ -498,27 +474,7 @@ theorem profile_compression_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ 2)
     `totalProfileBound ≤ n^200`, we obtain
     the final P-side rank bound. -/
 
-/-- **Main Theorem**: P-side rank bound for cook_levin_compilation.
-
-    For the product polynomial P = Prod_i (1 - C_i) compiled from any P-time DTM M
-    at input size n >= 2, the multilinear blocked SPDP rank satisfies:
-
-      Gamma_{log n, log n}(P) <= n^200
-
-    Proof: `profile_compression_rank_bound` gives
-    `rank ≤ (3*log n + 1)^12`, and `totalProfileBound_le_pow` proves
-    `(3*log n + 1)^12 ≤ n^200` for `n ≥ 2`. -/
-theorem p_side_rank_bound_for_cook_levin (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
-    mlBlockedSpdpRank (cook_levin_compilation M n hn htb hns).partition
-      (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 := by
-  calc mlBlockedSpdpRank
-        (cook_levin_compilation M n hn htb hns).partition
-        (Nat.log 2 n) (Nat.log 2 n)
-        (compiledPoly (cook_levin_compilation M n hn htb hns))
-      ≤ totalProfileBound n := profile_compression_rank_bound M n hn htb hns
-    _ ≤ n ^ 200 := totalProfileBound_le_pow n hn
+-- ARCHIVED (inc3): unconditional p_side_rank_bound_for_cook_levin (false n^200 bound) -> Archive/Paper93Unsafe/ProfileCompressionPSide.lean
 
 /-- Smaller frontier version of the final P-side theorem: once the bounded
     within-profile finrank bound is established for a concrete compiled factor
