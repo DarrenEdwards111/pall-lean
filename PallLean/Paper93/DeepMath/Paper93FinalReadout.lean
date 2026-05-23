@@ -84,4 +84,19 @@ theorem paper93_routeB_nonScalar_seam_interface
 
 #print axioms paper93_routeB_nonScalar_seam_interface
 
+/-- Named export: non-scalar map-preimage Route-B closeout chain (still
+conditional on the remaining NP identity-minor lower-bound side for the
+prepended multilinear gauge). -/
+theorem paper93_routeB_nonScalar_transport_conditional
+    (hnon : RouteBRicherConcreteNPNonScalarMapPreimageSeam)
+    (hblock :
+      ∀ (M : TuringMachine.DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinActiveProfileTemplateCollapseBlockers M n hn2 htb hns)
+    (hnp : RouteBRicherConcreteNPPrependedMultilinearNPSeam) :
+    ∀ (_ : PeqNP_Paper), False :=
+  not_PeqNP_of_nonScalarMapPreimage_activeTemplateBlockers_np hnon hblock hnp
+
+#print axioms paper93_routeB_nonScalar_transport_conditional
+
 end PallLean.Paper93.DeepMath

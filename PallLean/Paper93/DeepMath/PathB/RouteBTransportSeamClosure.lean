@@ -224,6 +224,48 @@ theorem richerConcreteNP_nonScalarMapPreimage_required_of_PeqNP_preimage_blocker
       hPeq hunprojected hblock) hscalar
   · exact hnon
 
+/-- Uniform NP identity-minor side for the prepended multilinear concrete
+finite-row gauge. -/
+abbrev RouteBRicherConcreteNPPrependedMultilinearNPSeam : Prop :=
+  ∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (_hdec : DecidesSAT M),
+    RouteBSATProjectedNPIdentityMinorLowerBound M n hn2 htb hns
+      (routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearGauge M n hn2 htb hns))
+
+/-- Conditional non-scalar closeout: a uniform multilinear-tail map-preimage
+seam, plus active-template blocker P-window covers and a uniform NP identity-
+minor lower bound for the same prepended gauge, yields the Route-B transport
+certificate seam. -/
+theorem routeBTransportCertificateSeam_of_nonScalarMapPreimage_activeTemplateBlockers_np
+    (hnon : RouteBRicherConcreteNPNonScalarMapPreimageSeam)
+    (hblock :
+      ∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinActiveProfileTemplateCollapseBlockers M n hn2 htb hns)
+    (hnp : RouteBRicherConcreteNPPrependedMultilinearNPSeam) :
+    RouteBTransportCertificateSeam := by
+  intro M n hn hn2 htb hns hdec
+  refine ⟨routeBRicherConcreteNPPrependedMultilinearGauge M n hn2 htb hns, ?_⟩
+  have hcontain :
+      RouteBRicherGaugeSPDPSubspaceContainment M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearGauge M n hn2 htb hns) :=
+    (routeBRicherConcreteNPPrependedMultilinearRows_spdpMapPreimage_iff_spdpSubspaceContainment
+      M n hn2 htb hns).mp
+      (hnon M n hn hn2 htb hns)
+  have hn4 : n ≥ 4 := by
+    have hpow : (4 : Nat) ≤ 2 ^ 804 := by native_decide
+    exact le_trans hpow hn
+  let cover : RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns :=
+    routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_activeTemplateBlockers
+      M n hn2 htb hns hn4 (hblock M n hn hn2 htb hns)
+  exact
+    routeBRicherGauge_transportCertificate_of_subspaceContainment_finiteSpanCover
+      M n hn2 htb hns
+      (routeBRicherConcreteNPPrependedMultilinearGauge M n hn2 htb hns)
+      hcontain cover (hnp M n hn hn2 htb hns hdec)
+
 #print axioms routeBTransportCertificateSeam_of_richerConcreteNP_surface
 #print axioms cookLevinRichProjectionDischarge_of_transportCertificateSeam
 #print axioms noBoundedSATDeciderAtPaperScale_of_transportCertificateSeam
@@ -231,9 +273,25 @@ theorem richerConcreteNP_nonScalarMapPreimage_required_of_PeqNP_preimage_blocker
 #print axioms not_PeqNP_of_richerConcreteNP_surface
 #print axioms not_PeqNP_of_richerConcreteNP_surface_activeTemplateBlockers
 #print axioms not_PeqNP_of_richerConcreteNP_scalarPreimage_activeTemplateBlockers
+/-- Conditional contradiction form through the non-scalar prepended-gauge seam. -/
+theorem not_PeqNP_of_nonScalarMapPreimage_activeTemplateBlockers_np
+    (hnon : RouteBRicherConcreteNPNonScalarMapPreimageSeam)
+    (hblock :
+      ∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinActiveProfileTemplateCollapseBlockers M n hn2 htb hns)
+    (hnp : RouteBRicherConcreteNPPrependedMultilinearNPSeam) :
+    ∀ (_ : PeqNP_Paper), False :=
+  not_PeqNP_of_transportCertificateSeam
+    (routeBTransportCertificateSeam_of_nonScalarMapPreimage_activeTemplateBlockers_np
+      hnon hblock hnp)
+
 #print axioms not_uniform_richerConcreteNP_scalarClosure_at_paperScale_of_PeqNP
 #print axioms not_richerConcreteNP_scalarClosure_of_PeqNP_preimage_blockers
 #print axioms RouteBRicherConcreteNPNonScalarMapPreimageSeam
+#print axioms RouteBRicherConcreteNPPrependedMultilinearNPSeam
 #print axioms richerConcreteNP_nonScalarMapPreimage_required_of_PeqNP_preimage_blockers
+#print axioms routeBTransportCertificateSeam_of_nonScalarMapPreimage_activeTemplateBlockers_np
+#print axioms not_PeqNP_of_nonScalarMapPreimage_activeTemplateBlockers_np
 
 end PallLean.Paper93.DeepMath.PathB
