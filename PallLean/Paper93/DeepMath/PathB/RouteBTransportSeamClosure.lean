@@ -144,6 +144,31 @@ theorem not_PeqNP_of_richerConcreteNP_scalarPreimage_activeTemplateBlockers
       (hunprojected M n hn hn2 htb hns)
   · exact hblock
 
+/-- Under the paper bundle witness (`PeqNP_Paper`), the uniform scalar-row
+closure premise is inconsistent: it is refuted at the bundled decider by the
+concrete coefficient obstruction theorem. -/
+theorem not_uniform_richerConcreteNP_scalarClosure_at_paperScale_of_PeqNP
+    (hPeq : PeqNP_Paper)
+    (hscalar :
+      ∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        RouteBRicherConcreteNPCompiledPolyScalarRowClosure M n hn2 htb hns) :
+    False := by
+  let M0 : DTM := hPeq.decider
+  let n0 : Nat := 2 ^ 804
+  have hn0 : n0 ≥ 2 ^ 804 := by simp [n0]
+  have hn20 : n0 ≥ 2 := by
+    have hpow : (2 : Nat) ≤ 2 ^ 804 := by
+      native_decide
+    simpa [n0] using hpow
+  have htb0 : M0.timeBound ≤ 4 := by
+    simpa [M0] using hPeq.timeBound_le
+  have hns0 : M0.numStates ≤ n0 := by
+    simpa [M0, n0] using hPeq.numStates_bound
+  exact
+    (not_routeBRicherConcreteNPCompiledPolyScalarRowClosure M0 n0 hn20 htb0 hns0)
+      (hscalar M0 n0 hn0 hn20 htb0 hns0)
+
 #print axioms routeBTransportCertificateSeam_of_richerConcreteNP_surface
 #print axioms cookLevinRichProjectionDischarge_of_transportCertificateSeam
 #print axioms noBoundedSATDeciderAtPaperScale_of_transportCertificateSeam
@@ -151,5 +176,6 @@ theorem not_PeqNP_of_richerConcreteNP_scalarPreimage_activeTemplateBlockers
 #print axioms not_PeqNP_of_richerConcreteNP_surface
 #print axioms not_PeqNP_of_richerConcreteNP_surface_activeTemplateBlockers
 #print axioms not_PeqNP_of_richerConcreteNP_scalarPreimage_activeTemplateBlockers
+#print axioms not_uniform_richerConcreteNP_scalarClosure_at_paperScale_of_PeqNP
 
 end PallLean.Paper93.DeepMath.PathB
