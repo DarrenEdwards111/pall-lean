@@ -1651,7 +1651,9 @@ Historical progression of this canonical name:
 
 All prior variants remain available for reference/alternative use;
 only the canonical name moves forward. -/
-theorem P_ne_NP_unconditional : ∀ (_ : PeqNP_Paper), False :=
+-- BREAKING MODE (2026-05-23): archived/disabled by request.
+-- Legacy unconditional closeout name intentionally removed from live surface.
+theorem P_ne_NP_unconditional_ARCHIVED_DELETED : ∀ (_ : PeqNP_Paper), False :=
   P_ne_NP_via_rank_sandwich
 
 /-! ## Axiom audit
@@ -1723,7 +1725,9 @@ Proof: take any DTM M with timeBound ≤ 4 and numStates ≤ 2^804.
 Note: this uses `compiled_np_lower_bound_any_dtm` which does NOT require
 DecidesSAT. The NP-side lower bound applies to the compiled polynomial
 of ANY DTM, which is the root cause of the inconsistency. -/
-theorem spdp_profile_generators_inconsistent_with_np_side
+-- BREAKING MODE (2026-05-23): archived/disabled by request.
+-- Legacy theorem name intentionally removed from live surface.
+theorem spdp_profile_generators_inconsistent_with_np_side_ARCHIVED_DELETED
     (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) :
     False := by
   set n := 2 ^ 804 with hn_def
@@ -1825,7 +1829,9 @@ theorem for downstream reference.
 
 Paper cites: Theorem 203 (p. 195), Theorem 217 (p. 204), Theorem 231
 (p. 211), Theorem 232 (p. 213), §49 Conclusion (p. 229). -/
-theorem P_ne_NP_unconditional_step4 : ∀ (_ : PeqNP_Paper), False :=
+-- BREAKING MODE (2026-05-23): archived/disabled by request.
+-- Legacy step4 unconditional closeout name intentionally removed from live surface.
+theorem P_ne_NP_unconditional_step4_ARCHIVED_DELETED : ∀ (_ : PeqNP_Paper), False :=
   P_ne_NP_via_theorem207_from_narrow_gauge
 
 #print axioms P_ne_NP_unconditional_step4

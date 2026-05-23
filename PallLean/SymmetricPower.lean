@@ -1081,7 +1081,10 @@ The axiom provides:
 - generators : Fin numP → Fin bound → polynomial
 - The SPDP subspace is contained in span{generators i j | i, j}
 -/
-axiom spdp_profile_generators
+-- BREAKING MODE (2026-05-23): archived/disabled by request.
+-- The legacy axiom name `spdp_profile_generators` is intentionally removed
+-- from the live surface.
+axiom spdp_profile_generators_ARCHIVED_DELETED
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
     ∃ (numP bound : ℕ)
