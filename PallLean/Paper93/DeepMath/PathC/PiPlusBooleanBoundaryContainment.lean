@@ -64,6 +64,36 @@ theorem projectedPostSpanProfileContainment_of_generatorContainment {N L : Nat}
   rcases hq with ⟨S, hS, shift, hshift, g, hg, rfl⟩
   exact hgen h hadm S hS shift hshift g hg
 
+
+/-- Boundary quotient certificate constructor for the one-coordinate Booleanity
+project, conditional on the two real Route-W obligations: idempotence of the
+normalized collapse project and generator/profile containment after projection.
+This wires the new project into `BoundaryQuotientCompressionCertificate` without
+claiming the unprojected row-space rank is recovered from the quotient rank. -/
+noncomputable def booleanityOneCoordinateBoundaryQuotientCertificate_of_generatorContainment
+    {L : Nat}
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (B : BlockPartition (cook_levin_compilation M n hn2 htb hns).numVars)
+    (κ ℓ : Nat)
+    (factors : Fin L → SATDeciderGaugeSpace M n hn2 htb hns)
+    (constraintType : Fin L → ConstraintType)
+    (v : Fin (cook_levin_compilation M n hn2 htb hns).numVars)
+    (hidem : BooleanityOneCoordinateBoundaryProjectIdempotent
+      M n hn2 htb hns D v)
+    (hgen : ProjectedPostSpanGeneratorContainment B κ ℓ factors constraintType
+      (booleanityOneCoordinateBoundaryProject M n hn2 htb hns D v)) :
+    BoundaryQuotientCompressionCertificate B κ ℓ factors constraintType where
+  project := booleanityOneCoordinateBoundaryProject M n hn2 htb hns D v
+  project_idempotent :=
+    booleanityOneCoordinateBoundaryProject_idempotent_of_obligation
+      M n hn2 htb hns D v hidem
+  profile_containment :=
+    projectedPostSpanProfileContainment_of_generatorContainment
+      B κ ℓ factors constraintType
+      (booleanityOneCoordinateBoundaryProject M n hn2 htb hns D v) hgen
+
 /-- Boolean-normalized generator containment is the concrete coefficient-level
 Route-W obligation for the Boolean boundary quotient project. -/
 def BooleanBoundaryPostSpanGeneratorContainment {N L : Nat}
@@ -449,6 +479,7 @@ noncomputable def cookLevinBooleanBoundaryQuotientCompressionCertificate_paperSc
 
 #print axioms booleanityFactorSlotExpansion_of_mem_symPower
 #print axioms booleanityFactorSlotExpansion
+#print axioms booleanityOneCoordinateBoundaryQuotientCertificate_of_generatorContainment
 #print axioms BooleanityProfileClassifiedSymPowerBridge
 #print axioms booleanityFactorSlotExpansion_of_profileClassifiedBridge
 #print axioms booleanityOnlyFactorSlotExpansion_of_profileClassifiedBridge

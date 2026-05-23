@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathC.PiPlusBoundaryQuotient
 import PallLean.Paper93.DeepMath.PathC.PiPlusBooleanProjectedAction
+import PallLean.Paper93.DeepMath.PathC.PiPlusBooleanityProjectedRowObstruction
 
 /-!
 # Boolean boundary projection candidates
@@ -26,6 +27,9 @@ and records its idempotence as an obligation rather than assuming it.
 namespace PallLean.Paper93.DeepMath.PathC
 
 open MvPolynomial
+open SPDP
+open SymmetricPowerBound
+open PallLean.Paper93
 open PallLean.Paper93.DeepMath.PathB
 open PaperFaithfulSeparation
 open TuringMachine
@@ -73,6 +77,144 @@ theorem cookLevinBoundaryQuotientProject_paperScale_idempotent
   exact booleanBoundaryQuotientProject_idempotent
     (cook_levin_compilation M (2 ^ 804) paperScale_ge_two htb hns).numVars
 
+
+/-! ## Booleanity one-coordinate collapse projects
+
+The previous Booleanity analysis produced a paper-faithful one-coordinate
+collapse for the asymmetric `Π+` residues.  There are two natural coefficient
+maps:
+
+* the raw candidate requested first, `rename collapse ∘ booleanNormalize`;
+* the genuine quotient-shaped candidate, `booleanNormalize ∘ rename collapse ∘
+  booleanNormalize`, which re-normalizes after the non-injective rename has
+  identified coordinates.
+
+The second form is the one that can serve Route W: the final Boolean reduction
+is essential because a non-injective rename can turn a multilinear monomial such
+as `X_false * X_true` into `X₀^2`.
+-/
+
+/-- Raw candidate: collapse after Boolean normalization.  This is useful for
+calculation, but because the collapse rename is non-injective it need not land in
+Boolean normal form and should not be used directly as the Route-W projection. -/
+noncomputable def booleanityCollapseAfterNormalizeProject
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (v : Fin (cook_levin_compilation M n hn2 htb hns).numVars) :
+    SATDeciderGaugeSpace M n hn2 htb hns →ₗ[ℚ]
+      SATDeciderGaugeSpace M n hn2 htb hns :=
+  (MvPolynomial.rename
+      (BoolPoly.booleanityOneCoordinateCollapseMap M n hn2 htb hns D v)).toLinearMap.comp
+    (zeroProfileBooleanNormalizeLinearMap
+      (n := (cook_levin_compilation M n hn2 htb hns).numVars))
+
+@[simp] theorem booleanityCollapseAfterNormalizeProject_apply
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (v : Fin (cook_levin_compilation M n hn2 htb hns).numVars)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns) :
+    booleanityCollapseAfterNormalizeProject M n hn2 htb hns D v p =
+      MvPolynomial.rename
+        (BoolPoly.booleanityOneCoordinateCollapseMap M n hn2 htb hns D v)
+        (zeroProfileBooleanNormalize p) := rfl
+
+/-- Route-W Booleanity project: normalize, collapse the two local `Π+` residues
+to the paper's one Boolean coordinate, then normalize again. -/
+noncomputable def booleanityOneCoordinateBoundaryProject
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (v : Fin (cook_levin_compilation M n hn2 htb hns).numVars) :
+    SATDeciderGaugeSpace M n hn2 htb hns →ₗ[ℚ]
+      SATDeciderGaugeSpace M n hn2 htb hns :=
+  (zeroProfileBooleanNormalizeLinearMap
+      (n := (cook_levin_compilation M n hn2 htb hns).numVars)).comp
+    (booleanityCollapseAfterNormalizeProject M n hn2 htb hns D v)
+
+@[simp] theorem booleanityOneCoordinateBoundaryProject_apply
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (v : Fin (cook_levin_compilation M n hn2 htb hns).numVars)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns) :
+    booleanityOneCoordinateBoundaryProject M n hn2 htb hns D v p =
+      zeroProfileBooleanNormalize
+        (MvPolynomial.rename
+          (BoolPoly.booleanityOneCoordinateCollapseMap M n hn2 htb hns D v)
+          (zeroProfileBooleanNormalize p)) := rfl
+
+/-- Idempotence obligation for the Route-W one-coordinate Booleanity project.
+This is the right map to try to prove idempotent; the raw
+`rename ∘ booleanNormalize` candidate is deliberately not used as the
+certificate projection. -/
+def BooleanityOneCoordinateBoundaryProjectIdempotent
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (v : Fin (cook_levin_compilation M n hn2 htb hns).numVars) : Prop :=
+  (booleanityOneCoordinateBoundaryProject M n hn2 htb hns D v).comp
+      (booleanityOneCoordinateBoundaryProject M n hn2 htb hns D v) =
+    booleanityOneCoordinateBoundaryProject M n hn2 htb hns D v
+
+/-- Handoff from the idempotence obligation to the exact certificate field. -/
+theorem booleanityOneCoordinateBoundaryProject_idempotent_of_obligation
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (v : Fin (cook_levin_compilation M n hn2 htb hns).numVars)
+    (hidem : BooleanityOneCoordinateBoundaryProjectIdempotent
+      M n hn2 htb hns D v) :
+    (booleanityOneCoordinateBoundaryProject M n hn2 htb hns D v).comp
+        (booleanityOneCoordinateBoundaryProject M n hn2 htb hns D v) =
+      booleanityOneCoordinateBoundaryProject M n hn2 htb hns D v :=
+  hidem
+
+
+/-- The one-coordinate Route-W project sends the actual Booleanity post-row into
+`W_booleanity`.  This is the Booleanity-slot profile-containment atom: after
+normalization and collapse, the asymmetric true residue has become the constant
+compiled-basis row. -/
+theorem booleanityOneCoordinateBoundaryProject_cookLevinBooleanityPostRow_mem_interfaceSpace
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (B : BlockPartition (cook_levin_compilation M n hn2 htb hns).numVars)
+    (κ ℓ : Nat)
+    (v : Fin (cook_levin_compilation M n hn2 htb hns).numVars) :
+    booleanityOneCoordinateBoundaryProject M n hn2 htb hns D v
+        (BoolPoly.cookLevinBooleanityPostRow M n hn2 htb hns D v) ∈
+      interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity := by
+  rw [booleanityOneCoordinateBoundaryProject_apply]
+  have hnorm : zeroProfileBooleanNormalize
+      (BoolPoly.cookLevinBooleanityPostRow M n hn2 htb hns D v) =
+        BoolPoly.cookLevinBooleanityPostRow M n hn2 htb hns D v := by
+    unfold BoolPoly.cookLevinBooleanityPostRow
+    exact zeroProfileBooleanNormalize_mlProj _
+  rw [hnorm]
+  rw [BoolPoly.rename_booleanityOneCoordinateCollapseMap_cookLevinBooleanityPostRow_eq_one]
+  simp
+  exact one_mem_interfaceSpace_compiledBasis_of_not_transitionRight B κ ℓ
+    ConstraintType.booleanity (by simp)
+
+/-- Rank direction for the collapse projection: the image rank is bounded by the
+source rank.  This is the safe direction supplied by `Submodule.finrank_map_le`;
+it does **not** by itself recover a polynomial bound on the original uncollapsed
+row space from a bound on the collapsed/projected row space. -/
+theorem booleanityOneCoordinateBoundaryProject_finrank_image_le
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (v : Fin (cook_levin_compilation M n hn2 htb hns).numVars)
+    (W : Submodule ℚ (SATDeciderGaugeSpace M n hn2 htb hns))
+    [Module.Finite ℚ W] :
+    Module.finrank ℚ
+        (Submodule.map
+          (booleanityOneCoordinateBoundaryProject M n hn2 htb hns D v) W) ≤
+      Module.finrank ℚ W := by
+  exact Submodule.finrank_map_le _ _
+
 /-- The tempting natural composite `booleanNormalize ∘ Pi+` at paper scale.
 This is useful for transporting factors, but it is not by itself known to be an
 idempotent quotient projection. -/
@@ -113,6 +255,11 @@ theorem cookLevinPiPlusForwardThenBoundaryProject_paperScale_idempotent_of_oblig
 
 /-! ## Axiom audit anchors -/
 
+#print axioms booleanityCollapseAfterNormalizeProject_apply
+#print axioms booleanityOneCoordinateBoundaryProject_apply
+#print axioms booleanityOneCoordinateBoundaryProject_idempotent_of_obligation
+#print axioms booleanityOneCoordinateBoundaryProject_cookLevinBooleanityPostRow_mem_interfaceSpace
+#print axioms booleanityOneCoordinateBoundaryProject_finrank_image_le
 #print axioms booleanBoundaryQuotientProject_idempotent
 #print axioms cookLevinBoundaryQuotientProject_paperScale_idempotent
 #print axioms cookLevinPiPlusForwardThenBoundaryProject_paperScale_apply
