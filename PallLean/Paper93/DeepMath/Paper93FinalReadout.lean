@@ -7,6 +7,7 @@ import PallLean.Paper93.DeepMath.CookLevin.PaperFinalP_ne_NP
 import PallLean.Paper93.DeepMath.Paper93MasterTheorem
 import PallLean.Paper93.DeepMath.PathB.PaperFaithfulRouteBStatus
 import PallLean.Paper93.DeepMath.PathB.PaperFaithfulOption203_205_207
+import PallLean.Paper93.DeepMath.PathB.RouteBTransportSeamClosure
 
 /-!
 # Paper §28.3/§40 Final Readout
@@ -49,5 +50,14 @@ theorem paper93_routeB_option_conditional
   paperFaithful_option_conditional_closeout hBridgeA
 
 #print axioms paper93_routeB_option_conditional
+
+/-- Named export for the Route-B transport seam closeout chain.
+Conditional on a uniform transport certificate seam. -/
+theorem paper93_routeB_transport_seam_conditional
+    (hSeam : RouteBTransportCertificateSeam) :
+    ∀ (_ : PeqNP_Paper), False :=
+  not_PeqNP_of_transportCertificateSeam hSeam
+
+#print axioms paper93_routeB_transport_seam_conditional
 
 end PallLean.Paper93.DeepMath

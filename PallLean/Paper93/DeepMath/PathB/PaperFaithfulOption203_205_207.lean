@@ -21,7 +21,7 @@ if the explicit Bridge-A seam is provided, we get `PeqNP_Paper → False`. -/
 theorem paperFaithful_option_conditional_closeout
     (hBridgeA : NFrameGodMoveBridgeA) :
     ∀ (_ : PeqNP_Paper), False :=
-  routeB_positive_closure_from_nframe_godmove_bridgeA hBridgeA
+  peqnp_false_of_nframe_godmove_bridgeA hBridgeA
 
 /-- Frontier statement:
 the current strict same-target transport seam is incompatible at paper scale. -/
