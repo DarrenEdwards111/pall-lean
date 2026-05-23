@@ -112,6 +112,213 @@ def ProjectedWithinProfileFinrankClaim {N L : Nat}
         ↥(projectedAllBoundedProfilePostSpan
           B κ ℓ factors constraintType project h) ≤ withinProfileBound κ
 
+/-! ## Shift-augmented Route W chart
+
+The paper-faithful `W_σ` includes bounded local shifted rows in addition to the
+minimal three-slot local factor chart.  The following Route-W socket repeats the
+projected containment target with `shiftAugmentedInterfaceSpace_compiledBasis`.
+Its dimension budget is correspondingly arity-5 rather than arity-3. -/
+
+/-- Uniform within-profile bound for the shift-augmented arity-5 chart.  Four
+constraint types times `(5 - 1)` symmetric-power exponent gives `(κ+1)^16`. -/
+def shiftAugmentedWithinProfileBound (κ : Nat) : Nat := (κ + 1) ^ 16
+
+private theorem multichoose_mono_left (a b k : ℕ) (hab : a ≤ b) :
+    Nat.multichoose a k ≤ Nat.multichoose b k := by
+  by_cases hk : k = 0
+  · subst k
+    simp [Nat.multichoose_zero_right]
+  · rw [Nat.multichoose_eq a k, Nat.multichoose_eq b k]
+    exact Nat.choose_le_choose k (by omega)
+
+private theorem multichoose_five_le_pow_four (k : ℕ) :
+    Nat.multichoose 5 k ≤ (k + 1) ^ 4 := by
+  calc
+    Nat.multichoose 5 k = Nat.choose (5 + k - 1) k :=
+      Nat.multichoose_eq 5 k
+    _ = Nat.choose (k + 4) 4 := by
+      have hsum : 5 + k - 1 = k + 4 := by omega
+      rw [hsum]
+      rw [← Nat.choose_symm (by omega : k ≤ k + 4)]
+      congr 1
+      omega
+    _ ≤ (k + 1) ^ 4 := dim_sym_le k 4
+
+/-- Generic profile-subspace finrank bound by the actual per-type finranks. -/
+theorem profileSubspace_finrank_bound_by_finrank
+    {N : ℕ} {Iface : Type*} [Fintype Iface] [DecidableEq Iface]
+    (h : Iface → ℕ)
+    (W : Iface → Submodule ℚ (MvPolynomial (Fin N) ℚ))
+    (hW_fin : ∀ σ, Module.Finite ℚ ↥(W σ)) :
+    Module.finrank ℚ (profileSubspace h W) ≤
+      ∏ σ : Iface, Nat.multichoose
+        (Module.finrank ℚ ↥(W σ)) (h σ) := by
+  classical
+  set d : Iface → ℕ := fun σ => Module.finrank ℚ ↥(W σ) with hd_def
+  let b : ∀ σ, Module.Basis (Fin (d σ)) ℚ ↥(W σ) :=
+    fun σ => Module.finBasis ℚ ↥(W σ)
+  have hsub : profileSubspace h W ≤
+      Submodule.span ℚ
+        (Set.range (profileSymProd W b : ProfileIndex h d → _)) :=
+    profileSubspace_le_profileSymProd_span W b
+  haveI hfin_big : Module.Finite ℚ
+      ↥(Submodule.span ℚ (Set.range (profileSymProd W b : ProfileIndex h d → _))) := by
+    apply Module.Finite.span_of_finite
+    exact Set.finite_range _
+  calc
+    Module.finrank ℚ (profileSubspace h W)
+        ≤ Module.finrank ℚ
+            ↥(Submodule.span ℚ
+              (Set.range (profileSymProd W b : ProfileIndex h d → _))) :=
+          Submodule.finrank_mono hsub
+    _ ≤ Fintype.card (ProfileIndex h d) := by
+          exact PallLean.SymTensorPowerDim.finrank_span_range_le (profileSymProd W b)
+    _ = ∏ σ : Iface, Nat.multichoose (d σ) (h σ) := by
+          exact profileIndex_card h d
+    _ = ∏ σ : Iface, Nat.multichoose
+          (Module.finrank ℚ ↥(W σ)) (h σ) := by rfl
+
+/-- The arity-5 shift-augmented profile template is bounded by
+`(κ+1)^16` on admissible profiles. -/
+theorem shiftAugmented_profile_multichoose_le_withinProfileBound
+    (κ : ℕ) (h : ProfileHistogram) (hadm : ProfileAdmissible κ h) :
+    (∏ τ : ConstraintType,
+        Nat.multichoose shiftAugmentedLocalArity (h τ))
+      ≤ shiftAugmentedWithinProfileBound κ := by
+  classical
+  have hfac : ∀ τ : ConstraintType,
+      Nat.multichoose shiftAugmentedLocalArity (h τ) ≤ (h τ + 1) ^ 4 := by
+    intro τ
+    simpa [shiftAugmentedLocalArity] using multichoose_five_le_pow_four (h τ)
+  have hprod_le :
+      (∏ τ : ConstraintType, Nat.multichoose shiftAugmentedLocalArity (h τ))
+        ≤ ∏ τ : ConstraintType, (h τ + 1) ^ 4 :=
+    Finset.prod_le_prod (fun _ _ => Nat.zero_le _) (fun τ _ => hfac τ)
+  have hcomp : ∀ τ : ConstraintType, h τ ≤ κ :=
+    fun τ => admissibleProfile_component_le hadm τ
+  have hpow : ∀ τ : ConstraintType, (h τ + 1) ^ 4 ≤ (κ + 1) ^ 4 :=
+    fun τ => Nat.pow_le_pow_left (by have := hcomp τ; omega) 4
+  have hprod_pow :
+      (∏ τ : ConstraintType, (h τ + 1) ^ 4) ≤
+        ∏ _τ : ConstraintType, (κ + 1) ^ 4 :=
+    Finset.prod_le_prod (fun _ _ => Nat.zero_le _) (fun τ _ => hpow τ)
+  have hcard : Fintype.card ConstraintType = 4 := by decide
+  calc
+    (∏ τ : ConstraintType, Nat.multichoose shiftAugmentedLocalArity (h τ))
+        ≤ ∏ τ : ConstraintType, (h τ + 1) ^ 4 := hprod_le
+    _ ≤ ∏ _τ : ConstraintType, (κ + 1) ^ 4 := hprod_pow
+    _ = ((κ + 1) ^ 4) ^ Fintype.card ConstraintType := by
+        simp [Finset.prod_const]
+    _ = (κ + 1) ^ 16 := by
+        rw [hcard]
+        ring
+    _ = shiftAugmentedWithinProfileBound κ := rfl
+
+/-- Shift-augmented Route-W structural seam. -/
+def ShiftAugmentedProjectedPostSpanProfileContainment {N L : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat)
+    (factors : Fin L → MvPolynomial (Fin N) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (project : MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ) : Prop :=
+  ∀ h : ProfileHistogram,
+    ProfileAdmissible κ h →
+      projectedAllBoundedProfilePostSpan B κ ℓ factors constraintType project h ≤
+        profileSubspace h
+          (fun σ : ConstraintType =>
+            shiftAugmentedInterfaceSpace_compiledBasis B κ ℓ σ)
+
+/-- Shift-augmented projected within-profile finrank claim. -/
+def ShiftAugmentedProjectedWithinProfileFinrankClaim {N L : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat)
+    (factors : Fin L → MvPolynomial (Fin N) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (project : MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ) : Prop :=
+  ∀ h : ProfileHistogram,
+    Module.finrank ℚ
+        ↥(projectedAllBoundedProfilePostSpan
+          B κ ℓ factors constraintType project h) ≤ shiftAugmentedWithinProfileBound κ
+
+/-- Arity-5 Lemma-31 closeout for the shift-augmented Route-W chart. -/
+theorem shiftAugmentedProjectedWithinProfileFinrank_of_profileContainment
+    {N L : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat)
+    (factors : Fin L → MvPolynomial (Fin N) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (project : MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ)
+    (hcontain : ShiftAugmentedProjectedPostSpanProfileContainment
+      B κ ℓ factors constraintType project) :
+    ShiftAugmentedProjectedWithinProfileFinrankClaim
+      B κ ℓ factors constraintType project := by
+  intro h
+  by_cases hadm : ProfileAdmissible κ h
+  · haveI hprofileFinite : Module.Finite ℚ
+        ↥(profileSubspace h
+          (fun σ : ConstraintType =>
+            shiftAugmentedInterfaceSpace_compiledBasis B κ ℓ σ)) := by
+      classical
+      let W : ConstraintType → Submodule ℚ (MvPolynomial (Fin N) ℚ) :=
+        fun σ => shiftAugmentedInterfaceSpace_compiledBasis B κ ℓ σ
+      set d : ConstraintType → ℕ := fun σ => Module.finrank ℚ ↥(W σ) with hd_def
+      haveI hW_fin : ∀ σ, Module.Finite ℚ ↥(W σ) :=
+        fun σ => shiftAugmentedInterfaceSpace_compiledBasis_finite B κ ℓ σ
+      let b : ∀ σ, Module.Basis (Fin (d σ)) ℚ ↥(W σ) :=
+        fun σ => Module.finBasis ℚ ↥(W σ)
+      have hsub : profileSubspace h W ≤
+          Submodule.span ℚ
+            (Set.range (profileSymProd W b : ProfileIndex h d → _)) :=
+        profileSubspace_le_profileSymProd_span W b
+      haveI hfin_big : Module.Finite ℚ
+          ↥(Submodule.span ℚ
+            (Set.range (profileSymProd W b : ProfileIndex h d → _))) := by
+        apply Module.Finite.span_of_finite
+        exact Set.finite_range _
+      exact Module.Finite.of_injective (Submodule.inclusion hsub) (by
+        intro x y hxy
+        exact Subtype.ext (congrArg
+          (fun z : ↥(Submodule.span ℚ
+            (Set.range (profileSymProd W b : ProfileIndex h d → _))) =>
+            (z : MvPolynomial (Fin N) ℚ)) hxy))
+    have hmono := Submodule.finrank_mono (hcontain h hadm)
+    have hprofile : Module.finrank ℚ
+        (profileSubspace h
+          (fun σ : ConstraintType =>
+            shiftAugmentedInterfaceSpace_compiledBasis B κ ℓ σ)) ≤
+        ∏ σ : ConstraintType, Nat.multichoose
+          (Module.finrank ℚ
+            ↥(shiftAugmentedInterfaceSpace_compiledBasis B κ ℓ σ))
+          (h σ) :=
+      profileSubspace_finrank_bound_by_finrank h
+        (fun σ : ConstraintType => shiftAugmentedInterfaceSpace_compiledBasis B κ ℓ σ)
+        (fun σ => shiftAugmentedInterfaceSpace_compiledBasis_finite B κ ℓ σ)
+    have hdim_mono :
+        (∏ σ : ConstraintType, Nat.multichoose
+          (Module.finrank ℚ
+            ↥(shiftAugmentedInterfaceSpace_compiledBasis B κ ℓ σ))
+          (h σ)) ≤
+        ∏ σ : ConstraintType, Nat.multichoose shiftAugmentedLocalArity (h σ) := by
+      refine Finset.prod_le_prod (fun _ _ => Nat.zero_le _) ?_
+      intro σ _
+      exact multichoose_mono_left _ _ _
+        (shiftAugmentedInterfaceSpace_compiledBasis_finrank_le B κ ℓ σ)
+    exact hmono.trans (hprofile.trans
+      (hdim_mono.trans
+        (shiftAugmented_profile_multichoose_le_withinProfileBound κ h hadm)))
+  · have hproj_zero :
+        projectedAllBoundedProfilePostSpan B κ ℓ factors constraintType project h = ⊥ := by
+      apply le_antisymm
+      · apply Submodule.span_le.mpr
+        intro q hq
+        simp only [Set.mem_iUnion, Set.mem_image] at hq
+        rcases hq with ⟨S, hS, shift, hshift, g, hg, rfl⟩
+        have hSadm : ProfileAdmissible S.length h :=
+          boundedProfileClassifiedSet_profile_admissible
+            factors constraintType S h g hg
+        have hkadm : ProfileAdmissible κ h := le_trans hSadm hS
+        exact False.elim (hadm hkadm)
+      · exact bot_le
+    rw [hproj_zero]
+    simp [shiftAugmentedWithinProfileBound]
+
 /-- Exact Route-W structural seam: after projection, every profile-`h` post-row
 is contained in the canonical compiled-basis profile subspace.  Lemma 31 then
 supplies the dimension bound. -/
@@ -257,6 +464,227 @@ theorem naturallyProfiledProjectedPostSpanContainment_of_generatorContainment
   rcases hq with ⟨h, S, hS, shift, hshift, g, ⟨hg, hρ⟩, rfl⟩
   rw [← hρ]
   exact hgen h S hS shift hshift g hg
+
+/-- Symmetric powers are monotone under enlargement of the underlying local
+space. -/
+theorem symPower_mono_of_le_local
+    {N : ℕ} {W W' : Submodule ℚ (MvPolynomial (Fin N) ℚ)} {k : ℕ}
+    (hW : W ≤ W') :
+    PallLean.SymTensorPowerDim.symPower ℚ k W ≤ PallLean.SymTensorPowerDim.symPower ℚ k W' := by
+  classical
+  unfold PallLean.SymTensorPowerDim.symPower
+  refine Submodule.span_mono ?_
+  rintro p ⟨f, hf, rfl⟩
+  exact ⟨f, fun i => hW (hf i), rfl⟩
+
+/-- Profile subspaces are monotone under pointwise enlargement of the per-type
+spaces. -/
+theorem profileSubspace_mono_of_le_local
+    {N : ℕ} {h : ProfileHistogram}
+    {W W' : ConstraintType → Submodule ℚ (MvPolynomial (Fin N) ℚ)}
+    (hW : ∀ τ, W τ ≤ W' τ) :
+    profileSubspace h W ≤ profileSubspace h W' := by
+  classical
+  unfold profileSubspace
+  refine Submodule.span_mono ?_
+  rintro p ⟨f, hf, rfl⟩
+  exact ⟨f, fun τ => symPower_mono_of_le_local (hW τ) (hf τ), rfl⟩
+
+/-- Shift-augmented generator-level natural-profile containment.  This is the
+first concrete discharge target after adding the arity-5 paper chart: each
+actual projected row must expand in the profile subspace whose per-type space is
+`shiftAugmentedInterfaceSpace_compiledBasis`. -/
+def ShiftAugmentedNaturallyProfiledProjectedGeneratorContainment {N L : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat)
+    (factors : Fin L → MvPolynomial (Fin N) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (project : MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ)
+    (classifier : ProjectedPostRowProfileClassifier κ factors constraintType) : Prop :=
+  ∀ (h : ProfileHistogram)
+    (S : List (Fin N)) (_hS : S.length ≤ κ)
+    (shift : MvPolynomial (Fin N) ℚ) (_hshift : shift.vars ⊆ S.toFinset)
+    (g : MvPolynomial (Fin N) ℚ),
+      g ∈ boundedProfileClassifiedSet factors constraintType S h →
+        project (mlProj (shift * g)) ∈
+          profileSubspace (classifier.profile h S shift g)
+            (fun σ : ConstraintType =>
+              shiftAugmentedInterfaceSpace_compiledBasis B κ ℓ σ)
+
+/-- The legacy natural-profile generator containment automatically targets the
+shift-augmented chart, because the three-slot chart embeds into the arity-5
+chart pointwise.  This is a useful sanity check, but the paper-faithful
+discharge should prove the stronger augmented generator expansion directly. -/
+theorem shiftAugmentedNaturallyProfiledProjectedGeneratorContainment_of_legacy
+    {N L : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat)
+    (factors : Fin L → MvPolynomial (Fin N) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (project : MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ)
+    (classifier : ProjectedPostRowProfileClassifier κ factors constraintType)
+    (hlegacy : NaturallyProfiledProjectedGeneratorContainment
+      B κ ℓ factors constraintType project classifier) :
+    ShiftAugmentedNaturallyProfiledProjectedGeneratorContainment
+      B κ ℓ factors constraintType project classifier := by
+  intro h S hS shift hshift g hg
+  exact profileSubspace_mono_of_le_local
+    (fun σ => interfaceSpace_compiledBasis_le_shiftAugmented B κ ℓ σ)
+    (hlegacy h S hS shift hshift g hg)
+
+/-- Shift-augmented natural-profile span containment. -/
+def ShiftAugmentedNaturallyProfiledProjectedPostSpanContainment {N L : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat)
+    (factors : Fin L → MvPolynomial (Fin N) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (project : MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ)
+    (classifier : ProjectedPostRowProfileClassifier κ factors constraintType) : Prop :=
+  ∀ ρ : ProfileHistogram,
+    ProfileAdmissible κ ρ →
+      naturallyProfiledProjectedPostSpan
+          B κ ℓ factors constraintType project classifier ρ ≤
+        profileSubspace ρ
+          (fun σ : ConstraintType =>
+            shiftAugmentedInterfaceSpace_compiledBasis B κ ℓ σ)
+
+/-- Generator-level shift-augmented natural containment implies span-level
+containment. -/
+theorem shiftAugmentedNaturallyProfiledProjectedPostSpanContainment_of_generatorContainment
+    {N L : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat)
+    (factors : Fin L → MvPolynomial (Fin N) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (project : MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ)
+    (classifier : ProjectedPostRowProfileClassifier κ factors constraintType)
+    (hgen : ShiftAugmentedNaturallyProfiledProjectedGeneratorContainment
+      B κ ℓ factors constraintType project classifier) :
+    ShiftAugmentedNaturallyProfiledProjectedPostSpanContainment
+      B κ ℓ factors constraintType project classifier := by
+  intro ρ _hρadm
+  apply Submodule.span_le.mpr
+  intro q hq
+  simp only [Set.mem_iUnion, Set.mem_image, Set.mem_setOf_eq] at hq
+  rcases hq with ⟨h, S, hS, shift, hshift, g, ⟨hg, hρ⟩, rfl⟩
+  rw [← hρ]
+  exact hgen h S hS shift hshift g hg
+
+/-- Shift-augmented natural-profile projected within-profile finrank claim. -/
+def ShiftAugmentedNaturallyProfiledProjectedWithinProfileFinrankClaim {N L : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat)
+    (factors : Fin L → MvPolynomial (Fin N) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (project : MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ)
+    (classifier : ProjectedPostRowProfileClassifier κ factors constraintType) : Prop :=
+  ∀ ρ : ProfileHistogram,
+    Module.finrank ℚ
+        ↥(naturallyProfiledProjectedPostSpan
+          B κ ℓ factors constraintType project classifier ρ) ≤
+      shiftAugmentedWithinProfileBound κ
+
+/-- Arity-5 Lemma-31 closeout for the natural-profile shift-augmented Route-W
+chart.  This verifies that the dimension machinery survives the chart extension:
+once generator containment into the augmented `W_σ` is supplied, the resulting
+profile bucket is bounded by `(κ+1)^16`. -/
+theorem shiftAugmentedNaturallyProfiledProjectedWithinProfileFinrank_of_containment
+    {N L : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat)
+    (factors : Fin L → MvPolynomial (Fin N) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (project : MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ)
+    (classifier : ProjectedPostRowProfileClassifier κ factors constraintType)
+    (hcontain : ShiftAugmentedNaturallyProfiledProjectedPostSpanContainment
+      B κ ℓ factors constraintType project classifier) :
+    ShiftAugmentedNaturallyProfiledProjectedWithinProfileFinrankClaim
+      B κ ℓ factors constraintType project classifier := by
+  intro ρ
+  by_cases hρadm : ProfileAdmissible κ ρ
+  · haveI hprofileFinite : Module.Finite ℚ
+        ↥(profileSubspace ρ
+          (fun σ : ConstraintType =>
+            shiftAugmentedInterfaceSpace_compiledBasis B κ ℓ σ)) := by
+      classical
+      let W : ConstraintType → Submodule ℚ (MvPolynomial (Fin N) ℚ) :=
+        fun σ => shiftAugmentedInterfaceSpace_compiledBasis B κ ℓ σ
+      set d : ConstraintType → ℕ := fun σ => Module.finrank ℚ ↥(W σ) with hd_def
+      haveI hW_fin : ∀ σ, Module.Finite ℚ ↥(W σ) :=
+        fun σ => shiftAugmentedInterfaceSpace_compiledBasis_finite B κ ℓ σ
+      let b : ∀ σ, Module.Basis (Fin (d σ)) ℚ ↥(W σ) :=
+        fun σ => Module.finBasis ℚ ↥(W σ)
+      have hsub : profileSubspace ρ W ≤
+          Submodule.span ℚ
+            (Set.range (profileSymProd W b : ProfileIndex ρ d → _)) :=
+        profileSubspace_le_profileSymProd_span W b
+      haveI hfin_big : Module.Finite ℚ
+          ↥(Submodule.span ℚ
+            (Set.range (profileSymProd W b : ProfileIndex ρ d → _))) := by
+        apply Module.Finite.span_of_finite
+        exact Set.finite_range _
+      exact Module.Finite.of_injective (Submodule.inclusion hsub) (by
+        intro x y hxy
+        exact Subtype.ext (congrArg
+          (fun z : ↥(Submodule.span ℚ
+            (Set.range (profileSymProd W b : ProfileIndex ρ d → _))) =>
+            (z : MvPolynomial (Fin N) ℚ)) hxy))
+    have hmono := Submodule.finrank_mono (hcontain ρ hρadm)
+    have hprofile : Module.finrank ℚ
+        (profileSubspace ρ
+          (fun σ : ConstraintType =>
+            shiftAugmentedInterfaceSpace_compiledBasis B κ ℓ σ)) ≤
+        ∏ σ : ConstraintType, Nat.multichoose
+          (Module.finrank ℚ
+            ↥(shiftAugmentedInterfaceSpace_compiledBasis B κ ℓ σ))
+          (ρ σ) :=
+      profileSubspace_finrank_bound_by_finrank ρ
+        (fun σ : ConstraintType => shiftAugmentedInterfaceSpace_compiledBasis B κ ℓ σ)
+        (fun σ => shiftAugmentedInterfaceSpace_compiledBasis_finite B κ ℓ σ)
+    have hdim_mono :
+        (∏ σ : ConstraintType, Nat.multichoose
+          (Module.finrank ℚ
+            ↥(shiftAugmentedInterfaceSpace_compiledBasis B κ ℓ σ))
+          (ρ σ)) ≤
+        ∏ σ : ConstraintType, Nat.multichoose shiftAugmentedLocalArity (ρ σ) := by
+      refine Finset.prod_le_prod (fun _ _ => Nat.zero_le _) ?_
+      intro σ _
+      exact multichoose_mono_left _ _ _
+        (shiftAugmentedInterfaceSpace_compiledBasis_finrank_le B κ ℓ σ)
+    exact hmono.trans (hprofile.trans
+      (hdim_mono.trans
+        (shiftAugmented_profile_multichoose_le_withinProfileBound κ ρ hρadm)))
+  · have hbucket_zero :
+        naturallyProfiledProjectedPostSpan B κ ℓ factors constraintType project classifier ρ = ⊥ := by
+      apply le_antisymm
+      · apply Submodule.span_le.mpr
+        intro q hq
+        simp only [Set.mem_iUnion, Set.mem_image, Set.mem_setOf_eq] at hq
+        rcases hq with ⟨h, S, hS, shift, hshift, g, ⟨hg, hρ⟩, rfl⟩
+        have hadm := classifier.profile_admissible h S hS shift hshift g hg
+        exact False.elim (hρadm (by simpa [hρ] using hadm))
+      · exact bot_le
+    rw [hbucket_zero]
+    simp [shiftAugmentedWithinProfileBound]
+
+/-- Certificate wrapper for the shift-augmented natural Route-W path. -/
+structure ShiftAugmentedNaturallyProfiledBoundaryQuotientCompressionCertificate {N L : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat)
+    (factors : Fin L → MvPolynomial (Fin N) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (project : MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ)
+    (classifier : ProjectedPostRowProfileClassifier κ factors constraintType) where
+  containment : ShiftAugmentedNaturallyProfiledProjectedPostSpanContainment
+    B κ ℓ factors constraintType project classifier
+
+/-- A shift-augmented certificate gives the arity-5 projected bucket bound. -/
+theorem shiftAugmentedNaturallyProfiledProjectedWithinProfileFinrank_of_boundaryQuotientCertificate
+    {N L : Nat}
+    (B : BlockPartition N) (κ ℓ : Nat)
+    (factors : Fin L → MvPolynomial (Fin N) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (project : MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ)
+    (classifier : ProjectedPostRowProfileClassifier κ factors constraintType)
+    (cert : ShiftAugmentedNaturallyProfiledBoundaryQuotientCompressionCertificate
+      B κ ℓ factors constraintType project classifier) :
+    ShiftAugmentedNaturallyProfiledProjectedWithinProfileFinrankClaim
+      B κ ℓ factors constraintType project classifier :=
+  shiftAugmentedNaturallyProfiledProjectedWithinProfileFinrank_of_containment
+    B κ ℓ factors constraintType project classifier cert.containment
 
 /-- Natural-profile projected within-profile finrank claim. -/
 def NaturallyProfiledProjectedWithinProfileFinrankClaim {N L : Nat}
@@ -445,6 +873,10 @@ theorem projectedWithinProfileFinrank_of_boundaryQuotientCertificate {N L : Nat}
 #print axioms projectedBoundedProfilePostSpan_le_projectedAllBoundedProfilePostSpan
 #print axioms naturallyProfiledProjectedPostSpan_generator_mem
 #print axioms naturallyProfiledProjectedPostSpanContainment_of_generatorContainment
+#print axioms shiftAugmentedNaturallyProfiledProjectedGeneratorContainment_of_legacy
+#print axioms shiftAugmentedNaturallyProfiledProjectedPostSpanContainment_of_generatorContainment
+#print axioms shiftAugmentedNaturallyProfiledProjectedWithinProfileFinrank_of_containment
+#print axioms shiftAugmentedNaturallyProfiledProjectedWithinProfileFinrank_of_boundaryQuotientCertificate
 #print axioms naturallyProfiledProjectedWithinProfileFinrank_of_containment
 #print axioms naturallyProfiledProjectedWithinProfileFinrank_of_boundaryQuotientCertificate
 #print axioms projectedWithinProfileFinrank_of_profileContainment
