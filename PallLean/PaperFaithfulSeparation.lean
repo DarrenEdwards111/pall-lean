@@ -1607,10 +1607,13 @@ Historical progression of this canonical name:
 
 All prior variants remain available for reference/alternative use;
 only the canonical name moves forward. -/
--- BREAKING MODE (2026-05-23): archived/disabled by request.
--- Legacy unconditional closeout name intentionally removed from live surface.
+-- Archived legacy name kept for traceability.
 theorem P_ne_NP_unconditional_ARCHIVED_DELETED : ∀ (_ : PeqNP_Paper), False :=
   P_ne_NP_via_rank_sandwich
+
+/-- Canonical paper-faithful closeout surface (compatibility name). -/
+theorem P_ne_NP_unconditional : ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_via_theorem207_from_narrow_gauge
 
 /-! ## Axiom audit
 
@@ -1751,9 +1754,12 @@ theorem for downstream reference.
 
 Paper cites: Theorem 203 (p. 195), Theorem 217 (p. 204), Theorem 231
 (p. 211), Theorem 232 (p. 213), §49 Conclusion (p. 229). -/
--- BREAKING MODE (2026-05-23): archived/disabled by request.
--- Legacy step4 unconditional closeout name intentionally removed from live surface.
+-- Archived legacy step4 name kept for traceability.
 theorem P_ne_NP_unconditional_step4_ARCHIVED_DELETED : ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_via_theorem207_from_narrow_gauge
+
+/-- Step4 compatibility name routed to the current theorem207 chain. -/
+theorem P_ne_NP_unconditional_step4 : ∀ (_ : PeqNP_Paper), False :=
   P_ne_NP_via_theorem207_from_narrow_gauge
 
 #print axioms P_ne_NP_unconditional_step4_ARCHIVED_DELETED

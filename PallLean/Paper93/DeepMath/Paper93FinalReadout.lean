@@ -6,6 +6,7 @@ import PallLean.Paper93.DeepMath.CookLevin.Theorem207Chain
 import PallLean.Paper93.DeepMath.CookLevin.PaperFinalP_ne_NP
 import PallLean.Paper93.DeepMath.Paper93MasterTheorem
 import PallLean.Paper93.DeepMath.PathB.PaperFaithfulRouteBStatus
+import PallLean.Paper93.DeepMath.PathB.PaperFaithfulOption203_205_207
 
 /-!
 # Paper §28.3/§40 Final Readout
@@ -39,5 +40,14 @@ theorem paper93_routeB_status_readout
   paperFaithfulRouteB_status_index M n hn hn2 htb hns B_total hB_total
 
 #print axioms paper93_routeB_status_readout
+
+/-- Named export for the paper-faithful option (203→205→207):
+currently conditional on explicit Bridge-A. -/
+theorem paper93_routeB_option_conditional
+    (hBridgeA : NFrameGodMoveBridgeA) :
+    ∀ (_ : PeqNP_Paper), False :=
+  paperFaithful_option_conditional_closeout hBridgeA
+
+#print axioms paper93_routeB_option_conditional
 
 end PallLean.Paper93.DeepMath
