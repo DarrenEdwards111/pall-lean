@@ -145,6 +145,92 @@ noncomputable def booleanityOneCoordinateBoundaryProject
           (BoolPoly.booleanityOneCoordinateCollapseMap M n hn2 htb hns D v)
           (zeroProfileBooleanNormalize p)) := rfl
 
+
+private theorem support_zeroProfileBooleanExponent {n : ℕ}
+    (α : Fin n →₀ ℕ) :
+    (zeroProfileBooleanExponent α).support = α.support := by
+  ext i
+  simp [Finsupp.mem_support_iff]
+
+private theorem finsupp_mapDomain_nat_support {α β : Type*} [DecidableEq β]
+    (f : α → β) (s : α →₀ ℕ) :
+    (Finsupp.mapDomain f s).support = s.support.image f := by
+  apply Finset.Subset.antisymm
+  · exact Finsupp.mapDomain_support
+  · intro y hy
+    rcases Finset.mem_image.mp hy with ⟨x, hx, rfl⟩
+    rw [Finsupp.mem_support_iff]
+    rw [Finsupp.mapDomain, Finsupp.sum_apply, Finsupp.sum]
+    have hxpos : 0 < s x := Nat.pos_of_ne_zero (Finsupp.mem_support_iff.mp hx)
+    have hle : s x ≤ ∑ a ∈ s.support, Finsupp.single (f a) (s a) (f x) := by
+      calc
+        s x = Finsupp.single (f x) (s x) (f x) := by simp
+        _ ≤ ∑ a ∈ s.support, Finsupp.single (f a) (s a) (f x) := by
+          exact Finset.single_le_sum
+            (fun a ha => Nat.zero_le (Finsupp.single (f a) (s a) (f x))) hx
+    exact ne_of_gt (lt_of_lt_of_le hxpos hle)
+
+/-- Boolean exponent normalisation is idempotent after an idempotent coordinate
+rename.  This is the monomial-basis core of the one-coordinate collapse
+projection proof. -/
+private theorem zeroProfileBooleanExponent_mapDomain_idempotent
+    {n : ℕ} (f : Fin n → Fin n) (hf : ∀ i, f (f i) = f i)
+    (α : Fin n →₀ ℕ) :
+    zeroProfileBooleanExponent
+        (Finsupp.mapDomain f
+          (zeroProfileBooleanExponent
+            (Finsupp.mapDomain f (zeroProfileBooleanExponent α)))) =
+      zeroProfileBooleanExponent
+        (Finsupp.mapDomain f (zeroProfileBooleanExponent α)) := by
+  apply Finsupp.ext
+  intro i
+  simp only [zeroProfileBooleanExponent_apply]
+  congr 1
+  rw [finsupp_mapDomain_nat_support, support_zeroProfileBooleanExponent,
+    finsupp_mapDomain_nat_support, support_zeroProfileBooleanExponent]
+  apply propext
+  constructor <;> intro h
+  · rcases Finset.mem_image.mp h with ⟨k, hk, rfl⟩
+    rcases Finset.mem_image.mp hk with ⟨l, hl, rfl⟩
+    rw [hf]
+    exact Finset.mem_image.mpr ⟨l, hl, rfl⟩
+  · rcases Finset.mem_image.mp h with ⟨k, hk, rfl⟩
+    exact Finset.mem_image.mpr ⟨f k, Finset.mem_image.mpr ⟨k, hk, rfl⟩, hf k⟩
+
+/-- If a coordinate rename is idempotent, then the Boolean-normalized
+`normalize ∘ rename ∘ normalize` quotient is idempotent pointwise. -/
+private theorem zeroProfileBooleanNormalize_rename_normalize_idempotent
+    {n : ℕ} (f : Fin n → Fin n) (hf : ∀ i, f (f i) = f i)
+    (p : MvPolynomial (Fin n) ℚ) :
+    zeroProfileBooleanNormalize
+        (MvPolynomial.rename f
+          (zeroProfileBooleanNormalize
+            (MvPolynomial.rename f (zeroProfileBooleanNormalize p)))) =
+      zeroProfileBooleanNormalize
+        (MvPolynomial.rename f (zeroProfileBooleanNormalize p)) := by
+  classical
+  induction p using MvPolynomial.induction_on' with
+  | monomial α c =>
+      simp only [zeroProfileBooleanNormalize_monomial, MvPolynomial.rename_monomial]
+      rw [zeroProfileBooleanExponent_mapDomain_idempotent f hf α]
+  | add p q hp hq =>
+      simp only [map_add, zeroProfileBooleanNormalize_add, hp, hq]
+
+/-- The one-coordinate collapse map is idempotent on coordinates. -/
+theorem booleanityOneCoordinateCollapseMap_idempotent
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (v a : Fin (cook_levin_compilation M n hn2 htb hns).numVars) :
+    BoolPoly.booleanityOneCoordinateCollapseMap M n hn2 htb hns D v
+        (BoolPoly.booleanityOneCoordinateCollapseMap M n hn2 htb hns D v a) =
+      BoolPoly.booleanityOneCoordinateCollapseMap M n hn2 htb hns D v a := by
+  classical
+  unfold BoolPoly.booleanityOneCoordinateCollapseMap
+  by_cases ha : (D.coord a).1 = (D.coord v).1
+  · simp [ha]
+  · simp [ha]
+
 /-- Idempotence obligation for the Route-W one-coordinate Booleanity project.
 This is the right map to try to prove idempotent; the raw
 `rename ∘ booleanNormalize` candidate is deliberately not used as the
@@ -157,6 +243,25 @@ def BooleanityOneCoordinateBoundaryProjectIdempotent
   (booleanityOneCoordinateBoundaryProject M n hn2 htb hns D v).comp
       (booleanityOneCoordinateBoundaryProject M n hn2 htb hns D v) =
     booleanityOneCoordinateBoundaryProject M n hn2 htb hns D v
+
+
+/-- The Route-W one-coordinate Booleanity project is idempotent.  The collapse
+rename is idempotent on variables, and Boolean normalization removes exactly the
+possible repeated `X₀` power created by the non-injective collapse. -/
+theorem booleanityOneCoordinateBoundaryProject_idempotent
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : PiPlusSATBlockCoordinateData M n hn2 htb hns)
+    (v : Fin (cook_levin_compilation M n hn2 htb hns).numVars) :
+    BooleanityOneCoordinateBoundaryProjectIdempotent M n hn2 htb hns D v := by
+  apply LinearMap.ext
+  intro p
+  rw [LinearMap.comp_apply, booleanityOneCoordinateBoundaryProject_apply,
+    booleanityOneCoordinateBoundaryProject_apply]
+  rw [BoolPoly.normalize_idempotent_apply]
+  exact zeroProfileBooleanNormalize_rename_normalize_idempotent
+    (BoolPoly.booleanityOneCoordinateCollapseMap M n hn2 htb hns D v)
+    (booleanityOneCoordinateCollapseMap_idempotent M n hn2 htb hns D v) p
 
 /-- Handoff from the idempotence obligation to the exact certificate field. -/
 theorem booleanityOneCoordinateBoundaryProject_idempotent_of_obligation
@@ -257,6 +362,7 @@ theorem cookLevinPiPlusForwardThenBoundaryProject_paperScale_idempotent_of_oblig
 
 #print axioms booleanityCollapseAfterNormalizeProject_apply
 #print axioms booleanityOneCoordinateBoundaryProject_apply
+#print axioms booleanityOneCoordinateBoundaryProject_idempotent
 #print axioms booleanityOneCoordinateBoundaryProject_idempotent_of_obligation
 #print axioms booleanityOneCoordinateBoundaryProject_cookLevinBooleanityPostRow_mem_interfaceSpace
 #print axioms booleanityOneCoordinateBoundaryProject_finrank_image_le

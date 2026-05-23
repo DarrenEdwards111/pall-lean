@@ -66,10 +66,11 @@ theorem projectedPostSpanProfileContainment_of_generatorContainment {N L : Nat}
 
 
 /-- Boundary quotient certificate constructor for the one-coordinate Booleanity
-project, conditional on the two real Route-W obligations: idempotence of the
-normalized collapse project and generator/profile containment after projection.
-This wires the new project into `BoundaryQuotientCompressionCertificate` without
-claiming the unprojected row-space rank is recovered from the quotient rank. -/
+project, conditional only on generator/profile containment after projection.
+The idempotence field is now discharged by
+`booleanityOneCoordinateBoundaryProject_idempotent`; this wires the new project
+into `BoundaryQuotientCompressionCertificate` without claiming the unprojected
+row-space rank is recovered from the quotient rank. -/
 noncomputable def booleanityOneCoordinateBoundaryQuotientCertificate_of_generatorContainment
     {L : Nat}
     (M : DTM) (n : Nat) (hn2 : n ≥ 2)
@@ -80,15 +81,12 @@ noncomputable def booleanityOneCoordinateBoundaryQuotientCertificate_of_generato
     (factors : Fin L → SATDeciderGaugeSpace M n hn2 htb hns)
     (constraintType : Fin L → ConstraintType)
     (v : Fin (cook_levin_compilation M n hn2 htb hns).numVars)
-    (hidem : BooleanityOneCoordinateBoundaryProjectIdempotent
-      M n hn2 htb hns D v)
     (hgen : ProjectedPostSpanGeneratorContainment B κ ℓ factors constraintType
       (booleanityOneCoordinateBoundaryProject M n hn2 htb hns D v)) :
     BoundaryQuotientCompressionCertificate B κ ℓ factors constraintType where
   project := booleanityOneCoordinateBoundaryProject M n hn2 htb hns D v
   project_idempotent :=
-    booleanityOneCoordinateBoundaryProject_idempotent_of_obligation
-      M n hn2 htb hns D v hidem
+    booleanityOneCoordinateBoundaryProject_idempotent M n hn2 htb hns D v
   profile_containment :=
     projectedPostSpanProfileContainment_of_generatorContainment
       B κ ℓ factors constraintType
