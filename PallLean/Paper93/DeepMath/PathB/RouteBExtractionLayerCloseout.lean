@@ -21,25 +21,28 @@ namespace PallLean.Paper93.DeepMath.PathB
 
 open PaperFaithfulSeparation
 
-/-- The strict `TΦ` extraction layer rules out bounded SAT deciders at paper
-scale.
+/-- Legacy strict `TΦ` extraction wrapper (unsafe baseline).
 
-This is the corrected Route-B closeout: it does **not** collapse the hard
-coupled sheet directly as the raw compiler object.  It first passes through the
-paper's extraction map and rank-monotone source transport, using
-`false_of_routeBPaperFaithfulTPhi_from_p_side` internally. -/
+⚠️ This routes through `..._from_p_side` and inherits
+`SymmetricPower.spdp_profile_generators`. Keep only as historical/reference
+surface; use the `_no_seams` variants below for clean closeout statements. -/
 theorem noBoundedSATDeciderAtPaperScale_via_strict_TPhi_extraction :
     NoBoundedSATDeciderAtPaperScale :=
   PallLean.Paper93.Paper283.noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_p_side
 
-/-- Paper-level consequence of the strict `TΦ` extraction closeout:
-`PeqNP_Paper` is contradictory via the bounded-SAT-decider bridge. -/
+/-- Legacy paper-level consequence (unsafe baseline).
+
+⚠️ Inherits `SymmetricPower.spdp_profile_generators`; prefer
+`not_PeqNP_Paper_via_strict_TPhi_extraction_no_seams`. -/
 theorem not_PeqNP_Paper_via_strict_TPhi_extraction :
     ∀ (_ : PeqNP_Paper), False :=
   noBoundedSATDeciderAtPaperScale_implies_not_PeqNP
     noBoundedSATDeciderAtPaperScale_via_strict_TPhi_extraction
 
-/-- Empty-type packaging of the strict extraction-layer Route-B result. -/
+/-- Legacy empty-type packaging (unsafe baseline).
+
+⚠️ Inherits `SymmetricPower.spdp_profile_generators`; prefer
+`isEmpty_PeqNP_Paper_via_strict_TPhi_extraction_no_seams`. -/
 theorem isEmpty_PeqNP_Paper_via_strict_TPhi_extraction :
     IsEmpty PeqNP_Paper :=
   ⟨not_PeqNP_Paper_via_strict_TPhi_extraction⟩

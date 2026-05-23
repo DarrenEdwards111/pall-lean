@@ -72,14 +72,18 @@ theorem routeB_routeC_finalSocket_closeout_via_strict_TPhi_extraction_no_seams
     routeCFinalSocketClosure_of_routeBVariationalClosure hB
   exact ⟨hB, hC, routeB_routeC_finalSocket_equivalence⟩
 
-/-- `PeqNP_Paper` contradiction transported to the shared B/C final-socket
-presentation.  This is just the strict Route-B extraction closeout together with
-its B/C bridge packaging. -/
+/-- Legacy B/C contradiction transport (unsafe baseline).
+
+⚠️ Inherits `SymmetricPower.spdp_profile_generators` via
+`not_PeqNP_Paper_via_strict_TPhi_extraction`; prefer the `_no_seams` variant. -/
 theorem not_PeqNP_Paper_via_strict_TPhi_BC_closeout :
     ∀ (_ : PeqNP_Paper), False :=
   not_PeqNP_Paper_via_strict_TPhi_extraction
 
-/-- Empty-type packaging of the B/C strict-extraction closeout. -/
+/-- Legacy B/C empty-type packaging (unsafe baseline).
+
+⚠️ Inherits `SymmetricPower.spdp_profile_generators`; prefer
+`isEmpty_PeqNP_Paper_via_strict_TPhi_BC_closeout_no_seams`. -/
 theorem isEmpty_PeqNP_Paper_via_strict_TPhi_BC_closeout :
     IsEmpty PeqNP_Paper :=
   ⟨not_PeqNP_Paper_via_strict_TPhi_BC_closeout⟩
