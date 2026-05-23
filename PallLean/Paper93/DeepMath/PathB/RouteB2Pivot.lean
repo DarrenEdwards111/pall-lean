@@ -2,16 +2,18 @@ import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeFinalTarget
 import PallLean.Paper93.DeepMath.PathB.RouteBTransportSeamClosure
 
 /-!
-# Route B2 Pivot (object-separation architecture)
+# Route B2 Rank-Sandwich Obstruction
 
-This module isolates the post-obstruction Route-B2 plan:
+This module isolates the post-obstruction Route-B2 rank-sandwich shape:
 - avoid same-object rank sandwich,
 - use a new NP witness object and a distinct P envelope object,
 - connect them by one-way transport monotonicity.
 
-The final arithmetic contradiction is proved here from explicit data. The
-remaining proof burden is the construction of the NP/P observables, the P-side
-upper bound, the NP-side lower bound, and the rank-non-increasing transport.
+The honest conclusion is obstructional: at paper scale, the conjunction of an
+NP lower bound, rank-non-increasing transport, and a P-side upper bound is
+arithmetically impossible. A paper-faithful use of this file is therefore:
+derive such a sandwich from a hypothetical bounded SAT decider, then close by
+contradiction. The sandwich itself is not a constructive target.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB
@@ -71,7 +73,8 @@ theorem routeB2_transport_monotone
   rcases hT with ⟨_T, hmono⟩
   exact hmono
 
-/-- Route B2 assembly interface: package all obligations per SAT decider instance. -/
+/-- Route B2 assembly interface: the forbidden rank-sandwich obligations for a
+single SAT-decider instance. -/
 structure RouteB2InstancePackage
     (D : RouteB2RankData)
     (M : DTM) (n : Nat) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
@@ -84,12 +87,20 @@ structure RouteB2InstancePackage
   monotone : D.ΓNP (HardNPWitnessObject M n hn2 htb hns) ≤
     D.ΓP (PEnvelopeObject M n hn2 htb hns)
 
-/-- Uniform Route B2 package at paper scale. -/
+/-- Explicit obstruction-facing name for the impossible per-instance sandwich. -/
+abbrev RouteB2RankSandwich := RouteB2InstancePackage
+
+/-- Uniform extractor: every hypothetical bounded SAT decider instance is sent
+to the forbidden Route B2 rank sandwich.  This is the paper-faithful way to use
+the obstruction: derive the sandwich from `DecidesSAT M`, then contradict it. -/
 abbrev RouteB2UniformPackage (D : RouteB2RankData) : Prop :=
   ∀ (M : DTM) (n : Nat) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hdec : DecidesSAT M),
     RouteB2InstancePackage D M n hn hn2 htb hns hdec
+
+/-- Obstruction-facing alias for the uniform decider-to-sandwich extractor. -/
+abbrev RouteB2DeciderForcesRankSandwich := RouteB2UniformPackage
 
 /-- Build the per-instance package from explicit Route B2 bound obligations
 plus an explicit one-way transport. -/
@@ -138,10 +149,22 @@ theorem routeB2_instance_rank_sandwich_false
     (not_le_of_gt
       (Nat.pow_lt_pow_right (by omega : 1 < n) (by omega : 200 < 201)))
 
-/-- Route B2 closure form: a uniform package rules out bounded SAT deciders at
-paper scale by the explicit rank-sandwich contradiction above. -/
+/-- Headline obstruction: no per-instance Route B2 rank sandwich can exist at
+paper scale. -/
+theorem routeB2_rankSandwich_obstruction
+    (D : RouteB2RankData)
+    (M : DTM) (n : Nat) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) :
+    ¬ RouteB2RankSandwich D M n hn hn2 htb hns hdec := by
+  intro hPkg
+  exact routeB2_instance_rank_sandwich_false D M n hn hn2 htb hns hdec hPkg
+
+/-- Paper-faithful closure form: if every hypothetical bounded SAT decider
+instance yields the forbidden rank sandwich, then no such bounded SAT decider
+exists. -/
 theorem routeB2_noBoundedSATDeciderAtPaperScale
-    (D : RouteB2RankData) (hU : RouteB2UniformPackage D) :
+    (D : RouteB2RankData) (hU : RouteB2DeciderForcesRankSandwich D) :
     NoBoundedSATDeciderAtPaperScale := by
   intro M n hn hn2 htb hns hdec
   exact routeB2_instance_rank_sandwich_false D M n hn hn2 htb hns hdec
@@ -162,7 +185,7 @@ theorem routeB2_noBoundedSATDeciderAtPaperScale_of_bounds_and_transport
 
 /-- Final Route B2 contradiction form. -/
 theorem routeB2_not_PeqNP
-    (D : RouteB2RankData) (hU : RouteB2UniformPackage D) :
+    (D : RouteB2RankData) (hU : RouteB2DeciderForcesRankSandwich D) :
     ∀ (_ : PeqNP_Paper), False :=
   noBoundedSATDeciderAtPaperScale_implies_not_PeqNP
     (routeB2_noBoundedSATDeciderAtPaperScale D hU)
@@ -180,6 +203,7 @@ theorem routeB2_not_PeqNP_of_bounds_and_transport
     (routeB2_noBoundedSATDeciderAtPaperScale_of_bounds_and_transport
       D hBounds hT)
 
+#print axioms routeB2_rankSandwich_obstruction
 #print axioms routeB2_not_PeqNP
 #print axioms routeB2_not_PeqNP_of_bounds_and_transport
 
