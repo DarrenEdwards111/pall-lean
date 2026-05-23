@@ -2,6 +2,7 @@ import PallLean.Paper93.Paper283.RouteBFunctorialTransportCertificate
 import PallLean.Paper93.Paper283.RouteBRicherGaugeConcreteNP
 import PallLean.Paper93.Paper283.RouteBRicherGaugePWindowCover
 import PallLean.Paper93.Paper283.RouteBRicherGaugeSPDPConcreteScalarClosure
+import PallLean.Paper93.Paper283.RouteBRicherGaugeConcreteMultilinearTail
 import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeFinalTarget
 import PallLean.Paper93.DeepMath.PathB.PeqNPBridge
 
@@ -190,6 +191,39 @@ theorem not_richerConcreteNP_scalarClosure_of_PeqNP_preimage_blockers
     not_uniform_richerConcreteNP_scalarClosure_at_paperScale_of_PeqNP
       hPeq hscalar
 
+/-- Named non-scalar remaining seam: a uniform concrete multilinear-tail
+map-preimage witness for the prepended finite-row gauge. -/
+abbrev RouteBRicherConcreteNPNonScalarMapPreimageSeam : Prop :=
+  ∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    RouteBRicherGaugeFiniteRowsSPDPMapPreimage M n hn2 htb hns
+      (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns)
+
+/-- Interface closeout: with the scalar branch eliminated under
+`PeqNP_Paper`, any two-branch SPDP plan (scalar branch or non-scalar
+map-preimage branch) is forced onto the non-scalar seam. -/
+theorem richerConcreteNP_nonScalarMapPreimage_required_of_PeqNP_preimage_blockers
+    (hPeq : PeqNP_Paper)
+    (hunprojected :
+      ∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        RouteBRicherConcreteNPUnprojectedSPDPPreimageClosure M n hn2 htb hns)
+    (hblock :
+      ∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinActiveProfileTemplateCollapseBlockers M n hn2 htb hns)
+    (hbranch :
+      (∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+          (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+          RouteBRicherConcreteNPCompiledPolyScalarRowClosure M n hn2 htb hns)
+      ∨ RouteBRicherConcreteNPNonScalarMapPreimageSeam) :
+    RouteBRicherConcreteNPNonScalarMapPreimageSeam := by
+  rcases hbranch with hscalar | hnon
+  · exfalso
+    exact (not_richerConcreteNP_scalarClosure_of_PeqNP_preimage_blockers
+      hPeq hunprojected hblock) hscalar
+  · exact hnon
+
 #print axioms routeBTransportCertificateSeam_of_richerConcreteNP_surface
 #print axioms cookLevinRichProjectionDischarge_of_transportCertificateSeam
 #print axioms noBoundedSATDeciderAtPaperScale_of_transportCertificateSeam
@@ -199,5 +233,7 @@ theorem not_richerConcreteNP_scalarClosure_of_PeqNP_preimage_blockers
 #print axioms not_PeqNP_of_richerConcreteNP_scalarPreimage_activeTemplateBlockers
 #print axioms not_uniform_richerConcreteNP_scalarClosure_at_paperScale_of_PeqNP
 #print axioms not_richerConcreteNP_scalarClosure_of_PeqNP_preimage_blockers
+#print axioms RouteBRicherConcreteNPNonScalarMapPreimageSeam
+#print axioms richerConcreteNP_nonScalarMapPreimage_required_of_PeqNP_preimage_blockers
 
 end PallLean.Paper93.DeepMath.PathB
