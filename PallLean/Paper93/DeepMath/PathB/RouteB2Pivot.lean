@@ -16,6 +16,7 @@ namespace PallLean.Paper93.DeepMath.PathB
 
 open TuringMachine
 open PaperFaithfulSeparation
+open PallLean.Paper93.Paper283
 
 /-- Abstract rank observable on the NP witness object. -/
 axiom ΓNP : Type → Nat
