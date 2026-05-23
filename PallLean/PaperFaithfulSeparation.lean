@@ -1482,6 +1482,39 @@ theorem no_rank_sandwich_at_large_n (n : ℕ) (hn : n ≥ 2 ^ 804) :
 #print axioms no_rank_sandwich_at_large_n
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
 
+/-- **Gauge obstruction for SAT deciders.**
+
+The paper-scale amplituhedron gauge surface is uninhabited for any bounded
+SAT-decider in this formalisation. Its P-side field and NP-side preservation
+field constrain the same natural number
+
+`mlBlockedSpdpRank ... (gauge (compiledPoly ...))`,
+
+so `no_rank_sandwich_at_large_n` rules out their conjunction. This is the
+formal version of the Route-W bottom-socket obstruction: proving the P-side
+socket for the same projected object that preserves the identity minor would
+recreate the impossible rank sandwich. -/
+theorem isAmplituhedronGauge_uninhabited_for_sat_decider
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) :
+    ¬ ∃ (gauge : MvPolynomial
+          (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ →ₗ[ℚ]
+        MvPolynomial
+          (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ),
+      GlobalGodMoveGauge.IsAmplituhedronGauge M n hn hn2 htb hns gauge := by
+  rintro ⟨gauge, hgauge⟩
+  exact no_rank_sandwich_at_large_n n hn
+    ⟨mlBlockedSpdpRank
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (gauge (compiledPoly (cook_levin_compilation M n hn2 htb hns))),
+      hgauge.preserves_identity_minor_for_sat_deciders hdec,
+      hgauge.p_side_bound⟩
+
+#print axioms isAmplituhedronGauge_uninhabited_for_sat_decider
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
+
 /-- **Derived theorem: the narrow gauge axiom follows from the Theorem 207
 axiom.** The narrow `exists_amplituhedron_gauge_for_sat_decider` is
 (as a statement) implied by the lowered Theorem-207 bounds seam plus the
