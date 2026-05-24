@@ -7,14 +7,18 @@ Ch. 4 §4.2 — the conscious observer as a computationally bounded agent) via
 time-bounded Kolmogorov complexity K^t.
 
 Picture (faithful translation, NOT a proof):
-  * A satisfying assignment `a` of φ is DETERMINED by φ, so its unbounded
-    description complexity K(a|φ) is O(1) ("the first satisfying assignment").
-    Its difficulty is entirely the *time* to produce it: K^poly(a|φ).
+  * CORRECT OBJECT (important): a *single* satisfying assignment is only `n` bits,
+    so K^t(a|φ) ≤ n + O(1) for any budget — it can NEVER be superpolynomially
+    deep.  The right object is therefore the UNIFORM WITNESS-FINDING MAP across
+    input lengths (the search function φ ↦ witness), the family-level object where
+    K^t / MCSP / MINKT / easy-witness transport actually live — NOT the depth of
+    one assignment.  (`ShallowSearch` below quantifies a single producer over ALL
+    lengths, so it captures this map, not a single string.)
   * The observer's poly-time bound is the budget `t` in K^t.  "The less the
-    constraint, the more it can see" = more budget ⇒ the bounded observer can
-    finally produce the deep object `a`.
-  * SHALLOW search = one uniform poly-budget producer outputs satisfying
-    assignments (P-side; ≈ SAT-search ∈ FP).
+    constraint, the more it can see" = a stronger uniform compressor/decompressor
+    finds witnesses at more lengths.
+  * SHALLOW search = ONE uniform poly-budget producer outputs satisfying
+    assignments at every length (P-side; the search function lies in FP).
   * DEEP search = no such producer (= ¬Shallow).  **This is the search form of
     P ≠ NP.**  OPEN; proved nowhere here; no axiom stands in for it.
 
