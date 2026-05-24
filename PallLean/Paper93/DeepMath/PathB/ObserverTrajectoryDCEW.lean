@@ -159,6 +159,66 @@ theorem PolyTimeOperationalTrajectoryObserverDecidesSAT_iff
       OperationalTrajectoryObserverDecidesSAT enc T :=
   Iff.rfl
 
+/-- DTM SAT correctness with an explicit polynomial-time exponent budget.
+
+The existing Route-B/R72 paper-scale frontiers usually work with the normalized
+budget `e = 4`.  This predicate keeps the exponent visible, so later
+observer-level statements can say whether they prove only the paper-scale
+normal form or every fixed polynomial exponent. -/
+def DTMDecidesSATWithEncodingAtMost
+    (enc : ThreeCNFEncoding) (e : Nat) (M : TuringMachine.DTM) : Prop :=
+  DTMDecidesSATWithEncoding enc M /\ M.timeBound <= e
+
+/-- Operational trajectory SAT observers backed by a DTM with
+`timeBound <= e`. -/
+def OperationalTrajectoryObserverDecidesSATAtMost
+    (enc : ThreeCNFEncoding) (e : Nat)
+    (T : TrajectoryObserverMachine) : Prop :=
+  exists M : TuringMachine.DTM,
+    DTMDecidesSATWithEncodingAtMost enc e M /\
+      DTMRealizesTrajectoryObserver M T
+
+/-- Bounded-time operational observers are operational observers. -/
+theorem OperationalTrajectoryObserverDecidesSAT_of_atMost
+    {enc : ThreeCNFEncoding} {e : Nat} {T : TrajectoryObserverMachine}
+    (hT : OperationalTrajectoryObserverDecidesSATAtMost enc e T) :
+    OperationalTrajectoryObserverDecidesSAT enc T := by
+  rcases hT with ⟨M, hM, hrealizes⟩
+  exact ⟨M, hM.1, hrealizes⟩
+
+/-- Every operational trajectory observer has some fixed polynomial-time
+exponent budget, namely the backing DTM's `timeBound`. -/
+theorem exists_timeExponent_of_operationalTrajectoryObserver
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine}
+    (hT : OperationalTrajectoryObserverDecidesSAT enc T) :
+    exists e : Nat, OperationalTrajectoryObserverDecidesSATAtMost enc e T := by
+  rcases hT with ⟨M, hMdec, hrealizes⟩
+  exact ⟨M.timeBound, M, ⟨hMdec, le_rfl⟩, hrealizes⟩
+
+/-- Universal extraction restricted to observers whose backing DTM has
+`timeBound <= e`. -/
+def UniversalOperationalTrajectorySATGodMoveExtractionAtMost
+    (enc : ThreeCNFEncoding) (e : Nat) : Prop :=
+  UniversalTrajectorySATGodMoveExtraction enc
+    (OperationalTrajectoryObserverDecidesSATAtMost enc e)
+
+/-- The existing paper-scale normal form: operational SAT observers whose
+backing DTM has `timeBound <= 4`. -/
+def PaperScaleOperationalTrajectorySATGodMoveExtraction
+    (enc : ThreeCNFEncoding) : Prop :=
+  UniversalOperationalTrajectorySATGodMoveExtractionAtMost enc 4
+
+/-- Extraction for every fixed polynomial-time exponent.  This is weaker than
+one uniform extraction length for all operational observers, but strong enough
+to refute any single claimed polynomial-width polynomial-time SAT observer. -/
+def TimeExponentParametricOperationalTrajectoryExtraction
+    (enc : ThreeCNFEncoding) : Prop :=
+  forall e c : Nat, exists n : Nat,
+    n >= 2 ^ 20 /\
+    4 * (c + 1) <= Nat.log 2 n /\
+    TrajectorySATGodMoveExtractionAt enc
+      (OperationalTrajectoryObserverDecidesSATAtMost enc e) n
+
 /-- A single trajectory observer has polynomial width with exponent `c`. -/
 def TrajectoryObserverHasPolyWidthExponent
     (T : TrajectoryObserverMachine) (c : Nat) : Prop :=
@@ -181,6 +241,14 @@ structure NFramePACHolographyAmplituhedronRamanujanEngine
     (enc : ThreeCNFEncoding) : Prop where
   polytime_observer_extraction :
     UniversalOperationalTrajectorySATGodMoveExtraction enc
+
+/-- Exponent-parametric version of the geometric engine.  This is the honest
+shape needed to handle arbitrary polynomial-time exponents without relying on
+a separate `timeBound <= 4` normalization theorem. -/
+structure TimeExponentParametricNFramePACHolographyAmplituhedronRamanujanEngine
+    (enc : ThreeCNFEncoding) : Prop where
+  time_exponent_observer_extraction :
+    TimeExponentParametricOperationalTrajectoryExtraction enc
 
 /-- At one length, trajectory extraction rules out that polynomial DCEW bound. -/
 theorem not_DCEWatMost_at_exponent_of_trajectoryExtractionAt
@@ -228,6 +296,27 @@ theorem NP_side_lower_bound_of_universalOperationalTrajectorySATGodMoveExtractio
   NP_side_lower_bound_of_universalTrajectorySATGodMoveExtraction
     enc (OperationalTrajectoryObserverDecidesSAT enc) hextract
 
+/-- Bounded-time operational trajectory SAT version of the DCEW lower-bound
+bridge, with the backing DTM exponent budget carried explicitly. -/
+theorem NP_side_lower_bound_of_universalOperationalTrajectorySATGodMoveExtractionAtMost
+    (enc : ThreeCNFEncoding) (e : Nat)
+    (hextract : UniversalOperationalTrajectorySATGodMoveExtractionAtMost enc e) :
+    DynamicCEW.NP_side_lower_bound
+      (TrajectoryObserverWidths
+        (OperationalTrajectoryObserverDecidesSATAtMost enc e)) :=
+  NP_side_lower_bound_of_universalTrajectorySATGodMoveExtraction
+    enc (OperationalTrajectoryObserverDecidesSATAtMost enc e) hextract
+
+/-- Paper-scale bounded-time version (`timeBound <= 4`). -/
+theorem NP_side_lower_bound_of_paperScaleOperationalTrajectorySATGodMoveExtraction
+    (enc : ThreeCNFEncoding)
+    (hextract : PaperScaleOperationalTrajectorySATGodMoveExtraction enc) :
+    DynamicCEW.NP_side_lower_bound
+      (TrajectoryObserverWidths
+        (OperationalTrajectoryObserverDecidesSATAtMost enc 4)) :=
+  NP_side_lower_bound_of_universalOperationalTrajectorySATGodMoveExtractionAtMost
+    enc 4 hextract
+
 /-- Universal trajectory extraction rules out any polynomial-width observer in
 the same trajectory class. -/
 theorem not_TrajectoryObserverSATPolyWidthAtMost_of_universalTrajectoryExtraction
@@ -259,6 +348,57 @@ theorem not_polyWidthSATObserver_of_universalOperationalTrajectoryExtraction
     PolyTimeOperationalTrajectoryObserverDecidesSAT] using
     (not_TrajectoryObserverSATPolyWidthAtMost_of_universalTrajectoryExtraction
       enc (OperationalTrajectoryObserverDecidesSAT enc) hextract c)
+
+/-- Bounded-time version: universal extraction for the `timeBound <= e` class
+rules out polynomial-width SAT observers in that same bounded-time class. -/
+theorem not_polyWidthSATObserverAtMost_of_universalOperationalTrajectoryExtractionAtMost
+    (enc : ThreeCNFEncoding) (e : Nat)
+    (hextract : UniversalOperationalTrajectorySATGodMoveExtractionAtMost enc e)
+    (c : Nat) :
+    Not (TrajectoryObserverSATPolyWidthAtMost
+      (OperationalTrajectoryObserverDecidesSATAtMost enc e) c) :=
+  not_TrajectoryObserverSATPolyWidthAtMost_of_universalTrajectoryExtraction
+    enc (OperationalTrajectoryObserverDecidesSATAtMost enc e) hextract c
+
+/-- The exponent-parametric extraction theorem rules out every single
+polynomial-width polynomial-time SAT observer.
+
+This statement has the right quantifier order for arbitrary polynomial-time
+exponents: after a candidate observer is chosen, its backing DTM exposes a
+fixed exponent `e`, and the extraction theorem is applied to that bounded-time
+class. -/
+theorem not_polyWidthOperationalSATObserver_of_timeExponentParametricExtraction
+    (enc : ThreeCNFEncoding)
+    (hextract : TimeExponentParametricOperationalTrajectoryExtraction enc)
+    (c : Nat) :
+    Not (TrajectoryObserverSATPolyWidthAtMost
+      (OperationalTrajectoryObserverDecidesSAT enc) c) := by
+  intro hpoly
+  rcases hpoly with ⟨T, hdec, hwidth⟩
+  rcases exists_timeExponent_of_operationalTrajectoryObserver hdec with
+    ⟨e, hdec_atMost⟩
+  rcases hextract e c with ⟨n, hn20, hlog, hextract_at⟩
+  have hcew :
+      DynamicCEW.DCEWatMost
+        (TrajectoryObserverWidths
+          (OperationalTrajectoryObserverDecidesSATAtMost enc e)) n (n ^ c) := by
+    refine ⟨T.width, ⟨T, hdec_atMost, rfl⟩, ?_⟩
+    exact hwidth n
+  exact
+    (not_DCEWatMost_at_exponent_of_trajectoryExtractionAt
+      enc (OperationalTrajectoryObserverDecidesSATAtMost enc e)
+      c n hn20 hlog hextract_at) hcew
+
+/-- Named consequence of the exponent-parametric geometric engine. -/
+theorem not_polyWidthOperationalSATObserver_of_timeExponentParametricEngine
+    (enc : ThreeCNFEncoding)
+    (engine :
+      TimeExponentParametricNFramePACHolographyAmplituhedronRamanujanEngine enc)
+    (c : Nat) :
+    Not (TrajectoryObserverSATPolyWidthAtMost
+      (OperationalTrajectoryObserverDecidesSAT enc) c) :=
+  not_polyWidthOperationalSATObserver_of_timeExponentParametricExtraction
+    enc engine.time_exponent_observer_extraction c
 
 /-- The named geometric engine closes the observer-width lower bound exactly
 when it supplies the universal polynomial-time trajectory extraction theorem. -/
