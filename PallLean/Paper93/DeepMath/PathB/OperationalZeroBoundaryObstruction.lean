@@ -156,6 +156,36 @@ theorem no_DTMDecidesSATWithEncoding_of_universalOperationalTrajectoryExtraction
       (enc := enc) (M := M) hdec)
       hextract
 
+/-- The same obstruction applies directly to the raw operational dynamic CEW
+lower bound.  Since `OperationalTrajectoryObserverDecidesSAT` does not force
+`width` or `liveBoundaryRank` to be computed from the actual live N-frame
+configuration, any SAT-deciding DTM can be presented with width zero.  Thus a
+proof of the raw operational dynamic lower bound is already a proof that no
+DTM decides SAT under the encoding.
+
+The usable route must therefore first replace the raw operational class by a
+semantic/full-configuration live-context class, then prove the lower bound
+there. -/
+theorem no_DTMDecidesSATWithEncoding_of_rawOperationalDynamicSATLowerBound
+    (enc : ThreeCNFEncoding)
+    (hlower :
+      DynamicCEW.NP_side_lower_bound
+        (TrajectoryObserverWidths
+          (OperationalTrajectoryObserverDecidesSAT enc))) :
+    Not (exists M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M) := by
+  intro hM
+  rcases hM with ⟨M, hdec⟩
+  rcases hlower 0 with ⟨n, hnot⟩
+  have hcew :
+      DynamicCEW.DCEWatMost
+        (TrajectoryObserverWidths
+          (OperationalTrajectoryObserverDecidesSAT enc)) n (n ^ 0) := by
+    refine ⟨(zeroBoundaryOperationalTrajectoryObserver M).width, ?_, ?_⟩
+    · exact ⟨zeroBoundaryOperationalTrajectoryObserver M,
+        zeroBoundaryOperationalTrajectoryObserver_decidesSAT hdec, rfl⟩
+    · simp [zeroBoundaryOperationalTrajectoryObserver]
+  exact hnot hcew
+
 /-- The exponent-parametric extraction target is obstructed in the same way:
 the candidate observer supplies its own finite time exponent. -/
 theorem not_timeExponentParametricExtraction_of_zeroBoundaryDecider
@@ -209,6 +239,7 @@ theorem no_DTMDecidesSATWithEncoding_of_timeExponentParametricEngine
 
 #print axioms not_universalOperationalTrajectoryExtraction_of_zeroBoundaryDecider
 #print axioms no_DTMDecidesSATWithEncoding_of_universalOperationalTrajectoryExtraction
+#print axioms no_DTMDecidesSATWithEncoding_of_rawOperationalDynamicSATLowerBound
 #print axioms not_timeExponentParametricExtraction_of_zeroBoundaryDecider
 #print axioms no_DTMDecidesSATWithEncoding_of_timeExponentParametricExtraction
 #print axioms no_DTMDecidesSATWithEncoding_of_NFramePACHolographyEngine
