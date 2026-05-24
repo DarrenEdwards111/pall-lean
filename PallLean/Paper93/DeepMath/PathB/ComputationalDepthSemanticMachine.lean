@@ -173,6 +173,36 @@ theorem semanticNoDecider_of_remainingLowerBound
     ¬ SATDecisionInP (semanticMachineModel S) :=
   (semanticDeepSATSearch_iff_no_decider S).mp hdeep
 
+/-- Exact closure statement for this semantic machine layer.
+
+The remaining lower bound is not a smaller lemma than P-vs-NP for this machine
+surface; it is equivalent to ruling out polynomial-time SAT decision in the same
+surface. -/
+theorem semanticRemainingLowerBound_iff_no_decider
+    (S : SemanticClosureSurface) :
+    SemanticClosureRemainingLowerBound S ↔
+      ¬ SATDecisionInP (semanticMachineModel S) :=
+  semanticDeepSATSearch_iff_no_decider S
+
+/-- Contrapositive guard: any polynomial SAT decider in this semantic model
+immediately makes the remaining depth lower bound false, because the compiled
+prefix-unit self-reduction turns it into shallow SAT search. -/
+theorem not_semanticRemainingLowerBound_of_decider
+    (S : SemanticClosureSurface)
+    (hdec : SATDecisionInP (semanticMachineModel S)) :
+    ¬ SemanticClosureRemainingLowerBound S := by
+  intro hdeep
+  exact (semanticNoDecider_of_remainingLowerBound S hdeep) hdec
+
+/-- Positive closure corollary, stated in the direction used by the paper:
+proving the genuine computational-depth lower bound closes the SAT decider lower
+bound for this semantic machine model. -/
+theorem semanticSATLowerBoundClosure
+    (S : SemanticClosureSurface)
+    (hdepth : SemanticClosureRemainingLowerBound S) :
+    ¬ SATDecisionInP (semanticMachineModel S) :=
+  semanticNoDecider_of_remainingLowerBound S hdepth
+
 /-! ## Kernel-only axiom trace -/
 
 #print axioms semanticSearchRunCore_compiled
@@ -180,5 +210,8 @@ theorem semanticNoDecider_of_remainingLowerBound
 #print axioms semanticPrefixUnitMachineCompiler
 #print axioms semanticDeepSATSearch_iff_no_decider
 #print axioms semanticNoDecider_of_remainingLowerBound
+#print axioms semanticRemainingLowerBound_iff_no_decider
+#print axioms not_semanticRemainingLowerBound_of_decider
+#print axioms semanticSATLowerBoundClosure
 
 end SATDepthMachine
