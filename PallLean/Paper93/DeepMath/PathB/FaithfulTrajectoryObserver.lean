@@ -1,0 +1,271 @@
+import PallLean.Paper93.DeepMath.PathB.PaperMainFaithfulDCEW
+
+/-!
+# Faithful trajectory observers
+
+The earlier trajectory layer deliberately exposed `width` and
+`liveBoundaryRank` as fields.  That is useful for the abstract DCEW bridge, but
+it is too permissive for the final SAT lower-bound target: an arbitrary observer
+surface can choose a fake zero width unless width is tied to actual trajectory
+data.
+
+This file introduces the first faithful layer.  A faithful observer is generated
+from a concrete DTM and a state-context rank accounting function.  Its live rank
+is computed from the actual DTM run state, and its width is the finite supremum
+of those live ranks over all inputs and all times inside the DTM's polynomial
+time bound.
+
+The hard theorem is still not proved here.  The file isolates the two honest
+remaining obligations:
+
+* every operational SAT observer used by the paper has a faithful presentation;
+* every faithful SAT trajectory exposes the Ramanujan/Tseitin God-Move boundary
+  minor at the required scales.
+-/
+
+namespace PallLean.Paper93.DeepMath.PathB
+
+open PaperFaithfulSeparation
+
+/-- Live state-context rank at a concrete time.  Outside the DTM's declared
+time window, the live bounded-run context is zero. -/
+noncomputable def FaithfulStateRankAt
+    (M : TuringMachine.DTM) (stateContextRank : Nat -> Nat)
+    (n : Nat) (input : Fin n -> Bool) (t : Nat) : Nat :=
+  if hn : n >= 1 then
+    if _ : t < TuringMachine.timeSteps M n + 1 then
+      stateContextRank
+        ((TuringMachine.run M n t
+          (TuringMachine.initialConfig M n hn input)).state.val)
+    else
+      0
+  else
+    0
+
+/-- Canonical faithful width: the maximum live state-context rank over all
+length-`n` inputs and all times inside the DTM's polynomial time window. -/
+noncomputable def FaithfulTrajectoryWidth
+    (M : TuringMachine.DTM) (stateContextRank : Nat -> Nat) :
+    DynamicCEW.ObserverWidth :=
+  fun n =>
+    if hn : n >= 1 then
+      Finset.univ.sup (fun input : Fin n -> Bool =>
+        Finset.univ.sup
+          (fun t : Fin (TuringMachine.timeSteps M n + 1) =>
+            stateContextRank
+              ((TuringMachine.run M n t.val
+                (TuringMachine.initialConfig M n hn input)).state.val)))
+    else
+      0
+
+/-- The canonical faithful width bounds every live state-context rank. -/
+theorem FaithfulStateRankAt_le_width
+    (M : TuringMachine.DTM) (stateContextRank : Nat -> Nat)
+    (n : Nat) (input : Fin n -> Bool) (t : Nat) :
+    FaithfulStateRankAt M stateContextRank n input t <=
+      FaithfulTrajectoryWidth M stateContextRank n := by
+  classical
+  unfold FaithfulStateRankAt FaithfulTrajectoryWidth
+  by_cases hn : n >= 1
+  · by_cases ht : t < TuringMachine.timeSteps M n + 1
+    · rw [dif_pos hn, dif_pos ht, dif_pos hn]
+      let tf : Fin (TuringMachine.timeSteps M n + 1) := ⟨t, ht⟩
+      have htime :
+          stateContextRank
+              ((TuringMachine.run M n t
+                (TuringMachine.initialConfig M n hn input)).state.val) <=
+            Finset.univ.sup
+              (fun tf' : Fin (TuringMachine.timeSteps M n + 1) =>
+                stateContextRank
+                  ((TuringMachine.run M n tf'.val
+                    (TuringMachine.initialConfig M n hn input)).state.val)) := by
+        simpa [tf] using
+          (Finset.le_sup
+            (s := (Finset.univ :
+              Finset (Fin (TuringMachine.timeSteps M n + 1))))
+            (f := fun tf' : Fin (TuringMachine.timeSteps M n + 1) =>
+              stateContextRank
+                ((TuringMachine.run M n tf'.val
+                  (TuringMachine.initialConfig M n hn input)).state.val))
+            (b := tf)
+            (hb := by simp))
+      have hinput :
+          Finset.univ.sup
+              (fun tf' : Fin (TuringMachine.timeSteps M n + 1) =>
+                stateContextRank
+                  ((TuringMachine.run M n tf'.val
+                    (TuringMachine.initialConfig M n hn input)).state.val)) <=
+            Finset.univ.sup (fun input' : Fin n -> Bool =>
+              Finset.univ.sup
+                (fun tf' : Fin (TuringMachine.timeSteps M n + 1) =>
+                  stateContextRank
+                    ((TuringMachine.run M n tf'.val
+                      (TuringMachine.initialConfig M n hn input')).state.val))) := by
+        exact
+          Finset.le_sup
+            (s := (Finset.univ : Finset (Fin n -> Bool)))
+            (f := fun input' : Fin n -> Bool =>
+              Finset.univ.sup
+                (fun tf' : Fin (TuringMachine.timeSteps M n + 1) =>
+                  stateContextRank
+                    ((TuringMachine.run M n tf'.val
+                      (TuringMachine.initialConfig M n hn input')).state.val)))
+            (b := input)
+            (hb := by simp)
+      exact le_trans htime hinput
+    · rw [dif_pos hn, dif_neg ht, dif_pos hn]
+      exact Nat.zero_le _
+  · rw [dif_neg hn, dif_neg hn]
+
+/-- The faithful trajectory observer generated by a DTM and a state-context
+rank accounting function.  The width is not a free field: it is computed by
+`FaithfulTrajectoryWidth`. -/
+noncomputable def faithfulTrajectoryObserver
+    (M : TuringMachine.DTM) (stateContextRank : Nat -> Nat) :
+    TrajectoryObserverMachine where
+  width := FaithfulTrajectoryWidth M stateContextRank
+  acceptsInput := fun n input =>
+    if hn : n >= 1 then TuringMachine.accepts M n hn input else False
+  stateCode := fun n input t =>
+    if hn : n >= 1 then
+      (TuringMachine.run M n t
+        (TuringMachine.initialConfig M n hn input)).state.val
+    else
+      0
+  liveBoundaryRank := FaithfulStateRankAt M stateContextRank
+  liveBoundaryRank_le_width :=
+    FaithfulStateRankAt_le_width M stateContextRank
+
+/-- The canonical faithful observer is realized by its generating DTM. -/
+theorem faithfulTrajectoryObserver_realizes
+    (M : TuringMachine.DTM) (stateContextRank : Nat -> Nat) :
+    DTMRealizesTrajectoryObserver M
+      (faithfulTrajectoryObserver M stateContextRank) := by
+  constructor
+  · intro n hn input
+    simp [faithfulTrajectoryObserver, hn]
+  · intro n hn input t
+    simp [faithfulTrajectoryObserver, hn]
+
+/-- A faithful operational SAT observer is one definitionally presented by a
+DTM-backed faithful trajectory observer. -/
+def FaithfulOperationalTrajectoryObserverDecidesSAT
+    (enc : ThreeCNFEncoding) (T : TrajectoryObserverMachine) : Prop :=
+  exists M : TuringMachine.DTM, exists stateContextRank : Nat -> Nat,
+    DTMDecidesSATWithEncoding enc M /\
+      T = faithfulTrajectoryObserver M stateContextRank
+
+/-- Faithful operational SAT observers are operational SAT observers. -/
+theorem OperationalTrajectoryObserverDecidesSAT_of_faithful
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine}
+    (hT : FaithfulOperationalTrajectoryObserverDecidesSAT enc T) :
+    OperationalTrajectoryObserverDecidesSAT enc T := by
+  rcases hT with ⟨M, stateContextRank, hdec, rfl⟩
+  exact ⟨M, hdec, faithfulTrajectoryObserver_realizes M stateContextRank⟩
+
+/-- The faithful SAT observer class. -/
+abbrev FaithfulSATObserverClass
+    (enc : ThreeCNFEncoding) : TrajectoryObserverMachine -> Prop :=
+  FaithfulOperationalTrajectoryObserverDecidesSAT enc
+
+/-- If the actual state-context rank is positive at a live point, the faithful
+observer's width at that input length is positive.  This is the first "no free
+zero width" sanity check. -/
+theorem faithful_width_positive_of_positive_liveRank
+    {M : TuringMachine.DTM} {stateContextRank : Nat -> Nat}
+    {n : Nat} {input : Fin n -> Bool} {t : Nat}
+    (hpos : 0 < FaithfulStateRankAt M stateContextRank n input t) :
+    0 < (faithfulTrajectoryObserver M stateContextRank).width n :=
+  lt_of_lt_of_le hpos
+    ((faithfulTrajectoryObserver M stateContextRank).liveBoundaryRank_le_width
+      n input t)
+
+/-- Equivalent nonzero-width form of
+`faithful_width_positive_of_positive_liveRank`. -/
+theorem faithful_width_ne_zero_of_positive_liveRank
+    {M : TuringMachine.DTM} {stateContextRank : Nat -> Nat}
+    {n : Nat} {input : Fin n -> Bool} {t : Nat}
+    (hpos : 0 < FaithfulStateRankAt M stateContextRank n input t) :
+    (faithfulTrajectoryObserver M stateContextRank).width n ≠ 0 :=
+  ne_of_gt (faithful_width_positive_of_positive_liveRank hpos)
+
+/-- Faithful universal extraction target.  This is the live-boundary theorem
+one should try to prove from Cook-Levin semantics plus the
+Ramanujan/Tseitin/God-Move geometry. -/
+def UniversalFaithfulSATObserverGodMoveExtraction
+    (enc : ThreeCNFEncoding) : Prop :=
+  UniversalTrajectorySATGodMoveExtraction enc (FaithfulSATObserverClass enc)
+
+/-- Faithful extraction implies the dynamic lower bound for the faithful SAT
+observer class. -/
+theorem faithful_dynamicSATLowerBound_of_universalFaithfulExtraction
+    (enc : ThreeCNFEncoding)
+    (hextract : UniversalFaithfulSATObserverGodMoveExtraction enc) :
+    DynamicCEW.NP_side_lower_bound
+      (TrajectoryObserverWidths (FaithfulSATObserverClass enc)) :=
+  NP_side_lower_bound_of_universalTrajectorySATGodMoveExtraction
+    enc (FaithfulSATObserverClass enc) hextract
+
+/-- Presentation hypothesis needed to move from the faithful class back to the
+paper-main operational SAT observer class. -/
+def PaperMainFaithfulObserverPresentation
+    (enc : ThreeCNFEncoding) : Prop :=
+  forall T : TrajectoryObserverMachine,
+    OperationalTrajectoryObserverDecidesSAT enc T ->
+      FaithfulSATObserverClass enc T
+
+/-- If every operational SAT observer has a faithful presentation, then a
+faithful-class dynamic lower bound is a paper-main dynamic SAT lower bound. -/
+theorem paperMain_dynamicSATLowerBound_of_faithfulLowerBound_and_presentation
+    (enc : ThreeCNFEncoding)
+    (hlower :
+      DynamicCEW.NP_side_lower_bound
+        (TrajectoryObserverWidths (FaithfulSATObserverClass enc)))
+    (hpresent : PaperMainFaithfulObserverPresentation enc) :
+    PaperMainDynamicSATLowerBound enc := by
+  intro c
+  rcases hlower c with ⟨n, hnot_faithful⟩
+  refine ⟨n, ?_⟩
+  intro hcew
+  rcases hcew with ⟨w, hw_decides, hw_bound⟩
+  rcases hw_decides with ⟨T, hdec, hwidth_eq⟩
+  exact hnot_faithful
+    ⟨w, ⟨T, hpresent T hdec, hwidth_eq⟩, hw_bound⟩
+
+/-- The honest faithful God-Move/DCEW engine: first prove operational observers
+are represented faithfully, then prove live-boundary extraction for faithful
+SAT trajectories. -/
+structure FaithfulGodMoveDCEWEngine
+    (enc : ThreeCNFEncoding) : Prop where
+  faithful_presentation : PaperMainFaithfulObserverPresentation enc
+  faithful_live_boundary_extraction :
+    UniversalFaithfulSATObserverGodMoveExtraction enc
+
+/-- A faithful God-Move/DCEW engine discharges the paper-main dynamic SAT lower
+bound. -/
+theorem paperMain_dynamicSATLowerBound_of_faithfulGodMoveDCEWEngine
+    (enc : ThreeCNFEncoding)
+    (engine : FaithfulGodMoveDCEWEngine enc) :
+    PaperMainDynamicSATLowerBound enc :=
+  paperMain_dynamicSATLowerBound_of_faithfulLowerBound_and_presentation
+    enc
+    (faithful_dynamicSATLowerBound_of_universalFaithfulExtraction
+      enc engine.faithful_live_boundary_extraction)
+    engine.faithful_presentation
+
+/-- With the P-side dynamic calibration, a faithful engine gives the
+paper-main observer separation criterion. -/
+theorem paperMain_observerSeparationCriterion_of_calibration_and_faithfulEngine
+    (enc : ThreeCNFEncoding)
+    (PDecider : TrajectoryObserverMachine -> Prop)
+    (hp : PaperMainPObserverCalibration PDecider)
+    (engine : FaithfulGodMoveDCEWEngine enc) :
+    PaperMainObserverSeparationCriterion enc PDecider :=
+  ⟨hp, paperMain_dynamicSATLowerBound_of_faithfulGodMoveDCEWEngine enc engine⟩
+
+#print axioms faithfulTrajectoryObserver_realizes
+#print axioms faithful_width_positive_of_positive_liveRank
+#print axioms paperMain_dynamicSATLowerBound_of_faithfulGodMoveDCEWEngine
+#print axioms paperMain_observerSeparationCriterion_of_calibration_and_faithfulEngine
+
+end PallLean.Paper93.DeepMath.PathB
