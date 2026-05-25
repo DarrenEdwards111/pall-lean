@@ -507,6 +507,54 @@ theorem false_of_williamsGodelNonNaturalStep
   T.hierarchyNoCollapse
     (W.collapse_of_fastSAT_smallRepresentation hfast hsmall hmeta)
 
+/-! ## The four load-bearing Gödel/Williams components -/
+
+/-- Component 1: the N-frame Lagrangian supplies the fast SAT-like structured
+view needed by the Williams step. -/
+def NFrameSuppliesFastCircuitSAT
+    (_D : DescribedCanonicalSurface)
+    (_I : NFrameLagrangianPACInvariant)
+    (_T : ResourceBoundedGodelWilliamsTower)
+    (W : WilliamsGodelNonNaturalStep _T) : Prop :=
+  W.fastCircuitSAT
+
+/-- Component 2: the N-frame/Gödel tower supplies the meta-simulation needed to
+move from the base system to the stronger diagonal level. -/
+def NFrameSuppliesMetaSimulation
+    (_D : DescribedCanonicalSurface)
+    (_I : NFrameLagrangianPACInvariant)
+    (_T : ResourceBoundedGodelWilliamsTower)
+    (W : WilliamsGodelNonNaturalStep _T) : Prop :=
+  W.metaSimulation
+
+/-- Component 3: any canonical polynomial-time SAT decider yields the
+small-representation hypothesis consumed by the Williams step. -/
+def CanonicalDeciderYieldsSmallRepresentation
+    (D : DescribedCanonicalSurface)
+    (_I : NFrameLagrangianPACInvariant)
+    (_T : ResourceBoundedGodelWilliamsTower)
+    (W : WilliamsGodelNonNaturalStep _T) : Prop :=
+  CanonicalSATDecisionInP D.surface -> W.smallRepresentation
+
+/-- Component 4: the collapse step is Williams-style and non-natural in shape:
+it derives a forbidden hierarchy collapse from algorithmic/meta-simulation
+ingredients, rather than from a large constructive property of truth tables. -/
+def WilliamsGodelCollapseIsNonBlackBox
+    (T : ResourceBoundedGodelWilliamsTower)
+    (W : WilliamsGodelNonNaturalStep T) : Prop :=
+  W.fastCircuitSAT ->
+    W.smallRepresentation ->
+      W.metaSimulation ->
+        T.hierarchyCollapse
+
+/-- A `WilliamsGodelNonNaturalStep` contains the non-black-box collapse map as
+data.  Constructing such a real step is the Williams-method theorem. -/
+theorem williamsGodelCollapseIsNonBlackBox
+    (T : ResourceBoundedGodelWilliamsTower)
+    (W : WilliamsGodelNonNaturalStep T) :
+    WilliamsGodelCollapseIsNonBlackBox T W :=
+  W.collapse_of_fastSAT_smallRepresentation
+
 /-- The N-frame Lagrangian as a Williams/Gödel transport layer.
 
 This is the positive, non-natural version of the route.  The N-frame invariant
@@ -524,6 +572,70 @@ structure NFrameGodelWilliamsProgram
   decider_to_smallRepresentation :
     CanonicalSATDecisionInP D.surface ->
       W.smallRepresentation
+
+/-- Assemble the route program from the four named components, except that the
+collapse map itself already lives in `W`. -/
+theorem nFrameGodelWilliamsProgram_of_components
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (T : ResourceBoundedGodelWilliamsTower)
+    (W : WilliamsGodelNonNaturalStep T)
+    (hfast : NFrameSuppliesFastCircuitSAT D I T W)
+    (hmeta : NFrameSuppliesMetaSimulation D I T W)
+    (hsmall : CanonicalDeciderYieldsSmallRepresentation D I T W) :
+    NFrameGodelWilliamsProgram D I T W where
+  nframe_supplies_fastCircuitSAT := hfast
+  nframe_supplies_metaSimulation := hmeta
+  decider_to_smallRepresentation := hsmall
+
+/-- Direct closure from the four named components. -/
+theorem noCanonicalSATDecisionInP_of_nFrameGodelWilliamsComponents
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (T : ResourceBoundedGodelWilliamsTower)
+    (W : WilliamsGodelNonNaturalStep T)
+    (hfast : NFrameSuppliesFastCircuitSAT D I T W)
+    (hmeta : NFrameSuppliesMetaSimulation D I T W)
+    (hsmall : CanonicalDeciderYieldsSmallRepresentation D I T W)
+    (hcollapse : WilliamsGodelCollapseIsNonBlackBox T W) :
+    ¬ CanonicalSATDecisionInP D.surface := by
+  intro hdec
+  exact T.hierarchyNoCollapse (hcollapse hfast (hsmall hdec) hmeta)
+
+/-- Guard theorem: if a canonical polynomial-time SAT decider exists, the four
+Gödel/Williams components cannot all be true at once.  Thus those components are
+exactly the breakthrough content, not routine Lean wiring. -/
+theorem not_all_nFrameGodelWilliamsComponents_of_canonicalSATDecisionInP
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (T : ResourceBoundedGodelWilliamsTower)
+    (W : WilliamsGodelNonNaturalStep T)
+    (hdec : CanonicalSATDecisionInP D.surface) :
+    ¬ (NFrameSuppliesFastCircuitSAT D I T W ∧
+        NFrameSuppliesMetaSimulation D I T W ∧
+        CanonicalDeciderYieldsSmallRepresentation D I T W ∧
+        WilliamsGodelCollapseIsNonBlackBox T W) := by
+  intro hall
+  rcases hall with ⟨hfast, hmeta, hsmall, hcollapse⟩
+  exact T.hierarchyNoCollapse (hcollapse hfast (hsmall hdec) hmeta)
+
+/-- Conditional route closure from the four explicit Gödel/Williams
+components. -/
+theorem ktRoute_finalClosure_of_nFrameGodelWilliamsComponents
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (T : ResourceBoundedGodelWilliamsTower)
+    (W : WilliamsGodelNonNaturalStep T)
+    (hfast : NFrameSuppliesFastCircuitSAT D I T W)
+    (hmeta : NFrameSuppliesMetaSimulation D I T W)
+    (hsmall : CanonicalDeciderYieldsSmallRepresentation D I T W)
+    (hcollapse : WilliamsGodelCollapseIsNonBlackBox T W) :
+    (¬ CanonicalSATDecisionInP D.surface) ∧
+      NoPolynomialLengthScheduledCompleteGenerators D :=
+  ktRoute_finalClosure D
+    (hardMetacomplexitySocket_of_noCanonicalSATDecisionInP D
+      (noCanonicalSATDecisionInP_of_nFrameGodelWilliamsComponents
+        D I T W hfast hmeta hsmall hcollapse))
 
 /-- The Gödel/Williams transport closes the canonical SAT decider only by using
 a hierarchy contradiction.  This is the intended non-natural shape: no
@@ -601,6 +713,11 @@ the `smallRepresentation` needed by Williams' hierarchy contradiction. -/
 #print axioms restrictedBreakthrough_of_noOutputLowActionMachineClass
 #print axioms noRestrictedCorrect_noOutputLowActionMachines
 #print axioms false_of_williamsGodelNonNaturalStep
+#print axioms williamsGodelCollapseIsNonBlackBox
+#print axioms nFrameGodelWilliamsProgram_of_components
+#print axioms noCanonicalSATDecisionInP_of_nFrameGodelWilliamsComponents
+#print axioms not_all_nFrameGodelWilliamsComponents_of_canonicalSATDecisionInP
+#print axioms ktRoute_finalClosure_of_nFrameGodelWilliamsComponents
 #print axioms noCanonicalSATDecisionInP_of_nFrameGodelWilliamsProgram
 #print axioms hardMetacomplexitySocket_of_nFrameGodelWilliamsProgram
 #print axioms ktRoute_finalClosure_of_nFrameGodelWilliamsProgram
