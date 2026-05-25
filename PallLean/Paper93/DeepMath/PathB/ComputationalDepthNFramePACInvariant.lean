@@ -2350,6 +2350,140 @@ theorem noCanonicalSATDecisionInP_of_lengthIndexedFaithfulHolographicSATLowerBou
     (canonicalDeepSATSearch_of_lengthIndexedFaithfulHolographicSATLowerBound
       D I H htransport hlower)
 
+/-! ## Concrete formula-size Cook-Levin length-indexed encoder -/
+
+/-- A first concrete Cook-Levin length-indexed boundary.
+
+It records the decoded formula and a witness field.  Its complexity below is
+only formula size, so this is deliberately a weak Cook-Levin projection rather
+than the missing high-complexity SAT invariant. -/
+structure CookLevinFormulaSizeBoundary where
+  formula : CNF
+  witness : RawAssignment
+
+/-- The concrete formula-size Cook-Levin encoder.
+
+Low-action decoding is polynomial because the decoded complexity is just the
+decoded formula size.  The decoder obtains a satisfiable empty formula of size
+`descriptionLength`; this makes the P-side transport constructible from the
+current bulk object, but it also makes the SAT-side lower bound false for this
+encoder. -/
+def cookLevinFormulaSizeLengthIndexedEncoder
+    (I : NFrameLagrangianPACInvariant) :
+    LengthIndexedFaithfulHolographicEncoder I where
+  Boundary := CookLevinFormulaSizeBoundary
+  decode := fun bulk => {
+    formula := emptySatisfiableCNF bulk.descriptionLength
+    witness := List.replicate bulk.descriptionLength false
+  }
+  boundaryLength := fun boundary => boundary.formula.size
+  boundaryComplexity := fun boundary => boundary.formula.size
+  lowActionBudget := fun n => n
+  lowActionBudget_poly := by
+    refine ⟨1, 1, ?_⟩
+    intro n
+    simp
+  complexity_le_budget_of_lowAction := by
+    intro bulk _hlow
+    simp [emptySatisfiableCNF_size]
+
+/-- For the formula-size encoder, boundary complexity is exactly boundary
+length. -/
+theorem cookLevinFormulaSize_complexity_eq_length
+    (I : NFrameLagrangianPACInvariant)
+    (boundary : (cookLevinFormulaSizeLengthIndexedEncoder I).Boundary) :
+    (cookLevinFormulaSizeLengthIndexedEncoder I).boundaryComplexity boundary =
+      (cookLevinFormulaSizeLengthIndexedEncoder I).boundaryLength boundary :=
+  rfl
+
+/-- Build the low-action family carried by identity-matrix bulk with
+length-coded bookkeeping.  This proves the P-side transport for the concrete
+formula-size encoder, but only because the current action does not price the
+length bookkeeping. -/
+noncomputable def cookLevinFormulaSizeLowActionFamily_of_searchCorrect
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (M : SearchMachine D.surface.toMachineModel)
+    (hcorrect : SearchCorrect D.surface.toMachineModel M) :
+    LengthIndexedLowActionSATBoundaryFamily D I
+      (cookLevinFormulaSizeLengthIndexedEncoder I) M where
+  boundaryAt := fun n =>
+    (cookLevinFormulaSizeLengthIndexedEncoder I).decode
+      (NFramePACBulk.identityMatrixWithBookkeeping I.dim M.code n)
+  phiAt := fun n => emptySatisfiableCNF n
+  encodingAt := by
+    intro n
+    exact {
+      bulk := NFramePACBulk.identityMatrixWithBookkeeping I.dim M.code n
+      low_action := by
+        simpa [NFrameLagrangianPACInvariant.action, nFramePACLogDetAction,
+          NFramePACBulk.identity, NFramePACBulk.identityMatrixWithBookkeeping]
+          using I.identity_low_action
+      decodes_to := rfl
+    }
+  semanticsAt := by
+    intro n
+    let phi := emptySatisfiableCNF n
+    have hsat : Satisfiable phi := emptySatisfiableCNF_satisfiable n
+    let witness := Classical.choose (hcorrect phi hsat)
+    have hwitness := Classical.choose_spec (hcorrect phi hsat)
+    exact {
+      witness := witness
+      machine_outputs := hwitness.1
+      witness_satisfies := hwitness.2
+      boundary_is_decoded_sat_boundary := True
+      boundary_semantics_proof := trivial
+    }
+  length_eq := by
+    intro n
+    simp [cookLevinFormulaSizeLengthIndexedEncoder,
+      NFramePACBulk.identityMatrixWithBookkeeping, emptySatisfiableCNF_size]
+
+/-- The concrete formula-size encoder satisfies the P-side transport socket. -/
+noncomputable def cookLevinFormulaSize_pLevelTransport
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant) :
+    LengthIndexedPLevelSATObserverTransport D I
+      (cookLevinFormulaSizeLengthIndexedEncoder I) where
+  transport := by
+    intro M hcorrect
+    exact ⟨cookLevinFormulaSizeLowActionFamily_of_searchCorrect
+      D I M hcorrect⟩
+
+/-- Any SAT boundary family for the formula-size encoder is polynomially
+bounded by its length.  Thus this concrete encoder cannot support the required
+superpolynomial SAT-side lower bound. -/
+theorem not_lengthIndexedSATHolographicBoundaryLowerBound_cookLevinFormulaSize
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (M : SearchMachine D.surface.toMachineModel)
+    (F : LengthIndexedSATBoundaryFamily D I
+      (cookLevinFormulaSizeLengthIndexedEncoder I) M) :
+    ¬ LengthIndexedSATHolographicBoundaryLowerBound D I
+      (cookLevinFormulaSizeLengthIndexedEncoder I) := by
+  exact
+    not_lengthIndexedSATHolographicBoundaryLowerBound_of_polyBoundedFamily
+      D I (cookLevinFormulaSizeLengthIndexedEncoder I) M F 1 1
+      (by
+        intro n
+        rw [cookLevinFormulaSize_complexity_eq_length I (F.boundaryAt n)]
+        rw [F.length_eq n]
+        simp)
+
+/-- In particular, if a complete SAT search machine exists, the formula-size
+Cook-Levin encoder's own P-side family refutes its SAT lower-bound socket. -/
+theorem not_lengthIndexedSATHolographicBoundaryLowerBound_cookLevinFormulaSize_of_searchCorrect
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (M : SearchMachine D.surface.toMachineModel)
+    (hcorrect : SearchCorrect D.surface.toMachineModel M) :
+    ¬ LengthIndexedSATHolographicBoundaryLowerBound D I
+      (cookLevinFormulaSizeLengthIndexedEncoder I) :=
+  not_lengthIndexedSATHolographicBoundaryLowerBound_cookLevinFormulaSize
+    D I M
+    (cookLevinFormulaSizeLowActionFamily_of_searchCorrect
+      D I M hcorrect).toSATBoundaryFamily
+
 /-- The P-side observer calibration for the faithful holographic layer:
 a complete SAT search machine would produce a faithful low-action decoded SAT
 boundary on some instance. -/
@@ -2567,7 +2701,12 @@ The Cook-Levin projection below also shows that a single fixed low-action budget
 is too coarse: once boundary complexity prices formula size, arbitrarily large
 satisfiable CNFs defeat any global budget.  A faithful positive version must be
 length-indexed, with a polynomial P-side budget and a superpolynomial SAT-side
-boundary lower bound. -/
+boundary lower bound.
+
+The concrete formula-size Cook-Levin encoder discharges the P-side transport
+but has only linear boundary complexity, so its SAT lower-bound socket is
+refuted.  The remaining positive target is therefore a stronger Cook-Levin
+complexity measure than formula size. -/
 
 /-! ## Axiom trace -/
 
@@ -2646,6 +2785,11 @@ boundary lower bound. -/
 #print axioms forall_not_searchCorrect_of_lengthIndexedFaithfulHolographicSATLowerBound
 #print axioms canonicalDeepSATSearch_of_lengthIndexedFaithfulHolographicSATLowerBound
 #print axioms noCanonicalSATDecisionInP_of_lengthIndexedFaithfulHolographicSATLowerBound
+#print axioms cookLevinFormulaSize_complexity_eq_length
+#print axioms cookLevinFormulaSizeLowActionFamily_of_searchCorrect
+#print axioms cookLevinFormulaSize_pLevelTransport
+#print axioms not_lengthIndexedSATHolographicBoundaryLowerBound_cookLevinFormulaSize
+#print axioms not_lengthIndexedSATHolographicBoundaryLowerBound_cookLevinFormulaSize_of_searchCorrect
 #print axioms noFaithfulLowActionSATBoundary_of_faithfulSATLowerBound
 #print axioms forall_not_searchCorrect_of_faithfulHolographicSATLowerBound
 #print axioms canonicalDeepSATSearch_of_faithfulHolographicSATLowerBound
