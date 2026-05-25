@@ -1,6 +1,7 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthHolographicPACAttempt
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRestrictedTargets
 import PallLean.Paper93.DeepMath.PathB.NFrameVariationalAmplituhedronBridge
+import PallLean.Paper93.DeepMath.PathB.WilliamsCompressedCertificateTransport
 
 /-
 # N-frame Lagrangian PAC invariant
@@ -637,6 +638,146 @@ theorem ktRoute_finalClosure_of_nFrameGodelWilliamsComponents
       (noCanonicalSATDecisionInP_of_nFrameGodelWilliamsComponents
         D I T W hfast hmeta hsmall hcollapse))
 
+/-! ## Restricted Williams test: ACC0-style target -/
+
+/-- Abstract ACC0-style target for the Williams algorithmic method.
+
+This intentionally lives at the known Williams scale: an NEXP language class,
+small ACC0-circuit representation, a faster circuit-SAT procedure, easy
+witnesses, and a nondeterministic hierarchy contradiction.  It is not a
+P-vs-NP target. -/
+structure ACC0WilliamsTarget where
+  NEXPLanguage : Type
+  HasACC0Circuits : NEXPLanguage -> Prop
+  FastACC0CircuitSAT : Prop
+  ACC0MetaSimulation : Prop
+  EasyWitnessCompression : Prop
+  HierarchyCollapse : Prop
+  easyWitness_of_fastSAT_smallCircuits_meta :
+    FastACC0CircuitSAT ->
+      (∀ L : NEXPLanguage, HasACC0Circuits L) ->
+        ACC0MetaSimulation ->
+          EasyWitnessCompression
+  hierarchyCollapse_of_easyWitness_smallCircuits_meta :
+    EasyWitnessCompression ->
+      (∀ L : NEXPLanguage, HasACC0Circuits L) ->
+        ACC0MetaSimulation ->
+          HierarchyCollapse
+  hierarchyContradiction : ¬ HierarchyCollapse
+
+/-- Forget the ACC0-specific names into the existing Williams circuit-class
+surface. -/
+def ACC0WilliamsTarget.toCircuitClass
+    (A : ACC0WilliamsTarget) :
+    PallLean.Paper93.DeepMath.PathB.WilliamsCircuitClass where
+  NEXPLanguage := A.NEXPLanguage
+  HasSmallCircuits := A.HasACC0Circuits
+  FastCircuitSAT := A.FastACC0CircuitSAT
+  EasyWitnessCompression := A.EasyWitnessCompression
+  HierarchyCollapse := A.HierarchyCollapse
+
+/-- The restricted small-representation hypothesis is `NEXP ⊆ ACC0` for this
+abstract target. -/
+def ACC0WilliamsTarget.smallRepresentation
+    (A : ACC0WilliamsTarget) : Prop :=
+  PallLean.Paper93.DeepMath.PathB.NEXPSubsetCircuitClass A.toCircuitClass
+
+/-- View the ACC0 target as a Gödel/Williams tower. -/
+def ACC0WilliamsTarget.toGodelWilliamsTower
+    (A : ACC0WilliamsTarget) :
+    ResourceBoundedGodelWilliamsTower where
+  baseSystemCode := 0
+  metaSystemCode := 1
+  diagonalSentenceCode := 2
+  hierarchyCollapse := A.HierarchyCollapse
+  hierarchyNoCollapse := A.hierarchyContradiction
+
+/-- View the ACC0 target as the non-natural Williams step used by the N-frame
+component split. -/
+def ACC0WilliamsTarget.toGodelWilliamsStep
+    (A : ACC0WilliamsTarget) :
+    WilliamsGodelNonNaturalStep A.toGodelWilliamsTower where
+  fastCircuitSAT := A.FastACC0CircuitSAT
+  smallRepresentation := A.smallRepresentation
+  metaSimulation := A.ACC0MetaSimulation
+  collapse_of_fastSAT_smallRepresentation := by
+    intro hfast hsmall hmeta
+    exact A.hierarchyCollapse_of_easyWitness_smallCircuits_meta
+      (A.easyWitness_of_fastSAT_smallCircuits_meta hfast hsmall hmeta)
+      hsmall
+      hmeta
+
+/-- The ACC0 target also produces the repository's existing Williams transport,
+once the meta-simulation infrastructure is available. -/
+def ACC0WilliamsTarget.toWilliamsTransport
+    (A : ACC0WilliamsTarget)
+    (hmeta : A.ACC0MetaSimulation) :
+    PallLean.Paper93.DeepMath.PathB.WilliamsAlgorithmicTransport
+      A.toCircuitClass where
+  easyWitness_of_fastSAT_and_smallCircuits := by
+    intro hfast hsmall
+    exact A.easyWitness_of_fastSAT_smallCircuits_meta hfast hsmall hmeta
+  hierarchyCollapse_of_easyWitness_and_smallCircuits := by
+    intro heasy hsmall
+    exact A.hierarchyCollapse_of_easyWitness_smallCircuits_meta
+      heasy hsmall hmeta
+  hierarchyContradiction := A.hierarchyContradiction
+
+/-- The restricted Williams conclusion: fast ACC0 circuit-SAT plus the
+meta-simulation infrastructure gives the NEXP-vs-ACC0-style lower bound. -/
+theorem acc0_nexp_not_subset_of_fastSAT_and_metaSimulation
+    (A : ACC0WilliamsTarget)
+    (hfast : A.FastACC0CircuitSAT)
+    (hmeta : A.ACC0MetaSimulation) :
+    PallLean.Paper93.DeepMath.PathB.NEXPNotSubsetCircuitClass
+      A.toCircuitClass :=
+  PallLean.Paper93.DeepMath.PathB.nexp_not_subset_of_williams_transport
+    A.toCircuitClass
+    hfast
+    (A.toWilliamsTransport hmeta)
+
+/-- N-frame restricted ACC0 program: the N-frame Lagrangian supplies the two
+algorithmic ingredients Williams can use at the restricted NEXP/circuit-class
+scale. -/
+structure NFrameACC0WilliamsRestrictedProgram
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (A : ACC0WilliamsTarget) : Prop where
+  nframe_fast_acc0_sat :
+    NFrameSuppliesFastCircuitSAT D I
+      A.toGodelWilliamsTower A.toGodelWilliamsStep
+  nframe_meta_simulation :
+    NFrameSuppliesMetaSimulation D I
+      A.toGodelWilliamsTower A.toGodelWilliamsStep
+
+/-- A completed restricted N-frame/ACC0 Williams program yields the restricted
+Williams lower bound.  This is the test case that can actually be expected from
+the algorithmic method: NEXP-vs-a-circuit-class, not P vs NP. -/
+theorem acc0_nexp_not_subset_of_nFrameACC0WilliamsRestrictedProgram
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (A : ACC0WilliamsTarget)
+    (h : NFrameACC0WilliamsRestrictedProgram D I A) :
+    PallLean.Paper93.DeepMath.PathB.NEXPNotSubsetCircuitClass
+      A.toCircuitClass :=
+  acc0_nexp_not_subset_of_fastSAT_and_metaSimulation
+    A h.nframe_fast_acc0_sat h.nframe_meta_simulation
+
+/-- Guard for the restricted test: if the target class already contains NEXP,
+then the restricted N-frame/Williams program cannot exist. -/
+theorem not_nFrameACC0WilliamsRestrictedProgram_of_nexp_subset_acc0
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (A : ACC0WilliamsTarget)
+    (hsubset :
+      PallLean.Paper93.DeepMath.PathB.NEXPSubsetCircuitClass
+        A.toCircuitClass) :
+    ¬ NFrameACC0WilliamsRestrictedProgram D I A := by
+  intro h
+  exact
+    (acc0_nexp_not_subset_of_nFrameACC0WilliamsRestrictedProgram
+      D I A h) hsubset
+
 /-- The Gödel/Williams transport closes the canonical SAT decider only by using
 a hierarchy contradiction.  This is the intended non-natural shape: no
 truth-table largeness/rank property is invoked. -/
@@ -718,6 +859,9 @@ the `smallRepresentation` needed by Williams' hierarchy contradiction. -/
 #print axioms noCanonicalSATDecisionInP_of_nFrameGodelWilliamsComponents
 #print axioms not_all_nFrameGodelWilliamsComponents_of_canonicalSATDecisionInP
 #print axioms ktRoute_finalClosure_of_nFrameGodelWilliamsComponents
+#print axioms acc0_nexp_not_subset_of_fastSAT_and_metaSimulation
+#print axioms acc0_nexp_not_subset_of_nFrameACC0WilliamsRestrictedProgram
+#print axioms not_nFrameACC0WilliamsRestrictedProgram_of_nexp_subset_acc0
 #print axioms noCanonicalSATDecisionInP_of_nFrameGodelWilliamsProgram
 #print axioms hardMetacomplexitySocket_of_nFrameGodelWilliamsProgram
 #print axioms ktRoute_finalClosure_of_nFrameGodelWilliamsProgram
