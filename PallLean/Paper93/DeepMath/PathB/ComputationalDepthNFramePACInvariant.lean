@@ -1271,6 +1271,109 @@ structure NFrameStrictSYMPlusBulkEncoder
       (nf : ACC0CircuitHasStrictSYMPlusNormalForm (F.circuit n)),
         (encode F n nf).strictNormalForm = nf
 
+/-! ## Low-action bulk coding capacity -/
+
+/-- The exact low-action N-frame capacity needed by the strict SYM+ encoder:
+for every code/description pair, produce a low-action bulk object carrying that
+pair. -/
+structure NFrameLowActionBulkCodingCapacity
+    (I : NFrameLagrangianPACInvariant) where
+  bulk : Nat -> Nat -> NFramePACBulk I.dim
+  low_action :
+    ∀ code desc : Nat, I.action (bulk code desc) <= I.actionBound
+  reconstructionCode_eq :
+    ∀ code desc : Nat, (bulk code desc).reconstructionCode = code
+  descriptionLength_eq :
+    ∀ code desc : Nat, (bulk code desc).descriptionLength = desc
+
+/-- Low-action bulk coding capacity constructs the strict SYM+ bulk encoder. -/
+def nFrameStrictSYMPlusBulkEncoder_of_lowActionBulkCodingCapacity
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (capacity : NFrameLowActionBulkCodingCapacity I) :
+    NFrameStrictSYMPlusBulkEncoder D I where
+  encode := by
+    intro F n nf
+    exact {
+      bulk := capacity.bulk (F.circuit n).size nf.normalForm.termCount
+      low_action :=
+        capacity.low_action (F.circuit n).size nf.normalForm.termCount
+      strictNormalForm := nf
+      reconstruction_tracks_size :=
+        capacity.reconstructionCode_eq
+          (F.circuit n).size nf.normalForm.termCount
+      description_tracks_termCount :=
+        capacity.descriptionLength_eq
+          (F.circuit n).size nf.normalForm.termCount
+    }
+  encode_strictNormalForm := by
+    intro F n nf
+    rfl
+
+/-- If the only low-action bulk object is the identity/reference bulk, the
+N-frame invariant cannot have universal low-action coding capacity. -/
+def IdentityOnlyLowActionBulk
+    (I : NFrameLagrangianPACInvariant) : Prop :=
+  ∀ bulk : NFramePACBulk I.dim,
+    I.action bulk <= I.actionBound ->
+      bulk = NFramePACBulk.identity I.dim
+
+/-- Identity-only low action rules out the coding capacity, because the capacity
+must encode code `1`, while identity carries code `0`. -/
+theorem not_lowActionBulkCodingCapacity_of_identityOnly
+    (I : NFrameLagrangianPACInvariant)
+    (honly : IdentityOnlyLowActionBulk I) :
+    ¬ Nonempty (NFrameLowActionBulkCodingCapacity I) := by
+  intro hcapacity
+  rcases hcapacity with ⟨capacity⟩
+  let b := capacity.bulk 1 0
+  have hb : b = NFramePACBulk.identity I.dim :=
+    honly b (capacity.low_action 1 0)
+  have hcode0 : b.reconstructionCode = 0 := by
+    simpa [b, NFramePACBulk.identity] using
+      congrArg NFramePACBulk.reconstructionCode hb
+  have h10 : (1 : Nat) = 0 := by
+    rw [← capacity.reconstructionCode_eq 1 0]
+    exact hcode0
+  exact Nat.succ_ne_zero 0 h10
+
+/-- Identity-only low action also rules out a strict bulk encoder whenever a
+requested certificate has nonzero circuit-size code or nonzero term-count
+description. -/
+theorem not_nFrameStrictSYMPlusBulkEncoder_of_identityOnly_nonzeroCertificate
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (F : ACC0LikeCircuitFamily)
+    (n : Nat)
+    (nf : ACC0CircuitHasStrictSYMPlusNormalForm (F.circuit n))
+    (honly : IdentityOnlyLowActionBulk I)
+    (hnonzero :
+      (F.circuit n).size ≠ 0 ∨ nf.normalForm.termCount ≠ 0) :
+    ¬ Nonempty (NFrameStrictSYMPlusBulkEncoder D I) := by
+  intro hencoder
+  rcases hencoder with ⟨encoder⟩
+  let cert := encoder.encode F n nf
+  have hbulk : cert.bulk = NFramePACBulk.identity I.dim :=
+    honly cert.bulk cert.low_action
+  have hcode0 : cert.bulk.reconstructionCode = 0 := by
+    simpa [cert, NFramePACBulk.identity] using
+      congrArg NFramePACBulk.reconstructionCode hbulk
+  have hdesc0 : cert.bulk.descriptionLength = 0 := by
+    simpa [cert, NFramePACBulk.identity] using
+      congrArg NFramePACBulk.descriptionLength hbulk
+  have hnf : cert.strictNormalForm = nf :=
+    encoder.encode_strictNormalForm F n nf
+  rcases hnonzero with hsize | hterms
+  · have hsize0 : (F.circuit n).size = 0 := by
+      rw [← cert.reconstruction_tracks_size]
+      exact hcode0
+    exact hsize hsize0
+  · have hterm0 : nf.normalForm.termCount = 0 := by
+      rw [← hnf]
+      rw [← cert.description_tracks_termCount]
+      exact hdesc0
+    exact hterms hterm0
+
 /-- Package a strict normal form with a bulk supplied by an N-frame encoder. -/
 def nFrameCertifiedStrictSYMPlusNormalForm_of_bulkEncoder
     (D : DescribedCanonicalSurface)
@@ -1551,6 +1654,9 @@ the `smallRepresentation` needed by Williams' hierarchy contradiction. -/
 #print axioms nFrameLagrangianYieldsStrictSYMPlusNormalForms_of_surfaceNormalization
 #print axioms ACC0FamilyHasNFrameCertifiedEfficientStrictSYMPlusNormalForms.toStrict
 #print axioms nFrameLagrangianYieldsStrictSYMPlusNormalForms_of_certifiedExtraction
+#print axioms nFrameStrictSYMPlusBulkEncoder_of_lowActionBulkCodingCapacity
+#print axioms not_lowActionBulkCodingCapacity_of_identityOnly
+#print axioms not_nFrameStrictSYMPlusBulkEncoder_of_identityOnly_nonzeroCertificate
 #print axioms nFrameCertifiedStrictSYMPlusNormalForm_of_bulkEncoder
 #print axioms nFrameLagrangianExtractsStrictSYMPlusNormalForms_of_surfaceNormalization_and_bulkEncoder
 #print axioms nFrameSuppliesConcreteACC0FastCircuitSAT_of_strictSYMPlusNormalForms
