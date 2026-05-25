@@ -2484,6 +2484,204 @@ theorem not_lengthIndexedSATHolographicBoundaryLowerBound_cookLevinFormulaSize_o
     (cookLevinFormulaSizeLowActionFamily_of_searchCorrect
       D I M hcorrect).toSATBoundaryFamily
 
+/-! ## Semantic-orbit Cook-Levin boundary guard -/
+
+/-- A deliberately stronger Cook-Levin boundary complexity scale.
+
+Unlike formula size, `semanticOrbitComplexity n = (n+1)^(n+1)` beats every
+fixed polynomial in `n`.  It models pricing the whole semantic/certificate
+orbit rather than only the printed CNF. -/
+def cookLevinSemanticOrbitComplexity (n : Nat) : Nat :=
+  (n + 1) ^ (n + 1)
+
+/-- The semantic-orbit scale is superpolynomial in the length parameter. -/
+theorem cookLevinSemanticOrbitComplexity_beats_polynomial
+    (k c : Nat) :
+    ∃ n : Nat,
+      c * (n + 1) ^ k < cookLevinSemanticOrbitComplexity n := by
+  let n := k + c + 1
+  refine ⟨n, ?_⟩
+  have hc_le : c <= n + 1 := by
+    dsimp [n]
+    omega
+  have hk_succ_lt : k + 1 < n + 1 := by
+    dsimp [n]
+    omega
+  have hb_gt_one : 1 < n + 1 := by
+    dsimp [n]
+    omega
+  have hmul :
+      c * (n + 1) ^ k <= (n + 1) * (n + 1) ^ k :=
+    Nat.mul_le_mul_right ((n + 1) ^ k) hc_le
+  have hsucc :
+      (n + 1) * (n + 1) ^ k = (n + 1) ^ (k + 1) := by
+    rw [Nat.pow_succ, Nat.mul_comm]
+  have hpow :
+      (n + 1) ^ (k + 1) < (n + 1) ^ (n + 1) :=
+    Nat.pow_lt_pow_right hb_gt_one hk_succ_lt
+  exact lt_of_le_of_lt (hmul.trans_eq hsucc) hpow
+
+/-- Semantic-orbit pricing for an arbitrary length-indexed encoder.
+
+This is the exact strengthened SAT-side condition that formula size failed:
+every SAT-semantic boundary family must price at least the full
+`(n+1)^(n+1)` orbit at length `n`. -/
+def LengthIndexedCookLevinSemanticOrbitPricing
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I) : Prop :=
+  ∀ (M : SearchMachine D.surface.toMachineModel)
+    (F : LengthIndexedSATBoundaryFamily D I H M)
+    (n : Nat),
+      cookLevinSemanticOrbitComplexity n <=
+        H.boundaryComplexity (F.boundaryAt n)
+
+/-- Semantic-orbit pricing implies the SAT-side superpolynomial lower-bound
+socket. -/
+theorem lengthIndexedSATHolographicBoundaryLowerBound_of_semanticOrbitPricing
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (hpricing : LengthIndexedCookLevinSemanticOrbitPricing D I H) :
+    LengthIndexedSATHolographicBoundaryLowerBound D I H := by
+  intro M F k c
+  rcases cookLevinSemanticOrbitComplexity_beats_polynomial k c with
+    ⟨n, hgt⟩
+  exact ⟨n, lt_of_lt_of_le hgt (hpricing M F n)⟩
+
+/-- If semantic-orbit pricing holds, no low-action P-side family can exist.
+
+This is the core guard: pricing enough semantic orbit to prove the SAT lower
+bound immediately conflicts with polynomial low-action decoding. -/
+theorem noLengthIndexedLowActionSATBoundaryFamily_of_semanticOrbitPricing
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (hpricing : LengthIndexedCookLevinSemanticOrbitPricing D I H)
+    (M : SearchMachine D.surface.toMachineModel) :
+    ¬ Nonempty (LengthIndexedLowActionSATBoundaryFamily D I H M) :=
+  noLengthIndexedLowActionSATBoundaryFamily_of_lowerBound D I H
+    (lengthIndexedSATHolographicBoundaryLowerBound_of_semanticOrbitPricing
+      D I H hpricing) M
+
+/-- Consequently, if a complete SAT search machine exists, semantic-orbit
+pricing refutes the P-side observer transport. -/
+theorem not_lengthIndexedPLevelSATObserverTransport_of_semanticOrbitPricing
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (hpricing : LengthIndexedCookLevinSemanticOrbitPricing D I H)
+    (M : SearchMachine D.surface.toMachineModel)
+    (hcorrect : SearchCorrect D.surface.toMachineModel M) :
+    ¬ LengthIndexedPLevelSATObserverTransport D I H := by
+  intro htransport
+  exact noLengthIndexedLowActionSATBoundaryFamily_of_semanticOrbitPricing
+    D I H hpricing M
+    (htransport.transport M hcorrect)
+
+/-- A concrete semantic-orbit boundary. -/
+structure CookLevinSemanticOrbitBoundary where
+  formula : CNF
+  witness : RawAssignment
+
+/-- The concrete semantic-orbit encoder.
+
+It has a genuine superpolynomial SAT-side complexity scale, but its low-action
+decoder only emits the zero-length reference boundary.  This makes the SAT side
+provable while exposing why the P-side transport cannot be obtained from this
+measure. -/
+def cookLevinSemanticOrbitLengthIndexedEncoder
+    (I : NFrameLagrangianPACInvariant) :
+    LengthIndexedFaithfulHolographicEncoder I where
+  Boundary := CookLevinSemanticOrbitBoundary
+  decode := fun _ => {
+    formula := emptySatisfiableCNF 0
+    witness := []
+  }
+  boundaryLength := fun boundary => boundary.formula.size
+  boundaryComplexity := fun boundary =>
+    cookLevinSemanticOrbitComplexity boundary.formula.size
+  lowActionBudget := fun _ => 1
+  lowActionBudget_poly := by
+    refine ⟨0, 1, ?_⟩
+    intro n
+    simp
+  complexity_le_budget_of_lowAction := by
+    intro _bulk _hlow
+    simp [cookLevinSemanticOrbitComplexity, emptySatisfiableCNF_size]
+
+/-- For the semantic-orbit encoder, complexity is exactly the self-powered
+length scale. -/
+theorem cookLevinSemanticOrbit_complexity_eq_selfPow
+    (I : NFrameLagrangianPACInvariant)
+    (boundary : (cookLevinSemanticOrbitLengthIndexedEncoder I).Boundary) :
+    (cookLevinSemanticOrbitLengthIndexedEncoder I).boundaryComplexity boundary =
+      cookLevinSemanticOrbitComplexity
+        ((cookLevinSemanticOrbitLengthIndexedEncoder I).boundaryLength
+          boundary) :=
+  rfl
+
+/-- The concrete semantic-orbit encoder satisfies semantic-orbit pricing. -/
+theorem cookLevinSemanticOrbit_pricing
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant) :
+    LengthIndexedCookLevinSemanticOrbitPricing D I
+      (cookLevinSemanticOrbitLengthIndexedEncoder I) := by
+  intro M F n
+  rw [cookLevinSemanticOrbit_complexity_eq_selfPow I (F.boundaryAt n)]
+  rw [F.length_eq n]
+
+/-- Hence the concrete semantic-orbit encoder proves the SAT-side lower-bound
+socket. -/
+theorem lengthIndexedSATHolographicBoundaryLowerBound_cookLevinSemanticOrbit
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant) :
+    LengthIndexedSATHolographicBoundaryLowerBound D I
+      (cookLevinSemanticOrbitLengthIndexedEncoder I) :=
+  lengthIndexedSATHolographicBoundaryLowerBound_of_semanticOrbitPricing
+    D I (cookLevinSemanticOrbitLengthIndexedEncoder I)
+    (cookLevinSemanticOrbit_pricing D I)
+
+/-- But the same semantic-orbit encoder admits no low-action SAT boundary
+family at all: already at length one, complexity exceeds the constant
+low-action budget. -/
+theorem noLengthIndexedLowActionSATBoundaryFamily_cookLevinSemanticOrbit
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (M : SearchMachine D.surface.toMachineModel) :
+    ¬ Nonempty (LengthIndexedLowActionSATBoundaryFamily D I
+      (cookLevinSemanticOrbitLengthIndexedEncoder I) M) := by
+  exact noLengthIndexedLowActionSATBoundaryFamily_of_semanticOrbitPricing
+    D I (cookLevinSemanticOrbitLengthIndexedEncoder I)
+    (cookLevinSemanticOrbit_pricing D I) M
+
+/-- Therefore this stronger semantic-orbit measure cannot supply the P-side
+transport in the presence of any complete SAT search machine. -/
+theorem not_cookLevinSemanticOrbit_pLevelTransport_of_searchCorrect
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (M : SearchMachine D.surface.toMachineModel)
+    (hcorrect : SearchCorrect D.surface.toMachineModel M) :
+    ¬ LengthIndexedPLevelSATObserverTransport D I
+      (cookLevinSemanticOrbitLengthIndexedEncoder I) :=
+  not_lengthIndexedPLevelSATObserverTransport_of_semanticOrbitPricing
+    D I (cookLevinSemanticOrbitLengthIndexedEncoder I)
+    (cookLevinSemanticOrbit_pricing D I) M hcorrect
+
+/-- Conditional closure if one could nevertheless prove the missing P-side
+transport for the semantic-orbit encoder.  This names the remaining theorem
+without asserting it. -/
+theorem noCanonicalSATDecisionInP_of_cookLevinSemanticOrbit_transport
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (htransport : LengthIndexedPLevelSATObserverTransport D I
+      (cookLevinSemanticOrbitLengthIndexedEncoder I)) :
+    ¬ CanonicalSATDecisionInP D.surface :=
+  noCanonicalSATDecisionInP_of_lengthIndexedFaithfulHolographicSATLowerBound
+    D I (cookLevinSemanticOrbitLengthIndexedEncoder I) htransport
+    (lengthIndexedSATHolographicBoundaryLowerBound_cookLevinSemanticOrbit
+      D I)
+
 /-- The P-side observer calibration for the faithful holographic layer:
 a complete SAT search machine would produce a faithful low-action decoded SAT
 boundary on some instance. -/
@@ -2706,7 +2904,15 @@ boundary lower bound.
 The concrete formula-size Cook-Levin encoder discharges the P-side transport
 but has only linear boundary complexity, so its SAT lower-bound socket is
 refuted.  The remaining positive target is therefore a stronger Cook-Levin
-complexity measure than formula size. -/
+complexity measure than formula size.
+
+The semantic-orbit encoder above tests the opposite extreme.  Its
+`(n+1)^(n+1)` complexity scale proves the SAT-side lower-bound socket, but then
+no low-action SAT boundary family can exist.  Thus formula-size pricing is too
+weak for SAT, while semantic-orbit pricing is too strong for the P-side
+transport.  A successful invariant would have to occupy the currently missing
+middle: strong enough to force SAT superpolynomial complexity, but still
+decoded from genuine low-action polynomial observers. -/
 
 /-! ## Axiom trace -/
 
@@ -2790,6 +2996,15 @@ complexity measure than formula size. -/
 #print axioms cookLevinFormulaSize_pLevelTransport
 #print axioms not_lengthIndexedSATHolographicBoundaryLowerBound_cookLevinFormulaSize
 #print axioms not_lengthIndexedSATHolographicBoundaryLowerBound_cookLevinFormulaSize_of_searchCorrect
+#print axioms cookLevinSemanticOrbitComplexity_beats_polynomial
+#print axioms lengthIndexedSATHolographicBoundaryLowerBound_of_semanticOrbitPricing
+#print axioms noLengthIndexedLowActionSATBoundaryFamily_of_semanticOrbitPricing
+#print axioms not_lengthIndexedPLevelSATObserverTransport_of_semanticOrbitPricing
+#print axioms cookLevinSemanticOrbit_pricing
+#print axioms lengthIndexedSATHolographicBoundaryLowerBound_cookLevinSemanticOrbit
+#print axioms noLengthIndexedLowActionSATBoundaryFamily_cookLevinSemanticOrbit
+#print axioms not_cookLevinSemanticOrbit_pLevelTransport_of_searchCorrect
+#print axioms noCanonicalSATDecisionInP_of_cookLevinSemanticOrbit_transport
 #print axioms noFaithfulLowActionSATBoundary_of_faithfulSATLowerBound
 #print axioms forall_not_searchCorrect_of_faithfulHolographicSATLowerBound
 #print axioms canonicalDeepSATSearch_of_faithfulHolographicSATLowerBound
