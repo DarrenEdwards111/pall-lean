@@ -1868,6 +1868,79 @@ def FaithfulSATHolographicBoundaryLowerBound
       SATHolographicBoundarySemantics D I H M phi boundary ->
         H.lowActionComplexityBudget < H.boundaryComplexity boundary
 
+/-- Guard theorem: any faithfully decoded SAT boundary whose complexity is
+within the low-action budget refutes the SAT lower-bound socket.
+
+So `FaithfulSATHolographicBoundaryLowerBound` cannot be proved from the
+holographic interface alone; it needs a real SAT/Cook-Levin argument that rules
+out such low-complexity decoded SAT boundaries. -/
+theorem not_faithfulSATHolographicBoundaryLowerBound_of_lowComplexitySATBoundary
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : FaithfulHolographicEncoder I)
+    (M : SearchMachine D.surface.toMachineModel)
+    (phi : CNF)
+    (boundary : H.Boundary)
+    (semantics : SATHolographicBoundarySemantics D I H M phi boundary)
+    (hle :
+      H.boundaryComplexity boundary <= H.lowActionComplexityBudget) :
+    ¬ FaithfulSATHolographicBoundaryLowerBound D I H := by
+  intro hlower
+  exact (Nat.not_lt_of_ge hle) (hlower M phi boundary semantics)
+
+/-- The degenerate faithful encoder: every bulk decodes to the single boundary
+of complexity zero.  It satisfies the low-action pricing condition, but it
+cannot support a SAT lower bound once any SAT semantics is attached to its sole
+boundary.
+
+This is a diagnostic object: it proves the lower bound must use a nontrivial
+decoder/complexity model, not just the abstract word "faithful." -/
+def trivialFaithfulHolographicEncoder
+    (I : NFrameLagrangianPACInvariant) :
+    FaithfulHolographicEncoder I where
+  Boundary := Unit
+  decode := fun _ => ()
+  boundaryComplexity := fun _ => 0
+  lowActionComplexityBudget := 0
+  complexity_le_budget_of_lowAction := by
+    intro _bulk _hlow
+    exact Nat.le_refl 0
+
+/-- The trivial faithful encoder refutes the SAT lower-bound socket whenever
+its unique boundary is given SAT semantics. -/
+theorem not_trivialFaithfulSATHolographicBoundaryLowerBound_of_semantics
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (M : SearchMachine D.surface.toMachineModel)
+    (phi : CNF)
+    (semantics :
+      SATHolographicBoundarySemantics D I
+        (trivialFaithfulHolographicEncoder I) M phi ()) :
+    ¬ FaithfulSATHolographicBoundaryLowerBound D I
+        (trivialFaithfulHolographicEncoder I) :=
+  not_faithfulSATHolographicBoundaryLowerBound_of_lowComplexitySATBoundary
+    D I (trivialFaithfulHolographicEncoder I) M phi () semantics
+    (Nat.le_refl 0)
+
+/-- Consequently there is no theorem proving the SAT boundary lower bound for
+every faithful encoder once even one low-complexity SAT-semantic boundary is
+available.  A successful route must first specify a nontrivial encoder and then
+prove its SAT boundary lower bound. -/
+theorem not_universalFaithfulSATHolographicBoundaryLowerBound_of_trivialSemantics
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (M : SearchMachine D.surface.toMachineModel)
+    (phi : CNF)
+    (semantics :
+      SATHolographicBoundarySemantics D I
+        (trivialFaithfulHolographicEncoder I) M phi ()) :
+    ¬ (∀ H : FaithfulHolographicEncoder I,
+        FaithfulSATHolographicBoundaryLowerBound D I H) := by
+  intro huniversal
+  exact not_trivialFaithfulSATHolographicBoundaryLowerBound_of_semantics
+    D I M phi semantics
+    (huniversal (trivialFaithfulHolographicEncoder I))
+
 /-- The P-side observer calibration for the faithful holographic layer:
 a complete SAT search machine would produce a faithful low-action decoded SAT
 boundary on some instance. -/
@@ -2141,6 +2214,9 @@ mathematical theorem. -/
 #print axioms concreteACC0_nexp_not_subset_of_surfaceNormalization_bookkeepingFree
 #print axioms noLowActionEncoding_of_highBoundaryComplexity
 #print axioms highBoundaryComplexity_forces_not_lowAction
+#print axioms not_faithfulSATHolographicBoundaryLowerBound_of_lowComplexitySATBoundary
+#print axioms not_trivialFaithfulSATHolographicBoundaryLowerBound_of_semantics
+#print axioms not_universalFaithfulSATHolographicBoundaryLowerBound_of_trivialSemantics
 #print axioms noFaithfulLowActionSATBoundary_of_faithfulSATLowerBound
 #print axioms forall_not_searchCorrect_of_faithfulHolographicSATLowerBound
 #print axioms canonicalDeepSATSearch_of_faithfulHolographicSATLowerBound
