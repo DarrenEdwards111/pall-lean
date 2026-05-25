@@ -1286,6 +1286,43 @@ structure NFrameLowActionBulkCodingCapacity
   descriptionLength_eq :
     ∀ code desc : Nat, (bulk code desc).descriptionLength = desc
 
+/-- A pointwise low-action encoding of one code/description pair.  This is the
+targeted version of `NFrameLowActionBulkCodingCapacity`: it carries actual data,
+not just a proposition, so it can be used to build certified normal forms. -/
+structure LowActionBulkEncoding
+    (I : NFrameLagrangianPACInvariant)
+    (code desc : Nat) where
+  bulk : NFramePACBulk I.dim
+  low_action : I.action bulk <= I.actionBound
+  reconstructionCode_eq :
+    bulk.reconstructionCode = code
+  descriptionLength_eq :
+    bulk.descriptionLength = desc
+
+/-- Universal low-action capacity gives a pointwise low-action encoding. -/
+def lowActionBulkEncoding_of_capacity
+    (I : NFrameLagrangianPACInvariant)
+    (capacity : NFrameLowActionBulkCodingCapacity I)
+    (code desc : Nat) :
+    LowActionBulkEncoding I code desc where
+  bulk := capacity.bulk code desc
+  low_action := capacity.low_action code desc
+  reconstructionCode_eq := capacity.reconstructionCode_eq code desc
+  descriptionLength_eq := capacity.descriptionLength_eq code desc
+
+/-- Pointwise low-action encodings for every pair assemble into universal
+low-action coding capacity. -/
+def lowActionBulkCodingCapacity_of_pointwiseEncoding
+    (I : NFrameLagrangianPACInvariant)
+    (encode : ∀ code desc : Nat, LowActionBulkEncoding I code desc) :
+    NFrameLowActionBulkCodingCapacity I where
+  bulk := fun code desc => (encode code desc).bulk
+  low_action := fun code desc => (encode code desc).low_action
+  reconstructionCode_eq := fun code desc =>
+    (encode code desc).reconstructionCode_eq
+  descriptionLength_eq := fun code desc =>
+    (encode code desc).descriptionLength_eq
+
 /-- Low-action bulk coding capacity constructs the strict SYM+ bulk encoder. -/
 def nFrameStrictSYMPlusBulkEncoder_of_lowActionBulkCodingCapacity
     (D : DescribedCanonicalSurface)
@@ -1337,6 +1374,34 @@ theorem not_lowActionBulkCodingCapacity_of_identityOnly
     exact hcode0
   exact Nat.succ_ne_zero 0 h10
 
+/-- Identity-only low action rules out a pointwise encoding of any nonzero
+code/description pair. -/
+theorem not_lowActionBulkEncoding_of_identityOnly_nonzero
+    (I : NFrameLagrangianPACInvariant)
+    (code desc : Nat)
+    (honly : IdentityOnlyLowActionBulk I)
+    (hnonzero : code ≠ 0 ∨ desc ≠ 0) :
+    ¬ Nonempty (LowActionBulkEncoding I code desc) := by
+  intro hencoding
+  rcases hencoding with ⟨encoding⟩
+  have hbulk : encoding.bulk = NFramePACBulk.identity I.dim :=
+    honly encoding.bulk encoding.low_action
+  have hcode0_bulk : encoding.bulk.reconstructionCode = 0 := by
+    simpa [NFramePACBulk.identity] using
+      congrArg NFramePACBulk.reconstructionCode hbulk
+  have hdesc0_bulk : encoding.bulk.descriptionLength = 0 := by
+    simpa [NFramePACBulk.identity] using
+      congrArg NFramePACBulk.descriptionLength hbulk
+  have hcode0 : code = 0 := by
+    rw [← encoding.reconstructionCode_eq]
+    exact hcode0_bulk
+  have hdesc0 : desc = 0 := by
+    rw [← encoding.descriptionLength_eq]
+    exact hdesc0_bulk
+  rcases hnonzero with hcode | hdesc
+  · exact hcode hcode0
+  · exact hdesc hdesc0
+
 /-- Identity-only low action also rules out a strict bulk encoder whenever a
 requested certificate has nonzero circuit-size code or nonzero term-count
 description. -/
@@ -1374,6 +1439,63 @@ theorem not_nFrameStrictSYMPlusBulkEncoder_of_identityOnly_nonzeroCertificate
       exact hdesc0
     exact hterms hterm0
 
+/-- Targeted low-action coding for the strict SYM+ certificates that the
+surface normalization theorem actually produces.
+
+This is weaker and more faithful than universal capacity: the N-frame layer only
+has to encode the circuit-size/term-count pairs used by the strict normal forms
+on the concrete surface. -/
+structure NFrameTargetedStrictSYMPlusBulkCoding
+    (_D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface) where
+  encode :
+    ∀ (F : ACC0LikeCircuitFamily),
+      ACC0FamilyBoundedBySurface S F ->
+        ∀ strictFamily : ACC0FamilyHasEfficientStrictSYMPlusNormalForms F,
+          ∀ n : Nat,
+            LowActionBulkEncoding I
+              (F.circuit n).size
+              ((strictFamily.normalForm n).normalForm).termCount
+
+/-- Universal capacity implies the targeted strict-SYM+ coding theorem. -/
+def nFrameTargetedStrictSYMPlusBulkCoding_of_lowActionBulkCodingCapacity
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (capacity : NFrameLowActionBulkCodingCapacity I) :
+    NFrameTargetedStrictSYMPlusBulkCoding D I S where
+  encode := by
+    intro F _hbounded strictFamily n
+    exact lowActionBulkEncoding_of_capacity I capacity
+      (F.circuit n).size
+      ((strictFamily.normalForm n).normalForm).termCount
+
+/-- Identity-only low action rules out targeted coding as soon as one requested
+strict-SYM+ certificate needs a nonzero code or description. -/
+theorem not_nFrameTargetedStrictSYMPlusBulkCoding_of_identityOnly_nonzero
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (F : ACC0LikeCircuitFamily)
+    (hbounded : ACC0FamilyBoundedBySurface S F)
+    (strictFamily : ACC0FamilyHasEfficientStrictSYMPlusNormalForms F)
+    (n : Nat)
+    (honly : IdentityOnlyLowActionBulk I)
+    (hnonzero :
+      (F.circuit n).size ≠ 0 ∨
+        ((strictFamily.normalForm n).normalForm).termCount ≠ 0) :
+    ¬ Nonempty (NFrameTargetedStrictSYMPlusBulkCoding D I S) := by
+  intro htargeted
+  rcases htargeted with ⟨targeted⟩
+  exact not_lowActionBulkEncoding_of_identityOnly_nonzero
+    I
+    (F.circuit n).size
+    ((strictFamily.normalForm n).normalForm).termCount
+    honly
+    hnonzero
+    ⟨targeted.encode F hbounded strictFamily n⟩
+
 /-- Package a strict normal form with a bulk supplied by an N-frame encoder. -/
 def nFrameCertifiedStrictSYMPlusNormalForm_of_bulkEncoder
     (D : DescribedCanonicalSurface)
@@ -1407,6 +1529,36 @@ theorem nFrameLagrangianExtractsStrictSYMPlusNormalForms_of_surfaceNormalization
   · intro n
     dsimp [nFrameCertifiedStrictSYMPlusNormalForm_of_bulkEncoder]
     rw [encoder.encode_strictNormalForm F n (strictFamily.normalForm n)]
+    exact strictFamily.andGateCount_le n
+
+/-- YBT strict normalization plus targeted low-action coding gives certified
+strict SYM+ extraction.  This is the faithful positive target after removing
+the overstrong demand that the N-frame encode every possible natural-number
+pair. -/
+theorem nFrameLagrangianExtractsStrictSYMPlusNormalForms_of_surfaceNormalization_and_targetedCoding
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (hYBT : StrictSYMPlusNormalizationSurface S)
+    (targeted : NFrameTargetedStrictSYMPlusBulkCoding D I S) :
+    NFrameLagrangianExtractsStrictSYMPlusNormalForms D I S := by
+  intro F hbounded
+  rcases hYBT F hbounded with ⟨strictFamily⟩
+  refine ⟨{
+    certified := ?_
+    andGateExponent := strictFamily.andGateExponent
+    andGateCount_le := ?_
+  }⟩
+  · intro n
+    let encoding := targeted.encode F hbounded strictFamily n
+    exact {
+      bulk := encoding.bulk
+      low_action := encoding.low_action
+      strictNormalForm := strictFamily.normalForm n
+      reconstruction_tracks_size := encoding.reconstructionCode_eq
+      description_tracks_termCount := encoding.descriptionLength_eq
+    }
+  · intro n
     exact strictFamily.andGateCount_le n
 
 /-- Algorithmic Williams/Yao-Beigel-Tarui step for strict normal forms. -/
@@ -1488,6 +1640,27 @@ theorem concreteACC0_nexp_not_subset_of_surfaceNormalization_bulkEncoder
     D I S P
     (nFrameLagrangianExtractsStrictSYMPlusNormalForms_of_surfaceNormalization_and_bulkEncoder
       D I S hYBT encoder)
+    halg
+    hmeta
+
+/-- Full restricted Williams closure from the weaker targeted coding theorem:
+surface YBT normalization plus low-action N-frame encodings only for the
+requested strict-SYM+ certificate pairs. -/
+theorem concreteACC0_nexp_not_subset_of_surfaceNormalization_targetedCoding
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (P : ConcreteACC0WilliamsPackage S)
+    (hYBT : StrictSYMPlusNormalizationSurface S)
+    (targeted : NFrameTargetedStrictSYMPlusBulkCoding D I S)
+    (halg : StrictSYMPlusNormalFormsYieldFastACC0SAT S P)
+    (hmeta : NFrameSuppliesConcreteACC0MetaSimulation D I S P) :
+    PallLean.Paper93.DeepMath.PathB.NEXPNotSubsetCircuitClass
+      (concreteACC0WilliamsTarget S P).toCircuitClass :=
+  concreteACC0_nexp_not_subset_of_nFrameCertifiedStrictSYMPlusNormalForms
+    D I S P
+    (nFrameLagrangianExtractsStrictSYMPlusNormalForms_of_surfaceNormalization_and_targetedCoding
+      D I S hYBT targeted)
     halg
     hmeta
 
@@ -1611,10 +1784,15 @@ theorem exists_lowActionBulk_of_nFrameGodelWilliamsProgram
     ∃ bulk : NFramePACBulk I.dim, I.action bulk <= I.actionBound :=
   exists_lowActionBulk_of_nFrameLagrangianPACInvariant I
 
-/-! The remaining theorem is exactly the construction of
+/-! The remaining positive theorem is still the construction of
 `NFrameGodelWilliamsProgram`: prove that the N-frame/Gödel tower supplies
 `fastCircuitSAT` and `metaSimulation`, and that any canonical SAT decider yields
-the `smallRepresentation` needed by Williams' hierarchy contradiction. -/
+the `smallRepresentation` needed by Williams' hierarchy contradiction.
+
+At the restricted ACC0 test surface, the new concrete subtarget is
+`NFrameTargetedStrictSYMPlusBulkCoding`: low-action N-frame bulk must encode the
+specific size/term-count pairs of the strict SYM+ certificates supplied by the
+surface normalization theorem. -/
 
 /-! ## Axiom trace -/
 
@@ -1654,15 +1832,22 @@ the `smallRepresentation` needed by Williams' hierarchy contradiction. -/
 #print axioms nFrameLagrangianYieldsStrictSYMPlusNormalForms_of_surfaceNormalization
 #print axioms ACC0FamilyHasNFrameCertifiedEfficientStrictSYMPlusNormalForms.toStrict
 #print axioms nFrameLagrangianYieldsStrictSYMPlusNormalForms_of_certifiedExtraction
+#print axioms lowActionBulkEncoding_of_capacity
+#print axioms lowActionBulkCodingCapacity_of_pointwiseEncoding
 #print axioms nFrameStrictSYMPlusBulkEncoder_of_lowActionBulkCodingCapacity
 #print axioms not_lowActionBulkCodingCapacity_of_identityOnly
+#print axioms not_lowActionBulkEncoding_of_identityOnly_nonzero
 #print axioms not_nFrameStrictSYMPlusBulkEncoder_of_identityOnly_nonzeroCertificate
+#print axioms nFrameTargetedStrictSYMPlusBulkCoding_of_lowActionBulkCodingCapacity
+#print axioms not_nFrameTargetedStrictSYMPlusBulkCoding_of_identityOnly_nonzero
 #print axioms nFrameCertifiedStrictSYMPlusNormalForm_of_bulkEncoder
 #print axioms nFrameLagrangianExtractsStrictSYMPlusNormalForms_of_surfaceNormalization_and_bulkEncoder
+#print axioms nFrameLagrangianExtractsStrictSYMPlusNormalForms_of_surfaceNormalization_and_targetedCoding
 #print axioms nFrameSuppliesConcreteACC0FastCircuitSAT_of_strictSYMPlusNormalForms
 #print axioms concreteACC0_nexp_not_subset_of_nFrameStrictSYMPlusNormalForms
 #print axioms concreteACC0_nexp_not_subset_of_nFrameCertifiedStrictSYMPlusNormalForms
 #print axioms concreteACC0_nexp_not_subset_of_surfaceNormalization_bulkEncoder
+#print axioms concreteACC0_nexp_not_subset_of_surfaceNormalization_targetedCoding
 #print axioms nFrameSuppliesConcreteACC0FastCircuitSAT_of_symPlusNormalForms
 #print axioms concreteACC0_nexp_not_subset_of_nFrameSYMPlusNormalForms
 #print axioms not_nFrameSYMPlusNormalFormsViaSPDPDetector
