@@ -1941,6 +1941,149 @@ theorem not_universalFaithfulSATHolographicBoundaryLowerBound_of_trivialSemantic
     D I M phi semantics
     (huniversal (trivialFaithfulHolographicEncoder I))
 
+/-! ## Cook-Levin boundary projection and fixed-budget guard -/
+
+/-- The satisfiable empty CNF on `n` variables.  It is used only as a
+size-growth witness: SAT has satisfiable formulas of arbitrarily large
+syntactic size. -/
+def emptySatisfiableCNF (n : Nat) : CNF where
+  vars := n
+  clauses := []
+
+theorem emptySatisfiableCNF_size
+    (n : Nat) :
+    (emptySatisfiableCNF n).size = n := by
+  simp [emptySatisfiableCNF, CNF.size]
+
+theorem emptySatisfiableCNF_satisfiable
+    (n : Nat) :
+    Satisfiable (emptySatisfiableCNF n) := by
+  refine ⟨List.replicate n false, ?_⟩
+  simp [Satisfies, emptySatisfiableCNF, CNF.eval]
+
+/-- SAT has satisfiable CNFs above any fixed syntactic-size budget. -/
+theorem exists_satisfiableCNF_size_gt
+    (budget : Nat) :
+    ∃ phi : CNF, Satisfiable phi ∧ budget < phi.size := by
+  refine ⟨emptySatisfiableCNF (budget + 1), ?_, ?_⟩
+  · exact emptySatisfiableCNF_satisfiable (budget + 1)
+  · rw [emptySatisfiableCNF_size]
+    exact Nat.lt_succ_self budget
+
+/-- A Cook-Levin-style interpretation of decoded holographic boundaries.
+
+This is the first concrete nontrivial shape: a decoded boundary must expose the
+formula it is about, the produced witness, and the machine code.  The key
+pricing assumption is intentionally modest: boundary complexity is at least the
+syntactic size of the decoded formula. -/
+structure CookLevinBoundaryProjection
+    (I : NFrameLagrangianPACInvariant)
+    (H : FaithfulHolographicEncoder I) where
+  decodedFormula : H.Boundary -> CNF
+  decodedWitness : H.Boundary -> RawAssignment
+  decodedMachineCode : H.Boundary -> Nat
+  formula_size_le_complexity :
+    ∀ boundary : H.Boundary,
+      (decodedFormula boundary).size <= H.boundaryComplexity boundary
+
+/-- A low-action SAT boundary whose decoded Cook-Levin formula is the actual
+formula being solved. -/
+structure CookLevinFaithfulLowActionSATBoundary
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : FaithfulHolographicEncoder I)
+    (P : CookLevinBoundaryProjection I H)
+    (M : SearchMachine D.surface.toMachineModel)
+    (phi : CNF) where
+  boundary : H.Boundary
+  encoding : FaithfulLowActionBoundaryEncoding I H boundary
+  semantics : SATHolographicBoundarySemantics D I H M phi boundary
+  decoded_formula_eq : P.decodedFormula boundary = phi
+  decoded_witness_eq : P.decodedWitness boundary = semantics.witness
+  decoded_machineCode_eq : P.decodedMachineCode boundary = M.code
+
+/-- If decoded boundary complexity prices even the formula size, then a
+low-action boundary cannot faithfully decode a formula larger than the
+low-action budget.
+
+This is the fixed-budget obstruction: it is a real theorem, but it also shows
+the current faithful interface is too coarse for P-vs-NP.  A realistic observer
+calibration needs a length-indexed polynomial budget, not one global constant. -/
+theorem noCookLevinLowActionBoundary_of_formula_size_gt_budget
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : FaithfulHolographicEncoder I)
+    (P : CookLevinBoundaryProjection I H)
+    (M : SearchMachine D.surface.toMachineModel)
+    (phi : CNF)
+    (hlarge : H.lowActionComplexityBudget < phi.size) :
+    ¬ Nonempty (CookLevinFaithfulLowActionSATBoundary D I H P M phi) := by
+  intro hboundary
+  rcases hboundary with ⟨B⟩
+  have hcomplexity_le_budget :
+      H.boundaryComplexity B.boundary <= H.lowActionComplexityBudget := by
+    have hdecoded :=
+      H.complexity_le_budget_of_lowAction B.encoding.bulk
+        B.encoding.low_action
+    simpa [B.encoding.decodes_to] using hdecoded
+  have hformula_le_complexity :
+      phi.size <= H.boundaryComplexity B.boundary := by
+    simpa [B.decoded_formula_eq] using
+      P.formula_size_le_complexity B.boundary
+  exact (Nat.not_lt_of_ge
+    (Nat.le_trans hformula_le_complexity hcomplexity_le_budget)) hlarge
+
+/-- Strong P-side Cook-Levin transport for the fixed-budget faithful interface:
+every satisfiable formula gets a faithful low-action decoded boundary.
+
+This is intentionally named as a strong transport because, with formula-size
+pricing, it is already impossible over arbitrarily large formulas. -/
+structure FixedBudgetPLevelCookLevinBoundaryTransport
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : FaithfulHolographicEncoder I)
+    (P : CookLevinBoundaryProjection I H) : Prop where
+  transport :
+    ∀ M : SearchMachine D.surface.toMachineModel,
+      SearchCorrect D.surface.toMachineModel M ->
+        ∀ phi : CNF,
+          Satisfiable phi ->
+            Nonempty
+              (CookLevinFaithfulLowActionSATBoundary D I H P M phi)
+
+/-- The fixed-budget faithful Cook-Levin transport is impossible for any
+complete SAT search machine, because satisfiable formulas have unbounded
+syntactic size. -/
+theorem forall_not_searchCorrect_of_fixedBudgetCookLevinTransport
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : FaithfulHolographicEncoder I)
+    (P : CookLevinBoundaryProjection I H)
+    (htransport : FixedBudgetPLevelCookLevinBoundaryTransport D I H P) :
+    ∀ M : SearchMachine D.surface.toMachineModel,
+      ¬ SearchCorrect D.surface.toMachineModel M := by
+  intro M hcorrect
+  rcases exists_satisfiableCNF_size_gt H.lowActionComplexityBudget with
+    ⟨phi, hsat, hlarge⟩
+  exact noCookLevinLowActionBoundary_of_formula_size_gt_budget
+    D I H P M phi hlarge
+    (htransport.transport M hcorrect phi hsat)
+
+/-- Conditional closure from the overstrong fixed-budget Cook-Levin transport.
+This is a guard theorem, not the final route: it explains why the next faithful
+encoder must be length-indexed/polynomially calibrated. -/
+theorem noCanonicalSATDecisionInP_of_fixedBudgetCookLevinTransport
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : FaithfulHolographicEncoder I)
+    (P : CookLevinBoundaryProjection I H)
+    (htransport : FixedBudgetPLevelCookLevinBoundaryTransport D I H P) :
+    ¬ CanonicalSATDecisionInP D.surface :=
+  canonicalNoDecider_of_deepSATSearch D.surface
+    ((canonicalDeepSATSearch_iff_forall_not_searchCorrect D.surface).mpr
+      (forall_not_searchCorrect_of_fixedBudgetCookLevinTransport
+        D I H P htransport))
+
 /-- The P-side observer calibration for the faithful holographic layer:
 a complete SAT search machine would produce a faithful low-action decoded SAT
 boundary on some instance. -/
@@ -2152,7 +2295,13 @@ The faithful holographic layer names that replacement:
 `FaithfulSATHolographicBoundaryLowerBound`, plus the P-side
 `PLevelSATObserverFaithfulBoundaryTransport`.  Together they give canonical
 SAT separation in this formal model, but the SAT lower bound is the missing
-mathematical theorem. -/
+mathematical theorem.
+
+The Cook-Levin projection below also shows that a single fixed low-action budget
+is too coarse: once boundary complexity prices formula size, arbitrarily large
+satisfiable CNFs defeat any global budget.  A faithful positive version must be
+length-indexed, with a polynomial P-side budget and a superpolynomial SAT-side
+boundary lower bound. -/
 
 /-! ## Axiom trace -/
 
@@ -2217,6 +2366,12 @@ mathematical theorem. -/
 #print axioms not_faithfulSATHolographicBoundaryLowerBound_of_lowComplexitySATBoundary
 #print axioms not_trivialFaithfulSATHolographicBoundaryLowerBound_of_semantics
 #print axioms not_universalFaithfulSATHolographicBoundaryLowerBound_of_trivialSemantics
+#print axioms emptySatisfiableCNF_size
+#print axioms emptySatisfiableCNF_satisfiable
+#print axioms exists_satisfiableCNF_size_gt
+#print axioms noCookLevinLowActionBoundary_of_formula_size_gt_budget
+#print axioms forall_not_searchCorrect_of_fixedBudgetCookLevinTransport
+#print axioms noCanonicalSATDecisionInP_of_fixedBudgetCookLevinTransport
 #print axioms noFaithfulLowActionSATBoundary_of_faithfulSATLowerBound
 #print axioms forall_not_searchCorrect_of_faithfulHolographicSATLowerBound
 #print axioms canonicalDeepSATSearch_of_faithfulHolographicSATLowerBound
