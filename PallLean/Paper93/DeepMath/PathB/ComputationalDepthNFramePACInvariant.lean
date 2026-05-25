@@ -57,6 +57,17 @@ def NFramePACBulk.identity (dim : Nat) : NFramePACBulk dim where
   descriptionLength := 0
   matrix := 1
 
+/-- The identity matrix with arbitrary bookkeeping codes attached.
+
+This object is intentionally diagnostic: the current log-det action reads only
+the matrix field, so changing `reconstructionCode` and `descriptionLength` does
+not change the action. -/
+def NFramePACBulk.identityMatrixWithBookkeeping
+    (dim code desc : Nat) : NFramePACBulk dim where
+  reconstructionCode := code
+  descriptionLength := desc
+  matrix := 1
+
 /-! ## The actual N-frame Lagrangian invariant -/
 
 /-- The paper-faithful PAC action: not an arbitrary function, but the real
@@ -1323,6 +1334,30 @@ def lowActionBulkCodingCapacity_of_pointwiseEncoding
   descriptionLength_eq := fun code desc =>
     (encode code desc).descriptionLength_eq
 
+/-- Because the current log-det action depends only on the matrix field,
+arbitrary bookkeeping codes can be attached to the identity matrix without
+increasing action.
+
+This proves the targeted coding theorem, but it is a diagnostic victory rather
+than a lower-bound breakthrough: the bookkeeping is not constrained by the
+N-frame Lagrangian. -/
+def lowActionBulkCodingCapacity_of_bookkeepingFreeLogDetAction
+    (I : NFrameLagrangianPACInvariant) :
+    NFrameLowActionBulkCodingCapacity I where
+  bulk := fun code desc =>
+    NFramePACBulk.identityMatrixWithBookkeeping I.dim code desc
+  low_action := by
+    intro code desc
+    simpa [NFrameLagrangianPACInvariant.action, nFramePACLogDetAction,
+      NFramePACBulk.identity, NFramePACBulk.identityMatrixWithBookkeeping]
+      using I.identity_low_action
+  reconstructionCode_eq := by
+    intro code desc
+    rfl
+  descriptionLength_eq := by
+    intro code desc
+    rfl
+
 /-- Low-action bulk coding capacity constructs the strict SYM+ bulk encoder. -/
 def nFrameStrictSYMPlusBulkEncoder_of_lowActionBulkCodingCapacity
     (D : DescribedCanonicalSurface)
@@ -1471,6 +1506,21 @@ def nFrameTargetedStrictSYMPlusBulkCoding_of_lowActionBulkCodingCapacity
       (F.circuit n).size
       ((strictFamily.normalForm n).normalForm).termCount
 
+/-- The current bookkeeping-free log-det action proves the targeted strict-SYM+
+bulk-coding theorem directly.
+
+This is useful as a guard: if targeted coding was meant to be load-bearing, the
+bulk/action model must be strengthened so the action sees the encoded
+reconstruction data. -/
+def nFrameTargetedStrictSYMPlusBulkCoding_of_bookkeepingFreeLogDetAction
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface) :
+    NFrameTargetedStrictSYMPlusBulkCoding D I S :=
+  nFrameTargetedStrictSYMPlusBulkCoding_of_lowActionBulkCodingCapacity
+    D I S
+    (lowActionBulkCodingCapacity_of_bookkeepingFreeLogDetAction I)
+
 /-- Identity-only low action rules out targeted coding as soon as one requested
 strict-SYM+ certificate needs a nonzero code or description. -/
 theorem not_nFrameTargetedStrictSYMPlusBulkCoding_of_identityOnly_nonzero
@@ -1560,6 +1610,22 @@ theorem nFrameLagrangianExtractsStrictSYMPlusNormalForms_of_surfaceNormalization
     }
   · intro n
     exact strictFamily.andGateCount_le n
+
+/-- With the current bookkeeping-free log-det action, surface normalization
+alone gives certified strict SYM+ extraction: the certificate bookkeeping can be
+placed on an identity-matrix bulk object.
+
+This is a diagnostic theorem.  It shows that certified extraction is too weak
+unless the action couples to the reconstruction data. -/
+theorem nFrameLagrangianExtractsStrictSYMPlusNormalForms_of_surfaceNormalization_bookkeepingFree
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (hYBT : StrictSYMPlusNormalizationSurface S) :
+    NFrameLagrangianExtractsStrictSYMPlusNormalForms D I S :=
+  nFrameLagrangianExtractsStrictSYMPlusNormalForms_of_surfaceNormalization_and_targetedCoding
+    D I S hYBT
+    (nFrameTargetedStrictSYMPlusBulkCoding_of_bookkeepingFreeLogDetAction D I S)
 
 /-- Algorithmic Williams/Yao-Beigel-Tarui step for strict normal forms. -/
 structure StrictSYMPlusNormalFormsYieldFastACC0SAT
@@ -1661,6 +1727,26 @@ theorem concreteACC0_nexp_not_subset_of_surfaceNormalization_targetedCoding
     D I S P
     (nFrameLagrangianExtractsStrictSYMPlusNormalForms_of_surfaceNormalization_and_targetedCoding
       D I S hYBT targeted)
+    halg
+    hmeta
+
+/-- Restricted Williams closure using the current bookkeeping-free log-det
+action.  The N-frame part here is not load-bearing: the bulk certificate is
+obtained by attaching bookkeeping to the identity matrix. -/
+theorem concreteACC0_nexp_not_subset_of_surfaceNormalization_bookkeepingFree
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (P : ConcreteACC0WilliamsPackage S)
+    (hYBT : StrictSYMPlusNormalizationSurface S)
+    (halg : StrictSYMPlusNormalFormsYieldFastACC0SAT S P)
+    (hmeta : NFrameSuppliesConcreteACC0MetaSimulation D I S P) :
+    PallLean.Paper93.DeepMath.PathB.NEXPNotSubsetCircuitClass
+      (concreteACC0WilliamsTarget S P).toCircuitClass :=
+  concreteACC0_nexp_not_subset_of_surfaceNormalization_targetedCoding
+    D I S P hYBT
+    (nFrameTargetedStrictSYMPlusBulkCoding_of_bookkeepingFreeLogDetAction
+      D I S)
     halg
     hmeta
 
@@ -1792,7 +1878,12 @@ the `smallRepresentation` needed by Williams' hierarchy contradiction.
 At the restricted ACC0 test surface, the new concrete subtarget is
 `NFrameTargetedStrictSYMPlusBulkCoding`: low-action N-frame bulk must encode the
 specific size/term-count pairs of the strict SYM+ certificates supplied by the
-surface normalization theorem. -/
+surface normalization theorem.
+
+The current file proves that subtarget for the present model, but only because
+the log-det action ignores the bookkeeping fields.  A load-bearing version must
+replace this with an action/encoding coupling theorem where reconstruction data
+is constrained by the actual N-frame bulk geometry. -/
 
 /-! ## Axiom trace -/
 
@@ -1834,20 +1925,24 @@ surface normalization theorem. -/
 #print axioms nFrameLagrangianYieldsStrictSYMPlusNormalForms_of_certifiedExtraction
 #print axioms lowActionBulkEncoding_of_capacity
 #print axioms lowActionBulkCodingCapacity_of_pointwiseEncoding
+#print axioms lowActionBulkCodingCapacity_of_bookkeepingFreeLogDetAction
 #print axioms nFrameStrictSYMPlusBulkEncoder_of_lowActionBulkCodingCapacity
 #print axioms not_lowActionBulkCodingCapacity_of_identityOnly
 #print axioms not_lowActionBulkEncoding_of_identityOnly_nonzero
 #print axioms not_nFrameStrictSYMPlusBulkEncoder_of_identityOnly_nonzeroCertificate
 #print axioms nFrameTargetedStrictSYMPlusBulkCoding_of_lowActionBulkCodingCapacity
+#print axioms nFrameTargetedStrictSYMPlusBulkCoding_of_bookkeepingFreeLogDetAction
 #print axioms not_nFrameTargetedStrictSYMPlusBulkCoding_of_identityOnly_nonzero
 #print axioms nFrameCertifiedStrictSYMPlusNormalForm_of_bulkEncoder
 #print axioms nFrameLagrangianExtractsStrictSYMPlusNormalForms_of_surfaceNormalization_and_bulkEncoder
 #print axioms nFrameLagrangianExtractsStrictSYMPlusNormalForms_of_surfaceNormalization_and_targetedCoding
+#print axioms nFrameLagrangianExtractsStrictSYMPlusNormalForms_of_surfaceNormalization_bookkeepingFree
 #print axioms nFrameSuppliesConcreteACC0FastCircuitSAT_of_strictSYMPlusNormalForms
 #print axioms concreteACC0_nexp_not_subset_of_nFrameStrictSYMPlusNormalForms
 #print axioms concreteACC0_nexp_not_subset_of_nFrameCertifiedStrictSYMPlusNormalForms
 #print axioms concreteACC0_nexp_not_subset_of_surfaceNormalization_bulkEncoder
 #print axioms concreteACC0_nexp_not_subset_of_surfaceNormalization_targetedCoding
+#print axioms concreteACC0_nexp_not_subset_of_surfaceNormalization_bookkeepingFree
 #print axioms nFrameSuppliesConcreteACC0FastCircuitSAT_of_symPlusNormalForms
 #print axioms concreteACC0_nexp_not_subset_of_nFrameSYMPlusNormalForms
 #print axioms not_nFrameSYMPlusNormalFormsViaSPDPDetector
