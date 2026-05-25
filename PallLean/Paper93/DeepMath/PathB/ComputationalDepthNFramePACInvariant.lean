@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthHolographicPACAttempt
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRestrictedTargets
 import PallLean.Paper93.DeepMath.PathB.NFrameVariationalAmplituhedronBridge
 
 /-
@@ -262,6 +263,208 @@ theorem ktRoute_finalClosure_of_concreteNFramePACLagrangianBreakthrough
   rcases h with ⟨I, hI⟩
   exact ktRoute_finalClosure_of_nFramePACLagrangianBreakthrough D I hI
 
+/-! ## Guard: the full breakthrough is P-vs-NP strength -/
+
+/-- Concrete N-frame/PAC breakthrough implies no canonical polynomial-time SAT
+decision.  This is the explicit guard theorem: the full breakthrough is not a
+smaller lemma. -/
+theorem noCanonicalSATDecisionInP_of_concreteNFramePACLagrangianBreakthrough
+    (D : DescribedCanonicalSurface)
+    (h : ConcreteNFramePACLagrangianBreakthrough D) :
+    ¬ CanonicalSATDecisionInP D.surface := by
+  rcases h with ⟨I, hI⟩
+  exact noCanonicalSATDecisionInP_of_nFramePACLagrangianBreakthrough D I hI
+
+/-- Therefore any canonical SAT decider refutes the claimed concrete
+N-frame/PAC breakthrough package. -/
+theorem not_concreteNFramePACLagrangianBreakthrough_of_canonicalSATDecisionInP
+    (D : DescribedCanonicalSurface)
+    (hdec : CanonicalSATDecisionInP D.surface) :
+    ¬ ConcreteNFramePACLagrangianBreakthrough D := by
+  intro hbreak
+  exact (noCanonicalSATDecisionInP_of_concreteNFramePACLagrangianBreakthrough
+    D hbreak) hdec
+
+/-- Named guard predicate for paper-facing statements. -/
+def NFramePACLagrangianBreakthroughIsPneqNPStrength
+    (D : DescribedCanonicalSurface) : Prop :=
+  ConcreteNFramePACLagrangianBreakthrough D ->
+    ¬ CanonicalSATDecisionInP D.surface
+
+/-- The guard predicate holds by the closure theorem above. -/
+theorem nFramePACLagrangianBreakthrough_is_pneqnp_strength
+    (D : DescribedCanonicalSurface) :
+    NFramePACLagrangianBreakthroughIsPneqNPStrength D :=
+  noCanonicalSATDecisionInP_of_concreteNFramePACLagrangianBreakthrough D
+
+/-! ## Restricted SAT-faithful reconstruction tests -/
+
+/-- Search machines whose run never outputs on a restricted formula class. -/
+def NoOutputOnRestrictedClass
+    (D : DescribedCanonicalSurface)
+    (R : CNF -> Prop)
+    (M : SearchMachine D.surface.toMachineModel) : Prop :=
+  ∀ phi : CNF, R phi ->
+    D.surface.toMachineModel.searchRun M.code phi = none
+
+/-- The low-action bulk associated to a machine code.  This is the admissibility
+side needed to build a SAT-faithful reconstruction from an actual machine output
+without choosing a degenerate arbitrary action. -/
+structure MachineLowActionCodeBulk
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (M : SearchMachine D.surface.toMachineModel) where
+  bulk : NFramePACBulk I.dim
+  low_action : I.action bulk <= I.actionBound
+  reconstruction_uses_machine_code :
+    bulk.reconstructionCode = M.code
+  description_tracks_code :
+    bulk.descriptionLength = D.programLength M.code
+
+/-- A deliberately weak restricted model: the machine never outputs on `R`, but
+its code still has a low-action N-frame/PAC bulk representation. -/
+def NoOutputLowActionMachineClass
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (R : CNF -> Prop)
+    (M : SearchMachine D.surface.toMachineModel) : Prop :=
+  NoOutputOnRestrictedClass D R M ∧
+    Nonempty (MachineLowActionCodeBulk D I M)
+
+/-- No-output machines cannot have SAT-faithful N-frame/PAC reconstructions on
+the restricted class.  This is the first real restricted obstruction. -/
+theorem noSATFaithfulNFramePACReconstruction_of_noOutputOnRestrictedClass
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (R : CNF -> Prop)
+    (M : SearchMachine D.surface.toMachineModel)
+    {phi : CNF}
+    (hno : NoOutputOnRestrictedClass D R M)
+    (hR : R phi) :
+    NoSATFaithfulNFramePACReconstruction D I M phi := by
+  intro hrec
+  rcases hrec with ⟨rec⟩
+  have hnone := hno phi hR
+  have hsome : none = some rec.witness := by
+    simpa [hnone] using rec.machine_outputs
+  cases hsome
+
+/-- If a restricted-correct machine has a low-action code bulk, then every
+satisfiable restricted instance gives a SAT-faithful reconstruction. -/
+theorem satFaithfulNFramePACReconstruction_of_restrictedCorrect
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (R : CNF -> Prop)
+    (M : SearchMachine D.surface.toMachineModel)
+    (hlow : MachineLowActionCodeBulk D I M)
+    (hcorrect : RestrictedSearchCorrect D.surface.toMachineModel R M)
+    {phi : CNF}
+    (hR : R phi)
+    (hsat : Satisfiable phi) :
+    Nonempty (SATFaithfulNFramePACReconstruction D I M phi) := by
+  rcases hcorrect phi hR hsat with ⟨a, hrun, hsatisfies⟩
+  exact ⟨{
+    bulk := hlow.bulk
+    low_action := hlow.low_action
+    witness := a
+    machine_outputs := hrun
+    witness_satisfies := hsatisfies
+    reconstruction_uses_machine_code :=
+      hlow.reconstruction_uses_machine_code
+    description_tracks_code :=
+      hlow.description_tracks_code
+  }⟩
+
+/-! ## Restricted breakthrough surface -/
+
+/-- Restricted N-frame/PAC breakthrough for a machine class.
+
+This is the bounded-model analogue of the full breakthrough: transport from
+restricted correctness to a SAT-faithful reconstruction, plus an obstruction
+against such reconstructions for machines in the class. -/
+structure RestrictedNFramePACLagrangianBreakthrough
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (R : CNF -> Prop)
+    (MachineClass : SearchMachine D.surface.toMachineModel -> Prop) : Prop where
+  transport :
+    ∀ M : SearchMachine D.surface.toMachineModel,
+      MachineClass M ->
+        RestrictedSearchCorrect D.surface.toMachineModel R M ->
+          ∃ phi : CNF,
+            R phi ∧ Satisfiable phi ∧
+              Nonempty (SATFaithfulNFramePACReconstruction D I M phi)
+  obstruction :
+    ∀ M : SearchMachine D.surface.toMachineModel,
+      MachineClass M ->
+        ∀ phi : CNF,
+          R phi ->
+            Satisfiable phi ->
+              NoSATFaithfulNFramePACReconstruction D I M phi
+
+/-- Restricted shallow search inside a chosen machine class. -/
+def RestrictedShallowSearchInClass
+    (D : DescribedCanonicalSurface)
+    (R : CNF -> Prop)
+    (MachineClass : SearchMachine D.surface.toMachineModel -> Prop) : Prop :=
+  ∃ M : SearchMachine D.surface.toMachineModel,
+    MachineClass M ∧
+      RestrictedSearchCorrect D.surface.toMachineModel R M
+
+/-- A restricted breakthrough rules out restricted shallow search inside the
+chosen machine class. -/
+theorem noRestrictedShallowSearchInClass_of_restrictedNFramePACBreakthrough
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (R : CNF -> Prop)
+    (MachineClass : SearchMachine D.surface.toMachineModel -> Prop)
+    (h : RestrictedNFramePACLagrangianBreakthrough D I R MachineClass) :
+    ¬ RestrictedShallowSearchInClass D R MachineClass := by
+  intro hshallow
+  rcases hshallow with ⟨M, hclass, hcorrect⟩
+  rcases h.transport M hclass hcorrect with ⟨phi, hR, hsat, hrec⟩
+  exact h.obstruction M hclass phi hR hsat hrec
+
+/-! ## The first provable restricted instance -/
+
+/-- The no-output/low-action machine class satisfies the restricted
+N-frame/PAC breakthrough whenever the restricted formula class contains at least
+one satisfiable instance.
+
+This is intentionally weak, but non-vacuous: the obstruction is proved from the
+machine semantics (`searchRun = none`), while transport uses restricted
+correctness and the low-action code bulk. -/
+theorem restrictedBreakthrough_of_noOutputLowActionMachineClass
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (R : CNF -> Prop)
+    (hinstance : ∃ phi : CNF, R phi ∧ Satisfiable phi) :
+    RestrictedNFramePACLagrangianBreakthrough D I R
+      (NoOutputLowActionMachineClass D I R) where
+  transport := by
+    intro M hclass hcorrect
+    rcases hinstance with ⟨phi, hR, hsat⟩
+    exact ⟨phi, hR, hsat,
+      satFaithfulNFramePACReconstruction_of_restrictedCorrect
+        D I R M (Classical.choice hclass.2) hcorrect hR hsat⟩
+  obstruction := by
+    intro M hclass phi hR _hsat
+    exact noSATFaithfulNFramePACReconstruction_of_noOutputOnRestrictedClass
+      D I R M hclass.1 hR
+
+/-- Concrete restricted conclusion for the first weak model: no no-output
+low-action machine can be restricted-correct on a nonempty satisfiable class. -/
+theorem noRestrictedCorrect_noOutputLowActionMachines
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (R : CNF -> Prop)
+    (hinstance : ∃ phi : CNF, R phi ∧ Satisfiable phi) :
+    ¬ RestrictedShallowSearchInClass D R
+      (NoOutputLowActionMachineClass D I R) :=
+  noRestrictedShallowSearchInClass_of_restrictedNFramePACBreakthrough
+    D I R (NoOutputLowActionMachineClass D I R)
+    (restrictedBreakthrough_of_noOutputLowActionMachineClass D I R hinstance)
+
 /-! ## Axiom trace -/
 
 #print axioms nFrameLagrangianPACInvariant_action_eq_logDet
@@ -273,5 +476,13 @@ theorem ktRoute_finalClosure_of_concreteNFramePACLagrangianBreakthrough
 #print axioms nonNaturalPACLearnerTransport_of_nFramePACLagrangianBreakthrough
 #print axioms ktRoute_finalClosure_of_nFramePACLagrangianBreakthrough
 #print axioms ktRoute_finalClosure_of_concreteNFramePACLagrangianBreakthrough
+#print axioms noCanonicalSATDecisionInP_of_concreteNFramePACLagrangianBreakthrough
+#print axioms not_concreteNFramePACLagrangianBreakthrough_of_canonicalSATDecisionInP
+#print axioms nFramePACLagrangianBreakthrough_is_pneqnp_strength
+#print axioms noSATFaithfulNFramePACReconstruction_of_noOutputOnRestrictedClass
+#print axioms satFaithfulNFramePACReconstruction_of_restrictedCorrect
+#print axioms noRestrictedShallowSearchInClass_of_restrictedNFramePACBreakthrough
+#print axioms restrictedBreakthrough_of_noOutputLowActionMachineClass
+#print axioms noRestrictedCorrect_noOutputLowActionMachines
 
 end SATDepthMachine
