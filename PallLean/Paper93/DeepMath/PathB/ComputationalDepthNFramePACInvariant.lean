@@ -1251,6 +1251,61 @@ theorem nFrameLagrangianYieldsStrictSYMPlusNormalForms_of_certifiedExtraction
   rcases hextract F hbounded with ⟨certified⟩
   exact ⟨certified.toStrict⟩
 
+/-! ## Bulk encoding theorem for certified extraction -/
+
+/-- A low-action N-frame bulk encoder for strict SYM+ normal forms.
+
+This is the actual N-frame certification theorem separated from the pure
+YBT-style normalization theorem: given a strict normal form, the N-frame
+Lagrangian must provide a low-action bulk object whose bookkeeping tracks the
+circuit size and normal-form term count. -/
+structure NFrameStrictSYMPlusBulkEncoder
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant) where
+  encode :
+    ∀ (F : ACC0LikeCircuitFamily) (n : Nat)
+      (_nf : ACC0CircuitHasStrictSYMPlusNormalForm (F.circuit n)),
+        NFrameCertifiedStrictSYMPlusNormalForm D I F n
+  encode_strictNormalForm :
+    ∀ (F : ACC0LikeCircuitFamily) (n : Nat)
+      (nf : ACC0CircuitHasStrictSYMPlusNormalForm (F.circuit n)),
+        (encode F n nf).strictNormalForm = nf
+
+/-- Package a strict normal form with a bulk supplied by an N-frame encoder. -/
+def nFrameCertifiedStrictSYMPlusNormalForm_of_bulkEncoder
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (encoder : NFrameStrictSYMPlusBulkEncoder D I)
+    (F : ACC0LikeCircuitFamily)
+    (n : Nat)
+    (nf : ACC0CircuitHasStrictSYMPlusNormalForm (F.circuit n)) :
+    NFrameCertifiedStrictSYMPlusNormalForm D I F n :=
+  encoder.encode F n nf
+
+/-- YBT strict normalization plus an N-frame bulk encoder gives certified
+strict SYM+ extraction. -/
+theorem nFrameLagrangianExtractsStrictSYMPlusNormalForms_of_surfaceNormalization_and_bulkEncoder
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (hYBT : StrictSYMPlusNormalizationSurface S)
+    (encoder : NFrameStrictSYMPlusBulkEncoder D I) :
+    NFrameLagrangianExtractsStrictSYMPlusNormalForms D I S := by
+  intro F hbounded
+  rcases hYBT F hbounded with ⟨strictFamily⟩
+  refine ⟨{
+    certified := ?_
+    andGateExponent := strictFamily.andGateExponent
+    andGateCount_le := ?_
+  }⟩
+  · intro n
+    exact nFrameCertifiedStrictSYMPlusNormalForm_of_bulkEncoder
+      D I encoder F n (strictFamily.normalForm n)
+  · intro n
+    dsimp [nFrameCertifiedStrictSYMPlusNormalForm_of_bulkEncoder]
+    rw [encoder.encode_strictNormalForm F n (strictFamily.normalForm n)]
+    exact strictFamily.andGateCount_le n
+
 /-- Algorithmic Williams/Yao-Beigel-Tarui step for strict normal forms. -/
 structure StrictSYMPlusNormalFormsYieldFastACC0SAT
     (S : ConcreteACC0Surface)
@@ -1310,6 +1365,26 @@ theorem concreteACC0_nexp_not_subset_of_nFrameCertifiedStrictSYMPlusNormalForms
     D I S P
     (nFrameLagrangianYieldsStrictSYMPlusNormalForms_of_certifiedExtraction
       D I S hextract)
+    halg
+    hmeta
+
+/-- Full restricted Williams closure from the two honest ingredients:
+surface YBT normalization and N-frame low-action bulk encoding. -/
+theorem concreteACC0_nexp_not_subset_of_surfaceNormalization_bulkEncoder
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (P : ConcreteACC0WilliamsPackage S)
+    (hYBT : StrictSYMPlusNormalizationSurface S)
+    (encoder : NFrameStrictSYMPlusBulkEncoder D I)
+    (halg : StrictSYMPlusNormalFormsYieldFastACC0SAT S P)
+    (hmeta : NFrameSuppliesConcreteACC0MetaSimulation D I S P) :
+    PallLean.Paper93.DeepMath.PathB.NEXPNotSubsetCircuitClass
+      (concreteACC0WilliamsTarget S P).toCircuitClass :=
+  concreteACC0_nexp_not_subset_of_nFrameCertifiedStrictSYMPlusNormalForms
+    D I S P
+    (nFrameLagrangianExtractsStrictSYMPlusNormalForms_of_surfaceNormalization_and_bulkEncoder
+      D I S hYBT encoder)
     halg
     hmeta
 
@@ -1476,9 +1551,12 @@ the `smallRepresentation` needed by Williams' hierarchy contradiction. -/
 #print axioms nFrameLagrangianYieldsStrictSYMPlusNormalForms_of_surfaceNormalization
 #print axioms ACC0FamilyHasNFrameCertifiedEfficientStrictSYMPlusNormalForms.toStrict
 #print axioms nFrameLagrangianYieldsStrictSYMPlusNormalForms_of_certifiedExtraction
+#print axioms nFrameCertifiedStrictSYMPlusNormalForm_of_bulkEncoder
+#print axioms nFrameLagrangianExtractsStrictSYMPlusNormalForms_of_surfaceNormalization_and_bulkEncoder
 #print axioms nFrameSuppliesConcreteACC0FastCircuitSAT_of_strictSYMPlusNormalForms
 #print axioms concreteACC0_nexp_not_subset_of_nFrameStrictSYMPlusNormalForms
 #print axioms concreteACC0_nexp_not_subset_of_nFrameCertifiedStrictSYMPlusNormalForms
+#print axioms concreteACC0_nexp_not_subset_of_surfaceNormalization_bulkEncoder
 #print axioms nFrameSuppliesConcreteACC0FastCircuitSAT_of_symPlusNormalForms
 #print axioms concreteACC0_nexp_not_subset_of_nFrameSYMPlusNormalForms
 #print axioms not_nFrameSYMPlusNormalFormsViaSPDPDetector
