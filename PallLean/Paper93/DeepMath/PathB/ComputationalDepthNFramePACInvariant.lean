@@ -1750,6 +1750,196 @@ theorem concreteACC0_nexp_not_subset_of_surfaceNormalization_bookkeepingFree
     halg
     hmeta
 
+/-! ## Faithful holographic encoder layer -/
+
+/-- A faithful holographic encoder is the strengthened version of the bulk
+space: boundary data is decoded from the bulk object, and low-action bulk can
+decode only bounded-complexity boundaries.
+
+This is the formal replacement for free bookkeeping.  The action need not expose
+a numeric formula here; what matters for the route is the pricing consequence:
+below the action bound, decoded boundary complexity is bounded by
+`lowActionComplexityBudget`. -/
+structure FaithfulHolographicEncoder
+    (I : NFrameLagrangianPACInvariant) where
+  Boundary : Type
+  decode : NFramePACBulk I.dim -> Boundary
+  boundaryComplexity : Boundary -> Nat
+  lowActionComplexityBudget : Nat
+  complexity_le_budget_of_lowAction :
+    ∀ bulk : NFramePACBulk I.dim,
+      I.action bulk <= I.actionBound ->
+        boundaryComplexity (decode bulk) <= lowActionComplexityBudget
+
+/-- A concrete low-action faithful encoding of one decoded boundary. -/
+structure FaithfulLowActionBoundaryEncoding
+    (I : NFrameLagrangianPACInvariant)
+    (H : FaithfulHolographicEncoder I)
+    (boundary : H.Boundary) where
+  bulk : NFramePACBulk I.dim
+  low_action : I.action bulk <= I.actionBound
+  decodes_to : H.decode bulk = boundary
+
+/-- High-complexity boundaries cannot be represented by low-action faithful
+bulk.  This is the formal version of "P-level observers cannot faithfully carry
+NP-level boundary data." -/
+theorem noLowActionEncoding_of_highBoundaryComplexity
+    (I : NFrameLagrangianPACInvariant)
+    (H : FaithfulHolographicEncoder I)
+    (boundary : H.Boundary)
+    (hhigh :
+      H.lowActionComplexityBudget < H.boundaryComplexity boundary) :
+    ¬ Nonempty (FaithfulLowActionBoundaryEncoding I H boundary) := by
+  intro hencoding
+  rcases hencoding with ⟨encoding⟩
+  have hle_decode :
+      H.boundaryComplexity (H.decode encoding.bulk) <=
+        H.lowActionComplexityBudget :=
+    H.complexity_le_budget_of_lowAction encoding.bulk encoding.low_action
+  have hle_boundary :
+      H.boundaryComplexity boundary <= H.lowActionComplexityBudget := by
+    simpa [encoding.decodes_to] using hle_decode
+  exact (Nat.not_lt_of_ge hle_boundary) hhigh
+
+/-- Equivalent pointwise form: if a bulk decodes a high-complexity boundary,
+then it cannot be low action.  High-level observers may use high-action bulk;
+the theorem only rules out low-action/P-level encoding. -/
+theorem highBoundaryComplexity_forces_not_lowAction
+    (I : NFrameLagrangianPACInvariant)
+    (H : FaithfulHolographicEncoder I)
+    (bulk : NFramePACBulk I.dim)
+    (boundary : H.Boundary)
+    (hdecode : H.decode bulk = boundary)
+    (hhigh :
+      H.lowActionComplexityBudget < H.boundaryComplexity boundary) :
+    ¬ I.action bulk <= I.actionBound := by
+  intro hlow
+  exact noLowActionEncoding_of_highBoundaryComplexity I H boundary hhigh
+    ⟨{
+      bulk := bulk
+      low_action := hlow
+      decodes_to := hdecode
+    }⟩
+
+/-- SAT semantics attached to a decoded holographic boundary.
+
+The next real theorem must make this semantics nontrivial: the boundary must be
+the actual Cook-Levin/SAT boundary decoded from the bulk geometry, not external
+metadata. -/
+structure SATHolographicBoundarySemantics
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : FaithfulHolographicEncoder I)
+    (M : SearchMachine D.surface.toMachineModel)
+    (phi : CNF)
+    (boundary : H.Boundary) where
+  witness : RawAssignment
+  machine_outputs :
+    D.surface.toMachineModel.searchRun M.code phi = some witness
+  witness_satisfies : Satisfies phi witness
+  boundary_is_decoded_sat_boundary : Prop
+  boundary_semantics_proof : boundary_is_decoded_sat_boundary
+
+/-- A faithful low-action SAT boundary: the machine output is SAT-correct, and
+the relevant SAT boundary is decoded from low-action bulk. -/
+structure FaithfulLowActionSATBoundary
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : FaithfulHolographicEncoder I)
+    (M : SearchMachine D.surface.toMachineModel)
+    (phi : CNF) where
+  boundary : H.Boundary
+  encoding : FaithfulLowActionBoundaryEncoding I H boundary
+  semantics : SATHolographicBoundarySemantics D I H M phi boundary
+
+/-- The missing SAT-side theorem: every faithfully decoded SAT boundary has
+complexity above the low-action budget.
+
+This is the real load-bearing lower bound.  It must be proved from SAT /
+Cook-Levin structure, not assumed from the nonexistence of polynomial-time SAT
+deciders. -/
+def FaithfulSATHolographicBoundaryLowerBound
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : FaithfulHolographicEncoder I) : Prop :=
+  ∀ (M : SearchMachine D.surface.toMachineModel)
+    (phi : CNF)
+    (boundary : H.Boundary),
+      SATHolographicBoundarySemantics D I H M phi boundary ->
+        H.lowActionComplexityBudget < H.boundaryComplexity boundary
+
+/-- The P-side observer calibration for the faithful holographic layer:
+a complete SAT search machine would produce a faithful low-action decoded SAT
+boundary on some instance. -/
+structure PLevelSATObserverFaithfulBoundaryTransport
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : FaithfulHolographicEncoder I) : Prop where
+  transport :
+    ∀ M : SearchMachine D.surface.toMachineModel,
+      SearchCorrect D.surface.toMachineModel M ->
+        ∃ phi : CNF,
+          Nonempty (FaithfulLowActionSATBoundary D I H M phi)
+
+/-- Faithful SAT lower bound forbids low-action faithful SAT boundaries. -/
+theorem noFaithfulLowActionSATBoundary_of_faithfulSATLowerBound
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : FaithfulHolographicEncoder I)
+    (hlower : FaithfulSATHolographicBoundaryLowerBound D I H)
+    (M : SearchMachine D.surface.toMachineModel)
+    (phi : CNF) :
+    ¬ Nonempty (FaithfulLowActionSATBoundary D I H M phi) := by
+  intro hboundary
+  rcases hboundary with ⟨B⟩
+  exact noLowActionEncoding_of_highBoundaryComplexity
+    I H B.boundary
+    (hlower M phi B.boundary B.semantics)
+    ⟨B.encoding⟩
+
+/-- If P-level SAT observers always produce faithful low-action SAT boundaries,
+and faithful SAT boundaries are above the low-action complexity budget, then no
+complete canonical SAT search machine exists. -/
+theorem forall_not_searchCorrect_of_faithfulHolographicSATLowerBound
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : FaithfulHolographicEncoder I)
+    (htransport : PLevelSATObserverFaithfulBoundaryTransport D I H)
+    (hlower : FaithfulSATHolographicBoundaryLowerBound D I H) :
+    ∀ M : SearchMachine D.surface.toMachineModel,
+      ¬ SearchCorrect D.surface.toMachineModel M := by
+  intro M hcorrect
+  rcases htransport.transport M hcorrect with ⟨phi, hboundary⟩
+  exact noFaithfulLowActionSATBoundary_of_faithfulSATLowerBound
+    D I H hlower M phi hboundary
+
+/-- Faithful holographic SAT lower bound gives canonical deep SAT search, once
+the P-side transport/calibration is supplied. -/
+theorem canonicalDeepSATSearch_of_faithfulHolographicSATLowerBound
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : FaithfulHolographicEncoder I)
+    (htransport : PLevelSATObserverFaithfulBoundaryTransport D I H)
+    (hlower : FaithfulSATHolographicBoundaryLowerBound D I H) :
+    CanonicalDeepSATSearch D.surface :=
+  (canonicalDeepSATSearch_iff_forall_not_searchCorrect D.surface).mpr
+    (forall_not_searchCorrect_of_faithfulHolographicSATLowerBound
+      D I H htransport hlower)
+
+/-- Conditional P-vs-NP-facing closure for the faithful holographic route.  The
+unproved content is exactly the faithful transport plus the SAT boundary lower
+bound above. -/
+theorem noCanonicalSATDecisionInP_of_faithfulHolographicSATLowerBound
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : FaithfulHolographicEncoder I)
+    (htransport : PLevelSATObserverFaithfulBoundaryTransport D I H)
+    (hlower : FaithfulSATHolographicBoundaryLowerBound D I H) :
+    ¬ CanonicalSATDecisionInP D.surface :=
+  canonicalNoDecider_of_deepSATSearch D.surface
+    (canonicalDeepSATSearch_of_faithfulHolographicSATLowerBound
+      D I H htransport hlower)
+
 /-- The algorithmic step from efficient SYM+ normal forms to fast ACC0
 circuit-SAT.  This is the Williams/Yao-Beigel-Tarui-style ingredient; it is
 kept separate from the N-frame extraction theorem. -/
@@ -1883,7 +2073,13 @@ surface normalization theorem.
 The current file proves that subtarget for the present model, but only because
 the log-det action ignores the bookkeeping fields.  A load-bearing version must
 replace this with an action/encoding coupling theorem where reconstruction data
-is constrained by the actual N-frame bulk geometry. -/
+is constrained by the actual N-frame bulk geometry.
+
+The faithful holographic layer names that replacement:
+`FaithfulSATHolographicBoundaryLowerBound`, plus the P-side
+`PLevelSATObserverFaithfulBoundaryTransport`.  Together they give canonical
+SAT separation in this formal model, but the SAT lower bound is the missing
+mathematical theorem. -/
 
 /-! ## Axiom trace -/
 
@@ -1943,6 +2139,12 @@ is constrained by the actual N-frame bulk geometry. -/
 #print axioms concreteACC0_nexp_not_subset_of_surfaceNormalization_bulkEncoder
 #print axioms concreteACC0_nexp_not_subset_of_surfaceNormalization_targetedCoding
 #print axioms concreteACC0_nexp_not_subset_of_surfaceNormalization_bookkeepingFree
+#print axioms noLowActionEncoding_of_highBoundaryComplexity
+#print axioms highBoundaryComplexity_forces_not_lowAction
+#print axioms noFaithfulLowActionSATBoundary_of_faithfulSATLowerBound
+#print axioms forall_not_searchCorrect_of_faithfulHolographicSATLowerBound
+#print axioms canonicalDeepSATSearch_of_faithfulHolographicSATLowerBound
+#print axioms noCanonicalSATDecisionInP_of_faithfulHolographicSATLowerBound
 #print axioms nFrameSuppliesConcreteACC0FastCircuitSAT_of_symPlusNormalForms
 #print axioms concreteACC0_nexp_not_subset_of_nFrameSYMPlusNormalForms
 #print axioms not_nFrameSYMPlusNormalFormsViaSPDPDetector
