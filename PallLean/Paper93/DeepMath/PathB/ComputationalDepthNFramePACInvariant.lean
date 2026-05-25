@@ -1036,6 +1036,32 @@ structure ACC0FamilyHasEfficientSYMPlusNormalForms
     ∀ n : Nat,
       ((normalForm n).normalForm).andGateCount <= n ^ andGateExponent
 
+/-- The current loose `SYMPlusNormalForm` surface allows a semantic normal form
+for every circuit: put the circuit semantics directly in `evaluate`.  This is a
+useful guard theorem, not a breakthrough.  It shows that the loose surface is
+too weak to certify a genuine Yao-Beigel-Tarui-style normal form. -/
+def semanticSYMPlusNormalForm
+    (C : ACC0LikeCircuit) :
+    ACC0CircuitHasSYMPlusNormalForm C where
+  normalForm := {
+    andGateCount := C.size
+    symmetricCombinerCode := 0
+    evaluate := C.semantics
+  }
+  agrees := by
+    intro x
+    rfl
+
+/-- Every ACC0-like circuit family has loose semantic SYM+ normal forms. -/
+def semanticACC0FamilyHasEfficientSYMPlusNormalForms
+    (F : ACC0LikeCircuitFamily) :
+    ACC0FamilyHasEfficientSYMPlusNormalForms F where
+  normalForm := fun n => semanticSYMPlusNormalForm (F.circuit n)
+  andGateExponent := F.sizeExponent
+  andGateCount_le := by
+    intro n
+    exact F.size_le n
+
 /-- The concrete ACC0 family belongs to the chosen surface bounds. -/
 def ACC0FamilyBoundedBySurface
     (S : ConcreteACC0Surface)
@@ -1054,6 +1080,125 @@ def NFrameLagrangianYieldsSYMPlusNormalForms
   ∀ F : ACC0LikeCircuitFamily,
     ACC0FamilyBoundedBySurface S F ->
       Nonempty (ACC0FamilyHasEfficientSYMPlusNormalForms F)
+
+/-- The loose `NFrameLagrangianYieldsSYMPlusNormalForms` theorem is provable
+without using the N-frame Lagrangian at all.  That is the diagnostic: the loose
+surface is semantic bookkeeping, not the load-bearing ACC0 algorithmic theorem.
+-/
+theorem loose_nFrameLagrangianYieldsSYMPlusNormalForms
+    (_D : DescribedCanonicalSurface)
+    (_I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface) :
+    NFrameLagrangianYieldsSYMPlusNormalForms _D _I S := by
+  intro F _hbounded
+  exact ⟨semanticACC0FamilyHasEfficientSYMPlusNormalForms F⟩
+
+/-! ## Strict SYM+ normal forms -/
+
+/-- A strict SYM+ normal form: a symmetric combiner of AND terms.  Unlike the
+loose surface above, the evaluation is fixed by the AND supports and the
+symmetric combiner. -/
+structure StrictSYMPlusNormalForm (arity : Nat) where
+  termCount : Nat
+  andSupport : Fin termCount -> Finset (Fin arity)
+  symmetricCombiner : Nat -> Bool
+
+/-- Evaluate one AND term of a strict SYM+ normal form. -/
+noncomputable def StrictSYMPlusNormalForm.andTermValue
+    {arity : Nat}
+    (N : StrictSYMPlusNormalForm arity)
+    (i : Fin N.termCount)
+    (x : Fin arity -> Bool) : Bool :=
+  if ∀ v : Fin arity, v ∈ N.andSupport i -> x v = true then
+    true
+  else
+    false
+
+/-- Count how many AND terms evaluate to true. -/
+noncomputable def StrictSYMPlusNormalForm.trueTermCount
+    {arity : Nat}
+    (N : StrictSYMPlusNormalForm arity)
+    (x : Fin arity -> Bool) : Nat :=
+  (Finset.univ.filter fun i : Fin N.termCount =>
+    N.andTermValue i x = true).card
+
+/-- Evaluate a strict SYM+ normal form. -/
+noncomputable def StrictSYMPlusNormalForm.evaluate
+    {arity : Nat}
+    (N : StrictSYMPlusNormalForm arity)
+    (x : Fin arity -> Bool) : Bool :=
+  N.symmetricCombiner (N.trueTermCount x)
+
+/-- A circuit has a strict SYM+ normal form if the symmetric-of-ANDs evaluation
+agrees with the circuit semantics. -/
+structure ACC0CircuitHasStrictSYMPlusNormalForm
+    (C : ACC0LikeCircuit) where
+  normalForm : StrictSYMPlusNormalForm C.inputArity
+  agrees : ∀ x : Fin C.inputArity -> Bool,
+    normalForm.evaluate x = C.semantics x
+
+/-- A family has efficient strict SYM+ normal forms. -/
+structure ACC0FamilyHasEfficientStrictSYMPlusNormalForms
+    (F : ACC0LikeCircuitFamily) where
+  normalForm :
+    ∀ n : Nat, ACC0CircuitHasStrictSYMPlusNormalForm (F.circuit n)
+  andGateExponent : Nat
+  andGateCount_le :
+    ∀ n : Nat,
+      ((normalForm n).normalForm).termCount <= n ^ andGateExponent
+
+/-- The real N-frame extraction target: strict SYM+ normal forms, not arbitrary
+semantic normal forms. -/
+def NFrameLagrangianYieldsStrictSYMPlusNormalForms
+    (_D : DescribedCanonicalSurface)
+    (_I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface) : Prop :=
+  ∀ F : ACC0LikeCircuitFamily,
+    ACC0FamilyBoundedBySurface S F ->
+      Nonempty (ACC0FamilyHasEfficientStrictSYMPlusNormalForms F)
+
+/-- Algorithmic Williams/Yao-Beigel-Tarui step for strict normal forms. -/
+structure StrictSYMPlusNormalFormsYieldFastACC0SAT
+    (S : ConcreteACC0Surface)
+    (P : ConcreteACC0WilliamsPackage S) : Prop where
+  fastSAT_of_strictSYMPlusNormalForms :
+    (∀ F : ACC0LikeCircuitFamily,
+      ACC0FamilyBoundedBySurface S F ->
+        Nonempty (ACC0FamilyHasEfficientStrictSYMPlusNormalForms F)) ->
+          P.FastACC0CircuitSAT
+
+/-- Strict SYM+ extraction is the non-vacuous way for N-frame to supply the
+fast-ACC0-SAT component. -/
+theorem nFrameSuppliesConcreteACC0FastCircuitSAT_of_strictSYMPlusNormalForms
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (P : ConcreteACC0WilliamsPackage S)
+    (hnf : NFrameLagrangianYieldsStrictSYMPlusNormalForms D I S)
+    (halg : StrictSYMPlusNormalFormsYieldFastACC0SAT S P) :
+    NFrameSuppliesConcreteACC0FastCircuitSAT D I S P := by
+  simpa [NFrameSuppliesConcreteACC0FastCircuitSAT,
+    NFrameSuppliesFastCircuitSAT,
+    concreteACC0WilliamsTarget,
+    ACC0WilliamsTarget.toGodelWilliamsStep]
+    using halg.fastSAT_of_strictSYMPlusNormalForms hnf
+
+/-- The strict positive restricted route.  This is the version that remains
+mathematically meaningful after the loose semantic-normal-form guard theorem. -/
+theorem concreteACC0_nexp_not_subset_of_nFrameStrictSYMPlusNormalForms
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (P : ConcreteACC0WilliamsPackage S)
+    (hnf : NFrameLagrangianYieldsStrictSYMPlusNormalForms D I S)
+    (halg : StrictSYMPlusNormalFormsYieldFastACC0SAT S P)
+    (hmeta : NFrameSuppliesConcreteACC0MetaSimulation D I S P) :
+    PallLean.Paper93.DeepMath.PathB.NEXPNotSubsetCircuitClass
+      (concreteACC0WilliamsTarget S P).toCircuitClass :=
+  concreteACC0_nexp_not_subset_of_nFrame_fastSAT_meta D I S P
+    (nFrameSuppliesConcreteACC0FastCircuitSAT_of_strictSYMPlusNormalForms
+      D I S P hnf halg)
+    hmeta
 
 /-- The algorithmic step from efficient SYM+ normal forms to fast ACC0
 circuit-SAT.  This is the Williams/Yao-Beigel-Tarui-style ingredient; it is
@@ -1213,6 +1358,9 @@ the `smallRepresentation` needed by Williams' hierarchy contradiction. -/
 #print axioms not_both_nFrameConcreteACC0Ingredients_of_nexp_subset
 #print axioms not_spdpProbeReadsSYMPlusEasyAsNonmaximal
 #print axioms not_nFrameConcreteACC0FastSATViaSPDPDetector
+#print axioms loose_nFrameLagrangianYieldsSYMPlusNormalForms
+#print axioms nFrameSuppliesConcreteACC0FastCircuitSAT_of_strictSYMPlusNormalForms
+#print axioms concreteACC0_nexp_not_subset_of_nFrameStrictSYMPlusNormalForms
 #print axioms nFrameSuppliesConcreteACC0FastCircuitSAT_of_symPlusNormalForms
 #print axioms concreteACC0_nexp_not_subset_of_nFrameSYMPlusNormalForms
 #print axioms not_nFrameSYMPlusNormalFormsViaSPDPDetector
