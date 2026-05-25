@@ -1157,6 +1157,100 @@ def NFrameLagrangianYieldsStrictSYMPlusNormalForms
     ACC0FamilyBoundedBySurface S F ->
       Nonempty (ACC0FamilyHasEfficientStrictSYMPlusNormalForms F)
 
+/-- The strict target without N-frame labels.  This is the pure
+Yao-Beigel-Tarui-style normalization statement for the concrete surface. -/
+def StrictSYMPlusNormalizationSurface
+    (S : ConcreteACC0Surface) : Prop :=
+  ∀ F : ACC0LikeCircuitFamily,
+    ACC0FamilyBoundedBySurface S F ->
+      Nonempty (ACC0FamilyHasEfficientStrictSYMPlusNormalForms F)
+
+/-- The current strict N-frame-yields statement is definitionally just the
+surface normalization theorem; it does not yet force the normal form to be
+carried by the N-frame Lagrangian. -/
+theorem nFrameLagrangianYieldsStrictSYMPlusNormalForms_iff_surfaceNormalization
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface) :
+    NFrameLagrangianYieldsStrictSYMPlusNormalForms D I S ↔
+      StrictSYMPlusNormalizationSurface S :=
+  Iff.rfl
+
+/-- A surface normalization theorem proves the current strict target for any
+N-frame labels.  This is useful, but it is YBT normalization, not N-frame
+extraction. -/
+theorem nFrameLagrangianYieldsStrictSYMPlusNormalForms_of_surfaceNormalization
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (hYBT : StrictSYMPlusNormalizationSurface S) :
+    NFrameLagrangianYieldsStrictSYMPlusNormalForms D I S :=
+  hYBT
+
+/-! ## Certified strict extraction from N-frame bulk -/
+
+/-- A strict SYM+ normal form certified by a low-action N-frame bulk object. -/
+structure NFrameCertifiedStrictSYMPlusNormalForm
+    (_D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (F : ACC0LikeCircuitFamily)
+    (n : Nat) where
+  bulk : NFramePACBulk I.dim
+  low_action : I.action bulk <= I.actionBound
+  strictNormalForm : ACC0CircuitHasStrictSYMPlusNormalForm (F.circuit n)
+  reconstruction_tracks_size :
+    bulk.reconstructionCode = (F.circuit n).size
+  description_tracks_termCount :
+    bulk.descriptionLength = strictNormalForm.normalForm.termCount
+
+/-- A family has efficient strict SYM+ normal forms certified by N-frame bulk. -/
+structure ACC0FamilyHasNFrameCertifiedEfficientStrictSYMPlusNormalForms
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (F : ACC0LikeCircuitFamily) where
+  certified :
+    ∀ n : Nat, NFrameCertifiedStrictSYMPlusNormalForm D I F n
+  andGateExponent : Nat
+  andGateCount_le :
+    ∀ n : Nat,
+      ((certified n).strictNormalForm.normalForm).termCount <=
+        n ^ andGateExponent
+
+/-- Forget the N-frame certificates and keep only the strict SYM+ normal forms.
+-/
+def ACC0FamilyHasNFrameCertifiedEfficientStrictSYMPlusNormalForms.toStrict
+    {D : DescribedCanonicalSurface}
+    {I : NFrameLagrangianPACInvariant}
+    {F : ACC0LikeCircuitFamily}
+    (C : ACC0FamilyHasNFrameCertifiedEfficientStrictSYMPlusNormalForms D I F) :
+    ACC0FamilyHasEfficientStrictSYMPlusNormalForms F where
+  normalForm := fun n => (C.certified n).strictNormalForm
+  andGateExponent := C.andGateExponent
+  andGateCount_le := C.andGateCount_le
+
+/-- The real N-frame extraction target: strict SYM+ normal forms must be
+certified by low-action N-frame bulk objects. -/
+def NFrameLagrangianExtractsStrictSYMPlusNormalForms
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface) : Prop :=
+  ∀ F : ACC0LikeCircuitFamily,
+    ACC0FamilyBoundedBySurface S F ->
+      Nonempty
+        (ACC0FamilyHasNFrameCertifiedEfficientStrictSYMPlusNormalForms D I F)
+
+/-- Certified N-frame extraction implies the current strict-normal-form target.
+-/
+theorem nFrameLagrangianYieldsStrictSYMPlusNormalForms_of_certifiedExtraction
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (hextract : NFrameLagrangianExtractsStrictSYMPlusNormalForms D I S) :
+    NFrameLagrangianYieldsStrictSYMPlusNormalForms D I S := by
+  intro F hbounded
+  rcases hextract F hbounded with ⟨certified⟩
+  exact ⟨certified.toStrict⟩
+
 /-- Algorithmic Williams/Yao-Beigel-Tarui step for strict normal forms. -/
 structure StrictSYMPlusNormalFormsYieldFastACC0SAT
     (S : ConcreteACC0Surface)
@@ -1198,6 +1292,25 @@ theorem concreteACC0_nexp_not_subset_of_nFrameStrictSYMPlusNormalForms
   concreteACC0_nexp_not_subset_of_nFrame_fastSAT_meta D I S P
     (nFrameSuppliesConcreteACC0FastCircuitSAT_of_strictSYMPlusNormalForms
       D I S P hnf halg)
+    hmeta
+
+/-- The certified N-frame extraction route: low-action N-frame bulk certificates
+for strict SYM+ normal forms feed the strict Williams/ACC0 route. -/
+theorem concreteACC0_nexp_not_subset_of_nFrameCertifiedStrictSYMPlusNormalForms
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (P : ConcreteACC0WilliamsPackage S)
+    (hextract : NFrameLagrangianExtractsStrictSYMPlusNormalForms D I S)
+    (halg : StrictSYMPlusNormalFormsYieldFastACC0SAT S P)
+    (hmeta : NFrameSuppliesConcreteACC0MetaSimulation D I S P) :
+    PallLean.Paper93.DeepMath.PathB.NEXPNotSubsetCircuitClass
+      (concreteACC0WilliamsTarget S P).toCircuitClass :=
+  concreteACC0_nexp_not_subset_of_nFrameStrictSYMPlusNormalForms
+    D I S P
+    (nFrameLagrangianYieldsStrictSYMPlusNormalForms_of_certifiedExtraction
+      D I S hextract)
+    halg
     hmeta
 
 /-- The algorithmic step from efficient SYM+ normal forms to fast ACC0
@@ -1359,8 +1472,13 @@ the `smallRepresentation` needed by Williams' hierarchy contradiction. -/
 #print axioms not_spdpProbeReadsSYMPlusEasyAsNonmaximal
 #print axioms not_nFrameConcreteACC0FastSATViaSPDPDetector
 #print axioms loose_nFrameLagrangianYieldsSYMPlusNormalForms
+#print axioms nFrameLagrangianYieldsStrictSYMPlusNormalForms_iff_surfaceNormalization
+#print axioms nFrameLagrangianYieldsStrictSYMPlusNormalForms_of_surfaceNormalization
+#print axioms ACC0FamilyHasNFrameCertifiedEfficientStrictSYMPlusNormalForms.toStrict
+#print axioms nFrameLagrangianYieldsStrictSYMPlusNormalForms_of_certifiedExtraction
 #print axioms nFrameSuppliesConcreteACC0FastCircuitSAT_of_strictSYMPlusNormalForms
 #print axioms concreteACC0_nexp_not_subset_of_nFrameStrictSYMPlusNormalForms
+#print axioms concreteACC0_nexp_not_subset_of_nFrameCertifiedStrictSYMPlusNormalForms
 #print axioms nFrameSuppliesConcreteACC0FastCircuitSAT_of_symPlusNormalForms
 #print axioms concreteACC0_nexp_not_subset_of_nFrameSYMPlusNormalForms
 #print axioms not_nFrameSYMPlusNormalFormsViaSPDPDetector
