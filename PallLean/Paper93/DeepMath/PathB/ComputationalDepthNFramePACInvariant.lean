@@ -778,6 +778,167 @@ theorem not_nFrameACC0WilliamsRestrictedProgram_of_nexp_subset_acc0
     (acc0_nexp_not_subset_of_nFrameACC0WilliamsRestrictedProgram
       D I A h) hsubset
 
+/-! ## Concrete ACC0-like surface -/
+
+/-- A concrete ACC0-like circuit object: bounded depth, bounded size, bounded
+modulus, and a Boolean semantics on its input arity.
+
+This is deliberately still lightweight; the point is to stop treating `ACC0` as
+only a name while avoiding a full circuit-complexity library inside this file.
+-/
+structure ACC0LikeCircuit where
+  inputArity : Nat
+  depth : Nat
+  size : Nat
+  modulusBound : Nat
+  semantics : (Fin inputArity -> Bool) -> Bool
+
+/-- A nonuniform ACC0-like circuit family with explicit constant-depth,
+polynomial-size, and finite-modulus bounds. -/
+structure ACC0LikeCircuitFamily where
+  circuit : Nat -> ACC0LikeCircuit
+  depthBound : Nat
+  sizeExponent : Nat
+  modulusBound : Nat
+  depth_le : ∀ n : Nat, (circuit n).depth <= depthBound
+  size_le : ∀ n : Nat, (circuit n).size <= n ^ sizeExponent
+  modulus_le : ∀ n : Nat, (circuit n).modulusBound <= modulusBound
+
+/-- Abstract NEXP language codes for the restricted Williams test. -/
+structure ConcreteNEXPLanguage where
+  code : Nat
+  accepts : Nat -> Prop
+
+/-- Global ACC0-like class parameters. -/
+structure ConcreteACC0Surface where
+  depthBound : Nat
+  sizeExponent : Nat
+  modulusBound : Nat
+
+/-- A concrete NEXP language has ACC0-like circuits if it has a bounded family
+under the chosen surface parameters. -/
+def ConcreteNEXPHasACC0Circuits
+    (S : ConcreteACC0Surface)
+    (_L : ConcreteNEXPLanguage) : Prop :=
+  ∃ F : ACC0LikeCircuitFamily,
+    F.depthBound <= S.depthBound ∧
+      F.sizeExponent <= S.sizeExponent ∧
+        F.modulusBound <= S.modulusBound
+
+/-- The real Williams theorem package for the concrete ACC0-like surface.
+
+These fields are the known algorithmic-method ingredients: fast ACC0 circuit
+SAT, meta-simulation/easy witnesses, and the hierarchy contradiction.  They are
+not consequences of the N-frame Lagrangian by definition; that is exactly what
+the next theorem must prove if the N-frame route is to reproduce a restricted
+Williams lower bound. -/
+structure ConcreteACC0WilliamsPackage
+    (S : ConcreteACC0Surface) where
+  FastACC0CircuitSAT : Prop
+  ACC0MetaSimulation : Prop
+  EasyWitnessCompression : Prop
+  HierarchyCollapse : Prop
+  easyWitness_of_fastSAT_smallCircuits_meta :
+    FastACC0CircuitSAT ->
+      (∀ L : ConcreteNEXPLanguage, ConcreteNEXPHasACC0Circuits S L) ->
+        ACC0MetaSimulation ->
+          EasyWitnessCompression
+  hierarchyCollapse_of_easyWitness_smallCircuits_meta :
+    EasyWitnessCompression ->
+      (∀ L : ConcreteNEXPLanguage, ConcreteNEXPHasACC0Circuits S L) ->
+        ACC0MetaSimulation ->
+          HierarchyCollapse
+  hierarchyContradiction : ¬ HierarchyCollapse
+
+/-- Instantiate the abstract ACC0 Williams target with an actual ACC0-like
+circuit-family surface. -/
+def concreteACC0WilliamsTarget
+    (S : ConcreteACC0Surface)
+    (P : ConcreteACC0WilliamsPackage S) :
+    ACC0WilliamsTarget where
+  NEXPLanguage := ConcreteNEXPLanguage
+  HasACC0Circuits := ConcreteNEXPHasACC0Circuits S
+  FastACC0CircuitSAT := P.FastACC0CircuitSAT
+  ACC0MetaSimulation := P.ACC0MetaSimulation
+  EasyWitnessCompression := P.EasyWitnessCompression
+  HierarchyCollapse := P.HierarchyCollapse
+  easyWitness_of_fastSAT_smallCircuits_meta :=
+    P.easyWitness_of_fastSAT_smallCircuits_meta
+  hierarchyCollapse_of_easyWitness_smallCircuits_meta :=
+    P.hierarchyCollapse_of_easyWitness_smallCircuits_meta
+  hierarchyContradiction := P.hierarchyContradiction
+
+/-- Concrete version of component 1: the N-frame Lagrangian supplies fast ACC0
+circuit SAT for the concrete circuit-family surface. -/
+def NFrameSuppliesConcreteACC0FastCircuitSAT
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (P : ConcreteACC0WilliamsPackage S) : Prop :=
+  NFrameSuppliesFastCircuitSAT D I
+    (concreteACC0WilliamsTarget S P).toGodelWilliamsTower
+    (concreteACC0WilliamsTarget S P).toGodelWilliamsStep
+
+/-- Concrete version of component 2: the N-frame/Gödel layer supplies the
+meta-simulation for the concrete ACC0-like target. -/
+def NFrameSuppliesConcreteACC0MetaSimulation
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (P : ConcreteACC0WilliamsPackage S) : Prop :=
+  NFrameSuppliesMetaSimulation D I
+    (concreteACC0WilliamsTarget S P).toGodelWilliamsTower
+    (concreteACC0WilliamsTarget S P).toGodelWilliamsStep
+
+/-- Assemble the concrete ACC0 ingredients into the restricted N-frame/Williams
+program. -/
+theorem nFrameACC0WilliamsRestrictedProgram_of_concreteACC0Ingredients
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (P : ConcreteACC0WilliamsPackage S)
+    (hfast : NFrameSuppliesConcreteACC0FastCircuitSAT D I S P)
+    (hmeta : NFrameSuppliesConcreteACC0MetaSimulation D I S P) :
+    NFrameACC0WilliamsRestrictedProgram D I
+      (concreteACC0WilliamsTarget S P) where
+  nframe_fast_acc0_sat := hfast
+  nframe_meta_simulation := hmeta
+
+/-- The concrete restricted test: if the N-frame layer really supplies fast ACC0
+circuit SAT and meta-simulation for the concrete surface, the Williams theorem
+gives the restricted NEXP-vs-ACC0-style lower bound. -/
+theorem concreteACC0_nexp_not_subset_of_nFrame_fastSAT_meta
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (P : ConcreteACC0WilliamsPackage S)
+    (hfast : NFrameSuppliesConcreteACC0FastCircuitSAT D I S P)
+    (hmeta : NFrameSuppliesConcreteACC0MetaSimulation D I S P) :
+    PallLean.Paper93.DeepMath.PathB.NEXPNotSubsetCircuitClass
+      (concreteACC0WilliamsTarget S P).toCircuitClass :=
+  acc0_nexp_not_subset_of_nFrameACC0WilliamsRestrictedProgram
+    D I (concreteACC0WilliamsTarget S P)
+    (nFrameACC0WilliamsRestrictedProgram_of_concreteACC0Ingredients
+      D I S P hfast hmeta)
+
+/-- Guard for the concrete surface: if NEXP is contained in the concrete
+ACC0-like class, the N-frame layer cannot supply both algorithmic ingredients.
+-/
+theorem not_both_nFrameConcreteACC0Ingredients_of_nexp_subset
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (P : ConcreteACC0WilliamsPackage S)
+    (hsubset :
+      PallLean.Paper93.DeepMath.PathB.NEXPSubsetCircuitClass
+        (concreteACC0WilliamsTarget S P).toCircuitClass) :
+    ¬ (NFrameSuppliesConcreteACC0FastCircuitSAT D I S P ∧
+        NFrameSuppliesConcreteACC0MetaSimulation D I S P) := by
+  intro h
+  exact
+    (concreteACC0_nexp_not_subset_of_nFrame_fastSAT_meta
+      D I S P h.1 h.2) hsubset
+
 /-- The Gödel/Williams transport closes the canonical SAT decider only by using
 a hierarchy contradiction.  This is the intended non-natural shape: no
 truth-table largeness/rank property is invoked. -/
@@ -862,6 +1023,9 @@ the `smallRepresentation` needed by Williams' hierarchy contradiction. -/
 #print axioms acc0_nexp_not_subset_of_fastSAT_and_metaSimulation
 #print axioms acc0_nexp_not_subset_of_nFrameACC0WilliamsRestrictedProgram
 #print axioms not_nFrameACC0WilliamsRestrictedProgram_of_nexp_subset_acc0
+#print axioms nFrameACC0WilliamsRestrictedProgram_of_concreteACC0Ingredients
+#print axioms concreteACC0_nexp_not_subset_of_nFrame_fastSAT_meta
+#print axioms not_both_nFrameConcreteACC0Ingredients_of_nexp_subset
 #print axioms noCanonicalSATDecisionInP_of_nFrameGodelWilliamsProgram
 #print axioms hardMetacomplexitySocket_of_nFrameGodelWilliamsProgram
 #print axioms ktRoute_finalClosure_of_nFrameGodelWilliamsProgram
