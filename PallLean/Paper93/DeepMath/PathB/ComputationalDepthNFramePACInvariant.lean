@@ -465,6 +465,122 @@ theorem noRestrictedCorrect_noOutputLowActionMachines
     D I R (NoOutputLowActionMachineClass D I R)
     (restrictedBreakthrough_of_noOutputLowActionMachineClass D I R hinstance)
 
+/-! ## Gödel/Williams tower transport -/
+
+/-- A resource-bounded Gödel/Williams tower.
+
+This is the formal socket for the book's "Gödel hierarchy tower" idea in the
+Williams style: the lower-bound argument must not be a natural property of
+truth tables.  It must instead force a forbidden resource-bounded hierarchy
+collapse. -/
+structure ResourceBoundedGodelWilliamsTower where
+  baseSystemCode : Nat
+  metaSystemCode : Nat
+  diagonalSentenceCode : Nat
+  hierarchyCollapse : Prop
+  hierarchyNoCollapse : ¬ hierarchyCollapse
+
+/-- A Williams-style non-natural step over a fixed Gödel tower.
+
+The step says that a fast SAT-like procedure, plus a small-representation
+hypothesis, plus the meta-simulation needed to climb the tower, would collapse
+the hierarchy.  The tower's diagonal theorem then rejects that collapse. -/
+structure WilliamsGodelNonNaturalStep
+    (T : ResourceBoundedGodelWilliamsTower) where
+  fastCircuitSAT : Prop
+  smallRepresentation : Prop
+  metaSimulation : Prop
+  collapse_of_fastSAT_smallRepresentation :
+    fastCircuitSAT ->
+      smallRepresentation ->
+        metaSimulation ->
+          T.hierarchyCollapse
+
+/-- The abstract Williams/Gödel contradiction. -/
+theorem false_of_williamsGodelNonNaturalStep
+    (T : ResourceBoundedGodelWilliamsTower)
+    (W : WilliamsGodelNonNaturalStep T)
+    (hfast : W.fastCircuitSAT)
+    (hsmall : W.smallRepresentation)
+    (hmeta : W.metaSimulation) :
+    False :=
+  T.hierarchyNoCollapse
+    (W.collapse_of_fastSAT_smallRepresentation hfast hsmall hmeta)
+
+/-- The N-frame Lagrangian as a Williams/Gödel transport layer.
+
+This is the positive, non-natural version of the route.  The N-frame invariant
+must supply the fast/structured view and the meta-simulation step.  A canonical
+polynomial-time SAT decider would supply the small representation.  Williams'
+method then converts those three ingredients into a hierarchy collapse, rather
+than into a large constructive property. -/
+structure NFrameGodelWilliamsProgram
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (T : ResourceBoundedGodelWilliamsTower)
+    (W : WilliamsGodelNonNaturalStep T) : Prop where
+  nframe_supplies_fastCircuitSAT : W.fastCircuitSAT
+  nframe_supplies_metaSimulation : W.metaSimulation
+  decider_to_smallRepresentation :
+    CanonicalSATDecisionInP D.surface ->
+      W.smallRepresentation
+
+/-- The Gödel/Williams transport closes the canonical SAT decider only by using
+a hierarchy contradiction.  This is the intended non-natural shape: no
+truth-table largeness/rank property is invoked. -/
+theorem noCanonicalSATDecisionInP_of_nFrameGodelWilliamsProgram
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (T : ResourceBoundedGodelWilliamsTower)
+    (W : WilliamsGodelNonNaturalStep T)
+    (h : NFrameGodelWilliamsProgram D I T W) :
+    ¬ CanonicalSATDecisionInP D.surface := by
+  intro hdec
+  exact false_of_williamsGodelNonNaturalStep T W
+    h.nframe_supplies_fastCircuitSAT
+    (h.decider_to_smallRepresentation hdec)
+    h.nframe_supplies_metaSimulation
+
+/-- The same Gödel/Williams transport feeds the existing hard
+metacomplexity socket. -/
+theorem hardMetacomplexitySocket_of_nFrameGodelWilliamsProgram
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (T : ResourceBoundedGodelWilliamsTower)
+    (W : WilliamsGodelNonNaturalStep T)
+    (h : NFrameGodelWilliamsProgram D I T W) :
+    HardMetacomplexitySocket D :=
+  hardMetacomplexitySocket_of_noCanonicalSATDecisionInP D
+    (noCanonicalSATDecisionInP_of_nFrameGodelWilliamsProgram D I T W h)
+
+/-- Conditional route closure from a Williams/Gödel tower transport. -/
+theorem ktRoute_finalClosure_of_nFrameGodelWilliamsProgram
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (T : ResourceBoundedGodelWilliamsTower)
+    (W : WilliamsGodelNonNaturalStep T)
+    (h : NFrameGodelWilliamsProgram D I T W) :
+    (¬ CanonicalSATDecisionInP D.surface) ∧
+      NoPolynomialLengthScheduledCompleteGenerators D :=
+  ktRoute_finalClosure D
+    (hardMetacomplexitySocket_of_nFrameGodelWilliamsProgram D I T W h)
+
+/-- The tower program still uses a genuine non-vacuous N-frame Lagrangian:
+there is always a low-action identity/reference bulk object. -/
+theorem exists_lowActionBulk_of_nFrameGodelWilliamsProgram
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (T : ResourceBoundedGodelWilliamsTower)
+    (W : WilliamsGodelNonNaturalStep T)
+    (_h : NFrameGodelWilliamsProgram D I T W) :
+    ∃ bulk : NFramePACBulk I.dim, I.action bulk <= I.actionBound :=
+  exists_lowActionBulk_of_nFrameLagrangianPACInvariant I
+
+/-! The remaining theorem is exactly the construction of
+`NFrameGodelWilliamsProgram`: prove that the N-frame/Gödel tower supplies
+`fastCircuitSAT` and `metaSimulation`, and that any canonical SAT decider yields
+the `smallRepresentation` needed by Williams' hierarchy contradiction. -/
+
 /-! ## Axiom trace -/
 
 #print axioms nFrameLagrangianPACInvariant_action_eq_logDet
@@ -484,5 +600,10 @@ theorem noRestrictedCorrect_noOutputLowActionMachines
 #print axioms noRestrictedShallowSearchInClass_of_restrictedNFramePACBreakthrough
 #print axioms restrictedBreakthrough_of_noOutputLowActionMachineClass
 #print axioms noRestrictedCorrect_noOutputLowActionMachines
+#print axioms false_of_williamsGodelNonNaturalStep
+#print axioms noCanonicalSATDecisionInP_of_nFrameGodelWilliamsProgram
+#print axioms hardMetacomplexitySocket_of_nFrameGodelWilliamsProgram
+#print axioms ktRoute_finalClosure_of_nFrameGodelWilliamsProgram
+#print axioms exists_lowActionBulk_of_nFrameGodelWilliamsProgram
 
 end SATDepthMachine
