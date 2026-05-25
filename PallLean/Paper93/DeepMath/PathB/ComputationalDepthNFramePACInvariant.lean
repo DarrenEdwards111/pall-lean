@@ -2084,6 +2084,272 @@ theorem noCanonicalSATDecisionInP_of_fixedBudgetCookLevinTransport
       (forall_not_searchCorrect_of_fixedBudgetCookLevinTransport
         D I H P htransport))
 
+/-! ## Length-indexed faithful holography -/
+
+/-- Length-indexed faithful holographic encoder.
+
+This is the corrected version of the faithful interface after the fixed-budget
+guard above: low-action decoding is allowed a budget depending on the decoded
+boundary length, and that budget must be polynomial. -/
+structure LengthIndexedFaithfulHolographicEncoder
+    (I : NFrameLagrangianPACInvariant) where
+  Boundary : Type
+  decode : NFramePACBulk I.dim -> Boundary
+  boundaryLength : Boundary -> Nat
+  boundaryComplexity : Boundary -> Nat
+  lowActionBudget : Nat -> Nat
+  lowActionBudget_poly : IsPolynomialBudget lowActionBudget
+  complexity_le_budget_of_lowAction :
+    ∀ bulk : NFramePACBulk I.dim,
+      I.action bulk <= I.actionBound ->
+        boundaryComplexity (decode bulk) <=
+          lowActionBudget (boundaryLength (decode bulk))
+
+/-- A low-action encoding of one boundary in the length-indexed model. -/
+structure LengthIndexedLowActionBoundaryEncoding
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (boundary : H.Boundary) where
+  bulk : NFramePACBulk I.dim
+  low_action : I.action bulk <= I.actionBound
+  decodes_to : H.decode bulk = boundary
+
+/-- Low-action length-indexed bulk cannot decode a boundary whose complexity
+exceeds the budget at its own length. -/
+theorem noLengthIndexedLowActionEncoding_of_complexity_gt_budget
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (boundary : H.Boundary)
+    (hgt :
+      H.lowActionBudget (H.boundaryLength boundary) <
+        H.boundaryComplexity boundary) :
+    ¬ Nonempty (LengthIndexedLowActionBoundaryEncoding I H boundary) := by
+  intro hencoding
+  rcases hencoding with ⟨encoding⟩
+  have hle_decode :
+      H.boundaryComplexity (H.decode encoding.bulk) <=
+        H.lowActionBudget (H.boundaryLength (H.decode encoding.bulk)) :=
+    H.complexity_le_budget_of_lowAction encoding.bulk encoding.low_action
+  have hle_boundary :
+      H.boundaryComplexity boundary <=
+        H.lowActionBudget (H.boundaryLength boundary) := by
+    simpa [encoding.decodes_to] using hle_decode
+  exact (Nat.not_lt_of_ge hle_boundary) hgt
+
+/-- SAT semantics attached to a decoded boundary in the length-indexed model. -/
+structure LengthIndexedSATHolographicBoundarySemantics
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (M : SearchMachine D.surface.toMachineModel)
+    (phi : CNF)
+    (boundary : H.Boundary) where
+  witness : RawAssignment
+  machine_outputs :
+    D.surface.toMachineModel.searchRun M.code phi = some witness
+  witness_satisfies : Satisfies phi witness
+  boundary_is_decoded_sat_boundary : Prop
+  boundary_semantics_proof : boundary_is_decoded_sat_boundary
+
+/-- A length-indexed SAT boundary family: one semantic boundary at each length.
+The `length_eq` field is what lets polynomial P-side budgets and
+superpolynomial SAT-side lower bounds meet on the same `n`. -/
+structure LengthIndexedSATBoundaryFamily
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (M : SearchMachine D.surface.toMachineModel) where
+  boundaryAt : Nat -> H.Boundary
+  phiAt : Nat -> CNF
+  semanticsAt :
+    ∀ n : Nat,
+      LengthIndexedSATHolographicBoundarySemantics
+        D I H M (phiAt n) (boundaryAt n)
+  length_eq :
+    ∀ n : Nat, H.boundaryLength (boundaryAt n) = n
+
+/-- A P-level low-action SAT boundary family: the semantic boundaries are
+actually carried by low-action bulk at every length. -/
+structure LengthIndexedLowActionSATBoundaryFamily
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (M : SearchMachine D.surface.toMachineModel) where
+  boundaryAt : Nat -> H.Boundary
+  phiAt : Nat -> CNF
+  encodingAt :
+    ∀ n : Nat,
+      LengthIndexedLowActionBoundaryEncoding I H (boundaryAt n)
+  semanticsAt :
+    ∀ n : Nat,
+      LengthIndexedSATHolographicBoundarySemantics
+        D I H M (phiAt n) (boundaryAt n)
+  length_eq :
+    ∀ n : Nat, H.boundaryLength (boundaryAt n) = n
+
+/-- Forget low-action encodings and keep only the SAT-semantic boundary family.
+-/
+def LengthIndexedLowActionSATBoundaryFamily.toSATBoundaryFamily
+    {D : DescribedCanonicalSurface}
+    {I : NFrameLagrangianPACInvariant}
+    {H : LengthIndexedFaithfulHolographicEncoder I}
+    {M : SearchMachine D.surface.toMachineModel}
+    (F : LengthIndexedLowActionSATBoundaryFamily D I H M) :
+    LengthIndexedSATBoundaryFamily D I H M where
+  boundaryAt := F.boundaryAt
+  phiAt := F.phiAt
+  semanticsAt := F.semanticsAt
+  length_eq := F.length_eq
+
+/-- The SAT-side lower bound in the corrected length-indexed model.
+
+Every semantic SAT boundary family has complexity that eventually beats every
+polynomial.  This is the real mathematical lower-bound target; it is not proved
+by the interface. -/
+def LengthIndexedSATHolographicBoundaryLowerBound
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I) : Prop :=
+  ∀ (M : SearchMachine D.surface.toMachineModel)
+    (F : LengthIndexedSATBoundaryFamily D I H M)
+    (k c : Nat),
+      ∃ n : Nat,
+        c * (n + 1) ^ k < H.boundaryComplexity (F.boundaryAt n)
+
+/-- A low-complexity semantic boundary family refutes the length-indexed SAT
+lower-bound socket. -/
+theorem not_lengthIndexedSATHolographicBoundaryLowerBound_of_polyBoundedFamily
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (M : SearchMachine D.surface.toMachineModel)
+    (F : LengthIndexedSATBoundaryFamily D I H M)
+    (k c : Nat)
+    (hpoly :
+      ∀ n : Nat,
+        H.boundaryComplexity (F.boundaryAt n) <= c * (n + 1) ^ k) :
+    ¬ LengthIndexedSATHolographicBoundaryLowerBound D I H := by
+  intro hlower
+  rcases hlower M F k c with ⟨n, hgt⟩
+  exact (Nat.not_lt_of_ge (hpoly n)) hgt
+
+/-- Degenerate length-indexed encoder: boundary length is real, but complexity
+is identically zero.  It satisfies the abstract P-side budget condition and
+therefore demonstrates again that the SAT lower bound needs a nontrivial
+Cook-Levin decoder/complexity theorem. -/
+def trivialLengthIndexedFaithfulHolographicEncoder
+    (I : NFrameLagrangianPACInvariant) :
+    LengthIndexedFaithfulHolographicEncoder I where
+  Boundary := Nat
+  decode := fun _ => 0
+  boundaryLength := fun n => n
+  boundaryComplexity := fun _ => 0
+  lowActionBudget := fun _ => 0
+  lowActionBudget_poly := by
+    refine ⟨0, 0, ?_⟩
+    intro n
+    exact Nat.le_refl 0
+  complexity_le_budget_of_lowAction := by
+    intro _bulk _hlow
+    exact Nat.le_refl 0
+
+/-- If a zero-complexity semantic family is available, the length-indexed SAT
+lower bound is false. -/
+theorem not_lengthIndexedSATHolographicBoundaryLowerBound_of_zeroComplexityFamily
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (M : SearchMachine D.surface.toMachineModel)
+    (F : LengthIndexedSATBoundaryFamily D I H M)
+    (hzero :
+      ∀ n : Nat, H.boundaryComplexity (F.boundaryAt n) = 0) :
+    ¬ LengthIndexedSATHolographicBoundaryLowerBound D I H := by
+  intro hlower
+  rcases hlower M F 0 0 with ⟨n, hgt⟩
+  have hgt0 : 0 < 0 := by
+    simp at hgt
+    rw [hzero n] at hgt
+    exact hgt
+  exact Nat.lt_irrefl 0 hgt0
+
+/-- P-side transport in the length-indexed model: every complete P-level SAT
+search observer produces a low-action SAT boundary family. -/
+structure LengthIndexedPLevelSATObserverTransport
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I) : Prop where
+  transport :
+    ∀ M : SearchMachine D.surface.toMachineModel,
+      SearchCorrect D.surface.toMachineModel M ->
+        Nonempty (LengthIndexedLowActionSATBoundaryFamily D I H M)
+
+/-- Length-indexed SAT lower bound forbids a P-side low-action boundary family.
+-/
+theorem noLengthIndexedLowActionSATBoundaryFamily_of_lowerBound
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (hlower : LengthIndexedSATHolographicBoundaryLowerBound D I H)
+    (M : SearchMachine D.surface.toMachineModel) :
+    ¬ Nonempty (LengthIndexedLowActionSATBoundaryFamily D I H M) := by
+  intro hfamily
+  rcases hfamily with ⟨F⟩
+  rcases H.lowActionBudget_poly with ⟨k, c, hbudget_poly⟩
+  rcases hlower M F.toSATBoundaryFamily k c with ⟨n, hgt⟩
+  have hcomplexity_le_budget :
+      H.boundaryComplexity (F.boundaryAt n) <= H.lowActionBudget n := by
+    have hdecoded :=
+      H.complexity_le_budget_of_lowAction
+        (F.encodingAt n).bulk
+        (F.encodingAt n).low_action
+    simpa [(F.encodingAt n).decodes_to, F.length_eq n] using hdecoded
+  have hcomplexity_le_poly :
+      H.boundaryComplexity (F.boundaryAt n) <= c * (n + 1) ^ k :=
+    Nat.le_trans hcomplexity_le_budget (hbudget_poly n)
+  exact (Nat.not_lt_of_ge hcomplexity_le_poly) hgt
+
+/-- Corrected length-indexed closure: P-side low-action transport plus a
+superpolynomial SAT-boundary lower bound rules out complete canonical SAT
+search. -/
+theorem forall_not_searchCorrect_of_lengthIndexedFaithfulHolographicSATLowerBound
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (htransport : LengthIndexedPLevelSATObserverTransport D I H)
+    (hlower : LengthIndexedSATHolographicBoundaryLowerBound D I H) :
+    ∀ M : SearchMachine D.surface.toMachineModel,
+      ¬ SearchCorrect D.surface.toMachineModel M := by
+  intro M hcorrect
+  exact noLengthIndexedLowActionSATBoundaryFamily_of_lowerBound
+    D I H hlower M
+    (htransport.transport M hcorrect)
+
+/-- Canonical deep SAT search follows from the corrected length-indexed
+holographic route. -/
+theorem canonicalDeepSATSearch_of_lengthIndexedFaithfulHolographicSATLowerBound
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (htransport : LengthIndexedPLevelSATObserverTransport D I H)
+    (hlower : LengthIndexedSATHolographicBoundaryLowerBound D I H) :
+    CanonicalDeepSATSearch D.surface :=
+  (canonicalDeepSATSearch_iff_forall_not_searchCorrect D.surface).mpr
+    (forall_not_searchCorrect_of_lengthIndexedFaithfulHolographicSATLowerBound
+      D I H htransport hlower)
+
+/-- Conditional P-vs-NP-facing closure for the corrected length-indexed
+holographic route. -/
+theorem noCanonicalSATDecisionInP_of_lengthIndexedFaithfulHolographicSATLowerBound
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (htransport : LengthIndexedPLevelSATObserverTransport D I H)
+    (hlower : LengthIndexedSATHolographicBoundaryLowerBound D I H) :
+    ¬ CanonicalSATDecisionInP D.surface :=
+  canonicalNoDecider_of_deepSATSearch D.surface
+    (canonicalDeepSATSearch_of_lengthIndexedFaithfulHolographicSATLowerBound
+      D I H htransport hlower)
+
 /-- The P-side observer calibration for the faithful holographic layer:
 a complete SAT search machine would produce a faithful low-action decoded SAT
 boundary on some instance. -/
@@ -2372,6 +2638,14 @@ boundary lower bound. -/
 #print axioms noCookLevinLowActionBoundary_of_formula_size_gt_budget
 #print axioms forall_not_searchCorrect_of_fixedBudgetCookLevinTransport
 #print axioms noCanonicalSATDecisionInP_of_fixedBudgetCookLevinTransport
+#print axioms noLengthIndexedLowActionEncoding_of_complexity_gt_budget
+#print axioms LengthIndexedLowActionSATBoundaryFamily.toSATBoundaryFamily
+#print axioms not_lengthIndexedSATHolographicBoundaryLowerBound_of_polyBoundedFamily
+#print axioms not_lengthIndexedSATHolographicBoundaryLowerBound_of_zeroComplexityFamily
+#print axioms noLengthIndexedLowActionSATBoundaryFamily_of_lowerBound
+#print axioms forall_not_searchCorrect_of_lengthIndexedFaithfulHolographicSATLowerBound
+#print axioms canonicalDeepSATSearch_of_lengthIndexedFaithfulHolographicSATLowerBound
+#print axioms noCanonicalSATDecisionInP_of_lengthIndexedFaithfulHolographicSATLowerBound
 #print axioms noFaithfulLowActionSATBoundary_of_faithfulSATLowerBound
 #print axioms forall_not_searchCorrect_of_faithfulHolographicSATLowerBound
 #print axioms canonicalDeepSATSearch_of_faithfulHolographicSATLowerBound
