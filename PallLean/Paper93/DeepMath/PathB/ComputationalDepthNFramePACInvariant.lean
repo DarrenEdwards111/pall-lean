@@ -939,6 +939,191 @@ theorem not_both_nFrameConcreteACC0Ingredients_of_nexp_subset
     (concreteACC0_nexp_not_subset_of_nFrame_fastSAT_meta
       D I S P h.1 h.2) hsubset
 
+/-! ## SYM+-easiness diagnostic for the ACC0 test -/
+
+/-- The two symmetric probes used to test whether the N-frame/SPDP profile is an
+easiness detector for the Williams ACC0 algorithm.  `majority` and `mod3` are
+SYM+-easy in the algorithmic-method sense, but can still carry maximal SPDP
+profile rank. -/
+inductive SYMPlusProbe where
+  | majority
+  | mod3
+
+/-- A computed or proved probe witnessing that a SYM+-easy function has maximal
+SPDP profile rank.
+
+This does not refute ACC0 fast-SAT itself.  It refutes the narrower mechanism
+"N-frame supplies ACC0 fast-SAT because SPDP/log-det rank detects SYM+-easiness".
+-/
+structure SYMPlusEasyMaximalSPDPProbe where
+  probe : SYMPlusProbe
+  arity : Nat
+  symPlusEasy : Prop
+  spdpRank : Nat
+  maxProfileRank : Nat
+  symPlusEasy_proof : symPlusEasy
+  spdpRank_maximal : spdpRank = maxProfileRank
+  maxProfileRank_pos : 0 < maxProfileRank
+
+/-- What a rank-as-easiness detector would need on a SYM+ probe: SYM+-easy
+probes must read as nonmaximal/low rank. -/
+def SPDPProbeReadsSYMPlusEasyAsNonmaximal
+    (probe : SYMPlusEasyMaximalSPDPProbe) : Prop :=
+  probe.symPlusEasy -> probe.spdpRank < probe.maxProfileRank
+
+/-- A SYM+-easy maximal-rank probe refutes rank-as-easiness detection. -/
+theorem not_spdpProbeReadsSYMPlusEasyAsNonmaximal
+    (probe : SYMPlusEasyMaximalSPDPProbe) :
+    ¬ SPDPProbeReadsSYMPlusEasyAsNonmaximal probe := by
+  intro hdetects
+  have hlt : probe.maxProfileRank < probe.maxProfileRank := by
+    simpa [probe.spdpRank_maximal] using hdetects probe.symPlusEasy_proof
+  exact (Nat.lt_irrefl probe.maxProfileRank) hlt
+
+/-- The specific mechanism under test: N-frame supplies concrete ACC0 fast-SAT
+through an SPDP/log-det detector that reads SYM+-easy probes as nonmaximal.
+
+The point of naming this separately is to avoid overclaiming.  The negative
+theorem below does not say Williams' ACC0 algorithm fails; it says this N-frame
+rank mechanism cannot be the source of that algorithm. -/
+def NFrameConcreteACC0FastSATViaSPDPDetector
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (P : ConcreteACC0WilliamsPackage S)
+    (probe : SYMPlusEasyMaximalSPDPProbe) : Prop :=
+  NFrameSuppliesConcreteACC0FastCircuitSAT D I S P ∧
+    SPDPProbeReadsSYMPlusEasyAsNonmaximal probe
+
+/-- A SYM+-easy maximal-rank probe rules out the SPDP-detector route to
+N-frame-supplied ACC0 fast-SAT. -/
+theorem not_nFrameConcreteACC0FastSATViaSPDPDetector
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (P : ConcreteACC0WilliamsPackage S)
+    (probe : SYMPlusEasyMaximalSPDPProbe) :
+    ¬ NFrameConcreteACC0FastSATViaSPDPDetector D I S P probe := by
+  intro h
+  exact not_spdpProbeReadsSYMPlusEasyAsNonmaximal probe h.2
+
+/-! ## Positive ACC0 route through SYM+ normal forms -/
+
+/-- A SYM+ normal form: a symmetric combiner applied to a bounded collection of
+AND-like local terms.  This is the surface exploited by the
+Yao-Beigel-Tarui/Williams ACC0 algorithmic method. -/
+structure SYMPlusNormalForm (arity : Nat) where
+  andGateCount : Nat
+  symmetricCombinerCode : Nat
+  evaluate : (Fin arity -> Bool) -> Bool
+
+/-- A concrete ACC0-like circuit has a SYM+ presentation when the normal form
+agrees with the circuit's Boolean semantics. -/
+structure ACC0CircuitHasSYMPlusNormalForm
+    (C : ACC0LikeCircuit) where
+  normalForm : SYMPlusNormalForm C.inputArity
+  agrees : ∀ x : Fin C.inputArity -> Bool,
+    normalForm.evaluate x = C.semantics x
+
+/-- A family has efficient SYM+ normal forms when every length has a normal
+form and the number of AND-like terms is polynomially bounded. -/
+structure ACC0FamilyHasEfficientSYMPlusNormalForms
+    (F : ACC0LikeCircuitFamily) where
+  normalForm :
+    ∀ n : Nat, ACC0CircuitHasSYMPlusNormalForm (F.circuit n)
+  andGateExponent : Nat
+  andGateCount_le :
+    ∀ n : Nat,
+      ((normalForm n).normalForm).andGateCount <= n ^ andGateExponent
+
+/-- The concrete ACC0 family belongs to the chosen surface bounds. -/
+def ACC0FamilyBoundedBySurface
+    (S : ConcreteACC0Surface)
+    (F : ACC0LikeCircuitFamily) : Prop :=
+  F.depthBound <= S.depthBound ∧
+    F.sizeExponent <= S.sizeExponent ∧
+      F.modulusBound <= S.modulusBound
+
+/-- The N-frame Lagrangian yields the algorithmically useful object only if it
+extracts efficient SYM+ normal forms for every ACC0-like family in the concrete
+surface. -/
+def NFrameLagrangianYieldsSYMPlusNormalForms
+    (_D : DescribedCanonicalSurface)
+    (_I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface) : Prop :=
+  ∀ F : ACC0LikeCircuitFamily,
+    ACC0FamilyBoundedBySurface S F ->
+      Nonempty (ACC0FamilyHasEfficientSYMPlusNormalForms F)
+
+/-- The algorithmic step from efficient SYM+ normal forms to fast ACC0
+circuit-SAT.  This is the Williams/Yao-Beigel-Tarui-style ingredient; it is
+kept separate from the N-frame extraction theorem. -/
+structure SYMPlusNormalFormsYieldFastACC0SAT
+    (S : ConcreteACC0Surface)
+    (P : ConcreteACC0WilliamsPackage S) : Prop where
+  fastSAT_of_symPlusNormalForms :
+    (∀ F : ACC0LikeCircuitFamily,
+      ACC0FamilyBoundedBySurface S F ->
+        Nonempty (ACC0FamilyHasEfficientSYMPlusNormalForms F)) ->
+          P.FastACC0CircuitSAT
+
+/-- If the N-frame Lagrangian extracts efficient SYM+ normal forms, and those
+normal forms feed the known ACC0-SAT algorithmic method, then N-frame supplies
+the fast-ACC0-SAT component. -/
+theorem nFrameSuppliesConcreteACC0FastCircuitSAT_of_symPlusNormalForms
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (P : ConcreteACC0WilliamsPackage S)
+    (hnf : NFrameLagrangianYieldsSYMPlusNormalForms D I S)
+    (halg : SYMPlusNormalFormsYieldFastACC0SAT S P) :
+    NFrameSuppliesConcreteACC0FastCircuitSAT D I S P := by
+  simpa [NFrameSuppliesConcreteACC0FastCircuitSAT,
+    NFrameSuppliesFastCircuitSAT,
+    concreteACC0WilliamsTarget,
+    ACC0WilliamsTarget.toGodelWilliamsStep]
+    using halg.fastSAT_of_symPlusNormalForms hnf
+
+/-- The positive restricted route: N-frame-derived SYM+ normal forms plus
+meta-simulation yield the Williams-scale ACC0 lower bound. -/
+theorem concreteACC0_nexp_not_subset_of_nFrameSYMPlusNormalForms
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (P : ConcreteACC0WilliamsPackage S)
+    (hnf : NFrameLagrangianYieldsSYMPlusNormalForms D I S)
+    (halg : SYMPlusNormalFormsYieldFastACC0SAT S P)
+    (hmeta : NFrameSuppliesConcreteACC0MetaSimulation D I S P) :
+    PallLean.Paper93.DeepMath.PathB.NEXPNotSubsetCircuitClass
+      (concreteACC0WilliamsTarget S P).toCircuitClass :=
+  concreteACC0_nexp_not_subset_of_nFrame_fastSAT_meta D I S P
+    (nFrameSuppliesConcreteACC0FastCircuitSAT_of_symPlusNormalForms
+      D I S P hnf halg)
+    hmeta
+
+/-- Rank-detector version of the SYM+ extraction route.  This is intentionally
+narrow: it says the SYM+ normal forms are being obtained through the same
+SPDP/log-det easiness detector refuted by the symmetric probes. -/
+def NFrameSYMPlusNormalFormsViaSPDPDetector
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (probe : SYMPlusEasyMaximalSPDPProbe) : Prop :=
+  NFrameLagrangianYieldsSYMPlusNormalForms D I S ∧
+    SPDPProbeReadsSYMPlusEasyAsNonmaximal probe
+
+/-- A SYM+-easy maximal-rank probe rules out the rank-detector version of the
+SYM+ normal-form extraction route.  It does not rule out a genuinely algorithmic
+N-frame extraction theorem. -/
+theorem not_nFrameSYMPlusNormalFormsViaSPDPDetector
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (S : ConcreteACC0Surface)
+    (probe : SYMPlusEasyMaximalSPDPProbe) :
+    ¬ NFrameSYMPlusNormalFormsViaSPDPDetector D I S probe := by
+  intro h
+  exact not_spdpProbeReadsSYMPlusEasyAsNonmaximal probe h.2
+
 /-- The Gödel/Williams transport closes the canonical SAT decider only by using
 a hierarchy contradiction.  This is the intended non-natural shape: no
 truth-table largeness/rank property is invoked. -/
@@ -1026,6 +1211,11 @@ the `smallRepresentation` needed by Williams' hierarchy contradiction. -/
 #print axioms nFrameACC0WilliamsRestrictedProgram_of_concreteACC0Ingredients
 #print axioms concreteACC0_nexp_not_subset_of_nFrame_fastSAT_meta
 #print axioms not_both_nFrameConcreteACC0Ingredients_of_nexp_subset
+#print axioms not_spdpProbeReadsSYMPlusEasyAsNonmaximal
+#print axioms not_nFrameConcreteACC0FastSATViaSPDPDetector
+#print axioms nFrameSuppliesConcreteACC0FastCircuitSAT_of_symPlusNormalForms
+#print axioms concreteACC0_nexp_not_subset_of_nFrameSYMPlusNormalForms
+#print axioms not_nFrameSYMPlusNormalFormsViaSPDPDetector
 #print axioms noCanonicalSATDecisionInP_of_nFrameGodelWilliamsProgram
 #print axioms hardMetacomplexitySocket_of_nFrameGodelWilliamsProgram
 #print axioms ktRoute_finalClosure_of_nFrameGodelWilliamsProgram
