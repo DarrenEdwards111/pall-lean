@@ -250,6 +250,57 @@ theorem no_directPaperWitness_of_book1BoundaryBudgetObstructionAt
   exact no_theorem207DirectPaperWitness_of_boundaryBudget
     (fun input time => H L input time)
 
+/-- If direct-paper extraction-at-scale and Book-1 obstruction-at-scale are both
+assumed, then the strict observer class must be empty at that encoding. -/
+theorem strictObserverClass_empty_of_directPaperAt_and_book1ObstructionAt
+    {enc : ThreeCNFEncoding}
+    {n : Nat}
+    (Hat : Theorem207DirectPaperAt enc n)
+    (Hobs : Book1BoundaryBudgetObstructionAt enc n) :
+    IsEmpty (StrictDynamicNFrameLagrangianObserver enc) := by
+  refine ⟨?_⟩
+  intro L
+  have hnowit := no_directPaperWitness_of_book1BoundaryBudgetObstructionAt
+    (enc := enc) (n := n) Hobs L
+  rcases Hat L with ⟨W⟩
+  exact hnowit.false W
+
+/-- With at least one strict SAT observer, Book-1 obstruction at scale `n`
+excludes direct-paper extraction at that same scale. -/
+theorem no_directPaperAt_of_nonemptyObserver_and_book1ObstructionAt
+    {enc : ThreeCNFEncoding}
+    {n : Nat}
+    (hL : Nonempty (StrictDynamicNFrameLagrangianObserver enc))
+    (Hobs : Book1BoundaryBudgetObstructionAt enc n) :
+    Not (Theorem207DirectPaperAt enc n) := by
+  intro Hat
+  have hempty := strictObserverClass_empty_of_directPaperAt_and_book1ObstructionAt
+    (enc := enc) (n := n) Hat Hobs
+  rcases hL with ⟨L⟩
+  exact hempty.false L
+
+/-- Strong Book-1 obstruction route: every paper-scale candidate length is
+boundary-budget infeasible for strict observers.  This is an exclusion-first
+endpoint, not an extraction witness endpoint. -/
+def UniversalBook1BoundaryBudgetObstruction
+    (enc : ThreeCNFEncoding) : Prop :=
+  forall c n : Nat,
+    n >= 2 ^ 20 ->
+    4 * (c + 1) <= Nat.log 2 n ->
+    Book1BoundaryBudgetObstructionAt enc n
+
+/-- Under universal Book-1 obstruction and nonempty strict observer class, the
+universal direct-paper extraction port is impossible. -/
+theorem no_universalDirectPaperPort_of_nonemptyObserver_and_universalBook1Obstruction
+    (enc : ThreeCNFEncoding)
+    (hL : Nonempty (StrictDynamicNFrameLagrangianObserver enc))
+    (Hobs : UniversalBook1BoundaryBudgetObstruction enc) :
+    Not (UniversalTheorem207DirectPaperPort enc) := by
+  intro Hport
+  rcases Hport 0 with ⟨n, hn20, hlog, Hat⟩
+  exact no_directPaperAt_of_nonemptyObserver_and_book1ObstructionAt
+    (enc := enc) (n := n) hL (Hobs 0 n hn20 hlog) Hat
+
 #print axioms strictLiveMinor_of_theorem207DirectPaperWitness
 #print axioms liveBoundary_lower_of_theorem207DirectPaperWitness
 #print axioms no_theorem207DirectPaperWitness_of_boundaryBudget
