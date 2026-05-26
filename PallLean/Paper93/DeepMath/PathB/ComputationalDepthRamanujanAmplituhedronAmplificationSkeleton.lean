@@ -70,26 +70,43 @@ theorem thresholdLocalRankAmplification_of_ramanujanAmplituhedron
     enc n buildPre
     (thresholdLocalRankAmplificationPre_of_ramanujanAmplituhedron enc n buildPre H)
 
-/-- Canonical load-bearing target theorem: every pre-amplification witness
-carrying the N-frame/PAC/amplituhedron payloads gets the binomial boundary-rank
-lower bound. Proving this discharges all remaining rank-bearing sockets. -/
+/-- Concrete eligibility predicate for witnesses that satisfy the intended
+Ramanujan/amplituhedron expansion conditions. -/
+def RamanujanAmplituhedronExpansionPredicate
+    (enc : ThreeCNFEncoding)
+    (n : Nat)
+    (L : DynamicNFrameLagrangianObserver enc)
+    (W : DynamicMinorPreAmplificationWitness enc L n) : Prop :=
+  W.nframe_lagrangian_payload ∧
+  W.pac_holographic_payload ∧
+  W.amplituhedron_payload
+
+/-- Weakened global target: only expansion-eligible witnesses must amplify. -/
 def RamanujanAmplituhedronGlobalAmplification
     (enc : ThreeCNFEncoding)
     (n : Nat) : Prop :=
   ∀ L : DynamicNFrameLagrangianObserver enc,
     ∀ W : DynamicMinorPreAmplificationWitness enc L n,
+      RamanujanAmplituhedronExpansionPredicate enc n L W ->
       Nat.choose (n / 3) (Nat.log 2 n) <=
         L.toTrajectory.liveBoundaryRank n W.input W.time
 
-/-- Global amplification implies pre-level local amplification for any builder. -/
+/-- Weakened global amplification implies pre-level local amplification for any
+builder whose output is expansion-eligible. -/
 theorem thresholdLocalRankAmplificationPre_of_globalAmplification
     (enc : ThreeCNFEncoding)
     (n : Nat)
     (Hglobal : RamanujanAmplituhedronGlobalAmplification enc n)
-    (buildPre : ThresholdLocalPreCandidateBuilder enc n) :
+    (buildPre : ThresholdLocalPreCandidateBuilder enc n)
+    (hbuild_expands :
+      ∀ L : DynamicNFrameLagrangianObserver enc,
+      ∀ hthPre :
+        (∃ W : DynamicMinorPreAmplificationWitness enc L n,
+          0 < L.toTrajectory.liveBoundaryRank n W.input W.time),
+        RamanujanAmplituhedronExpansionPredicate enc n L (buildPre L hthPre)) :
     ThresholdLocalRankAmplificationPre enc n buildPre := by
   intro L hthPre
-  exact Hglobal L (buildPre L hthPre)
+  exact Hglobal L (buildPre L hthPre) (hbuild_expands L hthPre)
 
 /-! ## Axiom trace -/
 

@@ -44,11 +44,17 @@ theorem statewiseRankAmplificationForGenerator_of_globalAmplification
     (enc : ThreeCNFEncoding)
     (n : Nat)
     (G : CoreWitnessAtStateGenerator enc n)
-    (Hglobal : RamanujanAmplituhedronGlobalAmplification enc n) :
+    (Hglobal : RamanujanAmplituhedronGlobalAmplification enc n)
+    (hgen_expands :
+      ∀ L : DynamicNFrameLagrangianObserver enc,
+      ∀ input : Fin n -> Bool,
+      ∀ time : Nat,
+        RamanujanAmplituhedronExpansionPredicate
+          enc n L (Classical.choose (G L input time))) :
     StatewiseRankAmplificationForGenerator enc n G := by
   intro L input time
   let W := Classical.choose (G L input time)
-  simpa [W] using Hglobal L W
+  exact Hglobal L W (by simpa [W] using hgen_expands L input time)
 
 /-- `threshold_lift` discharges from nontrivial rank + pre witness generation +
 statewise amplification (load-bearing). -/
