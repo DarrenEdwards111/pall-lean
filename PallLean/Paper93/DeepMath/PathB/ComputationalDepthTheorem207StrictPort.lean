@@ -85,11 +85,34 @@ theorem no_strictFaithfulGodMoveDCEWEngine_of_nonemptyObserver_and_universalBook
   exact (no_theorem207StrictLiveBoundaryPort_of_nonemptyObserver_and_universalBook1Obstruction
     enc hL Hobs) engine.strict_live_boundary_extraction
 
+/-- Final strict-route package: P-side calibration + strict presentation +
+strict Theorem-207 live-boundary port.  This is the exact bundle consumed by
+`paperMain_observerSeparationCriterion_of_theorem207StrictPort`. -/
+structure Theorem207StrictPortSeparationPackage
+    (enc : ThreeCNFEncoding) : Type 1 where
+  PDecider : TrajectoryObserverMachine -> Prop
+  hp : PaperMainPObserverCalibration PDecider
+  hpresent : PaperMainStrictFaithfulObserverPresentation enc
+  hport : Theorem207StrictLiveBoundaryPort enc
+
+/-- Book-1 obstruction excludes the entire strict-port separation package
+whenever strict observers are nonempty. -/
+theorem no_theorem207StrictPortSeparationPackage_of_nonemptyObserver_and_universalBook1Obstruction
+    (enc : ThreeCNFEncoding)
+    (hL : Nonempty (StrictDynamicNFrameLagrangianObserver enc))
+    (Hobs : UniversalBook1BoundaryBudgetObstruction enc) :
+    IsEmpty (Theorem207StrictPortSeparationPackage enc) := by
+  refine ⟨?_⟩
+  intro pkg
+  exact (no_theorem207StrictLiveBoundaryPort_of_nonemptyObserver_and_universalBook1Obstruction
+    enc hL Hobs) pkg.hport
+
 #print axioms theorem207StrictPort_iff_globalGodMovePaperBridgeStrict
 #print axioms strictTrajectoryExtraction_of_theorem207StrictPort
 #print axioms strictFaithfulGodMoveDCEWEngine_of_theorem207StrictPort
 #print axioms paperMain_observerSeparationCriterion_of_theorem207StrictPort
 #print axioms no_theorem207StrictLiveBoundaryPort_of_nonemptyObserver_and_universalBook1Obstruction
 #print axioms no_strictFaithfulGodMoveDCEWEngine_of_nonemptyObserver_and_universalBook1Obstruction
+#print axioms no_theorem207StrictPortSeparationPackage_of_nonemptyObserver_and_universalBook1Obstruction
 
 end PallLean.Paper93.DeepMath.PathB
