@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.DynamicNFrameLagrangianInvariant
+import PallLean.Paper93.DeepMath.PathB.StrictDynamicNFrameLagrangianInvariant
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDegreeOrBoundaryStepA
 
 /-!
@@ -54,21 +55,30 @@ theorem dynamicExtractionAt_of_globalGodMovePaperBridge
       DynamicNFrameLagrangianExtractionAt enc n :=
   H c
 
-/-- Bridge to the existing faithful-observer extraction socket.
-
-This is the key wiring theorem showing the paper-faithful quantifier form is
-already sufficient for the current infrastructure; no stronger `∀ L W` payload
-builder is needed.
--/
+/-- Legacy finite-control bridge (kept for compatibility). -/
 theorem universalFaithfulExtraction_of_globalGodMovePaperBridge
     (enc : ThreeCNFEncoding)
     (H : GlobalGodMovePaperBridge enc) :
     UniversalFaithfulSATObserverGodMoveExtraction enc :=
   faithfulExtraction_of_dynamicNFrameLagrangianExtraction enc H
 
+/-- Strict paper-faithful bridge target: extraction over full-configuration
+rank carriers. -/
+abbrev GlobalGodMovePaperBridgeStrict
+    (enc : ThreeCNFEncoding) : Prop :=
+  UniversalStrictDynamicNFrameLagrangianExtraction enc
+
+/-- Strict bridge to trajectory extraction over strict faithful observers. -/
+theorem strictUniversalExtraction_of_globalGodMovePaperBridge
+    (enc : ThreeCNFEncoding)
+    (H : GlobalGodMovePaperBridgeStrict enc) :
+    UniversalTrajectorySATGodMoveExtraction enc (StrictFaithfulSATObserverClass enc) :=
+  strictFaithfulExtraction_of_universalStrictDynamicNFrameLagrangianExtraction enc H
+
 /-! ## Axiom trace -/
 
 #print axioms dynamicExtractionAt_of_globalGodMovePaperBridge
 #print axioms universalFaithfulExtraction_of_globalGodMovePaperBridge
+#print axioms strictUniversalExtraction_of_globalGodMovePaperBridge
 
 end PallLean.Paper93.DeepMath.PathB
