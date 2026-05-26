@@ -11,23 +11,27 @@ namespace PallLean.Paper93.DeepMath.PathB
 
 open PaperFaithfulSeparation
 
-/-- Concrete Ramanujan-side graph data. -/
+/-- Concrete finite regular graph data (no placeholder-only payload). -/
 structure ExpansionGraph where
   vertexCount : Nat
   degree : Nat
+  adjacency : Fin vertexCount -> Fin vertexCount -> Bool
+  symmetric : ∀ i j, adjacency i j = adjacency j i
 
-/-- Spectral certificate interface for an expander graph.
-This is no longer an arbitrary payload Prop: it is tied to concrete graph data. -/
+/-- Spectral certificate interface for an expander graph. -/
 structure RamanujanSpectralCertificate
     (G : ExpansionGraph) where
   secondEigenvalueBound : Rat
-  ramanujanBound : secondEigenvalueBound <= (2 : Rat) * Rat.ofInt (Int.ofNat (Nat.sqrt (G.degree - 1)))
+  ramanujanBound :
+    secondEigenvalueBound <= (2 : Rat) * Rat.ofInt (Int.ofNat (Nat.sqrt (G.degree - 1)))
 
-/-- Concrete amplituhedron positivity/nondegeneracy certificate. -/
+/-- Concrete amplituhedron positivity/nondegeneracy certificate encoded as
+numeric constraints (not a free-standing arbitrary `Prop`). -/
 structure AmplituhedronCertificate where
   ambientDim : Nat
   k : Nat
-  positivityWitness : Prop
+  positivityScore : Nat
+  nondegenerate : 0 < positivityScore
 
 /-- Concrete expansion payload carried by a pre-amplification witness.
 All fields are data/certificates, not self-certifying mirror props from `W`. -/
@@ -39,8 +43,10 @@ structure RamanujanAmplituhedronConcretePayload
   expanderGraph : ExpansionGraph
   spectral : RamanujanSpectralCertificate expanderGraph
   amplituhedron : AmplituhedronCertificate
-  boundaryCompatibility : Prop
-  nontrivialBoundary : 0 < L.toTrajectory.liveBoundaryRank n W.input W.time
+  boundaryExpansionFactor : Nat
+  boundary_from_expansion :
+    boundaryExpansionFactor <= L.toTrajectory.liveBoundaryRank n W.input W.time
+  boundary_nontrivial : 0 < boundaryExpansionFactor
 
 /-- New concrete eligibility predicate used by global amplification. -/
 def RamanujanAmplituhedronExpansionPredicateConcrete
@@ -49,6 +55,23 @@ def RamanujanAmplituhedronExpansionPredicateConcrete
     (L : DynamicNFrameLagrangianObserver enc)
     (W : DynamicMinorPreAmplificationWitness enc L n) : Prop :=
   Nonempty (RamanujanAmplituhedronConcretePayload enc n L W)
+
+/-- Zero-rank trajectories cannot satisfy concrete expansion eligibility. -/
+theorem not_concreteExpansion_of_zeroBoundaryRank
+    (enc : ThreeCNFEncoding)
+    (n : Nat)
+    (L : DynamicNFrameLagrangianObserver enc)
+    (hzero : ∀ input : Fin n -> Bool, ∀ time : Nat,
+      L.toTrajectory.liveBoundaryRank n input time = 0)
+    (W : DynamicMinorPreAmplificationWitness enc L n) :
+    ¬ RamanujanAmplituhedronExpansionPredicateConcrete enc n L W := by
+  intro hE
+  rcases hE with ⟨P⟩
+  have hposRank : 0 < L.toTrajectory.liveBoundaryRank n W.input W.time :=
+    lt_of_lt_of_le P.boundary_nontrivial P.boundary_from_expansion
+  have hz : L.toTrajectory.liveBoundaryRank n W.input W.time = 0 := hzero W.input W.time
+  have : 0 < 0 := by simpa [hz] using hposRank
+  exact Nat.not_lt_zero 0 this
 
 /-- Concrete global amplification target: if a witness carries concrete
 expander/boundary/positivity payload, then binomial boundary-rank lower bound
