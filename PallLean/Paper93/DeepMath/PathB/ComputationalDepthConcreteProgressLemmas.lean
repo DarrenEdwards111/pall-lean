@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthConcreteDischargePackage
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLoadBearingAmplification
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRamanujanAmplituhedronAmplificationSkeleton
 
 /-!
@@ -57,10 +58,13 @@ structure ConcreteNearFinalPackage
   core_witness_generator :
     ∀ c : Nat,
       CoreWitnessAtStateGenerator enc (lengthForExponent c)
+  pre_builder :
+    ∀ c : Nat,
+      ThresholdLocalPreCandidateBuilder enc (lengthForExponent c)
   ramanujan_amplituhedron_hypotheses :
     ∀ c : Nat,
       RamanujanAmplituhedronAmplificationHypotheses
-        enc (lengthForExponent c)
+        enc (lengthForExponent c) (pre_builder c)
 
 /-- Near-final package reduces the whole route to the Ramanujan/amplituhedron
 local rank theorem at each exponent scale. -/
@@ -69,7 +73,7 @@ theorem deepSATSearch_of_concreteNearFinalPackage
     (enc : ThreeCNFEncoding)
     (P : ConcreteNearFinalPackage U enc) :
     DeepSATSearch U := by
-  let E : DynamicExtractionDifficultyReducedEngineV2 enc := {
+  let E : DynamicExtractionDifficultyReducedEngine enc := {
     lengthForExponent := P.lengthForExponent
     length_large := P.length_large
     length_log := P.length_log
@@ -78,16 +82,24 @@ theorem deepSATSearch_of_concreteNearFinalPackage
       intro c hnontriv
       exact thresholdLift_of_coreWitnessAtStateGenerator
         enc (P.lengthForExponent c) (P.core_witness_generator c) hnontriv
-    local_rank_amplification := by
+    threshold_to_binomial := by
       intro c
-      exact thresholdLocalRankAmplification_of_ramanujanAmplituhedron
-        enc (P.lengthForExponent c)
-        (P.ramanujan_amplituhedron_hypotheses c)
+      let buildPre := P.pre_builder c
+      let hamplifyPre :=
+        thresholdLocalRankAmplificationPre_of_ramanujanAmplituhedron
+          enc (P.lengthForExponent c) buildPre
+          (P.ramanujan_amplituhedron_hypotheses c)
+      let buildCore := thresholdLocalCandidateBuilder_fromPre
+        enc (P.lengthForExponent c) buildPre hamplifyPre
+      let hamplifyCore := thresholdLocalRankAmplification_of_preAmplification
+        enc (P.lengthForExponent c) buildPre hamplifyPre
+      exact thresholdWitnessToBinomialMinor_of_localDecomposition
+        enc (P.lengthForExponent c) buildCore hamplifyCore
   }
   exact deepSATSearch_of_concreteDischargePackage U enc {
     reflectCode := P.reflectCode
     reflect_correct := P.reflect_correct
-    reduced_engine := E.toReducedEngine
+    reduced_engine := E
   }
 
 /-! ## Axiom trace -/
