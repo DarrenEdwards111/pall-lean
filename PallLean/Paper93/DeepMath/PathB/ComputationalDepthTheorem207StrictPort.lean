@@ -107,6 +107,51 @@ theorem no_theorem207StrictPortSeparationPackage_of_nonemptyObserver_and_univers
   exact (no_theorem207StrictLiveBoundaryPort_of_nonemptyObserver_and_universalBook1Obstruction
     enc hL Hobs) pkg.hport
 
+/-- Any encoded SAT-deciding DTM gives a nonempty strict observer class by
+choosing the zero configuration-rank bookkeeping.  This is only a presentation
+fact: it does not supply extraction or a lower bound. -/
+theorem strictObserver_nonempty_of_DTMDecidesSATWithEncoding
+    {enc : ThreeCNFEncoding}
+    (hdec : exists M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M) :
+    Nonempty (StrictDynamicNFrameLagrangianObserver enc) := by
+  rcases hdec with ⟨M, hM⟩
+  exact ⟨{
+    M := M
+    configActionRank := fun _ => 0
+    decides := hM
+  }⟩
+
+/-- No-decider endpoint for the strict Book-1 route.
+
+This avoids assuming `StrictDynamicNFrameLagrangianObserver enc` is nonempty.
+Instead, any candidate encoded SAT decider is converted into a strict observer,
+and the Book-1 budget obstruction then contradicts the strict live-boundary
+port. -/
+theorem no_DTMDecidesSATWithEncoding_of_theorem207StrictPort_and_universalBook1Obstruction
+    (enc : ThreeCNFEncoding)
+    (Hobs : UniversalBook1BoundaryBudgetObstruction enc)
+    (Hport : Theorem207StrictLiveBoundaryPort enc) :
+    Not (exists M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M) := by
+  intro hdec
+  have hL : Nonempty (StrictDynamicNFrameLagrangianObserver enc) :=
+    strictObserver_nonempty_of_DTMDecidesSATWithEncoding hdec
+  exact (no_theorem207StrictLiveBoundaryPort_of_nonemptyObserver_and_universalBook1Obstruction
+    enc hL Hobs) Hport
+
+/-- Package form of the no-decider endpoint.  This is the preferred final
+shape when the route is read as proving the SAT lower-bound endpoint directly,
+rather than proving package emptiness from a separate nonemptiness assumption. -/
+theorem no_DTMDecidesSATWithEncoding_of_strictPortSeparationPackage_and_universalBook1Obstruction
+    (enc : ThreeCNFEncoding)
+    (Hobs : UniversalBook1BoundaryBudgetObstruction enc)
+    (pkg : Theorem207StrictPortSeparationPackage enc) :
+    Not (exists M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M) :=
+  no_DTMDecidesSATWithEncoding_of_theorem207StrictPort_and_universalBook1Obstruction
+    enc Hobs pkg.hport
+
 /-- Final declared assumptions for the strict Book-1 n-frame closure route.
 
 This makes the remaining non-axiomatic hypotheses explicit in one place:
@@ -130,6 +175,31 @@ theorem strictBook1_finalRouteClosure
   no_theorem207StrictPortSeparationPackage_of_nonemptyObserver_and_universalBook1Obstruction
     enc H.strict_observer_nonempty H.universal_boundary_budget_obstruction
 
+/-- Final assumptions for the no-decider reading of the strict Book-1 route.
+
+This is weaker than `StrictBook1FinalAssumptions`: it does not assume strict
+observers are nonempty.  Nonemptiness is derived only from a hypothetical
+encoded SAT-deciding DTM. -/
+structure StrictBook1NoDeciderFinalAssumptions
+    (enc : ThreeCNFEncoding) : Prop where
+  universal_boundary_budget_obstruction :
+    UniversalBook1BoundaryBudgetObstruction enc
+
+/-- **Final strict Book-1 no-decider endpoint**.
+
+Given the strict-port separation package and the universal Book-1 budget
+obstruction, there is no encoded SAT-deciding DTM.  This is the direct
+lower-bound endpoint and does not require a standalone strict-observer
+nonemptiness hypothesis. -/
+theorem strictBook1_finalNoDeciderEndpoint
+    (enc : ThreeCNFEncoding)
+    (H : StrictBook1NoDeciderFinalAssumptions enc)
+    (pkg : Theorem207StrictPortSeparationPackage enc) :
+    Not (exists M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M) :=
+  no_DTMDecidesSATWithEncoding_of_strictPortSeparationPackage_and_universalBook1Obstruction
+    enc H.universal_boundary_budget_obstruction pkg
+
 #print axioms theorem207StrictPort_iff_globalGodMovePaperBridgeStrict
 #print axioms strictTrajectoryExtraction_of_theorem207StrictPort
 #print axioms strictFaithfulGodMoveDCEWEngine_of_theorem207StrictPort
@@ -137,6 +207,10 @@ theorem strictBook1_finalRouteClosure
 #print axioms no_theorem207StrictLiveBoundaryPort_of_nonemptyObserver_and_universalBook1Obstruction
 #print axioms no_strictFaithfulGodMoveDCEWEngine_of_nonemptyObserver_and_universalBook1Obstruction
 #print axioms no_theorem207StrictPortSeparationPackage_of_nonemptyObserver_and_universalBook1Obstruction
+#print axioms strictObserver_nonempty_of_DTMDecidesSATWithEncoding
+#print axioms no_DTMDecidesSATWithEncoding_of_theorem207StrictPort_and_universalBook1Obstruction
+#print axioms no_DTMDecidesSATWithEncoding_of_strictPortSeparationPackage_and_universalBook1Obstruction
 #print axioms strictBook1_finalRouteClosure
+#print axioms strictBook1_finalNoDeciderEndpoint
 
 end PallLean.Paper93.DeepMath.PathB
