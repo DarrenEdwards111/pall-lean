@@ -43,10 +43,28 @@ structure RamanujanAmplituhedronConcretePayload
   expanderGraph : ExpansionGraph
   spectral : RamanujanSpectralCertificate expanderGraph
   amplituhedron : AmplituhedronCertificate
-  boundaryExpansionFactor : Nat
+
+/-- Derived expansion factor (not freely choosable): computed from concrete
+graph/amplituhedron payload data. -/
+def derivedBoundaryExpansionFactor
+    {enc : ThreeCNFEncoding}
+    {n : Nat}
+    {L : DynamicNFrameLagrangianObserver enc}
+    {W : DynamicMinorPreAmplificationWitness enc L n}
+    (P : RamanujanAmplituhedronConcretePayload enc n L W) : Nat :=
+  P.expanderGraph.degree * P.amplituhedron.positivityScore
+
+/-- Concrete payload must embed its derived expansion factor into live boundary
+rank and certify nontriviality of the derived factor. -/
+structure RamanujanAmplituhedronBoundaryEmbedding
+    (enc : ThreeCNFEncoding)
+    (n : Nat)
+    (L : DynamicNFrameLagrangianObserver enc)
+    (W : DynamicMinorPreAmplificationWitness enc L n)
+    (P : RamanujanAmplituhedronConcretePayload enc n L W) where
   boundary_from_expansion :
-    boundaryExpansionFactor <= L.toTrajectory.liveBoundaryRank n W.input W.time
-  boundary_nontrivial : 0 < boundaryExpansionFactor
+    derivedBoundaryExpansionFactor P <= L.toTrajectory.liveBoundaryRank n W.input W.time
+  boundary_nontrivial : 0 < derivedBoundaryExpansionFactor P
 
 /-- New concrete eligibility predicate used by global amplification. -/
 def RamanujanAmplituhedronExpansionPredicateConcrete
@@ -54,8 +72,8 @@ def RamanujanAmplituhedronExpansionPredicateConcrete
     (n : Nat)
     (L : DynamicNFrameLagrangianObserver enc)
     (W : DynamicMinorPreAmplificationWitness enc L n) : Prop :=
-  Nonempty (RamanujanAmplituhedronConcretePayload enc n L W)
-
+  ∃ P : RamanujanAmplituhedronConcretePayload enc n L W,
+    RamanujanAmplituhedronBoundaryEmbedding enc n L W P
 /-- Zero-rank trajectories cannot satisfy concrete expansion eligibility. -/
 theorem not_concreteExpansion_of_zeroBoundaryRank
     (enc : ThreeCNFEncoding)
@@ -66,9 +84,9 @@ theorem not_concreteExpansion_of_zeroBoundaryRank
     (W : DynamicMinorPreAmplificationWitness enc L n) :
     ¬ RamanujanAmplituhedronExpansionPredicateConcrete enc n L W := by
   intro hE
-  rcases hE with ⟨P⟩
+  rcases hE with ⟨P, hB⟩
   have hposRank : 0 < L.toTrajectory.liveBoundaryRank n W.input W.time :=
-    lt_of_lt_of_le P.boundary_nontrivial P.boundary_from_expansion
+    lt_of_lt_of_le hB.boundary_nontrivial hB.boundary_from_expansion
   have hz : L.toTrajectory.liveBoundaryRank n W.input W.time = 0 := hzero W.input W.time
   have : 0 < 0 := by simpa [hz] using hposRank
   exact Nat.not_lt_zero 0 this
@@ -81,9 +99,11 @@ def SpectralToExpansionFactorLowerBound
   ∀ L : DynamicNFrameLagrangianObserver enc,
     ∀ W : DynamicMinorPreAmplificationWitness enc L n,
       ∀ hE : RamanujanAmplituhedronExpansionPredicateConcrete enc n L W,
+        let P := Classical.choose hE
+        P.spectral.secondEigenvalueBound <=
+          (2 : Rat) * Rat.ofInt (Int.ofNat (Nat.sqrt (P.expanderGraph.degree - 1))) ->
         Nat.choose (n / 3) (Nat.log 2 n) <=
-          (Classical.choice hE).boundaryExpansionFactor
-
+          derivedBoundaryExpansionFactor P
 /-- Concrete global amplification target: if a witness carries concrete
 expander/boundary/positivity payload, then binomial boundary-rank lower bound
 holds. -/
@@ -104,9 +124,14 @@ theorem concreteGlobalAmplification_of_spectralFactor
     (Hfactor : SpectralToExpansionFactorLowerBound enc n) :
     RamanujanAmplituhedronGlobalAmplificationConcrete enc n := by
   intro L W hE
-  let P := Classical.choice hE
-  exact le_trans (Hfactor L W hE) P.boundary_from_expansion
-
+  let P := Classical.choose hE
+  let hB : RamanujanAmplituhedronBoundaryEmbedding enc n L W P :=
+    Classical.choose_spec hE
+  have hspectral :
+      P.spectral.secondEigenvalueBound <=
+        (2 : Rat) * Rat.ofInt (Int.ofNat (Nat.sqrt (P.expanderGraph.degree - 1))) :=
+    P.spectral.ramanujanBound
+  exact le_trans (Hfactor L W hE hspectral) hB.boundary_from_expansion
 /-- Compatibility bridge: if concrete certificates are known to force the
 abstract payload interface, we can still reuse earlier plumbing. -/
 def ConcreteImpliesAbstractExpansion
