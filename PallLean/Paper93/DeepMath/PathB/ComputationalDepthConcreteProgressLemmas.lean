@@ -38,6 +38,18 @@ def StatewiseRankAmplificationForGenerator
         Nat.choose (n / 3) (Nat.log 2 n) <=
           L.toTrajectory.liveBoundaryRank n W.input W.time
 
+/-- Global Ramanujan/amplituhedron amplification discharges statewise
+amplification for any concrete state generator. -/
+theorem statewiseRankAmplificationForGenerator_of_globalAmplification
+    (enc : ThreeCNFEncoding)
+    (n : Nat)
+    (G : CoreWitnessAtStateGenerator enc n)
+    (Hglobal : RamanujanAmplituhedronGlobalAmplification enc n) :
+    StatewiseRankAmplificationForGenerator enc n G := by
+  intro L input time
+  let W := Classical.choose (G L input time)
+  simpa [W] using Hglobal L W
+
 /-- `threshold_lift` discharges from nontrivial rank + pre witness generation +
 statewise amplification (load-bearing). -/
 theorem thresholdLift_of_coreWitnessAtStateGenerator
