@@ -3104,6 +3104,80 @@ theorem not_godMoveAnnihilatorInvariant_of_polySATFamily
   intro hgod
   exact hgod.annihilatesPolynomialSATFamilies M ⟨F⟩
 
+/-- Extract the polynomially bounded SAT family carried by any low-action
+P-side SAT family. -/
+noncomputable def polynomiallyBoundedSATBoundaryFamily_of_lowActionSATFamily
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (M : SearchMachine D.surface.toMachineModel)
+    (F : LengthIndexedLowActionSATBoundaryFamily D I H M) :
+    PolynomiallyBoundedSATBoundaryFamily D I H M := by
+  let k := Classical.choose H.lowActionBudget_poly
+  let c := Classical.choose (Classical.choose_spec H.lowActionBudget_poly)
+  have hbudget_poly :
+      ∀ n : Nat, H.lowActionBudget n <= c * (n + 1) ^ k :=
+    Classical.choose_spec (Classical.choose_spec H.lowActionBudget_poly)
+  exact {
+    family := F.toSATBoundaryFamily
+    k := k
+    c := c
+    complexity_le_poly := by
+      intro n
+      have hcomplexity_le_budget :
+          H.boundaryComplexity (F.boundaryAt n) <= H.lowActionBudget n := by
+        have hdecoded :=
+          H.complexity_le_budget_of_lowAction
+            (F.encodingAt n).bulk
+            (F.encodingAt n).low_action
+        simpa [(F.encodingAt n).decodes_to, F.length_eq n] using hdecoded
+      exact Nat.le_trans hcomplexity_le_budget (hbudget_poly n)
+  }
+
+/-- A low-action SAT family directly refutes the annihilator lower-bound
+socket. -/
+theorem not_godMoveAnnihilatorNoPolynomialSATFamilies_of_lowActionSATFamily
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (M : SearchMachine D.surface.toMachineModel)
+    (F : LengthIndexedLowActionSATBoundaryFamily D I H M) :
+    ¬ GodMoveAnnihilatorNoPolynomialSATFamilies D I H := by
+  intro hnoPoly
+  exact hnoPoly M
+    ⟨polynomiallyBoundedSATBoundaryFamily_of_lowActionSATFamily
+      D I H M F⟩
+
+/-- The annihilator lower-bound socket plus P-side transport rules out every
+complete SAT search machine.  This is the load-bearing form with no extra
+instance-sensitivity packaging. -/
+theorem forall_not_searchCorrect_of_noPolynomialSATFamilies_and_transport
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (hnoPoly : GodMoveAnnihilatorNoPolynomialSATFamilies D I H)
+    (htransport : LengthIndexedPLevelSATObserverTransport D I H) :
+    ∀ M : SearchMachine D.surface.toMachineModel,
+      ¬ SearchCorrect D.surface.toMachineModel M := by
+  intro M hcorrect
+  rcases htransport.transport M hcorrect with ⟨F⟩
+  exact not_godMoveAnnihilatorNoPolynomialSATFamilies_of_lowActionSATFamily
+    D I H M F hnoPoly
+
+/-- Conditional canonical closure from exactly the two remaining sockets:
+P-side transport and the annihilator's no-polynomial-SAT-family theorem. -/
+theorem noCanonicalSATDecisionInP_of_noPolynomialSATFamilies_and_transport
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (hnoPoly : GodMoveAnnihilatorNoPolynomialSATFamilies D I H)
+    (htransport : LengthIndexedPLevelSATObserverTransport D I H) :
+    ¬ CanonicalSATDecisionInP D.surface :=
+  canonicalNoDecider_of_deepSATSearch D.surface
+    ((canonicalDeepSATSearch_iff_forall_not_searchCorrect D.surface).mpr
+      (forall_not_searchCorrect_of_noPolynomialSATFamilies_and_transport
+        D I H hnoPoly htransport))
+
 /-- If a complete SAT search machine exists, P-side transport refutes the
 God-Move annihilator invariant.  This is the P-vs-NP-strength guard. -/
 theorem not_godMoveAnnihilatorInvariant_of_searchCorrect
@@ -3397,7 +3471,14 @@ The file proves this interface is not length-only, is equivalent on the
 SAT-side to the superpolynomial boundary lower bound, and conditionally closes
 the canonical SAT-decider socket.  It also proves that any polynomially bounded
 SAT family, or any complete SAT search machine together with P-side transport,
-refutes the annihilator. -/
+refutes the annihilator.
+
+The direct load-bearing form is now isolated too:
+`GodMoveAnnihilatorNoPolynomialSATFamilies` plus
+`LengthIndexedPLevelSATObserverTransport` rules out every complete SAT search
+machine.  Conversely, any low-action SAT family immediately constructs a
+polynomially bounded SAT family and refutes the annihilator lower-bound socket.
+-/
 
 /-! ## Axiom trace -/
 
@@ -3509,6 +3590,10 @@ refutes the annihilator. -/
 #print axioms lengthIndexedSATHolographicBoundaryLowerBound_of_godMoveAnnihilator
 #print axioms instanceSensitiveMiddleInvariant_of_godMoveAnnihilator
 #print axioms not_godMoveAnnihilatorInvariant_of_polySATFamily
+#print axioms polynomiallyBoundedSATBoundaryFamily_of_lowActionSATFamily
+#print axioms not_godMoveAnnihilatorNoPolynomialSATFamilies_of_lowActionSATFamily
+#print axioms forall_not_searchCorrect_of_noPolynomialSATFamilies_and_transport
+#print axioms noCanonicalSATDecisionInP_of_noPolynomialSATFamilies_and_transport
 #print axioms not_godMoveAnnihilatorInvariant_of_searchCorrect
 #print axioms forall_not_searchCorrect_of_godMoveAnnihilator
 #print axioms noCanonicalSATDecisionInP_of_godMoveAnnihilator
