@@ -22,6 +22,14 @@ def ThresholdLocalCandidateBuilder
       0 < L.toTrajectory.liveBoundaryRank n W.input W.time) ->
       DynamicMinorCoreWitness enc L n
 
+/-- Canonical local builder: choose one witness from the threshold-existence
+hypothesis. This discharges the witness-construction socket completely, leaving
+only local rank amplification as the mathematical frontier. -/
+noncomputable def thresholdLocalCandidateBuilder_byChoice
+    (enc : ThreeCNFEncoding) (n : Nat) :
+    ThresholdLocalCandidateBuilder enc n :=
+  fun _L hth => Classical.choose hth
+
 /-- Local amplification socket: the built candidate has binomial lower bound on
 trajectory boundary rank. This is stated in terms of the already built core
 witness, so it can be attacked independently from witness construction. -/
@@ -55,16 +63,14 @@ structure DynamicExtractionDifficultyReducedEngineV2
     ∀ c : Nat,
       NontrivialSemanticRankAtScale enc (lengthForExponent c) ->
         UniformThresholdBoundaryWitness enc (lengthForExponent c)
-  local_builder :
-    ∀ c : Nat,
-      ThresholdLocalCandidateBuilder enc (lengthForExponent c)
   local_rank_amplification :
     ∀ c : Nat,
       ThresholdLocalRankAmplification
-        enc (lengthForExponent c) (local_builder c)
+        enc (lengthForExponent c)
+        (thresholdLocalCandidateBuilder_byChoice enc (lengthForExponent c))
 
 /-- V2 engine downgrades to the previous reduced engine. -/
-def DynamicExtractionDifficultyReducedEngineV2.toReducedEngine
+noncomputable def DynamicExtractionDifficultyReducedEngineV2.toReducedEngine
     {enc : ThreeCNFEncoding}
     (E : DynamicExtractionDifficultyReducedEngineV2 enc) :
     DynamicExtractionDifficultyReducedEngine enc where
@@ -77,7 +83,7 @@ def DynamicExtractionDifficultyReducedEngineV2.toReducedEngine
     intro c
     exact thresholdWitnessToBinomialMinor_of_localDecomposition
       enc (E.lengthForExponent c)
-      (E.local_builder c)
+      (thresholdLocalCandidateBuilder_byChoice enc (E.lengthForExponent c))
       (E.local_rank_amplification c)
 
 /-- V2 engine still closes universal dynamic extraction. -/
