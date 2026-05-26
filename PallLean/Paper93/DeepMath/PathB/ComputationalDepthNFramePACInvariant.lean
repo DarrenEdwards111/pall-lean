@@ -2682,6 +2682,144 @@ theorem noCanonicalSATDecisionInP_of_cookLevinSemanticOrbit_transport
     (lengthIndexedSATHolographicBoundaryLowerBound_cookLevinSemanticOrbit
       D I)
 
+/-! ## Length-only middle-invariant no-go -/
+
+/-- A length-indexed encoder is length-only when its complexity factors through
+one scalar growth function of the boundary length.
+
+This covers formula-size, semantic-orbit, and every attempted middle scale such
+as `n^log n` if the invariant only reads boundary length. -/
+def BoundaryComplexityFactorsThroughLength
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (scale : Nat -> Nat) : Prop :=
+  ∀ boundary : H.Boundary,
+    H.boundaryComplexity boundary = scale (H.boundaryLength boundary)
+
+/-- A scale is polynomially bounded in the same sense used by the P-side
+observer budget. -/
+def ScalePolynomialBounded (scale : Nat -> Nat) : Prop :=
+  ∃ k c : Nat, ∀ n : Nat, scale n <= c * (n + 1) ^ k
+
+/-- A scale is superpolynomial if it eventually beats every fixed polynomial
+at some length.  This matches `LengthIndexedSATHolographicBoundaryLowerBound`.
+-/
+def ScaleSuperpolynomial (scale : Nat -> Nat) : Prop :=
+  ∀ k c : Nat, ∃ n : Nat, c * (n + 1) ^ k < scale n
+
+/-- Polynomially bounded length-only complexity cannot prove the SAT-side
+lower-bound socket once a SAT-semantic family exists. -/
+theorem not_lengthIndexedSATHolographicBoundaryLowerBound_of_lengthOnlyPolyScale
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (scale : Nat -> Nat)
+    (hfactors : BoundaryComplexityFactorsThroughLength I H scale)
+    (hpoly : ScalePolynomialBounded scale)
+    (M : SearchMachine D.surface.toMachineModel)
+    (F : LengthIndexedSATBoundaryFamily D I H M) :
+    ¬ LengthIndexedSATHolographicBoundaryLowerBound D I H := by
+  rcases hpoly with ⟨k, c, hpoly_bound⟩
+  exact
+    not_lengthIndexedSATHolographicBoundaryLowerBound_of_polyBoundedFamily
+      D I H M F k c
+      (by
+        intro n
+        rw [hfactors (F.boundaryAt n), F.length_eq n]
+        exact hpoly_bound n)
+
+/-- Superpolynomial length-only complexity is enough to prove the SAT-side
+lower-bound socket. -/
+theorem lengthIndexedSATHolographicBoundaryLowerBound_of_lengthOnlySuperpolyScale
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (scale : Nat -> Nat)
+    (hfactors : BoundaryComplexityFactorsThroughLength I H scale)
+    (hsuper : ScaleSuperpolynomial scale) :
+    LengthIndexedSATHolographicBoundaryLowerBound D I H := by
+  intro M F k c
+  rcases hsuper k c with ⟨n, hgt⟩
+  refine ⟨n, ?_⟩
+  rwa [hfactors (F.boundaryAt n), F.length_eq n]
+
+/-- But once the length-only scale is superpolynomial, the same generic
+lower-bound argument forbids every low-action SAT boundary family. -/
+theorem noLengthIndexedLowActionSATBoundaryFamily_of_lengthOnlySuperpolyScale
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (scale : Nat -> Nat)
+    (hfactors : BoundaryComplexityFactorsThroughLength I H scale)
+    (hsuper : ScaleSuperpolynomial scale)
+    (M : SearchMachine D.surface.toMachineModel) :
+    ¬ Nonempty (LengthIndexedLowActionSATBoundaryFamily D I H M) :=
+  noLengthIndexedLowActionSATBoundaryFamily_of_lowerBound D I H
+    (lengthIndexedSATHolographicBoundaryLowerBound_of_lengthOnlySuperpolyScale
+      D I H scale hfactors hsuper) M
+
+/-- Superpolynomial length-only complexity refutes the P-side transport in the
+presence of any complete SAT search machine. -/
+theorem not_lengthIndexedPLevelSATObserverTransport_of_lengthOnlySuperpolyScale
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (scale : Nat -> Nat)
+    (hfactors : BoundaryComplexityFactorsThroughLength I H scale)
+    (hsuper : ScaleSuperpolynomial scale)
+    (M : SearchMachine D.surface.toMachineModel)
+    (hcorrect : SearchCorrect D.surface.toMachineModel M) :
+    ¬ LengthIndexedPLevelSATObserverTransport D I H := by
+  intro htransport
+  exact noLengthIndexedLowActionSATBoundaryFamily_of_lengthOnlySuperpolyScale
+    D I H scale hfactors hsuper M
+    (htransport.transport M hcorrect)
+
+/-- A named middle-invariant package for the length-only experiment.
+
+It is deliberately not asserted.  The two guard theorems below explain why
+length-only middle attempts do not solve the problem: polynomial scales lose
+the SAT lower bound, while superpolynomial scales lose the P-side transport
+unless no SAT search machine exists. -/
+structure LengthOnlyCookLevinMiddleInvariant
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (scale : Nat -> Nat) : Prop where
+  factorsThroughLength : BoundaryComplexityFactorsThroughLength I H scale
+  pSide : LengthIndexedPLevelSATObserverTransport D I H
+  satSide : LengthIndexedSATHolographicBoundaryLowerBound D I H
+
+/-- No polynomially bounded length-only middle invariant can survive a
+SAT-semantic boundary family. -/
+theorem not_lengthOnlyCookLevinMiddleInvariant_of_polyScale
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (scale : Nat -> Nat)
+    (hpoly : ScalePolynomialBounded scale)
+    (M : SearchMachine D.surface.toMachineModel)
+    (F : LengthIndexedSATBoundaryFamily D I H M) :
+    ¬ LengthOnlyCookLevinMiddleInvariant D I H scale := by
+  intro hmiddle
+  exact not_lengthIndexedSATHolographicBoundaryLowerBound_of_lengthOnlyPolyScale
+    D I H scale hmiddle.factorsThroughLength hpoly M F hmiddle.satSide
+
+/-- No superpolynomial length-only middle invariant can coexist with a complete
+SAT search machine.  That is exactly the P-vs-NP-strength horn. -/
+theorem not_lengthOnlyCookLevinMiddleInvariant_of_superpolyScale_searchCorrect
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (scale : Nat -> Nat)
+    (hsuper : ScaleSuperpolynomial scale)
+    (M : SearchMachine D.surface.toMachineModel)
+    (hcorrect : SearchCorrect D.surface.toMachineModel M) :
+    ¬ LengthOnlyCookLevinMiddleInvariant D I H scale := by
+  intro hmiddle
+  exact not_lengthIndexedPLevelSATObserverTransport_of_lengthOnlySuperpolyScale
+    D I H scale hmiddle.factorsThroughLength hsuper M hcorrect hmiddle.pSide
+
 /-- The P-side observer calibration for the faithful holographic layer:
 a complete SAT search machine would produce a faithful low-action decoded SAT
 boundary on some instance. -/
@@ -2912,7 +3050,14 @@ no low-action SAT boundary family can exist.  Thus formula-size pricing is too
 weak for SAT, while semantic-orbit pricing is too strong for the P-side
 transport.  A successful invariant would have to occupy the currently missing
 middle: strong enough to force SAT superpolynomial complexity, but still
-decoded from genuine low-action polynomial observers. -/
+decoded from genuine low-action polynomial observers.
+
+The length-only no-go makes that sharper.  If boundary complexity factors only
+through a scalar function of boundary length, then polynomial scales cannot
+prove the SAT lower bound, and superpolynomial scales refute P-side transport
+in the presence of any complete SAT search machine.  Therefore a surviving
+middle invariant cannot merely be a better growth function of `n`; it must be
+instance-sensitive and tied to non-length Cook-Levin/N-frame structure. -/
 
 /-! ## Axiom trace -/
 
@@ -3005,6 +3150,12 @@ decoded from genuine low-action polynomial observers. -/
 #print axioms noLengthIndexedLowActionSATBoundaryFamily_cookLevinSemanticOrbit
 #print axioms not_cookLevinSemanticOrbit_pLevelTransport_of_searchCorrect
 #print axioms noCanonicalSATDecisionInP_of_cookLevinSemanticOrbit_transport
+#print axioms not_lengthIndexedSATHolographicBoundaryLowerBound_of_lengthOnlyPolyScale
+#print axioms lengthIndexedSATHolographicBoundaryLowerBound_of_lengthOnlySuperpolyScale
+#print axioms noLengthIndexedLowActionSATBoundaryFamily_of_lengthOnlySuperpolyScale
+#print axioms not_lengthIndexedPLevelSATObserverTransport_of_lengthOnlySuperpolyScale
+#print axioms not_lengthOnlyCookLevinMiddleInvariant_of_polyScale
+#print axioms not_lengthOnlyCookLevinMiddleInvariant_of_superpolyScale_searchCorrect
 #print axioms noFaithfulLowActionSATBoundary_of_faithfulSATLowerBound
 #print axioms forall_not_searchCorrect_of_faithfulHolographicSATLowerBound
 #print axioms canonicalDeepSATSearch_of_faithfulHolographicSATLowerBound
