@@ -231,6 +231,59 @@ theorem strictBook1_finalNoDeciderEndpoint
   no_DTMDecidesSATWithEncoding_of_strictPortSeparationPackage_and_universalBook1Obstruction
     enc H.universal_boundary_budget_obstruction pkg
 
+/-- Strengthened strict observer class with an explicit polynomial live-boundary
+capacity theorem (Book-1 low-action/P-side observer form). -/
+structure LowActionStrictDynamicNFrameLagrangianObserver
+    (enc : ThreeCNFEncoding) where
+  base : StrictDynamicNFrameLagrangianObserver enc
+  k : Nat
+  liveBoundaryRank_le_poly :
+    forall (n : Nat) (input : Fin n -> Bool) (time : Nat),
+      base.toTrajectory.liveBoundaryRank n input time <= n ^ k
+
+/-- Non-vacuous Book-1 boundary obstruction for low-action strict observers:
+if the observer exponent `k` is within the calibration window `k <= c`, then at
+paper scale the live boundary rank is strictly below the binomial floor. -/
+theorem lowAction_book1BoundaryObstruction
+    {enc : ThreeCNFEncoding}
+    (L : LowActionStrictDynamicNFrameLagrangianObserver enc)
+    {c n : Nat}
+    (hk : L.k <= c)
+    (hn20 : n >= 2 ^ 20)
+    (hlog : 4 * (c + 1) <= Nat.log 2 n) :
+    forall input : Fin n -> Bool,
+      forall time : Nat,
+        L.base.toTrajectory.liveBoundaryRank n input time <
+          Nat.choose (n / 3) (Nat.log 2 n) := by
+  intro input time
+  have hlogk : 4 * (L.k + 1) <= Nat.log 2 n := by
+    omega
+  have hgap : n ^ L.k < Nat.choose (n / 3) (Nat.log 2 n) :=
+    arithmetic_gap_for_exponent L.k n hn20 hlogk
+  exact lt_of_le_of_lt (L.liveBoundaryRank_le_poly n input time) hgap
+
+/-- Book-1 non-vacuous universal obstruction theorem over the strengthened
+low-action strict observer class. -/
+def UniversalBook1BoundaryBudgetObstructionLowAction
+    (enc : ThreeCNFEncoding) : Prop :=
+  forall c n : Nat,
+    n >= 2 ^ 20 ->
+    4 * (c + 1) <= Nat.log 2 n ->
+    forall L : LowActionStrictDynamicNFrameLagrangianObserver enc,
+      L.k <= c ->
+      forall input : Fin n -> Bool,
+        forall time : Nat,
+          L.base.toTrajectory.liveBoundaryRank n input time <
+            Nat.choose (n / 3) (Nat.log 2 n)
+
+/-- The non-vacuous low-action universal boundary-budget obstruction is
+provable directly from the built-in polynomial capacity theorem. -/
+theorem universalBook1BoundaryBudgetObstructionLowAction_theorem
+    (enc : ThreeCNFEncoding) :
+    UniversalBook1BoundaryBudgetObstructionLowAction enc := by
+  intro c n hn20 hlog L hk input time
+  exact lowAction_book1BoundaryObstruction L hk hn20 hlog input time
+
 #print axioms theorem207StrictPort_iff_globalGodMovePaperBridgeStrict
 #print axioms strictTrajectoryExtraction_of_theorem207StrictPort
 #print axioms strictFaithfulGodMoveDCEWEngine_of_theorem207StrictPort
@@ -246,5 +299,7 @@ theorem strictBook1_finalNoDeciderEndpoint
 #print axioms no_DTMDecidesSATWithEncoding_of_strictPortSeparationPackage_and_universalBook1Obstruction
 #print axioms strictBook1_finalRouteClosure
 #print axioms strictBook1_finalNoDeciderEndpoint
+#print axioms lowAction_book1BoundaryObstruction
+#print axioms universalBook1BoundaryBudgetObstructionLowAction_theorem
 
 end PallLean.Paper93.DeepMath.PathB
