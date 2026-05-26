@@ -345,6 +345,48 @@ theorem no_DTMDecidesSATWithEncoding_of_theorem207StrictPort_and_lowActionBook1T
   no_DTMDecidesSATWithEncoding_of_theorem207StrictPort_and_lowActionBook1Obstruction
     enc (universalBook1BoundaryBudgetObstructionLowAction_theorem enc) Hport
 
+/-- If no encoded SAT-deciding DTM exists, the strict live-boundary port is
+vacuously true: there are no strict observers to inspect.  This is the converse
+direction showing that the strict port is not a smaller theorem than the
+no-decider endpoint in the current strict observer model. -/
+theorem theorem207StrictPort_of_no_DTMDecidesSATWithEncoding
+    (enc : ThreeCNFEncoding)
+    (hno : Not (exists M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M)) :
+    Theorem207StrictLiveBoundaryPort enc := by
+  intro c
+  let k : Nat := Nat.max 20 (4 * (c + 1))
+  let n : Nat := 2 ^ k
+  refine ⟨n, ?_, ?_, ?_⟩
+  · dsimp [n, k]
+    exact Nat.pow_le_pow_right
+      (by norm_num : 1 <= 2)
+      (Nat.le_max_left 20 (4 * (c + 1)))
+  · dsimp [n, k]
+    have hpow :
+        2 ^ (4 * (c + 1)) <= 2 ^ Nat.max 20 (4 * (c + 1)) :=
+      Nat.pow_le_pow_right
+        (by norm_num : 1 <= 2)
+        (Nat.le_max_right 20 (4 * (c + 1)))
+    exact Nat.le_log_of_pow_le (by norm_num : 1 < 2) hpow
+  · intro L
+    exact False.elim (hno ⟨L.M, L.decides⟩)
+
+/-- Exact strict-port characterization.
+
+The strict live-boundary extraction port is equivalent to the no-encoded-SAT-
+decider endpoint.  Thus the strict port is the remaining P-vs-NP-strength
+frontier, not a separately dischargeable low-level lemma. -/
+theorem theorem207StrictPort_iff_no_DTMDecidesSATWithEncoding
+    (enc : ThreeCNFEncoding) :
+    Theorem207StrictLiveBoundaryPort enc ↔
+      Not (exists M : TuringMachine.DTM,
+        DTMDecidesSATWithEncoding enc M) := by
+  constructor
+  · exact no_DTMDecidesSATWithEncoding_of_theorem207StrictPort_and_lowActionBook1Theorem
+      enc
+  · exact theorem207StrictPort_of_no_DTMDecidesSATWithEncoding enc
+
 /-- Package form of the low-action no-decider endpoint.  This is the sharpest
 current endpoint: Book-1 low-action obstruction is proved internally, so the
 only remaining route input is the strict-port package. -/
@@ -376,6 +418,8 @@ theorem strictBook1_lowActionFinalNoDeciderEndpoint
 #print axioms lowActionStrictObserver_of_DTMDecidesSATWithEncoding
 #print axioms no_DTMDecidesSATWithEncoding_of_theorem207StrictPort_and_lowActionBook1Obstruction
 #print axioms no_DTMDecidesSATWithEncoding_of_theorem207StrictPort_and_lowActionBook1Theorem
+#print axioms theorem207StrictPort_of_no_DTMDecidesSATWithEncoding
+#print axioms theorem207StrictPort_iff_no_DTMDecidesSATWithEncoding
 #print axioms strictBook1_lowActionFinalNoDeciderEndpoint
 
 end PallLean.Paper93.DeepMath.PathB
