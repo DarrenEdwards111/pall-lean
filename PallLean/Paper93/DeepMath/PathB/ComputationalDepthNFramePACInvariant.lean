@@ -2944,6 +2944,205 @@ theorem noCanonicalSATDecisionInP_of_instanceSensitiveCookLevinMiddleInvariant
   noCanonicalSATDecisionInP_of_lengthIndexedFaithfulHolographicSATLowerBound
     D I H hmiddle.pSide hmiddle.satSide
 
+/-! ## God-Move annihilator interface -/
+
+/-- The God-Move annihilator complexity of a boundary.
+
+At this abstraction level it is the encoder's boundary complexity, but the
+interface below records the extra obligations that make this complexity a real
+annihilator rather than formula size, length-only growth, or bookkeeping. -/
+def GodMoveAnnihilatorComplexity
+    {I : NFrameLagrangianPACInvariant}
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (boundary : H.Boundary) : Nat :=
+  H.boundaryComplexity boundary
+
+/-- Instance sensitivity rules out every pure length-only factorization. -/
+theorem not_boundaryComplexityFactorsThroughLength_of_instanceSensitive
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (hsensitive : BoundaryComplexityIsInstanceSensitive I H)
+    (scale : Nat -> Nat) :
+    ¬ BoundaryComplexityFactorsThroughLength I H scale := by
+  intro hfactors
+  rcases hsensitive with ⟨b1, b2, hlen, hneq⟩
+  apply hneq
+  calc
+    H.boundaryComplexity b1 = scale (H.boundaryLength b1) :=
+      hfactors b1
+    _ = scale (H.boundaryLength b2) := by
+      rw [hlen]
+    _ = H.boundaryComplexity b2 := (hfactors b2).symm
+
+/-- The non-bookkeeping annihilator lower-bound socket: no SAT-semantic
+boundary family may remain polynomially bounded.
+
+This is intentionally stated without mentioning "no SAT search machine"; it is
+the instance-level lower-bound content the God-Move annihilator would have to
+prove from Cook-Levin/N-frame structure. -/
+def GodMoveAnnihilatorNoPolynomialSATFamilies
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I) : Prop :=
+  ∀ M : SearchMachine D.surface.toMachineModel,
+    ¬ Nonempty (PolynomiallyBoundedSATBoundaryFamily D I H M)
+
+/-- Ruling out polynomially bounded SAT-semantic families is exactly enough to
+obtain the SAT-side holographic lower bound. -/
+theorem lengthIndexedSATHolographicBoundaryLowerBound_of_noPolynomialSATFamilies
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (hnoPoly : GodMoveAnnihilatorNoPolynomialSATFamilies D I H) :
+    LengthIndexedSATHolographicBoundaryLowerBound D I H := by
+  intro M F k c
+  by_contra hnone
+  have hle :
+      ∀ n : Nat,
+        H.boundaryComplexity (F.boundaryAt n) <= c * (n + 1) ^ k := by
+    intro n
+    exact Nat.le_of_not_gt (by
+      intro hgt
+      exact hnone ⟨n, hgt⟩)
+  exact hnoPoly M ⟨{
+    family := F
+    k := k
+    c := c
+    complexity_le_poly := hle
+  }⟩
+
+/-- Conversely, the SAT-side holographic lower bound rules out polynomially
+bounded SAT-semantic families. -/
+theorem noPolynomialSATFamilies_of_lengthIndexedSATHolographicBoundaryLowerBound
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (hlower : LengthIndexedSATHolographicBoundaryLowerBound D I H) :
+    GodMoveAnnihilatorNoPolynomialSATFamilies D I H := by
+  intro M hpoly
+  rcases hpoly with ⟨F⟩
+  exact
+    (not_lengthIndexedSATHolographicBoundaryLowerBound_of_polySATFamily
+      D I H M F) hlower
+
+/-- The annihilator lower-bound socket is equivalent to the SAT-side
+superpolynomial boundary lower bound. -/
+theorem lengthIndexedSATHolographicBoundaryLowerBound_iff_noPolynomialSATFamilies
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I) :
+    LengthIndexedSATHolographicBoundaryLowerBound D I H ↔
+      GodMoveAnnihilatorNoPolynomialSATFamilies D I H :=
+  ⟨noPolynomialSATFamilies_of_lengthIndexedSATHolographicBoundaryLowerBound
+      D I H,
+    lengthIndexedSATHolographicBoundaryLowerBound_of_noPolynomialSATFamilies
+      D I H⟩
+
+/-- The narrowed God-Move annihilator target.
+
+`sensitive` says the complexity distinguishes same-length instances.
+`pSide` is the intended low-action/P observer calibration.
+`annihilatesPolynomialSATFamilies` is the hard SAT/Cook-Levin/N-frame theorem:
+no SAT-semantic boundary family can stay polynomially bounded.
+
+This is the first interface that is not length-only by construction and does
+not allow a merely decorative complexity measure.  It is still a socket, not a
+proof of P vs NP. -/
+structure GodMoveAnnihilatorInvariant
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I) : Prop where
+  sensitive : BoundaryComplexityIsInstanceSensitive I H
+  pSide : LengthIndexedPLevelSATObserverTransport D I H
+  annihilatesPolynomialSATFamilies :
+    GodMoveAnnihilatorNoPolynomialSATFamilies D I H
+
+/-- A God-Move annihilator cannot be length-only. -/
+theorem godMoveAnnihilator_not_lengthOnly
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (hgod : GodMoveAnnihilatorInvariant D I H)
+    (scale : Nat -> Nat) :
+    ¬ BoundaryComplexityFactorsThroughLength I H scale :=
+  not_boundaryComplexityFactorsThroughLength_of_instanceSensitive
+    I H hgod.sensitive scale
+
+/-- A God-Move annihilator supplies the SAT-side lower bound. -/
+theorem lengthIndexedSATHolographicBoundaryLowerBound_of_godMoveAnnihilator
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (hgod : GodMoveAnnihilatorInvariant D I H) :
+    LengthIndexedSATHolographicBoundaryLowerBound D I H :=
+  lengthIndexedSATHolographicBoundaryLowerBound_of_noPolynomialSATFamilies
+    D I H hgod.annihilatesPolynomialSATFamilies
+
+/-- A God-Move annihilator is an instance-sensitive Cook-Levin middle
+invariant. -/
+theorem instanceSensitiveMiddleInvariant_of_godMoveAnnihilator
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (hgod : GodMoveAnnihilatorInvariant D I H) :
+    InstanceSensitiveCookLevinMiddleInvariant D I H where
+  sensitive := hgod.sensitive
+  pSide := hgod.pSide
+  satSide :=
+    lengthIndexedSATHolographicBoundaryLowerBound_of_godMoveAnnihilator
+      D I H hgod
+
+/-- A polynomially bounded SAT-semantic family refutes the God-Move
+annihilator invariant. -/
+theorem not_godMoveAnnihilatorInvariant_of_polySATFamily
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (M : SearchMachine D.surface.toMachineModel)
+    (F : PolynomiallyBoundedSATBoundaryFamily D I H M) :
+    ¬ GodMoveAnnihilatorInvariant D I H := by
+  intro hgod
+  exact hgod.annihilatesPolynomialSATFamilies M ⟨F⟩
+
+/-- If a complete SAT search machine exists, P-side transport refutes the
+God-Move annihilator invariant.  This is the P-vs-NP-strength guard. -/
+theorem not_godMoveAnnihilatorInvariant_of_searchCorrect
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (M : SearchMachine D.surface.toMachineModel)
+    (hcorrect : SearchCorrect D.surface.toMachineModel M) :
+    ¬ GodMoveAnnihilatorInvariant D I H := by
+  intro hgod
+  exact not_instanceSensitiveCookLevinMiddleInvariant_of_searchCorrect
+    D I H M hcorrect
+    (instanceSensitiveMiddleInvariant_of_godMoveAnnihilator D I H hgod)
+
+/-- A God-Move annihilator rules out every complete canonical SAT search
+machine. -/
+theorem forall_not_searchCorrect_of_godMoveAnnihilator
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (hgod : GodMoveAnnihilatorInvariant D I H) :
+    ∀ M : SearchMachine D.surface.toMachineModel,
+      ¬ SearchCorrect D.surface.toMachineModel M := by
+  intro M hcorrect
+  exact not_godMoveAnnihilatorInvariant_of_searchCorrect
+    D I H M hcorrect hgod
+
+/-- Conditional closure from the God-Move annihilator interface. -/
+theorem noCanonicalSATDecisionInP_of_godMoveAnnihilator
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (hgod : GodMoveAnnihilatorInvariant D I H) :
+    ¬ CanonicalSATDecisionInP D.surface :=
+  noCanonicalSATDecisionInP_of_lengthIndexedFaithfulHolographicSATLowerBound
+    D I H hgod.pSide
+    (lengthIndexedSATHolographicBoundaryLowerBound_of_godMoveAnnihilator
+      D I H hgod)
+
 /-- The P-side observer calibration for the faithful holographic layer:
 a complete SAT search machine would produce a faithful low-action decoded SAT
 boundary on some instance. -/
@@ -3189,7 +3388,16 @@ SAT-semantic family refutes the universal SAT lower-bound socket, and any
 P-side transport plus a complete SAT search machine supplies such a family.
 So the next positive target must prove, from actual SAT/Cook-Levin/N-frame
 structure, that no polynomially bounded SAT-semantic family exists without
-assuming the absence of SAT search machines. -/
+assuming the absence of SAT search machines.
+
+The God-Move annihilator interface names exactly that target.  It packages an
+instance-sensitive boundary complexity, P-side observer transport, and the hard
+annihilator theorem that no polynomially bounded SAT-semantic family exists.
+The file proves this interface is not length-only, is equivalent on the
+SAT-side to the superpolynomial boundary lower bound, and conditionally closes
+the canonical SAT-decider socket.  It also proves that any polynomially bounded
+SAT family, or any complete SAT search machine together with P-side transport,
+refutes the annihilator. -/
 
 /-! ## Axiom trace -/
 
@@ -3293,6 +3501,17 @@ assuming the absence of SAT search machines. -/
 #print axioms not_instanceSensitiveCookLevinMiddleInvariant_of_polySATFamily
 #print axioms not_instanceSensitiveCookLevinMiddleInvariant_of_searchCorrect
 #print axioms noCanonicalSATDecisionInP_of_instanceSensitiveCookLevinMiddleInvariant
+#print axioms not_boundaryComplexityFactorsThroughLength_of_instanceSensitive
+#print axioms lengthIndexedSATHolographicBoundaryLowerBound_of_noPolynomialSATFamilies
+#print axioms noPolynomialSATFamilies_of_lengthIndexedSATHolographicBoundaryLowerBound
+#print axioms lengthIndexedSATHolographicBoundaryLowerBound_iff_noPolynomialSATFamilies
+#print axioms godMoveAnnihilator_not_lengthOnly
+#print axioms lengthIndexedSATHolographicBoundaryLowerBound_of_godMoveAnnihilator
+#print axioms instanceSensitiveMiddleInvariant_of_godMoveAnnihilator
+#print axioms not_godMoveAnnihilatorInvariant_of_polySATFamily
+#print axioms not_godMoveAnnihilatorInvariant_of_searchCorrect
+#print axioms forall_not_searchCorrect_of_godMoveAnnihilator
+#print axioms noCanonicalSATDecisionInP_of_godMoveAnnihilator
 #print axioms noFaithfulLowActionSATBoundary_of_faithfulSATLowerBound
 #print axioms forall_not_searchCorrect_of_faithfulHolographicSATLowerBound
 #print axioms canonicalDeepSATSearch_of_faithfulHolographicSATLowerBound
