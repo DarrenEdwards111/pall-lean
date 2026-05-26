@@ -3178,6 +3178,59 @@ theorem noCanonicalSATDecisionInP_of_noPolynomialSATFamilies_and_transport
       (forall_not_searchCorrect_of_noPolynomialSATFamilies_and_transport
         D I H hnoPoly htransport))
 
+/-- Contrapositive load-bearing form: P-side transport plus one complete SAT
+search machine refutes the annihilator lower-bound theorem itself. -/
+theorem not_godMoveAnnihilatorNoPolynomialSATFamilies_of_transport_searchCorrect
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (htransport : LengthIndexedPLevelSATObserverTransport D I H)
+    (M : SearchMachine D.surface.toMachineModel)
+    (hcorrect : SearchCorrect D.surface.toMachineModel M) :
+    ¬ GodMoveAnnihilatorNoPolynomialSATFamilies D I H := by
+  rcases htransport.transport M hcorrect with ⟨F⟩
+  exact not_godMoveAnnihilatorNoPolynomialSATFamilies_of_lowActionSATFamily
+    D I H M F
+
+/-- Existential version: under P-side transport, the annihilator lower-bound
+theorem is incompatible with the existence of any complete SAT search machine.
+-/
+theorem not_godMoveAnnihilatorNoPolynomialSATFamilies_of_transport_existsSearchCorrect
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (htransport : LengthIndexedPLevelSATObserverTransport D I H)
+    (hexists :
+      ∃ M : SearchMachine D.surface.toMachineModel,
+        SearchCorrect D.surface.toMachineModel M) :
+    ¬ GodMoveAnnihilatorNoPolynomialSATFamilies D I H := by
+  rcases hexists with ⟨M, hcorrect⟩
+  exact not_godMoveAnnihilatorNoPolynomialSATFamilies_of_transport_searchCorrect
+    D I H htransport M hcorrect
+
+/-- Under P-side transport, the annihilator lower-bound theorem rules out
+complete SAT search machines, and any complete SAT search machine refutes the
+annihilator lower-bound theorem.  This packages the exact remaining gap. -/
+theorem godMoveAnnihilatorNoPolynomialSATFamilies_transport_gap
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (htransport : LengthIndexedPLevelSATObserverTransport D I H) :
+    (GodMoveAnnihilatorNoPolynomialSATFamilies D I H ->
+      ∀ M : SearchMachine D.surface.toMachineModel,
+        ¬ SearchCorrect D.surface.toMachineModel M) ∧
+    ((∃ M : SearchMachine D.surface.toMachineModel,
+        SearchCorrect D.surface.toMachineModel M) ->
+      ¬ GodMoveAnnihilatorNoPolynomialSATFamilies D I H) := by
+  constructor
+  · intro hnoPoly
+    exact forall_not_searchCorrect_of_noPolynomialSATFamilies_and_transport
+      D I H hnoPoly htransport
+  · intro hexists
+    exact
+      not_godMoveAnnihilatorNoPolynomialSATFamilies_of_transport_existsSearchCorrect
+        D I H htransport hexists
+
 /-- If a complete SAT search machine exists, P-side transport refutes the
 God-Move annihilator invariant.  This is the P-vs-NP-strength guard. -/
 theorem not_godMoveAnnihilatorInvariant_of_searchCorrect
@@ -3478,6 +3531,9 @@ The direct load-bearing form is now isolated too:
 `LengthIndexedPLevelSATObserverTransport` rules out every complete SAT search
 machine.  Conversely, any low-action SAT family immediately constructs a
 polynomially bounded SAT family and refutes the annihilator lower-bound socket.
+Equivalently, under P-side transport, the annihilator theorem implies no
+complete SAT search machine, while any complete SAT search machine refutes the
+annihilator theorem.
 -/
 
 /-! ## Axiom trace -/
@@ -3594,6 +3650,9 @@ polynomially bounded SAT family and refutes the annihilator lower-bound socket.
 #print axioms not_godMoveAnnihilatorNoPolynomialSATFamilies_of_lowActionSATFamily
 #print axioms forall_not_searchCorrect_of_noPolynomialSATFamilies_and_transport
 #print axioms noCanonicalSATDecisionInP_of_noPolynomialSATFamilies_and_transport
+#print axioms not_godMoveAnnihilatorNoPolynomialSATFamilies_of_transport_searchCorrect
+#print axioms not_godMoveAnnihilatorNoPolynomialSATFamilies_of_transport_existsSearchCorrect
+#print axioms godMoveAnnihilatorNoPolynomialSATFamilies_transport_gap
 #print axioms not_godMoveAnnihilatorInvariant_of_searchCorrect
 #print axioms forall_not_searchCorrect_of_godMoveAnnihilator
 #print axioms noCanonicalSATDecisionInP_of_godMoveAnnihilator
