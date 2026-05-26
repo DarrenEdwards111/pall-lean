@@ -25,7 +25,8 @@ structure WilliamsMetacomplexityInvariant
   consequence_of_shallow :
     ShallowSATSearch U -> WilliamsConsequence
   barrier :
-    ∀ c : WilliamsConsequence, ¬ c.payload
+    ∀ hshallow : ShallowSATSearch U,
+      ¬ (consequence_of_shallow hshallow).payload
   consequence_sound :
     ∀ hshallow : ShallowSATSearch U,
       (consequence_of_shallow hshallow).payload
@@ -38,7 +39,7 @@ theorem deepSATSearch_of_williamsInvariant
   intro hshallow
   have hpayload : (I.consequence_of_shallow hshallow).payload :=
     I.consequence_sound hshallow
-  exact (I.barrier (I.consequence_of_shallow hshallow)) hpayload
+  exact (I.barrier hshallow) hpayload
 
 /-- Canonical closure: Williams invariant implies no SAT decider in P. -/
 theorem no_decider_of_williamsInvariant
