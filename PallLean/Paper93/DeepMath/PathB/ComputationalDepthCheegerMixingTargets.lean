@@ -34,6 +34,35 @@ def CheegerMixingBoundaryLowerBoundTarget
         (2 : Rat) * Rat.ofInt (Int.ofNat (Nat.sqrt (P.expanderGraph.degree - 1))) ->
       n <= boundaryOperatorValue P
 
+/-- Concrete certificate object for the Cheeger/mixing lower bound. -/
+structure CheegerMixingBoundaryCertificate
+    (enc : ThreeCNFEncoding)
+    (n : Nat)
+    (L : DynamicNFrameLagrangianObserver enc)
+    (W : DynamicMinorPreAmplificationWitness enc L n)
+    (P : RamanujanAmplituhedronConcretePayload enc n L W) where
+  lowerBound : n <= boundaryOperatorValue P
+
+/-- Local witness-producing form of the Cheeger target: for each payload and
+spectral premise, construct an explicit certificate. -/
+def CheegerMixingCertificateBuilder
+    (enc : ThreeCNFEncoding)
+    (n : Nat) : Prop :=
+  ∀ L : DynamicNFrameLagrangianObserver enc,
+    ∀ W : DynamicMinorPreAmplificationWitness enc L n,
+    ∀ P : RamanujanAmplituhedronConcretePayload enc n L W,
+      P.spectral.secondEigenvalueBound <=
+        (2 : Rat) * Rat.ofInt (Int.ofNat (Nat.sqrt (P.expanderGraph.degree - 1))) ->
+      CheegerMixingBoundaryCertificate enc n L W P
+
+/-- Certificate-builder and target are equivalent views of the same obligation. -/
+theorem cheegerMixingBoundaryLowerBoundTarget_of_certificateBuilder
+    (enc : ThreeCNFEncoding)
+    (n : Nat)
+    (H : CheegerMixingCertificateBuilder enc n) :
+    CheegerMixingBoundaryLowerBoundTarget enc n := by
+  intro L W P hspectral
+  exact (H L W P hspectral).lowerBound
 /-- Arithmetic bridge target (small-regime variant): under explicit bounded
 scale assumptions, the binomial term is bounded by linear scale `n`.
 
