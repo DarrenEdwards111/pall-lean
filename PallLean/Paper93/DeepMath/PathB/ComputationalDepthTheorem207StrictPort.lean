@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthGlobalGodMoveLiveBoundaryBridge
 import PallLean.Paper93.DeepMath.PathB.StrictFaithfulGodMoveDCEWEngine
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthTheorem207DirectPaperPort
 
 /-!
 # Theorem 207 -> strict live-boundary port surface
@@ -63,9 +64,19 @@ theorem paperMain_observerSeparationCriterion_of_theorem207StrictPort
     (strictFaithfulGodMoveDCEWEngine_of_theorem207StrictPort
       enc hpresent Hport)
 
+/-- Obstruction-side closure in strict theorem shape. -/
+theorem no_theorem207StrictLiveBoundaryPort_of_nonemptyObserver_and_universalBook1Obstruction
+    (enc : ThreeCNFEncoding)
+    (hL : Nonempty (StrictDynamicNFrameLagrangianObserver enc))
+    (Hobs : UniversalBook1BoundaryBudgetObstruction enc) :
+    Not (Theorem207StrictLiveBoundaryPort enc) :=
+  no_universalStrictDynamicNFrameLagrangianExtraction_of_nonemptyObserver_and_universalBook1Obstruction
+    enc hL Hobs
+
 #print axioms theorem207StrictPort_iff_globalGodMovePaperBridgeStrict
 #print axioms strictTrajectoryExtraction_of_theorem207StrictPort
 #print axioms strictFaithfulGodMoveDCEWEngine_of_theorem207StrictPort
 #print axioms paperMain_observerSeparationCriterion_of_theorem207StrictPort
+#print axioms no_theorem207StrictLiveBoundaryPort_of_nonemptyObserver_and_universalBook1Obstruction
 
 end PallLean.Paper93.DeepMath.PathB

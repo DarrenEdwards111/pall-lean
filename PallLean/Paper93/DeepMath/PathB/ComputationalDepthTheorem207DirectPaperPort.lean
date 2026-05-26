@@ -301,6 +301,51 @@ theorem no_universalDirectPaperPort_of_nonemptyObserver_and_universalBook1Obstru
   exact no_directPaperAt_of_nonemptyObserver_and_book1ObstructionAt
     (enc := enc) (n := n) hL (Hobs 0 n hn20 hlog) Hat
 
+/-- Strict universal extraction induces the direct-paper port by taking
+`extractedSheetRank := liveBoundaryRank`. -/
+theorem universalDirectPaperPort_of_universalStrictDynamicNFrameLagrangianExtraction
+    (enc : ThreeCNFEncoding)
+    (H : UniversalStrictDynamicNFrameLagrangianExtraction enc) :
+    UniversalTheorem207DirectPaperPort enc := by
+  intro c
+  rcases H c with ⟨n, hn20, hlog, HextractAt⟩
+  refine ⟨n, hn20, hlog, ?_⟩
+  intro L
+  rcases HextractAt L with ⟨minor⟩
+  refine ⟨{
+    input := minor.input
+    formula := minor.formula
+    encoded := minor.encoded
+    formula_satisfiable := minor.formula_satisfiable
+    time := minor.time
+    state := minor.state
+    state_matches := minor.state_matches
+    nframe_lagrangian_payload := minor.nframe_lagrangian_payload
+    nframe_lagrangian_payload_realized := minor.nframe_lagrangian_payload_realized
+    pac_holographic_payload := minor.pac_holographic_payload
+    pac_holographic_payload_realized := minor.pac_holographic_payload_realized
+    amplituhedron_payload := minor.amplituhedron_payload
+    amplituhedron_payload_realized := minor.amplituhedron_payload_realized
+    extractedSheetRank := minor.liveActionRank
+    sheet_rank_lower := minor.rank_lower
+    sheet_rank_le_liveBoundary := by
+      simpa [minor.liveActionRank_eq_boundary]
+  }⟩
+
+/-- Book-1 obstruction closure in strict theorem shape: with a nonempty strict
+observer class, universal strict extraction is impossible under universal
+boundary-budget obstruction. -/
+theorem no_universalStrictDynamicNFrameLagrangianExtraction_of_nonemptyObserver_and_universalBook1Obstruction
+    (enc : ThreeCNFEncoding)
+    (hL : Nonempty (StrictDynamicNFrameLagrangianObserver enc))
+    (Hobs : UniversalBook1BoundaryBudgetObstruction enc) :
+    Not (UniversalStrictDynamicNFrameLagrangianExtraction enc) := by
+  intro Hstrict
+  exact no_universalDirectPaperPort_of_nonemptyObserver_and_universalBook1Obstruction
+    enc hL Hobs
+    (universalDirectPaperPort_of_universalStrictDynamicNFrameLagrangianExtraction
+      enc Hstrict)
+
 #print axioms strictLiveMinor_of_theorem207DirectPaperWitness
 #print axioms liveBoundary_lower_of_theorem207DirectPaperWitness
 #print axioms no_theorem207DirectPaperWitness_of_boundaryBudget
@@ -308,5 +353,7 @@ theorem no_universalDirectPaperPort_of_nonemptyObserver_and_universalBook1Obstru
 #print axioms directPaperWitness_of_sameSheetStrictRealization
 #print axioms universalDirectPaperPort_of_sameSheetStrictRealization
 #print axioms universalStrictDynamicNFrameLagrangianExtraction_of_directPaperPort
+#print axioms universalDirectPaperPort_of_universalStrictDynamicNFrameLagrangianExtraction
+#print axioms no_universalStrictDynamicNFrameLagrangianExtraction_of_nonemptyObserver_and_universalBook1Obstruction
 
 end PallLean.Paper93.DeepMath.PathB
