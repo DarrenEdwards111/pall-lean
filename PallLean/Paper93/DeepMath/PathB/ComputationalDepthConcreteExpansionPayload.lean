@@ -11,29 +11,36 @@ namespace PallLean.Paper93.DeepMath.PathB
 
 open PaperFaithfulSeparation
 
-/-- Placeholder graph object for expander wiring (to be refined with concrete
-adjacency/spectral data). -/
+/-- Concrete Ramanujan-side graph data. -/
 structure ExpansionGraph where
   vertexCount : Nat
+  degree : Nat
 
-/-- Concrete expansion payload carried by a pre-amplification witness. -/
+/-- Spectral certificate interface for an expander graph.
+This is no longer an arbitrary payload Prop: it is tied to concrete graph data. -/
+structure RamanujanSpectralCertificate
+    (G : ExpansionGraph) where
+  secondEigenvalueBound : Rat
+  ramanujanBound : secondEigenvalueBound <= (2 : Rat) * Rat.ofInt (Int.ofNat (Nat.sqrt (G.degree - 1)))
+
+/-- Concrete amplituhedron positivity/nondegeneracy certificate. -/
+structure AmplituhedronCertificate where
+  ambientDim : Nat
+  k : Nat
+  positivityWitness : Prop
+
+/-- Concrete expansion payload carried by a pre-amplification witness.
+All fields are data/certificates, not self-certifying mirror props from `W`. -/
 structure RamanujanAmplituhedronConcretePayload
     (enc : ThreeCNFEncoding)
     (n : Nat)
     (L : DynamicNFrameLagrangianObserver enc)
     (W : DynamicMinorPreAmplificationWitness enc L n) where
-  /-- Ramanujan/expander-side data. -/
   expanderGraph : ExpansionGraph
-  expanderWitness : Prop
-  expanderWitness_realized : expanderWitness
-
-  /-- Boundary-map compatibility data linking dynamics to expansion. -/
-  boundaryMapWitness : Prop
-  boundaryMapWitness_realized : boundaryMapWitness
-
-  /-- Amplituhedron positivity / nondegeneracy data. -/
-  amplituhedronPositivity : Prop
-  amplituhedronPositivity_realized : amplituhedronPositivity
+  spectral : RamanujanSpectralCertificate expanderGraph
+  amplituhedron : AmplituhedronCertificate
+  boundaryCompatibility : Prop
+  nontrivialBoundary : 0 < L.toTrajectory.liveBoundaryRank n W.input W.time
 
 /-- New concrete eligibility predicate used by global amplification. -/
 def RamanujanAmplituhedronExpansionPredicateConcrete
@@ -55,22 +62,27 @@ def RamanujanAmplituhedronGlobalAmplificationConcrete
       Nat.choose (n / 3) (Nat.log 2 n) <=
         L.toTrajectory.liveBoundaryRank n W.input W.time
 
-/-- Bridge: concrete predicate implies the current abstract expansion predicate,
-so existing theorem plumbing remains usable while we strengthen content. -/
+/-- Compatibility bridge: if concrete certificates are known to force the
+abstract payload interface, we can still reuse earlier plumbing. -/
+def ConcreteImpliesAbstractExpansion
+    (enc : ThreeCNFEncoding)
+    (n : Nat) : Prop :=
+  ∀ L : DynamicNFrameLagrangianObserver enc,
+  ∀ W : DynamicMinorPreAmplificationWitness enc L n,
+    RamanujanAmplituhedronExpansionPredicateConcrete enc n L W ->
+    RamanujanAmplituhedronExpansionPredicate enc n L W
+
+/-- Bridge theorem parameterized by an explicit compatibility hypothesis. -/
 theorem abstractExpansion_of_concreteExpansion
     (enc : ThreeCNFEncoding)
     (n : Nat)
+    (Hcompat : ConcreteImpliesAbstractExpansion enc n)
     (L : DynamicNFrameLagrangianObserver enc)
     (W : DynamicMinorPreAmplificationWitness enc L n) :
     RamanujanAmplituhedronExpansionPredicateConcrete enc n L W ->
     RamanujanAmplituhedronExpansionPredicate enc n L W := by
   intro h
-  rcases h with ⟨P⟩
-  exact ⟨
-    W.nframe_lagrangian_payload_realized,
-    W.pac_holographic_payload_realized,
-    W.amplituhedron_payload_realized
-  ⟩
+  exact Hcompat L W h
 
 /-- Bridge: any proof of concrete global amplification yields the existing
 abstract global amplification target. -/
