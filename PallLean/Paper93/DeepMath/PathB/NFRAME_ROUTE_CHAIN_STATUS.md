@@ -63,6 +63,20 @@ strict observers.  Therefore the strict-port package is not a smaller
 remaining lemma: discharging it unconditionally is exactly the no-decider
 endpoint in the current strict observer model.
 
+## Standard P-vs-NP bridge
+The standard-model readout is isolated in:
+- `ComputationalDepthStrictPortStandardBridge.lean`
+
+This file introduces:
+- `StandardPvsNPBridge`
+- `theorem207StrictPort_iff_standardPvsNP`
+- `standardPvsNP_of_strictBook1_lowActionPackage`
+
+The bridge deliberately keeps the standard `P ≠ NP` proposition abstract until
+the repository's encoded-DTM SAT-decider notion is proved equivalent to the
+chosen standard polynomial-time SAT-decider model.  Thus the remaining
+standardization work is explicit and does not smuggle the final theorem.
+
 ## Legacy quarantine
 Legacy same-sheet/SPDP bridge is quarantined in:
 - `ComputationalDepthTheorem207SameSheetLegacyPort.lean`
