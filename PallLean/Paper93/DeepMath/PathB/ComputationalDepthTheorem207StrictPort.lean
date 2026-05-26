@@ -122,6 +122,37 @@ theorem strictObserver_nonempty_of_DTMDecidesSATWithEncoding
     decides := hM
   }⟩
 
+/-- Conversely, any strict observer packages an encoded SAT-deciding DTM. -/
+theorem DTMDecidesSATWithEncoding_of_strictObserver_nonempty
+    {enc : ThreeCNFEncoding}
+    (hL : Nonempty (StrictDynamicNFrameLagrangianObserver enc)) :
+    exists M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M := by
+  rcases hL with ⟨L⟩
+  exact ⟨L.M, L.decides⟩
+
+/-- Strict-observer nonemptiness is exactly existence of an encoded SAT-deciding
+DTM for this encoding. -/
+theorem strictObserver_nonempty_iff_exists_DTMDecidesSATWithEncoding
+    (enc : ThreeCNFEncoding) :
+    Nonempty (StrictDynamicNFrameLagrangianObserver enc) ↔
+      (exists M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M) := by
+  constructor
+  · exact DTMDecidesSATWithEncoding_of_strictObserver_nonempty
+  · exact strictObserver_nonempty_of_DTMDecidesSATWithEncoding
+
+/-- If no encoded SAT-deciding DTM exists, Book-1 boundary-budget obstruction
+holds vacuously for strict observers. -/
+theorem universalBook1BoundaryBudgetObstruction_of_no_DTMDecidesSATWithEncoding
+    (enc : ThreeCNFEncoding)
+    (hno : Not (exists M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M)) :
+    UniversalBook1BoundaryBudgetObstruction enc := by
+  intro c n hn20 hlog
+  intro L input time
+  exfalso
+  exact hno ⟨L.M, L.decides⟩
+
 /-- No-decider endpoint for the strict Book-1 route.
 
 This avoids assuming `StrictDynamicNFrameLagrangianObserver enc` is nonempty.
@@ -208,6 +239,9 @@ theorem strictBook1_finalNoDeciderEndpoint
 #print axioms no_strictFaithfulGodMoveDCEWEngine_of_nonemptyObserver_and_universalBook1Obstruction
 #print axioms no_theorem207StrictPortSeparationPackage_of_nonemptyObserver_and_universalBook1Obstruction
 #print axioms strictObserver_nonempty_of_DTMDecidesSATWithEncoding
+#print axioms DTMDecidesSATWithEncoding_of_strictObserver_nonempty
+#print axioms strictObserver_nonempty_iff_exists_DTMDecidesSATWithEncoding
+#print axioms universalBook1BoundaryBudgetObstruction_of_no_DTMDecidesSATWithEncoding
 #print axioms no_DTMDecidesSATWithEncoding_of_theorem207StrictPort_and_universalBook1Obstruction
 #print axioms no_DTMDecidesSATWithEncoding_of_strictPortSeparationPackage_and_universalBook1Obstruction
 #print axioms strictBook1_finalRouteClosure
