@@ -73,6 +73,17 @@ theorem not_concreteExpansion_of_zeroBoundaryRank
   have : 0 < 0 := by simpa [hz] using hposRank
   exact Nat.not_lt_zero 0 this
 
+/-- Core spectral-to-factor target: concrete spectral/geometry data should force
+binomial lower bound on the boundary expansion factor. -/
+def SpectralToExpansionFactorLowerBound
+    (enc : ThreeCNFEncoding)
+    (n : Nat) : Prop :=
+  ∀ L : DynamicNFrameLagrangianObserver enc,
+    ∀ W : DynamicMinorPreAmplificationWitness enc L n,
+      ∀ hE : RamanujanAmplituhedronExpansionPredicateConcrete enc n L W,
+        Nat.choose (n / 3) (Nat.log 2 n) <=
+          (Classical.choice hE).boundaryExpansionFactor
+
 /-- Concrete global amplification target: if a witness carries concrete
 expander/boundary/positivity payload, then binomial boundary-rank lower bound
 holds. -/
@@ -84,6 +95,17 @@ def RamanujanAmplituhedronGlobalAmplificationConcrete
       RamanujanAmplituhedronExpansionPredicateConcrete enc n L W ->
       Nat.choose (n / 3) (Nat.log 2 n) <=
         L.toTrajectory.liveBoundaryRank n W.input W.time
+
+/-- Once the factor lower bound is proved from spectral data, concrete global
+amplification follows by the payload's boundary embedding inequality. -/
+theorem concreteGlobalAmplification_of_spectralFactor
+    (enc : ThreeCNFEncoding)
+    (n : Nat)
+    (Hfactor : SpectralToExpansionFactorLowerBound enc n) :
+    RamanujanAmplituhedronGlobalAmplificationConcrete enc n := by
+  intro L W hE
+  let P := Classical.choice hE
+  exact le_trans (Hfactor L W hE) P.boundary_from_expansion
 
 /-- Compatibility bridge: if concrete certificates are known to force the
 abstract payload interface, we can still reuse earlier plumbing. -/
