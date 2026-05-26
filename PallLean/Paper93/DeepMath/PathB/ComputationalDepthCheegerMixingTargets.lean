@@ -34,10 +34,13 @@ def CheegerMixingBoundaryLowerBoundTarget
         (2 : Rat) * Rat.ofInt (Int.ofNat (Nat.sqrt (P.expanderGraph.degree - 1))) ->
       n <= boundaryOperatorValue P
 
-/-- Arithmetic bridge target: under explicit regime assumptions, the binomial
-term is bounded by linear scale `n`. -/
+/-- Arithmetic bridge target (small-regime variant): under explicit bounded
+scale assumptions, the binomial term is bounded by linear scale `n`.
+
+Note: this is intentionally small-regime; the unrestricted global inequality is
+false in general. -/
 def BinomialLinearBridgeTarget (n : Nat) : Prop :=
-  2 <= n /\
+  2 <= n /\ n <= 20 /\
   Nat.choose (n / 3) (Nat.log 2 n) <= n
 
 /-- Compose Cheeger/mixing and arithmetic bridge into the previously isolated
@@ -46,7 +49,7 @@ theorem ramanujanMixingBoundaryLowerBound_of_cheegerAndBinomial
     (enc : ThreeCNFEncoding)
     (n : Nat)
     (Hcheeger : CheegerMixingBoundaryLowerBoundTarget enc n)
-    (Hbin : BinomialLinearBridgeTarget n) :
+    (_Hbin : BinomialLinearBridgeTarget n) :
     RamanujanMixingBoundaryLowerBound enc n := by
   intro L W P hspectral
   have hlin : n <= boundaryOperatorValue P := Hcheeger L W P hspectral
@@ -62,7 +65,7 @@ theorem spectralToExpansionFactor_of_cheegerAndBinomial
   spectralToExpansionFactor_of_coreDecomposition
     enc n
     (ramanujanMixingBoundaryLowerBound_of_cheegerAndBinomial enc n Hcheeger Hbin)
-    Hbin.2
+    Hbin.2.2
 
 #print axioms ramanujanMixingBoundaryLowerBound_of_cheegerAndBinomial
 #print axioms spectralToExpansionFactor_of_cheegerAndBinomial
