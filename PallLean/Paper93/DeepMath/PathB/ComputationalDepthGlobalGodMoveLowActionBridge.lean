@@ -1,9 +1,9 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthTheorem207StrictPort
 
 /-!
-# Global grid-move bridge to low-action Book-1 obstruction
+# Global God-Move bridge to low-action Book-1 obstruction
 
-This file isolates the exact missing global-grid move theorem shape:
+This file isolates the exact missing global God-Move theorem shape:
 coverage of strict observers by low-action observers at each calibration level.
 
 With that coverage, the already-proved non-vacuous low-action obstruction lifts
@@ -15,11 +15,11 @@ namespace PallLean.Paper93.DeepMath.PathB
 
 open PaperFaithfulSeparation
 
-/-- Global grid-move coverage hypothesis:
+/-- Global God-Move coverage hypothesis:
 for every calibration exponent `c`, every strict observer can be represented by
 some low-action observer with exponent `k ≤ c` and pointwise-equal live boundary
 rank trajectory. -/
-def StrictObserverLowActionCoverage
+def StrictObserverLowActionGodMoveCoverage
     (enc : ThreeCNFEncoding) : Prop :=
   forall c : Nat,
     forall Ls : StrictDynamicNFrameLagrangianObserver enc,
@@ -34,9 +34,9 @@ def StrictObserverLowActionCoverage
 /-- If strict observers are covered by low-action observers, then Book-1
 universal boundary-budget obstruction lifts from the low-action class to the
 strict class. -/
-theorem universalBook1BoundaryBudgetObstruction_of_lowActionCoverage
+theorem universalBook1BoundaryBudgetObstruction_of_lowActionGodMoveCoverage
     (enc : ThreeCNFEncoding)
-    (Hcov : StrictObserverLowActionCoverage enc) :
+    (Hcov : StrictObserverLowActionGodMoveCoverage enc) :
     UniversalBook1BoundaryBudgetObstruction enc := by
   intro c n hn20 hlog Ls input time
   rcases Hcov c Ls with ⟨Ll, hk, hrank⟩
@@ -47,22 +47,22 @@ theorem universalBook1BoundaryBudgetObstruction_of_lowActionCoverage
       c n hn20 hlog Ll hk input time
   simpa [hrank n input time] using hlow
 
-/-- Global-grid move closure:
+/-- Global God-Move closure:
 strict port plus low-action coverage implies no encoded SAT-deciding DTM. -/
-theorem no_DTMDecidesSATWithEncoding_of_theorem207StrictPort_and_lowActionCoverage
+theorem no_DTMDecidesSATWithEncoding_of_theorem207StrictPort_and_lowActionGodMoveCoverage
     (enc : ThreeCNFEncoding)
     (Hport : Theorem207StrictLiveBoundaryPort enc)
-    (Hcov : StrictObserverLowActionCoverage enc) :
+    (Hcov : StrictObserverLowActionGodMoveCoverage enc) :
     Not (exists M : TuringMachine.DTM,
       DTMDecidesSATWithEncoding enc M) :=
   no_DTMDecidesSATWithEncoding_of_theorem207StrictPort_and_universalBook1Obstruction
     enc
-    (universalBook1BoundaryBudgetObstruction_of_lowActionCoverage enc Hcov)
+    (universalBook1BoundaryBudgetObstruction_of_lowActionGodMoveCoverage enc Hcov)
     Hport
 
 /-! ## Kernel-only axiom trace -/
 
-#print axioms universalBook1BoundaryBudgetObstruction_of_lowActionCoverage
-#print axioms no_DTMDecidesSATWithEncoding_of_theorem207StrictPort_and_lowActionCoverage
+#print axioms universalBook1BoundaryBudgetObstruction_of_lowActionGodMoveCoverage
+#print axioms no_DTMDecidesSATWithEncoding_of_theorem207StrictPort_and_lowActionGodMoveCoverage
 
 end PallLean.Paper93.DeepMath.PathB
