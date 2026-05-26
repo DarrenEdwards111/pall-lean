@@ -22,6 +22,25 @@ namespace PallLean.Paper93.DeepMath.PathB
 
 open SATDepthMachine
 
+/-- Bridge premise: SAT decision in `U` can be reflected into the repository's
+encoded DTM SAT-decider surface. -/
+def SATDecisionToEncodedDTMBridge
+    (U : MachineModel)
+    (enc : ThreeCNFEncoding) : Prop :=
+  SATDecisionInP U ->
+    (∃ M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M)
+
+/-- The explicit bridge hypothesis used by the Williams wiring follows from a
+SAT-decision reflection bridge, via `decider_of_shallowSATSearch`. -/
+theorem shallow_to_encoded_decider_of_satDecisionBridge
+    (U : MachineModel)
+    (enc : ThreeCNFEncoding)
+    (hbridge : SATDecisionToEncodedDTMBridge U enc) :
+    ShallowSATSearch U ->
+      (∃ M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M) := by
+  intro hshallow
+  exact hbridge (decider_of_shallowSATSearch U hshallow)
+
 /-- Build a Williams consequence carrying the encoded-DTM decider existence
 predicate. -/
 def encodedDeciderConsequence (enc : ThreeCNFEncoding) : WilliamsConsequence where
@@ -72,9 +91,35 @@ def williamsInvariant_of_faithfulPACHolographyLiveMinorDischarge
     intro hshallow
     exact shallow_to_encoded_decider hshallow
 
+/-- Discharged version: only require SAT-decision reflection into encoded DTM
+surfaces, not a separate shallow-search bridge. -/
+def williamsInvariant_of_universalDynamicNFrameLagrangianExtraction_discharged
+    (U : MachineModel)
+    (enc : ThreeCNFEncoding)
+    (hextract : UniversalDynamicNFrameLagrangianExtraction enc)
+    (hbridge : SATDecisionToEncodedDTMBridge U enc) :
+    WilliamsMetacomplexityInvariant U :=
+  williamsInvariant_of_universalDynamicNFrameLagrangianExtraction
+    U enc hextract
+    (shallow_to_encoded_decider_of_satDecisionBridge U enc hbridge)
+
+/-- Discharged version for the faithful PAC/holography live-minor route. -/
+def williamsInvariant_of_faithfulPACHolographyLiveMinorDischarge_discharged
+    (U : MachineModel)
+    (enc : ThreeCNFEncoding)
+    (hdischarge : FaithfulPACHolographyLiveMinorDischarge enc)
+    (hbridge : SATDecisionToEncodedDTMBridge U enc) :
+    WilliamsMetacomplexityInvariant U :=
+  williamsInvariant_of_faithfulPACHolographyLiveMinorDischarge
+    U enc hdischarge
+    (shallow_to_encoded_decider_of_satDecisionBridge U enc hbridge)
+
 /-! ## Axiom trace -/
 
+#print axioms shallow_to_encoded_decider_of_satDecisionBridge
 #print axioms williamsInvariant_of_universalDynamicNFrameLagrangianExtraction
 #print axioms williamsInvariant_of_faithfulPACHolographyLiveMinorDischarge
+#print axioms williamsInvariant_of_universalDynamicNFrameLagrangianExtraction_discharged
+#print axioms williamsInvariant_of_faithfulPACHolographyLiveMinorDischarge_discharged
 
 end PallLean.Paper93.DeepMath.PathB
