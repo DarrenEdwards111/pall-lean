@@ -14,32 +14,51 @@ namespace PallLean.Paper93.DeepMath.PathB
 open PaperFaithfulSeparation
 open SATDepthMachine
 
-/-- Local core witness generator from trajectory state.
+/-- Local pre-rank witness generator from trajectory state.
 
-Given an observer, length, input, and time, produce a core witness anchored at
-that state (same `input` and `time`). This isolates SAT/encoding/payload
-construction from rank bounds. -/
+Given an observer, length, input, and time, produce a pre-amplification witness
+anchored at that state (same `input` and `time`). This isolates SAT/encoding/
+payload construction from rank bounds. -/
 def CoreWitnessAtStateGenerator
     (enc : ThreeCNFEncoding) (n : Nat) : Prop :=
   ∀ L : DynamicNFrameLagrangianObserver enc,
     ∀ input : Fin n -> Bool,
       ∀ time : Nat,
-        ∃ W : DynamicMinorCoreWitness enc L n,
+        ∃ W : DynamicMinorPreAmplificationWitness enc L n,
           W.input = input ∧ W.time = time
 
-/-- `threshold_lift` discharges from nontrivial rank plus a local state witness
-generator. -/
+/-- Load-bearing statewise amplification for the generated pre witness. -/
+def StatewiseRankAmplificationForGenerator
+    (enc : ThreeCNFEncoding) (n : Nat)
+    (G : CoreWitnessAtStateGenerator enc n) : Prop :=
+  ∀ L : DynamicNFrameLagrangianObserver enc,
+    ∀ input : Fin n -> Bool,
+      ∀ time : Nat,
+        let W := Classical.choose (G L input time)
+        Nat.choose (n / 3) (Nat.log 2 n) <=
+          L.toTrajectory.liveBoundaryRank n W.input W.time
+
+/-- `threshold_lift` discharges from nontrivial rank + pre witness generation +
+statewise amplification (load-bearing). -/
 theorem thresholdLift_of_coreWitnessAtStateGenerator
     (enc : ThreeCNFEncoding)
     (n : Nat)
-    (G : CoreWitnessAtStateGenerator enc n) :
+    (G : CoreWitnessAtStateGenerator enc n)
+    (A : StatewiseRankAmplificationForGenerator enc n G) :
     NontrivialSemanticRankAtScale enc n ->
       UniformThresholdBoundaryWitness enc n := by
-  intro hnontriv
-  intro L
+  intro hnontriv L
   rcases hnontriv L with ⟨input, time, hpos⟩
-  rcases G L input time with ⟨W, hWin, hWtime⟩
-  refine ⟨W, ?_⟩
+  let Wpre := Classical.choose (G L input time)
+  have hWin : Wpre.input = input := (Classical.choose_spec (G L input time)).1
+  have hWtime : Wpre.time = time := (Classical.choose_spec (G L input time)).2
+  have hRank :
+      Nat.choose (n / 3) (Nat.log 2 n) <=
+        L.toTrajectory.liveBoundaryRank n Wpre.input Wpre.time :=
+    by simpa [Wpre] using A L input time
+  let Wcore : DynamicMinorCoreWitness enc L n := Wpre.toCore hRank
+  refine ⟨Wcore, ?_⟩
+  change 0 < L.toTrajectory.liveBoundaryRank n Wpre.input Wpre.time
   simpa [hWin, hWtime] using hpos
 
 /-- A concrete near-final package: reflection is discharged, semantic-nontrivial
@@ -58,6 +77,10 @@ structure ConcreteNearFinalPackage
   core_witness_generator :
     ∀ c : Nat,
       CoreWitnessAtStateGenerator enc (lengthForExponent c)
+  core_witness_statewise_amplification :
+    ∀ c : Nat,
+      StatewiseRankAmplificationForGenerator
+        enc (lengthForExponent c) (core_witness_generator c)
   pre_builder :
     ∀ c : Nat,
       ThresholdLocalPreCandidateBuilder enc (lengthForExponent c)
@@ -81,7 +104,10 @@ theorem deepSATSearch_of_concreteNearFinalPackage
     threshold_lift := by
       intro c hnontriv
       exact thresholdLift_of_coreWitnessAtStateGenerator
-        enc (P.lengthForExponent c) (P.core_witness_generator c) hnontriv
+        enc (P.lengthForExponent c)
+        (P.core_witness_generator c)
+        (P.core_witness_statewise_amplification c)
+        hnontriv
     threshold_to_binomial := by
       intro c
       let buildPre := P.pre_builder c
