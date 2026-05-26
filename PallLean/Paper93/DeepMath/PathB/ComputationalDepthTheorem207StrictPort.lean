@@ -148,8 +148,7 @@ theorem universalBook1BoundaryBudgetObstruction_of_no_DTMDecidesSATWithEncoding
     (hno : Not (exists M : TuringMachine.DTM,
       DTMDecidesSATWithEncoding enc M)) :
     UniversalBook1BoundaryBudgetObstruction enc := by
-  intro c n hn20 hlog
-  intro L input time
+  intro c n hn20 hlog L input time
   exfalso
   exact hno ⟨L.M, L.decides⟩
 
@@ -284,6 +283,79 @@ theorem universalBook1BoundaryBudgetObstructionLowAction_theorem
   intro c n hn20 hlog L hk input time
   exact lowAction_book1BoundaryObstruction L hk hn20 hlog input time
 
+/-- Any encoded SAT-deciding DTM has a canonical low-action strict
+presentation by assigning zero live boundary rank to every configuration.
+
+This is deliberately a presentation theorem only: it shows why the strict port
+cannot be paired with the low-action Book-1 obstruction in the presence of a
+SAT decider. -/
+noncomputable def lowActionStrictObserver_of_DTMDecidesSATWithEncoding
+    {enc : ThreeCNFEncoding}
+    {M : TuringMachine.DTM}
+    (hM : DTMDecidesSATWithEncoding enc M) :
+    LowActionStrictDynamicNFrameLagrangianObserver enc := by
+  refine
+    { base :=
+        { M := M
+          configActionRank := fun _ => 0
+          decides := hM }
+      k := 0
+      liveBoundaryRank_le_poly := ?_ }
+  intro n input time
+  simp [StrictDynamicNFrameLagrangianObserver.toTrajectory,
+    strictFaithfulTrajectoryObserver, StrictStateRankAt]
+
+/-- Low-action no-decider endpoint for the strict Book-1 route.
+
+Unlike `no_DTMDecidesSATWithEncoding_of_theorem207StrictPort_and_universalBook1Obstruction`,
+this consumes the low-action obstruction surface, whose theorem is proved
+internally from the polynomial capacity field.  A hypothetical SAT decider is
+presented as a zero-rank low-action observer, then the strict port supplies a
+minor contradicting the low-action Book-1 bound. -/
+theorem no_DTMDecidesSATWithEncoding_of_theorem207StrictPort_and_lowActionBook1Obstruction
+    (enc : ThreeCNFEncoding)
+    (Hobs : UniversalBook1BoundaryBudgetObstructionLowAction enc)
+    (Hport : Theorem207StrictLiveBoundaryPort enc) :
+    Not (exists M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M) := by
+  intro hdec
+  rcases hdec with ⟨M, hM⟩
+  let Llow : LowActionStrictDynamicNFrameLagrangianObserver enc :=
+    lowActionStrictObserver_of_DTMDecidesSATWithEncoding hM
+  rcases Hport Llow.k with ⟨n, hn20, hlog, HextractAt⟩
+  rcases HextractAt Llow.base with ⟨minor⟩
+  have hbudget :
+      Llow.base.toTrajectory.liveBoundaryRank n minor.input minor.time <
+        Nat.choose (n / 3) (Nat.log 2 n) :=
+    Hobs Llow.k n hn20 hlog Llow (Nat.le_refl Llow.k) minor.input minor.time
+  have hlower :
+      Nat.choose (n / 3) (Nat.log 2 n) <=
+        Llow.base.toTrajectory.liveBoundaryRank n minor.input minor.time := by
+    rw [← minor.liveActionRank_eq_boundary]
+    exact minor.rank_lower
+  exact (Nat.not_le_of_lt hbudget) hlower
+
+/-- The low-action Book-1 obstruction leg is now internally discharged.  The
+remaining load-bearing input is the strict live-boundary port itself. -/
+theorem no_DTMDecidesSATWithEncoding_of_theorem207StrictPort_and_lowActionBook1Theorem
+    (enc : ThreeCNFEncoding)
+    (Hport : Theorem207StrictLiveBoundaryPort enc) :
+    Not (exists M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M) :=
+  no_DTMDecidesSATWithEncoding_of_theorem207StrictPort_and_lowActionBook1Obstruction
+    enc (universalBook1BoundaryBudgetObstructionLowAction_theorem enc) Hport
+
+/-- Package form of the low-action no-decider endpoint.  This is the sharpest
+current endpoint: Book-1 low-action obstruction is proved internally, so the
+only remaining route input is the strict-port package. -/
+theorem strictBook1_lowActionFinalNoDeciderEndpoint
+    (enc : ThreeCNFEncoding)
+    (pkg : Theorem207StrictPortSeparationPackage enc) :
+    Not (exists M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M) :=
+  no_DTMDecidesSATWithEncoding_of_theorem207StrictPort_and_lowActionBook1Theorem
+    enc pkg.hport
+
 #print axioms theorem207StrictPort_iff_globalGodMovePaperBridgeStrict
 #print axioms strictTrajectoryExtraction_of_theorem207StrictPort
 #print axioms strictFaithfulGodMoveDCEWEngine_of_theorem207StrictPort
@@ -301,5 +373,9 @@ theorem universalBook1BoundaryBudgetObstructionLowAction_theorem
 #print axioms strictBook1_finalNoDeciderEndpoint
 #print axioms lowAction_book1BoundaryObstruction
 #print axioms universalBook1BoundaryBudgetObstructionLowAction_theorem
+#print axioms lowActionStrictObserver_of_DTMDecidesSATWithEncoding
+#print axioms no_DTMDecidesSATWithEncoding_of_theorem207StrictPort_and_lowActionBook1Obstruction
+#print axioms no_DTMDecidesSATWithEncoding_of_theorem207StrictPort_and_lowActionBook1Theorem
+#print axioms strictBook1_lowActionFinalNoDeciderEndpoint
 
 end PallLean.Paper93.DeepMath.PathB

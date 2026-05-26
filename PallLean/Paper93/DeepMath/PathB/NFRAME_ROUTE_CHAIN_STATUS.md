@@ -11,6 +11,7 @@ Key closure theorem family includes:
 - `no_strictFaithfulGodMoveDCEWEngine_of_nonemptyObserver_and_universalBook1Obstruction`
 - `no_theorem207StrictPortSeparationPackage_of_nonemptyObserver_and_universalBook1Obstruction`
 - `strictBook1_finalNoDeciderEndpoint`
+- `strictBook1_lowActionFinalNoDeciderEndpoint`
 
 The preferred endpoint is now the no-decider form:
 
@@ -23,6 +24,28 @@ This avoids assuming strict observers are nonempty globally.  A hypothetical
 encoded SAT-deciding DTM is converted into a strict observer internally, then
 the Book-1 obstruction contradicts the strict live-boundary port.  The older
 package-empty theorem is retained as the nonempty-observer variant.
+
+## Low-action Book-1 discharge
+The non-vacuous Book-1 budget obstruction is proved internally for the
+strengthened low-action observer class:
+
+- `LowActionStrictDynamicNFrameLagrangianObserver`
+- `lowAction_book1BoundaryObstruction`
+- `UniversalBook1BoundaryBudgetObstructionLowAction`
+- `universalBook1BoundaryBudgetObstructionLowAction_theorem`
+
+The sharper endpoint is:
+
+```lean
+strict-port package
+  -> ¬ ∃ M, DTMDecidesSATWithEncoding enc M
+```
+
+via `strictBook1_lowActionFinalNoDeciderEndpoint`.  Here the low-action
+Book-1 leg is no longer assumed: a hypothetical encoded SAT-deciding DTM is
+presented as a zero-rank low-action strict observer, the strict port extracts a
+minor for that observer, and the proved low-action obstruction contradicts the
+minor.  The remaining route input is therefore the strict-port package itself.
 
 ## Legacy quarantine
 Legacy same-sheet/SPDP bridge is quarantined in:
