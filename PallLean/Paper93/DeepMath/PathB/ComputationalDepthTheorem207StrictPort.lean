@@ -73,10 +73,23 @@ theorem no_theorem207StrictLiveBoundaryPort_of_nonemptyObserver_and_universalBoo
   no_universalStrictDynamicNFrameLagrangianExtraction_of_nonemptyObserver_and_universalBook1Obstruction
     enc hL Hobs
 
+/-- Final obstruction closure in engine form: under universal Book-1
+boundary-budget obstruction and nonempty strict observers, a strict faithful
+God-Move DCEW engine cannot exist. -/
+theorem no_strictFaithfulGodMoveDCEWEngine_of_nonemptyObserver_and_universalBook1Obstruction
+    (enc : ThreeCNFEncoding)
+    (hL : Nonempty (StrictDynamicNFrameLagrangianObserver enc))
+    (Hobs : UniversalBook1BoundaryBudgetObstruction enc) :
+    Not (StrictFaithfulGodMoveDCEWEngine enc) := by
+  intro engine
+  exact (no_theorem207StrictLiveBoundaryPort_of_nonemptyObserver_and_universalBook1Obstruction
+    enc hL Hobs) engine.strict_live_boundary_extraction
+
 #print axioms theorem207StrictPort_iff_globalGodMovePaperBridgeStrict
 #print axioms strictTrajectoryExtraction_of_theorem207StrictPort
 #print axioms strictFaithfulGodMoveDCEWEngine_of_theorem207StrictPort
 #print axioms paperMain_observerSeparationCriterion_of_theorem207StrictPort
 #print axioms no_theorem207StrictLiveBoundaryPort_of_nonemptyObserver_and_universalBook1Obstruction
+#print axioms no_strictFaithfulGodMoveDCEWEngine_of_nonemptyObserver_and_universalBook1Obstruction
 
 end PallLean.Paper93.DeepMath.PathB
