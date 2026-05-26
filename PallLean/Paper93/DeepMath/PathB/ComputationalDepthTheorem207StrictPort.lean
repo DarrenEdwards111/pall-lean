@@ -107,6 +107,29 @@ theorem no_theorem207StrictPortSeparationPackage_of_nonemptyObserver_and_univers
   exact (no_theorem207StrictLiveBoundaryPort_of_nonemptyObserver_and_universalBook1Obstruction
     enc hL Hobs) pkg.hport
 
+/-- Final declared assumptions for the strict Book-1 n-frame closure route.
+
+This makes the remaining non-axiomatic hypotheses explicit in one place:
+nonempty strict observers plus universal boundary-budget obstruction. -/
+structure StrictBook1FinalAssumptions
+    (enc : ThreeCNFEncoding) : Prop where
+  strict_observer_nonempty :
+    Nonempty (StrictDynamicNFrameLagrangianObserver enc)
+  universal_boundary_budget_obstruction :
+    UniversalBook1BoundaryBudgetObstruction enc
+
+/-- **Final strict Book-1 route closure statement**.
+
+Under `StrictBook1FinalAssumptions`, the full strict-port separation package
+cannot exist. This is the canonical endpoint theorem for the strict n-frame
+route chain. -/
+theorem strictBook1_finalRouteClosure
+    (enc : ThreeCNFEncoding)
+    (H : StrictBook1FinalAssumptions enc) :
+    IsEmpty (Theorem207StrictPortSeparationPackage enc) :=
+  no_theorem207StrictPortSeparationPackage_of_nonemptyObserver_and_universalBook1Obstruction
+    enc H.strict_observer_nonempty H.universal_boundary_budget_obstruction
+
 #print axioms theorem207StrictPort_iff_globalGodMovePaperBridgeStrict
 #print axioms strictTrajectoryExtraction_of_theorem207StrictPort
 #print axioms strictFaithfulGodMoveDCEWEngine_of_theorem207StrictPort
@@ -114,5 +137,6 @@ theorem no_theorem207StrictPortSeparationPackage_of_nonemptyObserver_and_univers
 #print axioms no_theorem207StrictLiveBoundaryPort_of_nonemptyObserver_and_universalBook1Obstruction
 #print axioms no_strictFaithfulGodMoveDCEWEngine_of_nonemptyObserver_and_universalBook1Obstruction
 #print axioms no_theorem207StrictPortSeparationPackage_of_nonemptyObserver_and_universalBook1Obstruction
+#print axioms strictBook1_finalRouteClosure
 
 end PallLean.Paper93.DeepMath.PathB
