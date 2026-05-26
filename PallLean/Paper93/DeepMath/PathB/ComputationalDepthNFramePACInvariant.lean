@@ -2820,6 +2820,130 @@ theorem not_lengthOnlyCookLevinMiddleInvariant_of_superpolyScale_searchCorrect
   exact not_lengthIndexedPLevelSATObserverTransport_of_lengthOnlySuperpolyScale
     D I H scale hmiddle.factorsThroughLength hsuper M hcorrect hmiddle.pSide
 
+/-! ## Instance-sensitive middle-invariant pressure point -/
+
+/-- Positive instance-sensitivity: two boundaries of the same length are priced
+differently.
+
+This is the minimal formal way to say the invariant is not merely a function of
+length.  It is necessary for any surviving middle invariant, but it is not
+sufficient by itself. -/
+def BoundaryComplexityIsInstanceSensitive
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I) : Prop :=
+  ∃ b1 b2 : H.Boundary,
+    H.boundaryLength b1 = H.boundaryLength b2 ∧
+      H.boundaryComplexity b1 ≠ H.boundaryComplexity b2
+
+/-- A SAT-semantic boundary family whose complexity is polynomially bounded.
+
+This is the obstruction any universal SAT-side lower bound must rule out.  It
+can arise from genuinely easy SAT instances, or from a P-side low-action
+transport if a complete SAT search machine exists. -/
+structure PolynomiallyBoundedSATBoundaryFamily
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (M : SearchMachine D.surface.toMachineModel) where
+  family : LengthIndexedSATBoundaryFamily D I H M
+  k : Nat
+  c : Nat
+  complexity_le_poly :
+    ∀ n : Nat,
+      H.boundaryComplexity (family.boundaryAt n) <= c * (n + 1) ^ k
+
+/-- Any polynomially bounded SAT-semantic family refutes the SAT-side lower
+bound, regardless of whether the invariant is length-only or instance-sensitive.
+-/
+theorem not_lengthIndexedSATHolographicBoundaryLowerBound_of_polySATFamily
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (M : SearchMachine D.surface.toMachineModel)
+    (F : PolynomiallyBoundedSATBoundaryFamily D I H M) :
+    ¬ LengthIndexedSATHolographicBoundaryLowerBound D I H :=
+  not_lengthIndexedSATHolographicBoundaryLowerBound_of_polyBoundedFamily
+    D I H M F.family F.k F.c F.complexity_le_poly
+
+/-- A low-action SAT family is automatically polynomially bounded by the
+encoder's P-side calibration. -/
+theorem not_lengthIndexedSATHolographicBoundaryLowerBound_of_lowActionSATFamily
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (M : SearchMachine D.surface.toMachineModel)
+    (F : LengthIndexedLowActionSATBoundaryFamily D I H M) :
+    ¬ LengthIndexedSATHolographicBoundaryLowerBound D I H := by
+  rcases H.lowActionBudget_poly with ⟨k, c, hbudget_poly⟩
+  exact
+    not_lengthIndexedSATHolographicBoundaryLowerBound_of_polyBoundedFamily
+      D I H M F.toSATBoundaryFamily k c
+      (by
+        intro n
+        have hcomplexity_le_budget :
+            H.boundaryComplexity (F.boundaryAt n) <= H.lowActionBudget n := by
+          have hdecoded :=
+            H.complexity_le_budget_of_lowAction
+              (F.encodingAt n).bulk
+              (F.encodingAt n).low_action
+          simpa [(F.encodingAt n).decodes_to, F.length_eq n] using hdecoded
+        exact Nat.le_trans hcomplexity_le_budget (hbudget_poly n))
+
+/-- Instance-sensitive middle-invariant package.
+
+The `sensitive` field rules out pure length-only pricing.  The guard theorems
+below show that this still does not solve the problem unless the invariant also
+rules out every polynomially bounded SAT-semantic family by genuine SAT
+structure. -/
+structure InstanceSensitiveCookLevinMiddleInvariant
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I) : Prop where
+  sensitive : BoundaryComplexityIsInstanceSensitive I H
+  pSide : LengthIndexedPLevelSATObserverTransport D I H
+  satSide : LengthIndexedSATHolographicBoundaryLowerBound D I H
+
+/-- Instance sensitivity alone is not enough: any polynomially bounded
+SAT-semantic family refutes the package. -/
+theorem not_instanceSensitiveCookLevinMiddleInvariant_of_polySATFamily
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (M : SearchMachine D.surface.toMachineModel)
+    (F : PolynomiallyBoundedSATBoundaryFamily D I H M) :
+    ¬ InstanceSensitiveCookLevinMiddleInvariant D I H := by
+  intro hmiddle
+  exact not_lengthIndexedSATHolographicBoundaryLowerBound_of_polySATFamily
+    D I H M F hmiddle.satSide
+
+/-- If a complete SAT search machine exists, P-side transport itself produces a
+low-action SAT family, hence a polynomially bounded SAT-semantic family.  Thus
+an instance-sensitive middle invariant would already imply the absence of such
+a machine. -/
+theorem not_instanceSensitiveCookLevinMiddleInvariant_of_searchCorrect
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (M : SearchMachine D.surface.toMachineModel)
+    (hcorrect : SearchCorrect D.surface.toMachineModel M) :
+    ¬ InstanceSensitiveCookLevinMiddleInvariant D I H := by
+  intro hmiddle
+  rcases hmiddle.pSide.transport M hcorrect with ⟨F⟩
+  exact not_lengthIndexedSATHolographicBoundaryLowerBound_of_lowActionSATFamily
+    D I H M F hmiddle.satSide
+
+/-- Conditional closure from an instance-sensitive middle invariant.  This is
+the honest positive socket: proving such an invariant is exactly strong enough
+to rule out canonical polynomial-time SAT search. -/
+theorem noCanonicalSATDecisionInP_of_instanceSensitiveCookLevinMiddleInvariant
+    (D : DescribedCanonicalSurface)
+    (I : NFrameLagrangianPACInvariant)
+    (H : LengthIndexedFaithfulHolographicEncoder I)
+    (hmiddle : InstanceSensitiveCookLevinMiddleInvariant D I H) :
+    ¬ CanonicalSATDecisionInP D.surface :=
+  noCanonicalSATDecisionInP_of_lengthIndexedFaithfulHolographicSATLowerBound
+    D I H hmiddle.pSide hmiddle.satSide
+
 /-- The P-side observer calibration for the faithful holographic layer:
 a complete SAT search machine would produce a faithful low-action decoded SAT
 boundary on some instance. -/
@@ -3057,7 +3181,15 @@ through a scalar function of boundary length, then polynomial scales cannot
 prove the SAT lower bound, and superpolynomial scales refute P-side transport
 in the presence of any complete SAT search machine.  Therefore a surviving
 middle invariant cannot merely be a better growth function of `n`; it must be
-instance-sensitive and tied to non-length Cook-Levin/N-frame structure. -/
+instance-sensitive and tied to non-length Cook-Levin/N-frame structure.
+
+The instance-sensitive pressure theorem then removes a second possible escape:
+instance sensitivity alone is not enough.  Any polynomially bounded
+SAT-semantic family refutes the universal SAT lower-bound socket, and any
+P-side transport plus a complete SAT search machine supplies such a family.
+So the next positive target must prove, from actual SAT/Cook-Levin/N-frame
+structure, that no polynomially bounded SAT-semantic family exists without
+assuming the absence of SAT search machines. -/
 
 /-! ## Axiom trace -/
 
@@ -3156,6 +3288,11 @@ instance-sensitive and tied to non-length Cook-Levin/N-frame structure. -/
 #print axioms not_lengthIndexedPLevelSATObserverTransport_of_lengthOnlySuperpolyScale
 #print axioms not_lengthOnlyCookLevinMiddleInvariant_of_polyScale
 #print axioms not_lengthOnlyCookLevinMiddleInvariant_of_superpolyScale_searchCorrect
+#print axioms not_lengthIndexedSATHolographicBoundaryLowerBound_of_polySATFamily
+#print axioms not_lengthIndexedSATHolographicBoundaryLowerBound_of_lowActionSATFamily
+#print axioms not_instanceSensitiveCookLevinMiddleInvariant_of_polySATFamily
+#print axioms not_instanceSensitiveCookLevinMiddleInvariant_of_searchCorrect
+#print axioms noCanonicalSATDecisionInP_of_instanceSensitiveCookLevinMiddleInvariant
 #print axioms noFaithfulLowActionSATBoundary_of_faithfulSATLowerBound
 #print axioms forall_not_searchCorrect_of_faithfulHolographicSATLowerBound
 #print axioms canonicalDeepSATSearch_of_faithfulHolographicSATLowerBound
