@@ -1,74 +1,74 @@
+import PallLean.Paper93.DeepMath.PathB.DynamicNFrameLagrangianInvariant
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDegreeOrBoundaryStepA
-import PallLean.Paper93.DeepMath.PathB.ComputationalDepthConcreteExpansionPredicate
 
 /-!
-# Global God-Move bridge to live boundary rank (new infrastructure)
+# Global God-Move bridge to live boundary rank (paper-faithful quantifiers)
 
-This module isolates the missing load-bearing edge in the corrected Route-B
-pipeline: turning boundary/spectral certificates into a concrete lower bound on
-`liveBoundaryRank`.
+This module rewrites the bridge in the quantifier shape used by the `p vs np1`
+paper: a universal extraction theorem over polynomial-time SAT observers,
+parametrized by exponent and producing a large enough input length.
 
-In this infrastructure the edge is represented by a uniform per-payload
-certificate builder (`globalGodMove_liveMinorBuilder`) that supplies a concrete
-expanded-boundary certificate.  Once that exists, the live-rank lower bound is
-mechanical.
+The old fixed-scale payload socket (`∀ L W, ...`) is stronger than what the
+paper requires and obscures the true load-bearing theorem.  The corrected
+bridge below makes that theorem explicit and leaves only one honest remaining
+obligation.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB
 
 open PaperFaithfulSeparation
 
-/-- Target edge: at scale `n`, every concrete payload carries a certified
-binomial lower bound in the live boundary rank. -/
-def GlobalGodMoveLiveBoundaryRankLowerBoundAtScale
-    (enc : ThreeCNFEncoding)
-    (n : Nat) : Prop :=
-  ∀ L : DynamicNFrameLagrangianObserver enc,
-    ∀ W : DynamicMinorPreAmplificationWitness enc L n,
-      Nat.choose (n / 3) (Nat.log 2 n) <=
-        L.toTrajectory.liveBoundaryRank n W.input W.time
+/-- Paper-faithful bridge statement: this is the real missing theorem.
 
-/-- Assumption package for the corrected God-Move bridge.
+Interpretation: for every polynomial width exponent `c`, there is a large enough
+length `n` at which every DTM-backed SAT observer trajectory exposes a certified
+live N-frame/Lagrangian minor with binomial lower bound.
+-/
+abbrev GlobalGodMovePaperBridge
+    (enc : ThreeCNFEncoding) : Prop :=
+  UniversalDynamicNFrameLagrangianExtraction enc
 
-* `stepA_boundary_floor`: corrected Step-A polarity (growth from boundary side).
-* `globalGodMove_liveMinorBuilder`: the actual missing transport edge, stated as
-  a uniform concrete expansion certificate builder.
+/-- Compatibility packaging with the corrected Step-A polarity.
+
+`stepA_boundary_floor` is kept explicit for route-level auditing, while the
+load-bearing SAT-side edge is exactly `globalGodMove_paperBridge`.
 -/
 structure GlobalGodMoveLiveBoundaryBridgeAssumptions
     (enc : ThreeCNFEncoding)
     (n : Nat) : Prop where
   stepA_boundary_floor : DegreeOrBoundaryExpansionFloorAtScale enc n
-  globalGodMove_liveMinorBuilder :
-    ∀ L : DynamicNFrameLagrangianObserver enc,
-    ∀ W : DynamicMinorPreAmplificationWitness enc L n,
-      ConcreteRamanujanAmplituhedronExpansionPredicate enc n L W
+  globalGodMove_paperBridge : GlobalGodMovePaperBridge enc
 
-/-- The missing edge itself: concrete God-Move live-minor certificates imply
-uniform live-boundary-rank lower bound. -/
-theorem globalGodMove_liveBoundaryRankLowerBound_of_liveMinorBuilder
+/-- Fixed-scale extraction consequence from the paper-faithful bridge.
+
+For any exponent `c`, extract the corresponding `n` and obtain a concrete live
+minor for each dynamic SAT observer at that length.
+-/
+theorem dynamicExtractionAt_of_globalGodMovePaperBridge
     (enc : ThreeCNFEncoding)
-    (n : Nat)
-    (H :
-      ∀ L : DynamicNFrameLagrangianObserver enc,
-      ∀ W : DynamicMinorPreAmplificationWitness enc L n,
-        ConcreteRamanujanAmplituhedronExpansionPredicate enc n L W) :
-    GlobalGodMoveLiveBoundaryRankLowerBoundAtScale enc n := by
-  intro L W
-  exact rankLower_of_concreteRamanujanAmplituhedronExpansion (H L W)
+    (H : GlobalGodMovePaperBridge enc)
+    (c : Nat) :
+    ∃ n : Nat,
+      n >= 2 ^ 20 /\
+      4 * (c + 1) <= Nat.log 2 n /\
+      DynamicNFrameLagrangianExtractionAt enc n :=
+  H c
 
-/-- Packaged corrected Global God-Move bridge theorem in the new
-infrastructure.  Step-A boundary floor is kept explicitly in the package for
-route-level wiring/audits; the rank lower bound comes from the concrete
-live-minor builder. -/
-theorem globalGodMove_liveBoundaryRankBridge
+/-- Bridge to the existing faithful-observer extraction socket.
+
+This is the key wiring theorem showing the paper-faithful quantifier form is
+already sufficient for the current infrastructure; no stronger `∀ L W` payload
+builder is needed.
+-/
+theorem universalFaithfulExtraction_of_globalGodMovePaperBridge
     (enc : ThreeCNFEncoding)
-    (n : Nat)
-    (A : GlobalGodMoveLiveBoundaryBridgeAssumptions enc n) :
-    GlobalGodMoveLiveBoundaryRankLowerBoundAtScale enc n :=
-  globalGodMove_liveBoundaryRankLowerBound_of_liveMinorBuilder enc n
-    A.globalGodMove_liveMinorBuilder
+    (H : GlobalGodMovePaperBridge enc) :
+    UniversalFaithfulSATObserverGodMoveExtraction enc :=
+  faithfulExtraction_of_dynamicNFrameLagrangianExtraction enc H
 
-#print axioms globalGodMove_liveBoundaryRankLowerBound_of_liveMinorBuilder
-#print axioms globalGodMove_liveBoundaryRankBridge
+/-! ## Axiom trace -/
+
+#print axioms dynamicExtractionAt_of_globalGodMovePaperBridge
+#print axioms universalFaithfulExtraction_of_globalGodMovePaperBridge
 
 end PallLean.Paper93.DeepMath.PathB
