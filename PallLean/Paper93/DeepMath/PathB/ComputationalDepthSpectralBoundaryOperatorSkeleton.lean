@@ -55,6 +55,26 @@ def BoundaryCountToDerivedExpansionLowerBound
       Nat.choose (n / 3) (Nat.log 2 n) <= boundaryEdgeCount P ->
       Nat.choose (n / 3) (Nat.log 2 n) <= derivedBoundaryExpansionFactor P
 
+/-- In the current concrete model, boundary count is definitionally the same as
+`derivedBoundaryExpansionFactor`. -/
+@[simp] theorem boundaryEdgeCount_eq_derived
+    {enc : ThreeCNFEncoding}
+    {n : Nat}
+    {L : DynamicNFrameLagrangianObserver enc}
+    {W : DynamicMinorPreAmplificationWitness enc L n}
+    (P : RamanujanAmplituhedronConcretePayload enc n L W) :
+    boundaryEdgeCount P = derivedBoundaryExpansionFactor P := by
+  rfl
+
+/-- Item 2 is now discharged: any lower bound on boundary count transfers
+immediately to the derived expansion factor. -/
+theorem boundaryCountToDerivedExpansionLowerBound_trivial
+    (enc : ThreeCNFEncoding)
+    (n : Nat) :
+    BoundaryCountToDerivedExpansionLowerBound enc n := by
+  intro L W P h
+  simpa [boundaryEdgeCount_eq_derived P] using h
+
 /-- Bridge: proving the two concrete targets discharges
 `SpectralToExpansionFactorLowerBound`. -/
 theorem spectralToExpansionFactor_of_boundaryOperatorChain

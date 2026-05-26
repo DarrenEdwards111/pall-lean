@@ -62,6 +62,28 @@ def ConcreteEligibilityOfBuilder
         0 < L.toTrajectory.liveBoundaryRank n W.input W.time),
       RamanujanAmplituhedronExpansionPredicateConcrete enc n L (buildPre L hthPre)
 
+/-- Concrete payload constructor obligation for builder outputs. -/
+def ConcretePayloadOfBuilder
+    (enc : ThreeCNFEncoding)
+    (n : Nat)
+    (buildPre : ThresholdLocalPreCandidateBuilder enc n) : Prop :=
+  ∀ L : DynamicNFrameLagrangianObserver enc,
+  ∀ hthPre :
+    (∃ W : DynamicMinorPreAmplificationWitness enc L n,
+      0 < L.toTrajectory.liveBoundaryRank n W.input W.time),
+    ∃ P : RamanujanAmplituhedronConcretePayload enc n L (buildPre L hthPre),
+      RamanujanAmplituhedronBoundaryEmbedding enc n L (buildPre L hthPre) P
+
+/-- Item 3 (builder side): payload constructor implies concrete eligibility. -/
+theorem concreteEligibilityOfBuilder_of_payload
+    (enc : ThreeCNFEncoding)
+    (n : Nat)
+    (buildPre : ThresholdLocalPreCandidateBuilder enc n)
+    (Hpayload : ConcretePayloadOfBuilder enc n buildPre) :
+    ConcreteEligibilityOfBuilder enc n buildPre := by
+  intro L hthPre
+  exact Hpayload L hthPre
+
 /-- If we have concrete global amplification and builder eligibility, we can
 recover the local pre-level amplification socket needed by the main chain. -/
 theorem thresholdLocalRankAmplificationPre_of_concreteGlobalAmplification
@@ -91,6 +113,33 @@ theorem statewiseRankAmplificationForGenerator_of_concreteGlobalAmplification
   intro L input time
   let W := Classical.choose (G L input time)
   exact Hc L W (by simpa [W] using hgen L input time)
+
+/-- Concrete payload constructor obligation for generator-chosen witnesses. -/
+def ConcretePayloadOfGenerator
+    (enc : ThreeCNFEncoding)
+    (n : Nat)
+    (G : CoreWitnessAtStateGenerator enc n) : Prop :=
+  ∀ L : DynamicNFrameLagrangianObserver enc,
+  ∀ input : Fin n -> Bool,
+  ∀ time : Nat,
+    ∃ P : RamanujanAmplituhedronConcretePayload enc n L (Classical.choose (G L input time)),
+      RamanujanAmplituhedronBoundaryEmbedding
+        enc n L (Classical.choose (G L input time)) P
+
+/-- Item 3 (generator side): payload constructor implies concrete eligibility
+assumption used by statewise amplification. -/
+theorem concreteEligibilityOfGenerator_of_payload
+    (enc : ThreeCNFEncoding)
+    (n : Nat)
+    (G : CoreWitnessAtStateGenerator enc n)
+    (Hpayload : ConcretePayloadOfGenerator enc n G) :
+    ∀ L : DynamicNFrameLagrangianObserver enc,
+    ∀ input : Fin n -> Bool,
+    ∀ time : Nat,
+      RamanujanAmplituhedronExpansionPredicateConcrete
+        enc n L (Classical.choose (G L input time)) := by
+  intro L input time
+  exact Hpayload L input time
 
 #print axioms concreteGlobalAmplification_of_boundaryExpansion
 #print axioms thresholdLocalRankAmplificationPre_of_concreteGlobalAmplification
