@@ -5,6 +5,7 @@ import PallLean.Paper93.DeepMath.CookLevin.CookLevinMainResults
 import PallLean.Paper93.DeepMath.CookLevin.Theorem207Chain
 import PallLean.Paper93.DeepMath.Paper93MasterTheorem
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLowActionStrictPort
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthPaperGodMoveTransportBridge
 
 /-!
 # Paper §28.3/§40 Final Readout
@@ -40,6 +41,24 @@ theorem paper93_lowActionStrictPort_iff_standardPvsNP
     Theorem207LowActionStrictLiveBoundaryPort enc ↔ B.standardPvsNP :=
   theorem207LowActionStrictPort_iff_standardPvsNP B
 
+/-- Clean paper God-Move readout: if the paper `TΦ` transport witness port is
+supplied, it feeds the canonical strict God-Move port without using the
+no-decider/vacuity direction. -/
+theorem paper93_canonicalStrictGodMovePort_of_paperGodMoveTransportPort
+    (enc : ThreeCNFEncoding)
+    (H : PaperGodMoveTransportPort enc) :
+    CanonicalStrictGodMovePort enc :=
+  canonicalStrictGodMovePort_of_paperGodMoveTransportPort enc H
+
+/-- End-to-end encoded no-decider readout from the clean paper God-Move
+transport port. -/
+theorem paper93_no_encodedSATDecider_of_paperGodMoveTransportPort
+    (enc : ThreeCNFEncoding)
+    (H : PaperGodMoveTransportPort enc) :
+    Not (exists M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M) :=
+  no_DTMDecidesSATWithEncoding_of_paperGodMoveTransportPort enc H
+
 /-
 The older Step4/unsafe-archive final wrappers are intentionally not imported
 here.  They remain in their historical modules for forensic comparison, but are
@@ -48,5 +67,7 @@ now off the active Paper93 final readout path.
 
 #print axioms paper93_lowActionStrictPort_iff_no_encodedSATDecider
 #print axioms paper93_lowActionStrictPort_iff_standardPvsNP
+#print axioms paper93_canonicalStrictGodMovePort_of_paperGodMoveTransportPort
+#print axioms paper93_no_encodedSATDecider_of_paperGodMoveTransportPort
 
 end PallLean.Paper93.DeepMath
