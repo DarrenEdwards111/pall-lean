@@ -514,6 +514,44 @@ structure Book1CEWSPDPEpistemicBoundaryPort (enc : ThreeCNFEncoding) where
   below from these two genuinely load-bearing movements. -/
   transportCertificate :
     Book1DeciderTransportCertificate enc pRank hardRank
+
+/-- Concrete assembly certificate for the Book-1 port.
+
+This is only wiring: it combines four explicit local/certificate layers already
+introduced above.
+
+* `ambientModel`: same-target Ramanujan/Tseitin hard sheet plus extraction
+  containment in the full compiled ambient rank;
+* `cewBudget`: syntactic/log-window CEW budget;
+* `profileCounting`: local finite-profile counting bound for the ambient rank;
+* calibrated hard rank: `book1CalibratedRamanujanTseitinHardRank`.
+
+No new semantic claim that “all P deciders have low CEW” is introduced here;
+that comes only from the chosen syntactic CEW budget field. -/
+structure Book1ConcreteAssemblyCertificate (enc : ThreeCNFEncoding) where
+  pCEW : TuringMachine.DTM -> Nat -> Nat
+  ambientModel : Book1SameTargetAmbientCompiledRankModel enc
+  cewBudget : Book1SyntacticBoundedCEWModel pCEW
+  profileCounting : Book1CEWProfileCountingModel pCEW ambientModel.ambientRank
+
+/-- Assemble the concrete Book-1 CEW/SPDP port from explicit local certificates.
+This is the final non-magical wiring theorem for the Book-1 route. -/
+def book1CEWSPDPEpistemicBoundaryPort_of_concreteAssembly
+    {enc : ThreeCNFEncoding}
+    (A : Book1ConcreteAssemblyCertificate enc) :
+    Book1CEWSPDPEpistemicBoundaryPort enc where
+  pCEW := A.pCEW
+  pRank := A.ambientModel.ambientRank
+  hardRank := book1CalibratedRamanujanTseitinHardRank
+  boundedCEWForP := boundedCEWForP_of_syntacticBoundedCEWModel A.cewBudget
+  cewToPolynomialSPDP :=
+    cewToPolynomialSPDP_of_countingCertificate
+      (book1CEWToSPDPCountingCertificate_of_profileCountingModel A.profileCounting)
+  hardNPLowerBound := book1CalibratedRamanujanTseitinHardNPLowerBound
+  transportCertificate :=
+    book1TransportCertificate_of_ambientCompiledRankModel
+      (book1AmbientCompiledRankModel_of_sameTargetAmbientModel A.ambientModel)
+
 /-- Growth separation: the calibrated Ramanujan/Tseitin scale
 `n^(log₂ n / 4)` eventually beats every fixed polynomial.
 
@@ -585,6 +623,7 @@ theorem standardPvsNP_of_book1CEWSPDP
 #print axioms boundedCEWForP_of_syntacticBoundedCEWModel
 #print axioms boundedCEWForP_of_logSyntacticPCEW
 #print axioms cewToPolynomialSPDP_of_countingCertificate
+#print axioms book1CEWSPDPEpistemicBoundaryPort_of_concreteAssembly
 #print axioms book1TransportCertificate_of_ambientCompiledRankModel
 #print axioms deciderTransportHardToP_of_book1TransportCertificate
 #print axioms book1_pSidePolynomialSPDP_of_decider
