@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.AlgebraicSPDP.ArithmeticCircuitSPDPPivot
+import PallLean.SPDPDefs
 import Mathlib.Data.Finset.Image
 
 /-!
@@ -281,6 +282,105 @@ def NWSPDPIndependenceCertificate.ofLowAgreementDerivativeRows
     hOutside hlow ?_
   simpa [← hrows] using span_rank_le_spdp
 
+/-! ## Bridge to the concrete SPDP subspace
+
+The previous theorem is deliberately finite-support algebra.  The next layer
+connects that algebra to the project's actual `MvPolynomial`/`SPDP.spdpRank`
+object without introducing a free numerical rank.
+
+The only remaining mathematical payload is `rows_mem_actual_spdp_image`: each
+finite-support derivative-window coefficient row must be realized as the image
+of an actual element of `SPDP.spdpSubspace kappa ell p` under a concrete
+coefficient-projection linear map.  Once that realization is supplied, ordinary
+linear algebra proves the finite-support row rank is bounded by the actual
+SPDP rank of `p`.
+-/
+
+/-- Concrete containment bridge for NW derivative-window rows.
+
+`coeffProjection` is the coefficient-extraction map from the ambient
+`MvPolynomial` space into the finite-support row model.  The fields require
+every selected NW derivative-window row to be realized by an actual SPDP
+generator/span element of the concrete polynomial `p`.
+-/
+structure NWDerivativeRowsActualSPDPBridge
+    [Fintype Label] [Fintype Value]
+    {numVars kappa ell : Nat}
+    (code : Label -> Point -> Value) (D : Finset Point)
+    (p : MvPolynomial (Fin numVars) ℚ) : Type _ where
+  coeffProjection :
+    MvPolynomial (Fin numVars) ℚ →ₗ[ℚ] (Finset (Point × Value) -> ℚ)
+  rows_mem_actual_spdp_image :
+    ∀ a : Label, nwDerivativeWindowRows code D a ∈
+      Submodule.map coeffProjection (SPDP.spdpSubspace kappa ell p)
+
+/-- If the finite-support derivative rows are coefficient projections of the
+actual SPDP subspace, their row rank is bounded by the concrete SPDP rank.
+
+This is the real ambient bridge shape: no free `spdpRank : Nat` remains. -/
+theorem nwDerivativeWindowRows_finrank_le_actual_spdpRank
+    [Fintype Label] [Fintype Value]
+    {numVars kappa ell : Nat}
+    (code : Label -> Point -> Value) (D : Finset Point)
+    (p : MvPolynomial (Fin numVars) ℚ)
+    (bridge : NWDerivativeRowsActualSPDPBridge code D p
+      (kappa := kappa) (ell := ell)) :
+    (Set.range (nwDerivativeWindowRows code D)).finrank ℚ <=
+      SPDP.spdpRank kappa ell p := by
+  classical
+  let W : Submodule ℚ (Finset (Point × Value) -> ℚ) :=
+    Submodule.map bridge.coeffProjection (SPDP.spdpSubspace kappa ell p)
+  have hspan :
+      Submodule.span ℚ (Set.range (nwDerivativeWindowRows code D)) ≤ W := by
+    apply Submodule.span_le.mpr
+    intro row hrow
+    rcases hrow with ⟨a, rfl⟩
+    exact bridge.rows_mem_actual_spdp_image a
+  have hmono :
+      (Set.range (nwDerivativeWindowRows code D)).finrank ℚ <=
+        Module.finrank ℚ W := by
+    simpa using Submodule.finrank_mono hspan
+  have hmap :
+      Module.finrank ℚ W <=
+        Module.finrank ℚ (SPDP.spdpSubspace kappa ell p) := by
+    simpa [W] using
+      (Submodule.finrank_map_le bridge.coeffProjection
+        (SPDP.spdpSubspace kappa ell p))
+  exact le_trans hmono hmap
+
+/-- Fully explicit low-agreement NW certificate against the concrete
+`SPDP.spdpRank` of an ambient `MvPolynomial`.
+
+The side conditions are exactly the ones exposed by the diagnostic script:
+
+* `hD`: the differentiated window is larger than the agreement bound, so all
+  nonmatching monomials are killed;
+* `hOutside`: the residual outside window is larger than the agreement bound,
+  so residual supports are injective.
+
+The remaining payload is not a number: it is the concrete row-realization
+bridge into `SPDP.spdpSubspace`. -/
+noncomputable def NWSPDPIndependenceCertificate.ofLowAgreementActualSPDP
+    [Fintype Label] [Fintype Value]
+    {numVars degree kappa ell : Nat}
+    (support : NWLeadingSupportData)
+    (code : Label -> Point -> Value) (D : Finset Point)
+    (p : MvPolynomial (Fin numVars) ℚ)
+    (overlapBound : Nat)
+    (support_lower_le_labels : support.lower <= Fintype.card Label)
+    (hD : overlapBound < D.card)
+    (hOutside :
+      overlapBound < (Finset.univ.filter fun x : Point => x ∉ D).card)
+    (hlow : ∀ a b : Label, a ≠ b ->
+      (nwAgreementSet code a b).card <= overlapBound)
+    (bridge : NWDerivativeRowsActualSPDPBridge code D p
+      (kappa := kappa) (ell := ell)) :
+    NWSPDPIndependenceCertificate numVars degree kappa ell :=
+  NWSPDPIndependenceCertificate.ofLowAgreementDerivativeRows
+    support code D overlapBound (SPDP.spdpRank kappa ell p)
+    support_lower_le_labels hD hOutside hlow
+    (nwDerivativeWindowRows_finrank_le_actual_spdpRank code D p bridge)
+
 /-! ## Axiom audit -/
 
 #print axioms exists_disagreement_in_large_window
@@ -289,6 +389,8 @@ def NWSPDPIndependenceCertificate.ofLowAgreementDerivativeRows
 #print axioms nwResidualIndicatorRows_offdiag
 #print axioms NWSPDPIndependenceCertificate.ofLowAgreementResidualPivots
 #print axioms NWSPDPIndependenceCertificate.ofLowAgreementDerivativeRows
+#print axioms nwDerivativeWindowRows_finrank_le_actual_spdpRank
+#print axioms NWSPDPIndependenceCertificate.ofLowAgreementActualSPDP
 
 end GraphDesign
 

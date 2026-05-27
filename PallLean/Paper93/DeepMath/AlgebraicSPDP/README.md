@@ -62,10 +62,24 @@ The file also proves the finite-support polynomial-calculus bridge:
 - `NWSPDPIndependenceCertificate.ofLowAgreementDerivativeRows` lets the final
   certificate be stated using the actual derivative-window rows.
 
-The remaining formal theorem is now only the ambient encoding/containment
-step: embed these finite support coefficient rows into the project’s concrete
-`MvPolynomial`/`SPDP.spdpSubspace` representation and prove their row-span
-rank is bounded by the actual SPDP rank.
+The ambient rank bridge is now factored into its honest concrete shape:
+
+- `NWDerivativeRowsActualSPDPBridge` carries a coefficient-projection map from
+  the concrete `MvPolynomial` space into the finite-support row model, plus
+  the realization proof that every selected derivative-window row is the image
+  of an actual element of `SPDP.spdpSubspace`;
+- `nwDerivativeWindowRows_finrank_le_actual_spdpRank` proves that such a
+  realization bounds the finite-support row rank by the actual
+  `SPDP.spdpRank`;
+- `NWSPDPIndependenceCertificate.ofLowAgreementActualSPDP` composes the
+  low-agreement/window hypotheses with this concrete bridge, so the final
+  certificate is stated against the real SPDP rank of an ambient
+  `MvPolynomial`, not a free numerical rank.
+
+The remaining formal theorem is the row-realization payload itself: construct
+the concrete coefficient-projection map for the NW `MvPolynomial` and prove
+that the derivative-window rows used in the finite-support model are exactly
+images of actual shifted partial derivatives in `SPDP.spdpSubspace`.
 
 ## Calibration script
 
