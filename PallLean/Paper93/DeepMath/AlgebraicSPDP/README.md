@@ -103,6 +103,12 @@ leading monomials behind the Lean bridge.  It confirms:
 - at `d=4,q=5,e=2,D={0,1}`, the actual NW derivative-window rows exactly
   equal the residual indicator rows, residual supports are injective, and the
   leading monomials match the residual graph pivots for all 25 labels.
+- over all six `kappa=2` point windows for `NW_{d=4,q=5,e=2}`, the unshifted
+  leading-monomial count is `150`, exactly matching the real
+  `Gamma_{2,0} = 150`;
+- after allowing all degree-`<=1` shifts, the selected shifted family has
+  `3150` candidate rows but `1550` distinct leading monomials, exactly
+  matching the real `Gamma_{2,1} = 1550`.
 
 These finite ranks are calibration only.  The frontier result requires an
 asymptotic NW support-independence theorem, not brute-force exact rank

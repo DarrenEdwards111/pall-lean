@@ -18,12 +18,13 @@ This is a calibration script, not an asymptotic proof.
 from __future__ import annotations
 
 from collections import defaultdict
-from itertools import product
-from typing import Iterable
+from itertools import combinations, product
+from typing import Iterable, Sequence
 
 
 Label = tuple[int, ...]
 Support = tuple[int, ...]
+Exponent = tuple[int, ...]
 
 
 def labels(q: int, e: int) -> list[Label]:
@@ -54,7 +55,7 @@ def derivative_window_row(q: int, d: int, e: int, D: tuple[int, ...], a: Label):
     return dict(row)
 
 
-def exponent_vector(num_vars: int, support: Support) -> tuple[int, ...]:
+def exponent_vector(num_vars: int, support: Support) -> Exponent:
     s = set(support)
     return tuple(1 if i in s else 0 for i in range(num_vars))
 
@@ -64,6 +65,40 @@ def leading_support(num_vars: int, row: dict[Support, int]) -> Support:
     if not nonzero:
         raise ValueError("zero derivative row")
     return max(nonzero, key=lambda support: exponent_vector(num_vars, support))
+
+
+def monomial_exponents_le(num_vars: int, degree: int) -> list[Exponent]:
+    """All exponent vectors of total degree at most degree."""
+    out: list[Exponent] = []
+
+    def rec(pos: int, remaining: int, current: list[int]) -> None:
+        if pos == num_vars:
+            out.append(tuple(current))
+            return
+        for exp in range(remaining + 1):
+            current.append(exp)
+            rec(pos + 1, remaining - exp, current)
+            current.pop()
+
+    rec(0, degree, [])
+    return out
+
+
+def add_exponents(a: Sequence[int], b: Sequence[int]) -> Exponent:
+    return tuple(x + y for x, y in zip(a, b))
+
+
+def shifted_row_leading_exponent(
+    num_vars: int,
+    row: dict[Support, int],
+    shift: Exponent,
+) -> Exponent:
+    """Leading exponent vector of shift * row under lex order."""
+    nonzero = [support for support, coeff in row.items() if coeff != 0]
+    if not nonzero:
+        raise ValueError("zero derivative row")
+    shifted = [add_exponents(exponent_vector(num_vars, support), shift) for support in nonzero]
+    return max(shifted)
 
 
 def first_collisions(mapping: dict[Label, Support], limit: int = 3):
@@ -140,6 +175,63 @@ def check_case(q: int, d: int, e: int, D: tuple[int, ...]) -> None:
                 break
 
 
+def shifted_leading_count(q: int, d: int, e: int, kappa: int, ell: int):
+    """Count distinct leading monomials of selected shifted NW partials.
+
+    The selected family ranges over:
+
+    * all point windows D of size kappa,
+    * all labels a in F_q^e,
+    * all monomial shifts of total degree at most ell.
+
+    This is still a lower-bound diagnostic: distinct leading monomials give an
+    independent subfamily, while collisions may leave additional rank that this
+    count does not see.
+    """
+    all_labels = labels(q, e)
+    num_vars = d * q
+    shifts = monomial_exponents_le(num_vars, ell)
+
+    leads: dict[tuple[tuple[int, ...], Label, Exponent], Exponent] = {}
+    for D in combinations(range(d), kappa):
+        for a in all_labels:
+            row = derivative_window_row(q, d, e, D, a)
+            for shift in shifts:
+                leads[(D, a, shift)] = shifted_row_leading_exponent(num_vars, row, shift)
+
+    return {
+        "candidate_rows": len(leads),
+        "distinct_leads": len(set(leads.values())),
+        "collisions": len(leads) - len(set(leads.values())),
+        "num_windows": len(list(combinations(range(d), kappa))),
+        "num_labels": len(all_labels),
+        "num_shifts": len(shifts),
+    }
+
+
+def check_shifted_family(
+    q: int,
+    d: int,
+    e: int,
+    kappa: int,
+    ell: int,
+    real_gamma: int | None = None,
+) -> None:
+    count = shifted_leading_count(q, d, e, kappa, ell)
+    print("\n" + "=" * 78)
+    print(f"NW shifted-leading count: d={d}, q={q}, e={e}, kappa={kappa}, ell={ell}")
+    print("=" * 78)
+    print(f"point windows: {count['num_windows']}")
+    print(f"labels: {count['num_labels']}")
+    print(f"shifts deg<=ell: {count['num_shifts']}")
+    print(f"candidate shifted rows: {count['candidate_rows']}")
+    print(f"distinct leading monomials: {count['distinct_leads']}")
+    print(f"leading collisions: {count['collisions']}")
+    if real_gamma is not None:
+        print(f"real Gamma_{{{kappa},{ell}}}: {real_gamma}")
+        print(f"count <= real Gamma? {count['distinct_leads'] <= real_gamma}")
+
+
 def main() -> None:
     # d=3 cannot satisfy both |D| > e-1 and |outside| > e-1 when e=2.
     # These two checks show exactly which side fails.
@@ -151,7 +243,12 @@ def main() -> None:
     # derivative-window rows.
     check_case(q=5, d=4, e=2, D=(0, 1))
 
+    # The real SPDP strength comes from using every derivative window and then
+    # shifting.  These counts compare the leading-monomial model with the exact
+    # ranks measured by algebraic_spdp_nw_depth3.py.
+    check_shifted_family(q=5, d=4, e=2, kappa=2, ell=0, real_gamma=150)
+    check_shifted_family(q=5, d=4, e=2, kappa=2, ell=1, real_gamma=1550)
+
 
 if __name__ == "__main__":
     main()
-
