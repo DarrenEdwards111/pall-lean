@@ -80,6 +80,55 @@ def SPDPMatrixLowActionCoverage
   forall Ls : StrictDynamicNFrameLagrangianObserver enc,
     Nonempty (SPDPMatrixLowActionCertificate enc Ls)
 
+/-- The exact non-circular polynomial-bound target underneath the SPDP matrix
+coverage statement.  The matrix positivity side is not the hard part: the
+identity matrix already supplies a gauge.  The content is proving that each
+strict observer's live-boundary trajectory has some polynomial exponent. -/
+def StrictObserverLiveBoundaryPolynomialBound
+    (enc : ThreeCNFEncoding) : Prop :=
+  forall Ls : StrictDynamicNFrameLagrangianObserver enc,
+    exists k : Nat,
+      forall n : Nat,
+        forall input : Fin n -> Bool,
+        forall time : Nat,
+          Ls.toTrajectory.liveBoundaryRank n input time <= n ^ k
+
+/-- Identity matrices supply the matrix-gauge side at every length. -/
+theorem identityMatrixGaugeAt_all_lengths :
+    forall n : Nat,
+      exists A : Matrix (Fin n) (Fin n) ℝ,
+        exists 𝒥 : Finset (Finset (Fin n)),
+          IsAmplituhedronGauge A 𝒥 := by
+  intro n
+  exact ⟨1, ∅, identity_isAmplituhedronGauge_empty⟩
+
+/-- The matrix socket is discharged as soon as the live-boundary polynomial
+bound is proved.  This shows precisely where the remaining mathematics lives:
+not in constructing a matrix gauge, but in deriving `≤ n^k` for the strict
+observer trajectory. -/
+theorem spdpMatrixLowActionCoverage_of_liveBoundaryPolynomialBound
+    {enc : ThreeCNFEncoding}
+    (Hpoly : StrictObserverLiveBoundaryPolynomialBound enc) :
+    SPDPMatrixLowActionCoverage enc := by
+  intro Ls
+  rcases Hpoly Ls with ⟨k, hk⟩
+  exact ⟨{
+    k := k
+    matrixGaugeAt := identityMatrixGaugeAt_all_lengths
+    liveBoundaryRank_le_poly_from_matrix := hk
+  }⟩
+
+/-- If there is no encoded SAT-deciding DTM, the coverage statement is
+vacuously true because strict observers contain such a decider.  This is useful
+as an audit theorem only; using it to prove the separation would be circular. -/
+theorem spdpMatrixLowActionCoverage_of_no_DTMDecidesSATWithEncoding
+    {enc : ThreeCNFEncoding}
+    (hno : Not (exists M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M)) :
+    SPDPMatrixLowActionCoverage enc := by
+  intro Ls
+  exact False.elim (hno ⟨Ls.M, Ls.decides⟩)
+
 /-- Uniform matrix certificates discharge the corrected C2 obligation package. -/
 noncomputable def strictObserverLowActionGodMoveCoverageObligations_of_spdpMatrixCoverage
     {enc : ThreeCNFEncoding}
@@ -127,6 +176,9 @@ theorem standardPvsNP_of_theorem207StrictPort_spdpMatrixCoverage_and_standardBri
 /-! ## Axiom audit anchors -/
 #print axioms lowActionStrictObserver_of_spdpMatrixCertificate
 #print axioms strictObserverLowActionCoverageDatum_of_spdpMatrixCertificate
+#print axioms identityMatrixGaugeAt_all_lengths
+#print axioms spdpMatrixLowActionCoverage_of_liveBoundaryPolynomialBound
+#print axioms spdpMatrixLowActionCoverage_of_no_DTMDecidesSATWithEncoding
 #print axioms strictObserverLowActionGodMoveCoverageObligations_of_spdpMatrixCoverage
 #print axioms perObserverStrictLowActionGodMoveCoverage_of_spdpMatrixCoverage
 #print axioms no_DTMDecidesSATWithEncoding_of_theorem207StrictPort_and_spdpMatrixCoverage
