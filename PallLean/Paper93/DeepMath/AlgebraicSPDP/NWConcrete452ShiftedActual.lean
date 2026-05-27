@@ -344,6 +344,94 @@ noncomputable def candidateExponent (c : ShiftedCandidate) : Exponent20 :=
 noncomputable def shapeExponent (s : ShiftedLeadShape) : Exponent20 :=
   candidateExponent (shapeCandidate s)
 
+/-- Computable copy of the candidate residual support.  It is definitionally the
+same finite set as `candidateResidual`, but avoids carrying the `noncomputable`
+marker into finite checks. -/
+def candidateResidualC (c : ShiftedCandidate) : Finset (Fin 20) :=
+  (Finset.univ.filter fun x : Point => x ∉ c.D.toFinset).image fun x =>
+    enc (x, code c.a x)
+
+/-- Computable copy of `candidateExpAt`. -/
+def candidateExpAtC (c : ShiftedCandidate) (v : Fin 20) : Nat :=
+  (if v ∈ candidateResidualC c then 1 else 0) +
+    (if c.shift = some v then 1 else 0)
+
+/-- Computable copy of `candidateLeadCode`. -/
+def candidateLeadCodeC (c : ShiftedCandidate) : Nat :=
+  ∑ v : Fin 20, candidateExpAtC c v * 3 ^ v.val
+
+/-- Base-3 code of a full exponent vector. -/
+noncomputable def exponentCode (e : Exponent20) : Nat :=
+  ∑ v : Fin 20, e v * 3 ^ v.val
+
+/-- The computable copies above are definitionally aligned with the original
+candidate exponent code. -/
+theorem exponentCode_shapeExponent_eq_candidateLeadCodeC
+    (s : ShiftedLeadShape) :
+    exponentCode (shapeExponent s) = candidateLeadCodeC (shapeCandidate s) := by
+  rfl
+
+/-- Numeric code of one concrete encoded variable. -/
+def encCodeN (x : Point) (v : Value) : Nat :=
+  (enc (x, v)).val
+
+/-- Fast closed-form base-3 code of the canonical shifted-leading shape. -/
+def shapeLeadCodeFast : ShiftedLeadShape -> Nat
+  | Sum.inl (D, vLeft, vRight) =>
+      3 ^ encCodeN D.outLeft vLeft + 3 ^ encCodeN D.outRight vRight
+  | Sum.inr (Sum.inl (D, vLeft, vRight, squareRight)) =>
+      if squareRight then
+        3 ^ encCodeN D.outLeft vLeft + 2 * 3 ^ encCodeN D.outRight vRight
+      else
+        2 * 3 ^ encCodeN D.outLeft vLeft + 3 ^ encCodeN D.outRight vRight
+  | Sum.inr (Sum.inr (Sum.inl (Point3Support.omit0, v1, v2, v3))) =>
+      3 ^ encCodeN 1 v1 + 3 ^ encCodeN 2 v2 + 3 ^ encCodeN 3 v3
+  | Sum.inr (Sum.inr (Sum.inl (Point3Support.omit1, v0, v2, v3))) =>
+      3 ^ encCodeN 0 v0 + 3 ^ encCodeN 2 v2 + 3 ^ encCodeN 3 v3
+  | Sum.inr (Sum.inr (Sum.inl (Point3Support.omit2, v0, v1, v3))) =>
+      3 ^ encCodeN 0 v0 + 3 ^ encCodeN 1 v1 + 3 ^ encCodeN 3 v3
+  | Sum.inr (Sum.inr (Sum.inl (Point3Support.omit3, v0, v1, v2))) =>
+      3 ^ encCodeN 0 v0 + 3 ^ encCodeN 1 v1 + 3 ^ encCodeN 2 v2
+  | Sum.inr (Sum.inr (Sum.inr (W, pairAtRight, pair, singleValue))) =>
+      let l := pair.leftValue
+      let r := pair.rightValue
+      if pairAtRight then
+        3 ^ encCodeN W.leftPoint singleValue +
+          3 ^ encCodeN W.rightPoint l + 3 ^ encCodeN W.rightPoint r
+      else
+        3 ^ encCodeN W.leftPoint l + 3 ^ encCodeN W.leftPoint r +
+          3 ^ encCodeN W.rightPoint singleValue
+
+set_option synthInstance.maxHeartbeats 20000 in
+set_option synthInstance.maxSize 2048 in
+/-- The closed-form code matches the finite candidate exponent code. -/
+theorem candidateLeadCodeC_shapeCandidate_eq_fast
+    (s : ShiftedLeadShape) :
+    candidateLeadCodeC (shapeCandidate s) = shapeLeadCodeFast s := by
+  revert s
+  native_decide
+
+set_option synthInstance.maxHeartbeats 20000 in
+set_option synthInstance.maxSize 2048 in
+/-- The concrete shifted-leading shape code is injective. -/
+theorem shapeLeadCodeFast_injective :
+    Function.Injective shapeLeadCodeFast := by
+  intro x y h
+  revert x y
+  native_decide
+
+/-- The canonical exponent vector distinguishes all `1550` shifted-leading
+shapes. -/
+theorem shapeExponent_injective :
+    Function.Injective shapeExponent := by
+  intro x y h
+  apply shapeLeadCodeFast_injective
+  rw [← candidateLeadCodeC_shapeCandidate_eq_fast x,
+    ← candidateLeadCodeC_shapeCandidate_eq_fast y,
+    ← exponentCode_shapeExponent_eq_candidateLeadCodeC x,
+    ← exponentCode_shapeExponent_eq_candidateLeadCodeC y,
+    h]
+
 /-- In the concrete affine `NW_{4,5,2}` instance, differentiating by any
 two-point window leaves exactly the residual graph monomial of the selected
 label.
@@ -433,6 +521,64 @@ theorem shiftedCandidatePolynomial_eq_shifted_residual_prod
     iterDerivList_nwMvPolynomial_window2_eq_residual_prod]
   rfl
 
+/-- The displayed exponent for an unshifted candidate is exactly its residual
+squarefree exponent. -/
+theorem candidateExponent_none_eq_finSupport (D : Window2) (a : Label) :
+    candidateExponent ({ D := D, a := a, shift := none } : ShiftedCandidate) =
+      finSupportMonomial
+        (candidateResidual ({ D := D, a := a, shift := none } : ShiftedCandidate)) := by
+  ext v
+  rw [finSupportMonomial, SymmetricPower.tagMonomial_apply]
+  simp [candidateExponent, candidateExpAt]
+
+/-- The displayed exponent for a shifted candidate is its residual squarefree
+exponent plus the selected shift variable. -/
+theorem candidateExponent_some_eq_single_add_finSupport
+    (D : Window2) (a : Label) (v : Fin 20) :
+    candidateExponent ({ D := D, a := a, shift := some v } : ShiftedCandidate) =
+      Finsupp.single v 1 +
+        finSupportMonomial
+          (candidateResidual ({ D := D, a := a, shift := some v } : ShiftedCandidate)) := by
+  ext u
+  by_cases huv : u = v
+  · subst huv
+    simp [candidateExponent, candidateExpAt, finSupportMonomial,
+      SymmetricPower.tagMonomial_apply]
+    omega
+  · have hvu : v ≠ u := fun h => huv h.symm
+    simp [candidateExponent, candidateExpAt, finSupportMonomial,
+      SymmetricPower.tagMonomial_apply, hvu]
+
+/-- A shifted residual product is the pure monomial with the candidate's
+displayed exponent vector. -/
+theorem shift_mul_residual_prod_eq_monomial_candidateExponent
+    (c : ShiftedCandidate) :
+    shiftPolynomial c.shift *
+        ((candidateResidual c).prod fun i =>
+          (MvPolynomial.X i : MvPolynomial (Fin 20) ℚ)) =
+      MvPolynomial.monomial (candidateExponent c) (1 : ℚ) := by
+  cases c with
+  | mk D a shift =>
+    cases shift with
+    | none =>
+        rw [prod_X_eq_monomial_finSupport]
+        simp [shiftPolynomial]
+        exact (candidateExponent_none_eq_finSupport D a).symm
+    | some sh =>
+        rw [prod_X_eq_monomial_finSupport]
+        rw [shiftPolynomial, MvPolynomial.X, MvPolynomial.monomial_mul]
+        simp only [one_mul]
+        rw [candidateExponent_some_eq_single_add_finSupport D a sh]
+
+/-- Every concrete shifted candidate polynomial is a pure monomial with its
+displayed exponent vector. -/
+theorem shiftedCandidatePolynomial_eq_monomial_candidateExponent
+    (c : ShiftedCandidate) :
+    shiftedCandidatePolynomial c =
+      MvPolynomial.monomial (candidateExponent c) (1 : ℚ) := by
+  rw [shiftedCandidatePolynomial_eq_shifted_residual_prod]
+  exact shift_mul_residual_prod_eq_monomial_candidateExponent c
+
 /-- Coefficient projection to the canonical `1550` shifted-leading shape
 coordinates. -/
 noncomputable def shiftedCoeffProjectionByShape :
@@ -449,6 +595,36 @@ noncomputable def shiftedCoeffProjectionByShape :
 noncomputable def shiftedShapeRows (s : ShiftedLeadShape) :
     ShiftedLeadShape -> ℚ :=
   shiftedCoeffProjectionByShape (shiftedCandidatePolynomial (shapeCandidate s))
+
+/-- The canonical shifted-shape row family is Kronecker on the canonical
+shape exponents. -/
+theorem shiftedShapeRows_eq_indicator (j i : ShiftedLeadShape) :
+    shiftedShapeRows j i =
+      if shapeExponent j = shapeExponent i then (1 : ℚ) else 0 := by
+  unfold shiftedShapeRows shiftedCoeffProjectionByShape
+  change MvPolynomial.coeff (shapeExponent i)
+      (shiftedCandidatePolynomial (shapeCandidate j)) =
+    if shapeExponent j = shapeExponent i then (1 : ℚ) else 0
+  rw [shiftedCandidatePolynomial_eq_monomial_candidateExponent]
+  rw [MvPolynomial.coeff_monomial]
+  simp [shapeExponent]
+
+/-- Every canonical shifted row has a nonzero private diagonal coefficient. -/
+theorem shiftedShapeRows_self_ne_zero :
+    ∀ i, shiftedShapeRows i i ≠ 0 := by
+  intro i
+  rw [shiftedShapeRows_eq_indicator]
+  simp
+
+/-- Distinct canonical shifted rows vanish at each other's pivot coordinates. -/
+theorem shiftedShapeRows_offdiag :
+    ∀ i j, i ≠ j -> shiftedShapeRows j i = 0 := by
+  intro i j hij
+  rw [shiftedShapeRows_eq_indicator]
+  have hne : shapeExponent j ≠ shapeExponent i := by
+    intro h
+    exact hij ((shapeExponent_injective h).symm)
+  simp [hne]
 
 /-- The canonical finite shape rows are projections of actual elements of the
 concrete SPDP subspace. -/
@@ -498,6 +674,14 @@ theorem spdpRank_nw452_ge_1550_of_shapePrivatePivots
       shiftedShapeRows_finrank_le_actual_spdpRank_canonical
   simpa [shiftedLeadShape_card] using hcard
 
+/-- Unconditional strong shifted-leading lower bound for the concrete
+`NW_{4,5,2}` polynomial at `(κ,ℓ)=(2,1)`. -/
+theorem spdpRank_nw452_ge_1550 :
+    1550 <= SPDP.spdpRank 2 1 (nwMvPolynomial enc code) :=
+  spdpRank_nw452_ge_1550_of_shapePrivatePivots
+    shiftedShapeRows_self_ne_zero
+    shiftedShapeRows_offdiag
+
 /-! ## Axiom audit -/
 
 #print axioms shiftedCandidatePolynomial_mem_spdpSubspace
@@ -506,6 +690,10 @@ theorem spdpRank_nw452_ge_1550_of_shapePrivatePivots
 #print axioms spdpRank_nw452_ge_1550_of_shiftedShapeSelectionByCode
 #print axioms shiftedShapeRows_finrank_le_actual_spdpRank_canonical
 #print axioms spdpRank_nw452_ge_1550_of_shapePrivatePivots
+#print axioms shapeExponent_injective
+#print axioms shiftedShapeRows_self_ne_zero
+#print axioms shiftedShapeRows_offdiag
+#print axioms spdpRank_nw452_ge_1550
 
 end NW452
 
