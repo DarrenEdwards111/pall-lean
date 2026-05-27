@@ -73,10 +73,10 @@ end Theorem207ExtractionWithRemainder
 /-- A canonical Theorem-207 extraction/remainder split.
 
 This wrapper is intentionally stronger than a bare algebraic decomposition:
-the split must be the paper's canonical instrumented compiler split, and the
-remainder must be the actual deleted-sheet residual.  These fields are not
-proved here; they prevent the global bridge from ranging over arbitrary
-decompositions such as `sheet = 0`, `remainder = paperCompiledPoly`.
+the split must be the paper's canonical instrumented compiler split, the
+remainder must be the actual deleted-sheet residual, and the extracted sheet
+must be nonzero.  The nonzero field is the concrete guard excluding the
+degenerate decomposition `sheet = 0`, `remainder = paperCompiledPoly`.
 -/
 structure CanonicalTheorem207ExtractionWithRemainder
     (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
@@ -87,6 +87,7 @@ structure CanonicalTheorem207ExtractionWithRemainder
   canonical_split_cert : canonical_split
   remainder_is_deleted_sheet_residual : Prop
   remainder_residual_cert : remainder_is_deleted_sheet_residual
+  coupledSheet_ne_zero : extraction.coupledSheet ≠ 0
 
 namespace CanonicalTheorem207ExtractionWithRemainder
 
@@ -105,6 +106,24 @@ def toExtraction
     (E : CanonicalTheorem207ExtractionWithRemainder M n hn hn2 htb hns) :
     GlobalGodMoveGauge.Theorem207Extraction M n hn hn2 htb hns :=
   E.extraction.toExtraction
+
+/-- A canonical nonzero sheet prevents the degenerate deletion split
+`remainder = paperCompiledPoly`. -/
+theorem remainder_ne_paperCompiledPoly
+    {M : DTM} {n : Nat} {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    (E : CanonicalTheorem207ExtractionWithRemainder M n hn hn2 htb hns) :
+    E.extraction.remainder ≠ E.extraction.paperCompiledPoly := by
+  intro hrem
+  have hzero : E.extraction.coupledSheet = 0 := by
+    have hfull := E.extraction.full_eq_sheet_add_remainder
+    rw [hrem] at hfull
+    have hfull' :
+        E.extraction.coupledSheet + E.extraction.paperCompiledPoly =
+          0 + E.extraction.paperCompiledPoly := by
+      simpa using hfull.symm
+    exact add_right_cancel hfull'
+  exact E.coupledSheet_ne_zero hzero
 
 end CanonicalTheorem207ExtractionWithRemainder
 
@@ -279,6 +298,7 @@ theorem signedThreeCNFEncoding_remainder_route_nonvacuous :
 #print axioms Theorem207ExtractionWithRemainder.toExtraction
 #print axioms CanonicalTheorem207ExtractionWithRemainder.toExtractionWithRemainder
 #print axioms CanonicalTheorem207ExtractionWithRemainder.toExtraction
+#print axioms CanonicalTheorem207ExtractionWithRemainder.remainder_ne_paperCompiledPoly
 #print axioms SignedExtractionRemainderPairSemantics.sheetEssentialityAfterDeletion
 #print axioms SignedExtractionRemainderTriAspectSemanticInterface.toSignedExtractionRemainderPairSemantics
 #print axioms SignedExtractionRemainderTriAspectSemanticInterface.sheetEssentialityAfterDeletion
