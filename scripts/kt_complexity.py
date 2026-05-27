@@ -29,7 +29,19 @@ THE MACHINE U (fixed, tiny, step-counted):
   alphabet size = 8 tokens: E0,E1,I,H,J-1,J-2,J-3,J-4.
 """
 from __future__ import annotations
-from metacomplexity import min_formula_size, num_funcs, var_mask, NOT, f_and, f_or, f_maj, f_xor
+from metacomplexity import (
+    AND,
+    OR,
+    full_mask,
+    min_formula_size,
+    num_funcs,
+    var_mask,
+    NOT,
+    f_and,
+    f_or,
+    f_maj,
+    f_xor,
+)
 
 
 # ----------------------------------------------------------------------------
@@ -79,6 +91,59 @@ def repeat_program(block, reps):
     setup = [("I",)] * (reps - 1)
     jump = [("J", -len(body))]
     return setup + body + jump
+
+
+# ----------------------------------------------------------------------------
+# 1b.  A richer model-relative K^t upper-bound machine
+# ----------------------------------------------------------------------------
+def compositional_kt_upper_bounds(n, max_cost=8, include_xor=False):
+    """Return a dict {truth_table_mask: min expression cost} for a small
+    straight-line/compositional description model.
+
+    This is not a replacement for the tiny tape machine above.  It is a second,
+    explicitly model-relative K^t upper-bound surface: constants and input
+    projections cost 1 token; NOT/AND/OR cost one extra composition token; and
+    optionally XOR is admitted as a primitive.  A literal truth-table fallback
+    should still be applied by callers when a mask is absent.
+
+    The point of this model is diagnostic: it shows which K^t divergences were
+    caused by the tape machine lacking substitution/composition instructions,
+    and which divergences depend on admitting stronger primitives such as XOR.
+    """
+    if max_cost < 1:
+        return {}
+
+    by_cost = [set() for _ in range(max_cost + 1)]
+    best = {}
+
+    def add(mask, cost):
+        if cost > max_cost:
+            return
+        old = best.get(mask)
+        if old is None or cost < old:
+            best[mask] = cost
+            by_cost[cost].add(mask)
+
+    leaves = [0, full_mask(n)] + [var_mask(n, j) for j in range(n)]
+    for mask in leaves:
+        add(mask, 1)
+
+    for cost in range(2, max_cost + 1):
+        for a in by_cost[cost - 1]:
+            add(NOT(a, n), cost)
+
+        for left_cost in range(1, cost - 1):
+            right_cost = cost - left_cost - 1
+            if right_cost < 1:
+                continue
+            for a in by_cost[left_cost]:
+                for b in by_cost[right_cost]:
+                    add(AND(a, b), cost)
+                    add(OR(a, b), cost)
+                    if include_xor:
+                        add(a ^ b, cost)
+
+    return best
 
 
 # ----------------------------------------------------------------------------

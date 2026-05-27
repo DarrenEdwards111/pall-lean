@@ -23,7 +23,7 @@ from statistics import mean
 
 from metacomplexity import (min_formula_size, num_funcs, var_mask, NOT,
                             f_and, f_or, f_maj, f_xor)
-from kt_complexity import run_machine
+from kt_complexity import compositional_kt_upper_bounds, run_machine
 
 
 # ----------------------------------------------------------------------------
@@ -72,16 +72,33 @@ def run():
     mcsp = min_formula_size(n)
     print("   computing K^t by program enumeration on U (token budget 6) ...")
     ktab = enumerate_kt(out_len=L, max_tokens=6, t=48)
+    print("   computing compositional K^t upper bounds (Boolean basis, cost <= 8) ...")
+    comp_bool = compositional_kt_upper_bounds(n, max_cost=L, include_xor=False)
+    print("   computing compositional K^t upper bounds (Boolean basis + XOR, cost <= 8) ...")
+    comp_xor = compositional_kt_upper_bounds(n, max_cost=L, include_xor=True)
 
     def kt(mask):
         return ktab.get(tt_string(mask, L), L)   # fall back to literal (= L tokens)
 
+    def kt_comp_bool(mask):
+        return min(comp_bool.get(mask, L), L)
+
+    def kt_comp_xor(mask):
+        return min(comp_xor.get(mask, L), L)
+
     mcsp_vals = [mcsp[m] for m in range(total)]
     kt_vals = [kt(m) for m in range(total)]
+    kt_bool_vals = [kt_comp_bool(m) for m in range(total)]
+    kt_xor_vals = [kt_comp_xor(m) for m in range(total)]
     r = pearson(mcsp_vals, kt_vals)
+    r_bool = pearson(mcsp_vals, kt_bool_vals)
+    r_xor = pearson(mcsp_vals, kt_xor_vals)
 
-    print(f"\n   Pearson correlation  r(MCSP, K^t) = {r:+.3f}   "
-          f"(positive => they loosely track)")
+    print("\n   Pearson correlations with MCSP:")
+    print(f"     tape U K^t                  r = {r:+.3f}")
+    print(f"     compositional K^t           r = {r_bool:+.3f}")
+    print(f"     compositional K^t + XOR     r = {r_xor:+.3f}")
+    print("   (positive => they loosely track; changes show model dependence)")
 
     # trend: average K^t within each MCSP bucket
     buckets = {}
@@ -91,14 +108,24 @@ def run():
     for k in sorted(buckets):
         vs = buckets[k]
         print(f"     MCSP={k:>2}:  mean K^t = {mean(vs):.2f}   (n={len(vs)})")
+    print("\n   richer-machine trend  (MCSP -> mean compositional K^t / +XOR K^t):")
+    for k in sorted(buckets):
+        masks = [m for m in range(total) if mcsp[m] == k]
+        print(f"     MCSP={k:>2}:  comp = {mean(kt_comp_bool(m) for m in masks):.2f}, "
+              f"comp+XOR = {mean(kt_comp_xor(m) for m in masks):.2f}   (n={len(masks)})")
 
     # how many truth tables are compressible (K^t < literal) at all
     compressible = sum(1 for m in range(total) if kt(m) < L)
+    compressible_bool = sum(1 for m in range(total) if kt_comp_bool(m) < L)
+    compressible_xor = sum(1 for m in range(total) if kt_comp_xor(m) < L)
     print(f"\n   compressible truth tables (K^t < literal {L}): "
           f"{compressible}/{total}  (rest are literal-incompressible under U)")
+    print(f"   compositional-compressible truth tables:")
+    print(f"     Boolean basis      : {compressible_bool}/{total}")
+    print(f"     Boolean basis + XOR: {compressible_xor}/{total}")
 
     # named examples: agreement AND divergence
-    print("\n   named functions  (MCSP = compute-cost,  K^t = describe-cost):")
+    print("\n   named functions  (MCSP = compute-cost, K^t variants = describe-cost):")
     named = [
         ("const 0", 0),
         ("x0 (projection)", var_mask(n, 0)),
@@ -111,30 +138,28 @@ def run():
     for label, m in named:
         flag = ""
         if mcsp[m] <= 2 and kt(m) >= L:
-            flag = "   <-- DIVERGES: easy to compute, NOT compressible under U"
-        if mcsp[m] >= 8 and kt(m) >= L:
-            flag = "   <-- high in BOTH"
-        print(f"     {label:<18} MCSP = {mcsp[m]:>2},  K^t = {kt(m):>2}, "
+            flag = "   <-- U-divergence: easy to compute, not periodic-compressible"
+        if label.startswith("parity"):
+            flag = "   <-- XOR primitive flips the K^t reading"
+        print(f"     {label:<18} MCSP = {mcsp[m]:>2}, "
+              f"U = {kt(m):>2}, comp = {kt_comp_bool(m):>2}, "
+              f"comp+XOR = {kt_comp_xor(m):>2}, "
               f"tt = {tt_string(m, L)}{flag}")
 
     print()
     print("-" * 92)
     print("READING THE RESULT (honest):")
-    print(f"  * They LOOSELY track: r = {r:+.3f} > 0, and mean K^t rises with MCSP --")
-    print("    a shared 'structure' core (simple functions tend to be cheap in both).")
-    print("    BUT honestly WHY: the only sub-ceiling K^t values come from the 16")
-    print("    compressible (periodic) truth tables, all at MCSP 0-2; everything with")
-    print("    MCSP>=3 is pinned at K^t=8.  So r is driven by that low corner + the")
-    print("    saturation ceiling, NOT a smooth gradient -- U is just too weak to")
-    print("    compress most truth tables.")
-    print("  * But they DIVERGE, and the divergences are the point:")
-    print("      - AND/OR have LOW MCSP (easy to compute) yet HIGH K^t here: their")
-    print("        truth tables ('00000001','01111111') are not PERIODIC, and U's only")
-    print("        compression primitive is the counting loop -- so U cannot describe")
-    print("        them short.  COMPUTE-cost and DESCRIBE-cost are genuinely different.")
-    print("      - this is also MODEL-dependence of K^t: a richer machine (substitution/")
-    print("        recursion) would compress more truth tables (e.g. parity's Thue-Morse")
-    print("        pattern), changing K^t while MCSP stays fixed.")
+    print(f"  * The weak tape machine has r = {r:+.3f}; the richer compositional machines")
+    print(f"    have r = {r_bool:+.3f} and r = {r_xor:+.3f}.  The shift is the point:")
+    print("    K^t is machine-relative up to an invariance constant, and at this tiny")
+    print("    scale the primitive set visibly matters.")
+    print("  * AND/OR were false negatives for the tape U: they are easy to compute but")
+    print("    non-periodic as 8-bit strings.  Adding substitution/composition compresses")
+    print("    them immediately.")
+    print("  * Parity is the sharper diagnostic: it stays literal-size in the Boolean")
+    print("    compositional model but drops when XOR is admitted as a primitive.  That")
+    print("    is exactly the metacomplexity lesson: the observer machine's instruction")
+    print("    set changes which structure is visible under a fixed time/description cap.")
     print("  * Takeaway: K^t-compressibility is (here) SUFFICIENT-ish for low MCSP but")
     print("    NOT necessary -- the measures share a core but capture different structure.")
     print("    MCSP is essentially 'circuit-flavoured K^t'; generic K^t is a different cut.")
