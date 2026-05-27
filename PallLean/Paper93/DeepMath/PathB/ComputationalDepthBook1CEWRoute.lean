@@ -904,10 +904,14 @@ structure Book1LocalAmbientTransferBoundary
           n < 2 ^ 804 ->
             extractedRank M n <= ambientRank M n
 
-/-- Local CEW/profile counting certificate boundary.  This is the intended
-assumption frontier for the P-side upper bound: a concrete profile universe and
-its counting inequalities are supplied explicitly. -/
-structure Book1LocalCEWProfileBoundary
+/-- Explicit local CEW/profile universe.
+
+This is deliberately **not** a theorem that every SAT decider has low CEW.
+It is a supplied finite profile accounting object for the chosen observer/rank
+model: `profileCount M n` is the size of this chosen local profile universe,
+`rank_le_profile` says the ambient rank is accounted for by that universe, and
+`profile_le_cew_monomial` is the local counting inequality for this universe. -/
+structure Book1ExplicitCEWProfileUniverse
     (pCEW : TuringMachine.DTM -> Nat -> Nat)
     (ambientRank : TuringMachine.DTM -> Nat -> Nat) where
   profileCount : TuringMachine.DTM -> Nat -> Nat
@@ -922,6 +926,14 @@ structure Book1LocalCEWProfileBoundary
         profileCount M n <= (pCEW M n) ^ cewExponent * n ^ sizeExponent
   rank_zero : forall M : TuringMachine.DTM, ambientRank M 0 <= 0
   rank_one : forall M : TuringMachine.DTM, ambientRank M 1 <= 1
+
+/-- Local CEW/profile counting certificate boundary.  This is the intended
+assumption frontier for the P-side upper bound: a concrete profile universe and
+its counting inequalities are supplied explicitly, as local data. -/
+structure Book1LocalCEWProfileBoundary
+    (pCEW : TuringMachine.DTM -> Nat -> Nat)
+    (ambientRank : TuringMachine.DTM -> Nat -> Nat) where
+  profileUniverse : Book1ExplicitCEWProfileUniverse pCEW ambientRank
 
 /-- Fully named certificate-boundary input for the normalized Book-1 route.
 The route file proves only that these local certificates assemble; it does not
@@ -1014,13 +1026,13 @@ def book1NormalizedSafeLocalPayloadBundle_of_namedCertificateBoundary
   large_ambient_payload_normalized :=
     B.ambientTransfer.large_ambient_payload_normalized
   preThreshold_ambient := B.ambientTransfer.preThreshold_ambient
-  profileCount := B.profileCounting.profileCount
-  cewExponent := B.profileCounting.cewExponent
-  sizeExponent := B.profileCounting.sizeExponent
-  rank_le_profile := B.profileCounting.rank_le_profile
-  profile_le_cew_monomial := B.profileCounting.profile_le_cew_monomial
-  rank_zero := B.profileCounting.rank_zero
-  rank_one := B.profileCounting.rank_one
+  profileCount := B.profileCounting.profileUniverse.profileCount
+  cewExponent := B.profileCounting.profileUniverse.cewExponent
+  sizeExponent := B.profileCounting.profileUniverse.sizeExponent
+  rank_le_profile := B.profileCounting.profileUniverse.rank_le_profile
+  profile_le_cew_monomial := B.profileCounting.profileUniverse.profile_le_cew_monomial
+  rank_zero := B.profileCounting.profileUniverse.rank_zero
+  rank_one := B.profileCounting.profileUniverse.rank_one
 
 /-- Convert the explicit local payload bundle into the bridge-aware assembly
 certificate.  This is pure packaging. -/
