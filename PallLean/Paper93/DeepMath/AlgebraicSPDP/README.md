@@ -88,11 +88,20 @@ The ambient rank bridge is now factored into its honest concrete shape:
   actual SPDP membership part: if the projected derivative-row coefficient
   identity holds, then the finite-support rows are images of elements of
   `SPDP.spdpSubspace`.
+- `nwMvMonomial` and `nwMvPolynomial` define the actual encoded
+  Nisan-Wigderson polynomial inside the project's `MvPolynomial` universe.
+- `NWProjectedDerivativeRowIdentity` names the remaining concrete
+  coefficient identity for that polynomial, and
+  `NWSPDPIndependenceCertificate.ofLowAgreementNWPolynomial` composes it into
+  the actual SPDP certificate.  The bridge is therefore no longer phrased for
+  an arbitrary ambient polynomial.
 
 The remaining formal theorem is now the coefficient identity for the concrete
 NW `MvPolynomial`: prove that applying `nwCoefficientProjection` to the
 actual iterated derivative over a window `D` gives exactly
-`nwDerivativeWindowRows code D a`.
+`nwDerivativeWindowRows code D a`.  This closes the modest window-row lower
+bound.  The stronger shifted-leading lower bound still needs the analogous
+projection/membership construction for shifted rows.
 
 ## Calibration script
 

@@ -394,6 +394,50 @@ theorem nwDerivativeWindowList_length
     (nwDerivativeWindowList enc code D a).length = D.card := by
   simp [nwDerivativeWindowList]
 
+/-! ### Actual NW polynomial target
+
+The bridge above still accepted an arbitrary polynomial `p`.  The definitions
+below pin the target down to the concrete NW polynomial encoded by `code`.
+The remaining row-realization theorem is now a single coefficient identity for
+this polynomial, rather than a generic bridge against a free ambient object.
+-/
+
+/-- The monomial for one NW codeword, encoded in the ambient variable set. -/
+noncomputable def nwMvMonomial
+    {numVars : Nat}
+    (enc : Point × Value -> Fin numVars)
+    (code : Label -> Point -> Value) (a : Label) :
+    MvPolynomial (Fin numVars) ℚ :=
+  (Finset.univ : Finset Point).prod
+    fun x => MvPolynomial.X (enc (x, code a x))
+
+/-- The concrete NW polynomial `sum_a prod_x X_(x, code a x)`. -/
+noncomputable def nwMvPolynomial
+    [Fintype Label]
+    {numVars : Nat}
+    (enc : Point × Value -> Fin numVars)
+    (code : Label -> Point -> Value) :
+    MvPolynomial (Fin numVars) ℚ :=
+  Finset.univ.sum fun a : Label => nwMvMonomial enc code a
+
+/-- The concrete coefficient identity left by the actual-SPDP bridge.
+
+For every label `a`, differentiating the concrete NW polynomial by the encoded
+window graph of `a`, then projecting squarefree residual coefficients, must
+produce exactly the finite-support derivative-window row used in the
+combinatorial NW argument.
+-/
+noncomputable def NWProjectedDerivativeRowIdentity
+    [Fintype Label] [Fintype Value]
+    {numVars : Nat}
+    (enc : Point × Value -> Fin numVars)
+    (code : Label -> Point -> Value) (D : Finset Point) : Prop :=
+  ∀ a : Label,
+    nwCoefficientProjection enc
+        (SPDP.iterDerivList (nwDerivativeWindowList enc code D a)
+          (nwMvPolynomial enc code)) =
+      nwDerivativeWindowRows code D a
+
 /-- Build the actual-SPDP bridge once the concrete coefficient identity is
 proved.
 
@@ -429,6 +473,23 @@ noncomputable def NWDerivativeRowsActualSPDPBridge.ofProjectedDerivativeRows
       · ring
     · exact projected_derivative_row a
 
+/-- Specialize the actual-SPDP bridge to the concrete NW polynomial.
+
+This removes the arbitrary ambient polynomial from the interface.  The only
+remaining payload is the named coefficient identity
+`NWProjectedDerivativeRowIdentity`. -/
+noncomputable def NWDerivativeRowsActualSPDPBridge.ofNWProjectedDerivativeRowIdentity
+    [Fintype Label] [Fintype Value]
+    {numVars kappa ell : Nat}
+    (enc : Point × Value -> Fin numVars)
+    (code : Label -> Point -> Value) (D : Finset Point)
+    (hDcard : D.card = kappa)
+    (projected_rows : NWProjectedDerivativeRowIdentity enc code D) :
+    NWDerivativeRowsActualSPDPBridge code D (nwMvPolynomial enc code)
+      (kappa := kappa) (ell := ell) :=
+  NWDerivativeRowsActualSPDPBridge.ofProjectedDerivativeRows
+    enc code D (nwMvPolynomial enc code) hDcard projected_rows
+
 /-- Fully explicit low-agreement NW certificate against the concrete
 `SPDP.spdpRank` of an ambient `MvPolynomial`.
 
@@ -462,6 +523,36 @@ noncomputable def NWSPDPIndependenceCertificate.ofLowAgreementActualSPDP
     support_lower_le_labels hD hOutside hlow
     (nwDerivativeWindowRows_finrank_le_actual_spdpRank code D p bridge)
 
+/-- Fully concrete NW certificate against the actual SPDP rank of
+`nwMvPolynomial enc code`.
+
+This is the modest unshifted/window-row closure shape.  It is no longer about a
+free polynomial or a free numerical rank; the only unproved mathematical input
+is the coefficient identity proving that actual derivatives of the concrete NW
+polynomial project to the finite-support rows.
+-/
+noncomputable def NWSPDPIndependenceCertificate.ofLowAgreementNWPolynomial
+    [Fintype Label] [Fintype Value]
+    {numVars degree kappa ell : Nat}
+    (support : NWLeadingSupportData)
+    (enc : Point × Value -> Fin numVars)
+    (code : Label -> Point -> Value) (D : Finset Point)
+    (overlapBound : Nat)
+    (support_lower_le_labels : support.lower <= Fintype.card Label)
+    (hD : overlapBound < D.card)
+    (hOutside :
+      overlapBound < (Finset.univ.filter fun x : Point => x ∉ D).card)
+    (hlow : ∀ a b : Label, a ≠ b ->
+      (nwAgreementSet code a b).card <= overlapBound)
+    (hDcard : D.card = kappa)
+    (projected_rows : NWProjectedDerivativeRowIdentity enc code D) :
+    NWSPDPIndependenceCertificate numVars degree kappa ell :=
+  NWSPDPIndependenceCertificate.ofLowAgreementActualSPDP
+    support code D (nwMvPolynomial enc code) overlapBound
+    support_lower_le_labels hD hOutside hlow
+    (NWDerivativeRowsActualSPDPBridge.ofNWProjectedDerivativeRowIdentity
+      enc code D hDcard projected_rows)
+
 /-! ## Axiom audit -/
 
 #print axioms exists_disagreement_in_large_window
@@ -473,7 +564,9 @@ noncomputable def NWSPDPIndependenceCertificate.ofLowAgreementActualSPDP
 #print axioms nwDerivativeWindowRows_finrank_le_actual_spdpRank
 #print axioms nwCoefficientProjection
 #print axioms NWDerivativeRowsActualSPDPBridge.ofProjectedDerivativeRows
+#print axioms NWDerivativeRowsActualSPDPBridge.ofNWProjectedDerivativeRowIdentity
 #print axioms NWSPDPIndependenceCertificate.ofLowAgreementActualSPDP
+#print axioms NWSPDPIndependenceCertificate.ofLowAgreementNWPolynomial
 
 end GraphDesign
 
