@@ -174,6 +174,26 @@ bridge is the actual shifted-row projection/membership theorem.
   `ShiftedLeadShape` and prove the nonzero/maximal/injective leading-monomial
   conditions.
 
+It now also closes the canonical finite shifted-shape computation:
+
+- `NW452.shiftedShapeRows_self_ne_zero` and
+  `NW452.shiftedShapeRows_offdiag` prove the private-pivot facts for the
+  selected `1550` shifted-leading rows;
+- `NW452.spdpRank_nw452_ge_1550` is the unconditional concrete lower bound
+  `1550 <= SPDP.spdpRank 2 1 (nwMvPolynomial NW452.enc NW452.code)`.
+
+`NWDepth3AsymptoticRoute.lean` records the ambitious algebraic ladder that
+generalizes the concrete computation:
+
+- `NWDepth3CertificateFamily` packages a scale-indexed family of NW/SPDP
+  independence certificates;
+- `no_polynomial_depth3_family_of_NW_asymptotic_gap` proves that if the NW
+  shifted-leading lower bound outruns every polynomial-size depth-3 capacity
+  bound, then no polynomially bounded depth-3 upper-bound family exists;
+- `NW452.depth3_product_gates_ge_13_of_shifted1550` turns the closed concrete
+  `1550` rank theorem into the explicit calibration bound that any matching
+  homogeneous depth-3 upper-bound witness needs at least `13` product gates.
+
 ## Calibration script
 
 `scripts/algebraic_spdp_nw_depth3.py` computes exact small SPDP ranks over
