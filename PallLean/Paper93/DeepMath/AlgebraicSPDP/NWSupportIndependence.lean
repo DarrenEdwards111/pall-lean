@@ -422,6 +422,10 @@ noncomputable def nwMvPolynomial
 
 /-- The concrete coefficient identity left by the actual-SPDP bridge.
 
+The injectivity condition is essential: without it, distinct graph variables
+`(Point × Value)` can collapse to the same ambient variable in `Fin numVars`,
+so squarefree coefficient projection is no longer faithful to graph supports.
+
 For every label `a`, differentiating the concrete NW polynomial by the encoded
 window graph of `a`, then projecting squarefree residual coefficients, must
 produce exactly the finite-support derivative-window row used in the
@@ -432,11 +436,37 @@ noncomputable def NWProjectedDerivativeRowIdentity
     {numVars : Nat}
     (enc : Point × Value -> Fin numVars)
     (code : Label -> Point -> Value) (D : Finset Point) : Prop :=
-  ∀ a : Label,
-    nwCoefficientProjection enc
-        (SPDP.iterDerivList (nwDerivativeWindowList enc code D a)
-          (nwMvPolynomial enc code)) =
-      nwDerivativeWindowRows code D a
+  Function.Injective enc ∧
+    ∀ a : Label,
+      nwCoefficientProjection enc
+          (SPDP.iterDerivList (nwDerivativeWindowList enc code D a)
+            (nwMvPolynomial enc code)) =
+        nwDerivativeWindowRows code D a
+
+/-- The injective-encoding side of `NWProjectedDerivativeRowIdentity`. -/
+theorem NWProjectedDerivativeRowIdentity.injective
+    [Fintype Label] [Fintype Value]
+    {numVars : Nat}
+    {enc : Point × Value -> Fin numVars}
+    {code : Label -> Point -> Value} {D : Finset Point}
+    (projected_rows : NWProjectedDerivativeRowIdentity enc code D) :
+    Function.Injective enc :=
+  projected_rows.1
+
+/-- The concrete projected-row equality side of
+`NWProjectedDerivativeRowIdentity`. -/
+theorem NWProjectedDerivativeRowIdentity.row_eq
+    [Fintype Label] [Fintype Value]
+    {numVars : Nat}
+    {enc : Point × Value -> Fin numVars}
+    {code : Label -> Point -> Value} {D : Finset Point}
+    (projected_rows : NWProjectedDerivativeRowIdentity enc code D) :
+    ∀ a : Label,
+      nwCoefficientProjection enc
+          (SPDP.iterDerivList (nwDerivativeWindowList enc code D a)
+            (nwMvPolynomial enc code)) =
+        nwDerivativeWindowRows code D a :=
+  projected_rows.2
 
 /-- Build the actual-SPDP bridge once the concrete coefficient identity is
 proved.
@@ -488,7 +518,7 @@ noncomputable def NWDerivativeRowsActualSPDPBridge.ofNWProjectedDerivativeRowIde
     NWDerivativeRowsActualSPDPBridge code D (nwMvPolynomial enc code)
       (kappa := kappa) (ell := ell) :=
   NWDerivativeRowsActualSPDPBridge.ofProjectedDerivativeRows
-    enc code D (nwMvPolynomial enc code) hDcard projected_rows
+    enc code D (nwMvPolynomial enc code) hDcard projected_rows.row_eq
 
 /-- Fully explicit low-agreement NW certificate against the concrete
 `SPDP.spdpRank` of an ambient `MvPolynomial`.
