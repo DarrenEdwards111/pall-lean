@@ -3,9 +3,7 @@ import PallLean.Paper93.DeepMath.NFrame.NFrameMainResults
 import PallLean.Paper93.DeepMath.NFrame.PillarSummary
 import PallLean.Paper93.DeepMath.CookLevin.CookLevinMainResults
 import PallLean.Paper93.DeepMath.CookLevin.Theorem207Chain
-import PallLean.Paper93.DeepMath.CookLevin.PaperFinalP_ne_NP
 import PallLean.Paper93.DeepMath.Paper93MasterTheorem
-import PallLean.Paper93.DeepMath.PathB.PaperFaithfulRouteBStatus
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLowActionStrictPort
 
 /-!
@@ -42,24 +40,13 @@ theorem paper93_lowActionStrictPort_iff_standardPvsNP
     Theorem207LowActionStrictLiveBoundaryPort enc ↔ B.standardPvsNP :=
   theorem207LowActionStrictPort_iff_standardPvsNP B
 
-/-- Canonical top-level Route-B status surface at paper scale. -/
-theorem paper93_routeB_status_readout
-    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
-    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (B_total : SPDP.BlockPartition
-      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
-    (hB_total : B_total =
-      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) :
-    True ∧
-    True ∧
-    GodMoveSameTargetStrongNPLower
-      (Step4Compiler.Step252.cookLevinStrictFOBTarget M n hn2 htb hns B_total) ∧
-    (¬ ∃ (r : ℕ), Nat.choose (n / 3) (Nat.log 2 n) ≤ r ∧ r ≤ n ^ 200) ∧
-    (¬ GodMoveTransportUpperBound M n hn2 htb hns B_total) :=
-  paperFaithfulRouteB_status_index M n hn hn2 htb hns B_total hB_total
+/-
+The older Step4/unsafe-archive final wrappers are intentionally not imported
+here.  They remain in their historical modules for forensic comparison, but are
+now off the active Paper93 final readout path.
+-/
 
 #print axioms paper93_lowActionStrictPort_iff_no_encodedSATDecider
 #print axioms paper93_lowActionStrictPort_iff_standardPvsNP
-#print axioms paper93_routeB_status_readout
 
 end PallLean.Paper93.DeepMath
