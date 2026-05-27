@@ -128,6 +128,29 @@ semantics is necessary but not sufficient.  A positive route would need a
 richer semantic-rank theorem showing that the actual run induces
 superpolynomial live structure, not merely nonzero local operational rank.
 
+The next stronger operational test is isolated in:
+- `ComputationalDepthOperationalTraceSemanticRank.lean`
+
+This file lets the live rank see the whole DTM run prefix up to the current
+time.  The rank is still induced by actual machine semantics, but it is bounded
+by the polynomial time window:
+
+```lean
+OperationalTracePrefixRankAt M n input time ≤ n ^ (M.timeBound + 1)
+```
+
+At paper scale this polynomial bound is again dominated by the binomial minor
+floor, yielding the audit theorem:
+
+```lean
+OperationalTracePrefixSemanticClosure enc
+  ↔ ¬ ∃ M, DTMDecidesSATWithEncoding enc M
+```
+
+Thus even whole-trace-prefix visibility is not enough.  The remaining positive
+target must be stronger than "count the live configurations in the run": it
+must derive a superpolynomial semantic object from the computation itself.
+
 ## Standard P-vs-NP bridge
 The standard-model readout is isolated in:
 - `ComputationalDepthStrictPortStandardBridge.lean`
