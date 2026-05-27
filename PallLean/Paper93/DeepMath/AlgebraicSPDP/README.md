@@ -52,9 +52,20 @@ distinct codewords implies:
   polynomial-calculus identification supplies containment in the actual SPDP
   row space.
 
-The remaining formal theorem is therefore the calculus/encoding bridge:
-identify the residual graph-support coefficient rows with actual shifted
-partial derivative rows of the NW polynomial.
+The file also proves the finite-support polynomial-calculus bridge:
+
+- `nwDerivativeWindowRows` is the coefficient row obtained by differentiating
+  the NW polynomial by one label's graph over the derivative window;
+- `nwDerivativeWindowRows_eq_residualIndicator_of_lowAgreement` proves that,
+  under low agreement and a large enough derivative window, this actual
+  derivative row is exactly the residual private-pivot indicator row;
+- `NWSPDPIndependenceCertificate.ofLowAgreementDerivativeRows` lets the final
+  certificate be stated using the actual derivative-window rows.
+
+The remaining formal theorem is now only the ambient encoding/containment
+step: embed these finite support coefficient rows into the project’s concrete
+`MvPolynomial`/`SPDP.spdpSubspace` representation and prove their row-span
+rank is bounded by the actual SPDP rank.
 
 ## Calibration script
 

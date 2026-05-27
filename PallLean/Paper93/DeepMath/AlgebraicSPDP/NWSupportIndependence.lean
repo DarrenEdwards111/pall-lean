@@ -138,6 +138,69 @@ def nwResidualIndicatorRows
     Label -> Finset (Point × Value) -> ℚ :=
   fun a m => if m = nwGraphOff code D a then 1 else 0
 
+/-! ## Polynomial-calculus row model
+
+For the NW polynomial
+
+`NW_code = sum_a prod_x X_(x, code a x)`,
+
+differentiating by the graph variables `{(x, code a x) : x in D}` keeps the
+monomial indexed by `b` exactly when `a` and `b` agree on every point of `D`.
+The surviving monomial support is then the residual graph of `b` outside `D`.
+
+The following definition is that coefficient row, written directly at the
+finite-support level.  It is the unshifted SPDP row; in the full SPDP space it
+appears with shift monomial `1`.
+-/
+
+/-- The coefficient row obtained by differentiating the NW polynomial by the
+graph of label `a` over the point window `D`. -/
+noncomputable def nwDerivativeWindowRows
+    [Fintype Label] [Fintype Value]
+    (code : Label -> Point -> Value) (D : Finset Point) :
+    Label -> Finset (Point × Value) -> ℚ :=
+  fun a m =>
+    if ∃ b : Label, (∀ x ∈ D, code a x = code b x) ∧
+        m = nwGraphOff code D b then 1 else 0
+
+/-- Under low agreement and a large derivative window, the actual
+NW derivative-window row is exactly the residual private-pivot indicator row.
+
+This is the polynomial-calculus/SPDP bridge at the support-row level.  The
+only surviving monomial after differentiating by label `a`'s graph over `D`
+is label `a`'s own residual graph: every other label disagrees somewhere in
+`D` and is killed by the derivative. -/
+theorem nwDerivativeWindowRows_eq_residualIndicator_of_lowAgreement
+    [Fintype Label] [Fintype Value]
+    (code : Label -> Point -> Value) (D : Finset Point)
+    (overlapBound : Nat)
+    (hD : overlapBound < D.card)
+    (hlow : ∀ a b : Label, a ≠ b ->
+      (nwAgreementSet code a b).card <= overlapBound) :
+    nwDerivativeWindowRows code D = nwResidualIndicatorRows code D := by
+  classical
+  funext a m
+  by_cases hm : m = nwGraphOff code D a
+  · have hsurvive :
+        ∃ b : Label, (∀ x ∈ D, code a x = code b x) ∧
+          nwGraphOff code D a = nwGraphOff code D b := by
+      exact ⟨a, by intro x hx; rfl, rfl⟩
+    simp [nwDerivativeWindowRows, nwResidualIndicatorRows, hm, hsurvive]
+  · have hnoSurvive :
+        ¬ ∃ b : Label, (∀ x ∈ D, code a x = code b x) ∧
+          m = nwGraphOff code D b := by
+      rintro ⟨b, hagree, hm_b⟩
+      by_cases hba : b = a
+      · subst hba
+        exact hm hm_b
+      · have hdis :
+            ∃ x ∈ D, code a x ≠ code b x :=
+          exists_disagreement_in_large_window code D overlapBound hD hlow
+            (fun hab => hba hab.symm)
+        rcases hdis with ⟨x, hxD, hneq⟩
+        exact hneq (hagree x hxD)
+    simp [nwDerivativeWindowRows, nwResidualIndicatorRows, hm, hnoSurvive]
+
 /-- The residual row has coefficient `1` at its own pivot. -/
 theorem nwResidualIndicatorRows_self
     [Fintype Value]
@@ -186,12 +249,46 @@ def NWSPDPIndependenceCertificate.ofLowAgreementResidualPivots
     support_lower_le_labels
     span_rank_le_spdp
 
+/-- The same certificate, but with the SPDP row-containment hypothesis stated
+for the actual NW derivative-window rows rather than for the normalized
+residual indicator rows.
+
+The equality theorem
+`nwDerivativeWindowRows_eq_residualIndicator_of_lowAgreement` transports the
+containment/rank hypothesis across the row identification. -/
+def NWSPDPIndependenceCertificate.ofLowAgreementDerivativeRows
+    [Fintype Label] [Fintype Value]
+    {numVars degree kappa ell : Nat}
+    (support : NWLeadingSupportData)
+    (code : Label -> Point -> Value) (D : Finset Point)
+    (overlapBound spdpRank : Nat)
+    (support_lower_le_labels : support.lower <= Fintype.card Label)
+    (hD : overlapBound < D.card)
+    (hOutside :
+      overlapBound < (Finset.univ.filter fun x : Point => x ∉ D).card)
+    (hlow : ∀ a b : Label, a ≠ b ->
+      (nwAgreementSet code a b).card <= overlapBound)
+    (span_rank_le_spdp :
+      (Set.range (nwDerivativeWindowRows code D)).finrank ℚ <= spdpRank) :
+    NWSPDPIndependenceCertificate numVars degree kappa ell := by
+  classical
+  have hrows :
+      nwDerivativeWindowRows code D = nwResidualIndicatorRows code D :=
+    nwDerivativeWindowRows_eq_residualIndicator_of_lowAgreement
+      code D overlapBound hD hlow
+  refine NWSPDPIndependenceCertificate.ofLowAgreementResidualPivots
+    support code D overlapBound spdpRank support_lower_le_labels
+    hOutside hlow ?_
+  simpa [← hrows] using span_rank_le_spdp
+
 /-! ## Axiom audit -/
 
 #print axioms exists_disagreement_in_large_window
+#print axioms nwDerivativeWindowRows_eq_residualIndicator_of_lowAgreement
 #print axioms nwGraphOff_injective_of_lowAgreement
 #print axioms nwResidualIndicatorRows_offdiag
 #print axioms NWSPDPIndependenceCertificate.ofLowAgreementResidualPivots
+#print axioms NWSPDPIndependenceCertificate.ofLowAgreementDerivativeRows
 
 end GraphDesign
 
