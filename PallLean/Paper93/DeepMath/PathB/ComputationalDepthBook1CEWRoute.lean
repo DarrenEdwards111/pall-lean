@@ -57,11 +57,82 @@ theorem book1CalibratedRamanujanTseitinHardNPLowerBound :
   intro n
   rfl
 
+/-- A concrete same-target Ramanujan/Tseitin certificate for one extracted
+rank value.
+
+This is the Book-1 hard-sheet object tied to the actual `GodMoveCore` seam:
+the extracted rank is definitionally the blocked-SPDP rank of a selected
+`GodMoveExtractionTarget`, and the NP lower bound comes from same-target
+PD-matrix/Ramanujan-Tseitin data.  The `timeBound ≤ 4` and `numStates ≤ n`
+side conditions are intentionally explicit; they are part of the existing
+God-Move target interface and should not be silently fabricated. -/
+structure Book1SameTargetRamanujanTseitinRankCertificate
+    (M : TuringMachine.DTM) (n r : Nat) where
+  hn2 : n >= 2
+  htb : M.timeBound <= 4
+  hns : M.numStates <= n
+  target : GodMoveExtractionTarget M n hn2 htb hns
+  sameTargetPD : RouteBNPFromPdMatrixSameTarget target
+  rank_eq :
+    r = MultilinearSPDP.mlBlockedSpdpRank target.coupledPartition
+      (Nat.log 2 n) (Nat.log 2 n) target.coupledPoly
+
+/-- Same-target Ramanujan/Tseitin data proves the calibrated hard lower bound
+for the extracted rank value. -/
+theorem book1CalibratedHardRank_le_of_sameTargetRamanujanTseitinCertificate
+    {M : TuringMachine.DTM} {n r : Nat}
+    (C : Book1SameTargetRamanujanTseitinRankCertificate M n r) :
+    book1CalibratedRamanujanTseitinHardRank n <= r := by
+  have htarget : n ^ (Nat.log 2 n / 4) <=
+      MultilinearSPDP.mlBlockedSpdpRank C.target.coupledPartition
+        (Nat.log 2 n) (Nat.log 2 n) C.target.coupledPoly :=
+    routeB_weakened_np_from_same_target_pdMatrix C.sameTargetPD
+  calc
+    book1CalibratedRamanujanTseitinHardRank n = n ^ (Nat.log 2 n / 4) := rfl
+    _ <= MultilinearSPDP.mlBlockedSpdpRank C.target.coupledPartition
+        (Nat.log 2 n) (Nat.log 2 n) C.target.coupledPoly := htarget
+    _ = r := C.rank_eq.symm
+
+/-- A global same-target Ramanujan/Tseitin hard-sheet model.
+
+For paper-scale sizes it requires the real same-target PD/SPDP certificate from
+`GodMoveCore`; below the paper threshold it asks for a finite endpoint lower
+bound separately.  This avoids pretending that the asymptotic target interface
+already covers `n = 0,1,...,2^804-1`. -/
+structure Book1SameTargetRamanujanTseitinHardSheetModel
+    (enc : ThreeCNFEncoding) where
+  extractedRank : TuringMachine.DTM -> Nat -> Nat
+  large_sameTarget :
+    forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M ->
+        forall n : Nat,
+          2 ^ 804 <= n ->
+            Book1SameTargetRamanujanTseitinRankCertificate M n (extractedRank M n)
+  preThreshold_lower :
+    forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M ->
+        forall n : Nat,
+          n < 2 ^ 804 ->
+            book1CalibratedRamanujanTseitinHardRank n <= extractedRank M n
+
+/-- The real same-target Ramanujan/Tseitin model instantiates the Book-1
+hard-sheet extraction bridge. -/
+def book1HardSheetExtractionModel_of_sameTargetRamanujanTseitinModel
+    {enc : ThreeCNFEncoding}
+    (R : Book1SameTargetRamanujanTseitinHardSheetModel enc) :
+    Book1HardSheetExtractionModel enc book1CalibratedRamanujanTseitinHardRank where
+  extractedRank := R.extractedRank
+  hardSheet_le_extracted := by
+    intro M hM n
+    by_cases hn : 2 ^ 804 <= n
+    · exact book1CalibratedHardRank_le_of_sameTargetRamanujanTseitinCertificate
+        (R.large_sameTarget M hM n hn)
+    · exact R.preThreshold_lower M hM n (Nat.lt_of_not_ge hn)
+
 /-- If the extracted sheet is exactly the calibrated Ramanujan/Tseitin hard
-sheet, the hard-sheet extraction model is immediate.  This is the honest
-concrete instantiation target for the remaining ambient/CEW route: downstream
-code can replace `extractedRank` with the actual same-target PD/SPDP rank once
-that object is wired in. -/
+rank function, the hard-sheet extraction model is immediate.  This remains a
+sanity-check/modeling baseline; the real same-target bridge above is the
+paper-facing route. -/
 def book1CalibratedHardSheetExtractionModel (enc : ThreeCNFEncoding) :
     Book1HardSheetExtractionModel enc book1CalibratedRamanujanTseitinHardRank where
   extractedRank := fun _ n => book1CalibratedRamanujanTseitinHardRank n
@@ -330,6 +401,8 @@ theorem standardPvsNP_of_book1CEWSPDP
     (no_DTMDecidesSATWithEncoding_of_book1CEWSPDP enc B)
 
 #print axioms book1CalibratedRamanujanTseitinHardNPLowerBound
+#print axioms book1CalibratedHardRank_le_of_sameTargetRamanujanTseitinCertificate
+#print axioms book1HardSheetExtractionModel_of_sameTargetRamanujanTseitinModel
 #print axioms book1CalibratedHardSheetExtractionModel
 #print axioms book1_superPolynomialGap
 #print axioms hardRank_le_extracted_of_hardSheetExtractionModel
