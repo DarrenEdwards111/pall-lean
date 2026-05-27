@@ -335,6 +335,48 @@ structure Book1CEWToSPDPCountingCertificate
   rank_zero : forall M : TuringMachine.DTM, pRank M 0 <= 0
   rank_one : forall M : TuringMachine.DTM, pRank M 1 <= 1
 
+/-- Concrete local profile-counting model for the Book-1 CEW upper bound.
+
+`profileCount M n` is the finite number of local CEW/window profiles available
+at size `n`.  The two load-bearing local facts are separated:
+
+* the SPDP rank is bounded by the number of profiles; and
+* the number of profiles is bounded by a fixed monomial in CEW and input size.
+
+This is the intended local combinatorics theorem: it does not quantify over all
+P deciders having small CEW; it only says that once a concrete observer has a
+CEW/window profile universe of this size, its rank is counted by that universe. -/
+structure Book1CEWProfileCountingModel
+    (pCEW : TuringMachine.DTM -> Nat -> Nat)
+    (pRank : TuringMachine.DTM -> Nat -> Nat) where
+  profileCount : TuringMachine.DTM -> Nat -> Nat
+  cewExponent : Nat
+  sizeExponent : Nat
+  rank_le_profile :
+    forall M : TuringMachine.DTM,
+      forall n : Nat, pRank M n <= profileCount M n
+  profile_le_cew_monomial :
+    forall M : TuringMachine.DTM,
+      forall n : Nat,
+        profileCount M n <= (pCEW M n) ^ cewExponent * n ^ sizeExponent
+  rank_zero : forall M : TuringMachine.DTM, pRank M 0 <= 0
+  rank_one : forall M : TuringMachine.DTM, pRank M 1 <= 1
+
+/-- A concrete CEW profile-counting model supplies the simpler monomial counting
+certificate used by the Book-1 route. -/
+def book1CEWToSPDPCountingCertificate_of_profileCountingModel
+    {pCEW : TuringMachine.DTM -> Nat -> Nat}
+    {pRank : TuringMachine.DTM -> Nat -> Nat}
+    (P : Book1CEWProfileCountingModel pCEW pRank) :
+    Book1CEWToSPDPCountingCertificate pCEW pRank where
+  cewExponent := P.cewExponent
+  sizeExponent := P.sizeExponent
+  rank_le_count := by
+    intro M n
+    exact Nat.le_trans (P.rank_le_profile M n) (P.profile_le_cew_monomial M n)
+  rank_zero := P.rank_zero
+  rank_one := P.rank_one
+
 /-- A local CEW counting certificate proves the Book-1 `CEW ⇒ polynomial SPDP`
 upper-bound field.  This is structural: polylog CEW plus a monomial counting
 bound gives polynomial ambient rank. -/
@@ -483,6 +525,7 @@ theorem standardPvsNP_of_book1CEWSPDP
 #print axioms book1_superPolynomialGap
 #print axioms hardRank_le_extracted_of_hardSheetExtractionModel
 #print axioms extracted_le_pRank_of_ambientCompiledRankModel
+#print axioms book1CEWToSPDPCountingCertificate_of_profileCountingModel
 #print axioms cewToPolynomialSPDP_of_countingCertificate
 #print axioms book1TransportCertificate_of_ambientCompiledRankModel
 #print axioms deciderTransportHardToP_of_book1TransportCertificate
