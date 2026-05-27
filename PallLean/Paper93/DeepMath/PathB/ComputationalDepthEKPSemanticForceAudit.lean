@@ -245,6 +245,133 @@ structure NonLocalEKPToTheorem207Essentiality
             Prop,
           Theorem207SheetEssentialForAcceptance Accepts S
 
+/-! ## Non-local EKP bridge endpoint -/
+
+/-- Non-local EKP coverage at a fixed scale, for every encoded SAT-deciding
+DTM. -/
+def NonLocalEKPBoundaryVisibleAt
+    (enc : ThreeCNFEncoding) (n : Nat) : Prop :=
+  forall M : TuringMachine.DTM,
+    DTMDecidesSATWithEncoding enc M ->
+      Nonempty (NonLocalEKPDirectionCoverage enc M n)
+
+/-- Paper-scale non-local EKP coverage.  This is the strengthened form needed
+to compose directly with the paper's Theorem-207 bounded-parameter surface. -/
+def PaperScaleNonLocalClassicalSATDeciderForcesEKPBoundary
+    (enc : ThreeCNFEncoding) : Prop :=
+  forall c : Nat, exists n : Nat,
+    n >= 2 ^ 804 /\
+    4 * (c + 1) <= Nat.log 2 n /\
+    NonLocalEKPBoundaryVisibleAt enc n
+
+/-- Non-local EKP coverage plus the essentiality bridge turns an instrumented
+Theorem-207 sheet into the classical semantic-force package.
+
+This is the exact place where the book/paper would need a non-natural,
+non-local theorem: the output is not just an extractable static sheet, but a
+sheet that is acceptance-essential for the classical computation. -/
+theorem theorem207ClassicalSemanticForce_of_nonLocalEKP
+    {enc : ThreeCNFEncoding}
+    {M : TuringMachine.DTM} {n : Nat}
+    {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    (B : NonLocalEKPToTheorem207Essentiality enc)
+    (S : InstrumentedTheorem207Sheet M n hn hn2 htb hns)
+    (Hcov : Nonempty (NonLocalEKPDirectionCoverage enc M n)) :
+    Nonempty (Theorem207ClassicalSemanticForce M n hn hn2 htb hns) := by
+  rcases B.bridge S Hcov with ⟨Accepts, hEss⟩
+  exact ⟨{
+    instrumented := S
+    Accepts := Accepts
+    essential := hEss
+  }⟩
+
+/-- Paper-scale Theorem-207 semantic force for every encoded SAT decider and
+every instrumented sheet satisfying the bounded-parameter side conditions. -/
+def PaperScaleTheorem207ClassicalSemanticForce
+    (enc : ThreeCNFEncoding) : Prop :=
+  forall c : Nat, exists n : Nat,
+    exists hn : n >= 2 ^ 804,
+    exists hn2 : n >= 2,
+    4 * (c + 1) <= Nat.log 2 n /\
+    forall (M : TuringMachine.DTM)
+      (_hM : DTMDecidesSATWithEncoding enc M)
+      (htb : M.timeBound <= 4)
+      (hns : M.numStates <= n)
+      (S : InstrumentedTheorem207Sheet M n hn hn2 htb hns),
+        exists F : Theorem207ClassicalSemanticForce M n hn hn2 htb hns,
+          F.instrumented = S
+
+/-- The non-local EKP package composes to the paper-scale classical semantic
+force target. -/
+theorem paperScaleTheorem207ClassicalSemanticForce_of_nonLocalEKP
+    (enc : ThreeCNFEncoding)
+    (Hcov : PaperScaleNonLocalClassicalSATDeciderForcesEKPBoundary enc)
+    (B : NonLocalEKPToTheorem207Essentiality enc) :
+    PaperScaleTheorem207ClassicalSemanticForce enc := by
+  intro c
+  rcases Hcov c with ⟨n, hn804, hlog, Hat⟩
+  have hn2 : n >= 2 :=
+    le_trans
+      (by
+        have hpow : 2 ^ 1 <= 2 ^ 804 :=
+          Nat.pow_le_pow_right (by norm_num : 1 <= 2) (by norm_num : 1 <= 804)
+        simpa using hpow)
+      hn804
+  refine ⟨n, hn804, hn2, hlog, ?_⟩
+  intro M hM htb hns S
+  rcases B.bridge S (Hat M hM) with ⟨Accepts, hEss⟩
+  exact ⟨{
+    instrumented := S
+    Accepts := Accepts
+    essential := hEss
+  }, rfl⟩
+
+/-- A sheet is removable if no acceptance predicate can make it essential.
+This formalizes the static-add-on failure mode: extractability alone does not
+make a sheet semantically load-bearing. -/
+def Theorem207SheetRemovable
+    {M : TuringMachine.DTM} {n : Nat}
+    {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    (S : InstrumentedTheorem207Sheet M n hn hn2 htb hns) : Prop :=
+  forall Accepts :
+    MvPolynomial
+      (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ ->
+      Prop,
+    Not (Theorem207SheetEssentialForAcceptance Accepts S)
+
+/-- Removable/static sheets refute the non-local EKP-to-essentiality bridge at
+that sheet.  Thus the surviving theorem cannot merely produce directions; it
+must prove genuine semantic essentiality of the extracted sheet. -/
+theorem false_of_nonLocalEKPBridge_and_removableSheet
+    {enc : ThreeCNFEncoding}
+    {M : TuringMachine.DTM} {n : Nat}
+    {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    (B : NonLocalEKPToTheorem207Essentiality enc)
+    (S : InstrumentedTheorem207Sheet M n hn hn2 htb hns)
+    (Hcov : Nonempty (NonLocalEKPDirectionCoverage enc M n))
+    (Hremovable : Theorem207SheetRemovable S) :
+    False := by
+  rcases B.bridge S Hcov with ⟨Accepts, hEss⟩
+  exact Hremovable Accepts hEss
+
+/-- Equivalent negated form of the removable-sheet guard. -/
+theorem not_nonLocalEKPBridge_of_removableSheet_and_coverage
+    {enc : ThreeCNFEncoding}
+    {M : TuringMachine.DTM} {n : Nat}
+    {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    (S : InstrumentedTheorem207Sheet M n hn hn2 htb hns)
+    (Hcov : Nonempty (NonLocalEKPDirectionCoverage enc M n))
+    (Hremovable : Theorem207SheetRemovable S) :
+    Not (Nonempty (NonLocalEKPToTheorem207Essentiality enc)) := by
+  intro hB
+  rcases hB with ⟨B⟩
+  exact false_of_nonLocalEKPBridge_and_removableSheet
+    B S Hcov Hremovable
+
 /-! ## Kernel-only axiom trace -/
 
 #print axioms RunIndexedEKPDirectionRealization.directionCount_le_timeWindow
@@ -253,5 +380,9 @@ structure NonLocalEKPToTheorem207Essentiality
 #print axioms no_DTMDecidesSATWithEncoding_of_runIndexedEKPForce
 #print axioms runIndexedEKPForce_of_no_DTMDecidesSATWithEncoding
 #print axioms runIndexedEKPForce_iff_no_DTMDecidesSATWithEncoding
+#print axioms theorem207ClassicalSemanticForce_of_nonLocalEKP
+#print axioms paperScaleTheorem207ClassicalSemanticForce_of_nonLocalEKP
+#print axioms false_of_nonLocalEKPBridge_and_removableSheet
+#print axioms not_nonLocalEKPBridge_of_removableSheet_and_coverage
 
 end PallLean.Paper93.DeepMath.PathB
