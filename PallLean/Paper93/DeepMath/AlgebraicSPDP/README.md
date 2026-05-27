@@ -75,11 +75,18 @@ The ambient rank bridge is now factored into its honest concrete shape:
   low-agreement/window hypotheses with this concrete bridge, so the final
   certificate is stated against the real SPDP rank of an ambient
   `MvPolynomial`, not a free numerical rank.
+- `squarefreeSupportExponent`, `nwCoefficientProjection`, and
+  `nwDerivativeWindowList` define the concrete coefficient-extraction and
+  derivative-window objects.
+- `NWDerivativeRowsActualSPDPBridge.ofProjectedDerivativeRows` proves the
+  actual SPDP membership part: if the projected derivative-row coefficient
+  identity holds, then the finite-support rows are images of elements of
+  `SPDP.spdpSubspace`.
 
-The remaining formal theorem is the row-realization payload itself: construct
-the concrete coefficient-projection map for the NW `MvPolynomial` and prove
-that the derivative-window rows used in the finite-support model are exactly
-images of actual shifted partial derivatives in `SPDP.spdpSubspace`.
+The remaining formal theorem is now the coefficient identity for the concrete
+NW `MvPolynomial`: prove that applying `nwCoefficientProjection` to the
+actual iterated derivative over a window `D` gives exactly
+`nwDerivativeWindowRows code D a`.
 
 ## Calibration script
 

@@ -348,6 +348,87 @@ theorem nwDerivativeWindowRows_finrank_le_actual_spdpRank
         (SPDP.spdpSubspace kappa ell p))
   exact le_trans hmono hmap
 
+/-! ### Concrete coefficient projection
+
+The next definitions build the actual coefficient-extraction map used by the
+bridge.  A support `m : Finset (Point × Value)` is read as the squarefree
+monomial with exponent `1` on the encoded variables in `m`.
+-/
+
+/-- Squarefree exponent vector associated to a finite graph-support set. -/
+noncomputable def squarefreeSupportExponent
+    {numVars : Nat}
+    (enc : Point × Value -> Fin numVars)
+    (m : Finset (Point × Value)) : Fin numVars →₀ Nat :=
+  m.sum fun z => Finsupp.single (enc z) 1
+
+/-- Coefficient projection from the concrete ambient `MvPolynomial` space to
+the finite-support row model used by the NW combinatorics. -/
+noncomputable def nwCoefficientProjection
+    {numVars : Nat}
+    (enc : Point × Value -> Fin numVars) :
+    MvPolynomial (Fin numVars) ℚ →ₗ[ℚ] (Finset (Point × Value) -> ℚ) where
+  toFun p := fun m => MvPolynomial.coeff (squarefreeSupportExponent enc m) p
+  map_add' p q := by
+    ext m
+    simp [MvPolynomial.coeff_add]
+  map_smul' c p := by
+    ext m
+    simp [MvPolynomial.coeff_smul]
+
+/-- The derivative list corresponding to differentiating by one label's graph
+over the point window `D`. -/
+noncomputable def nwDerivativeWindowList
+    {numVars : Nat}
+    (enc : Point × Value -> Fin numVars)
+    (code : Label -> Point -> Value) (D : Finset Point) (a : Label) :
+    List (Fin numVars) :=
+  D.toList.map fun x => enc (x, code a x)
+
+omit [Fintype Point] [DecidableEq Point] [DecidableEq Value] in
+/-- The concrete derivative list has length equal to the point-window size. -/
+theorem nwDerivativeWindowList_length
+    {numVars : Nat}
+    (enc : Point × Value -> Fin numVars)
+    (code : Label -> Point -> Value) (D : Finset Point) (a : Label) :
+    (nwDerivativeWindowList enc code D a).length = D.card := by
+  simp [nwDerivativeWindowList]
+
+/-- Build the actual-SPDP bridge once the concrete coefficient identity is
+proved.
+
+The hypothesis `projected_derivative_row` is the remaining polynomial-calculus
+payload: after differentiating the actual NW `MvPolynomial` by label `a` over
+`D`, coefficient extraction must give exactly the finite-support row
+`nwDerivativeWindowRows code D a`.
+
+Everything else in this constructor is now proved: the derivative is an
+element of the concrete `SPDP.spdpSubspace`, and coefficient projection cannot
+increase finrank. -/
+noncomputable def NWDerivativeRowsActualSPDPBridge.ofProjectedDerivativeRows
+    [Fintype Label] [Fintype Value]
+    {numVars kappa ell : Nat}
+    (enc : Point × Value -> Fin numVars)
+    (code : Label -> Point -> Value) (D : Finset Point)
+    (p : MvPolynomial (Fin numVars) ℚ)
+    (hDcard : D.card = kappa)
+    (projected_derivative_row :
+      ∀ a : Label,
+        nwCoefficientProjection enc
+            (SPDP.iterDerivList (nwDerivativeWindowList enc code D a) p) =
+          nwDerivativeWindowRows code D a) :
+    NWDerivativeRowsActualSPDPBridge code D p (kappa := kappa) (ell := ell) where
+  coeffProjection := nwCoefficientProjection enc
+  rows_mem_actual_spdp_image := by
+    intro a
+    refine ⟨SPDP.iterDerivList (nwDerivativeWindowList enc code D a) p, ?_, ?_⟩
+    · apply Submodule.subset_span
+      refine ⟨nwDerivativeWindowList enc code D a, 1, ?_, ?_, ?_⟩
+      · rw [nwDerivativeWindowList_length, hDcard]
+      · simp [MvPolynomial.totalDegree_one]
+      · ring
+    · exact projected_derivative_row a
+
 /-- Fully explicit low-agreement NW certificate against the concrete
 `SPDP.spdpRank` of an ambient `MvPolynomial`.
 
@@ -390,6 +471,8 @@ noncomputable def NWSPDPIndependenceCertificate.ofLowAgreementActualSPDP
 #print axioms NWSPDPIndependenceCertificate.ofLowAgreementResidualPivots
 #print axioms NWSPDPIndependenceCertificate.ofLowAgreementDerivativeRows
 #print axioms nwDerivativeWindowRows_finrank_le_actual_spdpRank
+#print axioms nwCoefficientProjection
+#print axioms NWDerivativeRowsActualSPDPBridge.ofProjectedDerivativeRows
 #print axioms NWSPDPIndependenceCertificate.ofLowAgreementActualSPDP
 
 end GraphDesign
