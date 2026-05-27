@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCanonicalStrictGodMoveRoute
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthTheorem207SameSheetLegacyPort
 
 /-!
 # Paper God-Move transport bridge
@@ -73,6 +74,40 @@ noncomputable def theorem207DirectPaperWitness_of_paperGodMoveTransport
   sheet_rank_lower := W.godMove_np_lower
   sheet_rank_le_liveBoundary := W.tPhi_transport_to_liveBoundary
 
+/-- Legacy same-sheet strict realization is one concrete way to produce the
+clean paper God-Move transport witness.  This is the direct bridge from the
+older named same-sheet SPDP target into the new `TΦ`/live-boundary witness
+socket. -/
+noncomputable def paperGodMoveTransportWitness_of_sameSheetStrictRealization
+    {enc : ThreeCNFEncoding}
+    {n : Nat}
+    {L : StrictDynamicNFrameLagrangianObserver enc}
+    (R : Theorem207SameSheetStrictRealization enc n L) :
+    PaperGodMoveTransportWitness enc n L where
+  input := R.input
+  formula := R.formula
+  encoded := R.encoded
+  formula_satisfiable := R.formula_satisfiable
+  time := R.time
+  state := R.state
+  state_matches := R.state_matches
+  nframe_lagrangian_payload := R.nframe_lagrangian_payload
+  nframe_lagrangian_payload_realized := R.nframe_lagrangian_payload_realized
+  pac_holographic_payload := R.pac_holographic_payload
+  pac_holographic_payload_realized := R.pac_holographic_payload_realized
+  amplituhedron_payload := R.amplituhedron_payload
+  amplituhedron_payload_realized := R.amplituhedron_payload_realized
+  godMoveExtractedSheetRank :=
+    MultilinearSPDP.mlBlockedSpdpRank
+      (cook_levin_compilation L.M n R.hn2 R.htb R.hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (GlobalGodMoveGauge.theorem207_same_sheet_poly
+        L.M n R.hn804 R.hn2 R.htb R.hns R.hdec)
+  godMove_np_lower :=
+    GlobalGodMoveGauge.theorem207_same_sheet_np_side_lower_bound
+      L.M n R.hn804 R.hn2 R.htb R.hns R.hdec
+  tPhi_transport_to_liveBoundary := R.same_sheet_rank_le_liveBoundary
+
 /-- Uniform paper God-Move transport port for the canonical low-action class.
 This is the clean theorem that the paper proof should discharge. -/
 def PaperGodMoveTransportPort
@@ -83,6 +118,21 @@ def PaperGodMoveTransportPort
     forall L : CanonicalStrictGodMoveSATObserver enc,
       L.k <= c ->
       Nonempty (PaperGodMoveTransportWitness enc n L.base)
+
+/-- The older same-sheet strict realization contract implies the new clean
+paper God-Move transport port for the canonical low-action class.  This is not
+the unsafe Step4 route; it only repackages same-sheet realization witnesses into
+the new transport witness socket. -/
+theorem paperGodMoveTransportPort_of_sameSheetStrictRealization
+    (enc : ThreeCNFEncoding)
+    (H : UniversalTheorem207SameSheetStrictRealization enc) :
+    PaperGodMoveTransportPort enc := by
+  intro c
+  rcases H c with ⟨n, hn20, hlog, Hn⟩
+  refine ⟨n, hn20, hlog, ?_⟩
+  intro L _hLk
+  rcases Hn L.base with ⟨R⟩
+  exact ⟨paperGodMoveTransportWitness_of_sameSheetStrictRealization R⟩
 
 /-- The clean bridge: paper God-Move transport witnesses feed the existing
 canonical strict port without using the no-decider/vacuity direction. -/
@@ -117,6 +167,8 @@ theorem standardPvsNP_of_paperGodMoveTransportPort
     (canonicalStrictGodMovePort_of_paperGodMoveTransportPort enc H)
 
 #print axioms theorem207DirectPaperWitness_of_paperGodMoveTransport
+#print axioms paperGodMoveTransportWitness_of_sameSheetStrictRealization
+#print axioms paperGodMoveTransportPort_of_sameSheetStrictRealization
 #print axioms canonicalStrictGodMovePort_of_paperGodMoveTransportPort
 #print axioms no_DTMDecidesSATWithEncoding_of_paperGodMoveTransportPort
 #print axioms standardPvsNP_of_paperGodMoveTransportPort
