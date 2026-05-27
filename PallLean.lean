@@ -3,6 +3,7 @@
 -- `PallLean/Archive/` (see `PallLean.Archive` for the roll-up).
 
 import PallLean.PaperFaithfulSeparation
+import PallLean.FaithfulDecoder
 
 -- On-chain utility modules also referenced directly by callers:
 import PallLean.PACLeibniz
