@@ -159,6 +159,7 @@ def main() -> None:
     perm3, matrix_vars = permanent_matrix_poly(3, sign=False)
     det3, _ = permanent_matrix_poly(3, sign=True)
     nw332, nw_vars = nw_design_polynomial(q=3, degree=3, coeff_count=2)
+    nw452, nw4_vars = nw_design_polynomial(q=5, degree=4, coeff_count=2)
 
     print("=" * 78)
     print("Algebraic SPDP calibration: permanent, determinant, NW design")
@@ -166,6 +167,7 @@ def main() -> None:
     report("perm_3", perm3, matrix_vars, degree=3, params=params)
     report("det_3", det3, matrix_vars, degree=3, params=params)
     report("NW_{d=3,q=3,e=2}", nw332, nw_vars, degree=3, params=params)
+    report("NW_{d=4,q=5,e=2}", nw452, nw4_vars, degree=4, params=[(1, 0), (1, 1)])
 
     print("\nClosed form check at ell=0 for perm_3")
     for kappa in (1, 2):
@@ -182,4 +184,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

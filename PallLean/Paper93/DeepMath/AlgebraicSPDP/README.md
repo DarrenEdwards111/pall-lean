@@ -40,6 +40,22 @@ The remaining NW-specific asymptotic work is no longer linear algebra.  It is
 the combinatorial construction of enough private pivot rows from the actual
 NW design/intersection property.
 
+`NWSupportIndependence.lean` proves the first NW-specific combinatorial
+layer.  In the graph-code model of the NW polynomial, low agreement of
+distinct codewords implies:
+
+- every derivative window larger than the agreement bound contains a
+  disagreement, so differentiating by one graph kills the other monomial;
+- every outside window larger than the agreement bound gives injective
+  residual graph supports, hence private leading monomials;
+- these residual pivots construct `NWSPDPIndependenceCertificate` once the
+  polynomial-calculus identification supplies containment in the actual SPDP
+  row space.
+
+The remaining formal theorem is therefore the calculus/encoding bridge:
+identify the residual graph-support coefficient rows with actual shifted
+partial derivative rows of the NW polynomial.
+
 ## Calibration script
 
 `scripts/algebraic_spdp_nw_depth3.py` computes exact small SPDP ranks over
@@ -49,6 +65,9 @@ NW design/intersection property.
 - `Gamma_{1,0}(perm_3) = choose(3,1)^2 = 9`;
 - `Gamma_{2,0}(perm_3) = choose(3,2)^2 = 9`;
 - at `(kappa,ell)=(1,1)`, `perm_3 = 86`, `NW = 84`, and `det_3 = 74`.
+- for the honest `d=4` prime-field instance `NW_{d=4,q=5,e=2}`,
+  `Gamma_{1,1} = 417` and the depth-3 denominator is `84`, giving the
+  calibration bound `s >= 5`.
 
 These finite ranks are calibration only.  The frontier result requires an
 asymptotic NW support-independence theorem, not brute-force exact rank
