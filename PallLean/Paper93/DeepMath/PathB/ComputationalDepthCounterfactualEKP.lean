@@ -137,6 +137,152 @@ structure SheetBindsCounterfactualSwitches
   sheetDirection : Fin C.directionCount -> Nat
   sheetDirection_injective : Function.Injective sheetDirection
 
+/-! ## Actual intervention-pair semantics -/
+
+/-- The part of counterfactual sheet binding that is forced by actual
+positive/negative intervention runs alone.
+
+This deliberately does not mention rank, minors, essentiality, or the
+Theorem-207 polynomials.  It is the "observable" pair layer: the full decider
+accepts the positive side, and it does not accept the negative side. -/
+structure ActualCounterfactualPairFacts
+    {enc : ThreeCNFEncoding}
+    {M : TuringMachine.DTM} {n : Nat}
+    (C : CounterfactualEKPDirectionCoverage enc M n) : Type where
+  FullPositive : Fin C.directionCount -> Prop
+  DeletedNegative : Fin C.directionCount -> Prop
+  full_from_positive_run :
+    forall d : Fin C.directionCount,
+      TuringMachine.accepts M n C.hn (C.positiveInput d) ->
+        FullPositive d
+  deleted_from_negative_run :
+    forall d : Fin C.directionCount,
+      Not (TuringMachine.accepts M n C.hn (C.negativeInput d)) ->
+        DeletedNegative d
+
+namespace ActualCounterfactualPairFacts
+
+/-- The canonical actual-pair facts already contained in a counterfactual EKP
+coverage object.  This is the part that is genuinely obtained from actual
+input pairs with no sheet/rank assumption. -/
+def ofCoverage
+    {enc : ThreeCNFEncoding}
+    {M : TuringMachine.DTM} {n : Nat}
+    (C : CounterfactualEKPDirectionCoverage enc M n) :
+    ActualCounterfactualPairFacts C where
+  FullPositive := fun d =>
+    TuringMachine.accepts M n C.hn (C.positiveInput d)
+  DeletedNegative := fun d =>
+    Not (TuringMachine.accepts M n C.hn (C.negativeInput d))
+  full_from_positive_run := fun _ h => h
+  deleted_from_negative_run := fun _ h => h
+
+end ActualCounterfactualPairFacts
+
+/-- The missing Cook--Levin/Theorem-207 interpretation layer.
+
+It is narrower than `SheetBindsCounterfactualSwitches`: the only allowed source
+of full/deleted behavior is a family of actual intervention-pair facts.  The
+remaining theorem is therefore no longer "assume essentiality"; it is "prove
+that these actual pair facts are interpreted by the full/deleted Theorem-207
+polynomials." -/
+structure ActualPairPolynomialSemantics
+    {enc : ThreeCNFEncoding}
+    {M : TuringMachine.DTM} {n : Nat}
+    {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {S : InstrumentedTheorem207Sheet M n hn hn2 htb hns}
+    {C : CounterfactualEKPDirectionCoverage enc M n}
+    (P : ActualCounterfactualPairFacts C) : Type where
+  Accepts :
+    MvPolynomial
+      (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ ->
+      Prop
+  full_poly_accepts_of_pair :
+    forall d : Fin C.directionCount,
+      P.FullPositive d ->
+        Accepts S.extraction.paperCompiledPoly
+  deleted_poly_rejects_of_pair :
+    forall d : Fin C.directionCount,
+      P.DeletedNegative d ->
+        Not (Accepts S.extraction.coupledSheet)
+  sheetDirection : Fin C.directionCount -> Nat
+  sheetDirection_injective : Function.Injective sheetDirection
+
+/-- Actual intervention-pair semantics, once interpreted by the full/deleted
+Theorem-207 polynomials, yields the earlier sheet-binding predicate.
+
+This theorem is the test result: actual pairs alone provide the pair facts, but
+binding the sheet still requires a polynomial-semantics bridge. -/
+def SheetBindsCounterfactualSwitches.ofActualPairPolynomialSemantics
+    {enc : ThreeCNFEncoding}
+    {M : TuringMachine.DTM} {n : Nat}
+    {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {S : InstrumentedTheorem207Sheet M n hn hn2 htb hns}
+    {C : CounterfactualEKPDirectionCoverage enc M n}
+    (P : ActualCounterfactualPairFacts C)
+    (Hpoly : ActualPairPolynomialSemantics (S := S) P) :
+    SheetBindsCounterfactualSwitches S C where
+  Accepts := Hpoly.Accepts
+  full_accepts_positive := fun d hrun =>
+    Hpoly.full_poly_accepts_of_pair d (P.full_from_positive_run d hrun)
+  deleted_rejects_negative := fun d hrun =>
+    Hpoly.deleted_poly_rejects_of_pair d (P.deleted_from_negative_run d hrun)
+  sheetDirection := Hpoly.sheetDirection
+  sheetDirection_injective := Hpoly.sheetDirection_injective
+
+/-- The same bridge, using the canonical pair facts already present in the
+counterfactual coverage object. -/
+def SheetBindsCounterfactualSwitches.ofCoveragePolynomialSemantics
+    {enc : ThreeCNFEncoding}
+    {M : TuringMachine.DTM} {n : Nat}
+    {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {S : InstrumentedTheorem207Sheet M n hn hn2 htb hns}
+    {C : CounterfactualEKPDirectionCoverage enc M n}
+    (Hpoly :
+      ActualPairPolynomialSemantics (S := S)
+        (ActualCounterfactualPairFacts.ofCoverage C)) :
+    SheetBindsCounterfactualSwitches S C :=
+  SheetBindsCounterfactualSwitches.ofActualPairPolynomialSemantics
+    (ActualCounterfactualPairFacts.ofCoverage C) Hpoly
+
+/-- Pair-fact polynomial semantics is enough to produce ordinary
+Theorem-207 essentiality. -/
+theorem theorem207SheetEssentialForAcceptance_of_actualPairPolynomialSemantics
+    {enc : ThreeCNFEncoding}
+    {M : TuringMachine.DTM} {n : Nat}
+    {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {S : InstrumentedTheorem207Sheet M n hn hn2 htb hns}
+    {C : CounterfactualEKPDirectionCoverage enc M n}
+    {P : ActualCounterfactualPairFacts C}
+    (Hpoly : ActualPairPolynomialSemantics (S := S) P) :
+    Theorem207SheetEssentialForAcceptance Hpoly.Accepts S := by
+  let d := C.first
+  exact ⟨
+    Hpoly.full_poly_accepts_of_pair d
+      (P.full_from_positive_run d (C.positive_accepts d)),
+    Hpoly.deleted_poly_rejects_of_pair d
+      (P.deleted_from_negative_run d (C.negative_not_accepts d))
+  ⟩
+
+/-- The concrete hard target after the actual-pair refinement: every
+instrumented sheet must interpret the actual intervention-pair facts through
+its full/deleted polynomials. -/
+structure ActualPairsToTheorem207PolynomialSemantics
+    (enc : ThreeCNFEncoding) : Type where
+  interpret :
+    forall {M : TuringMachine.DTM} {n : Nat}
+      {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+      {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+      (S : InstrumentedTheorem207Sheet M n hn hn2 htb hns)
+      (C : CounterfactualEKPDirectionCoverage enc M n),
+        Nonempty
+          (ActualPairPolynomialSemantics (S := S)
+            (ActualCounterfactualPairFacts.ofCoverage C))
+
 /-- Counterfactual sheet binding implies ordinary Theorem-207 essentiality.
 
 The proof uses one actual intervention pair from the counterfactual family.
@@ -185,6 +331,19 @@ structure CounterfactualEKPToTheorem207Essentiality
       (S : InstrumentedTheorem207Sheet M n hn hn2 htb hns)
       (C : CounterfactualEKPDirectionCoverage enc M n),
         Nonempty (SheetBindsCounterfactualSwitches S C)
+
+/-- Interpreting actual intervention pairs by the Theorem-207 polynomials is
+strictly enough to recover the earlier counterfactual sheet-binding bridge. -/
+def counterfactualBridge_of_actualPairPolynomialSemantics
+    (enc : ThreeCNFEncoding)
+    (H : ActualPairsToTheorem207PolynomialSemantics enc) :
+    CounterfactualEKPToTheorem207Essentiality enc where
+  bind := by
+    intro M n hn hn2 htb hns S C
+    rcases H.interpret S C with ⟨Hpoly⟩
+    exact ⟨
+      SheetBindsCounterfactualSwitches.ofCoveragePolynomialSemantics Hpoly
+    ⟩
 
 /-- The counterfactual bridge is a narrowed version of the earlier non-local
 EKP-to-essentiality bridge. -/
@@ -268,6 +427,8 @@ theorem not_counterfactualBridge_of_removableSheet
 /-! ## Kernel-only axiom trace -/
 
 #print axioms theorem207SheetEssentialForAcceptance_of_counterfactualBinding
+#print axioms theorem207SheetEssentialForAcceptance_of_actualPairPolynomialSemantics
+#print axioms counterfactualBridge_of_actualPairPolynomialSemantics
 #print axioms theorem207ClassicalSemanticForce_of_counterfactualEKP
 #print axioms nonLocalEKPToTheorem207Essentiality_of_counterfactual
 #print axioms paperScaleTheorem207ClassicalSemanticForce_of_counterfactualEKP
