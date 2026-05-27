@@ -209,6 +209,74 @@ theorem noCanonicalSATDecisionInP_of_PACRamanujan
   noCanonicalSATDecisionInP_of_hardnessMagnificationBreakthrough D
     (hardnessMagnificationBreakthrough_of_PACRamanujan D T P H)
 
+/-! ## Guardrail for the PAC + Ramanujan socket -/
+
+/-- Existential PAC+Ramanujan magnification package.
+
+This packages "there exists some weak target, quantitative data, and theorem
+object."  It is deliberately broad, so the equivalence below audits exactly how
+much strength the abstract socket carries before concrete semantics are added. -/
+def SomePACRamanujanMagnification
+    (D : DescribedCanonicalSurface) : Prop :=
+  ∃ T : WeakMagnificationTarget D,
+    ∃ P : PACRamanujanMagnificationData D T,
+      Nonempty (PACRamanujanMagnificationTheorem D T P)
+
+/-- Identity PAC+Ramanujan data used only for the existential guardrail.
+
+The numeric fields are inert here; the weak lower bound is the already-known
+MCSP/MINKT hard socket.  This shows that generic existence of PAC+Ramanujan
+data does not reduce the hard theorem unless the data/theorem are concretely
+restricted by real PAC, spectral, and expansion semantics. -/
+def identityPACRamanujanData
+    (D : DescribedCanonicalSurface)
+    (h : MCSPMINKTHardnessSocket D) :
+    PACRamanujanMagnificationData D (identityMagnificationTarget D) where
+  AgreementError := fun _ => 0
+  SpectralGap := 0
+  weak_local_bound := h
+  local_to_global_transfer := True
+  global_to_socket_transfer := True
+
+/-- Identity PAC+Ramanujan theorem used only for the existential guardrail. -/
+def identityPACRamanujanTheorem
+    (D : DescribedCanonicalSurface)
+    (h : MCSPMINKTHardnessSocket D) :
+    PACRamanujanMagnificationTheorem D
+      (identityMagnificationTarget D)
+      (identityPACRamanujanData D h) where
+  prove_non_natural_guard := trivial
+  prove_non_local_guard := trivial
+  prove_magnification := fun h => h
+
+/-- Broadly existential PAC+Ramanujan magnification is exactly the MCSP/MINKT
+hard socket.  This is the audit result for this layer: the generic package is
+not a simplification of the lower-bound problem.  A real proof must instantiate
+the fields with non-vacuous PAC/Ramanujan semantics and prove the magnification
+map there. -/
+theorem somePACRamanujanMagnification_iff_MCSPMINKTHardness
+    (D : DescribedCanonicalSurface) :
+    SomePACRamanujanMagnification D ↔ MCSPMINKTHardnessSocket D := by
+  constructor
+  · intro h
+    rcases h with ⟨T, P, hH⟩
+    rcases hH with ⟨H⟩
+    exact H.prove_magnification P.weak_local_bound
+  · intro h
+    exact ⟨identityMagnificationTarget D,
+      identityPACRamanujanData D h,
+      ⟨identityPACRamanujanTheorem D h⟩⟩
+
+/-- After canonical compiler wiring, broad PAC+Ramanujan magnification is
+exactly no canonical polynomial-time SAT decision. -/
+theorem somePACRamanujanMagnification_iff_noCanonicalSATDecisionInP
+    (D : DescribedCanonicalSurface) :
+    SomePACRamanujanMagnification D ↔
+      ¬ CanonicalSATDecisionInP D.surface := by
+  rw [somePACRamanujanMagnification_iff_MCSPMINKTHardness,
+    MCSPMINKTHardness_iff_hardMetacomplexitySocket,
+    hardMetacomplexitySocket_iff_noCanonicalSATDecisionInP]
+
 /-! ## Axiom trace -/
 
 #print axioms MCSPMINKTHardness_of_hardnessMagnificationBreakthrough
@@ -221,5 +289,7 @@ theorem noCanonicalSATDecisionInP_of_PACRamanujan
 #print axioms nonempty_hardnessMagnificationBreakthrough_iff_noCanonicalSATDecisionInP
 #print axioms hardnessMagnificationBreakthrough_of_PACRamanujan
 #print axioms noCanonicalSATDecisionInP_of_PACRamanujan
+#print axioms somePACRamanujanMagnification_iff_MCSPMINKTHardness
+#print axioms somePACRamanujanMagnification_iff_noCanonicalSATDecisionInP
 
 end SATDepthMachine
