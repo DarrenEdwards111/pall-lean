@@ -126,6 +126,23 @@ This closes the modest unshifted/window-row bridge.  The stronger
 shifted-leading lower bound still needs the analogous projection/membership
 construction for shifted rows.
 
+`NWConcrete452.lean` instantiates the schema at the first honest finite-field
+case:
+
+- `Point = Fin 4`, `Value = ZMod 5`, and `Label = ZMod 5 × ZMod 5`;
+- `code (c₀,c₁) x = c₀ + c₁ x`, giving the 25 affine degree-`<2` codewords;
+- `enc : Point × Value -> Fin 20` is the concrete 20-variable grid encoding;
+- `D = {0,1}` is the derivative window, with agreement bound `1`;
+- the finite obligations (`enc` injective, `code` injective, low agreement,
+  window size, outside-window size, and support calibration) are all closed
+  inside Lean.
+
+The resulting theorem
+`NW452.spdpRank_nw452_ge_25` is a standalone numeric lower bound on the actual
+project SPDP rank:
+
+`25 <= SPDP.spdpRank 2 0 (nwMvPolynomial NW452.enc NW452.code)`.
+
 ## Calibration script
 
 `scripts/algebraic_spdp_nw_depth3.py` computes exact small SPDP ranks over
