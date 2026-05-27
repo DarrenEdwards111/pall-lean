@@ -68,6 +68,46 @@ def toExtraction
 
 end Theorem207ExtractionWithRemainder
 
+/-! ## Canonical remainder split -/
+
+/-- A canonical Theorem-207 extraction/remainder split.
+
+This wrapper is intentionally stronger than a bare algebraic decomposition:
+the split must be the paper's canonical instrumented compiler split, and the
+remainder must be the actual deleted-sheet residual.  These fields are not
+proved here; they prevent the global bridge from ranging over arbitrary
+decompositions such as `sheet = 0`, `remainder = paperCompiledPoly`.
+-/
+structure CanonicalTheorem207ExtractionWithRemainder
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) : Type where
+  extraction :
+    Theorem207ExtractionWithRemainder M n hn hn2 htb hns
+  canonical_split : Prop
+  canonical_split_cert : canonical_split
+  remainder_is_deleted_sheet_residual : Prop
+  remainder_residual_cert : remainder_is_deleted_sheet_residual
+
+namespace CanonicalTheorem207ExtractionWithRemainder
+
+/-- Forget canonicality and keep only the explicit split. -/
+def toExtractionWithRemainder
+    {M : DTM} {n : Nat} {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    (E : CanonicalTheorem207ExtractionWithRemainder M n hn hn2 htb hns) :
+    Theorem207ExtractionWithRemainder M n hn hn2 htb hns :=
+  E.extraction
+
+/-- Forget both canonicality and the explicit remainder. -/
+def toExtraction
+    {M : DTM} {n : Nat} {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    (E : CanonicalTheorem207ExtractionWithRemainder M n hn hn2 htb hns) :
+    GlobalGodMoveGauge.Theorem207Extraction M n hn hn2 htb hns :=
+  E.extraction.toExtraction
+
+end CanonicalTheorem207ExtractionWithRemainder
+
 /-- Remainder-sensitive sheet essentiality: the full paper object is accepted
 while the deleted-sheet remainder is not. -/
 def Theorem207SheetEssentialAfterDeletion
@@ -188,16 +228,19 @@ end SignedExtractionRemainderTriAspectSemanticInterface
 /-- Canonical signed remainder bridge target.
 
 This is the corrected bridge target: full separates, deleted-sheet remainder
-loses.  It replaces the earlier sheet-loses polarity. -/
+loses.  It replaces the earlier sheet-loses polarity and ranges only over
+canonical splits, not arbitrary algebraic decompositions. -/
 structure CanonicalSignedExtractionRemainderTriAspectBridge
     (enc : SignedFormulaEncoding) : Type where
   interface :
     forall {M : DTM} {n : Nat}
       {hn : n >= 2 ^ 804} {hn2 : n >= 2}
       {htb : M.timeBound <= 4} {hns : M.numStates <= n}
-      (E : Theorem207ExtractionWithRemainder M n hn hn2 htb hns)
+      (E : CanonicalTheorem207ExtractionWithRemainder M n hn hn2 htb hns)
       (C : SignedCounterfactualEKPDirectionCoverage enc M n),
-        Nonempty (SignedExtractionRemainderTriAspectSemanticInterface E C)
+        Nonempty
+          (SignedExtractionRemainderTriAspectSemanticInterface
+            E.extraction C)
 
 /-- The canonical remainder bridge yields deletion essentiality for the
 explicit sheet/remainder split. -/
@@ -207,10 +250,10 @@ theorem sheetEssentialityAfterDeletion_of_canonicalSignedRemainderBridge
     {M : DTM} {n : Nat}
     {hn : n >= 2 ^ 804} {hn2 : n >= 2}
     {htb : M.timeBound <= 4} {hns : M.numStates <= n}
-    (E : Theorem207ExtractionWithRemainder M n hn hn2 htb hns)
+    (E : CanonicalTheorem207ExtractionWithRemainder M n hn hn2 htb hns)
     (C : SignedCounterfactualEKPDirectionCoverage enc M n) :
     Exists (fun Accepts =>
-      Theorem207SheetEssentialAfterDeletion Accepts E) := by
+      Theorem207SheetEssentialAfterDeletion Accepts E.extraction) := by
   rcases H.interface E C with ⟨I⟩
   exact ⟨
     (fun p => exists d : Fin C.directionCount,
@@ -234,6 +277,8 @@ theorem signedThreeCNFEncoding_remainder_route_nonvacuous :
 /-! ## Kernel-only axiom trace -/
 
 #print axioms Theorem207ExtractionWithRemainder.toExtraction
+#print axioms CanonicalTheorem207ExtractionWithRemainder.toExtractionWithRemainder
+#print axioms CanonicalTheorem207ExtractionWithRemainder.toExtraction
 #print axioms SignedExtractionRemainderPairSemantics.sheetEssentialityAfterDeletion
 #print axioms SignedExtractionRemainderTriAspectSemanticInterface.toSignedExtractionRemainderPairSemantics
 #print axioms SignedExtractionRemainderTriAspectSemanticInterface.sheetEssentialityAfterDeletion
