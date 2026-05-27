@@ -731,6 +731,80 @@ structure Book1SafeLocalPayloadBundle (enc : ThreeCNFEncoding) where
   rank_zero : forall M : TuringMachine.DTM, ambientRank M 0 <= 0
   rank_one : forall M : TuringMachine.DTM, ambientRank M 1 <= 1
 
+/-- Explicit normalization/padding data for a raw SAT decider.
+
+The same-target God-Move interface asks for machine-side bounds such as
+`timeBound ≤ 4` and `numStates ≤ n`.  Those are not properties of an arbitrary
+raw SAT decider.  This certificate makes the missing move explicit: from a raw
+encoded SAT decider `M`, provide a normalized/padded decider `normalized` whose
+semantics and size bounds are separately certified. -/
+structure Book1NormalizationPaddingCertificate
+    (enc : ThreeCNFEncoding)
+    (M : TuringMachine.DTM)
+    (hM : DTMDecidesSATWithEncoding enc M) where
+  normalized : TuringMachine.DTM
+  normalized_decides : DTMDecidesSATWithEncoding enc normalized
+  normalized_timeBound_le_four : normalized.timeBound <= 4
+  normalized_numStates_le_large :
+    forall n : Nat, 2 ^ 804 <= n -> normalized.numStates <= n
+
+/-- Normalized safe local payload bundle.
+
+This is the safer successor to `Book1SafeLocalPayloadBundle`: large-size RT and
+ambient payloads are requested for the explicitly normalized/padded machine,
+not for the arbitrary raw decider.  The raw machine only indexes the final
+observer rank and profile count. -/
+structure Book1NormalizedSafeLocalPayloadBundle (enc : ThreeCNFEncoding) where
+  pCEW : TuringMachine.DTM -> Nat -> Nat
+  extractedRank : TuringMachine.DTM -> Nat -> Nat
+  ambientRank : TuringMachine.DTM -> Nat -> Nat
+  semanticBridge : Book1SATSemanticsBridge enc
+  cewBudget : Book1SyntacticBoundedCEWModel pCEW
+  normalize :
+    forall M : TuringMachine.DTM,
+      forall hM : DTMDecidesSATWithEncoding enc M,
+        Book1NormalizationPaddingCertificate enc M hM
+  large_sameTarget_normalized :
+    forall M : TuringMachine.DTM,
+      forall hM : DTMDecidesSATWithEncoding enc M,
+        forall n : Nat,
+          forall _hn : 2 ^ 804 <= n,
+            Book1SameTargetRamanujanTseitinRankCertificate
+              ((normalize M hM).normalized) n (extractedRank M n)
+  preThreshold_lower :
+    forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M ->
+        forall n : Nat,
+          n < 2 ^ 804 ->
+            book1CalibratedRamanujanTseitinHardRank n <= extractedRank M n
+  large_ambient_payload_normalized :
+    forall M : TuringMachine.DTM,
+      forall hM : DTMDecidesSATWithEncoding enc M,
+        forall n : Nat,
+          forall _hn : 2 ^ 804 <= n,
+            Book1SameTargetAmbientLargePayload semanticBridge
+              ((normalize M hM).normalized)
+              ((normalize M hM).normalized_decides) n
+              (extractedRank M n) (ambientRank M n)
+  preThreshold_ambient :
+    forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M ->
+        forall n : Nat,
+          n < 2 ^ 804 ->
+            extractedRank M n <= ambientRank M n
+  profileCount : TuringMachine.DTM -> Nat -> Nat
+  cewExponent : Nat
+  sizeExponent : Nat
+  rank_le_profile :
+    forall M : TuringMachine.DTM,
+      forall n : Nat, ambientRank M n <= profileCount M n
+  profile_le_cew_monomial :
+    forall M : TuringMachine.DTM,
+      forall n : Nat,
+        profileCount M n <= (pCEW M n) ^ cewExponent * n ^ sizeExponent
+  rank_zero : forall M : TuringMachine.DTM, ambientRank M 0 <= 0
+  rank_one : forall M : TuringMachine.DTM, ambientRank M 1 <= 1
+
 /-- Convert the explicit local payload bundle into the bridge-aware assembly
 certificate.  This is pure packaging. -/
 def book1ConcreteAssemblyCertificateWithBridge_of_safeLocalPayloadBundle
@@ -801,6 +875,55 @@ def book1CEWSPDPEpistemicBoundaryPort_of_safeLocalPayloadBundle
     Book1CEWSPDPEpistemicBoundaryPort enc :=
   book1CEWSPDPEpistemicBoundaryPort_of_concreteAssemblyWithBridge
     (book1ConcreteAssemblyCertificateWithBridge_of_safeLocalPayloadBundle P)
+
+/-- A normalized safe payload bundle gives the split transport certificate
+without pretending the raw decider itself satisfies the God-Move machine-size
+side conditions.  Large-size same-target and ambient certificates are taken on
+`(P.normalize M hM).normalized`; only the resulting rank inequalities are
+transported back to the raw observer rank indexed by `M`. -/
+def book1TransportCertificate_of_normalizedSafeLocalPayloadBundle
+    {enc : ThreeCNFEncoding}
+    (P : Book1NormalizedSafeLocalPayloadBundle enc) :
+    Book1DeciderTransportCertificate enc P.ambientRank
+      book1CalibratedRamanujanTseitinHardRank where
+  extractedRank := P.extractedRank
+  hardRank_le_extracted := by
+    intro M hM n
+    by_cases hn : 2 ^ 804 <= n
+    · exact book1CalibratedHardRank_le_of_sameTargetRamanujanTseitinCertificate
+        (P.large_sameTarget_normalized M hM n hn)
+    · exact P.preThreshold_lower M hM n (Nat.lt_of_not_ge hn)
+  extracted_le_pRank := by
+    intro M hM n
+    by_cases hn : 2 ^ 804 <= n
+    · exact extracted_le_ambient_of_sameTargetAmbientRankCertificate
+        ((P.large_ambient_payload_normalized M hM n hn).toCertificate)
+    · exact P.preThreshold_ambient M hM n (Nat.lt_of_not_ge hn)
+
+/-- Assemble the full Book-1 port from the normalized safe local payload bundle.
+This is the preferred safe route when raw deciders require a padding/
+normalization step before the same-target RT/God-Move certificates apply. -/
+def book1CEWSPDPEpistemicBoundaryPort_of_normalizedSafeLocalPayloadBundle
+    {enc : ThreeCNFEncoding}
+    (P : Book1NormalizedSafeLocalPayloadBundle enc) :
+    Book1CEWSPDPEpistemicBoundaryPort enc where
+  pCEW := P.pCEW
+  pRank := P.ambientRank
+  hardRank := book1CalibratedRamanujanTseitinHardRank
+  boundedCEWForP := boundedCEWForP_of_syntacticBoundedCEWModel P.cewBudget
+  cewToPolynomialSPDP :=
+    cewToPolynomialSPDP_of_countingCertificate
+      (book1CEWToSPDPCountingCertificate_of_profileCountingModel
+        { profileCount := P.profileCount
+          cewExponent := P.cewExponent
+          sizeExponent := P.sizeExponent
+          rank_le_profile := P.rank_le_profile
+          profile_le_cew_monomial := P.profile_le_cew_monomial
+          rank_zero := P.rank_zero
+          rank_one := P.rank_one })
+  hardNPLowerBound := book1CalibratedRamanujanTseitinHardNPLowerBound
+  transportCertificate :=
+    book1TransportCertificate_of_normalizedSafeLocalPayloadBundle P
 
 /-- Growth separation: the calibrated Ramanujan/Tseitin scale
 `n^(log₂ n / 4)` eventually beats every fixed polynomial.
@@ -880,6 +1003,8 @@ theorem standardPvsNP_of_book1CEWSPDP
 #print axioms cewToPolynomialSPDP_of_countingCertificate
 #print axioms book1ConcreteAssemblyCertificateWithBridge_of_safeLocalPayloadBundle
 #print axioms book1CEWSPDPEpistemicBoundaryPort_of_safeLocalPayloadBundle
+#print axioms book1TransportCertificate_of_normalizedSafeLocalPayloadBundle
+#print axioms book1CEWSPDPEpistemicBoundaryPort_of_normalizedSafeLocalPayloadBundle
 #print axioms book1CEWSPDPEpistemicBoundaryPort_of_concreteAssembly
 #print axioms book1CEWSPDPEpistemicBoundaryPort_of_concreteAssemblyWithBridge
 #print axioms book1TransportCertificate_of_ambientCompiledRankModel
