@@ -62,6 +62,75 @@ theorem faithful_boundary_to_bulk_of_decoder
     (Fintype.card_le_of_injective D.encodeBulkWitness
       D.encodeBulkWitness_injective)
 
+/-- Conversely, any cardinal lift bound constructs a faithful finite decoder:
+send the `i`-th bulk witness to the `i`-th boundary-lift code. -/
+def decoder_of_faithful_boundary_to_bulk
+    {M : DTM} {n : Nat} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {boundary : HolographicBoundaryLayer M n hn2 htb hns}
+    {bulk : HolographicBulkLayer M n hn2 htb hns}
+    {liftCost : Nat -> Nat}
+    (h : bulk.rank <= liftCost boundary.rank) :
+    BoundaryBulkFaithfulDecoder boundary bulk liftCost where
+  encodeBulkWitness := fun i =>
+    ⟨i.val, Nat.lt_of_lt_of_le i.isLt h⟩
+  encodeBulkWitness_injective := by
+    intro i j hij
+    apply Fin.ext
+    have hval :=
+      congrArg (fun x : Fin (liftCost boundary.rank) => x.val) hij
+    simpa using hval
+
+/-- Existence of a faithful finite decoder is exactly the raw lift inequality.
+
+This is the important audit point: decoder semantics makes the lift leg
+concrete, but it does not make it smaller than the cardinal statement
+`bulk.rank <= liftCost boundary.rank`. -/
+theorem exists_decoder_iff_faithful_boundary_to_bulk
+    {M : DTM} {n : Nat} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {boundary : HolographicBoundaryLayer M n hn2 htb hns}
+    {bulk : HolographicBulkLayer M n hn2 htb hns}
+    {liftCost : Nat -> Nat} :
+    Nonempty (BoundaryBulkFaithfulDecoder boundary bulk liftCost) ↔
+      bulk.rank <= liftCost boundary.rank := by
+  constructor
+  · intro h
+    rcases h with ⟨D⟩
+    exact faithful_boundary_to_bulk_of_decoder D
+  · intro h
+    exact ⟨decoder_of_faithful_boundary_to_bulk h⟩
+
+/-- Under the boundary polynomial bound, bulk NP lower bound, and holographic
+gap, no faithful finite decoder can exist for a SAT-deciding machine.
+
+So the target "a real SAT decider supplies an injective decoder" is not a
+free reconstruction theorem: in the separated boundary/bulk route, it is
+precisely the contradiction-producing leg. -/
+theorem no_decoder_of_boundary_bulk_gap
+    {M : DTM} {n : Nat} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {boundary : HolographicBoundaryLayer M n hn2 htb hns}
+    {bulk : HolographicBulkLayer M n hn2 htb hns}
+    {liftCost : Nat -> Nat}
+    (liftCost_mono : Monotone liftCost)
+    (boundary_P_bound : boundary.rank <= n ^ 200)
+    (bulk_NP_lower :
+      DecidesSAT M -> Nat.choose (n / 3) (Nat.log 2 n) <= bulk.rank)
+    (holographic_gap :
+      liftCost (n ^ 200) < Nat.choose (n / 3) (Nat.log 2 n))
+    (hdec : DecidesSAT M) :
+    Not (Nonempty (BoundaryBulkFaithfulDecoder boundary bulk liftCost)) := by
+  intro hdecoder
+  have hlift : bulk.rank <= liftCost boundary.rank :=
+    (exists_decoder_iff_faithful_boundary_to_bulk).mp hdecoder
+  have hcost : liftCost boundary.rank <= liftCost (n ^ 200) :=
+    liftCost_mono boundary_P_bound
+  have hchoose_le_cost :
+      Nat.choose (n / 3) (Nat.log 2 n) <= liftCost (n ^ 200) :=
+    le_trans (le_trans (bulk_NP_lower hdec) hlift) hcost
+  exact not_lt_of_ge hchoose_le_cost holographic_gap
+
 /-- Pre-pivot data where faithful holography is supplied as decoder semantics,
 not as the already-compressed rank inequality. -/
 structure HolographicBoundaryBulkDecoderPivotData
@@ -135,6 +204,9 @@ theorem no_decidesSAT_at_paperScale_of_holographicBoundaryBulkDecoderPivotData
 /-! ## Axiom audit anchors -/
 
 #print axioms faithful_boundary_to_bulk_of_decoder
+#print axioms decoder_of_faithful_boundary_to_bulk
+#print axioms exists_decoder_iff_faithful_boundary_to_bulk
+#print axioms no_decoder_of_boundary_bulk_gap
 #print axioms HolographicBoundaryBulkDecoderPivotData.toPivotData
 #print axioms no_decidesSAT_of_holographicBoundaryBulkDecoderPivotData
 #print axioms no_decidesSAT_at_paperScale_of_holographicBoundaryBulkDecoderPivotData
