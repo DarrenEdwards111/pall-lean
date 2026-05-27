@@ -162,6 +162,38 @@ structure Book1SATSemanticsBridge (enc : ThreeCNFEncoding) where
     forall M : TuringMachine.DTM,
       DTMDecidesSATWithEncoding enc M -> DecidesSAT M
 
+/-- In the current core `ThreeCNF` model clauses contain only positive
+variables, so every formula is satisfiable by the all-true assignment.
+
+This is a local fact about the existing toy SAT syntax.  It is useful for the
+semantic bridge below, and it also marks a modeling limitation: once signed
+literals are added, this lemma should disappear and the bridge must be proved
+from the real parser/encoding semantics. -/
+theorem threeCNF_positive_isSatisfiable (φ : ThreeCNF) : φ.IsSatisfiable := by
+  refine ⟨fun _ => true, ?_⟩
+  intro c hc
+  left
+  rfl
+
+/-- The current positive-clause encoding semantics imply the core
+`DecidesSAT` semantics.
+
+For satisfiable formulas, encoding completeness supplies an input and encoded
+SAT correctness supplies acceptance.  For unsatisfiable formulas, the current
+positive-only `ThreeCNF` syntax makes the premise contradictory.  This is safe
+because it is explicitly tied to the present syntax; it is not a silent coercion
+between future richer SAT definitions. -/
+def book1SATSemanticsBridge_of_positiveThreeCNFEncoding
+    (enc : ThreeCNFEncoding) : Book1SATSemanticsBridge enc where
+  toCoreDecidesSAT := by
+    intro M hM
+    refine ⟨?accepts_sat, ?rejects_unsat⟩
+    · intro φ n hn hsize hsat
+      rcases enc.complete φ n hsize with ⟨input, henc⟩
+      exact ⟨input, (hM hn input φ henc).mpr hsat⟩
+    · intro φ n hn hsize hunsat input
+      exact False.elim (hunsat (threeCNF_positive_isSatisfiable φ))
+
 /-- One-size ambient no-loss certificate for the same-target Book-1 sheet.
 
 It states that the extracted rank is the blocked-SPDP rank of the selected
@@ -828,6 +860,8 @@ theorem standardPvsNP_of_book1CEWSPDP
   S.standardPvsNP_iff_no_encodedSATDecider.mpr
     (no_DTMDecidesSATWithEncoding_of_book1CEWSPDP enc B)
 
+#print axioms threeCNF_positive_isSatisfiable
+#print axioms book1SATSemanticsBridge_of_positiveThreeCNFEncoding
 #print axioms book1CalibratedRamanujanTseitinHardNPLowerBound
 #print axioms book1CalibratedHardRank_le_of_sameTargetRamanujanTseitinCertificate
 #print axioms book1HardSheetExtractionModel_of_sameTargetRamanujanTseitinModel
