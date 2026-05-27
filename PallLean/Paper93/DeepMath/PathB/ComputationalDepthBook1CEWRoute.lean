@@ -23,6 +23,43 @@ namespace PallLean.Paper93.DeepMath.PathB
 
 open PaperFaithfulSeparation
 
+/-- Ambient compiled/PAC rank choice for Book 1.
+
+This is the safe target for the no-loss theorem.  `ambientRank M n` is meant to
+be the full compiled/PAC P-side rank before any low-action or CEW collapse is
+applied.  `extractedRank M n` is the God-Move extracted sheet rank.
+
+The point of this structure is to prove the transport into the **ambient** rank
+only.  It deliberately does not claim transport into a collapsed live-boundary
+rank; that stronger target is exactly where the earlier contradiction/no-go
+appears. -/
+structure Book1AmbientCompiledRankModel
+    (enc : ThreeCNFEncoding)
+    (hardRank : Nat -> Nat) where
+  ambientRank : TuringMachine.DTM -> Nat -> Nat
+  extractedRank : TuringMachine.DTM -> Nat -> Nat
+  hardRank_le_extracted :
+    forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M ->
+        forall n : Nat, hardRank n <= extractedRank M n
+  /-- No-loss extraction/PAC monotonicity into the full ambient compiled rank. -/
+  extracted_le_ambient :
+    forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M ->
+        forall n : Nat, extractedRank M n <= ambientRank M n
+
+/-- The ambient compiled/PAC rank model proves the load-bearing no-loss half
+`extracted <= pRank` when `pRank` is chosen to be the ambient compiled rank. -/
+theorem extracted_le_pRank_of_ambientCompiledRankModel
+    {enc : ThreeCNFEncoding}
+    {hardRank : Nat -> Nat}
+    (A : Book1AmbientCompiledRankModel enc hardRank) :
+    forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M ->
+        forall n : Nat, A.extractedRank M n <= A.ambientRank M n := by
+  intro M hM n
+  exact A.extracted_le_ambient M hM n
+
 /-- Decider transport/no-loss certificate for Book 1.
 
 This is the sharpened form of the monster bridge.  Instead of assuming the final
@@ -48,6 +85,17 @@ structure Book1DeciderTransportCertificate
     forall M : TuringMachine.DTM,
       DTMDecidesSATWithEncoding enc M ->
         forall n : Nat, extractedRank M n <= pRank M n
+
+/-- The ambient compiled/PAC rank model also gives the whole split transport
+certificate for the ambient rank choice. -/
+def book1TransportCertificate_of_ambientCompiledRankModel
+    {enc : ThreeCNFEncoding}
+    {hardRank : Nat -> Nat}
+    (A : Book1AmbientCompiledRankModel enc hardRank) :
+    Book1DeciderTransportCertificate enc A.ambientRank hardRank where
+  extractedRank := A.extractedRank
+  hardRank_le_extracted := A.hardRank_le_extracted
+  extracted_le_pRank := extracted_le_pRank_of_ambientCompiledRankModel A
 
 /-- The split Book-1 transport certificate proves the original no-loss bridge:
 any encoded SAT decider transports the hard-family rank into its P-side rank. -/
@@ -157,6 +205,8 @@ theorem standardPvsNP_of_book1CEWSPDP
     (no_DTMDecidesSATWithEncoding_of_book1CEWSPDP enc B)
 
 #print axioms book1_superPolynomialGap
+#print axioms extracted_le_pRank_of_ambientCompiledRankModel
+#print axioms book1TransportCertificate_of_ambientCompiledRankModel
 #print axioms deciderTransportHardToP_of_book1TransportCertificate
 #print axioms book1_pSidePolynomialSPDP_of_decider
 #print axioms no_DTMDecidesSATWithEncoding_of_book1CEWSPDP
