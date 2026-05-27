@@ -152,6 +152,16 @@ theorem hardRank_le_extracted_of_hardSheetExtractionModel
   intro M hM n
   exact H.hardSheet_le_extracted M hM n
 
+/-- Explicit bridge between the encoded SAT semantics used by the Book-1 route
+and the core `GodMoveCore.DecidesSAT` semantics used by extraction transfer.
+
+This keeps the semantics conversion honest: downstream ambient constructors may
+use this field, but we do not silently coerce between the two definitions. -/
+structure Book1SATSemanticsBridge (enc : ThreeCNFEncoding) where
+  toCoreDecidesSAT :
+    forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M -> DecidesSAT M
+
 /-- One-size ambient no-loss certificate for the same-target Book-1 sheet.
 
 It states that the extracted rank is the blocked-SPDP rank of the selected
@@ -172,6 +182,30 @@ structure Book1SameTargetAmbientRankCertificate
       (Nat.log 2 n) (Nat.log 2 n)
       (compiledPoly (cook_levin_compilation M n hardCert.hn2 hardCert.htb hardCert.hns))
 
+/-- Build an ambient rank certificate from an explicit encoded-to-core SAT
+semantics bridge.  This is the preferred constructor when the source hypothesis
+is `DTMDecidesSATWithEncoding enc M`: the bridge supplies the exact
+`DecidesSAT M` witness consumed by `GodMoveRouteB_ExtractionTransfer`. -/
+def book1SameTargetAmbientRankCertificate_of_encodedSATBridge
+    {enc : ThreeCNFEncoding}
+    (S : Book1SATSemanticsBridge enc)
+    {M : TuringMachine.DTM} {n extracted ambient : Nat}
+    (hM : DTMDecidesSATWithEncoding enc M)
+    (hardCert : Book1SameTargetRamanujanTseitinRankCertificate M n extracted)
+    (extractionTransfer :
+      GodMoveRouteB_ExtractionTransfer M n hardCert.hn2 hardCert.htb hardCert.hns
+        (S.toCoreDecidesSAT M hM) hardCert.target)
+    (ambient_eq :
+      ambient = MultilinearSPDP.mlBlockedSpdpRank
+        (cook_levin_compilation M n hardCert.hn2 hardCert.htb hardCert.hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hardCert.hn2 hardCert.htb hardCert.hns))) :
+    Book1SameTargetAmbientRankCertificate M n extracted ambient where
+  hardCert := hardCert
+  hdecCore := S.toCoreDecidesSAT M hM
+  extractionTransfer := extractionTransfer
+  ambient_eq := ambient_eq
+
 /-- The same-target ambient certificate proves extracted-rank containment in the
 full compiled/PAC ambient rank. -/
 theorem extracted_le_ambient_of_sameTargetAmbientRankCertificate
@@ -187,6 +221,39 @@ theorem extracted_le_ambient_of_sameTargetAmbientRankCertificate
         (compiledPoly (cook_levin_compilation M n C.hardCert.hn2 C.hardCert.htb C.hardCert.hns)) :=
       C.extractionTransfer
     _ = ambient := C.ambient_eq.symm
+
+/-- Bridge-aware paper-scale ambient payload.
+
+This is the shape downstream code should prove from the actual extraction map:
+for each encoded SAT-decider and large `n`, provide the same-target hard
+certificate, the extraction transfer using the explicit semantic bridge, and the
+ambient-rank definitional equality. -/
+structure Book1SameTargetAmbientLargePayload
+    {enc : ThreeCNFEncoding}
+    (S : Book1SATSemanticsBridge enc)
+    (M : TuringMachine.DTM) (hM : DTMDecidesSATWithEncoding enc M)
+    (n extracted ambient : Nat) where
+  hardCert : Book1SameTargetRamanujanTseitinRankCertificate M n extracted
+  extractionTransfer :
+    GodMoveRouteB_ExtractionTransfer M n hardCert.hn2 hardCert.htb hardCert.hns
+      (S.toCoreDecidesSAT M hM) hardCert.target
+  ambient_eq :
+    ambient = MultilinearSPDP.mlBlockedSpdpRank
+      (cook_levin_compilation M n hardCert.hn2 hardCert.htb hardCert.hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hardCert.hn2 hardCert.htb hardCert.hns))
+
+/-- A bridge-aware large ambient payload produces the older ambient certificate
+shape. -/
+def Book1SameTargetAmbientLargePayload.toCertificate
+    {enc : ThreeCNFEncoding}
+    {S : Book1SATSemanticsBridge enc}
+    {M : TuringMachine.DTM} {hM : DTMDecidesSATWithEncoding enc M}
+    {n extracted ambient : Nat}
+    (P : Book1SameTargetAmbientLargePayload S M hM n extracted ambient) :
+    Book1SameTargetAmbientRankCertificate M n extracted ambient :=
+  book1SameTargetAmbientRankCertificate_of_encodedSATBridge S hM
+    P.hardCert P.extractionTransfer P.ambient_eq
 
 /-- Global same-target ambient-rank model.
 
@@ -210,6 +277,44 @@ structure Book1SameTargetAmbientCompiledRankModel
         forall n : Nat,
           n < 2 ^ 804 ->
             hardModel.extractedRank M n <= ambientRank M n
+
+/-- Bridge-aware global ambient-rank model.
+
+This refines `Book1SameTargetAmbientCompiledRankModel` by requiring the large
+ambient data to pass through an explicit encoded-to-core SAT semantics bridge.
+It is safer for final instantiation, because it makes the `DecidesSAT M` witness
+used by `GodMoveRouteB_ExtractionTransfer` visible. -/
+structure Book1SameTargetAmbientCompiledRankModelWithBridge
+    (enc : ThreeCNFEncoding) where
+  hardModel : Book1SameTargetRamanujanTseitinHardSheetModel enc
+  semanticBridge : Book1SATSemanticsBridge enc
+  ambientRank : TuringMachine.DTM -> Nat -> Nat
+  large_ambient_payload :
+    forall M : TuringMachine.DTM,
+      forall hM : DTMDecidesSATWithEncoding enc M,
+        forall n : Nat,
+          2 ^ 804 <= n ->
+            Book1SameTargetAmbientLargePayload semanticBridge M hM n
+              (hardModel.extractedRank M n) (ambientRank M n)
+  preThreshold_ambient :
+    forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M ->
+        forall n : Nat,
+          n < 2 ^ 804 ->
+            hardModel.extractedRank M n <= ambientRank M n
+
+/-- Forget the explicit bridge-aware ambient model into the older ambient model
+by packaging each large payload as a certificate. -/
+def book1SameTargetAmbientCompiledRankModel_of_withBridge
+    {enc : ThreeCNFEncoding}
+    (A : Book1SameTargetAmbientCompiledRankModelWithBridge enc) :
+    Book1SameTargetAmbientCompiledRankModel enc where
+  hardModel := A.hardModel
+  ambientRank := A.ambientRank
+  large_ambient := by
+    intro M hM n hn
+    exact (A.large_ambient_payload M hM n hn).toCertificate
+  preThreshold_ambient := A.preThreshold_ambient
 
 /-- Ambient compiled/PAC rank choice for Book 1.
 
@@ -534,6 +639,25 @@ structure Book1ConcreteAssemblyCertificate (enc : ThreeCNFEncoding) where
   cewBudget : Book1SyntacticBoundedCEWModel pCEW
   profileCounting : Book1CEWProfileCountingModel pCEW ambientModel.ambientRank
 
+/-- Bridge-aware concrete assembly certificate for the Book-1 port.  This is
+the preferred final certificate shape: the ambient model carries an explicit
+encoded-to-core SAT semantic bridge. -/
+structure Book1ConcreteAssemblyCertificateWithBridge (enc : ThreeCNFEncoding) where
+  pCEW : TuringMachine.DTM -> Nat -> Nat
+  ambientModel : Book1SameTargetAmbientCompiledRankModelWithBridge enc
+  cewBudget : Book1SyntacticBoundedCEWModel pCEW
+  profileCounting : Book1CEWProfileCountingModel pCEW ambientModel.ambientRank
+
+/-- Forget the bridge-aware assembly certificate into the older assembly shape. -/
+def book1ConcreteAssemblyCertificate_of_withBridge
+    {enc : ThreeCNFEncoding}
+    (A : Book1ConcreteAssemblyCertificateWithBridge enc) :
+    Book1ConcreteAssemblyCertificate enc where
+  pCEW := A.pCEW
+  ambientModel := book1SameTargetAmbientCompiledRankModel_of_withBridge A.ambientModel
+  cewBudget := A.cewBudget
+  profileCounting := A.profileCounting
+
 /-- Assemble the concrete Book-1 CEW/SPDP port from explicit local certificates.
 This is the final non-magical wiring theorem for the Book-1 route. -/
 def book1CEWSPDPEpistemicBoundaryPort_of_concreteAssembly
@@ -551,6 +675,15 @@ def book1CEWSPDPEpistemicBoundaryPort_of_concreteAssembly
   transportCertificate :=
     book1TransportCertificate_of_ambientCompiledRankModel
       (book1AmbientCompiledRankModel_of_sameTargetAmbientModel A.ambientModel)
+
+/-- Assemble the concrete Book-1 CEW/SPDP port from the preferred bridge-aware
+certificate shape. -/
+def book1CEWSPDPEpistemicBoundaryPort_of_concreteAssemblyWithBridge
+    {enc : ThreeCNFEncoding}
+    (A : Book1ConcreteAssemblyCertificateWithBridge enc) :
+    Book1CEWSPDPEpistemicBoundaryPort enc :=
+  book1CEWSPDPEpistemicBoundaryPort_of_concreteAssembly
+    (book1ConcreteAssemblyCertificate_of_withBridge A)
 
 /-- Growth separation: the calibrated Ramanujan/Tseitin scale
 `n^(log₂ n / 4)` eventually beats every fixed polynomial.
@@ -613,6 +746,9 @@ theorem standardPvsNP_of_book1CEWSPDP
 #print axioms book1CalibratedRamanujanTseitinHardNPLowerBound
 #print axioms book1CalibratedHardRank_le_of_sameTargetRamanujanTseitinCertificate
 #print axioms book1HardSheetExtractionModel_of_sameTargetRamanujanTseitinModel
+#print axioms book1SameTargetAmbientRankCertificate_of_encodedSATBridge
+#print axioms Book1SameTargetAmbientLargePayload.toCertificate
+#print axioms book1SameTargetAmbientCompiledRankModel_of_withBridge
 #print axioms extracted_le_ambient_of_sameTargetAmbientRankCertificate
 #print axioms book1AmbientCompiledRankModel_of_sameTargetAmbientModel
 #print axioms book1CalibratedHardSheetExtractionModel
@@ -624,6 +760,7 @@ theorem standardPvsNP_of_book1CEWSPDP
 #print axioms boundedCEWForP_of_logSyntacticPCEW
 #print axioms cewToPolynomialSPDP_of_countingCertificate
 #print axioms book1CEWSPDPEpistemicBoundaryPort_of_concreteAssembly
+#print axioms book1CEWSPDPEpistemicBoundaryPort_of_concreteAssemblyWithBridge
 #print axioms book1TransportCertificate_of_ambientCompiledRankModel
 #print axioms deciderTransportHardToP_of_book1TransportCertificate
 #print axioms book1_pSidePolynomialSPDP_of_decider
