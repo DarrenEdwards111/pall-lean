@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthTheorem207StrictPort
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthStrictPortStandardBridge
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCanonicalStrictGodMoveRoute
 
 /-!
 # Low-action / polynomial-capacity strict port
@@ -53,6 +54,29 @@ theorem theorem207LowActionStrictPort_of_theorem207StrictPort
   rcases Hport L.k with ⟨n, hn20, hlog, HextractAt⟩
   exact ⟨n, hn20, hlog, HextractAt L.base⟩
 
+/-- The canonical restricted direct-paper port gives the narrowed low-action
+strict port by converting direct paper witnesses into strict live minors. -/
+theorem theorem207LowActionStrictPort_of_canonicalStrictGodMovePort
+    {enc : ThreeCNFEncoding}
+    (Hport : CanonicalStrictGodMovePort enc) :
+    Theorem207LowActionStrictLiveBoundaryPort enc := by
+  intro L
+  rcases Hport L.k with ⟨n, hn20, hlog, Hn⟩
+  rcases Hn L (Nat.le_refl L.k) with ⟨W⟩
+  exact ⟨n, hn20, hlog, ⟨strictLiveMinor_of_theorem207DirectPaperWitness W⟩⟩
+
+/-- If there is no encoded SAT decider, the low-action strict port is vacuous:
+every low-action strict observer contains such a decider.  This direction is an
+audit theorem; combined with the Book-1 direction below, it shows the narrowed
+port is exactly P-vs-NP-strength in this model. -/
+theorem theorem207LowActionStrictPort_of_no_DTMDecidesSATWithEncoding
+    {enc : ThreeCNFEncoding}
+    (hno : Not (exists M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M)) :
+    Theorem207LowActionStrictLiveBoundaryPort enc := by
+  intro L
+  exact False.elim (hno ⟨L.base.M, L.base.decides⟩)
+
 /-- Low-action port plus the already-proved low-action Book-1 obstruction gives
 no encoded SAT-deciding DTM.
 
@@ -83,6 +107,20 @@ theorem no_DTMDecidesSATWithEncoding_of_theorem207LowActionStrictPort
     exact minor.rank_lower
   exact (Nat.not_le_of_lt hbudget) hlower
 
+/-- The narrowed low-action strict port is exactly equivalent to the encoded
+no-SAT-decider endpoint.  The reverse direction is vacuous; the forward
+direction is the actual Book-1 contradiction. -/
+theorem theorem207LowActionStrictPort_iff_no_DTMDecidesSATWithEncoding
+    (enc : ThreeCNFEncoding) :
+    Theorem207LowActionStrictLiveBoundaryPort enc ↔
+      Not (exists M : TuringMachine.DTM,
+        DTMDecidesSATWithEncoding enc M) := by
+  constructor
+  · intro Hport
+    exact no_DTMDecidesSATWithEncoding_of_theorem207LowActionStrictPort enc Hport
+  · intro hno
+    exact theorem207LowActionStrictPort_of_no_DTMDecidesSATWithEncoding hno
+
 /-- The narrowed low-action port is enough for the bridged standard statement. -/
 theorem standardPvsNP_of_theorem207LowActionStrictPort
     {enc : ThreeCNFEncoding}
@@ -91,6 +129,19 @@ theorem standardPvsNP_of_theorem207LowActionStrictPort
     B.standardPvsNP :=
   B.standardPvsNP_iff_no_encodedSATDecider.mpr
     (no_DTMDecidesSATWithEncoding_of_theorem207LowActionStrictPort enc Hport)
+
+/-- With a standard-model bridge supplied, the narrowed low-action port is
+logically equivalent to the chosen standard `P ≠ NP` proposition. -/
+theorem theorem207LowActionStrictPort_iff_standardPvsNP
+    {enc : ThreeCNFEncoding}
+    (B : StandardPvsNPBridge enc) :
+    Theorem207LowActionStrictLiveBoundaryPort enc ↔ B.standardPvsNP := by
+  constructor
+  · intro hport
+    exact standardPvsNP_of_theorem207LowActionStrictPort B hport
+  · intro hstd
+    exact theorem207LowActionStrictPort_of_no_DTMDecidesSATWithEncoding
+      (B.standardPvsNP_iff_no_encodedSATDecider.mp hstd)
 
 /-- Exact package form for the narrowed route. -/
 structure Theorem207LowActionStrictPortPackage
@@ -122,8 +173,12 @@ def lowActionStrictPortPackage_of_strictPortPackage
   hport := theorem207LowActionStrictPort_of_theorem207StrictPort pkg.hport
 
 #print axioms theorem207LowActionStrictPort_of_theorem207StrictPort
+#print axioms theorem207LowActionStrictPort_of_canonicalStrictGodMovePort
+#print axioms theorem207LowActionStrictPort_of_no_DTMDecidesSATWithEncoding
 #print axioms no_DTMDecidesSATWithEncoding_of_theorem207LowActionStrictPort
+#print axioms theorem207LowActionStrictPort_iff_no_DTMDecidesSATWithEncoding
 #print axioms standardPvsNP_of_theorem207LowActionStrictPort
+#print axioms theorem207LowActionStrictPort_iff_standardPvsNP
 #print axioms no_DTMDecidesSATWithEncoding_of_lowActionStrictPortPackage
 #print axioms standardPvsNP_of_lowActionStrictPortPackage
 #print axioms lowActionStrictPortPackage_of_strictPortPackage
