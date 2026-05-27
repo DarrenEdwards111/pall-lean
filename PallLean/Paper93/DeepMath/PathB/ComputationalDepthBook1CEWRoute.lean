@@ -152,6 +152,65 @@ theorem hardRank_le_extracted_of_hardSheetExtractionModel
   intro M hM n
   exact H.hardSheet_le_extracted M hM n
 
+/-- One-size ambient no-loss certificate for the same-target Book-1 sheet.
+
+It states that the extracted rank is the blocked-SPDP rank of the selected
+same-target sheet, and that the same sheet satisfies the `GodMoveCore`
+extraction-transfer inequality into the full Cook--Levin compiled rank.  The
+ambient rank is identified with that full compiled rank; no low-action or CEW
+collapse is used here. -/
+structure Book1SameTargetAmbientRankCertificate
+    (M : TuringMachine.DTM) (n extracted ambient : Nat) where
+  hardCert : Book1SameTargetRamanujanTseitinRankCertificate M n extracted
+  hdecCore : DecidesSAT M
+  extractionTransfer :
+    GodMoveRouteB_ExtractionTransfer M n hardCert.hn2 hardCert.htb hardCert.hns
+      hdecCore hardCert.target
+  ambient_eq :
+    ambient = MultilinearSPDP.mlBlockedSpdpRank
+      (cook_levin_compilation M n hardCert.hn2 hardCert.htb hardCert.hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hardCert.hn2 hardCert.htb hardCert.hns))
+
+/-- The same-target ambient certificate proves extracted-rank containment in the
+full compiled/PAC ambient rank. -/
+theorem extracted_le_ambient_of_sameTargetAmbientRankCertificate
+    {M : TuringMachine.DTM} {n extracted ambient : Nat}
+    (C : Book1SameTargetAmbientRankCertificate M n extracted ambient) :
+    extracted <= ambient := by
+  calc
+    extracted = MultilinearSPDP.mlBlockedSpdpRank C.hardCert.target.coupledPartition
+        (Nat.log 2 n) (Nat.log 2 n) C.hardCert.target.coupledPoly := C.hardCert.rank_eq
+    _ <= MultilinearSPDP.mlBlockedSpdpRank
+        (cook_levin_compilation M n C.hardCert.hn2 C.hardCert.htb C.hardCert.hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n C.hardCert.hn2 C.hardCert.htb C.hardCert.hns)) :=
+      C.extractionTransfer
+    _ = ambient := C.ambient_eq.symm
+
+/-- Global same-target ambient-rank model.
+
+For paper-scale sizes, the real content is a same-target ambient certificate
+built from God-Move extraction transfer.  Below the paper threshold, the model
+keeps the finite endpoint comparison explicit. -/
+structure Book1SameTargetAmbientCompiledRankModel
+    (enc : ThreeCNFEncoding) where
+  hardModel : Book1SameTargetRamanujanTseitinHardSheetModel enc
+  ambientRank : TuringMachine.DTM -> Nat -> Nat
+  large_ambient :
+    forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M ->
+        forall n : Nat,
+          2 ^ 804 <= n ->
+            Book1SameTargetAmbientRankCertificate M n
+              (hardModel.extractedRank M n) (ambientRank M n)
+  preThreshold_ambient :
+    forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M ->
+        forall n : Nat,
+          n < 2 ^ 804 ->
+            hardModel.extractedRank M n <= ambientRank M n
+
 /-- Ambient compiled/PAC rank choice for Book 1.
 
 This is the safe target for the no-loss theorem.  `ambientRank M n` is meant to
@@ -172,6 +231,21 @@ structure Book1AmbientCompiledRankModel
     forall M : TuringMachine.DTM,
       DTMDecidesSATWithEncoding enc M ->
         forall n : Nat, hardSheet.extractedRank M n <= ambientRank M n
+
+/-- The same-target ambient-rank model instantiates the generic Book-1 ambient
+compiled-rank model. -/
+def book1AmbientCompiledRankModel_of_sameTargetAmbientModel
+    {enc : ThreeCNFEncoding}
+    (A : Book1SameTargetAmbientCompiledRankModel enc) :
+    Book1AmbientCompiledRankModel enc book1CalibratedRamanujanTseitinHardRank where
+  ambientRank := A.ambientRank
+  hardSheet := book1HardSheetExtractionModel_of_sameTargetRamanujanTseitinModel A.hardModel
+  extracted_le_ambient := by
+    intro M hM n
+    by_cases hn : 2 ^ 804 <= n
+    · exact extracted_le_ambient_of_sameTargetAmbientRankCertificate
+        (A.large_ambient M hM n hn)
+    · exact A.preThreshold_ambient M hM n (Nat.lt_of_not_ge hn)
 
 /-- The ambient compiled/PAC rank model proves the load-bearing no-loss half
 `extracted <= pRank` when `pRank` is chosen to be the ambient compiled rank. -/
@@ -403,6 +477,8 @@ theorem standardPvsNP_of_book1CEWSPDP
 #print axioms book1CalibratedRamanujanTseitinHardNPLowerBound
 #print axioms book1CalibratedHardRank_le_of_sameTargetRamanujanTseitinCertificate
 #print axioms book1HardSheetExtractionModel_of_sameTargetRamanujanTseitinModel
+#print axioms extracted_le_ambient_of_sameTargetAmbientRankCertificate
+#print axioms book1AmbientCompiledRankModel_of_sameTargetAmbientModel
 #print axioms book1CalibratedHardSheetExtractionModel
 #print axioms book1_superPolynomialGap
 #print axioms hardRank_le_extracted_of_hardSheetExtractionModel
