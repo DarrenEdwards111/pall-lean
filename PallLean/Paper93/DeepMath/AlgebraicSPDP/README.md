@@ -90,10 +90,9 @@ The ambient rank bridge is now factored into its honest concrete shape:
   `SPDP.spdpSubspace`.
 - `nwMvMonomial` and `nwMvPolynomial` define the actual encoded
   Nisan-Wigderson polynomial inside the project's `MvPolynomial` universe.
-- `NWProjectedDerivativeRowIdentity` names the remaining concrete
-  coefficient identity for that polynomial, with the required
-  `Function.Injective enc` and `Function.Injective code` side conditions
-  included in the interface, and
+- `NWProjectedDerivativeRowIdentity` names the concrete coefficient identity
+  for that polynomial, with the required `Function.Injective enc` and
+  `Function.Injective code` side conditions included in the interface, and
   `NWSPDPIndependenceCertificate.ofLowAgreementNWPolynomial` composes it into
   the actual SPDP certificate.  The bridge is therefore no longer phrased for
   an arbitrary ambient polynomial.
@@ -108,13 +107,24 @@ The ambient rank bridge is now factored into its honest concrete shape:
   follows from the corresponding coefficient formula for each single
   squarefree NW monomial.
 
-The remaining formal theorem is now the coefficient identity for the concrete
-NW monomial: for each summand `nwMvMonomial enc code b`, prove that
-differentiating by label `a`'s window either strips the differentiated
-variables and leaves the residual graph monomial, or gives `0` if the two
-codewords disagree on the window.  This closes the modest window-row lower
-bound.  The stronger shifted-leading lower bound still needs the analogous
-projection/membership construction for shifted rows.
+`NWProjectedDerivativeIdentity.lean` discharges that coefficient identity:
+
+- `pderiv_prod_X_of_mem`, `pderiv_prod_X_of_notMem`, and the two
+  `iterDerivList_prod_X_*` lemmas prove the squarefree product calculus;
+- `nwMvMonomial_projected_derivative_coeff` proves that each summand
+  `nwMvMonomial enc code b` either strips to the residual graph monomial when
+  `a` and `b` agree on the derivative window, or differentiates to zero when
+  they disagree;
+- `NWProjectedDerivativeRowIdentity.ofInjectiveEncodingAndCode` proves the
+  full projected derivative-row identity from injective ambient encoding and
+  injective codewords;
+- `NWSPDPIndependenceCertificate.ofLowAgreementNWPolynomial_injective`
+  composes this into the low-agreement NW certificate against the actual
+  encoded `MvPolynomial`.
+
+This closes the modest unshifted/window-row bridge.  The stronger
+shifted-leading lower bound still needs the analogous projection/membership
+construction for shifted rows.
 
 ## Calibration script
 
