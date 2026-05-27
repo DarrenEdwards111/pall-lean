@@ -88,6 +88,21 @@ lemma in the current strict model.  An unconditional proof of it would already
 be the encoded SAT lower bound.  Conversely, the no-decider endpoint makes the
 semantic-closure statement vacuous.
 
+The same file also records the explicit zero-rank obstruction:
+
+```lean
+zeroRankPresentation_liveBoundaryRank_eq_zero
+no_strictLiveMinor_of_zeroRankPresentation_at
+not_semanticClosureExtractionAt_of_zeroRankPresentation
+not_paperSemanticClosure_of_DTMDecidesSATWithEncoding
+```
+
+Thus the universal quantifier over presentations is broad and meaningful: it
+includes `configActionRank := fun _ => 0`.  If an encoded SAT decider exists,
+that structure-free presentation has zero live boundary rank everywhere and
+cannot carry a positive binomial minor at paper scale.  Excluding this
+presentation would be exactly where a hidden high-rank assumption could enter.
+
 ## Standard P-vs-NP bridge
 The standard-model readout is isolated in:
 - `ComputationalDepthStrictPortStandardBridge.lean`
