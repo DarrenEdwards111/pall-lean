@@ -26,6 +26,20 @@ The hard theorem is isolated as `NWSPDPIndependenceCertificate`: a
 Nisan-Wigderson support/leading-monomial independence proof.  This is the
 real analytic lower-bound target.
 
+The file now proves the support/leading-monomial engine:
+
+- `leadingSupport_linearIndependent`: private pivot monomials imply linear
+  independence of the selected shifted partial rows;
+- `leadingSupport_card_le_spdpRank`: if those rows lie in the SPDP row space,
+  their count lower-bounds the SPDP rank;
+- `NWSPDPIndependenceCertificate.ofLeadingSupport`: enough private pivots
+  construct the NW independence certificate used by the depth-3 lower-bound
+  conversion.
+
+The remaining NW-specific asymptotic work is no longer linear algebra.  It is
+the combinatorial construction of enough private pivot rows from the actual
+NW design/intersection property.
+
 ## Calibration script
 
 `scripts/algebraic_spdp_nw_depth3.py` computes exact small SPDP ranks over
@@ -39,4 +53,3 @@ real analytic lower-bound target.
 These finite ranks are calibration only.  The frontier result requires an
 asymptotic NW support-independence theorem, not brute-force exact rank
 computation.
-

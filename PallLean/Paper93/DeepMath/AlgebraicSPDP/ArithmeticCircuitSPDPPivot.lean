@@ -1,5 +1,6 @@
 import Mathlib.Tactic
 import Mathlib.Data.Nat.Choose.Basic
+import Mathlib.LinearAlgebra.Dimension.OrzechProperty
 
 /-!
 # Algebraic SPDP Pivot
@@ -130,6 +131,96 @@ structure NWSPDPIndependenceCertificate
   spdpRank : Nat
   support_lower_le_rank : support.lower <= spdpRank
 
+/-! ## Leading-support independence engine
+
+The standard NW lower-bound proof does not try to compute the full SPDP
+rank directly.  It selects a large family of shifted partial derivatives and
+assigns to each selected row a private leading/support monomial.  If that
+monomial has nonzero coefficient in its own row and zero coefficient in all
+other selected rows, the selected rows are linearly independent.
+
+The next theorem proves exactly that pivot-coordinate argument.  This is the
+load-bearing algebraic content that the NW design/intersection lemma must
+feed: construct enough rows with private pivots.
+-/
+
+/-- A family of coefficient rows with private pivot monomials is linearly
+independent.
+
+`rows i a` is the coefficient of monomial `a` in selected row `i`.  The pivot
+conditions say that row `i` has nonzero coefficient at `pivot i`, while every
+other row vanishes at that coordinate. -/
+theorem leadingSupport_linearIndependent
+    {ι μ : Type*} [Fintype ι] [Fintype μ]
+    (rows : ι -> μ -> ℚ) (pivot : ι -> μ)
+    (hpivot_ne_zero : ∀ i, rows i (pivot i) ≠ 0)
+    (hpivot_offdiag : ∀ i j, i ≠ j -> rows j (pivot i) = 0) :
+    LinearIndependent ℚ rows := by
+  classical
+  rw [Fintype.linearIndependent_iff]
+  intro coeff hsum i
+  have hcoord : (∑ j, coeff j • rows j) (pivot i) = 0 := by
+    simpa using congrFun hsum (pivot i)
+  have hsingle :
+      (∑ j, coeff j • rows j) (pivot i) =
+        coeff i * rows i (pivot i) := by
+    rw [Finset.sum_apply]
+    refine Finset.sum_eq_single i ?_ ?_
+    · intro j _ hj
+      simp [hpivot_offdiag i j hj.symm]
+    · intro hi
+      exact (hi (Finset.mem_univ i)).elim
+  have hmul : coeff i * rows i (pivot i) = 0 := by
+    simpa [hsingle] using hcoord
+  exact (mul_eq_zero.mp hmul).elim id (fun hrow => (hpivot_ne_zero i hrow).elim)
+
+/-- The row-count lower bound supplied by private leading monomials.
+
+If the selected rows sit inside the actual SPDP row space, represented here
+by the external comparison `span_rank_le_spdp`, then the number of private
+pivots is a lower bound on the SPDP rank. -/
+theorem leadingSupport_card_le_spdpRank
+    {ι μ : Type*} [Fintype ι] [Fintype μ]
+    (rows : ι -> μ -> ℚ) (pivot : ι -> μ)
+    (hpivot_ne_zero : ∀ i, rows i (pivot i) ≠ 0)
+    (hpivot_offdiag : ∀ i j, i ≠ j -> rows j (pivot i) = 0)
+    {spdpRank : Nat}
+    (span_rank_le_spdp : (Set.range rows).finrank ℚ <= spdpRank) :
+    Fintype.card ι <= spdpRank := by
+  have hli := leadingSupport_linearIndependent rows pivot hpivot_ne_zero hpivot_offdiag
+  have hcard_span : Fintype.card ι <= (Set.range rows).finrank ℚ :=
+    (linearIndependent_iff_card_le_finrank_span.mp hli)
+  exact le_trans hcard_span span_rank_le_spdp
+
+/-- Construct the NW independence certificate from private leading monomials.
+
+The genuinely NW-specific asymptotic work is now the construction of the
+arguments:
+
+* many selected rows (`support.lower <= Fintype.card ι`);
+* private pivots (`hpivot_ne_zero`, `hpivot_offdiag`);
+* containment of those rows in the actual SPDP row space
+  (`span_rank_le_spdp`).
+
+Once those are supplied, the SPDP lower bound is fully proved. -/
+def NWSPDPIndependenceCertificate.ofLeadingSupport
+    {numVars degree kappa ell : Nat}
+    {ι μ : Type*} [Fintype ι] [Fintype μ]
+    (support : NWLeadingSupportData)
+    (rows : ι -> μ -> ℚ) (pivot : ι -> μ)
+    (hpivot_ne_zero : ∀ i, rows i (pivot i) ≠ 0)
+    (hpivot_offdiag : ∀ i j, i ≠ j -> rows j (pivot i) = 0)
+    (spdpRank : Nat)
+    (support_lower_le_rows : support.lower <= Fintype.card ι)
+    (span_rank_le_spdp : (Set.range rows).finrank ℚ <= spdpRank) :
+    NWSPDPIndependenceCertificate numVars degree kappa ell where
+  support := support
+  spdpRank := spdpRank
+  support_lower_le_rank :=
+    le_trans support_lower_le_rows
+      (leadingSupport_card_le_spdpRank rows pivot hpivot_ne_zero
+        hpivot_offdiag span_rank_le_spdp)
+
 /-- Turn an NW independence certificate and a depth-3 upper bound into the
 same comparison object used by the circuit-size theorem. -/
 def NWSPDPIndependenceCertificate.toComparison
@@ -177,8 +268,10 @@ theorem no_depth3_circuit_of_NW_independence_gap
 
 #print axioms depth3_product_gate_lower_bound
 #print axioms no_depth3_comparison_of_capacity_lt_lower
+#print axioms leadingSupport_linearIndependent
+#print axioms leadingSupport_card_le_spdpRank
+#print axioms NWSPDPIndependenceCertificate.ofLeadingSupport
 #print axioms depth3_product_gate_lower_bound_of_NW_independence
 #print axioms no_depth3_circuit_of_NW_independence_gap
 
 end PallLean.Paper93.DeepMath.AlgebraicSPDP
-
