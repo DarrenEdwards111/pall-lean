@@ -846,6 +846,100 @@ def ofCertificateOnlyNormalForm
 
 end Book1NormalizationPaddingCertificate
 
+/-- Local normalization boundary: a raw encoded SAT decider is converted to an
+explicitly certified normal form.  This is a certificate boundary, not a global
+theorem that every raw machine already satisfies God-Move side conditions. -/
+structure Book1LocalNormalizationBoundary (enc : ThreeCNFEncoding) where
+  normalize :
+    forall M : TuringMachine.DTM,
+      forall hM : DTMDecidesSATWithEncoding enc M,
+        Book1NormalizationPaddingCertificate enc M hM
+
+/-- Local same-target Ramanujan/Tseitin certificate boundary.  It asks only for
+explicit large-size same-target data on the normalized machine plus finite
+pre-threshold lower bounds. -/
+structure Book1LocalSameTargetRTBoundary
+    (enc : ThreeCNFEncoding)
+    (extractedRank : TuringMachine.DTM -> Nat -> Nat)
+    (normalize : forall M : TuringMachine.DTM,
+      forall hM : DTMDecidesSATWithEncoding enc M,
+        Book1NormalizationPaddingCertificate enc M hM) where
+  large_sameTarget_normalized :
+    forall M : TuringMachine.DTM,
+      forall hM : DTMDecidesSATWithEncoding enc M,
+        forall n : Nat,
+          forall _hn : 2 ^ 804 <= n,
+            Book1SameTargetRamanujanTseitinRankCertificate
+              ((normalize M hM).normalized) n (extractedRank M n)
+  preThreshold_lower :
+    forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M ->
+        forall n : Nat,
+          n < 2 ^ 804 ->
+            book1CalibratedRamanujanTseitinHardRank n <= extractedRank M n
+
+/-- Local ambient-transfer certificate boundary.  It packages explicit
+God-Move/Cook--Levin ambient payloads on the normalized machine, plus finite
+pre-threshold ambient containment. -/
+structure Book1LocalAmbientTransferBoundary
+    (enc : ThreeCNFEncoding)
+    (semanticBridge : Book1SATSemanticsBridge enc)
+    (extractedRank ambientRank : TuringMachine.DTM -> Nat -> Nat)
+    (normalize : forall M : TuringMachine.DTM,
+      forall hM : DTMDecidesSATWithEncoding enc M,
+        Book1NormalizationPaddingCertificate enc M hM) where
+  large_ambient_payload_normalized :
+    forall M : TuringMachine.DTM,
+      forall hM : DTMDecidesSATWithEncoding enc M,
+        forall n : Nat,
+          forall _hn : 2 ^ 804 <= n,
+            Book1SameTargetAmbientLargePayload semanticBridge
+              ((normalize M hM).normalized)
+              ((normalize M hM).normalized_decides) n
+              (extractedRank M n) (ambientRank M n)
+  preThreshold_ambient :
+    forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M ->
+        forall n : Nat,
+          n < 2 ^ 804 ->
+            extractedRank M n <= ambientRank M n
+
+/-- Local CEW/profile counting certificate boundary.  This is the intended
+assumption frontier for the P-side upper bound: a concrete profile universe and
+its counting inequalities are supplied explicitly. -/
+structure Book1LocalCEWProfileBoundary
+    (pCEW : TuringMachine.DTM -> Nat -> Nat)
+    (ambientRank : TuringMachine.DTM -> Nat -> Nat) where
+  profileCount : TuringMachine.DTM -> Nat -> Nat
+  cewExponent : Nat
+  sizeExponent : Nat
+  rank_le_profile :
+    forall M : TuringMachine.DTM,
+      forall n : Nat, ambientRank M n <= profileCount M n
+  profile_le_cew_monomial :
+    forall M : TuringMachine.DTM,
+      forall n : Nat,
+        profileCount M n <= (pCEW M n) ^ cewExponent * n ^ sizeExponent
+  rank_zero : forall M : TuringMachine.DTM, ambientRank M 0 <= 0
+  rank_one : forall M : TuringMachine.DTM, ambientRank M 1 <= 1
+
+/-- Fully named certificate-boundary input for the normalized Book-1 route.
+The route file proves only that these local certificates assemble; it does not
+claim that SAT deciders globally generate them. -/
+structure Book1NamedCertificateBoundaryBundle (enc : ThreeCNFEncoding) where
+  pCEW : TuringMachine.DTM -> Nat -> Nat
+  extractedRank : TuringMachine.DTM -> Nat -> Nat
+  ambientRank : TuringMachine.DTM -> Nat -> Nat
+  semanticBridge : Book1SATSemanticsBridge enc
+  cewBudget : Book1SyntacticBoundedCEWModel pCEW
+  normalization : Book1LocalNormalizationBoundary enc
+  sameTargetRT :
+    Book1LocalSameTargetRTBoundary enc extractedRank normalization.normalize
+  ambientTransfer :
+    Book1LocalAmbientTransferBoundary enc semanticBridge extractedRank ambientRank
+      normalization.normalize
+  profileCounting : Book1LocalCEWProfileBoundary pCEW ambientRank
+
 /-- Normalized safe local payload bundle.
 
 This is the safer successor to `Book1SafeLocalPayloadBundle`: large-size RT and
@@ -902,6 +996,31 @@ structure Book1NormalizedSafeLocalPayloadBundle (enc : ThreeCNFEncoding) where
         profileCount M n <= (pCEW M n) ^ cewExponent * n ^ sizeExponent
   rank_zero : forall M : TuringMachine.DTM, ambientRank M 0 <= 0
   rank_one : forall M : TuringMachine.DTM, ambientRank M 1 <= 1
+
+/-- Flatten the named certificate-boundary bundle into the lower-level
+normalized payload shape. -/
+def book1NormalizedSafeLocalPayloadBundle_of_namedCertificateBoundary
+    {enc : ThreeCNFEncoding}
+    (B : Book1NamedCertificateBoundaryBundle enc) :
+    Book1NormalizedSafeLocalPayloadBundle enc where
+  pCEW := B.pCEW
+  extractedRank := B.extractedRank
+  ambientRank := B.ambientRank
+  semanticBridge := B.semanticBridge
+  cewBudget := B.cewBudget
+  normalize := B.normalization.normalize
+  large_sameTarget_normalized := B.sameTargetRT.large_sameTarget_normalized
+  preThreshold_lower := B.sameTargetRT.preThreshold_lower
+  large_ambient_payload_normalized :=
+    B.ambientTransfer.large_ambient_payload_normalized
+  preThreshold_ambient := B.ambientTransfer.preThreshold_ambient
+  profileCount := B.profileCounting.profileCount
+  cewExponent := B.profileCounting.cewExponent
+  sizeExponent := B.profileCounting.sizeExponent
+  rank_le_profile := B.profileCounting.rank_le_profile
+  profile_le_cew_monomial := B.profileCounting.profile_le_cew_monomial
+  rank_zero := B.profileCounting.rank_zero
+  rank_one := B.profileCounting.rank_one
 
 /-- Convert the explicit local payload bundle into the bridge-aware assembly
 certificate.  This is pure packaging. -/
@@ -1023,6 +1142,16 @@ def book1CEWSPDPEpistemicBoundaryPort_of_normalizedSafeLocalPayloadBundle
   transportCertificate :=
     book1TransportCertificate_of_normalizedSafeLocalPayloadBundle P
 
+/-- Assemble the full Book-1 port from named local certificate boundaries.  This
+is the most audit-friendly entry point: each remaining mathematical assumption
+is carried by an explicitly named local certificate structure. -/
+def book1CEWSPDPEpistemicBoundaryPort_of_namedCertificateBoundary
+    {enc : ThreeCNFEncoding}
+    (B : Book1NamedCertificateBoundaryBundle enc) :
+    Book1CEWSPDPEpistemicBoundaryPort enc :=
+  book1CEWSPDPEpistemicBoundaryPort_of_normalizedSafeLocalPayloadBundle
+    (book1NormalizedSafeLocalPayloadBundle_of_namedCertificateBoundary B)
+
 /-- Growth separation: the calibrated Ramanujan/Tseitin scale
 `n^(log₂ n / 4)` eventually beats every fixed polynomial.
 
@@ -1105,8 +1234,10 @@ theorem standardPvsNP_of_book1CEWSPDP
 #print axioms Book1NormalizationPaddingCertificate.ofCertificateOnlyNormalForm
 #print axioms book1ConcreteAssemblyCertificateWithBridge_of_safeLocalPayloadBundle
 #print axioms book1CEWSPDPEpistemicBoundaryPort_of_safeLocalPayloadBundle
+#print axioms book1NormalizedSafeLocalPayloadBundle_of_namedCertificateBoundary
 #print axioms book1TransportCertificate_of_normalizedSafeLocalPayloadBundle
 #print axioms book1CEWSPDPEpistemicBoundaryPort_of_normalizedSafeLocalPayloadBundle
+#print axioms book1CEWSPDPEpistemicBoundaryPort_of_namedCertificateBoundary
 #print axioms book1CEWSPDPEpistemicBoundaryPort_of_concreteAssembly
 #print axioms book1CEWSPDPEpistemicBoundaryPort_of_concreteAssemblyWithBridge
 #print axioms book1TransportCertificate_of_ambientCompiledRankModel
