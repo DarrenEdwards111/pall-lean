@@ -123,8 +123,8 @@ The ambient rank bridge is now factored into its honest concrete shape:
   encoded `MvPolynomial`.
 
 This closes the modest unshifted/window-row bridge.  The stronger
-shifted-leading lower bound still needs the analogous projection/membership
-construction for shifted rows.
+shifted-leading lower bound is now split into a finite count layer and a
+remaining projection/membership layer for shifted rows.
 
 `NWConcrete452.lean` instantiates the schema at the first honest finite-field
 case:
@@ -142,6 +142,22 @@ The resulting theorem
 project SPDP rank:
 
 `25 <= SPDP.spdpRank 2 0 (nwMvPolynomial NW452.enc NW452.code)`.
+
+`NWConcrete452Shifted.lean` records the first shifted-leading layer for the
+same concrete instance:
+
+- it decomposes the `Gamma_{2,1}` leading monomials into four finite shape
+  classes of sizes `150`, `300`, `500`, and `600`;
+- it proves the structural count
+  `NW452.shiftedLeadShape_card : Fintype.card NW452.ShiftedLeadShape = 1550`;
+- it provides the conditional strong certificate
+  `NW452.spdpRank_nw452_ge_1550_of_distinctLeadingRows`, which derives
+  `1550 <= SPDP.spdpRank 2 1 (nwMvPolynomial NW452.enc NW452.code)` once the
+  selected shifted rows are connected to the actual SPDP subspace and their
+  leading monomials are proved distinct.
+
+Thus the numeric `1550` count is now Lean-side, while the remaining strong
+bridge is the actual shifted-row projection/membership theorem.
 
 ## Calibration script
 
