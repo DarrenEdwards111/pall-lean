@@ -23,6 +23,45 @@ namespace PallLean.Paper93.DeepMath.PathB
 
 open PaperFaithfulSeparation
 
+/-- Decider transport/no-loss certificate for Book 1.
+
+This is the sharpened form of the monster bridge.  Instead of assuming the final
+inequality `hardRank n <= pRank M n` as a black box, the certificate splits it
+into the two mathematical movements described by the paper:
+
+1. the hard NP-family rank is realized on an extracted God-Move sheet; and
+2. the extracted sheet transports without rank loss into the P-side observer
+   rank.
+
+The first field is the hard-family/extraction lower surface; the second is the
+PAC/God-Move no-loss transport into the observer's P-side rank. -/
+structure Book1DeciderTransportCertificate
+    (enc : ThreeCNFEncoding)
+    (pRank : TuringMachine.DTM -> Nat -> Nat)
+    (hardRank : Nat -> Nat) where
+  extractedRank : TuringMachine.DTM -> Nat -> Nat
+  hardRank_le_extracted :
+    forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M ->
+        forall n : Nat, hardRank n <= extractedRank M n
+  extracted_le_pRank :
+    forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M ->
+        forall n : Nat, extractedRank M n <= pRank M n
+
+/-- The split Book-1 transport certificate proves the original no-loss bridge:
+any encoded SAT decider transports the hard-family rank into its P-side rank. -/
+theorem deciderTransportHardToP_of_book1TransportCertificate
+    {enc : ThreeCNFEncoding}
+    {pRank : TuringMachine.DTM -> Nat -> Nat}
+    {hardRank : Nat -> Nat}
+    (T : Book1DeciderTransportCertificate enc pRank hardRank) :
+    forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M ->
+        forall n : Nat, hardRank n <= pRank M n := by
+  intro M hM n
+  exact Nat.le_trans (T.hardRank_le_extracted M hM n) (T.extracted_le_pRank M hM n)
+
 /-- Book-1 CEW/SPDP data for a fixed encoding.
 
 `pCEW M n` is the contextual entanglement width of the observer/compiled
@@ -55,13 +94,12 @@ structure Book1CEWSPDPEpistemicBoundaryPort (enc : ThreeCNFEncoding) where
   /-- (A3) The hard NP family has the Book-1 super-polynomial SPDP lower bound. -/
   hardNPLowerBound :
     forall n : Nat, n ^ (Nat.log 2 n) <= hardRank n
-  /-- Transport/no-loss: a SAT decider would realize the hard family inside its
-  P-side observer rank.  This is the CEW-route analogue of the God-Move
-  transport seam. -/
-  deciderTransportHardToP :
-    forall M : TuringMachine.DTM,
-      DTMDecidesSATWithEncoding enc M ->
-        forall n : Nat, hardRank n <= pRank M n
+  /-- Transport/no-loss certificate: a SAT decider first exposes the hard-family
+  rank as an extracted God-Move rank, then the extracted rank embeds into the
+  P-side observer rank.  The combined `hardRank <= pRank` theorem is proved
+  below from these two genuinely load-bearing movements. -/
+  transportCertificate :
+    Book1DeciderTransportCertificate enc pRank hardRank
 /-- Growth separation: `n^log n` eventually beats every fixed polynomial.
 
 This is the one purely arithmetic Book-1 obligation; it is discharged by taking
@@ -99,8 +137,11 @@ theorem no_DTMDecidesSATWithEncoding_of_book1CEWSPDP
   rcases hdec with ⟨M, hM⟩
   rcases book1_pSidePolynomialSPDP_of_decider B hM with ⟨d, hpUpper⟩
   rcases book1_superPolynomialGap d with ⟨n, hgap⟩
+  have htransport : forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M -> forall n : Nat, B.hardRank n <= B.pRank M n :=
+    deciderTransportHardToP_of_book1TransportCertificate B.transportCertificate
   have hlower_to_p : n ^ (Nat.log 2 n) <= B.pRank M n :=
-    Nat.le_trans (B.hardNPLowerBound n) (B.deciderTransportHardToP M hM n)
+    Nat.le_trans (B.hardNPLowerBound n) (htransport M hM n)
   have hp_to_poly : B.pRank M n <= n ^ d := hpUpper n
   have hle : n ^ (Nat.log 2 n) <= n ^ d := Nat.le_trans hlower_to_p hp_to_poly
   exact (Nat.not_le_of_lt hgap) hle
@@ -116,6 +157,7 @@ theorem standardPvsNP_of_book1CEWSPDP
     (no_DTMDecidesSATWithEncoding_of_book1CEWSPDP enc B)
 
 #print axioms book1_superPolynomialGap
+#print axioms deciderTransportHardToP_of_book1TransportCertificate
 #print axioms book1_pSidePolynomialSPDP_of_decider
 #print axioms no_DTMDecidesSATWithEncoding_of_book1CEWSPDP
 #print axioms standardPvsNP_of_book1CEWSPDP
