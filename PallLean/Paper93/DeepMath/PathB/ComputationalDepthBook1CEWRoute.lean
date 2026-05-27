@@ -14,7 +14,7 @@ This file records that route as an explicit, audit-friendly port:
 * The hard NP family has super-polynomial SPDP rank.
 * Any SAT decider would transport the hard-family rank into its P-side rank.
 * The super-polynomial lower bound eventually beats every polynomial upper
-  bound.
+  bound; this last growth fact is proved below, not assumed.
 
 No old Step4 wrapper is imported here, and no CEW axiom is hidden as a theorem.
 -/
@@ -62,9 +62,18 @@ structure Book1CEWSPDPEpistemicBoundaryPort (enc : ThreeCNFEncoding) where
     forall M : TuringMachine.DTM,
       DTMDecidesSATWithEncoding enc M ->
         forall n : Nat, hardRank n <= pRank M n
-  /-- Growth separation: `n^log n` eventually beats every fixed polynomial. -/
-  superPolynomialGap :
-    forall d : Nat, exists n : Nat, n ^ d < n ^ (Nat.log 2 n)
+/-- Growth separation: `n^log n` eventually beats every fixed polynomial.
+
+This is the one purely arithmetic Book-1 obligation; it is discharged by taking
+`n = 2^(d+1)`, so `log₂ n = d+1`. -/
+theorem book1_superPolynomialGap :
+    forall d : Nat, exists n : Nat, n ^ d < n ^ (Nat.log 2 n) := by
+  intro d
+  refine ⟨2 ^ (d + 1), ?_⟩
+  rw [Nat.log_pow (by decide : 1 < 2)]
+  exact Nat.pow_lt_pow_right
+    (Nat.one_lt_pow (by omega : d + 1 ≠ 0) (by decide : 1 < 2))
+    (Nat.lt_succ_self d)
 
 /-- From Book-1 axioms (A1) and (A2), every SAT-deciding P observer has a
 polynomial SPDP-rank bound. -/
@@ -89,7 +98,7 @@ theorem no_DTMDecidesSATWithEncoding_of_book1CEWSPDP
   intro hdec
   rcases hdec with ⟨M, hM⟩
   rcases book1_pSidePolynomialSPDP_of_decider B hM with ⟨d, hpUpper⟩
-  rcases B.superPolynomialGap d with ⟨n, hgap⟩
+  rcases book1_superPolynomialGap d with ⟨n, hgap⟩
   have hlower_to_p : n ^ (Nat.log 2 n) <= B.pRank M n :=
     Nat.le_trans (B.hardNPLowerBound n) (B.deciderTransportHardToP M hM n)
   have hp_to_poly : B.pRank M n <= n ^ d := hpUpper n
@@ -106,6 +115,7 @@ theorem standardPvsNP_of_book1CEWSPDP
   S.standardPvsNP_iff_no_encodedSATDecider.mpr
     (no_DTMDecidesSATWithEncoding_of_book1CEWSPDP enc B)
 
+#print axioms book1_superPolynomialGap
 #print axioms book1_pSidePolynomialSPDP_of_decider
 #print axioms no_DTMDecidesSATWithEncoding_of_book1CEWSPDP
 #print axioms standardPvsNP_of_book1CEWSPDP
