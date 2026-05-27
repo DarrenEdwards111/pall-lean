@@ -979,6 +979,133 @@ structure Book1NamedCertificateBoundaryBundle (enc : ThreeCNFEncoding) where
       normalization.normalForms.normalize
   profileCounting : Book1LocalCEWProfileBoundary pCEW ambientRank
 
+namespace Book1LocalNormalizationBoundary
+
+/-- Package a supplied normalization family as the local normalization boundary. -/
+def ofFamily {enc : ThreeCNFEncoding}
+    (F : Book1ExplicitNormalizationFamily enc) :
+    Book1LocalNormalizationBoundary enc where
+  normalForms := F
+
+end Book1LocalNormalizationBoundary
+
+namespace Book1LocalSameTargetRTBoundary
+
+/-- Package a supplied same-target RT family as the local RT boundary. -/
+def ofFamily
+    {enc : ThreeCNFEncoding}
+    {extractedRank : TuringMachine.DTM -> Nat -> Nat}
+    {normalize : forall M : TuringMachine.DTM,
+      forall hM : DTMDecidesSATWithEncoding enc M,
+        Book1NormalizationPaddingCertificate enc M hM}
+    (F : Book1ExplicitSameTargetRTFamily enc extractedRank normalize) :
+    Book1LocalSameTargetRTBoundary enc extractedRank normalize where
+  rtFamily := F
+
+end Book1LocalSameTargetRTBoundary
+
+namespace Book1LocalAmbientTransferBoundary
+
+/-- Package a supplied ambient-transfer family as the local ambient boundary. -/
+def ofFamily
+    {enc : ThreeCNFEncoding}
+    {semanticBridge : Book1SATSemanticsBridge enc}
+    {extractedRank ambientRank : TuringMachine.DTM -> Nat -> Nat}
+    {normalize : forall M : TuringMachine.DTM,
+      forall hM : DTMDecidesSATWithEncoding enc M,
+        Book1NormalizationPaddingCertificate enc M hM}
+    (F : Book1ExplicitAmbientTransferFamily enc semanticBridge extractedRank ambientRank normalize) :
+    Book1LocalAmbientTransferBoundary enc semanticBridge extractedRank ambientRank normalize where
+  transferFamily := F
+
+end Book1LocalAmbientTransferBoundary
+
+namespace Book1ExplicitCEWProfileUniverse
+
+/-- Build an explicit profile universe from a chosen profile-count function and
+its local counting inequalities. -/
+def ofProfileCount
+    {pCEW ambientRank : TuringMachine.DTM -> Nat -> Nat}
+    (profileCount : TuringMachine.DTM -> Nat -> Nat)
+    (cewExponent sizeExponent : Nat)
+    (rank_le_profile :
+      forall M : TuringMachine.DTM,
+        forall n : Nat, ambientRank M n <= profileCount M n)
+    (profile_le_cew_monomial :
+      forall M : TuringMachine.DTM,
+        forall n : Nat,
+          profileCount M n <= (pCEW M n) ^ cewExponent * n ^ sizeExponent)
+    (rank_zero : forall M : TuringMachine.DTM, ambientRank M 0 <= 0)
+    (rank_one : forall M : TuringMachine.DTM, ambientRank M 1 <= 1) :
+    Book1ExplicitCEWProfileUniverse pCEW ambientRank where
+  profileCount := profileCount
+  cewExponent := cewExponent
+  sizeExponent := sizeExponent
+  rank_le_profile := rank_le_profile
+  profile_le_cew_monomial := profile_le_cew_monomial
+  rank_zero := rank_zero
+  rank_one := rank_one
+
+/-- Special local constructor when the chosen profile universe is exactly the
+ambient-rank index set.  The only remaining obligation is the local monomial
+bound on that chosen rank function. -/
+def ofAmbientRankMonomialBound
+    {pCEW ambientRank : TuringMachine.DTM -> Nat -> Nat}
+    (cewExponent sizeExponent : Nat)
+    (rank_le_monomial :
+      forall M : TuringMachine.DTM,
+        forall n : Nat,
+          ambientRank M n <= (pCEW M n) ^ cewExponent * n ^ sizeExponent)
+    (rank_zero : forall M : TuringMachine.DTM, ambientRank M 0 <= 0)
+    (rank_one : forall M : TuringMachine.DTM, ambientRank M 1 <= 1) :
+    Book1ExplicitCEWProfileUniverse pCEW ambientRank :=
+  ofProfileCount ambientRank cewExponent sizeExponent
+    (by intro M n; rfl) rank_le_monomial rank_zero rank_one
+
+end Book1ExplicitCEWProfileUniverse
+
+namespace Book1LocalCEWProfileBoundary
+
+/-- Package a supplied explicit profile universe as the local CEW/profile
+boundary. -/
+def ofUniverse
+    {pCEW ambientRank : TuringMachine.DTM -> Nat -> Nat}
+    (U : Book1ExplicitCEWProfileUniverse pCEW ambientRank) :
+    Book1LocalCEWProfileBoundary pCEW ambientRank where
+  profileUniverse := U
+
+end Book1LocalCEWProfileBoundary
+
+namespace Book1NamedCertificateBoundaryBundle
+
+/-- Assemble the named boundary bundle from the four explicit local families.
+This is the final “certificates in” constructor: it performs no global
+certificate generation. -/
+def ofExplicitFamilies
+    {enc : ThreeCNFEncoding}
+    (pCEW extractedRank ambientRank : TuringMachine.DTM -> Nat -> Nat)
+    (semanticBridge : Book1SATSemanticsBridge enc)
+    (cewBudget : Book1SyntacticBoundedCEWModel pCEW)
+    (normalization : Book1ExplicitNormalizationFamily enc)
+    (sameTargetRT :
+      Book1ExplicitSameTargetRTFamily enc extractedRank normalization.normalize)
+    (ambientTransfer :
+      Book1ExplicitAmbientTransferFamily enc semanticBridge extractedRank ambientRank
+        normalization.normalize)
+    (profileUniverse : Book1ExplicitCEWProfileUniverse pCEW ambientRank) :
+    Book1NamedCertificateBoundaryBundle enc where
+  pCEW := pCEW
+  extractedRank := extractedRank
+  ambientRank := ambientRank
+  semanticBridge := semanticBridge
+  cewBudget := cewBudget
+  normalization := Book1LocalNormalizationBoundary.ofFamily normalization
+  sameTargetRT := Book1LocalSameTargetRTBoundary.ofFamily sameTargetRT
+  ambientTransfer := Book1LocalAmbientTransferBoundary.ofFamily ambientTransfer
+  profileCounting := Book1LocalCEWProfileBoundary.ofUniverse profileUniverse
+
+end Book1NamedCertificateBoundaryBundle
+
 /-- Normalized safe local payload bundle.
 
 This is the safer successor to `Book1SafeLocalPayloadBundle`: large-size RT and
@@ -1272,6 +1399,13 @@ theorem standardPvsNP_of_book1CEWSPDP
 #print axioms Book1NormalizationPaddingCertificate.ofRealMachineTransform
 #print axioms Book1NormalizationPaddingCertificate.ofPaddedSimulation
 #print axioms Book1NormalizationPaddingCertificate.ofCertificateOnlyNormalForm
+#print axioms Book1LocalNormalizationBoundary.ofFamily
+#print axioms Book1LocalSameTargetRTBoundary.ofFamily
+#print axioms Book1LocalAmbientTransferBoundary.ofFamily
+#print axioms Book1ExplicitCEWProfileUniverse.ofProfileCount
+#print axioms Book1ExplicitCEWProfileUniverse.ofAmbientRankMonomialBound
+#print axioms Book1LocalCEWProfileBoundary.ofUniverse
+#print axioms Book1NamedCertificateBoundaryBundle.ofExplicitFamilies
 #print axioms book1ConcreteAssemblyCertificateWithBridge_of_safeLocalPayloadBundle
 #print axioms book1CEWSPDPEpistemicBoundaryPort_of_safeLocalPayloadBundle
 #print axioms book1NormalizedSafeLocalPayloadBundle_of_namedCertificateBoundary
