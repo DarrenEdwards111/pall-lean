@@ -63,6 +63,31 @@ strict observers.  Therefore the strict-port package is not a smaller
 remaining lemma: discharging it unconditionally is exactly the no-decider
 endpoint in the current strict observer model.
 
+## Semantic-closure frontier
+The paper's Step 6 semantic closure target is isolated in:
+- `ComputationalDepthSemanticClosureFrontier.lean`
+
+This file states the direct semantic-closure theorem as:
+
+```lean
+PaperLemma13StrengthSemanticClosure enc
+```
+
+meaning that every encoded SAT-deciding DTM, under any strict live-rank
+presentation, must realize the Theorem-207 strict live-boundary minor at a
+paper-scale length.  The kernel-checked audit proves:
+
+```lean
+PaperLemma13StrengthSemanticClosure enc
+  ↔ Theorem207StrictLiveBoundaryPort enc
+  ↔ ¬ ∃ M, DTMDecidesSATWithEncoding enc M
+```
+
+Therefore the direct semantic-closure theorem is not a lower-level compiler
+lemma in the current strict model.  An unconditional proof of it would already
+be the encoded SAT lower bound.  Conversely, the no-decider endpoint makes the
+semantic-closure statement vacuous.
+
 ## Standard P-vs-NP bridge
 The standard-model readout is isolated in:
 - `ComputationalDepthStrictPortStandardBridge.lean`
