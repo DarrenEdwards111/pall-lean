@@ -392,6 +392,20 @@ theorem paperScaleTheorem207ClassicalSemanticForce_of_counterfactualEKP
 
 /-! ## Restricted-family local-edit witness surface -/
 
+/-- A concrete bounded local-edit certificate between the two encoded inputs.
+
+This is intentionally about the actual bit strings, not about rank or sheet
+essentiality.  The two intervention inputs may differ only on a bounded support.
+-/
+structure CookLevinLocalEditCertificate
+    {enc : ThreeCNFEncoding} {n : Nat}
+    (positiveInput negativeInput : Fin n -> Bool)
+    (_direction : CounterfactualEKPDirection enc n) : Type where
+  editSupport : Finset (Fin n)
+  support_card_le_four : editSupport.card <= 4
+  outside_support_agree :
+    forall i : Fin n, i ∉ editSupport -> positiveInput i = negativeInput i
+
 /-- A restricted Cook--Levin local-edit pair witness family.
 
 This is the first concrete lemma-chain surface for counterfactual EKP:
@@ -433,7 +447,10 @@ structure CookLevinLocalEditPairWitness
   direction_injective : Function.Injective directionOf
   /-- Locality certificate placeholder: each pair differs by an admissible
   bounded local edit associated to the direction label. -/
-  local_edit_witness : forall d : Fin directionCount, Prop
+  local_edit_witness :
+    forall d : Fin directionCount,
+      CookLevinLocalEditCertificate
+        (positiveInput d) (negativeInput d) (directionOf d)
 
 /-- Any restricted local-edit witness family induces a counterfactual EKP
 coverage object. -/
@@ -470,6 +487,59 @@ theorem counterfactualEKPBoundaryVisibleAt_of_cookLevinLocalEditWitness
   intro M hM
   rcases Hw M hM with ⟨W⟩
   exact ⟨counterfactualCoverage_of_cookLevinLocalEditWitness W⟩
+
+/-! ## Restricted-family stress test for the current positive-only `ThreeCNF` -/
+
+/-- In the current core syntax, every `ThreeCNF` is satisfiable: clauses are
+positive triples, so the all-true assignment satisfies every clause.
+
+This matters for the counterfactual-local-edit test: an actual negative
+intervention pair cannot be instantiated until the SAT surface uses a signed
+literal/unsatisfiable formula semantics. -/
+theorem threeCNF_positiveOnly_satisfiable (φ : ThreeCNF) :
+    φ.IsSatisfiable := by
+  refine ⟨fun _ => true, ?_⟩
+  intro c _hc
+  simp [clauseSatisfied]
+
+/-- Therefore the current positive-only `ThreeCNF` model admits no
+counterfactual EKP coverage object: the negative side would require an
+unsatisfiable formula, but no such formula exists in this syntax. -/
+theorem no_counterfactualEKPDirectionCoverage_positiveOnlyThreeCNF
+    {enc : ThreeCNFEncoding} {M : TuringMachine.DTM} {n : Nat} :
+    Not (Nonempty (CounterfactualEKPDirectionCoverage enc M n)) := by
+  intro hC
+  rcases hC with ⟨C⟩
+  let d := C.first
+  exact C.negative_unsatisfiable d
+    (threeCNF_positiveOnly_satisfiable (C.negativeFormula d))
+
+/-- The same stress test applies to the restricted local-edit witness surface:
+the input-local edit certificate is meaningful, but the current formula
+semantics cannot supply a genuine negative SAT/UNSAT pair. -/
+theorem no_cookLevinLocalEditPairWitness_positiveOnlyThreeCNF
+    {enc : ThreeCNFEncoding} {M : TuringMachine.DTM} {n : Nat} :
+    Not (Nonempty (CookLevinLocalEditPairWitness enc M n)) := by
+  intro hW
+  rcases hW with ⟨W⟩
+  let d : Fin W.directionCount := ⟨0, W.directionCount_pos⟩
+  exact W.negative_unsatisfiable d
+    (threeCNF_positiveOnly_satisfiable (W.negativeFormula d))
+
+/-- If an encoded SAT decider exists, fixed-scale counterfactual boundary
+visibility is impossible in the current positive-only `ThreeCNF` model.
+
+This does not refute the counterfactual idea; it records the concrete next
+semantic prerequisite: replace the positive-only CNF surface with a signed
+literal model that actually has unsatisfiable formulas. -/
+theorem not_counterfactualEKPBoundaryVisibleAt_positiveOnlyThreeCNF_of_decider
+    {enc : ThreeCNFEncoding} {n : Nat}
+    (hM : exists M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M) :
+    Not (CounterfactualEKPBoundaryVisibleAt enc n) := by
+  intro Hvisible
+  rcases hM with ⟨M, hdec⟩
+  exact no_counterfactualEKPDirectionCoverage_positiveOnlyThreeCNF
+    (Hvisible M hdec)
 
 /-! ## Removable-sheet guard -/
 
@@ -513,6 +583,10 @@ theorem not_counterfactualBridge_of_removableSheet
 #print axioms theorem207ClassicalSemanticForce_of_counterfactualEKP
 #print axioms nonLocalEKPToTheorem207Essentiality_of_counterfactual
 #print axioms paperScaleTheorem207ClassicalSemanticForce_of_counterfactualEKP
+#print axioms threeCNF_positiveOnly_satisfiable
+#print axioms no_counterfactualEKPDirectionCoverage_positiveOnlyThreeCNF
+#print axioms no_cookLevinLocalEditPairWitness_positiveOnlyThreeCNF
+#print axioms not_counterfactualEKPBoundaryVisibleAt_positiveOnlyThreeCNF_of_decider
 #print axioms not_counterfactualBinding_of_removableSheet
 #print axioms not_counterfactualBridge_of_removableSheet
 
