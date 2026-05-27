@@ -192,6 +192,93 @@ theorem leadingSupport_card_le_spdpRank
     (linearIndependent_iff_card_le_finrank_span.mp hli)
   exact le_trans hcard_span span_rank_le_spdp
 
+/-! ### Distinct leading monomials
+
+The private-pivot theorem above is enough for unshifted residual indicators,
+but shifted partial derivatives usually share non-leading monomials.  The
+standard GKKS/KLSS argument only needs a term order: each selected row has a
+nonzero leading monomial, no monomial larger than that leading monomial, and
+the selected leading monomials are distinct.  A maximal-leading-term
+elimination then gives linear independence.
+-/
+
+/-- Rows with distinct leading monomials are linearly independent.
+
+`hlead_max i m` says row `i` has no support above `lead i` in the chosen term
+order.  Other rows may have nonzero coefficient at `lead i`; the proof chooses
+a maximal active lead in a hypothetical relation, so all other active rows are
+strictly below that coordinate. -/
+theorem distinctLeadingMonomial_linearIndependent
+    {ι μ : Type*} [Fintype ι] [LinearOrder μ]
+    (rows : ι -> μ -> ℚ) (lead : ι -> μ)
+    (hlead_ne_zero : ∀ i, rows i (lead i) ≠ 0)
+    (hlead_max : ∀ i m, lead i < m -> rows i m = 0)
+    (hlead_inj : Function.Injective lead) :
+    LinearIndependent ℚ rows := by
+  classical
+  rw [Fintype.linearIndependent_iff]
+  intro coeff hsum i
+  by_contra hcoeff_i
+  let active : Finset ι := Finset.univ.filter fun j => coeff j ≠ 0
+  have hi_active : i ∈ active := by
+    simp [active, hcoeff_i]
+  have hactive_nonempty : active.Nonempty := ⟨i, hi_active⟩
+  let leadSet : Finset μ := active.image lead
+  have hleadSet_nonempty : leadSet.Nonempty := by
+    exact ⟨lead i, Finset.mem_image.mpr ⟨i, hi_active, rfl⟩⟩
+  let top : μ := leadSet.max' hleadSet_nonempty
+  obtain ⟨j, hj_active, hj_top⟩ : ∃ j ∈ active, lead j = top := by
+    have htop_mem : top ∈ leadSet := Finset.max'_mem leadSet hleadSet_nonempty
+    rcases Finset.mem_image.mp htop_mem with ⟨j, hj, hjtop⟩
+    exact ⟨j, hj, hjtop⟩
+  have hj_coeff : coeff j ≠ 0 := by
+    exact (Finset.mem_filter.mp hj_active).2
+  have hcoord : (∑ k, coeff k • rows k) (lead j) = 0 := by
+    simpa using congrFun hsum (lead j)
+  have hsingle :
+      (∑ k, coeff k • rows k) (lead j) =
+        coeff j * rows j (lead j) := by
+    rw [Finset.sum_apply]
+    refine Finset.sum_eq_single j ?_ ?_
+    · intro k _ hkj
+      by_cases hk_coeff : coeff k = 0
+      · simp [hk_coeff]
+      · have hk_active : k ∈ active := by
+          simp [active, hk_coeff]
+        have hk_le_top : lead k ≤ top := by
+          exact Finset.le_max' leadSet (lead k)
+            (Finset.mem_image.mpr ⟨k, hk_active, rfl⟩)
+        have hk_le_j : lead k ≤ lead j := by
+          simpa [top, hj_top] using hk_le_top
+        have hk_ne_lead : lead k ≠ lead j := by
+          intro hlead_eq
+          exact hkj (hlead_inj hlead_eq)
+        have hk_lt_j : lead k < lead j :=
+          lt_of_le_of_ne hk_le_j hk_ne_lead
+        simp [hlead_max k (lead j) hk_lt_j]
+    · intro hj_not_mem
+      exact (hj_not_mem (Finset.mem_univ j)).elim
+  have hmul : coeff j * rows j (lead j) = 0 := by
+    simpa [hsingle] using hcoord
+  exact hj_coeff ((mul_eq_zero.mp hmul).elim id
+    (fun hrow => (hlead_ne_zero j hrow).elim))
+
+/-- Row-count lower bound supplied by distinct leading monomials. -/
+theorem distinctLeadingMonomial_card_le_spdpRank
+    {ι μ : Type*} [Fintype ι] [LinearOrder μ]
+    (rows : ι -> μ -> ℚ) (lead : ι -> μ)
+    (hlead_ne_zero : ∀ i, rows i (lead i) ≠ 0)
+    (hlead_max : ∀ i m, lead i < m -> rows i m = 0)
+    (hlead_inj : Function.Injective lead)
+    {spdpRank : Nat}
+    (span_rank_le_spdp : (Set.range rows).finrank ℚ <= spdpRank) :
+    Fintype.card ι <= spdpRank := by
+  have hli := distinctLeadingMonomial_linearIndependent rows lead
+    hlead_ne_zero hlead_max hlead_inj
+  have hcard_span : Fintype.card ι <= (Set.range rows).finrank ℚ :=
+    (linearIndependent_iff_card_le_finrank_span.mp hli)
+  exact le_trans hcard_span span_rank_le_spdp
+
 /-- Construct the NW independence certificate from private leading monomials.
 
 The genuinely NW-specific asymptotic work is now the construction of the
@@ -220,6 +307,27 @@ def NWSPDPIndependenceCertificate.ofLeadingSupport
     le_trans support_lower_le_rows
       (leadingSupport_card_le_spdpRank rows pivot hpivot_ne_zero
         hpivot_offdiag span_rank_le_spdp)
+
+/-- Construct the NW independence certificate from distinct leading monomials
+under a term order.  This is the version meant for shifted NW rows. -/
+def NWSPDPIndependenceCertificate.ofDistinctLeadingMonomials
+    {numVars degree kappa ell : Nat}
+    {ι μ : Type*} [Fintype ι] [LinearOrder μ]
+    (support : NWLeadingSupportData)
+    (rows : ι -> μ -> ℚ) (lead : ι -> μ)
+    (hlead_ne_zero : ∀ i, rows i (lead i) ≠ 0)
+    (hlead_max : ∀ i m, lead i < m -> rows i m = 0)
+    (hlead_inj : Function.Injective lead)
+    (spdpRank : Nat)
+    (support_lower_le_rows : support.lower <= Fintype.card ι)
+    (span_rank_le_spdp : (Set.range rows).finrank ℚ <= spdpRank) :
+    NWSPDPIndependenceCertificate numVars degree kappa ell where
+  support := support
+  spdpRank := spdpRank
+  support_lower_le_rank :=
+    le_trans support_lower_le_rows
+      (distinctLeadingMonomial_card_le_spdpRank rows lead
+        hlead_ne_zero hlead_max hlead_inj span_rank_le_spdp)
 
 /-- Turn an NW independence certificate and a depth-3 upper bound into the
 same comparison object used by the circuit-size theorem. -/
@@ -271,6 +379,9 @@ theorem no_depth3_circuit_of_NW_independence_gap
 #print axioms leadingSupport_linearIndependent
 #print axioms leadingSupport_card_le_spdpRank
 #print axioms NWSPDPIndependenceCertificate.ofLeadingSupport
+#print axioms distinctLeadingMonomial_linearIndependent
+#print axioms distinctLeadingMonomial_card_le_spdpRank
+#print axioms NWSPDPIndependenceCertificate.ofDistinctLeadingMonomials
 #print axioms depth3_product_gate_lower_bound_of_NW_independence
 #print axioms no_depth3_circuit_of_NW_independence_gap
 

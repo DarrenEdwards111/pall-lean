@@ -35,10 +35,16 @@ The file now proves the support/leading-monomial engine:
 - `NWSPDPIndependenceCertificate.ofLeadingSupport`: enough private pivots
   construct the NW independence certificate used by the depth-3 lower-bound
   conversion.
+- `distinctLeadingMonomial_linearIndependent`: the triangular version used by
+  shifted NW rows.  Rows may share lower monomials; distinct maximal monomials
+  under a term order still force linear independence.
+- `distinctLeadingMonomial_card_le_spdpRank` and
+  `NWSPDPIndependenceCertificate.ofDistinctLeadingMonomials`: the matching
+  row-count/certificate constructors for the shifted-leading model.
 
 The remaining NW-specific asymptotic work is no longer linear algebra.  It is
-the combinatorial construction of enough private pivot rows from the actual
-NW design/intersection property.
+the combinatorial construction of enough distinct leading monomials from the
+actual NW design/intersection property.
 
 `NWSupportIndependence.lean` proves the first NW-specific combinatorial
 layer.  In the graph-code model of the NW polynomial, low agreement of
