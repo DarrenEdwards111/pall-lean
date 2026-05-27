@@ -390,6 +390,87 @@ theorem paperScaleTheorem207ClassicalSemanticForce_of_counterfactualEKP
     essential := theorem207SheetEssentialForAcceptance_of_counterfactualBinding B
   }, rfl⟩
 
+/-! ## Restricted-family local-edit witness surface -/
+
+/-- A restricted Cook--Levin local-edit pair witness family.
+
+This is the first concrete lemma-chain surface for counterfactual EKP:
+for each direction we provide a positive/negative encoded pair linked by a
+certified local edit, together with machine acceptance/rejection facts.
+
+The hard theorem (not claimed here) is to construct this witness family from
+canonical Cook--Levin reductions for a nontrivial SAT subfamily. -/
+structure CookLevinLocalEditPairWitness
+    (enc : ThreeCNFEncoding) (M : TuringMachine.DTM) (n : Nat) : Type where
+  hn : n >= 1
+  directionCount : Nat
+  directionCount_pos : 0 < directionCount
+  direction_floor :
+    Nat.choose (n / 3) (Nat.log 2 n) <= directionCount
+  positiveInput : Fin directionCount -> Fin n -> Bool
+  negativeInput : Fin directionCount -> Fin n -> Bool
+  positiveFormula : Fin directionCount -> ThreeCNF
+  negativeFormula : Fin directionCount -> ThreeCNF
+  positive_encoded :
+    forall d : Fin directionCount,
+      enc.Encodes (positiveInput d) (positiveFormula d)
+  negative_encoded :
+    forall d : Fin directionCount,
+      enc.Encodes (negativeInput d) (negativeFormula d)
+  positive_satisfiable :
+    forall d : Fin directionCount,
+      (positiveFormula d).IsSatisfiable
+  negative_unsatisfiable :
+    forall d : Fin directionCount,
+      Not (negativeFormula d).IsSatisfiable
+  positive_accepts :
+    forall d : Fin directionCount,
+      TuringMachine.accepts M n hn (positiveInput d)
+  negative_not_accepts :
+    forall d : Fin directionCount,
+      Not (TuringMachine.accepts M n hn (negativeInput d))
+  directionOf : Fin directionCount -> CounterfactualEKPDirection enc n
+  direction_injective : Function.Injective directionOf
+  /-- Locality certificate placeholder: each pair differs by an admissible
+  bounded local edit associated to the direction label. -/
+  local_edit_witness : forall d : Fin directionCount, Prop
+
+/-- Any restricted local-edit witness family induces a counterfactual EKP
+coverage object. -/
+def counterfactualCoverage_of_cookLevinLocalEditWitness
+    {enc : ThreeCNFEncoding} {M : TuringMachine.DTM} {n : Nat}
+    (W : CookLevinLocalEditPairWitness enc M n) :
+    CounterfactualEKPDirectionCoverage enc M n where
+  hn := W.hn
+  directionCount := W.directionCount
+  directionCount_pos := W.directionCount_pos
+  direction_floor := W.direction_floor
+  positiveInput := W.positiveInput
+  negativeInput := W.negativeInput
+  positiveFormula := W.positiveFormula
+  negativeFormula := W.negativeFormula
+  positive_encoded := W.positive_encoded
+  negative_encoded := W.negative_encoded
+  positive_satisfiable := W.positive_satisfiable
+  negative_unsatisfiable := W.negative_unsatisfiable
+  positive_accepts := W.positive_accepts
+  negative_not_accepts := W.negative_not_accepts
+  directionOf := W.directionOf
+  direction_injective := W.direction_injective
+
+/-- First concrete chain theorem:
+restricted Cook--Levin local-edit pair witnesses are enough to obtain
+counterfactual EKP boundary visibility at fixed scale. -/
+theorem counterfactualEKPBoundaryVisibleAt_of_cookLevinLocalEditWitness
+    (enc : ThreeCNFEncoding) (n : Nat)
+    (Hw : forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M ->
+        Nonempty (CookLevinLocalEditPairWitness enc M n)) :
+    CounterfactualEKPBoundaryVisibleAt enc n := by
+  intro M hM
+  rcases Hw M hM with ⟨W⟩
+  exact ⟨counterfactualCoverage_of_cookLevinLocalEditWitness W⟩
+
 /-! ## Removable-sheet guard -/
 
 /-- A removable/static sheet cannot bind a counterfactual EKP family. -/
