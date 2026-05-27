@@ -52,6 +52,24 @@ structure TriAspectSemanticBridge
       (C : CounterfactualEKPDirectionCoverage enc M n),
         Nonempty (TriAspectSemanticInterface S C)
 
+/-- Canonical tri-aspect linchpin target.
+
+Unlike `TriAspectSemanticBridge`, this does not quantify over arbitrary
+instrumented sheets.  The sheet is the one generated from an explicit
+Theorem-207 witness.  This is the safer target: removable/static sheets are
+outside the scope unless they are supplied by the canonical witness-producing
+machinery itself. -/
+structure CanonicalTriAspectSemanticBridge
+    (enc : ThreeCNFEncoding) : Type where
+  interface :
+    forall {M : DTM} {n : Nat}
+      {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+      {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+      (W : GlobalGodMoveGauge.Theorem207Witness M n hn hn2 htb hns)
+      (C : CounterfactualEKPDirectionCoverage enc M n),
+        Nonempty (TriAspectSemanticInterface
+          (instrumentedSheet_of_theorem207Witness W) C)
+
 /-- Any tri-aspect bridge gives the previously defined counterfactual
 essentiality bridge (forgetting the exactness field). -/
 def counterfactualBridge_of_triAspectSemanticBridge
@@ -62,6 +80,32 @@ def counterfactualBridge_of_triAspectSemanticBridge
     intro M n hn hn2 htb hns S C
     rcases H.interface S C with ⟨I⟩
     exact ⟨I.toSheetBindsCounterfactualSwitches⟩
+
+/-- The broad bridge implies the canonical bridge by restriction.  The reverse
+direction is deliberately not provided: the canonical bridge should not be
+read as controlling arbitrary removable/static sheets. -/
+def canonicalTriAspectSemanticBridge_of_triAspectSemanticBridge
+    (enc : ThreeCNFEncoding)
+    (H : TriAspectSemanticBridge enc) :
+    CanonicalTriAspectSemanticBridge enc where
+  interface := by
+    intro M n hn hn2 htb hns W C
+    exact H.interface (instrumentedSheet_of_theorem207Witness W) C
+
+/-- Canonical tri-aspect data binds counterfactual switches for the canonical
+Theorem-207 sheet. -/
+noncomputable def canonicalSheetBinding_of_canonicalTriAspectSemanticBridge
+    (enc : ThreeCNFEncoding)
+    (H : CanonicalTriAspectSemanticBridge enc)
+    {M : DTM} {n : Nat}
+    {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    (W : GlobalGodMoveGauge.Theorem207Witness M n hn hn2 htb hns)
+    (C : CounterfactualEKPDirectionCoverage enc M n) :
+    SheetBindsCounterfactualSwitches
+      (instrumentedSheet_of_theorem207Witness W) C := by
+  let I := Classical.choice (H.interface W C)
+  exact I.toSheetBindsCounterfactualSwitches
 
 /-- A tri-aspect interface still enforces ordinary Theorem-207 essentiality. -/
 theorem theorem207Essentiality_of_triAspectInterface
@@ -75,6 +119,23 @@ theorem theorem207Essentiality_of_triAspectInterface
     Theorem207SheetEssentialForAcceptance
       (I.toActualPairPolynomialSemantics).Accepts S :=
   I.theorem207Essentiality_of_holographicProjectionInterface
+
+/-- Canonical tri-aspect data gives ordinary Theorem-207 essentiality for the
+canonical sheet induced by the supplied witness. -/
+theorem theorem207Essentiality_of_canonicalTriAspectBridge
+    (enc : ThreeCNFEncoding)
+    (H : CanonicalTriAspectSemanticBridge enc)
+    {M : DTM} {n : Nat}
+    {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    (W : GlobalGodMoveGauge.Theorem207Witness M n hn hn2 htb hns)
+    (C : CounterfactualEKPDirectionCoverage enc M n) :
+    Exists (fun Accepts =>
+      Theorem207SheetEssentialForAcceptance Accepts
+        (instrumentedSheet_of_theorem207Witness W)) := by
+  rcases H.interface W C with ⟨I⟩
+  exact ⟨I.toActualPairPolynomialSemantics.Accepts,
+    theorem207Essentiality_of_triAspectInterface I⟩
 
 /-- Grounded Cook--Levin obstruction remains: legacy Theorem-207 witnesses
 cannot be grounded to the actual Cook--Levin bulk object. -/
@@ -90,7 +151,10 @@ theorem no_legacy_grounding_to_actualCookLevinBulk
 /-! ## Kernel-only axiom trace -/
 
 #print axioms counterfactualBridge_of_triAspectSemanticBridge
+#print axioms canonicalTriAspectSemanticBridge_of_triAspectSemanticBridge
+#print axioms canonicalSheetBinding_of_canonicalTriAspectSemanticBridge
 #print axioms theorem207Essentiality_of_triAspectInterface
+#print axioms theorem207Essentiality_of_canonicalTriAspectBridge
 #print axioms no_legacy_grounding_to_actualCookLevinBulk
 
 end PallLean.Paper93.DeepMath.PathB
