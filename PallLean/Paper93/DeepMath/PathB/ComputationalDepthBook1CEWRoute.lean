@@ -846,19 +846,25 @@ def ofCertificateOnlyNormalForm
 
 end Book1NormalizationPaddingCertificate
 
-/-- Local normalization boundary: a raw encoded SAT decider is converted to an
-explicitly certified normal form.  This is a certificate boundary, not a global
-theorem that every raw machine already satisfies God-Move side conditions. -/
-structure Book1LocalNormalizationBoundary (enc : ThreeCNFEncoding) where
+/-- Explicit family of normalized/padded machines for raw encoded SAT deciders.
+This is local certificate data: the route never proves that such a family exists
+from SAT semantics alone. -/
+structure Book1ExplicitNormalizationFamily (enc : ThreeCNFEncoding) where
   normalize :
     forall M : TuringMachine.DTM,
       forall hM : DTMDecidesSATWithEncoding enc M,
         Book1NormalizationPaddingCertificate enc M hM
 
-/-- Local same-target Ramanujan/Tseitin certificate boundary.  It asks only for
-explicit large-size same-target data on the normalized machine plus finite
-pre-threshold lower bounds. -/
-structure Book1LocalSameTargetRTBoundary
+/-- Local normalization boundary: a raw encoded SAT decider is converted to an
+explicitly certified normal form.  This is a certificate boundary, not a global
+theorem that every raw machine already satisfies God-Move side conditions. -/
+structure Book1LocalNormalizationBoundary (enc : ThreeCNFEncoding) where
+  normalForms : Book1ExplicitNormalizationFamily enc
+
+/-- Explicit same-target Ramanujan/Tseitin family for the chosen extracted-rank
+model.  It is local data: for each raw decider and large size, the caller
+supplies the target certificate on the normalized machine. -/
+structure Book1ExplicitSameTargetRTFamily
     (enc : ThreeCNFEncoding)
     (extractedRank : TuringMachine.DTM -> Nat -> Nat)
     (normalize : forall M : TuringMachine.DTM,
@@ -878,10 +884,19 @@ structure Book1LocalSameTargetRTBoundary
           n < 2 ^ 804 ->
             book1CalibratedRamanujanTseitinHardRank n <= extractedRank M n
 
-/-- Local ambient-transfer certificate boundary.  It packages explicit
-God-Move/Cook--Levin ambient payloads on the normalized machine, plus finite
-pre-threshold ambient containment. -/
-structure Book1LocalAmbientTransferBoundary
+/-- Local same-target Ramanujan/Tseitin certificate boundary.  It asks only for
+an explicit RT family plus finite pre-threshold lower bounds. -/
+structure Book1LocalSameTargetRTBoundary
+    (enc : ThreeCNFEncoding)
+    (extractedRank : TuringMachine.DTM -> Nat -> Nat)
+    (normalize : forall M : TuringMachine.DTM,
+      forall hM : DTMDecidesSATWithEncoding enc M,
+        Book1NormalizationPaddingCertificate enc M hM) where
+  rtFamily : Book1ExplicitSameTargetRTFamily enc extractedRank normalize
+
+/-- Explicit ambient-transfer family for the chosen normalized machine family.
+It packages Cook--Levin/God-Move transfer payloads as supplied local data. -/
+structure Book1ExplicitAmbientTransferFamily
     (enc : ThreeCNFEncoding)
     (semanticBridge : Book1SATSemanticsBridge enc)
     (extractedRank ambientRank : TuringMachine.DTM -> Nat -> Nat)
@@ -903,6 +918,18 @@ structure Book1LocalAmbientTransferBoundary
         forall n : Nat,
           n < 2 ^ 804 ->
             extractedRank M n <= ambientRank M n
+
+/-- Local ambient-transfer certificate boundary.  It packages an explicit
+God-Move/Cook--Levin ambient-transfer family, not a global theorem. -/
+structure Book1LocalAmbientTransferBoundary
+    (enc : ThreeCNFEncoding)
+    (semanticBridge : Book1SATSemanticsBridge enc)
+    (extractedRank ambientRank : TuringMachine.DTM -> Nat -> Nat)
+    (normalize : forall M : TuringMachine.DTM,
+      forall hM : DTMDecidesSATWithEncoding enc M,
+        Book1NormalizationPaddingCertificate enc M hM) where
+  transferFamily :
+    Book1ExplicitAmbientTransferFamily enc semanticBridge extractedRank ambientRank normalize
 
 /-- Explicit local CEW/profile universe.
 
@@ -946,10 +973,10 @@ structure Book1NamedCertificateBoundaryBundle (enc : ThreeCNFEncoding) where
   cewBudget : Book1SyntacticBoundedCEWModel pCEW
   normalization : Book1LocalNormalizationBoundary enc
   sameTargetRT :
-    Book1LocalSameTargetRTBoundary enc extractedRank normalization.normalize
+    Book1LocalSameTargetRTBoundary enc extractedRank normalization.normalForms.normalize
   ambientTransfer :
     Book1LocalAmbientTransferBoundary enc semanticBridge extractedRank ambientRank
-      normalization.normalize
+      normalization.normalForms.normalize
   profileCounting : Book1LocalCEWProfileBoundary pCEW ambientRank
 
 /-- Normalized safe local payload bundle.
@@ -1020,12 +1047,13 @@ def book1NormalizedSafeLocalPayloadBundle_of_namedCertificateBoundary
   ambientRank := B.ambientRank
   semanticBridge := B.semanticBridge
   cewBudget := B.cewBudget
-  normalize := B.normalization.normalize
-  large_sameTarget_normalized := B.sameTargetRT.large_sameTarget_normalized
-  preThreshold_lower := B.sameTargetRT.preThreshold_lower
+  normalize := B.normalization.normalForms.normalize
+  large_sameTarget_normalized :=
+    B.sameTargetRT.rtFamily.large_sameTarget_normalized
+  preThreshold_lower := B.sameTargetRT.rtFamily.preThreshold_lower
   large_ambient_payload_normalized :=
-    B.ambientTransfer.large_ambient_payload_normalized
-  preThreshold_ambient := B.ambientTransfer.preThreshold_ambient
+    B.ambientTransfer.transferFamily.large_ambient_payload_normalized
+  preThreshold_ambient := B.ambientTransfer.transferFamily.preThreshold_ambient
   profileCount := B.profileCounting.profileUniverse.profileCount
   cewExponent := B.profileCounting.profileUniverse.cewExponent
   sizeExponent := B.profileCounting.profileUniverse.sizeExponent
