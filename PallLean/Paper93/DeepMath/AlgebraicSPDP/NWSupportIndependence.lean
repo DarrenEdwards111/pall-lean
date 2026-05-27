@@ -202,6 +202,81 @@ theorem nwDerivativeWindowRows_eq_residualIndicator_of_lowAgreement
         exact hneq (hagree x hxD)
     simp [nwDerivativeWindowRows, nwResidualIndicatorRows, hm, hnoSurvive]
 
+/-- If the codeword map is injective, then a derivative-window row has at most
+one surviving label for each finite-support monomial.  This is the
+combinatorial reason the row model is an indicator rather than a multiplicity
+count. -/
+theorem nwDerivativeWindow_survivor_unique
+    [Fintype Value]
+    (code : Label -> Point -> Value) (D : Finset Point)
+    (hcode : Function.Injective code)
+    (a : Label) (m : Finset (Point × Value)) :
+    ∀ b c : Label,
+      ((∀ x ∈ D, code a x = code b x) ∧
+          m = nwGraphOff code D b) ->
+      ((∀ x ∈ D, code a x = code c x) ∧
+          m = nwGraphOff code D c) ->
+      b = c := by
+  classical
+  intro b c hb hc
+  apply hcode
+  funext x
+  by_cases hxD : x ∈ D
+  · exact (hb.1 x hxD).symm.trans (hc.1 x hxD)
+  · have hgraph : nwGraphOff code D b = nwGraphOff code D c :=
+      hb.2.symm.trans hc.2
+    exact agrees_off_window_of_nwGraphOff_eq code D hgraph x hxD
+
+/-- A finite sum of `0/1` indicators for a unique predicate is the existential
+indicator. -/
+theorem finset_sum_unique_indicator_eq_exists
+    {ι : Type*} [Fintype ι]
+    (P : ι -> Prop)
+    [DecidablePred P]
+    [Decidable (∃ i : ι, P i)]
+    (huniq : ∀ i j : ι, P i -> P j -> i = j) :
+    (∑ i : ι, if P i then (1 : ℚ) else 0) =
+      if ∃ i : ι, P i then (1 : ℚ) else 0 := by
+  classical
+  by_cases hex : ∃ i : ι, P i
+  · rcases hex with ⟨i, hi⟩
+    rw [if_pos ⟨i, hi⟩]
+    rw [Finset.sum_eq_single i]
+    · simp [hi]
+    · intro j _ hji
+      have hnot : ¬ P j := by
+        intro hj
+        exact hji (huniq j i hj hi)
+      simp [hnot]
+    · intro hnot
+      exact (hnot (Finset.mem_univ i)).elim
+  · rw [if_neg hex]
+    apply Finset.sum_eq_zero
+    intro i _
+    have hnot : ¬ P i := by
+      intro hi
+      exact hex ⟨i, hi⟩
+    simp [hnot]
+
+/-- With injective codewords, the finite-support derivative-window row can be
+written as the sum of its unique surviving label indicators.  This is the
+shape produced by linearity of the actual NW polynomial. -/
+theorem nwDerivativeWindowRows_eq_sum_survivors
+    [Fintype Label] [Fintype Value]
+    (code : Label -> Point -> Value) (D : Finset Point)
+    (hcode : Function.Injective code)
+    (a : Label) (m : Finset (Point × Value)) :
+    (∑ b : Label,
+      if (∀ x ∈ D, code a x = code b x) ∧
+          m = nwGraphOff code D b then (1 : ℚ) else 0) =
+      nwDerivativeWindowRows code D a m := by
+  classical
+  have hsum := finset_sum_unique_indicator_eq_exists
+    (P := fun b : Label =>
+      (∀ x ∈ D, code a x = code b x) ∧ m = nwGraphOff code D b)
+    (nwDerivativeWindow_survivor_unique code D hcode a m)
+  simpa [nwDerivativeWindowRows] using hsum
+
 /-- The residual row has coefficient `1` at its own pivot. -/
 theorem nwResidualIndicatorRows_self
     [Fintype Value]
@@ -394,6 +469,21 @@ theorem nwDerivativeWindowList_length
     (nwDerivativeWindowList enc code D a).length = D.card := by
   simp [nwDerivativeWindowList]
 
+omit [Fintype Point] [DecidableEq Point] [DecidableEq Value] in
+/-- Injective ambient encoding makes the derivative-window variable list
+duplicate-free. -/
+theorem nwDerivativeWindowList_nodup
+    {numVars : Nat}
+    (enc : Point × Value -> Fin numVars)
+    (code : Label -> Point -> Value) (D : Finset Point) (a : Label)
+    (henc : Function.Injective enc) :
+    (nwDerivativeWindowList enc code D a).Nodup := by
+  classical
+  unfold nwDerivativeWindowList
+  exact D.nodup_toList.map (by
+    intro x y hxy
+    exact congrArg Prod.fst (henc hxy))
+
 /-! ### Actual NW polynomial target
 
 The bridge above still accepted an arbitrary polynomial `p`.  The definitions
@@ -425,6 +515,9 @@ noncomputable def nwMvPolynomial
 The injectivity condition is essential: without it, distinct graph variables
 `(Point × Value)` can collapse to the same ambient variable in `Fin numVars`,
 so squarefree coefficient projection is no longer faithful to graph supports.
+Injectivity of `code` is also required: the polynomial sums over labels, while
+the finite-support row is an indicator.  Duplicate labels with identical
+codewords would contribute multiplicity greater than `1`.
 
 For every label `a`, differentiating the concrete NW polynomial by the encoded
 window graph of `a`, then projecting squarefree residual coefficients, must
@@ -437,6 +530,7 @@ noncomputable def NWProjectedDerivativeRowIdentity
     (enc : Point × Value -> Fin numVars)
     (code : Label -> Point -> Value) (D : Finset Point) : Prop :=
   Function.Injective enc ∧
+    Function.Injective code ∧
     ∀ a : Label,
       nwCoefficientProjection enc
           (SPDP.iterDerivList (nwDerivativeWindowList enc code D a)
@@ -453,6 +547,16 @@ theorem NWProjectedDerivativeRowIdentity.injective
     Function.Injective enc :=
   projected_rows.1
 
+/-- The injective-codeword side of `NWProjectedDerivativeRowIdentity`. -/
+theorem NWProjectedDerivativeRowIdentity.code_injective
+    [Fintype Label] [Fintype Value]
+    {numVars : Nat}
+    {enc : Point × Value -> Fin numVars}
+    {code : Label -> Point -> Value} {D : Finset Point}
+    (projected_rows : NWProjectedDerivativeRowIdentity enc code D) :
+    Function.Injective code :=
+  projected_rows.2.1
+
 /-- The concrete projected-row equality side of
 `NWProjectedDerivativeRowIdentity`. -/
 theorem NWProjectedDerivativeRowIdentity.row_eq
@@ -466,7 +570,54 @@ theorem NWProjectedDerivativeRowIdentity.row_eq
           (SPDP.iterDerivList (nwDerivativeWindowList enc code D a)
             (nwMvPolynomial enc code)) =
         nwDerivativeWindowRows code D a :=
-  projected_rows.2
+  projected_rows.2.2
+
+/-- Reduce the concrete NW projected-row identity to the coefficient formula
+for one NW monomial.
+
+This is the linearity layer: once each summand
+`nwMvMonomial enc code b` has the expected derivative-window coefficient row,
+the concrete NW polynomial, which is the sum of those monomials, has exactly
+`nwDerivativeWindowRows`.  Injectivity of `code` is used to collapse the sum of
+surviving indicators to the row's existential indicator. -/
+theorem NWProjectedDerivativeRowIdentity.ofMonomialCoefficientRows
+    [Fintype Label] [Fintype Value]
+    {numVars : Nat}
+    (enc : Point × Value -> Fin numVars)
+    (code : Label -> Point -> Value) (D : Finset Point)
+    (henc : Function.Injective enc)
+    (hcode : Function.Injective code)
+    (monomial_rows :
+      ∀ a b : Label, ∀ m : Finset (Point × Value),
+        MvPolynomial.coeff (squarefreeSupportExponent enc m)
+          (SPDP.iterDerivList (nwDerivativeWindowList enc code D a)
+            (nwMvMonomial enc code b)) =
+          if (∀ x ∈ D, code a x = code b x) ∧
+              m = nwGraphOff code D b then (1 : ℚ) else 0) :
+    NWProjectedDerivativeRowIdentity enc code D := by
+  classical
+  refine ⟨henc, hcode, ?_⟩
+  intro a
+  ext m
+  rw [nwCoefficientProjection, nwMvPolynomial, SPDP.iterDerivList_sum]
+  change MvPolynomial.coeff (squarefreeSupportExponent enc m)
+      (∑ i : Label,
+        SPDP.iterDerivList (nwDerivativeWindowList enc code D a)
+          (nwMvMonomial enc code i)) =
+    nwDerivativeWindowRows code D a m
+  rw [MvPolynomial.coeff_sum]
+  rw [show
+      (∑ b : Label,
+        MvPolynomial.coeff (squarefreeSupportExponent enc m)
+          (SPDP.iterDerivList (nwDerivativeWindowList enc code D a)
+            (nwMvMonomial enc code b))) =
+      (∑ b : Label,
+        if (∀ x ∈ D, code a x = code b x) ∧
+            m = nwGraphOff code D b then (1 : ℚ) else 0) by
+        apply Finset.sum_congr rfl
+        intro b _
+        exact monomial_rows a b m]
+  exact nwDerivativeWindowRows_eq_sum_survivors code D hcode a m
 
 /-- Build the actual-SPDP bridge once the concrete coefficient identity is
 proved.
@@ -593,6 +744,7 @@ noncomputable def NWSPDPIndependenceCertificate.ofLowAgreementNWPolynomial
 #print axioms NWSPDPIndependenceCertificate.ofLowAgreementDerivativeRows
 #print axioms nwDerivativeWindowRows_finrank_le_actual_spdpRank
 #print axioms nwCoefficientProjection
+#print axioms NWProjectedDerivativeRowIdentity.ofMonomialCoefficientRows
 #print axioms NWDerivativeRowsActualSPDPBridge.ofProjectedDerivativeRows
 #print axioms NWDerivativeRowsActualSPDPBridge.ofNWProjectedDerivativeRowIdentity
 #print axioms NWSPDPIndependenceCertificate.ofLowAgreementActualSPDP

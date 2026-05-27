@@ -92,17 +92,29 @@ The ambient rank bridge is now factored into its honest concrete shape:
   Nisan-Wigderson polynomial inside the project's `MvPolynomial` universe.
 - `NWProjectedDerivativeRowIdentity` names the remaining concrete
   coefficient identity for that polynomial, with the required
-  `Function.Injective enc` side condition included in the interface, and
+  `Function.Injective enc` and `Function.Injective code` side conditions
+  included in the interface, and
   `NWSPDPIndependenceCertificate.ofLowAgreementNWPolynomial` composes it into
   the actual SPDP certificate.  The bridge is therefore no longer phrased for
   an arbitrary ambient polynomial.
+- `nwDerivativeWindow_survivor_unique` and
+  `nwDerivativeWindowRows_eq_sum_survivors` prove the finite combinatorics
+  needed to turn the linear sum over NW monomials into the row's existential
+  indicator; injectivity of `code` is exactly the no-multiplicity hypothesis.
+- `nwDerivativeWindowList_nodup` records that injective `enc` makes the
+  derivative-window variable list duplicate-free.
+- `NWProjectedDerivativeRowIdentity.ofMonomialCoefficientRows` proves the
+  linearity layer: the full projected-row identity for `nwMvPolynomial`
+  follows from the corresponding coefficient formula for each single
+  squarefree NW monomial.
 
 The remaining formal theorem is now the coefficient identity for the concrete
-NW `MvPolynomial`: prove the encoding is injective, and prove that applying
-`nwCoefficientProjection` to the actual iterated derivative over a window `D`
-gives exactly `nwDerivativeWindowRows code D a`.  This closes the modest
-window-row lower bound.  The stronger shifted-leading lower bound still needs
-the analogous projection/membership construction for shifted rows.
+NW monomial: for each summand `nwMvMonomial enc code b`, prove that
+differentiating by label `a`'s window either strips the differentiated
+variables and leaves the residual graph monomial, or gives `0` if the two
+codewords disagree on the window.  This closes the modest window-row lower
+bound.  The stronger shifted-leading lower bound still needs the analogous
+projection/membership construction for shifted rows.
 
 ## Calibration script
 
