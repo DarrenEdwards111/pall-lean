@@ -110,6 +110,73 @@ theorem deciderTransportHardToP_of_book1TransportCertificate
   intro M hM n
   exact Nat.le_trans (T.hardRank_le_extracted M hM n) (T.extracted_le_pRank M hM n)
 
+/-- A tiny arithmetic helper used by the CEW counting route: for `n ≥ 2`,
+every constant `c` is bounded by `n^c`. -/
+theorem book1_constant_le_pow_of_two_le {n c : Nat} (hn : 2 <= n) :
+    c <= n ^ c := by
+  have h2n : 2 ^ c <= n ^ c := Nat.pow_le_pow_left hn c
+  exact Nat.le_trans c.lt_two_pow_self.le h2n
+
+/-- Local counting certificate for the Book-1 CEW→SPDP upper bound.
+
+The intended mathematical content is: once a computation has contextual window
+width `CEW`, the number/rank of projected SPDP directions is bounded by a fixed
+monomial in `CEW` and the input size.  Small-size fields handle the awkward
+`n = 0,1` endpoints caused by the strict `n^d` polynomial predicate used in the
+existing port. -/
+structure Book1CEWToSPDPCountingCertificate
+    (pCEW : TuringMachine.DTM -> Nat -> Nat)
+    (pRank : TuringMachine.DTM -> Nat -> Nat) where
+  cewExponent : Nat
+  sizeExponent : Nat
+  rank_le_count :
+    forall M : TuringMachine.DTM,
+      forall n : Nat,
+        pRank M n <= (pCEW M n) ^ cewExponent * n ^ sizeExponent
+  rank_zero : forall M : TuringMachine.DTM, pRank M 0 <= 0
+  rank_one : forall M : TuringMachine.DTM, pRank M 1 <= 1
+
+/-- A local CEW counting certificate proves the Book-1 `CEW ⇒ polynomial SPDP`
+upper-bound field.  This is structural: polylog CEW plus a monomial counting
+bound gives polynomial ambient rank. -/
+theorem cewToPolynomialSPDP_of_countingCertificate
+    {pCEW : TuringMachine.DTM -> Nat -> Nat}
+    {pRank : TuringMachine.DTM -> Nat -> Nat}
+    (C : Book1CEWToSPDPCountingCertificate pCEW pRank) :
+    forall M : TuringMachine.DTM,
+      (exists c k : Nat,
+        forall n : Nat, pCEW M n <= c * (Nat.log 2 n) ^ k) ->
+        exists d : Nat, forall n : Nat, pRank M n <= n ^ d := by
+  intro M hpolylog
+  rcases hpolylog with ⟨c, k, hcew_polylog⟩
+  refine ⟨(c + k) * C.cewExponent + C.sizeExponent, ?_⟩
+  intro n
+  by_cases hn2 : 2 <= n
+  · have hlog_le_n : Nat.log 2 n <= n := Nat.log_le_self 2 n
+    have hlogpow_le : (Nat.log 2 n) ^ k <= n ^ k :=
+      Nat.pow_le_pow_left hlog_le_n k
+    have hc_le : c <= n ^ c := book1_constant_le_pow_of_two_le hn2
+    have hcew_le_n : pCEW M n <= n ^ (c + k) := by
+      calc
+        pCEW M n <= c * (Nat.log 2 n) ^ k := hcew_polylog n
+        _ <= n ^ c * n ^ k := Nat.mul_le_mul hc_le hlogpow_le
+        _ = n ^ (c + k) := by rw [Nat.pow_add]
+    have hcew_pow_le : (pCEW M n) ^ C.cewExponent <= n ^ ((c + k) * C.cewExponent) := by
+      calc
+        (pCEW M n) ^ C.cewExponent <= (n ^ (c + k)) ^ C.cewExponent :=
+          Nat.pow_le_pow_left hcew_le_n C.cewExponent
+        _ = n ^ ((c + k) * C.cewExponent) := by rw [Nat.pow_mul]
+    calc
+      pRank M n <= (pCEW M n) ^ C.cewExponent * n ^ C.sizeExponent :=
+        C.rank_le_count M n
+      _ <= n ^ ((c + k) * C.cewExponent) * n ^ C.sizeExponent :=
+        Nat.mul_le_mul_right (n ^ C.sizeExponent) hcew_pow_le
+      _ = n ^ ((c + k) * C.cewExponent + C.sizeExponent) := by rw [Nat.pow_add]
+  · have hn_small : n = 0 ∨ n = 1 := by omega
+    rcases hn_small with rfl | rfl
+    · exact Nat.le_trans (C.rank_zero M) (Nat.zero_le _)
+    · simpa using C.rank_one M
+
 /-- Book-1 CEW/SPDP data for a fixed encoding.
 
 `pCEW M n` is the contextual entanglement width of the observer/compiled
@@ -206,6 +273,7 @@ theorem standardPvsNP_of_book1CEWSPDP
 
 #print axioms book1_superPolynomialGap
 #print axioms extracted_le_pRank_of_ambientCompiledRankModel
+#print axioms cewToPolynomialSPDP_of_countingCertificate
 #print axioms book1TransportCertificate_of_ambientCompiledRankModel
 #print axioms deciderTransportHardToP_of_book1TransportCertificate
 #print axioms book1_pSidePolynomialSPDP_of_decider
