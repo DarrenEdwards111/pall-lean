@@ -11,7 +11,8 @@ This file records that route as an explicit, audit-friendly port:
 
 * P observers/deciders have bounded contextual-entanglement width (CEW).
 * Bounded CEW gives polynomial SPDP rank.
-* The hard NP family has super-polynomial SPDP rank.
+* The hard NP family has the calibrated Ramanujan/Tseitin super-polynomial
+  SPDP rank `n^(log₂ n / 4)`.
 * Any SAT decider would transport the hard-family rank into its P-side rank.
 * The super-polynomial lower bound eventually beats every polynomial upper
   bound; this last growth fact is proved below, not assumed.
@@ -41,6 +42,32 @@ structure Book1HardSheetExtractionModel
     forall M : TuringMachine.DTM,
       DTMDecidesSATWithEncoding enc M ->
         forall n : Nat, hardRank n <= extractedRank M n
+
+/-- The calibrated Ramanujan/Tseitin hard-rank scale currently proved by the
+sound PD/identity-minor side of the development.  The `/4` is intentional: it
+matches the concrete binomial lower bound already available in `GodMoveCore`,
+and still beats every fixed polynomial. -/
+def book1CalibratedRamanujanTseitinHardRank (n : Nat) : Nat :=
+  n ^ (Nat.log 2 n / 4)
+
+/-- The calibrated hard-rank scale has the Book-1 NP lower bound by definition. -/
+theorem book1CalibratedRamanujanTseitinHardNPLowerBound :
+    forall n : Nat,
+      n ^ (Nat.log 2 n / 4) <= book1CalibratedRamanujanTseitinHardRank n := by
+  intro n
+  rfl
+
+/-- If the extracted sheet is exactly the calibrated Ramanujan/Tseitin hard
+sheet, the hard-sheet extraction model is immediate.  This is the honest
+concrete instantiation target for the remaining ambient/CEW route: downstream
+code can replace `extractedRank` with the actual same-target PD/SPDP rank once
+that object is wired in. -/
+def book1CalibratedHardSheetExtractionModel (enc : ThreeCNFEncoding) :
+    Book1HardSheetExtractionModel enc book1CalibratedRamanujanTseitinHardRank where
+  extractedRank := fun _ n => book1CalibratedRamanujanTseitinHardRank n
+  hardSheet_le_extracted := by
+    intro M hM n
+    rfl
 
 /-- The hard-sheet extraction model proves the first half of the split transport
 certificate: the hard-family rank appears on the extracted God-Move sheet. -/
@@ -233,27 +260,31 @@ structure Book1CEWSPDPEpistemicBoundaryPort (enc : ThreeCNFEncoding) where
       (exists c k : Nat,
         forall n : Nat, pCEW M n <= c * (Nat.log 2 n) ^ k) ->
         exists d : Nat, forall n : Nat, pRank M n <= n ^ d
-  /-- (A3) The hard NP family has the Book-1 super-polynomial SPDP lower bound. -/
+  /-- (A3) The hard NP family has the calibrated Book-1 super-polynomial SPDP
+  lower bound.  The `/4` matches the sound Ramanujan/Tseitin binomial lower
+  bound already present in the development and is still super-polynomial. -/
   hardNPLowerBound :
-    forall n : Nat, n ^ (Nat.log 2 n) <= hardRank n
+    forall n : Nat, n ^ (Nat.log 2 n / 4) <= hardRank n
   /-- Transport/no-loss certificate: a SAT decider first exposes the hard-family
   rank as an extracted God-Move rank, then the extracted rank embeds into the
   P-side observer rank.  The combined `hardRank <= pRank` theorem is proved
   below from these two genuinely load-bearing movements. -/
   transportCertificate :
     Book1DeciderTransportCertificate enc pRank hardRank
-/-- Growth separation: `n^log n` eventually beats every fixed polynomial.
+/-- Growth separation: the calibrated Ramanujan/Tseitin scale
+`n^(log₂ n / 4)` eventually beats every fixed polynomial.
 
 This is the one purely arithmetic Book-1 obligation; it is discharged by taking
-`n = 2^(d+1)`, so `log₂ n = d+1`. -/
+`n = 2^(4(d+1))`, so `log₂ n / 4 = d+1`. -/
 theorem book1_superPolynomialGap :
-    forall d : Nat, exists n : Nat, n ^ d < n ^ (Nat.log 2 n) := by
+    forall d : Nat, exists n : Nat, n ^ d < n ^ (Nat.log 2 n / 4) := by
   intro d
-  refine ⟨2 ^ (d + 1), ?_⟩
+  refine ⟨2 ^ (4 * (d + 1)), ?_⟩
   rw [Nat.log_pow (by decide : 1 < 2)]
-  exact Nat.pow_lt_pow_right
-    (Nat.one_lt_pow (by omega : d + 1 ≠ 0) (by decide : 1 < 2))
-    (Nat.lt_succ_self d)
+  have hbase : 1 < 2 ^ (4 * (d + 1)) :=
+    Nat.one_lt_pow (by omega : 4 * (d + 1) ≠ 0) (by decide : 1 < 2)
+  have hexp : d < 4 * (d + 1) / 4 := by omega
+  exact Nat.pow_lt_pow_right hbase hexp
 
 /-- From Book-1 axioms (A1) and (A2), every SAT-deciding P observer has a
 polynomial SPDP-rank bound. -/
@@ -282,10 +313,10 @@ theorem no_DTMDecidesSATWithEncoding_of_book1CEWSPDP
   have htransport : forall M : TuringMachine.DTM,
       DTMDecidesSATWithEncoding enc M -> forall n : Nat, B.hardRank n <= B.pRank M n :=
     deciderTransportHardToP_of_book1TransportCertificate B.transportCertificate
-  have hlower_to_p : n ^ (Nat.log 2 n) <= B.pRank M n :=
+  have hlower_to_p : n ^ (Nat.log 2 n / 4) <= B.pRank M n :=
     Nat.le_trans (B.hardNPLowerBound n) (htransport M hM n)
   have hp_to_poly : B.pRank M n <= n ^ d := hpUpper n
-  have hle : n ^ (Nat.log 2 n) <= n ^ d := Nat.le_trans hlower_to_p hp_to_poly
+  have hle : n ^ (Nat.log 2 n / 4) <= n ^ d := Nat.le_trans hlower_to_p hp_to_poly
   exact (Nat.not_le_of_lt hgap) hle
 
 /-- With a standard bridge supplied, the Book-1 CEW/SPDP port yields the chosen
@@ -298,6 +329,8 @@ theorem standardPvsNP_of_book1CEWSPDP
   S.standardPvsNP_iff_no_encodedSATDecider.mpr
     (no_DTMDecidesSATWithEncoding_of_book1CEWSPDP enc B)
 
+#print axioms book1CalibratedRamanujanTseitinHardNPLowerBound
+#print axioms book1CalibratedHardSheetExtractionModel
 #print axioms book1_superPolynomialGap
 #print axioms hardRank_le_extracted_of_hardSheetExtractionModel
 #print axioms extracted_le_pRank_of_ambientCompiledRankModel
