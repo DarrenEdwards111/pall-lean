@@ -23,6 +23,37 @@ namespace PallLean.Paper93.DeepMath.PathB
 
 open PaperFaithfulSeparation
 
+/-- Hard-sheet extraction model for Book 1.
+
+This isolates the non-P-vs-NP-hard part of `hardRank_le_extracted`: if the
+extracted God-Move sheet is chosen to carry the same hard-family SPDP surface,
+then the hard-family rank is visible on the extracted sheet by a direct
+rank-surface comparison.
+
+The remaining mathematical content is therefore not the inequality below, but
+instantiating `extractedRank` with the actual Ramanujan/Tseitin/identity-minor
+sheet and proving the sheet comparison field. -/
+structure Book1HardSheetExtractionModel
+    (enc : ThreeCNFEncoding)
+    (hardRank : Nat -> Nat) where
+  extractedRank : TuringMachine.DTM -> Nat -> Nat
+  hardSheet_le_extracted :
+    forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M ->
+        forall n : Nat, hardRank n <= extractedRank M n
+
+/-- The hard-sheet extraction model proves the first half of the split transport
+certificate: the hard-family rank appears on the extracted God-Move sheet. -/
+theorem hardRank_le_extracted_of_hardSheetExtractionModel
+    {enc : ThreeCNFEncoding}
+    {hardRank : Nat -> Nat}
+    (H : Book1HardSheetExtractionModel enc hardRank) :
+    forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M ->
+        forall n : Nat, hardRank n <= H.extractedRank M n := by
+  intro M hM n
+  exact H.hardSheet_le_extracted M hM n
+
 /-- Ambient compiled/PAC rank choice for Book 1.
 
 This is the safe target for the no-loss theorem.  `ambientRank M n` is meant to
@@ -37,16 +68,12 @@ structure Book1AmbientCompiledRankModel
     (enc : ThreeCNFEncoding)
     (hardRank : Nat -> Nat) where
   ambientRank : TuringMachine.DTM -> Nat -> Nat
-  extractedRank : TuringMachine.DTM -> Nat -> Nat
-  hardRank_le_extracted :
-    forall M : TuringMachine.DTM,
-      DTMDecidesSATWithEncoding enc M ->
-        forall n : Nat, hardRank n <= extractedRank M n
+  hardSheet : Book1HardSheetExtractionModel enc hardRank
   /-- No-loss extraction/PAC monotonicity into the full ambient compiled rank. -/
   extracted_le_ambient :
     forall M : TuringMachine.DTM,
       DTMDecidesSATWithEncoding enc M ->
-        forall n : Nat, extractedRank M n <= ambientRank M n
+        forall n : Nat, hardSheet.extractedRank M n <= ambientRank M n
 
 /-- The ambient compiled/PAC rank model proves the load-bearing no-loss half
 `extracted <= pRank` when `pRank` is chosen to be the ambient compiled rank. -/
@@ -56,7 +83,7 @@ theorem extracted_le_pRank_of_ambientCompiledRankModel
     (A : Book1AmbientCompiledRankModel enc hardRank) :
     forall M : TuringMachine.DTM,
       DTMDecidesSATWithEncoding enc M ->
-        forall n : Nat, A.extractedRank M n <= A.ambientRank M n := by
+        forall n : Nat, A.hardSheet.extractedRank M n <= A.ambientRank M n := by
   intro M hM n
   exact A.extracted_le_ambient M hM n
 
@@ -93,8 +120,8 @@ def book1TransportCertificate_of_ambientCompiledRankModel
     {hardRank : Nat -> Nat}
     (A : Book1AmbientCompiledRankModel enc hardRank) :
     Book1DeciderTransportCertificate enc A.ambientRank hardRank where
-  extractedRank := A.extractedRank
-  hardRank_le_extracted := A.hardRank_le_extracted
+  extractedRank := A.hardSheet.extractedRank
+  hardRank_le_extracted := hardRank_le_extracted_of_hardSheetExtractionModel A.hardSheet
   extracted_le_pRank := extracted_le_pRank_of_ambientCompiledRankModel A
 
 /-- The split Book-1 transport certificate proves the original no-loss bridge:
@@ -272,6 +299,7 @@ theorem standardPvsNP_of_book1CEWSPDP
     (no_DTMDecidesSATWithEncoding_of_book1CEWSPDP enc B)
 
 #print axioms book1_superPolynomialGap
+#print axioms hardRank_le_extracted_of_hardSheetExtractionModel
 #print axioms extracted_le_pRank_of_ambientCompiledRankModel
 #print axioms cewToPolynomialSPDP_of_countingCertificate
 #print axioms book1TransportCertificate_of_ambientCompiledRankModel
