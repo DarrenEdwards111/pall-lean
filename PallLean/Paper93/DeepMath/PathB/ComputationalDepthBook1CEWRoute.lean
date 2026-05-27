@@ -418,6 +418,62 @@ theorem cewToPolynomialSPDP_of_countingCertificate
     · exact Nat.le_trans (C.rank_zero M) (Nat.zero_le _)
     · simpa using C.rank_one M
 
+/-- A syntactic CEW-budget model for the P-side observer/window choice.
+
+This is the safe form of `boundedCEWForP`: the bound is attached to the chosen
+local-window accounting function itself, uniformly in `M`, and does **not** say
+that arbitrary semantic SAT deciders must have low global complexity.  The SAT
+correctness hypothesis is only consumed later by transport/extraction, not by
+this syntactic budget theorem. -/
+structure Book1SyntacticBoundedCEWModel
+    (pCEW : TuringMachine.DTM -> Nat -> Nat) where
+  cewConstant : Nat
+  cewExponent : Nat
+  syntactic_bound :
+    forall M : TuringMachine.DTM,
+      forall n : Nat,
+        pCEW M n <= cewConstant * (Nat.log 2 n) ^ cewExponent
+
+/-- A syntactic CEW-budget model supplies the Book-1 `boundedCEWForP` field.
+The decider hypothesis is intentionally unused: the result is about the chosen
+observer/window accounting, not about SAT semantics. -/
+theorem boundedCEWForP_of_syntacticBoundedCEWModel
+    {enc : ThreeCNFEncoding}
+    {pCEW : TuringMachine.DTM -> Nat -> Nat}
+    (S : Book1SyntacticBoundedCEWModel pCEW) :
+    forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M ->
+        exists c k : Nat,
+          forall n : Nat, pCEW M n <= c * (Nat.log 2 n) ^ k := by
+  intro M _hM
+  exact ⟨S.cewConstant, S.cewExponent, S.syntactic_bound M⟩
+
+/-- Canonical syntactic log-window CEW budget.
+
+This is deliberately only a window budget, not a claim that an arbitrary SAT
+decider has low semantic complexity: `pCEW` is chosen to count the logarithmic
+Book-1 local observer window. -/
+def book1LogSyntacticPCEW (_M : TuringMachine.DTM) (n : Nat) : Nat :=
+  Nat.log 2 n
+
+/-- The canonical log-window CEW budget is polylogarithmically bounded. -/
+def book1LogSyntacticBoundedCEWModel :
+    Book1SyntacticBoundedCEWModel book1LogSyntacticPCEW where
+  cewConstant := 1
+  cewExponent := 1
+  syntactic_bound := by
+    intro M n
+    simp [book1LogSyntacticPCEW]
+
+/-- The canonical log-window model supplies the Book-1 `boundedCEWForP` field. -/
+theorem boundedCEWForP_of_logSyntacticPCEW
+    {enc : ThreeCNFEncoding} :
+    forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M ->
+        exists c k : Nat,
+          forall n : Nat, book1LogSyntacticPCEW M n <= c * (Nat.log 2 n) ^ k :=
+  boundedCEWForP_of_syntacticBoundedCEWModel book1LogSyntacticBoundedCEWModel
+
 /-- Book-1 CEW/SPDP data for a fixed encoding.
 
 `pCEW M n` is the contextual entanglement width of the observer/compiled
@@ -526,6 +582,8 @@ theorem standardPvsNP_of_book1CEWSPDP
 #print axioms hardRank_le_extracted_of_hardSheetExtractionModel
 #print axioms extracted_le_pRank_of_ambientCompiledRankModel
 #print axioms book1CEWToSPDPCountingCertificate_of_profileCountingModel
+#print axioms boundedCEWForP_of_syntacticBoundedCEWModel
+#print axioms boundedCEWForP_of_logSyntacticPCEW
 #print axioms cewToPolynomialSPDP_of_countingCertificate
 #print axioms book1TransportCertificate_of_ambientCompiledRankModel
 #print axioms deciderTransportHardToP_of_book1TransportCertificate
