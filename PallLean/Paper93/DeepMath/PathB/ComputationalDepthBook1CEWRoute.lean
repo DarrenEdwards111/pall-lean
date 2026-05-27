@@ -731,22 +731,120 @@ structure Book1SafeLocalPayloadBundle (enc : ThreeCNFEncoding) where
   rank_zero : forall M : TuringMachine.DTM, ambientRank M 0 <= 0
   rank_one : forall M : TuringMachine.DTM, ambientRank M 1 <= 1
 
+/-- What kind of normalization/padding evidence is being supplied.
+
+This tag is deliberately explicit so the Book-1 payload cannot silently treat a
+raw SAT decider as if it already satisfied the same-target God-Move machine
+bounds. -/
+inductive Book1NormalizationMode where
+  /-- A genuine machine transform with length-preserving acceptance equivalence. -/
+  | realMachineTransform
+  /-- A padded simulator/normal form whose SAT language correctness is certified. -/
+  | paddedSimulation
+  /-- A certificate-only normal form, used only when the normal machine is
+  supplied directly as local data. -/
+  | certificateOnlyNormalForm
+
+/-- Mode-specific evidence attached to a normalization certificate. -/
+def Book1NormalizationModePayload
+    (enc : ThreeCNFEncoding)
+    (M : TuringMachine.DTM)
+    (_hM : DTMDecidesSATWithEncoding enc M)
+    (N : TuringMachine.DTM) : Book1NormalizationMode -> Prop
+  | Book1NormalizationMode.realMachineTransform =>
+      forall {n : Nat} (hn : n >= 1) (input : Fin n -> Bool),
+        TuringMachine.accepts N n hn input <-> TuringMachine.accepts M n hn input
+  | Book1NormalizationMode.paddedSimulation =>
+      DTMDecidesSATWithEncoding enc N
+  | Book1NormalizationMode.certificateOnlyNormalForm =>
+      DTMDecidesSATWithEncoding enc N
+
+/-- A length-preserving acceptance-equivalent machine preserves encoded SAT
+semantics. -/
+theorem DTMDecidesSATWithEncoding_of_acceptance_equiv
+    {enc : ThreeCNFEncoding}
+    {M N : TuringMachine.DTM}
+    (hM : DTMDecidesSATWithEncoding enc M)
+    (heq : forall {n : Nat} (hn : n >= 1) (input : Fin n -> Bool),
+      TuringMachine.accepts N n hn input <-> TuringMachine.accepts M n hn input) :
+    DTMDecidesSATWithEncoding enc N := by
+  intro n hn input φ henc
+  exact Iff.trans (heq hn input) (hM hn input φ henc)
+
 /-- Explicit normalization/padding data for a raw SAT decider.
 
 The same-target God-Move interface asks for machine-side bounds such as
 `timeBound ≤ 4` and `numStates ≤ n`.  Those are not properties of an arbitrary
 raw SAT decider.  This certificate makes the missing move explicit: from a raw
-encoded SAT decider `M`, provide a normalized/padded decider `normalized` whose
-semantics and size bounds are separately certified. -/
+encoded SAT decider `M`, provide a normalized/padded decider `normalized`, say
+which mode of normalization is being used, and certify both semantic
+preservation/correctness and the side bounds. -/
 structure Book1NormalizationPaddingCertificate
     (enc : ThreeCNFEncoding)
     (M : TuringMachine.DTM)
     (hM : DTMDecidesSATWithEncoding enc M) where
+  mode : Book1NormalizationMode
   normalized : TuringMachine.DTM
+  modePayload : Book1NormalizationModePayload enc M hM normalized mode
   normalized_decides : DTMDecidesSATWithEncoding enc normalized
   normalized_timeBound_le_four : normalized.timeBound <= 4
   normalized_numStates_le_large :
     forall n : Nat, 2 ^ 804 <= n -> normalized.numStates <= n
+
+namespace Book1NormalizationPaddingCertificate
+
+/-- Constructor for a genuine length-preserving machine transform. -/
+def ofRealMachineTransform
+    {enc : ThreeCNFEncoding}
+    {M N : TuringMachine.DTM}
+    {hM : DTMDecidesSATWithEncoding enc M}
+    (heq : forall {n : Nat} (hn : n >= 1) (input : Fin n -> Bool),
+      TuringMachine.accepts N n hn input <-> TuringMachine.accepts M n hn input)
+    (htime : N.timeBound <= 4)
+    (hstates : forall n : Nat, 2 ^ 804 <= n -> N.numStates <= n) :
+    Book1NormalizationPaddingCertificate enc M hM where
+  mode := Book1NormalizationMode.realMachineTransform
+  normalized := N
+  modePayload := heq
+  normalized_decides := DTMDecidesSATWithEncoding_of_acceptance_equiv hM heq
+  normalized_timeBound_le_four := htime
+  normalized_numStates_le_large := hstates
+
+/-- Constructor for a padded simulation with certified encoded SAT semantics. -/
+def ofPaddedSimulation
+    {enc : ThreeCNFEncoding}
+    {M N : TuringMachine.DTM}
+    {hM : DTMDecidesSATWithEncoding enc M}
+    (hN : DTMDecidesSATWithEncoding enc N)
+    (htime : N.timeBound <= 4)
+    (hstates : forall n : Nat, 2 ^ 804 <= n -> N.numStates <= n) :
+    Book1NormalizationPaddingCertificate enc M hM where
+  mode := Book1NormalizationMode.paddedSimulation
+  normalized := N
+  modePayload := hN
+  normalized_decides := hN
+  normalized_timeBound_le_four := htime
+  normalized_numStates_le_large := hstates
+
+/-- Constructor for a certificate-only normal form supplied directly as local
+data.  This is intentionally marked so auditors can distinguish it from an
+actual machine transform. -/
+def ofCertificateOnlyNormalForm
+    {enc : ThreeCNFEncoding}
+    {M N : TuringMachine.DTM}
+    {hM : DTMDecidesSATWithEncoding enc M}
+    (hN : DTMDecidesSATWithEncoding enc N)
+    (htime : N.timeBound <= 4)
+    (hstates : forall n : Nat, 2 ^ 804 <= n -> N.numStates <= n) :
+    Book1NormalizationPaddingCertificate enc M hM where
+  mode := Book1NormalizationMode.certificateOnlyNormalForm
+  normalized := N
+  modePayload := hN
+  normalized_decides := hN
+  normalized_timeBound_le_four := htime
+  normalized_numStates_le_large := hstates
+
+end Book1NormalizationPaddingCertificate
 
 /-- Normalized safe local payload bundle.
 
@@ -1001,6 +1099,10 @@ theorem standardPvsNP_of_book1CEWSPDP
 #print axioms boundedCEWForP_of_syntacticBoundedCEWModel
 #print axioms boundedCEWForP_of_logSyntacticPCEW
 #print axioms cewToPolynomialSPDP_of_countingCertificate
+#print axioms DTMDecidesSATWithEncoding_of_acceptance_equiv
+#print axioms Book1NormalizationPaddingCertificate.ofRealMachineTransform
+#print axioms Book1NormalizationPaddingCertificate.ofPaddedSimulation
+#print axioms Book1NormalizationPaddingCertificate.ofCertificateOnlyNormalForm
 #print axioms book1ConcreteAssemblyCertificateWithBridge_of_safeLocalPayloadBundle
 #print axioms book1CEWSPDPEpistemicBoundaryPort_of_safeLocalPayloadBundle
 #print axioms book1TransportCertificate_of_normalizedSafeLocalPayloadBundle
