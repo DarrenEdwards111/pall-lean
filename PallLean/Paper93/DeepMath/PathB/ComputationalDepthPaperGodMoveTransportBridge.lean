@@ -119,6 +119,59 @@ def PaperGodMoveTransportPort
       L.k <= c ->
       Nonempty (PaperGodMoveTransportWitness enc n L.base)
 
+/-- A calibrated low-action observer cannot simultaneously satisfy the legacy
+same-sheet live-boundary realization at that scale.  The reason is exactly the
+last bridge: same-sheet lower bound plus no-loss into live boundary contradicts
+the Book-1 low-action boundary budget. -/
+theorem no_sameSheetStrictRealization_of_lowActionBoundaryBudget
+    {enc : ThreeCNFEncoding}
+    {n c : Nat}
+    (L : LowActionStrictDynamicNFrameLagrangianObserver enc)
+    (hk : L.k <= c)
+    (hn20 : n >= 2 ^ 20)
+    (hlog : 4 * (c + 1) <= Nat.log 2 n) :
+    IsEmpty (Theorem207SameSheetStrictRealization enc n L.base) := by
+  refine ⟨?_⟩
+  intro R
+  have hlive_lt :
+      L.base.toTrajectory.liveBoundaryRank n R.input R.time <
+        Nat.choose (n / 3) (Nat.log 2 n) :=
+    lowAction_book1BoundaryObstruction L hk hn20 hlog R.input R.time
+  have hrank_lower :
+      Nat.choose (n / 3) (Nat.log 2 n) <=
+        MultilinearSPDP.mlBlockedSpdpRank
+          (cook_levin_compilation L.base.M n R.hn2 R.htb R.hns).partition
+          (Nat.log 2 n) (Nat.log 2 n)
+          (GlobalGodMoveGauge.theorem207_same_sheet_poly
+            L.base.M n R.hn804 R.hn2 R.htb R.hns R.hdec) :=
+    GlobalGodMoveGauge.theorem207_same_sheet_np_side_lower_bound
+      L.base.M n R.hn804 R.hn2 R.htb R.hns R.hdec
+  have hchoose_le_live :
+      Nat.choose (n / 3) (Nat.log 2 n) <=
+        L.base.toTrajectory.liveBoundaryRank n R.input R.time :=
+    Nat.le_trans hrank_lower R.same_sheet_rank_le_liveBoundary
+  exact (Nat.not_le_of_lt hlive_lt) hchoose_le_live
+
+/-- Consequently, a universal same-sheet realization over all strict observers
+rules out encoded SAT deciders.  A hypothetical decider has a canonical
+zero-rank low-action presentation, and the realization supplied for that
+presentation contradicts the low-action boundary budget. -/
+theorem no_DTMDecidesSATWithEncoding_of_sameSheetStrictRealization
+    (enc : ThreeCNFEncoding)
+    (H : UniversalTheorem207SameSheetStrictRealization enc) :
+    Not (exists M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M) := by
+  intro hdec
+  rcases hdec with ⟨M, hM⟩
+  let L : LowActionStrictDynamicNFrameLagrangianObserver enc :=
+    lowActionStrictObserver_of_DTMDecidesSATWithEncoding hM
+  rcases H L.k with ⟨n, hn20, hlog, Hn⟩
+  have hno : IsEmpty (Theorem207SameSheetStrictRealization enc n L.base) :=
+    no_sameSheetStrictRealization_of_lowActionBoundaryBudget
+      L (Nat.le_refl L.k) hn20 hlog
+  rcases Hn L.base with ⟨R⟩
+  exact hno.false R
+
 /-- The older same-sheet strict realization contract implies the new clean
 paper God-Move transport port for the canonical low-action class.  This is not
 the unsafe Step4 route; it only repackages same-sheet realization witnesses into
@@ -168,6 +221,8 @@ theorem standardPvsNP_of_paperGodMoveTransportPort
 
 #print axioms theorem207DirectPaperWitness_of_paperGodMoveTransport
 #print axioms paperGodMoveTransportWitness_of_sameSheetStrictRealization
+#print axioms no_sameSheetStrictRealization_of_lowActionBoundaryBudget
+#print axioms no_DTMDecidesSATWithEncoding_of_sameSheetStrictRealization
 #print axioms paperGodMoveTransportPort_of_sameSheetStrictRealization
 #print axioms canonicalStrictGodMovePort_of_paperGodMoveTransportPort
 #print axioms no_DTMDecidesSATWithEncoding_of_paperGodMoveTransportPort
