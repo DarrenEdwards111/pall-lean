@@ -56,6 +56,59 @@ theorem noCanonicalStrictGodMoveSATDecider_of_canonicalStrictGodMovePort
     lowAction_book1BoundaryObstruction L (Nat.le_refl L.k) hn20 hlog W.input W.time
   exact (Nat.not_le_of_lt hupper) hlower
 
+/-- Canonical port also excludes ordinary encoded SAT deciders, because every
+encoded SAT decider has a canonical zero-rank low-action presentation. -/
+theorem no_DTMDecidesSATWithEncoding_of_canonicalStrictGodMovePort
+    (enc : ThreeCNFEncoding)
+    (Hport : CanonicalStrictGodMovePort enc) :
+    Not (exists M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M) := by
+  intro hdec
+  rcases hdec with ⟨M, hM⟩
+  let L : CanonicalStrictGodMoveSATObserver enc :=
+    lowActionStrictObserver_of_DTMDecidesSATWithEncoding hM
+  exact noCanonicalStrictGodMoveSATDecider_of_canonicalStrictGodMovePort
+    enc Hport ⟨L⟩
+
+/-- If no encoded SAT decider exists, the canonical port is vacuous.  This is
+an audit direction, not a mathematical extraction proof. -/
+theorem canonicalStrictGodMovePort_of_no_DTMDecidesSATWithEncoding
+    (enc : ThreeCNFEncoding)
+    (hno : Not (exists M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M)) :
+    CanonicalStrictGodMovePort enc := by
+  intro c
+  let k : Nat := Nat.max 20 (4 * (c + 1))
+  let n : Nat := 2 ^ k
+  refine ⟨n, ?_, ?_, ?_⟩
+  · dsimp [n, k]
+    exact Nat.pow_le_pow_right
+      (by norm_num : 1 <= 2)
+      (Nat.le_max_left 20 (4 * (c + 1)))
+  · dsimp [n, k]
+    have hpow :
+        2 ^ (4 * (c + 1)) <= 2 ^ Nat.max 20 (4 * (c + 1)) :=
+      Nat.pow_le_pow_right
+        (by norm_num : 1 <= 2)
+        (Nat.le_max_right 20 (4 * (c + 1)))
+    exact Nat.le_log_of_pow_le (by norm_num : 1 < 2) hpow
+  · intro L _hLk
+    exact False.elim (hno ⟨L.base.M, L.base.decides⟩)
+
+/-- Exact characterization of the canonical restricted port.
+
+This proves that the canonical port is not a remaining low-level construction
+lemma: in the current formal model it is exactly as strong as the encoded
+no-SAT-decider endpoint. -/
+theorem canonicalStrictGodMovePort_iff_no_DTMDecidesSATWithEncoding
+    (enc : ThreeCNFEncoding) :
+    CanonicalStrictGodMovePort enc ↔
+      Not (exists M : TuringMachine.DTM,
+        DTMDecidesSATWithEncoding enc M) := by
+  constructor
+  · exact no_DTMDecidesSATWithEncoding_of_canonicalStrictGodMovePort enc
+  · exact canonicalStrictGodMovePort_of_no_DTMDecidesSATWithEncoding enc
+
 /-- Standard-bridge packaging for the restricted canonical route.
 This is the analogue of the strict-port standard bridge but for the canonical
 restricted class endpoint. -/
@@ -76,6 +129,9 @@ theorem standardPvsNP_of_canonicalStrictGodMovePort
     (noCanonicalStrictGodMoveSATDecider_of_canonicalStrictGodMovePort enc Hport)
 
 #print axioms noCanonicalStrictGodMoveSATDecider_of_canonicalStrictGodMovePort
+#print axioms no_DTMDecidesSATWithEncoding_of_canonicalStrictGodMovePort
+#print axioms canonicalStrictGodMovePort_of_no_DTMDecidesSATWithEncoding
+#print axioms canonicalStrictGodMovePort_iff_no_DTMDecidesSATWithEncoding
 #print axioms standardPvsNP_of_canonicalStrictGodMovePort
 
 end PallLean.Paper93.DeepMath.PathB
