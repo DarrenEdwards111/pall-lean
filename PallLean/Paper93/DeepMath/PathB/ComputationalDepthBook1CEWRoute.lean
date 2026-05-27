@@ -979,6 +979,160 @@ structure Book1NamedCertificateBoundaryBundle (enc : ThreeCNFEncoding) where
       normalization.normalForms.normalize
   profileCounting : Book1LocalCEWProfileBoundary pCEW ambientRank
 
+namespace Book1ExplicitNormalizationFamily
+
+/-- Identity normalization for a family of raw machines that already satisfies
+Book-1 normal-form resource bounds.  This is useful for local, already-normal
+certificate families and keeps the resource obligations explicit. -/
+def ofAlreadyNormal
+    {enc : ThreeCNFEncoding}
+    (htime : forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M -> M.timeBound <= 4)
+    (hstates : forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M ->
+        forall n : Nat, 2 ^ 804 <= n -> M.numStates <= n) :
+    Book1ExplicitNormalizationFamily enc where
+  normalize := by
+    intro M hM
+    exact Book1NormalizationPaddingCertificate.ofRealMachineTransform
+      (M := M) (N := M) (hM := hM)
+      (by intro n hn input; rfl)
+      (htime M hM)
+      (hstates M hM)
+
+/-- Certificate-only normalization family from a caller-supplied normal form for
+each raw encoded SAT decider.  The mode is deliberately certificate-only, so the
+formal object cannot be mistaken for a real machine transformation. -/
+def ofCertificateOnlyNormalForms
+    {enc : ThreeCNFEncoding}
+    (normal : forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M -> TuringMachine.DTM)
+    (hdec : forall M : TuringMachine.DTM,
+      forall hM : DTMDecidesSATWithEncoding enc M,
+        DTMDecidesSATWithEncoding enc (normal M hM))
+    (htime : forall M : TuringMachine.DTM,
+      forall hM : DTMDecidesSATWithEncoding enc M,
+        (normal M hM).timeBound <= 4)
+    (hstates : forall M : TuringMachine.DTM,
+      forall hM : DTMDecidesSATWithEncoding enc M,
+        forall n : Nat, 2 ^ 804 <= n -> (normal M hM).numStates <= n) :
+    Book1ExplicitNormalizationFamily enc where
+  normalize := by
+    intro M hM
+    exact Book1NormalizationPaddingCertificate.ofCertificateOnlyNormalForm
+      (M := M) (N := normal M hM) (hM := hM)
+      (hdec M hM) (htime M hM) (hstates M hM)
+
+end Book1ExplicitNormalizationFamily
+
+namespace Book1ExplicitSameTargetRTFamily
+
+/-- Construct the same-target RT family directly from local same-target PD data
+on the normalized machines.  This is the primitive non-circular Book-1 RT
+obligation: target, PD data, and the definitional rank equality are all supplied
+locally. -/
+def ofSameTargetPD
+    {enc : ThreeCNFEncoding}
+    {extractedRank : TuringMachine.DTM -> Nat -> Nat}
+    {normalize : forall M : TuringMachine.DTM,
+      forall hM : DTMDecidesSATWithEncoding enc M,
+        Book1NormalizationPaddingCertificate enc M hM}
+    (target : forall M : TuringMachine.DTM,
+      forall hM : DTMDecidesSATWithEncoding enc M,
+        forall n : Nat,
+          forall hn : 2 ^ 804 <= n,
+            GodMoveExtractionTarget ((normalize M hM).normalized) n
+              (by
+                have htwo : 2 ^ 1 <= 2 ^ 804 :=
+                  Nat.pow_le_pow_right (by omega : 1 <= 2) (by omega : 1 <= 804)
+                exact le_trans htwo hn)
+              ((normalize M hM).normalized_timeBound_le_four)
+              ((normalize M hM).normalized_numStates_le_large n hn))
+    (sameTargetPD : forall M : TuringMachine.DTM,
+      forall hM : DTMDecidesSATWithEncoding enc M,
+        forall n : Nat,
+          forall hn : 2 ^ 804 <= n,
+            RouteBNPFromPdMatrixSameTarget (target M hM n hn))
+    (rank_eq : forall M : TuringMachine.DTM,
+      forall hM : DTMDecidesSATWithEncoding enc M,
+        forall n : Nat,
+          forall hn : 2 ^ 804 <= n,
+            extractedRank M n = MultilinearSPDP.mlBlockedSpdpRank
+              (target M hM n hn).coupledPartition
+              (Nat.log 2 n) (Nat.log 2 n)
+              (target M hM n hn).coupledPoly)
+    (preThreshold_lower : forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M ->
+        forall n : Nat,
+          n < 2 ^ 804 ->
+            book1CalibratedRamanujanTseitinHardRank n <= extractedRank M n) :
+    Book1ExplicitSameTargetRTFamily enc extractedRank normalize where
+  large_sameTarget_normalized := by
+    intro M hM n hn
+    exact
+      { hn2 := by
+          have htwo : 2 ^ 1 <= 2 ^ 804 :=
+            Nat.pow_le_pow_right (by omega : 1 <= 2) (by omega : 1 <= 804)
+          exact le_trans htwo hn
+        htb := (normalize M hM).normalized_timeBound_le_four
+        hns := (normalize M hM).normalized_numStates_le_large n hn
+        target := target M hM n hn
+        sameTargetPD := sameTargetPD M hM n hn
+        rank_eq := rank_eq M hM n hn }
+  preThreshold_lower := preThreshold_lower
+
+end Book1ExplicitSameTargetRTFamily
+
+namespace Book1ExplicitAmbientTransferFamily
+
+/-- Construct the ambient-transfer family from an already-supplied same-target
+RT family plus the local extraction-transfer and ambient-rank equality data. -/
+def ofExtractionTransfer
+    {enc : ThreeCNFEncoding}
+    {semanticBridge : Book1SATSemanticsBridge enc}
+    {extractedRank ambientRank : TuringMachine.DTM -> Nat -> Nat}
+    {normalize : forall M : TuringMachine.DTM,
+      forall hM : DTMDecidesSATWithEncoding enc M,
+        Book1NormalizationPaddingCertificate enc M hM}
+    (rtFamily : Book1ExplicitSameTargetRTFamily enc extractedRank normalize)
+    (extractionTransfer : forall M : TuringMachine.DTM,
+      forall hM : DTMDecidesSATWithEncoding enc M,
+        forall n : Nat,
+          forall hn : 2 ^ 804 <= n,
+            let C := rtFamily.large_sameTarget_normalized M hM n hn
+            GodMoveRouteB_ExtractionTransfer ((normalize M hM).normalized) n
+              C.hn2 C.htb C.hns
+              (semanticBridge.toCoreDecidesSAT ((normalize M hM).normalized)
+                ((normalize M hM).normalized_decides))
+              C.target)
+    (ambient_eq : forall M : TuringMachine.DTM,
+      forall hM : DTMDecidesSATWithEncoding enc M,
+        forall n : Nat,
+          forall hn : 2 ^ 804 <= n,
+            let C := rtFamily.large_sameTarget_normalized M hM n hn
+            ambientRank M n = MultilinearSPDP.mlBlockedSpdpRank
+              (cook_levin_compilation ((normalize M hM).normalized) n
+                C.hn2 C.htb C.hns).partition
+              (Nat.log 2 n) (Nat.log 2 n)
+              (compiledPoly (cook_levin_compilation ((normalize M hM).normalized) n
+                C.hn2 C.htb C.hns)))
+    (preThreshold_ambient : forall M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M ->
+        forall n : Nat,
+          n < 2 ^ 804 ->
+            extractedRank M n <= ambientRank M n) :
+    Book1ExplicitAmbientTransferFamily enc semanticBridge extractedRank ambientRank normalize where
+  large_ambient_payload_normalized := by
+    intro M hM n hn
+    let C := rtFamily.large_sameTarget_normalized M hM n hn
+    exact
+      { hardCert := C
+        extractionTransfer := extractionTransfer M hM n hn
+        ambient_eq := ambient_eq M hM n hn }
+  preThreshold_ambient := preThreshold_ambient
+
+end Book1ExplicitAmbientTransferFamily
+
 namespace Book1LocalNormalizationBoundary
 
 /-- Package a supplied normalization family as the local normalization boundary. -/
