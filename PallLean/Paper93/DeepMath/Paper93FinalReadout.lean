@@ -6,6 +6,7 @@ import PallLean.Paper93.DeepMath.CookLevin.Theorem207Chain
 import PallLean.Paper93.DeepMath.Paper93MasterTheorem
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLowActionStrictPort
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthPaperGodMoveTransportBridge
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthBook1CEWRoute
 
 /-!
 # Paper §28.3/§40 Final Readout
@@ -59,6 +60,25 @@ theorem paper93_no_encodedSATDecider_of_paperGodMoveTransportPort
       DTMDecidesSATWithEncoding enc M) :=
   no_DTMDecidesSATWithEncoding_of_paperGodMoveTransportPort enc H
 
+/-- Book-1 CEW/SPDP readout: the epistemic-boundary route rules out encoded SAT
+deciders once its explicit CEW, SPDP, hard-family, and transport obligations are
+supplied. -/
+theorem paper93_no_encodedSATDecider_of_book1CEWSPDP
+    (enc : ThreeCNFEncoding)
+    (B : Book1CEWSPDPEpistemicBoundaryPort enc) :
+    Not (exists M : TuringMachine.DTM,
+      DTMDecidesSATWithEncoding enc M) :=
+  no_DTMDecidesSATWithEncoding_of_book1CEWSPDP enc B
+
+/-- With a supplied standard-model bridge, the Book-1 CEW/SPDP route yields the
+chosen standard `P ≠ NP` statement. -/
+theorem paper93_standardPvsNP_of_book1CEWSPDP
+    {enc : ThreeCNFEncoding}
+    (S : StandardPvsNPBridge enc)
+    (B : Book1CEWSPDPEpistemicBoundaryPort enc) :
+    S.standardPvsNP :=
+  standardPvsNP_of_book1CEWSPDP S B
+
 /-
 The older Step4/unsafe-archive final wrappers are intentionally not imported
 here.  They remain in their historical modules for forensic comparison, but are
@@ -69,5 +89,7 @@ now off the active Paper93 final readout path.
 #print axioms paper93_lowActionStrictPort_iff_standardPvsNP
 #print axioms paper93_canonicalStrictGodMovePort_of_paperGodMoveTransportPort
 #print axioms paper93_no_encodedSATDecider_of_paperGodMoveTransportPort
+#print axioms paper93_no_encodedSATDecider_of_book1CEWSPDP
+#print axioms paper93_standardPvsNP_of_book1CEWSPDP
 
 end PallLean.Paper93.DeepMath
