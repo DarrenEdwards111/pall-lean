@@ -103,6 +103,31 @@ that structure-free presentation has zero live boundary rank everywhere and
 cannot carry a positive binomial minor at paper scale.  Excluding this
 presentation would be exactly where a hidden high-rank assumption could enter.
 
+## Operational faithful live-rank refinement
+The non-bookkeeping refinement is isolated in:
+- `ComputationalDepthOperationalFaithfulLiveRank.lean`
+
+This file replaces arbitrary presentation rank by an operational live rank
+computed from the actual DTM transition semantics: at a live configuration the
+rank is the size of the radius-one neighborhood consisting of the current
+configuration and its one-step successor.  This excludes the zero-rank
+bookkeeping presentation without defining faithfulness as "has high rank".
+
+The audit theorem is:
+
+```lean
+OperationalFaithfulSemanticClosure enc
+  ↔ ¬ ∃ M, DTMDecidesSATWithEncoding enc M
+```
+
+The forward direction is no longer based on arbitrary zero rank: an encoded SAT
+decider has a canonical operational faithful presentation.  However, the
+radius-one operational neighborhood has rank at most `2`, so it still cannot
+carry the paper-scale binomial minor.  Thus tying live rank to actual machine
+semantics is necessary but not sufficient.  A positive route would need a
+richer semantic-rank theorem showing that the actual run induces
+superpolynomial live structure, not merely nonzero local operational rank.
+
 ## Standard P-vs-NP bridge
 The standard-model readout is isolated in:
 - `ComputationalDepthStrictPortStandardBridge.lean`
