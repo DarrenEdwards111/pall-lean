@@ -159,6 +159,21 @@ same concrete instance:
 Thus the numeric `1550` count is now Lean-side, while the remaining strong
 bridge is the actual shifted-row projection/membership theorem.
 
+`NWConcrete452ShiftedActual.lean` proves that shifted-row membership bridge:
+
+- `shiftedCandidatePolynomial_mem_spdpSubspace` shows every concrete
+  `(window,label,degree<=1 shift)` row is an actual generator of
+  `SPDP.spdpSubspace 2 1 (nwMvPolynomial NW452.enc NW452.code)`;
+- `shiftedShapeRowsByCode_finrank_le_actual_spdpRank` proves that any selected
+  `1550`-shape subfamily, after coefficient projection into a `Nat`-coded
+  monomial order, has row rank bounded by the real concrete
+  `SPDP.spdpRank 2 1`;
+- `spdpRank_nw452_ge_1550_of_shiftedShapeSelectionByCode` removes the former
+  arbitrary rank-containment premise.  The only remaining strong-bound payload
+  is now the genuine shifted-leading theorem: choose one candidate per
+  `ShiftedLeadShape` and prove the nonzero/maximal/injective leading-monomial
+  conditions.
+
 ## Calibration script
 
 `scripts/algebraic_spdp_nw_depth3.py` computes exact small SPDP ranks over
