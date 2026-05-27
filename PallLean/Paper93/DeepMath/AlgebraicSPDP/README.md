@@ -80,6 +80,16 @@ rank is bounded by the actual SPDP rank.
   `Gamma_{1,1} = 417` and the depth-3 denominator is `84`, giving the
   calibration bound `s >= 5`.
 
+`scripts/algebraic_spdp_nw_leads.py` checks the actual derivative-window
+leading monomials behind the Lean bridge.  It confirms:
+
+- at `d=3,q=3,e=2`, no derivative window can make both the differentiated
+  window and outside residual window larger than the agreement bound, so the
+  simple residual-pivot bridge fails for a precise finite-size reason;
+- at `d=4,q=5,e=2,D={0,1}`, the actual NW derivative-window rows exactly
+  equal the residual indicator rows, residual supports are injective, and the
+  leading monomials match the residual graph pivots for all 25 labels.
+
 These finite ranks are calibration only.  The frontier result requires an
 asymptotic NW support-independence theorem, not brute-force exact rank
 computation.
