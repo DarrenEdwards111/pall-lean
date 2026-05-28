@@ -31,8 +31,9 @@ restricted channel.  That generalization remains the P-vs-NP-strength wall.
 The later rung-3 attachment follows the same rule: observer vocabulary means
 resource visibility for restricted algebraic/semi-algebraic proof systems.  For
 Nullstellensatz and cutting planes this now attaches to genuine polynomial and
-integer-inequality systems; for bounded-depth Frege it remains only an abstract
-resource interface.  None of this proves the underlying Tseitin lower bounds.
+integer-inequality systems; for bounded-depth Frege it now attaches to a real
+formula-level Frege kernel. None of this proves the underlying Tseitin lower
+bounds.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB
@@ -264,14 +265,14 @@ structure ObserverCuttingPlanesBoundaryReal
   rank_lower_bound :
     CuttingPlanesRankLowerBound Axiom Target requiredRank
 
-/-- A bounded-depth Frege observer boundary is a depth/resource lower bound for
-the restricted Frege channel. -/
-structure ObserverBoundedDepthFregeBoundary
+/-- A real bounded-depth Frege observer boundary is a proof-depth lower bound
+for the formula-level Frege channel over signed-3-CNF clause axioms. -/
+structure ObserverBoundedDepthFregeBoundaryReal
     (φ : SignedThreeCNF) (requiredDepth : Nat) : Prop where
   depth_lower_bound :
-    Rung3ResourceLowerBound
-      (SignedThreeCNFBoundedDepthFregeAxiom φ)
-      boundedDepthFregeContradictionLine requiredDepth
+    FregeDepthLowerBound
+      (SignedThreeCNFFregeAxiom φ)
+      (fregeContradictionFormula φ.numVars) requiredDepth
 
 /-- A polynomial-calculus boundary blocks any visible algebraic channel whose
 size budget cannot carry the required degree. -/
@@ -308,15 +309,14 @@ theorem cuttingPlanesChannel_blocked_by_observerBoundaryReal
       D.size <= sizeBudget) :=
   realCuttingPlanes_no_small_of_rank_lower_bound B.rank_lower_bound hgap
 
-/-- A bounded-depth Frege resource boundary blocks channels below the required
-visible depth/resource. -/
-theorem boundedDepthFregeChannel_blocked_by_observerBoundary
-    (φ : SignedThreeCNF) {requiredDepth sizeBudget : Nat}
-    (B : ObserverBoundedDepthFregeBoundary φ requiredDepth)
-    (hgap : 3 + sizeBudget < requiredDepth) :
-    Not (exists D : SignedThreeCNFBoundedDepthFregeRefutation φ,
-      D.size <= sizeBudget) :=
-  no_small_signedThreeCNF_boundedDepthFrege_refutation_of_depth_lower_bound
+/-- A real bounded-depth Frege proof-depth boundary blocks clause-axiom
+refutations once the required depth exceeds the clause depth. -/
+theorem boundedDepthFregeChannel_blocked_by_observerBoundaryReal
+    (φ : SignedThreeCNF) {requiredDepth : Nat}
+    (B : ObserverBoundedDepthFregeBoundaryReal φ requiredDepth)
+    (hgap : 3 < requiredDepth) :
+    Not (Nonempty (SignedThreeCNFFregeRefutation φ)) :=
+  realBoundedDepthFrege_no_refutation_of_depth_lower_bound
     φ B.depth_lower_bound hgap
 
 /-- Rung-3 observer attachment bundle: every rung-3 substrate has a matching
@@ -344,12 +344,11 @@ structure ObserverRung3Attachment (φ : SignedThreeCNF) : Prop where
       sizeBudget < requiredRank ->
       Not (exists D : CuttingPlanesDerivation Axiom Target,
         D.size <= sizeBudget)
-  boundedDepthFrege :
-    forall {requiredDepth sizeBudget : Nat},
-      ObserverBoundedDepthFregeBoundary φ requiredDepth ->
-      3 + sizeBudget < requiredDepth ->
-      Not (exists D : SignedThreeCNFBoundedDepthFregeRefutation φ,
-        D.size <= sizeBudget)
+  realBoundedDepthFrege :
+    forall {requiredDepth : Nat},
+      ObserverBoundedDepthFregeBoundaryReal φ requiredDepth ->
+      3 < requiredDepth ->
+      Not (Nonempty (SignedThreeCNFFregeRefutation φ))
 
 /-- The observer vocabulary survives rung 3 as a comparison/invariant layer: in
 each algebraic or semi-algebraic substrate, the relevant visible boundary is a
@@ -365,9 +364,9 @@ theorem observerRung3Attachment_of_substrates
   realCuttingPlanes := by
     intro σ _instFintype Axiom Target requiredRank sizeBudget B hgap
     exact cuttingPlanesChannel_blocked_by_observerBoundaryReal B hgap
-  boundedDepthFrege := by
-    intro requiredDepth sizeBudget B hgap
-    exact boundedDepthFregeChannel_blocked_by_observerBoundary φ B hgap
+  realBoundedDepthFrege := by
+    intro requiredDepth B hgap
+    exact boundedDepthFregeChannel_blocked_by_observerBoundaryReal φ B hgap
 
 /-! ## Kernel-only axiom trace -/
 
@@ -381,7 +380,7 @@ theorem observerRung3Attachment_of_substrates
 #print axioms polynomialCalculusChannel_blocked_by_observerBoundary
 #print axioms nullstellensatzChannel_blocked_by_observerBoundaryReal
 #print axioms cuttingPlanesChannel_blocked_by_observerBoundaryReal
-#print axioms boundedDepthFregeChannel_blocked_by_observerBoundary
+#print axioms boundedDepthFregeChannel_blocked_by_observerBoundaryReal
 #print axioms observerRung3Attachment_of_substrates
 
 end PallLean.Paper93.DeepMath.PathB

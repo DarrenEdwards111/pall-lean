@@ -1,6 +1,7 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthPolynomialCalculusRung
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNullstellensatzReal
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCuttingPlanesReal
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthBoundedDepthFregeReal
 
 /-!
 # Rung 3 completed as formal substrates
@@ -18,14 +19,15 @@ sense as the resolution substrate:
   imported from `ComputationalDepthNullstellensatzReal`;
 * cutting planes is now a genuine integer-inequality derivation/rank system,
   imported from `ComputationalDepthCuttingPlanesReal`;
-* bounded-depth Frege still has only an abstract depth/resource substrate here;
-* each real or abstract system has the appropriate lower-bound consequence
-  proved without placeholder proof terms or custom axioms.
+* bounded-depth Frege now has a real formula syntax and modus-ponens Frege
+  derivation kernel, imported from `ComputationalDepthBoundedDepthFregeReal`;
+* each system has the appropriate lower-bound consequence proved without
+  placeholder proof terms or custom axioms.
 
 The hard family-specific lower bounds for Tseitin in these systems remain
-literature theorems and future formalization targets.  Bounded-depth Frege also
-still needs a real formula/Frege-inference formalization; it is explicitly not
-complete in the same sense as Nullstellensatz and cutting planes.
+literature theorems and future formalization targets.  In particular, this does
+not formalize Ajtai/Håstad bounded-depth Frege lower bounds; it only supplies
+the real formula-level substrate those theorems would target.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB
@@ -220,50 +222,18 @@ theorem realCuttingPlanes_no_small_of_rank_lower_bound
     Not (exists D : CuttingPlanesDerivation Axiom Target, D.size <= s) :=
   no_small_cuttingPlanes_derivation_of_rank_lower_bound Hrank hgap
 
-/-! ## Bounded-depth Frege substrate -/
+/-! ## Real bounded-depth Frege substrate -/
 
-abbrev BoundedDepthFregeLine := Rung3ResourceLine
-abbrev BoundedDepthFregeDerivation := Rung3ResourceDerivation
-
-/-- A signed 3-CNF clause contributes an initial bounded-depth Frege formula of
-constant depth `3` in this substrate. -/
-def SignedClause3.toBoundedDepthFregeLine {n : Nat}
-    (_c : SignedClause3 n) : BoundedDepthFregeLine where
-  resource := 3
-
-/-- Bounded-depth Frege axioms induced by a signed 3-CNF formula. -/
-def SignedThreeCNFBoundedDepthFregeAxiom
-    (φ : SignedThreeCNF) : BoundedDepthFregeLine -> Prop :=
-  fun P => exists c : SignedClause3 φ.numVars,
-    c ∈ φ.clauses /\ c.toBoundedDepthFregeLine = P
-
-/-- Abstract contradiction target for bounded-depth Frege. -/
-def boundedDepthFregeContradictionLine : BoundedDepthFregeLine where
-  resource := 0
-
-abbrev SignedThreeCNFBoundedDepthFregeRefutation (φ : SignedThreeCNF) :=
-  BoundedDepthFregeDerivation
-    (SignedThreeCNFBoundedDepthFregeAxiom φ)
-    boundedDepthFregeContradictionLine
-
-/-- Signed 3-CNF bounded-depth Frege axioms have constant starting depth `3`. -/
-theorem signedThreeCNFBoundedDepthFregeAxioms_depth_le_three
-    (φ : SignedThreeCNF) :
-    Rung3AxiomsResourceAtMost (SignedThreeCNFBoundedDepthFregeAxiom φ) 3 := by
-  intro P hP
-  rcases hP with ⟨c, _hc, rfl⟩
-  rfl
-
-/-- Bounded-depth Frege depth lower bounds rule out small tree-like refutations. -/
-theorem no_small_signedThreeCNF_boundedDepthFrege_refutation_of_depth_lower_bound
-    (φ : SignedThreeCNF)
-    {r s : Nat}
-    (Hdepth : Rung3ResourceLowerBound
-      (SignedThreeCNFBoundedDepthFregeAxiom φ) boundedDepthFregeContradictionLine r)
-    (hgap : 3 + s < r) :
-    Not (exists D : SignedThreeCNFBoundedDepthFregeRefutation φ, D.size <= s) :=
-  no_small_rung3_resource_derivation_of_lower_bound
-    (signedThreeCNFBoundedDepthFregeAxioms_depth_le_three φ) Hdepth hgap
+/-- Real formula-level bounded-depth Frege lower bounds rule out refutations
+from signed-3-CNF clause axioms when the required proof depth exceeds the
+constant clause depth. -/
+theorem realBoundedDepthFrege_no_refutation_of_depth_lower_bound
+    (φ : SignedThreeCNF) {d : Nat}
+    (Hdepth : FregeDepthLowerBound
+      (SignedThreeCNFFregeAxiom φ) (fregeContradictionFormula φ.numVars) d)
+    (hgap : 3 < d) :
+    Not (Nonempty (SignedThreeCNFFregeRefutation φ)) :=
+  no_signedThreeCNF_frege_refutation_of_depth_lower_bound φ Hdepth hgap
 
 /-! ## Rung-3 completion bundle -/
 
@@ -290,17 +260,17 @@ structure Rung3CompletedSubstrates (φ : SignedThreeCNF) : Prop where
       CuttingPlanesRankLowerBound Axiom Target r ->
       s < r ->
       Not (exists D : CuttingPlanesDerivation Axiom Target, D.size <= s)
-  boundedDepthFrege :
-    forall {r s : Nat},
-      Rung3ResourceLowerBound
-        (SignedThreeCNFBoundedDepthFregeAxiom φ) boundedDepthFregeContradictionLine r ->
-      3 + s < r ->
-      Not (exists D : SignedThreeCNFBoundedDepthFregeRefutation φ, D.size <= s)
+  realBoundedDepthFrege :
+    forall {d : Nat},
+      FregeDepthLowerBound
+        (SignedThreeCNFFregeAxiom φ) (fregeContradictionFormula φ.numVars) d ->
+      3 < d ->
+      Not (Nonempty (SignedThreeCNFFregeRefutation φ))
 
 /-- Rung 3 now has real Nullstellensatz and cutting-planes substrates plus the
-existing polynomial-calculus substrate.  The bounded-depth Frege component is
-still an abstract resource interface, so this is an honest mixed-status bundle,
-not a claim that all rung-3 proof systems are fully formalized. -/
+existing polynomial-calculus substrate and a real formula-level bounded-depth
+Frege kernel.  This is a substrate completion, not a claim that the hard
+family-specific lower-bound theorems have been formalized. -/
 theorem rung3_completed_substrates (φ : SignedThreeCNF) :
     Rung3CompletedSubstrates φ where
   polynomialCalculus := by
@@ -313,10 +283,9 @@ theorem rung3_completed_substrates (φ : SignedThreeCNF) :
   realCuttingPlanes := by
     intro σ _instFintype Axiom Target r s Hrank hgap
     exact realCuttingPlanes_no_small_of_rank_lower_bound Hrank hgap
-  boundedDepthFrege := by
-    intro r s Hdepth hgap
-    exact no_small_signedThreeCNF_boundedDepthFrege_refutation_of_depth_lower_bound
-      φ Hdepth hgap
+  realBoundedDepthFrege := by
+    intro d Hdepth hgap
+    exact realBoundedDepthFrege_no_refutation_of_depth_lower_bound φ Hdepth hgap
 
 /-! ## Kernel-only axiom trace -/
 
@@ -324,7 +293,7 @@ theorem rung3_completed_substrates (φ : SignedThreeCNF) :
 #print axioms proofResource_le_axiomResource_add_size
 #print axioms no_small_rung3_resource_derivation_of_lower_bound
 #print axioms realCuttingPlanes_no_small_of_rank_lower_bound
-#print axioms no_small_signedThreeCNF_boundedDepthFrege_refutation_of_depth_lower_bound
+#print axioms realBoundedDepthFrege_no_refutation_of_depth_lower_bound
 #print axioms rung3_completed_substrates
 
 end PallLean.Paper93.DeepMath.PathB

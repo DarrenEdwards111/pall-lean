@@ -113,9 +113,10 @@ theorem ladder_rung3_polynomial_calculus_substrate
   no_small_signedThreeCNF_polynomialCalculus_refutation_of_degree_lower_bound
     φ Hdeg hgap
 
-/-- **Rung 3, completed substrate bundle.**  The rung-3 map now has formal
-small-tree obstruction interfaces for polynomial calculus, Nullstellensatz,
-cutting planes, and bounded-depth Frege. -/
+/-- **Rung 3, completed substrate bundle.**  The rung-3 map now has real
+substrates for polynomial calculus, Nullstellensatz, cutting planes, and a
+formula-level bounded-depth Frege kernel.  This is not a claim that the
+family-specific lower-bound engines have been formalized. -/
 theorem ladder_rung3_completed_substrates
     (φ : SignedThreeCNF) : Rung3CompletedSubstrates φ :=
   rung3_completed_substrates φ
