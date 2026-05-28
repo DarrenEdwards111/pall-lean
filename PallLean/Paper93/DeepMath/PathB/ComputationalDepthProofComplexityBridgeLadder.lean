@@ -8,6 +8,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung5IntermediateModels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthObserverInvariantTransfer
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung5ToyLowerBounds
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung5VariableAccessLowerBounds
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung5FormulaVariableAccessLowerBounds
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung6GeneralModelWall
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMetacomplexityFrontier
 
@@ -76,9 +77,11 @@ in this repo: the bottom (proved) and the top (proven equal to the separation).
   mechanism against deliberately weakened input-blind TC⁰/NC¹ toy subclasses.
   `ComputationalDepthRung5VariableAccessLowerBounds` proves a stronger
   variable-access toy theorem: any query branching program computing parity must
-  query every variable, hence has length at least `n`. The real frontier lower
-  bounds themselves are not proved here. This is where current techniques stall
-  — the barriers bite here.
+  query every variable, hence has length at least `n`.  `ComputationalDepthRung5FormulaVariableAccessLowerBounds`
+  proves the analogous formula floor: any formula computing parity must mention
+  every variable, hence has size at least `n`. The real frontier lower bounds
+  themselves are not proved here. This is where current techniques stall — the
+  barriers bite here.
 
 * **Rung 6 — General polynomial-time computation.  WALL SUBSTRATE PROVED;
   OPEN = P vs NP.**
@@ -273,6 +276,15 @@ theorem ladder_rung5_variableAccessLowerBounds :
     Rung5VariableAccessLowerBounds :=
   rung5_variableAccessLowerBounds
 
+/-- **Rung 5, formula variable-access floor.**  Any formula computing parity
+must mention every variable, and the number of mentioned variables is bounded by
+formula size.  Therefore parity formulas have size at least `n`, independent of
+depth.  This is an unrestricted-formula linear floor, not a super-polynomial NC¹
+lower bound. -/
+theorem ladder_rung5_formulaVariableAccessLowerBounds :
+    Rung5FormulaVariableAccessLowerBounds :=
+  rung5_formulaVariableAccessLowerBounds
+
 /-- **Rung 5, TC⁰ pointwise substrate.**  A supplied threshold-circuit lower
 bound rules out smaller TC⁰-style circuits at the given depth. -/
 theorem ladder_rung5_TC0_substrate
@@ -375,6 +387,7 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung5_extendedObserverInvariantFrontier
 #print axioms ladder_rung5_toyLowerBounds
 #print axioms ladder_rung5_variableAccessLowerBounds
+#print axioms ladder_rung5_formulaVariableAccessLowerBounds
 #print axioms ladder_rung5_TC0_substrate
 #print axioms ladder_rung5_branching_program_substrate
 #print axioms ladder_rung5_width_one_bp_parity_kernel
