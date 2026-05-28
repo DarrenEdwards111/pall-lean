@@ -54,7 +54,8 @@ in this repo: the bottom (proved) and the top (proven equal to the separation).
 * **Rung 5 — TC⁰ / NC¹ / branching programs / bounded space.  SUBSTRATES
   PROVED; STRONG LOWER BOUNDS MOSTLY OPEN.**
   `ComputationalDepthRung5IntermediateModels` formalizes TC⁰-style threshold
-  circuits, NC¹-style formulas, and deterministic branching programs with
+  circuits, NC¹-style formulas, deterministic branching programs, bounded-space
+  finite-configuration machines, and a Barrington-style transfer interface with
   lower-bound consequence theorems.  Unconditional TC⁰ lower bounds for explicit
   functions remain largely open; Barrington (width-5 BP = NC¹) shows how quickly
   "bounded" stops being weak. This is where current techniques stall — the
@@ -165,9 +166,10 @@ theorem ladder_rung4_parity_decision_tree_core
 /-! ## Rung 5 (FRONTIER SUBSTRATES): TC⁰ / NC¹ / branching programs -/
 
 /-- **Rung 5, formal frontier bundle.**  The rung-5 substrate has real syntax or
-semantics for TC⁰-style threshold circuits, NC¹-style formulas, and deterministic
-branching programs, plus generic lower-bound consequence theorems.  This is not
-a claim of new TC⁰/NC¹/BP lower bounds. -/
+semantics for TC⁰-style threshold circuits, NC¹-style formulas, deterministic
+branching programs, bounded-space configuration machines, and a Barrington-style
+transfer interface, plus generic lower-bound consequence theorems.  This is not
+a claim of new TC⁰/NC¹/BP/space lower bounds. -/
 theorem ladder_rung5_formal_substrates : Rung5FormalSubstrates :=
   rung5_formal_substrates
 
@@ -190,6 +192,29 @@ theorem ladder_rung5_branching_program_substrate
     Not (exists P : BranchingProgram n width,
       P.Computes (F n) /\ P.length <= len) :=
   no_short_branchingProgram_of_length_lower_bound H hgap
+
+/-- **Rung 5, bounded-space substrate.**  A supplied finite-configuration lower
+bound rules out machines with too few configurations. -/
+theorem ladder_rung5_bounded_space_substrate
+    {F : (n : Nat) -> BoolFunction n} {n lowerConfigs configBudget : Nat}
+    (H : SpaceBoundedConfigLowerBoundAt F n lowerConfigs)
+    (hgap : configBudget < lowerConfigs) :
+    Not (exists configs : Nat, exists M : SpaceBoundedMachine n configs,
+      M.Computes (F n) /\ configs <= configBudget) :=
+  no_small_spaceBoundedMachine_of_config_lower_bound H hgap
+
+/-- **Rung 5, Barrington transfer interface.**  If an NC¹-to-width-5 branching
+program simulation is supplied and width-5 branching programs require more than
+the simulated length, then no formula in that depth regime computes the function.
+The simulation theorem and BP lower bound are explicit inputs, not hidden facts. -/
+theorem ladder_rung5_barrington_transfer
+    {F : (n : Nat) -> BoolFunction n} {n depthBound lengthBound lower : Nat}
+    (B : BarringtonWidth5SimulationAt F n depthBound lengthBound)
+    (Hbp : BranchingProgramLengthLowerBoundAt F n 5 lower)
+    (hgap : lengthBound < lower) :
+    Not (exists A : PropFormula n,
+      A.Computes (F n) /\ A.depth <= depthBound) :=
+  no_NC1Formula_of_barrington_and_bp_lower_bound B Hbp hgap
 
 /-! ## Top rung (THE WALL): the general-model bridge is the separation -/
 
@@ -218,6 +243,8 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung5_formal_substrates
 #print axioms ladder_rung5_TC0_substrate
 #print axioms ladder_rung5_branching_program_substrate
+#print axioms ladder_rung5_bounded_space_substrate
+#print axioms ladder_rung5_barrington_transfer
 #print axioms ladder_top_rung_iff_separation
 
 end PallLean.Paper93.DeepMath.PathB

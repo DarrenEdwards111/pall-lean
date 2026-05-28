@@ -11,7 +11,7 @@ techniques thin out: strong explicit lower bounds for TC⁰ are largely open, an
 Barrington's theorem shows that width-5 branching programs already capture NC¹.
 
 This file therefore does the honest thing: it formalizes real substrates for
-three intermediate models and proves only the generic lower-bound consequences.
+the main intermediate models and proves only the generic lower-bound consequences.
 It does not assert Håstad/Razborov/Smolensky-style miracles at this rung, and it
 certainly does not bridge to general P.
 -/
@@ -173,6 +173,94 @@ theorem no_short_branchingProgram_of_length_lower_bound
   have hlower : lower <= P.length := H P hcomp
   exact Nat.not_lt_of_ge (Nat.le_trans hlower hlen) hgap
 
+
+/-! ## Bounded-space configuration systems -/
+
+/-- A finite-configuration, input-dependent deterministic machine skeleton.  This
+is the bounded-space substrate: a space bound gives a bound on the number of
+reachable configurations.  We keep the model finite and explicit rather than
+claiming a full Turing-machine space hierarchy theorem. -/
+structure SpaceBoundedMachine (n configs : Nat) where
+  transition : Fin configs -> (Fin n -> Bool) -> Fin configs
+  start : Fin configs
+  accept : Finset (Fin configs)
+  time : Nat
+
+namespace SpaceBoundedMachine
+
+/-- Run a finite-configuration machine for a fixed number of steps. -/
+def runSteps {n configs : Nat} (M : SpaceBoundedMachine n configs)
+    (σ : Fin n -> Bool) : Nat -> Fin configs -> Fin configs
+  | 0, q => q
+  | t + 1, q => runSteps M σ t (M.transition q σ)
+
+/-- Final state after the machine's time budget. -/
+def finalState {n configs : Nat} (M : SpaceBoundedMachine n configs)
+    (σ : Fin n -> Bool) : Fin configs :=
+  M.runSteps σ M.time M.start
+
+/-- Boolean acceptance by a finite-configuration machine. -/
+def eval {n configs : Nat} (M : SpaceBoundedMachine n configs)
+    (σ : Fin n -> Bool) : Bool :=
+  decide (M.finalState σ ∈ M.accept)
+
+/-- A finite-configuration machine computes a Boolean function. -/
+def Computes {n configs : Nat} (M : SpaceBoundedMachine n configs)
+    (F : BoolFunction n) : Prop :=
+  forall σ : Fin n -> Bool, M.eval σ = F σ
+
+end SpaceBoundedMachine
+
+/-- Pointwise lower bound on the number of configurations needed by a bounded-
+space machine computing a function.  Converting this to bits is logarithmic and
+left to arithmetic refinements; the formal load-bearing object is the finite
+configuration count. -/
+def SpaceBoundedConfigLowerBoundAt
+    (F : (n : Nat) -> BoolFunction n) (n lowerConfigs : Nat) : Prop :=
+  forall configs : Nat, forall M : SpaceBoundedMachine n configs,
+    M.Computes (F n) -> lowerConfigs <= configs
+
+/-- A configuration-count lower bound rules out smaller bounded-space machines. -/
+theorem no_small_spaceBoundedMachine_of_config_lower_bound
+    {F : (n : Nat) -> BoolFunction n} {n lowerConfigs configBudget : Nat}
+    (H : SpaceBoundedConfigLowerBoundAt F n lowerConfigs)
+    (hgap : configBudget < lowerConfigs) :
+    Not (exists configs : Nat, exists M : SpaceBoundedMachine n configs,
+      M.Computes (F n) /\ configs <= configBudget) := by
+  rintro ⟨configs, M, hcomp, hcfg⟩
+  have hlower : lowerConfigs <= configs := H configs M hcomp
+  exact Nat.not_lt_of_ge (Nat.le_trans hlower hcfg) hgap
+
+/-! ## Barrington-style NC¹ to width-5 branching-program interface -/
+
+/-- A Barrington-style simulation interface for one function/length/depth budget.
+The real Barrington theorem is a deep external result; this structure records
+exactly what such a theorem supplies without pretending to prove it here. -/
+structure BarringtonWidth5SimulationAt
+    (F : (n : Nat) -> BoolFunction n) (n depthBound lengthBound : Nat) : Prop where
+  simulate :
+    forall A : PropFormula n,
+      A.Computes (F n) ->
+      A.depth <= depthBound ->
+      exists P : BranchingProgram n 5,
+        P.Computes (F n) /\ P.length <= lengthBound
+
+/-- If a Barrington simulation is available and width-5 branching programs need
+more than `lengthBound` layers, then no formula of the simulated depth computes
+the function.  This is a checked conservation theorem, not a proof of
+Barrington's theorem or of the branching-program lower bound. -/
+theorem no_NC1Formula_of_barrington_and_bp_lower_bound
+    {F : (n : Nat) -> BoolFunction n} {n depthBound lengthBound lower : Nat}
+    (B : BarringtonWidth5SimulationAt F n depthBound lengthBound)
+    (Hbp : BranchingProgramLengthLowerBoundAt F n 5 lower)
+    (hgap : lengthBound < lower) :
+    Not (exists A : PropFormula n,
+      A.Computes (F n) /\ A.depth <= depthBound) := by
+  rintro ⟨A, hcomp, hdepth⟩
+  rcases B.simulate A hcomp hdepth with ⟨P, hPcomp, hPlen⟩
+  have hlower : lower <= P.length := Hbp P hPcomp
+  exact Nat.not_lt_of_ge (Nat.le_trans hlower hPlen) hgap
+
 /-! ## Rung-5 frontier bundle -/
 
 /-- Rung 5 formal substrates present in this repository.  The bundle is useful
@@ -198,9 +286,23 @@ structure Rung5FormalSubstrates : Prop where
       len < lower ->
       Not (exists P : BranchingProgram n width,
         P.Computes (F n) /\ P.length <= len)
+  bounded_space_configs :
+    forall {F : (n : Nat) -> BoolFunction n} {n lowerConfigs configBudget : Nat},
+      SpaceBoundedConfigLowerBoundAt F n lowerConfigs ->
+      configBudget < lowerConfigs ->
+      Not (exists configs : Nat, exists M : SpaceBoundedMachine n configs,
+        M.Computes (F n) /\ configs <= configBudget)
+  barrington_transfer :
+    forall {F : (n : Nat) -> BoolFunction n} {n depthBound lengthBound lower : Nat},
+      BarringtonWidth5SimulationAt F n depthBound lengthBound ->
+      BranchingProgramLengthLowerBoundAt F n 5 lower ->
+      lengthBound < lower ->
+      Not (exists A : PropFormula n,
+        A.Computes (F n) /\ A.depth <= depthBound)
 
 /-- Rung 5 is complete at the formal-substrate/frontier-marker level: TC⁰-style
-threshold circuits, NC¹-style formulas, and deterministic branching programs now
+threshold circuits, NC¹-style formulas, deterministic branching programs,
+bounded-space finite-configuration machines, and a Barrington-style interface now
 have real syntax/semantics and checked lower-bound consequence theorems. -/
 theorem rung5_formal_substrates : Rung5FormalSubstrates where
   tc0_size := by
@@ -212,6 +314,12 @@ theorem rung5_formal_substrates : Rung5FormalSubstrates where
   branching_program_length := by
     intro F n width lower len H hgap
     exact no_short_branchingProgram_of_length_lower_bound H hgap
+  bounded_space_configs := by
+    intro F n lowerConfigs configBudget H hgap
+    exact no_small_spaceBoundedMachine_of_config_lower_bound H hgap
+  barrington_transfer := by
+    intro F n depthBound lengthBound lower B Hbp hgap
+    exact no_NC1Formula_of_barrington_and_bp_lower_bound B Hbp hgap
 
 /-! ## Kernel-only trace -/
 
@@ -219,6 +327,8 @@ theorem rung5_formal_substrates : Rung5FormalSubstrates where
 #print axioms no_small_TC0Circuit_of_size_lower_bound
 #print axioms no_small_NC1Formula_of_size_lower_bound
 #print axioms no_short_branchingProgram_of_length_lower_bound
+#print axioms no_small_spaceBoundedMachine_of_config_lower_bound
+#print axioms no_NC1Formula_of_barrington_and_bp_lower_bound
 #print axioms rung5_formal_substrates
 
 end PallLean.Paper93.DeepMath.PathB
