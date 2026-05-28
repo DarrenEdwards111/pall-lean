@@ -1,6 +1,7 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthExpanderTseitinInstance
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung3Complete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4CircuitSubstrates
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4ParityDecisionTreeCore
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMetacomplexityFrontier
 
 /-!
@@ -37,11 +38,16 @@ in this repo: the bottom (proved) and the top (proven equal to the separation).
   for Tseitin: Håstad, Pitassi–Rossman–Servedio–Tan.
 
 * **Rung 4 — Bounded-depth circuits (AC⁰, AC⁰[p]).  SUBSTRATES PROVED;
-  SWITCHING-LEMMA/POLYNOMIAL-METHOD LOWER BOUNDS CITED.**
+  PARITY DECISION-TREE CORE PROVED; SWITCHING-LEMMA/POLYNOMIAL-METHOD LOWER
+  BOUNDS CITED.**
   `ComputationalDepthRung4CircuitSubstrates` formalizes Boolean functions,
   parity, AC⁰/AC⁰[p] circuit families, size/depth lower-bound interfaces, and
-  no-small-circuit consequences.  The hard lower-bound engines remain cited:
-  parity ∉ AC⁰ by Håstad; AC⁰[p] lower bounds by Razborov–Smolensky.
+  no-small-circuit consequences.  `ComputationalDepthRung4ParityDecisionTreeCore`
+  proves the endpoint lower-bound engine used after switching-lemma
+  simplification: every decision tree computing parity on `n` variables has
+  depth at least `n`.  The hard circuit-to-decision-tree and polynomial-method
+  engines remain cited: parity ∉ AC⁰ by Håstad; AC⁰[p] lower bounds by
+  Razborov–Smolensky.
 
 * **Rung 5 — TC⁰ / NC¹ / branching programs / bounded space.  MOSTLY OPEN.**
   Unconditional TC⁰ lower bounds for explicit functions are largely open;
@@ -132,6 +138,15 @@ theorem ladder_rung4_AC0_parity_substrate
       C.computes = parityFunction n /\ C.depth <= d /\ C.size <= s) :=
   no_small_AC0_parity_circuit_of_lower_bound H hgap
 
+/-- **Rung 4, proved parity decision-tree core.**  This is the formal endpoint
+behind the switching-lemma route: once a restricted AC⁰ circuit is simplified to
+a decision tree, parity still forces decision-tree depth `≥ n`. -/
+theorem ladder_rung4_parity_decision_tree_core
+    {n : Nat} (T : BoolDecisionTree n)
+    (hcomputes : T.Computes (parityFunction n)) :
+    n <= T.depth :=
+  BoolDecisionTree.depth_ge_of_computes_parity T hcomputes
+
 /-! ## Top rung (THE WALL): the general-model bridge is the separation -/
 
 /-- **Rung 6 is the wall.**  At a channel gap, the general-model boundary bridge
@@ -154,6 +169,7 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung3_completed_substrates
 #print axioms ladder_rung4_completed_substrates
 #print axioms ladder_rung4_AC0_parity_substrate
+#print axioms ladder_rung4_parity_decision_tree_core
 #print axioms ladder_top_rung_iff_separation
 
 end PallLean.Paper93.DeepMath.PathB
