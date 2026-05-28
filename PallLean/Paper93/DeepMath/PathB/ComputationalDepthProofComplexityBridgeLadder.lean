@@ -2,6 +2,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthExpanderTseitinInstance
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung3Complete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4CircuitSubstrates
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4ParityDecisionTreeCore
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4CircuitReal
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMetacomplexityFrontier
 
 /-!
@@ -123,10 +124,17 @@ theorem ladder_rung3_completed_substrates
 
 /-! ## Rung 4 (SUBSTRATES PROVED): bounded-depth circuits -/
 
-/-- **Rung 4, completed substrate bundle.**  The rung-4 map has formal
+/-- **Rung 4, abstract substrate bundle.**  The older rung-4 map has formal
 no-small-circuit interfaces for AC⁰ and AC⁰[p], including parity targets. -/
 theorem ladder_rung4_completed_substrates : Rung4CompletedSubstrates :=
   rung4_completed_substrates
+
+/-- **Rung 4, formal substrate bundle.**  The completed rung-4 substrate now has
+real Boolean circuit syntax/semantics for AC⁰-style and AC⁰[p]-style circuits,
+plus the parity decision-tree endpoint.  This is still not a formalization of
+Håstad's switching lemma or Razborov--Smolensky. -/
+theorem ladder_rung4_formal_substrates : Rung4FormalSubstrates :=
+  rung4_formal_substrates
 
 /-- **Rung 4, parity/AC⁰ pointwise substrate.**  A supplied AC⁰ parity size
 lower bound at length `n` rules out smaller AC⁰ parity circuits at the same
@@ -169,6 +177,7 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung3_polynomial_calculus_substrate
 #print axioms ladder_rung3_completed_substrates
 #print axioms ladder_rung4_completed_substrates
+#print axioms ladder_rung4_formal_substrates
 #print axioms ladder_rung4_AC0_parity_substrate
 #print axioms ladder_rung4_parity_decision_tree_core
 #print axioms ladder_top_rung_iff_separation
