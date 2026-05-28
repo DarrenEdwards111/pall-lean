@@ -12,6 +12,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung5FormulaVariableAcc
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSubfunctionObserverInvariant
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSubfunctionCapacityWall
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDNFEqualityLowerBound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthEqualityUpperBounds
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung6GeneralModelWall
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMetacomplexityFrontier
 
@@ -87,7 +88,9 @@ in this repo: the bottom (proved) and the top (proven equal to the separation).
   with exponential range, and proves the generic super-polynomial transfer schema.
   `ComputationalDepthDNFEqualityLowerBound` proves an actual exponential lower
   bound using this invariant: equality-split requires `2^n` ordinary DNF terms.
-  `ComputationalDepthSubfunctionCapacityWall` proves the corresponding wall:
+  `ComputationalDepthEqualityUpperBounds` proves why this lower bound cannot lift
+  to full formula/NC¹-style computation for equality: equality has a linear-size
+  split formula.  `ComputationalDepthSubfunctionCapacityWall` proves the corresponding wall:
   unrestricted semantic models can expose `2^n` residuals at unit syntactic
   budget, so stronger models need real restricted/model-specific capacity
   theorems. The TC⁰/NC¹/width-5 frontier lower bounds themselves are not proved
@@ -324,6 +327,14 @@ theorem ladder_rung5_dnfEqualityExponentialLowerBound :
     DNFEqualityExponentialLowerBound :=
   dnfEqualityExponentialLowerBound
 
+/-- **Rung 5, equality upper bound for stronger formulas.**  Equality between
+two `n`-bit blocks has a split formula of size at most `10*n+1`.  Thus the
+exponential DNF lower bound is genuinely a DNF restriction; it is false for full
+formula/NC¹-style computation of equality. -/
+theorem ladder_rung5_equalityFormulaLinearUpperBound :
+    SplitFormula.EqualityFormulaLinearUpperBound :=
+  SplitFormula.equalityFormulaLinearUpperBound
+
 /-- **Rung 5, TC⁰ pointwise substrate.**  A supplied threshold-circuit lower
 bound rules out smaller TC⁰-style circuits at the given depth. -/
 theorem ladder_rung5_TC0_substrate
@@ -430,6 +441,7 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung5_subfunctionObserverFrontier
 #print axioms ladder_rung5_subfunctionCapacityWall
 #print axioms ladder_rung5_dnfEqualityExponentialLowerBound
+#print axioms ladder_rung5_equalityFormulaLinearUpperBound
 #print axioms ladder_rung5_TC0_substrate
 #print axioms ladder_rung5_branching_program_substrate
 #print axioms ladder_rung5_width_one_bp_parity_kernel
