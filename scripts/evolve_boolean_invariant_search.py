@@ -303,7 +303,7 @@ def mutate(weights: tuple[int, ...], rng: random.Random, width: int = 8) -> tupl
     return tuple(ws)
 
 
-def evolve(names, features, easy, hard, allowed, seed, population, generations) -> Scored:
+def evolve(names, features, easy, hard, allowed, seed, population, generations, verbose=True) -> Scored:
     rng = random.Random(seed)
     subfeatures = [[row[i] for i in allowed] for row in features]
     pop = [random_weights(len(allowed), rng) for _ in range(population)]
@@ -313,11 +313,12 @@ def evolve(names, features, easy, hard, allowed, seed, population, generations) 
         scored.sort(key=lambda s: s.fitness, reverse=True)
         if best is None or scored[0].fitness > best.fitness:
             best = scored[0]
-        print(
-            f"gen {gen:02d}: fit={scored[0].fitness:.3f} "
-            f"acc={scored[0].accuracy:.3f} margin={scored[0].margin:.3f} "
-            f"density={scored[0].density:.3f}"
-        )
+        if verbose:
+            print(
+                f"gen {gen:02d}: fit={scored[0].fitness:.3f} "
+                f"acc={scored[0].accuracy:.3f} margin={scored[0].margin:.3f} "
+                f"density={scored[0].density:.3f}"
+            )
         elites = scored[: max(2, population // 4)]
         pop = [e.weights for e in elites]
         while len(pop) < population:
@@ -433,7 +434,7 @@ def run(args) -> None:
         print(label)
         print("-" * 92)
         best = evolve(names, features, easy, hard, allowed, args.seed,
-                      args.population, args.generations)
+                      args.population, args.generations, verbose=True)
         print("best invariant:")
         print("  " + describe(best, names))
         print(
