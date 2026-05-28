@@ -5,6 +5,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4ParityDecisionTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4SwitchingCore
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4CircuitReal
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung5IntermediateModels
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthObserverInvariantTransfer
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung6GeneralModelWall
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMetacomplexityFrontier
 
@@ -65,8 +66,11 @@ in this repo: the bottom (proved) and the top (proven equal to the separation).
   kernels: width-1 branching programs and one-configuration machines cannot
   compute parity on nonempty inputs.  Unconditional TC⁰ lower bounds for
   explicit functions remain largely open; Barrington (width-5 BP = NC¹) shows
-  how quickly "bounded" stops being weak. This is where current techniques
-  stall — the barriers bite here.
+  how quickly "bounded" stops being weak.  `ComputationalDepthObserverInvariantTransfer`
+  extracts the common observer invariant from rungs 1--4 and turns rung 5 into
+  explicit preservation targets for TC⁰/NC¹/BP/space; those preservation theorems
+  are the frontier, not proved here. This is where current techniques stall —
+  the barriers bite here.
 
 * **Rung 6 — General polynomial-time computation.  WALL SUBSTRATE PROVED;
   OPEN = P vs NP.**
@@ -202,6 +206,24 @@ theorem ladder_rung4_restricted_switching_substrate
 
 /-! ## Rung 5 (FRONTIER SUBSTRATES): TC⁰ / NC¹ / branching programs -/
 
+/-- **Observer invariant extraction.**  The common rungs-1--4 pattern is a
+numerical demand/capacity invariant.  The generic transfer theorem says a rung-5
+lower bound follows if a preservation theorem maps every correct rung-5 model to
+an invariant witness whose capacity is bounded by the model budget.  This is a
+precise frontier target, not a proof of TC⁰/NC¹/BP/space lower bounds. -/
+theorem ladder_rung5_observerInvariant_transfer
+    {Model Witness : Type}
+    {Computes : Model -> Prop}
+    {Budget : Model -> Nat}
+    {I : ObserverInvariant Witness}
+    {demandLower budgetUpper : Nat}
+    (Pres : Rung5ObserverInvariantPreservation
+      Model Witness Computes Budget I demandLower budgetUpper)
+    (hgap : budgetUpper < demandLower) :
+    Not (exists M : Model, Computes M) :=
+  no_rung5_model_of_observerInvariant_preservation Pres hgap
+
+
 /-- **Rung 5, formal frontier bundle.**  The rung-5 substrate has real syntax or
 semantics for TC⁰-style threshold circuits, NC¹-style formulas, deterministic
 branching programs, bounded-space configuration machines, and a Barrington-style
@@ -306,6 +328,7 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung4_parity_decision_tree_core
 #print axioms ladder_rung4_dnf_switching_core
 #print axioms ladder_rung4_restricted_switching_substrate
+#print axioms ladder_rung5_observerInvariant_transfer
 #print axioms ladder_rung5_formal_substrates
 #print axioms ladder_rung5_TC0_substrate
 #print axioms ladder_rung5_branching_program_substrate
