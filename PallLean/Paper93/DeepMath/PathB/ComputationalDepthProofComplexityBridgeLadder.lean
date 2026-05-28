@@ -5,6 +5,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4ParityDecisionTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4SwitchingCore
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4CircuitReal
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung5IntermediateModels
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung6GeneralModelWall
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMetacomplexityFrontier
 
 /-!
@@ -60,15 +61,21 @@ in this repo: the bottom (proved) and the top (proven equal to the separation).
   `ComputationalDepthRung5IntermediateModels` formalizes TC⁰-style threshold
   circuits, NC¹-style formulas, deterministic branching programs, bounded-space
   finite-configuration machines, and a Barrington-style transfer interface with
-  lower-bound consequence theorems.  Unconditional TC⁰ lower bounds for explicit
-  functions remain largely open; Barrington (width-5 BP = NC¹) shows how quickly
-  "bounded" stops being weak. This is where current techniques stall — the
-  barriers bite here.
+  lower-bound consequence theorems.  It also proves two tiny real endpoint
+  kernels: width-1 branching programs and one-configuration machines cannot
+  compute parity on nonempty inputs.  Unconditional TC⁰ lower bounds for
+  explicit functions remain largely open; Barrington (width-5 BP = NC¹) shows
+  how quickly "bounded" stops being weak. This is where current techniques
+  stall — the barriers bite here.
 
-* **Rung 6 — General polynomial-time computation.  OPEN = P vs NP.**
-  THE WALL.  A general-model lower bound for the family is *equivalent* to the
-  separation — anchored by `ladder_top_rung_iff_separation` (reusing the
-  metacomplexity bridge): the top rung is P≠NP itself.
+* **Rung 6 — General polynomial-time computation.  WALL SUBSTRATE PROVED;
+  OPEN = P vs NP.**
+  THE WALL.  `ComputationalDepthRung6GeneralModelWall` proves the conservation
+  theorem for unrestricted bridges: any universal map from arbitrary P-time SAT
+  deciders into an impossible restricted obstruction is equivalent to the
+  no-decider endpoint itself.  A general-model lower bound for the family is
+  *equivalent* to the separation — anchored by `ladder_rung6_wall_substrate` and
+  `ladder_top_rung_iff_separation` (reusing the metacomplexity bridge).
 
 ## The honest reading of the climb
 
@@ -223,6 +230,15 @@ theorem ladder_rung5_branching_program_substrate
       P.Computes (F n) /\ P.length <= len) :=
   no_short_branchingProgram_of_length_lower_bound H hgap
 
+/-- **Rung 5, tiny real BP kernel.**  Width-1 branching programs are
+input-blind, so they cannot compute parity on a nonempty input set.  Therefore
+any length lower bound for width-1 parity branching programs holds.  This is a
+real endpoint theorem, not a width-5/NC¹ lower bound. -/
+theorem ladder_rung5_width_one_bp_parity_kernel
+    {n lower : Nat} (i : Fin n) :
+    BranchingProgramLengthLowerBoundAt parityFunction n 1 lower :=
+  width_one_branchingProgram_parity_length_lower_bound i lower
+
 /-- **Rung 5, bounded-space substrate.**  A supplied finite-configuration lower
 bound rules out machines with too few configurations. -/
 theorem ladder_rung5_bounded_space_substrate
@@ -232,6 +248,15 @@ theorem ladder_rung5_bounded_space_substrate
     Not (exists configs : Nat, exists M : SpaceBoundedMachine n configs,
       M.Computes (F n) /\ configs <= configBudget) :=
   no_small_spaceBoundedMachine_of_config_lower_bound H hgap
+
+/-- **Rung 5, tiny real bounded-space kernel.**  A one-configuration machine is
+input-blind, so parity on a nonempty input set needs at least two configurations
+in this finite-configuration substrate.  This is not a space hierarchy theorem.
+-/
+theorem ladder_rung5_bounded_space_parity_two_config_kernel
+    {n : Nat} (i : Fin n) :
+    SpaceBoundedConfigLowerBoundAt parityFunction n 2 :=
+  parity_spaceBounded_config_lower_bound_two i
 
 /-- **Rung 5, Barrington transfer interface.**  If an NC¹-to-width-5 branching
 program simulation is supplied and width-5 branching programs require more than
@@ -246,7 +271,16 @@ theorem ladder_rung5_barrington_transfer
       A.Computes (F n) /\ A.depth <= depthBound) :=
   no_NC1Formula_of_barrington_and_bp_lower_bound B Hbp hgap
 
-/-! ## Top rung (THE WALL): the general-model bridge is the separation -/
+/-! ## Rung 6 / top rung (THE WALL): the general-model bridge is the separation -/
+
+/-- **Rung 6, wall substrate.**  The completed rung-6 layer proves a conservation
+principle: a universal bridge from arbitrary P-time signed-SAT deciders into any
+impossible obstruction target is equivalent to the no-decider endpoint.  This is
+not a lower-bound engine; it is the formal reason the unrestricted lift is the
+wall. -/
+theorem ladder_rung6_wall_substrate : Rung6WallSubstrate :=
+  rung6_wall_substrate
+
 
 /-- **Rung 6 is the wall.**  At a channel gap, the general-model boundary bridge
 is *equivalent* to "no decider in the P-time class" — i.e. the top of the ladder
@@ -275,8 +309,11 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung5_formal_substrates
 #print axioms ladder_rung5_TC0_substrate
 #print axioms ladder_rung5_branching_program_substrate
+#print axioms ladder_rung5_width_one_bp_parity_kernel
 #print axioms ladder_rung5_bounded_space_substrate
+#print axioms ladder_rung5_bounded_space_parity_two_config_kernel
 #print axioms ladder_rung5_barrington_transfer
+#print axioms ladder_rung6_wall_substrate
 #print axioms ladder_top_rung_iff_separation
 
 end PallLean.Paper93.DeepMath.PathB

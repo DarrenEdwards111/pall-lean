@@ -173,6 +173,38 @@ theorem no_short_branchingProgram_of_length_lower_bound
   have hlower : lower <= P.length := H P hcomp
   exact Nat.not_lt_of_ge (Nat.le_trans hlower hlen) hgap
 
+/-! ## Tiny real lower-bound kernels at rung 5 -/
+
+/-- Width-1 branching programs are input-blind: every run ends in the unique
+state of `Fin 1`, so the output is independent of the input. -/
+theorem BranchingProgram.width_one_eval_eq {n : Nat}
+    (P : BranchingProgram n 1) (σ τ : Fin n -> Bool) :
+    P.eval σ = P.eval τ := by
+  have hstate : P.finalState σ = P.finalState τ := Subsingleton.elim _ _
+  simp [BranchingProgram.eval, hstate]
+
+/-- No width-1 branching program computes parity on a nonempty input set.  This
+is a small but genuine rung-5 lower-bound endpoint. -/
+theorem no_width_one_branchingProgram_computes_parity
+    {n : Nat} (i : Fin n) :
+    Not (exists P : BranchingProgram n 1, P.Computes (parityFunction n)) := by
+  rintro ⟨P, hcomp⟩
+  have hsame := P.width_one_eval_eq (falseInput n) (oneHotInput i)
+  have hdiff := parityFunction_falseInput_ne_oneHotInput i
+  exact hdiff (by
+    rw [hcomp (falseInput n), hcomp (oneHotInput i)] at hsame
+    exact hsame)
+
+/-- Since width-1 branching programs cannot compute parity, any claimed length
+lower bound for width-1 parity branching programs holds vacuously.  The
+non-vacuous content is `no_width_one_branchingProgram_computes_parity`. -/
+theorem width_one_branchingProgram_parity_length_lower_bound
+    {n : Nat} (i : Fin n) (lower : Nat) :
+    BranchingProgramLengthLowerBoundAt parityFunction n 1 lower := by
+  intro P hcomp
+  exact False.elim
+    (no_width_one_branchingProgram_computes_parity i ⟨P, hcomp⟩)
+
 
 /-! ## Bounded-space configuration systems -/
 
@@ -230,6 +262,43 @@ theorem no_small_spaceBoundedMachine_of_config_lower_bound
   rintro ⟨configs, M, hcomp, hcfg⟩
   have hlower : lowerConfigs <= configs := H configs M hcomp
   exact Nat.not_lt_of_ge (Nat.le_trans hlower hcfg) hgap
+
+/-- One-configuration bounded-space machines are input-blind. -/
+theorem SpaceBoundedMachine.one_config_eval_eq {n : Nat}
+    (M : SpaceBoundedMachine n 1) (σ τ : Fin n -> Bool) :
+    M.eval σ = M.eval τ := by
+  have hstate : M.finalState σ = M.finalState τ := Subsingleton.elim _ _
+  simp [SpaceBoundedMachine.eval, hstate]
+
+/-- No one-configuration bounded-space machine computes parity on a nonempty
+input set. -/
+theorem no_one_config_spaceBoundedMachine_computes_parity
+    {n : Nat} (i : Fin n) :
+    Not (exists M : SpaceBoundedMachine n 1, M.Computes (parityFunction n)) := by
+  rintro ⟨M, hcomp⟩
+  have hsame := M.one_config_eval_eq (falseInput n) (oneHotInput i)
+  have hdiff := parityFunction_falseInput_ne_oneHotInput i
+  exact hdiff (by
+    rw [hcomp (falseInput n), hcomp (oneHotInput i)] at hsame
+    exact hsame)
+
+/-- Parity on a nonempty input set needs at least two configurations in this
+finite-configuration substrate.  This is a real bounded-space endpoint lower
+bound, deliberately tiny and not a space hierarchy theorem. -/
+theorem parity_spaceBounded_config_lower_bound_two
+    {n : Nat} (i : Fin n) :
+    SpaceBoundedConfigLowerBoundAt parityFunction n 2 := by
+  intro configs M hcomp
+  cases configs with
+  | zero =>
+      exact False.elim (Fin.elim0 M.start)
+  | succ configs' =>
+      cases configs' with
+      | zero =>
+          exact False.elim
+            (no_one_config_spaceBoundedMachine_computes_parity i ⟨M, hcomp⟩)
+      | succ k =>
+          omega
 
 /-! ## Barrington-style NC¹ to width-5 branching-program interface -/
 
@@ -299,6 +368,12 @@ structure Rung5FormalSubstrates : Prop where
       lengthBound < lower ->
       Not (exists A : PropFormula n,
         A.Computes (F n) /\ A.depth <= depthBound)
+  width_one_branching_program_parity :
+    forall {n : Nat}, Nonempty (Fin n) -> forall lower : Nat,
+      BranchingProgramLengthLowerBoundAt parityFunction n 1 lower
+  bounded_space_parity_two_configs :
+    forall {n : Nat}, Nonempty (Fin n) ->
+      SpaceBoundedConfigLowerBoundAt parityFunction n 2
 
 /-- Rung 5 is complete at the formal-substrate/frontier-marker level: TC⁰-style
 threshold circuits, NC¹-style formulas, deterministic branching programs,
@@ -320,6 +395,14 @@ theorem rung5_formal_substrates : Rung5FormalSubstrates where
   barrington_transfer := by
     intro F n depthBound lengthBound lower B Hbp hgap
     exact no_NC1Formula_of_barrington_and_bp_lower_bound B Hbp hgap
+  width_one_branching_program_parity := by
+    intro n h lower
+    rcases h with ⟨i⟩
+    exact width_one_branchingProgram_parity_length_lower_bound i lower
+  bounded_space_parity_two_configs := by
+    intro n h
+    rcases h with ⟨i⟩
+    exact parity_spaceBounded_config_lower_bound_two i
 
 /-! ## Kernel-only trace -/
 
@@ -327,7 +410,13 @@ theorem rung5_formal_substrates : Rung5FormalSubstrates where
 #print axioms no_small_TC0Circuit_of_size_lower_bound
 #print axioms no_small_NC1Formula_of_size_lower_bound
 #print axioms no_short_branchingProgram_of_length_lower_bound
+#print axioms BranchingProgram.width_one_eval_eq
+#print axioms no_width_one_branchingProgram_computes_parity
+#print axioms width_one_branchingProgram_parity_length_lower_bound
 #print axioms no_small_spaceBoundedMachine_of_config_lower_bound
+#print axioms SpaceBoundedMachine.one_config_eval_eq
+#print axioms no_one_config_spaceBoundedMachine_computes_parity
+#print axioms parity_spaceBounded_config_lower_bound_two
 #print axioms no_NC1Formula_of_barrington_and_bp_lower_bound
 #print axioms rung5_formal_substrates
 
