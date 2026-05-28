@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthExpanderTseitinInstance
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung3Complete
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4CircuitSubstrates
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMetacomplexityFrontier
 
 /-!
@@ -35,9 +36,12 @@ in this repo: the bottom (proved) and the top (proven equal to the separation).
   bounds via interpolation: Pudlák (1997); bounded-depth (AC⁰-)Frege lower bounds
   for Tseitin: Håstad, Pitassi–Rossman–Servedio–Tan.
 
-* **Rung 4 — Bounded-depth circuits (AC⁰, AC⁰[p]).  CITED (real, unconditional).**
-  Parity ∉ AC⁰: Håstad; AC⁰[p] lower bounds: Razborov–Smolensky.  Genuine circuit
-  lower bounds — but a *restricted* class.
+* **Rung 4 — Bounded-depth circuits (AC⁰, AC⁰[p]).  SUBSTRATES PROVED;
+  SWITCHING-LEMMA/POLYNOMIAL-METHOD LOWER BOUNDS CITED.**
+  `ComputationalDepthRung4CircuitSubstrates` formalizes Boolean functions,
+  parity, AC⁰/AC⁰[p] circuit families, size/depth lower-bound interfaces, and
+  no-small-circuit consequences.  The hard lower-bound engines remain cited:
+  parity ∉ AC⁰ by Håstad; AC⁰[p] lower bounds by Razborov–Smolensky.
 
 * **Rung 5 — TC⁰ / NC¹ / branching programs / bounded space.  MOSTLY OPEN.**
   Unconditional TC⁰ lower bounds for explicit functions are largely open;
@@ -110,6 +114,24 @@ theorem ladder_rung3_completed_substrates
     (φ : SignedThreeCNF) : Rung3CompletedSubstrates φ :=
   rung3_completed_substrates φ
 
+/-! ## Rung 4 (SUBSTRATES PROVED): bounded-depth circuits -/
+
+/-- **Rung 4, completed substrate bundle.**  The rung-4 map has formal
+no-small-circuit interfaces for AC⁰ and AC⁰[p], including parity targets. -/
+theorem ladder_rung4_completed_substrates : Rung4CompletedSubstrates :=
+  rung4_completed_substrates
+
+/-- **Rung 4, parity/AC⁰ pointwise substrate.**  A supplied AC⁰ parity size
+lower bound at length `n` rules out smaller AC⁰ parity circuits at the same
+depth. -/
+theorem ladder_rung4_AC0_parity_substrate
+    {n d lower s : Nat}
+    (H : AC0ParitySizeLowerBoundAt n d lower)
+    (hgap : s < lower) :
+    Not (exists C : AC0Circuit n,
+      C.computes = parityFunction n /\ C.depth <= d /\ C.size <= s) :=
+  no_small_AC0_parity_circuit_of_lower_bound H hgap
+
 /-! ## Top rung (THE WALL): the general-model bridge is the separation -/
 
 /-- **Rung 6 is the wall.**  At a channel gap, the general-model boundary bridge
@@ -130,6 +152,8 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung1_concrete
 #print axioms ladder_rung3_polynomial_calculus_substrate
 #print axioms ladder_rung3_completed_substrates
+#print axioms ladder_rung4_completed_substrates
+#print axioms ladder_rung4_AC0_parity_substrate
 #print axioms ladder_top_rung_iff_separation
 
 end PallLean.Paper93.DeepMath.PathB
