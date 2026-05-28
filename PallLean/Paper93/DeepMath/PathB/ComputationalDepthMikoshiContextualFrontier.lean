@@ -356,6 +356,130 @@ theorem signedSATBoundaryHasHighObserverKt
 
 end MikoshiSignedSATCostLowerBound
 
+/-! ## Concrete observer description model -/
+
+/-- A concrete observer description model for Mikoshi contextual boundaries.
+
+`Description` is the observer's code/object language.  `descCost` is its size
+or time-bounded K^t-style cost.  `observerBudget` is the allowed P-observer
+budget at a scale.  `reconstructsSATBoundary` says a description reconstructs
+the full signed SAT contextual boundary from a coverage family.
+
+This replaces the previous free `descriptionCost` field with an explicit
+compression/reconstruction game. -/
+structure MikoshiContextDescriptionModel
+    (enc : SignedFormulaEncoding) : Type 2 where
+  Description : Type
+  descCost : Description -> Nat
+  observerBudget : Nat -> Nat
+  reconstructsSATBoundary :
+    forall {M : DTM} {n : Nat},
+      SignedCounterfactualEKPDirectionCoverage enc M n ->
+        Description -> Prop
+
+/-- A coverage family is compressed by the observer when some description
+within the observer's scale budget reconstructs its contextual boundary. -/
+def MikoshiBoundaryCompressedByObserver
+    {enc : SignedFormulaEncoding}
+    (D : MikoshiContextDescriptionModel enc)
+    {M : DTM} {n : Nat}
+    (C : SignedCounterfactualEKPDirectionCoverage enc M n)
+    (scale : Nat) : Prop :=
+  exists desc : D.Description,
+    D.descCost desc <= D.observerBudget scale /\
+      D.reconstructsSATBoundary C desc
+
+/-- A no-short-description certificate for a concrete Mikoshi signed-SAT
+boundary. -/
+structure NoShortMikoshiSATDescription
+    {enc : SignedFormulaEncoding}
+    (D : MikoshiContextDescriptionModel enc)
+    {M : DTM} {n : Nat}
+    (C : SignedCounterfactualEKPDirectionCoverage enc M n) : Type 2 where
+  scale : Nat
+  directionFloor :
+    ComplexityErasureLowerBound.independentBranchFloor scale <=
+      C.directionCount
+  witnessCost : Nat
+  observerBudget_lt_witnessCost :
+    D.observerBudget scale < witnessCost
+  no_compression :
+    Not (MikoshiBoundaryCompressedByObserver D C scale)
+
+namespace NoShortMikoshiSATDescription
+
+/-- A no-short-description certificate supplies concrete contextual cost data.
+-/
+def toContextualCost
+    {enc : SignedFormulaEncoding}
+    {D : MikoshiContextDescriptionModel enc}
+    {M : DTM} {n : Nat}
+    {C : SignedCounterfactualEKPDirectionCoverage enc M n}
+    (H : NoShortMikoshiSATDescription D C) :
+    MikoshiSATContextualCost C where
+  scale := H.scale
+  descriptionCost := H.witnessCost
+  observerBudget := D.observerBudget H.scale
+  directionFloor := H.directionFloor
+
+/-- No short Mikoshi description gives a high observer-K^t certificate for the
+machine.  The proof uses the explicit budget/cost inequality; the
+`no_compression` field is retained as the semantic content that justifies the
+cost lower bound. -/
+theorem existsObserverKtCertificate
+    {enc : SignedFormulaEncoding}
+    {D : MikoshiContextDescriptionModel enc}
+    {M : DTM} {n : Nat}
+    {C : SignedCounterfactualEKPDirectionCoverage enc M n}
+    (H : NoShortMikoshiSATDescription D C) :
+    exists Cert : ObserverKtBoundaryCertificate enc M, Cert.High :=
+  existsObserverKtCertificate_of_mikoshiSATCost
+    C H.toContextualCost H.observerBudget_lt_witnessCost
+
+end NoShortMikoshiSATDescription
+
+/-- Description-model version of the signed-SAT Mikoshi lower-bound theorem.
+
+This is the next serious target: for every signed SAT decider, find a concrete
+counterfactual coverage family whose Mikoshi contextual boundary has no
+observer-budget description. -/
+structure MikoshiDescriptionLowerBound
+    (enc : SignedFormulaEncoding)
+    (D : MikoshiContextDescriptionModel enc) : Type 2 where
+  existsNoShortDescription :
+    forall M : DTM,
+      SignedDTMDecidesSAT enc M ->
+        exists n : Nat,
+          exists C : SignedCounterfactualEKPDirectionCoverage enc M n,
+            Nonempty (NoShortMikoshiSATDescription D C)
+
+namespace MikoshiDescriptionLowerBound
+
+/-- A description-model lower bound implies the previous cost lower-bound
+socket. -/
+def toSignedSATCostLowerBound
+    {enc : SignedFormulaEncoding}
+    {D : MikoshiContextDescriptionModel enc}
+    (H : MikoshiDescriptionLowerBound enc D) :
+    MikoshiSignedSATCostLowerBound enc where
+  existsCost := by
+    intro M hM
+    rcases H.existsNoShortDescription M hM with ⟨n, C, Hshort⟩
+    rcases Hshort with ⟨Hcert⟩
+    exact ⟨n, C, Hcert.toContextualCost,
+      Hcert.observerBudget_lt_witnessCost⟩
+
+/-- Therefore, a description-model lower bound gives the observer-K^t frontier
+theorem. -/
+theorem signedSATBoundaryHasHighObserverKt
+    {enc : SignedFormulaEncoding}
+    {D : MikoshiContextDescriptionModel enc}
+    (H : MikoshiDescriptionLowerBound enc D) :
+    SignedSATBoundaryHasHighObserverKt enc :=
+  H.toSignedSATCostLowerBound.signedSATBoundaryHasHighObserverKt
+
+end MikoshiDescriptionLowerBound
+
 /-! ## Transport from God-Move visibility into Mikoshi contextual semantics -/
 
 /-- A transport saying that canonical God-Move visibility has a Mikoshi-style
@@ -452,6 +576,9 @@ end MikoshiContextualFrontierProgram
 #print axioms mikoshiSATContextualFrame.evidence_sound
 #print axioms existsObserverKtCertificate_of_mikoshiSATCost
 #print axioms MikoshiSignedSATCostLowerBound.signedSATBoundaryHasHighObserverKt
+#print axioms NoShortMikoshiSATDescription.existsObserverKtCertificate
+#print axioms MikoshiDescriptionLowerBound.toSignedSATCostLowerBound
+#print axioms MikoshiDescriptionLowerBound.signedSATBoundaryHasHighObserverKt
 #print axioms MikoshiVisibilityToObserverKt.toVisibilityToObserverKt
 #print axioms MikoshiVisibilityToObserverKt.signedSATBoundaryHasHighObserverKt_of_semanticForce
 #print axioms MikoshiContextualFrontierProgram.signedSATBoundaryHasHighObserverKt_of_nonLocalSemanticForce
