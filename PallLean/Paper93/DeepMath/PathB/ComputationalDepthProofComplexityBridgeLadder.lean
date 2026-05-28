@@ -11,6 +11,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung5VariableAccessLowe
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung5FormulaVariableAccessLowerBounds
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSubfunctionObserverInvariant
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSubfunctionCapacityWall
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCrossingCapacityLowerBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDNFEqualityLowerBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthEqualityUpperBounds
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung6GeneralModelWall
@@ -92,8 +93,10 @@ in this repo: the bottom (proved) and the top (proven equal to the separation).
   to full formula/NC¹-style computation for equality: equality has a linear-size
   split formula.  `ComputationalDepthSubfunctionCapacityWall` proves the corresponding wall:
   unrestricted semantic models can expose `2^n` residuals at unit syntactic
-  budget, so stronger models need real restricted/model-specific capacity
-  theorems. The TC⁰/NC¹/width-5 frontier lower bounds themselves are not proved
+  budget. `ComputationalDepthCrossingCapacityLowerBound` proves the positive
+  restricted counterpart: if computation crosses a block boundary through `c`
+  states, it exposes at most `c` residuals, and storage access forces `2^m`
+  states. The TC⁰/NC¹/width-5 frontier lower bounds themselves are not proved
   here. This is where current techniques stall — the barriers bite here.
 
 * **Rung 6 — General polynomial-time computation.  WALL SUBSTRATE PROVED;
@@ -318,6 +321,15 @@ theorem ladder_rung5_subfunctionCapacityWall :
     SubfunctionCapacityWall :=
   subfunctionCapacityWall
 
+/-- **Rung 5, crossing-state capacity theorem.**  If a computation is forced to
+pass from an `XR` block to an `XB` block through one of `c` crossing states, then
+it exposes at most `c` residual functions.  Storage access has `2^m` residuals,
+so every crossing model for it needs at least `2^m` states.  This is the genuine
+restricted capacity theorem behind OBDD/one-way/Nechiporuk-style arguments. -/
+theorem ladder_rung5_crossingCapacityLowerBound :
+    CrossingCapacityLowerBound :=
+  crossingCapacityLowerBound
+
 /-- **Rung 5, actual exponential DNF lower bound.**  Any ordinary literal-DNF
 computing equality between two `n`-bit blocks needs at least `2^n` terms.  The
 proof is the rectangle/subfunction argument: one DNF term cannot cover two
@@ -440,6 +452,7 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung5_formulaVariableAccessLowerBounds
 #print axioms ladder_rung5_subfunctionObserverFrontier
 #print axioms ladder_rung5_subfunctionCapacityWall
+#print axioms ladder_rung5_crossingCapacityLowerBound
 #print axioms ladder_rung5_dnfEqualityExponentialLowerBound
 #print axioms ladder_rung5_equalityFormulaLinearUpperBound
 #print axioms ladder_rung5_TC0_substrate
