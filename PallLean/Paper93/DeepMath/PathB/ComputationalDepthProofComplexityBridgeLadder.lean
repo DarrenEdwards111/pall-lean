@@ -17,6 +17,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthEqualityUpperBounds
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung6GeneralModelWall
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMetacomplexityFrontier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthTC0NC1ObserverRoute
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthThresholdCompositionFrontier
 
 /-!
 # Proof-complexity bridge ladder (a map, with both ends anchored to real theorems)
@@ -379,6 +380,27 @@ theorem ladder_rung5_signRank_depth2_threshold_route
     {s : Nat} (hs : Compute s) (hsmall : bound s < B) : False :=
   signRank_depth2_threshold_route Compute bound hF hbridge hs hsmall
 
+/-- **Rung 5, threshold-composition frontier.**  If an invariant is bounded on
+variables/constants and stable under every threshold layer, then every layered
+threshold circuit has bounded invariant.  This is the exact composition theorem
+socket the TC⁰ breakthrough would have to discharge for a non-natural invariant
+and an explicit target gap. -/
+theorem ladder_rung5_threshold_composition_frontier {n : Nat}
+    (I : TCObserverInvariant n) (B : Nat -> Nat)
+    (hleaf : ThresholdLayer.LeafPreserved I B)
+    (hstable : ThresholdLayer.ThresholdLayerStable I B) :
+    ∀ {d : Nat} (C : ThresholdLayer n d), I.Q (ThresholdLayer.eval C) ≤ B d :=
+  ThresholdLayer.thresholdCircuit_preservation I B hleaf hstable
+
+/-- **Rung 5, threshold-composition lower-bound consequence.**  A completed
+threshold-composition route — invariant, layer stability, and target gap — rules
+out depth-`d` layered threshold circuits.  The existence of such a route for a
+full TC⁰-hard explicit target is the open breakthrough, not proved here. -/
+theorem ladder_rung5_threshold_composition_lower_bound {n d : Nat}
+    {f : BoolFun n} (R : ThresholdLayer.ThresholdCompositionRoute f d) :
+    ¬ ∃ C : ThresholdLayer n d, ThresholdLayer.eval C = f :=
+  ThresholdLayer.lower_bound_of_thresholdCompositionRoute R
+
 /-- **Rung 5, TC⁰ pointwise substrate.**  A supplied threshold-circuit lower
 bound rules out smaller TC⁰-style circuits at the given depth. -/
 theorem ladder_rung5_TC0_substrate
@@ -490,6 +512,8 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung5_TC0_NC1_observerRoute_constraint
 #print axioms ladder_rung5_KW_formula_conservation
 #print axioms ladder_rung5_signRank_depth2_threshold_route
+#print axioms ladder_rung5_threshold_composition_frontier
+#print axioms ladder_rung5_threshold_composition_lower_bound
 #print axioms ladder_rung5_TC0_substrate
 #print axioms ladder_rung5_branching_program_substrate
 #print axioms ladder_rung5_width_one_bp_parity_kernel
