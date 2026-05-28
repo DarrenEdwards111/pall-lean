@@ -205,6 +205,147 @@ theorem exceedsBudget_of_energyLimit_lt_landauerCost
   intro hbudget
   exact Nat.not_lt_of_ge (landauerCost_le_energyLimit_of_withinBudget B hbudget) h
 
+/-! ## Explicit erasure/energy capacity bounds -/
+
+/-- A bridge semantically requires at least `requiredBits` irreversible bit
+erasures when its concrete trace erases at least that many bits. -/
+def BridgeRequiresErasureAtLeast
+    {enc : SignedFormulaEncoding}
+    {F : ThermodynamicPObserverFrame enc}
+    (B : ThermodynamicInternalBridge enc F)
+    (requiredBits : Nat) : Prop :=
+  requiredBits <= traceErasedBits B.trace
+
+/-- The Landauer energy needed for a specified erasure requirement. -/
+def requiredErasureLandauerEnergy
+    (c : ThermodynamicConstants)
+    (requiredBits : Nat) : Nat :=
+  c.landauerUnit * requiredBits
+
+/-- If a bridge trace erases at least `requiredBits`, then the Landauer cost
+for `requiredBits` is below the full trace Landauer cost. -/
+theorem requiredErasureLandauerEnergy_le_traceLandauer
+    {enc : SignedFormulaEncoding}
+    {F : ThermodynamicPObserverFrame enc}
+    (B : ThermodynamicInternalBridge enc F)
+    {requiredBits : Nat}
+    (hreq : BridgeRequiresErasureAtLeast B requiredBits) :
+    requiredErasureLandauerEnergy B.constants requiredBits <=
+      traceLandauerEnergy B.constants B.trace := by
+  dsimp [BridgeRequiresErasureAtLeast] at hreq
+  dsimp [requiredErasureLandauerEnergy, traceLandauerEnergy]
+  exact Nat.mul_le_mul_left B.constants.landauerUnit hreq
+
+/-- In-budget bridges can only require erasures whose Landauer cost fits inside
+the observer's energy limit. -/
+theorem requiredErasureLandauerEnergy_le_energyLimit_of_withinBudget
+    {enc : SignedFormulaEncoding}
+    {F : ThermodynamicPObserverFrame enc}
+    (B : ThermodynamicInternalBridge enc F)
+    {requiredBits : Nat}
+    (hbudget : WithinThermodynamicBudget B)
+    (hreq : BridgeRequiresErasureAtLeast B requiredBits) :
+    requiredErasureLandauerEnergy B.constants requiredBits <=
+      F.budget.energyLimit :=
+  Nat.le_trans
+    (requiredErasureLandauerEnergy_le_traceLandauer B hreq)
+    (landauerCost_le_energyLimit_of_withinBudget B hbudget)
+
+/-- If a bridge must erase enough bits that the Landauer cost of just those
+erasures exceeds the observer's energy limit, then the bridge is outside the
+thermodynamic budget. -/
+theorem exceedsBudget_of_requiredErasureEnergyLimit_lt
+    {enc : SignedFormulaEncoding}
+    {F : ThermodynamicPObserverFrame enc}
+    (B : ThermodynamicInternalBridge enc F)
+    {requiredBits : Nat}
+    (hreq : BridgeRequiresErasureAtLeast B requiredBits)
+    (henergy :
+      F.budget.energyLimit <
+        requiredErasureLandauerEnergy B.constants requiredBits) :
+    ExceedsThermodynamicBudget B := by
+  intro hbudget
+  exact Nat.not_lt_of_ge
+    (requiredErasureLandauerEnergy_le_energyLimit_of_withinBudget
+      B hbudget hreq)
+    henergy
+
+/-- Landauer erasure capacity induced by an observer's energy limit, in bits.
+The theorem using this definition assumes `landauerUnit > 0`; if the unit is
+zero, erasures carry no energy in the symbolic model. -/
+def LandauerErasureCapacity
+    {enc : SignedFormulaEncoding}
+    (F : ThermodynamicPObserverFrame enc)
+    (c : ThermodynamicConstants) : Nat :=
+  F.budget.energyLimit / c.landauerUnit
+
+/-- If the Landauer unit is positive, an in-budget bridge erases at most the
+energy-limit divided by the Landauer unit.  This is the concrete finite
+erasure capacity of the thermodynamic P-observer. -/
+theorem traceErasedBits_le_landauerCapacity_of_withinBudget
+    {enc : SignedFormulaEncoding}
+    {F : ThermodynamicPObserverFrame enc}
+    (B : ThermodynamicInternalBridge enc F)
+    (hunit : 0 < B.constants.landauerUnit)
+    (hbudget : WithinThermodynamicBudget B) :
+    traceErasedBits B.trace <=
+      LandauerErasureCapacity F B.constants := by
+  dsimp [LandauerErasureCapacity]
+  rw [Nat.le_div_iff_mul_le hunit]
+  have hland :
+      B.constants.landauerUnit * traceErasedBits B.trace <=
+        F.budget.energyLimit :=
+    landauerCost_le_energyLimit_of_withinBudget B hbudget
+  simpa [Nat.mul_comm, traceLandauerEnergy] using hland
+
+/-- Equivalent strict form: if the Landauer cost of `requiredBits` is above the
+energy budget, then any in-budget bridge erases strictly fewer than
+`requiredBits`. -/
+theorem traceErasedBits_lt_required_of_energyLimit_lt_requiredLandauer
+    {enc : SignedFormulaEncoding}
+    {F : ThermodynamicPObserverFrame enc}
+    (B : ThermodynamicInternalBridge enc F)
+    {requiredBits : Nat}
+    (hbudget : WithinThermodynamicBudget B)
+    (henergy :
+      F.budget.energyLimit <
+        requiredErasureLandauerEnergy B.constants requiredBits) :
+    traceErasedBits B.trace < requiredBits := by
+  by_contra hnot
+  have hreq : BridgeRequiresErasureAtLeast B requiredBits :=
+    Nat.le_of_not_gt hnot
+  exact Nat.not_lt_of_ge
+    (requiredErasureLandauerEnergy_le_energyLimit_of_withinBudget
+      B hbudget hreq)
+    henergy
+
+/-- A power-time envelope for an observer: total available energy is bounded by
+`powerLimit * timeLimit`.  This is the standard physical way finite power and
+finite time imply a finite energy budget. -/
+structure PowerTimeEnergyEnvelope
+    {enc : SignedFormulaEncoding}
+    (F : ThermodynamicPObserverFrame enc) : Type where
+  powerLimit : Nat
+  energyLimit_le_powerTime :
+    F.budget.energyLimit <= powerLimit * F.budget.timeLimit
+
+/-- Power-time form of the erasure obstruction: if the Landauer cost of the
+required erasures is larger than all energy available from finite power over
+the observer's time budget, then the bridge exceeds the thermodynamic budget. -/
+theorem exceedsBudget_of_requiredErasurePowerTime_lt
+    {enc : SignedFormulaEncoding}
+    {F : ThermodynamicPObserverFrame enc}
+    (B : ThermodynamicInternalBridge enc F)
+    (E : PowerTimeEnergyEnvelope F)
+    {requiredBits : Nat}
+    (hreq : BridgeRequiresErasureAtLeast B requiredBits)
+    (hpower :
+      E.powerLimit * F.budget.timeLimit <
+        requiredErasureLandauerEnergy B.constants requiredBits) :
+    ExceedsThermodynamicBudget B :=
+  exceedsBudget_of_requiredErasureEnergyLimit_lt B hreq
+    (lt_of_le_of_lt E.energyLimit_le_powerTime hpower)
+
 /-! ## Thermodynamic bridge barrier -/
 
 /-- Thermodynamic bridge barrier.
@@ -328,5 +469,10 @@ theorem cleanCannotClose_of_thermodynamicBridgeBarrier
 #print axioms thermodynamicObserverRelativeUnprovability_of_bridgeBarrier
 #print axioms closureRequiresFrontier_of_thermodynamicBridgeBarrier
 #print axioms cleanCannotClose_of_thermodynamicBridgeBarrier
+#print axioms requiredErasureLandauerEnergy_le_energyLimit_of_withinBudget
+#print axioms exceedsBudget_of_requiredErasureEnergyLimit_lt
+#print axioms traceErasedBits_le_landauerCapacity_of_withinBudget
+#print axioms traceErasedBits_lt_required_of_energyLimit_lt_requiredLandauer
+#print axioms exceedsBudget_of_requiredErasurePowerTime_lt
 
 end PallLean.Paper93.DeepMath.PathB
