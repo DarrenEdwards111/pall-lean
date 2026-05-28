@@ -1,9 +1,11 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCompleteGraphExpansion
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthResolutionMediumClause
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung3Complete
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4CircuitSubstrates
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4ParityDecisionTreeCore
 
 /-!
-# Observer/N-frame attachment to proof-complexity rungs 1 and 2
+# Observer/N-frame attachment to proof-complexity rungs 1--4
 
 **STATUS: SAFE ATTACHMENT LAYER, NOT A P-vs-NP BRIDGE.**
 
@@ -12,6 +14,10 @@ The bottom proof-complexity rungs are now real Lean mathematics:
 * rung 1: expansion gives a Tseitin boundary/support lower bound;
 * rung 2: tree-like resolution width lower bounds give tree-like size lower
   bounds, and the BSW medium-clause descent skeleton is proved.
+* rung 3: algebraic/semi-algebraic substrates expose degree/rank/depth
+  lower-bound channels.
+* rung 4: bounded-depth circuit substrates expose AC⁰/AC⁰[p] lower-bound
+  channels, and the parity decision-tree endpoint lower bound is proved.
 
 This file attaches the N-frame/observer vocabulary to those proved rungs without
 changing the payload.  The observer words are deliberately thin wrappers:
@@ -28,12 +34,14 @@ changing the payload.  The observer words are deliberately thin wrappers:
 No theorem here says that arbitrary polynomial-time SAT deciders induce such a
 restricted channel.  That generalization remains the P-vs-NP-strength wall.
 
-The later rung-3 attachment follows the same rule: observer vocabulary means
-resource visibility for restricted algebraic/semi-algebraic proof systems.  For
+The later rung-3 and rung-4 attachments follow the same rule: observer
+vocabulary means resource visibility for restricted proof systems.  For
 Nullstellensatz and cutting planes this now attaches to genuine polynomial and
 integer-inequality systems; for bounded-depth Frege it now attaches to a real
-formula-level Frege kernel. None of this proves the underlying Tseitin lower
-bounds.
+formula-level Frege kernel.  For rung 4, observer channels are AC⁰/AC⁰[p]
+circuits or decision trees, and observer boundaries are the corresponding
+resource lower bounds.  None of this proves the underlying Tseitin, Håstad, or
+Razborov--Smolensky lower bounds.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB
@@ -368,6 +376,373 @@ theorem observerRung3Attachment_of_substrates
     intro requiredDepth B hgap
     exact boundedDepthFregeChannel_blocked_by_observerBoundaryReal φ B hgap
 
+/-! ## Rung 3 as explicit observer channels -/
+
+/-- A polynomial-calculus observer channel is a signed-3-CNF PC refutation with
+a visible size budget. -/
+structure NFramePolynomialCalculusChannel (φ : SignedThreeCNF) where
+  sizeBudget : Nat
+
+namespace NFramePolynomialCalculusChannel
+
+/-- The PC channel realizes the contradiction if there is a refutation within
+its size budget. -/
+def realizes {φ : SignedThreeCNF}
+    (C : NFramePolynomialCalculusChannel φ) : Prop :=
+  exists D : SignedThreeCNFPolynomialCalculusRefutation φ, D.size <= C.sizeBudget
+
+end NFramePolynomialCalculusChannel
+
+/-- Rung-3 polynomial-calculus observer attachment in channel form. -/
+theorem nframePolynomialCalculusChannel_blocked_by_observerBoundary
+    (φ : SignedThreeCNF) {requiredDegree : Nat}
+    (C : NFramePolynomialCalculusChannel φ)
+    (B : ObserverPolynomialCalculusBoundary φ requiredDegree)
+    (hgap : 3 + C.sizeBudget < requiredDegree) :
+    Not C.realizes :=
+  polynomialCalculusChannel_blocked_by_observerBoundary φ B hgap
+
+/-- A Nullstellensatz observer channel is a static certificate with bounded
+coefficient degree, under a visible axiom-degree budget. -/
+structure NFrameNullstellensatzChannel
+    {ι σ K : Type*} [Fintype ι] [CommRing K] [DecidableEq σ]
+    (ax : ι → MvPolynomial σ K) where
+  axiomDegreeBudget : Nat
+  coeffDegreeBudget : Nat
+  axioms_degree :
+    NullstellensatzCertificate.maxAxiomDegree ax <= axiomDegreeBudget
+
+namespace NFrameNullstellensatzChannel
+
+/-- The Nullstellensatz channel realizes the contradiction if it has a bounded
+coefficient-degree certificate. -/
+def realizes
+    {ι σ K : Type*} [Fintype ι] [CommRing K] [DecidableEq σ]
+    {ax : ι → MvPolynomial σ K}
+    (C : NFrameNullstellensatzChannel ax) : Prop :=
+  exists cert : NullstellensatzCertificate ax,
+    cert.maxCoeffDegree <= C.coeffDegreeBudget
+
+end NFrameNullstellensatzChannel
+
+/-- Rung-3 Nullstellensatz observer attachment in channel form. -/
+theorem nframeNullstellensatzChannel_blocked_by_observerBoundaryReal
+    {ι σ K : Type*} [Fintype ι] [CommRing K] [DecidableEq σ]
+    {ax : ι → MvPolynomial σ K} {requiredDegree : Nat}
+    (C : NFrameNullstellensatzChannel ax)
+    (B : ObserverNullstellensatzBoundaryReal ax requiredDegree)
+    (hgap : C.coeffDegreeBudget + C.axiomDegreeBudget < requiredDegree) :
+    Not C.realizes := by
+  rintro ⟨cert, hcert⟩
+  have hreq :
+      requiredDegree <= cert.maxCoeffDegree + C.axiomDegreeBudget :=
+    nullstellensatzChannel_blocked_by_observerBoundaryReal
+      B C.axioms_degree cert
+  have hbudget :
+      cert.maxCoeffDegree + C.axiomDegreeBudget <=
+        C.coeffDegreeBudget + C.axiomDegreeBudget :=
+    Nat.add_le_add_right hcert _
+  exact Nat.not_lt_of_ge (Nat.le_trans hreq hbudget) hgap
+
+/-- A cutting-planes observer channel is a cutting-planes derivation with a
+visible size budget. -/
+structure NFrameCuttingPlanesChannel
+    {σ : Type*} [Fintype σ]
+    (Axiom : CuttingPlanesLine σ -> Prop)
+    (Target : CuttingPlanesLine σ) where
+  sizeBudget : Nat
+
+namespace NFrameCuttingPlanesChannel
+
+/-- The cutting-planes channel realizes the target if there is a derivation
+within its size budget. -/
+def realizes
+    {σ : Type*} [Fintype σ]
+    {Axiom : CuttingPlanesLine σ -> Prop}
+    {Target : CuttingPlanesLine σ}
+    (C : NFrameCuttingPlanesChannel Axiom Target) : Prop :=
+  exists D : CuttingPlanesDerivation Axiom Target, D.size <= C.sizeBudget
+
+end NFrameCuttingPlanesChannel
+
+/-- Rung-3 cutting-planes observer attachment in channel form. -/
+theorem nframeCuttingPlanesChannel_blocked_by_observerBoundaryReal
+    {σ : Type*} [Fintype σ]
+    {Axiom : CuttingPlanesLine σ -> Prop}
+    {Target : CuttingPlanesLine σ} {requiredRank : Nat}
+    (C : NFrameCuttingPlanesChannel Axiom Target)
+    (B : ObserverCuttingPlanesBoundaryReal Axiom Target requiredRank)
+    (hgap : C.sizeBudget < requiredRank) :
+    Not C.realizes :=
+  cuttingPlanesChannel_blocked_by_observerBoundaryReal B hgap
+
+/-- A bounded-depth Frege observer channel is a signed-3-CNF Frege refutation
+attempt.  Its obstruction is currently the formula-depth lower-bound substrate,
+not a full Frege size lower bound. -/
+structure NFrameBoundedDepthFregeChannel (φ : SignedThreeCNF) where
+  witness : Prop := True
+
+namespace NFrameBoundedDepthFregeChannel
+
+/-- The bounded-depth Frege channel realizes the contradiction if a Frege
+refutation exists in the signed-3-CNF Frege substrate. -/
+def realizes {φ : SignedThreeCNF}
+    (_C : NFrameBoundedDepthFregeChannel φ) : Prop :=
+  Nonempty (SignedThreeCNFFregeRefutation φ)
+
+end NFrameBoundedDepthFregeChannel
+
+/-- Rung-3 bounded-depth Frege observer attachment in channel form. -/
+theorem nframeBoundedDepthFregeChannel_blocked_by_observerBoundaryReal
+    (φ : SignedThreeCNF) {requiredDepth : Nat}
+    (C : NFrameBoundedDepthFregeChannel φ)
+    (B : ObserverBoundedDepthFregeBoundaryReal φ requiredDepth)
+    (hgap : 3 < requiredDepth) :
+    Not C.realizes :=
+  boundedDepthFregeChannel_blocked_by_observerBoundaryReal φ B hgap
+
+/-- Channel-level observer attachment for rung 3.  This is still restricted
+proof-complexity infrastructure; it does not claim arbitrary SAT algorithms
+induce these channels. -/
+structure ObserverRung3ChannelAttachment (φ : SignedThreeCNF) : Prop where
+  polynomialCalculus :
+    forall {requiredDegree : Nat} (C : NFramePolynomialCalculusChannel φ),
+      ObserverPolynomialCalculusBoundary φ requiredDegree ->
+      3 + C.sizeBudget < requiredDegree ->
+      Not C.realizes
+  realNullstellensatz :
+    forall {ι σ K : Type*} [Fintype ι] [CommRing K] [DecidableEq σ]
+      {ax : ι → MvPolynomial σ K} {requiredDegree : Nat}
+      (C : NFrameNullstellensatzChannel ax),
+      ObserverNullstellensatzBoundaryReal ax requiredDegree ->
+      C.coeffDegreeBudget + C.axiomDegreeBudget < requiredDegree ->
+      Not C.realizes
+  realCuttingPlanes :
+    forall {σ : Type*} [Fintype σ]
+      {Axiom : CuttingPlanesLine σ -> Prop}
+      {Target : CuttingPlanesLine σ} {requiredRank : Nat}
+      (C : NFrameCuttingPlanesChannel Axiom Target),
+      ObserverCuttingPlanesBoundaryReal Axiom Target requiredRank ->
+      C.sizeBudget < requiredRank ->
+      Not C.realizes
+  realBoundedDepthFrege :
+    forall {requiredDepth : Nat} (C : NFrameBoundedDepthFregeChannel φ),
+      ObserverBoundedDepthFregeBoundaryReal φ requiredDepth ->
+      3 < requiredDepth ->
+      Not C.realizes
+
+/-- Rung 3 has an explicit observer-channel attachment for each completed
+substrate. -/
+theorem observerRung3ChannelAttachment_of_substrates
+    (φ : SignedThreeCNF) : ObserverRung3ChannelAttachment φ where
+  polynomialCalculus := by
+    intro requiredDegree C B hgap
+    exact nframePolynomialCalculusChannel_blocked_by_observerBoundary
+      φ C B hgap
+  realNullstellensatz := by
+    intro ι σ K _instFintype _instRing _instDecEq ax requiredDegree C B hgap
+    exact nframeNullstellensatzChannel_blocked_by_observerBoundaryReal C B hgap
+  realCuttingPlanes := by
+    intro σ _instFintype Axiom Target requiredRank C B hgap
+    exact nframeCuttingPlanesChannel_blocked_by_observerBoundaryReal C B hgap
+  realBoundedDepthFrege := by
+    intro requiredDepth C B hgap
+    exact nframeBoundedDepthFregeChannel_blocked_by_observerBoundaryReal
+      φ C B hgap
+
+/-! ## Rung 4 as bounded-depth observer channels -/
+
+/-- An AC⁰ observer boundary is exactly a pointwise AC⁰ size lower bound. -/
+structure ObserverAC0CircuitBoundary
+    (F : (n : Nat) -> BoolFunction n)
+    (n depthBudget requiredSize : Nat) : Prop where
+  size_lower_bound :
+    AC0SizeLowerBoundAt F n depthBudget requiredSize
+
+/-- An AC⁰[p] observer boundary is exactly a pointwise AC⁰[p] size lower
+bound. -/
+structure ObserverAC0pCircuitBoundary
+    (p : Nat) (F : (n : Nat) -> BoolFunction n)
+    (n depthBudget requiredSize : Nat) : Prop where
+  size_lower_bound :
+    AC0pSizeLowerBoundAt p F n depthBudget requiredSize
+
+/-- A parity decision-tree observer boundary is the proved lower bound that
+every decision tree computing parity on `n` bits has depth at least `n`. -/
+structure ObserverParityDecisionTreeBoundary (n : Nat) : Prop where
+  depth_lower_bound :
+    forall T : BoolDecisionTree n,
+      T.Computes (parityFunction n) -> n <= T.depth
+
+/-- The parity decision-tree observer boundary is actually proved in this
+repository. -/
+theorem observerParityDecisionTreeBoundary (n : Nat) :
+    ObserverParityDecisionTreeBoundary n where
+  depth_lower_bound := by
+    intro T hcomp
+    exact BoolDecisionTree.depth_ge_of_computes_parity T hcomp
+
+/-- A restricted AC⁰ observer channel is a bounded-depth, bounded-size AC⁰
+circuit attempt for a target Boolean-function family. -/
+structure NFrameAC0CircuitChannel
+    (F : (n : Nat) -> BoolFunction n) (n : Nat) where
+  depthBudget : Nat
+  sizeBudget : Nat
+
+namespace NFrameAC0CircuitChannel
+
+/-- The AC⁰ channel realizes the target if such a circuit exists within both
+budgets. -/
+def realizes
+    {F : (n : Nat) -> BoolFunction n} {n : Nat}
+    (C : NFrameAC0CircuitChannel F n) : Prop :=
+  exists A : AC0Circuit n,
+    A.computes = F n /\ A.depth <= C.depthBudget /\ A.size <= C.sizeBudget
+
+end NFrameAC0CircuitChannel
+
+/-- An AC⁰ observer boundary blocks smaller bounded-depth AC⁰ observer
+channels. -/
+theorem nframeAC0CircuitChannel_blocked_by_observerBoundary
+    {F : (n : Nat) -> BoolFunction n} {n requiredSize : Nat}
+    (C : NFrameAC0CircuitChannel F n)
+    (B : ObserverAC0CircuitBoundary F n C.depthBudget requiredSize)
+    (hgap : C.sizeBudget < requiredSize) :
+    Not C.realizes :=
+  no_small_AC0Circuit_of_size_lower_bound B.size_lower_bound hgap
+
+/-- A restricted AC⁰[p] observer channel is a bounded-depth, bounded-size
+AC⁰[p] circuit attempt for a target Boolean-function family. -/
+structure NFrameAC0pCircuitChannel
+    (p : Nat) (F : (n : Nat) -> BoolFunction n) (n : Nat) where
+  depthBudget : Nat
+  sizeBudget : Nat
+
+namespace NFrameAC0pCircuitChannel
+
+/-- The AC⁰[p] channel realizes the target if such a circuit exists within both
+budgets and with the requested modulus. -/
+def realizes
+    {p : Nat} {F : (n : Nat) -> BoolFunction n} {n : Nat}
+    (C : NFrameAC0pCircuitChannel p F n) : Prop :=
+  exists A : AC0pCircuit n,
+    A.p = p /\ A.computes = F n /\
+      A.depth <= C.depthBudget /\ A.size <= C.sizeBudget
+
+end NFrameAC0pCircuitChannel
+
+/-- An AC⁰[p] observer boundary blocks smaller bounded-depth AC⁰[p] observer
+channels. -/
+theorem nframeAC0pCircuitChannel_blocked_by_observerBoundary
+    {p : Nat} {F : (n : Nat) -> BoolFunction n} {n requiredSize : Nat}
+    (C : NFrameAC0pCircuitChannel p F n)
+    (B : ObserverAC0pCircuitBoundary p F n C.depthBudget requiredSize)
+    (hgap : C.sizeBudget < requiredSize) :
+    Not C.realizes :=
+  no_small_AC0pCircuit_of_size_lower_bound B.size_lower_bound hgap
+
+/-- A restricted decision-tree observer channel for parity. -/
+structure NFrameParityDecisionTreeChannel (n : Nat) where
+  depthBudget : Nat
+
+namespace NFrameParityDecisionTreeChannel
+
+/-- The parity decision-tree channel realizes parity if a decision tree computes
+parity within the visible depth budget. -/
+def realizes {n : Nat}
+    (C : NFrameParityDecisionTreeChannel n) : Prop :=
+  exists T : BoolDecisionTree n,
+    T.Computes (parityFunction n) /\ T.depth <= C.depthBudget
+
+end NFrameParityDecisionTreeChannel
+
+/-- The proved parity decision-tree boundary blocks shallow decision-tree
+observer channels. -/
+theorem nframeParityDecisionTreeChannel_blocked_by_observerBoundary
+    {n : Nat} (C : NFrameParityDecisionTreeChannel n)
+    (B : ObserverParityDecisionTreeBoundary n)
+    (hgap : C.depthBudget < n) :
+    Not C.realizes := by
+  rintro ⟨T, hcomp, hdepth⟩
+  have hlower : n <= T.depth := B.depth_lower_bound T hcomp
+  exact Nat.not_lt_of_ge (Nat.le_trans hlower hdepth) hgap
+
+/-- AC⁰ parity is just the AC⁰ observer attachment specialized to parity. -/
+theorem nframeAC0ParityChannel_blocked_by_observerBoundary
+    {n requiredSize : Nat}
+    (C : NFrameAC0CircuitChannel parityFunction n)
+    (B : ObserverAC0CircuitBoundary parityFunction n C.depthBudget requiredSize)
+    (hgap : C.sizeBudget < requiredSize) :
+    Not C.realizes :=
+  nframeAC0CircuitChannel_blocked_by_observerBoundary C B hgap
+
+/-- AC⁰[p] parity is just the AC⁰[p] observer attachment specialized to parity.
+-/
+theorem nframeAC0pParityChannel_blocked_by_observerBoundary
+    {p n requiredSize : Nat}
+    (C : NFrameAC0pCircuitChannel p parityFunction n)
+    (B : ObserverAC0pCircuitBoundary p parityFunction n C.depthBudget requiredSize)
+    (hgap : C.sizeBudget < requiredSize) :
+    Not C.realizes :=
+  nframeAC0pCircuitChannel_blocked_by_observerBoundary C B hgap
+
+/-- Rung-4 observer attachment bundle: the observer vocabulary is now wired to
+AC⁰, AC⁰[p], parity-specialized circuits, and the proved parity decision-tree
+core. -/
+structure ObserverRung4Attachment : Prop where
+  ac0 :
+    forall {F : (n : Nat) -> BoolFunction n} {n requiredSize : Nat}
+      (C : NFrameAC0CircuitChannel F n),
+      ObserverAC0CircuitBoundary F n C.depthBudget requiredSize ->
+      C.sizeBudget < requiredSize ->
+      Not C.realizes
+  ac0p :
+    forall {p : Nat} {F : (n : Nat) -> BoolFunction n} {n requiredSize : Nat}
+      (C : NFrameAC0pCircuitChannel p F n),
+      ObserverAC0pCircuitBoundary p F n C.depthBudget requiredSize ->
+      C.sizeBudget < requiredSize ->
+      Not C.realizes
+  ac0Parity :
+    forall {n requiredSize : Nat}
+      (C : NFrameAC0CircuitChannel parityFunction n),
+      ObserverAC0CircuitBoundary parityFunction n C.depthBudget requiredSize ->
+      C.sizeBudget < requiredSize ->
+      Not C.realizes
+  ac0pParity :
+    forall {p n requiredSize : Nat}
+      (C : NFrameAC0pCircuitChannel p parityFunction n),
+      ObserverAC0pCircuitBoundary p parityFunction n C.depthBudget requiredSize ->
+      C.sizeBudget < requiredSize ->
+      Not C.realizes
+  parityDecisionTreeBoundary :
+    forall n : Nat, ObserverParityDecisionTreeBoundary n
+  parityDecisionTreeChannel :
+    forall {n : Nat} (C : NFrameParityDecisionTreeChannel n),
+      ObserverParityDecisionTreeBoundary n ->
+      C.depthBudget < n ->
+      Not C.realizes
+
+/-- Rung 4 has a formal observer attachment to the circuit substrates and to
+the proved parity decision-tree core. -/
+theorem observerRung4Attachment_of_substrates :
+    ObserverRung4Attachment where
+  ac0 := by
+    intro F n requiredSize C B hgap
+    exact nframeAC0CircuitChannel_blocked_by_observerBoundary C B hgap
+  ac0p := by
+    intro p F n requiredSize C B hgap
+    exact nframeAC0pCircuitChannel_blocked_by_observerBoundary C B hgap
+  ac0Parity := by
+    intro n requiredSize C B hgap
+    exact nframeAC0ParityChannel_blocked_by_observerBoundary C B hgap
+  ac0pParity := by
+    intro p n requiredSize C B hgap
+    exact nframeAC0pParityChannel_blocked_by_observerBoundary C B hgap
+  parityDecisionTreeBoundary := observerParityDecisionTreeBoundary
+  parityDecisionTreeChannel := by
+    intro n C B hgap
+    exact nframeParityDecisionTreeChannel_blocked_by_observerBoundary C B hgap
+
 /-! ## Kernel-only axiom trace -/
 
 #print axioms observerBoundaryVisible_of_expansion
@@ -382,5 +757,17 @@ theorem observerRung3Attachment_of_substrates
 #print axioms cuttingPlanesChannel_blocked_by_observerBoundaryReal
 #print axioms boundedDepthFregeChannel_blocked_by_observerBoundaryReal
 #print axioms observerRung3Attachment_of_substrates
+#print axioms nframePolynomialCalculusChannel_blocked_by_observerBoundary
+#print axioms nframeNullstellensatzChannel_blocked_by_observerBoundaryReal
+#print axioms nframeCuttingPlanesChannel_blocked_by_observerBoundaryReal
+#print axioms nframeBoundedDepthFregeChannel_blocked_by_observerBoundaryReal
+#print axioms observerRung3ChannelAttachment_of_substrates
+#print axioms observerParityDecisionTreeBoundary
+#print axioms nframeAC0CircuitChannel_blocked_by_observerBoundary
+#print axioms nframeAC0pCircuitChannel_blocked_by_observerBoundary
+#print axioms nframeParityDecisionTreeChannel_blocked_by_observerBoundary
+#print axioms nframeAC0ParityChannel_blocked_by_observerBoundary
+#print axioms nframeAC0pParityChannel_blocked_by_observerBoundary
+#print axioms observerRung4Attachment_of_substrates
 
 end PallLean.Paper93.DeepMath.PathB
