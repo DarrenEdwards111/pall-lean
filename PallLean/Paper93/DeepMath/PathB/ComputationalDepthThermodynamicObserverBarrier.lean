@@ -216,6 +216,49 @@ def BridgeRequiresErasureAtLeast
     (requiredBits : Nat) : Prop :=
   requiredBits <= traceErasedBits B.trace
 
+/-! ## Bennett/reversibility guardrail -/
+
+/-- A trace is erasure-free when its irreversible-erasure count is zero.  This is
+the abstract guardrail for Bennett-style reversible simulation: erasure-energy
+arguments only apply after an explicit irreversibility lower bound is proved. -/
+def ErasureFreeTrace (steps : List ThermodynamicStep) : Prop :=
+  traceErasedBits steps = 0
+
+/-- A bridge has an erasure-free trace. -/
+def ErasureFreeBridge
+    {enc : SignedFormulaEncoding}
+    {F : ThermodynamicPObserverFrame enc}
+    (B : ThermodynamicInternalBridge enc F) : Prop :=
+  ErasureFreeTrace B.trace
+
+/-- Erasure-free traces have zero Landauer erasure cost.  Active/reversible
+energy may still be present, but the Landauer term itself cannot obstruct the
+trace. -/
+theorem traceLandauerEnergy_eq_zero_of_erasureFree
+    (c : ThermodynamicConstants)
+    {steps : List ThermodynamicStep}
+    (hfree : ErasureFreeTrace steps) :
+    traceLandauerEnergy c steps = 0 := by
+  dsimp [traceLandauerEnergy, ErasureFreeTrace] at hfree ⊢
+  rw [hfree, Nat.mul_zero]
+
+/-- An erasure-free bridge cannot satisfy any positive irreversible-erasure
+requirement.  This is the local formal version of the reversibility objection:
+Landauer arithmetic does not force SAT hardness unless the complexity side
+first proves a positive erasure requirement for the relevant bridge class. -/
+theorem not_requires_positive_erasure_of_erasureFree
+    {enc : SignedFormulaEncoding}
+    {F : ThermodynamicPObserverFrame enc}
+    (B : ThermodynamicInternalBridge enc F)
+    (hfree : ErasureFreeBridge B)
+    {requiredBits : Nat}
+    (hpos : 0 < requiredBits) :
+    Not (BridgeRequiresErasureAtLeast B requiredBits) := by
+  intro hreq
+  dsimp [BridgeRequiresErasureAtLeast, ErasureFreeBridge, ErasureFreeTrace] at hreq hfree
+  rw [hfree] at hreq
+  exact Nat.not_lt_of_ge hreq hpos
+
 /-- The Landauer energy needed for a specified erasure requirement. -/
 def requiredErasureLandauerEnergy
     (c : ThermodynamicConstants)
@@ -500,6 +543,47 @@ theorem exceedsBudget_of_closes_branchFloorPowerTimeGap
   exceedsBudget_of_closes_branchFloorEnergyGap H B hclose
     (lt_of_le_of_lt E.energyLimit_le_powerTime hpower)
 
+/-- A positive independent-branch erasure lower bound is incompatible with an
+erasure-free closing bridge.  This records exactly where Bennett reversibility
+blocks the thermodynamic route: if a closing bridge can be simulated with zero
+irreversible erasures, then no Landauer-only argument can prove that closure
+forces the binomial branch floor. -/
+theorem false_of_branchFloorLowerBound_erasureFree_closure
+    {enc : SignedFormulaEncoding}
+    {F : ThermodynamicPObserverFrame enc}
+    {L : ComplexityErasureLowerBound enc F}
+    {n : Nat}
+    (H : IndependentBranchErasureLowerBoundAtScale L n)
+    (B : ThermodynamicInternalBridge enc F)
+    (hclose : B.closesBoundary)
+    (hfree : ErasureFreeBridge B)
+    (hfloor_pos : 0 < independentBranchFloor n) :
+    False := by
+  have hfloor_req :
+      BridgeRequiresErasureAtLeast B (independentBranchFloor n) := by
+    exact Nat.le_trans
+      (H.everyClosureRequiresBranchFloor B hclose)
+      (L.everyClosureRequiresErasure B hclose)
+  exact not_requires_positive_erasure_of_erasureFree
+    B hfree hfloor_pos hfloor_req
+
+/-- Existence of an erasure-free closing bridge refutes the proposed
+binomial-branch erasure lower bound at that scale. -/
+theorem not_branchFloorLowerBound_of_erasureFree_closure
+    {enc : SignedFormulaEncoding}
+    {F : ThermodynamicPObserverFrame enc}
+    {L : ComplexityErasureLowerBound enc F}
+    {n : Nat}
+    (hcloseFree :
+      Exists fun B : ThermodynamicInternalBridge enc F =>
+        B.closesBoundary /\ ErasureFreeBridge B)
+    (hfloor_pos : 0 < independentBranchFloor n) :
+    Not (IndependentBranchErasureLowerBoundAtScale L n) := by
+  intro H
+  rcases hcloseFree with ⟨B, hclose, hfree⟩
+  exact false_of_branchFloorLowerBound_erasureFree_closure
+    H B hclose hfree hfloor_pos
+
 end ComplexityErasureLowerBound
 
 /-! ## Thermodynamic bridge barrier -/
@@ -717,6 +801,8 @@ end ComplexityErasureLowerBound
 #print axioms traceErasedBits_le_landauerCapacity_of_withinBudget
 #print axioms traceErasedBits_lt_required_of_energyLimit_lt_requiredLandauer
 #print axioms exceedsBudget_of_requiredErasurePowerTime_lt
+#print axioms traceLandauerEnergy_eq_zero_of_erasureFree
+#print axioms not_requires_positive_erasure_of_erasureFree
 #print axioms ComplexityErasureLowerBound.requiredEnergy_le_energyLimit_of_withinBudget_closes
 #print axioms ComplexityErasureLowerBound.exceedsBudget_of_closes_energyLimit_lt_requiredEnergy
 #print axioms ComplexityErasureLowerBound.exceedsBudget_of_closes_powerTime_lt_requiredEnergy
@@ -724,5 +810,7 @@ end ComplexityErasureLowerBound
 #print axioms ComplexityErasureLowerBound.exceedsBudget_of_closes_branchFloorEnergyGap
 #print axioms ComplexityErasureLowerBound.exceedsBudget_of_closes_branchFloorPowerTimeGap
 #print axioms ComplexityErasureLowerBound.observerRelativeUnprovability_of_branchFloorEnergyGap
+#print axioms ComplexityErasureLowerBound.false_of_branchFloorLowerBound_erasureFree_closure
+#print axioms ComplexityErasureLowerBound.not_branchFloorLowerBound_of_erasureFree_closure
 
 end PallLean.Paper93.DeepMath.PathB
