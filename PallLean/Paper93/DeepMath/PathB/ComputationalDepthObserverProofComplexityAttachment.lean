@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCompleteGraphExpansion
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthResolutionMediumClause
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung3Complete
 
 /-!
 # Observer/N-frame attachment to proof-complexity rungs 1 and 2
@@ -26,6 +27,10 @@ changing the payload.  The observer words are deliberately thin wrappers:
 
 No theorem here says that arbitrary polynomial-time SAT deciders induce such a
 restricted channel.  That generalization remains the P-vs-NP-strength wall.
+
+The later rung-3 attachment follows the same rule: observer vocabulary means
+resource visibility for a restricted algebraic/semi-algebraic proof system, not a
+new proof of the underlying Tseitin lower bounds.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB
@@ -227,6 +232,135 @@ theorem signedThreeCNF_localChannel_blocked_by_godMoveBoundary
   nframeLocalChannel_blocked_by_restrictedGodMoveBoundary
     (signedThreeCNFLocalResolutionChannel φ sizeBudget) B hgap
 
+/-! ## Rung 3 as algebraic/semi-algebraic observer visibility -/
+
+/-- A polynomial-calculus observer boundary is exactly a degree lower bound for
+that restricted algebraic channel.  The observer word adds interpretation; the
+payload remains the formal PC lower-bound interface. -/
+structure ObserverPolynomialCalculusBoundary
+    (φ : SignedThreeCNF) (requiredDegree : Nat) : Prop where
+  degree_lower_bound :
+    PolynomialCalculusDegreeLowerBound
+      (SignedThreeCNFPolynomialCalculusAxiom φ)
+      polynomialCalculusContradictionLine requiredDegree
+
+/-- A Nullstellensatz observer boundary is the static certificate-degree analogue
+of the polynomial-calculus boundary. -/
+structure ObserverNullstellensatzBoundary
+    (φ : SignedThreeCNF) (requiredDegree : Nat) : Prop where
+  degree_lower_bound :
+    NullstellensatzDegreeLowerBound
+      (SignedThreeCNFPolynomialCalculusAxiom φ)
+      polynomialCalculusContradictionLine requiredDegree
+
+/-- A cutting-planes observer boundary is a rank lower bound for the restricted
+semi-algebraic channel. -/
+structure ObserverCuttingPlanesBoundary
+    (φ : SignedThreeCNF) (requiredRank : Nat) : Prop where
+  rank_lower_bound :
+    Rung3ResourceLowerBound
+      (SignedThreeCNFCuttingPlanesAxiom φ)
+      cuttingPlanesContradictionLine requiredRank
+
+/-- A bounded-depth Frege observer boundary is a depth/resource lower bound for
+the restricted Frege channel. -/
+structure ObserverBoundedDepthFregeBoundary
+    (φ : SignedThreeCNF) (requiredDepth : Nat) : Prop where
+  depth_lower_bound :
+    Rung3ResourceLowerBound
+      (SignedThreeCNFBoundedDepthFregeAxiom φ)
+      boundedDepthFregeContradictionLine requiredDepth
+
+/-- A polynomial-calculus boundary blocks any visible algebraic channel whose
+size budget cannot carry the required degree. -/
+theorem polynomialCalculusChannel_blocked_by_observerBoundary
+    (φ : SignedThreeCNF) {requiredDegree sizeBudget : Nat}
+    (B : ObserverPolynomialCalculusBoundary φ requiredDegree)
+    (hgap : 3 + sizeBudget < requiredDegree) :
+    Not (exists D : SignedThreeCNFPolynomialCalculusRefutation φ,
+      D.size <= sizeBudget) :=
+  no_small_signedThreeCNF_polynomialCalculus_refutation_of_degree_lower_bound
+    φ B.degree_lower_bound hgap
+
+/-- Nullstellensatz inherits the same observer attachment as the static
+certificate face of polynomial calculus. -/
+theorem nullstellensatzChannel_blocked_by_observerBoundary
+    (φ : SignedThreeCNF) {requiredDegree sizeBudget : Nat}
+    (B : ObserverNullstellensatzBoundary φ requiredDegree)
+    (hgap : 3 + sizeBudget < requiredDegree) :
+    Not (exists D : SignedThreeCNFNullstellensatzRefutation φ,
+      D.size <= sizeBudget) :=
+  no_small_signedThreeCNF_nullstellensatz_refutation_of_degree_lower_bound
+    φ B.degree_lower_bound hgap
+
+/-- A cutting-planes rank boundary blocks bounded visible semi-algebraic
+channels. -/
+theorem cuttingPlanesChannel_blocked_by_observerBoundary
+    (φ : SignedThreeCNF) {requiredRank sizeBudget : Nat}
+    (B : ObserverCuttingPlanesBoundary φ requiredRank)
+    (hgap : 0 + sizeBudget < requiredRank) :
+    Not (exists D : SignedThreeCNFCuttingPlanesRefutation φ,
+      D.size <= sizeBudget) :=
+  no_small_signedThreeCNF_cuttingPlanes_refutation_of_rank_lower_bound
+    φ B.rank_lower_bound hgap
+
+/-- A bounded-depth Frege resource boundary blocks channels below the required
+visible depth/resource. -/
+theorem boundedDepthFregeChannel_blocked_by_observerBoundary
+    (φ : SignedThreeCNF) {requiredDepth sizeBudget : Nat}
+    (B : ObserverBoundedDepthFregeBoundary φ requiredDepth)
+    (hgap : 3 + sizeBudget < requiredDepth) :
+    Not (exists D : SignedThreeCNFBoundedDepthFregeRefutation φ,
+      D.size <= sizeBudget) :=
+  no_small_signedThreeCNF_boundedDepthFrege_refutation_of_depth_lower_bound
+    φ B.depth_lower_bound hgap
+
+/-- Rung-3 observer attachment bundle: every rung-3 substrate has a matching
+observer-boundary-to-channel-obstruction theorem. -/
+structure ObserverRung3Attachment (φ : SignedThreeCNF) : Prop where
+  polynomialCalculus :
+    forall {requiredDegree sizeBudget : Nat},
+      ObserverPolynomialCalculusBoundary φ requiredDegree ->
+      3 + sizeBudget < requiredDegree ->
+      Not (exists D : SignedThreeCNFPolynomialCalculusRefutation φ,
+        D.size <= sizeBudget)
+  nullstellensatz :
+    forall {requiredDegree sizeBudget : Nat},
+      ObserverNullstellensatzBoundary φ requiredDegree ->
+      3 + sizeBudget < requiredDegree ->
+      Not (exists D : SignedThreeCNFNullstellensatzRefutation φ,
+        D.size <= sizeBudget)
+  cuttingPlanes :
+    forall {requiredRank sizeBudget : Nat},
+      ObserverCuttingPlanesBoundary φ requiredRank ->
+      0 + sizeBudget < requiredRank ->
+      Not (exists D : SignedThreeCNFCuttingPlanesRefutation φ,
+        D.size <= sizeBudget)
+  boundedDepthFrege :
+    forall {requiredDepth sizeBudget : Nat},
+      ObserverBoundedDepthFregeBoundary φ requiredDepth ->
+      3 + sizeBudget < requiredDepth ->
+      Not (exists D : SignedThreeCNFBoundedDepthFregeRefutation φ,
+        D.size <= sizeBudget)
+
+/-- The observer vocabulary survives rung 3 as a comparison/invariant layer: in
+each algebraic or semi-algebraic substrate, the relevant visible boundary is a
+resource lower bound, and resource gaps block bounded local channels. -/
+theorem observerRung3Attachment_of_substrates
+    (φ : SignedThreeCNF) : ObserverRung3Attachment φ where
+  polynomialCalculus := by
+    intro requiredDegree sizeBudget B hgap
+    exact polynomialCalculusChannel_blocked_by_observerBoundary φ B hgap
+  nullstellensatz := by
+    intro requiredDegree sizeBudget B hgap
+    exact nullstellensatzChannel_blocked_by_observerBoundary φ B hgap
+  cuttingPlanes := by
+    intro requiredRank sizeBudget B hgap
+    exact cuttingPlanesChannel_blocked_by_observerBoundary φ B hgap
+  boundedDepthFrege := by
+    intro requiredDepth sizeBudget B hgap
+    exact boundedDepthFregeChannel_blocked_by_observerBoundary φ B hgap
+
 /-! ## Kernel-only axiom trace -/
 
 #print axioms observerBoundaryVisible_of_expansion
@@ -236,5 +370,10 @@ theorem signedThreeCNF_localChannel_blocked_by_godMoveBoundary
 #print axioms nframeLocalChannel_blocked_by_restrictedGodMoveBoundary
 #print axioms mediumClauseVisible_of_derivation
 #print axioms signedThreeCNF_localChannel_blocked_by_godMoveBoundary
+#print axioms polynomialCalculusChannel_blocked_by_observerBoundary
+#print axioms nullstellensatzChannel_blocked_by_observerBoundary
+#print axioms cuttingPlanesChannel_blocked_by_observerBoundary
+#print axioms boundedDepthFregeChannel_blocked_by_observerBoundary
+#print axioms observerRung3Attachment_of_substrates
 
 end PallLean.Paper93.DeepMath.PathB
