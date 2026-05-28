@@ -131,4 +131,133 @@ theorem nf_card_le (k : Nat) :
 
 end NF
 
+/-!
+## Stage 2: bridge to the block subfunction count and the formula lower bound
+-/
+
+open NF
+
+/-- The distinct residual functions of `F` on a block `S` (fix the outside vars to
+each `α`).  Its cardinality is the block subfunction count. -/
+noncomputable def blockResiduals (S : Finset (Fin n)) (F : BFormula n) :
+    Finset ((Fin n -> Bool) -> Bool) := by
+  classical
+  exact Finset.univ.image
+    (fun α : Fin n -> Bool => fun x => BFormula.eval F (fun i => if i ∈ S then x i else α i))
+
+/-- Decode a constant tag / normal-form tree to the function it computes. -/
+def evalRepr (k : Nat) :
+    (Bool ⊕ {t : NF n // NF.leaves t ≤ k}) -> ((Fin n -> Bool) -> Bool)
+  | Sum.inl c => fun _ => c
+  | Sum.inr t => NF.eval t.1
+
+/-- **Bridge + count.**  The block subfunction count is at most
+`2 ^ (2 · clog₂(|Tok|+1) · leavesIn S F + 2)` — the genuine Nečiporuk per-block
+capacity bound from real formula semantics. -/
+theorem blockResiduals_card_le (S : Finset (Fin n)) (F : BFormula n) :
+    (blockResiduals S F).card
+      ≤ 2 ^ (2 * Nat.clog 2 (Fintype.card (NF.Tok n) + 1) * BFormula.leavesIn S F + 2) := by
+  classical
+  set k := BFormula.leavesIn S F with hk
+  set T := Fintype.card (NF.Tok n) with hT
+  set Cn := Nat.clog 2 (T + 1) with hCn
+  -- every residual is decoded from a constant tag or a small tree
+  have hsub : blockResiduals S F ⊆ Finset.univ.image (evalRepr k) := by
+    intro φ hφ
+    simp only [blockResiduals, Finset.mem_image, Finset.mem_univ, true_and] at hφ
+    obtain ⟨α, hα⟩ := hφ
+    obtain ⟨G, hGleaf, hGeval⟩ := BFormula.block_realization S α F
+    have hφG : φ = BFormula.eval G := by
+      funext x
+      have h1 := congrFun hα x
+      have h2 := hGeval x
+      simp only [] at h1
+      exact (h2.trans h1).symm
+    rw [Finset.mem_image]
+    cases hnG : norm G with
+    | inl c =>
+        refine ⟨Sum.inl c, Finset.mem_univ _, ?_⟩
+        funext x
+        have hs := seval_norm G x
+        rw [hnG] at hs
+        simp only [NF.seval] at hs
+        simp only [evalRepr]
+        rw [hφG]; exact hs
+    | inr t =>
+        have hleaf : NF.leaves t ≤ k :=
+          Nat.le_trans (leaves_norm_le G hnG) hGleaf
+        refine ⟨Sum.inr ⟨t, hleaf⟩, Finset.mem_univ _, ?_⟩
+        funext x
+        have hs := seval_norm G x
+        rw [hnG] at hs
+        simp only [NF.seval] at hs
+        simp only [evalRepr]
+        rw [hφG]; exact hs
+  -- card ≤ |Bool ⊕ {trees}| = 2 + #trees ≤ 2 + (T+1)^(2k)
+  have hcard1 : (blockResiduals S F).card
+      ≤ 2 + Fintype.card {t : NF n // NF.leaves t ≤ k} := by
+    calc
+      (blockResiduals S F).card
+          ≤ (Finset.univ.image (evalRepr k)).card := Finset.card_le_card hsub
+      _ ≤ (Finset.univ : Finset (Bool ⊕ {t : NF n // NF.leaves t ≤ k})).card :=
+            Finset.card_image_le
+      _ = Fintype.card (Bool ⊕ {t : NF n // NF.leaves t ≤ k}) := Finset.card_univ
+      _ = 2 + Fintype.card {t : NF n // NF.leaves t ≤ k} := by
+            rw [Fintype.card_sum, Fintype.card_bool]
+  have hnf : Fintype.card {t : NF n // NF.leaves t ≤ k} ≤ (T + 1) ^ (2 * k) :=
+    NF.nf_card_le k
+  -- arithmetic: 2 + (T+1)^(2k) ≤ 2^(2 Cn k + 2)
+  have hTpow : (T + 1) ^ (2 * k) ≤ 2 ^ (Cn * (2 * k)) := by
+    calc (T + 1) ^ (2 * k)
+        ≤ (2 ^ Cn) ^ (2 * k) := Nat.pow_le_pow_left (Nat.le_pow_clog (by norm_num) (T + 1)) (2 * k)
+      _ = 2 ^ (Cn * (2 * k)) := by rw [← pow_mul]
+  have hfin : (2 : Nat) + 2 ^ (Cn * (2 * k)) ≤ 2 ^ (Cn * (2 * k) + 2) := by
+    have hp : 1 ≤ 2 ^ (Cn * (2 * k)) := Nat.one_le_two_pow
+    have he : 2 ^ (Cn * (2 * k) + 2) = 4 * 2 ^ (Cn * (2 * k)) := by rw [pow_add]; ring
+    omega
+  have hexp : Cn * (2 * k) + 2 = 2 * Cn * k + 2 := by ring
+  calc
+    (blockResiduals S F).card
+        ≤ 2 + Fintype.card {t : NF n // NF.leaves t ≤ k} := hcard1
+    _ ≤ 2 + (T + 1) ^ (2 * k) := by omega
+    _ ≤ 2 + 2 ^ (Cn * (2 * k)) := by omega
+    _ ≤ 2 ^ (Cn * (2 * k) + 2) := hfin
+    _ = 2 ^ (2 * Cn * k + 2) := by rw [hexp]
+
+/-- **Concrete Nečiporuk formula lower bound.**  For any `B₂` formula `F` and any
+partition of the variables into disjoint blocks covering everything, the number of
+variable leaves satisfies
+
+  `Σ_i log₂(blockSubfunctionCount_i) ≤ 2·clog₂(|Tok|+1)·litCount F + 2·#blocks`,
+
+i.e. `litCount F ≥ (Σ_i log₂ c_i − 2·#blocks) / (2·clog₂(16+2n+1))` — a genuine,
+fully proved formula-size lower bound of the Nečiporuk shape (`n²/log n` when the
+`c_i` are large on `Θ(n/log n)` blocks).  No carried hypotheses. -/
+theorem neciporuk_formula_lower_bound {ι : Type*}
+    (blocks : Finset ι) (S : ι -> Finset (Fin n)) (F : BFormula n)
+    (hdisj : (blocks : Set ι).PairwiseDisjoint S)
+    (hcover : blocks.biUnion S = Finset.univ) :
+    ∑ i ∈ blocks, Nat.log 2 ((blockResiduals (S i) F).card)
+      ≤ 2 * Nat.clog 2 (Fintype.card (NF.Tok n) + 1) * BFormula.litCount F
+        + 2 * blocks.card := by
+  set Cn := Nat.clog 2 (Fintype.card (NF.Tok n) + 1) with hCn
+  have key := neciporuk_sum_lower_bound blocks
+    (fun i => (blockResiduals (S i) F).card)
+    (fun i => 2 * Cn * BFormula.leavesIn (S i) F + 2)
+    (∑ i ∈ blocks, (2 * Cn * BFormula.leavesIn (S i) F + 2))
+    rfl
+    (fun i _ => blockResiduals_card_le (S i) F)
+  have hsum : ∑ i ∈ blocks, (2 * Cn * BFormula.leavesIn (S i) F + 2)
+      = 2 * Cn * BFormula.litCount F + 2 * blocks.card := by
+    rw [Finset.sum_add_distrib, ← Finset.mul_sum,
+        BFormula.sum_leavesIn_of_partition blocks S F hdisj hcover,
+        Finset.sum_const, smul_eq_mul, Nat.mul_comm blocks.card 2]
+  rw [hsum] at key
+  exact key
+
+/-! ## Kernel-only trace -/
+
+#print axioms blockResiduals_card_le
+#print axioms neciporuk_formula_lower_bound
+
 end PallLean.Paper93.DeepMath.PathB
