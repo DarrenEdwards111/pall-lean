@@ -349,24 +349,25 @@ theorem ladder_rung5_equalityFormulaLinearUpperBound :
     SplitFormula.EqualityFormulaLinearUpperBound :=
   SplitFormula.equalityFormulaLinearUpperBound
 
-/-- **Rung 5, TC⁰/NC¹ observer-route constraint.**  A successful observer route
-for TC⁰/NC¹ consists of model preservation plus an explicit target gap; under the
-natural-proofs barrier, the induced observer property must be non-natural.  This
-is the formal design constraint for any future breakthrough, not a lower-bound
-engine by itself. -/
+/-- **Rung 5, TC⁰/NC¹ observer-route constraint (barrier atlas only).**  A
+successful observer route consists of model preservation plus an explicit target
+gap; under a supplied natural-proofs barrier, the induced observer property must
+be non-natural.  This is a formal design constraint, not a lower-bound engine and
+not progress toward full TC⁰ by itself. -/
 theorem ladder_rung5_TC0_NC1_observerRoute_constraint {n : Nat}
-    {C : BudgetedClass n} {f : BoolFun n} {B : Nat}
-    (R : NonNaturalObserverRoute C f B) : LowerBound C f B :=
+    {N : NaturalProofInterface n} {C : BudgetedClass n} {f : BoolFun n} {B : Nat}
+    (R : NonNaturalObserverRoute N C f B) : LowerBound C f B :=
   lower_bound_of_nonNaturalObserverRoute R
 
-/-- **Rung 5, KW conservation for NC¹/formulas.**  If the Karchmer--Wigderson
-equivalence is supplied, then formula-depth lower bounds and KW communication
-lower bounds are literally equivalent.  Thus KW is an exact observer language
-for NC¹, not a shortcut around the open lower-bound problem. -/
+/-- **Rung 5, KW conservation for NC¹/formulas.**  Given an explicit
+Karchmer--Wigderson interface, formula-depth lower bounds and KW communication
+lower bounds are literally equivalent.  Thus KW is an exact observer language for
+NC¹, not a shortcut around the open lower-bound problem. -/
 theorem ladder_rung5_KW_formula_conservation {n : Nat}
-    (hKW : KWFormulaEquivalence n) (f : BoolFun n) (B : Nat) :
-    (∀ d, d < B -> ¬ FormulaDepth f d) ↔ (∀ d, d < B -> ¬ KWCost f d) :=
-  formula_lower_bound_iff_KW_lower_bound hKW f B
+    (K : KWFormulaInterface n) (f : BoolFun n) (B : Nat) :
+    (∀ d, d < B -> ¬ K.FormulaDepth f d) ↔
+      (∀ d, d < B -> ¬ K.KWCost f d) :=
+  formula_lower_bound_iff_KW_lower_bound K f B
 
 /-- **Rung 5, sign-rank partial threshold route.**  Sign-rank gives the honest
 conservation theorem for depth-2 threshold/UPP models: a sign-rank lower bound
@@ -380,11 +381,11 @@ theorem ladder_rung5_signRank_depth2_threshold_route
     {s : Nat} (hs : Compute s) (hsmall : bound s < B) : False :=
   signRank_depth2_threshold_route Compute bound hF hbridge hs hsmall
 
-/-- **Rung 5, threshold-composition frontier.**  If an invariant is bounded on
-variables/constants and stable under every threshold layer, then every layered
-threshold circuit has bounded invariant.  This is the exact composition theorem
-socket the TC⁰ breakthrough would have to discharge for a non-natural invariant
-and an explicit target gap. -/
+/-- **Rung 5, threshold-composition signpost (conditional on a barrier-strength
+hypothesis).**  If an invariant is bounded on variables/constants and one assumes
+`ThresholdLayerStable` for every threshold layer, then every layered threshold
+circuit has bounded invariant.  This is only structural induction over circuits;
+all hard TC⁰ content is in the unproved `ThresholdLayerStable` hypothesis. -/
 theorem ladder_rung5_threshold_composition_frontier {n : Nat}
     (I : TCObserverInvariant n) (B : Nat -> Nat)
     (hleaf : ThresholdLayer.LeafPreserved I B)
@@ -392,10 +393,11 @@ theorem ladder_rung5_threshold_composition_frontier {n : Nat}
     ∀ {d : Nat} (C : ThresholdLayer n d), I.Q (ThresholdLayer.eval C) ≤ B d :=
   ThresholdLayer.thresholdCircuit_preservation I B hleaf hstable
 
-/-- **Rung 5, threshold-composition lower-bound consequence.**  A completed
+/-- **Rung 5, threshold-composition conditional consequence.**  A completed
 threshold-composition route — invariant, layer stability, and target gap — rules
-out depth-`d` layered threshold circuits.  The existence of such a route for a
-full TC⁰-hard explicit target is the open breakthrough, not proved here. -/
+out depth-`d` layered threshold circuits.  This theorem is intentionally
+conditional: producing such a route for an explicit TC⁰-hard target is the open
+barrier-class breakthrough, not something proved here. -/
 theorem ladder_rung5_threshold_composition_lower_bound {n d : Nat}
     {f : BoolFun n} (R : ThresholdLayer.ThresholdCompositionRoute f d) :
     ¬ ∃ C : ThresholdLayer n d, ThresholdLayer.eval C = f :=

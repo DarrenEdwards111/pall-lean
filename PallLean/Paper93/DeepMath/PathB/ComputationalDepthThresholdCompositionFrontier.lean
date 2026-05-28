@@ -2,25 +2,24 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthTC0NC1ObserverRoute
 import Mathlib.Data.Finset.Basic
 
 /-!
-# Threshold-composition frontier for TC⁰
+# Threshold-composition frontier signpost for TC⁰
 
-**STATUS: COMPOSITION-THEOREM TARGET, NOT A TC⁰ LOWER BOUND.**
+**STATUS: CONDITIONAL SIGNPOST, NOT PROGRESS TOWARD A TC⁰ LOWER BOUND.**
 
-The observer-invariant diagnosis says that the missing breakthrough for TC⁰ is a
-composition theorem:
+The observer-invariant diagnosis says that any TC⁰ lower-bound route of this
+kind would need a composition theorem:
 
 > low invariant at the leaves, plus stability under every threshold layer,
 > implies low invariant for every constant-depth threshold circuit.
 
-This file formalizes that statement for a small *layered* threshold-circuit
-syntax.  The main theorem `thresholdCircuit_preservation` is fully proved: it
-shows that any candidate invariant satisfying the layer-composition rule
-automatically bounds all circuits built from threshold gates.
+This file formalizes only the free structural-induction part of that statement
+for a small *layered* threshold-circuit syntax.  The main theorem
+`thresholdCircuit_preservation` says: **if** one assumes the layer-stability rule,
+then the invariant is bounded on the whole circuit.
 
-What is *not* proved here is the hard part: finding a non-natural invariant `I`
-and a bound `B` for which the threshold-layer rule is true while an explicit hard
-function has `I.Q f > B`.  That missing layer rule is exactly the TC⁰
-breakthrough target.
+All hard TC⁰ content sits in the hypothesis `ThresholdLayerStable`.  No
+non-natural invariant satisfying that hypothesis is supplied here.  This file is
+a map of the wall, not a brick through it.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB
@@ -62,17 +61,18 @@ def LeafPreserved {n : Nat} (I : TCObserverInvariant n) (B : Nat -> Nat) : Prop 
 
 /-- Threshold-layer composition condition.  If every child function of a threshold
 gate at layer `d` is bounded by the depth-indexed budget `B d`, then the threshold
-of those children is bounded at layer `d+1`.  This is the missing TC⁰
-breakthrough condition for any proposed invariant. -/
+of those children is bounded at layer `d+1`.  This is the unproved,
+barrier-strength condition for any proposed invariant. -/
 def ThresholdLayerStable {n : Nat} (I : TCObserverInvariant n) (B : Nat -> Nat) : Prop :=
   ∀ {d fanin : Nat} (θ : Nat) (child : Fin fanin -> ThresholdLayer n d),
     (∀ i, I.Q (eval (child i)) ≤ B d) ->
       I.Q (eval (gate θ child)) ≤ B (d + 1)
 
-/-- **Composition theorem substrate.**  If an observer invariant is bounded on
-leaves and stable under threshold layers, then every layered threshold circuit has
-low invariant at its depth.  This is the formal shape of the required TC⁰
-breakthrough. -/
+/-- **Conditional composition signpost.**  If an observer invariant is bounded on
+leaves and one assumes stability under threshold layers, then every layered
+threshold circuit has low invariant at its depth.  The proof is structural
+induction; the hard/open content is entirely the `ThresholdLayerStable`
+hypothesis. -/
 theorem thresholdCircuit_preservation {n : Nat}
     (I : TCObserverInvariant n) (B : Nat -> Nat)
     (hleaf : LeafPreserved I B)
@@ -105,9 +105,10 @@ theorem no_thresholdLayer_of_composition_gap {n d : Nat}
   rw [hCf] at hpres
   exact Nat.not_lt.mpr hpres hgap
 
-/-- A bundled record of the composition theorem target.  To beat TC⁰, one must
-supply a non-natural invariant, leaf preservation, threshold-layer stability, and
-an explicit target gap. -/
+/-- A bundled conditional route.  To beat TC⁰ by this observer method, one would
+need to supply a non-natural invariant, leaf preservation, threshold-layer
+stability, and an explicit target gap.  This structure does not assert such an
+invariant exists. -/
 structure ThresholdCompositionRoute {n : Nat} (f : BoolFun n) (d : Nat) where
   I : TCObserverInvariant n
   B : Nat -> Nat
@@ -126,7 +127,7 @@ theorem lower_bound_of_thresholdCompositionRoute {n d : Nat}
 
 /-- The exact missing theorem shape: find an invariant and budget satisfying
 `ThresholdCompositionRoute` for an explicit hard target.  This definition is
-intentionally a target/socket, not a proof that such an invariant exists. -/
+intentionally a signpost/target, not a proof that such an invariant exists. -/
 def TC0BreakthroughTarget {n : Nat} (f : BoolFun n) (d : Nat) : Prop :=
   Nonempty (ThresholdCompositionRoute f d)
 

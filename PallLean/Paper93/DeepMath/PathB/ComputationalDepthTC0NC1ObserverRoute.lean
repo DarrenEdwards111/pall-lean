@@ -3,7 +3,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSignRankInvariant
 /-!
 # TC⁰/NC¹ observer route: non-natural invariant constraint
 
-**STATUS: DESIGN THEOREM / BARRIER ATLAS, NOT A TC⁰ OR NC¹ LOWER BOUND.**
+**STATUS: BARRIER ATLAS / DESIGN CONSTRAINT, NOT A TC⁰ OR NC¹ LOWER BOUND.**
 
 This file formalizes the answer to the question: *what does the observer-invariant
 program say a proof of TC⁰/NC¹ lower bounds would have to look like?*
@@ -18,18 +18,19 @@ The answer is a constraint, not a known invariant:
   TC⁰, e.g. Naor--Reingold), it must be **non-natural**: not both large and
   truth-table-constructive.
 
+This file deliberately does **not** define largeness, constructivity, KW cost, or
+formula depth as `True`.  Those notions live in explicit interface records below.
+That keeps this file from pretending to prove the deep literature inputs; it only
+proves the implications once those inputs are supplied.
+
 The file also records two honest frontiers:
 
-* **KW communication for NC¹/formulas**: if one carries the Karchmer--Wigderson
-  equivalence, then a formula-depth lower bound is exactly a KW communication
-  lower bound.  This is a conservation/equivalence route, not an escape hatch.
+* **KW communication for NC¹/formulas**: with a supplied Karchmer--Wigderson
+  interface, formula-depth lower bounds and KW communication lower bounds are
+  equivalent.  This is a conservation/equivalence route, not an escape hatch.
 * **Sign-rank for depth-2 threshold / UPP**: this is the real threshold-adjacent
   partial route.  The existing sign-rank conservation theorem is imported, but
   the file explicitly does not claim a lift to full TC⁰.
-
-No placeholder proofs or custom assumptions are used.  Deep literature facts are
-represented only as hypotheses/structures; the theorems here prove the formal
-implications and the no-go constraints.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB
@@ -77,20 +78,17 @@ theorem observer_lower_bound {n : Nat} {I : TCObserverInvariant n}
   have hb : bound s < B := hsmall s hs
   exact Nat.not_lt.mpr (Nat.le_trans hgap hlow) hb
 
-/-! ## Natural-proofs obstruction -/
+/-! ## Natural-proofs obstruction as an explicit interface -/
 
 /-- A property of Boolean functions at length `n`. -/
 abbrev FunctionProperty (n : Nat) := BoolFun n -> Prop
 
-/-- `Large P` is the Razborov--Rudich largeness condition: `P` holds on a
-noticeable/dense set of functions.  The exact density is deliberately not
-expanded here; different formalizations choose different asymptotic encodings. -/
-def Large {n : Nat} (_P : FunctionProperty n) : Prop := True
-
-/-- `Constructive P` is truth-table constructivity: membership in `P` is decidable
-efficiently from the truth table.  Again this is an interface, not a complexity
-formalization. -/
-def Constructive {n : Nat} (_P : FunctionProperty n) : Prop := True
+/-- Interface for the two Razborov--Rudich naturalness predicates at a fixed input
+length.  This file does not define these predicates; a real natural-proofs
+formalization must instantiate them with density and truth-table constructivity. -/
+structure NaturalProofInterface (n : Nat) where
+  Large : FunctionProperty n -> Prop
+  Constructive : FunctionProperty n -> Prop
 
 /-- `UsefulAgainstBelow C B P` means `P` separates from class `C` below budget
 `B`: it accepts some hard target but rejects every function computed by `C` with
@@ -101,12 +99,15 @@ def UsefulAgainstBelow {n : Nat} (C : BudgetedClass n) (B : Nat)
     (P : FunctionProperty n) : Prop :=
   (∃ f, P f) ∧ ∀ s, s < B -> ∀ f, C s f -> ¬ P f
 
-/-- `NaturalProofBarrier C B` packages the Razborov--Rudich obstruction at a
-budget threshold: no property that is both large and constructive can be useful
-against `C` below `B`.  For TC⁰ this is the PRF barrier instantiated by PRFs
-computable in TC⁰ (Naor--Reingold), in the corresponding asymptotic family. -/
-def NaturalProofBarrier {n : Nat} (C : BudgetedClass n) (B : Nat) : Prop :=
-  ∀ P : FunctionProperty n, Large P -> Constructive P -> ¬ UsefulAgainstBelow C B P
+/-- `NaturalProofBarrier N C B` packages the Razborov--Rudich obstruction at a
+budget threshold: no property that is both large and constructive (according to
+interface `N`) can be useful against `C` below `B`.  For TC⁰ this is the PRF
+barrier instantiated by PRFs computable in TC⁰ (Naor--Reingold), in the
+corresponding asymptotic family. -/
+def NaturalProofBarrier {n : Nat} (N : NaturalProofInterface n)
+    (C : BudgetedClass n) (B : Nat) : Prop :=
+  ∀ P : FunctionProperty n,
+    N.Large P -> N.Constructive P -> ¬ UsefulAgainstBelow C B P
 
 /-- The property induced by an observer threshold: functions whose observer
 complexity is at least `B`. -/
@@ -128,73 +129,69 @@ theorem observer_property_useful {n : Nat} {I : TCObserverInvariant n}
     have hb : bound s < B := hsmall s hs
     exact Nat.not_lt.mpr (Nat.le_trans hg hlow) hb
 
-/-- **Observer route constraint.**  Under the natural-proofs barrier, a successful
-observer invariant for TC⁰/NC¹ cannot be both large and constructive.  This is the
-formal version of: the winning invariant must be non-natural. -/
+/-- **Observer route constraint.**  Under a supplied natural-proofs barrier, a
+successful observer invariant for TC⁰/NC¹ cannot be both large and constructive.
+This is the formal version of: the winning invariant must be non-natural. -/
 theorem observer_invariant_must_be_nonNatural {n : Nat}
+    {N : NaturalProofInterface n}
     {I : TCObserverInvariant n} {C : BudgetedClass n} {f : BoolFun n}
     {B : Nat} {bound : Nat -> Nat}
-    (hbarrier : NaturalProofBarrier C B)
+    (hbarrier : NaturalProofBarrier N C B)
     (hpres : ModelPreserves I C bound)
     (hgap : TargetGap I f B)
     (hsmall : ∀ s, s < B -> bound s < B) :
-    ¬ (Large (ObserverProperty I B) ∧ Constructive (ObserverProperty I B)) := by
+    ¬ (N.Large (ObserverProperty I B) ∧ N.Constructive (ObserverProperty I B)) := by
   rintro ⟨hlarge, hconstructive⟩
   exact hbarrier (ObserverProperty I B) hlarge hconstructive
     (observer_property_useful hpres hgap hsmall)
 
 /-! ## KW communication: exact NC¹/formula conservation route -/
 
-/-- Abstract KW protocol-cost predicate for a target function.  `KWCost f c` means
-the Karchmer--Wigderson relation of `f` has a protocol of cost at most `c`.
-The relation itself is not rebuilt here; this is the theorem socket. -/
-def KWCost {n : Nat} (_f : BoolFun n) (_c : Nat) : Prop := True
-
-/-- Abstract formula-depth predicate. -/
-def FormulaDepth {n : Nat} (_f : BoolFun n) (_d : Nat) : Prop := True
-
-/-- Karchmer--Wigderson equivalence socket: formula depth and KW communication
-cost are equivalent at each budget. -/
-def KWFormulaEquivalence (n : Nat) : Prop :=
-  ∀ f : BoolFun n, ∀ d, FormulaDepth f d ↔ KWCost f d
+/-- Interface for the Karchmer--Wigderson theorem at input length `n`.  The cost
+and formula-depth predicates are fields, not stubbed definitions. -/
+structure KWFormulaInterface (n : Nat) where
+  KWCost : BoolFun n -> Nat -> Prop
+  FormulaDepth : BoolFun n -> Nat -> Prop
+  equivalence : ∀ f : BoolFun n, ∀ d, FormulaDepth f d ↔ KWCost f d
 
 /-- If KW is equivalent to formula depth, then a KW lower bound is exactly a
 formula-depth lower bound.  This is why KW is a precise observer language for
 NC¹, but not a shortcut around the NC¹ lower-bound problem. -/
 theorem formula_lower_bound_iff_KW_lower_bound {n : Nat}
-    (hKW : KWFormulaEquivalence n) (f : BoolFun n) (B : Nat) :
-    (∀ d, d < B -> ¬ FormulaDepth f d) ↔ (∀ d, d < B -> ¬ KWCost f d) := by
+    (K : KWFormulaInterface n) (f : BoolFun n) (B : Nat) :
+    (∀ d, d < B -> ¬ K.FormulaDepth f d) ↔
+      (∀ d, d < B -> ¬ K.KWCost f d) := by
   constructor
   · intro h d hd hcost
-    exact h d hd ((hKW f d).mpr hcost)
+    exact h d hd ((K.equivalence f d).mpr hcost)
   · intro h d hd hform
-    exact h d hd ((hKW f d).mp hform)
+    exact h d hd ((K.equivalence f d).mp hform)
 
 /-! ## TC⁰/NC¹ route specification -/
 
 /-- The complete specification of what the observer program says a TC⁰/NC¹ proof
 must provide: a model-preservation theorem, an explicit target gap, and a proof
-that the resulting property escapes the natural-proofs barrier by being
+that the resulting property escapes the supplied natural-proofs barrier by being
 non-natural. -/
 structure NonNaturalObserverRoute {n : Nat}
-    (C : BudgetedClass n) (f : BoolFun n) (B : Nat) where
+    (N : NaturalProofInterface n) (C : BudgetedClass n) (f : BoolFun n) (B : Nat) where
   I : TCObserverInvariant n
   bound : Nat -> Nat
   preserves : ModelPreserves I C bound
   target_gap : TargetGap I f B
   small_budget_gap : ∀ s, s < B -> bound s < B
-  non_natural : ¬ (Large (ObserverProperty I B) ∧ Constructive (ObserverProperty I B))
+  non_natural : ¬ (N.Large (ObserverProperty I B) ∧ N.Constructive (ObserverProperty I B))
 
 /-- Under a natural-proofs barrier, preservation + target gap automatically forces
 the non-natural obligation for any successful route. -/
 def nonNaturalObserverRoute_of_barrier {n : Nat}
-    {C : BudgetedClass n} {f : BoolFun n} {B : Nat}
-    (hbarrier : NaturalProofBarrier C B)
+    {N : NaturalProofInterface n} {C : BudgetedClass n} {f : BoolFun n} {B : Nat}
+    (hbarrier : NaturalProofBarrier N C B)
     (I : TCObserverInvariant n) (bound : Nat -> Nat)
     (hpres : ModelPreserves I C bound)
     (hgap : TargetGap I f B)
     (hsmall : ∀ s, s < B -> bound s < B) :
-    NonNaturalObserverRoute C f B :=
+    NonNaturalObserverRoute N C f B :=
   { I := I
     bound := bound
     preserves := hpres
@@ -204,8 +201,8 @@ def nonNaturalObserverRoute_of_barrier {n : Nat}
 
 /-- Any completed non-natural observer route yields the advertised lower bound. -/
 theorem lower_bound_of_nonNaturalObserverRoute {n : Nat}
-    {C : BudgetedClass n} {f : BoolFun n} {B : Nat}
-    (R : NonNaturalObserverRoute C f B) : LowerBound C f B :=
+    {N : NaturalProofInterface n} {C : BudgetedClass n} {f : BoolFun n} {B : Nat}
+    (R : NonNaturalObserverRoute N C f B) : LowerBound C f B :=
   observer_lower_bound R.preserves R.target_gap R.small_budget_gap
 
 /-! ## Sign-rank is the honest partial threshold route -/
