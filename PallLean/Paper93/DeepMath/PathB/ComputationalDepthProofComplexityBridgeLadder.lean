@@ -3,6 +3,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung3Complete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4CircuitSubstrates
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4ParityDecisionTreeCore
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4CircuitReal
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung5IntermediateModels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMetacomplexityFrontier
 
 /-!
@@ -50,10 +51,14 @@ in this repo: the bottom (proved) and the top (proven equal to the separation).
   engines remain cited: parity ∉ AC⁰ by Håstad; AC⁰[p] lower bounds by
   Razborov–Smolensky.
 
-* **Rung 5 — TC⁰ / NC¹ / branching programs / bounded space.  MOSTLY OPEN.**
-  Unconditional TC⁰ lower bounds for explicit functions are largely open;
-  Barrington (width-5 BP = NC¹) shows how quickly "bounded" stops being weak.
-  This is where current techniques stall — the barriers bite here.
+* **Rung 5 — TC⁰ / NC¹ / branching programs / bounded space.  SUBSTRATES
+  PROVED; STRONG LOWER BOUNDS MOSTLY OPEN.**
+  `ComputationalDepthRung5IntermediateModels` formalizes TC⁰-style threshold
+  circuits, NC¹-style formulas, and deterministic branching programs with
+  lower-bound consequence theorems.  Unconditional TC⁰ lower bounds for explicit
+  functions remain largely open; Barrington (width-5 BP = NC¹) shows how quickly
+  "bounded" stops being weak. This is where current techniques stall — the
+  barriers bite here.
 
 * **Rung 6 — General polynomial-time computation.  OPEN = P vs NP.**
   THE WALL.  A general-model lower bound for the family is *equivalent* to the
@@ -62,9 +67,10 @@ in this repo: the bottom (proved) and the top (proven equal to the separation).
 
 ## The honest reading of the climb
 
-The ladder is real and worth climbing rung by rung: rungs 1–4 are proved or
-cited, the wall sits around rung 5, and rung 6 is the separation.  But the
-pattern across rungs **cannot be assumed to generalise** to rung 6.  The final
+The ladder is real and worth climbing rung by rung: rungs 1–5 now have proved
+substrates or checked cores, the hard lower-bound engines thin out at rung 5,
+and rung 6 is the separation.  But the pattern across rungs **cannot be assumed
+to generalise** to rung 6.  The final
 generalisation is not a way around the wall — it *is* the wall: by
 `ladder_top_rung_iff_separation`, the top-rung bridge is logically equivalent to
 `¬(SAT ∈ P-class)`.  So this file gives a map for gradual progress and a precise
@@ -156,6 +162,35 @@ theorem ladder_rung4_parity_decision_tree_core
     n <= T.depth :=
   BoolDecisionTree.depth_ge_of_computes_parity T hcomputes
 
+/-! ## Rung 5 (FRONTIER SUBSTRATES): TC⁰ / NC¹ / branching programs -/
+
+/-- **Rung 5, formal frontier bundle.**  The rung-5 substrate has real syntax or
+semantics for TC⁰-style threshold circuits, NC¹-style formulas, and deterministic
+branching programs, plus generic lower-bound consequence theorems.  This is not
+a claim of new TC⁰/NC¹/BP lower bounds. -/
+theorem ladder_rung5_formal_substrates : Rung5FormalSubstrates :=
+  rung5_formal_substrates
+
+/-- **Rung 5, TC⁰ pointwise substrate.**  A supplied threshold-circuit lower
+bound rules out smaller TC⁰-style circuits at the given depth. -/
+theorem ladder_rung5_TC0_substrate
+    {F : (n : Nat) -> BoolFunction n} {n d lower s : Nat}
+    (H : TC0SizeLowerBoundAt F n d lower)
+    (hgap : s < lower) :
+    Not (exists C : ThresholdCircuitSyntax n,
+      C.Computes (F n) /\ C.depth <= d /\ C.size <= s) :=
+  no_small_TC0Circuit_of_size_lower_bound H hgap
+
+/-- **Rung 5, branching-program substrate.**  A supplied fixed-width branching
+program length lower bound rules out shorter branching programs. -/
+theorem ladder_rung5_branching_program_substrate
+    {F : (n : Nat) -> BoolFunction n} {n width lower len : Nat}
+    (H : BranchingProgramLengthLowerBoundAt F n width lower)
+    (hgap : len < lower) :
+    Not (exists P : BranchingProgram n width,
+      P.Computes (F n) /\ P.length <= len) :=
+  no_short_branchingProgram_of_length_lower_bound H hgap
+
 /-! ## Top rung (THE WALL): the general-model bridge is the separation -/
 
 /-- **Rung 6 is the wall.**  At a channel gap, the general-model boundary bridge
@@ -180,6 +215,9 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung4_formal_substrates
 #print axioms ladder_rung4_AC0_parity_substrate
 #print axioms ladder_rung4_parity_decision_tree_core
+#print axioms ladder_rung5_formal_substrates
+#print axioms ladder_rung5_TC0_substrate
+#print axioms ladder_rung5_branching_program_substrate
 #print axioms ladder_top_rung_iff_separation
 
 end PallLean.Paper93.DeepMath.PathB
