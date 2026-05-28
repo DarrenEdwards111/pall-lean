@@ -9,6 +9,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthObserverInvariantTransf
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung5ToyLowerBounds
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung5VariableAccessLowerBounds
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung5FormulaVariableAccessLowerBounds
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSubfunctionObserverInvariant
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung6GeneralModelWall
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMetacomplexityFrontier
 
@@ -79,9 +80,11 @@ in this repo: the bottom (proved) and the top (proven equal to the separation).
   variable-access toy theorem: any query branching program computing parity must
   query every variable, hence has length at least `n`.  `ComputationalDepthRung5FormulaVariableAccessLowerBounds`
   proves the analogous formula floor: any formula computing parity must mention
-  every variable, hence has size at least `n`. The real frontier lower bounds
-  themselves are not proved here. This is where current techniques stall — the
-  barriers bite here.
+  every variable, hence has size at least `n`.  `ComputationalDepthSubfunctionObserverInvariant`
+  upgrades the observer vocabulary to residual/subfunction counts, an invariant
+  with exponential range, and proves the generic super-polynomial transfer schema.
+  The real frontier lower bounds themselves are not proved here. This is where
+  current techniques stall — the barriers bite here.
 
 * **Rung 6 — General polynomial-time computation.  WALL SUBSTRATE PROVED;
   OPEN = P vs NP.**
@@ -285,6 +288,17 @@ theorem ladder_rung5_formulaVariableAccessLowerBounds :
     Rung5FormulaVariableAccessLowerBounds :=
   rung5_formulaVariableAccessLowerBounds
 
+/-- **Rung 5, subfunction-count observer frontier.**  This replaces the linear
+variable-presence measure by residual/subfunction count, which can be exponential:
+the equality split has `2^n` residuals.  The generic transfer theorem proves that
+a model with subfunction capacity below the required count cannot compute the
+target, and the family-level theorem shows super-polynomial requirements beat
+polynomial budgets eventually.  Model-specific capacity bounds remain the hard
+frontier. -/
+theorem ladder_rung5_subfunctionObserverFrontier :
+    SubfunctionObserverFrontier :=
+  subfunctionObserverFrontier
+
 /-- **Rung 5, TC⁰ pointwise substrate.**  A supplied threshold-circuit lower
 bound rules out smaller TC⁰-style circuits at the given depth. -/
 theorem ladder_rung5_TC0_substrate
@@ -388,6 +402,7 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung5_toyLowerBounds
 #print axioms ladder_rung5_variableAccessLowerBounds
 #print axioms ladder_rung5_formulaVariableAccessLowerBounds
+#print axioms ladder_rung5_subfunctionObserverFrontier
 #print axioms ladder_rung5_TC0_substrate
 #print axioms ladder_rung5_branching_program_substrate
 #print axioms ladder_rung5_width_one_bp_parity_kernel
