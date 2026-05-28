@@ -10,6 +10,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung5ToyLowerBounds
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung5VariableAccessLowerBounds
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung5FormulaVariableAccessLowerBounds
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSubfunctionObserverInvariant
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSubfunctionCapacityWall
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung6GeneralModelWall
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMetacomplexityFrontier
 
@@ -83,8 +84,11 @@ in this repo: the bottom (proved) and the top (proven equal to the separation).
   every variable, hence has size at least `n`.  `ComputationalDepthSubfunctionObserverInvariant`
   upgrades the observer vocabulary to residual/subfunction counts, an invariant
   with exponential range, and proves the generic super-polynomial transfer schema.
-  The real frontier lower bounds themselves are not proved here. This is where
-  current techniques stall — the barriers bite here.
+  `ComputationalDepthSubfunctionCapacityWall` proves the corresponding wall:
+  unrestricted semantic models can expose `2^n` residuals at unit syntactic
+  budget, so any super-polynomial route needs a real restricted/model-specific
+  capacity theorem. The real frontier lower bounds themselves are not proved
+  here. This is where current techniques stall — the barriers bite here.
 
 * **Rung 6 — General polynomial-time computation.  WALL SUBSTRATE PROVED;
   OPEN = P vs NP.**
@@ -299,6 +303,15 @@ theorem ladder_rung5_subfunctionObserverFrontier :
     SubfunctionObserverFrontier :=
   subfunctionObserverFrontier
 
+/-- **Rung 5, subfunction-capacity wall.**  The subfunction invariant is strong,
+but unrestricted semantic models can expose exponentially many residuals at unit
+syntactic budget.  Hence the missing TC⁰/NC¹/width-5 BP step cannot be obtained
+from the observer invariant alone; it must be a genuine model-specific capacity
+upper bound. -/
+theorem ladder_rung5_subfunctionCapacityWall :
+    SubfunctionCapacityWall :=
+  subfunctionCapacityWall
+
 /-- **Rung 5, TC⁰ pointwise substrate.**  A supplied threshold-circuit lower
 bound rules out smaller TC⁰-style circuits at the given depth. -/
 theorem ladder_rung5_TC0_substrate
@@ -403,6 +416,7 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung5_variableAccessLowerBounds
 #print axioms ladder_rung5_formulaVariableAccessLowerBounds
 #print axioms ladder_rung5_subfunctionObserverFrontier
+#print axioms ladder_rung5_subfunctionCapacityWall
 #print axioms ladder_rung5_TC0_substrate
 #print axioms ladder_rung5_branching_program_substrate
 #print axioms ladder_rung5_width_one_bp_parity_kernel
