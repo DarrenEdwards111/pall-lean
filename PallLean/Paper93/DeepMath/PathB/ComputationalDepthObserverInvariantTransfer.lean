@@ -337,6 +337,212 @@ theorem rung5_concreteObserverBoundaryKernels :
     intro n configBudget i hgap
     exact no_budgeted_space_parity_of_observerInvariant i hgap
 
+/-! ## Frontier-model invariant extensions: TC⁰ / NC¹ / width-5 BP / space -/
+
+/-- A TC⁰ circuit packaged with explicit depth and size budgets. -/
+abbrev BudgetedThresholdCircuit (n depthBound sizeBudget : Nat) : Type :=
+  { C : ThresholdCircuitSyntax n // C.depth <= depthBound /\ C.size <= sizeBudget }
+
+/-- TC⁰ size invariant: demand is a supplied lower bound, capacity is circuit
+size. -/
+def tc0SizeObserverInvariant (n lower : Nat) :
+    ObserverInvariant (ThresholdCircuitSyntax n) where
+  demand _ := lower
+  capacity C := C.size
+
+/-- Any supplied TC⁰ size lower bound extends the observer invariant to the TC⁰
+frontier model.  The supplied lower bound is the hard input; this theorem only
+checks that it has the observer demand/capacity shape. -/
+def tc0_observerInvariantPreservation_of_sizeLowerBound
+    {F : (n : Nat) -> BoolFunction n} {n depthBound lower sizeBudget : Nat}
+    (H : TC0SizeLowerBoundAt F n depthBound lower) :
+    Rung5ObserverInvariantPreservation
+      (BudgetedThresholdCircuit n depthBound sizeBudget)
+      (ThresholdCircuitSyntax n)
+      (fun C => C.val.Computes (F n))
+      (fun C => C.val.size)
+      (tc0SizeObserverInvariant n lower)
+      lower sizeBudget where
+  witnessOf C _ := C.val
+  visible C hC := H C.val hC C.property.1
+  demand_ge _ _ := by simp [tc0SizeObserverInvariant]
+  capacity_le_budget _ _ := by simp [tc0SizeObserverInvariant]
+  budget_le C := C.property.2
+
+/-- TC⁰ observer-invariant consequence: if the lower-bound demand exceeds the
+size budget, no budgeted TC⁰ circuit computes the target. -/
+theorem no_budgeted_TC0_of_observerInvariant
+    {F : (n : Nat) -> BoolFunction n} {n depthBound lower sizeBudget : Nat}
+    (H : TC0SizeLowerBoundAt F n depthBound lower)
+    (hgap : sizeBudget < lower) :
+    Not (exists C : BudgetedThresholdCircuit n depthBound sizeBudget,
+      C.val.Computes (F n)) :=
+  no_rung5_model_of_observerInvariant_preservation
+    (tc0_observerInvariantPreservation_of_sizeLowerBound
+      (F := F) (n := n) (depthBound := depthBound)
+      (lower := lower) (sizeBudget := sizeBudget) H)
+    hgap
+
+/-- An NC¹-style formula packaged with explicit depth and size budgets. -/
+abbrev BudgetedNC1Formula (n depthBound sizeBudget : Nat) : Type :=
+  { A : PropFormula n // A.depth <= depthBound /\ A.size <= sizeBudget }
+
+/-- NC¹ formula-size invariant. -/
+def nc1SizeObserverInvariant (n lower : Nat) :
+    ObserverInvariant (PropFormula n) where
+  demand _ := lower
+  capacity A := A.size
+
+/-- Any supplied NC¹/formula size lower bound has the observer invariant shape. -/
+def nc1_observerInvariantPreservation_of_sizeLowerBound
+    {F : (n : Nat) -> BoolFunction n} {n depthBound lower sizeBudget : Nat}
+    (H : NC1FormulaSizeLowerBoundAt F n depthBound lower) :
+    Rung5ObserverInvariantPreservation
+      (BudgetedNC1Formula n depthBound sizeBudget)
+      (PropFormula n)
+      (fun A => A.val.Computes (F n))
+      (fun A => A.val.size)
+      (nc1SizeObserverInvariant n lower)
+      lower sizeBudget where
+  witnessOf A _ := A.val
+  visible A hA := H A.val hA A.property.1
+  demand_ge _ _ := by simp [nc1SizeObserverInvariant]
+  capacity_le_budget _ _ := by simp [nc1SizeObserverInvariant]
+  budget_le A := A.property.2
+
+/-- NC¹ observer-invariant consequence.  This does not supply an NC¹ lower
+bound; it consumes one. -/
+theorem no_budgeted_NC1_of_observerInvariant
+    {F : (n : Nat) -> BoolFunction n} {n depthBound lower sizeBudget : Nat}
+    (H : NC1FormulaSizeLowerBoundAt F n depthBound lower)
+    (hgap : sizeBudget < lower) :
+    Not (exists A : BudgetedNC1Formula n depthBound sizeBudget,
+      A.val.Computes (F n)) :=
+  no_rung5_model_of_observerInvariant_preservation
+    (nc1_observerInvariantPreservation_of_sizeLowerBound
+      (F := F) (n := n) (depthBound := depthBound)
+      (lower := lower) (sizeBudget := sizeBudget) H)
+    hgap
+
+/-- A width-5 branching program packaged with a length budget. -/
+abbrev BudgetedWidthFiveBranchingProgram (n lengthBudget : Nat) : Type :=
+  { P : BranchingProgram n 5 // P.length <= lengthBudget }
+
+/-- Width-5 branching-program length invariant. -/
+def widthFiveBPLengthObserverInvariant (n lower : Nat) :
+    ObserverInvariant (BranchingProgram n 5) where
+  demand _ := lower
+  capacity P := P.length
+
+/-- Any supplied width-5 BP length lower bound has the observer invariant shape.
+This is the Barrington/NC¹ frontier when the target is explicit and strong. -/
+def widthFiveBP_observerInvariantPreservation_of_lengthLowerBound
+    {F : (n : Nat) -> BoolFunction n} {n lower lengthBudget : Nat}
+    (H : BranchingProgramLengthLowerBoundAt F n 5 lower) :
+    Rung5ObserverInvariantPreservation
+      (BudgetedWidthFiveBranchingProgram n lengthBudget)
+      (BranchingProgram n 5)
+      (fun P => P.val.Computes (F n))
+      (fun P => P.val.length)
+      (widthFiveBPLengthObserverInvariant n lower)
+      lower lengthBudget where
+  witnessOf P _ := P.val
+  visible P hP := H P.val hP
+  demand_ge _ _ := by simp [widthFiveBPLengthObserverInvariant]
+  capacity_le_budget _ _ := by simp [widthFiveBPLengthObserverInvariant]
+  budget_le P := P.property
+
+/-- Width-5 BP observer-invariant consequence.  The lower bound is an explicit
+input, not proved here. -/
+theorem no_budgeted_widthFiveBP_of_observerInvariant
+    {F : (n : Nat) -> BoolFunction n} {n lower lengthBudget : Nat}
+    (H : BranchingProgramLengthLowerBoundAt F n 5 lower)
+    (hgap : lengthBudget < lower) :
+    Not (exists P : BudgetedWidthFiveBranchingProgram n lengthBudget,
+      P.val.Computes (F n)) :=
+  no_rung5_model_of_observerInvariant_preservation
+    (widthFiveBP_observerInvariantPreservation_of_lengthLowerBound
+      (F := F) (n := n) (lower := lower) (lengthBudget := lengthBudget) H)
+    hgap
+
+/-- General bounded-space/configuration preservation from a supplied
+configuration-count lower bound. -/
+def boundedSpace_observerInvariantPreservation_of_configLowerBound
+    {F : (n : Nat) -> BoolFunction n} {n lower configBudget : Nat}
+    (H : SpaceBoundedConfigLowerBoundAt F n lower) :
+    Rung5ObserverInvariantPreservation
+      (BudgetedSpaceBoundedMachine n configBudget)
+      (SpaceBoundedWitness n)
+      (fun M => M.2.val.Computes (F n))
+      (fun M => M.1)
+      (spaceConfigObserverInvariant n lower)
+      lower configBudget where
+  witnessOf M _ := ⟨M.1, M.2.val⟩
+  visible M hM := H M.1 M.2.val hM
+  demand_ge _ _ := by simp [spaceConfigObserverInvariant]
+  capacity_le_budget _ _ := by simp [spaceConfigObserverInvariant]
+  budget_le M := M.2.property
+
+/-- Bounded-space observer-invariant consequence from a supplied real
+configuration lower bound. -/
+theorem no_budgeted_space_of_observerInvariant
+    {F : (n : Nat) -> BoolFunction n} {n lower configBudget : Nat}
+    (H : SpaceBoundedConfigLowerBoundAt F n lower)
+    (hgap : configBudget < lower) :
+    Not (exists M : BudgetedSpaceBoundedMachine n configBudget,
+      M.2.val.Computes (F n)) :=
+  no_rung5_model_of_observerInvariant_preservation
+    (boundedSpace_observerInvariantPreservation_of_configLowerBound
+      (F := F) (n := n) (lower := lower) (configBudget := configBudget) H)
+    hgap
+
+/-- The extended observer-invariant frontier package.  It proves that lower
+bounds for TC⁰, NC¹/formulas, width-5 BP, and bounded-space configurations all
+plug into the same demand/capacity invariant transfer.  It does not prove those
+frontier lower bounds. -/
+structure Rung5ExtendedObserverInvariantFrontier : Prop where
+  tc0 :
+    forall {F : (n : Nat) -> BoolFunction n} {n depthBound lower sizeBudget : Nat},
+      TC0SizeLowerBoundAt F n depthBound lower ->
+      sizeBudget < lower ->
+      Not (exists C : BudgetedThresholdCircuit n depthBound sizeBudget,
+        C.val.Computes (F n))
+  nc1 :
+    forall {F : (n : Nat) -> BoolFunction n} {n depthBound lower sizeBudget : Nat},
+      NC1FormulaSizeLowerBoundAt F n depthBound lower ->
+      sizeBudget < lower ->
+      Not (exists A : BudgetedNC1Formula n depthBound sizeBudget,
+        A.val.Computes (F n))
+  width_five_bp :
+    forall {F : (n : Nat) -> BoolFunction n} {n lower lengthBudget : Nat},
+      BranchingProgramLengthLowerBoundAt F n 5 lower ->
+      lengthBudget < lower ->
+      Not (exists P : BudgetedWidthFiveBranchingProgram n lengthBudget,
+        P.val.Computes (F n))
+  bounded_space :
+    forall {F : (n : Nat) -> BoolFunction n} {n lower configBudget : Nat},
+      SpaceBoundedConfigLowerBoundAt F n lower ->
+      configBudget < lower ->
+      Not (exists M : BudgetedSpaceBoundedMachine n configBudget,
+        M.2.val.Computes (F n))
+
+/-- The observer invariant extended to the frontier models as a formal transfer
+layer. -/
+theorem rung5_extendedObserverInvariantFrontier :
+    Rung5ExtendedObserverInvariantFrontier where
+  tc0 := by
+    intro F n depthBound lower sizeBudget H hgap
+    exact no_budgeted_TC0_of_observerInvariant H hgap
+  nc1 := by
+    intro F n depthBound lower sizeBudget H hgap
+    exact no_budgeted_NC1_of_observerInvariant H hgap
+  width_five_bp := by
+    intro F n lower lengthBudget H hgap
+    exact no_budgeted_widthFiveBP_of_observerInvariant H hgap
+  bounded_space := by
+    intro F n lower configBudget H hgap
+    exact no_budgeted_space_of_observerInvariant H hgap
+
 /-- A completed rung-5 observer boundary would consist of preservation theorems
 for the frontier models.  The fields are target types, not data supplied here;
 this structure is a precise target list, not a proof. -/
@@ -407,6 +613,15 @@ def rung5ObserverBoundaryFrontier
 #print axioms boundedSpace_parity_twoConfig_observerInvariantPreservation
 #print axioms no_budgeted_space_parity_of_observerInvariant
 #print axioms rung5_concreteObserverBoundaryKernels
+#print axioms tc0_observerInvariantPreservation_of_sizeLowerBound
+#print axioms no_budgeted_TC0_of_observerInvariant
+#print axioms nc1_observerInvariantPreservation_of_sizeLowerBound
+#print axioms no_budgeted_NC1_of_observerInvariant
+#print axioms widthFiveBP_observerInvariantPreservation_of_lengthLowerBound
+#print axioms no_budgeted_widthFiveBP_of_observerInvariant
+#print axioms boundedSpace_observerInvariantPreservation_of_configLowerBound
+#print axioms no_budgeted_space_of_observerInvariant
+#print axioms rung5_extendedObserverInvariantFrontier
 #print axioms rung5ObserverBoundaryFrontier
 
 end PallLean.Paper93.DeepMath.PathB

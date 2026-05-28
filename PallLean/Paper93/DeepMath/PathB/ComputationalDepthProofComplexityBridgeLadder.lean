@@ -67,10 +67,11 @@ in this repo: the bottom (proved) and the top (proven equal to the separation).
   compute parity on nonempty inputs.  Unconditional TC⁰ lower bounds for
   explicit functions remain largely open; Barrington (width-5 BP = NC¹) shows
   how quickly "bounded" stops being weak.  `ComputationalDepthObserverInvariantTransfer`
-  extracts the common observer invariant from rungs 1--4 and turns rung 5 into
-  explicit preservation targets for TC⁰/NC¹/BP/space; those preservation theorems
-  are the frontier, not proved here. This is where current techniques stall —
-  the barriers bite here.
+  extracts the common observer invariant from rungs 1--4 and extends it to
+  TC⁰, NC¹/formulas, width-5 BP, and bounded-space as formal transfer theorems:
+  if the relevant frontier lower bound is supplied, the invariant blocks the
+  budgeted model.  Those frontier lower bounds themselves are not proved here.
+  This is where current techniques stall — the barriers bite here.
 
 * **Rung 6 — General polynomial-time computation.  WALL SUBSTRATE PROVED;
   OPEN = P vs NP.**
@@ -240,6 +241,15 @@ theorem ladder_rung5_concreteObserverBoundaryKernels :
     Rung5ConcreteObserverBoundaryKernels :=
   rung5_concreteObserverBoundaryKernels
 
+/-- **Rung 5, extended observer-invariant frontier.**  The observer invariant now
+covers TC⁰, NC¹/formulas, width-5 branching programs, and bounded-space machines
+as transfer layers: supplied lower bounds in those models become invariant
+obstructions for budgeted models.  The supplied lower bounds remain the hard
+frontier inputs. -/
+theorem ladder_rung5_extendedObserverInvariantFrontier :
+    Rung5ExtendedObserverInvariantFrontier :=
+  rung5_extendedObserverInvariantFrontier
+
 /-- **Rung 5, TC⁰ pointwise substrate.**  A supplied threshold-circuit lower
 bound rules out smaller TC⁰-style circuits at the given depth. -/
 theorem ladder_rung5_TC0_substrate
@@ -339,6 +349,7 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung5_observerInvariant_transfer
 #print axioms ladder_rung5_formal_substrates
 #print axioms ladder_rung5_concreteObserverBoundaryKernels
+#print axioms ladder_rung5_extendedObserverInvariantFrontier
 #print axioms ladder_rung5_TC0_substrate
 #print axioms ladder_rung5_branching_program_substrate
 #print axioms ladder_rung5_width_one_bp_parity_kernel
