@@ -186,16 +186,16 @@ def pvsnpObserverFrame (P : PvsNPObserverData) : ObserverBoundaryFrame where
 
 /-- A P-vs-NP boundary witness for the selected verifier/search frame. -/
 structure PvsNPBoundaryWitness (P : PvsNPObserverData) : Prop where
-  instance : P.Instance
-  has_witness : P.HasNPWitness instance
-  not_p_findable : Not (P.PFindable instance)
+  inst : P.Instance
+  has_witness : P.HasNPWitness inst
+  not_p_findable : Not (P.PFindable inst)
 
 /-- A P-vs-NP boundary witness gives the abstract observer boundary. -/
 theorem observerBoundary_of_pvsnpWitness
     (P : PvsNPObserverData)
     (hP : PvsNPBoundaryWitness P) :
     ObserverBoundary (pvsnpObserverFrame P) :=
-  ⟨hP.instance, hP.has_witness, hP.not_p_findable⟩
+  ⟨hP.inst, hP.has_witness, hP.not_p_findable⟩
 
 /-- P-vs-NP-form slogan: witnessability outruns P-bounded discovery in this
 observer frame. -/
