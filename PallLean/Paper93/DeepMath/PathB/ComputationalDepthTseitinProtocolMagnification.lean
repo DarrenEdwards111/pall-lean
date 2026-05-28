@@ -221,6 +221,51 @@ theorem no_pTimeSignedSATDecider_of_magnification
   no_pTimeSignedSATDecider_of_magnificationAt_gap
     PT F Pobs G (Mag.atScale G.n G.hn)
 
+/-- A global magnification theorem is constructible from the no-decider
+endpoint, but only vacuously at every scale. -/
+def magnification_of_no_pTimeSignedSATDecider
+    {enc : SignedFormulaEncoding}
+    (PT : PTimeSATPolynomialTime enc)
+    (F : IndependentAsymptoticSignedTseitinExpanderFamily enc)
+    (Pobs : PClassLocalPhysicalObserver)
+    (hno : Not (exists M : DTM, PTimeSignedSATDecider enc PT M)) :
+    PTimeTseitinProtocolMagnification PT F Pobs where
+  atScale n hn :=
+    magnificationAt_of_no_pTimeSignedSATDecider
+      PT F Pobs n hn hno
+
+/-- Propositional form of the vacuous global construction. -/
+theorem nonempty_magnification_of_no_pTimeSignedSATDecider
+    {enc : SignedFormulaEncoding}
+    (PT : PTimeSATPolynomialTime enc)
+    (F : IndependentAsymptoticSignedTseitinExpanderFamily enc)
+    (Pobs : PClassLocalPhysicalObserver)
+    (hno : Not (exists M : DTM, PTimeSignedSATDecider enc PT M)) :
+    Nonempty (PTimeTseitinProtocolMagnification PT F Pobs) :=
+  ⟨magnification_of_no_pTimeSignedSATDecider PT F Pobs hno⟩
+
+/-- Once any lightcone-gap scale exists, global magnification is equivalent to
+the no-P-time-signed-SAT-decider endpoint.
+
+This is the formal guardrail for the "magic" theorem: an unconditional proof of
+global magnification at a gap would already be an unconditional proof of the
+endpoint. -/
+theorem magnification_iff_no_pTimeSignedSATDecider_of_gap
+    {enc : SignedFormulaEncoding}
+    (PT : PTimeSATPolynomialTime enc)
+    (F : IndependentAsymptoticSignedTseitinExpanderFamily enc)
+    (Pobs : PClassLocalPhysicalObserver)
+    (G : IndependentTseitinLightconeGap F Pobs) :
+    Nonempty (PTimeTseitinProtocolMagnification PT F Pobs) <->
+      Not (exists M : DTM, PTimeSignedSATDecider enc PT M) := by
+  constructor
+  · rintro ⟨Mag⟩
+    exact no_pTimeSignedSATDecider_of_magnification
+      PT F Pobs G Mag
+  · intro hno
+    exact nonempty_magnification_of_no_pTimeSignedSATDecider
+      PT F Pobs hno
+
 /-! ## Kernel-only axiom trace -/
 
 #print axioms not_normalFormAt_of_lightconeGap
@@ -229,5 +274,7 @@ theorem no_pTimeSignedSATDecider_of_magnification
 #print axioms magnificationAt_iff_no_pTimeSignedSATDecider_of_gap
 #print axioms no_pTimeSignedSATDecider_of_magnificationAt_gap
 #print axioms no_pTimeSignedSATDecider_of_magnification
+#print axioms nonempty_magnification_of_no_pTimeSignedSATDecider
+#print axioms magnification_iff_no_pTimeSignedSATDecider_of_gap
 
 end PallLean.Paper93.DeepMath.PathB
