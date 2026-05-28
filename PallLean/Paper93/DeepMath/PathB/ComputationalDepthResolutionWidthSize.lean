@@ -198,6 +198,23 @@ theorem right_proofWidth_le_resolve
             (ResolutionClause.resolvent compl C D p)) :=
       le_max_left _ _
 
+/-- The resolvent root width is bounded by the sum of the parent proof widths. -/
+theorem resolvent_width_le_parent_proofWidths
+    {C D : ResolutionClause Lit}
+    (L : ResolutionDerivation compl Axiom C)
+    (R : ResolutionDerivation compl Axiom D)
+    (p : Lit) :
+    ResolutionClause.width (ResolutionClause.resolvent compl C D p) <=
+      proofWidth L + proofWidth R := by
+  calc
+    ResolutionClause.width (ResolutionClause.resolvent compl C D p)
+        <= ResolutionClause.width C + ResolutionClause.width D :=
+      ResolutionClause.width_resolvent_le compl C D p
+    _ <= proofWidth L + proofWidth R :=
+      Nat.add_le_add
+        (root_width_le_proofWidth L)
+        (root_width_le_proofWidth R)
+
 end ResolutionDerivation
 
 /-! ## Width lower-bound interface -/
@@ -254,41 +271,32 @@ theorem proofWidth_le_axiomWidth_mul_size
     D.proofWidth <= k * D.size := by
   induction D with
   | ax h =>
-      have hk : ResolutionClause.width Target <= k := Hax Target h
-      simpa [ResolutionDerivation.proofWidth, ResolutionDerivation.size] using hk
+      simpa [ResolutionDerivation.proofWidth, ResolutionDerivation.size] using
+        (Hax _ h)
   | resolve L R p ihL ihR =>
-      have hrootL : ResolutionClause.width _ <= L.proofWidth :=
-        ResolutionDerivation.root_width_le_proofWidth L
-      have hrootR : ResolutionClause.width _ <= R.proofWidth :=
-        ResolutionDerivation.root_width_le_proofWidth R
       have hres :
           ResolutionClause.width (ResolutionClause.resolvent compl _ _ p) <=
-            L.proofWidth + R.proofWidth := by
-        calc
-          ResolutionClause.width (ResolutionClause.resolvent compl _ _ p)
-              <= ResolutionClause.width _ + ResolutionClause.width _ :=
-            ResolutionClause.width_resolvent_le compl _ _ p
-          _ <= L.proofWidth + R.proofWidth :=
-            Nat.add_le_add hrootL hrootR
-      have hLR : L.proofWidth + R.proofWidth <= k * (L.size + R.size + 1) := by
+            L.proofWidth + R.proofWidth :=
+        ResolutionDerivation.resolvent_width_le_parent_proofWidths L R p
+      have hbudget :
+          L.proofWidth + R.proofWidth <= k * (L.size + R.size + 1) := by
         calc
           L.proofWidth + R.proofWidth <= k * L.size + k * R.size :=
             Nat.add_le_add ihL ihR
-          _ = k * (L.size + R.size) := by omega
+          _ = k * (L.size + R.size) := by
+            rw [Nat.mul_add]
           _ <= k * (L.size + R.size + 1) := by
             exact Nat.mul_le_mul_left k (Nat.le_succ _)
       have hres' :
           ResolutionClause.width (ResolutionClause.resolvent compl _ _ p) <=
             k * (L.size + R.size + 1) :=
-        Nat.le_trans hres hLR
+        Nat.le_trans hres hbudget
       have hL' : L.proofWidth <= k * (L.size + R.size + 1) := by
-        exact Nat.le_trans ihL (by
-          exact Nat.mul_le_mul_left k (by omega))
+        exact Nat.le_trans ihL (Nat.mul_le_mul_left k (by omega))
       have hR' : R.proofWidth <= k * (L.size + R.size + 1) := by
-        exact Nat.le_trans ihR (by
-          exact Nat.mul_le_mul_left k (by omega))
+        exact Nat.le_trans ihR (Nat.mul_le_mul_left k (by omega))
       simp [ResolutionDerivation.proofWidth, ResolutionDerivation.size]
-      exact ⟨⟨hL', hR'⟩, hres'⟩
+      exact ⟨hL', hR', hres'⟩
 
 /-- Width lower bounds give linear tree-like size lower bounds in the substrate:
 if every target derivation has width at least `w`, then every derivation has
@@ -398,6 +406,62 @@ theorem toResolutionClause_width_le_three {n : Nat}
 
 end SignedClause3
 
+/-! ## Signed 3-CNF resolution refutations -/
+
+/-- The resolution axioms induced by a signed 3-CNF formula. -/
+def SignedThreeCNFResolutionAxiom
+    (φ : SignedThreeCNF) :
+    ResolutionClause (SignedLiteral φ.numVars) -> Prop :=
+  fun C => exists c : SignedClause3 φ.numVars,
+    c ∈ φ.clauses /\ c.toResolutionClause = C
+
+/-- The empty target clause for resolution refutations. -/
+def emptyResolutionClause (Lit : Type*) [DecidableEq Lit] :
+    ResolutionClause Lit :=
+  ∅
+
+/-- A tree-like resolution refutation of a signed 3-CNF formula. -/
+abbrev SignedThreeCNFResolutionRefutation (φ : SignedThreeCNF) :=
+  ResolutionDerivation SignedLiteral.compl
+    (SignedThreeCNFResolutionAxiom φ)
+    (emptyResolutionClause (SignedLiteral φ.numVars))
+
+/-- Signed 3-CNF resolution axioms have width at most `3`. -/
+theorem signedThreeCNFResolutionAxioms_width_le_three
+    (φ : SignedThreeCNF) :
+    AxiomsWidthAtMost (SignedThreeCNFResolutionAxiom φ) 3 := by
+  intro C hC
+  rcases hC with ⟨c, _hc, rfl⟩
+  exact SignedClause3.toResolutionClause_width_le_three c
+
+/-- If refuting a signed 3-CNF requires width at least `w`, then any tree-like
+resolution refutation has `w <= 3 * size`. -/
+theorem signedThreeCNF_width_lower_bound_le_three_mul_refutation_size
+    (φ : SignedThreeCNF)
+    {w : Nat}
+    (Hwidth :
+      ResolutionWidthLowerBound SignedLiteral.compl
+        (SignedThreeCNFResolutionAxiom φ)
+        (emptyResolutionClause (SignedLiteral φ.numVars)) w)
+    (D : SignedThreeCNFResolutionRefutation φ) :
+    w <= 3 * D.size :=
+  width_lower_bound_le_axiomWidth_mul_size
+    (signedThreeCNFResolutionAxioms_width_le_three φ) Hwidth D
+
+/-- No small tree-like signed-3-CNF resolution refutation exists once the width
+lower bound exceeds the total width budget `3 * s`. -/
+theorem no_small_signedThreeCNF_tree_like_refutation_of_width_lower_bound
+    (φ : SignedThreeCNF)
+    {w s : Nat}
+    (Hwidth :
+      ResolutionWidthLowerBound SignedLiteral.compl
+        (SignedThreeCNFResolutionAxiom φ)
+        (emptyResolutionClause (SignedLiteral φ.numVars)) w)
+    (hgap : 3 * s < w) :
+    Not (exists D : SignedThreeCNFResolutionRefutation φ, D.size <= s) :=
+  no_small_tree_like_derivation_of_width_lower_bound
+    (signedThreeCNFResolutionAxioms_width_le_three φ) Hwidth hgap
+
 /-! ## Kernel-only axiom trace -/
 
 #print axioms ResolutionClause.width_resolvent_le
@@ -405,6 +469,7 @@ end SignedClause3
 #print axioms ResolutionDerivation.root_width_le_proofWidth
 #print axioms ResolutionDerivation.left_proofWidth_le_resolve
 #print axioms ResolutionDerivation.right_proofWidth_le_resolve
+#print axioms ResolutionDerivation.resolvent_width_le_parent_proofWidths
 #print axioms no_derivation_of_width_lt_lower_bound
 #print axioms proofWidth_le_axiomWidth_mul_size
 #print axioms width_lower_bound_le_axiomWidth_mul_size
@@ -412,5 +477,8 @@ end SignedClause3
 #print axioms derivation_size_ge_three_of_width_lower_bound_gt_axioms
 #print axioms SignedLiteral.compl_involutive
 #print axioms SignedClause3.toResolutionClause_width_le_three
+#print axioms signedThreeCNFResolutionAxioms_width_le_three
+#print axioms signedThreeCNF_width_lower_bound_le_three_mul_refutation_size
+#print axioms no_small_signedThreeCNF_tree_like_refutation_of_width_lower_bound
 
 end PallLean.Paper93.DeepMath.PathB
