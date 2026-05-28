@@ -16,6 +16,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDNFEqualityLowerBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthEqualityUpperBounds
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung6GeneralModelWall
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMetacomplexityFrontier
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthTC0NC1ObserverRoute
 
 /-!
 # Proof-complexity bridge ladder (a map, with both ends anchored to real theorems)
@@ -347,6 +348,37 @@ theorem ladder_rung5_equalityFormulaLinearUpperBound :
     SplitFormula.EqualityFormulaLinearUpperBound :=
   SplitFormula.equalityFormulaLinearUpperBound
 
+/-- **Rung 5, TC⁰/NC¹ observer-route constraint.**  A successful observer route
+for TC⁰/NC¹ consists of model preservation plus an explicit target gap; under the
+natural-proofs barrier, the induced observer property must be non-natural.  This
+is the formal design constraint for any future breakthrough, not a lower-bound
+engine by itself. -/
+theorem ladder_rung5_TC0_NC1_observerRoute_constraint {n : Nat}
+    {C : BudgetedClass n} {f : BoolFun n} {B : Nat}
+    (R : NonNaturalObserverRoute C f B) : LowerBound C f B :=
+  lower_bound_of_nonNaturalObserverRoute R
+
+/-- **Rung 5, KW conservation for NC¹/formulas.**  If the Karchmer--Wigderson
+equivalence is supplied, then formula-depth lower bounds and KW communication
+lower bounds are literally equivalent.  Thus KW is an exact observer language
+for NC¹, not a shortcut around the open lower-bound problem. -/
+theorem ladder_rung5_KW_formula_conservation {n : Nat}
+    (hKW : KWFormulaEquivalence n) (f : BoolFun n) (B : Nat) :
+    (∀ d, d < B -> ¬ FormulaDepth f d) ↔ (∀ d, d < B -> ¬ KWCost f d) :=
+  formula_lower_bound_iff_KW_lower_bound hKW f B
+
+/-- **Rung 5, sign-rank partial threshold route.**  Sign-rank gives the honest
+conservation theorem for depth-2 threshold/UPP models: a sign-rank lower bound
+plus a depth-2-to-sign-rank bridge rules out all budgets whose induced dimension
+falls below the sign-rank lower bound.  This does not lift to full TC⁰. -/
+theorem ladder_rung5_signRank_depth2_threshold_route
+    {m n : Nat} {M : Fin m -> Fin n -> Bool} {B : Nat}
+    (Compute : Nat -> Prop) (bound : Nat -> Nat)
+    (hF : ForsterLowerBound M B)
+    (hbridge : ∀ s, Compute s -> HasSignRankLE M (bound s))
+    {s : Nat} (hs : Compute s) (hsmall : bound s < B) : False :=
+  signRank_depth2_threshold_route Compute bound hF hbridge hs hsmall
+
 /-- **Rung 5, TC⁰ pointwise substrate.**  A supplied threshold-circuit lower
 bound rules out smaller TC⁰-style circuits at the given depth. -/
 theorem ladder_rung5_TC0_substrate
@@ -455,6 +487,9 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung5_crossingCapacityLowerBound
 #print axioms ladder_rung5_dnfEqualityExponentialLowerBound
 #print axioms ladder_rung5_equalityFormulaLinearUpperBound
+#print axioms ladder_rung5_TC0_NC1_observerRoute_constraint
+#print axioms ladder_rung5_KW_formula_conservation
+#print axioms ladder_rung5_signRank_depth2_threshold_route
 #print axioms ladder_rung5_TC0_substrate
 #print axioms ladder_rung5_branching_program_substrate
 #print axioms ladder_rung5_width_one_bp_parity_kernel
