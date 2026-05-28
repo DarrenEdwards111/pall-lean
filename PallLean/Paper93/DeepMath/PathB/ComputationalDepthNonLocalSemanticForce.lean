@@ -21,6 +21,9 @@ The file proves only the wiring theorems:
   decider;
 * a verifier-normal-form machine is a sufficient concrete source of visibility.
 
+The serious visibility payload uses fixed evaluation-derived pair separation,
+not an arbitrary `PairSeparates` predicate chosen after the fact.
+
 It does not prove the semantic force package itself.
 -/
 
@@ -33,13 +36,14 @@ open TuringMachine
 /-- Visibility at one scale and one canonical sheet/remainder split.
 
 The only payload is the already-guarded remainder-sensitive tri-aspect
-interface:
+interface with fixed evaluation-derived separation:
 
 * the full paper object separates actual signed SAT/UNSAT intervention pairs;
 * the deleted-sheet remainder loses those separations;
 * the split is canonical, not an arbitrary algebraic decomposition.
 
-There is no rank lower bound and no time-index realization field here. -/
+There is no rank lower bound, no time-index realization field, and no free
+`PairSeparates` field here. -/
 structure CanonicalGodMoveBoundaryVisibleAt
     {enc : SignedFormulaEncoding}
     {M : DTM} {n : Nat}
@@ -49,7 +53,7 @@ structure CanonicalGodMoveBoundaryVisibleAt
     (C : SignedCounterfactualEKPDirectionCoverage enc M n) : Type where
   interface :
     Nonempty
-      (SignedExtractionRemainderTriAspectSemanticInterface
+      (FixedSignedExtractionRemainderTriAspectSemanticInterface
         E.extraction C)
 
 namespace CanonicalGodMoveBoundaryVisibleAt
@@ -69,7 +73,7 @@ theorem sheetEssentialityAfterDeletion
   rcases V.interface with ⟨I⟩
   exact ⟨
     (fun p => exists d : Fin C.directionCount,
-      (I.toSignedExtractionRemainderPairSemantics).PairSeparates p d),
+      (I.toFixedSignedExtractionRemainderPairSemantics).evaluation.PairSeparates p d),
     I.sheetEssentialityAfterDeletion
   ⟩
 
@@ -117,7 +121,7 @@ def ofVerifierNormalForm
     CanonicalGodMoveBoundaryVisible enc M where
   visibleAt := by
     intro n hn hn2 htb hns E C
-    exact ⟨Hnf.remainderTransport E C⟩
+    exact ⟨Hnf.fixedRemainderTransport E C⟩
 
 end CanonicalGodMoveBoundaryVisible
 

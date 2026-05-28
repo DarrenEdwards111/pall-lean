@@ -81,6 +81,15 @@ structure CanonicalVerifierNormalForm
         Nonempty
           (SignedExtractionRemainderTriAspectSemanticInterface
             E.extraction C)
+  fixed_syntactic_remainder_transport :
+    forall {n : Nat}
+      {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+      {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+      (E : CanonicalTheorem207ExtractionWithRemainder M n hn hn2 htb hns)
+      (C : SignedCounterfactualEKPDirectionCoverage enc M n),
+        Nonempty
+          (FixedSignedExtractionRemainderTriAspectSemanticInterface
+            E.extraction C)
 
 namespace CanonicalVerifierNormalForm
 
@@ -99,6 +108,22 @@ theorem remainderTransport
         E.extraction C) :=
   Hnf.syntactic_remainder_transport E C
 
+/-- In verifier normal form, the fixed-evaluation remainder transport is a
+syntactic consequence of the normal-form data.  This is the non-smuggling
+version used by the serious force target. -/
+theorem fixedRemainderTransport
+    {enc : SignedFormulaEncoding} {M : DTM}
+    (Hnf : CanonicalVerifierNormalForm enc M)
+    {n : Nat}
+    {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    (E : CanonicalTheorem207ExtractionWithRemainder M n hn hn2 htb hns)
+    (C : SignedCounterfactualEKPDirectionCoverage enc M n) :
+    Nonempty
+      (FixedSignedExtractionRemainderTriAspectSemanticInterface
+        E.extraction C) :=
+  Hnf.fixed_syntactic_remainder_transport E C
+
 /-- Verifier-normal-form transport immediately gives deletion essentiality for
 the canonical sheet/remainder split. -/
 theorem sheetEssentialityAfterDeletion
@@ -115,6 +140,25 @@ theorem sheetEssentialityAfterDeletion
   exact ⟨
     (fun p => exists d : Fin C.directionCount,
       (I.toSignedExtractionRemainderPairSemantics).PairSeparates p d),
+    I.sheetEssentialityAfterDeletion
+  ⟩
+
+/-- Fixed-evaluation verifier-normal-form transport gives deletion
+essentiality without a freely chosen pair-separation predicate. -/
+theorem fixedSheetEssentialityAfterDeletion
+    {enc : SignedFormulaEncoding} {M : DTM}
+    (Hnf : CanonicalVerifierNormalForm enc M)
+    {n : Nat}
+    {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    (E : CanonicalTheorem207ExtractionWithRemainder M n hn hn2 htb hns)
+    (C : SignedCounterfactualEKPDirectionCoverage enc M n) :
+    Exists (fun Accepts =>
+      Theorem207SheetEssentialAfterDeletion Accepts E.extraction) := by
+  rcases Hnf.fixedRemainderTransport E C with ⟨I⟩
+  exact ⟨
+    (fun p => exists d : Fin C.directionCount,
+      (I.toFixedSignedExtractionRemainderPairSemantics).evaluation.PairSeparates p d),
     I.sheetEssentialityAfterDeletion
   ⟩
 
@@ -178,13 +222,37 @@ theorem sheetEssentialityAfterDeletion_of_signedSATDecider
       Theorem207SheetEssentialAfterDeletion Accepts E.extraction) :=
   (H.normal_form hM).sheetEssentialityAfterDeletion E C
 
+/-- Fixed-evaluation deletion essentiality for the wrapped normal-form decider.
+-/
+theorem fixedSheetEssentialityAfterDeletion_of_signedSATDecider
+    {enc : SignedFormulaEncoding}
+    (H : SignedSATDeciderToCanonicalVerifierNormalForm enc)
+    {M : DTM}
+    (hM : SignedDTMDecidesSAT enc M)
+    {n : Nat}
+    {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : (H.transform M).timeBound <= 4}
+    {hns : (H.transform M).numStates <= n}
+    (E :
+      CanonicalTheorem207ExtractionWithRemainder
+        (H.transform M) n hn hn2 htb hns)
+    (C :
+      SignedCounterfactualEKPDirectionCoverage
+        enc (H.transform M) n) :
+    Exists (fun Accepts =>
+      Theorem207SheetEssentialAfterDeletion Accepts E.extraction) :=
+  (H.normal_form hM).fixedSheetEssentialityAfterDeletion E C
+
 end SignedSATDeciderToCanonicalVerifierNormalForm
 
 /-! ## Kernel-only axiom trace -/
 
 #print axioms CanonicalVerifierNormalForm.remainderTransport
+#print axioms CanonicalVerifierNormalForm.fixedRemainderTransport
 #print axioms CanonicalVerifierNormalForm.sheetEssentialityAfterDeletion
+#print axioms CanonicalVerifierNormalForm.fixedSheetEssentialityAfterDeletion
 #print axioms SignedSATDeciderToCanonicalVerifierNormalForm.normalForm_of_signedSATDecider
 #print axioms SignedSATDeciderToCanonicalVerifierNormalForm.sheetEssentialityAfterDeletion_of_signedSATDecider
+#print axioms SignedSATDeciderToCanonicalVerifierNormalForm.fixedSheetEssentialityAfterDeletion_of_signedSATDecider
 
 end PallLean.Paper93.DeepMath.PathB

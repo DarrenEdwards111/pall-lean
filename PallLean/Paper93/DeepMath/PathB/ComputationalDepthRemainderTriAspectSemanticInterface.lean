@@ -293,6 +293,207 @@ theorem signedThreeCNFEncoding_remainder_route_nonvacuous :
       Not (signedThreeCNFEncoding.Satisfiable ψ)) :=
   signedThreeCNFEncoding_encoded_nonvacuous
 
+/-! ## Fixed evaluation-derived pair semantics -/
+
+/-- Concrete paper-instrumented evaluation data for signed intervention pairs.
+
+This is the guardrail against the fake proof
+`PairSeparates p d := p = paperCompiledPoly /\ ...`: once the positive and
+negative evaluation points are fixed, separation is no longer a freely chosen
+predicate. -/
+structure PaperInstrumentedPairEvaluation
+    {enc : SignedFormulaEncoding}
+    {M : DTM} {n : Nat}
+    {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    (_E : Theorem207ExtractionWithRemainder M n hn hn2 htb hns)
+    (C : SignedCounterfactualEKPDirectionCoverage enc M n) : Type where
+  positivePoint :
+    Fin C.directionCount ->
+      Fin (cook_levin_compilation M n hn2 htb hns).numVars -> ℚ
+  negativePoint :
+    Fin C.directionCount ->
+      Fin (cook_levin_compilation M n hn2 htb hns).numVars -> ℚ
+
+namespace PaperInstrumentedPairEvaluation
+
+/-- Fixed separation predicate induced by evaluating the same polynomial on
+the positive and negative intervention points. -/
+def PairSeparates
+    {enc : SignedFormulaEncoding}
+    {M : DTM} {n : Nat}
+    {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {E : Theorem207ExtractionWithRemainder M n hn hn2 htb hns}
+    {C : SignedCounterfactualEKPDirectionCoverage enc M n}
+    (Eval : PaperInstrumentedPairEvaluation E C)
+    (p : Theorem207PolySpace M n hn2 htb hns)
+    (d : Fin C.directionCount) : Prop :=
+  MvPolynomial.eval (Eval.positivePoint d) p ≠
+    MvPolynomial.eval (Eval.negativePoint d) p
+
+end PaperInstrumentedPairEvaluation
+
+/-- Remainder-sensitive pair semantics with a fixed evaluation-derived
+separation relation.
+
+There is no `PairSeparates` field here.  The relation is definitionally
+`Eval.PairSeparates`, so the transport theorem must explain the paper object
+through concrete evaluation points rather than choosing a predicate after the
+fact. -/
+structure FixedSignedExtractionRemainderPairSemantics
+    {enc : SignedFormulaEncoding}
+    {M : DTM} {n : Nat}
+    {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    (E : Theorem207ExtractionWithRemainder M n hn hn2 htb hns)
+    (C : SignedCounterfactualEKPDirectionCoverage enc M n)
+    (_A : SignedActualSATRunSemantics C) : Type where
+  evaluation : PaperInstrumentedPairEvaluation E C
+  full_pair_exact :
+    forall d : Fin C.directionCount,
+      evaluation.PairSeparates E.paperCompiledPoly d <->
+        (TuringMachine.accepts M n C.hn (C.positiveInput d) /\
+          Not (TuringMachine.accepts M n C.hn (C.negativeInput d)))
+  remainder_loses_all_pairs :
+    forall d : Fin C.directionCount,
+      Not (evaluation.PairSeparates E.remainder d)
+  sheetDirection : Fin C.directionCount -> Nat
+  sheetDirection_injective : Function.Injective sheetDirection
+
+namespace FixedSignedExtractionRemainderPairSemantics
+
+/-- A fixed-evaluation pair semantics induces the legacy pair-semantics
+structure, with `PairSeparates` no longer arbitrary. -/
+def toRemainderPairSemantics
+    {enc : SignedFormulaEncoding}
+    {M : DTM} {n : Nat}
+    {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {E : Theorem207ExtractionWithRemainder M n hn hn2 htb hns}
+    {C : SignedCounterfactualEKPDirectionCoverage enc M n}
+    {A : SignedActualSATRunSemantics C}
+    (P : FixedSignedExtractionRemainderPairSemantics E C A) :
+    SignedExtractionRemainderPairSemantics E C A where
+  PairSeparates := P.evaluation.PairSeparates
+  full_pair_exact := P.full_pair_exact
+  remainder_loses_all_pairs := P.remainder_loses_all_pairs
+  sheetDirection := P.sheetDirection
+  sheetDirection_injective := P.sheetDirection_injective
+
+/-- Fixed-evaluation semantics yields deletion essentiality. -/
+theorem sheetEssentialityAfterDeletion
+    {enc : SignedFormulaEncoding}
+    {M : DTM} {n : Nat}
+    {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {E : Theorem207ExtractionWithRemainder M n hn hn2 htb hns}
+    {C : SignedCounterfactualEKPDirectionCoverage enc M n}
+    (P :
+      FixedSignedExtractionRemainderPairSemantics E C
+        (SignedActualSATRunSemantics.ofCoverage C)) :
+    Theorem207SheetEssentialAfterDeletion
+      (fun p => exists d : Fin C.directionCount,
+        P.evaluation.PairSeparates p d)
+      E :=
+  P.toRemainderPairSemantics.sheetEssentialityAfterDeletion
+
+end FixedSignedExtractionRemainderPairSemantics
+
+/-- Remainder-sensitive tri-aspect interface with fixed evaluation-derived
+separation.  This is the serious semantic-transport target; the legacy
+interface remains for already-proved wiring but should not be used as the
+breakthrough premise. -/
+structure FixedSignedExtractionRemainderTriAspectSemanticInterface
+    {enc : SignedFormulaEncoding}
+    {M : DTM} {n : Nat}
+    {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    (E : Theorem207ExtractionWithRemainder M n hn hn2 htb hns)
+    (C : SignedCounterfactualEKPDirectionCoverage enc M n) : Type where
+  fixed_instrumented_semantics_transport :
+    forall A : SignedActualSATRunSemantics C,
+      FixedSignedExtractionRemainderPairSemantics E C A
+
+namespace FixedSignedExtractionRemainderTriAspectSemanticInterface
+
+def toFixedSignedExtractionRemainderPairSemantics
+    {enc : SignedFormulaEncoding}
+    {M : DTM} {n : Nat}
+    {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {E : Theorem207ExtractionWithRemainder M n hn hn2 htb hns}
+    {C : SignedCounterfactualEKPDirectionCoverage enc M n}
+    (I : FixedSignedExtractionRemainderTriAspectSemanticInterface E C) :
+    FixedSignedExtractionRemainderPairSemantics E C
+      (SignedActualSATRunSemantics.ofCoverage C) :=
+  I.fixed_instrumented_semantics_transport
+    (SignedActualSATRunSemantics.ofCoverage C)
+
+/-- A fixed-evaluation interface induces the legacy interface by using its
+fixed evaluation predicate. -/
+def toSignedExtractionRemainderTriAspectSemanticInterface
+    {enc : SignedFormulaEncoding}
+    {M : DTM} {n : Nat}
+    {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {E : Theorem207ExtractionWithRemainder M n hn hn2 htb hns}
+    {C : SignedCounterfactualEKPDirectionCoverage enc M n}
+    (I : FixedSignedExtractionRemainderTriAspectSemanticInterface E C) :
+    SignedExtractionRemainderTriAspectSemanticInterface E C where
+  instrumented_semantics_transport := by
+    intro A
+    exact (I.fixed_instrumented_semantics_transport A).toRemainderPairSemantics
+
+/-- The fixed-evaluation interface proves deletion essentiality. -/
+theorem sheetEssentialityAfterDeletion
+    {enc : SignedFormulaEncoding}
+    {M : DTM} {n : Nat}
+    {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {E : Theorem207ExtractionWithRemainder M n hn hn2 htb hns}
+    {C : SignedCounterfactualEKPDirectionCoverage enc M n}
+    (I : FixedSignedExtractionRemainderTriAspectSemanticInterface E C) :
+    Theorem207SheetEssentialAfterDeletion
+      (fun p => exists d : Fin C.directionCount,
+        (toFixedSignedExtractionRemainderPairSemantics I).evaluation.PairSeparates p d)
+      E :=
+  (toFixedSignedExtractionRemainderPairSemantics I).sheetEssentialityAfterDeletion
+
+end FixedSignedExtractionRemainderTriAspectSemanticInterface
+
+/-- Canonical fixed-evaluation signed remainder bridge target. -/
+structure CanonicalFixedSignedExtractionRemainderTriAspectBridge
+    (enc : SignedFormulaEncoding) : Type where
+  interface :
+    forall {M : DTM} {n : Nat}
+      {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+      {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+      (E : CanonicalTheorem207ExtractionWithRemainder M n hn hn2 htb hns)
+      (C : SignedCounterfactualEKPDirectionCoverage enc M n),
+        Nonempty
+          (FixedSignedExtractionRemainderTriAspectSemanticInterface
+            E.extraction C)
+
+/-- The fixed-evaluation bridge yields deletion essentiality without a
+freely chosen separation predicate. -/
+theorem sheetEssentialityAfterDeletion_of_canonicalFixedSignedRemainderBridge
+    (enc : SignedFormulaEncoding)
+    (H : CanonicalFixedSignedExtractionRemainderTriAspectBridge enc)
+    {M : DTM} {n : Nat}
+    {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    (E : CanonicalTheorem207ExtractionWithRemainder M n hn hn2 htb hns)
+    (C : SignedCounterfactualEKPDirectionCoverage enc M n) :
+    Exists (fun Accepts =>
+      Theorem207SheetEssentialAfterDeletion Accepts E.extraction) := by
+  rcases H.interface E C with ⟨I⟩
+  exact ⟨
+    (fun p => exists d : Fin C.directionCount,
+      (I.toFixedSignedExtractionRemainderPairSemantics).evaluation.PairSeparates p d),
+    I.sheetEssentialityAfterDeletion
+  ⟩
+
 /-! ## Kernel-only axiom trace -/
 
 #print axioms Theorem207ExtractionWithRemainder.toExtraction
@@ -304,5 +505,12 @@ theorem signedThreeCNFEncoding_remainder_route_nonvacuous :
 #print axioms SignedExtractionRemainderTriAspectSemanticInterface.sheetEssentialityAfterDeletion
 #print axioms sheetEssentialityAfterDeletion_of_canonicalSignedRemainderBridge
 #print axioms signedThreeCNFEncoding_remainder_route_nonvacuous
+#print axioms PaperInstrumentedPairEvaluation.PairSeparates
+#print axioms FixedSignedExtractionRemainderPairSemantics.toRemainderPairSemantics
+#print axioms FixedSignedExtractionRemainderPairSemantics.sheetEssentialityAfterDeletion
+#print axioms FixedSignedExtractionRemainderTriAspectSemanticInterface.toFixedSignedExtractionRemainderPairSemantics
+#print axioms FixedSignedExtractionRemainderTriAspectSemanticInterface.toSignedExtractionRemainderTriAspectSemanticInterface
+#print axioms FixedSignedExtractionRemainderTriAspectSemanticInterface.sheetEssentialityAfterDeletion
+#print axioms sheetEssentialityAfterDeletion_of_canonicalFixedSignedRemainderBridge
 
 end PallLean.Paper93.DeepMath.PathB
