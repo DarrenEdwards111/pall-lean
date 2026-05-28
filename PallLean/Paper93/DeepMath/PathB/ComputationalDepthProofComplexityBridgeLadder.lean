@@ -11,6 +11,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung5VariableAccessLowe
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung5FormulaVariableAccessLowerBounds
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSubfunctionObserverInvariant
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSubfunctionCapacityWall
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDNFEqualityLowerBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung6GeneralModelWall
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMetacomplexityFrontier
 
@@ -84,10 +85,12 @@ in this repo: the bottom (proved) and the top (proven equal to the separation).
   every variable, hence has size at least `n`.  `ComputationalDepthSubfunctionObserverInvariant`
   upgrades the observer vocabulary to residual/subfunction counts, an invariant
   with exponential range, and proves the generic super-polynomial transfer schema.
+  `ComputationalDepthDNFEqualityLowerBound` proves an actual exponential lower
+  bound using this invariant: equality-split requires `2^n` ordinary DNF terms.
   `ComputationalDepthSubfunctionCapacityWall` proves the corresponding wall:
   unrestricted semantic models can expose `2^n` residuals at unit syntactic
-  budget, so any super-polynomial route needs a real restricted/model-specific
-  capacity theorem. The real frontier lower bounds themselves are not proved
+  budget, so stronger models need real restricted/model-specific capacity
+  theorems. The TC⁰/NC¹/width-5 frontier lower bounds themselves are not proved
   here. This is where current techniques stall — the barriers bite here.
 
 * **Rung 6 — General polynomial-time computation.  WALL SUBSTRATE PROVED;
@@ -312,6 +315,15 @@ theorem ladder_rung5_subfunctionCapacityWall :
     SubfunctionCapacityWall :=
   subfunctionCapacityWall
 
+/-- **Rung 5, actual exponential DNF lower bound.**  Any ordinary literal-DNF
+computing equality between two `n`-bit blocks needs at least `2^n` terms.  The
+proof is the rectangle/subfunction argument: one DNF term cannot cover two
+different diagonal equality points without also accepting an unequal mixed point.
+This is a genuine super-polynomial restricted lower bound. -/
+theorem ladder_rung5_dnfEqualityExponentialLowerBound :
+    DNFEqualityExponentialLowerBound :=
+  dnfEqualityExponentialLowerBound
+
 /-- **Rung 5, TC⁰ pointwise substrate.**  A supplied threshold-circuit lower
 bound rules out smaller TC⁰-style circuits at the given depth. -/
 theorem ladder_rung5_TC0_substrate
@@ -417,6 +429,7 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung5_formulaVariableAccessLowerBounds
 #print axioms ladder_rung5_subfunctionObserverFrontier
 #print axioms ladder_rung5_subfunctionCapacityWall
+#print axioms ladder_rung5_dnfEqualityExponentialLowerBound
 #print axioms ladder_rung5_TC0_substrate
 #print axioms ladder_rung5_branching_program_substrate
 #print axioms ladder_rung5_width_one_bp_parity_kernel
