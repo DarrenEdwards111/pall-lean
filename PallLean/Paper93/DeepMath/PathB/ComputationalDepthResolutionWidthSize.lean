@@ -237,6 +237,92 @@ theorem no_derivation_of_width_lt_lower_bound
   have : w <= b := Nat.le_trans hw hD
   exact Nat.not_lt_of_ge this hgap
 
+/-- In a tree-like derivation from axioms of width at most `k`, every clause
+appearing in the derivation has width at most `k` times the derivation size.
+
+This is a genuine width-to-size accounting theorem for the substrate.  It is not
+BSW's exponential relation, but it is the first nontrivial rung-2 bridge: a
+large proof-width lower bound forces a large tree-like proof. -/
+theorem proofWidth_le_axiomWidth_mul_size
+    {Lit : Type*} [DecidableEq Lit]
+    {compl : Lit -> Lit}
+    {Axiom : ResolutionClause Lit -> Prop}
+    {Target : ResolutionClause Lit}
+    {k : Nat}
+    (Hax : AxiomsWidthAtMost Axiom k)
+    (D : ResolutionDerivation compl Axiom Target) :
+    D.proofWidth <= k * D.size := by
+  induction D with
+  | ax h =>
+      have hk : ResolutionClause.width Target <= k := Hax Target h
+      simpa [ResolutionDerivation.proofWidth, ResolutionDerivation.size] using hk
+  | resolve L R p ihL ihR =>
+      have hrootL : ResolutionClause.width _ <= L.proofWidth :=
+        ResolutionDerivation.root_width_le_proofWidth L
+      have hrootR : ResolutionClause.width _ <= R.proofWidth :=
+        ResolutionDerivation.root_width_le_proofWidth R
+      have hres :
+          ResolutionClause.width (ResolutionClause.resolvent compl _ _ p) <=
+            L.proofWidth + R.proofWidth := by
+        calc
+          ResolutionClause.width (ResolutionClause.resolvent compl _ _ p)
+              <= ResolutionClause.width _ + ResolutionClause.width _ :=
+            ResolutionClause.width_resolvent_le compl _ _ p
+          _ <= L.proofWidth + R.proofWidth :=
+            Nat.add_le_add hrootL hrootR
+      have hLR : L.proofWidth + R.proofWidth <= k * (L.size + R.size + 1) := by
+        calc
+          L.proofWidth + R.proofWidth <= k * L.size + k * R.size :=
+            Nat.add_le_add ihL ihR
+          _ = k * (L.size + R.size) := by omega
+          _ <= k * (L.size + R.size + 1) := by
+            exact Nat.mul_le_mul_left k (Nat.le_succ _)
+      have hres' :
+          ResolutionClause.width (ResolutionClause.resolvent compl _ _ p) <=
+            k * (L.size + R.size + 1) :=
+        Nat.le_trans hres hLR
+      have hL' : L.proofWidth <= k * (L.size + R.size + 1) := by
+        exact Nat.le_trans ihL (by
+          exact Nat.mul_le_mul_left k (by omega))
+      have hR' : R.proofWidth <= k * (L.size + R.size + 1) := by
+        exact Nat.le_trans ihR (by
+          exact Nat.mul_le_mul_left k (by omega))
+      simp [ResolutionDerivation.proofWidth, ResolutionDerivation.size]
+      exact ⟨⟨hL', hR'⟩, hres'⟩
+
+/-- Width lower bounds give linear tree-like size lower bounds in the substrate:
+if every target derivation has width at least `w`, then every derivation has
+`w <= k * size` when axioms have width at most `k`. -/
+theorem width_lower_bound_le_axiomWidth_mul_size
+    {Lit : Type*} [DecidableEq Lit]
+    {compl : Lit -> Lit}
+    {Axiom : ResolutionClause Lit -> Prop}
+    {Target : ResolutionClause Lit}
+    {k w : Nat}
+    (Hax : AxiomsWidthAtMost Axiom k)
+    (Hwidth : ResolutionWidthLowerBound compl Axiom Target w)
+    (D : ResolutionDerivation compl Axiom Target) :
+    w <= k * D.size :=
+  Nat.le_trans (Hwidth D) (proofWidth_le_axiomWidth_mul_size Hax D)
+
+/-- No derivation of size at most `s` can exist when the width lower bound
+exceeds the total width budget `k * s`. -/
+theorem no_small_tree_like_derivation_of_width_lower_bound
+    {Lit : Type*} [DecidableEq Lit]
+    {compl : Lit -> Lit}
+    {Axiom : ResolutionClause Lit -> Prop}
+    {Target : ResolutionClause Lit}
+    {k w s : Nat}
+    (Hax : AxiomsWidthAtMost Axiom k)
+    (Hwidth : ResolutionWidthLowerBound compl Axiom Target w)
+    (hgap : k * s < w) :
+    Not (exists D : ResolutionDerivation compl Axiom Target, D.size <= s) := by
+  rintro ⟨D, hD⟩
+  have hw : w <= k * D.size :=
+    width_lower_bound_le_axiomWidth_mul_size Hax Hwidth D
+  have hs : k * D.size <= k * s := Nat.mul_le_mul_left k hD
+  exact Nat.not_lt_of_ge (Nat.le_trans hw hs) hgap
+
 /-- First tiny width-to-size consequence.
 
 If every axiom is `k`-narrow but every derivation of `Target` must have width
@@ -320,6 +406,9 @@ end SignedClause3
 #print axioms ResolutionDerivation.left_proofWidth_le_resolve
 #print axioms ResolutionDerivation.right_proofWidth_le_resolve
 #print axioms no_derivation_of_width_lt_lower_bound
+#print axioms proofWidth_le_axiomWidth_mul_size
+#print axioms width_lower_bound_le_axiomWidth_mul_size
+#print axioms no_small_tree_like_derivation_of_width_lower_bound
 #print axioms derivation_size_ge_three_of_width_lower_bound_gt_axioms
 #print axioms SignedLiteral.compl_involutive
 #print axioms SignedClause3.toResolutionClause_width_le_three
