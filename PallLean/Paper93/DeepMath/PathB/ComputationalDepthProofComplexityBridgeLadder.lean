@@ -6,6 +6,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4SwitchingCore
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4CircuitReal
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung5IntermediateModels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthObserverInvariantTransfer
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung5ToyLowerBounds
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung6GeneralModelWall
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMetacomplexityFrontier
 
@@ -70,8 +71,10 @@ in this repo: the bottom (proved) and the top (proven equal to the separation).
   extracts the common observer invariant from rungs 1--4 and extends it to
   TC⁰, NC¹/formulas, width-5 BP, and bounded-space as formal transfer theorems:
   if the relevant frontier lower bound is supplied, the invariant blocks the
-  budgeted model.  Those frontier lower bounds themselves are not proved here.
-  This is where current techniques stall — the barriers bite here.
+  budgeted model.  `ComputationalDepthRung5ToyLowerBounds` proves the same
+  mechanism against deliberately weakened input-blind TC⁰/NC¹ toy subclasses.
+  The real frontier lower bounds themselves are not proved here. This is where
+  current techniques stall — the barriers bite here.
 
 * **Rung 6 — General polynomial-time computation.  WALL SUBSTRATE PROVED;
   OPEN = P vs NP.**
@@ -250,6 +253,14 @@ theorem ladder_rung5_extendedObserverInvariantFrontier :
     Rung5ExtendedObserverInvariantFrontier :=
   rung5_extendedObserverInvariantFrontier
 
+/-- **Rung 5, toy lower bounds.**  The observer invariant proves actual lower
+bounds for deliberately weakened toy subclasses: input-blind threshold circuits,
+input-blind formulas, width-1 branching programs, and one-configuration space
+machines cannot compute parity on nonempty inputs under insufficient budgets.
+These are toy endpoints, not TC⁰/NC¹/width-5 breakthroughs. -/
+theorem ladder_rung5_toyLowerBounds : Rung5ToyLowerBounds :=
+  rung5_toyLowerBounds
+
 /-- **Rung 5, TC⁰ pointwise substrate.**  A supplied threshold-circuit lower
 bound rules out smaller TC⁰-style circuits at the given depth. -/
 theorem ladder_rung5_TC0_substrate
@@ -350,6 +361,7 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung5_formal_substrates
 #print axioms ladder_rung5_concreteObserverBoundaryKernels
 #print axioms ladder_rung5_extendedObserverInvariantFrontier
+#print axioms ladder_rung5_toyLowerBounds
 #print axioms ladder_rung5_TC0_substrate
 #print axioms ladder_rung5_branching_program_substrate
 #print axioms ladder_rung5_width_one_bp_parity_kernel
