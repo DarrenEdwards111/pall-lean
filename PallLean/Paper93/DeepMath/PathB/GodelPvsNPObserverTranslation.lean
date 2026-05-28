@@ -144,7 +144,7 @@ def godelObserverFrame (G : GodelObserverData) : ObserverBoundaryFrame where
 
 /-- A Gödel sentence datum for the selected system: true externally, not
 provable internally. -/
-structure GodelBoundaryWitness (G : GodelObserverData) : Prop where
+structure GodelBoundaryWitness (G : GodelObserverData) : Type 1 where
   sentence : G.Sentence
   true_sentence : G.TrueT sentence
   not_provable : Not (G.ProvableT sentence)
@@ -185,7 +185,7 @@ def pvsnpObserverFrame (P : PvsNPObserverData) : ObserverBoundaryFrame where
   InternalReachable := P.PFindable
 
 /-- A P-vs-NP boundary witness for the selected verifier/search frame. -/
-structure PvsNPBoundaryWitness (P : PvsNPObserverData) : Prop where
+structure PvsNPBoundaryWitness (P : PvsNPObserverData) : Type 1 where
   inst : P.Instance
   has_witness : P.HasNPWitness inst
   not_p_findable : Not (P.PFindable inst)
