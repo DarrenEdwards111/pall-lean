@@ -2,6 +2,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthExpanderTseitinInstance
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung3Complete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4CircuitSubstrates
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4ParityDecisionTreeCore
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4SwitchingCore
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4CircuitReal
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung5IntermediateModels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMetacomplexityFrontier
@@ -40,16 +41,19 @@ in this repo: the bottom (proved) and the top (proven equal to the separation).
   for Tseitin: Håstad, Pitassi–Rossman–Servedio–Tan.
 
 * **Rung 4 — Bounded-depth circuits (AC⁰, AC⁰[p]).  SUBSTRATES PROVED;
-  PARITY DECISION-TREE CORE PROVED; SWITCHING-LEMMA/POLYNOMIAL-METHOD LOWER
-  BOUNDS CITED.**
+  PARITY DECISION-TREE CORE PROVED; DNF SWITCHING CORE PROVED;
+  FULL SWITCHING-LEMMA/POLYNOMIAL-METHOD LOWER BOUNDS CITED.**
   `ComputationalDepthRung4CircuitSubstrates` formalizes Boolean functions,
   parity, AC⁰/AC⁰[p] circuit families, size/depth lower-bound interfaces, and
   no-small-circuit consequences.  `ComputationalDepthRung4ParityDecisionTreeCore`
   proves the endpoint lower-bound engine used after switching-lemma
   simplification: every decision tree computing parity on `n` variables has
-  depth at least `n`.  The hard circuit-to-decision-tree and polynomial-method
-  engines remain cited: parity ∉ AC⁰ by Håstad; AC⁰[p] lower bounds by
-  Razborov–Smolensky.
+  depth at least `n`.  `ComputationalDepthRung4SwitchingCore` proves the
+  deterministic DNF-to-decision-tree endpoint and a restricted switching
+  substrate: restricting a DNF, simplifying the residual, and compiling it into
+  a decision tree whose depth is bounded by the residual total literal width.
+  The full probabilistic switching lemma and polynomial-method engines remain
+  cited: parity ∉ AC⁰ by Håstad; AC⁰[p] lower bounds by Razborov–Smolensky.
 
 * **Rung 5 — TC⁰ / NC¹ / branching programs / bounded space.  SUBSTRATES
   PROVED; STRONG LOWER BOUNDS MOSTLY OPEN.**
@@ -163,6 +167,32 @@ theorem ladder_rung4_parity_decision_tree_core
     n <= T.depth :=
   BoolDecisionTree.depth_ge_of_computes_parity T hcomputes
 
+/-- **Rung 4, proved deterministic switching core.**  A DNF can be evaluated by
+a decision tree of depth at most its total literal width.  Therefore any DNF
+computing parity has total literal width at least `n`.  This is a real endpoint
+kernel for the Håstad route, but not the full random-restriction switching
+lemma. -/
+theorem ladder_rung4_dnf_switching_core
+    {n : Nat} (D : Rung4DNF n)
+    (hcomputes : D.Computes (parityFunction n)) :
+    n <= D.totalWidth :=
+  Rung4DNF.totalWidth_ge_of_computes_parity D hcomputes
+
+/-- **Rung 4, restricted switching substrate.**  If a concrete restriction
+leaves a DNF residual of total literal width at most `depthBudget`, then there
+is a decision tree of depth at most `depthBudget` computing the original DNF on
+the restricted subcube.  This is the actual substrate a probabilistic switching
+lemma would feed; the random-restriction probability bound is not assumed here.
+-/
+theorem ladder_rung4_restricted_switching_substrate
+    {n depthBudget : Nat} (D : Rung4DNF n) (ρ : Rung4Restriction n)
+    (hwidth : (D.restrict ρ).totalWidth <= depthBudget) :
+    exists T : BoolDecisionTree n,
+      T.depth <= depthBudget /\
+      forall x : Fin n -> Bool,
+        Rung4Restriction.Extends ρ x -> T.eval x = D.eval x :=
+  Rung4DNF.exists_restrictedDecisionTree_of_residualWidth_le D ρ hwidth
+
 /-! ## Rung 5 (FRONTIER SUBSTRATES): TC⁰ / NC¹ / branching programs -/
 
 /-- **Rung 5, formal frontier bundle.**  The rung-5 substrate has real syntax or
@@ -240,6 +270,8 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung4_formal_substrates
 #print axioms ladder_rung4_AC0_parity_substrate
 #print axioms ladder_rung4_parity_decision_tree_core
+#print axioms ladder_rung4_dnf_switching_core
+#print axioms ladder_rung4_restricted_switching_substrate
 #print axioms ladder_rung5_formal_substrates
 #print axioms ladder_rung5_TC0_substrate
 #print axioms ladder_rung5_branching_program_substrate

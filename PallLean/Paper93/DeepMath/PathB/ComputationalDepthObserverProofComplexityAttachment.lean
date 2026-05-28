@@ -3,6 +3,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthResolutionMediumClause
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung3Complete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4CircuitSubstrates
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4ParityDecisionTreeCore
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4SwitchingCore
 
 /-!
 # Observer/N-frame attachment to proof-complexity rungs 1--4
@@ -17,7 +18,8 @@ The bottom proof-complexity rungs are now real Lean mathematics:
 * rung 3: algebraic/semi-algebraic substrates expose degree/rank/depth
   lower-bound channels.
 * rung 4: bounded-depth circuit substrates expose AC⁰/AC⁰[p] lower-bound
-  channels, and the parity decision-tree endpoint lower bound is proved.
+  channels, the parity decision-tree endpoint lower bound is proved, and a
+  deterministic DNF-to-decision-tree switching core is proved.
 
 This file attaches the N-frame/observer vocabulary to those proved rungs without
 changing the payload.  The observer words are deliberately thin wrappers:
@@ -39,9 +41,9 @@ vocabulary means resource visibility for restricted proof systems.  For
 Nullstellensatz and cutting planes this now attaches to genuine polynomial and
 integer-inequality systems; for bounded-depth Frege it now attaches to a real
 formula-level Frege kernel.  For rung 4, observer channels are AC⁰/AC⁰[p]
-circuits or decision trees, and observer boundaries are the corresponding
-resource lower bounds.  None of this proves the underlying Tseitin, Håstad, or
-Razborov--Smolensky lower bounds.
+circuits, decision trees, or DNF switching channels, and observer boundaries are
+the corresponding resource lower bounds.  None of this proves the underlying
+Tseitin, full Håstad random-restriction, or Razborov--Smolensky lower bounds.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB
@@ -574,6 +576,14 @@ structure ObserverParityDecisionTreeBoundary (n : Nat) : Prop where
     forall T : BoolDecisionTree n,
       T.Computes (parityFunction n) -> n <= T.depth
 
+/-- A DNF switching observer boundary is the proved deterministic switching
+kernel: every DNF computing parity on `n` bits has total literal width at least
+`n`. -/
+structure ObserverDNFSwitchingBoundary (n : Nat) : Prop where
+  totalWidth_lower_bound :
+    forall D : Rung4DNF n,
+      D.Computes (parityFunction n) -> n <= D.totalWidth
+
 /-- The parity decision-tree observer boundary is actually proved in this
 repository. -/
 theorem observerParityDecisionTreeBoundary (n : Nat) :
@@ -581,6 +591,15 @@ theorem observerParityDecisionTreeBoundary (n : Nat) :
   depth_lower_bound := by
     intro T hcomp
     exact BoolDecisionTree.depth_ge_of_computes_parity T hcomp
+
+/-- The DNF switching observer boundary is actually proved in this repository.
+It is the deterministic endpoint of the switching route, not Håstad's full
+probabilistic switching lemma. -/
+theorem observerDNFSwitchingBoundary (n : Nat) :
+    ObserverDNFSwitchingBoundary n where
+  totalWidth_lower_bound := by
+    intro D hcomp
+    exact Rung4DNF.totalWidth_ge_of_computes_parity D hcomp
 
 /-- A restricted AC⁰ observer channel is a bounded-depth, bounded-size AC⁰
 circuit attempt for a target Boolean-function family. -/
@@ -667,6 +686,33 @@ theorem nframeParityDecisionTreeChannel_blocked_by_observerBoundary
   have hlower : n <= T.depth := B.depth_lower_bound T hcomp
   exact Nat.not_lt_of_ge (Nat.le_trans hlower hdepth) hgap
 
+/-- A restricted DNF switching channel for parity.  The resource is total
+literal width, not AC⁰ circuit size. -/
+structure NFrameDNFSwitchingChannel (n : Nat) where
+  totalWidthBudget : Nat
+
+namespace NFrameDNFSwitchingChannel
+
+/-- The DNF switching channel realizes parity if a DNF computes parity within
+the visible total-width budget. -/
+def realizes {n : Nat}
+    (C : NFrameDNFSwitchingChannel n) : Prop :=
+  exists D : Rung4DNF n,
+    D.Computes (parityFunction n) /\ D.totalWidth <= C.totalWidthBudget
+
+end NFrameDNFSwitchingChannel
+
+/-- The proved DNF switching boundary blocks total-width-bounded DNF observer
+channels for parity. -/
+theorem nframeDNFSwitchingChannel_blocked_by_observerBoundary
+    {n : Nat} (C : NFrameDNFSwitchingChannel n)
+    (B : ObserverDNFSwitchingBoundary n)
+    (hgap : C.totalWidthBudget < n) :
+    Not C.realizes := by
+  rintro ⟨D, hcomp, hwidth⟩
+  have hlower : n <= D.totalWidth := B.totalWidth_lower_bound D hcomp
+  exact Nat.not_lt_of_ge (Nat.le_trans hlower hwidth) hgap
+
 /-- AC⁰ parity is just the AC⁰ observer attachment specialized to parity. -/
 theorem nframeAC0ParityChannel_blocked_by_observerBoundary
     {n requiredSize : Nat}
@@ -721,9 +767,16 @@ structure ObserverRung4Attachment : Prop where
       ObserverParityDecisionTreeBoundary n ->
       C.depthBudget < n ->
       Not C.realizes
+  dnfSwitchingBoundary :
+    forall n : Nat, ObserverDNFSwitchingBoundary n
+  dnfSwitchingChannel :
+    forall {n : Nat} (C : NFrameDNFSwitchingChannel n),
+      ObserverDNFSwitchingBoundary n ->
+      C.totalWidthBudget < n ->
+      Not C.realizes
 
 /-- Rung 4 has a formal observer attachment to the circuit substrates and to
-the proved parity decision-tree core. -/
+the proved parity decision-tree and DNF switching cores. -/
 theorem observerRung4Attachment_of_substrates :
     ObserverRung4Attachment where
   ac0 := by
@@ -742,6 +795,10 @@ theorem observerRung4Attachment_of_substrates :
   parityDecisionTreeChannel := by
     intro n C B hgap
     exact nframeParityDecisionTreeChannel_blocked_by_observerBoundary C B hgap
+  dnfSwitchingBoundary := observerDNFSwitchingBoundary
+  dnfSwitchingChannel := by
+    intro n C B hgap
+    exact nframeDNFSwitchingChannel_blocked_by_observerBoundary C B hgap
 
 /-! ## Kernel-only axiom trace -/
 
@@ -763,9 +820,11 @@ theorem observerRung4Attachment_of_substrates :
 #print axioms nframeBoundedDepthFregeChannel_blocked_by_observerBoundaryReal
 #print axioms observerRung3ChannelAttachment_of_substrates
 #print axioms observerParityDecisionTreeBoundary
+#print axioms observerDNFSwitchingBoundary
 #print axioms nframeAC0CircuitChannel_blocked_by_observerBoundary
 #print axioms nframeAC0pCircuitChannel_blocked_by_observerBoundary
 #print axioms nframeParityDecisionTreeChannel_blocked_by_observerBoundary
+#print axioms nframeDNFSwitchingChannel_blocked_by_observerBoundary
 #print axioms nframeAC0ParityChannel_blocked_by_observerBoundary
 #print axioms nframeAC0pParityChannel_blocked_by_observerBoundary
 #print axioms observerRung4Attachment_of_substrates
