@@ -29,8 +29,10 @@ No theorem here says that arbitrary polynomial-time SAT deciders induce such a
 restricted channel.  That generalization remains the P-vs-NP-strength wall.
 
 The later rung-3 attachment follows the same rule: observer vocabulary means
-resource visibility for a restricted algebraic/semi-algebraic proof system, not a
-new proof of the underlying Tseitin lower bounds.
+resource visibility for restricted algebraic/semi-algebraic proof systems.  For
+Nullstellensatz and cutting planes this now attaches to genuine polynomial and
+integer-inequality systems; for bounded-depth Frege it remains only an abstract
+resource interface.  None of this proves the underlying Tseitin lower bounds.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB
@@ -244,23 +246,23 @@ structure ObserverPolynomialCalculusBoundary
       (SignedThreeCNFPolynomialCalculusAxiom φ)
       polynomialCalculusContradictionLine requiredDegree
 
-/-- A Nullstellensatz observer boundary is the static certificate-degree analogue
-of the polynomial-calculus boundary. -/
-structure ObserverNullstellensatzBoundary
-    (φ : SignedThreeCNF) (requiredDegree : Nat) : Prop where
+/-- A real Nullstellensatz observer boundary is a static polynomial-certificate
+degree lower bound over `MvPolynomial`, not a derivation-size claim. -/
+structure ObserverNullstellensatzBoundaryReal
+    {ι σ F : Type*} [Fintype ι] [CommRing F] [DecidableEq σ]
+    (ax : ι → MvPolynomial σ F) (requiredDegree : Nat) : Prop where
   degree_lower_bound :
-    NullstellensatzDegreeLowerBound
-      (SignedThreeCNFPolynomialCalculusAxiom φ)
-      polynomialCalculusContradictionLine requiredDegree
+    NullstellensatzDegreeLowerBoundReal ax requiredDegree
 
-/-- A cutting-planes observer boundary is a rank lower bound for the restricted
-semi-algebraic channel. -/
-structure ObserverCuttingPlanesBoundary
-    (φ : SignedThreeCNF) (requiredRank : Nat) : Prop where
+/-- A real cutting-planes observer boundary is a rank lower bound for actual
+integer-inequality cutting-planes derivations. -/
+structure ObserverCuttingPlanesBoundaryReal
+    {σ : Type*} [Fintype σ]
+    (Axiom : CuttingPlanesLine σ -> Prop)
+    (Target : CuttingPlanesLine σ)
+    (requiredRank : Nat) : Prop where
   rank_lower_bound :
-    Rung3ResourceLowerBound
-      (SignedThreeCNFCuttingPlanesAxiom φ)
-      cuttingPlanesContradictionLine requiredRank
+    CuttingPlanesRankLowerBound Axiom Target requiredRank
 
 /-- A bounded-depth Frege observer boundary is a depth/resource lower bound for
 the restricted Frege channel. -/
@@ -282,27 +284,29 @@ theorem polynomialCalculusChannel_blocked_by_observerBoundary
   no_small_signedThreeCNF_polynomialCalculus_refutation_of_degree_lower_bound
     φ B.degree_lower_bound hgap
 
-/-- Nullstellensatz inherits the same observer attachment as the static
-certificate face of polynomial calculus. -/
-theorem nullstellensatzChannel_blocked_by_observerBoundary
-    (φ : SignedThreeCNF) {requiredDegree sizeBudget : Nat}
-    (B : ObserverNullstellensatzBoundary φ requiredDegree)
-    (hgap : 3 + sizeBudget < requiredDegree) :
-    Not (exists D : SignedThreeCNFNullstellensatzRefutation φ,
-      D.size <= sizeBudget) :=
-  no_small_signedThreeCNF_nullstellensatz_refutation_of_degree_lower_bound
-    φ B.degree_lower_bound hgap
+/-- A real Nullstellensatz observer boundary forces high-degree coefficient
+polynomials once axiom degree is bounded. -/
+theorem nullstellensatzChannel_blocked_by_observerBoundaryReal
+    {ι σ F : Type*} [Fintype ι] [CommRing F] [DecidableEq σ]
+    {ax : ι → MvPolynomial σ F} {requiredDegree axiomDegreeBound : Nat}
+    (B : ObserverNullstellensatzBoundaryReal ax requiredDegree)
+    (hax : NullstellensatzCertificate.maxAxiomDegree ax ≤ axiomDegreeBound)
+    (c : NullstellensatzCertificate ax) :
+    requiredDegree ≤ c.maxCoeffDegree + axiomDegreeBound :=
+  realNullstellensatz_coeffDegree_forced B.degree_lower_bound hax c
 
-/-- A cutting-planes rank boundary blocks bounded visible semi-algebraic
+/-- A real cutting-planes rank boundary blocks bounded visible semi-algebraic
 channels. -/
-theorem cuttingPlanesChannel_blocked_by_observerBoundary
-    (φ : SignedThreeCNF) {requiredRank sizeBudget : Nat}
-    (B : ObserverCuttingPlanesBoundary φ requiredRank)
-    (hgap : 0 + sizeBudget < requiredRank) :
-    Not (exists D : SignedThreeCNFCuttingPlanesRefutation φ,
+theorem cuttingPlanesChannel_blocked_by_observerBoundaryReal
+    {σ : Type*} [Fintype σ]
+    {Axiom : CuttingPlanesLine σ -> Prop}
+    {Target : CuttingPlanesLine σ}
+    {requiredRank sizeBudget : Nat}
+    (B : ObserverCuttingPlanesBoundaryReal Axiom Target requiredRank)
+    (hgap : sizeBudget < requiredRank) :
+    Not (exists D : CuttingPlanesDerivation Axiom Target,
       D.size <= sizeBudget) :=
-  no_small_signedThreeCNF_cuttingPlanes_refutation_of_rank_lower_bound
-    φ B.rank_lower_bound hgap
+  realCuttingPlanes_no_small_of_rank_lower_bound B.rank_lower_bound hgap
 
 /-- A bounded-depth Frege resource boundary blocks channels below the required
 visible depth/resource. -/
@@ -324,17 +328,21 @@ structure ObserverRung3Attachment (φ : SignedThreeCNF) : Prop where
       3 + sizeBudget < requiredDegree ->
       Not (exists D : SignedThreeCNFPolynomialCalculusRefutation φ,
         D.size <= sizeBudget)
-  nullstellensatz :
-    forall {requiredDegree sizeBudget : Nat},
-      ObserverNullstellensatzBoundary φ requiredDegree ->
-      3 + sizeBudget < requiredDegree ->
-      Not (exists D : SignedThreeCNFNullstellensatzRefutation φ,
-        D.size <= sizeBudget)
-  cuttingPlanes :
-    forall {requiredRank sizeBudget : Nat},
-      ObserverCuttingPlanesBoundary φ requiredRank ->
-      0 + sizeBudget < requiredRank ->
-      Not (exists D : SignedThreeCNFCuttingPlanesRefutation φ,
+  realNullstellensatz :
+    forall {ι σ F : Type*} [Fintype ι] [CommRing F] [DecidableEq σ]
+      {ax : ι → MvPolynomial σ F} {requiredDegree axiomDegreeBound : Nat},
+      ObserverNullstellensatzBoundaryReal ax requiredDegree ->
+      NullstellensatzCertificate.maxAxiomDegree ax ≤ axiomDegreeBound ->
+      forall c : NullstellensatzCertificate ax,
+        requiredDegree ≤ c.maxCoeffDegree + axiomDegreeBound
+  realCuttingPlanes :
+    forall {σ : Type*} [Fintype σ]
+      {Axiom : CuttingPlanesLine σ -> Prop}
+      {Target : CuttingPlanesLine σ}
+      {requiredRank sizeBudget : Nat},
+      ObserverCuttingPlanesBoundaryReal Axiom Target requiredRank ->
+      sizeBudget < requiredRank ->
+      Not (exists D : CuttingPlanesDerivation Axiom Target,
         D.size <= sizeBudget)
   boundedDepthFrege :
     forall {requiredDepth sizeBudget : Nat},
@@ -351,12 +359,12 @@ theorem observerRung3Attachment_of_substrates
   polynomialCalculus := by
     intro requiredDegree sizeBudget B hgap
     exact polynomialCalculusChannel_blocked_by_observerBoundary φ B hgap
-  nullstellensatz := by
-    intro requiredDegree sizeBudget B hgap
-    exact nullstellensatzChannel_blocked_by_observerBoundary φ B hgap
-  cuttingPlanes := by
-    intro requiredRank sizeBudget B hgap
-    exact cuttingPlanesChannel_blocked_by_observerBoundary φ B hgap
+  realNullstellensatz := by
+    intro ι σ F _instFintype _instRing _instDecEq ax requiredDegree axiomDegreeBound B hax c
+    exact nullstellensatzChannel_blocked_by_observerBoundaryReal B hax c
+  realCuttingPlanes := by
+    intro σ _instFintype Axiom Target requiredRank sizeBudget B hgap
+    exact cuttingPlanesChannel_blocked_by_observerBoundaryReal B hgap
   boundedDepthFrege := by
     intro requiredDepth sizeBudget B hgap
     exact boundedDepthFregeChannel_blocked_by_observerBoundary φ B hgap
@@ -371,8 +379,8 @@ theorem observerRung3Attachment_of_substrates
 #print axioms mediumClauseVisible_of_derivation
 #print axioms signedThreeCNF_localChannel_blocked_by_godMoveBoundary
 #print axioms polynomialCalculusChannel_blocked_by_observerBoundary
-#print axioms nullstellensatzChannel_blocked_by_observerBoundary
-#print axioms cuttingPlanesChannel_blocked_by_observerBoundary
+#print axioms nullstellensatzChannel_blocked_by_observerBoundaryReal
+#print axioms cuttingPlanesChannel_blocked_by_observerBoundaryReal
 #print axioms boundedDepthFregeChannel_blocked_by_observerBoundary
 #print axioms observerRung3Attachment_of_substrates
 

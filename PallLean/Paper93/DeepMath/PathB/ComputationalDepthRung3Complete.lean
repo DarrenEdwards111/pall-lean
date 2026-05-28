@@ -1,4 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthPolynomialCalculusRung
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNullstellensatzReal
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCuttingPlanesReal
 
 /-!
 # Rung 3 completed as formal substrates
@@ -12,50 +14,36 @@ This file completes the formal **substrate** for that rung in the same honest
 sense as the resolution substrate:
 
 * polynomial calculus is imported from `ComputationalDepthPolynomialCalculusRung`;
-* Nullstellensatz is exposed as the certificate/degree fragment of polynomial
-  calculus;
-* cutting planes gets a tree-like rank accounting model;
-* bounded-depth Frege gets a tree-like depth accounting model;
-* each system has a lower-bound interface and a proved "resource lower bound
-  rules out small tree-like derivations" theorem;
-* signed 3-CNF axioms are wired into each model with the expected constant
-  starting resource.
+* Nullstellensatz is now a genuine static `MvPolynomial` certificate system,
+  imported from `ComputationalDepthNullstellensatzReal`;
+* cutting planes is now a genuine integer-inequality derivation/rank system,
+  imported from `ComputationalDepthCuttingPlanesReal`;
+* bounded-depth Frege still has only an abstract depth/resource substrate here;
+* each real or abstract system has the appropriate lower-bound consequence
+  proved without placeholder proof terms or custom axioms.
 
 The hard family-specific lower bounds for Tseitin in these systems remain
-literature theorems and future formalization targets.  They are not introduced
-as Lean assumptions here.
+literature theorems and future formalization targets.  Bounded-depth Frege also
+still needs a real formula/Frege-inference formalization; it is explicitly not
+complete in the same sense as Nullstellensatz and cutting planes.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB
 
-/-! ## Nullstellensatz as the static degree face of polynomial calculus -/
+/-! ## Real Nullstellensatz substrate -/
 
-/-- Nullstellensatz certificate degree lower bounds are represented by the same
-syntactic degree interface as polynomial calculus: a certificate deriving `1`
-from degree-`3` clause polynomials must reach the asserted degree. -/
-abbrev NullstellensatzDegreeLowerBound
-    (Axiom : PolynomialCalculusLine -> Prop)
-    (Target : PolynomialCalculusLine)
-    (d : Nat) : Prop :=
-  PolynomialCalculusDegreeLowerBound Axiom Target d
-
-/-- A signed-3-CNF Nullstellensatz refutation, modelled as the static certificate
-fragment of polynomial calculus. -/
-abbrev SignedThreeCNFNullstellensatzRefutation (φ : SignedThreeCNF) :=
-  SignedThreeCNFPolynomialCalculusRefutation φ
-
-/-- Nullstellensatz degree lower bounds give the same tree-like size obstruction
-as the polynomial-calculus certificate substrate. -/
-theorem no_small_signedThreeCNF_nullstellensatz_refutation_of_degree_lower_bound
-    (φ : SignedThreeCNF)
-    {d s : Nat}
-    (Hdeg : NullstellensatzDegreeLowerBound
-      (SignedThreeCNFPolynomialCalculusAxiom φ)
-      polynomialCalculusContradictionLine d)
-    (hgap : 3 + s < d) :
-    Not (exists D : SignedThreeCNFNullstellensatzRefutation φ, D.size <= s) :=
-  no_small_signedThreeCNF_polynomialCalculus_refutation_of_degree_lower_bound
-    φ Hdeg hgap
+/-- Real Nullstellensatz degree lower bounds are static polynomial-certificate
+lower bounds over `MvPolynomial`, not polynomial-calculus derivation bounds.
+This theorem exposes the genuine degree-accounting consequence in the rung-3
+bundle: bounded axiom degree forces high-degree coefficient polynomials. -/
+theorem realNullstellensatz_coeffDegree_forced
+    {ι σ F : Type*} [Fintype ι] [CommRing F] [DecidableEq σ]
+    {ax : ι → MvPolynomial σ F} {d k : ℕ}
+    (Hdeg : NullstellensatzDegreeLowerBoundReal ax d)
+    (hax : NullstellensatzCertificate.maxAxiomDegree ax ≤ k)
+    (c : NullstellensatzCertificate ax) :
+    d ≤ c.maxCoeffDegree + k :=
+  maxCoeffDegree_ge_of_degreeLowerBound_of_axiomBound Hdeg hax c
 
 /-! ## Generic tree-like resource accounting for rank/depth systems -/
 
@@ -218,50 +206,19 @@ theorem no_small_rung3_resource_derivation_of_lower_bound
   have hs : k + D.size <= k + s := Nat.add_le_add_left hD k
   exact Nat.not_lt_of_ge (Nat.le_trans hr hs) hgap
 
-/-! ## Cutting planes rank substrate -/
+/-! ## Real cutting-planes substrate -/
 
-abbrev CuttingPlanesLine := Rung3ResourceLine
-abbrev CuttingPlanesDerivation := Rung3ResourceDerivation
-
-/-- A signed 3-CNF clause contributes an initial cutting-planes inequality with
-rank zero in this substrate. -/
-def SignedClause3.toCuttingPlanesLine {n : Nat}
-    (_c : SignedClause3 n) : CuttingPlanesLine where
-  resource := 0
-
-/-- Cutting-planes axioms induced by a signed 3-CNF formula. -/
-def SignedThreeCNFCuttingPlanesAxiom
-    (φ : SignedThreeCNF) : CuttingPlanesLine -> Prop :=
-  fun P => exists c : SignedClause3 φ.numVars,
-    c ∈ φ.clauses /\ c.toCuttingPlanesLine = P
-
-/-- Abstract contradiction target for cutting planes. -/
-def cuttingPlanesContradictionLine : CuttingPlanesLine where
-  resource := 0
-
-abbrev SignedThreeCNFCuttingPlanesRefutation (φ : SignedThreeCNF) :=
-  CuttingPlanesDerivation
-    (SignedThreeCNFCuttingPlanesAxiom φ)
-    cuttingPlanesContradictionLine
-
-/-- Signed 3-CNF cutting-planes axioms start at rank zero. -/
-theorem signedThreeCNFCuttingPlanesAxioms_rank_le_zero
-    (φ : SignedThreeCNF) :
-    Rung3AxiomsResourceAtMost (SignedThreeCNFCuttingPlanesAxiom φ) 0 := by
-  intro P hP
-  rcases hP with ⟨c, _hc, rfl⟩
-  rfl
-
-/-- Cutting-planes rank lower bounds rule out small tree-like refutations. -/
-theorem no_small_signedThreeCNF_cuttingPlanes_refutation_of_rank_lower_bound
-    (φ : SignedThreeCNF)
+/-- Real cutting-planes rank lower bounds, over integer inequalities and the
+actual cutting-planes derivation rules, rule out small tree-like derivations. -/
+theorem realCuttingPlanes_no_small_of_rank_lower_bound
+    {σ : Type*} [Fintype σ]
+    {Axiom : CuttingPlanesLine σ -> Prop}
+    {Target : CuttingPlanesLine σ}
     {r s : Nat}
-    (Hrank : Rung3ResourceLowerBound
-      (SignedThreeCNFCuttingPlanesAxiom φ) cuttingPlanesContradictionLine r)
-    (hgap : 0 + s < r) :
-    Not (exists D : SignedThreeCNFCuttingPlanesRefutation φ, D.size <= s) :=
-  no_small_rung3_resource_derivation_of_lower_bound
-    (signedThreeCNFCuttingPlanesAxioms_rank_le_zero φ) Hrank hgap
+    (Hrank : CuttingPlanesRankLowerBound Axiom Target r)
+    (hgap : s < r) :
+    Not (exists D : CuttingPlanesDerivation Axiom Target, D.size <= s) :=
+  no_small_cuttingPlanes_derivation_of_rank_lower_bound Hrank hgap
 
 /-! ## Bounded-depth Frege substrate -/
 
@@ -319,19 +276,20 @@ structure Rung3CompletedSubstrates (φ : SignedThreeCNF) : Prop where
         polynomialCalculusContradictionLine d ->
       3 + s < d ->
       Not (exists D : SignedThreeCNFPolynomialCalculusRefutation φ, D.size <= s)
-  nullstellensatz :
-    forall {d s : Nat},
-      NullstellensatzDegreeLowerBound
-        (SignedThreeCNFPolynomialCalculusAxiom φ)
-        polynomialCalculusContradictionLine d ->
-      3 + s < d ->
-      Not (exists D : SignedThreeCNFNullstellensatzRefutation φ, D.size <= s)
-  cuttingPlanes :
-    forall {r s : Nat},
-      Rung3ResourceLowerBound
-        (SignedThreeCNFCuttingPlanesAxiom φ) cuttingPlanesContradictionLine r ->
-      0 + s < r ->
-      Not (exists D : SignedThreeCNFCuttingPlanesRefutation φ, D.size <= s)
+  realNullstellensatz :
+    forall {ι σ F : Type*} [Fintype ι] [CommRing F] [DecidableEq σ]
+      {ax : ι → MvPolynomial σ F} {d k : ℕ},
+      NullstellensatzDegreeLowerBoundReal ax d ->
+      NullstellensatzCertificate.maxAxiomDegree ax ≤ k ->
+      forall c : NullstellensatzCertificate ax, d ≤ c.maxCoeffDegree + k
+  realCuttingPlanes :
+    forall {σ : Type*} [Fintype σ]
+      {Axiom : CuttingPlanesLine σ -> Prop}
+      {Target : CuttingPlanesLine σ}
+      {r s : Nat},
+      CuttingPlanesRankLowerBound Axiom Target r ->
+      s < r ->
+      Not (exists D : CuttingPlanesDerivation Axiom Target, D.size <= s)
   boundedDepthFrege :
     forall {r s : Nat},
       Rung3ResourceLowerBound
@@ -339,22 +297,22 @@ structure Rung3CompletedSubstrates (φ : SignedThreeCNF) : Prop where
       3 + s < r ->
       Not (exists D : SignedThreeCNFBoundedDepthFregeRefutation φ, D.size <= s)
 
-/-- Rung 3 is complete at the substrate level: each major rung-3 family has a
-formal lower-bound interface and a proved small-tree obstruction theorem. -/
+/-- Rung 3 now has real Nullstellensatz and cutting-planes substrates plus the
+existing polynomial-calculus substrate.  The bounded-depth Frege component is
+still an abstract resource interface, so this is an honest mixed-status bundle,
+not a claim that all rung-3 proof systems are fully formalized. -/
 theorem rung3_completed_substrates (φ : SignedThreeCNF) :
     Rung3CompletedSubstrates φ where
   polynomialCalculus := by
     intro d s Hdeg hgap
     exact no_small_signedThreeCNF_polynomialCalculus_refutation_of_degree_lower_bound
       φ Hdeg hgap
-  nullstellensatz := by
-    intro d s Hdeg hgap
-    exact no_small_signedThreeCNF_nullstellensatz_refutation_of_degree_lower_bound
-      φ Hdeg hgap
-  cuttingPlanes := by
-    intro r s Hrank hgap
-    exact no_small_signedThreeCNF_cuttingPlanes_refutation_of_rank_lower_bound
-      φ Hrank hgap
+  realNullstellensatz := by
+    intro ι σ F _instFintype _instRing _instDecEq ax d k Hdeg hax c
+    exact realNullstellensatz_coeffDegree_forced Hdeg hax c
+  realCuttingPlanes := by
+    intro σ _instFintype Axiom Target r s Hrank hgap
+    exact realCuttingPlanes_no_small_of_rank_lower_bound Hrank hgap
   boundedDepthFrege := by
     intro r s Hdepth hgap
     exact no_small_signedThreeCNF_boundedDepthFrege_refutation_of_depth_lower_bound
@@ -362,10 +320,10 @@ theorem rung3_completed_substrates (φ : SignedThreeCNF) :
 
 /-! ## Kernel-only axiom trace -/
 
-#print axioms no_small_signedThreeCNF_nullstellensatz_refutation_of_degree_lower_bound
+#print axioms realNullstellensatz_coeffDegree_forced
 #print axioms proofResource_le_axiomResource_add_size
 #print axioms no_small_rung3_resource_derivation_of_lower_bound
-#print axioms no_small_signedThreeCNF_cuttingPlanes_refutation_of_rank_lower_bound
+#print axioms realCuttingPlanes_no_small_of_rank_lower_bound
 #print axioms no_small_signedThreeCNF_boundedDepthFrege_refutation_of_depth_lower_bound
 #print axioms rung3_completed_substrates
 
