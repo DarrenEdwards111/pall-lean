@@ -1,5 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthExpanderTseitinInstance
-import PallLean.Paper93.DeepMath.PathB.ComputationalDepthPolynomialCalculusRung
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung3Complete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMetacomplexityFrontier
 
 /-!
@@ -24,15 +24,16 @@ in this repo: the bottom (proved) and the top (proven equal to the separation).
   Esteban–Torán, Ben-Sasson.  Not formalized here.
 
 * **Rung 3 — Polynomial calculus / Nullstellensatz / cutting planes /
-  bounded-depth Frege.  SUBSTRATE PROVED; SYSTEM LOWER BOUNDS CITED/OPEN.**
-  This repo now proves a polynomial-calculus degree/size accounting substrate in
-  `ComputationalDepthPolynomialCalculusRung`: signed 3-CNF axioms have degree
-  `≤ 3`, and any degree lower bound `d` rules out tree-like PC refutations of
-  size `s` whenever `3 + s < d`.  The hard family-specific lower bounds remain
-  literature results, not assumed Lean fields: PC degree & size lower bounds for
-  Tseitin: Buss–Grigoriev–Impagliazzo–Pitassi, Alekhnovich–Razborov;
-  cutting-planes lower bounds via interpolation: Pudlák (1997); bounded-depth
-  (AC⁰-)Frege lower bounds for Tseitin: Håstad, Pitassi–Rossman–Servedio–Tan.
+  bounded-depth Frege.  SUBSTRATES PROVED; SYSTEM LOWER BOUNDS CITED/OPEN.**
+  This repo now proves the rung-3 substrate bundle in
+  `ComputationalDepthRung3Complete`: polynomial-calculus degree, Nullstellensatz
+  degree, cutting-planes rank, and bounded-depth Frege depth each get a formal
+  lower-bound interface plus a proved small-tree obstruction theorem for signed
+  3-CNF.  The hard family-specific lower bounds remain literature results, not
+  assumed Lean fields: PC degree & size lower bounds for Tseitin:
+  Buss–Grigoriev–Impagliazzo–Pitassi, Alekhnovich–Razborov; cutting-planes lower
+  bounds via interpolation: Pudlák (1997); bounded-depth (AC⁰-)Frege lower bounds
+  for Tseitin: Håstad, Pitassi–Rossman–Servedio–Tan.
 
 * **Rung 4 — Bounded-depth circuits (AC⁰, AC⁰[p]).  CITED (real, unconditional).**
   Parity ∉ AC⁰: Håstad; AC⁰[p] lower bounds: Razborov–Smolensky.  Genuine circuit
@@ -84,7 +85,7 @@ theorem ladder_rung1_concrete (S : Finset (Fin 4))
     2 * S.card ≤ (edgeSupport (K4.combination S)).card :=
   K4_combination_width S h1 h2
 
-/-! ## Rung 3 (SUBSTRATE PROVED): polynomial-calculus degree to size -/
+/-! ## Rung 3 (SUBSTRATES PROVED): algebraic/semi-algebraic systems -/
 
 /-- **Rung 3, signed-3-CNF polynomial-calculus substrate.**  If a signed 3-CNF
 formula has polynomial-calculus degree lower bound `d`, then no tree-like
@@ -101,6 +102,13 @@ theorem ladder_rung3_polynomial_calculus_substrate
     Not (exists D : SignedThreeCNFPolynomialCalculusRefutation φ, D.size <= s) :=
   no_small_signedThreeCNF_polynomialCalculus_refutation_of_degree_lower_bound
     φ Hdeg hgap
+
+/-- **Rung 3, completed substrate bundle.**  The rung-3 map now has formal
+small-tree obstruction interfaces for polynomial calculus, Nullstellensatz,
+cutting planes, and bounded-depth Frege. -/
+theorem ladder_rung3_completed_substrates
+    (φ : SignedThreeCNF) : Rung3CompletedSubstrates φ :=
+  rung3_completed_substrates φ
 
 /-! ## Top rung (THE WALL): the general-model bridge is the separation -/
 
@@ -121,6 +129,7 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung1_width_lower_bound
 #print axioms ladder_rung1_concrete
 #print axioms ladder_rung3_polynomial_calculus_substrate
+#print axioms ladder_rung3_completed_substrates
 #print axioms ladder_top_rung_iff_separation
 
 end PallLean.Paper93.DeepMath.PathB
