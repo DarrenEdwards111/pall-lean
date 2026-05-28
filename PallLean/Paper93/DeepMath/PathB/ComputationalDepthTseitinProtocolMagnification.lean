@@ -25,24 +25,25 @@ open TuringMachine
 
 /-! ## P-time signed SAT decider surface -/
 
-/-- Placeholder for the concrete polynomial-time predicate on signed SAT
-deciders.  It is deliberately kept separate from the restricted protocol model:
-the magnification theorem below is exactly the missing claim that this ordinary
-P-time surface normalizes into the protocol surface. -/
-def PTimeSATPolynomialTime (_enc : SignedFormulaEncoding) (_M : DTM) : Prop :=
-  True
+/-- A supplied polynomial-time surface for signed SAT deciders.
+
+The file does not define polynomial time as `True`: the caller must provide the
+machine-class predicate.  This keeps the endpoint as "no decider in this P-time
+class", rather than the false statement that no DTM decides SAT at all. -/
+structure PTimeSATPolynomialTime (_enc : SignedFormulaEncoding) : Type where
+  isPTime : DTM -> Prop
 
 /-- A signed SAT decider in the intended P-time observer class.
 
-The polynomial-time predicate is kept explicit, as
-`PTimeSATPolynomialTime`, rather than identified with the N-frame protocol
-model.  A concrete machine model can later replace that predicate by an exact
-time-bound definition. -/
+The polynomial-time predicate is supplied by `PT`, rather than identified with
+the N-frame protocol model.  A concrete machine model can instantiate `PT` with
+an exact time-bound definition. -/
 structure PTimeSignedSATDecider
     (enc : SignedFormulaEncoding)
+    (PT : PTimeSATPolynomialTime enc)
     (M : DTM) : Prop where
   decides : SignedDTMDecidesSAT enc M
-  polynomial_time_cert : PTimeSATPolynomialTime enc M
+  polynomial_time_cert : PT.isPTime M
 
 /-! ## Normal-form / magnification target -/
 
@@ -68,12 +69,13 @@ structure PTimeTseitinProtocolNormalFormAt
 normalizes into the restricted local Tseitin protocol model at that scale. -/
 structure PTimeTseitinProtocolMagnificationAt
     {enc : SignedFormulaEncoding}
+    (PT : PTimeSATPolynomialTime enc)
     (F : IndependentAsymptoticSignedTseitinExpanderFamily enc)
     (Pobs : PClassLocalPhysicalObserver)
     (n : Nat)
     (hn : n >= 1) : Type where
   normalize :
-    forall (M : DTM) (H : PTimeSignedSATDecider enc M),
+    forall (M : DTM) (H : PTimeSignedSATDecider enc PT M),
       PTimeTseitinProtocolNormalFormAt F Pobs M H.decides n hn
 
 /-- A selected scale where the independent direction count exceeds the
@@ -96,7 +98,8 @@ theorem not_normalFormAt_of_lightconeGap
     (F : IndependentAsymptoticSignedTseitinExpanderFamily enc)
     (Pobs : PClassLocalPhysicalObserver)
     (M : DTM)
-    (H : PTimeSignedSATDecider enc M)
+    {PT : PTimeSATPolynomialTime enc}
+    (H : PTimeSignedSATDecider enc PT M)
     (n : Nat)
     (hn : n >= 1)
     (hgap :
@@ -113,56 +116,117 @@ theorem not_normalFormAt_of_lightconeGap
 then there is no P-time signed SAT decider for the encoding. -/
 theorem no_pTimeSignedSATDecider_of_magnificationAt
     {enc : SignedFormulaEncoding}
+    (PT : PTimeSATPolynomialTime enc)
     (F : IndependentAsymptoticSignedTseitinExpanderFamily enc)
     (Pobs : PClassLocalPhysicalObserver)
     (n : Nat)
     (hn : n >= 1)
     (hgap :
       ObserverLightconeBandwidthLimit Pobs < F.directionCountAt n hn)
-    (Mag : PTimeTseitinProtocolMagnificationAt F Pobs n hn) :
-    Not (exists M : DTM, PTimeSignedSATDecider enc M) := by
+    (Mag : PTimeTseitinProtocolMagnificationAt PT F Pobs n hn) :
+    Not (exists M : DTM, PTimeSignedSATDecider enc PT M) := by
   rintro ⟨M, H⟩
   exact not_normalFormAt_of_lightconeGap
     F Pobs M H n hn hgap ⟨Mag.normalize M H⟩
 
+/-- The one-scale magnification theorem is always constructible from the
+no-decider endpoint, but only vacuously: there is no P-time signed SAT decider
+to normalize.
+
+This is the precise conservation-of-difficulty direction.  It does not supply a
+normal-form construction for deciders; it shows that such a construction follows
+once the endpoint has already been proved. -/
+def magnificationAt_of_no_pTimeSignedSATDecider
+    {enc : SignedFormulaEncoding}
+    (PT : PTimeSATPolynomialTime enc)
+    (F : IndependentAsymptoticSignedTseitinExpanderFamily enc)
+    (Pobs : PClassLocalPhysicalObserver)
+    (n : Nat)
+    (hn : n >= 1)
+    (hno : Not (exists M : DTM, PTimeSignedSATDecider enc PT M)) :
+    PTimeTseitinProtocolMagnificationAt PT F Pobs n hn where
+  normalize M H := False.elim (hno ⟨M, H⟩)
+
+/-- Propositional version of the vacuous construction above. -/
+theorem nonempty_magnificationAt_of_no_pTimeSignedSATDecider
+    {enc : SignedFormulaEncoding}
+    (PT : PTimeSATPolynomialTime enc)
+    (F : IndependentAsymptoticSignedTseitinExpanderFamily enc)
+    (Pobs : PClassLocalPhysicalObserver)
+    (n : Nat)
+    (hn : n >= 1)
+    (hno : Not (exists M : DTM, PTimeSignedSATDecider enc PT M)) :
+    Nonempty (PTimeTseitinProtocolMagnificationAt PT F Pobs n hn) :=
+  ⟨magnificationAt_of_no_pTimeSignedSATDecider PT F Pobs n hn hno⟩
+
+/-- At a lightcone-gap scale, the one-scale magnification theorem is equivalent
+to the no-P-time-signed-SAT-decider endpoint.
+
+So this theorem cannot be an independent bridge inside the present framework:
+proving the left side unconditionally would already prove the endpoint on the
+right. -/
+theorem magnificationAt_iff_no_pTimeSignedSATDecider_of_gap
+    {enc : SignedFormulaEncoding}
+    (PT : PTimeSATPolynomialTime enc)
+    (F : IndependentAsymptoticSignedTseitinExpanderFamily enc)
+    (Pobs : PClassLocalPhysicalObserver)
+    (n : Nat)
+    (hn : n >= 1)
+    (hgap :
+      ObserverLightconeBandwidthLimit Pobs < F.directionCountAt n hn) :
+    Nonempty (PTimeTseitinProtocolMagnificationAt PT F Pobs n hn) <->
+      Not (exists M : DTM, PTimeSignedSATDecider enc PT M) := by
+  constructor
+  · rintro ⟨Mag⟩
+    exact no_pTimeSignedSATDecider_of_magnificationAt
+      PT F Pobs n hn hgap Mag
+  · intro hno
+    exact nonempty_magnificationAt_of_no_pTimeSignedSATDecider
+      PT F Pobs n hn hno
+
 /-- Gap-packaged version of the previous theorem. -/
 theorem no_pTimeSignedSATDecider_of_magnificationAt_gap
     {enc : SignedFormulaEncoding}
+    (PT : PTimeSATPolynomialTime enc)
     (F : IndependentAsymptoticSignedTseitinExpanderFamily enc)
     (Pobs : PClassLocalPhysicalObserver)
     (G : IndependentTseitinLightconeGap F Pobs)
-    (Mag : PTimeTseitinProtocolMagnificationAt F Pobs G.n G.hn) :
-    Not (exists M : DTM, PTimeSignedSATDecider enc M) :=
+    (Mag : PTimeTseitinProtocolMagnificationAt PT F Pobs G.n G.hn) :
+    Not (exists M : DTM, PTimeSignedSATDecider enc PT M) :=
   no_pTimeSignedSATDecider_of_magnificationAt
-    F Pobs G.n G.hn G.gap Mag
+    PT F Pobs G.n G.hn G.gap Mag
 
 /-- A family-level magnification theorem supplies the one-scale theorem at
 every scale.  This is stronger than needed for the contradiction, but it is
 the natural statement of a global normal-form result. -/
 structure PTimeTseitinProtocolMagnification
     {enc : SignedFormulaEncoding}
+    (PT : PTimeSATPolynomialTime enc)
     (F : IndependentAsymptoticSignedTseitinExpanderFamily enc)
     (Pobs : PClassLocalPhysicalObserver) : Type where
   atScale :
     forall n : Nat, forall hn : n >= 1,
-      PTimeTseitinProtocolMagnificationAt F Pobs n hn
+      PTimeTseitinProtocolMagnificationAt PT F Pobs n hn
 
 /-- A global magnification theorem plus any lightcone-gap scale rules out
 P-time signed SAT deciders. -/
 theorem no_pTimeSignedSATDecider_of_magnification
     {enc : SignedFormulaEncoding}
+    (PT : PTimeSATPolynomialTime enc)
     (F : IndependentAsymptoticSignedTseitinExpanderFamily enc)
     (Pobs : PClassLocalPhysicalObserver)
     (G : IndependentTseitinLightconeGap F Pobs)
-    (Mag : PTimeTseitinProtocolMagnification F Pobs) :
-    Not (exists M : DTM, PTimeSignedSATDecider enc M) :=
+    (Mag : PTimeTseitinProtocolMagnification PT F Pobs) :
+    Not (exists M : DTM, PTimeSignedSATDecider enc PT M) :=
   no_pTimeSignedSATDecider_of_magnificationAt_gap
-    F Pobs G (Mag.atScale G.n G.hn)
+    PT F Pobs G (Mag.atScale G.n G.hn)
 
 /-! ## Kernel-only axiom trace -/
 
 #print axioms not_normalFormAt_of_lightconeGap
 #print axioms no_pTimeSignedSATDecider_of_magnificationAt
+#print axioms nonempty_magnificationAt_of_no_pTimeSignedSATDecider
+#print axioms magnificationAt_iff_no_pTimeSignedSATDecider_of_gap
 #print axioms no_pTimeSignedSATDecider_of_magnificationAt_gap
 #print axioms no_pTimeSignedSATDecider_of_magnification
 
