@@ -29,6 +29,8 @@ are the frontier/literature-level hard part.
 
 namespace PallLean.Paper93.DeepMath.PathB
 
+set_option linter.unusedVariables false
+
 /-! ## Generic observer invariant -/
 
 /-- A numerical observer invariant on a class of objects: `demand` is the amount
@@ -212,8 +214,131 @@ def SpaceObserverInvariantPreservationTarget
       (fun _ => configs)
       I demandLower configBudget
 
+/-! ## Concrete tiny rung-5 boundary kernels via the invariant transfer -/
+
+/-- Budgeted width-1 branching programs.  The budget is built into the type so
+`Rung5ObserverInvariantPreservation.budget_le` is an honest field, not a hidden
+assumption. -/
+abbrev BudgetedWidthOneBranchingProgram (n lengthBudget : Nat) : Type :=
+  { P : BranchingProgram n 1 // P.length <= lengthBudget }
+
+/-- Width-1 branching-program parity invariant: demand is the requested lower
+bound, capacity is program length. -/
+def widthOneBPParityInvariant (n lower : Nat) :
+    ObserverInvariant (BranchingProgram n 1) where
+  demand _ := lower
+  capacity P := P.length
+
+/-- The tiny width-1 branching-program lower bound is a genuine preservation
+instance of the observer invariant schema.  It is deliberately tiny: it says
+nothing about width 5 or NC¹. -/
+def widthOneBP_parity_observerInvariantPreservation
+    {n lower lengthBudget : Nat} (i : Fin n) :
+    Rung5ObserverInvariantPreservation
+      (BudgetedWidthOneBranchingProgram n lengthBudget)
+      (BranchingProgram n 1)
+      (fun P => P.val.Computes (parityFunction n))
+      (fun P => P.val.length)
+      (widthOneBPParityInvariant n lower)
+      lower lengthBudget where
+  witnessOf P _ := P.val
+  visible P hP :=
+    width_one_branchingProgram_parity_length_lower_bound i lower P.val hP
+  demand_ge _ _ := by
+    simp [widthOneBPParityInvariant]
+  capacity_le_budget _ _ := by
+    simp [widthOneBPParityInvariant]
+  budget_le P := P.property
+
+/-- No budgeted width-1 branching program of length below the demanded invariant
+computes parity.  This is the generic transfer theorem applied to a real tiny
+rung-5 kernel. -/
+theorem no_budgeted_widthOneBP_parity_of_observerInvariant
+    {n lower lengthBudget : Nat} (i : Fin n)
+    (hgap : lengthBudget < lower) :
+    Not (exists P : BudgetedWidthOneBranchingProgram n lengthBudget,
+      P.val.Computes (parityFunction n)) :=
+  no_rung5_model_of_observerInvariant_preservation
+    (widthOneBP_parity_observerInvariantPreservation
+      (n := n) (lower := lower) (lengthBudget := lengthBudget) i)
+    hgap
+
+/-- A bounded-space machine packaged with a configuration budget. -/
+abbrev BudgetedSpaceBoundedMachine (n configBudget : Nat) : Type :=
+  Sigma (fun configs : Nat =>
+    { M : SpaceBoundedMachine n configs // configs <= configBudget })
+
+/-- Space-machine witnesses remember their configuration count. -/
+abbrev SpaceBoundedWitness (n : Nat) : Type :=
+  Sigma (fun configs : Nat => SpaceBoundedMachine n configs)
+
+/-- Configuration-count invariant: demand is a lower bound on configurations;
+capacity is the witness's actual number of configurations. -/
+def spaceConfigObserverInvariant (n demandLower : Nat) :
+    ObserverInvariant (SpaceBoundedWitness n) where
+  demand _ := demandLower
+  capacity W := W.1
+
+/-- The two-configuration parity kernel is a preservation instance for the
+bounded-space observer invariant.  Again, this is a tiny endpoint kernel, not a
+space-hierarchy theorem. -/
+def boundedSpace_parity_twoConfig_observerInvariantPreservation
+    {n configBudget : Nat} (i : Fin n) :
+    Rung5ObserverInvariantPreservation
+      (BudgetedSpaceBoundedMachine n configBudget)
+      (SpaceBoundedWitness n)
+      (fun M => M.2.val.Computes (parityFunction n))
+      (fun M => M.1)
+      (spaceConfigObserverInvariant n 2)
+      2 configBudget where
+  witnessOf M _ := ⟨M.1, M.2.val⟩
+  visible M hM :=
+    parity_spaceBounded_config_lower_bound_two i M.1 M.2.val hM
+  demand_ge _ _ := by
+    simp [spaceConfigObserverInvariant]
+  capacity_le_budget _ _ := by
+    simp [spaceConfigObserverInvariant]
+  budget_le M := M.2.property
+
+/-- No bounded-space machine with fewer than two configurations computes parity
+on a nonempty input set, obtained through the observer-invariant transfer. -/
+theorem no_budgeted_space_parity_of_observerInvariant
+    {n configBudget : Nat} (i : Fin n) (hgap : configBudget < 2) :
+    Not (exists M : BudgetedSpaceBoundedMachine n configBudget,
+      M.2.val.Computes (parityFunction n)) :=
+  no_rung5_model_of_observerInvariant_preservation
+    (boundedSpace_parity_twoConfig_observerInvariantPreservation
+      (n := n) (configBudget := configBudget) i)
+    hgap
+
+/-- The concrete part of the rung-5 observer boundary completed here: tiny,
+proved preservation kernels for width-1 branching programs and one-configuration
+bounded-space machines.  The deep TC⁰/NC¹/width-5/real-space frontier remains
+outside this structure. -/
+structure Rung5ConcreteObserverBoundaryKernels : Prop where
+  width_one_bp :
+    forall {n lower lengthBudget : Nat} (i : Fin n),
+      lengthBudget < lower ->
+      Not (exists P : BudgetedWidthOneBranchingProgram n lengthBudget,
+        P.val.Computes (parityFunction n))
+  bounded_space_two_configs :
+    forall {n configBudget : Nat} (i : Fin n),
+      configBudget < 2 ->
+      Not (exists M : BudgetedSpaceBoundedMachine n configBudget,
+        M.2.val.Computes (parityFunction n))
+
+/-- The proved tiny rung-5 observer-boundary kernels. -/
+theorem rung5_concreteObserverBoundaryKernels :
+    Rung5ConcreteObserverBoundaryKernels where
+  width_one_bp := by
+    intro n lower lengthBudget i hgap
+    exact no_budgeted_widthOneBP_parity_of_observerInvariant i hgap
+  bounded_space_two_configs := by
+    intro n configBudget i hgap
+    exact no_budgeted_space_parity_of_observerInvariant i hgap
+
 /-- A completed rung-5 observer boundary would consist of preservation theorems
-for the frontier models.  The fields are propositions, not data supplied here;
+for the frontier models.  The fields are target types, not data supplied here;
 this structure is a precise target list, not a proof. -/
 structure Rung5ObserverBoundaryFrontier
     (F : (n : Nat) -> BoolFunction n) (n : Nat) : Type 1 where
@@ -277,6 +402,11 @@ def rung5ObserverBoundaryFrontier
 #print axioms parityDNF_observerInvariantLowerBound
 #print axioms no_lowWidth_DNF_of_parityInvariantGap
 #print axioms no_rung5_model_of_observerInvariant_preservation
+#print axioms widthOneBP_parity_observerInvariantPreservation
+#print axioms no_budgeted_widthOneBP_parity_of_observerInvariant
+#print axioms boundedSpace_parity_twoConfig_observerInvariantPreservation
+#print axioms no_budgeted_space_parity_of_observerInvariant
+#print axioms rung5_concreteObserverBoundaryKernels
 #print axioms rung5ObserverBoundaryFrontier
 
 end PallLean.Paper93.DeepMath.PathB

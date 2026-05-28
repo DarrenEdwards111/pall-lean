@@ -232,6 +232,14 @@ a claim of new TC⁰/NC¹/BP/space lower bounds. -/
 theorem ladder_rung5_formal_substrates : Rung5FormalSubstrates :=
   rung5_formal_substrates
 
+/-- **Rung 5, concrete observer-boundary kernels.**  The invariant transfer is
+not only abstract: it recovers the tiny proved rung-5 endpoints for width-1
+branching programs and one-configuration bounded-space machines.  This still
+leaves TC⁰, NC¹, width-5 BP, and real space lower bounds at the frontier. -/
+theorem ladder_rung5_concreteObserverBoundaryKernels :
+    Rung5ConcreteObserverBoundaryKernels :=
+  rung5_concreteObserverBoundaryKernels
+
 /-- **Rung 5, TC⁰ pointwise substrate.**  A supplied threshold-circuit lower
 bound rules out smaller TC⁰-style circuits at the given depth. -/
 theorem ladder_rung5_TC0_substrate
@@ -330,6 +338,7 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung4_restricted_switching_substrate
 #print axioms ladder_rung5_observerInvariant_transfer
 #print axioms ladder_rung5_formal_substrates
+#print axioms ladder_rung5_concreteObserverBoundaryKernels
 #print axioms ladder_rung5_TC0_substrate
 #print axioms ladder_rung5_branching_program_substrate
 #print axioms ladder_rung5_width_one_bp_parity_kernel
