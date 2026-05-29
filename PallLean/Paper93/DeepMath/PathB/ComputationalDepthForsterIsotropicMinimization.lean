@@ -1,6 +1,9 @@
 import Mathlib.LinearAlgebra.Matrix.PosDef
 import Mathlib.Analysis.Matrix.Order
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
+import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+import Mathlib.Analysis.Calculus.Deriv.Add
+import Mathlib.Analysis.Calculus.Deriv.Mul
 
 /-!
 # Forster isotropic position via potential minimization (the live `∃T` grind)
@@ -115,8 +118,61 @@ theorem tightFrame_of_firstOrder
   rw [hSinv, ← Matrix.mul_assoc, Matrix.mul_nonsing_inv T hTunit, Matrix.one_mul,
     Matrix.nonsing_inv_mul T hTunit]
 
+/-! ### Rung 3 (the variational crux): first-order optimality
+
+The minimizer `S⋆` of the scale-invariant potential
+`G(S) = F(S) - (m/d)·log det S` over SPD matrices satisfies `∇G(S⋆) = 0`, i.e. the
+Lagrange identity `∑ᵢ vᵢvᵢᵀ/⟪vᵢ,S⋆vᵢ⟫ = (m/d)·S⋆⁻¹` that rung 4a consumes.  By the
+variational method this comes from the directional derivative of `G` along every
+line `t ↦ S⋆ + tΔ` vanishing at `t = 0`.
+
+The **F-side** of that directional derivative is fully proved below
+(`hasDerivAt_potential`): it needs only scalar calculus, since each summand
+`log⟪vᵢ,(S+tΔ)vᵢ⟫` is `log` of an *affine* function of `t`.
+
+The remaining ingredient is the **`log det` side**: `d/dt log det(S+tΔ)|₀ = tr(S⁻¹Δ)`
+(Jacobi's formula).  Mathlib has the charpoly↔trace/det dictionary
+(`Matrix.trace_eq_neg_charpoly_coeff`, `Matrix.det_eq_sign_charpoly_coeff`) but
+**not** the derivative of `det` along a line.  That single fact — `HasDerivAt`
+of `t ↦ det (S + t•Δ)` with derivative `det S · tr(S⁻¹Δ)` — is the genuine missing
+Mathlib infrastructure for this rung (and a worthwhile standalone contribution).
+It is deliberately **not** assumed here; rung 3 is left open at exactly that point
+rather than socketed. -/
+
+open Matrix in
+/-- **Rung 3a (F-side, summand).** Along `t ↦ S + tΔ`, the potential summand
+`log⟪vᵢ,Svᵢ⟫` has derivative `⟪vᵢ,Δvᵢ⟫ / ⟪vᵢ,Svᵢ⟫` at `t = 0` — `log` of an affine
+function. -/
+lemma hasDerivAt_logQuadForm {S Δ : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosDef)
+    {v : Fin d → ℝ} (hv : v ≠ 0) :
+    HasDerivAt (fun t : ℝ => Real.log (v ⬝ᵥ ((S + t • Δ) *ᵥ v)))
+      ((v ⬝ᵥ (Δ *ᵥ v)) / (v ⬝ᵥ (S *ᵥ v))) 0 := by
+  have hinner : HasDerivAt (fun t : ℝ => v ⬝ᵥ ((S + t • Δ) *ᵥ v)) (v ⬝ᵥ (Δ *ᵥ v)) 0 := by
+    have haffine : (fun t : ℝ => v ⬝ᵥ ((S + t • Δ) *ᵥ v))
+        = (fun t : ℝ => (v ⬝ᵥ (S *ᵥ v)) + t * (v ⬝ᵥ (Δ *ᵥ v))) := by
+      funext t
+      rw [Matrix.add_mulVec, Matrix.smul_mulVec, dotProduct_add, dotProduct_smul, smul_eq_mul]
+    rw [haffine]
+    simpa using
+      (((hasDerivAt_id (0 : ℝ)).mul_const (v ⬝ᵥ (Δ *ᵥ v))).const_add (v ⬝ᵥ (S *ᵥ v)))
+  have hne : v ⬝ᵥ ((S + (0 : ℝ) • Δ) *ᵥ v) ≠ 0 := by
+    rw [zero_smul, add_zero]; exact ne_of_gt (quadForm_pos hS hv)
+  simpa using hinner.log hne
+
+/-- **Rung 3a (F-side, full potential).** The directional derivative of the
+log-potential `F(S) = ∑ᵢ log⟪vᵢ,Svᵢ⟫` along `t ↦ S + tΔ` at `t = 0` is
+`∑ᵢ ⟪vᵢ,Δvᵢ⟫/⟪vᵢ,Svᵢ⟫`.  Fully proved (clean axioms, no sorry); this is the
+non-`det` half of rung 3's first-order condition. -/
+lemma hasDerivAt_potential {S Δ : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosDef)
+    {v : Fin m → (Fin d → ℝ)} (hv : ∀ i, v i ≠ 0) :
+    HasDerivAt (fun t : ℝ => potential v (S + t • Δ))
+      (∑ i, (v i ⬝ᵥ (Δ *ᵥ v i)) / (v i ⬝ᵥ (S *ᵥ v i))) 0 := by
+  unfold potential
+  exact HasDerivAt.fun_sum (fun i _ => hasDerivAt_logQuadForm hS (hv i))
+
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
 #print axioms tightFrame_of_firstOrder
+#print axioms hasDerivAt_potential
 
 end PallLean.Paper93.DeepMath.PathB.ForsterIsotropic
