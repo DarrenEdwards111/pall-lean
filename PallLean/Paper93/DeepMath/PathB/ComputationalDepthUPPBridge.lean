@@ -61,35 +61,6 @@ theorem hasSignRankLE_of_uppTranscriptRealizer
   rw [hsum]
   exact P.sign_ok i j
 
-
-/-- `UPPCostLE M c`: the matrix `M` has an unbounded-error transcript realizer
-using at most `2^c` transcripts.  This is a cost-style wrapper around
-`UPPTranscriptRealizer`; it does not assert that any particular circuit has such
-a protocol. -/
-def UPPCostLE (M : Fin m -> Fin n -> Bool) (c : Nat) : Prop :=
-  ∃ (τ : Type u) (_ : Fintype τ),
-    Fintype.card τ ≤ 2 ^ c ∧ Nonempty (UPPTranscriptRealizer M τ)
-
-/-- The formal `UPP cost c ⇒ sign-rank ≤ 2^c` direction.  This is the clean
-algebraic half of the classical UPP/sign-rank bridge: once a protocol has at most
-`2^c` transcripts, its expectation matrix factors through the transcript set. -/
-theorem hasSignRankLE_of_uppCostLE
-    {M : Fin m -> Fin n -> Bool} {c : Nat} (h : UPPCostLE M c) :
-    HasSignRankLE M (2 ^ c) := by
-  rcases h with ⟨τ, hτ, hcard, hP⟩
-  letI : Fintype τ := hτ
-  rcases hP with ⟨P⟩
-  exact hasSignRankLE_mono (M := M) hcard
-    (hasSignRankLE_of_uppTranscriptRealizer P)
-
-/-- Any transcript realizer gives the corresponding cost bound at any exponent
-whose transcript budget is large enough. -/
-theorem uppCostLE_of_transcriptRealizer
-    {M : Fin m -> Fin n -> Bool} {τ : Type u} [Fintype τ] {c : Nat}
-    (P : UPPTranscriptRealizer M τ) (hcard : Fintype.card τ ≤ 2 ^ c) :
-    UPPCostLE (m := m) (n := n) M c :=
-  ⟨τ, inferInstance, hcard, ⟨P⟩⟩
-
 /-- Stronger bottom-gate object: the transcript expectation is exactly the
 `±1` signed output matrix, not merely some same-sign matrix.  This is the
 additional uniform-output ingredient needed before a top threshold can be
@@ -359,8 +330,6 @@ theorem card_option_sigma_bottomTranscripts
   omega
 
 #print axioms hasSignRankLE_of_uppTranscriptRealizer
-#print axioms hasSignRankLE_of_uppCostLE
-#print axioms uppCostLE_of_transcriptRealizer
 #print axioms hasSignRankLE_of_exactSignedOutputRealizer
 #print axioms wholeCircuitUPPRealizer_of_exactBottomOutputs
 #print axioms wholeCircuit_hasSignRankLE_of_exactBottomOutputs
