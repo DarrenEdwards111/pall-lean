@@ -249,10 +249,62 @@ lemma hasDerivAt_det_one_add_smul (M : Matrix (Fin d) (Fin d) ℝ) :
     · intro h; exact absurd (Finset.mem_univ _) h
   rwa [hval] at key
 
+open Matrix in
+/-- **Rung 3b′ — Jacobi along a line at an SPD point.**
+`d/dt log det(S + tΔ)|₀ = tr(S⁻¹Δ)`, for `S` positive definite.  Reduces to rung 3b
+via `S + tΔ = S·(1 + t·S⁻¹Δ)` and the `log` chain rule. -/
+lemma hasDerivAt_logdet {S Δ : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosDef) :
+    HasDerivAt (fun t : ℝ => Real.log (S + t • Δ).det) (S⁻¹ * Δ).trace 0 := by
+  have hSdet : IsUnit S.det := hS.det_pos.ne'.isUnit
+  have hfac : (fun t : ℝ => (S + t • Δ).det)
+      = (fun t : ℝ => S.det * (1 + t • (S⁻¹ * Δ)).det) := by
+    funext t
+    rw [← Matrix.det_mul]
+    congr 1
+    rw [Matrix.mul_add, Matrix.mul_one, mul_smul_comm, ← Matrix.mul_assoc,
+      Matrix.mul_nonsing_inv S hSdet, Matrix.one_mul]
+  have hinner : HasDerivAt (fun t : ℝ => (S + t • Δ).det) (S.det * (S⁻¹ * Δ).trace) 0 := by
+    rw [hfac]
+    exact (hasDerivAt_det_one_add_smul (S⁻¹ * Δ)).const_mul S.det
+  have hne : (S + (0 : ℝ) • Δ).det ≠ 0 := by
+    rw [zero_smul, add_zero]; exact hSdet.ne_zero
+  have hlog := hinner.log hne
+  simp only [zero_smul, add_zero] at hlog
+  rwa [mul_div_cancel_left₀ _ hSdet.ne_zero] at hlog
+
+/-- **Rung 3d core (extraction).** A symmetric real matrix with `tr(A·A) = 0` is
+zero: `tr(A·A) = ∑ᵢₖ Aᵢₖ²` is a sum of squares.  This converts the vanishing of
+the directional derivative in *every* symmetric direction (taking `Δ = A`, the
+gradient matrix) into the Lagrange matrix equation. -/
+lemma eq_zero_of_symm_trace_sq {A : Matrix (Fin d) (Fin d) ℝ} (hsymm : Aᵀ = A)
+    (h : (A * A).trace = 0) : A = 0 := by
+  have hsum : (A * A).trace = ∑ i, ∑ k, A i k * A i k := by
+    rw [Matrix.trace]
+    apply Finset.sum_congr rfl
+    intro i _
+    rw [Matrix.diag_apply, Matrix.mul_apply]
+    apply Finset.sum_congr rfl
+    intro k _
+    have hik : A k i = A i k := by
+      have hc := congrFun (congrFun hsymm i) k
+      rwa [Matrix.transpose_apply] at hc
+    rw [hik]
+  rw [hsum] at h
+  have hnn : ∀ i ∈ Finset.univ, (0 : ℝ) ≤ ∑ k, A i k * A i k :=
+    fun i _ => Finset.sum_nonneg (fun k _ => mul_self_nonneg _)
+  have hzero := (Finset.sum_eq_zero_iff_of_nonneg hnn).mp h
+  ext i k
+  rw [Matrix.zero_apply]
+  have h2 := (Finset.sum_eq_zero_iff_of_nonneg
+    (fun k _ => mul_self_nonneg (A i k))).mp (hzero i (Finset.mem_univ i))
+  exact mul_self_eq_zero.mp (h2 k (Finset.mem_univ k))
+
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
 #print axioms tightFrame_of_firstOrder
 #print axioms hasDerivAt_potential
 #print axioms hasDerivAt_det_one_add_smul
+#print axioms hasDerivAt_logdet
+#print axioms eq_zero_of_symm_trace_sq
 
 end PallLean.Paper93.DeepMath.PathB.ForsterIsotropic
