@@ -266,11 +266,11 @@ theorem frameLowerBound (M : Fin m -> Fin n -> Bool) : FrameLowerBound M := by
         Finset.sum_le_sum fun i _ => Finset.sum_le_sum fun j _ => hsq_le i j
     _ = forsterSum R := rfl
 
-/-- (1) **Over-strong isotropic-position kernel** obligation: every unit
-realization can be replaced (same dimension) by a tight-frame one with the same
-sign pattern.  The theorem `not_isotropicKernel_as_stated` below shows this exact
-statement is false without a spanning hypothesis or dimension reduction. -/
-def IsotropicKernel (M : Fin m -> Fin n -> Bool) : Prop :=
+/-- **Over-strong isotropic-position kernel** (FALSE — see
+`not_isotropicKernel_as_stated`): every unit realization replaced by a tight-frame
+one, with NO spanning hypothesis.  Kept only to document the obstruction; the real
+obligation is the corrected `IsotropicKernel` below. -/
+def IsotropicKernelStrong (M : Fin m -> Fin n -> Bool) : Prop :=
   ∀ {d : Nat}, Nonempty (UnitRealization M d) ->
     ∃ R' : UnitRealization M d, IsTightFrame R'
 
@@ -285,11 +285,12 @@ theorem not_isTightFrame_one_row_dim_two {M : Fin 1 -> Fin n -> Bool}
   have hbad := h
   simp [y, R.u_unit] at hbad
 
-/-- The current `IsotropicKernel` statement is too strong: it asks for
-same-ambient-dimension isotropization even when the row vectors do not span the
-ambient space.  A one-row realization in `ℝ²` is a concrete counterexample. -/
+/-- The over-strong kernel is false: it asks for same-ambient-dimension
+isotropization even when the row vectors do not span the ambient space.  A one-row
+realization in `ℝ²` is a concrete counterexample.  This is exactly why the real
+`IsotropicKernel` below carries a `Spans` hypothesis. -/
 theorem not_isotropicKernel_as_stated :
-    ¬ IsotropicKernel (m := 1) (n := 1) (fun _ _ => true) := by
+    ¬ IsotropicKernelStrong (m := 1) (n := 1) (fun _ _ => true) := by
   intro hker
   let e : EuclideanSpace ℝ (Fin 2) := EuclideanSpace.single 0 (1 : ℝ)
   let R : UnitRealization (m := 1) (n := 1) (fun _ _ => true) 2 :=
@@ -308,6 +309,20 @@ theorem not_isotropicKernel_as_stated :
   obtain ⟨R', hframe⟩ := hker ⟨R⟩
   exact not_isTightFrame_one_row_dim_two R' hframe
 
+/-- The row vectors of a realization span the ambient space — the hypothesis the
+over-strong kernel was missing. -/
+def Spans {M : Fin m -> Fin n -> Bool} {d : Nat} (R : UnitRealization M d) : Prop :=
+  Submodule.span ℝ (Set.range R.u) = ⊤
+
+/-- (1) **Corrected isotropic-position kernel** (the real obligation).  Whenever a
+*spanning* unit realization exists, it can be replaced by a tight-frame one of the
+same dimension.  The spanning hypothesis is essential: without it the statement is
+false (`not_isotropicKernel_as_stated`).  A tight frame automatically spans, so no
+spanning clause is needed in the conclusion. -/
+def IsotropicKernel (M : Fin m -> Fin n -> Bool) : Prop :=
+  ∀ {d : Nat}, (∃ R : UnitRealization M d, Spans R) ->
+    ∃ R' : UnitRealization M d, IsTightFrame R'
+
 /-- **Wiring lemma (PROVED): the kernel reduces to the pure analytic existence of a
 transform.**  If every realization admits an invertible `T` whose normalized row
 images form a tight frame, then `IsotropicKernel` holds.  The `w`-side is rebuilt
@@ -315,13 +330,13 @@ with the adjoint `S = (T*)` so inner products — hence the sign pattern — are
 preserved exactly: `⟪T x, S y⟫ = ⟪x, y⟫`.  This isolates the remaining obligation to
 the row-vector existence statement alone (no `w`'s, no signs). -/
 theorem isotropicKernel_of_transform (M : Fin m -> Fin n -> Bool)
-    (H : ∀ {d : Nat} (R : UnitRealization M d),
+    (H : ∀ {d : Nat} (R : UnitRealization M d), Spans R ->
         ∃ T : EuclideanSpace ℝ (Fin d) ≃ₗ[ℝ] EuclideanSpace ℝ (Fin d),
           ∀ y, ∑ i, ⟪(‖T (R.u i)‖)⁻¹ • T (R.u i), y⟫ ^ 2 = ((m : ℝ) / d) * ‖y‖ ^ 2) :
     IsotropicKernel M := by
   intro d hex
-  obtain ⟨R⟩ := hex
-  obtain ⟨T, hTF⟩ := H R
+  obtain ⟨R, hspanR⟩ := hex
+  obtain ⟨T, hTF⟩ := H R hspanR
   set S : EuclideanSpace ℝ (Fin d) →ₗ[ℝ] EuclideanSpace ℝ (Fin d) :=
     LinearMap.adjoint (T.symm : EuclideanSpace ℝ (Fin d) →ₗ[ℝ] EuclideanSpace ℝ (Fin d))
     with hSdef
@@ -383,15 +398,18 @@ theorem forster_bound_of_tightFrame (M : Fin m -> Fin n -> Bool) {d : Nat}
   forster_dim_ge_of_bounds (by exact_mod_cast hd) hμ hmn
     (frameLowerBound M R hd hframe) (spectralUpperBound_proof M R)
 
-/-- **Forster, modulo the isotropic kernel.**  Given the kernel for `M` and any
-unit realization of dimension `d`, the dimension is at least `√(mn)/‖sgnMat M‖`.
-This is the complete Forster lower bound with the single research-grade obligation
-`IsotropicKernel` as its only hypothesis. -/
+/-- **Forster, modulo the corrected isotropic kernel.**  Given the kernel for `M`
+and a **spanning** unit realization of dimension `d`, the dimension is at least
+`√(mn)/‖sgnMat M‖`.  This is the complete Forster lower bound with the single
+research-grade obligation `IsotropicKernel` (spanning version) as its only
+hypothesis.  The spanning hypothesis holds at the sign-rank-achieving dimension
+(the minimal realization spans); connecting to a non-minimal `HasSignRankLE`
+witness needs a separate dimension-reduction step. -/
 theorem forster_of_kernel (M : Fin m -> Fin n -> Bool) (hker : IsotropicKernel M)
-    {d : Nat} (R : UnitRealization M d) (hd : 0 < d)
+    {d : Nat} (R : UnitRealization M d) (hspan : Spans R) (hd : 0 < d)
     (hmn : 0 < (m : ℝ) * n) (hμ : 0 < ‖sgnMat M‖) :
     Real.sqrt ((m : ℝ) * n) / ‖sgnMat M‖ ≤ (d : ℝ) := by
-  obtain ⟨R', hframe⟩ := hker ⟨R⟩
+  obtain ⟨R', hframe⟩ := hker ⟨R, hspan⟩
   exact forster_bound_of_tightFrame M R' hd hframe hmn hμ
 
 #print axioms forster_dim_ge_of_bounds
