@@ -552,12 +552,30 @@ theorem exists_isotropic_of_isLocalMin {S : Matrix (Fin d) (Fin d) ℝ} (hS : S.
   exact ⟨T, hTunit,
     tightFrame_of_firstOrder hS hTsymm hTT hTunit hv (firstOrder_of_isLocalMin hS hv hmin)⟩
 
+open Matrix in
+/-- **Rung 2 compactness foundation: `PosSemidef` is closed.**  The set of
+positive-semidefinite matrices is the intersection of the closed Hermitian locus
+`{M | Mᴴ = M}` with the closed half-spaces `{M | 0 ≤ ⟪x, Mx⟫}` over all `x`. -/
+lemma isClosed_posSemidef :
+    IsClosed {M : Matrix (Fin d) (Fin d) ℝ | M.PosSemidef} := by
+  have hset : {M : Matrix (Fin d) (Fin d) ℝ | M.PosSemidef}
+      = {M | Mᴴ = M} ∩ ⋂ x : Fin d → ℝ, {M | 0 ≤ star x ⬝ᵥ (M *ᵥ x)} := by
+    ext M
+    simp only [Set.mem_setOf_eq, Set.mem_inter_iff, Set.mem_iInter,
+      Matrix.posSemidef_iff_dotProduct_mulVec]
+    exact ⟨fun h => ⟨h.1, h.2⟩, fun h => ⟨h.1, h.2⟩⟩
+  rw [hset]
+  refine IsClosed.inter (isClosed_eq (Continuous.matrix_conjTranspose continuous_id)
+    continuous_id) (isClosed_iInter fun x => isClosed_le continuous_const ?_)
+  exact continuous_const.dotProduct (continuous_id.matrix_mulVec continuous_const)
+
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
 #print axioms det_le_trace_div_pow
 #print axioms det_sq_mul_det_le_prod_diag
 #print axioms exists_symm_sqrt
 #print axioms exists_isotropic_of_isLocalMin
+#print axioms isClosed_posSemidef
 #print axioms tightFrame_of_firstOrder
 #print axioms hasDerivAt_potential
 #print axioms hasDerivAt_det_one_add_smul
