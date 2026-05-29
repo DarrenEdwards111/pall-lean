@@ -74,7 +74,7 @@ on transcripts for every input pair.  The `bias_ok` field is the UPP condition:
 the signed expected output has the same sign as the target matrix.
 
 This is still an abstract transcript-normal-form protocol, not yet a theorem that
-`THR ∘ LTF` circuits admit `O(log s)` such protocols. -/
+`THR ∘ LTF` circuits have `O(log s)` such protocols. -/
 structure UPPCommunicationProtocol (M : Fin m -> Fin n -> Bool)
     (τ : Type*) [Fintype τ] where
   aliceProb : τ -> Fin m -> ℝ
