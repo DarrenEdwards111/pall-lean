@@ -425,6 +425,15 @@ theorem ladder_rung5_layered_threshold_lower_bound {n d : Nat}
     ¬ ∃ C : ThresholdLayer n d, ThresholdLayer.eval C = f :=
   ThresholdLayer.lower_bound_of_layeredThresholdRoute R
 
+/-- **Rung 5, finite-prefix layered climb.**  For a depth-`d` lower bound one
+only needs the first `d` transfer steps, not an infinite transfer theorem.  This
+is the operational climb interface: prove `0→1`, then `1→2`, and so on, stopping
+at the depth under attack. -/
+theorem ladder_rung5_layered_threshold_finite_prefix_lower_bound {n d : Nat}
+    {f : BoolFun n} (R : ThresholdLayer.LayeredThresholdRouteUpTo f d) :
+    ¬ ∃ C : ThresholdLayer n d, ThresholdLayer.eval C = f :=
+  ThresholdLayer.lower_bound_of_layeredThresholdRouteUpTo R
+
 /-- **Rung 5, TC⁰ pointwise substrate.**  A supplied threshold-circuit lower
 bound rules out smaller TC⁰-style circuits at the given depth. -/
 theorem ladder_rung5_TC0_substrate
@@ -540,6 +549,7 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung5_threshold_composition_lower_bound
 #print axioms ladder_rung5_layered_threshold_invariant_frontier
 #print axioms ladder_rung5_layered_threshold_lower_bound
+#print axioms ladder_rung5_layered_threshold_finite_prefix_lower_bound
 #print axioms ladder_rung5_TC0_substrate
 #print axioms ladder_rung5_branching_program_substrate
 #print axioms ladder_rung5_width_one_bp_parity_kernel
