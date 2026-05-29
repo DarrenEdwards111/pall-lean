@@ -1016,6 +1016,82 @@ lemma eventually_posDef_add_smul (hd : 0 < d) {S : Matrix (Fin d) (Fin d) ℝ} (
     nlinarith [abs_nonneg t]
   nlinarith [h1, h2, htΛ, hxx]
 
+open Matrix in
+/-- **Rung 2: a global minimizer of `G` over PD matrices exists.**  Minimize `G` over
+the compact slice `{PSD, det=1, tr ≤ R₀}` (extreme value theorem); the blow-up makes
+any `det=1` matrix with `tr > R₀` have `G` larger than the value at `I`, and scale
+invariance reduces an arbitrary PD matrix to the `det=1` slice.  So the slice
+minimizer is a global minimizer over all PD matrices. -/
+theorem exists_global_min_potentialG (hd : 0 < d) {m' : ℕ} (hdm' : d ≤ m')
+    {v : Fin (m' + 1) → (Fin d → ℝ)} (hne : ∀ i, v i ≠ 0)
+    (hspan : Submodule.span ℝ (Set.range v) = ⊤)
+    (hgp : ∀ e : Fin d → Fin (m' + 1), Function.Injective e →
+      IsUnit (Matrix.of (fun i k => v (e k) i) : Matrix (Fin d) (Fin d) ℝ).det) :
+    ∃ S : Matrix (Fin d) (Fin d) ℝ, S.PosDef ∧
+      ∀ S' : Matrix (Fin d) (Fin d) ℝ, S'.PosDef → potentialG v S ≤ potentialG v S' := by
+  obtain ⟨b, hb⟩ := sum_log_quadForm_ge_log_trace hd hdm' hne hspan hgp
+  have hdℝ : (0 : ℝ) < d := Nat.cast_pos.mpr hd
+  have hpd : ∀ M : Matrix (Fin d) (Fin d) ℝ, M.PosSemidef → M.det = 1 → M.PosDef :=
+    fun M hM hdet => hM.posDef_iff_isUnit.mpr
+      ((M.isUnit_iff_isUnit_det).mpr (by rw [hdet]; exact isUnit_one))
+  set FI : ℝ := potentialG v (1 : Matrix (Fin d) (Fin d) ℝ) with hFI
+  set R₀ : ℝ := Real.exp (FI - b) + d with hR₀
+  have hRd : (d : ℝ) ≤ R₀ := by rw [hR₀]; have := (Real.exp_pos (FI - b)).le; linarith
+  have hI : (1 : Matrix (Fin d) (Fin d) ℝ).PosDef := Matrix.PosDef.one
+  set K : Set (Matrix (Fin d) (Fin d) ℝ) :=
+    {M | M.PosSemidef ∧ M.trace ≤ R₀} ∩ {M | M.det = 1} with hK
+  have hKcompact : IsCompact K :=
+    (isCompact_posSemidef_trace_le R₀).inter_right
+      (isClosed_eq (Continuous.matrix_det continuous_id) continuous_const)
+  have hImem : (1 : Matrix (Fin d) (Fin d) ℝ) ∈ K := by
+    refine ⟨⟨hI.posSemidef, ?_⟩, Matrix.det_one⟩
+    rw [Matrix.trace_one, Fintype.card_fin]; exact hRd
+  have hcont : ∀ M ∈ K, ContinuousAt (potentialG v) M := by
+    rintro M ⟨⟨hPSD, _⟩, hdet⟩
+    exact continuousAt_potentialG (hpd M hPSD hdet) hne
+  obtain ⟨S, hSK, hSmin⟩ :=
+    hKcompact.exists_isMinOn ⟨_, hImem⟩ (fun M hM => (hcont M hM).continuousWithinAt)
+  obtain ⟨⟨hSpsd, hStr⟩, hSdet⟩ := hSK
+  have hSpd : S.PosDef := hpd S hSpsd hSdet
+  refine ⟨S, hSpd, fun S' hS' => ?_⟩
+  set c : ℝ := (S'.det) ^ (-(1 : ℝ) / d) with hc
+  have hdetpos' : 0 < S'.det := hS'.det_pos
+  have hcpos : 0 < c := Real.rpow_pos_of_pos hdetpos' _
+  have hcd : c ^ d = (S'.det)⁻¹ := by
+    rw [hc, ← Real.rpow_natCast ((S'.det) ^ (-(1 : ℝ) / d)) d, ← Real.rpow_mul hdetpos'.le,
+      show (-(1 : ℝ) / d) * d = -1 by field_simp, Real.rpow_neg_one]
+  have hdetcS : (c • S').det = 1 := by
+    rw [Matrix.det_smul, Fintype.card_fin, hcd, inv_mul_cancel₀ (ne_of_gt hdetpos')]
+  have hcSpd : (c • S').PosDef := by
+    rw [Matrix.posDef_iff_dotProduct_mulVec]
+    refine ⟨?_, fun x hx => ?_⟩
+    · show (c • S')ᴴ = c • S'
+      rw [Matrix.conjTranspose_smul, hS'.isHermitian, star_trivial]
+    · have hstar : star x = x := by funext i; exact star_trivial _
+      have hq : 0 < x ⬝ᵥ (S' *ᵥ x) := by
+        have := (Matrix.posDef_iff_dotProduct_mulVec.mp hS').2 hx
+        rwa [hstar] at this
+      rw [hstar, Matrix.smul_mulVec, dotProduct_smul, smul_eq_mul]
+      exact mul_pos hcpos hq
+  have hGeq : potentialG v S' = potentialG v (c • S') := (potentialG_smul hd hS' hne hcpos).symm
+  rw [hGeq]
+  by_cases htr : (c • S').trace ≤ R₀
+  · exact hSmin ⟨⟨hcSpd.posSemidef, htr⟩, hdetcS⟩
+  · push_neg at htr
+    have hGcS : potentialG v (c • S') = ∑ i, Real.log (v i ⬝ᵥ ((c • S') *ᵥ v i)) := by
+      unfold potentialG potential; rw [hdetcS, Real.log_one, mul_zero, sub_zero]
+    have hblow := hb (c • S') hcSpd hdetcS
+    have hGSI : potentialG v S ≤ FI := hSmin hImem
+    have hlogR : Real.log R₀ < Real.log (c • S').trace :=
+      Real.log_lt_log (by rw [hR₀]; positivity) htr
+    have hexp : FI - b ≤ Real.log R₀ := by
+      rw [hR₀]
+      calc FI - b = Real.log (Real.exp (FI - b)) := (Real.log_exp _).symm
+        _ ≤ Real.log (Real.exp (FI - b) + (d : ℝ)) :=
+            Real.log_le_log (Real.exp_pos _) (by linarith)
+    rw [hGcS]
+    linarith [hblow, hlogR, hexp, hGSI]
+
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
 #print axioms log_det_le_sum_log_quadForm
@@ -1026,6 +1102,7 @@ lemma eventually_posDef_add_smul (hd : 0 < d) {S : Matrix (Fin d) (Fin d) ℝ} (
 #print axioms sum_log_quadForm_ge_log_trace
 #print axioms potentialG_smul
 #print axioms eventually_posDef_add_smul
+#print axioms exists_global_min_potentialG
 #print axioms det_le_trace_div_pow
 #print axioms det_sq_mul_det_le_prod_diag
 #print axioms exists_symm_sqrt
