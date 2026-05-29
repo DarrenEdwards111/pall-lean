@@ -257,4 +257,48 @@ theorem sqrt_le_of_hadamard {m' : ℕ} (M : Fin (m' + 1) → Fin (m' + 1) → Bo
   rw [Real.sqrt_mul_self hNpos.le, hnorm, Real.div_sqrt] at hf
   exact hf
 
+/-! ### A concrete Hadamard witness: the Walsh matrix on `(ℤ/2)^k`
+
+`χ` is the nontrivial character of `ℤ/2`, and `walsh_orthogonality` is the
+character-sum identity `∑ₓ χ⟨x,a⟩·χ⟨x,b⟩ = [a = b]·2^k`, the orthogonality of
+the rows of the Walsh–Hadamard matrix.  This certifies that the Hadamard
+hypothesis of `sqrt_le_of_hadamard` is non-vacuous at every size `2^k`. -/
+
+/-- The nontrivial additive character `ℤ/2 → ℝ`, `χ z = (-1)^z`. -/
+noncomputable def χ : ZMod 2 → ℝ := fun z => if z = 0 then 1 else -1
+
+lemma χ_add (a b : ZMod 2) : χ (a + b) = χ a * χ b := by
+  fin_cases a <;> fin_cases b <;> simp [χ] <;> decide
+
+lemma χ_sum {k : ℕ} (g : Fin k → ZMod 2) (s : Finset (Fin k)) :
+    χ (∑ i ∈ s, g i) = ∏ i ∈ s, χ (g i) := by
+  induction s using Finset.induction with
+  | empty => simp [χ]
+  | insert a s ha ih => rw [Finset.sum_insert ha, Finset.prod_insert ha, χ_add, ih]
+
+/-- **Character (row) orthogonality of the Walsh–Hadamard matrix.** -/
+lemma walsh_orthogonality {k : ℕ} (a b : Fin k → ZMod 2) :
+    (∑ x : Fin k → ZMod 2, χ (∑ i, x i * a i) * χ (∑ i, x i * b i))
+      = if a = b then (2 ^ k : ℝ) else 0 := by
+  have hco : ∀ ai bi : ZMod 2,
+      (∑ xi : ZMod 2, χ (xi * ai) * χ (xi * bi)) = if ai = bi then (2 : ℝ) else 0 := by
+    intro ai bi
+    have hexp : (∑ xi : ZMod 2, χ (xi * ai) * χ (xi * bi))
+        = χ (0 * ai) * χ (0 * bi) + χ (1 * ai) * χ (1 * bi) := Fin.sum_univ_two _
+    rw [hexp]
+    fin_cases ai <;> fin_cases bi <;> simp [χ] <;> norm_num
+  have hstep : (∑ x : Fin k → ZMod 2, χ (∑ i, x i * a i) * χ (∑ i, x i * b i))
+      = ∑ x : Fin k → ZMod 2, ∏ i, (χ (x i * a i) * χ (x i * b i)) := by
+    apply Finset.sum_congr rfl
+    intro x _
+    rw [χ_sum (fun i => x i * a i) Finset.univ, χ_sum (fun i => x i * b i) Finset.univ,
+      ← Finset.prod_mul_distrib]
+  rw [hstep, ← Fintype.prod_sum (fun i (w : ZMod 2) => χ (w * a i) * χ (w * b i))]
+  simp only [hco]
+  by_cases hab : a = b
+  · subst hab; simp [Finset.prod_const, Finset.card_univ]
+  · rw [if_neg hab]
+    obtain ⟨i, hi⟩ := Function.ne_iff.mp hab
+    exact Finset.prod_eq_zero (Finset.mem_univ i) (if_neg hi)
+
 #print axioms PallLean.Paper93.DeepMath.PathB.ForsterUnconditional.forster_bound_unconditional
