@@ -542,12 +542,12 @@ theorem exists_isotropic_of_isLocalMin {S : Matrix (Fin d) (Fin d) ℝ} (hS : S.
     {v : Fin m → (Fin d → ℝ)} (hv : ∀ i, v i ≠ 0)
     (hdir : ∀ Δ : Matrix (Fin d) (Fin d) ℝ, Δᵀ = Δ →
       IsLocalMin (fun t : ℝ => potentialG v (S + t • Δ)) 0) :
-    ∃ T : Matrix (Fin d) (Fin d) ℝ, IsUnit T.det ∧
+    ∃ T : Matrix (Fin d) (Fin d) ℝ, Tᵀ = T ∧ T * T = S ∧ IsUnit T.det ∧
       ∑ i, Matrix.vecMulVec ((Real.sqrt (v i ⬝ᵥ (S *ᵥ v i)))⁻¹ • (T *ᵥ v i))
                             ((Real.sqrt (v i ⬝ᵥ (S *ᵥ v i)))⁻¹ • (T *ᵥ v i))
         = ((m : ℝ) / d) • (1 : Matrix (Fin d) (Fin d) ℝ) := by
   obtain ⟨T, hTsymm, hTT, hTunit⟩ := exists_symm_sqrt hS
-  exact ⟨T, hTunit,
+  exact ⟨T, hTsymm, hTT, hTunit,
     tightFrame_of_firstOrder hS hTsymm hTT hTunit hv (firstOrder_of_isLocalMin hS hv hdir)⟩
 
 open Matrix in
@@ -1108,7 +1108,7 @@ theorem exists_isotropic (hd : 0 < d) {m' : ℕ} (hdm' : d ≤ m')
     (hspan : Submodule.span ℝ (Set.range v) = ⊤)
     (hgp : ∀ e : Fin d → Fin (m' + 1), Function.Injective e →
       IsUnit (Matrix.of (fun i k => v (e k) i) : Matrix (Fin d) (Fin d) ℝ).det) :
-    ∃ (S T : Matrix (Fin d) (Fin d) ℝ), S.PosDef ∧ IsUnit T.det ∧
+    ∃ (S T : Matrix (Fin d) (Fin d) ℝ), S.PosDef ∧ Tᵀ = T ∧ T * T = S ∧ IsUnit T.det ∧
       ∑ i, Matrix.vecMulVec ((Real.sqrt (v i ⬝ᵥ (S *ᵥ v i)))⁻¹ • (T *ᵥ v i))
                             ((Real.sqrt (v i ⬝ᵥ (S *ᵥ v i)))⁻¹ • (T *ᵥ v i))
         = (((m' + 1 : ℕ) : ℝ) / (d : ℝ)) • (1 : Matrix (Fin d) (Fin d) ℝ) := by
@@ -1119,8 +1119,8 @@ theorem exists_isotropic (hd : 0 < d) {m' : ℕ} (hdm' : d ≤ m')
     filter_upwards [eventually_posDef_add_smul hd hSpd hΔ] with t htPD
     simp only [zero_smul, add_zero]
     exact hSmin (S + t • Δ) htPD
-  obtain ⟨T, hTunit, hTframe⟩ := exists_isotropic_of_isLocalMin hSpd hne hdir
-  exact ⟨S, T, hSpd, hTunit, hTframe⟩
+  obtain ⟨T, hTsymm, hTT, hTunit, hTframe⟩ := exists_isotropic_of_isLocalMin hSpd hne hdir
+  exact ⟨S, T, hSpd, hTsymm, hTT, hTunit, hTframe⟩
 
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
