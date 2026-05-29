@@ -299,6 +299,88 @@ lemma eq_zero_of_symm_trace_sq {A : Matrix (Fin d) (Fin d) ℝ} (hsymm : Aᵀ = 
     (fun k _ => mul_self_nonneg (A i k))).mp (hzero i (Finset.mem_univ i))
   exact mul_self_eq_zero.mp (h2 k (Finset.mem_univ k))
 
+/-- The scale-invariant potential `G(S) = F(S) - (m/d)·log det S`, whose
+*unconstrained* minimizer over SPD matrices satisfies the Lagrange identity
+(minimizing `F` on `{det = 1}` ⟺ minimizing `G` freely). -/
+noncomputable def potentialG (v : Fin m → (Fin d → ℝ)) (S : Matrix (Fin d) (Fin d) ℝ) : ℝ :=
+  potential v S - ((m : ℝ) / d) * Real.log S.det
+
+open Matrix in
+/-- Directional derivative of `G` along `t ↦ S + tΔ` at `t = 0`, combining rung 3a
+and rung 3b′. -/
+lemma hasDerivAt_potentialG {S Δ : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosDef)
+    {v : Fin m → (Fin d → ℝ)} (hv : ∀ i, v i ≠ 0) :
+    HasDerivAt (fun t : ℝ => potentialG v (S + t • Δ))
+      ((∑ i, (v i ⬝ᵥ (Δ *ᵥ v i)) / (v i ⬝ᵥ (S *ᵥ v i)))
+        - ((m : ℝ) / d) * (S⁻¹ * Δ).trace) 0 := by
+  unfold potentialG
+  exact (hasDerivAt_potential hS hv).sub ((hasDerivAt_logdet hS).const_mul ((m : ℝ) / d))
+
+open Matrix in
+/-- The quadratic form as a trace pairing: `v ⬝ᵥ (Δ *ᵥ v) = tr(Δ · v vᵀ)`. -/
+lemma dotProduct_mulVec_eq_trace (Δ : Matrix (Fin d) (Fin d) ℝ) (v : Fin d → ℝ) :
+    v ⬝ᵥ (Δ *ᵥ v) = (Δ * Matrix.vecMulVec v v).trace := by
+  rw [Matrix.trace]
+  simp only [Matrix.diag_apply, Matrix.mul_apply, Matrix.vecMulVec_apply, dotProduct,
+    Matrix.mulVec]
+  apply Finset.sum_congr rfl
+  intro a _
+  rw [Finset.mul_sum]
+  apply Finset.sum_congr rfl
+  intro b _
+  ring
+
+open Matrix in
+/-- **Rung 3 (variational first-order optimality).**  If the SPD matrix `S` is a
+local minimizer of the scale-invariant potential `G = potentialG v`, then it
+satisfies the Lagrange identity `∑ᵢ vᵢvᵢᵀ/⟪vᵢ,Svᵢ⟫ = (m/d)·S⁻¹` consumed by rung
+4a.  Proof: the directional derivative of `G` vanishes in every symmetric direction
+(`IsLocalMin`), equals `tr(Δ·A)` for the gradient matrix `A`, and `A` is symmetric;
+taking `Δ = A` gives `tr(A·A) = 0`, hence `A = 0`. -/
+theorem firstOrder_of_isLocalMin {S : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosDef)
+    {v : Fin m → (Fin d → ℝ)} (hv : ∀ i, v i ≠ 0)
+    (hmin : IsLocalMin (potentialG v) S) :
+    ∑ i, (v i ⬝ᵥ (S *ᵥ v i))⁻¹ • Matrix.vecMulVec (v i) (v i) = ((m : ℝ) / d) • S⁻¹ := by
+  rw [← sub_eq_zero]
+  set A : Matrix (Fin d) (Fin d) ℝ :=
+    (∑ i, (v i ⬝ᵥ (S *ᵥ v i))⁻¹ • Matrix.vecMulVec (v i) (v i)) - ((m : ℝ) / d) • S⁻¹ with hA
+  -- `S⁻¹` and hence `A` are symmetric
+  have hSinv_symm : (S⁻¹)ᵀ = S⁻¹ := by
+    have h : (S⁻¹)ᴴ = S⁻¹ := (hS.inv).isHermitian
+    calc (S⁻¹)ᵀ = (S⁻¹)ᴴ := by
+            ext i j; simp [Matrix.conjTranspose_apply, Matrix.transpose_apply]
+      _ = S⁻¹ := h
+  have hAsymm : Aᵀ = A := by
+    rw [hA, Matrix.transpose_sub, Matrix.transpose_smul, hSinv_symm]
+    congr 1
+    rw [Matrix.transpose_sum]
+    apply Finset.sum_congr rfl
+    intro i _
+    rw [Matrix.transpose_smul, Matrix.transpose_vecMulVec]
+  -- the directional derivative equals `tr(Δ · A)`
+  have hDtrace : ∀ Δ : Matrix (Fin d) (Fin d) ℝ,
+      ((∑ i, (v i ⬝ᵥ (Δ *ᵥ v i)) / (v i ⬝ᵥ (S *ᵥ v i)))
+        - ((m : ℝ) / d) * (S⁻¹ * Δ).trace) = (Δ * A).trace := by
+    intro Δ
+    rw [hA, Matrix.mul_sub, Matrix.trace_sub, Matrix.mul_sum, Matrix.trace_sum]
+    congr 1
+    · apply Finset.sum_congr rfl
+      intro i _
+      rw [mul_smul_comm, Matrix.trace_smul, smul_eq_mul, ← dotProduct_mulVec_eq_trace,
+        div_eq_inv_mul]
+    · rw [mul_smul_comm, Matrix.trace_smul, smul_eq_mul, trace_mul_comm S⁻¹ Δ]
+  -- vanishing in every symmetric direction
+  have hvanish : ∀ Δ : Matrix (Fin d) (Fin d) ℝ, Δᵀ = Δ → (Δ * A).trace = 0 := by
+    intro Δ _
+    rw [← hDtrace Δ]
+    have hloc : IsLocalMin (fun t : ℝ => potentialG v (S + t • Δ)) 0 := by
+      have hg : Filter.Tendsto (fun t : ℝ => S + t • Δ) (nhds (0 : ℝ)) (nhds S) := by
+        have hc : Continuous (fun t : ℝ => S + t • Δ) := by fun_prop
+        simpa using hc.tendsto 0
+      exact (hg.eventually hmin).mono (fun t ht => by simpa using ht)
+    exact hloc.hasDerivAt_eq_zero (hasDerivAt_potentialG hS hv)
+  exact eq_zero_of_symm_trace_sq hAsymm (hvanish A hAsymm)
+
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
 #print axioms tightFrame_of_firstOrder
@@ -306,5 +388,7 @@ lemma eq_zero_of_symm_trace_sq {A : Matrix (Fin d) (Fin d) ℝ} (hsymm : Aᵀ = 
 #print axioms hasDerivAt_det_one_add_smul
 #print axioms hasDerivAt_logdet
 #print axioms eq_zero_of_symm_trace_sq
+#print axioms hasDerivAt_potentialG
+#print axioms firstOrder_of_isLocalMin
 
 end PallLean.Paper93.DeepMath.PathB.ForsterIsotropic
