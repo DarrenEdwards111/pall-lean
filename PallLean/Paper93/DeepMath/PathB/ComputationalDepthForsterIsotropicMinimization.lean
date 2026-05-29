@@ -498,9 +498,30 @@ lemma det_le_prod_diag (hd : 0 < d) {M : Matrix (Fin d) (Fin d) ℝ} (hM : M.Pos
   have hfin := mul_le_mul_of_nonneg_left hker hprodpos.le
   rwa [← mul_assoc, mul_inv_cancel₀ hprodpos.ne', one_mul, mul_one] at hfin
 
+open Matrix in
+/-- **Basis-subset lower bound** (Hadamard applied to `BᴴSB`).  For invertible `B`
+and positive-definite `S`, `(det B)²·det S ≤ ∏ₖ (Bᴴ S B)ₖₖ`.  For a real basis
+matrix `B`, `Bᴴ = Bᵀ` and `(BᵀSB)ₖₖ = ⟪columnₖ B, S·columnₖ B⟫`, so this is the
+`∏ₖ ⟪vₖ,Svₖ⟫ ≥ det(B)²·det S` lower bound used in the coercivity argument. -/
+lemma det_sq_mul_det_le_prod_diag (hd : 0 < d) {B S : Matrix (Fin d) (Fin d) ℝ}
+    (hB : IsUnit B.det) (hS : S.PosDef) :
+    B.det ^ 2 * S.det ≤ ∏ k, (Bᴴ * S * B) k k := by
+  have hinj : Function.Injective B.mulVec := by
+    intro x y h
+    have h2 : B⁻¹ *ᵥ (B *ᵥ x) = B⁻¹ *ᵥ (B *ᵥ y) := by rw [h]
+    rwa [Matrix.mulVec_mulVec, Matrix.mulVec_mulVec, Matrix.nonsing_inv_mul B hB,
+      Matrix.one_mulVec, Matrix.one_mulVec] at h2
+  have hBSB : (Bᴴ * S * B).PosDef := hS.conjTranspose_mul_mul_same hinj
+  have hH := det_le_prod_diag hd hBSB
+  have hdet : (Bᴴ * S * B).det = B.det ^ 2 * S.det := by
+    rw [Matrix.det_mul, Matrix.det_mul, Matrix.det_conjTranspose, star_trivial]
+    ring
+  rwa [hdet] at hH
+
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
 #print axioms det_le_trace_div_pow
+#print axioms det_sq_mul_det_le_prod_diag
 #print axioms tightFrame_of_firstOrder
 #print axioms hasDerivAt_potential
 #print axioms hasDerivAt_det_one_add_smul
