@@ -89,9 +89,55 @@ theorem hasSignRankLE_of_signRealizes_rank_le {M : Fin m -> Fin n -> Bool}
     exact hA i j
   exact hasSignRankLE_mono hr hbase
 
+/-! ## The depth-2 base gate: a bipartite halfspace has sign-rank ≤ 2
+
+A single threshold gate whose weights split across the two input blocks computes
+the sign of `α i + β j`, whose realizer matrix has rank `≤ 2` (a sum of two
+rank-1 terms).  By the `≤` direction above, its sign-rank is `≤ 2`.  This is the
+honest *bottom* of the depth-2 threshold route.
+
+**Honest scope (the correction).**  This does NOT extend to a full depth-2
+threshold circuit `THR ∘ LTF` by "rank ≤ size": a majority of `s` halfspaces is
+`sign(∑ w_k · sign(R_k))`, where each `sign(R_k)` is a full-rank ±1 matrix, so the
+combination is not low rank.  The true bridge runs through unbounded-error (UPP)
+communication — `sign-rank ≤ 2^{UPP}` and a size-`s` depth-2 threshold circuit has
+`UPP = O(log s)`, giving `sign-rank ≤ poly(s)` — which requires the
+communication-protocol machinery, not the rank-factorization here.  That UPP
+bridge is the genuine remaining piece; it is not faked. -/
+
+/-- A bipartite halfspace: the sign of `α i + β j` (a threshold gate whose weights
+split across the two blocks).  Non-degeneracy `α i + β j ≠ 0` is assumed (standard
+for sign representations). -/
+noncomputable def bipartiteHalfspace (α : Fin m -> ℝ) (β : Fin n -> ℝ) :
+    Fin m -> Fin n -> Bool :=
+  fun i j => decide (0 < α i + β j)
+
+/-- **Depth-2 base gate.**  A bipartite halfspace has sign-rank `≤ 2`, via the
+explicit rank-2 factorization `α i + β j = α i · 1 + 1 · β j`. -/
+theorem bipartiteHalfspace_hasSignRankLE_two (α : Fin m -> ℝ) (β : Fin n -> ℝ)
+    (hne : ∀ i j, α i + β j ≠ 0) :
+    HasSignRankLE (bipartiteHalfspace α β) 2 := by
+  refine ⟨Matrix.of (fun i (k : Fin 2) => if k = 0 then α i else 1),
+          Matrix.of (fun (k : Fin 2) j => if k = 0 then (1 : ℝ) else β j), ?_⟩
+  intro i j
+  have hmul :
+      (Matrix.of (fun i (k : Fin 2) => if k = 0 then α i else 1)
+        * Matrix.of (fun (k : Fin 2) j => if k = 0 then (1 : ℝ) else β j)) i j
+        = α i + β j := by
+    simp [Matrix.mul_apply, Fin.sum_univ_two, Matrix.of_apply]
+  rw [hmul]
+  rcases lt_or_gt_of_ne (hne i j) with hlt | hgt
+  · have hb : bipartiteHalfspace α β i j = false := by
+      simp only [bipartiteHalfspace, decide_eq_false_iff_not, not_lt]; linarith
+    rw [hb, show sgn false = (-1 : ℝ) from rfl]; nlinarith
+  · have hb : bipartiteHalfspace α β i j = true := by
+      simp only [bipartiteHalfspace, decide_eq_true_eq]; linarith
+    rw [hb, show sgn true = (1 : ℝ) from rfl]; nlinarith
+
 #print axioms hasSignRankLE_succ
 #print axioms hasSignRankLE_mono
 #print axioms exists_factor_rank
 #print axioms hasSignRankLE_of_signRealizes_rank_le
+#print axioms bipartiteHalfspace_hasSignRankLE_two
 
 end PallLean.Paper93.DeepMath.PathB
