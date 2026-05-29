@@ -13,6 +13,13 @@ pieces that are useful guardrails for the remaining long-haul theorem:
 
 The general `d ≥ 2` spanning isotropic-position theorem remains the compactness /
 variational minimization project.
+
+One important guardrail is now explicit too: the naive equal-weight transform
+target is false for arbitrary spanning rows.  Duplicate rows cannot be separated
+by an invertible map, and three unit rows in dimension two with a duplicate row
+cannot become a tight frame after normalization.  The full Forster/Barthe kernel
+therefore needs the correct balance hypothesis (or a weighted/minimal-position
+formulation), not mere spanning.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.Forster
@@ -70,9 +77,74 @@ theorem isotropicTransform_dim_one {M : Fin m -> Fin n -> Bool}
     (R : UnitRealization M 1) : IsotropicTransformExists R :=
   isotropicTransform_of_tightFrame R (tightFrame_dim_one R)
 
+/-- The naive general transform target is false: three rows in dimension two
+with a duplicate row cannot be normalized by any invertible map into an
+equal-weight tight frame.  Indeed the two duplicate normalized rows contribute
+`2` in their common direction, while tightness would require total mass `3 / 2`
+in every unit direction. -/
+theorem not_isotropicTransformExists_duplicate_three_dim_two
+    {M : Fin 3 -> Fin n -> Bool} (R : UnitRealization M 2)
+    (hdup : R.u 0 = R.u 1) :
+    ¬ IsotropicTransformExists R := by
+  rintro ⟨T, hT⟩
+  have hu0_ne : R.u 0 ≠ 0 := by
+    intro h
+    have hunit := R.u_unit 0
+    rw [h, norm_zero] at hunit
+    exact one_ne_zero hunit.symm
+  have hTpos : 0 < ‖T (R.u 0)‖ := by
+    rw [norm_pos_iff]
+    intro hzero
+    exact hu0_ne (T.injective (by simpa using hzero))
+  let v : EuclideanSpace ℝ (Fin 2) := (‖T (R.u 0)‖)⁻¹ • T (R.u 0)
+  have hvnorm : ‖v‖ = 1 := by
+    dsimp [v]
+    rw [norm_smul, norm_inv, Real.norm_eq_abs, abs_of_pos hTpos,
+      inv_mul_cancel₀ (ne_of_gt hTpos)]
+  let z : Fin 3 -> EuclideanSpace ℝ (Fin 2) :=
+    fun i => (‖T (R.u i)‖)⁻¹ • T (R.u i)
+  have hz0 : z 0 = v := rfl
+  have hz1 : z 1 = v := by
+    dsimp [z, v]
+    rw [← hdup]
+  have hvinner : (⟪v, v⟫ : ℝ) = 1 := by
+    rw [real_inner_self_eq_norm_sq, hvnorm]
+    norm_num
+  have h0 : (⟪z 0, v⟫ : ℝ) ^ 2 = 1 := by
+    rw [hz0, hvinner]
+    norm_num
+  have h1 : (⟪z 1, v⟫ : ℝ) ^ 2 = 1 := by
+    rw [hz1, hvinner]
+    norm_num
+  have h2 : 0 ≤ (⟪z 2, v⟫ : ℝ) ^ 2 := sq_nonneg _
+  have hsum_ge : (2 : ℝ) ≤ ∑ i : Fin 3, (⟪z i, v⟫ : ℝ) ^ 2 := by
+    rw [Fin.sum_univ_three]
+    nlinarith
+  have htight := hT v
+  change (∑ i : Fin 3, (⟪z i, v⟫ : ℝ) ^ 2)
+      = ((3 : ℝ) / (2 : Nat)) * ‖v‖ ^ 2 at htight
+  have hsum_eq : (∑ i : Fin 3, (⟪z i, v⟫ : ℝ) ^ 2) = (3 : ℝ) / 2 := by
+    rw [htight, hvnorm]
+    norm_num
+  have hbad : (2 : ℝ) ≤ (3 : ℝ) / 2 := by
+    linarith
+  norm_num at hbad
+
+/-- Same obstruction, stated with the currently tempting spanning hypothesis:
+spanning alone does not repair duplicate-row overload.  The `Spans` assumption is
+deliberately unused; the point is that it is too weak for the equal-weight
+transform target. -/
+theorem not_isotropicTransformExists_of_spans_duplicate_three_dim_two
+    {M : Fin 3 -> Fin n -> Bool} (R : UnitRealization M 2)
+    (_hspan : Spans R) (hdup : R.u 0 = R.u 1) :
+    ¬ IsotropicTransformExists R :=
+  not_isotropicTransformExists_duplicate_three_dim_two R hdup
+
 #print axioms isotropicTransform_of_tightFrame
 #print axioms tightFrame_dim_one
 #print axioms isotropicTransform_dim_one
+#print axioms not_isotropicTransformExists_duplicate_three_dim_two
+#print axioms not_isotropicTransformExists_of_spans_duplicate_three_dim_two
 
 end
 
