@@ -670,8 +670,36 @@ lemma posDef_sum_vecMulVec_of_span {v : Fin m → (Fin d → ℝ)}
     have hyspan : y ∈ Submodule.span ℝ (Set.range v) := hspan ▸ Submodule.mem_top
     exact dotProduct_self_eq_zero.mp (hortho y hyspan)
 
+open Matrix in
+/-- **Per-subset log bound** (the averaging's input).  For an index tuple `e` whose
+selected vectors form an invertible matrix `B` (columns `v(e j)`) and are nonzero,
+`log(det(B)²·det S) ≤ ∑ₖ log⟪v(e k), S v(e k)⟫` — the log of Hadamard applied to `BᴴSB`. -/
+lemma log_det_le_sum_log_quadForm {S : Matrix (Fin d) (Fin d) ℝ} (hd : 0 < d) (hS : S.PosDef)
+    {v : Fin m → (Fin d → ℝ)} (e : Fin d → Fin m) (hne : ∀ k, v (e k) ≠ 0)
+    (hB : IsUnit (Matrix.of (fun i j => v (e j) i) : Matrix (Fin d) (Fin d) ℝ).det) :
+    Real.log ((Matrix.of (fun i j => v (e j) i) : Matrix (Fin d) (Fin d) ℝ).det ^ 2 * S.det)
+      ≤ ∑ k, Real.log (v (e k) ⬝ᵥ (S *ᵥ v (e k))) := by
+  set B := (Matrix.of (fun i j => v (e j) i) : Matrix (Fin d) (Fin d) ℝ) with hBdef
+  have hentry : ∀ k, (Bᴴ * S * B) k k = v (e k) ⬝ᵥ (S *ᵥ v (e k)) := by
+    intro k
+    simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, star_trivial, dotProduct,
+      Matrix.mulVec, hBdef, Matrix.of_apply, Finset.sum_mul, Finset.mul_sum]
+    rw [Finset.sum_comm]
+    refine Finset.sum_congr rfl fun a _ => Finset.sum_congr rfl fun b _ => by ring
+  have hbound := det_sq_mul_det_le_prod_diag hd hB hS
+  rw [show (∏ k, (Bᴴ * S * B) k k) = ∏ k, v (e k) ⬝ᵥ (S *ᵥ v (e k)) from
+    Finset.prod_congr rfl (fun k _ => hentry k)] at hbound
+  have hposq : ∀ k, 0 < v (e k) ⬝ᵥ (S *ᵥ v (e k)) := fun k => quadForm_pos hS (hne k)
+  have hdetpos : 0 < B.det ^ 2 * S.det :=
+    mul_pos (by rw [pow_two]; exact mul_self_pos.mpr hB.ne_zero) hS.det_pos
+  calc Real.log (B.det ^ 2 * S.det)
+      ≤ Real.log (∏ k, v (e k) ⬝ᵥ (S *ᵥ v (e k))) := Real.log_le_log hdetpos hbound
+    _ = ∑ k, Real.log (v (e k) ⬝ᵥ (S *ᵥ v (e k))) :=
+        Real.log_prod (fun k _ => (hposq k).ne')
+
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
+#print axioms log_det_le_sum_log_quadForm
 #print axioms det_le_trace_div_pow
 #print axioms det_sq_mul_det_le_prod_diag
 #print axioms exists_symm_sqrt
