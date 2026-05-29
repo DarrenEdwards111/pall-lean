@@ -612,6 +612,64 @@ lemma isCompact_posSemidef_trace_le (R : ℝ) :
   · nlinarith [hsq, sq_nonneg (M i j + R)]
   · nlinarith [hsq, sq_nonneg (M i j - R)]
 
+open Matrix in
+/-- Quadratic form of a rank-one outer product: `y ⬝ᵥ (vvᵀ *ᵥ y) = (v ⬝ᵥ y)²`. -/
+lemma dotProduct_vecMulVec_mulVec (a y : Fin d → ℝ) :
+    y ⬝ᵥ (Matrix.vecMulVec a a *ᵥ y) = (a ⬝ᵥ y) * (a ⬝ᵥ y) := by
+  simp only [Matrix.mulVec, Matrix.vecMulVec_apply, dotProduct]
+  rw [Finset.sum_mul_sum]
+  apply Finset.sum_congr rfl
+  intro j _
+  rw [Finset.mul_sum]
+  apply Finset.sum_congr rfl
+  intro k _
+  ring
+
+open Matrix in
+/-- **Rung 2 sphere-`δ`: spanning ⇒ `∑ᵢ vᵢvᵢᵀ` is positive definite.**  The quadratic
+form `y ⬝ᵥ ((∑ᵢ vᵢvᵢᵀ) *ᵥ y) = ∑ᵢ (vᵢ ⬝ᵥ y)²` vanishes only when `y ⊥ vᵢ` for all `i`,
+i.e. `y ⊥ span = ⊤`, forcing `y = 0`.  Its least eigenvalue is the coercivity
+constant used in the blow-up bound. -/
+lemma posDef_sum_vecMulVec_of_span {v : Fin m → (Fin d → ℝ)}
+    (hspan : Submodule.span ℝ (Set.range v) = ⊤) :
+    (∑ i, Matrix.vecMulVec (v i) (v i)).PosDef := by
+  rw [Matrix.posDef_iff_dotProduct_mulVec]
+  refine ⟨?_, ?_⟩
+  · -- Hermitian
+    show (∑ i, Matrix.vecMulVec (v i) (v i))ᴴ = ∑ i, Matrix.vecMulVec (v i) (v i)
+    rw [Matrix.conjTranspose_sum]
+    apply Finset.sum_congr rfl
+    intro i _
+    rw [Matrix.conjTranspose_vecMulVec]
+    simp
+  · intro y hy
+    have hstar : star y = y := by funext i; exact star_trivial _
+    rw [hstar, Matrix.sum_mulVec, dotProduct_sum]
+    have hcalc : (∑ i, y ⬝ᵥ (Matrix.vecMulVec (v i) (v i) *ᵥ y))
+        = ∑ i, (v i ⬝ᵥ y) * (v i ⬝ᵥ y) := by
+      apply Finset.sum_congr rfl
+      intro i _
+      exact dotProduct_vecMulVec_mulVec (v i) y
+    rw [hcalc]
+    -- sum of squares > 0 since not all vᵢ ⬝ᵥ y vanish (else y = 0)
+    apply Finset.sum_pos' (fun i _ => mul_self_nonneg _)
+    by_contra hcon
+    push_neg at hcon
+    apply hy
+    have hvy : ∀ i, v i ⬝ᵥ y = 0 := by
+      intro i
+      exact mul_self_eq_zero.mp
+        (le_antisymm (hcon i (Finset.mem_univ i)) (mul_self_nonneg _))
+    have hortho : ∀ w ∈ Submodule.span ℝ (Set.range v), w ⬝ᵥ y = 0 := by
+      intro w hw
+      induction hw using Submodule.span_induction with
+      | mem z hz => obtain ⟨i, rfl⟩ := hz; exact hvy i
+      | zero => simp
+      | add a b _ _ ha hb => rw [add_dotProduct, ha, hb, add_zero]
+      | smul c a _ ha => rw [smul_dotProduct, ha, smul_zero]
+    have hyspan : y ∈ Submodule.span ℝ (Set.range v) := hspan ▸ Submodule.mem_top
+    exact dotProduct_self_eq_zero.mp (hortho y hyspan)
+
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
 #print axioms det_le_trace_div_pow
@@ -620,6 +678,7 @@ lemma isCompact_posSemidef_trace_le (R : ℝ) :
 #print axioms exists_isotropic_of_isLocalMin
 #print axioms isClosed_posSemidef
 #print axioms isCompact_posSemidef_trace_le
+#print axioms posDef_sum_vecMulVec_of_span
 #print axioms tightFrame_of_firstOrder
 #print axioms hasDerivAt_potential
 #print axioms hasDerivAt_det_one_add_smul
