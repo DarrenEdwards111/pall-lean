@@ -30,7 +30,7 @@ dead-end documented in the UPP bridge).
 
 namespace PallLean.Paper93.DeepMath.PathB.ForsterUPP
 
-open scoped BigOperators Matrix RealInnerProductSpace
+open scoped BigOperators Matrix RealInnerProductSpace Matrix.Norms.L2Operator
 open Forster ForsterUnconditional
 
 variable {m n d : ℕ}
@@ -153,6 +153,62 @@ theorem walsh_forsterLowerBound {m' j : ℕ} (hmk : m' + 1 = 2 ^ (2 * j)) :
     Real.sqrt_sq (by positivity : (0 : ℝ) ≤ 2 ^ j)] at hb
   exact_mod_cast hb
 
+/-- **The `±1` operator norm is at least `√(#rows)`.**  Evaluating the `L²`
+operator norm of `sgnMat M` (square, `(m'+1)×(m'+1)`) on a standard basis vector
+gives a column of `±1` entries, whose `L²` norm is `√(m'+1)`. -/
+theorem sgnMat_opNorm_ge {m' : ℕ} (M : Fin (m' + 1) → Fin (m' + 1) → Bool) :
+    Real.sqrt ((m' + 1 : ℕ) : ℝ) ≤ ‖sgnMat M‖ := by
+  set j₀ : Fin (m' + 1) := ⟨0, Nat.succ_pos m'⟩ with hj0
+  set x : EuclideanSpace ℝ (Fin (m' + 1)) := EuclideanSpace.single j₀ 1 with hx
+  have hmul := (sgnMat M).l2_opNorm_mulVec x
+  rw [EuclideanSpace.norm_single, norm_one, mul_one] at hmul
+  have hcomp : ∀ i, ((EuclideanSpace.equiv (Fin (m' + 1)) ℝ).symm (sgnMat M *ᵥ x)) i
+      = sgn (M i j₀) := by
+    intro i
+    show (sgnMat M *ᵥ x) i = sgn (M i j₀)
+    simp only [hx, Matrix.mulVec, dotProduct, sgnMat, Matrix.of_apply,
+      EuclideanSpace.single_apply, mul_ite, mul_one, mul_zero, Finset.sum_ite_eq',
+      Finset.mem_univ, if_true]
+  have hsq : ‖(EuclideanSpace.equiv (Fin (m' + 1)) ℝ).symm (sgnMat M *ᵥ x)‖ ^ 2
+      = ((m' + 1 : ℕ) : ℝ) := by
+    rw [eucl_normSq_eq_sum]
+    have hone : ∀ i, ((EuclideanSpace.equiv (Fin (m' + 1)) ℝ).symm (sgnMat M *ᵥ x)) i ^ 2
+        = 1 := by
+      intro i; rw [hcomp i]; cases M i j₀ <;> simp [sgn]
+    rw [Finset.sum_congr rfl (fun i _ => hone i), Finset.sum_const, Finset.card_univ,
+      Fintype.card_fin, nsmul_eq_mul, mul_one]
+  have hcol : ‖(EuclideanSpace.equiv (Fin (m' + 1)) ℝ).symm (sgnMat M *ᵥ x)‖
+      = Real.sqrt ((m' + 1 : ℕ) : ℝ) := by
+    rw [← hsq, Real.sqrt_sq (norm_nonneg _)]
+  rwa [hcol] at hmul
+
+/-- **General Forster sign-rank lower bound (any square `±1` matrix).**  Every
+sign-rank-`d` factorisation of a square Bool matrix `M` satisfies
+`√((m'+1)²)/‖sgnMat M‖ ≤ d`.  This is the fundamental theorem of which the Walsh
+bound is one instance; the `d > m'` edge uses `sgnMat_opNorm_ge`. -/
+theorem forster_signRank_lower {m' : ℕ} (M : Fin (m' + 1) → Fin (m' + 1) → Bool)
+    (hμ : 0 < ‖sgnMat M‖) {d : ℕ} (hsr : HasSignRankLE M d) :
+    Real.sqrt (((m' + 1 : ℕ) : ℝ) * ((m' + 1 : ℕ) : ℝ)) / ‖sgnMat M‖ ≤ (d : ℝ) := by
+  obtain ⟨hd0, ⟨R⟩⟩ :=
+    exists_unitRealization_of_hasSignRankLE M (Nat.succ_pos m') (Nat.succ_pos m') hsr
+  by_cases hdm' : d ≤ m'
+  · exact forster_bound_unconditional hd0 hdm' R (by positivity) hμ
+  · push_neg at hdm'
+    have hNpos : (0 : ℝ) < ((m' + 1 : ℕ) : ℝ) := by exact_mod_cast Nat.succ_pos m'
+    have hsqrtpos : (0 : ℝ) < Real.sqrt ((m' + 1 : ℕ) : ℝ) := Real.sqrt_pos.mpr hNpos
+    rw [Real.sqrt_mul_self hNpos.le]
+    calc ((m' + 1 : ℕ) : ℝ) / ‖sgnMat M‖
+        ≤ ((m' + 1 : ℕ) : ℝ) / Real.sqrt ((m' + 1 : ℕ) : ℝ) :=
+          div_le_div_of_nonneg_left hNpos.le hsqrtpos (sgnMat_opNorm_ge M)
+      _ = Real.sqrt ((m' + 1 : ℕ) : ℝ) := Real.div_sqrt
+      _ ≤ ((m' + 1 : ℕ) : ℝ) := by
+          calc Real.sqrt ((m' + 1 : ℕ) : ℝ)
+              ≤ Real.sqrt (((m' + 1 : ℕ) : ℝ) * ((m' + 1 : ℕ) : ℝ)) :=
+                Real.sqrt_le_sqrt (le_mul_of_one_le_left hNpos.le (by exact_mod_cast Nat.succ_le_succ (Nat.zero_le m')))
+            _ = ((m' + 1 : ℕ) : ℝ) := Real.sqrt_mul_self hNpos.le
+      _ ≤ (d : ℝ) := by exact_mod_cast hdm'
+
 #print axioms PallLean.Paper93.DeepMath.PathB.ForsterUPP.exists_unitRealization_of_hasSignRankLE
 #print axioms PallLean.Paper93.DeepMath.PathB.ForsterUPP.walsh_uppCost_lower
 #print axioms PallLean.Paper93.DeepMath.PathB.ForsterUPP.walsh_forsterLowerBound
+#print axioms PallLean.Paper93.DeepMath.PathB.ForsterUPP.forster_signRank_lower
