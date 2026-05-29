@@ -444,6 +444,60 @@ lemma det_le_trace_div_pow (hd : 0 < d) {M : Matrix (Fin d) (Fin d) ℝ}
             inv_mul_cancel₀ hdℝ, Real.rpow_one]
     _ ≤ ((∑ i, lam i) / d) ^ d := pow_le_pow_left₀ (Real.rpow_nonneg hprodnn _) hgm d
 
+open Matrix in
+/-- **Hadamard's determinant inequality** (PD case): `det M ≤ ∏ᵢ Mᵢᵢ`.  Conjugate
+to unit diagonal `N = D M D` with `D = diag(Mᵢᵢ^{-1/2})`: then `Nᵢᵢ = 1`, `tr N = d`,
+`det N = (∏ᵢ Mᵢᵢ)⁻¹ · det M`, and the trace-Hadamard kernel gives `det N ≤ 1`. -/
+lemma det_le_prod_diag (hd : 0 < d) {M : Matrix (Fin d) (Fin d) ℝ} (hM : M.PosDef) :
+    M.det ≤ ∏ i, M i i := by
+  classical
+  have hMii : ∀ i, 0 < M i i := by
+    intro i
+    have hx : (Pi.single i (1 : ℝ) : Fin d → ℝ) ≠ 0 := by
+      intro h
+      have hi := congrFun h i
+      simp only [Pi.single_eq_same, Pi.zero_apply] at hi
+      exact one_ne_zero hi
+    have hpos := (Matrix.posDef_iff_dotProduct_mulVec.mp hM).2 hx
+    simpa [Matrix.mulVec_single, single_dotProduct, dotProduct_single] using hpos
+  have hprodpos : 0 < ∏ i, M i i := Finset.prod_pos (fun i _ => hMii i)
+  set dg : Fin d → ℝ := fun i => (Real.sqrt (M i i))⁻¹ with hdg
+  have hsqrtpos : ∀ i, 0 < Real.sqrt (M i i) := fun i => Real.sqrt_pos.mpr (hMii i)
+  -- N = (diagonal dg) * M * (diagonal dg), positive semidefinite
+  have hDH : (Matrix.diagonal dg)ᴴ = Matrix.diagonal dg := by
+    simp
+  have hN : (Matrix.diagonal dg * M * Matrix.diagonal dg).PosSemidef := by
+    have := hM.posSemidef.conjTranspose_mul_mul_same (Matrix.diagonal dg)
+    rwa [hDH] at this
+  -- diagonal entries of N are 1
+  have hNdiag : ∀ i, (Matrix.diagonal dg * M * Matrix.diagonal dg) i i = 1 := by
+    intro i
+    rw [Matrix.mul_diagonal, Matrix.diagonal_mul]
+    simp only [hdg]
+    rw [mul_right_comm, ← mul_inv, Real.mul_self_sqrt (hMii i).le, inv_mul_cancel₀ (hMii i).ne']
+  -- trace N = d
+  have hNtrace : (Matrix.diagonal dg * M * Matrix.diagonal dg).trace = (d : ℝ) := by
+    rw [Matrix.trace]
+    simp only [Matrix.diag_apply, hNdiag]
+    rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul, mul_one]
+  -- ∏ dg · ∏ dg = (∏ Mᵢᵢ)⁻¹
+  have hkey : (∏ i, dg i) * (∏ i, dg i) = (∏ i, M i i)⁻¹ := by
+    rw [← Finset.prod_mul_distrib, ← Finset.prod_inv_distrib]
+    apply Finset.prod_congr rfl
+    intro i _
+    simp only [hdg]
+    rw [← mul_inv, Real.mul_self_sqrt (hMii i).le]
+  -- det N = (∏ Mᵢᵢ)⁻¹ · det M
+  have hNdet : (Matrix.diagonal dg * M * Matrix.diagonal dg).det = (∏ i, M i i)⁻¹ * M.det := by
+    rw [Matrix.det_mul, Matrix.det_mul, Matrix.det_diagonal,
+      show (∏ i, dg i) * M.det * (∏ i, dg i) = (∏ i, dg i) * (∏ i, dg i) * M.det by ring, hkey]
+  -- trace-Hadamard kernel: det N ≤ (tr N / d)^d = 1
+  have hker := det_le_trace_div_pow hd hN
+  rw [hNtrace, hNdet, div_self (Nat.cast_ne_zero.mpr hd.ne'), one_pow] at hker
+  -- (∏ Mᵢᵢ)⁻¹ · det M ≤ 1 ⇒ det M ≤ ∏ Mᵢᵢ
+  have hfin := mul_le_mul_of_nonneg_left hker hprodpos.le
+  rwa [← mul_assoc, mul_inv_cancel₀ hprodpos.ne', one_mul, mul_one] at hfin
+
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
 #print axioms det_le_trace_div_pow
