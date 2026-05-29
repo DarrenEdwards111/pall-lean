@@ -301,4 +301,56 @@ lemma walsh_orthogonality {k : ℕ} (a b : Fin k → ZMod 2) :
     obtain ⟨i, hi⟩ := Function.ne_iff.mp hab
     exact Finset.prod_eq_zero (Finset.mem_univ i) (if_neg hi)
 
+/-- The reindexing `Fin (m'+1) ≃ (ℤ/2)^k` available whenever `m'+1 = 2^k`
+(both sides have `2^k` elements). -/
+noncomputable def walshEquiv {m' k : ℕ} (hmk : m' + 1 = 2 ^ k) :
+    Fin (m' + 1) ≃ (Fin k → ZMod 2) :=
+  (Fintype.equivFinOfCardEq
+    (show Fintype.card (Fin k → ZMod 2) = m' + 1 by
+      rw [Fintype.card_fun, ZMod.card, Fintype.card_fin]; exact hmk.symm)).symm
+
+/-- The Walsh–Hadamard sign matrix on `Fin (m'+1) ≃ (ℤ/2)^k`:
+`M a b = [⟨a,b⟩ = 0 in ℤ/2]`, so `sgnMat M a b = (-1)^⟨a,b⟩`. -/
+noncomputable def walshMatrix {m' k : ℕ} (hmk : m' + 1 = 2 ^ k) :
+    Fin (m' + 1) → Fin (m' + 1) → Bool :=
+  fun a b => decide (∑ i, (walshEquiv hmk a) i * (walshEquiv hmk b) i = 0)
+
+/-- **The Walsh matrix is Hadamard.**  Its `±1` form has orthogonal columns:
+`(sgnMat M)ᵀ · (sgnMat M) = (m'+1)·I`, by character orthogonality after
+reindexing the sum over `Fin (m'+1)` to `(ℤ/2)^k`. -/
+lemma walsh_hadamard {m' k : ℕ} (hmk : m' + 1 = 2 ^ k) :
+    (sgnMat (walshMatrix hmk))ᵀ * (sgnMat (walshMatrix hmk))
+      = ((m' + 1 : ℕ) : ℝ) • (1 : Matrix (Fin (m' + 1)) (Fin (m' + 1)) ℝ) := by
+  have hsgn : ∀ a b, sgnMat (walshMatrix hmk) a b
+      = χ (∑ i, (walshEquiv hmk a) i * (walshEquiv hmk b) i) := by
+    intro a b
+    by_cases h : (∑ i, (walshEquiv hmk a) i * (walshEquiv hmk b) i) = 0
+    · simp [sgnMat, walshMatrix, sgn, χ, h]
+    · simp [sgnMat, walshMatrix, sgn, χ, h]
+  ext a b
+  rw [Matrix.mul_apply]
+  simp only [Matrix.transpose_apply]
+  rw [Finset.sum_congr rfl (fun c _ => by rw [hsgn c a, hsgn c b])]
+  rw [Equiv.sum_comp (walshEquiv hmk)
+      (fun x => χ (∑ i, x i * (walshEquiv hmk a) i) * χ (∑ i, x i * (walshEquiv hmk b) i)),
+    walsh_orthogonality, Matrix.smul_apply, Matrix.one_apply, smul_eq_mul]
+  by_cases hab : a = b
+  · rw [if_pos (congrArg (walshEquiv hmk) hab), if_pos hab, mul_one, hmk]
+    push_cast; ring
+  · rw [if_neg (fun h => hab ((walshEquiv hmk).injective h)), if_neg hab, mul_zero]
+
+/-- **Concrete sign-rank lower bound (Walsh–Hadamard).**  For `m'+1 = 2^k`,
+*every* dimension-`d` unit realization of the Walsh sign matrix forces
+`√(2^k) ≤ d`: the sign rank of the `2^k × 2^k` Walsh–Hadamard matrix is at least
+`√(2^k) = 2^{k/2}`.  This is the canonical Forster lower bound, now unconditional
+and concrete. -/
+theorem walsh_sign_rank {m' k : ℕ} (hmk : m' + 1 = 2 ^ k) {d : ℕ} (hd : 0 < d)
+    (hdm' : d ≤ m') (R : UnitRealization (walshMatrix hmk) d) :
+    Real.sqrt ((m' + 1 : ℕ) : ℝ) ≤ (d : ℝ) :=
+  sqrt_le_of_hadamard (walshMatrix hmk) (walsh_hadamard hmk) hd hdm' R
+
 #print axioms PallLean.Paper93.DeepMath.PathB.ForsterUnconditional.forster_bound_unconditional
+
+#print axioms PallLean.Paper93.DeepMath.PathB.ForsterUnconditional.sqrt_le_of_hadamard
+#print axioms PallLean.Paper93.DeepMath.PathB.ForsterUnconditional.walsh_orthogonality
+#print axioms PallLean.Paper93.DeepMath.PathB.ForsterUnconditional.walsh_sign_rank
