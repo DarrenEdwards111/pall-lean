@@ -741,10 +741,63 @@ lemma sum_log_quadForm_lower_bound (hd : 0 < d) (hdm : d ≤ m)
   rw [one_div, inv_mul_le_iff₀ (by positivity : (0 : ℝ) < d)]
   linarith [hsum]
 
+open Matrix in
+/-- **Rayleigh lower bound** (rung 2 blow-up input).  A positive-definite `V` has a
+uniform coercivity constant: `∃ δ > 0, ∀ y, δ·(y⬝ᵥy) ≤ y⬝ᵥ(V*ᵥy)`.  Proof by sphere
+compactness — `δ = min` of the (continuous, positive) quadratic form over the
+compact unit sphere `{y | y⬝ᵥy = 1}` — then homogeneity.  No spectral theorem. -/
+lemma exists_quadForm_lower_bound (hd : 0 < d) {V : Matrix (Fin d) (Fin d) ℝ}
+    (hV : V.PosDef) :
+    ∃ δ : ℝ, 0 < δ ∧ ∀ y : Fin d → ℝ, δ * (y ⬝ᵥ y) ≤ y ⬝ᵥ (V *ᵥ y) := by
+  classical
+  have hfcont : Continuous (fun y : Fin d → ℝ => y ⬝ᵥ (V *ᵥ y)) :=
+    Continuous.dotProduct continuous_id (continuous_const.matrix_mulVec continuous_id)
+  have hKclosed : IsClosed {y : Fin d → ℝ | y ⬝ᵥ y = 1} :=
+    isClosed_eq (Continuous.dotProduct continuous_id continuous_id) continuous_const
+  have hKsub : {y : Fin d → ℝ | y ⬝ᵥ y = 1} ⊆ Set.univ.pi (fun _ => Set.Icc (-1 : ℝ) 1) := by
+    intro y hy i _
+    rw [Set.mem_Icc]
+    have hle : y i * y i ≤ y ⬝ᵥ y :=
+      Finset.single_le_sum (fun j _ => mul_self_nonneg (y j)) (Finset.mem_univ i)
+    rw [hy] at hle
+    constructor <;> nlinarith [hle]
+  have hKcompact : IsCompact {y : Fin d → ℝ | y ⬝ᵥ y = 1} :=
+    (isCompact_univ_pi (fun _ => isCompact_Icc)).of_isClosed_subset hKclosed hKsub
+  have hne : {y : Fin d → ℝ | y ⬝ᵥ y = 1}.Nonempty := by
+    refine ⟨Pi.single ⟨0, hd⟩ 1, ?_⟩
+    simp [dotProduct, Pi.single_apply, Finset.sum_ite_eq]
+  obtain ⟨y₀, hy₀K, hy₀min⟩ := hKcompact.exists_isMinOn hne hfcont.continuousOn
+  refine ⟨y₀ ⬝ᵥ (V *ᵥ y₀), quadForm_pos hV ?_, ?_⟩
+  · intro hzero; rw [hzero] at hy₀K; simp at hy₀K
+  · intro y
+    rcases eq_or_ne y 0 with rfl | hy0
+    · simp
+    · have hpos : 0 < y ⬝ᵥ y := by
+        rcases lt_or_eq_of_le (Finset.sum_nonneg (fun i _ => mul_self_nonneg (y i)) :
+            (0 : ℝ) ≤ y ⬝ᵥ y) with h | h
+        · exact h
+        · exact absurd (dotProduct_self_eq_zero.mp h.symm) hy0
+      set r := Real.sqrt (y ⬝ᵥ y) with hr
+      have hrpos : 0 < r := Real.sqrt_pos.mpr hpos
+      have hr2 : r * r = y ⬝ᵥ y := Real.mul_self_sqrt hpos.le
+      have hyhatK : (r⁻¹ • y) ⬝ᵥ (r⁻¹ • y) = 1 := by
+        rw [smul_dotProduct, dotProduct_smul, smul_eq_mul, smul_eq_mul, ← mul_assoc]
+        rw [← hr2]; field_simp
+      have hfyhat : (r⁻¹ • y) ⬝ᵥ (V *ᵥ (r⁻¹ • y)) = r⁻¹ * r⁻¹ * (y ⬝ᵥ (V *ᵥ y)) := by
+        rw [Matrix.mulVec_smul, smul_dotProduct, dotProduct_smul, smul_eq_mul, smul_eq_mul,
+          ← mul_assoc]
+      have hmin := isMinOn_iff.mp hy₀min _ hyhatK
+      rw [hfyhat] at hmin
+      have := mul_le_mul_of_nonneg_right hmin (mul_pos hrpos hrpos).le
+      calc (y₀ ⬝ᵥ (V *ᵥ y₀)) * (y ⬝ᵥ y) = (y₀ ⬝ᵥ (V *ᵥ y₀)) * (r * r) := by rw [hr2]
+        _ ≤ (r⁻¹ * r⁻¹ * (y ⬝ᵥ (V *ᵥ y))) * (r * r) := this
+        _ = y ⬝ᵥ (V *ᵥ y) := by field_simp
+
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
 #print axioms log_det_le_sum_log_quadForm
 #print axioms sum_log_quadForm_lower_bound
+#print axioms exists_quadForm_lower_bound
 #print axioms det_le_trace_div_pow
 #print axioms det_sq_mul_det_le_prod_diag
 #print axioms exists_symm_sqrt
