@@ -18,10 +18,12 @@ depth-2 threshold lower bound.
 
 The proof factors as:
 
-1. **(Isotropic existence — KERNEL)** any sign-realization can be linearly
-   transformed (preserving inner-product signs) so the row vectors form a *tight
-   frame*: `∀ y, ∑_i ⟪û_i, y⟫² = (m/d)‖y‖²`.  Proved by a compactness/minimization
-   argument over `GL(d)`.  **Not in Mathlib; the hard analytic kernel.**
+1. **(Isotropic existence — KERNEL)** after restricting to the span of the row
+   vectors (or assuming they span the ambient space), a sign-realization can be
+   linearly transformed (preserving inner-product signs) so the row vectors form
+   a *tight frame*: `∀ y, ∑_i ⟪û_i, y⟫² = (m/d)‖y‖²`.  Proved by a
+   compactness/minimization argument over `GL(d)`.  **Not in Mathlib; the hard
+   analytic kernel.**
 2. **(Frame lower bound)** with unit vectors in tight-frame position,
    `m·n/d ≤ ∑_{i,j} |⟪û_i, ŵ_j⟫|`  (uses `|x| ≥ x²` for `|x| ≤ 1` and the frame
    identity).
@@ -226,7 +228,7 @@ theorem spectralUpperBound_proof (M : Fin m -> Fin n -> Bool) {d : Nat}
         have h := Real.sqrt_le_sqrt hcs
         rwa [Real.sqrt_sq hnn] at h
 
-/-! ## Remaining obligation: ONLY the isotropic-position kernel (1) -/
+/-! ## Remaining obligation: corrected isotropic-position kernel (1) -/
 
 /-- (3) **Spectral upper bound** obligation: `S ≤ ‖M‖₂ · √(mn)`.  Needs the l2
 operator norm of the sign matrix and Cauchy–Schwarz; the substrate to build. -/
@@ -264,12 +266,47 @@ theorem frameLowerBound (M : Fin m -> Fin n -> Bool) : FrameLowerBound M := by
         Finset.sum_le_sum fun i _ => Finset.sum_le_sum fun j _ => hsq_le i j
     _ = forsterSum R := rfl
 
-/-- (1) **Isotropic-position kernel** obligation: every unit realization can be
-replaced (same dimension) by a tight-frame one with the same sign pattern.  The
-hard analytic kernel (compactness/minimization over `GL(d)`). -/
+/-- (1) **Over-strong isotropic-position kernel** obligation: every unit
+realization can be replaced (same dimension) by a tight-frame one with the same
+sign pattern.  The theorem `not_isotropicKernel_as_stated` below shows this exact
+statement is false without a spanning hypothesis or dimension reduction. -/
 def IsotropicKernel (M : Fin m -> Fin n -> Bool) : Prop :=
-  ∀ {d : Nat}, (∃ R : UnitRealization M d, True) ->
+  ∀ {d : Nat}, Nonempty (UnitRealization M d) ->
     ∃ R' : UnitRealization M d, IsTightFrame R'
+
+/-- A tight frame with one unit row is impossible in dimension two.  Testing the
+tight-frame identity at that row gives `1 = 1/2`. -/
+theorem not_isTightFrame_one_row_dim_two {M : Fin 1 -> Fin n -> Bool}
+    (R : UnitRealization M 2) :
+    ¬ IsTightFrame R := by
+  intro hframe
+  let y := R.u 0
+  have h := hframe y
+  have hbad := h
+  simp [y, R.u_unit] at hbad
+
+/-- The current `IsotropicKernel` statement is too strong: it asks for
+same-ambient-dimension isotropization even when the row vectors do not span the
+ambient space.  A one-row realization in `ℝ²` is a concrete counterexample. -/
+theorem not_isotropicKernel_as_stated :
+    ¬ IsotropicKernel (m := 1) (n := 1) (fun _ _ => true) := by
+  intro hker
+  let e : EuclideanSpace ℝ (Fin 2) := EuclideanSpace.single 0 (1 : ℝ)
+  let R : UnitRealization (m := 1) (n := 1) (fun _ _ => true) 2 :=
+    { u := fun _ => e
+      w := fun _ => e
+      u_unit := by
+        intro i
+        simp [e, EuclideanSpace.norm_single]
+      w_unit := by
+        intro j
+        simp [e, EuclideanSpace.norm_single]
+      sign_ok := by
+        intro i j
+        rw [show sgn true = (1 : ℝ) from rfl]
+        simp [e] }
+  obtain ⟨R', hframe⟩ := hker ⟨R⟩
+  exact not_isTightFrame_one_row_dim_two R' hframe
 
 /-- **Wiring lemma (PROVED): the kernel reduces to the pure analytic existence of a
 transform.**  If every realization admits an invertible `T` whose normalized row
@@ -283,7 +320,7 @@ theorem isotropicKernel_of_transform (M : Fin m -> Fin n -> Bool)
           ∀ y, ∑ i, ⟪(‖T (R.u i)‖)⁻¹ • T (R.u i), y⟫ ^ 2 = ((m : ℝ) / d) * ‖y‖ ^ 2) :
     IsotropicKernel M := by
   intro d hex
-  obtain ⟨R, _⟩ := hex
+  obtain ⟨R⟩ := hex
   obtain ⟨T, hTF⟩ := H R
   set S : EuclideanSpace ℝ (Fin d) →ₗ[ℝ] EuclideanSpace ℝ (Fin d) :=
     LinearMap.adjoint (T.symm : EuclideanSpace ℝ (Fin d) →ₗ[ℝ] EuclideanSpace ℝ (Fin d))
@@ -332,12 +369,13 @@ theorem isotropicKernel_of_transform (M : Fin m -> Fin n -> Bool)
     nlinarith [this, hpos]
   · intro y; exact hTF y
 
-/-! ## Capstone: the full Forster reduction (everything PROVEN except the kernel)
+/-! ## Capstone: the full Forster reduction (everything PROVEN except the corrected kernel)
 
 Frame lower bound (2), spectral upper bound (3), and arithmetic core (4) are all
 proven, so the entire Forster reduction holds: a **tight-frame** unit realization
 of dimension `d` forces `√(mn)/‖sgnMat M‖ ≤ d`.  The *only* remaining input is a
-tight frame — exactly what the isotropic-position kernel (1) provides. -/
+tight frame — exactly what the corrected spanning/dimension-reduced
+isotropic-position kernel (1) provides. -/
 theorem forster_bound_of_tightFrame (M : Fin m -> Fin n -> Bool) {d : Nat}
     (R : UnitRealization M d) (hd : 0 < d) (hframe : IsTightFrame R)
     (hmn : 0 < (m : ℝ) * n) (hμ : 0 < ‖sgnMat M‖) :
@@ -353,12 +391,14 @@ theorem forster_of_kernel (M : Fin m -> Fin n -> Bool) (hker : IsotropicKernel M
     {d : Nat} (R : UnitRealization M d) (hd : 0 < d)
     (hmn : 0 < (m : ℝ) * n) (hμ : 0 < ‖sgnMat M‖) :
     Real.sqrt ((m : ℝ) * n) / ‖sgnMat M‖ ≤ (d : ℝ) := by
-  obtain ⟨R', hframe⟩ := hker ⟨R, trivial⟩
+  obtain ⟨R', hframe⟩ := hker ⟨R⟩
   exact forster_bound_of_tightFrame M R' hd hframe hmn hμ
 
 #print axioms forster_dim_ge_of_bounds
 #print axioms frameLowerBound
 #print axioms spectralUpperBound_proof
+#print axioms not_isTightFrame_one_row_dim_two
+#print axioms not_isotropicKernel_as_stated
 #print axioms forster_bound_of_tightFrame
 #print axioms forster_of_kernel
 

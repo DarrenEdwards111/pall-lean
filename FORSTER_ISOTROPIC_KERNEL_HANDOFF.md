@@ -1,11 +1,22 @@
 # Handoff: Forster isotropic-position kernel (the sole remaining obligation)
 
-**Goal:** discharge `IsotropicKernel M` in
+**Goal:** discharge the corrected, spanning/dimension-reduced version of the
+isotropic-position kernel in
 `PallLean/Paper93/DeepMath/PathB/ComputationalDepthForsterScaffold.lean`
-(namespace `PallLean.Paper93.DeepMath.PathB.Forster`). It is the *only* hypothesis
-of `forster_of_kernel`; proving it makes Forster's sign-rank lower bound
-unconditional, which in turn makes the whole depth-2 arc (`bipartiteHalfspace`,
-`splitSparseThreshold`, `no_small_splitThreshold`) unconditional.
+(namespace `PallLean.Paper93.DeepMath.PathB.Forster`).
+
+**Important update:** the original same-ambient-dimension `IsotropicKernel` has
+now been formally shown too strong:
+
+```
+not_isotropicKernel_as_stated :
+  ¬ IsotropicKernel (m := 1) (n := 1) (fun _ _ => true)
+```
+
+The counterexample is a one-row realization in `ℝ²`: one unit vector cannot be a
+tight frame for all of `ℝ²`.  So the next theorem must either require the row
+vectors to span the ambient space, or first reduce to their span.  Proving the
+over-strong `IsotropicKernel` directly is impossible.
 
 Everything else in Forster is already proved (clean axioms, no sorry):
 `forster_dim_ge_of_bounds` (arithmetic core), `frameLowerBound` (2),
@@ -25,7 +36,7 @@ def IsTightFrame (R : UnitRealization M d) : Prop :=
   ∀ y : EuclideanSpace ℝ (Fin d), ∑ i, ⟪R.u i, y⟫ ^ 2 = ((m : ℝ) / d) * ‖y‖ ^ 2
 
 def IsotropicKernel (M : Fin m → Fin n → Bool) : Prop :=
-  ∀ {d : Nat}, (∃ R : UnitRealization M d, True) →
+  ∀ {d : Nat}, Nonempty (UnitRealization M d) →
     ∃ R' : UnitRealization M d, IsTightFrame R'
 ```
 
@@ -68,7 +79,7 @@ def IsotropicKernel (M : Fin m → Fin n → Bool) : Prop :=
   derivative `≥ 0` both ways ⇒ `= 0`. This avoids charts and is likely the cleaner
   Lean route.
 
-## Wiring back to `IsotropicKernel` (the easy part, once the lemma exists)
+## Wiring back to Forster (the easy part, once the corrected lemma exists)
 Given a realization `R` whose rows `R.u` span `ℝ^d`, apply the lemma to `v := R.u`,
 obtaining invertible `T`. Define
 ```
@@ -81,10 +92,11 @@ R'.w j = ((Tᵀ)⁻¹ (R.w j)) / ‖(Tᵀ)⁻¹ (R.w j)‖
 - `u_unit`, `w_unit`: by construction (normalized).
 - `IsTightFrame R'`: directly from the lemma's conclusion.
 
-## Spanning caveat (must address)
-`IsotropicKernel` as stated quantifies over *any* realization, but isotropy in
-`ℝ^d` requires the `R.u` to **span** `ℝ^d` (else `∑ ûᵢûᵢᵀ` is singular, never
-`(m/d)I`). Two clean fixes:
+## Spanning caveat (now formalized as a counterexample)
+Same-ambient isotropy in `ℝ^d` requires the `R.u` to **span** `ℝ^d` (else
+`∑ ûᵢûᵢᵀ` is singular, never `(m/d)I`). This is no longer just a caveat:
+`not_isotropicKernel_as_stated` proves the current over-strong kernel false.
+Two clean fixes remain:
 - **Strengthen** `IsotropicKernel` (and `forster_of_kernel`) to take a spanning
   hypothesis on `R.u`; the Forster bound is applied at the sign-rank-achieving
   dimension where the vectors span, so this loses nothing. **Recommended.**
