@@ -208,7 +208,43 @@ theorem forster_signRank_lower {m' : ℕ} (M : Fin (m' + 1) → Fin (m' + 1) →
             _ = ((m' + 1 : ℕ) : ℝ) := Real.sqrt_mul_self hNpos.le
       _ ≤ (d : ℝ) := by exact_mod_cast hdm'
 
+/-! ### No-go: the constant-bias route cannot bypass Forster
+
+`ConstantBiasUPPProtocol M τ` is — by the guardrail
+`ExactSignedOutputRealizer.ofConstantBiasUPPProtocol` — an *exact* `±1` realizer
+of `M` (rescale one side by `1/δ`).  So it gives `HasSignRankLE M (card τ)` and is
+therefore subject to the **full Forster sign-rank lower bound**: constant bias
+buys no asymptotic saving over exact realization.
+
+This is the precise sense in which the constant-bias / full-rank route is a *dead
+end* for a high-sign-rank matrix — its transcript count is pinned to the Forster
+bound.  Any genuinely *cheap* (margin-free) protocol must therefore use
+*non-constant* (approximate, error-controlled) bias — the `WeightedApproxBottom`
+object — which is the open direction, NOT this one. -/
+
+/-- **Constant bias is Forster-bounded (general no-go).**  A constant-bias UPP
+protocol for any square `M` needs at least `√((m'+1)²)/‖sgnMat M‖` transcripts —
+the same lower bound as exact realization. -/
+theorem forster_constantBias_lower {m' : ℕ} (M : Fin (m' + 1) → Fin (m' + 1) → Bool)
+    {τ : Type*} [Fintype τ] (P : ConstantBiasUPPProtocol M τ) :
+    Real.sqrt (((m' + 1 : ℕ) : ℝ) * ((m' + 1 : ℕ) : ℝ)) / ‖sgnMat M‖
+      ≤ (Fintype.card τ : ℝ) :=
+  forster_signRank_lower M
+    (lt_of_lt_of_le (Real.sqrt_pos.mpr (by exact_mod_cast Nat.succ_pos m')) (sgnMat_opNorm_ge M))
+    (hasSignRankLE_of_constantBiasUPPProtocol P)
+
+/-- **Concrete dead-end: no small constant-bias protocol for Walsh.**  Any
+constant-bias UPP protocol for the `2^{2j} × 2^{2j}` Walsh–Hadamard matrix needs
+at least `2^j = √(2^{2j})` transcripts.  Hence the constant-bias route cannot
+produce a cheap (poly-log-transcript) protocol for a high-sign-rank matrix: the
+margin-free protocol must be genuinely approximate, not constant bias. -/
+theorem walsh_constantBias_no_small {m' j : ℕ} (hmk : m' + 1 = 2 ^ (2 * j))
+    {τ : Type*} [Fintype τ] (P : ConstantBiasUPPProtocol (walshMatrix hmk) τ) :
+    2 ^ j ≤ Fintype.card τ :=
+  walsh_forsterLowerBound hmk (Fintype.card τ) (hasSignRankLE_of_constantBiasUPPProtocol P)
+
 #print axioms PallLean.Paper93.DeepMath.PathB.ForsterUPP.exists_unitRealization_of_hasSignRankLE
 #print axioms PallLean.Paper93.DeepMath.PathB.ForsterUPP.walsh_uppCost_lower
 #print axioms PallLean.Paper93.DeepMath.PathB.ForsterUPP.walsh_forsterLowerBound
 #print axioms PallLean.Paper93.DeepMath.PathB.ForsterUPP.forster_signRank_lower
+#print axioms PallLean.Paper93.DeepMath.PathB.ForsterUPP.walsh_constantBias_no_small
