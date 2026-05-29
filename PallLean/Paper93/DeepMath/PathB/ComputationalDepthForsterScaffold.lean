@@ -101,6 +101,32 @@ theorem forster_bound_of_frame_and_spectral
     Real.sqrt ((m : ℝ) * n) / μ ≤ (d : ℝ) :=
   forster_dim_ge_of_bounds hd hμ hmn hlow hupp
 
+/-! ## (3a) Sign step of the spectral bound — proven
+
+The sign condition turns the absolute values in `S` into a *signed* bilinear sum,
+the form the spectral norm bounds.  This is the clean, self-contained half of the
+spectral upper bound; the remaining half (coordinate decomposition + l2 operator
+norm `Matrix.l2_opNorm_mulVec` + double Cauchy–Schwarz) is the heavy substrate. -/
+
+/-- `S = ∑_{i,j} sgn(M i j) · ⟪u i, w j⟫` — the absolute values collapse to signed
+inner products because `sgn(M i j) · ⟪u i, w j⟫ > 0`. -/
+theorem forsterSum_eq_signed {M : Fin m -> Fin n -> Bool} {d : Nat}
+    (R : UnitRealization M d) :
+    forsterSum R = ∑ i, ∑ j, sgn (M i j) * ⟪R.u i, R.w j⟫ := by
+  unfold forsterSum
+  refine Finset.sum_congr rfl (fun i _ => Finset.sum_congr rfl (fun j _ => ?_))
+  have hpos := R.sign_ok i j
+  by_cases hM : M i j = true
+  · rw [hM] at hpos ⊢
+    rw [show sgn true = (1 : ℝ) from rfl] at hpos ⊢
+    have hp : 0 < ⟪R.u i, R.w j⟫ := by nlinarith
+    rw [abs_of_pos hp]; ring
+  · rw [Bool.not_eq_true] at hM
+    rw [hM] at hpos ⊢
+    rw [show sgn false = (-1 : ℝ) from rfl] at hpos ⊢
+    have hneg : ⟪R.u i, R.w j⟫ < 0 := by nlinarith
+    rw [abs_of_neg hneg]; ring
+
 /-! ## Remaining obligations (the long-haul targets), stated precisely -/
 
 /-- (3) **Spectral upper bound** obligation: `S ≤ ‖M‖₂ · √(mn)`.  Needs the l2
