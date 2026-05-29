@@ -170,9 +170,89 @@ lemma hasDerivAt_potential {S Δ : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosDef)
   unfold potential
   exact HasDerivAt.fun_sum (fun i _ => hasDerivAt_logQuadForm hS (hv i))
 
+/-- A permutation of `Fin d` that fixes every index except possibly one fixes that
+index too, hence is the identity (a permutation cannot move exactly one point). -/
+private lemma perm_eq_one_of_fixes_compl {σ : Equiv.Perm (Fin d)} {i : Fin d}
+    (h : ∀ j, j ≠ i → σ j = j) : σ = 1 := by
+  ext k
+  by_cases hk : k = i
+  · by_cases hσk : σ k = k
+    · simp [hσk, Equiv.Perm.one_apply]
+    · have hki' : σ k ≠ i := by rw [← hk]; exact hσk
+      exact absurd (σ.injective (h (σ k) hki')) hσk
+  · simp [h k hk, Equiv.Perm.one_apply]
+
+open Matrix in
+/-- **Rung 3b — Jacobi's formula at the identity.**  `d/dt det(1 + tM)|₀ = tr M`.
+This is the matrix-calculus fact Mathlib lacks.  Proof: in the Leibniz expansion
+`det(1+tM) = ∑_σ sgn σ ∏ᵢ (1+tM)(σ i) i`, differentiate the product of affine
+factors; every non-identity permutation moves at least two indices, so its
+contribution has a vanishing zero-order factor at `t=0`, leaving only the identity
+term `∑ᵢ Mᵢᵢ = tr M`. -/
+lemma hasDerivAt_det_one_add_smul (M : Matrix (Fin d) (Fin d) ℝ) :
+    HasDerivAt (fun t : ℝ => (1 + t • M).det) M.trace 0 := by
+  classical
+  have key : HasDerivAt (fun t : ℝ => (1 + t • M).det)
+      (∑ σ : Equiv.Perm (Fin d), ((Equiv.Perm.sign σ : ℤ) : ℝ) *
+        (∑ i, (∏ j ∈ Finset.univ.erase i, (1 + (0 : ℝ) • M) (σ j) j) • M (σ i) i)) 0 := by
+    have hfun : (fun t : ℝ => (1 + t • M).det)
+        = (fun t : ℝ => ∑ σ : Equiv.Perm (Fin d),
+            ((Equiv.Perm.sign σ : ℤ) : ℝ) * ∏ i, (1 + t • M) (σ i) i) := by
+      funext t; rw [Matrix.det_apply']
+    rw [hfun]
+    apply HasDerivAt.fun_sum
+    intro σ _
+    apply HasDerivAt.const_mul
+    apply HasDerivAt.fun_finset_prod
+    intro i _
+    have hentry : (fun t : ℝ => (1 + t • M) (σ i) i)
+        = fun t : ℝ => (1 : Matrix (Fin d) (Fin d) ℝ) (σ i) i + t * M (σ i) i := by
+      funext t; rw [Matrix.add_apply, Matrix.smul_apply, smul_eq_mul]
+    rw [hentry]
+    simpa using
+      (((hasDerivAt_id (0 : ℝ)).mul_const (M (σ i) i)).const_add
+        ((1 : Matrix (Fin d) (Fin d) ℝ) (σ i) i))
+  have hval : (∑ σ : Equiv.Perm (Fin d), ((Equiv.Perm.sign σ : ℤ) : ℝ) *
+      (∑ i, (∏ j ∈ Finset.univ.erase i, (1 + (0 : ℝ) • M) (σ j) j) • M (σ i) i))
+        = M.trace := by
+    rw [Finset.sum_eq_single (1 : Equiv.Perm (Fin d))]
+    · -- identity term equals the trace
+      have hinner : (∑ i, (∏ j ∈ Finset.univ.erase i,
+              (1 + (0 : ℝ) • M) ((1 : Equiv.Perm (Fin d)) j) j) •
+            M ((1 : Equiv.Perm (Fin d)) i) i) = ∑ i, M i i := by
+        apply Finset.sum_congr rfl
+        intro i _
+        have hp : (∏ j ∈ Finset.univ.erase i,
+            (1 + (0 : ℝ) • M) ((1 : Equiv.Perm (Fin d)) j) j) = 1 := by
+          apply Finset.prod_eq_one
+          intro j _
+          simp
+        rw [hp, one_smul, Equiv.Perm.one_apply]
+      rw [Equiv.Perm.sign_one]
+      simp only [Units.val_one, Int.cast_one, one_mul]
+      rw [hinner]
+      simp [Matrix.trace, Matrix.diag]
+    · intro σ _ hσ
+      have hinner0 : (∑ i, (∏ j ∈ Finset.univ.erase i,
+          (1 + (0 : ℝ) • M) (σ j) j) • M (σ i) i) = 0 := by
+        apply Finset.sum_eq_zero
+        intro i _
+        have hp0 : (∏ j ∈ Finset.univ.erase i, (1 + (0 : ℝ) • M) (σ j) j) = 0 := by
+          obtain ⟨j₀, hj₀i, hj₀⟩ : ∃ j₀, j₀ ≠ i ∧ σ j₀ ≠ j₀ := by
+            by_contra hcon
+            push_neg at hcon
+            exact hσ (perm_eq_one_of_fixes_compl hcon)
+          apply Finset.prod_eq_zero (Finset.mem_erase.mpr ⟨hj₀i, Finset.mem_univ _⟩)
+          simp [hj₀]
+        rw [hp0, zero_smul]
+      rw [hinner0, mul_zero]
+    · intro h; exact absurd (Finset.mem_univ _) h
+  rwa [hval] at key
+
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
 #print axioms tightFrame_of_firstOrder
 #print axioms hasDerivAt_potential
+#print axioms hasDerivAt_det_one_add_smul
 
 end PallLean.Paper93.DeepMath.PathB.ForsterIsotropic
