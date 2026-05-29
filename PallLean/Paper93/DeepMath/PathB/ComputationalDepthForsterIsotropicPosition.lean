@@ -1,3 +1,4 @@
+import Mathlib.LinearAlgebra.Dimension.OrzechProperty
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthForsterDimensionReduction
 
 /-!
@@ -37,6 +38,99 @@ def IsotropicTransformExists {M : Fin m -> Fin n -> Bool} {d : Nat}
   ∃ T : EuclideanSpace ℝ (Fin d) ≃ₗ[ℝ] EuclideanSpace ℝ (Fin d),
     ∀ y, ∑ i, ⟪(‖T (R.u i)‖)⁻¹ • T (R.u i), y⟫ ^ 2 =
       ((m : ℝ) / d) * ‖y‖ ^ 2
+
+/-- A corrected weighted/basis-subset isotropic target.  Instead of forcing every
+row to carry equal mass, select a basis of rows and put total mass `m` on that
+basis, with weight `m / d` per selected basis row.  Redundant rows are therefore
+allowed to have zero weight, avoiding the duplicate-row obstruction below. -/
+def SelectedBasisWeightedIsotropicTransformExists
+    {M : Fin m -> Fin n -> Bool} {d : Nat} (R : UnitRealization M d)
+    {κ : Type*} [Fintype κ] (select : κ -> Fin m) : Prop :=
+  ∃ T : EuclideanSpace ℝ (Fin d) ≃ₗ[ℝ] EuclideanSpace ℝ (Fin d),
+    ∀ y, ∑ k : κ,
+        ((m : ℝ) / d) *
+          ⟪(‖T (R.u (select k))‖)⁻¹ • T (R.u (select k)), y⟫ ^ 2 =
+      ((m : ℝ) / d) * ‖y‖ ^ 2
+
+/-- Packaged corrected target: a finite, injectively selected basis subset of
+rows carries the isotropic mass. -/
+def BasisWeightedIsotropicTransformExists
+    {M : Fin m -> Fin n -> Bool} {d : Nat} (R : UnitRealization M d) : Prop :=
+  ∃ (κ : Type) (inst : Fintype κ) (select : κ -> Fin m),
+    Function.Injective select ∧ Fintype.card κ = d ∧
+      @SelectedBasisWeightedIsotropicTransformExists m n M d R κ inst select
+
+/-- If the selected rows form a basis of the ambient space, the corrected
+weighted target is provable without compactness: map that basis to an
+orthonormal basis and put the isotropic mass on the selected basis rows. -/
+theorem selectedBasisWeightedIsotropicTransform_of_selected_basis
+    {M : Fin m -> Fin n -> Bool} {d : Nat} (R : UnitRealization M d)
+    {κ : Type*} [Fintype κ] (select : κ -> Fin m)
+    (hcard : Fintype.card κ = d)
+    (hli : LinearIndependent ℝ (fun k => R.u (select k)))
+    (hspan : Submodule.span ℝ (Set.range fun k => R.u (select k)) = ⊤) :
+    SelectedBasisWeightedIsotropicTransformExists R select := by
+  classical
+  let b : Module.Basis κ ℝ (EuclideanSpace ℝ (Fin d)) :=
+    Module.Basis.mk hli (by rw [hspan])
+  let e : κ ≃ Fin d := Fintype.equivOfCardEq (by simpa using hcard)
+  let stdON : OrthonormalBasis κ ℝ (EuclideanSpace ℝ (Fin d)) :=
+    (EuclideanSpace.basisFun (Fin d) ℝ).reindex e.symm
+  let std : Module.Basis κ ℝ (EuclideanSpace ℝ (Fin d)) := stdON.toBasis
+  let T : EuclideanSpace ℝ (Fin d) ≃ₗ[ℝ] EuclideanSpace ℝ (Fin d) :=
+    b.equiv std (Equiv.refl κ)
+  refine ⟨T, ?_⟩
+  intro y
+  have hnormed :
+      ∀ k : κ, (‖T (R.u (select k))‖)⁻¹ • T (R.u (select k)) = stdON k := by
+    intro k
+    have hmap : T (R.u (select k)) = stdON k := by
+      have h := Module.Basis.equiv_apply b k std (Equiv.refl κ)
+      simpa [T, b, std] using h
+    rw [hmap, stdON.norm_eq_one k, inv_one, one_smul]
+  calc
+    ∑ k : κ,
+        ((m : ℝ) / d) *
+          ⟪(‖T (R.u (select k))‖)⁻¹ • T (R.u (select k)), y⟫ ^ 2
+        = ∑ k : κ, ((m : ℝ) / d) * ⟪stdON k, y⟫ ^ 2 := by
+          exact Finset.sum_congr rfl (fun k _ => by rw [hnormed k])
+    _ = ((m : ℝ) / d) * ∑ k : κ, ⟪stdON k, y⟫ ^ 2 := by
+          rw [Finset.mul_sum]
+    _ = ((m : ℝ) / d) * ‖y‖ ^ 2 := by
+          rw [stdON.sum_sq_inner_right y]
+
+/-- Every spanning row realization has the corrected weighted/basis-subset
+isotropic transform: choose a linearly independent subfamily of the rows with the
+same span, map it to an orthonormal basis, and put zero weight on all redundant
+rows.  This is the honest replacement for the false equal-weight spanning target. -/
+theorem basisWeightedIsotropicTransform_of_spans
+    {M : Fin m -> Fin n -> Bool} {d : Nat} (R : UnitRealization M d)
+    (hspan : Spans R) :
+    BasisWeightedIsotropicTransformExists R := by
+  classical
+  obtain ⟨κ, select, hselect_inj, hselect_span, hselect_li⟩ :=
+    exists_linearIndependent' ℝ R.u
+  letI : Fintype κ := Fintype.ofInjective select hselect_inj
+  have hselected_span :
+      Submodule.span ℝ (Set.range fun k : κ => R.u (select k)) = ⊤ := by
+    have hspan' :
+        Submodule.span ℝ (Set.range fun k : κ => R.u (select k))
+          = Submodule.span ℝ (Set.range R.u) := by
+      simpa [Function.comp_def] using hselect_span
+    rw [hspan', hspan]
+  have hselected_li :
+      LinearIndependent ℝ (fun k : κ => R.u (select k)) := by
+    simpa [Function.comp_def] using hselect_li
+  have hcard : Fintype.card κ = d := by
+    have hc :=
+      (linearIndependent_iff_card_eq_finrank_span
+        (R := ℝ) (M := EuclideanSpace ℝ (Fin d))
+        (b := fun k : κ => R.u (select k))).mp hselected_li
+    rw [Set.finrank, hselected_span, finrank_top, finrank_euclideanSpace] at hc
+    simpa using hc
+  refine ⟨κ, inferInstance, select, hselect_inj, hcard, ?_⟩
+  exact selectedBasisWeightedIsotropicTransform_of_selected_basis
+    R select hcard hselected_li hselected_span
 
 /-- If the row vectors are already in tight-frame position, the identity map is
 the required isotropic transform. -/
@@ -143,6 +237,8 @@ theorem not_isotropicTransformExists_of_spans_duplicate_three_dim_two
 #print axioms isotropicTransform_of_tightFrame
 #print axioms tightFrame_dim_one
 #print axioms isotropicTransform_dim_one
+#print axioms selectedBasisWeightedIsotropicTransform_of_selected_basis
+#print axioms basisWeightedIsotropicTransform_of_spans
 #print axioms not_isotropicTransformExists_duplicate_three_dim_two
 #print axioms not_isotropicTransformExists_of_spans_duplicate_three_dim_two
 
