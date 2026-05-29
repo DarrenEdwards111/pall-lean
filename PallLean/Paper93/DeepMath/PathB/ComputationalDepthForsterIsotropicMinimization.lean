@@ -850,12 +850,12 @@ open Matrix in
 the remaining log-sum is bounded below.  Reindex `{i ≠ k₀} ≃ Fin m'` via
 `Fin.succAbove`, then apply the cyclic averaging to the reindexed family. -/
 lemma sum_log_quadForm_compl_lower_bound (hd : 0 < d) {m' : ℕ} (hdm' : d ≤ m')
-    {S : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosDef) (hdet1 : S.det = 1)
     {v : Fin (m' + 1) → (Fin d → ℝ)} (hne : ∀ i, v i ≠ 0)
     (hgp : ∀ e : Fin d → Fin (m' + 1), Function.Injective e →
       IsUnit (Matrix.of (fun i k => v (e k) i) : Matrix (Fin d) (Fin d) ℝ).det)
     (k₀ : Fin (m' + 1)) :
-    ∃ C : ℝ, C ≤ ∑ i ∈ Finset.univ.erase k₀, Real.log (v i ⬝ᵥ (S *ᵥ v i)) := by
+    ∃ C : ℝ, ∀ S : Matrix (Fin d) (Fin d) ℝ, S.PosDef → S.det = 1 →
+      C ≤ ∑ i ∈ Finset.univ.erase k₀, Real.log (v i ⬝ᵥ (S *ᵥ v i)) := by
   set w : Fin m' → (Fin d → ℝ) := fun j => v (k₀.succAbove j) with hw
   have hwne : ∀ j, w j ≠ 0 := fun j => hne _
   have hwgp : ∀ s : Fin m',
@@ -865,12 +865,68 @@ lemma sum_log_quadForm_compl_lower_bound (hd : 0 < d) {m' : ℕ} (hdm' : d ≤ m
     refine hgp (fun k => k₀.succAbove (s + Fin.castLE hdm' k)) ?_
     intro a b hab
     exact Fin.castLE_injective hdm' (add_left_cancel (k₀.succAbove_right_injective hab))
+  refine ⟨(1 / (d : ℝ)) * ∑ s : Fin m',
+      Real.log ((Matrix.of (fun i k => w (s + Fin.castLE hdm' k) i) :
+        Matrix (Fin d) (Fin d) ℝ).det ^ 2), fun S hS hdet1 => ?_⟩
   have hbound := sum_log_quadForm_lower_bound hd hdm' hS hdet1 hwne hwgp
-  refine ⟨_, hbound.trans (le_of_eq ?_)⟩
-  -- ∑_j log⟪w j, S w j⟫ = ∑_{i≠k₀} log⟪vᵢ,Svᵢ⟫
+  refine hbound.trans (le_of_eq ?_)
   rw [Finset.sum_erase_eq_sub (Finset.mem_univ k₀), Fin.sum_univ_succAbove
     (fun i => Real.log (v i ⬝ᵥ (S *ᵥ v i))) k₀]
   simp [hw]
+
+open Matrix in
+/-- **Rung 2 blow-up: `F` grows at least logarithmically with `tr S`.**  There is a
+constant `b` with `log(tr S) + b ≤ ∑ᵢ log⟪vᵢ,Svᵢ⟫` for every SPD `S` with `det = 1`.
+The argmax term `⟪v_{k₀},Sv_{k₀}⟫ ≥ δ·tr S/(m+1)` (trace inequality + pigeonhole)
+contributes `≥ log(tr S) + const`, while the remaining `m` terms stay `≥` a uniform
+constant (`(m−1)`-averaging).  This forces sublevel sets to have bounded trace. -/
+lemma sum_log_quadForm_ge_log_trace (hd : 0 < d) {m' : ℕ} (hdm' : d ≤ m')
+    {v : Fin (m' + 1) → (Fin d → ℝ)} (hne : ∀ i, v i ≠ 0)
+    (hspan : Submodule.span ℝ (Set.range v) = ⊤)
+    (hgp : ∀ e : Fin d → Fin (m' + 1), Function.Injective e →
+      IsUnit (Matrix.of (fun i k => v (e k) i) : Matrix (Fin d) (Fin d) ℝ).det) :
+    ∃ b : ℝ, ∀ S : Matrix (Fin d) (Fin d) ℝ, S.PosDef → S.det = 1 →
+      Real.log S.trace + b ≤ ∑ i, Real.log (v i ⬝ᵥ (S *ᵥ v i)) := by
+  classical
+  obtain ⟨δ, hδpos, hδ⟩ := exists_quadForm_lower_bound hd (posDef_sum_vecMulVec_of_span hspan)
+  -- uniform leave-one-out constant
+  have hCk : ∀ k₀ : Fin (m' + 1), ∃ C : ℝ, ∀ S : Matrix (Fin d) (Fin d) ℝ, S.PosDef →
+      S.det = 1 → C ≤ ∑ i ∈ Finset.univ.erase k₀, Real.log (v i ⬝ᵥ (S *ᵥ v i)) :=
+    fun k₀ => sum_log_quadForm_compl_lower_bound hd hdm' hne hgp k₀
+  choose Cf hCf using hCk
+  set Cmin : ℝ := Finset.univ.inf' ⟨0, Finset.mem_univ 0⟩ Cf with hCmin
+  have hmpos : (0 : ℝ) < (m' : ℝ) + 1 := by positivity
+  refine ⟨Real.log (δ / ((m' : ℝ) + 1)) + Cmin, fun S hS hdet1 => ?_⟩
+  have htrpos : 0 < S.trace := by
+    rw [Matrix.trace]
+    refine Finset.sum_pos (fun j _ => ?_) ⟨⟨0, hd⟩, Finset.mem_univ _⟩
+    have hx : (Pi.single j (1 : ℝ) : Fin d → ℝ) ≠ 0 := by
+      intro h; have := congrFun h j; simp only [Pi.single_eq_same, Pi.zero_apply] at this
+      exact one_ne_zero this
+    have := (Matrix.posDef_iff_dotProduct_mulVec.mp hS).2 hx
+    simpa [Matrix.mulVec_single, single_dotProduct, dotProduct_single, Matrix.diag_apply]
+      using this
+  have htrace := trace_le_sum_quadForm hS.posSemidef hδ
+  have hmax : ∃ k₀, δ * S.trace / ((m' : ℝ) + 1) ≤ v k₀ ⬝ᵥ (S *ᵥ v k₀) := by
+    by_contra hcon
+    push_neg at hcon
+    have hlt : ∑ i, v i ⬝ᵥ (S *ᵥ v i) < ∑ _i : Fin (m' + 1), δ * S.trace / ((m' : ℝ) + 1) :=
+      Finset.sum_lt_sum_of_nonempty ⟨0, Finset.mem_univ 0⟩ (fun i _ => hcon i)
+    rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul] at hlt
+    push_cast at hlt
+    rw [mul_comm, div_mul_cancel₀ _ (ne_of_gt hmpos)] at hlt
+    linarith [htrace]
+  obtain ⟨k₀, hk₀⟩ := hmax
+  have hqpos : 0 < δ * S.trace / ((m' : ℝ) + 1) := by positivity
+  rw [← Finset.add_sum_erase _ _ (Finset.mem_univ k₀)]
+  have hlog1 : Real.log (δ / ((m' : ℝ) + 1)) + Real.log S.trace
+      ≤ Real.log (v k₀ ⬝ᵥ (S *ᵥ v k₀)) := by
+    have heq : δ / ((m' : ℝ) + 1) * S.trace = δ * S.trace / ((m' : ℝ) + 1) := by ring
+    rw [← Real.log_mul (ne_of_gt (by positivity)) (ne_of_gt htrpos), heq]
+    exact Real.log_le_log hqpos hk₀
+  have hlog2 : Cmin ≤ ∑ i ∈ Finset.univ.erase k₀, Real.log (v i ⬝ᵥ (S *ᵥ v i)) :=
+    le_trans (Finset.inf'_le _ (Finset.mem_univ k₀)) (hCf k₀ S hS hdet1)
+  linarith [hlog1, hlog2]
 
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
@@ -879,6 +935,7 @@ lemma sum_log_quadForm_compl_lower_bound (hd : 0 < d) {m' : ℕ} (hdm' : d ≤ m
 #print axioms exists_quadForm_lower_bound
 #print axioms trace_le_sum_quadForm
 #print axioms sum_log_quadForm_compl_lower_bound
+#print axioms sum_log_quadForm_ge_log_trace
 #print axioms det_le_trace_div_pow
 #print axioms det_sq_mul_det_le_prod_diag
 #print axioms exists_symm_sqrt
