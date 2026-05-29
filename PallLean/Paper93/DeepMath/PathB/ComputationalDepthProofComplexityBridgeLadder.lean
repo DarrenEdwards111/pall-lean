@@ -19,6 +19,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMetacomplexityFrontier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthTC0NC1ObserverRoute
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthThresholdCompositionFrontier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayeredThresholdInvariant
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayeredThresholdFirstHandhold
 
 /-!
 # Proof-complexity bridge ladder (a map, with both ends anchored to real theorems)
@@ -434,6 +435,20 @@ theorem ladder_rung5_layered_threshold_finite_prefix_lower_bound {n d : Nat}
     ¬ ∃ C : ThresholdLayer n d, ThresholdLayer.eval C = f :=
   ThresholdLayer.lower_bound_of_layeredThresholdRouteUpTo R
 
+/-- **Rung 5, first installed handhold: depth-2 split/UPP sign-rank.**  The
+finite-prefix climb still carries transfer fields, but the first concrete
+threshold-adjacent handhold is now wired into the ladder: any split-rank depth-2
+threshold representation with fewer terms than the sign-rank lower bound is
+impossible.  This installs the depth-2/sign-rank boundary; depth-3+ threshold
+composition remains open. -/
+theorem ladder_rung5_first_handhold_splitSparse_lower_bound {m n B s : Nat}
+    {M : Fin m -> Fin n -> Bool}
+    (hF : ForsterLowerBound M B)
+    (u : Fin s -> Fin m -> ℝ) (v : Fin s -> Fin n -> ℝ)
+    (hne : ∀ i j, (∑ k, u k i * v k j) ≠ 0)
+    (hcomp : SplitSparseThreshold s u v = M) (hsmall : s < B) : False :=
+  first_handhold_no_small_splitSparse hF u v hne hcomp hsmall
+
 /-- **Rung 5, TC⁰ pointwise substrate.**  A supplied threshold-circuit lower
 bound rules out smaller TC⁰-style circuits at the given depth. -/
 theorem ladder_rung5_TC0_substrate
@@ -550,6 +565,7 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung5_layered_threshold_invariant_frontier
 #print axioms ladder_rung5_layered_threshold_lower_bound
 #print axioms ladder_rung5_layered_threshold_finite_prefix_lower_bound
+#print axioms ladder_rung5_first_handhold_splitSparse_lower_bound
 #print axioms ladder_rung5_TC0_substrate
 #print axioms ladder_rung5_branching_program_substrate
 #print axioms ladder_rung5_width_one_bp_parity_kernel
