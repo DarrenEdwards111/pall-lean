@@ -1,5 +1,6 @@
 import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Analysis.SpecialFunctions.Sqrt
+import Mathlib.Analysis.CStarAlgebra.Matrix
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSignRankInvariant
 
 /-!
@@ -126,6 +127,23 @@ theorem forsterSum_eq_signed {M : Fin m -> Fin n -> Bool} {d : Nat}
     rw [show sgn false = (-1 : ℝ) from rfl] at hpos ⊢
     have hneg : ⟪R.u i, R.w j⟫ < 0 := by nlinarith
     rw [abs_of_neg hneg]; ring
+
+/-! ## (3b) Spectral upper bound — substrate probe -/
+
+/-- The sign matrix of `M` as a real matrix. -/
+noncomputable def sgnMat (M : Fin m -> Fin n -> Bool) : Matrix (Fin m) (Fin n) ℝ :=
+  Matrix.of (fun i j => sgn (M i j))
+
+theorem eucl_inner_eq_sum {k : Nat} (x y : EuclideanSpace ℝ (Fin k)) :
+    (⟪x, y⟫ : ℝ) = ∑ c, x c * y c := by
+  rw [PiLp.inner_apply]
+  simp only [RCLike.inner_apply, conj_trivial]
+  exact Finset.sum_congr rfl (fun c _ => mul_comm _ _)
+
+theorem eucl_normSq_eq_sum {k : Nat} (x : EuclideanSpace ℝ (Fin k)) :
+    ‖x‖ ^ 2 = ∑ c, (x c) ^ 2 := by
+  rw [EuclideanSpace.norm_eq, Real.sq_sqrt (by positivity)]
+  simp [Real.norm_eq_abs, sq_abs]
 
 /-! ## Remaining obligations (the long-haul targets), stated precisely -/
 
