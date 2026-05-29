@@ -793,11 +793,64 @@ lemma exists_quadForm_lower_bound (hd : 0 < d) {V : Matrix (Fin d) (Fin d) ℝ}
         _ ≤ (r⁻¹ * r⁻¹ * (y ⬝ᵥ (V *ᵥ y))) * (r * r) := this
         _ = y ⬝ᵥ (V *ᵥ y) := by field_simp
 
+open Matrix in
+open scoped MatrixOrder in
+/-- The trace of a product of positive-semidefinite matrices is nonnegative:
+`tr(AB) = tr((√A)ᴴ·B·√A) ≥ 0`. -/
+lemma trace_mul_nonneg {A B : Matrix (Fin d) (Fin d) ℝ} (hA : A.PosSemidef)
+    (hB : B.PosSemidef) : 0 ≤ (A * B).trace := by
+  have hsqrt : CFC.sqrt A * CFC.sqrt A = A :=
+    CFC.sqrt_mul_sqrt_self A (Matrix.nonneg_iff_posSemidef.mpr hA)
+  have hherm : (CFC.sqrt A)ᴴ = CFC.sqrt A :=
+    (Matrix.nonneg_iff_posSemidef.mp (CFC.sqrt_nonneg A)).isHermitian
+  have hpsd : (CFC.sqrt A * B * CFC.sqrt A).PosSemidef := by
+    have := hB.conjTranspose_mul_mul_same (CFC.sqrt A)
+    rwa [hherm] at this
+  have htr : (A * B).trace = (CFC.sqrt A * B * CFC.sqrt A).trace := by
+    conv_lhs => rw [← hsqrt, Matrix.mul_assoc]
+    rw [Matrix.trace_mul_comm (CFC.sqrt A) (CFC.sqrt A * B)]
+  rw [htr]; exact hpsd.trace_nonneg
+
+open Matrix in
+/-- **Trace inequality** (rung 2 blow-up): with `δ` the Rayleigh constant of
+`V = ∑ᵢ vᵢvᵢᵀ`, `δ·tr S ≤ ∑ᵢ ⟪vᵢ,Svᵢ⟫` for positive-semidefinite `S`.  From
+`tr(S·(V − δ·1)) ≥ 0` (both PSD) and `tr(S·V) = ∑ᵢ⟪vᵢ,Svᵢ⟫`. -/
+lemma trace_le_sum_quadForm {S : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosSemidef)
+    {v : Fin m → (Fin d → ℝ)} {δ : ℝ}
+    (hδ : ∀ y : Fin d → ℝ, δ * (y ⬝ᵥ y) ≤ y ⬝ᵥ ((∑ i, Matrix.vecMulVec (v i) (v i)) *ᵥ y)) :
+    δ * S.trace ≤ ∑ i, v i ⬝ᵥ (S *ᵥ v i) := by
+  set V := ∑ i, Matrix.vecMulVec (v i) (v i) with hV
+  have hVh : Vᴴ = V := by
+    rw [hV, Matrix.conjTranspose_sum]
+    apply Finset.sum_congr rfl
+    intro i _
+    rw [Matrix.conjTranspose_vecMulVec]
+    simp
+  have hVδ : (V - δ • (1 : Matrix (Fin d) (Fin d) ℝ)).PosSemidef := by
+    rw [Matrix.posSemidef_iff_dotProduct_mulVec]
+    refine ⟨?_, fun y => ?_⟩
+    · show (V - δ • (1 : Matrix (Fin d) (Fin d) ℝ))ᴴ = V - δ • 1
+      rw [Matrix.conjTranspose_sub, Matrix.conjTranspose_smul, hVh, star_trivial,
+        Matrix.conjTranspose_one]
+    · have hsy : star y = y := by funext i; exact star_trivial _
+      rw [hsy, Matrix.sub_mulVec, dotProduct_sub, Matrix.smul_mulVec, dotProduct_smul,
+        Matrix.one_mulVec, smul_eq_mul]
+      linarith [hδ y]
+  have htr := trace_mul_nonneg hS hVδ
+  rw [Matrix.mul_sub, Matrix.trace_sub, mul_smul_comm, Matrix.trace_smul, Matrix.mul_one,
+    smul_eq_mul] at htr
+  have hSV : (S * V).trace = ∑ i, v i ⬝ᵥ (S *ᵥ v i) := by
+    rw [hV, Matrix.mul_sum, Matrix.trace_sum]
+    exact Finset.sum_congr rfl (fun i _ => (dotProduct_mulVec_eq_trace S (v i)).symm)
+  rw [hSV] at htr
+  linarith [htr]
+
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
 #print axioms log_det_le_sum_log_quadForm
 #print axioms sum_log_quadForm_lower_bound
 #print axioms exists_quadForm_lower_bound
+#print axioms trace_le_sum_quadForm
 #print axioms det_le_trace_div_pow
 #print axioms det_sq_mul_det_le_prod_diag
 #print axioms exists_symm_sqrt
