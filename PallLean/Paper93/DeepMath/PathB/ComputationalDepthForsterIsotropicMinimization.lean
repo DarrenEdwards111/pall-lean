@@ -765,7 +765,7 @@ lemma exists_quadForm_lower_bound (hd : 0 < d) {V : Matrix (Fin d) (Fin d) ℝ}
     (isCompact_univ_pi (fun _ => isCompact_Icc)).of_isClosed_subset hKclosed hKsub
   have hne : {y : Fin d → ℝ | y ⬝ᵥ y = 1}.Nonempty := by
     refine ⟨Pi.single ⟨0, hd⟩ 1, ?_⟩
-    simp [dotProduct, Pi.single_apply, Finset.sum_ite_eq]
+    simp [dotProduct, Pi.single_apply]
   obtain ⟨y₀, hy₀K, hy₀min⟩ := hKcompact.exists_isMinOn hne hfcont.continuousOn
   refine ⟨y₀ ⬝ᵥ (V *ᵥ y₀), quadForm_pos hV ?_, ?_⟩
   · intro hzero; rw [hzero] at hy₀K; simp at hy₀K
@@ -845,12 +845,40 @@ lemma trace_le_sum_quadForm {S : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosSemidef)
   rw [hSV] at htr
   linarith [htr]
 
+open Matrix in
+/-- **`(m−1)`-subset averaging** (rung 2 blow-up): leaving out any single index `k₀`,
+the remaining log-sum is bounded below.  Reindex `{i ≠ k₀} ≃ Fin m'` via
+`Fin.succAbove`, then apply the cyclic averaging to the reindexed family. -/
+lemma sum_log_quadForm_compl_lower_bound (hd : 0 < d) {m' : ℕ} (hdm' : d ≤ m')
+    {S : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosDef) (hdet1 : S.det = 1)
+    {v : Fin (m' + 1) → (Fin d → ℝ)} (hne : ∀ i, v i ≠ 0)
+    (hgp : ∀ e : Fin d → Fin (m' + 1), Function.Injective e →
+      IsUnit (Matrix.of (fun i k => v (e k) i) : Matrix (Fin d) (Fin d) ℝ).det)
+    (k₀ : Fin (m' + 1)) :
+    ∃ C : ℝ, C ≤ ∑ i ∈ Finset.univ.erase k₀, Real.log (v i ⬝ᵥ (S *ᵥ v i)) := by
+  set w : Fin m' → (Fin d → ℝ) := fun j => v (k₀.succAbove j) with hw
+  have hwne : ∀ j, w j ≠ 0 := fun j => hne _
+  have hwgp : ∀ s : Fin m',
+      IsUnit ((Matrix.of (fun i k => w (s + Fin.castLE hdm' k) i) :
+        Matrix (Fin d) (Fin d) ℝ)).det := by
+    intro s
+    refine hgp (fun k => k₀.succAbove (s + Fin.castLE hdm' k)) ?_
+    intro a b hab
+    exact Fin.castLE_injective hdm' (add_left_cancel (k₀.succAbove_right_injective hab))
+  have hbound := sum_log_quadForm_lower_bound hd hdm' hS hdet1 hwne hwgp
+  refine ⟨_, hbound.trans (le_of_eq ?_)⟩
+  -- ∑_j log⟪w j, S w j⟫ = ∑_{i≠k₀} log⟪vᵢ,Svᵢ⟫
+  rw [Finset.sum_erase_eq_sub (Finset.mem_univ k₀), Fin.sum_univ_succAbove
+    (fun i => Real.log (v i ⬝ᵥ (S *ᵥ v i))) k₀]
+  simp [hw]
+
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
 #print axioms log_det_le_sum_log_quadForm
 #print axioms sum_log_quadForm_lower_bound
 #print axioms exists_quadForm_lower_bound
 #print axioms trace_le_sum_quadForm
+#print axioms sum_log_quadForm_compl_lower_bound
 #print axioms det_le_trace_div_pow
 #print axioms det_sq_mul_det_le_prod_diag
 #print axioms exists_symm_sqrt
