@@ -35,7 +35,7 @@ This file proves (4) and fixes the statements of (1)–(3) as the remaining work
 
 namespace PallLean.Paper93.DeepMath.PathB.Forster
 
-open scoped InnerProductSpace BigOperators
+open scoped InnerProductSpace BigOperators Matrix Matrix.Norms.L2Operator
 open RealInnerProductSpace
 
 variable {m n : Nat}
@@ -145,7 +145,87 @@ theorem eucl_normSq_eq_sum {k : Nat} (x : EuclideanSpace ℝ (Fin k)) :
   rw [EuclideanSpace.norm_eq, Real.sq_sqrt (by positivity)]
   simp [Real.norm_eq_abs, sq_abs]
 
-/-! ## Remaining obligations (the long-haul targets), stated precisely -/
+/-- **(3) PROVED.**  The spectral upper bound `S ≤ ‖sgnMat M‖₂ · √(mn)`:
+coordinate-decompose into `∑_c ⟪Uc, sgnMat ·ᵥ Wc⟫`, bound each term by
+`l2_opNorm_mulVec` + Cauchy–Schwarz, then a Cauchy–Schwarz over the `d`
+coordinates with the Parseval identities `∑_c ‖Uc c‖² = m`, `∑_c ‖Wc c‖² = n`. -/
+theorem spectralUpperBound_proof (M : Fin m -> Fin n -> Bool) {d : Nat}
+    (R : UnitRealization M d) :
+    forsterSum R ≤ ‖sgnMat M‖ * Real.sqrt ((m : ℝ) * n) := by
+  classical
+  set A := sgnMat M with hA
+  let Uc : Fin d -> EuclideanSpace ℝ (Fin m) :=
+    fun c => (WithLp.equiv 2 (Fin m → ℝ)).symm (fun i => R.u i c)
+  let Wc : Fin d -> EuclideanSpace ℝ (Fin n) :=
+    fun c => (WithLp.equiv 2 (Fin n → ℝ)).symm (fun j => R.w j c)
+  let Av : Fin d -> EuclideanSpace ℝ (Fin m) :=
+    fun c => (WithLp.equiv 2 (Fin m → ℝ)).symm (A *ᵥ (fun j => R.w j c))
+  have hUc : ∀ c i, Uc c i = R.u i c := fun _ _ => rfl
+  have hWc : ∀ c j, Wc c j = R.w j c := fun _ _ => rfl
+  have hAv : ∀ c i, Av c i = ∑ j, sgn (M i j) * R.w j c := by
+    intro c i
+    show (A *ᵥ (fun j => R.w j c)) i = _
+    simp only [hA, sgnMat, Matrix.mulVec, dotProduct, Matrix.of_apply]
+  -- coordinate decomposition
+  have hcoord : forsterSum R = ∑ c, ⟪Uc c, Av c⟫ := by
+    rw [forsterSum_eq_signed]
+    have hLHS : ∀ i j, sgn (M i j) * ⟪R.u i, R.w j⟫
+        = ∑ c, sgn (M i j) * (R.u i c * R.w j c) := by
+      intro i j; rw [eucl_inner_eq_sum, Finset.mul_sum]
+    have hRHS : ∀ c, (⟪Uc c, Av c⟫ : ℝ)
+        = ∑ i, ∑ j, sgn (M i j) * (R.u i c * R.w j c) := by
+      intro c
+      rw [eucl_inner_eq_sum]
+      refine Finset.sum_congr rfl (fun i _ => ?_)
+      rw [hUc, hAv, Finset.mul_sum]
+      refine Finset.sum_congr rfl (fun j _ => ?_)
+      ring
+    rw [Finset.sum_congr rfl (fun i _ => Finset.sum_congr rfl (fun j _ => hLHS i j)),
+        Finset.sum_congr rfl (fun c _ => hRHS c)]
+    rw [Finset.sum_congr rfl
+          (fun i _ => Finset.sum_comm (s := Finset.univ) (t := Finset.univ)
+            (f := fun j c => sgn (M i j) * (R.u i c * R.w j c))),
+        Finset.sum_comm]
+  rw [hcoord]
+  -- termwise bound
+  have hterm : ∀ c, (⟪Uc c, Av c⟫ : ℝ) ≤ ‖A‖ * (‖Uc c‖ * ‖Wc c‖) := by
+    intro c
+    have hmv : ‖Av c‖ ≤ ‖A‖ * ‖Wc c‖ := A.l2_opNorm_mulVec (Wc c)
+    calc (⟪Uc c, Av c⟫ : ℝ)
+        ≤ ‖Uc c‖ * ‖Av c‖ := real_inner_le_norm _ _
+      _ ≤ ‖Uc c‖ * (‖A‖ * ‖Wc c‖) := by gcongr
+      _ = ‖A‖ * (‖Uc c‖ * ‖Wc c‖) := by ring
+  -- Parseval identities
+  have hParsevalU : ∑ c, ‖Uc c‖ ^ 2 = (m : ℝ) := by
+    rw [Finset.sum_congr rfl (fun c _ => eucl_normSq_eq_sum (Uc c)), Finset.sum_comm]
+    have hu : ∀ i, ∑ c, (Uc c i) ^ 2 = 1 := by
+      intro i
+      rw [Finset.sum_congr rfl (fun c _ => by rw [hUc c i])]
+      rw [← eucl_normSq_eq_sum (R.u i), R.u_unit i, one_pow]
+    rw [Finset.sum_congr rfl (fun i _ => hu i)]; simp
+  have hParsevalW : ∑ c, ‖Wc c‖ ^ 2 = (n : ℝ) := by
+    rw [Finset.sum_congr rfl (fun c _ => eucl_normSq_eq_sum (Wc c)), Finset.sum_comm]
+    have hw : ∀ j, ∑ c, (Wc c j) ^ 2 = 1 := by
+      intro j
+      rw [Finset.sum_congr rfl (fun c _ => by rw [hWc c j])]
+      rw [← eucl_normSq_eq_sum (R.w j), R.w_unit j, one_pow]
+    rw [Finset.sum_congr rfl (fun j _ => hw j)]; simp
+  -- assemble
+  calc ∑ c, (⟪Uc c, Av c⟫ : ℝ)
+      ≤ ∑ c, ‖A‖ * (‖Uc c‖ * ‖Wc c‖) := Finset.sum_le_sum (fun c _ => hterm c)
+    _ = ‖A‖ * ∑ c, ‖Uc c‖ * ‖Wc c‖ := by rw [Finset.mul_sum]
+    _ ≤ ‖A‖ * Real.sqrt ((m : ℝ) * n) := by
+        apply mul_le_mul_of_nonneg_left _ (norm_nonneg _)
+        have hcs : (∑ c, ‖Uc c‖ * ‖Wc c‖) ^ 2 ≤ (m : ℝ) * n := by
+          have h := Finset.sum_mul_sq_le_sq_mul_sq Finset.univ
+            (fun c => ‖Uc c‖) (fun c => ‖Wc c‖)
+          rwa [hParsevalU, hParsevalW] at h
+        have hnn : 0 ≤ ∑ c, ‖Uc c‖ * ‖Wc c‖ :=
+          Finset.sum_nonneg (fun c _ => mul_nonneg (norm_nonneg _) (norm_nonneg _))
+        have h := Real.sqrt_le_sqrt hcs
+        rwa [Real.sqrt_sq hnn] at h
+
+/-! ## Remaining obligation: ONLY the isotropic-position kernel (1) -/
 
 /-- (3) **Spectral upper bound** obligation: `S ≤ ‖M‖₂ · √(mn)`.  Needs the l2
 operator norm of the sign matrix and Cauchy–Schwarz; the substrate to build. -/
@@ -190,7 +270,34 @@ def IsotropicKernel (M : Fin m -> Fin n -> Bool) : Prop :=
   ∀ {d : Nat}, (∃ R : UnitRealization M d, True) ->
     ∃ R' : UnitRealization M d, IsTightFrame R'
 
+/-! ## Capstone: the full Forster reduction (everything PROVEN except the kernel)
+
+Frame lower bound (2), spectral upper bound (3), and arithmetic core (4) are all
+proven, so the entire Forster reduction holds: a **tight-frame** unit realization
+of dimension `d` forces `√(mn)/‖sgnMat M‖ ≤ d`.  The *only* remaining input is a
+tight frame — exactly what the isotropic-position kernel (1) provides. -/
+theorem forster_bound_of_tightFrame (M : Fin m -> Fin n -> Bool) {d : Nat}
+    (R : UnitRealization M d) (hd : 0 < d) (hframe : IsTightFrame R)
+    (hmn : 0 < (m : ℝ) * n) (hμ : 0 < ‖sgnMat M‖) :
+    Real.sqrt ((m : ℝ) * n) / ‖sgnMat M‖ ≤ (d : ℝ) :=
+  forster_dim_ge_of_bounds (by exact_mod_cast hd) hμ hmn
+    (frameLowerBound M R hd hframe) (spectralUpperBound_proof M R)
+
+/-- **Forster, modulo the isotropic kernel.**  Given the kernel for `M` and any
+unit realization of dimension `d`, the dimension is at least `√(mn)/‖sgnMat M‖`.
+This is the complete Forster lower bound with the single research-grade obligation
+`IsotropicKernel` as its only hypothesis. -/
+theorem forster_of_kernel (M : Fin m -> Fin n -> Bool) (hker : IsotropicKernel M)
+    {d : Nat} (R : UnitRealization M d) (hd : 0 < d)
+    (hmn : 0 < (m : ℝ) * n) (hμ : 0 < ‖sgnMat M‖) :
+    Real.sqrt ((m : ℝ) * n) / ‖sgnMat M‖ ≤ (d : ℝ) := by
+  obtain ⟨R', hframe⟩ := hker ⟨R, trivial⟩
+  exact forster_bound_of_tightFrame M R' hd hframe hmn hμ
+
 #print axioms forster_dim_ge_of_bounds
-#print axioms forster_bound_of_frame_and_spectral
+#print axioms frameLowerBound
+#print axioms spectralUpperBound_proof
+#print axioms forster_bound_of_tightFrame
+#print axioms forster_of_kernel
 
 end PallLean.Paper93.DeepMath.PathB.Forster
