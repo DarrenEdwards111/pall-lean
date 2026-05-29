@@ -928,6 +928,30 @@ lemma sum_log_quadForm_ge_log_trace (hd : 0 < d) {m' : ℕ} (hdm' : d ≤ m')
     le_trans (Finset.inf'_le _ (Finset.mem_univ k₀)) (hCf k₀ S hS hdet1)
   linarith [hlog1, hlog2]
 
+open Matrix in
+/-- **Scale invariance of `G = potentialG`.**  `G(c·S) = G(S)` for `c > 0`: the
+`m·log c` from the `m` summands cancels the `(m/d)·d·log c` from `log det(c·S)`. -/
+lemma potentialG_smul (hd : 0 < d) {S : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosDef)
+    {v : Fin m → (Fin d → ℝ)} (hv : ∀ i, v i ≠ 0) {c : ℝ} (hc : 0 < c) :
+    potentialG v (c • S) = potentialG v S := by
+  have hquad : ∀ i, 0 < v i ⬝ᵥ (S *ᵥ v i) := fun i => quadForm_pos hS (hv i)
+  have hdetpos : 0 < S.det := hS.det_pos
+  unfold potentialG potential
+  have hsum : (∑ i, Real.log (v i ⬝ᵥ ((c • S) *ᵥ v i)))
+      = (m : ℝ) * Real.log c + ∑ i, Real.log (v i ⬝ᵥ (S *ᵥ v i)) := by
+    have : ∀ i, Real.log (v i ⬝ᵥ ((c • S) *ᵥ v i))
+        = Real.log c + Real.log (v i ⬝ᵥ (S *ᵥ v i)) := by
+      intro i
+      rw [Matrix.smul_mulVec, dotProduct_smul, smul_eq_mul,
+        Real.log_mul (ne_of_gt hc) (ne_of_gt (hquad i))]
+    rw [Finset.sum_congr rfl (fun i _ => this i), Finset.sum_add_distrib,
+      Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+  have hdℝ : (d : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr hd.ne'
+  rw [hsum, Matrix.det_smul, Fintype.card_fin,
+    Real.log_mul (pow_ne_zero d (ne_of_gt hc)) (ne_of_gt hdetpos), Real.log_pow]
+  field_simp
+  ring
+
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
 #print axioms log_det_le_sum_log_quadForm
@@ -936,6 +960,7 @@ lemma sum_log_quadForm_ge_log_trace (hd : 0 < d) {m' : ℕ} (hdm' : d ≤ m')
 #print axioms trace_le_sum_quadForm
 #print axioms sum_log_quadForm_compl_lower_bound
 #print axioms sum_log_quadForm_ge_log_trace
+#print axioms potentialG_smul
 #print axioms det_le_trace_div_pow
 #print axioms det_sq_mul_det_le_prod_diag
 #print axioms exists_symm_sqrt
