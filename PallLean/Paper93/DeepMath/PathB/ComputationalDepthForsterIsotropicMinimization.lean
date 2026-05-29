@@ -518,10 +518,46 @@ lemma det_sq_mul_det_le_prod_diag (hd : 0 < d) {B S : Matrix (Fin d) (Fin d) ℝ
     ring
   rwa [hdet] at hH
 
+open Matrix in
+open scoped MatrixOrder in
+/-- **Rung 4b — symmetric square root.** Every positive-definite real matrix has a
+symmetric, invertible square root (`CFC.sqrt`), supplying the `T` that rung 4a
+consumes. -/
+lemma exists_symm_sqrt {S : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosDef) :
+    ∃ T : Matrix (Fin d) (Fin d) ℝ, Tᵀ = T ∧ T * T = S ∧ IsUnit T.det := by
+  have hTpd : (CFC.sqrt S).PosDef := hS.isStrictlyPositive.sqrt.posDef
+  have hmul : CFC.sqrt S * CFC.sqrt S = S :=
+    CFC.sqrt_mul_sqrt_self S (Matrix.nonneg_iff_posSemidef.mpr hS.posSemidef)
+  refine ⟨CFC.sqrt S, ?_, hmul, hTpd.det_pos.ne'.isUnit⟩
+  have h : (CFC.sqrt S)ᴴ = CFC.sqrt S := hTpd.isHermitian
+  calc (CFC.sqrt S)ᵀ = (CFC.sqrt S)ᴴ := by
+        ext i j; simp [Matrix.conjTranspose_apply, Matrix.transpose_apply]
+    _ = CFC.sqrt S := h
+
+open Matrix in
+/-- **`∃T` assembled, modulo minimizer existence.**  If `G = potentialG v` attains a
+local minimum at an SPD `S`, then the isotropic transform exists: there is an
+invertible `T` putting the normalised images `ûᵢ = (1/√⟪vᵢ,Svᵢ⟫)·(T vᵢ)` into
+tight-frame position `∑ᵢ ûᵢûᵢᵀ = (m/d)·I`.  This composes rung 3 (`firstOrder`),
+rung 4b (`√S`), and rung 4a (`tightFrame`).  The *only* remaining gap to an
+unconditional `∃T` is discharging the `IsLocalMin` hypothesis — i.e. coercivity
+(under general position) + sublevel-set compactness, the honest analytic wall. -/
+theorem exists_isotropic_of_isLocalMin {S : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosDef)
+    {v : Fin m → (Fin d → ℝ)} (hv : ∀ i, v i ≠ 0) (hmin : IsLocalMin (potentialG v) S) :
+    ∃ T : Matrix (Fin d) (Fin d) ℝ, IsUnit T.det ∧
+      ∑ i, Matrix.vecMulVec ((Real.sqrt (v i ⬝ᵥ (S *ᵥ v i)))⁻¹ • (T *ᵥ v i))
+                            ((Real.sqrt (v i ⬝ᵥ (S *ᵥ v i)))⁻¹ • (T *ᵥ v i))
+        = ((m : ℝ) / d) • (1 : Matrix (Fin d) (Fin d) ℝ) := by
+  obtain ⟨T, hTsymm, hTT, hTunit⟩ := exists_symm_sqrt hS
+  exact ⟨T, hTunit,
+    tightFrame_of_firstOrder hS hTsymm hTT hTunit hv (firstOrder_of_isLocalMin hS hv hmin)⟩
+
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
 #print axioms det_le_trace_div_pow
 #print axioms det_sq_mul_det_le_prod_diag
+#print axioms exists_symm_sqrt
+#print axioms exists_isotropic_of_isLocalMin
 #print axioms tightFrame_of_firstOrder
 #print axioms hasDerivAt_potential
 #print axioms hasDerivAt_det_one_add_smul
