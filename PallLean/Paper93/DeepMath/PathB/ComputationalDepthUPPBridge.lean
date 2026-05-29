@@ -409,6 +409,68 @@ theorem splitHalfspace_uppProtocolCostLE_four_of_scaled
   ⟨SplitHalfspaceTranscript, inferInstance, by decide,
     ⟨splitHalfspaceUPPProtocol_of_scaled α β δ hδ hα hβ hne⟩⟩
 
+private lemma abs_le_sum_abs_fin {ι : Type*} [Fintype ι]
+    (f : ι -> ℝ) (i : ι) : |f i| ≤ ∑ x, |f x| := by
+  exact Finset.single_le_sum (fun x _ => abs_nonneg (f x)) (Finset.mem_univ i)
+
+/-- A finite family of row/column weights admits a positive scale small enough
+for the split-halfspace protocol.  The explicit choice is
+`δ = (1/4) / (1 + ∑|α| + ∑|β|)`. -/
+theorem exists_splitHalfspace_scale
+    (α : Fin m -> ℝ) (β : Fin n -> ℝ) :
+    ∃ δ : ℝ,
+      0 < δ ∧
+      (∀ i, |δ * α i| ≤ (1 / 4 : ℝ)) ∧
+      (∀ j, |δ * β j| ≤ (1 / 4 : ℝ)) := by
+  classical
+  let B : ℝ := 1 + (∑ i : Fin m, |α i|) + (∑ j : Fin n, |β j|)
+  let δ : ℝ := (1 / 4 : ℝ) / B
+  have hsumα_nonneg : 0 ≤ ∑ i : Fin m, |α i| := by
+    exact Finset.sum_nonneg (fun i _ => abs_nonneg (α i))
+  have hsumβ_nonneg : 0 ≤ ∑ j : Fin n, |β j| := by
+    exact Finset.sum_nonneg (fun j _ => abs_nonneg (β j))
+  have hBpos : 0 < B := by
+    dsimp [B]
+    nlinarith
+  have hδpos : 0 < δ := by
+    dsimp [δ]
+    exact div_pos (by norm_num) hBpos
+  have hδB : δ * B = (1 / 4 : ℝ) := by
+    dsimp [δ]
+    exact div_mul_cancel₀ (1 / 4 : ℝ) (ne_of_gt hBpos)
+  refine ⟨δ, hδpos, ?_, ?_⟩
+  · intro i
+    have hi_sum : |α i| ≤ ∑ x : Fin m, |α x| :=
+      abs_le_sum_abs_fin α i
+    have hiB : |α i| ≤ B := by
+      dsimp [B]
+      nlinarith
+    calc
+      |δ * α i| = δ * |α i| := by
+        rw [abs_mul, abs_of_pos hδpos]
+      _ ≤ δ * B := mul_le_mul_of_nonneg_left hiB (le_of_lt hδpos)
+      _ = (1 / 4 : ℝ) := hδB
+  · intro j
+    have hj_sum : |β j| ≤ ∑ y : Fin n, |β y| :=
+      abs_le_sum_abs_fin β j
+    have hjB : |β j| ≤ B := by
+      dsimp [B]
+      nlinarith
+    calc
+      |δ * β j| = δ * |β j| := by
+        rw [abs_mul, abs_of_pos hδpos]
+      _ ≤ δ * B := mul_le_mul_of_nonneg_left hjB (le_of_lt hδpos)
+      _ = (1 / 4 : ℝ) := hδB
+
+/-- Unconditional constant-cost UPP protocol for every nondegenerate split
+halfspace.  The scale is chosen from the finite input tables `α` and `β`. -/
+theorem splitHalfspace_uppProtocolCostLE_four
+    (α : Fin m -> ℝ) (β : Fin n -> ℝ)
+    (hne : ∀ i j, α i + β j ≠ 0) :
+    UPPProtocolCostLE.{0} (bipartiteHalfspace α β) 4 := by
+  obtain ⟨δ, hδ, hα, hβ⟩ := exists_splitHalfspace_scale α β
+  exact splitHalfspace_uppProtocolCostLE_four_of_scaled α β δ hδ hα hβ hne
+
 
 /-- A finite UPP protocol with **constant signed bias** `δ`: its signed expected
 output is exactly `δ * sgn(M i j)` at every input.  This is stronger than plain
@@ -454,11 +516,24 @@ theorem hasSignRankLE_of_constantBiasUPPProtocol
 
 namespace Depth2Threshold
 
+/-- The exact real-valued top argument before applying `decide`. -/
+noncomputable def topArgument (C : Depth2Threshold m n) (i : Fin m) (j : Fin n) : ℝ :=
+  (∑ k, C.w k * sgn (C.bottomGate k i j)) - C.θ
+
+/-- Every nondegenerate bottom `LTF` gate of a depth-2 threshold circuit has
+constant UPP protocol cost. -/
+theorem bottomGate_uppProtocolCostLE_four
+    (C : Depth2Threshold m n) (k : Fin C.s)
+    (hne : ∀ i j, C.α k i + C.β k j ≠ 0) :
+    UPPProtocolCostLE.{0} (C.bottomGate k) 4 := by
+  simpa [bottomGate] using
+    (splitHalfspace_uppProtocolCostLE_four (C.α k) (C.β k) hne)
+
 /-- Total unnormalised mass used by the top-threshold mixture of constant-bias
 bottom protocols. -/
 noncomputable def topMixtureMass
     (C : Depth2Threshold m n)
-    {τ : Fin C.s -> Type*} [∀ k, Fintype (τ k)]
+    {τ : Fin C.s -> Type u} [∀ k, Fintype (τ k)]
     (P : ∀ k, ConstantBiasUPPProtocol (C.bottomGate k) (τ k)) : ℝ :=
   |C.θ| + ∑ k : Fin C.s, |C.w k| / (P k).δ
 
@@ -474,7 +549,7 @@ with `3 + ∑ k |τ k|` transcripts, hence logarithmic cost in the number of bot
 transcripts. -/
 noncomputable def wholeCircuitUPPProtocol_of_constantBiasBottom
     (C : Depth2Threshold m n)
-    {τ : Fin C.s -> Type*} [∀ k, Fintype (τ k)]
+    {τ : Fin C.s -> Type u} [∀ k, Fintype (τ k)]
     (P : ∀ k, ConstantBiasUPPProtocol (C.bottomGate k) (τ k))
     (γ : ℝ)
     (hγpos : 0 < γ)
@@ -499,13 +574,15 @@ noncomputable def wholeCircuitUPPProtocol_of_constantBiasBottom
     cases r with
     | inl q =>
         by_cases hq : q = (0 : Fin 3)
-        · simp [hq, le_of_lt hγpos]
+        · simp [hq]
+          exact mul_nonneg (le_of_lt hγpos) (abs_nonneg C.θ)
         · have hfill : 0 ≤ 1 - γ * topMixtureMass C P := by linarith
-          simp [hq, hfill]
+          simp [hq]
+          linarith
     | inr kt =>
         have hδ : 0 ≤ (P kt.1).δ := le_of_lt (P kt.1).δ_pos
         have hdiv : 0 ≤ |C.w kt.1| / (P kt.1).δ := div_nonneg (abs_nonneg _) hδ
-        positivity
+        exact mul_nonneg (mul_nonneg (le_of_lt hγpos) hdiv) ((P kt.1).alice_nonneg kt.2 i)
   bob_nonneg := by
     intro r j
     cases r with
@@ -518,7 +595,8 @@ noncomputable def wholeCircuitUPPProtocol_of_constantBiasBottom
         (∑ q : Fin 3,
           (if q = (0 : Fin 3) then γ * |C.θ| else (1 - γ * topMixtureMass C P) / 2) * 1)
         = γ * |C.θ| + (1 - γ * topMixtureMass C P) := by
-      fin_cases q <;> simp [Fin.sum_univ_three]
+      rw [Fin.sum_univ_three]
+      simp
       ring
     have hbottom :
         (∑ kt : Sigma τ,
@@ -552,8 +630,14 @@ noncomputable def wholeCircuitUPPProtocol_of_constantBiasBottom
             else if q = (1 : Fin 3) then true else false) *
             (if q = (0 : Fin 3) then γ * |C.θ| else (1 - γ * topMixtureMass C P) / 2)) * 1)
         = γ * (-C.θ) := by
-      fin_cases q <;> simp [Fin.sum_univ_three, sgn_bias_output]
-      ring
+      rw [Fin.sum_univ_three]
+      change (sgn (decide (0 < -C.θ)) * (γ * |C.θ|)) * 1
+          + (sgn true * ((1 - γ * topMixtureMass C P) / 2)) * 1
+          + (sgn false * ((1 - γ * topMixtureMass C P) / 2)) * 1
+        = γ * (-C.θ)
+      rw [show sgn true = (1 : ℝ) from rfl, show sgn false = (-1 : ℝ) from rfl]
+      have hbias := sgn_bias_output C.θ
+      nlinarith [hbias]
     have hbottom :
         (∑ kt : Sigma τ,
           (sgn (if 0 ≤ C.w kt.1 then (P kt.1).out kt.2 else !(P kt.1).out kt.2) *
@@ -571,10 +655,17 @@ noncomputable def wholeCircuitUPPProtocol_of_constantBiasBottom
             refine Finset.sum_congr rfl (fun k _ => ?_)
             rw [Finset.mul_sum]
             refine Finset.sum_congr rfl (fun t _ => ?_)
-            have hδne : (P k).δ ≠ 0 := ne_of_gt (P k).δ_pos
             have hw := sgn_weighted_output (C.w k) ((P k).out t)
-            field_simp [hδne]
-            nlinarith [hw]
+            calc
+              (sgn (if 0 ≤ C.w k then (P k).out t else !(P k).out t) *
+                  (γ * (|C.w k| / (P k).δ) * (P k).aliceProb t i)) *
+                  (P k).bobProb t j
+                  = γ * ((sgn (if 0 ≤ C.w k then (P k).out t else !(P k).out t) * |C.w k|) / (P k).δ) *
+                    ((P k).aliceProb t i * (P k).bobProb t j) := by ring
+              _ = γ * ((C.w k * sgn ((P k).out t)) / (P k).δ) *
+                    ((P k).aliceProb t i * (P k).bobProb t j) := by rw [hw]
+              _ = γ * (C.w k / (P k).δ) *
+                    ((sgn ((P k).out t) * (P k).aliceProb t i) * (P k).bobProb t j) := by ring
         _ = ∑ k : Fin C.s, γ * (C.w k / (P k).δ) * ((P k).δ * sgn (C.bottomGate k i j)) := by
             refine Finset.sum_congr rfl (fun k _ => ?_)
             rw [(P k).bias_exact i j]
@@ -583,7 +674,6 @@ noncomputable def wholeCircuitUPPProtocol_of_constantBiasBottom
             refine Finset.sum_congr rfl (fun k _ => ?_)
             have hδne : (P k).δ ≠ 0 := ne_of_gt (P k).δ_pos
             field_simp [hδne]
-            ring
     rw [hfin3, hbottom]
     have hsum : γ * (-C.θ) + γ * (∑ k : Fin C.s, C.w k * sgn (C.bottomGate k i j))
         = γ * topArgument C i j := by
@@ -596,26 +686,25 @@ noncomputable def wholeCircuitUPPProtocol_of_constantBiasBottom
         simp only [eval, decide_eq_false_iff_not, not_lt]
         exact le_of_lt hlt
       rw [hb, show sgn false = (-1 : ℝ) from rfl]
-      nlinarith
+      nlinarith [hγpos]
     · have hb : C.eval i j = true := by
         simp only [eval, decide_eq_true_eq]
         exact hgt
       rw [hb, show sgn true = (1 : ℝ) from rfl]
-      nlinarith
+      nlinarith [hγpos]
 
 /-- Transcript count for the composed whole-circuit protocol. -/
 theorem card_topCompositionTranscripts
     (C : Depth2Threshold m n)
-    {τ : Fin C.s -> Type*} [∀ k, Fintype (τ k)] :
+    {τ : Fin C.s -> Type u} [∀ k, Fintype (τ k)] :
     Fintype.card (Sum (Fin 3) (Sigma τ)) = 3 + ∑ k, Fintype.card (τ k) := by
   rw [Fintype.card_sum, Fintype.card_fin, Fintype.card_sigma]
-  omega
 
 /-- Cost form of the top-composed protocol.  If the composed transcript count is
 bounded by `2^c`, the whole circuit has UPP cost at most `c`. -/
 theorem wholeCircuit_uppProtocolCostLE_of_constantBiasBottom
     (C : Depth2Threshold m n)
-    {τ : Fin C.s -> Type*} [∀ k, Fintype (τ k)]
+    {τ : Fin C.s -> Type u} [∀ k, Fintype (τ k)]
     (P : ∀ k, ConstantBiasUPPProtocol (C.bottomGate k) (τ k))
     (γ : ℝ)
     (hγpos : 0 < γ)
@@ -623,7 +712,7 @@ theorem wholeCircuit_uppProtocolCostLE_of_constantBiasBottom
     (hne : ∀ i j, topArgument C i j ≠ 0)
     (c : Nat)
     (hcard : 3 + ∑ k, Fintype.card (τ k) ≤ 2 ^ c) :
-    UPPProtocolCostLE C.eval c := by
+    UPPProtocolCostLE.{u} C.eval c := by
   refine ⟨Sum (Fin 3) (Sigma τ), inferInstance, ?_,
     ⟨wholeCircuitUPPProtocol_of_constantBiasBottom C P γ hγpos hγmass hne⟩⟩
   rwa [card_topCompositionTranscripts C]
@@ -762,10 +851,6 @@ def weightedApproxError
     (P : ∀ k, WeightedApproxBottomRealizer C k (τ k)) : ℝ :=
   ∑ k, (P k).ε
 
-/-- The exact real-valued top argument before applying `decide`. -/
-noncomputable def topArgument (C : Depth2Threshold m n) (i : Fin m) (j : Fin n) : ℝ :=
-  (∑ k, C.w k * sgn (C.bottomGate k i j)) - C.θ
-
 /-- Margin-controlled biased-output composition.  If each weighted bottom
 contribution has a transcript approximation and the total error is strictly
 smaller than the top gate's margin at every input, then the sum of those
@@ -903,6 +988,9 @@ theorem card_option_sigma_bottomTranscripts
 #print axioms hasSignRankLE_of_uppCommunicationProtocol
 #print axioms splitHalfspaceUPPProtocol_of_scaled
 #print axioms splitHalfspace_uppProtocolCostLE_four_of_scaled
+#print axioms exists_splitHalfspace_scale
+#print axioms splitHalfspace_uppProtocolCostLE_four
+#print axioms bottomGate_uppProtocolCostLE_four
 #print axioms ConstantBiasUPPProtocol.toUPPCommunicationProtocol
 #print axioms hasSignRankLE_of_constantBiasUPPProtocol
 #print axioms Depth2Threshold.wholeCircuitUPPProtocol_of_constantBiasBottom
