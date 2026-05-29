@@ -109,10 +109,35 @@ def SpectralUpperBound (M : Fin m -> Fin n -> Bool) (μ : ℝ) : Prop :=
   ∀ {d : Nat} (R : UnitRealization M d), forsterSum R ≤ μ * Real.sqrt ((m : ℝ) * n)
 
 /-- (2) **Frame lower bound** obligation: a tight-frame unit realization has
-`m·n/d ≤ S`.  Provable from `IsTightFrame` + `|x| ≥ x²` for `|x| ≤ 1`; next. -/
+`m·n/d ≤ S`.  **PROVED below** (`frameLowerBound`). -/
 def FrameLowerBound (M : Fin m -> Fin n -> Bool) : Prop :=
   ∀ {d : Nat} (R : UnitRealization M d), 0 < d -> IsTightFrame R ->
     (m : ℝ) * n / d ≤ forsterSum R
+
+/-- **(2) PROVED.**  For a tight-frame unit realization, `m·n/d ≤ S`.  Each
+`|⟪û_i, ŵ_j⟫| ≥ ⟪û_i, ŵ_j⟫²` (Cauchy–Schwarz: `|·| ≤ 1`, so `x² ≤ |x|`); summing and
+applying the tight-frame identity at each `ŵ_j` gives `∑ = (m/d)·n = m·n/d`. -/
+theorem frameLowerBound (M : Fin m -> Fin n -> Bool) : FrameLowerBound M := by
+  intro d R _ hframe
+  have hsq_le : ∀ i j, ⟪R.u i, R.w j⟫ ^ 2 ≤ |⟪R.u i, R.w j⟫| := by
+    intro i j
+    have hcs : |⟪R.u i, R.w j⟫| ≤ 1 := by
+      have h := abs_real_inner_le_norm (R.u i) (R.w j)
+      rw [R.u_unit i, R.w_unit j] at h; simpa using h
+    have h2 : |⟪R.u i, R.w j⟫| * |⟪R.u i, R.w j⟫| ≤ |⟪R.u i, R.w j⟫| := by
+      nlinarith [abs_nonneg (⟪R.u i, R.w j⟫ : ℝ), hcs]
+    rw [pow_two, ← abs_mul_abs_self]; exact h2
+  have hsumsq : ∑ i, ∑ j, ⟪R.u i, R.w j⟫ ^ 2 = (m : ℝ) * n / d := by
+    rw [Finset.sum_comm]
+    rw [Finset.sum_congr rfl (fun j _ => hframe (R.w j))]
+    simp only [R.w_unit, one_pow, mul_one]
+    rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+    ring
+  calc (m : ℝ) * n / d
+      = ∑ i, ∑ j, ⟪R.u i, R.w j⟫ ^ 2 := hsumsq.symm
+    _ ≤ ∑ i, ∑ j, |⟪R.u i, R.w j⟫| :=
+        Finset.sum_le_sum fun i _ => Finset.sum_le_sum fun j _ => hsq_le i j
+    _ = forsterSum R := rfl
 
 /-- (1) **Isotropic-position kernel** obligation: every unit realization can be
 replaced (same dimension) by a tight-frame one with the same sign pattern.  The
