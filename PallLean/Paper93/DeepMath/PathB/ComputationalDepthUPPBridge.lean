@@ -8,18 +8,24 @@ This file builds the honest algebraic core behind the UPP bridge:
 * a finite transcript expectation realizer is a sum of split rectangle terms;
 * such a realizer immediately gives a sign-rank upper bound;
 * if every bottom gate supplies an **exact signed-output** transcript realizer,
-  then the top threshold gate supplies a whole-circuit transcript realizer.
+  then the top threshold gate supplies a whole-circuit transcript realizer;
+* more usefully, if every weighted bottom contribution is approximated with a
+  controlled error and the top gate has larger margin than the total error, then
+  the whole circuit again supplies a transcript realizer.
 
-The last hypothesis is intentionally stronger than ordinary sign-rank of the
-bottom gates.  A sign-rank witness only has the correct sign; it does not give the
-actual `±1` bottom output with uniform bias.  That uniform/exact-output issue is
-the real UPP top-gate frontier, so this file proves the substrate without
-pretending that `bottomGate_hasSignRankLE_two` composes through the top gate.
+The exact-output theorem is a clean endpoint but not the live UPP route: exact
+`±1` bottom matrices can be full rank.  The margin-controlled theorem is the
+honest algebraic substrate for biased UPP composition.  The remaining hard step
+is the margin-free probabilistic communication theorem that constructs such
+low-transcript biased realizers for threshold-of-halfspaces without assuming a
+top margin.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB
 
 open scoped BigOperators
+
+universe u
 
 variable {m n : Nat}
 
@@ -55,6 +61,35 @@ theorem hasSignRankLE_of_uppTranscriptRealizer
   rw [hsum]
   exact P.sign_ok i j
 
+
+/-- `UPPCostLE M c`: the matrix `M` has an unbounded-error transcript realizer
+using at most `2^c` transcripts.  This is a cost-style wrapper around
+`UPPTranscriptRealizer`; it does not assert that any particular circuit has such
+a protocol. -/
+def UPPCostLE (M : Fin m -> Fin n -> Bool) (c : Nat) : Prop :=
+  ∃ (τ : Type u) (_ : Fintype τ),
+    Fintype.card τ ≤ 2 ^ c ∧ Nonempty (UPPTranscriptRealizer M τ)
+
+/-- The formal `UPP cost c ⇒ sign-rank ≤ 2^c` direction.  This is the clean
+algebraic half of the classical UPP/sign-rank bridge: once a protocol has at most
+`2^c` transcripts, its expectation matrix factors through the transcript set. -/
+theorem hasSignRankLE_of_uppCostLE
+    {M : Fin m -> Fin n -> Bool} {c : Nat} (h : UPPCostLE M c) :
+    HasSignRankLE M (2 ^ c) := by
+  rcases h with ⟨τ, hτ, hcard, hP⟩
+  letI : Fintype τ := hτ
+  rcases hP with ⟨P⟩
+  exact hasSignRankLE_mono (M := M) hcard
+    (hasSignRankLE_of_uppTranscriptRealizer P)
+
+/-- Any transcript realizer gives the corresponding cost bound at any exponent
+whose transcript budget is large enough. -/
+theorem uppCostLE_of_transcriptRealizer
+    {M : Fin m -> Fin n -> Bool} {τ : Type u} [Fintype τ] {c : Nat}
+    (P : UPPTranscriptRealizer M τ) (hcard : Fintype.card τ ≤ 2 ^ c) :
+    UPPCostLE (m := m) (n := n) M c :=
+  ⟨τ, inferInstance, hcard, ⟨P⟩⟩
+
 /-- Stronger bottom-gate object: the transcript expectation is exactly the
 `±1` signed output matrix, not merely some same-sign matrix.  This is the
 additional uniform-output ingredient needed before a top threshold can be
@@ -82,6 +117,22 @@ theorem hasSignRankLE_of_exactSignedOutputRealizer
     (P : ExactSignedOutputRealizer M τ) :
     HasSignRankLE M (Fintype.card τ) :=
   hasSignRankLE_of_uppTranscriptRealizer P.toUPPTranscriptRealizer
+
+/-- A weighted bottom-gate transcript approximation.  The transcript matrix
+approximates the **weighted** signed bottom output
+`C.w k * sgn (C.bottomGate k i j)` up to error `ε`.
+
+This is the algebraic object the real UPP route needs: exact output is not
+required, but the approximation error must be controlled tightly enough for the
+top gate's margin. -/
+structure WeightedApproxBottomRealizer (C : Depth2Threshold m n) (k : Fin C.s)
+    (τ : Type*) [Fintype τ] where
+  alice : τ -> Fin m -> ℝ
+  bob : τ -> Fin n -> ℝ
+  ε : ℝ
+  eps_nonneg : 0 ≤ ε
+  approx : ∀ i j,
+    |(∑ t : τ, alice t i * bob t j) - C.w k * sgn (C.bottomGate k i j)| ≤ ε
 
 namespace Depth2Threshold
 
@@ -164,6 +215,140 @@ theorem wholeCircuit_hasSignRankLE_of_exactBottomOutputs
   hasSignRankLE_of_uppTranscriptRealizer
     (wholeCircuitUPPRealizer_of_exactBottomOutputs C P hne)
 
+/-- Total bottom-approximation error for the margin-controlled UPP bridge. -/
+def weightedApproxError
+    (C : Depth2Threshold m n)
+    {τ : Fin C.s -> Type*} [∀ k, Fintype (τ k)]
+    (P : ∀ k, WeightedApproxBottomRealizer C k (τ k)) : ℝ :=
+  ∑ k, (P k).ε
+
+/-- The exact real-valued top argument before applying `decide`. -/
+noncomputable def topArgument (C : Depth2Threshold m n) (i : Fin m) (j : Fin n) : ℝ :=
+  (∑ k, C.w k * sgn (C.bottomGate k i j)) - C.θ
+
+/-- Margin-controlled biased-output composition.  If each weighted bottom
+contribution has a transcript approximation and the total error is strictly
+smaller than the top gate's margin at every input, then the sum of those
+transcripts plus the bias transcript realizes the whole circuit's sign pattern.
+
+This is the useful algebraic bridge below the full UPP theorem.  It still has an
+explicit margin hypothesis; the margin-free UPP construction is the remaining
+probabilistic communication complexity step. -/
+def wholeCircuitUPPRealizer_of_weightedApproxBottomOutputs
+    (C : Depth2Threshold m n)
+    {τ : Fin C.s -> Type*} [∀ k, Fintype (τ k)]
+    (P : ∀ k, WeightedApproxBottomRealizer C k (τ k))
+    (hmargin : ∀ i j, weightedApproxError C P < |topArgument C i j|) :
+    UPPTranscriptRealizer C.eval (Option (Sigma τ)) where
+  alice
+    | none => fun _ => -C.θ
+    | some ⟨k, t⟩ => fun i => (P k).alice t i
+  bob
+    | none => fun _ => 1
+    | some ⟨k, t⟩ => fun j => (P k).bob t j
+  sign_ok := by
+    intro i j
+    let approxTop : ℝ :=
+      (∑ k : Fin C.s, ∑ t : τ k, (P k).alice t i * (P k).bob t j) - C.θ
+    let exactTop : ℝ := topArgument C i j
+    have hsum :
+        (∑ r : Option (Sigma τ),
+          (match r with
+            | none => fun _ : Fin m => -C.θ
+            | some ⟨k, t⟩ => fun i => (P k).alice t i) i *
+          (match r with
+            | none => fun _ : Fin n => 1
+            | some ⟨k, t⟩ => fun j => (P k).bob t j) j)
+          = approxTop := by
+      rw [Fintype.sum_option, Fintype.sum_sigma]
+      simp only [mul_one]
+      ring
+    have hdiff :
+        |approxTop - exactTop| ≤ weightedApproxError C P := by
+      have hrewrite :
+          approxTop - exactTop
+            =
+          ∑ k : Fin C.s,
+            ((∑ t : τ k, (P k).alice t i * (P k).bob t j)
+              - C.w k * sgn (C.bottomGate k i j)) := by
+        simp only [approxTop, exactTop, topArgument]
+        calc
+          ((∑ k : Fin C.s, ∑ t : τ k, (P k).alice t i * (P k).bob t j) - C.θ)
+              - ((∑ k : Fin C.s, C.w k * sgn (C.bottomGate k i j)) - C.θ)
+              =
+            (∑ k : Fin C.s, ∑ t : τ k, (P k).alice t i * (P k).bob t j)
+              - ∑ k : Fin C.s, C.w k * sgn (C.bottomGate k i j) := by
+                ring
+          _ =
+            ∑ k : Fin C.s,
+              ((∑ t : τ k, (P k).alice t i * (P k).bob t j)
+                - C.w k * sgn (C.bottomGate k i j)) := by
+                rw [Finset.sum_sub_distrib]
+      rw [hrewrite]
+      calc
+        |∑ k : Fin C.s,
+            ((∑ t : τ k, (P k).alice t i * (P k).bob t j)
+              - C.w k * sgn (C.bottomGate k i j))|
+            ≤ ∑ k : Fin C.s,
+              |(∑ t : τ k, (P k).alice t i * (P k).bob t j)
+                - C.w k * sgn (C.bottomGate k i j)| := by
+                simpa using
+                  (Finset.abs_sum_le_sum_abs
+                    (fun k : Fin C.s =>
+                      (∑ t : τ k, (P k).alice t i * (P k).bob t j)
+                        - C.w k * sgn (C.bottomGate k i j))
+                    Finset.univ)
+        _ ≤ ∑ k : Fin C.s, (P k).ε := by
+                exact Finset.sum_le_sum (fun k _ => (P k).approx i j)
+    have hWnonneg : 0 ≤ weightedApproxError C P := by
+      exact Finset.sum_nonneg (fun k _ => (P k).eps_nonneg)
+    have habslt : |approxTop - exactTop| < |exactTop| :=
+      lt_of_le_of_lt hdiff (by simpa [exactTop] using hmargin i j)
+    have hexact_ne : exactTop ≠ 0 := by
+      intro hz
+      have hbad : weightedApproxError C P < 0 := by
+        simpa [exactTop, hz] using hmargin i j
+      linarith
+    rw [hsum]
+    rcases lt_or_gt_of_ne hexact_ne with hlt | hgt
+    · have hlt_abs : |approxTop - exactTop| < -exactTop := by
+        rwa [abs_of_neg hlt] at habslt
+      have hbounds := abs_lt.mp hlt_abs
+      have happrox_neg : approxTop < 0 := by
+        linarith
+      have hb : C.eval i j = false := by
+        have hltTop : topArgument C i j < 0 := by
+          simpa [exactTop] using hlt
+        simp only [eval, decide_eq_false_iff_not, not_lt]
+        exact le_of_lt hltTop
+      rw [hb, show sgn false = (-1 : ℝ) from rfl]
+      nlinarith
+    · have hgt_abs : |approxTop - exactTop| < exactTop := by
+        rwa [abs_of_pos hgt] at habslt
+      have hbounds := abs_lt.mp hgt_abs
+      have happrox_pos : 0 < approxTop := by
+        linarith
+      have hb : C.eval i j = true := by
+        have hgtTop : 0 < topArgument C i j := by
+          simpa [exactTop] using hgt
+        simp only [eval, decide_eq_true_eq]
+        exact hgtTop
+      rw [hb, show sgn true = (1 : ℝ) from rfl]
+      nlinarith
+
+/-- Whole-circuit sign-rank upper bound from margin-controlled weighted bottom
+approximations.  The bound is still the transcript count
+`1 + ∑ k, |τ k|`; the nontrivial live UPP problem is constructing such bottom
+realizers with few transcripts and no global top-margin assumption. -/
+theorem wholeCircuit_hasSignRankLE_of_weightedApproxBottomOutputs
+    (C : Depth2Threshold m n)
+    {τ : Fin C.s -> Type*} [∀ k, Fintype (τ k)]
+    (P : ∀ k, WeightedApproxBottomRealizer C k (τ k))
+    (hmargin : ∀ i j, weightedApproxError C P < |topArgument C i j|) :
+    WholeCircuitSignRankBound C (Fintype.card (Option (Sigma τ))) :=
+  hasSignRankLE_of_uppTranscriptRealizer
+    (wholeCircuitUPPRealizer_of_weightedApproxBottomOutputs C P hmargin)
+
 /-- The transcript count in the exact-output bridge is
 `1 + ∑ k, |τ k|`. -/
 theorem card_option_sigma_bottomTranscripts
@@ -174,9 +359,13 @@ theorem card_option_sigma_bottomTranscripts
   omega
 
 #print axioms hasSignRankLE_of_uppTranscriptRealizer
+#print axioms hasSignRankLE_of_uppCostLE
+#print axioms uppCostLE_of_transcriptRealizer
 #print axioms hasSignRankLE_of_exactSignedOutputRealizer
 #print axioms wholeCircuitUPPRealizer_of_exactBottomOutputs
 #print axioms wholeCircuit_hasSignRankLE_of_exactBottomOutputs
+#print axioms wholeCircuitUPPRealizer_of_weightedApproxBottomOutputs
+#print axioms wholeCircuit_hasSignRankLE_of_weightedApproxBottomOutputs
 #print axioms card_option_sigma_bottomTranscripts
 
 end Depth2Threshold
