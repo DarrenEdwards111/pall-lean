@@ -65,7 +65,58 @@ lemma vecMulVec_mulVec (M : Matrix (Fin d) (Fin d) ℝ) (v w : Fin d → ℝ) :
   refine Finset.sum_congr rfl (fun k _ => ?_)
   ring
 
+/-- Bilinear scaling of the outer product: `(a•x)(a•y)ᵀ = a²·(x yᵀ)`. -/
+lemma vecMulVec_smul (a : ℝ) (x y : Fin d → ℝ) :
+    Matrix.vecMulVec (a • x) (a • y) = (a * a) • Matrix.vecMulVec x y := by
+  ext i j
+  simp only [Matrix.vecMulVec_apply, Pi.smul_apply, smul_eq_mul, Matrix.smul_apply]
+  ring
+
+/-- **Rung 4a (substitution: first-order optimality ⇒ tight frame).**  Abstracted
+over a *symmetric square root* `T` of `S` (`Tᵀ = T`, `T·T = S`, `T` invertible —
+which exists for any SPD `S`): if `S` satisfies the first-order optimality identity
+`∑ᵢ (1/⟪vᵢ,Svᵢ⟫)·vᵢvᵢᵀ = (m/d)·S⁻¹`, then the normalized images
+`ûᵢ = (1/√⟪vᵢ,Svᵢ⟫)·(T vᵢ)` are in tight-frame position `∑ᵢ ûᵢûᵢᵀ = (m/d)·I`.
+
+This is the back half of Forster's isotropic-position theorem: combined with rung 3
+(existence of an optimal `S`) and rung 4b (`T = √S⋆`), it discharges the kernel.
+Pure matrix algebra — no `sorry`, no carried socket. -/
+theorem tightFrame_of_firstOrder
+    {S T : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosDef)
+    (hTsymm : Tᵀ = T) (hTT : T * T = S) (hTunit : IsUnit T.det)
+    {v : Fin m → (Fin d → ℝ)} (hv : ∀ i, v i ≠ 0)
+    (hLag : ∑ i, (v i ⬝ᵥ (S *ᵥ v i))⁻¹ • Matrix.vecMulVec (v i) (v i)
+              = ((m : ℝ) / d) • S⁻¹) :
+    ∑ i, Matrix.vecMulVec
+        ((Real.sqrt (v i ⬝ᵥ (S *ᵥ v i)))⁻¹ • (T *ᵥ v i))
+        ((Real.sqrt (v i ⬝ᵥ (S *ᵥ v i)))⁻¹ • (T *ᵥ v i))
+      = ((m : ℝ) / d) • (1 : Matrix (Fin d) (Fin d) ℝ) := by
+  have hcpos : ∀ i, 0 < v i ⬝ᵥ (S *ᵥ v i) := fun i => quadForm_pos hS (hv i)
+  have key : ∀ i,
+      Matrix.vecMulVec
+        ((Real.sqrt (v i ⬝ᵥ (S *ᵥ v i)))⁻¹ • (T *ᵥ v i))
+        ((Real.sqrt (v i ⬝ᵥ (S *ᵥ v i)))⁻¹ • (T *ᵥ v i))
+        = (v i ⬝ᵥ (S *ᵥ v i))⁻¹ • (T * Matrix.vecMulVec (v i) (v i) * Tᵀ) := by
+    intro i
+    rw [vecMulVec_smul, vecMulVec_mulVec]
+    congr 1
+    rw [← mul_inv, Real.mul_self_sqrt (hcpos i).le]
+  rw [Finset.sum_congr rfl (fun i _ => key i)]
+  have pull :
+      (∑ i, (v i ⬝ᵥ (S *ᵥ v i))⁻¹ • (T * Matrix.vecMulVec (v i) (v i) * Tᵀ))
+        = T * (∑ i, (v i ⬝ᵥ (S *ᵥ v i))⁻¹ • Matrix.vecMulVec (v i) (v i)) * Tᵀ := by
+    rw [Finset.mul_sum, Finset.sum_mul]
+    refine Finset.sum_congr rfl fun i _ => ?_
+    rw [mul_smul_comm, smul_mul_assoc]
+  rw [pull, hLag, mul_smul_comm, smul_mul_assoc]
+  congr 1
+  rw [hTsymm]
+  have hSinv : S⁻¹ = T⁻¹ * T⁻¹ := by rw [← hTT, Matrix.mul_inv_rev]
+  rw [hSinv, ← Matrix.mul_assoc, Matrix.mul_nonsing_inv T hTunit, Matrix.one_mul,
+    Matrix.nonsing_inv_mul T hTunit]
+
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
+#print axioms tightFrame_of_firstOrder
 
 end PallLean.Paper93.DeepMath.PathB.ForsterIsotropic
