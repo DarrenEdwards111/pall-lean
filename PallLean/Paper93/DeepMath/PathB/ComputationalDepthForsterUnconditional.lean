@@ -22,13 +22,14 @@ and then `forster_bound_of_genPos` applies to the perturbed realization, which
 has the *same* sign matrix `M`, dimension `d`, and bound.  No barrier: this is
 bounded, classical genericity.
 
-This file builds the genericity foundations; the sign-stability step and final
-assembly are layered on top.
+The capstone `forster_bound_unconditional` removes the `GenPos` hypothesis
+entirely: *any* dimension-`d` unit realization of `M` forces
+`√((m'+1)·n)/‖sgnMat M‖ ≤ d`.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.ForsterUnconditional
 
-open scoped BigOperators Matrix RealInnerProductSpace
+open scoped BigOperators Matrix RealInnerProductSpace Matrix.Norms.L2Operator
 open Forster ForsterIsotropic ForsterWiring Matrix Polynomial
 
 variable {m' d n : ℕ}
@@ -150,3 +151,82 @@ theorem eventually_sign_ok {M : Fin (m' + 1) → Fin n → Bool} (R : UnitRealiz
   rw [Filter.eventually_all]
   intro j
   exact hpt i j
+
+/-- **Unconditional Forster sign-rank lower bound.**  *Every* dimension-`d` unit
+realization of `M` (no general-position hypothesis) forces
+`√((m'+1)·n)/‖sgnMat M‖ ≤ d`.  Proof: perturb `u_i ↦ u_i + t·z_i` along the
+moment curve `z`; general position fails for only finitely many `t`
+(`finite_nonGenPos`) while the sign pattern is preserved near `0`
+(`eventually_sign_ok`); since a punctured real neighbourhood is infinite, some
+`t` satisfies both, giving a general-position realization of the same `M` and
+`d`, to which `forster_bound_of_genPos` applies. -/
+theorem forster_bound_unconditional {M : Fin (m' + 1) → Fin n → Bool} (hd : 0 < d)
+    (hdm' : d ≤ m') (R : UnitRealization M d)
+    (hmn : 0 < ((m' + 1 : ℕ) : ℝ) * (n : ℝ)) (hμ : 0 < ‖sgnMat M‖) :
+    Real.sqrt (((m' + 1 : ℕ) : ℝ) * (n : ℝ)) / ‖sgnMat M‖ ≤ (d : ℝ) := by
+  -- moment-curve lift into `EuclideanSpace`
+  let zE : Fin (m' + 1) → EuclideanSpace ℝ (Fin d) :=
+    fun j => (WithLp.equiv 2 (Fin d → ℝ)).symm (fun i => (((j : ℕ) : ℝ)) ^ (i : ℕ))
+  have hzEcomp : ∀ j i, (zE j) i = (((j : ℕ) : ℝ)) ^ (i : ℕ) := fun _ _ => rfl
+  -- `n > 0`
+  have hn : 0 < n := by
+    rcases Nat.eq_zero_or_pos n with h | h
+    · simp [h] at hmn
+    · exact h
+  -- choose `t`: signs preserved (open) and general position (cofinite)
+  obtain ⟨t, htsign, htgen0⟩ :
+      ∃ t : ℝ, (∀ i j, 0 < sgn (M i j) * ⟪R.u i + t • zE i, R.w j⟫)
+        ∧ ¬ (∃ e : Fin d → Fin (m' + 1), Function.Injective e ∧
+            (Matrix.of (fun i k => (R.u (e k)) i + t * (((e k : ℕ) : ℝ)) ^ (i : ℕ))).det = 0) := by
+    by_contra hcon
+    push_neg at hcon
+    have hsub : {t : ℝ | ∀ i j, 0 < sgn (M i j) * ⟪R.u i + t • zE i, R.w j⟫}
+        ⊆ {t : ℝ | ∃ e : Fin d → Fin (m' + 1), Function.Injective e ∧
+            (Matrix.of (fun i k => (R.u (e k)) i + t * (((e k : ℕ) : ℝ)) ^ (i : ℕ))).det = 0} :=
+      fun t ht => hcon t ht
+    have hSfin := (finite_nonGenPos (fun j => (R.u j : Fin d → ℝ))).subset hsub
+    exact (infinite_of_mem_nhds (0 : ℝ) (eventually_sign_ok R zE)) hSfin
+  have htgen : ∀ e : Fin d → Fin (m' + 1), Function.Injective e →
+      (Matrix.of (fun i k => (R.u (e k)) i + t * (((e k : ℕ) : ℝ)) ^ (i : ℕ))).det ≠ 0 :=
+    fun e he hdet => htgen0 ⟨e, he, hdet⟩
+  -- the perturbed vectors are nonzero (their inner product with `w 0` is nonzero)
+  have hpEne : ∀ i, R.u i + t • zE i ≠ 0 := by
+    intro i hpi
+    have hs := htsign i ⟨0, hn⟩
+    rw [hpi, inner_zero_left, mul_zero] at hs
+    exact lt_irrefl 0 hs
+  -- the perturbed, renormalised unit realization
+  let R' : UnitRealization M d :=
+    { u := fun i => ‖R.u i + t • zE i‖⁻¹ • (R.u i + t • zE i)
+      w := R.w
+      u_unit := by
+        intro i
+        rw [norm_smul, norm_inv, Real.norm_eq_abs,
+          abs_of_pos (norm_pos_iff.mpr (hpEne i)),
+          inv_mul_cancel₀ (ne_of_gt (norm_pos_iff.mpr (hpEne i)))]
+      w_unit := R.w_unit
+      sign_ok := by
+        intro i j
+        rw [real_inner_smul_left]
+        have h2 : 0 < ‖R.u i + t • zE i‖⁻¹ := inv_pos.mpr (norm_pos_iff.mpr (hpEne i))
+        nlinarith [mul_pos h2 (htsign i j)] }
+  -- `R'` is in general position
+  have hgp' : GenPos R' := by
+    intro e he
+    have hsplit : (Matrix.of (fun i k => (R'.u (e k)) i))
+        = (Matrix.of (fun i k => (R.u (e k)) i + t * (((e k : ℕ) : ℝ)) ^ (i : ℕ)))
+          * Matrix.diagonal (fun k => ‖R.u (e k) + t • zE (e k)‖⁻¹) := by
+      ext i k
+      rw [Matrix.mul_diagonal]
+      show (‖R.u (e k) + t • zE (e k)‖⁻¹ • (R.u (e k) + t • zE (e k))) i
+          = ((R.u (e k)) i + t * (((e k : ℕ) : ℝ)) ^ (i : ℕ))
+            * ‖R.u (e k) + t • zE (e k)‖⁻¹
+      simp only [PiLp.smul_apply, PiLp.add_apply, smul_eq_mul, hzEcomp]
+      ring
+    rw [hsplit, Matrix.det_mul, Matrix.det_diagonal, isUnit_iff_ne_zero]
+    exact mul_ne_zero (htgen e he)
+      (Finset.prod_ne_zero_iff.mpr
+        (fun k _ => inv_ne_zero (ne_of_gt (norm_pos_iff.mpr (hpEne (e k))))))
+  exact forster_bound_of_genPos hd hdm' R' hgp' hmn hμ
+
+#print axioms PallLean.Paper93.DeepMath.PathB.ForsterUnconditional.forster_bound_unconditional
