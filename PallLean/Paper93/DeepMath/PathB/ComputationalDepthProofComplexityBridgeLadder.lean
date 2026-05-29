@@ -18,6 +18,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung6GeneralModelWall
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMetacomplexityFrontier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthTC0NC1ObserverRoute
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthThresholdCompositionFrontier
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayeredThresholdInvariant
 
 /-!
 # Proof-complexity bridge ladder (a map, with both ends anchored to real theorems)
@@ -403,6 +404,27 @@ theorem ladder_rung5_threshold_composition_lower_bound {n d : Nat}
     ¬ ∃ C : ThresholdLayer n d, ThresholdLayer.eval C = f :=
   ThresholdLayer.lower_bound_of_thresholdCompositionRoute R
 
+/-- **Rung 5, layered-invariant climb shape.**  A hierarchy `I₀,I₁,...` plus
+layer-transfer rules controls layered threshold circuits at the corresponding
+depth.  This is the honest version of "change/enrich the invariant per layer";
+it remains conditional because the transfer rules and target gaps are the hard
+open content. -/
+theorem ladder_rung5_layered_threshold_invariant_frontier {n : Nat}
+    (L : ThresholdLayer.LayeredInvariant n) (B : ThresholdLayer.LayerBudget)
+    (hleaf : ThresholdLayer.LayeredLeafPreserved L B)
+    (htransfer : ThresholdLayer.LayerTransferStable L B) :
+    ∀ {d : Nat} (C : ThresholdLayer n d),
+      (L.I d).Q (ThresholdLayer.eval C) ≤ B d :=
+  ThresholdLayer.layered_threshold_preservation L B hleaf htransfer
+
+/-- **Rung 5, layered-invariant lower-bound consequence.**  A completed layered
+route gives a depth-`d` lower bound.  Supplying such a route with non-vacuous
+transfer rules for an explicit hard target is the actual frontier task. -/
+theorem ladder_rung5_layered_threshold_lower_bound {n d : Nat}
+    {f : BoolFun n} (R : ThresholdLayer.LayeredThresholdRoute f d) :
+    ¬ ∃ C : ThresholdLayer n d, ThresholdLayer.eval C = f :=
+  ThresholdLayer.lower_bound_of_layeredThresholdRoute R
+
 /-- **Rung 5, TC⁰ pointwise substrate.**  A supplied threshold-circuit lower
 bound rules out smaller TC⁰-style circuits at the given depth. -/
 theorem ladder_rung5_TC0_substrate
@@ -516,6 +538,8 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung5_signRank_depth2_threshold_route
 #print axioms ladder_rung5_threshold_composition_frontier
 #print axioms ladder_rung5_threshold_composition_lower_bound
+#print axioms ladder_rung5_layered_threshold_invariant_frontier
+#print axioms ladder_rung5_layered_threshold_lower_bound
 #print axioms ladder_rung5_TC0_substrate
 #print axioms ladder_rung5_branching_program_substrate
 #print axioms ladder_rung5_width_one_bp_parity_kernel
