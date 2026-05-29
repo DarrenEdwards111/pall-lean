@@ -61,6 +61,75 @@ theorem hasSignRankLE_of_uppTranscriptRealizer
   rw [hsum]
   exact P.sign_ok i j
 
+
+/-! ## Protocol semantics: finite rectangle protocols -/
+
+/-- A finite unbounded-error communication protocol in transcript form.
+
+For each transcript `t`, Alice contributes a nonnegative factor depending only on
+row input `i`, Bob contributes a nonnegative factor depending only on column
+input `j`, and `out t` is the Boolean answer attached to that transcript.  The
+normalization field says these rectangle weights form a probability distribution
+on transcripts for every input pair.  The `bias_ok` field is the UPP condition:
+the signed expected output has the same sign as the target matrix.
+
+This is still an abstract transcript-normal-form protocol, not yet a theorem that
+`THR ∘ LTF` circuits admit `O(log s)` such protocols. -/
+structure UPPCommunicationProtocol (M : Fin m -> Fin n -> Bool)
+    (τ : Type*) [Fintype τ] where
+  aliceProb : τ -> Fin m -> ℝ
+  bobProb : τ -> Fin n -> ℝ
+  out : τ -> Bool
+  alice_nonneg : ∀ t i, 0 ≤ aliceProb t i
+  bob_nonneg : ∀ t j, 0 ≤ bobProb t j
+  prob_sum_one : ∀ i j, (∑ t : τ, aliceProb t i * bobProb t j) = 1
+  bias_ok : ∀ i j,
+    0 < sgn (M i j) * (∑ t : τ, (sgn (out t) * aliceProb t i) * bobProb t j)
+
+/-- The signed expected output of a finite UPP protocol is a transcript realizer.
+This is the semantic `protocol ⇒ transcript realizer` step. -/
+def UPPCommunicationProtocol.toTranscriptRealizer
+    {M : Fin m -> Fin n -> Bool} {τ : Type*} [Fintype τ]
+    (P : UPPCommunicationProtocol M τ) : UPPTranscriptRealizer M τ where
+  alice := fun t i => sgn (P.out t) * P.aliceProb t i
+  bob := fun t j => P.bobProb t j
+  sign_ok := by
+    intro i j
+    exact P.bias_ok i j
+
+/-- Protocols inherit the sign-rank upper bound through their signed expectation
+matrix. -/
+theorem hasSignRankLE_of_uppCommunicationProtocol
+    {M : Fin m -> Fin n -> Bool} {τ : Type*} [Fintype τ]
+    (P : UPPCommunicationProtocol M τ) :
+    HasSignRankLE M (Fintype.card τ) :=
+  hasSignRankLE_of_uppTranscriptRealizer P.toTranscriptRealizer
+
+/-- UPP protocol cost at most `c`: there is a finite transcript protocol with at
+most `2^c` transcripts. -/
+def UPPProtocolCostLE (M : Fin m -> Fin n -> Bool) (c : Nat) : Prop :=
+  ∃ (τ : Type u) (_ : Fintype τ),
+    Fintype.card τ ≤ 2 ^ c ∧ Nonempty (UPPCommunicationProtocol M τ)
+
+/-- The formal cost bridge for actual protocol semantics:
+`UPP protocol cost c ⇒ sign-rank ≤ 2^c`. -/
+theorem hasSignRankLE_of_uppProtocolCostLE
+    {M : Fin m -> Fin n -> Bool} {c : Nat} (h : UPPProtocolCostLE M c) :
+    HasSignRankLE M (2 ^ c) := by
+  rcases h with ⟨τ, hτ, hcard, hP⟩
+  letI : Fintype τ := hτ
+  rcases hP with ⟨P⟩
+  exact hasSignRankLE_mono (M := M) hcard
+    (hasSignRankLE_of_uppCommunicationProtocol P)
+
+/-- Any concrete finite UPP protocol gives the corresponding cost bound whenever
+its transcript count is within the budget. -/
+theorem uppProtocolCostLE_of_protocol
+    {M : Fin m -> Fin n -> Bool} {τ : Type u} [Fintype τ] {c : Nat}
+    (P : UPPCommunicationProtocol M τ) (hcard : Fintype.card τ ≤ 2 ^ c) :
+    UPPProtocolCostLE.{u} M c :=
+  ⟨τ, inferInstance, hcard, ⟨P⟩⟩
+
 /-- Stronger bottom-gate object: the transcript expectation is exactly the
 `±1` signed output matrix, not merely some same-sign matrix.  This is the
 additional uniform-output ingredient needed before a top threshold can be
@@ -330,6 +399,10 @@ theorem card_option_sigma_bottomTranscripts
   omega
 
 #print axioms hasSignRankLE_of_uppTranscriptRealizer
+#print axioms UPPCommunicationProtocol.toTranscriptRealizer
+#print axioms hasSignRankLE_of_uppCommunicationProtocol
+#print axioms hasSignRankLE_of_uppProtocolCostLE
+#print axioms uppProtocolCostLE_of_protocol
 #print axioms hasSignRankLE_of_exactSignedOutputRealizer
 #print axioms wholeCircuitUPPRealizer_of_exactBottomOutputs
 #print axioms wholeCircuit_hasSignRankLE_of_exactBottomOutputs
