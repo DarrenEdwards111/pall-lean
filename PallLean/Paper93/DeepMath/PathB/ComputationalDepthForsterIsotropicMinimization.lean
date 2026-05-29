@@ -1092,6 +1092,36 @@ theorem exists_global_min_potentialG (hd : 0 < d) {m' : ℕ} (hdm' : d ≤ m')
     rw [hGcS]
     linarith [hblow, hlogR, hexp, hGSI]
 
+open Matrix in
+/-- **Forster isotropic position — `∃T`, UNCONDITIONAL.**  For nonzero, spanning
+vectors `v₁,…,v_{m'+1} ∈ ℝ^d` in general position (every `d` of them independent),
+there is an invertible `T` putting the normalised images
+`ûᵢ = (1/√⟪vᵢ,S⋆vᵢ⟫)·(T vᵢ)` into radially-isotropic / tight-frame position
+`∑ᵢ ûᵢûᵢᵀ = ((m'+1)/d)·I`.  This discharges the sole open analytic obligation of the
+Forster sign-rank route.  Proof: a global minimizer `S⋆` of the scale-invariant
+potential `G` over PD matrices exists (coercivity ⇒ EVT); it is a local min of `G`
+along every symmetric direction (`G` global-min on PD + PD stays open under small
+symmetric perturbation), so the variational first-order condition holds, and `T = √S⋆`
+realizes the tight frame. -/
+theorem exists_isotropic (hd : 0 < d) {m' : ℕ} (hdm' : d ≤ m')
+    {v : Fin (m' + 1) → (Fin d → ℝ)} (hne : ∀ i, v i ≠ 0)
+    (hspan : Submodule.span ℝ (Set.range v) = ⊤)
+    (hgp : ∀ e : Fin d → Fin (m' + 1), Function.Injective e →
+      IsUnit (Matrix.of (fun i k => v (e k) i) : Matrix (Fin d) (Fin d) ℝ).det) :
+    ∃ (S T : Matrix (Fin d) (Fin d) ℝ), S.PosDef ∧ IsUnit T.det ∧
+      ∑ i, Matrix.vecMulVec ((Real.sqrt (v i ⬝ᵥ (S *ᵥ v i)))⁻¹ • (T *ᵥ v i))
+                            ((Real.sqrt (v i ⬝ᵥ (S *ᵥ v i)))⁻¹ • (T *ᵥ v i))
+        = (((m' + 1 : ℕ) : ℝ) / (d : ℝ)) • (1 : Matrix (Fin d) (Fin d) ℝ) := by
+  obtain ⟨S, hSpd, hSmin⟩ := exists_global_min_potentialG hd hdm' hne hspan hgp
+  have hdir : ∀ Δ : Matrix (Fin d) (Fin d) ℝ, Δᵀ = Δ →
+      IsLocalMin (fun t : ℝ => potentialG v (S + t • Δ)) 0 := by
+    intro Δ hΔ
+    filter_upwards [eventually_posDef_add_smul hd hSpd hΔ] with t htPD
+    simp only [zero_smul, add_zero]
+    exact hSmin (S + t • Δ) htPD
+  obtain ⟨T, hTunit, hTframe⟩ := exists_isotropic_of_isLocalMin hSpd hne hdir
+  exact ⟨S, T, hSpd, hTunit, hTframe⟩
+
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
 #print axioms log_det_le_sum_log_quadForm
@@ -1103,6 +1133,7 @@ theorem exists_global_min_potentialG (hd : 0 < d) {m' : ℕ} (hdm' : d ≤ m')
 #print axioms potentialG_smul
 #print axioms eventually_posDef_add_smul
 #print axioms exists_global_min_potentialG
+#print axioms exists_isotropic
 #print axioms det_le_trace_div_pow
 #print axioms det_sq_mul_det_le_prod_diag
 #print axioms exists_symm_sqrt
