@@ -28,7 +28,7 @@ assembly are layered on top.
 
 namespace PallLean.Paper93.DeepMath.PathB.ForsterUnconditional
 
-open scoped BigOperators Matrix
+open scoped BigOperators Matrix RealInnerProductSpace
 open Forster ForsterIsotropic ForsterWiring Matrix Polynomial
 
 variable {m' d n : ℕ}
@@ -107,3 +107,46 @@ theorem finite_singular_params (u z : Fin (m' + 1) → (Fin d → ℝ))
       · exact absurd hpow (pow_ne_zero d htz)
       · exact hdet
     · exact inv_inv t
+
+/-- **Genericity of general position.**  For fixed vectors `w`, the perturbation
+`w_j ↦ w_j + t·(moment curve)_j` fails to be in general position for only
+finitely many `t`: the bad set is the finite union, over the finitely many
+injective `d`-tuples `e`, of the per-subset singular sets. -/
+theorem finite_nonGenPos (w : Fin (m' + 1) → (Fin d → ℝ)) :
+    Set.Finite {t : ℝ | ∃ e : Fin d → Fin (m' + 1), Function.Injective e ∧
+      (Matrix.of (fun i k => w (e k) i + t * (((e k : ℕ) : ℝ)) ^ (i : ℕ))).det = 0} := by
+  have hsub : {t : ℝ | ∃ e : Fin d → Fin (m' + 1), Function.Injective e ∧
+        (Matrix.of (fun i k => w (e k) i + t * (((e k : ℕ) : ℝ)) ^ (i : ℕ))).det = 0}
+      ⊆ ⋃ e ∈ {e : Fin d → Fin (m' + 1) | Function.Injective e},
+          {t : ℝ | (Matrix.of (fun i k =>
+            w (e k) i + t * (((e k : ℕ) : ℝ)) ^ (i : ℕ))).det = 0} := by
+    rintro t ⟨e, he, hdet⟩
+    exact Set.mem_biUnion he hdet
+  refine Set.Finite.subset (Set.Finite.biUnion (Set.toFinite _) ?_) hsub
+  intro e he
+  exact finite_singular_params w (fun j i => (((j : ℕ) : ℝ)) ^ (i : ℕ)) e
+    (det_reference_ne_zero e he)
+
+/-- **Sign-stability of the perturbation.**  For `t` near `0`, the perturbed
+realization `u_i ↦ u_i + t·z_i` keeps every sign inequality
+`0 < sgn(M i j)·⟪u_i, w_j⟫` strict.  Each is an affine, continuous function of
+`t`, strictly positive at `t = 0` (the original `sign_ok`), and there are
+finitely many `(i,j)`. -/
+theorem eventually_sign_ok {M : Fin (m' + 1) → Fin n → Bool} (R : UnitRealization M d)
+    (zE : Fin (m' + 1) → EuclideanSpace ℝ (Fin d)) :
+    ∀ᶠ t : ℝ in nhds 0,
+      ∀ i j, 0 < sgn (M i j) * ⟪R.u i + t • zE i, R.w j⟫ := by
+  have hpt : ∀ i j, ∀ᶠ t : ℝ in nhds 0,
+      0 < sgn (M i j) * ⟪R.u i + t • zE i, R.w j⟫ := by
+    intro i j
+    have hcont : ContinuousAt
+        (fun t : ℝ => sgn (M i j) * ⟪R.u i + t • zE i, R.w j⟫) 0 := by
+      fun_prop
+    have hpos0 : 0 < sgn (M i j) * ⟪R.u i + (0 : ℝ) • zE i, R.w j⟫ := by
+      simp only [zero_smul, add_zero]; exact R.sign_ok i j
+    exact hcont.eventually (eventually_gt_nhds hpos0)
+  rw [Filter.eventually_all]
+  intro i
+  rw [Filter.eventually_all]
+  intro j
+  exact hpt i j
