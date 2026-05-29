@@ -339,7 +339,8 @@ satisfies the Lagrange identity `∑ᵢ vᵢvᵢᵀ/⟪vᵢ,Svᵢ⟫ = (m/d)·S�
 taking `Δ = A` gives `tr(A·A) = 0`, hence `A = 0`. -/
 theorem firstOrder_of_isLocalMin {S : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosDef)
     {v : Fin m → (Fin d → ℝ)} (hv : ∀ i, v i ≠ 0)
-    (hmin : IsLocalMin (potentialG v) S) :
+    (hdir : ∀ Δ : Matrix (Fin d) (Fin d) ℝ, Δᵀ = Δ →
+      IsLocalMin (fun t : ℝ => potentialG v (S + t • Δ)) 0) :
     ∑ i, (v i ⬝ᵥ (S *ᵥ v i))⁻¹ • Matrix.vecMulVec (v i) (v i) = ((m : ℝ) / d) • S⁻¹ := by
   rw [← sub_eq_zero]
   set A : Matrix (Fin d) (Fin d) ℝ :=
@@ -371,14 +372,9 @@ theorem firstOrder_of_isLocalMin {S : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosDef
     · rw [mul_smul_comm, Matrix.trace_smul, smul_eq_mul, trace_mul_comm S⁻¹ Δ]
   -- vanishing in every symmetric direction
   have hvanish : ∀ Δ : Matrix (Fin d) (Fin d) ℝ, Δᵀ = Δ → (Δ * A).trace = 0 := by
-    intro Δ _
+    intro Δ hΔ
     rw [← hDtrace Δ]
-    have hloc : IsLocalMin (fun t : ℝ => potentialG v (S + t • Δ)) 0 := by
-      have hg : Filter.Tendsto (fun t : ℝ => S + t • Δ) (nhds (0 : ℝ)) (nhds S) := by
-        have hc : Continuous (fun t : ℝ => S + t • Δ) := by fun_prop
-        simpa using hc.tendsto 0
-      exact (hg.eventually hmin).mono (fun t ht => by simpa using ht)
-    exact hloc.hasDerivAt_eq_zero (hasDerivAt_potentialG hS hv)
+    exact (hdir Δ hΔ).hasDerivAt_eq_zero (hasDerivAt_potentialG hS hv)
   exact eq_zero_of_symm_trace_sq hAsymm (hvanish A hAsymm)
 
 /-! ### Rung 2 (existence of a minimizer): foundation
@@ -543,14 +539,16 @@ rung 4b (`√S`), and rung 4a (`tightFrame`).  The *only* remaining gap to an
 unconditional `∃T` is discharging the `IsLocalMin` hypothesis — i.e. coercivity
 (under general position) + sublevel-set compactness, the honest analytic wall. -/
 theorem exists_isotropic_of_isLocalMin {S : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosDef)
-    {v : Fin m → (Fin d → ℝ)} (hv : ∀ i, v i ≠ 0) (hmin : IsLocalMin (potentialG v) S) :
+    {v : Fin m → (Fin d → ℝ)} (hv : ∀ i, v i ≠ 0)
+    (hdir : ∀ Δ : Matrix (Fin d) (Fin d) ℝ, Δᵀ = Δ →
+      IsLocalMin (fun t : ℝ => potentialG v (S + t • Δ)) 0) :
     ∃ T : Matrix (Fin d) (Fin d) ℝ, IsUnit T.det ∧
       ∑ i, Matrix.vecMulVec ((Real.sqrt (v i ⬝ᵥ (S *ᵥ v i)))⁻¹ • (T *ᵥ v i))
                             ((Real.sqrt (v i ⬝ᵥ (S *ᵥ v i)))⁻¹ • (T *ᵥ v i))
         = ((m : ℝ) / d) • (1 : Matrix (Fin d) (Fin d) ℝ) := by
   obtain ⟨T, hTsymm, hTT, hTunit⟩ := exists_symm_sqrt hS
   exact ⟨T, hTunit,
-    tightFrame_of_firstOrder hS hTsymm hTT hTunit hv (firstOrder_of_isLocalMin hS hv hmin)⟩
+    tightFrame_of_firstOrder hS hTsymm hTT hTunit hv (firstOrder_of_isLocalMin hS hv hdir)⟩
 
 open Matrix in
 /-- **Rung 2 compactness foundation: `PosSemidef` is closed.**  The set of
