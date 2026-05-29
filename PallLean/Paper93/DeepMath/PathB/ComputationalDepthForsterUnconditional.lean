@@ -229,4 +229,32 @@ theorem forster_bound_unconditional {M : Fin (m' + 1) → Fin n → Bool} (hd : 
         (fun k _ => inv_ne_zero (ne_of_gt (norm_pos_iff.mpr (hpEne (e k))))))
   exact forster_bound_of_genPos hd hdm' R' hgp' hmn hμ
 
+/-- **Hadamard sign-rank lower bound (concrete instantiation).**  A square `±1`
+matrix whose columns are orthogonal, `(sgnMat M)ᵀ · (sgnMat M) = N · I` with
+`N = m'+1`, has `L²` operator norm exactly `√N`
+(`‖A‖² = ‖Aᴴ A‖ = ‖N·I‖ = N`).  Feeding this into the unconditional Forster
+bound `√(N·N)/‖sgnMat M‖ ≤ d` and simplifying `N/√N = √N` shows that *every*
+realization has dimension `d ≥ √N`: the sign rank of a Hadamard matrix is at
+least `√N`. -/
+theorem sqrt_le_of_hadamard {m' : ℕ} (M : Fin (m' + 1) → Fin (m' + 1) → Bool)
+    (hHad : (sgnMat M)ᵀ * (sgnMat M)
+      = ((m' + 1 : ℕ) : ℝ) • (1 : Matrix (Fin (m' + 1)) (Fin (m' + 1)) ℝ))
+    {d : ℕ} (hd : 0 < d) (hdm' : d ≤ m') (R : UnitRealization M d) :
+    Real.sqrt ((m' + 1 : ℕ) : ℝ) ≤ (d : ℝ) := by
+  have hNpos : (0 : ℝ) < ((m' + 1 : ℕ) : ℝ) := by exact_mod_cast Nat.succ_pos m'
+  -- conjugate transpose = transpose over ℝ
+  have hct : (sgnMat M)ᴴ = (sgnMat M)ᵀ := by
+    ext i j; simp [Matrix.conjTranspose_apply, Matrix.transpose_apply]
+  -- ‖sgnMat M‖² = N
+  have hnorm2 : ‖sgnMat M‖ * ‖sgnMat M‖ = ((m' + 1 : ℕ) : ℝ) := by
+    rw [← Matrix.l2_opNorm_conjTranspose_mul_self, hct, hHad, norm_smul, Real.norm_eq_abs,
+      abs_of_pos hNpos, norm_one, mul_one]
+  have hnorm : ‖sgnMat M‖ = Real.sqrt ((m' + 1 : ℕ) : ℝ) := by
+    rw [← hnorm2, Real.sqrt_mul_self (norm_nonneg _)]
+  -- the unconditional Forster bound, specialised to this matrix
+  have hf := forster_bound_unconditional hd hdm' R (mul_pos hNpos hNpos)
+    (by rw [hnorm]; exact Real.sqrt_pos.mpr hNpos)
+  rw [Real.sqrt_mul_self hNpos.le, hnorm, Real.div_sqrt] at hf
+  exact hf
+
 #print axioms PallLean.Paper93.DeepMath.PathB.ForsterUnconditional.forster_bound_unconditional
