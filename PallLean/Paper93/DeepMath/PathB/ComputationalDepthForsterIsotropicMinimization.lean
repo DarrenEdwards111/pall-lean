@@ -697,9 +697,54 @@ lemma log_det_le_sum_log_quadForm {S : Matrix (Fin d) (Fin d) ℝ} (hd : 0 < d) 
     _ = ∑ k, Real.log (v (e k) ⬝ᵥ (S *ᵥ v (e k))) :=
         Real.log_prod (fun k _ => (hposq k).ne')
 
+open Matrix in
+/-- **Rung 2 averaging: `F` is bounded below** (on the `det = 1` slice, under general
+position).  Summing the per-subset bound over the `m` cyclic shifts `e_s k = s + k`
+— each index hit exactly `d` times (`Equiv.addRight` reindexing, no fiber-counting) —
+gives `(1/d)·∑_s log(det B_s²) ≤ ∑ᵢ log⟪vᵢ,Svᵢ⟫`, a constant lower bound independent
+of `S`. -/
+lemma sum_log_quadForm_lower_bound (hd : 0 < d) (hdm : d ≤ m)
+    {S : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosDef) (hdet1 : S.det = 1)
+    {v : Fin m → (Fin d → ℝ)} (hne : ∀ i, v i ≠ 0)
+    (hgp : ∀ s : Fin m, IsUnit
+      ((Matrix.of (fun i k => v (s + Fin.castLE hdm k) i) : Matrix (Fin d) (Fin d) ℝ)).det) :
+    (1 / (d : ℝ)) * ∑ s : Fin m,
+        Real.log ((Matrix.of (fun i k => v (s + Fin.castLE hdm k) i) :
+          Matrix (Fin d) (Fin d) ℝ).det ^ 2)
+      ≤ ∑ i, Real.log (v i ⬝ᵥ (S *ᵥ v i)) := by
+  haveI : NeZero m := ⟨by omega⟩
+  set g : Fin m → ℝ := fun i => Real.log (v i ⬝ᵥ (S *ᵥ v i)) with hg
+  -- per-shift bound
+  have hshift : ∀ s : Fin m,
+      Real.log ((Matrix.of (fun i k => v (s + Fin.castLE hdm k) i) :
+        Matrix (Fin d) (Fin d) ℝ).det ^ 2)
+        ≤ ∑ k : Fin d, g (s + Fin.castLE hdm k) := by
+    intro s
+    have := log_det_le_sum_log_quadForm hd hS (v := v) (fun k => s + Fin.castLE hdm k)
+      (fun k => hne _) (hgp s)
+    rwa [hdet1, mul_one] at this
+  -- counting: each index hit d times
+  have hcount : (∑ s : Fin m, ∑ k : Fin d, g (s + Fin.castLE hdm k)) = (d : ℝ) * ∑ i, g i := by
+    rw [Finset.sum_comm]
+    rw [show (∑ k : Fin d, ∑ s : Fin m, g (s + Fin.castLE hdm k))
+        = ∑ _k : Fin d, ∑ i : Fin m, g i from
+      Finset.sum_congr rfl (fun k _ => Equiv.sum_comp (Equiv.addRight (Fin.castLE hdm k)) g)]
+    rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+  -- combine
+  have hsum : (∑ s : Fin m, Real.log ((Matrix.of (fun i k => v (s + Fin.castLE hdm k) i) :
+        Matrix (Fin d) (Fin d) ℝ).det ^ 2)) ≤ (d : ℝ) * ∑ i, g i := by
+    calc (∑ s : Fin m, Real.log ((Matrix.of (fun i k => v (s + Fin.castLE hdm k) i) :
+            Matrix (Fin d) (Fin d) ℝ).det ^ 2))
+        ≤ ∑ s : Fin m, ∑ k : Fin d, g (s + Fin.castLE hdm k) :=
+          Finset.sum_le_sum (fun s _ => hshift s)
+      _ = (d : ℝ) * ∑ i, g i := hcount
+  rw [one_div, inv_mul_le_iff₀ (by positivity : (0 : ℝ) < d)]
+  linarith [hsum]
+
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
 #print axioms log_det_le_sum_log_quadForm
+#print axioms sum_log_quadForm_lower_bound
 #print axioms det_le_trace_div_pow
 #print axioms det_sq_mul_det_le_prod_diag
 #print axioms exists_symm_sqrt
