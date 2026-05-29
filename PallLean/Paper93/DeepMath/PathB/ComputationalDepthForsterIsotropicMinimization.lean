@@ -381,6 +381,36 @@ theorem firstOrder_of_isLocalMin {S : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosDef
     exact hloc.hasDerivAt_eq_zero (hasDerivAt_potentialG hS hv)
   exact eq_zero_of_symm_trace_sq hAsymm (hvanish A hAsymm)
 
+/-! ### Rung 2 (existence of a minimizer): foundation
+
+The remaining lift: produce the `IsLocalMin (potentialG v) S⋆` hypothesis that rung 3
+consumes, by minimizing `G` over SPD matrices.  The honest hard core is *coercivity*
+(`G → +∞` as `S` degenerates), which rests on a generalized-Hadamard / Cauchy–Binet
+estimate `∏ᵢ⟪vᵢ,Svᵢ⟫ ≥ c·det(S)^{m/d}` from the spanning hypothesis — a substantial
+standalone inequality **not in Mathlib** — together with compactness of sublevel sets
+in SPD-matrix space.  That is genuinely the largest single analytic piece of the whole
+`∃T` grind.
+
+Landed here: the *continuity* foundation (the easy half of the extreme-value-theorem
+route), fully proved. -/
+
+open Matrix in
+/-- `potentialG v` is continuous at every positive-definite matrix (its summands are
+`log` of strictly-positive continuous functions; `log det` likewise). -/
+lemma continuousAt_potentialG {S : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosDef)
+    {v : Fin m → (Fin d → ℝ)} (hv : ∀ i, v i ≠ 0) :
+    ContinuousAt (potentialG v) S := by
+  have hquad : ∀ i, ContinuousAt
+      (fun T : Matrix (Fin d) (Fin d) ℝ => v i ⬝ᵥ (T *ᵥ v i)) S :=
+    fun i => (continuous_const.dotProduct
+      (continuous_id.matrix_mulVec continuous_const)).continuousAt
+  have hdet : ContinuousAt (fun T : Matrix (Fin d) (Fin d) ℝ => T.det) S :=
+    (Continuous.matrix_det continuous_id).continuousAt
+  unfold potentialG
+  refine ContinuousAt.sub ?_ ?_
+  · exact tendsto_finset_sum _ (fun i _ => (hquad i).log (quadForm_pos hS (hv i)).ne')
+  · exact (hdet.log hS.det_pos.ne').const_mul _
+
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
 #print axioms tightFrame_of_firstOrder
@@ -390,5 +420,6 @@ theorem firstOrder_of_isLocalMin {S : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosDef
 #print axioms eq_zero_of_symm_trace_sq
 #print axioms hasDerivAt_potentialG
 #print axioms firstOrder_of_isLocalMin
+#print axioms continuousAt_potentialG
 
 end PallLean.Paper93.DeepMath.PathB.ForsterIsotropic
