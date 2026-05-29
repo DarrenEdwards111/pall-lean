@@ -136,5 +136,23 @@ theorem walsh_uppCost_lower {m' k : ℕ} (hmk : m' + 1 = 2 ^ k) {c : ℕ}
   push_cast at this
   linarith
 
+/-- **Discharging the framework's `ForsterLowerBound` assumption.**  In
+`ComputationalDepthSignRankInvariant.lean`, `ForsterLowerBound M B` (`sign rank
+≥ B`) is carried as a *labelled hypothesis* ("here it is a labelled hypothesis").
+For the `2^{2j} × 2^{2j}` Walsh–Hadamard matrix it is now a **theorem**:
+`ForsterLowerBound (walshMatrix) (2^j)`, i.e. sign rank `≥ 2^j = √(2^{2j})`.
+
+This turns the conditional no-go `no_small_depth2` into one whose Forster input is
+genuinely proven (its remaining hypothesis — the budget→dimension *bridge* — is
+the open/dead-end direction, not this one). -/
+theorem walsh_forsterLowerBound {m' j : ℕ} (hmk : m' + 1 = 2 ^ (2 * j)) :
+    ForsterLowerBound (walshMatrix hmk) (2 ^ j) := by
+  intro d hsr
+  have hb := walsh_hasSignRankLE_lower hmk hsr
+  rw [show 2 * j = j * 2 from Nat.mul_comm 2 j, pow_mul,
+    Real.sqrt_sq (by positivity : (0 : ℝ) ≤ 2 ^ j)] at hb
+  exact_mod_cast hb
+
 #print axioms PallLean.Paper93.DeepMath.PathB.ForsterUPP.exists_unitRealization_of_hasSignRankLE
 #print axioms PallLean.Paper93.DeepMath.PathB.ForsterUPP.walsh_uppCost_lower
+#print axioms PallLean.Paper93.DeepMath.PathB.ForsterUPP.walsh_forsterLowerBound
