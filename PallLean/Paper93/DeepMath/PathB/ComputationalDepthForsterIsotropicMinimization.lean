@@ -569,6 +569,49 @@ lemma isClosed_posSemidef :
     continuous_id) (isClosed_iInter fun x => isClosed_le continuous_const ?_)
   exact continuous_const.dotProduct (continuous_id.matrix_mulVec continuous_const)
 
+open Matrix in
+/-- **Rung 2 compactness: a trace-bounded PSD slice is compact.**  `{M : PosSemidef,
+tr M ≤ R}` is compact — closed (PSD closed ∩ trace ≤ R) and contained in the
+entrywise box `[-R,R]^{d×d}` (compact by Tychonoff): diagonal entries lie in `[0,R]`,
+and off-diagonal entries satisfy `Mᵢⱼ² ≤ Mᵢᵢ·Mⱼⱼ ≤ R²` from the `2×2` principal
+minor being PSD.  The compact domain on which the extreme value theorem runs once
+coercivity confines the minimizer. -/
+lemma isCompact_posSemidef_trace_le (R : ℝ) :
+    IsCompact {M : Matrix (Fin d) (Fin d) ℝ | M.PosSemidef ∧ M.trace ≤ R} := by
+  have hboxcompact : IsCompact {M : Matrix (Fin d) (Fin d) ℝ | ∀ i j, M i j ∈ Set.Icc (-R) R} := by
+    have hbox : {M : Matrix (Fin d) (Fin d) ℝ | ∀ i j, M i j ∈ Set.Icc (-R) R}
+        = Set.univ.pi (fun _ => Set.univ.pi (fun _ => Set.Icc (-R) R)) := by
+      ext M
+      exact ⟨fun h i _ j _ => h i j, fun h i j => h i (Set.mem_univ i) j (Set.mem_univ j)⟩
+    rw [hbox]
+    exact isCompact_univ_pi (fun _ => isCompact_univ_pi (fun _ => isCompact_Icc))
+  have hclosed : IsClosed {M : Matrix (Fin d) (Fin d) ℝ | M.PosSemidef ∧ M.trace ≤ R} :=
+    IsClosed.inter isClosed_posSemidef
+      (isClosed_le (Continuous.matrix_trace continuous_id) continuous_const)
+  refine hboxcompact.of_isClosed_subset hclosed ?_
+  rintro M ⟨hPSD, htr⟩ i j
+  rw [Set.mem_Icc]
+  have htreq : M.trace = ∑ k, M k k := by rw [Matrix.trace]; rfl
+  have hdiagnn : ∀ k, 0 ≤ M k k := fun k => hPSD.diag_nonneg
+  have hdiagle : ∀ k, M k k ≤ R := fun k =>
+    calc M k k ≤ ∑ l, M l l :=
+          Finset.single_le_sum (fun l _ => hdiagnn l) (Finset.mem_univ k)
+      _ = M.trace := htreq.symm
+      _ ≤ R := htr
+  have hRnn : 0 ≤ R := le_trans (hdiagnn i) (hdiagle i)
+  have hdet : 0 ≤ (M.submatrix ![i, j] ![i, j]).det := (hPSD.submatrix ![i, j]).det_nonneg
+  rw [Matrix.det_fin_two] at hdet
+  simp only [Matrix.submatrix_apply, Matrix.cons_val_zero, Matrix.cons_val_one] at hdet
+  have hsymm : M j i = M i j := by
+    have h2 := congrFun (congrFun hPSD.1 i) j
+    rwa [Matrix.conjTranspose_apply, star_trivial] at h2
+  rw [hsymm] at hdet
+  have hsq : M i j * M i j ≤ R * R :=
+    le_trans (by linarith) (mul_le_mul (hdiagle i) (hdiagle j) (hdiagnn j) hRnn)
+  constructor
+  · nlinarith [hsq, sq_nonneg (M i j + R)]
+  · nlinarith [hsq, sq_nonneg (M i j - R)]
+
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
 #print axioms det_le_trace_div_pow
@@ -576,6 +619,7 @@ lemma isClosed_posSemidef :
 #print axioms exists_symm_sqrt
 #print axioms exists_isotropic_of_isLocalMin
 #print axioms isClosed_posSemidef
+#print axioms isCompact_posSemidef_trace_le
 #print axioms tightFrame_of_firstOrder
 #print axioms hasDerivAt_potential
 #print axioms hasDerivAt_det_one_add_smul
