@@ -29,6 +29,35 @@ universe u
 
 variable {m n : Nat}
 
+
+/-- Negating a Boolean flips its ±1 sign. -/
+theorem sgn_not (b : Bool) : sgn (!b) = -sgn b := by
+  cases b <;> norm_num [sgn]
+
+/-- Flip a protocol output when multiplying by a negative weight. -/
+theorem sgn_weighted_output (w : ℝ) (b : Bool) :
+    sgn (if 0 ≤ w then b else !b) * |w| = w * sgn b := by
+  by_cases hw : 0 ≤ w
+  · simp [hw, abs_of_nonneg hw]
+    ring
+  · have hlt : w < 0 := lt_of_not_ge hw
+    simp [hw, sgn_not, abs_of_neg hlt]
+    ring
+
+/-- A Boolean output representing the sign of `-θ` contributes exactly `-θ` when
+weighted by `|θ|`. -/
+theorem sgn_bias_output (θ : ℝ) :
+    sgn (decide (0 < -θ)) * |θ| = -θ := by
+  by_cases h : 0 < -θ
+  · have hθ : θ < 0 := by linarith
+    rw [show decide (0 < -θ) = true by simp [h],
+      show sgn true = (1 : ℝ) from rfl, abs_of_neg hθ]
+    ring
+  · have hθ : 0 ≤ θ := by linarith
+    rw [show decide (0 < -θ) = false by simp [h],
+      show sgn false = (-1 : ℝ) from rfl, abs_of_nonneg hθ]
+    ring
+
 /-- A finite unbounded-error transcript expectation realizer.  The real matrix
 `∑ t, alice t i * bob t j` has the target sign pattern.  Algebraically, this is
 exactly the rectangle-sum object whose rank is at most the transcript count. -/
@@ -129,6 +158,477 @@ theorem uppProtocolCostLE_of_protocol
     (P : UPPCommunicationProtocol M τ) (hcard : Fintype.card τ ≤ 2 ^ c) :
     UPPProtocolCostLE.{u} M c :=
   ⟨τ, inferInstance, hcard, ⟨P⟩⟩
+
+/-! ## Bottom split-halfspace protocol -/
+
+/-- Ten transcripts for the elementary split-halfspace UPP protocol.  Four
+transcripts carry the signed row/column bias, and six neutral transcripts fill
+the remaining probability mass without changing the signed expectation. -/
+inductive SplitHalfspaceTranscript where
+  | alphaPos | alphaNeg
+  | betaPos | betaNeg
+  | fillConstPos | fillConstNeg
+  | fillAlphaPos | fillAlphaNeg
+  | fillBetaPos | fillBetaNeg
+  deriving DecidableEq
+
+instance : Fintype SplitHalfspaceTranscript where
+  elems :=
+    { .alphaPos, .alphaNeg,
+      .betaPos, .betaNeg,
+      .fillConstPos, .fillConstNeg,
+      .fillAlphaPos, .fillAlphaNeg,
+      .fillBetaPos, .fillBetaNeg }
+  complete := by
+    intro x
+    cases x <;> simp
+
+private lemma sum_splitHalfspaceTranscript {A : Type*} [AddCommMonoid A]
+    (f : SplitHalfspaceTranscript -> A) :
+    (∑ t : SplitHalfspaceTranscript, f t)
+      =
+    f .alphaPos + f .alphaNeg
+      + f .betaPos + f .betaNeg
+      + f .fillConstPos + f .fillConstNeg
+      + f .fillAlphaPos + f .fillAlphaNeg
+      + f .fillBetaPos + f .fillBetaNeg := by
+  have huniv :
+      (Finset.univ : Finset SplitHalfspaceTranscript)
+        =
+      { .alphaPos, .alphaNeg,
+        .betaPos, .betaNeg,
+        .fillConstPos, .fillConstNeg,
+        .fillAlphaPos, .fillAlphaNeg,
+        .fillBetaPos, .fillBetaNeg } := by
+    ext x
+    cases x <;> simp
+  rw [huniv]
+  simp [Finset.sum_insert, add_assoc]
+
+private lemma max_pos_sub_max_neg (x : ℝ) :
+    max x 0 - max (-x) 0 = x := by
+  by_cases hx : 0 ≤ x
+  · have hnx : -x ≤ 0 := by linarith
+    rw [max_eq_left hx, max_eq_right hnx]
+    ring
+  · have hxle : x ≤ 0 := le_of_not_ge hx
+    have hnneg : 0 ≤ -x := by linarith
+    rw [max_eq_right hxle, max_eq_left hnneg]
+    ring
+
+private lemma max_pos_add_max_neg (x : ℝ) :
+    max x 0 + max (-x) 0 = |x| := by
+  by_cases hx : 0 ≤ x
+  · have hnx : -x ≤ 0 := by linarith
+    rw [max_eq_left hx, max_eq_right hnx, abs_of_nonneg hx]
+    ring
+  · have hxle : x ≤ 0 := le_of_not_ge hx
+    have hlt : x < 0 := lt_of_not_ge hx
+    have hnneg : 0 ≤ -x := by linarith
+    rw [max_eq_right hxle, max_eq_left hnneg, abs_of_neg hlt]
+    ring
+
+/-- The signed contribution carried by the two transcripts encoding a real
+number `x`. -/
+private lemma split_signed_part (x : ℝ) :
+    max x 0 - max (-x) 0 = x :=
+  max_pos_sub_max_neg x
+
+/-- The probability mass used by the two transcripts encoding a real number
+`x`. -/
+private lemma split_unsigned_part (x : ℝ) :
+    max x 0 + max (-x) 0 = |x| :=
+  max_pos_add_max_neg x
+
+/-- A split halfspace `sign(α i + β j)` has a concrete constant-transcript UPP
+protocol once a positive scale `δ` is small enough that
+`|δ * α i|, |δ * β j| ≤ 1/4`.
+
+The signed expectation of this protocol is exactly `δ * (α i + β j)`, while the
+unsigned transcript weights sum to `1`.  This is the real bottom-gate protocol
+step; the remaining convenience lemma is to choose such a `δ` automatically from
+finite `α` and `β`. -/
+noncomputable def splitHalfspaceUPPProtocol_of_scaled
+    (α : Fin m -> ℝ) (β : Fin n -> ℝ) (δ : ℝ)
+    (hδ : 0 < δ)
+    (hα : ∀ i, |δ * α i| ≤ (1 / 4 : ℝ))
+    (hβ : ∀ j, |δ * β j| ≤ (1 / 4 : ℝ))
+    (hne : ∀ i j, α i + β j ≠ 0) :
+    UPPCommunicationProtocol (bipartiteHalfspace α β) SplitHalfspaceTranscript where
+  aliceProb
+    | .alphaPos => fun i => max (δ * α i) 0
+    | .alphaNeg => fun i => max (-(δ * α i)) 0
+    | .betaPos => fun _ => 1
+    | .betaNeg => fun _ => 1
+    | .fillConstPos => fun _ => (1 / 4 : ℝ)
+    | .fillConstNeg => fun _ => (1 / 4 : ℝ)
+    | .fillAlphaPos => fun i => ((1 / 4 : ℝ) - |δ * α i|) / 2
+    | .fillAlphaNeg => fun i => ((1 / 4 : ℝ) - |δ * α i|) / 2
+    | .fillBetaPos => fun _ => 1
+    | .fillBetaNeg => fun _ => 1
+  bobProb
+    | .alphaPos => fun _ => 1
+    | .alphaNeg => fun _ => 1
+    | .betaPos => fun j => max (δ * β j) 0
+    | .betaNeg => fun j => max (-(δ * β j)) 0
+    | .fillConstPos => fun _ => 1
+    | .fillConstNeg => fun _ => 1
+    | .fillAlphaPos => fun _ => 1
+    | .fillAlphaNeg => fun _ => 1
+    | .fillBetaPos => fun j => ((1 / 4 : ℝ) - |δ * β j|) / 2
+    | .fillBetaNeg => fun j => ((1 / 4 : ℝ) - |δ * β j|) / 2
+  out
+    | .alphaPos => true
+    | .alphaNeg => false
+    | .betaPos => true
+    | .betaNeg => false
+    | .fillConstPos => true
+    | .fillConstNeg => false
+    | .fillAlphaPos => true
+    | .fillAlphaNeg => false
+    | .fillBetaPos => true
+    | .fillBetaNeg => false
+  alice_nonneg := by
+    intro t i
+    cases t <;> simp
+    · have hi : |δ| * |α i| ≤ (1 / 4 : ℝ) := by
+        simpa [abs_mul] using hα i
+      nlinarith
+    · have hi : |δ| * |α i| ≤ (1 / 4 : ℝ) := by
+        simpa [abs_mul] using hα i
+      nlinarith
+  bob_nonneg := by
+    intro t j
+    cases t <;> simp
+    · have hj : |δ| * |β j| ≤ (1 / 4 : ℝ) := by
+        simpa [abs_mul] using hβ j
+      nlinarith
+    · have hj : |δ| * |β j| ≤ (1 / 4 : ℝ) := by
+        simpa [abs_mul] using hβ j
+      nlinarith
+  prob_sum_one := by
+    intro i j
+    rw [sum_splitHalfspaceTranscript]
+    change
+        max (δ * α i) 0 * 1
+          + max (-(δ * α i)) 0 * 1
+          + 1 * max (δ * β j) 0
+          + 1 * max (-(δ * β j)) 0
+          + (1 / 4 : ℝ) * 1
+          + (1 / 4 : ℝ) * 1
+          + (((1 / 4 : ℝ) - |δ * α i|) / 2) * 1
+          + (((1 / 4 : ℝ) - |δ * α i|) / 2) * 1
+          + 1 * (((1 / 4 : ℝ) - |δ * β j|) / 2)
+          + 1 * (((1 / 4 : ℝ) - |δ * β j|) / 2)
+        = 1
+    simp only [mul_one, one_mul]
+    ring_nf
+    nlinarith [split_unsigned_part (δ * α i), split_unsigned_part (δ * β j)]
+  bias_ok := by
+    intro i j
+    have hbias :
+        (∑ t : SplitHalfspaceTranscript,
+            (sgn
+                ((match t with
+                  | .alphaPos => true
+                  | .alphaNeg => false
+                  | .betaPos => true
+                  | .betaNeg => false
+                  | .fillConstPos => true
+                  | .fillConstNeg => false
+                  | .fillAlphaPos => true
+                  | .fillAlphaNeg => false
+                  | .fillBetaPos => true
+                  | .fillBetaNeg => false) : Bool) *
+              (match t with
+                | .alphaPos => fun i => max (δ * α i) 0
+                | .alphaNeg => fun i => max (-(δ * α i)) 0
+                | .betaPos => fun _ => 1
+                | .betaNeg => fun _ => 1
+                | .fillConstPos => fun _ => (1 / 4 : ℝ)
+                | .fillConstNeg => fun _ => (1 / 4 : ℝ)
+                | .fillAlphaPos => fun i => ((1 / 4 : ℝ) - |δ * α i|) / 2
+                | .fillAlphaNeg => fun i => ((1 / 4 : ℝ) - |δ * α i|) / 2
+                | .fillBetaPos => fun _ => 1
+                | .fillBetaNeg => fun _ => 1) i) *
+              (match t with
+                | .alphaPos => fun _ => 1
+                | .alphaNeg => fun _ => 1
+                | .betaPos => fun j => max (δ * β j) 0
+                | .betaNeg => fun j => max (-(δ * β j)) 0
+                | .fillConstPos => fun _ => 1
+                | .fillConstNeg => fun _ => 1
+                | .fillAlphaPos => fun _ => 1
+                | .fillAlphaNeg => fun _ => 1
+                | .fillBetaPos => fun j => ((1 / 4 : ℝ) - |δ * β j|) / 2
+                | .fillBetaNeg => fun j => ((1 / 4 : ℝ) - |δ * β j|) / 2) j)
+          = δ * (α i + β j) := by
+      rw [sum_splitHalfspaceTranscript]
+      change
+          (1 : ℝ) * max (δ * α i) 0 * 1
+            + (-1 : ℝ) * max (-(δ * α i)) 0 * 1
+            + (1 : ℝ) * 1 * max (δ * β j) 0
+            + (-1 : ℝ) * 1 * max (-(δ * β j)) 0
+            + (1 : ℝ) * (1 / 4 : ℝ) * 1
+            + (-1 : ℝ) * (1 / 4 : ℝ) * 1
+            + (1 : ℝ) * (((1 / 4 : ℝ) - |δ * α i|) / 2) * 1
+            + (-1 : ℝ) * (((1 / 4 : ℝ) - |δ * α i|) / 2) * 1
+            + (1 : ℝ) * 1 * (((1 / 4 : ℝ) - |δ * β j|) / 2)
+            + (-1 : ℝ) * 1 * (((1 / 4 : ℝ) - |δ * β j|) / 2)
+          = δ * (α i + β j)
+      simp only [mul_one, one_mul]
+      ring_nf
+      rw [split_signed_part (δ * α i), split_signed_part (δ * β j)]
+    rw [hbias]
+    have hscaled : δ * (α i + β j) ≠ 0 := mul_ne_zero (ne_of_gt hδ) (hne i j)
+    rcases lt_or_gt_of_ne hscaled with hlt | hgt
+    · have hbase : α i + β j < 0 := by
+        nlinarith [hδ]
+      have hb : bipartiteHalfspace α β i j = false := by
+        simp only [bipartiteHalfspace, decide_eq_false_iff_not, not_lt]
+        exact le_of_lt hbase
+      rw [hb, show sgn false = (-1 : ℝ) from rfl]
+      nlinarith
+    · have hbase : 0 < α i + β j := by
+        nlinarith [hδ]
+      have hb : bipartiteHalfspace α β i j = true := by
+        simp only [bipartiteHalfspace, decide_eq_true_eq]
+        exact hbase
+      rw [hb, show sgn true = (1 : ℝ) from rfl]
+      nlinarith
+
+/-- The scaled split-halfspace protocol has ten transcripts, hence cost at most
+`4` (`10 ≤ 2^4`). -/
+theorem splitHalfspace_uppProtocolCostLE_four_of_scaled
+    (α : Fin m -> ℝ) (β : Fin n -> ℝ) (δ : ℝ)
+    (hδ : 0 < δ)
+    (hα : ∀ i, |δ * α i| ≤ (1 / 4 : ℝ))
+    (hβ : ∀ j, |δ * β j| ≤ (1 / 4 : ℝ))
+    (hne : ∀ i j, α i + β j ≠ 0) :
+    UPPProtocolCostLE.{0} (bipartiteHalfspace α β) 4 :=
+  ⟨SplitHalfspaceTranscript, inferInstance, by decide,
+    ⟨splitHalfspaceUPPProtocol_of_scaled α β δ hδ hα hβ hne⟩⟩
+
+
+/-- A finite UPP protocol with **constant signed bias** `δ`: its signed expected
+output is exactly `δ * sgn(M i j)` at every input.  This is stronger than plain
+UPP bias and is the right composable object for weighted top thresholds. -/
+structure ConstantBiasUPPProtocol (M : Fin m -> Fin n -> Bool)
+    (τ : Type*) [Fintype τ] where
+  aliceProb : τ -> Fin m -> ℝ
+  bobProb : τ -> Fin n -> ℝ
+  out : τ -> Bool
+  δ : ℝ
+  δ_pos : 0 < δ
+  alice_nonneg : ∀ t i, 0 ≤ aliceProb t i
+  bob_nonneg : ∀ t j, 0 ≤ bobProb t j
+  prob_sum_one : ∀ i j, (∑ t : τ, aliceProb t i * bobProb t j) = 1
+  bias_exact : ∀ i j,
+    (∑ t : τ, (sgn (out t) * aliceProb t i) * bobProb t j) = δ * sgn (M i j)
+
+/-- Constant-bias protocols are ordinary UPP protocols. -/
+def ConstantBiasUPPProtocol.toUPPCommunicationProtocol
+    {M : Fin m -> Fin n -> Bool} {τ : Type*} [Fintype τ]
+    (P : ConstantBiasUPPProtocol M τ) : UPPCommunicationProtocol M τ where
+  aliceProb := P.aliceProb
+  bobProb := P.bobProb
+  out := P.out
+  alice_nonneg := P.alice_nonneg
+  bob_nonneg := P.bob_nonneg
+  prob_sum_one := P.prob_sum_one
+  bias_ok := by
+    intro i j
+    rw [P.bias_exact i j]
+    have hδ := P.δ_pos
+    rw [show sgn (M i j) * (P.δ * sgn (M i j))
+        = P.δ * (sgn (M i j) * sgn (M i j)) by ring, sgn_mul_self]
+    simpa using hδ
+
+/-- Constant-bias protocols inherit the sign-rank upper bound. -/
+theorem hasSignRankLE_of_constantBiasUPPProtocol
+    {M : Fin m -> Fin n -> Bool} {τ : Type*} [Fintype τ]
+    (P : ConstantBiasUPPProtocol M τ) :
+    HasSignRankLE M (Fintype.card τ) :=
+  hasSignRankLE_of_uppCommunicationProtocol P.toUPPCommunicationProtocol
+
+
+namespace Depth2Threshold
+
+/-- Total unnormalised mass used by the top-threshold mixture of constant-bias
+bottom protocols. -/
+noncomputable def topMixtureMass
+    (C : Depth2Threshold m n)
+    {τ : Fin C.s -> Type*} [∀ k, Fintype (τ k)]
+    (P : ∀ k, ConstantBiasUPPProtocol (C.bottomGate k) (τ k)) : ℝ :=
+  |C.θ| + ∑ k : Fin C.s, |C.w k| / (P k).δ
+
+/-- A real UPP protocol for a `THR ∘ LTF` circuit from constant-bias protocols
+for all bottom gates.  The protocol first samples either the top bias, one bottom
+protocol, or a neutral filler pair.  Negative top/bottom weights are handled by
+flipping the sampled Boolean output, so all rectangle weights remain
+nonnegative.
+
+This is the formal top-composition step: once each bottom LTF has a finite
+constant-bias UPP protocol, the whole depth-2 threshold circuit has a protocol
+with `3 + ∑ k |τ k|` transcripts, hence logarithmic cost in the number of bottom
+transcripts. -/
+noncomputable def wholeCircuitUPPProtocol_of_constantBiasBottom
+    (C : Depth2Threshold m n)
+    {τ : Fin C.s -> Type*} [∀ k, Fintype (τ k)]
+    (P : ∀ k, ConstantBiasUPPProtocol (C.bottomGate k) (τ k))
+    (γ : ℝ)
+    (hγpos : 0 < γ)
+    (hγmass : γ * topMixtureMass C P ≤ 1)
+    (hne : ∀ i j, topArgument C i j ≠ 0) :
+    UPPCommunicationProtocol C.eval (Sum (Fin 3) (Sigma τ)) where
+  aliceProb
+    | Sum.inl q => fun _ =>
+        if q = (0 : Fin 3) then γ * |C.θ|
+        else (1 - γ * topMixtureMass C P) / 2
+    | Sum.inr kt => fun i => γ * (|C.w kt.1| / (P kt.1).δ) * (P kt.1).aliceProb kt.2 i
+  bobProb
+    | Sum.inl _ => fun _ => 1
+    | Sum.inr kt => fun j => (P kt.1).bobProb kt.2 j
+  out
+    | Sum.inl q =>
+        if q = (0 : Fin 3) then decide (0 < -C.θ)
+        else if q = (1 : Fin 3) then true else false
+    | Sum.inr kt => if 0 ≤ C.w kt.1 then (P kt.1).out kt.2 else !(P kt.1).out kt.2
+  alice_nonneg := by
+    intro r i
+    cases r with
+    | inl q =>
+        by_cases hq : q = (0 : Fin 3)
+        · simp [hq, le_of_lt hγpos]
+        · have hfill : 0 ≤ 1 - γ * topMixtureMass C P := by linarith
+          simp [hq, hfill]
+    | inr kt =>
+        have hδ : 0 ≤ (P kt.1).δ := le_of_lt (P kt.1).δ_pos
+        have hdiv : 0 ≤ |C.w kt.1| / (P kt.1).δ := div_nonneg (abs_nonneg _) hδ
+        positivity
+  bob_nonneg := by
+    intro r j
+    cases r with
+    | inl q => simp
+    | inr kt => exact (P kt.1).bob_nonneg kt.2 j
+  prob_sum_one := by
+    intro i j
+    rw [Fintype.sum_sum_type]
+    have hfin3 :
+        (∑ q : Fin 3,
+          (if q = (0 : Fin 3) then γ * |C.θ| else (1 - γ * topMixtureMass C P) / 2) * 1)
+        = γ * |C.θ| + (1 - γ * topMixtureMass C P) := by
+      fin_cases q <;> simp [Fin.sum_univ_three]
+      ring
+    have hbottom :
+        (∑ kt : Sigma τ,
+          (γ * (|C.w kt.1| / (P kt.1).δ) * (P kt.1).aliceProb kt.2 i) *
+            (P kt.1).bobProb kt.2 j)
+        = γ * (∑ k : Fin C.s, |C.w k| / (P k).δ) := by
+      rw [Fintype.sum_sigma]
+      calc
+        (∑ k : Fin C.s, ∑ t : τ k,
+          (γ * (|C.w k| / (P k).δ) * (P k).aliceProb t i) * (P k).bobProb t j)
+            = ∑ k : Fin C.s, γ * (|C.w k| / (P k).δ) *
+                (∑ t : τ k, (P k).aliceProb t i * (P k).bobProb t j) := by
+              refine Finset.sum_congr rfl (fun k _ => ?_)
+              rw [Finset.mul_sum]
+              refine Finset.sum_congr rfl (fun t _ => by ring)
+        _ = ∑ k : Fin C.s, γ * (|C.w k| / (P k).δ) := by
+              refine Finset.sum_congr rfl (fun k _ => ?_)
+              rw [(P k).prob_sum_one i j]
+              ring
+        _ = γ * (∑ k : Fin C.s, |C.w k| / (P k).δ) := by
+              rw [Finset.mul_sum]
+    rw [hfin3, hbottom]
+    simp [topMixtureMass]
+    ring
+  bias_ok := by
+    intro i j
+    rw [Fintype.sum_sum_type]
+    have hfin3 :
+        (∑ q : Fin 3,
+          (sgn (if q = (0 : Fin 3) then decide (0 < -C.θ)
+            else if q = (1 : Fin 3) then true else false) *
+            (if q = (0 : Fin 3) then γ * |C.θ| else (1 - γ * topMixtureMass C P) / 2)) * 1)
+        = γ * (-C.θ) := by
+      fin_cases q <;> simp [Fin.sum_univ_three, sgn_bias_output]
+      ring
+    have hbottom :
+        (∑ kt : Sigma τ,
+          (sgn (if 0 ≤ C.w kt.1 then (P kt.1).out kt.2 else !(P kt.1).out kt.2) *
+            (γ * (|C.w kt.1| / (P kt.1).δ) * (P kt.1).aliceProb kt.2 i)) *
+            (P kt.1).bobProb kt.2 j)
+        = γ * (∑ k : Fin C.s, C.w k * sgn (C.bottomGate k i j)) := by
+      rw [Fintype.sum_sigma]
+      calc
+        (∑ k : Fin C.s, ∑ t : τ k,
+          (sgn (if 0 ≤ C.w k then (P k).out t else !(P k).out t) *
+            (γ * (|C.w k| / (P k).δ) * (P k).aliceProb t i)) *
+            (P k).bobProb t j)
+          = ∑ k : Fin C.s, γ * (C.w k / (P k).δ) *
+              (∑ t : τ k, (sgn ((P k).out t) * (P k).aliceProb t i) * (P k).bobProb t j) := by
+            refine Finset.sum_congr rfl (fun k _ => ?_)
+            rw [Finset.mul_sum]
+            refine Finset.sum_congr rfl (fun t _ => ?_)
+            have hδne : (P k).δ ≠ 0 := ne_of_gt (P k).δ_pos
+            have hw := sgn_weighted_output (C.w k) ((P k).out t)
+            field_simp [hδne]
+            nlinarith [hw]
+        _ = ∑ k : Fin C.s, γ * (C.w k / (P k).δ) * ((P k).δ * sgn (C.bottomGate k i j)) := by
+            refine Finset.sum_congr rfl (fun k _ => ?_)
+            rw [(P k).bias_exact i j]
+        _ = γ * (∑ k : Fin C.s, C.w k * sgn (C.bottomGate k i j)) := by
+            rw [Finset.mul_sum]
+            refine Finset.sum_congr rfl (fun k _ => ?_)
+            have hδne : (P k).δ ≠ 0 := ne_of_gt (P k).δ_pos
+            field_simp [hδne]
+            ring
+    rw [hfin3, hbottom]
+    have hsum : γ * (-C.θ) + γ * (∑ k : Fin C.s, C.w k * sgn (C.bottomGate k i j))
+        = γ * topArgument C i j := by
+      simp [topArgument]
+      ring
+    rw [hsum]
+    have htop_ne := hne i j
+    rcases lt_or_gt_of_ne htop_ne with hlt | hgt
+    · have hb : C.eval i j = false := by
+        simp only [eval, decide_eq_false_iff_not, not_lt]
+        exact le_of_lt hlt
+      rw [hb, show sgn false = (-1 : ℝ) from rfl]
+      nlinarith
+    · have hb : C.eval i j = true := by
+        simp only [eval, decide_eq_true_eq]
+        exact hgt
+      rw [hb, show sgn true = (1 : ℝ) from rfl]
+      nlinarith
+
+/-- Transcript count for the composed whole-circuit protocol. -/
+theorem card_topCompositionTranscripts
+    (C : Depth2Threshold m n)
+    {τ : Fin C.s -> Type*} [∀ k, Fintype (τ k)] :
+    Fintype.card (Sum (Fin 3) (Sigma τ)) = 3 + ∑ k, Fintype.card (τ k) := by
+  rw [Fintype.card_sum, Fintype.card_fin, Fintype.card_sigma]
+  omega
+
+/-- Cost form of the top-composed protocol.  If the composed transcript count is
+bounded by `2^c`, the whole circuit has UPP cost at most `c`. -/
+theorem wholeCircuit_uppProtocolCostLE_of_constantBiasBottom
+    (C : Depth2Threshold m n)
+    {τ : Fin C.s -> Type*} [∀ k, Fintype (τ k)]
+    (P : ∀ k, ConstantBiasUPPProtocol (C.bottomGate k) (τ k))
+    (γ : ℝ)
+    (hγpos : 0 < γ)
+    (hγmass : γ * topMixtureMass C P ≤ 1)
+    (hne : ∀ i j, topArgument C i j ≠ 0)
+    (c : Nat)
+    (hcard : 3 + ∑ k, Fintype.card (τ k) ≤ 2 ^ c) :
+    UPPProtocolCostLE C.eval c := by
+  refine ⟨Sum (Fin 3) (Sigma τ), inferInstance, ?_,
+    ⟨wholeCircuitUPPProtocol_of_constantBiasBottom C P γ hγpos hγmass hne⟩⟩
+  rwa [card_topCompositionTranscripts C]
+
+end Depth2Threshold
 
 /-- Stronger bottom-gate object: the transcript expectation is exactly the
 `±1` signed output matrix, not merely some same-sign matrix.  This is the
@@ -401,6 +901,12 @@ theorem card_option_sigma_bottomTranscripts
 #print axioms hasSignRankLE_of_uppTranscriptRealizer
 #print axioms UPPCommunicationProtocol.toTranscriptRealizer
 #print axioms hasSignRankLE_of_uppCommunicationProtocol
+#print axioms splitHalfspaceUPPProtocol_of_scaled
+#print axioms splitHalfspace_uppProtocolCostLE_four_of_scaled
+#print axioms ConstantBiasUPPProtocol.toUPPCommunicationProtocol
+#print axioms hasSignRankLE_of_constantBiasUPPProtocol
+#print axioms Depth2Threshold.wholeCircuitUPPProtocol_of_constantBiasBottom
+#print axioms Depth2Threshold.wholeCircuit_uppProtocolCostLE_of_constantBiasBottom
 #print axioms hasSignRankLE_of_uppProtocolCostLE
 #print axioms uppProtocolCostLE_of_protocol
 #print axioms hasSignRankLE_of_exactSignedOutputRealizer
