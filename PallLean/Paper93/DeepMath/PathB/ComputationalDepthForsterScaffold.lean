@@ -1,4 +1,5 @@
 import Mathlib.Analysis.InnerProductSpace.PiL2
+import Mathlib.Analysis.InnerProductSpace.Adjoint
 import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Analysis.CStarAlgebra.Matrix
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSignRankInvariant
@@ -269,6 +270,67 @@ hard analytic kernel (compactness/minimization over `GL(d)`). -/
 def IsotropicKernel (M : Fin m -> Fin n -> Bool) : Prop :=
   ∀ {d : Nat}, (∃ R : UnitRealization M d, True) ->
     ∃ R' : UnitRealization M d, IsTightFrame R'
+
+/-- **Wiring lemma (PROVED): the kernel reduces to the pure analytic existence of a
+transform.**  If every realization admits an invertible `T` whose normalized row
+images form a tight frame, then `IsotropicKernel` holds.  The `w`-side is rebuilt
+with the adjoint `S = (T*)` so inner products — hence the sign pattern — are
+preserved exactly: `⟪T x, S y⟫ = ⟪x, y⟫`.  This isolates the remaining obligation to
+the row-vector existence statement alone (no `w`'s, no signs). -/
+theorem isotropicKernel_of_transform (M : Fin m -> Fin n -> Bool)
+    (H : ∀ {d : Nat} (R : UnitRealization M d),
+        ∃ T : EuclideanSpace ℝ (Fin d) ≃ₗ[ℝ] EuclideanSpace ℝ (Fin d),
+          ∀ y, ∑ i, ⟪(‖T (R.u i)‖)⁻¹ • T (R.u i), y⟫ ^ 2 = ((m : ℝ) / d) * ‖y‖ ^ 2) :
+    IsotropicKernel M := by
+  intro d hex
+  obtain ⟨R, _⟩ := hex
+  obtain ⟨T, hTF⟩ := H R
+  set S : EuclideanSpace ℝ (Fin d) →ₗ[ℝ] EuclideanSpace ℝ (Fin d) :=
+    LinearMap.adjoint (T.symm : EuclideanSpace ℝ (Fin d) →ₗ[ℝ] EuclideanSpace ℝ (Fin d))
+    with hSdef
+  -- inner-product preservation: ⟪T x, S y⟫ = ⟪x, y⟫
+  have hTS : ∀ x y, (⟪T x, S y⟫ : ℝ) = ⟪x, y⟫ := by
+    intro x y
+    rw [hSdef, LinearMap.adjoint_inner_right]
+    simp only [LinearEquiv.coe_coe, LinearEquiv.symm_apply_apply]
+  -- S is injective (from hTS): S y = 0 ⇒ y = 0
+  have hSinj : ∀ y, S y = 0 -> y = 0 := by
+    intro y hy
+    have hxy : ∀ x, (⟪x, y⟫ : ℝ) = 0 := by
+      intro x
+      have hx := hTS x y
+      rw [hy, inner_zero_right] at hx
+      exact hx.symm
+    exact inner_self_eq_zero.mp (hxy y)
+  -- nonvanishing of the transformed vectors
+  have hRune : ∀ i, R.u i ≠ 0 := by
+    intro i h; have := R.u_unit i; rw [h, norm_zero] at this; exact one_ne_zero this.symm
+  have hRwne : ∀ j, R.w j ≠ 0 := by
+    intro j h; have := R.w_unit j; rw [h, norm_zero] at this; exact one_ne_zero this.symm
+  have hTune : ∀ i, 0 < ‖T (R.u i)‖ := fun i => by
+    rw [norm_pos_iff]
+    exact fun h => hRune i (T.injective (h.trans T.map_zero.symm))
+  have hSwne : ∀ j, 0 < ‖S (R.w j)‖ := fun j => by
+    rw [norm_pos_iff]; exact fun h => hRwne j (hSinj _ h)
+  refine ⟨{
+      u := fun i => (‖T (R.u i)‖)⁻¹ • T (R.u i)
+      w := fun j => (‖S (R.w j)‖)⁻¹ • S (R.w j)
+      u_unit := ?_
+      w_unit := ?_
+      sign_ok := ?_ }, ?_⟩
+  · intro i
+    rw [norm_smul, norm_inv, Real.norm_eq_abs, abs_of_pos (hTune i),
+      inv_mul_cancel₀ (ne_of_gt (hTune i))]
+  · intro j
+    rw [norm_smul, norm_inv, Real.norm_eq_abs, abs_of_pos (hSwne j),
+      inv_mul_cancel₀ (ne_of_gt (hSwne j))]
+  · intro i j
+    rw [real_inner_smul_left, real_inner_smul_right, hTS]
+    have hpos : 0 < (‖T (R.u i)‖)⁻¹ * ((‖S (R.w j)‖)⁻¹) :=
+      mul_pos (inv_pos.mpr (hTune i)) (inv_pos.mpr (hSwne j))
+    have := R.sign_ok i j
+    nlinarith [this, hpos]
+  · intro y; exact hTF y
 
 /-! ## Capstone: the full Forster reduction (everything PROVEN except the kernel)
 
