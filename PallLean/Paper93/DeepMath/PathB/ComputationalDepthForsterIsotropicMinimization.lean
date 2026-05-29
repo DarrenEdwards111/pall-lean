@@ -950,6 +950,72 @@ lemma potentialG_smul (hd : 0 < d) {S : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosD
   field_simp
   ring
 
+open Matrix in
+/-- Crude bound on a quadratic form: `|x ⬝ᵥ (Δ *ᵥ x)| ≤ (∑ᵢⱼ |Δᵢⱼ|)·(x ⬝ᵥ x)`,
+using `|xᵢ||xⱼ| ≤ x ⬝ᵥ x`. -/
+lemma abs_quadForm_le (Δ : Matrix (Fin d) (Fin d) ℝ) (x : Fin d → ℝ) :
+    |x ⬝ᵥ (Δ *ᵥ x)| ≤ (∑ i, ∑ j, |Δ i j|) * (x ⬝ᵥ x) := by
+  have hxx : ∀ k, x k * x k ≤ x ⬝ᵥ x :=
+    fun k => Finset.single_le_sum (fun l _ => mul_self_nonneg (x l)) (Finset.mem_univ k)
+  have hij : ∀ i j, |x i| * |x j| ≤ x ⬝ᵥ x := by
+    intro i j; nlinarith [hxx i, hxx j, sq_nonneg (|x i| - |x j|), abs_nonneg (x i),
+      abs_nonneg (x j), sq_abs (x i), sq_abs (x j)]
+  have hexp : x ⬝ᵥ (Δ *ᵥ x) = ∑ i, ∑ j, x i * Δ i j * x j := by
+    rw [dotProduct]
+    refine Finset.sum_congr rfl fun i _ => ?_
+    rw [Matrix.mulVec, dotProduct, Finset.mul_sum]
+    exact Finset.sum_congr rfl fun j _ => by ring
+  rw [hexp, Finset.sum_mul]
+  refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun i _ => ?_)
+  rw [Finset.sum_mul]
+  refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun j _ => ?_)
+  rw [abs_mul, abs_mul]
+  calc |x i| * |Δ i j| * |x j| = |Δ i j| * (|x i| * |x j|) := by ring
+    _ ≤ |Δ i j| * (x ⬝ᵥ x) := mul_le_mul_of_nonneg_left (hij i j) (abs_nonneg _)
+
+open Matrix in
+/-- **PD is preserved under small symmetric perturbations.** For PD `S` and symmetric
+`Δ`, `S + tΔ` is positive definite for all `t` near `0`.  Uses the Rayleigh-min `δ` of
+`S` and the bound on `Δ`'s quadratic form: `x ⬝ᵥ ((S+tΔ)x) ≥ (δ − |t|Λ)(x⬝ᵥx) > 0`. -/
+lemma eventually_posDef_add_smul (hd : 0 < d) {S : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosDef)
+    {Δ : Matrix (Fin d) (Fin d) ℝ} (hΔ : Δᵀ = Δ) :
+    ∀ᶠ t : ℝ in nhds 0, (S + t • Δ).PosDef := by
+  obtain ⟨δ, hδpos, hδ⟩ := exists_quadForm_lower_bound hd hS
+  set Λ : ℝ := ∑ i, ∑ j, |Δ i j| with hΛ
+  have hΛnn : 0 ≤ Λ :=
+    Finset.sum_nonneg fun i _ => Finset.sum_nonneg fun j _ => abs_nonneg _
+  have hHerm : ∀ t : ℝ, (S + t • Δ).IsHermitian := by
+    intro t
+    have hΔh : Δᴴ = Δ := by
+      ext i j
+      rw [Matrix.conjTranspose_apply, star_trivial]
+      have hc := congrFun (congrFun hΔ i) j
+      rwa [Matrix.transpose_apply] at hc
+    show (S + t • Δ)ᴴ = S + t • Δ
+    rw [Matrix.conjTranspose_add, Matrix.conjTranspose_smul, hΔh, hS.isHermitian, star_trivial]
+  refine Metric.eventually_nhds_iff.mpr ⟨δ / (Λ + 1), by positivity, fun t ht => ?_⟩
+  rw [Real.dist_eq, sub_zero] at ht
+  rw [Matrix.posDef_iff_dotProduct_mulVec]
+  refine ⟨hHerm t, fun x hx => ?_⟩
+  have hxx : 0 < x ⬝ᵥ x := by
+    rcases lt_or_eq_of_le (Finset.sum_nonneg (fun i _ => mul_self_nonneg (x i)) :
+        (0 : ℝ) ≤ x ⬝ᵥ x) with h | h
+    · exact h
+    · exact absurd (dotProduct_self_eq_zero.mp h.symm) hx
+  have hstar : star x = x := by funext i; exact star_trivial _
+  rw [hstar, Matrix.add_mulVec, dotProduct_add, Matrix.smul_mulVec, dotProduct_smul, smul_eq_mul]
+  have h1 : δ * (x ⬝ᵥ x) ≤ x ⬝ᵥ (S *ᵥ x) := hδ x
+  have h2 : -(|t| * (Λ * (x ⬝ᵥ x))) ≤ t * (x ⬝ᵥ (Δ *ᵥ x)) := by
+    have := abs_quadForm_le Δ x
+    have h3 : |t * (x ⬝ᵥ (Δ *ᵥ x))| ≤ |t| * (Λ * (x ⬝ᵥ x)) := by
+      rw [abs_mul]; exact mul_le_mul_of_nonneg_left this (abs_nonneg t)
+    linarith [neg_abs_le (t * (x ⬝ᵥ (Δ *ᵥ x))), (abs_le.mp h3).1]
+  have htΛ : |t| * Λ < δ := by
+    have : |t| * (Λ + 1) < δ := by
+      rw [← lt_div_iff₀ (by positivity)]; exact ht
+    nlinarith [abs_nonneg t]
+  nlinarith [h1, h2, htΛ, hxx]
+
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
 #print axioms log_det_le_sum_log_quadForm
@@ -959,6 +1025,7 @@ lemma potentialG_smul (hd : 0 < d) {S : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosD
 #print axioms sum_log_quadForm_compl_lower_bound
 #print axioms sum_log_quadForm_ge_log_trace
 #print axioms potentialG_smul
+#print axioms eventually_posDef_add_smul
 #print axioms det_le_trace_div_pow
 #print axioms det_sq_mul_det_le_prod_diag
 #print axioms exists_symm_sqrt
