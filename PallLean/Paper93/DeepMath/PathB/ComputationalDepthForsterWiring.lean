@@ -32,7 +32,7 @@ has no isotropic position.  So this discharges the *corrected* obligation.
 
 namespace PallLean.Paper93.DeepMath.PathB.ForsterWiring
 
-open scoped BigOperators Matrix RealInnerProductSpace
+open scoped BigOperators Matrix RealInnerProductSpace Matrix.Norms.L2Operator
 open Forster ForsterIsotropic Matrix
 
 variable {m' d n : ℕ}
@@ -208,7 +208,24 @@ theorem isTightFrame_of_genPos {M : Fin (m' + 1) → Fin n → Bool} (hd : 0 < d
       simp only [dotProduct, sq]
     rw [hyy]
 
+/-- **End-to-end restricted Forster bound (Route C ⇒ Route A capstone).**  For a
+unit realization in *general position*, the ambient dimension is at least
+`√(mn)/‖sgnMat M‖`.  This chains the analytic isotropic-position existence
+(`isTightFrame_of_genPos`) into the scaffold's tight-frame Forster bound
+(`forster_bound_of_tightFrame`), giving the complete sign-rank lower bound with
+the single honest hypothesis `GenPos` (general position) — the corrected form of
+the obligation, since the spanning-only kernel is false
+(`not_isotropicKernel_as_stated`).  Removing `GenPos` (degeneracy reduction) is
+the remaining brick to unconditional Forster. -/
+theorem forster_bound_of_genPos {M : Fin (m' + 1) → Fin n → Bool} (hd : 0 < d)
+    (hdm' : d ≤ m') (R : UnitRealization M d) (hgp : GenPos R)
+    (hmn : 0 < ((m' + 1 : ℕ) : ℝ) * (n : ℝ)) (hμ : 0 < ‖sgnMat M‖) :
+    Real.sqrt (((m' + 1 : ℕ) : ℝ) * (n : ℝ)) / ‖sgnMat M‖ ≤ (d : ℝ) := by
+  obtain ⟨R', hframe⟩ := isTightFrame_of_genPos hd hdm' R hgp
+  exact forster_bound_of_tightFrame M R' hd hframe hmn hμ
+
 end PallLean.Paper93.DeepMath.PathB.ForsterWiring
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ForsterWiring.isTightFrame_of_genPos
 #print axioms PallLean.Paper93.DeepMath.PathB.ForsterWiring.span_of_genPos
+#print axioms PallLean.Paper93.DeepMath.PathB.ForsterWiring.forster_bound_of_genPos
