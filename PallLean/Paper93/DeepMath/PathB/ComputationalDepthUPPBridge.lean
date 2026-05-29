@@ -729,6 +729,34 @@ structure ExactSignedOutputRealizer (M : Fin m -> Fin n -> Bool)
   bob : τ -> Fin n -> ℝ
   exact : ∀ i j, (∑ t : τ, alice t i * bob t j) = sgn (M i j)
 
+/-- A constant-bias UPP protocol is an exact signed-output realizer after
+rescaling one side by `1 / δ`.
+
+This is the formal guardrail around the top-gate composition route: constant
+bias is not the cheap margin-free UPP object.  It is the exact-output endpoint,
+so a cheap constant-bias bottom protocol would already be a cheap exact
+realization of the bottom gate's full `±1` sign matrix. -/
+noncomputable def ExactSignedOutputRealizer.ofConstantBiasUPPProtocol
+    {M : Fin m -> Fin n -> Bool} {τ : Type*} [Fintype τ]
+    (P : ConstantBiasUPPProtocol M τ) :
+    ExactSignedOutputRealizer M τ where
+  alice t i := (sgn (P.out t) / P.δ) * P.aliceProb t i
+  bob := P.bobProb
+  exact := by
+    intro i j
+    have hδne : P.δ ≠ 0 := ne_of_gt P.δ_pos
+    calc
+      (∑ t : τ, ((sgn (P.out t) / P.δ) * P.aliceProb t i) * P.bobProb t j)
+          = (1 / P.δ) *
+              (∑ t : τ, (sgn (P.out t) * P.aliceProb t i) * P.bobProb t j) := by
+            rw [Finset.mul_sum]
+            refine Finset.sum_congr rfl (fun t _ => ?_)
+            ring
+      _ = (1 / P.δ) * (P.δ * sgn (M i j)) := by
+            rw [P.bias_exact i j]
+      _ = sgn (M i j) := by
+            field_simp [hδne]
+
 /-- Exact signed output is, in particular, a UPP transcript realizer. -/
 def ExactSignedOutputRealizer.toUPPTranscriptRealizer
     {M : Fin m -> Fin n -> Bool} {τ : Type*} [Fintype τ]
@@ -995,6 +1023,7 @@ theorem card_option_sigma_bottomTranscripts
 #print axioms hasSignRankLE_of_constantBiasUPPProtocol
 #print axioms Depth2Threshold.wholeCircuitUPPProtocol_of_constantBiasBottom
 #print axioms Depth2Threshold.wholeCircuit_uppProtocolCostLE_of_constantBiasBottom
+#print axioms ExactSignedOutputRealizer.ofConstantBiasUPPProtocol
 #print axioms hasSignRankLE_of_uppProtocolCostLE
 #print axioms uppProtocolCostLE_of_protocol
 #print axioms hasSignRankLE_of_exactSignedOutputRealizer
