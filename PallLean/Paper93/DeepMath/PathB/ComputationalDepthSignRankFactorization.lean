@@ -134,10 +134,70 @@ theorem bipartiteHalfspace_hasSignRankLE_two (α : Fin m -> ℝ) (β : Fin n -> 
       simp only [bipartiteHalfspace, decide_eq_true_eq]; linarith
     rw [hb, show sgn true = (1 : ℝ) from rfl]; nlinarith
 
+/-! ## Multi-gate dimension model: sign of `s` split rank-1 terms has sign-rank ≤ s
+
+The honest multi-gate generalization of the halfspace base case.  A
+`SplitSparseThreshold` is the sign of `∑_{k<s} u_k(i)·v_k(j)` — a sum of `s` split
+rank-1 terms, i.e. the sign of a rank-`≤s` matrix.  Its sign-rank is `≤ s`, via the
+explicit factorization `B i k = u_k(i)`, `C k j = v_k(j)`.  The halfspace
+(`bipartiteHalfspace`) is the `s = 2` instance (`u₀=α, v₀=1, u₁=1, v₁=β`).
+
+This is the genuine *dimension-complexity / linear-arrangement* model.  Combined
+with a sign-rank lower bound `B` (Forster, carried/Codex), it gives an
+unconditional-modulo-Forster lower bound: any split-threshold representation of a
+high-sign-rank function needs `≥ B` terms (`no_small_splitThreshold`).
+
+**What this is NOT (the honest gap, restated):** it is *not* the literal
+`THR ∘ LTF` depth-2 model.  Mapping a size-`s` `THR∘LTF` circuit into this model
+(showing it equals the sign of a rank-`poly(s)` matrix) is the UPP /
+unbounded-error communication bridge — `sign-rank ≤ 2^{UPP}`, `UPP = O(log s)` —
+which needs probabilistic-protocol machinery, not the rank-factorization here.
+That bridge is the remaining heavy piece; it is not faked. -/
+
+/-- Sign of a sum of `s` split rank-1 terms `∑_{k<s} u_k(i)·v_k(j)`. -/
+noncomputable def SplitSparseThreshold (s : Nat)
+    (u : Fin s -> Fin m -> ℝ) (v : Fin s -> Fin n -> ℝ) : Fin m -> Fin n -> Bool :=
+  fun i j => decide (0 < ∑ k, u k i * v k j)
+
+/-- **Multi-gate dimension bound.**  A sign of `s` split rank-1 terms has
+sign-rank `≤ s`. -/
+theorem splitSparseThreshold_hasSignRankLE {s : Nat}
+    (u : Fin s -> Fin m -> ℝ) (v : Fin s -> Fin n -> ℝ)
+    (hne : ∀ i j, (∑ k, u k i * v k j) ≠ 0) :
+    HasSignRankLE (SplitSparseThreshold s u v) s := by
+  refine ⟨Matrix.of (fun i k => u k i), Matrix.of (fun k j => v k j), ?_⟩
+  intro i j
+  have hmul :
+      (Matrix.of (fun i k => u k i) * Matrix.of (fun k j => v k j)) i j
+        = ∑ k, u k i * v k j := by
+    simp [Matrix.mul_apply, Matrix.of_apply]
+  rw [hmul]
+  rcases lt_or_gt_of_ne (hne i j) with hlt | hgt
+  · have hb : SplitSparseThreshold s u v i j = false := by
+      simp only [SplitSparseThreshold, decide_eq_false_iff_not, not_lt]; linarith
+    rw [hb, show sgn false = (-1 : ℝ) from rfl]; nlinarith
+  · have hb : SplitSparseThreshold s u v i j = true := by
+      simp only [SplitSparseThreshold, decide_eq_true_eq]; linarith
+    rw [hb, show sgn true = (1 : ℝ) from rfl]; nlinarith
+
+/-- **Conditional multi-gate lower bound.**  If `M` has sign-rank `≥ B` (e.g. via
+Forster), then no split-threshold of fewer than `B` terms computes `M`.  With
+Forster's `B = 2^{Ω(n)}` (Codex), this is an exponential lower bound for the
+dimension-complexity model. -/
+theorem no_small_splitThreshold {M : Fin m -> Fin n -> Bool} {B : Nat}
+    (hF : ForsterLowerBound M B) {s : Nat}
+    (u : Fin s -> Fin m -> ℝ) (v : Fin s -> Fin n -> ℝ)
+    (hne : ∀ i j, (∑ k, u k i * v k j) ≠ 0)
+    (hcomp : SplitSparseThreshold s u v = M) (hsmall : s < B) : False := by
+  have h1 : HasSignRankLE M s := hcomp ▸ splitSparseThreshold_hasSignRankLE u v hne
+  exact Nat.not_lt.mpr (hF s h1) hsmall
+
 #print axioms hasSignRankLE_succ
 #print axioms hasSignRankLE_mono
 #print axioms exists_factor_rank
 #print axioms hasSignRankLE_of_signRealizes_rank_le
 #print axioms bipartiteHalfspace_hasSignRankLE_two
+#print axioms splitSparseThreshold_hasSignRankLE
+#print axioms no_small_splitThreshold
 
 end PallLean.Paper93.DeepMath.PathB
