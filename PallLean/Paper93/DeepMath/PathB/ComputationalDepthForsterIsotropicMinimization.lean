@@ -411,8 +411,42 @@ lemma continuousAt_potentialG {S : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosDef)
   · exact tendsto_finset_sum _ (fun i _ => (hquad i).log (quadForm_pos hS (hv i)).ne')
   · exact (hdet.log hS.det_pos.ne').const_mul _
 
+open Matrix in
+/-- **AM–GM / trace-Hadamard kernel (rung 2 coercivity foundation).** For a
+positive-semidefinite real `d×d` matrix with `d > 0`, `det M ≤ (tr M / d)^d`.
+This is the eigenvalue arithmetic-mean–geometric-mean bound (`det = ∏ λᵢ`,
+`tr = ∑ λᵢ`, AM–GM), and the kernel from which Hadamard's `det M ≤ ∏ᵢ Mᵢᵢ` follows
+by conjugating to unit diagonal — the inequality that powers the spanning-based
+coercivity of the Forster potential. -/
+lemma det_le_trace_div_pow (hd : 0 < d) {M : Matrix (Fin d) (Fin d) ℝ}
+    (hM : M.PosSemidef) : M.det ≤ (M.trace / d) ^ d := by
+  classical
+  have hdℝ : (d : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr hd.ne'
+  set lam : Fin d → ℝ := hM.1.eigenvalues with hlam
+  have hev : ∀ i, 0 ≤ lam i := fun i => hM.eigenvalues_nonneg i
+  have hdet : M.det = ∏ i, lam i := by simpa [hlam] using hM.1.det_eq_prod_eigenvalues
+  have htr : M.trace = ∑ i, lam i := by simpa [hlam] using hM.1.trace_eq_sum_eigenvalues
+  rw [hdet, htr]
+  have hw : ∀ i ∈ (Finset.univ : Finset (Fin d)), (0 : ℝ) ≤ (d : ℝ)⁻¹ :=
+    fun i _ => by positivity
+  have hw' : ∑ _i : Fin d, (d : ℝ)⁻¹ = 1 := by
+    rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+    field_simp
+  have hgm := Real.geom_mean_le_arith_mean_weighted Finset.univ (fun _ => (d : ℝ)⁻¹) lam hw hw'
+    (fun i _ => hev i)
+  rw [Real.finset_prod_rpow _ _ (fun i _ => hev i)] at hgm
+  have hrhs : ∑ i : Fin d, (d : ℝ)⁻¹ * lam i = (∑ i, lam i) / d := by
+    rw [← Finset.mul_sum, div_eq_inv_mul]
+  rw [hrhs] at hgm
+  have hprodnn : 0 ≤ ∏ i, lam i := Finset.prod_nonneg (fun i _ => hev i)
+  calc ∏ i, lam i = ((∏ i, lam i) ^ (d : ℝ)⁻¹) ^ d := by
+          rw [← Real.rpow_natCast ((∏ i, lam i) ^ (d : ℝ)⁻¹) d, ← Real.rpow_mul hprodnn,
+            inv_mul_cancel₀ hdℝ, Real.rpow_one]
+    _ ≤ ((∑ i, lam i) / d) ^ d := pow_le_pow_left₀ (Real.rpow_nonneg hprodnn _) hgm d
+
 #print axioms quadForm_pos
 #print axioms vecMulVec_mulVec
+#print axioms det_le_trace_div_pow
 #print axioms tightFrame_of_firstOrder
 #print axioms hasDerivAt_potential
 #print axioms hasDerivAt_det_one_add_smul
