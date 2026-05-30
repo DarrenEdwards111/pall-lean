@@ -399,7 +399,77 @@ theorem lift_single (e : Edge) (w : ZMod 2)
         · exact le_trans hWD'w (Nat.add_le_add_right (le_max_left _ _) 1)
         · exact le_trans (Finset.card_insert_le _ _) (Nat.add_le_add_right (le_max_right _ _) 1)
 
+/-! ## The asymmetric per-variable width bound (size–width brick 3a) -/
+
+/-- Resolving an original axiom `C₀` (unsatisfied by `e = w+1`) against the unit
+clause `{(e,w+1)}` on pivot `(e,w)` re-derives the restricted axiom
+`liveClause (singleEdge e (w+1)) C₀`.  This is the engine of the **no-`+1`** side
+of the asymmetric bound. -/
+theorem rederive_subset (e : Edge) (w : ZMod 2) {C₀ : ResolutionClause (TLit Edge)}
+    (hns : ¬ clauseSatisfied (singleEdge e (w + 1)) C₀) :
+    ResolutionClause.resolvent tcompl C₀ (insert (e, w + 1) ∅) (e, w)
+      ⊆ liveClause (singleEdge e (w + 1)) C₀ := by
+  intro l hl
+  rw [ResolutionClause.resolvent] at hl
+  rcases Finset.mem_union.mp hl with h1 | h2
+  · obtain ⟨hlne, hlC₀⟩ := Finset.mem_erase.mp h1
+    refine Finset.mem_filter.mpr ⟨hlC₀, singleEdge_eq_none.mpr ?_⟩
+    intro hle
+    apply hlne
+    have hl2 : l.2 = w := by
+      rcases (by decide : ∀ x y : ZMod 2, x = y ∨ x = y + 1) l.2 w with hq | hq
+      · exact hq
+      · exact absurd ⟨l, hlC₀, by rw [hle, hq]; simp [singleEdge]⟩ hns
+    exact Prod.ext hle hl2
+  · exfalso
+    simp [tcompl, Finset.mem_erase, Finset.mem_insert] at h2
+
+/-- **Asymmetric per-variable width bound (brick 3a).**  Given refutations of both
+single-edge restrictions of `Axiom` at edge `e`, there is a refutation of `Axiom`
+whose width is `max(Wm, Wp + 1, w₀)`: the `w`-side (`Wp`) is *lifted* to the unit
+clause `{(e,w+1)}` (costing `+1`), and the `(w+1)`-side (`Wm`) is *grafted* — its
+restricted axioms re-derived against that unit clause at width `≤ w₀`, with **no**
+`+1`.  Placing the `+1` on the smaller subtree is what makes the tree recursion
+close at `log`. -/
+theorem asymmetric (e : Edge) (w : ZMod 2)
+    {Axiom : ResolutionClause (TLit Edge) → Prop} {w₀ : ℕ}
+    (hw₀ : ∀ C, Axiom C → C.width ≤ w₀)
+    (Wp : WDerivation tcompl (RestrictAxiom (singleEdge e w) Axiom) ∅)
+    (Wm : WDerivation tcompl (RestrictAxiom (singleEdge e (w + 1)) Axiom) ∅) :
+    ∃ W : WDerivation tcompl Axiom ∅,
+      W.proofWidth ≤ max (max Wm.proofWidth (Wp.proofWidth + 1)) w₀ := by
+  obtain ⟨Du, _hDus, hDuw⟩ := lift_single e w Wp
+  -- The re-derivation: stated as a Prop existence (so the `Exists` witness `C₀` can
+  -- be destructured), then the graft's function is extracted pointwise by choice.
+  have hex : ∀ C' (h : RestrictAxiom (singleEdge e (w + 1)) Axiom C'),
+      ∃ D : WDerivation tcompl Axiom C', D.proofWidth ≤ max w₀ Du.proofWidth := by
+    intro C' h
+    obtain ⟨C₀, hax, hns, heq⟩ := h
+    subst heq
+    have hWC₀ : C₀.width ≤ w₀ := hw₀ C₀ hax
+    have hsubC₀ : ResolutionClause.resolvent tcompl C₀ (insert (e, w + 1) ∅) (e, w) ⊆ C₀ :=
+      Finset.Subset.trans (rederive_subset e w hns) (liveClause_subset _ _)
+    refine ⟨WDerivation.weaken (WDerivation.resolve (WDerivation.ax hax) Du (e, w))
+        (rederive_subset e w hns), ?_⟩
+    rw [WDerivation.proofWidth_weaken, WDerivation.proofWidth_resolve, WDerivation.proofWidth_ax]
+    apply max_le
+    · apply max_le
+      · apply max_le
+        · exact le_trans hWC₀ (le_max_left _ _)
+        · exact le_max_right _ _
+      · exact le_trans (le_trans (Finset.card_le_card hsubC₀) hWC₀) (le_max_left _ _)
+    · exact le_trans (le_trans (liveClause_width_le _ _) hWC₀) (le_max_left _ _)
+  refine ⟨WDerivation.graft (fun C' h => Classical.choose (hex C' h)) Wm, ?_⟩
+  refine le_trans (WDerivation.graft_proofWidth_le (fun C' h => Classical.choose (hex C' h))
+      (fun C' h => Classical.choose_spec (hex C' h)) Wm) ?_
+  apply max_le
+  · exact le_trans (le_max_left _ _) (le_max_left _ _)
+  · apply max_le
+    · exact le_max_right _ _
+    · exact le_trans hDuw (le_trans (le_max_right _ _) (le_max_left _ _))
+
 end PallLean.Paper93.DeepMath.PathB.TseitinRestriction
 
 #print axioms PallLean.Paper93.DeepMath.PathB.TseitinRestriction.restrict_exists
 #print axioms PallLean.Paper93.DeepMath.PathB.TseitinRestriction.lift_single
+#print axioms PallLean.Paper93.DeepMath.PathB.TseitinRestriction.asymmetric
