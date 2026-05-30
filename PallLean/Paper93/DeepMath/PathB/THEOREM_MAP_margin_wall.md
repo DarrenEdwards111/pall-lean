@@ -110,13 +110,18 @@ circuit lower bound.
 
 ---
 
-## Caveat (single carried hypothesis)
+## Caveat — DISCHARGED (now a theorem)
 
-`SignApproxMargin.CentralBinomGF` : the classical central-binomial generating
-function `(1−u)^{-1/2} = ∑_i C(2i,i)/4^i · uⁱ` (as a `HasSum`). It is `γ`- and
-`ε`-**independent** and does not affect any quantitative content above; it is the
-analytic input to the margin approximation only. Mathlib has the abstract
-generalized binomial series (`Analysis/Analytic/Binomial.lean`, `Ring.choose`) but
-not this central-binomial specialization; discharging it (`Ring.choose(−1/2,n) =
-(−1)ⁿ·C(2n,n)/4ⁿ`, then `FormalMultilinearSeries.ofScalars` extraction) is a
-self-contained ~200–300 line formalization, deferred as plumbing.
+The single carried hypothesis `SignApproxMargin.CentralBinomGF` — the classical
+central-binomial generating function `(1−u)^{-1/2} = ∑_i C(2i,i)/4^i · uⁱ` — is
+now **proven**: `CentralBinomGFProof.centralBinomGF`
+(`ComputationalDepthCentralBinomGF.lean`), via
+`CentralBinomGFProof.choose_neg_half` (`Ring.choose(−1/2,n) = (−1)ⁿ·C(2n,n)/4ⁿ`,
+by the `descPochhammer` multiplicative recurrence) and the generalized binomial
+series at `x = −u` (`Real.one_add_rpow_hasFPowerSeriesOnBall_zero`).
+
+Consequently the entire arc is **unconditional**.  Hypothesis-free restatements of
+the headline results are in `ComputationalDepthMarginUnconditional.lean`
+(namespace `MarginUnconditional`): `exists_sign_approx_margin`,
+`wholeCircuit_signRank_of_bottomMargin`, `walsh_gates_degree_tradeoff` — all with
+axiom trace `[propext, Classical.choice, Quot.sound]` and no carried hypothesis.
