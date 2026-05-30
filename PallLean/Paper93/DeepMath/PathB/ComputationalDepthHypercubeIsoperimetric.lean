@@ -105,6 +105,10 @@ theorem card_filter_x0 (b : ZMod 2) (Φ : (Fin k → ZMod 2) → Prop) [Decidabl
   · intro y _
     simp only [Fin.tail_cons]
 
+/-- Reconstruct a point from its first coordinate and tail. -/
+theorem cons_tail_of {x : Fin (k+1) → ZMod 2} {b : ZMod 2} (h : x 0 = b) :
+    Fin.cons b (Fin.tail x) = x := h ▸ Fin.cons_self_tail x
+
 /-- The equivalence `P x ↔ (split form)` when `x 0 = b`: a point's membership and
 `succ`-flip translate to the `b`-half. -/
 theorem succ_equiv {S : Finset (Fin (k+1) → ZMod 2)} {i : Fin k} {x : Fin (k+1) → ZMod 2}
@@ -209,4 +213,92 @@ theorem bdry_succ (S : Finset (Fin (k+1) → ZMod 2)) :
   rw [hsplit]
   omega
 
+/-- Splitting on the first coordinate partitions the cardinality. -/
+theorem card_half (S : Finset (Fin (k+1) → ZMod 2)) :
+    S.card = (half S 0).card + (half S 1).card := by
+  rw [← Finset.card_filter_add_card_filter_not (s := S) (p := fun x => x 0 = 0)]
+  congr 1
+  · refine Finset.card_bij' (fun x _ => Fin.tail x) (fun y _ => Fin.cons 0 y) ?_ ?_ ?_ ?_
+    · intro x hx
+      rw [Finset.mem_filter] at hx
+      rw [mem_half, cons_tail_of hx.2]
+      exact hx.1
+    · intro y hy
+      rw [mem_half] at hy
+      exact Finset.mem_filter.mpr ⟨hy, Fin.cons_zero _ _⟩
+    · intro x hx
+      rw [Finset.mem_filter] at hx
+      exact cons_tail_of hx.2
+    · intro y _; simp only [Fin.tail_cons]
+  · refine Finset.card_bij' (fun x _ => Fin.tail x) (fun y _ => Fin.cons 1 y) ?_ ?_ ?_ ?_
+    · intro x hx
+      rw [Finset.mem_filter] at hx
+      have hx1 : x 0 = 1 := by
+        rcases (by decide : ∀ z : ZMod 2, z = 0 ∨ z = 1) (x 0) with h | h
+        · exact absurd h hx.2
+        · exact h
+      rw [mem_half, cons_tail_of hx1]
+      exact hx.1
+    · intro y hy
+      rw [mem_half] at hy
+      refine Finset.mem_filter.mpr ⟨hy, ?_⟩
+      simp [Fin.cons_zero]
+    · intro x hx
+      rw [Finset.mem_filter] at hx
+      have hx1 : x 0 = 1 := by
+        rcases (by decide : ∀ z : ZMod 2, z = 0 ∨ z = 1) (x 0) with h | h
+        · exact absurd h hx.2
+        · exact h
+      exact cons_tail_of hx1
+    · intro y _; simp only [Fin.tail_cons]
+
+/-- **Harper's edge-isoperimetric inequality for the hypercube.**  Every set of at
+most half the vertices has edge boundary at least its size: `|S| ≤ |∂S|` when
+`2|S| ≤ 2^k`.  Two-case induction on the dimension via `bdry_succ`, with the large
+half handled by complement symmetry (`bdry_compl`). -/
+theorem harper : ∀ (k : ℕ) (S : Finset (Fin k → ZMod 2)),
+    2 * S.card ≤ 2 ^ k → S.card ≤ bdry S := by
+  intro k
+  induction k with
+  | zero =>
+    intro S h
+    have h1 : S.card = 0 := by rw [pow_zero] at h; omega
+    rw [h1]; exact Nat.zero_le _
+  | succ k IH =>
+    intro S h
+    have hV : Fintype.card (Fin k → ZMod 2) = 2 ^ k := by
+      rw [Fintype.card_pi_const, ZMod.card]
+    have companion : ∀ T : Finset (Fin k → ZMod 2), 2 ^ k ≤ 2 * T.card → 2 ^ k - T.card ≤ bdry T := by
+      intro T hT
+      have hc : Tᶜ.card = 2 ^ k - T.card := by rw [Finset.card_compl, hV]
+      have hb := IH Tᶜ (by rw [hc]; omega)
+      rw [hc] at hb
+      rw [bdry_compl]; exact hb
+    rw [bdry_succ, card_half S]
+    have hab : (half S 0).card + (half S 1).card ≤ 2 ^ k := by
+      have h2k : (2 : ℕ) ^ (k + 1) = 2 * 2 ^ k := by rw [pow_succ, Nat.mul_comm]
+      rw [card_half S] at h
+      omega
+    have hD01 : (half S 0).card - (half S 1).card ≤ (half S 0 \ half S 1).card :=
+      Finset.le_card_sdiff _ _
+    have hD10 : (half S 1).card - (half S 0).card ≤ (half S 1 \ half S 0).card :=
+      Finset.le_card_sdiff _ _
+    rcases le_total (half S 1).card (half S 0).card with hle | hle
+    · by_cases hsmall : 2 * (half S 0).card ≤ 2 ^ k
+      · have hB0 := IH (half S 0) hsmall
+        have hB1 := IH (half S 1) (by omega)
+        omega
+      · have hB0 := companion (half S 0) (by omega)
+        have hB1 := IH (half S 1) (by omega)
+        omega
+    · by_cases hsmall : 2 * (half S 1).card ≤ 2 ^ k
+      · have hB0 := IH (half S 0) (by omega)
+        have hB1 := IH (half S 1) hsmall
+        omega
+      · have hB1 := companion (half S 1) (by omega)
+        have hB0 := IH (half S 0) (by omega)
+        omega
+
 end PallLean.Paper93.DeepMath.PathB.Hypercube
+
+#print axioms PallLean.Paper93.DeepMath.PathB.Hypercube.harper
