@@ -69,6 +69,12 @@ The degree blow-up `D_k ≈ 1/γ_k²` is an explicit theorem, not an estimate.
 | Cost formula `= 1 + ∑_k (D_k+1)²` | `MarginCircuit.card_cost` |
 | **Margin cost ≥ Forster bound** (upper bound meets lower bound) | `MarginCircuit.margin_cost_ge_forster` |
 | **Walsh blow-up:** computing Walsh ⇒ `1 + ∑_k (D_k+1)² ≥ 2^j` | `MarginCircuit.walsh_margin_blowup` |
+| **Size–margin tradeoff:** `2^j ≤ 1 + s·(Δ+1)²` (`Δ = max_k D_k`) | `MarginCircuit.walsh_gates_degree_tradeoff` |
+
+The last line is the route's strongest concrete rung: `s ≥ (2^j−1)/(Δ+1)²`, i.e.
+computing Walsh needs exponentially many gates *unless* some bottom margin is
+exponentially small (`Δ ≈ 1/γ_min²` exponentially large). This is a depth-2
+threshold lower bound — the **ceiling** of the sign-rank route.
 
 Consequence: a `THR∘LTF` circuit computing the `2^{2j}×2^{2j}` Walsh matrix must
 have **exponentially many gates or exponentially small margins** (`some γ_k ≤

@@ -123,8 +123,41 @@ theorem walsh_margin_blowup {m' j : ℕ} (hmk : m' + 1 = 2 ^ (2 * j))
     rw [hCeval]; exact walsh_forsterLowerBound hmk
   exact margin_cost_ge_forster C hGF γ ε' hγ0 hγ1 hε' hbandlo hbandhi htop hForster
 
+/-- **Size–degree tradeoff for Walsh (the route's strongest concrete rung).**
+Separating the two resources in `walsh_margin_blowup`: any `THR∘LTF` circuit
+computing the `2^{2j}` Walsh matrix with margins satisfies
+
+  `2^j ≤ 1 + s · (Δ + 1)²`,
+
+where `s = #gates` and `Δ = max_k D_k` is the largest bottom-approximation degree.
+Since `D_k ≈ 1/γ_k²`, this is the explicit **size–margin tradeoff**: computing
+Walsh needs `s ≥ (2^j − 1)/(Δ+1)²` gates, i.e. exponentially many gates *unless*
+some bottom margin is exponentially small (`Δ` exponentially large).  This is the
+ceiling of the Forster/sign-rank route — a depth-2 threshold lower bound;
+reaching general circuits is exactly the isolated open problem (margin
+lower-bounding). -/
+theorem walsh_gates_degree_tradeoff {m' j : ℕ} (hmk : m' + 1 = 2 ^ (2 * j))
+    (C : Depth2Threshold (m' + 1) (m' + 1)) (hCeval : C.eval = walshMatrix hmk)
+    (hGF : CentralBinomGF)
+    (γ ε' : Fin C.s → ℝ) (hγ0 : ∀ k, 0 < γ k) (hγ1 : ∀ k, γ k ≤ 1) (hε' : ∀ k, 0 < ε' k)
+    (hbandlo : ∀ k i j, γ k ≤ |C.α k i + C.β k j|)
+    (hbandhi : ∀ k i j, |C.α k i + C.β k j| ≤ 1)
+    (htop : ∀ i j, (∑ k, |C.w k| * ε' k) < |Depth2Threshold.topArgument C i j|) :
+    ∃ D : Fin C.s → ℕ,
+      2 ^ j ≤ 1 + Fintype.card (Fin C.s) * (Finset.univ.sup D + 1) ^ 2 := by
+  obtain ⟨D, hD⟩ :=
+    walsh_margin_blowup hmk C hCeval hGF γ ε' hγ0 hγ1 hε' hbandlo hbandhi htop
+  refine ⟨D, hD.trans (Nat.add_le_add_left ?_ 1)⟩
+  calc ∑ k, (D k + 1) ^ 2
+      ≤ ∑ _k : Fin C.s, (Finset.univ.sup D + 1) ^ 2 :=
+        Finset.sum_le_sum (fun k _ =>
+          Nat.pow_le_pow_left (Nat.add_le_add_right (Finset.le_sup (Finset.mem_univ k)) 1) 2)
+    _ = Fintype.card (Fin C.s) * (Finset.univ.sup D + 1) ^ 2 := by
+        rw [Finset.sum_const, Finset.card_univ, smul_eq_mul]
+
 end PallLean.Paper93.DeepMath.PathB.MarginCircuit
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MarginCircuit.wholeCircuit_signRank_of_bottomMargin
 #print axioms PallLean.Paper93.DeepMath.PathB.MarginCircuit.margin_cost_ge_forster
 #print axioms PallLean.Paper93.DeepMath.PathB.MarginCircuit.walsh_margin_blowup
+#print axioms PallLean.Paper93.DeepMath.PathB.MarginCircuit.walsh_gates_degree_tradeoff
