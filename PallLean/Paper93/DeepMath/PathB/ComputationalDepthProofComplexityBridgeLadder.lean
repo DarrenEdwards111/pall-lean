@@ -1,4 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthExpanderTseitinInstance
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthExpanderTseitinCNF
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthHypercubeTseitin
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung3Complete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4CircuitSubstrates
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4ParityDecisionTreeCore
@@ -36,10 +38,17 @@ in this repo: the bottom (proved) and the top (proven equal to the separation).
   `ladder_rung1_width_lower_bound` (the kernel) and `ladder_rung1_concrete`
   (the `K4` instance with expansion proved by decision procedure).
 
-* **Rung 2 — Resolution size / space.  CITED (known, exponential).**
-  Width ⇒ size: Ben-Sasson–Wigderson, "Short proofs are narrow" (2001);
-  exponential resolution size for Tseitin: Urquhart (1987); space lower bounds:
-  Esteban–Torán, Ben-Sasson.  Not formalized here.
+* **Rung 2 — Resolution size.  PROVED (here), for tree-like / weakening
+  resolution.**  The full Ben-Sasson–Wigderson width⇒size argument is now
+  formalized ground-up: the tree-like size–width theorem
+  (`proofWidth ≤ w₀ + ⌈log₂ size⌉`) composed with the rung-1 width bound gives an
+  exponential size lower bound for the canonical Tseitin CNF on any expander
+  (`ladder_rung2_size_lower_bound`, anchored by `TseitinResolution.tseitinCNF_exp_size`),
+  and the hypercube instance discharges the expander concretely, yielding a fully
+  explicit numeric `2^{Ω(|V|)}` bound (`ladder_rung2_concrete`, anchored by
+  `Hypercube.hypercube_tseitin_exp_size`).  Cf. Ben-Sasson–Wigderson, "Short proofs
+  are narrow" (2001); Urquhart (1987).  General DAG-resolution size (the `√` size–
+  width) and space lower bounds (Esteban–Torán, Ben-Sasson) remain cited.
 
 * **Rung 3 — Polynomial calculus / Nullstellensatz / cutting planes /
   bounded-depth Frege.  SUBSTRATES PROVED; SYSTEM LOWER BOUNDS CITED/OPEN.**
@@ -147,6 +156,34 @@ theorem ladder_rung1_concrete (S : Finset (Fin 4))
     (h1 : 1 ≤ S.card) (h2 : 2 * S.card ≤ Fintype.card (Fin 4)) :
     2 * S.card ≤ (edgeSupport (K4.combination S)).card :=
   K4_combination_width S h1 h2
+
+/-! ## Rung 2 (PROVED): width ⇒ exponential resolution size -/
+
+/-- **Rung 2, general.**  Width ⇒ size, formalized: on any expander, every
+tree-like/weakening resolution refutation of the canonical Tseitin CNF (odd charge,
+degrees `≤ w₀`, `w₀ < c·t`, `4t ≤ |V|`) has size `> 2^{c·t - w₀ - 1}`.  The full
+Ben-Sasson–Wigderson width⇒size argument, proved ground-up rather than cited. -/
+theorem ladder_rung2_size_lower_bound
+    {V Edge : Type*} [Fintype V] [DecidableEq V] [Fintype Edge] [DecidableEq Edge]
+    (G : TseitinGraph V Edge) (charge : V → ZMod 2) (hodd : ∑ v : V, charge v = 1)
+    {c t w₀ : ℕ} (hc : 1 ≤ c) (hexp : G.HasExpansion c) (ht1 : 1 ≤ t)
+    (hcard : 4 * t ≤ Fintype.card V)
+    (hdeg : ∀ v, (TseitinResolution.incident G v).card ≤ w₀) (hgap : w₀ < c * t)
+    (Der : ResolutionDerivation TseitinResolution.tcompl
+      (TseitinResolution.TseitinCNF G charge) ∅) :
+    2 ^ (c * t - w₀ - 1) < ResolutionDerivation.size Der :=
+  TseitinResolution.tseitinCNF_exp_size G charge hodd hc hexp ht1 hcard hdeg hgap Der
+
+/-- **Rung 2, concrete witness.**  The hypercube `Q_k` discharges the expander,
+giving a fully explicit, numeric exponential lower bound: the hypercube-Tseitin CNF
+needs resolution size `> 2^{t-k-1}` (so `2^{Ω(|V|)}` at `t = 2^k/4`). -/
+theorem ladder_rung2_concrete (k : ℕ) {t : ℕ}
+    (ht1 : 1 ≤ t) (hcard : 4 * t ≤ 2 ^ k) (hgap : k < t)
+    (Der : ResolutionDerivation TseitinResolution.tcompl
+      (TseitinResolution.TseitinCNF (Hypercube.hypercubeGraph k)
+        (fun v => if v = 0 then 1 else 0)) ∅) :
+    2 ^ (t - k - 1) < ResolutionDerivation.size Der :=
+  Hypercube.hypercube_tseitin_exp_size k ht1 hcard hgap Der
 
 /-! ## Rung 3 (SUBSTRATES PROVED): algebraic/semi-algebraic systems -/
 
@@ -522,6 +559,8 @@ theorem ladder_top_rung_iff_separation
 
 #print axioms ladder_rung1_width_lower_bound
 #print axioms ladder_rung1_concrete
+#print axioms ladder_rung2_size_lower_bound
+#print axioms ladder_rung2_concrete
 #print axioms ladder_rung3_polynomial_calculus_substrate
 #print axioms ladder_rung3_completed_substrates
 #print axioms ladder_rung4_completed_substrates
