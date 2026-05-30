@@ -186,6 +186,108 @@ theorem restrict_exists (ρ : Restriction Edge)
             · exact le_trans (liveClause_width_le _ _) (le_max_right _ _)
           · exact hWLa
 
+/-! ## The lift / un-restriction (size–width brick 2c) -/
+
+/-- The single-edge restriction fixing edge `e` to value `w`. -/
+def singleEdge (e : Edge) (w : ZMod 2) : Restriction Edge :=
+  fun e' => if e' = e then some w else none
+
+theorem singleEdge_eq_none {e : Edge} {w : ZMod 2} {e' : Edge} :
+    singleEdge e w e' = none ↔ e' ≠ e := by
+  unfold singleEdge; by_cases h : e' = e <;> simp [h]
+
+/-- Inserting a literal whose edge differs from the pivot's commutes with the
+resolvent. -/
+theorem insert_resolvent {ℓ p : TLit Edge} (CL CR : ResolutionClause (TLit Edge))
+    (hℓ : ℓ.1 ≠ p.1) :
+    ResolutionClause.resolvent tcompl (insert ℓ CL) (insert ℓ CR) p
+      = insert ℓ (ResolutionClause.resolvent tcompl CL CR p) := by
+  have hℓp : ℓ ≠ p := fun h => hℓ (congrArg Prod.fst h)
+  have hℓtp : ℓ ≠ tcompl p := by
+    intro h
+    have hfst : ℓ.1 = (tcompl p).1 := congrArg Prod.fst h
+    exact hℓ hfst
+  unfold ResolutionClause.resolvent
+  rw [Finset.erase_insert_of_ne hℓp, Finset.erase_insert_of_ne hℓtp,
+    Finset.insert_union, Finset.union_insert, Finset.insert_idem]
+
+/-- **Lift / un-restriction (brick 2c).**  A weakening-resolution derivation over
+the single-edge–restricted axioms whose pivots avoid edge `e` lifts to a derivation
+over the original `Axiom` of the clause with the falsified literal `(e, w+1)`
+re-added, with `size` no larger and `proofWidth` at most one larger. -/
+theorem lift_single (e : Edge) (w : ZMod 2)
+    {Axiom : ResolutionClause (TLit Edge) → Prop}
+    {C' : ResolutionClause (TLit Edge)}
+    (W : WDerivation tcompl (RestrictAxiom (singleEdge e w) Axiom) C') :
+    WDerivation.PivotsAvoid (fun p => singleEdge e w p.1 = none) W →
+    ∃ W' : WDerivation tcompl Axiom (insert (e, w + 1) C'),
+      W'.size ≤ W.size ∧ W'.proofWidth ≤ W.proofWidth + 1 := by
+  induction W with
+  | @ax C0' h =>
+      intro _
+      obtain ⟨C₀, hC₀ax, hC₀ns, hC₀eq⟩ := h
+      subst hC₀eq
+      have hsub : C₀ ⊆ insert (e, w + 1) (liveClause (singleEdge e w) C₀) := by
+        intro l hl
+        by_cases hle : l.1 = e
+        · have hl2 : l.2 = w + 1 := by
+            rcases (by decide : ∀ x y : ZMod 2, x = y ∨ x = y + 1) l.2 w with hq | hq
+            · exact absurd ⟨l, hl, by rw [hle, hq]; simp [singleEdge]⟩ hC₀ns
+            · exact hq
+          rw [show l = (e, w + 1) from Prod.ext hle hl2]
+          exact Finset.mem_insert_self _ _
+        · exact Finset.mem_insert_of_mem
+            (Finset.mem_filter.mpr ⟨hl, by simp [singleEdge, hle]⟩)
+      refine ⟨WDerivation.weaken (WDerivation.ax hC₀ax) hsub, ?_, ?_⟩
+      · simp [WDerivation.size_weaken, WDerivation.size_ax]
+      · rw [WDerivation.proofWidth_weaken, WDerivation.proofWidth_ax, WDerivation.proofWidth_ax]
+        apply max_le
+        · calc (C₀).width = C₀.card := rfl
+            _ ≤ (insert (e, w + 1) (liveClause (singleEdge e w) C₀)).card :=
+                Finset.card_le_card hsub
+            _ ≤ (liveClause (singleEdge e w) C₀).card + 1 := Finset.card_insert_le _ _
+        · exact Finset.card_insert_le _ _
+  | @resolve CL CR L R p ihL ihR =>
+      intro havoid
+      obtain ⟨havp, havL, havR⟩ := havoid
+      obtain ⟨WL', hWL's, hWL'w⟩ := ihL havL
+      obtain ⟨WR', hWR's, hWR'w⟩ := ihR havR
+      have hp1 : p.1 ≠ e := singleEdge_eq_none.mp havp
+      have hident :
+          ResolutionClause.resolvent tcompl (insert (e, w + 1) CL) (insert (e, w + 1) CR) p
+            = insert (e, w + 1) (ResolutionClause.resolvent tcompl CL CR p) :=
+        insert_resolvent (ℓ := (e, w + 1)) CL CR hp1.symm
+      refine ⟨WDerivation.weaken (WDerivation.resolve WL' WR' p) (le_of_eq hident), ?_, ?_⟩
+      · simp only [WDerivation.size_weaken, WDerivation.size_resolve]; omega
+      · rw [WDerivation.proofWidth_weaken, WDerivation.proofWidth_resolve,
+          WDerivation.proofWidth_resolve]
+        have hw1 :
+            (ResolutionClause.resolvent tcompl (insert (e, w + 1) CL) (insert (e, w + 1) CR) p).width
+              ≤ (ResolutionClause.resolvent tcompl CL CR p).width + 1 := by
+          rw [hident]; exact Finset.card_insert_le _ _
+        have hw2 :
+            (insert (e, w + 1) (ResolutionClause.resolvent tcompl CL CR p)).width
+              ≤ (ResolutionClause.resolvent tcompl CL CR p).width + 1 := Finset.card_insert_le _ _
+        apply max_le
+        · apply max_le
+          · apply max_le
+            · exact le_trans hWL'w
+                (Nat.add_le_add_right (le_trans (le_max_left _ _) (le_max_left _ _)) 1)
+            · exact le_trans hWR'w
+                (Nat.add_le_add_right (le_trans (le_max_right _ _) (le_max_left _ _)) 1)
+          · exact le_trans hw1 (Nat.add_le_add_right (le_max_right _ _) 1)
+        · exact le_trans hw2 (Nat.add_le_add_right (le_max_right _ _) 1)
+  | @weaken CC CC' D hsubW ihD =>
+      intro havoid
+      obtain ⟨WD', hWD's, hWD'w⟩ := ihD havoid
+      refine ⟨WDerivation.weaken WD' (Finset.insert_subset_insert _ hsubW), ?_, ?_⟩
+      · simp only [WDerivation.size_weaken]; omega
+      · rw [WDerivation.proofWidth_weaken, WDerivation.proofWidth_weaken]
+        apply max_le
+        · exact le_trans hWD'w (Nat.add_le_add_right (le_max_left _ _) 1)
+        · exact le_trans (Finset.card_insert_le _ _) (Nat.add_le_add_right (le_max_right _ _) 1)
+
 end PallLean.Paper93.DeepMath.PathB.TseitinRestriction
 
 #print axioms PallLean.Paper93.DeepMath.PathB.TseitinRestriction.restrict_exists
+#print axioms PallLean.Paper93.DeepMath.PathB.TseitinRestriction.lift_single
