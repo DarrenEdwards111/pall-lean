@@ -14,6 +14,7 @@ result.
 namespace PallLean.Paper93.DeepMath.PathB.Hypercube
 
 open PallLean.Paper93.DeepMath.PathB
+open PallLean.Paper93.DeepMath.PathB.TseitinResolution
 open scoped BigOperators
 
 /-- Hypercube edges, anchored at the endpoint whose `i`-th coordinate is `0`. -/
@@ -117,4 +118,59 @@ theorem hypercube_hasExpansion (k : ℕ) : (hypercubeGraph k).HasExpansion 1 := 
       rw [Fintype.card_pi_const, ZMod.card]] at h2
   exact le_trans (harper k S hk) (bdry_le_boundary S)
 
+/-- A vertex incident to an edge determines that edge's anchored endpoint. -/
+theorem endpoint_of_incident (v : Fin k → ZMod 2) (e : HCEdge k)
+    (he : v ∈ (hypercubeGraph k).endpoints e) :
+    e.1.1 = if v e.1.2 = 0 then v else flip v e.1.2 := by
+  have he' : v = e.1.1 ∨ v = flip e.1.1 e.1.2 := by
+    simpa [hypercubeGraph, Finset.mem_insert, Finset.mem_singleton] using he
+  split
+  · rename_i hv0
+    rcases he' with h | h
+    · exact h.symm
+    · exfalso
+      rw [h] at hv0
+      simp only [flip, Function.update_self] at hv0
+      rw [e.2] at hv0
+      exact absurd hv0 (by decide)
+  · rename_i hv0
+    rcases he' with h | h
+    · exact absurd (by rw [h]; exact e.2) hv0
+    · rw [h, flip_flip]
+
+/-- **Degree bound.**  Every vertex of `Q_k` lies on at most `k` edges. -/
+theorem hypercube_degree (k : ℕ) (v : Fin k → ZMod 2) :
+    (TseitinResolution.incident (hypercubeGraph k) v).card ≤ k := by
+  refine le_trans (Finset.card_le_card_of_injOn (fun e => e.1.2)
+    (fun e _ => Finset.mem_coe.mpr (Finset.mem_univ _)) ?_)
+    (le_of_eq (by rw [Finset.card_univ, Fintype.card_fin]))
+  intro e he e' he' heq
+  replace he := (Finset.mem_filter.mp (Finset.mem_coe.mp he)).2
+  replace he' := (Finset.mem_filter.mp (Finset.mem_coe.mp he')).2
+  have h2 : e.1.2 = e'.1.2 := heq
+  have hx : e.1.1 = e'.1.1 := by
+    rw [endpoint_of_incident v e he, endpoint_of_incident v e' he', h2]
+  exact Subtype.ext (Prod.ext hx h2)
+
+/-- **Explicit, numeric exponential resolution size lower bound.**  The Tseitin CNF
+on the hypercube `Q_k` with odd charge (indicator of the all-zeros vertex) requires
+resolution refutations of size `> 2^{t - k - 1}` for every `t` with `1 ≤ t`,
+`4t ≤ 2^k`, and `k < t`.  Taking `t = 2^k/4` gives size `2^{Ω(2^k)} = 2^{Ω(|V|)}`. -/
+theorem hypercube_tseitin_exp_size (k : ℕ) {t : ℕ}
+    (ht1 : 1 ≤ t) (hcard : 4 * t ≤ 2 ^ k) (hgap : k < t)
+    (Der : ResolutionDerivation tcompl
+      (TseitinResolution.TseitinCNF (hypercubeGraph k) (fun v => if v = 0 then 1 else 0))
+      (∅ : ResolutionClause (TLit (HCEdge k)))) :
+    2 ^ (t - k - 1) < ResolutionDerivation.size Der := by
+  have hV : Fintype.card (Fin k → ZMod 2) = 2 ^ k := by rw [Fintype.card_pi_const, ZMod.card]
+  have hodd : ∑ v : Fin k → ZMod 2, (if v = 0 then (1 : ZMod 2) else 0) = 1 := by
+    rw [Finset.sum_ite_eq']; simp
+  have hmain := TseitinResolution.tseitinCNF_exp_size (hypercubeGraph k)
+    (fun v => if v = 0 then 1 else 0) hodd (c := 1) (t := t) (w₀ := k)
+    (le_refl 1) (hypercube_hasExpansion k) ht1 (by rw [hV]; exact hcard)
+    (hypercube_degree k) (by omega) Der
+  rwa [one_mul] at hmain
+
 end PallLean.Paper93.DeepMath.PathB.Hypercube
+
+#print axioms PallLean.Paper93.DeepMath.PathB.Hypercube.hypercube_tseitin_exp_size
