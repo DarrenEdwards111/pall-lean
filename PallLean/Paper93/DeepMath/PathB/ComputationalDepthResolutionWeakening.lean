@@ -69,6 +69,12 @@ def proofWidth {C : ResolutionClause Lit} (D : WDerivation compl Axiom C) : Nat 
     (D : WDerivation compl Axiom C) (h : C ⊆ C') :
     size (WDerivation.weaken D h) = size D := rfl
 
+theorem size_pos {C : ResolutionClause Lit} (D : WDerivation compl Axiom C) : 1 ≤ size D := by
+  induction D with
+  | ax h => exact Nat.le_of_eq (size_ax h).symm
+  | resolve L R p ihL ihR => rw [size_resolve]; omega
+  | weaken D h ihD => rw [size_weaken]; exact ihD
+
 @[simp] theorem proofWidth_ax {C : ResolutionClause Lit} (h : Axiom C) :
     proofWidth (WDerivation.ax (compl := compl) h) = ResolutionClause.width C := rfl
 
