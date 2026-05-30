@@ -2,6 +2,7 @@ import Mathlib.Data.Nat.Choose.Central
 import Mathlib.Data.Nat.Choose.Sum
 import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.Analysis.SpecialFunctions.Sqrt
+import Mathlib.Algebra.Polynomial.Eval.Degree
 
 /-!
 # Margin-controlled polynomial approximation of `sign` (the positive brick)
@@ -153,6 +154,28 @@ theorem exists_sign_approx_margin (hGF : CentralBinomGF)
   calc (1 - γ ^ 2) ^ (n + 1)
       ≤ (1 - γ ^ 2) ^ n := pow_le_pow_of_le_one h1γ (le_of_lt h1γ1) (Nat.le_succ n)
     _ ≤ ε * γ ^ 2 := le_of_lt hn
+
+/-- **Coefficient form (bridge interface).**  Repackages
+`exists_sign_approx_margin` as a standard monomial polynomial `∑_b a_b z^b` (the
+form the circuit bridge `weightedApproxRealizer_ofPolyApprox` consumes), by taking
+the coefficients of `X · ∑_i C(2i,i)/4^i (1-X²)^i`. -/
+theorem exists_sign_approx_margin_coeffs (hGF : CentralBinomGF)
+    {γ : ℝ} (hγ0 : 0 < γ) (hγ1 : γ ≤ 1) {ε : ℝ} (hε : 0 < ε) :
+    ∃ (d : ℕ) (a : ℕ → ℝ), ∀ z : ℝ, γ ≤ |z| → |z| ≤ 1 →
+      |(∑ b ∈ Finset.range (d + 1), a b * z ^ b) - (if 0 < z then (1 : ℝ) else -1)| ≤ ε := by
+  obtain ⟨N, hN⟩ := exists_sign_approx_margin hGF hγ0 hγ1 hε
+  set P : Polynomial ℝ :=
+    Polynomial.X * ∑ i ∈ Finset.range (N + 1),
+      Polynomial.C (Nat.centralBinom i / 4 ^ i : ℝ) * (1 - Polynomial.X ^ 2) ^ i with hP
+  have hPeval : ∀ z : ℝ, P.eval z
+      = z * ∑ i ∈ Finset.range (N + 1), (Nat.centralBinom i / 4 ^ i : ℝ) * (1 - z ^ 2) ^ i := by
+    intro z
+    rw [hP]
+    simp [Polynomial.eval_finset_sum, Polynomial.eval_mul, Polynomial.eval_pow,
+      Polynomial.eval_sub, Polynomial.eval_one, Polynomial.eval_C, Polynomial.eval_X]
+  refine ⟨P.natDegree, P.coeff, fun z hz hz1 => ?_⟩
+  rw [← Polynomial.eval_eq_sum_range, hPeval z]
+  exact hN z hz hz1
 
 end PallLean.Paper93.DeepMath.PathB.SignApproxMargin
 

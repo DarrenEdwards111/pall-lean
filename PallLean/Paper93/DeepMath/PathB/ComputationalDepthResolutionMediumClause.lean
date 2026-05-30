@@ -127,6 +127,34 @@ theorem proofWidth_ge_of_medium_wide
         · exact le_trans (ihR (by omega)) (le_trans (le_max_right _ _) (le_max_left _ _))
         · exact le_trans (ihL hC) (le_trans (le_max_left _ _) (le_max_left _ _))
 
+/-- **Abstract measure–size bound (proved).**  Subadditivity of `μ` through the
+derivation tree gives `μ(Target) ≤ a · size`, where `a` bounds `μ` on axioms: each
+of the `size` tree nodes contributes at most `a` to the root measure.  Combined
+with a root lower bound `t ≤ μ(⊥)` (and `a = 1`), this yields a **size** lower
+bound `t ≤ size` for every refutation — the linear size lower bound the measure
+delivers directly (the *exponential* BSW bound additionally needs the size–width
+random-restriction amplification, which is separate). -/
+theorem measure_le_size
+    {a : Nat}
+    (μ : ResolutionClause Lit → Nat)
+    (hsub : ∀ {C D : ResolutionClause Lit} (p : Lit),
+        μ (ResolutionClause.resolvent compl C D p) ≤ μ C + μ D)
+    (hax : ∀ {C : ResolutionClause Lit}, Axiom C → μ C ≤ a)
+    {Target : ResolutionClause Lit}
+    (Der : ResolutionDerivation compl Axiom Target) :
+    μ Target ≤ a * size Der := by
+  induction Der with
+  | ax h =>
+      rw [size_ax, Nat.mul_one]
+      exact hax h
+  | @resolve C Dp L R p ihL ihR =>
+      rw [size_resolve]
+      calc μ (ResolutionClause.resolvent compl C Dp p)
+          ≤ μ C + μ Dp := hsub p
+        _ ≤ a * size L + a * size R := Nat.add_le_add ihL ihR
+        _ ≤ a * (size L + size R + 1) := by
+            rw [Nat.mul_add, Nat.mul_add, Nat.mul_one]; omega
+
 end ResolutionDerivation
 
 /-! ## Kernel-only axiom trace -/

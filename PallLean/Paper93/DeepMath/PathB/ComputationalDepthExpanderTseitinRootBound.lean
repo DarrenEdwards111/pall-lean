@@ -127,8 +127,43 @@ theorem resolution_width_lower_bound (G : TseitinGraph V Edge) (charge : V → Z
   TseitinResolution.resolution_width_lower_bound G charge hunsat Axiom haxiom hexp ht1 hcard
     (root_bound G charge hunsat hc hexp hcard) Der
 
+/-- **Unconditional expander-Tseitin resolution-*size* lower bound (linear).**
+Subadditivity of the measure through the derivation tree gives
+`μ(⊥) ≤ size`, and the root bound gives `t ≤ μ(⊥)`, so every resolution
+refutation of the Tseitin axioms has `size ≥ t` (with `t` up to `|V|/4`).
+
+This is the size bound the semantic measure yields directly.  It is *linear*; the
+classical *exponential* resolution size lower bound for expander-Tseitin
+additionally requires the Ben-Sasson–Wigderson size–width amplification (random
+restrictions converting a small refutation into a narrow one), which is a separate
+theorem and is **not** claimed here. -/
+theorem resolution_size_lower_bound (G : TseitinGraph V Edge) (charge : V → ZMod 2)
+    (hunsat : ∀ a : Edge → ZMod 2, ∃ v, ¬ TConstr G charge v a)
+    (Axiom : ResolutionClause (TLit Edge) → Prop)
+    (haxiom : ∀ C, Axiom C → ∃ v : V, SemanticMeasure.Implies TSat (TConstr G charge) {v} C)
+    {c t : ℕ} (hc : 1 ≤ c) (hexp : G.HasExpansion c) (hcard : 4 * t ≤ Fintype.card V)
+    (Der : ResolutionDerivation tcompl Axiom (∅ : ResolutionClause (TLit Edge))) :
+    t ≤ ResolutionDerivation.size Der := by
+  have hmeas :
+      SemanticMeasure.measure TSat (TConstr G charge) (∅ : ResolutionClause (TLit Edge))
+        ≤ 1 * ResolutionDerivation.size Der :=
+    ResolutionDerivation.measure_le_size
+      (μ := SemanticMeasure.measure TSat (TConstr G charge)) (a := 1)
+      (fun {C D} p => SemanticMeasure.measure_resolvent_le TSat (TConstr G charge) tcompl
+        tsat_tcompl hunsat C D p)
+      (fun {C} hC => by
+        obtain ⟨v, hv⟩ := haxiom C hC
+        calc SemanticMeasure.measure TSat (TConstr G charge) C
+            ≤ ({v} : Finset V).card :=
+              SemanticMeasure.measure_le_of_implies TSat (TConstr G charge) hv
+          _ = 1 := Finset.card_singleton v)
+      Der
+  have hroot := root_bound G charge hunsat hc hexp hcard
+  omega
+
 end PallLean.Paper93.DeepMath.PathB.TseitinRootBound
 
+#print axioms PallLean.Paper93.DeepMath.PathB.TseitinRootBound.resolution_size_lower_bound
 #print axioms PallLean.Paper93.DeepMath.PathB.TseitinRootBound.mulVec_surjective_of_indep_rows
 #print axioms PallLean.Paper93.DeepMath.PathB.TseitinRootBound.root_bound
 #print axioms PallLean.Paper93.DeepMath.PathB.TseitinRootBound.resolution_width_lower_bound
