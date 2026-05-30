@@ -91,6 +91,27 @@ def PivotsAvoid (P : Lit → Prop) :
   | _, resolve L R p => P p ∧ PivotsAvoid P L ∧ PivotsAvoid P R
   | _, weaken D _ => PivotsAvoid P D
 
+/-- Embed a (weakening-free) resolution derivation into the weakening system. -/
+def ofResolution : {C : ResolutionClause Lit} →
+    ResolutionDerivation compl Axiom C → WDerivation compl Axiom C
+  | _, ResolutionDerivation.ax h => ax h
+  | _, ResolutionDerivation.resolve L R p => resolve (ofResolution L) (ofResolution R) p
+
+@[simp] theorem ofResolution_size {C : ResolutionClause Lit}
+    (D : ResolutionDerivation compl Axiom C) :
+    (ofResolution D).size = ResolutionDerivation.size D := by
+  induction D with
+  | ax h => rfl
+  | resolve L R p ihL ihR => simp [ofResolution, size, ResolutionDerivation.size, ihL, ihR]
+
+@[simp] theorem ofResolution_proofWidth {C : ResolutionClause Lit}
+    (D : ResolutionDerivation compl Axiom C) :
+    (ofResolution D).proofWidth = ResolutionDerivation.proofWidth D := by
+  induction D with
+  | ax h => rfl
+  | resolve L R p ihL ihR =>
+      simp [ofResolution, proofWidth, ResolutionDerivation.proofWidth, ihL, ihR]
+
 /-- **Graft / composition of derivations.**  If every axiom of `Ax1` is derivable
 in `Ax2`, then any `Ax1`-derivation maps to an `Ax2`-derivation of the same clause
 (replace each axiom leaf by its `Ax2`-derivation). -/
