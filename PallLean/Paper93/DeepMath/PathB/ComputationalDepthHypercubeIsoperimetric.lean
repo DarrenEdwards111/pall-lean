@@ -68,4 +68,41 @@ theorem dirBdry_compl (S : Finset (Fin k → ZMod 2)) (i : Fin k) :
 theorem bdry_compl (S : Finset (Fin k → ZMod 2)) : bdry S = bdry Sᶜ :=
   Finset.sum_congr rfl (fun i _ => dirBdry_compl S i)
 
+/-! ## Splitting on the first coordinate (toward the recurrence) -/
+
+theorem flip_cons_zero (b : ZMod 2) (y : Fin k → ZMod 2) :
+    flip (Fin.cons b y) 0 = Fin.cons (b + 1) y := by
+  unfold flip; rw [Fin.cons_zero, Fin.update_cons_zero]
+
+theorem flip_cons_succ (b : ZMod 2) (y : Fin k → ZMod 2) (i : Fin k) :
+    flip (Fin.cons b y) i.succ = Fin.cons b (flip y i) := by
+  unfold flip; rw [Fin.cons_succ, ← Fin.cons_update]
+
+/-- The `b`-half of `S`: the points `y` with `cons b y ∈ S`. -/
+def half (S : Finset (Fin (k+1) → ZMod 2)) (b : ZMod 2) : Finset (Fin k → ZMod 2) :=
+  Finset.univ.filter (fun y => Fin.cons b y ∈ S)
+
+@[simp] theorem mem_half {S : Finset (Fin (k+1) → ZMod 2)} {b : ZMod 2} {y : Fin k → ZMod 2} :
+    y ∈ half S b ↔ Fin.cons b y ∈ S := by
+  simp [half]
+
+/-- **The cons-bijection.**  Restricting to `x 0 = b` and taking tails is a bijection
+onto the `Φ`-filtered points of `Q_k`. -/
+theorem card_filter_x0 (b : ZMod 2) (Φ : (Fin k → ZMod 2) → Prop) [DecidablePred Φ] :
+    (Finset.univ.filter (fun x : Fin (k+1) → ZMod 2 => x 0 = b ∧ Φ (Fin.tail x))).card
+      = (Finset.univ.filter Φ).card := by
+  refine Finset.card_bij' (fun x _ => Fin.tail x) (fun y _ => Fin.cons b y) ?_ ?_ ?_ ?_
+  · intro x hx
+    rw [Finset.mem_filter] at hx ⊢
+    exact ⟨Finset.mem_univ _, hx.2.2⟩
+  · intro y hy
+    rw [Finset.mem_filter] at hy ⊢
+    refine ⟨Finset.mem_univ _, Fin.cons_zero _ _, ?_⟩
+    rw [Fin.tail_cons]; exact hy.2
+  · intro x hx
+    have hb : x 0 = b := (Finset.mem_filter.mp hx).2.1
+    exact hb ▸ Fin.cons_self_tail x
+  · intro y _
+    simp only [Fin.tail_cons]
+
 end PallLean.Paper93.DeepMath.PathB.Hypercube
