@@ -1,6 +1,9 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthExpanderTseitinInstance
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthExpanderTseitinCNF
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthHypercubeTseitin
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthResolutionDAG
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthHypercubeDAGWidth
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthHypercubeTseitinFamily
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung3Complete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4CircuitSubstrates
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4ParityDecisionTreeCore
@@ -45,10 +48,14 @@ in this repo: the bottom (proved) and the top (proven equal to the separation).
   exponential size lower bound for the canonical Tseitin CNF on any expander
   (`ladder_rung2_size_lower_bound`, anchored by `TseitinResolution.tseitinCNF_exp_size`),
   and the hypercube instance discharges the expander concretely, yielding a fully
-  explicit numeric `2^{Ω(|V|)}` bound (`ladder_rung2_concrete`, anchored by
-  `Hypercube.hypercube_tseitin_exp_size`).  Cf. Ben-Sasson–Wigderson, "Short proofs
-  are narrow" (2001); Urquhart (1987).  General DAG-resolution size (the `√` size–
-  width) and space lower bounds (Esteban–Torán, Ben-Sasson) remain cited.
+  explicit numeric `2^{Ω(|V|)}` bound (`ladder_rung2_concrete`), self-contained with
+  no free parameters for every `k ≥ 5` (`ladder_rung2_family`), all anchored by
+  `Hypercube.*`.  The **width** bound moreover holds for *unrestricted (DAG)*
+  resolution, not just tree-like (`ladder_rung1_dag_width`, `ladder_rung1_dag_concrete`,
+  anchored by `dag_resolution_width_lower_bound` / `Hypercube.hypercube_dag_width`).
+  Cf. Ben-Sasson–Wigderson, "Short proofs are narrow" (2001); Urquhart (1987).
+  General DAG-resolution *size* (the `√` size–width) and space lower bounds
+  (Esteban–Torán, Ben-Sasson) remain cited.
 
 * **Rung 3 — Polynomial calculus / Nullstellensatz / cutting planes /
   bounded-depth Frege.  SUBSTRATES PROVED; SYSTEM LOWER BOUNDS CITED/OPEN.**
@@ -184,6 +191,45 @@ theorem ladder_rung2_concrete (k : ℕ) {t : ℕ}
         (fun v => if v = 0 then 1 else 0)) ∅) :
     2 ^ (t - k - 1) < ResolutionDerivation.size Der :=
   Hypercube.hypercube_tseitin_exp_size k ht1 hcard hgap Der
+
+/-- **Rung 2, self-contained family.**  No free parameters: for every `k ≥ 5`, the
+hypercube-Tseitin CNF (an explicit unsatisfiable CNF on `k·2^{k-1}` variables) needs
+tree-like resolution refutations of size `> 2^{2^{k-2}-k-1} = 2^{Ω(|V|)}`. -/
+theorem ladder_rung2_family (k : ℕ) (hk : 5 ≤ k)
+    (Der : ResolutionDerivation TseitinResolution.tcompl
+      (TseitinResolution.TseitinCNF (Hypercube.hypercubeGraph k)
+        (fun v => if v = 0 then 1 else 0)) ∅) :
+    2 ^ (2 ^ (k - 2) - k - 1) < ResolutionDerivation.size Der :=
+  Hypercube.hypercube_tseitin_family k hk Der
+
+/-! ## Rung 1–2 strengthening (PROVED): general (DAG) resolution width -/
+
+/-- **General-resolution width.**  The width bound holds not only for tree-like but
+for *unrestricted (DAG)* resolution: every DAG refutation of expander-Tseitin
+contains a clause of width `≥ c·t`. -/
+theorem ladder_rung1_dag_width
+    {V Edge : Type*} [Fintype V] [DecidableEq V] [Fintype Edge] [DecidableEq Edge]
+    (G : TseitinGraph V Edge) (charge : V → ZMod 2)
+    (hunsat : ∀ a : Edge → ZMod 2, ∃ v, ¬ TseitinResolution.TConstr G charge v a)
+    (Axiom : ResolutionClause (TseitinResolution.TLit Edge) → Prop)
+    (haxiom : ∀ C, Axiom C →
+      ∃ v : V, SemanticMeasure.Implies TseitinResolution.TSat (TseitinResolution.TConstr G charge) {v} C)
+    {c t : ℕ} (hc : 1 ≤ c) (hexp : G.HasExpansion c) (ht2 : 2 ≤ t)
+    (hcard : 4 * t ≤ Fintype.card V) {n : ℕ}
+    (D : ResolutionDAG TseitinResolution.tcompl Axiom n) (i₀ : Fin n)
+    (hi₀ : D.clause i₀ = (∅ : ResolutionClause (TseitinResolution.TLit Edge))) :
+    ∃ i : Fin n, c * t ≤ ResolutionClause.width (D.clause i) :=
+  dag_resolution_width_lower_bound G charge hunsat Axiom haxiom hc hexp ht2 hcard D i₀ hi₀
+
+/-- **General-resolution width, concrete.**  Every DAG resolution refutation of the
+explicit hypercube-Tseitin CNF has a clause of width `≥ t` (`Ω(|V|)` at `t=2^k/4`). -/
+theorem ladder_rung1_dag_concrete (k : ℕ) {t : ℕ} (ht2 : 2 ≤ t) (hcard : 4 * t ≤ 2 ^ k) {n : ℕ}
+    (D : ResolutionDAG TseitinResolution.tcompl
+      (TseitinResolution.TseitinCNF (Hypercube.hypercubeGraph k)
+        (fun v => if v = 0 then 1 else 0)) n)
+    (i₀ : Fin n) (hi₀ : D.clause i₀ = (∅ : ResolutionClause (TseitinResolution.TLit (Hypercube.HCEdge k)))) :
+    ∃ i : Fin n, t ≤ ResolutionClause.width (D.clause i) :=
+  Hypercube.hypercube_dag_width k ht2 hcard D i₀ hi₀
 
 /-! ## Rung 3 (SUBSTRATES PROVED): algebraic/semi-algebraic systems -/
 
@@ -561,6 +607,9 @@ theorem ladder_top_rung_iff_separation
 #print axioms ladder_rung1_concrete
 #print axioms ladder_rung2_size_lower_bound
 #print axioms ladder_rung2_concrete
+#print axioms ladder_rung2_family
+#print axioms ladder_rung1_dag_width
+#print axioms ladder_rung1_dag_concrete
 #print axioms ladder_rung3_polynomial_calculus_substrate
 #print axioms ladder_rung3_completed_substrates
 #print axioms ladder_rung4_completed_substrates
