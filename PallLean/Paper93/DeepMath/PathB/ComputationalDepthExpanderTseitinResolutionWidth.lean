@@ -170,4 +170,39 @@ theorem width_ge_of_medium (G : TseitinGraph V Edge) (charge : V → ZMod 2)
     _ ≤ (G.boundary S).card := hexp S hSpos hShalf
     _ ≤ ResolutionClause.width C := boundary_card_le_width G charge C S hSimp hmin
 
+/-- **Expander-Tseitin resolution-width lower bound (assembly).**  Combining the
+abstract BSW width theorem (`proofWidth_ge_of_medium_wide`) with the Tseitin
+measure's subadditivity (`measure_resolvent_le`), the expansion→width link
+(`width_ge_of_medium`), axioms implied by single constraints (`haxiom`, giving
+`μ ≤ 1`), and the root bound `μ(⊥) ≥ t` (`hroot`): every resolution refutation of
+the Tseitin axioms (derivation of the empty clause) has width `≥ c·t`.
+
+The root bound `hroot` (`= μ(⊥) ≥ t`) is the remaining brick (3): it is the F₂
+fact that an unsatisfiable subsystem of an odd-charge Tseitin instance needs more
+than half the vertices, forced by expansion. -/
+theorem resolution_width_lower_bound (G : TseitinGraph V Edge) (charge : V → ZMod 2)
+    (hunsat : ∀ a : Edge → ZMod 2, ∃ v, ¬ TConstr G charge v a)
+    (Axiom : ResolutionClause (TLit Edge) → Prop)
+    (haxiom : ∀ C, Axiom C → ∃ v : V, SemanticMeasure.Implies TSat (TConstr G charge) {v} C)
+    {c t : ℕ} (hexp : G.HasExpansion c) (ht1 : 1 ≤ t) (hcard : 4 * t ≤ Fintype.card V)
+    (hroot : t ≤ SemanticMeasure.measure TSat (TConstr G charge)
+      (∅ : ResolutionClause (TLit Edge)))
+    (Der : ResolutionDerivation tcompl Axiom (∅ : ResolutionClause (TLit Edge))) :
+    c * t ≤ ResolutionDerivation.proofWidth Der := by
+  refine ResolutionDerivation.proofWidth_ge_of_medium_wide
+    (μ := SemanticMeasure.measure TSat (TConstr G charge)) (a := 1) (t := t) (W := c * t)
+    (fun {C D} p => SemanticMeasure.measure_resolvent_le TSat (TConstr G charge) tcompl
+      tsat_tcompl hunsat C D p)
+    (fun {C} hC => ?_)
+    (by omega)
+    (fun {C} hlo hhi => width_ge_of_medium G charge hunsat hexp ht1 hcard hlo hhi)
+    Der hroot
+  obtain ⟨v, hv⟩ := haxiom C hC
+  calc SemanticMeasure.measure TSat (TConstr G charge) C
+      ≤ ({v} : Finset V).card :=
+        SemanticMeasure.measure_le_of_implies TSat (TConstr G charge) hv
+    _ = 1 := Finset.card_singleton v
+
 end PallLean.Paper93.DeepMath.PathB.TseitinResolution
+
+#print axioms PallLean.Paper93.DeepMath.PathB.TseitinResolution.resolution_width_lower_bound
