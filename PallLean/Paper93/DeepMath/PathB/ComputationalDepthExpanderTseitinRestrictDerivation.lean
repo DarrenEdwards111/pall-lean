@@ -96,24 +96,26 @@ theorem restrict_exists (ρ : Restriction Edge)
     (Der : ResolutionDerivation tcompl Axiom C) :
     ¬ clauseSatisfied ρ C →
     ∃ W : WDerivation tcompl (RestrictAxiom ρ Axiom) (liveClause ρ C),
-      W.size ≤ Der.size ∧ W.proofWidth ≤ Der.proofWidth := by
+      W.size ≤ Der.size ∧ W.proofWidth ≤ Der.proofWidth ∧
+        WDerivation.PivotsAvoid (fun p => ρ p.1 = none) W := by
   induction Der with
   | @ax C h =>
       intro hC
-      refine ⟨WDerivation.ax ⟨C, h, hC, rfl⟩, ?_, ?_⟩
+      refine ⟨WDerivation.ax ⟨C, h, hC, rfl⟩, ?_, ?_, ?_⟩
       · simp [WDerivation.size_ax, ResolutionDerivation.size_ax]
       · rw [WDerivation.proofWidth_ax, ResolutionDerivation.proofWidth_ax]
         exact liveClause_width_le ρ C
+      · trivial
   | @resolve C D L R p ihL ihR =>
       intro hC
       rcases hpiv : ρ p.1 with _ | v
       · -- pivot live: both parents unsatisfied, resolve and weaken to the live resolvent
         have hp : ρ p.1 ≠ some p.2 := by rw [hpiv]; simp
         have hq : ρ p.1 ≠ some (p.2 + 1) := by rw [hpiv]; simp
-        obtain ⟨WL, hWLs, hWLw⟩ := ihL (not_clauseSatisfied_left ρ hC hp)
-        obtain ⟨WR, hWRs, hWRw⟩ := ihR (not_clauseSatisfied_right ρ hC hq)
+        obtain ⟨WL, hWLs, hWLw, hWLa⟩ := ihL (not_clauseSatisfied_left ρ hC hp)
+        obtain ⟨WR, hWRs, hWRw, hWRa⟩ := ihR (not_clauseSatisfied_right ρ hC hq)
         refine ⟨WDerivation.weaken (WDerivation.resolve WL WR p)
-            (le_of_eq (liveClause_resolvent ρ C D p).symm), ?_, ?_⟩
+            (le_of_eq (liveClause_resolvent ρ C D p).symm), ?_, ?_, ?_⟩
         · simp only [WDerivation.size_weaken, WDerivation.size_resolve,
             ResolutionDerivation.size_resolve]
           omega
@@ -131,6 +133,7 @@ theorem restrict_exists (ρ : Restriction Edge)
               · exact le_trans hWRw (le_trans (le_max_right _ _) (le_max_left _ _))
             · exact le_trans hwlc (le_max_right _ _)
           · exact le_trans hwres (le_max_right _ _)
+        · exact ⟨hpiv, hWLa, hWRa⟩
       · have hzz : v = p.2 ∨ v = p.2 + 1 :=
           (by decide : ∀ x y : ZMod 2, x = y ∨ x = y + 1) v p.2
         rcases hzz with hv | hv
@@ -138,7 +141,7 @@ theorem restrict_exists (ρ : Restriction Edge)
           have hq : ρ p.1 ≠ some (p.2 + 1) := by
             rw [hpiv, hv]; intro h
             exact (by decide : ∀ x : ZMod 2, x ≠ x + 1) p.2 (Option.some.inj h)
-          obtain ⟨WR, hWRs, hWRw⟩ := ihR (not_clauseSatisfied_right ρ hC hq)
+          obtain ⟨WR, hWRs, hWRw, hWRa⟩ := ihR (not_clauseSatisfied_right ρ hC hq)
           have htnl : tcompl p ∉ liveClause ρ D := by
             intro hmem
             have h2 := (Finset.mem_filter.mp hmem).2
@@ -151,17 +154,18 @@ theorem restrict_exists (ρ : Restriction Edge)
                   (Finset.erase_eq_of_notMem htnl).symm
               _ ⊆ (liveClause ρ C).erase p ∪ (liveClause ρ D).erase (tcompl p) :=
                   Finset.subset_union_right
-          refine ⟨WDerivation.weaken WR hsub, ?_, ?_⟩
+          refine ⟨WDerivation.weaken WR hsub, ?_, ?_, ?_⟩
           · simp only [WDerivation.size_weaken, ResolutionDerivation.size_resolve]; omega
           · rw [WDerivation.proofWidth_weaken, ResolutionDerivation.proofWidth_resolve]
             apply max_le
             · exact le_trans hWRw (le_trans (le_max_right _ _) (le_max_left _ _))
             · exact le_trans (liveClause_width_le _ _) (le_max_right _ _)
+          · exact hWRa
         · -- complementary pivot literal `tcompl p` satisfied: left parent survives
           have hp : ρ p.1 ≠ some p.2 := by
             rw [hpiv, hv]; intro h
             exact (by decide : ∀ x : ZMod 2, x ≠ x + 1) p.2 (Option.some.inj h).symm
-          obtain ⟨WL, hWLs, hWLw⟩ := ihL (not_clauseSatisfied_left ρ hC hp)
+          obtain ⟨WL, hWLs, hWLw, hWLa⟩ := ihL (not_clauseSatisfied_left ρ hC hp)
           have hpnl : p ∉ liveClause ρ C := by
             intro hmem
             have h2 := (Finset.mem_filter.mp hmem).2
@@ -174,12 +178,13 @@ theorem restrict_exists (ρ : Restriction Edge)
                   (Finset.erase_eq_of_notMem hpnl).symm
               _ ⊆ (liveClause ρ C).erase p ∪ (liveClause ρ D).erase (tcompl p) :=
                   Finset.subset_union_left
-          refine ⟨WDerivation.weaken WL hsub, ?_, ?_⟩
+          refine ⟨WDerivation.weaken WL hsub, ?_, ?_, ?_⟩
           · simp only [WDerivation.size_weaken, ResolutionDerivation.size_resolve]; omega
           · rw [WDerivation.proofWidth_weaken, ResolutionDerivation.proofWidth_resolve]
             apply max_le
             · exact le_trans hWLw (le_trans (le_max_left _ _) (le_max_left _ _))
             · exact le_trans (liveClause_width_le _ _) (le_max_right _ _)
+          · exact hWLa
 
 end PallLean.Paper93.DeepMath.PathB.TseitinRestriction
 

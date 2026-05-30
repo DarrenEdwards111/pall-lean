@@ -82,6 +82,25 @@ def proofWidth {C : ResolutionClause Lit} (D : WDerivation compl Axiom C) : Nat 
     (D : WDerivation compl Axiom C) (h : C ⊆ C') :
     proofWidth (WDerivation.weaken D h) = max (proofWidth D) (ResolutionClause.width C') := rfl
 
+/-- `PivotsAvoid P D`: every resolution pivot used in the derivation `D` satisfies
+the predicate `P`.  Used to certify that a derivation never resolves on a fixed
+edge, so that the lift (re-adding a falsified literal) never collides with a pivot. -/
+def PivotsAvoid (P : Lit → Prop) :
+    {C : ResolutionClause Lit} → WDerivation compl Axiom C → Prop
+  | _, ax _ => True
+  | _, resolve L R p => P p ∧ PivotsAvoid P L ∧ PivotsAvoid P R
+  | _, weaken D _ => PivotsAvoid P D
+
+/-- `PivotsAvoid` is monotone in the predicate. -/
+theorem PivotsAvoid.mono {P Q : Lit → Prop} (h : ∀ p, P p → Q p) :
+    ∀ {C : ResolutionClause Lit} (D : WDerivation compl Axiom C),
+      PivotsAvoid P D → PivotsAvoid Q D
+  | _, ax _, _ => trivial
+  | _, resolve L R p, hD => by
+      obtain ⟨hp, hL, hR⟩ := hD
+      exact ⟨h p hp, PivotsAvoid.mono h L hL, PivotsAvoid.mono h R hR⟩
+  | _, weaken D _, hD => PivotsAvoid.mono h D hD
+
 /-- **Abstract BSW width lower bound for weakening-resolution.**  If `μ` is
 subadditive on resolvents, *monotone* (a superclause has no larger measure),
 axioms have `μ ≤ a < 2t`, the root has `μ ≥ t`, and every medium-`μ` clause
