@@ -91,6 +91,46 @@ def PivotsAvoid (P : Lit → Prop) :
   | _, resolve L R p => P p ∧ PivotsAvoid P L ∧ PivotsAvoid P R
   | _, weaken D _ => PivotsAvoid P D
 
+/-- **Graft / composition of derivations.**  If every axiom of `Ax1` is derivable
+in `Ax2`, then any `Ax1`-derivation maps to an `Ax2`-derivation of the same clause
+(replace each axiom leaf by its `Ax2`-derivation). -/
+def graft {Ax1 Ax2 : ResolutionClause Lit → Prop}
+    (f : ∀ C', Ax1 C' → WDerivation compl Ax2 C') :
+    {C : ResolutionClause Lit} → WDerivation compl Ax1 C → WDerivation compl Ax2 C
+  | _, ax h => f _ h
+  | _, resolve L R p => resolve (graft f L) (graft f R) p
+  | _, weaken D h => weaken (graft f D) h
+
+/-- The grafted derivation's width is bounded by the original's width and the
+widths of the replacement derivations. -/
+theorem graft_proofWidth_le {Ax1 Ax2 : ResolutionClause Lit → Prop}
+    (f : ∀ C', Ax1 C' → WDerivation compl Ax2 C') {B : ℕ}
+    (hf : ∀ C' (h : Ax1 C'), (f C' h).proofWidth ≤ B) :
+    ∀ {C : ResolutionClause Lit} (W : WDerivation compl Ax1 C),
+      (graft f W).proofWidth ≤ max W.proofWidth B
+  | _, ax h => le_max_of_le_right (hf _ h)
+  | _, resolve L R p => by
+      show proofWidth (WDerivation.resolve (graft f L) (graft f R) p)
+          ≤ max (proofWidth (WDerivation.resolve L R p)) B
+      rw [proofWidth_resolve, proofWidth_resolve]
+      have ihL := graft_proofWidth_le f hf L
+      have ihR := graft_proofWidth_le f hf R
+      apply max_le
+      · apply max_le
+        · exact le_trans ihL
+            (max_le_max (le_trans (le_max_left _ _) (le_max_left _ _)) le_rfl)
+        · exact le_trans ihR
+            (max_le_max (le_trans (le_max_right _ _) (le_max_left _ _)) le_rfl)
+      · exact le_trans (le_max_right _ _) (le_max_left _ _)
+  | _, weaken D h => by
+      show proofWidth (WDerivation.weaken (graft f D) h)
+          ≤ max (proofWidth (WDerivation.weaken D h)) B
+      rw [proofWidth_weaken, proofWidth_weaken]
+      have ihD := graft_proofWidth_le f hf D
+      apply max_le
+      · exact le_trans ihD (max_le_max (le_max_left _ _) le_rfl)
+      · exact le_trans (le_max_right _ _) (le_max_left _ _)
+
 /-- `PivotsAvoid` is monotone in the predicate. -/
 theorem PivotsAvoid.mono {P Q : Lit → Prop} (h : ∀ p, P p → Q p) :
     ∀ {C : ResolutionClause Lit} (D : WDerivation compl Axiom C),
