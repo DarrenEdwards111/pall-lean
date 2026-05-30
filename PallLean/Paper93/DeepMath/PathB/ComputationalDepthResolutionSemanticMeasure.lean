@@ -63,6 +63,27 @@ theorem exists_implies_measure (hunsat : ∀ a : α, ∃ i, ¬ Constr i a) (C : 
   obtain ⟨S, hcard, himp⟩ := Nat.sInf_mem (measure_set_nonempty Sat Constr hunsat C)
   exact ⟨S, himp, hcard⟩
 
+/-- Clause satisfaction is monotone in the clause: a superclause is easier to satisfy. -/
+theorem clauseSat_mono {a : α} {C C' : ResolutionClause Lit} (h : C ⊆ C') :
+    clauseSat Sat a C → clauseSat Sat a C' :=
+  fun ⟨l, hl, hsl⟩ => ⟨l, h hl, hsl⟩
+
+/-- Semantic implication is monotone in the clause: `S ⊨ C` and `C ⊆ C'` give `S ⊨ C'`. -/
+theorem implies_mono {S : Finset ι} {C C' : ResolutionClause Lit} (h : C ⊆ C') :
+    Implies Sat Constr S C → Implies Sat Constr S C' :=
+  fun himp a ha => clauseSat_mono Sat h (himp a ha)
+
+/-- **Monotonicity of the measure**: a superclause has no larger measure
+(`C ⊆ C' → μ C' ≤ μ C`).  This is what makes a *weakening* step harmless for the
+descent — the input the weakening-augmented width lower bound needs. -/
+theorem measure_mono (hunsat : ∀ a : α, ∃ i, ¬ Constr i a)
+    {C C' : ResolutionClause Lit} (h : C ⊆ C') :
+    measure Sat Constr C' ≤ measure Sat Constr C := by
+  obtain ⟨S, himp, hcard⟩ := exists_implies_measure Sat Constr hunsat C
+  calc measure Sat Constr C'
+      ≤ S.card := measure_le_of_implies Sat Constr (implies_mono Sat Constr h himp)
+    _ = measure Sat Constr C := hcard
+
 /-- **Resolution soundness for clause satisfaction.**  A resolvent is satisfied by
 any assignment satisfying both parents, provided a literal and its complement are
 never both satisfied. -/
