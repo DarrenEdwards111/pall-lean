@@ -70,6 +70,7 @@ The degree blow-up `D_k ≈ 1/γ_k²` is an explicit theorem, not an estimate.
 | **Margin cost ≥ Forster bound** (upper bound meets lower bound) | `MarginCircuit.margin_cost_ge_forster` |
 | **Walsh blow-up:** computing Walsh ⇒ `1 + ∑_k (D_k+1)² ≥ 2^j` | `MarginCircuit.walsh_margin_blowup` |
 | **Size–margin tradeoff:** `2^j ≤ 1 + s·(Δ+1)²` (`Δ = max_k D_k`) | `MarginCircuit.walsh_gates_degree_tradeoff` |
+| **General hardness criterion:** any `B` with `ForsterLowerBound C.eval B` ⇒ `B ≤ 1 + s·(Δ+1)²` | `MarginCircuit.gates_degree_tradeoff_of_forster` |
 
 The last line is the route's strongest concrete rung: `s ≥ (2^j−1)/(Δ+1)²`, i.e.
 computing Walsh needs exponentially many gates *unless* some bottom margin is

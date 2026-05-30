@@ -50,7 +50,22 @@ theorem walsh_gates_degree_tradeoff {m' j : ℕ} (hmk : m' + 1 = 2 ^ (2 * j))
   MarginCircuit.walsh_gates_degree_tradeoff hmk C hCeval CentralBinomGFProof.centralBinomGF
     γ ε' hγ0 hγ1 hε' hbandlo hbandhi htop
 
+/-- **Unconditional general hardness criterion.**  Any Bool matrix with Forster
+sign-rank lower bound `B`, computed by a margin `THR∘LTF`, forces
+`B ≤ 1 + s·(Δ+1)²`.  No carried hypothesis. -/
+theorem gates_degree_tradeoff_of_forster {m n : ℕ}
+    (C : Depth2Threshold m n)
+    (γ ε' : Fin C.s → ℝ) (hγ0 : ∀ k, 0 < γ k) (hγ1 : ∀ k, γ k ≤ 1) (hε' : ∀ k, 0 < ε' k)
+    (hbandlo : ∀ k i j, γ k ≤ |C.α k i + C.β k j|)
+    (hbandhi : ∀ k i j, |C.α k i + C.β k j| ≤ 1)
+    (htop : ∀ i j, (∑ k, |C.w k| * ε' k) < |Depth2Threshold.topArgument C i j|)
+    {B : ℕ} (hForster : ForsterLowerBound C.eval B) :
+    ∃ D : Fin C.s → ℕ, B ≤ 1 + Fintype.card (Fin C.s) * (Finset.univ.sup D + 1) ^ 2 :=
+  MarginCircuit.gates_degree_tradeoff_of_forster C CentralBinomGFProof.centralBinomGF
+    γ ε' hγ0 hγ1 hε' hbandlo hbandhi htop hForster
+
 end PallLean.Paper93.DeepMath.PathB.MarginUnconditional
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MarginUnconditional.walsh_gates_degree_tradeoff
+#print axioms PallLean.Paper93.DeepMath.PathB.MarginUnconditional.gates_degree_tradeoff_of_forster
 #print axioms PallLean.Paper93.DeepMath.PathB.MarginUnconditional.exists_sign_approx_margin

@@ -155,9 +155,34 @@ theorem walsh_gates_degree_tradeoff {m' j : ℕ} (hmk : m' + 1 = 2 ^ (2 * j))
     _ = Fintype.card (Fin C.s) * (Finset.univ.sup D + 1) ^ 2 := by
         rw [Finset.sum_const, Finset.card_univ, smul_eq_mul]
 
+/-- **General hardness criterion (the route's ceiling, in full generality).**
+For *any* Bool matrix with Forster sign-rank lower bound `B`, every margin
+`THR∘LTF` realization has `B ≤ 1 + s·(Δ+1)²` (`s` = #gates, `Δ = max_k D_k`).  So
+**any** high-sign-rank function — not just Walsh — needs exponentially many gates
+or exponentially small bottom margins.  `walsh_gates_degree_tradeoff` is the
+`B = 2^j` instance. -/
+theorem gates_degree_tradeoff_of_forster
+    (C : Depth2Threshold m n) (hGF : CentralBinomGF)
+    (γ ε' : Fin C.s → ℝ) (hγ0 : ∀ k, 0 < γ k) (hγ1 : ∀ k, γ k ≤ 1) (hε' : ∀ k, 0 < ε' k)
+    (hbandlo : ∀ k i j, γ k ≤ |C.α k i + C.β k j|)
+    (hbandhi : ∀ k i j, |C.α k i + C.β k j| ≤ 1)
+    (htop : ∀ i j, (∑ k, |C.w k| * ε' k) < |Depth2Threshold.topArgument C i j|)
+    {B : ℕ} (hForster : ForsterLowerBound C.eval B) :
+    ∃ D : Fin C.s → ℕ, B ≤ 1 + Fintype.card (Fin C.s) * (Finset.univ.sup D + 1) ^ 2 := by
+  obtain ⟨D, hD⟩ :=
+    margin_cost_ge_forster C hGF γ ε' hγ0 hγ1 hε' hbandlo hbandhi htop hForster
+  refine ⟨D, hD.trans (Nat.add_le_add_left ?_ 1)⟩
+  calc ∑ k, (D k + 1) ^ 2
+      ≤ ∑ _k : Fin C.s, (Finset.univ.sup D + 1) ^ 2 :=
+        Finset.sum_le_sum (fun k _ =>
+          Nat.pow_le_pow_left (Nat.add_le_add_right (Finset.le_sup (Finset.mem_univ k)) 1) 2)
+    _ = Fintype.card (Fin C.s) * (Finset.univ.sup D + 1) ^ 2 := by
+        rw [Finset.sum_const, Finset.card_univ, smul_eq_mul]
+
 end PallLean.Paper93.DeepMath.PathB.MarginCircuit
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MarginCircuit.wholeCircuit_signRank_of_bottomMargin
+#print axioms PallLean.Paper93.DeepMath.PathB.MarginCircuit.gates_degree_tradeoff_of_forster
 #print axioms PallLean.Paper93.DeepMath.PathB.MarginCircuit.margin_cost_ge_forster
 #print axioms PallLean.Paper93.DeepMath.PathB.MarginCircuit.walsh_margin_blowup
 #print axioms PallLean.Paper93.DeepMath.PathB.MarginCircuit.walsh_gates_degree_tradeoff
