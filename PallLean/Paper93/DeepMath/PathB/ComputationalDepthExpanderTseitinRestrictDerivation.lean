@@ -196,35 +196,52 @@ theorem singleEdge_eq_none {e : Edge} {w : ZMod 2} {e' : Edge} :
     singleEdge e w e' = none ↔ e' ≠ e := by
   unfold singleEdge; by_cases h : e' = e <;> simp [h]
 
-/-- Inserting a literal whose edge differs from the pivot's commutes with the
-resolvent. -/
-theorem insert_resolvent {ℓ p : TLit Edge} (CL CR : ResolutionClause (TLit Edge))
-    (hℓ : ℓ.1 ≠ p.1) :
+/-- A literal is never its own complement (its asserted value flips). -/
+theorem ne_tcompl (p : TLit Edge) : p ≠ tcompl p := by
+  intro h
+  have h2 : p.2 = p.2 + 1 := by
+    have := congrArg Prod.snd h
+    simpa [tcompl] using this
+  exact (by decide : ∀ x : ZMod 2, x ≠ x + 1) p.2 h2
+
+/-- **Inserting a literal commutes with the resolvent** — for *any* pivot.  If the
+inserted `ℓ` coincides with the pivot or its complement (so it would be erased on
+one side), `insert`'s distribution over `∪` recovers it from the other side.  Only
+`p ≠ tcompl p` is needed (always true).  This is what frees the lift from any
+pivot-avoidance hypothesis. -/
+theorem insert_resolvent {ℓ : TLit Edge} (CL CR : ResolutionClause (TLit Edge))
+    {p : TLit Edge} (hp : p ≠ tcompl p) :
     ResolutionClause.resolvent tcompl (insert ℓ CL) (insert ℓ CR) p
       = insert ℓ (ResolutionClause.resolvent tcompl CL CR p) := by
-  have hℓp : ℓ ≠ p := fun h => hℓ (congrArg Prod.fst h)
-  have hℓtp : ℓ ≠ tcompl p := by
-    intro h
-    have hfst : ℓ.1 = (tcompl p).1 := congrArg Prod.fst h
-    exact hℓ hfst
   unfold ResolutionClause.resolvent
-  rw [Finset.erase_insert_of_ne hℓp, Finset.erase_insert_of_ne hℓtp,
-    Finset.insert_union, Finset.union_insert, Finset.insert_idem]
+  ext x
+  simp only [Finset.mem_union, Finset.mem_erase, Finset.mem_insert]
+  constructor
+  · rintro (⟨hxp, rfl | hxCL⟩ | ⟨hxtp, rfl | hxCR⟩)
+    · exact Or.inl rfl
+    · exact Or.inr (Or.inl ⟨hxp, hxCL⟩)
+    · exact Or.inl rfl
+    · exact Or.inr (Or.inr ⟨hxtp, hxCR⟩)
+  · rintro (rfl | (⟨hxp, hxCL⟩ | ⟨hxtp, hxCR⟩))
+    · by_cases hxp : x = p
+      · exact Or.inr ⟨by rw [hxp]; exact hp, Or.inl rfl⟩
+      · exact Or.inl ⟨hxp, Or.inl rfl⟩
+    · exact Or.inl ⟨hxp, Or.inr hxCL⟩
+    · exact Or.inr ⟨hxtp, Or.inr hxCR⟩
 
 /-- **Lift / un-restriction (brick 2c).**  A weakening-resolution derivation over
-the single-edge–restricted axioms whose pivots avoid edge `e` lifts to a derivation
-over the original `Axiom` of the clause with the falsified literal `(e, w+1)`
-re-added, with `size` no larger and `proofWidth` at most one larger. -/
+the single-edge–restricted axioms lifts to a derivation over the original `Axiom`
+of the clause with the falsified literal `(e, w+1)` re-added, with `size` no larger
+and `proofWidth` at most one larger.  No pivot-avoidance hypothesis is needed
+(`insert_resolvent` handles every pivot). -/
 theorem lift_single (e : Edge) (w : ZMod 2)
     {Axiom : ResolutionClause (TLit Edge) → Prop}
     {C' : ResolutionClause (TLit Edge)}
     (W : WDerivation tcompl (RestrictAxiom (singleEdge e w) Axiom) C') :
-    WDerivation.PivotsAvoid (fun p => singleEdge e w p.1 = none) W →
     ∃ W' : WDerivation tcompl Axiom (insert (e, w + 1) C'),
       W'.size ≤ W.size ∧ W'.proofWidth ≤ W.proofWidth + 1 := by
   induction W with
   | @ax C0' h =>
-      intro _
       obtain ⟨C₀, hC₀ax, hC₀ns, hC₀eq⟩ := h
       subst hC₀eq
       have hsub : C₀ ⊆ insert (e, w + 1) (liveClause (singleEdge e w) C₀) := by
@@ -248,15 +265,12 @@ theorem lift_single (e : Edge) (w : ZMod 2)
             _ ≤ (liveClause (singleEdge e w) C₀).card + 1 := Finset.card_insert_le _ _
         · exact Finset.card_insert_le _ _
   | @resolve CL CR L R p ihL ihR =>
-      intro havoid
-      obtain ⟨havp, havL, havR⟩ := havoid
-      obtain ⟨WL', hWL's, hWL'w⟩ := ihL havL
-      obtain ⟨WR', hWR's, hWR'w⟩ := ihR havR
-      have hp1 : p.1 ≠ e := singleEdge_eq_none.mp havp
+      obtain ⟨WL', hWL's, hWL'w⟩ := ihL
+      obtain ⟨WR', hWR's, hWR'w⟩ := ihR
       have hident :
           ResolutionClause.resolvent tcompl (insert (e, w + 1) CL) (insert (e, w + 1) CR) p
             = insert (e, w + 1) (ResolutionClause.resolvent tcompl CL CR p) :=
-        insert_resolvent (ℓ := (e, w + 1)) CL CR hp1.symm
+        insert_resolvent (ℓ := (e, w + 1)) CL CR (ne_tcompl p)
       refine ⟨WDerivation.weaken (WDerivation.resolve WL' WR' p) (le_of_eq hident), ?_, ?_⟩
       · simp only [WDerivation.size_weaken, WDerivation.size_resolve]; omega
       · rw [WDerivation.proofWidth_weaken, WDerivation.proofWidth_resolve,
@@ -278,8 +292,7 @@ theorem lift_single (e : Edge) (w : ZMod 2)
           · exact le_trans hw1 (Nat.add_le_add_right (le_max_right _ _) 1)
         · exact le_trans hw2 (Nat.add_le_add_right (le_max_right _ _) 1)
   | @weaken CC CC' D hsubW ihD =>
-      intro havoid
-      obtain ⟨WD', hWD's, hWD'w⟩ := ihD havoid
+      obtain ⟨WD', hWD's, hWD'w⟩ := ihD
       refine ⟨WDerivation.weaken WD' (Finset.insert_subset_insert _ hsubW), ?_, ?_⟩
       · simp only [WDerivation.size_weaken]; omega
       · rw [WDerivation.proofWidth_weaken, WDerivation.proofWidth_weaken]
