@@ -89,11 +89,50 @@ theorem exists_medium_measure_above_axioms
         Nonempty (ResolutionDerivation compl Axiom C') :=
   exists_medium_measure μ hsub hax (by omega) Der hroot
 
+/-- **Abstract BSW resolution-width lower bound (proved).**  Combining the
+medium-clause descent with a *width link* `hwide` (every medium-`μ` clause is
+wide): if `μ` is subadditive, axioms have `μ ≤ a < 2t`, the root has `μ ≥ t`, and
+every clause `C` with `t ≤ μ C < 2t` has `width C ≥ W`, then the whole derivation
+has `proofWidth ≥ W` — i.e. **every refutation contains a clause of width `≥ W`**.
+
+This is the BSW width theorem in `proofWidth` form.  Instantiating it with the
+Tseitin measure (for `hsub`, `hax`) and the expander kernel (for `hwide`, via
+`combination_support_card_ge_of_expansion`) yields the resolution-width lower
+bound for expander-Tseitin — the genuine rung-1 ⇒ resolution-width connector. -/
+theorem proofWidth_ge_of_medium_wide
+    {a t W : Nat}
+    (μ : ResolutionClause Lit → Nat)
+    (hsub : ∀ {C D : ResolutionClause Lit} (p : Lit),
+        μ (ResolutionClause.resolvent compl C D p) ≤ μ C + μ D)
+    (hax : ∀ {C : ResolutionClause Lit}, Axiom C → μ C ≤ a)
+    (ht : a < 2 * t)
+    (hwide : ∀ {C : ResolutionClause Lit}, t ≤ μ C → μ C < 2 * t →
+        W ≤ ResolutionClause.width C)
+    {Target : ResolutionClause Lit}
+    (Der : ResolutionDerivation compl Axiom Target) :
+    t ≤ μ Target → W ≤ proofWidth Der := by
+  induction Der with
+  | ax h =>
+      intro hroot
+      rw [proofWidth_ax]
+      exact hwide hroot (lt_of_le_of_lt (hax h) ht)
+  | @resolve C Dp L R p ihL ihR =>
+      intro hroot
+      rw [proofWidth_resolve]
+      by_cases hlt : μ (ResolutionClause.resolvent compl C Dp p) < 2 * t
+      · exact le_trans (hwide hroot hlt) (le_max_right _ _)
+      · push_neg at hlt
+        have hsum : 2 * t ≤ μ C + μ Dp := le_trans hlt (hsub p)
+        rcases Nat.lt_or_ge (μ C) t with hC | hC
+        · exact le_trans (ihR (by omega)) (le_trans (le_max_right _ _) (le_max_left _ _))
+        · exact le_trans (ihL hC) (le_trans (le_max_left _ _) (le_max_left _ _))
+
 end ResolutionDerivation
 
 /-! ## Kernel-only axiom trace -/
 
 #print axioms ResolutionDerivation.exists_medium_measure
 #print axioms ResolutionDerivation.exists_medium_measure_above_axioms
+#print axioms ResolutionDerivation.proofWidth_ge_of_medium_wide
 
 end PallLean.Paper93.DeepMath.PathB
