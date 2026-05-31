@@ -78,6 +78,25 @@ theorem tseitin_size_width (G : TseitinGraph V Edge) (charge : V → ZMod 2)
   have := hw' C hC
   omega
 
+/-- **BSW size–width lower bound (positive form).**  When the width budget
+`w₀ + d + b` stays below the expander lower bound `c·t`, every refutation has at
+least `n^b / (n-d)^b` fat clauses: `n^b ≤ (n-d)^b · #fat`.  Choosing
+`d ≈ √(n ln S)` turns this into the exponential size lower bound. -/
+theorem tseitin_fatcount_ge (G : TseitinGraph V Edge) (charge : V → ZMod 2)
+    (hunsat : ∀ a : Edge → ZMod 2, ∃ v, ¬ TConstr G charge v a)
+    (Ax : List (ResolutionClause (TLit Edge)))
+    (hAxiom : ∀ C, C ∈ Ax → ∃ v : V, SemanticMeasure.Implies TSat (TConstr G charge) {v} C)
+    {c t : ℕ} (hc : 1 ≤ c) (hexp : G.HasExpansion c) (ht2 : 2 ≤ t)
+    (hcard : 4 * t ≤ Fintype.card V) {w₀ : ℕ} (hw0 : ∀ C ∈ Ax, ResolutionClause.width C ≤ w₀)
+    {d b : ℕ} (hd : 0 < d) {L : List (ResolutionClause (TLit Edge))}
+    (hLD : LDeriv tcompl (· ∈ Ax) L) (hmt : (∅ : ResolutionClause (TLit Edge)) ∈ L)
+    (hsmall : w₀ + d + b < c * t) :
+    Fintype.card (TLit Edge) ^ b
+      ≤ (Fintype.card (TLit Edge) - d) ^ b * (fatSet d L).card := by
+  by_contra h
+  push_neg at h
+  exact tseitin_size_width G charge hunsat Ax hAxiom hc hexp ht2 hcard hw0 hd hLD hmt h hsmall
+
 end LDeriv
 
 end PallLean.Paper93.DeepMath.PathB
