@@ -4,6 +4,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthHypercubeTseitin
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthResolutionDAG
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthHypercubeDAGWidth
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthHypercubeTseitinFamily
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthListDerivationExpSize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung3Complete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4CircuitSubstrates
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4ParityDecisionTreeCore
@@ -53,9 +54,16 @@ in this repo: the bottom (proved) and the top (proven equal to the separation).
   `Hypercube.*`.  The **width** bound moreover holds for *unrestricted (DAG)*
   resolution, not just tree-like (`ladder_rung1_dag_width`, `ladder_rung1_dag_concrete`,
   anchored by `dag_resolution_width_lower_bound` / `Hypercube.hypercube_dag_width`).
+  The general **DAG-resolution *size*** bound (the `√` size–width method) is now
+  also PROVED ground-up in the list-derivation model: restriction-with-removal,
+  the popular-literal fat-count decay, the asymmetric branching recombination, and
+  the variable-count recursion give `W(F) ≤ w₀+d+b` under `(n-d)^b·#fat < n^b`,
+  which composed with the rung-1 width bound yields a size lower bound on actual
+  refutation length and an explicit exponential `2^j ≤ |L|`
+  (`ladder_rung2_dag_size_length`, `ladder_rung2_dag_size_exp`, anchored by
+  `LDeriv.tseitin_size_lower` / `LDeriv.tseitin_size_exp`).
   Cf. Ben-Sasson–Wigderson, "Short proofs are narrow" (2001); Urquhart (1987).
-  General DAG-resolution *size* (the `√` size–width) and space lower bounds
-  (Esteban–Torán, Ben-Sasson) remain cited.
+  Resolution *space* lower bounds (Esteban–Torán, Ben-Sasson) remain cited.
 
 * **Rung 3 — Polynomial calculus / Nullstellensatz / cutting planes /
   bounded-depth Frege.  SUBSTRATES PROVED; SYSTEM LOWER BOUNDS CITED/OPEN.**
@@ -230,6 +238,61 @@ theorem ladder_rung1_dag_concrete (k : ℕ) {t : ℕ} (ht2 : 2 ≤ t) (hcard : 4
     (i₀ : Fin n) (hi₀ : D.clause i₀ = (∅ : ResolutionClause (TseitinResolution.TLit (Hypercube.HCEdge k)))) :
     ∃ i : Fin n, t ≤ ResolutionClause.width (D.clause i) :=
   Hypercube.hypercube_dag_width k ht2 hcard D i₀ hi₀
+
+/-! ## Rung 2 strengthening (PROVED): general (DAG) resolution *size*
+
+The size lower bound, like the width bound, holds for *unrestricted* resolution —
+not only tree-like.  The Ben-Sasson–Wigderson general (DAG) size–width method is
+formalized ground-up in the list-derivation (`LDeriv`) model: restriction with
+clause removal, the popular-literal fat-count decay, the asymmetric branching
+recombination, the variable-count termination measure, and the resulting
+recursion `W(F) ≤ w₀ + d + b` under the invariant `(n-d)^b·#fat < n^b`.  Composed
+with the rung-1 width lower bound `c·t`, this gives an honest size lower bound on
+the actual refutation length, and an explicit exponential `2^j ≤ |L|`. -/
+
+/-- **General-resolution size, length form.**  For unrestricted (DAG/weakening)
+resolution in the list model: any refutation of expander-Tseitin axioms has length
+`≥ n^b / (n-d)^b`, i.e. `n^b ≤ (n-d)^b · |L|`, whenever the width budget `w₀+d+b`
+stays below the rung-1 lower bound `c·t`. -/
+theorem ladder_rung2_dag_size_length
+    {V Edge : Type*} [Fintype V] [DecidableEq V] [Fintype Edge] [DecidableEq Edge] [Nonempty Edge]
+    (G : TseitinGraph V Edge) (charge : V → ZMod 2)
+    (hunsat : ∀ a : Edge → ZMod 2, ∃ v, ¬ TseitinResolution.TConstr G charge v a)
+    (Ax : List (ResolutionClause (TseitinResolution.TLit Edge)))
+    (hAxiom : ∀ C, C ∈ Ax →
+      ∃ v : V, SemanticMeasure.Implies TseitinResolution.TSat (TseitinResolution.TConstr G charge) {v} C)
+    {c t : ℕ} (hc : 1 ≤ c) (hexp : G.HasExpansion c) (ht2 : 2 ≤ t)
+    (hcard : 4 * t ≤ Fintype.card V) {w₀ : ℕ} (hw0 : ∀ C ∈ Ax, ResolutionClause.width C ≤ w₀)
+    {d b : ℕ} (hd : 0 < d) {L : List (ResolutionClause (TseitinResolution.TLit Edge))}
+    (hLD : LDeriv TseitinResolution.tcompl (· ∈ Ax) L)
+    (hmt : (∅ : ResolutionClause (TseitinResolution.TLit Edge)) ∈ L)
+    (hsmall : w₀ + d + b < c * t) :
+    Fintype.card (TseitinResolution.TLit Edge) ^ b
+      ≤ (Fintype.card (TseitinResolution.TLit Edge) - d) ^ b * L.length :=
+  LDeriv.tseitin_size_lower G charge hunsat Ax hAxiom hc hexp ht2 hcard hw0 hd hLD hmt hsmall
+
+/-- **General-resolution size, explicit exponential.**  Every DAG/weakening
+resolution refutation of expander-Tseitin has length `≥ 2^j`, whenever the
+doubling condition `n-d ≤ k·d` holds (`n = |literals|`) and the width budget
+`w₀+d+k·j` stays below the rung-1 lower bound `c·t`. -/
+theorem ladder_rung2_dag_size_exp
+    {V Edge : Type*} [Fintype V] [DecidableEq V] [Fintype Edge] [DecidableEq Edge] [Nonempty Edge]
+    (G : TseitinGraph V Edge) (charge : V → ZMod 2)
+    (hunsat : ∀ a : Edge → ZMod 2, ∃ v, ¬ TseitinResolution.TConstr G charge v a)
+    (Ax : List (ResolutionClause (TseitinResolution.TLit Edge)))
+    (hAxiom : ∀ C, C ∈ Ax →
+      ∃ v : V, SemanticMeasure.Implies TseitinResolution.TSat (TseitinResolution.TConstr G charge) {v} C)
+    {c t : ℕ} (hc : 1 ≤ c) (hexp : G.HasExpansion c) (ht2 : 2 ≤ t)
+    (hcard : 4 * t ≤ Fintype.card V) {w₀ : ℕ} (hw0 : ∀ C ∈ Ax, ResolutionClause.width C ≤ w₀)
+    {d k j : ℕ} (hd : 0 < d) (hk1 : 1 ≤ k)
+    (hdn : d < Fintype.card (TseitinResolution.TLit Edge))
+    (hkd : Fintype.card (TseitinResolution.TLit Edge) - d ≤ k * d)
+    {L : List (ResolutionClause (TseitinResolution.TLit Edge))}
+    (hLD : LDeriv TseitinResolution.tcompl (· ∈ Ax) L)
+    (hmt : (∅ : ResolutionClause (TseitinResolution.TLit Edge)) ∈ L)
+    (hsmall : w₀ + d + k * j < c * t) :
+    2 ^ j ≤ L.length :=
+  LDeriv.tseitin_size_exp G charge hunsat Ax hAxiom hc hexp ht2 hcard hw0 hd hk1 hdn hkd hLD hmt hsmall
 
 /-! ## Rung 3 (SUBSTRATES PROVED): algebraic/semi-algebraic systems -/
 
