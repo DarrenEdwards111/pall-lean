@@ -52,6 +52,27 @@ theorem exists_popular_literal [Nonempty Lit]
       _ ≤ ∑ C ∈ F, C.card := Finset.sum_le_sum (fun C hC => hfat C hC)
   omega
 
+/-- **Multiplicative-decay step.**  Restricting the popular literal `ℓ` (setting it
+true) removes every clause of `F` containing `ℓ`; by the averaging bound the
+surviving fat clauses `F'` (those *not* containing `ℓ`) satisfy
+`n · |F'| ≤ (n - d) · |F|`.  This is the per-round reduction the fat-clause
+recursion iterates: a `(1 - d/n)`-factor drop in the fat-clause count. -/
+theorem fat_count_decreases [Nonempty Lit]
+    (F : Finset (ResolutionClause Lit)) {d : ℕ} (hfat : ∀ C ∈ F, d < C.card) :
+    ∃ ℓ : Lit, Fintype.card Lit * (F.filter (fun C => ℓ ∉ C)).card
+      ≤ (Fintype.card Lit - d) * F.card := by
+  obtain ⟨ℓ, hℓ⟩ := exists_popular_literal F hfat
+  refine ⟨ℓ, ?_⟩
+  have hsplit := Finset.card_filter_add_card_filter_not (s := F) (p := fun C => ℓ ∈ C)
+  have hdist : Fintype.card Lit * (F.filter (fun C => ℓ ∈ C)).card
+      + Fintype.card Lit * (F.filter (fun C => ℓ ∉ C)).card
+      = Fintype.card Lit * F.card := by
+    rw [← Nat.mul_add, hsplit]
+  have hnd : (Fintype.card Lit - d) * F.card = Fintype.card Lit * F.card - d * F.card :=
+    Nat.sub_mul _ _ _
+  omega
+
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.exists_popular_literal
+#print axioms PallLean.Paper93.DeepMath.PathB.fat_count_decreases
