@@ -102,9 +102,72 @@ theorem decay_zero {n d : ℕ} (a : ℕ → ℕ) (hstep : ∀ i, n * a (i + 1) �
   have := decay_pow a hstep k
   omega
 
+/-- Binomial lower bound `m^{k+1} + (k+1)·d·m^k ≤ (m+d)^{k+1}` (two leading terms). -/
+theorem bernoulli_pow (m d : ℕ) : ∀ k, m ^ (k + 1) + (k + 1) * d * m ^ k ≤ (m + d) ^ (k + 1) := by
+  intro k
+  induction k with
+  | zero => simp [pow_succ, Nat.mul_comm]
+  | succ k ih =>
+    have hexp : (m + d) ^ (k + 2) = (m + d) ^ (k + 1) * m + (m + d) ^ (k + 1) * d := by
+      rw [pow_succ]; ring
+    have hstep : ((m ^ (k + 1) + (k + 1) * d * m ^ k)) * m
+        + (m ^ (k + 1) + (k + 1) * d * m ^ k) * d
+        ≤ (m + d) ^ (k + 1) * m + (m + d) ^ (k + 1) * d :=
+      Nat.add_le_add (Nat.mul_le_mul_right _ ih) (Nat.mul_le_mul_right _ ih)
+    rw [hexp]
+    refine le_trans ?_ hstep
+    have e1 : (m ^ (k + 1) + (k + 1) * d * m ^ k) * m = m ^ (k + 2) + (k + 1) * d * m ^ (k + 1) := by
+      rw [pow_succ, pow_succ]; ring
+    have e2 : (m ^ (k + 1) + (k + 1) * d * m ^ k) * d
+        = m ^ (k + 1) * d + (k + 1) * d * d * m ^ k := by ring
+    rw [e1, e2]
+    have : m ^ (k + 2) + (k + 1 + 1) * d * m ^ (k + 1)
+        = m ^ (k + 2) + (k + 1) * d * m ^ (k + 1) + m ^ (k + 1) * d := by ring
+    rw [this]
+    omega
+
+/-- **The decay terminates.**  With a per-round drop `n·a_{i+1} ≤ (n-d)·a_i` and
+`1 ≤ d ≤ n-1` (so `0 < n-d < n`), the fat-count reaches `0`: `∃ k, a k = 0`. -/
+theorem exists_decay_zero {n d : ℕ} (a : ℕ → ℕ)
+    (hstep : ∀ i, n * a (i + 1) ≤ (n - d) * a i) (hd1 : 1 ≤ d) (hdn : d + 1 ≤ n) :
+    ∃ k, a k = 0 := by
+  rcases Nat.eq_zero_or_pos (a 0) with h0 | h0
+  · exact ⟨0, h0⟩
+  · refine ⟨(a 0 - 1) * (n - d) + 1, decay_zero a hstep _ ?_⟩
+    set m := n - d with hm
+    have hm1 : 1 ≤ m := by omega
+    have hmn : m + d = n := by omega
+    set K := (a 0 - 1) * m with hK
+    have hbern := bernoulli_pow m d K
+    rw [hmn] at hbern
+    -- hbern : m^(K+1) + (K+1)*d*m^K ≤ n^(K+1)
+    have hlt : (a 0) * m ^ (K + 1) < m ^ (K + 1) + (K + 1) * d * m ^ K := by
+      have hmpos : 0 < m ^ K := pow_pos hm1 K
+      have hkey : (a 0 - 1) * m * m ^ K < (K + 1) * d * m ^ K := by
+        have hlt2 : (a 0 - 1) * m < (K + 1) * d := by
+          rw [hK]
+          have h1 : (a 0 - 1) * m + 1 ≤ ((a 0 - 1) * m + 1) * d := by
+            calc (a 0 - 1) * m + 1 = ((a 0 - 1) * m + 1) * 1 := by rw [Nat.mul_one]
+              _ ≤ ((a 0 - 1) * m + 1) * d := mul_le_mul_left' hd1 _
+          omega
+        exact mul_lt_mul_of_pos_right hlt2 hmpos
+      have ha0m : a 0 * m = (a 0 - 1) * m + m := by
+        have hle : m ≤ a 0 * m := Nat.le_mul_of_pos_left m h0
+        rw [Nat.sub_one_mul]
+        omega
+      have e3 : (a 0) * m ^ (K + 1) = (a 0 - 1) * m * m ^ K + m * m ^ K := by
+        rw [pow_succ, mul_comm (m ^ K) m, ← mul_assoc, ha0m, add_mul]
+      have e4 : m ^ (K + 1) = m * m ^ K := by rw [pow_succ, mul_comm]
+      rw [e3, e4]
+      omega
+    calc (n - d) ^ (K + 1) * a 0 = (a 0) * m ^ (K + 1) := by rw [hm]; ring
+      _ < m ^ (K + 1) + (K + 1) * d * m ^ K := hlt
+      _ ≤ n ^ (K + 1) := hbern
+
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.exists_popular_literal
 #print axioms PallLean.Paper93.DeepMath.PathB.fat_count_decreases
 #print axioms PallLean.Paper93.DeepMath.PathB.decay_pow
 #print axioms PallLean.Paper93.DeepMath.PathB.decay_zero
+#print axioms PallLean.Paper93.DeepMath.PathB.exists_decay_zero
