@@ -72,7 +72,39 @@ theorem fat_count_decreases [Nonempty Lit]
     Nat.sub_mul _ _ _
   omega
 
+/-! ## The multiplicative-decay recursion (quantitative core, integer form) -/
+
+/-- **Decay recursion.**  If a fat-count sequence drops by the per-round factor
+(`n·a_{i+1} ≤ (n-d)·a_i`), then after `k` rounds `n^k · a_k ≤ (n-d)^k · a_0`. -/
+theorem decay_pow {n d : ℕ} (a : ℕ → ℕ) (hstep : ∀ i, n * a (i + 1) ≤ (n - d) * a i) :
+    ∀ k, n ^ k * a k ≤ (n - d) ^ k * a 0 := by
+  intro k
+  induction k with
+  | zero => simp
+  | succ k ih =>
+    calc n ^ (k + 1) * a (k + 1)
+        = n ^ k * (n * a (k + 1)) := by rw [pow_succ, mul_assoc]
+      _ ≤ n ^ k * ((n - d) * a k) := Nat.mul_le_mul (le_refl _) (hstep k)
+      _ = (n - d) * (n ^ k * a k) := by rw [mul_left_comm]
+      _ ≤ (n - d) * ((n - d) ^ k * a 0) := Nat.mul_le_mul (le_refl _) ih
+      _ = (n - d) ^ (k + 1) * a 0 := by rw [← mul_assoc, ← pow_succ']
+
+/-- **The fat clauses are exhausted.**  Once the decayed bound drops below `n^k`
+(which happens after `≈ (n/d)·ln a₀` rounds, with `d` chosen `≈ √(n log S)`), the
+fat-count is forced to `0` — no fat clauses survive, so the residual refutation has
+width `≤ d`.  This is the integer core; the round-count / `√`-optimisation of `d` is
+the only remaining (real-valued) accounting. -/
+theorem decay_zero {n d : ℕ} (a : ℕ → ℕ) (hstep : ∀ i, n * a (i + 1) ≤ (n - d) * a i)
+    (k : ℕ) (hk : (n - d) ^ k * a 0 < n ^ k) : a k = 0 := by
+  by_contra h
+  have h1 : 0 < a k := Nat.pos_of_ne_zero h
+  have hle : n ^ k ≤ n ^ k * a k := Nat.le_mul_of_pos_right _ h1
+  have := decay_pow a hstep k
+  omega
+
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.exists_popular_literal
 #print axioms PallLean.Paper93.DeepMath.PathB.fat_count_decreases
+#print axioms PallLean.Paper93.DeepMath.PathB.decay_pow
+#print axioms PallLean.Paper93.DeepMath.PathB.decay_zero
