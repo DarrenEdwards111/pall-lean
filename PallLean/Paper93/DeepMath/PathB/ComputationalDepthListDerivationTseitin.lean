@@ -97,6 +97,29 @@ theorem tseitin_fatcount_ge (G : TseitinGraph V Edge) (charge : V → ZMod 2)
   push_neg at h
   exact tseitin_size_width G charge hunsat Ax hAxiom hc hexp ht2 hcard hw0 hd hLD hmt h hsmall
 
+/-- The fat-clause count is at most the refutation length (number of clause
+occurrences). -/
+theorem fatSet_card_le_length (d : ℕ) (L : List (ResolutionClause (TLit Edge))) :
+    (fatSet d L).card ≤ L.length :=
+  le_trans (Finset.card_filter_le _ _) (List.toFinset_card_le L)
+
+/-- **BSW size lower bound for expander Tseitin.**  When `w₀ + d + b < c·t`, every
+refutation has length `≥ n^b / (n-d)^b`: `n^b ≤ (n-d)^b · |L|`.  This is the
+genuine size lower bound; `d ≈ √(n ln S)` turns it into the exponential form. -/
+theorem tseitin_size_lower (G : TseitinGraph V Edge) (charge : V → ZMod 2)
+    (hunsat : ∀ a : Edge → ZMod 2, ∃ v, ¬ TConstr G charge v a)
+    (Ax : List (ResolutionClause (TLit Edge)))
+    (hAxiom : ∀ C, C ∈ Ax → ∃ v : V, SemanticMeasure.Implies TSat (TConstr G charge) {v} C)
+    {c t : ℕ} (hc : 1 ≤ c) (hexp : G.HasExpansion c) (ht2 : 2 ≤ t)
+    (hcard : 4 * t ≤ Fintype.card V) {w₀ : ℕ} (hw0 : ∀ C ∈ Ax, ResolutionClause.width C ≤ w₀)
+    {d b : ℕ} (hd : 0 < d) {L : List (ResolutionClause (TLit Edge))}
+    (hLD : LDeriv tcompl (· ∈ Ax) L) (hmt : (∅ : ResolutionClause (TLit Edge)) ∈ L)
+    (hsmall : w₀ + d + b < c * t) :
+    Fintype.card (TLit Edge) ^ b ≤ (Fintype.card (TLit Edge) - d) ^ b * L.length :=
+  le_trans
+    (tseitin_fatcount_ge G charge hunsat Ax hAxiom hc hexp ht2 hcard hw0 hd hLD hmt hsmall)
+    (Nat.mul_le_mul_left _ (fatSet_card_le_length d L))
+
 end LDeriv
 
 end PallLean.Paper93.DeepMath.PathB
