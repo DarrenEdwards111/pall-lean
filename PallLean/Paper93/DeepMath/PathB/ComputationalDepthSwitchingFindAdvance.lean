@@ -64,7 +64,7 @@ theorem find?_some_decompose {α : Type*} {p : α → Bool} {l : List α} {C : �
       · exact hpre x hx
 
 /-- The predicate defining the active clause. -/
-private def acP (σ : Restriction n) (C : Clause n) : Bool :=
+def acP (σ : Restriction n) (C : Clause n) : Bool :=
   !clauseSatisfied σ C && decide (0 < (freeLits σ C).length)
 
 /-- **Active-clause advance at a boundary.**  When the active clause `C` has exactly one
@@ -104,9 +104,27 @@ theorem activeClause_actStep_advance {cs : List (Clause n)} {σ : Restriction n}
   · -- `C` itself is exhausted
     rw [acP, hexh]; simp
 
+/-- **Complete transition semantics (one recurrence).**  From an active clause `C`,
+one step either stays (`≥ 2` free literals) or advances past the now-exhausted `C`
+(`= 1` free literal); a clause with `0` free literals never occurs as the active
+clause.  This is the full clause-pointer motion in a single theorem. -/
+theorem activeClause_actStep_recurrence {cs : List (Clause n)} {σ : Restriction n}
+    {C : Clause n} (hnodup : (C.lits.map litVar).Nodup) (hC : activeClause cs σ = some C) :
+    (1 < (freeLits σ C).length ∧ activeClause cs (actStep cs σ) = some C) ∨
+      ((freeLits σ C).length = 1 ∧ ∃ pre post, cs = pre ++ C :: post ∧
+        activeClause cs (actStep cs σ) = post.find? (acP (actStep cs σ))) := by
+  have hpos : 0 < (freeLits σ C).length := activeClause_hasFree hC
+  rcases Nat.lt_or_ge (freeLits σ C).length 2 with h | h
+  · right
+    have h1 : (freeLits σ C).length = 1 := by omega
+    exact ⟨h1, activeClause_actStep_advance hC h1⟩
+  · left
+    exact ⟨h, activeClause_stable hnodup hC h⟩
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.find?_advance_append
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.activeClause_actStep_advance
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.activeClause_actStep_recurrence
