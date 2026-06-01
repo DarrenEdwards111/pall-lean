@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingCompletion
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingFindAdvance
 
 /-!
 # Exact Håstad encoding: the DNF/term reframing (soundness foundation)
@@ -104,9 +105,61 @@ theorem term_falsified_of_not_sat_no_free {σ : Restriction n} {T : Clause n}
       rw [this] at hcon; simp at hcon
   rw [hall] at hsat; simp at hsat
 
+/-- The DNF is satisfied under `σ` (some term all-true). -/
+def anyTermSat (cs : List (Clause n)) (σ : Restriction n) : Bool :=
+  cs.any (termSat σ)
+
+/-- The decision tree's active term: the first live term with a free literal — *unless*
+some term is already satisfied (then the DNF is `1`, a leaf, and there is no active term). -/
+def activeTerm (cs : List (Clause n)) (σ : Restriction n) : Option (Clause n) :=
+  bif anyTermSat cs σ then none
+  else cs.find? (fun T => !termFalsified σ T && decide (0 < (freeLits σ T).length))
+
+theorem activeTerm_anyTermSat_false {cs : List (Clause n)} {σ : Restriction n} {T : Clause n}
+    (h : activeTerm cs σ = some T) : anyTermSat cs σ = false := by
+  unfold activeTerm at h
+  cases hb : anyTermSat cs σ with
+  | true => rw [hb] at h; simp at h
+  | false => rfl
+
+theorem activeTerm_eq_find {cs : List (Clause n)} {σ : Restriction n}
+    (h : anyTermSat cs σ = false) :
+    activeTerm cs σ
+      = cs.find? (fun T => !termFalsified σ T && decide (0 < (freeLits σ T).length)) := by
+  unfold activeTerm; rw [h, cond_false]
+
+/-- **Prefix-falsified soundness (the crux the CNF walk lacked).**  Every term before the
+active term is *falsified*: it is skipped by the decision tree, and — since no term is
+satisfied (else we would be at a leaf) — the dichotomy forces it false. -/
+theorem activeTerm_prefix_falsified {cs : List (Clause n)} {σ : Restriction n} {T : Clause n}
+    (h : activeTerm cs σ = some T) :
+    ∃ pre post, cs = pre ++ T :: post ∧ ∀ C' ∈ pre, termFalsified σ C' = true := by
+  have hns := activeTerm_anyTermSat_false h
+  have hfind : cs.find? (fun T => !termFalsified σ T && decide (0 < (freeLits σ T).length))
+      = some T := activeTerm_eq_find hns ▸ h
+  obtain ⟨pre, post, hcs, hpre, _⟩ := find?_some_decompose hfind
+  refine ⟨pre, post, hcs, fun C' hC' => ?_⟩
+  have hp := hpre C' hC'
+  rw [Bool.and_eq_false_iff] at hp
+  rcases hp with h1 | h2
+  · simpa using h1
+  · have hnofree : freeLits σ C' = [] := by
+      rw [decide_eq_false_iff_not, Nat.not_lt, Nat.le_zero,
+        List.length_eq_zero_iff] at h2
+      exact h2
+    have hsat : termSat σ C' = false := by
+      by_contra hc
+      rw [Bool.not_eq_false] at hc
+      have : anyTermSat cs σ = true := by
+        rw [anyTermSat, List.any_eq_true]
+        exact ⟨C', by rw [hcs]; exact List.mem_append_left _ hC', hc⟩
+      rw [this] at hns; simp at hns
+    exact term_falsified_of_not_sat_no_free hsat hnofree
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.termSat_complete_eq_false_of_litFalse
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.term_falsified_of_not_sat_no_free
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.activeTerm_prefix_falsified
