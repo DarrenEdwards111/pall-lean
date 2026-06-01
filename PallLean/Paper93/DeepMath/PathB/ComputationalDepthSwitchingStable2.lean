@@ -146,9 +146,37 @@ theorem activeClause_stable {cs : List (Clause n)} {σ : Restriction n} {C : Cla
       have : freeLits (falFix σ ℓ) C' = [] := freeLits_falFix_eq_nil hempty
       simp [this]
 
+/-- **Boundary case (the active clause advances).**  When the active clause `C` has
+*exactly one* free literal, the step exhausts it — its free list becomes empty — so
+`C` is no longer active and the decoder advances to the next clause.  This is decoder
+invariant point 3: the active clause changes exactly when `freeLits` hits length 0. -/
+theorem freeLits_actStep_eq_nil_of_length_one {cs : List (Clause n)} {σ : Restriction n}
+    {C : Clause n} (hC : activeClause cs σ = some C) (hlen : (freeLits σ C).length = 1) :
+    freeLits (actStep cs σ) C = [] := by
+  obtain ⟨ℓ, hℓ⟩ := Option.isSome_iff_exists.mp (activeLit_isSome hC)
+  have hstep : actStep cs σ = falFix σ ℓ := by rw [actStep, hℓ]
+  have hℓhead : (freeLits σ C).head? = some ℓ := by
+    unfold activeLit at hℓ; rw [hC] at hℓ; exact hℓ
+  -- the single free literal is `ℓ`
+  have hsingle : freeLits σ C = [ℓ] := by
+    obtain ⟨a, ha⟩ := List.length_eq_one_iff.mp hlen
+    rw [ha] at hℓhead ⊢
+    simp only [List.head?_cons, Option.some.injEq] at hℓhead
+    rw [hℓhead]
+  -- the only candidate `ℓ` is now fixed, so nothing free remains
+  rw [hstep, List.eq_nil_iff_forall_not_mem]
+  intro x hx
+  have hxsub : x ∈ freeLits σ C := freeLits_falFix_subset hx
+  rw [hsingle, List.mem_singleton] at hxsub
+  subst hxsub
+  have hfree : Depth3.litFree (falFix σ x) x = true := (List.mem_filter.mp hx).2
+  rw [litFree_var, falFix, Function.update_self] at hfree
+  simp at hfree
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.activeClause_stable
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.freeLits_falFix_ne_nil
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.freeLits_actStep_eq_nil_of_length_one
