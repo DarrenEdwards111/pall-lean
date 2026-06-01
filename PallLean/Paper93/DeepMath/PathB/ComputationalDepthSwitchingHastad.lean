@@ -65,8 +65,48 @@ theorem termSat_complete_eq_false_of_litFalse {ρ : Restriction n}
     litTrue_eq_false_of_litFalse hfalse] at hℓtrue
   simp at hℓtrue
 
+/-- A term (conjunction) is *falsified* if some literal is forced false. -/
+def termFalsified (σ : Restriction n) (T : Clause n) : Bool :=
+  T.lits.any (litFalse σ)
+
+/-- A literal that is neither free nor false is forced true. -/
+theorem litTrue_of_not_free_not_false {σ : Restriction n} {ℓ : Rung4Literal n}
+    (hfree : Depth3.litFree σ ℓ = false) (hfalse : litFalse σ ℓ = false) :
+    Depth3.litTrue σ ℓ = true := by
+  cases hv : Depth3.litFixedVal σ ℓ with
+  | none => simp [Depth3.litFree, hv] at hfree
+  | some b =>
+    cases b with
+    | false => simp [litFalse, hv] at hfalse
+    | true => unfold Depth3.litTrue; rw [hv]
+
+/-- **Term dichotomy.**  A fully-fixed term (no free literal) is either satisfied or
+falsified — if it is not satisfied, some literal is forced false.  This is what makes a
+*skipped* (non-active, non-satisfied) term necessarily *falsified*, so the decoder's
+`termSat` selector cannot mistake it for a processed term. -/
+theorem term_falsified_of_not_sat_no_free {σ : Restriction n} {T : Clause n}
+    (hsat : termSat σ T = false) (hnofree : freeLits σ T = []) :
+    termFalsified σ T = true := by
+  by_contra hcon
+  rw [Bool.not_eq_true] at hcon
+  have hall : termSat σ T = true := by
+    rw [termSat, List.all_eq_true]
+    intro ℓ hℓ
+    refine litTrue_of_not_free_not_false ?_ ?_
+    · by_contra hf
+      rw [Bool.not_eq_false] at hf
+      have : ℓ ∈ freeLits σ T := List.mem_filter.mpr ⟨hℓ, hf⟩
+      rw [hnofree] at this; simp at this
+    · by_contra hf
+      rw [Bool.not_eq_false] at hf
+      have : termFalsified σ T = true := by
+        rw [termFalsified, List.any_eq_true]; exact ⟨ℓ, hℓ, hf⟩
+      rw [this] at hcon; simp at hcon
+  rw [hall] at hsat; simp at hsat
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.termSat_complete_eq_false_of_litFalse
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.term_falsified_of_not_sat_no_free
