@@ -80,8 +80,42 @@ theorem found_confirms {σstar : Restriction n} {suffix : List (Clause n)} {bloc
   have hb := dropWhile_head_not h
   simpa using hb
 
+/-- `dropWhile` lands on the first element failing `p`, given the prefix all passes `p`. -/
+theorem dropWhile_eq_of_prefix {α : Type*} {p : α → Bool} {pre : List α} {C : α}
+    {post : List α} (hpre : ∀ x ∈ pre, p x = true) (hC : p C = false) :
+    (pre ++ C :: post).dropWhile p = C :: post := by
+  induction pre with
+  | nil =>
+    have hunfold : (C :: post).dropWhile p
+        = match p C with | true => post.dropWhile p | false => C :: post := rfl
+    rw [List.nil_append, hunfold, hC]
+  | cons a pre ih =>
+    have ha := hpre a (List.mem_cons.mpr (Or.inl rfl))
+    have hunfold : ((a :: pre) ++ C :: post).dropWhile p
+        = match p a with | true => (pre ++ C :: post).dropWhile p | false => (a :: pre) ++ C :: post :=
+      rfl
+    rw [hunfold, ha]
+    exact ih (fun x hx => hpre x (List.mem_cons.mpr (Or.inr hx)))
+
+/-- **One-step walk correctness (given the no-spurious-confirm invariant).**  If the
+target clause `C` confirms its block and every clause before it in the suffix does *not*
+confirm, the walk lands on `C`: it collects `C`'s block variables and recurses on the
+clauses after `C`.  The hypothesis `hpre` is the decoder invariant — that skipped clauses
+do not spuriously confirm with the current block; discharging it (against the canonical
+encoding) is the remaining content. -/
+theorem walkVars_step {σstar : Restriction n} {pre : List (Clause n)} {C : Clause n}
+    {post : List (Clause n)} {block : List ℕ} {rest : List (List ℕ)}
+    (hpre : ∀ C' ∈ pre, confirm σstar (blockVars C' block) C' = false)
+    (hC : confirm σstar (blockVars C block) C = true) :
+    walkVars σstar (pre ++ C :: post) (block :: rest)
+      = blockVars C block ∪ walkVars σstar post rest := by
+  rw [walkVars_cons,
+    dropWhile_eq_of_prefix (p := fun C' => !confirm σstar (blockVars C' block) C')
+      (fun C' hC' => by simp [hpre C' hC']) (by simp [hC])]
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.found_confirms
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.walkVars_step
