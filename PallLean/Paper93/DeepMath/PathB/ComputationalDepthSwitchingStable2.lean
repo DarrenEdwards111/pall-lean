@@ -67,6 +67,88 @@ theorem freeLits_falFix_eq_nil {σ : Restriction n} {ℓ : Rung4Literal n} {C : 
     (h : freeLits σ C = []) : freeLits (falFix σ ℓ) C = [] :=
   List.eq_nil_of_subset_nil (h ▸ freeLits_falFix_subset)
 
+/-- A literal on a different variable than the fixed one keeps its free status. -/
+theorem litFree_falFix_ne {σ : Restriction n} {ℓ ℓ' : Rung4Literal n}
+    (hv : litVar ℓ' ≠ litVar ℓ) : Depth3.litFree (falFix σ ℓ) ℓ' = Depth3.litFree σ ℓ' := by
+  rw [litFree_var, litFree_var, falFix, Function.update_of_ne hv]
+
+/-- **A clause with `≥ 2` free literals still has one after a step.**  The active
+literal `ℓ` is the *head* free literal; with distinct clause variables the *second*
+free literal lives on a different variable, so it stays free under `falFix σ ℓ`. -/
+theorem freeLits_falFix_ne_nil {σ : Restriction n} {C : Clause n} {ℓ : Rung4Literal n}
+    (hnodup : (C.lits.map litVar).Nodup)
+    (hℓ : (freeLits σ C).head? = some ℓ)
+    (hlen : 1 < (freeLits σ C).length) :
+    freeLits (falFix σ ℓ) C ≠ [] := by
+  -- Expose the second free literal `ℓ₂`.
+  obtain ⟨a, t, hat⟩ := List.exists_cons_of_ne_nil
+    (l := freeLits σ C) (by intro h; rw [h] at hlen; simp at hlen)
+  have ha : a = ℓ := by rw [hat] at hℓ; simpa using hℓ
+  obtain ⟨ℓ₂, rest', hts⟩ := List.exists_cons_of_ne_nil
+    (l := t) (by intro h; rw [hat, h] at hlen; simp at hlen)
+  have hcons : freeLits σ C = ℓ :: ℓ₂ :: rest' := by rw [hat, hts, ha]
+  have hmem2 : ℓ₂ ∈ freeLits σ C := by
+    rw [hcons]; exact List.mem_cons.mpr (Or.inr (List.mem_cons.mpr (Or.inl rfl)))
+  have hmemℓ : ℓ ∈ freeLits σ C := by rw [hcons]; exact List.mem_cons.mpr (Or.inl rfl)
+  have hfree2 : Depth3.litFree σ ℓ₂ = true := (List.mem_filter.mp hmem2).2
+  have hC2 : ℓ₂ ∈ C.lits := (List.mem_filter.mp hmem2).1
+  have hCℓ : ℓ ∈ C.lits := (List.mem_filter.mp hmemℓ).1
+  -- `ℓ ≠ ℓ₂` from `Nodup`, hence `litVar ℓ₂ ≠ litVar ℓ` by injectivity on `C.lits`.
+  have hndF : (freeLits σ C).Nodup := (List.Nodup.of_map litVar hnodup).filter _
+  rw [hcons] at hndF
+  have hne : ℓ ≠ ℓ₂ := by
+    intro h; rw [h] at hndF
+    exact (List.nodup_cons.mp hndF).1 (List.mem_cons.mpr (Or.inl rfl))
+  have hvne : litVar ℓ₂ ≠ litVar ℓ := fun hv =>
+    hne (List.inj_on_of_nodup_map hnodup hCℓ hC2 hv.symm)
+  -- `ℓ₂` stays free, so the free list is nonempty.
+  intro hnil
+  have : ℓ₂ ∈ freeLits (falFix σ ℓ) C :=
+    List.mem_filter.mpr ⟨hC2, by rw [litFree_falFix_ne hvne]; exact hfree2⟩
+  rw [hnil] at this
+  simp at this
+
+/-- **Active-clause stability (the decoder invariant).**  While the active clause `C`
+still has `≥ 2` free literals, one falsification step does not move the active clause:
+the discarded prefix stays discarded (satisfied clauses stay satisfied; exhausted
+clauses stay exhausted) and `C` stays unsatisfied with a free literal remaining. -/
+theorem activeClause_stable {cs : List (Clause n)} {σ : Restriction n} {C : Clause n}
+    (hnodup : (C.lits.map litVar).Nodup)
+    (hC : activeClause cs σ = some C)
+    (hlen : 1 < (freeLits σ C).length) :
+    activeClause cs (actStep cs σ) = some C := by
+  obtain ⟨ℓ, hℓ⟩ := Option.isSome_iff_exists.mp (activeLit_isSome hC)
+  have hstep : actStep cs σ = falFix σ ℓ := by rw [actStep, hℓ]
+  have hℓhead : (freeLits σ C).head? = some ℓ := by
+    unfold activeLit at hℓ; rw [hC] at hℓ; exact hℓ
+  have hℓfree : Depth3.litFree σ ℓ = true := activeLit_free hℓ
+  have hℓmem : ℓ ∈ C.lits :=
+    (List.mem_filter.mp (List.mem_of_mem_head? hℓhead)).1
+  rw [hstep, activeClause]
+  refine find?_stable hC ?_ ?_
+  · -- `C` still passes: unsatisfied, with a free literal remaining.
+    simp only [Bool.and_eq_true, Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_true_eq]
+    refine ⟨?_, ?_⟩
+    · exact clauseSatisfied_falFix σ C hℓmem
+        (fun a ha b hb h => List.inj_on_of_nodup_map hnodup ha hb h) (activeClause_unsat hC)
+    · exact List.length_pos_of_ne_nil (freeLits_falFix_ne_nil hnodup hℓhead hlen)
+  · -- discarded clauses stay discarded.
+    intro C' _ hpf
+    by_cases hsat : clauseSatisfied σ C' = true
+    · have : clauseSatisfied (falFix σ ℓ) C' = true := clauseSatisfied_mono_falFix C' hℓfree hsat
+      simp [this]
+    · have hns : clauseSatisfied σ C' = false := by simpa using hsat
+      have hempty : freeLits σ C' = [] := by
+        rw [hns] at hpf
+        simp only [Bool.not_false, Bool.true_and, decide_eq_false_iff_not] at hpf
+        rw [List.length_pos_iff_ne_nil, not_not] at hpf
+        exact hpf
+      have : freeLits (falFix σ ℓ) C' = [] := freeLits_falFix_eq_nil hempty
+      simp [this]
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
+
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.activeClause_stable
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.freeLits_falFix_ne_nil
