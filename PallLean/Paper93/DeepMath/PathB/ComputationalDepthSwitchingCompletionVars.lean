@@ -110,9 +110,19 @@ theorem freeOn_completionVars_eq (cs : List (Clause n)) (ρ : Restriction n) (s 
   rw [completionVars_eq]
   exact List.mem_toFinset
 
+/-- **Recovery injectivity (the content of `hrec`).**  A restriction is determined by its
+satisfying completion together with its per-clause labels: if two restrictions share both,
+they are equal.  Immediate from `decode_encode_id`, since the decoder is a function of
+exactly that data. -/
+theorem bad_inj {cs : List (Clause n)} {s : ℕ} {ρ σ : Restriction n}
+    (hcomplete : complete ρ (pathLits cs ρ s) = complete σ (pathLits cs σ s))
+    (hsel : pathClauseVars cs ρ s = pathClauseVars cs σ s) : ρ = σ := by
+  rw [← freeOn_completionVars_eq cs ρ s, ← freeOn_completionVars_eq cs σ s, hcomplete, hsel]
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.completionVars_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.freeOn_completionVars_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.bad_inj
