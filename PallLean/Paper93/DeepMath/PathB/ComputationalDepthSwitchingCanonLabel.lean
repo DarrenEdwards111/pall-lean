@@ -153,6 +153,21 @@ theorem canonBlocks_union_eq_pathvars (ρ : Restriction n) (cs : List (Clause n)
       cs.length (List.length_filter_le _ _),
     termWalkVars_encLits_eq_pathvars ρ cs hcs]
 
+/-- **Determinism core (`canonLabel_det`, block level).**  If the canonical first-claim block
+lists agree, the path-variable sets agree — *immediately* from `canonBlocks_union_eq_pathvars`
+(each side's blocks union to its path-variable set).  This is the logical heart of
+`canonLabel_det`; what remains to make the *label* `(2w)^s`-sized is to present the blocks as
+tokenized `Fin w` positions (`tokFlatten`/`tokFlatten_inj`, below) recovered via the confirmed
+terms (which equal `σ*` determines), so that equal flat labels force equal blocks here. -/
+theorem canonBlocks_det_pathvars (ρ σ : Restriction n) (cs : List (Clause n))
+    (hcsρ : ∀ T ∈ cs, (T.lits.map litVar).Nodup)
+    (hcsσ : ∀ T ∈ cs, (T.lits.map litVar).Nodup)
+    (hblocks : canonBlocks (encLits ρ cs) ∅ (cs.filter (termSat (complete ρ (encLits ρ cs))))
+        = canonBlocks (encLits σ cs) ∅ (cs.filter (termSat (complete σ (encLits σ cs))))) :
+    ((encLits ρ cs).map litVar).toFinset = ((encLits σ cs).map litVar).toFinset := by
+  rw [← canonBlocks_union_eq_pathvars ρ cs hcsρ, ← canonBlocks_union_eq_pathvars σ cs hcsσ,
+    hblocks]
+
 /-! ## Delimiter-tokenized flattening (handles empty blocks) -/
 
 /-- A token of the canonical flat label: either a within-block index (`Fin w`) or an
@@ -215,5 +230,6 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_sum_card_eq_length
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_pairwise_disjoint
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_union_eq_pathvars
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_det_pathvars
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.tokGroup_tokFlatten
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.tokFlatten_inj
