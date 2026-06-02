@@ -1,6 +1,7 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingHastad
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingWalk
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingCompletionVars
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingFlatten
 
 /-!
 # The DNF decoder walk on the sound `termSat` selector
@@ -384,6 +385,25 @@ theorem termWalkLab_blockOf_eq (σstar : Restriction n) (litList : List (Rung4Li
       simp only [List.map_cons, List.zipWith_cons_cons, blockVars_blockOf, ih]
   rw [termWalkLab_eq, List.length_map, List.take_length, hzip,
     termWalk_eq_filter_full _ _ _ _ (le_refl _), List.foldr_map]
+
+/-- **Decode from the flat label.**  Grouping the flat label (the ungrouped blocks) and
+running the label-driven walk recovers exactly what the walk on the blocks gives — so the
+flat `(index, isLast)` sequence is a sufficient label, and the recovery is `freeOn` of that.
+Combined with `ungroupBlocks_inj`, the flat label determines the recovered set. -/
+theorem termWalkLab_groupBlocks_ungroupBlocks (σstar : Restriction n)
+    (cs : List (Clause n)) (blocks : List (List ℕ)) (hne : ∀ b ∈ blocks, b ≠ []) :
+    termWalkLab σstar cs (groupBlocks (ungroupBlocks blocks)) = termWalkLab σstar cs blocks := by
+  rw [groupBlocks_ungroupBlocks blocks hne]
+
+/-- **The flat label determines the recovered variable set.**  If two restrictions have
+equal completions and equal flat labels (over nonempty blocks), the label-driven walk yields
+the same set — discharging `hlabdet` at the flat-label level (via `ungroupBlocks_inj`). -/
+theorem termWalkLab_flat_det {σstar τstar : Restriction n} {cs : List (Clause n)}
+    {blocksρ blocksσ : List (List ℕ)}
+    (hbρ : ∀ b ∈ blocksρ, b ≠ []) (hbσ : ∀ b ∈ blocksσ, b ≠ [])
+    (hσ : σstar = τstar) (hlab : ungroupBlocks blocksρ = ungroupBlocks blocksσ) :
+    termWalkLab σstar cs blocksρ = termWalkLab τstar cs blocksσ := by
+  rw [ungroupBlocks_inj hbρ hbσ hlab, hσ]
 
 end SwitchingCounting
 
