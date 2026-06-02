@@ -89,6 +89,17 @@ theorem encFlatLabel_length (ρ : Restriction n) (cs : List (Clause n)) :
   rw [encFlatLabel, ungroupBlocks_length, encBlocks, List.map_map]
   rfl
 
+/-- **Every path variable belongs to a confirmed term.**  Each encoder path literal lies in a
+`σ*`-confirmed term (from `encLits_hterm`), so its variable is among that confirmed term's
+variables.  This is the foundation for relating the flat-label length to the star count: the
+path variables are covered by the confirmed clauses, so when those clauses are
+variable-disjoint each path variable is counted exactly once. -/
+theorem encLits_var_mem_confirmed (ρ : Restriction n) (cs : List (Clause n))
+    (hcs : ∀ T ∈ cs, (T.lits.map litVar).Nodup) {ℓ : Rung4Literal n} (hℓ : ℓ ∈ encLits ρ cs) :
+    ∃ T ∈ cs.filter (termSat (complete ρ (encLits ρ cs))), litVar ℓ ∈ T.lits.map litVar := by
+  obtain ⟨T, hT, hℓT, hsat⟩ := encLits_hterm ρ cs hcs ℓ hℓ
+  exact ⟨T, List.mem_filter.mpr ⟨hT, hsat⟩, List.mem_map.mpr ⟨ℓ, hℓT, rfl⟩⟩
+
 /-! ## Packing the flat label into `PathLabel w s` and the `(2w)^s` count -/
 
 variable {w s : ℕ}
@@ -199,5 +210,6 @@ end SwitchingCounting
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_label_inj
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_var_mem_confirmed
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_switching_count
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_switching_count_width
