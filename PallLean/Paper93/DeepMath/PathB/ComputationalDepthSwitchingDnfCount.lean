@@ -20,6 +20,25 @@ open Depth3
 
 variable {n : ℕ}
 
+/-- **Generic finite-label count scaffold.**  If an encoding `E` lands in `Short`, the pair
+`(E ρ, lab ρ)` determines `ρ`, and the label type `β` has `≤ ℓ` elements, then
+`|Bad| ≤ |Short| · ℓ`.  Decouples the count from any particular label type. -/
+theorem card_bad_le_label_card {β : Type*} [Fintype β] [DecidableEq β]
+    (E : Restriction n → Restriction n) (lab : Restriction n → β)
+    {Bad Short : Finset (Restriction n)} {ℓ : ℕ} (hℓ : Fintype.card β ≤ ℓ)
+    (hmem : ∀ ρ ∈ Bad, E ρ ∈ Short)
+    (hrec : ∀ ρ ∈ Bad, ∀ σ ∈ Bad, E ρ = E σ → lab ρ = lab σ → ρ = σ) :
+    Bad.card ≤ Short.card * ℓ := by
+  classical
+  calc Bad.card
+      ≤ (Short ×ˢ (Finset.univ : Finset β)).card :=
+        Finset.card_le_card_of_injOn (fun ρ => (E ρ, lab ρ))
+          (fun ρ hρ => Finset.mem_product.mpr ⟨hmem ρ hρ, Finset.mem_univ _⟩)
+          (fun ρ hρ σ hσ heq => hrec ρ (Finset.mem_coe.mp hρ) σ (Finset.mem_coe.mp hσ)
+            (congrArg Prod.fst heq) (congrArg Prod.snd heq))
+    _ = Short.card * Fintype.card β := by rw [Finset.card_product, Finset.card_univ]
+    _ ≤ Short.card * ℓ := Nat.mul_le_mul_left _ hℓ
+
 /-- **Generic encoding-count scaffold.**  If an encoding `E` lands in `Short` and the pair
 `(E ρ, lab ρ)` determines `ρ`, then `|Bad| ≤ |Short| · (2w)^s`. -/
 theorem card_bad_le_encoding {w s : ℕ} (E : Restriction n → Restriction n)
