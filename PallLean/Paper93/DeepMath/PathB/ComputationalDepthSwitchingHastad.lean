@@ -241,6 +241,22 @@ theorem termSat_complete_of_term {ρ : Restriction n} {litList : List (Rung4Lite
       (fun hmem => litTrue_litVar_fixed htrue (hfree (litVar ℓ) hmem))]
     exact htrue
 
+/-- **A processed (live) term is satisfied under `σ*`.**  If a term is *live* under `ρ` (no
+forced-false literal) and all of its `ρ`-free literals were chosen into the path (`litList`),
+then it is satisfied under `σ*` — its free literals are set true by the completion, its
+fixed literals are already true (live ⇒ not false ⇒ true).  This discharges the selector's
+satisfaction hypothesis for processed terms. -/
+theorem term_processed_termSat {ρ : Restriction n} {litList : List (Rung4Literal n)}
+    {T : Clause n}
+    (hcover : ∀ ℓ ∈ T.lits, Depth3.litFree ρ ℓ = true → ℓ ∈ litList)
+    (hlive : ∀ ℓ ∈ T.lits, litFalse ρ ℓ = false)
+    (hnd : (litList.map litVar).Nodup) (hfree : ∀ v ∈ litList.map litVar, ρ v = none) :
+    termSat (complete ρ litList) T = true := by
+  refine termSat_complete_of_term (fun ℓ hℓ => ?_) hnd hfree
+  by_cases hf : Depth3.litFree ρ ℓ = true
+  · exact Or.inl (hcover ℓ hℓ hf)
+  · exact Or.inr (litTrue_of_not_free_not_false (by simpa using hf) (hlive ℓ hℓ))
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
