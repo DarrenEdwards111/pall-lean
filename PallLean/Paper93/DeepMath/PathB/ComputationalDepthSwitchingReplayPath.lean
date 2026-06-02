@@ -134,9 +134,37 @@ theorem replayPath_inj (cs : List (Clause n)) (k : ℕ) {σ τ : Restriction n}
     σ = τ := by
   rw [← freeOn_replayPath cs σ k, hp, hs, freeOn_replayPath cs τ k]
 
+/-- **Tight set size: one coordinate per step.**  After `k` flattened steps the selected set
+has at most `k` coordinates — each step adds at most one variable (the active term's first free
+literal).  This is the tight-`s` handle the block route lacks: the flattened path fixes
+exactly one variable per step, so a depth-`s` path selects `≤ s` coordinates (no
+`(term, position)` overcount).  It is what makes a `(2w)^s` label sufficient at the *set*
+level; the remaining open piece is the per-step *decoder* recovering the active term from the
+(falsify) end-state, which is the known reverse-recovery obstruction. -/
+theorem replaySel_card_le (cs : List (Clause n)) (σ : Restriction n) (k : ℕ) :
+    (replaySel cs σ k).card ≤ k := by
+  induction k with
+  | zero => simp [replaySel]
+  | succ k ih =>
+    have hstep : (match activeTermLit cs (replayPath cs σ k) with
+        | none => (∅ : Finset (Fin n)) | some ℓ => {litVar ℓ}).card ≤ 1 := by
+      cases activeTermLit cs (replayPath cs σ k) with
+      | none => simp
+      | some ℓ => simp
+    calc (replaySel cs σ (k + 1)).card
+        = (replaySel cs σ k ∪
+            (match activeTermLit cs (replayPath cs σ k) with
+              | none => ∅ | some ℓ => {litVar ℓ})).card := by rw [replaySel]
+      _ ≤ (replaySel cs σ k).card +
+            (match activeTermLit cs (replayPath cs σ k) with
+              | none => (∅ : Finset (Fin n)) | some ℓ => {litVar ℓ}).card :=
+          Finset.card_union_le _ _
+      _ ≤ k + 1 := Nat.add_le_add ih hstep
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.freeOn_replayPath
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.replayPath_inj
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.replaySel_card_le
