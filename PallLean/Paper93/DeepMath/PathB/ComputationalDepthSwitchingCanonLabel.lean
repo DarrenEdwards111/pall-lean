@@ -300,10 +300,84 @@ theorem tokFlatten_inj {bs cs : List (List (Fin w))} (h : tokFlatten bs = tokFla
   rw [h, tokGroup_tokFlatten cs] at this
   exact this.symm
 
+/-! ## The canonical flat label and `canonLabel_det` -/
+
+/-- Recover an `ℕ` index list from its `Fin w` coercion (in-range entries). -/
+theorem map_natToFin_val [NeZero w] : ∀ {b : List ℕ}, (∀ i ∈ b, i < w) →
+    (b.map (natToFin w)).map Fin.val = b := by
+  intro b
+  induction b with
+  | nil => intro _; rfl
+  | cons x t ih =>
+    intro hb
+    simp only [List.map_cons, natToFin_val (hb x (List.mem_cons.mpr (Or.inl rfl)))]
+    rw [ih (fun i hi => hb i (List.mem_cons.mpr (Or.inr hi)))]
+
+/-- Recover a list of `ℕ` index-blocks from its `Fin w` coercion (in-range entries). -/
+theorem map_map_natToFin_val [NeZero w] : ∀ {L : List (List ℕ)}, (∀ b ∈ L, ∀ i ∈ b, i < w) →
+    (L.map (fun b => b.map (natToFin w))).map (fun b => b.map (Fin.val)) = L := by
+  intro L
+  induction L with
+  | nil => intro _; rfl
+  | cons b L ih =>
+    intro hL
+    simp only [List.map_cons]
+    rw [map_natToFin_val (hL b (List.mem_cons.mpr (Or.inl rfl))),
+      ih (fun b' hb' => hL b' (List.mem_cons.mpr (Or.inr hb')))]
+
+/-- Canonical positions are below the clause width. -/
+theorem canonPosBlocks_lt (litList : List (Rung4Literal n)) :
+    ∀ (L : List (Clause n)) (claimed : Finset (Fin n)), (∀ T ∈ L, T.lits.length ≤ w) →
+      ∀ b ∈ canonPosBlocks litList claimed L, ∀ i ∈ b, i < w := by
+  intro L
+  induction L with
+  | nil => intro claimed _ b hb; simp [canonPosBlocks] at hb
+  | cons C rest ih =>
+    intro claimed hL b hb i hi
+    rw [canonPosBlocks, List.mem_cons] at hb
+    rcases hb with rfl | hb
+    · rw [canonPosBlock, List.mem_filter] at hi
+      exact lt_of_lt_of_le (blockOf_lt hi.1) (hL C (List.mem_cons.mpr (Or.inl rfl)))
+    · exact ih _ (fun T hT => hL T (List.mem_cons.mpr (Or.inr hT))) b hb i hi
+
+/-- **The canonical flat label.**  The canonical first-claim position-blocks over the confirmed
+terms, coerced to `Fin w` (clause-relative indices, `< w`) and flattened with the `endBlock`
+delimiter.  A `(2w)^s`-class label that tolerates empty blocks. -/
+def canonFlatLabel (w : ℕ) [NeZero w] (ρ : Restriction n) (cs : List (Clause n)) :
+    List (CanonTok w) :=
+  tokFlatten ((canonPosBlocks (encLits ρ cs) ∅
+    (cs.filter (termSat (complete ρ (encLits ρ cs))))).map (fun b => b.map (natToFin w)))
+
+/-- **`canonLabel_det` — the target.**  For width-`w` clause families: equal completions
+(`σ*`) and equal canonical flat labels force equal path-variable sets.  This is the working
+Route B decoder (`encLits`) combined with the canonical first-claim label — solving the general
+shared-variable over-count (tight `s`, `canonBlocks_sum_card_eq_length`) and the empty-block
+boundary problem (`tokFlatten`), with the per-step recomputation supplied by `σ*` (confirmed
+terms) rather than stored ambiguously (no `replayPath` end-state ambiguity). -/
+theorem canonLabel_det [NeZero w] (ρ σ : Restriction n) (cs : List (Clause n))
+    (hcsρ : ∀ T ∈ cs, (T.lits.map litVar).Nodup)
+    (hcsσ : ∀ T ∈ cs, (T.lits.map litVar).Nodup)
+    (hwidth : ∀ T ∈ cs, T.lits.length ≤ w)
+    (hσ : complete ρ (encLits ρ cs) = complete σ (encLits σ cs))
+    (hlabel : canonFlatLabel w ρ cs = canonFlatLabel w σ cs) :
+    ((encLits ρ cs).map litVar).toFinset = ((encLits σ cs).map litVar).toFinset := by
+  refine canonPosBlocks_det ρ σ cs hcsρ hcsσ hσ ?_
+  have h1 := tokFlatten_inj hlabel
+  have hwρ := canonPosBlocks_lt (encLits ρ cs)
+    (cs.filter (termSat (complete ρ (encLits ρ cs)))) ∅
+    (fun T hT => hwidth T (List.mem_of_mem_filter hT))
+  have hwσ := canonPosBlocks_lt (encLits σ cs)
+    (cs.filter (termSat (complete σ (encLits σ cs)))) ∅
+    (fun T hT => hwidth T (List.mem_of_mem_filter hT))
+  have h2 := congrArg (fun L => L.map (fun b => b.map (Fin.val : Fin w → ℕ))) h1
+  dsimp only at h2
+  rwa [map_map_natToFin_val hwρ, map_map_natToFin_val hwσ] at h2
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
 
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonLabel_det
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_sum_card
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_sum_card_eq_length
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_pairwise_disjoint
