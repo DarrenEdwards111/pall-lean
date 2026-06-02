@@ -333,6 +333,41 @@ theorem termWalkLab_eq (σstar : Restriction n) :
       rw [ih tail, ← hfd]
       simp [List.take_succ_cons]
 
+/-- The natural index-block of a term: the positions of its path literals. -/
+def blockOf (litList : List (Rung4Literal n)) (T : Clause n) : List ℕ :=
+  (List.range T.lits.length).filter
+    (fun i => (T.lits[i]?).any (fun ℓ => decide (litVar ℓ ∈ litList.map litVar)))
+
+/-- **`blockVars` (index-based) = `termBlock` (set-based).**  Reading the path-literal
+positions of `T` recovers exactly `T`'s path variables.  This connects the label-driven
+walk's primitive to the proved `termBlock` selector. -/
+theorem blockVars_blockOf (litList : List (Rung4Literal n)) (T : Clause n) :
+    blockVars T (blockOf litList T) = termBlock litList T := by
+  ext v
+  rw [mem_blockVars, termBlock, Finset.mem_inter, List.mem_toFinset, List.mem_toFinset]
+  constructor
+  · rintro ⟨i, hi, hmap⟩
+    rw [blockOf, List.mem_filter, List.mem_range] at hi
+    obtain ⟨hilt, hany⟩ := hi
+    cases hg : T.lits[i]? with
+    | none => rw [hg] at hmap; simp at hmap
+    | some ℓ =>
+      rw [hg] at hmap hany
+      simp only [Option.map_some, Option.some.injEq] at hmap
+      simp only [Option.any_some, decide_eq_true_eq] at hany
+      subst hmap
+      exact ⟨List.mem_map.mpr ⟨ℓ, List.mem_of_getElem? hg, rfl⟩, hany⟩
+  · rintro ⟨hvT, hvL⟩
+    rw [List.mem_map] at hvT
+    obtain ⟨ℓ, hℓT, hℓv⟩ := hvT
+    obtain ⟨i, hilt, hgi⟩ := List.mem_iff_getElem.mp hℓT
+    refine ⟨i, ?_, ?_⟩
+    · rw [blockOf, List.mem_filter, List.mem_range]
+      refine ⟨hilt, ?_⟩
+      rw [List.getElem?_eq_getElem hilt, hgi]
+      simp only [Option.any_some, decide_eq_true_eq, hℓv]; exact hvL
+    · rw [List.getElem?_eq_getElem hilt, hgi]; simp [hℓv]
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
