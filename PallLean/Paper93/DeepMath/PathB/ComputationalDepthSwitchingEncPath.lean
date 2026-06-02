@@ -59,8 +59,43 @@ theorem encLits_subset_freeVars (ρ : Restriction n) (cs : List (Clause n)) :
     · -- v in the recursive part ⊆ freeVars (fixBlock …) ⊆ freeVars ρ
       exact freeVars_fixBlock_subset ρ _ (ih (fixBlock ρ (freeLits ρ T)) h)
 
+/-- A fixed-block variable is no longer free. -/
+theorem fixBlock_fixed (ρ : Restriction n) (blk : List (Rung4Literal n)) {v : Fin n}
+    (hv : v ∈ (blk.map litVar).toFinset) : (fixBlock ρ blk) v ≠ none := by
+  simp [fixBlock, fixOn, hv]
+
+/-- The current-free literals of a single term have distinct variables (a sublist of the
+term's literals). -/
+theorem freeLits_map_litVar_nodup (ρ : Restriction n) (T : Clause n)
+    (hT : (T.lits.map litVar).Nodup) : ((freeLits ρ T).map litVar).Nodup := by
+  have hsub : (freeLits ρ T).Sublist T.lits := List.filter_sublist
+  exact hT.sublist (List.Sublist.map litVar hsub)
+
+/-- **Distinct variables across the whole encoder path.**  Each term contributes only its
+*current* free literals; later terms' blocks exclude already-fixed variables, so the full
+path-literal list has no repeated variable.  (Requires each term to have distinct-variable
+literals.) -/
+theorem encLits_nodup (ρ : Restriction n) (cs : List (Clause n))
+    (hcs : ∀ T ∈ cs, (T.lits.map litVar).Nodup) :
+    ((encLits ρ cs).map litVar).Nodup := by
+  induction cs generalizing ρ with
+  | nil => simp [encLits]
+  | cons T ts ih =>
+    simp only [encLits, List.map_append]
+    rw [List.nodup_append]
+    refine ⟨freeLits_map_litVar_nodup ρ T (hcs T (List.mem_cons.mpr (Or.inl rfl))),
+            ih (fixBlock ρ (freeLits ρ T))
+              (fun T' hT' => hcs T' (List.mem_cons.mpr (Or.inr hT'))), ?_⟩
+    intro v hv1 b hb hvb
+    subst hvb
+    have hfree : (fixBlock ρ (freeLits ρ T)) v = none :=
+      mem_freeVars.mp (encLits_subset_freeVars (fixBlock ρ (freeLits ρ T)) ts
+        (List.mem_toFinset.mpr hb))
+    exact fixBlock_fixed ρ (freeLits ρ T) (List.mem_toFinset.mpr hv1) hfree
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_subset_freeVars
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_nodup
