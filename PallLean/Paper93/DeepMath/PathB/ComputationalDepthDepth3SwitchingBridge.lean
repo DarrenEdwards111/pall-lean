@@ -61,6 +61,31 @@ theorem exists_good_restriction_canon {w s : ℕ} [NeZero w] {cs : List (Clause 
     ∃ ρ : Restriction n, ρ ∉ Bad :=
   exists_good_restriction (canonMarkLabel_switching_count hcs hwidth hne hlen hmem) hlt
 
+/-- **Union bound: one good restriction for all gates.**  Given a finite family of bad sets
+(one per bottom gate), each bounded by `B`, if `#gates · B < #restrictions` then some single
+restriction is good for *every* gate.  Composing with `canonMarkLabel_switching_count`
+(`B = |Short| · (2w)^s` per gate) this supplies the simultaneously-good restriction the collapse
+argument needs — link (b) of the count → collapse chain. -/
+theorem exists_good_restriction_forall {ι : Type*} (gates : Finset ι)
+    (Bad : ι → Finset (Restriction n)) (B : ℕ)
+    (hcount : ∀ i ∈ gates, (Bad i).card ≤ B)
+    (hlt : gates.card * B < (Finset.univ : Finset (Restriction n)).card) :
+    ∃ ρ : Restriction n, ∀ i ∈ gates, ρ ∉ Bad i := by
+  have hunion : (gates.biUnion Bad).card ≤ gates.card * B :=
+    calc (gates.biUnion Bad).card
+        ≤ ∑ i ∈ gates, (Bad i).card := Finset.card_biUnion_le
+      _ ≤ ∑ _i ∈ gates, B := Finset.sum_le_sum hcount
+      _ = gates.card * B := by rw [Finset.sum_const, smul_eq_mul]
+  have hbu : (gates.biUnion Bad).card < (Finset.univ : Finset (Restriction n)).card :=
+    lt_of_le_of_lt hunion hlt
+  by_contra h
+  push_neg at h
+  have hsub : (Finset.univ : Finset (Restriction n)) ⊆ gates.biUnion Bad := by
+    intro ρ _
+    obtain ⟨i, hi, hρ⟩ := h ρ
+    exact Finset.mem_biUnion.mpr ⟨i, hi, hρ⟩
+  exact absurd (Finset.card_le_card hsub) (not_le.mpr hbu)
+
 /-- The total number of restrictions is `3^n` (each coordinate is unset / 0 / 1).  Pins the
 right-hand side of the parameter-algebra inequality `|Short| · (2w)^s < 3^n`. -/
 theorem card_restriction (n : ℕ) :
@@ -73,4 +98,5 @@ end SwitchingCounting
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_canon
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_forall
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.card_restriction
