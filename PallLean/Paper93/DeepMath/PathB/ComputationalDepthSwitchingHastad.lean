@@ -184,6 +184,35 @@ theorem termSat_complete_false_of_termFalsified {ρ : Restriction n}
   exact termSat_complete_eq_false_of_litFalse hℓT hℓfalse
     (fun hmem => litFalse_litVar_fixed hℓfalse (hfree (litVar ℓ) hmem))
 
+/-- `find?` lands on the first element where the predicate holds, given it fails on the
+prefix. -/
+theorem find?_eq_first {α : Type*} {p : α → Bool} {pre : List α} {T : α} {post : List α}
+    (hpre : ∀ x ∈ pre, p x = false) (hT : p T = true) :
+    (pre ++ T :: post).find? p = some T := by
+  induction pre with
+  | nil => simp [List.find?_cons, hT]
+  | cons a pre ih =>
+    have ha := hpre a (List.mem_cons.mpr (Or.inl rfl))
+    simp only [List.cons_append, List.find?_cons, ha]
+    exact ih (fun x hx => hpre x (List.mem_cons.mpr (Or.inr hx)))
+
+/-- **The sound `termSat` selector.**  Holding only `σ*`, `find? (termSat σ*)` lands on the
+first *processed* term — *unconditionally*.  The prefix terms (before the first active
+term) are `ρ`-falsified (`activeTerm_prefix_falsified`), hence non-`termSat` under `σ*`
+(`termSat_complete_false_of_termFalsified`), so the search skips exactly them and stops at
+the first processed term `T₀` (which `σ*` satisfies).  No `hpre`, no foreign-block flip —
+the soundness the CNF walk lacked. -/
+theorem find_termSat_first_processed {cs : List (Clause n)} {ρ : Restriction n}
+    {litList : List (Rung4Literal n)} {T₀ : Clause n}
+    (hT₀ : activeTerm cs ρ = some T₀)
+    (hsat : termSat (complete ρ litList) T₀ = true)
+    (hfree : ∀ v ∈ litList.map litVar, ρ v = none) :
+    cs.find? (termSat (complete ρ litList)) = some T₀ := by
+  obtain ⟨pre, post, hcs, hpre⟩ := activeTerm_prefix_falsified hT₀
+  rw [hcs]
+  exact find?_eq_first
+    (fun C' hC' => termSat_complete_false_of_termFalsified (hpre C' hC') hfree) hsat
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
@@ -192,3 +221,4 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.term_falsified_of_not_sat_no_free
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.activeTerm_prefix_falsified
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.termSat_complete_false_of_termFalsified
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.find_termSat_first_processed
