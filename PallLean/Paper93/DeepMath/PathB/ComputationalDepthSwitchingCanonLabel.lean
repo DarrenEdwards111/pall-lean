@@ -115,6 +115,44 @@ theorem canonBlocks_pairwise_disjoint (litList : List (Rung4Literal n)) :
     exact ((canonBlocks_disjoint_claimed litList rest _ B hB).mono_right
       Finset.subset_union_right).symm
 
+/-- **The canonical blocks cover the same variables as the full blocks** (minus what was
+already claimed).  The union of the canonical first-claim blocks equals the union of the
+`termBlock`s minus `claimed` — first-claim assignment drops *duplicate* coverage but never
+loses a variable. -/
+theorem canonBlocks_union (litList : List (Rung4Literal n)) :
+    ∀ (L : List (Clause n)) (claimed : Finset (Fin n)),
+      ((canonBlocks litList claimed L).foldr (· ∪ ·) ∅)
+        = ((L.foldr (fun C acc => termBlock litList C ∪ acc) ∅) \ claimed) := by
+  intro L
+  induction L with
+  | nil => intro claimed; simp [canonBlocks]
+  | cons C rest ih =>
+    intro claimed
+    simp only [canonBlocks, List.foldr_cons]
+    rw [ih (claimed ∪ (termBlock litList C \ claimed))]
+    set R := rest.foldr (fun C acc => termBlock litList C ∪ acc) ∅
+    have h1 : (termBlock litList C ∪ R) \ claimed
+        = (termBlock litList C \ claimed) ∪ (R \ claimed) := by
+      ext x; simp only [Finset.mem_sdiff, Finset.mem_union]; tauto
+    have h2 : R \ (claimed ∪ (termBlock litList C \ claimed))
+        = (R \ claimed) \ (termBlock litList C \ claimed) := by
+      ext x; simp only [Finset.mem_sdiff, Finset.mem_union, not_or]; tauto
+    rw [h1, h2, Finset.union_sdiff_self_eq_union]
+
+/-- **Canonical blocks recover exactly the path-variable set** (at the union level, no
+disjointness needed).  Combined with `tokFlatten_inj`, this is the route to `canonLabel_det`:
+the canonical first-claim label determines the path-variable set via `σ*` (confirmed terms) +
+the partition. -/
+theorem canonBlocks_union_eq_pathvars (ρ : Restriction n) (cs : List (Clause n))
+    (hcs : ∀ T ∈ cs, (T.lits.map litVar).Nodup) :
+    ((canonBlocks (encLits ρ cs) ∅
+        (cs.filter (termSat (complete ρ (encLits ρ cs))))).foldr (· ∪ ·) ∅)
+      = ((encLits ρ cs).map litVar).toFinset := by
+  rw [canonBlocks_union, Finset.sdiff_empty,
+    ← termWalk_eq_filter_full (complete ρ (encLits ρ cs)) (termBlock (encLits ρ cs)) cs
+      cs.length (List.length_filter_le _ _),
+    termWalkVars_encLits_eq_pathvars ρ cs hcs]
+
 /-! ## Delimiter-tokenized flattening (handles empty blocks) -/
 
 /-- A token of the canonical flat label: either a within-block index (`Fin w`) or an
@@ -176,5 +214,6 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_sum_card
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_sum_card_eq_length
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_pairwise_disjoint
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_union_eq_pathvars
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.tokGroup_tokFlatten
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.tokFlatten_inj
