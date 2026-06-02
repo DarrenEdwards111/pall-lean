@@ -162,6 +162,25 @@ theorem replaySel_card_le (cs : List (Clause n)) (σ : Restriction n) (k : ℕ) 
           Finset.card_union_le _ _
       _ ≤ k + 1 := Nat.add_le_add ih hstep
 
+/-- **Per-step reverse inverse.**  Freeing the falsified variable undoes one flattened step:
+if the active term's chosen literal is `ℓ`, then re-freeing `litVar ℓ` from `replayStep cs σ`
+recovers `σ` exactly.  This is the foundational brick of any reverse decoder for the flattened
+route (the analog of the clause path's `freeOn_actStep_recover`): the *single-step* recovery is
+clean; what is not yet proved is identifying `ℓ` (the active term) from the end-state across
+term boundaries (`hdec` in `replay_switching_count`). -/
+theorem freeOn_replayStep_recover {cs : List (Clause n)} {σ : Restriction n}
+    {ℓ : Rung4Literal n} (h : activeTermLit cs σ = some ℓ) :
+    freeOn (replayStep cs σ) {litVar ℓ} = σ := by
+  funext j
+  simp only [freeOn]
+  by_cases hj : j = litVar ℓ
+  · rw [if_pos (by rw [hj]; exact Finset.mem_singleton_self _)]
+    have hfree := activeTermLit_free h
+    rw [litFree_var] at hfree
+    rw [hj]; exact (Option.isNone_iff_eq_none.mp hfree).symm
+  · rw [if_neg (by rw [Finset.mem_singleton]; exact hj), replayStep, h]
+    exact falFix_eq_outside σ ℓ hj
+
 /-- **The `(2w)^s` count for the flattened route, modulo the per-step decoder.**  This is the
 honest *conditional wrapper* the arc has been pointing at: it names *exactly* the single open
 hypothesis — a per-step decoder `D` that recovers the selected set from the (falsify) end-state
@@ -194,4 +213,5 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.freeOn_replayPath
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.replayPath_inj
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.replaySel_card_le
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.freeOn_replayStep_recover
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.replay_switching_count
