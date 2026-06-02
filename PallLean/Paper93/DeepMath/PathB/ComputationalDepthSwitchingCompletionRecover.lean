@@ -61,6 +61,24 @@ theorem revPeel_complete {ρ : Restriction n} {litList : List (Rung4Literal n)}
   · rw [if_neg hj]
     exact complete_apply_eq_of_not_mem ρ litList j hj
 
+/-- The completion's value at a path variable is its literal's satisfying value (distinct
+variables ⇒ no later override). -/
+theorem complete_apply_mem :
+    ∀ (litList : List (Rung4Literal n)) (ρ : Restriction n) (ℓ : Rung4Literal n),
+      ℓ ∈ litList → (litList.map litVar).Nodup →
+      complete ρ litList (litVar ℓ) = some (satValue ℓ) := by
+  intro litList
+  induction litList with
+  | nil => intro ρ ℓ h _; simp at h
+  | cons a l ih =>
+    intro ρ ℓ hℓ hnd
+    rw [List.map_cons, List.nodup_cons] at hnd
+    rw [complete_cons]
+    rcases List.mem_cons.mp hℓ with rfl | hℓ'
+    · rw [complete_apply_eq_of_not_mem (satFix ρ ℓ) l (litVar ℓ) hnd.1, satFix,
+        Function.update_self]
+    · exact ih (satFix ρ a) ℓ hℓ' hnd.2
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
