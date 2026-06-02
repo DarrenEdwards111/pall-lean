@@ -216,6 +216,44 @@ theorem termWalk_decode_single {ρ : Restriction n} {T : Clause n} {k : ℕ}
   refine termWalk_decode_of_hterm hfree hfuel (fun ℓ hℓ => ⟨T, by simp, ?_, hsatT⟩)
   exact (List.mem_filter.mp hℓ).1
 
+/-- **Multi-term `hterm`.**  Taking the path literals to be the free literals of a list
+`ps` of *live* terms (with distinct variables across the blocks), every path literal lies
+in its term, which is `termSat` under `σ*` (`term_processed_termSat`).  No dynamic path
+needed — just the block structure. -/
+theorem hterm_of_blocks {ρ : Restriction n} {cs ps : List (Clause n)}
+    (hps : ∀ T ∈ ps, T ∈ cs)
+    (hlive : ∀ T ∈ ps, ∀ ℓ ∈ T.lits, litFalse ρ ℓ = false)
+    (hnd : ((ps.flatMap (freeLits ρ)).map litVar).Nodup)
+    (hfree : ∀ v ∈ (ps.flatMap (freeLits ρ)).map litVar, ρ v = none) :
+    ∀ ℓ ∈ ps.flatMap (freeLits ρ),
+      ∃ T ∈ cs, ℓ ∈ T.lits ∧ termSat (complete ρ (ps.flatMap (freeLits ρ))) T = true := by
+  intro ℓ hℓ
+  rw [List.mem_flatMap] at hℓ
+  obtain ⟨T, hTps, hℓT⟩ := hℓ
+  refine ⟨T, hps T hTps, (List.mem_filter.mp hℓT).1, ?_⟩
+  refine term_processed_termSat (fun ℓ' hℓ' hf => ?_) (hlive T hTps) hnd hfree
+  rw [List.mem_flatMap]
+  exact ⟨T, hTps, List.mem_filter.mpr ⟨hℓ', hf⟩⟩
+
+/-- **Multi-term DNF decoder closes.**  For any list `ps` of live terms with distinct
+variables across their free-literal blocks, the decoder recovers `ρ` from `σ*` and the
+per-term blocks — `decode_encode_id` for the multi-term DNF. -/
+theorem termWalk_decode_blocks {ρ : Restriction n} {cs ps : List (Clause n)} {k : ℕ}
+    (hps : ∀ T ∈ ps, T ∈ cs)
+    (hlive : ∀ T ∈ ps, ∀ ℓ ∈ T.lits, litFalse ρ ℓ = false)
+    (hnd : ((ps.flatMap (freeLits ρ)).map litVar).Nodup)
+    (hfuel : (cs.filter (termSat (complete ρ (ps.flatMap (freeLits ρ))))).length ≤ k) :
+    freeOn (complete ρ (ps.flatMap (freeLits ρ)))
+        (termWalkVars (complete ρ (ps.flatMap (freeLits ρ)))
+          (termBlock (ps.flatMap (freeLits ρ))) cs k) = ρ := by
+  have hfree : ∀ v ∈ (ps.flatMap (freeLits ρ)).map litVar, ρ v = none := by
+    intro v hv; rw [List.mem_map] at hv; obtain ⟨ℓ, hℓ, hv⟩ := hv
+    rw [← hv]
+    rw [List.mem_flatMap] at hℓ; obtain ⟨T, _, hℓT⟩ := hℓ
+    have := (List.mem_filter.mp hℓT).2; rw [litFree_var] at this
+    exact Option.isNone_iff_eq_none.mp this
+  exact termWalk_decode_of_hterm hfree hfuel (hterm_of_blocks hps hlive hnd hfree)
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
