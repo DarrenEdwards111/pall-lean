@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingHastad
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingWalk
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingCompletionVars
 
 /-!
 # The DNF decoder walk on the sound `termSat` selector
@@ -120,6 +121,50 @@ theorem termWalk_decode_encode {ρ : Restriction n} {litList : List (Rung4Litera
     freeOn (complete ρ litList) (termWalkVars (complete ρ litList) sel cs k) = ρ := by
   apply termWalk_recovers_of_eq hfree
   rw [termWalk_eq_filter_full _ _ _ _ hfuel, hcollect]
+
+/-- Membership in the walk's output: a variable is collected iff it is in the block of one
+of the first `k` `termSat`-confirmed terms. -/
+theorem mem_termWalkVars {σstar : Restriction n} {sel : Clause n → Finset (Fin n)}
+    {cs : List (Clause n)} {k : ℕ} {v : Fin n} :
+    v ∈ termWalkVars σstar sel cs k
+      ↔ ∃ T ∈ ((cs.filter (termSat σstar)).take k), v ∈ sel T := by
+  rw [termWalkVars_eq_filter, mem_foldr_union]
+
+/-- **Encoder bridge reduction.**  `hcollect` (the walk collects exactly the path-variable
+set) reduces to two clean encoder inclusions: every confirmed term's block is path
+variables, and every path variable lies in some confirmed term's block. -/
+theorem hcollect_of {σstar : Restriction n} {sel : Clause n → Finset (Fin n)}
+    {cs : List (Clause n)} {k : ℕ} {P : Finset (Fin n)}
+    (hfuel : (cs.filter (termSat σstar)).length ≤ k)
+    (hsub : ∀ T ∈ cs.filter (termSat σstar), sel T ⊆ P)
+    (hcover : ∀ v ∈ P, ∃ T ∈ cs.filter (termSat σstar), v ∈ sel T) :
+    termWalkVars σstar sel cs k = P := by
+  apply Finset.Subset.antisymm
+  · intro v hv
+    rw [mem_termWalkVars] at hv
+    obtain ⟨T, hT, hvT⟩ := hv
+    exact hsub T (List.mem_of_mem_take hT) hvT
+  · intro v hv
+    rw [mem_termWalkVars]
+    obtain ⟨T, hT, hvT⟩ := hcover v hv
+    rw [List.take_of_length_le hfuel]
+    exact ⟨T, hT, hvT⟩
+
+/-- **DNF decoder recovery from the two encoder inclusions.**  `freeOn σ* (walk) = ρ`,
+needing only: enough fuel, each confirmed term's block ⊆ path variables, and every path
+variable lies in some confirmed term's block.  This is the minimal encoder interface —
+both inclusions hold for the block-path encoder (where `σ*` satisfies each processed term
+and its block is its free literals). -/
+theorem termWalk_decode_encode' {ρ : Restriction n} {litList : List (Rung4Literal n)}
+    {sel : Clause n → Finset (Fin n)} {cs : List (Clause n)} {k : ℕ}
+    (hfree : ∀ v ∈ litList.map litVar, ρ v = none)
+    (hfuel : (cs.filter (termSat (complete ρ litList))).length ≤ k)
+    (hsub : ∀ T ∈ cs.filter (termSat (complete ρ litList)),
+        sel T ⊆ (litList.map litVar).toFinset)
+    (hcover : ∀ v ∈ (litList.map litVar).toFinset,
+        ∃ T ∈ cs.filter (termSat (complete ρ litList)), v ∈ sel T) :
+    freeOn (complete ρ litList) (termWalkVars (complete ρ litList) sel cs k) = ρ := by
+  exact termWalk_recovers_of_eq hfree (hcollect_of hfuel hsub hcover)
 
 end SwitchingCounting
 
