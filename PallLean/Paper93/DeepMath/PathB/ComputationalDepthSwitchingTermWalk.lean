@@ -166,6 +166,31 @@ theorem termWalk_decode_encode' {ρ : Restriction n} {litList : List (Rung4Liter
     freeOn (complete ρ litList) (termWalkVars (complete ρ litList) sel cs k) = ρ := by
   exact termWalk_recovers_of_eq hfree (hcollect_of hfuel hsub hcover)
 
+/-- The per-term block selector: the variables of `T` that are path variables. -/
+def termBlock (litList : List (Rung4Literal n)) (T : Clause n) : Finset (Fin n) :=
+  (T.lits.map litVar).toFinset ∩ (litList.map litVar).toFinset
+
+/-- **DNF decoder recovery from the single encoder property `hterm`.**  Choosing the block
+selector `termBlock` (a term's path-variables), the decoder recovers `ρ` needing only that
+*every path literal lies in a `termSat`-confirmed term* — `hsub` is automatic (`∩ ⊆`) and
+`hcover` follows.  `hterm` is the lone remaining encoder obligation. -/
+theorem termWalk_decode_of_hterm {ρ : Restriction n} {litList : List (Rung4Literal n)}
+    {cs : List (Clause n)} {k : ℕ}
+    (hfree : ∀ v ∈ litList.map litVar, ρ v = none)
+    (hfuel : (cs.filter (termSat (complete ρ litList))).length ≤ k)
+    (hterm : ∀ ℓ ∈ litList,
+        ∃ T ∈ cs, ℓ ∈ T.lits ∧ termSat (complete ρ litList) T = true) :
+    freeOn (complete ρ litList) (termWalkVars (complete ρ litList) (termBlock litList) cs k) = ρ := by
+  refine termWalk_decode_encode' hfree hfuel ?_ ?_
+  · intro T _ v hv; exact (Finset.mem_inter.mp hv).2
+  · intro v hv
+    rw [List.mem_toFinset, List.mem_map] at hv
+    obtain ⟨ℓ, hℓlit, hℓv⟩ := hv
+    obtain ⟨T, hTcs, hℓT, hTsat⟩ := hterm ℓ hℓlit
+    refine ⟨T, List.mem_filter.mpr ⟨hTcs, hTsat⟩, ?_⟩
+    rw [termBlock, Finset.mem_inter, List.mem_toFinset, List.mem_toFinset]
+    exact ⟨List.mem_map.mpr ⟨ℓ, hℓT, hℓv⟩, List.mem_map.mpr ⟨ℓ, hℓlit, hℓv⟩⟩
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
