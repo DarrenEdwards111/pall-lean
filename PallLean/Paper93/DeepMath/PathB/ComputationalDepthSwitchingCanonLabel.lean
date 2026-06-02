@@ -115,6 +115,60 @@ theorem canonBlocks_pairwise_disjoint (litList : List (Rung4Literal n)) :
     exact ((canonBlocks_disjoint_claimed litList rest _ B hB).mono_right
       Finset.subset_union_right).symm
 
+/-! ## Delimiter-tokenized flattening (handles empty blocks) -/
+
+/-- A token of the canonical flat label: either a within-block index (`Fin w`) or an
+end-of-block delimiter.  The explicit `endBlock` makes boundary recovery exact **including for
+empty blocks** (an empty block flattens to the single token `[endBlock]`), unlike `markLast`
+which loses empty blocks. -/
+inductive CanonTok (w : ℕ) where
+  | lit : Fin w → CanonTok w
+  | endBlock : CanonTok w
+  deriving DecidableEq
+
+variable {w : ℕ}
+
+/-- Flatten index-blocks with an explicit `endBlock` delimiter after each block. -/
+def tokFlatten : List (List (Fin w)) → List (CanonTok w)
+  | [] => []
+  | b :: bs => b.map CanonTok.lit ++ CanonTok.endBlock :: tokFlatten bs
+
+/-- Group a token stream back into blocks by splitting at `endBlock`. -/
+def tokGroup : List (CanonTok w) → List (List (Fin w))
+  | [] => []
+  | CanonTok.endBlock :: rest => [] :: tokGroup rest
+  | CanonTok.lit x :: rest =>
+      match tokGroup rest with
+      | [] => [[x]]
+      | b :: bs => (x :: b) :: bs
+
+/-- Grouping a tokenized block (prepended to a tail) recovers the block — **for any block,
+empty or not** (no nonempty hypothesis). -/
+theorem tokGroup_append_endBlock (b : List (Fin w)) (rest : List (CanonTok w)) :
+    tokGroup (b.map CanonTok.lit ++ CanonTok.endBlock :: rest) = b :: tokGroup rest := by
+  induction b with
+  | nil => rfl
+  | cons x b ih =>
+    show tokGroup (CanonTok.lit x :: (b.map CanonTok.lit ++ CanonTok.endBlock :: rest)) = _
+    show (match tokGroup (b.map CanonTok.lit ++ CanonTok.endBlock :: rest) with
+      | [] => [[x]] | b :: bs => (x :: b) :: bs) = _
+    rw [ih]
+
+/-- **Round-trip — unconditional.**  Grouping the tokenized blocks recovers them exactly, with
+no nonempty-block hypothesis (the `endBlock` delimiter marks every boundary, including empty
+blocks).  This is the empty-block fix the canonical label needs. -/
+theorem tokGroup_tokFlatten (bs : List (List (Fin w))) : tokGroup (tokFlatten bs) = bs := by
+  induction bs with
+  | nil => rfl
+  | cons b bs ih => rw [tokFlatten, tokGroup_append_endBlock, ih]
+
+/-- The tokenized flatten is injective — *unconditionally* (no nonempty-block hypothesis). -/
+theorem tokFlatten_inj {bs cs : List (List (Fin w))} (h : tokFlatten bs = tokFlatten cs) :
+    bs = cs := by
+  have := tokGroup_tokFlatten bs
+  rw [h, tokGroup_tokFlatten cs] at this
+  exact this.symm
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
@@ -122,3 +176,5 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_sum_card
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_sum_card_eq_length
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_pairwise_disjoint
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.tokGroup_tokFlatten
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.tokFlatten_inj
