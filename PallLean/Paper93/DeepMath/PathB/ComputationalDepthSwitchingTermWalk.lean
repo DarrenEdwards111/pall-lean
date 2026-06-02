@@ -305,6 +305,34 @@ theorem termWalkLab_step (σstar : Restriction n) {cs : List (Clause n)} {pre : 
     | [] => ∅ | T :: tail => blockVars T block ∪ termWalkLab σstar tail rest) = _
   rw [hdw]
 
+/-- **Label-driven walk characterization.**  `termWalkLab` collects `blockVars` over the
+confirmed terms zipped with the consumed blocks. -/
+theorem termWalkLab_eq (σstar : Restriction n) :
+    ∀ (labs : List (List ℕ)) (cs : List (Clause n)),
+      termWalkLab σstar cs labs
+        = (List.zipWith blockVars ((cs.filter (termSat σstar)).take labs.length) labs).foldr
+            (fun s acc => s ∪ acc) ∅ := by
+  intro labs
+  induction labs with
+  | nil => intro cs; simp [termWalkLab]
+  | cons block rest ih =>
+    intro cs
+    show (match cs.dropWhile (fun T => !termSat σstar T) with
+      | [] => ∅ | T :: tail => blockVars T block ∪ termWalkLab σstar tail rest) = _
+    have hfd : (cs.dropWhile (fun T => !termSat σstar T)).filter (termSat σstar)
+        = cs.filter (termSat σstar) := filter_dropWhile_not (termSat σstar) cs
+    cases hdw : cs.dropWhile (fun T => !termSat σstar T) with
+    | nil =>
+      rw [hdw] at hfd; simp only [List.filter_nil] at hfd
+      rw [← hfd]; simp
+    | cons T tail =>
+      rw [hdw] at hfd
+      have hT : termSat σstar T = true := by have := dropWhile_head_not hdw; simpa using this
+      rw [List.filter_cons, hT] at hfd
+      show blockVars T block ∪ termWalkLab σstar tail rest = _
+      rw [ih tail, ← hfd]
+      simp [List.take_succ_cons]
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
