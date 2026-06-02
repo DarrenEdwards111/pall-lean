@@ -40,6 +40,57 @@ simultaneously-good restriction; the collapse-assembly remains the open gate.
 
 namespace PallLean.Paper93.DeepMath.PathB
 
+open Rung4DNFTerm
+
+/-- The variable a `Rung4Literal` queries. -/
+def rvar {n : ℕ} : Rung4Literal n → Fin n
+  | .pos i => i
+  | .neg i => i
+
+/-- **Surviving literals are free.**  Every literal in a non-falsified restricted term lies on a
+variable left *free* by the restriction (`restrictLits` keeps exactly the `none` literals).  So
+the residual width is carried entirely by the free coordinates — the structural fact behind
+"few stars ⟹ small residual width". -/
+theorem restrictLits_all_free {n : ℕ} (ρ : Fin n → Option Bool) :
+    ∀ (lits out : List (Rung4Literal n)), restrictLits ρ lits = some out →
+      ∀ ℓ ∈ out, ρ (rvar ℓ) = none := by
+  intro lits
+  induction lits with
+  | nil => intro out h ℓ hℓ; simp [restrictLits] at h; subst out; simp at hℓ
+  | cons lit rest ih =>
+    intro out h ℓ hℓ
+    cases lit with
+    | pos i =>
+      cases hρ : ρ i with
+      | none =>
+        cases hrest : restrictLits ρ rest with
+        | none => simp [restrictLits, hρ, hrest] at h
+        | some rest' =>
+          simp [restrictLits, hρ, hrest] at h
+          subst out
+          rcases List.mem_cons.mp hℓ with rfl | hℓ'
+          · simpa [rvar] using hρ
+          · exact ih rest' hrest ℓ hℓ'
+      | some b =>
+        cases b
+        · simp [restrictLits, hρ] at h
+        · simp [restrictLits, hρ] at h; exact ih out h ℓ hℓ
+    | neg i =>
+      cases hρ : ρ i with
+      | none =>
+        cases hrest : restrictLits ρ rest with
+        | none => simp [restrictLits, hρ, hrest] at h
+        | some rest' =>
+          simp [restrictLits, hρ, hrest] at h
+          subst out
+          rcases List.mem_cons.mp hℓ with rfl | hℓ'
+          · simpa [rvar] using hρ
+          · exact ih rest' hrest ℓ hℓ'
+      | some b =>
+        cases b
+        · simp [restrictLits, hρ] at h; exact ih out h ℓ hℓ
+        · simp [restrictLits, hρ] at h
+
 namespace SwitchingCounting
 
 open Depth3
@@ -278,6 +329,33 @@ theorem good_restriction_yields_short_dt {depthBudget : ℕ} (D : Rung4DNF n)
   obtain ⟨T, hTd, hTe⟩ := D.exists_restrictedDecisionTree_of_residualWidth_le ρ (hresid ρ hρ)
   exact ⟨ρ, T, hTd, hTe⟩
 
+/-- The **width-bad set**: restrictions leaving the residual DNF with width above budget.  This
+is exactly the set the `(2w)^s` count must control; the genuine switching content is that the
+canonical path is long (so `ρ` is counted) precisely when the residual width is large. -/
+def widthBad (D : Rung4DNF n) (depthBudget : ℕ) : Finset (Restriction n) :=
+  Finset.univ.filter (fun ρ => depthBudget < (D.restrict ρ).totalWidth)
+
+/-- **Gate 1 (definitional core).**  A restriction *outside* the width-bad set leaves residual
+width `≤ depthBudget`.  This is the `hresid` good-restriction ⟹ small-residual-width gate, with
+the bad set taken to be exactly the width-bad set — so the remaining obligation is purely that
+the switching count bounds `widthBad`. -/
+theorem residual_width_le_of_not_widthBad {D : Rung4DNF n} {depthBudget : ℕ} {ρ : Restriction n}
+    (hρ : ρ ∉ widthBad D depthBudget) : (D.restrict ρ).totalWidth ≤ depthBudget := by
+  simp only [widthBad, Finset.mem_filter, Finset.mem_univ, true_and, not_lt] at hρ
+  exact hρ
+
+/-- **Gate 1 ⟹ short decision tree.**  A restriction outside the width-bad set yields a depth-
+`≤ depthBudget` decision tree computing the DNF on its subcube.  Combined with the count's
+good-restriction existence (`exists_good_restriction*` applied to `Bad = widthBad`), this closes
+the count → DT-collapse arc; the one remaining obligation is `|widthBad| < |F|` (the count bound
+on the width-bad set). -/
+theorem widthBad_yields_short_dt {D : Rung4DNF n} {depthBudget : ℕ}
+    (hgood : ∃ ρ : Restriction n, ρ ∉ widthBad D depthBudget) :
+    ∃ ρ : Restriction n, ∃ T : BoolDecisionTree n,
+      T.depth ≤ depthBudget ∧
+      ∀ x : Fin n → Bool, Rung4Restriction.Extends ρ x → T.eval x = D.eval x :=
+  good_restriction_yields_short_dt D hgood (fun _ hρ => residual_width_le_of_not_widthBad hρ)
+
 /-! ### The binomial star-count (model backing for `|F|` and `|Short|`) -/
 
 /-- **Fiber count.**  The restrictions with a *given* free-variable set `S` are exactly the
@@ -387,7 +465,9 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_forall
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_in
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_forall_in
+#print axioms PallLean.Paper93.DeepMath.PathB.restrictLits_all_free
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.good_restriction_yields_short_dt
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.widthBad_yields_short_dt
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.choose_descend_bound
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.param_ineq
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.choose_descend_lt
