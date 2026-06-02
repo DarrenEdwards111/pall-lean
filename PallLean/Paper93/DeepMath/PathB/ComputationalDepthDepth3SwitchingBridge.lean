@@ -91,6 +91,36 @@ theorem restrictLits_all_free {n : ℕ} (ρ : Fin n → Option Bool) :
         · simp [restrictLits, hρ] at h; exact ih out h ℓ hℓ
         · simp [restrictLits, hρ] at h
 
+/-! ### Gate 2 (length bound): a depth-`d` decision tree has `≤ 2^d` leaves
+
+The DT→`LDeriv` *construction* (a shallow decision tree for the restricted refuting circuit
+yields a resolution refutation of the Tseitin axioms — one clause per leaf, resolved up the
+tree) is the remaining open proof-complexity content.  Its refutation *length* is the number of
+leaves, which is `≤ 2^depth` — the bound below, giving `collapseLen ≈ 2^depth`. -/
+
+namespace BoolDecisionTree
+
+/-- The number of leaves of a decision tree (the refutation length the DT→resolution map
+produces). -/
+def leaves {n : ℕ} : BoolDecisionTree n → ℕ
+  | leaf _ => 1
+  | query _ low high => low.leaves + high.leaves
+
+/-- **A depth-`d` decision tree has at most `2^d` leaves.**  So the resolution refutation gate 2
+extracts has length `≤ 2^depth`. -/
+theorem leaves_le_two_pow_depth {n : ℕ} (T : BoolDecisionTree n) : T.leaves ≤ 2 ^ T.depth := by
+  induction T with
+  | leaf b => simp [leaves, depth]
+  | query i low high ihl ihh =>
+    calc low.leaves + high.leaves
+        ≤ 2 ^ low.depth + 2 ^ high.depth := Nat.add_le_add ihl ihh
+      _ ≤ 2 ^ (max low.depth high.depth) + 2 ^ (max low.depth high.depth) :=
+          Nat.add_le_add (Nat.pow_le_pow_right (by norm_num) (le_max_left _ _))
+            (Nat.pow_le_pow_right (by norm_num) (le_max_right _ _))
+      _ = 2 ^ (max low.depth high.depth + 1) := by rw [pow_succ]; ring
+
+end BoolDecisionTree
+
 namespace SwitchingCounting
 
 open Depth3
@@ -466,6 +496,7 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_in
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_forall_in
 #print axioms PallLean.Paper93.DeepMath.PathB.restrictLits_all_free
+#print axioms PallLean.Paper93.DeepMath.PathB.BoolDecisionTree.leaves_le_two_pow_depth
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.good_restriction_yields_short_dt
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.widthBad_yields_short_dt
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.choose_descend_bound
