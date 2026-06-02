@@ -191,9 +191,35 @@ theorem termWalk_decode_of_hterm {ρ : Restriction n} {litList : List (Rung4Lite
     rw [termBlock, Finset.mem_inter, List.mem_toFinset, List.mem_toFinset]
     exact ⟨List.mem_map.mpr ⟨ℓ, hℓT, hℓv⟩, List.mem_map.mpr ⟨ℓ, hℓlit, hℓv⟩⟩
 
+/-- **End-to-end decode for the single-term DNF (base case).**  For one *live* term `T`
+with distinct variables, taking the path literals to be `T`'s free literals, the decoder
+recovers `ρ` with no further hypothesis: the whole machine (sound selector, walk, recovery)
+closes.  `litList = freeLits ρ T`, `σ* = complete ρ (freeLits ρ T)`. -/
+theorem termWalk_decode_single {ρ : Restriction n} {T : Clause n} {k : ℕ}
+    (hlive : ∀ ℓ ∈ T.lits, litFalse ρ ℓ = false)
+    (hnd : (T.lits.map litVar).Nodup) (hk : 1 ≤ k) :
+    freeOn (complete ρ (freeLits ρ T))
+      (termWalkVars (complete ρ (freeLits ρ T)) (termBlock (freeLits ρ T)) [T] k) = ρ := by
+  have hfree : ∀ v ∈ (freeLits ρ T).map litVar, ρ v = none := by
+    intro v hv; rw [List.mem_map] at hv; obtain ⟨ℓ, hℓ, hv⟩ := hv
+    rw [← hv]
+    have := (List.mem_filter.mp hℓ).2
+    rw [litFree_var] at this; exact Option.isNone_iff_eq_none.mp this
+  have hsub : List.Sublist (freeLits ρ T) T.lits := List.filter_sublist
+  have hnd' : ((freeLits ρ T).map litVar).Nodup :=
+    List.Nodup.sublist (List.Sublist.map litVar hsub) hnd
+  have hsatT : termSat (complete ρ (freeLits ρ T)) T = true := by
+    refine term_processed_termSat (fun ℓ hℓ hf => ?_) hlive hnd' hfree
+    exact List.mem_filter.mpr ⟨hℓ, hf⟩
+  have hfuel : ([T].filter (termSat (complete ρ (freeLits ρ T)))).length ≤ k := by
+    rw [List.filter_cons, hsatT]; simpa using hk
+  refine termWalk_decode_of_hterm hfree hfuel (fun ℓ hℓ => ⟨T, by simp, ?_, hsatT⟩)
+  exact (List.mem_filter.mp hℓ).1
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.termWalk_step
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.termWalk_decode_encode
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.termWalk_decode_single
