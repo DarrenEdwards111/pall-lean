@@ -200,6 +200,17 @@ theorem termFalsified_replayPath_of {cs : List (Clause n)} {σ : Restriction n} 
   | zero => exact h
   | succ k ih => rw [replayPath]; exact termFalsified_replayStep_of ih
 
+/-- **Each step falsifies any term containing the stepped literal.**  The step fixes the
+chosen literal `ℓ` to false, so every term having `ℓ` becomes falsified.  In particular (with
+`ℓ` the active term's first free literal) the step *consumes* its own active term; combined with
+`termFalsified_replayPath_of`, that term then stays falsified — active-term positions advance
+monotonically and never revisit. -/
+theorem replayStep_falsifies {cs : List (Clause n)} {σ : Restriction n} {ℓ : Rung4Literal n}
+    (h : activeTermLit cs σ = some ℓ) {T : Clause n} (hℓT : ℓ ∈ T.lits) :
+    termFalsified (replayStep cs σ) T = true := by
+  rw [replayStep, h, termFalsified, List.any_eq_true]
+  exact ⟨ℓ, hℓT, by simp [litFalse, falFix_forces_false]⟩
+
 /-- **Per-step reverse inverse.**  Freeing the falsified variable undoes one flattened step:
 if the active term's chosen literal is `ℓ`, then re-freeing `litVar ℓ` from `replayStep cs σ`
 recovers `σ` exactly.  This is the foundational brick of any reverse decoder for the flattened
@@ -252,5 +263,6 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.replayPath_inj
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.replaySel_card_le
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.termFalsified_replayPath_of
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.replayStep_falsifies
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.freeOn_replayStep_recover
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.replay_switching_count
