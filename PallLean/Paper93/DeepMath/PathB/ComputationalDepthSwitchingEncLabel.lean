@@ -118,6 +118,26 @@ into `PathLabel w s`. -/
 def packLabel (w s : ℕ) [NeZero w] (ρ : Restriction n) (cs : List (Clause n)) : PathLabel w s :=
   flatToLabel (toFinW w (encFlatLabel ρ cs))
 
+/-- A `blockOf` index is a literal position, hence below the term's width. -/
+theorem blockOf_lt {litList : List (Rung4Literal n)} {T : Clause n} {i : ℕ}
+    (hi : i ∈ blockOf litList T) : i < T.lits.length := by
+  rw [blockOf, List.mem_filter, List.mem_range] at hi
+  exact hi.1
+
+/-- **`hidx` is a clause-width consequence.**  If every clause has width `≤ w`, then every
+index of the encoder flat label is `< w`.  So the `indices < w` side condition of the count is
+not an assumption but a proved consequence of the standard width bound. -/
+theorem encFlatLabel_idx_lt (ρ : Restriction n) {cs : List (Clause n)}
+    (hwidth : ∀ T ∈ cs, T.lits.length ≤ w) :
+    ∀ p ∈ encFlatLabel ρ cs, p.1 < w := by
+  intro p hp
+  rw [encFlatLabel] at hp
+  obtain ⟨b, hb, hpb⟩ := ungroupBlocks_fst_mem hp
+  rw [encBlocks, List.mem_map] at hb
+  obtain ⟨T, hT, hbT⟩ := hb
+  subst hbT
+  exact lt_of_lt_of_le (blockOf_lt hpb) (hwidth T (List.mem_of_mem_filter hT))
+
 /-- **The `(2w)^s` switching count for the concrete encoder.**  For a bad set whose encoder
 flat labels have length exactly `s` and indices `< w` (clause width), with nonempty confirmed
 blocks, and whose completions land in `Short`:
@@ -148,9 +168,23 @@ theorem encLits_switching_count [NeZero w] {cs : List (Clause n)}
     toFinW_inj w (hidx ρ hρ) (hidx σ hσ) h1
   exact encLits_label_inj ρ σ cs hcs (hblk ρ hρ) (hblk σ hσ) hE h2
 
+/-- **The `(2w)^s` count from clause width.**  Same as `encLits_switching_count`, with the
+`indices < w` side condition discharged from a clause-width bound `T.lits.length ≤ w` — the
+form matching the standard switching-lemma setup (width-`w` clauses). -/
+theorem encLits_switching_count_width [NeZero w] {cs : List (Clause n)}
+    {Bad Short : Finset (Restriction n)}
+    (hcs : ∀ T ∈ cs, (T.lits.map litVar).Nodup)
+    (hwidth : ∀ T ∈ cs, T.lits.length ≤ w)
+    (hblk : ∀ ρ ∈ Bad, ∀ b ∈ encBlocks ρ cs, b ≠ [])
+    (hlen : ∀ ρ ∈ Bad, (encFlatLabel ρ cs).length = s)
+    (hmem : ∀ ρ ∈ Bad, complete ρ (encLits ρ cs) ∈ Short) :
+    Bad.card ≤ Short.card * (2 * w) ^ s :=
+  encLits_switching_count hcs hblk hlen (fun ρ _ => encFlatLabel_idx_lt ρ hwidth) hmem
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_label_inj
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_switching_count
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_switching_count_width
