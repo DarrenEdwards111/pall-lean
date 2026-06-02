@@ -176,9 +176,64 @@ theorem switching_arc_manifest_tight {w s : ℕ} [NeZero w]
   ⟨encLits_decode ρ cs hcs, stars_complete_encLits ρ cs hcs,
     encLits_switching_count_width hcs hwidth hblk hlen hmem⟩
 
+/-!
+## The two-route fork — and the two meanings of `s` (READ BEFORE COMBINING ROUTES)
+
+The `(2w)^s` switching count is reached by **two distinct routes**, and the `s` in each means
+a **different thing**.  Do not equate them or feed one route's `s` into the other.
+
+**Route B (block / `encLits`)** — `encLits_switching_count_width` / `switching_arc_manifest_tight`.
+The decoder and count are *complete* (no open lemma).  But here
+
+> `s = (encFlatLabel ρ cs).length` = the number of `(term, position)` pairs (`encFlatLabel_length`),
+
+which **over-counts** a variable shared across several confirmed terms (counted once per term).
+So this `s ≥` the number of fixed stars, with equality only when the confirmed terms' literal
+lists are variable-disjoint.  The bound is honest; the `s` is the label length, not the star
+count.
+
+**Route F (flattened / `replayPath`)** — `replaySel_card_le` + `replay_switching_count`.
+Here the path fixes **one variable per step**, so
+
+> `s = the number of steps`, and the selected set has `(replaySel cs σ s).card ≤ s`
+> (`replaySel_card_le`) — the *tight* star count, no over-count.
+
+But Route F's decoder is **not proved**: `replay_switching_count` is conditional on the named
+hypothesis `hdec` (a per-step decoder `D` recovering `replaySel` from the falsify end-state and
+a `(2w)^s` label).
+
+**The open research target (Route F's `hdec`):** *active-term recovery under mid-completion.*
+At the end-state the final term may be only partially falsified — neither `termSat` nor
+falsified — so the sound block selector does not apply, and reverse clause/term recovery is
+ambiguous (the same obstruction that motivated the satisfying-completion route).  This is the
+theorem to target, stated as `hdec` in `replay_switching_count`; it is *not* "one more lemma."
+
+**Summary:** Route B gives a complete count with a loose (over-counted) `s`; Route F gives a
+tight `s` but an open decoder.  Closing Route F's `hdec` would give the textbook `(2w)^s` with
+`s` = star count and a working decoder.
+-/
+
+/-- **Fork manifest.**  Machine-checks both routes' final shapes coexist: Route B's *complete*
+`(2w)^s` count (with `s` = flat-label length) and Route F's *proved tight set bound*
+(`≤ s` coordinates, `s` = step count).  Route F's count itself is the conditional
+`replay_switching_count` (open `hdec`), referenced in the doc above, not bundled here. -/
+theorem switching_two_route_fork {w s : ℕ} [NeZero w] (cs : List (Clause n)) (σ : Restriction n)
+    {Bad Short : Finset (Restriction n)}
+    (hcs : ∀ T ∈ cs, (T.lits.map litVar).Nodup)
+    (hwidth : ∀ T ∈ cs, T.lits.length ≤ w)
+    (hblk : ∀ ρ' ∈ Bad, ∀ b ∈ encBlocks ρ' cs, b ≠ [])
+    (hlen : ∀ ρ' ∈ Bad, (encFlatLabel ρ' cs).length = s)
+    (hmem : ∀ ρ' ∈ Bad, complete ρ' (encLits ρ' cs) ∈ Short) :
+    -- Route B: complete (2w)^s count (s = (term,position) label length)
+    (Bad.card ≤ Short.card * (2 * w) ^ s) ∧
+    -- Route F: proved tight set (s = step count, one variable per step, no over-count)
+    ((replaySel cs σ s).card ≤ s) :=
+  ⟨encLits_switching_count_width hcs hwidth hblk hlen hmem, replaySel_card_le cs σ s⟩
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.switching_arc_manifest
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.switching_arc_manifest_tight
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.switching_two_route_fork

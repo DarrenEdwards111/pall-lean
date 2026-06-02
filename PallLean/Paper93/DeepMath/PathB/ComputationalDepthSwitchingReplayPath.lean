@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingHastad
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingDnfCount
 
 /-!
 # The flattened active-term replay path (tightening route)
@@ -161,6 +162,31 @@ theorem replaySel_card_le (cs : List (Clause n)) (σ : Restriction n) (k : ℕ) 
           Finset.card_union_le _ _
       _ ≤ k + 1 := Nat.add_le_add ih hstep
 
+/-- **The `(2w)^s` count for the flattened route, modulo the per-step decoder.**  This is the
+honest *conditional wrapper* the arc has been pointing at: it names *exactly* the single open
+hypothesis — a per-step decoder `D` that recovers the selected set from the (falsify) end-state
+and a `(2w)^s` label — and discharges everything else from proved results
+(`replayPath_inj` for injectivity, `card_bad_le_encoding` for the `(2w)^s` label cardinality).
+
+The hypothesis `hdec` is the genuine open core: `D (replayPath cs ρ s) (lab ρ) = replaySel cs ρ s`.
+Its difficulty is **active-term recovery under mid-completion** — at the end-state the last
+term may be only partially falsified, so it is neither `termSat` nor falsified, and the sound
+block selector does not apply.  Cracking `hdec` (constructing such a `D` and `lab` with a
+`(2w)^s` label) is the remaining research target; this theorem isolates it cleanly and shows
+nothing else stands in the way of the tight count. -/
+theorem replay_switching_count {w s : ℕ} {cs : List (Clause n)}
+    (lab : Restriction n → PathLabel w s)
+    (D : Restriction n → PathLabel w s → Finset (Fin n))
+    {Bad Short : Finset (Restriction n)}
+    (hmem : ∀ ρ ∈ Bad, replayPath cs ρ s ∈ Short)
+    (hdec : ∀ ρ ∈ Bad, D (replayPath cs ρ s) (lab ρ) = replaySel cs ρ s) :
+    Bad.card ≤ Short.card * (2 * w) ^ s := by
+  refine card_bad_le_encoding (fun ρ => replayPath cs ρ s) lab hmem ?_
+  intro ρ hρ σ hσ hE hlab
+  have hE' : replayPath cs ρ s = replayPath cs σ s := hE
+  refine replayPath_inj cs s hE' ?_
+  rw [← hdec ρ hρ, ← hdec σ hσ, hE', hlab]
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
@@ -168,3 +194,4 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.freeOn_replayPath
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.replayPath_inj
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.replaySel_card_le
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.replay_switching_count
