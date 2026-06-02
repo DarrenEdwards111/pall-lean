@@ -202,6 +202,58 @@ theorem param_ineq {n K w : ℕ} (hKn : K ≤ n) (hcond : 4 * w * K ≤ n - K) {
   rw [hrw]
   exact Nat.mul_le_mul_right _ (choose_descend_bound hKn hcond s hs)
 
+/-- Strict descending step: in the *strict* sparse regime `4w·K < n−K`,
+`C(n, K−s−1) · 4w < C(n, K−s)`. -/
+theorem choose_step_lt {n K w : ℕ} (hKn : K ≤ n) (hcond : 4 * w * K < n - K) {s : ℕ}
+    (hs : s + 1 ≤ K) : Nat.choose n (K - (s + 1)) * (4 * w) < Nat.choose n (K - s) := by
+  have hpos : 0 < K - s := by omega
+  have hks1 : K - (s + 1) = K - s - 1 := by omega
+  have hrec : Nat.choose n (K - s) * (K - s)
+      = Nat.choose n (K - s - 1) * (n - (K - s - 1)) := by
+    have := Nat.choose_succ_right_eq n (K - s - 1)
+    rwa [Nat.sub_add_cancel hpos] at this
+  have hcpos : 0 < Nat.choose n (K - s - 1) := Nat.choose_pos (by omega)
+  have hloc : 4 * w * (K - s) < n - (K - s - 1) := by
+    have h1 : 4 * w * (K - s) ≤ 4 * w * K := Nat.mul_le_mul_left _ (by omega)
+    omega
+  have hmul : Nat.choose n (K - (s + 1)) * (4 * w) * (K - s) < Nat.choose n (K - s) * (K - s) := by
+    rw [hrec, hks1]
+    calc Nat.choose n (K - s - 1) * (4 * w) * (K - s)
+        = Nat.choose n (K - s - 1) * (4 * w * (K - s)) := by ring
+      _ < Nat.choose n (K - s - 1) * (n - (K - s - 1)) := Nat.mul_lt_mul_of_pos_left hloc hcpos
+  exact lt_of_mul_lt_mul_right hmul (Nat.zero_le _)
+
+/-- **Strict binomial-ratio inequality.**  In the strict regime `4w·K < n−K` with `1 ≤ s ≤ K`,
+`C(n, K−s) · (4w)^s < C(n, K)` — the strict bound the pigeonhole needs. -/
+theorem choose_descend_lt {n K w : ℕ} (hKn : K ≤ n) (hcond : 4 * w * K < n - K) :
+    ∀ s, 1 ≤ s → s ≤ K → Nat.choose n (K - s) * (4 * w) ^ s < Nat.choose n K := by
+  intro s
+  induction s with
+  | zero => intro h _; omega
+  | succ s ih =>
+    intro _ hs
+    rcases Nat.eq_zero_or_pos s with hs0 | hs0
+    · subst hs0
+      simpa using choose_step_lt hKn hcond hs
+    · calc Nat.choose n (K - (s + 1)) * (4 * w) ^ (s + 1)
+          = Nat.choose n (K - (s + 1)) * (4 * w) * (4 * w) ^ s := by ring
+        _ ≤ Nat.choose n (K - s) * (4 * w) ^ s :=
+            Nat.mul_le_mul_right _ (choose_step_bound hKn (le_of_lt hcond) hs)
+        _ < Nat.choose n K := ih hs0 (by omega)
+
+/-- **Strict parameter inequality.**  `|Short-bound| · (2w)^s < |F|` in the strict regime — the
+form the family-relative pigeonhole consumes. -/
+theorem param_ineq_lt {n K w : ℕ} (hKn : K ≤ n) (hcond : 4 * w * K < n - K) {s : ℕ}
+    (hs1 : 1 ≤ s) (hs : s ≤ K) :
+    Nat.choose n (K - s) * 2 ^ (n - K + s) * (2 * w) ^ s < Nat.choose n K * 2 ^ (n - K) := by
+  have h4w : (4 * w) ^ s = 2 ^ s * (2 * w) ^ s := by rw [← mul_pow]; congr 1; ring
+  have hrw : Nat.choose n (K - s) * 2 ^ (n - K + s) * (2 * w) ^ s
+      = (Nat.choose n (K - s) * (4 * w) ^ s) * 2 ^ (n - K) := by
+    rw [pow_add, h4w]; ring
+  rw [hrw]
+  exact Nat.mul_lt_mul_of_lt_of_le (choose_descend_lt hKn hcond s hs1 hs) (le_refl _)
+    (by positivity)
+
 /-! ### The binomial star-count (model backing for `|F|` and `|Short|`) -/
 
 /-- **Fiber count.**  The restrictions with a *given* free-variable set `S` are exactly the
@@ -271,6 +323,18 @@ theorem card_stars_eq (m : ℕ) :
   rw [Finset.sum_congr rfl hterm, Finset.sum_const, Finset.card_powersetCard, Finset.card_univ,
     Fintype.card_fin, smul_eq_mul]
 
+/-- **`Short ⊆ {stars = K−s}` wiring.**  A bad `ρ` in the star-`K` family whose canonical path
+has length `s` has completion with exactly `K−s` stars (`stars_complete_encLits`), so its
+completion lands in the family `{stars = K−s}`.  This justifies taking `Short = {stars = K−s}`
+and hence `|Short| = C(n,K−s)·2^(n−K+s)` (`card_stars_eq`). -/
+theorem completion_mem_stars {cs : List (Clause n)} (ρ : Restriction n) {K s : ℕ}
+    (hcs : ∀ T ∈ cs, (T.lits.map litVar).Nodup)
+    (hstars : stars ρ = K) (hlen : (encLits ρ cs).length = s) :
+    complete ρ (encLits ρ cs)
+      ∈ Finset.univ.filter (fun σ : Restriction n => stars σ = K - s) := by
+  rw [Finset.mem_filter]
+  exact ⟨Finset.mem_univ _, by rw [stars_complete_encLits ρ cs hcs, hstars, hlen]⟩
+
 /-- **Parameter inequality in concrete form.**  The simultaneously-good restriction exists once
 `#gates · |Short| · (2w)^s < 3^n` — the explicit numeric obligation against the total restriction
 count `3^n` (`card_restriction`).  This is the precise parameter-algebra target the random-
@@ -301,6 +365,9 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_forall_in
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.choose_descend_bound
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.param_ineq
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.choose_descend_lt
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.param_ineq_lt
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.completion_mem_stars
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.card_freeVars_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.card_stars_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.card_restriction
