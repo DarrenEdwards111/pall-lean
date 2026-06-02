@@ -168,6 +168,84 @@ theorem canonBlocks_det_pathvars (ρ σ : Restriction n) (cs : List (Clause n))
   rw [← canonBlocks_union_eq_pathvars ρ cs hcsρ, ← canonBlocks_union_eq_pathvars σ cs hcsσ,
     hblocks]
 
+/-! ## Position layer: canonical blocks as clause-relative indices -/
+
+/-- The canonical block of a single term as **clause-relative positions**: the path-literal
+positions whose variable is not yet claimed (first-claim positions). -/
+def canonPosBlock (litList : List (Rung4Literal n)) (claimed : Finset (Fin n)) (C : Clause n) :
+    List ℕ :=
+  (blockOf litList C).filter (fun i => (C.lits[i]?).any (fun ℓ => decide (litVar ℓ ∉ claimed)))
+
+/-- **Position↔variable correspondence (per clause).**  Reading the canonical positions of a
+term recovers exactly its canonical variable block `termBlock litList C \ claimed`.  The analog
+of `blockVars_blockOf`, now respecting the first-claim filter. -/
+theorem canonPosBlock_blockVars (litList : List (Rung4Literal n)) (claimed : Finset (Fin n))
+    (C : Clause n) :
+    blockVars C (canonPosBlock litList claimed C) = termBlock litList C \ claimed := by
+  ext v
+  rw [Finset.mem_sdiff, mem_blockVars, ← blockVars_blockOf, mem_blockVars]
+  constructor
+  · rintro ⟨i, hi, hv⟩
+    rw [canonPosBlock, List.mem_filter] at hi
+    obtain ⟨hib, hP⟩ := hi
+    cases hg : C.lits[i]? with
+    | none => rw [hg] at hv; simp at hv
+    | some ℓ =>
+      rw [hg] at hv hP
+      simp only [Option.map_some, Option.some.injEq] at hv
+      simp only [Option.any_some, decide_eq_true_eq] at hP
+      exact ⟨⟨i, hib, by rw [hg]; simp [hv]⟩, hv ▸ hP⟩
+  · rintro ⟨⟨i, hib, hv⟩, hvc⟩
+    refine ⟨i, ?_, hv⟩
+    rw [canonPosBlock, List.mem_filter]
+    refine ⟨hib, ?_⟩
+    cases hg : C.lits[i]? with
+    | none => rw [hg] at hv; simp at hv
+    | some ℓ =>
+      rw [hg] at hv
+      simp only [Option.map_some, Option.some.injEq] at hv
+      simp only [hg, Option.any_some, decide_eq_true_eq]
+      exact hv ▸ hvc
+
+/-- The canonical position-blocks over a clause list (same first-claim fold as `canonBlocks`,
+but recording clause-relative positions instead of variables). -/
+def canonPosBlocks (litList : List (Rung4Literal n)) (claimed : Finset (Fin n)) :
+    List (Clause n) → List (List ℕ)
+  | [] => []
+  | C :: rest =>
+      canonPosBlock litList claimed C
+        :: canonPosBlocks litList (claimed ∪ (termBlock litList C \ claimed)) rest
+
+/-- **The variable blocks are the position blocks read through the clauses.**
+`canonBlocks = zipWith blockVars cs (canonPosBlocks)` — so the position-layer label
+`canonPosBlocks` together with the clause list recovers the variable-level canonical blocks. -/
+theorem canonBlocks_eq_zipWith (litList : List (Rung4Literal n)) :
+    ∀ (L : List (Clause n)) (claimed : Finset (Fin n)),
+      canonBlocks litList claimed L = List.zipWith blockVars L (canonPosBlocks litList claimed L) := by
+  intro L
+  induction L with
+  | nil => intro claimed; rfl
+  | cons C rest ih =>
+    intro claimed
+    rw [canonBlocks, canonPosBlocks, List.zipWith_cons_cons, canonPosBlock_blockVars,
+      ih (claimed ∪ (termBlock litList C \ claimed))]
+
+/-- **`canonLabel_det` at the position-block level.**  Equal completions (`σ*`) and equal
+canonical *position*-blocks force equal path-variable sets.  The completion fixes the confirmed
+clause list (same `cs`, same `termSat σ*`), and the position-blocks read through those clauses
+give the canonical variable blocks (`canonBlocks_eq_zipWith`), whose union is the path-variable
+set (`canonBlocks_union_eq_pathvars`).  This is the target determinism; only the `Fin w`
+tokenization (`tokFlatten`/`toFinW`) remains to present `canonPosBlocks` as a `(2w)^s` label. -/
+theorem canonPosBlocks_det (ρ σ : Restriction n) (cs : List (Clause n))
+    (hcsρ : ∀ T ∈ cs, (T.lits.map litVar).Nodup)
+    (hcsσ : ∀ T ∈ cs, (T.lits.map litVar).Nodup)
+    (hσ : complete ρ (encLits ρ cs) = complete σ (encLits σ cs))
+    (hpos : canonPosBlocks (encLits ρ cs) ∅ (cs.filter (termSat (complete ρ (encLits ρ cs))))
+        = canonPosBlocks (encLits σ cs) ∅ (cs.filter (termSat (complete σ (encLits σ cs))))) :
+    ((encLits ρ cs).map litVar).toFinset = ((encLits σ cs).map litVar).toFinset := by
+  refine canonBlocks_det_pathvars ρ σ cs hcsρ hcsσ ?_
+  rw [canonBlocks_eq_zipWith, canonBlocks_eq_zipWith, hpos, hσ]
+
 /-! ## Delimiter-tokenized flattening (handles empty blocks) -/
 
 /-- A token of the canonical flat label: either a within-block index (`Fin w`) or an
@@ -231,5 +309,8 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_pairwise_disjoint
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_union_eq_pathvars
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_det_pathvars
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonPosBlock_blockVars
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_eq_zipWith
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonPosBlocks_det
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.tokGroup_tokFlatten
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.tokFlatten_inj
