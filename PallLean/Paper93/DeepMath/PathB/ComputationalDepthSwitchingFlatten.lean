@@ -102,9 +102,29 @@ theorem ungroupBlocks_fst_mem : ∀ {bs : List (List ℕ)} {p : ℕ × Bool},
     · obtain ⟨b', hb', hp'⟩ := ih h
       exact ⟨b', List.mem_cons.mpr (Or.inr hb'), hp'⟩
 
+/-- Marking preserves a block's length. -/
+theorem markLast_length : ∀ b : List ℕ, (markLast b).length = b.length
+  | [] => rfl
+  | [_] => rfl
+  | x :: y :: xs => by
+      have ih := markLast_length (y :: xs)
+      show (markLast (x :: y :: xs)).length = (x :: y :: xs).length
+      rw [show markLast (x :: y :: xs) = (x, false) :: markLast (y :: xs) from rfl,
+          List.length_cons, ih]
+      simp [List.length_cons]
+
+/-- The flat sequence's length is the sum of the block lengths. -/
+theorem ungroupBlocks_length : ∀ bs : List (List ℕ),
+    (ungroupBlocks bs).length = (bs.map List.length).sum
+  | [] => rfl
+  | b :: bs => by
+      rw [ungroupBlocks, List.length_append, markLast_length, ungroupBlocks_length bs,
+          List.map_cons, List.sum_cons]
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.groupBlocks_ungroupBlocks
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.ungroupBlocks_fst_mem
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.ungroupBlocks_length

@@ -76,6 +76,19 @@ theorem encLits_label_inj (ρ σ : Restriction n) (cs : List (Clause n))
   rw [hdet, hcomplete] at hRρ
   exact hRρ.symm.trans hRσ
 
+/-- **The flat-label length is the total block size.**  `encFlatLabel ρ cs` has length equal
+to the sum, over the `σ*`-confirmed terms, of the number of their path-literal positions.  So
+the `hlen = s` condition is the concrete statement that this total equals `s`.  (Note: a path
+variable shared across several confirmed terms is counted once per term — the label length is
+the count of `(term, position)` pairs, which is `≥` the number of path variables, with
+equality when the confirmed terms' literal lists are variable-disjoint.) -/
+theorem encFlatLabel_length (ρ : Restriction n) (cs : List (Clause n)) :
+    (encFlatLabel ρ cs).length
+      = (((cs.filter (termSat (complete ρ (encLits ρ cs)))).map
+          (fun T => (blockOf (encLits ρ cs) T).length))).sum := by
+  rw [encFlatLabel, ungroupBlocks_length, encBlocks, List.map_map]
+  rfl
+
 /-! ## Packing the flat label into `PathLabel w s` and the `(2w)^s` count -/
 
 variable {w s : ℕ}
