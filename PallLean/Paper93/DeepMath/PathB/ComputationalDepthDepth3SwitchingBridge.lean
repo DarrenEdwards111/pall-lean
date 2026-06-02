@@ -386,6 +386,35 @@ theorem widthBad_yields_short_dt {D : Rung4DNF n} {depthBudget : ℕ}
       ∀ x : Fin n → Bool, Rung4Restriction.Extends ρ x → T.eval x = D.eval x :=
   good_restriction_yields_short_dt D hgood (fun _ hρ => residual_width_le_of_not_widthBad hρ)
 
+/-- **G1-core reduced + the whole arc composed.**  Given the canonical `(2w)^s` count for a bad
+set `Bad`, the parameter inequality `|Short|·(2w)^s < #restrictions`, and the **structural
+inclusion** `widthBad ⊆ Bad` (a restriction leaving large residual width is counted by the
+canonical encoding), the entire count → DT-collapse arc closes: there is a restriction `ρ` and a
+decision tree of depth `≤ depthBudget` computing the DNF `D` on `ρ`'s subcube.
+
+The inclusion `hincl` is the *one* genuine remaining structural fact of G1-core — that large
+residual width forces a long canonical path (so `ρ ∈ Bad`).  It reconciles the `SwitchingCounting`
+encoding with `Rung4SwitchingCore`'s residual width, and is the irreducible switching-lemma
+content; everything else here is proved.  `hlt` is model-backed by `param_ineq_lt`. -/
+theorem widthBad_collapse_dt {w s : ℕ} [NeZero w] {cs : List (Clause n)} {D : Rung4DNF n}
+    {Bad Short : Finset (Restriction n)} {depthBudget : ℕ}
+    (hcs : ∀ T ∈ cs, (T.lits.map litVar).Nodup)
+    (hwidth : ∀ T ∈ cs, T.lits.length ≤ w)
+    (hne : ∀ ρ ∈ Bad, ∀ b ∈ canonPosBlocks (encLits ρ cs) ∅
+        (cs.filter (termSat (complete ρ (encLits ρ cs)))), b ≠ [])
+    (hlen : ∀ ρ ∈ Bad, (ungroupBlocks (canonPosBlocks (encLits ρ cs) ∅
+        (cs.filter (termSat (complete ρ (encLits ρ cs)))))).length = s)
+    (hmem : ∀ ρ ∈ Bad, complete ρ (encLits ρ cs) ∈ Short)
+    (hincl : widthBad D depthBudget ⊆ Bad)
+    (hlt : Short.card * (2 * w) ^ s < (Finset.univ : Finset (Restriction n)).card) :
+    ∃ ρ : Restriction n, ∃ T : BoolDecisionTree n,
+      T.depth ≤ depthBudget ∧
+      ∀ x : Fin n → Bool, Rung4Restriction.Extends ρ x → T.eval x = D.eval x := by
+  have hcount := canonMarkLabel_switching_count hcs hwidth hne hlen hmem
+  have hwbcount : (widthBad D depthBudget).card ≤ Short.card * (2 * w) ^ s :=
+    le_trans (Finset.card_le_card hincl) hcount
+  exact widthBad_yields_short_dt (exists_good_restriction hwbcount hlt)
+
 /-! ### The binomial star-count (model backing for `|F|` and `|Short|`) -/
 
 /-- **Fiber count.**  The restrictions with a *given* free-variable set `S` are exactly the
@@ -499,6 +528,7 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.BoolDecisionTree.leaves_le_two_pow_depth
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.good_restriction_yields_short_dt
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.widthBad_yields_short_dt
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.widthBad_collapse_dt
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.choose_descend_bound
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.param_ineq
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.choose_descend_lt
