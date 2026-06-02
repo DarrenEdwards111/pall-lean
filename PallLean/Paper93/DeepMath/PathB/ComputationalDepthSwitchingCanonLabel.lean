@@ -285,6 +285,19 @@ theorem tokGroup_append_endBlock (b : List (Fin w)) (rest : List (CanonTok w)) :
       | [] => [[x]] | b :: bs => (x :: b) :: bs) = _
     rw [ih]
 
+/-- **Token count of the tokenized flatten.**  Each block contributes its size plus one
+`endBlock` delimiter, so the total is `Σ block sizes + #blocks`.  This makes the delimiter cost
+explicit: the tokenized label has length `s + #blocks`, not `s`. -/
+theorem tokFlatten_length : ∀ bs : List (List (Fin w)),
+    (tokFlatten bs).length = (bs.map List.length).sum + bs.length := by
+  intro bs
+  induction bs with
+  | nil => rfl
+  | cons b bs ih =>
+    rw [tokFlatten, List.length_append, List.length_map, List.length_cons, ih, List.map_cons,
+      List.sum_cons, List.length_cons]
+    omega
+
 /-- **Round-trip — unconditional.**  Grouping the tokenized blocks recovers them exactly, with
 no nonempty-block hypothesis (the `endBlock` delimiter marks every boundary, including empty
 blocks).  This is the empty-block fix the canonical label needs. -/
@@ -373,11 +386,93 @@ theorem canonLabel_det [NeZero w] (ρ σ : Restriction n) (cs : List (Clause n))
   dsimp only at h2
   rwa [map_map_natToFin_val hwρ, map_map_natToFin_val hwσ] at h2
 
+/-! ## The genuine `(2w)^s` canonical label (delimiter-free, via `PathLabel w s`) -/
+
+/-- **The canonical `(2w)^s` label.**  The delimiter-free `(index, isLast)`-per-position
+encoding of the canonical first-claim blocks, packed into `PathLabel w s` (cardinality
+`(2w)^s`, `card_pathLabels`).  No `endBlock` delimiter cost: the boundary is the `isLast` bit on
+each position (`markLast`/`ungroupBlocks`), so the label lives in exactly `(2w)^s` — provided
+the canonical blocks are nonempty (which `markLast` requires). -/
+def canonMarkLabel (w s : ℕ) [NeZero w] (ρ : Restriction n) (cs : List (Clause n)) :
+    PathLabel w s :=
+  flatToLabel (toFinW w (ungroupBlocks (canonPosBlocks (encLits ρ cs) ∅
+    (cs.filter (termSat (complete ρ (encLits ρ cs)))))))
+
+/-- **`canonLabel_det` with the `(2w)^s` label.**  The canonical `PathLabel w s` label (an
+element of a `(2w)^s`-element type) together with the completion `σ*` determines the
+path-variable set — for width-`w` clause families with nonempty canonical blocks and flat
+length `s`.  This is the genuine `(2w)^s` cardinality realization: the determining label lives
+in `PathLabel w s`, no delimiter overhead. -/
+theorem canonMarkLabel_det (w s : ℕ) [NeZero w] (ρ σ : Restriction n) (cs : List (Clause n))
+    (hcsρ : ∀ T ∈ cs, (T.lits.map litVar).Nodup)
+    (hcsσ : ∀ T ∈ cs, (T.lits.map litVar).Nodup)
+    (hwidth : ∀ T ∈ cs, T.lits.length ≤ w)
+    (hneρ : ∀ b ∈ canonPosBlocks (encLits ρ cs) ∅
+        (cs.filter (termSat (complete ρ (encLits ρ cs)))), b ≠ [])
+    (hneσ : ∀ b ∈ canonPosBlocks (encLits σ cs) ∅
+        (cs.filter (termSat (complete σ (encLits σ cs)))), b ≠ [])
+    (hlenρ : (ungroupBlocks (canonPosBlocks (encLits ρ cs) ∅
+        (cs.filter (termSat (complete ρ (encLits ρ cs)))))).length = s)
+    (hlenσ : (ungroupBlocks (canonPosBlocks (encLits σ cs) ∅
+        (cs.filter (termSat (complete σ (encLits σ cs)))))).length = s)
+    (hσ : complete ρ (encLits ρ cs) = complete σ (encLits σ cs))
+    (hlabel : canonMarkLabel w s ρ cs = canonMarkLabel w s σ cs) :
+    ((encLits ρ cs).map litVar).toFinset = ((encLits σ cs).map litVar).toFinset := by
+  refine canonPosBlocks_det ρ σ cs hcsρ hcsσ hσ ?_
+  have hidxρ : ∀ p ∈ ungroupBlocks (canonPosBlocks (encLits ρ cs) ∅
+      (cs.filter (termSat (complete ρ (encLits ρ cs))))), p.1 < w := by
+    intro p hp
+    obtain ⟨b, hb, hpb⟩ := ungroupBlocks_fst_mem hp
+    exact canonPosBlocks_lt (encLits ρ cs) _ ∅
+      (fun T hT => hwidth T (List.mem_of_mem_filter hT)) b hb p.1 hpb
+  have hidxσ : ∀ p ∈ ungroupBlocks (canonPosBlocks (encLits σ cs) ∅
+      (cs.filter (termSat (complete σ (encLits σ cs))))), p.1 < w := by
+    intro p hp
+    obtain ⟨b, hb, hpb⟩ := ungroupBlocks_fst_mem hp
+    exact canonPosBlocks_lt (encLits σ cs) _ ∅
+      (fun T hT => hwidth T (List.mem_of_mem_filter hT)) b hb p.1 hpb
+  have hfl := flatToLabel_inj (s := s) (by simpa only [toFinW, List.length_map] using hlenρ)
+    (by simpa only [toFinW, List.length_map] using hlenσ) hlabel
+  exact ungroupBlocks_inj hneρ hneσ (toFinW_inj w hidxρ hidxσ hfl)
+
+/-- The canonical label space has cardinality `(2w)^s`. -/
+theorem card_canonMarkLabel_space (w s : ℕ) :
+    (Finset.univ : Finset (PathLabel w s)).card = (2 * w) ^ s := by
+  rw [Finset.card_univ]; exact card_pathLabels w s
+
+/-- **The `(2w)^s` switching count with the tight canonical label.**  For width-`w` clause
+families: if every bad `ρ` has nonempty canonical blocks and canonical flat length `s`, and its
+completion lands in `Short`, then `|Bad| ≤ |Short| · (2w)^s`.  Here `s` is the *canonical* flat
+length — the **star count** (`canonBlocks_sum_card_eq_length`), tight for *arbitrary*
+(shared-variable) clause families and with **no delimiter overhead** (`PathLabel w s` is exactly
+`(2w)^s`).  The decoder side is `encLits_decode`; injectivity is `canonMarkLabel_det` +
+`termWalk_inj'`. -/
+theorem canonMarkLabel_switching_count {w s : ℕ} [NeZero w] {cs : List (Clause n)}
+    {Bad Short : Finset (Restriction n)}
+    (hcs : ∀ T ∈ cs, (T.lits.map litVar).Nodup)
+    (hwidth : ∀ T ∈ cs, T.lits.length ≤ w)
+    (hne : ∀ ρ ∈ Bad, ∀ b ∈ canonPosBlocks (encLits ρ cs) ∅
+        (cs.filter (termSat (complete ρ (encLits ρ cs)))), b ≠ [])
+    (hlen : ∀ ρ ∈ Bad, (ungroupBlocks (canonPosBlocks (encLits ρ cs) ∅
+        (cs.filter (termSat (complete ρ (encLits ρ cs)))))).length = s)
+    (hmem : ∀ ρ ∈ Bad, complete ρ (encLits ρ cs) ∈ Short) :
+    Bad.card ≤ Short.card * (2 * w) ^ s := by
+  refine card_bad_le_encoding (fun ρ => complete ρ (encLits ρ cs))
+    (fun ρ => canonMarkLabel w s ρ cs) hmem ?_
+  intro ρ hρ σ hσ hE hlab
+  have hE' : complete ρ (encLits ρ cs) = complete σ (encLits σ cs) := hE
+  have hvar := canonMarkLabel_det w s ρ σ cs hcs hcs hwidth (hne ρ hρ) (hne σ hσ)
+    (hlen ρ hρ) (hlen σ hσ) hE' hlab
+  exact termWalk_inj' (encLits_decode ρ cs hcs) (encLits_decode σ cs hcs) hE' hvar
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonLabel_det
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonMarkLabel_det
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonMarkLabel_switching_count
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.tokFlatten_length
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_sum_card
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_sum_card_eq_length
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_pairwise_disjoint
