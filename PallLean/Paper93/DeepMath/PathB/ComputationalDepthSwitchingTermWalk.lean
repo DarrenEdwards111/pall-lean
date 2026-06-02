@@ -267,6 +267,21 @@ theorem termWalk_inj {ρ σ : Restriction n} {litListρ litListσ : List (Rung4L
   subst h2
   rw [← hρ, ← hσ, h1]
 
+/-- **Injectivity (var-set form).**  The walk depends on `litList` only through the
+path-variable *set* (via `termBlock`), so `ρ` is determined by `(σ*, path-var set)` — a
+weaker hypothesis than the ordered `litList`. -/
+theorem termWalk_inj' {ρ σ : Restriction n} {litListρ litListσ : List (Rung4Literal n)}
+    {cs : List (Clause n)} {k : ℕ}
+    (hρ : freeOn (complete ρ litListρ)
+      (termWalkVars (complete ρ litListρ) (termBlock litListρ) cs k) = ρ)
+    (hσ : freeOn (complete σ litListσ)
+      (termWalkVars (complete σ litListσ) (termBlock litListσ) cs k) = σ)
+    (h1 : complete ρ litListρ = complete σ litListσ)
+    (h2 : (litListρ.map litVar).toFinset = (litListσ.map litVar).toFinset) : ρ = σ := by
+  have hblock : termBlock litListρ = termBlock litListσ := by
+    funext T; simp only [termBlock]; rw [h2]
+  rw [← hρ, ← hσ, h1, hblock]
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB

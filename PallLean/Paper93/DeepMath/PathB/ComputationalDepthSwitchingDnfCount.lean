@@ -63,6 +63,23 @@ theorem dnf_switching_bound {w s : ℕ} {cs : List (Clause n)}
   intro ρ hρ σ hσ hE hlab
   exact termWalk_inj (hdecode ρ hρ) (hdecode σ hσ) hE (hlabdet ρ hρ σ hσ hE hlab)
 
+/-- **The `(2w)^s` count, var-set form.**  Same as `dnf_switching_bound`, but the label
+need only determine the path-variable *set* (not the ordered list) — the weaker, and
+correct, obligation, since the decoder depends on `litList` only through that set. -/
+theorem dnf_switching_bound' {w s : ℕ} {cs : List (Clause n)}
+    {litList : Restriction n → List (Rung4Literal n)} {k : ℕ}
+    {lab : Restriction n → PathLabel w s} {Bad Short : Finset (Restriction n)}
+    (hdecode : ∀ ρ ∈ Bad, freeOn (complete ρ (litList ρ))
+        (termWalkVars (complete ρ (litList ρ)) (termBlock (litList ρ)) cs k) = ρ)
+    (hmem : ∀ ρ ∈ Bad, complete ρ (litList ρ) ∈ Short)
+    (hlabdet : ∀ ρ ∈ Bad, ∀ σ ∈ Bad,
+        complete ρ (litList ρ) = complete σ (litList σ) → lab ρ = lab σ →
+        ((litList ρ).map litVar).toFinset = ((litList σ).map litVar).toFinset) :
+    Bad.card ≤ Short.card * (2 * w) ^ s := by
+  refine card_bad_le_encoding (fun ρ => complete ρ (litList ρ)) lab hmem ?_
+  intro ρ hρ σ hσ hE hlab
+  exact termWalk_inj' (hdecode ρ hρ) (hdecode σ hσ) hE (hlabdet ρ hρ σ hσ hE hlab)
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
