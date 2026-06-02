@@ -211,6 +211,37 @@ theorem replayStep_falsifies {cs : List (Clause n)} {σ : Restriction n} {ℓ : 
   rw [replayStep, h, termFalsified, List.any_eq_true]
   exact ⟨ℓ, hℓT, by simp [litFalse, falFix_forces_false]⟩
 
+/-- The active term satisfies the selector predicate: it is not falsified and has a free
+literal. -/
+theorem activeTerm_pred {cs : List (Clause n)} {σ : Restriction n} {T : Clause n}
+    (h : activeTerm cs σ = some T) :
+    termFalsified σ T = false ∧ 0 < (freeLits σ T).length := by
+  have hns := activeTerm_anyTermSat_false h
+  have hfind : cs.find? (fun T => !termFalsified σ T && decide (0 < (freeLits σ T).length))
+      = some T := activeTerm_eq_find hns ▸ h
+  have hpred := List.find?_some hfind
+  simp only [Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq] at hpred
+  exact hpred
+
+/-- **The active term changes every step.**  Since the step falsifies the active term's first
+free literal, that term is falsified afterwards and so cannot be the active term again.  With
+`termFalsified_replayPath_of` (it stays falsified), the path therefore visits *distinct* active
+terms — each consumed permanently, positions never revisited.  This is the precise "advance"
+statement underneath boundary recovery. -/
+theorem activeTerm_replayStep_ne {cs : List (Clause n)} {σ : Restriction n} {T : Clause n}
+    (h : activeTerm cs σ = some T) : activeTerm cs (replayStep cs σ) ≠ some T := by
+  intro hcontra
+  obtain ⟨hnf, hlen⟩ := activeTerm_pred h
+  obtain ⟨ℓ, hℓ⟩ : ∃ ℓ, (freeLits σ T).head? = some ℓ := by
+    cases hh : freeLits σ T with
+    | nil => rw [hh] at hlen; simp at hlen
+    | cons a _ => exact ⟨a, rfl⟩
+  have hatl : activeTermLit cs σ = some ℓ := by unfold activeTermLit; rw [h]; exact hℓ
+  have hℓT : ℓ ∈ T.lits := (List.mem_filter.mp (List.mem_of_mem_head? hℓ)).1
+  have hfals : termFalsified (replayStep cs σ) T = true := replayStep_falsifies hatl hℓT
+  rw [(activeTerm_pred hcontra).1] at hfals
+  simp at hfals
+
 /-- **Per-step reverse inverse.**  Freeing the falsified variable undoes one flattened step:
 if the active term's chosen literal is `ℓ`, then re-freeing `litVar ℓ` from `replayStep cs σ`
 recovers `σ` exactly.  This is the foundational brick of any reverse decoder for the flattened
@@ -264,5 +295,6 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.replaySel_card_le
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.termFalsified_replayPath_of
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.replayStep_falsifies
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.activeTerm_replayStep_ne
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.freeOn_replayStep_recover
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.replay_switching_count
