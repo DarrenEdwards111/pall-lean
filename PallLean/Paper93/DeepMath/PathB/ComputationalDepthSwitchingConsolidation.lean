@@ -4,6 +4,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingWalk
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingWidthFeasible
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingHastad
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingReplayPath
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingEncLabel
 
 /-!
 # Switching-lemma decoder arc — consolidated stopping state
@@ -93,6 +94,23 @@ the block selector — does **not** transfer to the one-step path.
 This is the genuine open core; it is *distinct* from the now-solved block selector, and a
 conditional wrapper should name exactly this hypothesis or nothing.
 
+**UPDATE — the `(2w)^s` count is now PROVED (via the block route, not a flattened selector).**
+The above anticipated resolving `(2w)^s` by building a sound *flattened* per-step selector.
+That turned out unnecessary: the `(2w)^s` count is achieved with the *sound block selector*
+plus a *per-block flat label* (each confirmed term's path-literal index positions, flattened
+to a single `(index, isLast)` sequence by `ungroupBlocks`).  See
+`encLits_switching_count`/`encLits_switching_count_width` (`EncLabel.lean`):
+
+> `|Bad| ≤ |Short| · (2w)^s`,
+
+with `hdecode` discharged by `encLits_decode` (the concrete canonical path), `hrec` by
+`encLits_label_inj` (equal completions + equal flat labels ⟹ `ρ = σ`, through
+`termWalkLab_flat_det`), `hidx` by `encFlatLabel_idx_lt` (clause width `≤ w`), and the `hmem`
+content by `stars_complete_encLits` (the completion fixes exactly the `s` path stars).  The
+only remaining *inputs* are the genuine defining conditions of the bad set (flat-label length
+`= s`, nonempty confirmed blocks) and the clause family (width, distinct-variable literals) —
+not open lemmas.
+
 ## Honest map of the two routes
 
 1. **`replayPath` contribution** (this file's route): `freeOn_replayPath`,
@@ -136,8 +154,31 @@ theorem switching_arc_manifest
   ⟨freeOn_completionVars_eq cs ρ s, bad_card_le_completion hmem, bad_card_le_smallsets hmem,
     freeOn_replayPath cs ρ s⟩
 
+/-- **Tight manifest: the `(2w)^s` count via the concrete encoder.**  The encoder route's
+load-bearing results compose into the tight count.  Machine-checks that: the completion
+decodes back to `ρ`; the completion fixes exactly the path-length stars (`hmem` content); and
+the full `(2w)^s` bound holds from clause width plus the bad-set defining conditions. -/
+theorem switching_arc_manifest_tight {w s : ℕ} [NeZero w]
+    (ρ : Restriction n) (cs : List (Clause n))
+    {Bad Short : Finset (Restriction n)}
+    (hcs : ∀ T ∈ cs, (T.lits.map litVar).Nodup)
+    (hwidth : ∀ T ∈ cs, T.lits.length ≤ w)
+    (hblk : ∀ ρ' ∈ Bad, ∀ b ∈ encBlocks ρ' cs, b ≠ [])
+    (hlen : ∀ ρ' ∈ Bad, (encFlatLabel ρ' cs).length = s)
+    (hmem : ∀ ρ' ∈ Bad, complete ρ' (encLits ρ' cs) ∈ Short) :
+    -- decode core for the concrete encoder
+    (freeOn (complete ρ (encLits ρ cs))
+        (termWalkVars (complete ρ (encLits ρ cs)) (termBlock (encLits ρ cs)) cs cs.length) = ρ) ∧
+    -- hmem content: exactly the path stars are fixed
+    (stars (complete ρ (encLits ρ cs)) = stars ρ - (encLits ρ cs).length) ∧
+    -- the tight (2w)^s count
+    (Bad.card ≤ Short.card * (2 * w) ^ s) :=
+  ⟨encLits_decode ρ cs hcs, stars_complete_encLits ρ cs hcs,
+    encLits_switching_count_width hcs hwidth hblk hlen hmem⟩
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.switching_arc_manifest
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.switching_arc_manifest_tight
