@@ -10,12 +10,33 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingCanonLabel
 /-!
 # Switching-lemma decoder arc — consolidated stopping state
 
-**STATUS: REAL.  HONEST CONSOLIDATION.  THE TIGHT `(2w)^s` WALK REDUCES TO `hpre`,
-WHICH IS FALSE FOR ARBITRARY BLOCKS AND REQUIRES THE CANONICAL HÅSTAD ENCODING.**
+**STATUS: REAL.  HONEST CONSOLIDATION.  THE TIGHT `(2w)^s` SWITCHING COUNT IS PROVED.**
+
+## CANONICAL THEOREM (use this downstream)
+
+> **`switching_canonical_manifest`** / **`canonMarkLabel_switching_count`** —
+> `|Bad| ≤ |Short| · (2w)^s` with `s` = the **star count**, for arbitrary (shared-variable)
+> width-`w` clause families, via the canonical first-claim label (`CanonLabel.lean`),
+> delimiter-free (`PathLabel w s`, exactly `(2w)^s`).
+
+This is **the** switching count to consume in the depth-3 collapse pipeline.  The earlier
+counts below are **secondary / superseded**:
+
+* `switching_arc_manifest` (loose `2^n`, `nˢ`) — historical, loosest.
+* `switching_arc_manifest_tight` / `encLits_switching_count_width` (Route B, block) — its `s`
+  *over-counts* shared variables (counts `(term, position)` pairs); use only for
+  variable-disjoint (read-once) families, where it coincides with the canonical `s`.
+* `switching_two_route_fork` — records the Route B vs F distinction and the two meanings of
+  `s`; kept for provenance, not for downstream use.
+* Codex's `circuit_switching_count` (Assembly/Count, `((2^w)^m)^numTerms`) — loosest block
+  product; superseded by the canonical route.
+
+Downstream code (the depth-3 collapse model) should reference `switching_canonical_manifest`.
 
 This file is the documented stopping point for the faithful switching-lemma canonical
-decoder.  Everything below is proved (clean axioms, no `sorry`); the single remaining gate
-is named precisely.
+decoder.  Everything below is proved (clean axioms, no `sorry`); the canonical `(2w)^s` count
+is complete, and the only open work is *consuming* it in the depth-3 collapse pipeline (a good
+restriction exists by counting, then collapses the circuit — the latter is new machinery).
 
 ## What is proved
 
