@@ -156,6 +156,34 @@ theorem activeTerm_prefix_falsified {cs : List (Clause n)} {σ : Restriction n} 
       rw [this] at hns; simp at hns
     exact term_falsified_of_not_sat_no_free hsat hnofree
 
+/-- A forced-false literal lives on a fixed variable. -/
+theorem litFalse_litVar_fixed {ρ : Restriction n} {ℓ : Rung4Literal n}
+    (h : litFalse ρ ℓ = true) : ρ (litVar ℓ) ≠ none := by
+  have hf : Depth3.litFixedVal ρ ℓ = some false := by
+    unfold litFalse at h
+    split at h
+    · next heq => exact heq
+    · simp at h
+  cases ℓ with
+  | pos i => simp only [Depth3.litFixedVal] at hf; simp only [litVar]; rw [hf]; simp
+  | neg i =>
+    simp only [Depth3.litFixedVal] at hf; simp only [litVar]
+    intro hc; rw [hc] at hf; simp at hf
+
+/-- **The sound-selector unlock.**  A term *falsified under `ρ`* stays *unsatisfied under
+`σ*`* — its forcing false literal lives on a `ρ`-fixed variable, which is disjoint from the
+(`ρ`-free) path variables, so the satisfying completion cannot un-falsify it.  This
+discharges the `termSat`-selector soundness with no hypothesis on the blocks: prefix terms
+(falsified by `activeTerm_prefix_falsified`) are non-`termSat` under `σ*`. -/
+theorem termSat_complete_false_of_termFalsified {ρ : Restriction n}
+    {litList : List (Rung4Literal n)} {T : Clause n}
+    (hfals : termFalsified ρ T = true) (hfree : ∀ v ∈ litList.map litVar, ρ v = none) :
+    termSat (complete ρ litList) T = false := by
+  rw [termFalsified, List.any_eq_true] at hfals
+  obtain ⟨ℓ, hℓT, hℓfalse⟩ := hfals
+  exact termSat_complete_eq_false_of_litFalse hℓT hℓfalse
+    (fun hmem => litFalse_litVar_fixed hℓfalse (hfree (litVar ℓ) hmem))
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
@@ -163,3 +191,4 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.termSat_complete_eq_false_of_litFalse
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.term_falsified_of_not_sat_no_free
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.activeTerm_prefix_falsified
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.termSat_complete_false_of_termFalsified
