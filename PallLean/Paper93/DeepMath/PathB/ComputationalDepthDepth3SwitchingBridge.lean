@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingCanonLabel
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4SwitchingCore
 
 /-!
 # Bridge: the canonical `(2w)^s` switching count → the depth-3 collapse pipeline
@@ -254,6 +255,29 @@ theorem param_ineq_lt {n K w : ℕ} (hKn : K ≤ n) (hcond : 4 * w * K < n - K) 
   exact Nat.mul_lt_mul_of_lt_of_le (choose_descend_lt hKn hcond s hs1 hs) (le_refl _)
     (by positivity)
 
+/-! ### Assembly link: good restriction ⟹ a short decision tree (on real DT machinery) -/
+
+/-- **Good restriction ⟹ short decision tree.**  Composing the count's good-restriction
+existence with the deterministic switching substrate
+(`Rung4DNF.exists_restrictedDecisionTree_of_residualWidth_le`): if a good restriction (one not
+in `Bad`) leaves the DNF with residual total width `≤ depthBudget`, then there is a good `ρ`
+and a decision tree of depth `≤ depthBudget` computing the DNF on `ρ`'s subcube.
+
+This is a genuine link of the **assembly**, built on the real `BoolDecisionTree` machinery — not
+faked.  The one named gate `hresid` (good restriction ⟹ small residual width) is the honest
+remaining switching-lemma structural content connecting the canonical path length (which the
+`(2w)^s` count bounds) to the residual DNF width. -/
+theorem good_restriction_yields_short_dt {depthBudget : ℕ} (D : Rung4DNF n)
+    {Bad : Finset (Restriction n)}
+    (hgood : ∃ ρ : Restriction n, ρ ∉ Bad)
+    (hresid : ∀ ρ : Restriction n, ρ ∉ Bad → (D.restrict ρ).totalWidth ≤ depthBudget) :
+    ∃ ρ : Restriction n, ∃ T : BoolDecisionTree n,
+      T.depth ≤ depthBudget ∧
+      ∀ x : Fin n → Bool, Rung4Restriction.Extends ρ x → T.eval x = D.eval x := by
+  obtain ⟨ρ, hρ⟩ := hgood
+  obtain ⟨T, hTd, hTe⟩ := D.exists_restrictedDecisionTree_of_residualWidth_le ρ (hresid ρ hρ)
+  exact ⟨ρ, T, hTd, hTe⟩
+
 /-! ### The binomial star-count (model backing for `|F|` and `|Short|`) -/
 
 /-- **Fiber count.**  The restrictions with a *given* free-variable set `S` are exactly the
@@ -363,6 +387,7 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_forall
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_in
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_forall_in
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.good_restriction_yields_short_dt
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.choose_descend_bound
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.param_ineq
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.choose_descend_lt
