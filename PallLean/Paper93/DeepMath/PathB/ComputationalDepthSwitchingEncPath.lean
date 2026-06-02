@@ -1,6 +1,7 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingCompletionRecover
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingHastad
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingCounting
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingTermWalk
 
 /-!
 # The encoder canonical block path (satisfying-completion tracked)
@@ -117,9 +118,90 @@ theorem encLits_nodup (ρ : Restriction n) (cs : List (Clause n))
           (List.mem_toFinset.mpr hb))
       exact complete_ne_none_of_mem (freeLits ρ T) ρ hv1 hfree
 
+/-- The satisfying completion distributes over concatenation (it is a left fold). -/
+theorem complete_append (ρ : Restriction n) (a b : List (Rung4Literal n)) :
+    complete ρ (a ++ b) = complete (complete ρ a) b := by
+  simp only [complete, List.foldl_append]
+
+/-- The defining equation of `encLits` on a cons (unfolds only the head). -/
+theorem encLits_cons (ρ : Restriction n) (T : Clause n) (ts : List (Clause n)) :
+    encLits ρ (T :: ts) =
+      if termFalsified ρ T then encLits ρ ts
+      else freeLits ρ T ++ encLits (complete ρ (freeLits ρ T)) ts := rfl
+
+/-- **The `hterm` cover.**  Every literal of the encoder path lies in a term that is
+*satisfied* under the global completion `complete ρ (encLits ρ cs)`.  The recursion makes this
+clean: each term, when processed, is the head of its remaining list, so its current free
+literals are exactly the prefix block — `term_processed_termSat` applies directly (no
+cross-block conflict). Skipped (falsified) terms contribute no literals.  This is exactly the
+hypothesis `termWalk_decode_of_hterm` consumes. -/
+theorem encLits_hterm (ρ : Restriction n) (cs : List (Clause n))
+    (hcs : ∀ T ∈ cs, (T.lits.map litVar).Nodup) :
+    ∀ ℓ ∈ encLits ρ cs, ∃ T ∈ cs, ℓ ∈ T.lits ∧
+      termSat (complete ρ (encLits ρ cs)) T = true := by
+  induction cs generalizing ρ with
+  | nil => intro ℓ h; simp [encLits] at h
+  | cons T ts ih =>
+    rw [encLits_cons]
+    split
+    · -- skipped term: literals come from the tail
+      intro ℓ hℓ
+      obtain ⟨T', hT', hℓT', hsat⟩ :=
+        ih ρ (fun T'' h'' => hcs T'' (List.mem_cons.mpr (Or.inr h''))) ℓ hℓ
+      exact ⟨T', List.mem_cons.mpr (Or.inr hT'), hℓT', hsat⟩
+    · rename_i hf
+      have hnf : termFalsified ρ T = false := by simpa using hf
+      have hlive : ∀ ℓ' ∈ T.lits, litFalse ρ ℓ' = false := by
+        intro ℓ' hℓ'
+        by_contra hc
+        have htrue : litFalse ρ ℓ' = true := by simpa using hc
+        have : termFalsified ρ T = true := by
+          rw [termFalsified]; exact List.any_eq_true.mpr ⟨ℓ', hℓ', htrue⟩
+        rw [this] at hnf; simp at hnf
+      have hnd : ((freeLits ρ T ++ encLits (complete ρ (freeLits ρ T)) ts).map litVar).Nodup := by
+        have := encLits_nodup ρ (T :: ts) hcs
+        rwa [encLits_cons, if_neg hf] at this
+      have hfree : ∀ v ∈ (freeLits ρ T ++ encLits (complete ρ (freeLits ρ T)) ts).map litVar,
+          ρ v = none := by
+        intro v hv
+        have hsub := encLits_subset_freeVars ρ (T :: ts)
+        rw [encLits_cons, if_neg hf] at hsub
+        exact mem_freeVars.mp (hsub (List.mem_toFinset.mpr hv))
+      intro ℓ hℓ
+      rw [List.mem_append] at hℓ
+      rcases hℓ with hb | hr
+      · -- literal in the head term's block
+        refine ⟨T, List.mem_cons.mpr (Or.inl rfl), (List.mem_filter.mp hb).1, ?_⟩
+        refine term_processed_termSat (fun ℓ' hℓ' hfr => ?_) hlive hnd hfree
+        exact List.mem_append_left _ (List.mem_filter.mpr ⟨hℓ', hfr⟩)
+      · -- literal in the tail, processed at the advanced state
+        obtain ⟨T', hT', hℓT', hsat⟩ :=
+          ih (complete ρ (freeLits ρ T))
+            (fun T'' h'' => hcs T'' (List.mem_cons.mpr (Or.inr h''))) ℓ hr
+        refine ⟨T', List.mem_cons.mpr (Or.inr hT'), hℓT', ?_⟩
+        rw [complete_append]
+        exact hsat
+
+/-- **The encoder discharges `hdecode`.**  For the concrete canonical path `litList =
+encLits ρ cs`, the sound decoder recovers `ρ` from its completion — with *no* extra
+hypothesis beyond each term having distinct-variable literals.  This is exactly the
+`hdecode` field of `dnf_switching_interface`/`dnf_switching_bound'`, now supplied by a
+concrete encoder rather than assumed.  Fuel `cs.length` suffices (at most one block per
+term). -/
+theorem encLits_decode (ρ : Restriction n) (cs : List (Clause n))
+    (hcs : ∀ T ∈ cs, (T.lits.map litVar).Nodup) :
+    freeOn (complete ρ (encLits ρ cs))
+      (termWalkVars (complete ρ (encLits ρ cs)) (termBlock (encLits ρ cs)) cs cs.length) = ρ := by
+  refine termWalk_decode_of_hterm ?_ ?_ (encLits_hterm ρ cs hcs)
+  · intro v hv
+    exact mem_freeVars.mp (encLits_subset_freeVars ρ cs (List.mem_toFinset.mpr hv))
+  · exact List.length_filter_le _ _
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_subset_freeVars
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_nodup
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_hterm
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_decode
