@@ -282,6 +282,29 @@ theorem termWalk_inj' {ρ σ : Restriction n} {litListρ litListσ : List (Rung4
     funext T; simp only [termBlock]; rw [h2]
   rw [← hρ, ← hσ, h1, hblock]
 
+/-- The **label-driven** walk: consume a list of index-blocks (the compact label), finding
+the next `termSat`-confirmed term per block and reading its variables by index. -/
+def termWalkLab (σstar : Restriction n) :
+    List (Clause n) → List (List ℕ) → Finset (Fin n)
+  | _, [] => ∅
+  | cs, block :: rest =>
+    match cs.dropWhile (fun T => !termSat σstar T) with
+    | [] => ∅
+    | T :: tail => blockVars T block ∪ termWalkLab σstar tail rest
+
+/-- One-step correctness of the label-driven walk. -/
+theorem termWalkLab_step (σstar : Restriction n) {cs : List (Clause n)} {pre : List (Clause n)}
+    {T : Clause n} {tail : List (Clause n)} {block : List ℕ} {rest : List (List ℕ)}
+    (hcs : cs = pre ++ T :: tail) (hpre : ∀ T' ∈ pre, termSat σstar T' = false)
+    (hT : termSat σstar T = true) :
+    termWalkLab σstar cs (block :: rest) = blockVars T block ∪ termWalkLab σstar tail rest := by
+  have hdw : cs.dropWhile (fun T => !termSat σstar T) = T :: tail := by
+    rw [hcs]
+    exact dropWhile_eq_of_prefix (fun T' hT' => by simp [hpre T' hT']) (by simp [hT])
+  show (match cs.dropWhile (fun T => !termSat σstar T) with
+    | [] => ∅ | T :: tail => blockVars T block ∪ termWalkLab σstar tail rest) = _
+  rw [hdw]
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
