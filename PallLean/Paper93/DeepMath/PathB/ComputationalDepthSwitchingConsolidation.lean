@@ -5,6 +5,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingWidthFeasible
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingHastad
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingReplayPath
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingEncLabel
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingCanonLabel
 
 /-!
 # Switching-lemma decoder arc — consolidated stopping state
@@ -230,6 +231,56 @@ theorem switching_two_route_fork {w s : ℕ} [NeZero w] (cs : List (Clause n)) (
     ((replaySel cs σ s).card ≤ s) :=
   ⟨encLits_switching_count_width hcs hwidth hblk hlen hmem, replaySel_card_le cs σ s⟩
 
+/-!
+## The canonical `(2w)^s` route (resolves the over-count, generally)
+
+Route B's `s` over-counts variables shared across confirmed clauses (it counts `(term,
+position)` pairs).  The **canonical single-assignment** label fixes this *generally*: assign
+each path variable to its **first** confirmed clause.  The per-clause blocks are then disjoint
+by construction (`canonBlocks_pairwise_disjoint`), so the label length equals the **star
+count** for arbitrary (shared-variable) clause families (`canonBlocks_sum_card_eq_length`) — no
+read-once hypothesis.
+
+The empty-block boundary problem (a confirmed clause whose path variables are all claimed
+earlier) is handled by the delimiter-free `(index, isLast)`-per-position packing into
+`PathLabel w s` (`canonMarkLabel`): the `isLast` bit is the per-position boundary, absorbed
+into the `2` of `2w`, so the label lives in exactly `(2w)^s` (no per-block delimiter cost; the
+tokenized `tokFlatten` alternative would cost `(w+1)^(s+#blocks)` by `tokFlatten_length`).
+`canonMarkLabel_det` determines the path-variable set from `σ*` + the label;
+`canonMarkLabel_switching_count` gives `|Bad| ≤ |Short| · (2w)^s` with `s` = star count.
+-/
+
+/-- **Canonical-route manifest.**  The canonical `(2w)^s` route composes: the first-claim label
+length equals the star count (tight, general), the canonical blocks partition the path
+variables, the label space is exactly `(2w)^s`, and the switching count holds with that tight,
+delimiter-free `s`. -/
+theorem switching_canonical_manifest {w s : ℕ} [NeZero w]
+    (ρ : Restriction n) (cs : List (Clause n))
+    {Bad Short : Finset (Restriction n)}
+    (hcs : ∀ T ∈ cs, (T.lits.map litVar).Nodup)
+    (hwidth : ∀ T ∈ cs, T.lits.length ≤ w)
+    (hne : ∀ ρ' ∈ Bad, ∀ b ∈ canonPosBlocks (encLits ρ' cs) ∅
+        (cs.filter (termSat (complete ρ' (encLits ρ' cs)))), b ≠ [])
+    (hlen : ∀ ρ' ∈ Bad, (ungroupBlocks (canonPosBlocks (encLits ρ' cs) ∅
+        (cs.filter (termSat (complete ρ' (encLits ρ' cs)))))).length = s)
+    (hmem : ∀ ρ' ∈ Bad, complete ρ' (encLits ρ' cs) ∈ Short) :
+    -- tight: canonical first-claim label length = star count (general, no disjointness)
+    (((canonBlocks (encLits ρ cs) ∅
+        (cs.filter (termSat (complete ρ (encLits ρ cs))))).map Finset.card).sum
+        = (encLits ρ cs).length) ∧
+    -- canonical blocks partition the path-variable set
+    ((canonBlocks (encLits ρ cs) ∅
+        (cs.filter (termSat (complete ρ (encLits ρ cs))))).Pairwise (fun A B => Disjoint A B)) ∧
+    -- label space cardinality (2w)^s
+    ((Finset.univ : Finset (PathLabel w s)).card = (2 * w) ^ s) ∧
+    -- the (2w)^s switching count with tight canonical s, delimiter-free
+    (Bad.card ≤ Short.card * (2 * w) ^ s) :=
+  ⟨canonBlocks_sum_card_eq_length ρ cs hcs,
+    canonBlocks_pairwise_disjoint (encLits ρ cs)
+      (cs.filter (termSat (complete ρ (encLits ρ cs)))) ∅,
+    card_canonMarkLabel_space w s,
+    canonMarkLabel_switching_count hcs hwidth hne hlen hmem⟩
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
@@ -237,3 +288,4 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.switching_arc_manifest
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.switching_arc_manifest_tight
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.switching_two_route_fork
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.switching_canonical_manifest
