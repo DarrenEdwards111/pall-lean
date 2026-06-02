@@ -17,12 +17,19 @@ This file builds the honest links of the count → collapse chain that are pure 
   bottom gates at once (`#gates · |Short|·(2w)^s < 3^n`);
 * `card_restriction` — `#restrictions = 3^n`, pinning the parameter inequality's RHS.
 
-The strict inequalities are the **parameter-algebra** obligation (random-restriction /
-binomial-ratio estimate), stated here as hypotheses, to be discharged by the choice of
-restriction parameters.
+Correctly parameterized against a restriction **family** `F` (not all `3^n`):
+* `exists_good_restriction_in` / `_forall_in` — `|Bad| < |F|` (resp. `#gates·B < |F|`) ⟹ a good
+  restriction *in `F`* exists.
+
+The **binomial star-count** that backs the family/short cardinalities (model backing):
+* `card_freeVars_eq` — `#{ρ : freeVars ρ = S} = 2^(n-|S|)`;
+* `card_stars_eq` — `#{ρ : stars ρ = m} = C(n,m)·2^(n-m)`, so `|F| = |{stars=K}| = C(n,K)·2^(n-K)`
+  and (since completions drop `s` stars, `stars_complete_encLits`) `|Short| ≤ C(n,K-s)·2^(n-K+s)`.
+  The parameter inequality `|Short|·(2w)^s < |F|` then reduces to the switching ratio
+  `[C(n,K-s)/C(n,K)]·(4w)^s < 1`.
 
 What remains open (genuinely new collapse-side machinery, not faked here):
-* discharging the parameter inequality from a concrete random-restriction model;
+* the binomial-ratio inequality `[C(n,K-s)/C(n,K)]·(4w)^s < 1` for a chosen `(K,s,w)` regime;
 * the **assembly**: a good restriction collapses the circuit to a short `LDeriv` refutation
   (the object-matching step — switching's `termSat` AND-clauses vs the ΣΠΣ bottom OR-clauses).
 
