@@ -254,6 +254,19 @@ theorem termWalk_decode_blocks {ρ : Restriction n} {cs ps : List (Clause n)} {k
     exact Option.isNone_iff_eq_none.mp this
   exact termWalk_decode_of_hterm hfree hfuel (hterm_of_blocks hps hlive hnd hfree)
 
+/-- **Injectivity (the count's `hrec`).**  A restriction is determined by its satisfying
+completion together with its path-literal list: two restrictions sharing both are equal.
+Immediate from `decode_encode_id`, since the decoder is a function of exactly that data. -/
+theorem termWalk_inj {ρ σ : Restriction n} {litListρ litListσ : List (Rung4Literal n)}
+    {cs : List (Clause n)} {k : ℕ}
+    (hρ : freeOn (complete ρ litListρ)
+      (termWalkVars (complete ρ litListρ) (termBlock litListρ) cs k) = ρ)
+    (hσ : freeOn (complete σ litListσ)
+      (termWalkVars (complete σ litListσ) (termBlock litListσ) cs k) = σ)
+    (h1 : complete ρ litListρ = complete σ litListσ) (h2 : litListρ = litListσ) : ρ = σ := by
+  subst h2
+  rw [← hρ, ← hσ, h1]
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
