@@ -126,3 +126,4 @@ end SwitchingCounting
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.termWalk_step
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.termWalk_decode_encode
