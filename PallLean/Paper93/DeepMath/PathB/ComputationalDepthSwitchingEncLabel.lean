@@ -1,4 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingEncPath
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingFlatLabel
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingDnfCount
 
 /-!
 # The encoder label and direct injectivity
@@ -74,8 +76,81 @@ theorem encLits_label_inj (ρ σ : Restriction n) (cs : List (Clause n))
   rw [hdet, hcomplete] at hRρ
   exact hRρ.symm.trans hRσ
 
+/-! ## Packing the flat label into `PathLabel w s` and the `(2w)^s` count -/
+
+variable {w s : ℕ}
+
+/-- Embed a `ℕ` index into `Fin w` (junk `default` if out of range). -/
+def natToFin (w : ℕ) [NeZero w] (i : ℕ) : Fin w := if h : i < w then ⟨i, h⟩ else default
+
+theorem natToFin_val [NeZero w] {i : ℕ} (h : i < w) : (natToFin w i).val = i := by
+  simp [natToFin, h]
+
+/-- Coerce a flat `(ℕ, Bool)` label into a flat `(Fin w, Bool)` label. -/
+def toFinW (w : ℕ) [NeZero w] (l : List (ℕ × Bool)) : List (Fin w × Bool) :=
+  l.map (fun p => (natToFin w p.1, p.2))
+
+/-- The left inverse on in-range indices. -/
+def finToNat : Fin w × Bool → ℕ × Bool := fun p => (p.1.val, p.2)
+
+theorem finToNat_toFinW [NeZero w] : ∀ {l : List (ℕ × Bool)}, (∀ p ∈ l, p.1 < w) →
+    (toFinW w l).map finToNat = l := by
+  intro l
+  induction l with
+  | nil => intro _; rfl
+  | cons a t ih =>
+    intro hl
+    have ha : a.1 < w := hl a (List.mem_cons.mpr (Or.inl rfl))
+    have htl := ih (fun p hp => hl p (List.mem_cons.mpr (Or.inr hp)))
+    simp only [toFinW, List.map_cons] at htl ⊢
+    rw [htl]
+    congr 1
+    simp [finToNat, natToFin_val ha]
+
+theorem toFinW_inj (w : ℕ) [NeZero w] {l l' : List (ℕ × Bool)}
+    (hl : ∀ p ∈ l, p.1 < w) (hl' : ∀ p ∈ l', p.1 < w)
+    (h : toFinW w l = toFinW w l') : l = l' := by
+  have := congrArg (List.map (finToNat (w := w))) h
+  rwa [finToNat_toFinW hl, finToNat_toFinW hl'] at this
+
+/-- The packed encoder label: the flat `(ℕ, Bool)` sequence coerced to `Fin w` and folded
+into `PathLabel w s`. -/
+def packLabel (w s : ℕ) [NeZero w] (ρ : Restriction n) (cs : List (Clause n)) : PathLabel w s :=
+  flatToLabel (toFinW w (encFlatLabel ρ cs))
+
+/-- **The `(2w)^s` switching count for the concrete encoder.**  For a bad set whose encoder
+flat labels have length exactly `s` and indices `< w` (clause width), with nonempty confirmed
+blocks, and whose completions land in `Short`:
+
+  `|Bad| ≤ |Short| · (2w)^s`.
+
+Everything is discharged by proved components — `hdecode` by `encLits_decode`, `hrec` by
+`encLits_label_inj` through the packed label — leaving only the structural side conditions on
+the bad set (length `s`, width `w`, nonempty blocks, `Short` membership). -/
+theorem encLits_switching_count [NeZero w] {cs : List (Clause n)}
+    {Bad Short : Finset (Restriction n)}
+    (hcs : ∀ T ∈ cs, (T.lits.map litVar).Nodup)
+    (hblk : ∀ ρ ∈ Bad, ∀ b ∈ encBlocks ρ cs, b ≠ [])
+    (hlen : ∀ ρ ∈ Bad, (encFlatLabel ρ cs).length = s)
+    (hidx : ∀ ρ ∈ Bad, ∀ p ∈ encFlatLabel ρ cs, p.1 < w)
+    (hmem : ∀ ρ ∈ Bad, complete ρ (encLits ρ cs) ∈ Short) :
+    Bad.card ≤ Short.card * (2 * w) ^ s := by
+  refine card_bad_le_encoding (fun ρ => complete ρ (encLits ρ cs))
+    (fun ρ => packLabel w s ρ cs) hmem ?_
+  intro ρ hρ σ hσ hE hlab
+  have hlenρ : (toFinW w (encFlatLabel ρ cs)).length = s := by
+    simp only [toFinW, List.length_map]; exact hlen ρ hρ
+  have hlenσ : (toFinW w (encFlatLabel σ cs)).length = s := by
+    simp only [toFinW, List.length_map]; exact hlen σ hσ
+  have h1 : toFinW w (encFlatLabel ρ cs) = toFinW w (encFlatLabel σ cs) :=
+    flatToLabel_inj hlenρ hlenσ hlab
+  have h2 : encFlatLabel ρ cs = encFlatLabel σ cs :=
+    toFinW_inj w (hidx ρ hρ) (hidx σ hσ) h1
+  exact encLits_label_inj ρ σ cs hcs (hblk ρ hρ) (hblk σ hσ) hE h2
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_label_inj
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_switching_count
