@@ -368,6 +368,23 @@ theorem blockVars_blockOf (litList : List (Rung4Literal n)) (T : Clause n) :
       simp only [Option.any_some, decide_eq_true_eq, hℓv]; exact hvL
     · rw [List.getElem?_eq_getElem hilt, hgi]; simp [hℓv]
 
+/-- **Label-driven walk = the proved `termBlock` walk.**  Running `termWalkLab` on the
+natural per-term index-blocks computes the same as `termWalkVars` with the `termBlock`
+selector — so the label-driven decoder inherits all the proved correctness. -/
+theorem termWalkLab_blockOf_eq (σstar : Restriction n) (litList : List (Rung4Literal n))
+    (cs : List (Clause n)) :
+    termWalkLab σstar cs ((cs.filter (termSat σstar)).map (blockOf litList))
+      = termWalkVars σstar (termBlock litList) cs ((cs.filter (termSat σstar)).length) := by
+  have hzip : ∀ (L : List (Clause n)),
+      List.zipWith blockVars L (L.map (blockOf litList)) = L.map (termBlock litList) := by
+    intro L
+    induction L with
+    | nil => rfl
+    | cons a L ih =>
+      simp only [List.map_cons, List.zipWith_cons_cons, blockVars_blockOf, ih]
+  rw [termWalkLab_eq, List.length_map, List.take_length, hzip,
+    termWalk_eq_filter_full _ _ _ _ (le_refl _), List.foldr_map]
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
