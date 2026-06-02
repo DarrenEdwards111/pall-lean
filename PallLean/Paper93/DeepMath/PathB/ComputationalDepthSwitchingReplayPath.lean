@@ -162,6 +162,44 @@ theorem replaySel_card_le (cs : List (Clause n)) (σ : Restriction n) (k : ℕ) 
           Finset.card_union_le _ _
       _ ≤ k + 1 := Nat.add_le_add ih hstep
 
+/-- `falFix` leaves a literal on another variable's forced-false status unchanged. -/
+theorem litFalse_falFix_ne (σ : Restriction n) {ℓ ℓ'' : Rung4Literal n}
+    (h : litVar ℓ'' ≠ litVar ℓ) : litFalse (falFix σ ℓ) ℓ'' = litFalse σ ℓ'' := by
+  unfold litFalse; rw [litFixedVal_falFix_ne σ h]
+
+/-- A false literal stays false after one flattened step (the step only fixes a *free*
+variable, distinct from the fixed variable carrying the false literal). -/
+theorem litFalse_replayStep {cs : List (Clause n)} {σ : Restriction n} {ℓ'' : Rung4Literal n}
+    (h : litFalse σ ℓ'' = true) : litFalse (replayStep cs σ) ℓ'' = true := by
+  rw [replayStep]
+  cases ha : activeTermLit cs σ with
+  | none => exact h
+  | some ℓ =>
+    have hfree : σ (litVar ℓ) = none := by
+      have hf := activeTermLit_free ha
+      rw [litFree_var] at hf; exact Option.isNone_iff_eq_none.mp hf
+    have hne : litVar ℓ'' ≠ litVar ℓ := fun he => litFalse_litVar_fixed h (he ▸ hfree)
+    rw [litFalse_falFix_ne σ hne]; exact h
+
+/-- **Monotonicity: a falsified term stays falsified after one step.**  In the falsify path one
+false literal kills the whole term (a conjunction), and the step only touches a free variable,
+so it cannot revive a falsified term. -/
+theorem termFalsified_replayStep_of {cs : List (Clause n)} {σ : Restriction n} {T : Clause n}
+    (h : termFalsified σ T = true) : termFalsified (replayStep cs σ) T = true := by
+  rw [termFalsified, List.any_eq_true] at h ⊢
+  obtain ⟨ℓ'', hmem, hf⟩ := h
+  exact ⟨ℓ'', hmem, litFalse_replayStep hf⟩
+
+/-- **Monotonicity along the whole path.**  A term falsified at the start stays falsified after
+any number of flattened steps — so the active-term positions never revisit a processed term
+(the structural basis for boundary recovery). -/
+theorem termFalsified_replayPath_of {cs : List (Clause n)} {σ : Restriction n} {T : Clause n}
+    (k : ℕ) (h : termFalsified σ T = true) :
+    termFalsified (replayPath cs σ k) T = true := by
+  induction k with
+  | zero => exact h
+  | succ k ih => rw [replayPath]; exact termFalsified_replayStep_of ih
+
 /-- **Per-step reverse inverse.**  Freeing the falsified variable undoes one flattened step:
 if the active term's chosen literal is `ℓ`, then re-freeing `litVar ℓ` from `replayStep cs σ`
 recovers `σ` exactly.  This is the foundational brick of any reverse decoder for the flattened
@@ -213,5 +251,6 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.freeOn_replayPath
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.replayPath_inj
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.replaySel_card_le
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.termFalsified_replayPath_of
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.freeOn_replayStep_recover
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.replay_switching_count
