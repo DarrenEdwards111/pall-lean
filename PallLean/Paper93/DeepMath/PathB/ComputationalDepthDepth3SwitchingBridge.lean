@@ -142,6 +142,66 @@ theorem card_restriction (n : ℕ) :
   rw [Finset.card_univ]
   simp [Restriction, Fintype.card_fun, Fintype.card_option, Fintype.card_bool]
 
+/-! ### The binomial-ratio inequality (the switching parameter condition) -/
+
+/-- One descending step of the binomial ratio.  In the sparse regime `4w·K ≤ n−K`, dropping the
+chosen count by one costs at least a factor `4w`: `C(n, K−s−1) · 4w ≤ C(n, K−s)`.  Via the
+recurrence `C(n,k+1)·(k+1) = C(n,k)·(n−k)` and cancellation. -/
+theorem choose_step_bound {n K w : ℕ} (hKn : K ≤ n) (hcond : 4 * w * K ≤ n - K) {s : ℕ}
+    (hs : s + 1 ≤ K) : Nat.choose n (K - (s + 1)) * (4 * w) ≤ Nat.choose n (K - s) := by
+  have hpos : 0 < K - s := by omega
+  have hks1 : K - (s + 1) = K - s - 1 := by omega
+  -- recurrence at k = K - s - 1:  C(n, K-s) * (K-s) = C(n, K-s-1) * (n - K + s + 1)
+  have hrec : Nat.choose n (K - s) * (K - s)
+      = Nat.choose n (K - s - 1) * (n - (K - s - 1)) := by
+    have := Nat.choose_succ_right_eq n (K - s - 1)
+    rwa [Nat.sub_add_cancel hpos] at this
+  -- the parameter condition, localized:  4w·(K-s) ≤ n - (K-s-1)
+  have hloc : 4 * w * (K - s) ≤ n - (K - s - 1) := by
+    have h1 : 4 * w * (K - s) ≤ 4 * w * K := Nat.mul_le_mul_left _ (by omega)
+    omega
+  -- multiply through and cancel (K - s)
+  have hmul : Nat.choose n (K - (s + 1)) * (4 * w) * (K - s) ≤ Nat.choose n (K - s) * (K - s) := by
+    rw [hrec, hks1]
+    calc Nat.choose n (K - s - 1) * (4 * w) * (K - s)
+        = Nat.choose n (K - s - 1) * (4 * w * (K - s)) := by ring
+      _ ≤ Nat.choose n (K - s - 1) * (n - (K - s - 1)) := Nat.mul_le_mul_left _ hloc
+  exact Nat.le_of_mul_le_mul_right hmul hpos
+
+/-- **The binomial-ratio inequality.**  In the sparse regime `4w·K ≤ n−K`, dropping `s` from the
+chosen count costs at least `(4w)^s`:  `C(n, K−s) · (4w)^s ≤ C(n, K)`.  This is the switching
+parameter condition: with `|F| = C(n,K)·2^(n−K)` and `|Short| ≤ C(n,K−s)·2^(n−K+s)`, it gives
+`|Short|·(2w)^s ≤ |F|` (since `2^s·(2w)^s = (4w)^s`). -/
+theorem choose_descend_bound {n K w : ℕ} (hKn : K ≤ n) (hcond : 4 * w * K ≤ n - K) :
+    ∀ s, s ≤ K → Nat.choose n (K - s) * (4 * w) ^ s ≤ Nat.choose n K := by
+  intro s
+  induction s with
+  | zero => intro _; simp
+  | succ s ih =>
+    intro hs
+    calc Nat.choose n (K - (s + 1)) * (4 * w) ^ (s + 1)
+        = Nat.choose n (K - (s + 1)) * (4 * w) * (4 * w) ^ s := by ring
+      _ ≤ Nat.choose n (K - s) * (4 * w) ^ s :=
+          Nat.mul_le_mul_right _ (choose_step_bound hKn hcond hs)
+      _ ≤ Nat.choose n K := ih (by omega)
+
+/-- **The parameter-algebra inequality (cardinality form).**  Combining the binomial ratio with
+the family/short cardinalities: in the sparse regime `4w·K ≤ n−K`,
+
+  `C(n,K−s)·2^(n−K+s) · (2w)^s  ≤  C(n,K)·2^(n−K)`,
+
+i.e. `|Short-bound| · (2w)^s ≤ |F|` (with `F = {stars=K}`, `Short ⊆ {stars=K−s}`).  This is the
+parameter inequality the good-restriction existence needs, now *model-backed* by the binomial
+star-count rather than assumed. -/
+theorem param_ineq {n K w : ℕ} (hKn : K ≤ n) (hcond : 4 * w * K ≤ n - K) {s : ℕ} (hs : s ≤ K) :
+    Nat.choose n (K - s) * 2 ^ (n - K + s) * (2 * w) ^ s ≤ Nat.choose n K * 2 ^ (n - K) := by
+  have h4w : (4 * w) ^ s = 2 ^ s * (2 * w) ^ s := by rw [← mul_pow]; congr 1; ring
+  have hrw : Nat.choose n (K - s) * 2 ^ (n - K + s) * (2 * w) ^ s
+      = (Nat.choose n (K - s) * (4 * w) ^ s) * 2 ^ (n - K) := by
+    rw [pow_add, h4w]; ring
+  rw [hrw]
+  exact Nat.mul_le_mul_right _ (choose_descend_bound hKn hcond s hs)
+
 /-! ### The binomial star-count (model backing for `|F|` and `|Short|`) -/
 
 /-- **Fiber count.**  The restrictions with a *given* free-variable set `S` are exactly the
@@ -239,6 +299,8 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_forall
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_in
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_forall_in
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.choose_descend_bound
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.param_ineq
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.card_freeVars_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.card_stars_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.card_restriction
