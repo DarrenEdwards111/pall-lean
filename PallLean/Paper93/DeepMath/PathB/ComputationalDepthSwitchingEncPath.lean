@@ -255,6 +255,18 @@ theorem termWalkVars_encLits_eq_pathvars (ρ : Restriction n) (cs : List (Clause
   rw [hvnone] at h1
   exact hσ h1
 
+/-- **The recovered set has cardinality = the star reduction.**  The decoder recovers exactly
+`(encLits ρ cs).length` coordinates — which by `stars_complete_encLits` is exactly the number
+of stars fixed (`stars ρ - stars (complete ρ (encLits ρ cs))`).  So the decode is over a set of
+size precisely the star reduction, unconditionally (no clause-disjointness needed) — this is
+the tight star count at the *set* level for the working route. -/
+theorem card_termWalkVars_encLits (ρ : Restriction n) (cs : List (Clause n))
+    (hcs : ∀ T ∈ cs, (T.lits.map litVar).Nodup) :
+    (termWalkVars (complete ρ (encLits ρ cs)) (termBlock (encLits ρ cs)) cs cs.length).card
+      = (encLits ρ cs).length := by
+  rw [termWalkVars_encLits_eq_pathvars ρ cs hcs,
+    List.toFinset_card_of_nodup (encLits_nodup ρ cs hcs), List.length_map]
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
@@ -265,3 +277,4 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_decode
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.stars_complete_encLits
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.termWalkVars_encLits_eq_pathvars
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.card_termWalkVars_encLits
