@@ -108,6 +108,38 @@ theorem card_termBlock_le_length_blockOf (litList : List (Rung4Literal n)) (T : 
   rw [← blockVars_blockOf litList T, blockVars]
   exact (List.toFinset_card_le _).trans (List.length_filterMap_le _ _)
 
+/-- The union of per-term path-variable sets is no larger than the total path-position count
+(union card `≤` sum of position counts) — an unconditional induction combining the union
+bound with the per-term `|termBlock| ≤ |blockOf|`. -/
+theorem card_foldr_termBlock_le_sum_blockOf (litList : List (Rung4Literal n)) :
+    ∀ L : List (Clause n),
+      (L.foldr (fun T acc => termBlock litList T ∪ acc) ∅).card
+        ≤ (L.map (fun T => (blockOf litList T).length)).sum := by
+  intro L
+  induction L with
+  | nil => simp
+  | cons T L ih =>
+    calc (termBlock litList T ∪ L.foldr (fun T acc => termBlock litList T ∪ acc) ∅).card
+        ≤ (termBlock litList T).card +
+            (L.foldr (fun T acc => termBlock litList T ∪ acc) ∅).card := Finset.card_union_le _ _
+      _ ≤ (blockOf litList T).length + (L.map (fun T => (blockOf litList T).length)).sum :=
+          Nat.add_le_add (card_termBlock_le_length_blockOf litList T) ih
+      _ = ((T :: L).map (fun T => (blockOf litList T).length)).sum := by rw [List.map_cons,
+            List.sum_cons]
+
+/-- **The label never undercounts the star count** (unconditional, general).  The encoder
+flat-label length is at least `(encLits ρ cs).length` — the number of fixed stars
+(`card_termWalkVars_encLits`).  So the `(2w)^s` count with `s =` flat-label length always
+covers the bad restrictions whose star count is `≤ s`; the label can only *over*count (when a
+variable is shared across confirmed clauses), never undercount.  Equality holds when the
+confirmed clauses are variable-disjoint. -/
+theorem encLits_length_le_flatLabel (ρ : Restriction n) (cs : List (Clause n))
+    (hcs : ∀ T ∈ cs, (T.lits.map litVar).Nodup) :
+    (encLits ρ cs).length ≤ (encFlatLabel ρ cs).length := by
+  rw [← card_termWalkVars_encLits ρ cs hcs,
+    termWalk_eq_filter_full _ _ _ _ (List.length_filter_le _ _), encFlatLabel_length]
+  exact card_foldr_termBlock_le_sum_blockOf (encLits ρ cs) _
+
 /-! ## Packing the flat label into `PathLabel w s` and the `(2w)^s` count -/
 
 variable {w s : ℕ}
@@ -220,5 +252,6 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_label_inj
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_var_mem_confirmed
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.card_termBlock_le_length_blockOf
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_length_le_flatLabel
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_switching_count
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_switching_count_width
