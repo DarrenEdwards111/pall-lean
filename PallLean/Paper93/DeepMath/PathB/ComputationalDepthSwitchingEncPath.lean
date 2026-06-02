@@ -225,6 +225,36 @@ theorem stars_complete_encLits (ρ : Restriction n) (cs : List (Clause n))
     Finset.card_sdiff_of_subset (encLits_subset_freeVars ρ cs),
     List.toFinset_card_of_nodup (encLits_nodup ρ cs hcs), List.length_map]
 
+/-- The `termBlock` walk output lies in the path variables (each block is `⊆` the path
+variable set). -/
+theorem termWalkVars_subset_pathvars (σstar : Restriction n)
+    (litList : List (Rung4Literal n)) (cs : List (Clause n)) (k : ℕ) :
+    termWalkVars σstar (termBlock litList) cs k ⊆ (litList.map litVar).toFinset := by
+  intro v hv
+  rw [mem_termWalkVars] at hv
+  obtain ⟨T, _, hvT⟩ := hv
+  rw [termBlock, Finset.mem_inter] at hvT
+  exact hvT.2
+
+/-- **The decoder output is exactly the path variable set.**  Running the decoder on the
+concrete encoder recovers precisely the set of path variables — the `s` fixed stars.  Combined
+with `stars_complete_encLits`, this confirms the decode is over exactly the star-reduction set
+(`|recovered| = (encLits ρ cs).length`). -/
+theorem termWalkVars_encLits_eq_pathvars (ρ : Restriction n) (cs : List (Clause n))
+    (hcs : ∀ T ∈ cs, (T.lits.map litVar).Nodup) :
+    termWalkVars (complete ρ (encLits ρ cs)) (termBlock (encLits ρ cs)) cs cs.length
+      = ((encLits ρ cs).map litVar).toFinset := by
+  refine Finset.Subset.antisymm (termWalkVars_subset_pathvars _ _ _ _) ?_
+  intro v hv
+  by_contra hvR
+  have hvnone : ρ v = none := mem_freeVars.mp (encLits_subset_freeVars ρ cs hv)
+  have hσ : complete ρ (encLits ρ cs) v ≠ none :=
+    complete_ne_none_of_mem _ ρ (List.mem_toFinset.mp hv)
+  have h1 := congrFun (encLits_decode ρ cs hcs) v
+  simp only [freeOn, if_neg hvR] at h1
+  rw [hvnone] at h1
+  exact hσ h1
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
@@ -234,3 +264,4 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_hterm
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_decode
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.stars_complete_encLits
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.termWalkVars_encLits_eq_pathvars
