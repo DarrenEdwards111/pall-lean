@@ -135,6 +135,75 @@ theorem card_restriction (n : ℕ) :
   rw [Finset.card_univ]
   simp [Restriction, Fintype.card_fun, Fintype.card_option, Fintype.card_bool]
 
+/-! ### The binomial star-count (model backing for `|F|` and `|Short|`) -/
+
+/-- **Fiber count.**  The restrictions with a *given* free-variable set `S` are exactly the
+functions assigning a Boolean to each coordinate outside `S` (and `none` inside `S`), so there
+are `2^(n - |S|)` of them. -/
+theorem card_freeVars_eq (S : Finset (Fin n)) :
+    (Finset.univ.filter (fun ρ : Restriction n => freeVars ρ = S)).card = 2 ^ (n - S.card) := by
+  have hpi : (Finset.univ.filter (fun ρ : Restriction n => freeVars ρ = S))
+      = Fintype.piFinset (fun i =>
+          if i ∈ S then ({none} : Finset (Option Bool)) else {some true, some false}) := by
+    ext ρ
+    rw [Finset.mem_filter, Fintype.mem_piFinset]
+    simp only [Finset.mem_univ, true_and]
+    constructor
+    · intro hfv i
+      by_cases hi : i ∈ S
+      · have hnone : ρ i = none := mem_freeVars.mp (by rw [hfv]; exact hi)
+        simp [hi, hnone]
+      · have hne : ρ i ≠ none := fun hc => hi (hfv ▸ mem_freeVars.mpr hc)
+        simp only [hi, if_false, Finset.mem_insert, Finset.mem_singleton]
+        cases hρ : ρ i with
+        | none => exact absurd hρ hne
+        | some b => cases b <;> simp
+    · intro h
+      ext i
+      rw [mem_freeVars]
+      by_cases hi : i ∈ S
+      · have := h i; simp only [hi, if_true, Finset.mem_singleton] at this
+        simp [hi, this]
+      · have := h i
+        simp only [hi, if_false, Finset.mem_insert, Finset.mem_singleton] at this
+        rcases this with h1 | h1 <;> simp [hi, h1]
+  rw [hpi, Fintype.card_piFinset]
+  have hval : ∀ i ∈ (Finset.univ : Finset (Fin n)),
+      (if i ∈ S then ({none} : Finset (Option Bool)) else {some true, some false}).card
+        = if i ∈ S then (1 : ℕ) else 2 := by
+    intro i _; by_cases hi : i ∈ S <;> simp [hi]
+  rw [Finset.prod_congr rfl hval, Finset.prod_ite, Finset.prod_const_one, one_mul,
+    Finset.prod_const]
+  congr 1
+  have : (Finset.univ.filter (fun x : Fin n => ¬ x ∈ S)) = Finset.univ \ S := by
+    rw [Finset.filter_not, Finset.filter_mem_eq_inter, Finset.univ_inter]
+  rw [this, Finset.card_sdiff_of_subset (Finset.subset_univ S), Finset.card_univ, Fintype.card_fin]
+
+/-- **The binomial star-count.**  The number of restrictions with exactly `m` free variables is
+`C(n,m) · 2^(n-m)`: choose the `m` free coordinates (`C(n,m)`), assign each of the other `n-m` a
+Boolean (`2^(n-m)`).  This is the cardinality of the restriction family `{ρ : stars ρ = m}` — the
+quantity that backs `|F|` (and, at `m-s`, the `|Short|` bound) in the parameter algebra. -/
+theorem card_stars_eq (m : ℕ) :
+    (Finset.univ.filter (fun ρ : Restriction n => stars ρ = m)).card = n.choose m * 2 ^ (n - m) := by
+  rw [Finset.card_eq_sum_card_fiberwise
+    (f := fun ρ : Restriction n => freeVars ρ) (t := Finset.univ.powersetCard m)
+    (fun ρ hρ => by
+      simp only [Finset.mem_coe, Finset.mem_filter] at hρ
+      exact Finset.mem_powersetCard.mpr ⟨Finset.subset_univ _, hρ.2⟩)]
+  have hterm : ∀ S ∈ (Finset.univ : Finset (Fin n)).powersetCard m,
+      ((Finset.univ.filter (fun ρ : Restriction n => stars ρ = m)).filter
+        (fun ρ => freeVars ρ = S)).card = 2 ^ (n - m) := by
+    intro S hS
+    rw [Finset.mem_powersetCard] at hS
+    have heq : (Finset.univ.filter (fun ρ : Restriction n => stars ρ = m)).filter
+        (fun ρ => freeVars ρ = S) = Finset.univ.filter (fun ρ => freeVars ρ = S) := by
+      ext ρ
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+      exact ⟨fun h => h.2, fun h => ⟨by rw [show stars ρ = (freeVars ρ).card from rfl, h]; exact hS.2, h⟩⟩
+    rw [heq, card_freeVars_eq, hS.2]
+  rw [Finset.sum_congr rfl hterm, Finset.sum_const, Finset.card_powersetCard, Finset.card_univ,
+    Fintype.card_fin, smul_eq_mul]
+
 /-- **Parameter inequality in concrete form.**  The simultaneously-good restriction exists once
 `#gates · |Short| · (2w)^s < 3^n` — the explicit numeric obligation against the total restriction
 count `3^n` (`card_restriction`).  This is the precise parameter-algebra target the random-
@@ -163,4 +232,6 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_forall
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_in
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_forall_in
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.card_freeVars_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.card_stars_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.card_restriction
