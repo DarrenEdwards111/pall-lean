@@ -3,25 +3,31 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingCanonLabel
 /-!
 # Bridge: the canonical `(2w)^s` switching count → the depth-3 collapse pipeline
 
-**STATUS: REAL.  THE FIRST LINK — COUNT ⟹ A GOOD RESTRICTION EXISTS.**
+**STATUS: REAL.  COUNT ⟹ A SIMULTANEOUSLY-GOOD RESTRICTION EXISTS (pigeonhole + union bound).**
 
 The depth-3 collapse gate (`Depth3CollapseModel.collapse`) needs: a restriction under which the
 refuting circuit collapses to a short list-derivation refutation.  The canonical switching count
 `canonMarkLabel_switching_count` is the *quantitative* ingredient — it bounds the **bad**
 restrictions (those that fail to collapse a bottom gate) by `|Short| · (2w)^s`.
 
-This file builds the first honest link of the count → collapse chain: a **pigeonhole** turning
-the count into the *existence* of a good (non-bad) restriction, *provided* the count is strictly
-below the total number of restrictions (`|Short| · (2w)^s < 3^n`).  That strict inequality is
-the **parameter-algebra** obligation (random-restriction / binomial-ratio estimate) — stated
-here as a hypothesis, to be discharged by the choice of restriction parameters.
+This file builds the honest links of the count → collapse chain that are pure counting:
+* `exists_good_restriction` — pigeonhole: count `< 3^n` ⟹ a non-bad restriction exists;
+* `exists_good_restriction_canon` — the same, consuming `canonMarkLabel_switching_count`;
+* `exists_good_restriction_forall` — **union bound**: a single restriction good for *all*
+  bottom gates at once (`#gates · |Short|·(2w)^s < 3^n`);
+* `card_restriction` — `#restrictions = 3^n`, pinning the parameter inequality's RHS.
 
-What this file does **not** do (the remaining open links, genuinely new machinery):
-* the *union bound* over all bottom gates (one good restriction for *all* gates at once);
-* the *assembly*: a good restriction collapses the circuit to a short `LDeriv` refutation.
+The strict inequalities are the **parameter-algebra** obligation (random-restriction /
+binomial-ratio estimate), stated here as hypotheses, to be discharged by the choice of
+restriction parameters.
 
-So this is the honest interface seam: the canonical count is consumed to produce a good
-restriction; the collapse-assembly remains the open gate.
+What remains open (genuinely new collapse-side machinery, not faked here):
+* discharging the parameter inequality from a concrete random-restriction model;
+* the **assembly**: a good restriction collapses the circuit to a short `LDeriv` refutation
+  (the object-matching step — switching's `termSat` AND-clauses vs the ΣΠΣ bottom OR-clauses).
+
+So this is the honest interface seam: the canonical count is consumed to produce a
+simultaneously-good restriction; the collapse-assembly remains the open gate.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB
