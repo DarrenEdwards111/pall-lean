@@ -84,9 +84,41 @@ theorem canonBlocks_sum_card_eq_length (ρ : Restriction n) (cs : List (Clause n
       cs.length (List.length_filter_le _ _),
     card_termWalkVars_encLits ρ cs hcs]
 
+/-- Every canonical block is disjoint from the variables already claimed when it was produced. -/
+theorem canonBlocks_disjoint_claimed (litList : List (Rung4Literal n)) :
+    ∀ (L : List (Clause n)) (claimed : Finset (Fin n)) (B : Finset (Fin n)),
+      B ∈ canonBlocks litList claimed L → Disjoint B claimed := by
+  intro L
+  induction L with
+  | nil => intro claimed B hB; simp [canonBlocks] at hB
+  | cons C rest ih =>
+    intro claimed B hB
+    rw [canonBlocks, List.mem_cons] at hB
+    rcases hB with rfl | hB
+    · exact Finset.sdiff_disjoint
+    · exact (ih _ B hB).mono_right Finset.subset_union_left
+
+/-- **The canonical blocks are pairwise disjoint.**  Each path variable is claimed by exactly
+one (its first) confirmed clause, so the canonical blocks form a genuine *partition* of the
+path-variable set — the structural backbone for a canonical encoding (and why the tight count
+`canonBlocks_sum_card_eq_length` holds with no clause-disjointness hypothesis). -/
+theorem canonBlocks_pairwise_disjoint (litList : List (Rung4Literal n)) :
+    ∀ (L : List (Clause n)) (claimed : Finset (Fin n)),
+      (canonBlocks litList claimed L).Pairwise (fun A B => Disjoint A B) := by
+  intro L
+  induction L with
+  | nil => intro claimed; simp [canonBlocks]
+  | cons C rest ih =>
+    intro claimed
+    rw [canonBlocks, List.pairwise_cons]
+    refine ⟨fun B hB => ?_, ih _⟩
+    exact ((canonBlocks_disjoint_claimed litList rest _ B hB).mono_right
+      Finset.subset_union_right).symm
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_sum_card
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_sum_card_eq_length
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonBlocks_pairwise_disjoint
