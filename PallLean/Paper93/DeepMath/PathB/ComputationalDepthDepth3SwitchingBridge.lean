@@ -92,6 +92,42 @@ theorem exists_good_restriction_forall {ι : Type*} (gates : Finset ι)
     exact Finset.mem_biUnion.mpr ⟨i, hi, hρ⟩
   exact absurd (Finset.card_le_card hsub) (not_le.mpr hbu)
 
+/-! ### Correctly parameterized: relative to a restriction family `F`
+
+The right comparison is not against *all* `3^n` restrictions but against the **restriction
+family** `F` the random restriction draws from (e.g. `{ρ : stars ρ = K}`, the `p`-restriction
+support).  The bad set lives inside `F`; a good restriction exists once `|Bad| < |F|`. -/
+
+/-- **Family-relative pigeonhole.**  If the bad restrictions lie in the family `F` and number
+fewer than `F`, a good restriction exists *in `F`*. -/
+theorem exists_good_restriction_in {Bad F : Finset (Restriction n)}
+    (hsub : Bad ⊆ F) (hlt : Bad.card < F.card) :
+    ∃ ρ ∈ F, ρ ∉ Bad := by
+  have hne : (F \ Bad).Nonempty := by
+    rw [← Finset.card_pos, Finset.card_sdiff_of_subset hsub]; omega
+  obtain ⟨ρ, hρ⟩ := hne
+  rw [Finset.mem_sdiff] at hρ
+  exact ⟨ρ, hρ.1, hρ.2⟩
+
+/-- **Family-relative union bound.**  If each gate's bad set lies in `F` and is bounded by `B`,
+and `#gates · B < |F|`, then some restriction in `F` is good for *every* gate.  This is the
+correctly parameterized existence: against the restriction-family size `|F|`, with
+`B = |Short| · (2w)^s` from the canonical count. -/
+theorem exists_good_restriction_forall_in {ι : Type*} (gates : Finset ι) (F : Finset (Restriction n))
+    (Bad : ι → Finset (Restriction n)) (B : ℕ)
+    (hsub : ∀ i ∈ gates, Bad i ⊆ F)
+    (hcount : ∀ i ∈ gates, (Bad i).card ≤ B)
+    (hlt : gates.card * B < F.card) :
+    ∃ ρ ∈ F, ∀ i ∈ gates, ρ ∉ Bad i := by
+  have hbusub : gates.biUnion Bad ⊆ F := Finset.biUnion_subset.mpr hsub
+  have hunion : (gates.biUnion Bad).card ≤ gates.card * B :=
+    calc (gates.biUnion Bad).card
+        ≤ ∑ i ∈ gates, (Bad i).card := Finset.card_biUnion_le
+      _ ≤ ∑ _i ∈ gates, B := Finset.sum_le_sum hcount
+      _ = gates.card * B := by rw [Finset.sum_const, smul_eq_mul]
+  obtain ⟨ρ, hρF, hρ⟩ := exists_good_restriction_in hbusub (lt_of_le_of_lt hunion hlt)
+  exact ⟨ρ, hρF, fun i hi hmem => hρ (Finset.mem_biUnion.mpr ⟨i, hi, hmem⟩)⟩
+
 /-- The total number of restrictions is `3^n` (each coordinate is unset / 0 / 1).  Pins the
 right-hand side of the parameter-algebra inequality `|Short| · (2w)^s < 3^n`. -/
 theorem card_restriction (n : ℕ) :
@@ -99,10 +135,32 @@ theorem card_restriction (n : ℕ) :
   rw [Finset.card_univ]
   simp [Restriction, Fintype.card_fun, Fintype.card_option, Fintype.card_bool]
 
+/-- **Parameter inequality in concrete form.**  The simultaneously-good restriction exists once
+`#gates · |Short| · (2w)^s < 3^n` — the explicit numeric obligation against the total restriction
+count `3^n` (`card_restriction`).  This is the precise parameter-algebra target the random-
+restriction parameters must meet. -/
+theorem exists_good_restriction_forall_pow {ι : Type*} (gates : Finset ι)
+    (Bad : ι → Finset (Restriction n)) (B : ℕ)
+    (hcount : ∀ i ∈ gates, (Bad i).card ≤ B)
+    (hlt : gates.card * B < 3 ^ n) :
+    ∃ ρ : Restriction n, ∀ i ∈ gates, ρ ∉ Bad i := by
+  rw [← card_restriction n] at hlt
+  exact exists_good_restriction_forall gates Bad B hcount hlt
+
+/-- Single-gate concrete form: `|Short| · (2w)^s < 3^n ⟹ a good restriction exists`. -/
+theorem exists_good_restriction_pow {w s : ℕ} {Bad Short : Finset (Restriction n)}
+    (hcount : Bad.card ≤ Short.card * (2 * w) ^ s)
+    (hlt : Short.card * (2 * w) ^ s < 3 ^ n) :
+    ∃ ρ : Restriction n, ρ ∉ Bad := by
+  rw [← card_restriction n] at hlt
+  exact exists_good_restriction hcount hlt
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_canon
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_forall
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_in
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_forall_in
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.card_restriction
