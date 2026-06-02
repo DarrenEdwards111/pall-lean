@@ -213,6 +213,34 @@ theorem find_termSat_first_processed {cs : List (Clause n)} {ρ : Restriction n}
   exact find?_eq_first
     (fun C' hC' => termSat_complete_false_of_termFalsified (hpre C' hC') hfree) hsat
 
+/-- A forced-true literal lives on a fixed variable. -/
+theorem litTrue_litVar_fixed {ρ : Restriction n} {ℓ : Rung4Literal n}
+    (h : Depth3.litTrue ρ ℓ = true) : ρ (litVar ℓ) ≠ none := by
+  have hf : Depth3.litFixedVal ρ ℓ = some true := litFixedVal_some_of_litTrue h
+  cases ℓ with
+  | pos i => simp only [Depth3.litFixedVal] at hf; simp only [litVar]; rw [hf]; simp
+  | neg i =>
+    simp only [Depth3.litFixedVal] at hf; simp only [litVar]
+    intro hc; rw [hc] at hf; simp at hf
+
+/-- **`σ*` satisfies a processed term (discharges `hsat`).**  If every literal of `T` is
+either a path literal (set true by the completion) or already true under `ρ` (preserved,
+since its variable is `ρ`-fixed, disjoint from the path variables), then `T` is satisfied
+under `σ*`.  This is the term analog of `clauseSatisfied_complete_of_mem`. -/
+theorem termSat_complete_of_term {ρ : Restriction n} {litList : List (Rung4Literal n)}
+    {T : Clause n}
+    (hcover : ∀ ℓ ∈ T.lits, ℓ ∈ litList ∨ Depth3.litTrue ρ ℓ = true)
+    (hnd : (litList.map litVar).Nodup)
+    (hfree : ∀ v ∈ litList.map litVar, ρ v = none) :
+    termSat (complete ρ litList) T = true := by
+  rw [termSat, List.all_eq_true]
+  intro ℓ hℓ
+  rcases hcover ℓ hℓ with hin | htrue
+  · exact litTrue_complete_of_mem litList ρ ℓ hin hnd
+  · rw [litTrue_complete_eq_of_not_mem ℓ litList ρ
+      (fun hmem => litTrue_litVar_fixed htrue (hfree (litVar ℓ) hmem))]
+    exact htrue
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
@@ -222,3 +250,4 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.activeTerm_prefix_falsified
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.termSat_complete_false_of_termFalsified
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.find_termSat_first_processed
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.termSat_complete_of_term
