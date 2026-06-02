@@ -197,6 +197,34 @@ theorem encLits_decode (ρ : Restriction n) (cs : List (Clause n))
     exact mem_freeVars.mp (encLits_subset_freeVars ρ cs (List.mem_toFinset.mpr hv))
   · exact List.length_filter_le _ _
 
+/-- **The completion frees exactly the complement of the path variables.**  The completion
+fixes precisely the (`ρ`-free, distinct) path variables and leaves everything else as in `ρ`.
+This is the structural fact behind `hmem`: the completion lands in a controlled, smaller
+restriction. -/
+theorem freeVars_complete_encLits (ρ : Restriction n) (cs : List (Clause n)) :
+    freeVars (complete ρ (encLits ρ cs))
+      = freeVars ρ \ ((encLits ρ cs).map litVar).toFinset := by
+  ext v
+  rw [mem_freeVars, Finset.mem_sdiff, mem_freeVars]
+  by_cases hv : v ∈ ((encLits ρ cs).map litVar).toFinset
+  · constructor
+    · intro h
+      exact absurd h (complete_ne_none_of_mem _ ρ (List.mem_toFinset.mp hv))
+    · intro hh; exact absurd hv hh.2
+  · rw [complete_apply_eq_of_not_mem ρ _ v (fun hh => hv (List.mem_toFinset.mpr hh))]
+    exact ⟨fun h => ⟨h, hv⟩, fun hh => hh.1⟩
+
+/-- **The completion fixes exactly `(encLits ρ cs).length` more stars.**  So a bad `ρ` whose
+canonical path has length `s` maps to a completion with exactly `s` fewer free coordinates —
+the standard switching-lemma `hmem` content, pinning `Short` to the restrictions reachable by
+fixing `s` coordinates. -/
+theorem stars_complete_encLits (ρ : Restriction n) (cs : List (Clause n))
+    (hcs : ∀ T ∈ cs, (T.lits.map litVar).Nodup) :
+    stars (complete ρ (encLits ρ cs)) = stars ρ - (encLits ρ cs).length := by
+  rw [stars, stars, freeVars_complete_encLits,
+    Finset.card_sdiff_of_subset (encLits_subset_freeVars ρ cs),
+    List.toFinset_card_of_nodup (encLits_nodup ρ cs hcs), List.length_map]
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
@@ -205,3 +233,4 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_nodup
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_hterm
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_decode
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.stars_complete_encLits
