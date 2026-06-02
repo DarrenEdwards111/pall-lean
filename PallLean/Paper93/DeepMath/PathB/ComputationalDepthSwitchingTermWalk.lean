@@ -89,6 +89,38 @@ theorem termWalkVars_eq_filter (σstar : Restriction n) (sel : Clause n → Fins
       rw [ih rest, ← hfd]
       simp
 
+/-- **Recovery wrapper.**  If the walk collects exactly the path variables, then freeing
+them from `σ*` returns `ρ` — `decode_encode_id` for the DNF walk, modulo the encoder bridge
+`heq` (that the walk's output equals the path-variable set). -/
+theorem termWalk_recovers_of_eq {ρ : Restriction n} {litList : List (Rung4Literal n)}
+    {sel : Clause n → Finset (Fin n)} {cs : List (Clause n)} {k : ℕ}
+    (hfree : ∀ v ∈ litList.map litVar, ρ v = none)
+    (heq : termWalkVars (complete ρ litList) sel cs k = ((litList.map litVar).toFinset)) :
+    freeOn (complete ρ litList) (termWalkVars (complete ρ litList) sel cs k) = ρ := by
+  rw [heq]
+  exact freeOn_complete_recover hfree (fun _ => List.mem_toFinset)
+
+/-- With enough fuel, the walk collects the block of *every* `termSat`-confirmed term. -/
+theorem termWalk_eq_filter_full (σstar : Restriction n) (sel : Clause n → Finset (Fin n))
+    (cs : List (Clause n)) (k : ℕ) (h : (cs.filter (termSat σstar)).length ≤ k) :
+    termWalkVars σstar sel cs k
+      = (cs.filter (termSat σstar)).foldr (fun T acc => sel T ∪ acc) ∅ := by
+  rw [termWalkVars_eq_filter, List.take_of_length_le h]
+
+/-- **DNF decoder `decode_encode_id` (sound selector).**  The decoder recovers `ρ` from
+`σ*` and the per-term blocks, with the single encoder bridge `hcollect`: the blocks of the
+`σ*`-satisfied terms collect to the path-variable set.  Everything else (the sound selector,
+the walk, the recovery) is discharged. -/
+theorem termWalk_decode_encode {ρ : Restriction n} {litList : List (Rung4Literal n)}
+    {sel : Clause n → Finset (Fin n)} {cs : List (Clause n)} {k : ℕ}
+    (hfree : ∀ v ∈ litList.map litVar, ρ v = none)
+    (hfuel : (cs.filter (termSat (complete ρ litList))).length ≤ k)
+    (hcollect : (cs.filter (termSat (complete ρ litList))).foldr (fun T acc => sel T ∪ acc) ∅
+        = (litList.map litVar).toFinset) :
+    freeOn (complete ρ litList) (termWalkVars (complete ρ litList) sel cs k) = ρ := by
+  apply termWalk_recovers_of_eq hfree
+  rw [termWalk_eq_filter_full _ _ _ _ hfuel, hcollect]
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
