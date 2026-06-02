@@ -100,6 +100,14 @@ theorem encLits_var_mem_confirmed (ρ : Restriction n) (cs : List (Clause n))
   obtain ⟨T, hT, hℓT, hsat⟩ := encLits_hterm ρ cs hcs ℓ hℓ
   exact ⟨T, List.mem_filter.mpr ⟨hT, hsat⟩, List.mem_map.mpr ⟨ℓ, hℓT, rfl⟩⟩
 
+/-- A term's path-variable *count* is at most its path-*position* count: `|termBlock| ≤
+|blockOf|`.  (Each variable comes from at least one position; equality holds under
+distinct-variable literals.)  Unconditional direction of the label-length relation. -/
+theorem card_termBlock_le_length_blockOf (litList : List (Rung4Literal n)) (T : Clause n) :
+    (termBlock litList T).card ≤ (blockOf litList T).length := by
+  rw [← blockVars_blockOf litList T, blockVars]
+  exact (List.toFinset_card_le _).trans (List.length_filterMap_le _ _)
+
 /-! ## Packing the flat label into `PathLabel w s` and the `(2w)^s` count -/
 
 variable {w s : ℕ}
@@ -211,5 +219,6 @@ end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_label_inj
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_var_mem_confirmed
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.card_termBlock_le_length_blockOf
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_switching_count
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.encLits_switching_count_width
