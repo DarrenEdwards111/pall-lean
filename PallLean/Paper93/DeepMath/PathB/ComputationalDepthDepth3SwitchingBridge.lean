@@ -386,6 +386,30 @@ theorem widthBad_yields_short_dt {D : Rung4DNF n} {depthBudget : ℕ}
       ∀ x : Fin n → Bool, Rung4Restriction.Extends ρ x → T.eval x = D.eval x :=
   good_restriction_yields_short_dt D hgood (fun _ hρ => residual_width_le_of_not_widthBad hρ)
 
+/-! ### ⚠ `hincl` analysis: the `totalWidth`-bad set is the WRONG bad set (do not chase it)
+
+A natural attempt is to discharge `hincl : widthBad D depthBudget ⊆ Bad` and bound `|widthBad|`
+by the `(2w)^s` count.  **This is false as stated**, for genuine reasons (recorded so future
+work does not chase it):
+
+* `widthBad` uses `(D.restrict ρ).totalWidth`, a **sum** over surviving terms.  A restriction
+  with *many small* surviving terms has large `totalWidth` but a **shallow** canonical decision
+  tree — it is **not** bad.  (`totalWidth ≤ depthBudget ⟹ shallow DT` is *sufficient but loose*:
+  `toDecisionTree_depth_le_totalWidth`.)
+* The canonical-path length that the `(2w)^s` count bounds satisfies `path ≤ totalWidth` (each
+  block's *current*-free literals `⊆` the term's `ρ`-free literals, since the accumulating
+  completion fixes more than `ρ`).  So large `totalWidth` does **not** force a long path.
+* Against the count directly: `canonMarkLabel_switching_count`'s `Bad` has every element of flat-
+  label length **exactly `s`** (`hlen`).  A `totalWidth`-bad `ρ` with a short canonical path has
+  label length `< s`, failing `hlen`.  So the count **cannot** bound the `totalWidth`-bad set.
+
+**Correct reformulation:** the bad set must be **canonical-decision-tree-depth-based** (= the
+path length the count bounds), not `totalWidth`-based.  A genuine `hincl` needs a *depth-based*
+`widthBad` and a canonical DT whose depth equals the path length — not `Rung4SwitchingCore`'s
+`toDecisionTree` (depth bounded by `totalWidth`).  Building that is the real remaining work;
+`widthBad_collapse_dt` below is kept as a conditional composition, but its `hincl` hypothesis is
+**not** dischargeable with the `totalWidth` `widthBad`. -/
+
 /-- **G1-core reduced + the whole arc composed.**  Given the canonical `(2w)^s` count for a bad
 set `Bad`, the parameter inequality `|Short|·(2w)^s < #restrictions`, and the **structural
 inclusion** `widthBad ⊆ Bad` (a restriction leaving large residual width is counted by the
