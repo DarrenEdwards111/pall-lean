@@ -386,6 +386,33 @@ theorem widthBad_yields_short_dt {D : Rung4DNF n} {depthBudget : ℕ}
       ∀ x : Fin n → Bool, Rung4Restriction.Extends ρ x → T.eval x = D.eval x :=
   good_restriction_yields_short_dt D hgood (fun _ hρ => residual_width_le_of_not_widthBad hρ)
 
+/-! ### Depth-based bad set (the CORRECT reformulation the count actually bounds) -/
+
+/-- **The path-length bad set.**  Restrictions whose *canonical path* (flat label) has length
+exactly `s` — equivalently, whose canonical decision tree fixes `s` variables.  This is the bad
+set the `(2w)^s` count *actually* bounds: it is precisely the `hlen` slice of
+`canonMarkLabel_switching_count`, not the `totalWidth`-bad set. -/
+def pathLenBad (cs : List (Clause n)) (s : ℕ) : Finset (Restriction n) :=
+  Finset.univ.filter (fun ρ => (ungroupBlocks (canonPosBlocks (encLits ρ cs) ∅
+    (cs.filter (termSat (complete ρ (encLits ρ cs)))))).length = s)
+
+/-- **The count bounds the path-length bad set.**  For the *correct* (path-length) bad set,
+`hlen` holds by definition (filter membership), so `canonMarkLabel_switching_count` bounds it:
+`|pathLenBad cs s| ≤ |Short| · (2w)^s`.  This is the honest depth-based gate 1 — the count
+controls exactly the restrictions whose canonical path has length `s`. -/
+theorem canon_count_pathLenBad {w s : ℕ} [NeZero w] {cs : List (Clause n)}
+    {Short : Finset (Restriction n)}
+    (hcs : ∀ T ∈ cs, (T.lits.map litVar).Nodup)
+    (hwidth : ∀ T ∈ cs, T.lits.length ≤ w)
+    (hne : ∀ ρ ∈ pathLenBad cs s, ∀ b ∈ canonPosBlocks (encLits ρ cs) ∅
+        (cs.filter (termSat (complete ρ (encLits ρ cs)))), b ≠ [])
+    (hmem : ∀ ρ ∈ pathLenBad cs s, complete ρ (encLits ρ cs) ∈ Short) :
+    (pathLenBad cs s).card ≤ Short.card * (2 * w) ^ s := by
+  refine canonMarkLabel_switching_count hcs hwidth hne ?_ hmem
+  intro ρ hρ
+  simp only [pathLenBad, Finset.mem_filter, Finset.mem_univ, true_and] at hρ
+  exact hρ
+
 /-! ### ⚠ `hincl` analysis: the `totalWidth`-bad set is the WRONG bad set (do not chase it)
 
 A natural attempt is to discharge `hincl : widthBad D depthBudget ⊆ Bad` and bound `|widthBad|`
@@ -552,6 +579,7 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.BoolDecisionTree.leaves_le_two_pow_depth
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.good_restriction_yields_short_dt
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.widthBad_yields_short_dt
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canon_count_pathLenBad
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.widthBad_collapse_dt
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.choose_descend_bound
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.param_ineq
