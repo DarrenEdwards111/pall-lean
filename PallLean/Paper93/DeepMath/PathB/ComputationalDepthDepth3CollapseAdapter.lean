@@ -46,6 +46,54 @@ def litNeg : Rung4Literal n → Rung4Literal n
 @[simp] theorem litVar_litNeg (ℓ : Rung4Literal n) : litVar (litNeg ℓ) = litVar ℓ := by
   cases ℓ <;> rfl
 
+/-! ### Extension monotonicity (the gate-A correctness foundation)
+
+The canonical decision tree's correctness rests on: a literal/term *forced true* by the partial
+restriction `σ` stays true on every full assignment extending `σ`.  This is the semantic bridge
+from the partial `σ` (where `termSat`/`litTrue` live) to the full-assignment DNF evaluation that
+the DT computes — the honest foundation of gate A.  (Gate A itself — that the *shallow* canonical
+tree, querying only the `s` path variables, computes the restricted DNF — is the switching
+lemma's structural conclusion and holds only for good `ρ`; not faked.) -/
+
+/-- A literal forced true by `σ` evaluates true on every extension of `σ`. -/
+theorem litTrue_eval_extend {σ : Fin n → Option Bool} {ℓ : Rung4Literal n} {x : Fin n → Bool}
+    (hlt : Depth3.litTrue σ ℓ = true) (hext : Rung4Restriction.Extends σ x) : ℓ.eval x = true := by
+  cases ℓ with
+  | pos i =>
+    have hs : σ i = some true := by
+      cases h : σ i with
+      | none => simp [Depth3.litTrue, Depth3.litFixedVal, h] at hlt
+      | some b => cases b with
+        | false => simp [Depth3.litTrue, Depth3.litFixedVal, h] at hlt
+        | true => rfl
+    simp [Rung4Literal.eval, hext i true hs]
+  | neg i =>
+    have hs : σ i = some false := by
+      cases h : σ i with
+      | none => simp [Depth3.litTrue, Depth3.litFixedVal, h] at hlt
+      | some b => cases b with
+        | true => simp [Depth3.litTrue, Depth3.litFixedVal, h] at hlt
+        | false => rfl
+    simp [Rung4Literal.eval, hext i false hs]
+
+/-- A list of literals all forced true by `σ` evaluates (as an AND) to true on every extension. -/
+theorem evalLits_eq_true_of_all {x : Fin n → Bool} :
+    ∀ lits : List (Rung4Literal n), (∀ ℓ ∈ lits, ℓ.eval x = true) → evalLits lits x = true
+  | [], _ => rfl
+  | a :: t, hall => by
+    simp only [evalLits, hall a (List.mem_cons.mpr (Or.inl rfl)),
+      evalLits_eq_true_of_all t (fun ℓ hℓ => hall ℓ (List.mem_cons.mpr (Or.inr hℓ))), Bool.and_self]
+
+/-- **A term satisfied by `σ` stays satisfied on every extension.**  If `termSat σ T` (all of
+`T`'s literals forced true by `σ`), then `evalLits T.lits x = true` for every `x` extending `σ` —
+so the DNF is true there.  Extension monotonicity for the satisfied-term branch of the canonical
+DT. -/
+theorem termSat_eval_extend {σ : Fin n → Option Bool} {T : Clause n} {x : Fin n → Bool}
+    (hsat : T.lits.all (Depth3.litTrue σ) = true) (hext : Rung4Restriction.Extends σ x) :
+    evalLits T.lits x = true :=
+  evalLits_eq_true_of_all T.lits
+    (fun ℓ hℓ => litTrue_eval_extend ((List.all_eq_true.mp hsat) ℓ hℓ) hext)
+
 /-- **De Morgan at the clause level.**  Negating an OR-clause's literals and reading them as an
 AND-monomial computes the negation of the clause: `evalLits (map litNeg C.lits) = !(OR C.lits)`. -/
 theorem evalLits_map_litNeg (lits : List (Rung4Literal n)) (x : Fin n → Bool) :
@@ -81,5 +129,7 @@ end Depth3
 
 end PallLean.Paper93.DeepMath.PathB
 
+#print axioms PallLean.Paper93.DeepMath.PathB.Depth3.litTrue_eval_extend
+#print axioms PallLean.Paper93.DeepMath.PathB.Depth3.termSat_eval_extend
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.termEval_neg
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.clauseEval_neg
