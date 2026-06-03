@@ -160,6 +160,52 @@ theorem dnfEval_false_of_all_falsified {σ : Fin n → Option Bool} {cs : List (
   rw [termFalsified_eval_extend (hall T hT) hext] at hev
   exact absurd hev (by decide)
 
+/-! ### The canonical stop-on-satisfied decision tree (gate-A core) -/
+
+/-- Fix variable `i` to bit `b` in the restriction. -/
+def fixVar (σ : Fin n → Option Bool) (i : Fin n) (b : Bool) : Fin n → Option Bool :=
+  Function.update σ i (some b)
+
+/-- Branch extension: if `x` extends `σ` and `x i = b`, then `x` extends `σ` with `i:=b`. -/
+theorem extends_fixVar {σ : Fin n → Option Bool} {i : Fin n} {b : Bool} {x : Fin n → Bool}
+    (hext : Rung4Restriction.Extends σ x) (hxi : x i = b) :
+    Rung4Restriction.Extends (fixVar σ i b) x := by
+  intro j c hjc
+  by_cases hj : j = i
+  · subst hj
+    simp only [fixVar, Function.update_self, Option.some.injEq] at hjc
+    rw [hxi]; exact hjc
+  · rw [fixVar, Function.update_of_ne hj] at hjc; exact hext j c hjc
+
+/-- Fixing a free variable strictly decreases the star count. -/
+theorem stars_fixVar_lt {σ : Fin n → Option Bool} {i : Fin n} {b : Bool}
+    (hi : σ i = none) : SwitchingCounting.stars (fixVar σ i b) < SwitchingCounting.stars σ := by
+  apply Finset.card_lt_card
+  rw [Finset.ssubset_iff_of_subset]
+  · refine ⟨i, SwitchingCounting.mem_freeVars.mpr hi, ?_⟩
+    rw [SwitchingCounting.mem_freeVars, fixVar, Function.update_self]; simp
+  · intro j hj
+    rw [SwitchingCounting.mem_freeVars] at hj ⊢
+    by_cases hji : j = i
+    · subst hji; rw [fixVar, Function.update_self] at hj; simp at hj
+    · rwa [fixVar, Function.update_of_ne hji] at hj
+
+/-- The **canonical stop-on-satisfied decision tree** for a DNF `cs` under partial restriction
+`σ`: if some term is already satisfied, output `true`; if all terms are falsified, output
+`false`; otherwise query the active term's first free literal and recurse on both branches. -/
+def canonicalDT (cs : List (Clause n)) : ℕ → (Fin n → Option Bool) → BoolDecisionTree n
+  | 0, σ => if SwitchingCounting.anyTermSat cs σ then BoolDecisionTree.leaf true
+            else BoolDecisionTree.leaf false
+  | fuel + 1, σ =>
+    if SwitchingCounting.anyTermSat cs σ then BoolDecisionTree.leaf true
+    else match SwitchingCounting.activeTerm cs σ with
+      | none => BoolDecisionTree.leaf false
+      | some T => match (SwitchingCounting.freeLits σ T).head? with
+        | none => BoolDecisionTree.leaf false
+        | some ℓ => BoolDecisionTree.query (litVar ℓ)
+            (canonicalDT cs fuel (fixVar σ (litVar ℓ) false))
+            (canonicalDT cs fuel (fixVar σ (litVar ℓ) true))
+
 /-- **De Morgan at the clause level.**  Negating an OR-clause's literals and reading them as an
 AND-monomial computes the negation of the clause: `evalLits (map litNeg C.lits) = !(OR C.lits)`. -/
 theorem evalLits_map_litNeg (lits : List (Rung4Literal n)) (x : Fin n → Bool) :
