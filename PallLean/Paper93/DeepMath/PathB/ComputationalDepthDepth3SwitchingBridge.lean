@@ -413,6 +413,47 @@ theorem canon_count_pathLenBad {w s : ℕ} [NeZero w] {cs : List (Clause n)}
   simp only [pathLenBad, Finset.mem_filter, Finset.mem_univ, true_and] at hρ
   exact hρ
 
+/-- The canonical path length (flat-label length) of `ρ`. -/
+def canonLabelLen (ρ : Restriction n) (cs : List (Clause n)) : ℕ :=
+  (ungroupBlocks (canonPosBlocks (encLits ρ cs) ∅
+    (cs.filter (termSat (complete ρ (encLits ρ cs)))))).length
+
+/-- **The geometric sum: the long-path bad set is bounded by the sum of the per-`s` counts.**
+`{ρ : path length > budget}` is the disjoint union of `pathLenBad cs s` over `s > budget`, so by
+the per-`s` count `canon_count_pathLenBad`,
+
+  `|{ρ : canonLabelLen ρ cs > budget}|  ≤  ∑_{budget < s ≤ maxLen} |Short s| · (2w)^s`.
+
+This is the standard switching-lemma summation over decision-tree depths.  `maxLen` is any upper
+bound on the path length (e.g. `n`); the sum is finite because path lengths are bounded. -/
+theorem pathLenBadGt_card_le {w : ℕ} [NeZero w] {cs : List (Clause n)}
+    {Short : ℕ → Finset (Restriction n)} {budget maxLen : ℕ}
+    (hcs : ∀ T ∈ cs, (T.lits.map litVar).Nodup)
+    (hwidth : ∀ T ∈ cs, T.lits.length ≤ w)
+    (hmax : ∀ ρ : Restriction n, canonLabelLen ρ cs ≤ maxLen)
+    (hne : ∀ s : ℕ, ∀ ρ ∈ pathLenBad cs s, ∀ b ∈ canonPosBlocks (encLits ρ cs) ∅
+        (cs.filter (termSat (complete ρ (encLits ρ cs)))), b ≠ [])
+    (hmem : ∀ s : ℕ, ∀ ρ ∈ pathLenBad cs s, complete ρ (encLits ρ cs) ∈ Short s) :
+    (Finset.univ.filter (fun ρ : Restriction n => budget < canonLabelLen ρ cs)).card
+      ≤ ∑ s ∈ (Finset.range (maxLen + 1)).filter (fun s => budget < s),
+          (Short s).card * (2 * w) ^ s := by
+  rw [Finset.card_eq_sum_card_fiberwise
+    (f := fun ρ : Restriction n => canonLabelLen ρ cs)
+    (t := (Finset.range (maxLen + 1)).filter (fun s => budget < s))
+    (fun ρ hρ => by
+      simp only [Finset.mem_coe, Finset.mem_filter, Finset.mem_univ, true_and,
+        Finset.mem_range] at hρ ⊢
+      exact ⟨Nat.lt_succ_of_le (hmax ρ), hρ⟩)]
+  refine Finset.sum_le_sum (fun s hs => ?_)
+  simp only [Finset.mem_filter, Finset.mem_range] at hs
+  have heq : (Finset.univ.filter (fun ρ : Restriction n => budget < canonLabelLen ρ cs)).filter
+      (fun ρ => canonLabelLen ρ cs = s) = pathLenBad cs s := by
+    ext ρ
+    simp only [pathLenBad, canonLabelLen, Finset.mem_filter, Finset.mem_univ, true_and]
+    exact ⟨fun h => h.2, fun h => ⟨by omega, h⟩⟩
+  rw [heq]
+  exact canon_count_pathLenBad hcs hwidth (hne s) (hmem s)
+
 /-! ### ⚠ `hincl` analysis: the `totalWidth`-bad set is the WRONG bad set (do not chase it)
 
 A natural attempt is to discharge `hincl : widthBad D depthBudget ⊆ Bad` and bound `|widthBad|`
@@ -580,6 +621,7 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.good_restriction_yields_short_dt
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.widthBad_yields_short_dt
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canon_count_pathLenBad
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.pathLenBadGt_card_le
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.widthBad_collapse_dt
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.choose_descend_bound
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.param_ineq
