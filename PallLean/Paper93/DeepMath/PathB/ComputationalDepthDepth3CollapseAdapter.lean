@@ -206,6 +206,108 @@ def canonicalDT (cs : List (Clause n)) : ℕ → (Fin n → Option Bool) → Boo
             (canonicalDT cs fuel (fixVar σ (litVar ℓ) false))
             (canonicalDT cs fuel (fixVar σ (litVar ℓ) true))
 
+/-- No free literals when the restriction is total (`stars = 0`). -/
+theorem freeLits_nil_of_stars_zero {σ : Fin n → Option Bool} (h0 : SwitchingCounting.stars σ = 0)
+    (T : Clause n) : SwitchingCounting.freeLits σ T = [] := by
+  have hempty : SwitchingCounting.freeVars σ = ∅ := Finset.card_eq_zero.mp h0
+  rw [SwitchingCounting.freeLits, List.filter_eq_nil_iff]
+  intro ℓ _ hlf
+  rw [SwitchingCounting.litFree_var] at hlf
+  have : σ (litVar ℓ) = none := Option.isNone_iff_eq_none.mp hlf
+  have := SwitchingCounting.mem_freeVars.mpr this
+  rw [hempty] at this; simp at this
+
+/-- If no term is satisfied, every term's `termSat` is false. -/
+theorem not_termSat_of_not_any {cs : List (Clause n)} {σ : Fin n → Option Bool}
+    (hany : SwitchingCounting.anyTermSat cs σ = false) {T : Clause n} (hT : T ∈ cs) :
+    SwitchingCounting.termSat σ T = false := by
+  by_contra hc
+  rw [Bool.not_eq_false] at hc
+  have : SwitchingCounting.anyTermSat cs σ = true := List.any_eq_true.mpr ⟨T, hT, hc⟩
+  rw [this] at hany; exact absurd hany (by decide)
+
+/-- All terms falsified, given no term satisfied and each term is either falsified or has no free
+literal. -/
+theorem all_falsified_general {cs : List (Clause n)} {σ : Fin n → Option Bool}
+    (hany : SwitchingCounting.anyTermSat cs σ = false)
+    (h : ∀ T ∈ cs, SwitchingCounting.termFalsified σ T = true ∨ SwitchingCounting.freeLits σ T = []) :
+    ∀ T ∈ cs, SwitchingCounting.termFalsified σ T = true := by
+  intro T hT
+  rcases h T hT with hf | hnf
+  · exact hf
+  · exact SwitchingCounting.term_falsified_of_not_sat_no_free (not_termSat_of_not_any hany hT) hnf
+
+/-- An active term has a first free literal, on a free variable. -/
+theorem activeTerm_first_free {cs : List (Clause n)} {σ : Fin n → Option Bool} {T : Clause n}
+    (hact : SwitchingCounting.activeTerm cs σ = some T) :
+    ∃ ℓ, (SwitchingCounting.freeLits σ T).head? = some ℓ ∧ σ (litVar ℓ) = none := by
+  have hns := SwitchingCounting.activeTerm_anyTermSat_false hact
+  have hfind : cs.find? (fun T => !SwitchingCounting.termFalsified σ T &&
+      decide (0 < (SwitchingCounting.freeLits σ T).length)) = some T :=
+    SwitchingCounting.activeTerm_eq_find hns ▸ hact
+  have hpred := List.find?_some hfind
+  simp only [Bool.and_eq_true, decide_eq_true_eq] at hpred
+  obtain ⟨_, hlen⟩ := hpred
+  obtain ⟨a, t, hat⟩ := List.exists_cons_of_ne_nil (List.ne_nil_of_length_pos hlen)
+  refine ⟨a, by rw [hat]; rfl, ?_⟩
+  have ha : a ∈ SwitchingCounting.freeLits σ T := by rw [hat]; exact List.mem_cons.mpr (Or.inl rfl)
+  have hlf := (List.mem_filter.mp ha).2
+  rw [SwitchingCounting.litFree_var] at hlf
+  exact Option.isNone_iff_eq_none.mp hlf
+
+/-- **Gate-A core: the canonical decision tree computes the DNF on extensions.**  For every full
+assignment `x` extending `σ`, with fuel at least the star count, the canonical tree evaluates to
+the DNF value.  This is the switching lemma's decision-tree conclusion: querying the active
+term's first free literal, recursing, and stopping on a satisfied/falsified term computes the DNF
+— with the tree's depth bounded by the number of queries (`= path length`). -/
+theorem canonicalDT_eval {cs : List (Clause n)} :
+    ∀ (fuel : ℕ) (σ : Fin n → Option Bool) (x : Fin n → Bool),
+      SwitchingCounting.stars σ ≤ fuel → Rung4Restriction.Extends σ x →
+      (canonicalDT cs fuel σ).eval x = dnfEval cs x := by
+  intro fuel
+  induction fuel with
+  | zero =>
+    intro σ x h0 hext
+    have hst : SwitchingCounting.stars σ = 0 := Nat.le_zero.mp h0
+    rw [canonicalDT]
+    cases hany : SwitchingCounting.anyTermSat cs σ with
+    | true => simp [hany, BoolDecisionTree.eval, (dnfEval_true_of_anyTermSat hany hext)]
+    | false =>
+      simp only [hany, Bool.false_eq_true, if_false, BoolDecisionTree.eval]
+      exact (dnfEval_false_of_all_falsified
+        (all_falsified_general hany (fun T _ => Or.inr (freeLits_nil_of_stars_zero hst T))) hext).symm
+  | succ fuel ih =>
+    intro σ x hfuel hext
+    rw [canonicalDT]
+    cases hany : SwitchingCounting.anyTermSat cs σ with
+    | true => simp [hany, BoolDecisionTree.eval, (dnfEval_true_of_anyTermSat hany hext)]
+    | false =>
+      simp only [hany, Bool.false_eq_true, if_false]
+      cases hact : SwitchingCounting.activeTerm cs σ with
+      | none =>
+        simp only [BoolDecisionTree.eval]
+        refine (dnfEval_false_of_all_falsified (all_falsified_general hany (fun T hT => ?_)) hext).symm
+        have hfind : cs.find? (fun T => !SwitchingCounting.termFalsified σ T &&
+            decide (0 < (SwitchingCounting.freeLits σ T).length)) = none :=
+          SwitchingCounting.activeTerm_eq_find hany ▸ hact
+        have hp := (List.find?_eq_none.mp hfind) T hT
+        simp only [Bool.and_eq_true, decide_eq_true_eq, not_and, Bool.not_eq_true'] at hp
+        by_cases htf : SwitchingCounting.termFalsified σ T = true
+        · exact Or.inl htf
+        · exact Or.inr (List.length_eq_zero_iff.mp (by have := hp (by simpa using htf); omega))
+      | some T =>
+        obtain ⟨ℓ, hhead, hfree⟩ := activeTerm_first_free hact
+        simp only [hhead, BoolDecisionTree.eval]
+        have hstar : SwitchingCounting.stars (fixVar σ (litVar ℓ) (x (litVar ℓ))) ≤ fuel := by
+          have := stars_fixVar_lt (b := x (litVar ℓ)) hfree; omega
+        have hext' : Rung4Restriction.Extends (fixVar σ (litVar ℓ) (x (litVar ℓ))) x :=
+          extends_fixVar hext rfl
+        have key : (if x (litVar ℓ) then (canonicalDT cs fuel (fixVar σ (litVar ℓ) true)).eval x
+              else (canonicalDT cs fuel (fixVar σ (litVar ℓ) false)).eval x)
+            = (canonicalDT cs fuel (fixVar σ (litVar ℓ) (x (litVar ℓ)))).eval x := by
+          cases x (litVar ℓ) <;> simp
+        rw [key, ih (fixVar σ (litVar ℓ) (x (litVar ℓ))) x hstar hext']
+
 /-- **De Morgan at the clause level.**  Negating an OR-clause's literals and reading them as an
 AND-monomial computes the negation of the clause: `evalLits (map litNeg C.lits) = !(OR C.lits)`. -/
 theorem evalLits_map_litNeg (lits : List (Rung4Literal n)) (x : Fin n → Bool) :
@@ -246,5 +348,6 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.termFalsified_eval_extend
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.dnfEval_true_of_anyTermSat
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.dnfEval_false_of_all_falsified
+#print axioms PallLean.Paper93.DeepMath.PathB.Depth3.canonicalDT_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.termEval_neg
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.clauseEval_neg
