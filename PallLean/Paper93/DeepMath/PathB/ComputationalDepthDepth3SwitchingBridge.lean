@@ -121,6 +121,72 @@ theorem leaves_le_two_pow_depth {n : ℕ} (T : BoolDecisionTree n) : T.leaves �
 
 end BoolDecisionTree
 
+/-! ### The depth-`=`-path-length decision tree (the depth-based DT-collapse)
+
+A decision tree that queries a given variable list in order has depth exactly the list length,
+and it *computes* any Boolean function depending only on those variables.  Applied to the
+canonical path variables and the restricted DNF, this is the DT-collapse the depth-based gate 1
+needs: a **short path ⟹ a short decision tree computing the DNF** — with depth equal to the path
+length (not `Rung4`'s `toDecisionTree`, whose depth is bounded by `totalWidth`).  The one
+remaining input is that the DNF depends only on the path variables (`DependsOn`), which is the
+switching conclusion. -/
+
+/-- `F` depends only on the variables in `vars`. -/
+def DependsOn {n : ℕ} (F : (Fin n → Bool) → Bool) (vars : List (Fin n)) : Prop :=
+  ∀ x y : Fin n → Bool, (∀ i ∈ vars, x i = y i) → F x = F y
+
+/-- The decision tree querying `vars` in order; each leaf outputs `F` on the path-determined
+assignment. -/
+def pathTree {n : ℕ} : List (Fin n) → ((Fin n → Bool) → Bool) → BoolDecisionTree n
+  | [], F => BoolDecisionTree.leaf (F (fun _ => false))
+  | i :: rest, F => BoolDecisionTree.query i
+      (pathTree rest (fun x => F (Function.update x i false)))
+      (pathTree rest (fun x => F (Function.update x i true)))
+
+/-- **Depth `=` path length.**  The query tree over `vars` has depth exactly `vars.length`. -/
+theorem pathTree_depth {n : ℕ} (vars : List (Fin n)) (F : (Fin n → Bool) → Bool) :
+    (pathTree vars F).depth = vars.length := by
+  induction vars generalizing F with
+  | nil => rfl
+  | cons i rest ih => simp only [pathTree, BoolDecisionTree.depth, ih, List.length_cons, max_self]
+
+/-- **The query tree computes any function depending only on the queried variables.** -/
+theorem pathTree_eval {n : ℕ} (vars : List (Fin n)) (F : (Fin n → Bool) → Bool)
+    (hdep : DependsOn F vars) (x : Fin n → Bool) : (pathTree vars F).eval x = F x := by
+  induction vars generalizing F with
+  | nil =>
+    simp only [pathTree, BoolDecisionTree.eval]
+    exact hdep _ x (by simp)
+  | cons i rest ih =>
+    have hdepF : ∀ b : Bool, DependsOn (fun y => F (Function.update y i b)) rest := by
+      intro b a c hac
+      refine hdep _ _ (fun k hk => ?_)
+      by_cases hki : k = i
+      · subst hki; simp [Function.update_self]
+      · simp only [Function.update_of_ne hki]
+        exact hac k ((List.mem_cons.mp hk).resolve_left hki)
+    simp only [pathTree, BoolDecisionTree.eval]
+    cases hxi : x i with
+    | true =>
+      simp only [hxi, if_true]
+      rw [ih _ (hdepF true),
+        show Function.update x i true = x from by rw [← hxi]; exact Function.update_eq_self i x]
+    | false =>
+      simp only [hxi, Bool.false_eq_true, if_false]
+      rw [ih _ (hdepF false),
+        show Function.update x i false = x from by rw [← hxi]; exact Function.update_eq_self i x]
+
+/-- **The depth-based DT-collapse.**  If a Boolean function `F` depends only on the path
+variables `vars` and the path is short (`vars.length ≤ budget`), then `F` is computed by a
+decision tree of depth `≤ budget` — namely `pathTree vars F`, whose depth is *exactly* the path
+length.  This is the short-path ⟹ short-DT collapse with depth `=` path length (not `Rung4`'s
+`totalWidth` bound).  Applied to the restricted DNF (`F`), the path variables, and the switching
+conclusion (`DependsOn F vars`), it discharges the DT-collapse the depth-based gate 1 needs. -/
+theorem short_path_yields_short_dt {n : ℕ} {vars : List (Fin n)} {F : (Fin n → Bool) → Bool}
+    {budget : ℕ} (hlen : vars.length ≤ budget) (hdep : DependsOn F vars) :
+    ∃ T : BoolDecisionTree n, T.depth ≤ budget ∧ ∀ x : Fin n → Bool, T.eval x = F x :=
+  ⟨pathTree vars F, by rw [pathTree_depth]; exact hlen, fun x => pathTree_eval vars F hdep x⟩
+
 namespace SwitchingCounting
 
 open Depth3
@@ -616,6 +682,8 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_forall
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_in
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_forall_in
+#print axioms PallLean.Paper93.DeepMath.PathB.pathTree_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.short_path_yields_short_dt
 #print axioms PallLean.Paper93.DeepMath.PathB.restrictLits_all_free
 #print axioms PallLean.Paper93.DeepMath.PathB.BoolDecisionTree.leaves_le_two_pow_depth
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.good_restriction_yields_short_dt
