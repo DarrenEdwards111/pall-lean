@@ -119,6 +119,26 @@ theorem leaves_le_two_pow_depth {n : ℕ} (T : BoolDecisionTree n) : T.leaves �
             (Nat.pow_le_pow_right (by norm_num) (le_max_right _ _))
       _ = 2 ^ (max low.depth high.depth + 1) := by rw [pow_succ]; ring
 
+/-- The set of variables a decision tree queries. -/
+def queriedVars {n : ℕ} : BoolDecisionTree n → Finset (Fin n)
+  | leaf _ => ∅
+  | query i low high => insert i (low.queriedVars ∪ high.queriedVars)
+
+/-- **A decision tree reads only the variables it queries.**  If two inputs agree on the queried
+variables, the tree evaluates identically.  So any function *computed* by a decision tree depends
+only on its queried variables — the general mechanism behind `DependsOn`. -/
+theorem eval_agree_of_agree_queried {n : ℕ} (T : BoolDecisionTree n) (x y : Fin n → Bool)
+    (h : ∀ i ∈ T.queriedVars, x i = y i) : T.eval x = T.eval y := by
+  induction T with
+  | leaf b => rfl
+  | query i low high ihl ihh =>
+    have hi : x i = y i := h i (by simp [queriedVars])
+    have hl : ∀ j ∈ low.queriedVars, x j = y j :=
+      fun j hj => h j (by simp [queriedVars, hj])
+    have hr : ∀ j ∈ high.queriedVars, x j = y j :=
+      fun j hj => h j (by simp [queriedVars, hj])
+    simp only [BoolDecisionTree.eval, hi, ihl hl, ihh hr]
+
 end BoolDecisionTree
 
 /-! ### The depth-`=`-path-length decision tree (the depth-based DT-collapse)
@@ -186,6 +206,19 @@ theorem short_path_yields_short_dt {n : ℕ} {vars : List (Fin n)} {F : (Fin n �
     {budget : ℕ} (hlen : vars.length ≤ budget) (hdep : DependsOn F vars) :
     ∃ T : BoolDecisionTree n, T.depth ≤ budget ∧ ∀ x : Fin n → Bool, T.eval x = F x :=
   ⟨pathTree vars F, by rw [pathTree_depth]; exact hlen, fun x => pathTree_eval vars F hdep x⟩
+
+/-- **A function computed by a decision tree satisfies `DependsOn` on the queried variables.**
+The converse direction of the collapse: any DT-computed function depends only on the variables
+the tree queries (`eval_agree_of_agree_queried`).  So `DependsOn (restricted DNF) (path vars)` —
+the switching conclusion the collapse needs — would follow from a *canonical decision tree*
+computing the restricted DNF whose queried variables are exactly the `s` path variables.  That
+canonical shallow tree (queried vars = path vars, not the `totalWidth`-many residual vars) is the
+switching lemma's structural content; this lemma is the general mechanism it would plug into. -/
+theorem dependsOn_of_eval_eq {n : ℕ} (T : BoolDecisionTree n) {F : (Fin n → Bool) → Bool}
+    (hF : ∀ x, F x = T.eval x) : DependsOn F T.queriedVars.toList := by
+  intro x y h
+  rw [hF x, hF y]
+  exact T.eval_agree_of_agree_queried x y (fun i hi => h i (Finset.mem_toList.mpr hi))
 
 namespace SwitchingCounting
 
@@ -682,6 +715,8 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_forall
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_in
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.exists_good_restriction_forall_in
+#print axioms PallLean.Paper93.DeepMath.PathB.BoolDecisionTree.eval_agree_of_agree_queried
+#print axioms PallLean.Paper93.DeepMath.PathB.dependsOn_of_eval_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.pathTree_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.short_path_yields_short_dt
 #print axioms PallLean.Paper93.DeepMath.PathB.restrictLits_all_free
