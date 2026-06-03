@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseInterface
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingCanonicalPath
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingHastad
 
 /-!
 # The OR/AND object adapter (switching DNF ↔ ΣΠΣ middle-layer CNF)
@@ -94,6 +95,71 @@ theorem termSat_eval_extend {σ : Fin n → Option Bool} {T : Clause n} {x : Fin
   evalLits_eq_true_of_all T.lits
     (fun ℓ hℓ => litTrue_eval_extend ((List.all_eq_true.mp hsat) ℓ hℓ) hext)
 
+/-- A literal forced *false* by `σ` evaluates false on every extension of `σ`. -/
+theorem litFalse_eval_extend {σ : Fin n → Option Bool} {ℓ : Rung4Literal n} {x : Fin n → Bool}
+    (hlf : SwitchingCounting.litFalse σ ℓ = true) (hext : Rung4Restriction.Extends σ x) :
+    ℓ.eval x = false := by
+  cases ℓ with
+  | pos i =>
+    have hs : σ i = some false := by
+      cases h : σ i with
+      | none => simp [SwitchingCounting.litFalse, Depth3.litFixedVal, h] at hlf
+      | some b => cases b with
+        | true => simp [SwitchingCounting.litFalse, Depth3.litFixedVal, h] at hlf
+        | false => rfl
+    simp [Rung4Literal.eval, hext i false hs]
+  | neg i =>
+    have hs : σ i = some true := by
+      cases h : σ i with
+      | none => simp [SwitchingCounting.litFalse, Depth3.litFixedVal, h] at hlf
+      | some b => cases b with
+        | false => simp [SwitchingCounting.litFalse, Depth3.litFixedVal, h] at hlf
+        | true => rfl
+    simp [Rung4Literal.eval, hext i true hs]
+
+/-- If some literal of a list is false, the AND-monomial is false. -/
+theorem evalLits_eq_false_of_mem {x : Fin n → Bool} :
+    ∀ (lits : List (Rung4Literal n)) (ℓ : Rung4Literal n), ℓ ∈ lits → ℓ.eval x = false →
+      evalLits lits x = false
+  | a :: t, ℓ, hmem, hfalse => by
+    rcases List.mem_cons.mp hmem with rfl | hmem'
+    · simp [evalLits, hfalse]
+    · simp [evalLits, evalLits_eq_false_of_mem t ℓ hmem' hfalse]
+
+/-- **A term falsified by `σ` stays false on every extension.**  Extension monotonicity for the
+falsified branch of the canonical decision tree. -/
+theorem termFalsified_eval_extend {σ : Fin n → Option Bool} {T : Clause n} {x : Fin n → Bool}
+    (hf : SwitchingCounting.termFalsified σ T = true) (hext : Rung4Restriction.Extends σ x) :
+    evalLits T.lits x = false := by
+  rw [SwitchingCounting.termFalsified, List.any_eq_true] at hf
+  obtain ⟨ℓ, hℓ, hlf⟩ := hf
+  exact evalLits_eq_false_of_mem T.lits ℓ hℓ (litFalse_eval_extend hlf hext)
+
+/-- The DNF's value on a full assignment: some term's literals are all true. -/
+def dnfEval (cs : List (Clause n)) (x : Fin n → Bool) : Bool :=
+  cs.any (fun T => evalLits T.lits x)
+
+/-- **Canonical DT leaf decision (satisfied).**  If some term is satisfied by `σ`, the DNF is
+true on every extension — the correct value at a `leaf true` of the canonical tree. -/
+theorem dnfEval_true_of_anyTermSat {σ : Fin n → Option Bool} {cs : List (Clause n)}
+    {x : Fin n → Bool} (hany : SwitchingCounting.anyTermSat cs σ = true)
+    (hext : Rung4Restriction.Extends σ x) : dnfEval cs x = true := by
+  rw [SwitchingCounting.anyTermSat, List.any_eq_true] at hany
+  obtain ⟨T, hT, hsat⟩ := hany
+  exact List.any_eq_true.mpr ⟨T, hT, termSat_eval_extend hsat hext⟩
+
+/-- **Canonical DT leaf decision (all falsified).**  If every term is falsified by `σ`, the DNF
+is false on every extension — the correct value at a `leaf false` of the canonical tree. -/
+theorem dnfEval_false_of_all_falsified {σ : Fin n → Option Bool} {cs : List (Clause n)}
+    {x : Fin n → Bool} (hall : ∀ T ∈ cs, SwitchingCounting.termFalsified σ T = true)
+    (hext : Rung4Restriction.Extends σ x) : dnfEval cs x = false := by
+  rw [dnfEval]
+  by_contra h
+  simp only [Bool.not_eq_false, List.any_eq_true] at h
+  obtain ⟨T, hT, hev⟩ := h
+  rw [termFalsified_eval_extend (hall T hT) hext] at hev
+  exact absurd hev (by decide)
+
 /-- **De Morgan at the clause level.**  Negating an OR-clause's literals and reading them as an
 AND-monomial computes the negation of the clause: `evalLits (map litNeg C.lits) = !(OR C.lits)`. -/
 theorem evalLits_map_litNeg (lits : List (Rung4Literal n)) (x : Fin n → Bool) :
@@ -131,5 +197,8 @@ end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.litTrue_eval_extend
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.termSat_eval_extend
+#print axioms PallLean.Paper93.DeepMath.PathB.Depth3.termFalsified_eval_extend
+#print axioms PallLean.Paper93.DeepMath.PathB.Depth3.dnfEval_true_of_anyTermSat
+#print axioms PallLean.Paper93.DeepMath.PathB.Depth3.dnfEval_false_of_all_falsified
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.termEval_neg
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.clauseEval_neg
