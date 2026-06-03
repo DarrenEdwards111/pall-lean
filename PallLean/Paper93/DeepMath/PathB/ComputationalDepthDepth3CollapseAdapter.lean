@@ -308,6 +308,82 @@ theorem canonicalDT_eval {cs : List (Clause n)} :
           cases x (litVar ℓ) <;> simp
         rw [key, ih (fixVar σ (litVar ℓ) (x (litVar ℓ))) x hstar hext']
 
+/-- **Canonical DT depth bound.**  The canonical tree has depth at most the fuel — each query
+consumes one unit of fuel, and the recursion only deepens on the query branch.  Run with
+`fuel = stars σ`, the depth is `≤ stars σ`.
+
+(Note: the tree's depth is the *max over all branches* — the genuine stop-on-satisfied tree
+depth.  The `(2w)^s` count's `canonLabelLen` measures one *satisfying-completion* path, so
+`canonLabelLen ≤ depth`; identifying `depth` with the count's `s` tightly is the switching
+lemma's quantitative content.  This lemma gives the clean upper bound.) -/
+theorem canonicalDT_depth_le (cs : List (Clause n)) :
+    ∀ (fuel : ℕ) (σ : Fin n → Option Bool), (canonicalDT cs fuel σ).depth ≤ fuel := by
+  intro fuel
+  induction fuel with
+  | zero =>
+    intro σ
+    rw [canonicalDT]
+    split <;> simp [BoolDecisionTree.depth]
+  | succ fuel ih =>
+    intro σ
+    rw [canonicalDT]
+    split
+    · simp [BoolDecisionTree.depth]
+    · split
+      · simp [BoolDecisionTree.depth]
+      · split
+        · simp [BoolDecisionTree.depth]
+        · simp only [BoolDecisionTree.depth]
+          exact Nat.succ_le_succ (Nat.max_le.mpr ⟨ih _, ih _⟩)
+
+/-- The set of variables a decision tree queries (branches on). -/
+def queriedVars : BoolDecisionTree n → Finset (Fin n)
+  | .leaf _ => ∅
+  | .query i l r => insert i (queriedVars l ∪ queriedVars r)
+
+/-- Fixing one more variable can only *shrink* the free-variable set. -/
+theorem freeVars_fixVar_subset (σ : Fin n → Option Bool) (i : Fin n) (b : Bool) :
+    SwitchingCounting.freeVars (fixVar σ i b) ⊆ SwitchingCounting.freeVars σ := by
+  intro j hj
+  rw [SwitchingCounting.mem_freeVars] at hj ⊢
+  by_cases hji : j = i
+  · subst hji; rw [fixVar, Function.update_self] at hj; simp at hj
+  · rwa [fixVar, Function.update_of_ne hji] at hj
+
+/-- **Queried vars = path vars (free-variable form).**  Every variable the canonical decision
+tree branches on is a *free* variable of `σ` — the tree never re-queries a variable already fixed
+by the restriction.  So `queriedVars (canonicalDT cs fuel σ) ⊆ freeVars σ`: the queried set is a
+subset of the stars (the "path variables").  Combined with `canonicalDT_eval`, the restricted
+DNF depends only on these path variables (via `eval_agree_of_agree_queried`). -/
+theorem canonicalDT_queriedVars_subset_free (cs : List (Clause n)) :
+    ∀ (fuel : ℕ) (σ : Fin n → Option Bool),
+      queriedVars (canonicalDT cs fuel σ) ⊆ SwitchingCounting.freeVars σ := by
+  intro fuel
+  induction fuel with
+  | zero =>
+    intro σ; rw [canonicalDT]
+    cases SwitchingCounting.anyTermSat cs σ <;> simp [queriedVars]
+  | succ fuel ih =>
+    intro σ; rw [canonicalDT]
+    cases hany : SwitchingCounting.anyTermSat cs σ with
+    | true => simp [queriedVars]
+    | false =>
+      simp only [hany, Bool.false_eq_true, if_false]
+      cases hact : SwitchingCounting.activeTerm cs σ with
+      | none => simp [queriedVars]
+      | some T =>
+        obtain ⟨ℓ, hhead, hfree⟩ := activeTerm_first_free hact
+        simp only [hhead]
+        rw [queriedVars]
+        have hheadmem : litVar ℓ ∈ SwitchingCounting.freeVars σ :=
+          SwitchingCounting.mem_freeVars.mpr hfree
+        intro j hj
+        rw [Finset.mem_insert, Finset.mem_union] at hj
+        rcases hj with rfl | hj | hj
+        · exact hheadmem
+        · exact freeVars_fixVar_subset _ _ _ (ih _ hj)
+        · exact freeVars_fixVar_subset _ _ _ (ih _ hj)
+
 /-- **De Morgan at the clause level.**  Negating an OR-clause's literals and reading them as an
 AND-monomial computes the negation of the clause: `evalLits (map litNeg C.lits) = !(OR C.lits)`. -/
 theorem evalLits_map_litNeg (lits : List (Rung4Literal n)) (x : Fin n → Bool) :
@@ -349,5 +425,7 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.dnfEval_true_of_anyTermSat
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.dnfEval_false_of_all_falsified
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.canonicalDT_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.Depth3.canonicalDT_depth_le
+#print axioms PallLean.Paper93.DeepMath.PathB.Depth3.canonicalDT_queriedVars_subset_free
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.termEval_neg
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.clauseEval_neg
