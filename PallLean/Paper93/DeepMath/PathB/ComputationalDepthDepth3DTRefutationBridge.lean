@@ -95,7 +95,14 @@ path (`hsub : lab F ⊆ F`), maps to a resolution refutation `toList compl (rela
 3. has length `< 2^(T.depth + 1)`;
 4. has every clause of width `≤ T.depth`.
 
-So a depth-`d` refuting decision tree yields a **width-`d`** `LDeriv` refutation of the axioms. -/
+So a depth-`d` refuting decision tree yields a **width-`d`** `LDeriv` refutation of the axioms.
+
+**Caveat (over-strong hypotheses).**  This `∀ F` form is *sound* but its hypotheses are only
+satisfiable when `∅` is itself an axiom: taking `F = ∅` forces `lab ∅ ⊆ ∅` (so `lab ∅ = ∅`) and
+`Axiom ∅`.  Real Tseitin axioms do not contain `∅` (it is the *goal*).  The relabelling only ever
+evaluates `lab` at the `F`'s actually reached along the tree, so the usable form is the
+reachability-restricted `boolDT_to_ldderiv_of_valid` below, keyed on the `ValidSearch` predicate.
+This `∀ F` version is retained only as the unconditional (but vacuous-for-Tseitin) shape. -/
 theorem boolDT_to_ldderiv (posLit : Fin n → Lit) (compl : Lit → Lit)
     (lab : Finset Lit → ResolutionClause Lit) {Axiom : ResolutionClause Lit → Prop}
     (hax : ∀ F, Axiom (lab F)) (hsub : ∀ F, lab F ⊆ F) (T : BoolDecisionTree n) :
@@ -107,6 +114,66 @@ theorem boolDT_to_ldderiv (posLit : Fin n → Lit) (compl : Lit → Lit)
     labeled_relabel posLit compl lab hax T ∅
   have href : DTRef.Refutes compl (relabel posLit compl lab ∅ T) (∅ : ResolutionClause Lit) :=
     refutes_relabel posLit compl lab hsub T ∅
+  obtain ⟨hLD, hmem, hlen, hwid⟩ := DTRef.dtRef_to_ldderiv _ hlab href
+  have hd : (relabel posLit compl lab ∅ T).depth = T.depth := relabel_depth posLit compl lab T ∅
+  refine ⟨hLD, hmem, ?_, ?_⟩
+  · rw [hd] at hlen; exact hlen
+  · intro C hC; have := hwid C hC; rwa [hd] at this
+
+/-! ### Reachability-restricted bridge (the usable form)
+
+`ValidSearch` is the structural predicate that the labelling is *only* constrained at the `F`'s the
+relabelling actually reaches: at every reachable leaf (accumulated false-set `F`), `lab F` is an
+axiom (`hax`-locally) that is falsified by the path (`lab F ⊆ F`).  This is exactly the
+"decision tree solves the Search problem for the axioms" condition, and unlike the `∀ F` form it is
+satisfiable for real (non-trivial) axiom sets. -/
+
+/-- The tree solves the axiom Search problem: at every reachable leaf, with accumulated false-set
+`F`, `lab F` is an axiom falsified by the path. -/
+def ValidSearch (posLit : Fin n → Lit) (compl : Lit → Lit)
+    (lab : Finset Lit → ResolutionClause Lit) (Axiom : ResolutionClause Lit → Prop) :
+    ResolutionClause Lit → BoolDecisionTree n → Prop
+  | F, .leaf _ => Axiom (lab F) ∧ lab F ⊆ F
+  | F, .query i low high =>
+      ValidSearch posLit compl lab Axiom (insert (posLit i) F) low ∧
+      ValidSearch posLit compl lab Axiom (insert (compl (posLit i)) F) high
+
+/-- Under `ValidSearch`, every relabelled leaf is an axiom. -/
+theorem labeled_of_validSearch (posLit : Fin n → Lit) (compl : Lit → Lit)
+    (lab : Finset Lit → ResolutionClause Lit) {Axiom : ResolutionClause Lit → Prop}
+    (T : BoolDecisionTree n) :
+    ∀ F, ValidSearch posLit compl lab Axiom F T → DTRef.Labeled Axiom (relabel posLit compl lab F T) := by
+  induction T with
+  | leaf b => intro F hv; exact hv.1
+  | query i low high ihl ihh =>
+    intro F hv
+    exact ⟨ihl _ hv.1, ihh _ hv.2⟩
+
+/-- Under `ValidSearch`, the relabelled tree refutes relative to the same `F`. -/
+theorem refutes_of_validSearch (posLit : Fin n → Lit) (compl : Lit → Lit)
+    (lab : Finset Lit → ResolutionClause Lit) {Axiom : ResolutionClause Lit → Prop}
+    (T : BoolDecisionTree n) :
+    ∀ F, ValidSearch posLit compl lab Axiom F T → DTRef.Refutes compl (relabel posLit compl lab F T) F := by
+  induction T with
+  | leaf b => intro F hv; exact hv.2
+  | query i low high ihl ihh =>
+    intro F hv
+    exact ⟨ihl _ hv.1, ihh _ hv.2⟩
+
+/-- **The usable relabelling bridge.**  A Boolean decision tree that solves the axiom Search
+problem (`ValidSearch … ∅ T`) maps to a resolution refutation that is valid, contains `∅`, has
+length `< 2^(T.depth+1)`, and width `≤ T.depth`.  Unlike `boolDT_to_ldderiv`, the hypothesis is
+reachability-restricted and hence satisfiable for genuine (`∅`-free) axiom sets. -/
+theorem boolDT_to_ldderiv_of_valid (posLit : Fin n → Lit) (compl : Lit → Lit)
+    (lab : Finset Lit → ResolutionClause Lit) {Axiom : ResolutionClause Lit → Prop}
+    (T : BoolDecisionTree n)
+    (hvalid : ValidSearch posLit compl lab Axiom (∅ : ResolutionClause Lit) T) :
+    LDeriv compl Axiom (DTRef.toList compl (relabel posLit compl lab ∅ T)) ∧
+      (∅ : ResolutionClause Lit) ∈ DTRef.toList compl (relabel posLit compl lab ∅ T) ∧
+      (DTRef.toList compl (relabel posLit compl lab ∅ T)).length < 2 ^ (T.depth + 1) ∧
+      (∀ C ∈ DTRef.toList compl (relabel posLit compl lab ∅ T), C.width ≤ T.depth) := by
+  have hlab := labeled_of_validSearch posLit compl lab T ∅ hvalid
+  have href := refutes_of_validSearch posLit compl lab T ∅ hvalid
   obtain ⟨hLD, hmem, hlen, hwid⟩ := DTRef.dtRef_to_ldderiv _ hlab href
   have hd : (relabel posLit compl lab ∅ T).depth = T.depth := relabel_depth posLit compl lab T ∅
   refine ⟨hLD, hmem, ?_, ?_⟩
