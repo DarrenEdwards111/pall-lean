@@ -430,6 +430,34 @@ theorem deepest_noskip_tight_count_width {cs : List (Clause n)} {w s F : ℕ} [N
   exact lt_of_lt_of_le (deepestSatSeq_pos_lt cs F ρ hmem')
     (hw C (deepestSatSeq_clause_mem_cs cs F ρ hmem'))
 
+/-! ## Discharging the length condition
+
+`ungroupBlocks` preserves total length, so the flattened label has length `(replayLabel …).flatten`.
+The `hlen` condition is therefore exactly "the label records `s` positions in total" — the number of
+satisfy steps. -/
+
+/-- The flattened label length equals the total of the replay label's block lengths. -/
+theorem ungroupBlocks_replayLabel_length (cs : List (Clause n)) (F : ℕ) (ρ : Fin n → Option Bool) :
+    (SwitchingCounting.ungroupBlocks (replayLabel cs F ρ)).length
+      = (replayLabel cs F ρ).flatten.length := by
+  rw [SwitchingCounting.ungroupBlocks_length, List.length_flatten]
+
+/-- **No-skip tight `(2w)^s` count, both side conditions structural.**  The position bound is the
+clause width `≤ w`, and the length condition is "the label records `s` positions in total"
+(`(replayLabel …).flatten.length = s`) — the number of satisfy steps. -/
+theorem deepest_noskip_tight_count_struct {cs : List (Clause n)} {w s F : ℕ} [NeZero w]
+    {Bad Short : Finset (SwitchingCounting.Restriction n)}
+    (hw : ∀ T ∈ cs, T.lits.length ≤ w)
+    (hmem : ∀ ρ ∈ Bad, deepestEnd cs F ρ ∈ Short)
+    (hnf : ∀ ρ ∈ Bad, ∀ T ∈ cs, SwitchingCounting.termFalsified ρ T = false)
+    (hleaf : ∀ ρ ∈ Bad, SwitchingCounting.anyTermSat cs (deepestEnd cs F ρ) = false)
+    (hns : ∀ ρ ∈ Bad, ∀ b ∈ replayLabel cs F ρ, b ≠ [])
+    (hlen : ∀ ρ ∈ Bad, (replayLabel cs F ρ).flatten.length = s) :
+    Bad.card ≤ Short.card * (2 * w) ^ s := by
+  refine deepest_noskip_tight_count_width hw hmem hnf hleaf hns ?_
+  intro ρ hρ
+  rw [ungroupBlocks_replayLabel_length]; exact hlen ρ hρ
+
 end Depth3
 
 end PallLean.Paper93.DeepMath.PathB
@@ -441,3 +469,4 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.deepest_loose_count
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.deepest_noskip_tight_count
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.deepest_noskip_tight_count_width
+#print axioms PallLean.Paper93.DeepMath.PathB.Depth3.deepest_noskip_tight_count_struct
