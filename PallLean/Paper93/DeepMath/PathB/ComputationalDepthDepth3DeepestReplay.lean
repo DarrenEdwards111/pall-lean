@@ -114,6 +114,29 @@ theorem replayAux_cons_nonempty (C : Clause n) {b : List ℕ} (hb : b ≠ [])
   rw [replayAux, List.zip_cons_cons,
     List.filterMap_cons_some (b := b.map (fun p => (C, p))) (by simp [hb]), ← replayAux]
 
+/-! ## Stage 3a: the decoder reconstruction round-trip
+
+Given a `(clause, positions)` list, the decoder run on its clause-projection and position-projection
+reconstructs exactly the nonempty position-blocks (empty entries — immediately-falsified clauses — are
+skipped).  This is the decoder's core correctness; it reduces soundness (stage 3) to the *alignment*
+of `leafClauses` with the blocks of `clauseGrouping (deepestSatSeq …)`. -/
+
+/-- **The decoder reconstruction round-trip.**  `replayAux` on the clause/position projections of an
+entry list yields the nonempty entries in block form, skipping the empty ones. -/
+theorem replayAux_map_eq (entries : List (Clause n × List ℕ)) :
+    replayAux (entries.map Prod.fst) (entries.map Prod.snd) =
+      (entries.filter (fun cp => decide (cp.2 ≠ []))).map (fun cp => cp.2.map (fun p => (cp.1, p))) := by
+  induction entries with
+  | nil => simp [replayAux]
+  | cons cp rest ih =>
+    obtain ⟨C, ps⟩ := cp
+    simp only [List.map_cons, List.filter_cons]
+    by_cases hps : ps = []
+    · rw [hps, replayAux_cons_empty, ih]
+      simp
+    · rw [replayAux_cons_nonempty C hps, ih]
+      simp [hps]
+
 end Depth3
 
 end PallLean.Paper93.DeepMath.PathB
