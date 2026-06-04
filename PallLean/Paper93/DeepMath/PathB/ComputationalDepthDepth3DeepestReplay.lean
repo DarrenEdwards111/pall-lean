@@ -345,6 +345,91 @@ theorem deepest_noskip_tight_count {cs : List (Clause n)} {w s F : ℕ} [NeZero 
     SwitchingCounting.ungroupBlocks_inj (hns ρ hρ) (hns σ hσ) h2
   exact replay_inj cs F (hleaf ρ hρ) (hleaf σ hσ) (hnf ρ hρ) (hnf σ hσ) hend h3
 
+/-! ## Discharging the position bound from clause width
+
+The positions recorded in `deepestSatSeq` are `pivotPosOf` indices into the active clause, hence below
+its width.  So the `hpos` hypothesis of the tight count follows from `∀ T ∈ cs, T.lits.length ≤ w`. -/
+
+/-- The canonical position `pivotPosOf` is below the active clause's width. -/
+theorem pivotPosOf_lt {cs : List (Clause n)} {σ : SwitchingCounting.Restriction n} {T : Clause n}
+    {ℓ : Rung4Literal n} (hT : SwitchingCounting.activeTerm cs σ = some T)
+    (hℓ : SwitchingCounting.activeTermLit cs σ = some ℓ) :
+    SwitchingCounting.pivotPosOf cs σ < T.lits.length := by
+  have hmem : ℓ ∈ T.lits := by
+    unfold SwitchingCounting.activeTermLit at hℓ; rw [hT] at hℓ
+    exact (List.mem_filter.mp (List.mem_of_mem_head? hℓ)).1
+  have hpp : SwitchingCounting.pivotPosOf cs σ = T.lits.idxOf ℓ := by
+    unfold SwitchingCounting.pivotPosOf; rw [hT, hℓ]
+  rw [hpp]; exact List.idxOf_lt_length_of_mem hmem
+
+/-- Every position recorded in `deepestSatSeq` is below its clause's width. -/
+theorem deepestSatSeq_pos_lt (cs : List (Clause n)) :
+    ∀ (F : ℕ) (σ : Fin n → Option Bool) {C : Clause n} {p : ℕ},
+      (C, p) ∈ deepestSatSeq cs F σ → p < C.lits.length := by
+  intro F
+  induction F with
+  | zero => intro σ C p hmem; rw [deepestSatSeq] at hmem; exact absurd hmem (by simp)
+  | succ F ih =>
+    intro σ C p hmem
+    cases hany : SwitchingCounting.anyTermSat cs σ with
+    | true => rw [deepestSatSeq] at hmem; simp only [hany, if_true] at hmem; exact absurd hmem (by simp)
+    | false =>
+      cases hact : SwitchingCounting.activeTerm cs σ with
+      | none =>
+        rw [deepestSatSeq] at hmem
+        simp only [hany, Bool.false_eq_true, if_false, hact] at hmem; exact absurd hmem (by simp)
+      | some T =>
+        cases hh : (SwitchingCounting.freeLits σ T).head? with
+        | none =>
+          rw [deepestSatSeq] at hmem
+          simp only [hany, Bool.false_eq_true, if_false, hact, hh] at hmem; exact absurd hmem (by simp)
+        | some ℓ =>
+          have hatl : SwitchingCounting.activeTermLit cs σ = some ℓ := by
+            unfold SwitchingCounting.activeTermLit; rw [hact]; exact hh
+          have body : ∀ b : Bool,
+              deepestSatSeq cs (F + 1) σ =
+                (if SwitchingCounting.litFalse (fixVar σ (litVar ℓ) b) ℓ
+                  then id else List.cons (T, SwitchingCounting.pivotPosOf cs σ))
+                  (deepestSatSeq cs F (fixVar σ (litVar ℓ) b)) → p < C.lits.length := by
+            intro b hSeq
+            rw [hSeq] at hmem
+            by_cases hf : SwitchingCounting.litFalse (fixVar σ (litVar ℓ) b) ℓ = true
+            · rw [if_pos hf, id_eq] at hmem; exact ih (fixVar σ (litVar ℓ) b) hmem
+            · rw [Bool.not_eq_true] at hf
+              rw [if_neg (by rw [hf]; simp), List.mem_cons] at hmem
+              rcases hmem with heq | htl
+              · have hCT : C = T := congrArg Prod.fst heq
+                have hpP : p = SwitchingCounting.pivotPosOf cs σ := congrArg Prod.snd heq
+                rw [hCT, hpP]; exact pivotPosOf_lt hact hatl
+              · exact ih (fixVar σ (litVar ℓ) b) htl
+          by_cases hd : (canonicalDT cs F (fixVar σ (litVar ℓ) true)).depth ≤
+              (canonicalDT cs F (fixVar σ (litVar ℓ) false)).depth
+          · refine body false ?_
+            rw [deepestSatSeq]; simp only [hany, Bool.false_eq_true, if_false, hact, hh]; rw [if_pos hd]
+          · refine body true ?_
+            rw [deepestSatSeq]; simp only [hany, Bool.false_eq_true, if_false, hact, hh]; rw [if_neg hd]
+
+/-- **No-skip tight `(2w)^s` count, position bound from width.**  Same as `deepest_noskip_tight_count`
+but with `hpos` discharged from `∀ T ∈ cs, T.lits.length ≤ w`. -/
+theorem deepest_noskip_tight_count_width {cs : List (Clause n)} {w s F : ℕ} [NeZero w]
+    {Bad Short : Finset (SwitchingCounting.Restriction n)}
+    (hw : ∀ T ∈ cs, T.lits.length ≤ w)
+    (hmem : ∀ ρ ∈ Bad, deepestEnd cs F ρ ∈ Short)
+    (hnf : ∀ ρ ∈ Bad, ∀ T ∈ cs, SwitchingCounting.termFalsified ρ T = false)
+    (hleaf : ∀ ρ ∈ Bad, SwitchingCounting.anyTermSat cs (deepestEnd cs F ρ) = false)
+    (hns : ∀ ρ ∈ Bad, ∀ b ∈ replayLabel cs F ρ, b ≠ [])
+    (hlen : ∀ ρ ∈ Bad,
+      (SwitchingCounting.ungroupBlocks (replayLabel cs F ρ)).length = s) :
+    Bad.card ≤ Short.card * (2 * w) ^ s := by
+  refine deepest_noskip_tight_count hmem hnf hleaf hns ?_ hlen
+  intro ρ hρ p hp
+  obtain ⟨b, hb, hp1⟩ := SwitchingCounting.ungroupBlocks_fst_mem hp
+  rw [replayLabel, List.mem_map] at hb
+  obtain ⟨C, _, rfl⟩ := hb
+  have hmem' := (mem_deepestSatPositions cs F ρ C p.1).mp hp1
+  exact lt_of_lt_of_le (deepestSatSeq_pos_lt cs F ρ hmem')
+    (hw C (deepestSatSeq_clause_mem_cs cs F ρ hmem'))
+
 end Depth3
 
 end PallLean.Paper93.DeepMath.PathB
@@ -355,3 +440,4 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.replay_inj
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.deepest_loose_count
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.deepest_noskip_tight_count
+#print axioms PallLean.Paper93.DeepMath.PathB.Depth3.deepest_noskip_tight_count_width
