@@ -31,7 +31,7 @@ variable {V Edge : Type} [Fintype V] [DecidableEq V] [Fintype Edge] [DecidableEq
 /-- **The collapse gate factors through the switching kernel.**  A kernel producing a shallow
 refuting `DTRef` from each refuting object yields a `Depth3CollapseModel` with the `collapse` field
 proved (via `dtRef_to_ldderiv` + monotonicity of `2^·`). -/
-def collapseModel_of_dtRefKernel (G : TseitinGraph V Edge) (charge : V → ZMod 2)
+@[reducible] def collapseModel_of_dtRefKernel (G : TseitinGraph V Edge) (charge : V → ZMod 2)
     {Circ : Type} (Refutes : Circ → Prop) (sz : Circ → ℕ)
     (Ax : List (ResolutionClause (TLit Edge)))
     (hAx : ∀ C, C ∈ Ax → ∃ v : V, SemanticMeasure.Implies TSat (TConstr G charge) {v} C)
@@ -55,6 +55,31 @@ def collapseModel_of_dtRefKernel (G : TseitinGraph V Edge) (charge : V → ZMod 
     refine ⟨DTRef.toList tcompl T, hLD, hmt, ?_⟩
     exact (lt_of_lt_of_le hlen (Nat.pow_le_pow_right (by norm_num) (by omega))).le
 
+/-- **Conditional circuit lower bound, modulo the kernel.**  Composing the factored model with the
+expander-Tseitin BSW size bound: in the regime, a refuting object whose switching kernel produces a
+tree of depth `≤ treeDepth (size D)` forces `2^j ≤ 2^(treeDepth (size D) + 1)` — i.e. the kernel's
+tree depth is `≥ j - 1`.  So no switching collapse can produce trees shallower than `j-1` for refuting
+circuits in the BSW regime; the entire circuit-side lower bound reduces to the kernel. -/
+theorem circuit_lower_bound_of_kernel (G : TseitinGraph V Edge) (charge : V → ZMod 2)
+    {Circ : Type} (Refutes : Circ → Prop) (sz : Circ → ℕ)
+    (Ax : List (ResolutionClause (TLit Edge)))
+    (hAx : ∀ C, C ∈ Ax → ∃ v : V, SemanticMeasure.Implies TSat (TConstr G charge) {v} C)
+    (w0 : ℕ) (hw0' : ∀ C, C ∈ Ax → ResolutionClause.width C ≤ w0)
+    (treeDepth : ℕ → ℕ)
+    (kernel : ∀ D : Circ, Refutes D → ∃ T : DTRef (TLit Edge),
+      DTRef.Labeled (· ∈ Ax) T ∧ DTRef.Refutes tcompl T (∅ : ResolutionClause (TLit Edge)) ∧
+        T.depth ≤ treeDepth (sz D))
+    (hunsat : ∀ a : Edge → ZMod 2, ∃ v, ¬ TConstr G charge v a)
+    {c t : ℕ} (hc : 1 ≤ c) (hexp : G.HasExpansion c) (ht2 : 2 ≤ t)
+    (hcard : 4 * t ≤ Fintype.card V) {d kk j : ℕ} (hd : 0 < d) (hk1 : 1 ≤ kk)
+    (hdn : d < Fintype.card (TLit Edge)) (hkd : Fintype.card (TLit Edge) - d ≤ kk * d)
+    (hsmall : w0 + d + kk * j < c * t) (D : Circ) (hD : Refutes D) :
+    2 ^ j ≤ 2 ^ (treeDepth (sz D) + 1) :=
+  Depth3CollapseModel.size_lower_exp hunsat
+    (collapseModel_of_dtRefKernel G charge Refutes sz Ax hAx w0 hw0' treeDepth kernel)
+    hc hexp ht2 hcard hd hk1 hdn hkd hsmall D hD
+
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.collapseModel_of_dtRefKernel
+#print axioms PallLean.Paper93.DeepMath.PathB.circuit_lower_bound_of_kernel
