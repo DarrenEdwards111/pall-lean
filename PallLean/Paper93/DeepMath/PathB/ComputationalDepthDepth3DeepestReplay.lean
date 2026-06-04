@@ -273,6 +273,32 @@ theorem replay_inj (cs : List (Clause n)) (F : ℕ) {ρ σ : Fin n → Option Bo
       hend, h1]
   exact deepestEnd_inj cs F hend h2
 
+/-! ## Loose general count
+
+A real end-to-end general switching count, validating the decoder architecture: the recovered
+selected set `deepestSatSel ρ` (which the replay decoder produces — `replayBlocks_decodeSatSeq`) is a
+finite label (`Finset (Fin n)`, card `2^n`), and together with the deepest end-state determines `ρ`
+(the threading + `deepestEnd_inj` core of `replay_inj`).  So the deepest-branch bad set is counted by
+`(end-state, recovered-set)` with no read-once or no-skip restriction — only "ρ falsifies nothing".
+The bound is loose (`2^n`); the tight `(2w)^s` is the no-skip / packing refinement. -/
+
+/-- **Loose general deepest-branch count.**  For a bad set of restrictions that each falsify no term,
+with deepest end-states in `Short`, `|Bad| ≤ |Short| · 2^n` — the recovered selected set as label. -/
+theorem deepest_loose_count (cs : List (Clause n)) (F : ℕ)
+    {Bad Short : Finset (SwitchingCounting.Restriction n)}
+    (hmem : ∀ ρ ∈ Bad, deepestEnd cs F ρ ∈ Short)
+    (hnf : ∀ ρ ∈ Bad, ∀ T ∈ cs, SwitchingCounting.termFalsified ρ T = false) :
+    Bad.card ≤ Short.card * 2 ^ n := by
+  refine SwitchingCounting.card_bad_le_label_card (deepestEnd cs F)
+    (fun ρ => deepestSatSel cs F ρ) (le_of_eq (by rw [Fintype.card_finset, Fintype.card_fin]))
+    hmem ?_
+  intro ρ hρ σ hσ hend hsat
+  have hsat' : deepestSatSel cs F ρ = deepestSatSel cs F σ := hsat
+  have h2 : deepestSel cs F ρ = deepestSel cs F σ := by
+    rw [← decodedSel_union_satSel_eq_deepestSel (hnf ρ hρ),
+      ← decodedSel_union_satSel_eq_deepestSel (hnf σ hσ), hend, hsat']
+  exact deepestEnd_inj cs F hend h2
+
 end Depth3
 
 end PallLean.Paper93.DeepMath.PathB
@@ -281,3 +307,4 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.replayBlocks_block_entry_mem_leafClauses
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.replayBlocks_decodeSatSeq
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.replay_inj
+#print axioms PallLean.Paper93.DeepMath.PathB.Depth3.deepest_loose_count
