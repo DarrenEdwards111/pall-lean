@@ -132,6 +132,21 @@ theorem tautDNF_to_dtRef_tautAx (cs : List (Clause n)) (htaut : ∀ x, Depth3.dn
   obtain ⟨T, hlab, href, hd⟩ := tautDNF_to_dtRef_tlit cs htaut fuel hfuel
   exact ⟨T, axiomOf_image_eq_mem_tautAx cs ▸ hlab, href, hd⟩
 
+/-- **Width bound for the dual axioms.**  Each `tautAx cs` clause has width `≤ w`, where `w` bounds
+the term widths of `cs` — the `w₀`/`hw0` ingredient for the collapse model. -/
+theorem tautAx_width_le (cs : List (Clause n)) {w : ℕ} (hw : ∀ T ∈ cs, T.lits.length ≤ w) :
+    ∀ C ∈ tautAx cs, ResolutionClause.width C ≤ w := by
+  intro C hC
+  obtain ⟨T, hT, rfl⟩ := List.mem_map.mp hC
+  have h1 : ResolutionClause.width ((negTermClause T).image rlitToTlit) ≤ (negTermClause T).card := by
+    rw [ResolutionClause.width]; exact Finset.card_image_le
+  have h2 : (negTermClause T).card ≤ T.lits.length := by
+    rw [negTermClause, resClause]
+    calc ((T.lits.map Depth3.litNeg).map resLit).toFinset.card
+        ≤ ((T.lits.map Depth3.litNeg).map resLit).length := List.toFinset_card_le _
+      _ = T.lits.length := by rw [List.length_map, List.length_map]
+  exact le_trans h1 (le_trans h2 (hw T hT))
+
 end SearchDischarge
 
 end PallLean.Paper93.DeepMath.PathB
