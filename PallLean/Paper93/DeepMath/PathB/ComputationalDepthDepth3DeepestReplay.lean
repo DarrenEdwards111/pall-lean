@@ -78,6 +78,42 @@ theorem replayBlocks_block_entry_mem_leafClauses (cs : List (Clause n)) (π : Fi
     rw [hCC']
     exact (List.of_mem_zip hcp).1
 
+/-! ## Stage 2: one replay step
+
+`replayAux` is `replayBlocks` on an explicit clause list (so it can be recursed on).  Its `cons`
+lemmas are the one-step behavior the soundness induction (stage 3) walks on: an empty position-block
+skips its clause; a nonempty one emits the clause's `(clause, position)` block and recurses. -/
+
+/-- `replayBlocks` on an explicit clause list (the recursion target). -/
+def replayAux (clauses : List (Clause n)) (label : List (List ℕ)) :
+    List (List (Clause n × ℕ)) :=
+  (List.zip clauses label).filterMap
+    (fun cp => if cp.2 = [] then none else some (cp.2.map (fun p => (cp.1, p))))
+
+/-- `replayBlocks` is `replayAux` on the end-state clause enumeration. -/
+theorem replayBlocks_eq_replayAux (cs : List (Clause n)) (π : Fin n → Option Bool)
+    (label : List (List ℕ)) : replayBlocks cs π label = replayAux (leafClauses cs π) label := rfl
+
+@[simp] theorem replayAux_nil_left (label : List (List ℕ)) :
+    replayAux ([] : List (Clause n)) label = [] := rfl
+
+@[simp] theorem replayAux_nil_right (clauses : List (Clause n)) :
+    replayAux clauses [] = [] := by
+  rw [replayAux, List.zip_nil_right]; rfl
+
+/-- **Skip step.**  An empty position-block drops its clause. -/
+theorem replayAux_cons_empty (C : Clause n) (cs' : List (Clause n)) (label' : List (List ℕ)) :
+    replayAux (C :: cs') ([] :: label') = replayAux cs' label' := by
+  rw [replayAux, List.zip_cons_cons, List.filterMap_cons_none (by simp), ← replayAux]
+
+/-- **Emit step.**  A nonempty position-block emits the clause's `(clause, position)` block and
+recurses. -/
+theorem replayAux_cons_nonempty (C : Clause n) {b : List ℕ} (hb : b ≠ [])
+    (cs' : List (Clause n)) (label' : List (List ℕ)) :
+    replayAux (C :: cs') (b :: label') = b.map (fun p => (C, p)) :: replayAux cs' label' := by
+  rw [replayAux, List.zip_cons_cons,
+    List.filterMap_cons_some (b := b.map (fun p => (C, p))) (by simp [hb]), ← replayAux]
+
 end Depth3
 
 end PallLean.Paper93.DeepMath.PathB
