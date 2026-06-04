@@ -176,9 +176,81 @@ theorem replayBlocks_eq_filter (cs : List (Clause n)) (F : ℕ) (ρ : Fin n → 
     ((leafClauses cs (deepestEnd cs F ρ)).map (fun C => (C, deepestSatPositions cs F ρ C)))
   rwa [hfst, hsnd] at key
 
+/-! ## Stage 3b-ii: soundness via order-insensitivity
+
+`decodeSatSeq` is a `toFinset`, so it depends only on the *set* of `(clause, position)` pairs — the
+order-matching (the apparent alignment wall) is irrelevant.  It therefore suffices that the decoder's
+flattened output has the same membership as `deepestSatSeq`, which holds because every
+`deepestSatSeq` pair's clause is end-state-readable (`deepestSatSeq_clause_mem_leafClauses`). -/
+
+/-- `deepestSatPositions C` lists exactly the positions paired with `C` in `deepestSatSeq`. -/
+theorem mem_deepestSatPositions (cs : List (Clause n)) (F : ℕ) (ρ : Fin n → Option Bool)
+    (C : Clause n) (p : ℕ) :
+    p ∈ deepestSatPositions cs F ρ C ↔ (C, p) ∈ deepestSatSeq cs F ρ := by
+  unfold deepestSatPositions
+  rw [List.mem_filterMap]
+  constructor
+  · rintro ⟨⟨ec, ep⟩, he, heq⟩
+    by_cases h : ec = C
+    · rw [if_pos h] at heq; simp only [Option.some.injEq] at heq; subst h; subst heq; exact he
+    · rw [if_neg h] at heq; exact absurd heq (by simp)
+  · intro h; exact ⟨(C, p), h, by simp⟩
+
+/-- `decodeSatSeq` depends only on membership (it is a `toFinset`). -/
+theorem decodeSatSeq_eq_of_mem {l l' : List (Clause n × ℕ)} (h : ∀ x, x ∈ l ↔ x ∈ l') :
+    decodeSatSeq l = decodeSatSeq l' := by
+  unfold decodeSatSeq
+  ext y
+  simp only [List.mem_toFinset, List.mem_filterMap]
+  exact ⟨fun ⟨b, hb, hg⟩ => ⟨b, (h b).mp hb, hg⟩, fun ⟨b, hb, hg⟩ => ⟨b, (h b).mpr hb, hg⟩⟩
+
+/-- **The decoder's flattened output has the same pairs as `deepestSatSeq`.**  No ordering needed:
+every `deepestSatSeq` pair's clause is end-state-readable, so it is produced by the decoder, and
+conversely. -/
+theorem replayBlocks_flatten_mem (cs : List (Clause n)) (F : ℕ) (ρ : Fin n → Option Bool)
+    (hsat : SwitchingCounting.anyTermSat cs (deepestEnd cs F ρ) = false) (cp : Clause n × ℕ) :
+    cp ∈ (replayBlocks cs (deepestEnd cs F ρ) (replayLabel cs F ρ)).flatten ↔
+      cp ∈ deepestSatSeq cs F ρ := by
+  obtain ⟨C, p⟩ := cp
+  rw [replayBlocks_eq_filter, List.mem_flatten]
+  constructor
+  · rintro ⟨blk, hblk, hin⟩
+    rw [List.mem_map] at hblk
+    obtain ⟨⟨C', ps⟩, hcp', rfl⟩ := hblk
+    rw [List.mem_map] at hin
+    obtain ⟨q, hq, hqeq⟩ := hin
+    rw [List.mem_filter, List.mem_map] at hcp'
+    obtain ⟨⟨C'', hC'', hC''eq⟩, _⟩ := hcp'
+    obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hC''eq
+    obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hqeq
+    exact (mem_deepestSatPositions cs F ρ C'' q).mp hq
+  · intro hmem
+    have hC : C ∈ leafClauses cs (deepestEnd cs F ρ) :=
+      deepestSatSeq_clause_mem_leafClauses cs F ρ hmem hsat
+    have hp : p ∈ deepestSatPositions cs F ρ C := (mem_deepestSatPositions cs F ρ C p).mpr hmem
+    refine ⟨(deepestSatPositions cs F ρ C).map (fun q => (C, q)), ?_, ?_⟩
+    · rw [List.mem_map]
+      refine ⟨(C, deepestSatPositions cs F ρ C), ?_, rfl⟩
+      rw [List.mem_filter, List.mem_map]
+      refine ⟨⟨C, hC, rfl⟩, ?_⟩
+      simp only [decide_eq_true_eq]
+      exact fun he => by rw [he] at hp; exact absurd hp (by simp)
+    · rw [List.mem_map]; exact ⟨p, hp, rfl⟩
+
+/-- **Replay soundness (order-insensitive).**  The decoder recovers the deepest selected set:
+`decodeSatSeq (replayBlocks …).flatten = deepestSatSel`.  This is `replayBlocks_correct` at the
+`decodeSatSeq` level — the alignment dissolved by order-insensitivity. -/
+theorem replayBlocks_decodeSatSeq (cs : List (Clause n)) (F : ℕ) (ρ : Fin n → Option Bool)
+    (hsat : SwitchingCounting.anyTermSat cs (deepestEnd cs F ρ) = false) :
+    decodeSatSeq (replayBlocks cs (deepestEnd cs F ρ) (replayLabel cs F ρ)).flatten
+      = deepestSatSel cs F ρ := by
+  rw [decodeSatSeq_eq_of_mem (replayBlocks_flatten_mem cs F ρ hsat),
+    ← deepestSatSel_eq_decodeSatSeq]
+
 end Depth3
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.replayBlocks_ne_nil
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.replayBlocks_block_entry_mem_leafClauses
+#print axioms PallLean.Paper93.DeepMath.PathB.Depth3.replayBlocks_decodeSatSeq
