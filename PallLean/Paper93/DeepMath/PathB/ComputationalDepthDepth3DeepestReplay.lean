@@ -1,4 +1,7 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockWellFormed
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingFlatten
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingFlatLabel
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingEncLabel
 
 /-!
 # Deepest-branch replay decoder (stage 1: definition + well-formedness)
@@ -299,6 +302,49 @@ theorem deepest_loose_count (cs : List (Clause n)) (F : ℕ)
       ← decodedSel_union_satSel_eq_deepestSel (hnf σ hσ), hend, hsat']
   exact deepestEnd_inj cs F hend h2
 
+/-! ## No-skip tight `(2w)^s` count
+
+When no leaf-readable clause is immediately falsified (every replay block is nonempty), the empty-block
+obstruction vanishes and the sharp Håstad label applies: pack `replayLabel` into `PathLabel w s` via
+`ungroupBlocks → toFinW → flatToLabel` — an injective chain on nonempty, in-range, length-`s` blocks —
+and the injectivity composes with `replay_inj` to feed `card_bad_le_encoding`, yielding the tight
+`(2w)^s`. -/
+
+/-- **No-skip tight `(2w)^s` count.**  For a bad set where each restriction falsifies nothing, has an
+unsatisfied deepest leaf, all replay blocks nonempty (no immediate falsify), positions `< w`, and the
+flattened label has length `s`, with deepest end-states in `Short`: `|Bad| ≤ |Short| · (2w)^s`. -/
+theorem deepest_noskip_tight_count {cs : List (Clause n)} {w s F : ℕ} [NeZero w]
+    {Bad Short : Finset (SwitchingCounting.Restriction n)}
+    (hmem : ∀ ρ ∈ Bad, deepestEnd cs F ρ ∈ Short)
+    (hnf : ∀ ρ ∈ Bad, ∀ T ∈ cs, SwitchingCounting.termFalsified ρ T = false)
+    (hleaf : ∀ ρ ∈ Bad, SwitchingCounting.anyTermSat cs (deepestEnd cs F ρ) = false)
+    (hns : ∀ ρ ∈ Bad, ∀ b ∈ replayLabel cs F ρ, b ≠ [])
+    (hpos : ∀ ρ ∈ Bad, ∀ p ∈ SwitchingCounting.ungroupBlocks (replayLabel cs F ρ), p.1 < w)
+    (hlen : ∀ ρ ∈ Bad,
+      (SwitchingCounting.ungroupBlocks (replayLabel cs F ρ)).length = s) :
+    Bad.card ≤ Short.card * (2 * w) ^ s := by
+  refine SwitchingCounting.card_bad_le_encoding (deepestEnd cs F)
+    (fun ρ => SwitchingCounting.flatToLabel
+      (SwitchingCounting.toFinW w (SwitchingCounting.ungroupBlocks (replayLabel cs F ρ))))
+    hmem ?_
+  intro ρ hρ σ hσ hend hlab
+  have hlab' : (SwitchingCounting.flatToLabel
+      (SwitchingCounting.toFinW w (SwitchingCounting.ungroupBlocks (replayLabel cs F ρ)))
+        : SwitchingCounting.PathLabel w s)
+      = SwitchingCounting.flatToLabel
+        (SwitchingCounting.toFinW w (SwitchingCounting.ungroupBlocks (replayLabel cs F σ))) := hlab
+  have h1 : SwitchingCounting.toFinW w (SwitchingCounting.ungroupBlocks (replayLabel cs F ρ))
+      = SwitchingCounting.toFinW w (SwitchingCounting.ungroupBlocks (replayLabel cs F σ)) :=
+    SwitchingCounting.flatToLabel_inj
+      (by rw [SwitchingCounting.toFinW, List.length_map]; exact hlen ρ hρ)
+      (by rw [SwitchingCounting.toFinW, List.length_map]; exact hlen σ hσ) hlab'
+  have h2 : SwitchingCounting.ungroupBlocks (replayLabel cs F ρ)
+      = SwitchingCounting.ungroupBlocks (replayLabel cs F σ) :=
+    SwitchingCounting.toFinW_inj w (hpos ρ hρ) (hpos σ hσ) h1
+  have h3 : replayLabel cs F ρ = replayLabel cs F σ :=
+    SwitchingCounting.ungroupBlocks_inj (hns ρ hρ) (hns σ hσ) h2
+  exact replay_inj cs F (hleaf ρ hρ) (hleaf σ hσ) (hnf ρ hρ) (hnf σ hσ) hend h3
+
 end Depth3
 
 end PallLean.Paper93.DeepMath.PathB
@@ -308,3 +354,4 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.replayBlocks_decodeSatSeq
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.replay_inj
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.deepest_loose_count
+#print axioms PallLean.Paper93.DeepMath.PathB.Depth3.deepest_noskip_tight_count
