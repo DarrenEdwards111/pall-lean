@@ -247,6 +247,32 @@ theorem replayBlocks_decodeSatSeq (cs : List (Clause n)) (F : ℕ) (ρ : Fin n �
   rw [decodeSatSeq_eq_of_mem (replayBlocks_flatten_mem cs F ρ hsat),
     ← deepestSatSel_eq_decodeSatSeq]
 
+/-! ## Stage 4: determinism — the end-state and label determine `ρ`
+
+The count's core: the deepest end-state together with the replay label determine `ρ`.  From the
+replay soundness the satisfy set is determined; threading adds the label-free falsify set
+(`decodedSel`), giving the whole selected set, and `deepestEnd_inj` recovers `ρ`.  This is the
+injectivity any switching count consumes.  (The remaining step — packing `replayLabel` into the fixed
+`(2w)^s` type `PathLabel w s` — re-meets the empty-block skip obstruction and is the loose/tight
+label-encoding question, separate from this determinism.) -/
+
+/-- **Determinism.**  For restrictions that falsify nothing and whose deepest leaves are unsatisfied,
+equal deepest end-states and equal replay labels force `ρ = σ`. -/
+theorem replay_inj (cs : List (Clause n)) (F : ℕ) {ρ σ : Fin n → Option Bool}
+    (hρ : SwitchingCounting.anyTermSat cs (deepestEnd cs F ρ) = false)
+    (hσ : SwitchingCounting.anyTermSat cs (deepestEnd cs F σ) = false)
+    (hnfρ : ∀ T ∈ cs, SwitchingCounting.termFalsified ρ T = false)
+    (hnfσ : ∀ T ∈ cs, SwitchingCounting.termFalsified σ T = false)
+    (hend : deepestEnd cs F ρ = deepestEnd cs F σ)
+    (hlab : replayLabel cs F ρ = replayLabel cs F σ) :
+    ρ = σ := by
+  have h1 : deepestSatSel cs F ρ = deepestSatSel cs F σ := by
+    rw [← replayBlocks_decodeSatSeq cs F ρ hρ, ← replayBlocks_decodeSatSeq cs F σ hσ, hend, hlab]
+  have h2 : deepestSel cs F ρ = deepestSel cs F σ := by
+    rw [← decodedSel_union_satSel_eq_deepestSel hnfρ, ← decodedSel_union_satSel_eq_deepestSel hnfσ,
+      hend, h1]
+  exact deepestEnd_inj cs F hend h2
+
 end Depth3
 
 end PallLean.Paper93.DeepMath.PathB
@@ -254,3 +280,4 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.replayBlocks_ne_nil
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.replayBlocks_block_entry_mem_leafClauses
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.replayBlocks_decodeSatSeq
+#print axioms PallLean.Paper93.DeepMath.PathB.Depth3.replay_inj
