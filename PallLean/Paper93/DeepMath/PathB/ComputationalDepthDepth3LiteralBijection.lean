@@ -104,8 +104,37 @@ theorem tautDNF_to_dtRef_tlit (cs : List (Clause n)) (htaut : ∀ x, Depth3.dnfE
     rwa [Finset.image_empty] at this
   · rw [DTRef.mapLit_depth]; exact hdepth
 
+/-- The Tseitin axiom list of a DNF: the `rlitToTlit`-images of the De Morgan–dual clauses. -/
+def tautAx (cs : List (Clause n)) : List (ResolutionClause (TLit (Fin n))) :=
+  cs.map (fun T => (negTermClause T).image rlitToTlit)
+
+/-- The transported `Labeled` predicate is exactly membership in the dual-image axiom list. -/
+theorem axiomOf_image_eq_mem_tautAx (cs : List (Clause n)) :
+    (fun C' => ∃ C, AxiomOf cs C ∧ C.image rlitToTlit = C') = (· ∈ tautAx cs) := by
+  funext C'
+  apply propext
+  constructor
+  · rintro ⟨C, ⟨T, hT, rfl⟩, rfl⟩
+    exact List.mem_map.mpr ⟨T, hT, rfl⟩
+  · intro hC'
+    obtain ⟨T, hT, rfl⟩ := List.mem_map.mp hC'
+    exact ⟨negTermClause T, ⟨T, hT, rfl⟩, rfl⟩
+
+/-- **The transported kernel, in `(· ∈ Ax)` list form.**  A tautological DNF yields a `DTRef` over
+`TLit (Fin n)` that is `Labeled (· ∈ tautAx cs)`, `Refutes tcompl ∅`, `depth ≤ fuel` — exactly the
+shape `collapseModel_of_dtRefKernel` / `circuit_lower_bound_of_kernel` consume (with `Ax := tautAx cs`). -/
+theorem tautDNF_to_dtRef_tautAx (cs : List (Clause n)) (htaut : ∀ x, Depth3.dnfEval cs x = true)
+    (fuel : ℕ) (hfuel : SwitchingCounting.stars (fun _ : Fin n => (none : Option Bool)) ≤ fuel) :
+    ∃ T : DTRef (TLit (Fin n)),
+      DTRef.Labeled (· ∈ tautAx cs) T ∧
+      DTRef.Refutes tcompl T (∅ : ResolutionClause (TLit (Fin n))) ∧
+      T.depth ≤ fuel := by
+  obtain ⟨T, hlab, href, hd⟩ := tautDNF_to_dtRef_tlit cs htaut fuel hfuel
+  exact ⟨T, axiomOf_image_eq_mem_tautAx cs ▸ hlab, href, hd⟩
+
 end SearchDischarge
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SearchDischarge.tautDNF_to_dtRef_tlit
+#print axioms PallLean.Paper93.DeepMath.PathB.SearchDischarge.tautDNF_to_dtRef_tautAx
