@@ -137,6 +137,45 @@ theorem replayAux_map_eq (entries : List (Clause n × List ℕ)) :
     · rw [replayAux_cons_nonempty C hps, ih]
       simp [hps]
 
+/-! ## Stage 3b-i: concrete encoder, reduce to the alignment equation
+
+The encoder labels each leaf-readable clause with its positions in `deepestSatSeq`.  Feeding it to the
+decoder and applying the reconstruction round-trip reduces `replayBlocks_correct` to one equation: the
+nonempty leaf-clause blocks (in `leafClauses`-order) equal `clauseGrouping (deepestSatSeq …)` — the
+*alignment* (stage 3b-ii). -/
+
+/-- The positions of clause `C` recorded in `deepestSatSeq`. -/
+def deepestSatPositions (cs : List (Clause n)) (F : ℕ) (ρ : Fin n → Option Bool) (C : Clause n) :
+    List ℕ :=
+  (deepestSatSeq cs F ρ).filterMap (fun e => if e.1 = C then some e.2 else none)
+
+/-- The replay label: each leaf-readable clause paired with its `deepestSatSeq` position block. -/
+def replayLabel (cs : List (Clause n)) (F : ℕ) (ρ : Fin n → Option Bool) : List (List ℕ) :=
+  (leafClauses cs (deepestEnd cs F ρ)).map (deepestSatPositions cs F ρ)
+
+/-- **The decoder output, concretely.**  With the encoder `replayLabel`, the decoder produces exactly
+the nonempty leaf-clause blocks in block form — reducing `replayBlocks_correct` to the alignment. -/
+theorem replayBlocks_eq_filter (cs : List (Clause n)) (F : ℕ) (ρ : Fin n → Option Bool) :
+    replayBlocks cs (deepestEnd cs F ρ) (replayLabel cs F ρ) =
+      (((leafClauses cs (deepestEnd cs F ρ)).map
+        (fun C => (C, deepestSatPositions cs F ρ C))).filter
+          (fun cp => decide (cp.2 ≠ []))).map (fun cp => cp.2.map (fun p => (cp.1, p))) := by
+  have hfst : ((leafClauses cs (deepestEnd cs F ρ)).map
+      (fun C => (C, deepestSatPositions cs F ρ C))).map Prod.fst
+      = leafClauses cs (deepestEnd cs F ρ) := by
+    rw [List.map_map,
+      show (Prod.fst ∘ fun C : Clause n => (C, deepestSatPositions cs F ρ C)) = id from by
+        funext x; rfl, List.map_id]
+  have hsnd : ((leafClauses cs (deepestEnd cs F ρ)).map
+      (fun C => (C, deepestSatPositions cs F ρ C))).map Prod.snd = replayLabel cs F ρ := by
+    rw [List.map_map, replayLabel,
+      show (Prod.snd ∘ fun C : Clause n => (C, deepestSatPositions cs F ρ C))
+        = deepestSatPositions cs F ρ from by funext C; rfl]
+  rw [replayBlocks_eq_replayAux]
+  have key := replayAux_map_eq
+    ((leafClauses cs (deepestEnd cs F ρ)).map (fun C => (C, deepestSatPositions cs F ρ C)))
+  rwa [hfst, hsnd] at key
+
 end Depth3
 
 end PallLean.Paper93.DeepMath.PathB
