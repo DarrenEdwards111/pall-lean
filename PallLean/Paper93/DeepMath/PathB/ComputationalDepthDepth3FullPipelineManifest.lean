@@ -4,6 +4,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonLabelDepthGa
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EmptySkipWall
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EndToEnd
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FalsifyDeepestCollapse
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukHardFunctionLB
 
 /-!
 # Depth-3 lower bound: the full assembled pipeline (definitive index)
@@ -47,6 +48,27 @@ The falsify-deepest *count* and *extraction* are unconditional; the residual ref
 restricted-Tseitin-is-expander step) plus the general satisfy-step switching are what remain.
 Everything else above is proved and assembled.  Ceiling: **AC⁰/depth-3** — `Depth3CollapseModel.collapse`
 and P vs NP untouched.
+
+## A second, fully-discharged route: Nečiporuk formula-size lower bound (no obligations)
+
+Independent of the depth-3 switching route, the Nečiporuk combinatorial-counting route is assembled
+**end-to-end with no fenced core** on a concrete explicit function (`NecHard.hardF`, a XOR of `m`
+table-lookups into a shared `2^b`-cell data region).  Every statement below is proved (clean axioms,
+no `sorry`):
+
+* `neciporuk_formula_lower_bound` — the method: `∑ᵢ log₂ #blockResiduals(Sᵢ,F) ≤ 2·clog₂(|Tok|+1)·
+  litCount F + 2·#blocks` for any block partition.
+* `card_blockResiduals_ge` — the reusable lower-bound bridge (injective parameter family ⇒ many
+  subfunctions).
+* `NecHard.hardF_merge` — the explicit function's subfunction reads the addressed cell.
+* `NecHard.card_blockResiduals_hardF_ge` + `NecHard.filter_c0_false_card` — per address block,
+  `#blockResiduals ≥ 2^{2^b − 1}` distinct subfunctions.
+* `NecHard.hardF_litCount_lower` — **the deliverable**: `m·(2^b − 1) ≤ 2·clog₂(|Tok|+1)·litCount F +
+  2·(m + 1)` for *any* `B₂` formula `F` computing `hardF`.  With `b ≈ log m`, `m ≈ n/b`, this is
+  `litCount ≳ n²/log²n`.
+
+Ceiling here: **`n²/log²n` formula size** (classic Nečiporuk) — a genuine *restricted* lower bound,
+fully proved with no carried hypothesis, but still **not** P vs NP.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB
@@ -82,5 +104,14 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- Obligation 1 fenced on both sides.
 #check @Depth3.encLits_length_lt_depth
 #check @Depth3.tight_pack_skip_invariant
+
+-- Second route: Nečiporuk formula-size lower bound (no obligations, n²/log²n ceiling).
+#check @neciporuk_formula_lower_bound
+#check @card_blockResiduals_ge
+#check @NecHard.hardF_merge
+#check @NecHard.card_blockResiduals_hardF_ge
+#check @NecHard.filter_c0_false_card
+#check @NecHard.log_card_blockResiduals_hardF_ge
+#check @NecHard.hardF_litCount_lower
 
 end PallLean.Paper93.DeepMath.PathB
