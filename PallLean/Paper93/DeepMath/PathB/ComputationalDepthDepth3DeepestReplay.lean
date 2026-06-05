@@ -458,6 +458,101 @@ theorem deepest_noskip_tight_count_struct {cs : List (Clause n)} {w s F : ℕ} [
   intro ρ hρ
   rw [ungroupBlocks_replayLabel_length]; exact hlen ρ hρ
 
+/-! ## Canonical length: `(deepestSatSeq …).length = s`
+
+The label records one position per satisfy step, so its total length is `(deepestSatSeq …).length` —
+the number of satisfy steps.  This is the canonical Håstad `s`.  Proving it is a list partition count:
+summing the per-clause block lengths over the (distinct) `leafClauses` recovers the total. -/
+
+private theorem sum_map_add {κ : Type*} (l : List κ) (f g : κ → ℕ) :
+    (l.map (fun k => f k + g k)).sum = (l.map f).sum + (l.map g).sum := by
+  induction l with
+  | nil => simp
+  | cons x l ih => simp only [List.map_cons, List.sum_cons, ih]; omega
+
+private theorem sum_map_ite_eq_filter {κ : Type*} [DecidableEq κ] (l : List κ) (a : κ) :
+    (l.map (fun k => if a = k then (1 : ℕ) else 0)).sum
+      = (l.filter (fun k => decide (a = k))).length := by
+  induction l with
+  | nil => simp
+  | cons x l ih =>
+    rw [List.map_cons, List.sum_cons, ih, List.filter_cons]
+    by_cases h : a = x <;> simp [h, List.length_cons] <;> omega
+
+private theorem nodup_filter_count_one {κ : Type*} [DecidableEq κ] :
+    ∀ {keys : List κ}, keys.Nodup → ∀ {a : κ}, a ∈ keys →
+      (keys.filter (fun k => decide (a = k))).length = 1 := by
+  intro keys
+  induction keys with
+  | nil => intro _ a ha; exact absurd ha (by simp)
+  | cons x ks ih =>
+    intro hnd a ha
+    rw [List.nodup_cons] at hnd
+    rw [List.filter_cons]
+    rcases List.mem_cons.mp ha with rfl | ha'
+    · rw [if_pos (by simp)]
+      have hnil : ks.filter (fun k => decide (a = k)) = [] := by
+        rw [List.filter_eq_nil_iff]
+        intro k hk hcon
+        rw [decide_eq_true_eq] at hcon; subst hcon; exact hnd.1 hk
+      rw [hnil]; rfl
+    · by_cases hax : a = x
+      · subst hax; exact absurd ha' hnd.1
+      · rw [if_neg (by simp [hax])]; exact ih hnd.2 ha'
+
+private theorem sum_map_filter_length_eq {α κ : Type*} [DecidableEq κ] (key : α → κ)
+    (keys : List κ) (hnd : keys.Nodup) :
+    ∀ (xs : List α), (∀ e ∈ xs, key e ∈ keys) →
+      (keys.map (fun k => (xs.filter (fun e => decide (key e = k))).length)).sum = xs.length := by
+  intro xs
+  induction xs with
+  | nil => intro _; simp
+  | cons e xs ih =>
+    intro hcov
+    have hcov' : ∀ e' ∈ xs, key e' ∈ keys := fun e' h => hcov e' (List.mem_cons_of_mem _ h)
+    have he : key e ∈ keys := hcov e List.mem_cons_self
+    have hmapeq : (fun k => ((e :: xs).filter (fun e' => decide (key e' = k))).length)
+        = (fun k => (xs.filter (fun e' => decide (key e' = k))).length + (if key e = k then 1 else 0)) := by
+      funext k; rw [List.filter_cons]; by_cases hk : key e = k <;> simp [hk, List.length_cons]
+    rw [hmapeq, sum_map_add, ih hcov', sum_map_ite_eq_filter, nodup_filter_count_one hnd he,
+      List.length_cons]
+
+/-- **The flattened label has length `(deepestSatSeq …).length`.**  Under `cs.Nodup` (so `leafClauses`
+is duplicate-free) and an unsatisfied leaf, summing the per-clause block lengths recovers the total
+number of satisfy steps. -/
+theorem replayLabel_flatten_length (cs : List (Clause n)) (F : ℕ) (ρ : Fin n → Option Bool)
+    (hnd : cs.Nodup) (hleaf : SwitchingCounting.anyTermSat cs (deepestEnd cs F ρ) = false) :
+    (replayLabel cs F ρ).flatten.length = (deepestSatSeq cs F ρ).length := by
+  rw [List.length_flatten, replayLabel, List.map_map]
+  have hfun : (List.length ∘ deepestSatPositions cs F ρ)
+      = (fun C => ((deepestSatSeq cs F ρ).filter (fun e => decide (e.1 = C))).length) := by
+    funext C
+    simp only [Function.comp_apply, deepestSatPositions, List.length_filterMap_eq_countP,
+      List.countP_eq_length_filter]
+    congr 1
+    apply List.filter_congr
+    intro e _; by_cases h : e.1 = C <;> simp [h]
+  rw [hfun]
+  exact sum_map_filter_length_eq Prod.fst (leafClauses cs (deepestEnd cs F ρ))
+    (List.Nodup.filter _ hnd) (deepestSatSeq cs F ρ)
+    (fun e he => deepestSatSeq_clause_mem_leafClauses cs F ρ he hleaf)
+
+/-- **No-skip tight `(2w)^s` count, canonical length.**  The length condition is the number of satisfy
+steps `(deepestSatSeq cs F ρ).length = s` — the canonical Håstad `s`.  (Adds `cs.Nodup`.) -/
+theorem deepest_noskip_tight_count_satsteps {cs : List (Clause n)} {w s F : ℕ} [NeZero w]
+    {Bad Short : Finset (SwitchingCounting.Restriction n)}
+    (hnd : cs.Nodup)
+    (hw : ∀ T ∈ cs, T.lits.length ≤ w)
+    (hmem : ∀ ρ ∈ Bad, deepestEnd cs F ρ ∈ Short)
+    (hnf : ∀ ρ ∈ Bad, ∀ T ∈ cs, SwitchingCounting.termFalsified ρ T = false)
+    (hleaf : ∀ ρ ∈ Bad, SwitchingCounting.anyTermSat cs (deepestEnd cs F ρ) = false)
+    (hns : ∀ ρ ∈ Bad, ∀ b ∈ replayLabel cs F ρ, b ≠ [])
+    (hsteps : ∀ ρ ∈ Bad, (deepestSatSeq cs F ρ).length = s) :
+    Bad.card ≤ Short.card * (2 * w) ^ s := by
+  refine deepest_noskip_tight_count_struct hw hmem hnf hleaf hns ?_
+  intro ρ hρ
+  rw [replayLabel_flatten_length cs F ρ hnd (hleaf ρ hρ)]; exact hsteps ρ hρ
+
 end Depth3
 
 end PallLean.Paper93.DeepMath.PathB
@@ -470,3 +565,4 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.deepest_noskip_tight_count
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.deepest_noskip_tight_count_width
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.deepest_noskip_tight_count_struct
+#print axioms PallLean.Paper93.DeepMath.PathB.Depth3.deepest_noskip_tight_count_satsteps
