@@ -6,6 +6,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EndToEnd
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FalsifyDeepestCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukHardFunctionLB
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukHardFunctionExplicit
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukHardFunctionConcrete
 
 /-!
 # Depth-3 lower bound: the full assembled pipeline (definitive index)
@@ -70,6 +71,8 @@ no `sorry`):
 * `NF.card_Tok_eq` — the serialization alphabet has `16 + 2n` tokens (resolves the abstract `|Tok|`).
 * `NecHard.hardF_litCount_lower_div` — **the headline, fully explicit**:
   `litCount F ≥ (m·(2^b − 1) − 2(m+1)) / (2·clog₂(2·nn + 17))`.
+* `NecHard.hardF_litCount_lower_concrete` — a **witnessed numeric instance**: at `b=10`, `m=1024`
+  (`N=11264` variables), any formula computing `hardF` has `litCount F ≥ 34850 > 3·N`.
 
 Ceiling here: **`n²/log²n` formula size** (classic Nečiporuk) — a genuine *restricted* lower bound,
 fully proved with no carried hypothesis, but still **not** P vs NP.
@@ -120,5 +123,6 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @NF.card_Tok_eq
 #check @NecHard.hardF_litCount_lower_explicit
 #check @NecHard.hardF_litCount_lower_div
+#check @NecHard.hardF_litCount_lower_concrete
 
 end PallLean.Paper93.DeepMath.PathB
