@@ -38,10 +38,32 @@ open SwitchingCounting
 
 variable {n : ℕ}
 
-/-- **OPEN — the switching-lemma core.**  The clause-order forward-replay reconstruction of the
-satisfy-step selected set from the leaf and the tight `(2w)^s` label, for the general bad set
-(including the confound).  This is the single irreducible step; `confound_uncovered` proves no cheaper
-alignment closes it.  *WIP `sorry` — branch only.* -/
+/-- **OPEN — the sharpened switching-lemma core.**  The clause-order forward-replay reconstruction of
+the satisfy *sequence* `deepestSatSeq` (the `(clause, position)` list, exactly what the forward
+simulation produces) from the leaf and the tight `(2w)^s` label, for the general bad set.  This is the
+single irreducible step; `confound_uncovered` proves no cheaper alignment closes it.
+*WIP `sorry` — branch only.*
+
+The forward simulation that discharges this: process clauses in `cs`-order from the leaf; for each
+clause stay in it until it resolves (`activeTerm_advance_stable` keeps it active across satisfy steps,
+`activeTerm_falsify_advances` moves to a later clause on a falsify step — so **block sizes are
+determined dynamically**, never read from the lost label boundaries); consume the next label position
+as a satisfy step, or read a falsify step off `σ_end`.  Correctness is the Håstad switching lemma. -/
+theorem deepestSatSeq_recover {cs : List (Clause n)} {w s F : ℕ}
+    {Bad : Finset (SwitchingCounting.Restriction n)}
+    (hnf : ∀ ρ ∈ Bad, ∀ T ∈ cs, SwitchingCounting.termFalsified ρ T = false)
+    (hleaf : ∀ ρ ∈ Bad, SwitchingCounting.anyTermSat cs (deepestEnd cs F ρ) = false)
+    (hpos : ∀ ρ ∈ Bad, ∀ p ∈ SwitchingCounting.ungroupBlocks (replayLabel cs F ρ), p.1 < w)
+    (hlen : ∀ ρ ∈ Bad, (SwitchingCounting.ungroupBlocks (replayLabel cs F ρ)).length = s) :
+    ∃ (lab : SwitchingCounting.Restriction n → SwitchingCounting.PathLabel w s)
+      (Dseq : SwitchingCounting.Restriction n → SwitchingCounting.PathLabel w s
+          → List (Clause n × ℕ)),
+      ∀ ρ ∈ Bad, Dseq (deepestEnd cs F ρ) (lab ρ) = deepestSatSeq cs F ρ := by
+  sorry
+
+/-- **The satisfy-set reconstruction reduces (proved, no gap) to recovering the satisfy *sequence*.**
+`deepestSatSel = decodeSatSeq deepestSatSeq` (`deepestSatSel_eq_decodeSatSeq`), so a sequence-recoverer
+gives a set-recoverer by post-composing `decodeSatSeq`. -/
 theorem satSeqReconstruct_general {cs : List (Clause n)} {w s F : ℕ}
     {Bad : Finset (SwitchingCounting.Restriction n)}
     (hnf : ∀ ρ ∈ Bad, ∀ T ∈ cs, SwitchingCounting.termFalsified ρ T = false)
@@ -51,7 +73,11 @@ theorem satSeqReconstruct_general {cs : List (Clause n)} {w s F : ℕ}
     ∃ (lab : SwitchingCounting.Restriction n → SwitchingCounting.PathLabel w s)
       (Dsat : SwitchingCounting.Restriction n → SwitchingCounting.PathLabel w s → Finset (Fin n)),
       ∀ ρ ∈ Bad, Dsat (deepestEnd cs F ρ) (lab ρ) = deepestSatSel cs F ρ := by
-  sorry
+  obtain ⟨lab, Dseq, hseq⟩ := deepestSatSeq_recover hnf hleaf hpos hlen
+  refine ⟨lab, fun σ l => decodeSatSeq (Dseq σ l), fun ρ hρ => ?_⟩
+  show decodeSatSeq (Dseq (deepestEnd cs F ρ) (lab ρ)) = deepestSatSel cs F ρ
+  rw [hseq ρ hρ]
+  exact (deepestSatSel_eq_decodeSatSeq cs F ρ).symm
 
 /-- **The general `recoverRho` obligation, modulo the open satisfy-reconstruction.**  This proof is
 complete *except* for `satSeqReconstruct_general` — it shows the entire Razborov reconstruction reduces
