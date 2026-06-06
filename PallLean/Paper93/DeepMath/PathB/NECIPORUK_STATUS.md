@@ -44,6 +44,12 @@ route carries **no** research wall — every step is discharged.
    balanced-family `hardF` (`m = 2^b`) have `litCount F > C · nn b (2^b)`. **No linear
    bound survives.**
 
+6. **Explicit rate + optimal `N²/log²N`.**
+   `...Rate.lean` — `hardF_rate`: balanced family ⇒ `litCount F ≥ 2^{2b}/(8b) ≈ Ω(N²/log³N)`.
+   `...Square.lean` — `hardF_rate_sq` / `hardF_rate_sq_family`: balancing the address region
+   against the data region (`m·b ≈ 2^b`, via `exists_balanced_m`) tightens this to
+   `litCount F ≥ (nn b m)² / (64·b²) = Ω(N²/log²N)` — the formalisation ceiling.
+
 ## Ceiling (honest)
 
 `n²/log²n` formula size — the classic Nečiporuk ceiling. This is a genuine

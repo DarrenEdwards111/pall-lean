@@ -9,6 +9,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukHardFunctionEx
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukHardFunctionConcrete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukHardFunctionAsymptotic
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukHardFunctionRate
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukHardFunctionSquare
 
 /-!
 # Depth-3 lower bound: the full assembled pipeline (definitive index)
@@ -79,7 +80,10 @@ no `sorry`):
   any formula computing the balanced-family `hardF` have `litCount F > C · nn b (2^b)`.  No linear
   bound survives (via `expBeatsQuad`: exponential dominates any quadratic).
 * `NecHard.hardF_rate` — the **explicit closed-form rate** under it: for every `b ≥ 5`,
-  `litCount F ≥ 2^{2b} / (8b)` (`≈ Ω(N²/log³N)`).
+  `litCount F ≥ 2^{2b} / (8b)` (`≈ Ω(N²/log³N)`, balanced `m=2^b`).
+* `NecHard.hardF_rate_sq` / `hardF_rate_sq_family` — the **optimal `N²/log²N` rate**: balancing the
+  address region against the data region (`m·b ≈ 2^b`) gives `litCount F ≥ (nn b m)² / (64·b²)` —
+  the classic Nečiporuk-formalisation ceiling.
 
 Ceiling here: **`n²/log²n` formula size** (classic Nečiporuk) — a genuine *restricted* lower bound,
 fully proved with no carried hypothesis, but still **not** P vs NP.
@@ -134,5 +138,7 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @NecHard.expBeatsQuad
 #check @NecHard.hardF_superlinear
 #check @NecHard.hardF_rate
+#check @NecHard.hardF_rate_sq
+#check @NecHard.hardF_rate_sq_family
 
 end PallLean.Paper93.DeepMath.PathB
