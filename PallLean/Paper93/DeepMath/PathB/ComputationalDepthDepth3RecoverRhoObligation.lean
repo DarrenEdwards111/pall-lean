@@ -72,8 +72,57 @@ theorem recoverRhoObligation_iff_reconstructionCorrect (cs : List (Clause n)) (w
     rw [hD ρ hρ]
     exact freeOn_deepestEnd cs F ρ
 
+/-! ## `recoverRho` discharged for every determined regime
+
+The forward-replay obligation is *proved* (no `sorry`) for all the regimes where the reconstruction is
+determined — no-skip, clean-skip, align — by transporting the proved `ReconstructionCorrect` across the
+equivalence.  The single regime left open is the confound (`confound_uncovered`), whose forward-replay
+correctness is the Håstad switching lemma. -/
+
+/-- `recoverRho` discharged for the interleaved **no-skip** regime. -/
+theorem recoverRho_no_skip {cs : List (Clause n)} {w s F : ℕ} [NeZero w]
+    {Bad : Finset (SwitchingCounting.Restriction n)}
+    (hnf : ∀ ρ ∈ Bad, ∀ T ∈ cs, SwitchingCounting.termFalsified ρ T = false)
+    (hleaf : ∀ ρ ∈ Bad, SwitchingCounting.anyTermSat cs (deepestEnd cs F ρ) = false)
+    (hns : ∀ ρ ∈ Bad, ∀ b ∈ replayLabel cs F ρ, b ≠ [])
+    (hpos : ∀ ρ ∈ Bad, ∀ p ∈ SwitchingCounting.ungroupBlocks (replayLabel cs F ρ), p.1 < w)
+    (hlen : ∀ ρ ∈ Bad, (SwitchingCounting.ungroupBlocks (replayLabel cs F ρ)).length = s) :
+    RecoverRhoObligation cs w s F Bad :=
+  (recoverRhoObligation_iff_reconstructionCorrect cs w s F Bad).mpr
+    (reconstruction_no_skip hnf hleaf hns hpos hlen)
+
+/-- `recoverRho` discharged for the **clean interior-skip** regime (`hskip`). -/
+theorem recoverRho_clean_skip {cs : List (Clause n)} {w s F : ℕ} [NeZero w]
+    {Bad : Finset (SwitchingCounting.Restriction n)}
+    (hnf : ∀ ρ ∈ Bad, ∀ T ∈ cs, SwitchingCounting.termFalsified ρ T = false)
+    (hleaf : ∀ ρ ∈ Bad, SwitchingCounting.anyTermSat cs (deepestEnd cs F ρ) = false)
+    (hpos : ∀ ρ ∈ Bad, ∀ p ∈ SwitchingCounting.ungroupBlocks (replayLabel cs F ρ), p.1 < w)
+    (hlen : ∀ ρ ∈ Bad, (SwitchingCounting.ungroupBlocks (replayLabel cs F ρ)).length = s)
+    (hskip : ∀ ρ ∈ Bad, ∀ C ∈ leafClauses cs (deepestEnd cs F ρ),
+      (deepestSatPositions cs F ρ C = [] ↔
+        SwitchingCounting.termFalsified (deepestEnd cs F ρ) C = true)) :
+    RecoverRhoObligation cs w s F Bad :=
+  (recoverRhoObligation_iff_reconstructionCorrect cs w s F Bad).mpr
+    (reconstruction_clean_skip hnf hleaf hpos hlen hskip)
+
+/-- `recoverRho` discharged under the exact **alignment** hypothesis `halign`. -/
+theorem recoverRho_align {cs : List (Clause n)} {w s F : ℕ} [NeZero w]
+    {Bad : Finset (SwitchingCounting.Restriction n)}
+    (hnf : ∀ ρ ∈ Bad, ∀ T ∈ cs, SwitchingCounting.termFalsified ρ T = false)
+    (hleaf : ∀ ρ ∈ Bad, SwitchingCounting.anyTermSat cs (deepestEnd cs F ρ) = false)
+    (hpos : ∀ ρ ∈ Bad, ∀ p ∈ SwitchingCounting.ungroupBlocks (replayLabel cs F ρ), p.1 < w)
+    (hlen : ∀ ρ ∈ Bad, (SwitchingCounting.ungroupBlocks (replayLabel cs F ρ)).length = s)
+    (halign : ∀ ρ ∈ Bad,
+      replayBlocks cs (deepestEnd cs F ρ) (replayLabel cs F ρ)
+        = replayBlocks cs (deepestEnd cs F ρ)
+            ((replayLabel cs F ρ).filter (fun b => !b.isEmpty))) :
+    RecoverRhoObligation cs w s F Bad :=
+  (recoverRhoObligation_iff_reconstructionCorrect cs w s F Bad).mpr
+    (reconstruction_align hnf hleaf hpos hlen halign)
+
 end Depth3
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.recoverRhoObligation_iff_reconstructionCorrect
+#print axioms PallLean.Paper93.DeepMath.PathB.Depth3.recoverRho_clean_skip
