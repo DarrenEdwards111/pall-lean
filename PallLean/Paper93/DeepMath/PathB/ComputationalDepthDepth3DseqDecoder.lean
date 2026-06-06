@@ -124,6 +124,62 @@ theorem Dseq_clause_mem {w s : ℕ} (cs : List (Clause n)) (σ_end : Fin n → O
   rw [leafClauses] at hL
   exact List.mem_of_mem_filter hL
 
+/-! ## Structural theory of `takeBlock` / `replayBlocksFlat` (toward correctness) -/
+
+/-- `takeBlock` splits a token list: the block and the remainder recombine to the original. -/
+theorem takeBlock_fst_append_snd {w : ℕ} :
+    ∀ (toks : List (Fin w × Bool)), (takeBlock toks).1 ++ (takeBlock toks).2 = toks := by
+  intro toks
+  induction toks with
+  | nil => rfl
+  | cons t ts ih =>
+    rw [takeBlock]
+    cases h : t.2 with
+    | true => simp
+    | false =>
+      simp only [Bool.false_eq_true, if_false]
+      cases htb : takeBlock ts with
+      | mk b r =>
+        rw [htb] at ih
+        rw [List.cons_append, ih]
+
+/-- The decoder core emits nothing from an empty token list. -/
+theorem replayBlocksFlat_nil {w : ℕ} :
+    ∀ (L : List (Clause n)), replayBlocksFlat L ([] : List (Fin w × Bool)) = [] := by
+  intro L
+  induction L with
+  | nil => rfl
+  | cons C cs' ih => rw [replayBlocksFlat]; simpa [takeBlock] using ih
+
+/-- The decoder core emits at most one entry per token: its output is no longer than the label. -/
+theorem replayBlocksFlat_length_le {w : ℕ} :
+    ∀ (L : List (Clause n)) (toks : List (Fin w × Bool)),
+      (replayBlocksFlat L toks).length ≤ toks.length := by
+  intro L
+  induction L with
+  | nil => intro toks; simp [replayBlocksFlat]
+  | cons C cs' ih =>
+    intro toks
+    have hcons : replayBlocksFlat (C :: cs') toks
+        = (takeBlock toks).1.map (fun t => (C, (t.1 : ℕ)))
+            ++ replayBlocksFlat cs' (takeBlock toks).2 := by rw [replayBlocksFlat]
+    rw [hcons, List.length_append, List.length_map]
+    calc (takeBlock toks).1.length + (replayBlocksFlat cs' (takeBlock toks).2).length
+        ≤ (takeBlock toks).1.length + (takeBlock toks).2.length :=
+          Nat.add_le_add_left (ih _) _
+      _ = ((takeBlock toks).1 ++ (takeBlock toks).2).length := by rw [List.length_append]
+      _ = toks.length := by rw [takeBlock_fst_append_snd]
+
+/-- **First correctness fragment.**  With an empty (length-`0`) label the decoder outputs nothing —
+the `s = 0` regime (no satisfy steps), where `deepestSatSeq` is also empty.  A genuine, if small,
+validation that the concrete `Dseq` agrees with the target on that regime. -/
+theorem Dseq_nil {w : ℕ} (cs : List (Clause n)) (σ_end : Fin n → Option Bool)
+    (lbl : SwitchingCounting.PathLabel w 0) : Dseq cs σ_end lbl = [] := by
+  rw [Dseq]
+  have hofn : (List.ofFn lbl) = ([] : List (Fin w × Bool)) :=
+    List.ofFn_zero
+  rw [hofn, replayBlocksFlat_nil]
+
 /-! ## Nondecreasing clause indices -/
 
 /-- In a `Nodup` list, if `C :: cs'` is a sublist then every later element `D ∈ cs'` has a `≥` index. -/
