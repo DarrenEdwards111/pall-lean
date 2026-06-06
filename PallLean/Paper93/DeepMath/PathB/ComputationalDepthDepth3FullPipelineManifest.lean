@@ -8,6 +8,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukHardFunctionLB
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukHardFunctionExplicit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukHardFunctionConcrete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukHardFunctionAsymptotic
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukHardFunctionRate
 
 /-!
 # Depth-3 lower bound: the full assembled pipeline (definitive index)
@@ -77,6 +78,8 @@ no `sorry`):
 * `NecHard.hardF_superlinear` — **genuine asymptotic super-linearity**: for every `C`, some `b` makes
   any formula computing the balanced-family `hardF` have `litCount F > C · nn b (2^b)`.  No linear
   bound survives (via `expBeatsQuad`: exponential dominates any quadratic).
+* `NecHard.hardF_rate` — the **explicit closed-form rate** under it: for every `b ≥ 5`,
+  `litCount F ≥ 2^{2b} / (8b)` (`≈ Ω(N²/log³N)`).
 
 Ceiling here: **`n²/log²n` formula size** (classic Nečiporuk) — a genuine *restricted* lower bound,
 fully proved with no carried hypothesis, but still **not** P vs NP.
@@ -130,5 +133,6 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @NecHard.hardF_litCount_lower_concrete
 #check @NecHard.expBeatsQuad
 #check @NecHard.hardF_superlinear
+#check @NecHard.hardF_rate
 
 end PallLean.Paper93.DeepMath.PathB
