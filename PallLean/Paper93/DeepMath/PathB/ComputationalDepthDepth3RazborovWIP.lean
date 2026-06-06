@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecoverRhoObligation
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestSatSeqMono
 
 /-!
 # WORK IN PROGRESS (branch `razborov-recoverRho-wip` — NOT for main)
@@ -48,7 +49,14 @@ The forward simulation that discharges this: process clauses in `cs`-order from 
 clause stay in it until it resolves (`activeTerm_advance_stable` keeps it active across satisfy steps,
 `activeTerm_falsify_advances` moves to a later clause on a falsify step — so **block sizes are
 determined dynamically**, never read from the lost label boundaries); consume the next label position
-as a satisfy step, or read a falsify step off `σ_end`.  Correctness is the Håstad switching lemma. -/
+as a satisfy step, or read a falsify step off `σ_end`.  Correctness is the Håstad switching lemma.
+
+The structural backbone — **clause-order monotonicity** — is now PROVED (clean axioms, no `sorry`) in
+`ComputationalDepthDepth3DeepestSatSeqMono`: `deepestSatSeq_clause_mem_activeSuffix` shows every clause
+recorded in `deepestSatSeq cs F σ` lies in the active suffix `activeSuffix cs σ` (the tail of `cs` from
+the active clause), and `activeSuffix_fixVar_suffix` shows that suffix only advances along the descent.
+So the simulation may legitimately process `cs` in order; what remains is defining the dynamic-block
+`Dseq` and proving it matches, the residual Håstad content. -/
 theorem deepestSatSeq_recover {cs : List (Clause n)} {w s F : ℕ}
     {Bad : Finset (SwitchingCounting.Restriction n)}
     (hnf : ∀ ρ ∈ Bad, ∀ T ∈ cs, SwitchingCounting.termFalsified ρ T = false)
