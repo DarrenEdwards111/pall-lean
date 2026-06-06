@@ -8,6 +8,9 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FalsifiedMonotone
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ReplayPathLenBad
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestPathLabel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightDepth
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3AlignReconstruction
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CleanSkipReconstruction
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ConfoundFence
 
 /-!
 # The `canonLabelLen ↔ max-depth` gap, fenced from both sides
@@ -48,12 +51,18 @@ This route bounds the max-depth directly via `ReconstructionCorrect` (recover `d
 * the reduction — `reconstruction_of_satSel_decoder`, `deepest_switching_count_of_reconstruction`;
 * depth-based G1-core — `replay_count_pathLenBad`, `replay_pathLenBad_le_depthBad`.
 
-`ReconstructionCorrect` is discharged in **three regimes**:
+`ReconstructionCorrect` is discharged in **five regimes**, isolating the irreducible core to a single
+combinatorial confound:
 * pure-satisfy (`pure_satisfy_switching_count_depth`, elsewhere),
 * pure-falsify (`reconstruction_pure_falsify`, `deepest_pure_falsify_count`),
-* interleaved no-skip (`reconstruction_no_skip`, `deepest_no_skip_reconstruction_count`).
+* interleaved no-skip (`reconstruction_no_skip`, `deepest_no_skip_reconstruction_count`),
+* **align** (`reconstruction_align`) — replaces no-skip's all-blocks-non-empty `hns` by the *exact*
+  alignment condition it buys (`halign`); `reconstruction_no_skip_via_align` recovers no-skip,
+* **clean-skip** (`reconstruction_clean_skip`) — allows **interior** empty blocks when each is exactly
+  a falsified leaf clause (`hskip`), reinserting them from the end-state (`reinsert` /
+  `reinsert_map_filter`).
 
-## The gap, fenced from BOTH sides (the irreducible Håstad quantitative core)
+## The gap, fenced from BOTH sides + the confound machine-checked (the irreducible Håstad core)
 
 The two routes control different quantities; bridging them is the open switching content.  It is
 fenced here so it cannot be mistaken for a missing lemma:
@@ -63,13 +72,18 @@ fenced here so it cannot be mistaken for a missing lemma:
   does **not** reduce to any pointwise `canonLabelLen` bound; it can only close in the aggregate.
 * **Fence 2 — empty-skip wall (information loss).**  `tight_pack_skip_invariant` /
   `tight_decode_replayLabel` / `ungroupBlocks_filter_invariant` / `groupBlocks_ungroupBlocks_filter`:
-  the deepest-branch route's aggregate count is blocked because the tight `(2w)^s` packing is
-  invariant under deleting empty (skip) blocks — it cannot record the clause-alignment the decoder's
-  positional `zip` needs.
+  the tight `(2w)^s` packing is invariant under deleting empty (skip) blocks — it cannot record the
+  clause-alignment the decoder's positional `zip` needs.
+* **Fence 3 — the confound is real and uncovered** (`clB_confound` / `confound_uncovered`, machine-
+  checked by `decide` on `[{x₀},{x₁,x₂}]`).  Outside no-skip ∪ clean-skip ∪ align lies exactly the
+  *confound*: a clause **falsified at the leaf that also received satisfy steps** (a non-empty block
+  on a falsified clause), indistinguishable at the end-state from a clean skip.
 
-Between these two fences sits the genuine remaining content: the deepest-branch tight count with skip
-recovery.  Everything around it — object, both routes, three reconstruction regimes, good-restriction
-extraction — is proved.  AC⁰/depth-3; `Depth3CollapseModel.collapse` and P≠NP untouched.
+The residual is therefore precisely the confound, and decoding it needs *attributing* a falsified
+clause's satisfy positions to it — recovered only by a **forward-replay / clause-order reconstruction
+of `ρ`** (Razborov's decoder), i.e. Håstad's switching lemma itself.  Everything around it — object,
+both routes, **five** reconstruction regimes, good-restriction extraction, and the confound fenced as
+non-empty — is proved.  AC⁰/depth-3; `Depth3CollapseModel.collapse` and P≠NP untouched.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB
@@ -104,11 +118,15 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @SwitchingCounting.replay_count_pathLenBad
 #check @SwitchingCounting.replay_pathLenBad_le_depthBad
 
--- Side B: ReconstructionCorrect discharged in three regimes (pure-falsify, no-skip; pure-satisfy elsewhere).
+-- Side B: ReconstructionCorrect discharged in five regimes (pure-satisfy elsewhere).
 #check @Depth3.reconstruction_pure_falsify
 #check @Depth3.deepest_pure_falsify_count
 #check @Depth3.reconstruction_no_skip
 #check @Depth3.deepest_no_skip_reconstruction_count
+#check @Depth3.reconstruction_align
+#check @Depth3.reconstruction_no_skip_via_align
+#check @Depth3.reconstruction_clean_skip
+#check @Depth3.reinsert_map_filter
 
 -- Fence 1: the pointwise no-go (depth ≤ canonLabelLen is false).
 #check @Depth3.encLits_length_lt_depth
@@ -119,5 +137,9 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @SwitchingCounting.groupBlocks_ungroupBlocks_filter
 #check @Depth3.tight_decode_replayLabel
 #check @Depth3.tight_pack_skip_invariant
+
+-- Fence 3: the confound is real and uncovered (machine-checked on [{x₀},{x₁,x₂}]).
+#check @Depth3.clB_confound
+#check @Depth3.confound_uncovered
 
 end PallLean.Paper93.DeepMath.PathB

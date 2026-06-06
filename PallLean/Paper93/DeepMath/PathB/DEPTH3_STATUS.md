@@ -18,10 +18,15 @@ falsify-deepest extraction (count + residual + star-bound).
 
 **The two fenced cores (genuine research walls, not faked):**
 1. **Obligation 1** — satisfy-step switching depth bound (good restriction ⇒ shallow
-   tree). Fenced both sides: `encLits_length_lt_depth` (pointwise no-go) +
-   `tight_pack_skip_invariant` (empty-skip wall = information loss).
+   tree), via `ReconstructionCorrect`. Now discharged in **five regimes** (pure-satisfy,
+   pure-falsify, no-skip, `align`, clean-skip — see `ComputationalDepthDepth3DepthGapManifest`),
+   isolating the residual to the **confound**: a clause falsified at the leaf that *also*
+   received satisfy steps. The confound is machine-checked real and uncovered
+   (`confound_uncovered` on `[{x₀},{x₁,x₂}]`), fenced by `encLits_length_lt_depth`
+   (pointwise no-go) + `tight_pack_skip_invariant` (empty-skip wall). Closing it =
+   Razborov's forward-replay `ρ`-reconstruction = Håstad's switching lemma.
 2. **∅-lift** (falsify-deepest) — restricted-Tseitin-is-expander + specific-ρ union
-   bound (BSW probabilistic combinatorics).
+   bound (BSW probabilistic combinatorics). Untouched.
 
 Ceiling: AC⁰/depth-3. `Depth3CollapseModel.collapse` (general circuit ↔ collapse)
 and P vs NP are untouched.
