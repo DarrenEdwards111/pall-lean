@@ -1,6 +1,7 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecoverRhoObligation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestSatSeqMono
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestSatSeqContiguity
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DseqDecoder
 
 /-!
 # WORK IN PROGRESS (branch `razborov-recoverRho-wip` — NOT for main)
@@ -60,8 +61,13 @@ For distinct clauses (`cs.Nodup`, the Tseitin/DNF case) this sharpens to full **
 contiguity** — `deepestSatSeq_idxOf_pairwise` (in `…DeepestSatSeqContiguity`): the `cs`-indices of the
 recorded clauses are non-decreasing, so each clause's satisfy steps form one contiguous block (exactly
 the dynamic block the simulation consumes label positions into).  So the simulation may legitimately
-process `cs` in order, one contiguous block per clause; what remains is defining the dynamic-block
-`Dseq` and proving it matches, the residual Håstad content. -/
+process `cs` in order, one contiguous block per clause.
+
+The dynamic-block decoder is now a **concrete object** `Dseq` (in `…DseqDecoder`), using only legal data
+(`σ_end`, the `(2w)^s` label, `cs`) with block lengths recovered dynamically from the per-token boundary
+bit — its sanity properties (`Dseq_pos_lt`, `Dseq_clause_mem`, `Dseq_idxOf_pairwise`) are proved.  This
+theorem is therefore now *derived* from `Dseq_correct_general`, isolating the residual Håstad content
+(the concrete decoder reproduces `deepestSatSeq`) into that single named theorem. -/
 theorem deepestSatSeq_recover {cs : List (Clause n)} {w s F : ℕ}
     {Bad : Finset (SwitchingCounting.Restriction n)}
     (hnf : ∀ ρ ∈ Bad, ∀ T ∈ cs, SwitchingCounting.termFalsified ρ T = false)
@@ -72,7 +78,8 @@ theorem deepestSatSeq_recover {cs : List (Clause n)} {w s F : ℕ}
       (Dseq : SwitchingCounting.Restriction n → SwitchingCounting.PathLabel w s
           → List (Clause n × ℕ)),
       ∀ ρ ∈ Bad, Dseq (deepestEnd cs F ρ) (lab ρ) = deepestSatSeq cs F ρ := by
-  sorry
+  obtain ⟨lab, hlab⟩ := Dseq_correct_general hnf hleaf hpos hlen
+  exact ⟨lab, fun σ l => Dseq cs σ l, hlab⟩
 
 /-- **The satisfy-set reconstruction reduces (proved, no gap) to recovering the satisfy *sequence*.**
 `deepestSatSel = decodeSatSeq deepestSatSeq` (`deepestSatSel_eq_decodeSatSeq`), so a sequence-recoverer
