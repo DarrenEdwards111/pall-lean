@@ -26,11 +26,16 @@ outright by `ρ` or its live part being satisfied (`clauseSat_iff`).  These hold
 because in `ZMod 2` a fixed edge value either matches a literal's asserted value or
 is its complement — the trichotomy `lit_trichotomy`.
 
-What is **not** here (named, not faked): the derivation-level restriction
-(`Der ↦ Der|ρ` with `size`/`proofWidth` non-increasing, mapping refutations of the
-axioms to refutations of the restricted axioms — brick 2) and the logarithmic
-recursion turning a size-`S` tree-like refutation into a width-`O(log S)` one,
-which combined with `proofWidth ≥ c·t` yields `size ≥ 2^{Ω(t)}` (brick 3).
+**UPDATE — bricks 2 and 3 are now built** (this note was previously "not here"):
+* brick 2, the derivation-level restriction `Der ↦ Der|ρ` (`size`/`proofWidth` non-increasing,
+  mapping refutations of the axioms to refutations of the restricted axioms), is
+  `TseitinRestriction.restrict_W` in `ComputationalDepthExpanderTseitinRestrictDerivation` (proved);
+* brick 3, the logarithmic size→width recursion (size-`S` tree-like refutation → width
+  `≤ w₀ + ⌈log₂ S⌉`), is `TseitinRestriction.tree_width_le` in
+  `ComputationalDepthExpanderTseitinSizeWidth` (proved, driven by `restrict_W`);
+* combined with `proofWidth ≥ c·t` this yields `size > 2^{c·t−w₀−1}`
+  (`TseitinResolution.tseitinCNF_exp_size`).
+See `ComputationalDepthExpanderTseitinBSWManifest` for the full machine-checked chain.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.TseitinRestriction
