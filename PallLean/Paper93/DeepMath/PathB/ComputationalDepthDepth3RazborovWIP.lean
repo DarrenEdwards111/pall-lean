@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecoverRhoObligation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestSatSeqMono
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestSatSeqContiguity
 
 /-!
 # WORK IN PROGRESS (branch `razborov-recoverRho-wip` — NOT for main)
@@ -55,7 +56,11 @@ The structural backbone — **clause-order monotonicity** — is now PROVED (cle
 `ComputationalDepthDepth3DeepestSatSeqMono`: `deepestSatSeq_clause_mem_activeSuffix` shows every clause
 recorded in `deepestSatSeq cs F σ` lies in the active suffix `activeSuffix cs σ` (the tail of `cs` from
 the active clause), and `activeSuffix_fixVar_suffix` shows that suffix only advances along the descent.
-So the simulation may legitimately process `cs` in order; what remains is defining the dynamic-block
+For distinct clauses (`cs.Nodup`, the Tseitin/DNF case) this sharpens to full **clause-order
+contiguity** — `deepestSatSeq_idxOf_pairwise` (in `…DeepestSatSeqContiguity`): the `cs`-indices of the
+recorded clauses are non-decreasing, so each clause's satisfy steps form one contiguous block (exactly
+the dynamic block the simulation consumes label positions into).  So the simulation may legitimately
+process `cs` in order, one contiguous block per clause; what remains is defining the dynamic-block
 `Dseq` and proving it matches, the residual Håstad content. -/
 theorem deepestSatSeq_recover {cs : List (Clause n)} {w s F : ℕ}
     {Bad : Finset (SwitchingCounting.Restriction n)}
