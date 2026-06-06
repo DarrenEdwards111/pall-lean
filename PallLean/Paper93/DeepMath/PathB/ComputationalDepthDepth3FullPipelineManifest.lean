@@ -10,6 +10,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukHardFunctionCo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukHardFunctionAsymptotic
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukHardFunctionRate
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukHardFunctionSquare
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukOptimalBound
 
 /-!
 # Depth-3 lower bound: the full assembled pipeline (definitive index)
@@ -81,9 +82,13 @@ no `sorry`):
   bound survives (via `expBeatsQuad`: exponential dominates any quadratic).
 * `NecHard.hardF_rate` — the **explicit closed-form rate** under it: for every `b ≥ 5`,
   `litCount F ≥ 2^{2b} / (8b)` (`≈ Ω(N²/log³N)`, balanced `m=2^b`).
-* `NecHard.hardF_rate_sq` / `hardF_rate_sq_family` — the **optimal `N²/log²N` rate**: balancing the
-  address region against the data region (`m·b ≈ 2^b`) gives `litCount F ≥ (nn b m)² / (64·b²)` —
-  the classic Nečiporuk-formalisation ceiling.
+* `NecHard.hardF_rate_sq` / `hardF_rate_sq_family` — the `N²/log²N` rate (balanced `m·b ≈ 2^b`):
+  `litCount F ≥ (nn b m)² / (64·b²)`.
+* **Optimal `N²/log N`** — the constant-per-leaf counting core (`card_blockResiduals_le_pow`:
+  `s_i ≤ 2·16^{leavesIn}`, no `log n`) rewires the formula bound (`neciporuk_formula_lower_bound_opt`:
+  `∑ log₂ s_i ≤ 4·litCount + #blocks`), giving `NecHard.hardF_rate_opt_family`:
+  `litCount F ≥ (nn b m)² / (64·b)` — denominator *linear* in `b ≈ log N`, the true Nečiporuk
+  optimum.  Core: contraction (pass-through-invariant closure) + branching (`4·|Qa|·|Qb|`).
 
 Ceiling here: **`n²/log²n` formula size** (classic Nečiporuk) — a genuine *restricted* lower bound,
 fully proved with no carried hypothesis, but still **not** P vs NP.
@@ -140,5 +145,9 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @NecHard.hardF_rate
 #check @NecHard.hardF_rate_sq
 #check @NecHard.hardF_rate_sq_family
+#check @card_blockResiduals_le_pow
+#check @neciporuk_formula_lower_bound_opt
+#check @NecHard.hardF_litCount_lower_opt_div
+#check @NecHard.hardF_rate_opt_family
 
 end PallLean.Paper93.DeepMath.PathB
