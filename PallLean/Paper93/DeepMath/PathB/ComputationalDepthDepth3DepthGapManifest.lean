@@ -11,6 +11,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightDepth
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3AlignReconstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CleanSkipReconstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ConfoundFence
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecoverRhoObligation
 
 /-!
 # The `canonLabelLen ↔ max-depth` gap, fenced from both sides
@@ -141,5 +142,12 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- Fence 3: the confound is real and uncovered (machine-checked on [{x₀},{x₁,x₂}]).
 #check @Depth3.clB_confound
 #check @Depth3.confound_uncovered
+
+-- The open core, as a named target: the Håstad/Razborov forward-replay reconstruction.
+-- `RecoverRhoObligation` is stated, not proved; it is *equivalent* to `ReconstructionCorrect`
+-- (via the proved `freeOn_deepestEnd`), so the clause-order `recoverRho` and the satisfy-step
+-- decoder are the same switching-lemma problem — no shortcut.
+#check @Depth3.RecoverRhoObligation
+#check @Depth3.recoverRhoObligation_iff_reconstructionCorrect
 
 end PallLean.Paper93.DeepMath.PathB
