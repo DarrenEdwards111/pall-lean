@@ -11,6 +11,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukHardFunctionAs
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukHardFunctionRate
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukHardFunctionSquare
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukOptimalBound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukOptimalConcrete
 
 /-!
 # Depth-3 lower bound: the full assembled pipeline (definitive index)
@@ -149,5 +150,6 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @neciporuk_formula_lower_bound_opt
 #check @NecHard.hardF_litCount_lower_opt_div
 #check @NecHard.hardF_rate_opt_family
+#check @NecHard.hardF_litCount_lower_opt_concrete
 
 end PallLean.Paper93.DeepMath.PathB
