@@ -253,12 +253,12 @@ theorem exists_depth_lt_of_decay_local {cs : List (Clause n)} {D T : ℕ} {M : �
 count is bounded by the switching count `2^(n-K+s)·C(n,K-s)·(2w)^s`, and (iii) twice the threshold
 term is below the number of restrictions, then **a restriction with canonical depth `< T` exists**.
 
-The decay is supplied automatically by `count_decay_step` (the strict binomial inequality), so the
-*entire analytic spine* — geometric tail sum + binomial decay — is discharged here.  What remains are
-exactly the two structural inputs (i) `depth ≤ K` and (ii) the `(K-s)`-shell count bound. -/
+The decay is supplied automatically by `count_decay_step` (the strict binomial inequality), and the
+depth bound `depth ≤ K` is automatic from `canonicalDT_depth_le` (fuel `= K`).  So the *entire analytic
+spine* — geometric tail sum + binomial decay — is discharged here.  What remains is exactly the single
+structural input: the `(K-s)`-shell count bound `hbound`. -/
 theorem exists_shallow_of_count {cs : List (Clause n)} {w K T : ℕ}
     (hreg : (8 * w) * K + K ≤ n + 1)
-    (hdepth : ∀ ρ, (canonicalDT cs K ρ).depth ≤ K)
     (hbound : ∀ s, T ≤ s →
       (Finset.univ.filter (fun ρ => (canonicalDT cs K ρ).depth = s)).card
         ≤ 2 ^ (n - K + s) * n.choose (K - s) * (2 * w) ^ s)
@@ -266,7 +266,7 @@ theorem exists_shallow_of_count {cs : List (Clause n)} {w K T : ℕ}
       < (Finset.univ : Finset (SwitchingCounting.Restriction n)).card) :
     ∃ ρ : SwitchingCounting.Restriction n, (canonicalDT cs K ρ).depth < T :=
   exists_depth_lt_of_decay_local (M := fun s => 2 ^ (n - K + s) * n.choose (K - s) * (2 * w) ^ s)
-    hdepth
+    (fun ρ => canonicalDT_depth_le cs K ρ)
     (fun s _ hsK => SwitchingCounting.count_decay_step hsK hreg)
     hbound hbase
 
