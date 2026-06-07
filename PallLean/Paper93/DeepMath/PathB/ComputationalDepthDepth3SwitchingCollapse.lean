@@ -198,6 +198,78 @@ theorem exists_depth_lt_of_decay {cs : List (Clause n)} {F T : ℕ} {M : ℕ →
     ∃ ρ : SwitchingCounting.Restriction n, (canonicalDT cs F ρ).depth < T :=
   exists_depth_lt_of_sum_fuel hbound (lt_of_le_of_lt (geom_tail_sum_Icc hdec T F) hbase)
 
+/-! ### Range-local geometric tail sum
+
+The actual switching count `M_s` only halves while `s < K` (its form grows again for `s ≥ K`).  We
+therefore need the decay hypothesis only on the pairs *inside* the summed range, never beyond it.  The
+minimal hypothesis is `2·M(s+1) ≤ M s` for `s + 1 < T + m` (equivalently `s < D` in the `Icc` form):
+the bound `∑ M ≤ 2·M T` only ever compares consecutive summands. -/
+
+/-- **Range-local geometric range sum.**  Decay is required only on the consecutive pairs that occur
+in the sum (`s + 1 < T + m`), not beyond it. -/
+theorem geom_range_sum_local {M : ℕ → ℕ} :
+    ∀ (m T : ℕ), (∀ s, T ≤ s → s + 1 < T + m → 2 * M (s + 1) ≤ M s) →
+      ∑ i ∈ Finset.range m, M (T + i) ≤ 2 * M T := by
+  intro m
+  induction m with
+  | zero => intro T _; simp
+  | succ m ih =>
+    intro T hdec
+    rw [Finset.sum_range_succ']
+    have h1 : ∑ i ∈ Finset.range m, M (T + (i + 1)) ≤ 2 * M (T + 1) := by
+      have hih := ih (T + 1) (fun s hs1 hs2 => hdec s (by omega) (by omega))
+      have hcongr : ∀ i ∈ Finset.range m, M (T + (i + 1)) = M (T + 1 + i) := by
+        intro i _; congr 1; omega
+      rw [Finset.sum_congr rfl hcongr]; exact hih
+    simp only [Nat.add_zero]
+    rcases Nat.eq_zero_or_pos m with hm | hm
+    · subst hm; simp only [Finset.range_zero, Finset.sum_empty, Nat.zero_add] at h1 ⊢; omega
+    · have hd := hdec T (le_refl T) (by omega)
+      omega
+
+/-- **Range-local geometric tail-sum bound (`Icc` form).**  Decay is required only for `s < D`. -/
+theorem geom_tail_sum_Icc_local {M : ℕ → ℕ} (T D : ℕ)
+    (hdec : ∀ s, T ≤ s → s < D → 2 * M (s + 1) ≤ M s) :
+    ∑ s ∈ Finset.Icc T D, M s ≤ 2 * M T := by
+  rw [← Finset.Ico_add_one_right_eq_Icc, Finset.sum_Ico_eq_sum_range]
+  apply geom_range_sum_local
+  intro s hs1 hs2
+  exact hdec s hs1 (by omega)
+
+/-- **Shallow restriction from a range-local decay.**  Like `exists_depth_lt_of_decay`, but the decay
+of the per-depth bound `M` is required only on the meaningful range `s < D` (`D` the depth bound). -/
+theorem exists_depth_lt_of_decay_local {cs : List (Clause n)} {D T : ℕ} {M : ℕ → ℕ}
+    (hdepth : ∀ ρ, (canonicalDT cs D ρ).depth ≤ D)
+    (hdec : ∀ s, T ≤ s → s < D → 2 * M (s + 1) ≤ M s)
+    (hbound : ∀ s, T ≤ s →
+      (Finset.univ.filter (fun ρ => (canonicalDT cs D ρ).depth = s)).card ≤ M s)
+    (hbase : 2 * M T < (Finset.univ : Finset (SwitchingCounting.Restriction n)).card) :
+    ∃ ρ : SwitchingCounting.Restriction n, (canonicalDT cs D ρ).depth < T :=
+  exists_depth_lt_of_sum_bound hdepth hbound
+    (lt_of_le_of_lt (geom_tail_sum_Icc_local T D hdec) hbase)
+
+/-- **The collapse closed modulo the two structural facts.**  Under the doubled-slack regime
+`(8w)·K + K ≤ n+1`, if (i) every canonical tree (with fuel `K`) has depth `≤ K`, (ii) the depth-`s`
+count is bounded by the switching count `2^(n-K+s)·C(n,K-s)·(2w)^s`, and (iii) twice the threshold
+term is below the number of restrictions, then **a restriction with canonical depth `< T` exists**.
+
+The decay is supplied automatically by `count_decay_step` (the strict binomial inequality), so the
+*entire analytic spine* — geometric tail sum + binomial decay — is discharged here.  What remains are
+exactly the two structural inputs (i) `depth ≤ K` and (ii) the `(K-s)`-shell count bound. -/
+theorem exists_shallow_of_count {cs : List (Clause n)} {w K T : ℕ}
+    (hreg : (8 * w) * K + K ≤ n + 1)
+    (hdepth : ∀ ρ, (canonicalDT cs K ρ).depth ≤ K)
+    (hbound : ∀ s, T ≤ s →
+      (Finset.univ.filter (fun ρ => (canonicalDT cs K ρ).depth = s)).card
+        ≤ 2 ^ (n - K + s) * n.choose (K - s) * (2 * w) ^ s)
+    (hbase : 2 * (2 ^ (n - K + T) * n.choose (K - T) * (2 * w) ^ T)
+      < (Finset.univ : Finset (SwitchingCounting.Restriction n)).card) :
+    ∃ ρ : SwitchingCounting.Restriction n, (canonicalDT cs K ρ).depth < T :=
+  exists_depth_lt_of_decay_local (M := fun s => 2 ^ (n - K + s) * n.choose (K - s) * (2 * w) ^ s)
+    hdepth
+    (fun s _ hsK => SwitchingCounting.count_decay_step hsK hreg)
+    hbound hbase
+
 end Depth3
 
 end PallLean.Paper93.DeepMath.PathB
