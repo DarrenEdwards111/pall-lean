@@ -147,6 +147,17 @@ theorem exists_depth_lt_of_sum_bound {cs : List (Clause n)} {F T D : ℕ} {M : �
   rw [Finset.mem_compl, hdeep, Finset.mem_filter, not_and] at hρ
   exact Nat.not_le.mp (hρ (Finset.mem_univ ρ))
 
+/-- **The `s`-sum with the depth bound discharged.**  Since `(canonicalDT cs F ρ).depth ≤ F`
+(`canonicalDT_depth_le`), the depth bound `D` is just the fuel `F`: a per-depth count bound whose sum
+over `[T,F]` is below the number of restrictions yields a restriction of depth `< T`. -/
+theorem exists_depth_lt_of_sum_fuel {cs : List (Clause n)} {F T : ℕ} {M : ℕ → ℕ}
+    (hbound : ∀ s, T ≤ s →
+      (Finset.univ.filter (fun ρ => (canonicalDT cs F ρ).depth = s)).card ≤ M s)
+    (hsum : ∑ s ∈ Finset.Icc T F, M s
+      < (Finset.univ : Finset (SwitchingCounting.Restriction n)).card) :
+    ∃ ρ : SwitchingCounting.Restriction n, (canonicalDT cs F ρ).depth < T :=
+  exists_depth_lt_of_sum_bound (fun ρ => canonicalDT_depth_le cs F ρ) hbound hsum
+
 end Depth3
 
 end PallLean.Paper93.DeepMath.PathB
