@@ -107,6 +107,46 @@ theorem exists_shallow_fullpath (cs : List (Clause n)) (w s F K : ℕ) [NeZero w
     (fullpath_deep_fraction cs w s F K hsK hreg hShort hmem hnf hleaf hpos) hlt
   exact ⟨ρ, fun h => hρ (Finset.mem_filter.mpr ⟨Finset.mem_univ ρ, h⟩)⟩
 
+/-- **The `s`-sum: a shallow restriction exists.**  If the canonical tree depth is bounded by `D`, each
+depth-`s` count is bounded by `M s`, and the total `∑_{s=T}^{D} M s` is below the number of
+restrictions, then some restriction has depth `< T`.  (`{depth ≥ T}` is the disjoint union of the
+depth-`s` fibers for `s ∈ [T,D]`, so its card is `∑` of the fiber cards; below total ⟹ the complement,
+the shallow restrictions, is nonempty.) -/
+theorem exists_depth_lt_of_sum_bound {cs : List (Clause n)} {F T D : ℕ} {M : ℕ → ℕ}
+    (hdepth : ∀ ρ, (canonicalDT cs F ρ).depth ≤ D)
+    (hbound : ∀ s, T ≤ s →
+      (Finset.univ.filter (fun ρ => (canonicalDT cs F ρ).depth = s)).card ≤ M s)
+    (hsum : ∑ s ∈ Finset.Icc T D, M s
+      < (Finset.univ : Finset (SwitchingCounting.Restriction n)).card) :
+    ∃ ρ : SwitchingCounting.Restriction n, (canonicalDT cs F ρ).depth < T := by
+  classical
+  set deep := Finset.univ.filter (fun ρ => T ≤ (canonicalDT cs F ρ).depth) with hdeep
+  have hfib : deep.card
+      = ∑ s ∈ Finset.Icc T D,
+          (deep.filter (fun ρ => (canonicalDT cs F ρ).depth = s)).card :=
+    Finset.card_eq_sum_card_fiberwise (fun ρ hρ =>
+      Finset.mem_coe.mpr (Finset.mem_Icc.mpr ⟨(Finset.mem_filter.mp hρ).2, hdepth ρ⟩))
+  have hcard_le : deep.card ≤ ∑ s ∈ Finset.Icc T D, M s := by
+    rw [hfib]
+    refine Finset.sum_le_sum (fun s hs => ?_)
+    have hTs : T ≤ s := (Finset.mem_Icc.mp hs).1
+    have heq : deep.filter (fun ρ => (canonicalDT cs F ρ).depth = s)
+        = Finset.univ.filter (fun ρ => (canonicalDT cs F ρ).depth = s) := by
+      rw [hdeep, Finset.filter_filter]
+      refine Finset.filter_congr (fun ρ _ => ?_)
+      simp only [eq_iff_iff, and_iff_right_iff_imp]
+      exact fun h => h ▸ hTs
+    rw [heq]; exact hbound s hTs
+  have hsc : deepᶜ.Nonempty := by
+    rw [← Finset.card_pos, Finset.card_compl]
+    have hlt2 : deep.card < Fintype.card (SwitchingCounting.Restriction n) := by
+      rw [← Finset.card_univ]; exact lt_of_le_of_lt hcard_le hsum
+    exact Nat.sub_pos_of_lt hlt2
+  obtain ⟨ρ, hρ⟩ := hsc
+  refine ⟨ρ, ?_⟩
+  rw [Finset.mem_compl, hdeep, Finset.mem_filter, not_and] at hρ
+  exact Nat.not_le.mp (hρ (Finset.mem_univ ρ))
+
 end Depth3
 
 end PallLean.Paper93.DeepMath.PathB
