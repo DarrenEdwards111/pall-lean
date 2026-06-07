@@ -85,6 +85,28 @@ theorem fullpath_deep_fraction (cs : List (Clause n)) (w s F K : ℕ) [NeZero w]
     _ ≤ 2 ^ (n - K + s) * n.choose (K - s) * (2 * w) ^ s := by gcongr
     _ ≤ 2 ^ (n - K) * n.choose K := SwitchingCounting.short_family_ratio hsK hreg
 
+/-- **A restriction avoiding depth `s` exists, in the binomial regime.**  Combining the deep-fraction
+bound with the counting-collapse: once the `K`-star layer is strictly below the total number of
+restrictions, not every restriction has canonical-tree depth `s` — some `ρ` has `depth ≠ s`.  (The
+strict `2^(n-K)·C(n,K) < 3^n` is the regime's analytic input; the shell bound `hShort` and the
+`(K-s)`-star structure are the descent-side inputs.) -/
+theorem exists_shallow_fullpath (cs : List (Clause n)) (w s F K : ℕ) [NeZero w]
+    (hsK : s ≤ K) (hreg : 4 * w * K + K ≤ n + 1)
+    {Short : Finset (SwitchingCounting.Restriction n)}
+    (hShort : Short.card ≤ 2 ^ (n - K + s) * n.choose (K - s))
+    (hmem : ∀ ρ, (canonicalDT cs F ρ).depth = s → deepestEnd cs F ρ ∈ Short)
+    (hnf : ∀ ρ, (canonicalDT cs F ρ).depth = s → ∀ U ∈ cs,
+      SwitchingCounting.termFalsified ρ U = false)
+    (hleaf : ∀ ρ, (canonicalDT cs F ρ).depth = s →
+      SwitchingCounting.anyTermSat cs (deepestEnd cs F ρ) = false)
+    (hpos : ∀ ρ, (canonicalDT cs F ρ).depth = s → ∀ p ∈ deepestFullSeq cs F ρ, p.1 < w)
+    (hlt : 2 ^ (n - K) * n.choose K
+      < (Finset.univ : Finset (SwitchingCounting.Restriction n)).card) :
+    ∃ ρ : SwitchingCounting.Restriction n, (canonicalDT cs F ρ).depth ≠ s := by
+  obtain ⟨ρ, hρ⟩ := SwitchingCounting.exists_good_of_count
+    (fullpath_deep_fraction cs w s F K hsK hreg hShort hmem hnf hleaf hpos) hlt
+  exact ⟨ρ, fun h => hρ (Finset.mem_filter.mpr ⟨Finset.mem_univ ρ, h⟩)⟩
+
 end Depth3
 
 end PallLean.Paper93.DeepMath.PathB
