@@ -6,6 +6,9 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DseqCleanSkip
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FullPathRecover
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecoverStreamBase
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3StreamRecursion
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MaintainInvariant
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SubRestriction
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SwitchingReconstructed
 
 /-!
 # Manifest: the depth-3 switching reconstruction arc (branch `razborov-recoverRho-wip`)
@@ -53,12 +56,28 @@ information the satisfy-position label dropped.
   term (the running decoder state stays synchronised with the descent state, because a bad ρ falsifies
   nothing, so ρ-fixed variables never affect falsification — dissolving the circularity).
 
-## Endpoint
+## Section 6 — the recursive `recoverStream`, COMPLETED
 
-The switching reconstruction **reduces to**: the recursive `recoverStream` (assemble the running-state
-decoder on top of `activeTerm_eq_of_falsified_agree`, whose base case is `activeStreamPar_head_of_bad`)
-**plus** the `(2w)^s` count.  `fullpath_deepestSatSeq_recover` is the proved reduction consuming that
-obligation; everything else above is proved.  `Depth3CollapseModel.collapse` and P≠NP untouched.
+The recursion engine, its invariant infrastructure, the concrete decoder, and its correctness:
+
+* `activeTerm_eq_of_falsified_agree` — engine (falsification-agreement ⟹ same active term).
+* `maintain_falsified_agree` — the agreement invariant survives a step.
+* `anyTermSat_false_of_sub`, `subRestriction_fixVar` — the `⊑` half of the invariant.
+* `recoverStream` + `recoverStream_correct` — the concrete leaf-only decoder *recovers the active-clause
+  stream of a bad ρ with no reference to ρ*.  The circularity is dissolved (a bad ρ falsifies nothing).
+
+## Endpoint — reconstruction CLOSED
+
+* `deepestSatSeq_reconstructed` — **the keystone**: `deepestSatSeq cs F ρ` is reconstructed from the
+  leaf `deepestEnd cs F ρ` and the full path `deepestFullSeq cs F ρ` by the legal-data decoders
+  (`recoverStream` then `fullReplaySatPar`).
+* `fullPathRecoverable_of_encoder` — the reconstruction obligation discharged for any full-path encoder.
+
+So the switching **reconstruction** (the hard, formerly-circular half) is **complete**: ρ — via
+`deepestSatSeq` and `freeOn_deepestEnd` — is recovered from the leaf and the full path.  All that
+remains for the full lemma is the `(2w)^s` **count** packaging (encode `deepestFullSeq` into `PathLabel`
++ the cardinality bound), which the codebase's counting machinery consumes.  `Depth3CollapseModel.collapse`
+and P≠NP untouched.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB
@@ -98,7 +117,17 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.activeStreamPar_head_of_bad
 #check @Depth3.activeTerm_eq_of_falsified_agree
 
--- Endpoint: the reconstruction reduces to recursive recoverStream + count.
+-- Section 6: the recursive recoverStream, completed.
+#check @Depth3.activeTerm_eq_of_falsified_agree
+#check @Depth3.maintain_falsified_agree
+#check @Depth3.anyTermSat_false_of_sub
+#check @Depth3.subRestriction_fixVar
+#check @Depth3.recoverStream
+#check @Depth3.recoverStream_correct
+
+-- Endpoint: reconstruction CLOSED — deepestSatSeq (hence ρ) recovered from leaf + full path.
 #check @Depth3.fullpath_deepestSatSeq_recover
+#check @Depth3.deepestSatSeq_reconstructed
+#check @Depth3.fullPathRecoverable_of_encoder
 
 end PallLean.Paper93.DeepMath.PathB
