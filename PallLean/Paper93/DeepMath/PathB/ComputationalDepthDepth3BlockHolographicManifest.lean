@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockSwitchingCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockTightCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockSwitchingProb
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -39,6 +40,14 @@ re-encoded from global-variable masks to per-block in-clause positions (`< w`, t
 analogue) via `compactMasks`, recovered by `blockMasks_eq_zipWith` + `block_recovery_compact`, and the
 injection `ρ ↦ (blockEncode ρ, compactMasks ρ)` lands in `Short ×ˢ BlockPathLabel w s`.  The headline
 `block_switching_count_tight` carries no `Labels` parameter.  AC⁰/depth-3; not P≠NP-strength.
+
+## Count → probability (brick 11)
+
+`block_switching_prob_le` turns the count into a fraction under the uniform distribution on the
+`K`-star shell `Ω = {σ : stars σ = K}`: `Pr_Ω[depth ≥ s] ≤ (∑_{j≤K-s} C(n,j)2^(n-j))·(2^w)^s / |Ω|`.
+`shell_ratio_nat` is the per-star geometric gain `C(n,K-s)·2^(n-K+s)·(n-K+1)^s ≤ C(n,K)·2^(n-K)·(2K)^s`
+(`≈ (2K/(n-K+1))^s`, the Håstad `p^s`).  Honest open: collapsing the cumulative shell sum into the
+closed `(2^{w+1}K/(n-K+1))^s/(1-r)` form needs the geometric-tail estimate (`r<1`, the `p<1/3` regime).
 
 ## Audit artifact (independent)
 
@@ -103,6 +112,11 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.blockMasks_eq_zipWith
 #check @Depth3.block_injective_compact
 #check @Depth3.block_switching_count_tight
+
+-- Brick 11: count → probability bound (Håstad payoff, holographic dress)
+#check @Depth3.block_switching_count_explicit
+#check @Depth3.shell_ratio_nat
+#check @Depth3.block_switching_prob_le
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
