@@ -1,6 +1,7 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SwitchingCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseBothRoutes
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FullPathDepth
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingBinomialRegime
 
 /-!
 # From the full-path switching count to the collapse seed — branch only
@@ -61,6 +62,28 @@ theorem fullpath_depth_count (cs : List (Clause n)) (w s F : ℕ) [NeZero w]
   · intro ρ hρ; exact hleaf ρ (Finset.mem_filter.mp hρ).2
   · intro ρ hρ; rw [deepestFullSeq_length_eq_depth]; exact (Finset.mem_filter.mp hρ).2
   · intro ρ hρ; exact hpos ρ (Finset.mem_filter.mp hρ).2
+
+/-- **The deep-fraction bound (regime arithmetic).**  In the binomial regime `4wK + K ≤ n+1` with
+`s ≤ K`, if the depth-`s` leaves land in the `(K-s)`-star shell (`|Short| ≤ 2^(n-K+s)·C(n,K-s)`), then
+the depth-`s` restrictions number at most the `K`-star layer `2^(n-K)·C(n,K)` — the full-path max-depth
+count combined with `short_family_ratio`.  So the deep set does not exceed the layer it is restricted
+within: the switching savings beat the `(2w)^s` blow-up. -/
+theorem fullpath_deep_fraction (cs : List (Clause n)) (w s F K : ℕ) [NeZero w]
+    (hsK : s ≤ K) (hreg : 4 * w * K + K ≤ n + 1)
+    {Short : Finset (SwitchingCounting.Restriction n)}
+    (hShort : Short.card ≤ 2 ^ (n - K + s) * n.choose (K - s))
+    (hmem : ∀ ρ, (canonicalDT cs F ρ).depth = s → deepestEnd cs F ρ ∈ Short)
+    (hnf : ∀ ρ, (canonicalDT cs F ρ).depth = s → ∀ U ∈ cs,
+      SwitchingCounting.termFalsified ρ U = false)
+    (hleaf : ∀ ρ, (canonicalDT cs F ρ).depth = s →
+      SwitchingCounting.anyTermSat cs (deepestEnd cs F ρ) = false)
+    (hpos : ∀ ρ, (canonicalDT cs F ρ).depth = s → ∀ p ∈ deepestFullSeq cs F ρ, p.1 < w) :
+    (Finset.univ.filter (fun ρ => (canonicalDT cs F ρ).depth = s)).card
+      ≤ 2 ^ (n - K) * n.choose K :=
+  calc (Finset.univ.filter (fun ρ => (canonicalDT cs F ρ).depth = s)).card
+      ≤ Short.card * (2 * w) ^ s := fullpath_depth_count cs w s F hmem hnf hleaf hpos
+    _ ≤ 2 ^ (n - K + s) * n.choose (K - s) * (2 * w) ^ s := by gcongr
+    _ ≤ 2 ^ (n - K) * n.choose K := SwitchingCounting.short_family_ratio hsK hreg
 
 end Depth3
 
