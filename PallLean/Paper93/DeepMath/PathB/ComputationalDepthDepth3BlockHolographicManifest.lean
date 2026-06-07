@@ -46,8 +46,14 @@ injection `ρ ↦ (blockEncode ρ, compactMasks ρ)` lands in `Short ×ˢ BlockP
 `block_switching_prob_le` turns the count into a fraction under the uniform distribution on the
 `K`-star shell `Ω = {σ : stars σ = K}`: `Pr_Ω[depth ≥ s] ≤ (∑_{j≤K-s} C(n,j)2^(n-j))·(2^w)^s / |Ω|`.
 `shell_ratio_nat` is the per-star geometric gain `C(n,K-s)·2^(n-K+s)·(n-K+1)^s ≤ C(n,K)·2^(n-K)·(2K)^s`
-(`≈ (2K/(n-K+1))^s`, the Håstad `p^s`).  Honest open: collapsing the cumulative shell sum into the
-closed `(2^{w+1}K/(n-K+1))^s/(1-r)` form needs the geometric-tail estimate (`r<1`, the `p<1/3` regime).
+(`≈ (2K/(n-K+1))^s`, the Håstad `p^s`).
+
+## Closed Håstad form (brick 12 — geometric-tail collapse, now closed)
+
+`block_switching_prob_closed`: in the `2K < n-K+1` regime (`r = 2K/(n-K+1) < 1`, i.e. `p < 1/3`),
+`Pr_Ω[block-DT depth ≥ s] ≤ (2^w · 2K/(n-K+1))^s / (1 - 2K/(n-K+1))`.  The cumulative shell sum is
+collapsed via `term_ratio_q` (per-shell ℚ ratio), `sum_range_reflect` (reindex `j ↦ K-j`), and
+`geom_tail_le` (`∑ r^i ≤ 1/(1-r)`, proved from the partial-sum identity, no `GeomSum` dependency).
 
 ## Audit artifact (independent)
 
@@ -117,6 +123,13 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.block_switching_count_explicit
 #check @Depth3.shell_ratio_nat
 #check @Depth3.block_switching_prob_le
+
+-- Brick 12: geometric-tail collapse → closed Håstad form
+#check @Depth3.shell_ratio_nat_gen
+#check @Depth3.term_ratio_q
+#check @Depth3.geom_tail_le
+#check @Depth3.sum_term_le
+#check @Depth3.block_switching_prob_closed
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
