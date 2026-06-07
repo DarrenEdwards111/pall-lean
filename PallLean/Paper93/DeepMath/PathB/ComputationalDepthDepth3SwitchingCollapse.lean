@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SwitchingCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseBothRoutes
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FullPathDepth
 
 /-!
 # From the full-path switching count to the collapse seed — branch only
@@ -39,6 +40,27 @@ theorem exists_good_fullpath (cs : List (Clause n)) (w s F : ℕ) [NeZero w]
     ∃ ρ : SwitchingCounting.Restriction n, ρ ∉ Bad :=
   SwitchingCounting.exists_good_of_count
     (fullpath_switching_count cs w s F hmem hnf hleaf hlen hpos) hlt
+
+/-- **The switching count as a genuine max-depth count.**  At most `|Short|·(2w)^s` restrictions have
+canonical-tree depth *exactly* `s` — using `deepestFullSeq_length_eq_depth` to discharge the path-length
+hypothesis from the depth.  This is the form the depth-3 collapse consumes (the Side-A label could not
+bound the true depth; the full path does). -/
+theorem fullpath_depth_count (cs : List (Clause n)) (w s F : ℕ) [NeZero w]
+    {Short : Finset (SwitchingCounting.Restriction n)}
+    (hmem : ∀ ρ, (canonicalDT cs F ρ).depth = s → deepestEnd cs F ρ ∈ Short)
+    (hnf : ∀ ρ, (canonicalDT cs F ρ).depth = s → ∀ U ∈ cs,
+      SwitchingCounting.termFalsified ρ U = false)
+    (hleaf : ∀ ρ, (canonicalDT cs F ρ).depth = s →
+      SwitchingCounting.anyTermSat cs (deepestEnd cs F ρ) = false)
+    (hpos : ∀ ρ, (canonicalDT cs F ρ).depth = s → ∀ p ∈ deepestFullSeq cs F ρ, p.1 < w) :
+    (Finset.univ.filter (fun ρ => (canonicalDT cs F ρ).depth = s)).card
+      ≤ Short.card * (2 * w) ^ s := by
+  refine fullpath_switching_count cs w s F ?_ ?_ ?_ ?_ ?_
+  · intro ρ hρ; exact hmem ρ (Finset.mem_filter.mp hρ).2
+  · intro ρ hρ; exact hnf ρ (Finset.mem_filter.mp hρ).2
+  · intro ρ hρ; exact hleaf ρ (Finset.mem_filter.mp hρ).2
+  · intro ρ hρ; rw [deepestFullSeq_length_eq_depth]; exact (Finset.mem_filter.mp hρ).2
+  · intro ρ hρ; exact hpos ρ (Finset.mem_filter.mp hρ).2
 
 end Depth3
 
