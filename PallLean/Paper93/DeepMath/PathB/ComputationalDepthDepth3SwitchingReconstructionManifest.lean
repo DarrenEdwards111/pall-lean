@@ -9,6 +9,8 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3StreamRecursion
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MaintainInvariant
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SubRestriction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SwitchingReconstructed
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SwitchingInjective
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SwitchingCount
 
 /-!
 # Manifest: the depth-3 switching reconstruction arc (branch `razborov-recoverRho-wip`)
@@ -73,11 +75,19 @@ The recursion engine, its invariant infrastructure, the concrete decoder, and it
   (`recoverStream` then `fullReplaySatPar`).
 * `fullPathRecoverable_of_encoder` — the reconstruction obligation discharged for any full-path encoder.
 
-So the switching **reconstruction** (the hard, formerly-circular half) is **complete**: ρ — via
-`deepestSatSeq` and `freeOn_deepestEnd` — is recovered from the leaf and the full path.  All that
-remains for the full lemma is the `(2w)^s` **count** packaging (encode `deepestFullSeq` into `PathLabel`
-+ the cardinality bound), which the codebase's counting machinery consumes.  `Depth3CollapseModel.collapse`
-and P≠NP untouched.
+## Section 7 — the injection and the tight count, CLOSED
+
+* `rho_recovered` — ρ itself recovered from `(leaf, full-path)` (a left inverse).
+* `leaf_fullpath_injective` — `ρ ↦ (leaf, full-path)` injective on the bad set.
+* `reconstructionCorrect_fullpath` — `ReconstructionCorrect` via the full-path encoder
+  `flatToLabel (toFinW w (deepestFullSeq …))` (decode round-trip; positions `< w` from clause width).
+* `fullpath_switching_count` — **the tight count**: `|Bad| ≤ |Short|·(2w)^s`.
+
+So the depth-3 switching reconstruction is **complete and `sorry`-free**: full path (recording falsify
+steps) → `recoverStream` (running-state decoder; circularity dissolved because a bad ρ falsifies
+nothing) → `deepestSatSeq` reconstructed → ρ recovered → injection → tight `(2w)^s` count.  This is the
+genuine Håstad/Razborov switching argument, formalised.  `Depth3CollapseModel.collapse` and P≠NP
+untouched (separate, unchanged).
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB
@@ -129,5 +139,11 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.fullpath_deepestSatSeq_recover
 #check @Depth3.deepestSatSeq_reconstructed
 #check @Depth3.fullPathRecoverable_of_encoder
+
+-- Section 7: the injection and the tight count, closed.
+#check @Depth3.rho_recovered
+#check @Depth3.leaf_fullpath_injective
+#check @Depth3.reconstructionCorrect_fullpath
+#check @Depth3.fullpath_switching_count
 
 end PallLean.Paper93.DeepMath.PathB
