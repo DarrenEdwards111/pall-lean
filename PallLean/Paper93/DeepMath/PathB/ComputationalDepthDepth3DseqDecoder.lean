@@ -247,22 +247,19 @@ theorem Dseq_idxOf_pairwise {w s : ℕ} (cs : List (Clause n)) (hnd : cs.Nodup)
   replayBlocksFlat_idxOf_pairwise cs hnd (leafClauses cs σ_end) (List.ofFn lbl)
     List.filter_sublist
 
-/-! ## The isolated open correctness theorem -/
+/-! ## The (superseded) satisfy-position obligation, as a named target
 
-/-- **OPEN (isolated) — the concrete decoder reproduces `deepestSatSeq`.**  For the right tight-label
-encoding `lab`, the concrete `Dseq` applied to the leaf and `lab ρ` recovers `deepestSatSeq cs F ρ` for
-every bad `ρ`.  This is the residual Håstad switching content (the factor-2 boundary bits + `σ_end`
-falsify recovery), fenced uncloseable by cheap alignment via `confound_uncovered`.  *WIP `sorry` —
-branch only; the decoder is now a concrete object, so this is a property of a specific function.* -/
-theorem Dseq_correct_general {w s F : ℕ} {cs : List (Clause n)}
-    {Bad : Finset (SwitchingCounting.Restriction n)}
-    (hnf : ∀ ρ ∈ Bad, ∀ T ∈ cs, SwitchingCounting.termFalsified ρ T = false)
-    (hleaf : ∀ ρ ∈ Bad, SwitchingCounting.anyTermSat cs (deepestEnd cs F ρ) = false)
-    (hpos : ∀ ρ ∈ Bad, ∀ p ∈ SwitchingCounting.ungroupBlocks (replayLabel cs F ρ), p.1 < w)
-    (hlen : ∀ ρ ∈ Bad, (SwitchingCounting.ungroupBlocks (replayLabel cs F ρ)).length = s) :
-    ∃ lab : SwitchingCounting.Restriction n → SwitchingCounting.PathLabel w s,
-      ∀ ρ ∈ Bad, Dseq cs (deepestEnd cs F ρ) (lab ρ) = deepestSatSeq cs F ρ := by
-  sorry
+`Dseq_correct_general` would say the rigid `Dseq` (satisfy-position label only) reproduces
+`deepestSatSeq` for every bad `ρ`.  `Dseq_first_clause_mem` (the no-go) shows this is **unachievable**
+for this `Dseq` — it cannot emit an interior empty block, which the confound forces.  So it is stated
+here as a *named `Prop`* (no `sorry`, nothing proves it), and is **superseded** by the sorry-free
+full-path reconstruction (`fullpath_switching_count`), which records the falsify steps the
+satisfy-position label drops.  The three reductions below are kept as *conditional* theorems on this
+obligation, documenting how the old route would have closed had `Dseq` been general. -/
+def Dseq_correct_general (cs : List (Clause n)) (w s F : ℕ)
+    (Bad : Finset (SwitchingCounting.Restriction n)) : Prop :=
+  ∃ lab : SwitchingCounting.Restriction n → SwitchingCounting.PathLabel w s,
+    ∀ ρ ∈ Bad, Dseq cs (deepestEnd cs F ρ) (lab ρ) = deepestSatSeq cs F ρ
 
 end Depth3
 

@@ -70,15 +70,12 @@ theorem is therefore now *derived* from `Dseq_correct_general`, isolating the re
 (the concrete decoder reproduces `deepestSatSeq`) into that single named theorem. -/
 theorem deepestSatSeq_recover {cs : List (Clause n)} {w s F : ℕ}
     {Bad : Finset (SwitchingCounting.Restriction n)}
-    (hnf : ∀ ρ ∈ Bad, ∀ T ∈ cs, SwitchingCounting.termFalsified ρ T = false)
-    (hleaf : ∀ ρ ∈ Bad, SwitchingCounting.anyTermSat cs (deepestEnd cs F ρ) = false)
-    (hpos : ∀ ρ ∈ Bad, ∀ p ∈ SwitchingCounting.ungroupBlocks (replayLabel cs F ρ), p.1 < w)
-    (hlen : ∀ ρ ∈ Bad, (SwitchingCounting.ungroupBlocks (replayLabel cs F ρ)).length = s) :
+    (hgen : Dseq_correct_general cs w s F Bad) :
     ∃ (lab : SwitchingCounting.Restriction n → SwitchingCounting.PathLabel w s)
       (Dseq : SwitchingCounting.Restriction n → SwitchingCounting.PathLabel w s
           → List (Clause n × ℕ)),
       ∀ ρ ∈ Bad, Dseq (deepestEnd cs F ρ) (lab ρ) = deepestSatSeq cs F ρ := by
-  obtain ⟨lab, hlab⟩ := Dseq_correct_general hnf hleaf hpos hlen
+  obtain ⟨lab, hlab⟩ := hgen
   exact ⟨lab, fun σ l => Dseq cs σ l, hlab⟩
 
 /-- **The satisfy-set reconstruction reduces (proved, no gap) to recovering the satisfy *sequence*.**
@@ -86,14 +83,11 @@ theorem deepestSatSeq_recover {cs : List (Clause n)} {w s F : ℕ}
 gives a set-recoverer by post-composing `decodeSatSeq`. -/
 theorem satSeqReconstruct_general {cs : List (Clause n)} {w s F : ℕ}
     {Bad : Finset (SwitchingCounting.Restriction n)}
-    (hnf : ∀ ρ ∈ Bad, ∀ T ∈ cs, SwitchingCounting.termFalsified ρ T = false)
-    (hleaf : ∀ ρ ∈ Bad, SwitchingCounting.anyTermSat cs (deepestEnd cs F ρ) = false)
-    (hpos : ∀ ρ ∈ Bad, ∀ p ∈ SwitchingCounting.ungroupBlocks (replayLabel cs F ρ), p.1 < w)
-    (hlen : ∀ ρ ∈ Bad, (SwitchingCounting.ungroupBlocks (replayLabel cs F ρ)).length = s) :
+    (hgen : Dseq_correct_general cs w s F Bad) :
     ∃ (lab : SwitchingCounting.Restriction n → SwitchingCounting.PathLabel w s)
       (Dsat : SwitchingCounting.Restriction n → SwitchingCounting.PathLabel w s → Finset (Fin n)),
       ∀ ρ ∈ Bad, Dsat (deepestEnd cs F ρ) (lab ρ) = deepestSatSel cs F ρ := by
-  obtain ⟨lab, Dseq, hseq⟩ := deepestSatSeq_recover hnf hleaf hpos hlen
+  obtain ⟨lab, Dseq, hseq⟩ := deepestSatSeq_recover hgen
   refine ⟨lab, fun σ l => decodeSatSeq (Dseq σ l), fun ρ hρ => ?_⟩
   show decodeSatSeq (Dseq (deepestEnd cs F ρ) (lab ρ)) = deepestSatSel cs F ρ
   rw [hseq ρ hρ]
@@ -106,12 +100,10 @@ to that single step (no further gaps): the falsify half is the proved label-free
 theorem recoverRho_general {cs : List (Clause n)} {w s F : ℕ}
     {Bad : Finset (SwitchingCounting.Restriction n)}
     (hnf : ∀ ρ ∈ Bad, ∀ T ∈ cs, SwitchingCounting.termFalsified ρ T = false)
-    (hleaf : ∀ ρ ∈ Bad, SwitchingCounting.anyTermSat cs (deepestEnd cs F ρ) = false)
-    (hpos : ∀ ρ ∈ Bad, ∀ p ∈ SwitchingCounting.ungroupBlocks (replayLabel cs F ρ), p.1 < w)
-    (hlen : ∀ ρ ∈ Bad, (SwitchingCounting.ungroupBlocks (replayLabel cs F ρ)).length = s) :
+    (hgen : Dseq_correct_general cs w s F Bad) :
     RecoverRhoObligation cs w s F Bad := by
   rw [recoverRhoObligation_iff_reconstructionCorrect]
-  obtain ⟨lab, Dsat, hsat⟩ := satSeqReconstruct_general hnf hleaf hpos hlen
+  obtain ⟨lab, Dsat, hsat⟩ := satSeqReconstruct_general hgen
   exact reconstruction_of_satSel_decoder hnf Dsat lab hsat
 
 end Depth3
