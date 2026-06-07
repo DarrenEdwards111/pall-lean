@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockSwitchingCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockTightCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -24,12 +25,20 @@ satisfying/killing duality is natural, and the holographic boundary `blockEncode
 * Brick 7 — `block_count`: `|Bad| ≤ |Short| · |Labels|`.
 * Brick 8 — `stars_blockEncode`, `stars_blockEncode_le`, `block_switching_count`: star conservation,
   the leaf-depth bound `stars ≤ K-s`, and the quantitative count.
+* Brick 9 — `BlockPathLabel`, `card_blockPathLabel`: the **compact** in-clause label type and its
+  size `(2^w)^s` (the canonical switching base, no `|cs|` factor).
+* Brick 10 — `freePosOf` / `posMaskOf` / `posMaskOf_freePosOf` (compatibility), `compactMasks` /
+  `blockPeelC` / `block_recovery_compact` / `blockMasks_eq_zipWith` (compact recovery),
+  `block_injective_compact`, and **`block_switching_count_tight`**: the tight count
+  `|Bad| ≤ |{σ : stars σ ≤ K-s}| · (2^w)^s`.
 
-## Open piece (honest)
+## Closed piece
 
-The tight label bound `|Labels| ≤ (2^w)^s` (no `|cs|` factor) requires re-encoding `blockMasks` from
-global-variable masks to per-block in-clause positions (`< w`) — the depth-3 `PathLabel` analogue.
-Until then `block_switching_count` carries `Labels` as a parameter.  AC⁰/depth-3; not P≠NP-strength.
+The tight label bound `|Labels| ≤ (2^w)^s` (no `|cs|` factor) is now **proved**: `blockMasks` is
+re-encoded from global-variable masks to per-block in-clause positions (`< w`, the depth-3 `PathLabel`
+analogue) via `compactMasks`, recovered by `blockMasks_eq_zipWith` + `block_recovery_compact`, and the
+injection `ρ ↦ (blockEncode ρ, compactMasks ρ)` lands in `Short ×ˢ BlockPathLabel w s`.  The headline
+`block_switching_count_tight` carries no `Labels` parameter.  AC⁰/depth-3; not P≠NP-strength.
 
 ## Audit artifact (independent)
 
@@ -79,6 +88,21 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.stars_blockEncode_le
 #check @Depth3.card_stars_le
 #check @Depth3.block_switching_count
+
+-- Brick 9: compact in-clause label type and its size (2^w)^s
+#check @Depth3.BlockPathLabel
+#check @Depth3.card_blockPathLabel
+
+-- Brick 10: compact recovery and the tight holographic switching count
+#check @Depth3.freePosOf
+#check @Depth3.posMaskOf
+#check @Depth3.posMaskOf_freePosOf
+#check @Depth3.compactMasks
+#check @Depth3.blockPeelC
+#check @Depth3.block_recovery_compact
+#check @Depth3.blockMasks_eq_zipWith
+#check @Depth3.block_injective_compact
+#check @Depth3.block_switching_count_tight
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
