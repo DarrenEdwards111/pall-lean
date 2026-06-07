@@ -270,6 +270,87 @@ theorem exists_shallow_of_count {cs : List (Clause n)} {w K T : ℕ}
     (fun s _ hsK => SwitchingCounting.count_decay_step hsK hreg)
     hbound hbase
 
+/-! ### Family-relative existence — over the `K`-star family, not all of `univ`
+
+The switching argument lives in a fixed `K`-star *family*, not over all `3^n` restrictions: the leaf
+of a `K`-star depth-`s` branch has `K-s` stars, so the count compares the `(K-s)`-shell to the `K`-shell
+(`short_family_ratio`).  We re-base the existence chain over an arbitrary `Fam : Finset (Restriction n)`
+and compare against `Fam.card`. -/
+
+/-- **`s`-sum over a family.**  Like `exists_depth_lt_of_sum_bound`, but quantified over an arbitrary
+`Fam`: `{ρ ∈ Fam : depth ≥ T}` is the disjoint union of its depth-`s` fibers, so its card is `∑` of
+the fiber cards; below `Fam.card` ⟹ the shallow part `Fam \ deep` is nonempty. -/
+theorem exists_depth_lt_in_of_sum_bound {cs : List (Clause n)} {F T D : ℕ} {M : ℕ → ℕ}
+    (Fam : Finset (SwitchingCounting.Restriction n))
+    (hdepth : ∀ ρ ∈ Fam, (canonicalDT cs F ρ).depth ≤ D)
+    (hbound : ∀ s, T ≤ s →
+      (Fam.filter (fun ρ => (canonicalDT cs F ρ).depth = s)).card ≤ M s)
+    (hsum : ∑ s ∈ Finset.Icc T D, M s < Fam.card) :
+    ∃ ρ ∈ Fam, (canonicalDT cs F ρ).depth < T := by
+  classical
+  set deep := Fam.filter (fun ρ => T ≤ (canonicalDT cs F ρ).depth) with hdeep
+  have hfib : deep.card
+      = ∑ s ∈ Finset.Icc T D,
+          (deep.filter (fun ρ => (canonicalDT cs F ρ).depth = s)).card :=
+    Finset.card_eq_sum_card_fiberwise (fun ρ hρ =>
+      Finset.mem_coe.mpr (Finset.mem_Icc.mpr
+        ⟨(Finset.mem_filter.mp hρ).2, hdepth ρ (Finset.mem_filter.mp hρ).1⟩))
+  have hcard_le : deep.card ≤ ∑ s ∈ Finset.Icc T D, M s := by
+    rw [hfib]
+    refine Finset.sum_le_sum (fun s hs => ?_)
+    have hTs : T ≤ s := (Finset.mem_Icc.mp hs).1
+    have heq : deep.filter (fun ρ => (canonicalDT cs F ρ).depth = s)
+        = Fam.filter (fun ρ => (canonicalDT cs F ρ).depth = s) := by
+      rw [hdeep, Finset.filter_filter]
+      refine Finset.filter_congr (fun ρ _ => ?_)
+      simp only [eq_iff_iff, and_iff_right_iff_imp]
+      exact fun h => h ▸ hTs
+    rw [heq]; exact hbound s hTs
+  have hdeepsub : deep ⊆ Fam := Finset.filter_subset _ _
+  have hlt2 : deep.card < Fam.card := lt_of_le_of_lt hcard_le hsum
+  have hsdiff : (Fam \ deep).Nonempty := by
+    rw [← Finset.card_pos]
+    have hadd := Finset.card_sdiff_add_card_eq_card hdeepsub
+    omega
+  obtain ⟨ρ, hρ⟩ := hsdiff
+  rw [Finset.mem_sdiff, hdeep, Finset.mem_filter, not_and] at hρ
+  exact ⟨ρ, hρ.1, Nat.not_le.mp (hρ.2 hρ.1)⟩
+
+/-- **Shallow restriction in a family, from a range-local decay.**  With fuel `= K`, the depth bound
+`depth ≤ K` is free, so a per-depth bound `M` that halves on `[T,K)` and stays below `Fam.card` yields
+a depth-`< T` restriction *inside* `Fam`. -/
+theorem exists_depth_lt_in_of_decay {cs : List (Clause n)} {T : ℕ} {M : ℕ → ℕ} (K : ℕ)
+    {Fam : Finset (SwitchingCounting.Restriction n)}
+    (hdec : ∀ s, T ≤ s → s < K → 2 * M (s + 1) ≤ M s)
+    (hbound : ∀ s, T ≤ s →
+      (Fam.filter (fun ρ => (canonicalDT cs K ρ).depth = s)).card ≤ M s)
+    (hbase : 2 * M T < Fam.card) :
+    ∃ ρ ∈ Fam, (canonicalDT cs K ρ).depth < T :=
+  exists_depth_lt_in_of_sum_bound Fam (fun ρ _ => canonicalDT_depth_le cs K ρ) hbound
+    (lt_of_le_of_lt (geom_tail_sum_Icc_local T K hdec) hbase)
+
+/-- **The collapse closed over the `K`-star family, modulo the shell count.**  Under the doubled-slack
+regime `(8w)·K + K ≤ n+1`, if the depth-`s` count *within the `K`-star family* is bounded by the
+switching count `2^(n-K+s)·C(n,K-s)·(2w)^s`, and twice the threshold term is below the family size
+`|{stars = K}|`, then a `K`-star restriction with canonical depth `< T` exists.  Decay is supplied by
+`count_decay_step`; the universe is now the correct `K`-star family. -/
+theorem exists_shallow_in_of_count {cs : List (Clause n)} {w K T : ℕ}
+    (hreg : (8 * w) * K + K ≤ n + 1)
+    (hbound : ∀ s, T ≤ s →
+      ((Finset.univ.filter (fun ρ : SwitchingCounting.Restriction n =>
+          SwitchingCounting.stars ρ = K)).filter
+        (fun ρ => (canonicalDT cs K ρ).depth = s)).card
+        ≤ 2 ^ (n - K + s) * n.choose (K - s) * (2 * w) ^ s)
+    (hbase : 2 * (2 ^ (n - K + T) * n.choose (K - T) * (2 * w) ^ T)
+      < (Finset.univ.filter (fun ρ : SwitchingCounting.Restriction n =>
+          SwitchingCounting.stars ρ = K)).card) :
+    ∃ ρ ∈ Finset.univ.filter (fun ρ : SwitchingCounting.Restriction n =>
+        SwitchingCounting.stars ρ = K),
+      (canonicalDT cs K ρ).depth < T :=
+  exists_depth_lt_in_of_decay (M := fun s => 2 ^ (n - K + s) * n.choose (K - s) * (2 * w) ^ s) K
+    (fun s _ hsK => SwitchingCounting.count_decay_step hsK hreg)
+    hbound hbase
+
 end Depth3
 
 end PallLean.Paper93.DeepMath.PathB
