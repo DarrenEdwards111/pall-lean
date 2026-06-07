@@ -2,6 +2,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FalsifiedMonotone
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ForwardScan
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestFullSeq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingPositionLit
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FullReplayCorrect
 
 /-!
 # Reducing falsifying restrictions to the live case (branch only)
@@ -243,6 +244,42 @@ theorem deepestFullSeq_eq_filter (cs : List (Clause n)) (ρ : Restriction n) :
         | some ℓ =>
           have hv : σ (litVar ℓ) = none := head_free hh
           simp only [hT, hh, pivotPosOf_filter_eq hinv,
+            canonicalDT_eq_filter cs ρ F (fixVar σ (litVar ℓ) true)
+              (fun U hU => termFalsified_fixVar_of_free (hinv U hU) hv),
+            canonicalDT_eq_filter cs ρ F (fixVar σ (litVar ℓ) false)
+              (fun U hU => termFalsified_fixVar_of_free (hinv U hU) hv),
+            ih (fixVar σ (litVar ℓ) false)
+              (fun U hU => termFalsified_fixVar_of_free (hinv U hU) hv),
+            ih (fixVar σ (litVar ℓ) true)
+              (fun U hU => termFalsified_fixVar_of_free (hinv U hU) hv)]
+
+/-- **The active-clause stream ignores `ρ`-falsified clauses.**  The active-clause stream of `cs` at
+`σ` equals that of the `ρ`-live sublist `cs'`.  This is the quantity the reconstruction actually
+recovers, so the *entire* reconstruction pipeline for `ρ` on `cs` coincides with that on `cs'`. -/
+theorem activeStreamPar_eq_filter (cs : List (Clause n)) (ρ : Restriction n) :
+    ∀ (F : ℕ) (σ : Restriction n),
+      (∀ T, SwitchingCounting.termFalsified ρ T = true →
+        SwitchingCounting.termFalsified σ T = true) →
+      activeStreamPar cs F σ
+        = activeStreamPar (cs.filter (fun T => !SwitchingCounting.termFalsified ρ T)) F σ := by
+  intro F
+  induction F with
+  | zero => intro σ _; rfl
+  | succ F ih =>
+    intro σ hinv
+    rw [activeStreamPar, activeStreamPar, anyTermSat_filter_eq hinv, activeTerm_filter_eq hinv]
+    cases hb : SwitchingCounting.anyTermSat cs σ with
+    | true => simp only [if_true]
+    | false =>
+      simp only [Bool.false_eq_true, if_false]
+      cases hT : SwitchingCounting.activeTerm cs σ with
+      | none => simp only [hT]
+      | some T =>
+        cases hh : (SwitchingCounting.freeLits σ T).head? with
+        | none => simp only [hT, hh]
+        | some ℓ =>
+          have hv : σ (litVar ℓ) = none := head_free hh
+          simp only [hT, hh,
             canonicalDT_eq_filter cs ρ F (fixVar σ (litVar ℓ) true)
               (fun U hU => termFalsified_fixVar_of_free (hinv U hU) hv),
             canonicalDT_eq_filter cs ρ F (fixVar σ (litVar ℓ) false)
