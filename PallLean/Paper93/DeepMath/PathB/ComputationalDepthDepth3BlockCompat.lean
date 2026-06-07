@@ -22,7 +22,7 @@ open SwitchingCounting
 variable {n : ℕ}
 
 /-- The block mask of `T` at `σ` (the global predicate used by `blockMasks`). -/
-def blockMaskPred (σ : Restriction n) (T : Clause n) : Fin n → Bool :=
+@[reducible] def blockMaskPred (σ : Restriction n) (T : Clause n) : Fin n → Bool :=
   fun v => decide (σ v = none ∧ ((Rung4Literal.pos v) ∈ T.lits ∨ (Rung4Literal.neg v) ∈ T.lits))
 
 /-- Per block: the `Fin w` positions whose literal in `T` is free at `σ`. -/
