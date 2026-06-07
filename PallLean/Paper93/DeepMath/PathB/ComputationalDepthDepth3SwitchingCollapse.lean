@@ -158,6 +158,46 @@ theorem exists_depth_lt_of_sum_fuel {cs : List (Clause n)} {F T : ℕ} {M : ℕ 
     ∃ ρ : SwitchingCounting.Restriction n, (canonicalDT cs F ρ).depth < T :=
   exists_depth_lt_of_sum_bound (fun ρ => canonicalDT_depth_le cs F ρ) hbound hsum
 
+/-! ## The geometric tail-sum estimate -/
+
+/-- **Geometric range sum.**  If `M` at least halves each step (`2·M(s+1) ≤ M s`), the sum of any run
+`M T, M(T+1), …` is at most twice the first term. -/
+theorem geom_range_sum {M : ℕ → ℕ} (hdec : ∀ s, 2 * M (s + 1) ≤ M s) :
+    ∀ (m T : ℕ), ∑ i ∈ Finset.range m, M (T + i) ≤ 2 * M T := by
+  intro m
+  induction m with
+  | zero => intro T; simp
+  | succ m ih =>
+    intro T
+    rw [Finset.sum_range_succ']
+    have h1 : ∑ i ∈ Finset.range m, M (T + (i + 1)) ≤ 2 * M (T + 1) := by
+      have hih := ih (T + 1)
+      have hcongr : ∀ i ∈ Finset.range m, M (T + (i + 1)) = M (T + 1 + i) := by
+        intro i _; congr 1; omega
+      rw [Finset.sum_congr rfl hcongr]; exact hih
+    have hd := hdec T
+    simp only [Nat.add_zero]
+    omega
+
+/-- **The geometric tail-sum bound (`Icc` form).**  Under halving decay, `∑_{s=T}^{D} M s ≤ 2·M T`. -/
+theorem geom_tail_sum_Icc {M : ℕ → ℕ} (hdec : ∀ s, 2 * M (s + 1) ≤ M s) (T D : ℕ) :
+    ∑ s ∈ Finset.Icc T D, M s ≤ 2 * M T := by
+  rw [← Finset.Ico_add_one_right_eq_Icc, Finset.sum_Ico_eq_sum_range]
+  exact geom_range_sum hdec _ T
+
+/-- **A shallow restriction exists from a decaying per-depth bound.**  If the depth-`s` counts are
+bounded by a sequence `M` that halves each step, and twice the threshold term `2·M T` is below the
+number of restrictions, then some restriction has depth `< T`.  This is the binomial/geometric
+tail-sum closing of the collapse: the deep set is geometrically dominated, so it does not fill the
+space. -/
+theorem exists_depth_lt_of_decay {cs : List (Clause n)} {F T : ℕ} {M : ℕ → ℕ}
+    (hdec : ∀ s, 2 * M (s + 1) ≤ M s)
+    (hbound : ∀ s, T ≤ s →
+      (Finset.univ.filter (fun ρ => (canonicalDT cs F ρ).depth = s)).card ≤ M s)
+    (hbase : 2 * M T < (Finset.univ : Finset (SwitchingCounting.Restriction n)).card) :
+    ∃ ρ : SwitchingCounting.Restriction n, (canonicalDT cs F ρ).depth < T :=
+  exists_depth_lt_of_sum_fuel hbound (lt_of_le_of_lt (geom_tail_sum_Icc hdec T F) hbase)
+
 end Depth3
 
 end PallLean.Paper93.DeepMath.PathB
