@@ -1,5 +1,7 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FalsifiedMonotone
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ForwardScan
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestFullSeq
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingPositionLit
 
 /-!
 # Reducing falsifying restrictions to the live case (branch only)
@@ -160,6 +162,95 @@ theorem canonicalDT_depth_eq_filter (cs : List (Clause n)) (F : ℕ) (ρ : Restr
     (canonicalDT cs F ρ).depth
       = (canonicalDT (cs.filter (fun T => !SwitchingCounting.termFalsified ρ T)) F ρ).depth := by
   rw [canonicalDT_eq_filter cs ρ F ρ (fun _ h => h)]
+
+/-- **The leaf ignores `ρ`-falsified clauses.**  The deepest end-state of `cs` equals that of the
+`ρ`-live sublist `cs'` (the `if` depth-comparison agrees by `canonicalDT_eq_filter`). -/
+theorem deepestEnd_eq_filter (cs : List (Clause n)) (ρ : Restriction n) :
+    ∀ (F : ℕ) (σ : Restriction n),
+      (∀ T, SwitchingCounting.termFalsified ρ T = true →
+        SwitchingCounting.termFalsified σ T = true) →
+      deepestEnd cs F σ
+        = deepestEnd (cs.filter (fun T => !SwitchingCounting.termFalsified ρ T)) F σ := by
+  intro F
+  induction F with
+  | zero => intro σ _; rfl
+  | succ F ih =>
+    intro σ hinv
+    rw [deepestEnd, deepestEnd, anyTermSat_filter_eq hinv, activeTerm_filter_eq hinv]
+    cases hb : SwitchingCounting.anyTermSat cs σ with
+    | true => simp only [if_true]
+    | false =>
+      simp only [Bool.false_eq_true, if_false]
+      cases hT : SwitchingCounting.activeTerm cs σ with
+      | none => simp only [hT]
+      | some T =>
+        cases hh : (SwitchingCounting.freeLits σ T).head? with
+        | none => simp only [hT, hh]
+        | some ℓ =>
+          have hv : σ (litVar ℓ) = none := head_free hh
+          simp only [hT, hh,
+            canonicalDT_eq_filter cs ρ F (fixVar σ (litVar ℓ) true)
+              (fun U hU => termFalsified_fixVar_of_free (hinv U hU) hv),
+            canonicalDT_eq_filter cs ρ F (fixVar σ (litVar ℓ) false)
+              (fun U hU => termFalsified_fixVar_of_free (hinv U hU) hv),
+            ih (fixVar σ (litVar ℓ) false)
+              (fun U hU => termFalsified_fixVar_of_free (hinv U hU) hv),
+            ih (fixVar σ (litVar ℓ) true)
+              (fun U hU => termFalsified_fixVar_of_free (hinv U hU) hv)]
+
+/-- The active *literal* is unchanged by the `ρ`-live filter (it depends on `cs` only through the
+active term). -/
+theorem activeTermLit_filter_eq {cs : List (Clause n)} {ρ σ : Restriction n}
+    (hinv : ∀ T, SwitchingCounting.termFalsified ρ T = true →
+      SwitchingCounting.termFalsified σ T = true) :
+    SwitchingCounting.activeTermLit (cs.filter (fun T => !SwitchingCounting.termFalsified ρ T)) σ
+      = SwitchingCounting.activeTermLit cs σ := by
+  unfold SwitchingCounting.activeTermLit
+  rw [activeTerm_filter_eq hinv]
+
+/-- The pivot position is unchanged by the `ρ`-live filter. -/
+theorem pivotPosOf_filter_eq {cs : List (Clause n)} {ρ σ : Restriction n}
+    (hinv : ∀ T, SwitchingCounting.termFalsified ρ T = true →
+      SwitchingCounting.termFalsified σ T = true) :
+    SwitchingCounting.pivotPosOf (cs.filter (fun T => !SwitchingCounting.termFalsified ρ T)) σ
+      = SwitchingCounting.pivotPosOf cs σ := by
+  unfold SwitchingCounting.pivotPosOf
+  rw [activeTerm_filter_eq hinv, activeTermLit_filter_eq hinv]
+
+/-- **The full path ignores `ρ`-falsified clauses.**  The recorded deepest full path of `cs` equals
+that of the `ρ`-live sublist `cs'` (same active terms, same pivot positions, same depth comparison). -/
+theorem deepestFullSeq_eq_filter (cs : List (Clause n)) (ρ : Restriction n) :
+    ∀ (F : ℕ) (σ : Restriction n),
+      (∀ T, SwitchingCounting.termFalsified ρ T = true →
+        SwitchingCounting.termFalsified σ T = true) →
+      deepestFullSeq cs F σ
+        = deepestFullSeq (cs.filter (fun T => !SwitchingCounting.termFalsified ρ T)) F σ := by
+  intro F
+  induction F with
+  | zero => intro σ _; rfl
+  | succ F ih =>
+    intro σ hinv
+    rw [deepestFullSeq, deepestFullSeq, anyTermSat_filter_eq hinv, activeTerm_filter_eq hinv]
+    cases hb : SwitchingCounting.anyTermSat cs σ with
+    | true => simp only [if_true]
+    | false =>
+      simp only [Bool.false_eq_true, if_false]
+      cases hT : SwitchingCounting.activeTerm cs σ with
+      | none => simp only [hT]
+      | some T =>
+        cases hh : (SwitchingCounting.freeLits σ T).head? with
+        | none => simp only [hT, hh]
+        | some ℓ =>
+          have hv : σ (litVar ℓ) = none := head_free hh
+          simp only [hT, hh, pivotPosOf_filter_eq hinv,
+            canonicalDT_eq_filter cs ρ F (fixVar σ (litVar ℓ) true)
+              (fun U hU => termFalsified_fixVar_of_free (hinv U hU) hv),
+            canonicalDT_eq_filter cs ρ F (fixVar σ (litVar ℓ) false)
+              (fun U hU => termFalsified_fixVar_of_free (hinv U hU) hv),
+            ih (fixVar σ (litVar ℓ) false)
+              (fun U hU => termFalsified_fixVar_of_free (hinv U hU) hv),
+            ih (fixVar σ (litVar ℓ) true)
+              (fun U hU => termFalsified_fixVar_of_free (hinv U hU) hv)]
 
 /-- **The reduction lands in the live case.**  `ρ` falsifies no clause of its live sublist `cs'`. -/
 theorem hnf_filter (cs : List (Clause n)) (ρ : Restriction n) :
