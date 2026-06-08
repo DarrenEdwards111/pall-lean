@@ -80,6 +80,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PWeightExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3StarTailExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowSurvivor
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerCollapseAt
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -843,6 +844,14 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- Remaining (assembly, no new hard math): the nested d-round iteration applying this with τ = prior round's
 -- restriction, threading via Reduces + re-establishing gate hyps (bricks 14/15/18/19), to an unconditional
 -- parity∉AC⁰. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 26 (step 5z): the RESTRICTION-GIVEN layer collapse (adapter for the loop)
+#check @Depth3.Layered.collapse_or_layer_at   -- ρ given + shallow ⟹ EquivOn ρ collapse, outputs wf
+#check @Depth3.Layered.collapse_and_layer_at  -- dual
+-- The adapter joining the conditional primitive (brick 25, produces ρ extending τ) to Reduces (brick 20,
+-- needs EquivOn at that ρ). The layer collapse with ρ GIVEN (shallowness as hypothesis), as collapse_core
+-- is single_round_collapse with ρ given. Feeding exists_shallow_survivor_extends's ρ into these yields one
+-- reduction round on the nested subcube — the unit the d-round loop iterates. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
