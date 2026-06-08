@@ -47,6 +47,8 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CodeCard
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PBiased
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PWeightStars
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FreedCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WeightGain
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SwitchingProb
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -572,6 +574,15 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.pathLen_add_stars_descentSat_le  -- pathLen + stars(descentSat) ≤ stars σ
 #check @Depth3.freed_ge_of_depth_ge             -- s ≤ depth ⟹ ∃x, s + stars(descentSat σ x) ≤ stars σ
 -- NOTE: ONLY the Finset.sum-over-injection step (summing against pweight) now remains.
+
+-- Brick 58: branching holography, step 4p — the per-restriction weight gain
+#check @Depth3.pweight_le_ratio_pow   -- pweight σ ≤ (2p/(1-p))^s · pweight τ when s ≤ stars σ - stars τ
+#check @Depth3.pweight_bad_le         -- on bad: pweight σ ≤ (2p/(1-p))^s · pweight (descentSat σ x)
+
+-- Brick 59: branching holography, step 4q — THE p-BIASED SWITCHING BOUND (capstone)
+#check @Depth3.descent_switching_prob
+-- ∑_{depth ≥ s} pweight ≤ (2p/(1-p))^s · (4^w+1)^F · ∑ pweight  (for 0 ≤ p ≤ 1/3).
+-- The branching switching lemma over the p-biased random restriction. (÷ ∑pweight=1 ⟹ the Pr bound.)
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
