@@ -106,6 +106,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestSelFilter
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DecodedSelNoGo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightSwitchingBudget
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowAllTight
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightCollapseRound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1167,6 +1168,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- per-gate bound and the single-literal canonicalDT in place of the block canonicalDTree. Carries the
 -- per-gate GLOBAL alive/leaf/pos hyps (hnf/hleaf/hpos) — the empty-skip wall (brick 49) — explicitly. So
 -- this is the F-independent collapse-existence CONDITIONAL on the wall. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 52 (step 12): ONE F-INDEPENDENT COLLAPSE ROUND (existence fed into collapse core)
+#check @Depth3.tight_collapse_round
+-- The payoff: folds the {stars>F} star tail INTO the F-independent deep-gate union bound to get a SINGLE ρ
+-- with stars ρ ≤ F AND every gate shallow, then feeds it gate-by-gate into collapse_core_tight (brick 108/
+-- step 4). 1 = ∑_ρ pweight ≤ ∑_{F<stars ρ} pweight + ∑_g ∑_{ρ:depth_g≥s} pweight ≤ (star tail) +
+-- #gates·r^s/(1-r); if that <1 (hsmall), some ρ is low-star AND all-shallow. CONCLUSION: ∃ρ, stars ρ≤F ∧
+-- ∀g∈G, dtreeToCNF(toDTree(canonicalDT g F ρ)) computes g on the ρ-subcube with every clause width <s. Both
+-- threshold terms F-INDEPENDENT at p≈1/(4w) (deep cap via tight_switching_budget step 10; star tail a real
+-- quantity bounded by stars_tail_ge = Markov on t^stars, t>1). Proof: by_contra union bound (the disjunction
+-- F<stars ∨ ∃g deep via push_neg), sum_add_distrib + sum_filter + sum_comm, tight_switching_budget per gate,
+-- linarith; then obtain witness + collapse_core_tight per gate. Carries the per-gate alive/leaf/pos hyps =
+-- the empty-skip wall (brick 49), explicit. So this is ONE F-independent collapse round CONDITIONAL on the
+-- wall — the existence step the iteration spine chains down to depth 2. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
