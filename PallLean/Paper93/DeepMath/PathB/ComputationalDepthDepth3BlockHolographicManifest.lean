@@ -51,6 +51,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WeightGain
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SwitchingProb
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PNormalize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowExists
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityRefute
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -592,6 +593,11 @@ namespace PallLean.Paper93.DeepMath.PathB
 
 -- Brick 61: branching holography, step 4s — the lower-bound bridge (a shallow restriction exists)
 #check @Depth3.exists_shallow_restriction  -- bound < 1 ⟹ ∃ ρ, depth (canonicalDTree …) < s
+
+-- Brick 62: branching holography, step 4t — switching refutes parity (the payoff)
+#check @Depth3.parity_refuted_by_switching
+-- switching bound < (weight of high-star σ) ⟹ a width-≤w DNF FAILS parity on some high-star subcube.
+-- The switching step of parity ∉ AC⁰ (concentration ∑_{s≤stars<F} pweight ≈ 1 is the stated hypothesis).
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
