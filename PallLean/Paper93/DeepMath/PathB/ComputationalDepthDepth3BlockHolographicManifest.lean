@@ -75,6 +75,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfFresh
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerCollapseWF
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Reduces
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TowerParity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -785,6 +786,17 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- (b) the coordinate budget for the FINAL contradiction (the common subcube must keep a free variable
 -- after d rounds) — this needs SUBCUBE-RELATIVE switching (each round on the prior round's free coords),
 -- which exists_shallow_all (a full-domain restriction) does not yet provide. Not papered over.
+
+-- AC⁰ reduction brick 21 (step 5u): THE PARITY CAPSTONE (reduction spine ⟶ parity lower bound)
+#check @Depth3.Layered.tower_not_parity
+-- If C reduces (on the σ-subcube) to a depth-2 DNF d whose canonical tree is shallow relative to the
+-- survivors (depth < stars σ), then C does NOT compute parity on the σ-subcube. Wires Reduces.eval_eq
+-- (brick 20) into shallow_canonical_not_parity (the relativized parity LB). Hypotheses hred (the d-round
+-- reduction, assembled from collapse_*_layer_wf via Reduces.head/trans) and hshallow (exists_shallow_all's
+-- output once s < stars σ) are the OPEN, NAMED per-instance interface — NOT hidden. The single genuinely
+-- open analytic input behind both is the COORDINATE BUDGET (σ retains > shallow-bound survivors after d
+-- rounds), needing subcube-relative switching. This is the honest statement of what the machinery delivers
+-- GIVEN that budget; it is not a standalone parity∉AC⁰ (which requires discharging the budget). AC⁰, not P≠NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
