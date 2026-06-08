@@ -84,6 +84,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerCollapseAt
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3OneRound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayeredMerge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseCoreList
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GateCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -885,6 +886,16 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- finiteness. A round's output gates arrive as a LIST (one per prior gate); these consume that shape
 -- directly, removing the List↔Finset friction that blocks chaining round i+1 onto round i's output.
 -- AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 30 (step 6d): the WHOLE-GATE collapses (depth 3→2 round operations)
+#check @Depth3.Layered.collapse_gAnd_dnf_at  -- gAnd (Cs.map dnf) EquivOn ρ cnf (switched), width<s
+#check @Depth3.Layered.collapse_gOr_cnf_at   -- gOr (Cs.map cnf) EquivOn ρ dnf (switched), width<s (dual)
+-- The depth-3→2 round operations, dual to the layer collapses (depth-4→3). After a layer collapse leaves
+-- an OR-of-CNFs (resp AND-of-DNFs), the next round collapses that WHOLE gate to one DNF (resp CNF) via the
+-- list cores (brick 29) — switching + merge built into the flatMap. As restriction-given EquivOns they are
+-- Reduces steps (brick 20) ready to chain. With the layer collapses (17/26) and the merge (28), the full
+-- set of one-round operations now exists. Remaining: the d-fold induction wiring them + parameter
+-- bookkeeping into brick 21 tower_not_parity. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
