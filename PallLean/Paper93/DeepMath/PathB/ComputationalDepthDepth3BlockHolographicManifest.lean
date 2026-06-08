@@ -110,6 +110,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightCollapseRoun
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightBudgetSat
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightParity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightDnfNotParity
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightLayerCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1234,6 +1235,24 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- exists_survivor_shallow on {D} + lt_of_lt_of_le + brick 54. Carries per-gate alive/leaf/pos = empty-skip
 -- wall (brick 49), explicit. REMAINING for full depth-3 OR/AND: thread Reduces/tower spine over the
 -- canonicalDT collapse (the other wire). AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 56 (step 16): the tight EquivOn LAYER COLLAPSE — the canonicalDT collapse plugs into
+-- the Reduces/tower spine
+#check @Depth3.collapse_core_tight_list
+#check @Depth3.collapse_or_layer_tight
+-- THE OTHER REMAINING WIRE. F-independent analogue of collapse_or_layer (crude, canonicalDTree, (4^w+1)^F):
+-- an OR of AND-of-DNF gates collapses under one ρ to an OR of CNFs (depth 4→3), the CNF built from the
+-- SINGLE-LITERAL tree dtreeToCNF(toDTree(canonicalDT g F ρ)), threshold F-INDEPENDENT. KEY: canonicalDT_eval
+-- needs stars ρ≤F, which comes FREE from n≤F (stars ρ≤n≤F for every ρ) — and unlike the crude route, taking
+-- F≥n costs NOTHING in the budget since the tight cap #gates·r^s/(1-r) doesn't depend on F. So F≥n buys
+-- eval-correctness free while the threshold stays F-independent. collapse_core_tight_list: flattened per-gate
+-- CNFs compute the AND of the gates' DNFs (via collapse_core_tight brick 108 per gate + all_congr). Proof of
+-- collapse_or_layer_tight: exists_shallow_all_tight (brick 51) for ρ, stars ρ≤n≤F, then EquivOn via
+-- eval_gOr/any_map/any_congr/eval_gAnd_dnf/eval_cnf + collapse_core_tight_list. Clean first try. This EquivOn
+-- is EXACTLY what Reduces.head/Reduces.round/iterated_not_parity consume — so the tight collapse now plugs
+-- into the reduction chain, parity capstone supplied by shallow_canonicalDT_not_parity (brick 54) over the
+-- same canonicalDT. Carries per-gate alive/leaf/pos = empty-skip wall (brick 49), explicit. REMAINING:
+-- iterate + discharge survivor budget subcube-relatively for closed depth-d parity∉AC0. AC⁰ ceiling, NOT PvNP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
