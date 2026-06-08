@@ -112,6 +112,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightParity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightDnfNotParity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightLayerCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightIterated
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightSurvivorExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1272,6 +1273,22 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- →parity capstone(54), F-INDEPENDENT shallow bound throughout. REMAINING (the one genuinely-open analytic
 -- input, also open in the crude arc): subcube-relative survivor budget s≤stars σ after d rounds (conditional
 -- star concentration). Flagged, not faked. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 58 (step 18): the SUBCUBE-RELATIVE SURVIVOR BUDGET (the genuinely-open analytic input)
+#check @Depth3.exists_survivor_shallow_extends
+-- Discharges the conditional survivor budget the multi-round loop needs — in the tight F-independent setting.
+-- exists_survivor_shallow_extends {p}(hp0)(hp3){w F s}[NeZero w](hF: n≤F)(τ)(G)(hnf/hleaf/hpos)(hr1)(hsmall):
+-- runs the union bound on the CONDITIONAL measure over extBox τ (mass ((1-p)/2)^(n-stars τ), pweight_sum_-
+-- extends). Two bad events: {stars σ<s} (too few survivors, conditional LOW star tail) + {∃g deep} (deep
+-- weight INSIDE the box ≤ full deep weight ≤ tight_switching_budget cap #gates·r^s/(1-r) by subset). KEY: the
+-- HIGH star tail {F<stars} is VACUOUS since stars ρ≤n≤F (F≥n free in the F-independent budget). So if (low
+-- star tail)+#gates·r^s/(1-r) < ((1-p)/2)^(n-stars τ) then ∃ρ, Extends τ ρ ∧ s≤stars ρ≤F ∧ ∀g∈G shallow —
+-- exactly the per-round subcube-relative budget. Proof: by_contra+push_neg → hcase ∀σ∈extBox, stars<s ∨ ∃g
+-- deep (stars≤F free via hsF); pweight_sum_extends + per-σ split + sum_add_distrib + sum_filter + sum_comm +
+-- (deep over extBox ≤ over univ by subset_univ, = filter ≤ tight_switching_budget); linarith. Low star tail
+-- discharged by stars_tail_le_extends (Markov t<1). Clean first try. REMAINING: chain through iterated_not_-
+-- parity_tight (brick 57) with NESTED τ's so survivors stay >s across all d rounds — the final assembly.
+-- AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
