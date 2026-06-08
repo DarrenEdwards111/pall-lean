@@ -91,6 +91,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowExtendsUni
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowSurvivorUnif
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3OneRoundConcrete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SurvivorChernoff
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3IteratedReduction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -963,6 +964,18 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- size 2·(#gates·|Labels|)<2^s and dimension 7·(k+1)≤stars τ. The per-round step is fully numeric/discharged.
 -- Remaining: the d-fold CHAINING (nest the rounds, survivors stars ρ_i > k_i ≈ stars ρ_{i-1}/7, n large) +
 -- terminal → tower_not_parity (86). No analytic content left in a round. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 37 (step 6k): the d-FOLD CHAINING INDUCTION (the inductive engine)
+#check @Depth3.Layered.reduces_iterate     -- fold d nested rounds into one Reduces C 0 ⟶ C d (axiom-free)
+#check @Depth3.Layered.iterated_not_parity -- d rounds to a shallow bottom DNF ⟹ C 0 ≠ parity on σ-subcube
+-- THE inductive engine. Given towers C 0,C 1,… + nested restrictions ρ 0,ρ 1,… (all extended by σ) with
+-- each round EquivOn (ρ i) (C i) (C (i+1)), induction on d (Reduces.round brick 31 + .trans brick 20)
+-- folds them into Reduces x (C 0) (C d) for any x agreeing with σ — no nesting bookkeeping (lift to common
+-- σ). reduces_iterate is AXIOM-FREE. Wiring through tower_not_parity (86): if C d = dnf D shallow rel. to
+-- survivors, C 0 doesn't compute parity. The round data (C, ρ, EquivOns, nesting) is exactly what iterating
+-- one_round_exists_p_fifth_dim (36) + the collapse/merge ops produce. Remaining: instantiate that data for
+-- a concrete depth-d circuit (shape threading C i + the d one-round applications + survivor count
+-- stars σ > terminal). The INDUCTION is done; what's left is constructing the sequence. AC⁰, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
