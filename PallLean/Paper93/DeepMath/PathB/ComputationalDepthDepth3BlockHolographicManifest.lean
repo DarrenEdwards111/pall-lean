@@ -53,6 +53,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PNormalize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowExists
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityRefute
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3StarPGF
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3StarTail
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -603,6 +604,11 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- Brick 63: branching holography, step 4u — the star count is Binomial(n,p) (concentration foundation)
 #check @Depth3.stars_pgf   -- ∑_ρ t^(stars ρ) · pweight p ρ = (t·p + (1-p))^n
 -- The PGF of the star count; tail bounds (Markov on t^stars) discharge brick 62's hbig hypothesis.
+
+-- Brick 64: branching holography, step 4v — the star-count Markov tail bounds
+#check @Depth3.stars_tail_ge   -- t≥1: t^k · Pr[stars ≥ k] ≤ (t·p+(1-p))^n
+#check @Depth3.stars_tail_le   -- 0≤t≤1: t^k · Pr[stars ≤ k] ≤ (t·p+(1-p))^n
+-- The Chernoff-style tail estimates: lower-bound the high-star weight, discharging brick 62's hbig.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
