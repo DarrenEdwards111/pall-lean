@@ -11,6 +11,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ACZeroParity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CircuitBudget
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityRel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CircuitRestrict
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ClauseTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -141,10 +142,17 @@ is the capstone: a switching round's output on the *restricted* circuit (`restri
 depth `< #survivors`) now feeds the relativized parity bridge automatically, with no manual
 eval-equality hypothesis — the restriction-application piece is discharged.
 
-The single remaining piece for a literally unconditional `parity ∉ AC⁰` is the `blockStream`↔`DTree`
-model bridge that *produces* the shallow tree from the switching count (`circuit_collapse_budget`
-guarantees the shallow `blockStream`; mapping it to a `DTree` for the parity side is the last step).
-Substantial engineering, not new mathematics.  AC⁰ ceiling; not P≠NP-strength.
+## The model bridge atom (brick 23)
+
+`termTree`/`clauseTree` compile a bottom term (`Rung4Literal` list / `Clause`) to a binary `DTree`,
+proven to compute the conjunction (`termTree_eval`) with depth `≤` width (`termTree_depth`) — the
+literal/term-level bridge between the `blockStream` switching world and the `DTree` parity world.
+
+The single remaining piece for a literally unconditional `parity ∉ AC⁰` is the full descent assembly:
+gluing these term-trees across the canonical block descent into one `DTree` computing the DNF with depth
+`≤ #blocks · width` (so `circuit_collapse_budget`'s shallow `blockStream` yields a shallow `DTree` for
+the parity side).  That is the canonical-decision-tree depth bound — the genuinely large switching-lemma
+construction, honestly isolated, not faked.  AC⁰ ceiling; not P≠NP-strength.
 
 ## Audit artifact (independent)
 
@@ -295,6 +303,14 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.Circ.eval_restrict
 #check @Depth3.Circ.eval_restrict_agree
 #check @Depth3.restricted_circuit_not_parity
+
+-- Brick 23: the term/clause → DTree bridge atom (blockStream world ↔ DTree world)
+#check @Depth3.DTree.termTree
+#check @Depth3.DTree.termTree_eval
+#check @Depth3.DTree.termTree_depth
+#check @Depth3.DTree.clauseTree
+#check @Depth3.DTree.clauseTree_eval
+#check @Depth3.DTree.clauseTree_depth
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
