@@ -44,6 +44,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MaskCode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CodeCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CodeCard
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PBiased
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -553,6 +554,12 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.codeEnc_inj             -- code streams inject into a finite (4^w+1)^F type
 #check @Depth3.descent_switching_count -- |Bad| ≤ |Short| · (4^w+1)^F  (w-dependent label space!)
 -- NOTE: the COUNTING side is closed (label space w-dependent); the p-biased measure remains.
+
+-- Brick 55: branching holography, step 4m — the p-biased measure + star-count driver
+#check @Depth3.pweight                 -- p-biased weight ∏ v, (if free then p else (1-p)/2)
+#check @Depth3.pweight_pos
+#check @Depth3.stars_descentSat_le     -- boundary fixes more vars ⟹ ≤ stars (the gain's driver)
+-- NOTE: the quantitative weight-ratio gain (≥s) + summing the injection against pweight remain.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
