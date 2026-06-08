@@ -67,6 +67,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RestrCompose
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Negate
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3NegTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SingleRoundOr
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RoundCompose
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -700,6 +701,11 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.single_round_collapse_or
 -- ∃ ρ, ∃ width-<s DNF computing (or (G.map cnfToCircuit)) on the ρ-subcube. Both alternation directions
 -- of one collapse round now proven (AND-of-DNFs: brick 73; OR-of-CNFs: this, via De Morgan + negTree).
+
+-- AC⁰ reduction brick 13 (step 5m): round composition (the d-fold chaining backbone)
+#check @Depth3.round_compose
+-- C=C' on ρ₁-subcube, C'=C'' on ρ₂-subcube (ρ₂ ⊆ ρ₁-free) ⟹ C=C'' on (composeR ρ₁ ρ₂)-subcube.
+-- Iterating this chains the per-round collapses down to the final shallow circuit (the d-fold eval chain).
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
