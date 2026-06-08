@@ -111,6 +111,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightBudgetSat
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightParity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightDnfNotParity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightLayerCollapse
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightIterated
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1253,6 +1254,24 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- into the reduction chain, parity capstone supplied by shallow_canonicalDT_not_parity (brick 54) over the
 -- same canonicalDT. Carries per-gate alive/leaf/pos = empty-skip wall (brick 49), explicit. REMAINING:
 -- iterate + discharge survivor budget subcube-relatively for closed depth-d parity∉AC0. AC⁰ ceiling, NOT PvNP.
+
+-- AC⁰ reduction brick 57 (step 17): the REDUCTION SPINE over the tight tree (tower/iterated, canonicalDT)
+#check @Depth3.tower_not_parity_tight
+#check @Depth3.iterated_not_parity_tight
+-- The capstone glue, now ENTIRELY over canonicalDT. tower_not_parity/iterated_not_parity (foundations 21/37)
+-- compose the d-fold reduction chain with the parity bound, but their parity input shallow_canonical_not_-
+-- parity is over BLOCK canonicalDTree. Re-derived over canonicalDT using shallow_canonicalDT_not_parity
+-- (brick 54). KEY: reduces_iterate (foundation 37) is GENERIC over EquivOn rounds, so it carries the tight
+-- EquivOn rounds (collapse_or_layer_tight brick 56) VERBATIM — the only tree-specific input is the final
+-- parity refutation, supplied by brick 54 over canonicalDT. tower_not_parity_tight (C D F σ)(hsf: stars σ≤F)
+-- (hshallow: (canonicalDT D F σ).depth < stars σ)(hred: ∀x agree→Reduces x C (dnf D)) : ¬∀x agree→ eval C x=
+-- parity x. Proof: hdnf via Reduces.eval_eq+eval_dnf, then shallow_canonicalDT_not_parity. iterated_not_-
+-- parity_tight: d nested tight EquivOn rounds (hext/heq) ending in dnf D shallow ⟹ C 0 ≠ parity, via
+-- reduces_iterate + tower_not_parity_tight. Clean (fix: Extends is Depth3.Extends not Layered.Extends). NOW
+-- THE WHOLE SPINE runs over the tight tree: count(50)→collapse(52/56)→EquivOn round(56)→d-fold reduction(57)
+-- →parity capstone(54), F-INDEPENDENT shallow bound throughout. REMAINING (the one genuinely-open analytic
+-- input, also open in the crude arc): subcube-relative survivor budget s≤stars σ after d rounds (conditional
+-- star concentration). Flagged, not faked. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
