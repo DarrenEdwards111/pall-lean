@@ -142,6 +142,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecursiveTowerIns
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MergePass
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafDepth
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1692,6 +1693,18 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- depth by 1: leafCollapse preserves depth, mergePass strictly reduces at the uniform bottom the switch creates
 -- — depth≤ provable directly; strict< needs the alternation invariant), so d rounds reach a depth-2 bottom DNF
 -- (depth≤2 ⟹ dnf/cnf since gAnd/gOr have depth≥3) → discharge engine 83 at general d. AC⁰, NOT P vs NP.
+
+-- AC⁰ reduction brick 88 (step 48): leafCollapse PRESERVES depth (clean half of depth-counting)
+#check @Depth3.leafCollapse_depth
+-- leafCollapse_depth (F ρ) : ∀C, depth (leafCollapse F ρ C) = depth C — the leaf-switch keeps the alternation
+-- depth (dnf↔cnf both depth 2; gAnd/gOr keep child lists), so the entire depth drop in a round is from the
+-- merge. Mutual Layered/List recursion (with leafCollapseList_depth). Clean [propext]. SUBTLETY FOUND building
+-- this: a degenerate gAnd [] has depth 1 but mergePass→cnf [] depth 2, so naive depth-reduction FAILS — the
+-- alternation invariant must encode NON-EMPTY, properly-POLARISED bottoms. Clean design for the rest: mutual
+-- depth-indexed AltA/AltO (top-AND/top-OR alternating towers: AltO 2=dnf, AltA 2=cnf, AltO(k+1)=gOr of nonempty
+-- AltA k's, AltA(k+1)=gAnd of nonempty AltO k's); collapseRound reduces AltO(k+1)→AltO k / AltA(k+1)→AltA k by
+-- exactly one level (leafCollapse switches leaves, mergePass merges the now-uniform bottom), so d=depth₀-2 rounds
+-- reach AltO 2=dnf → engine 83 hterm. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
