@@ -124,6 +124,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ActiveTermIdx
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FreeLitPos
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessReconstruct
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessSeqProps
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessDischarge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1457,6 +1458,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- structure (List.length_nil for the nil cases, List.mem_cons + rcases for bounds). These let the ℕ-seq be
 -- reindexed as Fin s → (Fin w × Bool × Fin m). REMAINING: the Fin conversion + round-trip → discharge
 -- deepest_count_of_witness (65) unconditionally. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 70 (step 30): DISCHARGE — the hnf-FREE tight depth count (empty-skip wall GONE)
+#check @Depth3.deepest_count_witness_unconditional
+-- THE DISCHARGE. deepest_count_witness_unconditional {w F s m}[NeZero w][NeZero m]{cs Bad Short}(hw: ∀T∈cs
+-- T.lits.length≤w)(hm: cs.length≤m)(hdepth: ∀ρ∈Bad depth=s)(hmem: ∀ρ∈Bad deepestEnd∈Short) : Bad.card ≤
+-- Short.card·(2wm)^s. NO hnf HYPOTHESIS. Builds WitnessReconstructionCorrect (brick 65) by: lab ρ =
+-- flatToWitLabel (deepestWitSeq cs F ρ) [pack the ℕ-witness into WitLabel via witToFin, mod-clamp], D _ wl =
+-- witDecode cs ((ofFn wl).map finToWit) [read back via .val]; correctness = round-trip map_finToWit_flatTo-
+-- WitLabel (length=s via brick 69 deepestWitSeq_length_eq_depth+hdepth; entries<w,<m via brick 69 bounds+hm;
+-- mod=id) then witDecode_deepestWitSeq (brick 68, hnf-free). deepest_count_of_witness (65) closes. The
+-- EMPTY-SKIP WALL (brick 49) IS GONE from the tight depth count: F-independent (2wm)^s, UNCONDITIONAL (no
+-- alive/hnf). Cost vs (2w)^s: factor m^s (m=clause count), still F-independent. REMAINING: substitute this for
+-- the hnf-bearing deepest_switching_count_of_reconstruction in descent_switching_le_tight/tight_switching_-
+-- budget (mechanical: drop hnf, (2w)^s→(2wm)^s) → whole tight arc (50-62) unconditional. AC⁰, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
