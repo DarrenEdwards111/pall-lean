@@ -108,6 +108,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightSwitchingBud
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowAllTight
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightCollapseRound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightBudgetSat
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightParity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1197,6 +1198,24 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- over single-literal canonicalDT; spine tower_not_parity needs block canonicalDTree shallowness, and
 -- depth canonicalDTree ≥ depth canonicalDT runs the wrong way for a free bridge) — the remaining substantial
 -- gate, flagged not faked. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 54 (step 14): the PARITY CONNECTION over the tight tree — two-tree worry DISSOLVED
+#check @Depth3.canonicalDT_depth_ge_of_parity
+#check @Depth3.shallow_canonicalDT_not_parity
+-- THE RECONCILIATION. Brick 53 flagged: tight count is over single-literal canonicalDT, spine parity capstone
+-- shallow_canonical_not_parity is over block canonicalDTree, and depth canonicalDTree ≥ depth canonicalDT
+-- (wrong way). RESOLUTION: NO depth bridge needed. parity_needs_full_depth_rel is GENERIC over DTree n (any
+-- tree computing parity on a σ-subcube has depth ≥ stars σ). toDTree(canonicalDT cs F σ) computes dnfValue cs
+-- on the subcube (canonicalDT_eval+toDTree_eval+dnfEval_eq_dnfValue) with depth = (canonicalDT cs F σ).depth
+-- (toDTree_depth). So canonicalDT_depth_ge_of_parity: parity on σ-subcube ∧ stars σ≤F ⟹ stars σ ≤
+-- (canonicalDT cs F σ).depth; contrapositive shallow_canonicalDT_not_parity: depth<stars σ ⟹ ∃x σ-consistent,
+-- dnfValue cs x ≠ parity x. So canonicalDT shallowness — EXACTLY what the tight count delivers — already
+-- forces DNF≠parity, NO block tree, NO depth comparison. The tight analogue of foundation 29. Proof: by_contra
+-- + DTree.parity_needs_full_depth_rel applied to toDTree(...), eval via the three rw, depth via toDTree_depth;
+-- absurd+omega for the contrapositive. Clean first try. REMAINING for closed parity∉AC0: wire this through a
+-- Reduces spine over the canonicalDT-CNF collapse (re-express tight_collapse_round's output as a tower
+-- reduction; polarity CNF↔DNF via negTree as in the crude LayerCollapse) + survivor lower bound s≤stars ρ
+-- (Chernoff). AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
