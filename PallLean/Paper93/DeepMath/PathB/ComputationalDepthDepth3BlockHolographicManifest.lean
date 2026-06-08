@@ -134,6 +134,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SurvivorExtendsUn
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerCollapseUncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseOrExtendsUncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityDepth4Uncond
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecursiveTower
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1574,6 +1575,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- (ρ₁ chosen → C₁ ρ₁ formed → round 2 consumes it → ρ₁⊆ρ₃) is exactly what the general recursive tower
 -- generalizes. depth-4 GREEN de-risks the Nat.rec. NOTE depth≥5 additionally needs merge-realignment (the
 -- tower alternation); depth-4 bottoms out in 2 rounds (primal+dual) without merge. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 80 (step 40): THE RECURSIVE TOWER — general-d (Nat.rec + depth-d statement)
+#check @Depth3.recursive_tower_chain
+#check @Depth3.recursive_tower_not_parity
+-- The general-d capstone, generalizing depth-4's dependent threading (79). recursive_tower_chain (AXIOM-FREE):
+-- given a per-round ORACLE producing the NEXT tower (restriction-dependent) from the actual current tower of
+-- shape Valid i — oracle i C τ (Valid i C) : ∃ C' ρ, Extends τ ρ ∧ EquivOn ρ C C' ∧ Valid (i+1) C' — a Nat.rec
+-- folds d rounds into Reduces x C₀ Cd at a common finest σ (Valid d Cd). recursive_tower_not_parity: + hterm
+-- (terminal shallow DNF) → ∃x, eval C₀ x ≠ parity x. This is steps 2&3 of the plan (the recursion engine +
+-- general-d). The oracle/Valid/hterm are the honest per-instance interface, discharged by the unconditional
+-- collapse rounds (37/38) + survivor (36) + merge (LayeredMerge) — demonstrated concretely for d=2 by
+-- parity_not_depth4_uncond (79). No hnf/hleaf/hpos. REMAINING (step 1): the generic collapse+merge round that
+-- discharges the oracle for the alternating-tower family (merge_gOr_dnf_EquivOn/merge_gAnd_cnf_EquivOn restore
+-- the alternation after each peel, needed for depth≥5). AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
