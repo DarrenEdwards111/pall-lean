@@ -137,6 +137,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityDepth4Uncon
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecursiveTower
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseMergeRound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EquivOnCongr
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecursiveTowerSurv
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1617,6 +1618,22 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- ASSEMBLY: define the depth-indexed alternating-shape Valid over Layered, collect all bottom gates (one ρ via
 -- exists_shallow_all_tight_uncond), replace each bottom-2-level subtree by its collapse (congruence 82 + merge
 -- 81), prove Valid(i+1) — discharging recursive_tower_chain's oracle (80). AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 83 (step 43): the DISCHARGEABLE recursive tower (survivor-threaded oracle)
+#check @Depth3.recursive_tower_chain_surv
+#check @Depth3.recursive_tower_not_parity_surv
+-- The dischargeable form of the recursion engine (80). FOUND: recursive_tower_chain's oracle was ∀τ
+-- UNCONDITIONALLY — but the real collapse only produces an extending ρ when the subcube has survivors
+-- (s≤stars τ); the conditional budget fails on low-survivor τ. So 80's oracle was too strong (socket-ish). FIX:
+-- thread the survivor condition — oracle assumes s≤stars τ, guarantees s≤stars ρ; the Nat.rec maintains
+-- s≤stars at every level (from s≤stars τ₀). recursive_tower_chain_surv (Valid)(s)(C₀)(τ₀)(hC₀)(hτ₀: s≤stars
+-- τ₀)(oracle : ∀i C τ, Valid i C → s≤stars τ → ∃C' ρ, Extends τ ρ ∧ s≤stars ρ ∧ EquivOn ρ C C' ∧ Valid(i+1)C')
+-- : ∀d, ∃Cd σ, Valid d Cd ∧ Extends τ₀ σ ∧ s≤stars σ ∧ ∀x agree σ x → Reduces x C₀ Cd (axiom-free). +
+-- recursive_tower_not_parity_surv with hterm → ∃x, eval C₀ x ≠ parity x. NOW the oracle's s≤stars τ precond is
+-- EXACTLY what collapse_or_layer_tight_extends_uncond (37)/collapse_to_dnf_layer_tight_extends_uncond (38)
+-- provide and what their survivor budget (36) supplies level-by-level — genuinely dischargeable, non-socket.
+-- depth-4 (79) is the d=2 witness. Remaining: the concrete Valid + per-level oracle (alternating shape +
+-- leaf-recursive collapse via congruence 82 + merge 81). AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
