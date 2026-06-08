@@ -22,6 +22,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalParity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalManifest
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalDepthStars
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SwitchingBridgeObstruction
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BridgeNoGo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -433,6 +434,11 @@ namespace PallLean.Paper93.DeepMath.PathB
 
 -- Brick 32: the tight w-free depth bound (depth ≤ stars σ, distinct-variable clauses)
 #check @Depth3.canonicalDTree_depth_le_stars
+
+-- Brick 33: the bridge obstruction, formally proved (blockStream is one branch, a lower bound)
+#check @Depth3.queryAll_depth_ge
+#check @Depth3.extendσ_eq_killTerm
+#check @Depth3.blockStream_length_le_canonicalDTree_depth
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
