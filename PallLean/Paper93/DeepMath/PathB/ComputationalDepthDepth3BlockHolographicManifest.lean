@@ -113,6 +113,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightDnfNotParity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightLayerCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightIterated
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightSurvivorExtends
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightLayerExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1289,6 +1290,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- discharged by stars_tail_le_extends (Markov t<1). Clean first try. REMAINING: chain through iterated_not_-
 -- parity_tight (brick 57) with NESTED τ's so survivors stay >s across all d rounds — the final assembly.
 -- AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 59 (step 19): the SUBCUBE-RELATIVE EquivOn ROUND (the nested-iteration building block)
+#check @Depth3.collapse_or_layer_tight_extends
+-- Combines bricks 56+58: collapse_or_layer_tight run on the CONDITIONAL measure via exists_survivor_shallow_-
+-- extends (58) instead of full-domain exists_shallow_all_tight. Produces ∃ρ, Extends τ ρ ∧ s≤stars ρ ∧
+-- EquivOn ρ (OR-of-AND-of-DNF)(OR-of-CNF) ∧ widths<s. Iterating with τ_{i+1}:=ρ_i nests the subcubes so
+-- survivors stay ≥s and the common finest σ has stars σ≥s — EXACTLY the (hext, heq, hsf, hshallow) data that
+-- iterated_not_parity_tight (57) + reduces_iterate consume. Proof: obtain ρ from exists_survivor_shallow_-
+-- extends (gives Extends τ ρ, s≤stars ρ, stars ρ≤F, all gates shallow); EquivOn + widths via collapse_core_-
+-- tight_list (brick 56) with hle: stars ρ≤F. Clean first try. This CLOSES the analytic content of the
+-- multi-round loop: every round's restriction produced AND its survivor budget guaranteed, all F-INDEPENDENT,
+-- conditional only on the empty-skip wall (brick 49). REMAINING = pure structural recursion defining the
+-- tower sequence C i + alternating collapse type down to a depth-2 DNF; depth-2 base case already closed
+-- non-vacuously (tight_dnf_not_parity brick 55). AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
