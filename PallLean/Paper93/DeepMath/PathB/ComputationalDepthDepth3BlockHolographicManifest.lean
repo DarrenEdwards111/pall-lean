@@ -138,6 +138,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecursiveTower
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseMergeRound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EquivOnCongr
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecursiveTowerSurv
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecursiveTowerInstance
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1634,6 +1635,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- provide and what their survivor budget (36) supplies level-by-level — genuinely dischargeable, non-socket.
 -- depth-4 (79) is the d=2 witness. Remaining: the concrete Valid + per-level oracle (alternating shape +
 -- leaf-recursive collapse via congruence 82 + merge 81). AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 84 (step 44): DISCHARGING the recursive-tower oracle (engine validated non-socket)
+#check @Depth3.parity_orcnf_via_recursive_tower
+-- THE VALIDATION that recursive_tower_not_parity_surv (83) is genuinely dischargeable (not a vacuous socket).
+-- Instantiates the engine for the OR-of-CNF family (d=1): Valid i C := if i=0 then C=gOr(G.toList.map cnf)
+-- else ∃D, C=dnf D; oracle DISCHARGED at level 0 by collapse_to_dnf_layer_tight_extends_uncond (38) and by
+-- identity afterwards. The survivor precondition s≤stars τ is exactly the dual-extends round's input; s≤stars
+-- ρ threads forward. parity_orcnf_via_recursive_tower : ∃x, eval (gOr (G.toList.map cnf)) x ≠ parity x —
+-- routed THROUGH the engine, oracle satisfied by the REAL collapse round. So recursive_tower_chain_surv's
+-- oracle is concretely dischargeable → the engine is non-socket, validated end-to-end. hterm forwarded
+-- (the terminal, a separate input). Proof: refine recursive_tower_not_parity_surv ... ?_ 1 F hterm; oracle by
+-- by_cases i=0 (collapse round / change+show for the Valid if-reductions). REMAINING for general-d: the leaf-
+-- recursive collapse over Layered gates (depth>4); the engine + its discharge are proven. AC⁰, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
