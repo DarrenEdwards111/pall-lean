@@ -50,6 +50,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FreedCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WeightGain
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SwitchingProb
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PNormalize
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowExists
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -588,6 +589,9 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- Brick 60: branching holography, step 4r — normalization + the LITERAL probability bound
 #check @Depth3.pweight_sum_eq_one    -- ∑_ρ pweight p ρ = 1 (a probability distribution)
 #check @Depth3.descent_switching_le  -- Pr_ρ[depth ≥ s] ≤ (2p/(1-p))^s · (4^w+1)^F  (closing form)
+
+-- Brick 61: branching holography, step 4s — the lower-bound bridge (a shallow restriction exists)
+#check @Depth3.exists_shallow_restriction  -- bound < 1 ⟹ ∃ ρ, depth (canonicalDTree …) < s
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
