@@ -54,6 +54,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowExists
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityRefute
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3StarPGF
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3StarTail
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityRefuteConcrete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -609,6 +610,12 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.stars_tail_ge   -- t≥1: t^k · Pr[stars ≥ k] ≤ (t·p+(1-p))^n
 #check @Depth3.stars_tail_le   -- 0≤t≤1: t^k · Pr[stars ≤ k] ≤ (t·p+(1-p))^n
 -- The Chernoff-style tail estimates: lower-bound the high-star weight, discharging brick 62's hbig.
+
+-- Brick 65: branching holography, step 4w — discharging concentration (the gap condition)
+#check @Depth3.high_star_weight_eq      -- ∑_{s≤stars<F} = 1 - ∑_{stars<s} - ∑_{F≤stars} (partition)
+#check @Depth3.parity_refuted_of_tails  -- cap + Blo + Bhi < 1 ⟹ width-≤w DNF fails parity on a high-star subcube
+-- The concentration step closed to a numeric gap. STILL OPEN for parity∉AC⁰: the multi-round AC⁰ circuit
+-- reduction (all d layers) and the poly(w) base (vs 4^w) — the rest of the Håstad lower bound.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
