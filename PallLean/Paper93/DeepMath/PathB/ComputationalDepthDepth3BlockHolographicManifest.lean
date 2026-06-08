@@ -145,6 +145,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafDepth
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Alternation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3AltReduce
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityGeneralD
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1735,6 +1736,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- Clean [propext,Quot.sound]. So depth₀-2 rounds reach AltO 2 = dnf (AltO_two_dnf 89). ALL PIECES PROVEN for the
 -- general-d oracle: Valid i C := AltO (depth₀-i) C; oracle = survivor ρ (76) + collapseRound (87) +
 -- collapseRound_AltO (90) + EquivOn (87); engine 83 hterm via AltO_two_dnf. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 91 (step 51): THE GENERAL-d PARITY LOWER BOUND (capstone)
+#check @Depth3.parity_not_altO
+-- CAPSTONE. parity_not_altO : AltO (d+2) C₀ → ∃ x, eval C₀ x ≠ parity x — a depth-(d+2) alternating AC⁰ tower
+-- (top OR) does NOT compute parity, for ARBITRARY d, routed through the recursive tower (83). Instantiates
+-- recursive_tower_not_parity_surv with Valid i C := if i≤d then AltO (d+2-i) C else True: the oracle (i<d) picks
+-- a survivor-extending ρ (hround, from exists_survivor_shallow_extends_uncond 76) + collapseRound (87), EquivOn
+-- by collapseRound_EquivOn (87), Valid-decrease (ONE alternation level) by collapseRound_AltO (90); i≥d identity
+-- (Valid=True). After d rounds AltO 2 = dnf (AltO_two_dnf 89); the terminal switching hterm shallows that bottom
+-- DNF → parity capstone (tower_not_parity_tight) fires. hround/hterm = the per-round survivor union bound + the
+-- terminal switch (the genuine analytic inputs, both discharged by the unconditional collapse/survivor machinery
+-- 36/38). NO hnf/hleaf/hpos. Clean [propext,Classical.choice,Quot.sound], no sorry. This is the fully-general-
+-- depth unconditional parity∉AC⁰ via the recursive tower — the arc's capstone. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
