@@ -4,6 +4,8 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockSwitchingPro
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockCircuitCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DTreeSwap
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DepthReduction
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Circuit
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CircuitDepthReduction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -83,6 +85,19 @@ unbounded-fan-in `AND` of depth-`≤ d` decision-tree gates is a *single* width-
 (`flatMap toDNF`, `bigOr_eq_dnf`).  The gate layer is absorbed into the top connective (`AND`-of-`AND`s
 flattens), removing one alternation level — `d → d-1`.  Composed with the swap (brick 14) this is a full
 switching depth-reduction step.  Clean `[propext, Quot.sound]`; AC⁰ ceiling, not P≠NP-strength.
+
+## Concrete circuit datatype + depth-reduction theorem (bricks 16–17)
+
+`Circ` is an explicit alternating AC⁰ circuit (`lit`/`and`/`or`, unbounded fan-in) with `eval` and
+`height`.  `bigAnd_flatten_eval` / `bigOr_flatten_eval` are the iterated same-type collapse; `toCirc`
+realises a shallow `DTree` as a depth-2 width-bounded CNF circuit (the swap, on circuits).
+
+`DTree.and_trees_depth_reduction` is **the formal `d → d-1` theorem over the real datatype**: under a
+good restriction (every bottom gate a shallow DT of depth `≤ w`), an `AND` over those gates is
+equivalent to a *single* CNF circuit (`cnfToCirc (flatMap toCNF)`) whose every bottom `OR`-clause has
+fan-in `≤ w` (`and_trees_cnf_width`) and whose alternation height is `≤ 2` (`and_trees_height_le`) — one
+level shallower with controlled bottom width.  Iterating with a fresh good restriction per round
+(`circuit_collapse_exists`) drives the depth down.  AC⁰ ceiling; not P≠NP-strength.
 
 ## Audit artifact (independent)
 
@@ -182,6 +197,26 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.DTree.bigOr_eq_dnf
 #check @Depth3.DTree.bigOrDNF_width
 #check @Depth3.DTree.depth_reduction_step
+
+-- Brick 16: concrete alternating circuit datatype + iterated same-type collapse
+#check @Depth3.Circ
+#check @Depth3.Circ.eval
+#check @Depth3.Circ.height
+#check @Depth3.Circ.eval_and_iff
+#check @Depth3.Circ.eval_or_iff
+#check @Depth3.Circ.bigAnd_flatten_eval
+#check @Depth3.Circ.bigOr_flatten_eval
+#check @Depth3.DTree.toCirc
+#check @Depth3.DTree.toCirc_eval
+#check @Depth3.DTree.toCirc_clause_width
+
+-- Brick 17: one formal depth-reduction theorem d → d-1 over Circ
+#check @Depth3.DTree.cnfToCirc
+#check @Depth3.DTree.cnfToCirc_eval
+#check @Depth3.Circ.height_cnfToCirc_le
+#check @Depth3.DTree.and_trees_depth_reduction
+#check @Depth3.DTree.and_trees_cnf_width
+#check @Depth3.DTree.and_trees_height_le
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
