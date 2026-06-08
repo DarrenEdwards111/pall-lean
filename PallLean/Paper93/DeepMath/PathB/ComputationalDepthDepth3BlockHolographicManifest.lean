@@ -114,6 +114,8 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightLayerCollaps
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightIterated
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightSurvivorExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightLayerExtends
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightCollapseOr
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightParityDepth3
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1304,6 +1306,32 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- conditional only on the empty-skip wall (brick 49). REMAINING = pure structural recursion defining the
 -- tower sequence C i + alternating collapse type down to a depth-2 DNF; depth-2 base case already closed
 -- non-vacuously (tight_dnf_not_parity brick 55). AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 60 (step 20): the tight DUAL collapse (OR-of-CNF → DNF) + dual EquivOn round
+#check @Depth3.collapse_core_or_tight
+#check @Depth3.collapse_to_dnf_layer_tight
+-- The dual of collapse_core_tight_list (56), needed for a single-DNF endpoint. F-independent analogue of
+-- crude collapse_core_or: once ρ makes every gate's NEGATED DNF's canonicalDT shallow, the concatenated
+-- dtreeToDNF(negTree(toDTree(canonicalDT (negDNF g) F ρ))) computes the OR of the CNFs on the ρ-subcube,
+-- width<s. eval chain: dtreeToDNF_eval+negTree_eval+toDTree_eval+canonicalDT_eval+dnfEval_eq_dnfValue+
+-- ←cnfValue_eq_not_dnfValue_negDNF; width via negTree_depth+toDTree_depth. collapse_to_dnf_layer_tight wraps
+-- it as an EquivOn round (depth 3→2): exists_shallow_all_tight on G.image negDNF + stars ρ≤n≤F free →
+-- EquivOn ρ (gOr cnf)(dnf D₁). Both clean. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 61 (step 21): the TIGHT DEPTH-3 PARITY LOWER BOUND — non-vacuous, F-independent
+#check @Depth3.parity_not_depth3_tight
+-- THE PAYOFF: the tight, F-independent, NON-VACUOUS replacement for parity_not_depth3 (whose budgets were
+-- jointly UNSATISFIABLE, depth3_budgets_unsatisfiable). ∃x, eval (gOr (G.toList.map cnf)) x ≠ parity x. Built
+-- end-to-end over canonicalDT: (1) round-1 dual collapse OR-of-CNF→dnf D₁ on ρ₁ (collapse_to_dnf_layer_tight
+-- brick 60, F-independent); (2) terminal survivor-shallow ρ₂⊇ρ₁ making canonicalDT D₁ shallow<s₂≤stars ρ₂
+-- (hterm, discharged by exists_survivor_shallow_extends brick 58); (3) chained via iterated_not_parity_tight
+-- (57, d=1). UNLIKE depth3_budgets_unsatisfiable, the budgets here are SATISFIABLE — round-1 cap #gates·
+-- r^s₁/(1-r) and terminal survivor budget both F-INDEPENDENT (tight_round_budget_satisfiable brick 53 gives a
+-- point with s≤k<n). Proof: obtain ρ₁+D₁ from collapse_to_dnf_layer_tight; hterm ρ₁ hsh₁ → ρ₂; hshallow via
+-- lt_of_lt_of_le; C/ρ match sequence (C 0=gOr cnf, C 1=dnf D₁); iterated_not_parity_tight C ρ ρ₂ 1 D₁ F ...;
+-- push_neg. HONEST: hterm packages the terminal switching incl. the empty-skip wall on the INTERMEDIATE D₁
+-- (carried openly, discharged by brick 58). Depth-d generalization = same iteration with nested τ's (brick
+-- 59). This CLOSES a genuine non-vacuous tight depth-3 parity∉AC0. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
