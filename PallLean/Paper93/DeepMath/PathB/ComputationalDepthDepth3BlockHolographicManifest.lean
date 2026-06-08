@@ -135,6 +135,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerCollapseUnco
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseOrExtendsUncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityDepth4Uncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecursiveTower
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseMergeRound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1589,6 +1590,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- parity_not_depth4_uncond (79). No hnf/hleaf/hpos. REMAINING (step 1): the generic collapse+merge round that
 -- discharges the oracle for the alternating-tower family (merge_gOr_dnf_EquivOn/merge_gAnd_cnf_EquivOn restore
 -- the alternation after each peel, needed for depth≥5). AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 81 (step 41): the COLLAPSE+MERGE composition (step-1 round combinators)
+#check @Depth3.collapse_then_merge_or
+#check @Depth3.collapse_then_merge_and
+-- The merge half of the per-round oracle (D's step 1: collapse + merge with same-type parent). EquivOn.trans
+-- (EquivOn ρ is transitive = pointwise eval-eq) composes a collapse EquivOn with the eval-preserving merge
+-- (merge_gOr_dnf_EquivOn/merge_gAnd_cnf_EquivOn): collapse_then_merge_or (EquivOn ρ A (gOr (ds.map dnf)) →
+-- EquivOn ρ A (dnf ds.flatten)) + dual collapse_then_merge_and. These are the round combinators the leaf-
+-- recursive oracle uses. REMAINING (the genuine deep piece): the leaf-recursive collapse over LAYERED-valued
+-- gates — the existing collapse rounds take clause-LIST gates (Finset (List (Clause n))) so are depth-4-bottom;
+-- depth>4 needs collapse applied at the leaves of an arbitrarily-deep alternating tower, a real generalization
+-- (collapse rounds over Layered gates). The recursive tower ENGINE (80) consumes such an oracle; depth-4 (79)
+-- is the d=2 witness; merge combinators (81) + merge lemmas exist. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
