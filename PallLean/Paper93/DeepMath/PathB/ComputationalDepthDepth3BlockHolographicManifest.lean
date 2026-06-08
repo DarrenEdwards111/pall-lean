@@ -136,6 +136,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseOrExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityDepth4Uncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecursiveTower
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseMergeRound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EquivOnCongr
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1603,6 +1604,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- depth>4 needs collapse applied at the leaves of an arbitrarily-deep alternating tower, a real generalization
 -- (collapse rounds over Layered gates). The recursive tower ENGINE (80) consumes such an oracle; depth-4 (79)
 -- is the d=2 witness; merge combinators (81) + merge lemmas exist. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 82 (step 42): EquivOn TREE CONGRUENCE (leaf-recursion glue)
+#check @Depth3.EquivOn_gOr_congr
+#check @Depth3.EquivOn_gAnd_congr
+-- The structural glue for the leaf-recursive oracle: collapsing each child gate lifts to EquivOn of the whole
+-- gOr/gAnd node. EquivOn_gOr_congr (l)(f g)(h : ∀C∈l, EquivOn ρ (f C)(g C)) : EquivOn ρ (gOr (l.map f))
+-- (gOr (l.map g)) [eval_gOr + any_map + any_congr]; dual EquivOn_gAnd_congr. So a per-gate collapse
+-- (collapse_core_tight_list at the leaves) lifts through the tree to the parent node, inductively to the whole
+-- deep Layered tower. ALL LEAF-RECURSION GLUE NOW BUILT: per-gate collapse (56-style), shared-ρ existence
+-- (73/76), tree congruence (82), merge combinators (81), recursion engine (80). REMAINING = the oracle
+-- ASSEMBLY: define the depth-indexed alternating-shape Valid over Layered, collect all bottom gates (one ρ via
+-- exists_shallow_all_tight_uncond), replace each bottom-2-level subtree by its collapse (congruence 82 + merge
+-- 81), prove Valid(i+1) — discharging recursive_tower_chain's oracle (80). AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
