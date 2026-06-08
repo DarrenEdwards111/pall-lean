@@ -34,6 +34,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentDecode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EncodeInjective
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BadLabels
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelNodup
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -495,6 +496,10 @@ namespace PallLean.Paper93.DeepMath.PathB
 
 -- Brick 44: branching holography, step 4b — bad restrictions have long (≥s), narrow (≤w) labels
 #check @Depth3.exists_bad_labels
+
+-- Brick 45: branching holography, step 4c — labels are globally distinct (finite codomain)
+#check @Depth3.descentLabels_flatten_mem_free
+#check @Depth3.descentLabels_flatten_nodup
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
