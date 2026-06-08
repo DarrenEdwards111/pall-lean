@@ -16,6 +16,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfRestrict
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3QueryTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalTree
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalSound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -183,11 +184,16 @@ satisfying branch → `true`, no active term → `false`, otherwise `queryAll` t
 variables and recurse on each falsifying leaf with that leaf's **own extended restriction** (`extendσ`,
 the per-leaf threading).  `canonicalDTree_depth_le` proves the fuel depth bound `≤ F · w`.
 
-Remaining steps of increment 3 (built incrementally): eval-correctness against the DNF (via the
-`killTerm`/`activeTerm` dichotomy); the tighter `≤ blockStream.length · w` bound (descent-length
-monotonicity under restriction extension); then the parity-bridge connection (once `< s·w`).  The
-genuinely hard switching-lemma core, built honestly in small bricks; no `sorry`.  AC⁰ ceiling; not
-P≠NP-strength.
+Step 2a (brick 28): `canonicalDTree_sound` — eval-correctness, **soundness direction**: if the adaptive
+tree accepts a `σ`-consistent input, the DNF is true on it (no false positives), proved with no
+fuel-sufficiency hypothesis via `anyTermSat_sound` (a `σ`-satisfied term is true under consistent `x`) +
+`activeTerm_sat_sound` (an active term's fixed literals are forced true; `litTrue_eval`) + the recursion
+on falsifying leaves (`agreeRestriction_extendσ` preserves consistency).
+
+Remaining steps of increment 3 (built incrementally): the completeness direction (`dnfValue → eval`,
+needs the descent to terminate within fuel, `F ≥ stars σ`); the tighter `≤ blockStream.length · w` depth
+bound; then the parity-bridge connection (once `< s·w`).  The genuinely hard switching-lemma core, built
+honestly in small bricks; no `sorry`.  AC⁰ ceiling; not P≠NP-strength.
 
 ## Audit artifact (independent)
 
@@ -376,6 +382,13 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.freeVarsOf
 #check @Depth3.extendσ
 #check @Depth3.canonicalDTree_depth_le
+
+-- Brick 28: canonical tree soundness (descent assembly, increment 3, step 2a)
+#check @Depth3.litTrue_eval
+#check @Depth3.anyTermSat_sound
+#check @Depth3.agreeRestriction_extendσ
+#check @Depth3.activeTerm_sat_sound
+#check @Depth3.canonicalDTree_sound
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le

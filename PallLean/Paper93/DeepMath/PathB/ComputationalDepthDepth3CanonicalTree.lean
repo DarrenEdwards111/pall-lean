@@ -50,7 +50,8 @@ def canonicalDTree (cs : List (Clause n)) (w : ℕ) : ℕ → (Fin n → Option 
       | none => DTree.leaf false
       | some T =>
         DTree.queryAll (freeVarsOf σ T) (fun _ => false)
-          (fun a => if T.lits.all (fun ℓ => Rung4Literal.eval ℓ a) then DTree.leaf true
+          (fun a => if (T.lits.filter (DTree.freeLit σ)).all (fun ℓ => Rung4Literal.eval ℓ a)
+                    then DTree.leaf true
                     else canonicalDTree cs w F (extendσ σ T a))
 
 /-- `freeVarsOf` is no longer than the term. -/
