@@ -13,6 +13,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityRel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CircuitRestrict
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ClauseTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfTree
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfRestrict
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -158,10 +159,19 @@ complete** result:
 
 `dnf_parity_size_bound` — **a width-`≤ w` DNF computing parity needs `≥ n/w` terms** (`n ≤ #clauses · w`).
 
-This is the base case of the AC⁰ hierarchy (depth 2), fully proved.  The remaining increment toward
-general depth is increment 2: the *small*-depth bound (`≤ #blocks · width` with `#blocks` small after a
-good restriction), which prunes falsified clauses from the descent — the canonical-decision-tree depth
-bound, honestly isolated, not faked.  AC⁰ ceiling; not P≠NP-strength.
+This is the base case of the AC⁰ hierarchy (depth 2), fully proved.
+
+## Descent assembly, increment 2 — restriction pruning (brick 25)
+
+`restrictDnf` prunes the DNF under a restriction: dead clauses (a literal forced false) drop, live
+clauses keep only free literals.  `restrictDnfTree_eval` proves the pruned tree computes the DNF on the
+subcube (`ρ`-consistent inputs), and `restrictDnfTree_depth_le` bounds its depth by `#live · w` — strictly
+smaller whenever the restriction kills clauses.  Built in the clean `Rung4Literal`/`DTree` world (no
+block-arc dependency), no `sorry`.
+
+The remaining increment 3 is the *adaptive* switching small-depth bound (`≤ #blocks · width`, `#blocks =
+blockStream length` small — the canonical decision tree with per-leaf restriction threading), the
+genuinely hard switching-lemma core, honestly isolated.  AC⁰ ceiling; not P≠NP-strength.
 
 ## Audit artifact (independent)
 
@@ -331,6 +341,14 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.DTree.dnfTree_depth
 #check @Depth3.DTree.dnfTree_depth_le_mul
 #check @Depth3.DTree.dnf_parity_size_bound
+
+-- Brick 25: DNF → DTree (descent assembly, increment 2 — restriction pruning)
+#check @Depth3.DTree.litKilled
+#check @Depth3.DTree.clauseLive
+#check @Depth3.DTree.restrictDnf
+#check @Depth3.DTree.restrictDnf_dnfValue
+#check @Depth3.DTree.restrictDnfTree_eval
+#check @Depth3.DTree.restrictDnfTree_depth_le
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
