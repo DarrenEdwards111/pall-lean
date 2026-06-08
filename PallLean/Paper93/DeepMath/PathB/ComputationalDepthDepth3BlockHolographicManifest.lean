@@ -131,6 +131,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowAllUncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfNotParityUncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityDepth3Uncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SurvivorExtendsUncond
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerCollapseUncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1539,6 +1540,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- hypotheses anywhere (only width/clause-count/budget). Depth-d: nested_not_parity (62, already hnf-free,
 -- takes hround/hterm) + the uncond collapse rounds (75) + this (76) → unconditional depth-d parity∉AC0. The
 -- entire tight depth-reduction is now unconditional. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 77 (step 37): unconditional EquivOn collapse rounds (toolkit complete)
+#check @Depth3.collapse_or_layer_tight_uncond
+#check @Depth3.collapse_or_layer_tight_extends_uncond
+-- collapse_or_layer_tight (56) + collapse_or_layer_tight_extends (59) with empty-skip hyps DROPPED
+-- (collapse-existence via exists_shallow_all_tight_uncond 73 / exists_survivor_shallow_extends_uncond 76).
+-- The per-round EquivOn steps the depth-d loop iterates, now unconditional. UNCONDITIONAL TOOLKIT COMPLETE:
+-- switching bound(71), budget(72), collapse-existence(73), single-DNF parity(74), depth-3 dual collapse+
+-- parity(75), survivor/hterm(76), primal+extends collapse rounds(77) — all no hnf/hleaf/hpos. HONEST: the
+-- fully-spelled GENERAL-d instance needs the recursive ρ-dependent tower (C i built from round outputs via
+-- choice) which nested_not_parity (62) can't supply (it assumes a FIXED tower; real collapse's next layer
+-- depends on the round's ρ) — that recursive construction is the genuine remaining structural piece (open even
+-- in the crude arc). depth-3 (d=1) is fully spelled (75/76). AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
