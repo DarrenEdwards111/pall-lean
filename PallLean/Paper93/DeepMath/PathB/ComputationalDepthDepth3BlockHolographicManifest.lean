@@ -93,6 +93,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3OneRoundConcrete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SurvivorChernoff
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3IteratedReduction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3OneRoundDual
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityDepth3
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -987,6 +988,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- (open Classical needed in the signature for toFinset/image.) BOTH concrete round directions now exist
 -- with survivors. Remaining: assemble the round SEQUENCE (C i, ρ i) for a depth-d circuit + feed
 -- iterated_not_parity (37). AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 39 (step 6m): the DEPTH-3 ASSEMBLY + its FORMALLY-PROVEN VACUITY (honest audit)
+#check @Depth3.parity_not_depth3            -- the depth-3 pipeline assembled end-to-end (CONDITIONAL on budgets)
+#check @Depth3.depth3_budgets_unsatisfiable -- PROVES those budgets are jointly unsatisfiable (⟹ False)
+-- The depth-3 OR-of-CNFs pipeline fires end-to-end (round1 dual brick 103 → terminal brick 101 → chain
+-- brick 102 → tower_not_parity 86): parity_not_depth3 = ∃ x, eval ≠ parity, GIVEN the size/dimension budgets.
+-- BUT depth3_budgets_unsatisfiable formally proves the budgets are jointly UNSATISFIABLE (False) under the
+-- current (4^w+1)^F label count: eval-correctness forces fuel n<F, so (4^w+1)^F ≥ 2^F forces the terminal
+-- budget s₂>F>n, contradicting s₂≤k₂<k₁<n. So parity_not_depth3 is VACUOUS — the structural assembly, NOT
+-- a genuine lower bound. THE EXPOSED GAP (depth-3's purpose): the crude fuel-based label count must be
+-- replaced by the tighter (2w)^s count tied to tree DEPTH (the long-flagged canonical-tree gate); with it
+-- the budget becomes s ≳ log(#gates) (F-independent), survivors ≈ p·n > s, and the bound is genuine.
+-- Honest self-audit, not a false closure. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
