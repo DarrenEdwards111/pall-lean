@@ -130,6 +130,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightBudgetUncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowAllUncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfNotParityUncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityDepth3Uncond
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SurvivorExtendsUncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1529,6 +1530,15 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- survivor-extends). Proof: collapse_to_dnf_layer_tight_uncond round 1 → dnf D₁ + hterm → ρ₂ +
 -- iterated_not_parity_tight (57, generic over EquivOn). The depth-d version: nested_not_parity (62, already
 -- hnf-free, takes hround/hterm) fed by the uncond collapse rounds. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 76 (step 36): unconditional subcube-relative survivor budget (discharges hterm)
+#check @Depth3.exists_survivor_shallow_extends_uncond
+-- exists_survivor_shallow_extends (58) with empty-skip hyps DROPPED (deep cap via tight_switching_budget_-
+-- uncond 72). Discharges the terminal survivor budget hterm of parity_not_depth3_tight_uncond (75)
+-- UNCONDITIONALLY. So the depth-3 OR-of-CNF parity∉AC0 (75) is now fully self-contained with NO empty-skip
+-- hypotheses anywhere (only width/clause-count/budget). Depth-d: nested_not_parity (62, already hnf-free,
+-- takes hround/hterm) + the uncond collapse rounds (75) + this (76) → unconditional depth-d parity∉AC0. The
+-- entire tight depth-reduction is now unconditional. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
