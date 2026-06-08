@@ -29,6 +29,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BranchingHolograp
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TreePathLen
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PathLocality
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepInput
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockDecode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -470,6 +471,11 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.exists_queryAll_deep
 #check @Depth3.exists_deep_input
 #check @Depth3.depth_ge_iff_exists_pathLen_ge   -- depth ≥ s ↔ ∃ x, pathLen ≥ s
+
+-- Brick 40: branching holography, step 3a — per-block restriction decoder
+#check @Depth3.resetVars
+#check @Depth3.resetVars_extendσ                -- un-fixing freed vars inverts a block extension
+#check @Depth3.freeVarsOf_subset_litVars
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
