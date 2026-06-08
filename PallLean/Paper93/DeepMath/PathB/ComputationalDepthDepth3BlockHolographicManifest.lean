@@ -65,6 +65,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfCircuit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SingleRound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RestrCompose
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Negate
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3NegTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -687,6 +688,12 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.negLit                     -- literal negation (pos ↔ neg)
 #check @Depth3.cnfValue_eq_not_dnfValue   -- cnfValue g = ¬ dnfValue (g with literals negated)
 -- A CNF round reduces to a DNF round on the negated gate — the dual of the single-round collapse.
+
+-- AC⁰ reduction brick 11 (step 5k): decision-tree negation (last piece before the dual round)
+#check @Depth3.DTree.negTree         -- swap a decision tree's leaves
+#check @Depth3.DTree.negTree_eval    -- computes the negated function
+#check @Depth3.DTree.negTree_depth   -- preserves the depth
+-- switch the literal-negated DNF → tree → negTree → computes the CNF, same depth → dtreeToDNF (dual round).
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
