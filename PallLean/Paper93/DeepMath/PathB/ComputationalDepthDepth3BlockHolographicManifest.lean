@@ -129,6 +129,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightSwitchingUnc
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightBudgetUncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowAllUncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfNotParityUncond
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityDepth3Uncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1516,6 +1517,18 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- compute parity, conditional ONLY on width/clause-count/budget (no alive/hnf). The empty-skip wall is gone
 -- end-to-end at depth 2. Depth-d circuit version: same substitution through collapse_or_layer_tight(56,59,60)
 -- + nested(62). AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 75 (step 35): UNCONDITIONAL depth-3 parity lower bound (circuit version)
+#check @Depth3.collapse_to_dnf_layer_tight_uncond
+#check @Depth3.parity_not_depth3_tight_uncond
+-- collapse_to_dnf_layer_tight (60) + parity_not_depth3_tight (61) with empty-skip hyps DROPPED: the dual
+-- collapse round uses exists_shallow_all_tight_uncond (73). parity_not_depth3_tight_uncond {p}(hp0)(hp3)
+-- {w F s₁ s₂ m}[NeZero w][NeZero m](hF: n≤F)(G)(hw/hm on G.image negDNF)(hr1)(hsmall₁)(hterm) : ∃x, eval (gOr
+-- (G.toList.map cnf)) x ≠ parity x. NO hnf/hleaf/hpos — an OR-of-CNF circuit can't compute parity, conditional
+-- only on width/clause-count/budget + the terminal survivor budget hterm (itself dischargeable by the uncond
+-- survivor-extends). Proof: collapse_to_dnf_layer_tight_uncond round 1 → dnf D₁ + hterm → ρ₂ +
+-- iterated_not_parity_tight (57, generic over EquivOn). The depth-d version: nested_not_parity (62, already
+-- hnf-free, takes hround/hterm) fed by the uncond collapse rounds. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
