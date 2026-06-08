@@ -6,6 +6,8 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DTreeSwap
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DepthReduction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Circuit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CircuitDepthReduction
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Parity
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ACZeroParity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -98,6 +100,17 @@ equivalent to a *single* CNF circuit (`cnfToCirc (flatMap toCNF)`) whose every b
 fan-in `≤ w` (`and_trees_cnf_width`) and whose alternation height is `≤ 2` (`and_trees_height_le`) — one
 level shallower with controlled bottom width.  Iterating with a fresh good restriction per round
 (`circuit_collapse_exists`) drives the depth down.  AC⁰ ceiling; not P≠NP-strength.
+
+## Parity lower bound + AC⁰ endpoint (bricks 18–19, steps 5–6)
+
+`shallow_dtree_not_parity` (step 6): a decision tree of depth `< n` cannot compute parity — proved via
+full variable sensitivity (`parity_flip`) + off-path invariance (`eval_invariant_off_path`) +
+`pathVars_card_le_depth`.  `circuit_not_parity_of_shallow` (the bridge): any circuit equal to a shallow
+tree fails parity, making the pipeline an actual lower bound.  `and_of_shallow_dts_not_parity` is the
+depth-3 endpoint (one switching round + bridge); `iterate_collapse` shows rounds compose by
+transitivity.  Remaining for a full `parity ∉ AC⁰` theorem: the per-round star-probability *budget*
+(survivors `≥ s` while `depth < #survivors`) — the structural pipeline is complete and machine-checked.
+AC⁰ ceiling; not P≠NP-strength.
 
 ## Audit artifact (independent)
 
@@ -217,6 +230,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.DTree.and_trees_depth_reduction
 #check @Depth3.DTree.and_trees_cnf_width
 #check @Depth3.DTree.and_trees_height_le
+
+-- Brick 18: the parity lower bound (contradiction target — step 6)
+#check @Depth3.DTree.parity
+#check @Depth3.DTree.parity_flip
+#check @Depth3.DTree.pathVars_card_le_depth
+#check @Depth3.DTree.eval_invariant_off_path
+#check @Depth3.DTree.parity_needs_full_depth
+#check @Depth3.DTree.shallow_dtree_not_parity
+
+-- Brick 19: the AC⁰ pipeline endpoint — circuits vs parity (the lower-bound bridge)
+#check @Depth3.circuit_not_parity_of_shallow
+#check @Depth3.and_of_shallow_dts_not_parity
+#check @Depth3.iterate_collapse
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
