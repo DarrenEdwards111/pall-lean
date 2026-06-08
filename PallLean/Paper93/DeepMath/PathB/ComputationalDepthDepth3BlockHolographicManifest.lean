@@ -18,6 +18,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3QueryTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalSound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalComplete
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalParity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -197,10 +198,16 @@ Step 2b (brick 29): `canonicalDTree_complete` (`stars σ < F → dnfValue → ev
 computes the DNF on `σ`-consistent inputs.  With `canonicalDTree_depth_le` (`≤ F·w`) this is a
 sound+complete shallow decision tree for the restricted DNF.
 
-Remaining steps of increment 3 (built incrementally): the tighter `≤ blockStream.length · w` depth bound
-(descent-length monotonicity under restriction extension); then the parity-bridge connection (once
-`< #survivors`).  The genuinely hard switching-lemma core, built honestly in small bricks; no `sorry`.
-AC⁰ ceiling; not P≠NP-strength.
+Step 4 (brick 30): the parity connection.  `canonicalDTree_depth_ge_of_parity` — a DNF computing parity
+on the `σ`-subcube forces canonical depth `≥ stars σ` (via `canonicalDTree_eval` +
+`parity_needs_full_depth_rel`).  `shallow_canonical_not_parity` — a shallow canonical tree
+(`depth < stars σ`) cannot compute parity on the subcube (the switching contradiction, modulo "shallow").
+`dnf_parity_stars_le` — parity ⇒ `stars σ ≤ F · w`.
+
+Remaining step of increment 3: the tighter `≤ blockStream.length · w` depth bound (descent-length
+monotonicity under restriction extension), which discharges "shallow" once `blockStream.length · w <
+stars σ` (a good restriction).  The genuinely hard switching-lemma core, built honestly in small bricks;
+no `sorry`.  AC⁰ ceiling; not P≠NP-strength.
 
 ## Audit artifact (independent)
 
@@ -402,6 +409,11 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.activeTerm_none_dnf_false
 #check @Depth3.canonicalDTree_complete
 #check @Depth3.canonicalDTree_eval
+
+-- Brick 30: the parity connection (descent assembly, increment 3, step 4)
+#check @Depth3.canonicalDTree_depth_ge_of_parity
+#check @Depth3.shallow_canonical_not_parity
+#check @Depth3.dnf_parity_stars_le
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
