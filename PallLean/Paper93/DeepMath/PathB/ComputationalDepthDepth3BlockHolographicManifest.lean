@@ -21,6 +21,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalComplete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalParity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalManifest
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalDepthStars
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SwitchingBridgeObstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
