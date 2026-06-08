@@ -56,6 +56,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3StarPGF
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3StarTail
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityRefuteConcrete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DTreeToDNF
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DTreeToCNF
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -623,6 +624,13 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.dtreeToDNF_eval   -- it computes the same function
 #check @Depth3.dtreeToDNF_width  -- every term has ≤ depth t literals
 -- A depth-d DT is a width-≤d DNF computing the same function — one round of the multi-round collapse.
+
+-- AC⁰ reduction brick 2 (step 5b): the dual decision-tree → CNF conversion
+#check @Depth3.cnfValue          -- CNF semantics (every clause has a true literal)
+#check @Depth3.dtreeToCNF        -- rejecting-path CNF of a decision tree
+#check @Depth3.dtreeToCNF_eval   -- it computes the same function
+#check @Depth3.dtreeToCNF_width  -- every clause has ≤ depth t literals
+-- DT→DNF and DT→CNF: alternate per round so two adjacent OR/AND layers merge (the depth reduction).
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
