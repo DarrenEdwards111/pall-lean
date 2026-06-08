@@ -144,6 +144,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MergePass
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafDepth
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Alternation
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3AltReduce
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1720,6 +1721,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- k≥1: children gAnd → leafCollapse keeps gAnd → mergePass recurses, each child collapseRound→AltA(k+1) by mutual
 -- IH → gOr-of-AltA(k+1)=AltO(k+2)), needing allDnf-detection lemmas + the mergePass reduction. All ingredients
 -- in hand (leafCollapse 85, mergePass 86, collapseRound 87, depth 88, this 89). AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 90 (step 50): THE ALTERNATION REDUCTION (depth-counting termination PROVEN)
+#check @Depth3.collapseRound_AltO
+#check @Depth3.collapseRound_AltA
+-- THE TERMINATION CRUX, PROVEN. collapseRound_AltO (F ρ) : AltO (k+3) C → AltO (k+2) (collapseRound F ρ C)
+-- (mutual with collapseRound_AltA) — one collapse round drives an alternating tower down EXACTLY one level.
+-- Proof (mutual induction on k): cases the AltO.gOr constructor → C = gOr gs, gs≠[], children AltA (k+2); k=0:
+-- children cnf (AltA_two_cnf) → leafCollapse→dnf → allDnf_some_of_all_dnf → mergePass merges gOr-of-dnf → dnf =
+-- AltO 2; k=j+1: children gAnd → leafCollapse keeps gAnd → allDnf head=none → mergePass recurses (mergePassList
+-- _eq + map_map = gs.map collapseRound) → each child collapseRound_AltA → AltA (j+2) → gOr-of-AltA(j+2)=AltO(j+3)
+-- =AltO(k+2). Helpers allDnf_some_of_all_dnf/allCnf_some_of_all_cnf (induction) + leafCollapse_gOr/gAnd_eq.
+-- Clean [propext,Quot.sound]. So depth₀-2 rounds reach AltO 2 = dnf (AltO_two_dnf 89). ALL PIECES PROVEN for the
+-- general-d oracle: Valid i C := AltO (depth₀-i) C; oracle = survivor ρ (76) + collapseRound (87) +
+-- collapseRound_AltO (90) + EquivOn (87); engine 83 hterm via AltO_two_dnf. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
