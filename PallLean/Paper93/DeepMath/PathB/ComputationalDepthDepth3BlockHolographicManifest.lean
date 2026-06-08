@@ -55,6 +55,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityRefute
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3StarPGF
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3StarTail
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityRefuteConcrete
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DTreeToDNF
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -616,6 +617,12 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.parity_refuted_of_tails  -- cap + Blo + Bhi < 1 ⟹ width-≤w DNF fails parity on a high-star subcube
 -- The concentration step closed to a numeric gap. STILL OPEN for parity∉AC⁰: the multi-round AC⁰ circuit
 -- reduction (all d layers) and the poly(w) base (vs 4^w) — the rest of the Håstad lower bound.
+
+-- AC⁰ reduction brick 1 (step 5a): the single-layer decision-tree → DNF conversion (depth reduction)
+#check @Depth3.dtreeToDNF        -- accepting-path DNF of a decision tree
+#check @Depth3.dtreeToDNF_eval   -- it computes the same function
+#check @Depth3.dtreeToDNF_width  -- every term has ≤ depth t literals
+-- A depth-d DT is a width-≤d DNF computing the same function — one round of the multi-round collapse.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
