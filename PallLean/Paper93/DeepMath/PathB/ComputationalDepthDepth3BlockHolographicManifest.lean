@@ -17,6 +17,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfRestrict
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3QueryTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalSound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalComplete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -190,10 +191,16 @@ fuel-sufficiency hypothesis via `anyTermSat_sound` (a `σ`-satisfied term is tru
 `activeTerm_sat_sound` (an active term's fixed literals are forced true; `litTrue_eval`) + the recursion
 on falsifying leaves (`agreeRestriction_extendσ` preserves consistency).
 
-Remaining steps of increment 3 (built incrementally): the completeness direction (`dnfValue → eval`,
-needs the descent to terminate within fuel, `F ≥ stars σ`); the tighter `≤ blockStream.length · w` depth
-bound; then the parity-bridge connection (once `< s·w`).  The genuinely hard switching-lemma core, built
-honestly in small bricks; no `sorry`.  AC⁰ ceiling; not P≠NP-strength.
+Step 2b (brick 29): `canonicalDTree_complete` (`stars σ < F → dnfValue → eval`, by induction on `F` —
+`F=0` vacuous, each block strictly drops `stars` via `stars_extendσ_lt`) and **`canonicalDTree_eval`** —
+**full eval-correctness on the subcube**: for sufficient fuel (`stars σ < F`), the adaptive tree
+computes the DNF on `σ`-consistent inputs.  With `canonicalDTree_depth_le` (`≤ F·w`) this is a
+sound+complete shallow decision tree for the restricted DNF.
+
+Remaining steps of increment 3 (built incrementally): the tighter `≤ blockStream.length · w` depth bound
+(descent-length monotonicity under restriction extension); then the parity-bridge connection (once
+`< #survivors`).  The genuinely hard switching-lemma core, built honestly in small bricks; no `sorry`.
+AC⁰ ceiling; not P≠NP-strength.
 
 ## Audit artifact (independent)
 
@@ -389,6 +396,12 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.agreeRestriction_extendσ
 #check @Depth3.activeTerm_sat_sound
 #check @Depth3.canonicalDTree_sound
+
+-- Brick 29: canonical tree completeness + full eval-correctness (increment 3, step 2b)
+#check @Depth3.stars_extendσ_lt
+#check @Depth3.activeTerm_none_dnf_false
+#check @Depth3.canonicalDTree_complete
+#check @Depth3.canonicalDTree_eval
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
