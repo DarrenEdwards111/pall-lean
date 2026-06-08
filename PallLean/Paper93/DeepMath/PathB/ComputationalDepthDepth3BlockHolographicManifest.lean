@@ -23,6 +23,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalManifest
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalDepthStars
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SwitchingBridgeObstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BridgeNoGo
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -439,6 +440,9 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.queryAll_depth_ge
 #check @Depth3.extendσ_eq_killTerm
 #check @Depth3.blockStream_length_le_canonicalDTree_depth
+
+-- Brick 34: half the inputs have odd parity (minterm-route foundation)
+#check @Depth3.parity_true_card
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
