@@ -99,6 +99,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightSwitchingPro
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TreeBridge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseCoreTight
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentSwitchingTight
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomTail
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1068,6 +1069,17 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- makes #gates·cap < 1 satisfiable. Remaining for exists_shallow_all_tight: sum this over depth shells
 -- (depth ≥ s) + union-bound over gates + handle the alive condition; then re-run depth-3 non-vacuously.
 -- Pure assembly of proven pieces. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 45 (step 6s): the GEOMETRIC SHELL-SUM TAIL (the tight route's F-independence)
+#check @Depth3.geom_shell_tail_le  -- ∑_{K ∈ Icc s N} r^K ≤ r^s/(1-r)  (uniform in N)
+-- The analytic convergence for the shell sum. {depth ≥ s} = ⋃_{K≥s}{depth=K}; each shell ≤ r^K with
+-- r = (2p/(1-p))·(2w) = 4pw/(1-p); summing is a finite geometric tail ≤ r^s/(1-r), N-INDEPENDENT once
+-- r < 1. KEY PARAMETER FINDING: the tight cap forces p ≈ 1/(4w) (so r < 1), NOT the crude route's constant
+-- p ≤ 1/3 (with p=1/5 the tight cap (1/2)^s·(2w)^s = w^s ≥ 1 fails). Then #gates·r^s/(1-r) < 1 is
+-- s ≳ log#gates — F-independent. Built from the existing geom_tail_le (∑_{i<N} r^i ≤ 1/(1-r)) shifted to
+-- start at s (Ico reindex). Remaining for exists_shallow_all_tight: shell decomposition (∑_{depth≥s} =
+-- ∑_K ∑_{depth=K}) + per-shell descent_switching_le_tight (44) + this tail + the term-alive condition +
+-- union over gates. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
