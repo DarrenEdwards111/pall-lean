@@ -141,6 +141,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecursiveTowerSur
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecursiveTowerInstance
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MergePass
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1677,6 +1678,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- Layered/List recursion. So mergePass (leafCollapse F ρ C) = the depth-reducing round (switch+merge); its
 -- EquivOn = EquivOn.trans (leafCollapse_EquivOn 85)(mergePass_EquivOn 86). Clean (fixes: full simp for none=some
 -- catch-alls; doc can't precede mutual). The per-round oracle of the recursion engine at ANY depth. AC⁰, NOT PvNP.
+
+-- AC⁰ reduction brick 87 (step 47): the PER-ROUND COLLAPSE (switch + merge) — one EquivOn at any depth
+#check @Depth3.collapseRound_EquivOn
+-- The complete per-round collapse: collapseRound F ρ C := mergePass (leafCollapse F ρ C) (switch every bottom
+-- gate via 85, then merge the same-type siblings via 86). collapseRound_EquivOn (F)(hstars : stars ρ≤F)(C) :
+-- EquivOn ρ C (collapseRound F ρ C) := EquivOn.trans (leafCollapse_EquivOn 85)(mergePass_EquivOn 86) — UNCOND
+-- in shallowness (only stars ρ≤F). This is the per-round transformation the recursion-engine oracle (83)
+-- applies: pick ρ extending the running subcube with survivors (exists_survivor_shallow_extends_uncond 76, G=∅
+-- gives extends τ + s≤stars ρ≤F), then collapseRound; EquivOn via collapseRound_EquivOn; the round is the
+-- engine's C'. ALL MATHEMATICAL/STRUCTURAL PIECES NOW DONE. REMAINING = pure termination bookkeeping: an
+-- alternation predicate Valid + the strict-depth-reduction lemma (collapseRound reduces an alternating tower's
+-- depth by 1: leafCollapse preserves depth, mergePass strictly reduces at the uniform bottom the switch creates
+-- — depth≤ provable directly; strict< needs the alternation invariant), so d rounds reach a depth-2 bottom DNF
+-- (depth≤2 ⟹ dnf/cnf since gAnd/gOr have depth≥3) → discharge engine 83 at general d. AC⁰, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
