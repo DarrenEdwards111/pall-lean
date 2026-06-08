@@ -139,6 +139,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseMergeRoun
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EquivOnCongr
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecursiveTowerSurv
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecursiveTowerInstance
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1648,6 +1649,21 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- (the terminal, a separate input). Proof: refine recursive_tower_not_parity_surv ... ?_ 1 F hterm; oracle by
 -- by_cases i=0 (collapse round / change+show for the Valid if-reductions). REMAINING for general-d: the leaf-
 -- recursive collapse over Layered gates (depth>4); the engine + its discharge are proven. AC⁰, NOT P vs NP.
+
+-- AC⁰ reduction brick 85 (step 45): the LEAF-RECURSIVE COLLAPSE over Layered gates (the deep piece)
+#check @Depth3.leafCollapse_EquivOn
+-- THE general-depth collapse — operates at the LEAVES of an ARBITRARILY-DEEP Layered tower (the existing
+-- collapse rounds were depth-4-bottom, on clause-list gates). mutual leafCollapse/leafCollapseList (the
+-- toCircuit/toCircuitList pattern): each bottom gate switched via the canonical tree (dnf cs → cnf (dtreeToCNF
+-- (toDTree (canonicalDT cs F ρ))); cnf cs → dnf (dtreeToDNF (negTree (toDTree (canonicalDT (negDNF cs) F ρ)))))
+-- recursing through gAnd/gOr. leafCollapse_EquivOn (F)(hstars : stars ρ≤F) : ∀C, EquivOn ρ C (leafCollapse F ρ
+-- C) — UNCONDITIONAL IN SHALLOWNESS (only stars ρ≤F; the eval-correctness of canonicalDT_eval is all that's
+-- needed — shallowness is only for widths). Proved by mutual Layered/List recursion: per-leaf canonical-tree
+-- eval at dnf/cnf (the rw chain), any/all congruence at gOr/gAnd via leafCollapseList_EquivOn. Compiled clean
+-- (fixes: doc comments can't precede `mutual`; List.not_mem_nil → simp). This + merge (81, restores alternation
+-- after the leaf-switch reduces a bottom gAnd-of-dnf→gAnd-of-cnf→cnf) + global ρ (73, shallows all leaves) +
+-- congruence (82) = the per-round oracle for the recursive tower engine (83) at ANY depth. The deepest
+-- remaining structural piece is DONE. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
