@@ -109,6 +109,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowAllTight
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightCollapseRound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightBudgetSat
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightParity
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightDnfNotParity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1216,6 +1217,23 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- Reduces spine over the canonicalDT-CNF collapse (re-express tight_collapse_round's output as a tower
 -- reduction; polarity CNF↔DNF via negTree as in the crude LayerCollapse) + survivor lower bound s≤stars ρ
 -- (Chernoff). AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 55 (step 15): tight F-INDEPENDENT parity refutation for a single DNF (depth-2 capstone)
+#check @Depth3.exists_survivor_shallow
+#check @Depth3.tight_dnf_not_parity
+-- Assembles bricks 50/52/54. tight_collapse_round gave stars ρ≤F (UPPER); shallow_canonicalDT_not_parity
+-- (brick 54) needs depth<stars ρ, so we also need the survivor LOWER bound s≤stars ρ. exists_survivor_shallow
+-- folds it in as a THIRD bad event: 1=∑pweight ≤ ∑_{stars<s}pweight + ∑_{F<stars}pweight + ∑_g∑_{depth_g≥s}
+-- pweight ≤ (low star tail)+(high star tail)+#gates·r^s/(1-r); if <1 (hsmall) some ρ has s≤stars ρ≤F AND all
+-- gates shallow. All three terms F-INDEPENDENT at p≈1/(4w) (star tails via stars_tail_le/ge Markov, deep cap
+-- via tight_switching_budget; satisfiability witnessed by brick 53). Then tight_dnf_not_parity (G={D}):
+-- depth<s≤stars ρ → depth<stars ρ → shallow_canonicalDT_not_parity gives ∃x σ-consistent, dnfValue D x ≠
+-- parity x. A GENUINE non-vacuous F-independent parity refutation for a single bottom DNF, over the tight
+-- single-literal tree THROUGHOUT (no canonicalDTree anywhere). Proof: 3-way disjunction (by_cases stars<s,
+-- F<stars), sum_add_distrib×2 + sum_filter×2 + sum_comm, tight_switching_budget per gate, linarith; then
+-- exists_survivor_shallow on {D} + lt_of_lt_of_le + brick 54. Carries per-gate alive/leaf/pos = empty-skip
+-- wall (brick 49), explicit. REMAINING for full depth-3 OR/AND: thread Reduces/tower spine over the
+-- canonicalDT collapse (the other wire). AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
