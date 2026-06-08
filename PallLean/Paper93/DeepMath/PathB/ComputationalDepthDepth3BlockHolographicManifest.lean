@@ -133,6 +133,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityDepth3Uncon
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SurvivorExtendsUncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerCollapseUncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseOrExtendsUncond
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityDepth4Uncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1561,6 +1562,18 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- surfaced: brick 75's dual collapse was full-domain; round 2 must EXTEND ρ₁). Runs collapse_core_or_tight on
 -- the conditional measure via exists_survivor_shallow_extends_uncond (36): ∃ρ, Extends τ ρ ∧ s≤stars ρ ∧
 -- (∀g∈G shallow) ∧ EquivOn ρ (gOr cnf)(dnf D) ∧ widths. No hnf/hleaf/hpos. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 79 (step 39): the UNCONDITIONAL DEPTH-4 parity lower bound (2-round dependent test)
+#check @Depth3.parity_not_depth4_uncond
+-- The manual d=2 assembly — the safe test of the restriction-dependent tower construction. An OR-of-AND-of-
+-- DNF (depth 4) can't compute parity: round 1 (collapse_or_layer_tight_extends_uncond 77) collapses C₀ to a
+-- ρ₁-DEPENDENT OR-of-CNF C₁; hrest (round 2 dual-extends 78 on the ACTUAL C₁ ρ₁ + survivor) consumes it →
+-- ρ₃⊇ρ₁ + bottom DNF D₂ shallow + EquivOn ρ₃ (C₁ ρ₁)(dnf D₂); iterated_not_parity_tight (57, d=2) folds
+-- C₀⟶C₁⟶dnf D₂. NO hnf/hleaf/hpos. SURFACED the predicted friction: round 2 must EXTEND ρ₁ → forced building
+-- the dual-extends round (78), which brick 75's full-domain dual collapse lacked. The dependent threading
+-- (ρ₁ chosen → C₁ ρ₁ formed → round 2 consumes it → ρ₁⊆ρ₃) is exactly what the general recursive tower
+-- generalizes. depth-4 GREEN de-risks the Nat.rec. NOTE depth≥5 additionally needs merge-realignment (the
+-- tower alternation); depth-4 bottoms out in 2 rounds (primal+dual) without merge. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
