@@ -94,6 +94,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SurvivorChernoff
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3IteratedReduction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3OneRoundDual
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityDepth3
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestWeightGain
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1001,6 +1002,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- replaced by the tighter (2w)^s count tied to tree DEPTH (the long-flagged canonical-tree gate); with it
 -- the budget becomes s ≳ log(#gates) (F-independent), survivors ≈ p·n > s, and the bound is genuine.
 -- Honest self-audit, not a false closure. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 40 (step 6n): TIGHT count — the tight (2w)^s count EXISTS + the p-biased bridge piece
+-- The tight (2w)^s count is already PROVEN, clean, as a CARDINALITY bound (over the canonicalDT
+-- reconstruction arc): `fullpath_switching_count : Bad.card ≤ Short.card · (2*w)^s` (the old satisfy-only
+-- decoder sorry was SUPERSEDED by the sorry-free full-path reconstruction). The depth-3 vacuity, however,
+-- is in the p-BIASED weighted bound (descent_switching_le, over canonicalDTree) using (4^w+1)^F. So the fix
+-- needs the tight count PORTED to the p-biased measure. First bridge piece, built here:
+#check @Depth3.pweight_le_ratio_pow_deepestEnd  -- pweight σ ≤ (2p/(1-p))^s · pweight (deepestEnd cs F σ), depth≥s
+-- The WEIGHT half: moving σ to its deepest-branch leaf gains (2p/(1-p))^s (stars drop = depth ≥ s, via
+-- stars_deepestEnd_add_depth + pweight_le_ratio_pow). Remaining for the tight p-biased bound: the weighted
+-- form of the deepest-branch reconstruction (the (2w)^s LABEL half — fullpath reconstruction summed against
+-- pweight over deepestEnd), then reconcile canonicalDT (tight count) ↔ canonicalDTree (collapse) depth.
+-- Substantial bridge between two parallel formalizations; not faked. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
