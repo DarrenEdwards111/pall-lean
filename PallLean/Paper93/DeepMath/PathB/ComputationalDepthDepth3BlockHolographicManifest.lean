@@ -82,6 +82,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3StarTailExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowSurvivor
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerCollapseAt
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3OneRound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayeredMerge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -863,6 +864,18 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- on a NESTED subcube with survivors tracked. Remaining for unconditional parity∉AC⁰: threading the SHAPE
 -- between rounds (the collapse absorbs 2 levels, so OR-of-CNFs output ≠ next round's input shape; the
 -- recursion passes through d distinct layer shapes) — structural, not probabilistic. AC⁰ ceiling, NOT P≠NP.
+
+-- AC⁰ reduction brick 28 (step 6b): the LAYERED ASSOCIATIVE MERGE (the depth d→d-1 step)
+#check @Depth3.Layered.merge_gAnd_cnf         -- AND of CNF gates = one CNF (clause lists concatenated)
+#check @Depth3.Layered.merge_gOr_dnf          -- OR of DNF gates = one DNF (term lists concatenated)
+#check @Depth3.Layered.merge_gAnd_cnf_EquivOn -- the merge as an unconditional EquivOn (a Reduces step)
+#check @Depth3.Layered.merge_gOr_dnf_EquivOn
+-- Lifts the ACircuit-level merge (brick 4 and_merge_eval/or_merge_eval) to Layered: associativity collapses
+-- an AND-of-CNFs (resp OR-of-DNFs) to one CNF (resp DNF) via cs.flatten + List.all_flatten/any (proved by
+-- induction, all_append/any_append). [propext, Quot.sound] — no Classical.choice. EquivOn forms are
+-- unconditional ⟹ a Reduces step (brick 20) on ANY subcube, so the merge chains for free after a collapse.
+-- This supplies the clean depth d→d-1 the loop needs. Remaining: the uniform d-fold induction wiring
+-- one_round + merge per level + parameter bookkeeping, to feed brick 21 tower_not_parity. AC⁰, NOT P≠NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
