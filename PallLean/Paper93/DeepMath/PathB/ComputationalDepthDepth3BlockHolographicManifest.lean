@@ -39,6 +39,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SetDecode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BadCard
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentSat
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentPeel
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentInject
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -521,6 +522,11 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.descentPeel
 #check @Depth3.descentSat_step
 #check @Depth3.descent_recovery      -- peel of the boundary recovers the descent's active-clause stream
+
+-- Brick 50: branching holography, step 4h — the injection (σ recovered from boundary + masks)
+#check @Depth3.recoverσ
+#check @Depth3.descentSat_recover
+#check @Depth3.descentSat_injective   -- σ ↦ (descentSat, descentSatMasks) is injective
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
