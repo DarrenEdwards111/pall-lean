@@ -70,6 +70,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SingleRoundOr
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RoundCompose
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FreshClauses
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalFresh
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Layered
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -722,6 +723,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- Heart: a block queries the active term's *free* (unset) vars, then extendσ SETS exactly those, so no
 -- deeper query revisits them. Composes with brick 14: per-round canonicalDTree → Nodup+Consistent clauses
 -- = exactly the hypotheses the NEXT collapse round requires. The round-to-round preservation is closed.
+
+-- AC⁰ reduction brick 16 (step 5p): THE LAYERED CIRCUIT + one collapse step (the recursion's object)
+#check @Depth3.Layered                 -- strictly-alternating tower: dnf | cnf | gAnd | gOr
+#check @Depth3.Layered.eval             -- semantics via the faithful ACircuit realisation (toCircuit)
+#check @Depth3.Layered.depth            -- alternation depth (a bottom gate = depth 2)
+#check @Depth3.Layered.collapse_gAnd    -- AND-of-DNFs ⟶ one bottom CNF (width<s) on a subcube
+#check @Depth3.Layered.collapse_gOr     -- OR-of-CNFs ⟶ one bottom DNF (width<s) on a subcube (dual)
+#check @Depth3.Layered.gAnd_map_EquivOn -- collapse every child on a common ρ ⟹ collapse the AND (glue)
+#check @Depth3.Layered.gOr_map_EquivOn  -- (dual glue for OR)
+-- The collapse steps are single_round_collapse/_or in layered vocabulary (depth 3→2 at the bottom); the
+-- *_map_EquivOn congruences lift a bottom collapse up through the layer above on the SAME subcube. With
+-- bricks 14/15 (preservation) + 11/13 (round_compose/composeR), iterating these is the d→2 recursion.
+-- Remaining: the d-fold induction itself (alternating the two collapses, threading ρ), terminate at the
+-- depth-2 parity LB (brick 35) + poly(w) base. Still AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
