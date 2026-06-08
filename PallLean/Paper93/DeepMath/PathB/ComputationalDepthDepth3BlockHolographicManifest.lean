@@ -127,6 +127,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessSeqProps
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessDischarge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightSwitchingUncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightBudgetUncond
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowAllUncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1497,6 +1498,12 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- {w F s m}[NeZero w][NeZero m]{cs}(hw)(hm)(hr1: (2p/(1-p))·(2wm)<1) : ∑_{ρ: depth≥s} pweight ≤ r^s/(1-r),
 -- r=4pwm/(1-p). NO hnf/hleaf/hpos. F-independent at p≈1/(4wm). Empty-skip wall gone from the budget too.
 -- REMAINING: propagate through exists_shallow_all_tight (51)/collapse(56,59,60)/parity(61,62). AC⁰, NOT PvNP.
+
+-- AC⁰ reduction brick 73 (step 33): unconditional collapse-existence
+#check @Depth3.exists_shallow_all_tight_uncond
+-- exists_shallow_all_tight (51) with empty-skip hyps DROPPED: per-gate union bound uses tight_switching_-
+-- budget_uncond (72). {p}(hp0)(hp3){w F s m}[NeZero w][NeZero m](G)(hw: ∀g∈G ∀T∈g width≤w)(hm: ∀g∈G g.length
+-- ≤m)(hr1)(hsmall: G.card·r^s/(1-r)<1) : ∃ρ, ∀g∈G (canonicalDT g F ρ).depth<s. No hnf/hleaf/hpos. AC⁰, NOT PvNP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
