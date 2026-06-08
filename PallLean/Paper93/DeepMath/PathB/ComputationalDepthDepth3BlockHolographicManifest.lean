@@ -10,6 +10,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Parity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ACZeroParity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CircuitBudget
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityRel
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CircuitRestrict
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -131,10 +132,19 @@ some variables (a restriction `ρ`), parity *restricted to the survivors* still 
 What is now machine-checked: the **entire structural pipeline**, the **per-round quantitative budget**
 (`circuit_collapse_budget`), the **cross-round composition** (`reduce_chain`), and **both halves of the
 final contradiction** (`parity_needs_full_depth_rel` survives restriction; `circuit_not_parity_rel`
-applies it).  The last irreducible piece for a literally unconditional `parity ∉ AC⁰` is a formal
-restriction-application operation on the circuit model threaded through the rounds (so the per-round
-budget feeds `reduce_chain` automatically) plus the `blockStream`↔`DTree` model bridge — substantial
-engineering, not new mathematics.  AC⁰ ceiling; not P≠NP-strength.
+applies it).  ## The restriction operation (brick 22)
+
+`Circ.restrict ρ c` applies a restriction (a fixed literal becomes a constant gate); `eval_restrict`
+proves its substitution semantics `eval x (restrict ρ c) = eval (override ρ x) c`, and
+`eval_restrict_agree` that it agrees with `c` on `ρ`-consistent inputs.  `restricted_circuit_not_parity`
+is the capstone: a switching round's output on the *restricted* circuit (`restrict ρ c ≡` shallow tree,
+depth `< #survivors`) now feeds the relativized parity bridge automatically, with no manual
+eval-equality hypothesis — the restriction-application piece is discharged.
+
+The single remaining piece for a literally unconditional `parity ∉ AC⁰` is the `blockStream`↔`DTree`
+model bridge that *produces* the shallow tree from the switching count (`circuit_collapse_budget`
+guarantees the shallow `blockStream`; mapping it to a `DTree` for the parity side is the last step).
+Substantial engineering, not new mathematics.  AC⁰ ceiling; not P≠NP-strength.
 
 ## Audit artifact (independent)
 
@@ -278,6 +288,13 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.EvalChain
 #check @Depth3.evalChain_eval
 #check @Depth3.reduce_chain
+
+-- Brick 22: the restriction-application operation on circuits (threads rounds)
+#check @Depth3.Circ.restrict
+#check @Depth3.Circ.override
+#check @Depth3.Circ.eval_restrict
+#check @Depth3.Circ.eval_restrict_agree
+#check @Depth3.restricted_circuit_not_parity
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
