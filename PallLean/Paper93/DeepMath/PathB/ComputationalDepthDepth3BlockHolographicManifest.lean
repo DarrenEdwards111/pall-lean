@@ -116,6 +116,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightSurvivorExte
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightLayerExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightCollapseOr
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightParityDepth3
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightNested
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1332,6 +1333,21 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- push_neg. HONEST: hterm packages the terminal switching incl. the empty-skip wall on the INTERMEDIATE D₁
 -- (carried openly, discharged by brick 58). Depth-d generalization = same iteration with nested τ's (brick
 -- 59). This CLOSES a genuine non-vacuous tight depth-3 parity∉AC0. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 62 (step 22): the GENERAL DEPTH-d assembly over the tight tree
+#check @Depth3.exists_nested_reduction
+#check @Depth3.nested_not_parity
+-- The depth-d generalization of parity_not_depth3_tight (61). exists_nested_reduction (AXIOM-FREE): given a
+-- tower sequence C where each layer C i collapses to C (i+1) under a restriction extending the running
+-- subcube (hround), d rounds fold into Reduces x (C 0)(C d) at a COMMON finest σ — proved by induction,
+-- nesting the restrictions automatically (Extends_trans inline + agreeRestriction_of_extends + Reduces.head/
+-- trans). nested_not_parity: with C d = dnf D (hCd) and a terminal survivor-shallow restriction making
+-- canonicalDT D shallow<stars σ (hterm), ∃x, eval (C 0) x ≠ parity x — via tower_not_parity_tight (57) over
+-- the tight tree. hround discharged per layer by collapse_or_layer_tight_extends (59); hterm discharged by
+-- exists_survivor_shallow_extends (58) on {D}. Both F-INDEPENDENT (budgets satisfiable, brick 53). This is
+-- the COMPLETE tight depth-d Håstad/Razborov reduction skeleton; instantiating C/hround/hterm for a concrete
+-- circuit family is bookkeeping. HONEST: each input carries the empty-skip wall (brick 49) on its gates —
+-- the irreducible switching-lemma content, carried openly throughout. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
