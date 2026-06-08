@@ -1,6 +1,7 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockSwitchingCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockTightCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockSwitchingProb
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockCircuitCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -54,6 +55,14 @@ injection `ρ ↦ (blockEncode ρ, compactMasks ρ)` lands in `Short ×ˢ BlockP
 `Pr_Ω[block-DT depth ≥ s] ≤ (2^w · 2K/(n-K+1))^s / (1 - 2K/(n-K+1))`.  The cumulative shell sum is
 collapsed via `term_ratio_q` (per-shell ℚ ratio), `sum_range_reflect` (reindex `j ↦ K-j`), and
 `geom_tail_le` (`∑ r^i ≤ 1/(1-r)`, proved from the partial-sum identity, no `GeomSum` dependency).
+
+## Circuit collapse (brick 13 — probabilistic method)
+
+`circuit_collapse_exists`: running the descent with fuel `s` (so `length = s ⟺ depth ≥ s`), the
+union bound `G · |Short| · (2^w)^s < |Ω| = C(n,K)2^(n-K)` yields a *single* restriction in the
+`K`-star shell under which **every** bottom gate's canonical block-DT is shallow (depth `< s`) — the
+restriction that drops circuit depth by collapsing all bottom DNFs at once.  `exists_avoiding_all` is
+the reusable union-bound existence core (`card_biUnion_le` + `card_le_card_sdiff_add_card`).
 
 ## Audit artifact (independent)
 
@@ -130,6 +139,12 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.geom_tail_le
 #check @Depth3.sum_term_le
 #check @Depth3.block_switching_prob_closed
+
+-- Brick 13: circuit collapse (probabilistic method / union bound over the shell)
+#check @Depth3.exists_avoiding_all
+#check @Depth3.gateDeepSet
+#check @Depth3.gateDeepSet_card_le
+#check @Depth3.circuit_collapse_exists
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
