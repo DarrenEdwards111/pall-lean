@@ -128,6 +128,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessDischarge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightSwitchingUncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightBudgetUncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowAllUncond
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfNotParityUncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1504,6 +1505,17 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- exists_shallow_all_tight (51) with empty-skip hyps DROPPED: per-gate union bound uses tight_switching_-
 -- budget_uncond (72). {p}(hp0)(hp3){w F s m}[NeZero w][NeZero m](G)(hw: ∀g∈G ∀T∈g width≤w)(hm: ∀g∈G g.length
 -- ≤m)(hr1)(hsmall: G.card·r^s/(1-r)<1) : ∃ρ, ∀g∈G (canonicalDT g F ρ).depth<s. No hnf/hleaf/hpos. AC⁰, NOT PvNP.
+
+-- AC⁰ reduction brick 74 (step 34): UNCONDITIONAL single-DNF parity refutation (FIRST fully-unconditional)
+#check @Depth3.tight_dnf_not_parity_uncond
+-- tight_dnf_not_parity (55) with hnf/hleaf/hpos DROPPED. exists_survivor_shallow_uncond (3-event union bound,
+-- deep cap via tight_switching_budget_uncond 72) + shallow_canonicalDT_not_parity (54, already unconditional).
+-- tight_dnf_not_parity_uncond {p}(hp0)(hp3){w F s m}[NeZero w][NeZero m](D)(hw: ∀T∈D width≤w)(hm: D.length≤m)
+-- (hr1)(hsmall: starLo+starHi+r^s/(1-r)<1) : ∃ρ x, agree ρ x ∧ dnfValue D x ≠ parity x. NO empty-skip hyps,
+-- F-independent. THE FIRST FULLY-UNCONDITIONAL PARITY REFUTATION in the tight arc — a single bottom DNF can't
+-- compute parity, conditional ONLY on width/clause-count/budget (no alive/hnf). The empty-skip wall is gone
+-- end-to-end at depth 2. Depth-d circuit version: same substitution through collapse_or_layer_tight(56,59,60)
+-- + nested(62). AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
