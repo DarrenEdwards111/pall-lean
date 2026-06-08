@@ -118,6 +118,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightCollapseOr
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightParityDepth3
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightNested
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessDecoder
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessLabel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1368,6 +1369,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- so per-step active-clause witness keeps count F-independent (Cw)^s) + thread through reconstructionCorrect_
 -- fullpath to drop hnf from the tight count. Expander/Ramanujan = Plan B only if naive witness blows up.
 -- AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 64 (step 24): the WITNESS-AUGMENTED LABEL — F-INDEPENDENT (Cw)^s
+#check @SwitchingCounting.card_witLabels
+#check @SwitchingCounting.getElem_activeIdx
+-- Encodes the live-clause witness (brick 63) into the label, keeping the count F-INDEPENDENT. WitLabel w s m
+-- := Fin s → (Fin w × Bool × Fin m): per step the (Fin w × Bool) path step PLUS the active-clause witness
+-- Fin m (m = clause-count bound). card_witLabels: |WitLabel w s m| = (2·w·m)^s — the (Cw)^s shape (C=m),
+-- NOT the crude fuel-dependent (4^w+1)^F. Feeds (2wm)^s into card_bad_le_of_label_bound. The per-step witness
+-- is the active clause's INDEX activeIdx cs σ = cs.findIdx (activePred σ); activeIdx_lt (in range when active)
+-- + getElem_activeIdx (cs[activeIdx] = the active clause, via List.findIdx_eq + find?_eq_some_iff_getElem) —
+-- so the decoder reconstructs the active clause from the witness alone, skipping dead ones. REMAINING:
+-- assemble the injection Bad → Short × WitLabel (encode ρ as path label + per-step activeIdx, decode via brick
+-- 63) and drop hnf from the tight count (50-62) → UNCONDITIONAL. Count stays F-independent; expander only if a
+-- constant-overhead (m-free) witness is ever needed. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
