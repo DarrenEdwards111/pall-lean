@@ -38,6 +38,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelNodup
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SetDecode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BadCard
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentSat
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentPeel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -515,6 +516,11 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.descentSat
 #check @Depth3.descentSat_sat_term
 #check @Depth3.descentSat_firstSat   -- active term recovered as first satisfied term of the boundary
+
+-- Brick 49: branching holography, step 4g — the peel decoder (recovers the whole stream)
+#check @Depth3.descentPeel
+#check @Depth3.descentSat_step
+#check @Depth3.descent_recovery      -- peel of the boundary recovers the descent's active-clause stream
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
