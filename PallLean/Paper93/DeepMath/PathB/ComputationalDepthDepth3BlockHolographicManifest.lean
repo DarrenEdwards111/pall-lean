@@ -43,6 +43,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentInject
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MaskCode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CodeCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CodeCard
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -547,6 +548,11 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.descent_code_injective    -- σ ↦ (descentSat, codesList) is injective
 #check @Depth3.descent_code_count        -- |Bad| ≤ |Short| · |Labels| with Labels = code streams
 -- NOTE: reduces to |{code streams}| ≤ (3^w)^F (codes are ≤w ternary, ≤F blocks) + the p-biased measure.
+
+-- Brick 54: branching holography, step 4l — the label cardinality + assembled count
+#check @Depth3.codeEnc_inj             -- code streams inject into a finite (4^w+1)^F type
+#check @Depth3.descent_switching_count -- |Bad| ≤ |Short| · (4^w+1)^F  (w-dependent label space!)
+-- NOTE: the COUNTING side is closed (label space w-dependent); the p-biased measure remains.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
