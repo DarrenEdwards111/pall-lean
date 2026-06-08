@@ -120,6 +120,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightNested
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessDecoder
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessLabel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ActiveTermIdx
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1400,6 +1401,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- 63). Discharging WitnessReconstructionCorrect from these (+ satisfy-step) = unconditional tight count. The
 -- injection is assembled at (Cw)^s and hnf is gone from the count; the decoder instance is the genuine last
 -- mile, ingredients in 63/64. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 66 (step 26): the active-TERM witness index (deepest-path encode ingredient)
+#check @SwitchingCounting.getElem_activeTermIdx
+-- The activeTerm analogue of brick 64's activeIdx. The deepest branch (deepestSel/deepestEnd) descends via
+-- activeTerm (¬termFalsified ∧ has-free-lit), NOT activeClause (¬clauseSatisfied ∧ ...). So the witness encode
+-- for deepestSel needs an activeTerm-indexed witness. When anyTermSat=false (all along the active descent)
+-- activeTerm = cs.find? (termActivePred) (activeTerm_eq_find), so the same List.findIdx/find? recovery applies:
+-- activeTermIdx cs σ := cs.findIdx (termActivePred σ); activeTermIdx_lt (in range when active) + getElem_active
+-- TermIdx (cs[activeTermIdx] = the active term). Proof mirrors brick 64 (find?_eq_some_iff_getElem + findIdx_
+-- eq), via activeTerm_eq_findPred (activeTerm_eq_find ∘ activeTerm_anyTermSat_false). Needed open Depth3 for
+-- Clause. This completes the witness-extraction ingredient for the DEEPEST-path encode. REMAINING: assemble
+-- WitnessReconstructionCorrect (per-step position + activeTermIdx along the deepest branch + satisfy-step) →
+-- discharge deepest_count_of_witness (65) unconditionally → drop hnf from the whole tight arc. AC⁰, NOT PvNP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
