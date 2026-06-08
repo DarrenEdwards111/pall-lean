@@ -2,6 +2,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockSwitchingCou
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockTightCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockSwitchingProb
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockCircuitCollapse
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DTreeSwap
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -63,6 +64,15 @@ union bound `G · |Short| · (2^w)^s < |Ω| = C(n,K)2^(n-K)` yields a *single* r
 `K`-star shell under which **every** bottom gate's canonical block-DT is shallow (depth `< s`) — the
 restriction that drops circuit depth by collapsing all bottom DNFs at once.  `exists_avoiding_all` is
 the reusable union-bound existence core (`card_biUnion_le` + `card_le_card_sdiff_add_card`).
+
+## DT → CNF/DNF representation swap (brick 14)
+
+`DTree.dnf_cnf_swap`: a self-contained binary decision tree is simultaneously a width-`≤ depth` DNF
+(`toDNF`, accepting paths) and a width-`≤ depth` CNF (`toCNF`, rejecting paths) computing the same
+function (`eval_eq_dnf`, `eval_eq_cnf`).  Re-expressing the shallow DT from brick 13 as a CNF is the
+`∨∧ ↦ ∧∨` swap that merges the bottom two circuit layers — one depth-reduction step.  Clean axioms
+`[propext, Quot.sound]` (no `Classical.choice`).  This is genuine AC⁰ depth-reduction machinery; it
+tops out at AC⁰ and is not P≠NP-strength.
 
 ## Audit artifact (independent)
 
@@ -145,6 +155,16 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.gateDeepSet
 #check @Depth3.gateDeepSet_card_le
 #check @Depth3.circuit_collapse_exists
+
+-- Brick 14: DT → CNF/DNF representation swap (the ∨∧ ↦ ∧∨ depth-reduction step)
+#check @Depth3.DTree
+#check @Depth3.DTree.eval
+#check @Depth3.DTree.depth
+#check @Depth3.DTree.eval_eq_dnf
+#check @Depth3.DTree.toDNF_width
+#check @Depth3.DTree.eval_eq_cnf
+#check @Depth3.DTree.toCNF_width
+#check @Depth3.DTree.dnf_cnf_swap
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
