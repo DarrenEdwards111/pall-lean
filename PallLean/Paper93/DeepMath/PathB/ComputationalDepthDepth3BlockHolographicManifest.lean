@@ -15,6 +15,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ClauseTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfRestrict
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3QueryTree
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -177,10 +178,14 @@ variables, threading each leaf's assignment into a continuation.  `queryAll_eval
 on the leaf assignment `x` selects) and `queryAll_depth` (depth `≤ #vars + d`) are the two properties
 the adaptive tree needs per block.
 
-Remaining steps of increment 3 (built incrementally): the descent recursion (`canonicalDTree cs F σ`,
-fuel-based, mirroring `blockStream`, satisfying branch → true, falsifying branches recurse with the
-updated restriction); eval-correctness against the DNF (via the `killTerm`/`activeTerm` dichotomy); and
-the assembled depth bound `≤ blockStream.length · w` (feeding the parity bridge once `< s·w`).  The
+Step 2 (brick 27): `canonicalDTree cs w F σ` — the adaptive tree, fuel-based, mirroring `blockStream`:
+satisfying branch → `true`, no active term → `false`, otherwise `queryAll` the active term's free
+variables and recurse on each falsifying leaf with that leaf's **own extended restriction** (`extendσ`,
+the per-leaf threading).  `canonicalDTree_depth_le` proves the fuel depth bound `≤ F · w`.
+
+Remaining steps of increment 3 (built incrementally): eval-correctness against the DNF (via the
+`killTerm`/`activeTerm` dichotomy); the tighter `≤ blockStream.length · w` bound (descent-length
+monotonicity under restriction extension); then the parity-bridge connection (once `< s·w`).  The
 genuinely hard switching-lemma core, built honestly in small bricks; no `sorry`.  AC⁰ ceiling; not
 P≠NP-strength.
 
@@ -365,6 +370,12 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.DTree.queryAll
 #check @Depth3.DTree.queryAll_eval
 #check @Depth3.DTree.queryAll_depth
+
+-- Brick 27: the adaptive canonical decision tree (descent assembly, increment 3, step 2)
+#check @Depth3.canonicalDTree
+#check @Depth3.freeVarsOf
+#check @Depth3.extendσ
+#check @Depth3.canonicalDTree_depth_le
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
