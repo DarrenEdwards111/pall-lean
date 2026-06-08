@@ -98,6 +98,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestWeightGain
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightSwitchingProb
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TreeBridge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseCoreTight
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentSwitchingTight
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1057,6 +1058,16 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- (no (4^w+1)^F). Remaining: exists_shallow_all_tight (union bound with the tight cap over canonicalDT) +
 -- re-run the layer collapse / depth-3 with this core → genuine non-vacuous parity∉AC⁰. The crude-vs-tight
 -- obstruction is now structurally bridged. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 44 (step 6r): the TIGHT weighted switching bound (descent_switching_le analogue)
+#check @Depth3.descent_switching_le_tight  -- ∑_{Bad} pweight σ ≤ (2p/(1-p))^s · (2w)^s
+-- The tight analogue of descent_switching_le (brick 60), cap (4^w+1)^F → (2w)^s. For a good bad set
+-- (depth(canonicalDT)=s, term-alive hnf, leaf-rejecting hleaf, positions<w), the p-biased weight ≤
+-- (2p/(1-p))^s·(2w)^s. = tight_descent_switching_prob (41) with Short=univ (∑=1 via pweight_sum_eq_one) +
+-- reconstructionCorrect_fullpath (sorry-free) discharging the reconstruction. THE depth-indexed cap that
+-- makes #gates·cap < 1 satisfiable. Remaining for exists_shallow_all_tight: sum this over depth shells
+-- (depth ≥ s) + union-bound over gates + handle the alive condition; then re-run depth-3 non-vacuously.
+-- Pure assembly of proven pieces. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
