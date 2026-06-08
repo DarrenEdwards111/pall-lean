@@ -61,6 +61,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ACircuit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerMerge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CircuitSubst
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowAll
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfCircuit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -659,6 +660,13 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.exists_shallow_all
 -- #gates · cap < 1 ⟹ ∃ ρ making every gate's canonical tree depth < s. The probabilistic heart of one
 -- collapse round (per-gate descent_switching_le + union bound over the bottom gates).
+
+-- AC⁰ reduction brick 7 (step 5g): DNF/CNF ↔ circuit translations (the switching↔ACircuit bridge)
+#check @Depth3.dnfToCircuit       -- DNF as a depth-2 OR-of-ANDs ACircuit
+#check @Depth3.cnfToCircuit       -- CNF as a depth-2 AND-of-ORs ACircuit
+#check @Depth3.dnfToCircuit_eval  -- (dnfToCircuit g).eval = dnfValue g
+#check @Depth3.cnfToCircuit_eval  -- (cnfToCircuit g).eval = cnfValue g
+-- So dtreeToCNF (67) lands as a genuine depth-2 AND-of-ORs subcircuit, ready for the layer merge (69).
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
