@@ -146,6 +146,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafDepth
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Alternation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3AltReduce
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityGeneralD
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityGeneralDDischarge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1749,6 +1750,22 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- terminal switch (the genuine analytic inputs, both discharged by the unconditional collapse/survivor machinery
 -- 36/38). NO hnf/hleaf/hpos. Clean [propext,Classical.choice,Quot.sound], no sorry. This is the fully-general-
 -- depth unconditional parity∉AC⁰ via the recursive tower — the arc's capstone. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 92 (step 52): DISCHARGING THE GENERAL-d ORACLES AT CONCRETE NUMERICS
+#check @Depth3.survivor_round_trivial
+#check @Depth3.terminal_shallow_of_survivor
+#check @Depth3.tight_rate_recip_8wm
+#check @Depth3.parity_not_altO_hround_discharged
+-- The two abstract inputs of parity_not_altO (91) discharged from the unconditional survivor machinery.
+-- survivor_round_trivial: hround discharged UNCONDITIONALLY — ρ=τ works (Extends reflexive, stars ρ ≤ n ≤ F
+-- always), no budget. terminal_shallow_of_survivor: hterm for a single bottom DNF via exists_survivor_shallow_
+-- extends_uncond (36) at G={cs} — the genuine switching budget (width w, clause m, tight rate hr1, subcube-
+-- relative union bound hsmall < box mass); depth<s≤stars gives depth<stars. tight_rate_recip_8wm: the rate
+-- hypotheses 0≤p, 3p≤1, hr1 hold at the CONCRETE Håstad rate p=1/(8wm), since (2p/(1-p))·2wm = 1/2 / (1-1/(8wm))
+-- ... = 4wm/(8wm-1) < 1. parity_not_altO_hround_discharged: the capstone with hround ELIMINATED — only the
+-- terminal switching budget hterm remains (per-DNF dischargeable), exactly as depth-4 carries hsmall₁. So at
+-- p=1/(8wm) the per-round oracle is FREE and the terminal oracle is the standard unconditional Håstad/Razborov
+-- switching bound on the final DNF. Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P≠NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
