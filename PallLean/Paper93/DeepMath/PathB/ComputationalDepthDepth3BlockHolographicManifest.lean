@@ -37,6 +37,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BadLabels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelNodup
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SetDecode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BadCard
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentSat
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -509,6 +510,11 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- Brick 47: branching holography, step 4e — Finset card inequality (LOOSE: RHS ≥ 3^n, injection
 -- mechanics only; the (cw)^s gain needs the position-label/replay encoding, not yet built)
 #check @Depth3.bad_card_le
+
+-- Brick 48: branching holography, step 4f — satisfying boundary + term recovery (replay enabler)
+#check @Depth3.descentSat
+#check @Depth3.descentSat_sat_term
+#check @Depth3.descentSat_firstSat   -- active term recovered as first satisfied term of the boundary
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
