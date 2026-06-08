@@ -42,6 +42,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentPeel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentInject
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MaskCode
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CodeCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -540,6 +541,12 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.maskFromTerm
 #check @Depth3.maskFromTerm_maskOnTerm   -- (term, code) recovers the mask
 #check @Depth3.descentMask_recover       -- descent masks are term-relative-codable
+
+-- Brick 53: branching holography, step 4k — the code-labelled count
+#check @Depth3.codeMasks_recovery        -- decode code stream against the boundary → the masks
+#check @Depth3.descent_code_injective    -- σ ↦ (descentSat, codesList) is injective
+#check @Depth3.descent_code_count        -- |Bad| ≤ |Short| · |Labels| with Labels = code streams
+-- NOTE: reduces to |{code streams}| ≤ (3^w)^F (codes are ≤w ternary, ≤F blocks) + the p-biased measure.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
