@@ -8,6 +8,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Circuit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CircuitDepthReduction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Parity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ACZeroParity
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CircuitBudget
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -108,9 +109,20 @@ full variable sensitivity (`parity_flip`) + off-path invariance (`eval_invariant
 `pathVars_card_le_depth`.  `circuit_not_parity_of_shallow` (the bridge): any circuit equal to a shallow
 tree fails parity, making the pipeline an actual lower bound.  `and_of_shallow_dts_not_parity` is the
 depth-3 endpoint (one switching round + bridge); `iterate_collapse` shows rounds compose by
-transitivity.  Remaining for a full `parity ∉ AC⁰` theorem: the per-round star-probability *budget*
-(survivors `≥ s` while `depth < #survivors`) — the structural pipeline is complete and machine-checked.
-AC⁰ ceiling; not P≠NP-strength.
+transitivity.
+
+## The quantitative budget (brick 20)
+
+`circuit_collapse_budget` discharges the **per-round existence** from a clean closed-form inequality:
+if `G · (2^w · 2K/(n-K+1))^s / (1 - 2K/(n-K+1)) < 1` (union bound over `G` gates, in closed Håstad
+form) then one restriction in the `K`-star shell makes every gate's block-DT shallow (depth `< s`).  It
+combines `circuit_collapse_exists` (union bound) with `sum_term_le` (closed Håstad tail), so the messy
+cumulative shell sum never appears.
+
+Remaining for a fully closed `parity ∉ AC⁰` theorem: chaining `d-2` such rounds with the survivor
+accounting (re-choosing the star probability each round so survivors stay `≥ s` while depth stays
+`< #survivors`).  The per-round budget and the whole structural pipeline are complete and
+machine-checked.  AC⁰ ceiling; not P≠NP-strength.
 
 ## Audit artifact (independent)
 
@@ -243,6 +255,9 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.circuit_not_parity_of_shallow
 #check @Depth3.and_of_shallow_dts_not_parity
 #check @Depth3.iterate_collapse
+
+-- Brick 20: the quantitative restriction budget (closed Håstad form, per-round existence)
+#check @Depth3.circuit_collapse_budget
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
