@@ -42,6 +42,8 @@ theorem one_round_dual_p_fifth (w F s k : ℕ) (hF : n < F)
               dtreeToDNF (DTree.negTree (canonicalDTree (negDNF c) w F ρ)))))
         ∧ k < stars ρ
         ∧ (∀ T ∈ Cs.flatMap (fun c =>
+              dtreeToDNF (DTree.negTree (canonicalDTree (negDNF c) w F ρ))), T.lits.length < s)
+        ∧ (∀ T ∈ Cs.flatMap (fun c =>
               dtreeToDNF (DTree.negTree (canonicalDTree (negDNF c) w F ρ))),
             Consistent T ∧ (T.lits.map litVarOf).Nodup) := by
   classical
@@ -76,8 +78,8 @@ theorem one_round_dual_p_fifth (w F s k : ℕ) (hF : n < F)
       (Finset.mem_image_of_mem negDNF (List.mem_toFinset.mpr hc))
   have hstarsF : stars ρ < F :=
     lt_of_le_of_lt (by rw [stars]; exact le_trans (Finset.card_le_univ _) (by simp)) hF
-  obtain ⟨heq, _⟩ := collapse_gOr_cnf_at w F s Cs ρ hstarsF hshallow
-  refine ⟨ρ, hext, heq, hstars, ?_⟩
+  obtain ⟨heq, hwidth⟩ := collapse_gOr_cnf_at w F s Cs ρ hstarsF hshallow
+  refine ⟨ρ, hext, heq, hstars, hwidth, ?_⟩
   intro T hT
   rw [List.mem_flatMap] at hT
   obtain ⟨c, hc, hTc⟩ := hT
