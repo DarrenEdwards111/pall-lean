@@ -125,6 +125,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FreeLitPos
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessReconstruct
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessSeqProps
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessDischarge
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightSwitchingUncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1472,6 +1473,21 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- alive/hnf). Cost vs (2w)^s: factor m^s (m=clause count), still F-independent. REMAINING: substitute this for
 -- the hnf-bearing deepest_switching_count_of_reconstruction in descent_switching_le_tight/tight_switching_-
 -- budget (mechanical: drop hnf, (2w)^s→(2wm)^s) → whole tight arc (50-62) unconditional. AC⁰, NOT P vs NP.
+
+-- AC⁰ reduction brick 71 (step 31): the UNCONDITIONAL tight weighted switching bound (substitution done)
+#check @Depth3.descent_switching_le_tight_uncond
+-- THE MECHANICAL SUBSTITUTION. descent_switching_le_tight (brick 09) gave ∑_Bad pweight ≤ (2p/(1-p))^s·(2w)^s
+-- but needed hnf/hleaf/hpos (empty-skip wall). This swaps its ReconstructionCorrect/PathLabel injection for
+-- the WITNESSED one (WitLabel w s m, discharged with NO hnf/hleaf/hpos by bricks 63-70): descent_switching_le
+-- _tight_uncond {p}(hp0)(hp3){w F s m}[NeZero w][NeZero m]{cs Bad}(hw: ∀T∈cs T.lits.length≤w)(hm: cs.length≤m)
+-- (hdepth: ∀ρ∈Bad depth=s) : ∑_Bad pweight ≤ (2p/(1-p))^s·(2wm)^s. NO empty-skip hypotheses. Chain:
+-- witnessReconstructionCorrect_of_depth (extract brick 70's construction, hnf-free) → deepest_switching_-
+-- weighted_of_witness (weighted label half over WitLabel, (2wm)^s, mirror of the PathLabel version + card_wit
+-- Labels) → tight_descent_switching_prob_witness (mirror tight_descent_switching_prob, witness) → Short=univ
+-- + pweight_sum_eq_one. F-independent (2wm)^s (m^s overhead vs (2w)^s, m=clause count). THE EMPTY-SKIP WALL IS
+-- GONE FROM THE TIGHT SWITCHING BOUND. REMAINING: propagate through tight_switching_budget (50) → exists_-
+-- shallow_all_tight (51) → collapse (52/56) → depth-d parity∉AC0 (61/62) — each a rewrite (drop hnf/hleaf/hpos,
+-- (2w)^s→(2wm)^s, p≈1/(4wm)) → fully unconditional parity∉AC0. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
