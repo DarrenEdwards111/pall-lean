@@ -77,6 +77,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerCollapseWF
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Reduces
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TowerParity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PWeightExtends
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -807,8 +808,17 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- contributes (1-p)/2, each free coord normalises to 1. Dividing the unconditional descent bound
 -- (descent_switching_le, brick 60) by this constant gives a CONDITIONAL switching bound on τ's subcube —
 -- the step toward iterating switching over NESTED free sets (each round on the prior round's survivors),
--- which is what the d-round coordinate budget (brick 21's open input) requires. Remaining: conditional
--- existence of a good high-star restriction extending τ, then the nested d-round iteration. AC⁰, not P≠NP.
+-- which is what the d-round coordinate budget (brick 21's open input) requires.
+
+-- AC⁰ reduction brick 23 (step 5w): SUBCUBE-RELATIVE switching existence (conditional good restriction)
+#check @Depth3.exists_shallow_all_extends
+-- #gates·cap < ((1-p)/2)^(n - stars τ) ⟹ ∃ ρ, Extends τ ρ ∧ every gate shallow under ρ. The conditional
+-- form of exists_shallow_all (brick 6): union bound on the conditional measure (total mass brick 22's
+-- ((1-p)/2)^(n-stars τ)), each gate's bad weight still capped by descent_switching_le (brick 60, holds for
+-- ANY bad set). Applying with τ = the previous round's restriction nests the survivor sets → the final
+-- common subcube is a single restriction. Remaining: a SURVIVOR LOWER BOUND (conditional star-tail
+-- concentration on τ-free coords) so stars ρ stays large, then the nested d-round iteration + brick 21's
+-- capstone. The concentration is not yet proved (not papered over). AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
