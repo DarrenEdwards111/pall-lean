@@ -119,6 +119,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightParityDepth3
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightNested
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessDecoder
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessLabel
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1383,6 +1384,22 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- assemble the injection Bad → Short × WitLabel (encode ρ as path label + per-step activeIdx, decode via brick
 -- 63) and drop hnf from the tight count (50-62) → UNCONDITIONAL. Count stays F-independent; expander only if a
 -- constant-overhead (m-free) witness is ever needed. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 65 (step 25): the WITNESSED TIGHT COUNT — (Cw)^s injection ASSEMBLED, hnf-free in count
+#check @Depth3.deepest_count_of_witness
+-- ASSEMBLES the injection with the witness label (brick 64) at (Cw)^s, NO hnf in the count. The original
+-- deepest_switching_count_of_reconstruction takes a (2w)^s PathLabel ReconstructionCorrect whose only proof
+-- needs hnf. Here: WitnessReconstructionCorrect (a WitLabel w s m decoder recovering deepestSel from deepestEnd
+-- + the per-step active-clause witness) ⟹ |Bad| ≤ |Short|·(2wm)^s, via card_bad_le_label_card (generic over
+-- label type) + deepestEnd_inj + card_witLabels_le. NO hnf hypothesis — the witness identifies live clauses
+-- directly, no dead-clause scanning. F-INDEPENDENT (Cw)^s (C=m). Proof: obtain lab,D,hdec; card_bad_le_label_
+-- card (deepestEnd) lab (card_witLabels_le) hmem (injectivity: hdec + deepestEnd_inj). Clean. REMAINING (last
+-- mile): CONSTRUCT the witnessed decoder — encode = per-step (free-lit-position, active-clause-index activeIdx)
+-- from the path; decode D(lab) = {litVar (cs[clauseIdx_k].lits[pos_k])} (var-from-label, NO scan, getElem_-
+-- activeIdx brick 64 recovers the clause); path recovery hnf-free via decodedSel_filter_eq_replaySel (brick
+-- 63). Discharging WitnessReconstructionCorrect from these (+ satisfy-step) = unconditional tight count. The
+-- injection is assembled at (Cw)^s and hnf is gone from the count; the decoder instance is the genuine last
+-- mile, ingredients in 63/64. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
