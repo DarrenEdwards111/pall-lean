@@ -72,6 +72,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FreshClauses
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalFresh
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Layered
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerCollapse
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfFresh
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -751,6 +752,15 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- assembles the layer. Iterating these two (alternating, threading ρ via round_compose/composeR, hyps
 -- preserved by bricks 14/15) is the d→2 recursion. Remaining: the depth-induction wrapper + termination
 -- at the depth-2 parity LB (brick 35) + poly(w) base. Still AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 18 (step 5r): DNF-side well-formedness (closes preservation for BOTH parities)
+#check @Depth3.DTree.negTree_fresh        -- leaf-negation preserves freshness (queriedVars unchanged)
+#check @Depth3.dtreeToDNF_litVars_subset  -- a DNF term's vars are among the tree's queried vars
+#check @Depth3.dtreeToDNF_nodup           -- fresh tree ⟹ each DNF term has distinct variables
+#check @Depth3.dtreeToDNF_consistent      -- fresh tree ⟹ each DNF term is Consistent
+-- The DNF-side dual of brick 14. The dual collapse round emits a DNF (via De Morgan + negTree); these
+-- give its terms Nodup+Consistent, so the dual round's output also re-enters the next round well-formed.
+-- With bricks 14/15 the round-to-round preservation is closed for BOTH alternation parities.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
