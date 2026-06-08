@@ -25,6 +25,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SwitchingBridgeOb
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BridgeNoGo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityDnfExp
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BranchingHolography
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -449,6 +450,10 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.term_covers_of_sat
 #check @Depth3.sat_determines
 #check @Depth3.parity_dnf_size_ge   -- 2^(n-1) ≤ #terms for any DNF computing parity
+
+-- Brick 36: branching holography, step 1 — per-input path length ≤ branching tree depth
+#check @Depth3.pathLen
+#check @Depth3.pathLen_le_depth
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
