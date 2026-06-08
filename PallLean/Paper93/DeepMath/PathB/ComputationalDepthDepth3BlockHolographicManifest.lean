@@ -90,6 +90,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SwitchingProbExte
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowExtendsUnif
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowSurvivorUnif
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3OneRoundConcrete
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SurvivorChernoff
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -951,6 +952,17 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- propagates, not hidden). Proof discharges the budget via elementary ℚ inequalities (div_le_iff₀, pow_succ,
 -- the size cast). Pins the parameters; remaining: the survivor Chernoff bound + d-fold chaining of these
 -- rounds (survivors stars ρ_i ≳ (1/5)·stars ρ_{i-1}) + terminal → tower_not_parity. AC⁰, NOT P vs NP.
+
+-- AC⁰ reduction brick 36 (step 6j): DISCHARGE the survivor Chernoff bound (fully combinatorial round)
+#check @Depth3.survivor_chernoff            -- 7·(k+1) ≤ m ⟹ (9/10)^m < (1/2)^(k+1), via (10/9)^7 > 2
+#check @Depth3.one_round_exists_p_fifth_dim -- one round from SIZE + DIMENSION conditions only (no analytic)
+-- survivor_chernoff discharges brick 35's hsurv to the combinatorial dimension condition 7·(k+1) ≤ stars τ:
+-- the elementary (10/9)^7 > 2 (norm_num) means every 7 survivors buy a factor >2, so stars τ ≥ 7(k+1) ⟹
+-- (9/10)^(stars τ) < (1/2)^(k+1). Proof: pow_lt_pow_left₀ + pow_le_pow_right₀ + div_lt_div_iff₀. Now
+-- one_round_exists_p_fifth_dim drives ONE round at p=1/5,t=1/2 from PURELY combinatorial conditions:
+-- size 2·(#gates·|Labels|)<2^s and dimension 7·(k+1)≤stars τ. The per-round step is fully numeric/discharged.
+-- Remaining: the d-fold CHAINING (nest the rounds, survivors stars ρ_i > k_i ≈ stars ρ_{i-1}/7, n large) +
+-- terminal → tower_not_parity (86). No analytic content left in a round. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
