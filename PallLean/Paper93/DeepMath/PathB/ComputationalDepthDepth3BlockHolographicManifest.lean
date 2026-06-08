@@ -143,6 +143,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MergePass
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafDepth
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Alternation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1705,6 +1706,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- AltA k's, AltA(k+1)=gAnd of nonempty AltO k's); collapseRound reduces AltO(k+1)→AltO k / AltA(k+1)→AltA k by
 -- exactly one level (leafCollapse switches leaves, mergePass merges the now-uniform bottom), so d=depth₀-2 rounds
 -- reach AltO 2=dnf → engine 83 hterm. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 89 (step 49): THE ALTERNATION INVARIANT (mutual inductive AltO/AltA)
+#check @Depth3.AltO_two_dnf
+-- The shape predicate the recursive-tower Valid tracks: a proper alternating AC⁰ tower, depth-indexed +
+-- polarity-typed, NON-EMPTY gates (excludes the gAnd [] degeneracy that grows depth under merge). mutual
+-- inductive AltO/AltA: AltO 2 = dnf, AltA 2 = cnf; AltO (k+3) = gOr of nonempty AltA (k+2)'s; AltA (k+3) = gAnd
+-- of nonempty AltO (k+2)'s. So AltO 3 = gOr-of-cnf, AltA 3 = gAnd-of-dnf — exactly the bottom-2-levels the
+-- collapse round switches+merges. AltO_two_dnf/AltA_two_cnf: the base levels are bottom gates (for engine hterm).
+-- collapseRound reduces AltO(k+3)→AltO(k+2) (AltA dually) one level/round, so depth₀-2 rounds reach AltO 2=dnf.
+-- REMAINING = the reduction lemma collapseRound_AltO (AltO(k+3) C → AltO(k+2)(collapseRound F ρ C)), the depth-
+-- counting termination crux: case-split on k (k=0: children cnf → leafCollapse→dnf → mergePass allDnf→dnf=AltO2;
+-- k≥1: children gAnd → leafCollapse keeps gAnd → mergePass recurses, each child collapseRound→AltA(k+1) by mutual
+-- IH → gOr-of-AltA(k+1)=AltO(k+2)), needing allDnf-detection lemmas + the mergePass reduction. All ingredients
+-- in hand (leafCollapse 85, mergePass 86, collapseRound 87, depth 88, this 89). AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
