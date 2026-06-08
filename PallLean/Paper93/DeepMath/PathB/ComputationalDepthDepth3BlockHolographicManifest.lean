@@ -69,6 +69,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3NegTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SingleRoundOr
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RoundCompose
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FreshClauses
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalFresh
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -714,6 +715,13 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.dtreeToCNF_consistent      -- fresh tree ⟹ each clause is Consistent (no pos&neg v)
 -- The single_round_collapse hypotheses (hcons/hnd) are preserved round-to-round: a *fresh* canonical
 -- tree yields consistent, distinct-variable clauses, so the collapsed CNF re-enters the next round.
+
+-- AC⁰ reduction brick 15 (step 5o): the canonical tree IS fresh (discharges brick 14's hypothesis)
+#check @Depth3.canonicalDTree_queriedVars_unset  -- every queried var is unset (= none) in the root σ
+#check @Depth3.canonicalDTree_fresh              -- distinct-var clauses ⟹ canonicalDTree is fresh
+-- Heart: a block queries the active term's *free* (unset) vars, then extendσ SETS exactly those, so no
+-- deeper query revisits them. Composes with brick 14: per-round canonicalDTree → Nodup+Consistent clauses
+-- = exactly the hypotheses the NEXT collapse round requires. The round-to-round preservation is closed.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
