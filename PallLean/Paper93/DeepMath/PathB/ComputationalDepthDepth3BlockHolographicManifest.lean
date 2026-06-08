@@ -60,6 +60,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DTreeToCNF
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ACircuit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerMerge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CircuitSubst
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowAll
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -653,6 +654,11 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.and_map_eval  -- replacing each AND-child by an eval-equiv circuit preserves the function
 #check @Depth3.or_map_eval   -- (dual for OR)
 -- The surgery correctness: each bottom gate ↦ its switching-converted CNF/DNF, function preserved.
+
+-- AC⁰ reduction brick 6 (step 5f): a restriction collapsing ALL bottom gates (union bound)
+#check @Depth3.exists_shallow_all
+-- #gates · cap < 1 ⟹ ∃ ρ making every gate's canonical tree depth < s. The probabilistic heart of one
+-- collapse round (per-gate descent_switching_le + union bound over the bottom gates).
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
