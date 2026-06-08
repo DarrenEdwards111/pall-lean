@@ -92,6 +92,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowSurvivorUn
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3OneRoundConcrete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SurvivorChernoff
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3IteratedReduction
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3OneRoundDual
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -976,6 +977,16 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- one_round_exists_p_fifth_dim (36) + the collapse/merge ops produce. Remaining: instantiate that data for
 -- a concrete depth-d circuit (shape threading C i + the d one-round applications + survivor count
 -- stars σ > terminal). The INDUCTION is done; what's left is constructing the sequence. AC⁰, NOT P vs NP.
+
+-- AC⁰ reduction brick 38 (step 6l): the DUAL concrete round (completes the round toolkit)
+#check @Depth3.one_round_dual_p_fifth
+-- The depth-3→2 round at p=1/5, t=1/2: gOr (Cs.map cnf) EquivOn ρ a single DNF, Extends τ ρ, k < stars ρ,
+-- output terms wf. Dual to one_round_exists_p_fifth_dim (36): switching run on the NEGATED gates (De Morgan)
+-- via one_round_exists_p_fifth_dim on Cs.toFinset.image negDNF (hyps inherited by consistent_negClause /
+-- litVarOf_negLit), then collapse_gOr_cnf_at (95); output wf via negTree_fresh + dtreeToDNF_consistent/nodup.
+-- (open Classical needed in the signature for toFinset/image.) BOTH concrete round directions now exist
+-- with survivors. Remaining: assemble the round SEQUENCE (C i, ρ i) for a depth-d circuit + feed
+-- iterated_not_parity (37). AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
