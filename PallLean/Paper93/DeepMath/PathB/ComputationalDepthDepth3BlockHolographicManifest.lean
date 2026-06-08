@@ -105,6 +105,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FilterFalsified
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestSelFilter
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DecodedSelNoGo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightSwitchingBudget
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowAllTight
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1155,6 +1156,17 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- discharged unconditionally (and pathLenBadGt_card_le carries on its cardinality side as hne). So this is
 -- the tight F-independent count CONDITIONAL on the empty-skip wall — the irreducible switching-lemma content,
 -- not a hidden gap. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 51 (step 11): F-INDEPENDENT collapse-existence step (tight exists_shallow_all)
+#check @Depth3.exists_shallow_all_tight
+-- The tight mirror of exists_shallow_all (foundation 6). Crude version caps each gate at (4^w+1)^F and
+-- union-bounds #gates·cap<1 → F-dependent threshold (vacuity). This swaps the cap for the F-INDEPENDENT
+-- tight_switching_budget cap r^s/(1-r) (r=4pw/(1-p)): #gates·r^s/(1-r)<1 ⟹ ∃ρ, ∀g∈G, (canonicalDT g F ρ).
+-- depth<s. Threshold s≳log #gates, NO F. Same proof shape as exists_shallow_all (1=∑pweight ≤ ∑_ρ∑_g
+-- 1[deep]·pweight = ∑_g∑_ρ ≤ ∑_g cap = #gates·cap, linarith), with tight_switching_budget for the inner
+-- per-gate bound and the single-literal canonicalDT in place of the block canonicalDTree. Carries the
+-- per-gate GLOBAL alive/leaf/pos hyps (hnf/hleaf/hpos) — the empty-skip wall (brick 49) — explicitly. So
+-- this is the F-independent collapse-existence CONDITIONAL on the wall. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
