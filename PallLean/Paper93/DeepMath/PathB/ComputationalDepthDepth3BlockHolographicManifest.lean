@@ -49,6 +49,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PWeightStars
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FreedCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WeightGain
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SwitchingProb
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PNormalize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -583,6 +584,10 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.descent_switching_prob
 -- ∑_{depth ≥ s} pweight ≤ (2p/(1-p))^s · (4^w+1)^F · ∑ pweight  (for 0 ≤ p ≤ 1/3).
 -- The branching switching lemma over the p-biased random restriction. (÷ ∑pweight=1 ⟹ the Pr bound.)
+
+-- Brick 60: branching holography, step 4r — normalization + the LITERAL probability bound
+#check @Depth3.pweight_sum_eq_one    -- ∑_ρ pweight p ρ = 1 (a probability distribution)
+#check @Depth3.descent_switching_le  -- Pr_ρ[depth ≥ s] ≤ (2p/(1-p))^s · (4^w+1)^F  (closing form)
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
