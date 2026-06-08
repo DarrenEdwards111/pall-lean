@@ -19,6 +19,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalSound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalComplete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalParity
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalManifest
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -204,10 +205,19 @@ on the `σ`-subcube forces canonical depth `≥ stars σ` (via `canonicalDTree_e
 (`depth < stars σ`) cannot compute parity on the subcube (the switching contradiction, modulo "shallow").
 `dnf_parity_stars_le` — parity ⇒ `stars σ ≤ F · w`.
 
-Remaining step of increment 3: the tighter `≤ blockStream.length · w` depth bound (descent-length
-monotonicity under restriction extension), which discharges "shallow" once `blockStream.length · w <
-stars σ` (a good restriction).  The genuinely hard switching-lemma core, built honestly in small bricks;
-no `sorry`.  AC⁰ ceiling; not P≠NP-strength.
+Culmination (brick 31): `adaptive_canonical_switching` bundles eval-correctness + `depth ≤ F·w` +
+parity-depth `≥ stars σ`.
+
+**Honest finding on the tight bound.**  The clean deterministic `≤ blockStream.length · w` bound does
+*not* hold — the adaptive tree branches (per-leaf restriction threading), whereas `blockStream` is a
+single `killTerm` path.  The genuinely tight deterministic bound is `depth ≤ stars σ` (the `w` factor is
+spurious), but parity forces `depth ≥ stars σ`, so the two *match*: a single restriction yields no
+contradiction, and parity is genuinely depth-`stars σ`-computable.  The AC⁰ lower bound therefore needs
+the **probabilistic** ingredient — that *most* restrictions make the descent short
+(`block_switching_count_tight`, `circuit_collapse_budget`, bricks 1–13, 20) — bridged to this tree over
+the `d-2` rounds.  That two-model probabilistic bridge is the genuine remaining work, named precisely,
+not faked.  The unconditional depth-2 case is already closed (`dnf_parity_size_bound`).  AC⁰ ceiling; not
+P≠NP-strength.
 
 ## Audit artifact (independent)
 
@@ -414,6 +424,9 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.canonicalDTree_depth_ge_of_parity
 #check @Depth3.shallow_canonical_not_parity
 #check @Depth3.dnf_parity_stars_le
+
+-- Brick 31: the adaptive canonical switching package (culmination)
+#check @Depth3.adaptive_canonical_switching
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
