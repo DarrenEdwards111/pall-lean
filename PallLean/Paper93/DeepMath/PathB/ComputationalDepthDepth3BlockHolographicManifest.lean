@@ -35,6 +35,8 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EncodeInjective
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BadLabels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelNodup
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SetDecode
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BadCard
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -500,6 +502,13 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- Brick 45: branching holography, step 4c — labels are globally distinct (finite codomain)
 #check @Depth3.descentLabels_flatten_mem_free
 #check @Depth3.descentLabels_flatten_nodup
+
+-- Brick 46: branching holography, step 4d — set-form decoder (final + freed-set ⟹ σ)
+#check @Depth3.descent_decode_set
+
+-- Brick 47: branching holography, step 4e — Finset card inequality (LOOSE: RHS ≥ 3^n, injection
+-- mechanics only; the (cw)^s gain needs the position-label/replay encoding, not yet built)
+#check @Depth3.bad_card_le
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
