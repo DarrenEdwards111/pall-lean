@@ -103,6 +103,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomTail
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShellDecomp
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FilterFalsified
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestSelFilter
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DecodedSelNoGo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1125,6 +1126,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- REMAINING for hnf-free reconstruction: the DECODER-side (LHS) invariances — decodedSel cs π = decodedSel
 -- cs' π and recoverStream cs = recoverStream cs' (the forward-scan pieces, via activeStreamPar_eq_filter);
 -- those are the harder empty-skip-residue lemmas. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 49 (step 6w): the DECODER-side invariance is FALSE — the empty-skip wall (no-go)
+#check @Depth3.decodedSel_not_filter_invariant
+-- THE HONEST NO-GO blocking the hnf-free reconstruction via filter-transfer. decodedSel cs π reads vars
+-- carrying a false literal of a π-FALSIFIED clause; the live filter REMOVES ρ-falsified clauses. A ρ-dead
+-- clause (gone in cs') still contributes its fixed-false var to decodedSel cs π (π ⊇ ρ falsifies it too),
+-- which the decoder — given only π — cannot tell from a genuine path var. Witness: cs=[{x_{v₀}}], ρ≡false,
+-- decodedSel cs ρ = {v₀} ≠ ∅ = decodedSel (cs.filter live) ρ. So the deepest-branch forward-scan
+-- reconstruction GENUINELY needs hnf and CANNOT be made hnf-free via the filter (bricks 112/113's tree-side
+-- invariances do not extend to the decoder). CONSEQUENCE: the tight (2w)^s count via this reconstruction
+-- bounds only ALIVE deep ρ; covering all deep ρ needs a DIFFERENT disambiguating tight encoding (a tightened
+-- descentSat/codesList recording dead clauses — the crude (4^w+1)^F route disambiguates; the forward-scan
+-- does not). This pins the irreducible content precisely; not faked. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
