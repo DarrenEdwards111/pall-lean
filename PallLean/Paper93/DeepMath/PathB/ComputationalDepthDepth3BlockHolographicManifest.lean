@@ -121,6 +121,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessDecoder
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessLabel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ActiveTermIdx
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FreeLitPos
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1414,6 +1415,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- Clause. This completes the witness-extraction ingredient for the DEEPEST-path encode. REMAINING: assemble
 -- WitnessReconstructionCorrect (per-step position + activeTermIdx along the deepest branch + satisfy-step) →
 -- discharge deepest_count_of_witness (65) unconditionally → drop hnf from the whole tight arc. AC⁰, NOT PvNP.
+
+-- AC⁰ reduction brick 67 (step 27): the free-literal POSITION witness (per-step variable recovery)
+#check @SwitchingCounting.getElem_freeLitPos
+-- The second half of per-step witness recovery (brick 66 = clause; this = literal-in-term). The deepest
+-- branch selects litVar ℓ, ℓ = (freeLits σ T).head?. Since freeLits σ T = T.lits.filter (litFree σ), the
+-- filter head = T.lits.find? (litFree σ) (List.head?_filter), so the same findIdx/find? recovery: freeLitPos
+-- σ T := T.lits.findIdx (litFree σ); freeLitPos_lt (in range) + getElem_freeLitPos (T.lits[freeLitPos] = ℓ).
+-- COMPOSED with brick 66 (cs[activeTermIdx]=T): selected var = litVar (cs[activeTermIdx σ].lits[freeLitPos σ
+-- T]) — fully recovered from the (clause-index, position) witness, NO scan, NO hnf. This is the per-step
+-- correctness core. ALL per-step ingredients now complete: clause (66), position/var (67), hnf-free path (63),
+-- count (65), label card (64). REMAINING: the recursive deepest-branch encode + decode∘encode = deepestSel
+-- induction + WitLabel conversion → WitnessReconstructionCorrect → discharge deepest_count_of_witness (65)
+-- unconditionally → drop hnf from tight arc (50-62). AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
