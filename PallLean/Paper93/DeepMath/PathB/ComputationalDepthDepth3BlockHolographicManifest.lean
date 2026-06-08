@@ -96,6 +96,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3OneRoundDual
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityDepth3
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestWeightGain
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightSwitchingProb
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TreeBridge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1028,6 +1029,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- (s ≳ log#gates, F-independent). Remaining: reconcile canonicalDT (this bound) ↔ canonicalDTree (collapse
 -- arc) — port this tight cap into descent_switching_le / exists_shallow_all over the collapse's tree, then
 -- re-run the depth-3 assembly non-vacuously. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 42 (step 6p): the BoolDecisionTree ↔ DTree TYPE bridge
+#check @Depth3.toDTree        -- BoolDecisionTree n → DTree n (leaf↦leaf, query↦node)
+#check @Depth3.toDTree_eval   -- preserves eval ([propext])
+#check @Depth3.toDTree_depth  -- preserves depth ([propext])
+-- The two trees are STRUCTURALLY IDENTICAL (query i low high ↦ node i lo hi; both if x then high else low;
+-- both max+1). toDTree converts, preserving eval AND depth exactly. Unifies the TYPES the tight count
+-- (canonicalDT : BoolDecisionTree) and the collapse (canonicalDTree : DTree, dtreeToCNF) live in.
+-- HONEST: this bridges the type REPRESENTATIONS, NOT the two ALGORITHMS — canonicalDT (single-literal,
+-- re-checks each query) vs canonicalDTree (whole-block queryAll) have GENUINELY DIFFERENT depths (the block
+-- tree never stops mid-term, so depth_canonicalDTree ≥ depth_canonicalDT; equality is FALSE in general).
+-- So the depth-3 fix needs the collapse RE-EXPRESSED over toDTree (canonicalDT …) (where the tight cap
+-- applies) — this type bridge is the first clean step of that port; the algorithm-level work remains.
+-- AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
