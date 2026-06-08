@@ -101,6 +101,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseCoreTight
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentSwitchingTight
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomTail
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShellDecomp
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FilterFalsified
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1095,6 +1096,23 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- to the RESTRICTED formula g|ρ (dead terms removed, satisfied literals substituted), where alive holds by
 -- construction and canonicalDT g ρ = canonicalDT (g|ρ); this needs formula-restriction machinery. That is
 -- the real remaining content for a non-vacuous bound. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 47 (step 6u): the FORMULA-RESTRICTION machinery (alive resolution) — ALREADY BUILT
+#check @Depth3.canonicalDT_eq_filter         -- canonicalDT cs ρ = canonicalDT (cs.filter live) ρ
+#check @Depth3.canonicalDT_depth_eq_filter   -- DEPTHS equal: depth cs = depth (cs.filter live)
+#check @Depth3.deepestEnd_eq_filter          -- leaf equal
+#check @Depth3.deepestFullSeq_eq_filter      -- (2w)^s path equal
+#check @Depth3.activeStreamPar_eq_filter     -- active-clause stream equal
+#check @Depth3.hnf_filter                    -- ρ falsifies NO clause of its live sublist (ALIVE)
+-- The alive resolution from FilterFalsified.lean (clean): the canonical tree / leaf / full path / active
+-- stream all IGNORE ρ-falsified clauses, equalling those of the live sublist cs' = cs.filter (not falsified
+-- ρ), AND cs' is ALIVE by construction (hnf_filter). So the TREE/LEAF/PATH side of the alive condition is
+-- fully handled: depth(cs) = depth(cs'), and cs' satisfies the reconstruction's hnf. PRECISE RESIDUAL: the
+-- COUNT side — making reconstructionCorrect_fullpath / descent_switching_le_tight hnf-FREE — needs
+-- transferring deepestSel_recovered (SwitchingCount) through the filter (decoder over cs vs cs' via
+-- activeStreamPar_eq_filter); the live sublist cs' varies per ρ, so this is the residual empty-skip content
+-- (Dseq_first_clause_mem no-go's positive counterpart). All invariances built; the hnf-free reconstruction
+-- transfer is the last lemma. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
