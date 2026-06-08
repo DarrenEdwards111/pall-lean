@@ -100,6 +100,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TreeBridge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseCoreTight
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentSwitchingTight
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomTail
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShellDecomp
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1080,6 +1081,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- start at s (Ico reindex). Remaining for exists_shallow_all_tight: shell decomposition (∑_{depth≥s} =
 -- ∑_K ∑_{depth=K}) + per-shell descent_switching_le_tight (44) + this tail + the term-alive condition +
 -- union over gates. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 46 (step 6t): the SHELL DECOMPOSITION + the alive-condition analysis
+#check @Depth3.sum_filter_ge_eq_sum_shells  -- ∑_{g a ≥ s} f a = ∑_{K ∈ Icc s N} ∑_{g a = K} f a (g ≤ N)
+-- (1) SHELL DECOMPOSITION (done): a weighted sum over the deep set {depth ≥ s} partitions into depth-shells
+-- {depth = K}, K ∈ [s,N], via biUnion + sum_biUnion (fibers disjoint). With g = canonicalDT depth ≤ stars ≤
+-- n, gives ∑_{depth≥s} pweight = ∑_{K=s}^{n} ∑_{depth=K} pweight. Each shell ≤ descent_switching_le_tight
+-- (44); the tail sums via geom_shell_tail_le (45).
+-- (2) ALIVE CONDITION (the genuine structural gap, NOT faked): descent_switching_le_tight needs hnf — ρ
+-- falsifies NO term — because the deepest-branch reconstruction's forward scan assumes no dead clauses to
+-- skip (the "empty-skip wall", Dseq_first_clause_mem no-go). But {depth ≥ s} includes NON-ALIVE ρ (falsify
+-- some term, deep via the alive terms). Resolution (standard Håstad, NOT yet formalized): apply the count
+-- to the RESTRICTED formula g|ρ (dead terms removed, satisfied literals substituted), where alive holds by
+-- construction and canonicalDT g ρ = canonicalDT (g|ρ); this needs formula-restriction machinery. That is
+-- the real remaining content for a non-vacuous bound. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
