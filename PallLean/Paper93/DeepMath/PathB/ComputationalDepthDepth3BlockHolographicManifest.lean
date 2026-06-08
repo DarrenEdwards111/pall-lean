@@ -62,6 +62,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerMerge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CircuitSubst
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowAll
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfCircuit
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SingleRound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -667,6 +668,11 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.dnfToCircuit_eval  -- (dnfToCircuit g).eval = dnfValue g
 #check @Depth3.cnfToCircuit_eval  -- (cnfToCircuit g).eval = cnfValue g
 -- So dtreeToCNF (67) lands as a genuine depth-2 AND-of-ORs subcircuit, ready for the layer merge (69).
+
+-- AC⁰ reduction brick 8 (step 5h): THE SINGLE-ROUND COLLAPSE (assembly)
+#check @Depth3.single_round_collapse
+-- ∃ ρ, ∃ width-<s CNF computing (and (G.map dnfToCircuit)) on the ρ-subcube — an AND-of-bottom-DNFs
+-- collapses to depth 2 in one round. Ties the switching machinery (36-71) to the circuit substrate.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
