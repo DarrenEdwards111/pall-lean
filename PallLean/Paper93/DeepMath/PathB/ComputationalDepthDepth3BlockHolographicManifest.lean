@@ -12,6 +12,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CircuitBudget
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityRel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CircuitRestrict
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ClauseTree
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -148,11 +149,19 @@ eval-equality hypothesis — the restriction-application piece is discharged.
 proven to compute the conjunction (`termTree_eval`) with depth `≤` width (`termTree_depth`) — the
 literal/term-level bridge between the `blockStream` switching world and the `DTree` parity world.
 
-The single remaining piece for a literally unconditional `parity ∉ AC⁰` is the full descent assembly:
-gluing these term-trees across the canonical block descent into one `DTree` computing the DNF with depth
-`≤ #blocks · width` (so `circuit_collapse_budget`'s shallow `blockStream` yields a shallow `DTree` for
-the parity side).  That is the canonical-decision-tree depth bound — the genuinely large switching-lemma
-construction, honestly isolated, not faked.  AC⁰ ceiling; not P≠NP-strength.
+## Descent assembly, increment 1 + depth-2 parity bound (brick 24)
+
+`dnfTree` glues the term-trees (via `termTreeCont` continuations) into a *single* `DTree` computing the
+whole DNF (`dnfTree_eval`), with depth `≤ Σ widths` (`dnfTree_depth`), i.e. `≤ #clauses · w`
+(`dnfTree_depth_le_mul`).  Composing with the parity lower bound gives a **genuine, unconditional,
+complete** result:
+
+`dnf_parity_size_bound` — **a width-`≤ w` DNF computing parity needs `≥ n/w` terms** (`n ≤ #clauses · w`).
+
+This is the base case of the AC⁰ hierarchy (depth 2), fully proved.  The remaining increment toward
+general depth is increment 2: the *small*-depth bound (`≤ #blocks · width` with `#blocks` small after a
+good restriction), which prunes falsified clauses from the descent — the canonical-decision-tree depth
+bound, honestly isolated, not faked.  AC⁰ ceiling; not P≠NP-strength.
 
 ## Audit artifact (independent)
 
@@ -311,6 +320,17 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.DTree.clauseTree
 #check @Depth3.DTree.clauseTree_eval
 #check @Depth3.DTree.clauseTree_depth
+
+-- Brick 24: DNF → DTree (descent assembly, increment 1) + the depth-2 parity lower bound
+#check @Depth3.DTree.termTreeCont
+#check @Depth3.DTree.termTreeCont_eval
+#check @Depth3.DTree.termTreeCont_depth
+#check @Depth3.DTree.dnfTree
+#check @Depth3.DTree.dnfValue
+#check @Depth3.DTree.dnfTree_eval
+#check @Depth3.DTree.dnfTree_depth
+#check @Depth3.DTree.dnfTree_depth_le_mul
+#check @Depth3.DTree.dnf_parity_size_bound
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
