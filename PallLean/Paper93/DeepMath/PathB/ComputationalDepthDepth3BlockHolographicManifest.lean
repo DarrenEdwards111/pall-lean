@@ -59,6 +59,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DTreeToDNF
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DTreeToCNF
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ACircuit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerMerge
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CircuitSubst
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -647,6 +648,11 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.and_merge_depth  -- merge does not increase depth (drops by 1 when merged-in is deepest)
 #check @Depth3.or_merge_depth
 -- The depth reduction of one collapse round (the structural core; the per-gate switching is the assembly).
+
+-- AC⁰ reduction brick 5 (step 5e): the circuit substitution congruence (tree surgery)
+#check @Depth3.and_map_eval  -- replacing each AND-child by an eval-equiv circuit preserves the function
+#check @Depth3.or_map_eval   -- (dual for OR)
+-- The surgery correctness: each bottom gate ↦ its switching-converted CNF/DNF, function preserved.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
