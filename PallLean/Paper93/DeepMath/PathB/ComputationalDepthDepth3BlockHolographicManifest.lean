@@ -58,6 +58,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityRefuteConcr
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DTreeToDNF
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DTreeToCNF
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ACircuit
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerMerge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -639,6 +640,13 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.ACircuit.depth   -- gate (alternation) depth
 #check @Depth3.ACircuit.bottomWidth  -- fan-in just above the literals (what switching acts on)
 -- The object the multi-round collapse recurses on; bottom DNF/CNF → DT → narrow CNF/DNF drops depth.
+
+-- AC⁰ reduction brick 4 (step 5d): the layer merge (two adjacent same-gate layers collapse)
+#check @Depth3.and_merge_eval   -- AND (AND a :: rest) = AND (a ++ rest) — function preserved
+#check @Depth3.or_merge_eval    -- OR (OR a :: rest) = OR (a ++ rest)
+#check @Depth3.and_merge_depth  -- merge does not increase depth (drops by 1 when merged-in is deepest)
+#check @Depth3.or_merge_depth
+-- The depth reduction of one collapse round (the structural core; the per-gate switching is the assembly).
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
