@@ -52,6 +52,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SwitchingProb
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PNormalize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowExists
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityRefute
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3StarPGF
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -598,6 +599,10 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.parity_refuted_by_switching
 -- switching bound < (weight of high-star σ) ⟹ a width-≤w DNF FAILS parity on some high-star subcube.
 -- The switching step of parity ∉ AC⁰ (concentration ∑_{s≤stars<F} pweight ≈ 1 is the stated hypothesis).
+
+-- Brick 63: branching holography, step 4u — the star count is Binomial(n,p) (concentration foundation)
+#check @Depth3.stars_pgf   -- ∑_ρ t^(stars ρ) · pweight p ρ = (t·p + (1-p))^n
+-- The PGF of the star count; tail bounds (Markov on t^stars) discharge brick 62's hbig hypothesis.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
