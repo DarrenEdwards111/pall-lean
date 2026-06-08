@@ -81,6 +81,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3StarTailExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowSurvivor
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerCollapseAt
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3OneRound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -852,6 +853,16 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- needs EquivOn at that ρ). The layer collapse with ρ GIVEN (shallowness as hypothesis), as collapse_core
 -- is single_round_collapse with ρ given. Feeding exists_shallow_survivor_extends's ρ into these yields one
 -- reduction round on the nested subcube — the unit the d-round loop iterates. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 27 (step 6a): ONE FULLY-ASSEMBLED REDUCTION ROUND (the loop unit)
+#check @Depth3.one_round_or
+-- From base τ + the conditional union-bound budget: ∃ ρ extending τ, k < stars ρ, a one-step Reduces
+-- collapsing the OR-of-AND-of-DNF layer to OR-of-CNFs on ρ's subcube, with Consistent/Nodup/width<s outputs.
+-- Wires together EVERYTHING: conditional switching (brick 25) → restriction-given collapse (brick 26) →
+-- spine (brick 20). A single round of the AC⁰ depth reduction is now a closed theorem assembled end-to-end
+-- on a NESTED subcube with survivors tracked. Remaining for unconditional parity∉AC⁰: threading the SHAPE
+-- between rounds (the collapse absorbs 2 levels, so OR-of-CNFs output ≠ next round's input shape; the
+-- recursion passes through d distinct layer shapes) — structural, not probabilistic. AC⁰ ceiling, NOT P≠NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
