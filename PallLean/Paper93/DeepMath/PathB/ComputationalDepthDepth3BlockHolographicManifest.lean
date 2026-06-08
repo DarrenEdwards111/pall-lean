@@ -132,6 +132,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfNotParityUncon
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityDepth3Uncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SurvivorExtendsUncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerCollapseUncond
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseOrExtendsUncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1553,6 +1554,13 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- choice) which nested_not_parity (62) can't supply (it assumes a FIXED tower; real collapse's next layer
 -- depends on the round's ρ) — that recursive construction is the genuine remaining structural piece (open even
 -- in the crude arc). depth-3 (d=1) is fully spelled (75/76). AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 78 (step 38): unconditional DUAL-EXTENDS collapse round (depth-4 round-2 step)
+#check @Depth3.collapse_to_dnf_layer_tight_extends_uncond
+-- The subcube-relative dual collapse (OR-of-CNF→DNF) — the round-2 step depth-4 needs (the friction depth-4
+-- surfaced: brick 75's dual collapse was full-domain; round 2 must EXTEND ρ₁). Runs collapse_core_or_tight on
+-- the conditional measure via exists_survivor_shallow_extends_uncond (36): ∃ρ, Extends τ ρ ∧ s≤stars ρ ∧
+-- (∀g∈G shallow) ∧ EquivOn ρ (gOr cnf)(dnf D) ∧ widths. No hnf/hleaf/hpos. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
