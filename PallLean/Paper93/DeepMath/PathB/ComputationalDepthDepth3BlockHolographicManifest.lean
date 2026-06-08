@@ -73,6 +73,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalFresh
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Layered
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfFresh
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerCollapseWF
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -761,6 +762,14 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- The DNF-side dual of brick 14. The dual collapse round emits a DNF (via De Morgan + negTree); these
 -- give its terms Nodup+Consistent, so the dual round's output also re-enters the next round well-formed.
 -- With bricks 14/15 the round-to-round preservation is closed for BOTH alternation parities.
+
+-- AC⁰ reduction brick 19 (step 5s): the WELL-FORMEDNESS-PRESERVING layer collapse (precondition closure)
+#check @Depth3.Layered.collapse_or_layer_wf   -- OR-layer collapse + outputs are Consistent & Nodup-var
+#check @Depth3.Layered.collapse_and_layer_wf  -- AND-layer collapse + outputs Consistent & Nodup-var (dual)
+-- collapse_*_layer (brick 17) wrapped to ALSO certify the collapsed clauses well-formed (via fresh
+-- canonical tree, bricks 15/18). With width<s, the output is a valid round input at w'=s — the exact
+-- precondition the depth induction iterates. Remaining: the induction wrapper (iterate, collect ρ's,
+-- eval-chain by simultaneous agreement — no composeR needed) + termination at depth-2 parity LB (brick 35).
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
