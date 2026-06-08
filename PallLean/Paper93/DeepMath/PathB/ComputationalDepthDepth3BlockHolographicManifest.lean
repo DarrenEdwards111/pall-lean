@@ -123,6 +123,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ActiveTermIdx
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FreeLitPos
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessReconstruct
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessSeqProps
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1444,6 +1445,18 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- GONE from the reconstruction: the witness names the live active term directly, no dead-clause scanning, no
 -- hnf. REMAINING: package the ℕ-seq into WitLabel w s m (Fin bounds pos<w, clauseIdx<m, length=s) → feed
 -- deepest_count_of_witness (65) → drop hnf from the tight arc. The math content is DONE here. AC⁰, NOT PvNP.
+
+-- AC⁰ reduction brick 69 (step 29): deepestWitSeq length = depth + entry bounds (packaging structurals)
+#check @Depth3.deepestWitSeq_length_eq_depth
+#check @Depth3.deepestWitSeq_bounds
+-- The structural facts to package deepestWitSeq (brick 68) into WitLabel w s m. deepestWitSeq_length:
+-- (deepestWitSeq cs F σ).length = (deepestFullSeq cs F σ).length (same control flow step-for-step) →
+-- deepestWitSeq_length_eq_depth = (canonicalDT cs F σ).depth; so on Bad {depth=s} length is exactly s.
+-- deepestWitSeq_bounds (hw : ∀T∈cs, T.lits.length≤w): every entry has position<w (freeLitPos_lt + hw via
+-- activeTerm_mem) and clause-index<cs.length (activeTermIdx_lt). Proofs: induction mirroring brick 68's simp
+-- structure (List.length_nil for the nil cases, List.mem_cons + rcases for bounds). These let the ℕ-seq be
+-- reindexed as Fin s → (Fin w × Bool × Fin m). REMAINING: the Fin conversion + round-trip → discharge
+-- deepest_count_of_witness (65) unconditionally. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
