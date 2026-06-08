@@ -63,6 +63,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CircuitSubst
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowAll
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfCircuit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SingleRound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RestrCompose
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -673,6 +674,13 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.single_round_collapse
 -- ∃ ρ, ∃ width-<s CNF computing (and (G.map dnfToCircuit)) on the ρ-subcube — an AND-of-bottom-DNFs
 -- collapses to depth 2 in one round. Ties the switching machinery (36-71) to the circuit substrate.
+
+-- AC⁰ reduction brick 9 (step 5i): restriction composition (multi-round bookkeeping)
+#check @Depth3.composeR                          -- compose per-round restrictions (ρ₁ overrides)
+#check @Depth3.agreeRestriction_composeR_left    -- agree composed ⟹ agree ρ₁
+#check @Depth3.agreeRestriction_composeR_right    -- agree composed ⟹ agree ρ₂ (ρ₂ on ρ₁-free)
+#check @Depth3.stars_composeR_le                 -- composition fixes ≥ ρ₁ (no more stars)
+-- The bookkeeping the multi-round iteration threads (compose restrictions, chain agreement, track stars).
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
