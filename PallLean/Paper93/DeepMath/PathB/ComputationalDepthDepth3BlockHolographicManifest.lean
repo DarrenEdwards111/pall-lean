@@ -79,6 +79,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TowerParity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PWeightExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3StarTailExtends
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowSurvivor
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -831,6 +832,17 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- shallow-existence-extending-τ (23) + survivor concentration (24). Remaining: combine 23+24 into one
 -- existence (good AND high-star, extending τ), then the nested d-round iteration (Reduces) + brick 21
 -- capstone for unconditional parity∉AC⁰. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 25 (step 5y): THE CONDITIONAL SWITCHING PRIMITIVE (shallow + survivor + extends τ)
+#check @Depth3.exists_shallow_survivor_extends
+-- #gates·cap + (low-survivor weight) < ((1-p)/2)^(n-stars τ) ⟹ ∃ ρ, Extends τ ρ ∧ every gate shallow ∧
+-- k < stars ρ. The union bound excludes TWO bad events on the conditional measure: a deep gate (capped by
+-- descent_switching_le, brick 60) or low survivors (the brick 24 lower-tail weight). Combines bricks 23+24.
+-- The conditional switching primitive is COMPLETE (bricks 22-25): switching can now be applied relative to
+-- a subcube with survivor count under control — exactly tower_not_parity's coordinate-budget input (brick 21).
+-- Remaining (assembly, no new hard math): the nested d-round iteration applying this with τ = prior round's
+-- restriction, threading via Reduces + re-establishing gate hyps (bricks 14/15/18/19), to an unconditional
+-- parity∉AC⁰. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
