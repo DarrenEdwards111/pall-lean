@@ -41,6 +41,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentSat
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentPeel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentInject
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MaskCode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -533,6 +534,12 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.descent_count            -- |Bad| ≤ |Short| · |Labels| (framework, via injectivity)
 #check @Depth3.card_masks_supported_le  -- per-block: masks supported on S number ≤ 3^|S|
 -- NOTE: the global |Labels| ≤ (3^w)^s (position-encoding) and the p-biased measure remain open.
+
+-- Brick 52: branching holography, step 4j — term-relative mask code (bridge to (3^w)^s)
+#check @Depth3.maskOnTerm
+#check @Depth3.maskFromTerm
+#check @Depth3.maskFromTerm_maskOnTerm   -- (term, code) recovers the mask
+#check @Depth3.descentMask_recover       -- descent masks are term-relative-codable
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
