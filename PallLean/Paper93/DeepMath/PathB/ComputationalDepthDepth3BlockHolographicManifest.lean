@@ -107,6 +107,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DecodedSelNoGo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightSwitchingBudget
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowAllTight
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightCollapseRound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightBudgetSat
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1182,6 +1183,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- linarith; then obtain witness + collapse_core_tight per gate. Carries the per-gate alive/leaf/pos hyps =
 -- the empty-skip wall (brick 49), explicit. So this is ONE F-independent collapse round CONDITIONAL on the
 -- wall — the existence step the iteration spine chains down to depth 2. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 53 (step 13): the tight budget is SATISFIABLE — the depth-3 vacuity is REMOVED
+#check @Depth3.tight_round_budget_satisfiable
+-- THE CONCRETE PAYOFF of bricks 50-52. depth3_budgets_unsatisfiable proved the CRUDE (4^w+1)^F cap forces
+-- s>F>n (since n<F and labels≥2^F), contradicting s≤k<n — that was WHY parity_not_depth3 is vacuous. This
+-- exhibits a concrete point where the F-INDEPENDENT tight threshold (the LITERAL tight_collapse_round /
+-- exists_shallow_all_tight hypothesis #gates·r^s/(1-r)<1, r=4pw/(1-p)) holds TOGETHER with s≤k<n: witness
+-- p=1/8, w=1 (r=4/7<1), #gates=4, s=5, k=5, n=100 → 4·(4/7)^5/(3/7)=28672/50421≈0.569<1, 5≤5<100. Proof:
+-- refine ⟨1/8,1,5,5,100,4, ...⟩ <;> norm_num. So the tight cap ADMITS the regime s≤k<n the crude cap
+-- FORBADE — threshold s≳log#gates, no F, room below survivors ≈p·n. HONEST: this shows the THRESHOLD is
+-- satisfiable; a closed parity∉AC0 still needs the canonicalDT↔canonicalDTree reconciliation (tight count is
+-- over single-literal canonicalDT; spine tower_not_parity needs block canonicalDTree shallowness, and
+-- depth canonicalDTree ≥ depth canonicalDT runs the wrong way for a free bridge) — the remaining substantial
+-- gate, flagged not faked. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
