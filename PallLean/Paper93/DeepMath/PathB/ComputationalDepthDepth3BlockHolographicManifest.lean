@@ -40,6 +40,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BadCard
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentSat
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentPeel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentInject
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -527,6 +528,11 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.recoverσ
 #check @Depth3.descentSat_recover
 #check @Depth3.descentSat_injective   -- σ ↦ (descentSat, descentSatMasks) is injective
+
+-- Brick 51: branching holography, step 4i — the count + per-block label cardinality
+#check @Depth3.descent_count            -- |Bad| ≤ |Short| · |Labels| (framework, via injectivity)
+#check @Depth3.card_masks_supported_le  -- per-block: masks supported on S number ≤ 3^|S|
+-- NOTE: the global |Labels| ≤ (3^w)^s (position-encoding) and the p-biased measure remain open.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
