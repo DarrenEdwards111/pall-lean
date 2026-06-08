@@ -31,6 +31,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PathLocality
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepInput
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockDecode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentDecode
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -482,6 +483,10 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.descentFinal
 #check @Depth3.descentLabels
 #check @Depth3.descent_decode                   -- labels.reverse.foldl resetVars final = σ
+
+-- Brick 42: branching holography, step 3c — label-space quantitative bridges
+#check @Depth3.descentLabels_flatten_length     -- total label content = pathLen
+#check @Depth3.descentLabels_label_le_w          -- each label ≤ w
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
