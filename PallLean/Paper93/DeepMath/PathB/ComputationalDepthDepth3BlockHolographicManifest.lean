@@ -95,6 +95,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3IteratedReduction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3OneRoundDual
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityDepth3
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestWeightGain
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightSwitchingProb
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1015,6 +1016,18 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- form of the deepest-branch reconstruction (the (2w)^s LABEL half — fullpath reconstruction summed against
 -- pweight over deepestEnd), then reconcile canonicalDT (tight count) ↔ canonicalDTree (collapse) depth.
 -- Substantial bridge between two parallel formalizations; not faked. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 41 (step 6o): the TIGHT p-biased switching bound (label half + assembly)
+#check @Depth3.deepest_switching_weighted_of_reconstruction  -- ∑_Bad pweight(deepestEnd) ≤ (2w)^s·∑_Short
+#check @Depth3.tight_descent_switching_prob  -- ∑_Bad pweight ≤ (2p/(1-p))^s·(2w)^s·∑_Short  (TIGHT cap!)
+-- The label HALF (weighted): replay the reconstruction injection σ↦(deepestEnd σ, lab σ) against pweight
+-- (descent_switching_prob step3, but with the tight (2w)^s PathLabel space, not (4^w+1)^F). Combined with
+-- the weight half (brick 40, pweight_le_ratio_pow_deepestEnd): TIGHT p-biased bound with cap (2p/(1-p))^s·
+-- (2w)^s — tied to tree DEPTH, not fuel. ReconstructionCorrect dischargeable by sorry-free
+-- reconstructionCorrect_fullpath. This is the bound that makes the depth-3 budget #gates·cap < 1 SATISFIABLE
+-- (s ≳ log#gates, F-independent). Remaining: reconcile canonicalDT (this bound) ↔ canonicalDTree (collapse
+-- arc) — port this tight cap into descent_switching_le / exists_shallow_all over the collapse's tree, then
+-- re-run the depth-3 assembly non-vacuously. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
