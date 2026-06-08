@@ -24,6 +24,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalDepthSta
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SwitchingBridgeObstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BridgeNoGo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityDnfExp
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -443,6 +444,11 @@ namespace PallLean.Paper93.DeepMath.PathB
 
 -- Brick 34: half the inputs have odd parity (minterm-route foundation)
 #check @Depth3.parity_true_card
+
+-- Brick 35: the EXPONENTIAL parity DNF lower bound (unconditional, no switching lemma)
+#check @Depth3.term_covers_of_sat
+#check @Depth3.sat_determines
+#check @Depth3.parity_dnf_size_ge   -- 2^(n-1) ≤ #terms for any DNF computing parity
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
