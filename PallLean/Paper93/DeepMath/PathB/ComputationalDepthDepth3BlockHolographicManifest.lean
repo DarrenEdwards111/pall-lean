@@ -85,6 +85,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3OneRound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayeredMerge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseCoreList
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GateCollapse
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ReduceChain
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -896,6 +897,18 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- Reduces steps (brick 20) ready to chain. With the layer collapses (17/26) and the merge (28), the full
 -- set of one-round operations now exists. Remaining: the d-fold induction wiring them + parameter
 -- bookkeeping into brick 21 tower_not_parity. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 31 (step 6e): CHAINING NESTED ROUNDS (closes the logical spine of the loop)
+#check @Depth3.Layered.EquivOn_of_extends  -- a round's EquivOn ρ lifts to EquivOn σ when σ extends ρ
+#check @Depth3.Layered.Reduces.round       -- prepend one extended round to a σ-subcube reduction
+#check @Depth3.Layered.Reduces.two_rounds  -- two nested rounds compose into a Reduces (axiom-free)
+-- The connective turning a SEQUENCE of nested switching rounds into the single Reduces tower_not_parity
+-- (brick 86) consumes. Each round produces ρ_i; the loop runs them nested (ρ_{i+1} extends ρ_i), so the
+-- finest σ=ρ_m extends every ρ_i; agreement with σ ⟹ agreement with each ρ_i; so every round re-expresses
+-- at the COMMON σ and chains by Reduces with no nesting bookkeeping. THE LOGICAL SPINE OF THE d-FOLD LOOP
+-- IS NOW CLOSED: a d-round nested reduction = a fold of Reduces.round ending in tower_not_parity. Only the
+-- per-instance PARAMETER BOOKKEEPING remains (choosing p,s,k,F so the budget inequalities chain over the
+-- rounds + survivors stay above the shallow bound) — numeric, like brick 65's gap. AC⁰ ceiling, NOT P≠NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
