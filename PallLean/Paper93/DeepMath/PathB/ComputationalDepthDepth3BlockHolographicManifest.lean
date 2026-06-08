@@ -126,6 +126,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessReconstruc
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessSeqProps
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessDischarge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightSwitchingUncond
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightBudgetUncond
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1488,6 +1489,14 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- GONE FROM THE TIGHT SWITCHING BOUND. REMAINING: propagate through tight_switching_budget (50) → exists_-
 -- shallow_all_tight (51) → collapse (52/56) → depth-d parity∉AC0 (61/62) — each a rewrite (drop hnf/hleaf/hpos,
 -- (2w)^s→(2wm)^s, p≈1/(4wm)) → fully unconditional parity∉AC0. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 72 (step 32): the UNCONDITIONAL F-independent switching budget
+#check @Depth3.tight_switching_budget_uncond
+-- tight_switching_budget (50) with empty-skip hyps DROPPED: per-shell descent_switching_le_tight_uncond (71)
+-- summed via sum_filter_ge_eq_sum_shells + geom_shell_tail_le. tight_switching_budget_uncond {p}(hp0)(hp3)
+-- {w F s m}[NeZero w][NeZero m]{cs}(hw)(hm)(hr1: (2p/(1-p))·(2wm)<1) : ∑_{ρ: depth≥s} pweight ≤ r^s/(1-r),
+-- r=4pwm/(1-p). NO hnf/hleaf/hpos. F-independent at p≈1/(4wm). Empty-skip wall gone from the budget too.
+-- REMAINING: propagate through exists_shallow_all_tight (51)/collapse(56,59,60)/parity(61,62). AC⁰, NOT PvNP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
