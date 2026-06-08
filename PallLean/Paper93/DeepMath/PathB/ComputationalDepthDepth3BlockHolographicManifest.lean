@@ -3,6 +3,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockTightCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockSwitchingProb
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockCircuitCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DTreeSwap
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DepthReduction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -73,6 +74,15 @@ function (`eval_eq_dnf`, `eval_eq_cnf`).  Re-expressing the shallow DT from bric
 `∨∧ ↦ ∧∨` swap that merges the bottom two circuit layers — one depth-reduction step.  Clean axioms
 `[propext, Quot.sound]` (no `Classical.choice`).  This is genuine AC⁰ depth-reduction machinery; it
 tops out at AC⁰ and is not P≠NP-strength.
+
+## One depth-reduction step d → d-1 (brick 15)
+
+`DTree.depth_reduction_step`: the second half of depth reduction — the associativity collapse.  An
+unbounded-fan-in `AND` of depth-`≤ d` decision-tree gates is a *single* width-`≤ d` CNF
+(`flatMap toCNF`, `bigAnd_eq_cnf`), and dually `OR` of such gates is a single width-`≤ d` DNF
+(`flatMap toDNF`, `bigOr_eq_dnf`).  The gate layer is absorbed into the top connective (`AND`-of-`AND`s
+flattens), removing one alternation level — `d → d-1`.  Composed with the swap (brick 14) this is a full
+switching depth-reduction step.  Clean `[propext, Quot.sound]`; AC⁰ ceiling, not P≠NP-strength.
 
 ## Audit artifact (independent)
 
@@ -165,6 +175,13 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.DTree.eval_eq_cnf
 #check @Depth3.DTree.toCNF_width
 #check @Depth3.DTree.dnf_cnf_swap
+
+-- Brick 15: one full depth-reduction step d → d-1 (associativity collapse)
+#check @Depth3.DTree.bigAnd_eq_cnf
+#check @Depth3.DTree.bigAndCNF_width
+#check @Depth3.DTree.bigOr_eq_dnf
+#check @Depth3.DTree.bigOrDNF_width
+#check @Depth3.DTree.depth_reduction_step
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
