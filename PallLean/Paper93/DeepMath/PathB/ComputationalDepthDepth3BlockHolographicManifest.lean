@@ -71,6 +71,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RoundCompose
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FreshClauses
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalFresh
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Layered
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -737,6 +738,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- bricks 14/15 (preservation) + 11/13 (round_compose/composeR), iterating these is the d→2 recursion.
 -- Remaining: the d-fold induction itself (alternating the two collapses, threading ρ), terminate at the
 -- depth-2 parity LB (brick 35) + poly(w) base. Still AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 17 (step 5q): THE SIMULTANEOUS LAYER COLLAPSE (one shared restriction)
+#check @Depth3.Layered.collapse_core      -- ρ-given per-gate core: ρ shallow ⟹ flatMap dtreeToCNF works
+#check @Depth3.Layered.collapse_core_or   -- dual ρ-given core (negDNF/negTree)
+#check @Depth3.Layered.collapse_or_layer  -- OR of AND-of-DNF gates ⟶ OR of CNFs, ONE ρ (depth 4→3)
+#check @Depth3.Layered.collapse_and_layer -- AND of OR-of-CNF gates ⟶ AND of DNFs, ONE ρ (dual)
+-- THE missing recursion primitive: the union bound (exists_shallow_all) is taken over Gtot ⊇ every gate's
+-- DNFs, so a SINGLE ρ makes all bottom gates shallow at once and the whole layer's depth drops in lockstep
+-- (the per-gate brick 16 collapse alone gives a different ρ per gate). collapse_core factors out
+-- single_round_collapse's body so the shared ρ drives many gates; the any/all-congruence over `gates`
+-- assembles the layer. Iterating these two (alternating, threading ρ via round_compose/composeR, hyps
+-- preserved by bricks 14/15) is the d→2 recursion. Remaining: the depth-induction wrapper + termination
+-- at the depth-2 parity LB (brick 35) + poly(w) base. Still AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
