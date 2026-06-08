@@ -14,6 +14,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CircuitRestrict
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ClauseTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfRestrict
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3QueryTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -169,9 +170,19 @@ subcube (`ρ`-consistent inputs), and `restrictDnfTree_depth_le` bounds its dept
 smaller whenever the restriction kills clauses.  Built in the clean `Rung4Literal`/`DTree` world (no
 block-arc dependency), no `sorry`.
 
-The remaining increment 3 is the *adaptive* switching small-depth bound (`≤ #blocks · width`, `#blocks =
-blockStream length` small — the canonical decision tree with per-leaf restriction threading), the
-genuinely hard switching-lemma core, honestly isolated.  AC⁰ ceiling; not P≠NP-strength.
+## Descent assembly, increment 3 (the adaptive canonical tree) — step 1 (brick 26)
+
+`queryAll` is the per-block query mechanism: a complete binary subtree querying the active term's free
+variables, threading each leaf's assignment into a continuation.  `queryAll_eval` (runs the continuation
+on the leaf assignment `x` selects) and `queryAll_depth` (depth `≤ #vars + d`) are the two properties
+the adaptive tree needs per block.
+
+Remaining steps of increment 3 (built incrementally): the descent recursion (`canonicalDTree cs F σ`,
+fuel-based, mirroring `blockStream`, satisfying branch → true, falsifying branches recurse with the
+updated restriction); eval-correctness against the DNF (via the `killTerm`/`activeTerm` dichotomy); and
+the assembled depth bound `≤ blockStream.length · w` (feeding the parity bridge once `< s·w`).  The
+genuinely hard switching-lemma core, built honestly in small bricks; no `sorry`.  AC⁰ ceiling; not
+P≠NP-strength.
 
 ## Audit artifact (independent)
 
@@ -349,6 +360,11 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.DTree.restrictDnf_dnfValue
 #check @Depth3.DTree.restrictDnfTree_eval
 #check @Depth3.DTree.restrictDnfTree_depth_le
+
+-- Brick 26: per-block query subtree (descent assembly, increment 3, step 1)
+#check @Depth3.DTree.queryAll
+#check @Depth3.DTree.queryAll_eval
+#check @Depth3.DTree.queryAll_depth
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
