@@ -83,6 +83,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowSurvivor
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerCollapseAt
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3OneRound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayeredMerge
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseCoreList
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -876,6 +877,14 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- unconditional ⟹ a Reduces step (brick 20) on ANY subcube, so the merge chains for free after a collapse.
 -- This supplies the clean depth d→d-1 the loop needs. Remaining: the uniform d-fold induction wiring
 -- one_round + merge per level + parameter bookkeeping, to feed brick 21 tower_not_parity. AC⁰, NOT P≠NP.
+
+-- AC⁰ reduction brick 29 (step 6c): the LIST-FORM collapse cores (chaining adapter)
+#check @Depth3.Layered.collapse_core_list     -- AND-of-DNFs over a List Cs → one CNF (ρ given), width<s
+#check @Depth3.Layered.collapse_core_or_list  -- dual
+-- The collapse cores (brick 17) restated over a plain List instead of G.toList — the cores never used
+-- finiteness. A round's output gates arrive as a LIST (one per prior gate); these consume that shape
+-- directly, removing the List↔Finset friction that blocks chaining round i+1 onto round i's output.
+-- AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
