@@ -9,6 +9,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CircuitDepthReduc
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Parity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ACZeroParity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CircuitBudget
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityRel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -119,10 +120,21 @@ form) then one restriction in the `K`-star shell makes every gate's block-DT sha
 combines `circuit_collapse_exists` (union bound) with `sum_term_le` (closed Håstad tail), so the messy
 cumulative shell sum never appears.
 
-Remaining for a fully closed `parity ∉ AC⁰` theorem: chaining `d-2` such rounds with the survivor
-accounting (re-choosing the star probability each round so survivors stay `≥ s` while depth stays
-`< #survivors`).  The per-round budget and the whole structural pipeline are complete and
-machine-checked.  AC⁰ ceiling; not P≠NP-strength.
+## The cross-round core (brick 21)
+
+`parity_needs_full_depth_rel` is the invariant the multi-round argument carries forward: after fixing
+some variables (a restriction `ρ`), parity *restricted to the survivors* still needs depth
+`≥ #survivors`.  `circuit_not_parity_rel` is the relativized bridge (works mid-recursion, on
+`ρ`-consistent inputs).  `reduce_chain` shows any number of switching rounds compose by eval-transitivity
+(`EvalChain` + `evalChain_eval`), generalising `iterate_collapse`.
+
+What is now machine-checked: the **entire structural pipeline**, the **per-round quantitative budget**
+(`circuit_collapse_budget`), the **cross-round composition** (`reduce_chain`), and **both halves of the
+final contradiction** (`parity_needs_full_depth_rel` survives restriction; `circuit_not_parity_rel`
+applies it).  The last irreducible piece for a literally unconditional `parity ∉ AC⁰` is a formal
+restriction-application operation on the circuit model threaded through the rounds (so the per-round
+budget feeds `reduce_chain` automatically) plus the `blockStream`↔`DTree` model bridge — substantial
+engineering, not new mathematics.  AC⁰ ceiling; not P≠NP-strength.
 
 ## Audit artifact (independent)
 
@@ -258,6 +270,14 @@ namespace PallLean.Paper93.DeepMath.PathB
 
 -- Brick 20: the quantitative restriction budget (closed Håstad form, per-round existence)
 #check @Depth3.circuit_collapse_budget
+
+-- Brick 21: the relativized parity lower bound + multi-round chain (cross-round core)
+#check @Depth3.DTree.agreeRestriction
+#check @Depth3.DTree.parity_needs_full_depth_rel
+#check @Depth3.DTree.circuit_not_parity_rel
+#check @Depth3.EvalChain
+#check @Depth3.evalChain_eval
+#check @Depth3.reduce_chain
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
