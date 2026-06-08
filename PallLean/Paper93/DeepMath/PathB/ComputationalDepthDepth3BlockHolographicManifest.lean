@@ -117,6 +117,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightLayerExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightCollapseOr
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightParityDepth3
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightNested
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessDecoder
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1348,6 +1349,25 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- the COMPLETE tight depth-d Håstad/Razborov reduction skeleton; instantiating C/hround/hterm for a concrete
 -- circuit family is bookkeeping. HONEST: each input carries the empty-skip wall (brick 49) on its gates —
 -- the irreducible switching-lemma content, carried openly throughout. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 63 (step 23): the LIVE-WITNESS DECODER — hnf-FREE reconstruction (empty-skip fix)
+#check @SwitchingCounting.decodedSel_filter_eq_replaySel
+-- THE MINIMAL-LABEL FIX for the empty-skip wall (brick 49), per the agreed direction (witness, not expander).
+-- Wall: decodedSel cs π reads false-lit vars of EVERY falsified clause → dead clauses (falsified by base ρ,
+-- off-path) give ghost vars indistinguishable from path vars → forced hnf throughout. FIX: decode against the
+-- LIVE sublist cs' := cs.filter (¬termFalsified ρ ·). Filter-invariances replayPath_filter_eq/replaySel_-
+-- filter_eq (via activeTerm_filter_eq, since the running state always EXTENDS ρ — replayPath_extends — and
+-- termFalsified is monotone) + cs' alive by construction (hnf_filter) ⟹ decodedSel_eq_replaySel applies to
+-- cs' with NO hnf on cs. RESULT (UNCONDITIONAL in cs): decodedSel (cs.filter (¬termFalsified ρ ·))
+-- (replayPath cs ρ s) = replaySel cs ρ s. So the decoder recovers the true path-selected set WITH DEAD
+-- CLAUSES PRESENT — the wall discharged at the decoder level, witness = "which clauses are live under ρ".
+-- Proof: replayPath_extends (selected vars are ρ-free via replaySel_subset_freeVars + replayPath_eq_outside);
+-- activeTermLit/replayStep/replayPath/replaySel filter_eq by induction (activeTerm_filter_eq + termFalsified_
+-- mono); main = rw[←replayPath_filter_eq, decodedSel_eq_replaySel (hnf_filter), replaySel_filter_eq]. Clean
+-- first try. REMAINING: encode the witness in the label (live set depends only on ρ, path touches ≤s clauses,
+-- so per-step active-clause witness keeps count F-independent (Cw)^s) + thread through reconstructionCorrect_
+-- fullpath to drop hnf from the tight count. Expander/Ramanujan = Plan B only if naive witness blows up.
+-- AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
