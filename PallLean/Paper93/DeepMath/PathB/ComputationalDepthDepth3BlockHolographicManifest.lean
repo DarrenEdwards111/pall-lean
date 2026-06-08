@@ -122,6 +122,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessLabel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ActiveTermIdx
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FreeLitPos
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessReconstruct
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1428,6 +1429,21 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- count (65), label card (64). REMAINING: the recursive deepest-branch encode + decode∘encode = deepestSel
 -- induction + WitLabel conversion → WitnessReconstructionCorrect → discharge deepest_count_of_witness (65)
 -- unconditionally → drop hnf from tight arc (50-62). AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 68 (step 28): the WITNESSED RECONSTRUCTION CORRECTNESS — hnf-FREE (the heart)
+#check @Depth3.witDecode_deepestWitSeq
+-- THE MATHEMATICAL HEART of dropping hnf. deepestWitSeq cs F σ = the deepest-branch witness: per step
+-- (freeLitPos σ T, activeTermIdx cs σ) (literal position in term, term index in cs), mirroring deepestSel's
+-- recursion. witDecode cs seq = read off litVar (cs[clauseIdx]?.bind (·.lits[pos]?)) per pair (Option-form,
+-- no proofs). THEOREM (UNCONDITIONAL, no hnf): witDecode cs (deepestWitSeq cs F σ) = deepestSel cs F σ. Proof:
+-- induction on fuel mirroring deepestSel's recursion (by_cases anyTermSat; cases activeTerm; cases head?;
+-- by_cases depth-compare); per step the witDecode match resolves to some ℓ via hc (cs[activeTermIdx]?=some T,
+-- getElem_activeTermIdx brick 66) + hp (T.lits[freeLitPos]?=some ℓ, getElem_freeLitPos brick 67), giving
+-- insert (litVar ℓ) (witDecode child) = insert (litVar ℓ) (deepestSel child) by IH. Clean (simp only
+-- [deepestWitSeq, deepestSel, ...] unfolds only the fuel+1 top, not the fuel child). The EMPTY-SKIP WALL IS
+-- GONE from the reconstruction: the witness names the live active term directly, no dead-clause scanning, no
+-- hnf. REMAINING: package the ℕ-seq into WitLabel w s m (Fin bounds pos<w, clauseIdx<m, length=s) → feed
+-- deepest_count_of_witness (65) → drop hnf from the tight arc. The math content is DONE here. AC⁰, NOT PvNP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
