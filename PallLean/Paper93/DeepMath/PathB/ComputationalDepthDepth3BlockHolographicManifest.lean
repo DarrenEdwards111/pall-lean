@@ -76,6 +76,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfFresh
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerCollapseWF
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Reduces
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TowerParity
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PWeightExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -797,6 +798,17 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- open analytic input behind both is the COORDINATE BUDGET (σ retains > shallow-bound survivors after d
 -- rounds), needing subcube-relative switching. This is the honest statement of what the machinery delivers
 -- GIVEN that budget; it is not a standalone parity∉AC⁰ (which requires discharging the budget). AC⁰, not P≠NP.
+
+-- AC⁰ reduction brick 22 (step 5v): CONDITIONING the p-biased measure (subcube-relative switching primitive)
+#check @Depth3.extBox                -- restrictions extending τ (free on τ-free coords, = τ elsewhere)
+#check @Depth3.mem_extBox            -- σ ∈ extBox τ ↔ Extends τ σ
+#check @Depth3.pweight_sum_extends   -- ∑_{σ extends τ} pweight p σ = ((1-p)/2)^(n - stars τ)
+-- The enabling fact for the coordinate budget: conditioning on "extends τ" FACTORS — each coord τ fixes
+-- contributes (1-p)/2, each free coord normalises to 1. Dividing the unconditional descent bound
+-- (descent_switching_le, brick 60) by this constant gives a CONDITIONAL switching bound on τ's subcube —
+-- the step toward iterating switching over NESTED free sets (each round on the prior round's survivors),
+-- which is what the d-round coordinate budget (brick 21's open input) requires. Remaining: conditional
+-- existence of a good high-star restriction extending τ, then the nested d-round iteration. AC⁰, not P≠NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
