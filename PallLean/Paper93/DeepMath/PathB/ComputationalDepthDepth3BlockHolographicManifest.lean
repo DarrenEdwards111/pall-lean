@@ -20,6 +20,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalSound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalComplete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalParity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalManifest
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalDepthStars
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -211,7 +212,8 @@ parity-depth `≥ stars σ`.
 **Honest finding on the tight bound.**  The clean deterministic `≤ blockStream.length · w` bound does
 *not* hold — the adaptive tree branches (per-leaf restriction threading), whereas `blockStream` is a
 single `killTerm` path.  The genuinely tight deterministic bound is `depth ≤ stars σ` (the `w` factor is
-spurious), but parity forces `depth ≥ stars σ`, so the two *match*: a single restriction yields no
+spurious) — now **proved** as `canonicalDTree_depth_le_stars` (brick 32, for distinct-variable clauses).
+But parity forces `depth ≥ stars σ` (brick 30), so the two *match*: a single restriction yields no
 contradiction, and parity is genuinely depth-`stars σ`-computable.  The AC⁰ lower bound therefore needs
 the **probabilistic** ingredient — that *most* restrictions make the descent short
 (`block_switching_count_tight`, `circuit_collapse_budget`, bricks 1–13, 20) — bridged to this tree over
@@ -427,6 +429,9 @@ namespace PallLean.Paper93.DeepMath.PathB
 
 -- Brick 31: the adaptive canonical switching package (culmination)
 #check @Depth3.adaptive_canonical_switching
+
+-- Brick 32: the tight w-free depth bound (depth ≤ stars σ, distinct-variable clauses)
+#check @Depth3.canonicalDTree_depth_le_stars
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
