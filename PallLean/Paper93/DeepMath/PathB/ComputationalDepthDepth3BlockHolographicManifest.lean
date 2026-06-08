@@ -97,6 +97,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityDepth3
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestWeightGain
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightSwitchingProb
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TreeBridge
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseCoreTight
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1043,6 +1044,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- So the depth-3 fix needs the collapse RE-EXPRESSED over toDTree (canonicalDT …) (where the tight cap
 -- applies) — this type bridge is the first clean step of that port; the algorithm-level work remains.
 -- AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 43 (step 6q): the COLLAPSE CORE over the tight-count tree (the port)
+#check @Depth3.dnfEval_eq_dnfValue   -- dnfEval cs = DTree.dnfValue cs (the DNF-semantics bridge)
+#check @Depth3.collapse_core_tight   -- dtreeToCNF (toDTree (canonicalDT cs F ρ)) computes cs on ρ-subcube, width<s
+-- THE COLLAPSE PORT (option 2): the per-gate collapse re-expressed over toDTree (canonicalDT cs F ρ) — the
+-- DTree image of the SINGLE-LITERAL canonical tree, which is the tree the TIGHT (2w)^s count
+-- (tight_descent_switching_prob) is about. eval via canonicalDT_eval (single-literal tree computes the DNF
+-- on extensions) + toDTree_eval (42) + dnfEval_eq_dnfValue (evalLits=List.all) + Rung4Restriction.Extends ≡
+-- agreeRestriction; width via dtreeToCNF_width + toDTree_depth. One gate collapses to a width-<s CNF whose
+-- tree is canonicalDT, and the shallowness hyp depth(canonicalDT)<s is EXACTLY what the tight count delivers
+-- (no (4^w+1)^F). Remaining: exists_shallow_all_tight (union bound with the tight cap over canonicalDT) +
+-- re-run the layer collapse / depth-3 with this core → genuine non-vacuous parity∉AC⁰. The crude-vs-tight
+-- obstruction is now structurally bridged. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
