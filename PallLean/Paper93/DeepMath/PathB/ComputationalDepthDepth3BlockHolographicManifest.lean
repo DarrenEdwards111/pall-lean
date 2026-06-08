@@ -102,6 +102,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentSwitchingT
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomTail
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShellDecomp
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FilterFalsified
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestSelFilter
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1113,6 +1114,17 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- activeStreamPar_eq_filter); the live sublist cs' varies per ρ, so this is the residual empty-skip content
 -- (Dseq_first_clause_mem no-go's positive counterpart). All invariances built; the hnf-free reconstruction
 -- transfer is the last lemma. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 48 (step 6v): deepestSel ignores ρ-falsified clauses (hnf-free RHS piece)
+#check @Depth3.deepestSel_eq_filter       -- deepestSel cs σ = deepestSel (cs.filter live) σ
+#check @Depth3.deepestSel_eq_filter_self  -- the ρ=σ instance: deepestSel cs ρ = deepestSel (cs.filter live ρ) ρ
+-- The TARGET-side invariance of a hnf-free deepestSel_recovered: the selected set the decoder must recover
+-- equals that of the live sublist cs' (alive, hnf_filter). Same control-flow proof as deepestEnd_eq_filter
+-- (anyTermSat/activeTerm/freeLits.head?/depth-comparison all filter-invariant). With deepestEnd_eq_filter +
+-- deepestFullSeq_eq_filter (112), the LEAF, PATH, and now the recovered SET are all filter-invariant.
+-- REMAINING for hnf-free reconstruction: the DECODER-side (LHS) invariances — decodedSel cs π = decodedSel
+-- cs' π and recoverStream cs = recoverStream cs' (the forward-scan pieces, via activeStreamPar_eq_filter);
+-- those are the harder empty-skip-residue lemmas. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
