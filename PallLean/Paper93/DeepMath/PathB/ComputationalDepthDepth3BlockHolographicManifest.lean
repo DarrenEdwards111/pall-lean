@@ -64,6 +64,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowAll
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfCircuit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SingleRound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RestrCompose
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Negate
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -681,6 +682,11 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.agreeRestriction_composeR_right    -- agree composed ⟹ agree ρ₂ (ρ₂ on ρ₁-free)
 #check @Depth3.stars_composeR_le                 -- composition fixes ≥ ρ₁ (no more stars)
 -- The bookkeeping the multi-round iteration threads (compose restrictions, chain agreement, track stars).
+
+-- AC⁰ reduction brick 10 (step 5j): literal/De Morgan negation (bridge to the dual round)
+#check @Depth3.negLit                     -- literal negation (pos ↔ neg)
+#check @Depth3.cnfValue_eq_not_dnfValue   -- cnfValue g = ¬ dnfValue (g with literals negated)
+-- A CNF round reduces to a DNF round on the negated gate — the dual of the single-round collapse.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
