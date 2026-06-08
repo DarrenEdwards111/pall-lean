@@ -45,6 +45,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MaskCode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CodeCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CodeCard
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PBiased
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PWeightStars
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -560,6 +561,11 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.pweight_pos
 #check @Depth3.stars_descentSat_le     -- boundary fixes more vars ⟹ ≤ stars (the gain's driver)
 -- NOTE: the quantitative weight-ratio gain (≥s) + summing the injection against pweight remain.
+
+-- Brick 56: branching holography, step 4n — the weight is a closed form in stars + the gain identity
+#check @Depth3.pweight_eq          -- pweight p ρ = p^(stars ρ) · ((1-p)/2)^(n - stars ρ)
+#check @Depth3.pweight_stars_gain  -- pweight ρ · (1-p)^d = pweight τ · (2p)^d, d = stars ρ - stars τ
+-- NOTE: still needed: #freed ≥ s on the bad event (reconcile descentSat block count) + summing.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
