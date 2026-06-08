@@ -78,6 +78,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Reduces
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TowerParity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PWeightExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowExtends
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3StarTailExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -818,7 +819,18 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- ANY bad set). Applying with τ = the previous round's restriction nests the survivor sets → the final
 -- common subcube is a single restriction. Remaining: a SURVIVOR LOWER BOUND (conditional star-tail
 -- concentration on τ-free coords) so stars ρ stays large, then the nested d-round iteration + brick 21's
--- capstone. The concentration is not yet proved (not papered over). AC⁰ ceiling, NOT P vs NP.
+-- capstone.
+
+-- AC⁰ reduction brick 24 (step 5x): CONDITIONAL star concentration (the survivor lower bound)
+#check @Depth3.stars_pgf_extends      -- ∑_{σ extends τ} t^stars·pweight = ((1-p)/2)^(n-starsτ)·(tp+1-p)^starsτ
+#check @Depth3.stars_tail_le_extends  -- conditional lower-tail Markov: Pr[stars σ ≤ k | extends τ] small
+-- Conditioned on extending τ the star count is Binomial(stars τ, p) (only τ-free coords survive): the
+-- τ-free coords give the PGF (tp+1-p)^starsτ, the fixed ones the conditioning constant ((1-p)/2)^(n-starsτ)
+-- (brick 22). Markov on t^stars (t<1) bounds Pr[stars ≤ k | extends τ], so a GOOD extending restriction
+-- (brick 23) keeps stars large. THE CONDITIONAL SWITCHING PRIMITIVE IS NOW COMPLETE: conditioning (22) +
+-- shallow-existence-extending-τ (23) + survivor concentration (24). Remaining: combine 23+24 into one
+-- existence (good AND high-star, extending τ), then the nested d-round iteration (Reduces) + brick 21
+-- capstone for unconditional parity∉AC⁰. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
