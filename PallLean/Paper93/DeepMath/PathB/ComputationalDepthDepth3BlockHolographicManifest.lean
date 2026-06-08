@@ -89,6 +89,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ReduceChain
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SwitchingProbExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowExtendsUnif
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShallowSurvivorUnif
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3OneRoundConcrete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -940,6 +941,16 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- THE FULL CONDITIONAL SWITCHING PRIMITIVE (uniform) IS DONE (bricks 22-25, 32-34). Remaining: the NUMERIC
 -- instantiation (pick p,t,s,w,F,k so the budget holds and survivors chain stars ρ_i ≳ p·stars ρ_{i-1} over
 -- d rounds > terminal bound) + wiring the loop via Reduces (96) into tower_not_parity (86). AC⁰, NOT P≠NP.
+
+-- AC⁰ reduction brick 35 (step 6i): CONCRETE one-round instantiation at p=1/5, t=1/2
+#check @Depth3.one_round_exists_p_fifth
+-- Fixes p=1/5 (so 2p/(1-p)=1/2) and t=1/2. One round fires from TWO clean separated conditions: a SIZE
+-- condition 2·(#gates·|Labels|) < 2^s (pure ℕ, the binding constraint — FULLY DISCHARGED: reduces the
+-- deep-budget to s > 1+log2(#gates·|Labels|)) and a SURVIVOR condition (9/10)^(stars τ) < (1/2)^(k+1) (the
+-- Chernoff tail of Binomial(stars τ, 1/5) at the chosen p,t — the honest analytic input the d-round chain
+-- propagates, not hidden). Proof discharges the budget via elementary ℚ inequalities (div_le_iff₀, pow_succ,
+-- the size cast). Pins the parameters; remaining: the survivor Chernoff bound + d-fold chaining of these
+-- rounds (survivors stars ρ_i ≳ (1/5)·stars ρ_{i-1}) + terminal → tower_not_parity. AC⁰, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
