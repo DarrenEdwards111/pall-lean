@@ -74,6 +74,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Layered
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DnfFresh
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayerCollapseWF
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Reduces
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -770,6 +771,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- canonical tree, bricks 15/18). With width<s, the output is a valid round input at w'=s — the exact
 -- precondition the depth induction iterates. Remaining: the induction wrapper (iterate, collect ρ's,
 -- eval-chain by simultaneous agreement — no composeR needed) + termination at depth-2 parity LB (brick 35).
+
+-- AC⁰ reduction brick 20 (step 5t): the MULTI-ROUND REDUCTION SPINE (axiom-free)
+#check @Depth3.Layered.Reduces          -- C reduces to C' at x via a chain of subcube-equivalences
+#check @Depth3.Layered.Reduces.eval_eq  -- a reduction equates the endpoints' values at x (NO axioms)
+#check @Depth3.Layered.Reduces.trans    -- reductions compose (NO axioms)
+#check @Depth3.Layered.Reduces.head     -- one EquivOn step (valid at x) is a one-step reduction
+-- The reflexive-transitive closure of one subcube-equivalence step at a fixed x. KEY: the eval-chain
+-- needs only that x lies in EVERY round's subcube simultaneously — no composeR/disjointness at the
+-- equivalence level. A caller iterates collapse_*_layer_wf, obtains each ρ, chains via Reduces.head/trans;
+-- eval_eq transports any property of the depth-2 endpoint back to the original tower.
+-- HONEST REMAINING GAP to parity∉AC⁰: (a) a uniform tower datatype to feed the chain across rounds;
+-- (b) the coordinate budget for the FINAL contradiction (the common subcube must keep a free variable
+-- after d rounds) — this needs SUBCUBE-RELATIVE switching (each round on the prior round's free coords),
+-- which exists_shallow_all (a full-domain restriction) does not yet provide. Not papered over.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
