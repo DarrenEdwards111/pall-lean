@@ -68,6 +68,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Negate
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3NegTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SingleRoundOr
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RoundCompose
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FreshClauses
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -706,6 +707,13 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.round_compose
 -- C=C' on ρ₁-subcube, C'=C'' on ρ₂-subcube (ρ₂ ⊆ ρ₁-free) ⟹ C=C'' on (composeR ρ₁ ρ₂)-subcube.
 -- Iterating this chains the per-round collapses down to the final shallow circuit (the d-fold eval chain).
+
+-- AC⁰ reduction brick 14 (step 5n): intermediate-hypothesis preservation (clause well-formedness)
+#check @Depth3.dtreeToCNF_litVars_subset  -- every clause var of dtreeToCNF t is queried in t
+#check @Depth3.dtreeToCNF_nodup           -- fresh tree ⟹ each clause's variable list is Nodup
+#check @Depth3.dtreeToCNF_consistent      -- fresh tree ⟹ each clause is Consistent (no pos&neg v)
+-- The single_round_collapse hypotheses (hcons/hnd) are preserved round-to-round: a *fresh* canonical
+-- tree yields consistent, distinct-variable clauses, so the collapsed CNF re-enters the next round.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
