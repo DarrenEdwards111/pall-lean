@@ -86,6 +86,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LayeredMerge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseCoreList
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GateCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ReduceChain
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SwitchingProbExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -909,6 +910,18 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- IS NOW CLOSED: a d-round nested reduction = a fold of Reduces.round ending in tower_not_parity. Only the
 -- per-instance PARAMETER BOOKKEEPING remains (choosing p,s,k,F so the budget inequalities chain over the
 -- rounds + survivors stay above the shallow bound) — numeric, like brick 65's gap. AC⁰ ceiling, NOT P≠NP.
+
+-- AC⁰ reduction brick 32 (step 6f): the SCALED CONDITIONAL switching bound (makes the budget uniform)
+#check @Depth3.descent_switching_prob_extends  -- boundary sum restricted to extBox τ via descentSat extends
+#check @Depth3.descent_switching_le_extends    -- ∑_{Bad⊆extBox τ} pweight ≤ cap · ((1-p)/2)^(n-stars τ)
+-- THE FIX for iteration. Brick 23/25 used the UNCONDITIONAL cap, so the budget #gates·cap < ((1-p)/2)^(n-
+-- stars τ) shrinks exponentially each round (unsatisfiable for round ≥ 2). Here the cap is SCALED by the
+-- conditioning mass: the switching injection sends deep σ to (descentSat σ, code), and descentSat σ EXTENDS
+-- σ, so for σ extending τ the boundary extends τ too ⟹ the boundary sum is over extBox τ (mass brick 22),
+-- not the whole space. Result: conditional deep-PROBABILITY ≤ cap, uniform in τ. Dividing the union bound
+-- by the conditioning mass now gives the round-INDEPENDENT budget #gates·cap < 1. This removes the loose-
+-- bound obstruction; the d-fold loop's budget chains uniformly. Remaining: re-derive the conditional
+-- existence with this scaled bound + the numeric instantiation. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
