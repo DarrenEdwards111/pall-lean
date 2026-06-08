@@ -104,6 +104,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ShellDecomp
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FilterFalsified
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestSelFilter
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DecodedSelNoGo
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightSwitchingBudget
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1139,6 +1140,21 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- bounds only ALIVE deep ρ; covering all deep ρ needs a DIFFERENT disambiguating tight encoding (a tightened
 -- descentSat/codesList recording dead clauses — the crude (4^w+1)^F route disambiguates; the forward-scan
 -- does not). This pins the irreducible content precisely; not faked. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 50 (step 10): the F-INDEPENDENT tight switching budget (the headline)
+#check @Depth3.tight_switching_budget
+-- ASSEMBLES the tight route's three preceding bricks into the headline F-independent bound:
+--   ∑_{ρ : depth ρ ≥ s} pweight p ρ  ≤  r^s/(1-r),   r := (2p/(1-p))·(2w) = 4pw/(1-p).
+-- per-shell descent_switching_le_tight (step 5: ∑_{depth=K} pweight ≤ r^K) + sum_filter_ge_eq_sum_shells
+-- (step 7: deep set partitions into shells K∈[s,F], depth bounded by canonicalDT_depth_le ≤ F) +
+-- geom_shell_tail_le (step 6: ∑_{K∈[s,F]} r^K ≤ r^s/(1-r), needs 0≤r<1). The (4^w+1)^F factor of the
+-- crude route — the F-dependence that made depth-3 VACUOUS (depth3_budgets_unsatisfiable: forces s>F>n) —
+-- is GONE: union-bound #gates·r^s/(1-r)<1 is s≳log #gates with no F. Tight regime r<1 ⟺ p<1/(4w+1),
+-- sharper than the crude p≤1/3 (hr1 hypothesis); 0≤r derived from 0≤p, 3p≤1. HONEST: the budget carries the
+-- GLOBAL alive hypothesis hnf (∀ρ, no falsified term) — the EMPTY-SKIP WALL that brick 49 proved cannot be
+-- discharged unconditionally (and pathLenBadGt_card_le carries on its cardinality side as hne). So this is
+-- the tight F-independent count CONDITIONAL on the empty-skip wall — the irreducible switching-lemma content,
+-- not a hidden gap. AC⁰ ceiling, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
