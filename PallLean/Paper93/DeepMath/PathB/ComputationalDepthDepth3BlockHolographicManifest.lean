@@ -192,6 +192,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityWCSeq2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityGeomREL
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafTowerCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MergeCountMul
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRoundCount2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2432,6 +2433,18 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- SMALL. REMAINING: the final geom assembly on hsurv_REL2_round (136) — s_i:=geomSchedB (stars), t constant
 -- (depth), gap (124) at s, union (125) at t. Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING,
 -- NOT P vs NP.
+
+-- AC⁰ reduction brick 138 (step 98): A COLLAPSE ROUND BOUNDS PER-GATE CLAUSE-COUNT BY M·2^t
+#check @Depth3.collapseRound_BottomCount
+-- The clause-count companion of collapseRound_count_le (90). collapseRound_BottomCount (F ρ){t M}{C}(hM1 : 1≤M)
+-- (hC : NonEmptyGates C)(hsh : Shallows F ρ t C)(hcnt : (bottomGates C).length≤M) : BottomCount (M·2^t)
+-- (collapseRound F ρ C). Proof (clean composition): collapseRound = mergePass∘leafCollapse; leafCollapse sets
+-- BottomCount 2^t (leafCollapse_tower_BottomCount 133) on NEG (leafCollapse_NonEmptyGates 130) with gate-count
+-- ≤ M (leafCollapse_bottomGates_length 126); mergePass_count_mul (134) → BottomCount (M·2^t). With t the SMALL
+-- depth threshold (135), M·2^t is CONSTANT (in n) → per-gate clause-count uniformly bounded → rate p=1/(8·t·M·
+-- 2^t) CONSTANT. So Valid can track BottomCount (M·2^t), giving hsurv_REL2_round's hmc. REMAINING: wc_seq3 (track
+-- BottomCount alongside AltO/width/gate-count) + final geom assembly on hsurv_REL2_round (136) with the constant
+-- rate. Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
