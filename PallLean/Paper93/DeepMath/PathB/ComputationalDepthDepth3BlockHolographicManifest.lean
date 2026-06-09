@@ -44,6 +44,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PosLabels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PosRecover
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PosValLabels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SwitchingProbFindep
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityRefuteFindep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EncodeInjective
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BadLabels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelNodup
@@ -925,6 +926,21 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- This is the F-independent depth-graded count route 2 set out to build — graded by canonicalDTree.depth
 -- (the MAX branch = right quantity for parity, unlike the block route). Clean [propext,Classical.choice,
 -- Quot.sound], no sorry. Remaining: [156] depth<s ⇒ DTreeSwap+ACZeroParity ⇒ parity. AC⁰, NOT P≠NP.
+
+-- AC⁰ reduction brick 156: F-INDEPENDENT switching REFUTES PARITY (route-2 payoff)
+#check @Depth3.descent_switching_findep_le
+#check @Depth3.parity_refuted_by_switching_findep
+-- The payoff of route 2. Brick 62 (parity_refuted_by_switching) refutes parity once the cap
+-- (2p/(1-p))^s·(4^w+1)^F drops below the high-star weight — but that cap is F-DEPENDENT (vacuous for large
+-- F, the depth-(d+2) regime). Here the F-INDEPENDENT bound (brick 155c) gives an F-INDEPENDENT cap:
+-- descent_switching_findep_le (global, τ=∅ instance of 155c): ∑_{σ∈Bad, depth≥s} pweight σ ≤ (r')^s/(1-r'),
+--   r'=(2p/(1-p))(4w+1)<1 [extBox(none)=univ, ∑=1 via pweight_sum_eq_one].
+-- parity_refuted_by_switching_findep: if (r')^s/(1-r') < ∑_{s≤stars σ<F} pweight σ, some high-star subcube
+--   witnesses dnfValue cs ≠ parity (mirrors brick 62 via canonicalDTree_depth_ge_of_parity). The cap NO
+--   LONGER GROWS WITH F, so the refutation survives the iterated/depth-graded regime — the whole point of
+--   route 2 (recall brick 140's depth-(d+2) bound was VACUOUS for d≥1 due to the m/F factor). The concentration
+--   hyp ∑_{s≤stars<F} pweight ≈ 1 is stated directly (standard). Clean [propext,Classical.choice,Quot.sound],
+--   no sorry. AC⁰ ceiling (cruder 4^w base vs Håstad poly(w)); NOT P≠NP.
 
 -- Brick 55: branching holography, step 4m — the p-biased measure + star-count driver
 #check @Depth3.pweight                 -- p-biased weight ∏ v, (if free then p else (1-p)/2)
