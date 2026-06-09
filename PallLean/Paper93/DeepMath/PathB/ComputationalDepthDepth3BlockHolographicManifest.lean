@@ -178,6 +178,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BudgetExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SurvivorExtendsRel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsurvRoundRel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityREL
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomGap
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2218,6 +2219,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- exp/log, NO consistency/nodup — every structural+probabilistic piece of Håstad/Razborov switching is PROVEN;
 -- what remains is exactly the Chernoff GAP (next threshold below the mean) ∧ the box-free UNION bound at each
 -- reachable tower (satisfiable in the standard regime: geometric threshold D>7/p, gate-count bound + s large).
+-- Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 124 (step 84): THE CHERNOFF GAP FROM THE GEOMETRIC SCHEDULE
+#check @Depth3.geomSchedB_gap
+-- The Chernoff gap 7·s_{i+1} < s_i·p of the relative capstone (123) holds for the base-D geometric schedule
+-- (113) once the contraction beats 7/p — (D:ℚ)·p > 7 — and the threshold hasn't floored (D ≤ geomSchedB D N i,
+-- i.e. N ≥ D^(i+1)). geomSchedB_gap {p}{D N i}(hp1 : p≤1)(hDp : 7 < (D:ℚ)·p)(hN : D ≤ geomSchedB D N i) : 7·
+-- (geomSchedB D N (i+1):ℚ) < (geomSchedB D N i:ℚ)·p. KEY IDENTITY: N/D^(i+1) = (N/D^i)/D (Nat.div_div_eq_div_mul
+-- + pow_succ), so s_{i+1}=⌊s_i/D⌋ and 7·⌊s_i/D⌋ ≤ 7·s_i/D < s_i·p exactly when D·p>7. Proof: hDp+hp1 → D≥8
+-- (nlinarith); hN+geomSchedB=max 1 → q=N/D^i≥D (omega), s_i=q, s_{i+1}=⌊q/D⌋ (≥1); Nat.div_mul_le_self ⌊q/D⌋·D
+-- ≤ q cast → nlinarith [hbd, hDp, mul_lt_mul_of_pos_left, mul_le_mul_of_nonneg_left]. So the gap is satisfiable:
+-- pick D > 7/p (= 56wm at p=1/(8wm)) and N ≥ D^(d+1) (n exponential in d, the Håstad size). REMAINING: the
+-- union bound hh2 (card·CAP^s/(1-CAP)<1/2) at the schedule (gate-count bound + s large) + final seq assembly.
 -- Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
