@@ -183,6 +183,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3H2Schedule
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GateCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BottomNonempty
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3NonEmptyGates
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MergeCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2289,6 +2290,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- recurse). AXIOM-FREE. The clean degeneracy guard the merge count-reduction needs. REMAINING: leafCollapse
 -- preserves NonEmptyGates (structure unchanged) + mergePass_count_le under NonEmptyGates → collapseRound_count
 -- _le → uniform M for h2_of_count_pow (125). Clean (no axioms), no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 129 (step 89): THE MERGE DOES NOT INCREASE THE BOTTOM-GATE COUNT
+#check @Depth3.bottomGates_length_pos_NEG
+#check @Depth3.mergePass_count_le
+-- The merge half of the gate-count invariant. bottomGates_length_pos_NEG (h : NonEmptyGates C) : 1 ≤ (bottom
+-- Gates C).length (induction on the NEG predicate: dnf/cnf [_]; gAnd/gOr hne → gs=g₀::gs', length_append + ih).
+-- mergePass_count_le (mutual with list) : NonEmptyGates C → (bottomGates (mergePass C)).length ≤ (bottomGates
+-- C).length. some-case: gAnd-of-cnf/gOr-of-dnf flattens to ONE gate, count 1 ≤ count (gAnd/gOr gs) via length
+-- _pos_NEG (genuine reduction since gate list non-empty); none-case: recurse via mergePassList_count_le (cons:
+-- length_append + ih1 + ih2 + omega). NO degeneracy (NonEmptyGates guards gAnd[]/gOr[]). Clean [propext,Quot.
+-- sound], no sorry. REMAINING: leafCollapse_NonEmptyGates (preserves) + collapseRound_count_le (= mergePass_
+-- count_le ∘ leafCollapse_bottomGates_length 126) → count non-increasing → uniform M for h2_of_count_pow (125).
+-- AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
