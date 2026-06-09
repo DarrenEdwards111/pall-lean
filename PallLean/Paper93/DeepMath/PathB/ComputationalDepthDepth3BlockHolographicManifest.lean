@@ -168,6 +168,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EulerBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3H1Assemble
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HcfFromGap
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomScheduleBase
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3H2Union
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2061,6 +2062,22 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- parity∉AC⁰ at the CORRECT p-factor schedule rests on rate hr1 + count hcount + per-round hcf, and hcf ⟸ gap
 -- (111, now satisfiable with D>56wm) ∧ h2 (union bound, remaining). Clean [propext,Classical.choice,Quot.sound],
 -- no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 114 (step 74): THE UNION-BOUND ATOM h2 (relative deep-mass = the fix)
+#check @Depth3.h2_of_geom
+#check @Depth3.h2_rel_clean
+-- The second atom of hcf_of_split (107), the union bound card·capGeo < box/2. h2_of_geom (hcap1 : cap<1)(s)(h :
+-- card·cap^s < box·(1-cap)/2) : card·(cap^s/(1-cap)) < box/2 — the algebraic step removing 1/(1-cap) (←mul_div_
+-- assoc + div_lt_iff₀). h2_rel_clean {rate box card Mdec}(s)(hbox : 0<box)(h : card·rate^s·Mdec < 1/2) :
+-- card·(rate^s·Mdec·box) < box/2 — THE KEY ONE. The survivor lemma's deep-gate mass is bounded RELATIVE to the
+-- box: descent_switching_le_extends (SwitchingProbExtends) gives ∑_{Bad⊆extBox τ} pweight ≤ rate^s·M_dec·box
+-- (the ((1-p)/2)^(n-stars τ)=box factor IS present). With that relative form the union term is card·(rate^s·
+-- M_dec·box), so h2 reduces to the BOX-FREE condition card·rate^s·M_dec < 1/2, which holds once rate^s small
+-- (s large) — the genuine achievable union bound. The ABSOLUTE bound card·cap (exists_survivor_shallow_extends
+-- _uncond 36, via tight_switching_budget_uncond) is too lossy by a factor box → why per-round h2 FAILED for
+-- late rounds (box tiny); the relative bound is the fix. Wiring needs a survivor lemma on descent_switching_le_
+-- extends (carries gates' consistency/nodup hyps — another invariant to thread). Clean [propext,Classical.
+-- choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
