@@ -147,6 +147,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3Alternation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3AltReduce
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityGeneralD
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityGeneralDDischarge
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DTreeSize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1766,6 +1767,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- terminal switching budget hterm remains (per-DNF dischargeable), exactly as depth-4 carries hsmall₁. So at
 -- p=1/(8wm) the per-round oracle is FREE and the terminal oracle is the standard unconditional Håstad/Razborov
 -- switching bound on the final DNF. Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P≠NP.
+
+-- AC⁰ reduction brick 93 (step 53): CLAUSE-COUNT BOUNDS FOR SWITCHED BOTTOM GATES (width-aware atoms)
+#check @Depth3.dtreeToDNF_length
+#check @Depth3.dtreeToCNF_length
+-- The size half of the width-aware invariant (toward eliminating hterm on the ACTUAL collapsed DNF). The
+-- existing dtreeToDNF_width/dtreeToCNF_width (foundations 1/2) bound each switched term's WIDTH by the tree
+-- depth; these bound the CLAUSE-COUNT by 2^depth (one accepting/rejecting leaf per term, ≤2^d leaves at depth
+-- d). Proof: induction; node splits as append of two maps, length adds, 2^lo+2^hi ≤ 2·2^max = 2^(max+1) =
+-- 2^depth (Nat.pow_le_pow_right + pow_succ). Together: a depth-d DT switches to a DNF/CNF of width ≤ d AND
+-- clause-count ≤ 2^d — full SIZE control on a switched bottom gate. Next: a bottom-gate extractor + width/
+-- count-aware AltO so a survivor round keeps bottoms width<s, count<2^s, letting terminal_shallow_of_survivor
+-- (92) fire on the actual final DNF and eliminate hterm down to hsmall. Clean [propext,Classical.choice,
+-- Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
