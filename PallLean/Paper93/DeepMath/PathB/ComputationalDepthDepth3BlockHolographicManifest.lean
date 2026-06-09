@@ -148,6 +148,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3AltReduce
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityGeneralD
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityGeneralDDischarge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DTreeSize
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BottomGates
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1780,6 +1781,21 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- count-aware AltO so a survivor round keeps bottoms width<s, count<2^s, letting terminal_shallow_of_survivor
 -- (92) fire on the actual final DNF and eliminate hterm down to hsmall. Clean [propext,Classical.choice,
 -- Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 94 (step 54): BOTTOM-GATE EXTRACTOR + WIDTH/COUNT PREDICATE (width-aware carrier)
+#check @Depth3.bottomGates
+#check @Depth3.BottomBounded
+#check @Depth3.BottomBounded_dnf
+-- The structural carrier of the width-aware invariant (toward eliminating hterm on the actual collapsed DNF).
+-- bottomGates C (mutual with bottomGatesList): collects the clause-lists at the bottom of a tower (dnf/cnf
+-- cs ↦ [cs]; gAnd/gOr recurse). bottomGatesList_eq: list version = (map bottomGates).flatten (axiom-free).
+-- BottomBounded w M C := ∀ cs ∈ bottomGates C, (∀T∈cs, width≤w) ∧ cs.length≤M. BottomBounded_dnf/cnf: at a
+-- bottom DNF/CNF the predicate IS exactly the survivor budget's hw/hm (the bridge to terminal_shallow_of_
+-- survivor 92). BottomBounded_gOr/gAnd: the predicate lifts per-child to a node (bottoms of gOr/gAnd gs = union
+-- of children's bottoms). These are the gates G=bottomGates C that a survivor ρ must shallow; post-switch the
+-- new bottoms have width≤depth<s, count≤2^s by the DTreeSize bounds (93). Next: leafCollapse-with-survivor
+-- preserves BottomBounded (width s, count 2^s) → reduction threads it → final DNF bounded → hterm eliminated.
+-- Clean [propext]/[propext,Quot.sound]/axiom-free, no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
