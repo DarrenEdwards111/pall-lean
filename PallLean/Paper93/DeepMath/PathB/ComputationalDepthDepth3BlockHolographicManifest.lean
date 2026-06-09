@@ -172,6 +172,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3H2Union
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BottomClean
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalDTFresh
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafTowerClean
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2129,6 +2130,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- survivor lemma exists_survivor_shallow_extends_REL on descent_switching_le_extends (takes BottomClean+Bottom
 -- Width, gives box-factor deep term) + wire into hsurv/hcf via h2_rel_clean (114). Clean [propext,Classical.
 -- choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 118 (step 78): THE DEEPEST LEAF EXTENDS THE RESTRICTION (relative-budget foundation)
+#check @Depth3.deepestEnd_extends
+-- The relative switching budget (tight_descent_switching_prob_witness with Short := extBox τ) needs deepestEnd
+-- cs F σ ∈ extBox τ for σ extending τ — i.e. the deepest leaf extends σ. fixVar_extends_of_free (hfree : σ v =
+-- none) : Extends σ (fixVar σ v b) (fixing a FREE var only adds a fixing). deepestEnd_extends (cs) : ∀ fuel σ,
+-- Extends σ (deepestEnd cs fuel σ) — induction on fuel; deepestEnd recurses only by fixVar-ing a free literal
+-- (litFree via heq + List.mem_of_mem_head? + freeLits=filter litFree + litFree_var + isNone_iff_eq_none), so
+-- Extends_trans (fixVar_extends_of_free hfree) (ih). KEY: deepestEnd never overwrites → extends. So for σ∈extBox
+-- τ, deepestEnd cs F σ ∈ extBox τ (Extends_trans + mem_extBox) — discharges tight_descent_switching_prob_witness's
+-- hmem at Short=extBox τ, giving the box-factor (∑_{extBox τ}pweight) RELATIVE budget for canonicalDT (binary).
+-- REMAINING: descent_switching_le_tight_extends_uncond (relative binary descent, box factor) → budget_extends →
+-- relative survivor lemma → wire via h2_rel_clean (114). Clean [propext], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
