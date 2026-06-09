@@ -174,6 +174,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalDTFresh
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafTowerClean
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentExtends
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BudgetExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2158,6 +2159,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- (114) needs, for the BINARY canonicalDT the whole arc uses. REMAINING: geometric-sum it to budget_extends
 -- (∑_{extBox τ, s≤depth}pweight ≤ box·CAP^s/(1-CAP)) → relative survivor lemma → wire. Clean [propext,Classical.
 -- choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 120 (step 80): THE SUBCUBE-RELATIVE TIGHT SWITCHING BUDGET (box-factor budget)
+#check @Depth3.tight_switching_budget_extends_uncond
+-- The relative analogue of tight_switching_budget_uncond: geometrically summing the relative descent bound
+-- (119) over depth-shells gives the deep-gate mass RELATIVE to the box. sum_filter_ge_eq_sum_shells_on (S g f s
+-- N)(hN : ∀a∈S, g a≤N) : ∑_{S.filter(s≤g)} f = ∑_{K∈Icc s N} ∑_{S.filter(g=K)} f — shell decomp over an arbitrary
+-- base Finset (univ version = sum_filter_ge_eq_sum_shells; same biUnion+disjoint proof with S). tight_switching
+-- _budget_extends_uncond {p}(hp0)(hp3){w F s m}(τ)(hw)(hm)(hr1) : ∑_{σ∈extBox τ, s≤(canonicalDT cs F σ).depth}
+-- pweight ≤ (CAP^s/(1-CAP))·box where CAP=(2p/(1-p))·2wm, box=((1-p)/2)^(n-stars τ). Proof: shell decomp over
+-- extBox τ (depth≤F via canonicalDT_depth_le); each shell ≤ r^K·box (descent_switching_le_tight_extends_uncond
+-- 119, hcast+mul_pow+←hr); ∑_K r^K·box = (∑r^K)·box ≤ (r^s/(1-r))·box (geom_shell_tail_le). THE box-factor budget
+-- that makes h2_rel_clean (114) hold for the BINARY canonicalDT (vs the absolute tight_switching_budget_uncond
+-- used in brick 36). REMAINING: relative survivor lemma (mirror 36, gate term via this) → wire via h2_rel_clean.
+-- Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
