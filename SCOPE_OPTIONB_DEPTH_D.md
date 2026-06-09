@@ -230,3 +230,28 @@ ShallowsBlock w F ρ s C`. No `canonicalDT ↔ canonicalDTree` bridge appears an
 
 The entire *structure* of the m-free depth-`d` AC⁰ bound is now built and verified (no bridge, no
 `m`). What remains is purely the survivor discharge + schedule feasibility + a concrete instance.
+
+---
+
+## UPDATE 5 — [170] structure COMPLETE; reduces to ONE schedule hypothesis
+
+| brick | what | status |
+|---|---|---|
+| [170a] `collapseRoundBlock_BottomClean` | well-formedness (`BottomClean`) threads the tower | ✓ clean |
+| [170b] `parity_not_altO_block_width_aware_clean` | width-aware block tower carrying `BottomClean` | ✓ clean |
+| [170c] `hsurv_block_round` | m-free per-round survivor on `bottomGatesG C` (both polarities) | ✓ clean |
+| [170d] `parity_not_altO_block_findep` | **`hsurv` discharged — reduces to one schedule hypothesis** | ✓ clean |
+
+The complete m-free depth-`d` block lower bound `parity_not_altO_block_findep` now follows from a
+**single uniform schedule hypothesis** `hsched`: for every reachable `BottomClean`, width-`≤ w` tower
+`C` and base `τ` with `s ≤ stars τ`,
+`P[stars ≤ s-1 | extBox τ] + (bottomGatesG C).card · (r')^s/(1-r') < 1` (in unnormalised form).
+
+### Remaining ladder
+- **[171] discharge `hsched`** — the schedule feasibility, the genuine analytic gate: the conditional
+  low-star tail via `stars_tail_le_extends`/`hsmall_of_chernoff` (Chernoff at threshold `s`), plus a
+  gate-count bound `bottomGatesG_card_le` for the `card` factor. Then a concrete `(p,n,d,s,F,w)` and
+  `norm_num`, the depth-`d` analog of [161]. *Risk: HIGH (the schedule), then MED (instance).*
+
+Everything else — the entire m-free depth-`d` AC⁰ machinery — is now built and verified: no clause
+count `m`, no `canonicalDT ↔ canonicalDTree` bridge. `hsched` is the last mathematical input.
