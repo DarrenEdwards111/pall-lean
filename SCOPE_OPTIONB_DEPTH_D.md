@@ -354,3 +354,31 @@ work decouples them:
 
 This is the genuine final structure. Everything beneath it ([162]–[171e]) is built and verified; the
 decoupling is the m-free analog of brick 140's two-parameter (depth/star) form. AC⁰ ceiling.
+
+---
+
+## UPDATE 9 — DECOUPLING DONE + CONCRETE INSTANCE: option (b) closed at depth 3
+
+| brick | what | status |
+|---|---|---|
+| [171b′] `hsurv_block_REL2_round_dt` | two-parameter survivor: depth `t` ⟂ star `sOut` | ✓ clean |
+| [171e′] `parity_not_altO_block_seq_dt` | decoupled capstone: constant depth `t≤w`, geometric stars `s_i` | ✓ clean |
+| [171f] `parity_not_depth3_block` | **CONCRETE unconditional m-free depth-3 bound, constant width 10** | ✓ clean |
+
+`parity_not_depth3_block` is **fully unconditional** — no probabilistic/budget hypothesis:
+
+> Every `AltO 3`, `BottomWidth 10`, `BottomClean`, `≤ 10^6`-bottom-gate tower over `n ≥ 490007001`
+> variables, on a base `τ₀` with `≥ 490007001` stars, disagrees with parity somewhere.
+
+Parameters `p=1/1000`, `w=t=10`, `M=10^6`, schedule `490007001, 70001, 10, …`; the gap closes strictly
+(`490007 < 490007.001`, `70 < 70.001`) and the union `2·10^6·(82/999)^10/(1-82/999) < 1/2` by `norm_num`.
+**Constant width (10), m-free, no `canonicalDT↔canonicalDTree` bridge** — the entire route-2 program
+realised as a concrete depth-3 AC⁰ lower bound.
+
+### What remains (optional polish)
+- General-`d` instance: replace the explicit 3-value schedule with a closed-form geometric `s_i` (a
+  `norm_num`-friendly recurrence) to get `parity ∉ depth-(d+2) AC⁰` for all `d` up to `~log n/log(7/p)`.
+  The capstone [171e′] already supports it; only the schedule arithmetic is left. *Risk: MED.*
+
+The m-free depth-`d` AC⁰ program is structurally complete and demonstrated unconditionally at depth 3.
+Ceiling unchanged: AC⁰, not P vs NP.
