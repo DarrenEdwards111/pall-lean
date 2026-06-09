@@ -177,6 +177,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BudgetExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SurvivorExtendsRel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsurvRoundRel
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityREL
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2204,6 +2205,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- whole Håstad switching lemma is now wired to elementary rational per-round conditions. REMAINING: instantiate
 -- the capstone (99/105) with this hsurv at the geometric schedule (113, D>7/p gives the gap). Clean [propext,
 -- Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 123 (step 83): THE GENERAL-d PARITY BOUND ON THE RELATIVE BUDGET (the final wire)
+#check @Depth3.parity_not_altO_REL
+-- THE FINAL WIRE. Discharging the width-aware capstone's hsurv (99) via hsurv_REL_round (122 — the SUBCUBE-
+-- RELATIVE box-factor survivor budget) closes the general-d unconditional parity∉AC⁰ to TWO box-free, exp-free
+-- per-round rational conditions. parity_not_altO_REL {p}(hp0)(hp1)(hp3){w F s m d}[NeZero][NeZero](hs : 2≤s)(hsw
+-- : s≤w)(hF)(C₀ τ₀)(hC₀ : AltO (d+2) C₀)(hbw₀ : BottomWidth w C₀)(hτ₀)(hr1)(hcount)(hgap : ∀C τ, BottomWidth w C
+-- → s≤stars τ → 7·s < (stars τ)·p)(hh2 : ∀C, BottomWidth w C → (bottomGatesG C).card·CAP^s/(1-CAP) < 1/2) : ∃x,
+-- eval C₀ x ≠ parity x. Body: parity_not_altO_width_aware s w F d hsw C₀ τ₀ hC₀ hbw₀ hτ₀ (fun C τ hbw hτ =>
+-- hsurv_REL_round hp0 hp1 hp3 hs hF C τ hbw (hcount C hbw) hr1 (hgap C τ hbw hτ) (hh2 C hbw)). NO box mass, NO
+-- exp/log, NO consistency/nodup — every structural+probabilistic piece of Håstad/Razborov switching is PROVEN;
+-- what remains is exactly the Chernoff GAP (next threshold below the mean) ∧ the box-free UNION bound at each
+-- reachable tower (satisfiable in the standard regime: geometric threshold D>7/p, gate-count bound + s large).
+-- Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
