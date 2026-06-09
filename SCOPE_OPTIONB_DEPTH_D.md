@@ -129,3 +129,34 @@ Two viable finishes, pick one:
 **The honest gate is the same in both: an m-free survivor whose deep-cap stays `<1` across `d` rounds
 simultaneously (the schedule). That is the genuine remaining mathematics; everything above it is now
 either built or budget-agnostic.**
+
+---
+
+## UPDATE 2 — B1 structural core BUILT ([165]–[168])
+
+The block-level path B1 is now built down to a single remaining input:
+
+| brick | what | status |
+|---|---|---|
+| [165] `terminal_shallow_of_survivor_findep` | m-free block terminal on `canonicalDTree` (from [164] at `{cs}`) | ✓ clean |
+| [166] `recursive_tower_not_parity_surv_seq_block` | block recursive-tower engine (reuses tree-agnostic chain) | ✓ clean |
+| [167] `parity_not_altO_block` | general-`d` parity bound, block terminal | ✓ clean |
+| [168] `parity_not_altO_block_hround_discharged` | `hround` discharged; **only the block terminal `hterm` remains** | ✓ clean |
+
+So the depth-`d` block bound now follows from **one** input: a block terminal
+`hterm : ∀ cs σ, s ≤ stars σ → ∃ σ', Extends σ σ' ∧ stars σ' < F ∧ (canonicalDTree cs w F σ').depth < stars σ'`.
+
+### Remaining ladder to a concrete unconditional m-free depth-`d` bound
+
+- **[169] width-aware block tower** — [168]'s `hterm` is quantified over *all* `cs`, but [165]
+  discharges it only for `cs` of width `≤ w` (consistent, nodup). Need a width-tracking `Valid`
+  invariant (mirror `ParityWidthAware` block-level) so the bottom `DNF` has width `≤ w`. *Risk: MED.*
+- **[170] discharge `hterm` via [165] + uniform conditional budget** — for every base `σ` with
+  `s ≤ stars σ`, the per-base budget `P[stars ≤ s-1 | extBox σ] + geom < 1` must hold (the conditional
+  Chernoff, via `stars_tail_le_extends`). This is the **schedule feasibility** — the true analytic
+  gate. *Risk: HIGH.*
+- **[171] concrete unconditional depth-`d` instance** — pick `(p,n,d,s,F,w)` and discharge by
+  `norm_num`, the depth-`d` analog of [161]. *Risk: MED.*
+
+Everything from `hterm` upward (the entire tower, engine, oracle, collapse, parity capstone) is now
+built and verified m-free. The remaining work is width-tracking + the schedule + a concrete instance.
