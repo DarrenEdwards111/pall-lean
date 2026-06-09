@@ -181,6 +181,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityREL
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomGap
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3H2Schedule
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GateCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BottomNonempty
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2264,6 +2265,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- by AltO's hne), so count(collapseRound C) ≤ count(C) ≤ count(C₀) = M; then the final seq assembly with M :=
 -- 2·(bottomGates C₀).length. Clean [propext]/[propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT
 -- P vs NP.
+
+-- AC⁰ reduction brick 127 (step 87): AN ALTERNATING TOWER HAS A BOTTOM GATE (degeneracy resolver)
+#check @Depth3.bottomGates_length_pos_AltO
+#check @Depth3.bottomGates_length_pos_AltA
+-- The gate-count reduction (the merge half of 86) needs the gAnd []/gOr [] degeneracy excluded — for a proper
+-- alternating tower (AltO/AltA, non-empty gates) the bottom-gate list is non-empty, so the merge's collapse
+-- |gs|→1 is a genuine REDUCTION (1 ≤ |gs|). bottomGates_length_pos_AltO/_AltA (mutual) : AltO/AltA k C → 1 ≤
+-- (bottomGates C).length. Proof (mutual AltO/AltA induction): dnf/cnf → bottomGates=[_], length 1; gOr/gAnd gs
+-- with hne → gs = g₀::gs' (exists_cons_of_ne_nil), bottomGatesList = bottomGates g₀ ++ ..., length_append +
+-- IH on g₀ (1 ≤ |bottomGates g₀|) + omega. The non-emptiness foundation for collapseRound count-reduction.
+-- REMAINING: collapseRound_count_le (AltO/AltA mutual mirroring collapseRound_AltO 90: k=0 gOr-of-cnf merges to
+-- 1 ≤ |gs| via this lemma; k≥1 recurses ≤ via IH) → count non-increasing → uniform M for h2_of_count_pow (125)
+-- → final seq assembly. Clean [propext,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
