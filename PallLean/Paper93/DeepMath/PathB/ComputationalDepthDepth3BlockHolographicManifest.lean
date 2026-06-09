@@ -188,6 +188,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRoundCoun
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityWCSeq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityGeomREL
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafTowerCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MergeCountMul
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2367,6 +2368,22 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- leaves per-gate count ≤ (gate-count M)·2^s, so the threaded clause-count bound is m=M·2^s (per-round, couples
 -- to a per-round rate p=1/(8w·M·2^s) — the deeper threading). The leafCollapse count-setter is the clean half.
 -- Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 134 (step 94): THE MERGE MULTIPLIES PER-GATE CLAUSE-COUNT BY THE GATE COUNT (merge-sum)
+#check @Depth3.mergePass_count_mul
+-- The merge-sum half of the clause-count invariant. mergePass flattens a uniform sibling list into ONE bottom
+-- gate whose clause-count is the SUM of siblings' → bounded by (gate count)·(per-gate count). mergePass_count_
+-- mul {M c}(hM1 : 1≤M)(mutual) : NonEmptyGates C → (bottomGates C).length ≤ M → BottomCount c C → BottomCount
+-- (M*c) (mergePass C). some-case: |css.flatten| = ∑|cᵢ| ≤ |css|·c (List.sum_le_card_nsmul + bottomGates_gAnd
+-- _map_cnf_length : |css| = node gate count ≤ M); none-case recurses (count_le_of_mem_gAnd : child gate count
+-- ≤ node, BottomCount_child_gAnd). So collapseRound (leafCollapse sets count ≤ 2^s by 133, merge → ≤ M·2^s by
+-- 134) leaves per-gate count ≤ M·2^s. CRITICAL FINDING (per-round rate threading): the per-gate clause-count
+-- m_i = M·2^(s_i) with s_i the SURVIVOR threshold (large, ≈ p·n), so the rate p_i = 1/(8w·M·2^(s_i)) ~ 2^(-s_i)
+-- is incompatible with the gap D·p>7 (needs D > 2^(s_i)) and size N≥D^(d+1) — because exists_survivor_shallow
+-- _extends CONFLATES the DT-depth (should be small, clause-count = 2^depth) with the star-count s (large). The
+-- proper fix = a TWO-PARAMETER survivor lemma (DT-depth t small, stars ≥ s large, t≤s), a genuine deeper rework.
+-- The merge-sum (134) is the clean self-contained piece; the per-round-rate threading hits this conflation.
+-- Clean [propext,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
