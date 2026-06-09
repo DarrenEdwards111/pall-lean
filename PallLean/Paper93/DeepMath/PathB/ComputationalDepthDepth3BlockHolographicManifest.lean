@@ -123,6 +123,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingSkipLabel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingSkipSeq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingSkipSemantics
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingSkipDecode
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingSkipDecodeBase
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ActiveTermIdx
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FreeLitPos
@@ -1535,6 +1536,26 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- SubRestriction argument, advance bit replacing falsification-agreement AT ADVANCE STEPS ONLY) is the FINAL
 -- step toward the fully hnf-free (4w)^s injection — NOT done here. Clean [propext,Classical.choice,Quot.sound].
 -- AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 145 (skip-decoder step 5): THE BASE-RELATIVE DECODER — recovers from any τ ⊑ σ
+#check @Depth3.skipDecode_deepestSkipSeq_base
+-- The base-relative generalisation of brick 144 (which threaded the running state as the descent σ itself).
+-- skipDecode_deepestSkipSeq_base: SubRestriction τ σ → (∀U∈cs, termFalsified τ U = termFalsified σ U) →
+-- skipDecode cs (deepestEnd cs F σ) (deepestSkipSeq cs F σ) (activeTerm cs τ) τ = deepestSel cs F σ. The running
+-- state is now an ARBITRARY sub-restriction base τ⊑σ (falsification-agreeing), threaded forward by reading leaf
+-- values — the form the (4w)^s injection needs (the inverse map starts from a base recovered from σ_end, NOT the
+-- unknown bad ρ). KEY (what the advance bit buys): on a PERSIST step the decoder keeps the current term — NO
+-- recompute, so falsification-agreement is NOT used there at all (the kept term = the descent's by brick 143, a
+-- fact about σ alone); only on an ADVANCE step does it recompute activeTerm cs τ', and THERE agreement is used
+-- (activeTerm_eq_of_falsified_agree) to match the descent. So agreement is consumed at ADVANCE STEPS ONLY — in
+-- recoverStream it is consumed at EVERY step. Proof generalises brick 144: thread τ separately (init curT =
+-- activeTerm cs τ = activeTerm cs σ via agreement), maintain SubRestriction (subRestriction_fixVar) + agreement
+-- (maintain_falsified_agree) across fixVar, persist via brick 143, advance via agreement; leaf via
+-- deepestSkipSeq/deepestSel_anyTermSat. HONEST SCOPE: base-relative recovery UNDER the falsification-agreement
+-- invariant (same invariant recoverStream carries). The advance bit demonstrably LOCALISES agreement to advance
+-- steps, but the theorem still ASSUMES agreement, so instantiating at the all-free base still needs it = hnf.
+-- DROPPING agreement (supplying the advance-step active term from σ_end — the genuine empty-skip wall) is NOT
+-- done here. Clean [propext,Classical.choice,Quot.sound]. AC⁰ ceiling, NOT P vs NP.
 
 -- AC⁰ reduction brick 65 (step 25): the WITNESSED TIGHT COUNT — (Cw)^s injection ASSEMBLED, hnf-free in count
 #check @Depth3.deepest_count_of_witness
