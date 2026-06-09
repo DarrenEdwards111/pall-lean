@@ -86,3 +86,46 @@ only kills the `blockStream` shortcut; the `canonicalDTree`-direct route (route 
 de-riskable now; [166] is the one that decides whether m-free depth-`d` actually closes.
 
 *AC⁰ ceiling throughout; not P≠NP-strength.*
+
+---
+
+## UPDATE (after building [162]–[164]): the engine is budget-agnostic — only the terminal is the seam
+
+Reading the existing general-`d` apparatus changed the picture again, in our favour:
+
+- **`parity_not_altO` (ParityGeneralD) is already budget-agnostic.** It takes the per-round survivor
+  `hround` and the terminal switching `hterm` as *abstract hypotheses*. `hround` is discharged
+  **trivially** (`survivor_round_trivial`, needs only `n ≤ F`) — the per-round collapse `collapseRound`
+  is `EquivOn` *unconditionally* (`canonicalDTree`/`canonicalDT` compute the layer exactly on the
+  subcube; shallowness is NOT needed per round). `parity_not_altO_hround_discharged` already leaves
+  **only `hterm`**.
+- **So the m-ful-ness of the whole depth-`d` bound lives in exactly ONE hypothesis: `hterm`.**
+  The m-free retrofit = discharge `hterm` m-free. This is far smaller than re-deriving the tower.
+
+### The one real seam: `hterm` is BIT-LEVEL (`canonicalDT`); route 2 is BLOCK-LEVEL (`canonicalDTree`)
+
+`hterm` (as `parity_not_altO` states it) asks for `(canonicalDT cs F σ').depth < stars σ'`. Route 2's
+m-free count bounds `canonicalDTree`. **No depth bridge is needed** (`TightParity`: the relativized
+parity bound is generic over `DTree n`, so the contradiction holds for either tree on its own). The
+clean move is therefore to keep the terminal on **`canonicalDTree`** and use the block-level capstone
+`iterated_not_parity` / `tower_not_parity` (which already terminate on `canonicalDTree`), rather than
+`parity_not_altO`'s `canonicalDT` `hterm`.
+
+### Revised remaining work (replaces [165]/[166] framing)
+
+Two viable finishes, pick one:
+
+- **B1 (recommended): m-free `hterm` on the block tree + block engine.** Discharge an
+  m-free terminal `terminal_shallow_of_survivor_findep` producing `(canonicalDTree cs w F σ').depth <
+  stars σ'` from the m-free conditional budget [164] (we already have `exists_shallow_survivor_extends_
+  findep`). Then drive `iterated_not_parity` with the m-free rounds [162]/[164]. The schedule is the
+  remaining analytic content (per-round `(s_i,F_i,w_i)`, `w_{i+1}=s_i`, all star-tails small at once),
+  but with the `m` invariant already gone. *Risk: MED–HIGH (schedule feasibility).*
+- **B2 (smaller, bit-level): port route 2's value-augmented count to `canonicalDT`.** Re-prove the
+  [155b] injectivity for the single-literal tree, giving an m-free `canonicalDT` terminal that
+  discharges `parity_not_altO`'s `hterm` directly and reuses the whole engine. *Risk: MED (re-derive
+  one injectivity lemma) but bit-level, against the route-2 grain.*
+
+**The honest gate is the same in both: an m-free survivor whose deep-cap stays `<1` across `d` rounds
+simultaneously (the schedule). That is the genuine remaining mathematics; everything above it is now
+either built or budget-agnostic.**
