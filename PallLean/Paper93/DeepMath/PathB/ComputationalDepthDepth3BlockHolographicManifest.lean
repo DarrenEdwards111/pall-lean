@@ -122,6 +122,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessLabel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingSkipLabel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingSkipSeq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingSkipSemantics
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingSkipDecode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ActiveTermIdx
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FreeLitPos
@@ -1514,6 +1515,25 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- HONEST SCOPE: per-step semantics only (persist⟺bit-false). Assembling the forward-replay decoder recovering
 -- deepestSel from (σ_end, skip label) over the whole path, then the m-free (4w)^s injection/descent, is the
 -- remaining work — the empty-skip wall is not yet fully discharged. Clean [propext,Classical.choice,Quot.sound].
+-- AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 144 (skip-decoder step 4): THE MULTI-STEP ADVANCE-BIT DECODER — recovers deepestSel
+#check @Depth3.skipDecode
+#check @Depth3.skipDecode_deepestSkipSeq
+-- The multi-step assembly of brick 143. recoverStream recomputes activeTerm cs τ at EVERY step (needs
+-- falsification-agreement = where hnf is consumed, via activeTerm_eq_of_falsified_agree). skipDecode instead
+-- THREADS the active term explicitly + consults the advance bit: persist (bit false) → KEEP T (no recompute, no
+-- agreement — justified by brick 143), advance (bit true) → re-scan. skipDecode_deepestSkipSeq: activeTerm cs σ
+-- = T₀ → skipDecode cs (deepestEnd cs F σ) (deepestSkipSeq cs F σ) T₀ σ = deepestSel cs F σ. Induction on F; per
+-- step σ':=deepestStep cs F σ; the threaded state stays σ' because the leaf value deepestEnd(litVar ℓ) = the
+-- branch value (deepestEnd_active_var_eq); recursive σ_end collapses (deepestEnd_succ); active-term invariant
+-- threaded: rfl on advance, brick 143 (advanceBit_false_iff_active_persists) on persist; leaf subcase via
+-- deepestSkipSeq/deepestSel_anyTermSat (both ∅). Helper added: deepestSkipSeq_anyTermSat, deepestSel_anyTermSat.
+-- HONEST SCOPE: SOUNDNESS OF THE DECODER'S RECURSION — the advance bit correctly threads the active clause
+-- across the whole path, recovering deepestSel, with the running state threaded as the descent state σ.
+-- Generalising the start from σ to a sub-restriction base recovered from the LEAF ALONE (the recoverStream
+-- SubRestriction argument, advance bit replacing falsification-agreement AT ADVANCE STEPS ONLY) is the FINAL
+-- step toward the fully hnf-free (4w)^s injection — NOT done here. Clean [propext,Classical.choice,Quot.sound].
 -- AC⁰ ceiling, NOT P vs NP.
 
 -- AC⁰ reduction brick 65 (step 25): the WITNESSED TIGHT COUNT — (Cw)^s injection ASSEMBLED, hnf-free in count
