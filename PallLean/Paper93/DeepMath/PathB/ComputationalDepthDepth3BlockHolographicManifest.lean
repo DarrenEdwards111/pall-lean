@@ -164,6 +164,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityClosedFormS
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HcfSplit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomSchedule
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BernoulliTail
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EulerBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2004,6 +2005,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- (108) should use factor p. With s_out ≪ p·s_in and the Bernoulli bound at t=1-1/s_out, h1 reduces to a
 -- rational condition s_in·p > c·s_out (no exp), needing (1-1/m)^(m-1)≥1/4-type bound next. Clean [propext,
 -- Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 110 (step 70): THE RATIONAL (1+1/k)^k ≤ 4 BOUND (Euler ceiling, no exp)
+#check @Depth3.one_add_inv_pow_le_four
+#check @Depth3.inv_factorial_sum_le_four
+-- The second analytic atom for the Chernoff bound h1: a RATIONAL ceiling on (1+1/k)^k (controls t^(s-1) for
+-- t=1-1/s), without exp/log. one_add_inv_pow_le_four (k) : (1+1/(k:ℚ))^k ≤ 4. Proof: binomial (Mathlib add_pow)
+-- (1+1/k)^k = ∑_{m∈range(k+1)} (1/k)^m·1^(k-m)·C(k,m); per-term C(k,m)/k^m ≤ 1/m! (Nat.choose_le_pow_div over
+-- ℚ, (1/k)^m·(k^m/m!)=1/m! via field_simp, k≠0); ∑ 1/m! ≤ 4 (inv_factorial_sum_le_four). The sum bound: 1/m! ≤
+-- 2·(1/2)^m (inv_factorial_le_geom, from 2^m ≤ 2·m! = two_pow_le_two_mul_factorial by induction), then 2·∑(1/2)
+-- ^m ≤ 2·2 = 4 (geom_sum_eq). Fixes: div_le_div_iff RENAMED → le_div_iff₀/div_le_iff₀ chain; choose_le_pow_div
+-- needs (α := ℚ) + push_cast. So t^(s-1) = (1-1/s)^(s-1) = 1/(s/(s-1))^(s-1) ≥ 1/4 follows — the constant lower
+-- bound on the Markov t-factor h1 needs. Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING,
+-- NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
