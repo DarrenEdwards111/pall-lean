@@ -41,6 +41,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HBoundDischarge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockDepthRefute
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ExtendSat
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PosLabels
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PosRecover
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EncodeInjective
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BadLabels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelNodup
@@ -882,6 +883,17 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- descent_switching_prob's step3 with this content-graded count + weight gain → geometric sum base^s/(1-base);
 -- [156] DTreeSwap + ACZeroParity → unconditional parity. Clean [propext,Classical.choice,Quot.sound], no sorry.
 -- AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 155b-kernel: the POSITION↔VARIABLE round-trip (verified core of route-2 [155b])
+#check @Depth3.posInTerm_recover
+-- The fiddly CORE of [155b] (freed-position label injectivity), isolated + verified. posInTerm_recover: for a
+-- freed var u of a width-≤w term, (T.lits[(posInTerm w T u).val]?).map litVarOf = some u — the position
+-- round-trips to the variable (findIdx/%w/getElem? interplay; via List.findIdx_lt_length + List.findIdx_getElem
+-- + Nat.mod_eq_of_lt under hw). This is what a position-based decoder needs to map positions back to vars.
+-- HONEST SCOPE: the verified KERNEL only. The full injectivity (descentSat₁=descentSat₂ → descentPosLabels₁=
+-- descentPosLabels₂ → σ₁=σ₂) additionally needs a boundary-walk decode (posDecode… mirroring codeMasks_recovery,
+-- entangled with resetX semantics, ~50 lines) — the mechanical-but-long remainder, DEFERRED (balloons). This
+-- kernel de-risks it: position→var inversion works. Clean [propext,Classical.choice,Quot.sound]. AC⁰, NOT P≠NP.
 
 -- Brick 55: branching holography, step 4m — the p-biased measure + star-count driver
 #check @Depth3.pweight                 -- p-biased weight ∏ v, (if free then p else (1-p)/2)
