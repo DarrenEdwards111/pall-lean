@@ -160,3 +160,44 @@ So the depth-`d` block bound now follows from **one** input: a block terminal
 
 Everything from `hterm` upward (the entire tower, engine, oracle, collapse, parity capstone) is now
 built and verified m-free. The remaining work is width-tracking + the schedule + a concrete instance.
+
+---
+
+## UPDATE 3 — [169] width-tracking: the architectural fork, scoped precisely
+
+[169] needs the bottom `DNF` to have width `≤ w` (so the terminal [165] applies). The existing width
+invariant is threaded by `collapseRound_BottomWidth`, but **`collapseRound`/`leafCollapse` are
+bit-level**: `leafCollapse (dnf cs) = cnf (dtreeToCNF (toDTree (canonicalDT cs F ρ)))`. So collapsed
+width is governed by `canonicalDT` depth, while route 2 produces `canonicalDTree` depth. Two paths:
+
+### Path (i) — the depth bridge `canonicalDT.depth ≤ canonicalDTree.depth`  [PROBED — HARD]
+
+The project's own comments assert this is **true** (manifest:1391 *"depth_canonicalDTree ≥
+depth_canonicalDT; equality is FALSE in general"*) but it is **not formalized**, and manifest:1536
+calls it *"the remaining substantial"* piece they routed around (via the generic parity bound in
+`TightParity`). Probing it: the recursions are structurally mismatched —
+- `canonicalDT` reads **one free literal per fuel unit** (same term stays active, recurse at `fuel-1`);
+- `canonicalDTree` reads **the whole term's free vars per fuel unit** (`queryAll`, recurse at `F-1`).
+
+So the proof needs an auxiliary induction matching `canonicalDT`'s per-literal descent across a full
+term to `canonicalDTree`'s per-block step, with fuel accounting (`canonicalDT` needs `~|T|` fuel where
+`canonicalDTree` needs 1). This is a genuine multi-lemma induction, not a bounded probe. **Deferred.**
+
+### Path (ii) — block `collapseRoundBlock` [RECOMMENDED, mechanical, multi-file]
+
+Build a block collapse operator from the already-built per-gate block collapses
+(`collapse_or_layer_at` / `collapse_and_layer_at`, used in [162]/[163]): every clause it emits has
+width `< s` directly from `canonicalDTree`-shallowness — no bridge. Mirror, block-level:
+1. `leafCollapseBlock` (the 4 `Layered` cases via `canonicalDTree`/`dtreeToCNF`) — mirror `LeafCollapse`.
+2. `collapseRoundBlock := mergePass ∘ leafCollapseBlock` (`mergePass` is tree-agnostic, reused).
+3. `collapseRoundBlock_EquivOn` / `_AltO` (mirror; structure identical) / `_BottomWidth` (width `< s`
+   from block shallowness — the per-gate fact is in [162]/[163]).
+4. Then `parity_not_altO_block_width_aware` (mirror `parity_not_altO_width_aware`) drives the block
+   engine [166] with a block `ShallowsBlock` predicate, discharging `hterm` for free at the bottom DNF.
+
+This reuses [162]–[168] and avoids the bridge; the cost is ~3–4 new mirror files. **This is the
+realistic completion of [169].**
+
+### State at this checkpoint
+Structural core [165]–[168] built + pushed. [169] scoped to path (ii) (mechanical, multi-file) or
+path (i) (one hard induction). [170] schedule + [171] concrete instance follow. AC⁰ ceiling throughout.
