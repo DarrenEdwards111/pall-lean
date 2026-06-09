@@ -40,6 +40,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CompactRatio
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HBoundDischarge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockDepthRefute
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ExtendSat
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PosLabels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EncodeInjective
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BadLabels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelNodup
@@ -863,6 +864,24 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- the content-graded label cardinality (freed positions, content=pathLen, via brick 147) + re-derive
 -- descent_switching_prob's step3 as the geometric sum ∑_{k≥s}(Cw)^k(2p/(1-p))^k = base^s/(1-base) + DTreeSwap +
 -- ACZeroParity → unconditional parity. Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰, NOT P vs NP.
+
+-- AC⁰ reduction brick 154 (ROUTE 2 step 2): the freed-position label cardinality (2w+1)^pathLen (NO probability)
+#check @Depth3.descentPosLabels
+#check @Depth3.descentPosLabels_flatten_length
+#check @Depth3.descentPosLabels_card_le
+-- The CARDINALITY half of route 2 (no probability yet — kept narrow). descentLabels are var-lists (Fin n); to
+-- count them w-dependently (not n-dependently) map each block's freed vars to their IN-TERM positions Fin w.
+-- posInTerm w T v = (T.lits.findIdx (litVarOf·=v)) % w (real position for T's vars, %w total). descentPosLabels =
+-- descentLabels with each block (freeVarsOf σ T).map (posInTerm w T) — same control flow, List (List (Fin w)).
+-- descentPosLabels_flatten_length: content = pathLen (map preserves block lengths, so = descentLabels content).
+-- descentPosLabels_block_nonempty: each block nonempty (active term has a free var). descentPosLabels_card_le:
+-- over a bad set with pathLen=k fixed, |image of descentPosLabels| ≤ (2w+1)^k — via brick 147
+-- (nonempty_block_streams_card_le at α=Fin w, Fintype.card_fin) + the content/nonempty lemmas. F-INDEPENDENT.
+-- HONEST SCOPE: pure label cardinality (2w+1)^pathLen — the foundation for [155]'s injection count. NO weighted
+-- sum here (probability algebra is [155], kept separate so constants can't drift). REMAINING: [155] re-derive
+-- descent_switching_prob's step3 with this content-graded count + weight gain → geometric sum base^s/(1-base);
+-- [156] DTreeSwap + ACZeroParity → unconditional parity. Clean [propext,Classical.choice,Quot.sound], no sorry.
+-- AC⁰ ceiling, NOT P vs NP.
 
 -- Brick 55: branching holography, step 4m — the p-biased measure + star-count driver
 #check @Depth3.pweight                 -- p-biased weight ∏ v, (if free then p else (1-p)/2)
