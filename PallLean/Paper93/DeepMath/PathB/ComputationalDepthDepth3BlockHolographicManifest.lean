@@ -173,6 +173,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BottomClean
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalDTFresh
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafTowerClean
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestExtends
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2143,6 +2144,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- hmem at Short=extBox τ, giving the box-factor (∑_{extBox τ}pweight) RELATIVE budget for canonicalDT (binary).
 -- REMAINING: descent_switching_le_tight_extends_uncond (relative binary descent, box factor) → budget_extends →
 -- relative survivor lemma → wire via h2_rel_clean (114). Clean [propext], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 119 (step 79): THE SUBCUBE-RELATIVE BINARY DESCENT BOUND (box factor)
+#check @Depth3.descent_switching_le_tight_extends_uncond
+-- descent_switching_le_tight_uncond (binary canonicalDT) was proved with Short:=univ → ABSOLUTE (mass 1).
+-- Instantiating the underlying tight_descent_switching_prob_witness with Short:=extBox τ gives the SUBCUBE-
+-- RELATIVE bound, scaled by the box mass ((1-p)/2)^(n-stars τ): descent_switching_le_tight_extends_uncond {p}
+-- (hp0)(hp3){w F s m}[NeZero][NeZero]{cs}{Bad}(τ)(hw)(hm)(hext : ∀ρ∈Bad, Extends τ ρ)(hdepth : ∀ρ∈Bad,
+-- (canonicalDT cs F ρ).depth = s) : ∑_{σ∈Bad} pweight ≤ (2p/(1-p))^s·(2wm)^s·box. Proof: tight_descent_switching
+-- _prob_witness (Short:=extBox τ) with hmem discharged via deepestEnd_extends (118) + Extends_trans + mem_extBox
+-- (deepest leaf of σ⊇τ again extends τ → ∈ extBox τ); hdepth via le_of_eq; hrec via witnessReconstructionCorrect
+-- _of_depth; then rwa [pweight_sum_extends] (∑_{extBox τ}pweight = box). THE relative deep-gate mass h2_rel_clean
+-- (114) needs, for the BINARY canonicalDT the whole arc uses. REMAINING: geometric-sum it to budget_extends
+-- (∑_{extBox τ, s≤depth}pweight ≤ box·CAP^s/(1-CAP)) → relative survivor lemma → wire. Clean [propext,Classical.
+-- choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
