@@ -121,6 +121,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessDecoder
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessLabel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingSkipLabel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingSkipSeq
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingSkipSemantics
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ActiveTermIdx
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FreeLitPos
@@ -1485,8 +1486,8 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.deepestSkipSeq_length
 -- The encoder half of the m-free skip decoder (label space = brick 141). deepestSkipSeq cs F σ : List (ℕ × Bool
 -- × Bool) — identical control flow to deepestFullSeq (pivot pos, satisfy/falsify bit) but records a THIRD
--- component, the ADVANCE BIT = `clauseSatisfied σ' T || (freeLits σ' T).length=0` (the just-processed active
--- clause T is now EXHAUSTED — satisfied by the taken-branch state, or out of free literals). That O(1) bit is
+-- component, the ADVANCE BIT = `termFalsified σ' T || (freeLits σ' T).length=0` (the NEGATION of activeTerm's
+-- predicate !termFalsified∧hasFree — T is no longer active at the taken-branch state σ'). That O(1) bit is
 -- the signal telling the decoder WHEN to scan to the next live clause (located by canonical order), replacing
 -- deepestWitSeq's recorded Fin m index. deepestSkipSeq_map_full: erasing the advance bit (map (t.1,t.2.1))
 -- recovers deepestFullSeq EXACTLY — so deepestSkipSeq is a strict REFINEMENT of the full path, carrying every
@@ -1495,6 +1496,25 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- only[...if_pos/if_neg hd...]+ih). HONEST SCOPE: encoder + its refinement of the full path, NOT the recovery —
 -- whether the advance bit suffices to recover the active-clause progression WITHOUT hnf/hleaf/hpos (the empty-
 -- skip wall) is the NEXT decoder brick; this only fixes what the encoder writes. Clean [propext]. AC⁰, NOT P≠NP.
+
+-- AC⁰ reduction brick 143 (skip-decoder step 3): THE ADVANCE-BIT SEMANTICS — bit false ⟺ active clause persists
+#check @Depth3.advanceBit_false_iff_active_persists
+-- The semantic correctness of the advance bit (brick 142): at a continuing canonical step (anyTermSat σ'=false),
+-- active term T under σ, canonical free literal ℓ, taken branch σ':=fixVar σ (litVar ℓ) b, the recorded bit
+-- `termFalsified σ' T || (freeLits σ' T).length=0` = FALSE ⟺ activeTerm cs σ' = some T (the active clause
+-- PERSISTS). This is THE foundational fact letting a forward replay track the active clause from the bit alone —
+-- WITHOUT the Fin m index and WITHOUT hnf/hleaf/hpos. ⟸ (persist→bit-false): unpack activeTerm's find? predicate
+-- for T at σ' (activeTerm_eq_find + List.find?_some). ⟹ (bit-false→persist): the MONOTONICITY backbone
+-- activeTerm_fixVar_stable (ComputationalDepthDepth3AdvanceStability) — fixing the canonical free literal never
+-- makes an EARLIER clause newly active (falsified prefix stays falsified via termFalsified_fixVar_of_free), so
+-- if T is still unfalsified with a free lit the deterministic clause-order scan re-finds T. So ONE advance bit
+-- carries the full block-boundary info the Fin m index carried, at O(1) cost — WHY the skip label is (4w)^s not
+-- (2wm)^s. NOTE: this also CORRECTED brick 142's bit (was clauseSatisfied — wrong: an AND-term can be falsified
+-- yet still have free lits, which the falsify branch creates routinely; the right predicate is termFalsified).
+-- HONEST SCOPE: per-step semantics only (persist⟺bit-false). Assembling the forward-replay decoder recovering
+-- deepestSel from (σ_end, skip label) over the whole path, then the m-free (4w)^s injection/descent, is the
+-- remaining work — the empty-skip wall is not yet fully discharged. Clean [propext,Classical.choice,Quot.sound].
+-- AC⁰ ceiling, NOT P vs NP.
 
 -- AC⁰ reduction brick 65 (step 25): the WITNESSED TIGHT COUNT — (Cw)^s injection ASSEMBLED, hnf-free in count
 #check @Depth3.deepest_count_of_witness

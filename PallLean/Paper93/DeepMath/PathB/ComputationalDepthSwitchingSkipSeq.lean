@@ -14,8 +14,9 @@ bit** replacing the clause index:
   deepestSkipSeq cs F σ : List (ℕ × Bool × Bool),
 ```
 
-where the third component is `true` exactly when the just-processed active clause `T` is now *exhausted* —
-satisfied by the new state, or out of free literals.  That is the `O(1)` signal the decoder uses to know
+where the third component is `true` exactly when the just-processed active clause `T` is no longer *active* under the new
+state — i.e. `T` is now falsified, or out of free literals (the negation of `activeTerm`'s predicate
+`!termFalsified ∧ hasFree`).  That is the `O(1)` signal the decoder uses to know
 *when* to scan to the next live clause (located by canonical order), in place of the recorded `Fin m` index.
 
 This brick is the encoder itself plus its **subsumption** of the full path: erasing the advance bit recovers
@@ -46,8 +47,9 @@ open SwitchingCounting
 variable {n : ℕ}
 
 /-- **The skip-aware full-path encoder.**  Identical control flow to `deepestFullSeq`, but each step records a
-third component, the **advance bit**: `true` when the just-processed active clause `T` is now exhausted
-(satisfied by the taken-branch state, or with no free literals left) — the `O(1)` signal that replaces the
+third component, the **advance bit**: `true` when the just-processed active clause `T` is no longer active under the
+taken-branch state — falsified, or with no free literals left (the negation of `activeTerm`'s
+predicate `!termFalsified ∧ hasFree`) — the `O(1)` signal that replaces the
 `Fin m` active-clause index of `deepestWitSeq`. -/
 def deepestSkipSeq (cs : List (Clause n)) : ℕ → (Fin n → Option Bool) → List (ℕ × Bool × Bool)
   | 0, _ => []
@@ -62,12 +64,12 @@ def deepestSkipSeq (cs : List (Clause n)) : ℕ → (Fin n → Option Bool) → 
              (canonicalDT cs fuel (fixVar σ (litVar ℓ) false)).depth
           then (pivotPosOf cs σ,
                   !litFalse (fixVar σ (litVar ℓ) false) ℓ,
-                  clauseSatisfied (fixVar σ (litVar ℓ) false) T ||
+                  termFalsified (fixVar σ (litVar ℓ) false) T ||
                     decide ((freeLits (fixVar σ (litVar ℓ) false) T).length = 0))
                  :: deepestSkipSeq cs fuel (fixVar σ (litVar ℓ) false)
           else (pivotPosOf cs σ,
                   !litFalse (fixVar σ (litVar ℓ) true) ℓ,
-                  clauseSatisfied (fixVar σ (litVar ℓ) true) T ||
+                  termFalsified (fixVar σ (litVar ℓ) true) T ||
                     decide ((freeLits (fixVar σ (litVar ℓ) true) T).length = 0))
                  :: deepestSkipSeq cs fuel (fixVar σ (litVar ℓ) true)
 
