@@ -169,6 +169,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3H1Assemble
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HcfFromGap
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomScheduleBase
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3H2Union
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BottomClean
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2078,6 +2079,23 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- late rounds (box tiny); the relative bound is the fix. Wiring needs a survivor lemma on descent_switching_le_
 -- extends (carries gates' consistency/nodup hyps — another invariant to thread). Clean [propext,Classical.
 -- choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 115 (step 75): THE CONSISTENCY/NODUP BOTTOM-GATE INVARIANT
+#check @Depth3.BottomPred
+#check @Depth3.BottomClean
+#check @Depth3.mergePass_BottomClean
+-- The relative survivor budget (descent_switching_le_extends, used in h2_rel_clean 114) carries two extra
+-- per-gate hyps beyond width: each bottom clause Consistent (no v ∧ ¬v) + variable-Nodup. These are the shape
+-- the switched gates have (dtreeToDNF/CNF of FRESH canonical trees: dtreeToDNF_consistent/_nodup in DnfFresh),
+-- so an invariant to thread like BottomWidth. ABSTRACTED: BottomPred (P : Clause n → Prop) C := ∀cs∈bottomGates
+-- C, ∀T∈cs, P T (any per-clause invariant). mergePass_BottomPred (mutual with list): mergePass preserves it
+-- (flatten keeps the clauses — proof MIRRORS mergePass_BottomWidth 96 exactly, P instead of width≤w). BottomClean
+-- C := BottomPred Consistent C ∧ BottomPred (T ↦ (T.lits.map litVarOf).Nodup) C. mergePass_BottomClean: the
+-- merge preserves both. So BottomClean threads through collapseRound just like BottomWidth. REMAINING: (1) leaf
+-- Collapse-tower sets BottomClean (switched gates consistent+nodup via dtreeToDNF_consistent/_nodup + canonical-
+-- tree freshness); (2) the relative survivor lemma exists_survivor_shallow_extends_REL on descent_switching_le_
+-- extends with BottomClean+BottomWidth; (3) wire into hsurv/hcf with the relative (box-factor) deep term +
+-- h2_rel_clean. Clean [propext,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
