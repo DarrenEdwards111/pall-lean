@@ -186,6 +186,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3NonEmptyGates
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MergeCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRoundCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityWCSeq
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityGeomREL
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2332,6 +2333,23 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- survivor now RECEIVES the gate-count bound the box-free union (125) needs. REMAINING: the FINAL instantiation
 -- at geomSchedB — hsurv via hsurv_REL_round (122), gap via geomSchedB_gap (124), union via h2_of_count_pow (125)
 -- + bottomGatesG_card_le (126), regime N≥2D^(d+1). Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰
+-- CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 132 (step 92): THE FULLY-ASSEMBLED GENERAL-d PARITY BOUND AT THE GEOMETRIC SCHEDULE
+#check @Depth3.parity_not_altO_geomREL
+-- THE FINAL SEQ ASSEMBLY. Instantiates the width-and-count-aware capstone (131) at the base-D geometric
+-- schedule (113), discharging the per-round survivor (hsurv_REL_round 122) from the SCHEDULE: Chernoff gap via
+-- geomSchedB_gap (124, D·p>7 + threshold≥D), union via h2_of_count_pow (125, CAP≤1/2 + gate-count≤2M via
+-- bottomGatesG_card_le 126 + threshold large 8M<2^s). parity_not_altO_geomREL {p}(hp0)(hp1)(hp3){F D N M m d}
+-- [NeZero m](hN1 : 1≤N)(hF)(hDp : 7<D·p)(hcap : 2·CAP≤1)(hr1)(hN2 : ∀i≤d, 2D^(i+1)≤N)(hNd : ∀i≤d, D^(i+1)≤N)
+-- (hbig : ∀i≤d, 8M<2^(geomSchedB D N (i+1)))(C₀ τ₀)(hC₀ : AltO (d+2) C₀)(hbw₀ : BottomWidth (geomSchedB D N 1)
+-- C₀)(hcnt₀ : (bottomGates C₀).length≤M)(hτ₀ : N≤stars τ₀)(hm : per-gate clause-count≤m) : ∃x, eval C₀ x ≠
+-- parity x. Per round (i≤d): hgeD (D≤geomSchedB i via Nat.le_div_iff_mul_le + hNd), hge2 (2≤geomSchedB (i+1)
+-- via hN2), gap (geomSchedB_gap + stars τ≥geomSchedB i + nlinarith), union (h2_of_count_pow + bottomGatesG_card
+-- _le + hbig). So a depth-(d+2) alternating tower of bottom width ≤ geomSchedB D N 1 does NOT compute parity in
+-- the standard Håstad regime (D>7/p≈56wm, N≥2D^(d+1) so n exp in d, CAP≤1/2, 8M<2^threshold), sole remaining
+-- structural input = hm (per-gate clause-count). THE WHOLE TIGHT HÅSTAD/RAZBOROV SWITCHING LEMMA ⟹ GENERAL-d
+-- parity∉AC⁰ FULLY ASSEMBLED. Clean [propext,Classical.choice,Quot.sound], no sorry, no exp, no sockets. AC⁰
 -- CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
