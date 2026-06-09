@@ -33,6 +33,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockDecode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentDecode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelBlockCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TaggedFlatten
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EncodeInjective
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BadLabels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelNodup
@@ -729,6 +730,28 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- shape. HONEST SCOPE: the block-COUNT bound only (the F-independence keystone). REMAINING: the cardinality
 -- re-encoding (content-pathLen streams ↪ (O(w))^{pathLen}) + threading through the weight gain
 -- ((2p/(1-p))^{pathLen}) → the tight ((2p/(1-p))·O(w))^s bound closing parity ∀d. NOT done here. Clean
+-- [propext,Classical.choice,Quot.sound]. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 147 (F-independence step 2): THE CONTENT-BASED STREAM RE-ENCODING — (2|α|+1)^k
+#check @Depth3.taggedFlatten
+#check @Depth3.taggedFlatten_injective
+#check @Depth3.nonempty_block_streams_card_le
+-- The combinatorial HEART of tightening the label space from the fuel-dependent (4^w+1)^F to the CONTENT-based
+-- (2a+1)^k. A label stream = List (List α) of NON-EMPTY blocks; content = flatten length k. taggedFlatten re-
+-- encodes it by TAGGING the first element of each block true, every other false, and flattening: List (α×Bool)
+-- of length = flatten length (taggedFlatten_length), INJECTIVE on nonempty-block streams (taggedFlatten_
+-- injective — the true tags mark block boundaries, recovered by tail_split + taggedFlatten_no_false_head). So a
+-- content-k stream injects into Fin k → Option (α×Bool): nonempty_block_streams_card_le — #{content-k nonempty-
+-- block streams} ≤ (2|α|+1)^k, INDEPENDENT OF #blocks (F). This is the re-encoding the block decoder needs:
+-- descentLabels has all-nonempty blocks (brick 146 descentLabels_block_nonempty) + flatten length = pathLen
+-- (descentLabels_flatten_length), so (with α = Fin w via term-relative positions) it injects into a
+-- (2w+1)^{pathLen} space — F-INDEPENDENT, the shape that (with the weight gain) yields the tight
+-- ((2p/(1-p))·O(w))^s bound. GOTCHAS: List.headI needs Inhabited → pattern-match the block instead;
+-- Fintype.card_fun needs the PathLabel import; taggedFlatten_injective via induction (equation-match not
+-- exhaustive); absurd cons-vs-nil cases via full simp [taggedFlatten]. HONEST SCOPE: the generic content-based
+-- cardinality keystone. REMAINING: instantiate at descentLabels (α=Fin w) + thread the per-content count
+-- through the weight gain (the content-graded geometric sum: base=(2p/(1-p))(2w+1)<1 for const w, pathLen≥s on
+-- bad ⟹ Σ_{k≥s} base^k = base^s/(1-base)) → tight bound → parity capstone. NOT wired here. Clean
 -- [propext,Classical.choice,Quot.sound]. AC⁰ ceiling, NOT P vs NP.
 
 -- Brick 55: branching holography, step 4m — the p-biased measure + star-count driver
