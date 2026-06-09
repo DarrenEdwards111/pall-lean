@@ -166,6 +166,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomSchedule
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BernoulliTail
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EulerBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3H1Assemble
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HcfFromGap
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2033,6 +2034,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- RATIONAL GAP CONDITION starsτ·p > 7·s_out — NO exp anywhere. This discharges hcf_of_split's h1. REMAINING:
 -- h2 (card·cap union term) + p-factor geomSched (factor p not 1/2). Clean [propext,Classical.choice,Quot.sound],
 -- no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 112 (step 72): THE PER-ROUND INEQUALITY FROM THE GAP AND THE UNION BOUND
+#check @Depth3.hcf_from_gap
+-- Composes h1_of_gap (111) with hcf_of_split (107): at t = 1-1/s_out, the per-round closed-form hcf follows
+-- from just TWO clean rational conditions. hcf_from_gap {p}(hp0)(hp1)(hp_lt : p<1){n starsτ sOut}(card capGeo)
+-- (hs : 1≤sOut)(hgap : 7·sOut < starsτ·p)(h2 : card·capGeo < box/2) : box·((1-1/sOut)·p+(1-p))^starsτ/(1-1/
+-- sOut)^(sOut-1) + card·capGeo < box. Body: hcf_of_split hp_lt card capGeo (h1_of_gap hp0 hp1 starsτ sOut hs
+-- hgap) h2 (the implicit t in hcf_of_split unifies to 1-1/sOut from h1_of_gap). So hcf is NO LONGER ANALYTIC:
+-- it's gap ∧ h2 — the Chernoff GAP (starsτ·p > 7·s_out, concentration/below-the-mean) AND the UNION BOUND
+-- (card·capGeo < box/2, one deep-gate failure per bottom gate), both elementary rational inequalities. The
+-- entire Håstad concentration is discharged (no exp). REMAINING: h2 itself (compare card·cap^(s_out) vs box,
+-- both exponential — needs the regime + a card/gate-count bound) + a p-factor geomSched so the gap holds (s_out
+-- < starsτ·p/7). Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
