@@ -34,6 +34,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentDecode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelBlockCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TaggedFlatten
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BinomialDecayPow
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EncodeInjective
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BadLabels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelNodup
@@ -753,6 +754,24 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- through the weight gain (the content-graded geometric sum: base=(2p/(1-p))(2w+1)<1 for const w, pathLen≥s on
 -- bad ⟹ Σ_{k≥s} base^k = base^s/(1-base)) → tight bound → parity capstone. NOT wired here. Clean
 -- [propext,Classical.choice,Quot.sound]. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 148 (route-1 bridge step 1): THE (2^w)-BASE BINOMIAL DECAY (weight the tight count)
+#check @SwitchingCounting.binomial_ratio_strict_step_gen
+#check @SwitchingCounting.count_decay_step_pow
+-- The (A)→(B) WEIGHTED BRIDGE via route 1: weight the tight CARDINALITY count block_switching_count_tight
+-- (|Bad| ≤ |{stars≤K-s}|·(2^w)^s, COMPACT BlockPathLabel base 2^w) via the binomial measure to get a SHALLOW
+-- restriction, then feed the parity capstone. The shallow-existence ENGINE (exists_depth_lt_in_of_decay, generic
+-- in M:ℕ→ℕ), the (2w)^s DECAY (count_decay_step), BASE (base_term_lt), and UNION (exists_good_restriction_
+-- forall_in) ALL EXIST clean. This brick supplies the MISSING decay for the COMPACT (2^w)^s base: count_decay_
+-- step_pow — 2·M(s+1) ≤ M(s) for M(s)=2^{n-K+s}·C(n,K-s)·(2^w)^s, under regime (4·2^w)·K+K ≤ n+1 (multiplier
+-- 4·2^w = strict-2 · the-2-from-2^{n-K+s+1} · the-2^w-from-(2^w)^{s+1}). Via binomial_ratio_strict_step_gen (the
+-- 8w-hardcoded binomial_ratio_strict_step GENERALISED to any multiplier r, regime r·K+K≤n+1, via choose_step).
+-- So block_switching_count_tight's (2^w)^s now has its decay → can feed exists_depth_lt_in_of_decay. HONEST
+-- SCOPE: the binomial decay for the compact base. THE KEYSTONE STILL MISSING: a CANONICAL-DT-DEPTH-graded m-free
+-- per-shell count — block_switching_count_tight grades by blockStream LENGTH (one branch), the decay engine by
+-- canonicalDT DEPTH (max branch), related only by depth ≤ blockLen·w (loses a w-factor) and blockLen ≤ depth;
+-- reconciling these gradings (so |{stars=K, depth=s}| ≤ M(s)) is the remaining route-1 work. NOT assembled here.
+-- Clean [propext,Quot.sound]. AC⁰ ceiling, NOT P vs NP.
 
 -- Brick 55: branching holography, step 4m — the p-biased measure + star-count driver
 #check @Depth3.pweight                 -- p-biased weight ∏ v, (if free then p else (1-p)/2)
