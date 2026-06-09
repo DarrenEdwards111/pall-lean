@@ -171,6 +171,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomScheduleBase
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3H2Union
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BottomClean
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalDTFresh
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafTowerClean
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2112,6 +2113,22 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- CNF_consistent/_nodup need .fresh). This is the foundation to SET BottomClean (115). REMAINING: leafCollapse-
 -- tower sets BottomClean via this + the consistent/nodup lemmas; relative survivor lemma; wire. Clean [propext,
 -- Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 117 (step 77): THE LEAFCOLLAPSE-TOWER BOTTOMCLEAN SETTER
+#check @Depth3.leafCollapse_BottomClean
+-- leafCollapse switches every bottom gate into the clauses of a canonical decision tree, which — being on a
+-- FRESH tree (toDTree_canonicalDT_fresh 116) — are automatically Consistent + variable-Nodup (dtreeToCNF_
+-- consistent/_nodup, dtreeToDNF_consistent/_nodup). So a leaf collapse SETS BottomClean UNCONDITIONALLY (no
+-- hypothesis on the input tower — the switched gates are clean by construction; contrast BottomWidth which the
+-- switch only sets below the survivor threshold). leafCollapse_BottomPred {P}(F ρ)(hdnf : P on dtreeToCNF(toDTree
+-- (canonicalDT cs F ρ)))(hcnf : P on dtreeToDNF(negTree(toDTree(canonicalDT (negDNF cs) F ρ)))) : ∀C, BottomPred
+-- P (leafCollapse F ρ C) — mutual tower recursion mirroring leafCollapse_tower_BottomWidth (97). leafCollapse_
+-- BottomClean (F ρ C) : BottomClean (leafCollapse F ρ C) = ⟨BottomPred Consistent (via dtreeToCNF/DNF_consistent
+-- + toDTree_canonicalDT_fresh/negTree_fresh), BottomPred Nodup (via _nodup)⟩. So collapseRound (= mergePass ∘
+-- leafCollapse) sets BottomClean: leafCollapse sets it (117), mergePass preserves it (115). REMAINING: relative
+-- survivor lemma exists_survivor_shallow_extends_REL on descent_switching_le_extends (takes BottomClean+Bottom
+-- Width, gives box-factor deep term) + wire into hsurv/hcf via h2_rel_clean (114). Clean [propext,Classical.
+-- choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
