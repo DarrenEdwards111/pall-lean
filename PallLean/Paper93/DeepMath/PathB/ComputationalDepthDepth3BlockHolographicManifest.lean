@@ -43,6 +43,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ExtendSat
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PosLabels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PosRecover
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PosValLabels
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SwitchingProbFindep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EncodeInjective
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BadLabels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelNodup
@@ -910,6 +911,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- labels ⇒ equal freed-var sets (posInTerm_recover round-trip) AND equal freed values ⇒ depth-F boundaries agree
 -- (Extends on freed via the values, henc off freed) ⇒ IH closes via extendσ. Clean [propext,Classical.choice,
 -- Quot.sound], no sorry. This is the corrected route-2 label + its injectivity — what [155c] needs. AC⁰, NOT P≠NP.
+
+-- AC⁰ reduction brick 155c: the F-INDEPENDENT depth-graded switching bound (route-2 CAPSTONE)
+#check @Depth3.descent_switching_prob_findep
+-- Replaces the F-DEPENDENT (4^w+1)^F factor of descent_switching_prob_extends (brick 59) with an
+-- F-INDEPENDENT (r')^s/(1-r'), r'=(2p/(1-p))(4w+1)<1. descent_switching_prob_findep:
+--   ∑_{σ∈Bad, depth≥s} pweight σ ≤ (r')^s/(1-r') · ∑_{ρ extends τ} pweight ρ.
+-- PROOF: gain the weight by the FULL pathLen (pweight_le_ratio_pow with pathLen+stars≤stars budget),
+-- inject σ↦(descentSat σ, descentPosValLabels σ) (155b injectivity, valid with deep input xσ varying per σ),
+-- bound the image ⊆ extBox τ ×ˢ Labs, factor out the conditioning mass ∑_extBox pweight, then group the
+-- labels Labs by content length k (≤ (4w+1)^k of them, brick 147 tagged-flatten) and sum the geometric
+-- series ∑_k (r')^k ≤ (r')^s/(1-r') (geom_shell_tail_le). The hr' : r'<1 holds for small const p at const w.
+-- This is the F-independent depth-graded count route 2 set out to build — graded by canonicalDTree.depth
+-- (the MAX branch = right quantity for parity, unlike the block route). Clean [propext,Classical.choice,
+-- Quot.sound], no sorry. Remaining: [156] depth<s ⇒ DTreeSwap+ACZeroParity ⇒ parity. AC⁰, NOT P≠NP.
 
 -- Brick 55: branching holography, step 4m — the p-biased measure + star-count driver
 #check @Depth3.pweight                 -- p-biased weight ∏ v, (if free then p else (1-p)/2)
