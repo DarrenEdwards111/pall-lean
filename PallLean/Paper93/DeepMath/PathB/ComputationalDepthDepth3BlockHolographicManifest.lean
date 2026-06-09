@@ -163,6 +163,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityWidthAwareS
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityClosedFormSeq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HcfSplit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomSchedule
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BernoulliTail
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1990,6 +1991,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- 2^-(geomSched N (i+1)) needs rational exp-decay (the s i ≫ s(i+1) gap: stars τ ≥ N/2^i ≫ N/2^(i+1)) + h2
 -- card·cap bound; with n exp in d so geomSched N d ≥ 1. Clean [propext,Classical.choice,Quot.sound], no sorry.
 -- AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 109 (step 69): A RATIONAL BERNOULLI TAIL BOUND
+#check @Depth3.one_sub_pow_le_inv_one_add_mul
+-- The Chernoff atom h1 (107) needs decay of (1-x)^k but in ℚ (no exp/log). Bernoulli gives a RATIONAL one:
+-- one_sub_pow_le_inv_one_add_mul {x}(hx0 : 0≤x)(hx1 : x≤1)(k) : (1-x)^k ≤ 1/(1+k·x). Proof: (1-x) ≤ 1/(1+x)
+-- (le_div_iff₀ + nlinarith [sq_nonneg x], since (1-x)(1+x)=1-x²≤1); pow_le_pow_left₀ → (1-x)^k ≤ (1/(1+x))^k =
+-- 1/(1+x)^k; (1+x)^k ≥ 1+k·x (Mathlib one_add_mul_le_pow); one_div_le_one_div_of_le. The genuine rational
+-- concentration tool the switching-lemma tail is built from. NOTE on the regime (re-derived this step): the
+-- survivor count after a p-restriction is Binomial(stars τ, p), mean p·stars τ; for the low-star tail < 1/2 the
+-- threshold s_out must be BELOW the mean, so the schedule factor is ~p (=1/(8wm)) per round, NOT 1/2 — geomSched
+-- (108) should use factor p. With s_out ≪ p·s_in and the Bernoulli bound at t=1-1/s_out, h1 reduces to a
+-- rational condition s_in·p > c·s_out (no exp), needing (1-1/m)^(m-1)≥1/4-type bound next. Clean [propext,
+-- Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
