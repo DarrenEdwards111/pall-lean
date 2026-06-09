@@ -317,3 +317,40 @@ conditions:
 
 The Håstad schedule itself (the HIGH-risk gate) is now **built**: [171a–c] reduced it to a pure
 schedule inequality plus a gate-count union. What remains is the gate-count thread + a numeric instance.
+
+---
+
+## UPDATE 8 — [171d–e] BUILT; conflation found: [171a–e] use ONE threshold for depth + star
+
+| brick | what | status |
+|---|---|---|
+| [171d] `collapseRoundBlock_count_le` | block round doesn't increase the bottom-gate count | ✓ clean |
+| [171e] `parity_not_altO_block_seq_count_findep` | all four invariants threaded; reduces to two pure schedule inequalities `hgap`/`huni` | ✓ clean |
+
+[171e] is a clean, verified theorem reducing the whole m-free depth-`d` block bound to `hgap`
+(`7·s(i+1) < s i·p`) and `huni` (`2M·(r')^{s(i+1)}/(1-r') < 1/2`), `i ≤ d`. **But it conflates the depth
+and star thresholds into one sequence `s i`.** That single `s(i+1)` is simultaneously:
+- the depth/shallowness threshold — capped `≤ w` by `hsw` (the bottom-width budget);
+- the star-survival threshold — must be *large* for the gap `7·s(i+1) < stars τ·p`;
+- the union exponent `(r')^{s(i+1)}` — must be *large* for `huni` to close.
+
+Verified arithmetic (`p` minimal for `r'<1`, `M=1`, `w=2`): `huni` needs the threshold `≳ 3.2`, but
+`hsw` caps it at `w=2` — **contradiction**. So [171e] is instantiable only in a weak regime (width
+`w ≈ 128^d·log M`, exponential in `d`), not the genuine Håstad regime (small `w`).
+
+### The fix: two-parameter decoupling (the genuine final piece)
+
+Håstad keeps a **small depth threshold `t ≈ w`** (for the union and the bottom width) separate from a
+**large star schedule `s_i`** (for the gap). The m-free survivor [164]
+(`exists_shallow_survivor_extends_findep (F s k)`) *already takes separate depth `s` and star `k`
+thresholds* — but [170c]/[171b]/[171a]/[171e] collapsed them (`k = s-1`, depth `= star`). The remaining
+work decouples them:
+- **[170c′]/[171b′]** — survivor with depth threshold `t` (`≤ w`, for `ShallowsBlock`/`huni`) and a
+  *separate* star threshold `sOut` (large, for the gap). The bit `hsurv_REL2_round` is exactly this
+  two-parameter form.
+- **[171a′]/[171e′]** — the tower with a *constant* depth threshold `t ≈ w` and a *geometric* star
+  schedule `s_i`. `ShallowsBlock` at `t`; `BottomWidth ≤ t ≤ w`; the gap on `s_i`.
+- **[171f]** — concrete instance (now feasible: small `w`, `t = w`, geometric `s_i`, `n ≈ s_0`).
+
+This is the genuine final structure. Everything beneath it ([162]–[171e]) is built and verified; the
+decoupling is the m-free analog of brick 140's two-parameter (depth/star) form. AC⁰ ceiling.
