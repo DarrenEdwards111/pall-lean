@@ -39,6 +39,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CumulShell
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CompactRatio
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HBoundDischarge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockDepthRefute
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ExtendSat
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EncodeInjective
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BadLabels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelNodup
@@ -844,6 +845,24 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- (canonicalDTree…).depth = max branch, hnf-free), made F-independent (route 2). Bricks 147-150 (binomial/
 -- cardinality) are route-agnostic & reusable in route 2's content-graded sum. Clean [propext,Classical.choice,
 -- Quot.sound], no sorry, no native_decide. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 153 (ROUTE 2 step 1): the codesList block count is F-INDEPENDENT (≤ pathLen)
+#check @Depth3.extendσ_anyTermSat_of_allTrue
+#check @Depth3.codesList_length_le_pathLen
+-- ROUTE 2 (the CORRECT path, post-audit): make the DEPTH-graded descent_switching_prob F-independent. Its label
+-- space is (4^w+1)^F because codesList is bounded by FUEL F (codesList_length_le). FIRST brick: bound the block
+-- count by pathLen instead — F-INDEPENDENTLY. codesList_length_le_pathLen: (codesList cs w F σ x).length ≤
+-- pathLen cs w F σ x. SUBTLETY: codesList CONTINUES past a satisfying step (always conses) while pathLen STOPS;
+-- they agree because once extendσ makes the active term T true, the boundary is satisfied (anyTermSat) so the
+-- next codesList = []. That fact = extendσ_anyTermSat_of_allTrue: if T's free lits all eval true under x then
+-- anyTermSat (extendσ σ T x) = true (proved: T satisfied by extendσ — free lits set to x via freeVarsOf
+-- membership, fixed lits true via litTrue_of_not_free_not_false + termFalsified=false from activeTerm; 4-case
+-- pos/neg × free/fixed on σ v). Then codesList_length_le_pathLen by induction (Tsat case: next codesList=[] via
+-- the sat lemma; non-Tsat: IH). HONEST SCOPE: step 1 of route 2 — the F-independence FOUNDATION (caps the label
+-- DIMENSION by pathLen, the right quantity since descent_switching_prob is depth-graded = MAX branch). REMAINING:
+-- the content-graded label cardinality (freed positions, content=pathLen, via brick 147) + re-derive
+-- descent_switching_prob's step3 as the geometric sum ∑_{k≥s}(Cw)^k(2p/(1-p))^k = base^s/(1-base) + DTreeSwap +
+-- ACZeroParity → unconditional parity. Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰, NOT P vs NP.
 
 -- Brick 55: branching holography, step 4m — the p-biased measure + star-count driver
 #check @Depth3.pweight                 -- p-biased weight ∏ v, (if free then p else (1-p)/2)
