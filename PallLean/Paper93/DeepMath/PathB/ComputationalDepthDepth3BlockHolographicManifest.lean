@@ -167,6 +167,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BernoulliTail
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EulerBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3H1Assemble
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HcfFromGap
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomScheduleBase
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2047,6 +2048,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- entire Håstad concentration is discharged (no exp). REMAINING: h2 itself (compare card·cap^(s_out) vs box,
 -- both exponential — needs the regime + a card/gate-count bound) + a p-factor geomSched so the gap holds (s_out
 -- < starsτ·p/7). Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 113 (step 73): THE BASE-D GEOMETRIC SCHEDULE (the p-factor fix)
+#check @Depth3.geomSchedB
+#check @Depth3.parity_not_altO_geomB
+-- Fixes brick 108's wrong contraction factor: the Chernoff gap (111) needs s_{i+1} < starsτ·p/7 ≈ s_i·p/7, so
+-- the survivor count must shrink by factor ~p=1/(8wm) per round, NOT 1/2. geomSchedB D N i := max 1 (N/D^i) —
+-- arbitrary base D. geomSchedB_anti (D≥1)/pos/zero (same proofs as 108 with D, Nat.pow_le_pow_right hD).
+-- parity_not_altO_geomB plugs it into parity_not_altO_closed_form_seq (106) with w := geomSchedB D N 1,
+-- DISCHARGING hmono/hs1/hsw/hτ₀ — identical to parity_not_altO_geom but base-D. With D > 7/p = 56wm the gap
+-- starsτ·p > 7·s_out holds per round (modulo flooring). geomSched (108) = geomSchedB 2. So the general-d
+-- parity∉AC⁰ at the CORRECT p-factor schedule rests on rate hr1 + count hcount + per-round hcf, and hcf ⟸ gap
+-- (111, now satisfiable with D>56wm) ∧ h2 (union bound, remaining). Clean [propext,Classical.choice,Quot.sound],
+-- no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
