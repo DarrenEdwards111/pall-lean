@@ -178,6 +178,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BudgetExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SurvivorExtendsRel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SurvivorExtendsREL2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsurvRoundRel
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsurvRoundREL2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityREL
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomGap
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3H2Schedule
@@ -2400,6 +2401,21 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- ≤2^t (small) → rate constant → gap D>7/p=O(1) + size N≥D^(d+1)=2^O(d) CLOSE. REMAINING: re-thread the capstone
 -- (Shallows2/BottomWidth t/BottomCount 2^t at depth t) on REL2 — the conflation is RESOLVED at the lemma level.
 -- Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 136 (step 96): THE TWO-PARAMETER PER-ROUND SURVIVOR (depth/star decoupled)
+#check @Depth3.hsurv_REL2_round
+-- The per-round survivor on the two-parameter budget (135). hsurv_REL2_round {p}(hp0)(hp1)(hp3){w F s t m}
+-- [NeZero w][NeZero m](hs : 2≤s)(hF)(C τ)(hbw : BottomWidth w C)(hmc : count≤m)(hr1)(hgap : 7·s < (stars τ)·p
+-- [STAR threshold s])(hh2 : (bottomGatesG C).card·CAP^t/(1-CAP) < 1/2 [DEPTH threshold t]) : ∃ρ, Extends τ ρ ∧
+-- s≤stars ρ ∧ stars ρ≤F ∧ Shallows F ρ t C. Mirrors hsurv_REL_round (122) but DECOUPLED: the Chernoff GAP uses
+-- the STAR threshold s (survivor count LARGE, in the low-star tail + Markov param u:=1-1/s, renamed from 122's
+-- t to free t for depth); the UNION uses the independent DEPTH threshold t (SMALL → clause-count 2^t, rate
+-- constant). hsmall via hsmall_of_chernoff (101, at u/s) ∘ hcf_of_split (107, h1=h1_of_gap 111 at s, h2=hh2box
+-- at t); exists_survivor_shallow_extends_REL2 (135) at G=bottomGatesG C → stars≥s, depth<t; Shallows F ρ t C
+-- (both polarities via mem_bottomGatesG). So the survivor keeps stars LARGE (≥s) while shallowing to depth SMALL
+-- (<t) → width≤t, clause-count≤2^t small, rate p=O(1) constant. The conflation fix threaded into the per-round
+-- survivor. REMAINING: the wc-seq capstone + geom assembly on hsurv_REL2_round (s_i geometric stars, t constant
+-- depth). Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
