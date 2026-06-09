@@ -255,3 +255,33 @@ The complete m-free depth-`d` block lower bound `parity_not_altO_block_findep` n
 
 Everything else — the entire m-free depth-`d` AC⁰ machinery — is now built and verified: no clause
 count `m`, no `canonicalDT ↔ canonicalDTree` bridge. `hsched` is the last mathematical input.
+
+---
+
+## UPDATE 6 — [171] finding: `hsched` needs the VARYING geometric schedule (constant `s` can't close)
+
+Probing the discharge of `hsched` against the bit schedule machinery (`h1_of_gap`,
+`hsmall_of_chernoff`, `recursive_tower_not_parity_surv_seq`):
+
+- The Chernoff gap that closes the low-star tail is **`7·sOut < stars τ · p`** (`h1_of_gap`): the
+  *output* star threshold `sOut` must be comfortably below the *input* `stars τ`.
+- **[170b–d] instantiated the block engine [166] at a CONSTANT `s`** (`fun _ => s`). With constant
+  `s`, the recursion only guarantees `stars ≥ s`, so at the last round `stars τ` can equal `s`, making
+  `P[stars ≤ s-1 | extBox τ]` large — the gap fails. This is the depth/star conflation.
+- The bit version closes it with the **varying** engine `recursive_tower_not_parity_surv_seq` and a
+  **geometric** schedule `s_i` (`ParityWidthAwareSeq` / `ParityWCSeq` / `geomSchedB`), keeping
+  `stars τ_i` comfortably above `s_{i+1}` every round.
+
+So the honest remaining work for [171] is the **m-free varying-schedule rework** — the core analytic
+content brick 140 spent the most effort on, now m-free:
+
+1. **[171a]** restate the block width-aware clean tower [170b] with a *per-round* threshold schedule
+   `s : ℕ → ℕ` (the block engine [166] is already the seq version — I just passed it a constant). The
+   m-free survivor [164] already takes separate depth/star thresholds, so this is a parameterization +
+   the per-round `EquivOn`/width/clean threading at `s_i`.
+2. **[171b]** the geometric schedule (`geomSchedB` analog) + per-round gap (`h1_of_gap` analog, base
+   `4w+1`) + union bound, discharging the per-round `hsched_i`.
+3. **[171c]** concrete `(p, n, d, schedule)` and `norm_num` — the depth-`d` analog of [161].
+
+This is genuine multi-brick analytic work (HIGH risk), not a mirror: it is the m-free heart of the
+Håstad schedule. Everything structural beneath it ([162]–[170d]) is built and verified. AC⁰ ceiling.
