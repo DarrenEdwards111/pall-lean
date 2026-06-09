@@ -36,6 +36,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelBlockCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TaggedFlatten
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BinomialDecayPow
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CumulShell
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CompactRatio
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EncodeInjective
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BadLabels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelNodup
@@ -790,6 +791,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- (K-s+1)·top. HONEST SCOPE: lemma 1 of 3. NEXT: [150] compact (2^w)^s ratio (2^{w+2})^s·C(n,K-s)≤C(n,K) via
 -- brick 148's binomial_ratio_strict_step_gen / pow_mul_choose_le; [151] gate absorption G·(K-s+1)<2^s; then
 -- assemble hbound + wire circuit_collapse_exists. Clean [propext,Classical.choice,Quot.sound]. AC⁰, NOT P vs NP.
+
+-- AC⁰ reduction brick 150 (hbound-discharge lemma 2): THE COMPACT (2^w)^s BINOMIAL RATIO
+#check @SwitchingCounting.binomial_ratio_regime_gen
+#check @SwitchingCounting.compact_binom_ratio
+-- SECOND of 3. The compact tight count carries base (2^w)^s; to absorb it + the gate count into the shell ratio
+-- we need (4·2^w)^s·C(n,K-s) ≤ C(n,K) (multiplier 4·2^w = 2^{w+2}, the one brick 148's decay uses). The existing
+-- binomial_ratio_regime_strict is hardcoded to 8w; binomial_ratio_regime_gen GENERALISES it to any multiplier r
+-- (regime r·K+K≤n+1) via pow_mul_choose_le — the per-step condition r·(k+1)≤n-k holds for k<K since r·(k+1)≤r·K
+-- ≤ n+1-K ≤ n-k (gcongr + omega treating r·K as an atom). compact_binom_ratio = the 4·2^w specialisation.
+-- ASSEMBLY ROLE: G·|{stars≤K-s}|·(2^w)^s ≤ 2^{n-K}·[G·(K-s+1)·(2·2^w)^s·C(n,K-s)] [lemma 1 + card_stars_eq];
+-- then if G·(K-s+1)<2^s [lemma 3], < 2^{n-K}·[(4·2^w)^s·C(n,K-s)] ≤ 2^{n-K}·C(n,K) [this lemma] = |{stars=K}|.
+-- HONEST SCOPE: lemma 2 of 3. NEXT: [151] gate absorption G·(K-s+1)<2^s ⟹ G·(K-s+1)·(2·2^w)^s < (4·2^w)^s;
+-- then assemble hbound + wire circuit_collapse_exists → unconditional block-shallow collapse. Clean
+-- [propext,Quot.sound]. AC⁰ ceiling, NOT P vs NP.
 
 -- Brick 55: branching holography, step 4m — the p-biased measure + star-count driver
 #check @Depth3.pweight                 -- p-biased weight ∏ v, (if free then p else (1-p)/2)
