@@ -45,6 +45,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PosRecover
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PosValLabels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SwitchingProbFindep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityRefuteFindep
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SurvivorShallowFindep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EncodeInjective
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BadLabels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelNodup
@@ -941,6 +942,18 @@ namespace PallLean.Paper93.DeepMath.PathB
 --   route 2 (recall brick 140's depth-(d+2) bound was VACUOUS for d≥1 due to the m/F factor). The concentration
 --   hyp ∑_{s≤stars<F} pweight ≈ 1 is stated directly (standard). Clean [propext,Classical.choice,Quot.sound],
 --   no sorry. AC⁰ ceiling (cruder 4^w base vs Håstad poly(w)); NOT P≠NP.
+
+-- AC⁰ reduction brick 157: the m-FREE multi-gate survivor lemma (route-2, depth-d enabler)
+#check @Depth3.exists_survivor_shallow_findep
+-- The existing exists_survivor_shallow_uncond uses the per-gate cap tight_switching_budget_uncond with base
+-- 2wm — the clause-count m forces p≈1/(wm), making the multi-round/depth-(d+2) budget VACUOUS (the obstruction
+-- route 2 removes). Here the m-FREE analog, using the F-independent m-free deep cap descent_switching_findep_le
+-- (base 4w, brick 156): the three-event union bound (low-star tail + high-star tail + (#gates)·(r')^s/(1-r'))
+-- produces a survivor ρ with s≤stars ρ≤F making EVERY gate's canonicalDTree (block-tree) shallower than s,
+-- r'=(2p/(1-p))(4w+1)<1, with NO dependence on the clause count m. Gates need consistency + nodup-var terms
+-- (155b/156 hypotheses, m-free). Mirrors exists_survivor_shallow_uncond's union bound but swaps the 2wm
+-- canonicalDT budget for the 4w canonicalDTree budget. This is the per-round survivor the depth-d AC⁰ argument
+-- needs WITHOUT the m penalty. Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ ceiling; NOT P≠NP.
 
 -- Brick 55: branching holography, step 4m — the p-biased measure + star-count driver
 #check @Depth3.pweight                 -- p-biased weight ∏ v, (if free then p else (1-p)/2)
