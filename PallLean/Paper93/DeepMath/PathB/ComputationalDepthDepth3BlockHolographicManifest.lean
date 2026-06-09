@@ -159,6 +159,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsmallChernoff
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsurvRound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityClosedForm
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecursiveTowerSeq
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityWidthAwareSeq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1931,6 +1932,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- EVERY round (marginal as starsτ→s); the sequence lets the threshold decay with the survivor count, the
 -- genuine Håstad bookkeeping. Next: rebuild the width-aware capstone (99) + closed-form (103) on the seq engine
 -- with decreasing s_i. Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 105 (step 65): THE WIDTH-AWARE CAPSTONE ON THE PER-ROUND-THRESHOLD ENGINE (two-threshold)
+#check @Depth3.parity_not_altO_width_aware_seq
+-- The two-threshold oracle: capstone 99 rebuilt on the per-round-threshold engine (104). parity_not_altO_width
+-- _aware_seq (s : ℕ→ℕ)(w F d)(hmono : ∀i, s(i+1)≤s i)(hsw : ∀i, s(i+1)≤w)(C₀ τ₀)(hC₀ : AltO (d+2) C₀)(hbw₀ :
+-- BottomWidth w C₀)(hτ₀ : s 0 ≤ stars τ₀)(hsurv : ∀i C τ, BottomWidth w C → s i ≤ stars τ → ∃ρ, Extends τ ρ ∧
+-- s(i+1)≤stars ρ ∧ stars ρ≤F ∧ Shallows F ρ (s(i+1)) C) : ∃x, eval C₀ x ≠ parity x. Round i: INPUT count s i
+-- (controls budget), OUTPUT count + shallowness s(i+1) (both from hsurv). collapseRound → AltO drops one level
+-- (90), EquivOn (87), bottom width ≤ s(i+1) ≤ w (collapseRound_BottomWidth 98 + mono hsw i). Identity case (i≥d)
+-- uses s(i+1)≤s i (hmono) for s(i+1)≤stars τ. hterm at index d: Shallows gives depth < s(d+1) ≤ stars ρ. The
+-- DECREASING threshold (hmono) is what lets the Håstad budget hold round by round (stars τ = s i ≫ s(i+1)). The
+-- width-aware pieces (Shallows/leafCollapse_tower/collapseRound_BottomWidth) needed NO change — they already
+-- take the threshold as a param; just instantiate at s(i+1). Clean [propext,Classical.choice,Quot.sound], no
+-- sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
