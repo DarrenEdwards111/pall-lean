@@ -187,6 +187,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MergeCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRoundCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityWCSeq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityGeomREL
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafTowerCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2351,6 +2352,21 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- structural input = hm (per-gate clause-count). THE WHOLE TIGHT HÅSTAD/RAZBOROV SWITCHING LEMMA ⟹ GENERAL-d
 -- parity∉AC⁰ FULLY ASSEMBLED. Clean [propext,Classical.choice,Quot.sound], no sorry, no exp, no sockets. AC⁰
 -- CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 133 (step 93): ONE SURVIVOR SETS THE TOWER'S PER-GATE CLAUSE-COUNT (the hm setter)
+#check @Depth3.BottomCount
+#check @Depth3.leafCollapse_tower_BottomCount
+-- The clause-count companion of step 57 (width). KEY: leafCollapse_dnf_BottomBounded (95) already proved the
+-- CLAUSE-COUNT half (cs.length ≤ 2^depth) alongside width — only projected to width before. BottomCount M C :=
+-- ∀cs∈bottomGates C, cs.length≤M (gate-wise count projection of BottomBounded, via BottomBounded_BottomCount).
+-- leafCollapse_tower_BottomCount (F ρ){s}(mutual) : Shallows F ρ s C → BottomCount (2^s) (leafCollapse F ρ C).
+-- Mirrors leafCollapse_tower_BottomWidth (97) exactly but per-GATE count: dnf/cnf via leafCollapse_dnf/cnf_
+-- BottomBounded_survivor (95) count part + BottomBounded_BottomCount; gAnd/gOr recurse (bottomGates_mem_gAnd/gOr).
+-- So one survivor round sets every new bottom gate's clause-count ≤ 2^s (the hm of parity_not_altO_geomREL 132,
+-- discharged on leafCollapse output). REMAINING (the merge half): mergePass SUMS per-gate counts → collapseRound
+-- leaves per-gate count ≤ (gate-count M)·2^s, so the threaded clause-count bound is m=M·2^s (per-round, couples
+-- to a per-round rate p=1/(8w·M·2^s) — the deeper threading). The leafCollapse count-setter is the clean half.
+-- Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
