@@ -285,3 +285,35 @@ content brick 140 spent the most effort on, now m-free:
 
 This is genuine multi-brick analytic work (HIGH risk), not a mirror: it is the m-free heart of the
 Håstad schedule. Everything structural beneath it ([162]–[170d]) is built and verified. AC⁰ ceiling.
+
+---
+
+## UPDATE 7 — [171a–c] BUILT: schedule reduced to (pure gap) + (gate-count union)
+
+The varying-schedule rework is built; the m-free depth-`d` block bound now reduces to two clean
+conditions:
+
+| brick | what | status |
+|---|---|---|
+| [171a] `parity_not_altO_block_width_aware_clean_seq` | the block tower on a *per-round* threshold `s i` | ✓ clean |
+| [171b] `hsurv_block_REL2_round` | two-threshold survivor from the Chernoff gap + union bound | ✓ clean |
+| [171c] `parity_not_altO_block_seq_findep` | **assembly: `hsurv` discharged, reduces to gap + union** | ✓ clean |
+
+`parity_not_altO_block_seq_findep` now needs only:
+- **`hgap`** — the *pure* schedule gap `7·s(i+1) < s i · p` (a condition on the sequence only; with
+  `s i ≤ stars τ` it gives the Chernoff gap). Dischargeable by a **geometric** schedule
+  `s(i+1) ≈ ⌊s i · p / 7⌋`, needing `s 0 ≈ (7/p)^d` (the standard Håstad regime).
+- **`hunion`** — `card(bottomGatesG C) · (r')^{s(i+1)}/(1-r') < 1/2`. By `bottomGatesG_card_le`,
+  `card ≤ 2·(bottomGates C).length`, so this needs the **number of bottom gates bounded** — i.e. a
+  gate-count invariant threaded through the tower (brick 140's 4th invariant, `BottomCount`), not yet
+  built block-side.
+
+### Remaining ladder
+- **[171d] gate-count invariant** — thread `(bottomGates C).length ≤ M` through `collapseRoundBlock`
+  (mirror brick 140's gate-count thread), discharging `hunion` for `M·(r')^{s(i+1)} < 1`. *Risk: MED.*
+- **[171e] concrete instance** — pick `p, n, d`, the geometric `s i`, and `M`; discharge `hgap`/`hunion`
+  by `norm_num`; supply a width-`≤ w`, `BottomClean`, gate-count-`≤ M` depth-`(d+2)` tower. The
+  depth-`d` analog of [161]. *Risk: MED.*
+
+The Håstad schedule itself (the HIGH-risk gate) is now **built**: [171a–c] reduced it to a pure
+schedule inequality plus a gate-count union. What remains is the gate-count thread + a numeric instance.
