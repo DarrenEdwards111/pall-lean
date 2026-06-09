@@ -375,10 +375,17 @@ Parameters `p=1/1000`, `w=t=10`, `M=10^6`, schedule `490007001, 70001, 10, …`;
 **Constant width (10), m-free, no `canonicalDT↔canonicalDTree` bridge** — the entire route-2 program
 realised as a concrete depth-3 AC⁰ lower bound.
 
-### What remains (optional polish)
-- General-`d` instance: replace the explicit 3-value schedule with a closed-form geometric `s_i` (a
-  `norm_num`-friendly recurrence) to get `parity ∉ depth-(d+2) AC⁰` for all `d` up to `~log n/log(7/p)`.
-  The capstone [171e′] already supports it; only the schedule arithmetic is left. *Risk: MED.*
+### [171g] — GENERAL-`d` instance: the program is CLOSED
 
-The m-free depth-`d` AC⁰ program is structurally complete and demonstrated unconditionally at depth 3.
-Ceiling unchanged: AC⁰, not P vs NP.
+`parity_not_depthd_block` (clean, no sorry) — the general-`d` unconditional bound via the closed-form
+geometric schedule `s i = 10·7001^(d+1-i)`:
+
+> For **every** `d`: every `AltO (d+2)`, `BottomWidth 10`, `BottomClean`, `≤ 10^6`-gate tower over `n`
+> variables, on a base with `≥ 10·7001^(d+1)` stars, fails to compute parity.
+
+`hmono`/`hpos` via `gcongr` + `Nat.pow` monotonicity; the gap via `pow_succ` + `nlinarith`
+(`70·X < 70.01·X`). No probabilistic/budget hypothesis. Usable depth `d = O(log n)` — the classical
+AC⁰ regime.
+
+**The m-free depth-`d` AC⁰ program is complete and unconditional, for all `d`.** No clause-count `m`,
+no `canonicalDT↔canonicalDTree` bridge, constant width. Ceiling unchanged: AC⁰, not P vs NP.
