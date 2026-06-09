@@ -188,6 +188,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3NonEmptyGates
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MergeCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRoundCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityWCSeq
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityWCSeq2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityGeomREL
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafTowerCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MergeCountMul
@@ -2416,6 +2417,21 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- (<t) → width≤t, clause-count≤2^t small, rate p=O(1) constant. The conflation fix threaded into the per-round
 -- survivor. REMAINING: the wc-seq capstone + geom assembly on hsurv_REL2_round (s_i geometric stars, t constant
 -- depth). Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 137 (step 97): THE TWO-PARAMETER WIDTH-AND-COUNT CAPSTONE (depth t, star sequence s)
+#check @Depth3.parity_not_altO_wc_seq2
+-- The wc-seq capstone (131) re-threaded for the two-parameter survivor (136). parity_not_altO_wc_seq2 (s : ℕ→ℕ)
+-- (t F d M)(hmono : ∀i,s(i+1)≤s i)(ht : ∀i, t≤s(i+1))(C₀ τ₀)(hC₀ : AltO (d+2) C₀)(hbw₀ : BottomWidth t C₀)(hcnt₀
+-- : (bottomGates C₀).length≤M)(hτ₀ : s 0≤stars τ₀)(hsurv : ∀i≤d ∀C τ, BottomWidth t C → count≤M → s i≤stars τ →
+-- ∃ρ, Extends ∧ s(i+1)≤stars ρ ∧ stars ρ≤F ∧ Shallows F ρ t C) : ∃x, eval C₀ x ≠ parity x. KEY: the bottom WIDTH
+-- budget is the FIXED DEPTH threshold t (small → BottomWidth t directly, no mono); the engine threads the
+-- GEOMETRIC STAR sequence s_i (large, decreasing) for the survivor count. Valid := (if i≤d then AltO(d+2-i) C
+-- else True) ∧ BottomWidth t C ∧ count≤M. Oracle: collapseRound → AltO drops 1 (90), EquivOn (87), BottomWidth t
+-- (collapseRound_BottomWidth 98 at Shallows-t, DIRECTLY — budget=t), count≤M (130). hterm: depth(D)<t ≤ s(d+1)
+-- ≤ stars ρ (ht d + hge) = depth<stars ρ (the parity shallowness). So the survivor keeps stars LARGE while depth
+-- SMALL. REMAINING: the final geom assembly on hsurv_REL2_round (136) — s_i:=geomSchedB (stars), t constant
+-- (depth), gap (124) at s, union (125) at t. Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING,
+-- NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
