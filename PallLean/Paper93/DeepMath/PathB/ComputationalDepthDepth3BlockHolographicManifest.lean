@@ -162,6 +162,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecursiveTowerSeq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityWidthAwareSeq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityClosedFormSeq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HcfSplit
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomSchedule
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1974,6 +1975,21 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- card·cap below half the box). These are the two genuine analytic atoms of EVERY switching-lemma argument.
 -- REMAINING: h1 = rational exponential-decay bound (Mathlib-ℚ lacks exp/log; needs (1-p/2)^k vs 2^-k estimate)
 -- + h2 = gate-count·cap bound. Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 108 (step 68): THE CONCRETE GEOMETRIC THRESHOLD SCHEDULE
+#check @Depth3.geomSched
+#check @Depth3.parity_not_altO_geom
+-- The decreasing threshold the Håstad regime needs, made CONCRETE. geomSched N i := max 1 (N / 2^i) — survivor
+-- count halves each round, floored at 1. geomSched_anti (a≤b → geomSched N b ≤ geomSched N a, via Nat.div_le_
+-- div_left + max_le_max), geomSched_pos (1 ≤ geomSched, le_max_left), geomSched_zero (N≥1 → geomSched N 0 = N).
+-- parity_not_altO_geom: plugs geomSched into parity_not_altO_closed_form_seq (106), DISCHARGING hmono (anti
+-- Nat.le_succ), hs1 (pos), hsw (anti 1≤i+1, w := geomSched N 1), hτ₀ (geomSched_zero + N≤stars τ₀). So the
+-- general-d parity∉AC⁰ at the EXPLICIT halving schedule rests on ONLY: rate hr1, count bound hcount, and the
+-- per-round closed-form hcf (now with s=geomSched N, w=geomSched N 1 substituted). The structural scaffolding
+-- is GONE. REMAINING (pure analysis): discharge hcf via hcf_of_split (107) — h1 Chernoff (1-p/2)^(stars τ) <
+-- 2^-(geomSched N (i+1)) needs rational exp-decay (the s i ≫ s(i+1) gap: stars τ ≥ N/2^i ≫ N/2^(i+1)) + h2
+-- card·cap bound; with n exp in d so geomSched N d ≥ 1. Clean [propext,Classical.choice,Quot.sound], no sorry.
+-- AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
