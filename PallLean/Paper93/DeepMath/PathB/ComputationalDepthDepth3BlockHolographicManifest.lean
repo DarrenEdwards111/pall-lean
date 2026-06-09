@@ -156,6 +156,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRoundBoun
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityWidthAware
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsurvDischarge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsmallChernoff
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsurvRound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1891,6 +1892,17 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- verify this closed form in the Håstad regime (stars τ≈n, s≈p·stars τ) + bound rest=card·cap^s/(1-cap). The
 -- last opaque piece of hsmall is now closed-form. Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰
 -- CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 102 (step 62): ONE ROUND'S SURVIVOR FROM ONE CLOSED-FORM INEQUALITY
+#check @Depth3.hsurv_round
+-- The per-round survivor packaged as a single composition of hsurv_of_budget (100) ∘ hsmall_of_chernoff (101).
+-- hsurv_round {p t}(ht0 : 0<t)(ht1 : t≤1)(hp0)(hp1)(hp3){w F s m}[NeZero w][NeZero m](hs : 1≤s)(hF)(C τ)(hbw :
+-- BottomWidth w C)(hτ : s≤stars τ)(hm : count≤m)(hr1)(hcf : box·(t·p+(1-p))^(stars τ)/t^(s-1) + (bottomGatesG
+-- C).card·(cap^s/(1-cap)) < box) : ∃ρ, Extends τ ρ ∧ s≤stars ρ ∧ stars ρ≤F ∧ Shallows F ρ s C. So one round's
+-- survivor exists as soon as the SINGLE explicit closed-form inequality hcf holds (no sums, no budgets — the
+-- rest passed to hsmall_of_chernoff is EXACTLY the cap term in hsurv_of_budget's hsmall, so the composition is
+-- a one-liner). This is the reusable per-round unit: 99's hsurv ⟸ (∀ round, hcf at p=1/(8w·count) via tight_
+-- rate_recip_8wm 92). Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
