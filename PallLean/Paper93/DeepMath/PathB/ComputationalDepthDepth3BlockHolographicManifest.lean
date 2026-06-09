@@ -180,6 +180,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsurvRoundRel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityREL
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomGap
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3H2Schedule
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GateCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2248,6 +2249,21 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- are now schedule-discharged. REMAINING: the final seq assembly (105 ∘ 122, gap via 124, union via 125) +
 -- a gate-count invariant card ≤ M (merge reduces, switch preserves → ≤ original). Clean [propext,Classical.
 -- choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 126 (step 86): THE GATE-COUNT FACTS (leaf preserves count + bottomGatesG card bridge)
+#check @Depth3.leafCollapse_bottomGates_length
+#check @Depth3.bottomGatesG_card_le
+-- The gate-count M for the union bound (125) is uniform across rounds: the leaf-switch KEEPS the bottom-gate
+-- count (each gate ↦ one switched gate), the merge only REDUCES it. The clean unconditional half here. leaf
+-- Collapse_bottomGates_length (mutual with list) : (bottomGates (leafCollapse F ρ C)).length = (bottomGates
+-- C).length — dnf/cnf rfl; gAnd/gOr via bottomGates_gAnd/gOr + the list lemma (cons: bottomGatesList (x::xs) =
+-- bottomGates x ++ bottomGatesList xs, length_append + IH). [propext]. bottomGatesG_card_le (C) : (bottomGatesG
+-- C).card ≤ 2·(bottomGates C).length (List.toFinset_card_le + length_append + length_map + omega). So (bottomGatesG
+-- C).card ≤ 2·(bottomGates C).length, threading the count through collapseRound. REMAINING (the merge half):
+-- mergePass REDUCES the count on the NON-EMPTY alternating towers (the gAnd []/gOr [] degeneracy 0→1 is excluded
+-- by AltO's hne), so count(collapseRound C) ≤ count(C) ≤ count(C₀) = M; then the final seq assembly with M :=
+-- 2·(bottomGates C₀).length. Clean [propext]/[propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT
+-- P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
