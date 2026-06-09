@@ -157,6 +157,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityWidthAware
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsurvDischarge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsmallChernoff
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsurvRound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityClosedForm
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1903,6 +1904,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- rest passed to hsmall_of_chernoff is EXACTLY the cap term in hsurv_of_budget's hsmall, so the composition is
 -- a one-liner). This is the reusable per-round unit: 99's hsurv ⟸ (∀ round, hcf at p=1/(8w·count) via tight_
 -- rate_recip_8wm 92). Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 103 (step 63): THE GENERAL-d PARITY BOUND AS ONE CLOSED-FORM INEQUALITY (culmination)
+#check @Depth3.parity_not_altO_closed_form
+-- CULMINATION of the switching arc. Wiring hsurv_round (102) into parity_not_altO_width_aware (99) discharges
+-- hsurv ENTIRELY. parity_not_altO_closed_form {p t}(ht0)(ht1)(hp0)(hp1)(hp3){w F s m d}[NeZero w][NeZero m](hs :
+-- 1≤s)(hsw : s≤w)(hF)(C₀ τ₀)(hC₀ : AltO (d+2) C₀)(hbw₀ : BottomWidth w C₀)(hτ₀)(hr1)(hcount : ∀C, BottomWidth w
+-- C → bottoms≤m)(hcf : ∀C τ, BottomWidth w C → s≤stars τ → box·(t·p+(1-p))^(stars τ)/t^(s-1) + (bottomGatesG C).
+-- card·(cap^s/(1-cap)) < box) : ∃x, eval C₀ x ≠ parity x. Body: parity_not_altO_width_aware ... (fun C τ hbw hτ
+-- => hsurv_round ... (hcount C hbw) hr1 (hcf C τ hbw hτ)). The general-d parity∉AC⁰ rests on NOTHING but the
+-- rate hr1, a clause-count bound m, and the SINGLE closed-form Chernoff inequality per round — no sums, no
+-- survivor existence, no hround/hterm, no sockets. The entire multi-round switching collapse = one explicit
+-- rational inequality per reachable tower. REMAINING = verify hcf in the Håstad regime (starsτ≫s, n exp in d).
+-- Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
