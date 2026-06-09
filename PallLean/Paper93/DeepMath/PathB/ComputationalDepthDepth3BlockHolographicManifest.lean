@@ -175,6 +175,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafTowerClean
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BudgetExtends
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SurvivorExtendsRel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2173,6 +2174,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- that makes h2_rel_clean (114) hold for the BINARY canonicalDT (vs the absolute tight_switching_budget_uncond
 -- used in brick 36). REMAINING: relative survivor lemma (mirror 36, gate term via this) → wire via h2_rel_clean.
 -- Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 121 (step 81): THE SUBCUBE-RELATIVE SURVIVOR BUDGET (box-factor deep term)
+#check @Depth3.exists_survivor_shallow_extends_REL
+-- exists_survivor_shallow_extends_uncond (36) bounded the deep-gate mass by the ABSOLUTE cap (per-gate budget
+-- summed over univ — lossy by box). exists_survivor_shallow_extends_REL bounds it RELATIVE to the box via
+-- tight_switching_budget_extends_uncond (120), DIRECTLY over extBox τ (no univ detour), so the deep term is
+-- card·(cap·box). KEY: this uses the BINARY relative budget (119/120) which is HNF-FREE (tight_descent_switching
+-- _prob_witness) — NO consistency/nodup needed, so BottomClean (115-117) is NOT required here. Proof MIRRORS
+-- brick 36 exactly (by_contra, hcase, key telescope via pweight_sum_extends + sum_add_distrib + sum_filter +
+-- sum_comm), swapping only the hgate inner bound: ∑_{σ∈extBox τ}(if deep) = ∑_{(extBox τ).filter} pweight ≤
+-- cap·box (tight_switching_budget_extends_uncond, no subset-to-univ). hsmall: (low-star) + card·(cap·box) < box
+-- ⟺ (÷box) (low-star)/box + card·cap < 1 = gap ∧ h2_rel_clean (114). REMAINING: wire into the width-aware
+-- capstone with hsurv discharged via this + hcf_from_gap (112) + h2_rel_clean (114). Clean [propext,Classical.
+-- choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
