@@ -120,6 +120,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightNested
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessDecoder
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessLabel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingSkipLabel
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingSkipSeq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ActiveTermIdx
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FreeLitPos
@@ -1477,6 +1478,23 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- the label space + cardinality (the m-free target); the skip-aware encoder, canonical-order active-clause
 -- recovery (dropping hnf/hleaf/hpos), and the unconditional (4w)^s descent bound are the NEXT bricks — nothing
 -- here yet discharges the empty-skip wall. Clean [propext,Classical.choice,Quot.sound]. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 142 (skip-decoder step 2): THE SKIP-AWARE ENCODER — records the advance bit per step
+#check @Depth3.deepestSkipSeq
+#check @Depth3.deepestSkipSeq_map_full
+#check @Depth3.deepestSkipSeq_length
+-- The encoder half of the m-free skip decoder (label space = brick 141). deepestSkipSeq cs F σ : List (ℕ × Bool
+-- × Bool) — identical control flow to deepestFullSeq (pivot pos, satisfy/falsify bit) but records a THIRD
+-- component, the ADVANCE BIT = `clauseSatisfied σ' T || (freeLits σ' T).length=0` (the just-processed active
+-- clause T is now EXHAUSTED — satisfied by the taken-branch state, or out of free literals). That O(1) bit is
+-- the signal telling the decoder WHEN to scan to the next live clause (located by canonical order), replacing
+-- deepestWitSeq's recorded Fin m index. deepestSkipSeq_map_full: erasing the advance bit (map (t.1,t.2.1))
+-- recovers deepestFullSeq EXACTLY — so deepestSkipSeq is a strict REFINEMENT of the full path, carrying every
+-- pivot + satisfy/falsify bit (all the (2w)^s PathLabel data) PLUS the advance bit; deepestSkipSeq_length: same
+-- length = canonical depth s. Proof mirrors deepestFullSeq_satSeq (cases hany/hact/hh, per-leaf rw[defs]+simp
+-- only[...if_pos/if_neg hd...]+ih). HONEST SCOPE: encoder + its refinement of the full path, NOT the recovery —
+-- whether the advance bit suffices to recover the active-clause progression WITHOUT hnf/hleaf/hpos (the empty-
+-- skip wall) is the NEXT decoder brick; this only fixes what the encoder writes. Clean [propext]. AC⁰, NOT P≠NP.
 
 -- AC⁰ reduction brick 65 (step 25): the WITNESSED TIGHT COUNT — (Cw)^s injection ASSEMBLED, hnf-free in count
 #check @Depth3.deepest_count_of_witness
