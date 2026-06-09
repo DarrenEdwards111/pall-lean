@@ -179,6 +179,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SurvivorExtendsRe
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsurvRoundRel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityREL
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomGap
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3H2Schedule
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2233,6 +2234,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- pick D > 7/p (= 56wm at p=1/(8wm)) and N ≥ D^(d+1) (n exponential in d, the Håstad size). REMAINING: the
 -- union bound hh2 (card·CAP^s/(1-CAP)<1/2) at the schedule (gate-count bound + s large) + final seq assembly.
 -- Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 125 (step 85): THE UNION BOUND FROM A GATE-COUNT BOUND AND A LARGE THRESHOLD
+#check @Depth3.h2_of_count_pow
+-- The box-free union bound card·CAP^s/(1-CAP) < 1/2 (the hh2 of the relative capstone 123) discharged from:
+-- a slightly tighter rate 2·CAP≤1 (CAP≤1/2, e.g. p≤1/(8wm+1)) giving geometric decay CAP^s/(1-CAP) ≤ 2/2^s,
+-- and a gate-count bound card≤M with the threshold large 4·M < 2^s. h2_of_count_pow {CAP card M}{s}(hcard0 :
+-- 0≤card)(hcard : card≤M)(hcap0 : 0≤CAP)(hcap : 2·CAP≤1)(hM : 4·M < 2^s) : card·(CAP^s/(1-CAP)) < 1/2. Proof:
+-- CAP≤1/2 → CAP^s ≤ (1/2)^s = 1/2^s (pow_le_pow_left₀); CAP^s/(1-CAP) ≤ 2·CAP^s (div_le_iff₀ + nlinarith,
+-- 1-CAP≥1/2) ≤ 2/2^s; card·(...) ≤ M·(2/2^s) = 2M/2^s (mul_le_mul) < 1/2 (4M<2^s via div_lt_iff₀). NO exp —
+-- just CAP≤1/2 ⟹ CAP^s ≤ 2^-s + rational geometric. (div_le_div_iff RENAMED → 2·CAP^s chain.) So hh2 ⟸ rate
+-- CAP≤1/2 ∧ gate-count card≤M ∧ s large (4M<2^s). With geomSchedB_gap (124) for the GAP, both per-round atoms
+-- are now schedule-discharged. REMAINING: the final seq assembly (105 ∘ 122, gap via 124, union via 125) +
+-- a gate-count invariant card ≤ M (merge reduces, switch preserves → ≤ original). Clean [propext,Classical.
+-- choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
