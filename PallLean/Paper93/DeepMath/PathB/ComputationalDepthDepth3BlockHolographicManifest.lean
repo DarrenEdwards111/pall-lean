@@ -37,6 +37,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TaggedFlatten
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BinomialDecayPow
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CumulShell
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CompactRatio
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HBoundDischarge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EncodeInjective
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BadLabels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelNodup
@@ -805,6 +806,26 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- HONEST SCOPE: lemma 2 of 3. NEXT: [151] gate absorption G·(K-s+1)<2^s ⟹ G·(K-s+1)·(2·2^w)^s < (4·2^w)^s;
 -- then assemble hbound + wire circuit_collapse_exists → unconditional block-shallow collapse. Clean
 -- [propext,Quot.sound]. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 151 (hbound-discharge lemmas 3–5): THE UNCONDITIONAL BLOCK-SHALLOW CIRCUIT COLLAPSE
+#check @Depth3.gate_absorb
+#check @Depth3.collapse_param_ineq
+#check @Depth3.circuit_collapse_uncond
+-- THIRD lemma + ASSEMBLY + WIRE — discharges circuit_collapse_exists's union bound, yielding the UNCONDITIONAL
+-- block-shallow-all collapse. gate_absorb (L3): G·(m+1)<2^s ⟹ G·(m+1)·(2·2^w)^s < (4·2^w)^s (mul_pow:
+-- (4·2^w)^s=2^s·(2·2^w)^s, then mul_lt_mul_of_pos_right hgs). collapse_param_ineq (L4, = the hbound):
+-- G·|{stars≤K-s}|·(2^w)^s < C(n,K)·2^{n-K}. CHAIN: ≤ G·((K-s+1)·|{stars=K-s}|·(2^w)^s) [L1 cumul_stars_le,
+-- gcongr] = 2^{n-K}·(G·(K-s+1)·(2·2^w)^s·C(n,K-s)) [card_stars_eq + pow_add + mul_pow + ring] < 2^{n-K}·C(n,K)
+-- [the core hA] = C(n,K)·2^{n-K}. CORE hA: G·(K-s+1)·(2·2^w)^s·C(n,K-s) < C(n,K), by cases on C(n,K-s):
+-- =0 → LHS=0 < C(n,K) (Nat.choose_pos hKn); >0 → gate_absorb·C(n,K-s) [mul_lt_mul_of_pos_right] < (4·2^w)^s·
+-- C(n,K-s) ≤ C(n,K) [L2 compact_binom_ratio]. circuit_collapse_uncond (L5) = circuit_collapse_exists fed the
+-- discharged hbound: ∃ρ, stars ρ=K ∧ ∀g, (blockStream (gates g) s ρ).length < s.
+-- REGIME (explicit, satisfiable for const w with K,s=Θ(n/2^w), G=poly): s≤K≤n, 3(K-s)≤n+1 (shell domination),
+-- (4·2^w)·K+K≤n+1 (binomial ratio), G·(K-s+1)<2^s (gate absorption, s≳log₂(G·(K-s+1))).
+-- ===> THE TIGHT SWITCHING LEMMA'S CIRCUIT COLLAPSE IS NOW UNCONDITIONAL: m-free, hnf-free, F-independent,
+-- (2^w)^s. The keystone is DONE. REMAINING: connect block-shallow (∀g blockStream length<s) to the parity
+-- capstone (the bottom-gates collapse to shallow DTs ⟹ depth reduction ⟹ parity∉AC⁰). Clean
+-- [propext,Classical.choice,Quot.sound], no sorry. AC⁰ ceiling, NOT P vs NP.
 
 -- Brick 55: branching holography, step 4m — the p-biased measure + star-count driver
 #check @Depth3.pweight                 -- p-biased weight ∏ v, (if free then p else (1-p)/2)
