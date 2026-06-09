@@ -158,6 +158,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsurvDischarge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsmallChernoff
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsurvRound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityClosedForm
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecursiveTowerSeq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1917,6 +1918,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- survivor existence, no hround/hterm, no sockets. The entire multi-round switching collapse = one explicit
 -- rational inequality per reachable tower. REMAINING = verify hcf in the Håstad regime (starsτ≫s, n exp in d).
 -- Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 104 (step 64): RECURSIVE TOWER WITH A PER-ROUND SURVIVOR THRESHOLD (Håstad regime)
+#check @Depth3.recursive_tower_chain_surv_seq
+#check @Depth3.recursive_tower_not_parity_surv_seq
+-- Generalizes the survivor engine (83) from a SCALAR threshold s to a SEQUENCE s : ℕ → ℕ — required for the
+-- Håstad regime where the survivor count DECREASES round by round (stars ≈ p^i·n). Round i assumes s i ≤ stars
+-- τ and guarantees s (i+1) ≤ stars ρ; the chain carries s i ≤ stars σ to level i; terminal uses s d ≤ stars σ.
+-- Proof IDENTICAL to the scalar engine (83) with s ↦ s i / s (i+1) / s d (zero: s 0 ≤ stars τ₀; succ: ih s d ≤
+-- stars σd, oracle d gives s (d+1) ≤ stars ρ). The scalar engine is the constant-sequence special case (s :=
+-- fun _ => s₀). This removes the structural blocker noted at brick 103: the single-s engine demanded stars ≥ s
+-- EVERY round (marginal as starsτ→s); the sequence lets the threshold decay with the survivor count, the
+-- genuine Håstad bookkeeping. Next: rebuild the width-aware capstone (99) + closed-form (103) on the seq engine
+-- with decreasing s_i. Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
