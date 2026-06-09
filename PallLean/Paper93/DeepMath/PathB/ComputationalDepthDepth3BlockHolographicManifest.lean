@@ -945,6 +945,7 @@ namespace PallLean.Paper93.DeepMath.PathB
 
 -- AC⁰ reduction brick 157: the m-FREE multi-gate survivor lemma (route-2, depth-d enabler)
 #check @Depth3.exists_survivor_shallow_findep
+#check @Depth3.dnf_not_parity_findep
 -- The existing exists_survivor_shallow_uncond uses the per-gate cap tight_switching_budget_uncond with base
 -- 2wm — the clause-count m forces p≈1/(wm), making the multi-round/depth-(d+2) budget VACUOUS (the obstruction
 -- route 2 removes). Here the m-FREE analog, using the F-independent m-free deep cap descent_switching_findep_le
