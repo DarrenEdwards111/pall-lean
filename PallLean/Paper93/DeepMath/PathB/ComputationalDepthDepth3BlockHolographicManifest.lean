@@ -184,6 +184,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GateCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BottomNonempty
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3NonEmptyGates
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MergeCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRoundCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2303,6 +2304,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- sound], no sorry. REMAINING: leafCollapse_NonEmptyGates (preserves) + collapseRound_count_le (= mergePass_
 -- count_le ∘ leafCollapse_bottomGates_length 126) → count non-increasing → uniform M for h2_of_count_pow (125).
 -- AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 130 (step 90): A COLLAPSE ROUND DOES NOT INCREASE THE BOTTOM-GATE COUNT (gate-count invariant)
+#check @Depth3.leafCollapse_NonEmptyGates
+#check @Depth3.collapseRound_count_le
+-- THE GATE-COUNT INVARIANT. leafCollapse_NonEmptyGates (F ρ)(h : NonEmptyGates C) : NonEmptyGates (leafCollapse
+-- F ρ C) — induction on NEG: dnf→cnf/cnf→dnf (NEG bases); gAnd/gOr → same gate list via leafCollapseList_eq
+-- (map preserves ≠[] via mt List.map_eq_nil_iff.mp; children NEG via ih). collapseRound_count_le (F ρ)(h :
+-- NonEmptyGates C) : (bottomGates (collapseRound F ρ C)).length ≤ (bottomGates C).length — collapseRound =
+-- mergePass ∘ leafCollapse; mergePass_count_le (129, leafCollapse output is NEG) then = via leafCollapse_bottom
+-- Gates_length (126). So the count is NON-INCREASING along the rounds → uniform M := 2·(bottomGates C₀).length
+-- (via bottomGatesG_card_le 126) for h2_of_count_pow (125). GATE-COUNT INVARIANT COMPLETE (126 leaf-keeps + card
+-- bridge, 127/128 non-empty foundations, 129 merge-reduces, 130 round non-increasing). All per-round atoms +
+-- the gate count are now schedule/structure-discharged; only the final seq assembly remains. Clean [propext,
+-- Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
