@@ -165,6 +165,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HcfSplit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomSchedule
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BernoulliTail
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EulerBound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3H1Assemble
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2018,6 +2019,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- needs (α := ℚ) + push_cast. So t^(s-1) = (1-1/s)^(s-1) = 1/(s/(s-1))^(s-1) ≥ 1/4 follows — the constant lower
 -- bound on the Markov t-factor h1 needs. Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING,
 -- NOT P vs NP.
+
+-- AC⁰ reduction brick 111 (step 71): ASSEMBLING THE CHERNOFF ATOM h1 (Bernoulli + Euler → gap condition)
+#check @Depth3.t_pow_ge_quarter
+#check @Depth3.h1_of_gap
+-- The Chernoff atom h1 (107) assembled from the two rational atoms at the Markov parameter t = 1 - 1/s_out.
+-- t_pow_ge_quarter (sOut)(hs : 1≤sOut) : 1/4 ≤ (1-1/sOut)^(sOut-1). Proof: sOut=1 trivial (0^0=1); sOut≥2 →
+-- write sOut=m+1, (1-1/(m+1)) = 1/(1+1/m) (field_simp), so (1-1/(m+1))^m = 1/(1+1/m)^m ≥ 1/4 by Euler (110)
+-- one_add_inv_pow_le_four m. h1_of_gap {p}(hp0)(hp1)(starsτ sOut)(hs : 1≤sOut)(hgap : 7·sOut < starsτ·p) :
+-- ((1-1/sOut)·p+(1-p))^starsτ / (1-1/sOut)^(sOut-1) < 1/2. Proof: base = 1-p/sOut (field_simp); numerator
+-- (1-p/sOut)^starsτ ≤ 1/(1+starsτ·p/sOut) (Bernoulli 109 one_sub_pow_le_inv_one_add_mul); denom ≥ 1/4 (t_pow_
+-- ge_quarter); term ≤ 4·num ≤ 4/(1+starsτ·p/sOut) < 1/2 since starsτ·p/sOut > 7 (hgap). So h1 = a CLEAN
+-- RATIONAL GAP CONDITION starsτ·p > 7·s_out — NO exp anywhere. This discharges hcf_of_split's h1. REMAINING:
+-- h2 (card·cap union term) + p-factor geomSched (factor p not 1/2). Clean [propext,Classical.choice,Quot.sound],
+-- no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
