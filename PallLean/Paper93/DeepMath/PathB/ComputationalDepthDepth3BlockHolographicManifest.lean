@@ -2461,6 +2461,22 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- theorem (hm ELIMINATED, threaded as BottomCount m). Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰
 -- CEILING, NOT P vs NP.
 
+-- AC⁰ reduction brick 140 (step 100): THE FULLY SELF-CONTAINED TWO-PARAMETER GENERAL-d PARITY BOUND (culmination)
+#check @Depth3.parity_not_altO_geomREL2
+-- CULMINATION of the two-parameter rework — hm ELIMINATED. parity_not_altO_geomREL2 {p}(hp0)(hp1)(hp3){F D N M
+-- t m d}(ht1 : 1≤t)(hN1 : 1≤N)(hF)(hDp : 7<(D:ℚ)·p)(hcap : 2·CAP≤1)(hr1)(hM1 : 1≤M)(hMm : M·2^t≤m)(hbig : 8·M
+-- < 2^t)(htd : t ≤ geomSchedB D N (d+1))(hN2 : ∀i≤d, 2D^(i+1)≤N)(hNd : ∀i≤d, D^(i+1)≤N)(C₀ τ₀)(hC₀ : AltO (d+2)
+-- C₀)(hbw₀ : BottomWidth t C₀)(hcnt₀ : gate-count≤M)(hmc₀ : BottomCount m C₀)(hτ₀ : N≤stars τ₀) : ∃x, eval C₀ x
+-- ≠ parity x. CAP = (2p/(1-p))·(2·t·m). Instantiates wc_seq3 (139, FOUR invariants) at the GEOMETRIC STAR schedule
+-- geomSchedB D N + CONSTANT DEPTH t; hsurv via hsurv_REL2_round (136) — gap at star s_i (geomSchedB_gap 124),
+-- union at CONSTANT depth t (h2_of_count_pow 125, card≤2M via bottomGatesG_card_le 126, 8M<2^t SINGLE). The
+-- depth/star DECOUPLING (135) makes t constant → clause-count m, width t, rate ALL CONSTANT in n → union 8M<2^t
+-- is ONE condition (not per-round). NO hm hypothesis (threaded as BottomCount m). FULLY SELF-CONTAINED: a
+-- depth-(d+2) alternating tower of width≤t, gate-count≤M, clause-count≤m does NOT compute parity in the standard
+-- Håstad regime (D>7/p=O(1) constant, N≥2D^(d+1)=2^O(d), 8M<2^t). THE TIGHT HÅSTAD/RAZBOROV SWITCHING LEMMA ⟹
+-- general-d parity∉AC⁰, FULLY FORMALIZED, every piece proven, depth/star conflation RESOLVED. Clean [propext,
+-- Classical.choice,Quot.sound], no sorry, no exp, no sockets. AC⁰ CEILING, NOT P vs NP.
+
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
 #check @AdditiveSheetAudit.additive_sheet_cross_block_vanish

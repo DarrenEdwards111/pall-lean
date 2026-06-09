@@ -28,7 +28,7 @@ theorem BottomCount_mono {M M' : ℕ} (h : M ≤ M') {C : Layered n} (hbc : Bott
 /-- **The full four-invariant capstone.**  Alternation, bottom width `t`, gate count `≤ M`, and per-gate
 clause-count `≤ m` are all threaded; the survivor `hsurv` receives all four. -/
 theorem parity_not_altO_wc_seq3 (s : ℕ → ℕ) (t F d M m : ℕ)
-    (hmono : ∀ i, s (i + 1) ≤ s i) (ht : ∀ i, t ≤ s (i + 1)) (hM1 : 1 ≤ M) (hMm : M * 2 ^ t ≤ m)
+    (hmono : ∀ i, s (i + 1) ≤ s i) (htd : t ≤ s (d + 1)) (hM1 : 1 ≤ M) (hMm : M * 2 ^ t ≤ m)
     (C₀ : Layered n) (τ₀ : Fin n → Option Bool) (hC₀ : AltO (d + 2) C₀) (hbw₀ : BottomWidth t C₀)
     (hcnt₀ : (bottomGates C₀).length ≤ M) (hmc₀ : BottomCount m C₀)
     (hτ₀ : s 0 ≤ SwitchingCounting.stars τ₀)
@@ -71,7 +71,7 @@ theorem parity_not_altO_wc_seq3 (s : ℕ → ℕ) (t F d M m : ℕ)
     obtain ⟨ρ, hext, hge, hle, hshallow⟩ := hsurv d (le_refl d) (dnf D) σ hbwd hcntd hmcd hsurvσ
     refine ⟨ρ, D, hext, rfl, hle, ?_⟩
     have hsh := (hshallow D (by rw [show bottomGates (dnf D) = [D] from rfl]; simp)).1
-    exact lt_of_lt_of_le hsh (le_trans (ht d) hge)
+    exact lt_of_lt_of_le hsh (le_trans htd hge)
 
 end PallLean.Paper93.DeepMath.PathB.Depth3
 
