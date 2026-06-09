@@ -32,6 +32,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepInput
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockDecode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentDecode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelBound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelBlockCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EncodeInjective
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BadLabels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelNodup
@@ -709,6 +710,26 @@ namespace PallLean.Paper93.DeepMath.PathB
 #check @Depth3.codeEnc_inj             -- code streams inject into a finite (4^w+1)^F type
 #check @Depth3.descent_switching_count -- |Bad| ≤ |Short| · (4^w+1)^F  (w-dependent label space!)
 -- NOTE: the COUNTING side is closed (label space w-dependent); the p-biased measure remains.
+
+-- AC⁰ reduction brick 146 (F-independence step 1): THE BLOCK COUNT IS BOUNDED BY THE PATH LENGTH
+#check @Depth3.descentLabels_length_le_pathLen
+#check @Depth3.descentLabels_block_nonempty
+-- FIRST step tightening the branching switching label space from the CRUDE FUEL-DEPENDENT (4^w+1)^F
+-- (descent_switching_count/_prob) toward the F-INDEPENDENT, m-free, hnf-free tight count. CONTEXT (the major
+-- find): the branching SATISFYING-EXTENSION decoder descentSat ALREADY drops hnf — descent_switching_prob is
+-- hnf-FREE (only hcons/hnd/hw), recovering the active term as the FIRST SATISFIED TERM of the boundary
+-- (descentSat_firstSat via firstSat_eq_active), which AUTO-SKIPS pre-falsified clauses (the empty-skip wall that
+-- defeats the falsification-replay decoder of bricks 141-145). Its ONLY weakness is quantitative: label counted
+-- by ≤F blocks → (4^w+1)^F (F≈n → useless). descentLabels_length_le_pathLen: (descentLabels cs w F σ x).length ≤
+-- pathLen cs w F σ x — #blocks ≤ total stars, F-INDEPENDENT. Proof: every block = freeVarsOf σ T of an ACTIVE
+-- term, NON-EMPTY (activeTerm_exists_free → descentLabels_block_nonempty); a list of non-empty blocks has length
+-- ≤ its flatten length (length_le_flatten_length); flatten length = pathLen (descentLabels_flatten_length,
+-- LabelBound). On the bad event pathLen ≥ s, so genuinely-used blocks ≤ pathLen; with each block ≤ w
+-- (descentLabels_label_le_w) the labels are a partition of ≤pathLen slots into ≤w-blocks = the (O(w))^{pathLen}
+-- shape. HONEST SCOPE: the block-COUNT bound only (the F-independence keystone). REMAINING: the cardinality
+-- re-encoding (content-pathLen streams ↪ (O(w))^{pathLen}) + threading through the weight gain
+-- ((2p/(1-p))^{pathLen}) → the tight ((2p/(1-p))·O(w))^s bound closing parity ∀d. NOT done here. Clean
+-- [propext,Classical.choice,Quot.sound]. AC⁰ ceiling, NOT P vs NP.
 
 -- Brick 55: branching holography, step 4m — the p-biased measure + star-count driver
 #check @Depth3.pweight                 -- p-biased weight ∏ v, (if free then p else (1-p)/2)
