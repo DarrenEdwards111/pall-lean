@@ -150,6 +150,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityGeneralDDis
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DTreeSize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BottomGates
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafCollapseBounded
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MergeBounded
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1812,6 +1813,21 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- budget). So one survivor round makes every new bottom gate (s, 2^s)-bounded. Next: collapseRound/mergePass
 -- preserves BottomBounded across the tower (flatten adds counts, width=max) → width-aware Valid → hterm fires
 -- on the actual final DNF. Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 96 (step 56): THE MERGE PRESERVES THE BOTTOM-GATE WIDTH (width-aware merge)
+#check @Depth3.BottomWidth
+#check @Depth3.mergePass_BottomWidth
+-- The merge half of the width-aware reduction. KEY SIMPLIFICATION: only WIDTH needs threading — the clause-
+-- count is read off the final DNF (hsmall stays a hypothesis, and p=1/(8w·count) makes the rate hr1 hold at
+-- ANY count). BottomWidth w C := ∀ cs ∈ bottomGates C, ∀T∈cs, T.lits.length ≤ w (the width projection of
+-- BottomBounded, via BottomBounded_BottomWidth). mergePass_BottomWidth (mutual with mergePassList_BottomWidth):
+-- mergePass preserves BottomWidth — the some-case flattens gAnd-of-cnf/gOr-of-dnf into one gate whose terms are
+-- exactly the children's (T∈css.flatten → ∃c∈css, T∈c, width≤w via BottomWidth_child_gAnd projection); the
+-- none-case recurses through children. So a merge keeps width=max≤w. With leafCollapse_*_survivor (95) setting
+-- width≤s, collapseRound (switch+merge) keeps the tower BottomWidth s. Next: collapseRound_BottomWidth (compose
+-- 95+96) + width-aware Valid with the oracle picking a REAL survivor for G=bottomGates C → final DNF width≤s →
+-- terminal_shallow_of_survivor (92) fires on the actual DNF → hterm eliminated. Clean [propext,Quot.sound], no
+-- sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
