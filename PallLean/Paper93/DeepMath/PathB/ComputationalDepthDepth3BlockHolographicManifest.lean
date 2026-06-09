@@ -160,6 +160,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsurvRound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityClosedForm
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecursiveTowerSeq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityWidthAwareSeq
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityClosedFormSeq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1946,6 +1947,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- width-aware pieces (Shallows/leafCollapse_tower/collapseRound_BottomWidth) needed NO change — they already
 -- take the threshold as a param; just instantiate at s(i+1). Clean [propext,Classical.choice,Quot.sound], no
 -- sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 106 (step 66): PER-ROUND-THRESHOLD PARITY BOUND AS ONE CLOSED-FORM INEQUALITY (Håstad)
+#check @Depth3.parity_not_altO_closed_form_seq
+-- The Håstad-regime culmination. Wiring hsurv_round (102, at output threshold s(i+1)) into the two-threshold
+-- capstone (105) discharges hsurv ENTIRELY. parity_not_altO_closed_form_seq {p t}(ht0)(ht1)(hp0)(hp1)(hp3){w F
+-- m}(s : ℕ→ℕ)(d)[NeZero w][NeZero m](hmono : ∀i,s(i+1)≤s i)(hs1 : ∀i,1≤s(i+1))(hsw : ∀i,s(i+1)≤w)(hF)(C₀ τ₀)
+-- (hC₀)(hbw₀ : BottomWidth w C₀)(hτ₀ : s 0≤stars τ₀)(hr1)(hcount)(hcf : ∀i C τ, BottomWidth w C → s i ≤ stars τ
+-- → box(τ)·(t·p+(1-p))^(stars τ)/t^(s(i+1)-1) + (bottomGatesG C).card·(cap^(s(i+1))/(1-cap)) < box(τ)) : ∃x,
+-- eval C₀ x ≠ parity x. Body: parity_not_altO_width_aware_seq ... (fun i C τ hbw hsurvτ => hsurv_round ... (hs1
+-- i) hF C τ hbw (le_trans (hmono i) hsurvτ) (hcount C hbw) hr1 (hcf i C τ hbw hsurvτ)). The DECREASING-threshold
+-- general-d parity∉AC⁰ rests on ONE closed-form inequality per round, with the budget over the CURRENT stars τ
+-- = s i and shallowness at s(i+1) — the split that lets (t·p+(1-p))^(stars τ)/t^(s(i+1)-1) be small when s i ≫
+-- s(i+1). REMAINING: a concrete decreasing-geometric schedule s_i (≈p^i·n) discharging hcf. Clean [propext,
+-- Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
