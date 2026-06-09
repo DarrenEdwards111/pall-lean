@@ -42,6 +42,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockDepthRefute
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ExtendSat
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PosLabels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PosRecover
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3PosValLabels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EncodeInjective
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BadLabels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelNodup
@@ -894,6 +895,21 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- descentPosLabels₂ → σ₁=σ₂) additionally needs a boundary-walk decode (posDecode… mirroring codeMasks_recovery,
 -- entangled with resetX semantics, ~50 lines) — the mechanical-but-long remainder, DEFERRED (balloons). This
 -- kernel de-risks it: position→var inversion works. Clean [propext,Classical.choice,Quot.sound]. AC⁰, NOT P≠NP.
+
+-- AC⁰ reduction brick 155b: the VALUE-AUGMENTED freed-position label + INJECTIVITY (route-2 [155b], COMPLETE)
+#check @Depth3.descentPosValLabels
+#check @Depth3.descentPosValLabels_card_le
+#check @Depth3.descentPosValLabels_injective
+-- The audit (memory) showed positions-ONLY descentPosLabels is NOT injective under varying x (4 collisions),
+-- and the switching count uses x=xσ(σ) which varies. FIX (verified, 0 collisions): record the freed VALUE x v
+-- with each freed var's position. descentPosValLabels: blocks of (Fin w × Bool) = (in-term position, freed value).
+-- descentPosValLabels_card_le: ≤ (4w+1)^k over fixed-content (pathLen=k) bad set, F-INDEPENDENT (via brick 147
+-- tagged-flatten with α = Fin w × Bool, card 2w). descentPosValLabels_injective: σ ↦ (descentSat, descentPosValLabels)
+-- is INJECTIVE EVEN WITH x VARYING per restriction. Proof = DIRECT INDUCTION comparing σ₁,σ₂ (NOT a recoverσ
+-- left-inverse, which fails on shared vars): equal boundaries ⇒ same active term (descentSat_firstSat); equal
+-- labels ⇒ equal freed-var sets (posInTerm_recover round-trip) AND equal freed values ⇒ depth-F boundaries agree
+-- (Extends on freed via the values, henc off freed) ⇒ IH closes via extendσ. Clean [propext,Classical.choice,
+-- Quot.sound], no sorry. This is the corrected route-2 label + its injectivity — what [155c] needs. AC⁰, NOT P≠NP.
 
 -- Brick 55: branching holography, step 4m — the p-biased measure + star-count driver
 #check @Depth3.pweight                 -- p-biased weight ∏ v, (if free then p else (1-p)/2)
