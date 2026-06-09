@@ -154,6 +154,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MergeBounded
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafTowerBounded
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRoundBounded
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityWidthAware
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsurvDischarge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1861,6 +1862,21 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- per-round subcube survivor hsurv (the irreducible Håstad/Razborov content, = exists_survivor_shallow_extends_
 -- uncond 36 at G=bottomGates C ∪ map negDNF). The width-control arc 53-58 is WHAT makes the terminal fire on
 -- the actual collapsed DNF. Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 100 (step 60): THE PER-ROUND SURVIVOR hsurv, DISCHARGED FROM THE BUDGET
+#check @Depth3.bottomGatesG
+#check @Depth3.hsurv_of_budget
+-- The sole structural input of the width-aware capstone (99) discharged from exists_survivor_shallow_extends_
+-- uncond (36). bottomGatesG C := (bottomGates C ++ (bottomGates C).map negDNF).toFinset — every bottom gate
+-- AND its De Morgan dual (dnf gate switches by canonicalDT cs, cnf by canonicalDT (negDNF cs), so BOTH must be
+-- shallowed; needs DecidableEq (Clause n) = instDecidableEqClause from LeafClauses). hsurv_of_budget {p}(hp0)
+-- (hp3){w F s m}(hF : n≤F)(C τ)(hbw : BottomWidth w C)(hτ)(hm : ∀cs∈bottomGates C, cs.length≤m)(hr1)(hsmall at
+-- bottomGatesG C) : ∃ρ, Extends τ ρ ∧ s≤stars ρ ∧ stars ρ≤F ∧ Shallows F ρ s C. BottomWidth discharges hw (+
+-- negDNF preserves term width via simpa); the count bound discharges hm (+ negDNF preserves length); the
+-- survivor conclusion ∀g∈G depth<s gives Shallows (cs left-inj, negDNF cs right-inj of bottomGatesG). What
+-- REMAINS is exactly hr1 (tight rate, p=1/(8wm) via tight_rate_recip_8wm 92) + hsmall (subcube-relative budget)
+-- — the irreducible Håstad/Razborov probability, carried as in depth-3/4. So 99's hsurv ⟸ hsurv_of_budget +
+-- per-round hsmall. Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
