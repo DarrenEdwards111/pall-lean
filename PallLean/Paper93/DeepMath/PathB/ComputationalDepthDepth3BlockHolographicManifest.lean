@@ -35,6 +35,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelBlockCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TaggedFlatten
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BinomialDecayPow
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CumulShell
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EncodeInjective
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BadLabels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelNodup
@@ -772,6 +773,23 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- canonicalDT DEPTH (max branch), related only by depth ≤ blockLen·w (loses a w-factor) and blockLen ≤ depth;
 -- reconciling these gradings (so |{stars=K, depth=s}| ≤ M(s)) is the remaining route-1 work. NOT assembled here.
 -- Clean [propext,Quot.sound]. AC⁰ ceiling, NOT P vs NP.
+-- [SUPERSEDED grading worry: circuit_collapse_exists is BLOCK-graded, so the grading mismatch is MOOT — the
+--  keystone is discharging its union-bound hbound (G·|{stars≤K-s}|·(2^w)^s < C(n,K)·2^{n-K}). See bricks 149+.]
+
+-- AC⁰ reduction brick 149 (hbound-discharge lemma 1): THE CUMULATIVE SHORT-SHELL BOUND
+#check @Depth3.stars_shell_le_succ
+#check @Depth3.stars_shell_mono
+#check @Depth3.cumul_stars_le
+-- FIRST of 3 small lemmas discharging circuit_collapse_exists's union bound (G·|{stars≤K-s}|·(2^w)^s <
+-- C(n,K)·2^{n-K}). The |{stars≤K-s}| is CUMULATIVE; this bounds it by (K-s+1)·|{stars=K-s}| (count × top shell)
+-- using star-shell MONOTONICITY on [0,K-s] under the regime 3(K-s)≤n+1. card_stars_eq: |{stars=j}|=C(n,j)·2^{n-j}.
+-- stars_shell_le_succ: |{stars=j}|≤|{stars=j+1}| for 3j+2≤n, via 2·C(n,j)≤C(n,j+1) ⟸ Nat.choose_succ_right_eq
+-- (C(n,j+1)·(j+1)=C(n,j)·(n-j)) + 2(j+1)≤n-j + Nat.le_of_mul_le_mul_right. stars_shell_mono: chain j≤m, 3m≤n+1
+-- ⟹ |{stars=j}|≤|{stars=m}| (induction on m, by_cases j≤m). cumul_stars_le: partition {stars≤K-s} by star-value
+-- over range(K-s+1) (Finset.card_eq_sum_card_fiberwise), each fiber ⊆ {stars=j} ≤ {stars=K-s} (mono), sum =
+-- (K-s+1)·top. HONEST SCOPE: lemma 1 of 3. NEXT: [150] compact (2^w)^s ratio (2^{w+2})^s·C(n,K-s)≤C(n,K) via
+-- brick 148's binomial_ratio_strict_step_gen / pow_mul_choose_le; [151] gate absorption G·(K-s+1)<2^s; then
+-- assemble hbound + wire circuit_collapse_exists. Clean [propext,Classical.choice,Quot.sound]. AC⁰, NOT P vs NP.
 
 -- Brick 55: branching holography, step 4m — the p-biased measure + star-count driver
 #check @Depth3.pweight                 -- p-biased weight ∏ v, (if free then p else (1-p)/2)
