@@ -170,6 +170,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HcfFromGap
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomScheduleBase
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3H2Union
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BottomClean
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CanonicalDTFresh
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2096,6 +2097,21 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- tree freshness); (2) the relative survivor lemma exists_survivor_shallow_extends_REL on descent_switching_le_
 -- extends with BottomClean+BottomWidth; (3) wire into hsurv/hcf with the relative (box-factor) deep term +
 -- h2_rel_clean. Clean [propext,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 116 (step 76): FRESHNESS OF THE CANONICAL BINARY TREE (BottomClean foundation)
+#check @Depth3.toDTree_canonicalDT_fresh
+-- leafCollapse switches via toDTree (canonicalDT cs F ρ) — the BINARY canonical tree (one var/query), distinct
+-- from canonicalDTree (DTree, whole-term queryAll) which the freshness machinery (canonicalDTree_fresh) covers.
+-- So prove freshness of the binary tree DIRECTLY. toDTree_queriedVars: DTree.queriedVars (toDTree t) = queriedVars
+-- t (induction). toDTree_canonicalDT_fresh (cs) : ∀ fuel σ, (toDTree (canonicalDT cs fuel σ)).fresh. Proof:
+-- induction on fuel; succ case by_cases anyTermSat (leaf true), else split the activeTerm/freeLits-head matches
+-- (none → leaf false trivial; some → query). For the query node v=litVar ℓ: the subtrees query ⊆ freeVars
+-- (fixVar σ v _) (canonicalDT_queriedVars_subset_free, already in CollapseAdapter) and v ∉ (freeVars σ).erase v
+-- (freeVars_fixVar StarShell) → v ∉ subtree queried → fresh. KEY: canonicalDT never re-queries a fixed var. So
+-- the switched gates dtreeToDNF/CNF(toDTree(canonicalDT..)) ARE on a fresh tree → consistent+nodup (dtreeToDNF/
+-- CNF_consistent/_nodup need .fresh). This is the foundation to SET BottomClean (115). REMAINING: leafCollapse-
+-- tower sets BottomClean via this + the consistent/nodup lemmas; relative survivor lemma; wire. Clean [propext,
+-- Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
