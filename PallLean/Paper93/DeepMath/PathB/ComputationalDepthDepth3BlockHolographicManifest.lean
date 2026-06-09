@@ -185,6 +185,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BottomNonempty
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3NonEmptyGates
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MergeCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRoundCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityWCSeq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2318,6 +2319,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- bridge, 127/128 non-empty foundations, 129 merge-reduces, 130 round non-increasing). All per-round atoms +
 -- the gate count are now schedule/structure-discharged; only the final seq assembly remains. Clean [propext,
 -- Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 131 (step 91): THE WIDTH-AND-COUNT-AWARE CAPSTONE ON THE SEQ ENGINE
+#check @Depth3.parity_not_altO_wc_seq
+-- The width-aware seq capstone (105) augmented with the GATE-COUNT invariant (130). parity_not_altO_wc_seq
+-- (s : ℕ→ℕ)(w F d M)(hmono)(hsw)(C₀ τ₀)(hC₀ : AltO (d+2) C₀)(hbw₀ : BottomWidth w C₀)(hcnt₀ : (bottomGates C₀).
+-- length ≤ M)(hτ₀)(hsurv : ∀i≤d ∀C τ, BottomWidth w C → (bottomGates C).length ≤ M → s i ≤ stars τ → ∃ρ, ...
+-- Shallows F ρ (s(i+1)) C) : ∃x, eval C₀ x ≠ parity x. Valid i C := (if i≤d then AltO(d+2-i) C else True) ∧
+-- BottomWidth w C ∧ (bottomGates C).length ≤ M. Oracle threads count via collapseRound_count_le (130) +
+-- AltO_NonEmptyGates (128) (count non-increasing, ≤ M). hsurv WEAKENED to ∀i≤d (only used for i≤d: oracle i<d
+-- + terminal i=d; the i≥d oracle is identity — so the schedule flooring for i>d is irrelevant). So the per-round
+-- survivor now RECEIVES the gate-count bound the box-free union (125) needs. REMAINING: the FINAL instantiation
+-- at geomSchedB — hsurv via hsurv_REL_round (122), gap via geomSchedB_gap (124), union via h2_of_count_pow (125)
+-- + bottomGatesG_card_le (126), regime N≥2D^(d+1). Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰
+-- CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
