@@ -149,6 +149,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityGeneralD
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityGeneralDDischarge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DTreeSize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BottomGates
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafCollapseBounded
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1796,6 +1797,21 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- new bottoms have width≤depth<s, count≤2^s by the DTreeSize bounds (93). Next: leafCollapse-with-survivor
 -- preserves BottomBounded (width s, count 2^s) → reduction threads it → final DNF bounded → hterm eliminated.
 -- Clean [propext]/[propext,Quot.sound]/axiom-free, no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 95 (step 55): LEAF-SWITCH PRODUCES A SIZE-BOUNDED BOTTOM GATE (width-aware switch)
+#check @Depth3.leafCollapse_dnf_BottomBounded_survivor
+#check @Depth3.leafCollapse_cnf_BottomBounded_survivor
+#check @Depth3.BottomBounded_mono
+-- The switch half of the width-aware reduction. leafCollapse F ρ (dnf cs) = cnf (dtreeToCNF (toDTree
+-- (canonicalDT cs F ρ))); composing toDTree_depth + negTree_depth (depth-preserving) with the width bounds
+-- (foundations 1/2) and clause-count bounds (93) gives: the switched bottom gate has width ≤ d and count ≤ 2^d
+-- where d = (canonicalDT … F ρ).depth — EXACTLY the quantity a survivor drives below s. leafCollapse_dnf/cnf_
+-- BottomBounded: BottomBounded d (2^d) (leafCollapse F ρ (dnf/cnf cs)) (parametrized by actual depth, no
+-- survivor). BottomBounded_mono: monotone in both budgets. leafCollapse_dnf/cnf_BottomBounded_survivor: GIVEN
+-- the survivor shallowness (canonicalDT … F ρ).depth < s, the new bottom is BottomBounded s (2^s) (uniform
+-- budget). So one survivor round makes every new bottom gate (s, 2^s)-bounded. Next: collapseRound/mergePass
+-- preserves BottomBounded across the tower (flatten adds counts, width=max) → width-aware Valid → hterm fires
+-- on the actual final DNF. Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
