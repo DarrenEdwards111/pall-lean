@@ -189,6 +189,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MergeCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRoundCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityWCSeq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityWCSeq2
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityWCSeq3
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityGeomREL
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafTowerCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MergeCountMul
@@ -2445,6 +2446,20 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- 2^t) CONSTANT. So Valid can track BottomCount (M·2^t), giving hsurv_REL2_round's hmc. REMAINING: wc_seq3 (track
 -- BottomCount alongside AltO/width/gate-count) + final geom assembly on hsurv_REL2_round (136) with the constant
 -- rate. Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 139 (step 99): THE FULL FOUR-INVARIANT CAPSTONE (alternation, width t, gate count, clause count)
+#check @Depth3.parity_not_altO_wc_seq3
+-- The two-parameter capstone (137) + the per-gate CLAUSE-COUNT invariant BottomCount m. parity_not_altO_wc_seq3
+-- (s : ℕ→ℕ)(t F d M m)(hmono)(ht : ∀i, t≤s(i+1))(hM1 : 1≤M)(hMm : M·2^t≤m)(C₀ τ₀)(hC₀ : AltO (d+2) C₀)(hbw₀ :
+-- BottomWidth t C₀)(hcnt₀ : gate-count≤M)(hmc₀ : BottomCount m C₀)(hτ₀)(hsurv : ∀i≤d ∀C τ, BottomWidth t C →
+-- gate-count≤M → BottomCount m C → s i≤stars τ → ∃ρ, ... Shallows F ρ t C) : ∃x, eval C₀ x ≠ parity x. Valid :=
+-- (if i≤d then AltO(d+2-i) C else True) ∧ BottomWidth t C ∧ gate-count≤M ∧ BottomCount m C — ALL FOUR invariants.
+-- Oracle threads: AltO (90), BottomWidth t (98), gate-count (130), BottomCount m via collapseRound_BottomCount
+-- (138, →M·2^t) + BottomCount_mono (M·2^t≤m). So hsurv receives ALL FOUR bounds → hsurv_REL2_round's hmc (clause
+-- count for the CONSTANT rate, m≥M·2^t with t small). REMAINING: the FINAL geom assembly on hsurv_REL2_round
+-- (136), s_i:=geomSchedB (stars), t constant (depth), gap (124) at s, union (125) at t — a fully self-contained
+-- theorem (hm ELIMINATED, threaded as BottomCount m). Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰
+-- CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
