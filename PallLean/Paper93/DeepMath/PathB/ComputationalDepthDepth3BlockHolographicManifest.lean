@@ -155,6 +155,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafTowerBounded
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRoundBounded
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityWidthAware
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsurvDischarge
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsmallChernoff
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1877,6 +1878,19 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- REMAINS is exactly hr1 (tight rate, p=1/(8wm) via tight_rate_recip_8wm 92) + hsmall (subcube-relative budget)
 -- — the irreducible Håstad/Razborov probability, carried as in depth-3/4. So 99's hsurv ⟸ hsurv_of_budget +
 -- per-round hsmall. Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 101 (step 61): THE BUDGET TAIL IN CLOSED FORM (Chernoff, no opaque sum)
+#check @Depth3.hsmall_of_chernoff
+-- The per-round survivor budget hsmall (36/60) carries an OPAQUE sum: the subcube-relative low-star weight
+-- ∑_{σ extends τ, stars σ < s} pweight p σ. hsmall_of_chernoff uses the EXISTING conditional Markov tail
+-- stars_tail_le_extends (foundation 24) to replace it by the CLOSED-FORM Chernoff expression box·(t·p+(1-p))
+-- ^(stars τ)/t^(s-1) for any 0<t≤1 (filter stars<s = stars≤s-1 via Finset.filter_congr+omega; le_div_iff₀ +
+-- mul_comm + the Markov bound; linarith with the deep-gate remainder rest). So hsmall ⟸ a CLOSED-FORM
+-- inequality in p,t,s,stars τ,n,rest — NO SUM LEFT: box·(tp+1-p)^(starsτ)/t^(s-1) + rest < box. This is the
+-- Chernoff lower-tail for Binomial(stars τ, p) made explicit. Remaining to fully close: pick t,p (t<1) and
+-- verify this closed form in the Håstad regime (stars τ≈n, s≈p·stars τ) + bound rest=card·cap^s/(1-cap). The
+-- last opaque piece of hsmall is now closed-form. Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰
+-- CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
