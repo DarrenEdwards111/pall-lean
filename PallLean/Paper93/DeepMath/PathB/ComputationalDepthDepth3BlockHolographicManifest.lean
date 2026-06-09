@@ -176,6 +176,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BudgetExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SurvivorExtendsRel
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SurvivorExtendsREL2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsurvRoundRel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityREL
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomGap
@@ -2384,6 +2385,21 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- proper fix = a TWO-PARAMETER survivor lemma (DT-depth t small, stars ≥ s large, t≤s), a genuine deeper rework.
 -- The merge-sum (134) is the clean self-contained piece; the per-round-rate threading hits this conflation.
 -- Clean [propext,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 135 (step 95): THE TWO-PARAMETER SUBCUBE-RELATIVE SURVIVOR BUDGET (depth/star decoupled)
+#check @Depth3.exists_survivor_shallow_extends_REL2
+-- THE FIX for the depth/star conflation (134). exists_survivor_shallow_extends_REL (81) tied the DT-depth and
+-- star-count thresholds to ONE s, forcing clause-count 2^s exponential in the (large) star count. Here DECOUPLED:
+-- exists_survivor_shallow_extends_REL2 {p}(hp0)(hp3){w F s t m}[NeZero w][NeZero m](hF)(τ)(G)(hw)(hm)(hr1)(hsmall
+-- : (∑_{σ∈extBox τ, stars σ<s} pweight) + (G.card)·((CAP^t/(1-CAP))·box) < box) : ∃ρ, Extends τ ρ ∧ s≤stars ρ ∧
+-- stars ρ≤F ∧ ∀g∈G, (canonicalDT g F ρ).depth < t. The LOW-STAR term uses the STAR threshold s (survivor count,
+-- LARGE); the DEEP term uses the INDEPENDENT DEPTH threshold t (SMALL → clause-count 2^t, rate p=1/(8·t·2^t)
+-- CONSTANT). Proof = exists_survivor_shallow_extends_REL (121) VERBATIM with the deep threshold renamed s→t (the
+-- two thresholds were always independent in the union-bound structure; tight_switching_budget_extends_uncond 120
+-- called at t). So with t≤s the parity capstone gets depth<t≤s≤stars (depth<stars), width≤t (small), clause-count
+-- ≤2^t (small) → rate constant → gap D>7/p=O(1) + size N≥D^(d+1)=2^O(d) CLOSE. REMAINING: re-thread the capstone
+-- (Shallows2/BottomWidth t/BottomCount 2^t at depth t) on REL2 — the conflation is RESOLVED at the lemma level.
+-- Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
