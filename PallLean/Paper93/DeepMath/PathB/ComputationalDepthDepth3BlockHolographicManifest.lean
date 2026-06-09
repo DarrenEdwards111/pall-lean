@@ -152,6 +152,8 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BottomGates
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafCollapseBounded
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3MergeBounded
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafTowerBounded
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRoundBounded
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityWidthAware
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1844,6 +1846,21 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- BottomWidth s. Next: collapseRound_BottomWidth (compose 96+97) + width-aware Valid + oracle picking that
 -- survivor → final DNF width≤s → terminal_shallow_of_survivor (92) on the actual DNF → hterm eliminated. Clean
 -- [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction bricks 98-99 (steps 58-59): COLLAPSE-ROUND WIDTH GLUE + WIDTH-AWARE CAPSTONE (hterm ELIMINATED)
+#check @Depth3.collapseRound_BottomWidth
+#check @Depth3.parity_not_altO_width_aware
+-- BRICK 98 collapseRound_BottomWidth: the glue. collapseRound F ρ C = mergePass (leafCollapse F ρ C); Shallows
+-- F ρ s C ⟹ BottomWidth s (collapseRound F ρ C) (switch SETS width 97, merge PRESERVES 96). +BottomWidth_mono.
+-- BRICK 99 parity_not_altO_width_aware: THE PAYOFF — hterm ELIMINATED. Runs the recursive tower with Valid i C
+-- := AltO(d+2-i) C ∧ BottomWidth w C. Oracle (i<d): pull survivor ρ from hsurv shallowing all bottoms of the
+-- CURRENT tower (Shallows F ρ s C), collapseRound → AltO drops one level (collapseRound_AltO 90), EquivOn (87),
+-- bottom width ≤s≤w (collapseRound_BottomWidth 98 + mono). After d rounds the tower is dnf D (AltO_two_dnf 89)
+-- of width ≤w — so the SAME hsurv applied to dnf D shallows it below s≤stars ρ = exactly the terminal
+-- shallowness the parity capstone needs. NO separate hterm, NO trivial hround: the sole structural input is the
+-- per-round subcube survivor hsurv (the irreducible Håstad/Razborov content, = exists_survivor_shallow_extends_
+-- uncond 36 at G=bottomGates C ∪ map negDNF). The width-control arc 53-58 is WHAT makes the terminal fire on
+-- the actual collapsed DNF. Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
