@@ -119,6 +119,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightParityDepth3
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TightNested
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessDecoder
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessLabel
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingSkipLabel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ActiveTermIdx
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3FreeLitPos
@@ -1459,6 +1460,23 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- assemble the injection Bad → Short × WitLabel (encode ρ as path label + per-step activeIdx, decode via brick
 -- 63) and drop hnf from the tight count (50-62) → UNCONDITIONAL. Count stays F-independent; expander only if a
 -- constant-overhead (m-free) witness is ever needed. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 141 (skip-decoder step 1): THE m-FREE SKIP-AUGMENTED LABEL — (4w)^s, no clause count
+#check @SwitchingCounting.card_skipLabels
+#check @SwitchingCounting.card_skipLabels_le
+-- WHY: the WitLabel (brick 64) records the active-clause INDEX Fin m per step → (2wm)^s; that m in the rate
+-- forces p≈1/m and makes the assembled depth-(d+2) parity bound (brick 140) NUMERICALLY VACUOUS for d≥1 (n ≥
+-- n^{4k}, impossible). The (2w)^s CONDITIONAL tight count (card_bad_le_pathlabel/reconstructionCorrect_fullpath)
+-- drops m but needs hnf/hleaf/hpos (the "empty-skip wall"), which FAIL on the general survivor shells. Håstad's
+-- real decoder recovers the active clause from CANONICAL ORDER (not a recorded index) and handles the skip with
+-- an O(1) marker per step. THIS BRICK = step 1 of that decoder: the m-free label space. SkipStepLabel w := Fin w
+-- × Bool × Bool (path step + a single ADVANCE BIT: is the current active clause exhausted → scan to next live
+-- clause in canonical order). SkipLabel w s := Fin s → SkipStepLabel w. card_skipLabels: |SkipLabel w s|=(4w)^s
+-- — m-FREE and F-independent (advance bit replaces Fin m). (4w)^s is the (O(w))^s shape → rate p=O(1/w)=const
+-- for const-width AC⁰ bottoms → survivor size O(w)^{d+1}, regime CLOSES for all d. HONEST SCOPE: this is ONLY
+-- the label space + cardinality (the m-free target); the skip-aware encoder, canonical-order active-clause
+-- recovery (dropping hnf/hleaf/hpos), and the unconditional (4w)^s descent bound are the NEXT bricks — nothing
+-- here yet discharges the empty-skip wall. Clean [propext,Classical.choice,Quot.sound]. AC⁰ ceiling, NOT P vs NP.
 
 -- AC⁰ reduction brick 65 (step 25): the WITNESSED TIGHT COUNT — (Cw)^s injection ASSEMBLED, hnf-free in count
 #check @Depth3.deepest_count_of_witness
