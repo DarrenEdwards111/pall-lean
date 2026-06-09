@@ -161,6 +161,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityClosedForm
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecursiveTowerSeq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityWidthAwareSeq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityClosedFormSeq
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HcfSplit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -1961,6 +1962,18 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- = s i and shallowness at s(i+1) — the split that lets (t·p+(1-p))^(stars τ)/t^(s(i+1)-1) be small when s i ≫
 -- s(i+1). REMAINING: a concrete decreasing-geometric schedule s_i (≈p^i·n) discharging hcf. Clean [propext,
 -- Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 107 (step 67): FACTORING THE PER-ROUND INEQUALITY INTO ITS TWO ATOMS
+#check @Depth3.hcf_of_split
+-- The per-round hcf (66) is a sum of two physically distinct terms: the CHERNOFF concentration box·(t·p+(1-p))
+-- ^(stars τ)/t^(s-1) (the conditional low-star tail) and the UNION-BOUND term card·cap^s/(1-cap) (one deep-gate
+-- failure per bottom gate). hcf_of_split {p t}(hp_lt : p<1){n starsτ sOut}(card capGeo)(h1 : (t·p+(1-p))^starsτ
+-- /t^(sOut-1) < 1/2)(h2 : card·capGeo < box/2) : box·(t·p+(1-p))^starsτ/t^(sOut-1) + card·capGeo < box. Proof:
+-- mul_div_assoc; mul_lt_mul_of_pos_left h1 hbox gives box·Chernoff < box·(1/2)=box/2; +h2; linarith. So hcf ⟸ a
+-- DIMENSIONLESS Chernoff bound (h1, independent of the box — the real concentration atom) + the union bound (h2,
+-- card·cap below half the box). These are the two genuine analytic atoms of EVERY switching-lemma argument.
+-- REMAINING: h1 = rational exponential-decay bound (Mathlib-ℚ lacks exp/log; needs (1-p/2)^k vs 2^-k estimate)
+-- + h2 = gate-count·cap bound. Clean [propext,Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
