@@ -201,3 +201,32 @@ realistic completion of [169].**
 ### State at this checkpoint
 Structural core [165]–[168] built + pushed. [169] scoped to path (ii) (mechanical, multi-file) or
 path (i) (one hard induction). [170] schedule + [171] concrete instance follow. AC⁰ ceiling throughout.
+
+---
+
+## UPDATE 4 — [169] COMPLETE via path (ii), no bridge
+
+Path (ii) (block `collapseRoundBlock`) is fully built — the depth bridge (i) was **not** needed:
+
+| brick | what | status |
+|---|---|---|
+| [169a] `leafCollapseBlock` + `_EquivOn` | block leaf collapse (`canonicalDTree`, no `toDTree`) | ✓ clean |
+| [169b] `collapseRoundBlock` + `_EquivOn` | `mergePass ∘ leafCollapseBlock` | ✓ clean |
+| [169c] `ShallowsBlock`, `_BottomWidth` | block round preserves bottom width (via generic `dtreeToCNF_width`/`dtreeToDNF_width`) | ✓ clean |
+| [169d] `collapseRoundBlock_AltO`/`_AltA` | drops one alternation level (verbatim structural mirror) | ✓ clean |
+| [169e] `parity_not_altO_block_width_aware` | **width-aware general-`d` block bound — [169] capstone** | ✓ clean |
+
+The whole depth-`d` block lower bound now reduces to a **single per-round block survivor**:
+`hsurv : ∀ C τ, BottomWidth w C → s ≤ stars τ → ∃ ρ, Extends τ ρ ∧ s ≤ stars ρ ∧ stars ρ < F ∧
+ShallowsBlock w F ρ s C`. No `canonicalDT ↔ canonicalDTree` bridge appears anywhere.
+
+### Remaining ladder
+- **[170] discharge `hsurv` + schedule** — apply the m-free conditional survivor [164] to
+  `bottomGates C ∪ map negDNF (bottomGates C)` (both polarities of `ShallowsBlock`), leaving the
+  **uniform per-base budget** (the schedule: deep-cap `<1` for every reachable `(C, τ)` at once). This
+  is the genuine remaining analytic gate. *Risk: HIGH.*
+- **[171] concrete unconditional depth-`d` instance** — the depth-`d` analog of [161], `norm_num`.
+  *Risk: MED.*
+
+The entire *structure* of the m-free depth-`d` AC⁰ bound is now built and verified (no bridge, no
+`m`). What remains is purely the survivor discharge + schedule feasibility + a concrete instance.
