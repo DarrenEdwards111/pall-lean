@@ -38,6 +38,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BinomialDecayPow
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CumulShell
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CompactRatio
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HBoundDischarge
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BlockDepthRefute
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3EncodeInjective
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BadLabels
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LabelNodup
@@ -826,6 +827,23 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- (2^w)^s. The keystone is DONE. REMAINING: connect block-shallow (∀g blockStream length<s) to the parity
 -- capstone (the bottom-gates collapse to shallow DTs ⟹ depth reduction ⟹ parity∉AC⁰). Clean
 -- [propext,Classical.choice,Quot.sound], no sorry. AC⁰ ceiling, NOT P vs NP.
+
+-- AC⁰ reduction brick 152 (AUDIT — NEGATIVE RESULT): blockStream length does NOT bound canonicalDTree depth
+#check @Depth3.blockStream_length_not_bound_depth
+-- THE DIRECTION AUDIT for the would-be depth bridge `canonicalDTree.depth ≤ blockStream.length·w` (which the
+-- block route would need to connect circuit_collapse_uncond to the parity pipeline). REFUTED — a concrete
+-- counterexample (decide, no native_decide): cs = [{x0,x1},{x0,x2},{x0,x3},{x0,x4}] (AND-terms sharing pivot
+-- x0), all-free ρ. killTerm of the FIRST term sets x0=false → falsifies ALL terms ⟹ blockStream length = 1;
+-- but the x0=TRUE branch keeps the chain alive (query x1, then x2, x3, x4) ⟹ canonicalDTree depth = 5. So
+-- 5 = depth > 1·2 = blockStream.length·w; with s=2: blockStream.length=1<2=s yet depth=5≥4=s·w. ROOT CAUSE:
+-- blockStream follows ONLY the killTerm (one falsifying) branch, while canonicalDTree.depth is the MAX over ALL
+-- branches; queryAll_depth needs a UNIFORM bound over every assignment, which the one killTerm branch can't give.
+-- CONSEQUENCE: bricks 146-151 (block route — cumul shell/compact ratio/(2^w) decay/gate absorb/hbound/
+-- circuit_collapse_uncond) are CLEAN CORRECT theorems but control the killTerm PATH, NOT the tree DEPTH — the
+-- WRONG quantity for parity. The CORRECT route is the DEPTH-graded descent_switching_prob (graded by
+-- (canonicalDTree…).depth = max branch, hnf-free), made F-independent (route 2). Bricks 147-150 (binomial/
+-- cardinality) are route-agnostic & reusable in route 2's content-graded sum. Clean [propext,Classical.choice,
+-- Quot.sound], no sorry, no native_decide. AC⁰ ceiling, NOT P vs NP.
 
 -- Brick 55: branching holography, step 4m — the p-biased measure + star-count driver
 #check @Depth3.pweight                 -- p-biased weight ∏ v, (if free then p else (1-p)/2)
