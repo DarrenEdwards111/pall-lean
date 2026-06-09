@@ -1,0 +1,88 @@
+# Scope: Route-2 Option (b) — m-free depth-`d` AC⁰ parity lower bound
+
+**Goal of (b):** lift the m-free single-gate refutation ([158]/[161]) to a depth-`d` statement:
+parity ∉ depth-`(d+2)` AC⁰, with all constants m-free and the parameter regime non-vacuous for
+`d ≥ 1` (the regime where the existing m-ful tower, brick 140 `parity_not_altO_geomREL2`, collapses
+to a vacuous bound).
+
+**Honest ceiling (unchanged):** completing (b) closes Layer 2 (General AC⁰). The achievable depth in
+the standard Håstad regime is `d = O(log n / log log n)`. Still AC⁰; not P vs NP.
+
+---
+
+## Key finding from scoping: (b) is a RETROFIT, not a greenfield build
+
+The original framing ("need a `canonicalDTree`-compatible collapse layer; the existing machinery is
+bit-level `canonicalDT`") is **outdated**. The block-level collapse glue already exists and is wired
+to `canonicalDTree`. The seam is narrow and vertical.
+
+### What already exists and is REUSABLE (parameter-agnostic, block-level)
+
+These consume `(canonicalDTree g w F ρ).depth < s` and don't care where the budget came from — so
+the m-free survivor [157] drops straight in:
+
+| Lemma | File | Role |
+|---|---|---|
+| `collapse_or_layer_at` / `collapse_and_layer_at` | `LayerCollapseAt` | layer collapse, ρ given |
+| `collapse_gAnd_dnf_at` / `collapse_gOr_cnf_at` | `GateCollapse` | whole-gate collapse, ρ given |
+| `collapse_core` / `collapse_core_or` | `LayerCollapse` | semantic core |
+| `Reduces.round` | `ReduceChain` | one-stage glue (via `EquivOn`) |
+| `reduces_iterate` / `iterated_not_parity` | `IteratedReduction` | the `d`-fold chain |
+| `tower_not_parity` | `TowerParity` | parity capstone |
+| `canonicalDTree_depth_ge_of_parity` / `shallow_canonical_not_parity` | `CanonicalParity` | block-level parity lower bound |
+
+### What is m-ful and must be re-derived m-free (the actual work)
+
+Only the **budget-carrying producers** pay the `m`/`F`-dependent factor (via `exists_shallow_all`,
+whose budget has the `card (Fin F → Option (Fin w → Option (Option Bool)))` factor). The whole
+existing depth-`d` apparatus — `RecursiveTower*`, `ParityGeneralD`, `ParityWCSeq3`, brick 140,
+`ParityDepth4Uncond` — is built on this m-ful budget, which is **exactly why it is vacuous for
+`d ≥ 1`**.
+
+| m-ful producer | m-free analog to build |
+|---|---|
+| `collapse_or_layer` (`exists_shallow_all`) | **[162] `collapse_or_layer_findep` ✓ DONE** |
+| `collapse_and_layer` | [163] `collapse_and_layer_findep` |
+| `one_round_or` | [164] `one_round_or_findep` |
+| iterated assembly (m-ful schedule) | [165] m-free ρ-sequence → `iterated_not_parity` |
+| `geomSchedB` schedule + per-round tails (brick 140) | [166] m-free geometric schedule |
+| `parity_not_altO_geomREL2` (vacuous d≥1) | [167] concrete m-free depth-`d` instance |
+
+### Why the BridgeNoGo does NOT block this
+
+`blockStream_length_le_canonicalDTree_depth` (`BridgeNoGo`) proves `blockStream.length ≤
+canonicalDTree.depth` — a *lower* bound, so the `blockStream` count cannot prove the tree shallow.
+This is **sidestepped**: the m-free survivor [157] bounds `canonicalDTree.depth` **directly** via the
+value-augmented descent count (`descent_switching_findep_le`), never through `blockStream`. The no-go
+only kills the `blockStream` shortcut; the `canonicalDTree`-direct route (route 2) is unaffected.
+
+---
+
+## Brick ladder for (b)
+
+- **[162] `collapse_or_layer_findep`** — m-free producing OR-layer collapse. ✓ **DONE** (commit
+  d86e6353), clean axioms. Thin adapter: [157] → `collapse_or_layer_at`.
+- **[163] `collapse_and_layer_findep`** — dual AND-layer (via `collapse_and_layer_at` + `negDNF`).
+  *Risk: LOW* (mirror of [162]).
+- **[164] `one_round_or_findep`** — the full round (`EquivOn` + width `< s` + freshness) used by
+  `Reduces.round`. *Risk: LOW–MED* (mirror `one_round_or`, swap survivor + budget).
+- **[165] m-free iterated assembly** — construct the per-round survivor sequence `ρ : ℕ → …` and the
+  `EquivOn` chain, feed `reduces_iterate` / `iterated_not_parity`. `reduces_iterate` is
+  parameter-agnostic, so this is sequence construction, not new structure. *Risk: MED*.
+- **[166] m-free geometric schedule** — the real remaining analytic content: a star/width/depth
+  schedule `(s_i, F_i, w_i)` with `w_{i+1} = s_i`, keeping `r'_i = (2p/(1-p))(4w_i+1) < 1` and the
+  per-round star-tails small across all `d` rounds simultaneously. This re-derives brick 140's
+  `geomSchedB` **without** the clause-count invariant `m` — one fewer invariant to track (alternation,
+  width, gate-count remain), but the schedule feasibility must be re-proven m-free. *Risk: HIGH* —
+  this is where the genuine multi-round work lives.
+- **[167] concrete unconditional depth-`d` instance** — the analog of [161] for `d ≥ 2`: pick
+  concrete `(p, n, d, schedule)` and discharge the per-round gap by `norm_num`. *Risk: MED* (norm_num
+  over a `d`-fold product; heavier than [161] but same technique).
+
+## Recommended order
+
+[163] → [164] (finish the thin adapters, low risk, immediate progress) → [165] (assembly) → [166]
+(the hard schedule rung — the true gate) → [167] (concrete finish). The first three rungs are
+de-riskable now; [166] is the one that decides whether m-free depth-`d` actually closes.
+
+*AC⁰ ceiling throughout; not P≠NP-strength.*
