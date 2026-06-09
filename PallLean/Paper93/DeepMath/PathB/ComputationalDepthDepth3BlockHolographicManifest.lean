@@ -176,6 +176,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DeepestExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3DescentExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BudgetExtends
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SurvivorExtendsRel
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsurvRoundRel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2188,6 +2189,21 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- ⟺ (÷box) (low-star)/box + card·cap < 1 = gap ∧ h2_rel_clean (114). REMAINING: wire into the width-aware
 -- capstone with hsurv discharged via this + hcf_from_gap (112) + h2_rel_clean (114). Clean [propext,Classical.
 -- choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 122 (step 82): THE PER-ROUND RELATIVE SURVIVOR FROM GAP ∧ UNION BOUND (the wire heart)
+#check @Depth3.hsurv_REL_round
+-- The final-wire heart: discharges the width-aware capstone's hsurv (∀C τ, BottomWidth → s≤stars → ∃ρ Shallows)
+-- from the box-free per-round conditions via the RELATIVE survivor budget (121). hsurv_REL_round {p}(hp0)(hp1)
+-- (hp3){w F s m}[NeZero][NeZero](hs : 2≤s)(hF)(C τ)(hbw : BottomWidth w C)(hmc : count≤m)(hr1)(hgap : 7·s <
+-- (stars τ)·p)(hh2 : (bottomGatesG C).card·CAP^s/(1-CAP) < 1/2) : ∃ρ, Extends τ ρ ∧ s≤stars ρ ∧ stars ρ≤F ∧
+-- Shallows F ρ s C. Proof: t:=1-1/s (0<t≤1, s≥2); hh2box : card·(cap·box) < box/2 (ring + mul_lt_mul_of_pos_
+-- right hh2); hsmall (low-star + card·(cap·box) < box) = hsmall_of_chernoff (101) ∘ hcf_of_split (107) [h1 =
+-- h1_of_gap 111 from gap, h2 = hh2box]; exists_survivor_shallow_extends_REL (121) at G=bottomGatesG C (hw from
+-- BottomWidth+negDNF, hm from count+negDNF len); Shallows via mem_bottomGatesG (cs left, negDNF cs right). NO
+-- box, NO exp, NO consistency/nodup. So the single-s capstone's hsurv ⟸ per-round (gap ∧ box-free union). The
+-- whole Håstad switching lemma is now wired to elementary rational per-round conditions. REMAINING: instantiate
+-- the capstone (99/105) with this hsurv at the geometric schedule (113, D>7/p gives the gap). Clean [propext,
+-- Classical.choice,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
