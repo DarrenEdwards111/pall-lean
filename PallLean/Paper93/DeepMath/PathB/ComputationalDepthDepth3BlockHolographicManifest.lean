@@ -182,6 +182,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomGap
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3H2Schedule
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GateCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3BottomNonempty
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3NonEmptyGates
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAdditiveSheetCrossBlock
 
 /-!
@@ -2278,6 +2279,16 @@ namespace PallLean.Paper93.DeepMath.PathB
 -- REMAINING: collapseRound_count_le (AltO/AltA mutual mirroring collapseRound_AltO 90: k=0 gOr-of-cnf merges to
 -- 1 ≤ |gs| via this lemma; k≥1 recurses ≤ via IH) → count non-increasing → uniform M for h2_of_count_pow (125)
 -- → final seq assembly. Clean [propext,Quot.sound], no sorry. AC⁰ CEILING, NOT P vs NP.
+
+-- AC⁰ reduction brick 128 (step 88): THE NON-EMPTY-GATES PREDICATE (degeneracy guard for merge count)
+#check @Depth3.NonEmptyGates
+#check @Depth3.AltO_NonEmptyGates
+-- The merge's count-reduction |gs|→1 reduces only when gate lists are non-empty (gAnd[]/gOr[] grows 0→1).
+-- NonEmptyGates (inductive): dnf/cnf always; gAnd/gOr gs needs gs≠[] ∧ ∀g∈gs NonEmptyGates g. AltO_NonEmpty
+-- Gates/AltA_NonEmptyGates (mutual): every AltO/AltA tower has NonEmptyGates (the hne in AltO.gOr/AltA.gAnd +
+-- recurse). AXIOM-FREE. The clean degeneracy guard the merge count-reduction needs. REMAINING: leafCollapse
+-- preserves NonEmptyGates (structure unchanged) + mergePass_count_le under NonEmptyGates → collapseRound_count
+-- _le → uniform M for h2_of_count_pow (125). Clean (no axioms), no sorry. AC⁰ CEILING, NOT P vs NP.
 
 -- Audit artifact: additive-sheet cross-block vanishing (the p-vs-np1 flaw, formalized)
 #check @AdditiveSheetAudit.vars_pderiv_le
