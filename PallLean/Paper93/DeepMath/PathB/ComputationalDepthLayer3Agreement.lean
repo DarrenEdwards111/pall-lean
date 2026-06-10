@@ -562,6 +562,94 @@ theorem exists_form_circuit_agreement (p t : ℕ) [Fact p.Prime] {n : ℕ} (C : 
   rw [Finset.card_univ] at hω
   exact ⟨ω, hω⟩
 
+open Classical in
+/-- A gate whose local goodness always holds contributes `0` to the error (its failure set is empty). -/
+theorem column_zero_of_localGood (p t : ℕ) [Fact p.Prime] {n : ℕ} (C : BoolCircuitSyntax n)
+    (G : BoolCircuitSyntax n)
+    (h : ∀ (ω : FormSpace p t C) (x : Fin n → Bool), localGood p t (oracleOf p t C ω) x G) :
+    (∑ ω : FormSpace p t C, (Finset.univ.filter (fun x : Fin n → Bool =>
+        ¬ localGood p t (oracleOf p t C ω) x G)).card) = 0 := by
+  have hempty : ∀ ω : FormSpace p t C, (Finset.univ.filter (fun x : Fin n → Bool =>
+      ¬ localGood p t (oracleOf p t C ω) x G)) = ∅ := by
+    intro ω
+    rw [Finset.filter_eq_empty_iff]
+    exact fun x _ => not_not.mpr (h ω x)
+  simp only [hempty, Finset.card_empty, Finset.sum_const_zero]
+
+open Classical in
+/-- **The composed error bound.**  For an `AC⁰[p]` circuit (every `MOD` gate has `q=p`), there is a form
+choice `ω` for which the circuit approximant disagrees with the circuit on a `p^{-t}`-per-gate fraction:
+`|{x : approximant errs}| · p^t ≤ (#subcircuits) · 2^n`.  This is the Razborov–Smolensky agreement
+guarantee — composed degree `≤ ((p-1)t)^depth` (degree side), error `≤ s·p^{-t}` (this). -/
+theorem composed_error_le (p t : ℕ) [Fact p.Prime] {n : ℕ} (C : BoolCircuitSyntax n)
+    (hmod : ∀ q r cs, (BoolCircuitSyntax.modGate q r cs : BoolCircuitSyntax n) ∈ subcircuits C →
+      q = p) :
+    ∃ ω : FormSpace p t C,
+      (Finset.univ.filter (fun x : Fin n → Bool =>
+          eval (fun i => boolToZMod p (x i)) (toAgree p t (oracleOf p t C ω) C)
+            ≠ boolToZMod p (C.eval x))).card * p ^ t
+        ≤ (subcircuits C).toFinset.card * Fintype.card (Fin n → Bool) := by
+  obtain ⟨ω, hω⟩ := exists_form_circuit_agreement p t C
+  refine ⟨ω, ?_⟩
+  have hperGate : ∀ G ∈ (subcircuits C).toFinset,
+      (∑ ω' : FormSpace p t C, (Finset.univ.filter (fun x : Fin n → Bool =>
+          ¬ localGood p t (oracleOf p t C ω') x G)).card) * p ^ t
+        ≤ Fintype.card (Fin n → Bool) * Fintype.card (FormSpace p t C) := by
+    intro G hGmem
+    rw [List.mem_toFinset] at hGmem
+    match G, hGmem with
+    | .const b, _ =>
+        rw [column_zero_of_localGood p t C (.const b) (fun ω' x => by simp only [localGood])]; simp
+    | .input i, _ =>
+        rw [column_zero_of_localGood p t C (.input i) (fun ω' x => by simp only [localGood])]; simp
+    | .not c, _ =>
+        rw [column_zero_of_localGood p t C (.not c) (fun ω' x => by simp only [localGood])]; simp
+    | .orGate cs, hG =>
+        by_cases hcs : 1 ≤ cs.length
+        · exact column_or_le p t C cs (gateFanin_mem_fanins hG) hcs
+        · rw [column_zero_of_localGood p t C (.orGate cs)
+            (fun ω' x => by simp only [localGood]; rintro ⟨j, _⟩; exact absurd j.isLt (by omega))]
+          simp
+    | .andGate cs, hG =>
+        by_cases hcs : 1 ≤ cs.length
+        · exact column_and_le p t C cs (gateFanin_mem_fanins hG) hcs
+        · rw [column_zero_of_localGood p t C (.andGate cs)
+            (fun ω' x => by simp only [localGood]; rintro ⟨j, _⟩; exact absurd j.isLt (by omega))]
+          simp
+    | .modGate q r cs, hG =>
+        rw [gbad_mod_column_sum p t C q r cs (hmod q r cs hG)]; simp
+  have hsum : (∑ G ∈ (subcircuits C).toFinset, ∑ ω' : FormSpace p t C,
+        (Finset.univ.filter (fun x : Fin n → Bool =>
+          ¬ localGood p t (oracleOf p t C ω') x G)).card) * p ^ t
+      ≤ (subcircuits C).toFinset.card
+          * (Fintype.card (Fin n → Bool) * Fintype.card (FormSpace p t C)) := by
+    rw [Finset.sum_mul]
+    refine le_trans (Finset.sum_le_sum hperGate) ?_
+    rw [Finset.sum_const, smul_eq_mul]
+  have h1 : Fintype.card (FormSpace p t C)
+        * ((Finset.univ.filter (fun x : Fin n → Bool =>
+            eval (fun i => boolToZMod p (x i)) (toAgree p t (oracleOf p t C ω) C)
+              ≠ boolToZMod p (C.eval x))).card * p ^ t)
+      ≤ Fintype.card (FormSpace p t C)
+        * ((subcircuits C).toFinset.card * Fintype.card (Fin n → Bool)) := by
+    calc Fintype.card (FormSpace p t C)
+          * ((Finset.univ.filter (fun x : Fin n → Bool =>
+              eval (fun i => boolToZMod p (x i)) (toAgree p t (oracleOf p t C ω) C)
+                ≠ boolToZMod p (C.eval x))).card * p ^ t)
+        = (Fintype.card (FormSpace p t C)
+            * (Finset.univ.filter (fun x : Fin n → Bool =>
+              eval (fun i => boolToZMod p (x i)) (toAgree p t (oracleOf p t C ω) C)
+                ≠ boolToZMod p (C.eval x))).card) * p ^ t := by ring
+      _ ≤ (∑ G ∈ (subcircuits C).toFinset, ∑ ω' : FormSpace p t C,
+            (Finset.univ.filter (fun x : Fin n → Bool =>
+              ¬ localGood p t (oracleOf p t C ω') x G)).card) * p ^ t :=
+          Nat.mul_le_mul_right _ hω
+      _ ≤ (subcircuits C).toFinset.card
+            * (Fintype.card (Fin n → Bool) * Fintype.card (FormSpace p t C)) := hsum
+      _ = Fintype.card (FormSpace p t C)
+            * ((subcircuits C).toFinset.card * Fintype.card (Fin n → Bool)) := by ring
+  exact Nat.le_of_mul_le_mul_left h1 (formSpace_card_pos p t C)
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree
@@ -584,4 +672,7 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.exists_form_circuit_agreement
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.formSpace_card_factor
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.column_or_le
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.column_and_le
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.column_zero_of_localGood
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.composed_error_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.column_and_le
