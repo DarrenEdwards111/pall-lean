@@ -406,6 +406,65 @@ theorem gbad_or_column_sum (p t : ℕ) [Fact p.Prime] {n : ℕ} (C : BoolCircuit
       (fun j => (cs.get j).eval x)
   · rw [Finset.sum_const, Finset.card_univ, smul_eq_mul, mul_assoc]
 
+/-! **`hB` for an AND gate.**  The De Morgan analogue of `gbad_or_column_sum`: the gate's local failures
+read its fan-in coordinate over the *negated* children values, and the same Fubini + marginalisation +
+`localGood_fail_count` (over `!(child eval)`) give the same column-sum bound. -/
+open Classical in
+theorem gbad_and_column_sum (p t : ℕ) [Fact p.Prime] {n : ℕ} (C : BoolCircuitSyntax n)
+    (cs : List (BoolCircuitSyntax n)) (hmem : cs.length ∈ fanins C) :
+    ∑ ω : FormSpace p t C,
+        (Finset.univ.filter (fun x : Fin n → Bool =>
+          ¬ localGood p t (oracleOf p t C ω) x (.andGate cs))).card
+      ≤ Fintype.card (Fin n → Bool)
+        * (∏ i ∈ Finset.univ.erase (⟨cs.length, hmem⟩ : {k // k ∈ fanins C}),
+            Fintype.card (Fin t → Fin i.1 → ZMod p))
+        * (p ^ (cs.length - 1)) ^ t := by
+  classical
+  have hpred : ∀ (ω : FormSpace p t C),
+      (Finset.univ.filter (fun x : Fin n → Bool =>
+          ¬ localGood p t (oracleOf p t C ω) x (.andGate cs)))
+        = Finset.univ.filter (fun x : Fin n → Bool =>
+            (∃ j, (!(cs.get j).eval x) = true) ∧
+              ∀ s, ∑ j, ω ⟨cs.length, hmem⟩ s j * boolToZMod p (!(cs.get j).eval x) = 0) := by
+    intro ω
+    apply Finset.filter_congr
+    intro x _
+    simp only [localGood, oracleOf_eq p t C ω hmem, not_forall, not_exists, not_not, exists_prop]
+  simp only [hpred, Finset.card_filter]
+  rw [Finset.sum_comm]
+  refine le_trans (b := ∑ _x : Fin n → Bool,
+      (∏ i ∈ Finset.univ.erase (⟨cs.length, hmem⟩ : {k // k ∈ fanins C}),
+        Fintype.card (Fin t → Fin i.1 → ZMod p)) * (p ^ (cs.length - 1)) ^ t)
+    (Finset.sum_le_sum (fun x _ => ?_)) (le_of_eq ?_)
+  · rw [sum_proj_eq (A := fun k : {k // k ∈ fanins C} => Fin t → Fin k.1 → ZMod p)
+        (⟨cs.length, hmem⟩ : {k // k ∈ fanins C})
+        (fun ρ => if (∃ j, (!(cs.get j).eval x) = true) ∧
+            ∀ s, ∑ j, ρ s j * boolToZMod p (!(cs.get j).eval x) = 0 then (1 : ℕ) else 0)]
+    refine Nat.mul_le_mul_left _ ?_
+    rw [← Finset.card_filter]
+    exact localGood_fail_count (m := (⟨cs.length, hmem⟩ : {k // k ∈ fanins C}).1) (t := t) p
+      (fun j => !(cs.get j).eval x)
+  · rw [Finset.sum_const, Finset.card_univ, smul_eq_mul, mul_assoc]
+
+/-! **`hB` for a MOD gate.**  `localGood` at a `MOD` gate is `q = p` — independent of forms and input.
+So for a valid `AC⁰[p]` gate (`q = p`) the local-failure set is empty and the column sum is `0`. -/
+open Classical in
+theorem gbad_mod_column_sum (p t : ℕ) [Fact p.Prime] {n : ℕ} (C : BoolCircuitSyntax n) (q r : ℕ)
+    (cs : List (BoolCircuitSyntax n)) (hq : q = p) :
+    ∑ ω : FormSpace p t C,
+        (Finset.univ.filter (fun x : Fin n → Bool =>
+          ¬ localGood p t (oracleOf p t C ω) x (.modGate q r cs))).card = 0 := by
+  classical
+  have hempty : ∀ ω : FormSpace p t C,
+      (Finset.univ.filter (fun x : Fin n → Bool =>
+        ¬ localGood p t (oracleOf p t C ω) x (.modGate q r cs))) = ∅ := by
+    intro ω
+    rw [Finset.filter_eq_empty_iff]
+    intro x _
+    simp only [localGood]
+    exact not_not.mpr hq
+  simp only [hempty, Finset.card_empty, Finset.sum_const_zero]
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree
@@ -423,3 +482,5 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.gateFanin_mem_fanins
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.oracleOf_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.gbad_or_column_sum
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.gbad_and_column_sum
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.gbad_mod_column_sum
