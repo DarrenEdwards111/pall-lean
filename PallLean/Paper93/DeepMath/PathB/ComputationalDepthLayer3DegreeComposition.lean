@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4CircuitReal
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer3AC0pApprox
 import Mathlib.Algebra.MvPolynomial.Degrees
 
 /-!
@@ -116,8 +117,138 @@ end
 
 end ApproxDegreeData
 
+/-! ## The concrete `genOrApprox`-based approximant and its `((p-1)t)^depth` degree
+
+We now build a *concrete* approximant `toApprox` (with a per-fan-in random-form oracle `R`), wire it
+through the circuit recursion (mutual with `toApproxList`, mirroring `toPoly`/`toPolyList`), and discharge
+the `ApproxDegreeData` per-gate degree hypotheses — so `approxDegree_le` gives the closed bound
+`deg(toApprox C) ≤ ((p-1)·t)^(depth C)`.  Each `∨`/`∧` gate uses `genOrApprox` over the children's
+approximants; the `MOD` gate uses the Fermat indicator at exponent `p-1`; leaves are `X i` / `C b`.
+(The form-sharing across equal-fan-in gates is a *degree-only* simplification — degree is independent of
+the forms; independence for the agreement/error bound is the separate, deferred piece.) -/
+
+section ConcreteApprox
+
+open MvPolynomial
+
+variable {n : ℕ}
+
+/-- foldl-max is `≥` its initial value (max only grows). -/
+theorem foldl_max_ge_init {α : Type*} (f : α → ℕ) :
+    ∀ (L : List α) (a : ℕ), a ≤ L.foldl (fun m x => max m (f x)) a
+  | [], a => le_refl a
+  | x :: xs, a => le_trans (le_max_left a (f x)) (foldl_max_ge_init f xs (max a (f x)))
+
+/-- Every list element's `f`-value is `≤` the running foldl-max. -/
+theorem le_foldl_max {α : Type*} (f : α → ℕ) :
+    ∀ (L : List α) (a : ℕ) {c : α}, c ∈ L → f c ≤ L.foldl (fun m x => max m (f x)) a
+  | [], _, _, hc => absurd hc (by simp)
+  | x :: xs, a, c, hc => by
+      simp only [List.foldl_cons]
+      rcases List.mem_cons.mp hc with rfl | hmem
+      · exact le_trans (le_max_right a (f c)) (foldl_max_ge_init f xs (max a (f c)))
+      · exact le_foldl_max f xs (max a (f x)) hmem
+
+/-- The total degree of a list-sum of polynomials is bounded by any common bound on its entries. -/
+theorem list_sum_totalDegree_le {p N : ℕ} (D : ℕ) :
+    ∀ (l : List (MvPolynomial (Fin N) (ZMod p))), (∀ q ∈ l, q.totalDegree ≤ D) →
+      l.sum.totalDegree ≤ D
+  | [], _ => by simpa using Nat.zero_le D
+  | q :: qs, h => by
+      rw [List.sum_cons]
+      refine le_trans (totalDegree_add _ _) (max_le (h q (by simp)) ?_)
+      exact list_sum_totalDegree_le D qs (fun q' hq' => h q' (by simp [hq']))
+
+/-! The concrete probabilistic approximant `toApprox`: `∨`/`∧` gates → `genOrApprox` over children;
+`MOD` gate → Fermat indicator at exponent `p-1`; leaves → `X i` / `C b`. -/
+mutual
+noncomputable def toApprox (p t : ℕ) (R : (k : ℕ) → Fin t → Fin k → ZMod p) :
+    BoolCircuitSyntax n → MvPolynomial (Fin n) (ZMod p)
+  | .const b => C (boolToZMod p b)
+  | .input i => X i
+  | .not c => 1 - toApprox p t R c
+  | .andGate cs =>
+      genOrApprox p (R (toApproxList p t R cs).length) (toApproxList p t R cs).get
+  | .orGate cs =>
+      genOrApprox p (R (toApproxList p t R cs).length) (toApproxList p t R cs).get
+  | .modGate _ r cs =>
+      1 - ((toApproxList p t R cs).sum - C (r : ZMod p)) ^ (p - 1)
+noncomputable def toApproxList (p t : ℕ) (R : (k : ℕ) → Fin t → Fin k → ZMod p) :
+    List (BoolCircuitSyntax n) → List (MvPolynomial (Fin n) (ZMod p))
+  | [] => []
+  | c :: cs => toApprox p t R c :: toApproxList p t R cs
+end
+
+/-- `toApproxList` is the pointwise `map` of `toApprox`. -/
+theorem toApproxList_eq_map (p t : ℕ) (R : (k : ℕ) → Fin t → Fin k → ZMod p) :
+    ∀ (cs : List (BoolCircuitSyntax n)), toApproxList p t R cs = cs.map (toApprox p t R)
+  | [] => by simp [toApproxList]
+  | c :: cs => by simp [toApproxList, List.map_cons, toApproxList_eq_map p t R cs]
+
+/-- Each child approximant's degree is `≤` the running foldl-max over the child list. -/
+theorem toApprox_mem_le_foldl (p t : ℕ) (R : (k : ℕ) → Fin t → Fin k → ZMod p)
+    (cs : List (BoolCircuitSyntax n)) {q : MvPolynomial (Fin n) (ZMod p)}
+    (hq : q ∈ toApproxList p t R cs) :
+    q.totalDegree ≤ cs.foldl (fun m c => max m (toApprox p t R c).totalDegree) 0 := by
+  rw [toApproxList_eq_map, List.mem_map] at hq
+  obtain ⟨c, hc, rfl⟩ := hq
+  exact le_foldl_max (fun c => (toApprox p t R c).totalDegree) cs 0 hc
+
+/-- **The `genOrApprox`-based approximant satisfies the per-gate degree recurrence** with factor
+`K = (p-1)·t`, packaged as `ApproxDegreeData`. -/
+noncomputable def toApproxData (p t : ℕ) [Fact p.Prime] (ht : 1 ≤ t)
+    (R : (k : ℕ) → Fin t → Fin k → ZMod p) : ApproxDegreeData p n where
+  A := toApprox p t R
+  K := (p - 1) * t
+  hK := by
+    have h2 := (Fact.out (p := p.Prime)).two_le
+    have : 1 * 1 ≤ (p - 1) * t := Nat.mul_le_mul (by omega) ht
+    simpa using this
+  hconst := fun b => by simp only [toApprox, totalDegree_C]; exact Nat.zero_le 1
+  hinput := fun i => by simp only [toApprox, totalDegree_X]; exact le_refl 1
+  hnot := fun C => by
+    simp only [toApprox]
+    refine le_trans (totalDegree_sub _ _) ?_
+    rw [totalDegree_one, Nat.zero_max]
+  hand := fun cs => by
+    simp only [toApprox]
+    refine le_trans (genOrApprox_totalDegree_le p _ _
+      (cs.foldl (fun m c => max m (toApprox p t R c).totalDegree) 0)
+      (fun j => toApprox_mem_le_foldl p t R cs (List.get_mem _ j))) ?_
+    exact le_of_eq (by ring)
+  hor := fun cs => by
+    simp only [toApprox]
+    refine le_trans (genOrApprox_totalDegree_le p _ _
+      (cs.foldl (fun m c => max m (toApprox p t R c).totalDegree) 0)
+      (fun j => toApprox_mem_le_foldl p t R cs (List.get_mem _ j))) ?_
+    exact le_of_eq (by ring)
+  hmod := fun q r cs => by
+    simp only [toApprox]
+    set D := cs.foldl (fun m c => max m (toApprox p t R c).totalDegree) 0 with hD
+    have hsub : ((toApproxList p t R cs).sum - C (r : ZMod p)).totalDegree ≤ D := by
+      refine le_trans (totalDegree_sub _ _) ?_
+      rw [totalDegree_C, Nat.max_zero]
+      exact list_sum_totalDegree_le D _ (fun q' hq' => toApprox_mem_le_foldl p t R cs hq')
+    have h1 : (1 - ((toApproxList p t R cs).sum - C (r : ZMod p)) ^ (p - 1)).totalDegree
+        ≤ (p - 1) * D := by
+      refine le_trans (totalDegree_sub _ _) ?_
+      rw [totalDegree_one, Nat.zero_max]
+      exact le_trans (totalDegree_pow _ _) (Nat.mul_le_mul_left _ hsub)
+    exact le_trans h1 (le_trans (Nat.le_mul_of_pos_right _ ht) (le_of_eq (by ring)))
+
+/-- **Concrete `((p-1)·t)^depth` degree bound.**  The `genOrApprox`-based approximant of any circuit `C`
+has total degree at most `((p-1)·t)^(depth C)` — the Razborov–Smolensky degree, now for a concrete
+approximant rather than an abstract hypothesis. -/
+theorem toApprox_totalDegree_le (p t : ℕ) [Fact p.Prime] (ht : 1 ≤ t)
+    (R : (k : ℕ) → Fin t → Fin k → ZMod p) (C : BoolCircuitSyntax n) :
+    (toApprox p t R C).totalDegree ≤ ((p - 1) * t) ^ C.depth :=
+  (toApproxData p t ht R).approxDegree_le C
+
+end ConcreteApprox
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.foldl_max_pow_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.ApproxDegreeData.approxDegree_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.ApproxDegreeData.approxDegreeList_le
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toApprox_totalDegree_le
