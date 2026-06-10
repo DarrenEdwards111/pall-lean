@@ -209,6 +209,54 @@ theorem exists_cubeFunction_not_lowDegEval (p n D : ℕ) [Fact p.Prime] (h : D <
   push_neg at hcon
   exact lowDegEval_span_ne_top p n D h (Submodule.eq_top_iff'.mpr hcon)
 
+/-! ## The algebraic lever: multilinear monomials are multiplicatively closed on the cube
+
+The composition step of Smolensky repeatedly *multiplies* monomials (and the `MOD_q`-approximant) and
+must keep the degree controlled.  On the Boolean cube the `x_i^2 = x_i` relation makes the squarefree
+evaluation monomials **multiplicatively closed**: `e_S · e_T = e_{S∪T}` (`squarefreeEvalMonomial_mul`),
+with the constant `1 = e_∅` (`squarefreeEvalMonomial_empty`).  Crucially the degree is **subadditive**:
+`deg(e_S · e_T) = |S∪T| ≤ |S| + |T|` (`squarefreeEvalMonomial_mul_card_le`) — multiplication does not
+blow degree up to the *product* of fan-ins, which is exactly why the reduced polynomial stays low
+degree.  This is the function-level form of the `boolToZMod_sq` / `boolToZMod_pow_succ` lever, and the
+algebraic engine of the deferred composition step. -/
+
+/-- The empty squarefree monomial is the constant function `1`. -/
+theorem squarefreeEvalMonomial_empty (p : ℕ) {n : ℕ} :
+    squarefreeEvalMonomial p (∅ : Finset (Fin n)) = 1 := by
+  funext x
+  simp [squarefreeEvalMonomial]
+
+/-- **Multiplicative closure on the cube.**  `e_S · e_T = e_{S∪T}`: the product of two squarefree
+evaluation monomials is the squarefree evaluation monomial on the union of supports — the overlap
+`S ∩ T` is absorbed by idempotence `x_i^2 = x_i` (`boolToZMod_mem`). -/
+theorem squarefreeEvalMonomial_mul (p : ℕ) {n : ℕ} (S T : Finset (Fin n)) :
+    squarefreeEvalMonomial p S * squarefreeEvalMonomial p T
+      = squarefreeEvalMonomial p (S ∪ T) := by
+  classical
+  funext x
+  simp only [squarefreeEvalMonomial, Pi.mul_apply]
+  have hidem : ∀ i : Fin n,
+      boolToZMod p (x i) * boolToZMod p (x i) = boolToZMod p (x i) := by
+    intro i; rcases boolToZMod_mem p (x i) with h | h <;> rw [h] <;> ring
+  have hPP : (∏ i ∈ S ∩ T, boolToZMod p (x i)) * (∏ i ∈ S ∩ T, boolToZMod p (x i))
+      = ∏ i ∈ S ∩ T, boolToZMod p (x i) := by
+    rw [← Finset.prod_mul_distrib]
+    exact Finset.prod_congr rfl (fun i _ => hidem i)
+  have hsub : S ∩ T ⊆ S ∪ T := Finset.inter_subset_left.trans Finset.subset_union_left
+  rw [← Finset.prod_union_inter]
+  conv_rhs => rw [← Finset.prod_sdiff hsub]
+  conv_lhs => rw [← Finset.prod_sdiff hsub]
+  rw [mul_assoc, hPP]
+
+/-- **Degree subadditivity under multiplication.**  The product `e_S · e_T` is a squarefree evaluation
+monomial whose support has size `≤ |S| + |T|` — so multiplying a degree-`≤D₁` by a degree-`≤D₂`
+multilinear monomial yields a degree-`≤(D₁+D₂)` one, the degree bookkeeping the reduction relies on. -/
+theorem squarefreeEvalMonomial_mul_card_le (p : ℕ) {n : ℕ} (S T : Finset (Fin n)) :
+    ∃ U : Finset (Fin n),
+      squarefreeEvalMonomial p S * squarefreeEvalMonomial p T = squarefreeEvalMonomial p U
+        ∧ U.card ≤ S.card + T.card :=
+  ⟨S ∪ T, squarefreeEvalMonomial_mul p S T, Finset.card_union_le S T⟩
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.lowDegMonomials_card
@@ -223,3 +271,6 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.finrank_cubeFunctions_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.lowDegEval_span_ne_top
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.exists_cubeFunction_not_lowDegEval
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.squarefreeEvalMonomial_empty
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.squarefreeEvalMonomial_mul
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.squarefreeEvalMonomial_mul_card_le
