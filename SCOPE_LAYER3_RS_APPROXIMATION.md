@@ -53,20 +53,21 @@ The slack between `n/2 + Δ` and the function-count is where `Δ = o(√n)` (hen
 | single-form test **degree** `≤ p-1` | ✓ built (`linFormTest_totalDegree_le`) |
 | OR single-form **agreement** (`#{form ≠ 0} = p^m - p^(m-1)`) | ✓ built (`orForm_agreement`) — exact hyperplane count via the nonzero functional's kernel (`finrank_range_add_finrank_ker` + `Module.card_eq_pow_finrank`) |
 | gate → approximant **degree composition** `(p-1)t` | ✓ built (`orApproxProd`, `orApprox`; `orApproxProd_totalDegree_le`, `orApprox_totalDegree_le` ≤ `(p-1)·t` via `totalDegree_finset_prod` + `linFormTest_totalDegree_le`; plus `orApprox_eval_allFalse` = `0` on all-zero input) |
-| `t`-fold amplification **agreement/error** `≤ p^{-t}` | the next frontier (bad samples for nonzero input = `(p^{m-1})^t` of `(p^m)^t`; `t`-fold of `orForm_agreement`) |
+| `t`-fold amplification **agreement/error** `≤ p^{-t}` | ✓ built (`orForm_zero_count` single-form bad count `p^{m-1}`; `orApprox_error_count` t-fold bad count `(p^{m-1})^t` via `Fintype.piFinset` independence; `orApprox_sample_count` total `(p^m)^t`; `orApprox_error_rate` bad·`p^t` = total, i.e. error rate exactly `p^{-t}`) |
 | depth-`d` **union bound** over gates | medium |
 | Smolensky **dimension** bound (#low-degree monomials) | the analytic crux |
 | final `MOD_q ∉ AC⁰[p]` | the capstone (do **not** build until the above are real) |
 
-## Suggested brick order (none of the frontier built yet)
+## Suggested brick order (bricks 1–2 now built)
 
-1. **OR single-form agreement:** `∀` nonzero `{0,1}` input `x`, `#{r : ∑ r_i x_i ≠ 0} ≥ (1 - 1/p)·p^m`
+1. ✓ **OR single-form agreement:** `∀` nonzero `{0,1}` input `x`, `#{r : ∑ r_i x_i ≠ 0} = p^m - p^{m-1}`
    (counting, via the nonzero linear form being surjective / a hyperplane complement). *The genuine
-   first analytic brick.*
-2. **`t`-fold amplification:** product of `t` tests ⇒ error `≤ p^{-t}`, degree `≤ (p-1)t` (compose 1 with
-   `linFormTest_totalDegree_le`).
+   first analytic brick.* (`orForm_agreement`)
+2. ✓ **`t`-fold amplification:** product of `t` tests ⇒ error rate exactly `p^{-t}`, degree `≤ (p-1)t`
+   (`orApproxProd`/`orApprox`, `orApprox*_totalDegree_le`; `orApprox_error_count`/`_sample_count`/
+   `_error_rate`).
 3. **Dimension count:** `#{monomials in n vars of total degree ≤ D}` and the `x²=x` reduction (uses
-   `boolToZMod_sq`).
+   `boolToZMod_sq`). *Next frontier — the analytic crux.*
 4. Only then the composition + final separation.
 
 *Roadmap for the analytic frontier; the exact-representation foundation it refines is complete. Not P vs

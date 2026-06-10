@@ -165,6 +165,75 @@ theorem orApprox_eval_allFalse (p : ℕ) [Fact p.Prime] {m t : ℕ}
   rw [orApprox, orApproxProd]
   simp only [map_sub, map_one, map_prod, hatom, Finset.prod_const_one, sub_self]
 
+/-! ## `t`-fold error count — the `p^{-t}` bound
+
+On a nonzero `{0,1}` input the OR approximator errs (`orApprox` evaluates to `0` instead of `1`) exactly
+when *all* `t` sampled forms vanish, i.e. `∀ k, ∑_i R k i · x_i = 0`.  `orForm_zero_count` counts the
+single-form bad set — the kernel hyperplane, `p^{m-1}` of the `p^m` samples (the complement of the
+nonzero count `orForm_agreement`).  Independence across the `t` coordinates (`Fintype.piFinset`) raises
+this to `(p^{m-1})^t` bad tuples out of `(p^m)^t` total, so the error rate is exactly `p^{-t}`
+(`orApprox_error_rate`: bad-count · `p^t` = total). -/
+
+/-- **Single-form bad count.**  For a nonzero `{0,1}` input the linear form `∑_i r_i · x_i` vanishes on
+exactly `p^{m-1}` of the `p^m` samples — the kernel hyperplane, complement of `orForm_agreement`'s
+nonzero count. -/
+theorem orForm_zero_count (p : ℕ) [Fact p.Prime] {m : ℕ} (x : Fin m → Bool) (hx : ∃ i, x i = true) :
+    (Finset.univ.filter (fun r : Fin m → ZMod p => ∑ i, r i * boolToZMod p (x i) = 0)).card
+      = p ^ (m - 1) := by
+  classical
+  have hpos : 0 < p := (Fact.out (p := p.Prime)).pos
+  have hle : p ^ (m - 1) ≤ p ^ m := Nat.pow_le_pow_right hpos (Nat.sub_le m 1)
+  have htot : (Finset.univ : Finset (Fin m → ZMod p)).card = p ^ m := by
+    rw [Finset.card_univ, Fintype.card_fun, ZMod.card, Fintype.card_fin]
+  have hsplit := Finset.card_filter_add_card_filter_not
+    (s := (Finset.univ : Finset (Fin m → ZMod p)))
+    (p := fun r => ∑ i, r i * boolToZMod p (x i) = 0)
+  rw [htot] at hsplit
+  have hne : (Finset.univ.filter
+      (fun r : Fin m → ZMod p => ¬ (∑ i, r i * boolToZMod p (x i) = 0))).card
+        = p ^ m - p ^ (m - 1) := orForm_agreement p x hx
+  omega
+
+/-- **`t`-fold error count.**  For a nonzero `{0,1}` input, *all* `t` sampled forms vanish on exactly
+`(p^{m-1})^t` of the tuples `R : Fin t → Fin m → ZMod p` — the independent product of the single-form
+bad set across the `t` coordinates (`Fintype.piFinset`). -/
+theorem orApprox_error_count (p : ℕ) [Fact p.Prime] {m t : ℕ} (x : Fin m → Bool)
+    (hx : ∃ i, x i = true) :
+    (Finset.univ.filter
+        (fun R : Fin t → Fin m → ZMod p => ∀ k, ∑ i, R k i * boolToZMod p (x i) = 0)).card
+      = (p ^ (m - 1)) ^ t := by
+  classical
+  have hpi : (Finset.univ.filter
+        (fun R : Fin t → Fin m → ZMod p => ∀ k, ∑ i, R k i * boolToZMod p (x i) = 0))
+      = Fintype.piFinset (fun _ : Fin t =>
+          Finset.univ.filter (fun r : Fin m → ZMod p => ∑ i, r i * boolToZMod p (x i) = 0)) := by
+    ext R
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and, Fintype.mem_piFinset]
+  rw [hpi, Fintype.card_piFinset]
+  simp_rw [orForm_zero_count p x hx]
+  rw [Finset.prod_const, Finset.card_univ, Fintype.card_fin]
+
+/-- **Total sample count:** `(p^m)^t` tuples `R : Fin t → Fin m → ZMod p`. -/
+theorem orApprox_sample_count (p : ℕ) [Fact p.Prime] {m t : ℕ} :
+    (Finset.univ : Finset (Fin t → Fin m → ZMod p)).card = (p ^ m) ^ t := by
+  rw [Finset.card_univ, Fintype.card_fun, Fintype.card_fun, ZMod.card, Fintype.card_fin,
+    Fintype.card_fin]
+
+/-- **Error rate `p^{-t}` (exact).**  The bad-tuple count times `p^t` equals the total sample count
+`(p^{m-1})^t · p^t = (p^m)^t`; equivalently, the fraction of erring samples on any nonzero input is
+exactly `p^{-t}`. -/
+theorem orApprox_error_rate (p : ℕ) [Fact p.Prime] {m t : ℕ} (x : Fin m → Bool)
+    (hx : ∃ i, x i = true) :
+    (Finset.univ.filter
+        (fun R : Fin t → Fin m → ZMod p => ∀ k, ∑ i, R k i * boolToZMod p (x i) = 0)).card * p ^ t
+      = (Finset.univ : Finset (Fin t → Fin m → ZMod p)).card := by
+  rw [orApprox_error_count p x hx, orApprox_sample_count]
+  obtain ⟨i, _⟩ := hx
+  have hm : 0 < m := lt_of_le_of_lt (Nat.zero_le _) i.isLt
+  have hmm : p ^ (m - 1) * p = p ^ m := by
+    rw [← pow_succ, Nat.sub_add_cancel hm]
+  rw [← mul_pow, hmm]
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.linFormTest_totalDegree_le
@@ -172,3 +241,7 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApproxProd_totalDegree_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_totalDegree_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_eval_allFalse
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orForm_zero_count
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_error_count
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_sample_count
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_error_rate
