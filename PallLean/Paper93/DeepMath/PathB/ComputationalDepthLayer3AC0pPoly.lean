@@ -97,20 +97,43 @@ theorem eval_prod_one_sub_toPolyList (p : ℕ) (x : Fin n → Bool) {f : BoolCir
         hf c (by simp),
         ih (fun c' hc' => hf c' (by simp [hc'])), List.map_cons, List.prod_cons]
 
-/-! ### Correctness — deferred (one Lean wrinkle)
+/-! ### Correctness on the AC⁰ fragment -/
 
-The exact-correctness statement
-`MvPolynomial.eval (embed p x) (toPoly p C) = boolToZMod p (C.eval x)` for `IsAC0Syntax C` reduces, via
-the two helpers above, to threading the per-subcircuit identity through `∧`/`∨` (and Fermat through
-`MOD`).  The only obstacle is the *structural-recursion* plumbing over the `List`-nested `BoolCircuitSyntax`
-(a mutual `toPoly`/`toPolyList` recursion that Lean's termination checker does not accept automatically) —
-a Lean engineering follow-up, **not** a mathematical gap.  The leaf identities (`const`/`input`/`¬`) and
-the list-product reductions (`eval_prod_toPolyList`, `eval_prod_one_sub_toPolyList`) are already proved
-here; the final theorem composes them once the recursion is set up (`termination_by` a circuit-size
-measure).
--/
+-- The representation is exact on the AC⁰ fragment (mutual with the list version, explicit recursive
+-- argument mirroring the toPoly/toPolyList mutual def, so the List recursion is structural).
+mutual
+theorem toPoly_eval_AC0 (p : ℕ) (x : Fin n → Bool) :
+    (c : BoolCircuitSyntax n) → BoolCircuitSyntax.IsAC0Syntax c →
+      MvPolynomial.eval (embed p x) (toPoly p c) = boolToZMod p (c.eval x)
+  | .const b, _ => by simp [toPoly, BoolCircuitSyntax.eval]
+  | .input i, _ => by simp [toPoly, BoolCircuitSyntax.eval, embed]
+  | .not c, hc => by
+      simp only [BoolCircuitSyntax.IsAC0Syntax] at hc
+      have hci := toPoly_eval_AC0 p x c hc
+      simp only [toPoly, map_sub, map_one, BoolCircuitSyntax.eval, hci]
+      cases c.eval x <;> simp [boolToZMod]
+  | .andGate cs, hc => by
+      simp only [BoolCircuitSyntax.IsAC0Syntax] at hc
+      simp only [toPoly, BoolCircuitSyntax.eval]
+      rw [eval_prod_toPolyList p x cs (toPolyList_eval_AC0 p x cs hc), boolToZMod_all, List.map_map]
+      rfl
+  | .orGate cs, hc => by
+      simp only [BoolCircuitSyntax.IsAC0Syntax] at hc
+      simp only [toPoly, BoolCircuitSyntax.eval, map_sub, map_one]
+      rw [eval_prod_one_sub_toPolyList p x cs (toPolyList_eval_AC0 p x cs hc), boolToZMod_any,
+        List.map_map]
+      rfl
+  | .modGate _ _ _, hc => absurd hc (by simp [BoolCircuitSyntax.IsAC0Syntax])
+theorem toPolyList_eval_AC0 (p : ℕ) (x : Fin n → Bool) :
+    (cs : List (BoolCircuitSyntax n)) → (∀ c ∈ cs, BoolCircuitSyntax.IsAC0Syntax c) →
+      ∀ c ∈ cs, MvPolynomial.eval (embed p x) (toPoly p c) = boolToZMod p (c.eval x)
+  | [], _ => fun c hc => absurd hc (by simp)
+  | c0 :: cs, h => fun c hc => by
+      rcases List.mem_cons.mp hc with rfl | hmem
+      · exact toPoly_eval_AC0 p x c (h c (by simp))
+      · exact toPolyList_eval_AC0 p x cs (fun c'' hc'' => h c'' (by simp [hc''])) c hmem
+end
 
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
-#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.boolToZMod_any
-#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.eval_prod_toPolyList
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toPoly_eval_AC0
