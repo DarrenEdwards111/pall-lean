@@ -197,6 +197,88 @@ theorem toAgree_cbad_subset (p t : ℕ) [Fact p.Prime]
   rw [Finset.mem_filter] at hx ⊢
   exact ⟨hx.1, toAgree_bad_imp_not_good p t R x C hx.2⟩
 
+/-! ## Decomposing goodness into per-gate local conditions
+
+`AgreeGood` is, by its recursion, the conjunction of a *local* goodness condition at every subcircuit.
+Making this explicit (`subcircuits` enumerates them, `localGood` is the per-gate condition) lets the
+composed-error containment `cbad ⊆ {¬AgreeGood}` become `cbad ⊆ ⋃_{gate} {¬localGood gate}` — the
+union-over-gates shape the circuit averaging consumes.  (Each gate's `localGood` depends only on its
+fan-in's form coordinate, so `sum_proj_eq` factors the column sums; no per-gate independence is needed
+— linearity of expectation suffices.) -/
+
+/-! All subcircuits of a circuit (itself plus, recursively, its children's). -/
+mutual
+def subcircuits {n : ℕ} : BoolCircuitSyntax n → List (BoolCircuitSyntax n)
+  | .const b => [.const b]
+  | .input i => [.input i]
+  | .not c => .not c :: subcircuits c
+  | .orGate cs => .orGate cs :: subcircuitsList cs
+  | .andGate cs => .andGate cs :: subcircuitsList cs
+  | .modGate q r cs => .modGate q r cs :: subcircuitsList cs
+def subcircuitsList {n : ℕ} : List (BoolCircuitSyntax n) → List (BoolCircuitSyntax n)
+  | [] => []
+  | c :: cs => subcircuits c ++ subcircuitsList cs
+end
+
+/-- The gate-local goodness condition at a single subcircuit (the form condition at `∨`/`∧` gates,
+`q = p` at `MOD` gates, trivial otherwise). -/
+def localGood (p t : ℕ) (R : (k : ℕ) → Fin t → Fin k → ZMod p) (x : Fin n → Bool) :
+    BoolCircuitSyntax n → Prop
+  | .orGate cs => (∃ j : Fin cs.length, (cs.get j).eval x = true) →
+      ∃ s, ∑ j, R cs.length s j * boolToZMod p ((cs.get j).eval x) ≠ 0
+  | .andGate cs => (∃ j : Fin cs.length, (!(cs.get j).eval x) = true) →
+      ∃ s, ∑ j, R cs.length s j * boolToZMod p (!(cs.get j).eval x) ≠ 0
+  | .modGate q _ _ => q = p
+  | _ => True
+
+/-- A subcircuit of a list member is a subcircuit of the list. -/
+theorem mem_subcircuitsList {n : ℕ} (c : BoolCircuitSyntax n) :
+    ∀ (cs : List (BoolCircuitSyntax n)), c ∈ cs → ∀ G, G ∈ subcircuits c → G ∈ subcircuitsList cs
+  | [], hc, _, _ => absurd hc (by simp)
+  | c0 :: cs, hc, G, hG => by
+      simp only [subcircuitsList]
+      rcases List.mem_cons.mp hc with rfl | hmem
+      · exact List.mem_append_left _ hG
+      · exact List.mem_append_right _ (mem_subcircuitsList c cs hmem G hG)
+
+/-- **Goodness from per-gate local conditions.**  If every subcircuit satisfies its local goodness, the
+whole circuit is good — the `⟸` half of the decomposition (the direction `hsub` needs). -/
+theorem agreeGood_of_forall (p t : ℕ) [Fact p.Prime] (R : (k : ℕ) → Fin t → Fin k → ZMod p)
+    (x : Fin n → Bool) :
+    ∀ (C : BoolCircuitSyntax n), (∀ G ∈ subcircuits C, localGood p t R x G) → AgreeGood p t R x C
+  | .const _, _ => by simp only [AgreeGood]
+  | .input _, _ => by simp only [AgreeGood]
+  | .not c, h => by
+      simp only [AgreeGood]
+      exact agreeGood_of_forall p t R x c
+        (fun G hG => h G (by simp only [subcircuits]; exact List.mem_cons_of_mem _ hG))
+  | .orGate cs, h => by
+      simp only [AgreeGood]
+      refine ⟨fun j => agreeGood_of_forall p t R x (cs.get j) (fun G hG => h G ?_), ?_⟩
+      · simp only [subcircuits]
+        exact List.mem_cons_of_mem _ (mem_subcircuitsList (cs.get j) cs (List.get_mem cs j) G hG)
+      · have := h (.orGate cs) (by simp only [subcircuits]; exact List.mem_cons_self ..)
+        simpa only [localGood] using this
+  | .andGate cs, h => by
+      simp only [AgreeGood]
+      refine ⟨fun j => agreeGood_of_forall p t R x (cs.get j) (fun G hG => h G ?_), ?_⟩
+      · simp only [subcircuits]
+        exact List.mem_cons_of_mem _ (mem_subcircuitsList (cs.get j) cs (List.get_mem cs j) G hG)
+      · have := h (.andGate cs) (by simp only [subcircuits]; exact List.mem_cons_self ..)
+        simpa only [localGood] using this
+  | .modGate q r cs, h => by
+      simp only [AgreeGood]
+      refine ⟨fun j => agreeGood_of_forall p t R x (cs.get j) (fun G hG => h G ?_), ?_⟩
+      · simp only [subcircuits]
+        exact List.mem_cons_of_mem _ (mem_subcircuitsList (cs.get j) cs (List.get_mem cs j) G hG)
+      · have := h (.modGate q r cs) (by simp only [subcircuits]; exact List.mem_cons_self ..)
+        simpa only [localGood] using this
+decreasing_by
+  all_goals simp_wf
+  all_goals first
+    | omega
+    | exact lt_of_lt_of_le (List.sizeOf_lt_of_mem (List.getElem_mem _)) (by omega)
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree
@@ -207,3 +289,5 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree_bad_imp_not_good
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree_cbad_subset
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.mem_subcircuitsList
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.agreeGood_of_forall
