@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRung4CircuitReal
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer3AC0pApprox
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer3Averaging
 
 /-!
 # Layer 3 — recursive agreement lift (OR/NOT/leaf fragment)
@@ -362,37 +363,6 @@ theorem oracleOf_eq (p t : ℕ) {n : ℕ} (C : BoolCircuitSyntax n) (ω : FormSp
     oracleOf p t C ω k = ω ⟨k, h⟩ :=
   dif_pos h
 
-/-- **`hB` for an OR gate.**  Wiring coordinate extraction (`oracleOf_eq`) + `column_sum_le` +
-`localGood_fail_count`: the column sum of an OR gate's local failures over the joint form space is
-bounded by `2^n · (∏_{other coords}) · (p^{m-1})^t`.  The template for the `hB` hypothesis of
-`exists_form_total_errors`. -/
-theorem gbad_or_column_sum (p t : ℕ) [Fact p.Prime] {n : ℕ} (C : BoolCircuitSyntax n)
-    (cs : List (BoolCircuitSyntax n)) (hmem : cs.length ∈ fanins C) :
-    ∑ ω : FormSpace p t C,
-        (Finset.univ.filter (fun x : Fin n → Bool =>
-          ¬ localGood p t (oracleOf p t C ω) x (.orGate cs))).card
-      ≤ Fintype.card (Fin n → Bool)
-        * (∏ i ∈ Finset.univ.erase (⟨cs.length, hmem⟩ : {k // k ∈ fanins C}),
-            Fintype.card (Fin t → Fin i.1 → ZMod p))
-        * (p ^ (cs.length - 1)) ^ t := by
-  classical
-  have hpred : ∀ (ω : FormSpace p t C),
-      (Finset.univ.filter (fun x : Fin n → Bool =>
-          ¬ localGood p t (oracleOf p t C ω) x (.orGate cs)))
-        = Finset.univ.filter (fun x : Fin n → Bool =>
-            (∃ j, (cs.get j).eval x = true) ∧
-              ∀ s, ∑ j, ω ⟨cs.length, hmem⟩ s j * boolToZMod p ((cs.get j).eval x) = 0) := by
-    intro ω
-    apply Finset.filter_congr
-    intro x _
-    simp only [localGood, oracleOf_eq p t C ω hmem, not_forall, _root_.not_imp, not_exists, not_not, exists_prop]
-  simp only [hpred]
-  exact column_sum_le (⟨cs.length, hmem⟩ : {k // k ∈ fanins C})
-    (fun x ρ => (∃ j, (cs.get j).eval x = true) ∧
-        ∀ s, ∑ j, ρ s j * boolToZMod p ((cs.get j).eval x) = 0)
-    ((p ^ (cs.length - 1)) ^ t)
-    (fun x => localGood_fail_count p (fun j => (cs.get j).eval x))
-
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree
@@ -409,4 +379,3 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.localGood_fail_count
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.gateFanin_mem_fanins
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.oracleOf_eq
-#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.gbad_or_column_sum
