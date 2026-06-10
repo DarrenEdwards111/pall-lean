@@ -123,6 +123,30 @@ theorem exists_form_total_errors {Ω ι X : Type*} [DecidableEq X] (Φ : Finset 
   exact Nat.mul_le_mul_left _
     (le_trans (Finset.card_le_card (hsub ω hω)) Finset.card_biUnion_le)
 
+/-! ## Marginalisation: per-gate column sums factor over a product form space
+
+For the circuit averaging to feed `exists_form_total_errors`, the joint form space is a *product* over
+gates `Φ = ∀ i, A i`, and a gate's error depends only on its own coordinate.  Then its column sum
+`∑_{ω ∈ Φ} g(ω i₀)` factors as `(∏_{i≠i₀} |A i|) · ∑_a g a` — the other coordinates contribute a uniform
+multiplicity.  Combined with the single-gate bound this yields the per-gate `Bᵢ` of
+`exists_form_total_errors`.  This is the factorisation rung of the per-gate re-architecture; defining the
+gate-position-indexed approximant over `Φ` (so each `gbad i` genuinely depends on coordinate `i`) is the
+remaining structural rung. -/
+
+/-- **Marginalisation.**  Summing a single-coordinate function over a finite product space factors:
+`∑_{f : ∀ i, A i} g (f i₀) = (∏_{i≠i₀} |A i|) · ∑_a g a`. -/
+theorem sum_proj_eq {ι : Type*} [Fintype ι] [DecidableEq ι] {A : ι → Type*} [∀ i, Fintype (A i)]
+    (i₀ : ι) (g : A i₀ → ℕ) :
+    ∑ f : (∀ i, A i), g (f i₀)
+      = (∏ i ∈ Finset.univ.erase i₀, Fintype.card (A i)) * ∑ a : A i₀, g a := by
+  rw [Fintype.sum_equiv (Equiv.piSplitAt i₀ A) (fun f => g (f i₀)) (fun p => g p.1) (fun f => rfl),
+    Fintype.sum_prod_type]
+  simp_rw [Finset.sum_const, smul_eq_mul, ← Finset.mul_sum]
+  congr 1
+  rw [Finset.card_univ, Fintype.card_pi,
+    Finset.prod_subtype (Finset.univ.erase i₀) (p := fun x => x ≠ i₀)
+      (fun x => by simp [Finset.mem_erase]) (fun i => Fintype.card (A i))]
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.exists_card_mul_le_sum
@@ -130,3 +154,4 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.exists_form_few_errors
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.exists_le_sum_of_sum_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.exists_form_total_errors
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.sum_proj_eq
