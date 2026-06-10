@@ -92,3 +92,45 @@ the tails change measure.
 2. **Instantiate `(M2)`** with a `k`-wise concentration lemma; later with an expander-walk bound.
 
 *Scope/audit only. Layer-3 ingredient, not the Layer-3 engine; not P vs NP.*
+
+---
+
+## CORRECTION (after attempting to supply the `s`-wise instance) — the favourable case was overstated
+
+Building the measure abstraction (`RestrictionMeasure`, `descent_switching_prob_measure`) and then
+trying to instantiate it `s`-wise forced two findings that **correct §"the favourable observation"
+above**. Recording them honestly rather than fabricating an instance:
+
+1. **The weight ratio is NOT bounded-support — it runs over the full descent path (length `s..n`).**
+   In the count (`descent_switching_prob_measure`, step 1) the ratio `μ.ratio` is applied at
+   `s_param = pathLen`, the *full* freed count of one descent; the count itself bounds path lengths in
+   `Finset.Icc s n` (verified: `L.flatten.length ∈ Icc s n`). So the relevant events are paths of
+   length **`≥ s`, up to `n`** — the opposite of the "`≤ s`" claimed above. The ratio therefore needs
+   the product structure over **up to `n`** coordinates; a small-`k` `k`-wise-independent measure does
+   **not** reproduce it. *(My earlier "branching holography only weighs bounded-support events" was
+   backwards.)*
+
+2. **The exact interface forces `μ = pweight`.** (M2) `∑_{extBox τ} μ = ((1-p)/2)^{n-stars τ}` for
+   *all* `τ` determines every conditional mass; Möbius inversion over the extension poset then pins
+   `μ(σ)` uniquely — to the product measure. So the exact `RestrictionMeasure` interface is inhabited
+   **only** by `pweight`. There is no genuine non-product instance to supply against it.
+
+### What survives, and what does not
+
+- **Survives:** the decoder/injectivity/label-count is measure-free (verified, unchanged); and the
+  abstraction `descent_switching_prob_measure` is a *faithful generalisation* that recovers the
+  original (`descent_switching_prob_findep_via_measure`) — a clean, correct refactor.
+- **Does not survive:** the claim that an `s`-wise / expander measure *drops in*. The weight ratio's
+  full-path support means independence is used over `Θ`(path length) ≤ `n` coordinates, not a constant
+  `≤ s` window.
+
+### The honest open direction (not a drop-in)
+
+The long paths are individually `r^{pathLen}`-suppressed and rare. A genuine derandomisation would
+keep `k`-wise independence and **separately bound the total weight of length-`> k` descents** by a
+`k`-wise moment/tail argument (the short descents, length `≤ k`, keep the exact product ratio). That is
+real new analysis — *not* a `RestrictionMeasure` instance, and *not* implied by the current interface.
+Status: **open; the favourable drop-in does not exist.**
+
+*Conclusion: the abstraction brick is sound and useful as a refactor; the `s`-wise substitution it was
+scoped to enable does not go through as first hoped. No instance fabricated.*

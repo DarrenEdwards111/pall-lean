@@ -31,7 +31,8 @@ variable {n : ℕ}
 
 /-- **The F-independent switching count over an arbitrary restriction measure.**  Identical to
 `descent_switching_prob_findep` but driven by the abstract interface: the decoder is measure-free, and
-the only measure facts used are `μ.ratio` (M1, the bounded-support weight ratio) and `μ.nonneg`.  The
+the only measure facts used are `μ.ratio` (M1, the per-path-length weight ratio — applied over the
+*full descent path*, length `∈ [s, n]`, **not** a `≤ s`-support event) and `μ.nonneg`.  The
 global mass `μ.sumExtends` (M2) is **not** needed — `∑_{extBox τ} μ` stays symbolic. -/
 theorem descent_switching_prob_measure {p : ℚ} (μ : RestrictionMeasure n p)
     (hp0 : 0 ≤ p) (hp3 : 3 * p ≤ 1)
