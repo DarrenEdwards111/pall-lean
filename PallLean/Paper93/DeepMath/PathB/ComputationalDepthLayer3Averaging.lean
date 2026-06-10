@@ -90,8 +90,43 @@ theorem exists_form_few_errors (p : ℕ) [Fact p.Prime] {m t : ℕ} :
     Fintype.card_fin] at hR₀
   exact le_trans hR₀ hsum
 
+/-! ## Circuit-level averaging: combine per-gate bounds over a joint form space
+
+To lift averaging from one gate to a whole circuit, the form space `Φ` is the *joint* choice over all
+`s` gates, and the composed approximant errs at an input only where some gate does (`hsub`: composed bad
+⊆ union of per-gate bads).  Summing the per-gate first-moment bounds gives a single joint form `ω` whose
+total composed-error count is at most the average of the summed bounds. -/
+
+/-- First moment over a sum of per-gate error functions: some `ω` has `card·(∑ᵢ gᵢ ω) ≤ ∑ᵢ Bᵢ`, given
+each gate's column-sum bound `∑_ω gᵢ ω ≤ Bᵢ` (Fubini + `exists_card_mul_le_sum`). -/
+theorem exists_le_sum_of_sum_le {Ω ι : Type*} (s : Finset Ω) (hs : s.Nonempty)
+    (gates : Finset ι) (g : ι → Ω → ℕ) (B : ι → ℕ)
+    (hB : ∀ i ∈ gates, ∑ ω ∈ s, g i ω ≤ B i) :
+    ∃ ω ∈ s, s.card * (∑ i ∈ gates, g i ω) ≤ ∑ i ∈ gates, B i := by
+  obtain ⟨ω, hω, hle⟩ := exists_card_mul_le_sum s hs (fun ω => ∑ i ∈ gates, g i ω)
+  refine ⟨ω, hω, le_trans hle ?_⟩
+  rw [Finset.sum_comm]
+  exact Finset.sum_le_sum hB
+
+/-- **Circuit-level averaging.**  With `Φ` the joint form space, `gbad i ω` the inputs gate `i` errs on
+under joint form `ω`, and `cbad ω` the composed approximant's error set contained in the union of the
+per-gate ones (`hsub`), the per-gate first-moment bounds `∑_ω (gbad i ω).card ≤ Bᵢ` yield a *single*
+joint form `ω` with `Φ.card · |cbad ω| ≤ ∑ᵢ Bᵢ` — total composed-error rate `≤ (∑ᵢ Bᵢ)/|Φ|`. -/
+theorem exists_form_total_errors {Ω ι X : Type*} [DecidableEq X] (Φ : Finset Ω) (hΦ : Φ.Nonempty)
+    (gates : Finset ι) (gbad : ι → Ω → Finset X) (cbad : Ω → Finset X) (B : ι → ℕ)
+    (hsub : ∀ ω ∈ Φ, cbad ω ⊆ gates.biUnion (fun i => gbad i ω))
+    (hB : ∀ i ∈ gates, ∑ ω ∈ Φ, (gbad i ω).card ≤ B i) :
+    ∃ ω ∈ Φ, Φ.card * (cbad ω).card ≤ ∑ i ∈ gates, B i := by
+  obtain ⟨ω, hω, hle⟩ :=
+    exists_le_sum_of_sum_le Φ hΦ gates (fun i ω => (gbad i ω).card) B hB
+  refine ⟨ω, hω, le_trans ?_ hle⟩
+  exact Nat.mul_le_mul_left _
+    (le_trans (Finset.card_le_card (hsub ω hω)) Finset.card_biUnion_le)
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.exists_card_mul_le_sum
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_badForm_card_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.exists_form_few_errors
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.exists_le_sum_of_sum_le
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.exists_form_total_errors
