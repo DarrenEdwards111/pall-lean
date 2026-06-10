@@ -234,6 +234,48 @@ theorem orApprox_error_rate (p : ℕ) [Fact p.Prime] {m t : ℕ} (x : Fin m → 
     rw [← pow_succ, Nat.sub_add_cancel hm]
   rw [← mul_pow, hmm]
 
+/-! ## Per-gate agreement — the OR approximator computes OR off the bad-form set
+
+The degree side is paired by the **agreement** side: on a fixed input `x`, the OR approximant
+`orApprox p R` evaluates (via Fermat's little theorem `a^{p-1}=1` for `a≠0`) to `0` exactly when *all*
+`t` sampled forms vanish, and to `1` otherwise.  For a nonzero `{0,1}` input the correct OR value is
+`1`, so the approximant errs precisely on the bad-form set `{R : ∀k, ∑_i R k i·x_i = 0}` — whose size is
+`(p^{m-1})^t` (`orApprox_error_count`), i.e. a `p^{-t}` fraction.  This is the one-sided-error half of
+the Razborov OR-approximator. -/
+
+/-- **Evaluation characterisation.**  On input `x`, `orApprox p R` evaluates to `0` if every sampled
+form `∑_i R k i·x_i` vanishes, and to `1` otherwise (Fermat: a nonzero form raises to `1`). -/
+theorem orApprox_eval (p : ℕ) [Fact p.Prime] {m t : ℕ} (R : Fin t → Fin m → ZMod p)
+    (x : Fin m → Bool) :
+    eval (fun i => boolToZMod p (x i)) (orApprox p R)
+      = if (∀ k, ∑ i, R k i * boolToZMod p (x i) = 0) then 0 else 1 := by
+  have hp1 : p - 1 ≠ 0 := by have := (Fact.out (p := p.Prime)).two_le; omega
+  have hfac : ∀ k, eval (fun i => boolToZMod p (x i)) (linFormTest p (R k))
+      = if (∑ i, R k i * boolToZMod p (x i) = 0) then (1 : ZMod p) else 0 := by
+    intro k
+    rw [linFormTest]
+    simp only [map_sub, map_one, map_pow, map_sum, map_mul, eval_C, eval_X]
+    by_cases h : (∑ i, R k i * boolToZMod p (x i)) = 0
+    · rw [if_pos h, h, zero_pow hp1, sub_zero]
+    · rw [if_neg h, ZMod.pow_card_sub_one_eq_one h, sub_self]
+  rw [orApprox, orApproxProd]
+  simp only [map_sub, map_one, map_prod, hfac]
+  rw [Fintype.prod_boole]
+  by_cases h : (∀ k, ∑ i, R k i * boolToZMod p (x i) = 0) <;> simp [h]
+
+/-- **Per-gate disagreement count.**  For a nonzero `{0,1}` input `x`, the OR approximant errs (outputs
+`≠ 1 = OR x`) exactly on the bad-form set, of size `(p^{m-1})^t` — the `p^{-t}` one-sided error. -/
+theorem orApprox_disagree_count (p : ℕ) [Fact p.Prime] {m t : ℕ} (x : Fin m → Bool)
+    (hx : ∃ i, x i = true) :
+    (Finset.univ.filter (fun R : Fin t → Fin m → ZMod p =>
+        eval (fun i => boolToZMod p (x i)) (orApprox p R) ≠ 1)).card = (p ^ (m - 1)) ^ t := by
+  rw [← orApprox_error_count p x hx]
+  congr 1
+  apply Finset.filter_congr
+  intro R _
+  rw [orApprox_eval]
+  by_cases h : (∀ k, ∑ i, R k i * boolToZMod p (x i) = 0) <;> simp [h]
+
 /-! ## Generalised gate approximant — the per-gate degree recurrence
 
 In the composition step each `∨`/`∧` gate's inputs are *sub-circuits*, represented by polynomials
@@ -316,6 +358,8 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_error_count
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_sample_count
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_error_rate
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_disagree_count
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genLinFormTest_eq_linFormTest
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genLinFormTest_totalDegree_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genOrApproxProd_totalDegree_le
