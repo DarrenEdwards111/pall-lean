@@ -234,6 +234,77 @@ theorem orApprox_error_rate (p : ℕ) [Fact p.Prime] {m t : ℕ} (x : Fin m → 
     rw [← pow_succ, Nat.sub_add_cancel hm]
   rw [← mul_pow, hmm]
 
+/-! ## Generalised gate approximant — the per-gate degree recurrence
+
+In the composition step each `∨`/`∧` gate's inputs are *sub-circuits*, represented by polynomials
+`q_j` over the ambient `Fin N` variables, not raw variables `X_j`.  The gate approximant is the same
+Razborov OR-approximator with `X_j` replaced by `q_j`:
+`genOrApprox = 1 - ∏_{k<t}(1 - (∑_j R k j · q_j)^{p-1})`.  Its degree obeys the **per-gate recurrence**
+`deg(genOrApprox) ≤ (p-1)·t·D` when every child has degree `≤ D` — i.e. each gate multiplies the degree
+by the factor `(p-1)·t`.  Composing this over a depth-`d` circuit (leaves degree `≤ 1`) gives the
+Razborov–Smolensky bound `((p-1)·t)^d`.  This file builds the recurrence (the gate step); the structural
+`((p-1)t)^{depth}` lift over `BoolCircuitSyntax` is the surrounding bookkeeping. -/
+
+/-- **Generalised single-form test.**  `1 - (∑_j r_j · q_j)^(p-1)` for arbitrary child polynomials `q_j`
+over `Fin N` (the gate-level form of `linFormTest`, which is the case `q_j = X_j`). -/
+noncomputable def genLinFormTest (p : ℕ) {N k : ℕ} (r : Fin k → ZMod p)
+    (q : Fin k → MvPolynomial (Fin N) (ZMod p)) : MvPolynomial (Fin N) (ZMod p) :=
+  1 - (∑ j, C (r j) * q j) ^ (p - 1)
+
+/-- `genLinFormTest` with `q_j = X_j` is exactly `linFormTest`. -/
+theorem genLinFormTest_eq_linFormTest (p : ℕ) {k : ℕ} (r : Fin k → ZMod p) :
+    genLinFormTest p r (fun j => X j) = linFormTest p r := rfl
+
+/-- **Per-gate degree of the generalised single-form test:** if every child `q_j` has degree `≤ D`, then
+`totalDegree (genLinFormTest p r q) ≤ (p-1)·D`. -/
+theorem genLinFormTest_totalDegree_le (p : ℕ) [Fact p.Prime] {N k : ℕ} (r : Fin k → ZMod p)
+    (q : Fin k → MvPolynomial (Fin N) (ZMod p)) (D : ℕ) (hq : ∀ j, (q j).totalDegree ≤ D) :
+    (genLinFormTest p r q).totalDegree ≤ (p - 1) * D := by
+  have hform : (∑ j, C (r j) * q j).totalDegree ≤ D := by
+    refine le_trans (totalDegree_finset_sum _ _) (Finset.sup_le fun j _ => ?_)
+    refine le_trans (totalDegree_mul _ _) ?_
+    rw [totalDegree_C, zero_add]
+    exact hq j
+  have hpow : ((∑ j, C (r j) * q j) ^ (p - 1)).totalDegree ≤ (p - 1) * D := by
+    refine le_trans (totalDegree_pow _ _) ?_
+    exact Nat.mul_le_mul_left _ hform
+  rw [genLinFormTest]
+  refine le_trans (totalDegree_sub _ _) ?_
+  rw [totalDegree_one]
+  simpa using hpow
+
+/-- The `t`-fold product of generalised single-form tests (the gate AND of `t` independent tests). -/
+noncomputable def genOrApproxProd (p : ℕ) {N k t : ℕ} (R : Fin t → Fin k → ZMod p)
+    (q : Fin k → MvPolynomial (Fin N) (ZMod p)) : MvPolynomial (Fin N) (ZMod p) :=
+  ∏ s : Fin t, genLinFormTest p (R s) q
+
+/-- The **generalised `t`-fold OR approximant** for a gate with child polynomials `q_j`. -/
+noncomputable def genOrApprox (p : ℕ) {N k t : ℕ} (R : Fin t → Fin k → ZMod p)
+    (q : Fin k → MvPolynomial (Fin N) (ZMod p)) : MvPolynomial (Fin N) (ZMod p) :=
+  1 - genOrApproxProd p R q
+
+/-- **Per-gate degree of the product:** `≤ (p-1)·D·t` when every child has degree `≤ D`. -/
+theorem genOrApproxProd_totalDegree_le (p : ℕ) [Fact p.Prime] {N k t : ℕ} (R : Fin t → Fin k → ZMod p)
+    (q : Fin k → MvPolynomial (Fin N) (ZMod p)) (D : ℕ) (hq : ∀ j, (q j).totalDegree ≤ D) :
+    (genOrApproxProd p R q).totalDegree ≤ (p - 1) * D * t := by
+  rw [genOrApproxProd]
+  refine le_trans (totalDegree_finset_prod _ _) ?_
+  refine le_trans (Finset.sum_le_sum
+    (fun s _ => genLinFormTest_totalDegree_le p (R s) q D hq)) ?_
+  rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul]
+  exact Nat.le_of_eq (Nat.mul_comm t ((p - 1) * D))
+
+/-- **The per-gate degree recurrence.**  A gate approximant over children of degree `≤ D` has degree
+`≤ (p-1)·t·D` — each gate multiplies the degree by the factor `(p-1)·t`.  Composed over depth `d`
+(leaves degree `≤ 1`) this yields the `((p-1)·t)^d` Razborov–Smolensky degree. -/
+theorem genOrApprox_totalDegree_le (p : ℕ) [Fact p.Prime] {N k t : ℕ} (R : Fin t → Fin k → ZMod p)
+    (q : Fin k → MvPolynomial (Fin N) (ZMod p)) (D : ℕ) (hq : ∀ j, (q j).totalDegree ≤ D) :
+    (genOrApprox p R q).totalDegree ≤ (p - 1) * D * t := by
+  rw [genOrApprox]
+  refine le_trans (totalDegree_sub _ _) ?_
+  rw [totalDegree_one, Nat.zero_max]
+  exact genOrApproxProd_totalDegree_le p R q D hq
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.linFormTest_totalDegree_le
@@ -245,3 +316,7 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_error_count
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_sample_count
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_error_rate
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genLinFormTest_eq_linFormTest
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genLinFormTest_totalDegree_le
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genOrApproxProd_totalDegree_le
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genOrApprox_totalDegree_le
