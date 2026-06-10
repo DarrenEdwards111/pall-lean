@@ -51,7 +51,7 @@ The slack between `n/2 + Δ` and the function-count is where `Δ = o(√n)` (hen
 | `boolToZMod_sq` (`x² = x`, the reduction lever) | ✓ built |
 | Fermat indicator (`MOD_p`, single-form atom) | ✓ built (`fermat_indicator`, `linFormTest`) |
 | single-form test **degree** `≤ p-1` | ✓ built (`linFormTest_totalDegree_le`) |
-| OR/AND **agreement** bound (the `1-1/p` probability) | **frontier** — needs a counting/probability argument over `r ∈ (ZMod p)^m` |
+| OR single-form **agreement** (`#{form ≠ 0} = p^m - p^(m-1)`) | ✓ built (`orForm_agreement`) — exact hyperplane count via the nonzero functional's kernel (`finrank_range_add_finrank_ker` + `Module.card_eq_pow_finrank`) |
 | gate → approximant **degree composition** `(p-1)t` | small (product of `t` tests) |
 | depth-`d` **union bound** over gates | medium |
 | Smolensky **dimension** bound (#low-degree monomials) | the analytic crux |

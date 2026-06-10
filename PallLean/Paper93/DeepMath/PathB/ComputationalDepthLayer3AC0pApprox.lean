@@ -50,5 +50,62 @@ theorem linFormTest_totalDegree_le (p : ℕ) [Fact p.Prime] (r : Fin m → ZMod 
   rw [totalDegree_one]
   simpa using hpow
 
+open Finset in
+/-- **OR single-form agreement.**  For a nonzero `{0,1}` input `x` (some `x i = true`), a random linear
+form `∑ r_i x_i` over `ZMod p` is nonzero on all but a `1/p` fraction of `r`: the count of `r` with the
+form nonzero is exactly `p^m - p^(m-1) = (p-1)·p^(m-1)`.  (The agreement half of the OR-approximator;
+combine with `linFormTest_totalDegree_le` for the degree.) -/
+theorem orForm_agreement (p : ℕ) [Fact p.Prime] {m : ℕ} (x : Fin m → Bool) (hx : ∃ i, x i = true) :
+    (Finset.univ.filter (fun r : Fin m → ZMod p => ∑ i, r i * boolToZMod p (x i) ≠ 0)).card
+      = p ^ m - p ^ (m - 1) := by
+  classical
+  obtain ⟨j, hj⟩ := hx
+  set a : Fin m → ZMod p := fun i => boolToZMod p (x i) with ha
+  have haj : a j = 1 := by rw [ha]; simp [boolToZMod, hj]
+  -- the linear functional `L r = ∑ r_i a_i`
+  let L : (Fin m → ZMod p) →ₗ[ZMod p] ZMod p :=
+    { toFun := fun r => ∑ i, r i * a i
+      map_add' := by intro r s; simp only [Pi.add_apply, add_mul, Finset.sum_add_distrib]
+      map_smul' := by
+        intro c r
+        simp only [Pi.smul_apply, smul_eq_mul, RingHom.id_apply, Finset.mul_sum]
+        exact Finset.sum_congr rfl (fun i _ => by ring) }
+  have hsurj : Function.Surjective L := fun c => by
+    refine ⟨Function.update (0 : Fin m → ZMod p) j c, ?_⟩
+    show ∑ i, (Function.update (0 : Fin m → ZMod p) j c) i * a i = c
+    rw [Finset.sum_eq_single j]
+    · rw [Function.update_self, haj, mul_one]
+    · intro i _ hij
+      rw [Function.update_of_ne hij, Pi.zero_apply, zero_mul]
+    · intro h; exact absurd (Finset.mem_univ j) h
+  -- finrank of the kernel is `m - 1`
+  have hV : Module.finrank (ZMod p) (Fin m → ZMod p) = m := by
+    rw [Module.finrank_pi]; simp
+  have hrank : Module.finrank (ZMod p) (LinearMap.range L) = 1 := by
+    rw [LinearMap.range_eq_top.mpr hsurj, finrank_top, Module.finrank_self]
+  have hker : Module.finrank (ZMod p) (LinearMap.ker L) = m - 1 := by
+    have h := LinearMap.finrank_range_add_finrank_ker L
+    rw [hrank, hV] at h; omega
+  -- card of the kernel set
+  have hcardker : (Finset.univ.filter (fun r : Fin m → ZMod p => ∑ i, r i * a i = 0)).card
+      = p ^ (m - 1) := by
+    have hsub : (Finset.univ.filter (fun r : Fin m → ZMod p => ∑ i, r i * a i = 0)).card
+        = Fintype.card (LinearMap.ker L) := by
+      rw [← Fintype.card_subtype (fun r : Fin m → ZMod p => ∑ i, r i * a i = 0)]
+      exact Fintype.card_congr (Equiv.subtypeEquivRight (fun r => Iff.rfl))
+    rw [hsub, Module.card_eq_pow_finrank (K := ZMod p) (V := LinearMap.ker L), ZMod.card, hker]
+  -- assemble
+  have hcompl := Finset.filter_card_add_filter_neg_card_eq_card
+    (s := (Finset.univ : Finset (Fin m → ZMod p))) (p := fun r => ∑ i, r i * a i = 0)
+  rw [hcardker] at hcompl
+  have hcuniv : (Finset.univ : Finset (Fin m → ZMod p)).card = p ^ m := by
+    rw [Finset.card_univ, Fintype.card_fun, ZMod.card, Fintype.card_fin]
+  rw [hcuniv] at hcompl
+  have : (Finset.univ.filter (fun r : Fin m → ZMod p => ∑ i, r i * boolToZMod p (x i) ≠ 0)).card
+      = (Finset.univ.filter (fun r : Fin m → ZMod p => ¬ (∑ i, r i * a i = 0))).card := rfl
+  rw [this]; omega
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
+
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.linFormTest_totalDegree_le
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orForm_agreement
