@@ -301,6 +301,27 @@ theorem cbad_subset_gates (p t : ℕ) [Fact p.Prime]
   rw [Finset.mem_biUnion]
   exact ⟨G, List.mem_toFinset.mpr hG, Finset.mem_filter.mpr ⟨Finset.mem_univ x, hnG⟩⟩
 
+/-- **Per-coordinate local-failure count.**  For a gate of fan-in `m` and a fixed input (giving children
+values `v`), the number of the gate's own form choices `ρ : Fin t → Fin m → ZMod p` at which local
+goodness fails is `≤ (p^{m-1})^t`: equality when some child is true (the kernel count
+`orApprox_error_count` over the children-value vector `v`), and `0` when all children are false. -/
+theorem localGood_fail_count (p : ℕ) [Fact p.Prime] {m t : ℕ} (v : Fin m → Bool) :
+    (Finset.univ.filter (fun ρ : Fin t → Fin m → ZMod p =>
+        (∃ j, v j = true) ∧ (∀ s, ∑ j, ρ s j * boolToZMod p (v j) = 0))).card
+      ≤ (p ^ (m - 1)) ^ t := by
+  classical
+  by_cases hv : ∃ j, v j = true
+  · rw [show (Finset.univ.filter (fun ρ : Fin t → Fin m → ZMod p =>
+          (∃ j, v j = true) ∧ (∀ s, ∑ j, ρ s j * boolToZMod p (v j) = 0)))
+          = Finset.univ.filter (fun ρ : Fin t → Fin m → ZMod p =>
+              ∀ s, ∑ j, ρ s j * boolToZMod p (v j) = 0) from by
+        apply Finset.filter_congr; intro ρ _; simp only [hv, true_and]]
+    exact le_of_eq (orApprox_error_count p v hv)
+  · rw [show (Finset.univ.filter (fun ρ : Fin t → Fin m → ZMod p =>
+          (∃ j, v j = true) ∧ (∀ s, ∑ j, ρ s j * boolToZMod p (v j) = 0))) = ∅ from by
+        rw [Finset.filter_eq_empty_iff]; intro ρ _; simp only [hv, false_and, not_false_iff]]
+    simp
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree
@@ -314,3 +335,4 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.mem_subcircuitsList
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.agreeGood_of_forall
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.cbad_subset_gates
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.localGood_fail_count
