@@ -172,6 +172,43 @@ theorem finrank_span_lowDegEval_le_sum (p n D : ℕ) [Fact p.Prime] :
   rw [← lowDegMonomials_card]
   exact finrank_span_lowDegEval_le_card p n D
 
+/-! ## The dimension deficit: low-degree polynomials cannot compute all cube functions
+
+Combining the bridge (`finrank_span_lowDegEval_le_card`) with the strict count `< 2^n`
+(`lowDegMonomials_card_lt_two_pow`) and the ambient dimension `2^n` of the cube-function space gives
+the **dimension deficit** at the heart of Smolensky: once the degree threshold `D` is below `n`, the
+degree-`≤D` squarefree evaluation functions cannot span all of `(Fin n → Bool) → ZMod p`.  In the full
+argument the `MOD_q`-reduction would force *every* cube function into a degree-`(n/2+Δ) < n` span,
+contradicting exactly this deficit. -/
+
+/-- The cube-function space `(Fin n → Bool) → ZMod p` has `ZMod p`-dimension `2^n`
+(`Module.finrank_fintype_fun_eq_card`: the domain `Fin n → Bool` has `2^n` points). -/
+theorem finrank_cubeFunctions_eq (p n : ℕ) [Fact p.Prime] :
+    Module.finrank (ZMod p) ((Fin n → Bool) → ZMod p) = 2 ^ n := by
+  rw [Module.finrank_fintype_fun_eq_card, Fintype.card_fun, Fintype.card_bool, Fintype.card_fin]
+
+/-- **Dimension deficit.**  For `D < n`, the degree-`≤D` squarefree evaluation functions do *not* span
+the cube-function space: if they did, the ambient dimension `2^n` would be `≤ #monomials < 2^n`. -/
+theorem lowDegEval_span_ne_top (p n D : ℕ) [Fact p.Prime] (h : D < n) :
+    Submodule.span (ZMod p)
+        (Set.range (fun S : {S // S ∈ lowDegMonomials n D} => squarefreeEvalMonomial p S.1))
+      ≠ (⊤ : Submodule (ZMod p) ((Fin n → Bool) → ZMod p)) := by
+  intro hspan
+  have h1 := finrank_span_lowDegEval_le_card p n D
+  rw [hspan, finrank_top, finrank_cubeFunctions_eq] at h1
+  have h2 := lowDegMonomials_card_lt_two_pow n D h
+  omega
+
+/-- **Concrete deficit witness.**  For `D < n` there is a Boolean function `{0,1}^n → ZMod p` not in the
+span of the degree-`≤D` squarefree evaluation monomials — a function no degree-`≤D` multilinear
+polynomial computes on the cube. -/
+theorem exists_cubeFunction_not_lowDegEval (p n D : ℕ) [Fact p.Prime] (h : D < n) :
+    ∃ f : (Fin n → Bool) → ZMod p, f ∉ Submodule.span (ZMod p)
+      (Set.range (fun S : {S // S ∈ lowDegMonomials n D} => squarefreeEvalMonomial p S.1)) := by
+  by_contra hcon
+  push_neg at hcon
+  exact lowDegEval_span_ne_top p n D h (Submodule.eq_top_iff'.mpr hcon)
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.lowDegMonomials_card
@@ -183,3 +220,6 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.squarefreeEvalMonomial_mem_span
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.finrank_span_lowDegEval_le_card
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.finrank_span_lowDegEval_le_sum
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.finrank_cubeFunctions_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.lowDegEval_span_ne_top
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.exists_cubeFunction_not_lowDegEval
