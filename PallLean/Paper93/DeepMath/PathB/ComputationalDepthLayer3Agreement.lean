@@ -363,6 +363,49 @@ theorem oracleOf_eq (p t : ℕ) {n : ℕ} (C : BoolCircuitSyntax n) (ω : FormSp
     oracleOf p t C ω k = ω ⟨k, h⟩ :=
   dif_pos h
 
+/-! **`hB` for an OR gate.**  Wiring coordinate extraction (`oracleOf_eq`) + `column_sum_le` +
+`localGood_fail_count`: the column sum of an OR gate's local failures over the joint form space is
+`≤ 2^n · (∏_{other coords}) · (p^{m-1})^t`.  The template for the `hB` hypothesis of
+`exists_form_total_errors`.  (The per-input count is transported across the `Fintype`-instance gap
+`A i₀` vs `Fin cs.length → …` via the `Fintype`/`DecidablePred` subsingleton.) -/
+open Classical in
+theorem gbad_or_column_sum (p t : ℕ) [Fact p.Prime] {n : ℕ} (C : BoolCircuitSyntax n)
+    (cs : List (BoolCircuitSyntax n)) (hmem : cs.length ∈ fanins C) :
+    ∑ ω : FormSpace p t C,
+        (Finset.univ.filter (fun x : Fin n → Bool =>
+          ¬ localGood p t (oracleOf p t C ω) x (.orGate cs))).card
+      ≤ Fintype.card (Fin n → Bool)
+        * (∏ i ∈ Finset.univ.erase (⟨cs.length, hmem⟩ : {k // k ∈ fanins C}),
+            Fintype.card (Fin t → Fin i.1 → ZMod p))
+        * (p ^ (cs.length - 1)) ^ t := by
+  classical
+  have hpred : ∀ (ω : FormSpace p t C),
+      (Finset.univ.filter (fun x : Fin n → Bool =>
+          ¬ localGood p t (oracleOf p t C ω) x (.orGate cs)))
+        = Finset.univ.filter (fun x : Fin n → Bool =>
+            (∃ j, (cs.get j).eval x = true) ∧
+              ∀ s, ∑ j, ω ⟨cs.length, hmem⟩ s j * boolToZMod p ((cs.get j).eval x) = 0) := by
+    intro ω
+    apply Finset.filter_congr
+    intro x _
+    simp only [localGood, oracleOf_eq p t C ω hmem, not_forall, _root_.not_imp, not_exists,
+      not_not, exists_prop]
+  simp only [hpred, Finset.card_filter]
+  rw [Finset.sum_comm]
+  refine le_trans (b := ∑ _x : Fin n → Bool,
+      (∏ i ∈ Finset.univ.erase (⟨cs.length, hmem⟩ : {k // k ∈ fanins C}),
+        Fintype.card (Fin t → Fin i.1 → ZMod p)) * (p ^ (cs.length - 1)) ^ t)
+    (Finset.sum_le_sum (fun x _ => ?_)) (le_of_eq ?_)
+  · rw [sum_proj_eq (A := fun k : {k // k ∈ fanins C} => Fin t → Fin k.1 → ZMod p)
+        (⟨cs.length, hmem⟩ : {k // k ∈ fanins C})
+        (fun ρ => if (∃ j, (cs.get j).eval x = true) ∧
+            ∀ s, ∑ j, ρ s j * boolToZMod p ((cs.get j).eval x) = 0 then (1 : ℕ) else 0)]
+    refine Nat.mul_le_mul_left _ ?_
+    rw [← Finset.card_filter]
+    exact localGood_fail_count (m := (⟨cs.length, hmem⟩ : {k // k ∈ fanins C}).1) (t := t) p
+      (fun j => (cs.get j).eval x)
+  · rw [Finset.sum_const, Finset.card_univ, smul_eq_mul, mul_assoc]
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree
@@ -379,3 +422,4 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.localGood_fail_count
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.gateFanin_mem_fanins
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.oracleOf_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.gbad_or_column_sum
