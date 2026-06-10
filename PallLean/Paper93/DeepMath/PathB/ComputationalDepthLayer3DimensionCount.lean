@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer3AC0pFoundations
 import Mathlib.Data.Nat.Choose.Sum
+import Mathlib.Data.Nat.Choose.Central
 import Mathlib.Data.Finset.Powerset
 import Mathlib.Data.ZMod.Basic
 import Mathlib.LinearAlgebra.Dimension.Constructions
@@ -115,6 +116,32 @@ base (`Δ = 0`) case of the Smolensky low-degree dimension at the half-degree. -
 theorem lowDegMonomials_card_halfway (m : ℕ) :
     (lowDegMonomials (2 * m + 1) m).card = 2 ^ (2 * m) := by
   rw [lowDegMonomials_card, Nat.sum_range_choose_halfway, show (4 : ℕ) = 2 ^ 2 from rfl, ← pow_mul]
+
+/-- **Central-binomial `√n` bound (integer form).**  `(2m+1)·C(2m,m)² ≤ 4^(2m)`, i.e.
+`C(2m,m) ≤ 4^m/√(2m+1)` — the Stirling-type estimate that the `Δ ≥ 1` Smolensky band margin needs (and
+which Mathlib lacked).  Proved by induction via the central-binomial recurrence
+`Nat.succ_mul_centralBinom_succ`, with the step inequality `(2m+3)(2m+1) ≤ 4(m+1)²`. -/
+theorem centralBinom_sq_le : ∀ m : ℕ, (2 * m + 1) * (Nat.centralBinom m) ^ 2 ≤ 4 ^ (2 * m)
+  | 0 => by simp [Nat.centralBinom_zero]
+  | m + 1 => by
+      have ih := centralBinom_sq_le m
+      have hrec := Nat.succ_mul_centralBinom_succ m
+      set c := Nat.centralBinom m
+      set c' := Nat.centralBinom (m + 1)
+      have e1 : (m + 1) ^ 2 * c' ^ 2 = 4 * (2 * m + 1) ^ 2 * c ^ 2 := by
+        rw [← mul_pow, hrec]; ring
+      have key : (m + 1) ^ 2 * ((2 * (m + 1) + 1) * c' ^ 2)
+          ≤ (m + 1) ^ 2 * 4 ^ (2 * (m + 1)) := by
+        have h4 : (4 : ℕ) ^ (2 * (m + 1)) = 16 * 4 ^ (2 * m) := by
+          rw [show 2 * (m + 1) = 2 * m + 2 from by ring, pow_add]; ring
+        calc (m + 1) ^ 2 * ((2 * (m + 1) + 1) * c' ^ 2)
+            = (2 * (m + 1) + 1) * ((m + 1) ^ 2 * c' ^ 2) := by ring
+          _ = (2 * (m + 1) + 1) * (4 * (2 * m + 1) ^ 2 * c ^ 2) := by rw [e1]
+          _ = 4 * (2 * (m + 1) + 1) * (2 * m + 1) * ((2 * m + 1) * c ^ 2) := by ring
+          _ ≤ 4 * (2 * (m + 1) + 1) * (2 * m + 1) * 4 ^ (2 * m) := Nat.mul_le_mul_left _ ih
+          _ ≤ (m + 1) ^ 2 * 16 * 4 ^ (2 * m) := Nat.mul_le_mul_right _ (by nlinarith)
+          _ = (m + 1) ^ 2 * 4 ^ (2 * (m + 1)) := by rw [h4]; ring
+      exact Nat.le_of_mul_le_mul_left key (by positivity)
 
 /-- **Smolensky band margin at the half-degree (Δ = 0).**  At `D = m = ⌊n/2⌋` (`n = 2m+1`) the dimension
 count is `2^{n-1}`, which is *strictly below* the `(3/4)·2^n` Smolensky threshold (integer form
@@ -432,6 +459,7 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.lowDegMonomials_card_lt_two_pow
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.lowDegMonomials_card_halfway
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.lowDegMonomials_card_halfway_margin
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.centralBinom_sq_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.boolToZMod_pow_succ
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.squarefreeEvalMonomial_mem_span
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.finrank_span_lowDegEval_le_card
