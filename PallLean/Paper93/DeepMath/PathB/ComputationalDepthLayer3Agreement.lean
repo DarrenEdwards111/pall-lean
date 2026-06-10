@@ -32,7 +32,7 @@ noncomputable def toAgree (p t : ℕ) (R : (k : ℕ) → Fin t → Fin k → ZMo
   | .input i => X i
   | .not c => 1 - toAgree p t R c
   | .orGate cs => genOrApprox p (R cs.length) (fun j => toAgree p t R (cs.get j))
-  | .andGate _ => 0
+  | .andGate cs => 1 - genOrApprox p (R cs.length) (fun j => 1 - toAgree p t R (cs.get j))
   | .modGate _ _ _ => 0
 decreasing_by
   all_goals simp_wf
@@ -50,7 +50,9 @@ def AgreeGood (p t : ℕ) (R : (k : ℕ) → Fin t → Fin k → ZMod p) (x : Fi
   | .orGate cs => (∀ j : Fin cs.length, AgreeGood p t R x (cs.get j)) ∧
       ((∃ j : Fin cs.length, (cs.get j).eval x = true) →
         ∃ s, ∑ j, R cs.length s j * boolToZMod p ((cs.get j).eval x) ≠ 0)
-  | .andGate _ => False
+  | .andGate cs => (∀ j : Fin cs.length, AgreeGood p t R x (cs.get j)) ∧
+      ((∃ j : Fin cs.length, (!(cs.get j).eval x) = true) →
+        ∃ s, ∑ j, R cs.length s j * boolToZMod p (!(cs.get j).eval x) ≠ 0)
   | .modGate _ _ _ => False
 decreasing_by
   all_goals simp_wf
@@ -68,6 +70,16 @@ theorem orGate_eval_iff (cs : List (BoolCircuitSyntax n)) (x : Fin n → Bool) :
     exact ⟨j, by rw [hj]; exact hb⟩
   · rintro ⟨j, hj⟩
     exact ⟨(cs.get j).eval x, ⟨cs.get j, List.get_mem cs j, rfl⟩, hj⟩
+
+/-- **AND-gate evaluation ↔ all children true** (`.all` ↔ indexed universal). -/
+theorem andGate_eval_iff (cs : List (BoolCircuitSyntax n)) (x : Fin n → Bool) :
+    (BoolCircuitSyntax.andGate cs).eval x = true ↔ ∀ j : Fin cs.length, (cs.get j).eval x = true := by
+  simp only [BoolCircuitSyntax.eval, List.all_eq_true, List.mem_map, id_eq]
+  constructor
+  · intro h j; exact h _ ⟨cs.get j, List.get_mem cs j, rfl⟩
+  · rintro h b ⟨c, hc, rfl⟩
+    obtain ⟨j, hj⟩ := List.mem_iff_get.mp hc
+    rw [← hj]; exact h j
 
 /-- **The recursive agreement lift.**  On any *good* input, the OR/NOT/leaf circuit approximant
 evaluates to the true circuit value. -/
@@ -97,7 +109,27 @@ theorem toAgree_eval (p t : ℕ) [Fact p.Prime] (R : (k : ℕ) → Fin t → Fin
         rw [Bool.not_eq_true] at hev
         rw [if_neg hne, hev]
         exact (boolToZMod_false p).symm
-  | .andGate _, hg => by simp only [AgreeGood] at hg
+  | .andGate cs, hg => by
+      simp only [AgreeGood] at hg
+      obtain ⟨hchildren, hgood⟩ := hg
+      simp only [toAgree, map_sub, map_one]
+      rw [genOrApprox_eval_orOfChildren p (R cs.length) (fun j => 1 - toAgree p t R (cs.get j))
+        (fun i => boolToZMod p (x i)) (fun j => !(cs.get j).eval x)
+        (fun j => by
+          simp only [map_sub, map_one]
+          rw [toAgree_eval p t R x (cs.get j) (hchildren j)]
+          exact one_sub_boolToZMod p _) hgood]
+      have hexists_iff : (∃ j : Fin cs.length, (!(cs.get j).eval x) = true)
+          ↔ (BoolCircuitSyntax.andGate cs).eval x = false := by
+        rw [← Bool.not_eq_true, andGate_eval_iff, not_forall]
+        exact exists_congr fun j => by cases (cs.get j).eval x <;> simp
+      by_cases hev : (BoolCircuitSyntax.andGate cs).eval x = true
+      · rw [if_neg (show ¬ ∃ j : Fin cs.length, (!(cs.get j).eval x) = true by
+          rw [hexists_iff, hev]; simp), hev]
+        simp [boolToZMod]
+      · rw [Bool.not_eq_true] at hev
+        rw [if_pos (hexists_iff.mpr hev), hev]
+        simp [boolToZMod]
   | .modGate _ _ _, hg => by simp only [AgreeGood] at hg
 decreasing_by
   all_goals simp_wf
@@ -110,4 +142,5 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.AgreeGood
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orGate_eval_iff
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.andGate_eval_iff
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree_eval
