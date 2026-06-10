@@ -371,6 +371,47 @@ theorem mem_squarefreeSpan (p n : ℕ) (f : (Fin n → Bool) → ZMod p) :
     f ∈ squarefreeSpan p n := by
   rw [squarefreeSpan_eq_top]; exact Submodule.mem_top
 
+/-! ## Union bound: the agreement set from per-gate errors
+
+Smolensky's composition replaces each of the `s` gates of an `AC⁰[p]` circuit by a probabilistic
+low-degree approximant that errs on a `bad` set of inputs; the single composed polynomial errs only
+where *some* gate does — on `⋃ gate-bad-sets`.  The **union bound** controls this: if each gate errs on
+`≤ δ` inputs, the agreement set `G` (where the composed polynomial matches the circuit) has
+`|G| ≥ 2^n - s·δ`, and once `4·s·δ ≤ 2^n` this gives `|G| ≥ (3/4)·2^n` — exactly the lower bound the
+dimension contradiction consumes (`lowDegEval_span_ne_top` / the count `< 2^n`).
+
+This is the *counting core* of the composition.  The per-gate approximants (`orApprox` etc.) and the
+depth-`d` degree bookkeeping `((p-1)t)^d`, and the `MOD_q`-specific degree-reduction that uses the
+approximant on `G`, are the surrounding pieces (still open). -/
+
+/-- **Union bound (counting).**  The union of `s` "bad" sets has at most `∑ card` elements. -/
+theorem badUnion_card_le {n s : ℕ} (B : Fin s → Finset (Fin n → Bool)) :
+    (Finset.univ.biUnion B).card ≤ ∑ i, (B i).card := by
+  classical exact Finset.card_biUnion_le
+
+/-- **Agreement-set lower bound.**  If each of `s` bad sets has `≤ δ` elements, the agreement set
+(complement of their union in the cube) has `≥ 2^n - s·δ` elements. -/
+theorem agreement_card_ge {n s : ℕ} (B : Fin s → Finset (Fin n → Bool)) (δ : ℕ)
+    (hB : ∀ i, (B i).card ≤ δ) :
+    2 ^ n - s * δ ≤ ((Finset.univ : Finset (Fin n → Bool)) \ Finset.univ.biUnion B).card := by
+  classical
+  have hcube : (Finset.univ : Finset (Fin n → Bool)).card = 2 ^ n := by
+    rw [Finset.card_univ, Fintype.card_fun, Fintype.card_bool, Fintype.card_fin]
+  have hunion : (Finset.univ.biUnion B).card ≤ s * δ := by
+    refine le_trans Finset.card_biUnion_le ?_
+    refine le_trans (Finset.sum_le_sum (fun i _ => hB i)) ?_
+    rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul]
+  rw [Finset.card_sdiff_of_subset (Finset.subset_univ _), hcube]
+  omega
+
+/-- **`(3/4)·2^n` agreement (integer form).**  If `4·s·δ ≤ 2^n` then `3·2^n ≤ 4·|G|`, i.e. the agreement
+set occupies at least three quarters of the cube — the precise input to the Smolensky contradiction. -/
+theorem agreement_card_ge_three_quarters {n s : ℕ} (B : Fin s → Finset (Fin n → Bool)) (δ : ℕ)
+    (hB : ∀ i, (B i).card ≤ δ) (hsδ : 4 * (s * δ) ≤ 2 ^ n) :
+    3 * 2 ^ n ≤ 4 * ((Finset.univ : Finset (Fin n → Bool)) \ Finset.univ.biUnion B).card := by
+  have h := agreement_card_ge B δ hB
+  omega
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.lowDegMonomials_card
@@ -392,3 +433,5 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.single_eq_prod_factor
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.squarefreeSpan_eq_top
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.mem_squarefreeSpan
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.agreement_card_ge
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.agreement_card_ge_three_quarters
