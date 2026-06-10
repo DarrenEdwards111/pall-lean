@@ -147,6 +147,28 @@ theorem sum_proj_eq {ι : Type*} [Fintype ι] [DecidableEq ι] {A : ι → Type*
     Finset.prod_subtype (Finset.univ.erase i₀) (p := fun x => x ≠ i₀)
       (fun x => by simp [Finset.mem_erase]) (fun i => Fintype.card (A i))]
 
+open Classical in
+/-- **`hB`-computation core.**  When a gate's bad set depends only on its own coordinate `i₀` (here:
+`bad x (ω i₀)`), its column sum over the joint form space factors (Fubini + `sum_proj_eq`) and is bounded
+by `|X| · (∏_{i≠i₀}|A i|) · B`, given the per-input count bound `B`.  This is exactly the `hB` hypothesis
+of `exists_form_total_errors` for one gate, with `B = (p^{m-1})^t` (`localGood_fail_count`). -/
+theorem column_sum_le {ι X : Type*} [Fintype ι] [DecidableEq ι] {A : ι → Type*}
+    [∀ i, Fintype (A i)] [Fintype X] (i₀ : ι) (bad : X → A i₀ → Prop) (B : ℕ)
+    (hB : ∀ x, (Finset.univ.filter (fun a => bad x a)).card ≤ B) :
+    ∑ ω : (∀ i, A i), (Finset.univ.filter (fun x => bad x (ω i₀))).card
+      ≤ Fintype.card X * (∏ i ∈ Finset.univ.erase i₀, Fintype.card (A i)) * B := by
+  simp_rw [Finset.card_filter]
+  rw [Finset.sum_comm]
+  calc ∑ x : X, ∑ ω : (∀ i, A i), (if bad x (ω i₀) then (1 : ℕ) else 0)
+      = ∑ x : X, (∏ i ∈ Finset.univ.erase i₀, Fintype.card (A i))
+          * ∑ a : A i₀, (if bad x a then (1 : ℕ) else 0) :=
+        Finset.sum_congr rfl (fun x _ => sum_proj_eq i₀ (fun a => if bad x a then 1 else 0))
+    _ ≤ ∑ x : X, (∏ i ∈ Finset.univ.erase i₀, Fintype.card (A i)) * B := by
+        refine Finset.sum_le_sum (fun x _ => Nat.mul_le_mul_left _ ?_)
+        rw [← Finset.card_filter]; exact hB x
+    _ = Fintype.card X * (∏ i ∈ Finset.univ.erase i₀, Fintype.card (A i)) * B := by
+        rw [Finset.sum_const, Finset.card_univ, smul_eq_mul]; ring
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.exists_card_mul_le_sum
@@ -155,3 +177,4 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.exists_le_sum_of_sum_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.exists_form_total_errors
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.sum_proj_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.column_sum_le
