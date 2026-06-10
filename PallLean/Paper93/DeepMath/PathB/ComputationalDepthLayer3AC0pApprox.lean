@@ -347,6 +347,37 @@ theorem genOrApprox_totalDegree_le (p : ℕ) [Fact p.Prime] {N k t : ℕ} (R : F
   rw [totalDegree_one, Nat.zero_max]
   exact genOrApproxProd_totalDegree_le p R q D hq
 
+/-- **Gate-level evaluation (agreement over child values).**  Evaluating the generalised gate
+approximant at a point `pt`: it is `0` if every form `∑_j R s j · (q_j evaluated)` vanishes, and `1`
+otherwise.  This is the `genOrApprox` analogue of `orApprox_eval` — the agreement step a recursive lift
+uses at each gate, with the children's *evaluated values* `eval pt (q_j)` playing the role of inputs.
+(Fermat: a nonzero form raises to `1`.) -/
+theorem genOrApprox_eval (p : ℕ) [Fact p.Prime] {N k t : ℕ} (R : Fin t → Fin k → ZMod p)
+    (q : Fin k → MvPolynomial (Fin N) (ZMod p)) (pt : Fin N → ZMod p) :
+    eval pt (genOrApprox p R q)
+      = if (∀ s, ∑ j, R s j * eval pt (q j) = 0) then 0 else 1 := by
+  have hp1 : p - 1 ≠ 0 := by have := (Fact.out (p := p.Prime)).two_le; omega
+  have hfac : ∀ s, eval pt (genLinFormTest p (R s) q)
+      = if (∑ j, R s j * eval pt (q j) = 0) then (1 : ZMod p) else 0 := by
+    intro s
+    rw [genLinFormTest]
+    simp only [map_sub, map_one, map_pow, map_sum, map_mul, eval_C]
+    by_cases h : (∑ j, R s j * eval pt (q j)) = 0
+    · rw [if_pos h, h, zero_pow hp1, sub_zero]
+    · rw [if_neg h, ZMod.pow_card_sub_one_eq_one h, sub_self]
+  rw [genOrApprox, genOrApproxProd]
+  simp only [map_sub, map_one, map_prod, hfac]
+  rw [Fintype.prod_boole]
+  by_cases h : (∀ s, ∑ j, R s j * eval pt (q j) = 0) <;> simp [h]
+
+/-- `genOrApprox_eval` recovers `orApprox_eval` at `q_j = X_j`, `pt = boolToZMod ∘ x`. -/
+theorem genOrApprox_eval_eq_orApprox_eval (p : ℕ) [Fact p.Prime] {m t : ℕ}
+    (R : Fin t → Fin m → ZMod p) (x : Fin m → Bool) :
+    eval (fun i => boolToZMod p (x i)) (genOrApprox p R (fun j => X j))
+      = eval (fun i => boolToZMod p (x i)) (orApprox p R) := by
+  rw [genOrApprox_eval, orApprox_eval]
+  simp only [eval_X]
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.linFormTest_totalDegree_le
@@ -360,6 +391,8 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_error_rate
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_disagree_count
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genOrApprox_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genOrApprox_eval_eq_orApprox_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genLinFormTest_eq_linFormTest
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genLinFormTest_totalDegree_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genOrApproxProd_totalDegree_le
