@@ -55,7 +55,7 @@ The slack between `n/2 + Δ` and the function-count is where `Δ = o(√n)` (hen
 | gate → approximant **degree composition** `(p-1)t` | ✓ built (`orApproxProd`, `orApprox`; `orApproxProd_totalDegree_le`, `orApprox_totalDegree_le` ≤ `(p-1)·t` via `totalDegree_finset_prod` + `linFormTest_totalDegree_le`; plus `orApprox_eval_allFalse` = `0` on all-zero input) |
 | `t`-fold amplification **agreement/error** `≤ p^{-t}` | ✓ built (`orForm_zero_count` single-form bad count `p^{m-1}`; `orApprox_error_count` t-fold bad count `(p^{m-1})^t` via `Fintype.piFinset` independence; `orApprox_sample_count` total `(p^m)^t`; `orApprox_error_rate` bad·`p^t` = total, i.e. error rate exactly `p^{-t}`) |
 | depth-`d` **union bound** over gates | medium |
-| Smolensky **dimension** bound (#low-degree monomials) | the analytic crux |
+| Smolensky **dimension** bound (#low-degree monomials) | ✓ count built (`ComputationalDepthLayer3DimensionCount.lean`): `lowDegMonomials_card` = `∑_{k≤D} C(n,k)`; `_full` = `2^n`, `_le_two_pow`, `_lt_two_pow` (strict for `D<n`); `_halfway` exact `2^{2m}=2^{n-1}` at the half-degree; `boolToZMod_pow_succ` (`x^{e+1}=x`) the multilinear lever. **Remaining:** quantitative band margin `< (3/4)·2^n` at `D=n/2+o(√n)` (central-binomial/entropy estimates) |
 | final `MOD_q ∉ AC⁰[p]` | the capstone (do **not** build until the above are real) |
 
 ## Suggested brick order (bricks 1–2 now built)
@@ -66,8 +66,10 @@ The slack between `n/2 + Δ` and the function-count is where `Δ = o(√n)` (hen
 2. ✓ **`t`-fold amplification:** product of `t` tests ⇒ error rate exactly `p^{-t}`, degree `≤ (p-1)t`
    (`orApproxProd`/`orApprox`, `orApprox*_totalDegree_le`; `orApprox_error_count`/`_sample_count`/
    `_error_rate`).
-3. **Dimension count:** `#{monomials in n vars of total degree ≤ D}` and the `x²=x` reduction (uses
-   `boolToZMod_sq`). *Next frontier — the analytic crux.*
+3. ✓ **Dimension count:** `#{monomials in n vars of total degree ≤ D}` = `∑_{k≤D} C(n,k)` and the
+   `x²=x` reduction lever, with `= 2^n` / `< 2^n` / half-degree `= 2^{n-1}` comparisons
+   (`ComputationalDepthLayer3DimensionCount.lean`). *Remaining sub-frontier: the quantitative band
+   margin `< (3/4)·2^n` at `D = n/2 + o(√n)`.*
 4. Only then the composition + final separation.
 
 *Roadmap for the analytic frontier; the exact-representation foundation it refines is complete. Not P vs
