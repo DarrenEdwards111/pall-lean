@@ -465,6 +465,40 @@ theorem gbad_mod_column_sum (p t : ℕ) [Fact p.Prime] {n : ℕ} (C : BoolCircui
     exact not_not.mpr hq
   simp only [hempty, Finset.card_empty, Finset.sum_const_zero]
 
+/-! ## The composition: ∃ one form choice agreeing off a controlled error set
+
+Instantiating `exists_form_total_errors` (averaging skeleton) with the concrete circuit data — `cbad` the
+composed-error set, `gbad` the per-gate local failures, gates `= subcircuits C`, `hsub` from
+`cbad_subset_gates` — yields a *single* joint form `ω` whose composed error is bounded by the sum of the
+per-gate column sums.  Each of those is in turn bounded by `gbad_{or,and,mod}_column_sum`. -/
+open Classical in
+/-- **Circuit composition.**  There is a joint form choice `ω` for which the composed approximant's
+disagreement with the circuit, scaled by `|Φ|`, is at most the sum over the circuit's gates of their
+per-gate local-failure column sums (each `≤ 2^n·(∏ other coords)·(p^{m-1})^t` by `gbad_*_column_sum`,
+`0` for `MOD` gates with `q=p` and for leaves/`¬`). -/
+theorem exists_form_circuit_agreement (p t : ℕ) [Fact p.Prime] {n : ℕ} (C : BoolCircuitSyntax n) :
+    ∃ ω : FormSpace p t C,
+      Fintype.card (FormSpace p t C)
+          * (Finset.univ.filter (fun x : Fin n → Bool =>
+              eval (fun i => boolToZMod p (x i)) (toAgree p t (oracleOf p t C ω) C)
+                ≠ boolToZMod p (C.eval x))).card
+        ≤ ∑ G ∈ (subcircuits C).toFinset, ∑ ω' : FormSpace p t C,
+            (Finset.univ.filter (fun x : Fin n → Bool =>
+              ¬ localGood p t (oracleOf p t C ω') x G)).card := by
+  obtain ⟨ω, _, hω⟩ := exists_form_total_errors (X := Fin n → Bool)
+    (Finset.univ : Finset (FormSpace p t C)) Finset.univ_nonempty (subcircuits C).toFinset
+    (fun G ω => Finset.univ.filter (fun x : Fin n → Bool =>
+      ¬ localGood p t (oracleOf p t C ω) x G))
+    (fun ω => Finset.univ.filter (fun x : Fin n → Bool =>
+      eval (fun i => boolToZMod p (x i)) (toAgree p t (oracleOf p t C ω) C)
+        ≠ boolToZMod p (C.eval x)))
+    (fun G => ∑ ω' : FormSpace p t C,
+      (Finset.univ.filter (fun x : Fin n → Bool => ¬ localGood p t (oracleOf p t C ω') x G)).card)
+    (fun ω _ => cbad_subset_gates p t (oracleOf p t C ω) C)
+    (fun _ _ => le_refl _)
+  rw [Finset.card_univ] at hω
+  exact ⟨ω, hω⟩
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree
@@ -484,3 +518,4 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.gbad_or_column_sum
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.gbad_and_column_sum
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.gbad_mod_column_sum
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.exists_form_circuit_agreement
