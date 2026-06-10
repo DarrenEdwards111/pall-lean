@@ -279,6 +279,28 @@ decreasing_by
     | omega
     | exact lt_of_lt_of_le (List.sizeOf_lt_of_mem (List.getElem_mem _)) (by omega)
 
+open Classical in
+/-- **`hsub` over gates.**  The composed-error set is contained in the union, over the circuit's gates,
+of the per-gate local-goodness failures: `cbad ⊆ ⋃_{G ∈ subcircuits C} {x : ¬ localGood G x}`.  This is
+exactly the `hsub` hypothesis of `exists_form_total_errors`, with `gbad G = {x : ¬ localGood G x}` and
+gates `= (subcircuits C).toFinset`. -/
+theorem cbad_subset_gates (p t : ℕ) [Fact p.Prime]
+    (R : (k : ℕ) → Fin t → Fin k → ZMod p) (C : BoolCircuitSyntax n) :
+    Finset.univ.filter (fun x : Fin n → Bool =>
+        eval (fun i => boolToZMod p (x i)) (toAgree p t R C) ≠ boolToZMod p (C.eval x))
+      ⊆ (subcircuits C).toFinset.biUnion (fun G =>
+          Finset.univ.filter (fun x : Fin n → Bool => ¬ localGood p t R x G)) := by
+  intro x hx
+  rw [Finset.mem_filter] at hx
+  have hng : ¬ AgreeGood p t R x C := toAgree_bad_imp_not_good p t R x C hx.2
+  have hex : ∃ G ∈ subcircuits C, ¬ localGood p t R x G := by
+    by_contra hcon
+    push_neg at hcon
+    exact hng (agreeGood_of_forall p t R x C hcon)
+  obtain ⟨G, hG, hnG⟩ := hex
+  rw [Finset.mem_biUnion]
+  exact ⟨G, List.mem_toFinset.mpr hG, Finset.mem_filter.mpr ⟨Finset.mem_univ x, hnG⟩⟩
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree
@@ -291,3 +313,4 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree_cbad_subset
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.mem_subcircuitsList
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.agreeGood_of_forall
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.cbad_subset_gates
