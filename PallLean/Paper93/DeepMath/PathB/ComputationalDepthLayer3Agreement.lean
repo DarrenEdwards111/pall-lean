@@ -465,6 +465,69 @@ theorem gbad_mod_column_sum (p t : ℕ) [Fact p.Prime] {n : ℕ} (C : BoolCircui
     exact not_not.mpr hq
   simp only [hempty, Finset.card_empty, Finset.sum_const_zero]
 
+/-- **Form-space factorisation.**  `|Φ|` splits as the fan-in-`m` coordinate `(p^m)^t` times the product
+of the others — the identity that converts a per-gate bound `≤ 2^n·(∏ others)·(p^{m-1})^t` into
+`column·p^t ≤ 2^n·|Φ|`. -/
+theorem formSpace_card_factor (p t : ℕ) [Fact p.Prime] {n : ℕ} (C : BoolCircuitSyntax n) {m : ℕ}
+    (hmem : m ∈ fanins C) :
+    (∏ i ∈ Finset.univ.erase (⟨m, hmem⟩ : {k // k ∈ fanins C}),
+        Fintype.card (Fin t → Fin i.1 → ZMod p)) * (p ^ m) ^ t
+      = Fintype.card (FormSpace p t C) := by
+  rw [show Fintype.card (FormSpace p t C)
+      = ∏ k : {k // k ∈ fanins C}, Fintype.card (Fin t → Fin k.1 → ZMod p) from Fintype.card_pi,
+    ← Finset.prod_erase_mul Finset.univ
+      (fun k : {k // k ∈ fanins C} => Fintype.card (Fin t → Fin k.1 → ZMod p))
+      (Finset.mem_univ (⟨m, hmem⟩ : {k // k ∈ fanins C}))]
+  congr 1
+  rw [Fintype.card_fun, Fintype.card_fun, ZMod.card, Fintype.card_fin, Fintype.card_fin]
+
+/-- The joint form space is nonempty, so `0 < |Φ|` (used to cancel `|Φ|`). -/
+theorem formSpace_card_pos (p t : ℕ) [Fact p.Prime] {n : ℕ} (C : BoolCircuitSyntax n) :
+    0 < Fintype.card (FormSpace p t C) :=
+  Fintype.card_pos
+
+/-! **OR-gate column bound, scaled.**  column*p^t <= 2^n*|Phi| (from gbad_or_column_sum + formSpace_card_factor, using (p^{m-1})^t*p^t = (p^m)^t). -/
+open Classical in
+theorem column_or_le (p t : ℕ) [Fact p.Prime] {n : ℕ} (C : BoolCircuitSyntax n)
+    (cs : List (BoolCircuitSyntax n)) (hmem : cs.length ∈ fanins C) (hcs : 1 ≤ cs.length) :
+    (∑ ω : FormSpace p t C, (Finset.univ.filter (fun x : Fin n → Bool =>
+        ¬ localGood p t (oracleOf p t C ω) x (.orGate cs))).card) * p ^ t
+      ≤ Fintype.card (Fin n → Bool) * Fintype.card (FormSpace p t C) := by
+  have hp : p ^ (cs.length - 1) * p = p ^ cs.length := by rw [← pow_succ, Nat.sub_add_cancel hcs]
+  have hpow : (p ^ (cs.length - 1)) ^ t * p ^ t = (p ^ cs.length) ^ t := by rw [← mul_pow, hp]
+  calc (∑ ω : FormSpace p t C, (Finset.univ.filter (fun x : Fin n → Bool =>
+          ¬ localGood p t (oracleOf p t C ω) x (.orGate cs))).card) * p ^ t
+      ≤ (Fintype.card (Fin n → Bool)
+          * (∏ i ∈ Finset.univ.erase (⟨cs.length, hmem⟩ : {k // k ∈ fanins C}),
+              Fintype.card (Fin t → Fin i.1 → ZMod p)) * (p ^ (cs.length - 1)) ^ t) * p ^ t :=
+        Nat.mul_le_mul_right _ (gbad_or_column_sum p t C cs hmem)
+    _ = Fintype.card (Fin n → Bool)
+          * ((∏ i ∈ Finset.univ.erase (⟨cs.length, hmem⟩ : {k // k ∈ fanins C}),
+              Fintype.card (Fin t → Fin i.1 → ZMod p)) * ((p ^ (cs.length - 1)) ^ t * p ^ t)) := by ring
+    _ = Fintype.card (Fin n → Bool) * Fintype.card (FormSpace p t C) := by
+        rw [hpow, formSpace_card_factor]
+
+/-! **AND-gate column bound, scaled** (De Morgan analogue of column_or_le). -/
+open Classical in
+theorem column_and_le (p t : ℕ) [Fact p.Prime] {n : ℕ} (C : BoolCircuitSyntax n)
+    (cs : List (BoolCircuitSyntax n)) (hmem : cs.length ∈ fanins C) (hcs : 1 ≤ cs.length) :
+    (∑ ω : FormSpace p t C, (Finset.univ.filter (fun x : Fin n → Bool =>
+        ¬ localGood p t (oracleOf p t C ω) x (.andGate cs))).card) * p ^ t
+      ≤ Fintype.card (Fin n → Bool) * Fintype.card (FormSpace p t C) := by
+  have hp : p ^ (cs.length - 1) * p = p ^ cs.length := by rw [← pow_succ, Nat.sub_add_cancel hcs]
+  have hpow : (p ^ (cs.length - 1)) ^ t * p ^ t = (p ^ cs.length) ^ t := by rw [← mul_pow, hp]
+  calc (∑ ω : FormSpace p t C, (Finset.univ.filter (fun x : Fin n → Bool =>
+          ¬ localGood p t (oracleOf p t C ω) x (.andGate cs))).card) * p ^ t
+      ≤ (Fintype.card (Fin n → Bool)
+          * (∏ i ∈ Finset.univ.erase (⟨cs.length, hmem⟩ : {k // k ∈ fanins C}),
+              Fintype.card (Fin t → Fin i.1 → ZMod p)) * (p ^ (cs.length - 1)) ^ t) * p ^ t :=
+        Nat.mul_le_mul_right _ (gbad_and_column_sum p t C cs hmem)
+    _ = Fintype.card (Fin n → Bool)
+          * ((∏ i ∈ Finset.univ.erase (⟨cs.length, hmem⟩ : {k // k ∈ fanins C}),
+              Fintype.card (Fin t → Fin i.1 → ZMod p)) * ((p ^ (cs.length - 1)) ^ t * p ^ t)) := by ring
+    _ = Fintype.card (Fin n → Bool) * Fintype.card (FormSpace p t C) := by
+        rw [hpow, formSpace_card_factor]
+
 /-! ## The composition: ∃ one form choice agreeing off a controlled error set
 
 Instantiating `exists_form_total_errors` (averaging skeleton) with the concrete circuit data — `cbad` the
@@ -519,3 +582,6 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.gbad_and_column_sum
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.gbad_mod_column_sum
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.exists_form_circuit_agreement
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.formSpace_card_factor
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.column_or_le
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.column_and_le
