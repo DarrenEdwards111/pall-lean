@@ -170,6 +170,33 @@ decreasing_by
     | omega
     | exact lt_of_lt_of_le (List.sizeOf_lt_of_mem (List.getElem_mem _)) (by omega)
 
+/-! ## Composed error ⊆ goodness failure (the `hsub` ingredient)
+
+The contrapositive of `toAgree_eval`: wherever the circuit approximant *errs*, the goodness predicate
+*fails*.  So the composed error set is contained in `{x : ¬ AgreeGood x R C}` — the containment the
+circuit-level averaging (`exists_form_total_errors`) consumes as `hsub`.  (Decomposing `¬AgreeGood`
+further into a union over independently-formed gates needs a per-gate-indexed form space — the remaining
+architectural step beyond the shared-fan-in oracle used here.) -/
+
+/-- **Agreement contrapositive.**  If the approximant errs at `x`, the goodness predicate fails there. -/
+theorem toAgree_bad_imp_not_good (p t : ℕ) [Fact p.Prime]
+    (R : (k : ℕ) → Fin t → Fin k → ZMod p) (x : Fin n → Bool) (C : BoolCircuitSyntax n) :
+    eval (fun i => boolToZMod p (x i)) (toAgree p t R C) ≠ boolToZMod p (C.eval x) →
+      ¬ AgreeGood p t R x C :=
+  fun hne hg => hne (toAgree_eval p t R x C hg)
+
+open Classical in
+/-- **Composed error set ⊆ goodness-failure set.**  The `hsub`-style containment for the whole circuit
+approximant. -/
+theorem toAgree_cbad_subset (p t : ℕ) [Fact p.Prime]
+    (R : (k : ℕ) → Fin t → Fin k → ZMod p) (C : BoolCircuitSyntax n) :
+    Finset.univ.filter (fun x : Fin n → Bool =>
+        eval (fun i => boolToZMod p (x i)) (toAgree p t R C) ≠ boolToZMod p (C.eval x))
+      ⊆ Finset.univ.filter (fun x : Fin n → Bool => ¬ AgreeGood p t R x C) := by
+  intro x hx
+  rw [Finset.mem_filter] at hx ⊢
+  exact ⟨hx.1, toAgree_bad_imp_not_good p t R x C hx.2⟩
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree
@@ -178,3 +205,5 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.andGate_eval_iff
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.sum_boolToZMod_get
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree_bad_imp_not_good
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree_cbad_subset
