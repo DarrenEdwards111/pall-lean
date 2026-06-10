@@ -116,6 +116,18 @@ theorem lowDegMonomials_card_halfway (m : ℕ) :
     (lowDegMonomials (2 * m + 1) m).card = 2 ^ (2 * m) := by
   rw [lowDegMonomials_card, Nat.sum_range_choose_halfway, show (4 : ℕ) = 2 ^ 2 from rfl, ← pow_mul]
 
+/-- **Smolensky band margin at the half-degree (Δ = 0).**  At `D = m = ⌊n/2⌋` (`n = 2m+1`) the dimension
+count is `2^{n-1}`, which is *strictly below* the `(3/4)·2^n` Smolensky threshold (integer form
+`4·count < 3·2^n`).  So the base case of the dimension contradiction needs **no** central-binomial
+estimate.  (The `Δ ≥ 1` band — `∑_{k≤m+Δ} C(2m+1,k) < (3/4)·2^n` — genuinely needs
+`C(2m+1,m) ≤ 2^n/√n`, a Stirling-type bound absent from Mathlib; with only the trivial
+`Nat.choose_middle_le_pow` (`C(2m+1,m) ≤ 4^m`) the band bound `Δ·4^m` is too weak.) -/
+theorem lowDegMonomials_card_halfway_margin (m : ℕ) :
+    4 * (lowDegMonomials (2 * m + 1) m).card < 3 * 2 ^ (2 * m + 1) := by
+  rw [lowDegMonomials_card_halfway, pow_succ]
+  have hX : 1 ≤ 2 ^ (2 * m) := Nat.one_le_pow _ _ (by norm_num)
+  omega
+
 /-- **Multilinear reduction lever.**  On a `{0,1}` value, `x^{e+1} = x` — the generalisation of
 `boolToZMod_sq` (`e = 1`) that collapses an arbitrary monomial `∏_i X_i^{e_i}` to the squarefree
 `∏_{i : e_i>0} X_i` on the cube, justifying the multilinear (subset) presentation of monomials. -/
@@ -419,6 +431,7 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.lowDegMonomials_card_le_two_pow
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.lowDegMonomials_card_lt_two_pow
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.lowDegMonomials_card_halfway
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.lowDegMonomials_card_halfway_margin
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.boolToZMod_pow_succ
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.squarefreeEvalMonomial_mem_span
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.finrank_span_lowDegEval_le_card
