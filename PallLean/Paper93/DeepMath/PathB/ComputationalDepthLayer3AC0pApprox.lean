@@ -105,7 +105,70 @@ theorem orForm_agreement (p : ℕ) [Fact p.Prime] {m : ℕ} (x : Fin m → Bool)
       = (Finset.univ.filter (fun r : Fin m → ZMod p => ¬ (∑ i, r i * a i = 0))).card := rfl
   rw [this]; omega
 
+/-! ## `t`-fold OR amplification — degree composition
+
+A single `linFormTest` is `1` exactly when its random linear form vanishes.  Taking a product of `t`
+independent forms, `orApproxProd`, is `1` iff *all* `t` forms vanish; `orApprox := 1 - orApproxProd`
+is then the Razborov OR-approximator: `0` on the all-zero input, and `1` unless all `t` forms vanish
+(probability `p^{-t}` for a nonzero input — the error half, the next frontier).  Here we build only the
+**degree composition**: the product of `t` degree-`(p-1)` atoms has degree `≤ (p-1)·t`. -/
+
+variable {t : ℕ}
+
+/-- The **`t`-fold product** of single-form tests: `∏_{k<t} linFormTest p (R k)`.  Equals `1` iff every
+sampled linear form `∑_i R k i · x_i` vanishes. -/
+noncomputable def orApproxProd (p : ℕ) {m t : ℕ} (R : Fin t → Fin m → ZMod p) :
+    MvPolynomial (Fin m) (ZMod p) :=
+  ∏ k : Fin t, linFormTest p (R k)
+
+/-- The **`t`-fold OR approximator** `1 - ∏_{k<t} linFormTest p (R k)`.  It is `0` on the all-zero input
+and approximates `OR` with one-sided error `≤ p^{-t}` on nonzero inputs (error bound deferred). -/
+noncomputable def orApprox (p : ℕ) {m t : ℕ} (R : Fin t → Fin m → ZMod p) :
+    MvPolynomial (Fin m) (ZMod p) :=
+  1 - orApproxProd p R
+
+/-- **Degree of the `t`-fold product:** `totalDegree (orApproxProd p R) ≤ (p-1)·t` — the `t` degree-`(p-1)`
+atoms (`linFormTest_totalDegree_le`) compose additively under `totalDegree_finset_prod`. -/
+theorem orApproxProd_totalDegree_le (p : ℕ) [Fact p.Prime] {m t : ℕ}
+    (R : Fin t → Fin m → ZMod p) :
+    (orApproxProd p R).totalDegree ≤ (p - 1) * t := by
+  rw [orApproxProd]
+  refine le_trans (totalDegree_finset_prod _ _) ?_
+  refine le_trans (Finset.sum_le_sum (fun k _ => linFormTest_totalDegree_le p (R k))) ?_
+  rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul]
+  exact Nat.le_of_eq (Nat.mul_comm t (p - 1))
+
+/-- **Degree of the OR approximator:** `totalDegree (orApprox p R) ≤ (p-1)·t`.  Subtracting from the
+constant `1` cannot raise the degree (`totalDegree_sub`), so the bound transfers from
+`orApproxProd_totalDegree_le`. -/
+theorem orApprox_totalDegree_le (p : ℕ) [Fact p.Prime] {m t : ℕ}
+    (R : Fin t → Fin m → ZMod p) :
+    (orApprox p R).totalDegree ≤ (p - 1) * t := by
+  rw [orApprox]
+  refine le_trans (totalDegree_sub _ _) ?_
+  rw [totalDegree_one, Nat.zero_max]
+  exact orApproxProd_totalDegree_le p R
+
+/-- **All-false correctness:** evaluating the OR approximator on the all-zero `{0,1}` input gives `0`
+exactly.  Each linear form `∑_i R k i · 0` vanishes, so each `linFormTest` evaluates to
+`1 - 0^{p-1} = 1`; the product is `1` and `orApprox = 1 - 1 = 0`. -/
+theorem orApprox_eval_allFalse (p : ℕ) [Fact p.Prime] {m t : ℕ}
+    (R : Fin t → Fin m → ZMod p) :
+    eval (fun i => boolToZMod p ((fun _ => false) i)) (orApprox p R) = 0 := by
+  have hp1 : p - 1 ≠ 0 := by
+    have h2 := (Fact.out (p := p.Prime)).two_le; omega
+  have hatom : ∀ k, eval (fun i => boolToZMod p ((fun _ => false) i)) (linFormTest p (R k)) = 1 := by
+    intro k
+    rw [linFormTest]
+    simp only [map_sub, map_one, map_pow, map_sum, map_mul, eval_C, eval_X,
+      boolToZMod_false, mul_zero, Finset.sum_const_zero, zero_pow hp1, sub_zero]
+  rw [orApprox, orApproxProd]
+  simp only [map_sub, map_one, map_prod, hatom, Finset.prod_const_one, sub_self]
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.linFormTest_totalDegree_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orForm_agreement
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApproxProd_totalDegree_le
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_totalDegree_le
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_eval_allFalse

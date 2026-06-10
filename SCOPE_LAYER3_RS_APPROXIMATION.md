@@ -52,7 +52,8 @@ The slack between `n/2 + Δ` and the function-count is where `Δ = o(√n)` (hen
 | Fermat indicator (`MOD_p`, single-form atom) | ✓ built (`fermat_indicator`, `linFormTest`) |
 | single-form test **degree** `≤ p-1` | ✓ built (`linFormTest_totalDegree_le`) |
 | OR single-form **agreement** (`#{form ≠ 0} = p^m - p^(m-1)`) | ✓ built (`orForm_agreement`) — exact hyperplane count via the nonzero functional's kernel (`finrank_range_add_finrank_ker` + `Module.card_eq_pow_finrank`) |
-| gate → approximant **degree composition** `(p-1)t` | small (product of `t` tests) |
+| gate → approximant **degree composition** `(p-1)t` | ✓ built (`orApproxProd`, `orApprox`; `orApproxProd_totalDegree_le`, `orApprox_totalDegree_le` ≤ `(p-1)·t` via `totalDegree_finset_prod` + `linFormTest_totalDegree_le`; plus `orApprox_eval_allFalse` = `0` on all-zero input) |
+| `t`-fold amplification **agreement/error** `≤ p^{-t}` | the next frontier (bad samples for nonzero input = `(p^{m-1})^t` of `(p^m)^t`; `t`-fold of `orForm_agreement`) |
 | depth-`d` **union bound** over gates | medium |
 | Smolensky **dimension** bound (#low-degree monomials) | the analytic crux |
 | final `MOD_q ∉ AC⁰[p]` | the capstone (do **not** build until the above are real) |
