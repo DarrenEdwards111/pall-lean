@@ -33,7 +33,8 @@ noncomputable def toAgree (p t : ℕ) (R : (k : ℕ) → Fin t → Fin k → ZMo
   | .not c => 1 - toAgree p t R c
   | .orGate cs => genOrApprox p (R cs.length) (fun j => toAgree p t R (cs.get j))
   | .andGate cs => 1 - genOrApprox p (R cs.length) (fun j => 1 - toAgree p t R (cs.get j))
-  | .modGate _ _ _ => 0
+  | .modGate _ r cs =>
+      1 - ((∑ j : Fin cs.length, toAgree p t R (cs.get j)) - C (r : ZMod p)) ^ (p - 1)
 decreasing_by
   all_goals simp_wf
   all_goals first
@@ -53,7 +54,7 @@ def AgreeGood (p t : ℕ) (R : (k : ℕ) → Fin t → Fin k → ZMod p) (x : Fi
   | .andGate cs => (∀ j : Fin cs.length, AgreeGood p t R x (cs.get j)) ∧
       ((∃ j : Fin cs.length, (!(cs.get j).eval x) = true) →
         ∃ s, ∑ j, R cs.length s j * boolToZMod p (!(cs.get j).eval x) ≠ 0)
-  | .modGate _ _ _ => False
+  | .modGate q _ cs => (∀ j : Fin cs.length, AgreeGood p t R x (cs.get j)) ∧ q = p
 decreasing_by
   all_goals simp_wf
   all_goals first
@@ -80,6 +81,18 @@ theorem andGate_eval_iff (cs : List (BoolCircuitSyntax n)) (x : Fin n → Bool) 
   · rintro h b ⟨c, hc, rfl⟩
     obtain ⟨j, hj⟩ := List.mem_iff_get.mp hc
     rw [← hj]; exact h j
+
+/-- **Modular count.**  Summing `boolToZMod` of a Boolean-valued function over a list's indices equals
+the number of `true` entries (cast to `ZMod p`) — the bridge for the `MOD` gate's Fermat indicator. -/
+theorem sum_boolToZMod_get {α : Type*} (p : ℕ) (f : α → Bool) : ∀ (cs : List α),
+    (∑ j : Fin cs.length, boolToZMod p (f (cs.get j))) = (((cs.map f).filter id).length : ZMod p)
+  | [] => by simp
+  | c :: cs => by
+      show (∑ j : Fin (cs.length + 1), boolToZMod p (f ((c :: cs).get j))) = _
+      rw [Fin.sum_univ_succ]
+      simp only [List.get_cons_zero, List.get_cons_succ', List.map_cons, List.filter_cons]
+      rw [sum_boolToZMod_get p f cs]
+      cases f c <;> simp [boolToZMod] <;> push_cast <;> ring
 
 /-- **The recursive agreement lift.**  On any *good* input, the OR/NOT/leaf circuit approximant
 evaluates to the true circuit value. -/
@@ -130,7 +143,27 @@ theorem toAgree_eval (p t : ℕ) [Fact p.Prime] (R : (k : ℕ) → Fin t → Fin
       · rw [Bool.not_eq_true] at hev
         rw [if_pos (hexists_iff.mpr hev), hev]
         simp [boolToZMod]
-  | .modGate _ _ _, hg => by simp only [AgreeGood] at hg
+  | .modGate q r cs, hg => by
+      simp only [AgreeGood] at hg
+      obtain ⟨hchildren, hqp⟩ := hg
+      have hp1 : p - 1 ≠ 0 := by have := (Fact.out (p := p.Prime)).two_le; omega
+      have hsum : (∑ j : Fin cs.length, eval (fun i => boolToZMod p (x i)) (toAgree p t R (cs.get j)))
+          = ∑ j : Fin cs.length, boolToZMod p ((cs.get j).eval x) :=
+        Finset.sum_congr rfl (fun j _ => toAgree_eval p t R x (cs.get j) (hchildren j))
+      simp only [toAgree, map_sub, map_one, map_pow, map_sum, eval_C, BoolCircuitSyntax.eval]
+      rw [hqp, hsum, sum_boolToZMod_get p (fun C => C.eval x) cs]
+      generalize ((cs.map (fun C => C.eval x)).filter id).length = N
+      by_cases hmod : (N : ZMod p) = (r : ZMod p)
+      · rw [show ((N : ZMod p) - (r : ZMod p)) = 0 from by rw [hmod, sub_self],
+          zero_pow hp1, sub_zero]
+        have hd : decide (N % p = r % p) = true := by
+          simp [(ZMod.natCast_eq_natCast_iff' N r p).mp hmod]
+        rw [hd, boolToZMod_true]
+      · rw [ZMod.pow_card_sub_one_eq_one (sub_ne_zero.mpr hmod), sub_self]
+        have hd : decide (N % p = r % p) = false := by
+          simp only [decide_eq_false_iff_not]
+          exact fun h => hmod ((ZMod.natCast_eq_natCast_iff' N r p).mpr h)
+        rw [hd, boolToZMod_false]
 decreasing_by
   all_goals simp_wf
   all_goals first
@@ -143,4 +176,5 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.AgreeGood
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orGate_eval_iff
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.andGate_eval_iff
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.sum_boolToZMod_get
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree_eval
