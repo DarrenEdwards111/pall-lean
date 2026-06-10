@@ -2,6 +2,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer3AC0pFoundations
 import Mathlib.Data.Nat.Choose.Sum
 import Mathlib.Data.Finset.Powerset
 import Mathlib.Data.ZMod.Basic
+import Mathlib.LinearAlgebra.Dimension.Constructions
 
 /-!
 # Layer 3 — Razborov–Smolensky dimension count (#low-degree monomials)
@@ -119,6 +120,58 @@ theorem boolToZMod_pow_succ (p : ℕ) (b : Bool) (e : ℕ) :
   · exact zero_pow (Nat.succ_ne_zero e)
   · exact one_pow _
 
+/-! ## The linear-algebra bridge: dimension ≤ #low-degree monomials
+
+The dimension count becomes a *Smolensky dimension tool* once we connect it to the actual function
+space.  On the Boolean cube, the squarefree monomial `∏_{i∈S} X_i` becomes the **evaluation function**
+`x ↦ ∏_{i∈S} x_i` (`squarefreeEvalMonomial`).  These evaluation functions, ranging over the low-degree
+monomials `S ∈ lowDegMonomials n D`, span a subspace of the function space `(Fin n → Bool) → ZMod p`
+whose dimension is at most their number — and that number is the count `∑_{k≤D} C(n,k)`
+(`lowDegMonomials_card`).  This is the "dimension ≤ #monomials" half of the Smolensky argument.
+
+(The other half — that *every* function on the agreement set `G` lands in this span after the
+`MOD_q`-reduction, pushing the degree to `n/2 + Δ` — is the composition step, deferred.) -/
+
+/-- The **Boolean-cube evaluation function** of the squarefree monomial with support `S`:
+`x ↦ ∏_{i∈S} x_i` (over `ZMod p`, with `x_i ∈ {0,1}` via `boolToZMod`). -/
+noncomputable def squarefreeEvalMonomial (p : ℕ) {n : ℕ} (S : Finset (Fin n)) :
+    (Fin n → Bool) → ZMod p :=
+  fun x => ∏ i ∈ S, boolToZMod p (x i)
+
+/-- Each low-degree squarefree evaluation function is, trivially, in the span of the family — these are
+the generators.  (After the `MOD_q`-reduction every cube function reduces to such a combination; that
+reduction is the deferred composition step.) -/
+theorem squarefreeEvalMonomial_mem_span (p : ℕ) [Fact p.Prime] {n D : ℕ}
+    {S : Finset (Fin n)} (hS : S ∈ lowDegMonomials n D) :
+    squarefreeEvalMonomial p S ∈ Submodule.span (ZMod p)
+      (Set.range (fun T : {T // T ∈ lowDegMonomials n D} => squarefreeEvalMonomial p T.1)) :=
+  Submodule.subset_span ⟨⟨S, hS⟩, rfl⟩
+
+/-- **The dimension bridge.**  The span of the low-degree squarefree evaluation functions has
+`ZMod p`-dimension at most the number of low-degree monomials `∑_{k≤D} C(n,k)`
+(`lowDegMonomials_card`).  This turns the combinatorial count into a genuine bound on the dimension of
+the space of functions a degree-`≤D` multilinear polynomial can realise on the cube. -/
+theorem finrank_span_lowDegEval_le_card (p n D : ℕ) [Fact p.Prime] :
+    Module.finrank (ZMod p)
+      (Submodule.span (ZMod p)
+        (Set.range (fun S : {S // S ∈ lowDegMonomials n D} => squarefreeEvalMonomial p S.1)))
+      ≤ (lowDegMonomials n D).card := by
+  classical
+  refine le_trans (finrank_span_le_card _) ?_
+  rw [Set.toFinset_range]
+  refine le_trans Finset.card_image_le (le_of_eq ?_)
+  rw [Finset.card_univ, Fintype.card_coe]
+
+/-- **Dimension bridge, count form.**  Chaining the bridge with `lowDegMonomials_card`, the span
+dimension is at most `∑_{k=0}^{D} C(n,k)` — the explicit Smolensky low-degree dimension bound. -/
+theorem finrank_span_lowDegEval_le_sum (p n D : ℕ) [Fact p.Prime] :
+    Module.finrank (ZMod p)
+      (Submodule.span (ZMod p)
+        (Set.range (fun S : {S // S ∈ lowDegMonomials n D} => squarefreeEvalMonomial p S.1)))
+      ≤ ∑ k ∈ Finset.range (D + 1), n.choose k := by
+  rw [← lowDegMonomials_card]
+  exact finrank_span_lowDegEval_le_card p n D
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.lowDegMonomials_card
@@ -127,3 +180,6 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.lowDegMonomials_card_lt_two_pow
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.lowDegMonomials_card_halfway
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.boolToZMod_pow_succ
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.squarefreeEvalMonomial_mem_span
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.finrank_span_lowDegEval_le_card
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.finrank_span_lowDegEval_le_sum
