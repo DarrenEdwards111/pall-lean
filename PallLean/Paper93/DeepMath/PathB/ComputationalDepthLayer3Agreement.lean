@@ -345,6 +345,23 @@ theorem gateFanin_mem_fanins {n : ℕ} {C G : BoolCircuitSyntax n} (hG : G ∈ s
     gateFanin G ∈ fanins C :=
   List.mem_toFinset.mpr (List.mem_map.mpr ⟨G, hG, rfl⟩)
 
+/-- The **joint form space** of a circuit: an independent form tuple per occurring fan-in.  Finite (a
+`Fintype`), the `Φ` of `exists_form_total_errors`. -/
+abbrev FormSpace (p t : ℕ) {n : ℕ} (C : BoolCircuitSyntax n) : Type :=
+  ∀ k : {k // k ∈ fanins C}, Fin t → Fin k.1 → ZMod p
+
+/-- Extend a joint form choice to a full per-fan-in oracle (default `0` off the occurring fan-ins). -/
+noncomputable def oracleOf (p t : ℕ) {n : ℕ} (C : BoolCircuitSyntax n) (ω : FormSpace p t C) :
+    (k : ℕ) → Fin t → Fin k → ZMod p :=
+  fun k => if h : k ∈ fanins C then ω ⟨k, h⟩ else fun _ _ => 0
+
+/-- **Coordinate extraction.**  At an occurring fan-in `k`, the oracle reads exactly the `k`-coordinate
+of the joint form choice. -/
+theorem oracleOf_eq (p t : ℕ) {n : ℕ} (C : BoolCircuitSyntax n) (ω : FormSpace p t C)
+    {k : ℕ} (h : k ∈ fanins C) :
+    oracleOf p t C ω k = ω ⟨k, h⟩ :=
+  dif_pos h
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree
