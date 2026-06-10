@@ -53,7 +53,20 @@ API.  (Reminder: parity is *easy* for `AC⁰[2]`; the genuine Layer-3 target is 
 theorem parity_eq_modCountFn (x : Fin n → Bool) : parity x = modCountFn 2 1 x := by
   simp [parity, modCountFn, Nat.odd_iff]
 
+/-- **Field-sum ↔ Hamming-weight bridge.**  Over `ZMod p`, the sum of the `{0,1}`-embedded input bits is
+the Hamming weight (mod `p`): `∑_i boolToZMod p (x i) = (trueCount x : ZMod p)`.  This is the identity
+that lets a `MOD_p` gate be read as a *field equation* (`∑ = r`) — the entry point of the
+Razborov–Smolensky polynomial representation.  (The expander-restriction *ingredient* is walled, see
+`SCOPE_LAYER3_EXPANDER_RESTRICTIONS.md` CORRECTION; this resumes the actual engine.) -/
+theorem sum_boolToZMod (p : ℕ) (x : Fin n → Bool) :
+    ∑ i, boolToZMod p (x i) = (trueCount x : ZMod p) := by
+  rw [trueCount, Finset.card_filter, Nat.cast_sum]
+  apply Finset.sum_congr rfl
+  intro i _
+  cases hxi : x i <;> simp [boolToZMod, hxi]
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.boolToZMod_sq
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.parity_eq_modCountFn
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.sum_boolToZMod
