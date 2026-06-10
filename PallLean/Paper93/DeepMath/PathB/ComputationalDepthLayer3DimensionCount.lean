@@ -3,6 +3,10 @@ import Mathlib.Data.Nat.Choose.Sum
 import Mathlib.Data.Finset.Powerset
 import Mathlib.Data.ZMod.Basic
 import Mathlib.LinearAlgebra.Dimension.Constructions
+import Mathlib.Algebra.Algebra.Operations
+import Mathlib.LinearAlgebra.StdBasis
+import Mathlib.Algebra.BigOperators.Pi
+import Mathlib.Algebra.BigOperators.GroupWithZero.Finset
 
 /-!
 # Layer 3 — Razborov–Smolensky dimension count (#low-degree monomials)
@@ -35,6 +39,7 @@ below P vs NP; AC⁰[p] is a higher circuit-lower-bound layer.
 namespace PallLean.Paper93.DeepMath.PathB.Layer3
 
 open Finset
+open scoped Pointwise
 
 /-- The **multilinear (squarefree) monomials of total degree `≤ D`** in `n` variables, presented as the
 subsets of `Fin n` of cardinality `≤ D` (a monomial `∏_{i∈s} X_i` has support `s` and degree `|s|`). -/
@@ -257,6 +262,115 @@ theorem squarefreeEvalMonomial_mul_card_le (p : ℕ) {n : ℕ} (S T : Finset (Fi
         ∧ U.card ≤ S.card + T.card :=
   ⟨S ∪ T, squarefreeEvalMonomial_mul p S T, Finset.card_union_le S T⟩
 
+/-! ## Spanning: the squarefree monomials span the entire cube-function space
+
+The other half of the dimension argument's easy direction: the squarefree evaluation monomials don't
+just bound the dimension from above — they actually **span** the whole function space
+`(Fin n → Bool) → ZMod p`.  The engine is the algebraic lever (`squarefreeEvalMonomial_mul`): it makes
+the span a *subalgebra* (`mul_mem_squarefreeSpan`), so the indicator of a point,
+`δ_y = ∏_i (y_i ? x_i : 1-x_i)`, being a product of degree-`≤1` monomials, lands in the span
+(`single_eq_prod_factor` + `prod_mem_squarefreeSpan`); the indicators are a basis, so the span is all of
+the space (`squarefreeSpan_eq_top`).  Consequently *every* Boolean function is a multilinear polynomial
+over `ZMod p` (`mem_squarefreeSpan`). -/
+
+/-- The submodule spanned by **all** squarefree evaluation monomials in `n` variables. -/
+noncomputable def squarefreeSpan (p n : ℕ) :
+    Submodule (ZMod p) ((Fin n → Bool) → ZMod p) :=
+  Submodule.span (ZMod p) (Set.range (fun S : Finset (Fin n) => squarefreeEvalMonomial p S))
+
+/-- Each squarefree monomial is a generator, hence in the span. -/
+theorem squarefreeEvalMonomial_mem_squarefreeSpan (p n : ℕ) (S : Finset (Fin n)) :
+    squarefreeEvalMonomial p S ∈ squarefreeSpan p n :=
+  Submodule.subset_span ⟨S, rfl⟩
+
+/-- `1 = e_∅` is in the span. -/
+theorem one_mem_squarefreeSpan (p n : ℕ) :
+    (1 : (Fin n → Bool) → ZMod p) ∈ squarefreeSpan p n := by
+  have h1 : (1 : (Fin n → Bool) → ZMod p) = squarefreeEvalMonomial p (∅ : Finset (Fin n)) :=
+    (squarefreeEvalMonomial_empty p).symm
+  rw [h1]
+  exact squarefreeEvalMonomial_mem_squarefreeSpan p n ∅
+
+/-- **The span is multiplicatively closed** (a subalgebra): products of generators are generators
+(`squarefreeEvalMonomial_mul`), so `span · span ≤ span`. -/
+theorem mul_mem_squarefreeSpan (p n : ℕ) {u v : (Fin n → Bool) → ZMod p}
+    (hu : u ∈ squarefreeSpan p n) (hv : v ∈ squarefreeSpan p n) :
+    u * v ∈ squarefreeSpan p n := by
+  have hdef : squarefreeSpan p n
+      = Submodule.span (ZMod p)
+          (Set.range (fun S : Finset (Fin n) => squarefreeEvalMonomial p S)) := rfl
+  have hclosed : squarefreeSpan p n * squarefreeSpan p n ≤ squarefreeSpan p n := by
+    rw [hdef, Submodule.span_mul_span, Submodule.span_le]
+    rintro c hc
+    rw [Set.mem_mul] at hc
+    obtain ⟨a, ⟨S, rfl⟩, b, ⟨T, rfl⟩, rfl⟩ := hc
+    rw [squarefreeEvalMonomial_mul]
+    exact Submodule.subset_span ⟨S ∪ T, rfl⟩
+  exact hclosed (Submodule.mul_mem_mul hu hv)
+
+/-- A finite product of span members is a span member (multiplicative closure + `1 ∈ span`). -/
+theorem prod_mem_squarefreeSpan (p n : ℕ) {ι : Type*} (s : Finset ι)
+    (g : ι → (Fin n → Bool) → ZMod p) (hg : ∀ i ∈ s, g i ∈ squarefreeSpan p n) :
+    (∏ i ∈ s, g i) ∈ squarefreeSpan p n :=
+  Finset.prod_induction g (· ∈ squarefreeSpan p n)
+    (fun _ _ ha hb => mul_mem_squarefreeSpan p n ha hb)
+    (one_mem_squarefreeSpan p n) hg
+
+/-- Each indicator factor `x ↦ (y_i ? x_i : 1-x_i)` is in the span: it is `e_{i}` (degree-1 monomial)
+when `y_i = true`, and `1 - e_{i}` when `y_i = false`. -/
+theorem factor_mem_squarefreeSpan (p n : ℕ) (y : Fin n → Bool) (i : Fin n) :
+    (fun x : Fin n → Bool => if y i then boolToZMod p (x i) else 1 - boolToZMod p (x i))
+      ∈ squarefreeSpan p n := by
+  by_cases hyi : y i = true
+  · have he : (fun x : Fin n → Bool =>
+          if y i then boolToZMod p (x i) else 1 - boolToZMod p (x i))
+        = squarefreeEvalMonomial p ({i} : Finset (Fin n)) := by
+      funext x
+      simp [hyi, squarefreeEvalMonomial, Finset.prod_singleton]
+    rw [he]
+    exact squarefreeEvalMonomial_mem_squarefreeSpan p n {i}
+  · have he : (fun x : Fin n → Bool =>
+          if y i then boolToZMod p (x i) else 1 - boolToZMod p (x i))
+        = 1 - squarefreeEvalMonomial p ({i} : Finset (Fin n)) := by
+      funext x
+      simp [hyi, squarefreeEvalMonomial, Finset.prod_singleton, Pi.sub_apply, Pi.one_apply]
+    rw [he]
+    exact Submodule.sub_mem _ (one_mem_squarefreeSpan p n)
+      (squarefreeEvalMonomial_mem_squarefreeSpan p n {i})
+
+/-- **Indicator as a monomial product.**  The point indicator `Pi.single y 1` equals the product over
+coordinates of the degree-`≤1` factors `(y_i ? x_i : 1-x_i)` — value `1` iff `x = y`, else `0`. -/
+theorem single_eq_prod_factor (p n : ℕ) (y : Fin n → Bool) :
+    (Pi.single y (1 : ZMod p) : (Fin n → Bool) → ZMod p)
+      = ∏ i, (fun x : Fin n → Bool =>
+          if y i then boolToZMod p (x i) else 1 - boolToZMod p (x i)) := by
+  funext x
+  rw [Finset.prod_apply, Pi.single_apply]
+  have hfac : ∀ i : Fin n,
+      (if y i then boolToZMod p (x i) else 1 - boolToZMod p (x i))
+        = (if x i = y i then (1 : ZMod p) else 0) := by
+    intro i; cases y i <;> cases x i <;> simp [boolToZMod_true, boolToZMod_false]
+  simp_rw [hfac]
+  rw [Fintype.prod_boole]
+  by_cases h : x = y
+  · subst h; simp
+  · rw [if_neg h, if_neg (fun hall => h (funext hall))]
+
+/-- **Spanning.**  The squarefree evaluation monomials span the entire cube-function space:
+`squarefreeSpan p n = ⊤`.  (The point indicators `Pi.single y 1` form a basis and each lies in the
+span as a product of degree-`≤1` factors.) -/
+theorem squarefreeSpan_eq_top (p n : ℕ) : squarefreeSpan p n = ⊤ := by
+  rw [eq_top_iff, ← (Pi.basisFun (ZMod p) (Fin n → Bool)).span_eq, Submodule.span_le]
+  rintro _ ⟨y, rfl⟩
+  rw [Pi.basisFun_apply, single_eq_prod_factor]
+  exact prod_mem_squarefreeSpan p n _ _ (fun i _ => factor_mem_squarefreeSpan p n y i)
+
+/-- **Every Boolean function is a multilinear polynomial.**  Each `f : (Fin n → Bool) → ZMod p` is a
+`ZMod p`-linear combination of squarefree monomials. -/
+theorem mem_squarefreeSpan (p n : ℕ) (f : (Fin n → Bool) → ZMod p) :
+    f ∈ squarefreeSpan p n := by
+  rw [squarefreeSpan_eq_top]; exact Submodule.mem_top
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.lowDegMonomials_card
@@ -274,3 +388,7 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.squarefreeEvalMonomial_empty
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.squarefreeEvalMonomial_mul
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.squarefreeEvalMonomial_mul_card_le
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.mul_mem_squarefreeSpan
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.single_eq_prod_factor
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.squarefreeSpan_eq_top
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.mem_squarefreeSpan
