@@ -322,6 +322,29 @@ theorem localGood_fail_count (p : ℕ) [Fact p.Prime] {m t : ℕ} (v : Fin m →
         rw [Finset.filter_eq_empty_iff]; intro ρ _; simp only [hv, false_and, not_false_iff]]
     simp
 
+/-! ## Fan-in enumeration (the `Φ`-index for the averaging instantiation)
+
+The joint form space `Φ` is indexed by the gate fan-ins occurring in the circuit.  `gateFanin` reads a
+gate's fan-in (`0` at non-gates), `fanins C` collects them, and `gateFanin_mem_fanins` confirms every
+subcircuit's fan-in is indexed — the membership the coordinate extraction (`oracleOf ω k = ω ⟨k,_⟩`)
+relies on. -/
+
+/-- A gate's fan-in (number of children); `0` at leaves/`¬`. -/
+def gateFanin {n : ℕ} : BoolCircuitSyntax n → ℕ
+  | .orGate cs => cs.length
+  | .andGate cs => cs.length
+  | .modGate _ _ cs => cs.length
+  | _ => 0
+
+/-- The finite set of gate fan-ins occurring in a circuit (the `Φ`-index). -/
+def fanins {n : ℕ} (C : BoolCircuitSyntax n) : Finset ℕ :=
+  ((subcircuits C).map gateFanin).toFinset
+
+/-- Every subcircuit's fan-in is indexed by `fanins C`. -/
+theorem gateFanin_mem_fanins {n : ℕ} {C G : BoolCircuitSyntax n} (hG : G ∈ subcircuits C) :
+    gateFanin G ∈ fanins C :=
+  List.mem_toFinset.mpr (List.mem_map.mpr ⟨G, hG, rfl⟩)
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree
@@ -336,3 +359,4 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.agreeGood_of_forall
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.cbad_subset_gates
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.localGood_fail_count
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.gateFanin_mem_fanins
