@@ -370,6 +370,35 @@ theorem genOrApprox_eval (p : ℕ) [Fact p.Prime] {N k t : ℕ} (R : Fin t → F
   rw [Fintype.prod_boole]
   by_cases h : (∀ s, ∑ j, R s j * eval pt (q j) = 0) <;> simp [h]
 
+/-- **NOT-gate correctness step.**  On a `{0,1}` value, `1 - boolToZMod b = boolToZMod (!b)` — the
+inductive step for `not` gates (the approximant `1 - childApprox` flips a correct child). -/
+theorem one_sub_boolToZMod (p : ℕ) (b : Bool) :
+    1 - boolToZMod p b = boolToZMod p (!b) := by
+  cases b <;> simp [boolToZMod]
+
+/-- **OR-gate correctness step.**  If the children approximants are correct at `pt`
+(`eval pt (q_j) = boolToZMod p (b_j)` for the true child values `b_j`), and the gate is *good*
+(when some child is true, some sampled form over the true values is nonzero), then the OR approximant
+computes the children's OR: `eval pt (genOrApprox p R q) = 1` iff some `b_j` is true.  This is the
+inductive step for `∨` gates in the recursive agreement lift. -/
+theorem genOrApprox_eval_orOfChildren (p : ℕ) [Fact p.Prime] {N k t : ℕ}
+    (R : Fin t → Fin k → ZMod p) (q : Fin k → MvPolynomial (Fin N) (ZMod p))
+    (pt : Fin N → ZMod p) (b : Fin k → Bool)
+    (hchild : ∀ j, eval pt (q j) = boolToZMod p (b j))
+    (hgood : (∃ j, b j = true) → ∃ s, ∑ j, R s j * boolToZMod p (b j) ≠ 0) :
+    eval pt (genOrApprox p R q) = if (∃ j, b j = true) then (1 : ZMod p) else 0 := by
+  rw [genOrApprox_eval]
+  simp only [hchild]
+  by_cases hor : ∃ j, b j = true
+  · rw [if_neg (not_forall.mpr (hgood hor)), if_pos hor]
+  · have hall : ∀ j, b j = false := by
+      intro j; cases hbj : b j
+      · rfl
+      · exact absurd ⟨j, hbj⟩ hor
+    have hform0 : ∀ s, ∑ j, R s j * boolToZMod p (b j) = 0 := by
+      intro s; simp only [hall, boolToZMod_false, mul_zero, Finset.sum_const_zero]
+    rw [if_pos hform0, if_neg hor]
+
 /-- `genOrApprox_eval` recovers `orApprox_eval` at `q_j = X_j`, `pt = boolToZMod ∘ x`. -/
 theorem genOrApprox_eval_eq_orApprox_eval (p : ℕ) [Fact p.Prime] {m t : ℕ}
     (R : Fin t → Fin m → ZMod p) (x : Fin m → Bool) :
@@ -392,6 +421,8 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_disagree_count
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genOrApprox_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.one_sub_boolToZMod
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genOrApprox_eval_orOfChildren
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genOrApprox_eval_eq_orApprox_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genLinFormTest_eq_linFormTest
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genLinFormTest_totalDegree_le
