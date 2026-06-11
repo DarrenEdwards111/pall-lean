@@ -209,6 +209,72 @@ theorem lowDegMonomials_card_band_margin (m Δ : ℕ) (hΔ : 16 * Δ ^ 2 < 2 * m
     _ < 4 * 2 ^ (2 * m) + 2 * 2 ^ (2 * m) := by gcongr
     _ = 6 * 2 ^ (2 * m) := by ring
 
+/-! ## Smolensky degree-halving (the `MOD_q`-reduction mechanism)
+
+The dimension contradiction needs every function on the agreement set `G` to be a degree-`(n/2+Δ)`
+polynomial.  The mechanism: pass to the `±1` cube (`pmOne`), where `y² = 1`, so a monomial
+`χ_S = ∏_{i∈S} y_i` equals `χ_univ · χ_{Sᶜ}` (the full product times the complementary monomial of
+degree `n-|S|`).  Once `χ_univ` agrees on `G` with the degree-`Δ` `AC⁰[p]` approximant `g`, a
+high-degree monomial (`|S| > n/2`) collapses to `g · χ_{Sᶜ}` of degree `≤ Δ + (n-|S|) ≤ Δ + n/2`. -/
+
+/-- `±1` encoding of a Boolean over `ZMod p` (`true ↦ -1`, `false ↦ 1`). -/
+def pmOne (p : ℕ) (b : Bool) : ZMod p := if b then -1 else 1
+
+/-- `(±1)² = 1` — the squaring identity underlying the degree-halving. -/
+theorem pmOne_mul_self (p : ℕ) (b : Bool) : pmOne p b * pmOne p b = 1 := by cases b <;> simp [pmOne]
+
+/-- **Degree-halving (evaluation form).**  `χ_univ · χ_{Sᶜ} = χ_S` on the `±1` cube. -/
+theorem pm_monomial_halving (p : ℕ) {n : ℕ} (S : Finset (Fin n)) (x : Fin n → Bool) :
+    (∏ i, pmOne p (x i)) * (∏ i ∈ Sᶜ, pmOne p (x i)) = ∏ i ∈ S, pmOne p (x i) := by
+  rw [← Finset.prod_mul_prod_compl S (fun i => pmOne p (x i)), mul_assoc, ← Finset.prod_mul_distrib]
+  simp only [pmOne_mul_self, Finset.prod_const_one, mul_one]
+
+open MvPolynomial in
+/-- The `±1` monomial `χ_S = ∏_{i∈S} (1 - 2 X_i)` as a polynomial (degree `≤ |S|`). -/
+noncomputable def pmMonomial (p : ℕ) {n : ℕ} (S : Finset (Fin n)) : MvPolynomial (Fin n) (ZMod p) :=
+  ∏ i ∈ S, (1 - 2 * X i)
+
+open MvPolynomial in
+/-- `χ_S` has total degree `≤ |S|` (each factor `1 - 2 X_i` is degree `≤ 1`). -/
+theorem pmMonomial_totalDegree_le (p : ℕ) [Fact p.Prime] {n : ℕ} (S : Finset (Fin n)) :
+    (pmMonomial p S).totalDegree ≤ S.card := by
+  refine le_trans (totalDegree_finset_prod S _) ?_
+  refine le_trans (Finset.sum_le_sum (fun i _ => ?_)) (by rw [Finset.sum_const, smul_eq_mul, mul_one])
+  refine le_trans (totalDegree_sub _ _) (max_le ?_ ?_)
+  · rw [totalDegree_one]; exact Nat.zero_le 1
+  · calc (2 * X i : MvPolynomial (Fin n) (ZMod p)).totalDegree
+        ≤ (2 : MvPolynomial (Fin n) (ZMod p)).totalDegree + (X i).totalDegree := totalDegree_mul _ _
+      _ = 1 := by
+          rw [show (2 : MvPolynomial (Fin n) (ZMod p)) = C 2 from (map_ofNat C 2).symm,
+            totalDegree_C, totalDegree_X]
+
+open MvPolynomial in
+/-- `χ_S` evaluated at `boolToZMod ∘ x` is `∏_{i∈S} pmOne (x i)` (so the polynomial represents the
+`±1` monomial function on the cube). -/
+theorem pmMonomial_eval (p : ℕ) {n : ℕ} (S : Finset (Fin n)) (x : Fin n → Bool) :
+    eval (fun i => boolToZMod p (x i)) (pmMonomial p S) = ∏ i ∈ S, pmOne p (x i) := by
+  rw [pmMonomial, map_prod]
+  refine Finset.prod_congr rfl (fun i _ => ?_)
+  simp only [map_sub, map_one, map_mul, map_ofNat, eval_X, boolToZMod, pmOne]
+  cases x i <;> simp <;> ring
+
+open MvPolynomial in
+/-- **The `MOD_q`-reduction step.**  If a degree-`Δ` polynomial `g` represents the full `±1` product
+`χ_univ` on `G`, then *every* `±1` monomial `χ_S` agrees on `G` with a polynomial of degree
+`≤ Δ + (n-|S|)` (namely `g · χ_{Sᶜ}`).  For `|S| > n/2` this is `≤ Δ + n/2` — the degree-halving that
+collapses the dimension of functions on `G` to the low-degree count. -/
+theorem pm_monomial_reduction (p : ℕ) [Fact p.Prime] {n : ℕ} (G : Finset (Fin n → Bool)) (Δ : ℕ)
+    (g : MvPolynomial (Fin n) (ZMod p)) (hgdeg : g.totalDegree ≤ Δ)
+    (hg : ∀ x ∈ G, eval (fun i => boolToZMod p (x i)) g = ∏ i, pmOne p (x i))
+    (S : Finset (Fin n)) :
+    ∃ h : MvPolynomial (Fin n) (ZMod p), h.totalDegree ≤ Δ + (n - S.card) ∧
+      ∀ x ∈ G, eval (fun i => boolToZMod p (x i)) h = ∏ i ∈ S, pmOne p (x i) := by
+  refine ⟨g * pmMonomial p Sᶜ, ?_, fun x hx => ?_⟩
+  · exact le_trans (totalDegree_mul _ _)
+      (le_trans (Nat.add_le_add hgdeg (pmMonomial_totalDegree_le p Sᶜ))
+        (le_of_eq (by rw [Finset.card_compl, Fintype.card_fin])))
+  · rw [map_mul, hg x hx, pmMonomial_eval]; exact pm_monomial_halving p S x
+
 /-- **Multilinear reduction lever.**  On a `{0,1}` value, `x^{e+1} = x` — the generalisation of
 `boolToZMod_sq` (`e = 1`) that collapses an arbitrary monomial `∏_i X_i^{e_i}` to the squarefree
 `∏_{i : e_i>0} X_i` on the cube, justifying the multilinear (subset) presentation of monomials. -/
@@ -515,6 +581,10 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.lowDegMonomials_card_halfway_margin
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.centralBinom_sq_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.lowDegMonomials_card_band_margin
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pm_monomial_halving
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pmMonomial_totalDegree_le
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pmMonomial_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pm_monomial_reduction
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.boolToZMod_pow_succ
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.squarefreeEvalMonomial_mem_span
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.finrank_span_lowDegEval_le_card
