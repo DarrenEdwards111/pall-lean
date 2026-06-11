@@ -729,6 +729,61 @@ theorem eval_mem_lowDegSpan (p : ℕ) [Fact p.Prime] {n : ℕ} (D : ℕ)
     exact ⟨Finset.subset_univ _, hcard⟩
   exact squarefreeEvalMonomial_mem_span p hmem
 
+open MvPolynomial in
+/-- **The dimension bound on `G`.**  Given a degree-`Δ` approximant `g` for `χ_univ` on `G`, the
+agreement set has `|G| ≤ #{deg≤(Δ+n/2) monomials}`.  (`every_function_repr`: every cube function has a
+degree-`≤(Δ+n/2)` representative on `G`; `eval_mem_lowDegSpan`: each such evaluation lies in the
+low-degree span; restrict to `G` via `LinearMap.funLeft Subtype.val` — its image of the low-degree span
+spans all of `↥G → ZMod p`, whose dimension is `|G|` (`finrank_functions_on_G`); bound by the number of
+low-degree monomials via `finrank_span_le_card`.) -/
+theorem dim_bound_on_G (p : ℕ) [Fact p.Prime] {n : ℕ} (hp2 : (2 : ZMod p) ≠ 0)
+    (G : Finset (Fin n → Bool)) (Δ : ℕ) (g : MvPolynomial (Fin n) (ZMod p)) (hgdeg : g.totalDegree ≤ Δ)
+    (hg : ∀ x ∈ G, eval (fun i => boolToZMod p (x i)) g = ∏ i, pmOne p (x i)) :
+    G.card ≤ (lowDegMonomials n (Δ + n / 2)).card := by
+  classical
+  set D := Δ + n / 2 with hD
+  let ρ : ((Fin n → Bool) → ZMod p) →ₗ[ZMod p] ({x // x ∈ G} → ZMod p) :=
+    LinearMap.funLeft (ZMod p) (ZMod p) Subtype.val
+  let T : Set ({x // x ∈ G} → ZMod p) :=
+    Set.range (fun S : {S // S ∈ lowDegMonomials n D} => ρ (squarefreeEvalMonomial p S.1))
+  have hspanT : Submodule.span (ZMod p) T = ⊤ := by
+    rw [eq_top_iff]
+    intro v _
+    obtain ⟨h, hdeg, heval⟩ := every_function_repr p hp2 G Δ g hgdeg hg
+      (fun x => if hx : x ∈ G then v ⟨x, hx⟩ else 0)
+    have hmem := eval_mem_lowDegSpan p D h hdeg
+    have hmap : ρ (fun x => eval (fun i => boolToZMod p (x i)) h) ∈ Submodule.span (ZMod p) T := by
+      have := Submodule.mem_map_of_mem (f := ρ) hmem
+      rwa [Submodule.map_span, ← Set.range_comp] at this
+    have hv : ρ (fun x => eval (fun i => boolToZMod p (x i)) h) = v := by
+      funext x
+      show eval (fun i => boolToZMod p (x.1 i)) h = v x
+      rw [heval x.1 x.2, dif_pos x.2]
+    rwa [hv] at hmap
+  rw [← finrank_functions_on_G p G, ← finrank_top (ZMod p) _, ← hspanT]
+  refine le_trans (finrank_span_le_card T) ?_
+  rw [Set.toFinset_range]
+  exact le_trans Finset.card_image_le (by rw [Finset.card_univ, Fintype.card_coe])
+
+open MvPolynomial in
+/-- **The Smolensky dimension contradiction.**  For `n = 2m+1`, suppose the full `±1` product `χ_univ`
+admits a degree-`Δ` polynomial representative `g` on `G` (the consequence of `MOD_q ∈ AC⁰[p]`), with the
+band-margin window `16Δ² < 2m+3` (so `Δ = O(√m)`) and the agreement lower bound `|G| ≥ (3/4)·2ⁿ`
+(integer form `3·2ⁿ ≤ 4·|G|`).  Then `False`: `dim_bound_on_G` gives `|G| ≤ #{deg≤Δ+m monomials}`, the
+band margin gives `4·#{…} < 3·2ⁿ`, and `4·|G| ≥ 3·2ⁿ` — incompatible.  This assembles the entire
+dimension half of the Razborov–Smolensky lower bound; the only remaining input is the
+approximant-existence hypotheses `(g, hgdeg, hg)` themselves (the `MOD_q`-specific analytic content). -/
+theorem smolensky_contradiction (p : ℕ) [Fact p.Prime] {m Δ : ℕ} (hp2 : (2 : ZMod p) ≠ 0)
+    (G : Finset (Fin (2 * m + 1) → Bool)) (g : MvPolynomial (Fin (2 * m + 1)) (ZMod p))
+    (hgdeg : g.totalDegree ≤ Δ)
+    (hg : ∀ x ∈ G, eval (fun i => boolToZMod p (x i)) g = ∏ i, pmOne p (x i))
+    (hwindow : 16 * Δ ^ 2 < 2 * m + 3) (hGsize : 3 * 2 ^ (2 * m + 1) ≤ 4 * G.card) : False := by
+  have hdim := dim_bound_on_G p hp2 G Δ g hgdeg hg
+  have hidx : Δ + (2 * m + 1) / 2 = m + Δ := by omega
+  rw [hidx] at hdim
+  have hband := lowDegMonomials_card_band_margin m Δ hwindow
+  omega
+
 /-! ## Union bound: the agreement set from per-gate errors
 
 Smolensky's composition replaces each of the `s` gates of an `AC⁰[p]` circuit by a probabilistic
@@ -788,6 +843,8 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.every_function_repr
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.finrank_functions_on_G
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.eval_mem_lowDegSpan
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.dim_bound_on_G
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.smolensky_contradiction
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pmMonomial_totalDegree_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pmMonomial_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pm_monomial_reduction
