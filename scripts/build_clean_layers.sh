@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Build + verify ONLY the clean computational-depth layers (Layer 3/4/7 + circuit model).
+# Build + verify ONLY the clean computational-depth layers (Layer 3/4/7/8/9 + circuit model + extraction).
 #
-# These 28 modules are sorry-free with standard axioms only, and are entirely independent of the
+# These 37 modules are sorry-free with standard axioms only, and are entirely independent of the
 # unrelated `PallLean.Step4Compiler` P-vs-NP experiment. A plain `lake build` of the whole `PallLean`
 # library would also try (and historically fail) to build `Step4Compiler`; this target builds exactly the
-# Razborov–Smolensky / `MOD_q` / nonuniform-family development and asserts zero `sorryAx`.
+# AC⁰[p] / general-circuit / frontier-infrastructure development and asserts zero `sorryAx`.
 #
 # Usage:  ./scripts/build_clean_layers.sh
 # Exit 0 iff every clean module builds and no capstone depends on `sorryAx`.
@@ -40,6 +40,15 @@ CLEAN_MODULES=(
   PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer7CircuitFamily
   PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer7ParityFamily
   PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer7ModqFamily
+  PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer8GeneralCircuit
+  PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer8Shannon
+  PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer8ShannonCount
+  PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer8ShannonExplicit
+  PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer8LinearBound
+  PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer9KarpLipton
+  PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer9PpolyLowerBound
+  PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer9NaturalProofs
+  PallLean.Paper93.DeepMath.PathB.ComputationalDepthMathlibCandidates
 )
 
 echo "== Building ${#CLEAN_MODULES[@]} clean computational-depth modules (excludes Step4Compiler) =="
@@ -50,6 +59,11 @@ CAPSTONE_CHECK=$(mktemp /tmp/clean_layers_axioms_XXXX.lean)
 cat > "$CAPSTONE_CHECK" <<'LEAN'
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer7ModqFamily
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer4Capstone
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer8ShannonExplicit
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer8LinearBound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer9KarpLipton
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer9PpolyLowerBound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer9NaturalProofs
 open PallLean.Paper93.DeepMath.PathB
 #print axioms Layer3.parity_function_lower_bound
 #print axioms Layer4.mod_q_indicators_false
@@ -57,6 +71,12 @@ open PallLean.Paper93.DeepMath.PathB
 #print axioms Layer4.qary_contradiction
 #print axioms Layer7.parity_not_in_nonuniform_AC0p
 #print axioms Layer7.modq_not_in_nonuniform_AC0p
+#print axioms Layer8.shannon_counting_bound
+#print axioms Layer8.exists_function_needing_exp_size
+#print axioms Layer8.andAll_needs_linear_size
+#print axioms Layer9.karpLipton_collapse
+#print axioms Layer9.exists_lang_not_in_Ppoly
+#print axioms Layer9.razborov_rudich_barrier
 LEAN
 
 OUT=$(lake env lean "$CAPSTONE_CHECK" 2>&1)
