@@ -26,9 +26,14 @@ drags the whole function space down to degree `≤ n/2 + Δ`.
 * the `{0,1}` cube itself has `xᵢ² = xᵢ` (idempotent, *not* an involution), so
   `e_univ · e_{Sᶜ} = e_univ` **absorbs** instead of halving.
 
-So the literal Layer-3 halving has **no `q > 2` analogue**, and reusing `pmSpan_eq_top` /
-`pm_monomial_reduction` for general `q` would be a category error. The replacement is genuine new
-mathematics (Smolensky 1987, the general-`q` case), **not** a re-instantiation.
+> **CORRECTION (Route A worked out, `ComputationalDepthLayer4QaryReduction`).** The earlier claim that
+> the halving has "no `q > 2` analogue" was **too pessimistic**. The involution generalises not to another
+> involution but to a **`ζ`/`ζ⁻¹` pairing**: with `qFactor ζ b = ζ^b` (`b∈{0,1}`),
+> `qFactor ζ b · qFactor ζ⁻¹ b = ζ^b (ζ⁻¹)^b = 1`, so the `ζ` and `ζ⁻¹` factors cancel on `Sᶜ`, giving the
+> **correct `q`-ary halving** `qChar ζ univ · qChar ζ⁻¹ Sᶜ = qChar ζ S` (`qChar_halving`) and the
+> **`q`-ary degree reduction** `qChar_reduction` (analogue of `pm_monomial_reduction`). Both are proved,
+> sorry-free. So the halving *does* generalise; what remains genuinely open is **(2)** the `ζ`-character
+> spanning and **(3)** the circuit-side input below — not the halving itself.
 
 ## What is reusable verbatim (confirmed)
 
@@ -50,14 +55,21 @@ Everything else on the dimension side already exists or transfers.
 
 ## Candidate routes for (★) — with honest status
 
-**Route A — faithful Smolensky general-`q`.** Smolensky (1987) proves (★) without an involution. The
-mechanism is *not* monomial-halving; it is a direct count using the `q`-th-root structure: the approximant
-makes the weight character `ζ^{#ones}` low-degree on `G`, and a dimension/Schwartz–Zippel argument over
-`F_{p^{q-1}}` bounds the functions realisable. **Status: this is the real content and I do not have its
-exact reduction identity crisp enough to formalise from memory.** It must be reconstructed carefully from
-the source (Smolensky '87; Arora–Barak ch. 14) *before* any Lean code — writing a plausible-looking but
-unchecked `have` for the reduction identity would be exactly the kind of fake the discipline forbids.
-*This is the honest blocker; treat it as a multi-lemma sub-development, not a single brick.*
+**Route A — faithful Smolensky general-`q`. PARTIALLY DONE** (`ComputationalDepthLayer4QaryReduction`).
+The mechanism *is* a halving after all, via the `ζ`/`ζ⁻¹` pairing (correction above): once `ζ^{#ones}` is
+low-degree on `G`, every `ζ`-character `qChar ζ S` (`|S|>n/2`) collapses to degree `≤ Δ+n/2` on `G`
+(`qChar_reduction`, sorry-free). **Remaining for (★):**
+* **(2) `ζ`-character spanning.** Every function on `G` is a `K`-combination of the `qChar ζ S`. Unlike the
+  `±1` case, `qChar` is **not** multiplicatively closed (`qChar ζ S · qChar ζ T = ζ^{#S+#T}`, not a single
+  `qChar`), so the `pmSpan_eq_top` subalgebra route does *not* transfer. Instead use the **triangular
+  change of basis** `qChar ζ S = Σ_{T⊆S} (ζ-1)^{|T|} e_T` (lower-triangular in `⊆`, diagonal `(ζ-1)^{|S|}≠0`
+  since `ζ≠1`), so `{qChar ζ S}` and the squarefree `{e_T}` (which span, `sqfSpan_eq_top` = C1) span the
+  same space. *Provable; needs the triangular-invertibility / linear-independence argument.*
+* **(3) `ζ^{#ones}` low-degree on `G` from `MOD_q ∈ AC⁰[p]`** (the genuinely circuit-side input). `MOD_q`
+  gives only the indicator `[#ones ≡ 0]`; the full `ζ^{#ones} = Σ_j ζ^j·[#ones ≡ j mod q]` needs the `q`
+  shifted indicators `[#ones ≡ j]`, each `AC⁰[p]` (shift the input), each low-degree on a large `A_j`, with
+  `G = ⋂_j A_j` still `≥ (1-qε)·2ⁿ`. *This is the real circuit-side content; reconstruct carefully before
+  coding, do not fake.*
 
 **Route B — reduce `MOD_q` to PARITY on a sub-cube.** *Unsound in general.* `MOD_q` does not restrict to
 `MOD_2` on any natural sub-structure for `q > 2`; flagged here only to mark it as a trap so it is not
