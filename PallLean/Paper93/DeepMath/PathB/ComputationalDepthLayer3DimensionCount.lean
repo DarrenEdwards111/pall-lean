@@ -229,6 +229,18 @@ theorem pm_monomial_halving (p : ℕ) {n : ℕ} (S : Finset (Fin n)) (x : Fin n 
   rw [← Finset.prod_mul_prod_compl S (fun i => pmOne p (x i)), mul_assoc, ← Finset.prod_mul_distrib]
   simp only [pmOne_mul_self, Finset.prod_const_one, mul_one]
 
+/-- **`±1` monomials form the group algebra of `(ℤ/2)ⁿ`.**  `χ_S · χ_T = χ_{S∆T}` (here `S∆T = (S∪T)\(S∩T)`):
+the common indices square to `1` and cancel.  This multiplicative closure is what makes the linear span
+of `{χ_S}` a *subalgebra* — the engine of the multilinear-basis argument (the `χ`-analogue of
+`squarefreeEvalMonomial_mul`). -/
+theorem pm_monomial_mul (p : ℕ) {n : ℕ} (S T : Finset (Fin n)) (x : Fin n → Bool) :
+    (∏ i ∈ S, pmOne p (x i)) * (∏ i ∈ T, pmOne p (x i))
+      = ∏ i ∈ (S ∪ T) \ (S ∩ T), pmOne p (x i) := by
+  rw [← Finset.prod_union_inter,
+    ← Finset.prod_sdiff (Finset.inter_subset_left.trans Finset.subset_union_left : S ∩ T ⊆ S ∪ T),
+    mul_assoc, ← Finset.prod_mul_distrib]
+  simp only [pmOne_mul_self, Finset.prod_const_one, mul_one]
+
 open MvPolynomial in
 /-- The `±1` monomial `χ_S = ∏_{i∈S} (1 - 2 X_i)` as a polynomial (degree `≤ |S|`). -/
 noncomputable def pmMonomial (p : ℕ) {n : ℕ} (S : Finset (Fin n)) : MvPolynomial (Fin n) (ZMod p) :=
@@ -582,6 +594,7 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.centralBinom_sq_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.lowDegMonomials_card_band_margin
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pm_monomial_halving
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pm_monomial_mul
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pmMonomial_totalDegree_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pmMonomial_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pm_monomial_reduction
