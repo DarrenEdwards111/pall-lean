@@ -68,6 +68,21 @@ difficulty of circuit complexity. R1 does not shrink that gap; it is the floor e
 Steps 1–2 are infrastructure; 3 is the technical core (bounding `card` of size-`≤s` circuits); 4 is a
 short cardinality argument. **No step asserts an explicit lower bound.**
 
+## Status (R0 + R1 + R1b — DONE, sorry-free)
+
+* **R0** `ComputationalDepthLayer8GeneralCircuit` — `Circuit n` (general fan-in-2 model), `eval`, `size`,
+  `Computes`, `SIZE n s`.
+* **R1 core** `ComputationalDepthLayer8Shannon.exists_hard_function` — the pigeonhole: a covering `Finset`
+  of `< 2^{2ⁿ}` circuits ⇒ a function `∉ SIZE n s`.
+* **R1b** `ComputationalDepthLayer8ShannonCount` — the single-exponential **count** via preorder
+  serialization + unique readability (`toTokens_inj`) + padded-array injection
+  (`card {c // c.size ≤ s} ≤ (n+6)^s`), giving the unconditional
+  **`shannon_counting_bound`**: `(n+6)^s < 2^{2ⁿ} ⇒ ∃ f, f ∉ SIZE n s`.
+
+All `[propext, Classical.choice, Quot.sound]`, zero `sorryAx`.  This is the classical **nonconstructive**
+existence of a hard function (most functions need size `≳ 2ⁿ/n`).  It names **no explicit** function; the
+explicit super-polynomial frontier (§1) remains open, untouched, and barrier-blocked.
+
 ## 5. Guardrails (unchanged)
 
 Sorry-free; no custom axioms; do not edit Layers 3–7 or `Step4Compiler`; **open targets stay open** —
