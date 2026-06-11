@@ -171,6 +171,29 @@ theorem parity_circuit_size_lower_bound (p : ℕ) [Fact p.Prime] {m : ℕ} (hp2 
   push_neg at h
   exact parity_circuit_false p hp2 Cir t ht1 hpar hmod h hwindow
 
+/-! **`PARITY ∉ AC⁰[p]`, depth-`≤ d` form.**  The size bound stated in terms of a *depth upper bound* `d`
+(how `AC⁰[p]` lower bounds are phrased: `depth = O(1)`).  Since `((p-1)t)^{depth Cir} ≤ ((p-1)t)^d` when
+`depth Cir ≤ d`, the window for `d` implies the window for the actual depth, so: a parity-computing
+`AC⁰[p]` circuit (`p` odd) of depth `≤ d` on `2m+1` variables has `4·#subcircuits > pᵗ` for every `t ≥ 1`
+with `16·(((p-1)t)^d)² < 2m+3`.  For fixed `d` the window is satisfiable up to `t = Θ(m^{1/(2d)})`,
+giving `#subcircuits ≥ p^{Ω(m^{1/(2d)})}` — the explicit exponential `PARITY` lower bound. -/
+open Classical in
+theorem parity_size_lower_bound_depth_le (p : ℕ) [Fact p.Prime] {m d : ℕ} (hp2 : (2 : ZMod p) ≠ 0)
+    (Cir : BoolCircuitSyntax (2 * m + 1)) (hd : Cir.depth ≤ d) (t : ℕ) (ht1 : 1 ≤ t)
+    (hpar : ∀ x : Fin (2 * m + 1) → Bool, (∏ i, pmOne p (x i)) = pmOne p (Cir.eval x))
+    (hmod : ∀ q r cs,
+      (BoolCircuitSyntax.modGate q r cs : BoolCircuitSyntax (2 * m + 1)) ∈ subcircuits Cir → q = p)
+    (hwindow : 16 * (((p - 1) * t) ^ d) ^ 2 < 2 * m + 3) :
+    p ^ t < 4 * (subcircuits Cir).toFinset.card := by
+  have hbase : 1 ≤ (p - 1) * t := by
+    have h2 := (Fact.out (p := p.Prime)).two_le
+    have : 1 * 1 ≤ (p - 1) * t := Nat.mul_le_mul (by omega) ht1
+    simpa using this
+  have hmono : ((p - 1) * t) ^ Cir.depth ≤ ((p - 1) * t) ^ d := Nat.pow_le_pow_right hbase hd
+  have hwin : 16 * (((p - 1) * t) ^ Cir.depth) ^ 2 < 2 * m + 3 :=
+    lt_of_le_of_lt (by gcongr) hwindow
+  exact parity_circuit_size_lower_bound p hp2 Cir t ht1 hpar hmod hwin
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pmOne_eq_one_sub_two_boolToZMod
@@ -178,3 +201,4 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree_totalDegree_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.parity_circuit_false
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.parity_circuit_size_lower_bound
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.parity_size_lower_bound_depth_le
