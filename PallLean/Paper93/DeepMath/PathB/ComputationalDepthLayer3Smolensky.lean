@@ -36,6 +36,18 @@ open MvPolynomial
 theorem pmOne_eq_one_sub_two_boolToZMod (p : ℕ) (b : Bool) :
     pmOne p b = 1 - 2 * boolToZMod p b := by cases b <;> simp [pmOne, boolToZMod] <;> ring
 
+/-- The full `±1` product is the parity sign: `∏ᵢ pmOne(xᵢ) = (-1)^{#ones}`. -/
+theorem prod_pmOne (p : ℕ) {n : ℕ} (x : Fin n → Bool) :
+    (∏ i, pmOne p (x i)) = (-1 : ZMod p) ^ (Finset.univ.filter (fun i => x i = true)).card := by
+  simp only [pmOne]
+  rw [Finset.prod_ite, Finset.prod_const, Finset.prod_const, one_pow, mul_one]
+
+/-- `pmOne (decide (Odd k)) = (-1)^k` — the `±1` encoding of the parity bit is the sign `(-1)^k`. -/
+theorem pmOne_decide_odd (p k : ℕ) : pmOne p (decide (Odd k)) = (-1 : ZMod p) ^ k := by
+  rcases Nat.even_or_odd k with he | ho
+  · rw [he.neg_one_pow]; simp [pmOne, Nat.not_odd_iff_even.mpr he]
+  · rw [ho.neg_one_pow]; simp [pmOne, ho]
+
 /-- **The `MOD_q ↔ χ_univ` bridge.**  If `g_C` is a degree-`≤Δ` polynomial agreeing on `G` with the
 circuit value `boolToZMod(C.eval ·)`, and the circuit **computes parity** in the sense
 `∏ᵢ pmOne(xᵢ) = pmOne(C.eval x)`, then `1 - 2·g_C` is a degree-`≤Δ` polynomial representing the full
@@ -214,6 +226,25 @@ theorem parity_size_lower_bound_explicit (p : ℕ) [Fact p.Prime] {m d : ℕ} (h
     p ^ t < 4 * (subcircuits Cir).toFinset.card :=
   parity_size_lower_bound_depth_le p hp2 Cir hd t ht1 hpar hmod (by omega)
 
+/-! **`PARITY ∉ AC⁰[p]` — for the literal parity function.**  The previous bounds take the
+parity-computing hypothesis in `±1` form (`∏ᵢ pmOne(xᵢ) = pmOne(Cir.eval x)`); this restates it for the
+honest **Boolean parity function** `x ↦ (#{i : xᵢ} is odd)`.  Since `∏ᵢ pmOne(xᵢ) = (-1)^{#ones}`
+(`prod_pmOne`) `= pmOne(decide(Odd #ones))` (`pmOne_decide_odd`), a circuit `Cir` with
+`Cir.eval x = decide(Odd #ones)` computes parity in the required sense.  So: any `AC⁰[p]` circuit (`p`
+odd) of depth `≤ d` on `2m+1` variables that **computes the parity function** has, for every `t≥1` with
+`m ≥ 8·((p-1)t)^{2d}`, more than `pᵗ/4` subcircuits — `2^{Ω(n^{1/(2d)})}` at the optimal `t`. -/
+open Classical in
+theorem parity_function_lower_bound (p : ℕ) [Fact p.Prime] {m d : ℕ} (hp2 : (2 : ZMod p) ≠ 0)
+    (Cir : BoolCircuitSyntax (2 * m + 1)) (hd : Cir.depth ≤ d) (t : ℕ) (ht1 : 1 ≤ t)
+    (hparity : ∀ x : Fin (2 * m + 1) → Bool,
+      Cir.eval x = decide (Odd (Finset.univ.filter (fun i => x i = true)).card))
+    (hmod : ∀ q r cs,
+      (BoolCircuitSyntax.modGate q r cs : BoolCircuitSyntax (2 * m + 1)) ∈ subcircuits Cir → q = p)
+    (hm : 8 * (((p - 1) * t) ^ d) ^ 2 ≤ m) :
+    p ^ t < 4 * (subcircuits Cir).toFinset.card :=
+  parity_size_lower_bound_explicit p hp2 Cir hd t ht1
+    (fun x => by rw [prod_pmOne, hparity x, pmOne_decide_odd]) hmod hm
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pmOne_eq_one_sub_two_boolToZMod
@@ -223,3 +254,4 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.parity_circuit_size_lower_bound
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.parity_size_lower_bound_depth_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.parity_size_lower_bound_explicit
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.parity_function_lower_bound
