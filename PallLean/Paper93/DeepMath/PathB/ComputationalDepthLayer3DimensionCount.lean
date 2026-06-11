@@ -681,6 +681,16 @@ theorem every_function_repr (p : ℕ) [Fact p.Prime] {n : ℕ} (hp2 : (2 : ZMod 
       fun x hx => by rw [MvPolynomial.smul_eq_C_mul, map_mul, eval_C, hue x hx, Pi.smul_apply,
         smul_eq_mul]⟩
 
+/-- **The `|G|` side of the dimension contradiction.**  The `ZMod p`-vector space of functions on the
+agreement set `G` has dimension exactly `|G|` (`finrank` of a function space = size of the domain).
+With `every_function_repr` (that space is spanned by degree-`≤(Δ+n/2)` evaluations) this is the
+inequality `|G| ≤ #{deg≤(Δ+n/2) monomials}` once the squarefree-reduction spanning bridge is in place —
+which, against the band margin `#{…} < (3/4)·2ⁿ` and the agreement bound `|G| ≥ (3/4)·2ⁿ`, is the
+contradiction. -/
+theorem finrank_functions_on_G (p : ℕ) [Fact p.Prime] {n : ℕ} (G : Finset (Fin n → Bool)) :
+    Module.finrank (ZMod p) ({x // x ∈ G} → ZMod p) = G.card := by
+  rw [Module.finrank_pi, Fintype.card_coe]
+
 /-! ## Union bound: the agreement set from per-gate errors
 
 Smolensky's composition replaces each of the `s` gates of an `AC⁰[p]` circuit by a probabilistic
@@ -738,6 +748,7 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.mem_pmSpan
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pm_monomial_repr
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.every_function_repr
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.finrank_functions_on_G
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pmMonomial_totalDegree_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pmMonomial_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pm_monomial_reduction
