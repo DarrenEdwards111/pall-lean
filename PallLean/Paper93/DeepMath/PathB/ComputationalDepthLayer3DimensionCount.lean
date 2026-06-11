@@ -691,6 +691,44 @@ theorem finrank_functions_on_G (p : ℕ) [Fact p.Prime] {n : ℕ} (G : Finset (F
     Module.finrank (ZMod p) ({x // x ∈ G} → ZMod p) = G.card := by
   rw [Module.finrank_pi, Fintype.card_coe]
 
+open MvPolynomial in
+/-- **The squarefree-reduction spanning bridge.**  On the Boolean cube, the evaluation of *any*
+polynomial of total degree `≤ D` lies in the span of the degree-`≤D` squarefree monomial functions.
+(`eval_eq'` writes `eval h` as `∑_{d∈supp} coeff_d · ∏_i x_i^{d_i}`; on the cube `x_i^k = x_i`
+(`boolToZMod_pow_succ`) collapses each monomial to the squarefree `e_{supp d}` with
+`|supp d| ≤ deg ≤ D` (`le_totalDegree`), a low-degree generator.)  This converts the degree bound from
+`every_function_repr` into membership in the low-degree span. -/
+theorem eval_mem_lowDegSpan (p : ℕ) [Fact p.Prime] {n : ℕ} (D : ℕ)
+    (h : MvPolynomial (Fin n) (ZMod p)) (hdeg : h.totalDegree ≤ D) :
+    (fun x : Fin n → Bool => eval (fun i => boolToZMod p (x i)) h)
+      ∈ Submodule.span (ZMod p)
+        (Set.range (fun S : {S // S ∈ lowDegMonomials n D} => squarefreeEvalMonomial p S.1)) := by
+  classical
+  have hmono : ∀ (d : Fin n →₀ ℕ) (x : Fin n → Bool),
+      (∏ i, (boolToZMod p (x i)) ^ d i) = ∏ i ∈ d.support, boolToZMod p (x i) := by
+    intro d x
+    rw [← Finset.prod_subset (Finset.subset_univ d.support)
+      (fun i _ hi => by simp only [Finsupp.mem_support_iff, not_not] at hi; rw [hi, pow_zero])]
+    refine Finset.prod_congr rfl (fun i hi => ?_)
+    obtain ⟨k, hk⟩ := Nat.exists_eq_succ_of_ne_zero (Finsupp.mem_support_iff.mp hi)
+    rw [hk, boolToZMod_pow_succ]
+  have hsum : (fun x : Fin n → Bool => eval (fun i => boolToZMod p (x i)) h)
+      = ∑ d ∈ h.support, h.coeff d • squarefreeEvalMonomial p d.support := by
+    funext x
+    rw [eval_eq', Finset.sum_apply]
+    refine Finset.sum_congr rfl (fun d hd => ?_)
+    rw [Pi.smul_apply, smul_eq_mul, hmono d x]; rfl
+  rw [hsum]
+  refine Submodule.sum_mem _ (fun d hd => Submodule.smul_mem _ _ ?_)
+  have hcard : d.support.card ≤ D := by
+    refine le_trans ?_ (le_trans (le_totalDegree hd) hdeg)
+    rw [Finsupp.sum, Finset.card_eq_sum_ones]
+    exact Finset.sum_le_sum (fun i hi => Nat.one_le_iff_ne_zero.mpr (Finsupp.mem_support_iff.mp hi))
+  have hmem : d.support ∈ lowDegMonomials n D := by
+    rw [lowDegMonomials, Finset.mem_filter, Finset.mem_powerset]
+    exact ⟨Finset.subset_univ _, hcard⟩
+  exact squarefreeEvalMonomial_mem_span p hmem
+
 /-! ## Union bound: the agreement set from per-gate errors
 
 Smolensky's composition replaces each of the `s` gates of an `AC⁰[p]` circuit by a probabilistic
@@ -749,6 +787,7 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pm_monomial_repr
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.every_function_repr
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.finrank_functions_on_G
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.eval_mem_lowDegSpan
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pmMonomial_totalDegree_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pmMonomial_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pm_monomial_reduction
