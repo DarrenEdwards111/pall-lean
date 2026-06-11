@@ -3,6 +3,14 @@
 **Surfaced while probing the Khrapchenko measure (Layer 10D).  This affects how Layers 8–10 must be read.
 The theorems are all true; several *labels* overclaim and are corrected here.**
 
+> **RESOLVED (option 2): `ComputationalDepthLayer11DagCircuit.lean`** builds the genuine **DAG / straight-
+> line circuit model** with gate sharing (`DagCircuit`, `eval`, `size` = #gates, fan-out free).  Over it,
+> `Ppoly_dag` is the *real* `P/poly`, and the bridges `np_not_subset_ppoly_dag` / `p_ne_np_of_np_hard_dag`
+> have `hPsub : P ⊆ PpolyClass_dag` = the **true** standard `P ⊆ P/poly` (not `P ⊆ NC¹`).  Sharing is shown
+> real: `parity3Dag` computes `parityFn 3` with **8 gates**, below its `n²=9` formula bound.  Layers 8–10
+> remain valid **as formula / `NC¹` results** (read per the table below); Layer 11 is the circuit-model
+> version for the `P/poly` framing.
+
 ---
 
 ## The fact
