@@ -155,6 +155,60 @@ theorem lowDegMonomials_card_halfway_margin (m : ℕ) :
   have hX : 1 ≤ 2 ^ (2 * m) := Nat.one_le_pow _ _ (by norm_num)
   omega
 
+/-! **Smolensky band margin (Δ ≥ 1).**  For `D = m + Δ` (`n = 2m+1`) with `Δ` in the
+`O(√m)` window `16·Δ² < 2m+3`, the low-degree monomial count is still `< (3/4)·2^n` (integer form
+`4·count < 3·2^n`).  Decompose `∑_{k≤m+Δ} = 2^{2m} + (band ∑_{k=m+1}^{m+Δ})`; bound the band by
+`Δ·C(2m+1,m)` (each `≤` central via `Nat.choose_le_middle`); then the crux
+`Δ·C(2m+1,m)·2 = Δ·centralBinom(m+1) < 2^{2m}` follows by squaring and `centralBinom_sq_le` with the
+window condition.  This closes the band margin for the full Smolensky degree window. -/
+open Finset in
+theorem lowDegMonomials_card_band_margin (m Δ : ℕ) (hΔ : 16 * Δ ^ 2 < 2 * m + 3) :
+    4 * (lowDegMonomials (2 * m + 1) (m + Δ)).card < 3 * 2 ^ (2 * m + 1) := by
+  have hCB : Nat.centralBinom (m + 1) = 2 * (2 * m + 1).choose m := by
+    rw [Nat.centralBinom, show 2 * (m + 1) = 2 * m + 1 + 1 from by ring, Nat.choose_succ_succ,
+      Nat.choose_symm_half]; omega
+  rw [lowDegMonomials_card]
+  have hdecomp : (∑ k ∈ range (m + Δ + 1), (2 * m + 1).choose k)
+      = (∑ k ∈ range (m + 1), (2 * m + 1).choose k)
+        + (∑ k ∈ Ico (m + 1) (m + Δ + 1), (2 * m + 1).choose k) := by
+    simp only [Finset.range_eq_Ico]
+    exact (Finset.sum_Ico_consecutive _ (Nat.zero_le (m + 1)) (by omega)).symm
+  rw [hdecomp, Nat.sum_range_choose_halfway]
+  have hband : (∑ k ∈ Ico (m + 1) (m + Δ + 1), (2 * m + 1).choose k)
+      ≤ Δ * (2 * m + 1).choose m := by
+    calc (∑ k ∈ Ico (m + 1) (m + Δ + 1), (2 * m + 1).choose k)
+        ≤ ∑ _k ∈ Ico (m + 1) (m + Δ + 1), (2 * m + 1).choose m :=
+          Finset.sum_le_sum (fun k _ => by
+            have hmid : (2 * m + 1) / 2 = m := by omega
+            calc (2 * m + 1).choose k ≤ (2 * m + 1).choose ((2 * m + 1) / 2) :=
+                  Nat.choose_le_middle k (2 * m + 1)
+              _ = (2 * m + 1).choose m := by rw [hmid])
+      _ = (Ico (m + 1) (m + Δ + 1)).card * (2 * m + 1).choose m := by
+          rw [Finset.sum_const, smul_eq_mul]
+      _ = Δ * (2 * m + 1).choose m := by rw [Nat.card_Ico]; congr 1; omega
+  have hcrux : Δ * Nat.centralBinom (m + 1) < 2 ^ (2 * m) := by
+    set B := Nat.centralBinom (m + 1)
+    have hcb_sq : (2 * m + 3) * B ^ 2 ≤ 16 * (2 ^ (2 * m)) ^ 2 := by
+      have hsl := centralBinom_sq_le (m + 1)
+      have h3 : (4 : ℕ) ^ (2 * (m + 1)) = 16 * (2 ^ (2 * m)) ^ 2 := by
+        rw [show 2 * (m + 1) = 2 * m + 2 from by ring, pow_add,
+          show (4 : ℕ) = 2 ^ 2 from rfl, ← pow_mul, ← pow_mul]; ring
+      rw [show 2 * (m + 1) + 1 = 2 * m + 3 from by ring, h3] at hsl; exact hsl
+    have hkey : (2 * m + 3) * (Δ * B) ^ 2 < (2 * m + 3) * (2 ^ (2 * m)) ^ 2 := by
+      calc (2 * m + 3) * (Δ * B) ^ 2 = Δ ^ 2 * ((2 * m + 3) * B ^ 2) := by ring
+        _ ≤ Δ ^ 2 * (16 * (2 ^ (2 * m)) ^ 2) := by gcongr
+        _ = (16 * Δ ^ 2) * (2 ^ (2 * m)) ^ 2 := by ring
+        _ < (2 * m + 3) * (2 ^ (2 * m)) ^ 2 := by gcongr
+    have hsq : (Δ * B) ^ 2 < (2 ^ (2 * m)) ^ 2 := Nat.lt_of_mul_lt_mul_left hkey
+    exact lt_of_pow_lt_pow_left₀ 2 (Nat.zero_le _) hsq
+  have h4m : (4 : ℕ) ^ m = 2 ^ (2 * m) := by rw [show (4 : ℕ) = 2 ^ 2 from rfl, ← pow_mul]
+  rw [h4m, show 3 * 2 ^ (2 * m + 1) = 6 * 2 ^ (2 * m) from by rw [pow_succ]; ring]
+  calc 4 * (2 ^ (2 * m) + (∑ k ∈ Ico (m + 1) (m + Δ + 1), (2 * m + 1).choose k))
+      ≤ 4 * (2 ^ (2 * m) + Δ * (2 * m + 1).choose m) := by gcongr
+    _ = 4 * 2 ^ (2 * m) + 2 * (Δ * Nat.centralBinom (m + 1)) := by rw [hCB]; ring
+    _ < 4 * 2 ^ (2 * m) + 2 * 2 ^ (2 * m) := by gcongr
+    _ = 6 * 2 ^ (2 * m) := by ring
+
 /-- **Multilinear reduction lever.**  On a `{0,1}` value, `x^{e+1} = x` — the generalisation of
 `boolToZMod_sq` (`e = 1`) that collapses an arbitrary monomial `∏_i X_i^{e_i}` to the squarefree
 `∏_{i : e_i>0} X_i` on the cube, justifying the multilinear (subset) presentation of monomials. -/
@@ -460,6 +514,7 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.lowDegMonomials_card_halfway
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.lowDegMonomials_card_halfway_margin
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.centralBinom_sq_le
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.lowDegMonomials_card_band_margin
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.boolToZMod_pow_succ
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.squarefreeEvalMonomial_mem_span
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.finrank_span_lowDegEval_le_card
