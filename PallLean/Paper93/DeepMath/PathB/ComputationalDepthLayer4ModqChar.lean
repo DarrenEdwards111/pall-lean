@@ -1,6 +1,7 @@
 import Mathlib.Data.ZMod.Basic
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Tactic.Ring
+import Mathlib.RingTheory.RootsOfUnity.PrimitiveRoots
 
 /-!
 # Layer 4 (foundation) — the `q`-ary weight character
@@ -63,8 +64,18 @@ theorem weightChar_neg_one {p n : ℕ} (x : Fin n → Bool) :
     weightChar (-1 : ZMod p) x = (-1 : ZMod p) ^ (Finset.univ.filter (fun i => x i = true)).card :=
   weightChar_eq_pow (-1) x
 
+/-- **The `MOD_q` indicator.**  For a primitive `q`-th root of unity `ζ`, the weight character equals `1`
+exactly when the Hamming weight is divisible by `q`:
+`weightChar ζ x = 1 ↔ q ∣ #ones`.  This connects the character (`ComputationalDepthLayer4ModqChar`) to the
+literal `MOD_q` predicate — the hard function of Layer 4 (brick (C2) of the §3-C decision note). -/
+theorem weightChar_eq_one_iff {R : Type*} [CommRing R] {ζ : R} {q : ℕ} (hζ : IsPrimitiveRoot ζ q)
+    {n : ℕ} (x : Fin n → Bool) :
+    weightChar ζ x = 1 ↔ q ∣ (Finset.univ.filter (fun i => x i = true)).card := by
+  rw [weightChar_eq_pow]; exact hζ.pow_eq_one_iff_dvd _
+
 end PallLean.Paper93.DeepMath.PathB.Layer4
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer4.weightChar_eq_pow
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer4.weightChar_eq_pow_mod
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer4.weightChar_neg_one
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer4.weightChar_eq_one_iff
