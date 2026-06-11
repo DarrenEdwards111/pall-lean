@@ -80,12 +80,18 @@ low-degree on `G`, every `ζ`-character `qChar ζ S` (`|S|>n/2`) collapses to de
   degree-`≤((p-1)t)^{depth}` poly over `K` agreeing with `boolToField K (C.eval ·)` on `G` (`|G| ≥
   (3/4)·2ⁿ`).  `exists_indicator_approximant`: if `C` *computes* `[#ones ≡ j]`, its base-changed approximant
   equals `modIndicator K q j` on `G` — exactly one `hp`-component of `qary_reduction_from_indicators`.
-  **Sole remaining content (genuinely circuit-level, not faked):** (i) the **padding construction** — a
-  family of circuits `C_j` *computing* `[#ones ≡ j] = MOD_q(x ‖ (q-j)·⟨true⟩)`, `AC⁰[p]`, from a
-  `MOD_q ∈ AC⁰[p]` family (this discharges `exists_indicator_approximant`'s hypothesis `hCind`); and (ii)
-  the **intersection bookkeeping** — `G = ⋂_{j<q} G_j` needs each `|G_jᶜ| ≤ 2ⁿ/(4q)`, i.e. the tighter
-  horizon `p^t ≥ 4q·s` (a parameterised `exists_large_agreement_set`).  Both are `BoolCircuitSyntax`-level
-  constructions / counting — the natural remaining circuit work.
+  **Padding construction ✓ DONE** (`ComputationalDepthLayer4Padding`): `padInputs` (input substitution
+  through the `List`-children gates) + `padInputs_eval` (semantics `(padInputs f C).eval x = C.eval (λi,
+  (f i).eval x)`); `padTrue` (hardwire the last `k` inputs to `const true`) + `padTrue_eval` (`= D.eval` of
+  the extended assignment); `padTrue_isAC0pSyntax` (padding preserves `AC⁰[p]` — only input↔const leaves
+  change, `MOD_p` gates untouched), discharging `hmod`.  Sorry-free.
+  **Sole remaining content (genuinely `Nat`/`Fin`-counting, not faked):** (i) **depth preservation**
+  `(padTrue D).depth = D.depth` (leaf substitution; `foldl`-over-`map` congruence) — for the
+  `((p-1)t)^{depth}` degree bound; (ii) the **`MOD_q` arithmetic**: `#ones(extend x by k trues) = #ones(x)
+  + k` and `(#ones(x)+k)%q = 0 ↔ #ones(x)%q = j` (for `k = q-j`), so `padTrue` of a `MOD_q` circuit computes
+  `[#ones ≡ j]` — finishing `hCind`; (iii) the **intersection bookkeeping** — `G = ⋂_{j<q} G_j` needs each
+  `|G_jᶜ| ≤ 2ⁿ/(4q)`, i.e. the tighter horizon `p^t ≥ 4q·s` (a parameterised `exists_large_agreement_set`).
+  All three are `Nat`/`Fin`-counting over the constructions now in place.
 
 **Route B — reduce `MOD_q` to PARITY on a sub-cube.** *Unsound in general.* `MOD_q` does not restrict to
 `MOD_2` on any natural sub-structure for `q > 2`; flagged here only to mark it as a trap so it is not
