@@ -90,10 +90,16 @@ low-degree on `G`, every `ζ`-character `qChar ζ S` (`|S|>n/2`) collapses to de
   **`MOD_q` arithmetic ✓ DONE** (`ones_extend`: `#ones(extend x by k trues) = #ones(x)+k`, `Fin (n+k)`
   split; `mod_shift`: `(a+(q-j))%q = 0 ↔ a%q = j` via `ZMod q`) ⇒ **`padTrue_computes_indicator`**:
   `padTrue` of a `MOD_q` circuit computes `[#ones ≡ j]` — **discharging `hCind`**.
-  **Sole remaining content (pure `Nat` counting, not faked):** the **intersection
-  bookkeeping** — `G = ⋂_{j<q} G_j` needs each `|G_jᶜ| ≤ 2ⁿ/(4q)`, i.e. the tighter horizon `p^t ≥ 4q·s`
-  (a parameterised `exists_large_agreement_set`).  `Nat`-counting over the constructions
-  now in place.
+  **Intersection bookkeeping ✓ DONE** (`ComputationalDepthLayer4Intersection.inter_three_quarters`): the
+  union bound — if each `4q·|G_jᶜ| ≤ 2ⁿ` then `3·2ⁿ ≤ 4·|⋂_{j<q} G_j|` (`(univ \ inf) ⊆ ⋃ⱼ(univ \ A_j)` +
+  `card_biUnion_le` + cancel `q`), i.e. the intersection covers the `(3/4)`-fraction
+  `dim_contradiction_general` needs.  Sorry-free.
+  **Sole remaining content (a parameterised re-run of an existing lemma, not faked):** the per-set tight
+  bound `4q·|G_jᶜ| ≤ 2ⁿ` (the hypothesis of `inter_three_quarters`) is what a **parameterised
+  `exists_large_agreement_set`** delivers under the horizon `p^t ≥ 4q·s` — identical to the existing
+  `p^t ≥ 4·s ⇒ 3·2ⁿ ≤ 4·|G|` except the constant `4 ↦ 4q`, tracing the same `|cbad| ≤ s·2ⁿ/p^t` count.
+  Re-running that one Layer-3 lemma with the `4q` constant + the `IsAC0pSyntax ⇒ hmod` and subcircuit-count
+  glue is the final assembly step; every mathematical ingredient is now in place and sorry-free.
 
 **Route B — reduce `MOD_q` to PARITY on a sub-cube.** *Unsound in general.* `MOD_q` does not restrict to
 `MOD_2` on any natural sub-structure for `q > 2`; flagged here only to mark it as a trap so it is not
