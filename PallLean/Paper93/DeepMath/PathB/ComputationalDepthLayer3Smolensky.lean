@@ -149,9 +149,32 @@ theorem parity_circuit_false (p : ℕ) [Fact p.Prime] {m : ℕ} (hp2 : (2 : ZMod
     (toAgree p t (oracleOf p t Cir ω) Cir) (toAgree_totalDegree_le p t ht1 _ Cir) hagree hpar
   exact smolensky_contradiction p hp2 G g hgdeg hgeval hwindow hGsize
 
+/-! **The `PARITY ∉ AC⁰[p]` size lower bound** (contrapositive of `parity_circuit_false`).  Any `AC⁰[p]`
+circuit (`p` odd) on `2m+1` variables that **computes parity** must have **more than `pᵗ/4`
+subcircuits** for *every* time horizon `t` in the band-margin window
+`16·(((p-1)t)^{depth})² < 2m+3` (i.e. `1 ≤ t` with `((p-1)t)^{depth} = O(√m)`):
+\[
+  4 \cdot \#\text{subcircuits}(Cir) > p^{\,t}.
+\]
+Reading off the largest such `t` (`t ≈ m^{1/(2·depth)}/(p-1)`) gives
+`#subcircuits ≥ p^{Ω(m^{1/(2·depth)})}` — super-polynomial for any constant depth, and since
+`size ≥ #subcircuits`, the Razborov–Smolensky exponential `PARITY` lower bound for `AC⁰[p]`. -/
+open Classical in
+theorem parity_circuit_size_lower_bound (p : ℕ) [Fact p.Prime] {m : ℕ} (hp2 : (2 : ZMod p) ≠ 0)
+    (Cir : BoolCircuitSyntax (2 * m + 1)) (t : ℕ) (ht1 : 1 ≤ t)
+    (hpar : ∀ x : Fin (2 * m + 1) → Bool, (∏ i, pmOne p (x i)) = pmOne p (Cir.eval x))
+    (hmod : ∀ q r cs,
+      (BoolCircuitSyntax.modGate q r cs : BoolCircuitSyntax (2 * m + 1)) ∈ subcircuits Cir → q = p)
+    (hwindow : 16 * (((p - 1) * t) ^ Cir.depth) ^ 2 < 2 * m + 3) :
+    p ^ t < 4 * (subcircuits Cir).toFinset.card := by
+  by_contra h
+  push_neg at h
+  exact parity_circuit_false p hp2 Cir t ht1 hpar hmod h hwindow
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pmOne_eq_one_sub_two_boolToZMod
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.chi_univ_repr
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree_totalDegree_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.parity_circuit_false
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.parity_circuit_size_lower_bound
