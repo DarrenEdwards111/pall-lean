@@ -109,12 +109,21 @@ low-degree on `G`, every `ζ`-character `qChar ζ S` (`|S|>n/2`) collapses to de
   `weightChar_repr_of_indicators`), `16Δ² < 2m+3`, and `|G| ≥ (3/4)·2ⁿ`, then `False` — the general-`q`
   analogue of `smolensky_contradiction`, fully assembled.  Sorry-free.
 
-  **Every mathematical ingredient is mechanised and sorry-free, and the dimension contradiction is
-  assembled.**  Sole remaining work: the **multi-residue parameter thread** instantiating `hg` — for a
-  `MOD_q ∈ AC⁰[p]` family, `padTrue` each member → `exists_tight_agreement_set` + base change (per residue
-  `j<q`) → `inter_three_quarters` (common `(3/4)`-set `G`) → `weightChar_repr_of_indicators` (the `hg` that
-  `qary_contradiction` consumes), with uniform `Δ = ((p-1)t)^d` and the window `16Δ² < 2m+3`.  Pure
-  parameter bookkeeping over the finished pieces — no new mathematics.
+  **Multi-residue parameter thread ✓ DONE — the separation is assembled** (`ComputationalDepthLayer4Capstone`):
+  `qary_full_contradiction` (thread: `q` tight indicator approximants → `weightChar_repr_of_indicators` +
+  `inter_three_quarters` + `qary_contradiction` → `False`), `exists_tight_indicator_approximant`
+  (`exists_tight_agreement_set` + base change per residue), and **`mod_q_indicators_false`**: for distinct
+  primes `p ≠ q`, over `K = F_{p^{q-1}}`, **no family of `q` circuits `C_0,…,C_{q-1}` on `2m+1` inputs can
+  have each `C_j` compute `[#ones ≡ j (mod q)]`, be `AC⁰[p]`, with `4q·#subcircuits ≤ p^t`, `depth ≤ d`,
+  inside the window `16·((p-1)t)^{2d} < 2m+3`** — the general-`q` Razborov–Smolensky lower bound (`C_0`
+  computes `MOD_q`).  Choice/skolemisation over the residues + the `GaloisField` `ζ`.  Sorry-free, clean
+  axioms `[propext, Classical.choice, Quot.sound]`.
+
+  **The entire general-`q` separation is now mechanised, sorry-free.**  The one optional bookkeeping step
+  for phrasing it from a *literal* `MOD_q ∈ AC⁰[p]` family (rather than the per-residue indicator circuits):
+  produce the `C_j` by `padTrue` of the `MOD_q` circuit (`padTrue_computes_indicator` ⇒ `hCind`,
+  `padTrue_isAC0pSyntax` ⇒ `hAC`, `padTrue_depth` ⇒ `hdepth`) and bound `#subcircuits (padTrue D)` for the
+  `ht` horizon — pure circuit-size counting, no new mathematics.
 
 **Route B — reduce `MOD_q` to PARITY on a sub-cube.** *Unsound in general.* `MOD_q` does not restrict to
 `MOD_2` on any natural sub-structure for `q > 2`; flagged here only to mark it as a trap so it is not
