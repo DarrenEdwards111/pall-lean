@@ -542,6 +542,101 @@ theorem mem_squarefreeSpan (p n : ℕ) (f : (Fin n → Bool) → ZMod p) :
     f ∈ squarefreeSpan p n := by
   rw [squarefreeSpan_eq_top]; exact Submodule.mem_top
 
+/-! ## The `±1` multilinear basis (`χ_S` span the cube-function space)
+
+The `MOD_q`-reduction needs *every* function on the agreement set to be expressible via the `±1`
+monomials `χ_S` (so the degree-halving `pm_monomial_reduction` applies termwise).  We prove the `±1`
+monomials span the whole cube-function space — the `±1` analogue of `squarefreeSpan_eq_top`, built on
+the group-algebra structure `pm_monomial_mul` (closure ⇒ subalgebra) and the single-variable change of
+basis `boolToZMod = 2⁻¹(1 - χ_{i})` (needs `2 ≠ 0`, i.e. `p` odd). -/
+
+/-- Single-variable change of basis (`{0,1}` ↦ `±1`): `boolToZMod b = 2⁻¹(1 - pmOne b)` (`p` odd). -/
+theorem boolToZMod_eq_pm (p : ℕ) [Fact p.Prime] (hp2 : (2 : ZMod p) ≠ 0) (b : Bool) :
+    boolToZMod p b = 2⁻¹ * (1 - pmOne p b) := by
+  have h : (2 : ZMod p) * boolToZMod p b = 1 - pmOne p b := by
+    cases b <;> simp [boolToZMod, pmOne] <;> ring
+  refine mul_left_cancel₀ hp2 ?_; rw [h, ← mul_assoc, mul_inv_cancel₀ hp2, one_mul]
+
+/-- The complementary change of basis: `1 - boolToZMod b = 2⁻¹(1 + pmOne b)` (`p` odd). -/
+theorem one_sub_boolToZMod_eq_pm (p : ℕ) [Fact p.Prime] (hp2 : (2 : ZMod p) ≠ 0) (b : Bool) :
+    1 - boolToZMod p b = 2⁻¹ * (1 + pmOne p b) := by
+  have h : (2 : ZMod p) * (1 - boolToZMod p b) = 1 + pmOne p b := by
+    cases b <;> simp [boolToZMod, pmOne] <;> ring
+  refine mul_left_cancel₀ hp2 ?_; rw [h, ← mul_assoc, mul_inv_cancel₀ hp2, one_mul]
+
+/-- The `±1` monomial `χ_S` as a function on the cube. -/
+noncomputable def pmEvalMonomial (p : ℕ) {n : ℕ} (S : Finset (Fin n)) : (Fin n → Bool) → ZMod p :=
+  fun x => ∏ i ∈ S, pmOne p (x i)
+
+/-- The submodule spanned by all `±1` monomials. -/
+noncomputable def pmSpan (p n : ℕ) : Submodule (ZMod p) ((Fin n → Bool) → ZMod p) :=
+  Submodule.span (ZMod p) (Set.range (fun S : Finset (Fin n) => pmEvalMonomial p S))
+
+theorem pmEvalMonomial_mem_pmSpan (p n : ℕ) (S : Finset (Fin n)) :
+    pmEvalMonomial p S ∈ pmSpan p n := Submodule.subset_span ⟨S, rfl⟩
+
+theorem one_mem_pmSpan (p n : ℕ) : (1 : (Fin n → Bool) → ZMod p) ∈ pmSpan p n := by
+  have : (1 : (Fin n → Bool) → ZMod p) = pmEvalMonomial p (∅ : Finset (Fin n)) := by
+    funext x; simp [pmEvalMonomial]
+  rw [this]; exact pmEvalMonomial_mem_pmSpan p n ∅
+
+/-- **The `±1` span is multiplicatively closed** (a subalgebra): `χ_S · χ_T = χ_{S∆T}`
+(`pm_monomial_mul`) is again a generator. -/
+theorem mul_mem_pmSpan (p n : ℕ) {u v : (Fin n → Bool) → ZMod p}
+    (hu : u ∈ pmSpan p n) (hv : v ∈ pmSpan p n) : u * v ∈ pmSpan p n := by
+  have hclosed : pmSpan p n * pmSpan p n ≤ pmSpan p n := by
+    rw [pmSpan, Submodule.span_mul_span, Submodule.span_le]
+    rintro c hc; rw [Set.mem_mul] at hc
+    obtain ⟨a, ⟨S, rfl⟩, b, ⟨T, rfl⟩, rfl⟩ := hc
+    have heq : pmEvalMonomial p S * pmEvalMonomial p T = pmEvalMonomial p ((S ∪ T) \ (S ∩ T)) := by
+      funext x; exact pm_monomial_mul p S T x
+    rw [heq]; exact Submodule.subset_span ⟨(S ∪ T) \ (S ∩ T), rfl⟩
+  exact hclosed (Submodule.mul_mem_mul hu hv)
+
+theorem prod_mem_pmSpan (p n : ℕ) {ι : Type*} (s : Finset ι) (g : ι → (Fin n → Bool) → ZMod p)
+    (hg : ∀ i ∈ s, g i ∈ pmSpan p n) : (∏ i ∈ s, g i) ∈ pmSpan p n :=
+  Finset.prod_induction g (· ∈ pmSpan p n) (fun _ _ ha hb => mul_mem_pmSpan p n ha hb)
+    (one_mem_pmSpan p n) hg
+
+/-- Each indicator factor is in the `±1` span (via the single-variable change of basis to `χ_{i}`). -/
+theorem factor_mem_pmSpan (p n : ℕ) [Fact p.Prime] (hp2 : (2 : ZMod p) ≠ 0) (y : Fin n → Bool)
+    (i : Fin n) :
+    (fun x : Fin n → Bool => if y i then boolToZMod p (x i) else 1 - boolToZMod p (x i))
+      ∈ pmSpan p n := by
+  by_cases hyi : y i = true
+  · have he : (fun x : Fin n → Bool => if y i then boolToZMod p (x i) else 1 - boolToZMod p (x i))
+        = (2 : ZMod p)⁻¹ • ((1 : (Fin n → Bool) → ZMod p) - pmEvalMonomial p ({i} : Finset (Fin n))) := by
+      funext x
+      simp only [hyi, if_true, Pi.smul_apply, Pi.sub_apply, Pi.one_apply, pmEvalMonomial,
+        Finset.prod_singleton, smul_eq_mul]
+      exact boolToZMod_eq_pm p hp2 (x i)
+    rw [he]
+    exact Submodule.smul_mem _ _ (Submodule.sub_mem _ (one_mem_pmSpan p n)
+      (pmEvalMonomial_mem_pmSpan p n {i}))
+  · have he : (fun x : Fin n → Bool => if y i then boolToZMod p (x i) else 1 - boolToZMod p (x i))
+        = (2 : ZMod p)⁻¹ • ((1 : (Fin n → Bool) → ZMod p) + pmEvalMonomial p ({i} : Finset (Fin n))) := by
+      funext x
+      simp only [hyi, if_false, Pi.smul_apply, Pi.add_apply, Pi.one_apply, pmEvalMonomial,
+        Finset.prod_singleton, smul_eq_mul]
+      exact one_sub_boolToZMod_eq_pm p hp2 (x i)
+    rw [he]
+    exact Submodule.smul_mem _ _ (Submodule.add_mem _ (one_mem_pmSpan p n)
+      (pmEvalMonomial_mem_pmSpan p n {i}))
+
+/-- **The `±1` multilinear basis.**  For `p` odd, the `±1` monomials `χ_S` span the entire
+cube-function space `(Fin n → Bool) → ZMod p`.  Hence *every* function — in particular every function
+on the agreement set `G` — is a `ZMod p`-linear combination of `χ_S`, ready for the degree-halving
+`pm_monomial_reduction`. -/
+theorem pmSpan_eq_top (p n : ℕ) [Fact p.Prime] (hp2 : (2 : ZMod p) ≠ 0) : pmSpan p n = ⊤ := by
+  rw [eq_top_iff, ← (Pi.basisFun (ZMod p) (Fin n → Bool)).span_eq, Submodule.span_le]
+  rintro _ ⟨y, rfl⟩
+  rw [Pi.basisFun_apply, single_eq_prod_factor]
+  exact prod_mem_pmSpan p n _ _ (fun i _ => factor_mem_pmSpan p n hp2 y i)
+
+/-- Every function on the cube is a `ZMod p`-linear combination of `±1` monomials (`p` odd). -/
+theorem mem_pmSpan (p n : ℕ) [Fact p.Prime] (hp2 : (2 : ZMod p) ≠ 0) (f : (Fin n → Bool) → ZMod p) :
+    f ∈ pmSpan p n := by rw [pmSpan_eq_top p n hp2]; exact Submodule.mem_top
+
 /-! ## Union bound: the agreement set from per-gate errors
 
 Smolensky's composition replaces each of the `s` gates of an `AC⁰[p]` circuit by a probabilistic
@@ -595,6 +690,8 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.lowDegMonomials_card_band_margin
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pm_monomial_halving
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pm_monomial_mul
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pmSpan_eq_top
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.mem_pmSpan
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pmMonomial_totalDegree_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pmMonomial_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pm_monomial_reduction
