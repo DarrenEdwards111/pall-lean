@@ -135,3 +135,17 @@ assembly — never `sorry` it.
 
 **Reconfirmed scope guardrails:** target is level 2 only; level-3/`NP`-class framing stays out; no
 `P≠NP` claims; open frontiers (ACC⁰, Williams, general circuits) untouched.
+
+---
+
+## Status (level 2 — DONE, sorry-free)
+
+* `ComputationalDepthLayer7CircuitFamily` — `BoolLang`, `parityLang`, `AC0pFamily`, `Computes`,
+  `IsPolyBounded` (the nonuniform layer).
+* `ComputationalDepthLayer7ParityFamily` — `exists_poly_lt_pow` (exp beats poly) and
+  **`parity_not_in_nonuniform_AC0p`** (PARITY ∉ nonuniform `AC⁰[p]`).
+* `ComputationalDepthLayer7ModqFamily` — `modqLang` and **`modq_not_in_nonuniform_AC0p`** (`MOD_q` ∉
+  nonuniform `AC⁰[p]`, distinct primes `p ≠ q`).
+
+All `[propext, Classical.choice, Quot.sound]`, zero `sorryAx`.  Level 3 / `NP`-class / `P≠NP` remain
+explicitly out of scope (open or shallow-definitional), as analysed above.
