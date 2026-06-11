@@ -194,6 +194,26 @@ theorem parity_size_lower_bound_depth_le (p : ℕ) [Fact p.Prime] {m d : ℕ} (h
     lt_of_le_of_lt (by gcongr) hwindow
   exact parity_circuit_size_lower_bound p hp2 Cir t ht1 hpar hmod hwin
 
+/-! **`PARITY ∉ AC⁰[p]`, explicit exponential form.**  Parametrising by the time horizon `t` (rather than
+solving the window for `t` via a `d`-th root): once the number of variables is large enough relative to
+`t` — precisely `m ≥ 8·((p-1)t)^{2d}`, since then `16·(((p-1)t)^d)² ≤ 2m < 2m+3` — a parity-computing
+`AC⁰[p]` circuit (`p` odd) of depth `≤ d` on `2m+1` variables must have
+\[
+  4 \cdot \#\text{subcircuits}(Cir) > p^{\,t}.
+\]
+Choosing `t` maximal (`t = Θ((m/8)^{1/(2d)}) = Θ(m^{1/(2d)})`, so `n = 2m+1 ≈ 16·((p-1)t)^{2d}`) gives
+`#subcircuits ≥ p^{\,t}/4 = p^{Ω(m^{1/(2d)})} = 2^{Ω(n^{1/(2d)})}` — and `size ≥ #subcircuits` — the
+exponential Razborov–Smolensky `PARITY` lower bound for constant-depth `AC⁰[p]`. -/
+open Classical in
+theorem parity_size_lower_bound_explicit (p : ℕ) [Fact p.Prime] {m d : ℕ} (hp2 : (2 : ZMod p) ≠ 0)
+    (Cir : BoolCircuitSyntax (2 * m + 1)) (hd : Cir.depth ≤ d) (t : ℕ) (ht1 : 1 ≤ t)
+    (hpar : ∀ x : Fin (2 * m + 1) → Bool, (∏ i, pmOne p (x i)) = pmOne p (Cir.eval x))
+    (hmod : ∀ q r cs,
+      (BoolCircuitSyntax.modGate q r cs : BoolCircuitSyntax (2 * m + 1)) ∈ subcircuits Cir → q = p)
+    (hm : 8 * (((p - 1) * t) ^ d) ^ 2 ≤ m) :
+    p ^ t < 4 * (subcircuits Cir).toFinset.card :=
+  parity_size_lower_bound_depth_le p hp2 Cir hd t ht1 hpar hmod (by omega)
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pmOne_eq_one_sub_two_boolToZMod
@@ -202,3 +222,4 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.parity_circuit_false
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.parity_circuit_size_lower_bound
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.parity_size_lower_bound_depth_le
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.parity_size_lower_bound_explicit
