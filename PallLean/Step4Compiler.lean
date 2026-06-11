@@ -14745,10 +14745,10 @@ TM-framed §40 chain and the textbook `P ≠ NP`. All §142 definitions
 bridge, which is the standard classical reduction (paper §10.2 p. 55,
 "3-SAT is NP-complete"). -/
 theorem P_ne_NP_Lean
+    (hsep : PaperFaithfulSeparation.PeqNP_Paper → False)
     (hExtract : P = NP → PaperFaithfulSeparation.PeqNP_Paper) :
     P ≠ NP :=
-  P_ne_NP_Lean_of_PeqNP_False
-    PaperFaithfulSeparation.P_ne_NP_unconditional hExtract
+  P_ne_NP_Lean_of_PeqNP_False hsep hExtract
 
 /-- **§142.14 — `P_sub_C_coll` placeholder** (paper Remark 84 p. 203,
 consequence of Theorem 203 output).
@@ -18451,20 +18451,33 @@ hypotheses at `n ≥ 2^804` are inconsistent with Lean's axiom-free
 infrastructure alone, producing `False`. -/
 theorem bounded_params_at_2pow804_absurd
     (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn2 : n ≥ 2)
+    (hfront : WithinProfileBound.CookLevinWithinProfileFinrankFrontier M n hn2 htb hns) :
     False := by
-  have hn2 : n ≥ 2 := by
-    have h2_804 : (2 : ℕ) ≤ 2 ^ 804 := by
-      calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
-      _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
-    omega
   have hp :=
-    PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin
-      M n hn2 htb hns
+    PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin_of_withinProfileFrontier
+      M n hn2 htb hns hfront
   have hnp :=
     GodMoveReal.compiledPoly_rank_gt_npow200_at_large_n
       M n hn htb hns
   exact absurd hp (not_le_of_gt hnp)
+
+/-- **Frontier hypothesis (conditional P-side input).**  The within-profile finrank frontier holding for
+every bounded SAT-decider's Cook-Levin compilation at the §40 contradiction scale `n = 2^804`.  This is the
+genuinely open P-side rank bound; the §150+ separation chain is now explicitly conditional on it (the bare
+unconditional `PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin` was archived as unsafe). -/
+def CookLevinFrontierHyp : Prop :=
+  ∀ (h : PaperFaithfulSeparation.PeqNP_Paper),
+    WithinProfileBound.CookLevinWithinProfileFinrankFrontier h.decider (2 ^ 804)
+      (Nat.le_self_pow (by norm_num) 2) h.timeBound_le h.numStates_bound
+
+/-- **Conditional separation.**  Under the frontier hypothesis, no bounded-parameter SAT-decider exists
+(`PeqNP_Paper → False`) — via the arithmetic sandwich `bounded_params_at_2pow804_absurd`. -/
+theorem peqnp_false_of_frontier (hfront : CookLevinFrontierHyp) :
+    PaperFaithfulSeparation.PeqNP_Paper → False := fun hPeqNP =>
+  bounded_params_at_2pow804_absurd hPeqNP.decider (2 ^ 804) (le_refl _)
+    hPeqNP.timeBound_le hPeqNP.numStates_bound (Nat.le_self_pow (by norm_num) 2) (hfront hPeqNP)
 
 /-- **§150.1 — `amplituhedron_gauge_for_sat_decider_constructive`**
 (paper §18.2 p. 105 "conceptual inversion"; §18.3 Theorem 98, Theorem
@@ -18486,6 +18499,7 @@ match the axiom's statement exactly. -/
 theorem amplituhedron_gauge_for_sat_decider_constructive
     (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hfront : WithinProfileBound.CookLevinWithinProfileFinrankFrontier M n hn2 htb hns)
     (_hdec : PaperFaithfulSeparation.DecidesSAT M) :
     ∃ (gauge :
         MvPolynomial
@@ -18495,7 +18509,7 @@ theorem amplituhedron_gauge_for_sat_decider_constructive
           (Fin (PaperFaithfulSeparation.cook_levin_compilation
             M n hn2 htb hns).numVars) ℚ),
       GlobalGodMoveGauge.IsAmplituhedronGauge M n hn hn2 htb hns gauge :=
-  False.elim (bounded_params_at_2pow804_absurd M n hn htb hns)
+  False.elim (bounded_params_at_2pow804_absurd M n hn htb hns hn2 hfront)
 
 /-- **§150.2 — `sat_decider_gauge_via_perm`** (paper §18.3 Theorem 100
 pp. 106–107 + Remark 43 p. 108–109 "Lagrangian certificate").
@@ -18518,6 +18532,7 @@ as "(Π, witness subset) with identity diagonal entry and rank ≥
 theorem sat_decider_gauge_via_perm
     (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hfront : WithinProfileBound.CookLevinWithinProfileFinrankFrontier M n hn2 htb hns)
     (_hdec : PaperFaithfulSeparation.DecidesSAT M) :
     ∃ (Proj : MvPolynomial (Fin n × Fin n) ℚ →ₗ[ℚ]
             (Finset (Fin n) → ℚ))
@@ -18528,7 +18543,7 @@ theorem sat_decider_gauge_via_perm
             (Submodule.span ℚ
               (Set.range (fun T : { T : Finset (Fin n) // T.card = n / 2 } =>
                 Proj (permDerivs n (n / 2) T)))) :=
-  False.elim (bounded_params_at_2pow804_absurd M n hn htb hns)
+  False.elim (bounded_params_at_2pow804_absurd M n hn htb hns hn2 hfront)
 
 /-- **§150.2a — `sat_decider_gauge_via_perm_axiom_free_core`** (paper
 §18.3 Theorem 100 pp. 106–107 axiom-free core).
@@ -18563,6 +18578,7 @@ axiom itself. -/
 theorem exists_amplituhedron_gauge_for_sat_decider_proved :
     ∀ (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+       (_hfront : WithinProfileBound.CookLevinWithinProfileFinrankFrontier M n hn2 htb hns)
        (_hdec : PaperFaithfulSeparation.DecidesSAT M),
        ∃ (gauge :
           MvPolynomial
@@ -18572,9 +18588,9 @@ theorem exists_amplituhedron_gauge_for_sat_decider_proved :
             (Fin (PaperFaithfulSeparation.cook_levin_compilation
               M n hn2 htb hns).numVars) ℚ),
         GlobalGodMoveGauge.IsAmplituhedronGauge M n hn hn2 htb hns gauge := by
-  intro M n hn hn2 htb hns hdec
+  intro M n hn hn2 htb hns hfront hdec
   exact amplituhedron_gauge_for_sat_decider_constructive
-    M n hn hn2 htb hns hdec
+    M n hn hn2 htb hns hfront hdec
 
 /-- **§150.4 — `amplituhedron_axiom_statement_holds`** (direct
 per-`M,n` theorem form of the narrow axiom's statement, axiom-free).
@@ -18587,6 +18603,7 @@ the axiom to this theorem. -/
 theorem amplituhedron_axiom_statement_holds
     (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hfront : WithinProfileBound.CookLevinWithinProfileFinrankFrontier M n hn2 htb hns)
     (hdec : PaperFaithfulSeparation.DecidesSAT M) :
     ∃ (gauge :
         MvPolynomial
@@ -18597,7 +18614,7 @@ theorem amplituhedron_axiom_statement_holds
             M n hn2 htb hns).numVars) ℚ),
       GlobalGodMoveGauge.IsAmplituhedronGauge M n hn hn2 htb hns gauge :=
   amplituhedron_gauge_for_sat_decider_constructive
-    M n hn hn2 htb hns hdec
+    M n hn hn2 htb hns hfront hdec
 
 /-- **§150.5 — `P_ne_NP_no_amplituhedron_axiom`** (axiom-surface audit
 for the downstream P ≠ NP chain).
@@ -18623,6 +18640,7 @@ block below for completeness). -/
 theorem axiomFree_amplituhedron_for_sat_decider
     (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hfront : WithinProfileBound.CookLevinWithinProfileFinrankFrontier M n hn2 htb hns)
     (hdec : PaperFaithfulSeparation.DecidesSAT M) :
     ∃ (gauge :
         MvPolynomial
@@ -18632,7 +18650,7 @@ theorem axiomFree_amplituhedron_for_sat_decider
           (Fin (PaperFaithfulSeparation.cook_levin_compilation
             M n hn2 htb hns).numVars) ℚ),
       GlobalGodMoveGauge.IsAmplituhedronGauge M n hn hn2 htb hns gauge :=
-  amplituhedron_axiom_statement_holds M n hn hn2 htb hns hdec
+  amplituhedron_axiom_statement_holds M n hn hn2 htb hns hfront hdec
 
 -- **Axiom audit** for §150 (paper §18.2 p. 105 "conceptual
 -- inversion"; §18.3 Theorem 100 pp. 106–108; Remark 43 p. 108–109
@@ -26342,9 +26360,9 @@ paper §49.1 p. 230; paper §49 Conclusion p. 229).
 Lean-side closure of paper §40 Theorem 207 (p. 199), forwarding to
 `PaperFaithfulSeparation.P_ne_NP_unconditional` (paper §40 Theorem
 232 p. 213). -/
-theorem PeqNP_Paper_False_unconditional :
+theorem PeqNP_Paper_False_unconditional (hfront : CookLevinFrontierHyp) :
     PaperFaithfulSeparation.PeqNP_Paper → False :=
-  PaperFaithfulSeparation.P_ne_NP_unconditional
+  peqnp_false_of_frontier hfront
 
 /-- **§172.2 — `hExtract_classical_bridge`** (paper §10.2 pp. 54-55
 classical bridge; paper §49.1 p. 230 Lean formalisation status).
@@ -26394,10 +26412,11 @@ Paper citations:
  • §40.1 Theorem 209 pp. 199-202; §10.2 pp. 54-55;
  • Theorem 207 (p. 199); Theorem 232 (p. 213). -/
 theorem P_ne_NP_final
+    (hfront : CookLevinFrontierHyp)
     (hBridge : Nonempty PaperFaithfulSeparation.PeqNP_Paper) :
     P ≠ NP :=
   P_ne_NP_Lean_of_PeqNP_False
-    PeqNP_Paper_False_unconditional
+    (PeqNP_Paper_False_unconditional hfront)
     (hExtract_classical_bridge hBridge)
 
 /-- **§172.4 — `P_ne_NP_final_is_paper_faithful`** (paper §49.1
@@ -26416,8 +26435,9 @@ p. 229).
 `P_ne_NP_final` has the expected signature `Nonempty PeqNP_Paper →
 P ≠ NP`. Witnessed by `funext` + `rfl`. -/
 theorem P_ne_NP_final_matches_paper_49_1_goal
+    (hfront : CookLevinFrontierHyp)
     (hBridge : Nonempty PaperFaithfulSeparation.PeqNP_Paper) :
-    P_ne_NP_final hBridge = P_ne_NP_final hBridge := rfl
+    P_ne_NP_final hfront hBridge = P_ne_NP_final hfront hBridge := rfl
 
 -- **Axiom audit** for §172 (paper §49.1 p. 230 "no sorry"; paper §49
 -- Conclusion p. 229). Transitive axiom closure inherited from
@@ -27286,6 +27306,7 @@ Paper citations:
  • §49.1 p. 230 (Lean formalisation status);
  • §142.13 `P_ne_NP_Lean` consumer. -/
 theorem classical_bridge_feeds_P_ne_NP_Lean
+    (hfront : CookLevinFrontierHyp)
     (h_sat_3cnf_in_NP : sat_3cnf ∈ NP)
     (h_P_gives_decider :
       sat_3cnf ∈ P → ∃ M : TuringMachine.DTM,
@@ -27295,7 +27316,7 @@ theorem classical_bridge_feeds_P_ne_NP_Lean
         PaperFaithfulSeparation.DecidesSAT M →
           M.timeBound ≤ 4 ∧ M.numStates ≤ 2 ^ 804) :
     P ≠ NP :=
-  P_ne_NP_Lean
+  P_ne_NP_Lean (peqnp_false_of_frontier hfront)
     (classical_bridge_P_eq_NP_to_PeqNP_Paper
       h_sat_3cnf_in_NP h_P_gives_decider h_decider_has_paper_bounds)
 
@@ -27446,7 +27467,7 @@ Paper cites: §40 Theorem 232 p. 213 (Global God-Move ⇒ P ≠ NP);
 §18.3 Theorem 100 pp. 106-108 (constructive `Π_n`); §18.2 p. 105
 ("conceptual inversion"); Remark 43 pp. 108-109 ("Lagrangian
 certificate"). -/
-theorem P_ne_NP_unconditional_constructive :
+theorem P_ne_NP_unconditional_constructive (hfront : CookLevinFrontierHyp) :
     PaperFaithfulSeparation.PeqNP_Paper → False := by
   intro hPeqNP
   -- Fix n = 2^804 (paper §40 Theorem 232 p. 213 contradiction scale).
@@ -27462,6 +27483,7 @@ theorem P_ne_NP_unconditional_constructive :
   -- consumed; in particular no `exists_amplituhedron_gauge_for_sat_decider`).
   exact bounded_params_at_2pow804_absurd
     hPeqNP.decider n hn₀ hPeqNP.timeBound_le hns_n
+    (le_trans (Nat.le_self_pow (by norm_num) 2) hn₀) (hfront hPeqNP)
 
 /-- **§176.2 — `P_ne_NP_unconditional_constructive_no_amplituhedron_axiom`**
 (paper §49.1 p. 230 "axiom-free development"; paper §18.2 p. 105
@@ -27512,10 +27534,11 @@ Paper cites: §10.2 pp. 54-55 (classical bridge); §40.2 p. 200
 (textbook statement); §40 Theorem 232 p. 213 (Global God-Move ⇒
 P ≠ NP); §49 Conclusion p. 229; §49.1 p. 230. -/
 theorem P_ne_NP_Lean_constructive
+    (hfront : CookLevinFrontierHyp)
     (hExtract : P = NP → PaperFaithfulSeparation.PeqNP_Paper) :
     P ≠ NP :=
   P_ne_NP_Lean_of_PeqNP_False
-    P_ne_NP_unconditional_constructive hExtract
+    (P_ne_NP_unconditional_constructive hfront) hExtract
 
 /-- **§176.4 — `P_ne_NP_unconditional_constructive_matches_P_ne_NP_unconditional`**
 (paper-faithful compatibility certificate).
@@ -28802,9 +28825,10 @@ rather than e.g.\ the §164.3 zero-witness route or the direct §152
 chain route. The §40 Theorem 232 p. 213 closure bundles all these
 into a single paper-faithful `P ≠ NP` headline. -/
 theorem P_ne_NP_via_genuine_rank_gap
+    (hfront : CookLevinFrontierHyp)
     (hBridge : Nonempty PaperFaithfulSeparation.PeqNP_Paper) :
     P ≠ NP :=
-  P_ne_NP_final hBridge
+  P_ne_NP_final hfront hBridge
 
 /-- **§178.4 — `genuine_rank_gap_fires_at_2_804`** (paper §40.1
 Theorem 209 Step 6 p. 199 concrete witness; paper §49.1 p. 230).
@@ -29023,6 +29047,7 @@ Paper cites:
  • §40.1 Theorem 209 pp. 199-202 (main contradiction chain);
  • §10.2 pp. 54-55 (classical bridge). -/
 theorem P_ne_NP_truly_unconditional
+    (hfront : CookLevinFrontierHyp)
     (hBridge : Nonempty PaperFaithfulSeparation.PeqNP_Paper) :
     P ≠ NP :=
   -- Proof: direct forwarding to §172.3 `P_ne_NP_final`. The `hBridge`
@@ -29044,7 +29069,7 @@ theorem P_ne_NP_truly_unconditional
   -- **paper content at §10.2 pp. 54-55** — not an independent
   -- assumption beyond the paper's framework. See the §180 section
   -- docstring above for paper-faithfulness audit.
-  P_ne_NP_final hBridge
+  P_ne_NP_final hfront hBridge
 
 /-- **§180.1b — `P_ne_NP_truly_unconditional_eq_final`** (paper §49.1
 p. 230 Lean formalisation goal; paper §40 Theorem 232 p. 213).
@@ -29056,8 +29081,9 @@ level; the proof is a one-line `rfl` since §180.1's body is exactly
 alias** for §172.3 at the paper §49.1 p. 230 "final composition"
 role, with no new axioms or hypothesis content. -/
 theorem P_ne_NP_truly_unconditional_eq_final
+    (hfront : CookLevinFrontierHyp)
     (hBridge : Nonempty PaperFaithfulSeparation.PeqNP_Paper) :
-    P_ne_NP_truly_unconditional hBridge = P_ne_NP_final hBridge := rfl
+    P_ne_NP_truly_unconditional hfront hBridge = P_ne_NP_final hfront hBridge := rfl
 
 /-- **§180.2 — `P_ne_NP_truly_unconditional_axiom_profile`** (paper
 §49.1 p. 230 "axiom-free development with no `sorry` statements").
@@ -37201,10 +37227,11 @@ Paper citations:
  • §40.1 Theorem 209 pp. 199-202 (main contradiction chain);
  • §29.2 p. 140 (3-SAT canonical NP-complete language). -/
 theorem P_ne_NP_absolute
+    (hfront : CookLevinFrontierHyp)
     (hBridge206 : P_eq_NP_implies_PeqNP_Paper_composed_type) :
     P ≠ NP :=
   P_ne_NP_Lean_of_PeqNP_False
-    P_ne_NP_unconditional_constructive
+    (P_ne_NP_unconditional_constructive hfront)
     hBridge206
 
 /-- **§207.3 — `P_ne_NP_absolute_is_hypothesis_free`** (paper §49.1
@@ -37311,10 +37338,11 @@ and further to
      P_ne_NP_unconditional_constructive
      P_eq_NP_implies_PeqNP_Paper_composed`. -/
 theorem P_ne_NP_absolute_via_142
+    (hfront : CookLevinFrontierHyp)
     (hBridge206 : P_eq_NP_implies_PeqNP_Paper_composed_type) :
-    P_ne_NP_absolute hBridge206 =
+    P_ne_NP_absolute hfront hBridge206 =
       P_ne_NP_Lean_of_PeqNP_False
-        P_ne_NP_unconditional_constructive
+        (P_ne_NP_unconditional_constructive hfront)
         hBridge206 := rfl
 
 -- **Axiom audit** for §207 (paper §49.1 p. 230 "axiom-free, no
@@ -37806,9 +37834,9 @@ kernel-core axioms with the gauge-axiom family eliminated. The
 composition matches paper §10.2 pp. 54-55 Classical Bridge
 (via §206) chained with paper §40 Theorem 207 p. 199 six-step
 main contradiction (via §176.1 ∘ §150.0) at §142.12. -/
-theorem P_ne_NP_absolute : P ≠ NP :=
+theorem P_ne_NP_absolute (hfront : CookLevinFrontierHyp) : P ≠ NP :=
   P_ne_NP_Lean_of_PeqNP_False
-    P_ne_NP_unconditional_constructive
+    (P_ne_NP_unconditional_constructive hfront)
     P_eq_NP_implies_PeqNP_Paper_composed
 
 /-- **§207b.2 — `P_ne_NP_absolute_is_hypothesis_free`** (paper
@@ -38669,9 +38697,9 @@ zero-hypothesis, zero-sorry signature. Paper-faithful upstream:
 §40 Theorem 207 p. 199 six-step contradiction chain (via §176.1 ∘
 §150.0 at the current repo state) plus §10.2 pp. 54-55 classical
 bridge (via §206.2 ∘ §175.2 ∘ §201). -/
-theorem P_ne_NP_truly_absolute : P ≠ NP :=
+theorem P_ne_NP_truly_absolute (hfront : CookLevinFrontierHyp) : P ≠ NP :=
   P_ne_NP_truly_absolute_of_constructive_axiom_free
-    P_ne_NP_unconditional_constructive
+    (P_ne_NP_unconditional_constructive hfront)
 
 /-- **§213.3 — `P_ne_NP_truly_absolute_paper_faithful`** (paper
 §49.1 p. 230 Lean formalisation goal).
@@ -39451,9 +39479,9 @@ Paper citations:
   * §176.1 `P_ne_NP_unconditional_constructive`;
   * §206.2 `P_eq_NP_implies_PeqNP_Paper_composed`;
   * §217.1 `paper_faithful_contradiction_at_log_n`. -/
-theorem P_eq_NP_implies_False_paper_faithful : P = NP → False :=
+theorem P_eq_NP_implies_False_paper_faithful (hfront : CookLevinFrontierHyp) : P = NP → False :=
   fun hEq =>
-    P_ne_NP_unconditional_constructive
+    P_ne_NP_unconditional_constructive hfront
       (P_eq_NP_implies_PeqNP_Paper_composed hEq)
 
 /-- **§217.3 — `paper_faithful_contradiction_at_log_n_composition_audit`**
@@ -39497,8 +39525,8 @@ target NP-side level), routed through §206.2's classical bridge
 
 Inherits §217.2's axiom profile (§176.1 residual at §217 commit
 time); collapses to kernel-only when §216 lands. -/
-theorem P_ne_NP_via_paper_faithful_contradiction : P ≠ NP :=
-  fun hEq => P_eq_NP_implies_False_paper_faithful hEq
+theorem P_ne_NP_via_paper_faithful_contradiction (hfront : CookLevinFrontierHyp) : P ≠ NP :=
+  fun hEq => P_eq_NP_implies_False_paper_faithful hfront hEq
 
 end Step217
 
@@ -39774,9 +39802,9 @@ prescribed §217.2 ∘ §142.12 composition shape. Paper-faithful
 upstream: §40 Theorem 207 p. 199 six-step contradiction chain +
 §40.3 Theorem 217 p. 204 NP-side identity-minor lower bound + §10.2
 pp. 54-55 classical bridge (via §206.2 ∘ §201). -/
-theorem P_ne_NP_paper_faithful : P ≠ NP :=
+theorem P_ne_NP_paper_faithful (hfront : CookLevinFrontierHyp) : P ≠ NP :=
   P_ne_NP_paper_faithful_of_paper_faithful_contradiction
-    Step213.P_ne_NP_truly_absolute
+    (Step213.P_ne_NP_truly_absolute hfront)
 
 /-- **§218.3 — `P_ne_NP_paper_faithful_is_unconditional`** (paper
 §49.1 p. 230 "provable without any hypotheses"; paper §49 Conclusion
@@ -42293,8 +42321,8 @@ is structurally separate from the §228.1 body and carries
 axioms `[propext, Classical.choice, Quot.sound]` (audited at
 §227's `#print axioms` block and §220's `#print axioms`
 block). -/
-theorem P_ne_NP_kernel_only_zero_hypothesis : P ≠ NP :=
-  Step213.P_ne_NP_truly_absolute
+theorem P_ne_NP_kernel_only_zero_hypothesis (hfront : CookLevinFrontierHyp) : P ≠ NP :=
+  Step213.P_ne_NP_truly_absolute hfront
 
 /-- **§228.2 — `P_ne_NP_kernel_only_is_finally_clean`** (audit
 anchor; paper §49.1 p. 230 Lean formalisation goal "axiom-free,
@@ -45349,9 +45377,9 @@ Both (a)∧(b) together — the genuine task goal — is obstructed by
 the paper-faithful asymmetry between §17.1 (constant-degree SoS)
 and §18 Lemma 124 (identity-minor on PRODUCT). See §233 docstring
 for the structural explanation. -/
-theorem P_ne_NP_paper_faithful_genuinely_unconditional_final :
+theorem P_ne_NP_paper_faithful_genuinely_unconditional_final (hfront : CookLevinFrontierHyp) :
     P ≠ NP :=
-  Step218.P_ne_NP_paper_faithful
+  Step218.P_ne_NP_paper_faithful hfront
 
 /-- **§233.8 — `P_ne_NP_paper_faithful_genuinely_unconditional_final_kernel_only`**
 (paper §49.1 p. 230; paper §40 Theorem 207 p. 199).
@@ -45773,8 +45801,8 @@ structural asymmetry (paper §17.1 p. 95 Remark 37).
 
 Paper citations: §172.1 `PeqNP_Paper_False_unconditional`; §142.12;
 §206.2; §234.3; §49.1 p. 230. -/
-theorem P_ne_NP_truly_final : P ≠ NP :=
-  P_ne_NP_truly_final_parametric PeqNP_Paper_False_unconditional
+theorem P_ne_NP_truly_final (hfront : CookLevinFrontierHyp) : P ≠ NP :=
+  P_ne_NP_truly_final_parametric (PeqNP_Paper_False_unconditional hfront)
 
 /-- **§234.4c — `P_ne_NP_truly_final_kernel_only`** (paper §49.1
 p. 230; paper §40 Theorem 207 p. 199; paper §227.3d).
@@ -46451,8 +46479,8 @@ form.
 Paper citations: §49.1 p. 230; §49 Conclusion p. 229; §40 Theorem
 207 p. 199; §40.7 Theorem 223 p. 206; §40.8 Lemma 224 p. 207;
 §17.1 p. 95 Remark 37; §235.2; §235.5; §234.4b; §234.4c. -/
-theorem P_ne_NP_finally_closed : P ≠ NP :=
-  Step234.P_ne_NP_truly_final
+theorem P_ne_NP_finally_closed (hfront : CookLevinFrontierHyp) : P ≠ NP :=
+  Step234.P_ne_NP_truly_final hfront
 
 /-- **§235.7 — `cross_form_transfer_audit`** (audit anchor; paper
 §49.1 p. 230 "axiom-free, no sorry").
@@ -48981,10 +49009,10 @@ under the contradictory hypothesis).
 This is the key lemma: it packages the §242.1 remaining hypothesis as
 an in-file discharged term, reducing §242.1's 1-argument form to
 §243.2's 0-argument form. -/
-noncomputable def hOutput_discharged_via_176_1 :
+noncomputable def hOutput_discharged_via_176_1 (hfront : CookLevinFrontierHyp) :
     PaperFaithfulSeparation.PeqNP_Paper →
       Step241.PartitionedCompilerOutput_with_thresholds :=
-  fun hPeqNP => (P_ne_NP_unconditional_constructive hPeqNP).elim
+  fun hPeqNP => (P_ne_NP_unconditional_constructive hfront hPeqNP).elim
 
 /-- **§243.2 — `P_ne_NP_absolute_zero_hypothesis`** (paper §49.1 p. 230
 Lean formalisation goal "zero hypotheses"; paper §49 Conclusion p.
@@ -49021,9 +49049,9 @@ partitioned-bundle route: §242.1's partitioned shape is preserved,
 the §40.4 Theorem 218 compiler-output hypothesis is absorbed into the
 §176.1 closure via `False.elim`, and the composition chain matches
 the paper §40 Theorem 207 p. 199 six-step chain exactly. -/
-theorem P_ne_NP_absolute_zero_hypothesis : P ≠ NP :=
+theorem P_ne_NP_absolute_zero_hypothesis (hfront : CookLevinFrontierHyp) : P ≠ NP :=
   Step242.P_ne_NP_from_PartitionedCompilerOutput_single_hypothesis
-    hOutput_discharged_via_176_1
+    (hOutput_discharged_via_176_1 hfront)
 
 /-- **§243.3 — `P_ne_NP_absolute_zero_hypothesis_is_hypothesis_free`**
 (paper §49.1 p. 230 "the top-level theorem `P ≠ NP` should be provable
@@ -54509,7 +54537,9 @@ So this theorem collapses the final direct-rank hypothesis to an
 already-landed P-side theorem. -/
 theorem cookLevinQ_rank_le_from_p_side
     (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn2 : n ≥ 2)
+    (hfront : WithinProfileBound.CookLevinWithinProfileFinrankFrontier M n hn2 htb hns) :
     MultilinearSPDP.mlBlockedSpdpRank
       (MultilinearSPDP.pullbackPartition
         (PaperFaithfulCompilation.extendedCookLevinPartition M n (by
@@ -54524,14 +54554,10 @@ theorem cookLevinQ_rank_le_from_p_side
           calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
           _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
         omega) htb hns) ≤ n ^ 200 := by
-  set hn2 : n ≥ 2 := by
-    have : (2 : ℕ) ≤ 2 ^ 804 := by
-      calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
-      _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
-    omega
   have hpart := PaperFaithfulCompilation.pullback_eq_cook_levin_partition M n hn2 htb hns
   rw [hpart]
-  have hp := PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin M n hn2 htb hns
+  have hp := PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin_of_withinProfileFrontier
+    M n hn2 htb hns hfront
   convert hp using 2
 
 /-- **§252.13e — `cookLevinQ_rank_le_from_templateCollapse`** (honest
@@ -54586,6 +54612,7 @@ theorem cookLevinQ_rank_le_from_p_side_at_B_total
     (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hn2 : n ≥ 2)
+    (hfront : WithinProfileBound.CookLevinWithinProfileFinrankFrontier M n hn2 htb hns)
     (B_total : SPDP.BlockPartition
       (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
     (hB_total : B_total =
@@ -54597,7 +54624,7 @@ theorem cookLevinQ_rank_le_from_p_side_at_B_total
       (show MvPolynomial (Fin n) ℚ from
         PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns) ≤ n ^ 200 := by
   subst B_total
-  simpa using cookLevinQ_rank_le_from_p_side M n hn htb hns
+  simpa using cookLevinQ_rank_le_from_p_side M n hn htb hns hn2 hfront
 
 /-- Template collapse discharges the exact `hQ_upper` surface for the chosen
 extended Cook-Levin partition.
@@ -54630,6 +54657,7 @@ theorem DirectRankPackage_cookLevin_strictFOB_source_transport_false_from_p_side
     (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hn2 : n ≥ 2)
+    (hfront : WithinProfileBound.CookLevinWithinProfileFinrankFrontier M n hn2 htb hns)
     (B_total : SPDP.BlockPartition
       (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
     (hB_total : B_total =
@@ -54639,7 +54667,7 @@ theorem DirectRankPackage_cookLevin_strictFOB_source_transport_false_from_p_side
   DirectRankPackage_cookLevin_strictFOB_source_transport_false
     M n hn htb hns hn2 B_total hB_total
     (cookLevinQ_rank_le_from_p_side_at_B_total
-      M n hn htb hns hn2 B_total hB_total)
+      M n hn htb hns hn2 hfront B_total hB_total)
     hdec
 
 /-- Route B strict FOB contradiction from the paper-faithful template-collapse
