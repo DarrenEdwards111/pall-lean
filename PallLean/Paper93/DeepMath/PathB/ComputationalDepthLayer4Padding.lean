@@ -93,8 +93,40 @@ theorem padTrue_isAC0pSyntax {n k : ℕ} (p : ℕ) (D : BoolCircuitSyntax (n + k
     (h : IsAC0pSyntax p D) : IsAC0pSyntax p (padTrue D) :=
   padInputs_isAC0pSyntax p _ (fun i => by by_cases hi : (i : ℕ) < n <;> simp [hi, IsAC0pSyntax]) D h
 
+/-- `foldl`-max congruence: if `g` and `h` agree on the members, the depth folds coincide. -/
+theorem foldl_max_congr {n : ℕ} (g h : BoolCircuitSyntax n → ℕ) :
+    ∀ (Cs : List (BoolCircuitSyntax n)) (a : ℕ), (∀ C ∈ Cs, g C = h C) →
+      Cs.foldl (fun acc C => max acc (g C)) a = Cs.foldl (fun acc C => max acc (h C)) a
+  | [], _, _ => rfl
+  | C :: Cs, a, hgh => by
+      simp only [List.foldl_cons, hgh C (List.mem_cons_self ..)]
+      exact foldl_max_congr g h Cs _ (fun C' hC' => hgh C' (List.mem_cons_of_mem _ hC'))
+
+/-- **Padding preserves depth.**  Substituting inputs by depth-`0` leaves leaves the gate structure
+intact (`(padInputs f C).depth = C.depth` when every `f i` has depth `0`). -/
+theorem padInputs_depth {m n : ℕ} (f : Fin m → BoolCircuitSyntax n) (hf : ∀ i, (f i).depth = 0) :
+    ∀ (C : BoolCircuitSyntax m), (padInputs f C).depth = C.depth
+  | .const b => by simp [padInputs, depth]
+  | .input i => by simp only [padInputs]; rw [hf i, depth]
+  | .not C => by simp only [padInputs, depth, padInputs_depth f hf C]
+  | .andGate Cs => by
+      simp only [padInputs, depth, List.foldl_map]
+      congr 1; exact foldl_max_congr _ _ Cs 0 (fun C hC => padInputs_depth f hf C)
+  | .orGate Cs => by
+      simp only [padInputs, depth, List.foldl_map]
+      congr 1; exact foldl_max_congr _ _ Cs 0 (fun C hC => padInputs_depth f hf C)
+  | .modGate p r Cs => by
+      simp only [padInputs, depth, List.foldl_map]
+      congr 1; exact foldl_max_congr _ _ Cs 0 (fun C hC => padInputs_depth f hf C)
+
+/-- `padTrue` preserves depth: `(padTrue D).depth = D.depth` (the pad leaves have depth `0`).  So the
+Smolensky degree bound `((p-1)t)^{depth}` is unchanged by padding. -/
+theorem padTrue_depth {n k : ℕ} (D : BoolCircuitSyntax (n + k)) : (padTrue D).depth = D.depth :=
+  padInputs_depth _ (fun i => by by_cases hi : (i : ℕ) < n <;> simp [hi]) D
+
 end PallLean.Paper93.DeepMath.PathB.Layer4
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer4.padInputs_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer4.padTrue_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer4.padTrue_depth
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer4.padTrue_isAC0pSyntax

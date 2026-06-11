@@ -85,13 +85,14 @@ low-degree on `G`, every `ζ`-character `qChar ζ S` (`|S|>n/2`) collapses to de
   (f i).eval x)`); `padTrue` (hardwire the last `k` inputs to `const true`) + `padTrue_eval` (`= D.eval` of
   the extended assignment); `padTrue_isAC0pSyntax` (padding preserves `AC⁰[p]` — only input↔const leaves
   change, `MOD_p` gates untouched), discharging `hmod`.  Sorry-free.
-  **Sole remaining content (genuinely `Nat`/`Fin`-counting, not faked):** (i) **depth preservation**
-  `(padTrue D).depth = D.depth` (leaf substitution; `foldl`-over-`map` congruence) — for the
-  `((p-1)t)^{depth}` degree bound; (ii) the **`MOD_q` arithmetic**: `#ones(extend x by k trues) = #ones(x)
-  + k` and `(#ones(x)+k)%q = 0 ↔ #ones(x)%q = j` (for `k = q-j`), so `padTrue` of a `MOD_q` circuit computes
-  `[#ones ≡ j]` — finishing `hCind`; (iii) the **intersection bookkeeping** — `G = ⋂_{j<q} G_j` needs each
-  `|G_jᶜ| ≤ 2ⁿ/(4q)`, i.e. the tighter horizon `p^t ≥ 4q·s` (a parameterised `exists_large_agreement_set`).
-  All three are `Nat`/`Fin`-counting over the constructions now in place.
+  **Depth preservation ✓ DONE** (`padTrue_depth`, via `foldl_max_congr` + `padInputs_depth`):
+  `(padTrue D).depth = D.depth`, so the Smolensky bound `((p-1)t)^{depth}` is unchanged by padding.
+  **Sole remaining content (genuinely `Nat`/`Fin`-counting, not faked):** (i) the **`MOD_q` arithmetic**:
+  `#ones(extend x by k trues) = #ones(x) + k` and `(#ones(x)+k)%q = 0 ↔ #ones(x)%q = j` (for `k = q-j`), so
+  `padTrue` of a `MOD_q` circuit computes `[#ones ≡ j]` — finishing `hCind`; (ii) the **intersection
+  bookkeeping** — `G = ⋂_{j<q} G_j` needs each `|G_jᶜ| ≤ 2ⁿ/(4q)`, i.e. the tighter horizon `p^t ≥ 4q·s`
+  (a parameterised `exists_large_agreement_set`).  Both are `Nat`/`Fin`-counting over the constructions
+  now in place.
 
 **Route B — reduce `MOD_q` to PARITY on a sub-cube.** *Unsound in general.* `MOD_q` does not restrict to
 `MOD_2` on any natural sub-structure for `q > 2`; flagged here only to mark it as a trap so it is not
