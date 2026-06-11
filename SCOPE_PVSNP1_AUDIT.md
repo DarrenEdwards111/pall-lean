@@ -44,6 +44,19 @@ Confirmed by grep `[G]`:
   `GlobalGodMoveGauge.exists_theorem207_witness`,
   `…exists_theorem207_semantic_identity_minor_gap_source_transport_data`
 
+> **RESOLVED (axiom→hypothesis demotion, commits `872d41e1`, `cea13b05`).**  All four God-Move axioms in
+> `GlobalGodMoveGauge.lean` are now **demoted to explicit named hypotheses** (`def … : Prop`/`Type`), threaded
+> through their consumer chains (entirely contained to that file; zero external code used them):
+> `exists_amplituhedron_gauge → AmplituhedronGaugeHyp`,
+> `exists_amplituhedron_gauge_for_sat_decider → SatDeciderGaugeHyp`,
+> `exists_theorem207_witness → Theorem207WitnessHyp`,
+> `exists_theorem207_semantic_… → Theorem207SemanticHyp`.
+> **No `axiom` declarations remain in the file.**  Kernel-verified: `piStar_rank_monotone` and
+> `no_bounded_sat_decider_…_from_rank_sandwich` are now `[propext, Classical.choice, Quot.sound]` — Route G is
+> now conditional on the explicit hypotheses, never on custom axioms.  Full build green (8068 jobs).
+> *Remaining (separate, outside this demotion):* the non-God-Move axioms `gadget_factoring_linearmap_form`
+> (`MatrixSPDP`) and `gadget_spdp_subspace_factoring*` (`PAC`).
+
 **These power Item 3 (the God-Move / extraction).**  They are *not* used by the clean Item-4 route
 `peqnp_false_of_frontier` (which I kernel-checked is `[propext, Classical.choice, Quot.sound]`).  So the
 repo has **two distinct routes** to the conditional separation:
