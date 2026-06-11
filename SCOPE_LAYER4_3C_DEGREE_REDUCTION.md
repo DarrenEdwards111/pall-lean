@@ -94,12 +94,21 @@ low-degree on `G`, every `ζ`-character `qChar ζ S` (`|S|>n/2`) collapses to de
   union bound — if each `4q·|G_jᶜ| ≤ 2ⁿ` then `3·2ⁿ ≤ 4·|⋂_{j<q} G_j|` (`(univ \ inf) ⊆ ⋃ⱼ(univ \ A_j)` +
   `card_biUnion_le` + cancel `q`), i.e. the intersection covers the `(3/4)`-fraction
   `dim_contradiction_general` needs.  Sorry-free.
-  **Sole remaining content (a parameterised re-run of an existing lemma, not faked):** the per-set tight
-  bound `4q·|G_jᶜ| ≤ 2ⁿ` (the hypothesis of `inter_three_quarters`) is what a **parameterised
-  `exists_large_agreement_set`** delivers under the horizon `p^t ≥ 4q·s` — identical to the existing
-  `p^t ≥ 4·s ⇒ 3·2ⁿ ≤ 4·|G|` except the constant `4 ↦ 4q`, tracing the same `|cbad| ≤ s·2ⁿ/p^t` count.
-  Re-running that one Layer-3 lemma with the `4q` constant + the `IsAC0pSyntax ⇒ hmod` and subcircuit-count
-  glue is the final assembly step; every mathematical ingredient is now in place and sorry-free.
+  **Parameterised agreement + glue ✓ DONE** (`ComputationalDepthLayer4Assembly`):
+  `exists_tight_agreement_set` (the `4 ↦ 4q` re-run of `exists_large_agreement_set` via the same
+  `composed_error_le` count: `p^t ≥ 4q·s ⇒ 4q·|cbadᵪ| ≤ 2ⁿ`, the per-set hypothesis of
+  `inter_three_quarters`) and `hmod_of_isAC0p` (`IsAC0pSyntax p C ⇒` every `MOD` gate in `subcircuits C`
+  has modulus `p`, via `isAC0p_of_mem_subcircuits` + `exists_of_mem_subcircuitsList`), so
+  `padTrue_isAC0pSyntax` discharges every `hmod`.  Sorry-free.
+
+  **Every mathematical ingredient is now mechanised and sorry-free.**  The remaining work is pure
+  *wiring*: (i) the degree→span bridge `eval_mem_lowDegSpan` over `K` (a field-general mirror of the
+  Layer-3 squarefree decomposition, converting `qary_every_function_repr`'s degree-`≤(Δ+n/2)` output into
+  `dim_contradiction_general`'s span hypothesis `hstar`); and (ii) the multi-residue parameter thread for
+  the `q` circuits (`padTrue` each MOD_q-family member → `exists_tight_agreement_set` + base change →
+  `inter_three_quarters` → `qary_reduction_from_indicators` → `dim_contradiction_general`, choosing
+  uniform `Δ = ((p-1)t)^d` and the band-margin window `16Δ² < 2m+3`).  Both are bookkeeping over the
+  finished pieces — no new mathematics.
 
 **Route B — reduce `MOD_q` to PARITY on a sub-cube.** *Unsound in general.* `MOD_q` does not restrict to
 `MOD_2` on any natural sub-structure for `q > 2`; flagged here only to mark it as a trap so it is not
