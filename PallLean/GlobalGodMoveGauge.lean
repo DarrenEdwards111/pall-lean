@@ -145,10 +145,14 @@ existence claim from Theorem 207 / §6: "there is a uniform projection
 Π_⋆ derived from amplituhedron geometry that ...". The axiom is
 *consistent* with the axiom-free `compiled_np_lower_bound_any_dtm` (the
 projected rank ≤ unprojected rank, so a small upper bound on projected
-does not contradict a large lower bound on unprojected). -/
-axiom exists_amplituhedron_gauge
+does not contradict a large lower bound on unprojected).
+
+**Demoted (was `axiom exists_amplituhedron_gauge`):** the existence of an amplituhedron gauge is now an
+explicit named `Prop` hypothesis — never asserted.  Theorems that need it take it as an argument
+(`hGauge : AmplituhedronGaugeHyp …`), so nothing in the live chain depends on it as a custom axiom. -/
+def AmplituhedronGaugeHyp
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
     ∃ (gauge : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ →ₗ[ℚ]
                MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ),
       IsAmplituhedronGauge M n hn hn2 htb hns gauge
@@ -165,14 +169,19 @@ noncomputable def piStar
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
     MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ →ₗ[ℚ]
     MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ :=
-  Classical.choose (exists_amplituhedron_gauge M n hn hn2 htb hns)
+  haveI : Decidable (AmplituhedronGaugeHyp M n hn hn2 htb hns) := Classical.propDecidable _
+  if h : AmplituhedronGaugeHyp M n hn hn2 htb hns then Classical.choose h else 0
 
-/-- The chosen `piStar` satisfies the three amplituhedron gauge properties. -/
+/-- The chosen `piStar` satisfies the three amplituhedron gauge properties — **given** the gauge hypothesis
+`hGauge` (formerly the axiom). -/
 theorem piStar_isAmplituhedronGauge
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
-    IsAmplituhedronGauge M n hn hn2 htb hns (piStar M n hn hn2 htb hns) :=
-  Classical.choose_spec (exists_amplituhedron_gauge M n hn hn2 htb hns)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hGauge : AmplituhedronGaugeHyp M n hn hn2 htb hns) :
+    IsAmplituhedronGauge M n hn hn2 htb hns (piStar M n hn hn2 htb hns) := by
+  classical
+  rw [piStar, dif_pos hGauge]
+  exact Classical.choose_spec hGauge
 
 /-! ## The projected SPDP rank functional -/
 
@@ -197,23 +206,25 @@ the single existence axiom `exists_amplituhedron_gauge`. -/
 theorem piStar_rank_monotone
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hGauge : AmplituhedronGaugeHyp M n hn hn2 htb hns)
     (κ ℓ : ℕ)
     (p : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ) :
     mlBlockedSpdpRankProjected M n hn hn2 htb hns κ ℓ p ≤
       mlBlockedSpdpRank
         (cook_levin_compilation M n hn2 htb hns).partition κ ℓ p := by
   unfold mlBlockedSpdpRankProjected
-  exact (piStar_isAmplituhedronGauge M n hn hn2 htb hns).rank_monotone κ ℓ p
+  exact (piStar_isAmplituhedronGauge M n hn hn2 htb hns hGauge).rank_monotone κ ℓ p
 
 /-- **Theorem (formerly Axiom 2): projected P-side upper bound.** -/
 theorem piStar_p_side_bound
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hGauge : AmplituhedronGaugeHyp M n hn hn2 htb hns) :
     mlBlockedSpdpRankProjected M n hn hn2 htb hns
       (Nat.log 2 n) (Nat.log 2 n)
       (compiledPoly (cook_levin_compilation M n hn2 htb hns)) ≤ n ^ 200 := by
   unfold mlBlockedSpdpRankProjected
-  exact (piStar_isAmplituhedronGauge M n hn hn2 htb hns).p_side_bound
+  exact (piStar_isAmplituhedronGauge M n hn hn2 htb hns hGauge).p_side_bound
 
 /-- **Theorem (formerly Axiom 3): projected NP-side lower bound for SAT-deciders.**
 
@@ -223,13 +234,14 @@ in the separation chain. -/
 theorem piStar_preserves_identity_minor_for_sat_deciders
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (hdec : DecidesSAT M)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hGauge : AmplituhedronGaugeHyp M n hn hn2 htb hns) :
     Nat.choose (n / 3) (Nat.log 2 n) ≤
       mlBlockedSpdpRankProjected M n hn hn2 htb hns
         (Nat.log 2 n) (Nat.log 2 n)
         (compiledPoly (cook_levin_compilation M n hn2 htb hns)) := by
   unfold mlBlockedSpdpRankProjected
-  exact (piStar_isAmplituhedronGauge M n hn hn2 htb hns).preserves_identity_minor_for_sat_deciders
+  exact (piStar_isAmplituhedronGauge M n hn hn2 htb hns hGauge).preserves_identity_minor_for_sat_deciders
     hdec
 
 /-! ## Why this resolves the previous inconsistency
@@ -1475,13 +1487,14 @@ the chosen amplituhedron gauge. -/
 theorem theorem207_same_sheet_p_side_bound
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (hdec : DecidesSAT M) :
+    (hdec : DecidesSAT M)
+    (hGauge : AmplituhedronGaugeHyp M n hn hn2 htb hns) :
     mlBlockedSpdpRank
         (cook_levin_compilation M n hn2 htb hns).partition
         (Nat.log 2 n) (Nat.log 2 n)
         (theorem207_same_sheet_poly M n hn hn2 htb hns hdec) ≤ n ^ 200 := by
   simpa [theorem207_same_sheet_poly, mlBlockedSpdpRankProjected] using
-    (piStar_p_side_bound M n hn hn2 htb hns)
+    (piStar_p_side_bound M n hn hn2 htb hns hGauge)
 
 /-- **Theorem-207 NP-side lower bound** on the same named polynomial.
 
@@ -1491,14 +1504,15 @@ amplituhedron gauge. -/
 theorem theorem207_same_sheet_np_side_lower_bound
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (hdec : DecidesSAT M) :
+    (hdec : DecidesSAT M)
+    (hGauge : AmplituhedronGaugeHyp M n hn hn2 htb hns) :
     Nat.choose (n / 3) (Nat.log 2 n) ≤
       mlBlockedSpdpRank
         (cook_levin_compilation M n hn2 htb hns).partition
         (Nat.log 2 n) (Nat.log 2 n)
         (theorem207_same_sheet_poly M n hn hn2 htb hns hdec) := by
   simpa [theorem207_same_sheet_poly, mlBlockedSpdpRankProjected] using
-    (piStar_preserves_identity_minor_for_sat_deciders M n hn hn2 hdec htb hns)
+    (piStar_preserves_identity_minor_for_sat_deciders M n hn hn2 hdec htb hns hGauge)
 
 /-- **Rephrased existence theorem.** Equivalent to `exists_theorem207_witness`
 but with the `extraction_rank_monotone` field discharged implicitly
@@ -1511,7 +1525,8 @@ both hard inequalities are separately auditable. -/
 theorem exists_theorem207_bounds_on_some_poly
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (hdec : DecidesSAT M) :
+    (hdec : DecidesSAT M)
+    (hGauge : AmplituhedronGaugeHyp M n hn hn2 htb hns) :
     ∃ (q : MvPolynomial
         (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ),
       mlBlockedSpdpRank
@@ -1522,8 +1537,8 @@ theorem exists_theorem207_bounds_on_some_poly
           (cook_levin_compilation M n hn2 htb hns).partition
           (Nat.log 2 n) (Nat.log 2 n) q := by
   refine ⟨theorem207_same_sheet_poly M n hn hn2 htb hns hdec, ?_, ?_⟩
-  · exact theorem207_same_sheet_p_side_bound M n hn hn2 htb hns hdec
-  · exact theorem207_same_sheet_np_side_lower_bound M n hn hn2 htb hns hdec
+  · exact theorem207_same_sheet_p_side_bound M n hn hn2 htb hns hdec hGauge
+  · exact theorem207_same_sheet_np_side_lower_bound M n hn hn2 htb hns hdec hGauge
 
 /-- `exists_theorem207_witness` derived from the lowered
 `exists_theorem207_bounds_on_some_poly` theorem.  The load-bearing content is
@@ -1532,9 +1547,10 @@ axioms on that polynomial. -/
 noncomputable def exists_theorem207_witness_from_bounds_axiom
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (hdec : DecidesSAT M) :
+    (hdec : DecidesSAT M)
+    (hGauge : AmplituhedronGaugeHyp M n hn hn2 htb hns) :
     Theorem207Witness M n hn hn2 htb hns :=
-  let h := exists_theorem207_bounds_on_some_poly M n hn hn2 htb hns hdec
+  let h := exists_theorem207_bounds_on_some_poly M n hn hn2 htb hns hdec hGauge
   let q := Classical.choose h
   let hq := Classical.choose_spec h
   theorem207Witness_of_bounds M n hn hn2 htb hns q hq.1 hq.2
@@ -1556,7 +1572,8 @@ from the gauge's three bundled properties. -/
 theorem exists_theorem207_bounds_on_some_poly_from_gauge
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (hdec : DecidesSAT M) :
+    (hdec : DecidesSAT M)
+    (hGauge : AmplituhedronGaugeHyp M n hn hn2 htb hns) :
     ∃ (q : MvPolynomial
         (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ),
       mlBlockedSpdpRank
@@ -1566,7 +1583,7 @@ theorem exists_theorem207_bounds_on_some_poly_from_gauge
         mlBlockedSpdpRank
           (cook_levin_compilation M n hn2 htb hns).partition
           (Nat.log 2 n) (Nat.log 2 n) q := by
-  obtain ⟨gauge, hgauge⟩ := exists_amplituhedron_gauge M n hn hn2 htb hns
+  obtain ⟨gauge, hgauge⟩ := hGauge
   refine ⟨gauge (compiledPoly (cook_levin_compilation M n hn2 htb hns)),
           hgauge.p_side_bound,
           hgauge.preserves_identity_minor_for_sat_deciders hdec⟩
@@ -1578,10 +1595,11 @@ of `Theorem207Witness` to just `exists_amplituhedron_gauge`. -/
 noncomputable def theorem207Witness_from_gauge
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (hdec : DecidesSAT M) :
+    (hdec : DecidesSAT M)
+    (hGauge : AmplituhedronGaugeHyp M n hn hn2 htb hns) :
     Theorem207Witness M n hn hn2 htb hns :=
   let h := exists_theorem207_bounds_on_some_poly_from_gauge
-    M n hn hn2 htb hns hdec
+    M n hn hn2 htb hns hdec hGauge
   let q := Classical.choose h
   let hq := Classical.choose_spec h
   theorem207Witness_of_bounds M n hn hn2 htb hns q hq.1 hq.2
