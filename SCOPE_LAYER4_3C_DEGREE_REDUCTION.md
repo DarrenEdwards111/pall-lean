@@ -101,14 +101,20 @@ low-degree on `G`, every `ζ`-character `qChar ζ S` (`|S|>n/2`) collapses to de
   has modulus `p`, via `isAC0p_of_mem_subcircuits` + `exists_of_mem_subcircuitsList`), so
   `padTrue_isAC0pSyntax` discharges every `hmod`.  Sorry-free.
 
-  **Every mathematical ingredient is now mechanised and sorry-free.**  The remaining work is pure
-  *wiring*: (i) the degree→span bridge `eval_mem_lowDegSpan` over `K` (a field-general mirror of the
-  Layer-3 squarefree decomposition, converting `qary_every_function_repr`'s degree-`≤(Δ+n/2)` output into
-  `dim_contradiction_general`'s span hypothesis `hstar`); and (ii) the multi-residue parameter thread for
-  the `q` circuits (`padTrue` each MOD_q-family member → `exists_tight_agreement_set` + base change →
-  `inter_three_quarters` → `qary_reduction_from_indicators` → `dim_contradiction_general`, choosing
-  uniform `Δ = ((p-1)t)^d` and the band-margin window `16Δ² < 2m+3`).  Both are bookkeeping over the
-  finished pieces — no new mathematics.
+  **Degree→span bridge + assembled contradiction ✓ DONE** (`ComputationalDepthLayer4Bridge`):
+  `eval_mem_lowDegSpan_K` (field-general mirror of the Layer-3 squarefree decomposition: any degree-`≤D`
+  polynomial's cube-evaluation is in the low-degree squarefree span) + `qary_hstar_of_repr` (restrict to
+  `↥G` via `funLeft` + `map_span` ⇒ `dim_contradiction_general`'s `hstar`) ⇒ **`qary_contradiction`**: for
+  `n = 2m+1`, *if `ζ^{#ones}` has a degree-`Δ` representative on `G`* (`hg`, the circuit-side input from
+  `weightChar_repr_of_indicators`), `16Δ² < 2m+3`, and `|G| ≥ (3/4)·2ⁿ`, then `False` — the general-`q`
+  analogue of `smolensky_contradiction`, fully assembled.  Sorry-free.
+
+  **Every mathematical ingredient is mechanised and sorry-free, and the dimension contradiction is
+  assembled.**  Sole remaining work: the **multi-residue parameter thread** instantiating `hg` — for a
+  `MOD_q ∈ AC⁰[p]` family, `padTrue` each member → `exists_tight_agreement_set` + base change (per residue
+  `j<q`) → `inter_three_quarters` (common `(3/4)`-set `G`) → `weightChar_repr_of_indicators` (the `hg` that
+  `qary_contradiction` consumes), with uniform `Δ = ((p-1)t)^d` and the window `16Δ² < 2m+3`.  Pure
+  parameter bookkeeping over the finished pieces — no new mathematics.
 
 **Route B — reduce `MOD_q` to PARITY on a sub-cube.** *Unsound in general.* `MOD_q` does not restrict to
 `MOD_2` on any natural sub-structure for `q > 2`; flagged here only to mark it as a trap so it is not
