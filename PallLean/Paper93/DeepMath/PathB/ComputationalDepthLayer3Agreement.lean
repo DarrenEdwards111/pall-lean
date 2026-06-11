@@ -650,6 +650,48 @@ theorem composed_error_le (p t : ℕ) [Fact p.Prime] {n : ℕ} (C : BoolCircuitS
             * ((subcircuits C).toFinset.card * Fintype.card (Fin n → Bool)) := by ring
   exact Nat.le_of_mul_le_mul_left h1 (formSpace_card_pos p t C)
 
+/-- A circuit is its own first subcircuit. -/
+theorem self_mem_subcircuits {n : ℕ} (C : BoolCircuitSyntax n) : C ∈ subcircuits C := by
+  cases C <;> simp [subcircuits]
+
+open Classical in
+/-- **Large agreement set.**  For an `AC⁰[p]` circuit (every `MOD` gate `q=p`) at a time horizon `t`
+with `p^t ≥ 4·s` (`s = #subcircuits`), there is a form choice `ω` whose composed approximant agrees with
+the circuit on at least a `(3/4)` fraction of inputs: `3·2ⁿ ≤ 4·|G_ω|` (integer form of
+`|G_ω| ≥ (3/4)·2ⁿ`).  This extracts the agreement-set size hypothesis of `smolensky_contradiction` from
+`composed_error_le`: `|cbad|·p^t ≤ s·2ⁿ` and `4s ≤ p^t` give `4·|cbad| ≤ 2ⁿ`, and `|cbad|+|G| = 2ⁿ`. -/
+theorem exists_large_agreement_set (p t : ℕ) [Fact p.Prime] {n : ℕ} (C : BoolCircuitSyntax n)
+    (hmod : ∀ q r cs, (BoolCircuitSyntax.modGate q r cs : BoolCircuitSyntax n) ∈ subcircuits C → q = p)
+    (ht : 4 * (subcircuits C).toFinset.card ≤ p ^ t) :
+    ∃ ω : FormSpace p t C,
+      3 * 2 ^ n ≤ 4 * (Finset.univ.filter (fun x : Fin n → Bool =>
+        eval (fun i => boolToZMod p (x i)) (toAgree p t (oracleOf p t C ω) C)
+          = boolToZMod p (C.eval x))).card := by
+  obtain ⟨ω, hω⟩ := composed_error_le p t C hmod
+  refine ⟨ω, ?_⟩
+  set N := Fintype.card (Fin n → Bool) with hN
+  set s := (subcircuits C).toFinset.card with hs
+  set cb := (Finset.univ.filter (fun x : Fin n → Bool =>
+    eval (fun i => boolToZMod p (x i)) (toAgree p t (oracleOf p t C ω) C)
+      ≠ boolToZMod p (C.eval x))).card with hcb
+  set gd := (Finset.univ.filter (fun x : Fin n → Bool =>
+    eval (fun i => boolToZMod p (x i)) (toAgree p t (oracleOf p t C ω) C)
+      = boolToZMod p (C.eval x))).card with hgd
+  have hNeq : N = 2 ^ n := by rw [hN, Fintype.card_fun, Fintype.card_bool, Fintype.card_fin]
+  have hsplit : cb + gd = N := by
+    rw [hcb, hgd, hN, add_comm]
+    exact Finset.card_filter_add_card_filter_not _
+  have hs1 : 1 ≤ s := by
+    rw [hs, Finset.one_le_card]
+    exact ⟨C, List.mem_toFinset.mpr (self_mem_subcircuits C)⟩
+  have h1 : s * (4 * cb) ≤ s * N := by
+    calc s * (4 * cb) = (4 * s) * cb := by ring
+      _ ≤ p ^ t * cb := by gcongr
+      _ = cb * p ^ t := by ring
+      _ ≤ s * N := hω
+  have h2 : 4 * cb ≤ N := Nat.le_of_mul_le_mul_left h1 hs1
+  rw [← hNeq]; omega
+
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree
@@ -675,4 +717,6 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.column_and_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.column_zero_of_localGood
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.composed_error_le
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.self_mem_subcircuits
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.exists_large_agreement_set
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.column_and_le
