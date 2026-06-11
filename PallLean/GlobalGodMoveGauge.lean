@@ -415,14 +415,14 @@ mathematical kernel.
 
 Under the bound `n ≥ 2^804`, this axiom is (arithmetically) equivalent to
 "no bounded-parameter SAT-decider exists at n ≥ 2^804" — the separation
-`P ≠ NP` in the restricted bounded-parameter form used here. -/
-axiom exists_amplituhedron_gauge_for_sat_decider
+`P ≠ NP` in the restricted bounded-parameter form used here.
+
+**Demoted (was `axiom exists_amplituhedron_gauge_for_sat_decider`):** the narrow (SAT-decider only) gauge
+existence is now an explicit named `Prop` hypothesis: `DecidesSAT M → AmplituhedronGaugeHyp …`. -/
+def SatDeciderGaugeHyp
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (hdec : DecidesSAT M) :
-    ∃ (gauge : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ →ₗ[ℚ]
-               MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ),
-      IsAmplituhedronGauge M n hn hn2 htb hns gauge
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+    DecidesSAT M → AmplituhedronGaugeHyp M n hn hn2 htb hns
 
 /-- **Derived full-existence theorem**: combines the axiom-free
 non-SAT-decider case with the narrow SAT-decider axiom to recover the
@@ -434,12 +434,13 @@ uses the strictly narrower axiom `exists_amplituhedron_gauge_for_sat_decider`
 axiomatic content. -/
 theorem exists_amplituhedron_gauge_via_narrow_axiom
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hSat : SatDeciderGaugeHyp M n hn hn2 htb hns) :
     ∃ (gauge : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ →ₗ[ℚ]
                MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ),
       IsAmplituhedronGauge M n hn hn2 htb hns gauge := by
   by_cases hdec : DecidesSAT M
-  · exact exists_amplituhedron_gauge_for_sat_decider M n hn hn2 htb hns hdec
+  · exact hSat hdec
   · exact exists_amplituhedron_gauge_of_not_decidesSAT M n hn hn2 htb hns hdec
 
 /-! ## Summary of the axiomatic trust surface (post-partial-construction)
@@ -759,23 +760,26 @@ The deepest mathematical content is the `compiled_p_side_bound` field
 (Theorem 10 / Width⇒Rank via profile compression + amplituhedron);
 `extraction_rank_monotone` (Lemma 205) and `sheet_np_side_lower_bound`
 (Theorem 98) are relatively more tractable given existing infrastructure. -/
-axiom exists_theorem207_witness
+-- **Demoted (was `axiom exists_theorem207_witness`):** now an explicit named *data* hypothesis
+-- `DecidesSAT M → Theorem207Witness …` (the witness is data, not a `Prop`); theorems take it as an
+-- argument, never asserting it.
+def Theorem207WitnessHyp
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (hdec : DecidesSAT M) :
-    Theorem207Witness M n hn hn2 htb hns
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Type :=
+    DecidesSAT M → Theorem207Witness M n hn hn2 htb hns
 
 /-- The existing Theorem 207 witness axiom yields the split Route B component
 interfaces. This is the backward-compatible projection direction. -/
 noncomputable def exists_theorem207_component_interfaces_from_witness_axiom
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (hdec : DecidesSAT M) :
+    (hdec : DecidesSAT M)
+    (hW : Theorem207WitnessHyp M n hn hn2 htb hns) :
     ∃ (E : Theorem207Extraction M n hn hn2 htb hns),
       Theorem207ExtractionRankMonotone M n hn hn2 htb hns E ∧
       Theorem207PSideUpperBound M n hn hn2 htb hns E ∧
       Theorem207NPSideLowerBound M n hn hn2 htb hns E :=
-  let W := exists_theorem207_witness M n hn hn2 htb hns hdec
+  let W := hW hdec
   let E := theorem207Extraction_of_witness M n hn hn2 htb hns W
   ⟨E,
    theorem207ExtractionRankMonotone_of_witness M n hn hn2 htb hns W,
@@ -1125,10 +1129,12 @@ The existing zero strict-shrink semantic target cannot inhabit
 coupled-sheet target to be supplied explicitly. The source side is likewise the
 paper-faithful `Theorem207PaperSource`, not the refuted local product-form
 `compiledPoly`. -/
-axiom exists_theorem207_semantic_identity_minor_gap_source_transport_data
+-- **Demoted (was `axiom exists_theorem207_semantic_identity_minor_gap_source_transport_data`):** now an
+-- explicit named `Prop` hypothesis; theorems take it as an argument, never asserting it.
+def Theorem207SemanticHyp
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (hdec : DecidesSAT M) :
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+    ∀ (hdec : DecidesSAT M),
     ∃ G : GodMoveSemanticIdentityMinorGap M n hn2 htb hns hdec,
       ∃ source : Theorem207PaperSource M n hn hn2 htb hns,
         Theorem207PaperSourcePSideUpperBound M n hn hn2 htb hns source ∧
@@ -1176,7 +1182,8 @@ above. -/
 theorem exists_theorem207_semantic_source_transport_data
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (hdec : DecidesSAT M) :
+    (hdec : DecidesSAT M)
+    (hSem : Theorem207SemanticHyp M n hn hn2 htb hns) :
     ∃ targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec,
       GodMoveExtractionTargetTheorem
         M n hn2 htb hns hdec targetData.extractionTarget ∧
@@ -1185,9 +1192,7 @@ theorem exists_theorem207_semantic_source_transport_data
         Theorem207PaperSourcePSideUpperBound M n hn hn2 htb hns source ∧
         Theorem207PaperSourceToTargetRankBridge
           M n hn hn2 htb hns source targetData.extractionTarget := by
-  obtain ⟨G, source, hP, bridge⟩ :=
-    exists_theorem207_semantic_identity_minor_gap_source_transport_data
-      M n hn hn2 htb hns hdec
+  obtain ⟨G, source, hP, bridge⟩ := hSem hdec
   exact exists_theorem207_semantic_source_transport_data_of_identity_minor_gap
     hn G source hP bridge
 
@@ -1196,16 +1201,17 @@ seam above. -/
 noncomputable def theorem207SemanticTransportWitness_from_source_transport_data
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (hdec : DecidesSAT M) :
+    (hdec : DecidesSAT M)
+    (hSem : Theorem207SemanticHyp M n hn hn2 htb hns) :
     Theorem207SemanticTransportWitness M n hn hn2 htb hns hdec :=
   let targetData :=
     Classical.choose
       (exists_theorem207_semantic_source_transport_data
-        M n hn hn2 htb hns hdec)
+        M n hn hn2 htb hns hdec hSem)
   let htarget :=
     Classical.choose_spec
       (exists_theorem207_semantic_source_transport_data
-        M n hn hn2 htb hns hdec)
+        M n hn hn2 htb hns hdec hSem)
   let source := Classical.choose htarget.2.2
   let hsource := Classical.choose_spec htarget.2.2
   theorem207SemanticTransportWitness_of_target_data
@@ -1355,13 +1361,14 @@ that same target. The raw/source P-side question remains the separate
 theorem exists_theorem207_semantic_target_identity_minor_data
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (hdec : DecidesSAT M) :
+    (hdec : DecidesSAT M)
+    (hSem : Theorem207SemanticHyp M n hn hn2 htb hns) :
     ∃ targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec,
       GodMoveExtractionTargetTheorem
         M n hn2 htb hns hdec targetData.extractionTarget ∧
       Nonempty (RouteBIdentityMinorSameTargetData targetData.extractionTarget) := by
   obtain ⟨targetData, hsem, hminor, _hsource⟩ :=
-    exists_theorem207_semantic_source_transport_data M n hn hn2 htb hns hdec
+    exists_theorem207_semantic_source_transport_data M n hn hn2 htb hns hdec hSem
   exact ⟨targetData, hsem, hminor⟩
 
 /-- Assemble the semantic witness from the narrow semantic-target/identity-minor
@@ -1370,16 +1377,17 @@ noncomputable def theorem207SemanticWitness_from_target_identity_minor_data
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hdec : DecidesSAT M)
-    (hP : Theorem207RawSourcePSideUpperBound M n hn hn2 htb hns) :
+    (hP : Theorem207RawSourcePSideUpperBound M n hn hn2 htb hns)
+    (hSem : Theorem207SemanticHyp M n hn hn2 htb hns) :
     Theorem207SemanticWitness M n hn hn2 htb hns hdec :=
   let targetData :=
     Classical.choose
       (exists_theorem207_semantic_target_identity_minor_data
-        M n hn hn2 htb hns hdec)
+        M n hn hn2 htb hns hdec hSem)
   let htarget :=
     Classical.choose_spec
       (exists_theorem207_semantic_target_identity_minor_data
-        M n hn hn2 htb hns hdec)
+        M n hn hn2 htb hns hdec hSem)
   theorem207SemanticWitness_of_target_data_same_target_identity_minor
     M n hn hn2 htb hns hdec targetData htarget.1 hP (Classical.choice htarget.2)
 
@@ -1609,7 +1617,8 @@ noncomputable def theorem207Witness_from_gauge
 theorem exists_theorem207_bounds_on_some_poly_from_narrow_gauge
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (hdec : DecidesSAT M) :
+    (hdec : DecidesSAT M)
+    (hSat : SatDeciderGaugeHyp M n hn hn2 htb hns) :
     ∃ (q : MvPolynomial
         (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ),
       mlBlockedSpdpRank
@@ -1619,8 +1628,7 @@ theorem exists_theorem207_bounds_on_some_poly_from_narrow_gauge
         mlBlockedSpdpRank
           (cook_levin_compilation M n hn2 htb hns).partition
           (Nat.log 2 n) (Nat.log 2 n) q := by
-  obtain ⟨gauge, hgauge⟩ :=
-    exists_amplituhedron_gauge_for_sat_decider M n hn hn2 htb hns hdec
+  obtain ⟨gauge, hgauge⟩ := hSat hdec
   refine ⟨gauge (compiledPoly (cook_levin_compilation M n hn2 htb hns)),
           hgauge.p_side_bound,
           hgauge.preserves_identity_minor_for_sat_deciders hdec⟩
@@ -1631,10 +1639,11 @@ minimum-axiom-surface reduction of `Theorem207Witness`. -/
 noncomputable def theorem207Witness_from_narrow_gauge
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (hdec : DecidesSAT M) :
+    (hdec : DecidesSAT M)
+    (hSat : SatDeciderGaugeHyp M n hn hn2 htb hns) :
     Theorem207Witness M n hn hn2 htb hns :=
   let h := exists_theorem207_bounds_on_some_poly_from_narrow_gauge
-    M n hn hn2 htb hns hdec
+    M n hn hn2 htb hns hdec hSat
   let q := Classical.choose h
   let hq := Classical.choose_spec h
   theorem207Witness_of_bounds M n hn hn2 htb hns q hq.1 hq.2
@@ -1667,11 +1676,12 @@ custom axiom `exists_amplituhedron_gauge_for_sat_decider`. -/
 theorem exists_rank_sandwich_for_sat_decider
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (hdec : DecidesSAT M) :
+    (hdec : DecidesSAT M)
+    (hSat : SatDeciderGaugeHyp M n hn hn2 htb hns) :
     ∃ (r : ℕ), Nat.choose (n / 3) (Nat.log 2 n) ≤ r ∧ r ≤ n ^ 200 := by
   obtain ⟨q, h_p, h_np⟩ :=
     exists_theorem207_bounds_on_some_poly_from_narrow_gauge
-      M n hn hn2 htb hns hdec
+      M n hn hn2 htb hns hdec hSat
   exact ⟨mlBlockedSpdpRank
           (cook_levin_compilation M n hn2 htb hns).partition
           (Nat.log 2 n) (Nat.log 2 n) q, h_np, h_p⟩
@@ -1682,9 +1692,10 @@ derived from `exists_amplituhedron_gauge_for_sat_decider`). -/
 theorem exists_rank_sandwich_from_narrow_gauge
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (hdec : DecidesSAT M) :
+    (hdec : DecidesSAT M)
+    (hSat : SatDeciderGaugeHyp M n hn hn2 htb hns) :
     ∃ (r : ℕ), Nat.choose (n / 3) (Nat.log 2 n) ≤ r ∧ r ≤ n ^ 200 :=
-  exists_rank_sandwich_for_sat_decider M n hn hn2 htb hns hdec
+  exists_rank_sandwich_for_sat_decider M n hn hn2 htb hns hdec hSat
 
 /-- **Derived form of the rank sandwich axiom as direct separation.**
 
@@ -1697,11 +1708,12 @@ the restricted separation, with no polynomial/SPDP machinery. Proved
 here as a theorem (not an axiom) from `exists_rank_sandwich_for_sat_decider`. -/
 theorem no_bounded_sat_decider_at_2pow804_from_rank_sandwich_axiom
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hSat : SatDeciderGaugeHyp M n hn hn2 htb hns) :
     ¬ DecidesSAT M := by
   intro hdec
   obtain ⟨r, hr_lb, hr_ub⟩ :=
-    exists_rank_sandwich_for_sat_decider M n hn hn2 htb hns hdec
+    exists_rank_sandwich_for_sat_decider M n hn hn2 htb hns hdec hSat
   -- Arithmetic chain n^201 ≤ n^(log n / 4) ≤ C(n/30, log n) ≤ C(n/3, log n) ≤ r ≤ n^200
   have hn20 : n ≥ 2 ^ 20 :=
     le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 20 ≤ 804)) hn
