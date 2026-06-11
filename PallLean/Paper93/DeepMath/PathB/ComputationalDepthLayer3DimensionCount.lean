@@ -637,6 +637,50 @@ theorem pmSpan_eq_top (p n : ℕ) [Fact p.Prime] (hp2 : (2 : ZMod p) ≠ 0) : pm
 theorem mem_pmSpan (p n : ℕ) [Fact p.Prime] (hp2 : (2 : ZMod p) ≠ 0) (f : (Fin n → Bool) → ZMod p) :
     f ∈ pmSpan p n := by rw [pmSpan_eq_top p n hp2]; exact Submodule.mem_top
 
+open MvPolynomial in
+/-- **Uniform per-monomial representative.**  Given a degree-`Δ` approximant `g` for `χ_univ` on `G`,
+*every* `±1` monomial `χ_S` agrees on `G` with a polynomial of degree `≤ Δ + n/2`: for `|S| ≤ n/2` use
+`χ_S` itself (degree `≤ |S| ≤ n/2`), for `|S| > n/2` use the degree-halving `pm_monomial_reduction`
+(`g · χ_{Sᶜ}`, degree `≤ Δ + (n-|S|) ≤ Δ + n/2`). -/
+theorem pm_monomial_repr (p : ℕ) [Fact p.Prime] {n : ℕ} (G : Finset (Fin n → Bool)) (Δ : ℕ)
+    (g : MvPolynomial (Fin n) (ZMod p)) (hgdeg : g.totalDegree ≤ Δ)
+    (hg : ∀ x ∈ G, eval (fun i => boolToZMod p (x i)) g = ∏ i, pmOne p (x i)) (S : Finset (Fin n)) :
+    ∃ h : MvPolynomial (Fin n) (ZMod p), h.totalDegree ≤ Δ + n / 2 ∧
+      ∀ x ∈ G, eval (fun i => boolToZMod p (x i)) h = pmEvalMonomial p S x := by
+  by_cases hS : S.card ≤ n / 2
+  · exact ⟨pmMonomial p S, le_trans (pmMonomial_totalDegree_le p S) (by omega),
+      fun x _ => by rw [pmEvalMonomial]; exact pmMonomial_eval p S x⟩
+  · obtain ⟨h, hdeg, heval⟩ := pm_monomial_reduction p G Δ g hgdeg hg S
+    exact ⟨h, le_trans hdeg (by omega), fun x hx => by rw [pmEvalMonomial]; exact heval x hx⟩
+
+open MvPolynomial in
+/-- **The Smolensky dimension collapse.**  Given a degree-`Δ` approximant `g` for the full `±1` product
+`χ_univ` on `G` (the `MOD_q ∈ AC⁰[p]` consequence), *every* function `f : (Fin n → Bool) → ZMod p`
+agrees on `G` with a polynomial of degree `≤ Δ + n/2`.  (Expand `f = ∑_S c_S χ_S` via the multilinear
+basis `mem_pmSpan`, then apply `pm_monomial_repr` termwise; degrees are preserved under `+`/`•`.)  So the
+space of functions on `G` is spanned by degree-`≤(Δ+n/2)` evaluations — the dimension bound that, with
+the band margin and the agreement lower bound `|G| ≥ (3/4)·2ⁿ`, yields the contradiction. -/
+theorem every_function_repr (p : ℕ) [Fact p.Prime] {n : ℕ} (hp2 : (2 : ZMod p) ≠ 0)
+    (G : Finset (Fin n → Bool)) (Δ : ℕ) (g : MvPolynomial (Fin n) (ZMod p))
+    (hgdeg : g.totalDegree ≤ Δ)
+    (hg : ∀ x ∈ G, eval (fun i => boolToZMod p (x i)) g = ∏ i, pmOne p (x i))
+    (f : (Fin n → Bool) → ZMod p) :
+    ∃ h : MvPolynomial (Fin n) (ZMod p), h.totalDegree ≤ Δ + n / 2 ∧
+      ∀ x ∈ G, eval (fun i => boolToZMod p (x i)) h = f x := by
+  have hf : f ∈ pmSpan p n := mem_pmSpan p n hp2 f
+  refine Submodule.span_induction (p := fun u _ => ∃ h : MvPolynomial (Fin n) (ZMod p),
+      h.totalDegree ≤ Δ + n / 2 ∧ ∀ x ∈ G, eval (fun i => boolToZMod p (x i)) h = u x)
+    ?_ ?_ ?_ ?_ hf
+  · rintro _ ⟨S, rfl⟩; exact pm_monomial_repr p G Δ g hgdeg hg S
+  · exact ⟨0, by simp, fun x _ => by simp⟩
+  · rintro u v _ _ ⟨hu, hud, hue⟩ ⟨hv, hvd, hve⟩
+    exact ⟨hu + hv, le_trans (totalDegree_add _ _) (max_le hud hvd),
+      fun x hx => by rw [map_add, hue x hx, hve x hx]; rfl⟩
+  · rintro c u _ ⟨hu, hud, hue⟩
+    exact ⟨c • hu, le_trans (totalDegree_smul_le c hu) hud,
+      fun x hx => by rw [MvPolynomial.smul_eq_C_mul, map_mul, eval_C, hue x hx, Pi.smul_apply,
+        smul_eq_mul]⟩
+
 /-! ## Union bound: the agreement set from per-gate errors
 
 Smolensky's composition replaces each of the `s` gates of an `AC⁰[p]` circuit by a probabilistic
@@ -692,6 +736,8 @@ end PallLean.Paper93.DeepMath.PathB.Layer3
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pm_monomial_mul
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pmSpan_eq_top
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.mem_pmSpan
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pm_monomial_repr
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.every_function_repr
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pmMonomial_totalDegree_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pmMonomial_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pm_monomial_reduction
