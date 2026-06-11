@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer3Agreement
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer3DimensionCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer3DegreeComposition
 
 /-!
 # Layer 3 — the Razborov–Smolensky contradiction assembled
@@ -56,6 +57,65 @@ theorem chi_univ_repr (p : ℕ) [Fact p.Prime] {n : ℕ} (G : Finset (Fin n → 
     rw [map_sub, map_one, map_mul, map_ofNat, hagree x hx, ← pmOne_eq_one_sub_two_boolToZMod]
     exact (hpar x).symm
 
+/-- **Degree bound for the faithful approximant `toAgree`.**  Bundles the per-gate degree recurrence
+(`genOrApprox_totalDegree_le` for `∨`/`∧`, Fermat degree `p-1` for `MOD`, degree `≤1` leaves) into an
+`ApproxDegreeData`, so `approxDegree_le` gives `deg(toAgree C) ≤ ((p-1)·t)^{depth C}` — the same
+`((p-1)t)^d` Smolensky degree proven for `toApprox`, now for the agreement-side approximant. -/
+noncomputable def toAgreeData (p t : ℕ) [Fact p.Prime] {n : ℕ} (ht : 1 ≤ t)
+    (R : (k : ℕ) → Fin t → Fin k → ZMod p) : ApproxDegreeData p n where
+  A := toAgree p t R
+  K := (p - 1) * t
+  hK := by
+    have h2 := (Fact.out (p := p.Prime)).two_le
+    have : 1 * 1 ≤ (p - 1) * t := Nat.mul_le_mul (by omega) ht
+    simpa using this
+  hconst := fun b => by simp only [toAgree, totalDegree_C]; exact Nat.zero_le 1
+  hinput := fun i => by simp only [toAgree, totalDegree_X]; exact le_refl 1
+  hnot := fun C => by
+    simp only [toAgree]
+    refine le_trans (totalDegree_sub _ _) ?_
+    rw [totalDegree_one, Nat.zero_max]
+  hor := fun cs => by
+    simp only [toAgree]
+    refine le_trans (genOrApprox_totalDegree_le p _ _
+      (cs.foldl (fun m c => max m (toAgree p t R c).totalDegree) 0)
+      (fun j => le_foldl_max (fun c => (toAgree p t R c).totalDegree) cs 0 (List.get_mem _ j))) ?_
+    exact le_of_eq (by ring)
+  hand := fun cs => by
+    simp only [toAgree]
+    refine le_trans (totalDegree_sub _ _) ?_
+    rw [totalDegree_one, Nat.zero_max]
+    refine le_trans (genOrApprox_totalDegree_le p _ _
+      (cs.foldl (fun m c => max m (toAgree p t R c).totalDegree) 0)
+      (fun j => ?_)) (le_of_eq (by ring))
+    refine le_trans (totalDegree_sub _ _) ?_
+    rw [totalDegree_one, Nat.zero_max]
+    exact le_foldl_max (fun c => (toAgree p t R c).totalDegree) cs 0 (List.get_mem _ j)
+  hmod := fun q r cs => by
+    simp only [toAgree]
+    set D := cs.foldl (fun m c => max m (toAgree p t R c).totalDegree) 0 with hD
+    have hsum : (∑ j : Fin cs.length, toAgree p t R (cs.get j)).totalDegree ≤ D :=
+      le_trans (totalDegree_finset_sum _ _)
+        (Finset.sup_le (fun j _ =>
+          le_foldl_max (fun c => (toAgree p t R c).totalDegree) cs 0 (List.get_mem _ j)))
+    have hsub : ((∑ j : Fin cs.length, toAgree p t R (cs.get j)) - C (r : ZMod p)).totalDegree ≤ D := by
+      refine le_trans (totalDegree_sub _ _) ?_
+      rw [totalDegree_C, Nat.max_zero]; exact hsum
+    have h1 : (1 - ((∑ j : Fin cs.length, toAgree p t R (cs.get j)) - C (r : ZMod p)) ^ (p - 1)).totalDegree
+        ≤ (p - 1) * D := by
+      refine le_trans (totalDegree_sub _ _) ?_
+      rw [totalDegree_one, Nat.zero_max]
+      exact le_trans (totalDegree_pow _ _) (Nat.mul_le_mul_left _ hsub)
+    exact le_trans h1 (le_trans (Nat.le_mul_of_pos_right _ ht) (le_of_eq (by ring)))
+
+/-- **`deg(toAgree C) ≤ ((p-1)·t)^{depth C}`** — the Smolensky degree for the agreement-side
+approximant (so the degree hypothesis of `chi_univ_repr` / `smolensky_contradiction` is *discharged*,
+not assumed). -/
+theorem toAgree_totalDegree_le (p t : ℕ) [Fact p.Prime] {n : ℕ} (ht : 1 ≤ t)
+    (R : (k : ℕ) → Fin t → Fin k → ZMod p) (C : BoolCircuitSyntax n) :
+    (toAgree p t R C).totalDegree ≤ ((p - 1) * t) ^ C.depth :=
+  (toAgreeData p t ht R).approxDegree_le C
+
 open Classical in
 /-- **The Razborov–Smolensky contradiction for `PARITY`.**  Let `Cir` be an `AC⁰[p]` circuit on
 `2m+1` variables (`p` odd) that **computes parity** (`∏ᵢ pmOne(xᵢ) = pmOne(Cir.eval x)`).  Suppose, at
@@ -67,14 +127,17 @@ In other words: a parity-computing `AC⁰[p]` circuit cannot simultaneously achi
 approximant **and** the agreement-horizon and band-margin conditions — the obstruction whose
 quantitative form (`Δ ≈ ((p-1)t)^depth` small `vs` `pᵗ ≥ 4·size`) is the `PARITY ∉ AC⁰[p]` lower bound.
 This assembles `exists_large_agreement_set` (agreement-set size), `chi_univ_repr` (the parity bridge),
-and `smolensky_contradiction` (the dimension contradiction). -/
-theorem parity_circuit_false (p : ℕ) [Fact p.Prime] {m Δ : ℕ} (hp2 : (2 : ZMod p) ≠ 0)
-    (Cir : BoolCircuitSyntax (2 * m + 1)) (t : ℕ)
+`toAgree_totalDegree_le` (the degree side, `((p-1)t)^depth`), and `smolensky_contradiction` (the
+dimension contradiction).  The degree `Δ = ((p-1)·t)^{depth Cir}` is *concrete* — the only remaining
+inputs are the parity-computing assumption, `AC⁰[p]`-ness, `p` odd, and the parameter conditions
+`pᵗ ≥ 4·#subcircuits` and `16·(((p-1)t)^{depth})² < 2m+3`. -/
+theorem parity_circuit_false (p : ℕ) [Fact p.Prime] {m : ℕ} (hp2 : (2 : ZMod p) ≠ 0)
+    (Cir : BoolCircuitSyntax (2 * m + 1)) (t : ℕ) (ht1 : 1 ≤ t)
     (hpar : ∀ x : Fin (2 * m + 1) → Bool, (∏ i, pmOne p (x i)) = pmOne p (Cir.eval x))
     (hmod : ∀ q r cs,
       (BoolCircuitSyntax.modGate q r cs : BoolCircuitSyntax (2 * m + 1)) ∈ subcircuits Cir → q = p)
-    (htoAgreeDeg : ∀ ω : FormSpace p t Cir, (toAgree p t (oracleOf p t Cir ω) Cir).totalDegree ≤ Δ)
-    (ht : 4 * (subcircuits Cir).toFinset.card ≤ p ^ t) (hwindow : 16 * Δ ^ 2 < 2 * m + 3) : False := by
+    (ht : 4 * (subcircuits Cir).toFinset.card ≤ p ^ t)
+    (hwindow : 16 * (((p - 1) * t) ^ Cir.depth) ^ 2 < 2 * m + 3) : False := by
   obtain ⟨ω, hGsize⟩ := exists_large_agreement_set p t Cir hmod ht
   set G := Finset.univ.filter (fun x : Fin (2 * m + 1) → Bool =>
     eval (fun i => boolToZMod p (x i)) (toAgree p t (oracleOf p t Cir ω) Cir)
@@ -82,12 +145,13 @@ theorem parity_circuit_false (p : ℕ) [Fact p.Prime] {m Δ : ℕ} (hp2 : (2 : Z
   have hagree : ∀ x ∈ G, eval (fun i => boolToZMod p (x i)) (toAgree p t (oracleOf p t Cir ω) Cir)
       = boolToZMod p (Cir.eval x) := by
     intro x hx; rw [hG, Finset.mem_filter] at hx; exact hx.2
-  obtain ⟨g, hgdeg, hgeval⟩ := chi_univ_repr p G Δ Cir (toAgree p t (oracleOf p t Cir ω) Cir)
-    (htoAgreeDeg ω) hagree hpar
+  obtain ⟨g, hgdeg, hgeval⟩ := chi_univ_repr p G (((p - 1) * t) ^ Cir.depth) Cir
+    (toAgree p t (oracleOf p t Cir ω) Cir) (toAgree_totalDegree_le p t ht1 _ Cir) hagree hpar
   exact smolensky_contradiction p hp2 G g hgdeg hgeval hwindow hGsize
 
 end PallLean.Paper93.DeepMath.PathB.Layer3
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.pmOne_eq_one_sub_two_boolToZMod
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.chi_univ_repr
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.toAgree_totalDegree_le
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer3.parity_circuit_false
