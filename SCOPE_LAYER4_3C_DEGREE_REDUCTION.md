@@ -87,11 +87,12 @@ low-degree on `G`, every `ζ`-character `qChar ζ S` (`|S|>n/2`) collapses to de
   change, `MOD_p` gates untouched), discharging `hmod`.  Sorry-free.
   **Depth preservation ✓ DONE** (`padTrue_depth`, via `foldl_max_congr` + `padInputs_depth`):
   `(padTrue D).depth = D.depth`, so the Smolensky bound `((p-1)t)^{depth}` is unchanged by padding.
-  **Sole remaining content (genuinely `Nat`/`Fin`-counting, not faked):** (i) the **`MOD_q` arithmetic**:
-  `#ones(extend x by k trues) = #ones(x) + k` and `(#ones(x)+k)%q = 0 ↔ #ones(x)%q = j` (for `k = q-j`), so
-  `padTrue` of a `MOD_q` circuit computes `[#ones ≡ j]` — finishing `hCind`; (ii) the **intersection
+  **`MOD_q` arithmetic ✓ DONE** (`ones_extend`: `#ones(extend x by k trues) = #ones(x)+k`, `Fin (n+k)`
+  split; `mod_shift`: `(a+(q-j))%q = 0 ↔ a%q = j` via `ZMod q`) ⇒ **`padTrue_computes_indicator`**:
+  `padTrue` of a `MOD_q` circuit computes `[#ones ≡ j]` — **discharging `hCind`**.
+  **Sole remaining content (pure `Nat` counting, not faked):** the **intersection
   bookkeeping** — `G = ⋂_{j<q} G_j` needs each `|G_jᶜ| ≤ 2ⁿ/(4q)`, i.e. the tighter horizon `p^t ≥ 4q·s`
-  (a parameterised `exists_large_agreement_set`).  Both are `Nat`/`Fin`-counting over the constructions
+  (a parameterised `exists_large_agreement_set`).  `Nat`-counting over the constructions
   now in place.
 
 **Route B — reduce `MOD_q` to PARITY on a sub-cube.** *Unsound in general.* `MOD_q` does not restrict to

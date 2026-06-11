@@ -17,14 +17,16 @@ This file provides the **input-substitution** operation that implements padding,
   (`f i = input i` for `i < n`, `const true` otherwise);
 * `padTrue_eval` — `(padTrue D).eval x = D.eval (extend x by trues)`;
 * `padInputs_isAC0pSyntax` / `padTrue_isAC0pSyntax` — padding preserves `AC⁰[p]` (it only swaps
-  input↔const leaves; gates, in particular the `MOD_p` gates, are unchanged) — discharging `hmod`.
+  input↔const leaves; gates, in particular the `MOD_p` gates, are unchanged) — discharging `hmod`;
+* `padInputs_depth` / `padTrue_depth` — padding preserves depth (depth-`0` leaf substitution), so the
+  Smolensky bound `((p-1)t)^{depth}` is unchanged;
+* `ones_extend` (`#ones(extend x by k trues) = #ones(x) + k`) + `mod_shift`
+  (`(a+(q-j))%q = 0 ↔ a%q = j`) ⇒ `padTrue_computes_indicator`: `padTrue` of a `MOD_q` circuit computes
+  `[#ones ≡ j]` — **discharging `hCind`**.
 
-**Remaining (honestly flagged, not faked):** (a) **depth preservation** `(padTrue D).depth = D.depth`
-(leaf substitution; needs the `foldl`-over-`map` congruence) — for the `((p-1)t)^{depth}` bound; and (b)
-the **`MOD_q` arithmetic**: that `padTrue` of a `MOD_q` circuit (with `k = q-j` pad bits) computes
-`[#ones ≡ j]`, i.e. `#ones(extend x by k trues) = #ones(x) + k` and the modular identity
-`(#ones(x)+k) % q = 0 ↔ #ones(x) % q = j`.  These finish `hCind`/the bound; both are `Fin`-counting and
-`Nat`-modular bookkeeping over the constructions here.
+**Remaining (honestly flagged, not faked):** only the **intersection bookkeeping** — to run the `q`
+indicator circuits together on one set `G = ⋂_{j<q} G_j` one needs each `|G_jᶜ| ≤ 2ⁿ/(4q)`, i.e. the
+tighter horizon `p^t ≥ 4q·s` (a parameterised `exists_large_agreement_set`).  Pure `Nat` counting.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.Layer4
@@ -124,9 +126,50 @@ Smolensky degree bound `((p-1)t)^{depth}` is unchanged by padding. -/
 theorem padTrue_depth {n k : ℕ} (D : BoolCircuitSyntax (n + k)) : (padTrue D).depth = D.depth :=
   padInputs_depth _ (fun i => by by_cases hi : (i : ℕ) < n <;> simp [hi]) D
 
+/-- **`#ones` under padding.**  Extending `x` by `k` `true`s adds exactly `k` ones:
+`#ones(extend x by k trues) = #ones(x) + k`.  (Split `Fin (n+k)` into the `castAdd`/`natAdd` halves.) -/
+theorem ones_extend (n k : ℕ) (x : Fin n → Bool) :
+    (Finset.univ.filter (fun i : Fin (n + k) =>
+        (if h : (i : ℕ) < n then x ⟨i, h⟩ else true) = true)).card
+      = (Finset.univ.filter (fun i : Fin n => x i = true)).card + k := by
+  rw [Finset.card_filter, Finset.card_filter, Fin.sum_univ_add]
+  congr 1
+  · refine Finset.sum_congr rfl (fun i _ => ?_)
+    have hlt : ((Fin.castAdd k i : Fin (n + k)) : ℕ) < n := by rw [Fin.coe_castAdd]; exact i.isLt
+    have hcast : (⟨(Fin.castAdd k i : Fin (n + k)), hlt⟩ : Fin n) = i := Fin.ext (Fin.coe_castAdd k i)
+    rw [dif_pos hlt, hcast]
+  · refine (Finset.sum_congr rfl (fun i _ => ?_)).trans
+      (by rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul, mul_one])
+    have hge : ¬ ((Fin.natAdd n i : Fin (n + k)) : ℕ) < n := by rw [Fin.val_natAdd]; omega
+    rw [dif_neg hge, if_pos rfl]
+
+/-- **The mod-`q` shift identity:** `(a + (q-j)) % q = 0 ↔ a % q = j` for `j < q` (so adding `q-j` to a
+weight `≡ j` makes it `≡ 0`).  Via `ZMod q`. -/
+theorem mod_shift {q : ℕ} (hq : 0 < q) (a j : ℕ) (hj : j < q) :
+    (a + (q - j)) % q = 0 ↔ a % q = j := by
+  haveI : NeZero q := ⟨hq.ne'⟩
+  rw [← Nat.dvd_iff_mod_eq_zero, ← ZMod.natCast_eq_zero_iff]
+  push_cast [Nat.cast_sub hj.le]
+  rw [ZMod.natCast_self, zero_sub, add_neg_eq_zero, ZMod.natCast_eq_natCast_iff, Nat.ModEq,
+    Nat.mod_eq_of_lt hj]
+
+/-- **`padTrue` of a `MOD_q` circuit computes the residue indicator.**  If `D` (on `n + (q-j)` bits)
+computes `MOD_q` (residue `0`), then `padTrue D` (on `n` bits) computes `[#ones ≡ j (mod q)]`.  This is
+exactly the hypothesis `hCind` of `exists_indicator_approximant` (`ComputationalDepthLayer4Approx`),
+discharged: `(padTrue D).eval x = D.eval (extend) = [#ones+( q-j) ≡ 0] = [#ones ≡ j]`. -/
+theorem padTrue_computes_indicator {n q j : ℕ} (hq : 0 < q) (hj : j < q)
+    (D : BoolCircuitSyntax (n + (q - j)))
+    (hD : ∀ y : Fin (n + (q - j)) → Bool,
+      D.eval y = decide ((Finset.univ.filter (fun i => y i = true)).card % q = 0))
+    (x : Fin n → Bool) :
+    (padTrue D).eval x = decide ((Finset.univ.filter (fun i => x i = true)).card % q = j) := by
+  rw [padTrue_eval, hD, ones_extend]
+  exact decide_eq_decide.mpr (mod_shift hq _ j hj)
+
 end PallLean.Paper93.DeepMath.PathB.Layer4
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer4.padInputs_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer4.padTrue_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer4.padTrue_depth
 #print axioms PallLean.Paper93.DeepMath.PathB.Layer4.padTrue_isAC0pSyntax
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer4.padTrue_computes_indicator
