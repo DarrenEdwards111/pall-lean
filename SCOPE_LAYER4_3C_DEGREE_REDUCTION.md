@@ -59,12 +59,13 @@ Everything else on the dimension side already exists or transfers.
 The mechanism *is* a halving after all, via the `ζ`/`ζ⁻¹` pairing (correction above): once `ζ^{#ones}` is
 low-degree on `G`, every `ζ`-character `qChar ζ S` (`|S|>n/2`) collapses to degree `≤ Δ+n/2` on `G`
 (`qChar_reduction`, sorry-free). **Remaining for (★):**
-* **(2) `ζ`-character spanning.** Every function on `G` is a `K`-combination of the `qChar ζ S`. Unlike the
-  `±1` case, `qChar` is **not** multiplicatively closed (`qChar ζ S · qChar ζ T = ζ^{#S+#T}`, not a single
-  `qChar`), so the `pmSpan_eq_top` subalgebra route does *not* transfer. Instead use the **triangular
-  change of basis** `qChar ζ S = Σ_{T⊆S} (ζ-1)^{|T|} e_T` (lower-triangular in `⊆`, diagonal `(ζ-1)^{|S|}≠0`
-  since `ζ≠1`), so `{qChar ζ S}` and the squarefree `{e_T}` (which span, `sqfSpan_eq_top` = C1) span the
-  same space. *Provable; needs the triangular-invertibility / linear-independence argument.*
+* **(2) `ζ`-character spanning. ✓ DONE** (`ComputationalDepthLayer4QarySpan`). Via the triangular change of
+  basis `qChar ζ S = Σ_{T⊆S} (ζ-1)^{|T|} e_T` (`qChar_eq_sum_sqfEval`, diagonal `(ζ-1)^{|S|}≠0` since
+  `ζ≠1`): each `e_S ∈ span{qChar}` by strong induction (`sqfEval_mem_qSpan`), so `qSpan_eq_top`. Combined
+  with the halving `qChar_reduction`, this gives **`qary_every_function_repr`** — the full general-`q`
+  analogue of `every_function_repr`: *if `ζ^{#ones}` has a degree-`Δ` representative on `G`, every function
+  on `G` agrees with a degree-`≤(Δ+n/2)` polynomial.* **So the entire algebraic side of `(★)` is done,
+  sorry-free**; its only remaining hypothesis is exactly piece (3).
 * **(3) `ζ^{#ones}` low-degree on `G` from `MOD_q ∈ AC⁰[p]`** (the genuinely circuit-side input). `MOD_q`
   gives only the indicator `[#ones ≡ 0]`; the full `ζ^{#ones} = Σ_j ζ^j·[#ones ≡ j mod q]` needs the `q`
   shifted indicators `[#ones ≡ j]`, each `AC⁰[p]` (shift the input), each low-degree on a large `A_j`, with
