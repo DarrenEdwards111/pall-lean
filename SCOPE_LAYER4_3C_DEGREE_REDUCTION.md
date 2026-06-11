@@ -66,11 +66,19 @@ low-degree on `G`, every `ζ`-character `qChar ζ S` (`|S|>n/2`) collapses to de
   analogue of `every_function_repr`: *if `ζ^{#ones}` has a degree-`Δ` representative on `G`, every function
   on `G` agrees with a degree-`≤(Δ+n/2)` polynomial.* **So the entire algebraic side of `(★)` is done,
   sorry-free**; its only remaining hypothesis is exactly piece (3).
-* **(3) `ζ^{#ones}` low-degree on `G` from `MOD_q ∈ AC⁰[p]`** (the genuinely circuit-side input). `MOD_q`
-  gives only the indicator `[#ones ≡ 0]`; the full `ζ^{#ones} = Σ_j ζ^j·[#ones ≡ j mod q]` needs the `q`
-  shifted indicators `[#ones ≡ j]`, each `AC⁰[p]` (shift the input), each low-degree on a large `A_j`, with
-  `G = ⋂_j A_j` still `≥ (1-qε)·2ⁿ`. *This is the real circuit-side content; reconstruct carefully before
-  coding, do not fake.*
+* **(3) `ζ^{#ones}` low-degree on `G` from `MOD_q ∈ AC⁰[p]`. ALGEBRAIC ASSEMBLY ✓ DONE**
+  (`ComputationalDepthLayer4WeightRepr`). The decomposition `ζ^{#ones} = Σ_{j<q} ζ^j·[#ones ≡ j (mod q)]`
+  (`qChar_univ_eq_sum_indicator`) gives `weightChar_repr_of_indicators`: if each residue indicator
+  `[#ones ≡ j]` has a degree-`Δ` representative `p_j` on `A_j`, then `Σ_j ζ^j·p_j` represents `ζ^{#ones}` on
+  `G = ⋂_j A_j` (degree `≤ Δ`). Chaining with `qary_every_function_repr` gives
+  **`qary_reduction_from_indicators`**: *from the `q` indicator approximants alone, every function on `⋂A_j`
+  is degree-`≤(Δ+n/2)`-representable* — so the **entire `(★)` reduction is now mechanized, conditional only
+  on the `q` indicator approximants existing.** Sorry-free.
+  **Sole remaining (genuinely circuit-side) content:** that each `[#ones ≡ j]` *is* `AC⁰[p]` (it is `MOD_q`
+  of the input padded with `q-j` constant ones) and so *has* a degree-`Δ` approximant on a `(1-ε)`-fraction
+  `A_j` (Layer-3 agreement machinery, base-changed via brick 1). This is the explicit hypotheses
+  `(p, A, hpdeg, hp)` of `qary_reduction_from_indicators` — **not faked**; it requires the BoolCircuitSyntax
+  padding construction + the agreement machinery over `F_{p^{q-1}}`, the genuine remaining circuit work.
 
 **Route B — reduce `MOD_q` to PARITY on a sub-cube.** *Unsound in general.* `MOD_q` does not restrict to
 `MOD_2` on any natural sub-structure for `q > 2`; flagged here only to mark it as a trap so it is not
