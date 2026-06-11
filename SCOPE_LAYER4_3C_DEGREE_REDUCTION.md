@@ -73,16 +73,18 @@ identity proves hard to mechanise.
    identity is written down on paper and checked. The combinatorial/field/agreement scaffolding (bricks
    1–2, the reusable dimension half) is ready and waiting; the bottleneck is precisely (★).
 2. **Next safe, genuine bricks** that advance Route A without committing to the unproven identity:
-   * **(C1)** `squarefreeSpan_eq_top` re-stated/transported over an arbitrary field `K` (currently `ZMod
-     p`-specific) — needed by *any* route; purely field-generalisation, no new math.
-   * **(C2)** the `MOD_q` indicator over `F_{p^{q-1}}`: `weightChar ζ x = 1 ⇔ q ∣ #ones` for a primitive
-     `q`-th root `ζ` (from `weightChar_eq_pow_mod` + `IsPrimitiveRoot.pow_eq_one_iff_dvd`) — connects the
-     character to the literal `MOD_q` predicate; clean and safe.
-   * **(C3)** the dimension half re-stated over `K` (the `dim_bound_on_G` analogue **as a conditional**:
-     *assume* (★), derive `|G| ≤ #{…}` and the contradiction) — this isolates (★) as the single explicit
-     hypothesis of a Layer-4 `smolensky_contradiction`-analogue, exactly mirroring how Layer 3 isolated
-     its inputs. Safe: (★) stays a hypothesis until Route A proves it.
-3. **Only then** tackle (★) itself, as its own scoped effort.
+   * **(C1) ✓ DONE** (`ComputationalDepthLayer4DimGeneral.sqfSpan_eq_top`) — the squarefree monomials span
+     `(Fin n → Bool) → K` over an arbitrary field `K` (verbatim mirror of Layer 3, sorry-free).
+   * **(C2) ✓ DONE** (`ComputationalDepthLayer4ModqChar.weightChar_eq_one_iff`) — `weightChar ζ x = 1 ⇔
+     q ∣ #ones` for a primitive `q`-th root, connecting the character to the literal `MOD_q` predicate.
+   * **(C3) ✓ DONE** (`ComputationalDepthLayer4DimGeneral.dim_contradiction_general`) — the dimension half
+     over `K` **as a conditional on (★)**: from `hstar` (= every function on `G` is a `K`-combination of
+     low-degree squarefree monomials restricted to `G`, i.e. **(★)** as span membership) + the band margin
+     + `|G| ≥ (3/4)·2ⁿ`, derive `False`. `(★)` is an explicit named hypothesis, isolating exactly the open
+     content (mirroring how Layer 3 isolated its inputs). Also `dim_bound_general`,
+     `finrank_functions_on_G_general`.
+3. **Only remaining: (★) itself** — discharge `hstar` over `K = F_{p^{q-1}}` via Route A's reduction
+   identity. This is the genuine open mathematics; everything it feeds into is now built and waiting.
 
 ## Discipline restated
 
