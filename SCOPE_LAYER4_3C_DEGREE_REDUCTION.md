@@ -74,11 +74,18 @@ low-degree on `G`, every `ζ`-character `qChar ζ S` (`|S|>n/2`) collapses to de
   **`qary_reduction_from_indicators`**: *from the `q` indicator approximants alone, every function on `⋂A_j`
   is degree-`≤(Δ+n/2)`-representable* — so the **entire `(★)` reduction is now mechanized, conditional only
   on the `q` indicator approximants existing.** Sorry-free.
-  **Sole remaining (genuinely circuit-side) content:** that each `[#ones ≡ j]` *is* `AC⁰[p]` (it is `MOD_q`
-  of the input padded with `q-j` constant ones) and so *has* a degree-`Δ` approximant on a `(1-ε)`-fraction
-  `A_j` (Layer-3 agreement machinery, base-changed via brick 1). This is the explicit hypotheses
-  `(p, A, hpdeg, hp)` of `qary_reduction_from_indicators` — **not faked**; it requires the BoolCircuitSyntax
-  padding construction + the agreement machinery over `F_{p^{q-1}}`, the genuine remaining circuit work.
+  **Circuit-side bridge ✓ DONE** (`ComputationalDepthLayer4Approx`): `exists_baseChanged_approximant`
+  carries Layer 3's `F_p` agreement (`exists_large_agreement_set` + `toAgree_totalDegree_le`) into the
+  extension `K` via brick 1 — for an `AC⁰[p]` circuit `C` (`p^t ≥ 4·#subcircuits`), `map φ (toAgree …)` is a
+  degree-`≤((p-1)t)^{depth}` poly over `K` agreeing with `boolToField K (C.eval ·)` on `G` (`|G| ≥
+  (3/4)·2ⁿ`).  `exists_indicator_approximant`: if `C` *computes* `[#ones ≡ j]`, its base-changed approximant
+  equals `modIndicator K q j` on `G` — exactly one `hp`-component of `qary_reduction_from_indicators`.
+  **Sole remaining content (genuinely circuit-level, not faked):** (i) the **padding construction** — a
+  family of circuits `C_j` *computing* `[#ones ≡ j] = MOD_q(x ‖ (q-j)·⟨true⟩)`, `AC⁰[p]`, from a
+  `MOD_q ∈ AC⁰[p]` family (this discharges `exists_indicator_approximant`'s hypothesis `hCind`); and (ii)
+  the **intersection bookkeeping** — `G = ⋂_{j<q} G_j` needs each `|G_jᶜ| ≤ 2ⁿ/(4q)`, i.e. the tighter
+  horizon `p^t ≥ 4q·s` (a parameterised `exists_large_agreement_set`).  Both are `BoolCircuitSyntax`-level
+  constructions / counting — the natural remaining circuit work.
 
 **Route B — reduce `MOD_q` to PARITY on a sub-cube.** *Unsound in general.* `MOD_q` does not restrict to
 `MOD_2` on any natural sub-structure for `q > 2`; flagged here only to mark it as a trap so it is not
