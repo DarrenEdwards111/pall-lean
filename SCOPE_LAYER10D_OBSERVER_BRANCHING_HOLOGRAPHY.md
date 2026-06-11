@@ -61,6 +61,23 @@ formalized).  The observer/holographic lens is a faithful reformulation, neither
   because it can read gate internals / algebraic structure non-black-box — but that is a *requirement on
   the construction*, not something this framework grants.
 
+## 4½. Concrete spectral probe (done): `specMax` fails (A) at small `n`
+
+`ComputationalDepthLayer10SpectralProbe.lean` instantiates `I := specMax` — the largest `|Walsh/Fourier
+coefficient|`, i.e. the maximum-magnitude eigenvalue of the `(ℤ/2)ⁿ` Cayley-graph structure (the spectrum
+where Ramanujan bounds live) — and tests (A) by `native_decide`:
+
+* `dictator_in_SIZE_one`: the dictator `x ↦ x₀` is a **size-1** circuit.
+* `specMax_dictator_two/three/four`: its spectral quantity is `4, 8, 16` = `2ⁿ`.
+* `specMax_parity_two/three`: PARITY (also small-circuit) likewise has `specMax = 2ⁿ`.
+
+**Result: (A) fails decisively.**  A size-`1` function already attains the maximal spectral value `2ⁿ`, so
+no `h` satisfies `2ⁿ ≤ h 1`.  Worse, `specMax` is *large on trivially-easy functions* — the wrong shape for
+an observer invariant (which needs to be *small on all small-circuit functions*).  This is the expected
+negative result: the naive Fourier/expander spectral quantity is not the invariant, and any *constructive +
+large* repair is killed by the Layer 10A natural-proofs barrier.  The sandbox falsified a concrete candidate
+at small `n` — exactly its job.
+
 ## 5. Verdict
 
 `ObserverFrontierHyp` is a **legitimate, precisely-stated research target**, with proven bridges to
