@@ -119,11 +119,18 @@ low-degree on `G`, every `ζ`-character `qChar ζ S` (`|S|>n/2`) collapses to de
   computes `MOD_q`).  Choice/skolemisation over the residues + the `GaloisField` `ζ`.  Sorry-free, clean
   axioms `[propext, Classical.choice, Quot.sound]`.
 
-  **The entire general-`q` separation is now mechanised, sorry-free.**  The one optional bookkeeping step
-  for phrasing it from a *literal* `MOD_q ∈ AC⁰[p]` family (rather than the per-residue indicator circuits):
-  produce the `C_j` by `padTrue` of the `MOD_q` circuit (`padTrue_computes_indicator` ⇒ `hCind`,
-  `padTrue_isAC0pSyntax` ⇒ `hAC`, `padTrue_depth` ⇒ `hdepth`) and bound `#subcircuits (padTrue D)` for the
-  `ht` horizon — pure circuit-size counting, no new mathematics.
+  **Literal-family separation ✓ DONE** (`ComputationalDepthLayer4PadSubcircuits`):
+  `mem_padInputs_subcircuits` → `padInputs_subcircuits_card_le` → `padTrue_subcircuits_card_le`
+  (`#subcircuits (padTrue D) ≤ #subcircuits D + (n+k)`), and **`mod_q_family_false`**: for distinct primes
+  `p ≠ q`, over `K = F_{p^{q-1}}`, **no family `D_0,…,D_{q-1}` (with `D_j` on `(2m+1)+(q-j)` inputs) can
+  have each `D_j` compute `MOD_q`, be `AC⁰[p]`, with `4q·(#subcircuits + (2m+1+q)) ≤ p^t`, `depth ≤ d`,
+  inside `16·((p-1)t)^{2d} < 2m+3`** (`C_j := padTrue (D_j)`; apply `mod_q_indicators_false`).  Sorry-free,
+  clean axioms `[propext, Classical.choice, Quot.sound]`.
+
+  **The entire general-`q` Razborov–Smolensky separation `MOD_q ∉ AC⁰[p]` is now mechanised end-to-end,
+  sorry-free — from a literal `MOD_q ∈ AC⁰[p]` family to `False`.**  Nothing remains; every step was carried
+  as an explicit named hypothesis (`(★) → hg → hstar → hCind/hmod → tight bound → subcircuit count`) and
+  then discharged.
 
 **Route B — reduce `MOD_q` to PARITY on a sub-cube.** *Unsound in general.* `MOD_q` does not restrict to
 `MOD_2` on any natural sub-structure for `q > 2`; flagged here only to mark it as a trap so it is not
