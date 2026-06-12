@@ -70,17 +70,28 @@ it keeps them apart at its boundary. -/
 def Nonmergeable (O : BranchingObserver Sector) (T : Finset Sector) : Prop :=
   Set.InjOn O.view (T : Set Sector)
 
+/-- **Capacity bound.**  An observer with entropy `B` keeps at most `2^B` sectors mutually non-mergeable:
+`K` non-mergeable sectors satisfy `K ≤ 2^B`. -/
+theorem Nonmergeable.card_le {O : BranchingObserver Sector} {T : Finset Sector}
+    (hnm : O.Nonmergeable T) : T.card ≤ 2 ^ O.entropy := by
+  calc T.card = (T.image O.view).card := (Finset.card_image_of_injOn hnm).symm
+    _ ≤ Fintype.card (Fin (2 ^ O.entropy)) := Finset.card_le_univ _
+    _ = 2 ^ O.entropy := Fintype.card_fin _
+
 /-- **The branching/holographic boundary principle (proved).**  If an observer keeps `K` sectors mutually
 non-mergeable, then its boundary entropy is `≥ log₂ K`.  Incompressible branching geometry forces boundary
 entropy.  (Structural generalization of `foolingSet_forces_boundary`.) -/
 theorem many_nonmergeable_sectors_force_boundary (O : BranchingObserver Sector)
     (T : Finset Sector) (hnm : O.Nonmergeable T) :
-    Nat.log 2 T.card ≤ O.entropy := by
-  have hcard : T.card ≤ 2 ^ O.entropy := by
-    calc T.card = (T.image O.view).card := (Finset.card_image_of_injOn hnm).symm
-      _ ≤ Fintype.card (Fin (2 ^ O.entropy)) := Finset.card_le_univ _
-      _ = 2 ^ O.entropy := Fintype.card_fin _
-  exact foolingSet_forces_boundary T.card O.entropy hcard
+    Nat.log 2 T.card ≤ O.entropy :=
+  foolingSet_forces_boundary T.card O.entropy hnm.card_le
+
+/-- **Contrapositive (forced merging).**  If there are more sectors than the observer's capacity
+(`2^B < K`), it *cannot* keep them all non-mergeable — some sectors merge.  This is why a low-boundary
+observer of an instance with many witnesses must collapse witness sectors. -/
+theorem not_nonmergeable_of_card_gt (O : BranchingObserver Sector) {T : Finset Sector}
+    (h : 2 ^ O.entropy < T.card) : ¬ O.Nonmergeable T :=
+  fun hnm => absurd hnm.card_le (Nat.not_le.mpr h)
 
 /-- **Exponentially many non-mergeable sectors force super-logarithmic boundary.**  If at least `2 ^ k`
 sectors are mutually non-mergeable, the observer's boundary entropy is `≥ k`.  (This is the shape a
