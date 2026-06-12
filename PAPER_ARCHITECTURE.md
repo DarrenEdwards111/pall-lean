@@ -94,6 +94,14 @@ exactly, with two honest research forks identified.
   provable half; the `min`‑over‑observers target is the open half.
 * **§6.2 The reduction & the gap.** `decisionHolonomy_implies_not_poly` (decision‑holonomy ⇒ `∉ P`);
   `distinguishability_debt_not_time_lower_bound` (an *action* bound gives *no* decision‑time bound — the gap).
+* **§6.2′ The full proof plan, assembled and diagnosed** (`…DimensionGapSeparation`).  `dimension_gap_separation`
+  assembles Steps 3–6 as a *proved conditional*: an all‑observer action lower bound `hgap` (Steps 3+4) + a
+  time→action bridge `hbridge` (Step 5) + `poly < super‑poly` ⇒ no poly‑time correct SAT observer (the
+  separation).  **Diagnosis (proved):** `step5_naive_bridge_false` shows Step 5's naive form ("poly‑time ⇒ low
+  action") is *false*, not just open — a poly‑time observer may use high boundary, making action `∑ 2^{B_τ}`
+  exponential (`action_unbounded_by_time`).  The repair ("cannot service *decision‑relevant* gap debt") is
+  decision‑holonomy = `P ≠ NP`.  So the plan is a valid implication with Steps 1–4 real and Step 5 provably the
+  wall (naive form false, repaired form = the separation).
 * **§6.3 The Williams route.** `time_space_law` / `time_space_tradeoff_curve` (poly time ⇒ `Ω(n)` space — a
   restricted TS bound); `dp_speedup`, `williams_route`, `noncollapse_via_williams`; `margin_le_of_correct`
   (deliverable speedup margin `= n − r`).  Deep inputs **named**: the Williams diagonalisation and a
