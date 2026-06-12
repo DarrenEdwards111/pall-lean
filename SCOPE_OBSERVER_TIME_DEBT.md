@@ -296,6 +296,20 @@ bound — HAL's "P-time ⇒ cheap observer" step is false, not merely open.**  C
 diagonalisation + decision-hardness, the named inputs).  The debt programme is a **space/boundary** lower
 bound conditional on a space bound; `P ≠ NP` is not implied.
 
+**Decision-holonomy — the precise missing target** (`ComputationalDepthDecisionHolonomy.lean`).  All proved
+debt/holonomy invariants measure *distinguishability* = a lower bound on **action** `∑ 2^{B_τ}`.  Deciding SAT
+can avoid resolving those distinctions (Gaussian elimination decides Tseitin without servicing its proof debt).
+The missing theorem must give **decision-holonomy**: an invariant lower-bounding **decision time**.
+`decisionHolonomy_implies_not_poly` (proved reduction): `DecisionHolonomyHyp` (decision time `≥` a super-poly
+threshold) ⇒ the family `∉ P` ⇒ (NP-complete) `P ≠ NP`.  `distinguishability_debt_not_time_lower_bound`
+(proved gap): for any debt `D`, a single-step (poly-time) trajectory has action `≥ D` — an action
+(distinguishability) bound gives **no** decision-time bound, exactly the Tseitin/Gaussian escape.  So
+decision-holonomy for an NP-complete family is **equivalent in strength to `P ≠ NP`**: the invariant *is* the
+separation, not a step before it.  The missing maths is named exactly — an invariant `ι` with
+`decisionTime ≥ ι`, `ι` super-poly, for an NP-complete SAT family — and must use NP-complete structure
+(option 1: SAT time–space tradeoff) or the Williams route (option 2: named diagonalisation + decision-hardness).
+Not proved.
+
 ## 8. Honest status
 
 The contribution is genuine and bounded: the **dynamical conservation of the time-integrated boundary action
