@@ -245,3 +245,27 @@ proof-space §8) where the hard quantifier is genuinely proved, now with a super
 `min` over *all* decompositions for a hard family stays open (`= CookLevinFrontierHyp`).  Three calibrations
 (degree, formula, communication) plus two structured `min` regimes (proof-space, address-block) — the method
 is validated broadly and the open frontier is pinned to the all-decompositions quantifier.
+
+---
+
+## 12. Forcing families: the structured-class `min` regimes unified, and `hardF` robustness expanded
+
+`ComputationalDepthForcingFamilyMin.lean` extracts the pattern common to the proved `min` regimes and uses it
+to **expand** the address-block result.
+
+* `ForcingFamily` — a finite decomposition class where every member's boundary meets a `threshold`.  The
+  abstraction of "a structured class where the observer method proves a `min` lower bound".  Both proved
+  regimes are instances (proof-space: forcing family = *all refutations*, threshold `c·t`; address-block:
+  family = the `m` blocks, threshold `2^b−1`).
+* `ForcingFamily.threshold_le_min` / `subfamily_min_ge` — `threshold ≤ min`, and — the robust form —
+  `threshold ≤ min` over **any nonempty subfamily**: the decomposition-chooser cannot escape the threshold by
+  restricting to a sub-collection.
+* `hardF_subfamily_min_ge` / `hardF_subfamily_min_superlog` — **the expansion**: `min` over *every* nonempty
+  subfamily of `hardF`'s address blocks is `≥ 2^b−1`, and that is super-logarithmic.  So the result is robust
+  across the whole address-respecting decomposition lattice, not just the full family.
+
+**Honest scope — "structure-preserving" = address-respecting.**  Arbitrary *coarsening* is **not** covered:
+residual count is not monotone (reading *all* variables leaves a single residual), so a decomposition that
+dissolves the block structure can be cheap.  The expansion is over the address-respecting sublattice; the
+all-decompositions case stays open.  This is the honest meaning of "for every structure-preserving
+decomposition family `D`, `min(D) ≥ super-log`".
