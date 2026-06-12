@@ -188,3 +188,32 @@ AC⁰[p] degree lower bound — the method is validated on a rung where the trut
 the full circuit-level capstone (`Layer4.mod_q_indicators_false`, proved separately — the approximate-agreement
 and band-margin bookkeeping live there); it isolates and recasts the *dimension obstruction* that is the
 lower bound's engine.  AC⁰[p] is restricted; the general rung (`P` vs `NP`) stays open.
+
+---
+
+## 10. Calibration 2: rederiving the Nečiporuk formula `n²/log n` lower bound
+
+A second circuit/formula calibration (`ComputationalDepthObserverNeciporukCalibration.lean`).  Nečiporuk's
+method *is* the observer invariant applied per block of a variable partition:
+
+| observer notion | Nečiporuk notion |
+|---|---|
+| behaviors on a block | residual subfunctions `blockResiduals S F` |
+| non-mergeable / fooling set | outside-settings whose restrictions differ (`card_blockResiduals_ge_of_pairwise`) |
+| boundary on block `S` | `log₂ |blockResiduals S F|` (`formulaBlockBoundary`) |
+| total observer boundary | `∑` over the partition (`formulaTotalBoundary`) |
+| low-boundary observer | a small `B₂` formula: total boundary `≤ 4·litCount + #blocks` |
+
+* `separated_forces_blockBoundary` — the per-block fooling principle: pairwise-separated outside-settings
+  force `formulaBlockBoundary ≥ log₂ |family|`.  This is *exactly* `ContinuationObserver`'s
+  `faithful_separated_forces_boundary` / `many_nonmergeable_sectors_force_boundary`, per block.
+* `formulaTotalBoundary_le_size` — total boundary `≤ 4·litCount + #blocks`: a small formula is a
+  low-total-boundary observer (the Nečiporuk summation `neciporuk_formula_lower_bound_opt`, recast).
+* `hardF_blockBoundary_ge`, `hardF_observer_size_lower`, `hardF_observer_rate`, `hardF_observer_superlinear` —
+  the hard multiplexer forces block boundary `≥ 2^b−1`, hence total boundary `≥ m·(2^b−1)`, hence size
+  `≥ N²/(64b) = N²/log N` — the optimal Nečiporuk regime, rederived through the invariant.
+
+**Two calibrations now confirm the crossing into circuit/formula complexity** (AC⁰[p] degree §9, Nečiporuk
+formula size §10), each reusing the repo's proved bound and recasting its engine as the boundary invariant.
+Honest ceiling: B₂ formulas, `n²/log n` — restricted, not super-polynomial, not `P` vs `NP`.  The general
+machine-decomposition rung (the `min`-over-all-decompositions quantifier) remains the open frontier.
