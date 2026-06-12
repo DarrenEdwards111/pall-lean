@@ -116,6 +116,17 @@ exactly, with two honest research forks identified.
   (deliverable speedup margin `= n − r`).  Deep inputs **named**: the Williams diagonalisation and a
   decision‑hard family.  Files: `…TimeSpaceWilliamsBridge`, `…ObserverAlgorithmicSchema`, `…SpeedupMargin`.
 
+* **§6.3′ The raveling wedge — the surviving non‑circular program** (`…RavelWedge`).  Replaces the false global
+  Step 5 ("poly‑time ⇒ low action", `step5_naive_bridge_false`) with two *separately* provable premises:
+  `ravel_wedge` composes `raveling` (low‑action observer ⇒ factors through a constrained separator class `K`)
+  and `noSeparator` (`K` has no SAT separator) into "no low‑action observer decides SAT."  This is the structure
+  of *every* known lower bound (fix restricted `K`, show the hard function ∉ `K`), and the corpus already
+  realizes `noSeparator` for concrete `K`: the calibrations (AC⁰[p]/Nečiporuk/communication) and the ladder
+  (linear/read‑set/bounded‑locality).  **Catch:** to reach `SAT ∉ P`, `K` must capture all of `P`, and then
+  `noSeparator` for that `K` *is* `P ≠ NP`.  So the wedge relocates the difficulty into the size of `K` —
+  provable for every `K` we can beat, exactly the separation for any `K` large enough.  Non‑circular
+  architecture; the open content is one inequality (`noSeparator` for `P`‑capturing `K`).
+
 ## Part V — The frontier (the two honest research forks)
 
 The least‑action path (N‑Frame Lagrangian) is built out; the residual is one of:
