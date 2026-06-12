@@ -282,6 +282,20 @@ complexity), **not decision hardness**; feeding the Williams bridge a *proof-har
 vacuous.  Williams needs a **decision-hard** family — general SAT — where non-collapse is the open `P ≠ NP`.
 Quantifying input (2) relocates the gap precisely: not the margin, but **decision-hardness vs proof-hardness**.
 
+**The time → boundary principle, as an audit** (`ComputationalDepthTimeBoundaryPrinciple.lean`) — formalizes
+exactly when "poly time ⇒ subcritical observer action" holds and where it fails.  *Positive (proved):*
+`boundary_le_of_spaceBound` (observer boundary ≤ machine space), `action_le_of_spaceBound`
+(`T ≤ Tb`, `B_τ ≤ s` ⇒ action `≤ Tb·2^s`), `subcritical_of_lowspace` (`Tb·2^s < K` ⇒ action `< K`, debt bites).
+So **low-space** deciders of a hard instance are caught — the bridge holds *given a space bound* (alongside
+bounded-growth via `burst_*` and oblivious/Route-F elsewhere).  *Obstruction (proved):*
+`action_unbounded_by_time` (for any `T ≥ 1` and `A`, a `T`-step trajectory with action `> A` exists — one
+step's action `2^{B_τ}` is unbounded) and `hard_instance_has_correct_high_boundary_decider` (the hard instance
+has a correct zero-debt full-boundary decider).  **So poly time alone yields no subcritical boundary/action
+bound — HAL's "P-time ⇒ cheap observer" step is false, not merely open.**  Capstone: the God-Move route needs
+*either* a SAT-specific time→boundary theorem (cannot follow from time alone) *or* the Williams route (deep
+diagonalisation + decision-hardness, the named inputs).  The debt programme is a **space/boundary** lower
+bound conditional on a space bound; `P ≠ NP` is not implied.
+
 ## 8. Honest status
 
 The contribution is genuine and bounded: the **dynamical conservation of the time-integrated boundary action
