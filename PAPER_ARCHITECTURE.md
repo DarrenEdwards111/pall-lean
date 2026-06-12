@@ -150,6 +150,17 @@ The least‑action path (N‑Frame Lagrangian) is built out; the residual is one
    `P ≠ NP` (ours super‑poly‑but‑restricted; theirs `n^{1.8}`‑but‑general‑and‑barriered).
 2. **Williams / ACC⁰ algorithmic bridge.** A fast SAT algorithm with the right margin ⇒ separation, via the
    named diagonalisation — needs a *decision‑hard* family (the proof‑hard ones are decision‑easy, §5.5).
+   *Built faithfully (`…WilliamsCashout`):* `williams_cashout` is the genuine three‑part structure
+   `(speedup: smallCircuits ⇒ fastSat) + (hierarchy: fastSat ⇒ collapse) + (noCollapse)` ⇒ `¬ smallCircuits` —
+   the lower bound from *contradiction*, not boundary‑bounding, so it passes the `d_obs < r` ceiling.
+   `cashout_with_margin` makes the threshold explicit.  **The framework supplies the algorithmic half:** a
+   low‑boundary observer is a structured fast‑SAT algorithm (`dpSat_beats_bruteforce`) with savings `n − r =
+   Ω(n)` (`margin_le_of_correct`) — *more* than the `n^{ω(1)}` the hierarchy needs, so unlike the boundary
+   routes the **margin is not the blocker**.  `noCollapse` (the nondeterministic time hierarchy) is real and
+   provable.  **Two open inputs remain:** (i) a *decision‑hard* family whose cheap separator compresses
+   witnesses (Tseitin is decision‑easy, so its fast algorithm triggers no collapse — correctly, it's in `P`);
+   (ii) the **NEXP→NP descent** (Williams gives `NEXP ⊄ ACC⁰`; the polynomial‑level hierarchy is far weaker).
+   These are the field's frontier (natural proofs / relativization / algebrization), not Lean gaps.
 
 Either equals **decision‑holonomy** = `P ≠ NP`; the candidate‑gadget game (§5.6) converges on the open ACC⁰
 frontier.
