@@ -167,3 +167,15 @@ diagnostic conclusion: the simple AND gadget is **not obviously a good route** t
 gets step-1 non-affineness but *loses* full residual richness over shared variables).  A real decision-hard
 family needs a predicate that resists the affine shortcut *and* keeps full shared-variable richness — which
 this one does not.  A negative lab signal, not a `P ≠ NP` step.
+
+`ComputationalDepthNonlinearCSPACCStress.lean` — pilot step 4, the **AC⁰[p] / low-degree calibration** (the
+algebraic shortcut detector).  The AND `x_w·x_z` is a **degree-2** monomial, so the gadget *linearizes*:
+`gadget_eq_lifted` (`gadgetVal = liftedGadgetVal x_u x_v (x_w·x_z)`) + `liftedGadget_solution_affine` (in the
+lifted variable `q := x_w·x_z` the solution set is **affine** again — Gaussian/AC⁰[p] applies).  So the gadget
+is firmly in the algebraic régime, "one degree up" from linear; lifting one fresh variable per AND term (poly
+overhead) makes the system linear except for the side-relations `q_i = x_{w_i}·x_{z_i}`, which carry all the
+nonlinearity.  **Nuance (both ways):** low-degree *representation* ≠ decision-easiness — degree-1 (`F₂`-linear)
+is Gaussian-easy, but degree-2 (`MQ`) is NP-hard *in general* (cited).  So the gadget escaped degree-1's
+easiness and sits at the degree-1→2 boundary; whether the *specific expander* instance realises the degree-2
+NP-hardness (vs. collapsing via step-3's restricted richness) is open.  Calibration verdict: **located, not
+killed or validated** — firmly algebraic, decision status reduced to the quadratic side-relations.
