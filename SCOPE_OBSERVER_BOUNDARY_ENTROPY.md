@@ -217,3 +217,31 @@ method *is* the observer invariant applied per block of a variable partition:
 formula size §10), each reusing the repo's proved bound and recasting its engine as the boundary invariant.
 Honest ceiling: B₂ formulas, `n²/log n` — restricted, not super-polynomial, not `P` vs `NP`.  The general
 machine-decomposition rung (the `min`-over-all-decompositions quantifier) remains the open frontier.
+
+---
+
+## 11. Calibration 3 (communication) and a structured class where the `min` is super-logarithmic
+
+* `ComputationalDepthObserverRectangleCalibration.lean` — **third calibration**, in deterministic
+  communication: the observer is a protocol = a partition into monochromatic rectangles, boundary =
+  `log₂ (#rectangles)`.  The EQUALITY matrix's `n` diagonal entries are pairwise non-mergeable (no
+  `1`-rectangle covers two — `diagonal_nonmergeable`), so `equality_rectangle_boundary_ge` gives boundary
+  `≥ log₂ n` — the deterministic communication lower bound, rederived through the invariant.  **Three
+  independent models now confirm the crossing** (degree, formula size, communication).
+* `ComputationalDepthObserverBlockDecompositionMin.lean` — **the open inequality, proved in a structured
+  class.**  For the multiplexer `hardF`, the `m` address-block continuation decompositions form a structured
+  class; `hardF_minBlockBoundary_ge` shows **every** one forces boundary `≥ 2^b−1`, so the *minimum* over the
+  class is `≥ 2^b−1` (no decomposition in the class is cheap — contrast the single-cut EQUALITY collapse).
+  `minBlockBoundary_superlog` shows `2^b−1` is genuinely **super-logarithmic**: for every constant `c`, some
+  family member has `minBlockBoundary > c·log₂(input size)`.
+
+So the `min`-over-decompositions quantifier — which *collapses* for EQUALITY over arbitrary cuts — is forced
+**super-logarithmic** for `hardF` over the address-block class.  This is the second regime (after resolution
+proof-space §8) where the hard quantifier is genuinely proved, now with a super-logarithmic bound.
+
+**Honest scope.**  The address-block class is structured and restricted — the `m` natural blocks of the
+`hardF` layout, not *every* admissible decomposition; a general decider could cut across blocks (the freedom
+`equality_decomposition_gap` exploits).  So this is the `min` over a *chosen* structured class, super-log; the
+`min` over *all* decompositions for a hard family stays open (`= CookLevinFrontierHyp`).  Three calibrations
+(degree, formula, communication) plus two structured `min` regimes (proof-space, address-block) — the method
+is validated broadly and the open frontier is pinned to the all-decompositions quantifier.
