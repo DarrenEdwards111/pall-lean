@@ -155,6 +155,15 @@ isolated to one statement:
   only; residual non-collapse under *every* cheap adaptive decomposition is still the open min = `P ≠ NP`.
   What it removes: the doubt "is the residual actually large for a real hard instance?" — for expander reads,
   provably yes, via the same expansion that powers the width kernel.
+* **Step 4 — the adaptive bottleneck** (`ComputationalDepthAdaptiveBottleneck.lean`): an adaptive observer with
+  low *total* action need not be cheap at every step, but must be cheap at *some* step.
+  `adaptive_bottleneck_exists` (pigeonhole): `∑_{τ<T} cost τ ≤ A ⇒ ∃ τ, T·cost τ ≤ A` (the minimising step is
+  below average).  `cheap_trajectory_has_residual_debt_bottleneck` (the reduction): for a trajectory with total
+  boundary action `≤ A` whose residual is non-collapsing at every step, a bottleneck step carries residual debt
+  `2^r − A` — super-log for `r = Ω(n)`, `A` sub-`2^{Ω(n)}`.  The **only** open input is non-collapse under the
+  observer's *own* (possibly non-read-set) decompositions = residual non-collapse under every cheap adaptive
+  decomposition = the min-over-decompositions quantifier = `P ≠ NP` (HAL's step 5).  Everything *around* that
+  one property is now proved: the bottleneck always exists, and non-collapse there mechanically yields the debt.
 * **Framework ceiling, as a theorem** (`ComputationalDepthDebtFrameworkBarrier.lean`):
   `tradeoff_vacuous_of_high_initial_boundary` (the bound is content-free once `|P| ≤ 2^{B_0}`) and
   `hypercube_brute_force_escape` (a single full-boundary view resolves the `2^n` geometry with zero debt) —
