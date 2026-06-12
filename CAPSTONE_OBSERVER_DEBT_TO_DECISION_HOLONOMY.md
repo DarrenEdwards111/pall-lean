@@ -144,4 +144,14 @@ applies) vs `nonlinear_solution_set_not_affine` (the AND-gadget's solutions are 
 `a,b,c` solutions with `a+b+c` violating).  So the gadget removes the affine structure underlying the Tseitin
 shortcut.  **Honest:** "no *affine* shortcut" ≪ "no shortcut"; this is a place to test whether residual
 richness survives while the linear shortcut dies — *not* a proof of decision hardness (= the open
-`DecisionHolonomyHyp`).  Residual explosion of the gadget and the expander lift are future exploratory steps.
+`DecisionHolonomyHyp`).
+
+`ComputationalDepthNonlinearCSPRichness.lean` — pilot step 2: **residual richness survives gadgetisation**.
+`gadgetOutcomes_surjective` (the constraint-value vector of an `m`-gadget family with private variables is
+surjective onto `2^m`) ⇒ `gadget_residual_forces_debt` (every boundary-`B` observer has residual debt
+`≥ 2^m − 2^B`).  So the AND terms do **not** collapse the distinguishability debt.  The lab profile is now:
+(1) no affine/Gaussian shortcut, (2) `2^{Ω(n)}` residual debt survives — the *desired* shape for a
+decision-hard family.  **Still not decision hardness:** the richness is sourced by the private *linear*
+variables (preserved despite, not created by, the AND), and "no affine shortcut + rich residuals" ≠ "no
+shortcut".  Decision hardness for an NP-complete family = `DecisionHolonomyHyp` = the open breakthrough.  The
+expander hypergraph lift and any decision-hardness claim remain future exploratory work, not provided here.
