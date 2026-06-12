@@ -101,6 +101,13 @@ The least‑action path (N‑Frame Lagrangian) is built out; the residual is one
 
 1. **SAT time–space tradeoff.** Force a poly‑time SAT decider into sub‑`n` boundary using NP‑complete
    structure — strengthening §5.4's restricted TS bound past the `B < r` cap.  Cannot follow from time alone.
+   *Positioning (`…ObserverTISP`):* `ObserverTISP P F T B` (bounded‑boundary observer decides within time `T`,
+   boundary `B`); `not_observerTISP_of_large_fooling` (`(T+1)·2^B < |P| ⇒ ∉ ObserverTISP`) and
+   `hypercube_not_observerTISP` give the bounded‑boundary analogue of `SAT ∉ TISP(…)` — super‑poly‑time‑strong
+   for `o(n)` boundary, *but* in the observer model on a decision‑easy instance.  The classical line (Lipton–
+   Viglas → Fortnow–Van Melkebeek → Williams) proves `SAT ∉ TISP(n^{2cos(π/7)−ε}, n^{o(1)})` for *general*
+   machines, *barriered* at that exponent (Buss–Williams).  The two are non‑comparable and both far from
+   `P ≠ NP` (ours super‑poly‑but‑restricted; theirs `n^{1.8}`‑but‑general‑and‑barriered).
 2. **Williams / ACC⁰ algorithmic bridge.** A fast SAT algorithm with the right margin ⇒ separation, via the
    named diagonalisation — needs a *decision‑hard* family (the proof‑hard ones are decision‑easy, §5.5).
 
