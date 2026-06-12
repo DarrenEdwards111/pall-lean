@@ -210,8 +210,14 @@ The reduction is complete in both directions of plumbing:
 |---|---|---|
 | read-set (vertex-parity) | ✅ proved (`expander_residual_forces_debt`) | `…ExpanderResidualSurjective` |
 | `F₂`-linear / affine | ✅ proved (`expander_linear_decomposition_noncollapse`) | `…AdaptiveResidualNonCollapse` |
-| bounded-locality / branching-program | — next rung | — |
+| bounded-locality / junta / branching-program | ✅ proved (`expander_bounded_locality_noncollapse`) | `…BoundedLocalityNonCollapse` |
 | **every** adaptive decomposition | ⛔ open = `P ≠ NP` | — |
+
+The bounded-locality rung (`bounded_support_forces_debt`): a view depending on only `|W|` variables — *with
+arbitrary output complexity* (junta / shallow decision tree / read-bounded branching program) — is coarser
+than the linear projection `π_W` (`debtCount_mono`), so it carries residual debt `≥ 2^{|ι|} − 2^{|W|}`.  New
+content beyond output-boundary no-hiding: the output alphabet may be exponential, yet *locality* (variables
+read), not output size, bounds the view's power.
 
 Two classes are now discharged using only the expansion already proved in the width kernel.  The honest
 remaining mathematics is the *common invariant* that would let the per-class proofs generalise to all
