@@ -133,6 +133,23 @@ isolated to one statement:
   freely-chosen decomposition.  The unconditional version (both channels expensive under every decomposition)
   is `P ≠ NP`, not proved.
 
+* **Expander no-hiding — residual subfunction explosion** (`ComputationalDepthExpanderNoHiding.lean`): the
+  bridge from structured forcing to SAT debt, in honest restricted form.  A decomposition reading few variables
+  leaves crossing constraints whose values on the continuation form a **residual outcome vector**; if `r`
+  crossing constraints are independent (the residual map surjects onto `Fin (2^r)`), there are `2^r` pairwise
+  distinguishable continuations.  `surjective_residual_forces_debt`: any boundary-`B` observer then carries
+  residual debt `2^r − 2^B`; `no_hiding_superlog`: for `B ≤ r − 1`, debt `≥ 2^{r−1}` = super-log for
+  `r = Ω(n)`.  The explosion ⇒ debt step is fully proved; **expansion** (proved for `Kₙ` in the width kernel)
+  supplies `r = Ω(n)` independent crossing constraints for variable-subset reads.  HONEST: `hsurj` is for a
+  *fixed* residual map (a fixed decomposition).  Proving the residual *cannot collapse* under every cheap
+  adaptive decomposition is the min-over-decompositions = `P ≠ NP`.  This file reduces that core to one clean
+  property — **residual non-collapse under every cheap decomposition** — with the debt following mechanically.
+* **Framework ceiling, as a theorem** (`ComputationalDepthDebtFrameworkBarrier.lean`):
+  `tradeoff_vacuous_of_high_initial_boundary` (the bound is content-free once `|P| ≤ 2^{B_0}`) and
+  `hypercube_brute_force_escape` (a single full-boundary view resolves the `2^n` geometry with zero debt) —
+  the brute-force / linear-space escape is *realised*, so the fooling-debt mechanism provably forces nothing
+  against full-boundary observers.  Draws the provable-here / open-there line as a proved statement.
+
 So `hdebt` is proved exactly where the boundary is *constrained* — sub-linear width *throughout*, then the
 larger **bounded-total-action** class (spikes allowed, integral bounded), and now the **bounded-growth**
 class (spikes allowed but not instant) — a streaming / bounded-width / small-space-style restricted lower
