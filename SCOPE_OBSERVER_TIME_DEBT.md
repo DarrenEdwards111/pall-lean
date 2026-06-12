@@ -93,12 +93,22 @@ isolated to one statement:
   strictly larger than bounded-boundary-throughout (occasional spikes allowed) and much closer to real
   machines.
 
-So `hdebt` is proved exactly where the boundary is *constrained* — first sub-linear width *throughout*, now
-the larger **bounded-total-action** class (spikes allowed, integral bounded) — a streaming / bounded-width /
-small-space-style restricted lower bound.  The fooling-debt mechanism caps at `B < log K ≈ cn`; beyond that
-(a **single** linear-boundary spike, `2^{B_τ} ≥ K`, i.e. linear/poly space) the observer has enough states to
-separate the fooling set in one step, so the bound is satisfied with no time cost and the mechanism is
-vacuous — that single-spike / poly-space case is the genuine ceiling and the open `P ≠ NP` core, not a gap in
+* **Burst escape closed under locality** (`ComputationalDepthBurstBoundaryDebt.lean`) —
+  `burst_boundary_time_lower_bound` / `burst_boundary_low_resource_fails`: the single-spike escape assumed the
+  observer could jump to boundary `log|P|` in one step.  Adding the explicit **locality** hypothesis that the
+  boundary grows `≤ r` per step (`B_{τ+1} ≤ B_τ + r` — bounded read-rate / fan-in / write per step) gives
+  `B_τ ≤ B_0 + r·τ`, hence **`|P| ≤ (T + 1) · 2^{B_0 + r·T}`**: the spike's height enters the exponent through
+  `r·T`, so for `|P| = 2^{Ω(n)}`, `B_0 = O(log n)`, `r = O(1)` it forces **`T = Ω(n/r)`** — a genuine *time*
+  lower bound the instant spike cannot dodge.  "The spike pays its height in time."
+
+So `hdebt` is proved exactly where the boundary is *constrained* — sub-linear width *throughout*, then the
+larger **bounded-total-action** class (spikes allowed, integral bounded), and now the **bounded-growth**
+class (spikes allowed but not instant) — a streaming / bounded-width / small-space-style restricted lower
+bound.  The chain of escapes is now closed in order: hide-boundary-over-time (conservation), distribute as
+spikes (total-action), instant spike (locality `r`).  The fooling-debt mechanism caps at `B < log K ≈ cn`;
+the **last** escape is **unbounded growth rate** — a single step with `r = poly` (reading `poly` input bits /
+growing a `poly`-bit configuration at once) makes `2^{B_0 + r·T}` exponential and the bound vacuous.  That
+poly-per-step / linear-to-poly-boundary case is the genuine ceiling and the open `P ≠ NP` core, not a gap in
 the formalization.
 
 ## 7. Honest status
