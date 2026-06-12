@@ -74,6 +74,45 @@ complexity.**
 
 ---
 
+## Vb. The structured-`min` regime, fully developed (the Lagrangian's least-action quadrant)
+
+A route-selector (`SCOPE_NFRAME_OBSERVER_LAGRANGIAN.md`) scores attacks by an *action* built from the real
+N-Frame Lagrangian `S_NF` (kinetic = graph Laplacian, parity, barrier): all-decompositions SAT and ACC⁰ are
+high-action (the open quantifier / the proved barrier); **structured forcing families are least-action**.  Its
+three least-action moves are now all built and machine-checked.
+
+**New forcing families** (the generic engine `every_refutation_totalSpace_ge` / `proofSpaceMin_ge_of_band` is
+*generic* over `(μ, subadditivity, axiom-bound, width-link)`; Tseitin/PHP are instances):
+
+* `ComputationalDepthTseitinCompleteForcing.lean` — `tseitin_complete_min_space`: **fully discharged** —
+  `Kₙ`-Tseitin proof-space `min ≥ t` (`4t ≤ n`), **no named input** (`completeGraph_hasExpansion` is proved,
+  the dense graph needs no expander construction).  The fully-closed member of the forcing-family lattice.
+* PHP proof-space — reduced to **one** named input through six proved layers:
+  `ComputationalDepthPHPProofSpaceForcing.lean` (instance, subadditivity proved) →
+  `…PHPWidthLink.lean` (`phpWidthLink` ⇒ flip lemma: injection + measure assembly proved) →
+  `…GraphPHPExpansion.lean` (three flip cores: pigeonhole, flip mechanism, free-hole-from-unique-neighbour) →
+  `…MatchingMeasure.lean` (the matching-based measure: subadditivity + unsatisfiability proved) →
+  `…MatchingRootBound.lean` (root bound; unconditional for complete-bipartite) →
+  `…BipartiteHallMatching.lean` (`exists_placement_of_hall`: matchability via Mathlib Hall).  Residual: a
+  **unique-neighbour bipartite expander** (`n < m`) — a deep lossless-expander construction, named not faked.
+
+**Expander amplification** (`−𝐀`): `ComputationalDepthForcingFamilyAmplify.lean` — `ForcingFamily.prod`:
+tensoring forcing families **amplifies the threshold additively** (`prod_threshold_le_min`); `hardF_prod_amplified`
+gives `min ≥ 2·(2^b−1)` for two copies, `k·(2^b−1)` for `k`.
+
+**Structured low-boundary → engine 1** (third route-3 move): besides streaming and Route-F crossings,
+`ComputationalDepthBPLowBoundaryEngine.lean` — a bounded-width **branching program** (`LayeredBP`) gives a
+`LowBoundaryInstance` of boundary `log₂ w` (`LayeredBP.dp_beats_bruteforce`); `parityBP` (width 2) fires
+engine 1 for `n ≥ 4`.  Two-sided: width-2 PARITY BP is *low* boundary (engine 1) yet PARITY is *high* in AC⁰.
+
+**Net:** the least-action quadrant is comprehensively built — a fully-closed forcing family (`Kₙ`-Tseitin), a
+reduced-to-one-named-input family (PHP), subfamily robustness, tensor amplification, and three distinct
+structured low-boundary sources feeding engine 1.  All `sorry`-free; every hard input named, not faked.  The
+open all-decompositions quantifier (§VII) is untouched — everything *up to* it in the structured regime is
+proved.
+
+---
+
 ## VI. The barriers (proved honest negatives)
 
 * **Fixed-cut insufficiency** — `ComputationalDepthDecompositionGap.lean`, `equality_decomposition_gap`:
@@ -116,10 +155,18 @@ Everything reduces to a single statement, open and `P`-vs-`NP`-strength:
 
 The observer-boundary invariant is a **legitimate, formally-anchored unifier**: it has proved laws, it
 rederives three genuine circuit/communication lower bounds, it proves the `min`-over-decompositions quantifier
-in two structured classes, and it carries a working conditional algorithmic engine.  It also **locates the
-open problem with full precision** — one quantifier — and proves, rather than hand-waves, the barriers that
-stop the easy routes (fixed-cut insufficiency, exact-enrichment failure, the ACC⁰ joint-construction block).
+in structured classes, and it carries a working conditional algorithmic engine.  Guided by an N-Frame
+Lagrangian route-selector, the **structured-`min` regime (the least-action quadrant) is now comprehensively
+developed** (§Vb): a fully-closed forcing family (`Kₙ`-Tseitin, no named input), a reduced-to-one-named-input
+family (PHP, six proved layers + a named unique-neighbour expander), tensor amplification of the threshold,
+and three distinct structured low-boundary sources feeding the algorithmic engine.  The invariant also
+**locates the open problem with full precision** — one quantifier — and proves, rather than hand-waves, the
+barriers that stop the easy routes (fixed-cut insufficiency, exact-enrichment failure, the ACC⁰
+joint-construction block).
+
 What it does **not** do is move that open quantifier: `P ≠ NP` and `NP ⊄ ACC⁰` remain open, and every further
-step toward them is genuine new mathematics (a high-boundary-under-all-decompositions theorem, or Williams
-diagonalization), not Lean assembly.  The value delivered is a precise, honest, machine-checked map of the
-terrain right up to that line.
+step toward them is genuine new mathematics (a high-boundary-under-*all*-decompositions theorem for SAT, an
+explicit unique-neighbour expander for PHP, the ACC⁰ joint approximant, or Williams diagonalization), **not
+Lean assembly**.  The structured-regime construction is essentially complete; the next genuine progress needs
+a new idea on one of those fronts.  The value delivered is a precise, honest, machine-checked map of the
+terrain right up to that line — with every hard input named, not faked.
