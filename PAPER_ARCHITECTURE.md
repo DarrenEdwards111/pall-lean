@@ -126,6 +126,14 @@ exactly, with two honest research forks identified.
   `noSeparator` for that `K` *is* `P ≠ NP`.  So the wedge relocates the difficulty into the size of `K` —
   provable for every `K` we can beat, exactly the separation for any `K` large enough.  Non‑circular
   architecture; the open content is one inequality (`noSeparator` for `P`‑capturing `K`).
+* **§6.3″ The ravelable class, instantiated at its ceiling** (`…RavelableClass`).  `K = {effective dimension
+  `d_obs < r`}`.  `boundedBoundary_no_separator` proves `noSeparator` for it (a `B < r` observer of a
+  dimension‑`r` residual has positive debt); `expander_no_boundedBoundary_separator` discharges it for the
+  expander residual (`r = |ι| = Ω(n)`) — it is *non‑ravelable*.  The raveling half is the bottleneck
+  (`adaptive_bottleneck_exists`).  **Structural ceiling:** `d_obs < r` is the *maximal* `K` the debt mechanism
+  beats — every beatable `K` (linear/read‑set/locality/holonomy) is a sub‑class; at `d_obs ≥ r` a zero‑debt
+  separator exists (`hypercube_brute_force_escape`).  Extending past it needs the Williams cash‑out (§6.3),
+  guarded by natural proofs / relativization / algebrization.
 
 ## Part V — The frontier (the two honest research forks)
 
