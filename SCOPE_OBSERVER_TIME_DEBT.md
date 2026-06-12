@@ -101,6 +101,14 @@ isolated to one statement:
   `r·T`, so for `|P| = 2^{Ω(n)}`, `B_0 = O(log n)`, `r = O(1)` it forces **`T = Ω(n/r)`** — a genuine *time*
   lower bound the instant spike cannot dodge.  "The spike pays its height in time."
 
+* **Explicit fooling family + named bounds** (`ComputationalDepthExpanderFoolingInstance.lean`) —
+  `hypercubeFool n` is the **complete** must-separate relation on `Fin n → Bool`; `hypercube_card` gives
+  `|P| = 2^n` (the maximal fooling set, the explicit realisation of "`2^{Ω(n)}` pairwise-distinguishable
+  branches" the expander/`Kₙ`-Tseitin forcing guarantees).  Instantiating the abstract tradeoffs yields named
+  corollaries: `hypercube_lowBoundary_requires_superpoly_time` (`2^{n−B} ≤ T+1`, **super-poly** for
+  `B = O(log n)`) and `hypercube_bounded_growth_requires_linear_time` (`2^n ≤ (T+1)·2^{B_0+r·T}`, **linear**
+  `T = Ω(n/r)` for `r = O(1)`).
+
 So `hdebt` is proved exactly where the boundary is *constrained* — sub-linear width *throughout*, then the
 larger **bounded-total-action** class (spikes allowed, integral bounded), and now the **bounded-growth**
 class (spikes allowed but not instant) — a streaming / bounded-width / small-space-style restricted lower
