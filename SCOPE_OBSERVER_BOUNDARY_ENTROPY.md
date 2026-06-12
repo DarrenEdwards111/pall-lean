@@ -119,3 +119,34 @@ the regime where such bounds are provable.  It is **not** the general machine-de
 arbitrary SAT-decider (the central conjecture §4, still open, `= CookLevinFrontierHyp`).  What §5 predicted
 ("most promising transfer: proof-complexity space") is now realized as Lean mathematics, with the boundary
 between "provable here" and "open there" drawn precisely.
+
+---
+
+## 8. The branching abstraction and the continuation bridge (Option B, realized + anchored)
+
+Option C is anchored; Option B is now the geometric abstraction *over* it, with its central implication
+finally **proved** rather than assumed.
+
+* `ComputationalDepthBranchingObserver.lean` — `BranchingObserver` (boundary entropy + `view` into
+  `Fin (2^entropy)`); `many_nonmergeable_sectors_force_boundary`: `K` non-mergeable sectors ⇒ entropy
+  `≥ log₂ K` (the holographic principle, generalizing `foolingSet_forces_boundary`).  Hierarchy: fixed-cut
+  ✅insufficient · proof-space ✅ (Option C) · branching ✅ · general open.  Plus `Nonmergeable.card_le` and
+  the forced-merging contrapositive `not_nonmergeable_of_card_gt`.
+* `ComputationalDepthHypercubeWitnessObserver.lean` — a concrete SAT instance (`φ = x₀`) through the
+  abstraction, exhibiting **both regimes** on the same witness hypercube: a faithful transcript observer is
+  forced to boundary `≥ n` (`witnesses_force_boundary`, `transcript_realizes_bound`), while a lossy
+  single-coordinate projection observer **merges** the witnesses (`projection_merges`) — the
+  non-mergeability hypothesis is genuinely non-trivial, and easy instances escape it.
+* `ComputationalDepthContinuationObserver.lean` — **the continuation bridge** (the heart of Option B): a
+  `Faithful` observer (boundary state determines behavior on *every* continuation) over a `Separated` set (a
+  communication fooling set) keeps it non-mergeable — `faithful_separated_nonmergeable`.  So
+  `faithful_separated_forces_boundary` **derives** the boundary bound from *correctness over continuations*,
+  not from an assumed hypothesis.  Instantiated on EQUALITY (`equality_continuation_forces_boundary`): every
+  faithful observer of the `prefix|suffix` split has boundary `≥ n`.
+
+**The wall, now at exactly one quantifier.**  The faithfulness→boundary implication is a theorem; EQUALITY
+shows a fixed-decomposition super-log bound is real *and still insufficient* (EQUALITY is `O(n)`-size under
+another split).  All that remains open is the **minimum over admissible decompositions** for a hard family —
+i.e. `≥ ω(log n)` boundary under *every* faithful split, which is `CookLevinFrontierHyp` / the central
+conjecture §4.  Nothing here asserts it; the contribution is that everything *up to* that one quantifier is
+now proved.
