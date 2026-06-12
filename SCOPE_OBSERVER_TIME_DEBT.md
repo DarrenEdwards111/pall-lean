@@ -235,6 +235,16 @@ open `P ≠ NP` content is the converse — that **every** cheap atlas of expand
 some `v` with `res v ≠ 0` (expander constraints have nonzero curvature against all cheap coordinate systems).
 Next rung: expander many-loop amplification, then the forced-twist converse.  Not proved; named.
 
+**Expander many-loop amplification** (`ComputationalDepthExpanderHolonomyAmplification.lean`) — closes the
+single-loop escape (observer flattens a *different* direction).  `additive_holonomy_forces_debt` lifts the
+holonomy lemma to a vector residual; `expander_manyloop_holonomy`: any observer that flattens a *subspace* `W`
+of directions (`view (c+x)=view c` ∀ `x∈W`) of codimension `< |ι|` (`finrank W > |Edge|−|ι|`) carries the full
+debt `2^{|Edge|}` — because expansion gives the residual rank `|ι|`, so `W ⊄ ker(residual)`, so `W` contains a
+twisting direction.  Curvature reading: **expander constraints have nonzero curvature against every
+low-codimension coordinate flattening** — the observer cannot flatten its way around all loops.  HONEST: a
+`W`-periodic view has `≤ 2^{codim W}` values, so this is the curvature lens on effective-boundary no-hiding;
+genuinely nonlinear non-periodic high-boundary atlases remain the open `P ≠ NP` quantifier.
+
 ## 8. Honest status
 
 The contribution is genuine and bounded: the **dynamical conservation of the time-integrated boundary action
