@@ -269,6 +269,19 @@ nondeterministic-time-hierarchy theorem; deep, not reproved); (2) **instantiatio
 decompositions feed the bridge with a speedup strong enough to compound against the hierarchy (a mild
 sub-brute-force speedup is not enough).  `P ≠ NP` is not proved; the gap is now located in exactly these two.
 
+**Quantifying input (2) — the speedup margin** (`ComputationalDepthSpeedupMargin.lean`).  A decomposition of
+work `stages · 2^B` over brute force `2^n` has speedup margin `m` (savings `≥ 2^m ⇔ work ≤ 2^{n−m}`).
+`correct_work_ge` (work `≥ |P|`, from the TS law) + `margin_le_of_correct` cap the margin at **`n − r`**
+(`|P| = 2^r`); `savings_ge_of_work_le` / `expander_margin_eq` show it is *achieved* at the work-floor.  So the
+deliverable margin is **exactly `n − r` = `Ω(n)` for bounded-degree expander Tseitin** — exponential savings,
+far above Williams' `ω(log n)`.  **Honest finding:** the margin is super-abundant, which *dissolves input (2)
+as a bottleneck* and exposes the real catch — the floor `2^r` is the *bounded-boundary* floor, but Tseitin's
+*unrestricted* decision optimum is **Gaussian elimination** (XOR system over `F₂`, poly time, poly = high
+space, **above** the `B < n` cap), so **Tseitin ∈ P**.  The fooling set measures *distinguishability* (proof
+complexity), **not decision hardness**; feeding the Williams bridge a *proof-hard but decision-easy* family is
+vacuous.  Williams needs a **decision-hard** family — general SAT — where non-collapse is the open `P ≠ NP`.
+Quantifying input (2) relocates the gap precisely: not the margin, but **decision-hardness vs proof-hardness**.
+
 ## 8. Honest status
 
 The contribution is genuine and bounded: the **dynamical conservation of the time-integrated boundary action
