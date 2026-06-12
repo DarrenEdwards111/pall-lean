@@ -107,6 +107,15 @@ The least‑action path (N‑Frame Lagrangian) is built out; the residual is one
 Either equals **decision‑holonomy** = `P ≠ NP`; the candidate‑gadget game (§5.6) converges on the open ACC⁰
 frontier.
 
+* **§5.7 Reduction‑preservation, made precise** (`…ReductionPreservesFooling`).  The "NP‑complete reductions
+  preserve holonomy debt" route splits cleanly: `reduction_preserves_fooling` / `reduction_transfers_debt` prove
+  a *decomposition‑respecting* reduction (hypothesis `hred`) carries a fooling set to a fooling set, so
+  distinguishability‑debt transfers up (`target debt ≥ |P| − 2^B`).  **Two named gaps:** (1) `hred` is
+  non‑trivial — general reductions may scramble the decomposition; (2) this transfers *distinguishability/proof*
+  debt, which by §5.5 coexists with decision‑easiness (Tseitin).  Decision‑debt transfer = decision‑holonomy =
+  `P ≠ NP`.  A genuinely decision‑hard base (3SAT/Label‑Cover) is a better *candidate* (no Gaussian shortcut),
+  but its hardness is `P ≠ NP`‑conditional, so the route *relocates* the open core, it does not close it.
+
 ---
 
 ## Honest status (one paragraph for the paper)
