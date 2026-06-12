@@ -122,3 +122,30 @@ A low *approximate* enriched bridge for ACC⁰ over mixed moduli is the open fro
 **Next research action:** define the *approximate* per-modulus degree (probabilistic polynomials over each
 `F_p`, errors composing across depth), and test whether ACC⁰ circuits have low *approximate* enriched
 boundary.  That is the genuine remaining bridge question; the exact one is settled (negatively) above.
+
+---
+
+## 6. Approximate per-modulus bridge — proved for one field, gap pinned for mixed moduli
+
+`ComputationalDepthApproxEnrichedBoundary.lean` does §5's next action.
+
+* **The approximate single-field bridge is already a theorem** (`Layer4.exists_baseChanged_approximant`,
+  cited): an `AC⁰[p]` circuit has a polynomial of total degree `≤ ((p−1)·t)^depth` agreeing on `≥ ¾` of
+  inputs, with the `K^depth` composition (`Layer3.ApproxDegreeData.approxDegree_le`, `K=(p−1)t`).  So over
+  **one** field the *approximate* boundary **does** model `AC⁰[p]` as low-boundary — the property the *exact*
+  boundary lacked (§5).  The per-modulus half of the enriched bridge is done.
+
+* **The mixed-moduli gap is pinned (proved obstruction).**  The bridge needs `IsAC0pSyntax p C` — every `MOD`
+  gate modulus `= p`.  Proved here:
+  * `modGate_not_isAC0p` — a single `MOD_q` gate (`q ≠ p`) is not `AC⁰[p]`;
+  * `mixedCircuit_not_isAC0p_left` / `_right` — a circuit using both `MOD_p` and `MOD_q` (`q ≠ p`) is
+    **neither** `AC⁰[p]` **nor** `AC⁰[q]`.
+
+  So *neither* single-field approximant applies to a mixed circuit.  The enriched *approximate* bridge for
+  ACC⁰ therefore needs a **new joint construction** — approximating polynomials over the combined modular
+  structure — that does not reduce to the single-field one.  **That joint construction is the open frontier**
+  (and the reason ACC⁰ resists the polynomial method).
+
+**Status after §6.**  Per-modulus approximate bridge: *settled positively*.  Mixed-moduli reduction:
+*provably does not apply*.  `NP ⊄ ACC⁰`: still open — now reduced to "build a low-approximate-boundary joint
+modular representation for ACC⁰, or find an NP language that forces it high".
