@@ -109,6 +109,20 @@ isolated to one statement:
   `B = O(log n)`) and `hypercube_bounded_growth_requires_linear_time` (`2^n ≤ (T+1)·2^{B_0+r·T}`, **linear**
   `T = Ω(n/r)` for `r = O(1)`).
 
+* **Adaptive trajectories — decomposition changing over time** (`ComputationalDepthAdaptiveTrajectory.lean`,
+  `ComputationalDepthAdaptiveTrajectoryDebt.lean`): an adaptive observer may use a *different* decomposition
+  `D_τ` at each step.  Two honest results: (i) the conservation is **decomposition-change-agnostic** —
+  `adaptive_total_action` proves the budget bound holds however `D_τ` varies, so adaptivity alone does not
+  escape; (ii) the missing ingredient is an explicit **switch cost** `SwitchCost_τ` for translating unresolved
+  information between coordinate systems, giving `adaptive_boundary_tradeoff`:
+  **`|P| ≤ 2^{B_0} + ∑_τ 2^{B_τ} + ∑_τ SwitchCost_τ`** — *either the boundary pays or the switch pays*.
+  Specialisations: `fixed_decomposition_recovers_average` (`SwitchCost ≡ 0`), bounded-switch
+  (`∑ SwitchCost ≤ C ⇒ |P| ≤ 2^{B_0} + ∑ 2^{B_τ} + C`).  And
+  `single_decomposition_resolving_fooling_needs_full_boundary`: no single decomposition resolves a fooling set
+  with sub-`log|P|` boundary (the "free perfect decomposition" escape is blocked).  The load-bearing
+  restriction is now named precisely: **`Local`** (per-step debt reduction `≤ 2^{B_τ}`) — the EQUALITY
+  streaming escape is a *non-local* trajectory, not merely an adaptive one.
+
 So `hdebt` is proved exactly where the boundary is *constrained* — sub-linear width *throughout*, then the
 larger **bounded-total-action** class (spikes allowed, integral bounded), and now the **bounded-growth**
 class (spikes allowed but not instant) — a streaming / bounded-width / small-space-style restricted lower
