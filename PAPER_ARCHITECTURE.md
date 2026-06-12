@@ -161,6 +161,16 @@ The least‑action path (N‑Frame Lagrangian) is built out; the residual is one
    witnesses (Tseitin is decision‑easy, so its fast algorithm triggers no collapse — correctly, it's in `P`);
    (ii) the **NEXP→NP descent** (Williams gives `NEXP ⊄ ACC⁰`; the polynomial‑level hierarchy is far weaker).
    These are the field's frontier (natural proofs / relativization / algebrization), not Lean gaps.
+   *Observer‑centric hybrid (`…ObserverWilliams`):* `observer_centric_williams` composes the two engines as one
+   theorem — `(raveling: low‑action ⇒ separator in K) + (separatorSpeedup) + (hierarchy) + (noCollapse)` ⇒ no
+   low‑action SAT observer.  N‑frame supplies the geometry (raveling, provable for restricted K); Williams
+   supplies the engine (hierarchy, the teeth).
+   *Decision‑hard family, base case (`…GoldreichPredicate`):* the gadget lab's failure was algebraic immunity
+   1.  `tsa_algebraic_immunity_ge_two` verifies (`decide`) that Goldreich's TSA predicate
+   `x₀⊕x₁⊕x₂⊕(x₃∧x₄)` has `AI ≥ 2` — the linear prefix removes the degree‑1 annihilator that collapsed the bare
+   AND.  This is the right primitive (Goldreich/Applebaum local PRG = nonlinear expander CSP) at its base case;
+   honest caveats: `AI = 2` is only the smallest immunity, and the family's *decision*‑hardness is a
+   cryptographic *conjecture* (a provable one `= P ≠ NP`).
 
 Either equals **decision‑holonomy** = `P ≠ NP`; the candidate‑gadget game (§5.6) converges on the open ACC⁰
 frontier.
