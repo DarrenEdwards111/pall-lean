@@ -134,3 +134,14 @@ connected graphs, is the standard spanning-tree routing — cited, giving Tseiti
   `hard_instance_has_correct_high_boundary_decider` are theorems precisely so the arc is not mistaken for a
   near-proof of `P ≠ NP`.  Closing it requires genuinely new mathematics — a decision-time invariant for an
   NP-complete family — which this development locates exactly but does not provide.
+
+## 8. Exploratory scaffolding (labelled, NOT a P≠NP step)
+
+`ComputationalDepthNonlinearCSPPilot.lean` — the **option-B laboratory**.  To kill Tseitin's linear/Gaussian
+decision shortcut (which works because XOR solution sets are *affine*), gadgetise with AND:
+`x_u ⊕ x_v ⊕ (x_w ∧ x_z) = b`.  Proved: `xor_solution_set_affine` (pure-XOR solutions are affine — shortcut
+applies) vs `nonlinear_solution_set_not_affine` (the AND-gadget's solutions are **not** affine — explicit
+`a,b,c` solutions with `a+b+c` violating).  So the gadget removes the affine structure underlying the Tseitin
+shortcut.  **Honest:** "no *affine* shortcut" ≪ "no shortcut"; this is a place to test whether residual
+richness survives while the linear shortcut dies — *not* a proof of decision hardness (= the open
+`DecisionHolonomyHyp`).  Residual explosion of the gadget and the expander lift are future exploratory steps.
