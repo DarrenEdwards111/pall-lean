@@ -87,3 +87,35 @@ not prove it; the value is a possibly-more-tractable *language* for the same obs
 exact obstruction Route F exposed.  It may suggest importing proof-complexity-space or branching-program
 techniques.  It does not, by itself, prove anything new — the central conjecture is `P ≠ NP` in a new
 language — and this note says so plainly.
+
+---
+
+## 7. Option C delivered — a PROVED positive proof-space observer lower bound (Tseitin)
+
+§5's proof-complexity row is now a **theorem**, not a suggestion.  The proof-space observer of a refutation
+holds, at each step, a configuration of clauses; its boundary is the largest configuration ever held — the
+**total space** (`configSize` = literal occurrences).  This is the faithful proof-space instance of the
+invariant.  We prove it is super-constant for expander-Tseitin.
+
+* `ComputationalDepthResolutionSpace.lean` — the standard **blackboard / configuration** proof-space model
+  (`start` / `download` / `infer` / `erase`), `configSize`, `Blackboard.totalSpace`, and the abstract
+  **total-space band theorem** `totalSpace_ge_of_medium_wide`: run on the configuration sequence, the first
+  config whose max clause-measure reaches `t` holds a *freshly inferred* medium-measure clause (parents both
+  `< t`), hence wide by the medium→wide link, hence the config's total space `≥ W`.  Clean axioms.
+* `ComputationalDepthExpanderTseitinSpace.lean` — `tseitin_totalSpace_lower_bound`: every blackboard
+  refutation of the expander-Tseitin axioms has total space `≥ c·t` (`t ≤ |V|/4`).  Reuses the *already
+  proved* `measure_resolvent_le`, `width_ge_of_medium`, `root_bound`.  **No** Atserias–Dalmau space–width
+  inequality and **no** locking lemma assumed.  Clean axioms.
+* `ComputationalDepthTseitinSpaceObserver.lean` — the observer restatement
+  (`tseitin_proofSpace_observer_lower_bound`), the concrete `Kₙ` family
+  (`completeGraph_tseitin_space_lower_bound`: boundary `≥ ⌊n/4⌋ = Θ(|V|)`, super-logarithmic), and
+  `tseitin_proofSpace_observer_unbounded`: for every `K` there is an instance forcing boundary `≥ K`.  So
+  this observer boundary is provably **not** `O(1)` — exactly the separation-from-constant that the fixed-cut
+  EQUALITY bound (§A) could not achieve.
+
+**The contrast that matters.**  This is a genuine, unconditional, super-constant observer-boundary lower
+bound — in the *restricted* resolution proof-space observer.  It is the honest instance of the principle in
+the regime where such bounds are provable.  It is **not** the general machine-decomposition observer of an
+arbitrary SAT-decider (the central conjecture §4, still open, `= CookLevinFrontierHyp`).  What §5 predicted
+("most promising transfer: proof-complexity space") is now realized as Lean mathematics, with the boundary
+between "provable here" and "open there" drawn precisely.
