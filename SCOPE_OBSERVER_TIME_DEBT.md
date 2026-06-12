@@ -85,10 +85,21 @@ isolated to one statement:
   decider of a fooling-set-`K` instance needs `T · 2^B ≥ K − 2^B`, so `T ≥ K/2^B − 1` = **super-poly** for
   `K = 2^{Ω(n)}`, `B = o(n)`.  A low-resource bounded-boundary decider provably **errs**.
 
-So `hdebt` is proved exactly where the boundary is *constrained* (sub-linear width, the escape forbidden) —
-a streaming / bounded-width / small-space-style restricted lower bound.  The fooling-debt mechanism caps at
-`B < log K ≈ cn`; beyond that (linear+ boundary) the observer has enough states to separate the fooling set,
-so the mechanism is vacuous — that is the genuine ceiling, not a gap in the formalization.
+* **`hdebt` proved on the larger bounded-total-action class** (`ComputationalDepthAverageBoundaryDebt.lean`) —
+  `average_boundary_tradeoff` / `average_boundary_low_action_fails`: the boundary may **spike** at individual
+  steps; only the **total** service capacity is constrained.  A correct observer with time-varying boundary
+  `B_τ` satisfies `|P| ≤ 2^{B_0} + ∑_{τ<T} 2^{B_τ}` — the total boundary action must cover the fooling set,
+  however it is distributed across observer time (a low-total-action observer provably **errs**).  This is
+  strictly larger than bounded-boundary-throughout (occasional spikes allowed) and much closer to real
+  machines.
+
+So `hdebt` is proved exactly where the boundary is *constrained* — first sub-linear width *throughout*, now
+the larger **bounded-total-action** class (spikes allowed, integral bounded) — a streaming / bounded-width /
+small-space-style restricted lower bound.  The fooling-debt mechanism caps at `B < log K ≈ cn`; beyond that
+(a **single** linear-boundary spike, `2^{B_τ} ≥ K`, i.e. linear/poly space) the observer has enough states to
+separate the fooling set in one step, so the bound is satisfied with no time cost and the mechanism is
+vacuous — that single-spike / poly-space case is the genuine ceiling and the open `P ≠ NP` core, not a gap in
+the formalization.
 
 ## 7. Honest status
 
