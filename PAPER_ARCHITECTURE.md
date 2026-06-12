@@ -84,10 +84,14 @@ exactly, with two honest research forks identified.
 
 ## Part IV — The reduction: `P ≠ NP` ≡ decision‑holonomy (PROVED reduction; statement NAMED/open)
 
-* **§6.1 Three equivalent forms of the open core.** `hdebt` (every correct SAT trajectory has super‑log debt;
+* **§6.1 Equivalent forms of the open core.** `hdebt` (every correct SAT trajectory has super‑log debt;
   `…SATActionConjecture`), `AdaptiveResidualNonCollapse` (every cheap adaptive decomposition keeps `2^{Ω(n)}`
   residual outcomes; `…AdaptiveResidualNonCollapse`), `DecisionHolonomyHyp` (decision time `≥` super‑poly;
-  `…DecisionHolonomy`).  All `= CookLevinFrontierHyp = P ≠ NP`.
+  `…DecisionHolonomy`), and the **dimension‑gap** form `DimensionGapHard` (`d_res(SAT) − d_obs ≥ Ω(n)` for every
+  poly observer; `…ObserverDimensionGap`).  All `= CookLevinFrontierHyp = P ≠ NP`.  The dimension‑gap file also
+  proves the geometric core `dimension_gap_forces_debt` / `positive_gap_forces_debt`: a low‑`d_obs` observer of
+  a high‑`d_res` residual carries debt `≥ 2^{d_res} − 2^{d_obs}` (the dimensional mismatch *is* the debt) — the
+  provable half; the `min`‑over‑observers target is the open half.
 * **§6.2 The reduction & the gap.** `decisionHolonomy_implies_not_poly` (decision‑holonomy ⇒ `∉ P`);
   `distinguishability_debt_not_time_lower_bound` (an *action* bound gives *no* decision‑time bound — the gap).
 * **§6.3 The Williams route.** `time_space_law` / `time_space_tradeoff_curve` (poly time ⇒ `Ω(n)` space — a
