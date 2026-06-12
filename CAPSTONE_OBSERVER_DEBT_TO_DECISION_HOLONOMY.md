@@ -98,6 +98,19 @@ the invariant *is* the separation, not a step before it.  The gap theorem proves
 is insufficient: they bound **action** (capacity × time), which a high-boundary poly-time decider drives up for
 free.
 
+## 6b. "Tseitin is not enough" — the proof-hard instance is decision-easy — PROVED
+
+| theorem | file | content |
+|---|---|---|
+| `tseitin_charge_sum_zero_of_sat` | `…TseitinDecisionEasy` | a satisfying assignment forces `∑_v charge v = 0` (edges counted twice; `2 = 0` in `ZMod 2`) |
+| `tseitin_unsat_of_odd_charge` | `…TseitinDecisionEasy` | odd total charge ⇒ **no** satisfying assignment — UNSAT decided by **one parity bit** |
+
+The *same* expander-Tseitin instance carrying the proved `2^{Ω(n)}` fooling set and width/space lower bounds
+(§1–4) has its UNSAT side decided by a **linear functional of the charges**, distinguishing *no* residual
+branch.  Concrete witness on our own hard instance: **high holonomy/proof/fooling-set debt does NOT imply
+decision hardness** — bypassed exactly as Gaussian elimination bypasses it.  (Converse, even charge ⇒ sat for
+connected graphs, is the standard spanning-tree routing — cited, giving Tseitin satisfiability `∈ P`.)
+
 ---
 
 ## 7. The honest conclusion
