@@ -179,3 +179,16 @@ is Gaussian-easy, but degree-2 (`MQ`) is NP-hard *in general* (cited).  So the g
 easiness and sits at the degree-1→2 boundary; whether the *specific expander* instance realises the degree-2
 NP-hardness (vs. collapsing via step-3's restricted richness) is open.  Calibration verdict: **located, not
 killed or validated** — firmly algebraic, decision status reduced to the quadratic side-relations.
+
+`ComputationalDepthNonlinearCSPModularStress.lean` — pilot step 5, **ACC⁰ / mixed-moduli stress** (modular
+shortcut detector).  A genuine ACC⁰ primitive (MOD_q) is *modulus-specific*; `andBit_eq_prod_any_modulus`
+proves the AND gadget is the opposite — **modulus-agnostic**: `AND(a,b) = a·b` as the *same* product over
+*every* `ZMod m` (`andBit_mod2_eq_mod3` concrete for `m = 2, 3`).  So the gadget carries **no MOD_q / CRT
+content** — a mixed-moduli view gains nothing.
+
+**Cumulative verdict on the simple AND gadget (calibration battery):** escapes affine/Gaussian (step 1, the
+only good sign), but **fails** shared-variable richness (step 3, AND transitivity), AC⁰[p]/low-degree (step 4,
+degree-2 linearizes), and ACC⁰/mixed-moduli (step 5, modulus-agnostic).  It resists *only* pure linearity.
+**Honest conclusion: abandon the simple AND gadget as a P-vs-NP candidate** — the battery filtered out a bad
+candidate cheaply.  A real decision-hard-holonomy family must resist affine *and* low-degree-lift *and* modular
+shortcuts; this one resists only the first.  A successful *negative filter*, not a `P ≠ NP` step.
