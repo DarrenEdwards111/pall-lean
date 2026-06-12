@@ -192,3 +192,15 @@ degree-2 linearizes), and ACC⁰/mixed-moduli (step 5, modulus-agnostic).  It re
 **Honest conclusion: abandon the simple AND gadget as a P-vs-NP candidate** — the battery filtered out a bad
 candidate cheaply.  A real decision-hard-holonomy family must resist affine *and* low-degree-lift *and* modular
 shortcuts; this one resists only the first.  A successful *negative filter*, not a `P ≠ NP` step.
+
+`ComputationalDepthModularCandidate.lean` — pilot step 6, **a candidate built to pass the filters the AND gadget
+failed**.  Fix filter 3 with a genuinely modulus-specific primitive, `MOD₃` (bit-sum `≡ 0 mod 3`):
+`mod3Gadget_not_affine` (filter 1: non-affine over `F₂`) + `mod3Gadget_modulus_specific` (filter 3: `mod 3` ≠
+`mod 2`, *not* modulus-agnostic).  So it clears the two filters AND could not both clear.  **But the honest
+finding is the takeaway:** MOD₃ is **additive over `F₃`**, so a *strengthened* filter 1 ("non-affine over every
+`F_p`") catches it; and **every** explicit `AND`/`XOR`/`MOD_q` gadget lies in **ACC⁰**, so always has *some*
+algebraic shortcut.  A candidate that *provably* clears the **complete** battery (all `F_p`-linear, all
+low-degree, all modular) would be an explicit function **outside ACC⁰** — the open frontier (`NP ⊄ ACC⁰`
+open).  So the filters, completed, are an **ACC⁰-membership detector**: they narrow candidates but cannot
+certify decision-hardness without crossing the open `ACC⁰` frontier (= `DecisionHolonomyHyp`).  Passing the
+*stated* filters is achievable (done); a *provably decision-hard* explicit candidate is the open problem.
