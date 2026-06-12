@@ -94,6 +94,15 @@ exactly, with two honest research forks identified.
   provable half; the `min`‑over‑observers target is the open half.
 * **§6.2 The reduction & the gap.** `decisionHolonomy_implies_not_poly` (decision‑holonomy ⇒ `∉ P`);
   `distinguishability_debt_not_time_lower_bound` (an *action* bound gives *no* decision‑time bound — the gap).
+* **§6.1′ Observer‑invariance of the debt** (`…DebtGaugeInvariance`).  The N‑frame‑Lagrangian route needs the
+  action/debt to be gauge‑invariant.  `debtCount_relabel_invariant` (a *lossless* frame change — injective
+  relabel `σ` — preserves debt exactly) + `debtCount_le_of_frameChange` (with `debtCount_mono`: any coarser
+  frame has `≥` debt) prove **no gauge transformation lowers the debt** — only *refining* (spending boundary)
+  can.  This meets HAL's requirements (1) concrete/checkable and (2) representation‑invariant.  It does **not**
+  meet (3): refining is not a gauge change but a genuine resource increase, and a high‑boundary observer can
+  zero the debt (`hypercube_brute_force_escape`) at *time*‑cheap cost (`action_unbounded_by_time`).  So the
+  gauge‑invariant debt is still a *space* measure; invariance alone doesn't bound *time* — the wall is
+  unchanged.
 * **§6.2′ The full proof plan, assembled and diagnosed** (`…DimensionGapSeparation`).  `dimension_gap_separation`
   assembles Steps 3–6 as a *proved conditional*: an all‑observer action lower bound `hgap` (Steps 3+4) + a
   time→action bridge `hbridge` (Step 5) + `poly < super‑poly` ⇒ no poly‑time correct SAT observer (the
