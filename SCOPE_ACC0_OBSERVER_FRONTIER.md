@@ -90,3 +90,35 @@ mathematics** — stated as explicit Lean hypotheses (the demotion pattern: no c
 
 The concrete next research action is **(3): define the enriched-modular boundary and test the bridge half on
 small ACC⁰ circuits** — not to claim the separation.
+
+---
+
+## 5. Bridge test, done — verdict: exact enrichment fails, approximation is mandatory
+
+`ComputationalDepthEnrichedModularBoundary.lean` defines the enriched boundary the note proposed
+(`enrichedBoundary M prof = ∑_{m ∈ M} prof m`) and tests the bridge half.  Proved (clean axioms, no `sorry`):
+
+* `enrichedBoundary_mono`, `enrichedBoundary_add` — monotone; additive when profiles add (the shape of AND/OR
+  composition, since exact `deg(f·g) ≤ deg f + deg g`).
+* `enrichedBoundary_le_card_mul` — **the bridge, conditional**: if every component is low (`prof m ≤ b`),
+  enriched boundary `≤ |M|·b`.  The enrichment *does* compose across moduli with dimensions summing.
+* `enrichedBoundary_ge_component` / `enrichedBoundary_two_moduli_obstruction` — **the obstruction**: the sum
+  is `≥` any single component, so one high component makes the whole boundary high.
+
+**Verdict (honest, and not the hoped-for clean answer).**  The *exact* enriched boundary does **not** model
+ACC⁰ as low-boundary:
+
+* A single `MOD_p` gate is degree `≤ p−1` over `F_p` but **full degree** over `F_q` (`q ≠ p`); by
+  `enrichedBoundary_ge_component` the `∑` inherits that high term — so `MOD_p` has *high* exact enriched
+  boundary.  The naive sum does not make mixed-modulus gates low.
+* `AND` of `n` inputs has exact degree `n` over every field, so `enrichedBoundary_add` drives it to `≈ |M|·n`.
+
+This is the same wall RS hit for one field — *exact* low-degree boundary fails under composition — and RS
+fixed it with **approximate (probabilistic) polynomials**.  So the enrichment (the `∑` over `M`) is the right
+fix for the *moduli*, but the per-modulus boundary must be the **approximate** degree, not the exact one.
+A low *approximate* enriched bridge for ACC⁰ over mixed moduli is the open frontier — and it is exactly the
+`boundary` to plug into `ObserverACC0.acc0_separation_of_boundary`.  The exact version is ruled out here.
+
+**Next research action:** define the *approximate* per-modulus degree (probabilistic polynomials over each
+`F_p`, errors composing across depth), and test whether ACC⁰ circuits have low *approximate* enriched
+boundary.  That is the genuine remaining bridge question; the exact one is settled (negatively) above.
