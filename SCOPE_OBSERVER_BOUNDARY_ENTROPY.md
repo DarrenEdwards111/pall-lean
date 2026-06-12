@@ -150,3 +150,41 @@ another split).  All that remains open is the **minimum over admissible decompos
 i.e. `≥ ω(log n)` boundary under *every* faithful split, which is `CookLevinFrontierHyp` / the central
 conjecture §4.  Nothing here asserts it; the contribution is that everything *up to* that one quantifier is
 now proved.
+
+* `ComputationalDepthDecompositionGap.lean` — makes the insufficiency a **theorem**: a finite-memory
+  streaming (`StreamObserver`) decider computes EQUALITY with boundary `1`, while the single-cut faithful
+  observer needs `≥ n` (`equality_decomposition_gap`).  So a single decomposition's bound does not
+  lower-bound the minimum — "the machine chooses the decomposition", proved.
+* `ComputationalDepthMinBoundaryRealized.lean` — the `min`-over-decompositions quantifier is **achieved** in
+  the resolution proof-space class: `minProofSpaceBoundary` (`sInf` over all refutations) is `≥ c·t` for
+  expander-Tseitin (`tseitin_minProofSpaceBoundary_ge`).  The hard quantifier is provable where the class is
+  restricted; open for general machines.
+
+---
+
+## 9. Calibration: rederiving the AC⁰[p] (Razborov–Smolensky) lower bound through the invariant
+
+The test of whether the observer-boundary method crosses from proof complexity into **circuit complexity**:
+can it rederive a known circuit lower bound?  `ComputationalDepthObserverAC0pCalibration.lean` shows **yes**,
+and it is a rederivation, not a relabel — the dimension-counting heart of Razborov–Smolensky
+(`Layer4.dim_bound_general`) *is* the observer-boundary principle in linear-algebra form:
+
+| observer notion | RS / linear-algebra notion |
+|---|---|
+| boundary entropy | feature-space dimension `Module.finrank K (feature)` |
+| non-mergeable behaviors | linearly independent functions — full space on `G` has dimension `|G|` |
+| faithful observer | feature `= ⊤` (expresses every behavior on `G`) |
+| low-boundary observer | `AC⁰[p]` low-degree surrogate: dimension `≤ #monomials` |
+
+* `DimObserver.faithful_boundary` — a faithful observer has boundary `≥ |domain|` (the linear fooling
+  principle, the exact analogue of `many_nonmergeable_sectors_force_boundary`).
+* `ac0pObserver`, `ac0pObserver_boundary_le` — the `AC⁰[p]` observer; boundary `≤ #monomials`.
+* `ac0p_lowBoundary_not_faithful` — **the RS obstruction, rederived**: an `AC⁰[p]` observer with monomial
+  capacity `< |G|` cannot express every behavior on `G` (proved via `dim_bound_general`).  Since the `MOD_q`
+  indicators *are* faithful (`sqfSpan_eq_top`), `MOD_q ∉ AC⁰[p]`.
+
+**Significance.**  The same boundary/non-mergeability invariant that bounds Tseitin proof-space now drives the
+AC⁰[p] degree lower bound — the method is validated on a rung where the truth is known.  It does not reprove
+the full circuit-level capstone (`Layer4.mod_q_indicators_false`, proved separately — the approximate-agreement
+and band-margin bookkeeping live there); it isolates and recasts the *dimension obstruction* that is the
+lower bound's engine.  AC⁰[p] is restricted; the general rung (`P` vs `NP`) stays open.
