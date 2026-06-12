@@ -155,3 +155,15 @@ decision-hard family.  **Still not decision hardness:** the richness is sourced 
 variables (preserved despite, not created by, the AND), and "no affine shortcut + rich residuals" ≠ "no
 shortcut".  Decision hardness for an NP-complete family = `DecisionHolonomyHyp` = the open breakthrough.  The
 expander hypergraph lift and any decision-hardness claim remain future exploratory work, not provided here.
+
+`ComputationalDepthNonlinearCSPANDOnly.lean` — pilot step 3, the **diagnostic test** (honest negative signal).
+Strip the private linear variables: do AND terms *alone*, over **shared** variables, generate richness?  On a
+triangle `(x₀·x₁, x₁·x₂, x₀·x₂)` vs the linear `(x₀⊕x₁, x₁⊕x₂, x₀⊕x₂)`: `linTriangle_hits_110` (linear
+achieves `(1,1,0)`) vs `andTriangle_misses_110` (AND **never** does — `x₀x₁=x₁x₂=1 ⇒ x₀=x₁=x₂=1 ⇒ x₀x₂=1`),
+hence `andTriangle_not_surjective`.  **Finding:** AND-only richness over shared variables is *restricted, not
+enhanced* — multiplicative transitivity removes achievable outcomes the linear structure keeps.  So step 2's
+richness was genuinely linear-sourced, and the AND gadget likely inherits linear-style tractability.  Honest
+diagnostic conclusion: the simple AND gadget is **not obviously a good route** to a decision-hard family (it
+gets step-1 non-affineness but *loses* full residual richness over shared variables).  A real decision-hard
+family needs a predicate that resists the affine shortcut *and* keeps full shared-variable richness — which
+this one does not.  A negative lab signal, not a `P ≠ NP` step.
