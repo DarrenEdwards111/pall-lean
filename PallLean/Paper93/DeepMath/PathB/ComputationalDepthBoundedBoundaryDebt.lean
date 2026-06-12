@@ -72,7 +72,26 @@ theorem bounded_boundary_tradeoff {B : ℕ}
   have hexp : (T + 1) * 2 ^ B = T * 2 ^ B + 2 ^ B := by ring
   omega
 
+/-- **Separation form (proved): a low-resource bounded-boundary decider errs.**  If a bounded-boundary
+trajectory (servicing rate `≤ 2^B`) runs for time `T` with `T · 2^B < |P| − 2^B` (too little resource for the
+fooling set `P`), it **cannot clear its debt** (`debt T ≠ 0`): some must-separate pair stays merged, so the
+decision is incorrect.  Hence **no correct width-`2^B`, time-`T` decider exists when `T · 2^B < |P| − 2^B`** —
+the restricted lower bound as a non-existence. -/
+theorem bounded_boundary_low_resource_fails {B : ℕ}
+    (P : Finset X) (F : Finset (X × X))
+    (hfool : ∀ x ∈ P, ∀ y ∈ P, x ≠ y → (x, y) ∈ F)
+    (view0 : X → Fin (2 ^ B))
+    (debt : ℕ → ℕ) (T : ℕ)
+    (hinit : debt 0 = debtCount F view0)
+    (hservice : ∀ t, debt t ≤ debt (t + 1) + 2 ^ B)
+    (hlow : T * 2 ^ B < P.card - 2 ^ B) :
+    debt T ≠ 0 := by
+  intro hcleared
+  have h := bounded_boundary_time_lower_bound P F hfool view0 debt T hinit hservice hcleared
+  omega
+
 end PallLean.Paper93.DeepMath.PathB.BoundaryDebt
 
 #print axioms PallLean.Paper93.DeepMath.PathB.BoundaryDebt.bounded_boundary_time_lower_bound
 #print axioms PallLean.Paper93.DeepMath.PathB.BoundaryDebt.bounded_boundary_tradeoff
+#print axioms PallLean.Paper93.DeepMath.PathB.BoundaryDebt.bounded_boundary_low_resource_fails

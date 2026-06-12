@@ -65,10 +65,38 @@ For SAT: the initial debt `debt 0` (distinguishable witness-branch pairs) is **s
 trajectory carries the witness-branch debt across all τ without exploding `S_obs` or erring**.  Proving that
 for SAT under *every* trajectory is the open all-decompositions quantifier, now in observer-time form.
 
-## 6. Honest status
+## 6. The full proved chain (debt arc, after §1–5)
+
+The debt programme now runs from conservation to a genuine restricted lower bound, with the open quantifier
+isolated to one statement:
+
+* **Conservation** (`ComputationalDepthBoundaryDebt.lean`, `…ObserverTimeDebt.lean`) — `merge_pay`,
+  `debt_conservation_varying`, `correct_needs_action`: `S_obs ≥` initial debt, even with time-varying
+  boundary.  Closes the over-time loophole.
+* **Mechanism — step 4's engine** (`ComputationalDepthFoolingDebt.lean`) — `foolingSet_forces_debt`: a
+  fooling set of size `K` viewed at boundary `B` forces debt `≥ K − 2^B`; the expander amplifies `K` to
+  `2^{Ω(n)}`.
+* **Reduction** (`ComputationalDepthSATActionConjecture.lean`) — `no_low_action_of_high_debt`: "SAT has no
+  low-action trajectory" *follows from* `hdebt` (super-log debt under **every** trajectory) via conservation.
+  `hdebt` **is** `P ≠ NP`; stated as an explicit hypothesis, **not** proved.
+* **`hdebt` proved on a restricted class** (`ComputationalDepthBoundedBoundaryDebt.lean`) —
+  `bounded_boundary_time_lower_bound` / `bounded_boundary_tradeoff` / `bounded_boundary_low_resource_fails`:
+  for **bounded-boundary-throughout** trajectories (servicing rate `≤ 2^B`, i.e. width `≤ 2^B`), a correct
+  decider of a fooling-set-`K` instance needs `T · 2^B ≥ K − 2^B`, so `T ≥ K/2^B − 1` = **super-poly** for
+  `K = 2^{Ω(n)}`, `B = o(n)`.  A low-resource bounded-boundary decider provably **errs**.
+
+So `hdebt` is proved exactly where the boundary is *constrained* (sub-linear width, the escape forbidden) —
+a streaming / bounded-width / small-space-style restricted lower bound.  The fooling-debt mechanism caps at
+`B < log K ≈ cn`; beyond that (linear+ boundary) the observer has enough states to separate the fooling set,
+so the mechanism is vacuous — that is the genuine ceiling, not a gap in the formalization.
+
+## 7. Honest status
 
 The contribution is genuine and bounded: the **dynamical conservation of the time-integrated boundary action
-is a theorem**, which closes the "hide boundary by changing decomposition over time" loophole that defeated
-the static theory.  It does **not** prove the SAT lower bound — step 4 (SAT super-debt under every trajectory,
-with `rate = O(B)`) is the open quantifier, named not faked.  What changed: the God Move is now a *dynamical*
-boundary-action theory, and the open problem is sharpened to a single statement about the time-integral.
+is a theorem** (closing the over-time loophole), the **debt mechanism is a theorem**, the **reduction to
+`hdebt` is a theorem**, and **`hdebt` is proved on the bounded-boundary (sub-linear-width) class**.  It does
+**not** prove the SAT lower bound: the general `hdebt` — every trajectory, *unbounded* boundary — is the open
+quantifier (a poly-time decider may use poly space, boundary up to `poly`, escaping the sub-linear regime),
+named not faked.  What changed across this arc: the God Move became a *dynamical* boundary-action theory; the
+open problem is sharpened to one statement; and that statement is now *proved on the restricted class where
+the boundary cannot grow*, with the unbounded-boundary case standing as the irreducible `P ≠ NP` core.
