@@ -149,3 +149,27 @@ boundary.  That is the genuine remaining bridge question; the exact one is settl
 **Status after §6.**  Per-modulus approximate bridge: *settled positively*.  Mixed-moduli reduction:
 *provably does not apply*.  `NP ⊄ ACC⁰`: still open — now reduced to "build a low-approximate-boundary joint
 modular representation for ACC⁰, or find an NP language that forces it high".
+
+---
+
+## 7. The joint construction is blocked — a precise barrier (honest negative)
+
+`ComputationalDepthJointModularBarrier.lean` *attempts* the joint modular construction and proves the natural
+routes are blocked (a barrier, not a separation):
+
+* `joint_boundary_ge_component` — any monotone joint boundary dominating each component (sum/max/product over
+  a field family `M`) is `≥` every single component, so one high component makes it high.
+* `no_fixed_family_joint_bridge` — **the fixed-field-family joint bridge provably fails**: for any fixed
+  finite `M`, a single `MOD_q` gate with `q ∉ M` (an ACC⁰ function) has joint boundary `≥ H` over `M`, given
+  the cross-modulus hardness `crossHard` (a `MOD_q` is high-degree over every `F_p`, `p ≠ q` — the degree form
+  of the proved `Layer4.mod_q_indicators_false`).
+
+So *the very theorem that powers the AC⁰[p] calibration (`mod_q_indicators_false`) is the barrier to the ACC⁰
+joint construction.*  The circuit-dependent-family alternative is blocked by compositional cross-modulus
+hardness (a `MOD_2` feeding a `MOD_3` is high over both `F_2` and `F_3`).
+
+**This is exactly why ACC⁰ resists the polynomial method**, and why Williams needed an *algorithmic*
+(`#SAT`-algorithm ⇒ lower bound), non-polynomial route for `NEXP ⊄ ACC⁰`.  The observer/God-Move method, being
+polynomial, hits the same wall.  **`NP ⊄ ACC⁰` stays open**; the contribution is a clean theorem that the
+polynomial joint route is blocked, so genuine progress needs a different idea (algorithmic method, or a new
+representation that escapes `crossHard`).
