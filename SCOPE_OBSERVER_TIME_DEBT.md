@@ -245,6 +245,30 @@ low-codimension coordinate flattening** — the observer cannot flatten its way 
 `W`-periodic view has `≤ 2^{codim W}` values, so this is the curvature lens on effective-boundary no-hiding;
 genuinely nonlinear non-periodic high-boundary atlases remain the open `P ≠ NP` quantifier.
 
+## 7b. The real gap: time–space tradeoff and the Williams route
+
+The ladder audit is blunt: every decomposition rung (read-set, linear, bounded-locality, holonomy/curvature)
+reduces to "effective boundary `< r` ⇒ debt", and `hypercube_brute_force_escape` proves the mechanism is
+**empty for boundary `B ≥ r ≈ n`**.  So the genuine open gap is **not** a residual-collapse lemma — it is the
+**time–space tradeoff**: a poly-*time* decider may use poly *space* (`B ≥ n`), above the cap.
+
+`ComputationalDepthTimeSpaceWilliamsBridge.lean` sets up the honest attack on exactly that gap:
+
+* **Lower-bound (debt) side, proved.**  `time_space_law`: `|P| ≤ (T+1)·2^B`.  `time_space_tradeoff_curve`:
+  `T+1 ≤ Tb ⇒ |P| ≤ Tb·2^B`, i.e. a hard instance (`|P| = 2^{Ω(n)}`) decided in poly time needs space
+  `B = Ω(n)` — a genuine *restricted* time–space lower bound (streaming / branching-program flavour).  This
+  caps the direct route at linear space.
+* **Upper-bound (Williams) side, skeleton.**  `dp_speedup`: a low-boundary decomposition gives a
+  sub-brute-force SAT algorithm (DP engine, proved).  `williams_route` / `noncollapse_via_williams`: the
+  reduction `CheapDecomp → FastSat → Sep`, with the contrapositive `(cheap ⇒ fast) → ¬fast → ¬cheap`
+  (no fast SAT ⇒ no cheap decomposition = non-collapse).  This route goes *past* the `B < n` cap — it needs
+  no space lower bound, only the impossibility of fast SAT.
+
+**Two named open inputs** (not faked): (1) the **Williams diagonalisation** `FastSat → Sep` (the
+nondeterministic-time-hierarchy theorem; deep, not reproved); (2) **instantiation margin** — that SAT's cheap
+decompositions feed the bridge with a speedup strong enough to compound against the hierarchy (a mild
+sub-brute-force speedup is not enough).  `P ≠ NP` is not proved; the gap is now located in exactly these two.
+
 ## 8. Honest status
 
 The contribution is genuine and bounded: the **dynamical conservation of the time-integrated boundary action
