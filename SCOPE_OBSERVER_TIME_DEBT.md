@@ -223,6 +223,18 @@ Two classes are now discharged using only the expansion already proved in the wi
 remaining mathematics is the *common invariant* that would let the per-class proofs generalise to all
 decompositions — which is exactly the separation, named not faked.
 
+**Holonomy / curvature schema** (`ComputationalDepthBoundaryHolonomy.lean`) — a restricted scaffold for the
+high-support nonlinear regime (HAL's curvature direction).  A loop of charts has a net transport (holonomy)
+`h`; a *loop-invariant* (cheap, returns-to-same-state) observer has `view ∘ h = view`.
+`nonzero_holonomy_forces_debt` / `holonomy_forces_debt_card`: if the holonomy *twists* the residual
+(`res (h c) ≠ res c`) the observer has merged a must-separate pair — debt `≥` #twisted configs.  `F₂` instance
+`parity_loop_holonomy`: an additive residual with an odd-charge translation `v` (`res v ≠ 0`, the Tseitin
+odd-cycle obstruction) flattened by the observer (`view (c+v)=view c`) twists **every** config — debt `=
+|Config|` (`= 2^L` on the cube).  HONEST: the holonomy is *supplied* (`res v ≠ 0` + view flattens `v`); the
+open `P ≠ NP` content is the converse — that **every** cheap atlas of expander Tseitin is *forced* to flatten
+some `v` with `res v ≠ 0` (expander constraints have nonzero curvature against all cheap coordinate systems).
+Next rung: expander many-loop amplification, then the forced-twist converse.  Not proved; named.
+
 ## 8. Honest status
 
 The contribution is genuine and bounded: the **dynamical conservation of the time-integrated boundary action
