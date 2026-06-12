@@ -122,6 +122,16 @@ isolated to one statement:
   with sub-`log|P|` boundary (the "free perfect decomposition" escape is blocked).  The load-bearing
   restriction is now named precisely: **`Local`** (per-step debt reduction `≤ 2^{B_τ}`) — the EQUALITY
   streaming escape is a *non-local* trajectory, not merely an adaptive one.
+* **A lower bound on `SwitchCost` for the explicit witness geometry** (`ComputationalDepthSwitchCostLowerBound.lean`):
+  rearranging the tradeoff isolates the switch channel — `switchCost_lower_bound`:
+  `∑_τ SwitchCost_τ ≥ |P| − 2^{B_0} − ∑_τ 2^{B_τ}`.  For the explicit `2^n` hypercube witness geometry on a
+  **low-boundary** trajectory (`B_τ ≤ b`), `hypercube_lowBoundary_switchCost_superpoly`:
+  `∑_τ SwitchCost_τ ≥ 2^n − (T+1)·2^b` = **super-poly** for `b = O(log n)`, `T = poly`.  So "translating
+  witness-branch information across decompositions is expensive" is **proved** — for the maximal witness
+  geometry, conditional on low boundary.  HONEST: still restricted — vacuous once `(T+1)·2^b ≥ 2^n` (pay in
+  boundary instead, the linear/poly-space escape), and it is the *complete* `2^n` fooling set, not SAT under a
+  freely-chosen decomposition.  The unconditional version (both channels expensive under every decomposition)
+  is `P ≠ NP`, not proved.
 
 So `hdebt` is proved exactly where the boundary is *constrained* — sub-linear width *throughout*, then the
 larger **bounded-total-action** class (spikes allowed, integral bounded), and now the **bounded-growth**
