@@ -144,6 +144,17 @@ isolated to one statement:
   *fixed* residual map (a fixed decomposition).  Proving the residual *cannot collapse* under every cheap
   adaptive decomposition is the min-over-decompositions = `P ≠ NP`.  This file reduces that core to one clean
   property — **residual non-collapse under every cheap decomposition** — with the debt following mechanically.
+* **`hsurj` DISCHARGED for expander Tseitin** (`ComputationalDepthExpanderResidualSurjective.lean`): the
+  residual-non-collapse property is now *proved* (not assumed) for the natural read-set decomposition.  Chain:
+  expansion (`HasExpansion c`, `c ≥ 1`) ⇒ `constraints_linearIndependent` (the vertex constraints over a medium
+  read-set `w : ι → V`, `2·|ι| ≤ |V|`, are F₂-independent — a vanishing combination is `combination S = 0`,
+  forbidden by the kernel's `exists_combination_ne_zero_of_expansion`) ⇒ `mulVecLin_surjective_of_row_indep`
+  (full row rank ⇒ surjective residual onto `2^{|ι|}` outcomes) ⇒ `expander_residual_forces_debt` (every
+  boundary-`B` observer carries residual debt `2^{|ι|} − 2^B`).  For `|ι| = ⌊|V|/2⌋ = Ω(n)`, `B = O(log n)`:
+  super-log, **with no surjectivity hypothesis left**.  HONEST: this is for the *read-set* decomposition class
+  only; residual non-collapse under *every* cheap adaptive decomposition is still the open min = `P ≠ NP`.
+  What it removes: the doubt "is the residual actually large for a real hard instance?" — for expander reads,
+  provably yes, via the same expansion that powers the width kernel.
 * **Framework ceiling, as a theorem** (`ComputationalDepthDebtFrameworkBarrier.lean`):
   `tradeoff_vacuous_of_high_initial_boundary` (the bound is content-free once `|P| ≤ 2^{B_0}`) and
   `hypercube_brute_force_escape` (a single full-boundary view resolves the `2^n` geometry with zero debt) —
