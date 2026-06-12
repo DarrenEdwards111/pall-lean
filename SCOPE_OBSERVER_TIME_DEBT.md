@@ -164,6 +164,13 @@ isolated to one statement:
   observer's *own* (possibly non-read-set) decompositions = residual non-collapse under every cheap adaptive
   decomposition = the min-over-decompositions quantifier = `P ≠ NP` (HAL's step 5).  Everything *around* that
   one property is now proved: the bottleneck always exists, and non-collapse there mechanically yields the debt.
+* **Linear/affine non-collapse PROVED** (`ComputationalDepthAdaptiveResidualNonCollapse.lean`): the next rung
+  of the staged ladder.  `finrank_map_ker_ge` (abstract `F₂` rank bound: `finrank (range res) − finrank
+  (range L) ≤ finrank ((ker L).map res)`) ⇒ `expander_linear_decomposition_noncollapse`: for expander Tseitin's
+  residual (rank `|ι| = Ω(n)`) and **any** `F₂`-linear observation `L` of dimension `k`, the residual on `ker L`
+  has rank `≥ |ι| − k`.  So **no `F₂`-linear coordinate change + `k`-dim read can collapse the expander residual
+  below `2^{|ι|−k}` outcomes** — `AdaptiveResidualNonCollapse` holds for the linear/affine class.  Still not
+  `P ≠ NP`: a non-linear (branching / low-degree / arbitrary) decomposition is unconstrained by this.
 * **Framework ceiling, as a theorem** (`ComputationalDepthDebtFrameworkBarrier.lean`):
   `tradeoff_vacuous_of_high_initial_boundary` (the bound is content-free once `|P| ≤ 2^{B_0}`) and
   `hypercube_brute_force_escape` (a single full-boundary view resolves the `2^n` geometry with zero debt) —
@@ -180,7 +187,37 @@ growing a `poly`-bit configuration at once) makes `2^{B_0 + r·T}` exponential a
 poly-per-step / linear-to-poly-boundary case is the genuine ceiling and the open `P ≠ NP` core, not a gap in
 the formalization.
 
-## 7. Honest status
+## 7. P≠NP reduced to adaptive residual non-collapse (the final jump)
+
+The arc terminates at a single, sharply-stated open property — the God-Move target:
+
+> **`AdaptiveResidualNonCollapse`.**  For expander Tseitin / SAT, **every cheap adaptive decomposition
+> preserves `2^{Ω(n)}` residual outcomes** (the residual map does not collapse below super-poly outcomes for
+> any decomposition the observer is free to choose with sub-`Ω(n)` boundary action).
+
+The reduction is complete in both directions of plumbing:
+
+* **It suffices.**  `AdaptiveResidualNonCollapse` ⇒ at the bottleneck step of any cheap trajectory
+  (`adaptive_bottleneck_exists`) the residual is non-collapsing, so `surjective_residual_forces_debt` /
+  `cheap_trajectory_has_residual_debt_bottleneck` forces super-log debt, contradicting cheapness — i.e. SAT
+  has no cheap adaptive observer ⇒ `P ≠ NP`.  Every link here is **proved**; only the property is assumed.
+* **It is the theorem.**  `AdaptiveResidualNonCollapse` quantifies over *all* decompositions; proving it *is*
+  the min-over-decompositions separation.  It cannot be discharged naively.
+
+**Staged ladder (what is proved vs open):**
+
+| decomposition class | residual non-collapse | file |
+|---|---|---|
+| read-set (vertex-parity) | ✅ proved (`expander_residual_forces_debt`) | `…ExpanderResidualSurjective` |
+| `F₂`-linear / affine | ✅ proved (`expander_linear_decomposition_noncollapse`) | `…AdaptiveResidualNonCollapse` |
+| bounded-locality / branching-program | — next rung | — |
+| **every** adaptive decomposition | ⛔ open = `P ≠ NP` | — |
+
+Two classes are now discharged using only the expansion already proved in the width kernel.  The honest
+remaining mathematics is the *common invariant* that would let the per-class proofs generalise to all
+decompositions — which is exactly the separation, named not faked.
+
+## 8. Honest status
 
 The contribution is genuine and bounded: the **dynamical conservation of the time-integrated boundary action
 is a theorem** (closing the over-time loophole), the **debt mechanism is a theorem**, the **reduction to
