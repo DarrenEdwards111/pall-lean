@@ -38,13 +38,19 @@ off‑diagonal** (`modQ_gate_low_correlation_offdiagonal`).
 * `offdiag_balanced` — the same for *every* residue (empty classes trivially balanced).
 * `modQ_gate_low_correlation_offdiagonal` — **`2 · agreement ≤ #off‑diagonal inputs`**: the `MOD q` gate has no
   correlation advantage against the holonomy parity on the off‑diagonal.
+* `modQ_class_imbalance_on_diagonal` — **the localization theorem**: the holonomy‑parity imbalance of a whole
+  `MOD q` class *equals* the imbalance of its diagonal `{x_v = x_w}` — the off‑diagonal contributes exactly
+  nothing.  So "the entire residual lives on the diagonal" is a *theorem*, not an observation
+  (`card_eq_offdiag_add_diag` split + `balanced_of_involution` off‑diagonal balance).
 
 ## The honest verdict — the approximate version *partly* survives, and the residual is named exactly
 
 The count‑preserving pair swap recovers what the single flip lost — but **only off the diagonal**.  On the
 diagonal `{x_v = x_w}` flipping the pair changes the count by `±2`, so it leaves the `MOD q` class and the
 involution gives nothing.  Hence the full‑class balance does **not** follow by involution; the entire residual
-imbalance lives on the diagonal.  That residual is exactly the classical **`MOD q`‑vs‑parity correlation**, which
+imbalance lives on the diagonal — now a *theorem* (`modQ_class_imbalance_on_diagonal`: full‑class imbalance =
+diagonal imbalance), not just an observation.  That residual is exactly the classical
+**`MOD q`‑vs‑parity correlation**, which
 is exponentially small in `n − |D|` (a Fourier/character estimate: the imbalance is
 `2^{-Ω(n)} · ∑_{j≠0} (1±ω^j)^{n-|D|}(…)^{|D|}`, all main terms cancelling) — but its smallness is an *analytic
 recursion*, not an involution, and is **not** supplied here.  This is `ModQParityCorrelationExpSmall` below, named
@@ -93,6 +99,41 @@ theorem pairSwap_involutive (v w : Fin n) (h : v ≠ w) (x : Fin n → Bool) :
 
 /-- `¬a ≠ ¬b` whenever `a ≠ b` (used to keep the off‑diagonal stable under the swap). -/
 theorem bool_not_ne : ∀ a b : Bool, a ≠ b → (!a) ≠ (!b) := by decide
+
+/-- **Global balance from a sign‑reversing involution (proved).**  The class‑free specialisation of
+`balanced_per_class_of_involution`: an involution on `Inputs` that toggles `f` forces `#{f=true} = #{f=false}`. -/
+theorem balanced_of_involution {ι : Type*} (Inputs : Finset ι) (f : ι → Bool) (τ : ι → ι)
+    (hmem : ∀ x ∈ Inputs, τ x ∈ Inputs) (hinv : ∀ x ∈ Inputs, τ (τ x) = x)
+    (hflip : ∀ x ∈ Inputs, f (τ x) = !(f x)) :
+    (Inputs.filter (fun x => f x = true)).card = (Inputs.filter (fun x => f x = false)).card := by
+  refine Finset.card_nbij' τ τ ?_ ?_ ?_ ?_
+  · intro a ha
+    simp only [Finset.mem_coe, Finset.mem_filter] at ha ⊢
+    exact ⟨hmem a ha.1, by rw [hflip a ha.1, ha.2]; rfl⟩
+  · intro a ha
+    simp only [Finset.mem_coe, Finset.mem_filter] at ha ⊢
+    exact ⟨hmem a ha.1, by rw [hflip a ha.1, ha.2]; rfl⟩
+  · intro a ha
+    simp only [Finset.mem_coe, Finset.mem_filter] at ha
+    exact hinv a ha.1
+  · intro a ha
+    simp only [Finset.mem_coe, Finset.mem_filter] at ha
+    exact hinv a ha.1
+
+/-- **Split any class by the off‑diagonal / diagonal of a coordinate pair (proved).** -/
+theorem card_eq_offdiag_add_diag (C : Finset (Fin n → Bool)) (v w : Fin n)
+    (p : (Fin n → Bool) → Prop) [DecidablePred p] :
+    (C.filter p).card
+      = ((C.filter (fun x => x v ≠ x w)).filter p).card
+        + ((C.filter (fun x => x v = x w)).filter p).card := by
+  have e1 : (C.filter p).filter (fun x => x v ≠ x w) = (C.filter (fun x => x v ≠ x w)).filter p := by
+    rw [Finset.filter_filter, Finset.filter_filter]
+    apply Finset.filter_congr; intro x _; exact and_comm
+  have e2 : (C.filter p).filter (fun x => ¬ (x v ≠ x w)) = (C.filter (fun x => x v = x w)).filter p := by
+    rw [Finset.filter_filter, Finset.filter_filter]
+    apply Finset.filter_congr; intro x _; rw [ne_eq, not_not]; exact and_comm
+  rw [← e1, ← e2]
+  exact (Finset.card_filter_add_card_filter_not (fun x : Fin n → Bool => x v ≠ x w)).symm
 
 /-! ## The swap preserves the `MOD q` count off‑diagonal -/
 
@@ -202,6 +243,41 @@ theorem modQ_gate_low_correlation_offdiagonal (q : ℕ) (D : Finset (Fin n)) (v 
     (modQStat q) g (fParity D)
     (modQ_class_balanced_offdiagonal q D v w hvw hvD hwD)
 
+/-! ## The imbalance lives *exactly* on the diagonal -/
+
+/-- **The localization theorem (proved): the holonomy‑parity imbalance of a whole `MOD q` class equals the
+imbalance of its diagonal `{x_v = x_w}`.**  Written without subtraction:
+`#{parity=true in C} + #{parity=false in C∩diag} = #{parity=false in C} + #{parity=true in C∩diag}` — i.e. the
+off‑diagonal part contributes *nothing* to the imbalance (it is exactly balanced), so every bit of the
+`MOD q`‑vs‑parity correlation is carried by the diagonal.  Proof: split each class by off/diagonal
+(`card_eq_offdiag_add_diag`), use exact off‑diagonal balance (`balanced_of_involution` via the count‑preserving
+pair swap), and cancel. -/
+theorem modQ_class_imbalance_on_diagonal (q : ℕ) (D : Finset (Fin n)) (v w : Fin n)
+    (hvw : v ≠ w) (hvD : v ∈ D) (hwD : w ∉ D) (c : ZMod q) :
+    (((Finset.univ : Finset (Fin n → Bool)).filter (fun x => modQStat q x = c)).filter
+        (fun x => fParity D x = true)).card
+      + ((((Finset.univ : Finset (Fin n → Bool)).filter (fun x => modQStat q x = c)).filter
+          (fun x => x v = x w)).filter (fun x => fParity D x = false)).card
+    = (((Finset.univ : Finset (Fin n → Bool)).filter (fun x => modQStat q x = c)).filter
+        (fun x => fParity D x = false)).card
+      + ((((Finset.univ : Finset (Fin n → Bool)).filter (fun x => modQStat q x = c)).filter
+          (fun x => x v = x w)).filter (fun x => fParity D x = true)).card := by
+  set C := (Finset.univ : Finset (Fin n → Bool)).filter (fun x => modQStat q x = c) with hC
+  have hbal : ((C.filter (fun x => x v ≠ x w)).filter (fun x => fParity D x = true)).card
+            = ((C.filter (fun x => x v ≠ x w)).filter (fun x => fParity D x = false)).card := by
+    apply balanced_of_involution (C.filter (fun x => x v ≠ x w)) (fParity D) (pairSwap v w)
+    · intro x hx
+      simp only [hC, Finset.mem_filter] at hx ⊢
+      obtain ⟨⟨_, hcx⟩, hoff⟩ := hx
+      refine ⟨⟨Finset.mem_univ _, ?_⟩, ?_⟩
+      · rw [modQStat_pairSwap_offdiag q v w hvw x hoff]; exact hcx
+      · rw [pairSwap_v, pairSwap_w v w x hvw.symm]; exact bool_not_ne _ _ hoff
+    · intro x _; exact pairSwap_involutive v w hvw x
+    · intro x _; exact fParity_pairSwap D v w hvD hwD hvw x
+  have sT := card_eq_offdiag_add_diag C v w (fun x => fParity D x = true)
+  have sF := card_eq_offdiag_add_diag C v w (fun x => fParity D x = false)
+  omega
+
 /-! ## The residual — named honestly -/
 
 /-- **(Named open — `NP ⊄ ACC⁰`‑strength).**  The full‑class imbalance of the holonomy parity inside a `MOD q`
@@ -221,3 +297,4 @@ end PallLean.Paper93.DeepMath.PathB.ModQGateBalance
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQGateBalance.modQ_class_balanced_offdiagonal
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQGateBalance.offdiag_balanced
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQGateBalance.modQ_gate_low_correlation_offdiagonal
+#print axioms PallLean.Paper93.DeepMath.PathB.ModQGateBalance.modQ_class_imbalance_on_diagonal

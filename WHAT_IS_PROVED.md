@@ -574,10 +574,14 @@ so `balanced_per_class_of_involution` gives **exact per‑class balance off‑di
 `offdiag_balanced`) and hence **no `MOD q`‑gate correlation advantage against the holonomy parity on the
 off‑diagonal** (`modQ_gate_low_correlation_offdiagonal`: `2·agreement ≤ #off‑diagonal inputs`).  All clean axioms,
 no `sorry`.  **The residual is exactly the diagonal** `{x_v = x_w}` (there the pair swap changes the count by `±2`
-and leaves the class) — which is the classical `MOD q`‑vs‑parity correlation, exponentially small in `n−|D|` by a
+and leaves the class) — and this is now a *theorem*, not an observation: `modQ_class_imbalance_on_diagonal` proves
+the full‑class holonomy‑parity imbalance **equals** the diagonal imbalance (split each class off/diagonal via
+`card_eq_offdiag_add_diag`; the off‑diagonal part is exactly balanced via `balanced_of_involution`, so it cancels).
+That diagonal residual is the classical `MOD q`‑vs‑parity correlation, exponentially small in `n−|D|` by a
 Fourier/character recursion but *not* by any involution (`ModQParityCorrelationExpSmall`, named open).  So the
-approximate bridge **partly survives** — a count‑preserving symmetry recovers exact balance on the symmetric part —
-and the irreducible remainder is, once again, the same Razborov–Smolensky‑flavoured `NP ⊄ ACC⁰`‑strength estimate.
+approximate bridge **partly survives** — a count‑preserving symmetry recovers exact balance on the symmetric part,
+and *localizes* the entire deficit to the diagonal — and the irreducible remainder is, once again, the same
+Razborov–Smolensky‑flavoured `NP ⊄ ACC⁰`‑strength estimate.
 
 ## 5. The exact missing theorem — where everything converges
 
