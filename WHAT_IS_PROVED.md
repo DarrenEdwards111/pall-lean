@@ -75,6 +75,13 @@ all `= P ≠ NP`, and which a proved gap theorem shows the action/space machiner
   (`Tb·2^s < 2^r ⇒ action < 2^r`, via `subcritical_of_lowspace`).  This captures `SPACE(s)` for `s < r ≈ Ω(n)`
   (sub‑residual‑dimension space) — **not** all of `P`: a poly‑*space* decider (`s = n^k ≫ r`) keeps a
   full‑dimension view and escapes `K`.  That last gap is exactly `P ≠ NP`.
+- **The separating boundary is TIGHT — exactly `r`** (`…TightSeparatingSpace`): `residual_separates` (the
+  boundary‑`r` residual view is a zero‑debt separator — the upper bound) matched with `below_r_fails` (no
+  boundary‑`<r` view separates — the lower bound) gives `separating_boundary_tight`: separating boundary `= r`
+  exactly.  The hard family is *space‑`r`‑decidable* (the full‑boundary decider), so space is pinned and the
+  obstruction to a fast algorithm is **not space** — it is **time**.  The debt/space machinery is exact on the
+  space axis and provably cannot reach the time axis (`distinguishability_debt_not_time_lower_bound`) — which is
+  where `P ≠ NP` lives.
 
 ## 2. Proved for restricted classes (the four resisted inverter classes + the corpus)
 
