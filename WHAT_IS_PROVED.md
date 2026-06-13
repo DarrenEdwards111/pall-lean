@@ -473,6 +473,28 @@ restriction need not reduce its statistic count (it can encode an expander).  Th
 `NP ⊄ ACC⁰`‑strength, still under the naturalness ceiling.  So the mechanism is *correct and complete on the
 fragment*; extending it to poly‑gate ACC⁰ is the major missing theorem, not a gap in the surrogate.
 
+**The rank‑lowering rung‑ladder — climbing fragments toward ACC⁰, with the wall exposed.**  Following the route of
+proving rank lowering for ever‑richer fragments (rather than ACC⁰ directly), four rungs are proved, each
+*deriving* the rank drop from circuit structure:
+
+| rung | why incidence / statistic count is controlled | file |
+|---|---|---|
+| modular‑statistic | restriction fixes `k − j` statistics directly (`restriction_lowers_effective_holonomy_rank`) | `…FragmentSwitching` |
+| read‑once (disjoint supports) | fixing a gate's whole support makes it constant (`gate_constant`); free gates `{i ∉ T}` give `q^{#free}` (`readonce_restriction_lowers_rank`) | `…ACCRankLoweringTarget` |
+| bounded overlap (incidence `≤ d`) | `#free gates ≤ d · #free vars` (`bounded_overlap_free_gates_le`), so `q^{d·u}` (`bounded_overlap_restriction_lowers_rank`) | `…BoundedOverlapRankLowering` |
+| bounded‑depth tree (no re‑use) | `incid v t ≤ depth t + 1` (`incid_le_depth`) ⇒ incidence `≤ D+1` ⇒ the bounded‑overlap bound with `d = D+1` | `…BoundedDepthTreeRung` |
+
+Climbing exposes the **common mechanism**: every rung relies on a restriction fixing some gate's *whole support*,
+making it constant, which drops the realized statistic count; each rung supplies a different reason the incidence
+(hence surviving‑gate count) stays controlled — disjointness → bounded incidence → bounded depth.  And it
+characterizes the **wall** exactly: *poly‑gate ACC⁰ with unbounded re‑use defeats that hook* — a single variable
+can feed unboundedly many gates, so a restriction need not fix any gate's whole support, no gate need become
+constant, and the statistic count need not drop (the circuit can stay fully live, encoding an expander).  That is
+`ACCRestrictionLowersEffectiveRank` (`…ACCRankLoweringTarget`), `NP ⊄ ACC⁰`‑strength, under the naturalness
+ceiling.  Bounded *re‑use* (`≤ r` gates per variable) is already covered (it is bounded incidence with `d = r`);
+the genuinely‑open case is *unbounded* re‑use — the wall itself.  The ladder climbs exactly as far as the
+whole‑support‑fixing mechanism reaches, and names where it stops.
+
 So this exploration is **closed as a characterized invariant**: the strongest the arc produced, separating tame
 from hard, with the single remaining bridge named precisely and proved to lie beyond the method's reach — not
 bridged, and honestly not bridgeable here.  (Adjacent and also closed: the explicit‑Nečiporuk frontier — the
