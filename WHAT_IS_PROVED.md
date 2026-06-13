@@ -636,6 +636,21 @@ Two cases of the composition question:
   supports turn finding witnesses into a **matching / flow problem** — the composition version of the engine, and
   `NP ⊄ ACC⁰`‑strength once the supports are adversarial.
 
+**Many gates: the cell‑covering obstruction, made precise (`…ManyGateCorrelation`).**  For `k` gates with supports
+`S₁,…,S_k`, the **cell** of a coordinate is its membership pattern `(v∈S₁,…,v∈S_k)`; the flip‑both preserves every
+support‑count (hence every `MOD q_j`, any moduli) **iff `v,w` share a cell** (`SameCell`), so the `k`‑gate weight
+vector is preserved (`weightVec_pairSwap`).  Proved: `kGate_offdiag_balanced` / `kGate_low_correlation_offdiagonal`
+— a same‑cell `D`‑witness pair `(v∈D, w∉D)` gives exact off‑diagonal balance and no correlation advantage for *any*
+gate function of the `k` statistics.  The frontier is then a clean **covering characterization**
+(`cellWitness_iff_not_respects`): a witness exists *iff* `D` does **not** respect the cell partition (is not a union
+of cells).  Two regimes: coarse supports (few gates → few cells) leave most `D` crossing a cell, so the engine
+bites; but if the supports **shatter** `Fin n` into singleton cells (`respectsCells_of_separating`: separating
+supports ⇒ *every* `D` respects the cells ⇒ no witness), the involution engine has nothing to act on.  Shattering
+needs `≥ ⌈log₂ n⌉` independent modular statistics — so the elementary involution method survives exactly until an
+ACC⁰ predictor reads enough gates to separate the coordinates, at which point composition becomes the
+matching/shattering wall, `NP ⊄ ACC⁰`‑strength.  This pins where the correlation engine stops: not at a modulus,
+not at two gates, but at the point where the gates' cells refine past the holonomy support's structure.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
