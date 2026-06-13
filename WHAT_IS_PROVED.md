@@ -217,6 +217,30 @@ block `2^m`, summed over `Θ(n/log n)` blocks it gives formula size `Θ(n²/log 
 — the decades‑old explicit frontier. The method provably tops out here (`crossing_capacity` bounds states by
 subfunction count `≤ 2^{block}`). It does **not** reach `P/poly` or `P ≠ NP`.
 
+**(g) Above the Nečiporuk ceiling — the shrinkage / Andreev mini‑arc.**  Can an *explicit* formula‑size bound beat
+`n²/log n`?  Recorded honestly across three files:
+* **Ceiling, proved (`…NeciporukCeiling`).**  *Why* subfunction counting caps: per block of `b` variables,
+  `log₂ #subfunctions ≤ min(2^b, n-b)` (`log_subfunctions_le_min` — a subfunction is a `b`‑bit function *and*
+  there are only `2^{n-b}` other‑variable settings).  The two caps cross at `b ≈ log n`, forcing the method to
+  `n²/log n`.  So super‑`n²/log n` is **impossible by subfunction counting** — a different method is required.
+* **Non‑counting structural base, proved (`…RelevanceLeafBound`).**  The replacement style: `leaves F ≥
+  #{variables the function is *sensitive* to}` (`leaves_ge_relevant_card`) — a leaf per relevant variable, *no
+  counting of functions*.  `gAnd_needs_n_leaves`: the `n`‑bit `AND`, sensitive to every variable, needs `≥ n`
+  leaves.  Modest (linear) alone, but the genuine non‑counting core.
+* **Shrinkage amplifier, cited (`…AndreevShrinkageRoute`, `…RestrictionSensitivity`).**  Håstad's shrinkage
+  (`Γ=2`, the deep random‑restriction theorem — *named, cited, not reproved, not open*) multiplies the base
+  bound: `andreev_leaf_lower_bound` (shrinkage `leaves_restricted·D ≤ leaves` + surviving complexity `H ≤
+  leaves_restricted` ⇒ `H·D ≤ leaves`) and `shrinkage_above_neciporuk` (at balanced Andreev params `k³·2^{2k} <
+  2^{3k}`, i.e. `n^{3-o(1)} > n²/log n`).  `RestrictionSensitivity` grounds the surviving complexity `H` in the
+  *relevance* base: a restriction of a formula doesn't increase leaves (`restrict_leaves_le`) and the restricted
+  formula still needs `≥` its surviving‑relevance leaves, so `shrinkage_plus_surviving_relevance` gives
+  `(surviving relevance)·D ≤ leaves` — the relevance base and the shrinkage schematic, tightly connected.
+
+So the mini‑arc is closed: subfunction counting *provably* tops out at `n²/log n`; the non‑counting (relevance +
+shrinkage) route *provably* exceeds it to `n^{3-o(1)}` — but that is still **polynomial**, vastly short of the
+super‑polynomial explicit bound `P ≠ NP` would need.  The deep shrinkage theorem itself is cited, not reproved;
+proving it is a separate project, and even with it the explicit frontier remains polynomial.
+
 **The shape of the residue.** Space is exact; time cannot be reached by space machinery; decision hardness is
 unconditional but non‑explicit; the explicit residue is exactly `InNP`; counting provably cannot supply it
 (natural‑proofs barrier); and the strongest explicit, *non‑natural* bound reachable caps at `n²/log n`. The one
