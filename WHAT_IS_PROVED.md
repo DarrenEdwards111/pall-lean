@@ -68,6 +68,13 @@ all `= P ≠ NP`, and which a proved gap theorem shows the action/space machiner
   (`noCollapse`) is assumed.  The catch: `K` here is not all of `P` (a poly‑*space* decider keeps a
   full‑dimension view — the brute‑force escape), and extending `raveling` to every `P` observer is the
   `P ≠ NP`‑strength step.
+- **`raveling` extended to bounded‑space `P` observers** (`…RavelingBoundedSpace`): a *space* bound genuinely
+  bounds the boundary (a space‑`s` machine has `≤ 2^s` configs, so its boundary view takes `≤ 2^s` values).
+  `boundedSpace_raveling` (`s < r ⇒` in `K`) and `boundedSpace_no_separator` (a `SPACE(s)`, `s<r`, decider
+  cannot separate the dimension‑`r` residual); `boundedSpaceTime_subcritical` is the dynamical form
+  (`Tb·2^s < 2^r ⇒ action < 2^r`, via `subcritical_of_lowspace`).  This captures `SPACE(s)` for `s < r ≈ Ω(n)`
+  (sub‑residual‑dimension space) — **not** all of `P`: a poly‑*space* decider (`s = n^k ≫ r`) keeps a
+  full‑dimension view and escapes `K`.  That last gap is exactly `P ≠ NP`.
 
 ## 2. Proved for restricted classes (the four resisted inverter classes + the corpus)
 
