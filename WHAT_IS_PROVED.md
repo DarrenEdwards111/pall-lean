@@ -18,9 +18,18 @@ A single explicit predicate, **Majority**, has been formalized as **optimal** (`
 `AC⁰[p]`, bounded‑crossing, and bounded‑locality. The last of these, `AC⁰[p]`, was closed by formalizing the
 full `MOD_q ≤_{AC⁰[p]} Majority` reduction circuit, making `Majority ∉ AC⁰[p]` an unconditional theorem. The
 earlier *complementarity obstruction* — that the `AC⁰[p]`‑resisting witness (parity/`MOD_q`) provably *fails*
-low‑degree resistance — is thereby **resolved**: Majority does both, with no remaining hypothesis. The single
-gap that remains is resistance against **all** polynomial‑time inverters, which appears in five equivalent forms,
-all `= P ≠ NP`, and which a proved gap theorem shows the action/space machinery cannot by itself reach.
+low‑degree resistance — is thereby **resolved**: Majority does both, with no remaining hypothesis.
+
+From there the wall was pushed across three axes in turn — **space**, then **time**, then **explicitness** — each
+closed to its exact ceiling (Part 4½). The space axis is *settled*: the separating boundary is **exactly `r`**. On
+the decision axis a Williams‑style cash‑out lands an **unconditional** lower bound — *some* function escapes every
+cheap decider — but only nonconstructively. The remaining residue is isolated as a single named conjunct
+(`InNP`) and shown *unbridgeable by counting*: the counting property is large and useful, so under crypto the
+**natural‑proofs barrier** forbids it from being constructive. The strongest *explicit*, *non‑natural* decision
+bound the corpus reaches is the **Nečiporuk frontier** (`n²/log n`) — real, explicit, barrier‑evading, and
+provably capped there. The single gap that remains is resistance against **all** polynomial‑time inverters /
+**explicit** decision hardness above `n²/log n`, which appears in five equivalent forms, all `= P ≠ NP`, and which
+a proved gap theorem shows the action/space machinery cannot by itself reach.
 
 ---
 
@@ -134,71 +143,72 @@ remaining hypothesis = exactly `P ≠ NP`.
 - **Diagonal SPDP / `χ_φ` bound.** Disproved (`rk ≪ #SAT`); barriered short of `VP` vs `VNP` on the permanent.
 - **The HM / metacomplexity socket.** Proved *vacuous* by its own iff — repackaging does not reduce strength.
 
-## 4″. The time‑axis wall, consolidated (`…TimeAxisWall`)
+## 4½. The wall's journey across axes — to the explicit frontier
 
-With the space axis closed (separating boundary exactly `r`), the wall is relocated to the time axis and stated
-as its own file. `space_axis_settled` (separator at `r`, none below); `ResidualSeparatorRequiresSuperpolyTime`
-(the named missing bridge: the *existing* boundary‑`r` separator's decision time is super‑poly);
-`timeAxis_wall` (the bridge + super‑poly threshold ⇒ family ∉ `P`); `space_machinery_cannot_supply_bridge`
-(the gap — an action/debt bound of any size is hit by a poly‑time single‑step trajectory, so the space‑exact
-machinery yields *no* time bound). The one missing theorem is a pure time lower bound on realizing the
-boundary‑`r` separator — for an NP‑complete family, exactly `P ≠ NP`.
+After the restricted‑inverter classes were closed, the wall was driven across three axes in sequence. Each axis
+is now closed to its exact, provable ceiling; the residue that survives every axis is the single irreducible
+`P ≠ NP` step. The progression is the substance of the explicit‑frontier picture.
 
-## 4‴. Restricted time models — bounded‑width branching programs (`…BoundedWidthBPTime`)
+**(a) Space — settled, boundary exactly `r` (`…TightSeparatingSpace`, `…RavelingBoundedSpace`).** `raveling` and
+`separatorSpeedup` are theorems for restricted `K`; `boundedSpace_raveling` extends `raveling` to `SPACE(s)` for
+`s < r ≈ Ω(n)`; and `separating_boundary_tight` pins the separating boundary at **exactly `r`** (`residual_separates`
+upper bound + `below_r_fails` lower bound). The hard family is space‑`r`‑decidable, so the obstruction to a fast
+algorithm is provably **not space** — it is time. (Summarized in §1, "engines and invariants".)
 
-The first restricted *time* model after space‑tightness.  `BProg`/`BProg.run` formalize a layered branching
-program (width `W`, length `L`); `bp_width_no_separator` proves a width‑`W` BP with `W < 2^r` carries debt
-`≥ 2^r − W > 0` against the dimension‑`r` residual — **for every length `L`**.  So time (length) cannot
-compensate for bounded width in *realizing* the separator; a poly‑*size* BP (width `≤ poly`, boundary
-`O(log n) < r`) cannot realize it either.  Honest caveat: this is the realization/classifier bound, not a
-`1`‑bit decision lower bound — the decision‑vs‑separation gap is the time‑axis bridge (the open step).
+**(b) Time — the wall relocated, and shown unreachable by space machinery (`…TimeAxisWall`, `…BoundedWidthBPTime`).**
+`space_axis_settled` (separator at `r`, none below); `ResidualSeparatorRequiresSuperpolyTime` (the named missing
+bridge: the existing boundary‑`r` separator's decision time is super‑poly); `timeAxis_wall` (bridge + threshold ⇒
+family ∉ `P`); `space_machinery_cannot_supply_bridge` (the gap — an action/debt bound of *any* size is hit by a
+poly‑time single‑step trajectory, so the space‑exact machinery yields *no* time bound). The first restricted *time*
+model is bounded‑width branching programs: `bp_width_no_separator` shows a width‑`W` BP with `W < 2^r` carries debt
+`≥ 2^r − W > 0` **for every length `L`** — time cannot compensate for bounded width in *realizing* the separator
+(honest caveat: realization/classifier bound, not a `1`‑bit decision bound; that gap *is* the time‑axis bridge).
 
-## 4⁗. The cash‑out on the decision axis — unconditional, by counting (`…RestrictedCashout`)
+**(c) Decision — an unconditional lower bound, by counting (`…RestrictedCashout`).** A Williams‑style cash‑out that
+bites on the `1`‑bit *decision* axis with **no conjecture**: `cheap ⇒ enumerable` (a bounded‑resource decider has a
+short description — the proved speedup `…NFrameSpeedupBridge` quantifies it) and contradiction by
+counting/diagonalization. `card_boolFun` (`|BoolFun n| = 2^{2^n}`); `cheap_class_misses_function` (a class
+`Fin N → BoolFun n` with `N < 2^{2^n}` misses some function); `restricted_cashout` (a cheap enumerable class is
+*not surjective* onto all Boolean functions). A genuine, unconditional **decision** lower bound — *some* function
+escapes every cheap decider — but the classical counting limitation bites: it is the **existence** (Shannon) form,
+*some* hard function, not an *explicit* family.
 
-A Williams‑style cash‑out that bites on the `1`‑bit *decision* axis, with no conjecture: `cheap ⇒ enumerable`
-(a bounded‑resource decider has a short description — the proved speedup `…NFrameSpeedupBridge` quantifies this)
-and the contradiction by counting/diagonalization (`exists_uncomputed_of_card_lt`).  `card_boolFun`
-(`|BoolFun n| = 2^{2^n}`); `cheap_class_misses_function` (a class `Fin N → BoolFun n` with `N < 2^{2^n}` misses
-some function); `restricted_cashout` (a cheap enumerable class is *not surjective* onto all Boolean functions).
-This is a genuine, unconditional **decision** lower bound (some function escapes every cheap decider) — distinct
-from the separator/classifier bounds.  Honest limitation: it is the *existence* (Shannon) form — it gives *some*
-hard function, not an *explicit* family; pinning it to an explicit NP family is the `P ≠ NP`‑strength step.
+**(d) Explicitness — the residue isolated as `InNP` (`…ExplicitnessWall`).** The wall moves from decision to
+*explicit* decision. One shared target object: `ExplicitFamily`, `HardFor`, the **opaque** `InNP` parameter,
+`ExplicitNPHard := ∃ F, InNP F ∧ HardFor F`. `counting_hard_at_each_length` (per‑length hardness, from the
+cash‑out); `hard_family_exists` (choice assembles a hard *family* — with **no** `InNP` guarantee);
+`explicitNPHard_imp_hardFamily` (the explicit‑NP target is *strictly stronger* — it implies the `InNP`‑free family
+counting already gives). So the **entire** residue between what counting proves and what `P ≠ NP` needs is the
+single `InNP` conjunct. `InNP` is left an opaque parameter precisely so no "explicitness by counting" move can
+sneak in.
 
-## 4⁵. The explicitness wall — counting ≠ explicit NP (`…ExplicitnessWall`)
+**(e) The natural‑proofs barrier — that residue can't be reached by counting (`…NaturalProofsBarrier`).** Blocks
+the "explicitness by counting" shortcut directly. `Hard cheap f`, `LargeProperty` (more than half of functions),
+`UsefulAgainst`. Proved: `nonHard_card_le` (non‑hard functions `≤ N`), `counting_property_is_large` (for
+`2N < 2^{2^n}`, `Hard cheap` is large), `hard_property_useful` (it is useful). `RazborovRudichBarrier` is a *named
+hypothesis* (under crypto, no large+constructive property is useful); `counting_property_not_constructive` then
+proves the counting property — large and useful — **cannot be constructive** under crypto+RR. So "most functions
+are hard" provably cannot be upgraded into an efficient property isolating `NP`; crossing to explicit hardness
+needs a **non‑natural** argument. (RR and crypto are parameters, not claims.)
 
-The wall, moved from decision to *explicit* decision.  Interface (one shared target object): `ExplicitFamily`,
-`HardFor`, the opaque `InNP` parameter, `ExplicitNPHard := ∃ F, InNP F ∧ HardFor F`.  `counting_hard_at_each_length`
-(per‑length hardness, from the cash‑out); `hard_family_exists` (choice assembles a hard *family* — but with **no**
-`InNP` guarantee); `explicitNPHard_imp_hardFamily` (the explicit‑NP target is *strictly stronger* — it implies the
-`InNP`‑free family counting already gives).  So the entire residue between what counting proves and what `P ≠ NP`
-needs is the `InNP` conjunct — which counting (a property of *most* functions) cannot supply, and which the
-natural‑proofs/largeness barrier says cannot be isolated by generic properties.  `InNP` is left an opaque
-parameter precisely so no "explicitness by counting" move can sneak in.
+**(f) The explicit, non‑natural frontier — Nečiporuk, capped at `n²/log n` (`…ExplicitNeciporukHardness`).** The
+genuine successor to counting and width: an explicit family with a real *decision* lower bound that *evades* the
+barrier of (e). Reusing the crossing‑capacity / Nečiporuk machinery, `StorageAccess m` (explicit indirect
+addressing) has `2^m` distinct crossing subfunctions, so `storageAccess_decomposable_lb` (every `CrossingModel`
+needs `≥ 2^m` states), `storageAccess_escapes_cheap_decomposable` (no capacity‑`<2^m` decomposable decider computes
+it), `explicit_family_beats_decomposable` (an explicit family escapes every bounded capacity). This is genuinely
+**explicit** (a named function), a **decision** bound (computing `StorageAccess`, not separating a residual),
+against a class **richer than width** (decomposable/communication, by distinct subfunctions), and **non‑natural**
+(the subfunction count is not a large/constructive property — which is *why* it is provable). Honest ceiling: per
+block `2^m`, summed over `Θ(n/log n)` blocks it gives formula size `Θ(n²/log n)` (`…NeciporukHardFunctionAsymptotic`)
+— the decades‑old explicit frontier. The method provably tops out here (`crossing_capacity` bounds states by
+subfunction count `≤ 2^{block}`). It does **not** reach `P/poly` or `P ≠ NP`.
 
-## 4⁶. The natural‑proofs barrier — why counting can't go constructive (`…NaturalProofsBarrier`)
-
-Blocks the "explicitness by counting" shortcut.  `Hard cheap f` (f equals no cheap decider); `LargeProperty`
-(more than half of functions); `UsefulAgainst`.  Proved: `nonHard_card_le` (non‑hard functions `≤ N`),
-`counting_property_is_large` (for `2N < 2^{2^n}`, `Hard cheap` is large), `hard_property_useful` (it is useful).
-`RazborovRudichBarrier` is a *named hypothesis* (under crypto, no large+constructive property is useful);
-`counting_property_not_constructive` then proves the counting property — large and useful — **cannot be
-constructive** (under crypto+RR).  So "most functions are hard" provably cannot be upgraded into an efficient
-property isolating an explicit `NP` family; crossing to explicit hardness needs a *non‑natural* argument.  RR and
-crypto are parameters, not claims.
-
-## 4⁷. An *explicit* family escaping a richer (decomposable) decision class (`…ExplicitNeciporukHardness`)
-
-The first explicit, non‑natural decision lower bound plugged into the program — the genuine successor to counting
-and width.  Reusing the corpus's crossing‑capacity / Nečiporuk machinery: `StorageAccess m` (the explicit
-indirect‑addressing function) has `2^m` distinct crossing subfunctions, so `storageAccess_decomposable_lb` (every
-`CrossingModel` needs `≥ 2^m` states), `storageAccess_escapes_cheap_decomposable` (no capacity‑`<2^m` decomposable
-decider computes it), and `explicit_family_beats_decomposable` (for every capacity `c`, an explicit family escapes
-it).  This is genuinely **explicit** (a named function), a **decision** bound (computing `StorageAccess`, not
-separating a residual), against a class **richer than width** (decomposable/communication, measured by distinct
-subfunctions), and **non‑natural** (the subfunction count is not a large/constructive property — it *evades* the
-natural‑proofs barrier, which is why it is provable).  Honest ceiling: per block `2^m`, summed it gives formula
-size `Θ(n²/log n)` (`…NeciporukHardFunctionAsymptotic`) — the decades‑old explicit frontier — **not** `P/poly` or
-`P ≠ NP`.
+**The shape of the residue.** Space is exact; time cannot be reached by space machinery; decision hardness is
+unconditional but non‑explicit; the explicit residue is exactly `InNP`; counting provably cannot supply it
+(natural‑proofs barrier); and the strongest explicit, *non‑natural* bound reachable caps at `n²/log n`. The one
+thing left unbeaten is precisely the part no current method touches: an explicit, non‑natural decision lower bound
+**above the Nečiporuk frontier** — which is `P ≠ NP`.
 
 ## 5. The exact missing theorem — where everything converges
 
@@ -221,6 +231,11 @@ inverters). The gap theorem `distinguishability_debt_not_time_lower_bound` prove
 **Bottom line.** The optimal predicate is identified and proved optimal; it unconditionally defeats every
 restricted inverter class the programme expresses; the binding pair (low‑degree ∧ `AC⁰[p]`) is realized on that
 single predicate with no hypothesis; the complementarity that blocked this is resolved; the false routes are
-retired; and the separation is reduced to one named statement, shown equivalent to `P ≠ NP` and shown
-*unreachable* by these methods. Everything reducible is discharged. The one irreducible step — universal
-quantification over all polynomial‑time machines — is `P ≠ NP` itself, and nothing here claims to take it.
+retired. The wall was then pushed across all three axes to its exact ceiling: **space** is settled (boundary
+exactly `r`), the **time** axis is proved unreachable by the space machinery, the **decision** axis has an
+unconditional (but non‑explicit) lower bound, and the **explicit** residue is isolated as the single `InNP`
+conjunct — which the natural‑proofs barrier proves counting cannot supply, leaving the Nečiporuk `n²/log n`
+frontier as the strongest explicit, non‑natural bound reachable. The separation is reduced to one named statement,
+shown equivalent to `P ≠ NP` in five forms and shown *unreachable* by these methods. Everything reducible is
+discharged. The one irreducible step — an explicit, non‑natural decision lower bound above `n²/log n`, equivalently
+universal quantification over all polynomial‑time machines — is `P ≠ NP` itself, and nothing here claims to take it.
