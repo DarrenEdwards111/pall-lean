@@ -327,6 +327,28 @@ pair *is* the separation.  This is the **`ScalingSPDPBridge`**: order `≥` dist
 *realized* feature count polynomial for `P` (to bound it) — exactly the barriered SPDP‑rank lower bound, and the
 single irreducible `P ≠ NP`‑strength step the entire projected/scaling‑rank programme reduces to.
 
+**ACC⁰ calibration — the method's credibility test (`…ACC0DynamicSPDPCalibration` → `…ACC0Composition`).**
+*Diagnostic, explicitly necessary‑not‑sufficient: `NP ⊄ ACC⁰` is strictly weaker than `P ≠ NP` (`ACC⁰ ⊊ P/poly`),
+and even Williams only has `NEXP ⊄ ACC⁰`.*  ACC⁰ is where AC⁰[p] (Razborov–Smolensky, handled) meets the
+mixed‑moduli wall, so it tests whether dynamic‑SPDP has teeth.  A modular gate is a function of a few **weight
+statistics**; `statRow_realized_le` proves a class of statistic‑rows whose reachable statistics lie in a set `R`
+has `≤ 2^{|R|}` realized features.  Consequences, all proved:
+
+* **single modulus is tame** — `godel_symmetric_realized_poly`: one statistic (total weight) gives `≤ 2n`
+  realized features at the Gödel level — *polynomial*.  The framework explains AC⁰[p]/single‑modulus cleanly.
+* **`k` moduli cost `2^{(d+1)^k}`** — `kStat_realized_le`: `k=1` poly, `k=2` quasi‑poly (`2^{O(log² n)}`),
+  growing `k` super‑poly.
+* **composition drives `k` to the gate count** — `…ACC0Composition`: a depth‑2 circuit of `m` modular gates
+  factors through the combined `m`‑tuple statistic (`composed_realized_le`, `≤ 2^{(d+1)^m}`), and
+  `composed_budget_ge_double_exp` gives `2^{2^m} ≤ 2^{(d+1)^m}` — doubly exponential in the gate count.
+
+So the reach is sharp and matches the AC⁰[p] → ACC⁰ frontier exactly: **counting statistics works for one gate and
+is vacuous for composed ACC⁰** (the budget leaves polynomial at the first mixed‑modulus stacking).  An A1 bound for
+the full class (`ACC0LowRealizedGodelSPDP`, named) **cannot come from counting** — it needs the genuine
+Razborov–Smolensky / correlation structure, the open `NP ⊄ ACC⁰`‑strength content.  The calibration *locates* that
+obstruction precisely (the number of independent moduli the projection must jointly resolve); it proves no new
+lower bound, and clearing ACC⁰ would still be a waypoint below `P ≠ NP`, not the separation.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
