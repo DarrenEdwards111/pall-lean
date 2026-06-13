@@ -144,6 +144,15 @@ as its own file. `space_axis_settled` (separator at `r`, none below); `ResidualS
 machinery yields *no* time bound). The one missing theorem is a pure time lower bound on realizing the
 boundary‑`r` separator — for an NP‑complete family, exactly `P ≠ NP`.
 
+## 4‴. Restricted time models — bounded‑width branching programs (`…BoundedWidthBPTime`)
+
+The first restricted *time* model after space‑tightness.  `BProg`/`BProg.run` formalize a layered branching
+program (width `W`, length `L`); `bp_width_no_separator` proves a width‑`W` BP with `W < 2^r` carries debt
+`≥ 2^r − W > 0` against the dimension‑`r` residual — **for every length `L`**.  So time (length) cannot
+compensate for bounded width in *realizing* the separator; a poly‑*size* BP (width `≤ poly`, boundary
+`O(log n) < r`) cannot realize it either.  Honest caveat: this is the realization/classifier bound, not a
+`1`‑bit decision lower bound — the decision‑vs‑separation gap is the time‑axis bridge (the open step).
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
