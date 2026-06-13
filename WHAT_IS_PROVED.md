@@ -210,6 +210,57 @@ unconditional but non‑explicit; the explicit residue is exactly `InNP`; counti
 thing left unbeaten is precisely the part no current method touches: an explicit, non‑natural decision lower bound
 **above the Nečiporuk frontier** — which is `P ≠ NP`.
 
+## 4¾. The N‑Frame / Book‑1 CEW route, audited — and the contextual‑invariant dichotomy
+
+The N‑Frame "Book 1" programme proposes to close the separation via a contextual‑entanglement‑width (CEW) / SPDP
+route.  It is fully formalized (`…Book1CEWRoute`) as the obligation structure `Book1CEWSPDPEpistemicBoundaryPort`,
+whose four fields are Book 1's pillars — **(A1)** every poly‑time SAT decider has polylog CEW; **(A2)** polylog
+CEW ⇒ poly SPDP rank; **(A3)** the hard family has super‑poly SPDP rank; **(A4)** a decider transports the hard
+rank into its P‑side rank — and these **assemble into the separation** (`no_DTMDecidesSATWithEncoding_of_book1CEWSPDP`
+⇒ `standardPvsNP_of_book1CEWSPDP`).  So "A1–A4 ⇒ `P ≠ NP`" is a theorem; the whole content is in the fields.
+
+**A1 is the live wall (`…NFrameBook1Audit`).**  A2 is a proved counting lemma, A3 the calibrated Tseitin/Ramanujan
+bound, A4 a transport certificate; **A1** — bounded contextual width for *all* of `P` — is the only `P ≠ NP`‑strength
+field, and in `…Book1CEWRoute` it is discharged *only* by a **syntactic** log‑window surrogate
+(`book1LogSyntacticPCEW`), explicitly flagged as not a claim about arbitrary deciders.  The audit pins this to
+proved theorems: `naive_time_cew_bound_false` (no function of the time bound alone bounds the observer action —
+from `action_unbounded_by_time`); `space_bound_does_supply_A1` (a *space* bound does, via `subcritical_of_lowspace`
+— the working surrogate is always space/contextual, never time‑only); `correct_decider_escapes_boundary_A1` (a
+*correct* full‑boundary decider exists, so "every decider has low boundary" is false even semantically — CEW must
+be strictly finer than boundary).
+
+**The contextual‑invariant dichotomy — both horns proved.**  A1 asks for a contextual invariant that is
+**bounded for `P`** *and* **super‑polynomial on the hard family**.  We define both natural unweighted forms and
+prove neither can be both at once:
+
+* **Additive horn (`…TimeContextualWidth`).**  `tcw = ∑_{τ<T} log₂(contextWidth (views τ))` — cumulative
+  contextual log‑width, tied to the *realized image* at each step (so it dodges `action_unbounded_by_time`, which
+  the raw action did not).  `tcw_le_steps_mul_bits` (`tcw ≤ T·n`) and `tcw_A1_bounded_for_polyTime`
+  (`≤ n^{k+1}` for `T ≤ n^k`) make **A1 a theorem** — bounded contextual width for *all* of `P`.  But
+  `additive_tcw_below_superpoly_threshold` proves the price: being additive, `tcw` is capped at `T·n` = poly, so
+  at infinitely many lengths *every* poly‑time observer (any correct SAT decider included) has `tcw` strictly
+  below the super‑poly threshold `n^{log₂ n/4}` — **A3 is provably false** for it.
+* **Multiplicative / rank horn (`…RankContextualWidth`).**  `crank M = ` #distinct rows of the past/future cut
+  matrix — a genuine rank/communication quantity, super‑additive across the cut.  `crank_cube_full`
+  (`crank(equality matrix) = 2^a`) and `crank_unbounded` (`∀ N, ∃ a, N < crank`) make **A3 reachable** — the
+  super‑poly half the additive horn lacked.  But `rank_space_bound_tight` proves the price: the only bound the
+  budget yields is `crank ≤ 2^{space}`, and it is **tight**; a poly‑*time* observer has only poly *space*, so its
+  rank ceiling is `2^{poly}` — exponential, not poly, and achievable — so **A1 does not follow from the budget**.
+  Raw rank fails A1 even more sharply: linear‑time functions (inner‑product, equality) already have *full* rank
+  `2^{n/2}`, so raw `crank` is in `P` at the top of its range.
+
+| invariant | shape | A1 (bounded for `P`) | A3 (super‑poly on hard family) |
+|---|---|---|---|
+| `tcw` (additive) | `∑ log width` | **provable** (`≤ T·n`) | **provably false** (capped at `T·n`) |
+| `crank` (multiplicative) | `#distinct rows` | **the wall** (only `≤ 2^{space}`, tight; false for raw rank) | **provable** (`= 2^a`, unbounded) |
+
+So an *unweighted* contextual invariant is provably either too small to separate (additive) or achieved by easy
+functions and bounded only by space (multiplicative).  A1 can hold *and* A3 hold only for a rank that is low
+**because of the time structure** — a *projected* SPDP rank where the poly‑time presentation forces the projection
+low.  That projection is exactly Book 1's A2/A1 bridge, which the corpus audit (`…NFrameHypercubeConstraint`)
+already found **assumed, not derived** — the one irreducible `P ≠ NP`‑strength step.  The dichotomy is *proved*,
+not asserted: it converts "you would need a finer invariant" into a machine‑checked no‑go on both natural forms.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
@@ -220,6 +271,7 @@ Every route terminates at the **same** wall, in five equivalent forms (all `= Co
 | `AdaptiveResidualNonCollapse` | every cheap adaptive decomposition keeps `2^{Ω(n)}` outcomes | one fixed decomposition | the `min` over **all** |
 | `DimensionGapHard` | `d_res(SAT) − d_obs ≥ Ω(n)` for *every* poly observer | a fixed observer carries debt | the `min` over **all** |
 | global SPDP bridge | every poly‑time observer has poly SPDP rank | restricted `K` | all of `P` |
+| Book‑1 CEW (A1) | every poly‑time SAT decider has polylog contextual width | syntactic surrogate; both unweighted invariants (dichotomy) | a *projected* rank low because of time structure |
 | `(Goldreich)InversionHardness` | the family resists fast inversion (OWF / local‑PRG security) | the four classes of §2 | all poly inverters |
 
 In every form the **provable half is geometric/pointwise** (a fixed low‑`d_obs` observer, a fixed class) and the
@@ -235,7 +287,12 @@ retired. The wall was then pushed across all three axes to its exact ceiling: **
 exactly `r`), the **time** axis is proved unreachable by the space machinery, the **decision** axis has an
 unconditional (but non‑explicit) lower bound, and the **explicit** residue is isolated as the single `InNP`
 conjunct — which the natural‑proofs barrier proves counting cannot supply, leaving the Nečiporuk `n²/log n`
-frontier as the strongest explicit, non‑natural bound reachable. The separation is reduced to one named statement,
-shown equivalent to `P ≠ NP` in five forms and shown *unreachable* by these methods. Everything reducible is
-discharged. The one irreducible step — an explicit, non‑natural decision lower bound above `n²/log n`, equivalently
-universal quantification over all polynomial‑time machines — is `P ≠ NP` itself, and nothing here claims to take it.
+frontier as the strongest explicit, non‑natural bound reachable. The N‑Frame / Book‑1 CEW route was audited to the
+same wall — its A1 (bounded contextual width for all `P`) is the lone `P ≠ NP`‑strength field — and a proved
+dichotomy shows *no unweighted contextual invariant* can discharge it: additive ones are too small to separate,
+multiplicative/rank ones are achieved by easy functions, so only a *time‑structure‑coupled projection* (the
+assumed‑not‑derived SPDP bridge) could. The separation is reduced to one named statement, shown equivalent to
+`P ≠ NP` in six forms and shown *unreachable* by these methods. Everything reducible is discharged. The one
+irreducible step — an explicit, non‑natural decision lower bound above `n²/log n`, equivalently a contextual
+invariant low *because of* the poly‑time structure, equivalently universal quantification over all polynomial‑time
+machines — is `P ≠ NP` itself, and nothing here claims to take it.
