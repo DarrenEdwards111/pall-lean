@@ -125,6 +125,19 @@ observer‑Williams). The family provably resists every restricted class of §2.
 constructive route: the right primitive, provably hard against every formalized restricted attack, single
 remaining hypothesis = exactly `P ≠ NP`.
 
+**The convergence, made one object (`…GoldreichHolonomyTerminus`).** The programme's threads are gathered onto
+this single candidate: `GoldreichMajorityConvergence` bundles the *discharged* arrows (`raveling`,
+`separatorSpeedup`) with the **lone open field** `goldreichMajorityHard`, and `GoldreichMajorityConvergence.terminus`
+proves — *depending on no axioms at all* — that no low‑action observer inverts the family, conditional only on that
+one field. Every other thread is referenced as discharged: optimal AI (`majority_AI_optimal` ⇒
+`majority_defeats_low_degree_separator`), `AC⁰[p]` resistance (`majority_not_in_AC0p`,
+`majority_simultaneous_resistance`), the four restricted classes, and the expander hard side
+(`goldreich_expander_holonomy_full`: a `DisjointCycles` gadget from the hypergraph has full holonomy rank `2^m`).
+*Honest calibration recorded there:* holonomy is an `F₂`/parity (Tseitin) invariant, so it attaches to the
+candidate's **expander structure**, not to the non‑linear Majority predicate directly — stated, not forged. So the
+constructive route is reduced to one named statement on an explicit, maximally‑calibrated candidate, with
+everything else unconditionally discharged and `goldreichMajorityHard = P ≠ NP`‑strength.
+
 ## 4. Retired routes (proved false or proved dead — not merely abandoned)
 
 - **`P_ne_NP_unconditional` (old).** Parked `P`‑side content in unproved sockets; retired for honest conditionals.
