@@ -147,6 +147,16 @@ exactly, with two honest research forks identified.
   permanent.  So book1's `P ≠ NP` = the global bridge (an assumption equal in strength to the separation) + an
   open/false SPDP bound — faithful geometry, load‑bearing implication assumed not derived.
 
+* **§6.4′ Restricted bridge for crossing‑sequence `K` — PROVED** (`…CrossingSequenceBridge`).  Discharges
+  `restrictedBridge` (§6.4) for `K = {width‑`w` crossing‑sequence observers over `q` states}`, *non‑circularly*
+  by counting.  `residual_view_card_forces_debt` (a view into finite `S` carries debt `≥ 2^r − |S|`) ⇒
+  `crossingSequence_forces_debt` (view into `Fin w → Fin q` ⇒ debt `≥ 2^r − q^w`) ⇒ `crossingSequence_no_separator`
+  (`q^w < 2^r` ⇒ positive debt, no separator).  A crossing‑sequence observer holds `≤ q^w` states, so it cannot
+  separate a dimension‑`r` residual once `w·log₂q < r` — derived, not assumed.  **Honest scope:** this is the
+  classical one‑tape/oblivious crossing‑sequence model as a debt statement; it does *not* reach all of `P` —
+  `polyTime ⇒ low crossing width` is false (multi‑tape/RAM machines have unbounded crossing sequences).  So the
+  crossing‑sequence restricted bridge is a theorem; the global bridge remains the wall.
+
 ## Part V — The frontier (the two honest research forks)
 
 The least‑action path (N‑Frame Lagrangian) is built out; the residual is one of:
