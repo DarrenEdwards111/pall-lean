@@ -50,6 +50,10 @@ off‑diagonal** (`modQ_gate_low_correlation_offdiagonal`).
   `(v_i ∈ D, w_i ∉ D)` peels off an exactly‑balanced layer (its off‑diagonal flip‑both moves one coordinate
   `0→1`, the other `1→0`, count change `0` mod any `q`, leaving earlier pairs untouched), confining the imbalance
   of a `MOD q` class to the `k`‑fold diagonal `⋂_i {x_{v_i} = x_{w_i}}` — for `q > 2` too.
+* `flipAt_card_eq_ne`, `diag_card_mul`, `imbalance_stacked_bound` — **the numeric bound, all `q`**: each disjoint
+  constraint halves the cube (`diag_card_mul`: `2^{|L|}·#k‑fold‑diagonal = 2^n`), so the `MOD q`‑vs‑parity
+  imbalance is `≤ 2^{n-k}` (`imbalance_stacked_bound`) — a genuine *involutive* exponential bound, exp‑small
+  whenever `min(|D|, n−|D|)` is large.
 
 ## The honest verdict — the approximate version *partly* survives, and the residual is named exactly
 
@@ -468,6 +472,126 @@ theorem imbalance_stacked (q : ℕ) (D : Finset (Fin n)) (c : ZMod q) (L : List 
     rw [hReq] at step
     omega
 
+/-! ## The numeric bound: the `k`‑fold diagonal has size `2^{n-k}`, so the imbalance is `≤ 2^{n-k}` -/
+
+/-- **Each diagonal constraint halves the cube (proved).**  On any `W` closed under flipping a fresh coordinate
+`v` (one not otherwise constrained), `flipAt v` is a bijection between `{x_v = x_w}` and `{x_v ≠ x_w}` (it toggles
+`x_v` while fixing `x_w`), so the two have equal cardinality. -/
+theorem flipAt_card_eq_ne (W : Finset (Fin n → Bool)) (v w : Fin n) (hvw : v ≠ w)
+    (hWc : ∀ x ∈ W, flipAt v x ∈ W) :
+    (W.filter (fun x => x v = x w)).card = (W.filter (fun x => x v ≠ x w)).card := by
+  apply Finset.card_nbij' (flipAt v) (flipAt v)
+  · intro x hx
+    simp only [Finset.mem_coe, Finset.mem_filter] at hx ⊢
+    obtain ⟨hxW, heq⟩ := hx
+    refine ⟨hWc x hxW, ?_⟩
+    rw [flipAt_apply, flipAt_apply, if_pos rfl, if_neg hvw.symm, heq]
+    cases x w <;> decide
+  · intro x hx
+    simp only [Finset.mem_coe, Finset.mem_filter] at hx ⊢
+    obtain ⟨hxW, hne⟩ := hx
+    refine ⟨hWc x hxW, ?_⟩
+    rw [flipAt_apply, flipAt_apply, if_pos rfl, if_neg hvw.symm]
+    cases hv : x v <;> cases hw : x w <;> simp_all
+  · intro a _; exact flipAt_involutive v a
+  · intro a _; exact flipAt_involutive v a
+
+/-- **The `k`‑fold diagonal has size `2^{n-k}` (proved, multiplicative form).**  `2^{|L|}` times the number of
+inputs constant on every disjoint pair of `L` equals `2^n` — each pair halves the cube. -/
+theorem diag_card_mul (L : List (Fin n × Fin n)) :
+    (L.flatMap (fun p => [p.1, p.2])).Nodup →
+    2 ^ L.length * ((Finset.univ : Finset (Fin n → Bool)).filter
+      (fun x => ∀ p ∈ L, x p.1 = x p.2)).card = 2 ^ n := by
+  induction L with
+  | nil =>
+    intro _
+    have h0 : (Finset.univ.filter (fun x : Fin n → Bool =>
+        ∀ p ∈ ([] : List (Fin n × Fin n)), x p.1 = x p.2)) = Finset.univ := by
+      apply Finset.filter_true_of_mem; intro x _ p hp; exact absurd hp (by simp)
+    rw [h0, List.length_nil, pow_zero, one_mul, Finset.card_univ]
+    simp [Fintype.card_bool, Fintype.card_fin]
+  | cons hd tl ih =>
+    intro hnodup
+    obtain ⟨v, w⟩ := hd
+    simp only [List.flatMap_cons, List.cons_append, List.nil_append, List.nodup_cons,
+      List.mem_cons, not_or] at hnodup
+    obtain ⟨⟨hvw, hv_rest⟩, hw_rest, hnd⟩ := hnodup
+    have ihW := ih hnd
+    set W := (Finset.univ : Finset (Fin n → Bool)).filter (fun x => ∀ p ∈ tl, x p.1 = x p.2) with hW
+    have hWc : ∀ x ∈ W, flipAt v x ∈ W := by
+      intro x hx
+      rw [hW, Finset.mem_filter] at hx ⊢
+      refine ⟨Finset.mem_univ _, ?_⟩
+      intro p hp
+      have hp1 : p.1 ∈ tl.flatMap (fun p => [p.1, p.2]) := List.mem_flatMap.mpr ⟨p, hp, by simp⟩
+      have hp2 : p.2 ∈ tl.flatMap (fun p => [p.1, p.2]) := List.mem_flatMap.mpr ⟨p, hp, by simp⟩
+      rw [flipAt_apply, if_neg (fun h : p.1 = v => hv_rest (h ▸ hp1)),
+          flipAt_apply, if_neg (fun h : p.2 = v => hv_rest (h ▸ hp2))]
+      exact hx.2 p hp
+    have hhalf := flipAt_card_eq_ne W v w hvw hWc
+    have hsum : (W.filter (fun x => x v = x w)).card
+        + (W.filter (fun x => ¬ (x v = x w))).card = W.card :=
+      Finset.card_filter_add_card_filter_not (fun x : Fin n → Bool => x v = x w)
+    simp only [ne_eq] at hhalf
+    have hWcard : W.card = 2 * (W.filter (fun x => x v = x w)).card := by omega
+    have hNew : (Finset.univ.filter (fun x : Fin n → Bool => ∀ p ∈ (v, w) :: tl, x p.1 = x p.2))
+        = W.filter (fun x => x v = x w) := by
+      rw [hW, Finset.filter_filter]
+      apply Finset.filter_congr; intro x _; rw [List.forall_mem_cons]; exact and_comm
+    rw [hWcard] at ihW
+    rw [hNew, List.length_cons, pow_succ, mul_assoc]
+    linarith [ihW]
+
+/-- The flattened coordinate list of `L` has length `2·|L|`. -/
+theorem flatMap_pair_length (L : List (Fin n × Fin n)) :
+    (L.flatMap (fun p => [p.1, p.2])).length = 2 * L.length := by
+  induction L with
+  | nil => simp
+  | cons hd tl ih => simp only [List.flatMap_cons, List.length_append, ih, List.length_cons,
+      List.length_nil]; omega
+
+/-- **The numeric bound (proved, all `q`): the holonomy‑parity imbalance of a `MOD q` class is `≤ 2^{n-k}`** for
+`k` disjoint stacked pairs.  Disjoint pair stacking equates the imbalance with that of the `k`‑fold diagonal
+(`imbalance_stacked`), whose size is `2^{n-k}` (`diag_card_mul`), and the imbalance of any set is bounded by its
+size — a genuine *involutive* exponential bound on the `MOD q`‑vs‑parity correlation, exp‑small whenever
+`min(|D|, n−|D|)` is large. -/
+theorem imbalance_stacked_bound (q : ℕ) (D : Finset (Fin n)) (c : ZMod q) (L : List (Fin n × Fin n))
+    (hpairs : ∀ p ∈ L, p.1 ∈ D ∧ p.2 ∉ D)
+    (hnodup : (L.flatMap (fun p => [p.1, p.2])).Nodup) :
+    ((Finset.univ.filter (fun x => modQStat q x = c)).filter (fun x => fParity D x = true)).card
+        ≤ ((Finset.univ.filter (fun x => modQStat q x = c)).filter (fun x => fParity D x = false)).card
+          + 2 ^ (n - L.length)
+      ∧ ((Finset.univ.filter (fun x => modQStat q x = c)).filter (fun x => fParity D x = false)).card
+        ≤ ((Finset.univ.filter (fun x => modQStat q x = c)).filter (fun x => fParity D x = true)).card
+          + 2 ^ (n - L.length) := by
+  have hstack := imbalance_stacked q D c L hpairs hnodup
+  have hmul := diag_card_mul L hnodup
+  have hkn : L.length ≤ n := by
+    have h1 : (L.flatMap (fun p => [p.1, p.2])).length ≤ n := by
+      rw [← List.toFinset_card_of_nodup hnodup]
+      calc (L.flatMap (fun p => [p.1, p.2])).toFinset.card
+            ≤ Fintype.card (Fin n) := Finset.card_le_univ _
+        _ = n := Fintype.card_fin n
+    rw [flatMap_pair_length] at h1
+    omega
+  have hRuniv : ((Finset.univ : Finset (Fin n → Bool)).filter
+      (fun x => ∀ p ∈ L, x p.1 = x p.2)).card = 2 ^ (n - L.length) := by
+    have hpow : 2 ^ L.length * 2 ^ (n - L.length) = 2 ^ n := by
+      rw [← pow_add, Nat.add_sub_cancel' hkn]
+    exact Nat.eq_of_mul_eq_mul_left (pow_pos (show (0:ℕ) < 2 by norm_num) L.length)
+      (by rw [hmul]; exact hpow.symm)
+  have hsub : (Finset.univ.filter (fun x => modQStat q x = c)).filter
+      (fun x => ∀ p ∈ L, x p.1 = x p.2)
+      ⊆ (Finset.univ : Finset (Fin n → Bool)).filter (fun x => ∀ p ∈ L, x p.1 = x p.2) :=
+    Finset.filter_subset_filter _ (Finset.filter_subset _ _)
+  have hRle := Finset.card_le_card hsub
+  have hTle := Finset.card_filter_le ((Finset.univ.filter (fun x => modQStat q x = c)).filter
+    (fun x => ∀ p ∈ L, x p.1 = x p.2)) (fun x => fParity D x = true)
+  have hFle := Finset.card_filter_le ((Finset.univ.filter (fun x => modQStat q x = c)).filter
+    (fun x => ∀ p ∈ L, x p.1 = x p.2)) (fun x => fParity D x = false)
+  rw [hRuniv] at hRle
+  omega
+
 /-! ## The residual — named honestly -/
 
 /-- **(Named open — `NP ⊄ ACC⁰`‑strength, for `q > 2`).**  The full‑class imbalance of the holonomy parity inside
@@ -498,3 +622,5 @@ end PallLean.Paper93.DeepMath.PathB.ModQGateBalance
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQGateBalance.modQ2_gate_zero_correlation
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQGateBalance.imbalance_localize_step
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQGateBalance.imbalance_stacked
+#print axioms PallLean.Paper93.DeepMath.PathB.ModQGateBalance.diag_card_mul
+#print axioms PallLean.Paper93.DeepMath.PathB.ModQGateBalance.imbalance_stacked_bound

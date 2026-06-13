@@ -608,6 +608,17 @@ off‑diagonal).  The recursion runs until no fresh disjoint `(in‑D, out‑D)`
 and only that final core is the irreducible character sum.  Net delineation: **modulus `2` is fully involutive;
 higher moduli are involutive down to a shrinking diagonal core**, the character sum required only on the core.
 
+**The shrinkage becomes a numeric bound (`flipAt_card_eq_ne`, `diag_card_mul`, `imbalance_stacked_bound`).**  Each
+disjoint equality constraint *halves the cube* — flipping a fresh coordinate `v` is a bijection between
+`{x_v = x_w}` and `{x_v ≠ x_w}` (`flipAt_card_eq_ne`) — so the `k`‑fold diagonal has size exactly `2^{n-k}`
+(`diag_card_mul`: `2^{|L|} · #(k‑fold diagonal) = 2^n`, proved by induction).  Since the imbalance equals the
+`k`‑fold‑diagonal imbalance (`imbalance_stacked`) and any set's imbalance is bounded by its size,
+`imbalance_stacked_bound` gives — for **all `q`**, clean, no `sorry` — the two‑sided bound
+`|#{parity=true} − #{parity=false}| ≤ 2^{n-k}` on a `MOD q` class, with `k` the number of disjoint stacked pairs
+(`k ≤ min(|D|, n−|D|)`).  This is a **genuine involutive exponential bound** on the `MOD q`‑vs‑parity correlation,
+exp‑small whenever `min(|D|, n−|D|)` is large — the elementary method's quantitative reach, made explicit, with the
+sharper `|cos(π/q)|^{n-|D|}` character estimate needed only to push past it on the residual core.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
