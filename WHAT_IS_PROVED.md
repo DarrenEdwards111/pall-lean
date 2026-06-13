@@ -678,6 +678,17 @@ coordinates) — proving a *random* restriction achieves this is the Håstad / R
 engine bites again below the live‑variable threshold).  So route 2 stands in skeleton: the deterministic cell
 combinatorics are fully proved, the single probabilistic switching step isolated and named.
 
+**A *proved* deterministic switching instance — bounded fan‑in.**  On the bounded‑fan‑in fragment the named
+hypothesis becomes a theorem.  The explicit, non‑random restriction is the simplest possible: **kill every touched
+coordinate**, i.e. take the live set `L = (⋃_j S_j)ᶜ`.  Then every support is disjoint from `L`
+(`trivialOn_compl_union`: `TrivialOn` holds via the all‑disjoint branch), and for fan‑in `≤ s` the live set is
+large — `card_compl_union_ge`: `n − k·s ≤ |L|` (`card_biUnion_le` + `∑ s = k·s`).  Hence `boundedFanIn_collapsesCells`:
+`|S_j| ≤ s` and `k·s + 2 ≤ n` ⇒ `ACC0RestrictionCollapsesCells` *outright*, no probability.  Chained end‑to‑end,
+`boundedFanIn_cellWitness`: bounded fan‑in too small to cover the cube ⇒ the engine bites (a holonomy support the
+predictor cannot correlate with).  This converts the switching hypothesis into a proved lemma for depth‑2 /
+bounded‑fan‑in supports; the full probabilistic switching lemma is what remains to lift it to poly‑size ACC⁰
+(fan‑in up to `n`, where `k·s ≫ n` and the deterministic "kill‑all‑touched" restriction leaves nothing live).
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):

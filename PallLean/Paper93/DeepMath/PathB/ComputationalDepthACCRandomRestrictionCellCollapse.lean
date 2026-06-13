@@ -148,6 +148,55 @@ theorem acc0_collapse_gives_cellWitness (supports : Fin k → Finset (Fin n))
   obtain ⟨L, hL, htr⟩ := h
   exact collapse_gives_cellWitness supports L htr hL
 
+/-! ## A *proved* deterministic switching instance: bounded fan‑in
+
+For depth‑2 / bounded‑fan‑in supports (`|S_j| ≤ s`) there is an explicit, non‑random restriction achieving
+`TrivialOn`: **kill every touched coordinate** — take the live set to be the complement of the supports' union.
+Every support is then disjoint from the live set, and `|live| = n − |⋃_j S_j| ≥ n − k·s`.  This turns
+`ACC0RestrictionCollapsesCells` from a named hypothesis into a *proved* lemma on the bounded‑fan‑in fragment
+(whenever `k·s + 2 ≤ n`), with no probability. -/
+
+/-- **The explicit restriction is trivializing (proved): the complement of the supports' union is `TrivialOn`** —
+every support is disjoint from it. -/
+theorem trivialOn_compl_union (supports : Fin k → Finset (Fin n)) :
+    TrivialOn supports (Finset.univ.biUnion supports)ᶜ := by
+  intro j
+  left
+  rw [Finset.disjoint_right]
+  intro a ha
+  rw [Finset.mem_compl, Finset.mem_biUnion] at ha
+  push_neg at ha
+  exact ha j (Finset.mem_univ j)
+
+/-- **The live set is large (proved): `n − k·s ≤ |live|`** for fan‑in `≤ s`. -/
+theorem card_compl_union_ge (supports : Fin k → Finset (Fin n)) (s : ℕ)
+    (hfan : ∀ j, (supports j).card ≤ s) :
+    n - k * s ≤ (Finset.univ.biUnion supports)ᶜ.card := by
+  rw [Finset.card_compl, Fintype.card_fin]
+  have hbu : (Finset.univ.biUnion supports).card ≤ k * s :=
+    calc (Finset.univ.biUnion supports).card
+        ≤ ∑ j, (supports j).card := Finset.card_biUnion_le
+      _ ≤ ∑ _j : Fin k, s := Finset.sum_le_sum (fun j _ => hfan j)
+      _ = k * s := by rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul]
+  omega
+
+/-- **Deterministic switching for bounded fan‑in (proved): `ACC0RestrictionCollapsesCells` holds outright** when
+the supports have fan‑in `≤ s` and `k·s + 2 ≤ n` — the explicit "kill all touched coordinates" restriction
+trivializes them and leaves `≥ 2` live coordinates. -/
+theorem boundedFanIn_collapsesCells (supports : Fin k → Finset (Fin n)) (s : ℕ)
+    (hfan : ∀ j, (supports j).card ≤ s) (hsize : k * s + 2 ≤ n) :
+    ACC0RestrictionCollapsesCells supports := by
+  refine ⟨(Finset.univ.biUnion supports)ᶜ, ?_, trivialOn_compl_union supports⟩
+  have := card_compl_union_ge supports s hfan
+  omega
+
+/-- **End‑to‑end on the bounded‑fan‑in fragment (proved): the engine bites with no hypothesis** — bounded fan‑in
+that cannot cover the cube yields a holonomy support the predictor fails to correlate with. -/
+theorem boundedFanIn_cellWitness (supports : Fin k → Finset (Fin n)) (s : ℕ)
+    (hfan : ∀ j, (supports j).card ≤ s) (hsize : k * s + 2 ≤ n) :
+    ∃ D : Finset (Fin n), CellWitness supports D :=
+  acc0_collapse_gives_cellWitness supports (boundedFanIn_collapsesCells supports s hfan hsize)
+
 end PallLean.Paper93.DeepMath.PathB.ACCRandomRestrictionCellCollapse
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACCRandomRestrictionCellCollapse.exists_sameCell_pair_on
@@ -155,3 +204,6 @@ end PallLean.Paper93.DeepMath.PathB.ACCRandomRestrictionCellCollapse
 #print axioms PallLean.Paper93.DeepMath.PathB.ACCRandomRestrictionCellCollapse.collapse_gives_low_correlation
 #print axioms PallLean.Paper93.DeepMath.PathB.ACCRandomRestrictionCellCollapse.exists_cellWitness_of_small_union
 #print axioms PallLean.Paper93.DeepMath.PathB.ACCRandomRestrictionCellCollapse.acc0_collapse_gives_cellWitness
+#print axioms PallLean.Paper93.DeepMath.PathB.ACCRandomRestrictionCellCollapse.trivialOn_compl_union
+#print axioms PallLean.Paper93.DeepMath.PathB.ACCRandomRestrictionCellCollapse.boundedFanIn_collapsesCells
+#print axioms PallLean.Paper93.DeepMath.PathB.ACCRandomRestrictionCellCollapse.boundedFanIn_cellWitness
