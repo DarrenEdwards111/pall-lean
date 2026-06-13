@@ -196,7 +196,55 @@ theorem modqCirc_eval (m q : ℕ) (Maj : BoolCircuitSyntax (2 * m + 1))
       exact ⟨by omega, by simp [h]⟩
     · simp
 
+/-! ### Stage 2b: `AC⁰[p]` membership and constant depth -/
+
+/-- The `MOD_q` circuit is `AC⁰[p]` whenever `Maj` is. -/
+theorem modqCirc_isAC0p (p m q : ℕ) (Maj : BoolCircuitSyntax (2 * m + 1))
+    (hMaj : IsAC0pSyntax p Maj) : IsAC0pSyntax p (modqCirc m q Maj) := by
+  simp only [modqCirc, IsAC0pSyntax, List.mem_map, forall_exists_index, and_imp]
+  rintro C k _ rfl
+  simp only [andTerm, IsAC0pSyntax, List.mem_cons, List.mem_singleton, List.not_mem_nil,
+    or_false]
+  rintro D (rfl | rfl)
+  · exact thresholdCirc_isAC0p p m k Maj hMaj
+  · simp only [IsAC0pSyntax]; exact thresholdCirc_isAC0p p m (k + 1) Maj hMaj
+
+/-- A `foldl`‑max bound: if every circuit in the list has depth `≤ B`, the running max stays `≤ B`. -/
+theorem foldl_max_depth_le {m : ℕ} (Cs : List (BoolCircuitSyntax m)) (B : ℕ) :
+    ∀ acc : ℕ, acc ≤ B → (∀ C ∈ Cs, C.depth ≤ B) →
+      Cs.foldl (fun a C => max a C.depth) acc ≤ B := by
+  induction Cs with
+  | nil => intro acc hacc _; exact hacc
+  | cons C Cs ih =>
+    intro acc hacc h
+    apply ih
+    · exact max_le hacc (h C (by simp))
+    · intro D hD; exact h D (by simp [hD])
+
+theorem andTerm_depth (m k : ℕ) (Maj : BoolCircuitSyntax (2 * m + 1)) :
+    (andTerm m k Maj).depth = Maj.depth + 2 := by
+  simp only [andTerm, BoolCircuitSyntax.depth, List.foldl_cons, List.foldl_nil, thresholdCirc_depth]
+  omega
+
+theorem depth_orGate {m : ℕ} (Cs : List (BoolCircuitSyntax m)) :
+    (BoolCircuitSyntax.orGate Cs).depth = Cs.foldl (fun a C => max a C.depth) 0 + 1 := by
+  simp only [BoolCircuitSyntax.depth]
+
+/-- The `MOD_q` circuit has constant depth `≤ Maj.depth + 3`. -/
+theorem modqCirc_depth_le (m q : ℕ) (Maj : BoolCircuitSyntax (2 * m + 1)) :
+    (modqCirc m q Maj).depth ≤ Maj.depth + 3 := by
+  simp only [modqCirc, depth_orGate]
+  have h : (((List.range (m + 1)).filter (fun k => k % q = 0)).map
+      (fun k => andTerm m k Maj)).foldl (fun a C => max a C.depth) 0 ≤ Maj.depth + 2 := by
+    apply foldl_max_depth_le _ _ 0 (by omega)
+    intro C hC
+    rw [List.mem_map] at hC
+    obtain ⟨k, _, rfl⟩ := hC
+    exact (andTerm_depth m k Maj).le
+  omega
+
 end PallLean.Paper93.DeepMath.PathB.ModqReducesMajority
 
-#print axioms PallLean.Paper93.DeepMath.PathB.ModqReducesMajority.trueCount_padBits
 #print axioms PallLean.Paper93.DeepMath.PathB.ModqReducesMajority.modqCirc_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.ModqReducesMajority.modqCirc_isAC0p
+#print axioms PallLean.Paper93.DeepMath.PathB.ModqReducesMajority.modqCirc_depth_le
