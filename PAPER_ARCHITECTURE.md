@@ -169,6 +169,19 @@ exactly, with two honest research forks identified.
   (needs structural immunity).  The cleanest conditional separation: observer geometry + Goldreich family +
   Williams cash‑out, with one conjectural input.
 
+* **§6.6 Growing algebraic immunity — the structural lower bound `AI(Maj_n) ≥ ⌈n/2⌉`, `¬Maj` side PROVED**
+  (`…MajorityAlgebraicImmunity`).  `decide` caps AI at a constant; growing AI needs a *structural* argument that
+  scales with arity.  Built from its genuine core — the **`F₂` Möbius / ANF inversion**, absent from Mathlib,
+  constructed here: the subset‑sum transform `anf g S = ∑_{T⊆S} g T` is its own inverse over `F₂`
+  (`anf_involutive`), proved from the interval count `#{T : U⊆T⊆S} = 2^{|S|-|U|}` (even unless `U=S`,
+  `card_filter_subset_between`).  From it: `low_weight_low_degree_zero` (a low‑ANF‑degree function supported only
+  on high weight is `0`) ⇒ `nonzero_low_degree_hits_low_weight` (the weight‑`<t` slice is interpolating for
+  degree‑`<t` `F₂` polynomials) ⇒ `negMaj_no_low_degree_annihilator` (no nonzero degree‑`<t` `g` annihilates
+  `¬Maj`).  Immunity threshold `t` **grows with arity** — no `decide`.  Clean axioms, no `sorry`.  **Honest
+  scope:** this is the structural `¬Maj` (low‑weight) side; the matching `Maj` (high‑weight) side follows by the
+  degree‑preserving complement symmetry `Maj(x̄)=¬Maj(x)` — the one remaining lemma for the full two‑sided
+  `AI(Maj_n)=⌈n/2⌉`.  The hard part (the `F₂` inversion that *makes immunity grow*) is proved.
+
 ## Part V — The frontier (the two honest research forks)
 
 The least‑action path (N‑Frame Lagrangian) is built out; the residual is one of:
