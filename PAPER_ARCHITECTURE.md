@@ -157,6 +157,18 @@ exactly, with two honest research forks identified.
   `polyTime ⇒ low crossing width` is false (multi‑tape/RAM machines have unbounded crossing sequences).  So the
   crossing‑sequence restricted bridge is a theorem; the global bridge remains the wall.
 
+* **§6.5 The strongest conditional route: observer‑Williams over a Goldreich expander CSP**
+  (`…GoldreichExpanderCandidate`).  Assembles all three engines.  `GoldreichCSP`/`eval` define the family
+  (`m` outputs, each the local predicate on a hyperedge); `tsaGoldreich` fixes the predicate to the verified
+  `AI ≥ 2` TSA (`tsa_algebraic_immunity_ge_two`).  `goldreich_observer_williams` (no axioms): `raveling`
+  (low‑action ⇒ separator in `K`) + `separatorSpeedup` (separator ⇒ fast inversion) + `goldreichHard`
+  (`GoldreichHardnessHyp`: no fast inversion) ⇒ **no low‑action observer inverts the family** — a correct one
+  would break the PRG.  **Honest:** `raveling`/`separatorSpeedup` are framework‑supplied; `goldreichHard` is a
+  *cryptographic conjecture* (local‑PRG security), whose unconditional proof is `P ≠ NP`.  Predicate verified at
+  base case (TSA, `AI ≥ 2`); higher‑arity growing‑AI is the next rung but `AI ≥ 3` is `decide`‑infeasible
+  (needs structural immunity).  The cleanest conditional separation: observer geometry + Goldreich family +
+  Williams cash‑out, with one conjectural input.
+
 ## Part V — The frontier (the two honest research forks)
 
 The least‑action path (N‑Frame Lagrangian) is built out; the residual is one of:
