@@ -24,17 +24,24 @@ transform* `anf g S = ∑_{T ⊆ S} g T` recovers the algebraic‑normal‑form 
   Equivalently: a low‑ANF‑degree function supported only on high weight is zero.
 * `nonzero_low_degree_hits_low_weight` — the contrapositive: every nonzero degree‑`< t` function is nonzero at
   some weight‑`< t` point (the low‑weight slice is interpolating for degree‑`< t` `F₂` polynomials).
-* `negMaj_no_low_degree_annihilator` — **the immunity statement**: no nonzero `g` of ANF degree `< t`
-  annihilates `¬Maj` (`g · ¬Maj = 0`).  This is the `¬Maj` (low‑weight) side of `AI(Maj_{2t-1}) ≥ t`, structural
-  and scaling in `t` — the growing‑algebraic‑immunity lower bound, with no `decide`.
+* `negMaj_no_low_degree_annihilator` — the `¬Maj` (low‑weight) side: no nonzero `g` of ANF degree `< t`
+  annihilates `¬Maj` (`g · ¬Maj = 0`).
+* `anf_compl_eq_superset_sum` / `degreeLt_compl` — **the complement‑symmetry rung**: complementing the argument
+  sends the downset ANF transform to the upset sum of ANF coefficients (`anf (T↦g Tᶜ) U = ∑_{S⊇U} anf g S`),
+  proved by a complement reindex + a dual swap‑and‑count; hence complement **preserves ANF degree**.  This is the
+  ANF form of the symmetry `Maj(x̄) = ¬Maj(x)`.
+* `maj_high_weight_annihilator_zero` — the `Maj` (high‑weight) side, via the complement conjugation.
+* `majority_algebraic_immunity_two_sided` — **`AI(Maj_{2t-1}) ≥ t`, both sides (proved)**: for `2t ≤ n+1`, no
+  nonzero ANF degree‑`< t` function annihilates `Maj` *or* `¬Maj`.  The immunity threshold `t` grows with the
+  arity, by a purely structural `F₂`‑inversion + complement‑symmetry argument — no `decide`.
 
-## Honest scope
+## Status
 
-This is the genuinely structural half (the low‑weight / `¬Maj` side), giving a *growing* algebraic‑immunity
-lower bound `t` from a clean `F₂`‑inversion argument — no `decide`, scaling with arity.  The matching `Maj`‑side
-(high‑weight annihilators) follows by the degree‑preserving complement symmetry `Maj(x̄) = ¬Maj(x)`; that
-symmetry lemma is the remaining piece for the full two‑sided `AI(Maj_n) = ⌈n/2⌉`.  The core inversion and the
-low‑weight bound — the part that actually makes immunity grow — are proved here.
+The full two‑sided structural growing‑algebraic‑immunity lower bound `AI(Maj_{2t-1}) ≥ t` is proved here from
+scratch: the `F₂` Möbius inversion (absent from Mathlib), the low‑weight interpolation core, and the
+degree‑preserving complement symmetry that closes the high‑weight side.  No `decide`, scaling with arity, clean
+axioms `[propext, Classical.choice, Quot.sound]`, no `sorry`.  (The matching *upper* bound `AI ≤ ⌈n/2⌉`, giving
+optimality, is a separate dimension‑counting statement not needed for the lower bound.)
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.MajorityAI
@@ -171,7 +178,166 @@ theorem negMaj_no_low_degree_annihilator {t : ℕ} (g : Finset (Fin n) → ZMod 
   rw [negMaj, if_pos hT, mul_one] at h
   exact h
 
+/-! ### The complement‑symmetry rung: closing the `Maj` (high‑weight) side -/
+
+/-- **Degree identity under complement (proved).**  Complementing the argument turns the downset ANF transform
+into the upset sum of the ANF coefficients:
+`anf (T ↦ g Tᶜ) U = ∑_{S ⊇ U} anf g S`.  Proved by a complement reindex on the left and a swap‑and‑count on the
+right (reusing `card_filter_subset_between` at `S = univ`); both sides equal `∑_{R ⊇ Uᶜ} g R`. -/
+theorem anf_compl_eq_superset_sum (g : Finset (Fin n) → ZMod 2) (U : Finset (Fin n)) :
+    anf (fun T => g Tᶜ) U
+      = ∑ S ∈ (univ : Finset (Fin n)).powerset.filter (fun S => U ⊆ S), anf g S := by
+  classical
+  -- left side reindexes (T ↦ Tᶜ) to a sum over supersets of `Uᶜ`
+  have hA : anf (fun T => g Tᶜ) U
+      = ∑ R ∈ (univ : Finset (Fin n)).powerset.filter (fun R => Uᶜ ⊆ R), g R := by
+    show (∑ T ∈ U.powerset, g Tᶜ) = _
+    apply Finset.sum_nbij' (fun T => Tᶜ) (fun R => Rᶜ)
+    · intro T hT
+      rw [Finset.mem_powerset] at hT
+      rw [Finset.mem_filter, Finset.mem_powerset]
+      exact ⟨Finset.subset_univ _, Finset.compl_subset_compl.mpr hT⟩
+    · intro R hR
+      rw [Finset.mem_filter, Finset.mem_powerset] at hR
+      rw [Finset.mem_powerset]
+      have h := Finset.compl_subset_compl.mpr hR.2
+      rwa [compl_compl] at h
+    · intro T _; rw [compl_compl]
+    · intro R _; rw [compl_compl]
+    · intro T _; rfl
+  -- right side swaps and counts, also landing on supersets of `Uᶜ`
+  have hB : (∑ S ∈ (univ : Finset (Fin n)).powerset.filter (fun S => U ⊆ S), anf g S)
+      = ∑ R ∈ (univ : Finset (Fin n)).powerset.filter (fun R => Uᶜ ⊆ R), g R := by
+    calc ∑ S ∈ (univ : Finset (Fin n)).powerset.filter (fun S => U ⊆ S), anf g S
+        = ∑ S ∈ (univ : Finset (Fin n)).powerset.filter (fun S => U ⊆ S),
+            ∑ R ∈ (univ : Finset (Fin n)).powerset, (if R ⊆ S then g R else 0) := by
+          apply Finset.sum_congr rfl
+          intro S _
+          show (∑ R ∈ S.powerset, g R) = _
+          rw [← Finset.sum_filter]
+          apply Finset.sum_congr _ (fun _ _ => rfl)
+          ext R
+          simp only [Finset.mem_powerset, Finset.mem_filter, Finset.subset_univ, true_and]
+      _ = ∑ R ∈ (univ : Finset (Fin n)).powerset,
+            ∑ S ∈ (univ : Finset (Fin n)).powerset.filter (fun S => U ⊆ S),
+              (if R ⊆ S then g R else 0) := Finset.sum_comm
+      _ = ∑ R ∈ (univ : Finset (Fin n)).powerset,
+            (2 ^ (Fintype.card (Fin n) - (U ∪ R).card) : ℕ) • g R := by
+          apply Finset.sum_congr rfl
+          intro R _
+          rw [← Finset.sum_filter, Finset.filter_filter, Finset.sum_const]
+          congr 1
+          have hfeq : (univ : Finset (Fin n)).powerset.filter (fun S => U ⊆ S ∧ R ⊆ S)
+              = (univ : Finset (Fin n)).powerset.filter (fun S => U ∪ R ⊆ S) := by
+            apply Finset.filter_congr
+            intro S _
+            exact Finset.union_subset_iff.symm
+          rw [hfeq, card_filter_subset_between (Finset.subset_univ (U ∪ R)), Finset.card_univ]
+      _ = ∑ R ∈ (univ : Finset (Fin n)).powerset.filter (fun R => Uᶜ ⊆ R), g R := by
+          rw [← Finset.sum_filter_add_sum_filter_not
+                ((univ : Finset (Fin n)).powerset) (fun R => Uᶜ ⊆ R)]
+          have hnot : (∑ R ∈ (univ : Finset (Fin n)).powerset.filter (fun R => ¬ Uᶜ ⊆ R),
+              (2 ^ (Fintype.card (Fin n) - (U ∪ R).card) : ℕ) • g R) = 0 := by
+            apply Finset.sum_eq_zero
+            intro R hR
+            rw [Finset.mem_filter] at hR
+            have hne : U ∪ R ≠ univ := by
+              intro h
+              apply hR.2
+              intro x hx
+              rw [Finset.mem_compl] at hx
+              have hmem : x ∈ U ∪ R := h ▸ Finset.mem_univ x
+              rcases Finset.mem_union.mp hmem with h1 | h1
+              · exact absurd h1 hx
+              · exact h1
+            have hss : U ∪ R ⊂ univ := Finset.ssubset_univ_iff.mpr hne
+            have hcard_lt : (U ∪ R).card < Fintype.card (Fin n) := by
+              rw [← Finset.card_univ]; exact Finset.card_lt_card hss
+            have hpos : 0 < Fintype.card (Fin n) - (U ∪ R).card := Nat.sub_pos_of_lt hcard_lt
+            have hz : ((2 ^ (Fintype.card (Fin n) - (U ∪ R).card) : ℕ) : ZMod 2) = 0 := by
+              have h2 : ((2 : ℕ) : ZMod 2) = 0 := by decide
+              rw [Nat.cast_pow, h2, zero_pow (Nat.pos_iff_ne_zero.mp hpos)]
+            rw [nsmul_eq_mul, hz, zero_mul]
+          have hp : (∑ R ∈ (univ : Finset (Fin n)).powerset.filter (fun R => Uᶜ ⊆ R),
+              (2 ^ (Fintype.card (Fin n) - (U ∪ R).card) : ℕ) • g R)
+              = ∑ R ∈ (univ : Finset (Fin n)).powerset.filter (fun R => Uᶜ ⊆ R), g R := by
+            apply Finset.sum_congr rfl
+            intro R hR
+            rw [Finset.mem_filter] at hR
+            have huniv : U ∪ R = univ := by
+              apply Finset.Subset.antisymm (Finset.subset_univ _)
+              intro x _
+              rw [Finset.mem_union]
+              by_cases hxU : x ∈ U
+              · exact Or.inl hxU
+              · exact Or.inr (hR.2 (Finset.mem_compl.mpr hxU))
+            rw [huniv, Finset.card_univ, Nat.sub_self, pow_zero, one_smul]
+          rw [hnot, add_zero, hp]
+  rw [hA, hB]
+
+/-- **Complement preserves ANF degree (proved).**  If `g` has ANF degree `< t`, so does `T ↦ g Tᶜ`: each ANF
+coefficient `anf (g ∘ ᶜ) U` for `|U| ≥ t` is a sum of `anf g S` over supersets `S ⊇ U`, all of size `≥ t`,
+hence all zero.  This is the degree‑preserving complement symmetry `Maj(x̄) = ¬Maj(x)` at the ANF level. -/
+theorem degreeLt_compl {t : ℕ} (g : Finset (Fin n) → ZMod 2) (hdeg : DegreeLt g t) :
+    DegreeLt (fun T => g Tᶜ) t := by
+  intro U hU
+  rw [anf_compl_eq_superset_sum]
+  apply Finset.sum_eq_zero
+  intro S hS
+  rw [Finset.mem_filter, Finset.mem_powerset] at hS
+  exact hdeg S (le_trans hU (Finset.card_le_card hS.2))
+
+/-- **`AI(Maj_{2t-1}) ≥ t`, the `Maj` (high‑weight) side (proved).**  No nonzero ANF degree‑`< t` `g`
+annihilates `Maj` (`g · Maj = 0`, i.e. `g` vanishes on weight `≥ t`).  Via the complement conjugation
+`T ↦ g Tᶜ`: it vanishes on low weight (since `|Tᶜ| ≥ t` there, using `2t ≤ n+1`) and keeps degree `< t`
+(`degreeLt_compl`), so it is `0` by `low_weight_low_degree_zero`, whence `g = 0`. -/
+theorem maj_high_weight_annihilator_zero {t : ℕ} (hn : 2 * t ≤ n + 1)
+    (g : Finset (Fin n) → ZMod 2) (hdeg : DegreeLt g t)
+    (hhigh : ∀ T : Finset (Fin n), t ≤ T.card → g T = 0) :
+    ∀ S : Finset (Fin n), g S = 0 := by
+  have hg' : ∀ S : Finset (Fin n), (fun T => g Tᶜ) S = 0 := by
+    apply low_weight_low_degree_zero (t := t) (fun T => g Tᶜ)
+    · intro T hT
+      show g Tᶜ = 0
+      apply hhigh
+      have hcard : Tᶜ.card = Fintype.card (Fin n) - T.card := Finset.card_compl T
+      have hle : T.card ≤ Fintype.card (Fin n) := Finset.card_le_univ T
+      rw [Fintype.card_fin] at hcard hle
+      rw [hcard]
+      omega
+    · exact degreeLt_compl g hdeg
+  intro S
+  have h := hg' Sᶜ
+  simp only [compl_compl] at h
+  exact h
+
+/-- Majority on `n` variables (indexed by support): `Maj t T = 1` iff weight `|T| ≥ t`.  For `n = 2t-1` this is
+the usual majority function. -/
+def Maj (t : ℕ) (T : Finset (Fin n)) : ZMod 2 := if t ≤ T.card then 1 else 0
+
+/-- **`AI(Maj_{2t-1}) ≥ t`, both sides (proved).**  For `2t ≤ n+1` (i.e. `n ≥ 2t-1`), no nonzero ANF degree‑`< t`
+function `g` annihilates `Maj` *or* `¬Maj`.  This is the full two‑sided algebraic‑immunity lower bound: the
+immunity threshold `t` grows with the arity, by a purely structural `F₂`‑inversion + complement‑symmetry
+argument — no `decide`. -/
+theorem majority_algebraic_immunity_two_sided {t : ℕ} (hn : 2 * t ≤ n + 1)
+    (g : Finset (Fin n) → ZMod 2) (hg : g ≠ 0) (hdeg : DegreeLt g t) :
+    (∃ T : Finset (Fin n), g T * Maj t T ≠ 0) ∧ (∃ T : Finset (Fin n), g T * negMaj t T ≠ 0) := by
+  constructor
+  · by_contra hc
+    push_neg at hc
+    apply hg
+    funext S
+    refine maj_high_weight_annihilator_zero hn g hdeg (fun T hT => ?_) S
+    have h := hc T
+    rw [Maj, if_pos hT, mul_one] at h
+    exact h
+  · by_contra hc
+    push_neg at hc
+    exact negMaj_no_low_degree_annihilator g hg hdeg (fun T => hc T)
+
 end PallLean.Paper93.DeepMath.PathB.MajorityAI
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MajorityAI.anf_involutive
 #print axioms PallLean.Paper93.DeepMath.PathB.MajorityAI.low_weight_low_degree_zero
+
+#print axioms PallLean.Paper93.DeepMath.PathB.MajorityAI.majority_algebraic_immunity_two_sided

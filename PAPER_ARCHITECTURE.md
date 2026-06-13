@@ -179,8 +179,11 @@ exactly, with two honest research forks identified.
   degree‑`<t` `F₂` polynomials) ⇒ `negMaj_no_low_degree_annihilator` (no nonzero degree‑`<t` `g` annihilates
   `¬Maj`).  Immunity threshold `t` **grows with arity** — no `decide`.  Clean axioms, no `sorry`.  **Honest
   scope:** this is the structural `¬Maj` (low‑weight) side; the matching `Maj` (high‑weight) side follows by the
-  degree‑preserving complement symmetry `Maj(x̄)=¬Maj(x)` — the one remaining lemma for the full two‑sided
-  `AI(Maj_n)=⌈n/2⌉`.  The hard part (the `F₂` inversion that *makes immunity grow*) is proved.
+  degree‑preserving complement symmetry `Maj(x̄)=¬Maj(x)`, now **also proved** (`anf_compl_eq_superset_sum`:
+  `anf(T↦g Tᶜ)U = ∑_{S⊇U} anf g S` via complement reindex + dual swap‑and‑count ⇒ `degreeLt_compl` ⇒
+  `maj_high_weight_annihilator_zero`).  **`majority_algebraic_immunity_two_sided` (PROVED): the FULL two‑sided
+  `AI(Maj_{2t-1}) ≥ t`** — no nonzero degree‑`<t` `g` annihilates `Maj` or `¬Maj`, threshold `t` growing with
+  arity, purely structural (no `decide`), clean axioms.  The growing‑algebraic‑immunity lower bound is complete.
 
 ## Part V — The frontier (the two honest research forks)
 
