@@ -563,6 +563,22 @@ fed into `restricted_fragment_low_correlation` + `acc0_williams_cashout`, would 
 `NP ⊄ ACC⁰`‑strength under the PRF‑free naturalness ceiling.  So the correlation route is **opened and proved on
 fragments**; the load‑bearing ACC⁰‑approximation step is named and lies (as expected) at the same wall.
 
+**The bridge tested explicitly on a `MOD q` gate (`…ModQGateBalance`).**  Running the smallest genuine
+all‑variable ACC⁰ gate confirms the engine's prediction *precisely*.  A `MOD q` gate is the cleanest low‑rank
+predictor — it factors through the count statistic `modQStat q x = (∑_i x_i) ∈ ZMod q` (`q` classes) — but it
+reads every variable, so the missed‑variable involution `flipAt v` breaks: one flip changes the count by `±1` and
+leaves the `MOD q` class.  **What survives is a count‑preserving *pair* swap** `pairSwap v w` (flip `v∈D` and a
+witness `w∉D` together): on the off‑diagonal `{x_v ≠ x_w}` it preserves the count *exactly*
+(`modQStat_pairSwap_offdiag`: one coordinate `0→1`, the other `1→0`) and toggles the parity (`fParity_pairSwap`),
+so `balanced_per_class_of_involution` gives **exact per‑class balance off‑diagonal** (`modQ_class_balanced_offdiagonal`,
+`offdiag_balanced`) and hence **no `MOD q`‑gate correlation advantage against the holonomy parity on the
+off‑diagonal** (`modQ_gate_low_correlation_offdiagonal`: `2·agreement ≤ #off‑diagonal inputs`).  All clean axioms,
+no `sorry`.  **The residual is exactly the diagonal** `{x_v = x_w}` (there the pair swap changes the count by `±2`
+and leaves the class) — which is the classical `MOD q`‑vs‑parity correlation, exponentially small in `n−|D|` by a
+Fourier/character recursion but *not* by any involution (`ModQParityCorrelationExpSmall`, named open).  So the
+approximate bridge **partly survives** — a count‑preserving symmetry recovers exact balance on the symmetric part —
+and the irreducible remainder is, once again, the same Razborov–Smolensky‑flavoured `NP ⊄ ACC⁰`‑strength estimate.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
