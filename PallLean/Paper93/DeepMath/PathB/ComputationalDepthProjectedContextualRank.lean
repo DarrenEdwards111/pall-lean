@@ -90,6 +90,22 @@ theorem pcrank_le_card_range {A B R : Type*} [Fintype A] [Fintype B] [DecidableE
   unfold pcrank
   exact le_trans (Finset.card_le_card (Finset.subset_univ _)) (le_of_eq Finset.card_univ)
 
+/-- **Refinement monotonicity (proved).**  If `proj1` factors through `proj2` (`proj1 = g ∘ proj2`), then `proj2`
+is at least as distinguishing: `pcrank proj1 M ≤ pcrank proj2 M`.  A strictly richer projection can only *raise*
+rank — the lever for comparing projection families (e.g. SPDP refines low-degree). -/
+theorem pcrank_le_of_factor {A B R₁ R₂ : Type*} [Fintype A] [Fintype B] [DecidableEq B]
+    [DecidableEq R₁] [DecidableEq R₂] (proj1 : (B → Bool) → R₁) (proj2 : (B → Bool) → R₂)
+    (g : R₂ → R₁) (M : A → B → Bool) (hfac : ∀ r, proj1 r = g (proj2 r)) :
+    pcrank proj1 M ≤ pcrank proj2 M := by
+  unfold pcrank
+  have heq : (rowsOf M).image proj1 = ((rowsOf M).image proj2).image g := by
+    rw [Finset.image_image]
+    apply Finset.image_congr
+    intro r _
+    exact hfac r
+  rw [heq]
+  exact Finset.card_image_le
+
 /-- **Rank survives an injective projection (proved).**  If `proj` is injective on the rows of `M`, the projected
 rank equals the raw rank.  This is `projection_preserves_rank_if_injective` at the row level. -/
 theorem pcrank_eq_crank_of_injOn {A B R : Type*} [Fintype A] [Fintype B] [DecidableEq B] [DecidableEq R]
