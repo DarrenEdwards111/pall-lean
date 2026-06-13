@@ -369,8 +369,9 @@ algorithmic method), while `P/poly`/`P ≠ NP` is *blocked by the same barrier* 
 appear.  "Stronger than Williams" is plausible only at the ACC⁰ level, and is provably not a path to the
 separation.
 
-**The holonomy arc — a global cycle detector that sees what local SPDP missed (`…HypergraphHolonomySPDP` →
-`…HolonomyPSideControl` → `…HolonomyBoundedCycleRank`).**  Within the un‑barriered ACC⁰ avenue, the most promising
+**The holonomy arc — a global cycle detector that sees what local SPDP missed, fully characterized
+(`…HypergraphHolonomySPDP` → `…HolonomyPSideControl` → `…HolonomyBoundedCycleRank` → `…HolonomyCompositionRank` →
+`…HolonomyEffectiveRank` → `…HolonomyHardEffectiveRank`).**  Within the un‑barriered ACC⁰ avenue, the most promising
 invariant: not a local Hamming‑ball probe but a *cycle‑obstruction* one.  On a Tseitin constraint graph the
 **holonomy of a cycle `C`** is the `F₂` sum of vertex charges around it, `⊕_{v∈C} charge(v)` — zero for a
 satisfiable charge, nonzero exactly when the cycle is globally inconsistent.
@@ -389,13 +390,27 @@ satisfiable charge, nonzero exactly when the cycle is globally inconsistent.
   proves the factoring concretely (`m` cycles from `r` distinct basis cycles).  So bounded‑treewidth/planar
   constraint graphs (cycle rank `O(\log n)`/`O(1)`) are *provably tame* (poly/constant classes), expanders
   (`Ω(n)`) hit `2^{Ω(n)}` — conditional only on a **graph property**, not a complexity assumption (not a socket).
+* **Composition — rank is subadditive (`…HolonomyCompositionRank`).**  `holonomy_classes_submultiplicative`
+  (`#classes(A ⊞ B) ≤ #classes(A)·#classes(B)`) and `holonomy_rank_subadditive` (`2^{rₐ}·2^{r_b} ⇒ 2^{rₐ+r_b}`):
+  composing `k` sources of rank `≤ s` gives `≤ 2^{k·s}` — exponent **linear** in `k`, versus the feature budget's
+  `2^{(d+1)^k}` (exponent *exponential* in `k`).  The genuine quantitative advantage over feature‑counting.
+* **Effective rank of *realized* charges, two‑sided (`…HolonomyEffectiveRank`, `…HolonomyHardEffectiveRank`).**
+  The right object is not the raw graph's cycle rank but the rank the circuit's *actual* charges span.
+  `realized_le_of_factorThroughStat` + `modular_layer_realized_le` — a `k`‑gate modular layer's realized charges
+  factor through `k` statistics ⇒ `≤ q^k` classes (effective rank `≤ k·log₂ q`, *additive*): the AC⁰[p] success in
+  holonomy form.  `expander_realizedClasses_eq` — the matching lower bound: the charged expander gadget realizes
+  the full `2^m` classes (effective rank `= m`).
 
-So the holonomy arc lands **both ends of the cascade**: hard side (expander cycles → `2^m`, seen at weight 1) and
-tame side (bounded effective cycle rank → `≤ 2^r`).  The one missing implication is exactly **poly‑time ⇒ low
-*effective* cycle rank on hard instances** — which is *false* for the raw constraint graph (an ACC⁰ circuit can
-encode an expander), so it must be about the *realized* charges: `ACC0LowRealizedGodelSPDP` once more, the open
-`NP ⊄ ACC⁰`‑strength step, still under the PRF‑free naturalness ceiling.  Holonomy is the strongest candidate the
-arc produced — weight‑1 visibility and `2^{rank}` linear control — with the gap named precisely, not bridged.
+So the holonomy invariant is now **fully characterized, both ends proved on the same object** (`realizedClasses`):
+tame computations (low statistic count) → low effective rank `≤ k·log₂ q`; the Tseitin/expander family → full
+effective rank `= m`.  It genuinely does what fixed SPDP could not — weight‑1 visibility, linear `2^{rank}` control,
+*additive* composition — and it cleanly separates tame from hard.  The one missing implication is exactly
+**poly‑time ⇒ low *effective* cycle rank on hard instances** (= `ACC0LowRealizedGodelSPDP`), which is *false* for
+the raw constraint graph (an ACC⁰ circuit can encode an expander) so it is genuinely about the *realized* charges;
+it is the open `NP ⊄ ACC⁰`‑strength step, and the PRF‑free naturalness ceiling
+(`…DynamicSPDPNaturalnessRange`) caps even that below `P ≠ NP`.  This exploration is therefore **closed as a
+characterized invariant**: the strongest the arc produced, separating tame from hard, with the single remaining
+bridge named precisely and proved to lie beyond the method's reach — not bridged, and honestly not bridgeable here.
 
 ## 5. The exact missing theorem — where everything converges
 
