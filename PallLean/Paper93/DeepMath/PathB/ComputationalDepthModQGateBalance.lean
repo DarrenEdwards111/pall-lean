@@ -42,6 +42,10 @@ off‑diagonal** (`modQ_gate_low_correlation_offdiagonal`).
   `MOD q` class *equals* the imbalance of its diagonal `{x_v = x_w}` — the off‑diagonal contributes exactly
   nothing.  So "the entire residual lives on the diagonal" is a *theorem*, not an observation
   (`card_eq_offdiag_add_diag` split + `balanced_of_involution` off‑diagonal balance).
+* `modQStat_two_pairSwap`, `modQ2_diagonal_balanced`, `modQ2_class_balanced`, `modQ2_gate_zero_correlation` —
+  **the recursion closes for `q = 2`**: on the diagonal the flip‑both involution changes the count by `±2`, which
+  is `0` mod `2`, so the diagonal is balanced too — giving **exact zero correlation advantage of a `MOD 2` gate
+  against any holonomy parity** (`D ⊊` variables), over *all* inputs.
 
 ## The honest verdict — the approximate version *partly* survives, and the residual is named exactly
 
@@ -59,6 +63,15 @@ diagonal residual is the genuine Razborov–Smolensky‑flavoured correlation bo
 content the fragment route always reduces to.  The test confirms the engine's prediction *precisely*: an unread
 coordinate gives exact balance; a *read* low‑rank statistic gives balance on the symmetric part and an
 exponentially small, analytically‑bounded deficit on the rest.
+
+**Attacking the diagonal recursively settles the modulus split.**  The closing question — does the diagonal
+recursion bottom out at an involutive bound or at the character sum? — has a clean answer: it depends on `q`.  On
+the diagonal the only count‑preserving parity‑toggling move is the flip‑both involution (count change `±2`).  For
+`q = 2` that `±2` is `0`, so the diagonal is exactly balanced and the recursion **closes** — `MOD 2` has *exactly
+zero* correlation advantage against any holonomy parity over `D ⊊` variables, fully by involution
+(`modQ2_gate_zero_correlation`).  For `q > 2` the `±2` is nonzero mod `q`, the diagonal involution is blocked, and
+the residual is genuinely the character sum.  So the involution method reaches *all the way* for modulus `2` and
+bottoms out only for `q > 2`.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.ModQGateBalance
@@ -278,14 +291,86 @@ theorem modQ_class_imbalance_on_diagonal (q : ℕ) (D : Finset (Fin n)) (v w : F
   have sF := card_eq_offdiag_add_diag C v w (fun x => fParity D x = false)
   omega
 
+/-! ## Attacking the diagonal: the recursion *closes* for `q = 2`
+
+The localization confined all imbalance to the diagonal `{x_v = x_w}`.  On the diagonal the *only* count‑preserving
+parity‑toggling move flips a pair *both inside or both outside* — concretely `pairSwap v w` itself, which is just
+"flip both `v` and `w`": it keeps `x_v = x_w` (both toggle) and changes the count by `±2` (both move the same way).
+Mod `2` that `±2` vanishes, so **for `q = 2` the diagonal is balanced too** and the recursion bottoms out at exact
+balance.  For `q > 2` the `±2` is nonzero mod `q`, the diagonal involution fails, and the residual is the genuine
+character sum (`ModQParityCorrelationExpSmall`). -/
+
+/-- **The pair swap preserves the `MOD 2` count unconditionally (proved).**  Flipping two coordinates changes the
+count by an even amount, which is `0` in `ZMod 2` — no off‑diagonal hypothesis needed (unlike general `q`). -/
+theorem modQStat_two_pairSwap (v w : Fin n) (h : v ≠ w) (x : Fin n → Bool) :
+    modQStat 2 (pairSwap v w x) = modQStat 2 x := by
+  unfold modQStat
+  rw [sum_extract_two v w h (fun i => if pairSwap v w x i then (1 : ZMod 2) else 0),
+      sum_extract_two v w h (fun i => if x i then (1 : ZMod 2) else 0)]
+  have hR : ∑ i ∈ (Finset.univ.erase v).erase w, (if pairSwap v w x i then (1 : ZMod 2) else 0)
+      = ∑ i ∈ (Finset.univ.erase v).erase w, (if x i then (1 : ZMod 2) else 0) := by
+    apply Finset.sum_congr rfl
+    intro i hi
+    have hiw : i ≠ w := Finset.ne_of_mem_erase hi
+    have hiv : i ≠ v := Finset.ne_of_mem_erase (Finset.mem_of_mem_erase hi)
+    rw [pairSwap_other _ _ _ hiv hiw]
+  have key : ∀ a b : Bool, (if !a then (1 : ZMod 2) else 0) + (if !b then (1 : ZMod 2) else 0)
+      = (if a then (1 : ZMod 2) else 0) + (if b then (1 : ZMod 2) else 0) := by decide
+  rw [hR, pairSwap_v, pairSwap_w v w x h.symm, key (x v) (x w)]
+
+/-- **The diagonal is balanced for `q = 2` (proved): the recursion's closing step.**  On `{x_v = x_w}` the
+flip‑both involution `pairSwap v w` preserves the diagonal, preserves the `MOD 2` count (unconditionally), and
+toggles the parity — so `balanced_of_involution` applies on the diagonal too. -/
+theorem modQ2_diagonal_balanced (D : Finset (Fin n)) (v w : Fin n)
+    (hvw : v ≠ w) (hvD : v ∈ D) (hwD : w ∉ D) (c : ZMod 2) :
+    ((((Finset.univ : Finset (Fin n → Bool)).filter (fun x => modQStat 2 x = c)).filter
+        (fun x => x v = x w)).filter (fun x => fParity D x = true)).card
+      = ((((Finset.univ : Finset (Fin n → Bool)).filter (fun x => modQStat 2 x = c)).filter
+          (fun x => x v = x w)).filter (fun x => fParity D x = false)).card := by
+  apply balanced_of_involution _ (fParity D) (pairSwap v w)
+  · intro x hx
+    simp only [Finset.mem_filter] at hx ⊢
+    obtain ⟨⟨_, hcx⟩, hdiageq⟩ := hx
+    refine ⟨⟨Finset.mem_univ _, ?_⟩, ?_⟩
+    · rw [modQStat_two_pairSwap v w hvw x]; exact hcx
+    · rw [pairSwap_v, pairSwap_w v w x hvw.symm, hdiageq]
+  · intro x _; exact pairSwap_involutive v w hvw x
+  · intro x _; exact fParity_pairSwap D v w hvD hwD hvw x
+
+/-- **The recursion closes: a `MOD 2` class is *exactly* balanced against any holonomy parity (proved).**  The
+localization (`modQ_class_imbalance_on_diagonal`) plus diagonal balance (`modQ2_diagonal_balanced`) cancel: the
+full class has equal `parity=true` and `parity=false` counts. -/
+theorem modQ2_class_balanced (D : Finset (Fin n)) (v w : Fin n)
+    (hvw : v ≠ w) (hvD : v ∈ D) (hwD : w ∉ D) (c : ZMod 2) :
+    (((Finset.univ : Finset (Fin n → Bool)).filter (fun x => modQStat 2 x = c)).filter
+        (fun x => fParity D x = true)).card
+      = (((Finset.univ : Finset (Fin n → Bool)).filter (fun x => modQStat 2 x = c)).filter
+          (fun x => fParity D x = false)).card := by
+  have hloc := modQ_class_imbalance_on_diagonal 2 D v w hvw hvD hwD c
+  have hdiag := modQ2_diagonal_balanced D v w hvw hvD hwD c
+  omega
+
+/-- **The full cash‑out for `q = 2` (proved): a `MOD 2` gate has *zero* correlation advantage against any holonomy
+parity** (`2 · agreement ≤ #inputs` over *all* inputs, not just the off‑diagonal).  This is the recursion closing
+completely: where general `q` left a diagonal residual, `q = 2` eliminates it. -/
+theorem modQ2_gate_zero_correlation (D : Finset (Fin n)) (v w : Fin n)
+    (hvw : v ≠ w) (hvD : v ∈ D) (hwD : w ∉ D) (g : ZMod 2 → Bool) :
+    2 * ((Finset.univ : Finset (Fin n → Bool)).filter (fun x => g (modQStat 2 x) = fParity D x)).card
+      ≤ (Finset.univ : Finset (Fin n → Bool)).card :=
+  low_rank_predictor_low_correlation_with_full_holonomy
+    Finset.univ (modQStat 2) g (fParity D)
+    (fun c _ => modQ2_class_balanced D v w hvw hvD hwD c)
+
 /-! ## The residual — named honestly -/
 
-/-- **(Named open — `NP ⊄ ACC⁰`‑strength).**  The full‑class imbalance of the holonomy parity inside a `MOD q`
-level set is exponentially small in `n − |D|`.  The off‑diagonal part is *exactly* balanced
+/-- **(Named open — `NP ⊄ ACC⁰`‑strength, for `q > 2`).**  The full‑class imbalance of the holonomy parity inside
+a `MOD q` level set is exponentially small in `n − |D|`.  The off‑diagonal part is *exactly* balanced
 (`offdiag_balanced`), so this residual is entirely the **diagonal** `{x_v = x_w}` contribution — the classical
 `MOD q`‑vs‑parity correlation, bounded by a Fourier/character recursion (cancelling main terms), *not* by any
-involution.  Supplying it would let `modQ_gate_low_correlation_offdiagonal`‑style bounds extend off the diagonal
-to the whole class; it is the same Razborov–Smolensky‑flavoured content every fragment route reduces to. -/
+involution **for `q > 2`** (the diagonal flip‑both changes the count by `±2 ≢ 0`).  For `q = 2` it *is* supplied —
+`modQ2_gate_zero_correlation` gives exact zero correlation by involution — so only `q > 2` remains open here.
+Supplying it would let `modQ_gate_low_correlation_offdiagonal`‑style bounds extend off the diagonal to the whole
+class; it is the same Razborov–Smolensky‑flavoured content every fragment route reduces to. -/
 def ModQParityCorrelationExpSmall (fullImbalance : ℕ → ℕ) (expSmallBound : ℕ → ℕ) : Prop :=
   ∀ n, fullImbalance n ≤ expSmallBound n
 
@@ -298,3 +383,6 @@ end PallLean.Paper93.DeepMath.PathB.ModQGateBalance
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQGateBalance.offdiag_balanced
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQGateBalance.modQ_gate_low_correlation_offdiagonal
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQGateBalance.modQ_class_imbalance_on_diagonal
+#print axioms PallLean.Paper93.DeepMath.PathB.ModQGateBalance.modQ2_diagonal_balanced
+#print axioms PallLean.Paper93.DeepMath.PathB.ModQGateBalance.modQ2_class_balanced
+#print axioms PallLean.Paper93.DeepMath.PathB.ModQGateBalance.modQ2_gate_zero_correlation

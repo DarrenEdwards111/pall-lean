@@ -583,6 +583,19 @@ approximate bridge **partly survives** — a count‑preserving symmetry recover
 and *localizes* the entire deficit to the diagonal — and the irreducible remainder is, once again, the same
 Razborov–Smolensky‑flavoured `NP ⊄ ACC⁰`‑strength estimate.
 
+**Attacking the diagonal recursively settles the modulus split.**  Pushing the recursion onto the diagonal answers
+the closing question — involutive bound or character sum? — with *it depends on `q`*.  On the diagonal the only
+count‑preserving parity‑toggling move is the flip‑both involution `pairSwap v w` (which keeps `x_v=x_w` and changes
+the count by `±2`).  **For `q = 2` that `±2` is `0`**, so `modQStat_two_pairSwap` preserves the `MOD 2` count
+*unconditionally*, the diagonal is balanced (`modQ2_diagonal_balanced`), and combined with the localization the
+recursion **closes**: `modQ2_class_balanced` / `modQ2_gate_zero_correlation` prove a `MOD 2` gate has **exactly
+zero** correlation advantage against *any* holonomy parity over `D ⊊` variables, over *all* inputs, fully by
+involution (no character sum, no `sorry`, clean axioms).  **For `q > 2`** the `±2` is nonzero mod `q`, the diagonal
+involution is blocked, and only there does the genuine character‑sum residual remain
+(`ModQParityCorrelationExpSmall`, now scoped to `q > 2`).  So the involution method reaches *all the way* at the
+modulus `2` (an exact RS‑style zero‑correlation theorem, proved) and bottoms out only for higher moduli — a clean,
+honest delineation of exactly where the elementary method stops.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
