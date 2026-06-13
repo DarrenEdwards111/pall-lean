@@ -186,6 +186,20 @@ constructive** (under crypto+RR).  So "most functions are hard" provably cannot 
 property isolating an explicit `NP` family; crossing to explicit hardness needs a *non‑natural* argument.  RR and
 crypto are parameters, not claims.
 
+## 4⁷. An *explicit* family escaping a richer (decomposable) decision class (`…ExplicitNeciporukHardness`)
+
+The first explicit, non‑natural decision lower bound plugged into the program — the genuine successor to counting
+and width.  Reusing the corpus's crossing‑capacity / Nečiporuk machinery: `StorageAccess m` (the explicit
+indirect‑addressing function) has `2^m` distinct crossing subfunctions, so `storageAccess_decomposable_lb` (every
+`CrossingModel` needs `≥ 2^m` states), `storageAccess_escapes_cheap_decomposable` (no capacity‑`<2^m` decomposable
+decider computes it), and `explicit_family_beats_decomposable` (for every capacity `c`, an explicit family escapes
+it).  This is genuinely **explicit** (a named function), a **decision** bound (computing `StorageAccess`, not
+separating a residual), against a class **richer than width** (decomposable/communication, measured by distinct
+subfunctions), and **non‑natural** (the subfunction count is not a large/constructive property — it *evades* the
+natural‑proofs barrier, which is why it is provable).  Honest ceiling: per block `2^m`, summed it gives formula
+size `Θ(n²/log n)` (`…NeciporukHardFunctionAsymptotic`) — the decades‑old explicit frontier — **not** `P/poly` or
+`P ≠ NP`.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
