@@ -153,6 +153,17 @@ compensate for bounded width in *realizing* the separator; a poly‑*size* BP (w
 `O(log n) < r`) cannot realize it either.  Honest caveat: this is the realization/classifier bound, not a
 `1`‑bit decision lower bound — the decision‑vs‑separation gap is the time‑axis bridge (the open step).
 
+## 4⁗. The cash‑out on the decision axis — unconditional, by counting (`…RestrictedCashout`)
+
+A Williams‑style cash‑out that bites on the `1`‑bit *decision* axis, with no conjecture: `cheap ⇒ enumerable`
+(a bounded‑resource decider has a short description — the proved speedup `…NFrameSpeedupBridge` quantifies this)
+and the contradiction by counting/diagonalization (`exists_uncomputed_of_card_lt`).  `card_boolFun`
+(`|BoolFun n| = 2^{2^n}`); `cheap_class_misses_function` (a class `Fin N → BoolFun n` with `N < 2^{2^n}` misses
+some function); `restricted_cashout` (a cheap enumerable class is *not surjective* onto all Boolean functions).
+This is a genuine, unconditional **decision** lower bound (some function escapes every cheap decider) — distinct
+from the separator/classifier bounds.  Honest limitation: it is the *existence* (Shannon) form — it gives *some*
+hard function, not an *explicit* family; pinning it to an explicit NP family is the `P ≠ NP`‑strength step.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
