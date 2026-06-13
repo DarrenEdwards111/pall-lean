@@ -651,6 +651,17 @@ ACC⁰ predictor reads enough gates to separate the coordinates, at which point 
 matching/shattering wall, `NP ⊄ ACC⁰`‑strength.  This pins where the correlation engine stops: not at a modulus,
 not at two gates, but at the point where the gates' cells refine past the holonomy support's structure.
 
+**The pigeonhole converse makes the `log₂ n` threshold a theorem (`…ManyGateCorrelation`).**  The cell map
+`v ↦ (v∈S₁,…,v∈S_k)` lands in `Bool^{Fin k}` (size `2^k`); if `2^k < n` it cannot be injective
+(`Fintype.exists_ne_map_eq_of_card_lt`), so two distinct coordinates share a cell — `exists_sameCell_pair_of_card_lt`
+— and the singleton of one of them is a holonomy support the engine bites on — `exists_cellWitness_of_card_lt`
+(clean, `2^k < n ⇒ ∃ D, CellWitness`).  This is the exact converse of `respectsCells_of_separating` (which needs
+the supports to *separate* every coordinate, i.e. `≥ ⌈log₂ n⌉` gates): **below `k = ⌈log₂ n⌉` the engine always has
+a `D` to act on; at or above it the supports can shatter the coordinates and kill the involution.**  So the
+elementary correlation engine's survival is pinned to a sharp gate‑count threshold — `k` vs `log₂ n` — turning
+"few gates ⇒ engine bites" from intuition into a proved dividing line, and locating the ACC⁰ wall exactly where the
+modular‑statistic count crosses `log₂ n`.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):

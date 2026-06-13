@@ -124,6 +124,48 @@ theorem respectsCells_of_separating (supports : Fin k → Finset (Fin n)) (D : F
     (hsep : ∀ v w, SameCell supports v w → v = w) : RespectsCells supports D :=
   fun v w hcell => by rw [hsep v w hcell]
 
+/-! ## The pigeonhole converse: few gates ⇒ a shared cell ⇒ the engine bites
+
+The cell map `v ↦ (v∈S₁,…,v∈S_k)` lands in `Bool^{Fin k}`, of size `2^k`.  If `2^k < n` it cannot be injective, so
+two distinct coordinates share a cell — and any `D` separating them is a witness.  This is the exact converse of
+`respectsCells_of_separating`: separation (no shared cells) needs `≥ ⌈log₂ n⌉` gates, so **below that threshold the
+engine always has a `D` to bite on**. -/
+
+/-- The membership pattern of a coordinate across the `k` supports — its cell, as a point of `Bool^{Fin k}`. -/
+def cellMap (supports : Fin k → Finset (Fin n)) (v : Fin n) : Fin k → Bool :=
+  fun j => decide (v ∈ supports j)
+
+theorem sameCell_iff_cellMap (supports : Fin k → Finset (Fin n)) (v w : Fin n) :
+    SameCell supports v w ↔ cellMap supports v = cellMap supports w := by
+  unfold SameCell cellMap
+  constructor
+  · intro h; funext j; exact decide_eq_decide.mpr (h j)
+  · intro h j; exact decide_eq_decide.mp (congrFun h j)
+
+/-- **Pigeonhole (proved): if `2^k < n` then two distinct coordinates share a cell.** -/
+theorem exists_sameCell_pair_of_card_lt (supports : Fin k → Finset (Fin n)) (h : 2 ^ k < n) :
+    ∃ v w, v ≠ w ∧ SameCell supports v w := by
+  have hc : Fintype.card (Fin k → Bool) < Fintype.card (Fin n) := by
+    rw [Fintype.card_fin]
+    calc Fintype.card (Fin k → Bool) = 2 ^ k := by simp [Fintype.card_fin, Fintype.card_bool]
+      _ < n := h
+  obtain ⟨v, w, hne, hmap⟩ := Fintype.exists_ne_map_eq_of_card_lt (cellMap supports) hc
+  exact ⟨v, w, hne, (sameCell_iff_cellMap supports v w).mpr hmap⟩
+
+/-- A distinct same‑cell pair separated by `D` is a witness. -/
+theorem cellWitness_of_separating_pair (supports : Fin k → Finset (Fin n)) (D : Finset (Fin n))
+    (v w : Fin n) (hne : v ≠ w) (hcell : SameCell supports v w) (hvD : v ∈ D) (hwD : w ∉ D) :
+    CellWitness supports D :=
+  ⟨v, w, hne, hvD, hwD, hcell⟩
+
+/-- **The converse (proved): if `2^k < n`, there is a holonomy support `D` for which the engine bites** — i.e.
+`D` does not respect the cell partition.  (Take `D` to be the singleton of one element of a shared‑cell pair.) -/
+theorem exists_cellWitness_of_card_lt (supports : Fin k → Finset (Fin n)) (h : 2 ^ k < n) :
+    ∃ D : Finset (Fin n), CellWitness supports D := by
+  obtain ⟨v, w, hne, hcell⟩ := exists_sameCell_pair_of_card_lt supports h
+  exact ⟨{v}, v, w, hne, Finset.mem_singleton_self v,
+    fun hw => hne (Finset.mem_singleton.mp hw).symm, hcell⟩
+
 end PallLean.Paper93.DeepMath.PathB.ManyGateCorrelation
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ManyGateCorrelation.weightVec_pairSwap
@@ -131,3 +173,5 @@ end PallLean.Paper93.DeepMath.PathB.ManyGateCorrelation
 #print axioms PallLean.Paper93.DeepMath.PathB.ManyGateCorrelation.kGate_low_correlation_offdiagonal
 #print axioms PallLean.Paper93.DeepMath.PathB.ManyGateCorrelation.cellWitness_iff_not_respects
 #print axioms PallLean.Paper93.DeepMath.PathB.ManyGateCorrelation.respectsCells_of_separating
+#print axioms PallLean.Paper93.DeepMath.PathB.ManyGateCorrelation.exists_sameCell_pair_of_card_lt
+#print axioms PallLean.Paper93.DeepMath.PathB.ManyGateCorrelation.exists_cellWitness_of_card_lt
