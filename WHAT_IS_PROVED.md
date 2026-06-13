@@ -457,6 +457,22 @@ the wall: at poly gates the counting bound is `q^n ≥ 2^n`, vacuous.  The attem
 method proves tameness only for `O(log n)` gates.  Either way it does not reach `NP ⊄ ACC⁰`, and even if it did
 the naturalness ceiling caps it below `P ≠ NP`.
 
+**The restriction / switching surrogate — proved for the fragment, named for general ACC⁰
+(`…ACCHolonomyRestriction`, `…FragmentSwitching`).**  The sharpest two‑sided formulation of what an ACC⁰ lower
+bound needs, with one side proved.  *Hard side, proved:* `tseitin_holonomy_survives_restriction` — a restriction
+leaving `K` cycles free preserves all `2^{|K|}` holonomy classes (Tseitin/expander holonomy is robust under
+restriction).  *Tame side, the switching surrogate, proved for the modular‑statistic fragment:*
+`restriction_lowers_effective_holonomy_rank` — a restriction fixing `k − j` statistics leaves the charge factoring
+through `j` free ones, so `realizedClasses ≤ q^j` and `q^j < q^k` (the rank bound strictly drops).  Combined,
+`fragment_below_surviving_tseitin`: when `q^j < 2^{|K|}` the fragment realizes *strictly fewer* classes than the
+hard family retains — a genuine fragment‑level lower bound, the switching mechanism (restriction lowers the
+circuit, Tseitin survives) closing end‑to‑end **on the fragment**.  *The open core:* the same surrogate for
+*poly‑gate* ACC⁰ — `ACC0LowEffectiveHolonomyRank` (`acc0_holonomy_separation` is the conditional it feeds) —
+fails to generalize for a precise reason: a poly‑gate ACC⁰ circuit need not factor through few statistics, and a
+restriction need not reduce its statistic count (it can encode an expander).  That exact hypothesis is
+`NP ⊄ ACC⁰`‑strength, still under the naturalness ceiling.  So the mechanism is *correct and complete on the
+fragment*; extending it to poly‑gate ACC⁰ is the major missing theorem, not a gap in the surrogate.
+
 So this exploration is **closed as a characterized invariant**: the strongest the arc produced, separating tame
 from hard, with the single remaining bridge named precisely and proved to lie beyond the method's reach — not
 bridged, and honestly not bridgeable here.  (Adjacent and also closed: the explicit‑Nečiporuk frontier — the
