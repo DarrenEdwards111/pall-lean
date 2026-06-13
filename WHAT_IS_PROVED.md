@@ -164,6 +164,17 @@ This is a genuine, unconditional **decision** lower bound (some function escapes
 from the separator/classifier bounds.  Honest limitation: it is the *existence* (Shannon) form — it gives *some*
 hard function, not an *explicit* family; pinning it to an explicit NP family is the `P ≠ NP`‑strength step.
 
+## 4⁵. The explicitness wall — counting ≠ explicit NP (`…ExplicitnessWall`)
+
+The wall, moved from decision to *explicit* decision.  Interface (one shared target object): `ExplicitFamily`,
+`HardFor`, the opaque `InNP` parameter, `ExplicitNPHard := ∃ F, InNP F ∧ HardFor F`.  `counting_hard_at_each_length`
+(per‑length hardness, from the cash‑out); `hard_family_exists` (choice assembles a hard *family* — but with **no**
+`InNP` guarantee); `explicitNPHard_imp_hardFamily` (the explicit‑NP target is *strictly stronger* — it implies the
+`InNP`‑free family counting already gives).  So the entire residue between what counting proves and what `P ≠ NP`
+needs is the `InNP` conjunct — which counting (a property of *most* functions) cannot supply, and which the
+natural‑proofs/largeness barrier says cannot be isolated by generic properties.  `InNP` is left an opaque
+parameter precisely so no "explicitness by counting" move can sneak in.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
