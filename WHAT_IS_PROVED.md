@@ -175,6 +175,17 @@ needs is the `InNP` conjunct — which counting (a property of *most* functions)
 natural‑proofs/largeness barrier says cannot be isolated by generic properties.  `InNP` is left an opaque
 parameter precisely so no "explicitness by counting" move can sneak in.
 
+## 4⁶. The natural‑proofs barrier — why counting can't go constructive (`…NaturalProofsBarrier`)
+
+Blocks the "explicitness by counting" shortcut.  `Hard cheap f` (f equals no cheap decider); `LargeProperty`
+(more than half of functions); `UsefulAgainst`.  Proved: `nonHard_card_le` (non‑hard functions `≤ N`),
+`counting_property_is_large` (for `2N < 2^{2^n}`, `Hard cheap` is large), `hard_property_useful` (it is useful).
+`RazborovRudichBarrier` is a *named hypothesis* (under crypto, no large+constructive property is useful);
+`counting_property_not_constructive` then proves the counting property — large and useful — **cannot be
+constructive** (under crypto+RR).  So "most functions are hard" provably cannot be upgraded into an efficient
+property isolating an explicit `NP` family; crossing to explicit hardness needs a *non‑natural* argument.  RR and
+crypto are parameters, not claims.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
