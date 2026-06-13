@@ -495,6 +495,20 @@ ceiling.  Bounded *re‑use* (`≤ r` gates per variable) is already covered (it
 the genuinely‑open case is *unbounded* re‑use — the wall itself.  The ladder climbs exactly as far as the
 whole‑support‑fixing mechanism reaches, and names where it stops.
 
+**The reuse boundary — the route's terminus (`…ACCReuseSwitchingTarget`).**  Pushing one step past the ladder
+confirms it is genuinely exhausted, with the negative outcome proved.  `restricted_rank_le_two_pow_free` — a
+*fully general* rank lowering surviving arbitrary re‑use: after any restriction leaving `u` free variables the
+restricted charge depends only on those coordinates, so `realizedClasses ≤ 2^u` for **any** circuit
+(`override_eq_extend`).  So restrictions do lower rank despite reuse — but to the **circuit‑independent** bound
+`2^{#free vars}`, which *cannot separate*: it is tight (the expander achieves it, `expander_realizedClasses_eq`),
+so a restriction leaving `u` free variables lowers **both** the circuit and the hard family to `≤ 2^u` — no gap.
+The whole‑support hook gave a *circuit‑specific* drop (`q^{#free gates} ≪ 2^{#free vars}`) that beat the hard
+family; unbounded re‑use kills it, leaving only the non‑discriminating generic bound.  A separation therefore
+needs a *circuit‑specific* drop under reuse — `RandomRestrictionLowersEffectiveRankDespiteReuse`, the named target
+— which is Håstad‑shrinkage / Razborov–Smolensky‑correlation content, `NP ⊄ ACC⁰`‑strength under the naturalness
+ceiling.  **The counting / restriction family of mechanisms is now provably exhausted for this purpose**; the next
+move is the Williams / correlation mechanism, not another rung.
+
 So this exploration is **closed as a characterized invariant**: the strongest the arc produced, separating tame
 from hard, with the single remaining bridge named precisely and proved to lie beyond the method's reach — not
 bridged, and honestly not bridgeable here.  (Adjacent and also closed: the explicit‑Nečiporuk frontier — the
