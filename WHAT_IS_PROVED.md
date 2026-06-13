@@ -408,9 +408,24 @@ effective rank `= m`.  It genuinely does what fixed SPDP could not — weight‑
 **poly‑time ⇒ low *effective* cycle rank on hard instances** (= `ACC0LowRealizedGodelSPDP`), which is *false* for
 the raw constraint graph (an ACC⁰ circuit can encode an expander) so it is genuinely about the *realized* charges;
 it is the open `NP ⊄ ACC⁰`‑strength step, and the PRF‑free naturalness ceiling
-(`…DynamicSPDPNaturalnessRange`) caps even that below `P ≠ NP`.  This exploration is therefore **closed as a
-characterized invariant**: the strongest the arc produced, separating tame from hard, with the single remaining
-bridge named precisely and proved to lie beyond the method's reach — not bridged, and honestly not bridgeable here.
+(`…DynamicSPDPNaturalnessRange`) caps even that below `P ≠ NP`.
+
+**The direct bridge attempt, and the exact wall (`…ACC0BridgeAttempt`).**  Attacking the bridge head‑on yields a
+genuine *restricted* lower bound, not the separation: `effectiveRank_gate_lower_bound` — a `MOD q` circuit whose
+realized charges have effective rank `≥ m` and factor through `k` modular statistics needs `2^m ≤ q^k`, i.e.
+`k ≥ m/log₂ q` gates (so the expander charge family needs `≥ m/log₂ q` modular gates).  `logGate_bridge_holds` —
+the bridge *holds* for `O(log n)`‑gate circuits (`≤ n^q` classes, poly).  `polyGate_counting_bound_ge_two_pow` —
+the wall: at poly gates the counting bound is `q^n ≥ 2^n`, vacuous.  The attempt stops at two precise barriers:
+(i) **model gap** — it bounds charge *realization*, not language *decision*; (ii) **the log→poly gate jump** — the
+method proves tameness only for `O(log n)` gates.  Either way it does not reach `NP ⊄ ACC⁰`, and even if it did
+the naturalness ceiling caps it below `P ≠ NP`.
+
+So this exploration is **closed as a characterized invariant**: the strongest the arc produced, separating tame
+from hard, with the single remaining bridge named precisely and proved to lie beyond the method's reach — not
+bridged, and honestly not bridgeable here.  (Adjacent and also closed: the explicit‑Nečiporuk frontier — the
+corpus's arc reaches the `n²/log n` method ceiling, and `…NeciporukCeiling` formalizes *why* subfunction counting
+cannot exceed it — `log₂ #subfunctions ≤ min(2^b, n-b)` per block — so super‑`n²/log n` explicit bounds require a
+different method, shrinkage/Andreev, not this one.)
 
 ## 5. The exact missing theorem — where everything converges
 
