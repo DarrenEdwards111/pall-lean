@@ -194,6 +194,20 @@ exactly, with two honest research forks identified.
   annihilator exists (upper) ⇒ `AI(Maj_{2t-1}) = t = ⌈n/2⌉`, the OPTIMAL algebraic immunity.**  Clean axioms,
   no `sorry`.  The growing‑AI story is now complete and tight.
 
+* **§6.7 Goldreich instantiated with the optimal Majority predicate + the exact remaining wall**
+  (`…GoldreichMajorityCandidate`).  Replaces TSA (`AI=2`) with the proved‑optimal Majority
+  (`AI(Maj_{2t-1})=⌈n/2⌉`).  `majPred_eq_maj` (via `maj_eq_one_iff`) rigorously ties the Bool‑input predicate to
+  the proved `Maj` under the support map (no representation hand‑wave); `majGoldreich` is the instantiated family.
+  `majority_defeats_low_degree_separator` (**AI ⇒ separator resistance**, the reusable tool): no nonzero
+  degree‑`<t` function annihilates `Maj`/`¬Maj`, so the low‑degree‑annihilator/linearization attack provably
+  fails against Majority (from `majority_AI_optimal`).  `majority_observer_williams` (no axioms): the sharpened
+  **four‑step** cash‑out `low‑action ⇒ separator∈K ⇒ fast inversion ⇒ collapse ⇒ ⊥`.  `MajorityGoldreichHardness`
+  bundles the exact ingredients (`raveling` provable for restricted `K`; `separatorSpeedup`,
+  `fastInversionImpliesCollapse` framework/Williams‑standard) and isolates the **single open conjecture**
+  `noCollapse` = `InversionHardness` (= local‑PRG security, `P ≠ NP`‑strength).  Net: the predicate is provably
+  optimal and the algebraic attack provably fails — the route is reduced to exactly one named cryptographic
+  statement.
+
 ## Part V — The frontier (the two honest research forks)
 
 The least‑action path (N‑Frame Lagrangian) is built out; the residual is one of:
