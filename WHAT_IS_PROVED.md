@@ -59,6 +59,15 @@ all `= P ≠ NP`, and which a proved gap theorem shows the action/space machiner
   `separatorSpeedup` a theorem — the N‑frame side genuinely supplies the Williams cash‑out's speedup half.
   `nframe_speedup_then_no_lowaction` closes the chain, leaving `noCollapse` (the hardness) as the only assumed
   input.
+- **The raveling ingredient is PROVED for a concrete `K`** (`…RavelingConcrete`): for `K = {effective dimension
+  < r}`, `raveling_lowAction` shows a low‑action observer lands in `K` — the *dynamical* action bounds the
+  *structural* dimension (a single layer's capacity `2^{Bτ}` is one summand of `action`, so the decision
+  alphabet `≤ 2^{B(T-1)} ≤ action < 2^r`).  With `boundedDim_noSeparator` (`residual_view_card_forces_debt`),
+  `lowAction_no_separator`: **no low‑action observer separates the dimension‑`r` residual.**  So for restricted
+  `K` *both* observer‑Williams premises (`raveling`, `separatorSpeedup`) are now theorems — only the hardness
+  (`noCollapse`) is assumed.  The catch: `K` here is not all of `P` (a poly‑*space* decider keeps a
+  full‑dimension view — the brute‑force escape), and extending `raveling` to every `P` observer is the
+  `P ≠ NP`‑strength step.
 
 ## 2. Proved for restricted classes (the four resisted inverter classes + the corpus)
 
