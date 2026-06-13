@@ -134,6 +134,16 @@ remaining hypothesis = exactly `P ≠ NP`.
 - **Diagonal SPDP / `χ_φ` bound.** Disproved (`rk ≪ #SAT`); barriered short of `VP` vs `VNP` on the permanent.
 - **The HM / metacomplexity socket.** Proved *vacuous* by its own iff — repackaging does not reduce strength.
 
+## 4″. The time‑axis wall, consolidated (`…TimeAxisWall`)
+
+With the space axis closed (separating boundary exactly `r`), the wall is relocated to the time axis and stated
+as its own file. `space_axis_settled` (separator at `r`, none below); `ResidualSeparatorRequiresSuperpolyTime`
+(the named missing bridge: the *existing* boundary‑`r` separator's decision time is super‑poly);
+`timeAxis_wall` (the bridge + super‑poly threshold ⇒ family ∉ `P`); `space_machinery_cannot_supply_bridge`
+(the gap — an action/debt bound of any size is hit by a poly‑time single‑step trajectory, so the space‑exact
+machinery yields *no* time bound). The one missing theorem is a pure time lower bound on realizing the
+boundary‑`r` separator — for an NP‑complete family, exactly `P ≠ NP`.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
