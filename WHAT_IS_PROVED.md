@@ -53,6 +53,12 @@ all `= P ≠ NP`, and which a proved gap theorem shows the action/space machiner
   observer of a high‑`d_res` residual carries debt `≥ 2^{d_res} − 2^{d_obs}`.
 - **The cash‑out chains (pure logic, no axioms).** `williams_cashout`, `ravel_wedge`,
   `observer_centric_williams`, `goldreich_observer_williams`, `majority_observer_williams`.
+- **The speedup ingredient is PROVED, not assumed** (`…NFrameSpeedupBridge`): a low‑action / low‑boundary
+  inverter's reachable‑set DP visits only `∑ 2^{Bτ} = action` configurations, so `lowAction_beats_bruteforce`
+  (`action < 2^n` ⇒ DP cost `< 2^n`) and `lowSpace_beats_bruteforce` (via `subcritical_of_lowspace`) make
+  `separatorSpeedup` a theorem — the N‑frame side genuinely supplies the Williams cash‑out's speedup half.
+  `nframe_speedup_then_no_lowaction` closes the chain, leaving `noCollapse` (the hardness) as the only assumed
+  input.
 
 ## 2. Proved for restricted classes (the four resisted inverter classes + the corpus)
 
