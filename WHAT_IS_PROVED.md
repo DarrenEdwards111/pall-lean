@@ -293,6 +293,40 @@ preserves hard ones.  This was made a concrete target and then probed to its con
   instance, which is the SPDP‑rank lower‑bound program itself (the barriered `P ≠ NP`‑strength step).  Net: the
   one opening the dichotomy left is closed for every *fixed*‑order projection, by a proved locality no‑go.
 
+**The scaling‑order arc — chasing the one surviving opening to a single named bridge.**  The fixed‑order no‑go
+left exactly one route: let the projection order *scale*.  Three amplifiers were tried and the Gödel‑hierarchy
+tower built; all converge on one theorem.
+
+* **Expander amplification (`…ExpanderAmplificationBoundary`).**  Can a Ramanujan/expander layer rescue survival?
+  `highDistance_spdp_collapse`: if every accepting input has weight `≥ Δ` (the expansion distance) and the probe
+  order `k+d < Δ`, then `pcrank ≤ 1` — coupling many high‑distance copies amplifies the *zero* feature, so the
+  collapse becomes **total**.  An expander amplifies *visibility, not invisibility*.  `lowDeg_full_order_eq_crank`
+  (at radius `a`, `pcrank = crank`) marks the other end: the rank turns on only once the radius crosses `Δ`.
+* **PAC operations (`…PACProjectionBoundary`).**  The `p vs np1` PAC layer helps two real ways —
+  `pac_postProjection_nonincrease` (PAC restrictions are rank‑non‑increasing: P‑side A1 control) and the
+  positive‑minor geometry (A3 side) — but `pacRelabel_spdp_collapse` proves a local PAC relabelling (weight blowup
+  `≤ c`) only rescales the visibility radius by `c`, so a high‑distance residual still collapses when `c·(k+d)<Δ`.
+  `pacPositiveMinorSurvival_needs_scaling`: a surviving positive minor (`s ≥ 2`) *forces* `Δ ≤ k+d`.  PAC's only
+  opening is scaling order.
+* **The Gödel hierarchy tower (`…GodelHierarchySPDPScaling`).**  Book 1's Gödel hierarchy = an *ascending*
+  projection tower `levelProj L`, `godelLevel n = (log₂ n, log₂ n)`.  `levelProj_monotone` (proved): higher levels
+  see at least as much (lower‑level features are coordinates of higher).  `levelProj_full_radius_eq_crank`
+  (proved): at the top of the tower `pcrank = crank` — full visibility.  So the tower provably does what fixed
+  SPDP could not: **visibility rises with level**, and a high enough level sees the hard residuals.
+* **But the feature budget is vacuous at the scaling level (`…GodelFeatureCount`).**  `godel_feature_bound_vacuous`:
+  the only generic bound is `pcrank ≤ 2^{count}`, and `godel_feature_count_superlinear` proves `count > n/2` at the
+  Gödel level (`count ≥ 2^{log₂ n}`, `n < 2·2^{log₂ n}`).  So the ceiling is `2^{>n/2}` — **exponential, no better
+  than the trivial `crank`**.  A polynomial A1 therefore **cannot** come from bounding the *size* of the feature
+  space; it must come from poly‑time *structure* forcing few *realized* features.  A1 is provably **not a counting
+  fact**.
+
+The whole arc converges on one statement, named in `…GodelHierarchySPDPScaling`: **`PolyTimeLowGodelSPDP`** — at
+the Gödel‑scaled level, every poly‑time observer's *realized* pcrank is polynomial, while the hard family's is
+super‑polynomial (`HardFamilyHighGodelSPDP`); `godelSPDP_no_shared_rank` proves these are incompatible, so the
+pair *is* the separation.  This is the **`ScalingSPDPBridge`**: order `≥` distance (to see the hard residual) with
+*realized* feature count polynomial for `P` (to bound it) — exactly the barriered SPDP‑rank lower bound, and the
+single irreducible `P ≠ NP`‑strength step the entire projected/scaling‑rank programme reduces to.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
@@ -303,7 +337,7 @@ Every route terminates at the **same** wall, in five equivalent forms (all `= Co
 | `AdaptiveResidualNonCollapse` | every cheap adaptive decomposition keeps `2^{Ω(n)}` outcomes | one fixed decomposition | the `min` over **all** |
 | `DimensionGapHard` | `d_res(SAT) − d_obs ≥ Ω(n)` for *every* poly observer | a fixed observer carries debt | the `min` over **all** |
 | global SPDP bridge | every poly‑time observer has poly SPDP rank | restricted `K` | all of `P` |
-| Book‑1 CEW (A1) | every poly‑time SAT decider has polylog contextual width | syntactic surrogate; both unweighted invariants (dichotomy); all *fixed*‑order projections (locality no‑go) | a projected rank whose feature order **scales with the instance** = the SPDP‑rank lower bound |
+| Book‑1 CEW (A1) | every poly‑time SAT decider has polylog contextual width | syntactic surrogate; both unweighted invariants (dichotomy); all *fixed*‑order projections (locality no‑go); expander/PAC amplifiers can't rescue fixed order | `ScalingSPDPBridge` = `PolyTimeLowGodelSPDP`: at scaling order, **realized** feature count poly for `P` (not a counting fact) |
 | `(Goldreich)InversionHardness` | the family resists fast inversion (OWF / local‑PRG security) | the four classes of §2 | all poly inverters |
 
 In every form the **provable half is geometric/pointwise** (a fixed low‑`d_obs` observer, a fixed class) and the
@@ -325,8 +359,12 @@ dichotomy shows *no unweighted contextual invariant* can discharge it: additive 
 multiplicative/rank ones are achieved by easy functions, so only a *time‑structure‑coupled projection* (the
 assumed‑not‑derived SPDP bridge) could.  The projected‑rank arc then probed that opening to its end: a proved
 locality no‑go (`…AffineIndicatorCollapse`) shows **every *fixed*‑order projection — low‑degree and SPDP alike —
-collapses the high‑degree affine/Tseitin residual to polynomial rank**, so the surviving direction is exactly a
-projection whose order scales with the instance, i.e. the SPDP‑rank lower bound itself. The separation is reduced to one named statement, shown equivalent to
+collapses the high‑degree affine/Tseitin residual to polynomial rank**, and expander/PAC amplifiers were proved
+unable to rescue fixed order (they amplify *visibility*, not *invisibility*).  The Gödel‑hierarchy tower
+(`…GodelHierarchySPDPScaling`) does raise visibility with level — but its feature budget at the scaling level is
+*vacuous* (`…GodelFeatureCount`: the ceiling is exponential), so the surviving direction is one named theorem,
+`ScalingSPDPBridge` / `PolyTimeLowGodelSPDP`: that poly‑time observers keep a polynomial number of *realized*
+features at scaling order — A1 is provably **not a counting fact**, exactly the SPDP‑rank lower bound. The separation is reduced to one named statement, shown equivalent to
 `P ≠ NP` in six forms and shown *unreachable* by these methods. Everything reducible is discharged. The one
 irreducible step — an explicit, non‑natural decision lower bound above `n²/log n`, equivalently a contextual
 invariant low *because of* the poly‑time structure, equivalently universal quantification over all polynomial‑time
