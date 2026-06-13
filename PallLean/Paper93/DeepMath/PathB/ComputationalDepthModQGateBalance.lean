@@ -46,6 +46,10 @@ off‑diagonal** (`modQ_gate_low_correlation_offdiagonal`).
   **the recursion closes for `q = 2`**: on the diagonal the flip‑both involution changes the count by `±2`, which
   is `0` mod `2`, so the diagonal is balanced too — giving **exact zero correlation advantage of a `MOD 2` gate
   against any holonomy parity** (`D ⊊` variables), over *all* inputs.
+* `imbalance_localize_step`, `imbalance_stacked` — **disjoint pair stacking, all `q`**: each fresh disjoint pair
+  `(v_i ∈ D, w_i ∉ D)` peels off an exactly‑balanced layer (its off‑diagonal flip‑both moves one coordinate
+  `0→1`, the other `1→0`, count change `0` mod any `q`, leaving earlier pairs untouched), confining the imbalance
+  of a `MOD q` class to the `k`‑fold diagonal `⋂_i {x_{v_i} = x_{w_i}}` — for `q > 2` too.
 
 ## The honest verdict — the approximate version *partly* survives, and the residual is named exactly
 
@@ -69,9 +73,13 @@ recursion bottom out at an involutive bound or at the character sum? — has a c
 the diagonal the only count‑preserving parity‑toggling move is the flip‑both involution (count change `±2`).  For
 `q = 2` that `±2` is `0`, so the diagonal is exactly balanced and the recursion **closes** — `MOD 2` has *exactly
 zero* correlation advantage against any holonomy parity over `D ⊊` variables, fully by involution
-(`modQ2_gate_zero_correlation`).  For `q > 2` the `±2` is nonzero mod `q`, the diagonal involution is blocked, and
-the residual is genuinely the character sum.  So the involution method reaches *all the way* for modulus `2` and
-bottoms out only for `q > 2`.
+(`modQ2_gate_zero_correlation`).  For `q > 2` the single‑pair flip‑both is blocked, but **disjoint pair stacking**
+(`imbalance_stacked`) keeps the recursion going: each fresh disjoint pair `(v_i ∈ D, w_i ∉ D)` flips one‑up /
+one‑down (count change `0` mod *any* `q`) and peels another balanced layer, confining the `q > 2` imbalance to the
+`k`‑fold diagonal `⋂_i {x_{v_i} = x_{w_i}}`.  So even for `q > 2` involution does real work — it shrinks the
+imbalance‑carrying support pair by pair — and only the *final core* (no fresh disjoint `(in‑D, out‑D)` pair left)
+is the genuine character sum.  The clean delineation: modulus `2` is fully involutive; higher moduli are involutive
+down to a shrinking diagonal core, with the character sum needed only there.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.ModQGateBalance
@@ -361,16 +369,118 @@ theorem modQ2_gate_zero_correlation (D : Finset (Fin n)) (v w : Fin n)
     Finset.univ (modQStat 2) g (fParity D)
     (fun c _ => modQ2_class_balanced D v w hvw hvD hwD c)
 
+/-! ## Extending to `q > 2`: disjoint pair stacking
+
+For `q > 2` the diagonal flip‑both fails (count change `±2 ≢ 0`).  But a *fresh disjoint* witness pair
+`(v₂, w₂)` with `v₂ ∈ D`, `w₂ ∉ D`, all coordinates distinct from the first, gives a flip‑both that — on its own
+off‑diagonal `{x_{v₂} ≠ x_{w₂}}` — moves one coordinate `0→1` and the other `1→0` (count change `0` mod **any**
+`q`) while *leaving the first pair's coordinates untouched* (so it preserves `{x_v = x_w}`).  It peels another
+exactly‑balanced layer off the diagonal.  Stacking `k` disjoint such pairs confines the entire imbalance to the
+`k`‑fold diagonal `⋂_i {x_{v_i} = x_{w_i}}`, for all `q`. -/
+
+/-- **General localization step (proved).**  For any ambient `S` closed under the flip‑both involution
+`pairSwap v w` on its off‑diagonal, the holonomy‑parity imbalance of `S` equals that of its `(v,w)`‑diagonal. -/
+theorem imbalance_localize_step (D : Finset (Fin n)) (v w : Fin n)
+    (hvD : v ∈ D) (hwD : w ∉ D) (hvw : v ≠ w) (S : Finset (Fin n → Bool))
+    (hS : ∀ x ∈ S, x v ≠ x w → pairSwap v w x ∈ S) :
+    (S.filter (fun x => fParity D x = true)).card
+      + ((S.filter (fun x => x v = x w)).filter (fun x => fParity D x = false)).card
+    = (S.filter (fun x => fParity D x = false)).card
+      + ((S.filter (fun x => x v = x w)).filter (fun x => fParity D x = true)).card := by
+  have hbal : ((S.filter (fun x => x v ≠ x w)).filter (fun x => fParity D x = true)).card
+            = ((S.filter (fun x => x v ≠ x w)).filter (fun x => fParity D x = false)).card := by
+    apply balanced_of_involution (S.filter (fun x => x v ≠ x w)) (fParity D) (pairSwap v w)
+    · intro x hx
+      rw [Finset.mem_filter] at hx ⊢
+      exact ⟨hS x hx.1 hx.2,
+        by rw [pairSwap_v, pairSwap_w v w x hvw.symm]; exact bool_not_ne _ _ hx.2⟩
+    · intro x _; exact pairSwap_involutive v w hvw x
+    · intro x _; exact fParity_pairSwap D v w hvD hwD hvw x
+  have sT := card_eq_offdiag_add_diag S v w (fun x => fParity D x = true)
+  have sF := card_eq_offdiag_add_diag S v w (fun x => fParity D x = false)
+  omega
+
+/-- **Disjoint pair stacking (proved, all `q`): the imbalance of a `MOD q` class equals that of its `k`‑fold
+diagonal** over any family `L` of disjoint witness pairs (each `v_i ∈ D`, `w_i ∉ D`, all coordinates distinct).
+Each stacked pair peels off an exactly‑balanced off‑diagonal layer via a count‑preserving flip‑both involution,
+confining the support that can carry the imbalance to `⋂_i {x_{v_i} = x_{w_i}}`. -/
+theorem imbalance_stacked (q : ℕ) (D : Finset (Fin n)) (c : ZMod q) (L : List (Fin n × Fin n)) :
+    (∀ p ∈ L, p.1 ∈ D ∧ p.2 ∉ D) →
+    (L.flatMap (fun p => [p.1, p.2])).Nodup →
+    (((Finset.univ : Finset (Fin n → Bool)).filter (fun x => modQStat q x = c)).filter
+        (fun x => fParity D x = true)).card
+      + ((((Finset.univ : Finset (Fin n → Bool)).filter (fun x => modQStat q x = c)).filter
+          (fun x => ∀ p ∈ L, x p.1 = x p.2)).filter (fun x => fParity D x = false)).card
+    = (((Finset.univ : Finset (Fin n → Bool)).filter (fun x => modQStat q x = c)).filter
+        (fun x => fParity D x = false)).card
+      + ((((Finset.univ : Finset (Fin n → Bool)).filter (fun x => modQStat q x = c)).filter
+          (fun x => ∀ p ∈ L, x p.1 = x p.2)).filter (fun x => fParity D x = true)).card := by
+  induction L with
+  | nil =>
+    intro _ _
+    have hfilt : (Finset.univ.filter (fun x : Fin n → Bool => modQStat q x = c)).filter
+        (fun x => ∀ p ∈ ([] : List (Fin n × Fin n)), x p.1 = x p.2)
+        = Finset.univ.filter (fun x => modQStat q x = c) := by
+      apply Finset.filter_true_of_mem
+      intro x _ p hp
+      exact absurd hp (by simp)
+    rw [hfilt]; omega
+  | cons hd tl ih =>
+    intro hpairs hnodup
+    obtain ⟨v, w⟩ := hd
+    simp only [List.flatMap_cons, List.cons_append, List.nil_append, List.nodup_cons,
+      List.mem_cons, not_or] at hnodup
+    obtain ⟨⟨hvw, hv_rest⟩, hw_rest, hnd⟩ := hnodup
+    have hvD : v ∈ D := (hpairs (v, w) (by simp)).1
+    have hwD : w ∉ D := (hpairs (v, w) (by simp)).2
+    have hpairs_tl : ∀ p ∈ tl, p.1 ∈ D ∧ p.2 ∉ D :=
+      fun p hp => hpairs p (List.mem_cons_of_mem _ hp)
+    have ihC := ih hpairs_tl hnd
+    set C := (Finset.univ : Finset (Fin n → Bool)).filter (fun x => modQStat q x = c) with hC
+    set R' := C.filter (fun x => ∀ p ∈ tl, x p.1 = x p.2) with hR'
+    have hS : ∀ x ∈ R', x v ≠ x w → pairSwap v w x ∈ R' := by
+      intro x hx hoff
+      rw [hR', Finset.mem_filter] at hx
+      obtain ⟨hxC, hxst⟩ := hx
+      rw [hC, Finset.mem_filter] at hxC
+      obtain ⟨_, hcx⟩ := hxC
+      rw [hR', Finset.mem_filter]
+      refine ⟨?_, ?_⟩
+      · rw [hC, Finset.mem_filter]
+        exact ⟨Finset.mem_univ _,
+          by rw [modQStat_pairSwap_offdiag q v w hvw x hoff]; exact hcx⟩
+      · intro p hp
+        have hp1 : p.1 ∈ tl.flatMap (fun p => [p.1, p.2]) := List.mem_flatMap.mpr ⟨p, hp, by simp⟩
+        have hp2 : p.2 ∈ tl.flatMap (fun p => [p.1, p.2]) := List.mem_flatMap.mpr ⟨p, hp, by simp⟩
+        rw [pairSwap_other v w x (fun h : p.1 = v => hv_rest (h ▸ hp1))
+              (fun h : p.1 = w => hw_rest (h ▸ hp1)),
+            pairSwap_other v w x (fun h : p.2 = v => hv_rest (h ▸ hp2))
+              (fun h : p.2 = w => hw_rest (h ▸ hp2))]
+        exact hxst p hp
+    have step := imbalance_localize_step D v w hvD hwD hvw R' hS
+    have hReq : R'.filter (fun x => x v = x w)
+        = C.filter (fun x => ∀ p ∈ (v, w) :: tl, x p.1 = x p.2) := by
+      rw [hR', Finset.filter_filter]
+      apply Finset.filter_congr
+      intro x _
+      rw [List.forall_mem_cons]
+      exact and_comm
+    rw [hReq] at step
+    omega
+
 /-! ## The residual — named honestly -/
 
 /-- **(Named open — `NP ⊄ ACC⁰`‑strength, for `q > 2`).**  The full‑class imbalance of the holonomy parity inside
 a `MOD q` level set is exponentially small in `n − |D|`.  The off‑diagonal part is *exactly* balanced
 (`offdiag_balanced`), so this residual is entirely the **diagonal** `{x_v = x_w}` contribution — the classical
 `MOD q`‑vs‑parity correlation, bounded by a Fourier/character recursion (cancelling main terms), *not* by any
-involution **for `q > 2`** (the diagonal flip‑both changes the count by `±2 ≢ 0`).  For `q = 2` it *is* supplied —
-`modQ2_gate_zero_correlation` gives exact zero correlation by involution — so only `q > 2` remains open here.
-Supplying it would let `modQ_gate_low_correlation_offdiagonal`‑style bounds extend off the diagonal to the whole
-class; it is the same Razborov–Smolensky‑flavoured content every fragment route reduces to. -/
+involution **for `q > 2`**, *but only on the final core*: `imbalance_stacked` shows disjoint pair stacking confines
+the `q > 2` imbalance to the `k`‑fold diagonal `⋂_{i≤k} {x_{v_i} = x_{w_i}}` (one balanced layer peeled per fresh
+disjoint pair), a support shrinking with each pair.  What stacking cannot do is balance that final core (where no
+fresh disjoint `(in‑D, out‑D)` pair remains) — *that* is the irreducible character‑sum residue.  For `q = 2` the
+whole thing *is* supplied — `modQ2_gate_zero_correlation` gives exact zero correlation by involution.  Supplying
+the `q > 2` core would let `modQ_gate_low_correlation_offdiagonal`‑style bounds extend to the whole class; it is the
+same Razborov–Smolensky‑flavoured content every fragment route reduces to. -/
 def ModQParityCorrelationExpSmall (fullImbalance : ℕ → ℕ) (expSmallBound : ℕ → ℕ) : Prop :=
   ∀ n, fullImbalance n ≤ expSmallBound n
 
@@ -386,3 +496,5 @@ end PallLean.Paper93.DeepMath.PathB.ModQGateBalance
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQGateBalance.modQ2_diagonal_balanced
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQGateBalance.modQ2_class_balanced
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQGateBalance.modQ2_gate_zero_correlation
+#print axioms PallLean.Paper93.DeepMath.PathB.ModQGateBalance.imbalance_localize_step
+#print axioms PallLean.Paper93.DeepMath.PathB.ModQGateBalance.imbalance_stacked

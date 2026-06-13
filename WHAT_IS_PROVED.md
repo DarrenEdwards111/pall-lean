@@ -596,6 +596,18 @@ involution is blocked, and only there does the genuine character‑sum residual 
 modulus `2` (an exact RS‑style zero‑correlation theorem, proved) and bottoms out only for higher moduli — a clean,
 honest delineation of exactly where the elementary method stops.
 
+**Disjoint pair stacking extends the recursion to `q > 2` (`imbalance_localize_step`, `imbalance_stacked`).**  The
+single‑pair flip‑both is blocked for `q > 2` only on the *diagonal*; a *fresh disjoint* pair `(v_i ∈ D, w_i ∉ D)`
+(all coordinates distinct from earlier pairs) flips one‑up / one‑down on its own off‑diagonal — count change `0`
+mod **any** `q` — and leaves the earlier pairs' coordinates untouched, so it peels another exactly‑balanced layer.
+Proved (clean, all `q`, by induction over a `Nodup`‑coordinate list of pairs): `imbalance_stacked` —
+**the holonomy‑parity imbalance of a `MOD q` class equals that of its `k`‑fold diagonal** `⋂_{i≤k} {x_{v_i} =
+x_{w_i}}`.  So even for `q > 2` involution does real work: it shrinks the imbalance‑carrying support pair by pair
+(general step `imbalance_localize_step` parameterised by any ambient set closed under the flip‑both on its
+off‑diagonal).  The recursion runs until no fresh disjoint `(in‑D, out‑D)` pair remains — `min(|D|, n−|D|)` steps —
+and only that final core is the irreducible character sum.  Net delineation: **modulus `2` is fully involutive;
+higher moduli are involutive down to a shrinking diagonal core**, the character sum required only on the core.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
