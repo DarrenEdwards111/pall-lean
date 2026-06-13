@@ -266,6 +266,19 @@ exactly, with two honest research forks identified.
   `SimultaneousAlgAC0pResistance` realized on a **single predicate, no remaining hypothesis**.  Clean axioms, no
   `sorry`.  The unified binding wall is now an unconditional single‑predicate theorem.
 
+* **§6.13 Option C — the Goldreich / local‑PRG route, the constructive terminus** (`…GoldreichMajorityPRG`).
+  Assembles the concrete `goldreichMaj` = Goldreich local function with the optimal‑AI Majority predicate (`n`
+  inputs, `m` outputs, each `Maj_d` of an expander‑hyperedge `d`‑subset).  Proved: `goldreich_eval_local`
+  (locality — each output depends only on its edge's inputs), `majPred_const_true`/`_false` (non‑degeneracy),
+  `goldreichMaj_no_lowAction_inverter` (the conditional separation via observer‑Williams).  **Honest wall:**
+  `GoldreichMajHard` (no poly‑time inverter) is the local‑PRG / one‑way‑function assumption — `P ≠ NP`‑strength
+  (OWF ⇒ `P ≠ NP`), so it cannot be discharged by any construction and is NOT.  Established restricted security:
+  the family provably resists low‑degree algebraic (`majority_defeats_low_degree_separator`), `AC⁰[p]`
+  (unconditional `majority_not_in_AC0p`), and bounded‑crossing/locality (debt bridges).  Each restricted class is
+  a theorem; their union over *all* poly inverters is `GoldreichMajHard` = the open problem.  The right
+  primitive, provably hard against every formalized restricted attack, with the single remaining hypothesis being
+  exactly `P ≠ NP`.  No further construction reduces it.
+
 ## Part V — The frontier (the two honest research forks)
 
 The least‑action path (N‑Frame Lagrangian) is built out; the residual is one of:

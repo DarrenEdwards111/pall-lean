@@ -111,6 +111,15 @@ supplied) — qualitatively unlike the `P ≠ NP`‑strength `InversionHardness`
 - **The HM / metacomplexity socket.** Proved *vacuous* by its own iff (`nonempty_…iff_MCSPMINKTHardness`):
   repackaging does not reduce `P ≠ NP`‑strength.
 
+## 4′. The Goldreich / local‑PRG terminus (Option C)
+
+`…GoldreichMajorityPRG` assembles `goldreichMaj` (Goldreich local function, optimal‑AI Majority predicate over an
+expander hypergraph) and proves its structural properties: `goldreich_eval_local` (locality), `majPred_const_*`
+(non‑degeneracy), `goldreichMaj_no_lowAction_inverter` (conditional separation).  Restricted security is proved
+(low‑degree, `AC⁰[p]` unconditional, crossing/locality); **full security `GoldreichMajHard` is the conjecture —
+`P ≠ NP`‑strength** (OWF ⇒ `P ≠ NP`), the honest terminus of the constructive route.  No construction discharges
+it.
+
 ## 5. The exact missing theorem
 
 Every route above terminates at the **same** wall, in equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
