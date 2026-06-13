@@ -619,6 +619,23 @@ disjoint equality constraint *halves the cube* — flipping a fresh coordinate `
 exp‑small whenever `min(|D|, n−|D|)` is large — the elementary method's quantitative reach, made explicit, with the
 sharper `|cos(π/q)|^{n-|D|}` character estimate needed only to push past it on the residual core.
 
+**Composition: two (and many) gates (`…TwoGateCorrelation`).**  The first mixed‑moduli ACC⁰ composition test.  The
+general engine `balanced_offdiag_of_pres` / `low_correlation_of_pres` proves: *any* predictor `π` preserved by the
+off‑diagonal flip‑both has exact off‑diagonal balance and no correlation advantage against the holonomy parity.
+Two cases of the composition question:
+- **Full‑support gates (any number, mixed moduli) compose freely.**  The off‑diagonal flip‑both moves one
+  coordinate `0→1` and the other `1→0`, preserving the *integer weight* `∑_i x_i` exactly — hence every statistic
+  factoring through it (`MOD q_j` for all `j`, threshold, exact‑count) at once.  `twoStat_pairSwap_offdiag` /
+  `twoGate_low_correlation_offdiagonal`: the *single* involution `pairSwap v w` handles both gates, so mixed
+  moduli are no obstacle.
+- **Different supports give the product‑class obstruction.**  For supports `A, B` the swap must preserve both
+  support‑counts: `weightOn_pairSwap_eq` shows `∑_S x` is preserved by the flip‑both **iff `v, w` lie on the same
+  side of `S`**.  So a usable `D`‑witness pair needs `v ∈ D`, `w ∉ D` *and* `v, w` in a common cell of the
+  partition `{A∩B, A∖B, B∖A, (A∪B)ᶜ}` — `twoGateOn_offdiag_balanced` (balance under `v∈A↔w∈A`, `v∈B↔w∈B`).  Same
+  support collapses the cell conditions to one; full support makes them automatic; disjoint / bounded‑overlap
+  supports turn finding witnesses into a **matching / flow problem** — the composition version of the engine, and
+  `NP ⊄ ACC⁰`‑strength once the supports are adversarial.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
