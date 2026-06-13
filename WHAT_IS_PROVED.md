@@ -369,6 +369,34 @@ algorithmic method), while `P/poly`/`P ≠ NP` is *blocked by the same barrier* 
 appear.  "Stronger than Williams" is plausible only at the ACC⁰ level, and is provably not a path to the
 separation.
 
+**The holonomy arc — a global cycle detector that sees what local SPDP missed (`…HypergraphHolonomySPDP` →
+`…HolonomyPSideControl` → `…HolonomyBoundedCycleRank`).**  Within the un‑barriered ACC⁰ avenue, the most promising
+invariant: not a local Hamming‑ball probe but a *cycle‑obstruction* one.  On a Tseitin constraint graph the
+**holonomy of a cycle `C`** is the `F₂` sum of vertex charges around it, `⊕_{v∈C} charge(v)` — zero for a
+satisfiable charge, nonzero exactly when the cycle is globally inconsistent.
+
+* **Hard side (`…HypergraphHolonomySPDP`).**  `cycleHolonomy_singleton` — a single charge on a cycle gives
+  *nontrivial* holonomy: the obstruction is **visible at Hamming weight 1**, the regime where the affine‑indicator
+  collapse killed local SPDP.  `holonomy_realizes_all` — `m` disjoint cycles realize **all `2^m` holonomy
+  signatures** (`holonomy_zero_charge` gives the trivial/satisfiable collapse).  This is the first invariant in
+  the arc that does what fixed SPDP could not — a genuine global‑cycle detector, not renamed geometry.
+* **The linear asset (`…HolonomyPSideControl`).**  `holSigZ_add` / `holSigZ_zero` — over `F₂` holonomy is a
+  **linear** map of the charge, so the realized signatures form a *subspace* and the class count is `2^{rank}`,
+  governed by the **cycle rank** rather than the gate count.  `holonomy_acyclic_trivial` (no cycles ⇒ 1 class) and
+  `holonomy_classes_le_of_generators` (`k` generators ⇒ `≤ 2^k`) bracket it.
+* **Tame side, provable (`…HolonomyBoundedCycleRank`).**  `holonomy_classes_le_of_basis` — **cycle rank `≤ r` ⇒
+  `≤ 2^r` holonomy classes**, for any charge family, independent of `m`/gate count; `holonomy_classes_le_of_few_distinct`
+  proves the factoring concretely (`m` cycles from `r` distinct basis cycles).  So bounded‑treewidth/planar
+  constraint graphs (cycle rank `O(\log n)`/`O(1)`) are *provably tame* (poly/constant classes), expanders
+  (`Ω(n)`) hit `2^{Ω(n)}` — conditional only on a **graph property**, not a complexity assumption (not a socket).
+
+So the holonomy arc lands **both ends of the cascade**: hard side (expander cycles → `2^m`, seen at weight 1) and
+tame side (bounded effective cycle rank → `≤ 2^r`).  The one missing implication is exactly **poly‑time ⇒ low
+*effective* cycle rank on hard instances** — which is *false* for the raw constraint graph (an ACC⁰ circuit can
+encode an expander), so it must be about the *realized* charges: `ACC0LowRealizedGodelSPDP` once more, the open
+`NP ⊄ ACC⁰`‑strength step, still under the PRF‑free naturalness ceiling.  Holonomy is the strongest candidate the
+arc produced — weight‑1 visibility and `2^{rank}` linear control — with the gap named precisely, not bridged.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
