@@ -220,6 +220,17 @@ exactly, with two honest research forks identified.
   `AC⁰[p]`/*approximate* inverter needs the Razborov–Smolensky approximation argument — noted, not done); the
   global statement is still the wall.
 
+* **§6.9 The `AC⁰[p]` / approximate‑inverter class — restricted `InversionHardness` via Razborov–Smolensky**
+  (`…AC0pInverterHardness`).  Adds the genuinely harder *approximate* class, reusing the assembled RS chain
+  (`Layer3` low‑degree `F_p` approximation `toPoly_eval_AC0p` + `Layer4` no‑approximation core
+  `mod_q_indicators_false`/`mod_q_family_false` + `Layer7` family bounds `modq_not_in_nonuniform_AC0p`,
+  `parity_not_in_nonuniform_AC0p`).  `IsAC0pInverter` = poly‑size constant‑depth `AC⁰[p]` family that `Computes`
+  the target; `no_AC0p_inverter_modq` / `no_AC0p_inverter_parity`: the `AC⁰[p]` inverter class is provably empty
+  for `MOD_q` (`q≠p`) / `PARITY` (`p` odd).  Clean axioms, no `sorry` (no `native_decide` in the chain).
+  **Complementarity = the wall:** `MOD_q` resists `AC⁰[p]` but is `F_q`‑linear (algebraically trivial), while
+  `Majority` resists the algebraic attack — no single proved predicate resists *all* classes at once; that
+  conjunction over one family is the global `InversionHardness` (`P ≠ NP`‑strength).
+
 ## Part V — The frontier (the two honest research forks)
 
 The least‑action path (N‑Frame Lagrangian) is built out; the residual is one of:

@@ -49,6 +49,10 @@ of the separation to one named statement.
   degree‑`<t` annihilator of `Maj` ⇒ the linearization/Gröbner attack fails, from `AI(Maj)=t`),
   `boundedCrossing_not_correct_inverter` (a width‑`w` crossing observer is not a separator once `q^w<2^r`),
   `boundedLocality_not_correct_inverter` (a `|W|`‑variable junta view is not a separator once `2^{|W|}<2^r`).
+- **`AC⁰[p]` / approximate inverter — unconditional, via Razborov–Smolensky** (`…AC0pInverterHardness`):
+  `no_AC0p_inverter_modq` / `no_AC0p_inverter_parity` — no constant‑depth, poly‑size `AC⁰[p]` family decides
+  `MOD_q` (`q≠p`) or `PARITY` (`p` odd), reusing the assembled RS chain (`Layer3` approximation + `Layer4`
+  no‑approximation core `mod_q_indicators_false` + `Layer7` family lower bounds). Clean axioms.
 - **Calibrations** (re‑derive known bounds through the invariant): AC⁰[p] = Razborov–Smolensky
   (`mod_q_indicators_false`), Nečiporuk `n²/log n`, deterministic communication rectangles.
 
@@ -99,6 +103,13 @@ The provable half is always the *geometric/pointwise* one (a fixed low‑`d_obs`
 half is always the *universal* one (the `min` over **all** poly observers / **all** cheap decompositions). The
 gap theorem `distinguishability_debt_not_time_lower_bound` proves *why* the debt machinery — an *action/space*
 bound — cannot by itself reach the *time/universal* statement: that crossing is exactly `P ≠ NP`.
+
+**Complementarity (the precise shape of the wall).** The proved restricted classes are *mutually
+incomparable*: `Majority` resists the low‑degree algebraic attack (optimal AI) but `MOD_q` — which resists
+`AC⁰[p]` — is `F_q`‑linear (algebraically trivial). No single explicit predicate is proved to resist *all*
+inverter classes simultaneously. That simultaneous resistance over one family is exactly the global
+`InversionHardness` (`P ≠ NP`‑strength): each restricted class is a theorem; their conjunction is the open
+problem.
 
 **Bottom line.** The predicate is provably optimal, the algebraic attack provably fails, the restricted bridges
 are theorems, the false routes are retired — and the separation is reduced to one named statement
