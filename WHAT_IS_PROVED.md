@@ -349,6 +349,26 @@ Razborov–Smolensky / correlation structure, the open `NP ⊄ ACC⁰`‑strengt
 obstruction precisely (the number of independent moduli the projection must jointly resolve); it proves no new
 lower bound, and clearing ACC⁰ would still be a waypoint below `P ≠ NP`, not the separation.
 
+**The naturalness range — why dynamic‑SPDP reaches ACC⁰ but provably not `P ≠ NP` (`…DynamicSPDPNaturalnessRange`).**
+Dynamic‑SPDP is a *feature‑counting* method, so its lower‑bound certificate ("`f` has high realized features" =
+`f` is `Hard` for the low‑feature class) is a **natural property** — large, useful, constructive.  The
+Razborov–Rudich barrier we already formalized (`…NaturalProofsBarrier`) is *class‑dependent* (`Crypto` = the class
+contains PRFs):
+
+* `dynamicSPDP_certificate_large` / `dynamicSPDP_certificate_useful` — the certificate is natural (reuses the
+  barrier file's `counting_property_is_large`, `hard_property_useful`).
+* `dynamicSPDP_blocked_of_crypto` — `Crypto` (PRFs, e.g. `P/poly`) ⇒ the barrier derives `False` from a
+  constructive certificate: **dynamic‑SPDP cannot reach `P ≠ NP`**, by the very barrier we proved.
+* `dynamicSPDP_unblocked_of_no_crypto` — `¬ Crypto` (no PRFs, e.g. ACC⁰) ⇒ the barrier is *vacuous*: a natural
+  lower bound is **permitted**.
+* `dynamicSPDP_range_dichotomy` — the three together.
+
+So the method's reach is **exactly the PRF‑free classes**: ACC⁰ is a legitimate, un‑barriered avenue (the
+composition theorem is worth attempting, via a natural/algebraic route distinct from Williams' non‑natural
+algorithmic method), while `P/poly`/`P ≠ NP` is *blocked by the same barrier* — capped precisely where PRFs
+appear.  "Stronger than Williams" is plausible only at the ACC⁰ level, and is provably not a path to the
+separation.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
