@@ -231,6 +231,18 @@ exactly, with two honest research forks identified.
   `Majority` resists the algebraic attack — no single proved predicate resists *all* classes at once; that
   conjunction over one family is the global `InversionHardness` (`P ≠ NP`‑strength).
 
+* **§6.10 The unified inverter frontier — the simultaneous‑resistance wall, formal**
+  (`…UnifiedInverterFrontier`).  Common carrier `F2Lang`; `ResistsLowDegree H t` (no degree‑`<t` annihilator of
+  the `(2t-1)`‑slice) and `ResistsAC0p H p` (no poly‑size `AC⁰[p]` family computes `H`, via the support↔Bool
+  bridge `toBoolLang`).  Witnesses: `majority_resists_lowDegree` (from `AI(Maj)=⌈n/2⌉`), `parity_resists_AC0p` /
+  `modq_resists_AC0p` (from RS).  **`parity_not_resists_lowDegree` (the new complementarity theorem):** the
+  `AC⁰[p]`‑resisting `parityF2` is affine (`AI≤1`) — the degree‑1 `1⊕parity` annihilates it (proved via the `F₂`
+  involution `anf(T↦|T|)=δ_{|S|=1}`), so it FAILS low‑degree resistance.  Hence neither known witness satisfies
+  both conjuncts; `SimultaneousAlgAC0pResistance := ∃H, ResistsLowDegree H t ∧ ResistsAC0p H p` is the named open
+  wall.  Bounded‑crossing/locality are *automatic* (generic, §6.8), so the binding constraint is exactly this
+  pair; extending it to all poly inverters is the global `InversionHardness` (`P ≠ NP`‑strength).  Makes "no
+  single predicate resists everything" a theorem, not prose.
+
 ## Part V — The frontier (the two honest research forks)
 
 The least‑action path (N‑Frame Lagrangian) is built out; the residual is one of:

@@ -30,6 +30,11 @@ of the separation to one named statement.
 - **The conditional cash‑out chains (pure logic, no axioms).** `williams_cashout`, `ravel_wedge`,
   `observer_centric_williams`, `goldreich_observer_williams`, `majority_observer_williams` (the explicit
   four‑step chain `low‑action ⇒ separator∈K ⇒ fast inversion ⇒ collapse ⇒ ⊥`).
+- **The simultaneous‑resistance wall, made formal** (`…UnifiedInverterFrontier`): `ResistsLowDegree`/`ResistsAC0p`
+  on a common carrier; `majority_resists_lowDegree`, `parity_resists_AC0p`/`modq_resists_AC0p` (witnesses), and
+  **`parity_not_resists_lowDegree`** — the *complementarity theorem*: the `AC⁰[p]`‑resisting parity is affine
+  (`AI ≤ 1`), so it provably **fails** low‑degree resistance. `SimultaneousAlgAC0pResistance` names the open
+  conjunction (one family with both). Turns "no single predicate resists everything" into a theorem.
 - **The geometric core of the gap.** `dimension_gap_forces_debt` / `positive_gap_forces_debt`: a low‑`d_obs`
   observer of a high‑`d_res` residual carries debt `≥ 2^{d_res} − 2^{d_obs}`.
 
