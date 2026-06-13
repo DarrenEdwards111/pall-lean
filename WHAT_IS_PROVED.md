@@ -516,6 +516,53 @@ corpus's arc reaches the `n²/log n` method ceiling, and `…NeciporukCeiling` f
 cannot exceed it — `log₂ #subfunctions ≤ min(2^b, n-b)` per block — so super‑`n²/log n` explicit bounds require a
 different method, shrinkage/Andreev, not this one.)
 
+### 4¾.bis  The correlation / Williams mechanism — opened, with the engine and the fragment test proved
+
+The reuse boundary closed the *counting / restriction* family; the named successor was the **correlation /
+Williams** mechanism (non‑natural, evading the Razborov–Rudich barrier that caps the rank route).  That mechanism
+is now **opened and tested**, not merely named.
+
+**The frontier and the cash‑out shape (`…ACCWilliamsCorrelationTarget`).**  `class_agreement_le_majority` — a
+predictor with a fixed value on a class agrees with the target on at most that class's *majority*
+(`max(#true,#false)`); summed over a coarse predictor's few classes, a balanced target is matched only `≈ ½`.
+`acc0_williams_cashout` — the algorithmic‑method skeleton `smallACC0 → fastSat → collapse`, so `¬collapse ⇒
+¬smallACC0` (no axioms); the hard `smallACC0 → fastSat` step (Williams' fast ACC⁰‑SAT algorithm) is a named,
+*non‑natural* hypothesis.  Open target named: `ACC0CorrelationAgainstTseitin`.
+
+**The engine — measure bias, not class count (`…HolonomyCorrelationEngine`).**  This is the genuinely new object.
+`agreement_le_sum_majority` — **the correlation bridge**: a class‑constant predictor `g∘π` agrees with `f` on `≤`
+the sum over its classes of the per‑class majority of `f`.  `low_rank_predictor_low_correlation_with_full_holonomy`
+— **the seed**: if `f` is *balanced on every predictor class*, then `2·agreement ≤ #inputs` — the predictor
+correlates `≈ ½`, **no advantage**.  Correlation is forced by the predictor's *coarseness*, not by counting
+functions — the route the naturalness barrier does not cap.  The open input was *balance‑per‑class*.
+
+**The first real test — balance for restricted predictors (`…HolonomyBalanceFragments`), proved.**  Balance is now
+*discharged* for restricted predictors against the genuine holonomy/parity target `fParity D x = ⊕_{i∈D} x i`.
+Mechanism: a **missed parity variable**.  `balanced_per_class_of_involution` — a class‑preserving,
+target‑flipping involution forces per‑class balance (it swaps `f=true` with `f=false` inside each class).  The
+involution is `flipAt v` (flip an *unread* coordinate `v∈D`): `factorsThrough_flipAt` (a predictor that ignores
+`v` is flip‑invariant) + `fParity_flipAt_mem` (flipping `v∈D` toggles the parity, via `parityCharge_flipAt_mem`
+and the `ZMod 2` toggle).  Hence `parity_balanced_of_missed_var`, and `parity_balanced_of_card_gap` (pigeonhole:
+`#read set < #parity support ⇒` a missed variable).  Combined with the seed:
+`restricted_fragment_low_correlation` — **a predictor reading fewer variables than the holonomy parity spans has no
+correlation advantage against it** (`2·agreement ≤ #inputs`).  The three named fragments each supply the read‑set
+bound from their gate structure: `logGate_predictor_classes_balanced` (gate‑count × fan‑in), `readOnce_…`
+(disjoint supports ⇒ `∑|supp|`), `boundedOverlap_…` (direct read‑set bound).  All clean axioms
+(`[propext, Classical.choice, Quot.sound]`), no `sorry`.
+
+**The honest finding.**  At the *rank* level the three fragments were genuinely distinct (incidence drove distinct
+`q^{·}` bounds).  At the *correlation* level they **collapse to one condition** — does the read set miss a parity
+variable? — and the overlap parameter that mattered for rank is *irrelevant* to balance.  A real structural
+observation, not a gap.
+
+**Where it stops (`ACC0ApproximatesByLowRankPredictors`, named open).**  This bites *restricted* predictors whose
+read set is provably smaller than the parity support.  A general poly‑size ACC⁰ circuit reads *all* `n` variables,
+so no single unread coordinate exists — balance via a fixed flipped coordinate fails, and one needs an
+*approximate* low‑dimensional predictor (ACC⁰ ≈ a coarse holonomy predictor up to a `½−ε` deficit).  That bridge,
+fed into `restricted_fragment_low_correlation` + `acc0_williams_cashout`, would give `NP ⊄ ACC⁰` — and is itself
+`NP ⊄ ACC⁰`‑strength under the PRF‑free naturalness ceiling.  So the correlation route is **opened and proved on
+fragments**; the load‑bearing ACC⁰‑approximation step is named and lies (as expected) at the same wall.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
