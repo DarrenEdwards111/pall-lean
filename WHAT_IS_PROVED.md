@@ -76,6 +76,17 @@ ingredients bundled in `MajorityGoldreichHardness`:
 Also conditional: `p_ne_np_from_bridge` (the SPDP bridge `PObserverLowSPDP` ⇒ separation) and
 `restricted_bridge_gives_separation` (its provable restricted shape).
 
+## 3′. Conditional on a *known reduction* (not a conjecture) — Option A
+
+`Majority ∉ AC⁰[p]` would merge the algebraic and `AC⁰[p]` faces onto one predicate.  Razborov–Smolensky gives
+`MOD_q ∉ AC⁰[p]`; Majority follows from the classical `MOD_q ≤_{AC⁰} Majority` reduction (`MOD_q ∈ TC⁰`).
+Formalized (`…MajorityAC0pScope`): given `AC0pReduction (modqLang q) majorityLang p`,
+`majority_not_AC0p_of_reduction` (Majority ∉ AC⁰[p]), `majority_resists_AC0p_of_reduction`, and
+**`majority_witnesses_simultaneous_of_reduction`** — `majorityF2` then satisfies *both* binding resistances, so
+`SimultaneousAlgAC0pResistance` holds.  The wall's binding pair collapses onto Majority **modulo a known,
+non‑conjectural reduction** (the only cost is building the padded‑threshold circuit, `padInputs`/`padTrue`
+supplied) — qualitatively unlike the `P ≠ NP`‑strength `InversionHardness`.
+
 ## 4. Retired routes (proved false or proved dead — not merely abandoned)
 
 - **`P_ne_NP_unconditional` (old).** Parked `P`‑side content in unproved sockets; retired — replaced by honest

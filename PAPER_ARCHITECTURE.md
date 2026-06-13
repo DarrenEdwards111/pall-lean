@@ -243,6 +243,17 @@ exactly, with two honest research forks identified.
   pair; extending it to all poly inverters is the global `InversionHardness` (`P ≠ NP`‑strength).  Makes "no
   single predicate resists everything" a theorem, not prose.
 
+* **§6.11 Option A scoped — `Majority ∉ AC⁰[p]` reduced to the standard `MOD_q ≤ Majority` reduction**
+  (`…MajorityAC0pScope`).  Scope finding: Majority is *not* a short corollary of the corpus — the RS
+  no‑approximation core is `MOD_q`‑specific (ζ‑pairing); closing Majority needs a fresh approximate‑degree LB or
+  the classical reduction `MOD_q ≤_{AC⁰} Majority` (`MOD_q ∈ TC⁰`).  Reduction route, honest: `AC0pReduction`
+  (concrete `AC⁰[p]` many‑one closure, **not** a conjecture).  `majority_not_AC0p_of_reduction` (given it,
+  Majority ∉ AC⁰[p], via `modq_not_in_nonuniform_AC0p`); `majority_resists_AC0p_of_reduction` (discharges the
+  unified‑frontier open cell); **`majority_witnesses_simultaneous_of_reduction`** — `majorityF2` then satisfies
+  BOTH binding resistances ⇒ `SimultaneousAlgAC0pResistance`.  The binding wall collapses onto a single predicate
+  *modulo a known reduction* (remaining cost = build the padded‑threshold circuit, `padInputs`/`padTrue`
+  supplied).  Qualitatively unlike `P ≠ NP`: this conditional is formalization labour, not a breakthrough.
+
 ## Part V — The frontier (the two honest research forks)
 
 The least‑action path (N‑Frame Lagrangian) is built out; the residual is one of:
