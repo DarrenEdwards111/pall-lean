@@ -17,8 +17,14 @@ padded assignment is exactly `[#ones(x) + (m+1-k) ≥ m+1] = [#ones(x) ≥ k]`.
   `2m+1` inputs.
 * `thresholdCirc_isAC0p` / `thresholdCirc_depth` — the gadget is `AC⁰[p]` and has the same depth as `Maj`.
 
-Stage 2 (the `MOD_q` OR‑combination, its correctness, the polynomial size bound, and the `AC0pReduction`
-conclusion) builds on this gadget.
+## Stage 2a (proved): the `MOD_q` combination and its correctness
+
+* `andTerm` / `andTerm_eval_eq` — `[#ones = k]` as `[#ones ≥ k] ∧ ¬[#ones ≥ k+1]`.
+* `modqCirc` / `modqCirc_eval` — `⋁_{k ≤ m, k ≡ 0 (mod q)} [#ones = k]` computes `[#ones ≡ 0 (mod q)]`.
+
+Remaining (Stage 2b–d): the `AC⁰[p]` + depth bounds for `modqCirc`, the polynomial `#subcircuits` bound (via
+`padInputs_subcircuits_card_le`), assembling the `AC0pFamily`, and the `AC0pReduction` conclusion (⇒ the
+unconditional `Majority ∉ AC⁰[p]` via `majority_not_AC0p_of_reduction`).
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.ModqReducesMajority
@@ -122,7 +128,75 @@ theorem thresholdCirc_depth (m k : ℕ) (Maj : BoolCircuitSyntax (2 * m + 1)) :
     (thresholdCirc m k Maj).depth = Maj.depth :=
   Layer4.padInputs_depth (selector m k) (selector_depth m k) Maj
 
+/-! ### Stage 2a: the `MOD_q` combination and its correctness -/
+
+/-- `[#ones = k]` as `[#ones ≥ k] ∧ ¬[#ones ≥ k+1]`. -/
+def andTerm (m k : ℕ) (Maj : BoolCircuitSyntax (2 * m + 1)) : BoolCircuitSyntax m :=
+  .andGate [thresholdCirc m k Maj, .not (thresholdCirc m (k + 1) Maj)]
+
+/-- The `MOD_q` circuit: `⋁_{k ≤ m, k ≡ 0 (mod q)} [#ones = k]`. -/
+def modqCirc (m q : ℕ) (Maj : BoolCircuitSyntax (2 * m + 1)) : BoolCircuitSyntax m :=
+  .orGate (((List.range (m + 1)).filter (fun k => k % q = 0)).map (fun k => andTerm m k Maj))
+
+theorem andTerm_eval (m k : ℕ) (Maj : BoolCircuitSyntax (2 * m + 1)) (x : Fin m → Bool) :
+    (andTerm m k Maj).eval x
+      = ((thresholdCirc m k Maj).eval x && !((thresholdCirc m (k + 1) Maj).eval x)) := by
+  simp [andTerm, BoolCircuitSyntax.eval]
+
+/-- `andTerm` computes `[#ones = k]`. -/
+theorem andTerm_eval_eq (m k : ℕ) (hk : k ≤ m) (Maj : BoolCircuitSyntax (2 * m + 1))
+    (hMaj : ∀ y, Maj.eval y
+      = decide ((2 * m + 1 + 1) / 2 ≤ (univ.filter (fun i => y i = true)).card))
+    (x : Fin m → Bool) :
+    (andTerm m k Maj).eval x = decide ((univ.filter (fun j : Fin m => x j = true)).card = k) := by
+  rw [andTerm_eval, thresholdCirc_eval m k (by omega) Maj hMaj,
+      thresholdCirc_eval m (k + 1) (by omega) Maj hMaj]
+  set c := (univ.filter (fun j : Fin m => x j = true)).card
+  rcases Nat.lt_trichotomy c k with h | h | h
+  · have e1 : decide (k ≤ c) = false := by rw [decide_eq_false_iff_not]; omega
+    have e3 : decide (c = k) = false := by rw [decide_eq_false_iff_not]; omega
+    rw [e1, e3, Bool.false_and]
+  · have e1 : decide (k ≤ c) = true := by rw [decide_eq_true_eq]; omega
+    have e2 : decide (k + 1 ≤ c) = false := by rw [decide_eq_false_iff_not]; omega
+    have e3 : decide (c = k) = true := by rw [decide_eq_true_eq]; omega
+    rw [e1, e2, e3, Bool.not_false, Bool.and_true]
+  · have e1 : decide (k ≤ c) = true := by rw [decide_eq_true_eq]; omega
+    have e2 : decide (k + 1 ≤ c) = true := by rw [decide_eq_true_eq]; omega
+    have e3 : decide (c = k) = false := by rw [decide_eq_false_iff_not]; omega
+    rw [e1, e2, e3, Bool.not_true, Bool.and_false]
+
+/-- **The `MOD_q` circuit computes `MOD_q` (proved).**  If `Maj` computes Majority on `2m+1` inputs, then
+`modqCirc` computes `[#ones(x) ≡ 0 (mod q)]`. -/
+theorem modqCirc_eval (m q : ℕ) (Maj : BoolCircuitSyntax (2 * m + 1))
+    (hMaj : ∀ y, Maj.eval y
+      = decide ((2 * m + 1 + 1) / 2 ≤ (univ.filter (fun i => y i = true)).card))
+    (x : Fin m → Bool) :
+    (modqCirc m q Maj).eval x = decide ((univ.filter (fun j : Fin m => x j = true)).card % q = 0) := by
+  set c := (univ.filter (fun j : Fin m => x j = true)).card with hc
+  have hcm : c ≤ m := by
+    rw [hc]; exact le_trans (Finset.card_filter_le _ _) (by rw [Finset.card_univ, Fintype.card_fin])
+  have key : ∀ k ∈ (List.range (m + 1)).filter (fun k => k % q = 0),
+      (andTerm m k Maj).eval x = decide (c = k) := by
+    intro k hk
+    rw [List.mem_filter, List.mem_range] at hk
+    exact andTerm_eval_eq m k (by omega) Maj hMaj x
+  simp only [modqCirc, BoolCircuitSyntax.eval, List.map_map, Function.comp_def]
+  rw [List.map_congr_left key, List.any_map, Bool.eq_iff_iff, List.any_eq_true]
+  constructor
+  · rintro ⟨k, hkmem, hck⟩
+    rw [List.mem_filter, List.mem_range] at hkmem
+    have hck' : c = k := by simpa using hck
+    have hk2 : k % q = 0 := by simpa using hkmem.2
+    rw [decide_eq_true_eq, hck']
+    exact hk2
+  · intro h
+    rw [decide_eq_true_eq] at h
+    refine ⟨c, ?_, ?_⟩
+    · rw [List.mem_filter, List.mem_range]
+      exact ⟨by omega, by simp [h]⟩
+    · simp
+
 end PallLean.Paper93.DeepMath.PathB.ModqReducesMajority
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ModqReducesMajority.trueCount_padBits
-#print axioms PallLean.Paper93.DeepMath.PathB.ModqReducesMajority.thresholdCirc_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.ModqReducesMajority.modqCirc_eval
