@@ -662,6 +662,22 @@ elementary correlation engine's survival is pinned to a sharp gate‑count thres
 "few gates ⇒ engine bites" from intuition into a proved dividing line, and locating the ACC⁰ wall exactly where the
 modular‑statistic count crosses `log₂ n`.
 
+**Past the shattering wall: restriction collapses cells (`…ACCRandomRestrictionCellCollapse`).**  The route through
+the `log₂ n` wall (switching‑lemma strategy): a restriction simplifies the supports so the live coordinates regain
+large cells, after which the same‑cell witness machinery bites on the restricted instance.  The *combinatorial*
+half is proved deterministically; the *probabilistic* half is named.  Cell‑collapse mechanism: if the supports are
+**trivial on the live set `L`** (each support lies entirely in or out of `L`, `TrivialOn`), then *all* live
+coordinates share one cell (`sameCell_of_trivialOn`), so any holonomy support `D` separating two live coordinates
+is a witness (`cellWitness_of_trivialOn`) and the `k`‑gate predictor has no correlation advantage
+(`collapse_gives_low_correlation`, via `kGate_low_correlation_offdiagonal`).  A concrete instance needing **no
+probability**: if `⋃_j S_j` misses `≥ 2` coordinates (fan‑in too small to cover), those untouched coordinates share
+the empty cell and the engine bites (`exists_cellWitness_of_small_union`).  The one open step is named:
+`ACC0RestrictionCollapsesCells` (a small‑depth ACC⁰ family admits a trivializing restriction on `≥ 2` live
+coordinates) — proving a *random* restriction achieves this is the Håstad / Razborov–Smolensky switching content,
+`NP ⊄ ACC⁰`‑strength; granted it, `acc0_collapse_gives_cellWitness` discharges the rest (collapse ⇒ witness ⇒
+engine bites again below the live‑variable threshold).  So route 2 stands in skeleton: the deterministic cell
+combinatorics are fully proved, the single probabilistic switching step isolated and named.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
