@@ -208,6 +208,18 @@ exactly, with two honest research forks identified.
   optimal and the algebraic attack provably fails — the route is reduced to exactly one named cryptographic
   statement.
 
+* **§6.8 Restricted `InversionHardness` — proved unconditionally, by inverter class**
+  (`…RestrictedInversionHardness`).  Turns the global inversion conjecture into a *theorem* for concrete classes,
+  modelling a correct inverter as a separator (zero distinguishability debt against a surjective residual onto
+  `Fin(2^r)`).  `no_low_degree_algebraic_inverter` (NEW, from optimal AI): for `n=2t-1` no nonzero degree‑`<t`
+  function annihilates `Maj`, so the linearization/low‑degree Gröbner attack provably fails — `InversionHardness`
+  for the degree‑`<t` algebraic class.  `boundedCrossing_not_correct_inverter` (from the crossing bridge): a
+  width‑`w` crossing observer over `q` states is not a separator once `q^w<2^r`.
+  `boundedLocality_not_correct_inverter` (from `bounded_support_forces_debt`): a `|W|`‑variable junta view is not
+  a separator once `2^{|W|}<2^r`.  All unconditional, clean axioms.  **Honest scope:** exact low‑degree (an
+  `AC⁰[p]`/*approximate* inverter needs the Razborov–Smolensky approximation argument — noted, not done); the
+  global statement is still the wall.
+
 ## Part V — The frontier (the two honest research forks)
 
 The least‑action path (N‑Frame Lagrangian) is built out; the residual is one of:

@@ -44,6 +44,11 @@ of the separation to one named statement.
 - **Crossing‑sequence bridge.** `crossingSequence_no_separator`: a width‑`w` crossing‑sequence observer over `q`
   states cannot separate a dimension‑`r` residual once `q^w < 2^r` — *non‑circular, by counting*. Discharges
   `restrictedBridge` for the one‑tape/oblivious model.
+- **Restricted `InversionHardness` — unconditional, by class** (`…RestrictedInversionHardness`): the global
+  inversion conjecture is a *theorem* for concrete inverter classes. `no_low_degree_algebraic_inverter` (no
+  degree‑`<t` annihilator of `Maj` ⇒ the linearization/Gröbner attack fails, from `AI(Maj)=t`),
+  `boundedCrossing_not_correct_inverter` (a width‑`w` crossing observer is not a separator once `q^w<2^r`),
+  `boundedLocality_not_correct_inverter` (a `|W|`‑variable junta view is not a separator once `2^{|W|}<2^r`).
 - **Calibrations** (re‑derive known bounds through the invariant): AC⁰[p] = Razborov–Smolensky
   (`mod_q_indicators_false`), Nečiporuk `n²/log n`, deterministic communication rectangles.
 
@@ -57,7 +62,7 @@ ingredients bundled in `MajorityGoldreichHardness`:
 | `raveling` (low‑action ⇒ in `K`) | **provable for restricted `K`** (the debt corpus, crossing‑sequence) |
 | `separatorSpeedup` (`K`‑separator ⇒ fast inversion) | framework‑supplied (DP engine, abundant margin) |
 | `fastInversionImpliesCollapse` (fast inversion ⇒ collapse) | Williams‑style, standard |
-| **`noCollapse` / `InversionHardness`** | **the open conjecture** — local‑PRG security, `P ≠ NP`‑strength |
+| **`noCollapse` / `InversionHardness`** | **the open conjecture** — local‑PRG security, `P ≠ NP`‑strength (but **proved for restricted inverter classes**: low‑degree, bounded‑crossing, bounded‑locality — see §2) |
 
 Also conditional: `p_ne_np_from_bridge` (the SPDP bridge `PObserverLowSPDP` ⇒ separation) and
 `restricted_bridge_gives_separation` (its provable restricted shape).
