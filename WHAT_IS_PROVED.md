@@ -261,6 +261,38 @@ low.  That projection is exactly Book 1's A2/A1 bridge, which the corpus audit (
 already found **assumed, not derived** — the one irreducible `P ≠ NP`‑strength step.  The dichotomy is *proved*,
 not asserted: it converts "you would need a finer invariant" into a machine‑checked no‑go on both natural forms.
 
+**The projected‑rank arc — and its closing verdict (`…ProjectedContextualRank` → `…AffineIndicatorCollapse`).**
+The dichotomy left exactly one opening: a *projection* `proj : (row) → R` that collapses easy high‑rank rows but
+preserves hard ones.  This was made a concrete target and then probed to its conclusion:
+
+* **The certificate framework** (`…ProjectedContextualRank`): `pcrank proj M = ` #distinct projected rows.  Sanity
+  laws proved — `pcrank_le_crank`, `pcrank_id_eq_crank`, `pcrank_le_of_factor` (a richer projection only raises
+  rank), `pcrank_eq_crank_of_injOn` (rank survives an injective projection), `pcrank_ge_of_injOn` (A3‑survival
+  certificate).  A1 becomes a checkable certificate: `BoundedRangeProjection` ⇒ poly `pcrank`, and
+  `boundedRange_cannot_be_separating` proves the cheap (small‑codomain) A1 is fatal to A3.  The isolated target:
+  `SeparatingProjection` — and `separatingProjection_forces_selective` proves any solution must *merge* easy rows
+  yet stay injective on hard rows (distinguish hardness from easiness at the row‑vector level).
+* **Two concrete projections, calibrated.**  *Low‑degree* (`…LowDegreeProjection`): the row's restriction to
+  low‑Hamming‑weight inputs.  It collapses the easy equality matrix to poly (`lowDegProj_eqMatrix_le`) and escapes
+  the deathtrap (feature space `2^{poly}`).  *SPDP* (`…SPDPFeatureProjection`): the order‑`≤k` discrete
+  derivatives on low‑weight inputs.  `spdp_refines_lowDeg` proves SPDP **dominates** low‑degree (the `S=∅`
+  coordinate *is* the value), so it preserves at least as many rows — the strictly stronger candidate.
+* **The A3 probes.**  On the *linear* core (`…SPDPHardSurvivalProbe`, the inner‑product/parity matrix) SPDP
+  **survives** — `spdp_ipMatrix_survives` gives full rank `2^a` — but so does low‑degree (`ipMatrix` is degree 1,
+  and is in `P`), so this separates nothing.  The decisive test is the *high‑degree* affine‑indicator residual
+  (`…AffineIndicatorCollapse`): rows `= {v : v|_P = s}` (degree `|P|`), raw rank `2^{|P|}` (super‑poly).
+* **The closing verdict — locality kills it (`…AffineIndicatorCollapse`).**  `spdpProj_zero_of_vanishing`:
+  **SPDP at constant order `(k,d)` only ever evaluates a row on the weight‑`≤(k+d)` ball** — it is a *local*
+  probe.  So `spdp_constraintMatrix_collapse` gives `pcrank (spdpProj a k d) ≤ N(|P|, k+d)+1` = **poly** while the
+  raw rank is `2^{|P|}`: **SPDP collapses the high‑degree affine / Tseitin‑style residual to polynomial rank, just
+  as low‑degree does** (`lowDeg_constraintMatrix_collapse`).  The locality/feature‑count tension is the
+  quantitative shadow of the SPDP‑rank barrier: a *bounded*‑order feature map is too local to separate
+  high‑codimension residuals, and making the order scale with the codimension (`k+d = Ω(distance)`) blows the
+  feature space to `2^{super‑poly}`, breaking A1's poly feature‑count.  **A projected rank with a *fixed* feature
+  order is ruled out** — the surviving live direction is precisely a projection whose order scales with the
+  instance, which is the SPDP‑rank lower‑bound program itself (the barriered `P ≠ NP`‑strength step).  Net: the
+  one opening the dichotomy left is closed for every *fixed*‑order projection, by a proved locality no‑go.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
@@ -271,7 +303,7 @@ Every route terminates at the **same** wall, in five equivalent forms (all `= Co
 | `AdaptiveResidualNonCollapse` | every cheap adaptive decomposition keeps `2^{Ω(n)}` outcomes | one fixed decomposition | the `min` over **all** |
 | `DimensionGapHard` | `d_res(SAT) − d_obs ≥ Ω(n)` for *every* poly observer | a fixed observer carries debt | the `min` over **all** |
 | global SPDP bridge | every poly‑time observer has poly SPDP rank | restricted `K` | all of `P` |
-| Book‑1 CEW (A1) | every poly‑time SAT decider has polylog contextual width | syntactic surrogate; both unweighted invariants (dichotomy) | a *projected* rank low because of time structure |
+| Book‑1 CEW (A1) | every poly‑time SAT decider has polylog contextual width | syntactic surrogate; both unweighted invariants (dichotomy); all *fixed*‑order projections (locality no‑go) | a projected rank whose feature order **scales with the instance** = the SPDP‑rank lower bound |
 | `(Goldreich)InversionHardness` | the family resists fast inversion (OWF / local‑PRG security) | the four classes of §2 | all poly inverters |
 
 In every form the **provable half is geometric/pointwise** (a fixed low‑`d_obs` observer, a fixed class) and the
@@ -291,7 +323,10 @@ frontier as the strongest explicit, non‑natural bound reachable. The N‑Frame
 same wall — its A1 (bounded contextual width for all `P`) is the lone `P ≠ NP`‑strength field — and a proved
 dichotomy shows *no unweighted contextual invariant* can discharge it: additive ones are too small to separate,
 multiplicative/rank ones are achieved by easy functions, so only a *time‑structure‑coupled projection* (the
-assumed‑not‑derived SPDP bridge) could. The separation is reduced to one named statement, shown equivalent to
+assumed‑not‑derived SPDP bridge) could.  The projected‑rank arc then probed that opening to its end: a proved
+locality no‑go (`…AffineIndicatorCollapse`) shows **every *fixed*‑order projection — low‑degree and SPDP alike —
+collapses the high‑degree affine/Tseitin residual to polynomial rank**, so the surviving direction is exactly a
+projection whose order scales with the instance, i.e. the SPDP‑rank lower bound itself. The separation is reduced to one named statement, shown equivalent to
 `P ≠ NP` in six forms and shown *unreachable* by these methods. Everything reducible is discharged. The one
 irreducible step — an explicit, non‑natural decision lower bound above `n²/log n`, equivalently a contextual
 invariant low *because of* the poly‑time structure, equivalently universal quantification over all polynomial‑time
