@@ -184,6 +184,15 @@ exactly, with two honest research forks identified.
   `maj_high_weight_annihilator_zero`).  **`majority_algebraic_immunity_two_sided` (PROVED): the FULL two‑sided
   `AI(Maj_{2t-1}) ≥ t`** — no nonzero degree‑`<t` `g` annihilates `Maj` or `¬Maj`, threshold `t` growing with
   arity, purely structural (no `decide`), clean axioms.  The growing‑algebraic‑immunity lower bound is complete.
+* **§6.6′ Optimality — the matching upper bound `AI(f) ≤ ⌈n/2⌉` for ALL `f`, PROVED** (`…MajorityAIUpperBound`).
+  A dimension/pigeonhole count (not the Möbius inversion): `exists_low_degree_annihilator` (pigeonhole
+  `Fintype.exists_ne_map_eq_of_card_lt` on the coefficient→evaluation map `c ↦ (T ↦ anf(cmask c)T)`, lifted by
+  `cmask` + the `F₂` involution: `g := anf(cmask c₁) − anf(cmask c₂)`, `anf g = cmask c₁ − cmask c₂`) +
+  `card_small_subsets_gt` (`#{S:|S|≤⌈n/2⌉} > 2^{n-1}` by complement symmetry `S↦Sᶜ` + inclusion–exclusion) ⇒
+  `algebraic_immunity_le_ceil` (every `f` has a nonzero degree‑`≤⌈n/2⌉` annihilator of `f` or `¬f`).
+  **`majority_AI_optimal` (PROVED): for `n=2t-1`, no degree‑`<t` annihilator (lower) AND a degree‑`≤t`
+  annihilator exists (upper) ⇒ `AI(Maj_{2t-1}) = t = ⌈n/2⌉`, the OPTIMAL algebraic immunity.**  Clean axioms,
+  no `sorry`.  The growing‑AI story is now complete and tight.
 
 ## Part V — The frontier (the two honest research forks)
 
