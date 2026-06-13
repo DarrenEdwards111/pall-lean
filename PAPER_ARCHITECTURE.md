@@ -135,6 +135,18 @@ exactly, with two honest research forks identified.
   separator exists (`hypercube_brute_force_escape`).  Extending past it needs the Williams cash‑out (§6.3),
   guarded by natural proofs / relativization / algebrization.
 
+* **§6.4 The N‑Frame / SPDP bridge — assumption vs derivation, made explicit** (`…NFrameHypercubeConstraint`).
+  Formalizes N‑Frame book1's "SPDP event horizon".  `p_ne_np_from_bridge`: `bridge` (`PObserverLowSPDP`:
+  poly‑time ⇒ low SPDP rank of the decision view) `+ correct_needs_rank + sat_high` (SAT's required rank is
+  super‑poly) ⇒ no poly‑time SAT decider.  `restricted_bridge_gives_separation`: with the bridge restricted to a
+  structural class `K`, the conclusion restricts to `K`.  **The split this makes precise:** the *restricted*
+  bridge (poly‑time `∧` in `K` ⇒ low SPDP) is provable for concrete `K` — the whole corpus is instances; the
+  *global* bridge is `P ≠ NP`‑hard and false in the naïve model (poly space ⇒ high‑dimensional view), and
+  book1 *asserts* it as a principle ("low SPDP rank encodes P‑reach") rather than deriving it; `sat_high` is the
+  SPDP lower bound, **disproved for the diagonal `χ_φ` family** and barriered‑short‑of‑`P/poly` for the
+  permanent.  So book1's `P ≠ NP` = the global bridge (an assumption equal in strength to the separation) + an
+  open/false SPDP bound — faithful geometry, load‑bearing implication assumed not derived.
+
 ## Part V — The frontier (the two honest research forks)
 
 The least‑action path (N‑Frame Lagrangian) is built out; the residual is one of:
