@@ -2,29 +2,29 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer4PadSubcircuits
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMajorityAC0pScope
 
 /-!
-# Building the `MOD_q ≤ Majority` reduction — Stage 1: the threshold gadget
+# The `MOD_q ≤ Majority` reduction — COMPLETE ⇒ unconditional `Majority ∉ AC⁰[p]`
 
-To discharge `AC0pReduction (modqLang q) majorityLang p` unconditionally we build the classical
-`MOD_q ≤_{AC⁰} Majority` reduction circuit.  Stage 1 here is the reusable core: the **threshold gadget**
-`[#ones ≥ k]`, obtained from a `Majority` circuit on `2m+1` inputs by `padInputs` — feeding the `m` real inputs
-plus `m+1-k` hardwired `true`s and `k` hardwired `false`s.  Majority on `2m+1` bits (threshold `m+1`) of that
-padded assignment is exactly `[#ones(x) + (m+1-k) ≥ m+1] = [#ones(x) ≥ k]`.
+The full classical `MOD_q ≤_{AC⁰[p]} Majority` reduction circuit, formalized.  This **discharges**
+`AC0pReduction (modqLang q) majorityLang p` (the previously‑assumed hypothesis of `…MajorityAC0pScope`),
+turning `Majority ∉ AC⁰[p]` and the single‑predicate simultaneous‑resistance into **unconditional theorems**.
 
-## Proved (clean axioms, no `sorry`)
+The construction: `thresholdCirc m k Maj := padInputs (selector m k) Maj` builds `[#ones ≥ k]` from a Majority
+circuit on `2m+1` inputs (the `m` real inputs + `m+1-k` hardwired `true`s + `k` `false`s; Majority of that =
+`[#ones(x)+(m+1-k) ≥ m+1] = [#ones(x) ≥ k]`); `modqCirc = ⋁_{k≤m, k≡0(q)}([#ones≥k] ∧ ¬[#ones≥k+1])` computes
+`MOD_q`.
 
-* `trueCount_padBits` — the count of the padded assignment is `#ones(x) + (m+1-k)`.
-* `thresholdCirc_eval` — `(thresholdCirc m k Maj).eval x = [#ones(x) ≥ k]`, when `Maj` computes Majority on
-  `2m+1` inputs.
-* `thresholdCirc_isAC0p` / `thresholdCirc_depth` — the gadget is `AC⁰[p]` and has the same depth as `Maj`.
+## Proved (clean axioms `[propext, Classical.choice, Quot.sound]`, no `sorry`)
 
-## Stage 2a (proved): the `MOD_q` combination and its correctness
-
-* `andTerm` / `andTerm_eval_eq` — `[#ones = k]` as `[#ones ≥ k] ∧ ¬[#ones ≥ k+1]`.
-* `modqCirc` / `modqCirc_eval` — `⋁_{k ≤ m, k ≡ 0 (mod q)} [#ones = k]` computes `[#ones ≡ 0 (mod q)]`.
-
-Remaining (Stage 2b–d): the `AC⁰[p]` + depth bounds for `modqCirc`, the polynomial `#subcircuits` bound (via
-`padInputs_subcircuits_card_le`), assembling the `AC0pFamily`, and the `AC0pReduction` conclusion (⇒ the
-unconditional `Majority ∉ AC⁰[p]` via `majority_not_AC0p_of_reduction`).
+* **Threshold gadget:** `trueCount_padBits`, `thresholdCirc_eval` (`= [#ones ≥ k]`), `_isAC0p`, `_depth`.
+* **`MOD_q` circuit:** `andTerm_eval_eq` (`= [#ones = k]`), `modqCirc_eval` (`= [#ones ≡ 0 (q)]`),
+  `modqCirc_isAC0p`, `modqCirc_depth_le` (constant depth), `modqCirc_subcircuits_card_le` (polynomial size).
+* **`IsPolyBounded` closure:** `ipb_const/linear/add/mul/comp_affine/succ/congr` (built from scratch).
+* **`reductionFamily`** — the `AC⁰[p]` family computing `MOD_q` from a Majority family.
+* **`modq_AC0pReduction`** — the reduction `MOD_q ≤_{AC⁰[p]} Majority`, **proved**.
+* **`majority_not_in_AC0p`** — **unconditional `Majority ∉ AC⁰[p]`** (via `majority_not_AC0p_of_reduction`).
+* **`majority_resists_AC0p`** / **`majority_simultaneous_resistance`** — `majorityF2` unconditionally resists the
+  `AC⁰[p]` class, and (with the proved low‑degree resistance) witnesses `SimultaneousAlgAC0pResistance` —
+  **the binding wall of the unified frontier, realized by one predicate, with no remaining hypothesis.**
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.ModqReducesMajority
@@ -320,7 +320,152 @@ theorem andTerm_subcircuits_card_le (m k : ℕ) (Maj : BoolCircuitSyntax (2 * m 
     (subcircuits (thresholdCirc m (k + 1) Maj))
   omega
 
+/-! ### Stage 2d (i): `IsPolyBounded` closure -/
+
+theorem pow_le_pow_add_one (n c1 c : ℕ) (h : c1 ≤ c) : n ^ c1 ≤ n ^ c + 1 := by
+  rcases Nat.eq_zero_or_pos n with rfl | hn
+  · rcases Nat.eq_zero_or_pos c1 with rfl | hc1
+    · simp
+    · rw [Nat.zero_pow (by omega)]; exact Nat.zero_le _
+  · exact le_trans (Nat.pow_le_pow_right hn h) (Nat.le_succ _)
+
+theorem pow_succ_le (m c : ℕ) : (m + 1) ^ c ≤ 2 ^ c * m ^ c + 2 ^ c := by
+  rcases Nat.eq_zero_or_pos m with rfl | hm
+  · simp only [Nat.zero_add, Nat.one_pow]
+    have : 1 ≤ 2 ^ c := Nat.one_le_two_pow
+    nlinarith [Nat.zero_le (2 ^ c * (0:ℕ) ^ c)]
+  · calc (m + 1) ^ c ≤ (2 * m) ^ c := Nat.pow_le_pow_left (by omega) c
+      _ = 2 ^ c * m ^ c := by rw [mul_pow]
+      _ ≤ 2 ^ c * m ^ c + 2 ^ c := Nat.le_add_right _ _
+
+theorem ipb_const (b : ℕ) : Layer7.IsPolyBounded (fun _ => b) := ⟨0, 0, b, fun _ => by simp⟩
+
+theorem ipb_linear (a b : ℕ) : Layer7.IsPolyBounded (fun m => a * m + b) :=
+  ⟨a, 1, b, fun n => by rw [pow_one]⟩
+
+theorem ipb_add {f g : ℕ → ℕ} (hf : Layer7.IsPolyBounded f) (hg : Layer7.IsPolyBounded g) :
+    Layer7.IsPolyBounded (fun n => f n + g n) := by
+  obtain ⟨a1, c1, b1, h1⟩ := hf
+  obtain ⟨a2, c2, b2, h2⟩ := hg
+  refine ⟨a1 + a2, max c1 c2, a1 + a2 + b1 + b2, fun n => ?_⟩
+  have e1 : n ^ c1 ≤ n ^ max c1 c2 + 1 := pow_le_pow_add_one n c1 _ (le_max_left _ _)
+  have e2 : n ^ c2 ≤ n ^ max c1 c2 + 1 := pow_le_pow_add_one n c2 _ (le_max_right _ _)
+  calc f n + g n ≤ (a1 * n ^ c1 + b1) + (a2 * n ^ c2 + b2) := Nat.add_le_add (h1 n) (h2 n)
+    _ ≤ (a1 * (n ^ max c1 c2 + 1) + b1) + (a2 * (n ^ max c1 c2 + 1) + b2) := by gcongr
+    _ = (a1 + a2) * n ^ max c1 c2 + (a1 + a2 + b1 + b2) := by ring
+
+theorem ipb_mul {f g : ℕ → ℕ} (hf : Layer7.IsPolyBounded f) (hg : Layer7.IsPolyBounded g) :
+    Layer7.IsPolyBounded (fun n => f n * g n) := by
+  obtain ⟨a1, c1, b1, h1⟩ := hf
+  obtain ⟨a2, c2, b2, h2⟩ := hg
+  refine ⟨a1 * a2 + a1 * b2 + b1 * a2, c1 + c2, a1 * b2 + b1 * a2 + b1 * b2, fun n => ?_⟩
+  have e1 : n ^ c1 ≤ n ^ (c1 + c2) + 1 := pow_le_pow_add_one n c1 (c1 + c2) (by omega)
+  have e2 : n ^ c2 ≤ n ^ (c1 + c2) + 1 := pow_le_pow_add_one n c2 (c1 + c2) (by omega)
+  calc f n * g n ≤ (a1 * n ^ c1 + b1) * (a2 * n ^ c2 + b2) := Nat.mul_le_mul (h1 n) (h2 n)
+    _ = a1 * a2 * (n ^ c1 * n ^ c2) + a1 * b2 * n ^ c1 + b1 * a2 * n ^ c2 + b1 * b2 := by ring
+    _ = a1 * a2 * n ^ (c1 + c2) + a1 * b2 * n ^ c1 + b1 * a2 * n ^ c2 + b1 * b2 := by
+        rw [← pow_add]
+    _ ≤ a1 * a2 * n ^ (c1 + c2) + a1 * b2 * (n ^ (c1 + c2) + 1)
+          + b1 * a2 * (n ^ (c1 + c2) + 1) + b1 * b2 := by gcongr
+    _ = (a1 * a2 + a1 * b2 + b1 * a2) * n ^ (c1 + c2) + (a1 * b2 + b1 * a2 + b1 * b2) := by ring
+
+theorem ipb_comp_affine {f : ℕ → ℕ} (hf : Layer7.IsPolyBounded f) (a b : ℕ) :
+    Layer7.IsPolyBounded (fun m => f (a * m + b)) := by
+  obtain ⟨A, C, B, hF⟩ := hf
+  refine ⟨A * (a + b) ^ C * 2 ^ C, C, A * (a + b) ^ C * 2 ^ C + B, fun m => ?_⟩
+  calc f (a * m + b) ≤ A * (a * m + b) ^ C + B := hF (a * m + b)
+    _ ≤ A * ((a + b) * (m + 1)) ^ C + B := by
+        gcongr
+        nlinarith [Nat.zero_le (b * m), Nat.zero_le a]
+    _ = A * ((a + b) ^ C * (m + 1) ^ C) + B := by rw [mul_pow]
+    _ ≤ A * ((a + b) ^ C * (2 ^ C * m ^ C + 2 ^ C)) + B := by gcongr; exact pow_succ_le m C
+    _ = A * (a + b) ^ C * 2 ^ C * m ^ C + (A * (a + b) ^ C * 2 ^ C + B) := by ring
+
+theorem ipb_congr {f g : ℕ → ℕ} (h : ∀ n, f n = g n) (hg : Layer7.IsPolyBounded g) :
+    Layer7.IsPolyBounded f := by
+  obtain ⟨a, c, b, hb⟩ := hg
+  exact ⟨a, c, b, fun n => by rw [h n]; exact hb n⟩
+
+theorem ipb_succ : Layer7.IsPolyBounded (fun m => m + 1) := ⟨1, 1, 1, fun n => by simp⟩
+
+/-! ### Stage 2d (ii): the size bound, the reduction family, and the conclusion -/
+
+open Classical in
+theorem modqCirc_subcircuits_card_le (m q : ℕ) (Maj : BoolCircuitSyntax (2 * m + 1)) :
+    (subcircuits (modqCirc m q Maj)).toFinset.card
+      ≤ (m + 1) * (2 * (subcircuits Maj).toFinset.card + 2 * (2 * m + 1) + 2) + 1 := by
+  set B := 2 * (subcircuits Maj).toFinset.card + 2 * (2 * m + 1) + 2 with hB
+  unfold modqCirc
+  refine (subcircuits_orGate_card_le _).trans ?_
+  simp only [List.map_map, Function.comp_def]
+  set fks := (List.range (m + 1)).filter (fun k => k % q = 0) with hfks
+  have hbound : ∀ x ∈ fks.map (fun k => (subcircuits (andTerm m k Maj)).toFinset.card), x ≤ B := by
+    intro x hx
+    rw [List.mem_map] at hx
+    obtain ⟨k, _, rfl⟩ := hx
+    exact andTerm_subcircuits_card_le m k Maj
+  have hsum := List.sum_le_card_nsmul _ B hbound
+  rw [List.length_map, smul_eq_mul] at hsum
+  have hlen : fks.length ≤ m + 1 := by
+    rw [hfks]; exact le_trans (List.length_filter_le _ _) (by rw [List.length_range])
+  have hmul : fks.length * B ≤ (m + 1) * B := mul_le_mul_right' hlen B
+  omega
+
+open Classical in
+/-- The `AC⁰[p]` family computing `MOD_q` built from a `Majority` family `F` (the reduction circuit). -/
+def reductionFamily (p q : ℕ) (F : Layer7.AC0pFamily p) : Layer7.AC0pFamily p where
+  circ := fun m => modqCirc m q (F.circ (2 * m + 1))
+  isAC0p := fun m => modqCirc_isAC0p p m q (F.circ (2 * m + 1)) (F.isAC0p (2 * m + 1))
+  depthBound := F.depthBound + 3
+  hdepth := fun m => le_trans (modqCirc_depth_le m q (F.circ (2 * m + 1)))
+    (by have := F.hdepth (2 * m + 1); omega)
+  sizeBound := fun m => (m + 1) * (2 * F.sizeBound (2 * m + 1) + 2 * (2 * m + 1) + 2) + 1
+  hsize := fun m => le_trans (modqCirc_subcircuits_card_le m q (F.circ (2 * m + 1)))
+    (by gcongr; exact F.hsize (2 * m + 1))
+
+/-- **The reduction `MOD_q ≤_{AC⁰[p]} Majority` (proved, no axioms beyond the standard trio).**  Builds, from
+any poly‑size `AC⁰[p]` family computing `majorityLang`, a poly‑size `AC⁰[p]` family computing `modqLang q`. -/
+theorem modq_AC0pReduction (p q : ℕ) :
+    MajorityAC0pScope.AC0pReduction (Layer7.modqLang q) MajorityAC0pScope.majorityLang p := by
+  intro F hpoly hComp
+  refine ⟨reductionFamily p q F, ?_, ?_⟩
+  · show Layer7.IsPolyBounded
+        (fun m => (m + 1) * (2 * F.sizeBound (2 * m + 1) + 2 * (2 * m + 1) + 2) + 1)
+    refine ipb_congr ?_ (ipb_add (ipb_mul ipb_succ (ipb_add (ipb_add
+      (ipb_mul (ipb_const 2) (ipb_comp_affine hpoly 2 1)) (ipb_linear 4 2)) (ipb_const 2)))
+      (ipb_const 1))
+    intro m; ring
+  · intro m x
+    have hMaj : ∀ y, (F.circ (2 * m + 1)).eval y
+        = decide ((2 * m + 1 + 1) / 2 ≤ (univ.filter (fun i => y i = true)).card) := by
+      intro y; rw [hComp (2 * m + 1) y]; rfl
+    show (modqCirc m q (F.circ (2 * m + 1))).eval x = Layer7.modqLang q m x
+    rw [modqCirc_eval m q (F.circ (2 * m + 1)) hMaj x]
+    rfl
+
+/-! ### The unconditional payoff -/
+
+/-- **`Majority ∉ AC⁰[p]` (unconditional, proved).**  Discharging the reduction, no poly‑size `AC⁰[p]` family
+computes `majorityLang`. -/
+theorem majority_not_in_AC0p (p q : ℕ) [Fact p.Prime] [Fact q.Prime] (hpq : ¬ q ∣ p)
+    (F : Layer7.AC0pFamily p) (hpoly : Layer7.IsPolyBounded F.sizeBound) :
+    ¬ F.Computes MajorityAC0pScope.majorityLang :=
+  MajorityAC0pScope.majority_not_AC0p_of_reduction p q hpq (modq_AC0pReduction p q) F hpoly
+
+/-- **Majority unconditionally resists the `AC⁰[p]` inverter class.** -/
+theorem majority_resists_AC0p (p q : ℕ) [Fact p.Prime] [Fact q.Prime] (hpq : ¬ q ∣ p) :
+    UnifiedInverterFrontier.ResistsAC0p UnifiedInverterFrontier.majorityF2 p :=
+  MajorityAC0pScope.majority_resists_AC0p_of_reduction p q hpq (modq_AC0pReduction p q)
+
+/-- **The simultaneous‑resistance wall, unconditionally witnessed by Majority (proved).**  For `n = 2t-1` and
+distinct primes `p ≠ q`, `majorityF2` resists **both** the low‑degree algebraic class and the `AC⁰[p]` class —
+`SimultaneousAlgAC0pResistance` holds with no remaining hypothesis. -/
+theorem majority_simultaneous_resistance {t : ℕ} (ht : 1 ≤ t)
+    (p q : ℕ) [Fact p.Prime] [Fact q.Prime] (hpq : ¬ q ∣ p) :
+    UnifiedInverterFrontier.SimultaneousAlgAC0pResistance t p :=
+  MajorityAC0pScope.majority_witnesses_simultaneous_of_reduction ht p q hpq (modq_AC0pReduction p q)
+
 end PallLean.Paper93.DeepMath.PathB.ModqReducesMajority
 
-#print axioms PallLean.Paper93.DeepMath.PathB.ModqReducesMajority.modqCirc_eval
-#print axioms PallLean.Paper93.DeepMath.PathB.ModqReducesMajority.andTerm_subcircuits_card_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ModqReducesMajority.majority_not_in_AC0p
+#print axioms PallLean.Paper93.DeepMath.PathB.ModqReducesMajority.majority_simultaneous_resistance

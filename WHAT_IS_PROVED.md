@@ -30,6 +30,12 @@ of the separation to one named statement.
 - **The conditional cash‑out chains (pure logic, no axioms).** `williams_cashout`, `ravel_wedge`,
   `observer_centric_williams`, `goldreich_observer_williams`, `majority_observer_williams` (the explicit
   four‑step chain `low‑action ⇒ separator∈K ⇒ fast inversion ⇒ collapse ⇒ ⊥`).
+- **`Majority ∉ AC⁰[p]` — UNCONDITIONAL** (`…ModqReducesMajority`): the full `MOD_q ≤_{AC⁰[p]} Majority`
+  reduction circuit is formalized (`thresholdCirc` via `padInputs`, `modqCirc = ⋁([#ones=k])`, with eval‑
+  correctness, `AC⁰[p]`, constant depth, polynomial size, and a from‑scratch `IsPolyBounded` closure), discharging
+  `AC0pReduction` ⇒ `majority_not_in_AC0p`.  Hence **`majority_simultaneous_resistance`**: `majorityF2`
+  unconditionally satisfies **both** binding resistances (low‑degree *and* `AC⁰[p]`), realizing
+  `SimultaneousAlgAC0pResistance` on a single predicate with **no remaining hypothesis**.
 - **The simultaneous‑resistance wall, made formal** (`…UnifiedInverterFrontier`): `ResistsLowDegree`/`ResistsAC0p`
   on a common carrier; `majority_resists_lowDegree`, `parity_resists_AC0p`/`modq_resists_AC0p` (witnesses), and
   **`parity_not_resists_lowDegree`** — the *complementarity theorem*: the `AC⁰[p]`‑resisting parity is affine
@@ -76,7 +82,7 @@ ingredients bundled in `MajorityGoldreichHardness`:
 Also conditional: `p_ne_np_from_bridge` (the SPDP bridge `PObserverLowSPDP` ⇒ separation) and
 `restricted_bridge_gives_separation` (its provable restricted shape).
 
-## 3′. Conditional on a *known reduction* (not a conjecture) — Option A
+## 3′. Option A — NOW UNCONDITIONAL (the reduction is proved)
 
 `Majority ∉ AC⁰[p]` would merge the algebraic and `AC⁰[p]` faces onto one predicate.  Razborov–Smolensky gives
 `MOD_q ∉ AC⁰[p]`; Majority follows from the classical `MOD_q ≤_{AC⁰} Majority` reduction (`MOD_q ∈ TC⁰`).

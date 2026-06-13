@@ -254,6 +254,18 @@ exactly, with two honest research forks identified.
   *modulo a known reduction* (remaining cost = build the padded‑threshold circuit, `padInputs`/`padTrue`
   supplied).  Qualitatively unlike `P ≠ NP`: this conditional is formalization labour, not a breakthrough.
 
+* **§6.12 `MOD_q ≤ Majority` reduction COMPLETE ⇒ `Majority ∉ AC⁰[p]` UNCONDITIONAL**
+  (`…ModqReducesMajority`).  Discharges the `AC0pReduction` hypothesis of §6.11 by formalizing the full classical
+  reduction circuit: `thresholdCirc m k Maj := padInputs (selector m k) Maj` computes `[#ones≥k]` (Majority of a
+  padded `2m+1`‑input assignment); `modqCirc = ⋁_{k≡0(q)}([#ones≥k]∧¬[#ones≥k+1])` computes `MOD_q`.  Proved:
+  `modqCirc_eval` (correctness), `modqCirc_isAC0p`, `modqCirc_depth_le` (constant depth), and the polynomial size
+  bound `modqCirc_subcircuits_card_le` — the last needing a **from‑scratch `IsPolyBounded` closure**
+  (`ipb_const/linear/add/mul/comp_affine`).  `reductionFamily` packages it; `modq_AC0pReduction` is the reduction.
+  Hence **`majority_not_in_AC0p` (unconditional `Majority ∉ AC⁰[p]`)** and **`majority_simultaneous_resistance`**:
+  `majorityF2` unconditionally satisfies BOTH binding resistances (low‑degree ∧ `AC⁰[p]`) ⇒
+  `SimultaneousAlgAC0pResistance` realized on a **single predicate, no remaining hypothesis**.  Clean axioms, no
+  `sorry`.  The unified binding wall is now an unconditional single‑predicate theorem.
+
 ## Part V — The frontier (the two honest research forks)
 
 The least‑action path (N‑Frame Lagrangian) is built out; the residual is one of:
