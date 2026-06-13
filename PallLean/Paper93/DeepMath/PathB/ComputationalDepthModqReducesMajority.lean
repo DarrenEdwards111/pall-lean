@@ -32,6 +32,7 @@ namespace PallLean.Paper93.DeepMath.PathB.ModqReducesMajority
 open Finset
 open PallLean.Paper93.DeepMath.PathB
 open PallLean.Paper93.DeepMath.PathB.BoolCircuitSyntax
+open PallLean.Paper93.DeepMath.PathB.Layer3 (subcircuits subcircuitsList)
 
 /-- The input selector: real inputs `0..m-1`, then `m+1-k` hardwired `true`s, then `k` hardwired `false`s. -/
 def selector (m k : ℕ) : Fin (2 * m + 1) → BoolCircuitSyntax m :=
@@ -243,8 +244,83 @@ theorem modqCirc_depth_le (m q : ℕ) (Maj : BoolCircuitSyntax (2 * m + 1)) :
     exact (andTerm_depth m k Maj).le
   omega
 
+/-! ### Stage 2c: polynomial size (subcircuit count) -/
+
+theorem toFinset_card_cons_le {α : Type*} [DecidableEq α] (a : α) (l : List α) :
+    (a :: l).toFinset.card ≤ l.toFinset.card + 1 := by
+  rw [List.toFinset_cons]; exact Finset.card_insert_le _ _
+
+theorem toFinset_card_append_le {α : Type*} [DecidableEq α] (l1 l2 : List α) :
+    (l1 ++ l2).toFinset.card ≤ l1.toFinset.card + l2.toFinset.card := by
+  rw [List.toFinset_append]; exact Finset.card_union_le _ _
+
+open Classical in
+theorem subcircuitsList_card_le {m : ℕ} (L : List (BoolCircuitSyntax m)) :
+    (subcircuitsList L).toFinset.card ≤ (L.map (fun C => (subcircuits C).toFinset.card)).sum := by
+  induction L with
+  | nil => simp [subcircuitsList]
+  | cons C Cs ih =>
+    have heq : subcircuitsList (C :: Cs) = subcircuits C ++ subcircuitsList Cs := by
+      simp only [subcircuitsList]
+    rw [heq]
+    refine (toFinset_card_append_le _ _).trans ?_
+    simp only [List.map_cons, List.sum_cons]
+    omega
+
+open Classical in
+theorem subcircuits_orGate_card_le {m : ℕ} (L : List (BoolCircuitSyntax m)) :
+    (subcircuits (BoolCircuitSyntax.orGate L)).toFinset.card
+      ≤ (L.map (fun C => (subcircuits C).toFinset.card)).sum + 1 := by
+  have heq : subcircuits (BoolCircuitSyntax.orGate L) = .orGate L :: subcircuitsList L := by
+    simp only [subcircuits]
+  rw [heq]
+  refine (toFinset_card_cons_le _ _).trans ?_
+  have := subcircuitsList_card_le L
+  omega
+
+open Classical in
+theorem selector_subcircuits_card_le (m k : ℕ) (i : Fin (2 * m + 1)) :
+    (subcircuits (selector m k i)).toFinset.card ≤ 1 := by
+  unfold selector
+  by_cases h : (i : ℕ) < m
+  · simp [h, subcircuits]
+  · by_cases h2 : (i : ℕ) < 2 * m + 1 - k <;> simp [h, h2, subcircuits]
+
+open Classical in
+theorem thresholdCirc_subcircuits_card_le (m k : ℕ) (Maj : BoolCircuitSyntax (2 * m + 1)) :
+    (subcircuits (thresholdCirc m k Maj)).toFinset.card
+      ≤ (subcircuits Maj).toFinset.card + (2 * m + 1) := by
+  unfold thresholdCirc
+  refine (Layer4.padInputs_subcircuits_card_le (selector m k) Maj).trans ?_
+  have hs : ∑ i : Fin (2 * m + 1), (subcircuits (selector m k i)).toFinset.card
+      ≤ ∑ _i : Fin (2 * m + 1), 1 :=
+    Finset.sum_le_sum (fun i _ => selector_subcircuits_card_le m k i)
+  simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul, mul_one] at hs
+  omega
+
+open Classical in
+theorem andTerm_subcircuits_card_le (m k : ℕ) (Maj : BoolCircuitSyntax (2 * m + 1)) :
+    (subcircuits (andTerm m k Maj)).toFinset.card
+      ≤ 2 * (subcircuits Maj).toFinset.card + 2 * (2 * m + 1) + 2 := by
+  have heq : subcircuits (andTerm m k Maj)
+      = .andGate [thresholdCirc m k Maj, .not (thresholdCirc m (k + 1) Maj)]
+        :: (subcircuits (thresholdCirc m k Maj)
+            ++ (.not (thresholdCirc m (k + 1) Maj) :: subcircuits (thresholdCirc m (k + 1) Maj))) := by
+    simp only [andTerm, subcircuits, subcircuitsList, List.append_nil]
+  rw [heq]
+  have hA := thresholdCirc_subcircuits_card_le m k Maj
+  have hB := thresholdCirc_subcircuits_card_le m (k + 1) Maj
+  have c1 := toFinset_card_cons_le
+    (BoolCircuitSyntax.andGate [thresholdCirc m k Maj, BoolCircuitSyntax.not (thresholdCirc m (k + 1) Maj)])
+    (subcircuits (thresholdCirc m k Maj)
+      ++ (BoolCircuitSyntax.not (thresholdCirc m (k + 1) Maj) :: subcircuits (thresholdCirc m (k + 1) Maj)))
+  have c2 := toFinset_card_append_le (subcircuits (thresholdCirc m k Maj))
+    (BoolCircuitSyntax.not (thresholdCirc m (k + 1) Maj) :: subcircuits (thresholdCirc m (k + 1) Maj))
+  have c3 := toFinset_card_cons_le (BoolCircuitSyntax.not (thresholdCirc m (k + 1) Maj))
+    (subcircuits (thresholdCirc m (k + 1) Maj))
+  omega
+
 end PallLean.Paper93.DeepMath.PathB.ModqReducesMajority
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ModqReducesMajority.modqCirc_eval
-#print axioms PallLean.Paper93.DeepMath.PathB.ModqReducesMajority.modqCirc_isAC0p
-#print axioms PallLean.Paper93.DeepMath.PathB.ModqReducesMajority.modqCirc_depth_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ModqReducesMajority.andTerm_subcircuits_card_le
