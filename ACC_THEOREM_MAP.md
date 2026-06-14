@@ -67,6 +67,7 @@ The wall is precisely **mixed modulus**: no single prime field linearises gates 
 | **mixed moduli `MOD₆ = MOD₂ ∧ MOD₃` via CRT** | **`mod6_eval_true_iff`** (CRT split: `(⟨6,S,t⟩).eval x = true ↔ count_S(x) ≡ t.val [MOD 2] ∧ ≡ [MOD 3]`, via `Nat.modEq_and_modEq_iff_modEq_mul` `2⊥3` + `ZMod.natCast_eq_natCast_iff`); **`mod6_realizable_iff_mixed`** (a forced-true `MOD₆` family realizable ⟺ `∃ x` solving the mod-2 system AND the mod-3 system simultaneously). Combines the F₂-linear/rank story with the F₃-feasibility story, COUPLED through the shared `x` — neither rank nor feasibility alone suffices, no product/closed-form shortcut. (Forced-true case; general `ρ` makes each gate a conjunction/disjunction of the CRT parts) | `…ACC0Mod6Mixed` |
 | **mixed moduli `MOD₆`, general `ρ` (true ∧, false ∨)** | **`mod6_eval_false_iff`** (forcing false negates the CRT conjunction → DISJUNCTION `¬(count ≡ t mod 2) ∨ ¬(count ≡ t mod 3)`, via `Bool.eq_false_iff`+`mod6_eval_true_iff`+`not_and_or`); **`mod6_realizable_iff_general`** (arbitrary `ρ`: realizable ⟺ `∃ x` meeting per-gate the conjunction of CRT congruences (forced-true) / disjunction of CRT disequalities (forced-false), coupled through `x`). The fully-general mixed-modulus realization = a mixed CSP over the Boolean cube (linear mod-2 ∧ feasibility mod-3 atoms, conjoined/disjoined per gate) — no rank or product shortcut | `…ACC0Mod6MixedGeneral` |
 | **YBT `SYM`-top count observer (the tractable heart of `SYM∘AND`)** | `gateCount`/`symEval` (count of accepting sub-gates; a symmetric = count-function of them); `gateCount_le` (`≤ m`); **`sym_observed`** (`symEval g h` `ObservedBy` the count); **`sym_count_card_le`** (count boundary `≤ m+1` — the symmetric top collapses `2^m` → `m+1`); **`sym_searchable`** (`SYM∘(m gates)` SAT-searchable `<2^n` once `m+1<2^n`; at the YBT form `m`=quasipoly, `<2^n`). Proves WHY the YBT `SYM` top is cheap (count boundary), for arbitrary sub-gates. The YBT REDUCTION (arbitrary ACC⁰ → `SYM∘AND`, `m` quasipoly) is NOT proved — the open structural wall, socketed as `MixedACCDepthReductionSocket` | `…ACC0SymmetricObserver` |
+| **low-degree polynomial → `SYM∘AND` (YBT chip)** | `monoAND` (monomial `AND` gate, fan-in `\|S\|`); `lowDegSubsets`/**`lowDegSubsets_card`** (degree-`≤D` monomials count `= ∑_{i≤D} C(n,i)`, via `card_biUnion` over `powersetCard`); **`monomial_count_le`** (distinct degree-`≤D` monomials ⇒ `≤ ∑_{i≤D} C(n,i)` bottom gates); **`lowDegreePoly_searchable`** (a `SYM` gate over `m` monomial-`AND`s is SAT-searchable `<2^n` once `m+1<2^n` — the poly value is `gateCount` over its monomial-`AND`s, so `sym_searchable` applies). The polynomial→`SYM∘AND` cash-out (0/1-coeff multilinear; general coeffs duplicate gates). The hard direction — arbitrary ACC⁰ *is* such a low-degree poly (RS approximation) — is NOT proved (the wall) | `…ACC0PolyToSymAnd` |
 
 **Progress on the depth-reduction wall:** the residue-observer algebra (`observed_top_pi`) makes depth composition
 reusable, the toy discharges the socket for the bounded-bottom (`SYM`-of-`AND_w`) fragment, and `acc0_residueObserved`
@@ -97,7 +98,23 @@ a search over `≤ ∏ q_j` cells (`sat_iff_residue_image`, `residue_cell_count_
 realising the speedup as a uniform (nondeterministic) algorithm + the time-hierarchy cash-out (the named gap in
 `…NFrameACC0Master`) — that is what `NEXP ⊄ ACC⁰` needs, and this cell-count bound does not supply it.
 
+## The Yao–Beigel–Tarui pipeline (target, with the proved links marked)
+
+```
+ACC⁰ circuit
+  ──[RS low-degree approximation: OPEN, the wall]──►   low-degree multilinear polynomial
+  ──[lowDegreePoly_searchable / monomial_count_le: PROVED]──►   SYM ∘ AND_{≤D}  (≤ ∑_{i≤D} C(n,i) gates)
+  ──[sym_observed / sym_count_card_le: PROVED]──►   count observer (boundary m+1, not 2^m)
+  ──[sym_searchable: PROVED]──►   SAT-searchable in < 2^n (once m+1 < 2^n)
+```
+
+The **first arrow is the open structural wall** (arbitrary ACC⁰ → low-degree poly / `SYM∘AND`, the RS approximation +
+constant-depth composition, socketed as `MixedACCDepthReductionSocket`).  Every arrow **after** it is proved in the
+cell/observer model (`…ACC0PolyToSymAnd`, `…ACC0SymmetricObserver`): once you are in `SYM∘AND` form with sub-`2^n`
+gates, the count observer makes it searchable.  So the YBT *cash-out* is complete; the YBT *reduction* is the wall.
+
 ## Honest ceiling
 
 Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`. Tier 1 = genuine AC⁰ switching; Tier 2 = genuine `PARITY ∉ AC⁰[p]`
-(classical, constant depth, prime `p`); Tier 3 = open, needs a different (algorithmic) tool.
+(classical, constant depth, prime `p`); Tier 3 = open, needs a different (algorithmic) tool.  The YBT pipeline above is
+proved from the `SYM∘AND` normal form onward; the reduction *into* that form is the open structural wall.
