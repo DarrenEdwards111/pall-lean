@@ -786,6 +786,42 @@ higher‑moment Håstad frontier.  The whole pipeline — moments, concentration
 joint control — is now machine‑checked end to end, with the genuine `NP ⊄ ACC⁰` hardness isolated to that one
 feasibility tension.
 
+**An actual circuit class, with support extraction (`…ACC0CircuitModel`).**  The machinery now speaks about real
+circuits, not abstract support families.  Defined: `ACC0Circuit` (the target class — AND/OR/NOT over `MOD q` gates,
+with `depth` and `size`); `ModGate`, `Depth2ModCircuit` (the depth‑2 `MOD`‑bottom fragment) and its `supports`
+family.  Proved: `eval_factors` — **support extraction**: a depth‑2 `MOD`‑bottom circuit's output factors through
+its bottom statistics, `eval x = g (weightVec supports x)` for an explicit `g` (by `rfl`, axioms `[propext,
+Quot.sound]` only); and `depth2_circuit_fails_of_survivors` — **the bridge**: such a circuit fails to correlate with
+the holonomy parity after any restriction whose surviving‑support count is below `log₂` of its live count
+(support extraction `+` the pigeonhole cell bridge).  So the proved lower‑bound machine now attaches to a named
+circuit class: *bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with holonomy parity after a
+suitable random restriction.*  The remaining wall is precisely located: lifting past depth 2 needs the
+depth‑reduction switching (random restrictions collapsing AND/OR layers to `MOD`‑bottom survivors), and lifting
+past bounded overlap is the higher‑moment Håstad tension — together, **unbounded support reuse / high‑overlap
+depth‑reduction**, which is exactly where full ACC⁰ difficulty lives.
+
+### Summary of the restricted ACC⁰ lower‑bound machine
+
+The complete proved arc, attached to a real circuit class, with the honest remaining wall:
+
+| stage | proved content | file |
+|---|---|---|
+| target | holonomy parity `fParity D` on the hypercube | `…HolonomyBalanceFragments` |
+| engine | `MOD q` / many‑gate correlation via count‑preserving involutions | `…ModQGateBalance`, `…TwoGateCorrelation`, `…ManyGateCorrelation` |
+| threshold | cells shatter iff `≥ ⌈log₂ n⌉` gates (pigeonhole + converse) | `…ManyGateCorrelation` |
+| restriction | `p`‑biased measure; first moment `E≤k·s·p`, second `Var≤d·k·s·p`; Markov/Chebyshev | `…SwitchingProb`, `…SwitchingVariance`, `…SwitchingChebyshev` |
+| cell bridge | `2^{survivors} < |L| ⇒` witness (killed supports blind to live coords) | `…ACCSwitchingPipeline` |
+| joint control | union bound: few survivors ∧ many live ⇒ predictor fails | `…ACCSwitchingPipeline` |
+| circuit class | `ACC0Circuit`; support extraction; depth‑2 `MOD`‑bottom bridge | `…ACC0CircuitModel` |
+
+**Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
+holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
+Pr(live ≤ b) < 1` with `2^a ≤ b`).  **The one remaining wall:** unbounded support reuse / high‑overlap
+depth‑reduction (the higher‑moment Håstad switching), where the survivor count can reach `~log₂` of the live count
+and the two tails cannot both be driven below `1`.  Everything reachable by the moment method, pigeonhole, bounded‑
+overlap double‑counting, and union bounds is proved sorry‑free with clean axioms; that single tension is the genuine
+`NP ⊄ ACC⁰`‑strength residue.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
