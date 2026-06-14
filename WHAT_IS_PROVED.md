@@ -834,6 +834,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | master bridge | `NFrameGivesACC0SatSpeedup`: whole pipeline, one socket (few survivors) | `…NFrameACC0Master` |
 | socket reduction | `socket_of_expectation`: `Exp(survivingCount) ≤ r` + `(n+1)^r < 2^n` ⇒ the socket | `…ACC0SatSocketReduction` |
 | first moment / regime | `prDisjoint`: `Pr(S∩L=∅)=(1-p)^{|S|}`; `Exp(survivingCount)=∑survProb≤ksp`; `socket_of_regime`: `ksp ≤ r` + `(n+1)^r < 2^n` ⇒ the socket | `…ACC0SatFirstMoment` |
+| second moment / concentration | `Exp((survivingCount−E)²)=variance`; `survivingCount_concentration`: `Pr(\|X−E\|"≥"t)≤dksp/t²`; `most_restrictions_good`: most restrictions within `t` of mean | `…ACC0SatSecondMoment` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -1079,6 +1080,25 @@ with `socket_of_expectation` gives **`socket_of_regime`**: the socket holds from
 master speedup.  This is exactly the *first‑moment* regime (heavy restriction, `p` small); beating it (constant `p`
 while collapsing high‑fan‑in gates) is the higher‑moment Håstad content, the genuine `NP ⊄ ACC⁰` frontier.  Still
 the cell‑search model; proves nothing about `NEXP/NP ⊄ ACC⁰` or `P ≠ NP`.
+
+**The second moment: variance identification and Chebyshev concentration (`…ACC0SatSecondMoment`).**  The variance
+file computed the *abstract* `∑_{j,l} cov ≤ d·k·s·p`; the Chebyshev file gave `Pr((g−Eg)²≥t²) ≤ Exp((g−Eg)²)/t²`.
+The missing link — the **identification of the measure variance `Exp((survivingCount−E)²)` with `∑_{j,l} cov`** —
+is now proved in full.  Route through the **kill** indicators `kind S L = 1[S∩L=∅]`: the product
+`kind A · kind B = 1[Disjoint(A∪B)]` is a *single* disjointness event, so `exp_kind_mul`:
+`Exp(kind A·kind B) = (1-p)^{|A∪B|} = killProb(A∪B)` directly via `prDisjoint` (no inclusion–exclusion).  Since
+`cov` is *defined* as `killProb(S∪T)−killProb S·killProb T`, expanding `Exp(K²)−(EK)²` (`exp_sub_sq`) for the kill
+count gives `kill_variance_eq`: `∑_{j,l} cov = variance` term‑by‑term; and `survivingCount = k−K` (so equal centred
+squares) yields **`survivingCount_variance_eq`: `Exp((survivingCount−E)²) = variance p supports`**.  Feeding this and
+`variance_boundedOverlap_le` into `chebyshev_of_variance_le` gives **`survivingCount_concentration`:
+`Pr(|survivingCount−E|"≥"t) ≤ d·k·s·p/t²`**, and the complement (`pr_compl`) gives **`most_restrictions_good`:
+`Pr(within t of mean) ≥ 1 − d·k·s·p/t²`** — at *constant* `p` almost every restriction is good.  **Honest scope:**
+this is a high‑probability (robustness) upgrade of first‑moment *existence*, **not** a lower existence threshold —
+`min survivingCount ≤ E` always, so existence at `r ≈ k·s·p` was already free; concentration controls the *measure*
+of good restrictions, not a smaller witness.  Pushing the threshold past constant `p` needs the **exponential**
+switching tail `Pr(survivingCount≥t) ≤ (O(p·s))^t`, beyond the second moment — the genuine `NP ⊄ ACC⁰` content, and
+exactly the overlap term `cov_nonneg` exposes.  Still the cell‑search model; proves nothing about `NEXP/NP ⊄ ACC⁰`
+or `P ≠ NP`.
 
 ## 5. The exact missing theorem — where everything converges
 
