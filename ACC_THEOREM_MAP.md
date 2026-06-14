@@ -49,10 +49,15 @@ The wall is precisely **mixed modulus**: no single prime field linearises gates 
 | **support normal form (syntax-level)** | `acc0_observed_by_projection`: ANY `ACC0Circuit` observed by projection to its `support` (`eval_depends_on_support`, induction); `acc0_junta_searchable` (junta ⇒ `<2^n`); `acc0_top_over_subcircuits_searchable` (top over ACC⁰ subcircuits jointly reading `<n` vars ⇒ `<2^n`, union support) — `ACC⁰⊆mixed-bottom` chipped at circuit syntax | `…ACC0SupportNormalForm` |
 | **depth-3 MOD normalization (residue gain)** | `and_of_mods_searchable`: syntactic `MOD_{q₁}∧MOD_{q₂}` ⇒ `Depth2ModCircuit`, residue-searchable `<2^n` when `q₁·q₂<2^n` **regardless of support** (junta gives nothing here); `mod_bottom_circuit_searchable` (arbitrary top over MOD family) | `…ACC0Depth3ModNormalize` |
 | **AC⁰-over-MOD normalization (general)** | `modComb_normalizes`: ANY AND/OR/NOT combination of a MOD-gate family `= Depth2ModCircuit.eval ⟨gates, combTop C⟩` (factors through MOD outputs, induction); `modComb_searchable` (residue-searchable `<2^n` when `∏q_i<2^n`) | `…ACC0ModCombNormalize` |
+| **observer extracted from raw syntax** | `acc0_residueObserved`: by induction on `ACC0Circuit`, ANY circuit (positive MOD moduli) is `ObservedBy` a product statistic of state count `≤ stateBound C` (occurrence product: `q` per MOD, `2` per var, mult. through `∧`/`∨`) — `MOD` leaf→`modGate_observedBy`, `var`→coord projection, gates→`.comp`/`.and`/`.or`; `acc0_modcircuit_searchable` (`stateBound C<2^n` ⇒ `<2^n` cells). Bottom *derived*, not assumed | `…ACC0ExtractObserver` |
 
 **Progress on the depth-reduction wall:** the residue-observer algebra (`observed_top_pi`) makes depth composition
-reusable, and the toy discharges the socket for the bounded-bottom (`SYM`-of-`AND_w`) fragment. Remaining: the deep
-structural step that an *arbitrary* `ACC⁰` circuit reduces to that fragment (full Yao–Beigel–Tarui) — still open.
+reusable, the toy discharges the socket for the bounded-bottom (`SYM`-of-`AND_w`) fragment, and `acc0_residueObserved`
+now *derives* the residue/mixed observer from the raw `ACC0Circuit` inductive (no assumed bottom) — every circuit is
+observed by a product statistic of state count `stateBound C` (the occurrence product). The honest gap is unchanged:
+that bound is the *occurrence* product, so the gain holds only for few-leaf circuits where MOD gates supply the
+compression; getting a *small* bound for an *arbitrary* `ACC⁰` circuit is the structural shrinkage of full
+Yao–Beigel–Tarui — still open.
 
 **Architecture closed (conditionally):** the residue-speedup chain (steps 1–4, proved) cashes out to `NEXP ⊄ ACC⁰`
 through exactly **two named open sockets**, both separation-strength (proved equivalent to the separation by the
