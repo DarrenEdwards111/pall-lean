@@ -45,6 +45,7 @@ The wall is precisely **mixed modulus**: no single prime field linearises gates 
 | **Williams cash-out (interface)** | `residue_cashout_bundled`: depth socket + `UniformWilliamsRealizationSocket` ⇒ `NEXP⊄ACC⁰`; self-audit `*_iff_separation` (sockets ⟺ separation) | `…ACC0WilliamsCashout` |
 | **residue-observer algebra** | `ObservedBy`, `observed_top_pi` (composition law), `.and`/`.or`/`.comp`, cell-count bounds | `…ACC0ResidueObserver` |
 | **toy Beigel–Tarui (attacking the wall)** | `toy_bounded_bottom_searchable`: SYM-of-`AND_w` (fan-in `≤w` bottom) searchable in `<2^n` — depth-reduction socket **discharged for the bounded-bottom fragment** | `…ACC0BeigelTaruiToy` |
+| **depth-3 MIXED fragment** | `depth_mixed_searchable`: arbitrary top over a bottom **mixing** `MOD_q` + bounded-`AND_w` gates is searchable in `<2^n` when `∏(per-gate states)<2^n` — socket **discharged for the mixed-bottom fragment** | `…ACC0Depth3Mixed` |
 
 **Progress on the depth-reduction wall:** the residue-observer algebra (`observed_top_pi`) makes depth composition
 reusable, and the toy discharges the socket for the bounded-bottom (`SYM`-of-`AND_w`) fragment. Remaining: the deep
