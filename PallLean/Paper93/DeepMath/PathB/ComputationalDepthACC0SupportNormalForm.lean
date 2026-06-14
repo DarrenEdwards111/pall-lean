@@ -12,9 +12,10 @@ is observed by the projection to its support (`acc0_observed_by_projection`) —
 `2^{|support|}`.
 
 Consequently any `ACC⁰` circuit reading `< n` variables is SAT-searchable below brute force
-(`acc0_junta_searchable`): the depth-reduction socket is discharged for the **junta** fragment, now at the level of
-actual circuit syntax rather than assumed observers.  (The many-subcircuit / mixed-bottom version composes
-`acc0_observed_by_projection` with `…ACC0Depth3Mixed.depth_mixed_searchable`.)
+(`acc0_junta_searchable`), and — the family version — an arbitrary top gate over `ACC⁰` subcircuits whose supports
+*jointly* read `< n` variables is searchable (`acc0_top_over_subcircuits_searchable`, via the union support).  The
+depth-reduction socket is discharged for these fragments at the level of actual circuit syntax, not assumed
+observers.
 
 ## What is proved (clean axioms, no `sorry`)
 
@@ -23,6 +24,8 @@ actual circuit syntax rather than assumed observers.  (The many-subcircuit / mix
 * `acc0_observed_by_projection` — **any `ACC⁰` circuit is observed by the projection to its support** (`card
   2^{|support|}`).
 * `acc0_junta_searchable` — any `ACC⁰` circuit (of any depth) reading `< n` variables is SAT-searchable in `< 2^n` cells.
+* `acc0_top_over_subcircuits_searchable` — an arbitrary top over `ACC⁰` subcircuits jointly reading `< n` variables
+  (union support) is SAT-searchable in `< 2^n` cells.
 
 ## Honest scope
 
@@ -103,8 +106,37 @@ theorem acc0_junta_searchable (C : ACC0Circuit n) (hregime : 2 ^ (support C).car
   refine ⟨g, observed_sat_iff g hg, ?_⟩
   exact lt_of_le_of_lt (le_trans (observed_cellCount_le _) (le_of_eq (proj_card (support C)))) hregime
 
+/-- **A top over `ACC⁰` subcircuits is SAT-searchable below brute force (proved): the family version.**  An
+arbitrary top gate over `m` `ACC⁰` subcircuits depends only on the **union** `U = ⋃_i support(sub i)` of their
+supports (each subcircuit reads only its own support `⊆ U`), so the whole circuit is observed by the *single*
+projection to `U` (no dependent product), with state count `2^{|U|}`.  Hence it is SAT-searchable in `< 2^n` cells
+when `2^{|U|} < 2^n` (i.e. the subcircuits jointly read `< n` variables) — the depth-reduction socket discharged
+for the bounded-union-support fragment, at circuit-syntax level. -/
+theorem acc0_top_over_subcircuits_searchable {m : ℕ} (sub : Fin m → ACC0Circuit n)
+    (top : (Fin m → Bool) → Bool)
+    (hregime : 2 ^ (Finset.univ.biUnion (fun i => support (sub i))).card < 2 ^ n) :
+    ∃ g : (↥(Finset.univ.biUnion (fun i => support (sub i))) → Bool) → Bool,
+      (Satisfiable (fun x => top (fun i => eval (sub i) x))
+        ↔ ∃ s ∈ Finset.univ.image
+            (fun (x : Fin n → Bool) => fun j : ↥(Finset.univ.biUnion (fun i => support (sub i))) => x j.val),
+            g s = true)
+      ∧ (Finset.univ.image
+          (fun (x : Fin n → Bool) =>
+            fun j : ↥(Finset.univ.biUnion (fun i => support (sub i))) => x j.val)).card < 2 ^ n := by
+  have hobs : ObservedBy (fun x => top (fun i => eval (sub i) x))
+      (fun x => fun j : ↥(Finset.univ.biUnion (fun i => support (sub i))) => x j.val) := by
+    apply boundedGate_observedBy
+    intro x y h
+    exact congrArg top (funext fun i => eval_depends_on_support (sub i) x y
+      (fun j hj => h j (Finset.mem_biUnion.mpr ⟨i, Finset.mem_univ i, hj⟩)))
+  obtain ⟨g, hg⟩ := hobs
+  refine ⟨g, observed_sat_iff g hg, ?_⟩
+  exact lt_of_le_of_lt
+    (le_trans (observed_cellCount_le _) (le_of_eq (proj_card _))) hregime
+
 end PallLean.Paper93.DeepMath.PathB.ACC0SupportNormalForm
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SupportNormalForm.eval_depends_on_support
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SupportNormalForm.acc0_observed_by_projection
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SupportNormalForm.acc0_junta_searchable
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SupportNormalForm.acc0_top_over_subcircuits_searchable
