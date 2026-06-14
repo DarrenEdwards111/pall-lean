@@ -829,6 +829,9 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | elementary op count | `totalOps = k·#cells ≤ k·(n+1)^k < 2^n`: every gate‑eval counted | `…ACC0SatOpCount` |
 | survivor → cell count | `#cells ≤ (n+1)^{#active}`: speedup governed by active (surviving) gates | `…ACC0SatSurvivorCells` |
 | speedup capstone | few survivors ⇒ correct, sub‑`2^n` SAT decider (correctness ∧ time) | `…ACC0SatSpeedupCapstone` |
+| restriction ⇒ active | `#active(S·∩L) = survivingCount`; `#cells ≤ (n+1)^{surviving}` | `…ACC0SatRestrictionActive` |
+| branch correctness | `SAT ↔ ∃ branch, branchSAT` (the branch‑and‑restrict decomposition) | `…ACC0SatBranchCorrect` |
+| master bridge | `NFrameGivesACC0SatSpeedup`: whole pipeline, one socket (few survivors) | `…NFrameACC0Master` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -1033,6 +1036,21 @@ brute force*, driven directly by the survivor machinery (`…ACCSwitchingPipelin
 `…ACCRestrictionTree`).  This is the headline of the cell‑search speedup, in the parameter the corpus controls — a
 real, correct, timed algorithm beating brute force when few gates survive.  Still the cell‑search model, not the
 full Turing‑machine `2^{n-n^ε}` theorem; proves nothing about `NEXP/NP ⊄ ACC⁰` or `P ≠ NP`.
+
+**Restriction ⇒ active, branch correctness, and the master bridge (`…ACC0SatRestrictionActive`,
+`…ACC0SatBranchCorrect`, `…NFrameACC0Master`).**  Three moves finish assembling the N‑frame → ACC⁰‑SAT speedup.
+*(i) Restriction ⇒ active:* after restricting to live set `L`, the restricted family `S_j ∩ L` is active at `j`
+iff `S_j` survives, so `activeSupports_restrict_card` gives `#active(S·∩L) = survivingCount`, and
+`cells_restrict_le_surviving` gives **`#cells(S·∩L) ≤ (n+1)^{survivingCount}`** — the cell cost is governed by the
+*surviving* count the restriction/switching/core‑decomposition machinery controls.  *(ii) Branch correctness:*
+`sat_branch_decompose` — `(∃ x, f x = true) ↔ ∃ b, branchSAT f K b`, the proved branch‑and‑restrict decomposition.
+*(iii) Master bridge:* `nframe_gives_acc0_sat_speedup` assembles the pipeline into one visible theorem —
+**a restriction with `(n+1)^{survivingCount} < 2^n` makes the restricted cell search beat brute force** — with the
+single remaining socket `NFrameGivesACC0SatSpeedupSocket` (a restriction leaving few surviving gates), discharged by
+`speedup_of_socket`.  So the **entire pipeline is one theorem with the open content isolated to exactly one socket**:
+*the restriction/switching/core‑decomposition machinery guarantees few active surviving gates while leaving enough
+live variables* — the heart of the ACC⁰ push.  Still the cell‑search model, not the full Turing‑machine
+`2^{n-n^ε}` theorem; proves nothing about `NEXP/NP ⊄ ACC⁰` or `P ≠ NP`.
 
 ## 5. The exact missing theorem — where everything converges
 
