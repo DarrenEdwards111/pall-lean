@@ -838,6 +838,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | exponential tail (independent) | factorial moment `Pr(t≤X)≤Exp(C(X,t))=∑_{\|T\|=t}Pr(all T survive)`; kill+survival independence (disjoint); `exp_tail_disjoint`: `Pr(t≤X)≤C(k,t)(sp)^t` | `…ACC0SatExpTail` |
 | **clause‑count‑free switching tail** | `pweight_total`: `∑pweight=1`; **`hastad_switching_prob_tail`: `∑_{Bad}pweight ≤ (4pw/(1-p))^s`** (depth‑`≥s` mass, NO clause‑count factor), reconstruction discharged by `reconstructionCorrect_fullpath` | `…Depth3SwitchingProbTail` |
 | depth reduction whp | **`depth_collapse_mass_ge`: `{depth<s}` carries mass `≥ 1−(4pw/(1-p))^s`** (complement of the tail) — width‑`w` DNF collapses to depth‑`≤2` whp | `…Depth3SwitchingDepthReduction` |
+| cross‑model bridge (NO‑GO) | `modQStatOn_flip_ne`: MOD statistic fully sensitive (`q≥2`); **`mod_gate_parity_nonconstant`**: parity gate non‑constant on any cube with a free support coord ⇒ switching (leaves coords free) CANNOT drive `switch_step` (needs full support) — the Razborov–Smolensky wall | `…ACCSwitchingModBridge` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -1150,6 +1151,22 @@ probability statement.  `switching_depth_reduction_fullpath` discharges reconstr
 *literal* cross‑model composition needs a bridge identifying `canonicalDT` depth with `MOD`‑gate forcing; that bridge
 is **not** done here (not faked).  The full programme iterates this across layers and composes with the `MOD` step and
 the Williams method.  Proves nothing about `NEXP/NP ⊄ ACC⁰` or `P ≠ NP` on its own.
+
+**The cross‑model bridge — and it is a NO‑GO (`…ACCSwitchingModBridge`).**  Building the bridge between the switching
+depth reduction (DNF model: collapses by fixing only `~s` of `n` coordinates, leaving the rest *free*) and
+`switch_step` (`MOD` model: a clause drops only when its gate is *forced*, which by locality needs the gate's
+**entire support fixed**) resolves to the **Razborov–Smolensky vs. switching wall**, formalised.  Algebraic core:
+`weightOn_update_add`/`modQStatOn_update` show a support‑coordinate flip shifts the `MOD` statistic by `±1`, so
+`modQStatOn_flip_ne` — **the `MOD` statistic is fully sensitive** (`q ≥ 2`): every support‑coordinate flip changes it.
+Hence `mod_statistic_live_on_free_cube`: the statistic is non‑constant on *any* restriction cube leaving a support
+coordinate free; and for parity `mod_gate_parity_nonconstant`: the **gate value** is non‑constant there, so the gate
+is neither forced true nor false and `switch_step` cannot fire.  Contrast: a width‑`w` DNF depth‑collapses with `~s`
+coordinates fixed (`depth_collapse_mass_ge`), but a `MOD` gate of support `s` stays live until *all* `s` coordinates
+are fixed.  That gap is exactly **why switching reduces `AC⁰` depth but provably does not reduce `MOD`/`ACC⁰` depth**
+— the two models do not compose into a switching‑driven `ACC⁰` lower bound (which would contradict the known
+hardness).  This is the *correct* mathematical answer to the cross‑model question: genuine `ACC⁰` lower bounds need a
+different tool on the `MOD` layer (polynomial approximation / Razborov–Smolensky, the Williams method), not switching.
+Proves nothing about `NEXP/NP ⊄ ACC⁰` or `P ≠ NP`.
 
 ## 5. The exact missing theorem — where everything converges
 
