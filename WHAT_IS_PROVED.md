@@ -826,6 +826,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | branched ACC⁰‑SAT bound | `2^{killed}·(n+1)^r < 2^n` (few-survivor regime): past small-gate | `…ACC0SatBranched` |
 | ACC⁰‑SAT time model | `cellSearch` algorithm: decides SAT, `steps` = #cells, `< 2^n` proved | `…ACC0SatMachine` |
 | operational step machine | `step`/`runFor` interpreter: decides SAT in `#cells` transitions, `< 2^n` | `…ACC0SatStepMachine` |
+| elementary op count | `totalOps = k·#cells ≤ k·(n+1)^k < 2^n`: every gate‑eval counted | `…ACC0SatOpCount` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -999,6 +1000,16 @@ interpreter.  A `MachineState` is `(acc, todo)`; `step` consumes one cell, OR‑
 and no `n^ε` accounting; it grounds machine time for the cell‑search cost model.  The full Turing‑machine
 `2^{n-n^ε}` ACC⁰‑SAT analysis remains the named gap (the genuine Williams content).  Proves nothing about
 `NEXP/NP ⊄ ACC⁰` or `P ≠ NP`.
+
+**The faithful elementary‑operation count (`…ACC0SatOpCount`).**  The finest the cell‑search cost model goes:
+checking a cell evaluates `k` gate residues, so the true elementary operation count is
+`totalOps = k·#cells = k·|image(weightVec)|`.  Proved: `totalOps_eq_gates_mul_steps` (`= k·(cellSearch steps)`);
+`totalOps_le` (`≤ k·(n+1)^k`); `totalOps_beats_bruteforce` (`k·(n+1)^k < 2^n ⇒ totalOps < 2^n`).  So *every*
+elementary gate‑residue operation is counted and the total is sub‑`2^n` for `k = o(n/log n)`.  This is the endpoint
+of the operational‑cost refinement: a real algorithm whose every elementary op is counted and proved below brute
+force in the small‑gate regime.  The full Turing‑machine model (tape/head/input encoding + the genuine
+`2^{n-n^ε}` ACC⁰‑SAT algorithm) is the remaining Williams content — a research‑grade complexity formalization beyond
+this corpus.  Proves nothing about `NEXP/NP ⊄ ACC⁰` or `P ≠ NP`.
 
 ## 5. The exact missing theorem — where everything converges
 
