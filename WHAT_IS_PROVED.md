@@ -824,6 +824,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | N‑frame ACC⁰‑SAT kernel | SAT collapses to a `weightVec`‑image (cell) search via support extraction | `…NFrameACC0Speedup` |
 | ACC⁰‑SAT time-cost model | cell search `≤ (n+1)^k < 2^n` (small-gate regime): beats brute force | `…ACC0SatTimeCost` |
 | branched ACC⁰‑SAT bound | `2^{killed}·(n+1)^r < 2^n` (few-survivor regime): past small-gate | `…ACC0SatBranched` |
+| ACC⁰‑SAT time model | `cellSearch` algorithm: decides SAT, `steps` = #cells, `< 2^n` proved | `…ACC0SatMachine` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -972,6 +973,19 @@ decomposition is exactly what makes `r` small, this extends the model‑relative
 correctness (SAT = OR over the `2^{#killed}` branches) is the standard branch‑and‑restrict decomposition (the cost
 interpretation), and survivor‑constancy per branch is the proved locality.  Not a full Turing‑machine
 `2^{n−n^ε}` analysis; proves nothing about `NEXP/NP ⊄ ACC⁰` or `P ≠ NP`.
+
+**A minimal time-complexity model (`…ACC0SatMachine`).**  The abstract cell cost becomes a *real timed algorithm*.
+A `TimedDecision` is a result paired with a step count; `cellSearch C` enumerates the achievable cells, checks
+`cellPredicate` on each, and accepts if any does, with `steps` = the number of cells examined.  Proved:
+`eval_eq_cellPredicate` (the circuit value at `x` is `cellPredicate` at its cell, by `rfl` — support extraction at
+the value level); `decideSAT_correct` (**the algorithm decides SAT**: `(cellSearch C).result = true ↔ Satisfiable
+C.eval`); `cellSearch_steps_eq_checks` (**`steps` is the operation count** — equals the length of the enumerated cell
+list); and `cellSearch_steps_le` / `cellSearch_beats_bruteforce` (**the time bound in the model**: `steps ≤ (n+1)^k`,
+and `< 2^n` in the small-gate regime).  So "time" is now the step count of a defined algorithm whose correctness is
+proved — closing the gap from "abstract cell cost" to "machine time" *for this cost model*.  **Honest scope:** a
+unit‑cost cell‑check model (one step per cell, each check `O(k)`), not a Turing‑machine simulation; `cellSearch` is
+`noncomputable` only because the enumeration order is choice‑supplied (irrelevant to result/steps).  Still not the
+full `2^{n−n^ε}` ACC⁰‑SAT theorem; proves nothing about `NEXP/NP ⊄ ACC⁰` or `P ≠ NP`.
 
 ## 5. The exact missing theorem — where everything converges
 
