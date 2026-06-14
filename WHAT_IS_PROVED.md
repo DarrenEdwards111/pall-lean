@@ -832,6 +832,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | restriction ⇒ active | `#active(S·∩L) = survivingCount`; `#cells ≤ (n+1)^{surviving}` | `…ACC0SatRestrictionActive` |
 | branch correctness | `SAT ↔ ∃ branch, branchSAT` (the branch‑and‑restrict decomposition) | `…ACC0SatBranchCorrect` |
 | master bridge | `NFrameGivesACC0SatSpeedup`: whole pipeline, one socket (few survivors) | `…NFrameACC0Master` |
+| socket reduction | `socket_of_expectation`: `Exp(survivingCount) ≤ r` + `(n+1)^r < 2^n` ⇒ the socket | `…ACC0SatSocketReduction` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -1051,6 +1052,18 @@ single remaining socket `NFrameGivesACC0SatSpeedupSocket` (a restriction leaving
 *the restriction/switching/core‑decomposition machinery guarantees few active surviving gates while leaving enough
 live variables* — the heart of the ACC⁰ push.  Still the cell‑search model, not the full Turing‑machine
 `2^{n-n^ε}` theorem; proves nothing about `NEXP/NP ⊄ ACC⁰` or `P ≠ NP`.
+
+**Attacking the socket from `exists_low_survival` (`…ACC0SatSocketReduction`).**  The master socket
+`NFrameGivesACC0SatSpeedupSocket` (`∃ L, (n+1)^{survivingCount} < 2^n`) is now **discharged from the probabilistic
+existence theorem**.  `socket_of_expectation`: if the *expected* surviving‑gate count is `≤ r` (with
+`(n+1)^r < 2^n`), then by `exists_low_survival` some restriction `L` has `survivingCount L < r+1`, i.e. `≤ r`, so
+`(n+1)^{survivingCount L} ≤ (n+1)^r < 2^n` — the socket.  `speedup_of_expectation` chains this to the master, so
+**expected survivors `≤ r` (with `(n+1)^r < 2^n`) ⇒ a restriction whose cell search beats brute force**, with no
+combinatorial socket left.  This reduces the open content to a single *standard* quantity: the measure expectation
+`Exp p (survivingCount) ≤ r`.  By the first moment that expectation is `≤ k·s·p`; the only remaining input is the
+routine identification `Exp p (survivingCount) = ∑_j Pr(S_j survives)` (linearity of the discrete expectation over
+the support indicators) with `Pr(S_j killed) = (1-p)^{|S_j|}` (the per‑support marginal) — standard facts about the
+`p`‑biased measure.  Still the cell‑search model; proves nothing about `NEXP/NP ⊄ ACC⁰` or `P ≠ NP`.
 
 ## 5. The exact missing theorem — where everything converges
 
