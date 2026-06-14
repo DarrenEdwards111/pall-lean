@@ -37,14 +37,20 @@ The wall is precisely **mixed modulus**: no single prime field linearises gates 
 | MOD_2 low-degree over `F_2` | `mod2_detector_lowdeg_F2` (∈ `V_1`) | `…Layer3MixedModulus` |
 | MOD_3 low-degree over `F_3` | `mod3_detector_lowdeg_F3` (∈ `V_2`) | `…Layer3MixedModulus` |
 | hybrid observer | `MixedModulusStratifiedObserverSocket` (named OPEN socket) | `…Layer3MixedModulus` |
+| **mixed-modulus SAT speedup** | `mod_circuit_sat_speedup` / `mod6_circuit_residue_speedup`: `∏q_j<2^n` ⇒ `<2^n` residue cells | `…ACC0ModResidueSpeedup` |
 
-**Why open:** `MOD_6`'s two CRT components are each low-degree but over *incompatible* fields — `MOD_3` over `F_2`
-and `MOD_2` over `F_3` are high-degree (Smolensky). A single-`F_p` polynomial observer captures only one component;
-a *modulus-stratified / hybrid* observer is needed, and whether it yields a lower bound is the ACC⁰ frontier.
+**Why the *lower bound* is open:** `MOD_6`'s two CRT components are each low-degree but over *incompatible* fields —
+`MOD_3` over `F_2` and `MOD_2` over `F_3` are high-degree (Smolensky). A single-`F_p` polynomial observer captures
+only one component; a *modulus-stratified / hybrid* observer is needed, and whether it yields a lower bound is the
+ACC⁰ frontier.
 
-**The route that does cross it:** not more RS — **Williams' algorithmic method** (faster ACC⁰-SAT + the
-nondeterministic time hierarchy → `NEXP ⊄ ACC⁰`). That is the PathB switching / `NFrameACC0Master` SAT-speedup arc
-(separate, incomplete). Next serious target: the **mixed-modulus SAT-speedup bridge**, not more polynomial method.
+**The route that does cross it — STARTED:** not more RS, but **Williams' algorithmic method** (faster ACC⁰-SAT +
+the nondeterministic time hierarchy → `NEXP ⊄ ACC⁰`). The **SAT-speedup kernel is now proved**
+(`…ACC0ModResidueSpeedup`): a depth-2 `MOD`-circuit factors through its *residue vector* (∈ `∏ ZMod q_j`), so SAT is
+a search over `≤ ∏ q_j` cells (`sat_iff_residue_image`, `residue_cell_count_le`) — `< 2^n` whenever `∏ q_j < 2^n`
+(e.g. `6^k < 2^n` for `MOD_6`). This is the structural residue-compression Williams exploits. **Remaining gap:**
+realising the speedup as a uniform (nondeterministic) algorithm + the time-hierarchy cash-out (the named gap in
+`…NFrameACC0Master`) — that is what `NEXP ⊄ ACC⁰` needs, and this cell-count bound does not supply it.
 
 ## Honest ceiling
 
