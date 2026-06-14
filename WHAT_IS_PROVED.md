@@ -823,6 +823,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | Williams `NEXP ⊄ ACC⁰` scaffold | algorithmic‑method cash‑out; N‑frame route (speedup bridge named) | `…WilliamsNEXP_ACC0` |
 | N‑frame ACC⁰‑SAT kernel | SAT collapses to a `weightVec`‑image (cell) search via support extraction | `…NFrameACC0Speedup` |
 | ACC⁰‑SAT time-cost model | cell search `≤ (n+1)^k < 2^n` (small-gate regime): beats brute force | `…ACC0SatTimeCost` |
+| branched ACC⁰‑SAT bound | `2^{killed}·(n+1)^r < 2^n` (few-survivor regime): past small-gate | `…ACC0SatBranched` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -958,6 +959,19 @@ brute force, *no branching*.  For larger gate counts one branches over killed co
 giving `2^{#killed} ·` cell‑cost with the survivor count the parameter — that combination is the remaining named
 accounting toward the full `2^{n−n^ε}` bound.  So the speedup is now a *real model‑relative time bound* in the
 small‑gate regime; it is **not** the full ACC⁰‑SAT theorem, and proves nothing about `NEXP/NP ⊄ ACC⁰` or `P ≠ NP`.
+
+**The branched bound — past the small‑gate regime (`…ACC0SatBranched`).**  The unbranched bound needed few *gates*;
+branching needs only few *survivors*.  Branch over a killed coordinate set; on each branch the killed gates are
+constant (locality, `eval_const_of_support_disjoint`), so the per‑branch cell search is over the survivor count `r`,
+not `k`.  Proved: `branched_cost_le` (branched cost `≤ 2^{#killed}·(n+1)^r`, via `imageSearchCost_le` on the
+survivor family); `branched_regime` (the arithmetic: `#killed + #live = n` and `(n+1)^r < 2^{#live}` ⇒
+`2^{#killed}·(n+1)^r < 2^n`, via `mul_lt_mul_of_pos_left` + `pow_add`); and `branched_beats_bruteforce` — **the
+branched cell search beats brute force in the few‑survivor regime**.  Since the restriction tree / core
+decomposition is exactly what makes `r` small, this extends the model‑relative time bound *past* the small‑gate
+`(n+1)^k` regime to the few‑survivor regime.  **Honest scope:** still the cell‑search model; the branch enumeration
+correctness (SAT = OR over the `2^{#killed}` branches) is the standard branch‑and‑restrict decomposition (the cost
+interpretation), and survivor‑constancy per branch is the proved locality.  Not a full Turing‑machine
+`2^{n−n^ε}` analysis; proves nothing about `NEXP/NP ⊄ ACC⁰` or `P ≠ NP`.
 
 ## 5. The exact missing theorem — where everything converges
 
