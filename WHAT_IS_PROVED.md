@@ -833,6 +833,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | branch correctness | `SAT ↔ ∃ branch, branchSAT` (the branch‑and‑restrict decomposition) | `…ACC0SatBranchCorrect` |
 | master bridge | `NFrameGivesACC0SatSpeedup`: whole pipeline, one socket (few survivors) | `…NFrameACC0Master` |
 | socket reduction | `socket_of_expectation`: `Exp(survivingCount) ≤ r` + `(n+1)^r < 2^n` ⇒ the socket | `…ACC0SatSocketReduction` |
+| first moment / regime | `prDisjoint`: `Pr(S∩L=∅)=(1-p)^{|S|}`; `Exp(survivingCount)=∑survProb≤ksp`; `socket_of_regime`: `ksp ≤ r` + `(n+1)^r < 2^n` ⇒ the socket | `…ACC0SatFirstMoment` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -1064,6 +1065,20 @@ combinatorial socket left.  This reduces the open content to a single *standard*
 routine identification `Exp p (survivingCount) = ∑_j Pr(S_j survives)` (linearity of the discrete expectation over
 the support indicators) with `Pr(S_j killed) = (1-p)^{|S_j|}` (the per‑support marginal) — standard facts about the
 `p`‑biased measure.  Still the cell‑search model; proves nothing about `NEXP/NP ⊄ ACC⁰` or `P ≠ NP`.
+
+**Collapsing the socket to the bare regime (`…ACC0SatFirstMoment`).**  The expectation hypothesis `hE` is now
+**discharged**, by proving the two measure facts in full.  *(i) Per‑support marginal:* `prDisjoint` —
+`Pr p (Disjoint S ·) = (1-p)^{|S|}`: the event `Disjoint S L` is `L ⊆ Sᶜ`; factoring
+`weight p L = (1-p)^{|S|}·p^{|L|}(1-p)^{|Sᶜ|-|L|}` over `L ⊆ Sᶜ` and summing with `biased_sum_one Sᶜ` gives
+`(1-p)^{|S|}`.  *(ii) Linearity:* `exp_sum` — `Exp p (∑_j g_j) = ∑_j Exp p (g_j)`; writing `survivingCount` as a sum
+of survival indicators (each `= 1` minus the kill indicator, so `exp_indicator_eq_survProb` gives
+`Exp = 1-(1-p)^{|S|} = survProb`) yields **`exp_survivingCount_eq`: `Exp p (survivingCount) = expectedSurviving`**,
+and with `expectedSurviving_le` (Bernoulli) **`exp_survivingCount_le`: `Exp p (survivingCount) ≤ k·s·p`**.  Composing
+with `socket_of_expectation` gives **`socket_of_regime`**: the socket holds from the *bare arithmetic regime*
+`k·s·p ≤ r` and `(n+1)^r < 2^n` — no probabilistic hypothesis remaining — and `speedup_of_regime` chains it to the
+master speedup.  This is exactly the *first‑moment* regime (heavy restriction, `p` small); beating it (constant `p`
+while collapsing high‑fan‑in gates) is the higher‑moment Håstad content, the genuine `NP ⊄ ACC⁰` frontier.  Still
+the cell‑search model; proves nothing about `NEXP/NP ⊄ ACC⁰` or `P ≠ NP`.
 
 ## 5. The exact missing theorem — where everything converges
 
