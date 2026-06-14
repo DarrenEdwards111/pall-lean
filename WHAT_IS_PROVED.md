@@ -813,6 +813,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | cell bridge | `2^{survivors} < |L| ⇒` witness (killed supports blind to live coords) | `…ACCSwitchingPipeline` |
 | joint control | union bound: few survivors ∧ many live ⇒ predictor fails | `…ACCSwitchingPipeline` |
 | circuit class | `ACC0Circuit`; support extraction; depth‑2 `MOD`‑bottom bridge | `…ACC0CircuitModel` |
+| depth reduction | locality (any depth); MOD‑support extraction; depth‑2 transfer bridge | `…ACC0DepthReduction` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -821,6 +822,19 @@ depth‑reduction (the higher‑moment Håstad switching), where the survivor co
 and the two tails cannot both be driven below `1`.  Everything reachable by the moment method, pigeonhole, bounded‑
 overlap double‑counting, and union bounds is proved sorry‑free with clean axioms; that single tension is the genuine
 `NP ⊄ ACC⁰`‑strength residue.
+
+**Depth reduction toward deeper circuits (`…ACC0DepthReduction`).**  The deterministic backbone for lifting past
+depth 2 is proved: `support` and `eval_eq_of_agreeOn` (**locality** — a circuit of any depth reads only its
+support, by induction); `eval_const_of_support_disjoint` (**killed ⇒ constant** — a subcircuit whose support is
+disjoint from the live set is constant across live completions, the deterministic version of the collapse a
+restriction produces); `modSupports` (**MOD‑support extraction** for arbitrary depth — the support family the
+switching machinery acts on); and `reduction_bridge` (**transfer** — any circuit extensionally equal to a depth‑2
+`MOD`‑bottom `C'` inherits `C'`'s correlation failure after a low‑survivor restriction).  The two layers of the
+remaining wall are named as one property: `Depth2Reducible` (a circuit *is* extensionally depth‑2 `MOD`‑bottom) and
+`HastadDepthReduction` (a poly‑size constant‑depth circuit, after a random restriction, becomes `Depth2Reducible`
+with bounded‑overlap survivors).  Granted `HastadDepthReduction`, `reduction_bridge` discharges the rest — so the
+**entire remaining `NP ⊄ ACC⁰` difficulty is isolated to that single named property**: the random restriction
+simultaneously collapsing the AND/OR depth to a `MOD`‑bottom survivor *and* keeping its overlap bounded.
 
 ## 5. The exact missing theorem — where everything converges
 
