@@ -703,6 +703,21 @@ collapsing high‑fan‑in supports — needs the higher‑moment Håstad switch
 `NP ⊄ ACC⁰` content.  The random restriction is now modelled, its distribution validated, and the expected
 surviving‑support count provably shrinks; the higher‑moment concentration is the remaining frontier.
 
+**The probabilistic half — second moment (`…ACCRestrictionSwitchingVariance`).**  Chebyshev needs the variance.
+For `X = ∑_j X_j` (surviving‑support count), the covariance of two survival indicators equals that of the kill
+indicators, and kill events are "all coordinates dead": `cov_eq` —
+`Cov(X_S, X_T) = (1-p)^{|S∪T|} − (1-p)^{|S|+|T|}`.  Proved: `cov_nonneg` (overlapping supports are *positively*
+correlated, since `|S∪T| ≤ |S|+|T|` and `0 ≤ 1-p ≤ 1`); `cov_disjoint` (disjoint supports are *uncorrelated* —
+independence, `|S∪T| = |S|+|T|`); `cov_self_le` (`Cov(X_S,X_S) = P(S kill)·P(S surv) ≤ P(S surv)`, an indicator's
+variance `≤` its mean).  Hence the payoff `variance_disjoint_le` — **`Var[X] ≤ k·s·p` for pairwise‑disjoint
+supports**: off‑diagonal covariances vanish, so `Var[X] = ∑_j Cov(X_j,X_j) ≤ ∑_j P(S_j surv) = E[X] ≤ k·s·p`.
+This is the **Chebyshev input** (`P(|X−E[X]| ≥ t) ≤ Var/t²`) that upgrades "few survive in expectation" to "few
+survive w.h.p." at constant `p` — the move beyond the first‑moment `k·s < n` regime, for disjoint supports.  For
+*overlapping* supports `cov_nonneg` exposes the obstruction exactly: positive correlation inflates the variance,
+and controlling that term is the higher‑moment Håstad switching content, `NP ⊄ ACC⁰`‑strength.  So the second
+moment is computed in closed form, the disjoint case is Chebyshev‑ready, and the overlap term is the named
+frontier.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
