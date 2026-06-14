@@ -814,6 +814,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | joint control | union bound: few survivors ∧ many live ⇒ predictor fails | `…ACCSwitchingPipeline` |
 | circuit class | `ACC0Circuit`; support extraction; depth‑2 `MOD`‑bottom bridge | `…ACC0CircuitModel` |
 | depth reduction | locality (any depth); MOD‑support extraction; depth‑2 transfer bridge | `…ACC0DepthReduction` |
+| high‑overlap probe | star family: core blowup `Var ≤ ksp + k²·\|core\|·p`; core surgery | `…ACCOverlapStar` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -835,6 +836,18 @@ remaining wall are named as one property: `Depth2Reducible` (a circuit *is* exte
 with bounded‑overlap survivors).  Granted `HastadDepthReduction`, `reduction_bridge` discharges the rest — so the
 **entire remaining `NP ⊄ ACC⁰` difficulty is isolated to that single named property**: the random restriction
 simultaneously collapsing the AND/OR depth to a `MOD`‑bottom survivor *and* keeping its overlap bounded.
+
+**The star family — a concrete miniature of the high‑overlap wall (`…ACCOverlapStar`).**  To see *where* high
+overlap hurts, the star family `S_j = core ∪ petal_j` (shared `core`, pairwise‑disjoint `petals`) concentrates all
+overlap in the core: `star_inter` proves `S_i ∩ S_j = core` for `i ≠ j`.  Consequences, all proved: `star_cov_le`
+(`Cov(X_{S_i}, X_{S_j}) ≤ |core|·p` off‑diagonal) and `star_variance_le` — **`Var[X] ≤ k·s·p + k²·|core|·p`**, the
+*quadratic‑in‑`k`* core blowup that the second moment cannot absorb when `|core|` is large (the miniature of the
+higher‑moment wall).  But `core_surgery` shows it is **removable by a restriction**: with the core dead (disjoint
+from the live set), every live coordinate lies in *at most one* star support — overlap collapses to `1`, so the
+disjoint pipeline (`Var ≤ k·s·p`) fires.  **Verdict: for star families high overlap is bad only while the shared
+core stays live**; a depth‑reduction restriction that kills the core defeats it.  This locates the genuine wall
+precisely — it is *not* concentrated‑in‑a‑small‑core overlap (solvable by core surgery) but overlap that no small
+killed set can disjointify, which is where the real Håstad difficulty lives.
 
 ## 5. The exact missing theorem — where everything converges
 
