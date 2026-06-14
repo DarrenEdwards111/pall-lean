@@ -818,6 +818,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | spread‑overlap probe | design `Var ≤ ksp + k²λp`; surgery cost `= \|overlapCoords\|`; star ⊆ core | `…ACCOverlapDesign` |
 | core decomposition | killing `overlapCoords` ⇒ pairwise‑disjoint restricted family, `Var ≤ ksp` | `…ACCCoreDecomposition` |
 | restriction tree | recursive depth `d → 2` descent (one‑step switching named) | `…ACCRestrictionTree` |
+| Williams cash‑out | whole arc as one conditional: no small ACC⁰ predictor correlates | `…ACCWilliamsCashout` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -889,6 +890,17 @@ Quot.sound]` only — constructive).  Each step strictly decreases depth, so ite
 depth‑2 survivor then feeds the depth‑2 `MOD`‑bottom bridge and the correlation/pigeonhole machinery.  So the entire
 depth‑reduction *structure* — the restriction tree's descent — is mechanized; the lone unproved input is the single
 per‑layer switching `RestrictionTreeSwitch`, the Håstad lemma.
+
+**The Williams cash‑out — the whole arc as one conditional (`…ACCWilliamsCashout`).**  The programme is assembled
+into a single top‑level theorem in the contrapositive (Williams) shape.  `williams_correlation_cashout` proves: a
+small ACC⁰ predictor correlating with the holonomy parity ⇒ (`reduces_to_depth2`) it reduces to a depth‑`≤2`
+survivor ⇒ that survivor fails to correlate (`hfail`, the proved support‑extraction + pigeonhole machinery) ⇒ by
+transfer of correlation under restriction (`htransfer`), contradiction — hence **no small ACC⁰ predictor correlates
+with the holonomy parity**, conditional on the named gaps.  The cash‑out *logic* is fully proved (axioms `[propext,
+Quot.sound]`, driven by the proved descent); the load‑bearing inputs are exactly the two `NP ⊄ ACC⁰`‑strength walls
+— the per‑layer Håstad switching `RestrictionTreeSwitch` and the subcube‑transfer `htransfer` — plus the proved
+survivor‑failure machinery (`hfail`).  So the entire reduction is now **one explicit theorem with the irreducible
+difficulty isolated to those named hypotheses**, the honest culmination of the restricted ACC⁰ lower‑bound machine.
 
 ## 5. The exact missing theorem — where everything converges
 
