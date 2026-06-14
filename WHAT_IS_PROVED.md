@@ -827,6 +827,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | ACC⁰‑SAT time model | `cellSearch` algorithm: decides SAT, `steps` = #cells, `< 2^n` proved | `…ACC0SatMachine` |
 | operational step machine | `step`/`runFor` interpreter: decides SAT in `#cells` transitions, `< 2^n` | `…ACC0SatStepMachine` |
 | elementary op count | `totalOps = k·#cells ≤ k·(n+1)^k < 2^n`: every gate‑eval counted | `…ACC0SatOpCount` |
+| survivor → cell count | `#cells ≤ (n+1)^{#active}`: speedup governed by active (surviving) gates | `…ACC0SatSurvivorCells` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -1010,6 +1011,18 @@ of the operational‑cost refinement: a real algorithm whose every elementary op
 force in the small‑gate regime.  The full Turing‑machine model (tape/head/input encoding + the genuine
 `2^{n-n^ε}` ACC⁰‑SAT algorithm) is the remaining Williams content — a research‑grade complexity formalization beyond
 this corpus.  Proves nothing about `NEXP/NP ⊄ ACC⁰` or `P ≠ NP`.
+
+**Survivor → cell count: the speedup tied back to the core machinery (`…ACC0SatSurvivorCells`).**  The cell bound is
+refined from *all* `k` gates to the **active** (non-empty) gates.  An empty support gives a constant‑`0` `weightVec`
+coordinate (`weightVec_eq_zero_of_empty`), so the cell vector is determined by its active coordinates; proved
+`image_card_le_active` — **`|image(weightVec)| ≤ (n+1)^{#active}`** (an `InjOn` of the cell image into
+`(active → {0..n})` plus `Fintype.piFinset` cardinality), hence `cells_le_active` (`cellSearch` steps
+`≤ (n+1)^{#active}`).  After a restriction the killed gates become empty on the live set, so `#active = #surviving`
+— the *same* survivor parameter the correlation/restriction machinery (`…ACCSwitchingPipeline`,
+`…ACCCoreDecomposition`) controls.  So the SAT‑speedup is now **directly tied back to the survivor machinery**:
+*few survivors ⇒ few active gates ⇒ few cells ⇒ fast search* (`(n+1)^{#surviving}`), closing the loop between the
+speedup and the core correlation analysis.  A real, completable theorem; still the cell‑search model, not the full
+Turing‑machine `2^{n-n^ε}` analysis, and proving nothing about `NEXP/NP ⊄ ACC⁰` or `P ≠ NP`.
 
 ## 5. The exact missing theorem — where everything converges
 
