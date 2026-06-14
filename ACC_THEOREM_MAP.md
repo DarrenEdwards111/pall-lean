@@ -38,6 +38,7 @@ The wall is precisely **mixed modulus**: no single prime field linearises gates 
 | MOD_3 low-degree over `F_3` | `mod3_detector_lowdeg_F3` (∈ `V_2`) | `…Layer3MixedModulus` |
 | hybrid observer | `MixedModulusStratifiedObserverSocket` (named OPEN socket) | `…Layer3MixedModulus` |
 | **mixed-modulus SAT speedup** | `mod_circuit_sat_speedup` / `mod6_circuit_residue_speedup`: `∏q_j<2^n` ⇒ `<2^n` residue cells | `…ACC0ModResidueSpeedup` |
+| **operational residue machine** | `residueSearch` (timed algorithm); `residueSearch_decides`, `residueSearch_beats_bruteforce` (`steps≤∏q_j`, `<2^n`) | `…ACC0ResidueMachine` |
 
 **Why the *lower bound* is open:** `MOD_6`'s two CRT components are each low-degree but over *incompatible* fields —
 `MOD_3` over `F_2` and `MOD_2` over `F_3` are high-degree (Smolensky). A single-`F_p` polynomial observer captures
