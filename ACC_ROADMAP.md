@@ -63,9 +63,13 @@ the first `nframe_target_has_high_rs_degree`-style bridge.
    degree-`≥1` monomial statistic determines every variable, so parity is never balanced there. The correct
    dimension↔correlation fusion is the span-membership obstruction (exact representation), not the per-class one.
    The *quantitative* approximate-correlation bound remains the RS error-set counting (`parity_circuit_false`).
-2. `ACC0ApproximatesByLowRankPredictors` — the named socket: an ACC⁰ circuit's behaviour on the agreement set
-   is captured by a low-rank/low-effective-dimension predictor. (RS gives this *with* an error set, via the
-   probabilistic approximant; turning the error set into a correlation/agreement statement is the work.)
+2. ~~`ACC0ApproximatesByLowRankPredictors`~~ **DONE** (`…Layer3ACC0LowRank.acc0_approx_by_lowRankPredictor`): an
+   AC⁰[p] circuit (`p^t ≥ 4·#subcircuits`) is `3/4`-approximated by a function in the low-effective-dimension span
+   `V_D`, `D = ((p-1)t)^depth`. Combines `exists_large_agreement_set` (the error-set→agreement step, already in
+   `…Layer3Agreement`) with the new `eval_mem_lowDegSpan` (multilinear reduction: a degree-`≤D` polynomial's
+   cube-evaluation lies in `V_D` — `x_i^{e+1}=x_i` collapses each monomial to a `≤D` squarefree one). This is the
+   *same* `V_D` socket 1 showed the holonomy parity target escapes. The lower bound itself remains the band
+   counting in `parity_circuit_false` (combining socket 1's escape with socket 2's `3/4`-membership).
 3. The MOD-modulus mismatch: `parity_function_lower_bound` needs the circuit's MOD gates to all have modulus
    `= p` (the RS field prime). True ACC⁰ allows *composite/other* moduli; handling `MOD_q` for `q` coprime to
    `p` is the genuine ACC⁰-vs-AC⁰[p] gap (the part that is `NEXP ⊄ ACC⁰`-hard via the Williams method, not RS
