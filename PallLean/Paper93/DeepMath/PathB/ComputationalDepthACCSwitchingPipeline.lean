@@ -95,6 +95,63 @@ theorem cellWitness_gives_low_correlation (supports : Fin k → Finset (Fin n)) 
   obtain ⟨v, w, hne, hvD, hwD, hcell⟩ := hwit
   exact ⟨v, w, hne, kGate_low_correlation_offdiagonal supports D v w hne hvD hwD hcell g⟩
 
+/-! ## The bounded‑overlap cell bridge, via pigeonhole -/
+
+/-- **The pigeonhole cell bridge (proved): few surviving supports ⇒ a same‑cell live pair.**  A *live* coordinate
+cannot belong to a *killed* support (a support disjoint from `L`), so its cell pattern is determined entirely by
+the **surviving** supports — there are at most `2^{#survivors}` patterns.  Hence `2^{#survivors} < |L|` forces two
+live coordinates into the same cell.  (This replaces the crude `2^k` of `exists_sameCell_pair_on` by `2^{survivors}`
+— the bounded‑overlap/restriction improvement.) -/
+theorem exists_sameCell_pair_of_survivors (supports : Fin k → Finset (Fin n)) (L : Finset (Fin n))
+    (h : 2 ^ survivingCount supports L < L.card) :
+    ∃ v ∈ L, ∃ w ∈ L, v ≠ w ∧ SameCell supports v w := by
+  have hmaps : ∀ v ∈ L, (Finset.univ.filter (fun j => v ∈ supports j))
+      ∈ (Finset.univ.filter (fun j => ¬ Disjoint (supports j) L)).powerset := by
+    intro v hv
+    rw [Finset.mem_powerset]
+    intro j hj
+    rw [Finset.mem_filter] at hj ⊢
+    exact ⟨Finset.mem_univ _, Finset.not_disjoint_iff.mpr ⟨v, hj.2, hv⟩⟩
+  have hcard :
+      ((Finset.univ.filter (fun j => ¬ Disjoint (supports j) L)).powerset).card < L.card := by
+    rw [Finset.card_powerset]; exact h
+  obtain ⟨v, hv, w, hw, hne, hfvw⟩ :=
+    Finset.exists_ne_map_eq_of_card_lt_of_maps_to hcard hmaps
+  refine ⟨v, hv, w, hw, hne, fun j => ?_⟩
+  constructor
+  · intro hvj
+    have hmem : j ∈ Finset.univ.filter (fun j => v ∈ supports j) :=
+      Finset.mem_filter.mpr ⟨Finset.mem_univ _, hvj⟩
+    rw [hfvw] at hmem
+    exact (Finset.mem_filter.mp hmem).2
+  · intro hwj
+    have hmem : j ∈ Finset.univ.filter (fun j => w ∈ supports j) :=
+      Finset.mem_filter.mpr ⟨Finset.mem_univ _, hwj⟩
+    rw [← hfvw] at hmem
+    exact (Finset.mem_filter.mp hmem).2
+
+/-- **A witness from few survivors (proved): `2^{#survivors} < |L|` ⇒ `∃ D, CellWitness`** — take `D` to be the
+singleton of one coordinate of the same‑cell pair. -/
+theorem exists_cellWitness_of_survivors (supports : Fin k → Finset (Fin n)) (L : Finset (Fin n))
+    (h : 2 ^ survivingCount supports L < L.card) :
+    ∃ D : Finset (Fin n), CellWitness supports D := by
+  obtain ⟨v, _, w, _, hne, hcell⟩ := exists_sameCell_pair_of_survivors supports L h
+  exact ⟨{v}, v, w, hne, Finset.mem_singleton_self v,
+    fun hmem => hne (Finset.mem_singleton.mp hmem).symm, hcell⟩
+
+/-- **The predictor fails from few survivors (proved): `2^{#survivors} < |L|` ⇒ there is a holonomy support `D` the
+`k`‑gate ACC⁰ predictor cannot correlate with.**  Pigeonhole cell bridge `+` `cellWitness_gives_low_correlation`,
+no extra hypothesis. -/
+theorem predictor_fails_of_survivors (supports : Fin k → Finset (Fin n)) (L : Finset (Fin n))
+    (g : (Fin k → ℕ) → Bool) (h : 2 ^ survivingCount supports L < L.card) :
+    ∃ D : Finset (Fin n), ∃ v w, v ≠ w ∧
+      2 * (((Finset.univ : Finset (Fin n → Bool)).filter (fun x => x v ≠ x w)).filter
+            (fun x => g (weightVec supports x) = fParity D x)).card
+        ≤ ((Finset.univ : Finset (Fin n → Bool)).filter (fun x => x v ≠ x w)).card := by
+  obtain ⟨D, hwit⟩ := exists_cellWitness_of_survivors supports L h
+  obtain ⟨v, w, hvw, hb⟩ := cellWitness_gives_low_correlation supports D g hwit
+  exact ⟨D, v, w, hvw, hb⟩
+
 /-! ## The assembly -/
 
 /-- **The end‑to‑end pipeline (proved up to the named cell bridge): a bounded‑overlap ACC⁰ predictor fails to
@@ -122,3 +179,5 @@ end PallLean.Paper93.DeepMath.PathB.ACCSwitchingPipeline
 #print axioms PallLean.Paper93.DeepMath.PathB.ACCSwitchingPipeline.exists_low_survival
 #print axioms PallLean.Paper93.DeepMath.PathB.ACCSwitchingPipeline.cellWitness_gives_low_correlation
 #print axioms PallLean.Paper93.DeepMath.PathB.ACCSwitchingPipeline.bounded_overlap_acc0_low_correlation_whp
+#print axioms PallLean.Paper93.DeepMath.PathB.ACCSwitchingPipeline.exists_sameCell_pair_of_survivors
+#print axioms PallLean.Paper93.DeepMath.PathB.ACCSwitchingPipeline.predictor_fails_of_survivors

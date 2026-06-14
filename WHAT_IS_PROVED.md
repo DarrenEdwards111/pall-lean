@@ -756,6 +756,21 @@ proved except the single named cell bridge**, and the theorem makes the full
 "bounded‑overlap ACC⁰ predictor fails on the holonomy parity under a random restriction" argument explicit, with
 the genuine `NP ⊄ ACC⁰` hardness localized to exactly one combinatorial step (unbounded‑overlap cell collapse).
 
+**The cell bridge proved via pigeonhole (`…ACCSwitchingPipeline`, cont.).**  The named gap `hbridge` is now
+*discharged* by pigeonhole, with the key observation that a *live* coordinate cannot belong to a *killed* support
+(it would witness non‑disjointness), so a live coordinate's cell pattern is determined entirely by the **surviving**
+supports — at most `2^{#survivors}` patterns, not `2^k`.  Proved: `exists_sameCell_pair_of_survivors`
+(`2^{#survivors} < |L| ⇒` a same‑cell live pair, via `exists_ne_map_eq_of_card_lt_of_maps_to` mapping `v ↦ {j : v∈S_j}`
+into the powerset of the surviving set, card `2^{#survivors}`); `exists_cellWitness_of_survivors`
+(`⇒ ∃ D, CellWitness`, taking `D` the singleton of one of the pair); and `predictor_fails_of_survivors`
+(`2^{#survivors} < |L| ⇒ ∃ D, the k‑gate ACC⁰ predictor cannot correlate with the holonomy parity D`, with **no extra
+hypothesis**).  So for a restriction whose surviving‑support count is below `log₂` of its live‑coordinate count, the
+predictor *provably* fails — the bridge is closed by pigeonhole.  The probabilistic half (`exists_low_survival`)
+delivers few survivors; the dual first moment (`E[#live] = n·p`) keeps the live count large; together they place a
+restriction in this regime for bounded overlap.  The genuine remaining hardness is only the joint
+**few‑survivors‑and‑many‑live** control at unbounded overlap (where the survivor count can reach `~log₂|L|`) — the
+higher‑moment Håstad frontier, now isolated to that single quantitative tension.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
