@@ -173,6 +173,52 @@ theorem bounded_overlap_acc0_low_correlation_whp (p : ℝ) (hp0 : 0 ≤ p) (hp1 
   obtain ⟨L, hL, hLsurv⟩ := exists_low_survival p hp0 hp1 supports B a ha hE hBa
   exact cellWitness_gives_low_correlation supports D g (hbridge L hL hLsurv)
 
+/-! ## Closing the joint tension: union bound over the two tails -/
+
+/-- **Union bound (proved): `Pr(E₁ ∨ E₂) ≤ Pr E₁ + Pr E₂`** over the `p`‑biased measure. -/
+theorem Pr_union_le (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (E₁ E₂ : Finset (Fin n) → Prop) :
+    Pr p (fun L => E₁ L ∨ E₂ L) ≤ Pr p E₁ + Pr p E₂ := by
+  unfold Pr
+  rw [Finset.sum_filter, Finset.sum_filter, Finset.sum_filter, ← Finset.sum_add_distrib]
+  apply Finset.sum_le_sum
+  intro L _
+  split_ifs <;> first | linarith [weight_nonneg p hp0 hp1 L] | tauto
+
+/-- **Joint existence (proved): if the two tail probabilities sum to `< 1`, some restriction avoids both bad
+events.** -/
+theorem exists_both_of_pr_add_lt_one (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
+    (E₁ E₂ : Finset (Fin n) → Prop) (h : Pr p E₁ + Pr p E₂ < 1) :
+    ∃ L ∈ (Finset.univ : Finset (Fin n)).powerset, ¬ E₁ L ∧ ¬ E₂ L := by
+  have hu : Pr p (fun L => E₁ L ∨ E₂ L) < 1 := lt_of_le_of_lt (Pr_union_le p hp0 hp1 E₁ E₂) h
+  obtain ⟨L, hL, hnot⟩ := exists_of_pr_lt_one p _ hu
+  push_neg at hnot
+  exact ⟨L, hL, hnot⟩
+
+/-- **The joint tension closed (proved): given the union‑bound feasibility, a random restriction defeats the
+bounded‑overlap ACC⁰ predictor.**  If the tail of "too many survivors" (`≥ a`) and the tail of "too few live"
+(`≤ b`) sum to `< 1`, and `2^a ≤ b`, then some restriction has `survivors < a` and `live > b`, so
+`2^{survivors} < 2^a ≤ b < live`, and `predictor_fails_of_survivors` applies — no cell‑bridge hypothesis.  The two
+tails are controlled by Markov from the first moments (`E[#surviving] ≤ k·s·p`, `E[#live] = n·p`); the feasibility
+`< 1` is the joint few‑survivors‑and‑many‑live condition, attainable for bounded overlap and the precise
+quantitative tension at unbounded overlap. -/
+theorem bounded_overlap_predictor_fails_whp (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
+    (supports : Fin k → Finset (Fin n)) (g : (Fin k → ℕ) → Bool) (a b : ℕ) (hab : 2 ^ a ≤ b)
+    (hfeas : Pr p (fun L => a ≤ survivingCount supports L)
+        + Pr p (fun L : Finset (Fin n) => L.card ≤ b) < 1) :
+    ∃ D : Finset (Fin n), ∃ v w, v ≠ w ∧
+      2 * (((Finset.univ : Finset (Fin n → Bool)).filter (fun x => x v ≠ x w)).filter
+            (fun x => g (weightVec supports x) = fParity D x)).card
+        ≤ ((Finset.univ : Finset (Fin n → Bool)).filter (fun x => x v ≠ x w)).card := by
+  obtain ⟨L, _, hnot1, hnot2⟩ := exists_both_of_pr_add_lt_one p hp0 hp1
+    (fun L : Finset (Fin n) => a ≤ survivingCount supports L)
+    (fun L : Finset (Fin n) => L.card ≤ b) hfeas
+  push_neg at hnot1 hnot2
+  have hkey : 2 ^ survivingCount supports L < L.card :=
+    calc 2 ^ survivingCount supports L < 2 ^ a := Nat.pow_lt_pow_right (by norm_num) hnot1
+      _ ≤ b := hab
+      _ < L.card := hnot2
+  exact predictor_fails_of_survivors supports L g hkey
+
 end PallLean.Paper93.DeepMath.PathB.ACCSwitchingPipeline
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACCSwitchingPipeline.exists_of_pr_lt_one
@@ -181,3 +227,5 @@ end PallLean.Paper93.DeepMath.PathB.ACCSwitchingPipeline
 #print axioms PallLean.Paper93.DeepMath.PathB.ACCSwitchingPipeline.bounded_overlap_acc0_low_correlation_whp
 #print axioms PallLean.Paper93.DeepMath.PathB.ACCSwitchingPipeline.exists_sameCell_pair_of_survivors
 #print axioms PallLean.Paper93.DeepMath.PathB.ACCSwitchingPipeline.predictor_fails_of_survivors
+#print axioms PallLean.Paper93.DeepMath.PathB.ACCSwitchingPipeline.Pr_union_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ACCSwitchingPipeline.bounded_overlap_predictor_fails_whp

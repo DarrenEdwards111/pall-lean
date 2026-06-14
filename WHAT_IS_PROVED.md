@@ -771,6 +771,21 @@ restriction in this regime for bounded overlap.  The genuine remaining hardness 
 **few‑survivors‑and‑many‑live** control at unbounded overlap (where the survivor count can reach `~log₂|L|`) — the
 higher‑moment Håstad frontier, now isolated to that single quantitative tension.
 
+**The joint tension closed by a union bound (`…ACCSwitchingPipeline`, cont.).**  The two tails are combined.  Proved:
+`Pr_union_le` (union bound over the `p`‑biased measure, `Pr(E₁∨E₂) ≤ Pr E₁ + Pr E₂`, via `sum_filter` +
+`split_ifs`); `exists_both_of_pr_add_lt_one` (if the two tail probabilities sum to `< 1`, some restriction avoids
+*both* bad events — joint existence from the probabilistic method); and `bounded_overlap_predictor_fails_whp` — **if
+the "too many survivors" tail (`≥ a`) and the "too few live" tail (`≤ b`) sum to `< 1` and `2^a ≤ b`, then a random
+restriction defeats the bounded‑overlap ACC⁰ predictor** (`∃ D`, no correlation advantage), with *no cell‑bridge
+hypothesis*: the joint restriction has `survivors < a` and `live > b`, so `2^{survivors} < 2^a ≤ b < live`, and
+`predictor_fails_of_survivors` fires.  The two tails are Markov‑controlled by the first moments (`E[#surviving] ≤
+k·s·p`, `E[#live] = n·p`); the feasibility `< 1` *is* the joint few‑survivors‑and‑many‑live condition.  So the
+predictor failure is reduced to a single feasibility inequality, attainable for bounded overlap — and the precise
+quantitative tension (survivor count reaching `~log₂` of the live count) at unbounded overlap is the residual
+higher‑moment Håstad frontier.  The whole pipeline — moments, concentration, pigeonhole cell bridge, union‑bound
+joint control — is now machine‑checked end to end, with the genuine `NP ⊄ ACC⁰` hardness isolated to that one
+feasibility tension.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
