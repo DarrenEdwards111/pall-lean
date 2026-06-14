@@ -841,6 +841,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | cross‑model bridge (NO‑GO) | `modQStatOn_flip_ne`: MOD statistic fully sensitive (`q≥2`); **`mod_gate_parity_nonconstant`**: parity gate non‑constant on any cube with a free support coord ⇒ switching (leaves coords free) CANNOT drive `switch_step` (needs full support) — the Razborov–Smolensky wall | `…ACCSwitchingModBridge` |
 | **PIVOT → polynomial method** | road‑map: switching capped, MOD no‑go proved, RS layer already complete; next = effective‑dimension/correlation fusion | `ACC_ROADMAP.md` |
 | N‑frame target = parity (RS bridge) | `fParity_univ_eq_parity`: holonomy target = `decide(Odd #ones)`; **`nframe_parity_target_size_lower_bound`**: N‑frame target needs `2^{Ω(n^{1/2d})}` AC⁰[p] size (inherits the proved RS bound) | `…Layer3NFrameParityRS` |
+| **socket 1: eff‑dim ↔ holonomy fusion** | top‑frequency functional kills `V_D`, separates parity; **`holonomy_parity_not_lowDegEval`**: holonomy target `∏pmOne` ∉ degree‑`≤D` span for `D<n` (eff‑dim `≥n`). Per‑class engine genuinely does NOT fuse (parity determined, never balanced) | `…Layer3LowDegHolonomy` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +

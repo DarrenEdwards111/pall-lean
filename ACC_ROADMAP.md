@@ -55,11 +55,14 @@ the first `nframe_target_has_high_rs_degree`-style bridge.
 
 **Still open (the sockets):**
 
-1. `low_degree_predictor_correlation_bound` — fuse the *effective-dimension* bound
-   (`finrank_span_lowDegEval_le_card`) with the *correlation* engine (`agreement_le_sum_majority`): a predictor
-   whose evaluation lands in a dimension-`< 2^{m}` span cannot correlate with the holonomy parity beyond a
-   controlled bound. (The RS counting and the holonomy balance currently prove correlated facts by different
-   means; unifying them in the finrank/effective-dimension language is the bridge.)
+1. ~~`low_degree_predictor_correlation_bound`~~ **DONE** (`…Layer3LowDegHolonomy.holonomy_parity_not_lowDegEval`):
+   the holonomy parity target `∏ pmOne` lies *outside* the degree-`≤D` evaluation span `V_D` for `D < n`
+   (effective dimension `≥ n`). Proved via a top-frequency linear functional that annihilates `V_D` but separates
+   parity. **Key finding:** the *per-class-majority* engine (`agreement_le_sum_majority`) genuinely does **not**
+   fuse with linear low-degree dimension — it needs the target balanced inside each statistic class, but a
+   degree-`≥1` monomial statistic determines every variable, so parity is never balanced there. The correct
+   dimension↔correlation fusion is the span-membership obstruction (exact representation), not the per-class one.
+   The *quantitative* approximate-correlation bound remains the RS error-set counting (`parity_circuit_false`).
 2. `ACC0ApproximatesByLowRankPredictors` — the named socket: an ACC⁰ circuit's behaviour on the agreement set
    is captured by a low-rank/low-effective-dimension predictor. (RS gives this *with* an error set, via the
    probabilistic approximant; turning the error set into a correlation/agreement statement is the work.)
