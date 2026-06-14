@@ -828,6 +828,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | operational step machine | `step`/`runFor` interpreter: decides SAT in `#cells` transitions, `< 2^n` | `…ACC0SatStepMachine` |
 | elementary op count | `totalOps = k·#cells ≤ k·(n+1)^k < 2^n`: every gate‑eval counted | `…ACC0SatOpCount` |
 | survivor → cell count | `#cells ≤ (n+1)^{#active}`: speedup governed by active (surviving) gates | `…ACC0SatSurvivorCells` |
+| speedup capstone | few survivors ⇒ correct, sub‑`2^n` SAT decider (correctness ∧ time) | `…ACC0SatSpeedupCapstone` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -1023,6 +1024,15 @@ coordinate (`weightVec_eq_zero_of_empty`), so the cell vector is determined by i
 *few survivors ⇒ few active gates ⇒ few cells ⇒ fast search* (`(n+1)^{#surviving}`), closing the loop between the
 speedup and the core correlation analysis.  A real, completable theorem; still the cell‑search model, not the full
 Turing‑machine `2^{n-n^ε}` analysis, and proving nothing about `NEXP/NP ⊄ ACC⁰` or `P ≠ NP`.
+
+**Capstone: the survivor‑parameterized speedup (`…ACC0SatSpeedupCapstone`).**  The whole sub‑arc folds into one
+statement.  `survivor_sat_speedup` — **if `(n+1)^{#active} < 2^n`, then `cellSearch C` correctly decides SAT *and*
+runs in `< 2^n` steps** (correctness `∧` time bound, combining `decideSAT_correct` with `cells_le_active`).  Since
+`#active = #surviving` after a restriction, this is exactly *few surviving gates ⇒ a correct SAT decision below
+brute force*, driven directly by the survivor machinery (`…ACCSwitchingPipeline`, `…ACCCoreDecomposition`,
+`…ACCRestrictionTree`).  This is the headline of the cell‑search speedup, in the parameter the corpus controls — a
+real, correct, timed algorithm beating brute force when few gates survive.  Still the cell‑search model, not the
+full Turing‑machine `2^{n-n^ε}` theorem; proves nothing about `NEXP/NP ⊄ ACC⁰` or `P ≠ NP`.
 
 ## 5. The exact missing theorem — where everything converges
 
