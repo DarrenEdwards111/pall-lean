@@ -47,6 +47,7 @@ The wall is precisely **mixed modulus**: no single prime field linearises gates 
 | **toy Beigel–Tarui (attacking the wall)** | `toy_bounded_bottom_searchable`: SYM-of-`AND_w` (fan-in `≤w` bottom) searchable in `<2^n` — depth-reduction socket **discharged for the bounded-bottom fragment** | `…ACC0BeigelTaruiToy` |
 | **depth-3 MIXED fragment** | `depth_mixed_searchable`: arbitrary top over a bottom **mixing** `MOD_q` + bounded-`AND_w` gates is searchable in `<2^n` when `∏(per-gate states)<2^n` — socket **discharged for the mixed-bottom fragment** | `…ACC0Depth3Mixed` |
 | **support normal form (syntax-level)** | `acc0_observed_by_projection`: ANY `ACC0Circuit` observed by projection to its `support` (`eval_depends_on_support`, induction); `acc0_junta_searchable` (junta ⇒ `<2^n`); `acc0_top_over_subcircuits_searchable` (top over ACC⁰ subcircuits jointly reading `<n` vars ⇒ `<2^n`, union support) — `ACC⁰⊆mixed-bottom` chipped at circuit syntax | `…ACC0SupportNormalForm` |
+| **depth-3 MOD normalization (residue gain)** | `and_of_mods_searchable`: syntactic `MOD_{q₁}∧MOD_{q₂}` ⇒ `Depth2ModCircuit`, residue-searchable `<2^n` when `q₁·q₂<2^n` **regardless of support** (junta gives nothing here); `mod_bottom_circuit_searchable` (arbitrary top over MOD family) | `…ACC0Depth3ModNormalize` |
 
 **Progress on the depth-reduction wall:** the residue-observer algebra (`observed_top_pi`) makes depth composition
 reusable, and the toy discharges the socket for the bounded-bottom (`SYM`-of-`AND_w`) fragment. Remaining: the deep
