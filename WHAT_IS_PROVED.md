@@ -825,6 +825,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | ACC⁰‑SAT time-cost model | cell search `≤ (n+1)^k < 2^n` (small-gate regime): beats brute force | `…ACC0SatTimeCost` |
 | branched ACC⁰‑SAT bound | `2^{killed}·(n+1)^r < 2^n` (few-survivor regime): past small-gate | `…ACC0SatBranched` |
 | ACC⁰‑SAT time model | `cellSearch` algorithm: decides SAT, `steps` = #cells, `< 2^n` proved | `…ACC0SatMachine` |
+| operational step machine | `step`/`runFor` interpreter: decides SAT in `#cells` transitions, `< 2^n` | `…ACC0SatStepMachine` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -986,6 +987,18 @@ proved — closing the gap from "abstract cell cost" to "machine time" *for this
 unit‑cost cell‑check model (one step per cell, each check `O(k)`), not a Turing‑machine simulation; `cellSearch` is
 `noncomputable` only because the enumeration order is choice‑supplied (irrelevant to result/steps).  Still not the
 full `2^{n−n^ε}` ACC⁰‑SAT theorem; proves nothing about `NEXP/NP ⊄ ACC⁰` or `P ≠ NP`.
+
+**An operational step machine (`…ACC0SatStepMachine`).**  The `steps` field becomes the transition count of a real
+interpreter.  A `MachineState` is `(acc, todo)`; `step` consumes one cell, OR‑ing its `cellPredicate` into `acc`;
+`runFor t` runs `t` steps.  Proved: `foldl_or_eq_any` (OR‑accumulation `= List.any`); `runFor_length` (running
+`#todo` steps drains the list and folds the accumulator); `machine_decides` — **the machine computes SAT**: after
+`#cells` steps its `acc` is `true` iff the circuit is satisfiable; and `machine_steps_le` / `machine_beats_bruteforce`
+— **the machine halts in `≤ (n+1)^k` steps, `< 2^n` in the small‑gate regime**.  So "time" is now the number of
+`step` transitions of a defined machine with proved correctness — operational, not a field.  **Honest scope:** a
+*list‑processing step machine* (one cell per transition), **not** a Turing machine with tape/head/input encoding,
+and no `n^ε` accounting; it grounds machine time for the cell‑search cost model.  The full Turing‑machine
+`2^{n-n^ε}` ACC⁰‑SAT analysis remains the named gap (the genuine Williams content).  Proves nothing about
+`NEXP/NP ⊄ ACC⁰` or `P ≠ NP`.
 
 ## 5. The exact missing theorem — where everything converges
 
