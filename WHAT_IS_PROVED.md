@@ -891,6 +891,34 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | **exact-quasipoly fragment + one `MOD` top (`MOD_M ∘ AND_w`)** | Pushes the exact-quasipoly fragment one step toward the YBT normal form: replace the `OR` top with a `MOD_M` top (a genuine `SYM ∘ AND_w` with a modular count top), `M = qs.prod` over pairwise-coprime `qs`. **`modAnd_bottom_count_le`** (bottom `AND_w` quasipoly: `m ≤ ∑_{i≤w} C(n,i)`, `monomial_count_le`); **`modAnd_exact_observed`** (the `MOD_M ∘ AND_w` decision `modCountDecision qs t (monoAND ∘ mono)` factors *exactly* through `countResVec` — the top `MOD_M` is CRT-decoded on the integer count `gateCount`, `…ACC0IntegerPolynomialCRT`, **no approximation**); **`modAnd_exact_quasipoly_searchable`** (both: `m ≤ ∑_{i≤w}C(n,i)` *and* `∃ G`, SAT-searchable in `< 2^n` residue cells once `M = qs.prod < 2^n` — the modular top *compresses* the count to `M` classes, independent of the bottom count); **`mod6_and_exact_quasipoly_searchable`** (`M = 6 = 2·3` concrete, `[2,3]`). Both layers stay **exact**: the bottom `AND` of fan-in `≤ w` *is* the degree-`≤w` monomial (genuine gate), and `MOD` is *exactly* symmetric — it needs no RS approximation, unlike a low-degree polynomial over a single field. So the exact-and-quasipolynomial fragment *does* extend to one `MOD` layer. Honest — exactly where it stops: this is still depth 2 over a **bounded-fan-in** bottom. It does not reach the general YBT normal form (arbitrary `ACC⁰` bottom: unbounded fan-in / interleaved `MOD` / arbitrary depth), where exactness forces exponential size — the front half, **Wall 1**. The exact `MOD` top buys nothing there; it is the *bottom* `AND_w → exact low-degree polynomial across depth` that breaks. Cell/observer model; `< 2^n` cells is not a uniform algorithm (Wall 2) | `…ACC0ExactQuasipolyModTop` |
 | **depth-3 exact composition over `MOD_M ∘ AND_w` (the "across depth" clause of Wall 1)** | Tests directly whether exactness survives *one composition step*: a top gate over `k` middle `MOD_M ∘ AND_w` gates (depth 3, bounded fan-in below). **`depth3_middle_exact`** (each middle `MOD_M ∘ AND_w` gate is decoded *exactly* by its count-residue vector — CRT, no approximation, `modCount_factors_through_resVec`); **`depth3_modAnd_compose_searchable`** (both: every middle bottom layer is quasipolynomial `m ≤ ∑_{d≤w} C(n,d)` via `monomial_count_le`, *and* the depth-3 circuit `top ∘ (MOD_M ∘ AND_w)^k` is SAT-searchable in `< 2^n` cells once `2^k < 2^n`, observed *exactly* by the `k`-bit middle-output vector via `exact_depth_composes`). **Answer: exactness survives the extra composition step — at the *product* cost `2^k`.** Honest — the cost *is* the wall: `2^k` is quasipolynomial only for `k = polylog`, exponential for unbounded top fan-in; and pushing the exact intermediate residues up instead multiplies the per-gate `M` cells to `M^k` — the same product blow-up. The general YBT normal form needs an *arbitrary* `ACC⁰` bottom across *arbitrary* depth, where this product is genuinely exponential — the front half, **Wall 1** (it is the *bottom* `AND_w → exact low-degree polynomial across depth` that breaks, not the symmetric top, which composes exactly here). Cell/observer model; `< 2^n` cells is not a uniform algorithm (Wall 2) | `…ACC0ExactQuasipolyDepth3` |
 
+#### The exact-quasipoly fragment boundary (the four probes, as one localized result)
+
+The four entries above (`…ACC0IntegerPolynomialCRT`, `…ACC0ExactQuasipolyDepth2`, `…ACC0ExactQuasipolyModTop`,
+`…ACC0ExactQuasipolyDepth3`) are not four separate facts — they are **one result probed from four sides**, mapping
+exactly the boundary of where an *exact-and-quasipolynomial* `SYM∘AND` is achievable, and isolating the single clause
+that fails in general (Wall 1).  Read together:
+
+| probe | fragment | exact? | size / cell cost | what it isolates |
+|---|---|---|---|---|
+| **back half** (`…IntegerPolynomialCRT`) | a `MOD_M` *top* on the integer count, `M = ∏ q_i` | **exact** (CRT, no approx) | `M` residue cells | the *symmetric/modular top* is exactly decodable — for free |
+| **top kind** (`…ExactQuasipolyDepth2`) | `OR ∘ AND_w` (DNF) | **exact** | `≤ ∑_{i≤w}C(n,i)` bottom | a *bounded-fan-in* `AND` *is* a degree-`≤w` monomial, exactly |
+| **one MOD layer** (`…ExactQuasipolyModTop`) | `MOD_M ∘ AND_w` | **exact** | bottom quasipoly, top `M` cells | the modular top *composes onto* the exact bottom, still exact |
+| **one depth step** (`…ExactQuasipolyDepth3`) | `top ∘ (MOD_M ∘ AND_w)^k` | **exact** | **product** `2^k` (or `M^k`) | composition survives exactly — at a *product* cost |
+
+The invariant across all four: **exactness is never the obstruction.**  Every symmetric top (`OR`, `MOD`, threshold)
+is *exactly* a count/CRT-decoded gate, and every *bounded-fan-in* `AND` is *exactly* a bounded-degree monomial — no
+Razborov–Smolensky approximation is needed anywhere in this fragment.  What is bounded — and the only thing that must
+be bounded — is the **fan-in / degree of the bottom `AND` layer**, which controls both the monomial count
+(`∑_{i≤w}C(n,i)`, quasipoly for `w = polylog`) and the composition cost (`2^k`/`M^k`, quasipoly for `k = polylog`).
+
+So the fragment boundary is sharp and one-dimensional: the exact-and-quasipolynomial `SYM∘AND` holds **iff the bottom
+`AND` degree stays polylog**, and the symmetric/modular structure above it is irrelevant to exactness.  The general
+Yao–Beigel–Tarui normal form is precisely the case where the bottom degree is *not* given bounded — an arbitrary
+`ACC⁰` subcircuit (unbounded fan-in / interleaved `MOD` / arbitrary depth) whose *exact* low-degree representation
+across depth is the open analytic core.  The four probes thus localize **Wall 1 entirely to the bottom**:
+`ACC⁰ → exact low-degree integer polynomial across depth`.  Nothing in this fragment is `NEXP ⊄ ACC⁰` or `P ≠ NP`;
+it is the precise map of how far exactness reaches before that one clause stops it.
+
 #### The two remaining YBT walls (what is *not* proved, and exactly why)
 
 The YBT cash-out lane above is **fully assembled** in the cell/observer model: every link from the `SYM∘AND` normal
