@@ -70,10 +70,16 @@ the first `nframe_target_has_high_rs_degree`-style bridge.
    cube-evaluation lies in `V_D` — `x_i^{e+1}=x_i` collapses each monomial to a `≤D` squarefree one). This is the
    *same* `V_D` socket 1 showed the holonomy parity target escapes. The lower bound itself remains the band
    counting in `parity_circuit_false` (combining socket 1's escape with socket 2's `3/4`-membership).
-3. The MOD-modulus mismatch: `parity_function_lower_bound` needs the circuit's MOD gates to all have modulus
-   `= p` (the RS field prime). True ACC⁰ allows *composite/other* moduli; handling `MOD_q` for `q` coprime to
-   `p` is the genuine ACC⁰-vs-AC⁰[p] gap (the part that is `NEXP ⊄ ACC⁰`-hard via the Williams method, not RS
-   alone).
+3. **DELIMITED** (`…Layer3ModulusBoundary`): the modulus boundary is now a theorem, not just a hypothesis.
+   `fermat_indicator` (`1 − a^{p−1} = 1[a=0]` over `F_p`) ⇒ `modp_eval_mem_lowDegSpan`: a `MOD_p` detector is
+   *exactly* degree-`(p−1)` over `F_p` (independent of fan-in), so it lands in `V_{p−1}` — precisely why
+   `hmod : modulus = p` is load-bearing and how `MOD_p` gates compose into `((p−1)t)^depth`. The `F_p` arithmetic
+   of `∑ boolToZMod(x_i)` tracks only the count **mod p**, so `MOD_q` (`q ≠ p`) has no fan-in-independent
+   low-degree `F_p` form — the wall. *Not closed by a composite-modulus lower bound* (open / different tool):
+   `MOD_q ∉ AC⁰[p]` for `q ≠ p` prime is Smolensky, already in `…Layer4ModqChar` (`mod_q_indicators_false`);
+   composite `AC⁰[m]` and `NEXP ⊄ ACC⁰` are **Williams' algorithmic method** (faster ACC⁰-SAT + nondeterministic
+   time hierarchy) — the PathB switching / `NFrameACC0Master` arc — **not** this `F_p`-polynomial machinery. The
+   polynomial method extends exactly to `MOD_p` gates; that is the honest ceiling.
 
 ## 4. Cash-out target
 
