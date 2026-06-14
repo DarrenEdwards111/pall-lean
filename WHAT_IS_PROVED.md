@@ -820,6 +820,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | restriction tree | recursive depth `d → 2` descent (one‑step switching named) | `…ACCRestrictionTree` |
 | Williams cash‑out | whole arc as one conditional: no small ACC⁰ predictor correlates | `…ACCWilliamsCashout` |
 | depth-3 switch step | *real* deterministic switch on CNF-of-`MOD`: forced clause drops | `…ACCDepth3Switch` |
+| Williams `NEXP ⊄ ACC⁰` scaffold | algorithmic‑method cash‑out; N‑frame route (speedup bridge named) | `…WilliamsNEXP_ACC0` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -915,6 +916,19 @@ Quot.sound]`).  Iterating it over the clauses reduces the CNF to depth `≤ 2`, 
 restriction tree's atom is **no longer assumed** — it is proved for this fragment via support fixing and `MOD`
 locality; only the *simultaneous / with-high-probability* control (forcing one gate per clause at once while
 keeping coordinates live) remains the named Håstad difficulty.
+
+**Williams' `NEXP ⊄ ACC⁰` scaffold (`…WilliamsNEXP_ACC0`).**  `NEXP ⊄ ACC⁰` is a *theorem* (Williams 2011), so its
+algorithmic‑method skeleton is mechanizable with the hard ingredients named.  Proved (pure logic, **no axioms**):
+`acc0_sat_speedup_implies_NEXP_not_ACC0` — a nontrivial ACC⁰‑circuit‑SAT algorithm (`ACC0SatSpeedup`) together with
+Williams' core implication (`williams`: speedup + `NEXP ⊆ ACC⁰` ⇒ nondeterministic‑hierarchy collapse) and the time
+hierarchy (`hierarchy`: no collapse) gives `¬ NEXPHasACC0Circuits`, i.e. `NEXP ⊄ ACC⁰`.  And `nframe_williams_cashout`
+— the N‑frame route: *if* the holonomy/correlation structure yields the speedup (`NFrameGivesACC0SatSpeedup` via a
+named `bridge`), then `NEXP ⊄ ACC⁰`.  **Honest scope:** this is the *scaffold* of a known theorem — the implication
+structure, mechanized — conditional on the two real inputs (`williams`/`ACC0SatSpeedup` = Williams' SAT‑speedup
+algorithm; `hierarchy` = the nondeterministic time hierarchy).  The N‑frame supplies the geometric route and the
+hard target, but **not** the SAT speedup itself: proving `NFrameGivesACC0SatSpeedup` (N‑frame ⇒ nontrivial
+ACC⁰‑SAT) is the genuine open Williams bridge.  It does not prove `NP ⊄ ACC⁰` or `P ≠ NP`; it states exactly which
+known inputs close `NEXP ⊄ ACC⁰` and where the N‑frame machinery would attach.
 
 ## 5. The exact missing theorem — where everything converges
 
