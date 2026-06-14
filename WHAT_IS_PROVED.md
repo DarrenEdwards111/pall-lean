@@ -821,6 +821,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | Williams cash‑out | whole arc as one conditional: no small ACC⁰ predictor correlates | `…ACCWilliamsCashout` |
 | depth-3 switch step | *real* deterministic switch on CNF-of-`MOD`: forced clause drops | `…ACCDepth3Switch` |
 | Williams `NEXP ⊄ ACC⁰` scaffold | algorithmic‑method cash‑out; N‑frame route (speedup bridge named) | `…WilliamsNEXP_ACC0` |
+| N‑frame ACC⁰‑SAT kernel | SAT collapses to a `weightVec`‑image (cell) search via support extraction | `…NFrameACC0Speedup` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -929,6 +930,20 @@ algorithm; `hierarchy` = the nondeterministic time hierarchy).  The N‑frame su
 hard target, but **not** the SAT speedup itself: proving `NFrameGivesACC0SatSpeedup` (N‑frame ⇒ nontrivial
 ACC⁰‑SAT) is the genuine open Williams bridge.  It does not prove `NP ⊄ ACC⁰` or `P ≠ NP`; it states exactly which
 known inputs close `NEXP ⊄ ACC⁰` and where the N‑frame machinery would attach.
+
+**The N‑frame → ACC⁰‑SAT speedup kernel (`…NFrameACC0Speedup`).**  The structural half of the open Williams bridge
+(`NFrameGivesACC0SatSpeedup`) is discharged honestly.  Proved: `sat_iff_image` — a predicate factoring through a
+statistic is satisfiable iff some *achieved* statistic value is accepted (search the image, not the domain); and
+`sat_depth2_reduces` — **a depth‑2 `MOD`‑bottom circuit's satisfiability reduces to a search over its `weightVec`
+image** (via the proved support extraction `eval_factors`).  So SAT over the `2^n` cube collapses to a search over
+the cell/residue space of the bottom support family — whose size is the speedup parameter (`≤ 2^{#surviving}` after
+a low‑survivor restriction, far below `2^{#live}`).  This is the N‑frame's genuine contribution to the SAT speedup,
+powered by the corpus's support‑extraction and cell/survivor analysis.  **Honest scope:** this is the *search‑space
+collapse* half only; converting it to a `2^{n − n^ε}` *time bound* (restriction‑tree branching over killed
+coordinates + a time model) is the named algorithmic gap — the genuine Williams content.  So
+`NFrameGivesACC0SatSpeedup` is *partially* discharged (structural kernel proved; time accounting named), and the
+companion boundary/action speedup (`…NFrameSpeedupBridge`: `action < 2^n ⇒` beats brute force) gives the dual,
+DP‑based form.  Nothing here proves `NEXP ⊄ ACC⁰`, `NP ⊄ ACC⁰`, or `P ≠ NP`.
 
 ## 5. The exact missing theorem — where everything converges
 
