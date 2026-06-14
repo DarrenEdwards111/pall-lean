@@ -742,6 +742,20 @@ switching skeleton's probabilistic packaging: the concentration inequalities are
 measure; the only remaining inputs are the (proved) variance bound and its routine identification with
 `Exp((X−EX)²)`.  Unbounded overlap remains the higher‑moment frontier.
 
+**The end‑to‑end pipeline, assembled (`…ACCSwitchingPipeline`).**  The whole random‑restriction programme is chained
+into one conditional theorem with the single higher‑moment gap isolated.  Proved: `exists_of_pr_lt_one` (the
+probabilistic method over the `p`‑biased measure — an event of probability `< 1` has a complementary outcome, from
+`total`); `exists_low_survival` (**a low‑survival restriction exists** — by Markov, expected survivors `≤ B < a` ⇒
+some restriction leaves `< a` surviving supports); `cellWitness_gives_low_correlation` (**a same‑cell `D`‑witness
+defeats the predictor** — `2·agreement ≤ #off‑diagonal`, via `kGate_low_correlation_offdiagonal`).  The assembly
+`bounded_overlap_acc0_low_correlation_whp` chains them: from the expected‑survivor bound (`hE`, the first‑moment
+value `≤ k·s·p`) a low‑survival restriction exists; the cell bridge (`hbridge`: few survivors ⇒ same‑cell witness —
+the second‑moment/pigeonhole collapse, proved for bounded overlap, the higher‑moment frontier for unbounded) turns
+it into a `CellWitness`; the witness defeats the bounded‑overlap ACC⁰ predictor.  So **every link of the pipeline is
+proved except the single named cell bridge**, and the theorem makes the full
+"bounded‑overlap ACC⁰ predictor fails on the holonomy parity under a random restriction" argument explicit, with
+the genuine `NP ⊄ ACC⁰` hardness localized to exactly one combinatorial step (unbounded‑overlap cell collapse).
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
