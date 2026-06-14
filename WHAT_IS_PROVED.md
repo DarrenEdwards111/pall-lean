@@ -822,6 +822,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | depth-3 switch step | *real* deterministic switch on CNF-of-`MOD`: forced clause drops | `…ACCDepth3Switch` |
 | Williams `NEXP ⊄ ACC⁰` scaffold | algorithmic‑method cash‑out; N‑frame route (speedup bridge named) | `…WilliamsNEXP_ACC0` |
 | N‑frame ACC⁰‑SAT kernel | SAT collapses to a `weightVec`‑image (cell) search via support extraction | `…NFrameACC0Speedup` |
+| ACC⁰‑SAT time-cost model | cell search `≤ (n+1)^k < 2^n` (small-gate regime): beats brute force | `…ACC0SatTimeCost` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -944,6 +945,19 @@ coordinates + a time model) is the named algorithmic gap — the genuine William
 `NFrameGivesACC0SatSpeedup` is *partially* discharged (structural kernel proved; time accounting named), and the
 companion boundary/action speedup (`…NFrameSpeedupBridge`: `action < 2^n ⇒` beats brute force) gives the dual,
 DP‑based form.  Nothing here proves `NEXP ⊄ ACC⁰`, `NP ⊄ ACC⁰`, or `P ≠ NP`.
+
+**A time-cost model for the ACC⁰‑SAT speedup (`…ACC0SatTimeCost`).**  The structural kernel becomes a genuine
+*model-relative time bound*.  In the natural cost model where deciding SAT means enumerating the achievable cells,
+the cost is `|image(weightVec)|`, and: `weightVec_le` (each cell coordinate `≤ n`) + `imageSearchCost_le`
+(`|image(weightVec)| ≤ (n+1)^k` — the cell vectors live in `(Fin k → {0,…,n})`) + `imageSearch_beats_bruteforce`
+(`(n+1)^k < 2^n ⇒ |image| < 2^n`) give `nframe_acc0_sat_timebound` — **a depth‑2 `MOD`‑bottom circuit's SAT is
+decided by a cell search of cost `< 2^n` in the small‑gate regime** (`k = o(n/log n)`).  All proved
+(`Fintype.piFinset` cardinality + `card_le_card`).  **Honest scope:** this is a *search‑count* model (cost = cells
+enumerated, the dominant term), and the regime `(n+1)^k < 2^n` is where the single base‑case search alone beats
+brute force, *no branching*.  For larger gate counts one branches over killed coordinates (restriction tree),
+giving `2^{#killed} ·` cell‑cost with the survivor count the parameter — that combination is the remaining named
+accounting toward the full `2^{n−n^ε}` bound.  So the speedup is now a *real model‑relative time bound* in the
+small‑gate regime; it is **not** the full ACC⁰‑SAT theorem, and proves nothing about `NEXP/NP ⊄ ACC⁰` or `P ≠ NP`.
 
 ## 5. The exact missing theorem — where everything converges
 
