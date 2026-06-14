@@ -689,6 +689,20 @@ predictor cannot correlate with).  This converts the switching hypothesis into a
 bounded‑fan‑in supports; the full probabilistic switching lemma is what remains to lift it to poly‑size ACC⁰
 (fan‑in up to `n`, where `k·s ≫ n` and the deterministic "kill‑all‑touched" restriction leaves nothing live).
 
+**The probabilistic half — first moment (`…ACCRestrictionSwitchingProb`).**  The genuinely probabilistic rung: keep
+each coordinate live independently with probability `p` (a `p`‑biased random restriction, live set `L` with weight
+`p^{|L|}(1-p)^{n-|L|}`).  Proved: `biased_sum_one` — the weights form a real distribution (binomial theorem via
+`Finset.prod_add`); `survProb_le` — a support of fan‑in `m` is killed with probability `(1-p)^m`, hence survives
+with probability `1-(1-p)^m ≤ m·p` (Bernoulli's inequality `one_add_mul_le_pow`); `expectedLive_eq` — expected live
+coordinates `= n·p`; and the payoff `expectedSurviving_le` — **the expected number of surviving supports is `≤
+k·s·p`**, shrinking linearly in `p`.  So heavy restrictions (small `p`) drive the expected surviving count below
+`1`, forcing a support‑killing restriction to exist — the first‑moment skeleton of switching.  Honest scope: the
+first moment alone reaches the same `k·s < n` regime as the deterministic restriction (keeping `≥ 2` live needs
+`p ≥ 2/n`, and `k·s·p < 1` then needs `k·s < n/2`); beating it — a *constant* live fraction `p` while still
+collapsing high‑fan‑in supports — needs the higher‑moment Håstad switching argument, the genuine
+`NP ⊄ ACC⁰` content.  The random restriction is now modelled, its distribution validated, and the expected
+surviving‑support count provably shrinks; the higher‑moment concentration is the remaining frontier.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
