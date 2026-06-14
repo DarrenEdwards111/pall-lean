@@ -817,6 +817,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | high‑overlap probe | star family: core blowup `Var ≤ ksp + k²·\|core\|·p`; core surgery | `…ACCOverlapStar` |
 | spread‑overlap probe | design `Var ≤ ksp + k²λp`; surgery cost `= \|overlapCoords\|`; star ⊆ core | `…ACCOverlapDesign` |
 | core decomposition | killing `overlapCoords` ⇒ pairwise‑disjoint restricted family, `Var ≤ ksp` | `…ACCCoreDecomposition` |
+| restriction tree | recursive depth `d → 2` descent (one‑step switching named) | `…ACCRestrictionTree` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -876,6 +877,18 @@ kill ⇒ reduces to disjoint (`Var ≤ ksp`, the easy case, e.g. the star); `|ov
 disjointifies (the hard spread/Håstad case).**  The entire remaining `NP ⊄ ACC⁰` difficulty is now pinned to one
 explicit cardinality — `|overlapCoords|` of the bottom‑gate support family — and the whole easy side of the
 dichotomy is proved sorry‑free.
+
+**The restriction tree — recursive depth reduction (`…ACCRestrictionTree`).**  The deterministic descent toward the
+depth‑2 bridge is mechanized.  A restriction is a partial assignment `ρ : Fin n → Option Bool` (`Agrees` = input
+respects ρ's fixings); restrictions accumulate as a *list* with `AgreesAll` the conjunction, so composing steps is
+list concatenation.  The one‑step Håstad step is named `RestrictionTreeSwitch` (every depth‑`≥3` circuit, under some
+restriction, equals a strictly‑smaller‑depth circuit on agreeing inputs).  Proved: `reduces_to_depth2` —
+**granted one‑step switching, every circuit reduces to a depth‑`≤2` circuit** over an accumulated restriction list
+(`AgreesAll ρs x → eval C x = eval C' x`, `depth C' ≤ 2`), by well‑founded recursion on depth (axioms `[propext,
+Quot.sound]` only — constructive).  Each step strictly decreases depth, so iteration terminates at `2`; the
+depth‑2 survivor then feeds the depth‑2 `MOD`‑bottom bridge and the correlation/pigeonhole machinery.  So the entire
+depth‑reduction *structure* — the restriction tree's descent — is mechanized; the lone unproved input is the single
+per‑layer switching `RestrictionTreeSwitch`, the Håstad lemma.
 
 ## 5. The exact missing theorem — where everything converges
 
