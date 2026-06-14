@@ -887,6 +887,54 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | **additive degree control (`AND` degree = sum of input degrees)** | `toPolyList_eq_map` (`toPolyList p cs = cs.map (toPoly p)`, induction); **`toPoly_andGate_totalDegree_le`**: `(toPoly p (andGate cs)).totalDegree ≤ (cs.map (fun c => (toPoly p c).totalDegree)).sum` — the `AND` gate's polynomial degree is the **sum** (not product) of its inputs' degrees, since `AND = ∏` and `MvPolynomial.totalDegree_list_prod` gives `totalDegree(∏) ≤ ∑ totalDegree`; **`toPoly_andGate_totalDegree_le_of_bounded`**: fan-in `cs.length ≤ w` and `∀ c ∈ cs, (toPoly p c).totalDegree ≤ D` ⇒ `(toPoly p (andGate cs)).totalDegree ≤ w * D` (one layer multiplies the degree by `≤` the fan-in, via `List.sum_le_card_nsmul`). This **additivity** is exactly why the polynomial method's gate count is *quasipolynomial* (degree adds across `∧`/`∨`, so a depth-`d` circuit has polylog degree `((p-1)t)^{depth}` — `toAgree_totalDegree_le` — hence quasipoly monomial-`AND`s) rather than the observer's *exponential* product boundary (`…ACC0DepthCompose`). Honest: this is the within-layer additive law; the full polylog-degree-across-depth is `toAgree_totalDegree_le` (proved, for the approximant); the exact quasipoly depth-composition (true YBT) is the open wall | `…ACC0AdditiveDegree` |
 | **exact depth composition (Bool specialization)** | **`exact_depth_composes`**: for `sub : Fin k → (Fin n → Bool) → Bool` and any `top : (Fin k → Bool) → Bool`, once `2^k < 2^n`, `(fun x => top (fun i => subᵢ x))` is SAT-searchable in `< 2^n`, with the subcircuit-output vector `fun x => fun i => subᵢ x` as the cell statistic (boundary `2^k`). The **exact** side of composition (no approximation): the exact symmetric gates (`…ACC0SymmetricExact`: `AND`/`OR`/`MOD` *are* count functions) compose at any depth this way, but with the **exponential** `2^k` *product* boundary. Specializes `depth_compose_searchable` at `S = fun _ => Bool` (`Fintype.card_bool`, `Finset.prod_const`); the `DecidableEq (Fin k → Bool)` instance diverges from the Classical one baked into `depth_compose_searchable`, closed by `convert … using 2; congr!` (subsingleton instances). This makes the exact-vs-quasipoly tension precise as a *theorem*, not a missing lemma: exact composition ⇒ exponential `2^k` boundary; quasipoly composition (`…ACC0AdditiveDegree`/`…ACC0ToAgreeDegree`, additive degree) ⇒ only `1-ε`-*approximate*. Having *both at once* — an exact `SYM∘AND` of quasipolynomial size — is the Beigel–Tarui construction (exact ℤ-polynomial of polylog degree decoded by the symmetric top via CRT), the irreducible YBT wall | `…ACC0ExactCompose` |
 
+#### The two remaining YBT walls (what is *not* proved, and exactly why)
+
+The YBT cash-out lane above is **fully assembled** in the cell/observer model: every link from the `SYM∘AND` normal
+form onward is proved sorry-free (`circuit → poly` exact via Layer3 `toPoly`; `poly → SYM∘AND`-span given degree via
+`acc0p_circuit_in_monoAND_span`; degree discharged for the approximant via `acc0p_toAgree_in_monoAND_span`;
+coefficient-duplication count-mod-`p` via `weightedGateCount_cast_eq`; `SYM` count observer via `sym_searchable`;
+exact gate symmetry via `…ACC0SymmetricExact`; exact depth composition via `exact_depth_composes`; additive degree
+via `…ACC0AdditiveDegree`). What remains are **two named walls**, each *not* a missing lemma but a known
+research-grade theorem, documented here so the boundary is explicit and never silently crossed.
+
+**Wall 1 — the exact–quasipoly tension (the Beigel–Tarui analytic core).**  This is now a *theorem*, not a
+suspicion: `exact_depth_composes` together with `…ACC0AdditiveDegree`/`…ACC0ToAgreeDegree` pins the obstruction
+exactly.  There are two ways to compose an `ACC⁰` circuit into a searchable normal form, and they are mutually
+exclusive with the tools in hand:
+
+* **Exact composition** (`exact_depth_composes`, `…ACC0SymmetricExact`): the gates `AND`/`OR`/`MOD` *are* exact
+  symmetric count functions, so they compose at any depth with **no approximation** — but the boundary is the
+  *product* `2^k` (or `∏ᵢ|Sᵢ|`, `depth_compose_searchable`), **exponential** in the width.  Exact ⇒ exponential.
+* **Quasipolynomial composition** (`toAgree_totalDegree_le`, `…ACC0AdditiveDegree`): polynomial degree composes
+  *additively* (`toPoly_andGate_totalDegree_le`: `AND` degree = sum, not product, of input degrees), so a
+  constant-depth circuit has polylog degree `((p-1)t)^{depth}` and hence only **quasipolynomially** many
+  monomial-`AND`s (`∑_{i≤D}C(n,i)`).  But the polylog-degree representation is the Razborov–Smolensky **approximant**
+  (`toAgree`), which agrees with the circuit on only a `1-ε` fraction (`…ACC0ApproxConsequence` shows an approximate
+  `SYM∘AND` bounds the *solution count*, not SAT).  Quasipoly ⇒ approximate.
+
+  Having **both at once** — an *exact* `SYM∘AND` of *quasipolynomial* size — is the Beigel–Tarui construction: an
+  exact integer-valued polynomial of polylog degree whose value is decoded by the symmetric top gate via CRT
+  (`MOD`-counting modulo several primes simultaneously).  That construction is the irreducible analytic core of the
+  Yao–Beigel–Tarui normal-form theorem.  It is a *known classical result* but is **NOT** formalized here, and it
+  cannot be obtained by gluing the two proved halves (each provably gives up the property the other needs).  Socketed
+  as `MixedACCDepthReductionSocket` / `HasExactSymAndForm`; the socket holding for arbitrary `ACC⁰` with `m`
+  quasipolynomial **is** the YBT theorem.
+
+**Wall 2 — Williams uniform realization (the algorithmic / separation-strength step).**  Even granted an exact
+quasipoly `SYM∘AND` normal form (Wall 1), a *small cell count is not a uniform algorithm*.  Turning the
+normal-form/observer structure into the actual `2^{n-n^ε}`-time `ACC⁰`-SAT algorithm — and running it through
+Williams' connection to get `NEXP ⊄ ACC⁰` — is the `UniformWilliamsRealizationSocket` step
+(`…ACC0WilliamsCashout`, `…WilliamsNEXP_ACC0`, `…NFrameACC0Speedup`).  This is **separation-strength** and is
+deliberately **untouched** (per the HAL guidance: do not attack the uniform-realization cash-out, which is
+equivalent to the separation itself).  The self-audit theorems `williams_socket_iff_separation` /
+`realization_socket_iff_separation` prove each cash-out socket is *logically equivalent to the separation* — so they
+reduce nothing; they honestly mark where the `NEXP ⊄ ACC⁰`-strength content lives.
+
+**Net honest position.**  Everything reducible in the cell/observer model is discharged sorry-free with clean axioms
+`[propext, Classical.choice, Quot.sound]`.  The lane bottoms out at exactly these two named walls — Wall 1 (the
+Beigel–Tarui exact-quasipoly normal form, a known but unformalized classical theorem) and Wall 2 (Williams uniform
+realization, separation-strength).  Nothing here is, or claims to be, `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
 Pr(live ≤ b) < 1` with `2^a ≤ b`).  **The one remaining wall:** unbounded support reuse / high‑overlap
