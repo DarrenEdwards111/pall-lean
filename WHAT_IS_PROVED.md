@@ -815,6 +815,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | circuit class | `ACC0Circuit`; support extraction; depth‑2 `MOD`‑bottom bridge | `…ACC0CircuitModel` |
 | depth reduction | locality (any depth); MOD‑support extraction; depth‑2 transfer bridge | `…ACC0DepthReduction` |
 | high‑overlap probe | star family: core blowup `Var ≤ ksp + k²·\|core\|·p`; core surgery | `…ACCOverlapStar` |
+| spread‑overlap probe | design `Var ≤ ksp + k²λp`; surgery cost `= \|overlapCoords\|`; star ⊆ core | `…ACCOverlapDesign` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -848,6 +849,20 @@ disjoint pipeline (`Var ≤ k·s·p`) fires.  **Verdict: for star families high 
 core stays live**; a depth‑reduction restriction that kills the core defeats it.  This locates the genuine wall
 precisely — it is *not* concentrated‑in‑a‑small‑core overlap (solvable by core surgery) but overlap that no small
 killed set can disjointify, which is where the real Håstad difficulty lives.
+
+**The spread‑overlap probe — the genuine Håstad regime (`…ACCOverlapDesign`).**  Testing the real enemy: a *design
+family* with bounded but spread pairwise intersections.  The decisive finding, all proved: `design_variance_le`
+gives `Var[X] ≤ k·s·p + k²·λ·p` under `|S_i ∩ S_j| ≤ λ` — **the same bound shape as the star**, so the second
+moment *cannot* distinguish concentrated from spread overlap.  What separates them is the **surgery cost**, the size
+of `overlapCoords = {v : v lies in ≥ 2 supports}`: `disjointify_requires_kill` proves any live set on which the
+supports are disjoint must have *every* overlap coordinate dead (`Disjoint overlapCoords L`), so
+`card_overlapCoords_le_compl` gives `|overlapCoords| ≤ #dead` — disjointifying costs killing `≥ |overlapCoords|`
+coordinates.  And `star_overlapCoords_subset_core` proves the star is the small‑`overlapCoords` case
+(`overlapCoords ⊆ core`), surgically removable; a spread design with *large* `overlapCoords` is not — killing few
+coordinates cannot disjointify, and killing many destroys the live set the cell bridge needs.  **Net: the variance
+bound does not see the wall; the explicit quantity that does is `|overlapCoords|`.**  The remaining `NP ⊄ ACC⁰`
+difficulty is now pinned to one concrete object — a support family with *small pairwise intersections yet large
+`overlapCoords`* (spread overlap) — exactly the Håstad regime, where no small killed set disjointifies.
 
 ## 5. The exact missing theorem — where everything converges
 
