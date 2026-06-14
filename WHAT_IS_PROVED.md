@@ -729,6 +729,19 @@ independence*: the Chebyshev‑ready variance bound now holds for bounded‑over
 degree `d` entering linearly.  Unbounded overlap (`d` up to `k`) is where the bound degrades to `k²sp` and the
 higher‑moment Håstad argument is genuinely required — the precisely‑located `NP ⊄ ACC⁰` frontier.
 
+**Chebyshev: the variance bound becomes a concentration statement (`…ACCSwitchingChebyshev`).**  The Markov and
+Chebyshev inequalities are proved *over the exact `p`‑biased restriction measure* (`weight p L =
+p^{|L|}(1-p)^{n-|L|}`, total `1` by `total`/`biased_sum_one`; `Pr`/`Exp` the weight of an event / average of a
+function).  Proved: `markov` (`a·Pr(f ≥ a) ≤ Exp f` for `f ≥ 0`), `chebyshev`
+(`Pr((g−Eg)² ≥ t²) ≤ Exp((g−Eg)²)/t²`, Markov on the squared deviation), and the packaging
+`chebyshev_of_variance_le` (`Exp((g−Eg)² ) ≤ B ⇒ Pr((g−Eg)² ≥ t²) ≤ B/t²`).  Taking `g = X` the surviving‑support
+count, `Exp((X−EX)²) = Var[X] ≤ d·k·s·p` (the second‑moment bound) gives **`Pr(|X − E[X]| ≥ t) ≤ d·k·s·p / t²`** —
+so a constant‑`p` random restriction leaves few surviving supports *with high probability*, the concentration that
+turns first‑moment existence into a robust restriction (for bounded‑overlap supports).  This completes the
+switching skeleton's probabilistic packaging: the concentration inequalities are proved in full over the genuine
+measure; the only remaining inputs are the (proved) variance bound and its routine identification with
+`Exp((X−EX)²)`.  Unbounded overlap remains the higher‑moment frontier.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):
