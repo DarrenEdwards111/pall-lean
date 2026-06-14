@@ -153,7 +153,8 @@ Proved use:
 - branched residue cost;
 - restriction ⇒ surviving residue gates;
 - AC⁰-over-MOD normalization;
-- extraction of mixed observers from raw `ACC0Circuit` syntax.
+- extraction of mixed observers from raw `ACC0Circuit` syntax;
+- deduplicated state bound `modOcc C · 2^|varSupp C|` (vars counted once across leaves, `MOD`-internal vars absorbed into the residue) — `acc0_dedupObserved` / `acc0_dedup_searchable`.
 
 ## Why This Matters
 
