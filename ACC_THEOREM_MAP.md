@@ -68,6 +68,7 @@ The wall is precisely **mixed modulus**: no single prime field linearises gates 
 | **mixed moduli `MOD₆`, general `ρ` (true ∧, false ∨)** | **`mod6_eval_false_iff`** (forcing false negates the CRT conjunction → DISJUNCTION `¬(count ≡ t mod 2) ∨ ¬(count ≡ t mod 3)`, via `Bool.eq_false_iff`+`mod6_eval_true_iff`+`not_and_or`); **`mod6_realizable_iff_general`** (arbitrary `ρ`: realizable ⟺ `∃ x` meeting per-gate the conjunction of CRT congruences (forced-true) / disjunction of CRT disequalities (forced-false), coupled through `x`). The fully-general mixed-modulus realization = a mixed CSP over the Boolean cube (linear mod-2 ∧ feasibility mod-3 atoms, conjoined/disjoined per gate) — no rank or product shortcut | `…ACC0Mod6MixedGeneral` |
 | **YBT `SYM`-top count observer (the tractable heart of `SYM∘AND`)** | `gateCount`/`symEval` (count of accepting sub-gates; a symmetric = count-function of them); `gateCount_le` (`≤ m`); **`sym_observed`** (`symEval g h` `ObservedBy` the count); **`sym_count_card_le`** (count boundary `≤ m+1` — the symmetric top collapses `2^m` → `m+1`); **`sym_searchable`** (`SYM∘(m gates)` SAT-searchable `<2^n` once `m+1<2^n`; at the YBT form `m`=quasipoly, `<2^n`). Proves WHY the YBT `SYM` top is cheap (count boundary), for arbitrary sub-gates. The YBT REDUCTION (arbitrary ACC⁰ → `SYM∘AND`, `m` quasipoly) is NOT proved — the open structural wall, socketed as `MixedACCDepthReductionSocket` | `…ACC0SymmetricObserver` |
 | **low-degree polynomial → `SYM∘AND` (YBT chip)** | `monoAND` (monomial `AND` gate, fan-in `\|S\|`); `lowDegSubsets`/**`lowDegSubsets_card`** (degree-`≤D` monomials count `= ∑_{i≤D} C(n,i)`, via `card_biUnion` over `powersetCard`); **`monomial_count_le`** (distinct degree-`≤D` monomials ⇒ `≤ ∑_{i≤D} C(n,i)` bottom gates); **`lowDegreePoly_searchable`** (a `SYM` gate over `m` monomial-`AND`s is SAT-searchable `<2^n` once `m+1<2^n` — the poly value is `gateCount` over its monomial-`AND`s, so `sym_searchable` applies). The polynomial→`SYM∘AND` cash-out (0/1-coeff multilinear; general coeffs duplicate gates). The hard direction — arbitrary ACC⁰ *is* such a low-degree poly (RS approximation) — is NOT proved (the wall) | `…ACC0PolyToSymAnd` |
+| **RS low-degree span → `SYM∘AND` bottom layer** | **`squarefreeEvalMonomial_eq_monoAND`** (the RS generator `∏_{i∈S} boolToZMod p (xᵢ) = if monoAND S x then (1:ZMod p) else 0` — the low-degree-span generators ARE the monomial-`AND` gates); **`lowDegPolyEval_mem_monoAND_span`** (lifts Layer3's `eval_mem_lowDegSpan` through the bridge: a degree-`≤D` polynomial's cube eval ∈ `ZMod p`-span of the monomial-`AND` indicators — the `SYM∘AND` bottom, `≤∑_{i≤D}C(n,i)` gates). Connects the RS machinery to the `SYM∘AND` world exactly. Honest gaps: RS is *approximate* (`acc0_approx_by_lowRankPredictor`, agrees on `1-ε`) so this is an *approximate* `SYM∘AND`; the `ZMod p`-linear top → count-mod-`p` `SYM` needs gate duplication; the exact `AC⁰[p]→SYM∘AND` across depth is the wall | `…ACC0RSToSymAnd` |
 
 **Progress on the depth-reduction wall:** the residue-observer algebra (`observed_top_pi`) makes depth composition
 reusable, the toy discharges the socket for the bounded-bottom (`SYM`-of-`AND_w`) fragment, and `acc0_residueObserved`
@@ -101,17 +102,20 @@ realising the speedup as a uniform (nondeterministic) algorithm + the time-hiera
 ## The Yao–Beigel–Tarui pipeline (target, with the proved links marked)
 
 ```
-ACC⁰ circuit
-  ──[RS low-degree approximation: OPEN, the wall]──►   low-degree multilinear polynomial
+ACC⁰[p] circuit
+  ──[RS approximation: APPROXIMATE, Layer3 acc0_approx_by_lowRankPredictor]──►   low-degree poly over ZMod p (deg ≤ ((p-1)t)^depth)
+  ──[eval_mem_lowDegSpan + squarefreeEvalMonomial_eq_monoAND: PROVED]──►   ZMod p-combination of monomial-AND gates
   ──[lowDegreePoly_searchable / monomial_count_le: PROVED]──►   SYM ∘ AND_{≤D}  (≤ ∑_{i≤D} C(n,i) gates)
   ──[sym_observed / sym_count_card_le: PROVED]──►   count observer (boundary m+1, not 2^m)
   ──[sym_searchable: PROVED]──►   SAT-searchable in < 2^n (once m+1 < 2^n)
 ```
 
-The **first arrow is the open structural wall** (arbitrary ACC⁰ → low-degree poly / `SYM∘AND`, the RS approximation +
-constant-depth composition, socketed as `MixedACCDepthReductionSocket`).  Every arrow **after** it is proved in the
-cell/observer model (`…ACC0PolyToSymAnd`, `…ACC0SymmetricObserver`): once you are in `SYM∘AND` form with sub-`2^n`
-gates, the count observer makes it searchable.  So the YBT *cash-out* is complete; the YBT *reduction* is the wall.
+Every arrow **after the RS approximation is proved** in the cell/observer model (`…ACC0RSToSymAnd`, `…ACC0PolyToSymAnd`,
+`…ACC0SymmetricObserver`): the RS low-degree span IS the monomial-`AND` (`SYM∘AND` bottom) span, and the count observer
+makes the `SYM` top searchable.  The **open wall** is the first arrow being *exact* (not just `1-ε`-approximate) and
+holding for arbitrary `ACC⁰` across depth — the Razborov–Smolensky approximation + constant-depth composition
+(`MixedACCDepthReductionSocket`).  So the YBT *cash-out* (poly → `SYM∘AND` → searchable) is complete and now wired to
+the RS generators; the YBT *reduction* (`ACC⁰ → exact low-degree poly`) is the wall.
 
 ## Honest ceiling
 
