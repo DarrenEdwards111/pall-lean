@@ -835,6 +835,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | socket reduction | `socket_of_expectation`: `Exp(survivingCount) ≤ r` + `(n+1)^r < 2^n` ⇒ the socket | `…ACC0SatSocketReduction` |
 | first moment / regime | `prDisjoint`: `Pr(S∩L=∅)=(1-p)^{|S|}`; `Exp(survivingCount)=∑survProb≤ksp`; `socket_of_regime`: `ksp ≤ r` + `(n+1)^r < 2^n` ⇒ the socket | `…ACC0SatFirstMoment` |
 | second moment / concentration | `Exp((survivingCount−E)²)=variance`; `survivingCount_concentration`: `Pr(\|X−E\|"≥"t)≤dksp/t²`; `most_restrictions_good`: most restrictions within `t` of mean | `…ACC0SatSecondMoment` |
+| exponential tail (independent) | factorial moment `Pr(t≤X)≤Exp(C(X,t))=∑_{\|T\|=t}Pr(all T survive)`; kill+survival independence (disjoint); `exp_tail_disjoint`: `Pr(t≤X)≤C(k,t)(sp)^t` | `…ACC0SatExpTail` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -1099,6 +1100,23 @@ of good restrictions, not a smaller witness.  Pushing the threshold past constan
 switching tail `Pr(survivingCount≥t) ≤ (O(p·s))^t`, beyond the second moment — the genuine `NP ⊄ ACC⁰` content, and
 exactly the overlap term `cov_nonneg` exposes.  Still the cell‑search model; proves nothing about `NEXP/NP ⊄ ACC⁰`
 or `P ≠ NP`.
+
+**The exponential tail: factorial‑moment method and the independent `(s·p)^t` tail (`…ACC0SatExpTail`).**  Pushing
+to the exponential tail `Pr(survivingCount ≥ t) ≤ (…)^t`.  *(i) Factorial‑moment method:* `pr_ge_le_factorial_moment`
+— `Pr(t ≤ X) ≤ Exp(C(X,t))` (the binomial coefficient `C(X,t) ≥ 1 ⟺ X ≥ t`, Markov on it).  *(ii) Elementary‑
+symmetric identity:* `factorial_moment_eq` — `Exp(C(survivingCount,t)) = ∑_{|T|=t} Pr(all of T survive)` (`C(X,t)`
+counts `t`‑subsets of the surviving set), giving `pr_ge_le_sum_jointSurv`: `Pr(t ≤ survivingCount) ≤ ∑_{|T|=t}
+Pr(all of T survive)`.  *(iii) Independence (pairwise‑disjoint supports):* `exp_prod_kind_disjoint` — the product of
+kill indicators is a *single* disjointness event of the disjoint union (card `∑|S_j|`), so `Exp(∏ kind) = ∏ killProb`;
+the multilinear expansion `∏(1−kind) = ∑_{U}∏_U(−kind)` lifts this to **survival independence**
+`jointSurv_disjoint_eq_prod`: `Pr(all of T survive) = ∏_{j∈T} survProb`.  *(iv) The tail:* `exp_tail_disjoint` —
+**`Pr(t ≤ survivingCount) ≤ C(k,t)·(s·p)^t`** for pairwise‑disjoint supports of fan‑in `≤ s`.  **Honest scope:**
+the `(s·p)^t` decay is genuine but (a) **requires independence** (`cov_disjoint`) and (b) carries the **clause‑count
+factor `C(k,t)`**.  For *overlapping* supports it is *false*: `cov_nonneg` (positive correlation) gives
+`Pr(all survive) ≥ ∏ survProb`, so no `(s·p)^t` bound holds — the precise wall.  Håstad's clause‑count‑free
+`(5·p·w)^t` tail evades both defects but is about **decision‑tree depth** via the encoding/canonical‑labelling
+argument (the `…Switching*` arc), not gate survival; that clause‑count‑free tail is the genuine `NP ⊄ ACC⁰` content
+and remains open.  Still the cell‑search model; proves nothing about `NEXP/NP ⊄ ACC⁰` or `P ≠ NP`.
 
 ## 5. The exact missing theorem — where everything converges
 
