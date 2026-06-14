@@ -718,6 +718,17 @@ and controlling that term is the higher‑moment Håstad switching content, `NP 
 moment is computed in closed form, the disjoint case is Chebyshev‑ready, and the overlap term is the named
 frontier.
 
+**Bounded overlap: the variance bound past independence (`…ACCRestrictionSwitchingVariance`, cont.).**  The overlap
+covariance is bounded by the intersection size: `cov_le` — `Cov(X_S, X_T) ≤ |S∩T|·p` (factor
+`Cov = (1-p)^{|S∪T|}·(1−(1-p)^{|S∩T|})`, first factor `≤ 1`, second `≤ |S∩T|·p` by Bernoulli).  Then double counting
+under **bounded overlap** (each coordinate in `≤ d` supports) gives `∑_{j,l}|S_j∩S_l| = ∑_v deg(v)² ≤ d·∑_v deg(v) =
+d·∑_j|S_j| ≤ d·k·s` (proved per‑`j`: `∑_l|S_j∩S_l| = ∑_{v∈S_j} deg(v) ≤ d·|S_j| ≤ d·s`, via `card_filter` +
+`sum_comm`).  Hence `variance_boundedOverlap_le` — **`Var[X] ≤ d·k·s·p`** when each coordinate lies in `≤ d`
+supports (disjoint supports are the case `d = 1`, recovering `k·s·p`).  This is the genuine rung *past
+independence*: the Chebyshev‑ready variance bound now holds for bounded‑overlap support families, with the overlap
+degree `d` entering linearly.  Unbounded overlap (`d` up to `k`) is where the bound degrades to `k²sp` and the
+higher‑moment Håstad argument is genuinely required — the precisely‑located `NP ⊄ ACC⁰` frontier.
+
 ## 5. The exact missing theorem — where everything converges
 
 Every route terminates at the **same** wall, in five equivalent forms (all `= CookLevinFrontierHyp = P ≠ NP`):

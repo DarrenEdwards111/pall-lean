@@ -107,9 +107,70 @@ theorem variance_disjoint_le (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
         Finset.sum_le_sum (fun j _ => cov_self_le p hp0 hp1 _)
     _ ≤ (k : ℝ) * s * p := expectedSurviving_le p hp0 hp1 supports s hfan
 
+/-! ## Bounded overlap: extending the variance bound past independence -/
+
+/-- **The per‑pair covariance is bounded by the overlap (proved): `Cov(X_S, X_T) ≤ |S∩T|·p`.**  Factoring
+`Cov = (1-p)^{|S∪T|}·(1 − (1-p)^{|S∩T|})`, the first factor is `≤ 1` and the second is `≤ |S∩T|·p` (Bernoulli). -/
+theorem cov_le (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (S T : Finset (Fin n)) :
+    cov p S T ≤ ((S ∩ T).card : ℝ) * p := by
+  have hcard : S.card + T.card = (S ∪ T).card + (S ∩ T).card :=
+    (Finset.card_union_add_card_inter S T).symm
+  have hfactor : cov p S T = (1 - p) ^ (S ∪ T).card * survProb p (S ∩ T) := by
+    unfold cov survProb killProb
+    rw [← pow_add, hcard, pow_add]; ring
+  rw [hfactor]
+  have h1 : (1 - p) ^ (S ∪ T).card ≤ 1 := pow_le_one₀ (by linarith) (by linarith)
+  have h3 : 0 ≤ survProb p (S ∩ T) := by
+    unfold survProb
+    have : (1 - p) ^ (S ∩ T).card ≤ 1 := pow_le_one₀ (by linarith) (by linarith)
+    linarith
+  calc (1 - p) ^ (S ∪ T).card * survProb p (S ∩ T)
+      ≤ 1 * survProb p (S ∩ T) := mul_le_mul_of_nonneg_right h1 h3
+    _ = survProb p (S ∩ T) := one_mul _
+    _ ≤ ((S ∩ T).card : ℝ) * p := survProb_le p hp1 _
+
+/-- **The variance bound for bounded overlap (proved): `Var[X] ≤ d·k·s·p`** when each coordinate lies in at most
+`d` supports.  By `cov_le` the variance is `≤ p·∑_{j,l}|S_j∩S_l|`, and double counting bounds
+`∑_{j,l}|S_j∩S_l| = ∑_v deg(v)² ≤ d·∑_v deg(v) = d·∑_j|S_j| ≤ d·k·s`.  (Disjoint supports are the case `d = 1`.) -/
+theorem variance_boundedOverlap_le (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
+    (supports : Fin k → Finset (Fin n)) (s d : ℕ) (hfan : ∀ j, (supports j).card ≤ s)
+    (hov : ∀ v, (Finset.univ.filter (fun l => v ∈ supports l)).card ≤ d) :
+    variance p supports ≤ (d : ℝ) * k * s * p := by
+  have hdc : ∑ j : Fin k, ∑ l : Fin k, (supports j ∩ supports l).card ≤ d * k * s := by
+    have perj : ∀ j : Fin k, ∑ l : Fin k, (supports j ∩ supports l).card ≤ d * s := by
+      intro j
+      calc ∑ l : Fin k, (supports j ∩ supports l).card
+          = ∑ l : Fin k, ∑ v ∈ supports j, (if v ∈ supports l then 1 else 0) := by
+            apply Finset.sum_congr rfl; intro l _
+            rw [← Finset.filter_mem_eq_inter, Finset.card_filter]
+        _ = ∑ v ∈ supports j, ∑ l : Fin k, (if v ∈ supports l then 1 else 0) := Finset.sum_comm
+        _ = ∑ v ∈ supports j, (Finset.univ.filter (fun l => v ∈ supports l)).card := by
+            apply Finset.sum_congr rfl; intro v _; rw [Finset.card_filter]
+        _ ≤ ∑ _v ∈ supports j, d := Finset.sum_le_sum (fun v _ => hov v)
+        _ = (supports j).card * d := by rw [Finset.sum_const, smul_eq_mul]
+        _ ≤ s * d := Nat.mul_le_mul (hfan j) (le_refl d)
+        _ = d * s := Nat.mul_comm s d
+    calc ∑ j : Fin k, ∑ l : Fin k, (supports j ∩ supports l).card
+        ≤ ∑ _j : Fin k, d * s := Finset.sum_le_sum (fun j _ => perj j)
+      _ = k * (d * s) := by rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul]
+      _ = d * k * s := by ring
+  unfold variance
+  calc ∑ j, ∑ l, cov p (supports j) (supports l)
+      ≤ ∑ j, ∑ l, ((supports j ∩ supports l).card : ℝ) * p :=
+        Finset.sum_le_sum (fun j _ => Finset.sum_le_sum (fun l _ => cov_le p hp0 hp1 _ _))
+    _ = (∑ j, ∑ l, ((supports j ∩ supports l).card : ℝ)) * p := by
+        rw [Finset.sum_mul]; apply Finset.sum_congr rfl; intro j _; rw [Finset.sum_mul]
+    _ = ((∑ j : Fin k, ∑ l : Fin k, (supports j ∩ supports l).card : ℕ) : ℝ) * p := by
+        push_cast; ring
+    _ ≤ ((d * k * s : ℕ) : ℝ) * p := by
+        apply mul_le_mul_of_nonneg_right _ hp0; exact_mod_cast hdc
+    _ = (d : ℝ) * k * s * p := by push_cast; ring
+
 end PallLean.Paper93.DeepMath.PathB.ACCRestrictionSwitchingVariance
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACCRestrictionSwitchingVariance.cov_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.ACCRestrictionSwitchingVariance.cov_nonneg
 #print axioms PallLean.Paper93.DeepMath.PathB.ACCRestrictionSwitchingVariance.cov_disjoint
 #print axioms PallLean.Paper93.DeepMath.PathB.ACCRestrictionSwitchingVariance.variance_disjoint_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ACCRestrictionSwitchingVariance.cov_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ACCRestrictionSwitchingVariance.variance_boundedOverlap_le
