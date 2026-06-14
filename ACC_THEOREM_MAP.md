@@ -132,6 +132,27 @@ holding for arbitrary `ACC⁰` across depth — the Razborov–Smolensky approxi
 (`MixedACCDepthReductionSocket`).  So the YBT *cash-out* (poly → `SYM∘AND` → searchable) is complete and now wired to
 the RS generators; the YBT *reduction* (`ACC⁰ → exact low-degree poly`) is the wall.
 
+## The exact-quasipoly fragment ladder (where exactness reaches, and the one clause that stops it)
+
+Four probes map the boundary of *exact-and-quasipolynomial* `SYM∘AND` — one result from four sides:
+
+```
+back half     MOD_M on the integer count          exact (CRT)         M cells          …ACC0IntegerPolynomialCRT
+top kind      OR ∘ AND_w  (DNF)                    exact               ∑_{i≤w}C(n,i)    …ACC0ExactQuasipolyDepth2
+one MOD layer MOD_M ∘ AND_w                        exact               bottom + M       …ACC0ExactQuasipolyModTop
+one depth     top ∘ (MOD_M ∘ AND_w)^k              exact               PRODUCT 2^k/M^k  …ACC0ExactQuasipolyDepth3
+```
+
+**Invariant: exactness is never the obstruction.**  Every symmetric top (`OR`/`MOD`/threshold) is *exactly* a
+count/CRT-decoded gate, and every *bounded-fan-in* `AND` *is* a bounded-degree monomial, exactly — no RS approximation
+anywhere in this fragment.  The only thing that must stay bounded is the **bottom `AND` degree**, which controls both
+the monomial count (`∑_{i≤w}C(n,i)`, quasipoly for `w=polylog`) and the **product** composition cost (`2^k`/`M^k`,
+quasipoly for `k=polylog`).  So the boundary is sharp and one-dimensional: exact-quasipoly `SYM∘AND` holds **iff the
+bottom degree stays polylog**; the symmetric structure above is irrelevant to exactness.  This localizes **Wall 1
+entirely to the bottom** (`ACC⁰ → exact low-degree integer polynomial across depth`).  The real obstruction, made
+precise: *exact composition works, but exact observer state multiplies across wide layers (`2^k`/`M^k`); YBT's content
+is avoiding that product blow-up for arbitrary `ACC⁰`.*
+
 ## Honest ceiling
 
 Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`. Tier 1 = genuine AC⁰ switching; Tier 2 = genuine `PARITY ∉ AC⁰[p]`
