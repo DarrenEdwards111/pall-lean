@@ -84,6 +84,7 @@ The wall is precisely **mixed modulus**: no single prime field linearises gates 
 | **depth-3 exact composition over `MOD_M ∘ AND_w` (the "across depth" clause)** | Tests whether exactness survives ONE composition step: a top over `k` middle `MOD_M∘AND_w` gates. **`depth3_middle_exact`** (each middle gate CRT-decoded EXACTLY by its residue vector); **`depth3_modAnd_compose_searchable`** (every middle bottom quasipoly `m≤∑_{d≤w}C(n,d)` ∧ depth-3 circuit searchable `<2^n` once `2^k<2^n`, via `exact_depth_composes` k-bit middle-output observer). ANSWER: exactness survives, at the **product** cost `2^k` (quasipoly only for `k=polylog`). Honest: this is exactly why the general construction breaks — as top fan-in/depth grow the exact boundary multiplies to exponential = Wall 1 (the bottom degree-across-depth; the exact top buys nothing) | `…ACC0ExactQuasipolyDepth3` |
 | **anti-product trick: symmetric top avoids the `2^k` blow-up** | The smallest case where the depth-3 product wall is genuinely AVOIDED. A *symmetric* top over `k` middle `MOD_M∘AND_w` gates reads only the COUNT of accepting middle gates: **`antiproduct_count_card_le`** (`≤ k+1` cells, NOT `2^k`); **`antiproduct_sym_modAnd_searchable`** (bottom quasipoly ∧ `≤k+1` cells ∧ searchable `<2^n` once `k+1<2^n`). Two symmetric layers (outer `SYM` over inner `MOD∘AND_w`=`SYM∘AND`) compose with LINEAR observer state, not the product `2^k`/`M^k`. Honest: genuine anti-product but NOT YBT — needs pre-grouping as one `SYM` layer, can't iterate (symmetric in middle outputs not inputs), bottom degree still Wall 1. This is the YBT `SYM` top being tractable (= `sym_count_card_le`, `m+1` not `2^m`) one layer up | `…ACC0AntiProductSym` |
 | **bottom-clause no-go: exact unbounded-fan-in `OR`/`AND` = full degree** | Attacks Wall 1's bottom clause directly and proves the obstruction is REAL. Over `F₂` the ANF is unique (`anf_involutive`): **`anf_andFn_univ`**/**`anf_orFn_univ`** (top ANF coeff of `AND`/`OR` `= 1` — for `OR` via parity of the `2ⁿ−1` nonempty subsets); **`or/and_exact_degree_full`** (`∃ S, |S|=n ∧ anf≠0`); **`or/and_not_anf_degree_lt`** (NO exact `F₂` representation of degree `<n`). So exact unbounded-fan-in `OR`/`AND` has degree = fan-in `n` ⇒ `2^n` monomials ⇒ exponential. Rules out the naive route (single exact low-degree poly per gate); the only escape is approximate→exact symmetric-top conversion = the irreducible Beigel–Tarui core (Wall 1, NOT crossed). Exact counterpart to the proved *approximate* side (`toAgree_totalDegree_le`) | `…ACC0ExactDegreeNoGo` |
+| **BT approximate→exact conversion: socket + proven decoding** | The only route left after the no-go. **`ApproxToExactSymmetricDecode`** (the missing BT theorem made explicit: `f` = exact symmetric/count decode of `r` `IsLowDegreeGate D` gates; non-trivial ONLY via the low-degree clause — `r` copies of `f` satisfy it otherwise — so this for arbitrary `ACC⁰` = Wall 1); **`socket_searchable`** (socket ⇒ `≤r+1` cells); **`majority_decode`** (TOY, PROVED: strict-majority-correct at every point ⇒ `f x = decide(r<2·gateCount)` EXACTLY — error-corrected threshold decoding); **`majority_decode_symmetric`** (`f = symEval g [>r/2]`); **`majority_decode_gives_socket`** (low-degree + majority-correct ⇒ socket). Honest: the DECODING half is proven; the open part = low-degree approximants majority-correct everywhere for `ACC⁰` = the BT/Yao construction = Wall 1 (not faked) | `…ACC0ApproxToExactDecode` |
 
 **Progress on the depth-reduction wall:** the residue-observer algebra (`observed_top_pi`) makes depth composition
 reusable, the toy discharges the socket for the bounded-bottom (`SYM`-of-`AND_w`) fragment, and `acc0_residueObserved`
@@ -154,6 +155,21 @@ bottom degree stays polylog**; the symmetric structure above is irrelevant to ex
 entirely to the bottom** (`ACC⁰ → exact low-degree integer polynomial across depth`).  The real obstruction, made
 precise: *exact composition works, but exact observer state multiplies across wide layers (`2^k`/`M^k`); YBT's content
 is avoiding that product blow-up for arbitrary `ACC⁰`.*
+
+## The bottom clause, pinned from both sides — and the only route left
+
+The bottom clause is now bounded above and below, so the remaining wall is laser-sharp:
+
+* **Exact low-degree per gate is IMPOSSIBLE** (`…ACC0ExactDegreeNoGo`): over `F₂` an exact unbounded-fan-in `OR`/`AND`
+  has degree = fan-in `n` (top ANF coefficient `= 1`), so `2^n` monomials — exponential.  The naive route is ruled out.
+* **Approximate low-degree EXISTS** (`toAgree_totalDegree_le`, Layer3): the RS approximant has polylog degree but agrees
+  only on a `1-ε` fraction.
+* **The only route left** is the Beigel–Tarui *approximate→exact* conversion (`…ACC0ApproxToExactDecode`): recover the
+  exact value from several low-degree approximants by a **symmetric/count decoder**.  Socket
+  `ApproxToExactSymmetricDecode` names it (non-trivial *only* via its low-degree clause — `r` copies of `f` satisfy it
+  otherwise; with it, holding for arbitrary `ACC⁰` **is** Wall 1).  The *decoding* half is PROVED (`majority_decode`:
+  majority-correct ⇒ exact threshold-count decode); the open part is producing **low-degree** approximants that are
+  majority-correct at *every* point — the irreducible BT/Yao probabilistic construction, **Wall 1**.
 
 ## Honest ceiling
 
