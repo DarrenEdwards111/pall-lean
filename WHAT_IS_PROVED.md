@@ -816,6 +816,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | depth reduction | locality (any depth); MOD‑support extraction; depth‑2 transfer bridge | `…ACC0DepthReduction` |
 | high‑overlap probe | star family: core blowup `Var ≤ ksp + k²·\|core\|·p`; core surgery | `…ACCOverlapStar` |
 | spread‑overlap probe | design `Var ≤ ksp + k²λp`; surgery cost `= \|overlapCoords\|`; star ⊆ core | `…ACCOverlapDesign` |
+| core decomposition | killing `overlapCoords` ⇒ pairwise‑disjoint restricted family, `Var ≤ ksp` | `…ACCCoreDecomposition` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -863,6 +864,18 @@ coordinates cannot disjointify, and killing many destroys the live set the cell 
 bound does not see the wall; the explicit quantity that does is `|overlapCoords|`.**  The remaining `NP ⊄ ACC⁰`
 difficulty is now pinned to one concrete object — a support family with *small pairwise intersections yet large
 `overlapCoords`* (spread overlap) — exactly the Håstad regime, where no small killed set disjointifies.
+
+**Core decomposition — the dichotomy made sharp (`…ACCCoreDecomposition`).**  The star surgery generalizes to
+*every* family.  The canonical core is `overlapCoords`, and: `kill_overlap_gives_disjointOnLive` (converse of
+`disjointify_requires_kill`) gives the exact characterization `disjointOnLive supports L ↔ Disjoint (overlapCoords)
+L` (`disjointOnLive_iff`); `restricted_pairwise_disjoint` proves that after killing the core the restricted family
+`supports j ∩ L` is *genuinely pairwise disjoint*; and `core_decomposition_variance` then gives the *clean disjoint
+bound* `Var[X] ≤ k·s·p` for the restricted family — **the `k²·λ` overlap term is gone**.  So the surgery cost to
+remove all overlap is exactly `|overlapCoords|`, and the dichotomy is sharp: **`|overlapCoords|` small ⇒ cheap to
+kill ⇒ reduces to disjoint (`Var ≤ ksp`, the easy case, e.g. the star); `|overlapCoords|` large ⇒ no small kill
+disjointifies (the hard spread/Håstad case).**  The entire remaining `NP ⊄ ACC⁰` difficulty is now pinned to one
+explicit cardinality — `|overlapCoords|` of the bottom‑gate support family — and the whole easy side of the
+dichotomy is proved sorry‑free.
 
 ## 5. The exact missing theorem — where everything converges
 
