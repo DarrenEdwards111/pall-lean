@@ -836,6 +836,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | first moment / regime | `prDisjoint`: `Pr(S∩L=∅)=(1-p)^{|S|}`; `Exp(survivingCount)=∑survProb≤ksp`; `socket_of_regime`: `ksp ≤ r` + `(n+1)^r < 2^n` ⇒ the socket | `…ACC0SatFirstMoment` |
 | second moment / concentration | `Exp((survivingCount−E)²)=variance`; `survivingCount_concentration`: `Pr(\|X−E\|"≥"t)≤dksp/t²`; `most_restrictions_good`: most restrictions within `t` of mean | `…ACC0SatSecondMoment` |
 | exponential tail (independent) | factorial moment `Pr(t≤X)≤Exp(C(X,t))=∑_{\|T\|=t}Pr(all T survive)`; kill+survival independence (disjoint); `exp_tail_disjoint`: `Pr(t≤X)≤C(k,t)(sp)^t` | `…ACC0SatExpTail` |
+| **clause‑count‑free switching tail** | `pweight_total`: `∑pweight=1`; **`hastad_switching_prob_tail`: `∑_{Bad}pweight ≤ (4pw/(1-p))^s`** (depth‑`≥s` mass, NO clause‑count factor), reconstruction discharged by `reconstructionCorrect_fullpath` | `…Depth3SwitchingProbTail` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -1117,6 +1118,23 @@ factor `C(k,t)`**.  For *overlapping* supports it is *false*: `cov_nonneg` (posi
 `(5·p·w)^t` tail evades both defects but is about **decision‑tree depth** via the encoding/canonical‑labelling
 argument (the `…Switching*` arc), not gate survival; that clause‑count‑free tail is the genuine `NP ⊄ ACC⁰` content
 and remains open.  Still the cell‑search model; proves nothing about `NEXP/NP ⊄ ACC⁰` or `P ≠ NP`.
+
+**Connecting the switching decoder arc to a probability tail (`…Depth3SwitchingProbTail`).**  The decoder arc already
+proves the *weighted* switching bound `tight_descent_switching_prob`: `∑_{Bad} pweight ≤ (2p/(1-p))^s·(2w)^s·∑_{Short}
+pweight` — the `(2w)^s` from the proved injective path‑label encoding (`card_pathLabels`, `reconstructionCorrect_
+fullpath`), the `(2p/(1-p))^s` from the per‑restriction weight gain.  The missing link to an actual **probability
+tail** was that `pweight` is a *distribution*.  `pweight_total` proves it (`∑_ρ pweight p ρ = 1`, via
+`Finset.prod_univ_sum` and the per‑coordinate mass `p+(1-p)/2+(1-p)/2=1`), so `∑_{Short} pweight ≤ 1` (`pweight_le_
+one`), turning the weighted bound into **`hastad_switching_prob_tail`: `∑_{σ∈Bad} pweight p σ ≤ (4·p·w/(1-p))^s`** —
+the `p`‑biased probability that a width‑`w` DNF/CNF needs canonical decision‑tree depth `≥ s` decays as `(O(p·w))^s`
+**with NO dependence on the number of clauses**.  `hastad_switching_prob_tail_fullpath` discharges the
+reconstruction invariant via the proved `reconstructionCorrect_fullpath`, so the tail is unconditional given the
+concrete deepest‑descent hypotheses on `Bad`.  This is exactly the clause‑count‑free decay the gate‑survival tail
+(`…ACC0SatExpTail`) provably *could not* achieve (its intrinsic `C(k,t)` factor) — the genuine switching‑lemma
+phenomenon, now a probability statement.  **Honest scope:** depth‑3 DNF/CNF model, canonical deepest‑descent tree;
+the full `NEXP ⊄ ACC⁰` programme needs this iterated across depth, composed with the MOD‑gate switching step
+(`ACCDepth3Switch.switch_step`) and the Williams method — separate work.  Proves nothing about `NEXP/NP ⊄ ACC⁰` or
+`P ≠ NP` on its own.
 
 ## 5. The exact missing theorem — where everything converges
 
