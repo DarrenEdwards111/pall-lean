@@ -837,6 +837,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | second moment / concentration | `Exp((survivingCount−E)²)=variance`; `survivingCount_concentration`: `Pr(\|X−E\|"≥"t)≤dksp/t²`; `most_restrictions_good`: most restrictions within `t` of mean | `…ACC0SatSecondMoment` |
 | exponential tail (independent) | factorial moment `Pr(t≤X)≤Exp(C(X,t))=∑_{\|T\|=t}Pr(all T survive)`; kill+survival independence (disjoint); `exp_tail_disjoint`: `Pr(t≤X)≤C(k,t)(sp)^t` | `…ACC0SatExpTail` |
 | **clause‑count‑free switching tail** | `pweight_total`: `∑pweight=1`; **`hastad_switching_prob_tail`: `∑_{Bad}pweight ≤ (4pw/(1-p))^s`** (depth‑`≥s` mass, NO clause‑count factor), reconstruction discharged by `reconstructionCorrect_fullpath` | `…Depth3SwitchingProbTail` |
+| depth reduction whp | **`depth_collapse_mass_ge`: `{depth<s}` carries mass `≥ 1−(4pw/(1-p))^s`** (complement of the tail) — width‑`w` DNF collapses to depth‑`≤2` whp | `…Depth3SwitchingDepthReduction` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -1135,6 +1136,20 @@ phenomenon, now a probability statement.  **Honest scope:** depth‑3 DNF/CNF mo
 the full `NEXP ⊄ ACC⁰` programme needs this iterated across depth, composed with the MOD‑gate switching step
 (`ACCDepth3Switch.switch_step`) and the Williams method — separate work.  Proves nothing about `NEXP/NP ⊄ ACC⁰` or
 `P ≠ NP` on its own.
+
+**Depth reduction whp — the complement of the tail (`…Depth3SwitchingDepthReduction`).**  Since `pweight` is a
+distribution (`pweight_total`), the switching tail's complement carries the rest of the mass: `switching_depth_
+reduction` proves `1 − (4pw/(1-p))^s ≤ ∑_{σ∈Badᶜ} pweight σ`, and `depth_collapse_mass_ge` gives the explicit form —
+the restrictions whose canonical decision tree has depth `< s` carry mass `≥ 1 − (4pw/(1-p))^s`.  A depth-`<s`
+decision tree is a width-`<s` DNF *and* CNF, so on a `1 − (4pw/(1-p))^s` fraction of restrictions the **width-`w`
+DNF depth-collapses to a depth-`≤2` (width-`<s`) circuit** — the single‑layer `depth 3 → depth 2` reduction as a
+probability statement.  `switching_depth_reduction_fullpath` discharges reconstruction via
+`reconstructionCorrect_fullpath`.  **Honest scope / `switch_step`:** this is the depth reduction *in the DNF model*
+(`canonicalDT`, `pweight`); `ACCDepth3Switch.switch_step` is the *deterministic* atom of the sibling **`MOD` model**
+(a forced `MOD` gate drops its CNF clause) — the same "a clause collapses" phenomenon in the modular layer.  A
+*literal* cross‑model composition needs a bridge identifying `canonicalDT` depth with `MOD`‑gate forcing; that bridge
+is **not** done here (not faked).  The full programme iterates this across layers and composes with the `MOD` step and
+the Williams method.  Proves nothing about `NEXP/NP ⊄ ACC⁰` or `P ≠ NP` on its own.
 
 ## 5. The exact missing theorem — where everything converges
 
