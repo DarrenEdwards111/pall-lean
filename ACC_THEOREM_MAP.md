@@ -43,6 +43,12 @@ The wall is precisely **mixed modulus**: no single prime field linearises gates 
 | **restriction ⇒ few survivors** | `residue_cells_le_surviving_moduli`: `\|cells(C↾L)\| ≤ ∏_{surviving} q_j` (discharges step 2's per-branch bound) | `…ACC0ResidueRestriction` |
 | **depth iteration (socket)** | `acc0_depth_reduction_speedup`: `MixedACCDepthReductionSocket` (Yao–Beigel–Tarui depth-2 normal form, OPEN) ⇒ residue search decides `Satisfiable(eval C)` in `<2^n` | `…ACC0ResidueDepthReduction` |
 | **Williams cash-out (interface)** | `residue_cashout_bundled`: depth socket + `UniformWilliamsRealizationSocket` ⇒ `NEXP⊄ACC⁰`; self-audit `*_iff_separation` (sockets ⟺ separation) | `…ACC0WilliamsCashout` |
+| **residue-observer algebra** | `ObservedBy`, `observed_top_pi` (composition law), `.and`/`.or`/`.comp`, cell-count bounds | `…ACC0ResidueObserver` |
+| **toy Beigel–Tarui (attacking the wall)** | `toy_bounded_bottom_searchable`: SYM-of-`AND_w` (fan-in `≤w` bottom) searchable in `<2^n` — depth-reduction socket **discharged for the bounded-bottom fragment** | `…ACC0BeigelTaruiToy` |
+
+**Progress on the depth-reduction wall:** the residue-observer algebra (`observed_top_pi`) makes depth composition
+reusable, and the toy discharges the socket for the bounded-bottom (`SYM`-of-`AND_w`) fragment. Remaining: the deep
+structural step that an *arbitrary* `ACC⁰` circuit reduces to that fragment (full Yao–Beigel–Tarui) — still open.
 
 **Architecture closed (conditionally):** the residue-speedup chain (steps 1–4, proved) cashes out to `NEXP ⊄ ACC⁰`
 through exactly **two named open sockets**, both separation-strength (proved equivalent to the separation by the
