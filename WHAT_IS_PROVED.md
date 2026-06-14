@@ -819,6 +819,7 @@ The complete proved arc, attached to a real circuit class, with the honest remai
 | core decomposition | killing `overlapCoords` ⇒ pairwise‑disjoint restricted family, `Var ≤ ksp` | `…ACCCoreDecomposition` |
 | restriction tree | recursive depth `d → 2` descent (one‑step switching named) | `…ACCRestrictionTree` |
 | Williams cash‑out | whole arc as one conditional: no small ACC⁰ predictor correlates | `…ACCWilliamsCashout` |
+| depth-3 switch step | *real* deterministic switch on CNF-of-`MOD`: forced clause drops | `…ACCDepth3Switch` |
 
 **Strongest proved statement.** *Bounded‑overlap depth‑2 `MOD`‑bottom ACC⁰ circuits fail to correlate with the
 holonomy parity after a random restriction, under an explicit feasibility inequality* (`Pr(survivors ≥ a) +
@@ -901,6 +902,19 @@ Quot.sound]`, driven by the proved descent); the load‑bearing inputs are exact
 — the per‑layer Håstad switching `RestrictionTreeSwitch` and the subcube‑transfer `htransfer` — plus the proved
 survivor‑failure machinery (`hfail`).  So the entire reduction is now **one explicit theorem with the irreducible
 difficulty isolated to those named hypotheses**, the honest culmination of the restricted ACC⁰ lower‑bound machine.
+
+**A real switching step, deterministically (`…ACCDepth3Switch`).**  One concrete instance of the
+`RestrictionTreeSwitch` wall is now *discharged with no probabilistic hypothesis*, on a depth-3 fragment: a
+**CNF of `MOD` gates** (AND of clauses, each clause an OR of `MOD` gates — depth 3 AND/OR/`MOD`).  Proved:
+`modGate_eval_eq_of_agreeOn` (a `MOD` gate depends only on its support); `agree_on_fixed` (inputs respecting a
+restriction that fixes `S` agree on `S`); `evalClause_true_of_mem` / `evalCNF_cons_of_clause_true` (a true disjunct
+satisfies its clause, a satisfied clause drops from the AND); and `switch_step` — **the real switching atom**: if a
+restriction fixes a gate `G ∈ c`'s support (bounded fan-in: `≤ s` coordinates) and forces `G` true, then on the
+restricted cube `evalCNF (c :: cnf) = evalCNF cnf` — the clause drops.  All constructive (axioms `[propext,
+Quot.sound]`).  Iterating it over the clauses reduces the CNF to depth `≤ 2`, feeding the depth-2 bridge.  So the
+restriction tree's atom is **no longer assumed** — it is proved for this fragment via support fixing and `MOD`
+locality; only the *simultaneous / with-high-probability* control (forcing one gate per clause at once while
+keeping coordinates live) remains the named Håstad difficulty.
 
 ## 5. The exact missing theorem — where everything converges
 
