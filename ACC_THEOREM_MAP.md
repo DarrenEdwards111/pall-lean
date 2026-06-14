@@ -40,6 +40,7 @@ The wall is precisely **mixed modulus**: no single prime field linearises gates 
 | **mixed-modulus SAT speedup** | `mod_circuit_sat_speedup` / `mod6_circuit_residue_speedup`: `∏q_j<2^n` ⇒ `<2^n` residue cells | `…ACC0ModResidueSpeedup` |
 | **operational residue machine** | `residueSearch` (timed algorithm); `residueSearch_decides`, `residueSearch_beats_bruteforce` (`steps≤∏q_j`, `<2^n`) | `…ACC0ResidueMachine` |
 | **branched residue cost** | `branched_residue_beats_bruteforce` / `…_mod6_…`: `2^killed·∏surviving q_j < 2^n` past the `∏q_j<2^n` base regime | `…ACC0BranchedResidue` |
+| **restriction ⇒ few survivors** | `residue_cells_le_surviving_moduli`: `\|cells(C↾L)\| ≤ ∏_{surviving} q_j` (discharges step 2's per-branch bound) | `…ACC0ResidueRestriction` |
 
 **Why the *lower bound* is open:** `MOD_6`'s two CRT components are each low-degree but over *incompatible* fields —
 `MOD_3` over `F_2` and `MOD_2` over `F_3` are high-degree (Smolensky). A single-`F_p` polynomial observer captures
