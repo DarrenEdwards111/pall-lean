@@ -23,6 +23,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellCountHardRegime
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SunflowerCellCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellCountCharacterization
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RefinedObserverModel
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MODNoGo
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -88,8 +89,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  refined model strictly beats membership      PROVED   refined_observer_strictly_beats_membership (…ACC0RefinedObserverModel)
  refined merging (inactive separators merge)   PROVED   refined_observer_merge              (…ACC0RefinedObserverModel)
  refined correlation bridge (collapse⇒no corr) PROVED   refined_observer_collapse_implies_low_correlation (…ACC0RefinedObserverModel)
- ── open in refined model: MOD/symmetric gates have NO absorbing value (constant only when support ──────
- ──   fully fixed) ⇒ AND/OR-style merging is weak for MOD = the genuine ACC⁰ obstruction (AC⁰ switches). ─
+ ── MOD NO-GO (proved): the variable-fixing merging is INERT for symmetric gates ─────────────────────────
+ MOD-refined = membership on free coords       PROVED   mod_refined_eq_membership_on_free   (…ACC0MODNoGo)
+ MOD gives no merging gain (⟺ SameCell)        PROVED   mod_refined_no_merging_gain         (…ACC0MODNoGo)
+ ── THE WALL (now pinned): MOD has no absorbing value ⇒ a separating gate of free coords stays active ⇒ ──
+ ──   refined model collapses to the membership ceiling. AC⁰ switches; ACC⁰ does not. Genuine barrier. ──
  ── (implied by ACC0ForcesLowCellRank ⊇ the survivor socket; subsumes chain/laminar the rank route misses)─
 ```
 
@@ -181,6 +185,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0CellCountHardRegime
 open PallLean.Paper93.DeepMath.PathB.ACC0SunflowerCellCount
 open PallLean.Paper93.DeepMath.PathB.ACC0CellCountCharacterization
 open PallLean.Paper93.DeepMath.PathB.ACC0RefinedObserverModel
+open PallLean.Paper93.DeepMath.PathB.ACC0MODNoGo
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -607,6 +612,22 @@ theorem refined_observer_collapse_implies_low_correlation {k n : ℕ} (ρ : Rest
     (h : RefinedCellCollapse ρ supports L) : RefinedLowCorrelation ρ supports g :=
   refinedCellCollapse_implies_refinedLowCorrelation ρ supports g L h
 
+/-- **The MOD no-go (proved): the variable-fixing model gives no merging for symmetric gates.**  A `MOD` gate has no
+absorbing value (active iff it reads a free input), so the `MOD`-refined pattern of a free coordinate equals its
+membership pattern — the richer model collapses to the membership model on free coordinates. -/
+theorem mod_refined_eq_membership_on_free {k n : ℕ} (ρ : Restriction n)
+    (supports : Fin k → Finset (Fin n)) (v : Fin n) (hv : ρ v = none) :
+    modRefinedCellPatternVec ρ supports v = cellPatternVec supports v :=
+  modRefined_eq_membership_of_free ρ supports v hv
+
+/-- **The MOD no-go, merging form (proved): two free coordinates merge under `MOD`-refinement iff they already share a
+membership cell** — no gain over the membership ceiling, localizing the `ACC⁰` barrier to `MOD`. -/
+theorem mod_refined_no_merging_gain {k n : ℕ} (ρ : Restriction n) (supports : Fin k → Finset (Fin n))
+    (v w : Fin n) (hv : ρ v = none) (hw : ρ w = none) :
+    modRefinedCellPatternVec ρ supports v = modRefinedCellPatternVec ρ supports w
+      ↔ PallLean.Paper93.DeepMath.PathB.ManyGateCorrelation.SameCell supports v w :=
+  mod_refined_merge_iff_sameCell ρ supports v w hv hw
+
 /-- **The cell-count lower bound, one socket (proved), beside `nframe_lower_bound`.**  For a class of holonomy-predictors,
 the *sharpest* cell-count socket implies the holonomy lower bound. -/
 theorem cellcount_lower_bound {ι : Type} {n : ℕ} (sys : PredictorClass ι n)
@@ -658,3 +679,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.refined_observer_strictly_beats_membership
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.refined_observer_merge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.refined_observer_collapse_implies_low_correlation
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.mod_refined_eq_membership_on_free
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.mod_refined_no_merging_gain
