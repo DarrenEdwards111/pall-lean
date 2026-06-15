@@ -17,6 +17,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellCountCompositio
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LaminarCellCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BlockProductCellCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RandomRestrictionCellCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0VCCellCount
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -58,6 +59,7 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  cells subsume rank (2^cellRank < |L| ⇒ …)     PROVED   cellcount_subsumes_rank             (…ACC0CellCountRoute)
  chain/nested fragment (full rank, ≤k+1 cells) PROVED   cellcount_chain_fragment            (…ACC0ChainCellCount)
  clustered fragment (cellRank ≤ d+r)           PROVED   cellcount_clustered_fragment        (…ACC0ClusteredRank)
+ low-VC fragment (Sauer–Shelah ∑C(k,i), no rk) PROVED   cellcount_lowVC_le                  (…ACC0VCCellCount)
  laminar fragment (nested-or-disjoint, ≤k+1)   PROVED   cellcount_laminar_fragment          (…ACC0LaminarCellCount)
  block-product fragment (cells multiply, ∏)    PROVED   cellcount_block_product             (…ACC0BlockProductCellCount)
  cell-count composition (submult. ×, append)   PROVED   cellcount_append_submultiplicative  (…ACC0CellCountComposition)
@@ -156,6 +158,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0CellCountComposition
 open PallLean.Paper93.DeepMath.PathB.ACC0LaminarCellCount
 open PallLean.Paper93.DeepMath.PathB.ACC0BlockProductCellCount
 open PallLean.Paper93.DeepMath.PathB.ACC0RandomRestrictionCellCount
+open PallLean.Paper93.DeepMath.PathB.ACC0VCCellCount
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -463,6 +466,21 @@ theorem cellcount_bounded_distinct_expectation {k n : ℕ} (p : ℝ) (hp0 : 0 �
     Exp p (fun L => (cellPatternCount supports L : ℝ)) ≤ ((2 ^ d : ℕ) : ℝ) :=
   bounded_distinct_expected_cellPatternCount_le p hp0 hp1 supports d hd
 
+/-- **Low-VC fragment (proved): Sauer–Shelah cell bound.**  If the gate-membership family `{suppSet v : v ∈ L}` has VC
+dimension `≤ d`, the cell count is `≤ ∑_{i ≤ d} C(k, i)` — few observer patterns *without* low rank, the common
+generalization of bounded-distinct/clustered/laminar. -/
+theorem cellcount_lowVC_le {k n : ℕ} (supports : Fin k → Finset (Fin n)) (L : Finset (Fin n)) (d : ℕ)
+    (hvc : cellVCdim supports L ≤ d) :
+    cellPatternCount supports L ≤ ∑ i ∈ Finset.Iic d, k.choose i :=
+  lowVC_cellPatternCount_le supports L d hvc
+
+/-- **Low-VC ⇒ low correlation (proved): `∑_{i ≤ d} C(k, i) < |L|`.** -/
+theorem cellcount_lowVC_low_correlation {k n : ℕ} (supports : Fin k → Finset (Fin n))
+    (g : (Fin k → ℕ) → Bool) (L : Finset (Fin n)) (d : ℕ) (hvc : cellVCdim supports L ≤ d)
+    (hlt : (∑ i ∈ Finset.Iic d, k.choose i) < L.card) :
+    LowHolonomyCorrelation supports g :=
+  lowVC_low_correlation supports g L d hvc hlt
+
 /-- **The cell-count lower bound, one socket (proved), beside `nframe_lower_bound`.**  For a class of holonomy-predictors,
 the *sharpest* cell-count socket implies the holonomy lower bound. -/
 theorem cellcount_lower_bound {ι : Type} {n : ℕ} (sys : PredictorClass ι n)
@@ -502,3 +520,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_whp_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_random_restriction
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bounded_distinct_expectation
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_lowVC_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_lowVC_low_correlation
