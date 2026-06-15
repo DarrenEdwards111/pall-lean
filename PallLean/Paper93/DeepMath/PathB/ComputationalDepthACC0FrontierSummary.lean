@@ -22,6 +22,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DirectCellConcentra
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellCountHardRegime
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SunflowerCellCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellCountCharacterization
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RefinedObserverModel
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -82,9 +83,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  EXACT characterization (socket ⟺ global<n)    PROVED   cellcount_socket_iff_global_lt      (…ACC0CellCountCharacterization)
  socket is FALSE in the hard regime            PROVED   cellcount_socket_false_in_hardRegime (…ACC0CellCountCharacterization)
  ── CEILING (proved): ACC0ForcesLowCellCount ⟺ globalCellCount < n ⟺ membership map non-injective. ───────
- ──   Restriction CANNOT merge patterns (a separating gate always survives) — it only drops coords. ──────
- ──   So the socket is FALSE in the hard regime (global = n). Realizing restriction-merging needs a ──────
- ──   RICHER observer model (fixing vars ⇒ gates become constant/drop out), strictly beyond this map. ────
+ ──   Membership restriction CANNOT merge (a separating gate always survives); FALSE in the hard regime. ─
+ ── RICHER variable-fixing model — restriction CAN merge ──────────────────────────────────────────────────
+ refined model strictly beats membership      PROVED   refined_observer_strictly_beats_membership (…ACC0RefinedObserverModel)
+ refined merging (inactive separators merge)   PROVED   refined_observer_merge              (…ACC0RefinedObserverModel)
+ ── open in refined model: (i) correlation bridge (swap-invariance over active gates); (ii) MOD has no ───
+ ──   absorbing value, so AND/OR-style merging is weak for MOD = the genuine ACC⁰ obstruction. ───────────
  ── (implied by ACC0ForcesLowCellRank ⊇ the survivor socket; subsumes chain/laminar the rank route misses)─
 ```
 
@@ -175,6 +179,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0DirectCellConcentration
 open PallLean.Paper93.DeepMath.PathB.ACC0CellCountHardRegime
 open PallLean.Paper93.DeepMath.PathB.ACC0SunflowerCellCount
 open PallLean.Paper93.DeepMath.PathB.ACC0CellCountCharacterization
+open PallLean.Paper93.DeepMath.PathB.ACC0RefinedObserverModel
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -578,6 +583,21 @@ theorem cellcount_socket_false_in_hardRegime {k n : ℕ} (supports : Fin k → F
     (h : HardRegime supports Finset.univ) : ¬ FullACC0ForcesLowCellCount supports :=
   not_forcesLowCellCount_of_hardRegime supports h
 
+/-- **The richer variable-fixing observer model can merge where membership cannot (proved).**  A restriction making a
+*separating* gate inactive (an `AND` gate with a fixed-`false` input) merges two refined cells — the strict gain that
+breaks the membership ceiling.  Witness: `¬ CellCountCollapse` (membership) yet `RefinedCellCollapse` (refined). -/
+theorem refined_observer_strictly_beats_membership :
+    ∃ (n k : ℕ) (supports : Fin k → Finset (Fin n)) (ρ : Restriction n) (L : Finset (Fin n)),
+      ¬ CellCountCollapse supports L ∧ RefinedCellCollapse ρ supports L :=
+  refined_strictly_beats_membership
+
+/-- **The refined merging power (proved): inactive separators merge.**  If `ρ` deactivates every gate separating `v, w`,
+their refined patterns coincide — impossible in the membership model. -/
+theorem refined_observer_merge {k n : ℕ} (ρ : Restriction n) (supports : Fin k → Finset (Fin n))
+    (v w : Fin n) (h : ∀ j, (v ∈ supports j ↔ w ∈ supports j) ∨ ¬ GateActive ρ supports j) :
+    refinedCellPatternVec ρ supports v = refinedCellPatternVec ρ supports w :=
+  refined_merge_of_inactive_separators ρ supports v w h
+
 /-- **The cell-count lower bound, one socket (proved), beside `nframe_lower_bound`.**  For a class of holonomy-predictors,
 the *sharpest* cell-count socket implies the holonomy lower bound. -/
 theorem cellcount_lower_bound {ι : Type} {n : ℕ} (sys : PredictorClass ι n)
@@ -626,3 +646,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_full_of_hardRegime_resolved
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_socket_iff_global_lt
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_socket_false_in_hardRegime
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.refined_observer_strictly_beats_membership
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.refined_observer_merge
