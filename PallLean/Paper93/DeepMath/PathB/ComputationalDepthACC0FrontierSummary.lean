@@ -7,6 +7,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BoundedDepth
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NFrameLowerBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CollapseLift
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankWhp
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LowRankFragment
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BoundedOverlapRank
 
@@ -44,6 +45,7 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  rank fragment (equal supports, any k)        PROVED   rank_fragment_equal_supports        (…ACC0LowRankFragment)
  probabilistic low-rank restriction           PROVED   rank_random_restriction             (…ACC0RandomRestrictionRank)
  rank whp (two-event, weaker feasibility)     PROVED   rank_whp                            (…ACC0RankWhp)
+ rank composition (subadditive through layer) PROVED   rank_append_subadditive             (…ACC0RankComposition)
  ── open: ACC0ForcesLowCellRank (∃ L, 2^cellRank < |L|) = the rank-flavoured switching lemma ──────────────
 ```
 
@@ -70,8 +72,10 @@ into one conditional theorem whose only open inputs are the two genuine walls.
 * The **rank route** (the sharpened N-Frame route): `rank_bridge` (`2^{cellRank} < |L| ⇒` low correlation — cell
   count by `F₂`-rank, not survivor count), `rank_subsumes_survivor` (`cellRank ≤ survivingCount`),
   `rank_fragment_equal_supports` (equal supports, any gate count — *unconditional*, where survivors are powerless),
-  `rank_random_restriction` (a `p`-biased low-rank live set), and `rank_whp` (the two-event intersection on the rank
-  tail — strictly weaker feasibility than the survivor whp route, which it subsumes).
+  `rank_random_restriction` (a `p`-biased low-rank live set), `rank_whp` (the two-event intersection on the rank
+  tail — strictly weaker feasibility than the survivor whp route, which it subsumes), and `rank_append_subadditive`
+  / `rank_collapse_lifts_budget` (depth composition as *rank-budget* accounting: `cellRank` is subadditive under
+  `append`, so a layer adding only `r₂` observer rank keeps the composite collapse within `r₁+r₂`).
 
 ## Honest scope — the two remaining walls, named and isolated
 
@@ -118,6 +122,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0RandomRestrictionRank
 open PallLean.Paper93.DeepMath.PathB.ACC0LowRankFragment
 open PallLean.Paper93.DeepMath.PathB.ACC0BoundedOverlapRank
 open PallLean.Paper93.DeepMath.PathB.ACC0RankWhp
+open PallLean.Paper93.DeepMath.PathB.ACC0RankComposition
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -295,6 +300,20 @@ theorem rank_whp {k n : ℕ} (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     LowHolonomyCorrelation supports g :=
   rank_predictor_fails_whp p hp0 hp1 supports g a b hab hfeas
 
+/-- **Rank growth through a layer (proved): `cellRank` is subadditive under `append`.** -/
+theorem rank_append_subadditive {k₁ k₂ n : ℕ} (supp₁ : Fin k₁ → Finset (Fin n))
+    (supp₂ : Fin k₂ → Finset (Fin n)) (L : Finset (Fin n)) :
+    cellRank (Fin.append supp₁ supp₂) L ≤ cellRank supp₁ L + cellRank supp₂ L :=
+  cellRank_append_le supp₁ supp₂ L
+
+/-- **Rank-budget collapse lift (proved): a layer adding `≤ r₂` observer rank keeps the composite within budget.**
+`2^{r₁+r₂} < |L|`, `cellRank supp₁ L ≤ r₁`, `cellRank supp₂ L ≤ r₂` ⇒ `2^{cellRank (append …)} < |L|`. -/
+theorem rank_collapse_lifts_budget {k₁ k₂ n : ℕ} (supp₁ : Fin k₁ → Finset (Fin n))
+    (supp₂ : Fin k₂ → Finset (Fin n)) (L : Finset (Fin n)) (r₁ r₂ : ℕ)
+    (hbudget : 2 ^ (r₁ + r₂) < L.card) (h₁ : cellRank supp₁ L ≤ r₁) (h₂ : cellRank supp₂ L ≤ r₂) :
+    2 ^ cellRank (Fin.append supp₁ supp₂) L < L.card :=
+  rank_collapse_lifts_of_rank_budget supp₁ supp₂ L r₁ r₂ hbudget h₁ h₂
+
 end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.ac0_approximation_quantitative
@@ -310,3 +329,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_subsumes_survivor
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_fragment_equal_supports
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_whp
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_append_subadditive
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_collapse_lifts_budget
