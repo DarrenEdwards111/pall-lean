@@ -21,6 +21,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0VCCellCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DirectCellConcentration
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellCountHardRegime
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SunflowerCellCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellCountCharacterization
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -78,9 +79,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  cell-count lower bound (ONE socket)           CONDITIONAL on FullACC0ForcesLowCellCount:
    cellcount_lower_bound : NFrameLowCellCount sys → ACC0HolonomyLowerBound sys tops
  hard-regime reduction (open lives here only)  PROVED   cellcount_full_of_hardRegime_resolved (…ACC0CellCountHardRegime)
- ── open: ACC0ForcesLowCellCount (∃ L, cellPatternCount < |L|) = the SHARPEST (weakest) switching lemma ────
- ── = the HARD REGIME (|L| ≤ 2^survivingCount ∧ |L| ≤ globalCellCount): bound the MERGED pattern count ────
- ──   among surviving gates, below both 2^survivors and globalCellCount, for wide overlapping MOD ─────────
+ EXACT characterization (socket ⟺ global<n)    PROVED   cellcount_socket_iff_global_lt      (…ACC0CellCountCharacterization)
+ socket is FALSE in the hard regime            PROVED   cellcount_socket_false_in_hardRegime (…ACC0CellCountCharacterization)
+ ── CEILING (proved): ACC0ForcesLowCellCount ⟺ globalCellCount < n ⟺ membership map non-injective. ───────
+ ──   Restriction CANNOT merge patterns (a separating gate always survives) — it only drops coords. ──────
+ ──   So the socket is FALSE in the hard regime (global = n). Realizing restriction-merging needs a ──────
+ ──   RICHER observer model (fixing vars ⇒ gates become constant/drop out), strictly beyond this map. ────
  ── (implied by ACC0ForcesLowCellRank ⊇ the survivor socket; subsumes chain/laminar the rank route misses)─
 ```
 
@@ -170,6 +174,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0VCCellCount
 open PallLean.Paper93.DeepMath.PathB.ACC0DirectCellConcentration
 open PallLean.Paper93.DeepMath.PathB.ACC0CellCountHardRegime
 open PallLean.Paper93.DeepMath.PathB.ACC0SunflowerCellCount
+open PallLean.Paper93.DeepMath.PathB.ACC0CellCountCharacterization
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -390,10 +395,15 @@ generalization — few patterns *without* low rank), `cellcount_block_product` (
 `globalCellCount`) — `cellcount_direct_tail` (`Pr[≥a] ≤ Pr[|L|≥a]`), `cellcount_expected_le_global`
 (`Exp ≤ globalCellCount`), `cellcount_few_gates_forces` (`2^k < n ⇒` collapse, deterministic).
 
-**Socket & reduction** — `cellcount_route_one_socket` / `cellcount_lower_bound` (the open socket ⇒ holonomy lower bound),
-`cellcount_socket_is_weakest` (survivor socket ⇒ this one), `cellcount_full_of_hardRegime_resolved` (the open lemma
-reduces to the **hard regime** `|L| ≤ 2^{survivingCount} ∧ |L| ≤ globalCellCount` alone — bound the merged pattern
-count among the surviving gates, below both `2^{survivors}` and `globalCellCount`, for wide overlapping `MOD`). -/
+**Socket, reduction & exact ceiling** — `cellcount_route_one_socket` / `cellcount_lower_bound` (the socket ⇒ holonomy
+lower bound), `cellcount_socket_is_weakest` (survivor socket ⇒ this one), `cellcount_full_of_hardRegime_resolved` (the
+socket reduces to the hard regime alone).  The socket is then *settled exactly*: `cellcount_socket_iff_global_lt`
+(`FullACC0ForcesLowCellCount ⟺ globalCellCount < n ⟺` the membership map is non-injective) and
+`cellcount_socket_false_in_hardRegime` (the hard regime forces `globalCellCount = n`, so the socket is **false** there).
+A restriction *cannot merge* patterns in this membership-only model — a separating gate always survives — so the route
+collapses exactly when two coordinates already share a global pattern (which the fragments force, but the hard regime
+forbids).  Realizing restriction-induced merging requires a *richer* observer model (fixing variables ⇒ gates become
+constant), strictly beyond this invariant. -/
 
 /-- **Cell-count bridge (proved): `cellPatternCount supports L < |L| ⇒ low holonomy correlation`.**  The cell count —
 not its rank — is the governing quantity; this is the sharpest collapse. -/
@@ -554,6 +564,20 @@ theorem cellcount_full_of_hardRegime_resolved {k n : ℕ} (supports : Fin k → 
     FullACC0ForcesLowCellCount supports :=
   full_of_hardRegime_resolved supports h
 
+/-- **Exact characterization (proved): the socket holds iff the global pattern count drops below `n`** — equivalently,
+iff the membership map is not injective.  A restriction cannot merge patterns (a separating gate always survives), so
+the collapse is a purely global pattern-collision condition. -/
+theorem cellcount_socket_iff_global_lt {k n : ℕ} (supports : Fin k → Finset (Fin n)) :
+    FullACC0ForcesLowCellCount supports ↔ globalCellCount supports < n :=
+  forcesLowCellCount_iff_global_lt supports
+
+/-- **The socket is FALSE in the hard regime (proved).**  The hard regime forces `globalCellCount = n` (injective
+patterns), so no per-`L` collapse exists — the membership-only invariant cannot reach the hard regime, and a
+`StructuredOverlappingMOD ⇒ collapse` theorem would be proving a falsehood there. -/
+theorem cellcount_socket_false_in_hardRegime {k n : ℕ} (supports : Fin k → Finset (Fin n))
+    (h : HardRegime supports Finset.univ) : ¬ FullACC0ForcesLowCellCount supports :=
+  not_forcesLowCellCount_of_hardRegime supports h
+
 /-- **The cell-count lower bound, one socket (proved), beside `nframe_lower_bound`.**  For a class of holonomy-predictors,
 the *sharpest* cell-count socket implies the holonomy lower bound. -/
 theorem cellcount_lower_bound {ι : Type} {n : ℕ} (sys : PredictorClass ι n)
@@ -600,3 +624,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_few_gates_forces
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_sunflower
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_full_of_hardRegime_resolved
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_socket_iff_global_lt
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_socket_false_in_hardRegime
