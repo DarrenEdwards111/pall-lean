@@ -6,6 +6,9 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsRealization
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BoundedDepth
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NFrameLowerBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CollapseLift
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankWhp
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LowRankFragment
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BoundedOverlapRank
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -35,6 +38,13 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  fragment (disjoint supports, unconditional)  PROVED   nframe_unconditional_disjoint       (…ACC0DisjointCollapse)
  N-Frame lower bound (ONE socket)             CONDITIONAL on cell collapse:
    nframe_lower_bound : (cell collapse for the predictor class)  ⇒  (holonomy lower bound)
+ ── rank route: the sharpened N-Frame route (rank, not survivor count) ────────────────────────────────────
+ rank sharp bridge (2^rank<|L| ⇒ low corr)    PROVED   rank_bridge                         (…ACC0RankBridge)
+ rank subsumes survivors (cellRank≤survivors) PROVED   rank_subsumes_survivor              (…ACC0RankBridge)
+ rank fragment (equal supports, any k)        PROVED   rank_fragment_equal_supports        (…ACC0LowRankFragment)
+ probabilistic low-rank restriction           PROVED   rank_random_restriction             (…ACC0RandomRestrictionRank)
+ rank whp (two-event, weaker feasibility)     PROVED   rank_whp                            (…ACC0RankWhp)
+ ── open: ACC0ForcesLowCellRank (∃ L, 2^cellRank < |L|) = the rank-flavoured switching lemma ──────────────
 ```
 
 ## What is proved (clean axioms, no `sorry`)
@@ -57,6 +67,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
   (collapse lifts through a layer under a survivor budget), `nframe_unconditional_disjoint` (the socket discharged on
   disjoint supports — *unconditional*), and **`nframe_lower_bound`** — the holonomy lower bound from *one* socket
   (cell collapse), the N-Frame analogue of the Williams two-socket reduction, sharper because the bridge is proved.
+* The **rank route** (the sharpened N-Frame route): `rank_bridge` (`2^{cellRank} < |L| ⇒` low correlation — cell
+  count by `F₂`-rank, not survivor count), `rank_subsumes_survivor` (`cellRank ≤ survivingCount`),
+  `rank_fragment_equal_supports` (equal supports, any gate count — *unconditional*, where survivors are powerless),
+  `rank_random_restriction` (a `p`-biased low-rank live set), and `rank_whp` (the two-event intersection on the rank
+  tail — strictly weaker feasibility than the survivor whp route, which it subsumes).
 
 ## Honest scope — the two remaining walls, named and isolated
 
@@ -97,6 +112,12 @@ open PallLean.Paper93.DeepMath.PathB.ACC0CellCollapseRoute
 open PallLean.Paper93.DeepMath.PathB.ACC0DisjointCollapse
 open PallLean.Paper93.DeepMath.PathB.ACC0CollapseLift
 open PallLean.Paper93.DeepMath.PathB.ACC0NFrameLowerBound
+open PallLean.Paper93.DeepMath.PathB.ACCSwitchingChebyshev
+open PallLean.Paper93.DeepMath.PathB.ACC0RankBridge
+open PallLean.Paper93.DeepMath.PathB.ACC0RandomRestrictionRank
+open PallLean.Paper93.DeepMath.PathB.ACC0LowRankFragment
+open PallLean.Paper93.DeepMath.PathB.ACC0BoundedOverlapRank
+open PallLean.Paper93.DeepMath.PathB.ACC0RankWhp
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -236,6 +257,44 @@ theorem nframe_lower_bound {ι : Type} {n : ℕ} (sys : PredictorClass ι n)
     ACC0HolonomyLowerBound sys tops :=
   nframe_acc_lower_bound sys tops h
 
+/-! ## The rank route — the sharpened N-Frame route (rank, not survivor count) -/
+
+/-- **Rank sharp bridge (proved): `2^{cellRank} < |L| ⇒ low holonomy correlation`.**  The cell count is governed by
+the `F₂`-rank of the support incidence, not the survivor count. -/
+theorem rank_bridge {k n : ℕ} (supports : Fin k → Finset (Fin n)) (g : (Fin k → ℕ) → Bool)
+    (L : Finset (Fin n)) (h : 2 ^ cellRank supports L < L.card) :
+    LowHolonomyCorrelation supports g :=
+  rank_collapse_low_correlation supports g L h
+
+/-- **Rank subsumes survivors (proved): `cellRank ≤ survivingCount`, so survivor collapse ⇒ rank collapse.** -/
+theorem rank_subsumes_survivor {k n : ℕ} (supports : Fin k → Finset (Fin n)) (L : Finset (Fin n))
+    (h : 2 ^ survivingCount supports L < L.card) : 2 ^ cellRank supports L < L.card :=
+  survivor_collapse_implies_rank_collapse supports L h
+
+/-- **Rank fragment, unconditional (proved): equal supports — any gate count — fail to correlate.**  The survivor
+route is powerless here (`survivingCount = k`), yet `cellRank ≤ 1`. -/
+theorem rank_fragment_equal_supports {k n : ℕ} (supports : Fin k → Finset (Fin n))
+    (S : Finset (Fin n)) (g : (Fin k → ℕ) → Bool) (hS : ∀ j, supports j = S) (hn : 3 ≤ n) :
+    LowHolonomyCorrelation supports g :=
+  equal_supports_low_correlation supports S g hS hn
+
+/-- **Probabilistic low-rank restriction (proved): expected survivors `≤ B < a` ⇒ a live set with `cellRank < a`.** -/
+theorem rank_random_restriction {k n : ℕ} (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
+    (supports : Fin k → Finset (Fin n)) (B a : ℝ) (ha : 0 < a)
+    (hE : Exp p (fun L => (survivingCount supports L : ℝ)) ≤ B) (hBa : B < a) :
+    ∃ L ∈ (Finset.univ : Finset (Fin n)).powerset, (cellRank supports L : ℝ) < a :=
+  randomRestriction_forces_low_cellRank p hp0 hp1 supports B a ha hE hBa
+
+/-- **The rank whp route (proved): the two-event intersection on the rank tail.**  `2^a ≤ b` and
+`Pr[cellRank ≥ a] + Pr[|L| ≤ b] < 1` ⇒ low holonomy correlation — strictly weaker feasibility than the survivor
+version, which it subsumes. -/
+theorem rank_whp {k n : ℕ} (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
+    (supports : Fin k → Finset (Fin n)) (g : (Fin k → ℕ) → Bool) (a b : ℕ) (hab : 2 ^ a ≤ b)
+    (hfeas : Pr p (fun L => a ≤ cellRank supports L)
+        + Pr p (fun L : Finset (Fin n) => L.card ≤ b) < 1) :
+    LowHolonomyCorrelation supports g :=
+  rank_predictor_fails_whp p hp0 hp1 supports g a b hab hfeas
+
 end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.ac0_approximation_quantitative
@@ -247,3 +306,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nframe_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nframe_unconditional_disjoint
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nframe_lower_bound
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_bridge
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_subsumes_survivor
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_fragment_equal_supports
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_whp
