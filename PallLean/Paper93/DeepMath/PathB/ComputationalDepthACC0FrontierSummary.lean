@@ -18,6 +18,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LaminarCellCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BlockProductCellCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RandomRestrictionCellCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0VCCellCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DirectCellConcentration
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -64,6 +65,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  block-product fragment (cells multiply, ∏)    PROVED   cellcount_block_product             (…ACC0BlockProductCellCount)
  cell-count composition (submult. ×, append)   PROVED   cellcount_append_submultiplicative  (…ACC0CellCountComposition)
  cell-count socket is the weakest socket       PROVED   cellcount_socket_is_weakest         (…ACC0CellCountSwitching)
+ direct tail (Pr[≥a] ≤ Pr[|L|≥a], no 2^surv)   PROVED   cellcount_direct_tail               (…ACC0DirectCellConcentration)
+ direct first moment (Exp ≤ globalCellCount)   PROVED   cellcount_expected_le_global        (…ACC0DirectCellConcentration)
+ few gates ⇒ collapse (2^k<n, deterministic)   PROVED   cellcount_few_gates_forces          (…ACC0DirectCellConcentration)
  cell-count Markov tail (Pr[≥a] ≤ Exp/a)       PROVED   cellcount_markov                    (…ACC0RandomRestrictionCellCount)
  cell-count whp (needs a≤b, no 2^a≤b)          PROVED   cellcount_whp                       (…ACC0RandomRestrictionCellCount)
  cell-count whp subsumes rank/survivor whp     PROVED   cellcount_whp_subsumes_rank         (…ACC0RandomRestrictionCellCount)
@@ -159,6 +163,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0LaminarCellCount
 open PallLean.Paper93.DeepMath.PathB.ACC0BlockProductCellCount
 open PallLean.Paper93.DeepMath.PathB.ACC0RandomRestrictionCellCount
 open PallLean.Paper93.DeepMath.PathB.ACC0VCCellCount
+open PallLean.Paper93.DeepMath.PathB.ACC0DirectCellConcentration
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -481,6 +486,27 @@ theorem cellcount_lowVC_low_correlation {k n : ℕ} (supports : Fin k → Finset
     LowHolonomyCorrelation supports g :=
   lowVC_low_correlation supports g L d hvc hlt
 
+/-- **Direct cell-count tail (proved): `Pr[cellPatternCount ≥ a] ≤ Pr[|L| ≥ a]`** — no `2^{survivors}`, since the cell
+count is bounded by the live-set size directly. -/
+theorem cellcount_direct_tail {k n : ℕ} (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
+    (supports : Fin k → Finset (Fin n)) (a : ℕ) :
+    Pr p (fun L => a ≤ cellPatternCount supports L)
+      ≤ Pr p (fun L : Finset (Fin n) => a ≤ L.card) :=
+  Pr_cellPatternCount_ge_le_size_tail p hp0 hp1 supports a
+
+/-- **Direct first moment (proved): `Exp[cellPatternCount] ≤ globalCellCount`** — the restriction-independent ceiling,
+not the exponential `Exp[2^{survivingCount}]`. -/
+theorem cellcount_expected_le_global {k n : ℕ} (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
+    (supports : Fin k → Finset (Fin n)) :
+    Exp p (fun L => (cellPatternCount supports L : ℝ)) ≤ ((globalCellCount supports : ℕ) : ℝ) :=
+  expected_cellPatternCount_le_global p hp0 hp1 supports
+
+/-- **Deterministic collapse, few gates (proved): `2^k < n ⇒ FullACC0ForcesLowCellCount`** — the low-resolution regime,
+no probability at all. -/
+theorem cellcount_few_gates_forces {k n : ℕ} (supports : Fin k → Finset (Fin n)) (h : 2 ^ k < n) :
+    FullACC0ForcesLowCellCount supports :=
+  few_gates_forces_lowCellCount supports h
+
 /-- **The cell-count lower bound, one socket (proved), beside `nframe_lower_bound`.**  For a class of holonomy-predictors,
 the *sharpest* cell-count socket implies the holonomy lower bound. -/
 theorem cellcount_lower_bound {ι : Type} {n : ℕ} (sys : PredictorClass ι n)
@@ -522,3 +548,6 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bounded_distinct_expectation
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_lowVC_le
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_lowVC_low_correlation
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_direct_tail
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_expected_le_global
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_few_gates_forces
