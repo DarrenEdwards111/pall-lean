@@ -3,6 +3,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModPExact
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0YBTExactCompose
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsFastSat
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsRealizationSplit
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BoundedDepth
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -17,6 +18,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  exact SYM∘AND decoding (every ACC0Circuit)   PROVED   exact_symAnd_decoding               (…ACC0YBTExactCompose)
  Williams fastSat count-search (quantitative) PROVED   fastSat_quantitative                (…ACC0WilliamsFastSat)
  realization socket split + self-audit        PROVED   timeHierarchy_is_the_separation     (…ACC0WilliamsRealizationSplit)
+ ── size wall CROSSED on three restricted fragments (each + speedup, all PROVED) ──────────────────────────
+ fragment 1: O(log n) leaves                  PROVED   restricted_exact_by_leaves          (…ACC0RestrictedYBT)
+ fragment 2: support footprint < n            PROVED   restricted_exact_by_footprint       (…ACC0BoundedOverlapMOD)
+ fragment 3: bounded (binary) depth           PROVED   restricted_exact_by_depth           (…ACC0BoundedDepth)
+ restricted Williams speedup (super-poly)     PROVED   restricted_speedup_by_footprint/_depth (…ACC0RestrictedWilliamsSpeedup)
  ───────────────────────────────────────────────────────────────────────────────────────────────────────
  Williams route to NEXP ⊄ ACC⁰                CONDITIONAL on the two remaining walls:
    williams_route_reduces_to_two_sockets :
@@ -33,6 +39,10 @@ into one conditional theorem whose only open inputs are the two genuine walls.
 * `fastSat_quantitative` — re-export of `symAnd_williams_fastSat`: a low-degree `SYM∘AND` decides SAT by a count-cell
   search with quantitative Williams savings.
 * `timeHierarchy_is_the_separation` — re-export of the self-audit: the deep realization sub-socket is `⟺ NEXP ⊄ ACC⁰`.
+* `restricted_exact_by_leaves` / `_footprint` / `_depth` — the three controllable fragments where the *size* wall is
+  crossed (exact `SYM∘AND` below `2^n`), all from the one multiplicative `psize = ∏ leaf-bases` identity.
+* `restricted_speedup_by_footprint` / `_depth` — the restricted Williams speedup: those fragments get a count-cell
+  `ACC⁰`-SAT algorithm with *super-polynomial* savings `2^k`.
 * **`williams_route_reduces_to_two_sockets`** — the headline: the whole route is one conditional theorem; its only
   non-routine inputs are (A) the exact-quasipolynomial `SYM∘AND` socket and (B) the time-hierarchy socket.
 
@@ -42,8 +52,11 @@ The route is **conditional**, not a proof.  Open input (A) = an exact `SYM∘AND
 `ACC⁰` (the size wall — exactness is proved, `…ACC0YBTExactCompose`; quasipoly size is open and stops at prime-power
 `MOD`, the composite-`MOD` barrier).  Open input (B) = the nondeterministic time hierarchy / Williams' algorithmic
 method (`timeHierarchy_is_the_separation` proves it *is* the separation).  Everything between them — encoding, cost
-arithmetic, depth induction, decoding — is proved or routine.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.  See
-`ACC_THEOREM_MAP.md`, `WHAT_IS_PROVED.md`.
+arithmetic, depth induction, decoding — is proved or routine.  The size wall (A) is *crossed* on three restricted
+fragments (`restricted_exact_by_leaves`/`_footprint`/`_depth`), which feed the restricted Williams speedup — but
+*full* `ACC⁰` needs all three controls to fail at once (poly leaves, footprint `≫ n`, super-constant depth), so the
+fragments do not touch the full wall.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.  See `ACC_THEOREM_MAP.md`,
+`WHAT_IS_PROVED.md`.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
@@ -61,6 +74,12 @@ open PallLean.Paper93.DeepMath.PathB.ACC0ModPExact
 open PallLean.Paper93.DeepMath.PathB.ACC0YBTExactCompose
 open PallLean.Paper93.DeepMath.PathB.ACC0WilliamsCashout
 open PallLean.Paper93.DeepMath.PathB.ACC0WilliamsRealizationSplit
+open PallLean.Paper93.DeepMath.PathB.NFrameACC0Speedup
+open PallLean.Paper93.DeepMath.PathB.ACC0YBTSocket
+open PallLean.Paper93.DeepMath.PathB.ACC0RestrictedYBT
+open PallLean.Paper93.DeepMath.PathB.ACC0BoundedOverlapMOD
+open PallLean.Paper93.DeepMath.PathB.ACC0RestrictedWilliamsSpeedup
+open PallLean.Paper93.DeepMath.PathB.ACC0BoundedDepth
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -92,6 +111,45 @@ theorem fastSat_quantitative {n m D : ℕ} (mono : Fin m → Finset (Fin n)) (h 
         (ACC0SymmetricObserver.gateCount (fun j x => ACC0PolyToSymAnd.monoAND (mono j) x))).card
       ≤ 2 ^ n :=
   (symAnd_williams_fastSat mono h hinj hdeg hkn hfit).2.2
+
+/-! ## The restricted fragments — where the size wall is crossed (re-exported) -/
+
+/-- **Fragment 1 (proved): logarithmic leaf count ⇒ exact quasipolynomial `SYM∘AND`.**  `leafCount C ≤ ℓ`,
+`maxBase C ≤ B`, `B^ℓ < 2^n ⇒ HasExactSymAndForm C`.  For `ℓ = O(log n)`, `B = poly`, `B^ℓ = 2^{O(log²n)} < 2^n`. -/
+theorem restricted_exact_by_leaves {n : ℕ} (C : ACC0Circuit n) {ℓ B : ℕ}
+    (hlc : leafCount C ≤ ℓ) (hb : maxBase C ≤ B) (hfit : B ^ ℓ < 2 ^ n) :
+    HasExactSymAndForm C :=
+  restricted_acc0_quasipoly C hlc hb hfit
+
+/-- **Fragment 2 (proved): small support footprint ⇒ exact `SYM∘AND` (bounded-overlap / disjoint `MOD`).**
+`baseSum C < n ⇒ HasExactSymAndForm C`, sharp since `baseSum = log₂ psize`. -/
+theorem restricted_exact_by_footprint {n : ℕ} (C : ACC0Circuit n) (h : baseSum C < n) :
+    HasExactSymAndForm C :=
+  acc0_exact_of_baseSum_lt C h
+
+/-- **Fragment 3 (proved): bounded (binary) depth + poly base ⇒ exact `SYM∘AND`.**  `depth C ≤ d`, `maxBase C ≤ B`,
+`B^{2^d} < 2^n ⇒ HasExactSymAndForm C`.  Polynomial size for constant `d`. -/
+theorem restricted_exact_by_depth {n : ℕ} (C : ACC0Circuit n) {d B : ℕ}
+    (hd : depth C ≤ d) (hb : maxBase C ≤ B) (hfit : B ^ (2 ^ d) < 2 ^ n) :
+    HasExactSymAndForm C :=
+  bounded_depth_exact C hd hb hfit
+
+/-- **Restricted Williams speedup by footprint (proved): footprint `≤ n−k` ⇒ SAT in `≤ 2^{n−k}` cells, savings
+`≥ 2^k`.**  For footprint `= polylog`, the savings is `2^{n−polylog}` — super-polynomial. -/
+theorem restricted_speedup_by_footprint {n : ℕ} (C : ACC0Circuit n) {k : ℕ}
+    (hk : k ≤ n) (hfoot : baseSum C + k ≤ n) :
+    ∃ (cells : Finset ℕ) (dec : ℕ → Bool),
+      (Satisfiable (eval C) ↔ ∃ c ∈ cells, dec c = true)
+      ∧ cells.card ≤ 2 ^ (n - k) ∧ 2 ^ k * cells.card ≤ 2 ^ n :=
+  restricted_williams_speedup C hk hfoot
+
+/-- **Restricted Williams speedup by depth (proved): bounded depth + poly base ⇒ super-polynomial savings.** -/
+theorem restricted_speedup_by_depth {n : ℕ} (C : ACC0Circuit n) {d B k : ℕ}
+    (hd : depth C ≤ d) (hb : maxBase C ≤ B) (hk : k ≤ n) (hfit : B ^ (2 ^ d) ≤ 2 ^ (n - k)) :
+    ∃ (cells : Finset ℕ) (dec : ℕ → Bool),
+      (Satisfiable (eval C) ↔ ∃ c ∈ cells, dec c = true)
+      ∧ cells.card ≤ 2 ^ (n - k) ∧ 2 ^ k * cells.card ≤ 2 ^ n :=
+  bounded_depth_williams_speedup C hd hb hk hfit
 
 /-! ## The Williams route, reduced to two sockets -/
 
@@ -129,4 +187,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.ac0_approximation_quantitative
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.exact_symAnd_decoding
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.restricted_exact_by_leaves
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.restricted_exact_by_depth
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.restricted_speedup_by_footprint
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.williams_route_reduces_to_two_sockets
