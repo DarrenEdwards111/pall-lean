@@ -456,6 +456,13 @@ theorem cellcount_random_restriction {k n : ℕ} (p : ℝ) (hp0 : 0 ≤ p) (hp1 
     ∃ L ∈ (Finset.univ : Finset (Fin n)).powerset, (cellPatternCount supports L : ℝ) < a :=
   randomRestriction_forces_low_cellCount p hp0 hp1 supports B a ha hE hBa
 
+/-- **Bounded-distinct first-moment discharge (proved): `≤ d` distinct supports ⇒ `Exp[cellPatternCount] ≤ 2ᵈ`.**  A
+deterministic bound (independent of the gate count), so the first-moment route closes with no concentration. -/
+theorem cellcount_bounded_distinct_expectation {k n : ℕ} (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
+    (supports : Fin k → Finset (Fin n)) (d : ℕ) (hd : (Finset.univ.image supports).card ≤ d) :
+    Exp p (fun L => (cellPatternCount supports L : ℝ)) ≤ ((2 ^ d : ℕ) : ℝ) :=
+  bounded_distinct_expected_cellPatternCount_le p hp0 hp1 supports d hd
+
 /-- **The cell-count lower bound, one socket (proved), beside `nframe_lower_bound`.**  For a class of holonomy-predictors,
 the *sharpest* cell-count socket implies the holonomy lower bound. -/
 theorem cellcount_lower_bound {ι : Type} {n : ℕ} (sys : PredictorClass ι n)
@@ -494,3 +501,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_whp
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_whp_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_random_restriction
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bounded_distinct_expectation

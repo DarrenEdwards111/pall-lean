@@ -2,6 +2,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RandomRestrictionRa
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankWhp
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LaminarCellCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BlockProductCellCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BoundedDistinctRank
 
 /-!
 # Random restriction in the cell-count language — first moments, Markov, and the precise wall
@@ -53,6 +54,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0CellCountRoute
 open PallLean.Paper93.DeepMath.PathB.ACC0RankWhp
 open PallLean.Paper93.DeepMath.PathB.ACC0LaminarCellCount
 open PallLean.Paper93.DeepMath.PathB.ACC0BlockProductCellCount
+open PallLean.Paper93.DeepMath.PathB.ACC0BoundedDistinctRank
 
 variable {k n : ℕ}
 
@@ -182,6 +184,21 @@ theorem laminar_expected_cellPatternCount_le (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p 
   expected_cellPatternCount_le_of_bound p hp0 hp1 supports ((k + 1 : ℕ) : ℝ)
     (fun L => by exact_mod_cast laminar_cellPatternCount_le supports hlam L)
 
+/-- **Bounded-distinct discharge (proved): `≤ d` distinct supports ⇒ `Exp[cellPatternCount] ≤ 2ᵈ`.**  The cell rank is
+`≤ d` independent of the gate count `k`, so `cellPatternCount ≤ 2^{cellRank} ≤ 2ᵈ` deterministically — the first
+moment closes for free, no concentration needed. -/
+theorem bounded_distinct_expected_cellPatternCount_le (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
+    (supports : Fin k → Finset (Fin n)) (d : ℕ) (hd : (Finset.univ.image supports).card ≤ d) :
+    Exp p (fun L => (cellPatternCount supports L : ℝ)) ≤ ((2 ^ d : ℕ) : ℝ) := by
+  apply expected_cellPatternCount_le_of_bound p hp0 hp1 supports ((2 ^ d : ℕ) : ℝ)
+  intro L
+  have hle : cellPatternCount supports L ≤ 2 ^ d := by
+    calc cellPatternCount supports L
+        ≤ 2 ^ cellRank supports L := cellPatternCount_le_two_pow_cellRank supports L
+      _ ≤ 2 ^ d :=
+          Nat.pow_le_pow_right (by norm_num) (le_trans (cellRank_le_distinct supports L) hd)
+  exact_mod_cast hle
+
 /-- **Block-product discharge (proved): uniformly `≤ c` cells per block ⇒ `Exp[cellPatternCount] ≤ cᵐ`.** -/
 theorem block_product_expected_cellPatternCount_le {m b : ℕ} (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (supports : Fin m → Fin b → Finset (Fin n)) (c : ℕ)
@@ -202,4 +219,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0RandomRestrictionCellCount
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0RandomRestrictionCellCount.cellCount_predictor_fails_whp
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0RandomRestrictionCellCount.cellCount_whp_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0RandomRestrictionCellCount.laminar_expected_cellPatternCount_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0RandomRestrictionCellCount.bounded_distinct_expected_cellPatternCount_le
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0RandomRestrictionCellCount.block_product_expected_cellPatternCount_le
