@@ -4,6 +4,8 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0YBTExactCompose
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsFastSat
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsRealizationSplit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BoundedDepth
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NFrameLowerBound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CollapseLift
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -27,6 +29,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  Williams route to NEXP ⊄ ACC⁰                CONDITIONAL on the two remaining walls:
    williams_route_reduces_to_two_sockets :
      (exact + quasipolynomial SYM∘AND for all ACC⁰)  ∧  (NTIME-hierarchy / Williams' method)  ⇒  NEXP ⊄ ACC⁰
+ ── N-Frame route: ONE socket (bridge proved), discharged on bounded fragments ───────────────────────────
+ bridge (collapse ⇒ low correlation)          PROVED   nframe_bridge                       (…ACC0CellCollapseRoute)
+ composition (collapse lifts under budget)    PROVED   nframe_collapse_composes            (…ACC0CollapseLift)
+ fragment (disjoint supports, unconditional)  PROVED   nframe_unconditional_disjoint       (…ACC0DisjointCollapse)
+ N-Frame lower bound (ONE socket)             CONDITIONAL on cell collapse:
+   nframe_lower_bound : (cell collapse for the predictor class)  ⇒  (holonomy lower bound)
 ```
 
 ## What is proved (clean axioms, no `sorry`)
@@ -45,6 +53,10 @@ into one conditional theorem whose only open inputs are the two genuine walls.
   `ACC⁰`-SAT algorithm with *super-polynomial* savings `2^k`.
 * **`williams_route_reduces_to_two_sockets`** — the headline: the whole route is one conditional theorem; its only
   non-routine inputs are (A) the exact-quasipolynomial `SYM∘AND` socket and (B) the time-hierarchy socket.
+* The **N-Frame route**: `nframe_bridge` (collapse ⇒ low correlation, *proved*), `nframe_collapse_composes`
+  (collapse lifts through a layer under a survivor budget), `nframe_unconditional_disjoint` (the socket discharged on
+  disjoint supports — *unconditional*), and **`nframe_lower_bound`** — the holonomy lower bound from *one* socket
+  (cell collapse), the N-Frame analogue of the Williams two-socket reduction, sharper because the bridge is proved.
 
 ## Honest scope — the two remaining walls, named and isolated
 
@@ -80,6 +92,11 @@ open PallLean.Paper93.DeepMath.PathB.ACC0RestrictedYBT
 open PallLean.Paper93.DeepMath.PathB.ACC0BoundedOverlapMOD
 open PallLean.Paper93.DeepMath.PathB.ACC0RestrictedWilliamsSpeedup
 open PallLean.Paper93.DeepMath.PathB.ACC0BoundedDepth
+open PallLean.Paper93.DeepMath.PathB.ACCSwitchingPipeline
+open PallLean.Paper93.DeepMath.PathB.ACC0CellCollapseRoute
+open PallLean.Paper93.DeepMath.PathB.ACC0DisjointCollapse
+open PallLean.Paper93.DeepMath.PathB.ACC0CollapseLift
+open PallLean.Paper93.DeepMath.PathB.ACC0NFrameLowerBound
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -183,6 +200,42 @@ theorem williams_route_reduces_to_two_sockets
   residue_cashout_bundled hExact
     (routine_reduce_to_timeHierarchy EncodedAlg TimeBounded Uniform NEXPnotACC0 s1 s2 s3 hTimeHierarchy)
 
+/-! ## The N-Frame route — survival ⇒ low holonomy correlation (one socket, bridge proved) -/
+
+/-- **N-Frame bridge (proved): cell collapse ⇒ low holonomy correlation.**  Re-export of the proved half of the
+N-Frame route. -/
+theorem nframe_bridge {k n : ℕ} (supports : Fin k → Finset (Fin n)) (g : (Fin k → ℕ) → Bool)
+    (L : Finset (Fin n)) (h : CellCollapse supports L) : LowHolonomyCorrelation supports g :=
+  cell_collapse_implies_low_holonomy_correlation supports g L h
+
+/-- **N-Frame route, one socket (proved): the cell-collapse socket cashes out to low correlation.** -/
+theorem nframe_route_one_socket {k n : ℕ} (supports : Fin k → Finset (Fin n))
+    (g : (Fin k → ℕ) → Bool) (hcollapse : FullACC0ForcesCellCollapse supports) :
+    LowHolonomyCorrelation supports g :=
+  nframe_route supports g hcollapse
+
+/-- **N-Frame composition (proved): collapse lifts through a layer under a survivor budget.**  Survivor counts add
+across an appended layer, so `2^{s₁+s₂} < |L| ⇒` the composite collapses. -/
+theorem nframe_collapse_composes {k₁ k₂ n : ℕ} (supp₁ : Fin k₁ → Finset (Fin n))
+    (supp₂ : Fin k₂ → Finset (Fin n)) (L : Finset (Fin n))
+    (hbudget : 2 ^ (survivingCount supp₁ L + survivingCount supp₂ L) < L.card) :
+    CellCollapse (Fin.append supp₁ supp₂) L :=
+  collapse_lifts_through_layer supp₁ supp₂ L hbudget
+
+/-- **N-Frame fragment, unconditional (proved): disjoint supports with a size-`≥3` support give the lower bound.** -/
+theorem nframe_unconditional_disjoint {k n : ℕ} (supports : Fin k → Finset (Fin n))
+    (g : (Fin k → ℕ) → Bool) (hd : ∀ i j, i ≠ j → Disjoint (supports i) (supports j))
+    (j₀ : Fin k) (hsize : 3 ≤ (supports j₀).card) : LowHolonomyCorrelation supports g :=
+  disjoint_supports_low_holonomy_correlation supports g hd j₀ hsize
+
+/-- **The N-Frame lower bound, one socket (proved), beside `williams_route_reduces_to_two_sockets`.**  For a class of
+holonomy-predictors, the cell-collapse socket implies the holonomy lower bound — *one* socket, since the bridge is
+proved. -/
+theorem nframe_lower_bound {ι : Type} {n : ℕ} (sys : PredictorClass ι n)
+    (tops : ∀ i, (Fin (sys i).1 → ℕ) → Bool) (h : NFrameCellCollapse sys) :
+    ACC0HolonomyLowerBound sys tops :=
+  nframe_acc_lower_bound sys tops h
+
 end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.ac0_approximation_quantitative
@@ -191,3 +244,6 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.restricted_exact_by_depth
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.restricted_speedup_by_footprint
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.williams_route_reduces_to_two_sockets
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nframe_bridge
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nframe_unconditional_disjoint
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nframe_lower_bound
