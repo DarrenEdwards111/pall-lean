@@ -26,6 +26,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RefinedObserverMode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MODNoGo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MODResidualObserver
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PivotToPolynomialMethod
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsCashoutFromPolynomial
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -104,7 +105,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  ── PIVOT to the polynomial method — effective dimension bites where the observer cannot ─────────────────
  poly degree < n ⇒ ≠ holonomy parity (exact)   PROVED   polynomial_method_separates_holonomy_parity (…ACC0PivotToPolynomialMethod)
  RS size bound 2^Ω(n^{1/2d}) on fParity univ   PROVED   nframe_parity_target_size_lower_bound (…Layer3NFrameParityRS)
- ── F_p ceiling: PARITY/MOD_p ∉ AC⁰[p] (real classical thm). Composite AC⁰[m] / NEXP⊄ACC⁰ = Williams. ───
+ ── Williams cash-out (CONDITIONAL): polynomial method discharges the representation half ────────────────
+ RS representation half (SYM∘AND) discharged   PROVED   rsMonoANDRepresentation_proved      (…ACC0WilliamsCashoutFromPolynomial)
+ cash-out chain (impl., NOT the separation)    PROVED   williams_cashout_from_polynomial_method (…ACC0WilliamsCashoutFromPolynomial)
+ ── OPEN inputs: counting socket (rep ⇒ sub-2ⁿ ACC⁰-SAT = Williams' algorithmic heart) + williams ────────
+ ──   collapse + time hierarchy. F_p ceiling: real PARITY/MOD_p∉AC⁰[p]. Composite/general = Williams. ────
  ── (implied by ACC0ForcesLowCellRank ⊇ the survivor socket; subsumes chain/laminar the rank route misses)─
 ```
 
@@ -199,6 +204,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0RefinedObserverModel
 open PallLean.Paper93.DeepMath.PathB.ACC0MODNoGo
 open PallLean.Paper93.DeepMath.PathB.ACC0MODResidualObserver
 open PallLean.Paper93.DeepMath.PathB.ACC0PivotToPolynomialMethod
+open PallLean.Paper93.DeepMath.PathB.ACC0WilliamsCashoutFromPolynomial
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -669,6 +675,18 @@ theorem polynomial_method_separates_holonomy_parity {n : ℕ} (p : ℕ) [Fact p.
       ≠ (fun x : Fin n → Bool => ∏ i, Layer3.pmOne p (x i)) :=
   lowDegree_poly_ne_holonomy_parity p hp2 hD h hdeg
 
+/-- **The Williams cash-out from the polynomial method (proved logic).**  The polynomial method discharges the
+*representation* half of Williams' `ACC⁰`-SAT algorithm; the remaining inputs are the **counting** socket
+(representation ⇒ sub-`2ⁿ` SAT — the open algorithmic heart), the **Williams** collapse, and the **time hierarchy**.
+This proves the *implication*, not `NEXP ⊄ ACC⁰`. -/
+theorem williams_cashout_from_polynomial_method
+    (ACC0SatSpeedup NEXPHasACC0Circuits Collapse : Prop)
+    (counting : RSMonoANDRepresentation → ACC0SatSpeedup)
+    (williams : ACC0SatSpeedup → NEXPHasACC0Circuits → Collapse)
+    (hierarchy : ¬ Collapse) :
+    ¬ NEXPHasACC0Circuits :=
+  williams_cashout_from_polynomial ACC0SatSpeedup NEXPHasACC0Circuits Collapse counting williams hierarchy
+
 /-- **The cell-count lower bound, one socket (proved), beside `nframe_lower_bound`.**  For a class of holonomy-predictors,
 the *sharpest* cell-count socket implies the holonomy lower bound. -/
 theorem cellcount_lower_bound {ι : Type} {n : ℕ} (sys : PredictorClass ι n)
@@ -725,3 +743,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.mod_parity_constant_iff_fully_fixed
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.mod_residual_reduces_to_membership
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.polynomial_method_separates_holonomy_parity
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.williams_cashout_from_polynomial_method
