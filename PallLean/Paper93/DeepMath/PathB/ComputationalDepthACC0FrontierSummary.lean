@@ -25,6 +25,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellCountCharacteri
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RefinedObserverModel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MODNoGo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MODResidualObserver
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PivotToPolynomialMethod
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -100,6 +101,10 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  ──   linear gate IS its membership ⇒ the residual/refined observer = membership observer on free ───────
  ──   coords ⇒ inherits the hard-regime ceiling. The ENTIRE observer/merging programme is membership- ───
  ──   bounded for MOD ⇒ ACC⁰ needs the POLYNOMIAL METHOD (low-degree/rank), not observer cells. ─────────
+ ── PIVOT to the polynomial method — effective dimension bites where the observer cannot ─────────────────
+ poly degree < n ⇒ ≠ holonomy parity (exact)   PROVED   polynomial_method_separates_holonomy_parity (…ACC0PivotToPolynomialMethod)
+ RS size bound 2^Ω(n^{1/2d}) on fParity univ   PROVED   nframe_parity_target_size_lower_bound (…Layer3NFrameParityRS)
+ ── F_p ceiling: PARITY/MOD_p ∉ AC⁰[p] (real classical thm). Composite AC⁰[m] / NEXP⊄ACC⁰ = Williams. ───
  ── (implied by ACC0ForcesLowCellRank ⊇ the survivor socket; subsumes chain/laminar the rank route misses)─
 ```
 
@@ -193,6 +198,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0CellCountCharacterization
 open PallLean.Paper93.DeepMath.PathB.ACC0RefinedObserverModel
 open PallLean.Paper93.DeepMath.PathB.ACC0MODNoGo
 open PallLean.Paper93.DeepMath.PathB.ACC0MODResidualObserver
+open PallLean.Paper93.DeepMath.PathB.ACC0PivotToPolynomialMethod
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -651,6 +657,18 @@ theorem mod_residual_reduces_to_membership {k n : ℕ} (ρ : Restriction n)
     residualSignature ρ supports v = cellPatternVec supports v :=
   residual_eq_membership_of_free ρ supports v hv
 
+/-- **The pivot to the polynomial method (proved): exact effective-dimension separation.**  A polynomial of total
+degree `< n` cannot equal the holonomy parity `x ↦ ∏ᵢ pmOne(xᵢ)` on the cube — its evaluation lands in the low-degree
+span `V_D` which the holonomy parity escapes (effective dimension `≥ n`).  This is the dimension lever that bites on
+`MOD` where the observer route cannot; the quantitative `AC⁰[p]` size bound is
+`…Layer3NFrameParityRS.nframe_parity_target_size_lower_bound`. -/
+theorem polynomial_method_separates_holonomy_parity {n : ℕ} (p : ℕ) [Fact p.Prime]
+    (hp2 : (2 : ZMod p) ≠ 0) {D : ℕ} (hD : D < n) (h : MvPolynomial (Fin n) (ZMod p))
+    (hdeg : h.totalDegree ≤ D) :
+    (fun x : Fin n → Bool => MvPolynomial.eval (fun i => Layer3.boolToZMod p (x i)) h)
+      ≠ (fun x : Fin n → Bool => ∏ i, Layer3.pmOne p (x i)) :=
+  lowDegree_poly_ne_holonomy_parity p hp2 hD h hdeg
+
 /-- **The cell-count lower bound, one socket (proved), beside `nframe_lower_bound`.**  For a class of holonomy-predictors,
 the *sharpest* cell-count socket implies the holonomy lower bound. -/
 theorem cellcount_lower_bound {ι : Type} {n : ℕ} (sys : PredictorClass ι n)
@@ -706,3 +724,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.mod_refined_no_merging_gain
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.mod_parity_constant_iff_fully_fixed
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.mod_residual_reduces_to_membership
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.polynomial_method_separates_holonomy_parity
