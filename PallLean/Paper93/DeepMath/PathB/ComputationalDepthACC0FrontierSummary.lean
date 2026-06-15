@@ -363,11 +363,37 @@ theorem rank_collapse_lifts_budget {k₁ k₂ n : ℕ} (supp₁ : Fin k₁ → F
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
-The official open target is now `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
+The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
 (weakest, most achievable) form of the N-Frame restriction lemma.  Since `cellPatternCount ≤ 2^{cellRank} ≤
-2^{survivingCount}`, this socket is implied by the survivor and rank sockets — and it is strictly more general (chain /
-nested supports have full rank but `≤ k+1` cells, handled here, missed by the rank route).  Everything else on the
-route is proved. -/
+2^{survivingCount}`, this socket is implied by the survivor and rank sockets, and it is strictly more general (chain /
+nested supports have full rank but `≤ k+1` cells, missed by the rank route).  This section consolidates the **entire**
+cell-count route; every piece below is proved (clean axioms), and the only open content is the hard regime.
+
+**Core bridge & subsumption** — `cellcount_bridge` (`cellPatternCount < |L| ⇒` low correlation), `cellcount_subsumes_rank`
+(`2^{cellRank} < |L| ⇒` collapse: cells subsume rank, hence survivors).
+
+**Composition** — `cellcount_append_submultiplicative` (cell count is *submultiplicative* under `append`, vs additive
+survivors / subadditive rank), `cellcount_collapse_lifts_budget` (`c₁·c₂ < |L| ⇒` collapse lifts through a layer).
+
+**Structured fragments** (each unconditional on its hypothesis, no rank needed):
+`cellcount_chain_fragment` (`≤ k+1`), `cellcount_laminar_fragment` (nested-or-disjoint, `≤ k+1`),
+`cellcount_clustered_fragment` (`cellRank ≤ d+r`), `cellcount_sunflower` (common-core wide overlap, `≤ k+2`, outside
+laminar), `cellcount_lowVC_le` / `cellcount_lowVC_low_correlation` (Sauer–Shelah `∑_{i≤d} C(k,i)`, the common
+generalization — few patterns *without* low rank), `cellcount_block_product` (cells multiply over independent blocks).
+
+**Probabilistic / first-moment** — `cellcount_markov` (`Pr[≥a] ≤ Exp/a`), `cellcount_whp` (two-event balance, needs only
+`a ≤ b`), `cellcount_whp_subsumes_rank` (broadest whp: survivor ⊂ rank ⊂ cell-count), `cellcount_random_restriction`
+(`Exp ≤ B < a ⇒ ∃ L` low-cell), and the deterministic-bound discharges `cellcount_bounded_distinct_expectation`
+(`≤ 2^d`) [laminar/block discharges in their files].
+
+**Direct concentration** (no `2^{survivors}`; cell count is `L`-monotone, bounded by the restriction-independent
+`globalCellCount`) — `cellcount_direct_tail` (`Pr[≥a] ≤ Pr[|L|≥a]`), `cellcount_expected_le_global`
+(`Exp ≤ globalCellCount`), `cellcount_few_gates_forces` (`2^k < n ⇒` collapse, deterministic).
+
+**Socket & reduction** — `cellcount_route_one_socket` / `cellcount_lower_bound` (the open socket ⇒ holonomy lower bound),
+`cellcount_socket_is_weakest` (survivor socket ⇒ this one), `cellcount_full_of_hardRegime_resolved` (the open lemma
+reduces to the **hard regime** `|L| ≤ 2^{survivingCount} ∧ |L| ≤ globalCellCount` alone — bound the merged pattern
+count among the surviving gates, below both `2^{survivors}` and `globalCellCount`, for wide overlapping `MOD`). -/
 
 /-- **Cell-count bridge (proved): `cellPatternCount supports L < |L| ⇒ low holonomy correlation`.**  The cell count —
 not its rank — is the governing quantity; this is the sharpest collapse. -/
