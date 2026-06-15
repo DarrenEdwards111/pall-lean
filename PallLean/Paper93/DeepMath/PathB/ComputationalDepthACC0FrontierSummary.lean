@@ -87,8 +87,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  ── RICHER variable-fixing model — restriction CAN merge ──────────────────────────────────────────────────
  refined model strictly beats membership      PROVED   refined_observer_strictly_beats_membership (…ACC0RefinedObserverModel)
  refined merging (inactive separators merge)   PROVED   refined_observer_merge              (…ACC0RefinedObserverModel)
- ── open in refined model: (i) correlation bridge (swap-invariance over active gates); (ii) MOD has no ───
- ──   absorbing value, so AND/OR-style merging is weak for MOD = the genuine ACC⁰ obstruction. ───────────
+ refined correlation bridge (collapse⇒no corr) PROVED   refined_observer_collapse_implies_low_correlation (…ACC0RefinedObserverModel)
+ ── open in refined model: MOD/symmetric gates have NO absorbing value (constant only when support ──────
+ ──   fully fixed) ⇒ AND/OR-style merging is weak for MOD = the genuine ACC⁰ obstruction (AC⁰ switches). ─
  ── (implied by ACC0ForcesLowCellRank ⊇ the survivor socket; subsumes chain/laminar the rank route misses)─
 ```
 
@@ -598,6 +599,14 @@ theorem refined_observer_merge {k n : ℕ} (ρ : Restriction n) (supports : Fin 
     refinedCellPatternVec ρ supports v = refinedCellPatternVec ρ supports w :=
   refined_merge_of_inactive_separators ρ supports v w h
 
+/-- **The refined correlation bridge (proved): refined collapse ⇒ no correlation.**  The variable-fixing analogue of the
+membership bridge, firing on cells that *merge* under restriction (via swap-invariance over active gates) — beyond the
+reach of the membership model. -/
+theorem refined_observer_collapse_implies_low_correlation {k n : ℕ} (ρ : Restriction n)
+    (supports : Fin k → Finset (Fin n)) (g : (Fin k → ℕ) → Bool) (L : Finset (Fin n))
+    (h : RefinedCellCollapse ρ supports L) : RefinedLowCorrelation ρ supports g :=
+  refinedCellCollapse_implies_refinedLowCorrelation ρ supports g L h
+
 /-- **The cell-count lower bound, one socket (proved), beside `nframe_lower_bound`.**  For a class of holonomy-predictors,
 the *sharpest* cell-count socket implies the holonomy lower bound. -/
 theorem cellcount_lower_bound {ι : Type} {n : ℕ} (sys : PredictorClass ι n)
@@ -648,3 +657,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_socket_false_in_hardRegime
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.refined_observer_strictly_beats_membership
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.refined_observer_merge
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.refined_observer_collapse_implies_low_correlation
