@@ -24,6 +24,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SunflowerCellCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellCountCharacterization
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RefinedObserverModel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MODNoGo
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MODResidualObserver
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -92,8 +93,13 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  ── MOD NO-GO (proved): the variable-fixing merging is INERT for symmetric gates ─────────────────────────
  MOD-refined = membership on free coords       PROVED   mod_refined_eq_membership_on_free   (…ACC0MODNoGo)
  MOD gives no merging gain (⟺ SameCell)        PROVED   mod_refined_no_merging_gain         (…ACC0MODNoGo)
- ── THE WALL (now pinned): MOD has no absorbing value ⇒ a separating gate of free coords stays active ⇒ ──
- ──   refined model collapses to the membership ceiling. AC⁰ switches; ACC⁰ does not. Genuine barrier. ──
+ parity constant ⟺ support fully fixed         PROVED   mod_parity_constant_iff_fully_fixed (…ACC0MODResidualObserver)
+ residual observer reduces to membership       PROVED   mod_residual_reduces_to_membership  (…ACC0MODResidualObserver)
+ ── THE WALL (pinned with gate semantics): MOD has NO absorbing value (parity constant iff support ──────
+ ──   fully fixed; AND constant from one fixed-false input). A coordinate's affine contribution to a ────
+ ──   linear gate IS its membership ⇒ the residual/refined observer = membership observer on free ───────
+ ──   coords ⇒ inherits the hard-regime ceiling. The ENTIRE observer/merging programme is membership- ───
+ ──   bounded for MOD ⇒ ACC⁰ needs the POLYNOMIAL METHOD (low-degree/rank), not observer cells. ─────────
  ── (implied by ACC0ForcesLowCellRank ⊇ the survivor socket; subsumes chain/laminar the rank route misses)─
 ```
 
@@ -186,6 +192,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0SunflowerCellCount
 open PallLean.Paper93.DeepMath.PathB.ACC0CellCountCharacterization
 open PallLean.Paper93.DeepMath.PathB.ACC0RefinedObserverModel
 open PallLean.Paper93.DeepMath.PathB.ACC0MODNoGo
+open PallLean.Paper93.DeepMath.PathB.ACC0MODResidualObserver
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -628,6 +635,22 @@ theorem mod_refined_no_merging_gain {k n : ℕ} (ρ : Restriction n) (supports :
       ↔ PallLean.Paper93.DeepMath.PathB.ManyGateCorrelation.SameCell supports v w :=
   mod_refined_merge_iff_sameCell ρ supports v w hv hw
 
+/-- **MOD gate semantics (proved): a parity gate is constant under `ρ` iff its support is entirely fixed.**  The
+forward direction is the no-absorbing-value statement; `MOD` has no absorbing value, unlike `AND`/`OR` — the exact
+reason `AC⁰` switches under restriction and `ACC⁰` does not. -/
+theorem mod_parity_constant_iff_fully_fixed {n : ℕ} (ρ : Restriction n) (S : Finset (Fin n)) :
+    ParityConstant ρ S ↔ ∀ i ∈ S, ρ i ≠ none :=
+  parity_constant_iff_support_fully_fixed ρ S
+
+/-- **The residual observer reduces to membership (proved): no escape for `MOD`.**  A coordinate's affine contribution
+to a linear gate is its membership, so over the free coordinates the residual observer is the membership observer —
+inheriting the proved hard-regime ceiling.  The whole observer/coordinate-merging programme is membership-bounded for
+`MOD`; `ACC⁰` needs the polynomial method. -/
+theorem mod_residual_reduces_to_membership {k n : ℕ} (ρ : Restriction n)
+    (supports : Fin k → Finset (Fin n)) (v : Fin n) (hv : ρ v = none) :
+    residualSignature ρ supports v = cellPatternVec supports v :=
+  residual_eq_membership_of_free ρ supports v hv
+
 /-- **The cell-count lower bound, one socket (proved), beside `nframe_lower_bound`.**  For a class of holonomy-predictors,
 the *sharpest* cell-count socket implies the holonomy lower bound. -/
 theorem cellcount_lower_bound {ι : Type} {n : ℕ} (sys : PredictorClass ι n)
@@ -681,3 +704,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.refined_observer_collapse_implies_low_correlation
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.mod_refined_eq_membership_on_free
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.mod_refined_no_merging_gain
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.mod_parity_constant_iff_fully_fixed
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.mod_residual_reduces_to_membership
