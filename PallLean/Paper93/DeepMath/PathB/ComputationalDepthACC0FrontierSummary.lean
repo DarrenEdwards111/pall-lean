@@ -19,6 +19,8 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BlockProductCellCou
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RandomRestrictionCellCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0VCCellCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DirectCellConcentration
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellCountHardRegime
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SunflowerCellCount
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -61,6 +63,7 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  chain/nested fragment (full rank, ≤k+1 cells) PROVED   cellcount_chain_fragment            (…ACC0ChainCellCount)
  clustered fragment (cellRank ≤ d+r)           PROVED   cellcount_clustered_fragment        (…ACC0ClusteredRank)
  low-VC fragment (Sauer–Shelah ∑C(k,i), no rk) PROVED   cellcount_lowVC_le                  (…ACC0VCCellCount)
+ sunflower fragment (wide overlap, ≤k+2)       PROVED   cellcount_sunflower                 (…ACC0SunflowerCellCount)
  laminar fragment (nested-or-disjoint, ≤k+1)   PROVED   cellcount_laminar_fragment          (…ACC0LaminarCellCount)
  block-product fragment (cells multiply, ∏)    PROVED   cellcount_block_product             (…ACC0BlockProductCellCount)
  cell-count composition (submult. ×, append)   PROVED   cellcount_append_submultiplicative  (…ACC0CellCountComposition)
@@ -74,9 +77,10 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  first-moment restriction (Exp≤B<a ⇒ ∃L)       PROVED   cellcount_random_restriction        (…ACC0RandomRestrictionCellCount)
  cell-count lower bound (ONE socket)           CONDITIONAL on FullACC0ForcesLowCellCount:
    cellcount_lower_bound : NFrameLowCellCount sys → ACC0HolonomyLowerBound sys tops
+ hard-regime reduction (open lives here only)  PROVED   cellcount_full_of_hardRegime_resolved (…ACC0CellCountHardRegime)
  ── open: ACC0ForcesLowCellCount (∃ L, cellPatternCount < |L|) = the SHARPEST (weakest) switching lemma ────
- ── open balance (cell-count language): bound Exp[cellPatternCount] below Exp[2^survivingCount] for wide ──
- ──   overlapping MOD — first moment closes only for deterministic-bound structures (laminar/block/dist.) ─
+ ── = the HARD REGIME (|L| ≤ 2^survivingCount ∧ |L| ≤ globalCellCount): bound the MERGED pattern count ────
+ ──   among surviving gates, below both 2^survivors and globalCellCount, for wide overlapping MOD ─────────
  ── (implied by ACC0ForcesLowCellRank ⊇ the survivor socket; subsumes chain/laminar the rank route misses)─
 ```
 
@@ -164,6 +168,8 @@ open PallLean.Paper93.DeepMath.PathB.ACC0BlockProductCellCount
 open PallLean.Paper93.DeepMath.PathB.ACC0RandomRestrictionCellCount
 open PallLean.Paper93.DeepMath.PathB.ACC0VCCellCount
 open PallLean.Paper93.DeepMath.PathB.ACC0DirectCellConcentration
+open PallLean.Paper93.DeepMath.PathB.ACC0CellCountHardRegime
+open PallLean.Paper93.DeepMath.PathB.ACC0SunflowerCellCount
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -507,6 +513,21 @@ theorem cellcount_few_gates_forces {k n : ℕ} (supports : Fin k → Finset (Fin
     FullACC0ForcesLowCellCount supports :=
   few_gates_forces_lowCellCount supports h
 
+/-- **Sunflower (common-core) overlapping fragment (proved): wide overlap ⇒ `≤ k+2` cells.**  `supports j = core ∪
+petal j` with disjoint petals — every pair overlaps in the core, not laminar — yet `k+2 < |L| ⇒` low correlation. -/
+theorem cellcount_sunflower {k n : ℕ} (supports : Fin k → Finset (Fin n)) (core : Finset (Fin n))
+    (petal : Fin k → Finset (Fin n)) (g : (Fin k → ℕ) → Bool)
+    (hsf : SunflowerSupports supports core petal) (L : Finset (Fin n)) (hkL : k + 2 < L.card) :
+    LowHolonomyCorrelation supports g :=
+  sunflower_low_correlation supports core petal g hsf L hkL
+
+/-- **The hard-regime reduction (proved): the open lemma reduces to the hard regime alone.**  If the open socket holds
+whenever `supports` is hard on the cube, it holds outright — outside the hard regime the collapse is already proved. -/
+theorem cellcount_full_of_hardRegime_resolved {k n : ℕ} (supports : Fin k → Finset (Fin n))
+    (h : HardRegime supports Finset.univ → FullACC0ForcesLowCellCount supports) :
+    FullACC0ForcesLowCellCount supports :=
+  full_of_hardRegime_resolved supports h
+
 /-- **The cell-count lower bound, one socket (proved), beside `nframe_lower_bound`.**  For a class of holonomy-predictors,
 the *sharpest* cell-count socket implies the holonomy lower bound. -/
 theorem cellcount_lower_bound {ι : Type} {n : ℕ} (sys : PredictorClass ι n)
@@ -551,3 +572,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_direct_tail
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_expected_le_global
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_few_gates_forces
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_sunflower
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_full_of_hardRegime_resolved
