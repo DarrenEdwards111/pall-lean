@@ -10,6 +10,10 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankWhp
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LowRankFragment
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BoundedOverlapRank
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellCountSwitching
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ChainCellCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ClusteredRank
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellCountComposition
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -46,7 +50,17 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  probabilistic low-rank restriction           PROVED   rank_random_restriction             (…ACC0RandomRestrictionRank)
  rank whp (two-event, weaker feasibility)     PROVED   rank_whp                            (…ACC0RankWhp)
  rank composition (subadditive through layer) PROVED   rank_append_subadditive             (…ACC0RankComposition)
- ── open: ACC0ForcesLowCellRank (∃ L, 2^cellRank < |L|) = the rank-flavoured switching lemma ──────────────
+ ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
+ cell-count bridge (cells < |L| ⇒ low corr)   PROVED   cellcount_bridge                    (…ACC0CellCountRoute)
+ cells subsume rank (2^cellRank < |L| ⇒ …)     PROVED   cellcount_subsumes_rank             (…ACC0CellCountRoute)
+ chain/nested fragment (full rank, ≤k+1 cells) PROVED   cellcount_chain_fragment            (…ACC0ChainCellCount)
+ clustered fragment (cellRank ≤ d+r)           PROVED   cellcount_clustered_fragment        (…ACC0ClusteredRank)
+ cell-count composition (submult. ×, append)   PROVED   cellcount_append_submultiplicative  (…ACC0CellCountComposition)
+ cell-count socket is the weakest socket       PROVED   cellcount_socket_is_weakest         (…ACC0CellCountSwitching)
+ cell-count lower bound (ONE socket)           CONDITIONAL on FullACC0ForcesLowCellCount:
+   cellcount_lower_bound : NFrameLowCellCount sys → ACC0HolonomyLowerBound sys tops
+ ── open: ACC0ForcesLowCellCount (∃ L, cellPatternCount < |L|) = the SHARPEST (weakest) switching lemma ────
+ ── (implied by ACC0ForcesLowCellRank ⊇ the survivor socket; subsumes chain/laminar the rank route misses)─
 ```
 
 ## What is proved (clean axioms, no `sorry`)
@@ -123,6 +137,11 @@ open PallLean.Paper93.DeepMath.PathB.ACC0LowRankFragment
 open PallLean.Paper93.DeepMath.PathB.ACC0BoundedOverlapRank
 open PallLean.Paper93.DeepMath.PathB.ACC0RankWhp
 open PallLean.Paper93.DeepMath.PathB.ACC0RankComposition
+open PallLean.Paper93.DeepMath.PathB.ACC0CellCountRoute
+open PallLean.Paper93.DeepMath.PathB.ACC0CellCountSwitching
+open PallLean.Paper93.DeepMath.PathB.ACC0ChainCellCount
+open PallLean.Paper93.DeepMath.PathB.ACC0ClusteredRank
+open PallLean.Paper93.DeepMath.PathB.ACC0CellCountComposition
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -314,6 +333,74 @@ theorem rank_collapse_lifts_budget {k₁ k₂ n : ℕ} (supp₁ : Fin k₁ → F
     2 ^ cellRank (Fin.append supp₁ supp₂) L < L.card :=
   rank_collapse_lifts_of_rank_budget supp₁ supp₂ L r₁ r₂ hbudget h₁ h₂
 
+/-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
+
+The official open target is now `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
+(weakest, most achievable) form of the N-Frame restriction lemma.  Since `cellPatternCount ≤ 2^{cellRank} ≤
+2^{survivingCount}`, this socket is implied by the survivor and rank sockets — and it is strictly more general (chain /
+nested supports have full rank but `≤ k+1` cells, handled here, missed by the rank route).  Everything else on the
+route is proved. -/
+
+/-- **Cell-count bridge (proved): `cellPatternCount supports L < |L| ⇒ low holonomy correlation`.**  The cell count —
+not its rank — is the governing quantity; this is the sharpest collapse. -/
+theorem cellcount_bridge {k n : ℕ} (supports : Fin k → Finset (Fin n)) (g : (Fin k → ℕ) → Bool)
+    (L : Finset (Fin n)) (h : CellCountCollapse supports L) :
+    LowHolonomyCorrelation supports g :=
+  cellCountCollapse_implies_low_correlation supports g L h
+
+/-- **Cell count subsumes rank (proved): `2^{cellRank} < |L| ⇒ CellCountCollapse`.**  A rank collapse is a special
+case of a cell-count collapse, so the cell-count route subsumes the rank (hence survivor) route. -/
+theorem cellcount_subsumes_rank {k n : ℕ} (supports : Fin k → Finset (Fin n)) (L : Finset (Fin n))
+    (h : 2 ^ cellRank supports L < L.card) : CellCountCollapse supports L :=
+  rank_collapse_implies_cellCount_collapse supports L h
+
+/-- **Cell-count fragment, unconditional (proved): chain / nested supports.**  `S₁ ⊆ … ⊆ S_k` can have full rank yet
+`≤ k+1` cells; `k+1 < |L|` ⇒ low correlation — the class the rank route is too crude for. -/
+theorem cellcount_chain_fragment {k n : ℕ} (supports : Fin k → Finset (Fin n))
+    (g : (Fin k → ℕ) → Bool) (hch : ChainSupports supports) (L : Finset (Fin n))
+    (hkL : k + 1 < L.card) : LowHolonomyCorrelation supports g :=
+  chain_low_correlation supports g hch L hkL
+
+/-- **Cell-count fragment, unconditional (proved): clustered supports.**  `d` cluster centers `+` `r`-dim variation
+⇒ `cellRank ≤ d + r`; `2^{d+r} < n` ⇒ low correlation. -/
+theorem cellcount_clustered_fragment {k n : ℕ} (supports : Fin k → Finset (Fin n))
+    (g : (Fin k → ℕ) → Bool) (d r : ℕ) (h : ClusteredSupports supports d r) (hn : 2 ^ (d + r) < n) :
+    LowHolonomyCorrelation supports g :=
+  clustered_low_correlation supports g d r h hn
+
+/-- **Cell-count composition (proved): submultiplicative under `append`.**  Depth composition *multiplies* cell counts
+(vs additive survivors, subadditive rank). -/
+theorem cellcount_append_submultiplicative {k₁ k₂ n : ℕ} (A : Fin k₁ → Finset (Fin n))
+    (B : Fin k₂ → Finset (Fin n)) (L : Finset (Fin n)) :
+    cellPatternCount (Fin.append A B) L ≤ cellPatternCount A L * cellPatternCount B L :=
+  cellPatternCount_append_le A B L
+
+/-- **Cell-count-budget collapse lift (proved): a layer adding `≤ c₂` cells keeps the composite within `c₁·c₂`.** -/
+theorem cellcount_collapse_lifts_budget {k₁ k₂ n : ℕ} (A : Fin k₁ → Finset (Fin n))
+    (B : Fin k₂ → Finset (Fin n)) (L : Finset (Fin n)) (c₁ c₂ : ℕ)
+    (h₁ : cellPatternCount A L ≤ c₁) (h₂ : cellPatternCount B L ≤ c₂) (hbudget : c₁ * c₂ < L.card) :
+    CellCountCollapse (Fin.append A B) L :=
+  cellCount_collapse_of_budget A B L c₁ c₂ h₁ h₂ hbudget
+
+/-- **The cell-count route, one socket (proved): the sharpest socket cashes out to low correlation.** -/
+theorem cellcount_route_one_socket {k n : ℕ} (supports : Fin k → Finset (Fin n))
+    (g : (Fin k → ℕ) → Bool) (h : FullACC0ForcesLowCellCount supports) :
+    LowHolonomyCorrelation supports g :=
+  nframe_cellcount_route supports g h
+
+/-- **The cell-count socket is the weakest (proved): the survivor socket implies it.**  Hence every disjoint/bounded
+discharge of the survivor socket discharges the official final target too. -/
+theorem cellcount_socket_is_weakest {k n : ℕ} (supports : Fin k → Finset (Fin n))
+    (h : FullACC0ForcesCellCollapse supports) : FullACC0ForcesLowCellCount supports :=
+  cellCollapse_implies_lowCellCount supports h
+
+/-- **The cell-count lower bound, one socket (proved), beside `nframe_lower_bound`.**  For a class of holonomy-predictors,
+the *sharpest* cell-count socket implies the holonomy lower bound. -/
+theorem cellcount_lower_bound {ι : Type} {n : ℕ} (sys : PredictorClass ι n)
+    (tops : ∀ i, (Fin (sys i).1 → ℕ) → Bool) (h : NFrameLowCellCount sys) :
+    ACC0HolonomyLowerBound sys tops :=
+  nframe_cellcount_lower_bound sys tops h
+
 end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.ac0_approximation_quantitative
@@ -331,3 +418,11 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_whp
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_append_subadditive
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_collapse_lifts_budget
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_clustered_fragment
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_append_submultiplicative
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_route_one_socket
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_socket_is_weakest
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_lower_bound
