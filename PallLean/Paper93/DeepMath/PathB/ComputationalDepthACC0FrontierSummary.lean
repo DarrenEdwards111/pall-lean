@@ -16,6 +16,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ClusteredRank
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellCountComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LaminarCellCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BlockProductCellCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RandomRestrictionCellCount
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -61,9 +62,15 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  block-product fragment (cells multiply, ∏)    PROVED   cellcount_block_product             (…ACC0BlockProductCellCount)
  cell-count composition (submult. ×, append)   PROVED   cellcount_append_submultiplicative  (…ACC0CellCountComposition)
  cell-count socket is the weakest socket       PROVED   cellcount_socket_is_weakest         (…ACC0CellCountSwitching)
+ cell-count Markov tail (Pr[≥a] ≤ Exp/a)       PROVED   cellcount_markov                    (…ACC0RandomRestrictionCellCount)
+ cell-count whp (needs a≤b, no 2^a≤b)          PROVED   cellcount_whp                       (…ACC0RandomRestrictionCellCount)
+ cell-count whp subsumes rank/survivor whp     PROVED   cellcount_whp_subsumes_rank         (…ACC0RandomRestrictionCellCount)
+ first-moment restriction (Exp≤B<a ⇒ ∃L)       PROVED   cellcount_random_restriction        (…ACC0RandomRestrictionCellCount)
  cell-count lower bound (ONE socket)           CONDITIONAL on FullACC0ForcesLowCellCount:
    cellcount_lower_bound : NFrameLowCellCount sys → ACC0HolonomyLowerBound sys tops
  ── open: ACC0ForcesLowCellCount (∃ L, cellPatternCount < |L|) = the SHARPEST (weakest) switching lemma ────
+ ── open balance (cell-count language): bound Exp[cellPatternCount] below Exp[2^survivingCount] for wide ──
+ ──   overlapping MOD — first moment closes only for deterministic-bound structures (laminar/block/dist.) ─
  ── (implied by ACC0ForcesLowCellRank ⊇ the survivor socket; subsumes chain/laminar the rank route misses)─
 ```
 
@@ -148,6 +155,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0ClusteredRank
 open PallLean.Paper93.DeepMath.PathB.ACC0CellCountComposition
 open PallLean.Paper93.DeepMath.PathB.ACC0LaminarCellCount
 open PallLean.Paper93.DeepMath.PathB.ACC0BlockProductCellCount
+open PallLean.Paper93.DeepMath.PathB.ACC0RandomRestrictionCellCount
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -415,6 +423,39 @@ theorem cellcount_block_product {m b n : ℕ} (supports : Fin m → Fin b → Fi
     LowHolonomyCorrelation (flatSupports supports) g :=
   block_product_low_correlation supports g L h
 
+/-- **Cell-count Markov tail (proved): `Pr[cellPatternCount ≥ a] ≤ Exp[cellPatternCount] / a`.** -/
+theorem cellcount_markov {k n : ℕ} (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
+    (supports : Fin k → Finset (Fin n)) (a : ℝ) (ha : 0 < a) :
+    Pr p (fun L => a ≤ (cellPatternCount supports L : ℝ))
+      ≤ Exp p (fun L => (cellPatternCount supports L : ℝ)) / a :=
+  Pr_cellPatternCount_ge_le_markov p hp0 hp1 supports a ha
+
+/-- **Cell-count whp route (proved): the two-event balance needs only `a ≤ b`** — sharper than the rank whp's
+`2^a ≤ b`, since the cell count compares to `|L|` directly. -/
+theorem cellcount_whp {k n : ℕ} (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
+    (supports : Fin k → Finset (Fin n)) (g : (Fin k → ℕ) → Bool) (a b : ℕ) (hab : a ≤ b)
+    (hfeas : Pr p (fun L => a ≤ cellPatternCount supports L)
+        + Pr p (fun L : Finset (Fin n) => L.card ≤ b) < 1) :
+    LowHolonomyCorrelation supports g :=
+  cellCount_predictor_fails_whp p hp0 hp1 supports g a b hab hfeas
+
+/-- **The cell-count whp subsumes the rank (hence survivor) whp (proved).**  Rank feasibility (`2^a ≤ b`) ⇒ the
+cell-count route fires — the broadest of the three whp routes. -/
+theorem cellcount_whp_subsumes_rank {k n : ℕ} (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
+    (supports : Fin k → Finset (Fin n)) (g : (Fin k → ℕ) → Bool) (a b : ℕ) (hab : 2 ^ a ≤ b)
+    (hfeas : Pr p (fun L => a ≤ cellRank supports L)
+        + Pr p (fun L : Finset (Fin n) => L.card ≤ b) < 1) :
+    LowHolonomyCorrelation supports g :=
+  cellCount_whp_subsumes_rank p hp0 hp1 supports g a b hab hfeas
+
+/-- **Cell-count first-moment restriction (proved): `Exp[cellPatternCount] ≤ B < a ⇒ ∃ L, cellPatternCount < a`.**  The
+open balance is bounding `Exp[cellPatternCount]` below `2^{survivingCount}` for wide overlapping `MOD` supports. -/
+theorem cellcount_random_restriction {k n : ℕ} (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
+    (supports : Fin k → Finset (Fin n)) (B a : ℝ) (ha : 0 < a)
+    (hE : Exp p (fun L => (cellPatternCount supports L : ℝ)) ≤ B) (hBa : B < a) :
+    ∃ L ∈ (Finset.univ : Finset (Fin n)).powerset, (cellPatternCount supports L : ℝ) < a :=
+  randomRestriction_forces_low_cellCount p hp0 hp1 supports B a ha hE hBa
+
 /-- **The cell-count lower bound, one socket (proved), beside `nframe_lower_bound`.**  For a class of holonomy-predictors,
 the *sharpest* cell-count socket implies the holonomy lower bound. -/
 theorem cellcount_lower_bound {ι : Type} {n : ℕ} (sys : PredictorClass ι n)
@@ -449,3 +490,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_lower_bound
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_laminar_fragment
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_block_product
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_markov
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_whp
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_whp_subsumes_rank
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_random_restriction
