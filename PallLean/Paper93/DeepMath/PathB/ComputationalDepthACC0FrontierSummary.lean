@@ -14,6 +14,8 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellCountSwitching
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ChainCellCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ClusteredRank
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellCountComposition
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LaminarCellCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BlockProductCellCount
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -55,6 +57,8 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  cells subsume rank (2^cellRank < |L| ⇒ …)     PROVED   cellcount_subsumes_rank             (…ACC0CellCountRoute)
  chain/nested fragment (full rank, ≤k+1 cells) PROVED   cellcount_chain_fragment            (…ACC0ChainCellCount)
  clustered fragment (cellRank ≤ d+r)           PROVED   cellcount_clustered_fragment        (…ACC0ClusteredRank)
+ laminar fragment (nested-or-disjoint, ≤k+1)   PROVED   cellcount_laminar_fragment          (…ACC0LaminarCellCount)
+ block-product fragment (cells multiply, ∏)    PROVED   cellcount_block_product             (…ACC0BlockProductCellCount)
  cell-count composition (submult. ×, append)   PROVED   cellcount_append_submultiplicative  (…ACC0CellCountComposition)
  cell-count socket is the weakest socket       PROVED   cellcount_socket_is_weakest         (…ACC0CellCountSwitching)
  cell-count lower bound (ONE socket)           CONDITIONAL on FullACC0ForcesLowCellCount:
@@ -142,6 +146,8 @@ open PallLean.Paper93.DeepMath.PathB.ACC0CellCountSwitching
 open PallLean.Paper93.DeepMath.PathB.ACC0ChainCellCount
 open PallLean.Paper93.DeepMath.PathB.ACC0ClusteredRank
 open PallLean.Paper93.DeepMath.PathB.ACC0CellCountComposition
+open PallLean.Paper93.DeepMath.PathB.ACC0LaminarCellCount
+open PallLean.Paper93.DeepMath.PathB.ACC0BlockProductCellCount
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -394,6 +400,21 @@ theorem cellcount_socket_is_weakest {k n : ℕ} (supports : Fin k → Finset (Fi
     (h : FullACC0ForcesCellCollapse supports) : FullACC0ForcesLowCellCount supports :=
   cellCollapse_implies_lowCellCount supports h
 
+/-- **Cell-count fragment, unconditional (proved): laminar (nested-or-disjoint) supports.**  Generalizes chains: full
+rank yet `≤ k+1` cells; `k+1 < |L|` ⇒ low correlation. -/
+theorem cellcount_laminar_fragment {k n : ℕ} (supports : Fin k → Finset (Fin n))
+    (g : (Fin k → ℕ) → Bool) (hlam : LaminarSupports supports) (L : Finset (Fin n))
+    (hkL : k + 1 < L.card) : LowHolonomyCorrelation supports g :=
+  laminar_low_correlation supports g hlam L hkL
+
+/-- **Cell-count composition, block product (proved): cell count multiplies over independent blocks.**  `m` blocks of
+`b` gates; `cellPatternCount (flatten) ≤ ∏ block cells`; `∏ < |L|` ⇒ low correlation. -/
+theorem cellcount_block_product {m b n : ℕ} (supports : Fin m → Fin b → Finset (Fin n))
+    (g : (Fin (m * b) → ℕ) → Bool) (L : Finset (Fin n))
+    (h : (∏ i, cellPatternCount (supports i) L) < L.card) :
+    LowHolonomyCorrelation (flatSupports supports) g :=
+  block_product_low_correlation supports g L h
+
 /-- **The cell-count lower bound, one socket (proved), beside `nframe_lower_bound`.**  For a class of holonomy-predictors,
 the *sharpest* cell-count socket implies the holonomy lower bound. -/
 theorem cellcount_lower_bound {ι : Type} {n : ℕ} (sys : PredictorClass ι n)
@@ -426,3 +447,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_route_one_socket
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_socket_is_weakest
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_lower_bound
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_laminar_fragment
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_block_product
