@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellCountRoute
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthManyGateCorrelation
 
 /-!
 # The refined (variable-fixing) observer model — restriction can merge patterns
@@ -48,6 +49,10 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0RefinedObserverModel
 open Finset
 open PallLean.Paper93.DeepMath.PathB.ACC0RankBridge
 open PallLean.Paper93.DeepMath.PathB.ACC0CellCountRoute
+open PallLean.Paper93.DeepMath.PathB.TwoGateCorrelation
+open PallLean.Paper93.DeepMath.PathB.ModQGateBalance
+open PallLean.Paper93.DeepMath.PathB.HolonomyBalanceFragments
+open PallLean.Paper93.DeepMath.PathB.ManyGateCorrelation
 
 variable {k n : ℕ}
 
@@ -140,8 +145,72 @@ theorem refined_strictly_beats_membership :
         Finset.card_singleton, show ({0, 1} : Finset (Fin 3)).card = 2 from by decide]
     norm_num
 
+/-! ## The refined correlation bridge — refined collapse ⇒ no correlation (via swap-invariance over active gates)
+
+The predictor reads the *restricted* gate statistics: inactive gates are constant (contribute nothing), and active
+gates' support-counts on the free assignment.  We package this as the **refined weight vector** (`weightOn` on active
+gates, `0` on inactive), and prove it is preserved by the off-diagonal swap of a refined-same-cell pair — so the
+generic involution bound (`low_correlation_of_pres`) bites exactly as in the membership model. -/
+
+/-- The **refined weight vector**: the support-count statistic on the *active* gates, `0` on inactive gates. -/
+def refinedWeightVec (ρ : Restriction n) (supports : Fin k → Finset (Fin n)) (x : Fin n → Bool) :
+    Fin k → ℕ :=
+  fun j => if GateActive ρ supports j then weightOn (supports j) x else 0
+
+/-- **Refined same-cell agreement on active gates (proved).**  Equal refined patterns force `v, w` to have the same
+membership on every *active* gate (they may differ on inactive ones). -/
+theorem refined_mem_of_eq (ρ : Restriction n) (supports : Fin k → Finset (Fin n)) (v w : Fin n)
+    (heq : refinedCellPatternVec ρ supports v = refinedCellPatternVec ρ supports w) (j : Fin k)
+    (ha : GateActive ρ supports j) : (v ∈ supports j ↔ w ∈ supports j) := by
+  have hj := congrFun heq j
+  simp only [refinedCellPatternVec] at hj
+  by_cases hv : v ∈ supports j <;> by_cases hw : w ∈ supports j
+  · exact iff_of_true hv hw
+  · rw [if_pos ⟨ha, hv⟩, if_neg (fun hc => hw hc.2)] at hj
+    exact absurd hj (by decide)
+  · rw [if_neg (fun hc => hv hc.2), if_pos ⟨ha, hw⟩] at hj
+    exact absurd hj (by decide)
+  · exact iff_of_false hv hw
+
+/-- **The refined weight vector is preserved by the off-diagonal swap of a refined-same-cell pair (proved).** -/
+theorem refinedWeightVec_pairSwap (ρ : Restriction n) (supports : Fin k → Finset (Fin n)) (v w : Fin n)
+    (hvw : v ≠ w) (heq : refinedCellPatternVec ρ supports v = refinedCellPatternVec ρ supports w)
+    (x : Fin n → Bool) (hoff : x v ≠ x w) :
+    refinedWeightVec ρ supports (pairSwap v w x) = refinedWeightVec ρ supports x := by
+  funext j
+  simp only [refinedWeightVec]
+  by_cases ha : GateActive ρ supports j
+  · rw [if_pos ha, if_pos ha]
+    exact weightOn_pairSwap_eq (supports j) v w hvw (refined_mem_of_eq ρ supports v w heq j ha) x hoff
+  · rw [if_neg ha, if_neg ha]
+
+/-- **Refined low correlation**: a holonomy support `D` and an off-diagonal axis on which the predictor `g ∘
+refinedWeightVec` agrees with the holonomy parity at most half the time. -/
+def RefinedLowCorrelation (ρ : Restriction n) (supports : Fin k → Finset (Fin n))
+    (g : (Fin k → ℕ) → Bool) : Prop :=
+  ∃ (D : Finset (Fin n)) (v w : Fin n), v ≠ w ∧
+    2 * (((Finset.univ : Finset (Fin n → Bool)).filter (fun x => x v ≠ x w)).filter
+          (fun x => g (refinedWeightVec ρ supports x) = fParity D x)).card
+      ≤ ((Finset.univ : Finset (Fin n → Bool)).filter (fun x => x v ≠ x w)).card
+
+/-- **The refined correlation bridge (proved): refined collapse ⇒ no correlation.**  A refined-same-cell pair gives an
+off-diagonal swap that preserves the refined statistic; the generic involution bound then defeats any predictor
+`g ∘ refinedWeightVec`.  This is the variable-fixing analogue of `cell_collapse_implies_low_holonomy_correlation`, now
+firing on cells that merge under restriction — which the membership model could not reach. -/
+theorem refinedCellCollapse_implies_refinedLowCorrelation (ρ : Restriction n)
+    (supports : Fin k → Finset (Fin n)) (g : (Fin k → ℕ) → Bool) (L : Finset (Fin n))
+    (h : RefinedCellCollapse ρ supports L) : RefinedLowCorrelation ρ supports g := by
+  obtain ⟨v, _, w, _, hne, heq⟩ := exists_sameRefinedCell_of_collapse ρ supports L h
+  exact ⟨{v}, v, w, hne,
+    low_correlation_of_pres (refinedWeightVec ρ supports) g {v} v w hne
+      (Finset.mem_singleton_self v)
+      (fun hmem => hne (Finset.mem_singleton.mp hmem).symm)
+      (fun x hoff => refinedWeightVec_pairSwap ρ supports v w hne heq x hoff)⟩
+
 end PallLean.Paper93.DeepMath.PathB.ACC0RefinedObserverModel
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0RefinedObserverModel.exists_sameRefinedCell_of_collapse
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0RefinedObserverModel.refined_merge_of_inactive_separators
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0RefinedObserverModel.refined_strictly_beats_membership
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0RefinedObserverModel.refinedWeightVec_pairSwap
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0RefinedObserverModel.refinedCellCollapse_implies_refinedLowCorrelation
