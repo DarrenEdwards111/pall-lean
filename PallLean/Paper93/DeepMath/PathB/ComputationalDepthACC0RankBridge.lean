@@ -134,8 +134,69 @@ theorem rank_collapse_low_correlation (supports : Fin k → Finset (Fin n)) (g :
   obtain ⟨v, w, hvw, hb⟩ := cellWitness_gives_low_correlation supports D g hwit
   exact ⟨D, v, w, hvw, hb⟩
 
+/-- **A cell pattern lies in the span of the surviving coordinate vectors (proved).**  For `v ∈ L`, the pattern
+`cellPatternVec v` vanishes off the surviving indices, so it is a combination of `{Pi.single j 1 : j surviving}`. -/
+theorem cellPatternVec_mem_survivorSpan (supports : Fin k → Finset (Fin n)) (L : Finset (Fin n))
+    {v : Fin n} (hv : v ∈ L) :
+    cellPatternVec supports v ∈ Submodule.span (ZMod 2)
+      (↑((Finset.univ.filter (fun j => ¬ Disjoint (supports j) L)).image
+        (fun j => Pi.single j (1 : ZMod 2))) : Set (Fin k → ZMod 2)) := by
+  set K := Finset.univ.filter (fun j => ¬ Disjoint (supports j) L) with hK
+  have heq : cellPatternVec supports v
+      = ∑ j ∈ K, cellPatternVec supports v j • Pi.single j (1 : ZMod 2) := by
+    funext j'
+    rw [Finset.sum_apply]
+    by_cases hj' : j' ∈ K
+    · rw [Finset.sum_eq_single_of_mem j' hj' (fun j _ hjne => by
+          rw [Pi.smul_apply, Pi.single_apply, if_neg (fun h => hjne h.symm), smul_zero])]
+      rw [Pi.smul_apply, Pi.single_apply, if_pos rfl, smul_eq_mul, mul_one]
+    · rw [Finset.sum_eq_zero (fun j hj => by
+          rw [Pi.smul_apply, Pi.single_apply, if_neg (by rintro rfl; exact hj' hj), smul_zero])]
+      have hvj' : v ∉ supports j' := fun hmem => hj' (by
+        rw [hK, Finset.mem_filter]
+        exact ⟨Finset.mem_univ _, Finset.not_disjoint_iff.mpr ⟨v, hmem, hv⟩⟩)
+      simp only [cellPatternVec, if_neg hvj']
+  rw [heq]
+  apply Submodule.sum_mem
+  intro j hj
+  apply Submodule.smul_mem
+  apply Submodule.subset_span
+  rw [Finset.mem_coe, Finset.mem_image]
+  exact ⟨j, hj, rfl⟩
+
+/-- **`cellRank ≤ survivingCount` (proved): the column rank is at most the row count.**  So the rank bridge strictly
+subsumes the survivor bridge. -/
+theorem cellRank_le_survivingCount (supports : Fin k → Finset (Fin n)) (L : Finset (Fin n)) :
+    cellRank supports L ≤ survivingCount supports L := by
+  have hle : cellSpan supports L ≤ Submodule.span (ZMod 2)
+      (↑((Finset.univ.filter (fun j => ¬ Disjoint (supports j) L)).image
+        (fun j => Pi.single j (1 : ZMod 2))) : Set (Fin k → ZMod 2)) := by
+    rw [cellSpan, Submodule.span_le]
+    intro p hp
+    rw [Finset.mem_coe, Finset.mem_image] at hp
+    obtain ⟨v, hv, rfl⟩ := hp
+    exact cellPatternVec_mem_survivorSpan supports L hv
+  calc cellRank supports L
+      ≤ Module.finrank (ZMod 2) (Submodule.span (ZMod 2)
+          (↑((Finset.univ.filter (fun j => ¬ Disjoint (supports j) L)).image
+            (fun j => Pi.single j (1 : ZMod 2))) : Set (Fin k → ZMod 2))) :=
+        Submodule.finrank_mono hle
+    _ ≤ ((Finset.univ.filter (fun j => ¬ Disjoint (supports j) L)).image
+          (fun j => Pi.single j (1 : ZMod 2))).card := finrank_span_finset_le_card _
+    _ ≤ (Finset.univ.filter (fun j => ¬ Disjoint (supports j) L)).card := Finset.card_image_le
+    _ = survivingCount supports L := rfl
+
+/-- **The survivor collapse implies the rank collapse (proved): the rank bridge subsumes the survivor bridge.** -/
+theorem survivor_collapse_implies_rank_collapse (supports : Fin k → Finset (Fin n))
+    (L : Finset (Fin n)) (h : 2 ^ survivingCount supports L < L.card) :
+    2 ^ cellRank supports L < L.card :=
+  lt_of_le_of_lt
+    (Nat.pow_le_pow_right (by norm_num) (cellRank_le_survivingCount supports L)) h
+
 end PallLean.Paper93.DeepMath.PathB.ACC0RankBridge
 
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0RankBridge.cellRank_le_survivingCount
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0RankBridge.survivor_collapse_implies_rank_collapse
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0RankBridge.cellPattern_image_card_le
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0RankBridge.exists_sameCell_pair_of_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0RankBridge.rank_collapse_low_correlation
