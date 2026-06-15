@@ -31,6 +31,24 @@ provably capped there. The single gap that remains is resistance against **all**
 **explicit** decision hardness above `n²/log n`, which appears in five equivalent forms, all `= P ≠ NP`, and which
 a proved gap theorem shows the action/space machinery cannot by itself reach.
 
+**The `ACC⁰` arc, and a finished `AC⁰` package.** A second, self‑contained line built the Yao–Beigel–Tarui /
+Razborov–Smolensky polynomial method *from scratch* in Lean and ran it to its exact ceiling. First it proved the
+obstruction is real: an exact unbounded‑fan‑in `OR`/`AND` over `F₂` has degree **= fan‑in** (`…ACC0ExactDegreeNoGo`),
+so no single exact low‑degree polynomial works — the only route is *approximate*‑then‑*decode*. That route was then
+built end to end: the balancedness of random `F₂` linear forms, degree‑`t` boosting (correct on a `1−2^{-t}`
+fraction), a self‑contained **finite Chernoff** + union‑bound sampling to a quasipolynomial majority‑correct family,
+and the **basis bridge** showing the boosted parity predictor *is* a low‑monomial‑`AND`‑degree object (its wide sets
+live in the degree‑1 *linear* part). On top, an unbounded‑fan‑in circuit datatype and the **depth induction** were
+formalized, yielding the **complete, quantitative `AC⁰` theorem**: *every `MOD`‑free circuit has an `F₂` approximant
+of degree `≤ t^depth` and error `≤ size·2^{-t}`* (`…ACC0QuantDegree`, `…ACC0QuantError`) — for `t = O(log size)` and
+constant depth, polylog degree and `<1/2` error, the textbook Razborov–Smolensky bound. This is **classical**
+(`AC⁰`/`AC⁰[2]`‑level: `PARITY ∉ AC⁰`, `MOD ∉ AC⁰[p]`), *not* new mathematics and *not* progress toward `P ≠ NP`; its
+value is a clean sorry‑free reconstruction. Crucially the construction *stops exactly where the method stops*: it
+extends to `MOD` only for **prime‑power** moduli (`MOD₂` done, `…ACC0Mod2Exact`), and **composite `MOD_m` has no
+low‑degree representation over any single field** — the genuine `ACC⁰` barrier, the same wall the rest of this corpus
+documents, and the reason `NEXP ⊄ ACC⁰` required Williams' algorithmic (separation‑strength) method rather than the
+polynomial method. So the `AC⁰` package is *finished*; the `ACC⁰` frontier is open mathematics, not Lean engineering.
+
 ---
 
 ## 1. Proved unconditionally
