@@ -70,6 +70,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0HeadLocation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TapeRewrite
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0EasyWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PhysicalStep
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalDecode
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -194,6 +195,8 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   ingredients = sockets (circuit complexity + nondet simulation). REDUCES separation to {IKW, guess-verify, hierarchy}. ─
    ── PHYSICAL STEP BASE: reachIn_one (one machine step = one concreteStep) + firing_rule_step PROVED — the atomic ─
    ──   brick of the universal machine. Full U (decode M from tape, assemble sub-machines in B steps) = the construction. ─
+   ── DECODE BRICK: encodeSim/decodeSim recover (M,c) from U's tape (round-trip, tape-encode + machineEquiv); ───────
+   ──   decoded_machine_steps wires decode→atomic step. Physical scan/parse + decode→step→re-encode loop = construction. ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -983,6 +986,14 @@ theorem physical_step_atom_frontier (M : ACC0ConcreteNTM.TMachine) (c d : ACC0Co
     ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM M) 1 c d ↔ ACC0ConcreteNTM.concreteStep M c d :=
   ACC0PhysicalStep.reachIn_one M c d
 
+/-- **The universal decode brick (proved): recover `(M, c)` from the tape.**  `decodeSim (encodeSim M c) = some (M, c)`
+— the universal machine extracts the simulated machine and configuration from its own tape (tape encoding +
+`machineEquiv`), then applies `M`'s step (`reachIn_one`).  The physical scan/parse as `U`-transitions, and the full
+decode→step→re-encode loop in `B` steps, remain the construction. -/
+theorem universal_decode_frontier (M : ACC0ConcreteNTM.TMachine) (c : ACC0ConcreteNTM.CConfig) :
+    ACC0UniversalDecode.decodeSim (ACC0UniversalDecode.encodeSim M c) = some (M, c) :=
+  ACC0UniversalDecode.decodeSim_encodeSim M c
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1392,6 +1403,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.tape_rewrite_write_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.easy_witness_collapse_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.physical_step_atom_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.universal_decode_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
