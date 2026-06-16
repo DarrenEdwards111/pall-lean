@@ -65,6 +65,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ConcreteNTM
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalNTM
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SimulationStep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TapeEncoding
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RuleLookup
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -176,6 +177,8 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ── TAPE LAYOUT: encodeTape/decodeTape faithful binary serialization of (code,config); decodeTape_encodeTape ────
    ──   round-trip + encodeTape_inj PROVED. The faithful encoding the physical step operates on; reading/rewriting ─
    ──   it as U-transitions in one simulated step = the remaining single-step socket. ──────────────────────────────
+   ── RULE-LOOKUP: matchingRules + concreteStep_iff_matching PROVED (step = pick matching rule & apply; scan ≤|M|). ─
+   ──   The lookup SPEC the physical scan sub-machine must meet; physical tape-scan as U-transitions = socket. ──────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -916,6 +919,16 @@ theorem tape_encoding_faithful_frontier (code : ℕ) (c : ACC0ConcreteNTM.CConfi
     ACC0TapeEncoding.decodeTape (ACC0TapeEncoding.encodeTape code c) = some (code, c) :=
   ACC0TapeEncoding.decodeTape_encodeTape code c
 
+/-- **The rule-lookup sub-machine is correct (proved): a step is "pick a matching rule and apply it".**  The lookup
+`matchingRules M c.1 (readSym c)` selects exactly the transitions that fire, so `concreteStep M c d ↔ ∃ t ∈
+matchingRules, d = applyTrans c t` — the contract the physical scan sub-machine must meet (scanning ≤ `M.length`
+rules).  The physical tape-scan realisation remains the socket. -/
+theorem rule_lookup_correct_frontier (M : ACC0ConcreteNTM.TMachine) (c d : ACC0ConcreteNTM.CConfig) :
+    ACC0ConcreteNTM.concreteStep M c d ↔
+      ∃ t ∈ ACC0RuleLookup.matchingRules M c.1 (ACC0ConcreteNTM.readSym c),
+        d = ACC0ConcreteNTM.applyTrans c t :=
+  ACC0RuleLookup.concreteStep_iff_matching M c d
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1320,6 +1333,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cTime_hierarchy_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.sim_overhead_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.tape_encoding_faithful_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rule_lookup_correct_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
