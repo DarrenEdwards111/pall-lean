@@ -48,6 +48,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTSizeRecurrence
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6ProbabilisticPolynomial
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ProbabilisticAmplification
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -114,7 +115,10 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   QuasipolyApproxCompression (probabilistic poly); union-bound error_union_bound/error_choice PROVED. ─
    ── PROB POLY: MOD gates EXACT low-degree (mod3_indicator 1−a²/F₃ deg2, NO probabilism). RS core PROVED: ─
    ──   linear_form_balance p·#{⟨r,v⟩=0}=p^m (random form vanishes w.p. 1/p) ⇒ OR probabilistic poly deg ──
-   ──   p−1, error 1/p (orPoly_error). Open = amplification (1/p)^t + quasipoly assembly = AmplifiedErrorSocket. ─
+   ──   p−1, error 1/p (orPoly_error). ───────────────────────────────────────────────────────────────────
+   ── AMPLIFICATION PROVED: t independent forms vanish w.p. (1/p)^t — amplified_form_balance p^t·#{joint}= ─
+   ──   p^(m·t); amplified OR poly deg t(p−1) error (1/p)^t. Open = substitute thru const depth + read off ─
+   ──   quasipoly SYM∘AND = QuasipolyApproxCompression (only the circuit-substitution bookkeeping remains). ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -297,6 +301,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0SymAndComposition
 open PallLean.Paper93.DeepMath.PathB.ACC0MiniBTTwoCount
 open PallLean.Paper93.DeepMath.PathB.ACC0BTSizeRecurrence
 open PallLean.Paper93.DeepMath.PathB.ACC0Mod6ProbabilisticPolynomial
+open PallLean.Paper93.DeepMath.PathB.ACC0ProbabilisticAmplification
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -632,6 +637,17 @@ theorem rs_linear_form_balance_frontier {p m : ℕ} [Fact p.Prime]
     (v : Fin m → ZMod p) (hv : v ≠ 0) :
     p * (Finset.univ.filter (fun r : Fin m → ZMod p => (∑ i, r i * v i) = 0)).card = p ^ m :=
   ACC0Mod6ProbabilisticPolynomial.linear_form_balance v hv
+
+/-- **Razborov–Smolensky amplification, proved: error `1/p → (1/p)^t` via `t` independent forms.**  For `v ≠ 0`, all
+`t` independent linear forms vanish on `v` for an exact `(1/p)^t` fraction of `R`: `p^t · #{R : ∀ s, ⟨R s,v⟩ = 0} =
+p^{m·t}` (the joint vanishing set is the `t`-fold product of the single-form set).  Hence the amplified `OR` polynomial
+of degree `t·(p-1)` has error exactly `(1/p)^t` (`amplifiedOrPoly_error`).  Choosing `t = O(log_p s)` with the union
+bound `error_union_bound` keeps a size-`s` circuit's total error `< 1/10`. -/
+theorem rs_amplification_frontier {p m : ℕ} [Fact p.Prime] (v : Fin m → ZMod p) (hv : v ≠ 0)
+    (t : ℕ) :
+    p ^ t * (Finset.univ.filter
+        (fun R : Fin t → (Fin m → ZMod p) => ∀ s, (∑ i, R s i * v i) = 0)).card = p ^ (m * t) :=
+  ACC0ProbabilisticAmplification.amplified_form_balance v hv t
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
@@ -1018,6 +1034,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.miniBT_two_count_collapse_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.bt_exact_fold_exponential_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rs_linear_form_balance_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rs_amplification_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
