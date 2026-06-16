@@ -72,6 +72,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0EasyWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PhysicalStep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalDecode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GuessVerify
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GuessVerifyTime
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -200,6 +201,8 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   decoded_machine_steps wires decode→atomic step. Physical scan/parse + decode→step→re-encode loop = construction. ─
    ── GUESS-VERIFY: gvDecider_eq PROVED — guess-and-verify decider decides exactly L (small witnesses lose nothing); ─
    ──   guessVerify_subset: decider∈NTIME2nFast ⇒ NTIME2n⊆NTIME2nFast (glue). Socket = the decider's complexity bound. ─
+   ── GV-TIME: acceptsWithin_compose / guess_verify_within PROVED — guess+verify ADDITIVE in time (reachIn_add), ──────
+   ──   within budget ⇒ accepts within target. Complexity socket reduced to 2 phase budgets (guess poly, verify fast-SAT). ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1007,6 +1010,18 @@ theorem guess_verify_correct_frontier (L : ACC0WilliamsMetaTheorem.Lang)
     ACC0GuessVerify.gvDecider V decode x ↔ L x :=
   ACC0GuessVerify.gvDecider_eq L V decode hw hs x
 
+/-- **The guess-and-verify time bound (proved): guess + verify is additive, within budget.**  A machine reaching the
+intermediate config in `guessT` steps and accepting within `verifyT`, with `guessT + verifyT ≤ target`, accepts within
+`target` (via `reachIn_add`).  This reduces the decider's complexity socket to the two phase budgets (guess `poly`,
+verify `2ⁿ/superpoly` via fast SAT); the time composition is proved. -/
+theorem guess_verify_time_frontier (M : ACC0NTM.NTM) (x : List Bool) (guessT verifyT target : ℕ)
+    (mid : M.Config)
+    (hguess : ACC0NTM.reachIn M guessT (M.init x) mid)
+    (hverify : ACC0GuessVerifyTime.acceptsFrom M mid verifyT)
+    (hbudget : guessT + verifyT ≤ target) :
+    ACC0NTM.acceptsWithin M x target :=
+  ACC0GuessVerifyTime.guess_verify_within M x guessT verifyT target mid hguess hverify hbudget
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1418,6 +1433,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.physical_step_atom_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.universal_decode_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.guess_verify_correct_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.guess_verify_time_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
