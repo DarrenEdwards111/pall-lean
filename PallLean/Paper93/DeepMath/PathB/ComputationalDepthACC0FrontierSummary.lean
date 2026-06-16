@@ -71,6 +71,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TapeRewrite
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0EasyWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PhysicalStep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalDecode
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GuessVerify
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -197,6 +198,8 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   brick of the universal machine. Full U (decode M from tape, assemble sub-machines in B steps) = the construction. ─
    ── DECODE BRICK: encodeSim/decodeSim recover (M,c) from U's tape (round-trip, tape-encode + machineEquiv); ───────
    ──   decoded_machine_steps wires decode→atomic step. Physical scan/parse + decode→step→re-encode loop = construction. ─
+   ── GUESS-VERIFY: gvDecider_eq PROVED — guess-and-verify decider decides exactly L (small witnesses lose nothing); ─
+   ──   guessVerify_subset: decider∈NTIME2nFast ⇒ NTIME2n⊆NTIME2nFast (glue). Socket = the decider's complexity bound. ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -994,6 +997,16 @@ theorem universal_decode_frontier (M : ACC0ConcreteNTM.TMachine) (c : ACC0Concre
     ACC0UniversalDecode.decodeSim (ACC0UniversalDecode.encodeSim M c) = some (M, c) :=
   ACC0UniversalDecode.decodeSim_encodeSim M c
 
+/-- **Guess-and-verify is correct (proved): the decider decides exactly `L`.**  `gvDecider V decode x ↔ L x` — guessing
+only small (circuit-described) witnesses loses nothing.  Hence (`guessVerify_subset`) if every `NTIME2n` language has a
+verifier whose guess-and-verify decider lies in `NTIME2nFast`, then `NTIME2n ⊆ NTIME2nFast`.  The remaining socket is
+that complexity bound (guess `poly` + verify `2ⁿ/superpoly` via fast SAT). -/
+theorem guess_verify_correct_frontier (L : ACC0WilliamsMetaTheorem.Lang)
+    (V : List Bool → List Bool → Prop) (decode : List Bool → List Bool)
+    (hw : ACC0GuessVerify.HasWitness L V) (hs : ACC0GuessVerify.SmallWitnessRed V decode) (x : List Bool) :
+    ACC0GuessVerify.gvDecider V decode x ↔ L x :=
+  ACC0GuessVerify.gvDecider_eq L V decode hw hs x
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1404,6 +1417,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.easy_witness_collapse_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.physical_step_atom_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.universal_decode_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.guess_verify_correct_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
