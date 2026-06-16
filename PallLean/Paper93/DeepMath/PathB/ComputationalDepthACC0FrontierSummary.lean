@@ -50,6 +50,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTSizeRecurrence
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6ProbabilisticPolynomial
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ProbabilisticAmplification
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitSubstitution
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SparsePolyReadoff
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -121,7 +122,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   p^(m·t); amplified OR poly deg t(p−1) error (1/p)^t. Open = substitute thru const depth + read off ─
    ──   quasipoly SYM∘AND = QuasipolyApproxCompression (only the circuit-substitution bookkeeping remains). ─
    ── SUBSTITUTION PROVED: circuit_error_bound — for circuit model Circ (inp/cst/una/bin), hybrid union bound ─
-   ──   #{P c ≠ eval c} ≤ size c · ε from per-gate local error ≤ ε. Only the poly→SYM∘AND read-off socketed. ─
+   ──   #{P c ≠ eval c} ≤ size c · ε from per-gate local error ≤ ε. ──────────────────────────────────────
+   ── READ-OFF PROVED: sparse_readoff — deg≤D sparse poly cube sum ∑ₓ = ∑_{S} c_S·2^{n-|S|} over ≤(n+1)^D ─
+   ──   features (sparse_cube_sum + Beigel-Tarui) = sub-2^n SAT count. Only multilinearisation gap socketed. ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -665,6 +668,19 @@ theorem circuit_substitution_error_frontier {n : ℕ}
       ≤ ACC0CircuitSubstitution.size c * ε :=
   ACC0CircuitSubstitution.circuit_error_bound P ε H c
 
+/-- **The read-off, proved: a degree-`≤ D` sparse polynomial's cube sum is a sub-`2^n` count over `≤ (n+1)^D`
+features.**  `∑ₓ sparsePoly 𝒮 c x = ∑_{S∈𝒮} c S · 2^{n-|S|}` with `𝒮.card ≤ (n+1)^D` (`sparse_cube_sum` +
+Beigel–Tarui) — the acceptance count is computed from quasipolynomially many feature weights, the Williams
+`ACC⁰`-`SAT` speedup input.  The one remaining gap is the multilinearisation of the circuit-substitution approximant
+into this sparse form. -/
+theorem sparse_readoff_frontier {n : ℕ} {R : Type*} [CommRing R]
+    (𝒮 : Finset (Finset (Fin n))) (c : Finset (Fin n) → R) {D : ℕ}
+    (h𝒮 : 𝒮 ⊆ Layer3.lowDegMonomials n D) :
+    (∑ x : Fin n → Bool, ACC0SparsePolyReadoff.sparsePoly 𝒮 c x)
+        = ∑ S ∈ 𝒮, c S * (2 : R) ^ (n - S.card)
+      ∧ 𝒮.card ≤ (n + 1) ^ D :=
+  ACC0SparsePolyReadoff.sparse_readoff 𝒮 c h𝒮
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1052,6 +1068,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rs_linear_form_balance_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rs_amplification_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.circuit_substitution_error_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.sparse_readoff_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
