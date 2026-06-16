@@ -74,6 +74,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalDecode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GuessVerify
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GuessVerifyTime
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeBTCapstone
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GuessVerifyBudgets
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -207,6 +208,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ── COMPOSITE-BT CAPSTONE: compositeBT_representation PROVED — aeval-composed circuit poly ⇒ degree ≤δ^{depth+1}, ─
    ──   ≤(n+1)^{δ^{depth+1}} features, sparse cube count = QUASIPOLY LOW-DEGREE SPARSE REP. Assumptions explicit ──────
    ──   (gate-poly degrees + aeval composition). The cleanest remaining ACC⁰-side packaging, done. ───────────────────
+   ── GV-BUDGET CLOSURE: guess_verify_fits PROVED — both phases ≤ b (=feature count (n+1)^{δ^depth}), 2b≤target ⇒ ────
+   ──   acceptsWithin target. Verify time = quasipoly feature count. Remaining sockets = 2 phase machines (guess ──────
+   ──   poly, verify=enumerate-features=fast ACC⁰-SAT). The complexity budget closure proved; verify machine socketed. ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1047,6 +1051,18 @@ theorem composite_bt_representation_frontier {n : ℕ} {R : Type*} [CommRing R]
           = ∑ d ∈ (Q c).support, (Q c).coeff d * (2 : R) ^ (n - d.support.card) :=
   ACC0CompositeBTCapstone.compositeBT_representation Q gu gb δ hδ hinp hcst hgu hgb huna_eq hbin_eq c
 
+/-- **The guess-and-verify budget closure (proved).**  With both phases within the feature-count bound `b` and
+`2·b ≤ target`, the decider accepts within `target`.  Instantiating `b = (n+1)^{δ^{depth+1}}` (the composite-BT feature
+count), the verify time is quasipolynomial; the remaining sockets are the two physical phase machines (guess `poly`,
+verify = enumerate features = fast `ACC⁰`-SAT). -/
+theorem guess_verify_budget_frontier (M : ACC0NTM.NTM) (x : List Bool) (guessT verifyT b target : ℕ)
+    (mid : M.Config)
+    (hguess : ACC0NTM.reachIn M guessT (M.init x) mid)
+    (hverify : ACC0GuessVerifyTime.acceptsFrom M mid verifyT)
+    (hg : guessT ≤ b) (hv : verifyT ≤ b) (hcal : 2 * b ≤ target) :
+    ACC0NTM.acceptsWithin M x target :=
+  ACC0GuessVerifyBudgets.guess_verify_fits M x guessT verifyT b target mid hguess hverify hg hv hcal
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1460,6 +1476,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.guess_verify_correct_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.guess_verify_time_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.composite_bt_representation_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.guess_verify_budget_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
