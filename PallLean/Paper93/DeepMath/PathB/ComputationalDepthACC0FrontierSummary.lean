@@ -73,6 +73,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PhysicalStep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalDecode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GuessVerify
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GuessVerifyTime
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeBTCapstone
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -203,6 +204,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   guessVerify_subset: decider∈NTIME2nFast ⇒ NTIME2n⊆NTIME2nFast (glue). Socket = the decider's complexity bound. ─
    ── GV-TIME: acceptsWithin_compose / guess_verify_within PROVED — guess+verify ADDITIVE in time (reachIn_add), ──────
    ──   within budget ⇒ accepts within target. Complexity socket reduced to 2 phase budgets (guess poly, verify fast-SAT). ─
+   ── COMPOSITE-BT CAPSTONE: compositeBT_representation PROVED — aeval-composed circuit poly ⇒ degree ≤δ^{depth+1}, ─
+   ──   ≤(n+1)^{δ^{depth+1}} features, sparse cube count = QUASIPOLY LOW-DEGREE SPARSE REP. Assumptions explicit ──────
+   ──   (gate-poly degrees + aeval composition). The cleanest remaining ACC⁰-side packaging, done. ───────────────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1022,6 +1026,27 @@ theorem guess_verify_time_frontier (M : ACC0NTM.NTM) (x : List Bool) (guessT ver
     ACC0NTM.acceptsWithin M x target :=
   ACC0GuessVerifyTime.guess_verify_within M x guessT verifyT target mid hguess hverify hbudget
 
+/-- **Composite Beigel–Tarui capstone (proved): the quasipolynomial low-degree sparse representation, packaged.**  An
+`aeval`-composed circuit polynomial `Q c` from degree-`≤ δ` gate polynomials has total degree `≤ δ^{depth+1}`,
+`≤ (n+1)^{δ^{depth+1}}` distinct monomial-supports, and a sparse cube count.  The cleanest remaining ACC⁰-side target,
+assembled from the proved approximation machinery (assumptions explicit: gate-poly degrees + `aeval` composition). -/
+theorem composite_bt_representation_frontier {n : ℕ} {R : Type*} [CommRing R]
+    (Q : ACC0CircuitSubstitution.Circ n → MvPolynomial (Fin n) R)
+    (gu : (Bool → Bool) → MvPolynomial (Fin 1) R) (gb : (Bool → Bool → Bool) → MvPolynomial (Fin 2) R)
+    (δ : ℕ) (hδ : 1 ≤ δ)
+    (hinp : ∀ i, (Q (.inp i)).totalDegree ≤ δ) (hcst : ∀ b, (Q (.cst b)).totalDegree ≤ δ)
+    (hgu : ∀ f, (gu f).totalDegree ≤ δ) (hgb : ∀ g, (gb g).totalDegree ≤ δ)
+    (huna_eq : ∀ f c, Q (.una f c) = aeval ![Q c] (gu f))
+    (hbin_eq : ∀ g a b, Q (.bin g a b) = aeval ![Q a, Q b] (gb g))
+    (c : ACC0CircuitSubstitution.Circ n) :
+    (Q c).totalDegree ≤ δ ^ (ACC0LowDegreeSubstitution.depth c + 1)
+      ∧ ((Q c).support.image (fun d => d.support)).card
+          ≤ (n + 1) ^ (δ ^ (ACC0LowDegreeSubstitution.depth c + 1))
+      ∧ (∑ x : Fin n → Bool,
+            MvPolynomial.eval (fun i => (ACC0Multilinearisation.boolVal (x i) : R)) (Q c))
+          = ∑ d ∈ (Q c).support, (Q c).coeff d * (2 : R) ^ (n - d.support.card) :=
+  ACC0CompositeBTCapstone.compositeBT_representation Q gu gb δ hδ hinp hcst hgu hgb huna_eq hbin_eq c
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1434,6 +1459,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.universal_decode_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.guess_verify_correct_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.guess_verify_time_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.composite_bt_representation_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
