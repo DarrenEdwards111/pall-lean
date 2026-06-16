@@ -63,6 +63,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NTM
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TimeHierarchyDiagonal
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ConcreteNTM
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalNTM
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SimulationStep
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -168,6 +169,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ── UNIVERSAL INTERP: univStep ⟨M⟩ = concreteStep M (exact, no overhead at relation level). enum_covers PROVED ─
    ──   (cNTIME f enumerable via machineEquiv) — ONE hierarchy socket DISCHARGED. cTime_hierarchy now rests on a ──
    ──   SINGLE socket diag_in_big (diagonal decidable in bigger bound = physical sim+overhead, the last deep step). ─
+   ── SINGLE-STEP SIM: sim_multi (k M-steps = k·B U-steps, induction+reachIn_add) + sim_acceptsWithin (M accepts ─
+   ──   within t ⇒ U within t·B) PROVED — overhead LINEAR in steps. Remaining socket = the physical single step ──
+   ──   (construct U's transition table: decode rule, find head, rewrite simulated tape) = next deep TM construction. ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -887,6 +891,19 @@ theorem cTime_hierarchy_frontier (f g : ℕ → ℕ)
     ACC0UniversalNTM.cConcreteHierarchy f g :=
   ACC0UniversalNTM.cTime_hierarchy f g diag_in_big
 
+/-- **The single-step simulation lemma's payoff (proved): simulation overhead is linear in steps.**  Given the
+single-step property (`hstep`: one `M`-step `= B` `U`-steps on encoded configs) and an encoding carrying initial/accept
+configs, `M` accepting within `t` gives `U` accepting within `t·B` — the overhead bound `diag_in_big` needs.  The
+single physical step (constructing `U`'s transition table) remains the socket. -/
+theorem sim_overhead_frontier (M : ACC0ConcreteNTM.TMachine) (U : ACC0NTM.NTM)
+    (enc : ACC0ConcreteNTM.CConfig → U.Config) (B : ℕ)
+    (hstep : ∀ c d, ACC0ConcreteNTM.concreteStep M c d → ACC0NTM.reachIn U B (enc c) (enc d))
+    (hinit : ∀ x, enc ((ACC0ConcreteNTM.toNTM M).init x) = U.init x)
+    (haccept : ∀ c, (ACC0ConcreteNTM.toNTM M).accept c → U.accept (enc c))
+    (x : List Bool) (t : ℕ) :
+    ACC0NTM.acceptsWithin (ACC0ConcreteNTM.toNTM M) x t → ACC0NTM.acceptsWithin U x (t * B) :=
+  ACC0SimulationStep.sim_acceptsWithin M U enc B hstep hinit haccept x t
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1289,6 +1306,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.concrete_ntm_enumerable_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.enum_covers_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cTime_hierarchy_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.sim_overhead_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
