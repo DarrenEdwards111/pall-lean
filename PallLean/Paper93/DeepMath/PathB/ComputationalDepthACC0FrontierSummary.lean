@@ -34,6 +34,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymLayerReduction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LevelCounts
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ElementarySymmetric
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BinomialInversion
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BeigelTaruiSparsity
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -120,10 +121,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  binomial moments ↔ level counts (N_t bridge)  PROVED   level_counts_from_binomial_moments  (…ACC0LevelCounts)
  e_d-sparsity (moment = sparse d-subset sum)   PROVED   moment_integrand_is_sparse          (…ACC0ElementarySymmetric)
  binomial inversion (N_t = alt-sum of moments) PROVED   level_count_eq_alternating_moments  (…ACC0BinomialInversion)
+ Beigel-Tarui sparsity COUNT (≤ (n+1)^D)       PROVED   beigel_tarui_monomial_count         (…ACC0BeigelTaruiSparsity)
  ── OPEN input: counting socket (rep ⇒ sub-2ⁿ ACC⁰-SAT). PROVED: rep half, sparse cube-sum kernel, ──────
- ──   SYM-layer reduction (SAT ⟺ k+1 levels), moments↔levels bridge, e_d-sparsity, binomial inversion. ──
- ──   The N_t are now an explicit alternating sum of kernel-computable sparse moments. SOLE remaining ───
- ──   input: Beigel-Tarui quasipoly #monomials bound for ACC⁰; then williams collapse + time hierarchy. ─
+ ──   SYM-layer reduction, moments↔levels, e_d-sparsity, binomial inversion, BT count (#mon ≤ (n+1)^D). ─
+ ──   AC⁰[p] degree D=((p-1)t)^depth PROVED (RS layer) ⇒ AC⁰[p] is (n+1)^D-sparse (quasipoly). SOLE ──────
+ ──   deep open: composite-ACC⁰ DEGREE bound (Yao/Beigel-Tarui symmetric rep); then williams + hierarchy. ─
  ── Dynamic N-frame: the BOUNDARY selects the observer (unification of all routes) ───────────────────────
  boundary selects observer (absorbing⟺AND/OR)  PROVED   boundary_selects_absorbing_iff_andOr (…ACC0BoundaryObserverControl)
  ──   AND/OR→absorbing (refined collapses); MOD→linearResidual (=membership, bounded)→polynomialSpan ─────
@@ -235,6 +237,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0SymLayerReduction
 open PallLean.Paper93.DeepMath.PathB.ACC0LevelCounts
 open PallLean.Paper93.DeepMath.PathB.ACC0ElementarySymmetric
 open PallLean.Paper93.DeepMath.PathB.ACC0BinomialInversion
+open PallLean.Paper93.DeepMath.PathB.ACC0BeigelTaruiSparsity
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -765,6 +768,13 @@ theorem level_count_eq_alternating_moments {n k : ℕ} (gates : Fin k → Finset
           * (∑ x : Fin n → Bool, ((ACC0SymLayerReduction.andCount gates x).choose d : ℤ)) :=
   levelCount_eq_inversion gates s hsk
 
+/-- **Beigel–Tarui sparsity, count half (proved): the `SYM∘AND` monomial count is quasipolynomial.**  A degree-`≤D`
+representation uses `≤ (n+1)^D` monomial-`AND` gates — sub-`2ⁿ` / quasipolynomial for `D = polylog`.  (The degree half
+is proved for `AC⁰[p]` in the RS layer; general composite `ACC⁰` is the deep open Yao/Beigel–Tarui content.) -/
+theorem beigel_tarui_monomial_count {n D : ℕ} :
+    (Layer3.lowDegMonomials n D).card ≤ (n + 1) ^ D :=
+  beigelTarui_monomial_count_le n D
+
 /-- **The cell-count lower bound, one socket (proved), beside `nframe_lower_bound`.**  For a class of holonomy-predictors,
 the *sharpest* cell-count socket implies the holonomy lower bound. -/
 theorem cellcount_lower_bound {ι : Type} {n : ℕ} (sys : PredictorClass ι n)
@@ -828,3 +838,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.level_counts_from_binomial_moments
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.moment_integrand_is_sparse
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.level_count_eq_alternating_moments
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.beigel_tarui_monomial_count
