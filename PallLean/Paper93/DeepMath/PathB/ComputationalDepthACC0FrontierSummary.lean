@@ -44,6 +44,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankShrinkWall
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TriAspectBoundary
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeBTTarget
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -99,6 +100,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   ZMod6≃+*ZMod2×ZMod3 is the faithful integer/symmetric replacement. Quasipoly SYM∘AND rep = socket. ─
    ── DEPTH-2 base case PROVED: mod6_depth2_residue_pair — MOD₆∘AND accepts iff satCount≡0 mod 2 AND mod 3 ─
    ──   (exact SYM∘AND = mod6Sym∘satCount; size ≤(n+1)^D). Open = composition/blow-up to general ACC⁰. ────
+   ── COMPOSITION: NOT/shared-layer AND-OR/coprime-CRT (a·b∣m↔a∣m∧b∣m) all COMPOSE (proved); cross-layer ─
+   ──   AND/OR → joint TWO-count rep (proved). Collapse joint→single quasipoly SYM∘AND = MiniBTCollapse ──
+   ──   (the wall; exact form too strong, real = quasipoly relaxation, NOT proved). MiniBT ⟹ AND-closure. ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -277,6 +281,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0RankShrinkWall
 open PallLean.Paper93.DeepMath.PathB.ACC0TriAspectBoundary
 open PallLean.Paper93.DeepMath.PathB.ACC0CompositeBT
 open PallLean.Paper93.DeepMath.PathB.ACC0Mod6SymAndDepth2
+open PallLean.Paper93.DeepMath.PathB.ACC0SymAndComposition
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -571,6 +576,19 @@ theorem mod6_depth2_residue_pair_frontier {n t : ℕ} (supports : Fin t → Fins
       ((ACC0Mod6SymAndDepth2.satCount supports x : ZMod 2) = 0
         ∧ (ACC0Mod6SymAndDepth2.satCount supports x : ZMod 3) = 0) :=
   mod6_depth2_residue_pair supports x
+
+/-- **The `SYM∘AND` composition lemma, split into proved closures and the one socket (proved conditional).**  The
+composite residue observer composes under everything that does not raise the count dimension — `NOT`
+(`hasSymAndRep_not`), shared-layer `AND`/`OR` (`hasSymAndRep_and_sharedLayer`), and cross-modulus CRT
+(`residue_observer_compose_coprime`: `a*b ∣ m ↔ a∣m ∧ b∣m` for coprime `a,b`).  Cross-layer `AND`/`OR` lands in a
+*joint two-count* representation (`hasBinarySymRep_and`); collapsing that back to a single quasipolynomial `SYM∘AND` is
+the mini-Beigel–Tarui wall (`MiniBTCollapse`, NOT proved).  This re-export is the precise conditional: the mini-`BT`
+collapse ⟹ closure of the composite observer under `AND`. -/
+theorem symAnd_composition_closure_frontier {n : ℕ} (hBT : ACC0SymAndComposition.MiniBTCollapse n)
+    {F G : (Fin n → Bool) → Bool}
+    (hF : ACC0SymAndComposition.HasSymAndRep F) (hG : ACC0SymAndComposition.HasSymAndRep G) :
+    ACC0SymAndComposition.HasSymAndRep (fun x => F x && G x) :=
+  symAndRep_closed_under_and_of_miniBT hBT hF hG
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
@@ -953,6 +971,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.tri_aspect_redirect_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.composite_mod6_field_failure_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.mod6_depth2_residue_pair_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.symAnd_composition_closure_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
