@@ -32,6 +32,8 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ControlShrinkage
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SparseCounting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymLayerReduction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LevelCounts
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ElementarySymmetric
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BinomialInversion
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -116,10 +118,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  sparse-counting kernel (cube-sum=Σc_S·2^{n-|S|}) PROVED  sparse_symand_cube_sum              (…ACC0SparseCounting)
  SYM-layer reduction (SAT ⟺ over k+1 levels)   PROVED   symand_sat_decided_by_levels        (…ACC0SymLayerReduction)
  binomial moments ↔ level counts (N_t bridge)  PROVED   level_counts_from_binomial_moments  (…ACC0LevelCounts)
- ── OPEN inputs: counting socket (rep ⇒ sub-2ⁿ ACC⁰-SAT). PROVED so far: rep half, sparse cube-sum ───────
- ──   kernel, SYM-layer reduction (SAT ⟺ k+1 levels), moments↔levels bridge (N_t = triangular inversion ─
- ──   of computable moments). Remaining: explicit inversion + e_d-sparsity + Beigel-Tarui #monomials ────
- ──   bound; then williams collapse + time hierarchy. F_p ceiling: real PARITY/MOD_p∉AC⁰[p]. ─────────────
+ e_d-sparsity (moment = sparse d-subset sum)   PROVED   moment_integrand_is_sparse          (…ACC0ElementarySymmetric)
+ binomial inversion (N_t = alt-sum of moments) PROVED   level_count_eq_alternating_moments  (…ACC0BinomialInversion)
+ ── OPEN input: counting socket (rep ⇒ sub-2ⁿ ACC⁰-SAT). PROVED: rep half, sparse cube-sum kernel, ──────
+ ──   SYM-layer reduction (SAT ⟺ k+1 levels), moments↔levels bridge, e_d-sparsity, binomial inversion. ──
+ ──   The N_t are now an explicit alternating sum of kernel-computable sparse moments. SOLE remaining ───
+ ──   input: Beigel-Tarui quasipoly #monomials bound for ACC⁰; then williams collapse + time hierarchy. ─
  ── Dynamic N-frame: the BOUNDARY selects the observer (unification of all routes) ───────────────────────
  boundary selects observer (absorbing⟺AND/OR)  PROVED   boundary_selects_absorbing_iff_andOr (…ACC0BoundaryObserverControl)
  ──   AND/OR→absorbing (refined collapses); MOD→linearResidual (=membership, bounded)→polynomialSpan ─────
@@ -229,6 +233,8 @@ open PallLean.Paper93.DeepMath.PathB.ACC0ControlShrinkage
 open PallLean.Paper93.DeepMath.PathB.ACC0SparseCounting
 open PallLean.Paper93.DeepMath.PathB.ACC0SymLayerReduction
 open PallLean.Paper93.DeepMath.PathB.ACC0LevelCounts
+open PallLean.Paper93.DeepMath.PathB.ACC0ElementarySymmetric
+open PallLean.Paper93.DeepMath.PathB.ACC0BinomialInversion
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -743,6 +749,22 @@ theorem level_counts_from_binomial_moments {n k : ℕ} (gates : Fin k → Finset
       = ∑ t ∈ Finset.range (k + 1), ACC0SymLayerReduction.levelCount gates t * t.choose d :=
   binomial_moment_eq_sum_levels gates d
 
+/-- **The `e_d`-sparsity identity (proved): each moment integrand is a sparse `d`-subset sum.**
+`C(∑_j b_j, d) = Σ_{|T|=d} ∏_{j∈T} b_j` for `0/1` values — making each binomial moment a kernel-computable sparse sum. -/
+theorem moment_integrand_is_sparse {k : ℕ} (b : Fin k → ℕ) (hb : ∀ j, b j ≤ 1) (d : ℕ) :
+    (∑ j, b j).choose d = ∑ T ∈ Finset.powersetCard d Finset.univ, ∏ j ∈ T, b j :=
+  boolean_esymm b hb d
+
+/-- **Binomial inversion (proved): the level-counts are an alternating sum of the binomial moments.**
+`(N_s : ℤ) = Σ_d (-1)^{d-s} C(d,s) · (∑_x C(andCount x, d))` — recovers each `N_t` explicitly from the
+kernel-computable moments. -/
+theorem level_count_eq_alternating_moments {n k : ℕ} (gates : Fin k → Finset (Fin n)) (s : ℕ)
+    (hsk : s ≤ k) :
+    (ACC0SymLayerReduction.levelCount gates s : ℤ)
+      = ∑ d ∈ Finset.range (k + 1), ((-1 : ℤ)) ^ (d - s) * (d.choose s : ℤ)
+          * (∑ x : Fin n → Bool, ((ACC0SymLayerReduction.andCount gates x).choose d : ℤ)) :=
+  levelCount_eq_inversion gates s hsk
+
 /-- **The cell-count lower bound, one socket (proved), beside `nframe_lower_bound`.**  For a class of holonomy-predictors,
 the *sharpest* cell-count socket implies the holonomy lower bound. -/
 theorem cellcount_lower_bound {ι : Type} {n : ℕ} (sys : PredictorClass ι n)
@@ -804,3 +826,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.sparse_symand_cube_sum
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.symand_sat_decided_by_levels
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.level_counts_from_binomial_moments
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.moment_integrand_is_sparse
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.level_count_eq_alternating_moments
