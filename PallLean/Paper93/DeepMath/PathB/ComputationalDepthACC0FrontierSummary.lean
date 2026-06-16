@@ -45,6 +45,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TriAspectBoundary
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeBTTarget
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -103,6 +104,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ── COMPOSITION: NOT/shared-layer AND-OR/coprime-CRT (a·b∣m↔a∣m∧b∣m) all COMPOSE (proved); cross-layer ─
    ──   AND/OR → joint TWO-count rep (proved). Collapse joint→single quasipoly SYM∘AND = MiniBTCollapse ──
    ──   (the wall; exact form too strong, real = quasipoly relaxation, NOT proved). MiniBT ⟹ AND-closure. ─
+   ── CORRECTION: MiniBTCollapse PROVED exactly (mixed-radix c⋆=(t₂+1)·c₁+c₂); SYM∘AND closed under AND/OR ─
+   ──   UNCONDITIONALLY. The real wall = MULTIPLICATIVE size blow-up t₁·(t₂+1)+t₂ → tower over depth, not ──
+   ──   impossibility. Global quasipoly rep over depth still needs probabilistic polynomials (= the socket). ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -282,6 +286,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0TriAspectBoundary
 open PallLean.Paper93.DeepMath.PathB.ACC0CompositeBT
 open PallLean.Paper93.DeepMath.PathB.ACC0Mod6SymAndDepth2
 open PallLean.Paper93.DeepMath.PathB.ACC0SymAndComposition
+open PallLean.Paper93.DeepMath.PathB.ACC0MiniBTTwoCount
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -589,6 +594,15 @@ theorem symAnd_composition_closure_frontier {n : ℕ} (hBT : ACC0SymAndCompositi
     (hF : ACC0SymAndComposition.HasSymAndRep F) (hG : ACC0SymAndComposition.HasSymAndRep G) :
     ACC0SymAndComposition.HasSymAndRep (fun x => F x && G x) :=
   symAndRep_closed_under_and_of_miniBT hBT hF hG
+
+/-- **The two-count mini-`BT` collapse is PROVED exactly (correcting the earlier guess).**  `MiniBTCollapse` holds via
+a mixed-radix encoding (`c⋆ = (t₂+1)·c₁ + c₂`), so `SYM∘AND` is *unconditionally* closed under `AND`/`OR`
+(`ACC0MiniBTTwoCount.hasSymAndRep_and`).  The genuine wall is not impossibility but the **multiplicative size blow-up**
+(`miniBT_collapse_size`: `t₁·(t₂+1)+t₂` gates), which compounds to a tower over circuit depth — hence the global
+quasipolynomial representation still needs probabilistic polynomials. -/
+theorem miniBT_two_count_collapse_frontier {n : ℕ} :
+    ACC0SymAndComposition.MiniBTCollapse n :=
+  ACC0MiniBTTwoCount.miniBTCollapse_holds
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
@@ -972,6 +986,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.composite_mod6_field_failure_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.mod6_depth2_residue_pair_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.symAnd_composition_closure_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.miniBT_two_count_collapse_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment

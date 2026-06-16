@@ -39,10 +39,15 @@ blow-up and approximation.  We isolate it:
 ## Honest scope
 
 The closures that do not raise the count dimension (`NOT`, shared-layer `AND`/`OR`) and the cross-modulus CRT
-composition are *proved*; cross-layer `AND`/`OR` is proved to land in a joint two-count representation.  The
-collapse of a joint representation to a single quasipolynomial `SYM∘AND` — the heart of Beigel–Tarui — is **not**
-proved; it is the named socket `MiniBTCollapse`, feeding the full composite-`BT` representation socket of
-`…ACC0CompositeBTTarget`.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.  See `ACC_ROADMAP.md`, `ACC_THEOREM_MAP.md`,
+composition are *proved*; cross-layer `AND`/`OR` is proved to land in a joint two-count representation.  We leave the
+collapse of a joint representation to a single `SYM∘AND` as the named socket `MiniBTCollapse`.
+
+**Correction (see `…ACC0MiniBTTwoCount`).**  The remark below that the *exact* collapse is "too strong / false" was
+wrong: `MiniBTCollapse` is in fact *provable* exactly, by a mixed-radix encoding (`miniBTCollapse_holds`), and the
+conditional closures below then become unconditional.  The genuine wall is not impossibility but the **multiplicative
+size blow-up** of the exact encoding, which compounds to a tower over circuit depth — which is why the *global*
+quasipolynomial `SYM∘AND` representation of a whole `ACC⁰` circuit (`…ACC0CompositeBTTarget`) still needs probabilistic
+polynomials.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.  See `ACC_ROADMAP.md`, `ACC_THEOREM_MAP.md`,
 `WHAT_IS_PROVED.md`.
 -/
 
@@ -130,11 +135,12 @@ theorem hasBinarySymRep_or {F G : (Fin n → Bool) → Bool}
 
 /-! ## 4. The wall — collapsing joint to single (the mini-Beigel–Tarui socket) -/
 
-/-- **The open mini-Beigel–Tarui collapse (socket, NOT proved).**  Every two-count joint representation collapses to a
-single `SYM∘AND` representation.  This is the genuine hard content — the `BT` degree reduction.  The *exact* form
-stated here is in fact too strong (a single count cannot in general recover an independent pair of counts), which is
-precisely why the real theorem is its **quasipolynomial** relaxation via probabilistic polynomials; we keep the exact
-form as the named idealised hypothesis marking the wall. -/
+/-- **The mini-Beigel–Tarui collapse.**  Every two-count joint representation collapses to a single `SYM∘AND`
+representation.  *Originally stated here as the open socket marking the wall; it is in fact **provable** exactly* —
+`…ACC0MiniBTTwoCount.miniBTCollapse_holds` discharges it via a mixed-radix encoding.  (The earlier guess that the
+exact form was "too strong" was wrong; the genuine wall is the multiplicative **size** blow-up of the encoding over
+circuit depth, not impossibility.)  Kept as a definition because the conditional closures below are stated against
+it. -/
 def MiniBTCollapse (n : ℕ) : Prop :=
   ∀ F : (Fin n → Bool) → Bool, HasBinarySymRep F → HasSymAndRep F
 
