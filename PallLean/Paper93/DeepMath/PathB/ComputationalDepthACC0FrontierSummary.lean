@@ -36,6 +36,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ElementarySymmetric
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BinomialInversion
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BeigelTaruiSparsity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankCellCollapse
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BlockRankCollapse
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -74,6 +75,7 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  rank composition (subadditive through layer) PROVED   rank_append_subadditive             (…ACC0RankComposition)
  observer state space = exactly 2^cellRank     PROVED   observer_state_space_is_two_pow_rank (…ACC0RankCellCollapse)
  rank-cell collapse ⇒ low correlation (direct) PROVED   rank_cell_collapse_low_correlation  (…ACC0RankCellCollapse)
+ block-diagonal MOD rank-shrink (rank ≤ d)     PROVED   block_diagonal_rank_shrink          (…ACC0BlockRankCollapse)
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
  cell-count bridge (cells < |L| ⇒ low corr)   PROVED   cellcount_bridge                    (…ACC0CellCountRoute)
  cells subsume rank (2^cellRank < |L| ⇒ …)     PROVED   cellcount_subsumes_rank             (…ACC0CellCountRoute)
@@ -242,6 +244,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0ElementarySymmetric
 open PallLean.Paper93.DeepMath.PathB.ACC0BinomialInversion
 open PallLean.Paper93.DeepMath.PathB.ACC0BeigelTaruiSparsity
 open PallLean.Paper93.DeepMath.PathB.ACC0RankCellCollapse
+open PallLean.Paper93.DeepMath.PathB.ACC0BlockRankCollapse
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -445,6 +448,15 @@ theorem rank_cell_collapse_low_correlation {k n : ℕ} (supports : Fin k → Fin
     (g : (Fin k → ℕ) → Bool) (L : Finset (Fin n)) (h : RankCellCollapse supports L) :
     LowHolonomyCorrelation supports g :=
   rank_cell_collapse_implies_low_holonomy_correlation supports g L h
+
+/-- **Block-diagonal MOD rank-shrink (proved): `k` gates in `d` blocks of equal support ⇒ observer rank `≤ d`.**  A
+genuine rank-shrink fragment (`d ≪ k`); the survivor count is `k`, but the linear observer rank is only the block
+count.  `2^d < |L| ⇒` low holonomy correlation. -/
+theorem block_diagonal_rank_shrink {k n d : ℕ} (supports : Fin k → Finset (Fin n))
+    (blk : Fin k → Fin d) (center : Fin d → Finset (Fin n)) (g : (Fin k → ℕ) → Bool)
+    (h : BlockEqualSupports supports blk center) (L : Finset (Fin n)) (hd : 2 ^ d < L.card) :
+    LowHolonomyCorrelation supports g :=
+  blockEqual_low_correlation supports blk center g h L hd
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
@@ -818,6 +830,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_collapse_lifts_budget
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.observer_state_space_is_two_pow_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_cell_collapse_low_correlation
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.block_diagonal_rank_shrink
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
