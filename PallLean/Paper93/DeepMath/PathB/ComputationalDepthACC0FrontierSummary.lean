@@ -84,6 +84,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndLayer
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerGate
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerObstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerObserverCandidates
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerTowerObserver
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -243,6 +244,10 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   the p-adic valuation (MOD_{p^e}(x)⟺v_p(x)≥e) + ring ZMod p^e are info-sufficient. Open crux: quasipoly ─────────
    ──   low-degree sparse rep over a filtered ring/valuation observer (zero divisors break Fermat). N-Frame: ───────────
    ──   the tri-aspect boundary must select a FILTERED RING observer, not a field one. NOT faked. ─────────────────────
+   ── TOWER OBSERVER (cand #3): towerTruncation_insufficient_frontier — residue tower ZMod p←…←ZMod p^e. Graded ──────
+   ──   ladder (rung i decides MOD_{p^i}) + filtration (rung i = castHom projection of top ⇒ info-EQUIVALENT to ──────
+   ──   ZMod p^e, not richer) + DEPTH-e REQUIRED (0 & p^{e-1} agree on rungs 1..e-1, differ on MOD_{p^e}; field ──────
+   ──   observer = failing case e=1). Exposes structure + localises the loss; does NOT escape low-degree wall. ───────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1207,6 +1212,17 @@ theorem valuationObserver_frontier (p x e : ℕ) (hp : p.Prime) (hx : x ≠ 0) :
     p ^ e ∣ x ↔ e ≤ x.factorization p :=
   ACC0PrimePowerObserverCandidates.valuation_observer_decides p x e hp hx
 
+/-- **Tower observer (candidate #3): the truncated residue tower cannot compute `MOD_{p^e}` (proved).**  `0` and
+`p^{e-1}` agree on every rung `1 ≤ i ≤ e-1` of the tower `ZMod p ← … ← ZMod p^e` (both `≡ 0 mod p^i`), yet `MOD_{p^e}`
+separates them — so the full depth `e` is necessary; the field observer is the (failing) case `e = 1`.  The tower is
+information-*equivalent* to the ring `ZMod (p^e)` (each rung is a `castHom` projection of the top), so it exposes the
+graded ladder `{MOD_{p^i}}` and the depth requirement but does not escape the low-degree wall. -/
+theorem towerTruncation_insufficient_frontier (p e : ℕ) (hp : p.Prime) (he : 2 ≤ e) :
+    (∀ i, 1 ≤ i → i ≤ e - 1 →
+        ((p ^ (e - 1) : ℕ) : ZMod (p ^ i)) = ((0 : ℕ) : ZMod (p ^ i)))
+      ∧ p ^ e ∣ 0 ∧ ¬ p ^ e ∣ p ^ (e - 1) :=
+  ACC0PrimePowerTowerObserver.tower_truncation_insufficient p e hp he
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1632,6 +1648,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.primePower_obstruction_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.charPField_observer_fails_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.valuationObserver_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.towerTruncation_insufficient_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
