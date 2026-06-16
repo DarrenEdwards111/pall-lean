@@ -58,6 +58,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AevalDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ErrorAveraging
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ErrorCalibration
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RouteBComplete
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsMetaTheorem
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -149,6 +150,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ── ROUTE B COMPLETE: error_calibrated (circuit err <2^n/10, Nat bookkeeping closed) + routeB_complete ──────
    ──   (end-to-end conditional ¬NEXP⊆ACC⁰; proved approx side backs RS rep; williams/hierarchy = sockets). ────
    ──   = faithful machine-checked REDUCTION of NEXP⊄ACC⁰ to Williams' meta-theorem, NOT a proof of it. ─────────
+   ── WILLIAMS UNPACKED: williams_meta_theorem (axiom-free glue) refines williams/hierarchy into the 2 deep ────
+   ──   ingredients: EasyWitnessCollapse (IKW easy-witness + SAT speedup ⇒ NTIME[2ⁿ]⊆NTIME[2ⁿ/superpoly]) + ────
+   ──   NondetTimeHierarchy (diagonalisation). Both = SOCKETS (need verified NTM time-class lib). Glue proved. ──
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -801,6 +805,20 @@ theorem routeB_complete_frontier
   ACC0RouteBComplete.routeB_to_NEXP_not_ACC0 RSRep ACC0SatSpeedup NEXPHasACC0Circuits Collapse
     rs_representation counting williams hierarchy
 
+/-- **Williams' meta-theorem, glue unpacked one level (proved, axiom-free).**  The monolithic `williams`/`hierarchy`
+sockets are refined into Williams' two genuinely-deep ingredients — the easy-witness collapse and the nondeterministic
+time hierarchy — over an explicit complexity-class framework; the modus-tollens composition is proved.  A faithful
+machine-checked reduction of `NEXP ⊄ ACC⁰` to those two named classical theorems (which a verified NTM time-class
+library would discharge), NOT a proof of them. -/
+theorem williams_meta_frontier
+    (NEXP ACC0 NTIME2n NTIME2nFast : ACC0WilliamsMetaTheorem.CClass) (ACC0SatSpeedup : Prop)
+    (collapse : ACC0WilliamsMetaTheorem.EasyWitnessCollapse NEXP ACC0 NTIME2n NTIME2nFast ACC0SatSpeedup)
+    (hierarchy : ACC0WilliamsMetaTheorem.NondetTimeHierarchy NTIME2n NTIME2nFast)
+    (speedup : ACC0SatSpeedup) :
+    ¬ (NEXP ⊆ ACC0) :=
+  ACC0WilliamsMetaTheorem.williams_meta_theorem NEXP ACC0 NTIME2n NTIME2nFast ACC0SatSpeedup
+    collapse hierarchy speedup
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1196,6 +1214,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.error_averaging_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.error_calibrated_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.routeB_complete_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.williams_meta_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
