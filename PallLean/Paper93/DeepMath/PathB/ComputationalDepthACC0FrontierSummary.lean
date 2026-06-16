@@ -52,6 +52,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ProbabilisticAmplif
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitSubstitution
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SparsePolyReadoff
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Multilinearisation
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SubstitutionPoly
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -129,6 +130,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ── MULTILINEARISATION PROVED: multilinear_cube_sum — bounded MvPolynomial on cube ⇒ ∑ₓ eval = ∑_d coeff·─
    ──   2^{n-|supp d|} (x_i^k=x_i, ∏_{i∈S}x_i=monoAND_S; support_mem_lowDeg ⇒ deg≤D features). Only the ──
    ──   MODELLING link (Bool-approximant ≡ MvPolynomial) + abstract williams/hierarchy Props remain. ──────
+   ── MODELLING LINK CLOSED: circuit_cube_count — subst c is an MvPolynomial, eval(boolVal∘x)(subst c)= ─────
+   ──   boolVal(eval c x) EXACT, so ∑ₓ boolVal(eval c x)=∑_d coeff·2^{n-|supp|}. Circuit IS a polynomial. ──
+   ──   Only the abstract williams/hierarchy Props (genuine NEXP-strength) keep the implication conditional. ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -697,6 +701,18 @@ theorem multilinear_cube_sum_frontier {n : ℕ} {R : Type*} [CommRing R]
       = ∑ d ∈ Q.support, Q.coeff d * (2 : R) ^ (n - d.support.card) :=
   ACC0Multilinearisation.multilinear_cube_sum Q
 
+/-- **The `MvPolynomial` re-modelling of substitution, proved: the circuit IS a polynomial; its accept count is
+sparse.**  `subst c` is an `MvPolynomial` with `eval (boolVal∘x) (subst c) = boolVal (eval c x)` (exact on the cube),
+so the circuit's accept count `∑ₓ boolVal (eval c x) = ∑_{d∈(subst c).support} coeff_d · 2^{n-|supp d|}` — the
+sub-`2^n` count for the actual circuit, fusing the substitution and multilinearisation files.  (Exact polynomial; the
+low-degree version is the separate probabilistic content.) -/
+theorem circuit_cube_count_frontier {n : ℕ} {R : Type*} [CommRing R]
+    (c : ACC0CircuitSubstitution.Circ n) :
+    (∑ x : Fin n → Bool, (ACC0Multilinearisation.boolVal (ACC0CircuitSubstitution.eval c x) : R))
+      = ∑ d ∈ (ACC0SubstitutionPoly.subst (R := R) c).support,
+          (ACC0SubstitutionPoly.subst (R := R) c).coeff d * (2 : R) ^ (n - d.support.card) :=
+  ACC0SubstitutionPoly.circuit_cube_count c
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1086,6 +1102,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.circuit_substitution_error_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.sparse_readoff_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.multilinear_cube_sum_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.circuit_cube_count_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
