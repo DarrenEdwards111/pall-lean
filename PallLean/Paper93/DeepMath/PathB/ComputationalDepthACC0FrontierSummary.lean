@@ -43,6 +43,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankRouteFrontier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankShrinkWall
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TriAspectBoundary
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeBTTarget
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -96,6 +97,8 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ── COMPOSITE-MOD wall isolated at MOD₆ = MOD₂∧MOD₃: field_polynomial_projection_fails_for_MOD6 (no inj ─
    ──   ZMod6→ZMod p, zero-divisor 2·3=0) ⇒ single-field RS can't carry both residues; CRT product observer ─
    ──   ZMod6≃+*ZMod2×ZMod3 is the faithful integer/symmetric replacement. Quasipoly SYM∘AND rep = socket. ─
+   ── DEPTH-2 base case PROVED: mod6_depth2_residue_pair — MOD₆∘AND accepts iff satCount≡0 mod 2 AND mod 3 ─
+   ──   (exact SYM∘AND = mod6Sym∘satCount; size ≤(n+1)^D). Open = composition/blow-up to general ACC⁰. ────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -273,6 +276,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0RankRouteFrontier
 open PallLean.Paper93.DeepMath.PathB.ACC0RankShrinkWall
 open PallLean.Paper93.DeepMath.PathB.ACC0TriAspectBoundary
 open PallLean.Paper93.DeepMath.PathB.ACC0CompositeBT
+open PallLean.Paper93.DeepMath.PathB.ACC0Mod6SymAndDepth2
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -555,6 +559,18 @@ quasipolynomial composite `SYM∘AND` representation surviving `ACC⁰` composit
 theorem composite_mod6_field_failure_frontier (p : ℕ) [Fact p.Prime] (f : ZMod 6 →+* ZMod p) :
     ¬ Function.Injective f :=
   field_polynomial_projection_fails_for_MOD6 p f
+
+/-- **Depth-2 `MOD₆∘AND` has an exact `SYM∘AND` representation read by the residue-pair observer (proved).**  Route B's
+first real composite case: a depth-2 `MOD₆∘AND` circuit accepts iff the satisfied-`AND` count vanishes mod `2` and mod
+`3` — the product observer reads it.  (Companion bounds, same file: `mod6_depth2_symAnd_repr` the exact `SYM∘AND`
+factorization, `mod6_bottom_count_le_quasipoly` the `≤ (n+1)^D` size bound.)  The open step is the composition/blow-up
+lemma lifting this to general `ACC⁰` (`depth2_to_full_via_composition`). -/
+theorem mod6_depth2_residue_pair_frontier {n t : ℕ} (supports : Fin t → Finset (Fin n))
+    (x : Fin n → Bool) :
+    ACC0Mod6SymAndDepth2.mod6AndCircuit supports x ↔
+      ((ACC0Mod6SymAndDepth2.satCount supports x : ZMod 2) = 0
+        ∧ (ACC0Mod6SymAndDepth2.satCount supports x : ZMod 3) = 0) :=
+  mod6_depth2_residue_pair supports x
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
@@ -936,6 +952,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_shrink_wall_is_real
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.tri_aspect_redirect_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.composite_mod6_field_failure_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.mod6_depth2_residue_pair_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
