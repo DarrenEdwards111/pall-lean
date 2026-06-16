@@ -60,6 +60,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ErrorCalibration
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RouteBComplete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsMetaTheorem
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NTM
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TimeHierarchyDiagonal
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -157,6 +158,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ── NTM LIBRARY FOUNDATION: concrete nondet computation model (reachIn/acceptsWithin), NTIME/NEXP classes; ──
    ──   acceptsWithin_mono + reachIn_add PROVED; williams_concrete glue at concrete NTIME. Hierarchy/sim/clock ─
    ──   = sockets over the model (the genuine deep content; a full verified library is a separate major project). ─
+   ── HIERARCHY DIAGONAL: diag_not_mem_range — Cantor core PROVED (D w:=¬enum(idx w) w differs from every enum k); ─
+   ──   time_hierarchy_from_sockets: enumerability(NTIME g) + diag∈NTIME f ⇒ ConcreteHierarchy f g. The diagonal ─
+   ──   ARGUMENT machine-checked; only the 2 computational sockets (encode+universal sim) remain for the hierarchy. ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -840,6 +844,17 @@ theorem williams_concrete_frontier (ACC0 : ACC0WilliamsMetaTheorem.CClass) (f g 
     ¬ (ACC0NTM.NEXP ⊆ ACC0) :=
   ACC0NTM.williams_concrete ACC0 f g speedup collapse hierarchy s
 
+/-- **The time-hierarchy diagonalisation, Cantor core proved.**  The diagonal language `D w := ¬ enum (idx w) w`
+differs from every enumerated language, so `D ∉ range enum` (`diag_not_mem_range`); hence if `NTIME g` is enumerable
+and `D` is decidable within the bigger bound `f`, then `ConcreteHierarchy f g` — the diagonal argument, machine-checked.
+The two computational sockets (enumerability, diagonal-simulatability) need a string-encoded universal machine. -/
+theorem time_hierarchy_diagonal_frontier (f g : ℕ → ℕ) (enum : ℕ → ACC0WilliamsMetaTheorem.Lang)
+    (idx : List Bool ≃ ℕ)
+    (enum_covers : ACC0NTM.NTIME g ⊆ Set.range enum)
+    (diag_in_big : ACC0TimeHierarchyDiagonal.diagLang enum idx ∈ ACC0NTM.NTIME f) :
+    ACC0NTM.ConcreteHierarchy f g :=
+  ACC0TimeHierarchyDiagonal.time_hierarchy_from_sockets f g enum idx enum_covers diag_in_big
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1238,6 +1253,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.williams_meta_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.ntm_acceptsWithin_mono_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.williams_concrete_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.time_hierarchy_diagonal_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
