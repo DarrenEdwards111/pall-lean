@@ -41,6 +41,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FootprintRank
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RandomRestrictionRankCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankRouteFrontier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankShrinkWall
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TriAspectBoundary
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -88,6 +89,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ── BUT: rank_shrink_wall_is_real — NFrameRankShrink is FALSE for the membership-rank observer ──────────
    ──   (singleton supports: injective patterns ⇒ never collapses). Rank-shrink needs collisions; ────────
    ──   the working rank = polynomial-method effective dimension (Route B), not observer incidence rank. ─
+   ── TRI-ASPECT: tri_aspect_redirect — one boundary Ω, 3 projections (incidence/rank, algebraic/effdim, ─
+   ──   cost/counting). Incidence projection REFUTED (singleton), algebraic projection VIABLE for AC⁰[p] ─
+   ──   (parity escapes deg<n span = RS core); composite-MOD algebraic projection = the one open socket. ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -263,6 +267,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0FootprintRank
 open PallLean.Paper93.DeepMath.PathB.ACC0RandomRestrictionRankCollapse
 open PallLean.Paper93.DeepMath.PathB.ACC0RankRouteFrontier
 open PallLean.Paper93.DeepMath.PathB.ACC0RankShrinkWall
+open PallLean.Paper93.DeepMath.PathB.ACC0TriAspectBoundary
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -523,6 +528,18 @@ polynomial-method effective dimension, not the observer incidence rank. -/
 theorem rank_shrink_wall_is_real {n : ℕ} (L : Finset (Fin n)) :
     ¬ RankCellCollapse (fun j : Fin n => ({j} : Finset (Fin n))) L :=
   singleton_supports_no_rank_collapse L
+
+/-- **Tri-aspect redirect (proved): one boundary `Ω`, incidence projection refuted, algebraic projection viable.**  The
+membership-rank no-go and the Razborov–Smolensky escape are two projections of a single boundary object: on the
+singleton `Ω` the incidence (membership-rank) projection never collapses, while the algebraic (effective-dimension)
+projection *succeeds* for `AC⁰[p]` (`deg < n`).  This is the formal "tri-aspect monism" statement that N-Frame
+redirects to the polynomial-method observer (Route B), not the incidence observer (Route A). -/
+theorem tri_aspect_redirect_frontier {n : ℕ} (p : ℕ) [Fact p.Prime] (hp2 : (2 : ZMod p) ≠ 0)
+    {D : ℕ} (hD : D < n) :
+    ¬ ACC0TriAspectBoundary.IncidenceCollapses (ACC0TriAspectBoundary.singletonBoundary n D)
+      ∧ ACC0TriAspectBoundary.algebraicProjectionSucceeds
+          (ACC0TriAspectBoundary.singletonBoundary n D) p :=
+  tri_aspect_redirect p hp2 hD
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
@@ -902,6 +919,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nframe_rank_route_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.williams_route_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_shrink_wall_is_real
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.tri_aspect_redirect_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
