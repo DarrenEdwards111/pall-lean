@@ -39,6 +39,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankCellCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BlockRankCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FootprintRank
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RandomRestrictionRankCollapse
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankRouteFrontier
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -80,6 +81,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  block-diagonal MOD rank-shrink (rank ≤ d)     PROVED   block_diagonal_rank_shrink          (…ACC0BlockRankCollapse)
  bounded footprint ⇒ rank ≤ |⋃ supports|       PROVED   footprint_rank_bound                (…ACC0FootprintRank)
  random restriction ⇒ RankCellCollapse witness PROVED   random_restriction_rank_cell_collapse (…ACC0RandomRestrictionRankCollapse)
+ ── THE TWO FINAL CONDITIONALS (what remains) ───────────────────────────────────────────────────────────
+ Route A: rank-shrink ⇒ holonomy lower bound   PROVED   nframe_rank_route_frontier          (…ACC0RankRouteFrontier)
+   open socket: NFrameRankShrink (force cellRank < log₂|L| for wide overlapping MOD) = the rank wall
+ Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
+   open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
  cell-count bridge (cells < |L| ⇒ low corr)   PROVED   cellcount_bridge                    (…ACC0CellCountRoute)
  cells subsume rank (2^cellRank < |L| ⇒ …)     PROVED   cellcount_subsumes_rank             (…ACC0CellCountRoute)
@@ -251,6 +257,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0RankCellCollapse
 open PallLean.Paper93.DeepMath.PathB.ACC0BlockRankCollapse
 open PallLean.Paper93.DeepMath.PathB.ACC0FootprintRank
 open PallLean.Paper93.DeepMath.PathB.ACC0RandomRestrictionRankCollapse
+open PallLean.Paper93.DeepMath.PathB.ACC0RankRouteFrontier
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -485,6 +492,24 @@ theorem random_restriction_rank_cell_collapse {k n : ℕ} (p : ℝ) (hp0 : 0 ≤
         + Pr p (fun L : Finset (Fin n) => L.card ≤ b) < 1) :
     ∃ L ∈ (Finset.univ : Finset (Fin n)).powerset, RankCellCollapse supports L :=
   exists_rankCellCollapse_whp p hp0 hp1 supports a b hab hfeas
+
+/-- **The N-Frame frontier (Route A, proved conditional): rank-shrink ⇒ the holonomy lower bound.**  The whole rank
+route reduces to one open socket — `NFrameRankShrink` (a restriction forces `2^{cellRank} < |L|` on a large live set
+for every predictor); everything downstream is proved. -/
+theorem nframe_rank_route_frontier {ι : Type} {n : ℕ} (sys : ACC0NFrameLowerBound.PredictorClass ι n)
+    (tops : ∀ i, (Fin (sys i).1 → ℕ) → Bool) (h : ACC0RankRouteFrontier.NFrameRankShrink sys) :
+    ACC0NFrameLowerBound.ACC0HolonomyLowerBound sys tops :=
+  rank_shrink_gives_acc0_lower_bound sys tops h
+
+/-- **The Williams frontier (Route B, proved conditional): composite Beigel–Tarui ⇒ `NEXP ⊄ ACC⁰`.**  The whole
+Williams route reduces to one deep open socket — `composite_BT_degree` (composite-modulus `ACC⁰` has a quasipolynomial
+`SYM∘AND` representation); the count side, `AC⁰[p]` degree, and the cash-out logic are proved. -/
+theorem williams_route_frontier (RSRep ACC0SatSpeedup NEXPHasACC0Circuits Collapse : Prop)
+    (composite_BT_degree : RSRep) (counting : RSRep → ACC0SatSpeedup)
+    (williams : ACC0SatSpeedup → NEXPHasACC0Circuits → Collapse) (hierarchy : ¬ Collapse) :
+    ¬ NEXPHasACC0Circuits :=
+  composite_route_to_NEXP_not_ACC0 RSRep ACC0SatSpeedup NEXPHasACC0Circuits Collapse
+    composite_BT_degree counting williams hierarchy
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
@@ -861,6 +886,8 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.block_diagonal_rank_shrink
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.footprint_rank_bound
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.random_restriction_rank_cell_collapse
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nframe_rank_route_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.williams_route_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
