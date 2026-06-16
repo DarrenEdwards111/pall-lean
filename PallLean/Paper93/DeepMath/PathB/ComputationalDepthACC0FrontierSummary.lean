@@ -49,6 +49,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTSizeRecurrence
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6ProbabilisticPolynomial
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ProbabilisticAmplification
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitSubstitution
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -119,6 +120,8 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ── AMPLIFICATION PROVED: t independent forms vanish w.p. (1/p)^t — amplified_form_balance p^t·#{joint}= ─
    ──   p^(m·t); amplified OR poly deg t(p−1) error (1/p)^t. Open = substitute thru const depth + read off ─
    ──   quasipoly SYM∘AND = QuasipolyApproxCompression (only the circuit-substitution bookkeeping remains). ─
+   ── SUBSTITUTION PROVED: circuit_error_bound — for circuit model Circ (inp/cst/una/bin), hybrid union bound ─
+   ──   #{P c ≠ eval c} ≤ size c · ε from per-gate local error ≤ ε. Only the poly→SYM∘AND read-off socketed. ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -302,6 +305,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0MiniBTTwoCount
 open PallLean.Paper93.DeepMath.PathB.ACC0BTSizeRecurrence
 open PallLean.Paper93.DeepMath.PathB.ACC0Mod6ProbabilisticPolynomial
 open PallLean.Paper93.DeepMath.PathB.ACC0ProbabilisticAmplification
+-- (ACC0CircuitSubstitution is referenced fully-qualified to avoid clashing with the AC⁰ `Circ`/`eval`/`size` above)
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -648,6 +652,18 @@ theorem rs_amplification_frontier {p m : ℕ} [Fact p.Prime] (v : Fin m → ZMod
     p ^ t * (Finset.univ.filter
         (fun R : Fin t → (Fin m → ZMod p) => ∀ s, (∑ i, R s i * v i) = 0)).card = p ^ (m * t) :=
   ACC0ProbabilisticAmplification.amplified_form_balance v hv t
+
+/-- **The circuit-substitution error bound (proved): substitution accumulates error additively over gates.**  For a
+circuit with approximant `P` whose every node errs locally on `≤ ε` inputs, the whole circuit's approximant errs on
+`≤ size · ε` inputs (the hybrid union bound).  This is the substitution's error half; the polynomial-to-`SYM∘AND`
+read-off remains the named socket (`…ACC0BTSizeRecurrence.QuasipolyApproxCompression`). -/
+theorem circuit_substitution_error_frontier {n : ℕ}
+    (P : ACC0CircuitSubstitution.Circ n → (Fin n → Bool) → Bool) (ε : ℕ)
+    (H : ∀ c, (Finset.univ.filter (fun x => P c x ≠ ACC0CircuitSubstitution.step P c x)).card ≤ ε)
+    (c : ACC0CircuitSubstitution.Circ n) :
+    (Finset.univ.filter (fun x => P c x ≠ ACC0CircuitSubstitution.eval c x)).card
+      ≤ ACC0CircuitSubstitution.size c * ε :=
+  ACC0CircuitSubstitution.circuit_error_bound P ε H c
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
@@ -1035,6 +1051,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.bt_exact_fold_exponential_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rs_linear_form_balance_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rs_amplification_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.circuit_substitution_error_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
