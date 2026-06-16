@@ -80,6 +80,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeGatePolys
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CRTGatePolys
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CRTFinsetGate
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeBTIntegration
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndLayer
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -227,6 +228,8 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   composite MOD complete (prod_primes_dvd_iff + iterated coprime CRT). Remaining: prime powers p^e, AND-layer. ──
    ── INTEGRATION: modP_circuit_representation — MOD_p gate polys (degree p−1) FEED compositeBT_representation ────────
    ──   (δ=p−1); MOD_p circuit gets quasipoly low-degree sparse rep. The algebraic observer wired into the pipeline. ─
+   ── AND-LAYER: andCountPoly (∑∏X_i) evals to satCount (count of satisfied ANDs); modPAndPoly = MOD_p∘AND, degree ──
+   ──   ≤(p−1)·width. The AND features wired under the MOD gate. Composite-MOD pipeline now: AND→count→MOD→compositeBT. ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1142,6 +1145,22 @@ theorem modP_circuit_representation_frontier {n : ℕ} (p : ℕ) [Fact p.Prime]
           = ∑ d ∈ (Q c).support, (Q c).coeff d * (2 : ZMod p) ^ (n - d.support.card) :=
   ACC0CompositeBTIntegration.modP_circuit_representation p Q gb hinp hcst hgb huna_eq hbin_eq c
 
+/-- **The `AND`-layer assembly (proved): the `AND`-count is a polynomial, composed under `MOD_p`.**  `andCountPoly =
+∑_j ∏_{i∈supports j} X_i` evaluates on the cube to the count `satCount` (`andCountPoly_eval`); composed under the
+`MOD_p` gate, the `MOD_p∘AND` polynomial has degree `≤ (p−1)·width` (`modPAndPoly_degree`).  Connects the `AND` features
+to the `MOD` gate polynomial. -/
+theorem and_layer_eval_frontier {n t : ℕ} {p : ℕ} (supports : Fin t → Finset (Fin n)) (x : Fin n → Bool) :
+    MvPolynomial.eval (fun i => (ACC0Multilinearisation.boolVal (x i) : ZMod p))
+        (ACC0AndLayer.andCountPoly supports)
+      = (ACC0Mod6SymAndDepth2.satCount supports x : ZMod p) :=
+  ACC0AndLayer.andCountPoly_eval supports x
+
+/-- **The `MOD_p∘AND` polynomial degree (proved): `≤ (p−1)·width`.** -/
+theorem modP_and_degree_frontier {n t : ℕ} {p : ℕ} [Fact p.Prime] (supports : Fin t → Finset (Fin n))
+    {w : ℕ} (hw : ∀ j, (supports j).card ≤ w) :
+    (ACC0AndLayer.modPAndPoly p supports).totalDegree ≤ (p - 1) * w :=
+  ACC0AndLayer.modPAndPoly_degree supports hw
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1561,6 +1580,8 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.modPQ_gate_decides_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.modGateProd_decides_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.modP_circuit_representation_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.and_layer_eval_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.modP_and_degree_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
