@@ -51,6 +51,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6ProbabilisticPo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ProbabilisticAmplification
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitSubstitution
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SparsePolyReadoff
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Multilinearisation
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -124,7 +125,10 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ── SUBSTITUTION PROVED: circuit_error_bound — for circuit model Circ (inp/cst/una/bin), hybrid union bound ─
    ──   #{P c ≠ eval c} ≤ size c · ε from per-gate local error ≤ ε. ──────────────────────────────────────
    ── READ-OFF PROVED: sparse_readoff — deg≤D sparse poly cube sum ∑ₓ = ∑_{S} c_S·2^{n-|S|} over ≤(n+1)^D ─
-   ──   features (sparse_cube_sum + Beigel-Tarui) = sub-2^n SAT count. Only multilinearisation gap socketed. ─
+   ──   features (sparse_cube_sum + Beigel-Tarui) = sub-2^n SAT count. ───────────────────────────────────
+   ── MULTILINEARISATION PROVED: multilinear_cube_sum — bounded MvPolynomial on cube ⇒ ∑ₓ eval = ∑_d coeff·─
+   ──   2^{n-|supp d|} (x_i^k=x_i, ∏_{i∈S}x_i=monoAND_S; support_mem_lowDeg ⇒ deg≤D features). Only the ──
+   ──   MODELLING link (Bool-approximant ≡ MvPolynomial) + abstract williams/hierarchy Props remain. ──────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -681,6 +685,18 @@ theorem sparse_readoff_frontier {n : ℕ} {R : Type*} [CommRing R]
       ∧ 𝒮.card ≤ (n + 1) ^ D :=
   ACC0SparsePolyReadoff.sparse_readoff 𝒮 c h𝒮
 
+/-- **Multilinearisation, proved: a bounded-degree polynomial on the Boolean cube has a closed sparse cube count.**
+`∑ₓ eval (boolVal ∘ x) Q = ∑_{d∈Q.support} coeff_d · 2^{n-|supp d|}` — the cube sum collapses to a sparse weighted
+count over `Q`'s support (each monomial an `AND` feature, via `x_i^k = x_i` and `∏_{i∈S} x_i = monoAND_S`).  With
+`support_mem_lowDeg`, every feature is a degree-`≤ D` support, so the count is the sub-`2^n` Williams `SAT` input for a
+genuine `MvPolynomial`.  The remaining link is the modelling identification of the circuit approximant with such a
+polynomial. -/
+theorem multilinear_cube_sum_frontier {n : ℕ} {R : Type*} [CommRing R]
+    (Q : MvPolynomial (Fin n) R) :
+    (∑ x : Fin n → Bool, MvPolynomial.eval (fun i => (ACC0Multilinearisation.boolVal (x i) : R)) Q)
+      = ∑ d ∈ Q.support, Q.coeff d * (2 : R) ^ (n - d.support.card) :=
+  ACC0Multilinearisation.multilinear_cube_sum Q
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1069,6 +1085,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rs_amplification_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.circuit_substitution_error_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.sparse_readoff_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.multilinear_cube_sum_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
