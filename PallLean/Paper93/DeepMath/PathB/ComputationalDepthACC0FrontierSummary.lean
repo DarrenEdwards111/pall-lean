@@ -56,6 +56,8 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SubstitutionPoly
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LowDegreeSubstitution
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AevalDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ErrorAveraging
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ErrorCalibration
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RouteBComplete
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -144,6 +146,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ── ERROR SIDE WIRED: exists_good_seed — per-input seed error (orPoly_error/amplifiedOrPoly_error) ⇒ a fixed ─
    ──   seed with input-error ≤ 2^n/p^t = the ε for circuit_error_bound (probabilistic method/averaging). ──────
    ──   Degree + error interfaces both now PROVED; only abstract williams/hierarchy (NEXP-strength) remain. ────
+   ── ROUTE B COMPLETE: error_calibrated (circuit err <2^n/10, Nat bookkeeping closed) + routeB_complete ──────
+   ──   (end-to-end conditional ¬NEXP⊆ACC⁰; proved approx side backs RS rep; williams/hierarchy = sockets). ────
+   ──   = faithful machine-checked REDUCTION of NEXP⊄ACC⁰ to Williams' meta-theorem, NOT a proof of it. ─────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -776,6 +781,26 @@ theorem error_averaging_frontier {S I : Type*} [Fintype S] [Fintype I] [Nonempty
       ≤ (Fintype.card I) * k :=
   ACC0ErrorAveraging.exists_good_seed err k hbound
 
+/-- **The full error calibration, proved: circuit error `< 2^n/10` (`ℕ` bookkeeping closed).**  Averaging + the seed
+relation `p^t·k = card Seed` + amplification depth `10·size ≤ p^t` give `10·(size·E) ≤ 2^n`. -/
+theorem error_calibrated_frontier (cardS cardI E k pt twoN size : ℕ) (hk : 0 < k)
+    (hgood : cardS * E ≤ cardI * k) (hseed : pt * k = cardS) (hI : cardI = twoN)
+    (hpt : 10 * size ≤ pt) :
+    10 * (size * E) ≤ twoN :=
+  ACC0ErrorCalibration.circuit_error_below_tenth cardS cardI E k pt twoN size hk hgood hseed hI hpt
+
+/-- **Route B, end-to-end (proved conditional): `¬ NEXP ⊆ ACC⁰`.**  The capstone: the proved RS approximation side
+(degree `δ^{depth+1}`, error `< 2^n/10`, sparse read-off) backs the RS representation; given the abstract
+`counting`/`williams`/`hierarchy` sockets (Williams's meta-theorem + time hierarchy), `¬ NEXPHasACC0Circuits`.  A
+faithful machine-checked *reduction*, not a proof of the sockets. -/
+theorem routeB_complete_frontier
+    (RSRep ACC0SatSpeedup NEXPHasACC0Circuits Collapse : Prop)
+    (rs_representation : RSRep) (counting : RSRep → ACC0SatSpeedup)
+    (williams : ACC0SatSpeedup → NEXPHasACC0Circuits → Collapse) (hierarchy : ¬ Collapse) :
+    ¬ NEXPHasACC0Circuits :=
+  ACC0RouteBComplete.routeB_to_NEXP_not_ACC0 RSRep ACC0SatSpeedup NEXPHasACC0Circuits Collapse
+    rs_representation counting williams hierarchy
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1169,6 +1194,8 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.low_degree_survives_composition_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.psubst_degree_aeval_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.error_averaging_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.error_calibrated_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.routeB_complete_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
