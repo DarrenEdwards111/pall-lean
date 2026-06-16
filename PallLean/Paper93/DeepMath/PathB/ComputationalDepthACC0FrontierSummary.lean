@@ -64,6 +64,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TimeHierarchyDiagon
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ConcreteNTM
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalNTM
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SimulationStep
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TapeEncoding
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -172,6 +173,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ── SINGLE-STEP SIM: sim_multi (k M-steps = k·B U-steps, induction+reachIn_add) + sim_acceptsWithin (M accepts ─
    ──   within t ⇒ U within t·B) PROVED — overhead LINEAR in steps. Remaining socket = the physical single step ──
    ──   (construct U's transition table: decode rule, find head, rewrite simulated tape) = next deep TM construction. ─
+   ── TAPE LAYOUT: encodeTape/decodeTape faithful binary serialization of (code,config); decodeTape_encodeTape ────
+   ──   round-trip + encodeTape_inj PROVED. The faithful encoding the physical step operates on; reading/rewriting ─
+   ──   it as U-transitions in one simulated step = the remaining single-step socket. ──────────────────────────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -904,6 +908,14 @@ theorem sim_overhead_frontier (M : ACC0ConcreteNTM.TMachine) (U : ACC0NTM.NTM)
     ACC0NTM.acceptsWithin (ACC0ConcreteNTM.toNTM M) x t → ACC0NTM.acceptsWithin U x (t * B) :=
   ACC0SimulationStep.sim_acceptsWithin M U enc B hstep hinit haccept x t
 
+/-- **The tape layout is faithful (proved): `decodeTape (encodeTape code c) = some (code, c)`.**  The binary
+serialisation of `(machine code, simulated config)` round-trips through its decoder, hence is injective — the faithful
+encoding the physical single-step simulation operates on (`enc`'s tape content).  Reading/rewriting it as
+`U`-transitions in one simulated step is the remaining socket. -/
+theorem tape_encoding_faithful_frontier (code : ℕ) (c : ACC0ConcreteNTM.CConfig) :
+    ACC0TapeEncoding.decodeTape (ACC0TapeEncoding.encodeTape code c) = some (code, c) :=
+  ACC0TapeEncoding.decodeTape_encodeTape code c
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1307,6 +1319,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.enum_covers_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cTime_hierarchy_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.sim_overhead_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.tape_encoding_faithful_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
