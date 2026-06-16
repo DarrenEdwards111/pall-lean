@@ -28,6 +28,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MODResidualObserver
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PivotToPolynomialMethod
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsCashoutFromPolynomial
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BoundaryObserverControl
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ControlShrinkage
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -117,6 +118,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  ──   (RS separates)→countingState (Williams cash-out). Concrete countingState instance: ────────────────
  ──   …ACC0OracleControl.oracle_control_over_mod_searchable (few-MOD fragment SAT-searchable < 2ⁿ); ──────
  ──   open rung random_restriction_makes_control_shallow = the state-shrinkage the process needs. ───────
+ leaf-restriction shrinkage (state ≤ 2^|free|) PROVED   control_restriction_shallow/_searchable (…ACC0ControlShrinkage)
+ ──   BARRIER (honest): searches the RESTRICTED composite; x-realizing leaf shrinkage over wide MOD is ──
+ ──   blocked — a MOD leaf is x-constant only when its whole support is fixed (no absorbing value). ─────
  ── (implied by ACC0ForcesLowCellRank ⊇ the survivor socket; subsumes chain/laminar the rank route misses)─
 ```
 
@@ -213,6 +217,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0MODResidualObserver
 open PallLean.Paper93.DeepMath.PathB.ACC0PivotToPolynomialMethod
 open PallLean.Paper93.DeepMath.PathB.ACC0WilliamsCashoutFromPolynomial
 open PallLean.Paper93.DeepMath.PathB.ACC0BoundaryObserverControl
+open PallLean.Paper93.DeepMath.PathB.ACC0ControlShrinkage
 
 /-! ## The proved pillars (re-exported) -/
 
