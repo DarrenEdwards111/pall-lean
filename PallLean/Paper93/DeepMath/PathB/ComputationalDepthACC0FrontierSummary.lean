@@ -86,6 +86,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerObstructi
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerObserverCandidates
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerTowerObserver
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerDigitObserver
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NonFieldObserverTheory
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -253,6 +254,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   a₀..a_{e-1} all 0 (digit-peeling induction). digit p 0 s = s%p ⇒ FIELD observer = lowest digit ONLY; MOD_{p^e} ─
    ──   needs all e digits (field_digit_insufficient: 0,p share a₀=0, differ on MOD). Info-≡ ZMod p^e like tower; ─────
    ──   exposes the Witt decomposition + localises field obstruction to a₀. Does NOT escape low-degree wall. ──────────
+   ── ROUTE 1 NON-FIELD THEORY: nonField_modPrimePower_field_degree_ge_frontier — over a char-0 FIELD, MOD_{p^e} ──────
+   ──   indicator rejects p^e-1 consecutive non-multiples ⇒ natDegree ≥ p^e-1 (root counting; exponential in e, ──────
+   ──   useless for poly method). ring_root_count_fails: over ZMod p^e, C(p^{e-1})·X has deg≤1 but 2 roots {0,p} ─────
+   ──   ⇒ field root bound FALSE over the ring. VERDICT: field route degree-blocked, non-field escape has NO ──────────
+   ──   root-counting obstruction ⇒ low-degree question genuinely OPEN (the actual composite-MOD wall, not glue). ─────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1237,6 +1243,18 @@ theorem digitObserver_decides_frontier (p e s : ℕ) (hp : 0 < p) :
     p ^ e ∣ s ↔ ∀ i, i < e → ACC0PrimePowerDigitObserver.digit p i s = 0 :=
   ACC0PrimePowerDigitObserver.digit_observer_decides p e s hp
 
+/-- **Route 1 — non-field low-degree theory: the field representation of `MOD_{p^e}` needs degree `≥ p^e-1` (proved).**
+`MOD_{p^e}` rejects the `p^e-1` consecutive non-multiples `1,…,p^e-1`; in a char-`0` field these are distinct, so any
+nonzero polynomial vanishing on them has `natDegree ≥ p^e-1` (root counting) — exponential in `e`, useless for the
+polynomial method.  Paired with `ring_root_count_fails` (over `ZMod(p^e)` a degree-`≤1` polynomial can have 2 roots,
+so the root bound is false there), this is the honest verdict: the field route is degree-blocked and the non-field
+escape has no root-counting obstruction to exploit — which is precisely why the low-degree question is open. -/
+theorem nonField_modPrimePower_field_degree_ge_frontier {F : Type*} [Field F] [CharZero F]
+    (p e : ℕ) (g : Polynomial F) (hg : g ≠ 0)
+    (hrej : ∀ k : ℕ, 1 ≤ k → k ≤ p ^ e - 1 → g.eval (k : F) = 0) :
+    p ^ e - 1 ≤ g.natDegree :=
+  ACC0NonFieldObserverTheory.modPrimePower_field_indicator_high_degree p e g hg hrej
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1664,6 +1682,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.valuationObserver_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.towerTruncation_insufficient_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.digitObserver_decides_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nonField_modPrimePower_field_degree_ge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment

@@ -109,3 +109,75 @@ The separation reduces to these, each a classical theorem and a major formalizat
 **Bottom line.** The ACC⁰ / RS / BT approximation side is essentially worked through and machine-checked.  The route is
 no longer vague: it is a precise reduction to named classical complexity-theory theorems.  Proving `NEXP ⊄ ACC⁰`
 requires discharging the mountains above — none of which is new, and each of which is its own serious project.
+
+---
+
+## 7. Final consolidation — the composite-`MOD` wall, mapped exhaustively (entries 157–161)
+
+The composite-`MOD` gate is the load-bearing object of the RS/BT approximation side.  The squarefree case is fully
+proved (distinct primes → product of fields → Fermat per prime → CRT: `…ACC0CRTFinsetGate`), and the prime-power case
+`p^e` is the genuine `ACC⁰[composite]` wall.  Entries 157–161 map that wall exhaustively — *not* by faking a
+representation (that would be the open lower bound) but by pinning down precisely what is and is not possible.
+
+### 7a. The prime-power obstruction, made precise (157)
+
+`MOD_{p^e}` is **not a function of the mod-`p` residue** (`…ACC0PrimePowerObstruction.modPrimePower_not_function_of_modP`):
+`0` and `p` share their mod-`p` residue yet `MOD_{p^e}` separates them.  So no `F_p` polynomial in the prime-`p`
+residue — *at any degree* — computes it.  The working observer is the *ring* residue `ZMod(p^e)`.
+
+### 7b. The observer scorecard — can a richer observer see `MOD_{p^e}`? (158–160)
+
+The N-Frame question: can the tri-aspect boundary select a *richer algebraic observer* than `F_p` that sees `p^e`
+information while keeping quasipolynomial control?  Tested four candidates, all proved:
+
+| Observer | Verdict | Field? | Escapes the low-degree wall? | File |
+|---|---|---|---|---|
+| characteristic-`p` fields (`F_p`, `F_{p^k}`, …) | **REFUTED** — sees only mod-`p` | yes | — | `…ObserverCandidates` |
+| #1 ring `ZMod p^e` | sufficient | **no** (zero divisors) | No | `…ObserverCandidates` |
+| #2 valuation `v_p` (`MOD_{p^e} ⟺ v_p ≥ e`) | sufficient | no | open | `…ObserverCandidates` |
+| #3 residue tower `ZMod p ← … ← ZMod p^e` | sufficient, **≡ #1** | no | No | `…TowerObserver` |
+| #4 Witt / `p`-adic digits | sufficient, **≡ #1** | no | No | `…DigitObserver` |
+
+The verdict across all four: **at the field level, no** (every characteristic-`p` field is refuted —
+`charP_field_observer_fails`); the genuine sufficient observers are all **non-field** — either provably equivalent to
+the zero-divisor ring `ZMod p^e` (#1, #3 via `tower_projection_compatible`, #4 via the digit↔residue bijection) or a
+threshold/valuation (#2).  The tower and digit observers add *structure* (the graded ladder `{MOD_{p^i}}`, the Witt
+decomposition) and *localise* the field obstruction (depth `e` required; field = lowest digit / case `e=1`), but none
+lowers the degree.
+
+### 7c. Route 1 — non-field low-degree theory: why the wall is genuinely open (161)
+
+`…ACC0NonFieldObserverTheory` settles *why* the surviving non-field observers don't immediately help:
+
+- **Over a field, the `MOD_{p^e}` indicator needs degree `≥ p^e-1`** (`modPrimePower_field_indicator_high_degree`): it
+  rejects the `p^e-1` consecutive non-multiples, which are distinct in a char-`0` field, so root counting
+  (`field_root_card_le_natDegree`) forces exponential degree.  The field route is *quantitatively* blocked.
+- **Over the ring `ZMod p^e`, root counting FAILS** (`ring_root_count_fails`): `C(p^{e-1})·X` has degree `≤ 1` but two
+  roots `0 ≠ p`.  So the very machinery that blocks the field route has no analogue on the non-field observer.
+
+**Conclusion of the algebraic-observer programme.**  The field route is degree-blocked; every escape is non-field; and
+on the non-field observers the degree-bounding machinery collapses — so a low-degree representation can be neither
+exhibited nor excluded by these tools.  That is the honest location of the `ACC⁰[composite]` wall: it is the *absence of
+a field* (where Fermat and root counting live), not a missing piece of glue.  Constructing a quasipolynomial low-degree
+sparse representation over a non-field observer — or proving none exists — *is* the open lower bound.
+
+---
+
+## The four remaining routes (no small glue left)
+
+The algebraic-observer route is now exhaustively mapped (§7).  What remains are four big, independent projects:
+
+1. **Non-field low-degree theory** (Route 1) — a non-field observer (`ZMod p^e` / valuation / digits) admitting a
+   quasipolynomial sparse/low-degree representation.  *This is the actual composite-`MOD` wall* (§7c): the most
+   N-Frame-aligned path and equal in strength to the `ACC⁰[composite]` lower bound.
+2. **Physical fast-SAT verifier** — turn the sparse feature read-off into an actual machine evaluating/counting in
+   `poly(b)` steps with the budget closing (`…ACC0WilliamsFastSat` grounds the combinatorics; the uniform realization
+   is separation-strength).
+3. **Physical universal TM** (`hstep`) — the decode→lookup→rewrite→re-encode loop as `U`-transitions with explicit
+   overhead `B` (all sub-machine contracts proved; the loop assembly remains).
+4. **IKW / NW hard-function machinery** — no-easy-witnesses ⇒ hard function ⇒ derandomisation ⇒ `NEXP ⊄ ACC⁰`.
+
+**Status, restated.** This remains a machine-checked *conditional anatomy*, not a proof.  The algebraic side is pushed
+to its honest mathematical limit; the four routes above are the genuine open content, each a major project and (for
+Routes 1 and the Williams realization) of separation strength.  Nothing here is `NEXP ⊄ ACC⁰`, and nothing is
+`P ≠ NP`.
