@@ -85,6 +85,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerGate
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerObstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerObserverCandidates
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerTowerObserver
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerDigitObserver
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -248,6 +249,10 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   ladder (rung i decides MOD_{p^i}) + filtration (rung i = castHom projection of top ⇒ info-EQUIVALENT to ──────
    ──   ZMod p^e, not richer) + DEPTH-e REQUIRED (0 & p^{e-1} agree on rungs 1..e-1, differ on MOD_{p^e}; field ──────
    ──   observer = failing case e=1). Exposes structure + localises the loss; does NOT escape low-degree wall. ───────
+   ── DIGIT OBSERVER (cand #4, Witt/p-adic): digitObserver_decides_frontier — aᵢ=(s/pⁱ)%p, p^e∣s ↔ lowest e digits ──
+   ──   a₀..a_{e-1} all 0 (digit-peeling induction). digit p 0 s = s%p ⇒ FIELD observer = lowest digit ONLY; MOD_{p^e} ─
+   ──   needs all e digits (field_digit_insufficient: 0,p share a₀=0, differ on MOD). Info-≡ ZMod p^e like tower; ─────
+   ──   exposes the Witt decomposition + localises field obstruction to a₀. Does NOT escape low-degree wall. ──────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1223,6 +1228,15 @@ theorem towerTruncation_insufficient_frontier (p e : ℕ) (hp : p.Prime) (he : 2
       ∧ p ^ e ∣ 0 ∧ ¬ p ^ e ∣ p ^ (e - 1) :=
   ACC0PrimePowerTowerObserver.tower_truncation_insufficient p e hp he
 
+/-- **Digit observer (candidate #4, Witt / `p`-adic digits): the digit observer decides `MOD_{p^e}` (proved).**
+`p^e ∣ s ↔` the lowest `e` base-`p` digits `aᵢ = (s/pⁱ) mod p` all vanish (`∀ i < e, digit p i s = 0`), proved by
+digit-peeling induction.  Combined with `digit p 0 s = s mod p` (the field observer is exactly the lowest digit), this
+makes the field obstruction transparent: `MOD_{p^e}` needs all `e` low digits, the field sees only `a₀`.  Like the
+tower, the digit observer is information-equivalent to `ZMod (p^e)` and does not escape the low-degree wall. -/
+theorem digitObserver_decides_frontier (p e s : ℕ) (hp : 0 < p) :
+    p ^ e ∣ s ↔ ∀ i, i < e → ACC0PrimePowerDigitObserver.digit p i s = 0 :=
+  ACC0PrimePowerDigitObserver.digit_observer_decides p e s hp
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1649,6 +1663,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.charPField_observer_fails_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.valuationObserver_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.towerTruncation_insufficient_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.digitObserver_decides_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
