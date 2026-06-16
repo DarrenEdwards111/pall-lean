@@ -83,6 +83,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeBTIntegrat
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndLayer
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerGate
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerObstruction
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerObserverCandidates
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -237,6 +238,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   honestly documented (squarefree worked by avoiding prime powers). NOT faked. ───────────────────────────────────
    ── PRIME-POWER OBSTRUCTION PRECISE: modPrimePower_not_function_of_modP — MOD_{p^e} not a function of mod-p residue ─
    ──   (witness 0,p: same mod-p, differ on p^e∣·). No F_p poly computes it. The honest ACC⁰[composite] boundary. ──────
+   ── OBSERVER CANDIDATES: charPField_observer_fails_frontier REFUTES the WHOLE char-p field family (F_p, F_{p^k}, …): ─
+   ──   any char-p field sees only mod-p ((0:F)=(p:F)), can't compute MOD_{p^e}. valuationObserver_frontier CONFIRMS ───
+   ──   the p-adic valuation (MOD_{p^e}(x)⟺v_p(x)≥e) + ring ZMod p^e are info-sufficient. Open crux: quasipoly ─────────
+   ──   low-degree sparse rep over a filtered ring/valuation observer (zero divisors break Fermat). N-Frame: ───────────
+   ──   the tri-aspect boundary must select a FILTERED RING observer, not a field one. NOT faked. ─────────────────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1185,6 +1191,22 @@ theorem primePower_obstruction_frontier (p e : ℕ) (hp : p.Prime) (he : 2 ≤ e
     ((0 : ℕ) : ZMod p) = ((p : ℕ) : ZMod p) ∧ p ^ e ∣ 0 ∧ ¬ p ^ e ∣ p :=
   ACC0PrimePowerObstruction.modPrimePower_not_function_of_modP p e hp he
 
+/-- **Prime-power observer candidates: the char-`p` field family is refuted (proved).**  In *any* field `F` of
+characteristic `p` the count's image depends only on the mod-`p` residue (`(0:F) = (p:F)`), so no characteristic-`p`
+field (`F_p`, `F_{p^k}`, …) can compute `MOD_{p^e}`.  This generalises the `F_p` obstruction to the whole field family;
+the working observers are the *ring* `ZMod (p^e)` and the `p`-adic *valuation* (`valuationObserver_frontier`). -/
+theorem charPField_observer_fails_frontier (F : Type*) [Field F] (p e : ℕ) [Fact p.Prime] [CharP F p]
+    (he : 2 ≤ e) :
+    ((0 : ℕ) : F) = ((p : ℕ) : F) ∧ p ^ e ∣ 0 ∧ ¬ p ^ e ∣ p :=
+  ACC0PrimePowerObserverCandidates.charP_field_observer_fails F p e he
+
+/-- **Prime-power observer candidates: the `p`-adic valuation is information-sufficient (proved).**  `MOD_{p^e}(x) ⟺
+v_p(x) ≥ e` (`x ≠ 0`).  The filtered/valuation observer carries the mod-`p^e` information the field observer destroys;
+the open crux is a quasipolynomial low-degree sparse representation over such a richer observer. -/
+theorem valuationObserver_frontier (p x e : ℕ) (hp : p.Prime) (hx : x ≠ 0) :
+    p ^ e ∣ x ↔ e ≤ x.factorization p :=
+  ACC0PrimePowerObserverCandidates.valuation_observer_decides p x e hp hx
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1608,6 +1630,8 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.modP_and_degree_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.primePower_dvd_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.primePower_obstruction_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.charPField_observer_fails_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.valuationObserver_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
