@@ -30,6 +30,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsCashoutFrom
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BoundaryObserverControl
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ControlShrinkage
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SparseCounting
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymLayerReduction
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -112,10 +113,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  RS representation half (SYM∘AND) discharged   PROVED   rsMonoANDRepresentation_proved      (…ACC0WilliamsCashoutFromPolynomial)
  cash-out chain (impl., NOT the separation)    PROVED   williams_cashout_from_polynomial_method (…ACC0WilliamsCashoutFromPolynomial)
  sparse-counting kernel (cube-sum=Σc_S·2^{n-|S|}) PROVED  sparse_symand_cube_sum              (…ACC0SparseCounting)
- ── OPEN inputs: counting socket (rep ⇒ sub-2ⁿ ACC⁰-SAT = Williams' algorithmic heart) + williams ────────
- ──   collapse + time hierarchy. Sparse-counting kernel PROVED (sum=Σc_S·2^{n-|S|}, no 2ⁿ-enum); ─────────
- ──   remaining: SYM top layer (sum→SAT) + Beigel-Tarui quasipoly #monomials bound. F_p ceiling: ────────
- ──   real PARITY/MOD_p∉AC⁰[p]. Composite/general = Williams. ───────────────────────────────────────────
+ SYM-layer reduction (SAT ⟺ over k+1 levels)   PROVED   symand_sat_decided_by_levels        (…ACC0SymLayerReduction)
+ ── OPEN inputs: counting socket (rep ⇒ sub-2ⁿ ACC⁰-SAT). Sparse-counting kernel PROVED (cube-sum, ───────
+ ──   no 2ⁿ-enum); SYM-layer reduction PROVED (SAT ⟺ k+1 level-counts). Remaining: compute each level- ──
+ ──   count N_t + Beigel-Tarui quasipoly #monomials bound. Then williams collapse + time hierarchy. ─────
+ ──   F_p ceiling: real PARITY/MOD_p∉AC⁰[p]. Composite/general = Williams. ───────────────────────────────
  ── Dynamic N-frame: the BOUNDARY selects the observer (unification of all routes) ───────────────────────
  boundary selects observer (absorbing⟺AND/OR)  PROVED   boundary_selects_absorbing_iff_andOr (…ACC0BoundaryObserverControl)
  ──   AND/OR→absorbing (refined collapses); MOD→linearResidual (=membership, bounded)→polynomialSpan ─────
@@ -223,6 +225,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0WilliamsCashoutFromPolynomial
 open PallLean.Paper93.DeepMath.PathB.ACC0BoundaryObserverControl
 open PallLean.Paper93.DeepMath.PathB.ACC0ControlShrinkage
 open PallLean.Paper93.DeepMath.PathB.ACC0SparseCounting
+open PallLean.Paper93.DeepMath.PathB.ACC0SymLayerReduction
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -722,6 +725,13 @@ theorem sparse_symand_cube_sum {n : ℕ} {R : Type*} [CommRing R] (𝒮 : Finset
       = ∑ S ∈ 𝒮, c S * (2 : R) ^ (n - S.card) :=
   sparse_cube_sum 𝒮 c
 
+/-- **The SYM-layer reduction (proved): `SYM∘AND` SAT is decided by the `k+1` AND-layer level-counts.**  `∃x` accepting
+`⟺ ∃ t ≤ k, sym t ∧ N_t ≠ 0` — the symmetric layer collapses the search from the `2ⁿ` cube to `k+1` levels. -/
+theorem symand_sat_decided_by_levels {n k : ℕ} (sym : ℕ → Bool) (gates : Fin k → Finset (Fin n)) :
+    (∃ x, ACC0SymLayerReduction.symAndEval sym gates x = true)
+      ↔ ∃ t ∈ Finset.range (k + 1), sym t = true ∧ ACC0SymLayerReduction.levelCount gates t ≠ 0 :=
+  symAnd_sat_iff sym gates
+
 /-- **The cell-count lower bound, one socket (proved), beside `nframe_lower_bound`.**  For a class of holonomy-predictors,
 the *sharpest* cell-count socket implies the holonomy lower bound. -/
 theorem cellcount_lower_bound {ι : Type} {n : ℕ} (sys : PredictorClass ι n)
@@ -781,3 +791,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.williams_cashout_from_polynomial_method
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.boundary_selects_absorbing_iff_andOr
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.sparse_symand_cube_sum
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.symand_sat_decided_by_levels
