@@ -55,6 +55,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Multilinearisation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SubstitutionPoly
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LowDegreeSubstitution
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AevalDegree
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ErrorAveraging
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -140,6 +141,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ── COMPOSITION-DEGREE LEMMA DISCHARGED: aeval_totalDegree_le totalDegree(aeval f p)≤totalDegree p·D ⇒ ────
    ──   binGate_degree ⇒ psubst_degree_aeval: per-gate factor is now PROVED (not assumed); degree bound holds ─
    ──   unconditionally given only each gate poly has degree ≤δ (which OR/MOD satisfy). ───────────────────────
+   ── ERROR SIDE WIRED: exists_good_seed — per-input seed error (orPoly_error/amplifiedOrPoly_error) ⇒ a fixed ─
+   ──   seed with input-error ≤ 2^n/p^t = the ε for circuit_error_bound (probabilistic method/averaging). ──────
+   ──   Degree + error interfaces both now PROVED; only abstract williams/hierarchy (NEXP-strength) remain. ────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -760,6 +764,18 @@ theorem psubst_degree_aeval_frontier {n : ℕ} {R : Type*} [CommRing R]
     exact le_trans (ACC0AevalDegree.binGate_degree (gb g) (Q a) (Q b))
       (Nat.mul_le_mul (hgb g) (le_refl _))
 
+/-- **The error-side bridge, proved: per-input seed error ⇒ a fixed good seed.**  The error analogue of the
+composition-degree discharge.  If every input is erred on by at most `k` seeds, some seed errs on few inputs
+(`card Seed · #{x : err s x} ≤ card Input · k`) — converting the seed-space gate errors (`orPoly_error`,
+`amplifiedOrPoly_error`) into the fixed-seed input-space `ε` that `circuit_error_bound` consumes.  Composition is
+`circuit_error_bound` (total `≤ size·ε`); this is the missing per-gate bridge. -/
+theorem error_averaging_frontier {S I : Type*} [Fintype S] [Fintype I] [Nonempty S]
+    (err : S → I → Prop) [∀ s i, Decidable (err s i)] (k : ℕ)
+    (hbound : ∀ x : I, (Finset.univ.filter (fun s => err s x)).card ≤ k) :
+    ∃ s : S, (Fintype.card S) * (Finset.univ.filter (fun x => err s x)).card
+      ≤ (Fintype.card I) * k :=
+  ACC0ErrorAveraging.exists_good_seed err k hbound
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1152,6 +1168,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.circuit_cube_count_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.low_degree_survives_composition_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.psubst_degree_aeval_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.error_averaging_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
