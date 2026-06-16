@@ -67,6 +67,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SimulationStep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TapeEncoding
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RuleLookup
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0HeadLocation
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TapeRewrite
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -182,6 +183,10 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   The lookup SPEC the physical scan sub-machine must meet; physical tape-scan as U-transitions = socket. ──────
    ── HEAD-LOCATION: head-movement LOCALITY (moveHead_le_succ, step_head_le, reachIn_head_le: head≤head₀+k) PROVED ─
    ──   ⇒ simulated head in O(k) region ⇒ physical navigation cost O(k)/step. Physical U-head navigation = socket. ──
+   ── TAPE-REWRITE: writeAt spec PROVED — read-after-write (getD_self), unchanged-elsewhere (getD_ne), minimal ─────
+   ──   extension (length=max). applyTrans_write: rule writes its symbol at old head. Physical U-rewrite = socket. ──
+   ── [PHYSICAL-U DECOMP: tape-encode✓ rule-lookup✓ head-locality✓ tape-rewrite✓; remaining = assemble hstep ──────
+   ──   (one physical step in B steps) — the FULL verified universal-TM, a standalone project; + EasyWitnessCollapse.] ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -941,6 +946,14 @@ theorem head_locality_frontier (M : ACC0ConcreteNTM.TMachine) (k : ℕ) (c d : A
     d.2.1 ≤ c.2.1 + k :=
   ACC0HeadLocation.reachIn_head_le M k c d h
 
+/-- **The tape-rewrite write contract (proved).**  Applying a rule writes its symbol at the old head:
+`(applyTrans c t).2.2.getD c.2.1 false = t.2.2.1` (read-after-write); other cells unchanged
+(`ACC0TapeRewrite.writeAt_getD_ne`) and the tape extends minimally (`writeAt_length = max tape.length (p+1)`).  The
+write spec the physical rewrite sub-machine must satisfy; the `U`-transition realisation remains the socket. -/
+theorem tape_rewrite_write_frontier (c : ACC0ConcreteNTM.CConfig) (t : ACC0ConcreteNTM.TMTrans) :
+    (ACC0ConcreteNTM.applyTrans c t).2.2.getD c.2.1 false = t.2.2.1 :=
+  ACC0TapeRewrite.applyTrans_write c t
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1347,6 +1360,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.tape_encoding_faithful_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rule_lookup_correct_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.head_locality_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.tape_rewrite_write_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
