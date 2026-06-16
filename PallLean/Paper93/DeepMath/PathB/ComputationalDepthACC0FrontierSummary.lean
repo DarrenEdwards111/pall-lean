@@ -78,6 +78,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GuessVerifyBudgets
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IKWEasyWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeGatePolys
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CRTGatePolys
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CRTFinsetGate
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -221,6 +222,8 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   concrete composite-MOD local gate polynomial (base case), the open ACC⁰-side input now built for MOD₆. ────────
    ── CRT GENERAL: modPGate p = 1−X^{p−1} (general prime, deg p−1, decides MOD_p); modPQGate_decides composes distinct ─
    ──   primes p≠q via coprime CRT (p·q∣s). MOD₆ generalised to arbitrary squarefree composite modulus. ───────────────
+   ── CRT FINSET: modGateProd_decides — prime gate family {modPGate p}_{p∈S} fires iff (∏ p∈S)∣s. SQUAREFREE ──────────
+   ──   composite MOD complete (prod_primes_dvd_iff + iterated coprime CRT). Remaining: prime powers p^e, AND-layer. ──
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1108,6 +1111,14 @@ theorem modPQ_gate_decides_frontier (p q : ℕ) [Fact p.Prime] [Fact q.Prime] (h
       ↔ (p * q) ∣ s :=
   ACC0CRTGatePolys.modPQGate_decides p q hpq s
 
+/-- **Squarefree composite `MOD` gate over a `Finset` of primes (proved).**  For a finset `S` of primes, the family of
+exact low-degree gate polynomials `{modPGate p}_{p∈S}` all fire iff `(∏ p ∈ S, p) ∣ s` — `MOD_m` for any squarefree
+modulus `m = ∏ S`, by iterating coprime CRT.  Completes the squarefree composite case of the algebraic observer. -/
+theorem modGateProd_decides_frontier (S : Finset ℕ) (hS : ∀ p ∈ S, p.Prime) (s : ℕ) :
+    (∀ p ∈ S, MvPolynomial.eval (fun _ => (s : ZMod p)) (ACC0CRTGatePolys.modPGate p) = 1)
+      ↔ (∏ p ∈ S, p) ∣ s :=
+  ACC0CRTFinsetGate.modGateProd_decides S hS s
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1525,6 +1536,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.ikw_full_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.mod6_gate_decides_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.modPQ_gate_decides_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.modGateProd_decides_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
