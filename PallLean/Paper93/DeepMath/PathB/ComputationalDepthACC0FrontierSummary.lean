@@ -66,6 +66,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalNTM
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SimulationStep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TapeEncoding
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RuleLookup
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0HeadLocation
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -179,6 +180,8 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   it as U-transitions in one simulated step = the remaining single-step socket. ──────────────────────────────
    ── RULE-LOOKUP: matchingRules + concreteStep_iff_matching PROVED (step = pick matching rule & apply; scan ≤|M|). ─
    ──   The lookup SPEC the physical scan sub-machine must meet; physical tape-scan as U-transitions = socket. ──────
+   ── HEAD-LOCATION: head-movement LOCALITY (moveHead_le_succ, step_head_le, reachIn_head_le: head≤head₀+k) PROVED ─
+   ──   ⇒ simulated head in O(k) region ⇒ physical navigation cost O(k)/step. Physical U-head navigation = socket. ──
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -929,6 +932,15 @@ theorem rule_lookup_correct_frontier (M : ACC0ConcreteNTM.TMachine) (c d : ACC0C
         d = ACC0ConcreteNTM.applyTrans c t :=
   ACC0RuleLookup.concreteStep_iff_matching M c d
 
+/-- **Head-movement locality (proved): the simulated head stays within `head₀ + k` after `k` steps.**
+`reachIn (toNTM M) k c d → d.2.1 ≤ c.2.1 + k` — a step moves the head by at most one cell, so the physical
+head-location sub-machine traverses an `O(k)` tape region (bounding its per-step cost). The physical navigation as
+`U`-transitions remains the socket. -/
+theorem head_locality_frontier (M : ACC0ConcreteNTM.TMachine) (k : ℕ) (c d : ACC0ConcreteNTM.CConfig)
+    (h : ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM M) k c d) :
+    d.2.1 ≤ c.2.1 + k :=
+  ACC0HeadLocation.reachIn_head_le M k c d h
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1334,6 +1346,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.sim_overhead_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.tape_encoding_faithful_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rule_lookup_correct_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.head_locality_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
