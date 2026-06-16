@@ -81,6 +81,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CRTGatePolys
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CRTFinsetGate
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeBTIntegration
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndLayer
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerGate
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -230,6 +231,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   (δ=p−1); MOD_p circuit gets quasipoly low-degree sparse rep. The algebraic observer wired into the pipeline. ─
    ── AND-LAYER: andCountPoly (∑∏X_i) evals to satCount (count of satisfied ANDs); modPAndPoly = MOD_p∘AND, degree ──
    ──   ≤(p−1)·width. The AND features wired under the MOD gate. Composite-MOD pipeline now: AND→count→MOD→compositeBT. ─
+   ── PRIME POWERS: CRT divisibility (p^a·q^b∣s ↔ p^a∣s∧q^b∣s) + ring observer (ZMod p^e) GENERALISE; but low-degree ──
+   ──   FIELD gate poly does NOT (ZMod p^e not a field, Fermat fails) = the genuine ACC⁰[composite] OBSTRUCTION, ──────
+   ──   honestly documented (squarefree worked by avoiding prime powers). NOT faked. ───────────────────────────────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1161,6 +1165,14 @@ theorem modP_and_degree_frontier {n t : ℕ} {p : ℕ} [Fact p.Prime] (supports 
     (ACC0AndLayer.modPAndPoly p supports).totalDegree ≤ (p - 1) * w :=
   ACC0AndLayer.modPAndPoly_degree supports hw
 
+/-- **Prime-power `MOD`: CRT divisibility generalises (proved), the low-degree field gate does not (obstruction).**
+`(p^a · q^b) ∣ s ↔ (p^a ∣ s ∧ q^b ∣ s)` (coprime prime powers) and the ring residue observer `(s : ZMod (p^e)) = 0 ↔
+p^e ∣ s` both generalise; but `ZMod (p^e)` is not a field, so there is no Fermat-style low-degree gate polynomial — the
+genuine `ACC⁰[composite]` obstruction (squarefree worked by avoiding prime powers). -/
+theorem primePower_dvd_frontier (p q a b : ℕ) (hp : p.Prime) (hq : q.Prime) (hpq : p ≠ q) (s : ℕ) :
+    (p ^ a * q ^ b) ∣ s ↔ (p ^ a ∣ s ∧ q ^ b ∣ s) :=
+  ACC0PrimePowerGate.primePowerDvd_iff p q a b hp hq hpq s
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1582,6 +1594,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.modP_circuit_representation_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.and_layer_eval_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.modP_and_degree_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.primePower_dvd_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
