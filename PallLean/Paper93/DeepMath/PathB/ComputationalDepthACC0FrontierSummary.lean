@@ -38,6 +38,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BeigelTaruiSparsity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankCellCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BlockRankCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FootprintRank
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RandomRestrictionRankCollapse
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -78,6 +79,7 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  rank-cell collapse ⇒ low correlation (direct) PROVED   rank_cell_collapse_low_correlation  (…ACC0RankCellCollapse)
  block-diagonal MOD rank-shrink (rank ≤ d)     PROVED   block_diagonal_rank_shrink          (…ACC0BlockRankCollapse)
  bounded footprint ⇒ rank ≤ |⋃ supports|       PROVED   footprint_rank_bound                (…ACC0FootprintRank)
+ random restriction ⇒ RankCellCollapse witness PROVED   random_restriction_rank_cell_collapse (…ACC0RandomRestrictionRankCollapse)
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
  cell-count bridge (cells < |L| ⇒ low corr)   PROVED   cellcount_bridge                    (…ACC0CellCountRoute)
  cells subsume rank (2^cellRank < |L| ⇒ …)     PROVED   cellcount_subsumes_rank             (…ACC0CellCountRoute)
@@ -248,6 +250,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0BeigelTaruiSparsity
 open PallLean.Paper93.DeepMath.PathB.ACC0RankCellCollapse
 open PallLean.Paper93.DeepMath.PathB.ACC0BlockRankCollapse
 open PallLean.Paper93.DeepMath.PathB.ACC0FootprintRank
+open PallLean.Paper93.DeepMath.PathB.ACC0RandomRestrictionRankCollapse
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -473,6 +476,15 @@ theorem footprint_low_correlation_export {k n : ℕ} (supports : Fin k → Finse
     (hf : 2 ^ (ACC0FootprintRank.footprint supports).card < L.card) :
     LowHolonomyCorrelation supports g :=
   footprint_low_correlation supports g L hf
+
+/-- **Random restriction yields a `RankCellCollapse` witness (proved).**  `2^a ≤ b` and `Pr[cellRank ≥ a] + Pr[|L| ≤ b]
+< 1` produce a live set where the linear observer has fewer than `|L|` states (`2^{cellRank} < |L|`). -/
+theorem random_restriction_rank_cell_collapse {k n : ℕ} (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
+    (supports : Fin k → Finset (Fin n)) (a b : ℕ) (hab : 2 ^ a ≤ b)
+    (hfeas : Pr p (fun L => a ≤ cellRank supports L)
+        + Pr p (fun L : Finset (Fin n) => L.card ≤ b) < 1) :
+    ∃ L ∈ (Finset.univ : Finset (Fin n)).powerset, RankCellCollapse supports L :=
+  exists_rankCellCollapse_whp p hp0 hp1 supports a b hab hfeas
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
@@ -848,6 +860,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_cell_collapse_low_correlation
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.block_diagonal_rank_shrink
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.footprint_rank_bound
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.random_restriction_rank_cell_collapse
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
