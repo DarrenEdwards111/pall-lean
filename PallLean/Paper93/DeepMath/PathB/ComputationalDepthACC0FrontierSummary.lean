@@ -31,6 +31,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BoundaryObserverCon
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ControlShrinkage
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SparseCounting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymLayerReduction
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LevelCounts
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -114,10 +115,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  cash-out chain (impl., NOT the separation)    PROVED   williams_cashout_from_polynomial_method (…ACC0WilliamsCashoutFromPolynomial)
  sparse-counting kernel (cube-sum=Σc_S·2^{n-|S|}) PROVED  sparse_symand_cube_sum              (…ACC0SparseCounting)
  SYM-layer reduction (SAT ⟺ over k+1 levels)   PROVED   symand_sat_decided_by_levels        (…ACC0SymLayerReduction)
- ── OPEN inputs: counting socket (rep ⇒ sub-2ⁿ ACC⁰-SAT). Sparse-counting kernel PROVED (cube-sum, ───────
- ──   no 2ⁿ-enum); SYM-layer reduction PROVED (SAT ⟺ k+1 level-counts). Remaining: compute each level- ──
- ──   count N_t + Beigel-Tarui quasipoly #monomials bound. Then williams collapse + time hierarchy. ─────
- ──   F_p ceiling: real PARITY/MOD_p∉AC⁰[p]. Composite/general = Williams. ───────────────────────────────
+ binomial moments ↔ level counts (N_t bridge)  PROVED   level_counts_from_binomial_moments  (…ACC0LevelCounts)
+ ── OPEN inputs: counting socket (rep ⇒ sub-2ⁿ ACC⁰-SAT). PROVED so far: rep half, sparse cube-sum ───────
+ ──   kernel, SYM-layer reduction (SAT ⟺ k+1 levels), moments↔levels bridge (N_t = triangular inversion ─
+ ──   of computable moments). Remaining: explicit inversion + e_d-sparsity + Beigel-Tarui #monomials ────
+ ──   bound; then williams collapse + time hierarchy. F_p ceiling: real PARITY/MOD_p∉AC⁰[p]. ─────────────
  ── Dynamic N-frame: the BOUNDARY selects the observer (unification of all routes) ───────────────────────
  boundary selects observer (absorbing⟺AND/OR)  PROVED   boundary_selects_absorbing_iff_andOr (…ACC0BoundaryObserverControl)
  ──   AND/OR→absorbing (refined collapses); MOD→linearResidual (=membership, bounded)→polynomialSpan ─────
@@ -226,6 +228,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0BoundaryObserverControl
 open PallLean.Paper93.DeepMath.PathB.ACC0ControlShrinkage
 open PallLean.Paper93.DeepMath.PathB.ACC0SparseCounting
 open PallLean.Paper93.DeepMath.PathB.ACC0SymLayerReduction
+open PallLean.Paper93.DeepMath.PathB.ACC0LevelCounts
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -732,6 +735,14 @@ theorem symand_sat_decided_by_levels {n k : ℕ} (sym : ℕ → Bool) (gates : F
       ↔ ∃ t ∈ Finset.range (k + 1), sym t = true ∧ ACC0SymLayerReduction.levelCount gates t ≠ 0 :=
   symAnd_sat_iff sym gates
 
+/-- **The binomial-moment ↔ level-count bridge (proved): `∑_x C(andCount x, d) = ∑_{t≤k} N_t · C(t,d)`.**  Connects the
+`SYM∘AND` level-counts `N_t` to the kernel-computable binomial moments via a unit-triangular system — so the moments
+determine the `N_t` by inclusion–exclusion. -/
+theorem level_counts_from_binomial_moments {n k : ℕ} (gates : Fin k → Finset (Fin n)) (d : ℕ) :
+    (∑ x : Fin n → Bool, (ACC0SymLayerReduction.andCount gates x).choose d)
+      = ∑ t ∈ Finset.range (k + 1), ACC0SymLayerReduction.levelCount gates t * t.choose d :=
+  binomial_moment_eq_sum_levels gates d
+
 /-- **The cell-count lower bound, one socket (proved), beside `nframe_lower_bound`.**  For a class of holonomy-predictors,
 the *sharpest* cell-count socket implies the holonomy lower bound. -/
 theorem cellcount_lower_bound {ι : Type} {n : ℕ} (sys : PredictorClass ι n)
@@ -792,3 +803,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.boundary_selects_absorbing_iff_andOr
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.sparse_symand_cube_sum
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.symand_sat_decided_by_levels
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.level_counts_from_binomial_moments
