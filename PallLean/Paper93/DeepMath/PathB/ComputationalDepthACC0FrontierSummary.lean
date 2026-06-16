@@ -47,6 +47,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTSizeRecurrence
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6ProbabilisticPolynomial
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -111,6 +112,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ── SIZE RECURRENCE: exact fold of fan-in k+1 costs iterSize, iterSize_ge: b·(b+1)^k ≤ iterSize b k ──────
    ──   (EXPONENTIAL in fan-in; ACC⁰ has poly fan-in ⇒ exact collapse not quasipoly). Replacement socket = ─
    ──   QuasipolyApproxCompression (probabilistic poly); union-bound error_union_bound/error_choice PROVED. ─
+   ── PROB POLY: MOD gates EXACT low-degree (mod3_indicator 1−a²/F₃ deg2, NO probabilism). RS core PROVED: ─
+   ──   linear_form_balance p·#{⟨r,v⟩=0}=p^m (random form vanishes w.p. 1/p) ⇒ OR probabilistic poly deg ──
+   ──   p−1, error 1/p (orPoly_error). Open = amplification (1/p)^t + quasipoly assembly = AmplifiedErrorSocket. ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -292,6 +296,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0Mod6SymAndDepth2
 open PallLean.Paper93.DeepMath.PathB.ACC0SymAndComposition
 open PallLean.Paper93.DeepMath.PathB.ACC0MiniBTTwoCount
 open PallLean.Paper93.DeepMath.PathB.ACC0BTSizeRecurrence
+open PallLean.Paper93.DeepMath.PathB.ACC0Mod6ProbabilisticPolynomial
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -617,6 +622,16 @@ bookkeeping `error_union_bound` proved).  This re-export records the proved expo
 theorem bt_exact_fold_exponential_frontier (b k : ℕ) :
     b * (b + 1) ^ k ≤ ACC0BTSizeRecurrence.iterSize b k :=
   ACC0BTSizeRecurrence.iterSize_ge b k
+
+/-- **The Razborov–Smolensky probabilistic core, proved: the random `F_p`-linear form vanishes on a fixed nonzero
+vector with probability exactly `1/p`.**  `p · #{r : ∑ rᵢ vᵢ = 0} = p^m` for `v ≠ 0` (additive equidistribution of the
+dot-product hom's fibres).  This is the error bound of the `OR` probabilistic polynomial `(∑ rᵢ vᵢ)^{p-1}`
+(`orPoly_error`).  The `MOD` gates themselves need *no* probabilism — `mod3_indicator` (`1−a²` over `F₃`) is exact
+degree 2 — so all the probabilism lives here, in the `AND`/`OR` layer. -/
+theorem rs_linear_form_balance_frontier {p m : ℕ} [Fact p.Prime]
+    (v : Fin m → ZMod p) (hv : v ≠ 0) :
+    p * (Finset.univ.filter (fun r : Fin m → ZMod p => (∑ i, r i * v i) = 0)).card = p ^ m :=
+  ACC0Mod6ProbabilisticPolynomial.linear_form_balance v hv
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
@@ -1002,6 +1017,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.symAnd_composition_closure_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.miniBT_two_count_collapse_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.bt_exact_fold_exponential_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rs_linear_form_balance_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
