@@ -29,6 +29,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PivotToPolynomialMe
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsCashoutFromPolynomial
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BoundaryObserverControl
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ControlShrinkage
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SparseCounting
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -110,8 +111,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  ── Williams cash-out (CONDITIONAL): polynomial method discharges the representation half ────────────────
  RS representation half (SYM∘AND) discharged   PROVED   rsMonoANDRepresentation_proved      (…ACC0WilliamsCashoutFromPolynomial)
  cash-out chain (impl., NOT the separation)    PROVED   williams_cashout_from_polynomial_method (…ACC0WilliamsCashoutFromPolynomial)
+ sparse-counting kernel (cube-sum=Σc_S·2^{n-|S|}) PROVED  sparse_symand_cube_sum              (…ACC0SparseCounting)
  ── OPEN inputs: counting socket (rep ⇒ sub-2ⁿ ACC⁰-SAT = Williams' algorithmic heart) + williams ────────
- ──   collapse + time hierarchy. F_p ceiling: real PARITY/MOD_p∉AC⁰[p]. Composite/general = Williams. ────
+ ──   collapse + time hierarchy. Sparse-counting kernel PROVED (sum=Σc_S·2^{n-|S|}, no 2ⁿ-enum); ─────────
+ ──   remaining: SYM top layer (sum→SAT) + Beigel-Tarui quasipoly #monomials bound. F_p ceiling: ────────
+ ──   real PARITY/MOD_p∉AC⁰[p]. Composite/general = Williams. ───────────────────────────────────────────
  ── Dynamic N-frame: the BOUNDARY selects the observer (unification of all routes) ───────────────────────
  boundary selects observer (absorbing⟺AND/OR)  PROVED   boundary_selects_absorbing_iff_andOr (…ACC0BoundaryObserverControl)
  ──   AND/OR→absorbing (refined collapses); MOD→linearResidual (=membership, bounded)→polynomialSpan ─────
@@ -218,6 +222,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0PivotToPolynomialMethod
 open PallLean.Paper93.DeepMath.PathB.ACC0WilliamsCashoutFromPolynomial
 open PallLean.Paper93.DeepMath.PathB.ACC0BoundaryObserverControl
 open PallLean.Paper93.DeepMath.PathB.ACC0ControlShrinkage
+open PallLean.Paper93.DeepMath.PathB.ACC0SparseCounting
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -707,6 +712,16 @@ theorem boundary_selects_absorbing_iff_andOr (gk : GateKind) :
     boundarySelect gk = BoundaryContext.absorbing ↔ gk = GateKind.andOr :=
   boundarySelect_andOr_iff_absorbing gk
 
+/-- **The sparse-counting kernel (proved): a sparse `SYM∘AND` polynomial's cube-sum is a closed form over its
+coefficients.**  `∑_x Σ_{S∈𝒮} c_S·[∏_{i∈S} x_i] = Σ_{S∈𝒮} c_S·2^{n−|S|}` — the algorithmic heart of Williams' fast
+counting, computable in `|𝒮|` operations with no `2ⁿ`-enumeration (sub-`2ⁿ` when `#monomials < 2ⁿ`). -/
+theorem sparse_symand_cube_sum {n : ℕ} {R : Type*} [CommRing R] (𝒮 : Finset (Finset (Fin n)))
+    (c : Finset (Fin n) → R) :
+    (∑ x : Fin n → Bool, ∑ S ∈ 𝒮, c S *
+        (if PallLean.Paper93.DeepMath.PathB.ACC0PolyToSymAnd.monoAND S x = true then (1 : R) else 0))
+      = ∑ S ∈ 𝒮, c S * (2 : R) ^ (n - S.card) :=
+  sparse_cube_sum 𝒮 c
+
 /-- **The cell-count lower bound, one socket (proved), beside `nframe_lower_bound`.**  For a class of holonomy-predictors,
 the *sharpest* cell-count socket implies the holonomy lower bound. -/
 theorem cellcount_lower_bound {ι : Type} {n : ℕ} (sys : PredictorClass ι n)
@@ -765,3 +780,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.polynomial_method_separates_holonomy_parity
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.williams_cashout_from_polynomial_method
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.boundary_selects_absorbing_iff_andOr
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.sparse_symand_cube_sum
