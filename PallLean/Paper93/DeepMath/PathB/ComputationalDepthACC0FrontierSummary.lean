@@ -61,6 +61,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RouteBComplete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsMetaTheorem
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NTM
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TimeHierarchyDiagonal
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ConcreteNTM
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -161,6 +162,8 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ── HIERARCHY DIAGONAL: diag_not_mem_range — Cantor core PROVED (D w:=¬enum(idx w) w differs from every enum k); ─
    ──   time_hierarchy_from_sockets: enumerability(NTIME g) + diag∈NTIME f ⇒ ConcreteHierarchy f g. The diagonal ─
    ──   ARGUMENT machine-checked; only the 2 computational sockets (encode+universal sim) remain for the hierarchy. ─
+   ── CONCRETE NTM: binary-tape machine + encoded transition table ⇒ machineEquiv : TMachine≃ℕ (machines ────────
+   ──   ENUMERABLE — the encode half of the sockets); toNTM bridges to abstract NTM. Universal simulator = next. ──
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -855,6 +858,15 @@ theorem time_hierarchy_diagonal_frontier (f g : ℕ → ℕ) (enum : ℕ → ACC
     ACC0NTM.ConcreteHierarchy f g :=
   ACC0TimeHierarchyDiagonal.time_hierarchy_from_sockets f g enum idx enum_covers diag_in_big
 
+/-- **The concrete encodable NTM model (proved): machines are enumerable.**  A binary-tape machine with an encoded
+transition table is `Encodable` and `Infinite`, hence `machineEquiv : TMachine ≃ ℕ` — the enumeration the
+time-hierarchy `enum_covers` socket needs.  `toNTM` realises each concrete machine as an abstract `NTM`, bridging to
+the hierarchy framework.  (The universal simulator over this model — discharging `enum_covers`/`diag_in_big` — is the
+next step.) -/
+theorem concrete_ntm_enumerable_frontier :
+    Function.Bijective ACC0ConcreteNTM.machineEquiv :=
+  ACC0ConcreteNTM.machineEquiv.bijective
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1254,6 +1266,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.ntm_acceptsWithin_mono_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.williams_concrete_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.time_hierarchy_diagonal_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.concrete_ntm_enumerable_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
