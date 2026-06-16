@@ -46,6 +46,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeBTTarget
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTSizeRecurrence
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -107,6 +108,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ── CORRECTION: MiniBTCollapse PROVED exactly (mixed-radix c⋆=(t₂+1)·c₁+c₂); SYM∘AND closed under AND/OR ─
    ──   UNCONDITIONALLY. The real wall = MULTIPLICATIVE size blow-up t₁·(t₂+1)+t₂ → tower over depth, not ──
    ──   impossibility. Global quasipoly rep over depth still needs probabilistic polynomials (= the socket). ─
+   ── SIZE RECURRENCE: exact fold of fan-in k+1 costs iterSize, iterSize_ge: b·(b+1)^k ≤ iterSize b k ──────
+   ──   (EXPONENTIAL in fan-in; ACC⁰ has poly fan-in ⇒ exact collapse not quasipoly). Replacement socket = ─
+   ──   QuasipolyApproxCompression (probabilistic poly); union-bound error_union_bound/error_choice PROVED. ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -287,6 +291,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0CompositeBT
 open PallLean.Paper93.DeepMath.PathB.ACC0Mod6SymAndDepth2
 open PallLean.Paper93.DeepMath.PathB.ACC0SymAndComposition
 open PallLean.Paper93.DeepMath.PathB.ACC0MiniBTTwoCount
+open PallLean.Paper93.DeepMath.PathB.ACC0BTSizeRecurrence
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -603,6 +608,15 @@ quasipolynomial representation still needs probabilistic polynomials. -/
 theorem miniBT_two_count_collapse_frontier {n : ℕ} :
     ACC0SymAndComposition.MiniBTCollapse n :=
   ACC0MiniBTTwoCount.miniBTCollapse_holds
+
+/-- **The Beigel–Tarui size recurrence: exact fold is exponential in fan-in (proved).**  The exact mixed-radix collapse
+costs `btComposeSize l r = l·(r+1)+r` per step; folding a fan-in-`(k+1)` gate gives `iterSize`, and
+`iterSize_ge : b·(b+1)^k ≤ iterSize b k` — exponential.  Since `ACC⁰` has polynomial fan-in, exact collapse cannot be
+quasipolynomial; the open replacement is the probabilistic compression `QuasipolyApproxCompression` (with union-bound
+bookkeeping `error_union_bound` proved).  This re-export records the proved exponential lower bound. -/
+theorem bt_exact_fold_exponential_frontier (b k : ℕ) :
+    b * (b + 1) ^ k ≤ ACC0BTSizeRecurrence.iterSize b k :=
+  ACC0BTSizeRecurrence.iterSize_ge b k
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
@@ -987,6 +1001,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.mod6_depth2_residue_pair_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.symAnd_composition_closure_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.miniBT_two_count_collapse_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.bt_exact_fold_exponential_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
