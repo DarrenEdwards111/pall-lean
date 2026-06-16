@@ -87,6 +87,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerObserverC
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerTowerObserver
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerDigitObserver
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NonFieldObserverTheory
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ValuationSparseTheory
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -259,6 +260,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   useless for poly method). ring_root_count_fails: over ZMod p^e, C(p^{e-1})·X has deg≤1 but 2 roots {0,p} ─────
    ──   ⇒ field root bound FALSE over the ring. VERDICT: field route degree-blocked, non-field escape has NO ──────────
    ──   root-counting obstruction ⇒ low-degree question genuinely OPEN (the actual composite-MOD wall, not glue). ─────
+   ── ROUTE 1 VALUATION SPARSE: valuation_modPrimePower_and_downshift_frontier — MOD_{p^e} = e-fold AND of MOD_p ──────
+   ──   down-shift tests (p^e∣s ↔ ∀i<e, p∣(s/p^i)). Sparse TOP (e conjuncts); each conjunct low-degree (deg p-1 ──────
+   ──   Fermat gate at s/p^i). downshift_breaks_additivity: s↦s/p NOT additive ⇒ linear-form trick (cheap MOD_p) ──────
+   ──   can't be reused ⇒ residual cost = the CARRY/DIVISION, not the modulus. Sharpens the target: sparse rep of ──────
+   ──   the down-shift, not the modulus. Does NOT construct it (= the open LB). ────────────────────────────────────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1255,6 +1261,15 @@ theorem nonField_modPrimePower_field_degree_ge_frontier {F : Type*} [Field F] [C
     p ^ e - 1 ≤ g.natDegree :=
   ACC0NonFieldObserverTheory.modPrimePower_field_indicator_high_degree p e g hg hrej
 
+/-- **Route 1 — valuation sparse theory: `MOD_{p^e}` is an `e`-fold AND of `MOD_p` down-shift tests (proved).**
+`p^e ∣ s ↔ ∀ i < e, p ∣ (s / p^i)` — the sparse top-structure (`e` conjuncts), each a prime-modulus test decided by
+the degree-`(p-1)` Fermat gate at the down-shifted count.  The residual difficulty is the down-shift `s ↦ s/p^i`, which
+is provably non-additive (`downshift_breaks_additivity`), so the linear-form trick that makes `MOD_p` cheap cannot be
+reused — the carry/division is the barrier, not the modular arithmetic. -/
+theorem valuation_modPrimePower_and_downshift_frontier (p e s : ℕ) (hp : 0 < p) :
+    p ^ e ∣ s ↔ ∀ i, i < e → p ∣ (s / p ^ i) :=
+  ACC0ValuationSparseTheory.modPrimePower_eq_and_of_downshift_modP p e s hp
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1683,6 +1698,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.towerTruncation_insufficient_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.digitObserver_decides_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nonField_modPrimePower_field_degree_ge_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.valuation_modPrimePower_and_downshift_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment

@@ -161,6 +161,21 @@ exhibited nor excluded by these tools.  That is the honest location of the `ACC�
 a field* (where Fermat and root counting live), not a missing piece of glue.  Constructing a quasipolynomial low-degree
 sparse representation over a non-field observer — or proving none exists — *is* the open lower bound.
 
+### 7d. Route 1, sharpened — the sparse top-structure and the carry barrier (162)
+
+`…ACC0ValuationSparseTheory` pushes Route 1 one honest step further by *locating the cost inside the valuation route*:
+
+- **Sparse top-structure** (`modPrimePower_eq_and_of_downshift_modP`): `p^e ∣ s ↔ ∀ i < e, p ∣ (s/p^i)` — `MOD_{p^e}`
+  is an `e`-fold **AND of `MOD_p` tests on the down-shifted counts**.  The top is sparse (`e` conjuncts).
+- **Each conjunct is low-degree** (`downshift_conjunct_decided_by_lowdegree_gate`): `p ∣ (s/p^i)` is decided by the
+  degree-`(p-1)` Fermat gate at `s/p^i` — the modular arithmetic is cheap.
+- **The carry barrier** (`downshift_breaks_additivity`): `s ↦ s/p` is *not additive*, so it destroys the linear form
+  `∑ Xᵢ` that makes `MOD_p` cheap; after one down-shift the argument is no longer linear in the bits.
+
+So the residual difficulty is *not* the modulus — it is a sparse representation of the **down-shift / carry** `s/p^i`
+in the input bits.  This is a sharper statement of the open target, not the breakthrough: constructing such a
+representation is still the `ACC⁰[composite]` lower bound.
+
 ---
 
 ## The four remaining routes (no small glue left)
