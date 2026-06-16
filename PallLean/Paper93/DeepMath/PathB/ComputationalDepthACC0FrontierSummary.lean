@@ -79,6 +79,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IKWEasyWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeGatePolys
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CRTGatePolys
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CRTFinsetGate
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeBTIntegration
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -224,6 +225,8 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   primes p≠q via coprime CRT (p·q∣s). MOD₆ generalised to arbitrary squarefree composite modulus. ───────────────
    ── CRT FINSET: modGateProd_decides — prime gate family {modPGate p}_{p∈S} fires iff (∏ p∈S)∣s. SQUAREFREE ──────────
    ──   composite MOD complete (prod_primes_dvd_iff + iterated coprime CRT). Remaining: prime powers p^e, AND-layer. ──
+   ── INTEGRATION: modP_circuit_representation — MOD_p gate polys (degree p−1) FEED compositeBT_representation ────────
+   ──   (δ=p−1); MOD_p circuit gets quasipoly low-degree sparse rep. The algebraic observer wired into the pipeline. ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1119,6 +1122,26 @@ theorem modGateProd_decides_frontier (S : Finset ℕ) (hS : ∀ p ∈ S, p.Prime
       ↔ (∏ p ∈ S, p) ∣ s :=
   ACC0CRTFinsetGate.modGateProd_decides S hS s
 
+/-- **Integration (proved): the `MOD_p` gate polynomials feed `compositeBT_representation`.**  A `MOD_p`-gate circuit
+(unary gates `= modPGate p`, degree `≤ p−1`, binary gates degree `≤ p−1`) gets the quasipolynomial low-degree sparse
+representation with `δ = p−1` (degree `≤ (p−1)^{depth+1}`, `≤ (n+1)^{(p−1)^{depth+1}}` features, sparse cube count) —
+the composite-`MOD` algebraic observer plugged into the composite-BT pipeline. -/
+theorem modP_circuit_representation_frontier {n : ℕ} (p : ℕ) [Fact p.Prime]
+    (Q : ACC0CircuitSubstitution.Circ n → MvPolynomial (Fin n) (ZMod p))
+    (gb : (Bool → Bool → Bool) → MvPolynomial (Fin 2) (ZMod p))
+    (hinp : ∀ i, (Q (.inp i)).totalDegree ≤ p - 1) (hcst : ∀ b, (Q (.cst b)).totalDegree ≤ p - 1)
+    (hgb : ∀ g, (gb g).totalDegree ≤ p - 1)
+    (huna_eq : ∀ f c, Q (.una f c) = aeval ![Q c] (ACC0CRTGatePolys.modPGate p))
+    (hbin_eq : ∀ g a b, Q (.bin g a b) = aeval ![Q a, Q b] (gb g))
+    (c : ACC0CircuitSubstitution.Circ n) :
+    (Q c).totalDegree ≤ (p - 1) ^ (ACC0LowDegreeSubstitution.depth c + 1)
+      ∧ ((Q c).support.image (fun d => d.support)).card
+          ≤ (n + 1) ^ ((p - 1) ^ (ACC0LowDegreeSubstitution.depth c + 1))
+      ∧ (∑ x : Fin n → Bool,
+            MvPolynomial.eval (fun i => (ACC0Multilinearisation.boolVal (x i) : ZMod p)) (Q c))
+          = ∑ d ∈ (Q c).support, (Q c).coeff d * (2 : ZMod p) ^ (n - d.support.card) :=
+  ACC0CompositeBTIntegration.modP_circuit_representation p Q gb hinp hcst hgb huna_eq hbin_eq c
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1537,6 +1560,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.mod6_gate_decides_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.modPQ_gate_decides_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.modGateProd_decides_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.modP_circuit_representation_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
