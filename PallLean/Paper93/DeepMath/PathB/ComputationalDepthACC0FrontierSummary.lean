@@ -89,6 +89,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerDigitObse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NonFieldObserverTheory
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ValuationSparseTheory
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarrySparseTheory
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountCarrySymmetric
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -271,6 +272,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   where Route 1 succeeds). carry_not_function_of_downshifts: (0,0)&(p-1,1) share down-shifts, differ in carry ─────
    ──   ⇒ carry needs the LOW RESIDUES not just down-shifts. Dynamic boundary: MOD_p→MOD_{p^e} forces field→carry- ─────
    ──   aware p-adic observer. Structure theory of the carry, NOT a representation (general regime = open LB). ──────────
+   ── ROUTE 1 COUNT CARRY SYMMETRIC: countCarry_eq_sum_thresholds_frontier — ⌊s/p⌋ = ∑_{j∈[1,N]} [j·p≤s] (sum of ──────
+   ──   ⌊n/p⌋ threshold gates, a SYM form). Count carry is SYMMETRIC (function of s alone, count_carry_symmetric) ──────
+   ──   w/ small range ⌊n/p⌋ (count_carry_range_le) — escapes the 163 residue obstruction (single count, not a+b). ─────
+   ──   Gain RE-LOCALISES open difficulty to the DEGREE of a threshold [s≥jp] on the count (Majority-flavoured); ───────
+   ──   does NOT claim thresholds low-degree (= open LB) nor not. SYM top-structure present; threshold degree open. ────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1285,6 +1291,15 @@ theorem carry_downshift_add_identity_frontier (p a b : ℕ) (hp : 0 < p) :
     (a + b) / p = a / p + b / p + (a % p + b % p) / p :=
   ACC0CarrySparseTheory.downshift_add_carry_identity p a b hp
 
+/-- **Route 1 — count carry symmetric structure: `⌊s/p⌋` is a sum of threshold gates (proved).**
+`⌊s/p⌋ = ∑_{j∈[1,N]} [j·p ≤ s]` for `⌊s/p⌋ ≤ N` — the count carry is a sum of `⌊n/p⌋` Majority-flavoured threshold
+indicators `[s ≥ j·p]` (a `SYM` form).  Unlike the general `a+b` carry (which needs the low residues), the count carry
+is symmetric (a function of `s` alone, `count_carry_symmetric`) with small range `⌊n/p⌋` (`count_carry_range_le`).  The
+gain re-localises the open difficulty to the *degree of a threshold on the count*, not its claim. -/
+theorem countCarry_eq_sum_thresholds_frontier (p s N : ℕ) (hp : 0 < p) (hN : s / p ≤ N) :
+    s / p = ∑ j ∈ Finset.Icc 1 N, (if j * p ≤ s then 1 else 0) :=
+  ACC0CountCarrySymmetric.count_carry_eq_sum_thresholds p s N hp hN
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1715,6 +1730,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nonField_modPrimePower_field_degree_ge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.valuation_modPrimePower_and_downshift_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.carry_downshift_add_identity_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.countCarry_eq_sum_thresholds_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment

@@ -192,6 +192,20 @@ This is the **dynamic boundary** N-Frame predicts: refining `MOD_p → MOD_{p^e}
 to carry-aware `p`-adic filtration, and the carry is the extra datum.  Structure theory of the carry, not a
 representation — the general (carry-present) regime remains the open lower bound.
 
+### 7f. Route 1, the count carry is symmetric — sum of threshold gates (164)
+
+`…ACC0CountCarrySymmetric` uses the fact that in `ACC⁰` the argument is a single **count** `s = ∑ᵢ xᵢ`, not a general
+`a+b`.  The whole tower `s, ⌊s/p⌋, ⌊s/p²⌋, …` are functions of that one `s`, so the §7e residue obstruction dissolves:
+
+- **Symmetric** (`count_carry_symmetric`): equal-weight inputs give equal carry — `⌊s/p^i⌋` is a function of `s` alone.
+- **Sum of thresholds** (`count_carry_eq_sum_thresholds`): `⌊s/p⌋ = ∑_{j} [s ≥ j·p]` — a `SYM` form, the top structure
+  Beigel–Tarui wants.
+- **Small range** (`count_carry_range_le`): `⌊s/p⌋ ≤ ⌊n/p⌋`.
+
+So the count carry *has* the symmetric `SYM` top-structure — but the gain re-localises the open difficulty to the
+**degree of a Majority-flavoured threshold `[s ≥ j·p]` on the count**, which (composed over the tower) is the open
+`ACC⁰[composite]` representation.  Symmetric structure: present and proved; threshold degree: open.
+
 ---
 
 ## The four remaining routes (no small glue left)
