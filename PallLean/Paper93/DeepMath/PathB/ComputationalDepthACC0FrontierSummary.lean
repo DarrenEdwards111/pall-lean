@@ -35,6 +35,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LevelCounts
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ElementarySymmetric
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BinomialInversion
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BeigelTaruiSparsity
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankCellCollapse
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -71,6 +72,8 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  probabilistic low-rank restriction           PROVED   rank_random_restriction             (…ACC0RandomRestrictionRank)
  rank whp (two-event, weaker feasibility)     PROVED   rank_whp                            (…ACC0RankWhp)
  rank composition (subadditive through layer) PROVED   rank_append_subadditive             (…ACC0RankComposition)
+ observer state space = exactly 2^cellRank     PROVED   observer_state_space_is_two_pow_rank (…ACC0RankCellCollapse)
+ rank-cell collapse ⇒ low correlation (direct) PROVED   rank_cell_collapse_low_correlation  (…ACC0RankCellCollapse)
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
  cell-count bridge (cells < |L| ⇒ low corr)   PROVED   cellcount_bridge                    (…ACC0CellCountRoute)
  cells subsume rank (2^cellRank < |L| ⇒ …)     PROVED   cellcount_subsumes_rank             (…ACC0CellCountRoute)
@@ -238,6 +241,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0LevelCounts
 open PallLean.Paper93.DeepMath.PathB.ACC0ElementarySymmetric
 open PallLean.Paper93.DeepMath.PathB.ACC0BinomialInversion
 open PallLean.Paper93.DeepMath.PathB.ACC0BeigelTaruiSparsity
+open PallLean.Paper93.DeepMath.PathB.ACC0RankCellCollapse
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -428,6 +432,19 @@ theorem rank_collapse_lifts_budget {k₁ k₂ n : ℕ} (supp₁ : Fin k₁ → F
     (hbudget : 2 ^ (r₁ + r₂) < L.card) (h₁ : cellRank supp₁ L ≤ r₁) (h₂ : cellRank supp₂ L ≤ r₂) :
     2 ^ cellRank (Fin.append supp₁ supp₂) L < L.card :=
   rank_collapse_lifts_of_rank_budget supp₁ supp₂ L r₁ r₂ hbudget h₁ h₂
+
+/-- **The linear observer state space is exactly `2^{cellRank}` (proved).**  `Nat.card (cellSpan supports L) =
+2^{cellRank supports L}` — the right invariant: the `F₂` observer state count is exactly `2^{rank}`, not the cruder
+`2^{survivingCount}`. -/
+theorem observer_state_space_is_two_pow_rank {k n : ℕ} (supports : Fin k → Finset (Fin n))
+    (L : Finset (Fin n)) : Nat.card ↥(cellSpan supports L) = 2 ^ cellRank supports L :=
+  observer_state_space_card supports L
+
+/-- **The rank-cell bridge (proved): `RankCellCollapse ⇒ low holonomy correlation`, directly.** -/
+theorem rank_cell_collapse_low_correlation {k n : ℕ} (supports : Fin k → Finset (Fin n))
+    (g : (Fin k → ℕ) → Bool) (L : Finset (Fin n)) (h : RankCellCollapse supports L) :
+    LowHolonomyCorrelation supports g :=
+  rank_cell_collapse_implies_low_holonomy_correlation supports g L h
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
@@ -799,6 +816,8 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_whp
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_append_subadditive
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_collapse_lifts_budget
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.observer_state_space_is_two_pow_rank
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_cell_collapse_low_correlation
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
