@@ -88,6 +88,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerTowerObse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerDigitObserver
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NonFieldObserverTheory
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ValuationSparseTheory
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarrySparseTheory
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -265,6 +266,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   Fermat gate at s/p^i). downshift_breaks_additivity: s↦s/p NOT additive ⇒ linear-form trick (cheap MOD_p) ──────
    ──   can't be reused ⇒ residual cost = the CARRY/DIVISION, not the modulus. Sharpens the target: sparse rep of ──────
    ──   the down-shift, not the modulus. Does NOT construct it (= the open LB). ────────────────────────────────────────
+   ── ROUTE 1 CARRY SPARSE: carry_downshift_add_identity_frontier — ⌊(a+b)/p⌋ = ⌊a/p⌋+⌊b/p⌋+⌊(a%p+b%p)/p⌋, carry ──────
+   ──   bit ∈{0,1} (carry_le_one). NO-CARRY regime (a%p+b%p<p) ⇒ additive (downshift_additive_no_carry = fragment ──────
+   ──   where Route 1 succeeds). carry_not_function_of_downshifts: (0,0)&(p-1,1) share down-shifts, differ in carry ─────
+   ──   ⇒ carry needs the LOW RESIDUES not just down-shifts. Dynamic boundary: MOD_p→MOD_{p^e} forces field→carry- ─────
+   ──   aware p-adic observer. Structure theory of the carry, NOT a representation (general regime = open LB). ──────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1270,6 +1276,15 @@ theorem valuation_modPrimePower_and_downshift_frontier (p e s : ℕ) (hp : 0 < p
     p ^ e ∣ s ↔ ∀ i, i < e → p ∣ (s / p ^ i) :=
   ACC0ValuationSparseTheory.modPrimePower_eq_and_of_downshift_modP p e s hp
 
+/-- **Route 1 — carry sparse theory: the down-shift's non-additivity is exactly one carry bit (proved).**
+`⌊(a+b)/p⌋ = ⌊a/p⌋ + ⌊b/p⌋ + ⌊(a%p+b%p)/p⌋` with the carry term `∈ {0,1}` (`carry_le_one`).  No-carry regime
+(`a%p+b%p < p`) restores additivity (`downshift_additive_no_carry` — the fragment where Route 1 succeeds); but the carry
+is not a function of the down-shifts (`carry_not_function_of_downshifts`: `(0,0)` and `(p-1,1)` share down-shifts, differ
+in carry), so a sparse theory of `⌊s/p⌋` must track the low residues, not just the down-shifts. -/
+theorem carry_downshift_add_identity_frontier (p a b : ℕ) (hp : 0 < p) :
+    (a + b) / p = a / p + b / p + (a % p + b % p) / p :=
+  ACC0CarrySparseTheory.downshift_add_carry_identity p a b hp
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1699,6 +1714,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.digitObserver_decides_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nonField_modPrimePower_field_degree_ge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.valuation_modPrimePower_and_downshift_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.carry_downshift_add_identity_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment

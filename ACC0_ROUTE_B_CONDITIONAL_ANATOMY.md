@@ -176,6 +176,22 @@ So the residual difficulty is *not* the modulus — it is a sparse representatio
 in the input bits.  This is a sharper statement of the open target, not the breakthrough: constructing such a
 representation is still the `ACC⁰[composite]` lower bound.
 
+### 7e. Route 1, carry structure — the carry boundary dissected (163)
+
+`…ACC0CarrySparseTheory` dissects the down-shift itself:
+
+- **Exact decomposition** (`downshift_add_carry_identity`): `⌊(a+b)/p⌋ = ⌊a/p⌋ + ⌊b/p⌋ + ⌊(a%p+b%p)/p⌋` — the
+  non-additivity is *exactly* one carry term.
+- **Single bit** (`carry_le_one`): `⌊(a%p+b%p)/p⌋ ≤ 1` — one carry bit per addition.
+- **No-carry success fragment** (`downshift_additive_no_carry`): `a%p+b%p < p ⇒` additivity holds, so the down-shifted
+  count stays a linear form and the sparse representation goes through.
+- **Carry obstruction** (`carry_not_function_of_downshifts`): `(0,0)` and `(p-1,1)` share down-shifts but differ in
+  carry — the carry needs the low residues, not just the down-shifts.
+
+This is the **dynamic boundary** N-Frame predicts: refining `MOD_p → MOD_{p^e}` forces the observer from field residue
+to carry-aware `p`-adic filtration, and the carry is the extra datum.  Structure theory of the carry, not a
+representation — the general (carry-present) regime remains the open lower bound.
+
 ---
 
 ## The four remaining routes (no small glue left)
