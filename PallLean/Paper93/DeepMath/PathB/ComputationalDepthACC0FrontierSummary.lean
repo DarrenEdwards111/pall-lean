@@ -68,6 +68,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TapeEncoding
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RuleLookup
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0HeadLocation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TapeRewrite
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0EasyWitness
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -187,6 +188,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   extension (length=max). applyTrans_write: rule writes its symbol at old head. Physical U-rewrite = socket. ──
    ── [PHYSICAL-U DECOMP: tape-encode✓ rule-lookup✓ head-locality✓ tape-rewrite✓; remaining = assemble hstep ──────
    ──   (one physical step in B steps) — the FULL verified universal-TM, a standalone project; + EasyWitnessCollapse.] ─
+   ── EASY-WITNESS unpacked: EasyWitnessCollapse = EasyWitnessLemma(IKW) ∘ GuessVerify (glue PROVED, axiom-free). ──
+   ──   nexp_not_acc0_from_witness_parts: 2 ingredients + NondetTimeHierarchy + speedup ⇒ ¬(NEXP⊆ACC⁰). Both deep ─
+   ──   ingredients = sockets (circuit complexity + nondet simulation). REDUCES separation to {IKW, guess-verify, hierarchy}. ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -954,6 +958,21 @@ theorem tape_rewrite_write_frontier (c : ACC0ConcreteNTM.CConfig) (t : ACC0Concr
     (ACC0ConcreteNTM.applyTrans c t).2.2.getD c.2.1 false = t.2.2.1 :=
   ACC0TapeRewrite.applyTrans_write c t
 
+/-- **The easy-witness collapse, unpacked (proved glue, axiom-free).**  Williams' other deep socket
+`EasyWitnessCollapse` is decomposed into the IKW easy-witness lemma (`EasyWitnessLemma`) and the guess-and-verify
+simulation (`GuessVerify`); their composition with the nondeterministic time hierarchy yields `¬ (NEXP ⊆ ACC⁰)`.  This
+reduces the separation to `{EasyWitnessLemma, GuessVerify, NondetTimeHierarchy}` — all classical, none proved here. -/
+theorem easy_witness_collapse_frontier
+    (NEXP ACC0 NTIME2n NTIME2nFast : ACC0WilliamsMetaTheorem.CClass)
+    (ACC0SatSpeedup SmallWitnessCircuits : Prop)
+    (ew : ACC0EasyWitness.EasyWitnessLemma NEXP ACC0 SmallWitnessCircuits)
+    (gv : ACC0EasyWitness.GuessVerify NTIME2n NTIME2nFast ACC0SatSpeedup SmallWitnessCircuits)
+    (hierarchy : ACC0WilliamsMetaTheorem.NondetTimeHierarchy NTIME2n NTIME2nFast)
+    (speedup : ACC0SatSpeedup) :
+    ¬ (NEXP ⊆ ACC0) :=
+  ACC0EasyWitness.nexp_not_acc0_from_witness_parts NEXP ACC0 NTIME2n NTIME2nFast
+    ACC0SatSpeedup SmallWitnessCircuits ew gv hierarchy speedup
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1361,6 +1380,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rule_lookup_correct_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.head_locality_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.tape_rewrite_write_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.easy_witness_collapse_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
