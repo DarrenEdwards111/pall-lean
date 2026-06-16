@@ -37,6 +37,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BinomialInversion
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BeigelTaruiSparsity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankCellCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BlockRankCollapse
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FootprintRank
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -76,6 +77,7 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  observer state space = exactly 2^cellRank     PROVED   observer_state_space_is_two_pow_rank (…ACC0RankCellCollapse)
  rank-cell collapse ⇒ low correlation (direct) PROVED   rank_cell_collapse_low_correlation  (…ACC0RankCellCollapse)
  block-diagonal MOD rank-shrink (rank ≤ d)     PROVED   block_diagonal_rank_shrink          (…ACC0BlockRankCollapse)
+ bounded footprint ⇒ rank ≤ |⋃ supports|       PROVED   footprint_rank_bound                (…ACC0FootprintRank)
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
  cell-count bridge (cells < |L| ⇒ low corr)   PROVED   cellcount_bridge                    (…ACC0CellCountRoute)
  cells subsume rank (2^cellRank < |L| ⇒ …)     PROVED   cellcount_subsumes_rank             (…ACC0CellCountRoute)
@@ -245,6 +247,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0BinomialInversion
 open PallLean.Paper93.DeepMath.PathB.ACC0BeigelTaruiSparsity
 open PallLean.Paper93.DeepMath.PathB.ACC0RankCellCollapse
 open PallLean.Paper93.DeepMath.PathB.ACC0BlockRankCollapse
+open PallLean.Paper93.DeepMath.PathB.ACC0FootprintRank
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -457,6 +460,19 @@ theorem block_diagonal_rank_shrink {k n d : ℕ} (supports : Fin k → Finset (F
     (h : BlockEqualSupports supports blk center) (L : Finset (Fin n)) (hd : 2 ^ d < L.card) :
     LowHolonomyCorrelation supports g :=
   blockEqual_low_correlation supports blk center g h L hd
+
+/-- **Bounded support footprint ⇒ low observer rank (proved): `cellRank ≤ |⋃_j supports j|`.**  A `MOD` layer
+collectively reading `t` coordinates has observer rank `≤ t` regardless of gate count; `2^t < |L| ⇒` low correlation. -/
+theorem footprint_rank_bound {k n : ℕ} (supports : Fin k → Finset (Fin n)) (L : Finset (Fin n)) :
+    cellRank supports L ≤ (ACC0FootprintRank.footprint supports).card :=
+  cellRank_le_footprint supports L
+
+/-- **Bounded-footprint `MOD` layers fail to correlate when `2^{|footprint|} < |L|` (proved).** -/
+theorem footprint_low_correlation_export {k n : ℕ} (supports : Fin k → Finset (Fin n))
+    (g : (Fin k → ℕ) → Bool) (L : Finset (Fin n))
+    (hf : 2 ^ (ACC0FootprintRank.footprint supports).card < L.card) :
+    LowHolonomyCorrelation supports g :=
+  footprint_low_correlation supports g L hf
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
@@ -831,6 +847,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.observer_state_space_is_two_pow_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_cell_collapse_low_correlation
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.block_diagonal_rank_shrink
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.footprint_rank_bound
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
