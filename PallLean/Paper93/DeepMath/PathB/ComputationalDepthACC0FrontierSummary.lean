@@ -53,6 +53,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitSubstitution
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SparsePolyReadoff
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Multilinearisation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SubstitutionPoly
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LowDegreeSubstitution
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -133,6 +134,8 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ── MODELLING LINK CLOSED: circuit_cube_count — subst c is an MvPolynomial, eval(boolVal∘x)(subst c)= ─────
    ──   boolVal(eval c x) EXACT, so ∑ₓ boolVal(eval c x)=∑_d coeff·2^{n-|supp|}. Circuit IS a polynomial. ──
    ──   Only the abstract williams/hierarchy Props (genuine NEXP-strength) keep the implication conditional. ─
+   ── LOW DEGREE SURVIVES COMPOSITION: psubst_degree — per-gate degree factor δ ⇒ totalDegree(Q c)≤δ^{depth+1} ─
+   ──   (quasipoly for const depth); + circuit_error_bound (err≤size·ε) = low-degree low-error substituted poly. ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -713,6 +716,21 @@ theorem circuit_cube_count_frontier {n : ℕ} {R : Type*} [CommRing R]
           (ACC0SubstitutionPoly.subst (R := R) c).coeff d * (2 : R) ^ (n - d.support.card) :=
   ACC0SubstitutionPoly.circuit_cube_count c
 
+/-- **Low degree survives constant-depth composition, proved (the degree analogue of `circuit_error_bound`).**  If
+every gate of a polynomial assignment `Q` raises total degree by at most a factor `δ`, then `totalDegree (Q c) ≤
+δ^{depth c + 1}` — quasipolynomial for constant depth.  With `circuit_error_bound` (error `≤ size·ε`) this is the
+low-degree, low-error substituted polynomial; `psubst_features_lowDeg` then bounds the features by `(n+1)^{δ^{depth+1}}`.
+The per-gate degree factor is the hypothesis (what the `OR`/`MOD` probabilistic polynomials provide). -/
+theorem low_degree_survives_composition_frontier {n : ℕ} {R : Type*} [CommRing R]
+    (Q : ACC0CircuitSubstitution.Circ n → MvPolynomial (Fin n) R) (δ : ℕ) (hδ : 1 ≤ δ)
+    (hinp : ∀ i, (Q (.inp i)).totalDegree ≤ δ)
+    (hcst : ∀ b, (Q (.cst b)).totalDegree ≤ δ)
+    (huna : ∀ f c, (Q (.una f c)).totalDegree ≤ δ * (Q c).totalDegree)
+    (hbin : ∀ g a b, (Q (.bin g a b)).totalDegree ≤ δ * max (Q a).totalDegree (Q b).totalDegree)
+    (c : ACC0CircuitSubstitution.Circ n) :
+    (Q c).totalDegree ≤ δ ^ (ACC0LowDegreeSubstitution.depth c + 1) :=
+  ACC0LowDegreeSubstitution.psubst_degree Q δ hδ hinp hcst huna hbin c
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1103,6 +1121,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.sparse_readoff_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.multilinear_cube_sum_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.circuit_cube_count_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.low_degree_survives_composition_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
