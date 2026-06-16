@@ -69,6 +69,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RuleLookup
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0HeadLocation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TapeRewrite
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0EasyWitness
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PhysicalStep
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -191,6 +192,8 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ── EASY-WITNESS unpacked: EasyWitnessCollapse = EasyWitnessLemma(IKW) ∘ GuessVerify (glue PROVED, axiom-free). ──
    ──   nexp_not_acc0_from_witness_parts: 2 ingredients + NondetTimeHierarchy + speedup ⇒ ¬(NEXP⊆ACC⁰). Both deep ─
    ──   ingredients = sockets (circuit complexity + nondet simulation). REDUCES separation to {IKW, guess-verify, hierarchy}. ─
+   ── PHYSICAL STEP BASE: reachIn_one (one machine step = one concreteStep) + firing_rule_step PROVED — the atomic ─
+   ──   brick of the universal machine. Full U (decode M from tape, assemble sub-machines in B steps) = the construction. ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -973,6 +976,13 @@ theorem easy_witness_collapse_frontier
   ACC0EasyWitness.nexp_not_acc0_from_witness_parts NEXP ACC0 NTIME2n NTIME2nFast
     ACC0SatSpeedup SmallWitnessCircuits ew gv hierarchy speedup
 
+/-- **The physical single-step base brick (proved): one machine step is one transition.**  `reachIn (toNTM M) 1 c d ↔
+concreteStep M c d`.  The atomic base the physical universal simulation iterates; the universal `U` decoding `M` from
+its own tape (assembling lookup/head/rewrite in `B` steps) remains the large construction. -/
+theorem physical_step_atom_frontier (M : ACC0ConcreteNTM.TMachine) (c d : ACC0ConcreteNTM.CConfig) :
+    ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM M) 1 c d ↔ ACC0ConcreteNTM.concreteStep M c d :=
+  ACC0PhysicalStep.reachIn_one M c d
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1381,6 +1391,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.head_locality_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.tape_rewrite_write_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.easy_witness_collapse_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.physical_step_atom_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
