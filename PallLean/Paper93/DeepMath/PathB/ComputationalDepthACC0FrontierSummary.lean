@@ -40,6 +40,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BlockRankCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FootprintRank
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RandomRestrictionRankCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankRouteFrontier
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankShrinkWall
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -84,6 +85,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  ── THE TWO FINAL CONDITIONALS (what remains) ───────────────────────────────────────────────────────────
  Route A: rank-shrink ⇒ holonomy lower bound   PROVED   nframe_rank_route_frontier          (…ACC0RankRouteFrontier)
    open socket: NFrameRankShrink (force cellRank < log₂|L| for wide overlapping MOD) = the rank wall
+   ── BUT: rank_shrink_wall_is_real — NFrameRankShrink is FALSE for the membership-rank observer ──────────
+   ──   (singleton supports: injective patterns ⇒ never collapses). Rank-shrink needs collisions; ────────
+   ──   the working rank = polynomial-method effective dimension (Route B), not observer incidence rank. ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -258,6 +262,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0BlockRankCollapse
 open PallLean.Paper93.DeepMath.PathB.ACC0FootprintRank
 open PallLean.Paper93.DeepMath.PathB.ACC0RandomRestrictionRankCollapse
 open PallLean.Paper93.DeepMath.PathB.ACC0RankRouteFrontier
+open PallLean.Paper93.DeepMath.PathB.ACC0RankShrinkWall
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -510,6 +515,14 @@ theorem williams_route_frontier (RSRep ACC0SatSpeedup NEXPHasACC0Circuits Collap
     ¬ NEXPHasACC0Circuits :=
   composite_route_to_NEXP_not_ACC0 RSRep ACC0SatSpeedup NEXPHasACC0Circuits Collapse
     composite_BT_degree counting williams hierarchy
+
+/-- **The rank-shrink wall is real (proved): `NFrameRankShrink` is false for the membership-rank observer.**  The
+singleton family (each gate reads one variable, `ACC⁰`-realizable) has injective patterns, so the rank observer never
+collapses — refuting the Route-A socket.  Rank-shrink needs pattern collisions; the working rank notion is the
+polynomial-method effective dimension, not the observer incidence rank. -/
+theorem rank_shrink_wall_is_real {n : ℕ} (L : Finset (Fin n)) :
+    ¬ RankCellCollapse (fun j : Fin n => ({j} : Finset (Fin n))) L :=
+  singleton_supports_no_rank_collapse L
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
@@ -888,6 +901,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.random_restriction_rank_cell_collapse
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nframe_rank_route_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.williams_route_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_shrink_wall_is_real
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
