@@ -62,6 +62,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsMetaTheorem
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NTM
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TimeHierarchyDiagonal
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ConcreteNTM
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalNTM
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -163,7 +164,10 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   time_hierarchy_from_sockets: enumerability(NTIME g) + diag∈NTIME f ⇒ ConcreteHierarchy f g. The diagonal ─
    ──   ARGUMENT machine-checked; only the 2 computational sockets (encode+universal sim) remain for the hierarchy. ─
    ── CONCRETE NTM: binary-tape machine + encoded transition table ⇒ machineEquiv : TMachine≃ℕ (machines ────────
-   ──   ENUMERABLE — the encode half of the sockets); toNTM bridges to abstract NTM. Universal simulator = next. ──
+   ──   ENUMERABLE — the encode half of the sockets); toNTM bridges to abstract NTM. ─────────────────────────────
+   ── UNIVERSAL INTERP: univStep ⟨M⟩ = concreteStep M (exact, no overhead at relation level). enum_covers PROVED ─
+   ──   (cNTIME f enumerable via machineEquiv) — ONE hierarchy socket DISCHARGED. cTime_hierarchy now rests on a ──
+   ──   SINGLE socket diag_in_big (diagonal decidable in bigger bound = physical sim+overhead, the last deep step). ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -867,6 +871,22 @@ theorem concrete_ntm_enumerable_frontier :
     Function.Bijective ACC0ConcreteNTM.machineEquiv :=
   ACC0ConcreteNTM.machineEquiv.bijective
 
+/-- **`enum_covers` discharged (proved): concrete `NTIME` is enumerable.**  Every language in `cNTIME f` is decided by
+some encodable machine, hence equals `enum f ⟨M⟩` — so `cNTIME f ⊆ Set.range (enum f)`.  This turns one of the two
+time-hierarchy sockets into a theorem (via the universal interpreter `univStep` + `machineEquiv`). -/
+theorem enum_covers_frontier (f : ℕ → ℕ) :
+    ACC0UniversalNTM.cNTIME f ⊆ Set.range (ACC0UniversalNTM.enum f) :=
+  ACC0UniversalNTM.enum_covers f
+
+/-- **The concrete nondeterministic time hierarchy, down to one socket (proved).**  With `enum_covers` discharged, the
+hierarchy `¬ (cNTIME f ⊆ cNTIME g)` follows from the single remaining socket `diag_in_big` (the diagonal decidable
+within the bigger bound — the physical universal simulator with overhead). -/
+theorem cTime_hierarchy_frontier (f g : ℕ → ℕ)
+    (diag_in_big : ACC0TimeHierarchyDiagonal.diagLang (ACC0UniversalNTM.enum g)
+        ACC0TimeHierarchyDiagonal.idxEquiv ∈ ACC0UniversalNTM.cNTIME f) :
+    ACC0UniversalNTM.cConcreteHierarchy f g :=
+  ACC0UniversalNTM.cTime_hierarchy f g diag_in_big
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1267,6 +1287,8 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.williams_concrete_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.time_hierarchy_diagonal_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.concrete_ntm_enumerable_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.enum_covers_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cTime_hierarchy_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
