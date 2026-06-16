@@ -54,6 +54,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SparsePolyReadoff
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Multilinearisation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SubstitutionPoly
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LowDegreeSubstitution
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AevalDegree
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -136,6 +137,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   Only the abstract williams/hierarchy Props (genuine NEXP-strength) keep the implication conditional. ─
    ── LOW DEGREE SURVIVES COMPOSITION: psubst_degree — per-gate degree factor δ ⇒ totalDegree(Q c)≤δ^{depth+1} ─
    ──   (quasipoly for const depth); + circuit_error_bound (err≤size·ε) = low-degree low-error substituted poly. ─
+   ── COMPOSITION-DEGREE LEMMA DISCHARGED: aeval_totalDegree_le totalDegree(aeval f p)≤totalDegree p·D ⇒ ────
+   ──   binGate_degree ⇒ psubst_degree_aeval: per-gate factor is now PROVED (not assumed); degree bound holds ─
+   ──   unconditionally given only each gate poly has degree ≤δ (which OR/MOD satisfy). ───────────────────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -731,6 +735,31 @@ theorem low_degree_survives_composition_frontier {n : ℕ} {R : Type*} [CommRing
     (Q c).totalDegree ≤ δ ^ (ACC0LowDegreeSubstitution.depth c + 1) :=
   ACC0LowDegreeSubstitution.psubst_degree Q δ hδ hinp hcst huna hbin c
 
+/-- **The per-gate degree factor is now a theorem (proved): the low-degree bound holds *unconditionally* on that
+interface.**  For a substitution `Q` built by `aeval`-composition with degree-`≤ δ` gate polynomials (`huna_eq`,
+`hbin_eq`), the per-gate factor hypotheses of `psubst_degree` are discharged by `aeval_totalDegree_le`
+(`una`/`binGate_degree`), giving `totalDegree (Q c) ≤ δ^{depth c + 1}` with no per-gate degree hypothesis — only the
+*local* fact that each gate's own polynomial has degree `≤ δ` (which the `OR`/`MOD` polynomials satisfy). -/
+theorem psubst_degree_aeval_frontier {n : ℕ} {R : Type*} [CommRing R]
+    (Q : ACC0CircuitSubstitution.Circ n → MvPolynomial (Fin n) R)
+    (gu : (Bool → Bool) → MvPolynomial (Fin 1) R) (gb : (Bool → Bool → Bool) → MvPolynomial (Fin 2) R)
+    (δ : ℕ) (hδ : 1 ≤ δ)
+    (hinp : ∀ i, (Q (.inp i)).totalDegree ≤ δ) (hcst : ∀ b, (Q (.cst b)).totalDegree ≤ δ)
+    (hgu : ∀ f, (gu f).totalDegree ≤ δ) (hgb : ∀ g, (gb g).totalDegree ≤ δ)
+    (huna_eq : ∀ f c, Q (.una f c) = aeval ![Q c] (gu f))
+    (hbin_eq : ∀ g a b, Q (.bin g a b) = aeval ![Q a, Q b] (gb g))
+    (c : ACC0CircuitSubstitution.Circ n) :
+    (Q c).totalDegree ≤ δ ^ (ACC0LowDegreeSubstitution.depth c + 1) := by
+  refine ACC0LowDegreeSubstitution.psubst_degree Q δ hδ hinp hcst ?_ ?_ c
+  · intro f c
+    rw [huna_eq]
+    exact le_trans (ACC0AevalDegree.unaGate_degree (gu f) (Q c))
+      (Nat.mul_le_mul (hgu f) (le_refl _))
+  · intro g a b
+    rw [hbin_eq]
+    exact le_trans (ACC0AevalDegree.binGate_degree (gb g) (Q a) (Q b))
+      (Nat.mul_le_mul (hgb g) (le_refl _))
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1122,6 +1151,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.multilinear_cube_sum_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.circuit_cube_count_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.low_degree_survives_composition_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.psubst_degree_aeval_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
