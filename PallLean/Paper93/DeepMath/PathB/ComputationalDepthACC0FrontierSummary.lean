@@ -75,6 +75,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GuessVerify
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GuessVerifyTime
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeBTCapstone
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GuessVerifyBudgets
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IKWEasyWitness
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -211,6 +212,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ── GV-BUDGET CLOSURE: guess_verify_fits PROVED — both phases ≤ b (=feature count (n+1)^{δ^depth}), 2b≤target ⇒ ────
    ──   acceptsWithin target. Verify time = quasipoly feature count. Remaining sockets = 2 phase machines (guess ──────
    ──   poly, verify=enumerate-features=fast ACC⁰-SAT). The complexity budget closure proved; verify machine socketed. ─
+   ── IKW DECOMPOSED: easyWitness_from_parts — contrapositive glue (¬easy-witness⇒hard-fn⇒separation via NW+Karp-Lipton); ─
+   ──   nexp_not_acc0_full: IKW parts + guess-verify + hierarchy ⇒ ¬(NEXP⊆ACC⁰). 2 deep sub-sockets (hard-fn, derand). ─
+   ── ──── ALL FOUR WILLIAMS-SIDE INGREDIENTS now architecturally decomposed; deep sockets = the classical theorems. ───
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1063,6 +1067,22 @@ theorem guess_verify_budget_frontier (M : ACC0NTM.NTM) (x : List Bool) (guessT v
     ACC0NTM.acceptsWithin M x target :=
   ACC0GuessVerifyBudgets.guess_verify_fits M x guessT verifyT b target mid hguess hverify hg hv hcal
 
+/-- **The IKW easy-witness lemma, decomposed (proved contrapositive glue).**  IKW's two deep sub-lemmas — no easy
+witness ⇒ a hard function (`NoEasyWitnessHardFn`), and a hard function ⇒ the separation (`HardFnSeparation`, via
+Nisan–Wigderson + Karp–Lipton) — compose contrapositively to the easy-witness lemma; with guess-verify and the
+hierarchy, `¬ (NEXP ⊆ ACC⁰)`.  Reduces the separation to `{NoEasyWitnessHardFn, HardFnSeparation, GuessVerify,
+NondetTimeHierarchy}`. -/
+theorem ikw_full_frontier (NEXP ACC0 NTIME2n NTIME2nFast : ACC0WilliamsMetaTheorem.CClass)
+    (ACC0SatSpeedup SmallWitnessCircuits HardFunction : Prop)
+    (h1 : ACC0IKWEasyWitness.NoEasyWitnessHardFn SmallWitnessCircuits HardFunction)
+    (h2 : ACC0IKWEasyWitness.HardFnSeparation NEXP ACC0 HardFunction)
+    (gv : ACC0EasyWitness.GuessVerify NTIME2n NTIME2nFast ACC0SatSpeedup SmallWitnessCircuits)
+    (hierarchy : ACC0WilliamsMetaTheorem.NondetTimeHierarchy NTIME2n NTIME2nFast)
+    (speedup : ACC0SatSpeedup) :
+    ¬ (NEXP ⊆ ACC0) :=
+  ACC0IKWEasyWitness.nexp_not_acc0_full NEXP ACC0 NTIME2n NTIME2nFast
+    ACC0SatSpeedup SmallWitnessCircuits HardFunction h1 h2 gv hierarchy speedup
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1477,6 +1497,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.guess_verify_time_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.composite_bt_representation_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.guess_verify_budget_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.ikw_full_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
