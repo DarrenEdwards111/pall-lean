@@ -42,6 +42,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RandomRestrictionRa
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankRouteFrontier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankShrinkWall
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TriAspectBoundary
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeBTTarget
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -92,6 +93,9 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ── TRI-ASPECT: tri_aspect_redirect — one boundary Ω, 3 projections (incidence/rank, algebraic/effdim, ─
    ──   cost/counting). Incidence projection REFUTED (singleton), algebraic projection VIABLE for AC⁰[p] ─
    ──   (parity escapes deg<n span = RS core); composite-MOD algebraic projection = the one open socket. ─
+   ── COMPOSITE-MOD wall isolated at MOD₆ = MOD₂∧MOD₃: field_polynomial_projection_fails_for_MOD6 (no inj ─
+   ──   ZMod6→ZMod p, zero-divisor 2·3=0) ⇒ single-field RS can't carry both residues; CRT product observer ─
+   ──   ZMod6≃+*ZMod2×ZMod3 is the faithful integer/symmetric replacement. Quasipoly SYM∘AND rep = socket. ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -268,6 +272,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0RandomRestrictionRankCollapse
 open PallLean.Paper93.DeepMath.PathB.ACC0RankRouteFrontier
 open PallLean.Paper93.DeepMath.PathB.ACC0RankShrinkWall
 open PallLean.Paper93.DeepMath.PathB.ACC0TriAspectBoundary
+open PallLean.Paper93.DeepMath.PathB.ACC0CompositeBT
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -540,6 +545,16 @@ theorem tri_aspect_redirect_frontier {n : ℕ} (p : ℕ) [Fact p.Prime] (hp2 : (
       ∧ ACC0TriAspectBoundary.algebraicProjectionSucceeds
           (ACC0TriAspectBoundary.singletonBoundary n D) p :=
   tri_aspect_redirect p hp2 hD
+
+/-- **Composite-`MOD` wall, isolated at `MOD₆` (proved): single-field RS fails, the integer/product observer
+replaces it.**  `MOD₆ = MOD₂ ∧ MOD₃`; the `ℤ/6` residue structure embeds into NO single prime field
+(`field_polynomial_projection_fails_for_MOD6`: no injective `ZMod 6 → ZMod p`, the zero-divisor `2·3=0` argument), so a
+single-field span cannot carry both residues.  The replacement is the CRT product observer
+`ZMod 6 ≃+* ZMod 2 × ZMod 3`, which is faithful and decides `MOD₆` from the residue pair.  The deep open step (the
+quasipolynomial composite `SYM∘AND` representation surviving `ACC⁰` composition) stays the named socket. -/
+theorem composite_mod6_field_failure_frontier (p : ℕ) [Fact p.Prime] (f : ZMod 6 →+* ZMod p) :
+    ¬ Function.Injective f :=
+  field_polynomial_projection_fails_for_MOD6 p f
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
@@ -920,6 +935,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.williams_route_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rank_shrink_wall_is_real
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.tri_aspect_redirect_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.composite_mod6_field_failure_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
