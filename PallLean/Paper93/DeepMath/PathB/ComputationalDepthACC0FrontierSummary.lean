@@ -27,6 +27,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MODNoGo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MODResidualObserver
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PivotToPolynomialMethod
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsCashoutFromPolynomial
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BoundaryObserverControl
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -110,6 +111,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
  cash-out chain (impl., NOT the separation)    PROVED   williams_cashout_from_polynomial_method (…ACC0WilliamsCashoutFromPolynomial)
  ── OPEN inputs: counting socket (rep ⇒ sub-2ⁿ ACC⁰-SAT = Williams' algorithmic heart) + williams ────────
  ──   collapse + time hierarchy. F_p ceiling: real PARITY/MOD_p∉AC⁰[p]. Composite/general = Williams. ────
+ ── Dynamic N-frame: the BOUNDARY selects the observer (unification of all routes) ───────────────────────
+ boundary selects observer (absorbing⟺AND/OR)  PROVED   boundary_selects_absorbing_iff_andOr (…ACC0BoundaryObserverControl)
+ ──   AND/OR→absorbing (refined collapses); MOD→linearResidual (=membership, bounded)→polynomialSpan ─────
+ ──   (RS separates)→countingState (Williams cash-out). Concrete countingState instance: ────────────────
+ ──   …ACC0OracleControl.oracle_control_over_mod_searchable (few-MOD fragment SAT-searchable < 2ⁿ); ──────
+ ──   open rung random_restriction_makes_control_shallow = the state-shrinkage the process needs. ───────
  ── (implied by ACC0ForcesLowCellRank ⊇ the survivor socket; subsumes chain/laminar the rank route misses)─
 ```
 
@@ -205,6 +212,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0MODNoGo
 open PallLean.Paper93.DeepMath.PathB.ACC0MODResidualObserver
 open PallLean.Paper93.DeepMath.PathB.ACC0PivotToPolynomialMethod
 open PallLean.Paper93.DeepMath.PathB.ACC0WilliamsCashoutFromPolynomial
+open PallLean.Paper93.DeepMath.PathB.ACC0BoundaryObserverControl
 
 /-! ## The proved pillars (re-exported) -/
 
@@ -687,6 +695,13 @@ theorem williams_cashout_from_polynomial_method
     ¬ NEXPHasACC0Circuits :=
   williams_cashout_from_polynomial ACC0SatSpeedup NEXPHasACC0Circuits Collapse counting williams hierarchy
 
+/-- **The boundary selects the observer (proved): the dynamic N-frame unification.**  The absorbing observer is
+selected exactly by `AND`/`OR`; `MOD`/symmetric gates route to the residual ⤳ polynomial regime.  Each route is
+grounded in a proved gate-semantics fact (`…ACC0BoundaryObserverControl`). -/
+theorem boundary_selects_absorbing_iff_andOr (gk : GateKind) :
+    boundarySelect gk = BoundaryContext.absorbing ↔ gk = GateKind.andOr :=
+  boundarySelect_andOr_iff_absorbing gk
+
 /-- **The cell-count lower bound, one socket (proved), beside `nframe_lower_bound`.**  For a class of holonomy-predictors,
 the *sharpest* cell-count socket implies the holonomy lower bound. -/
 theorem cellcount_lower_bound {ι : Type} {n : ℕ} (sys : PredictorClass ι n)
@@ -744,3 +759,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.mod_residual_reduces_to_membership
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.polynomial_method_separates_holonomy_parity
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.williams_cashout_from_polynomial_method
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.boundary_selects_absorbing_iff_andOr
