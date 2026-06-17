@@ -112,6 +112,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalRewritePha
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalLookupPhase
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalDecodePhase
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalReencodePhase
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FastSATVerifier
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -407,6 +408,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   (applyTrans c t)) → encodeSim M (applyTrans c t) → (decode (M,d), unique). All 4 phase contracts (183/184/185 ───
    ──   + re-encode) ASSEMBLED into the full decode→step→re-encode tape correctness. Remaining: U-transition bit-layout ─
    ──   realization + B-bound (entry 182 composition). Williams-side phase program COMPLETE at contract level. NOT P≠NP.
+   ── FAST-SAT VERIFIER: fast_sat_verifier / fast_sat_beats_bruteforce_frontier — a degree-≤D SYM∘AND (BT closure ──────
+   ──   output) decides SAT by the count-cell IMAGE (correct, observed_sat_iff) with work ≤ (D+1)·n^D+1 (quasipoly ─────
+   ──   for polylog D, unconditional in k); if that work < 2^n the verifier examines < 2^n cells = FASTER THAN ─────────
+   ──   BRUTE FORCE. Packages the verifier RUNTIME (quasipoly work) on top of WilliamsFastSat's savings/correctness. ────
+   ──   Williams mountain 2/3. Remaining: uniform realization (= separation-strength socket) + IKW/NW. NOT P≠NP. ───────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1713,6 +1719,18 @@ theorem universal_step_complete_frontier (M : ACC0ConcreteNTM.TMachine) (c : ACC
           = ACC0UniversalDecode.encodeSim M' d' → M = M' ∧ ACC0ConcreteNTM.applyTrans c t = d') :=
   ACC0UniversalReencodePhase.universal_step_complete M c t htM ht1
 
+/-- **The fast-SAT verifier (proved): correct, quasipoly work, beats brute force.**  For a degree-`≤D` injective
+`SYM∘AND` family (the BT closure output), SAT is decided by the count-cell image (correct, `observed_sat_iff`) with work
+`≤ (D+1)·n^D + 1` (quasipoly for polylog `D`); and if that work `< 2^n` the verifier examines `< 2^n` cells — faster
+than brute force. -/
+theorem fast_sat_beats_bruteforce_frontier {n m D : ℕ}
+    (mono : Fin m → Finset (Fin n)) (h : ℕ → Bool)
+    (hinj : Function.Injective mono) (hdeg : ∀ j, (mono j).card ≤ D) (hn : 1 ≤ n)
+    (hquasi : (D + 1) * n ^ D + 1 < 2 ^ n) :
+    (Finset.univ.image (ACC0SymmetricObserver.gateCount
+        (fun j x => ACC0PolyToSymAnd.monoAND (mono j) x))).card < 2 ^ n :=
+  ACC0FastSATVerifier.fast_sat_beats_bruteforce mono h hinj hdeg hn hquasi
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2166,6 +2184,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.universal_lookup_phase_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.universal_decode_phase_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.universal_step_complete_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.fast_sat_beats_bruteforce_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
