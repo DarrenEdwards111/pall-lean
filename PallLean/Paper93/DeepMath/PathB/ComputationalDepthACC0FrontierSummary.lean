@@ -140,6 +140,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ChernoffExist
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ChernoffBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FiberCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ChernoffDecay
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SupplyConstruction
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -575,6 +576,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   bound) < (a+b)^{2j} for a=3b. chernoff_per_input: 3/4 supply (#correct=3·#wrong≥3), k=2j, j≥3n+1 ⇒ ────────────
    ──   2^n·#{bad tuples} < #tuples — ASSEMBLES 209 (term_mono) + 210 (bad_tuple_count_le) + decay, pure Nat. The ──────
    ──   per-input concentration DONE. LAST residual of whole BT collapse: the ≥3/4 SUPPLY construction. NOT P≠NP.
+   ── SUPPLY CONSTRUCTION: nw_exists_good_tuple_frontier — a per-input 3/4 supply (Uniform34: ∀input, 3w correct/w ────
+   ──   wrong) ⇒ a tuple good at EVERY input (PROVED): union bound + entry-210 per-input + entry-211 decay + ───────────
+   ──   pigeonhole. HONEST: repo's acc0_approx_by_lowRankPredictor gives GLOBAL 3/4 (≠ per-input); Uniform34 (per-input
+   ──   3/4 = RS per-point error ≤1/4 over the random poly) is the LAST socket. Proves all downstream of the supply. ──
+   ──   This is the amplified MajorityGoodFamily witness the NW reconstruction needs. NOT P≠NP. ───────────────────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2249,6 +2255,17 @@ theorem nw_chernoff_per_input_frontier {α : Type*} [Fintype α] [DecidableEq α
           + (Finset.univ.filter (fun x => pred x = false)).card) ^ (2 * j) :=
   ACC0ChernoffDecay.chernoff_per_input pred n j h34 hb hj
 
+/-- **The supply construction — per-input `3/4` supply ⇒ tuple good at every input (proved).**  `exists_good_tuple`:
+given a uniform `3/4` supply (`Uniform34`: at every input `3w` correct, `w` wrong) with `w ≥ 1`, at `k = 2j`,
+`j ≥ 3n+1`, there is a tuple `g : Fin (2j) → α` whose majority is correct at *every* input — via entries 210/211 + a
+union bound + pigeonhole.  The `Uniform34` supply (the RS per-point `3/4` guarantee) is the last named socket. -/
+theorem nw_exists_good_tuple_frontier {α : Type*} [Fintype α] [DecidableEq α] {n : ℕ}
+    (corr : (Fin n → Bool) → α → Bool) (j w : ℕ)
+    (hu : ACC0SupplyConstruction.Uniform34 corr w) (hw : 1 ≤ w) (hj : 3 * n + 1 ≤ j) :
+    ∃ g : Fin (2 * j) → α, ∀ x,
+      ¬ (Finset.univ.filter (fun i => corr x (g i) = true)).card ≤ j :=
+  ACC0SupplyConstruction.exists_good_tuple corr j w hu hw hj
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2730,6 +2747,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_binomial_tail_le_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_bad_tuple_count_le_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_chernoff_per_input_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_exists_good_tuple_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
