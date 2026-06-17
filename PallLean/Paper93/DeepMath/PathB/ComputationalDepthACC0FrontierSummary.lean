@@ -148,6 +148,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RSSupplyToExact
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MajSymAnd
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RouteAClosure
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyDiagonal
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TransitionTable
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -624,6 +625,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   complement L(a+len)=¬M(a) at boundary) ⇒ False, via the TELESCOPING chain M(a)=…=M(a+len)=¬M(a). A SINGLE ─────
    ──   boundary complement forces disagreement WITHOUT closure under complement (why lazy diag works for nondet ──────
    ──   classes). Residual: the lazy SIMULATION (L ∈ NEXP, now lazy-feasible: 1 complement, not closure). NOT P≠NP. ───
+   ── TM TRANSITION TABLES: nw_detRun_reachIn_frontier + nw_detRun_add_frontier — the clocked multi-step run from a ────
+   ──   DETERMINISTIC transition table. detStep δ c := applyTrans c ((c.1,readSym c), δ(c.1,readSym c)); detRun = ──────
+   ──   (detStep δ)^[t]. detRun_add (clocked-additive); detRun_reachIn: the functional t-step run IS a valid reachIn ──
+   ──   run in the NTM model (reachIn (detNTM δ) t c (detRun δ t c)). The time-bounded-computation substrate the ──────
+   ──   machine-cost sockets reference. Residual: time-bound counting (NTIME), universal simulation. NOT P≠NP. ────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2402,6 +2408,20 @@ theorem nw_lazy_diag_false_frontier (M L : ℕ → Bool) (a len : ℕ)
     (hbdy : L (a + len) = ! M a) : False :=
   ACC0LazyDiagonal.lazy_diag_false M L a len hdecide hlazy hbdy
 
+/-- **Physical TM transition tables — the clocked multi-step run (proved).**  `detRun_reachIn`: a deterministic
+transition table `δ` drives a `t`-step run `detRun δ t c` that is a valid `reachIn` computation in the `NTM` model
+(`reachIn (detNTM δ) t c (detRun δ t c)`); `detRun_add`: the run is clocked-additive.  The time-bounded-computation
+substrate the machine-cost sockets reference. -/
+theorem nw_detRun_reachIn_frontier (δ : ℕ × Bool → ℕ × Bool × ACC0ConcreteNTM.Move) (t : ℕ)
+    (c : ACC0ConcreteNTM.CConfig) :
+    ACC0NTM.reachIn (ACC0TransitionTable.detNTM δ) t c (ACC0TransitionTable.detRun δ t c) :=
+  ACC0TransitionTable.detRun_reachIn δ t c
+
+theorem nw_detRun_add_frontier (δ : ℕ × Bool → ℕ × Bool × ACC0ConcreteNTM.Move) (a b : ℕ)
+    (c : ACC0ConcreteNTM.CConfig) :
+    ACC0TransitionTable.detRun δ (a + b) c = ACC0TransitionTable.detRun δ b (ACC0TransitionTable.detRun δ a c) :=
+  ACC0TransitionTable.detRun_add δ a b c
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2891,6 +2911,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_majSymAnd_collapse_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_routeA_btClosure_to_NEXP_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lazy_diag_false_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_detRun_reachIn_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
