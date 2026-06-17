@@ -118,6 +118,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IKWNisanWigderson
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonGenerator
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonLowIntersection
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonHybrid
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonYao
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -444,6 +445,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   low_intersection_table_card: block sharing r<k bits ⇒ table 2^r≤2^k (entry-191 payoff). ─────────────────────────
    ──   nwGeneratorFromDesign_via_hybrid: telescoping + Yao/Reconstruction/Hardness sub-sockets DISCHARGE the entry-190
    ──   NWGeneratorFromDesign socket. Proves the hybrid ENGINE + decomposition; Yao + reconstruction socketed. NOT P≠NP.
+   ── NW YAO PREDICTOR: nw_yao_best_predictor_frontier + nw_yaoPredictor_discharge_frontier — PROVES Yao's predict- ────
+   ──   from-distinguish IDENTITY: predictor success = 1/2 + |hybridGap a c| (a/2+(1−c)/2 = 1/2+(a−c)/2, ring; best ────
+   ──   of 2 conventions removes the sign). yao_predictor_from_advantage: δ≤|gap| ⇒ success ≥1/2+δ. hybridGap_realise:
+   ──   any gap |y−x| realised by a=y,c=2x−y. yaoPredictor_discharge DISCHARGES the entry-192 YaoPredictor socket: ─────
+   ──   adjacent advantage ε/m≤|f(i+1)−f i| ⇒ block i with predictor success ≥1/2+ε/m. Proves Yao's ARITHMETIC engine; -
+   ──   residual YaoCircuitEfficiency socket = predictor realisable as SMALL circuit (model-dependent). NOT P≠NP. ──────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1816,6 +1823,20 @@ theorem nw_hybrid_advantage_frontier (f : ℕ → ℝ) (m : ℕ) (ε : ℝ) (hε
     ACC0NisanWigdersonHybrid.AdjacentAdvantage f m ε :=
   ACC0NisanWigdersonHybrid.hybrid_advantage f m ε hε hglob
 
+/-- **Yao distinguisher↔predictor — the predict-from-distinguish identity (proved).**  `yao_best_predictor`: the better
+of the two predictor conventions succeeds with probability `1/2 + |hybridGap a c|` (the exact Yao identity).
+`yaoPredictor_discharge` discharges the entry-192 `YaoPredictor` socket for the concrete success-probability predicate:
+an adjacent advantage `ε/m ≤ |f(i+1) − f i|` yields a block with a predictor of success `≥ 1/2 + ε/m`. -/
+theorem nw_yao_best_predictor_frontier (a c : ℝ) :
+    max (ACC0NisanWigdersonYao.predictSuccess a c) (ACC0NisanWigdersonYao.predictSuccessFlip a c)
+      = 1 / 2 + |ACC0NisanWigdersonYao.hybridGap a c| :=
+  ACC0NisanWigdersonYao.yao_best_predictor a c
+
+theorem nw_yaoPredictor_discharge_frontier (f : ℕ → ℝ) (m : ℕ) (ε : ℝ) :
+    ACC0NisanWigdersonHybrid.YaoPredictor (ACC0NisanWigdersonHybrid.AdjacentAdvantage f m ε)
+      (ACC0NisanWigdersonYao.YaoNextBitPredictor f m ε) :=
+  ACC0NisanWigdersonYao.yaoPredictor_discharge f m ε
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2275,6 +2296,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_disjoint_design_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_low_intersection_design_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_hybrid_advantage_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_yaoPredictor_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
