@@ -122,6 +122,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonYao
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonReconstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonReconCorrect
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonYaoCircuit
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonHardness
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -472,6 +473,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   smallPredictor_exists: circuit of size ≤size D+3 realising the rule. yaoCircuitEfficiency_discharge DISCHARGES ─
    ──   the entry-193 YaoCircuitEfficiency socket [propext / yao_predictor_eval needs NO axioms]. The gate-count the ───
    ──   195 semantic model omits, now proved. ⊕=MOD₂∈ACC⁰. NOT P≠NP. ──────────────────────────────────────────────────
+   ── NW HARDNESS-EXCLUDES-CIRCUIT: nw_hardness_collision_frontier + nw_hardnessExcludesCircuit_discharge_frontier — ───
+   ──   over the Circ model: HardFor f s := ¬∃ C, size≤s ∧ computes f (hardness = no small circuit, by DEFINITION). ───
+   ──   hardness_collision: concrete C size≤s computing f contradicts HardFor f s (= reconstruction 194-196 colliding ─
+   ──   with hardness). hardnessExcludesCircuit_discharge DISCHARGES the entry-192 socket [NO AXIOMS — purely ──────────
+   ──   definitional]. HONEST: this is the DEFINITIONAL link only; does NOT prove any fn hard — that lower bound is ────
+   ──   the irreducible NoEasyWitnessHardFn input (separation-strength). Closes the socket plumbing. NOT P≠NP. ─────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1912,6 +1919,23 @@ theorem nw_yaoCircuitEfficiency_discharge_frontier {n : ℕ} (D : ACC0NisanWigde
       (ACC0NisanWigdersonYaoCircuit.SmallPredictor D gidx) :=
   ACC0NisanWigdersonYaoCircuit.yaoCircuitEfficiency_discharge D gidx YaoNextBit
 
+/-- **HardnessExcludesCircuit — the definitional link + the reconstruction collision (proved).**  `hardness_collision`:
+a concrete `Circ` of size `≤ s` computing `f` contradicts `HardFor f s` (hardness against size `s`) — the form in which
+the NW reconstruction (entries 194–196) collides with the witness function's hardness.  `hardnessExcludesCircuit_discharge`
+discharges the entry-192 `HardnessExcludesCircuit` socket.  HONEST: this is the *definitional* link (hardness MEANS no
+small circuit); it does NOT prove any function hard — that lower bound is the irreducible `NoEasyWitnessHardFn` input. -/
+theorem nw_hardness_collision_frontier {n : ℕ} (f : (Fin n → Bool) → Bool) (s : ℕ)
+    (C : ACC0NisanWigdersonYaoCircuit.Circ n) (hsize : C.size ≤ s)
+    (hcomp : ACC0NisanWigdersonHardness.Computes C f) (hard : ACC0NisanWigdersonHardness.HardFor f s) :
+    False :=
+  ACC0NisanWigdersonHardness.hardness_collision f s C hsize hcomp hard
+
+theorem nw_hardnessExcludesCircuit_discharge_frontier {n : ℕ} (f : (Fin n → Bool) → Bool) (s : ℕ) :
+    ACC0NisanWigdersonHybrid.HardnessExcludesCircuit
+      (ACC0NisanWigdersonHardness.HardFor f s)
+      (ACC0NisanWigdersonHardness.HasCircuitOfSize f s) :=
+  ACC0NisanWigdersonHardness.hardnessExcludesCircuit_discharge f s
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2375,6 +2399,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reconstruction_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reconstructionCorrectness_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_yaoCircuitEfficiency_discharge_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_hardnessExcludesCircuit_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
