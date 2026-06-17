@@ -125,6 +125,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonYaoCi
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonHardness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonEasyWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0KarpLiptonCollapse
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NondetTimeHierarchy
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -492,6 +493,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   hierarchy) ⇒ Derandomization → ¬(NEXP⊆ACC⁰). fun hd hsub => hier ((kl hsub).trans (derand hd)) [NO AXIOMS]. ────
    ──   DISCHARGES the entry-189 DerandKarpLiptonSeparation socket. Proves the COMPOSITION; the 3 ingredients (KL ──────
    ──   collapse, derand, hierarchy) remain named classical sub-sockets. NOT P≠NP. ──────────────────────────────────────
+   ── NONDET TIME HIERARCHY (NexpNeqNp): nw_diag_not_mem_range_frontier + nw_nexpNeqNp_discharge_frontier — the ───────
+   ──   DIAGONALIZATION KERNEL (genuine, unconditional Cantor): diag enum w := ∀i, enc i=w → ¬enum i w (enc injective) ─
+   ──   ⇒ diag_ne (diag enum ≠ enum i, else P↔¬P) ⇒ diag ∉ range enum. nexpNeqNp_discharge: NPEnumerable + ───────────
+   ──   DiagonalInNexp ⇒ NEXP≠NP [propext]. DISCHARGES the entry-199 NexpNeqNp sub-socket. The ONE classically- ────────
+   ──   UNCONDITIONAL Williams ingredient (Cook/SFM hierarchy). DiagonalInNexp hides NTM lazy-diagonalization. NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1976,6 +1982,20 @@ theorem nw_derandKarpLipton_discharge_frontier (NEXP ACC0 MA NP : ACC0WilliamsMe
     ACC0IKWNisanWigderson.DerandKarpLiptonSeparation NEXP ACC0 Derandomization :=
   ACC0KarpLiptonCollapse.derandKarpLipton_discharge NEXP ACC0 MA NP Derandomization kl derand hier
 
+/-- **NexpNeqNp / nondet time hierarchy — the diagonalization kernel (proved).**  `diag_not_mem_range`: the diagonal
+language `diag enum w := ∀ i, enc i = w → ¬ enum i w` (with `enc` injective) escapes the whole enumeration — genuine
+Cantor diagonalization.  `nexpNeqNp_discharge` discharges the entry-199 `NexpNeqNp` socket from `NPEnumerable` (NP is
+machine-enumerable) and `DiagonalInNexp` (the diagonal lies in NEXP, hiding the lazy-diagonalization simulation). -/
+theorem nw_diag_not_mem_range_frontier (enum : ℕ → ACC0WilliamsMetaTheorem.Lang) :
+    ACC0NondetTimeHierarchy.diag enum ∉ Set.range enum :=
+  ACC0NondetTimeHierarchy.diag_not_mem_range enum
+
+theorem nw_nexpNeqNp_discharge_frontier (NEXP NP : ACC0WilliamsMetaTheorem.CClass)
+    (henum : ACC0NondetTimeHierarchy.NPEnumerable NP)
+    (hdiag : ACC0NondetTimeHierarchy.DiagonalInNexp NEXP NP) :
+    ACC0KarpLiptonCollapse.NexpNeqNp NEXP NP :=
+  ACC0NondetTimeHierarchy.nexpNeqNp_discharge NEXP NP henum hdiag
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2442,6 +2462,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_hardnessExcludesCircuit_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_noEasyWitnessHardFn_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_derandKarpLipton_discharge_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_nexpNeqNp_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
