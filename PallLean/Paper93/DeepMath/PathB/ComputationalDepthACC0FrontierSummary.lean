@@ -110,6 +110,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalHStep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalHStepMachine
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalRewritePhase
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalLookupPhase
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalDecodePhase
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -395,6 +396,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   rule t that fires in 1 step (reachIn 1) reaching d=applyTrans c t, scan ≤ M.length (matchingRules_length_le). ──
    ──   Discharges the lookup phase of 182 as actual reachability + scan-cost bound (bLookup ≤ M.length). 2nd of 4 ─────
    ──   phase realizations. Remaining: decode/re-encode (tape layout). Uses RuleLookup contract. NOT P≠NP. ──────────────
+   ── DECODE PHASE: universal_decode_phase_frontier — a step ⇒ decode round-trip (decodeSim(encodeSim M c)=some(M,c)) ──
+   ──   ∧ decoded machine steps (reachIn 1 c d) ∧ recovery UNAMBIGUOUS (encodeSim_inj: encodeSim injective via ─────────
+   ──   encodeTape_inj + machineEquiv.injective). 3rd of 4 phase realizations; touches tape LAYOUT (encodeTape). ───────
+   ──   Discharges decode phase of 182 (faithful + invertible recovery, wired to the step). Remaining: re-encode. ──────
+   ──   The tape-walking step-count realization (bDecode over the bit-layout) is the residual. NOT P≠NP. ───────────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1676,6 +1682,17 @@ theorem universal_lookup_phase_frontier (M : ACC0ConcreteNTM.TMachine) (c d : AC
       ∧ (ACC0RuleLookup.matchingRules M c.1 (ACC0ConcreteNTM.readSym c)).length ≤ M.length :=
   ACC0UniversalLookupPhase.lookup_phase M c d h
 
+/-- **Universal decode phase — faithful, unambiguous recovery of `(M,c)`, enabling the step (proved).**  For a step
+`concreteStep M c d`: the tape decodes to `(M, c)` (round-trip), the decoded machine reaches `d` in one step, and the
+recovery is unambiguous (`encodeSim` is injective — no two simulation states share a tape).  Discharges the decode phase
+of entry 182 (3rd of 4), via the proved tape-encoding round-trip + injectivity contracts. -/
+theorem universal_decode_phase_frontier (M : ACC0ConcreteNTM.TMachine) (c d : ACC0ConcreteNTM.CConfig)
+    (h : ACC0ConcreteNTM.concreteStep M c d) :
+    ACC0UniversalDecode.decodeSim (ACC0UniversalDecode.encodeSim M c) = some (M, c)
+      ∧ ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM M) 1 c d
+      ∧ (∀ M' c', ACC0UniversalDecode.encodeSim M c = ACC0UniversalDecode.encodeSim M' c' → M = M' ∧ c = c') :=
+  ACC0UniversalDecodePhase.decode_phase M c d h
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2127,6 +2144,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.hstep_realized_with_overhead_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.universal_rewrite_phase_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.universal_lookup_phase_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.universal_decode_phase_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
