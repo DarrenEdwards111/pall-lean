@@ -234,6 +234,24 @@ explicit socket.  `dynamic_boundary_to_acc0_sat_speedup` is the pure-glue cash-o
 threshold ladder; what remains is precisely the proof (or refutation) that this ladder stabilises at a quasipoly BT
 observer.
 
+### 8a. The final conditional chain — `dynamic closure ⇒ NEXP ⊄ ACC⁰` (166)
+
+`…ACC0BTClosureFrontier` freezes the capstone and states the whole reduction as **one theorem ending at the codebase's
+actual separation statement** `¬ NEXPHasACC0Circuits` (not an abstract `Speedup`):
+
+```
+  dynamicClosure_to_NEXP_not_ACC0 :  DynamicClosesAtBT
+                                       → BTHasQuasipolySparse        (closure_to_quasipoly)
+                                       → ACC0SatSpeedup              (quasipoly_to_speedup)
+                                       → ¬ NEXPHasACC0Circuits       (williams + hierarchy, via routeB_to_NEXP_not_ACC0)
+```
+
+It is **proved as glue and depends on no axioms** — pure composition through the already-proved Route-B/Williams
+reduction.  `observer_ladder_proved` re-exports the proved foundation (residue → `p`-adic refinement).  The chain is
+valid and machine-checked; its two load-bearing premises (`DynamicClosesAtBT`, `closure_to_quasipoly`) are the unproved
+sockets that together *are* the `ACC⁰[composite]` lower bound.  **Everything around the wall is now proved; the wall
+itself — the quasipoly BT closure — is the single named socket.**  This is the terminal scaffolding of the programme.
+
 ---
 
 ## The four remaining routes (no small glue left)

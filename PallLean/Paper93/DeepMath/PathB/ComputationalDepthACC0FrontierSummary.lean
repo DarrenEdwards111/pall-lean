@@ -91,6 +91,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ValuationSparseTheo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarrySparseTheory
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountCarrySymmetric
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DynamicObserverSelection
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTClosureFrontier
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -283,6 +284,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   refinement); p-adic carry observer IS sufficient; p-adic refines residue. carry_observer_eq_threshold_observer ─
    ──   (carry → threshold). The boundary FORCES observer refinement up the ladder. SOCKET (= ACC wall, unproved): ─────
    ──   dynamic refinement closes at quasipoly BT observer (dynamic_boundary_to_acc0_sat_speedup = pure-glue cash-out). ─
+   ── BT-CLOSURE FRONTIER (FINAL CHAIN): dynamicClosure_to_NEXP_not_ACC0_frontier — the WHOLE reduction in one thm, ────
+   ──   NO axioms: DynamicClosesAtBT → BTHasQuasipolySparse → ACC0SatSpeedup → ¬NEXPHasACC0Circuits, composed thru ──────
+   ──   the proved Route-B/Williams glue (routeB_to_NEXP_not_ACC0). Ends at the codebase's actual separation stmt. ──────
+   ──   2 load-bearing premises (DynamicClosesAtBT, closure_to_quasipoly) = the open ACC⁰[composite] LB. Capstone ───────
+   ──   frozen (165); this is the terminal scaffolding. Everything around the wall proved; the wall itself socketed. ────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1320,6 +1326,22 @@ theorem dynamicObserver_refines_modp_to_padic_frontier (p e : ℕ) (hp : p.Prime
         (ACC0DynamicObserverSelection.resObs p) :=
   ACC0DynamicObserverSelection.observer_refines_modp_to_padic p e hp he
 
+/-- **The final conditional chain (proved as glue, NO axioms): dynamic BT-closure ⇒ `NEXP ⊄ ACC⁰`.**  The whole
+dynamic-observer reduction in one theorem: `DynamicClosesAtBT → BTHasQuasipolySparse → ACC0SatSpeedup →
+¬ NEXPHasACC0Circuits`, composed through the proved Route-B/Williams glue.  Every premise is an unproved socket; the two
+load-bearing ones (`DynamicClosesAtBT`, `closure_to_quasipoly`) together *are* the open `ACC⁰[composite]` lower bound. -/
+theorem dynamicClosure_to_NEXP_not_ACC0_frontier
+    (DynamicClosesAtBT BTHasQuasipolySparse ACC0SatSpeedup NEXPHasACC0Circuits Collapse : Prop)
+    (hClosure : DynamicClosesAtBT)
+    (closure_to_quasipoly : DynamicClosesAtBT → BTHasQuasipolySparse)
+    (quasipoly_to_speedup : BTHasQuasipolySparse → ACC0SatSpeedup)
+    (williams : ACC0SatSpeedup → NEXPHasACC0Circuits → Collapse)
+    (hierarchy : ¬ Collapse) :
+    ¬ NEXPHasACC0Circuits :=
+  ACC0BTClosureFrontier.dynamicClosure_to_NEXP_not_ACC0
+    DynamicClosesAtBT BTHasQuasipolySparse ACC0SatSpeedup NEXPHasACC0Circuits Collapse
+    hClosure closure_to_quasipoly quasipoly_to_speedup williams hierarchy
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1752,6 +1774,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.carry_downshift_add_identity_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.countCarry_eq_sum_thresholds_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.dynamicObserver_refines_modp_to_padic_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.dynamicClosure_to_NEXP_not_ACC0_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
