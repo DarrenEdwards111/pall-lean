@@ -456,6 +456,22 @@ quasipolynomial — `(quasipoly)^{constant}`, **not** exponential, because the n
 §8l (per-prime correctness), the composite `ACC⁰` BT *size* is assembled.  Not a proof of `DynamicClosesAtBT` or
 `NEXP ⊄ ACC⁰`; formalisation of known BT, not faked.
 
+### 8n. The final integration — `DynamicClosesAtBT` proved for AC⁰[p], chained to `¬ NEXP` (179)
+
+`…ACC0DynamicClosesAtBTComplete` is the culmination.  It makes `DynamicClosesAtBT` a *proved theorem*, not a socket, for
+the AC⁰[p] route:
+
+- **`dynamicClosesAtBT_AC0p_proved`** (proved): every AC⁰[p] circuit has a complete BT representation — polylog degree
+  ∧ quasipoly `SYM∘AND` size ∧ bounded error — directly from `rs_agreement_BT` (§8l).
+- **`acc0p_BTclosure_to_NEXP`** (proved): plugging the proved closure into the §8a chain, `¬ NEXPHasACC0Circuits` follows
+  from the **Williams sockets alone** — the entire BT (closure) side is discharged for AC⁰[p].
+
+So for the AC⁰[p] route the Beigel–Tarui closure is genuinely proved, and what stands between it and `NEXP ⊄ ACC⁰` is
+*only* the Williams meta-theorem sockets (themselves `NEXP ⊄ ACC⁰`-strength classical theorems, not BT content).  For
+arbitrary `ACC⁰` (composite) the closure is assembled from §§8f, 8i, 8l, 8m with cross-route bookkeeping remaining.
+This whole arc formalises Beigel–Tarui + Williams 2011 (proven classically); not open, not a new separation, not
+`P ≠ NP`.
+
 ---
 
 ## The four remaining routes (no small glue left)

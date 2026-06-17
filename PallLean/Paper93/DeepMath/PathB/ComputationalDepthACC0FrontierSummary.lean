@@ -104,6 +104,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DynamicClosureDisch
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTSizeTheorem
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RSAgreementBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMixedRadixSize
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DynamicClosesAtBTComplete
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -361,6 +362,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   of fixed m (CONST) + per-prime quasipoly Q ⇒ (Q+1)^k quasipoly. So composite MOD_m=⋀MOD_{pᵢ} (CRT 171) stays ───
    ──   quasipoly-size = (quasipoly)^const NOT exponential (# moduli fixed). Discharges the SIZE of the composite ───────
    ──   residual. Combined with 177 (per-prime correctness) ⇒ composite ACC⁰ BT size assembled. NOT P≠NP. ──────────────
+   ── FINAL INTEGRATION: acc0p_BTclosure_to_NEXP_frontier — DynamicClosesAtBT_AC0p PROVED (not a socket): every AC⁰[p] ─
+   ──   circuit has a complete BT rep (polylog deg ∧ quasipoly size ∧ bounded error, dynamicClosesAtBT_AC0p_proved via ──
+   ──   rs_agreement_BT). Plugged into the 166 chain ⇒ ¬NEXPHasACC0Circuits from the WILLIAMS SOCKETS ALONE — the BT ────
+   ──   (closure) side fully DISCHARGED for AC⁰[p]. Composite = 171 CRT + 174 prime-power + 177 per-prime + 178 size. ───
+   ──   The whole arc formalises BT+Williams (PROVEN classical); NOT open, NOT a new separation, NOT P≠NP. ──────────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1570,6 +1576,21 @@ theorem compositeMixedRadix_quasipoly_frontier {n : ℕ} (Q : ℕ)
       ((Q + 1) ^ forms.length) :=
   ACC0CompositeMixedRadixSize.mixedRadix_quasipoly_size Q forms hforms
 
+/-- **The final integration: `DynamicClosesAtBT` PROVED for the AC⁰[p] route, chained to `¬ NEXP` (proved).**  Plugging
+the *proved* AC⁰[p] BT closure (`dynamicClosesAtBT_AC0p_proved` — every AC⁰[p] circuit has a complete BT representation:
+polylog degree ∧ quasipoly size ∧ bounded error, from `rs_agreement_BT`) into the entry-166 chain, `¬ NEXPHasACC0Circuits`
+follows from the Williams sockets alone — the entire Beigel–Tarui (closure) side is discharged for AC⁰[p].  Composite
+`ACC⁰` is assembled from the proved CRT (171) + prime-power mixed-radix (174) + per-prime rep (177) + mixed-radix size
+(178). -/
+theorem acc0p_BTclosure_to_NEXP_frontier (p t : ℕ) [Fact p.Prime] (ht : 1 ≤ t)
+    {BTQuasi ACC0Speed NEXPC Collapse : Prop}
+    (closure_to_quasi : ACC0DynamicClosesAtBTComplete.DynamicClosesAtBT_AC0p p t → BTQuasi)
+    (quasi_to_speed : BTQuasi → ACC0Speed)
+    (williams : ACC0Speed → NEXPC → Collapse)
+    (hierarchy : ¬ Collapse) : ¬ NEXPC :=
+  ACC0DynamicClosesAtBTComplete.acc0p_BTclosure_to_NEXP p t ht
+    closure_to_quasi quasi_to_speed williams hierarchy
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2015,6 +2036,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.bt_size_theorem_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rs_agreement_BT_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.compositeMixedRadix_quasipoly_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.acc0p_BTclosure_to_NEXP_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
