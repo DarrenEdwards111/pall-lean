@@ -95,6 +95,11 @@ The N-Frame programme was used as a **selector**, not the engine:
     `reachIn (toNTM M) 1 c (applyTrans c t)`, and the re-encoded tape `univSimStep M c t` decodes back to
     `(M, applyTrans c t)`.  The remaining residual is realising `univSimStep` as `U`'s *own* transitions with the
     step-overhead bound `B` (the `hstep` *machine*, vs. the *correctness contract* now proved).
+  - **`hstep` realization with explicit overhead** (`…ACC0UniversalHStepMachine.hstep_realized_with_overhead`): given
+    the four per-phase realisations (decode/lookup/rewrite/re-encode, each a `U`-transition run within its bound), `U`
+    reaches the re-encoded config within `B = bDecode + bLookup + bRewrite + bReencode` (composed via `reachIn_add`) —
+    so `∃ B, reachIn U B c0 c4` with the explicit phase-sum overhead.  The per-phase realisations (`U`'s transition
+    table per phase) are the remaining named sockets.
 
 ---
 

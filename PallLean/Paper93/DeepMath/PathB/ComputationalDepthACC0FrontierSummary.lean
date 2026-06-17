@@ -107,6 +107,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMixedRadix
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DynamicClosesAtBTComplete
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeCrossRoute
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalHStep
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalHStepMachine
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -379,6 +380,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   M c t)=some(M, applyTrans c t). Assembles the proved sub-machine contracts (tape encode/decode, rule lookup, ───
    ──   head, rewrite, atomic step). hstep CORRECTNESS contract proved; realising univSimStep as U-transitions with ────
    ──   step-overhead B = the remaining TM-engineering construction (the hstep MACHINE). Classical, NOT P≠NP. ──────────
+   ── hstep MACHINE (explicit overhead): hstep_realized_with_overhead_frontier — given the 4 per-phase realizations ────
+   ──   (decode c0→c1, lookup c1→c2, rewrite c2→c3, re-encode c3→c4, each a U-transition run within its bound), U ──────
+   ──   reaches c4 from c0 within B = bD+bL+bR+bE (composed via proved reachIn_add). The OVERHEAD is EXPLICIT (sum ──────
+   ──   of phase costs); composition PROVED. Turns the 181 semantic contract into a step-bounded simulation lemma. ─────
+   ──   Per-phase realizations (transition table per phase) = the named TM-engineering sockets. Classical, NOT P≠NP. ───
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1625,6 +1631,18 @@ theorem universal_hstep_correct_frontier (M : ACC0ConcreteNTM.TMachine) (c : ACC
           = some (M, ACC0ConcreteNTM.applyTrans c t) :=
   ACC0UniversalHStep.univ_hstep_correct M c t htM ht1
 
+/-- **Physical `hstep` realization with explicit overhead `B` (proved).**  Given the four per-phase realizations
+(decode `c0→c1`, lookup `c1→c2`, rewrite `c2→c3`, re-encode `c3→c4`, each a run of `U`'s own transitions within its
+bound), `U` reaches `c4` from `c0` within `B = bDecode + bLookup + bRewrite + bReencode` steps — composed via the proved
+additive `reachIn_add`.  Turns the entry-181 semantic `hstep` contract into a step-bounded simulation lemma; the
+per-phase realizations are the remaining TM-engineering sockets. -/
+theorem hstep_realized_with_overhead_frontier (U : ACC0NTM.NTM) (c0 c1 c2 c3 c4 : U.Config)
+    (bD bL bR bE : ℕ)
+    (hD : ACC0NTM.reachIn U bD c0 c1) (hL : ACC0NTM.reachIn U bL c1 c2)
+    (hR : ACC0NTM.reachIn U bR c2 c3) (hE : ACC0NTM.reachIn U bE c3 c4) :
+    ACC0NTM.reachIn U (bD + bL + bR + bE) c0 c4 :=
+  ACC0UniversalHStepMachine.hstep_realized_with_overhead U c0 c1 c2 c3 c4 bD bL bR bE hD hL hR hE
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2073,6 +2091,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.acc0p_BTclosure_to_NEXP_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.composite_crossRoute_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.universal_hstep_correct_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.hstep_realized_with_overhead_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
