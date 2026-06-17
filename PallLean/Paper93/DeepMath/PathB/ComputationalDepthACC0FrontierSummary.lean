@@ -141,6 +141,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ChernoffBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FiberCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ChernoffDecay
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SupplyConstruction
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RSPerPoint
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -581,6 +582,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   pigeonhole. HONEST: repo's acc0_approx_by_lowRankPredictor gives GLOBAL 3/4 (≠ per-input); Uniform34 (per-input
    ──   3/4 = RS per-point error ≤1/4 over the random poly) is the LAST socket. Proves all downstream of the supply. ──
    ──   This is the amplified MajorityGoodFamily witness the NW reconstruction needs. NOT P≠NP. ───────────────────────
+   ── RS PER-POINT: nw_rs_detection_half_frontier + nw_rs_detection_three_quarters_frontier — the ALGEBRAIC HEART of ──
+   ──   the RS per-point guarantee (PROVED). detection_half: input with nonzero coord ⇒ random subset detects (sum≠0) ─
+   ──   w.p. ≥1/2 (2^s ≤ 2·#detect) via the toggle j involution (S△{j} flips sum by ±x j, pairs miss↔detect). ────────
+   ──   detection_two_thirds_four: 2 independent trials boost to ≥3/4 (per-point error ≤1/4) = #{both miss}=miss^2 + ──
+   ──   miss≤2^(s-1). The source of Uniform34's per-input 3/4. Residual: gate-encoding (∑^{p-1} Fermat) + RS circuit ──
+   ──   composition. Pure AddCommGroup/Finset, NO measure theory. NOT P≠NP. ─────────────────────────────────────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2266,6 +2273,22 @@ theorem nw_exists_good_tuple_frontier {α : Type*} [Fintype α] [DecidableEq α]
       ¬ (Finset.univ.filter (fun i => corr x (g i) = true)).card ≤ j :=
   ACC0SupplyConstruction.exists_good_tuple corr j w hu hw hj
 
+/-- **The RS per-point error bound (proved).**  `detection_half`: for an input with some nonzero coordinate `x j`, a
+random subset detects it (`∑_{i∈S} x i ≠ 0`) with probability `≥ 1/2` (`2^s ≤ 2·#{detect}`), via the `toggle j`
+involution.  `detection_two_thirds_four`: two independent trials boost to `≥ 3/4` (per-point error `≤ 1/4`) — the
+algebraic source of the `Uniform34` per-input `3/4`-supply. -/
+theorem nw_rs_detection_half_frontier {F : Type*} [AddCommGroup F] [DecidableEq F] {s : ℕ}
+    (x : Fin s → F) (j : Fin s) (hj : x j ≠ 0) :
+    2 ^ s ≤ 2 * (Finset.univ.filter (fun S : Finset (Fin s) => (∑ i ∈ S, x i) ≠ 0)).card :=
+  ACC0RSPerPoint.detection_half x j hj
+
+theorem nw_rs_detection_three_quarters_frontier {F : Type*} [AddCommGroup F] [DecidableEq F] {s : ℕ}
+    (x : Fin s → F) (j : Fin s) (hj : x j ≠ 0) :
+    3 * 4 ^ s ≤ 4 * (Finset.univ.filter
+      (fun p : Finset (Fin s) × Finset (Fin s) =>
+        (∑ i ∈ p.1, x i) ≠ 0 ∨ (∑ i ∈ p.2, x i) ≠ 0)).card :=
+  ACC0RSPerPoint.detection_two_thirds_four x j hj
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2748,6 +2771,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_bad_tuple_count_le_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_chernoff_per_input_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_exists_good_tuple_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_rs_detection_three_quarters_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
