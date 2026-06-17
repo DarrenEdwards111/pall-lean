@@ -134,6 +134,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndPool
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTDepthCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTRSConnection
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountModP
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Amplification
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -539,6 +540,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   value (BT pivot). countModP_collapse: count-mod-p decode ⇒ SYM∘AND size ∑c_s, fan-in D (multiplicity, no inj). ─
    ──   bridge_via_countModP: ExactCountModPRep f D ⇒ SYM∘AND of f. Removes count-mod-p content from the 204 bridge; ──
    ──   only the 3/4→exact amplification (ExactCountModPRep socket) remains. NOT P≠NP. ─────────────────────────────────
+   ── AMPLIFICATION SKELETON: nw_maj_exact_frontier + nw_exact_from_majorityGood_frontier — the deterministic kernel ──
+   ──   of 3/4→exact: majBool majority vote; majBool_eq_of_count (>half correct ⇒ maj correct, via count_compl ─────────
+   ──   partition); maj_exact (∀x >half of family correct ⇒ MajVote g = f EXACTLY). exact_from_majorityGood: ──────────
+   ──   MajorityGoodFamily (residual probabilistic socket: such a family EXISTS — Chernoff+union bound) ⇒ exact ────────
+   ──   majority rep. Residuals: probabilistic existence + MAJ∘SYM∘AND closure. Proves the skeleton, not them. NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2134,6 +2140,21 @@ theorem nw_bridge_via_countModP_frontier {n : ℕ} (f : (Fin n → Bool) → Boo
     ∃ m, ACC0SymAndFanIn.HasSymAndFormFanIn f m D :=
   ACC0CountModP.bridge_via_countModP f D hrep
 
+/-- **`3/4`→exact amplification — the majority-vote exactness skeleton (proved).**  `maj_exact`: if at every input more
+than half of a family of approximants is correct, their majority vote agrees with the target everywhere (is exact).
+`exact_from_majorityGood`: a pointwise-majority-correct family (the residual probabilistic socket `MajorityGoodFamily`)
+yields an exact majority-vote representation. -/
+theorem nw_maj_exact_frontier {n k : ℕ} (g : Fin k → ((Fin n → Bool) → Bool))
+    (f : (Fin n → Bool) → Bool)
+    (hgood : ∀ x, k < 2 * (Finset.univ.filter (fun i => g i x = f x)).card) :
+    ACC0Amplification.MajVote g = f :=
+  ACC0Amplification.maj_exact g f hgood
+
+theorem nw_exact_from_majorityGood_frontier {n : ℕ} (f : (Fin n → Bool) → Bool)
+    (hf : ACC0Amplification.MajorityGoodFamily f) :
+    ∃ (k : ℕ) (g : Fin k → ((Fin n → Bool) → Bool)), ACC0Amplification.MajVote g = f :=
+  ACC0Amplification.exact_from_majorityGood f hf
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2609,6 +2630,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_btDepthCollapse_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_accToLowDeg_via_rs_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_bridge_via_countModP_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_exact_from_majorityGood_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
