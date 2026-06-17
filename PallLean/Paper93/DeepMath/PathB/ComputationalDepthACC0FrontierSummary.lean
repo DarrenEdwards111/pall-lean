@@ -111,6 +111,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalHStepMachi
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalRewritePhase
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalLookupPhase
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalDecodePhase
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalReencodePhase
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -401,6 +402,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   encodeTape_inj + machineEquiv.injective). 3rd of 4 phase realizations; touches tape LAYOUT (encodeTape). ───────
    ──   Discharges decode phase of 182 (faithful + invertible recovery, wired to the step). Remaining: re-encode. ──────
    ──   The tape-walking step-count realization (bDecode over the bit-layout) is the residual. NOT P≠NP. ───────────────
+   ── RE-ENCODE PHASE + FULL STEP: universal_step_complete_frontier — re-encode is decode's inverse (encodeSim M d ─────
+   ──   round-trips + injective). The COMPLETE 4-phase tape step: encodeSim M c → (decode (M,c)) → (step reachIn 1 c ───
+   ──   (applyTrans c t)) → encodeSim M (applyTrans c t) → (decode (M,d), unique). All 4 phase contracts (183/184/185 ───
+   ──   + re-encode) ASSEMBLED into the full decode→step→re-encode tape correctness. Remaining: U-transition bit-layout ─
+   ──   realization + B-bound (entry 182 composition). Williams-side phase program COMPLETE at contract level. NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1693,6 +1699,20 @@ theorem universal_decode_phase_frontier (M : ACC0ConcreteNTM.TMachine) (c d : AC
       ∧ (∀ M' c', ACC0UniversalDecode.encodeSim M c = ACC0UniversalDecode.encodeSim M' c' → M = M' ∧ c = c') :=
   ACC0UniversalDecodePhase.decode_phase M c d h
 
+/-- **The full four-phase universal step at the tape level (proved): decode → step → re-encode.**  For a firing rule `t`
+at `c`, the universal step takes `encodeSim M c` (decodes to `(M,c)`) through a genuine one-step `M`-transition to
+`encodeSim M (applyTrans c t)` (decodes to `(M, applyTrans c t)`, the unique such tape).  Assembles all four per-phase
+contracts (decode 185, lookup 184 / rewrite 183 firing, re-encode) into the complete tape-level universal step. -/
+theorem universal_step_complete_frontier (M : ACC0ConcreteNTM.TMachine) (c : ACC0ConcreteNTM.CConfig)
+    (t : ACC0ConcreteNTM.TMTrans) (htM : t ∈ M) (ht1 : t.1 = (c.1, ACC0ConcreteNTM.readSym c)) :
+    ACC0UniversalDecode.decodeSim (ACC0UniversalDecode.encodeSim M c) = some (M, c)
+      ∧ ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM M) 1 c (ACC0ConcreteNTM.applyTrans c t)
+      ∧ ACC0UniversalDecode.decodeSim (ACC0UniversalDecode.encodeSim M (ACC0ConcreteNTM.applyTrans c t))
+          = some (M, ACC0ConcreteNTM.applyTrans c t)
+      ∧ (∀ M' d', ACC0UniversalDecode.encodeSim M (ACC0ConcreteNTM.applyTrans c t)
+          = ACC0UniversalDecode.encodeSim M' d' → M = M' ∧ ACC0ConcreteNTM.applyTrans c t = d') :=
+  ACC0UniversalReencodePhase.universal_step_complete M c t htM ht1
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2145,6 +2165,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.universal_rewrite_phase_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.universal_lookup_phase_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.universal_decode_phase_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.universal_step_complete_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
