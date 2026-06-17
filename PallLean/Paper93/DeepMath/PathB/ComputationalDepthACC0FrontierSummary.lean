@@ -152,6 +152,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TransitionTable
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BFLCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DerandCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NTIMEAccounting
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GuessableProver
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -648,6 +649,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   (via NTIME/NEXP defs; accepts_within_budget = acceptsWithin_mono cost-fits step). Turns the hierarchy side from
    ──   "diagonal mechanism proved" (219) into "time-class placement proved". Residual: ClockedSimulation (the lazy ───
    ──   universal sim of M_i + boundary complement clocked to exp, from 219/220). NTM model, no measure theory. NOT P≠NP.
+   ── GUESSABLE PROVER: nw_guessable_prover_collapse_frontier — the entry-221 MIPSubsetMA_ofCircuits socket OPENED ────
+   ──   into its mechanism + discharged. mipLang_eq_maLang (PROVED): GuessableProver ⇒ MIPLang Ver = MALang(λ x C, ────
+   ──   Ver x (proverOf C)) — Merlin guesses the prover circuit C, Arthur evaluates the verifier on proverOf C. ───────
+   ──   Backward (a circuit-prover IS a prover) FREE; forward = GuessableProver socket (IKW small-prover: accepting ────
+   ──   prover has a small-circuit description). mipSubsetMA_of_realized threads it to MIP⊆MA via MIPRealizedGuessable.
+   ──   Residual socket: GuessableProver (IKW easy-witness machinery). Proves the collapse mechanism. NOT NEXP⊄ACC⁰/P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2473,6 +2480,24 @@ theorem nw_lazy_diagonal_in_nexp_frontier (L : ACC0WilliamsMetaTheorem.Lang) (M 
     (hsim : ACC0NTIMEAccounting.ClockedSimulation L M c) :
     L ∈ ACC0NTM.NEXP :=
   ACC0NTIMEAccounting.lazy_diagonal_in_nexp L M c hsim
+
+/-- **Guessable-prover collapse — the entry-221 `MIPSubsetMA_ofCircuits` socket discharged from the collapse
+mechanism (proved).**  `mipLang_eq_maLang`: given `GuessableProver` (the IKW small-prover socket — an accepting prover
+has a small-circuit description), the `MIP` language equals the `MA` language "Merlin guesses the prover circuit `C`,
+Arthur evaluates the verifier on `proverOf C`" (backward free; forward = the socket).  `mipSubsetMA_of_realized`
+threads it into the class-level `MIPSubsetMA_ofCircuits MIP ACC0 MA` via `MIPRealizedGuessable`. -/
+theorem nw_guessable_prover_collapse_frontier {Prover Circ : Type}
+    (Ver : List Bool → Prover → Prop) (proverOf : Circ → Prover)
+    (hg : ACC0GuessableProver.GuessableProver Ver proverOf) :
+    ACC0GuessableProver.MIPLang Ver
+      = ACC0GuessableProver.MALang (fun x C => Ver x (proverOf C)) :=
+  ACC0GuessableProver.mipLang_eq_maLang Ver proverOf hg
+
+/-- **Class-level form: discharges `MIPSubsetMA_ofCircuits` from `MIPRealizedGuessable` (proved).** -/
+theorem nw_guessable_prover_mipSubsetMA_frontier (MIP ACC0 MA : ACC0WilliamsMetaTheorem.CClass)
+    (h : ACC0GuessableProver.MIPRealizedGuessable MIP ACC0 MA) :
+    ACC0BFLCollapse.MIPSubsetMA_ofCircuits MIP ACC0 MA :=
+  ACC0GuessableProver.mipSubsetMA_of_realized MIP ACC0 MA h
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
