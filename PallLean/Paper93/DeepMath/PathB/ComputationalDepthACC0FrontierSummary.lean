@@ -123,6 +123,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonRecon
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonReconCorrect
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonYaoCircuit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonHardness
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonEasyWitness
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -479,6 +480,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   with hardness). hardnessExcludesCircuit_discharge DISCHARGES the entry-192 socket [NO AXIOMS — purely ──────────
    ──   definitional]. HONEST: this is the DEFINITIONAL link only; does NOT prove any fn hard — that lower bound is ────
    ──   the irreducible NoEasyWitnessHardFn input (separation-strength). Closes the socket plumbing. NOT P≠NP. ─────────
+   ── NW NO-EASY-WITNESS: nw_noEasyWitness_iff_hard_frontier + nw_noEasyWitnessHardFn_discharge_frontier — over the ────
+   ──   Circ model: EasyWitness w s := HasCircuitOfSize w s (describe=compute in truth-table rep), so ¬EasyWitness w s ─
+   ──   ↔ HardFor w s by rfl. noEasyWitnessHardFn_discharge: ¬EasyWitness w s → ∃f HardFor f s via ⟨w,h⟩ (the witness ─
+   ──   IS the hard fn). DISCHARGES the entry-150 NoEasyWitnessHardFn socket [NO AXIOMS — structural]. HONEST: the ─────
+   ──   EXTRACTION (easy half) only; that ¬EasyWitness ever holds (a NEXP language lacks easy witnesses) = the ────────
+   ──   irreducible circuit LOWER BOUND, separation-strength, NOT proved & not provable by these methods. NOT P≠NP. ───
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1936,6 +1943,21 @@ theorem nw_hardnessExcludesCircuit_discharge_frontier {n : ℕ} (f : (Fin n → 
       (ACC0NisanWigdersonHardness.HasCircuitOfSize f s) :=
   ACC0NisanWigdersonHardness.hardnessExcludesCircuit_discharge f s
 
+/-- **NoEasyWitnessHardFn — the easy-witness↔hardness identification + extraction (proved).**  `noEasyWitness_iff_hard`:
+`¬ EasyWitness w s ↔ HardFor w s` (`rfl` — describe = compute in the truth-table representation).
+`noEasyWitnessHardFn_discharge` discharges the entry-150 `NoEasyWitnessHardFn` socket via `fun h => ⟨w, h⟩` (the witness
+`w` *is* the hard function).  HONEST: the structural extraction (easy half); that `¬ EasyWitness` ever holds is the
+irreducible circuit lower bound, of separation strength, NOT proved here. -/
+theorem nw_noEasyWitness_iff_hard_frontier {n : ℕ} (w : (Fin n → Bool) → Bool) (s : ℕ) :
+    ¬ ACC0NisanWigdersonEasyWitness.EasyWitness w s ↔ ACC0NisanWigdersonHardness.HardFor w s :=
+  ACC0NisanWigdersonEasyWitness.noEasyWitness_iff_hard w s
+
+theorem nw_noEasyWitnessHardFn_discharge_frontier {n : ℕ} (w : (Fin n → Bool) → Bool) (s : ℕ) :
+    ACC0IKWEasyWitness.NoEasyWitnessHardFn
+      (ACC0NisanWigdersonEasyWitness.EasyWitness w s)
+      (ACC0NisanWigdersonEasyWitness.ExistsHardFunction n s) :=
+  ACC0NisanWigdersonEasyWitness.noEasyWitnessHardFn_discharge w s
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2400,6 +2422,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reconstructionCorrectness_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_yaoCircuitEfficiency_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_hardnessExcludesCircuit_discharge_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_noEasyWitnessHardFn_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
