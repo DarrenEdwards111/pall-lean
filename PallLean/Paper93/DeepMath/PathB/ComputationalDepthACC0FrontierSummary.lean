@@ -168,6 +168,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0KummerCarry
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CRTCarryProfile
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryCrossing
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryObserverSize
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryRealization
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -735,6 +736,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   carryObserverSize_le_modulus (fixed modulus caps states ⇒ carry layers needed); field/primePow specialise. ────
    ──   KEY FINDING: the barrier is NOT the state count (quasipoly) but the LOW-DEGREE REALISATION (= entry-238 socket
    ──   CarryRefinementCrossing). Relocates the obstruction honestly. NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── CARRY REALISATION (decode realisable over a field; count is the barrier): nw_prime_realizes_frontier — over a ────
+   ──   prime field EVERY count→boolean decode is a degree-≤(p-1) polynomial (Fermat point-indicator 1-(X-a)^(p-1), ───
+   ──   nw_pointIndicator_eval_frontier). faithful_of_size: m≥N+1 ⇒ faithful. HONEST: realises the FREE symmetric ──────
+   ──   decode; Fermat degree p-1=(field size)-1 ⇒ faithful single-field realisation is degree ~N (NOT low-degree). ───
+   ──   Residual barrier: low-degree exact COUNT computation for composite m (= entry-234 ApproxToExactCount / 238 ────
+   ──   crossing); prime-power needs p-adic digit layers (no power indicator, 235). NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2789,6 +2796,21 @@ theorem nw_carry_faithful_iff_frontier (m N : ℕ) (hm : 0 < m) :
 theorem nw_carry_exists_faithful_frontier (N : ℕ) :
     ACC0CarryObserverSize.Faithful (N + 1) N :=
   ACC0CarryObserverSize.exists_faithful N
+
+/-- **Carry observer realisation: the decode is realisable over a field (proved); the count is the barrier.**
+`prime_realizes`: over a prime field every count→boolean decode is a degree-≤(p-1) polynomial (Fermat point-indicator
+`1-(X-a)^(p-1)`).  `faithful_of_size`: m≥N+1 ⇒ exact count observer faithful.  HONEST: this realises the *free
+symmetric decode*; the Fermat degree is p-1 = (field size)-1, so a faithful single-field realisation is degree ~N (not
+low-degree).  Residual: low-degree exact *count* computation for composite m (entry-234/238 socket); prime-power needs
+p-adic digit layers (no power indicator, entry 235). -/
+theorem nw_prime_realizes_frontier (p : ℕ) [Fact p.Prime] :
+    ACC0CarryRealization.RealizesCarryObserver p (p - 1) :=
+  ACC0CarryRealization.prime_realizes p
+
+/-- **Carry realisation: the Fermat point-indicator computes the singleton decode (proved).** -/
+theorem nw_pointIndicator_eval_frontier (p : ℕ) [Fact p.Prime] (a y : ZMod p) :
+    (ACC0CarryRealization.pointIndicator p a).eval y = if y = a then 1 else 0 :=
+  ACC0CarryRealization.pointIndicator_eval p a y
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
