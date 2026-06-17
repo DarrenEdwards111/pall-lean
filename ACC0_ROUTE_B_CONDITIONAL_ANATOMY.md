@@ -90,6 +90,11 @@ The N-Frame programme was used as a **selector**, not the engine:
   - Physical-`U` sub-machine **contracts proved**: tape encoding faithful (`…ACC0TapeEncoding`), rule-lookup correct
     (`…ACC0RuleLookup`), head-movement local (`…ACC0HeadLocation`), tape-rewrite contract (`…ACC0TapeRewrite`), atomic
     step (`…ACC0PhysicalStep`), decode round-trip (`…ACC0UniversalDecode`).
+  - **`hstep` loop correctness assembled** (`…ACC0UniversalHStep.univ_hstep_correct`): the *decode → step → re-encode*
+    cycle is faithful — `decodeSim (encodeSim M c) = some (M,c)`, a genuine one-step `M`-transition
+    `reachIn (toNTM M) 1 c (applyTrans c t)`, and the re-encoded tape `univSimStep M c t` decodes back to
+    `(M, applyTrans c t)`.  The remaining residual is realising `univSimStep` as `U`'s *own* transitions with the
+    step-overhead bound `B` (the `hstep` *machine*, vs. the *correctness contract* now proved).
 
 ---
 
