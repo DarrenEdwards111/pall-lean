@@ -144,6 +144,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SupplyConstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RSPerPoint
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GateEncoding
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RSPointwiseComposition
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RSSupplyToExact
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -600,6 +601,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   Composes (circuit wrong ⇒ some gate wrong) + per-gate #{σ|gate g wrong at x}≤M + 4·(G·M)≤|Seed| ⇒ ─────────────
    ──   3·|Seed| ≤ 4·#{correct at x} (≥3/4 at EVERY input = Uniform34). UNION BOUND over G gates (card_biUnion_le) + ──
    ──   counting. Residual: Composes (gate-substitution semantics). Pure Finset, no measure theory. NOT P≠NP. ─────────
+   ── RS SUPPLY⇒EXACT (step-2 assembly): nw_supply_to_exact_majority_frontier — per-input 3/4 supply of approximant- ──
+   ──   functions (Uniform34, w≥1) at k=2j, j≥3n+1 ⇒ ∃ tuple g, MajVote g = f EXACTLY. ASSEMBLES entry-212 ────────────
+   ──   exists_good_tuple (supply ⇒ good tuple) + entry-206 maj_exact (good tuple ⇒ exact majority). The BT-side ──────
+   ──   amplification realised end-to-end: ACC⁰[p] circuit f has an exact rep as a majority of 2j low-deg approximants.
+   ──   Residual: MAJ∘SYM∘AND collapse to a SINGLE quasipoly SYM∘AND (203). NOT P≠NP. ──────────────────────────────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2327,6 +2333,17 @@ theorem nw_circuit_perpoint_3_4_frontier {I Seed γ : Type*} [Fintype Seed] [Fin
     3 * Fintype.card Seed ≤ 4 * (Finset.univ.filter (fun σ => ¬ circuitWrong x σ)).card :=
   ACC0RSPointwiseComposition.circuit_perpoint_3_4 gateWrong circuitWrong M hcomp hgate hbound x
 
+/-- **RS supply ⇒ exact majority representation (proved, step-2 assembly).**  `supply_to_exact_majority`: a per-input
+`3/4` supply of approximant-functions (`Uniform34` for the agreement-with-`f` predicate, `w ≥ 1`), at `k = 2j`,
+`j ≥ 3n+1`, yields a tuple `g` of `2j` approximants with `MajVote g = f` — assembling entry-212 `exists_good_tuple`
+(supply ⇒ good tuple) with entry-206 `maj_exact` (good tuple ⇒ exact majority). -/
+theorem nw_supply_to_exact_majority_frontier {α : Type*} [Fintype α] [DecidableEq α] {n : ℕ}
+    (ev : α → (Fin n → Bool) → Bool) (f : (Fin n → Bool) → Bool) (j w : ℕ)
+    (hu : ACC0SupplyConstruction.Uniform34 (fun x a => decide (ev a x = f x)) w)
+    (hw : 1 ≤ w) (hj : 3 * n + 1 ≤ j) :
+    ∃ g : Fin (2 * j) → ((Fin n → Bool) → Bool), ACC0Amplification.MajVote g = f :=
+  ACC0RSSupplyToExact.supply_to_exact_majority ev f j w hu hw hj
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2812,6 +2829,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_rs_detection_three_quarters_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_orApprox_detection_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_circuit_perpoint_3_4_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_supply_to_exact_majority_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
