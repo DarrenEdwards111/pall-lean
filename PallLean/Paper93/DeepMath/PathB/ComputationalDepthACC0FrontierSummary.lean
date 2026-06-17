@@ -92,6 +92,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarrySparseTheory
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountCarrySymmetric
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DynamicObserverSelection
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTClosureFrontier
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ThresholdBTClosure
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -289,6 +290,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   the proved Route-B/Williams glue (routeB_to_NEXP_not_ACC0). Ends at the codebase's actual separation stmt. ──────
    ──   2 load-bearing premises (DynamicClosesAtBT, closure_to_quasipoly) = the open ACC⁰[composite] LB. Capstone ───────
    ──   frozen (165); this is the terminal scaffolding. Everything around the wall proved; the wall itself socketed. ────
+   ── THRESHOLD/BT CLOSURE: thresholdBT_quasipoly_of_fanin_preservation_frontier — DynamicClosesAtBT = the PROVEN ──────
+   ──   Beigel-Tarui/Yao thm (NEXP⊄ACC⁰=Williams 2011 also PROVEN); wall = FORMALISATION size not openness. BT size = ──
+   ──   (linear SYM top ≤n+1, symmetric_observer_state_le) × (quasipoly AND-feature layer ≤(n+1)^D, ──────────────────────
+   ──   beigelTarui_monomial_count_le) — both PROVED — held by FanInStaysPolylog (fan-in preserved under ACC⁰ depth = ──
+   ──   the BT depth-reduction, the ONE remaining socket). Splits the wall into 2 proved factors + 1 concrete lemma. ────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1342,6 +1348,16 @@ theorem dynamicClosure_to_NEXP_not_ACC0_frontier
     DynamicClosesAtBT BTHasQuasipolySparse ACC0SatSpeedup NEXPHasACC0Circuits Collapse
     hClosure closure_to_quasipoly quasipoly_to_speedup williams hierarchy
 
+/-- **Threshold/BT closure: the quasipoly BT bound splits into two proved size-factors + one depth-reduction socket
+(proved glue).**  `DynamicClosesAtBT` = the Beigel–Tarui theorem (quasipoly `SYM∘AND`).  Its size is (linear `SYM` top
+`≤ n+1` states, `symmetric_observer_state_le`) × (quasipoly AND-feature layer `≤ (n+1)^D`, `beigelTarui_monomial_count_le`)
+— both PROVED — held together by `FanInStaysPolylog` (fan-in preserved under `ACC⁰` composition, the BT depth reduction,
+the one remaining socket).  This conditional: if fan-in stays `≤ D`, the feature layer is `≤ (n+1)^D` (quasipoly). -/
+theorem thresholdBT_quasipoly_of_fanin_preservation_frontier (n D w : ℕ)
+    (hfan : ACC0ThresholdBTClosure.FanInStaysPolylog D w) :
+    (Layer3.lowDegMonomials n w).card ≤ (n + 1) ^ D :=
+  ACC0ThresholdBTClosure.quasipoly_BT_observer_of_fanin_preservation n D w hfan
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1775,6 +1791,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.countCarry_eq_sum_thresholds_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.dynamicObserver_refines_modp_to_padic_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.dynamicClosure_to_NEXP_not_ACC0_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.thresholdBT_quasipoly_of_fanin_preservation_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment

@@ -252,6 +252,29 @@ valid and machine-checked; its two load-bearing premises (`DynamicClosesAtBT`, `
 sockets that together *are* the `ACC⁰[composite]` lower bound.  **Everything around the wall is now proved; the wall
 itself — the quasipoly BT closure — is the single named socket.**  This is the terminal scaffolding of the programme.
 
+### 8b. The wall is the Beigel–Tarui theorem — and it factors (167)
+
+**Crucial framing.**  `DynamicClosesAtBT` is, classically, the **Beigel–Tarui / Yao theorem** (every `ACC⁰` function
+has a quasipoly-size `SYM∘AND` representation), and `NEXP ⊄ ACC⁰` (Williams 2011) is *also* a proven theorem.  So the
+wall in this development is the **size of the Lean formalisation**, not mathematical openness; "proving the closure"
+formalises a known result and is *not* a new separation or `P ≠ NP`.
+
+`…ACC0ThresholdBTClosure` factors the BT size bound and shows which factors are already done:
+
+```
+  quasipoly SYM∘AND  =  (SYM top: ≤ n+1 states)  ×  (AND-feature layer: ≤ (n+1)^D)   held by  (fan-in ≤ D under composition)
+                          symmetric_observer_state_le    beigelTarui_monomial_count_le        FanInStaysPolylog  ← SOCKET
+                          PROVED                          PROVED (repo)                        the BT depth reduction
+```
+
+- **`symmetric_observer_state_le`** (proved): the `SYM` top is *linear*-state (`≤ n+1`) — not the bottleneck.
+- **`bounded_fanin_feature_count_le`** (proved, repo): the bounded-fan-in AND layer is quasipoly (`≤ (n+1)^D`).
+- **`quasipoly_BT_observer_of_fanin_preservation`** (proved glue): fan-in `≤ D` ⇒ feature count `≤ (n+1)^D`.
+
+So both *size factors* of the BT bound are proved; the wall is refined to the single concrete lemma `FanInStaysPolylog`
+— the Beigel–Tarui mixed-radix depth reduction (fan-in stays polylog under `ACC⁰` composition), a known theorem whose
+full formalisation over arbitrary-depth `ACC⁰` is the large remaining work.  We do not prove it.
+
 ---
 
 ## The four remaining routes (no small glue left)
