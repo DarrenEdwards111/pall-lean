@@ -165,6 +165,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IKWSmallProver
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ApproxToExact
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryInvariant
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0KummerCarry
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CRTCarryProfile
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -714,6 +715,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   (no carry ⟺ ¬p∣C — survives mod p, field observer sees it); carryCount_pos_iff_dvd (carry ⟺ p∣C — invisible ───
    ──   mod p; QUANTIFIES entry-235 field_observer_blind_to_carry). Conservative factorization invariant; characterises
    ──   + quantifies the seam, does NOT cross the composite barrier. NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── CRT CARRY PROFILE (composite-modulus observer): CarryProfileTrivial m n k := ∀p∈m.primeFactors, carryCount p n k ─
+   ──   = 0 (per-prime Kummer carries over m's factorisation). carryProfileTrivial_iff_no_prime_dvd; ─────────────────
+   ──   carryProfileTrivial_iff_coprime (m≠0: trivial ⟺ m coprime to C(n+k,k) — composite observer sees full count, ──
+   ──   via Nat.disjoint_primeFactors); carryProfile_mul (CRT decomposition: profile over a·b = join of profiles over a,
+   ──   b, via primeFactors_mul — matches entry-235 ZMod(ab)≃ZMod a×ZMod b). Conservative; characterises which prime ──
+   ──   layers the mod-m observer is blind to; does NOT cross the composite barrier. NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2720,6 +2727,21 @@ theorem nw_kummer_carry_identity_frontier (p n k : ℕ) [Fact p.Prime] :
 theorem nw_kummer_carry_pos_iff_dvd_frontier (p n k : ℕ) [Fact p.Prime] :
     0 < ACC0KummerCarry.carryCount p n k ↔ p ∣ Nat.choose (n + k) k :=
   ACC0KummerCarry.carryCount_pos_iff_dvd p n k
+
+/-- **CRT carry profile (composite-modulus observer, proved fragments).**  `CarryProfileTrivial m n k := ∀ p ∈
+m.primeFactors, carryCount p n k = 0` (per-prime Kummer carries assembled over `m`'s factorisation).
+`carryProfileTrivial_iff_coprime` (for `m≠0`: trivial profile ⟺ `m` coprime to `C(n+k,k)` — composite observer sees the
+full count); `carryProfile_mul` (CRT decomposition: profile over `a·b` = join of profiles over `a`, `b`).  Conservative;
+characterises which prime layers the mod-`m` observer is blind to, does NOT cross the barrier. -/
+theorem nw_crt_carryProfile_coprime_frontier (m n k : ℕ) (hm : m ≠ 0) :
+    ACC0CRTCarryProfile.CarryProfileTrivial m n k ↔ Nat.Coprime m (Nat.choose (n + k) k) :=
+  ACC0CRTCarryProfile.carryProfileTrivial_iff_coprime m n k hm
+
+/-- **CRT carry profile: multiplicative/CRT decomposition over the modulus (proved).** -/
+theorem nw_crt_carryProfile_mul_frontier (a b n k : ℕ) (ha : a ≠ 0) (hb : b ≠ 0) :
+    ACC0CRTCarryProfile.CarryProfileTrivial (a * b) n k ↔
+      ACC0CRTCarryProfile.CarryProfileTrivial a n k ∧ ACC0CRTCarryProfile.CarryProfileTrivial b n k :=
+  ACC0CRTCarryProfile.carryProfile_mul a b n k ha hb
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
