@@ -154,6 +154,11 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DerandCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NTIMEAccounting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GuessableProver
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SumCheck
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Arithmetization
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SchwartzZippel
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MipSimulation
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SeedEnumeration
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWFromHardness
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -662,6 +667,13 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   scSum(g(r,·)) (recursion after challenge r); scSum_zero (termination at single eval). Pure finite-sum algebra ─
    ──   over CommRing, no measure theory. nw_nexpEqMIP_frontier: NexpEqMIP via antisymmetry. Residual sockets: ───────
    ──   NexpArithmetization (cert→poly), SumCheckSoundness (Schwartz-Zippel + multilinearity), MipSubsetNexp. NOT P≠NP.
+   ── BFL/DERAND SOCKETS DECOMPOSED (5 files): nw_arithmetization_counting_frontier (scSum(arith)=#accepting, PROVED; ─
+   ──   residual = LowDegArithmetization MLE); nw_schwartz_zippel_frontier (distinct deg-≤d polys agree ≤d pts + ──────
+   ──   separating challenge exists if d<|F|, PROVED via card_roots'; residual = round-poly degree bound); ────────────
+   ──   nw_mip_subset_nexp_frontier (MIPLang Ver = NexpGuessLang Ver rfl — prover table IS the nondet guess; residual =
+   ──   MIPRealizedInNexp exp-verifiability); nw_seed_enumeration_frontier (fooling det check preserves language ──────
+   ──   MALang Arthur=MALang ArthurDet ⇒ MA⊆NP; residual = PRGFools); nw_reconstruction_contradiction_frontier ───────
+   ──   (recon ∘ hardness ⇒ ¬distinguisher = PRG fools, NO axioms; residual = NWReconstruction + IW hard-fn). NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2522,6 +2534,48 @@ theorem nw_nexpEqMIP_frontier (NEXP MIP : ACC0WilliamsMetaTheorem.CClass)
     (h1 : ACC0SumCheck.NexpSubsetMIP NEXP MIP) (h2 : ACC0SumCheck.MipSubsetNexp MIP NEXP) :
     ACC0BFLCollapse.NexpEqMIP NEXP MIP :=
   ACC0SumCheck.nexpEqMIP_of_subset NEXP MIP h1 h2
+
+/-- **Arithmetization as counting (proved): `scSum (arith) = #accepting`.**  `scSum_indicator`: if the arithmetized
+poly `g` agrees with the boolean predicate `f` on the hypercube, `scSum g = (#{b | f b} : R)` — the sum-check claim
+value is the accepting count.  Residual socket: `LowDegArithmetization` (the low-degree multilinear extension). -/
+theorem nw_arithmetization_counting_frontier {R : Type*} [CommRing R] {m : ℕ}
+    (g : (Fin m → R) → R) (f : (Fin m → Bool) → Bool)
+    (hg : ∀ b, g (fun i => ACC0SumCheck.boolToR (b i)) = ACC0SumCheck.boolToR (f b)) :
+    ACC0SumCheck.scSum g = ((Finset.univ.filter (fun b => f b = true)).card : R) :=
+  ACC0Arithmetization.scSum_indicator g f hg
+
+/-- **Sum-check soundness: Schwartz–Zippel one variable (proved).**  `agreement_le_max`: distinct degree-`≤ d`
+polynomials over a finite field agree at `≤ d` points; `few_agreements`: if `d < |F|` they disagree somewhere (a
+separating challenge exists).  Residual socket: `SumCheckRoundSoundness` (the round polynomials are degree `≤ d`). -/
+theorem nw_schwartz_zippel_frontier {F : Type*} [Field F] [Fintype F] [DecidableEq F] {d : ℕ}
+    (p q : Polynomial F) (hpq : p ≠ q) (hp : p.natDegree ≤ d) (hq : q.natDegree ≤ d) :
+    (Finset.univ.filter (fun r => p.eval r = q.eval r)).card ≤ d :=
+  ACC0SchwartzZippel.agreement_le_max p q hpq hp hq
+
+/-- **MIP ⊆ NEXP (proved mechanism): the prover table is the nondeterministic guess.**  `mipLang_eq_nexpGuess`:
+`MIPLang Ver = NexpGuessLang Ver` (rfl); `mipSubsetNexp_of_realized` discharges `MipSubsetNexp` from
+`MIPRealizedInNexp`. -/
+theorem nw_mip_subset_nexp_frontier (MIP NEXP : ACC0WilliamsMetaTheorem.CClass)
+    (h : ACC0MipSimulation.MIPRealizedInNexp MIP NEXP) :
+    ACC0SumCheck.MipSubsetNexp MIP NEXP :=
+  ACC0MipSimulation.mipSubsetNexp_of_realized MIP NEXP h
+
+/-- **PRG ⟹ MA ⊆ NP (proved mechanism): seed enumeration.**  `maLang_eq_detLang`: a fooling deterministic check
+preserves the language (`MALang Arthur = MALang ArthurDet`); `prgCollapses_of_realizes` discharges the entry-222
+`PRGCollapsesMAtoNP` from `PRGRealizesNP`.  Residual socket: `PRGFools` (the PRG actually fools Arthur). -/
+theorem nw_seed_enumeration_frontier (PRGExists : Prop) (MA NP : ACC0WilliamsMetaTheorem.CClass)
+    (h : ACC0SeedEnumeration.PRGRealizesNP PRGExists MA NP) :
+    ACC0DerandCollapse.PRGCollapsesMAtoNP PRGExists MA NP :=
+  ACC0SeedEnumeration.prgCollapses_of_realizes PRGExists MA NP h
+
+/-- **Derand ⟹ PRG (proved glue): the NW reconstruction contradiction.**  `prgFools_of_hard`: reconstruction
+(distinguisher ⟹ small circuit for `f`) + hardness (`¬` small circuit) ⟹ no distinguisher (PRG fools);
+`derandGivesPRG_via_nw` discharges the entry-222 `DerandGivesPRG`. -/
+theorem nw_reconstruction_contradiction_frontier
+    (Derandomization Distinguisher SmallCircuitForHardFn : Prop)
+    (dh : ACC0NWFromHardness.DerandGivesHardFn Derandomization Distinguisher SmallCircuitForHardFn) :
+    ACC0DerandCollapse.DerandGivesPRG Derandomization (¬ Distinguisher) :=
+  ACC0NWFromHardness.derandGivesPRG_via_nw Derandomization Distinguisher SmallCircuitForHardFn dh
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
