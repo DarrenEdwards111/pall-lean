@@ -145,6 +145,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RSPerPoint
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GateEncoding
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RSPointwiseComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RSSupplyToExact
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MajSymAnd
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -606,6 +607,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   exists_good_tuple (supply ⇒ good tuple) + entry-206 maj_exact (good tuple ⇒ exact majority). The BT-side ──────
    ──   amplification realised end-to-end: ACC⁰[p] circuit f has an exact rep as a majority of 2j low-deg approximants.
    ──   Residual: MAJ∘SYM∘AND collapse to a SINGLE quasipoly SYM∘AND (203). NOT P≠NP. ──────────────────────────────────
+   ── MAJ∘SYM∘AND COLLAPSE: nw_majSymAnd_collapse_frontier — any Boolean combiner of a list of SYM∘ANDs is a SYM∘AND ──
+   ──   (isSymAnd_list, induction via if-then-else=(a∧A)∨(¬a∧B) + 3 binary combines). So the entry-216 majority ────────
+   ──   collapses to a SINGLE SYM∘AND. HONEST: size MULTIPLICATIVE = EXPONENTIAL in #gates — exact-but-exponential, ───
+   ──   NOT quasipoly. The majority route ≠ the quasipoly route: BT's quasipoly single SYM∘AND is the DIRECT low-deg ──
+   ──   route (203 btQuasipolyCollapse ← 204 RS degree), not majority-of-approximants. Documents the divergence. NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2344,6 +2350,15 @@ theorem nw_supply_to_exact_majority_frontier {α : Type*} [Fintype α] [Decidabl
     ∃ g : Fin (2 * j) → ((Fin n → Bool) → Bool), ACC0Amplification.MajVote g = f :=
   ACC0RSSupplyToExact.supply_to_exact_majority ev f j w hu hw hj
 
+/-- **The `MAJ∘SYM∘AND` collapse (proved).**  `isSymAnd_list`: any Boolean combiner of a list of `SYM∘AND`s is a
+`SYM∘AND` — so the entry-216 majority representation collapses to a single `SYM∘AND`.  HONEST: the size is
+*multiplicative* (exponential in `#gates`), so this is exact-but-exponential — NOT the quasipolynomial single `SYM∘AND`,
+which is the separate direct low-degree route (entry 203). -/
+theorem nw_majSymAnd_collapse_frontier {n : ℕ} (gs : List ((Fin n → Bool) → Bool))
+    (hgs : ∀ g ∈ gs, ACC0MajSymAnd.IsSymAnd g) (G : List Bool → Bool) :
+    ACC0MajSymAnd.IsSymAnd (fun x => G (gs.map (fun g => g x))) :=
+  ACC0MajSymAnd.isSymAnd_list gs hgs G
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2830,6 +2845,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_orApprox_detection_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_circuit_perpoint_3_4_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_supply_to_exact_majority_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_majSymAnd_collapse_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
