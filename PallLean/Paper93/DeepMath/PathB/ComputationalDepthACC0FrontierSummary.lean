@@ -136,6 +136,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTRSConnection
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountModP
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Amplification
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SpanExtract
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ChernoffExist
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -551,6 +552,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   has explicit coeffs c_S:ZMod p (mult c_S.val<p, ZMod.val_lt) with f x = ∑_S c_S·[monoAND_{S.1} x] — the count- ─
    ──   mod-p weighted-value form (entry-205 saCount_sigma_cast consumes). Connects 204 span output → 205 input via ───
    ──   mem_span_range_iff_exists_fun. Discharges the multiplicity-extraction residual; only amplification remains. NOT P≠NP.
+   ── CHERNOFF EXISTENCE: nw_majorityGoodFamily_of_chernoff_frontier — discharges the entry-206 MajorityGoodFamily ────
+   ──   socket from the SINGLE per-input concentration socket ChernoffPerInput. PROVED: exists_good_of_bad_lt (prob. ──
+   ──   method — #bad<#tuples ⇒ a good tuple exists, pigeonhole); union_bound (#bad ≤ ∑_x #{bad at x}, card_biUnion_le);
+   ──   sum bound (∀x #bad_x≤M ⇒ ∑≤#inputs·M). ChernoffPerInput (#inputs·M<#tuples = bad <2^-n fraction per input) = ──
+   ──   the genuine Chernoff concentration, needs independence/probability framework. Proves the scaffolding. NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2176,6 +2182,15 @@ theorem nw_span_eval_weightedCount_frontier {n : ℕ} (p : ℕ) [Fact p.Prime] {
         c S * (if ACC0PolyToSymAnd.monoAND S.1 x then 1 else 0) :=
   ACC0SpanExtract.span_eval_weightedCount p f hf
 
+/-- **Chernoff amplification existence — probabilistic method + union bound (proved), concentration socketed.**
+`exists_good_of_bad_lt`: fewer-than-all bad tuples ⇒ a good tuple exists (pigeonhole).  `union_bound`: `#bad ≤ ∑_x
+#{bad at x}`.  `majorityGoodFamily_of_chernoff` discharges the entry-206 `MajorityGoodFamily` socket from the single
+per-input concentration socket `ChernoffPerInput`. -/
+theorem nw_majorityGoodFamily_of_chernoff_frontier {n : ℕ} (f : (Fin n → Bool) → Bool) (k : ℕ)
+    (hc : ACC0ChernoffExist.ChernoffPerInput f k) :
+    ACC0Amplification.MajorityGoodFamily f :=
+  ACC0ChernoffExist.majorityGoodFamily_of_chernoff f k hc
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2653,6 +2668,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_bridge_via_countModP_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_exact_from_majorityGood_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_span_eval_weightedCount_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_majorityGoodFamily_of_chernoff_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
