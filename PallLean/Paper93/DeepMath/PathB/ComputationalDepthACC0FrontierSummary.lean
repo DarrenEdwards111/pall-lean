@@ -153,6 +153,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BFLCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DerandCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NTIMEAccounting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GuessableProver
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SumCheck
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -655,6 +656,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   Backward (a circuit-prover IS a prover) FREE; forward = GuessableProver socket (IKW small-prover: accepting ────
    ──   prover has a small-circuit description). mipSubsetMA_of_realized threads it to MIP⊆MA via MIPRealizedGuessable.
    ──   Residual socket: GuessableProver (IKW easy-witness machinery). Proves the collapse mechanism. NOT NEXP⊄ACC⁰/P≠NP.
+   ── MIP=NEXP SUM-CHECK: nw_sumcheck_round_eq_frontier — the BFL protocol's ARITHMETIC ENGINE proved (entry-221 ──────
+   ──   NexpEqMIP socket). scSum g (hypercube sum) = roundPoly g 0 + roundPoly g 1 (PROVED, the verifier's per-round ──
+   ──   consistency check: split first coord, sum = the two boolean values of the round poly). roundPoly g r = ────────
+   ──   scSum(g(r,·)) (recursion after challenge r); scSum_zero (termination at single eval). Pure finite-sum algebra ─
+   ──   over CommRing, no measure theory. nw_nexpEqMIP_frontier: NexpEqMIP via antisymmetry. Residual sockets: ───────
+   ──   NexpArithmetization (cert→poly), SumCheckSoundness (Schwartz-Zippel + multilinearity), MipSubsetNexp. NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2498,6 +2505,23 @@ theorem nw_guessable_prover_mipSubsetMA_frontier (MIP ACC0 MA : ACC0WilliamsMeta
     (h : ACC0GuessableProver.MIPRealizedGuessable MIP ACC0 MA) :
     ACC0BFLCollapse.MIPSubsetMA_ofCircuits MIP ACC0 MA :=
   ACC0GuessableProver.mipSubsetMA_of_realized MIP ACC0 MA h
+
+/-- **MIP = NEXP — the sum-check round-reduction engine (proved), arithmetization socketed.**  The genuine arithmetic
+of the Babai–Fortnow–Lund protocol (entry-221 `NexpEqMIP` socket).  `scSum_succ_eq`: `scSum g = roundPoly g 0 +
+roundPoly g 1` — the verifier's per-round consistency check (the hypercube sum splits as the two boolean values of the
+round polynomial).  `roundPoly_eq_scSum_restrict`: after challenge `r` the claim recurses to an `m`-variable sum-check
+on `g(r, ·)`.  `scSum_zero`: termination at a single evaluation.  `nexpEqMIP_of_subset` discharges `NexpEqMIP` by
+antisymmetry from `NexpSubsetMIP` (deep) + `MipSubsetNexp` (simulation). -/
+theorem nw_sumcheck_round_eq_frontier {R : Type*} [CommRing R] {m : ℕ}
+    (g : (Fin (m+1) → R) → R) :
+    ACC0SumCheck.scSum g = ACC0SumCheck.roundPoly g 0 + ACC0SumCheck.roundPoly g 1 :=
+  ACC0SumCheck.scSum_succ_eq g
+
+/-- **MIP = NEXP class assembly (proved): `NexpEqMIP` from the two inclusions by antisymmetry.** -/
+theorem nw_nexpEqMIP_frontier (NEXP MIP : ACC0WilliamsMetaTheorem.CClass)
+    (h1 : ACC0SumCheck.NexpSubsetMIP NEXP MIP) (h2 : ACC0SumCheck.MipSubsetNexp MIP NEXP) :
+    ACC0BFLCollapse.NexpEqMIP NEXP MIP :=
+  ACC0SumCheck.nexpEqMIP_of_subset NEXP MIP h1 h2
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
