@@ -138,6 +138,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Amplification
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SpanExtract
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ChernoffExist
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ChernoffBound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FiberCount
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -563,6 +564,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   (sum_range_choose). In the 3/4 regime (a≥3b, m≈k/2) = exp(−Ω(k))·(a+b)^k = the Chernoff decay. CORRECTS ───────
    ──   entry-208: genuine concentration is over a ≥3/4 SUPPLY (all-functions ChernoffPerInput was false). Residual ────
    ──   plumbing: fiber-count (tuple-count = binomial tail) + k=Ω(n) decay-to-2^-n. Proves the inequality. NOT P≠NP.
+   ── FIBER-COUNT REDUCTION: nw_bad_tuple_count_le_frontier — the bad approximant-tuple count at a fixed input is ──────
+   ──   ≤ 2^k·a^m·b^(k−m) (a=#correct, b=#wrong, b≤a, m≤k). PROVED via the correctness-pattern partition: ─────────────
+   ──   fiber_card (#{g | pat g = p} = a^{#trues}·b^{#falses} via Fintype.card_piFinset + prod_ite) + ────────────────
+   ──   card_eq_sum_card_fiberwise + entry-209 term_mono (bad pattern #trues≤m) + #patterns≤2^k. The genuine ──────────
+   ──   tuple-count=binomial-tail reduction. Residual: only the k=Ω(n) decay-to-2^-n arithmetic + ≥3/4 supply. NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2206,6 +2212,21 @@ theorem nw_binomial_tail_le_frontier {a b m k : ℕ} (hba : b ≤ a) (hmk : m �
       ≤ 2 ^ k * (a ^ m * b ^ (k - m)) :=
   ACC0ChernoffBound.binomial_tail_le hba hmk
 
+/-- **The fiber-count reduction (proved).**  `bad_tuple_count_le`: the number of `k`-tuples of supply approximants
+whose majority errs at a fixed input (`#{i | pred (g i)} ≤ m`) is `≤ 2^k · a^m · b^{k−m}` (`a = #correct`,
+`b = #wrong`, `b ≤ a`) — the per-input Chernoff bound, via the pattern-fiberwise partition (`fiber_card` +
+entry-209 `term_mono`). -/
+theorem nw_bad_tuple_count_le_frontier {α : Type*} [Fintype α] [DecidableEq α] {k : ℕ}
+    (pred : α → Bool) {m : ℕ}
+    (hba : (Finset.univ.filter (fun x => pred x = false)).card
+            ≤ (Finset.univ.filter (fun x => pred x = true)).card)
+    (hmk : m ≤ k) :
+    (Finset.univ.filter (fun g : Fin k → α =>
+        (Finset.univ.filter (fun i => pred (g i) = true)).card ≤ m)).card
+      ≤ 2 ^ k * ((Finset.univ.filter (fun x => pred x = true)).card ^ m
+          * (Finset.univ.filter (fun x => pred x = false)).card ^ (k - m)) :=
+  ACC0FiberCount.bad_tuple_count_le pred hba hmk
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2685,6 +2706,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_span_eval_weightedCount_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_majorityGoodFamily_of_chernoff_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_binomial_tail_le_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_bad_tuple_count_le_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
