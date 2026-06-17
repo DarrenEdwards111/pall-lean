@@ -307,6 +307,23 @@ exact representation fan-in is `≤ 1` (factor `1` in §8c), so **fan-in is *not
 bound (the polynomial-method/additive-degree content), not the fan-in; and that is a proven classical theorem to
 *formalise*, not an open problem.  The per-layer merge, for the fan-in measure, is done.
 
+### 8e. The additive count bound — degree-governed count is quasipoly; exact count blows up (170)
+
+`…ACC0AdditiveCountBound` makes the two count regimes explicit (the wall is now the *count*, §8d):
+
+- **`count_quasipoly_of_degree_bound`** (proved): `cnt ≤ (n+1)^{δ^e}`, `δ≤L`, `e≤E` ⇒ `cnt ≤ (n+1)^{L^E}` — the
+  degree-governed count is quasipoly (`n^{polylog}`) for polylog `L` and constant `E`.  The count is governed by the
+  **degree exponent**, not the gate count.
+- **`compositeBT_count_quasipoly`** (proved): applied to the proved `compositeBT_representation` — circuit-polynomial
+  monomial count `≤ (n+1)^{L^{D+1}}` for `δ≤L`, `depth ≤ D`.
+- **`symAndSize_andTree_ge`** (proved, the contrast): a depth-`d` balanced `AND`-tree has exact gate-count
+  `symAndSize ≥ 2^d` — the multiplicative recurrence blows up, so the *exact* form is not quasipoly.
+
+So the degree (additive) route gives a quasipoly count while the exact (multiplicative) gate-count blows up — which is
+*why* Beigel–Tarui uses the polynomial method.  The remaining gap is the **gate-polynomial instantiation** of
+`compositeBT_representation` for an actual `ACC⁰` circuit, which over a field exists only for prime-power `MOD` (the
+documented composite-`MOD` obstruction).  Formalisation of a known theorem; not open, not a new separation.
+
 ---
 
 ## The four remaining routes (no small glue left)

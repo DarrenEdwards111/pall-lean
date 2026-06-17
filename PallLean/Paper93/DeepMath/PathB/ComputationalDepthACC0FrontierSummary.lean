@@ -95,6 +95,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTClosureFrontier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ThresholdBTClosure
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FanInRecurrence
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndFanIn
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AdditiveCountBound
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -307,6 +308,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   growth; size still multiplicative s1+(s1+1)s2), base cases (const/var/mod/monoAND), NOT preserves. Every ───────
    ──   ACC0Circuit: fanInBound C ≤ 1 (bottom ANDs = single literals) ⇒ FAN-IN is NOT the BT bottleneck; the COUNT ─────
    ──   (symAndSize, exponential) is. Discharges the fan-in side of FanInStaysPolylog (factor 1). Count = the wall. ─────
+   ── ADDITIVE COUNT BOUND: additive_count_quasipoly_frontier — degree-governed count (n+1)^{δ^e} ≤ (n+1)^{L^E} for ─────
+   ──   δ≤L, e≤E = QUASIPOLY (polylog L, const E); the count is governed by the DEGREE exponent (additive), not the ─────
+   ──   gate count. compositeBT_count_quasipoly applies it to compositeBT_representation. CONTRAST: symAndSize_andTree ──
+   ──   _ge — exact gate-count of a depth-d AND-tree ≥ 2^d (multiplicative blow-up) ⇒ exact form NOT quasipoly. The ────
+   ──   degree route is essential; gate-poly instantiation for composite MOD = the documented prime-power barrier. ──────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1395,6 +1401,14 @@ theorem acc0circuit_symAndFanIn_frontier (C : ACC0CircuitModel.ACC0Circuit n) :
       ∧ ACC0SymAndFanIn.fanInBound C ≤ 1 :=
   ⟨ACC0SymAndFanIn.acc0circuit_hasSymAndFormFanIn C, ACC0SymAndFanIn.fanInBound_le_one C⟩
 
+/-- **The additive count bound: degree-governed count is quasipoly, exact gate-count blows up (proved).**  A count
+`≤ (n+1)^{δ^e}` is `≤ (n+1)^{L^E}` for `δ≤L`, `e≤E` — quasipoly for polylog `L` and constant `E` (the count is governed
+by the degree exponent, not the gate count).  Contrast: a depth-`d` balanced `AND`-tree has exact gate-count
+`symAndSize ≥ 2^d` (multiplicative blow-up) — so the degree route, not the exact form, gives quasipoly. -/
+theorem additive_count_quasipoly_frontier (n cnt δ e L E : ℕ) (hL : 1 ≤ L) (hδ : δ ≤ L) (he : e ≤ E)
+    (hcnt : cnt ≤ (n + 1) ^ (δ ^ e)) : cnt ≤ (n + 1) ^ (L ^ E) :=
+  ACC0AdditiveCountBound.count_quasipoly_of_degree_bound n cnt δ e L E hL hδ he hcnt
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1831,6 +1845,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.thresholdBT_quasipoly_of_fanin_preservation_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.fanin_depth_recurrence_quasipoly_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.acc0circuit_symAndFanIn_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.additive_count_quasipoly_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
