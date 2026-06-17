@@ -100,6 +100,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMODFieldGa
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0EndToEndBT
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ApproxBTInstantiation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerMixedRadix
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DynamicClosureDischarge
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -337,6 +338,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   obstruction: 0,p share mod-p, MOD_{p^e} separates). The symmetric/mixed-radix route CLEARS the field ───────────
    ──   obstruction — field-specific. primePower_mixed_radix_combine: base-(|S|+1) merge composes prime-power MOD. ──────
    ──   How BT handles p^e WITHOUT a field poly. Exact (size|S|, multiplicative); quasipoly count = full BT analysis. ───
+   ── STEP 3 PARTIAL DISCHARGE: dynamicClosure_partialDischarge_to_NEXP_frontier — (a) ACComponent (173, AC⁰ approx ─────
+   ──   polylog/quasipoly) PROVED + (b) MODComponent (174, MOD exact SYM∘AND) PROVED ⇒ DynamicClosesAtBT reduced to ─────
+   ──   ONE residual socket hSize (BT size analysis combining them), chained to ¬NEXPHasACC0Circuits via 166. HONEST ────
+   ──   PARTIAL: 2 of 3 BT ingredients PROVED; hSize (= proven-classical BT size thm) + Williams sockets remain. NOT ────
+   ──   a proof of DynamicClosesAtBT or NEXP⊄ACC⁰; not faked. User's 3-step plan (a+b+discharge) complete as partial. ───
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1490,6 +1496,23 @@ theorem primePower_mixedRadix_frontier {n : ℕ} (p e : ℕ) (hp : p.Prime) (he 
       ∧ (((0 : ℕ) : ZMod p) = ((p : ℕ) : ZMod p) ∧ p ^ e ∣ 0 ∧ ¬ p ^ e ∣ p) :=
   ACC0PrimePowerMixedRadix.primePower_sym_clears_field_obstruction p e hp he S t
 
+/-- **Step (3): the honest partial discharge of `DynamicClosesAtBT` → `¬ NEXPHasACC0Circuits` (proved as glue).**  The
+two BT ingredients are PROVED — (a) AC⁰ approximate low-degree/quasipoly count (entry 173, `ACComponent`), (b) `MOD`
+exact `SYM∘AND` (entry 174, `MODComponent`) — and `DynamicClosesAtBT` is reduced to the single residual size socket
+`hSize` (the BT mixed-radix/size analysis combining them into one quasipoly-size `SYM∘AND`).  Chained to
+`¬ NEXPHasACC0Circuits` via entry 166.  Honest partial: two of three ingredients proved; `hSize` + Williams sockets
+remain (the proven-classical BT size theorem + Williams, not faked). -/
+theorem dynamicClosure_partialDischarge_to_NEXP_frontier
+    {DynamicClosesAtBT BTQuasi ACC0Speed NEXPC Collapse : Prop}
+    (hSize : ACC0DynamicClosureDischarge.ACComponent → ACC0DynamicClosureDischarge.MODComponent
+        → DynamicClosesAtBT)
+    (closure_to_quasi : DynamicClosesAtBT → BTQuasi)
+    (quasi_to_speed : BTQuasi → ACC0Speed)
+    (williams : ACC0Speed → NEXPC → Collapse)
+    (hierarchy : ¬ Collapse) : ¬ NEXPC :=
+  ACC0DynamicClosureDischarge.partialDischarge_to_NEXP hSize closure_to_quasi quasi_to_speed
+    williams hierarchy
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1931,6 +1954,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.endToEnd_BT_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.approx_BT_degree_count_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.primePower_mixedRadix_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.dynamicClosure_partialDischarge_to_NEXP_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment

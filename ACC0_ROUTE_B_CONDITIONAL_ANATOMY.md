@@ -391,6 +391,24 @@ the *exact* representation; the quasipoly count for prime-power circuits is the 
 combined with step (a)'s approximate `AC⁰` count control.  Formalisation of Beigel–Tarui; not open, not a new
 separation.
 
+### 8j. Step (3) — the honest partial discharge of `DynamicClosesAtBT` (175)
+
+`…ACC0DynamicClosureDischarge` wires steps (a) and (b) into entry 166's socket.  The two BT ingredients are *proved*:
+
+- **`acComponent_proved`** (a, entry 173): the AC⁰ RS approximant has polylog degree and quasipoly count.
+- **`modComponent_proved`** (b, entry 174): a `MOD_{p^e}` gate has an exact `SYM∘AND` form (no field polynomial).
+
+**`dynamicClosure_partial_discharge`** then gives `DynamicClosesAtBT` from `hSize` (the residual **BT size-analysis
+socket** combining (a),(b) into one quasipoly-size `SYM∘AND`) applied to the proved components, and
+**`partialDischarge_to_NEXP`** chains it to `¬ NEXPHasACC0Circuits` via §8a.
+
+This is an **honest partial discharge**: of the three BT ingredients, two are proved and `DynamicClosesAtBT` is reduced
+to exactly one named residual — `hSize`, the full Beigel–Tarui size theorem (proven classically, large to formalise) —
+plus the entry-166 Williams sockets.  It is *not* a proof of `DynamicClosesAtBT` or `NEXP ⊄ ACC⁰`; the residual is named,
+not faked.  The user's 3-step plan (a + b + discharge) is complete as a partial discharge: the squarefree quasipoly BT
+route is degree+count complete, the `MOD` part is exact for all moduli, and the closure socket is reduced to the single
+BT size analysis.
+
 ---
 
 ## The four remaining routes (no small glue left)
