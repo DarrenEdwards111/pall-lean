@@ -147,6 +147,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RSPointwiseComposit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RSSupplyToExact
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MajSymAnd
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RouteAClosure
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyDiagonal
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -618,6 +619,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   ∘ entry-204 accToLowDeg_via_rs, modulo span bridge). routeA_btClosure_to_NEXP: proved Route-A closure → entry- ─
    ──   166 chain ⇒ ¬NEXPC from Williams sockets. The OPERATIVE quasipoly path (vs exponential majority route 217). ───
    ──   2nd independent (HasSymAndFormFanIn-based) BT-closure discharge, parallel to toAgree-based 179. NOT P≠NP. ──────
+   ── LAZY DIAGONALIZATION: nw_lazy_diag_false_frontier — Cook's lazy-diag HEART (the entry-200 DiagonalInNexp ────────
+   ──   subtlety). lazy_diag_false: M decides its own lazy diagonal L (lazy copy L(a+k)=M(a+k+1) on a block, ──────────
+   ──   complement L(a+len)=¬M(a) at boundary) ⇒ False, via the TELESCOPING chain M(a)=…=M(a+len)=¬M(a). A SINGLE ─────
+   ──   boundary complement forces disagreement WITHOUT closure under complement (why lazy diag works for nondet ──────
+   ──   classes). Residual: the lazy SIMULATION (L ∈ NEXP, now lazy-feasible: 1 complement, not closure). NOT P≠NP. ───
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2386,6 +2392,16 @@ theorem nw_routeA_btClosure_to_NEXP_frontier (p t : ℕ) [Fact p.Prime] (ht : 1 
     (williams : ACC0Speed → NEXPC → Collapse) (hierarchy : ¬ Collapse) : ¬ NEXPC :=
   ACC0RouteAClosure.routeA_btClosure_to_NEXP p t ht closure_to_quasi quasi_to_speed williams hierarchy
 
+/-- **Lazy diagonalization — the telescoping contradiction (proved).**  `lazy_diag_false`: if `M` decides its own lazy
+diagonal `L` (lazy copy `L(a+k)=M(a+k+1)` on a block, complement `L(a+len)=¬M(a)` at the boundary), then `False` — via
+the telescoping chain `M(a)=⋯=M(a+len)=¬M(a)`.  This is Cook's lazy-diagonalization heart: a *single* boundary
+complement forces a disagreement *without* closure under complement (the entry-200 `DiagonalInNexp` subtlety). -/
+theorem nw_lazy_diag_false_frontier (M L : ℕ → Bool) (a len : ℕ)
+    (hdecide : ∀ x, M x = L x)
+    (hlazy : ∀ k, k < len → L (a + k) = M (a + k + 1))
+    (hbdy : L (a + len) = ! M a) : False :=
+  ACC0LazyDiagonal.lazy_diag_false M L a len hdecide hlazy hbdy
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2874,6 +2890,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_supply_to_exact_majority_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_majSymAnd_collapse_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_routeA_btClosure_to_NEXP_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lazy_diag_false_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
