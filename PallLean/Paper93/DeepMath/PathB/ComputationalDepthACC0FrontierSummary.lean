@@ -133,6 +133,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ConcreteTMRun
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndPool
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTDepthCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTRSConnection
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountModP
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -532,6 +533,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   polynomial method), modulo the residual span→SYM∘AND bridge SpanApproxToLowDegRep. RS degree MATCHES ──────────
    ──   AccToLowDeg's exactly ⇒ circuit⇒low-degree half no longer assumed, taken from the RS proof. Residual bridge ───
    ──   (F_p-span approximant ⇒ exact Boolean count-mod-p SYM∘AND, + 3/4→exact amplification) socketed. NOT P≠NP. ─────
+   ── COUNT-MOD-P COLLAPSE: nw_countModP_cast_frontier + nw_bridge_via_countModP_frontier — the ARITHMETIC HEART of ───
+   ──   the span→SYM∘AND bridge (PROVED). saCount_sigma_expand: count of AND-copies (Σ s, Fin (c s)) = ∑_s c_s·[base s]. ─
+   ──   saCount_sigma_cast: that count mod p = F_p value ∑_s (c_s:ZMod p)·[base s] — count mod p IS the polynomial ────
+   ──   value (BT pivot). countModP_collapse: count-mod-p decode ⇒ SYM∘AND size ∑c_s, fan-in D (multiplicity, no inj). ─
+   ──   bridge_via_countModP: ExactCountModPRep f D ⇒ SYM∘AND of f. Removes count-mod-p content from the 204 bridge; ──
+   ──   only the 3/4→exact amplification (ExactCountModPRep socket) remains. NOT P≠NP. ─────────────────────────────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2112,6 +2119,21 @@ theorem nw_accToLowDeg_via_rs_frontier {n : ℕ} (C : BoolCircuitSyntax n) (p t 
     ACC0BTDepthCollapse.AccToLowDeg (fun x => C.eval x) p t C.depth :=
   ACC0BTRSConnection.accToLowDeg_via_rs C p t ht hmod hsize bridge
 
+/-- **Count-mod-`p` collapse — the arithmetic heart of the span→`SYM∘AND` bridge (proved).**  `saCount_sigma_cast`:
+the count of satisfied `AND`-copies mod `p` *is* the `F_p` polynomial value.  `bridge_via_countModP`: an exact
+count-mod-`p` multiset representation of `f` (degree `≤ D`) yields a `SYM∘AND` form of fan-in `≤ D` — discharging the
+count-mod-`p` content of entry-204's `SpanApproxToLowDegRep` bridge, leaving only the amplification socket. -/
+theorem nw_countModP_cast_frontier (p : ℕ) {n K : ℕ} (c : Fin K → ℕ) (base : Fin K → Finset (Fin n))
+    (x : Fin n → Bool) :
+    ((ACC0YBTExactCompose.saCount (fun q : Σ s : Fin K, Fin (c s) => base q.1) x : ℕ) : ZMod p)
+      = ∑ s : Fin K, (c s : ZMod p) * (if ACC0PolyToSymAnd.monoAND (base s) x then 1 else 0) :=
+  ACC0CountModP.saCount_sigma_cast p c base x
+
+theorem nw_bridge_via_countModP_frontier {n : ℕ} (f : (Fin n → Bool) → Bool) (D : ℕ)
+    (hrep : ACC0CountModP.ExactCountModPRep f D) :
+    ∃ m, ACC0SymAndFanIn.HasSymAndFormFanIn f m D :=
+  ACC0CountModP.bridge_via_countModP f D hrep
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2586,6 +2608,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_symAnd_pool_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_btDepthCollapse_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_accToLowDeg_via_rs_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_bridge_via_countModP_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
