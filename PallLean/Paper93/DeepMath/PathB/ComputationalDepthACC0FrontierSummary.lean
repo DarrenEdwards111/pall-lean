@@ -137,6 +137,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountModP
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Amplification
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SpanExtract
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ChernoffExist
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ChernoffBound
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -557,6 +558,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   method — #bad<#tuples ⇒ a good tuple exists, pigeonhole); union_bound (#bad ≤ ∑_x #{bad at x}, card_biUnion_le);
    ──   sum bound (∀x #bad_x≤M ⇒ ∑≤#inputs·M). ChernoffPerInput (#inputs·M<#tuples = bad <2^-n fraction per input) = ──
    ──   the genuine Chernoff concentration, needs independence/probability framework. Proves the scaffolding. NOT P≠NP.
+   ── CHERNOFF BOUND: nw_binomial_tail_le_frontier — the combinatorial Chernoff inequality (PROVED, NO measure theory): ─
+   ──   ∑_{j≤m} C(k,j)·a^j·b^{k−j} ≤ 2^k·a^m·b^{k−m} (b≤a, m≤k). term_mono (top tail term dominates) + ∑C(k,j)≤2^k ────
+   ──   (sum_range_choose). In the 3/4 regime (a≥3b, m≈k/2) = exp(−Ω(k))·(a+b)^k = the Chernoff decay. CORRECTS ───────
+   ──   entry-208: genuine concentration is over a ≥3/4 SUPPLY (all-functions ChernoffPerInput was false). Residual ────
+   ──   plumbing: fiber-count (tuple-count = binomial tail) + k=Ω(n) decay-to-2^-n. Proves the inequality. NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2191,6 +2197,15 @@ theorem nw_majorityGoodFamily_of_chernoff_frontier {n : ℕ} (f : (Fin n → Boo
     ACC0Amplification.MajorityGoodFamily f :=
   ACC0ChernoffExist.majorityGoodFamily_of_chernoff f k hc
 
+/-- **The combinatorial Chernoff bound (proved) — the per-input concentration's analytic heart.**  `binomial_tail_le`:
+the binomial tail `∑_{j≤m} C(k,j)·a^j·b^{k−j} ≤ 2^k·a^m·b^{k−m}` (`b ≤ a`, `m ≤ k`), no measure theory.  In the `3/4`
+regime (`a ≥ 3b`, `m ≈ k/2`) this is `exp(−Ω(k))` of `(a+b)^k` — the Chernoff decay.  (Corrects entry 208: the genuine
+concentration is over a `≥3/4` supply, not all functions.) -/
+theorem nw_binomial_tail_le_frontier {a b m k : ℕ} (hba : b ≤ a) (hmk : m ≤ k) :
+    ∑ j ∈ Finset.range (m + 1), k.choose j * (a ^ j * b ^ (k - j))
+      ≤ 2 ^ k * (a ^ m * b ^ (k - m)) :=
+  ACC0ChernoffBound.binomial_tail_le hba hmk
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2669,6 +2684,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_exact_from_majorityGood_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_span_eval_weightedCount_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_majorityGoodFamily_of_chernoff_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_binomial_tail_le_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
