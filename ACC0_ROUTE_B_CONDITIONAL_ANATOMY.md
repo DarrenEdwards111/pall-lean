@@ -291,6 +291,22 @@ So `FanInStaysPolylog` is now reduced to **a single per-layer merge** `hstep` �
 Beigel–Tarui mixed-radix step; it is a *theorem* (BT and Williams are proven classically), and its full Lean proof over
 a concrete `ACC⁰` gate datatype is the substantial remaining formalisation.  The depth induction around it is proved.
 
+### 8d. The per-layer merge over the concrete datatype — fan-in is `max`, the count is the wall (169)
+
+`…ACC0SymAndFanIn` does the per-layer merge over the concrete `ACC0Circuit` datatype, refining `HasSymAndForm` to
+`HasSymAndFormFanIn f s w` (count `≤ s`, every `AND` fan-in `≤ w`).  Proved:
+
+- **`hasSymAndFormFanIn_combine`**: any binary combiner gives fan-in **`max w₁ w₂` — no growth** (count still
+  multiplicative `s₁+(s₁+1)·s₂`); the merged monomials are exactly the children's.  Base cases + `NOT` proved.
+- **`acc0circuit_hasSymAndFormFanIn`** + **`fanInBound_le_one`**: every `ACC0Circuit` has such a form with fan-in
+  `≤ 1` — the bottom `AND`s are single literals.
+
+So the per-layer **fan-in** merge over the concrete datatype is fully proved, and the honest finding is sharp: in the
+exact representation fan-in is `≤ 1` (factor `1` in §8c), so **fan-in is *not* the bottleneck** — the **count**
+`symAndSize` (multiplicative, exponential) is.  The genuine Beigel–Tarui wall is therefore the *quasipolynomial count*
+bound (the polynomial-method/additive-degree content), not the fan-in; and that is a proven classical theorem to
+*formalise*, not an open problem.  The per-layer merge, for the fan-in measure, is done.
+
 ---
 
 ## The four remaining routes (no small glue left)

@@ -94,6 +94,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DynamicObserverSele
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTClosureFrontier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ThresholdBTClosure
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FanInRecurrence
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndFanIn
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -301,6 +302,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   the ONE socket) iterates ⇒ fan-in ≤ L^D·b (polylog for const depth D, polylog L,b). Chains to 167's quasipoly ──
    ──   feature count ≤(n+1)^{L^D·b}. Reduces FanInStaysPolylog to the single per-layer BT mixed-radix merge. PROVED ────
    ──   induction; per-layer merge socketed (a thm, large to formalise; not P≠NP, not even open — Williams/BT proven). ──
+   ── PER-LAYER MERGE (CONCRETE DATATYPE): acc0circuit_symAndFanIn_frontier — HasSymAndFormFanIn refines HasSymAndForm ─
+   ──   with an AND-fan-in bound w. PROVED over the concrete ACC0Circuit datatype: combine fan-in = max w1 w2 (NO ──────
+   ──   growth; size still multiplicative s1+(s1+1)s2), base cases (const/var/mod/monoAND), NOT preserves. Every ───────
+   ──   ACC0Circuit: fanInBound C ≤ 1 (bottom ANDs = single literals) ⇒ FAN-IN is NOT the BT bottleneck; the COUNT ─────
+   ──   (symAndSize, exponential) is. Discharges the fan-in side of FanInStaysPolylog (factor 1). Count = the wall. ─────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1378,6 +1384,17 @@ theorem fanin_depth_recurrence_quasipoly_frontier
   ACC0FanInRecurrence.quasipoly_feature_count_of_layer_merge n b factor L D d layerFanIn
     hL hf hd h0 hstep
 
+/-- **Per-layer merge over the concrete `ACC0Circuit` datatype: the fan-in merge is `max` (proved).**  The
+fan-in-tracking `SYM∘AND` form composes under any binary combiner with fan-in `max w₁ w₂` (no growth) and the
+multiplicative count `s₁+(s₁+1)·s₂`.  Every `ACC0Circuit` gets such a form with fan-in `fanInBound C ≤ 1`
+(`fanInBound_le_one`) — so fan-in is *not* the Beigel–Tarui bottleneck in the exact representation; the count
+(`symAndSize`, exponential) is.  This concretely discharges the fan-in side of `FanInStaysPolylog` (factor `1`). -/
+theorem acc0circuit_symAndFanIn_frontier (C : ACC0CircuitModel.ACC0Circuit n) :
+    ACC0SymAndFanIn.HasSymAndFormFanIn (fun x => ACC0CircuitModel.eval C x)
+        (ACC0YBTExactCompose.symAndSize C) (ACC0SymAndFanIn.fanInBound C)
+      ∧ ACC0SymAndFanIn.fanInBound C ≤ 1 :=
+  ⟨ACC0SymAndFanIn.acc0circuit_hasSymAndFormFanIn C, ACC0SymAndFanIn.fanInBound_le_one C⟩
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1813,6 +1830,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.dynamicClosure_to_NEXP_not_ACC0_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.thresholdBT_quasipoly_of_fanin_preservation_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.fanin_depth_recurrence_quasipoly_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.acc0circuit_symAndFanIn_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
