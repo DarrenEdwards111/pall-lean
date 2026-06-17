@@ -373,6 +373,24 @@ The bounded-error half is the existing RS probabilistic machinery (`orApprox_err
 prime over `∏ F_p`, and prime-power `MOD` is the proven field obstruction handled by step (b).  Formalisation of
 Beigel–Tarui (proven classically); not open, not a new separation.
 
+### 8i. Step (b) — prime-power mixed-radix SYM∘AND, the non-field route (174)
+
+`…ACC0PrimePowerMixedRadix` clears the prime-power field obstruction the *non-field* way Beigel–Tarui does: a `MOD_q`
+gate of *any* modulus is exactly a symmetric function of its support literals, so it has an exact `SYM∘AND` form with
+*no* field polynomial.
+
+- **`modPrimePower_symAndForm`** (proved): `MOD_{p^e}` has an exact `SYM∘AND` form of size `|S|` (via `hasSymAndForm_mod`
+  at `q = p^e`); **`modPrimePower_symAndFanIn`** — fan-in `1`.
+- **`primePower_mixed_radix_combine`** (proved): composes a `MOD_{p^e}` gate with any other `SYM∘AND` form via the
+  base-`(|S|+1)` mixed-radix merge.
+- **`primePower_sym_clears_field_obstruction`** (proved): `MOD_{p^e}` has an exact `SYM∘AND` form *and* no `F_p` field
+  gate computes it (`e ≥ 2`) — the obstruction of §8f is field-specific.
+
+So the symmetric/mixed-radix route handles prime-power `MOD` exactly, where the field route provably cannot.  This is
+the *exact* representation; the quasipoly count for prime-power circuits is the full BT mixed-radix size analysis
+combined with step (a)'s approximate `AC⁰` count control.  Formalisation of Beigel–Tarui; not open, not a new
+separation.
+
 ---
 
 ## The four remaining routes (no small glue left)

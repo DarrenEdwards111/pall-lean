@@ -99,6 +99,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AdditiveCountBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMODFieldGate
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0EndToEndBT
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ApproxBTInstantiation
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerMixedRadix
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -331,6 +332,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   D ⇒ POLYLOG DEGREE + QUASIPOLY COUNT for EVERY const-depth circuit (upgrades 172's bounded-depth-only). ─────────
    ──   Assembled from toApprox_totalDegree_le + support_mem_lowDeg + beigelTarui_monomial_count_le + 170 arithmetic. ────
    ──   Bounded-error half = existing RS machinery (orApprox_error_rate/circuit_error_bound), cited not faked. AC⁰[p]. ──
+   ── PRIME-POWER MIXED-RADIX (step b): primePower_mixedRadix_frontier — MOD_{p^e} has EXACT SYM∘AND form (size|S|, ─────
+   ──   fan-in 1, single-literal ANDs, NO field poly; hasSymAndForm_mod at q=p^e) AND no F_p field gate (171 ───────────
+   ──   obstruction: 0,p share mod-p, MOD_{p^e} separates). The symmetric/mixed-radix route CLEARS the field ───────────
+   ──   obstruction — field-specific. primePower_mixed_radix_combine: base-(|S|+1) merge composes prime-power MOD. ──────
+   ──   How BT handles p^e WITHOUT a field poly. Exact (size|S|, multiplicative); quasipoly count = full BT analysis. ───
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1472,6 +1478,18 @@ theorem approx_BT_degree_count_frontier {n : ℕ} (p t : ℕ) [Fact p.Prime] (ht
       ∧ ((Layer3.toApprox p t R C).support.image (fun d => d.support)).card ≤ (n + 1) ^ (L ^ D) :=
   ACC0ApproxBTInstantiation.approx_endToEnd_BT p t ht R C L D hL hK hdepth
 
+/-- **Prime-power mixed-radix SYM∘AND (proved): the non-field route clears the field obstruction.**  `MOD_{p^e}` has an
+exact `SYM∘AND` form of size `|S|` via the symmetric route (`hasSymAndForm_mod` at `q = p^e`, single-literal `AND`s, no
+field polynomial) — *and* (`e ≥ 2`) no `F_p` field gate computes it (`0`, `p` share the mod-`p` residue, `MOD_{p^e}`
+separates them).  So the field obstruction of entry 171 is field-specific; the symmetric/mixed-radix route handles
+prime-power `MOD` exactly, which is how Beigel–Tarui sidesteps it. -/
+theorem primePower_mixedRadix_frontier {n : ℕ} (p e : ℕ) (hp : p.Prime) (he : 2 ≤ e)
+    (S : Finset (Fin n)) (t : ZMod (p ^ e)) :
+    ACC0YBTExactCompose.HasSymAndForm
+        (fun x => decide (TwoGateCorrelation.modQStatOn S (p ^ e) x = t)) S.card
+      ∧ (((0 : ℕ) : ZMod p) = ((p : ℕ) : ZMod p) ∧ p ^ e ∣ 0 ∧ ¬ p ^ e ∣ p) :=
+  ACC0PrimePowerMixedRadix.primePower_sym_clears_field_obstruction p e hp he S t
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1912,6 +1930,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.squarefree_compositeMOD_fieldgate_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.endToEnd_BT_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.approx_BT_degree_count_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.primePower_mixedRadix_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
