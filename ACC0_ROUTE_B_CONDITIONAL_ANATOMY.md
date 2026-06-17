@@ -425,6 +425,21 @@ per prime over `∏ F_p`, prime-power via the exact mixed-radix `SYM∘AND` whos
 analysis).  The size half of `hSize` is proved; the full quasipoly size for arbitrary `ACC⁰` with correctness is the
 remaining BT formalisation.  Not a proof of `DynamicClosesAtBT` or `NEXP ⊄ ACC⁰`; not faked.
 
+### 8l. The RS agreement/error bound — the correctness half, assembled (177)
+
+`…ACC0RSAgreementBound` discharges residual (1) (correctness/error) for the AC⁰[p] route.  It turns out the full
+Razborov–Smolensky agreement guarantee is *already proved* in `…Layer3` (`composed_error_le`), so this is an assembly:
+
+- **`rs_agreement_BT`** (proved): for an AC⁰[p] circuit `C`, there is a form choice `ω` such that the approximant
+  `toAgree p t (oracleOf p t C ω) C` *simultaneously* has (a) degree `≤ ((p−1)·t)^{depth}`
+  (`toAgree_totalDegree_le`), (b) `SYM∘AND` size `≤ (n+1)^{((p−1)·t)^{depth}}` (sparse count), and (c) error
+  `· p^t ≤ (#subcircuits)·2^n` (`composed_error_le`, the RS agreement, error rate `≤ s·p^{-t}`).
+
+So for AC⁰[p] circuits the RS approximant has a **complete** BT representation — low degree, quasipoly size, *and*
+small error, all proved together.  The only remaining residual is (2) **composite/prime-power modulus**
+(`composed_error_le` covers `q = p`); squarefree composite per prime over `∏ F_p` (§8f), prime-power via the exact
+mixed-radix `SYM∘AND` (§8i).  Not a proof of `DynamicClosesAtBT` (composite modulus remains) or `NEXP ⊄ ACC⁰`; not faked.
+
 ---
 
 ## The four remaining routes (no small glue left)

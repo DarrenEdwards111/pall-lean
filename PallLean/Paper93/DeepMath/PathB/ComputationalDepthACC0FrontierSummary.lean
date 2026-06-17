@@ -102,6 +102,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ApproxBTInstantiati
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerMixedRadix
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DynamicClosureDischarge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTSizeTheorem
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RSAgreementBound
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -349,6 +350,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   const D). PROVED via 173. Discharges the SIZE content of the 175 residual hSize for the AC⁰[p] route. ──────────
    ──   Remaining (harder BT residuals): correctness/error (RS agreement) + composite/prime-power mixed-radix size. ─────
    ──   NOT full DynamicClosesAtBT; size half proved over a concrete datatype for the prime-p case. NOT P≠NP. ───────────
+   ── RS AGREEMENT (correctness half): rs_agreement_BT_frontier — COMPLETE RS BT rep of toAgree for AC⁰[p]: ∃ form ω, ──
+   ──   (a) degree≤((p-1)t)^depth ∧ (b) SYM∘AND size≤(n+1)^(((p-1)t)^depth) ∧ (c) error·p^t ≤ #subcircuits·2^n. ─────────
+   ──   Assembled from PROVED composed_error_le (RS agreement guarantee) + toAgree_totalDegree_le + sparse count. ───────
+   ──   Discharges the CORRECTNESS/ERROR half (176 residual 1) for AC⁰[p]: low degree + quasipoly size + bounded ───────
+   ──   error TOGETHER. Remaining residual = composite/prime-power modulus (q=p only). NOT P≠NP, BT/Williams proven. ────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1527,6 +1533,25 @@ remain (the harder BT residuals). -/
 theorem bt_size_theorem_frontier : ACC0BTSizeTheorem.QuasipolyBTSize :=
   ACC0BTSizeTheorem.quasipolyBTSize_proved
 
+/-- **The complete RS Beigel–Tarui representation (proved): degree + quasipoly size + bounded error, together.**  For an
+AC⁰[p] circuit `C` (every `MOD` gate has modulus `p`), there is a form choice `ω` such that the RS approximant
+`toAgree p t (oracleOf p t C ω) C` has (a) degree `≤ ((p−1)·t)^{depth}`, (b) `SYM∘AND` size `≤ (n+1)^{((p−1)·t)^{depth}}`,
+and (c) error `· p^t ≤ (#subcircuits)·2^n` — discharging the *correctness/error* half (entry-176 residual 1) for the
+AC⁰[p] route via `composed_error_le` + `toAgree_totalDegree_le` + sparse count.  Remaining: composite/prime-power
+modulus. -/
+theorem rs_agreement_BT_frontier (p t : ℕ) [Fact p.Prime] {n : ℕ} (ht : 1 ≤ t) (C : BoolCircuitSyntax n)
+    (hmod : ∀ q r cs, (BoolCircuitSyntax.modGate q r cs : BoolCircuitSyntax n) ∈ Layer3.subcircuits C → q = p) :
+    ∃ ω : Layer3.FormSpace p t C,
+      (Layer3.toAgree p t (Layer3.oracleOf p t C ω) C).totalDegree ≤ ((p - 1) * t) ^ C.depth
+      ∧ ((Layer3.toAgree p t (Layer3.oracleOf p t C ω) C).support.image (fun d => d.support)).card
+          ≤ (n + 1) ^ (((p - 1) * t) ^ C.depth)
+      ∧ (Finset.univ.filter (fun x : Fin n → Bool =>
+            MvPolynomial.eval (fun i => Layer3.boolToZMod p (x i))
+                (Layer3.toAgree p t (Layer3.oracleOf p t C ω) C)
+              ≠ Layer3.boolToZMod p (C.eval x))).card * p ^ t
+          ≤ (Layer3.subcircuits C).toFinset.card * Fintype.card (Fin n → Bool) :=
+  ACC0RSAgreementBound.rs_agreement_BT p t ht C hmod
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1970,6 +1995,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.primePower_mixedRadix_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.dynamicClosure_partialDischarge_to_NEXP_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.bt_size_theorem_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rs_agreement_BT_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
