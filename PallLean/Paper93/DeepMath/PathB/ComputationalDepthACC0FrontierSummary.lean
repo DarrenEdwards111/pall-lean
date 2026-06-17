@@ -97,6 +97,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FanInRecurrence
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndFanIn
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AdditiveCountBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMODFieldGate
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0EndToEndBT
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -319,6 +320,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   PRIME-POWER p^e: NO field gate (primepower_field_gate_obstruction: 0,p share mod-p, MOD_{p^e} separates) = ──────
    ──   the documented obstruction (NOT faked; ZMod p^e not a field). Field-gate route splits EXACTLY squarefree/ ───────
    ──   prime-power; full BT handles p^e via non-field mixed-radix SYM∘AND (proven classically, to formalise). ──────────
+   ── END-TO-END BT: endToEnd_BT_frontier — exact circuit poly subst c FED into compositeBT_representation (δ=2, exact ──
+   ──   gate polys guP/gbP deg≤2). For every circuit c: (a) subst computes the circuit on the cube (subst_eval), ───────
+   ──   (b) deg ≤ 2^(depth+1), (c) monomial count ≤ (n+1)^(2^(depth+1)) quasipoly for bounded depth, (d) sparse cube ────
+   ──   sum. The concrete circuit→poly→degree+count+sum pipeline, COMPLETE & exact. Squarefree MOD gate slots in at ──────
+   ──   δ=max(2,p-1). Exact route ⇒ quasipoly only for bounded depth (entry 170); poly-size needs approx low-deg gates. ─
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1426,6 +1432,27 @@ theorem squarefree_compositeMOD_fieldgate_frontier (S : Finset ℕ) (hS : ∀ p 
           ↔ (∏ p ∈ S, p) ∣ s) :=
   ACC0CompositeMODFieldGate.squarefree_field_gate_instantiation S hS s
 
+/-- **End-to-end Beigel–Tarui instantiation (proved): the exact circuit polynomial fed into the BT packaging.**  For
+every circuit `c`, the exact multilinear polynomial `subst c` (a) computes the circuit on the cube, (b) has degree
+`≤ 2^{depth+1}`, (c) has `≤ (n+1)^{2^{depth+1}}` monomial-supports (quasipoly for bounded depth), (d) has the sparse
+cube-sum read-off — the concrete `circuit → polynomial → degree + quasipoly count + sparse sum` pipeline, instantiated
+with the exact gate polynomials (`δ=2`).  (The squarefree composite-`MOD` gate slots in with `δ = max(2, p−1)`.) -/
+theorem endToEnd_BT_frontier {R : Type*} [CommRing R] [Nontrivial R] {n : ℕ}
+    (c : ACC0CircuitSubstitution.Circ n) :
+    (∀ x : Fin n → Bool,
+        MvPolynomial.eval (fun i => (ACC0Multilinearisation.boolVal (x i) : R))
+            (ACC0SubstitutionPoly.subst c)
+          = ACC0Multilinearisation.boolVal (ACC0CircuitSubstitution.eval c x))
+      ∧ (ACC0SubstitutionPoly.subst (R := R) c).totalDegree
+          ≤ 2 ^ (ACC0LowDegreeSubstitution.depth c + 1)
+      ∧ ((ACC0SubstitutionPoly.subst (R := R) c).support.image (fun d => d.support)).card
+          ≤ (n + 1) ^ (2 ^ (ACC0LowDegreeSubstitution.depth c + 1))
+      ∧ (∑ x : Fin n → Bool, MvPolynomial.eval (fun i => (ACC0Multilinearisation.boolVal (x i) : R))
+            (ACC0SubstitutionPoly.subst c))
+          = ∑ d ∈ (ACC0SubstitutionPoly.subst (R := R) c).support,
+              (ACC0SubstitutionPoly.subst c).coeff d * (2 : R) ^ (n - d.support.card) :=
+  ACC0EndToEndBT.endToEnd_BT c
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1864,6 +1891,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.acc0circuit_symAndFanIn_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.additive_count_quasipoly_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.squarefree_compositeMOD_fieldgate_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.endToEnd_BT_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment

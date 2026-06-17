@@ -341,6 +341,22 @@ composite-`MOD` obstruction (§7) meet here: the polynomial-method field gate is
 prime-power case that is the genuine barrier.  The full Beigel–Tarui theorem clears `p^e` by a non-low-degree-field
 mixed-radix `SYM∘AND` argument — a proven classical theorem to *formalise*, not an open problem.
 
+### 8g. The end-to-end instantiation — exact circuit polynomial into the BT packaging (172)
+
+`…ACC0EndToEndBT` completes the concrete pipeline.  It feeds the *exact* circuit polynomial `subst`
+(`…ACC0SubstitutionPoly`, proved to compute the circuit on the cube) into the proved `compositeBT_representation`, with
+the exact gate polynomials `guP`/`gbP` (degree `≤ 2`, so `δ = 2`):
+
+- **`subst_una_eq`/`subst_bin_eq`** (proved): `subst` composes through `guP`/`gbP` via `aeval` (the hypotheses BT needs).
+- **`endToEnd_BT`** (proved): for every circuit `c`, `subst c` (a) computes the circuit on the cube, (b) has degree
+  `≤ 2^{depth+1}`, (c) has `≤ (n+1)^{2^{depth+1}}` monomial-supports (quasipoly for bounded depth), (d) has the sparse
+  cube-sum read-off.
+
+So the full `circuit → polynomial → degree + quasipoly count + sparse sum` pipeline is now instantiated concretely and
+exactly.  Being the *exact* representation, the count is quasipoly only for bounded depth (entry 170's limitation); the
+quasipoly count for all poly-size circuits needs the *approximate* low-degree gates, and the squarefree `MOD` gate of
+§8f slots in at `δ = max(2, p−1)`.  Formalisation of a known theorem; not open, not a new separation.
+
 ---
 
 ## The four remaining routes (no small glue left)
