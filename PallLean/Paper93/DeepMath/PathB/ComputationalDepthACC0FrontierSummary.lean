@@ -108,6 +108,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DynamicClosesAtBTCo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeCrossRoute
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalHStep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalHStepMachine
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalRewritePhase
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -385,6 +386,10 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   reaches c4 from c0 within B = bD+bL+bR+bE (composed via proved reachIn_add). The OVERHEAD is EXPLICIT (sum ──────
    ──   of phase costs); composition PROVED. Turns the 181 semantic contract into a step-bounded simulation lemma. ─────
    ──   Per-phase realizations (transition table per phase) = the named TM-engineering sockets. Classical, NOT P≠NP. ───
+   ── REWRITE PHASE (concrete): universal_rewrite_phase_frontier — a one-rule rewrite gadget (write w, move m, state ───
+   ──   q') reaches the rewritten config in 1 physical step (reachIn …1) AND the rewritten head holds w (read-after- ───
+   ──   write, applyTrans_write). Discharges the rewrite phase of 182 as an ACTUAL reachIn U 1 c (rewritten c) with a ──
+   ──   concrete U. First of the 4 phase realizations. Remaining: lookup/decode/re-encode (touch tape layout). NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1643,6 +1648,17 @@ theorem hstep_realized_with_overhead_frontier (U : ACC0NTM.NTM) (c0 c1 c2 c3 c4 
     ACC0NTM.reachIn U (bD + bL + bR + bE) c0 c4 :=
   ACC0UniversalHStepMachine.hstep_realized_with_overhead U c0 c1 c2 c3 c4 bD bL bR bE hD hL hR hE
 
+/-- **Universal rewrite phase — a concrete `reachIn` realizing the tape write (proved).**  A one-rule rewrite gadget
+firing at `c` (write `w`, move `m`, state `q'`) reaches the rewritten config in exactly one physical step, and the
+rewritten head holds `w` — discharging the rewrite phase of entry 182 as an actual `reachIn U 1 c (rewritten c)` with
+read-after-write certified by the proved `TapeRewrite` lemmas. -/
+theorem universal_rewrite_phase_frontier (c : ACC0ConcreteNTM.CConfig) (q' : ℕ) (w : Bool)
+    (m : ACC0ConcreteNTM.Move) :
+    ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (ACC0UniversalRewritePhase.rewriteMachine c q' w m)) 1 c
+        (ACC0ConcreteNTM.applyTrans c (ACC0UniversalRewritePhase.rewriteRule c q' w m))
+      ∧ (ACC0ConcreteNTM.applyTrans c (ACC0UniversalRewritePhase.rewriteRule c q' w m)).2.2.getD c.2.1 false = w :=
+  ACC0UniversalRewritePhase.rewrite_phase c q' w m
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2092,6 +2108,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.composite_crossRoute_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.universal_hstep_correct_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.hstep_realized_with_overhead_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.universal_rewrite_phase_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
