@@ -115,6 +115,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalReencodePh
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FastSATVerifier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsContradiction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IKWNisanWigderson
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonGenerator
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -425,6 +426,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   Derandomization→¬(NEXP⊆ACC⁰)); hardFnSeparation_from_NW proves HardFnSeparation = kl∘nw (NO axioms). So IKW now ─
    ──   names NW explicitly. 3 classical sub-sockets (no-easy⇒hard, NW, Karp–Lipton), each a proven classical thm. ─────
    ──   Refines the IKW socket; does NOT prove IKW/NW. NOT P≠NP. ───────────────────────────────────────────────────────
+   ── NW GENERATOR: nw_disjoint_design_frontier — disjoint_design PROVES a genuine NW design (disjoint base case: m ────
+   ──   blocks [i·k,i·k+k), size k, pairwise disjoint, via Ico + omega). nwDerandomization_from_design (no axioms): ─────
+   ──   design + hybrid-argument socket ⇒ the 189 NWDerandomization socket. So NW decomposes into a PROVED combinatorial
+   ──   design (disjoint case) + the hybrid argument (socket = the generator-fools-ACC⁰ analysis). Efficient low- ──────
+   ──   intersection designs + hybrid = the deep NW content. Builds the base case; does NOT prove NW. NOT P≠NP. ────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1771,6 +1777,13 @@ theorem ikw_nw_hardFnSeparation_frontier (NEXP ACC0 : ACC0WilliamsMetaTheorem.CC
     ACC0IKWEasyWitness.HardFnSeparation NEXP ACC0 HardFunction :=
   ACC0IKWNisanWigderson.hardFnSeparation_from_NW NEXP ACC0 HardFunction Derandomization nw kl
 
+/-- **NW generator — combinatorial design (proved) + hybrid (socketed).**  `disjoint_design` proves a genuine NW design
+(the disjoint base case: `m` blocks `[i·k, i·k+k)`, size `k`, pairwise disjoint); `nwDerandomization_from_design`
+composes a design + the hybrid-argument socket into the entry-189 `NWDerandomization` socket. -/
+theorem nw_disjoint_design_frontier (m k : ℕ) :
+    ∃ S : Fin m → Finset ℕ, (∀ i, (S i).card = k) ∧ (∀ i j, i ≠ j → Disjoint (S i) (S j)) :=
+  ACC0NisanWigdersonGenerator.disjoint_design m k
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2227,6 +2240,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.fast_sat_beats_bruteforce_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.williams_contradiction_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.ikw_nw_hardFnSeparation_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_disjoint_design_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
