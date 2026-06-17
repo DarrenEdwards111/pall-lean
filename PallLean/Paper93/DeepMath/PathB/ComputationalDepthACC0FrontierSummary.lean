@@ -109,6 +109,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeCrossRoute
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalHStep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalHStepMachine
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalRewritePhase
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalLookupPhase
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -390,6 +391,10 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   q') reaches the rewritten config in 1 physical step (reachIn …1) AND the rewritten head holds w (read-after- ───
    ──   write, applyTrans_write). Discharges the rewrite phase of 182 as an ACTUAL reachIn U 1 c (rewritten c) with a ──
    ──   concrete U. First of the 4 phase realizations. Remaining: lookup/decode/re-encode (touch tape layout). NOT P≠NP.
+   ── LOOKUP PHASE: universal_lookup_phase_frontier — a step ⇒ the rule scan matchingRules M c.1 (readSym c) finds a ───
+   ──   rule t that fires in 1 step (reachIn 1) reaching d=applyTrans c t, scan ≤ M.length (matchingRules_length_le). ──
+   ──   Discharges the lookup phase of 182 as actual reachability + scan-cost bound (bLookup ≤ M.length). 2nd of 4 ─────
+   ──   phase realizations. Remaining: decode/re-encode (tape layout). Uses RuleLookup contract. NOT P≠NP. ──────────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1659,6 +1664,18 @@ theorem universal_rewrite_phase_frontier (c : ACC0ConcreteNTM.CConfig) (q' : ℕ
       ∧ (ACC0ConcreteNTM.applyTrans c (ACC0UniversalRewritePhase.rewriteRule c q' w m)).2.2.getD c.2.1 false = w :=
   ACC0UniversalRewritePhase.rewrite_phase c q' w m
 
+/-- **Universal lookup phase — the rule scan finds the firing rule, scan `≤ M.length` (proved).**  When a step
+`concreteStep M c d` exists, the rule-table scan `matchingRules M c.1 (readSym c)` contains a rule `t` that fires in one
+step (`reachIn (toNTM M) 1 c (applyTrans c t)`), reaches `d = applyTrans c t`, and the scan examines `≤ M.length` rules.
+Discharges the lookup phase of entry 182 as an actual reachability with the scan-cost bound (`bLookup ≤ M.length`). -/
+theorem universal_lookup_phase_frontier (M : ACC0ConcreteNTM.TMachine) (c d : ACC0ConcreteNTM.CConfig)
+    (h : ACC0ConcreteNTM.concreteStep M c d) :
+    ∃ t ∈ ACC0RuleLookup.matchingRules M c.1 (ACC0ConcreteNTM.readSym c),
+      ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM M) 1 c (ACC0ConcreteNTM.applyTrans c t)
+      ∧ d = ACC0ConcreteNTM.applyTrans c t
+      ∧ (ACC0RuleLookup.matchingRules M c.1 (ACC0ConcreteNTM.readSym c)).length ≤ M.length :=
+  ACC0UniversalLookupPhase.lookup_phase M c d h
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2109,6 +2126,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.universal_hstep_correct_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.hstep_realized_with_overhead_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.universal_rewrite_phase_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.universal_lookup_phase_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
