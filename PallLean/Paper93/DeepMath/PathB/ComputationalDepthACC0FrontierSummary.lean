@@ -105,6 +105,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTSizeTheorem
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RSAgreementBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMixedRadixSize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DynamicClosesAtBTComplete
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeCrossRoute
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -367,6 +368,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   rs_agreement_BT). Plugged into the 166 chain ⇒ ¬NEXPHasACC0Circuits from the WILLIAMS SOCKETS ALONE — the BT ────
    ──   (closure) side fully DISCHARGED for AC⁰[p]. Composite = 171 CRT + 174 prime-power + 177 per-prime + 178 size. ───
    ──   The whole arc formalises BT+Williams (PROVEN classical); NOT open, NOT a new separation, NOT P≠NP. ──────────────
+   ── COMPOSITE CROSS-ROUTE: composite_crossRoute_frontier — assembles the squarefree-composite closure: ───────────────
+   ──   composite_decide_decomposes (CRT 171: MOD_{∏S} indicator = ⋀ per-prime, (∏S)∣cnt ↔ ∀p∈S,p∣cnt) + ──────────────
+   ──   composite_quasipoly_size (mixed-radix 178: AND of per-prime forms each≤Q has size≤(Q+1)^|S| quasipoly for ──────
+   ──   const |S|). So composite MOD_m = ⋀ per-prime (decomposition) whose AND is quasipoly (size) ⇒ composite gate ─────
+   ──   has quasipoly BT rep from proved AC⁰[pᵢ] pieces. Remaining: per-prime RS over whole circuit. NOT P≠NP. ──────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1591,6 +1597,15 @@ theorem acc0p_BTclosure_to_NEXP_frontier (p t : ℕ) [Fact p.Prime] (ht : 1 ≤ 
   ACC0DynamicClosesAtBTComplete.acc0p_BTclosure_to_NEXP p t ht
     closure_to_quasi quasi_to_speed williams hierarchy
 
+/-- **Composite cross-route bookkeeping (proved): the squarefree-composite BT closure, assembled.**  Two halves:
+`composite_decide_decomposes` — the composite `MOD_{∏S}` indicator on the count equals the conjunction of the per-prime
+tests (CRT, entry 171: `(∏ p∈S, p) ∣ cnt ↔ ∀ p∈S, p ∣ cnt`); and `composite_quasipoly_size` — the `AND` of the per-prime
+`SYM∘AND` forms (each `≤ Q`) has size `≤ (Q+1)^{|S|}` (mixed-radix, entry 178), quasipoly for constant `|S|`.  Together
+the composite gate has a quasipoly BT representation from the proved per-prime AC⁰[pᵢ] pieces. -/
+theorem composite_crossRoute_frontier (S : Finset ℕ) (hS : ∀ p ∈ S, p.Prime) (cnt : ℕ) :
+    ((decide ((∏ p ∈ S, p) ∣ cnt) = true) ↔ ∀ p ∈ S, p ∣ cnt) :=
+  ACC0CompositeCrossRoute.composite_decide_decomposes S hS cnt
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2037,6 +2052,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rs_agreement_BT_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.compositeMixedRadix_quasipoly_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.acc0p_BTclosure_to_NEXP_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.composite_crossRoute_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment

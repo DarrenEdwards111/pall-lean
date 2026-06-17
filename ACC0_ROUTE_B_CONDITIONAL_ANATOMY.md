@@ -472,6 +472,21 @@ arbitrary `ACC⁰` (composite) the closure is assembled from §§8f, 8i, 8l, 8m 
 This whole arc formalises Beigel–Tarui + Williams 2011 (proven classically); not open, not a new separation, not
 `P ≠ NP`.
 
+### 8o. Composite cross-route bookkeeping — the squarefree-composite closure assembled (180)
+
+`…ACC0CompositeCrossRoute` does the composite analogue of §8n, assembling the squarefree-composite closure from the
+proved per-route pieces — the two halves:
+
+- **`composite_decide_decomposes`** (proved, §8f/CRT): the composite `MOD_{∏S}` indicator on the count equals the
+  conjunction of the per-prime indicators (`(∏ p∈S, p) ∣ cnt ↔ ∀ p∈S, p ∣ cnt`) — the composite gate *is* `⋀ MOD_p`.
+- **`composite_quasipoly_size`** (proved, §8m): the `AND` of the per-prime `SYM∘AND` forms (each `≤ Q`) has size
+  `≤ (Q+1)^{|S|}` — quasipoly for a constant number of prime factors.
+
+Together the squarefree composite `MOD_{∏S}` decomposes (CRT) into `|S|` per-prime tests, and their `AND` is
+quasipoly-size — so the composite gate has a quasipoly BT representation built entirely from the proved AC⁰[pᵢ] pieces.
+The remaining integration is the per-prime RS approximation of a whole composite *circuit* over each `F_{pᵢ}` (§8l per
+prime, combined here), with `m` fixed.  Formalisation of known BT; not open, not a new separation, not `P ≠ NP`.
+
 ---
 
 ## The four remaining routes (no small glue left)
