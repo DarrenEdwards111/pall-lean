@@ -172,6 +172,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryRealization
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeCountDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LayeredCarryDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CrossFieldCombination
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SmolenskyLowerBound
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -763,6 +764,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   can't compute MOD_q). These PROVE the ROOT of why cross-field combination fails. The degree lower bound (MOD_q ─
    ──   not low-degree over F_p, q≠p) = SMOLENSKY's deep theorem = the open wall, NOT proved, NOT crossed, NOT faked. ──
    ──   NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── SMOLENSKY CONNECTOR (field route = NO-GO; cites the arc's PROVED RS layer): the Smolensky non-native MOD LB is ──
+   ──   ALREADY proved in this arc (Layer4.mod_q_indicators_false, Layer3.parity_function_lower_bound). ───────────────
+   ──   nw_crossField_modq_fieldRoute_nogo_frontier cites it: NO AC⁰[p] family computes MOD_q residue indicators within
+   ──   the Smolensky budget (q∤p) ⇒ single-field low-deg F_p representation of non-native MOD_q is IMPOSSIBLE ⇒ the ──
+   ──   field route to CarryRefinementCrossing (238/243) is a NO-GO. Only open escape = multi-sorted/product-field ────
+   ──   observer in ∏_p F_p (step 4, NOT reducible to one F_p, NOT touched by this no-go). NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2877,6 +2884,23 @@ theorem nw_no_common_char_frontier (F : Type*) [Field F] (p q : ℕ) (hpq : p �
 theorem nw_reduction_blind_frontier (p q : ℕ) [Fact p.Prime] (hq : q.Prime) (hpq : p ≠ q) :
     ∃ k k' : ℕ, (k : ZMod p) = (k' : ZMod p) ∧ k % q ≠ k' % q :=
   ACC0CrossFieldCombination.reduction_blind_to_other_prime p q hq hpq
+
+/-- **Smolensky lower bound connects to the cross-field wall: the field route is a NO-GO (proved, cites the arc's RS
+layer).**  The Smolensky non-native MOD lower bound is ALREADY proved in this arc (`Layer4.mod_q_indicators_false`,
+`Layer3.parity_function_lower_bound`).  `crossField_modq_fieldRoute_nogo` cites it: no `AC⁰[p]` family computes the
+`MOD_q` residue indicators within the Smolensky budget (`q ∤ p`) — so a single-field low-degree `F_p` representation of
+non-native `MOD_q` is impossible, refuting the field route to `CarryRefinementCrossing` (entry 238/243).  The only open
+escape is the multi-sorted / product-field observer (step 4), to which this no-go does not apply. -/
+theorem nw_crossField_modq_fieldRoute_nogo_frontier (p q : ℕ) [Fact p.Prime] [Fact q.Prime]
+    (hpq : ¬ q ∣ p) {m t d : ℕ} (ht1 : 1 ≤ t) (hpt1 : 1 ≤ (p - 1) * t)
+    (C : ℕ → BoolCircuitSyntax (2 * m + 1))
+    (hCind : ∀ j ∈ Finset.range q, ∀ x : Fin (2 * m + 1) → Bool,
+      (C j).eval x = decide ((Finset.univ.filter (fun i => x i = true)).card % q = j))
+    (hAC : ∀ j ∈ Finset.range q, BoolCircuitSyntax.IsAC0pSyntax p (C j))
+    (ht : ∀ j ∈ Finset.range q, 4 * q * (Layer3.subcircuits (C j)).toFinset.card ≤ p ^ t)
+    (hdepth : ∀ j ∈ Finset.range q, (C j).depth ≤ d)
+    (hwindow : 16 * (((p - 1) * t) ^ d) ^ 2 < 2 * m + 3) : False :=
+  ACC0SmolenskyLowerBound.crossField_modq_fieldRoute_nogo p q hpq ht1 hpt1 C hCind hAC ht hdepth hwindow
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
