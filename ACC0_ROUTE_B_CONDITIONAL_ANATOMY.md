@@ -208,6 +208,34 @@ So the count carry *has* the symmetric `SYM` top-structure — but the gain re-l
 
 ---
 
+## 8. The dynamic-boundary capstone — observer selection, formalised (165)
+
+`…ACC0DynamicObserverSelection` turns the N-Frame dynamic-boundary slogan into a theorem: the boundary does not merely
+shrink states, it *forces the observer to refine* exactly when the coarser observer loses the information to evaluate
+the fragment.  An **observer** `O : ℕ → α` reads the count; `Sufficient O f := ∀ x y, O x = O y → (f x ↔ f y)`;
+`Finer O₁ O₀` means `O₁` distinguishes at least as much.
+
+**The refinement ladder, proved up to thresholds:**
+
+- **`resObs_insufficient_for_modPow`** — the residue observer (mod `p`) is *not* sufficient for `MOD_{p^e}` (`e ≥ 2`):
+  `0` and `p` share their residue but `MOD_{p^e}` separates them.  Refinement is *forced*.
+- **`padicObs_sufficient_for_modPow`** — the `p`-adic carry observer (the down-shift tower) *is* sufficient (via the
+  §7d down-shift decomposition).  Refinement *succeeds* one level up.
+- **`padicObs_finer_than_resObs`** + **`observer_refines_modp_to_padic`** — the `p`-adic observer refines the residue
+  observer, so `MOD_p → MOD_{p^e}` is a genuine forced refinement.
+- **`carry_observer_eq_threshold_observer`** — the carry observer factors through a Hamming-threshold observer (§7f),
+  the next rung.
+
+**The closure socket (the ACC wall):** that repeated refinement *closes* at a quasipolynomial-size Beigel–Tarui
+`SYM∘AND` observer — making BT the *fixed point* of dynamic refinement, not an external trick — is recorded as an
+explicit socket.  `dynamic_boundary_to_acc0_sat_speedup` is the pure-glue cash-out (modus ponens, **no axioms**):
+`DynamicClosesAtBT → BTHasQuasipolySparse → Speedup`, every premise an unproved socket.  Discharging it *is* the open
+`ACC⁰[composite]` lower bound.  So the dynamic boundary has not failed — it provably selects the residue→`p`-adic→
+threshold ladder; what remains is precisely the proof (or refutation) that this ladder stabilises at a quasipoly BT
+observer.
+
+---
+
 ## The four remaining routes (no small glue left)
 
 The algebraic-observer route is now exhaustively mapped (§7).  What remains are four big, independent projects:
