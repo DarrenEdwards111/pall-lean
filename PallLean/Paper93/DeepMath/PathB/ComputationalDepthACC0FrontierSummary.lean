@@ -124,6 +124,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonRecon
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonYaoCircuit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonHardness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonEasyWitness
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0KarpLiptonCollapse
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -486,6 +487,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   IS the hard fn). DISCHARGES the entry-150 NoEasyWitnessHardFn socket [NO AXIOMS — structural]. HONEST: the ─────
    ──   EXTRACTION (easy half) only; that ¬EasyWitness ever holds (a NEXP language lacks easy witnesses) = the ────────
    ──   irreducible circuit LOWER BOUND, separation-strength, NOT proved & not provable by these methods. NOT P≠NP. ───
+   ── DERAND-KARP-LIPTON: nw_derandKarpLipton_discharge_frontier — the Karp-Lipton collapse CHAIN composition glue: ───
+   ──   KarpLiptonCollapse (NEXP⊆ACC⁰⟹NEXP=MA, BFL/IKW) + DerandCollapsesMAtoNP (MA=NP) + NexpNeqNp (NEXP≠NP, ─────────
+   ──   hierarchy) ⇒ Derandomization → ¬(NEXP⊆ACC⁰). fun hd hsub => hier ((kl hsub).trans (derand hd)) [NO AXIOMS]. ────
+   ──   DISCHARGES the entry-189 DerandKarpLiptonSeparation socket. Proves the COMPOSITION; the 3 ingredients (KL ──────
+   ──   collapse, derand, hierarchy) remain named classical sub-sockets. NOT P≠NP. ──────────────────────────────────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1958,6 +1964,18 @@ theorem nw_noEasyWitnessHardFn_discharge_frontier {n : ℕ} (w : (Fin n → Bool
       (ACC0NisanWigdersonEasyWitness.ExistsHardFunction n s) :=
   ACC0NisanWigdersonEasyWitness.noEasyWitnessHardFn_discharge w s
 
+/-- **DerandKarpLiptonSeparation — the Karp–Lipton collapse chain (composition glue proved).**  The classical chain
+`NEXP ⊆ ACC⁰ ⟹ NEXP = MA` (Karp–Lipton/BFL) + `MA = NP` (derandomisation) + `NEXP ≠ NP` (hierarchy) composes to
+`Derandomization → ¬(NEXP ⊆ ACC⁰)`.  `derandKarpLipton_discharge` discharges the entry-189 socket from the three named
+sub-sockets. -/
+theorem nw_derandKarpLipton_discharge_frontier (NEXP ACC0 MA NP : ACC0WilliamsMetaTheorem.CClass)
+    (Derandomization : Prop)
+    (kl : ACC0KarpLiptonCollapse.KarpLiptonCollapse NEXP ACC0 MA)
+    (derand : ACC0KarpLiptonCollapse.DerandCollapsesMAtoNP Derandomization MA NP)
+    (hier : ACC0KarpLiptonCollapse.NexpNeqNp NEXP NP) :
+    ACC0IKWNisanWigderson.DerandKarpLiptonSeparation NEXP ACC0 Derandomization :=
+  ACC0KarpLiptonCollapse.derandKarpLipton_discharge NEXP ACC0 MA NP Derandomization kl derand hier
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2423,6 +2441,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_yaoCircuitEfficiency_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_hardnessExcludesCircuit_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_noEasyWitnessHardFn_discharge_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_derandKarpLipton_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
