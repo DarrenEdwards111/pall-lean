@@ -151,6 +151,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyDiagonal
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TransitionTable
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BFLCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DerandCollapse
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NTIMEAccounting
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -642,6 +643,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   MA⊆NP, seed enumeration) compose to the deep Derand⇒MA⊆NP (fun hd => prg_collapses (derand_gives_prg hd)). ────
    ──   derandCollapsesMAtoNP_via_PRG: + trivial NP⊆MA ⇒ DerandCollapsesMAtoNP (entry-202 antisymm). The 2 hardness- ──
    ──   randomness deep theorems (Derand⇒PRG, PRG⇒MA⊆NP) stay named sub-sockets (need pseudorandomness infra). NOT P≠NP.
+   ── NTIME ACCOUNTING: nw_lazy_diagonal_in_nexp_frontier — the lazy diagonal machine LIVES INSIDE NEXP (placement ────
+   ──   PROVED). ClockedSimulation L M c := ∀x, L x ↔ acceptsWithin M x (2^(|x|^c+c)); clocked_in_NEXP: ⇒ L ∈ NEXP ────
+   ──   (via NTIME/NEXP defs; accepts_within_budget = acceptsWithin_mono cost-fits step). Turns the hierarchy side from
+   ──   "diagonal mechanism proved" (219) into "time-class placement proved". Residual: ClockedSimulation (the lazy ───
+   ──   universal sim of M_i + boundary complement clocked to exp, from 219/220). NTM model, no measure theory. NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2457,6 +2463,16 @@ theorem nw_derandCollapsesMAtoNP_via_PRG_frontier (Derandomization PRGExists : P
     ACC0KarpLiptonCollapse.DerandCollapsesMAtoNP Derandomization MA NP :=
   ACC0DerandCollapse.derandCollapsesMAtoNP_via_PRG Derandomization PRGExists MA NP
     derand_gives_prg prg_collapses triv
+
+/-- **NTIME accounting — the lazy diagonal machine lives inside `NEXP` (proved placement).**  `clocked_in_NEXP`: a
+clocked `NTM` deciding `L` within the `NEXP` budget `2^{|x|^c+c}` (`ClockedSimulation`) places `L ∈ NEXP` (via the
+`NTIME`/`NEXP` defs; `accepts_within_budget`/`acceptsWithin_mono` is the cost-fits step).  `lazy_diagonal_in_nexp`
+discharges the `DiagonalInNexp` membership for the lazy diagonal from the clocked-machine model (entries 219–220),
+modulo the universal-simulation socket. -/
+theorem nw_lazy_diagonal_in_nexp_frontier (L : ACC0WilliamsMetaTheorem.Lang) (M : ACC0NTM.NTM) (c : ℕ)
+    (hsim : ACC0NTIMEAccounting.ClockedSimulation L M c) :
+    L ∈ ACC0NTM.NEXP :=
+  ACC0NTIMEAccounting.lazy_diagonal_in_nexp L M c hsim
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
