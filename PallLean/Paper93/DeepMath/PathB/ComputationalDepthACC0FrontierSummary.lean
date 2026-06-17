@@ -117,6 +117,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsContradicti
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IKWNisanWigderson
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonGenerator
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonLowIntersection
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonHybrid
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -437,6 +438,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   intersection < k (seed O(k²/log m), m=|F|^k blocks). Reuses entry-161 field_root_card_le_natDegree: agreement ──
    ──   set = roots of p−q, ≤(p−q).natDegree<k. The genuine quantitative NW design, fully proved. Hybrid argument still
    ──   socketed (entry 189/190). Proves the DESIGN, not the generator. NOT P≠NP. ───────────────────────────────────────
+   ── NW HYBRID ARGUMENT: nw_hybrid_advantage_frontier — PROVES the telescoping HEART of the NW hybrid argument: ───────
+   ──   global advantage ε across m+1 hybrids (ε≤|f m−f 0|, ε>0) ⇒ adjacent pair advantage ≥ε/m. Proof: ∑(f(i+1)−f i) ──
+   ──   =f m−f 0 (sum_range_sub), |∑|≤∑|·| (abs_sum_le_sum_abs); if all gaps <ε/m then ∑<m·(ε/m)=ε≤|f m−f 0|, ⊥. ──────
+   ──   low_intersection_table_card: block sharing r<k bits ⇒ table 2^r≤2^k (entry-191 payoff). ─────────────────────────
+   ──   nwGeneratorFromDesign_via_hybrid: telescoping + Yao/Reconstruction/Hardness sub-sockets DISCHARGE the entry-190
+   ──   NWGeneratorFromDesign socket. Proves the hybrid ENGINE + decomposition; Yao + reconstruction socketed. NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1800,6 +1807,15 @@ theorem nw_low_intersection_design_frontier {F : Type*} [Field F] [Fintype F] [D
       (ACC0NisanWigdersonLowIntersection.nwSet p ∩ ACC0NisanWigdersonLowIntersection.nwSet q).card < k :=
   ACC0NisanWigdersonLowIntersection.nw_low_intersection_design p q k hpq hp hq
 
+/-- **NW hybrid argument — the telescoping heart (proved).**  A distinguisher with global advantage `ε` across the `m+1`
+hybrids (`ε ≤ |f m − f 0|`, `ε > 0`) forces an adjacent hybrid pair with advantage `≥ ε/m` — the analytic engine of the
+NW hybrid argument, proved by telescoping.  `nwGeneratorFromDesign_via_hybrid` composes this with the Yao/reconstruction/
+hardness sub-sockets to discharge the entry-190 `NWGeneratorFromDesign` socket. -/
+theorem nw_hybrid_advantage_frontier (f : ℕ → ℝ) (m : ℕ) (ε : ℝ) (hε : 0 < ε)
+    (hglob : ACC0NisanWigdersonHybrid.GlobalAdvantage f m ε) :
+    ACC0NisanWigdersonHybrid.AdjacentAdvantage f m ε :=
+  ACC0NisanWigdersonHybrid.hybrid_advantage f m ε hε hglob
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2258,6 +2274,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.ikw_nw_hardFnSeparation_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_disjoint_design_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_low_intersection_design_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_hybrid_advantage_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
