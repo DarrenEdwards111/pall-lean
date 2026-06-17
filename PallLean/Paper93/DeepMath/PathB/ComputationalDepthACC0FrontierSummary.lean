@@ -150,6 +150,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RouteAClosure
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyDiagonal
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TransitionTable
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BFLCollapse
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DerandCollapse
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -636,6 +637,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   prover ⇒ MIP⊆MA) compose to the deep NEXP⊆ACC⁰⇒NEXP⊆MA (heq ▸ guessable (heq ▸ hsub)). ───────────────────────
    ──   karpLiptonCollapse_via_MIP: + trivial MA⊆NEXP ⇒ KarpLiptonCollapse (entry-202 antisymm). The 2 BFL-IKW deep ───
    ──   theorems (MIP=NEXP, guessable prover) stay named sub-sockets (need interactive-proof infra). NOT P≠NP. ────────
+   ── DERAND COLLAPSE: nw_derandCollapsesMAtoNP_via_PRG_frontier — exposes DerandCollapsesMAtoNP via a PRG. ───────────
+   ──   derandMASubsetNP_via_PRG: DerandGivesPRG (Derand⇒PRG, NW/IW hardness-randomness) + PRGCollapsesMAtoNP (PRG⇒ ───
+   ──   MA⊆NP, seed enumeration) compose to the deep Derand⇒MA⊆NP (fun hd => prg_collapses (derand_gives_prg hd)). ────
+   ──   derandCollapsesMAtoNP_via_PRG: + trivial NP⊆MA ⇒ DerandCollapsesMAtoNP (entry-202 antisymm). The 2 hardness- ──
+   ──   randomness deep theorems (Derand⇒PRG, PRG⇒MA⊆NP) stay named sub-sockets (need pseudorandomness infra). NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2439,6 +2445,19 @@ theorem nw_karpLiptonCollapse_via_MIP_frontier (NEXP MIP ACC0 MA : ACC0WilliamsM
     ACC0KarpLiptonCollapse.KarpLiptonCollapse NEXP ACC0 MA :=
   ACC0BFLCollapse.karpLiptonCollapse_via_MIP NEXP MIP ACC0 MA heq guessable triv
 
+/-- **Derandomisation collapse — `DerandCollapsesMAtoNP` factored through a PRG (proved glue).**
+`derandMASubsetNP_via_PRG`: `DerandGivesPRG` (derandomisation ⟹ PRG, the NW/IW tradeoff) + `PRGCollapsesMAtoNP` (PRG ⟹
+`MA ⊆ NP`, seed enumeration) compose to the deep `Derand ⟹ MA ⊆ NP`.  `derandCollapsesMAtoNP_via_PRG`: + the trivial
+`NP ⊆ MA` ⇒ `DerandCollapsesMAtoNP` (entry-202 antisymmetry).  The two hardness–randomness theorems stay socketed. -/
+theorem nw_derandCollapsesMAtoNP_via_PRG_frontier (Derandomization PRGExists : Prop)
+    (MA NP : ACC0WilliamsMetaTheorem.CClass)
+    (derand_gives_prg : ACC0DerandCollapse.DerandGivesPRG Derandomization PRGExists)
+    (prg_collapses : ACC0DerandCollapse.PRGCollapsesMAtoNP PRGExists MA NP)
+    (triv : ACC0CollapseIngredients.NPSubsetMA NP MA) :
+    ACC0KarpLiptonCollapse.DerandCollapsesMAtoNP Derandomization MA NP :=
+  ACC0DerandCollapse.derandCollapsesMAtoNP_via_PRG Derandomization PRGExists MA NP
+    derand_gives_prg prg_collapses triv
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2930,6 +2949,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lazy_diag_false_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_detRun_reachIn_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_karpLiptonCollapse_via_MIP_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_derandCollapsesMAtoNP_via_PRG_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
