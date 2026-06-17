@@ -121,6 +121,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonHybri
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonYao
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonReconstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonReconCorrect
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonYaoCircuit
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -465,6 +466,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   semantically exact (size 2^r≤2^k from 192/194, correctness here). reconstructionCorrectness_discharge ─────────
    ──   DISCHARGES the entry-194 ReconstructionCorrectness socket [Quot.sound only]. Reconstruction now size+correct. ─
    ──   Predictor-correctness = Yao guarantee (193 side); model = semantic (circuit ≡ its Boolean fn). NOT P≠NP. ──────
+   ── NW YAO CIRCUIT EFFICIENCY: nw_yao_predictor_size_frontier + nw_yaoCircuitEfficiency_discharge_frontier — over an ─
+   ──   explicit gate-level Circ syntax (var,⊤,⊥,¬,∧,∨,⊕) with size+eval, PROVES the Yao predictor cxor(var gidx)(cnot
+   ──   D) has size = size D + 3 (references D once) and computes if D(x) then g else ¬g (guess-and-correct). ──────────
+   ──   smallPredictor_exists: circuit of size ≤size D+3 realising the rule. yaoCircuitEfficiency_discharge DISCHARGES ─
+   ──   the entry-193 YaoCircuitEfficiency socket [propext / yao_predictor_eval needs NO axioms]. The gate-count the ───
+   ──   195 semantic model omits, now proved. ⊕=MOD₂∈ACC⁰. NOT P≠NP. ──────────────────────────────────────────────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1891,6 +1898,20 @@ theorem nw_reconstructionCorrectness_discharge_frontier {S I : Type*} {numOther 
       (ACC0NisanWigdersonReconCorrect.AssembledComputesF restrict table pred target) :=
   ACC0NisanWigdersonReconCorrect.reconstructionCorrectness_discharge restrict table blockVal pred target
 
+/-- **Yao predictor circuit efficiency — the predictor is a small circuit (proved).**  Over an explicit gate-level
+circuit syntax, `yao_predictor_size`: the Yao predictor `cxor (var gidx) (cnot D)` has size exactly `size D + 3`
+(references `D` once); `yao_predictor_eval`: it computes the guess-and-correct rule `if D(x) then g else ¬g`.
+`yaoCircuitEfficiency_discharge` discharges the entry-193 `YaoCircuitEfficiency` socket. -/
+theorem nw_yao_predictor_size_frontier {n : ℕ} (D : ACC0NisanWigdersonYaoCircuit.Circ n) (gidx : Fin n) :
+    (ACC0NisanWigdersonYaoCircuit.predictor D gidx).size = D.size + 3 :=
+  ACC0NisanWigdersonYaoCircuit.yao_predictor_size D gidx
+
+theorem nw_yaoCircuitEfficiency_discharge_frontier {n : ℕ} (D : ACC0NisanWigdersonYaoCircuit.Circ n)
+    (gidx : Fin n) (YaoNextBit : Prop) :
+    ACC0NisanWigdersonYao.YaoCircuitEfficiency YaoNextBit
+      (ACC0NisanWigdersonYaoCircuit.SmallPredictor D gidx) :=
+  ACC0NisanWigdersonYaoCircuit.yaoCircuitEfficiency_discharge D gidx YaoNextBit
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2353,6 +2374,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_yaoPredictor_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reconstruction_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reconstructionCorrectness_discharge_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_yaoCircuitEfficiency_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
