@@ -409,6 +409,22 @@ not faked.  The user's 3-step plan (a + b + discharge) is complete as a partial 
 route is degree+count complete, the `MOD` part is exact for all moduli, and the closure socket is reduced to the single
 BT size analysis.
 
+### 8k. The BT size theorem over a concrete datatype — the prime-`p` route, proved (176)
+
+`…ACC0BTSizeTheorem` discharges the *size* content of the §8j residual `hSize`, concretely.  The `SYM∘AND` **size** of a
+representation is its number of distinct `AND`-features, `btSymAndSize p P := (P.support.image (·.support)).card`.
+
+- **`quasipolyBTSize_proved`** (proved, via entry 173): for every `BoolCircuitSyntax` circuit, the RS approximant
+  `toApprox p t R C` has `SYM∘AND` size `≤ (n+1)^{L^D}` for `(p−1)·t ≤ L`, `depth ≤ D` — quasipolynomial for polylog `L`
+  and constant `D`.
+
+So the BT size theorem is proved for the AC⁰[p]/prime route over a concrete datatype.  Two residuals remain (both
+proven classically, large to formalise): **correctness/error** (the RS agreement, that the size-`btSymAndSize` `SYM∘AND`
+computes the circuit) and **composite/prime-power modulus** (the prime-`p` approximant computes only `MOD_p`; composite
+per prime over `∏ F_p`, prime-power via the exact mixed-radix `SYM∘AND` whose quasipoly size is the BT mixed-radix
+analysis).  The size half of `hSize` is proved; the full quasipoly size for arbitrary `ACC⁰` with correctness is the
+remaining BT formalisation.  Not a proof of `DynamicClosesAtBT` or `NEXP ⊄ ACC⁰`; not faked.
+
 ---
 
 ## The four remaining routes (no small glue left)

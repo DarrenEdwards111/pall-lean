@@ -101,6 +101,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0EndToEndBT
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ApproxBTInstantiation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerMixedRadix
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DynamicClosureDischarge
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTSizeTheorem
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -343,6 +344,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   ONE residual socket hSize (BT size analysis combining them), chained to ¬NEXPHasACC0Circuits via 166. HONEST ────
    ──   PARTIAL: 2 of 3 BT ingredients PROVED; hSize (= proven-classical BT size thm) + Williams sockets remain. NOT ────
    ──   a proof of DynamicClosesAtBT or NEXP⊄ACC⁰; not faked. User's 3-step plan (a+b+discharge) complete as partial. ───
+   ── BT SIZE THEOREM (concrete datatype): bt_size_theorem_frontier — btSymAndSize (= #distinct AND-features) of the ────
+   ──   RS approximant toApprox over BoolCircuitSyntax ≤ (n+1)^(L^D) for (p-1)t≤L, depth≤D = QUASIPOLY (polylog L, ──────
+   ──   const D). PROVED via 173. Discharges the SIZE content of the 175 residual hSize for the AC⁰[p] route. ──────────
+   ──   Remaining (harder BT residuals): correctness/error (RS agreement) + composite/prime-power mixed-radix size. ─────
+   ──   NOT full DynamicClosesAtBT; size half proved over a concrete datatype for the prime-p case. NOT P≠NP. ───────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1513,6 +1519,14 @@ theorem dynamicClosure_partialDischarge_to_NEXP_frontier
   ACC0DynamicClosureDischarge.partialDischarge_to_NEXP hSize closure_to_quasi quasi_to_speed
     williams hierarchy
 
+/-- **The Beigel–Tarui size theorem over a concrete datatype (proved, prime-`p` route).**  The `SYM∘AND` size (number of
+distinct `AND`-features) of the RS approximant `toApprox p t R C` of a `BoolCircuitSyntax` circuit is `≤ (n+1)^{L^D}` for
+`(p−1)·t ≤ L`, `depth ≤ D` — quasipolynomial for polylog `L` and constant `D`.  Discharges the *size* content of the
+entry-175 residual `hSize` for the AC⁰[p] route; the correctness/error and the composite/prime-power mixed-radix size
+remain (the harder BT residuals). -/
+theorem bt_size_theorem_frontier : ACC0BTSizeTheorem.QuasipolyBTSize :=
+  ACC0BTSizeTheorem.quasipolyBTSize_proved
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1955,6 +1969,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.approx_BT_degree_count_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.primePower_mixedRadix_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.dynamicClosure_partialDischarge_to_NEXP_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.bt_size_theorem_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
