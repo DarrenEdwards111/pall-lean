@@ -167,6 +167,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryInvariant
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0KummerCarry
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CRTCarryProfile
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryCrossing
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryObserverSize
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -728,6 +729,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   LowDegRep — crossing reduces to a CARRY-FAITHFUL such observer for composite m). CarryRefinementCrossing ──────
    ──   approxHyp f D := approxHyp → LowDegRep f D (the named open crossing); lowDegRep_of_crossing discharges barrier.
    ──   NOT proved = the open separation-strength wall (crossing it = composite ACC⁰[m]). NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── CARRY OBSERVER SIZE (quasipoly vs exponential — the answer): nw_carry_faithful_iff_frontier (modulus-m observer ─
+   ──   faithful on {0..N} ⟺ m≥N+1, via pigeonhole + ZMod.val_cast_of_lt); nw_carry_exists_faithful_frontier (a ──────
+   ──   faithful observer with EXACTLY N+1 states exists ⇒ state count QUASIPOLY when N is, NO exponential blow-up). ──
+   ──   carryObserverSize_le_modulus (fixed modulus caps states ⇒ carry layers needed); field/primePow specialise. ────
+   ──   KEY FINDING: the barrier is NOT the state count (quasipoly) but the LOW-DEGREE REALISATION (= entry-238 socket
+   ──   CarryRefinementCrossing). Relocates the obstruction honestly. NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2768,6 +2775,20 @@ theorem nw_lowDegRep_of_crossing_frontier (approxHyp : Prop) {n : ℕ} (f : (Fin
     (cross : ACC0CarryCrossing.CarryRefinementCrossing approxHyp f D) (ha : approxHyp) :
     ACC0BTDepthCollapse.LowDegRep f D :=
   ACC0CarryCrossing.lowDegRep_of_crossing approxHyp f D cross ha
+
+/-- **Carry observer size — quasipoly vs exponential (proved bounds).**  `faithful_iff_le`: the modulus-m carry
+observer is faithful on counts {0,…,N} ⟺ m ≥ N+1.  `exists_faithful`: a faithful observer with exactly N+1 states
+exists (state count QUASIPOLY when N is — NO exponential blow-up).  `carryObserverSize_le_modulus`: a fixed modulus caps
+states at m (so carry layers needed for growing N); `field_faithful_iff`/`primePow_faithful_iff` specialise.  KEY
+FINDING: the barrier is NOT the state count (quasipoly) but the low-degree realisation (entry-238 socket). -/
+theorem nw_carry_faithful_iff_frontier (m N : ℕ) (hm : 0 < m) :
+    ACC0CarryObserverSize.Faithful m N ↔ N + 1 ≤ m :=
+  ACC0CarryObserverSize.faithful_iff_le m N hm
+
+/-- **Carry observer size is quasipoly: a faithful observer with N+1 states always exists (proved).** -/
+theorem nw_carry_exists_faithful_frontier (N : ℕ) :
+    ACC0CarryObserverSize.Faithful (N + 1) N :=
+  ACC0CarryObserverSize.exists_faithful N
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
