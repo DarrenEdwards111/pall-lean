@@ -132,6 +132,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0HierarchyWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ConcreteTMRun
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndPool
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTDepthCollapse
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTRSConnection
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -526,6 +527,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   lowDegMonomialCount_le_pow). btDepthCollapse: RS socket AccToLowDeg (depth-d ACC⁰[p] ⇒ degree-((p−1)t)^d rep) ─
    ──   ⇒ quasipoly SYM∘AND size ≤ (((p−1)t)^d+1)·n^((p−1)t)^d = n^polylog for const d, polylog t. RS approximation ───
    ──   (circuit ⇒ low degree, probabilistic polynomial method) socketed. NOT P≠NP. ──────────────────────────────────
+   ── BT⇔RS CONNECTION: nw_accToLowDeg_via_rs_frontier — DISCHARGES the entry-203 AccToLowDeg socket from the ALREADY- ─
+   ──   PROVED acc0_approx_by_lowRankPredictor (RS degree-((p−1)t)^C.depth approximant, the genuine probabilistic ─────
+   ──   polynomial method), modulo the residual span→SYM∘AND bridge SpanApproxToLowDegRep. RS degree MATCHES ──────────
+   ──   AccToLowDeg's exactly ⇒ circuit⇒low-degree half no longer assumed, taken from the RS proof. Residual bridge ───
+   ──   (F_p-span approximant ⇒ exact Boolean count-mod-p SYM∘AND, + 3/4→exact amplification) socketed. NOT P≠NP. ─────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2094,6 +2100,18 @@ theorem nw_btDepthCollapse_frontier {n : ℕ} (f : (Fin n → Bool) → Bool) (p
       m ≤ (((p - 1) * t) ^ d + 1) * n ^ (((p - 1) * t) ^ d) :=
   ACC0BTDepthCollapse.btDepthCollapse f p t d hn hrs
 
+/-- **AccToLowDeg connected to the proved RS approximation.**  `accToLowDeg_via_rs` discharges the entry-203
+`AccToLowDeg` socket from the *already-proved* `acc0_approx_by_lowRankPredictor` (the Razborov–Smolensky degree-
+`((p−1)·t)^C.depth` approximant), modulo the residual span→`SYM∘AND` bridge `SpanApproxToLowDegRep`.  The RS degree
+matches `AccToLowDeg`'s exactly, so the circuit⇒low-degree half is no longer assumed but taken from the RS proof. -/
+theorem nw_accToLowDeg_via_rs_frontier {n : ℕ} (C : BoolCircuitSyntax n) (p t : ℕ) [Fact p.Prime]
+    (ht : 1 ≤ t)
+    (hmod : ∀ q r cs, (BoolCircuitSyntax.modGate q r cs : BoolCircuitSyntax n) ∈ Layer3.subcircuits C → q = p)
+    (hsize : 4 * (Layer3.subcircuits C).toFinset.card ≤ p ^ t)
+    (bridge : ACC0BTRSConnection.SpanApproxToLowDegRep C p t) :
+    ACC0BTDepthCollapse.AccToLowDeg (fun x => C.eval x) p t C.depth :=
+  ACC0BTRSConnection.accToLowDeg_via_rs C p t ht hmod hsize bridge
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2567,6 +2585,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_flip_accepts_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_symAnd_pool_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_btDepthCollapse_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_accToLowDeg_via_rs_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
