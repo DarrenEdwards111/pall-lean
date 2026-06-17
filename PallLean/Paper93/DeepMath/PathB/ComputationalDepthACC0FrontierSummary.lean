@@ -149,6 +149,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MajSymAnd
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RouteAClosure
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyDiagonal
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TransitionTable
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BFLCollapse
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -630,6 +631,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   (detStep δ)^[t]. detRun_add (clocked-additive); detRun_reachIn: the functional t-step run IS a valid reachIn ──
    ──   run in the NTM model (reachIn (detNTM δ) t c (detRun δ t c)). The time-bounded-computation substrate the ──────
    ──   machine-cost sockets reference. Residual: time-bound counting (NTIME), universal simulation. NOT P≠NP. ────────
+   ── BFL-IKW COLLAPSE: nw_karpLiptonCollapse_via_MIP_frontier — exposes KarpLiptonCollapse's structure via MIP. ──────
+   ──   nexpSubsetMA_via_MIP: NexpEqMIP (Babai-Fortnow-Lund NEXP=MIP) + MIPSubsetMA_ofCircuits (circuits ⇒ guessable ──
+   ──   prover ⇒ MIP⊆MA) compose to the deep NEXP⊆ACC⁰⇒NEXP⊆MA (heq ▸ guessable (heq ▸ hsub)). ───────────────────────
+   ──   karpLiptonCollapse_via_MIP: + trivial MA⊆NEXP ⇒ KarpLiptonCollapse (entry-202 antisymm). The 2 BFL-IKW deep ───
+   ──   theorems (MIP=NEXP, guessable prover) stay named sub-sockets (need interactive-proof infra). NOT P≠NP. ────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2422,6 +2428,17 @@ theorem nw_detRun_add_frontier (δ : ℕ × Bool → ℕ × Bool × ACC0Concrete
     ACC0TransitionTable.detRun δ (a + b) c = ACC0TransitionTable.detRun δ b (ACC0TransitionTable.detRun δ a c) :=
   ACC0TransitionTable.detRun_add δ a b c
 
+/-- **BFL-IKW collapse — `KarpLiptonCollapse` factored through `MIP` (proved glue).**  `nexpSubsetMA_via_MIP`:
+`NexpEqMIP` (Babai–Fortnow–Lund `NEXP = MIP`) + `MIPSubsetMA_ofCircuits` (circuits ⇒ guessable prover ⇒ `MIP ⊆ MA`)
+compose to the deep inclusion `NEXP ⊆ ACC⁰ ⟹ NEXP ⊆ MA`.  `karpLiptonCollapse_via_MIP`: + the trivial `MA ⊆ NEXP` ⇒
+`KarpLiptonCollapse` (entry-202 antisymmetry). The two BFL-IKW theorems stay socketed. -/
+theorem nw_karpLiptonCollapse_via_MIP_frontier (NEXP MIP ACC0 MA : ACC0WilliamsMetaTheorem.CClass)
+    (heq : ACC0BFLCollapse.NexpEqMIP NEXP MIP)
+    (guessable : ACC0BFLCollapse.MIPSubsetMA_ofCircuits MIP ACC0 MA)
+    (triv : ACC0CollapseIngredients.MASubsetNexp MA NEXP) :
+    ACC0KarpLiptonCollapse.KarpLiptonCollapse NEXP ACC0 MA :=
+  ACC0BFLCollapse.karpLiptonCollapse_via_MIP NEXP MIP ACC0 MA heq guessable triv
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2912,6 +2929,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_routeA_btClosure_to_NEXP_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lazy_diag_false_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_detRun_reachIn_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_karpLiptonCollapse_via_MIP_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
