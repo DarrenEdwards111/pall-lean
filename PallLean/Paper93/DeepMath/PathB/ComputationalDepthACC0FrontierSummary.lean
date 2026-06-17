@@ -162,6 +162,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWFromHardness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ClockedSimulation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Multilinear
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IKWSmallProver
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ApproxToExact
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -694,6 +695,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   the EasyWitnessLemma socket. not_guessableProver_gives_incompressible: GuessableProver fails ⇒ hard fn — so the
    ──   IKW small-prover BOTTOMS OUT at the SAME separation-strength atom as step 5 (why IKW/magnification is P≠NP- ────
    ──   strength). Residual socket: EasyWitnessLemma (circuitHyp rules out incompressible witnesses = IKW theorem). NOT P≠NP.
+   ── RS APPROX→EXACT (step 4, HIGHEST false-closure risk — handled honestly): nw_lowDegRep_of_exactUnitCount_frontier ─
+   ──   (PROVED): EXACT unit-coefficient count rep (∀x, boolToZMod p (f x)=saCount mod p, injective deg-≤D family) ⇒ ───
+   ──   LowDegRep (SYM gate decide((k:ZMod p)=1)) — the EASY structural direction. nw_lowDegRep_via_amplification: the ─
+   ──   barrier socket ApproxToExactCount (3/4 weighted approximant ⇒ exact unit-count) is the SOLE residual between ──
+   ──   the proved RS approximant and LowDegRep. ⚠️ ApproxToExactCount = the composite-ACC⁰[m] BARRIER (amplification + ─
+   ──   weighted→unit, provably fails for composite m) — NAMED, NOT CLOSED. Structural span=weighted-count is 207. NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2652,6 +2659,24 @@ theorem nw_ikw_guessable_of_easyWitness_frontier {Prover Circ : Type}
     (ew : ACC0IKWSmallProver.EasyWitnessLemma Ver proverOf circuitHyp) :
     ACC0GuessableProver.GuessableProver Ver proverOf :=
   ACC0IKWSmallProver.guessableProver_of_easyWitness Ver proverOf circuitHyp hyp ew
+
+/-- **RS approx→exact (step 4): the composite-ACC⁰ barrier honestly separated.**  `lowDegRep_of_exactUnitCount` (PROVED):
+an EXACT unit-coefficient count representation (`∀x, boolToZMod p (f x) = saCount mod p`) gives `LowDegRep` (SYM gate
+`decide((k:ZMod p)=1)`) — the easy structural direction.  `lowDegRep_via_amplification` exhibits the barrier socket
+`ApproxToExactCount` (3/4 weighted approximant ⟹ exact unit-count rep) as the SOLE residual between the proved RS
+approximant and `LowDegRep`.  ⚠️ `ApproxToExactCount` is the composite-`ACC⁰[m]` barrier (amplification + weighted→unit,
+provably fails for composite m) — NOT closed here. -/
+theorem nw_lowDegRep_of_exactUnitCount_frontier (p : ℕ) [Fact p.Prime] {n D : ℕ}
+    (f : (Fin n → Bool) → Bool) (h : ACC0ApproxToExact.ExactUnitCount p D f) :
+    ACC0BTDepthCollapse.LowDegRep f D :=
+  ACC0ApproxToExact.lowDegRep_of_exactUnitCount p f h
+
+/-- **RS approx→exact factorisation: the barrier socket is the only missing input (proved glue).** -/
+theorem nw_lowDegRep_via_amplification_frontier (approxHyp : Prop) (p : ℕ) [Fact p.Prime] {n D : ℕ}
+    (f : (Fin n → Bool) → Bool) (ha : approxHyp)
+    (amp : ACC0ApproxToExact.ApproxToExactCount approxHyp p D f) :
+    ACC0BTDepthCollapse.LowDegRep f D :=
+  ACC0ApproxToExact.lowDegRep_via_amplification approxHyp p f ha amp
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
