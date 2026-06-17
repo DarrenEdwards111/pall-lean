@@ -139,6 +139,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SpanExtract
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ChernoffExist
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ChernoffBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FiberCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ChernoffDecay
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -569,6 +570,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   fiber_card (#{g | pat g = p} = a^{#trues}·b^{#falses} via Fintype.card_piFinset + prod_ite) + ────────────────
    ──   card_eq_sum_card_fiberwise + entry-209 term_mono (bad pattern #trues≤m) + #patterns≤2^k. The genuine ──────────
    ──   tuple-count=binomial-tail reduction. Residual: only the k=Ω(n) decay-to-2^-n arithmetic + ≥3/4 supply. NOT P≠NP.
+   ── DECAY ARITHMETIC: nw_chernoff_per_input_frontier — the FULL per-input concentration over a 3/4 supply (PROVED). ──
+   ──   decay_core: 2^n·3^j < 4^j for j≥3n+1 (split at 3n: 54^n≤64^n, 3^{j-3n}<4^{j-3n}). decay_full: 2^n·(entry-210 ──
+   ──   bound) < (a+b)^{2j} for a=3b. chernoff_per_input: 3/4 supply (#correct=3·#wrong≥3), k=2j, j≥3n+1 ⇒ ────────────
+   ──   2^n·#{bad tuples} < #tuples — ASSEMBLES 209 (term_mono) + 210 (bad_tuple_count_le) + decay, pure Nat. The ──────
+   ──   per-input concentration DONE. LAST residual of whole BT collapse: the ≥3/4 SUPPLY construction. NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2227,6 +2233,22 @@ theorem nw_bad_tuple_count_le_frontier {α : Type*} [Fintype α] [DecidableEq α
           * (Finset.univ.filter (fun x => pred x = false)).card ^ (k - m)) :=
   ACC0FiberCount.bad_tuple_count_le pred hba hmk
 
+/-- **The decay arithmetic — full per-input concentration over a `3/4` supply (proved).**  `decay_core`: `2^n·3^j <
+4^j` for `j ≥ 3n+1`.  `chernoff_per_input`: for a `3/4` supply (`#correct = 3·#wrong ≥ 3`) and `k = 2j`, `j ≥ 3n+1`,
+`2^n · #{bad tuples} < #tuples` — the per-input concentration, assembling entry-210's `bad_tuple_count_le` with
+`decay_full`. -/
+theorem nw_chernoff_per_input_frontier {α : Type*} [Fintype α] [DecidableEq α]
+    (pred : α → Bool) (n j : ℕ)
+    (h34 : (Finset.univ.filter (fun x => pred x = true)).card
+            = 3 * (Finset.univ.filter (fun x => pred x = false)).card)
+    (hb : 1 ≤ (Finset.univ.filter (fun x => pred x = false)).card)
+    (hj : 3 * n + 1 ≤ j) :
+    2 ^ n * (Finset.univ.filter (fun g : Fin (2 * j) → α =>
+        (Finset.univ.filter (fun i => pred (g i) = true)).card ≤ j)).card
+      < ((Finset.univ.filter (fun x => pred x = true)).card
+          + (Finset.univ.filter (fun x => pred x = false)).card) ^ (2 * j) :=
+  ACC0ChernoffDecay.chernoff_per_input pred n j h34 hb hj
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2707,6 +2729,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_majorityGoodFamily_of_chernoff_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_binomial_tail_le_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_bad_tuple_count_le_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_chernoff_per_input_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
