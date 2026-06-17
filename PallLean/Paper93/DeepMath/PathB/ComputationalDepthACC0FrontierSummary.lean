@@ -126,6 +126,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonHardn
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonEasyWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0KarpLiptonCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NondetTimeHierarchy
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GuessVerifyDischarge
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -498,6 +499,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   ⇒ diag_ne (diag enum ≠ enum i, else P↔¬P) ⇒ diag ∉ range enum. nexpNeqNp_discharge: NPEnumerable + ───────────
    ──   DiagonalInNexp ⇒ NEXP≠NP [propext]. DISCHARGES the entry-199 NexpNeqNp sub-socket. The ONE classically- ────────
    ──   UNCONDITIONAL Williams ingredient (Cook/SFM hierarchy). DiagonalInNexp hides NTM lazy-diagonalization. NOT P≠NP.
+   ── GUESS-VERIFY: nw_guessVerify_discharge_frontier + nw_guess_verify_beats_bruteforce_frontier — connects 3 done ───
+   ──   pieces: the proved language-level collapse (gvDecider_eq/guessVerify_subset) + entry-150 GuessVerify socket + ──
+   ──   entry-187 fast-SAT verifier. guessVerify_discharge: ProvidesFastVerifiers ⇒ entry-150 GuessVerify via the ──────
+   ──   proved guessVerify_subset. guess_verify_beats_bruteforce: guessCost + (fast-SAT count-cell work ≤(D+1)·n^D+1) ──
+   ──   < 2ⁿ — guess small circuit, verify fast, beat brute force. ProvidesFastVerifiers (NTM-cost placement) socketed.
+   ──   NOT P≠NP. ───────────────────────────────────────────────────────────────────────────────────────────────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1996,6 +2003,23 @@ theorem nw_nexpNeqNp_discharge_frontier (NEXP NP : ACC0WilliamsMetaTheorem.CClas
     ACC0KarpLiptonCollapse.NexpNeqNp NEXP NP :=
   ACC0NondetTimeHierarchy.nexpNeqNp_discharge NEXP NP henum hdiag
 
+/-- **GuessVerify discharge — language-level collapse + entry-187 fast-SAT time bound (proved).**
+`guessVerify_discharge` discharges the entry-150 `GuessVerify` socket from `ProvidesFastVerifiers` via the proved
+language-level `guessVerify_subset`.  `guess_verify_beats_bruteforce` ties the verify cost to the entry-187 fast-SAT
+verifier: guess cost + (count-cell image work `≤ (D+1)·n^D+1`) `< 2ⁿ`, beating brute force. -/
+theorem nw_guessVerify_discharge_frontier (NTIME2n NTIME2nFast : ACC0WilliamsMetaTheorem.CClass)
+    (ACC0SatSpeedup SmallWitnessCircuits : Prop)
+    (prov : ACC0GuessVerifyDischarge.ProvidesFastVerifiers NTIME2n NTIME2nFast ACC0SatSpeedup SmallWitnessCircuits) :
+    ACC0EasyWitness.GuessVerify NTIME2n NTIME2nFast ACC0SatSpeedup SmallWitnessCircuits :=
+  ACC0GuessVerifyDischarge.guessVerify_discharge NTIME2n NTIME2nFast ACC0SatSpeedup SmallWitnessCircuits prov
+
+theorem nw_guess_verify_beats_bruteforce_frontier {n m D : ℕ} (mono : Fin m → Finset (Fin n))
+    (hh : ℕ → Bool) (hinj : Function.Injective mono) (hdeg : ∀ j, (mono j).card ≤ D) (hn : 1 ≤ n)
+    (guessCost : ℕ) (hbound : guessCost + ((D + 1) * n ^ D + 1) < 2 ^ n) :
+    guessCost + (Finset.univ.image
+        (ACC0SymmetricObserver.gateCount (fun j x => ACC0PolyToSymAnd.monoAND (mono j) x))).card < 2 ^ n :=
+  ACC0GuessVerifyDischarge.guess_verify_beats_bruteforce mono hh hinj hdeg hn guessCost hbound
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2463,6 +2487,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_noEasyWitnessHardFn_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_derandKarpLipton_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_nexpNeqNp_discharge_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_guessVerify_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
