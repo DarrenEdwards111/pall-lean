@@ -159,6 +159,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SchwartzZippel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MipSimulation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SeedEnumeration
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWFromHardness
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ClockedSimulation
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -674,6 +675,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   MIPRealizedInNexp exp-verifiability); nw_seed_enumeration_frontier (fooling det check preserves language ──────
    ──   MALang Arthur=MALang ArthurDet ⇒ MA⊆NP; residual = PRGFools); nw_reconstruction_contradiction_frontier ───────
    ──   (recon ∘ hardness ⇒ ¬distinguisher = PRG fools, NO axioms; residual = NWReconstruction + IW hard-fn). NOT P≠NP.
+   ── CLOCKED-SIM COST: nw_clocked_budget_fits_frontier — universal lazy-diag sim FITS the NEXP budget (PROVED ────────
+   ──   accounting, connects 219/220/223). nat_overhead_bound: poly overhead 2^n × simulated 2^(n^a+a) ≤ 2^(n^(a+1)+ ──
+   ──   (a+1)) (budget big enough); sim_budget_fits: exponent additivity; detRun_accepts: 220 run ⇒ 223 acceptsWithin;
+   ──   lazy_clockedSim FORWARD proved via budget+acceptsWithin_mono; nw_lazy_universal_in_nexp_frontier composes ─────
+   ──   223 clocked_in_NEXP. Residual sockets: hcomplete/hsound (universal decode→step→re-encode correctness). NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2576,6 +2582,25 @@ theorem nw_reconstruction_contradiction_frontier
     (dh : ACC0NWFromHardness.DerandGivesHardFn Derandomization Distinguisher SmallCircuitForHardFn) :
     ACC0DerandCollapse.DerandGivesPRG Derandomization (¬ Distinguisher) :=
   ACC0NWFromHardness.derandGivesPRG_via_nw Derandomization Distinguisher SmallCircuitForHardFn dh
+
+/-- **ClockedSimulation cost (proved accounting): the universal lazy-diagonal simulation fits the NEXP budget.**
+`nat_overhead_bound`: poly overhead `2^n` × simulated `2^(n^a+a)` ≤ `2^(n^(a+1)+(a+1))` (the budget is large enough);
+`sim_budget_fits`: exponent additivity `2^g·2^s ≤ 2^F` for `g+s≤F`; `detRun_accepts`: a transition-table run (220)
+witnesses `acceptsWithin` (223); `lazy_clockedSim`: the clocked simulation, FORWARD direction proved from budget +
+`acceptsWithin_mono`.  `lazy_universal_in_nexp` composes with entry-223 `clocked_in_NEXP`.  Residual sockets:
+`hcomplete`/`hsound` (universal-machine decode→step→re-encode correctness). -/
+theorem nw_clocked_budget_fits_frontier {a : ℕ} (ha : 1 ≤ a) (n : ℕ) :
+    2 ^ n * 2 ^ (n ^ a + a) ≤ 2 ^ (n ^ (a + 1) + (a + 1)) :=
+  ACC0ClockedSimulation.nat_overhead_bound ha
+
+/-- **ClockedSimulation cost assembly: the lazy diagonal ∈ NEXP from the budget accounting + correctness sockets.** -/
+theorem nw_lazy_universal_in_nexp_frontier (δ : ℕ × Bool → ℕ × Bool × ACC0ConcreteNTM.Move)
+    (L : ACC0WilliamsMetaTheorem.Lang) (c : ℕ) (cost : List Bool → ℕ)
+    (hbudget : ∀ x, cost x ≤ 2 ^ (x.length ^ c + c))
+    (hcomplete : ∀ x, L x → ACC0NTM.acceptsWithin (ACC0TransitionTable.detNTM δ) x (cost x))
+    (hsound : ∀ x, ACC0NTM.acceptsWithin (ACC0TransitionTable.detNTM δ) x (2 ^ (x.length ^ c + c)) → L x) :
+    L ∈ ACC0NTM.NEXP :=
+  ACC0ClockedSimulation.lazy_universal_in_nexp δ L c cost hbudget hcomplete hsound
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
