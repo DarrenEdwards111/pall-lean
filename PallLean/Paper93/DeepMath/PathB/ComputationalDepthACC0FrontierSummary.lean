@@ -142,6 +142,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FiberCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ChernoffDecay
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SupplyConstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RSPerPoint
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GateEncoding
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -588,6 +589,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   detection_two_thirds_four: 2 independent trials boost to ≥3/4 (per-point error ≤1/4) = #{both miss}=miss^2 + ──
    ──   miss≤2^(s-1). The source of Uniform34's per-input 3/4. Residual: gate-encoding (∑^{p-1} Fermat) + RS circuit ──
    ──   composition. Pure AddCommGroup/Finset, NO measure theory. NOT P≠NP. ─────────────────────────────────────────
+   ── GATE-ENCODING: nw_fermat_ind_frontier + nw_orApprox_detection_frontier — encodes the abstract entry-213 ──────────
+   ──   detection as the actual OR-gate approximant. fermat_ind: y^(p-1) = if y=0 then 0 else 1 over ZMod p (Fermat's ──
+   ──   little thm, ZMod.pow_card_sub_one_eq_one). orApprox x S := (∑_{i∈S} x i)^(p-1); orApprox_eq_one_iff (=1 ⟺ ─────
+   ──   sum≠0); orApprox_zero (no false positive on OR=0); orApprox_detection (entry-213 bound on the gate). Residual: ─
+   ──   RS circuit COMPOSITION across constant depth. Pure ZMod p/Finset, Fermat. NOT P≠NP. ────────────────────────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2289,6 +2295,20 @@ theorem nw_rs_detection_three_quarters_frontier {F : Type*} [AddCommGroup F] [De
         (∑ i ∈ p.1, x i) ≠ 0 ∨ (∑ i ∈ p.2, x i) ≠ 0)).card :=
   ACC0RSPerPoint.detection_two_thirds_four x j hj
 
+/-- **The gate-encoding (proved).**  `fermat_ind`: `y^{p−1} = if y = 0 then 0 else 1` over `ZMod p` (the Fermat
+indicator).  `orApprox_detection`: the RS `OR`-approximant `(∑_{i∈S} x i)^{p−1}` detects an `OR=1` input
+(`2^s ≤ 2·#{S | orApprox = 1}`); `orApprox_zero`: no false positive on `OR=0`.  Encodes the abstract entry-213
+detection as the actual `OR`-gate Fermat-indicator approximant over `F_p`. -/
+theorem nw_fermat_ind_frontier {p : ℕ} [Fact p.Prime] (y : ZMod p) :
+    y ^ (p - 1) = if y = 0 then 0 else 1 :=
+  ACC0GateEncoding.fermat_ind y
+
+theorem nw_orApprox_detection_frontier {p : ℕ} [Fact p.Prime] {s : ℕ}
+    (x : Fin s → ZMod p) (j : Fin s) (hj : x j ≠ 0) :
+    2 ^ s ≤ 2 * (Finset.univ.filter (fun S : Finset (Fin s) =>
+      ACC0GateEncoding.orApprox x S = 1)).card :=
+  ACC0GateEncoding.orApprox_detection x j hj
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2772,6 +2792,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_chernoff_per_input_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_exists_good_tuple_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_rs_detection_three_quarters_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_orApprox_detection_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
