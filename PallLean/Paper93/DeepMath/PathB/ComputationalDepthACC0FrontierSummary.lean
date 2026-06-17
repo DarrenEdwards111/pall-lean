@@ -116,6 +116,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FastSATVerifier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsContradiction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IKWNisanWigderson
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonGenerator
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonLowIntersection
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -431,6 +432,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   design + hybrid-argument socket ⇒ the 189 NWDerandomization socket. So NW decomposes into a PROVED combinatorial
    ──   design (disjoint case) + the hybrid argument (socket = the generator-fools-ACC⁰ analysis). Efficient low- ──────
    ──   intersection designs + hybrid = the deep NW content. Builds the base case; does NOT prove NW. NOT P≠NP. ────────
+   ── NW EFFICIENT DESIGN: nw_low_intersection_design_frontier — PROVES the low-intersection property of the efficient ─
+   ──   NW design: over a finite field F, distinct degree-<k polys give graphs (nwSet, size |F|) with pairwise ─────────
+   ──   intersection < k (seed O(k²/log m), m=|F|^k blocks). Reuses entry-161 field_root_card_le_natDegree: agreement ──
+   ──   set = roots of p−q, ≤(p−q).natDegree<k. The genuine quantitative NW design, fully proved. Hybrid argument still
+   ──   socketed (entry 189/190). Proves the DESIGN, not the generator. NOT P≠NP. ───────────────────────────────────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1784,6 +1790,16 @@ theorem nw_disjoint_design_frontier (m k : ℕ) :
     ∃ S : Fin m → Finset ℕ, (∀ i, (S i).card = k) ∧ (∀ i j, i ≠ j → Disjoint (S i) (S j)) :=
   ACC0NisanWigdersonGenerator.disjoint_design m k
 
+/-- **NW efficient low-intersection design (proved).**  Over a finite field `F`, distinct degree-`< k` polynomials give
+graphs (`nwSet`) of size `|F|` with pairwise intersection `< k` — the efficient NW design (seed `O(k²/log m)`), the
+quantitative refinement of the disjoint base case, proved via the entry-161 field root-count bound. -/
+theorem nw_low_intersection_design_frontier {F : Type*} [Field F] [Fintype F] [DecidableEq F]
+    (p q : Polynomial F) (k : ℕ) (hpq : p ≠ q) (hp : p.natDegree < k) (hq : q.natDegree < k) :
+    (ACC0NisanWigdersonLowIntersection.nwSet p).card = Fintype.card F ∧
+      (ACC0NisanWigdersonLowIntersection.nwSet q).card = Fintype.card F ∧
+      (ACC0NisanWigdersonLowIntersection.nwSet p ∩ ACC0NisanWigdersonLowIntersection.nwSet q).card < k :=
+  ACC0NisanWigdersonLowIntersection.nw_low_intersection_design p q k hpq hp hq
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2241,6 +2257,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.williams_contradiction_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.ikw_nw_hardFnSeparation_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_disjoint_design_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_low_intersection_design_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
