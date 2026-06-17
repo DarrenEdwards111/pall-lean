@@ -120,6 +120,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonLowIn
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonHybrid
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonYao
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonReconstruction
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonReconCorrect
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -458,6 +459,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   sum_const). reconstruction_poly: 2^k≤B ⇒ size ≤predictorSize+numOther·B = poly when k=O(log m). reconstruction_
    ──   socket_discharge DISCHARGES the entry-192 Reconstruction socket (ReconDesign=∀j,r j<k = entry-191 low-int). ────
    ──   Residual ReconstructionCorrectness socket = assembled circuit COMPUTES f (model-dependent). NOT P≠NP. ──────────
+   ── NW RECON CORRECTNESS: nw_reconstruction_correct_frontier + nw_reconstructionCorrectness_discharge_frontier — ─────
+   ──   PROVES the assembled circuit COMPUTES f (minimal Boolean-fn semantics): correct tables + predictor correct on ─
+   ──   true block values ⇒ assembledOutput = target on every seed (funext substitution). tabulate_apply: lookup ──────
+   ──   semantically exact (size 2^r≤2^k from 192/194, correctness here). reconstructionCorrectness_discharge ─────────
+   ──   DISCHARGES the entry-194 ReconstructionCorrectness socket [Quot.sound only]. Reconstruction now size+correct. ─
+   ──   Predictor-correctness = Yao guarantee (193 side); model = semantic (circuit ≡ its Boolean fn). NOT P≠NP. ──────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1863,6 +1870,27 @@ theorem nw_reconstruction_discharge_frontier (predictorSize numOther k : ℕ) (r
         (predictorSize + numOther * 2 ^ k)) :=
   ACC0NisanWigdersonReconstruction.reconstruction_socket_discharge predictorSize numOther k r ComputesF
 
+/-- **NW reconstruction correctness — the assembled circuit computes `f` (proved).**  `reconstruction_computes`:
+correct hardwired tables + a predictor correct on the true block values ⇒ the assembled circuit (predictor wired to the
+tables) equals the target `f`-bit on every seed (substitution via `funext`).  `reconstructionCorrectness_discharge`
+discharges the entry-194 `ReconstructionCorrectness` socket. -/
+theorem nw_reconstruction_correct_frontier {S I : Type*} {numOther : ℕ}
+    (restrict : Fin numOther → S → I) (table blockVal : Fin numOther → I → Bool)
+    (pred : (Fin numOther → Bool) → Bool) (target : S → Bool)
+    (htable : ∀ j s, table j (restrict j s) = blockVal j (restrict j s))
+    (hpred : ∀ s, pred (fun j => blockVal j (restrict j s)) = target s) (s : S) :
+    ACC0NisanWigdersonReconCorrect.assembledOutput restrict table pred s = target s :=
+  ACC0NisanWigdersonReconCorrect.reconstruction_computes restrict table blockVal pred target htable hpred s
+
+theorem nw_reconstructionCorrectness_discharge_frontier {S I : Type*} {numOther : ℕ}
+    (restrict : Fin numOther → S → I) (table blockVal : Fin numOther → I → Bool)
+    (pred : (Fin numOther → Bool) → Bool) (target : S → Bool) :
+    ACC0NisanWigdersonReconstruction.ReconstructionCorrectness
+      (ACC0NisanWigdersonReconCorrect.PredictorCorrect restrict blockVal pred target)
+      (ACC0NisanWigdersonReconCorrect.TablesCorrect restrict table blockVal)
+      (ACC0NisanWigdersonReconCorrect.AssembledComputesF restrict table pred target) :=
+  ACC0NisanWigdersonReconCorrect.reconstructionCorrectness_discharge restrict table blockVal pred target
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2324,6 +2352,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_hybrid_advantage_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_yaoPredictor_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reconstruction_discharge_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reconstructionCorrectness_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
