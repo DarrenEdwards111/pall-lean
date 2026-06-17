@@ -170,6 +170,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryCrossing
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryObserverSize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryRealization
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeCountDegree
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LayeredCarryDegree
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -749,6 +750,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   needs field≥N+1 (239), field-route decode degree is Θ(N) = NOT low-degree (explains why 240's field decode too ─
    ──   expensive). OPEN: can p-adic carry/digit LAYERS reduce degree while keeping quasipoly size? (= entry-238 ──────
    ──   crossing). Obstruction is per-single-field-polynomial; layered route may evade — not settled. NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── LAYERED-CARRY DEGREE (per-prime layers cheap; composite combination = the wall): nw_modp_indicator_totalDegree ──
+   ──   _frontier — MOD_p indicator 1-(∑X_i)^(p-1) has total degree ≤ p-1 INDEPENDENT of n (vs 241's Θ(N) full count); ─
+   ──   nw_modp_indicator_eval_frontier — computes [count≡0 mod p] (Fermat); linearCount: residue mod p is LINEAR. ────
+   ──   FINDING (honest middle, no crossing/no-go): per-prime layers are LOW-degree (good news for layers); the OPEN ──
+   ──   wall = cross-prime combination MOD_m=⋀MOD_{pᵢ} over different fields for composite m (Smolensky-strength, ──────
+   ──   = entry-238 crossing). Not settled. NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2833,6 +2840,22 @@ theorem nw_faithful_decode_degree_ge_frontier {F : Type*} [Field F] [DecidableEq
 theorem nw_prime_indicator_degree_eq_frontier (p : ℕ) [Fact p.Prime] (b : ZMod p) :
     (ACC0CarryRealization.pointIndicator p b).natDegree = p - 1 :=
   ACC0CompositeCountDegree.prime_indicator_natDegree_eq p b
+
+/-- **Layered-carry degree analysis: per-prime layers are low-degree; composite combination is the wall.**
+`modpIndicator_totalDegree_le`: the MOD_p-is-zero indicator `1-(∑X_i)^(p-1)` has total degree ≤ p-1 — INDEPENDENT of n
+(contrast entry-241's Θ(N) single-field full count).  `modpIndicator_eval`: it computes `[count ≡ 0 mod p]` (Fermat).
+`linearCount_totalDegree_le_one`: the residue mod p is linear.  So per-prime layers are cheap; the OPEN wall is the
+cross-prime combination (MOD_m = ⋀ MOD_{pᵢ} over different fields) for composite m — Smolensky-strength, not settled. -/
+theorem nw_modp_indicator_totalDegree_frontier (n p : ℕ) [Fact p.Prime] :
+    (ACC0LayeredCarryDegree.modpIndicatorPoly n p).totalDegree ≤ p - 1 :=
+  ACC0LayeredCarryDegree.modpIndicator_totalDegree_le n p
+
+/-- **Layered-carry: the mod-p layer computes `[count ≡ 0 mod p]` (proved).** -/
+theorem nw_modp_indicator_eval_frontier (n p : ℕ) [Fact p.Prime] (x : Fin n → Bool) :
+    MvPolynomial.eval (fun i => ACC0LayeredCarryDegree.boolToZMod p (x i))
+        (ACC0LayeredCarryDegree.modpIndicatorPoly n p)
+      = if ACC0LayeredCarryDegree.countSum n p x = 0 then 1 else 0 :=
+  ACC0LayeredCarryDegree.modpIndicator_eval n p x
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
