@@ -324,6 +324,23 @@ So the degree (additive) route gives a quasipoly count while the exact (multipli
 `compositeBT_representation` for an actual `ACC⁰` circuit, which over a field exists only for prime-power `MOD` (the
 documented composite-`MOD` obstruction).  Formalisation of a known theorem; not open, not a new separation.
 
+### 8f. The composite-`MOD` field-gate instantiation — squarefree works, prime-power is the obstruction (171)
+
+`…ACC0CompositeMODFieldGate` resolves the gap object exactly:
+
+- **`squarefree_field_gate_instantiation`** (proved): for distinct primes `S`, the per-prime Fermat gates `modPGate p`
+  (each degree `≤ p−1`) over `∏_{p∈S} F_p` decide `MOD_{∏S}` — the low-degree field gate the BT route needs, *here*,
+  for squarefree composite modulus.
+- **`primepower_field_gate_obstruction`** (proved): for `p^e` (`e ≥ 2`), `0` and `p` share the mod-`p` residue yet
+  `MOD_{p^e}` separates them — so no `F_p` field gate of any degree computes it; `ZMod(p^e)` is not a field.  The
+  documented obstruction, not faked.
+
+So the field-gate route splits **exactly** at squarefree vs prime-power: it *exists and is low-degree* for squarefree,
+and *provably does not exist over a field* for prime-power.  This closes the loop — the BT-closure route (§8) and the
+composite-`MOD` obstruction (§7) meet here: the polynomial-method field gate is the same object, and it is the
+prime-power case that is the genuine barrier.  The full Beigel–Tarui theorem clears `p^e` by a non-low-degree-field
+mixed-radix `SYM∘AND` argument — a proven classical theorem to *formalise*, not an open problem.
+
 ---
 
 ## The four remaining routes (no small glue left)

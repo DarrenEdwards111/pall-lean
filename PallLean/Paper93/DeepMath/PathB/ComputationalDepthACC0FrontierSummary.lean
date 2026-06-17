@@ -96,6 +96,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ThresholdBTClosure
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FanInRecurrence
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndFanIn
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AdditiveCountBound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMODFieldGate
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -313,6 +314,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   gate count. compositeBT_count_quasipoly applies it to compositeBT_representation. CONTRAST: symAndSize_andTree ──
    ──   _ge — exact gate-count of a depth-d AND-tree ≥ 2^d (multiplicative blow-up) ⇒ exact form NOT quasipoly. The ────
    ──   degree route is essential; gate-poly instantiation for composite MOD = the documented prime-power barrier. ──────
+   ── COMPOSITE-MOD FIELD GATE: squarefree_compositeMOD_fieldgate_frontier — SQUAREFREE composite MOD field-gate ────────
+   ──   EXISTS low-degree: per-prime modPGate p (deg≤p-1) over ∏F_p decides MOD_{∏S} (the BT field gate, here). ─────────
+   ──   PRIME-POWER p^e: NO field gate (primepower_field_gate_obstruction: 0,p share mod-p, MOD_{p^e} separates) = ──────
+   ──   the documented obstruction (NOT faked; ZMod p^e not a field). Field-gate route splits EXACTLY squarefree/ ───────
+   ──   prime-power; full BT handles p^e via non-field mixed-radix SYM∘AND (proven classically, to formalise). ──────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1409,6 +1415,17 @@ theorem additive_count_quasipoly_frontier (n cnt δ e L E : ℕ) (hL : 1 ≤ L) 
     (hcnt : cnt ≤ (n + 1) ^ (δ ^ e)) : cnt ≤ (n + 1) ^ (L ^ E) :=
   ACC0AdditiveCountBound.count_quasipoly_of_degree_bound n cnt δ e L E hL hδ he hcnt
 
+/-- **The composite-`MOD` field-gate instantiation (proved): squarefree works low-degree, prime-power is the
+obstruction.**  For distinct primes `S`, the per-prime Fermat gates `modPGate p` (each degree `≤ p−1`) decide
+`MOD_{∏S}` over `∏_{p∈S} F_p` — the low-degree field gate the BT/polynomial-method route needs, *here* for squarefree
+composite modulus.  For prime powers `p^e` (`e≥2`) no such field gate exists (`0,p` share the mod-`p` residue yet
+`MOD_{p^e}` separates them) — the documented obstruction, not faked. -/
+theorem squarefree_compositeMOD_fieldgate_frontier (S : Finset ℕ) (hS : ∀ p ∈ S, p.Prime) (s : ℕ) :
+    (∀ p ∈ S, (ACC0CRTGatePolys.modPGate p).totalDegree ≤ p - 1)
+      ∧ ((∀ p ∈ S, MvPolynomial.eval (fun _ => (s : ZMod p)) (ACC0CRTGatePolys.modPGate p) = 1)
+          ↔ (∏ p ∈ S, p) ∣ s) :=
+  ACC0CompositeMODFieldGate.squarefree_field_gate_instantiation S hS s
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1846,6 +1863,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.fanin_depth_recurrence_quasipoly_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.acc0circuit_symAndFanIn_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.additive_count_quasipoly_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.squarefree_compositeMOD_fieldgate_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
