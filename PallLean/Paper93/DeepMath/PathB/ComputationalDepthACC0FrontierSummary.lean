@@ -169,6 +169,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CRTCarryProfile
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryCrossing
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryObserverSize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryRealization
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeCountDegree
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -742,6 +743,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   decode; Fermat degree p-1=(field size)-1 ⇒ faithful single-field realisation is degree ~N (NOT low-degree). ───
    ──   Residual barrier: low-degree exact COUNT computation for composite m (= entry-234 ApproxToExactCount / 238 ────
    ──   crossing); prime-power needs p-adic digit layers (no power indicator, 235). NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── COMPOSITE COUNT DEGREE (the formal obstruction): nw_faithful_decode_degree_ge_frontier — a field decode nonzero ─
+   ──   at one point + 0 at N count-points needs natDegree ≥ N (degree lower bound, #roots≤natDegree, like 227 SZ); ────
+   ──   nw_prime_indicator_degree_eq_frontier — prime field indicator degree EXACTLY p-1=(field size)-1. Since faithful
+   ──   needs field≥N+1 (239), field-route decode degree is Θ(N) = NOT low-degree (explains why 240's field decode too ─
+   ──   expensive). OPEN: can p-adic carry/digit LAYERS reduce degree while keeping quasipoly size? (= entry-238 ──────
+   ──   crossing). Obstruction is per-single-field-polynomial; layered route may evade — not settled. NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2811,6 +2818,21 @@ theorem nw_prime_realizes_frontier (p : ℕ) [Fact p.Prime] :
 theorem nw_pointIndicator_eval_frontier (p : ℕ) [Fact p.Prime] (a y : ZMod p) :
     (ACC0CarryRealization.pointIndicator p a).eval y = if y = a then 1 else 0 :=
   ACC0CarryRealization.pointIndicator_eval p a y
+
+/-- **Degree of exact count realisation — the formal obstruction (proved).**  `faithful_decode_degree_ge`: a field
+decode nonzero at one point and 0 at N other count-points needs natDegree ≥ N (degree lower bound via #roots ≤
+natDegree).  `prime_indicator_natDegree_eq`: the prime field indicator has degree EXACTLY p-1 = (field size)-1.  Since
+faithfulness needs field ≥ N+1 (239), the field-route decode degree is Θ(N) — NOT low-degree.  Explains why entry-240's
+field decode is too expensive; open question = can carry/digit layers reduce degree (entry-238 crossing). -/
+theorem nw_faithful_decode_degree_ge_frontier {F : Type*} [Field F] [DecidableEq F]
+    (P : Polynomial F) (b : F) (S : Finset F) (hb : P.eval b ≠ 0) (hzero : ∀ a ∈ S, P.eval a = 0) :
+    S.card ≤ P.natDegree :=
+  ACC0CompositeCountDegree.faithful_decode_degree_ge P b S hb hzero
+
+/-- **Degree obstruction: prime field indicator has degree exactly (field size)−1 (proved).** -/
+theorem nw_prime_indicator_degree_eq_frontier (p : ℕ) [Fact p.Prime] (b : ZMod p) :
+    (ACC0CarryRealization.pointIndicator p b).natDegree = p - 1 :=
+  ACC0CompositeCountDegree.prime_indicator_natDegree_eq p b
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
