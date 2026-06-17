@@ -98,6 +98,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndFanIn
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AdditiveCountBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMODFieldGate
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0EndToEndBT
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ApproxBTInstantiation
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -325,6 +326,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   (b) deg ≤ 2^(depth+1), (c) monomial count ≤ (n+1)^(2^(depth+1)) quasipoly for bounded depth, (d) sparse cube ────
    ──   sum. The concrete circuit→poly→degree+count+sum pipeline, COMPLETE & exact. Squarefree MOD gate slots in at ──────
    ──   δ=max(2,p-1). Exact route ⇒ quasipoly only for bounded depth (entry 170); poly-size needs approx low-deg gates. ─
+   ── APPROX BT (RS route): approx_BT_degree_count_frontier — the concrete RS approximant toApprox (deg≤((p-1)t)^depth, ─
+   ──   Layer3) gets, for (p-1)t≤L, depth≤D: degree ≤ L^D AND count ≤ (n+1)^(L^D). Polylog L (RS error param) + const ──
+   ──   D ⇒ POLYLOG DEGREE + QUASIPOLY COUNT for EVERY const-depth circuit (upgrades 172's bounded-depth-only). ─────────
+   ──   Assembled from toApprox_totalDegree_le + support_mem_lowDeg + beigelTarui_monomial_count_le + 170 arithmetic. ────
+   ──   Bounded-error half = existing RS machinery (orApprox_error_rate/circuit_error_bound), cited not faked. AC⁰[p]. ──
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1453,6 +1459,19 @@ theorem endToEnd_BT_frontier {R : Type*} [CommRing R] [Nontrivial R] {n : ℕ}
               (ACC0SubstitutionPoly.subst c).coeff d * (2 : R) ^ (n - d.support.card) :=
   ACC0EndToEndBT.endToEnd_BT c
 
+/-- **Approximate BT instantiation (proved): polylog degree, quasipoly count — the RS route.**  The concrete RS
+approximant `toApprox p t R C` (degree `≤ ((p−1)·t)^{depth}`, `…Layer3`) has, for `(p−1)·t ≤ L` and `depth ≤ D`, total
+degree `≤ L^D` and monomial-support count `≤ (n+1)^{L^D}` — for polylog `L` (the RS error parameter) and constant `D`,
+**degree polylog and count quasipoly** for *every* constant-depth circuit (upgrading entry 172's exact bounded-depth
+bound).  The bounded-error half is the existing RS probabilistic machinery (`orApprox_error_rate`/`circuit_error_bound`,
+cited, not re-proved). -/
+theorem approx_BT_degree_count_frontier {n : ℕ} (p t : ℕ) [Fact p.Prime] (ht : 1 ≤ t)
+    (R : (k : ℕ) → Fin t → Fin k → ZMod p) (C : BoolCircuitSyntax n) (L D : ℕ)
+    (hL : 1 ≤ L) (hK : (p - 1) * t ≤ L) (hdepth : C.depth ≤ D) :
+    (Layer3.toApprox p t R C).totalDegree ≤ L ^ D
+      ∧ ((Layer3.toApprox p t R C).support.image (fun d => d.support)).card ≤ (n + 1) ^ (L ^ D) :=
+  ACC0ApproxBTInstantiation.approx_endToEnd_BT p t ht R C L D hL hK hdepth
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1892,6 +1911,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.additive_count_quasipoly_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.squarefree_compositeMOD_fieldgate_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.endToEnd_BT_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.approx_BT_degree_count_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment

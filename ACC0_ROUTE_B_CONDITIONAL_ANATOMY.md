@@ -357,6 +357,22 @@ exactly.  Being the *exact* representation, the count is quasipoly only for boun
 quasipoly count for all poly-size circuits needs the *approximate* low-degree gates, and the squarefree `MOD` gate of
 §8f slots in at `δ = max(2, p−1)`.  Formalisation of a known theorem; not open, not a new separation.
 
+### 8h. The approximate route — polylog degree, quasipoly count (172 → BT proper) (173)
+
+`…ACC0ApproxBTInstantiation` does step (a): the upgrade from exact to the Razborov–Smolensky probabilistic approximant,
+which keeps the degree *polylog* (not `2^{depth+1}`) so the count is genuinely quasipoly for all constant-depth
+circuits.  It assembles the proved RS pieces (`…Layer3.toApprox`, degree `≤ ((p−1)·t)^{depth}` by
+`toApprox_totalDegree_le`) with the sparse-count machinery:
+
+- **`toApprox_monomial_count_le`** (proved): count `≤ (n+1)^{((p−1)·t)^{depth}}`.
+- **`approx_endToEnd_BT`** (proved): for `(p−1)·t ≤ L`, `depth ≤ D`: degree `≤ L^D` and count `≤ (n+1)^{L^D}` — polylog
+  degree, quasipoly count for polylog `L` and constant `D`.
+
+The bounded-error half is the existing RS probabilistic machinery (`orApprox_error_rate`/`circuit_error_bound`/
+`exists_form_few_errors`), cited not faked.  This is the prime-`p` (`AC⁰[p]`) route; squarefree composite runs it per
+prime over `∏ F_p`, and prime-power `MOD` is the proven field obstruction handled by step (b).  Formalisation of
+Beigel–Tarui (proven classically); not open, not a new separation.
+
 ---
 
 ## The four remaining routes (no small glue left)
