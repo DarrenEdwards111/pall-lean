@@ -171,6 +171,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryObserverSize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryRealization
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeCountDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LayeredCarryDegree
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CrossFieldCombination
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -756,6 +757,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   FINDING (honest middle, no crossing/no-go): per-prime layers are LOW-degree (good news for layers); the OPEN ──
    ──   wall = cross-prime combination MOD_m=⋀MOD_{pᵢ} over different fields for composite m (Smolensky-strength, ──────
    ──   = entry-238 crossing). Not settled. NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── CROSS-FIELD COMBINATION (the structural ROOT of the Smolensky wall): nw_no_common_char_frontier — no field is ───
+   ──   both char p and char q (CharP.eq) ⇒ per-prime indicators can't natively share a field; other_prime_unit (in ──
+   ──   F_p, q↦unit, p↦0); nw_reduction_blind_frontier (counts equal mod p can differ mod q ⇒ decode-through-count-mod-p
+   ──   can't compute MOD_q). These PROVE the ROOT of why cross-field combination fails. The degree lower bound (MOD_q ─
+   ──   not low-degree over F_p, q≠p) = SMOLENSKY's deep theorem = the open wall, NOT proved, NOT crossed, NOT faked. ──
+   ──   NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2856,6 +2863,20 @@ theorem nw_modp_indicator_eval_frontier (n p : ℕ) [Fact p.Prime] (x : Fin n �
         (ACC0LayeredCarryDegree.modpIndicatorPoly n p)
       = if ACC0LayeredCarryDegree.countSum n p x = 0 then 1 else 0 :=
   ACC0LayeredCarryDegree.modpIndicator_eval n p x
+
+/-- **Cross-field combination: the structural root of the wall (proved).**  `no_common_char`: no field is both char p
+and char q (distinct primes) — the per-prime indicators can't natively share a field.  `other_prime_unit`: in F_p the
+other prime q↦unit while p↦0 (characteristic privileges its own prime).  `reduction_blind_to_other_prime`: counts equal
+mod p can differ mod q, so a decode through count-mod-p can't compute MOD_q.  These are the ROOT of why cross-field
+combination fails; the degree lower bound (MOD_q not low-degree over F_p) is Smolensky's deep open theorem (NOT proved). -/
+theorem nw_no_common_char_frontier (F : Type*) [Field F] (p q : ℕ) (hpq : p ≠ q)
+    (h1 : CharP F p) (h2 : CharP F q) : False :=
+  ACC0CrossFieldCombination.no_common_char F p q hpq h1 h2
+
+/-- **Cross-field: the mod-p reduction is blind to mod-q (proved).** -/
+theorem nw_reduction_blind_frontier (p q : ℕ) [Fact p.Prime] (hq : q.Prime) (hpq : p ≠ q) :
+    ∃ k k' : ℕ, (k : ZMod p) = (k' : ZMod p) ∧ k % q ≠ k' % q :=
+  ACC0CrossFieldCombination.reduction_blind_to_other_prime p q hq hpq
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
