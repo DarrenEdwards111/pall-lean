@@ -146,6 +146,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GateEncoding
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RSPointwiseComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RSSupplyToExact
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MajSymAnd
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RouteAClosure
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -612,6 +613,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   collapses to a SINGLE SYM∘AND. HONEST: size MULTIPLICATIVE = EXPONENTIAL in #gates — exact-but-exponential, ───
    ──   NOT quasipoly. The majority route ≠ the quasipoly route: BT's quasipoly single SYM∘AND is the DIRECT low-deg ──
    ──   route (203 btQuasipolyCollapse ← 204 RS degree), not majority-of-approximants. Documents the divergence. NOT P≠NP.
+   ── STEP 3 via ROUTE A: nw_routeA_quasipoly_frontier + nw_routeA_btClosure_to_NEXP_frontier — the QUASIPOLY BT ───────
+   ──   closure plugged into Williams. routeA_quasipoly: AC⁰[p] circuit ⇒ quasipoly SYM∘AND (entry-203 btDepthCollapse ─
+   ──   ∘ entry-204 accToLowDeg_via_rs, modulo span bridge). routeA_btClosure_to_NEXP: proved Route-A closure → entry- ─
+   ──   166 chain ⇒ ¬NEXPC from Williams sockets. The OPERATIVE quasipoly path (vs exponential majority route 217). ───
+   ──   2nd independent (HasSymAndFormFanIn-based) BT-closure discharge, parallel to toAgree-based 179. NOT P≠NP. ──────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2359,6 +2365,27 @@ theorem nw_majSymAnd_collapse_frontier {n : ℕ} (gs : List ((Fin n → Bool) �
     ACC0MajSymAnd.IsSymAnd (fun x => G (gs.map (fun g => g x))) :=
   ACC0MajSymAnd.isSymAnd_list gs hgs G
 
+/-- **Step 3 via Route A (proved): the quasipolynomial BT closure plugged into the Williams chain.**
+`routeA_quasipoly`: an `AC⁰[p]` circuit has a quasipolynomial `SYM∘AND` (entry-203 `btDepthCollapse` ∘ entry-204
+`accToLowDeg_via_rs`, modulo the span bridge).  `routeA_btClosure_to_NEXP`: plugs the proved Route-A closure into the
+entry-166 chain ⇒ `¬ NEXPC` from the Williams sockets.  This is the *quasipolynomial* route (vs the exponential
+majority route, entry 217). -/
+theorem nw_routeA_quasipoly_frontier {n : ℕ} (C : BoolCircuitSyntax n) (p t : ℕ) [Fact p.Prime]
+    (ht : 1 ≤ t) (hn : 1 ≤ n)
+    (hmod : ∀ q r cs, (BoolCircuitSyntax.modGate q r cs : BoolCircuitSyntax n) ∈ Layer3.subcircuits C → q = p)
+    (hsize : 4 * (Layer3.subcircuits C).toFinset.card ≤ p ^ t)
+    (bridge : ACC0BTRSConnection.SpanApproxToLowDegRep C p t) :
+    ∃ m, ACC0SymAndFanIn.HasSymAndFormFanIn (fun x => C.eval x) m (((p - 1) * t) ^ C.depth)
+      ∧ m ≤ (((p - 1) * t) ^ C.depth + 1) * n ^ (((p - 1) * t) ^ C.depth) :=
+  ACC0RouteAClosure.routeA_quasipoly C p t ht hn hmod hsize bridge
+
+theorem nw_routeA_btClosure_to_NEXP_frontier (p t : ℕ) [Fact p.Prime] (ht : 1 ≤ t)
+    {BTQuasi ACC0Speed NEXPC Collapse : Prop}
+    (closure_to_quasi : ACC0RouteAClosure.RouteAClosure p t → BTQuasi)
+    (quasi_to_speed : BTQuasi → ACC0Speed)
+    (williams : ACC0Speed → NEXPC → Collapse) (hierarchy : ¬ Collapse) : ¬ NEXPC :=
+  ACC0RouteAClosure.routeA_btClosure_to_NEXP p t ht closure_to_quasi quasi_to_speed williams hierarchy
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2846,6 +2873,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_circuit_perpoint_3_4_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_supply_to_exact_majority_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_majSymAnd_collapse_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_routeA_btClosure_to_NEXP_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
