@@ -119,6 +119,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonGener
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonLowIntersection
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonHybrid
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonYao
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonReconstruction
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -451,6 +452,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   any gap |y−x| realised by a=y,c=2x−y. yaoPredictor_discharge DISCHARGES the entry-192 YaoPredictor socket: ─────
    ──   adjacent advantage ε/m≤|f(i+1)−f i| ⇒ block i with predictor success ≥1/2+ε/m. Proves Yao's ARITHMETIC engine; -
    ──   residual YaoCircuitEfficiency socket = predictor realisable as SMALL circuit (model-dependent). NOT P≠NP. ──────
+   ── NW RECONSTRUCTION: nw_reconstruction_size_frontier + nw_reconstruction_discharge_frontier — PROVES the hardwiring
+   ──   SIZE ACCOUNTING: reconstructed circuit (predictor + tables for other numOther blocks, each <k shared bits ⇒ ────
+   ──   table 2^{r j}≤2^k by entry-192 low_intersection_table_card) has size ≤predictorSize+numOther·2^k (sum_le_sum + ─
+   ──   sum_const). reconstruction_poly: 2^k≤B ⇒ size ≤predictorSize+numOther·B = poly when k=O(log m). reconstruction_
+   ──   socket_discharge DISCHARGES the entry-192 Reconstruction socket (ReconDesign=∀j,r j<k = entry-191 low-int). ────
+   ──   Residual ReconstructionCorrectness socket = assembled circuit COMPUTES f (model-dependent). NOT P≠NP. ──────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1837,6 +1844,25 @@ theorem nw_yaoPredictor_discharge_frontier (f : ℕ → ℝ) (m : ℕ) (ε : ℝ
       (ACC0NisanWigdersonYao.YaoNextBitPredictor f m ε) :=
   ACC0NisanWigdersonYao.yaoPredictor_discharge f m ε
 
+/-- **NW reconstruction — the hardwiring size accounting (proved).**  `reconstruction_total_size_le`: the reconstructed
+circuit (predictor + hardwired tables for the other `numOther` blocks, each `< k` shared bits ⇒ table `≤ 2^k`) has size
+`≤ predictorSize + numOther · 2^k` — polynomial when `k = O(log m)`.  `reconstruction_socket_discharge` discharges the
+entry-192 `Reconstruction` socket for the concrete size-carrying predicate. -/
+theorem nw_reconstruction_size_frontier (predictorSize numOther k : ℕ) (r : Fin numOther → ℕ)
+    (hr : ∀ j, r j < k) :
+    predictorSize + ∑ j, Fintype.card (Fin (r j) → Bool) ≤ predictorSize + numOther * 2 ^ k :=
+  ACC0NisanWigdersonReconstruction.reconstruction_total_size_le predictorSize numOther k r hr
+
+theorem nw_reconstruction_discharge_frontier (predictorSize numOther k : ℕ) (r : Fin numOther → ℕ)
+    (ComputesF : Prop) :
+    ACC0NisanWigdersonHybrid.Reconstruction
+      (ACC0NisanWigdersonReconstruction.ReconNextBit predictorSize ComputesF)
+      (ACC0NisanWigdersonReconstruction.ReconDesign numOther k r)
+      (ACC0NisanWigdersonReconstruction.SmallCircuitForFAt ComputesF
+        (predictorSize + ∑ j, Fintype.card (Fin (r j) → Bool))
+        (predictorSize + numOther * 2 ^ k)) :=
+  ACC0NisanWigdersonReconstruction.reconstruction_socket_discharge predictorSize numOther k r ComputesF
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2297,6 +2323,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_low_intersection_design_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_hybrid_advantage_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_yaoPredictor_discharge_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reconstruction_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
