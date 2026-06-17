@@ -114,6 +114,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalDecodePhas
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalReencodePhase
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FastSATVerifier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsContradiction
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IKWNisanWigderson
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -419,6 +420,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   guess-verify/NW gv + hierarchy. Composes the proved Williams glue (nexp_not_acc0_from_witness_parts) w/ the ─────
    ──   closure-supplied speedup. Reduces NEXP⊄ACC⁰ to {BT closure (proved), closure→speedup, IKW, NW, hierarchy}. ──────
    ──   The 4 deep ingredients = proven-classical sockets (Williams/IKW/NW/time-hierarchy). FINAL Williams capstone. ────
+   ── IKW REFINED (NW exposed): ikw_nw_hardFnSeparation_frontier — entry-150 IKW socket HardFnSeparation (hard fn ⇒ ────
+   ──   ¬(NEXP⊆ACC⁰)) refines into NW derandomisation (nw: HardFunction→Derandomization) + Karp–Lipton collapse (kl: ───
+   ──   Derandomization→¬(NEXP⊆ACC⁰)); hardFnSeparation_from_NW proves HardFnSeparation = kl∘nw (NO axioms). So IKW now ─
+   ──   names NW explicitly. 3 classical sub-sockets (no-easy⇒hard, NW, Karp–Lipton), each a proven classical thm. ─────
+   ──   Refines the IKW socket; does NOT prove IKW/NW. NOT P≠NP. ───────────────────────────────────────────────────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1753,6 +1759,18 @@ theorem williams_contradiction_frontier
     ¬ (NEXP ⊆ ACC0) :=
   ACC0WilliamsContradiction.williams_contradiction closure_to_speedup hClosure ew gv hierarchy
 
+/-- **IKW refined — the Nisan–Wigderson derandomisation exposed (proved glue).**  The entry-150 IKW socket
+`HardFnSeparation` (hard fn ⇒ `¬(NEXP⊆ACC⁰)`) refines into the NW derandomisation (`nw : HardFunction →
+Derandomization`) + the Karp–Lipton collapse (`kl : Derandomization → ¬(NEXP⊆ACC⁰)`): `hardFnSeparation_from_NW` proves
+`HardFnSeparation` from them.  So the IKW chain now names NW explicitly; the three classical pieces (no-easy-witness ⇒
+hardness, NW, Karp–Lipton) remain named sub-sockets. -/
+theorem ikw_nw_hardFnSeparation_frontier (NEXP ACC0 : ACC0WilliamsMetaTheorem.CClass)
+    (HardFunction Derandomization : Prop)
+    (nw : ACC0IKWNisanWigderson.NWDerandomization HardFunction Derandomization)
+    (kl : ACC0IKWNisanWigderson.DerandKarpLiptonSeparation NEXP ACC0 Derandomization) :
+    ACC0IKWEasyWitness.HardFnSeparation NEXP ACC0 HardFunction :=
+  ACC0IKWNisanWigderson.hardFnSeparation_from_NW NEXP ACC0 HardFunction Derandomization nw kl
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2208,6 +2226,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.universal_step_complete_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.fast_sat_beats_bruteforce_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.williams_contradiction_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.ikw_nw_hardFnSeparation_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
