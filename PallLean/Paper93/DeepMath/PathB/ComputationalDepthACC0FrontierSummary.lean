@@ -131,6 +131,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CollapseIngredients
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0HierarchyWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ConcreteTMRun
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndPool
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTDepthCollapse
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -519,6 +520,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ── BT ADDITIVE POOL: nw_symAnd_pool_frontier — pooling 2 monomial families into ONE symmetric gate ⇒ ADDITIVE size ─
    ──   card ι₁+card ι₂ (vs multiplicative tree merge). FanInStaysPolylog additive bottom layer. Depth-collapse socketed.
    ──   All four: NOT P≠NP. ─────────────────────────────────────────────────────────────────────────────────────────
+   ── BT DEPTH-COLLAPSE: nw_btQuasipolyCollapse_frontier + nw_btDepthCollapse_frontier — the QUASIPOLYNOMIAL collapse ─
+   ──   (vs the exponential multiplicative acc0circuit_hasSymAndFormFanIn). HEART (proved): a degree-≤D representation ─
+   ──   (LowDegRep, RS form) = SYM∘AND of size m ≤ (D+1)·n^D — low degree ⇒ few monomials (monomial_count_le + ────────
+   ──   lowDegMonomialCount_le_pow). btDepthCollapse: RS socket AccToLowDeg (depth-d ACC⁰[p] ⇒ degree-((p−1)t)^d rep) ─
+   ──   ⇒ quasipoly SYM∘AND size ≤ (((p−1)t)^d+1)·n^((p−1)t)^d = n^polylog for const d, polylog t. RS approximation ───
+   ──   (circuit ⇒ low degree, probabilistic polynomial method) socketed. NOT P≠NP. ──────────────────────────────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2071,6 +2078,22 @@ theorem nw_symAnd_pool_frontier {n : ℕ} {ι1 ι2 : Type} [Fintype ι1] [Fintyp
       (Fintype.card ι1 + Fintype.card ι2) w :=
   ACC0SymAndPool.hasSymAndFormFanIn_pool mono1 mono2 h hw1 hw2
 
+/-- **BT depth-collapse — low degree ⇒ quasipolynomial `SYM∘AND` (proved), RS approximation socketed.**
+`btQuasipolyCollapse`: a degree-`≤D` representation has a `SYM∘AND` form of quasipolynomial size `m ≤ (D+1)·n^D` (the
+combinatorial heart: low-degree ⇒ few monomials).  `btDepthCollapse` composes it with the RS socket (`AccToLowDeg`: a
+depth-`d` `ACC⁰[p]` circuit has a degree-`((p−1)·t)^d` representation) to give the quasipolynomial `SYM∘AND` normal
+form. -/
+theorem nw_btQuasipolyCollapse_frontier {n D : ℕ} (f : (Fin n → Bool) → Bool)
+    (hrep : ACC0BTDepthCollapse.LowDegRep f D) (hn : 1 ≤ n) :
+    ∃ m, ACC0SymAndFanIn.HasSymAndFormFanIn f m D ∧ m ≤ (D + 1) * n ^ D :=
+  ACC0BTDepthCollapse.btQuasipolyCollapse f hrep hn
+
+theorem nw_btDepthCollapse_frontier {n : ℕ} (f : (Fin n → Bool) → Bool) (p t d : ℕ) (hn : 1 ≤ n)
+    (hrs : ACC0BTDepthCollapse.AccToLowDeg f p t d) :
+    ∃ m, ACC0SymAndFanIn.HasSymAndFormFanIn f m (((p - 1) * t) ^ d) ∧
+      m ≤ (((p - 1) * t) ^ d + 1) * n ^ (((p - 1) * t) ^ d) :=
+  ACC0BTDepthCollapse.btDepthCollapse f p t d hn hrs
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2543,6 +2566,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_witness_nexpNeqNp_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_flip_accepts_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_symAnd_pool_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_btDepthCollapse_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
