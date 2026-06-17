@@ -143,6 +143,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ChernoffDecay
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SupplyConstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RSPerPoint
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GateEncoding
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RSPointwiseComposition
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -594,6 +595,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   little thm, ZMod.pow_card_sub_one_eq_one). orApprox x S := (∑_{i∈S} x i)^(p-1); orApprox_eq_one_iff (=1 ⟺ ─────
    ──   sum≠0); orApprox_zero (no false positive on OR=0); orApprox_detection (entry-213 bound on the gate). Residual: ─
    ──   RS circuit COMPOSITION across constant depth. Pure ZMod p/Finset, Fermat. NOT P≠NP. ────────────────────────────
+   ── POINTWISE RS COMPOSITION: nw_circuit_perpoint_3_4_frontier — the LAST BT-side structural bridge (PROVED). ────────
+   ──   single-gate per-point ≥3/4 (214) ⇒ whole constant-depth circuit per-input ≥3/4 supply. circuit_perpoint_3_4: ──
+   ──   Composes (circuit wrong ⇒ some gate wrong) + per-gate #{σ|gate g wrong at x}≤M + 4·(G·M)≤|Seed| ⇒ ─────────────
+   ──   3·|Seed| ≤ 4·#{correct at x} (≥3/4 at EVERY input = Uniform34). UNION BOUND over G gates (card_biUnion_le) + ──
+   ──   counting. Residual: Composes (gate-substitution semantics). Pure Finset, no measure theory. NOT P≠NP. ─────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2309,6 +2315,18 @@ theorem nw_orApprox_detection_frontier {p : ℕ} [Fact p.Prime] {s : ℕ}
       ACC0GateEncoding.orApprox x S = 1)).card :=
   ACC0GateEncoding.orApprox_detection x j hj
 
+/-- **Pointwise RS composition (proved) — the last BT-side structural bridge.**  `circuit_perpoint_3_4`: given the
+gate-composition (`Composes`: circuit wrong ⇒ some gate wrong), a per-gate per-point bound (`#{σ | gate g wrong at x} ≤
+M`), and `4·(G·M) ≤ |Seed|`, the whole constant-depth circuit is correct on `≥3/4` of seeds at *every* input
+(`3·|Seed| ≤ 4·#{correct at x}`) — the `Uniform34` per-input `3/4` supply, via a union bound over the `G` gates. -/
+theorem nw_circuit_perpoint_3_4_frontier {I Seed γ : Type*} [Fintype Seed] [Fintype γ]
+    (gateWrong : γ → I → Seed → Prop) (circuitWrong : I → Seed → Prop) (M : ℕ)
+    (hcomp : ACC0RSPointwiseComposition.Composes gateWrong circuitWrong)
+    (hgate : ∀ g x, (Finset.univ.filter (fun σ => gateWrong g x σ)).card ≤ M)
+    (hbound : 4 * (Fintype.card γ * M) ≤ Fintype.card Seed) (x : I) :
+    3 * Fintype.card Seed ≤ 4 * (Finset.univ.filter (fun σ => ¬ circuitWrong x σ)).card :=
+  ACC0RSPointwiseComposition.circuit_perpoint_3_4 gateWrong circuitWrong M hcomp hgate hbound x
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2793,6 +2811,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_exists_good_tuple_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_rs_detection_three_quarters_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_orApprox_detection_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_circuit_perpoint_3_4_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
