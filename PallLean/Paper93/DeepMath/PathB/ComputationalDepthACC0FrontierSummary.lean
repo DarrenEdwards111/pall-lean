@@ -113,6 +113,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalLookupPhas
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalDecodePhase
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalReencodePhase
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FastSATVerifier
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsContradiction
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -413,6 +414,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   for polylog D, unconditional in k); if that work < 2^n the verifier examines < 2^n cells = FASTER THAN ─────────
    ──   BRUTE FORCE. Packages the verifier RUNTIME (quasipoly work) on top of WilliamsFastSat's savings/correctness. ────
    ──   Williams mountain 2/3. Remaining: uniform realization (= separation-strength socket) + IKW/NW. NOT P≠NP. ───────
+   ── WILLIAMS CONTRADICTION (3/3, NO axioms): williams_contradiction_frontier — ¬(NEXP⊆ACC⁰) from BT closure ──────────
+   ──   hClosure (proved AC⁰[p], 179) → closure_to_speedup (BT→fast-SAT, 179/187+uniform realization) + IKW ew + ───────
+   ──   guess-verify/NW gv + hierarchy. Composes the proved Williams glue (nexp_not_acc0_from_witness_parts) w/ the ─────
+   ──   closure-supplied speedup. Reduces NEXP⊄ACC⁰ to {BT closure (proved), closure→speedup, IKW, NW, hierarchy}. ──────
+   ──   The 4 deep ingredients = proven-classical sockets (Williams/IKW/NW/time-hierarchy). FINAL Williams capstone. ────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1731,6 +1737,22 @@ theorem fast_sat_beats_bruteforce_frontier {n m D : ℕ}
         (fun j x => ACC0PolyToSymAnd.monoAND (mono j) x))).card < 2 ^ n :=
   ACC0FastSATVerifier.fast_sat_beats_bruteforce mono h hinj hdeg hn hquasi
 
+/-- **The Williams contradiction (proved as glue, NO axioms): `NEXP ⊄ ACC⁰` from the BT closure + the deep sockets.**
+Given the BT closure `hClosure : DynamicClosesAtBT` (proved for AC⁰[p], entry 179) bridged to the `ACC⁰`-SAT speedup
+(`closure_to_speedup`, the BT → fast-SAT route 179/187 + uniform realization), the IKW easy-witness lemma (`ew`),
+guess-and-verify/NW (`gv`), and the nondeterministic time hierarchy (`hierarchy`), we get `¬ (NEXP ⊆ ACC⁰)`.  Composes
+the proved Williams glue with the closure-supplied speedup; the four deep ingredients are the named classical sockets. -/
+theorem williams_contradiction_frontier
+    {NEXP ACC0 NTIME2n NTIME2nFast : ACC0WilliamsMetaTheorem.CClass}
+    {DynamicClosesAtBT ACC0SatSpeedup SmallWitnessCircuits : Prop}
+    (closure_to_speedup : DynamicClosesAtBT → ACC0SatSpeedup)
+    (hClosure : DynamicClosesAtBT)
+    (ew : ACC0EasyWitness.EasyWitnessLemma NEXP ACC0 SmallWitnessCircuits)
+    (gv : ACC0EasyWitness.GuessVerify NTIME2n NTIME2nFast ACC0SatSpeedup SmallWitnessCircuits)
+    (hierarchy : ACC0WilliamsMetaTheorem.NondetTimeHierarchy NTIME2n NTIME2nFast) :
+    ¬ (NEXP ⊆ ACC0) :=
+  ACC0WilliamsContradiction.williams_contradiction closure_to_speedup hClosure ew gv hierarchy
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2185,6 +2207,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.universal_decode_phase_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.universal_step_complete_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.fast_sat_beats_bruteforce_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.williams_contradiction_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
