@@ -166,6 +166,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ApproxToExact
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryInvariant
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0KummerCarry
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CRTCarryProfile
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryCrossing
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -721,6 +722,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   via Nat.disjoint_primeFactors); carryProfile_mul (CRT decomposition: profile over a·b = join of profiles over a,
    ──   b, via primeFactors_mul — matches entry-235 ZMod(ab)≃ZMod a×ZMod b). Conservative; characterises which prime ──
    ──   layers the mod-m observer is blind to; does NOT cross the composite barrier. NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── CARRY-REFINEMENT CROSSING (NAMED SOCKET = the open ACC⁰[m] wall, documented): scaffolding PROVED — ─────────────
+   ──   fieldObs_carry_blind (fieldObs p (k+p)=fieldObs p k, field count-observer carry-blind); fieldObs_not_injective;
+   ──   lowDegRep_of_observer (a count observer+decode through which f factors w/ low-deg injective monomials ⇒ ───────
+   ──   LowDegRep — crossing reduces to a CARRY-FAITHFUL such observer for composite m). CarryRefinementCrossing ──────
+   ──   approxHyp f D := approxHyp → LowDegRep f D (the named open crossing); lowDegRep_of_crossing discharges barrier.
+   ──   NOT proved = the open separation-strength wall (crossing it = composite ACC⁰[m]). NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2742,6 +2749,25 @@ theorem nw_crt_carryProfile_mul_frontier (a b n k : ℕ) (ha : a ≠ 0) (hb : b 
     ACC0CRTCarryProfile.CarryProfileTrivial (a * b) n k ↔
       ACC0CRTCarryProfile.CarryProfileTrivial a n k ∧ ACC0CRTCarryProfile.CarryProfileTrivial b n k :=
   ACC0CRTCarryProfile.carryProfile_mul a b n k ha hb
+
+/-- **Carry-refinement crossing condition (NAMED SOCKET — the open ACC⁰[m] barrier, documented).**  Scaffolding PROVED:
+`fieldObs_carry_blind` (`fieldObs p (k+p)=fieldObs p k` — the field count-observer is carry-blind);
+`fieldObs_not_injective` (can't recover the exact count); `lowDegRep_of_observer` (a count observer+decode through which
+`f` factors, with low-degree injective monomials, already gives LowDegRep — so crossing reduces to a carry-faithful such
+observer for composite m).  `CarryRefinementCrossing approxHyp f D := approxHyp → LowDegRep f D` is the named open
+crossing; `lowDegRep_of_crossing` shows it discharges the barrier.  NOT proved (= the open separation-strength wall). -/
+theorem nw_lowDegRep_of_observer_frontier {n D M : ℕ} (f : (Fin n → Bool) → Bool)
+    (mono : Fin M → Finset (Fin n)) (hinj : Function.Injective mono) (hdeg : ∀ j, (mono j).card ≤ D)
+    {β : Type} (obs : ℕ → β) (dec : β → Bool)
+    (hf : ∀ x, f x = dec (obs (ACC0YBTExactCompose.saCount mono x))) :
+    ACC0BTDepthCollapse.LowDegRep f D :=
+  ACC0CarryCrossing.lowDegRep_of_observer f mono hinj hdeg obs dec hf
+
+/-- **Carry-refinement crossing socket discharges the barrier (proved conditional).** -/
+theorem nw_lowDegRep_of_crossing_frontier (approxHyp : Prop) {n : ℕ} (f : (Fin n → Bool) → Bool) (D : ℕ)
+    (cross : ACC0CarryCrossing.CarryRefinementCrossing approxHyp f D) (ha : approxHyp) :
+    ACC0BTDepthCollapse.LowDegRep f D :=
+  ACC0CarryCrossing.lowDegRep_of_crossing approxHyp f D cross ha
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
