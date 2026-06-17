@@ -275,6 +275,22 @@ So both *size factors* of the BT bound are proved; the wall is refined to the si
 — the Beigel–Tarui mixed-radix depth reduction (fan-in stays polylog under `ACC⁰` composition), a known theorem whose
 full formalisation over arbitrary-depth `ACC⁰` is the large remaining work.  We do not prove it.
 
+### 8c. The depth induction — `FanInStaysPolylog` reduced to one per-layer merge (168)
+
+`…ACC0FanInRecurrence` carries out the "induct over circuit depth" step.  With `fanInAtDepth b factor d := factor^d · b`:
+
+- **`fanin_bounded_by_recurrence`** (proved): the per-layer merge `layerFanIn (d+1) ≤ factor · layerFanIn d` iterates
+  to `layerFanIn d ≤ factor^d · b` (induction on depth).
+- **`fanInAtDepth_le`** (proved): for `factor ≤ L`, `d ≤ D`, this is `≤ L^D · b` — polylog for *constant* depth `D` and
+  polylog `L, b`.  Constant depth is what keeps it polylog.
+- **`quasipoly_feature_count_of_layer_merge`** (proved, chains to §8b): the per-layer merge + constant depth ⇒ bottom
+  AND-feature count `≤ (n+1)^{L^D·b}` (quasipoly).
+
+So `FanInStaysPolylog` is now reduced to **a single per-layer merge** `hstep` — that composing a gate's children's
+`SYM∘AND` forms multiplies the bottom fan-in by only a polylog factor.  That per-layer merge is the genuine
+Beigel–Tarui mixed-radix step; it is a *theorem* (BT and Williams are proven classically), and its full Lean proof over
+a concrete `ACC⁰` gate datatype is the substantial remaining formalisation.  The depth induction around it is proved.
+
 ---
 
 ## The four remaining routes (no small glue left)

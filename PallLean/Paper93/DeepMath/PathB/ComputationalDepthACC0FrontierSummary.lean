@@ -93,6 +93,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountCarrySymmetric
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DynamicObserverSelection
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTClosureFrontier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ThresholdBTClosure
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FanInRecurrence
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -295,6 +296,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   (linear SYM top ≤n+1, symmetric_observer_state_le) × (quasipoly AND-feature layer ≤(n+1)^D, ──────────────────────
    ──   beigelTarui_monomial_count_le) — both PROVED — held by FanInStaysPolylog (fan-in preserved under ACC⁰ depth = ──
    ──   the BT depth-reduction, the ONE remaining socket). Splits the wall into 2 proved factors + 1 concrete lemma. ────
+   ── FAN-IN DEPTH RECURRENCE: fanin_depth_recurrence_quasipoly_frontier — the DEPTH INDUCTION (induct over circuit ─────
+   ──   depth). fanInAtDepth b factor d = factor^d·b; per-layer merge (layerFanIn(k+1)≤factor·layerFanIn k = hstep, ──────
+   ──   the ONE socket) iterates ⇒ fan-in ≤ L^D·b (polylog for const depth D, polylog L,b). Chains to 167's quasipoly ──
+   ──   feature count ≤(n+1)^{L^D·b}. Reduces FanInStaysPolylog to the single per-layer BT mixed-radix merge. PROVED ────
+   ──   induction; per-layer merge socketed (a thm, large to formalise; not P≠NP, not even open — Williams/BT proven). ──
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1358,6 +1364,20 @@ theorem thresholdBT_quasipoly_of_fanin_preservation_frontier (n D w : ℕ)
     (Layer3.lowDegMonomials n w).card ≤ (n + 1) ^ D :=
   ACC0ThresholdBTClosure.quasipoly_BT_observer_of_fanin_preservation n D w hfan
 
+/-- **Fan-in depth recurrence: the depth induction reduces `FanInStaysPolylog` to one per-layer merge (proved).**
+If each `ACC⁰` layer multiplies the AND fan-in by `≤ factor ≤ L` (`hstep`, the per-layer Beigel–Tarui merge — the one
+remaining socket) from base `≤ b`, then after `d ≤ D` layers the bottom AND-feature count is `≤ (n+1)^{L^D·b}` —
+quasipoly for polylog `L,b` and constant depth `D`.  Proves the "induct over circuit depth" step; the per-layer merge
+`hstep` is the genuine BT mixed-radix content (a theorem, large to formalise; not proved). -/
+theorem fanin_depth_recurrence_quasipoly_frontier
+    (n b factor L D d : ℕ) (layerFanIn : ℕ → ℕ)
+    (hL : 1 ≤ L) (hf : factor ≤ L) (hd : d ≤ D)
+    (h0 : layerFanIn 0 ≤ b)
+    (hstep : ∀ k, layerFanIn (k + 1) ≤ factor * layerFanIn k) :
+    (Layer3.lowDegMonomials n (layerFanIn d)).card ≤ (n + 1) ^ (L ^ D * b) :=
+  ACC0FanInRecurrence.quasipoly_feature_count_of_layer_merge n b factor L D d layerFanIn
+    hL hf hd h0 hstep
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1792,6 +1812,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.dynamicObserver_refines_modp_to_padic_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.dynamicClosure_to_NEXP_not_ACC0_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.thresholdBT_quasipoly_of_fanin_preservation_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.fanin_depth_recurrence_quasipoly_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
