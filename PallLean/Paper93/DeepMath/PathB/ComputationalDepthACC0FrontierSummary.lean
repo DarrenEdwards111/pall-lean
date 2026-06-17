@@ -135,6 +135,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTDepthCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTRSConnection
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountModP
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Amplification
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SpanExtract
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -545,6 +546,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   partition); maj_exact (∀x >half of family correct ⇒ MajVote g = f EXACTLY). exact_from_majorityGood: ──────────
    ──   MajorityGoodFamily (residual probabilistic socket: such a family EXISTS — Chernoff+union bound) ⇒ exact ────────
    ──   majority rep. Residuals: probabilistic existence + MAJ∘SYM∘AND closure. Proves the skeleton, not them. NOT P≠NP.
+   ── SPAN EXTRACTION: nw_span_eval_weightedCount_frontier — F_p-span ⇒ explicit count-mod-p multiplicities (PROVED). ─
+   ──   squarefree_eq_monoAND_ind: ∏_{i∈S} boolToZMod(x_i) = monoAND indicator. span_eval_weightedCount: RS span elt f ─
+   ──   has explicit coeffs c_S:ZMod p (mult c_S.val<p, ZMod.val_lt) with f x = ∑_S c_S·[monoAND_{S.1} x] — the count- ─
+   ──   mod-p weighted-value form (entry-205 saCount_sigma_cast consumes). Connects 204 span output → 205 input via ───
+   ──   mem_span_range_iff_exists_fun. Discharges the multiplicity-extraction residual; only amplification remains. NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2155,6 +2161,21 @@ theorem nw_exact_from_majorityGood_frontier {n : ℕ} (f : (Fin n → Bool) → 
     ∃ (k : ℕ) (g : Fin k → ((Fin n → Bool) → Bool)), ACC0Amplification.MajVote g = f :=
   ACC0Amplification.exact_from_majorityGood f hf
 
+/-- **Span-coefficient extraction — `F_p`-span ⇒ explicit count-mod-`p` multiplicities (proved).**  An RS `F_p`-span
+element `f` of the degree-`≤D` squarefree monomials has explicit coefficients `c_S : ZMod p` (multiplicities
+`c_S.val < p`) with `f x = ∑_S c_S·[monoAND_{S.1} x]` — the count-mod-`p` weighted-value form entry-205 consumes.
+Connects entry-204's span output to entry-205's input. -/
+theorem nw_span_eval_weightedCount_frontier {n : ℕ} (p : ℕ) [Fact p.Prime] {D : ℕ}
+    (f : (Fin n → Bool) → ZMod p)
+    (hf : f ∈ Submodule.span (ZMod p)
+        (Set.range (fun S : {S // S ∈ Layer3.lowDegMonomials n D} =>
+          Layer3.squarefreeEvalMonomial p S.1))) :
+    ∃ c : {S // S ∈ Layer3.lowDegMonomials n D} → ZMod p,
+      (∀ S, (c S).val < p) ∧
+      ∀ x, f x = ∑ S : {S // S ∈ Layer3.lowDegMonomials n D},
+        c S * (if ACC0PolyToSymAnd.monoAND S.1 x then 1 else 0) :=
+  ACC0SpanExtract.span_eval_weightedCount p f hf
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2631,6 +2652,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_accToLowDeg_via_rs_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_bridge_via_countModP_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_exact_from_majorityGood_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_span_eval_weightedCount_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
