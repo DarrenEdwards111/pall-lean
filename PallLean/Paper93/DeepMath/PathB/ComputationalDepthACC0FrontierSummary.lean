@@ -161,6 +161,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SeedEnumeration
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWFromHardness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ClockedSimulation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Multilinear
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IKWSmallProver
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -687,6 +688,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   totalDegree ≤ m (genuine multilinearity, feeds 227 SZ); mleP_eval: the MvPolynomial IS the function MLE. ──────
    ──   mleP_arithmetizes discharges LowDegArithmetization. NO socket for the MLE itself; residual = machine-level ────
    ──   certificate encoding (predicate f = NEXP verifier, m=poly(time)). NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── IKW SMALL-PROVER (step 3): nw_ikw_hardness_extraction_frontier — easy-witness FAILURE = a hard function. ────────
+   ──   not_easy_gives_incompressible (NO axioms): accepted x + no circuit prover ⇒ incompressible accepting strategy ─
+   ──   (the hard object IKW must rule out). guessableProver_of_easyWitness discharges entry-224 GuessableProver from ─
+   ──   the EasyWitnessLemma socket. not_guessableProver_gives_incompressible: GuessableProver fails ⇒ hard fn — so the
+   ──   IKW small-prover BOTTOMS OUT at the SAME separation-strength atom as step 5 (why IKW/magnification is P≠NP- ────
+   ──   strength). Residual socket: EasyWitnessLemma (circuitHyp rules out incompressible witnesses = IKW theorem). NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2625,6 +2632,26 @@ theorem nw_multilinear_degree_frontier {R : Type*} [CommRing R] [Nontrivial R] {
     (f : (Fin m → Bool) → Bool) :
     (ACC0Multilinear.mleP f : MvPolynomial (Fin m) R).totalDegree ≤ m :=
   ACC0Multilinear.mleP_degree f
+
+/-- **IKW small-prover (proved extraction): easy-witness failure yields a hard function.**
+`not_easy_gives_incompressible` (NO axioms): accepted `x` with no circuit prover ⇒ an incompressible (circuit-
+uncomputable) accepting strategy — the exact hard object the easy-witness lemma must rule out.
+`guessableProver_of_easyWitness` discharges entry-224 `GuessableProver` from the `EasyWitnessLemma` socket.
+`not_guessableProver_gives_incompressible`: `GuessableProver` failure ⇒ a hard function — the IKW small-prover bottoms
+out at the same separation-strength atom as step 5. -/
+theorem nw_ikw_hardness_extraction_frontier {Prover Circ : Type}
+    (Ver : List Bool → Prover → Prop) (proverOf : Circ → Prover)
+    (x : List Bool) (hw : ∃ p, Ver x p) (hne : ¬ ∃ C, Ver x (proverOf C)) :
+    ACC0IKWSmallProver.IncompressibleAcceptingProver Ver proverOf x :=
+  ACC0IKWSmallProver.not_easy_gives_incompressible Ver proverOf x hw hne
+
+/-- **IKW small-prover: discharges entry-224 `GuessableProver` from the easy-witness lemma (proved).** -/
+theorem nw_ikw_guessable_of_easyWitness_frontier {Prover Circ : Type}
+    (Ver : List Bool → Prover → Prop) (proverOf : Circ → Prover)
+    (circuitHyp : Prop) (hyp : circuitHyp)
+    (ew : ACC0IKWSmallProver.EasyWitnessLemma Ver proverOf circuitHyp) :
+    ACC0GuessableProver.GuessableProver Ver proverOf :=
+  ACC0IKWSmallProver.guessableProver_of_easyWitness Ver proverOf circuitHyp hyp ew
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
