@@ -440,6 +440,22 @@ small error, all proved together.  The only remaining residual is (2) **composit
 (`composed_error_le` covers `q = p`); squarefree composite per prime over `∏ F_p` (§8f), prime-power via the exact
 mixed-radix `SYM∘AND` (§8i).  Not a proof of `DynamicClosesAtBT` (composite modulus remains) or `NEXP ⊄ ACC⁰`; not faked.
 
+### 8m. Composite mixed-radix quasipoly-size — the last residual's size half (178)
+
+`…ACC0CompositeMixedRadixSize` discharges the *size* content of the composite residual.  A squarefree composite
+`MOD_m = ⋀ MOD_{pᵢ}` (CRT, §8f) combines the per-prime `SYM∘AND` forms via the mixed-radix merge; the question is
+whether the combined size stays quasipoly.
+
+- **`mrBound_eq`** (proved): the merge recurrence `s ↦ Q + (Q+1)·s` has closed form `mrBound Q k = (Q+1)^k − 1`.
+- **`hasSymAndForm_andAll`** (proved): the `AND` of a list of `SYM∘AND` forms (each `≤ Q`) is a `SYM∘AND` form of size
+  `≤ mrBound Q (length)`.
+- **`mixedRadix_quasipoly_size`** (proved): the combined size is `≤ (Q+1)^{length}`.
+
+For the `ω(m)` distinct prime factors of a *fixed* `m` (a constant) and per-prime quasipoly size `Q`, `(Q+1)^{k}` is
+quasipolynomial — `(quasipoly)^{constant}`, **not** exponential, because the number of moduli is fixed.  Combined with
+§8l (per-prime correctness), the composite `ACC⁰` BT *size* is assembled.  Not a proof of `DynamicClosesAtBT` or
+`NEXP ⊄ ACC⁰`; formalisation of known BT, not faked.
+
 ---
 
 ## The four remaining routes (no small glue left)

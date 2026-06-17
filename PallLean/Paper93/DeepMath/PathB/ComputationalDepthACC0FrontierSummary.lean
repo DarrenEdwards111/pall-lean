@@ -103,6 +103,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerMixedRadi
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DynamicClosureDischarge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTSizeTheorem
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RSAgreementBound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMixedRadixSize
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -355,6 +356,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   Assembled from PROVED composed_error_le (RS agreement guarantee) + toAgree_totalDegree_le + sparse count. ───────
    ──   Discharges the CORRECTNESS/ERROR half (176 residual 1) for AC⁰[p]: low degree + quasipoly size + bounded ───────
    ──   error TOGETHER. Remaining residual = composite/prime-power modulus (q=p only). NOT P≠NP, BT/Williams proven. ────
+   ── COMPOSITE MIXED-RADIX SIZE: compositeMixedRadix_quasipoly_frontier — AND of `forms` (each SYM∘AND size≤Q) has ─────
+   ──   size ≤ (Q+1)^length (mrBound Q k=(Q+1)^k-1, the merge recurrence s↦Q+(Q+1)s iterated). For ω(m) prime factors ──
+   ──   of fixed m (CONST) + per-prime quasipoly Q ⇒ (Q+1)^k quasipoly. So composite MOD_m=⋀MOD_{pᵢ} (CRT 171) stays ───
+   ──   quasipoly-size = (quasipoly)^const NOT exponential (# moduli fixed). Discharges the SIZE of the composite ───────
+   ──   residual. Combined with 177 (per-prime correctness) ⇒ composite ACC⁰ BT size assembled. NOT P≠NP. ──────────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -1552,6 +1558,18 @@ theorem rs_agreement_BT_frontier (p t : ℕ) [Fact p.Prime] {n : ℕ} (ht : 1 �
           ≤ (Layer3.subcircuits C).toFinset.card * Fintype.card (Fin n → Bool) :=
   ACC0RSAgreementBound.rs_agreement_BT p t ht C hmod
 
+/-- **Composite mixed-radix quasipoly size (proved): combining a constant number of forms stays quasipoly.**  The `AND`
+of a list `forms` of `SYM∘AND` forms each of size `≤ Q` has `SYM∘AND` size `≤ (Q+1)^{forms.length}` (the mixed-radix
+recurrence `mrBound Q k = (Q+1)^k−1`).  For the `ω(m)` distinct prime factors of a fixed squarefree modulus `m` (a
+constant) and per-prime quasipoly size `Q`, `(Q+1)^k` is quasipoly — so the composite `MOD_m = ⋀ MOD_{pᵢ}`
+representation (CRT, entry 171) stays quasipoly-size.  Discharges the *size* content of the composite residual. -/
+theorem compositeMixedRadix_quasipoly_frontier {n : ℕ} (Q : ℕ)
+    (forms : List ((Fin n → Bool) → Bool))
+    (hforms : ∀ f ∈ forms, ∃ s, ACC0YBTExactCompose.HasSymAndForm f s ∧ s ≤ Q) :
+    ACC0YBTExactCompose.HasSymAndForm (ACC0CompositeMixedRadixSize.andAll forms)
+      ((Q + 1) ^ forms.length) :=
+  ACC0CompositeMixedRadixSize.mixedRadix_quasipoly_size Q forms hforms
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -1996,6 +2014,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.dynamicClosure_partialDischarge_to_NEXP_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.bt_size_theorem_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.rs_agreement_BT_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.compositeMixedRadix_quasipoly_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
