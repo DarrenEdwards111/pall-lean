@@ -127,6 +127,10 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NisanWigdersonEasyW
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0KarpLiptonCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NondetTimeHierarchy
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GuessVerifyDischarge
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CollapseIngredients
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0HierarchyWitness
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ConcreteTMRun
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndPool
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -505,6 +509,16 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   proved guessVerify_subset. guess_verify_beats_bruteforce: guessCost + (fast-SAT count-cell work ≤(D+1)·n^D+1) ──
    ──   < 2ⁿ — guess small circuit, verify fast, beat brute force. ProvidesFastVerifiers (NTM-cost placement) socketed.
    ──   NOT P≠NP. ───────────────────────────────────────────────────────────────────────────────────────────────────
+   ── COLLAPSE INGREDIENTS: nw_derandCollapsesMAtoNP_discharge_frontier + nw_karpLiptonCollapse_discharge_frontier — ───
+   ──   each class equality (MA=NP, NEXP=MA) factors into 2 inclusions, glue = Set.Subset.antisymm. Discharges the 2 ──
+   ──   non-hierarchy entry-199 sub-sockets. Deep inclusions (MA⊆NP via derand, NEXP⊆MA via BFL) stay socketed. ───────
+   ── HIERARCHY WITNESS: nw_witness_nexpNeqNp_frontier — NP:=range enum, NEXP:=univ; both entry-200 sockets hold, ─────
+   ──   discharge yields genuine univ≠range enum (diagonal escapes enumeration). Non-vacuity witness, not real NEXP/NP.
+   ── CONCRETE TM RUN: nw_flip_accepts_frontier — one-rule table-driven machine accepts [false] in 1 step; ────────────
+   ──   transition-table apparatus (readSym/writeAt/moveHead/applyTrans/concreteStep/reachIn) runs correctly. ─────────
+   ── BT ADDITIVE POOL: nw_symAnd_pool_frontier — pooling 2 monomial families into ONE symmetric gate ⇒ ADDITIVE size ─
+   ──   card ι₁+card ι₂ (vs multiplicative tree merge). FanInStaysPolylog additive bottom layer. Depth-collapse socketed.
+   ──   All four: NOT P≠NP. ─────────────────────────────────────────────────────────────────────────────────────────
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2020,6 +2034,43 @@ theorem nw_guess_verify_beats_bruteforce_frontier {n m D : ℕ} (mono : Fin m �
         (ACC0SymmetricObserver.gateCount (fun j x => ACC0PolyToSymAnd.monoAND (mono j) x))).card < 2 ^ n :=
   ACC0GuessVerifyDischarge.guess_verify_beats_bruteforce mono hh hinj hdeg hn guessCost hbound
 
+/-- **Collapse ingredients — DerandCollapsesMAtoNP + KarpLiptonCollapse (antisymmetry glue, proved).**  Each class
+equality factors into two inclusions; the glue is `Set.Subset.antisymm`.  Discharges the two non-hierarchy entry-199
+sub-sockets. -/
+theorem nw_derandCollapsesMAtoNP_discharge_frontier (Derandomization : Prop) (MA NP : ACC0WilliamsMetaTheorem.CClass)
+    (fwd : ACC0CollapseIngredients.DerandMASubsetNP Derandomization MA NP)
+    (bwd : ACC0CollapseIngredients.NPSubsetMA NP MA) :
+    ACC0KarpLiptonCollapse.DerandCollapsesMAtoNP Derandomization MA NP :=
+  ACC0CollapseIngredients.derandCollapsesMAtoNP_discharge Derandomization MA NP fwd bwd
+
+theorem nw_karpLiptonCollapse_discharge_frontier (NEXP ACC0 MA : ACC0WilliamsMetaTheorem.CClass)
+    (deep : ACC0CollapseIngredients.NexpSubsetMA_ofCircuits NEXP ACC0 MA)
+    (triv : ACC0CollapseIngredients.MASubsetNexp MA NEXP) :
+    ACC0KarpLiptonCollapse.KarpLiptonCollapse NEXP ACC0 MA :=
+  ACC0CollapseIngredients.karpLiptonCollapse_discharge NEXP ACC0 MA deep triv
+
+/-- **Hierarchy witness model (proved).**  In `NP := Set.range enum`, `NEXP := Set.univ`, both entry-200 sockets hold
+and the diagonalization discharge yields the genuine `Set.univ ≠ Set.range enum`. -/
+theorem nw_witness_nexpNeqNp_frontier (enum : ℕ → ACC0WilliamsMetaTheorem.Lang) :
+    ACC0KarpLiptonCollapse.NexpNeqNp Set.univ (Set.range enum) :=
+  ACC0HierarchyWitness.witness_nexpNeqNp enum
+
+/-- **Concrete transition-table run (proved).**  A one-rule table-driven machine accepts `[false]` within one step —
+the transition-table apparatus runs correctly end-to-end. -/
+theorem nw_flip_accepts_frontier :
+    ACC0NTM.acceptsWithin (ACC0ConcreteNTM.toNTM ACC0ConcreteTMRun.flipTable) [false] 1 :=
+  ACC0ConcreteTMRun.flip_accepts
+
+/-- **BT additive bottom-layer merge (proved).**  Pooling two monomial families into one symmetric gate has additive
+size `card ι₁ + card ι₂` (vs. the multiplicative tree merge). -/
+theorem nw_symAnd_pool_frontier {n : ℕ} {ι1 ι2 : Type} [Fintype ι1] [Fintype ι2]
+    (mono1 : ι1 → Finset (Fin n)) (mono2 : ι2 → Finset (Fin n)) (h : ℕ → Bool) {w : ℕ}
+    (hw1 : ∀ j, (mono1 j).card ≤ w) (hw2 : ∀ j, (mono2 j).card ≤ w) :
+    ACC0SymAndFanIn.HasSymAndFormFanIn
+      (fun x => h (ACC0YBTExactCompose.saCount mono1 x + ACC0YBTExactCompose.saCount mono2 x))
+      (Fintype.card ι1 + Fintype.card ι2) w :=
+  ACC0SymAndPool.hasSymAndFormFanIn_pool mono1 mono2 h hw1 hw2
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -2488,6 +2539,10 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_derandKarpLipton_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_nexpNeqNp_discharge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_guessVerify_discharge_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_karpLiptonCollapse_discharge_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_witness_nexpNeqNp_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_flip_accepts_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_symAnd_pool_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_subsumes_rank
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.cellcount_chain_fragment
