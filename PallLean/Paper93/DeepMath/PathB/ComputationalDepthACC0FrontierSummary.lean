@@ -160,6 +160,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MipSimulation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SeedEnumeration
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWFromHardness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ClockedSimulation
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Multilinear
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -680,6 +681,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   (a+1)) (budget big enough); sim_budget_fits: exponent additivity; detRun_accepts: 220 run ⇒ 223 acceptsWithin;
    ──   lazy_clockedSim FORWARD proved via budget+acceptsWithin_mono; nw_lazy_universal_in_nexp_frontier composes ─────
    ──   223 clocked_in_NEXP. Residual sockets: hcomplete/hsound (universal decode→step→re-encode correctness). NOT P≠NP.
+   ── MULTILINEAR EXTENSION: nw_multilinear_agrees_frontier + nw_multilinear_degree_frontier — the MLE arithmetization ─
+   ──   FULLY PROVED (discharges entry-226 LowDegArithmetization with a concrete witness). mle f(x)=∑_a f(a)·∏_i ──────
+   ──   χ(x_i,a_i); mleB_agrees: agrees with f on hypercube (equality indicator prod_chi_eq); mleP_degree[Nontrivial]:
+   ──   totalDegree ≤ m (genuine multilinearity, feeds 227 SZ); mleP_eval: the MvPolynomial IS the function MLE. ──────
+   ──   mleP_arithmetizes discharges LowDegArithmetization. NO socket for the MLE itself; residual = machine-level ────
+   ──   certificate encoding (predicate f = NEXP verifier, m=poly(time)). NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2601,6 +2608,23 @@ theorem nw_lazy_universal_in_nexp_frontier (δ : ℕ × Bool → ℕ × Bool × 
     (hsound : ∀ x, ACC0NTM.acceptsWithin (ACC0TransitionTable.detNTM δ) x (2 ^ (x.length ^ c + c)) → L x) :
     L ∈ ACC0NTM.NEXP :=
   ACC0ClockedSimulation.lazy_universal_in_nexp δ L c cost hbudget hcomplete hsound
+
+/-- **Low-degree arithmetization (proved): the multilinear extension, discharging `LowDegArithmetization`.**
+`mleB_agrees`: the MLE `∑_a f(a)·∏_i χ(x_i,a_i)` agrees with `f` on the hypercube (`mleB f (boolToR∘b) = boolToR (f b)`,
+via the equality indicator `prod_chi_eq`); `mleP_degree` (`[Nontrivial R]`): the MLE has total degree `≤ m` (genuine
+multilinearity, feeds entry-227 Schwartz–Zippel); `mleP_eval`: the `MvPolynomial` mleP *is* the function MLE.
+`mleP_arithmetizes` discharges entry-226 `LowDegArithmetization` with this concrete low-degree witness. -/
+theorem nw_multilinear_agrees_frontier {R : Type*} [CommRing R] {m : ℕ}
+    (f : (Fin m → Bool) → Bool) (b : Fin m → Bool) :
+    MvPolynomial.eval (fun i => ACC0SumCheck.boolToR (b i)) (ACC0Multilinear.mleP f)
+      = (ACC0SumCheck.boolToR (f b) : R) :=
+  ACC0Multilinear.mleP_eval_agrees f b
+
+/-- **The multilinear extension is low-degree (proved): `totalDegree ≤ m`.** -/
+theorem nw_multilinear_degree_frontier {R : Type*} [CommRing R] [Nontrivial R] {m : ℕ}
+    (f : (Fin m → Bool) → Bool) :
+    (ACC0Multilinear.mleP f : MvPolynomial (Fin m) R).totalDegree ≤ m :=
+  ACC0Multilinear.mleP_degree f
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
