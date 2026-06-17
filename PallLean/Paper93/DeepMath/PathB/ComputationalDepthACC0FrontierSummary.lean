@@ -164,6 +164,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Multilinear
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IKWSmallProver
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ApproxToExact
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryInvariant
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0KummerCarry
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -708,6 +709,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   ZMod-level indicator FAILS, p zero-divisor — carry/field layer needed); field_observer_blind_to_carry (mod-p ──
    ──   collapses what mod-p² separates — weighted-F_p ignores carry); crt_residue_observer_suffices (squarefree: CRT ──
    ──   residue profile, no carry). CHARACTERIZES the seam (boundary forces observer refinement); does NOT cross it. NOT P≠NP.
+   ── KUMMER CARRY COUNT (quantitative carry seam): carryCount p n k := padicValNat p (C(n+k,k)) = #base-p carries. ────
+   ──   carryCount_digits_identity ((p-1)·carryCount = S_p(k)+S_p(n)-S_p(n+k), Kummer); carryCount_eq_zero_iff_not_dvd ─
+   ──   (no carry ⟺ ¬p∣C — survives mod p, field observer sees it); carryCount_pos_iff_dvd (carry ⟺ p∣C — invisible ───
+   ──   mod p; QUANTIFIES entry-235 field_observer_blind_to_carry). Conservative factorization invariant; characterises
+   ──   + quantifies the seam, does NOT cross the composite barrier. NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2699,6 +2705,21 @@ theorem nw_powerIndicator_of_prime_frontier (p : ℕ) [Fact p.Prime] :
 theorem nw_not_powerIndicator_primePow_frontier (p e : ℕ) [Fact p.Prime] (he : 2 ≤ e) :
     ¬ ACC0CarryInvariant.PowerIndicator (p ^ e) :=
   ACC0CarryInvariant.not_powerIndicator_primePow p e he
+
+/-- **Kummer carry count (quantitative carry seam, proved fragments).**  `carryCount p n k := padicValNat p (C(n+k,k))`
+= #base-p carries (Kummer).  `carryCount_digits_identity` ((p-1)·carryCount = S_p(k)+S_p(n)-S_p(n+k), Kummer digit
+form); `carryCount_eq_zero_iff_not_dvd` (no carry ⟺ ¬p∣C(n+k,k) — the binomial survives mod p, the field observer sees
+it); `carryCount_pos_iff_dvd` (a carry ⟺ p∣C(n+k,k) — invisible to the mod-p observer; quantitative refinement of
+entry-235 field_observer_blind_to_carry).  Conservative; characterises the seam, does NOT cross the barrier. -/
+theorem nw_kummer_carry_identity_frontier (p n k : ℕ) [Fact p.Prime] :
+    (p - 1) * ACC0KummerCarry.carryCount p n k =
+      (p.digits k).sum + (p.digits n).sum - (p.digits (n + k)).sum :=
+  ACC0KummerCarry.carryCount_digits_identity p n k
+
+/-- **Kummer carry count: a carry is exactly a mod-p-invisible binomial divisibility (proved).** -/
+theorem nw_kummer_carry_pos_iff_dvd_frontier (p n k : ℕ) [Fact p.Prime] :
+    0 < ACC0KummerCarry.carryCount p n k ↔ p ∣ Nat.choose (n + k) k :=
+  ACC0KummerCarry.carryCount_pos_iff_dvd p n k
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
