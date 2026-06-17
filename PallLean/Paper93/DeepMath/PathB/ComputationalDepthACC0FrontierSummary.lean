@@ -163,6 +163,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ClockedSimulation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Multilinear
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IKWSmallProver
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ApproxToExact
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryInvariant
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -701,6 +702,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   barrier socket ApproxToExactCount (3/4 weighted approximant ⇒ exact unit-count) is the SOLE residual between ──
    ──   the proved RS approximant and LowDegRep. ⚠️ ApproxToExactCount = the composite-ACC⁰[m] BARRIER (amplification + ─
    ──   weighted→unit, provably fails for composite m) — NAMED, NOT CLOSED. Structural span=weighted-count is 207. NOT P≠NP.
+   ── CARRY INVARIANT (p-adic seam, conservative fragments — N-Frame invariant search at the ApproxToExactCount wall): ─
+   ──   PowerIndicator m := ∃e≥1, ∀y:ZMod m, y^e=[y≠0] (the field primitive turning weighted AND-bit→exact count). ────
+   ──   powerIndicator_of_prime (MOD_p: indicator exists, no obstruction); not_powerIndicator_primePow (MOD_{p^e} e≥2: ─
+   ──   ZMod-level indicator FAILS, p zero-divisor — carry/field layer needed); field_observer_blind_to_carry (mod-p ──
+   ──   collapses what mod-p² separates — weighted-F_p ignores carry); crt_residue_observer_suffices (squarefree: CRT ──
+   ──   residue profile, no carry). CHARACTERIZES the seam (boundary forces observer refinement); does NOT cross it. NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2677,6 +2684,21 @@ theorem nw_lowDegRep_via_amplification_frontier (approxHyp : Prop) (p : ℕ) [Fa
     (amp : ACC0ApproxToExact.ApproxToExactCount approxHyp p D f) :
     ACC0BTDepthCollapse.LowDegRep f D :=
   ACC0ApproxToExact.lowDegRep_via_amplification approxHyp p f ha amp
+
+/-- **Carry invariant (p-adic seam, conservative fragments): the field power-indicator and where carries force observer
+refinement.**  `powerIndicator_of_prime` (MOD_p: field indicator `y^(p-1)=[y≠0]` exists, no carry obstruction);
+`not_powerIndicator_primePow` (MOD_{p^e}, e≥2: `ZMod`-level indicator fails — `p` a zero-divisor — carry/field layer
+needed); `field_observer_blind_to_carry` (mod-p observer collapses what mod-p² separates — weighted-`F_p` ignores the
+carry layer); `crt_residue_observer_suffices` (squarefree: CRT residue profile determines, no carry).  Conservative
+fragments characterising the entry-234 `ApproxToExactCount` seam; NOT a crossing of the barrier. -/
+theorem nw_powerIndicator_of_prime_frontier (p : ℕ) [Fact p.Prime] :
+    ACC0CarryInvariant.PowerIndicator p :=
+  ACC0CarryInvariant.powerIndicator_of_prime p
+
+/-- **Carry invariant: prime-power has no `ZMod`-level field indicator (carry profile nontrivial, proved).** -/
+theorem nw_not_powerIndicator_primePow_frontier (p e : ℕ) [Fact p.Prime] (he : 2 ≤ e) :
+    ¬ ACC0CarryInvariant.PowerIndicator (p ^ e) :=
+  ACC0CarryInvariant.not_powerIndicator_primePow p e he
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
