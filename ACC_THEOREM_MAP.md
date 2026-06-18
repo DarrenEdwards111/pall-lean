@@ -57,6 +57,15 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
       BoundedCompositionKeepsBoundaryBounded (open): does ACC⁰[6]-bounded composition keep boundary ≤ poly?
       composite_ACC0_separation_from_socket (PROVED conditional): socket + boundaryBudget s < ∏ mᵢ
         ⇒ MOD_(∏ mᵢ) ∉ size-s ACC⁰[6].  Proving the socket (poly budget) = the composite separation.
+
+  SOCKET ATTACKED DIRECTLY ⇒ FALSE (287, proved no-go):
+    • equality eq(a,b)=[a=b] ∈ AC⁰⊆ACC⁰[6] (depth-2 AND-of-XNOR) has IDENTITY comm-matrix
+      ⇒ 2^k distinct rows ⇒ equality_boundary_two_pow: boundary ≥ 2^k (EXPONENTIAL)
+    • equality_refutes_boundary_bounded: any budget bounding all realizable f is ≥ #A = 2^k
+      ⇒ BoundedCompositionKeepsBoundaryBounded is FALSE for poly budget; the boundary route is DEAD
+    FINDING: comm boundary ANTI-tracks ACC⁰[6]-hardness — MOD_M comm-EASY (boundary M, O(log M)),
+      equality/disjointness comm-HARD (2^k), BOTH ∈ AC⁰[6]. Separating resource is NOT boundary size
+      but the characteristic/CRT structure (280-283), which raw communication cannot see.
 ```
 
 ## Tier 1 — AC⁰ (switching method): **DONE & FENCED**

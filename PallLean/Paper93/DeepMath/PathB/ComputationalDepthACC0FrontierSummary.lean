@@ -214,6 +214,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryRefinementCros
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryStateComplexity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CommunicationComplexity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryBoundaryGrowth
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BoundaryBoundednessRefutation
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -3830,6 +3831,18 @@ theorem nw_composite_ACC0_separation_from_socket_frontier {k : ℕ} (mods : Fin 
     ¬ RealizableBy s (∏ i, mods i) :=
   ACC0CarryBoundaryGrowth.composite_ACC0_separation_from_socket mods hpos RealizableBy boundaryBudget hsock s hgrow
 
+/-- **Attacking the boundary socket directly — it is FALSE (proved no-go).**
+nw_equality_refutes_boundary_bounded_frontier (PROVED): if equality is realizable (it is — depth-2 `AC⁰ ⊆ ACC⁰[6]`),
+any boundary budget bounding all realizable functions is `≥ #A` = `2^k` — exponential, never polynomial.  So the
+entry-286 socket `BoundedCompositionKeepsBoundaryBounded` is unsatisfiable for poly budgets: communication boundary is
+achieved exponentially by easy `AC⁰` functions (equality/disjointness) and anti-tracks `ACC⁰[6]`-hardness (entry 287).
+The boundary route is dead; the obstruction re-localizes onto the characteristic/CRT structure (280–283). -/
+theorem nw_equality_refutes_boundary_bounded_frontier {A : Type} [Fintype A] [DecidableEq A]
+    (Realizable : (A → A → Bool) → Prop) (hEq : Realizable (fun a b => decide (a = b)))
+    (budget : ℕ) (hbb : ACC0BoundaryBoundednessRefutation.GeneralBoundaryBounded Realizable budget) :
+    Fintype.card A ≤ budget :=
+  ACC0BoundaryBoundednessRefutation.equality_refutes_boundary_bounded Realizable hEq budget hbb
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4367,3 +4380,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_mod_product_observer_boundary_ge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_crt_product_observer_boundary_ge_two_pow_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_composite_ACC0_separation_from_socket_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_equality_refutes_boundary_bounded_frontier

@@ -725,6 +725,27 @@ constant complexity and cannot witness a separation (`…ACC0CarryBoundaryGrowth
 *is* the separation — separation-strength, the boundary-invariant restatement of `CarryRefinementCrossing`, **not**
 proved here.
 
+## 5z‴. Attacking the boundary socket directly — it is FALSE (entry 287, proved no-go)
+
+Pushing on the entry-286 socket head-on **breaks** it (`…ACC0BoundaryBoundednessRefutation`).
+
+* **General boundary bound (PROVED).**  `product_observer_card_ge_of_rows_injective`: any two-party `f` with
+  pairwise-distinct communication-matrix rows forces every product observer to boundary `≥ #A`.
+* **The counterexample (PROVED).**  `eqValue_rows_injective`: the equality function `eq(a,b) = [a = b]` has the identity
+  communication matrix — `#A` distinct rows.  `equality_boundary_two_pow`: on `k`-bit halves equality needs boundary
+  `≥ 2^k`.  Equality is a depth-2 `AC⁰` circuit (`AND` of `XNOR`s), hence `∈ AC⁰ ⊆ ACC⁰[6]` — a poly-size function with
+  *exponential* boundary.  (Set-disjointness, depth-2 `OR`-of-`AND`s, gives the same.)
+* **The socket is false (PROVED no-go).**  `equality_refutes_boundary_bounded`: any budget bounding *all* realizable
+  functions is `≥ #A = 2^k` — exponential.  So `BoundedCompositionKeepsBoundaryBounded` cannot hold with a polynomial
+  budget; entry-286's conditional separation, though a true implication, has an unsatisfiable hypothesis.  **The
+  boundary route is dead.**
+* **Why — the decisive finding.**  Communication boundary *anti-tracks* `ACC⁰[6]`-hardness: `MOD_M` is communication-
+  *easy* (boundary `M`, `O(log M)` bits), equality/disjointness are communication-*hard* (`2^k`), and **both** live in
+  `AC⁰ ⊆ ACC⁰[6]`.  Boundary size therefore cannot be the separating resource.  What separates is the *characteristic /
+  CRT structure* — small for the native moduli `{2,3}`, large for a non-native prime — the field-incompatibility of
+  §5v–§5x (entries 280–283) that raw communication cannot see.  Attacking the socket directly re-localizes the
+  obstruction back onto characteristic mixing and confirms it is not a communication-counting fact.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the
