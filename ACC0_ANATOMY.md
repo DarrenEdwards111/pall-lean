@@ -985,6 +985,24 @@ full hierarchy is the *wiring* (feed the diagonal its own code, clock to the big
 bookkeeping) plus the other two gate sockets (IKW easy-witness, NW guess-verify) — all proven-classical formalization,
 not open obstructions.
 
+## 5z⁗⁗⁗″. Realization wiring — clocking to the bigger bound (entry 298)
+
+The realization wiring's quantitative core, proved (`…ACC0RealizationClocking`).  Combine the overhead-1 universal
+simulation (296/297) with budget monotonicity (`acceptsWithin_mono`):
+
+* **Clock to the bigger bound (PROVED).**  `universal_clocked_within`: `univNTM ⟨M⟩` accepts `x` within any `t' ≥ t`
+  for which `M` accepts within `t`.  `uniformU_clocked_within`: the same for the single fixed machine `uniformU decPair`
+  on the encoded input.  So a `g`-time machine, simulated universally, fits any `f ≥ g` — the "clock to the bigger
+  bound" step is free given overhead 1.
+* **`diag_in_big` reduced to one construction (PROVED).**  `cNTIME_of_decider` / `diag_in_big_of_clocked_decider`: the
+  hierarchy's remaining socket (the diagonal `∈ cNTIME f`) follows from a single `TMachine` deciding the diagonal within
+  `f`.  The clocking ensures such a decider's time bound is achievable.
+
+**Net:** the "clock to the bigger bound" step is discharged.  What remains for `diag_in_big` is *building* the
+lazy-diagonal decider machine — the per-block bookkeeping feeding each `enum i` its input with one boundary complement,
+compiled over the universal machine (pieces under development in `…ACC0UniversalHStep` and the decode/lookup/rewrite
+sub-machines) — a proven classical fact, formalization engineering, not an open obstruction.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the

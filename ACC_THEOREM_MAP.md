@@ -174,6 +174,15 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
     ⇒ universal NTM simulation FULLY FORMALIZED (one uniform machine + overhead 1) = the universal TM (Turing 1936)
       over the transition-table model. Remaining for full hierarchy: feed the diagonal its own code + clock to bigger
       bound + per-x block bookkeeping (wiring) — plus IKW + NW (the other two gate sockets). All proven-classical.
+
+  REALIZATION WIRING — clock the universal machine to the bigger bound (298, proved):
+    • universal_clocked_within : univNTM ⟨M⟩ accepts x within any t' ≥ t (296 overhead-1 + acceptsWithin_mono)
+    • uniformU_clocked_within : SAME for the single machine uniformU decPair on encoded input (297 + mono)
+      ⇒ a g-time machine fits any f ≥ g: "clock to the bigger bound" is FREE given overhead 1
+    • cNTIME_of_decider / diag_in_big_of_clocked_decider : diag_in_big ⇐ ONE socket = a TMachine deciding the
+      (lazy) diagonal within f. Clocking proves the time bound achievable; remaining = BUILDING that decider.
+    ⇒ realization wiring's quantitative core PROVED; remaining = the lazy-diagonal decider machine (per-block
+      bookkeeping + boundary complement, compiled over the universal machine — physical, parallel to UniversalHStep).
 ```
 
 ## Tier 1 — AC⁰ (switching method): **DONE & FENCED**
