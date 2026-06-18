@@ -963,6 +963,28 @@ collapsing the family `univNTM` to a single fixed machine reading `⟨M⟩` off 
 *proven* classical fact, formalization engineering, not an open obstruction.  The socket's quantitative heart is now
 proved; one tape-decode primitive remains.
 
+## 5z⁗⁗⁗′. Decode-from-input uniformity — one fixed machine simulates every machine (entry 297)
+
+The last primitive of the universal-simulation socket, now proved (`…ACC0DecodeUniformity`).  Carry the code as
+*configuration data*: `UConfig := ℕ × CConfig`, uniform step `uStep` (preserve code, apply `univStep code`), and the
+single machine `uniformU dec` (its only parameter the fixed, machine-*independent* parse `dec` — the universal machine's
+own decoding logic) that decodes the code at `init` and accepts on the machine state.
+
+* **Code preserved (PROVED).**  `uStep_preserves_code`: the decoded code is fixed along every run.
+* **Uniform reachability (PROVED).**  `uStep_reachIn`: `uniformU`'s `k`-step reachability on code-carrying configs
+  *equals* `univNTM code`'s — overhead 1, uniform.
+* **One machine simulates all (PROVED).**  `uniformU_simulates`: input decoding to `(⟨M⟩, x)` ⟹ `acceptsWithin
+  (uniformU dec) w t ↔ acceptsWithin (toNTM M) x t` (combining `uStep_reachIn` + entry-296 overhead-1).
+* **Self-contained (PROVED).**  `decPair_encPair`: a concrete `replicate`-unary encoding round-trips; so `uniformU
+  decPair` on `encPair ⟨M⟩ x` simulates every `M` exactly (`uniformU_simulates_enc`).
+
+**Net:** with entries 296+297 the universal NTM simulation is formalized — **one** uniform machine `uniformU decPair`,
+reading the code from its input, simulating *every* machine with overhead exactly 1: the universal TM (Turing 1936) over
+the transition-table model.  The realization socket's universal-machine content is discharged.  What remains for the
+full hierarchy is the *wiring* (feed the diagonal its own code, clock to the bigger bound, the per-`x` block
+bookkeeping) plus the other two gate sockets (IKW easy-witness, NW guess-verify) — all proven-classical formalization,
+not open obstructions.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the

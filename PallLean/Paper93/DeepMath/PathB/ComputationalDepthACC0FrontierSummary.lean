@@ -224,6 +224,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsSocketMap
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyHierarchyEscape
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NFrameWilliamsRoute
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalSimulationOverhead
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DecodeUniformity
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -3983,6 +3984,18 @@ theorem nw_univ_simulates_exactly_frontier
       ACC0NTM.acceptsWithin (ACC0ConcreteNTM.toNTM M) x t :=
   ACC0UniversalSimulationOverhead.univ_simulates_exactly M x t
 
+/-- **Decode-from-input uniformity: one fixed machine simulates every machine (proved).**
+nw_uniformU_simulates_enc_frontier (PROVED): the single fixed universal machine `uniformU decPair` (M-independent parse
+`decPair`), on input `encPair ⟨M⟩ x`, accepts within `t` iff `M` accepts `x` within `t` — the code is read from the
+input, the machine is fixed, overhead 1 (entries 296+297).  The universal TM (Turing 1936) over the transition-table
+model, self-contained (concrete encoding round-trips). -/
+theorem nw_uniformU_simulates_enc_frontier
+    (M : ACC0ConcreteNTM.TMachine) (x : List Bool) (t : ℕ) :
+    ACC0NTM.acceptsWithin (ACC0DecodeUniformity.uniformU ACC0DecodeUniformity.decPair)
+        (ACC0DecodeUniformity.encPair (ACC0ConcreteNTM.machineEquiv M) x) t ↔
+      ACC0NTM.acceptsWithin (ACC0ConcreteNTM.toNTM M) x t :=
+  ACC0DecodeUniformity.uniformU_simulates_enc M x t
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4532,3 +4545,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_nframe_williams_route_equiv_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_nframe_fastSat_to_timeHierarchy_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_univ_simulates_exactly_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_uniformU_simulates_enc_frontier

@@ -162,6 +162,18 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
     ⇒ the socket's feared "physical overhead" is EXACTLY 1 (free, no time blowup); what remains = ONLY the
       decode-from-input uniformity (collapse univNTM family to one fixed tape-reading machine = the universal TM,
       Turing 1936) — a PROVEN classical fact, formalization not obstruction.
+
+  DECODE-FROM-INPUT UNIFORMITY — one fixed machine simulates EVERY machine (297, proved):
+    UConfig := ℕ × CConfig (code carried as config DATA); uStep (preserves code, applies univStep code);
+    uniformU dec = ONE fixed NTM (only param = M-independent parse dec), decodes code at init, accepts on state.
+    • uStep_preserves_code : decoded code preserved along every run (induction)
+    • uStep_reachIn : reachIn (uniformU dec) k (code,c)(code,c') ↔ reachIn (univNTM code) k c c'  (uniform, overhead 1)
+    • uniformU_simulates : dec w = (⟨M⟩,x) ⇒ acceptsWithin (uniformU dec) w t ↔ acceptsWithin (toNTM M) x t (via 296)
+    • decPair_encPair : concrete encoding round-trips (replicate-unary code + false sep + input; takeWhile/drop inductions)
+    • uniformU_simulates_enc : SELF-CONTAINED — uniformU decPair on encPair ⟨M⟩ x simulates M exactly
+    ⇒ universal NTM simulation FULLY FORMALIZED (one uniform machine + overhead 1) = the universal TM (Turing 1936)
+      over the transition-table model. Remaining for full hierarchy: feed the diagonal its own code + clock to bigger
+      bound + per-x block bookkeeping (wiring) — plus IKW + NW (the other two gate sockets). All proven-classical.
 ```
 
 ## Tier 1 — AC⁰ (switching method): **DONE & FENCED**
