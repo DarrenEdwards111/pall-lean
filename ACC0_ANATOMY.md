@@ -159,6 +159,27 @@ Pushing the localized core (§4) further produced a clean separation of two noti
 > `F_p`-gate indicators ⇒ the mod-`q` fire-count needs superpolynomial resources* — the Razborov–Smolensky theorem in
 > its sharpest form, socketed as `AlgExpanderCountObstruction`.
 
+## 5c. The corrected bridge — the `ACC⁰[composite]` wall, precisely (entries 256–261)
+
+Counterexample-driven refinement (the framework breaking its own weak invariants) produced the correct, validated
+hardness hypothesis.  The wall is **not** mere graph expansion, **nor** indicator independence alone:
+
+> **`ACC⁰[composite]` wall = cross-field fire-counting for gate families that are both (a) *non-redundant* —
+> linearly-independent indicators (`AlgExpander`, `…ACC0AlgebraicExpansion` / `…ACC0IndicatorRank`) — and (b)
+> *co-firing-rich* — many distinct, large simultaneous fire-patterns (`CoFiringRich` / `PatternRich`,
+> `…ACC0CoFiring` / `…ACC0FirePatternRichness`).**
+
+Each clause is validated by a *proved* separating example: the full-support family (cut-expander, redundant ⇒ easy,
+`…ACC0ExpanderFamilies`) and the parallel-affine family (`AlgExpander` but disjoint/no co-firing ⇒ fire-count `≤ 1`,
+easy, `…ACC0AffineHyperplaneLowerBound`).  The corrected socket is
+
+> `AlgExpander gates → CoFiringRich gates → CrossFieldCountHard gates`,
+
+non-vacuous with a **proven hard instance**: the dictator/`MOD_q` family satisfies both and its mod-`q` fire-count is
+`MOD_q`, hard in `AC⁰[p]` by the in-arc Razborov–Smolensky theorem `Layer4.mod_q_indicators_false`.  The general socket
+is Smolensky-strength (the open core); the implication `CrossFieldCountHard ⇒ ACC⁰[composite] lower-bound component`
+(upstream of Williams `NEXP ⊄ ACC⁰`) is the named bridge.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the

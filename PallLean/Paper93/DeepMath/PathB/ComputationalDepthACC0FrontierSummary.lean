@@ -188,6 +188,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IndicatorRank
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AffineHyperplanes
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AffineHyperplaneLowerBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CoFiring
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FirePatternRichness
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -875,6 +876,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   dictator_algExpander (PROVED): dictator family (fire iff bit i set) satisfies BOTH AlgExpander AND CoFiringRich
    ──   (non-vacuous; its mod-q fire-count = Hamming weight mod q = MOD_q, proved hard in-arc Layer4/244). CORRECTED ──
    ──   socket: AlgExpander → CoFiringRich → CrossFieldCountHard. Co-firing exactly tracks easy/hard. NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── FIRE-PATTERN RICHNESS (strengthen co-firing to MANY distinct patterns): PatternRich gates k := k ≤ #(image ─────
+   ──   (firePattern gates) univ). nw_dictator_patternRich_frontier (PROVED): dictator/MOD_q has 2^s distinct patterns
+   ──   (every subset realized) — exponentially rich; nw_parallel_no_large_patterns_frontier (PROVED): parallel affine
+   ──   has NO pattern of size ≥2. Strengthened socket: AlgExpander → PatternRich → CrossFieldCountHard; implication ──
+   ──   bridge: CrossFieldCountHard → ACC0CompositeComponent (upstream of Williams; proven MOD_q instance via 244). ───
+   ──   General = Smolensky core (238). NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3245,6 +3252,22 @@ theorem nw_parallel_not_coFiringRich_frontier {p n s : ℕ} (targets : Fin s →
 theorem nw_dictator_coFiringRich_frontier (s : ℕ) :
     ACC0CoFiring.CoFiringRich (fun (i : Fin s) (x : Fin s → Bool) => x i) s :=
   ACC0CoFiring.dictator_coFiringRich s
+
+/-- **Fire-pattern richness — strengthening co-firing to MANY distinct patterns + implication bridge.**
+`PatternRich gates k := k ≤ #(image (firePattern gates) univ)` (≥k distinct fire-patterns).  `dictator_patternRich`
+(PROVED): the dictator/MOD_q family has 2^s distinct patterns (every subset realized) — exponentially rich;
+`parallel_no_large_patterns` (PROVED): parallel affine has NO pattern of size ≥2.  Strengthened socket: AlgExpander →
+PatternRich → CrossFieldCountHard; bridge: CrossFieldCountHard → ACC0CompositeComponent (upstream of Williams). -/
+theorem nw_dictator_patternRich_frontier (s : ℕ) :
+    ACC0FirePatternRichness.PatternRich (fun (i : Fin s) (x : Fin s → Bool) => x i) (2 ^ s) :=
+  ACC0FirePatternRichness.dictator_patternRich s
+
+/-- **Fire-pattern richness: parallel affine has no large pattern (proved).** -/
+theorem nw_parallel_no_large_patterns_frontier {p n s : ℕ} (targets : Fin s → ZMod p)
+    (hinj : Function.Injective targets) (x : Fin (n + 1) → ZMod p) :
+    ¬ 2 ≤ (ACC0CoFiring.firePattern
+        (fun (i : Fin s) (x : Fin (n + 1) → ZMod p) => decide ((∑ j, x j) = targets i)) x).card :=
+  ACC0FirePatternRichness.parallel_no_large_patterns targets hinj x
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
