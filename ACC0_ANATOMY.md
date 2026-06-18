@@ -551,6 +551,26 @@ bookkeeping, the binomial tail, the prime-case `CrossFieldCountHard` identificat
 `Circ` recursion.  **Composite modulus is the one genuinely-open object** — the `CarryRefinementCrossing` wall (§3/entry
 238), deliberately untouched.  Not faked, not a separation.
 
+## 5u. Prime mechanical closure — the bookkeeping discharged (entry 279, step 1)
+
+The mechanical residuals of the prime route (`…ACC0PrimeMechanicalClosure`).
+
+* **`ApproximatorDegreeBound` discharged (PROVED).**  `approximator_times_complement_totalDegree`: the degree of a
+  product is at most the sum of degrees (`MvPolynomial.totalDegree_mul`) — the approximator (degree `≤ D`) times the
+  complement monomial (degree `≤ n/2`, §5s) has degree `≤ D + n/2`.  This is exactly the product-degree bookkeeping the
+  degree-halving needed.
+* **The clean prime theorem (PROVED, no axioms).**  `prime_smolensky_route_closed`: the prime hardness
+  (`CrossFieldCountHard`, from §5t's `no_small_approximator`) yields `ACC0CompositeComponent` via the §5c bridge.
+* **Honestly not discharged.**  The *binomial tail* (`lowDegreeDim n (n/2+D) < 2ⁿ − E`, `D = O(√n)`) is the standard
+  Chernoff estimate, kept as a numeric hypothesis (the Smolensky parameter regime), not faked; the committed `Circ`
+  recursion is the circuit arc's.
+
+**Net:** the prime-`ACC⁰[p]` lower bound is now assembled with every *mechanical* part machine-proved — degree-halving
+(§5r), wiring (§5s), pigeonhole bound (§5q/§5t), product-degree (§5u) — and only standard parameter estimates (the
+binomial tail) and the committed `Circ` recursion outside Lean.  **The single genuinely-open frontier is composite
+modulus** — the `CarryRefinementCrossing` wall (§3/entry 238).  It is not bookkeeping; it needs a new idea, and is left
+as the one honest open object.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the

@@ -206,6 +206,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SmolenskyPigeonhole
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SmolenskyDegreeHalving
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FullProductGoodSet
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SmolenskyPrime
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimeMechanicalClosure
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -1013,6 +1014,13 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   prime_route_to_ACC0Component (PROVED): CrossFieldCountHard + entry-261 bridge ⇒ ACC0CompositeComponent (step 4).
    ──   Residual: ApproximatorDegreeBound (mechanical) + binomial tail + CFH identification. COMPOSITE = 238 (the wall,
    ──   untouched). NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── PRIME MECHANICAL CLOSURE (step 1) — ApproximatorDegreeBound DISCHARGED + clean prime theorem: ──────────────
+   ──   nw_approximator_product_totalDegree_frontier (PROVED): (P*Q).totalDegree ≤ D+d (MvPolynomial.totalDegree_mul) ─
+   ──   = ApproximatorDegreeBound discharged (approximator deg≤D × complement deg≤|Sᶜ| ⇒ deg≤D+n/2). Binomial tail =
+   ──   standard Chernoff estimate (honest numeric hypothesis, NOT faked); weak form = lowDegreeDim_lt_two_pow/264. ───
+   ──   prime_smolensky_route_closed (PROVED, no axioms): CrossFieldCountHard + 261 bridge ⇒ ACC0CompositeComponent. ──
+   ──   Prime ACC⁰[p] LB now mechanically closed; the ONE open frontier = COMPOSITE = 238 CarryRefinementCrossing. ───
+   ──   NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3672,6 +3680,17 @@ theorem nw_no_small_approximator_frontier {F : Type} [Field F] {n D' E : ℕ}
     (hGsize : 2 ^ n - E ≤ G.card) (htail : ACC0NonNativeDegree.lowDegreeDim n D' < 2 ^ n - E) :
     False :=
   ACC0SmolenskyPrime.no_small_approximator G hhalving hGsize htail
+
+/-- **Prime mechanical closure (step 1): ApproximatorDegreeBound discharged + the clean prime theorem (proved).**
+nw_approximator_product_totalDegree_frontier (PROVED): (P*Q).totalDegree ≤ D+d (MvPolynomial.totalDegree_mul) —
+discharges ApproximatorDegreeBound (approximator deg ≤ D × complement monomial deg ≤ |Sᶜ| ⇒ deg ≤ D+n/2). The binomial
+tail (lowDegreeDim n (n/2+D) < 2ⁿ−E) is the standard Chernoff estimate (numeric hypothesis, not faked). prime_smolensky_
+route_closed (PROVED, no axioms): CrossFieldCountHard + entry-261 bridge ⇒ ACC0CompositeComponent. Composite = the one
+open frontier (238). -/
+theorem nw_approximator_product_totalDegree_frontier {σ R : Type} [CommSemiring R]
+    (P Q : MvPolynomial σ R) (D d : ℕ) (hP : P.totalDegree ≤ D) (hQ : Q.totalDegree ≤ d) :
+    (P * Q).totalDegree ≤ D + d :=
+  ACC0PrimeMechanicalClosure.approximator_times_complement_totalDegree P Q D d hP hQ
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
