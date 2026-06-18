@@ -197,6 +197,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Independence
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpGate
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -948,6 +949,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   nw_joint_error_le_frontier (PROVED): with 2·|B j| ≤ |Y j| (per-clause 1/2 of 268), 2^k·|jointBad| ≤ |∀ j,Y j| ─
    ──   (Fintype.card_pi). Discharges the LAST probabilistic socket. Only the structural single-gate→circuit→observer
    ──   lifting (PolynomialMethodApproximation glue) remains. NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── MOD_p GATE — exact NATIVE degree-(p-1) rep + the native/non-native DICHOTOMY: ───────────────────────────────
+   ──   modpGate fires iff #{true inputs} ≡ 0 mod p. nw_modp_native_repr_frontier (PROVED): 1-(∑ᵢ xᵢ)^(p-1) = ────────
+   ──   [modpGate fires] over F_p — EXACT degree-(p-1), fan-in-free, via Fermat indicator (266). ─────────────────────
+   ──   nw_modpGate_fires_iff_frontier (PROVED): MOD_p = (p ∣ #trues) = the SYM/cross-field-count object (251). ──────
+   ──   DICHOTOMY: native (F_p) easy degree p-1; non-native (F_ℓ, ℓ≠p) high degree = the RS wall (mechanism = ────────
+   ──   algExpander_forces_high_degree/264; composite modulus = the open wall 238). NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3457,6 +3464,20 @@ theorem nw_joint_error_le_frontier {k : ℕ} (Y : Fin k → Type) [∀ j, Fintyp
     (h : ∀ j, 2 * (B j).card ≤ Fintype.card (Y j)) :
     2 ^ k * (Fintype.piFinset B).card ≤ Fintype.card (∀ j, Y j) :=
   ACC0Independence.joint_error_le Y B h
+
+/-- **The MOD_p gate: exact native degree-(p-1) representation + the native/non-native dichotomy (proved).**  modpGate
+fires iff #{true inputs} ≡ 0 mod p.  nw_modp_native_repr_frontier (PROVED): 1 - (∑ᵢ xᵢ)^(p-1) = [modpGate fires] over
+F_p — an EXACT degree-(p-1) polynomial, fan-in-free, via the Fermat indicator (266).  modpGate_fires_iff (PROVED):
+MOD_p = p ∣ #trues (the SYM / cross-field-count object, 251).  Native (F_p) = easy degree p-1; non-native (F_ℓ, ℓ≠p) =
+high degree = the RS wall (mechanism = algExpander_forces_high_degree/264; composite = 238). -/
+theorem nw_modp_native_repr_frontier {p : ℕ} [Fact p.Prime] {n : ℕ} (x : Fin n → Bool) :
+    ACC0ModpGate.modpPoly p x = if ACC0ModpGate.modpGate p x then 1 else 0 :=
+  ACC0ModpGate.modp_native_repr x
+
+/-- **MOD_p is weight-divisibility (proved): modpGate fires iff p ∣ #{true inputs}.** -/
+theorem nw_modpGate_fires_iff_frontier {p n : ℕ} (x : Fin n → Bool) :
+    ACC0ModpGate.modpGate p x = true ↔ p ∣ (Finset.univ.filter (fun i => x i = true)).card :=
+  ACC0ModpGate.modpGate_fires_iff x
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 

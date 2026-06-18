@@ -363,6 +363,29 @@ only ingredient still socketed is the *structural* lifting from a single gate to
 analytic layer of Razborov–Smolensky — counting, rank, multilinear dimension, Fermat indicator, exact reps, boosting,
 per-clause `1/2`, independence `2^{-k}` — is now proved.  Not faked, not a separation.
 
+(Note: there is also a *concrete `F₂` circuit* development of the same structural lifting in the repository — an
+independent arc `…ACC0{CircuitApprox, ErrorAccumulation, SmallErrorForm, LayerCompose, CompositionCorrect, OrStep,
+DepthInduction}` (committed, sorry-free): a `Circ` datatype, `MvPolynomial`/`totalDegree` approximants, `error_union_bound`,
+`or_step`/`and_step`, and the depth induction `approximable_exists` for **MOD-free** circuits.  It converges with the
+abstract kernel here on the same wall — composite `MOD`.)
+
+## 5l. The `MOD_p` gate — native easy, non-native hard (entry 270)
+
+The third `AC⁰[p]` gate, completing the per-gate kernel beyond `AND`/`OR` (`…ACC0ModpGate`).  `MOD_p` fires iff the
+Hamming weight is `≡ 0 mod p`.
+
+* **Exact native representation (PROVED).**  `modp_native_repr`: `1 − (∑ᵢ xᵢ)^{p-1} = [MOD_p]` over `F_p`, via the
+  Fermat indicator (§5h) — degree `p-1`, *fan-in-free*.  `MOD_p` is *easy over its own field*: constant native degree.
+* **`MOD_p` is the `SYM`/count object (PROVED).**  `modpGate_fires_iff`: `MOD_p ⇔ p ∣ #{true inputs}` — the
+  weight-divisibility / cross-field-count gate (§3, entry 251), the `SYM` of Beigel–Tarui `SYM∘AND`.
+* **The dichotomy.**  Native (`F_p`) is degree `p-1` (easy, proved); *non-native* (`F_ℓ`, `ℓ ≠ p`) is high degree — the
+  Razborov–Smolensky obstruction `ModpNonNativeHardOverOtherField`, whose mechanism is the proved counting/rank engine
+  (§5f, `algExpander_forces_high_degree`) and whose *composite-modulus* form is the open wall (§3, entry 238).
+
+**Net:** all three `AC⁰[p]` gate types now have their per-gate polynomial behaviour proved — `AND`/`OR` (§5h) and `MOD_p`
+(§5l) — and the native/non-native split is made precise: every gate is *low-degree native*, and the entire difficulty is
+concentrated in the *non-native composite-`MOD`* lower bound, which is the single open wall.  Not faked, not a separation.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the
