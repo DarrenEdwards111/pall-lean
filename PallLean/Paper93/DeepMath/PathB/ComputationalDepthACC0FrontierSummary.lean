@@ -178,6 +178,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultiSortedFastSAT
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ProductFieldMixing
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Depth2CrossModulus
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0StagedFastSAT
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CrossFieldCountCore
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -806,6 +807,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   constant factor. BUT each per-cell branch counts inputs by #(inner MOD₂ gates firing) mod 3 = cross-field ──────
    ──   MIXING in COUNTING form (244/249). CONCLUSION: staging without flattening does NOT bypass the wall — it ───────
    ──   RELOCATES the cross-field mixing into the per-cell count. No crossing, no faked no-go. NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── CROSSFIELDCOUNT CORE (the exposed ACC wall, attacked directly): crossFieldCount q gates x := #{i: gate i fires} ─
+   ──   mod q (the object ALL six routes bottom out at, p≠q). nw_disjoint_pattern_count_frontier — for DISJOINT gate ──
+   ──   supports, pattern-counts FACTOR (∏ᵢ #{y: gᵢ y=bᵢ}) = independence ⇒ convolution ⇒ FAST, NO cross-field mixing.
+   ──   nw_crossFieldCount_lt_frontier — <q cells. FINDING: the obstruction is an OVERLAP phenomenon — low overlap ────
+   ──   rank ⇒ tractable (PROVED for disjoint); high overlap rank ⇒ Smolensky (open general case, 238). Candidate ─────
+   ──   invariant = overlap/incidence rank. NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3014,6 +3021,23 @@ theorem nw_stagedSAT_outer_decomp_frontier {X : Type} (P : X → ℕ) (S : Set �
 theorem nw_staged_work_le_frontier (S : Finset ℕ) (W : ℕ → ℕ) (M : ℕ) (h : ∀ v ∈ S, W v ≤ M) :
     ∑ v ∈ S, W v ≤ S.card * M :=
   ACC0StagedFastSAT.staged_work_le S W M h
+
+/-- **CrossFieldCount core — the exposed ACC wall, attacked directly; disjoint gates are tractable.**
+`crossFieldCount q gates x := #{i : gate i fires} mod q` — the object every crossing route bottoms out at (p≠q).
+`disjoint_pattern_count`: for DISJOINT gate supports, pattern-counts FACTOR as a product (independence) ⇒ the cross-field
+count distribution is a convolution = fast, NO cross-field mixing.  So the obstruction is an OVERLAP phenomenon: low
+overlap rank ⇒ tractable (proved); high overlap rank ⇒ Smolensky (open general case, 238). -/
+theorem nw_disjoint_pattern_count_frontier {s : ℕ} {Y : Type} [Fintype Y] [DecidableEq Y]
+    (g : Fin s → (Y → Bool)) (b : Fin s → Bool) :
+    (Finset.univ.filter (fun x : Fin s → Y => ∀ i, g i (x i) = b i)).card
+      = ∏ i, (Finset.univ.filter (fun y : Y => g i y = b i)).card :=
+  ACC0CrossFieldCountCore.disjoint_pattern_count g b
+
+/-- **CrossFieldCount core: the cross-field count has `< q` cells (proved).** -/
+theorem nw_crossFieldCount_lt_frontier {X : Type} {s : ℕ} (q : ℕ) (hq : 0 < q)
+    (gates : Fin s → (X → Bool)) (x : X) :
+    ACC0CrossFieldCountCore.crossFieldCount q gates x < q :=
+  ACC0CrossFieldCountCore.crossFieldCount_lt q hq gates x
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
