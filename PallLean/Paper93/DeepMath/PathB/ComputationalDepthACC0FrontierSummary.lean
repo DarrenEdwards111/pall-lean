@@ -174,6 +174,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LayeredCarryDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CrossFieldCombination
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SmolenskyLowerBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultiSortedObserver
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultiSortedFastSAT
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -777,6 +778,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   per-prime component low-deg over its OWN field (242). The observer WORKS as a faithful MOD_m reader; the OPEN ─
    ──   step-5 = does it feed Williams/BT fast-SAT (quasipoly SYM∘AND) WITHOUT collapsing to one field (Smolensky- ────
    ──   blocked, 244)? Needs a product-sorted fast-SAT machinery, NOT constructed. NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── MULTI-SORTED FAST-SAT (cell budget composes PROVED; per-field gate repr = the blocked core): ─────────────────
+   ──   nw_jointCells_le_pow_frontier — joint cell-count ∏ᵢ(mᵢ+1) ≤ (M+1)^k, quasipoly for constant k (counting side ──
+   ──   fine, analogue of 239); nw_multiSorted_savings_frontier — joint cells ≤ 2^(n-j) ⇒ savings 2^j. So multi-sorted
+   ──   fast-SAT WOULD run IF the per-field SYM∘AND reps of the composite MOD_m gates existed — but they CAN'T ────────
+   ──   (Smolensky 244 + cross-field MIXING inside the circuit, not just readout). That mixing = the blocked ─────────
+   ──   ACC⁰[composite] core (238). Counting fine; per-field gate representation NOT built. NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2923,6 +2930,20 @@ theorem nw_modm_iff_modp_and_modq_frontier (p q k : ℕ) (h : Nat.Coprime p q) :
 theorem nw_prod_field_iso_frontier (p q : ℕ) (h : Nat.Coprime p q) :
     Nonempty (ZMod (p * q) ≃+* ZMod p × ZMod q) :=
   ACC0MultiSortedObserver.prod_field_iso p q h
+
+/-- **Multi-sorted fast-SAT: cell budget composes (proved); per-field gate representation is the blocked core.**
+`jointCells_le_pow`: the k-prime joint cell-count ∏ᵢ(mᵢ+1) ≤ (M+1)^k — quasipoly for constant k (counting side fine,
+analogue of entry 239).  `multiSorted_savings`: joint cells ≤ 2^(n-j) ⇒ savings 2^j.  So multi-sorted fast-SAT WOULD
+run if the per-field SYM∘AND representations of the composite MOD_m gates existed — but those can't (Smolensky 244 +
+cross-field mixing inside the circuit), the blocked ACC⁰[composite] core. -/
+theorem nw_jointCells_le_pow_frontier {k : ℕ} (mcount : Fin k → ℕ) (M : ℕ) (h : ∀ i, mcount i ≤ M) :
+    ACC0MultiSortedFastSAT.jointCells mcount ≤ (M + 1) ^ k :=
+  ACC0MultiSortedFastSAT.jointCells_le_pow mcount M h
+
+/-- **Multi-sorted fast-SAT savings condition (proved): joint cells ≤ 2^(n-j) ⇒ 2^j·work ≤ 2^n.** -/
+theorem nw_multiSorted_savings_frontier (W n j : ℕ) (hj : j ≤ n) (hW : W ≤ 2 ^ (n - j)) :
+    2 ^ j * W ≤ 2 ^ n :=
+  ACC0MultiSortedFastSAT.multiSorted_savings W n j hj hW
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
