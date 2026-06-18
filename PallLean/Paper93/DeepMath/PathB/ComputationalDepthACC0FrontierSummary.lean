@@ -194,6 +194,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ReedMullerGates
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NonNativeDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultilinearBasis
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -928,6 +929,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   mlMon univ ∈ lowDegreeSubmodule n n (exact degree-n rep, connects to entry 265). RandomizedLowDegreeApprox ────
    ──   socket: low-degree (D≪n) approx via random restriction+boosting = the open RS step (proved non-vacuous at the
    ──   exact endpoint D=n,k=0 via and_exact_is_zeroError_approximation). NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── BOOSTING — drive k clause indicators to error 2^{-k} (RS error-reduction core): boostPoly e x := 1-∏ⱼ(1-eⱼ x) ──
+   ──   = OR of the approximators. boostPoly_eq_one/eq_zero + boost_correct (PROVED). ──────────────────────────────────
+   ──   nw_boost_correct_off_iInter_frontier (PROVED): boost agrees with tgt off the INTERSECTION of error sets — ─────
+   ──   bad(boost) ⊆ ⋂ⱼ bad j — the boosting step. Sockets: SingleSubsetAgreement (per-clause ≥1/2, provable over F2 by
+   ──   parity-toggle involution) + IndependentIntersectionBound (independence ⇒ product) ⇒ error 2^{-k} at deg k(p-1).
+   ──   NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3405,6 +3412,20 @@ theorem nw_andIndicator_mem_lowDegree_frontier {F : Type} [Field F] {n : ℕ} :
     ACC0MultilinearBasis.mlMon (F := F) (Finset.univ : Finset (Fin n))
       ∈ ACC0MultilinearBasis.lowDegreeSubmodule (F := F) n n :=
   ACC0AndGateApprox.andIndicator_mem_lowDegree
+
+/-- **Boosting: drive k clause indicators to error 2^{-k} (the error-reduction core of RS).**  `boostPoly e x :=
+1 - ∏ⱼ (1 - eⱼ x)` = the OR of the approximators.  boostPoly_eq_one/eq_zero + boost_correct (PROVED): boost agrees
+with the target under the good event.  nw_boost_correct_off_iInter_frontier (PROVED): boost agrees with tgt off the
+INTERSECTION of the individual error sets — `bad(boost) ⊆ ⋂ⱼ bad j` — the boosting step.  Probabilistic sockets:
+SingleSubsetAgreement (per-clause ≥1/2), IndependentIntersectionBound (independence ⇒ product); composed ⇒ error 2^{-k}
+at degree k(p-1). -/
+theorem nw_boost_correct_off_iInter_frontier {F : Type} [Field F] {X : Type} {k : ℕ}
+    (e : Fin k → (X → F)) (tgt : X → F) (bad : Fin k → Finset X)
+    (htgt : ∀ x, tgt x = 0 ∨ tgt x = 1) (hone : ∀ x j, tgt x = 0 → e j x = 0)
+    (hcorrect : ∀ j, ∀ x ∉ bad j, e j x = tgt x)
+    (x : X) (hx : ∃ j, x ∉ bad j) :
+    ACC0Boosting.boostPoly e x = tgt x :=
+  ACC0Boosting.boost_correct_off_iInter e tgt bad htgt hone hcorrect x hx
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 

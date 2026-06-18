@@ -304,6 +304,26 @@ fan-in-free clause indicator, membership in the degree-`≤ n` submodule), with 
 remaining open step is the *low-degree* probabilistic approximation — the irreducible analytic core of Razborov–Smolensky
 (`ACC⁰[composite]`, entry-238 `CarryRefinementCrossing`).  Not faked, not a separation.
 
+## 5i. The boosting step — error reduction to `2^{-k}` (entry 267)
+
+The mechanism that turns one weak clause indicator into a good approximator (`…ACC0Boosting`).  A single Fermat clause
+indicator is correct with probability `≥ 1/2` on each nonzero input; **boosting** combines `k` of them.
+
+* **The boosted polynomial (PROVED).**  `boostPoly e x := 1 − ∏ⱼ (1 − eⱼ x)` is the *OR* of the `k` approximators:
+  `boostPoly_eq_one` (some `eⱼ` fires ⇒ `1`), `boostPoly_eq_zero` (all silent ⇒ `0`), degree `k·(p-1)`.
+* **Agreement (PROVED).**  `boost_correct`: boost equals the Boolean target under the good event.
+* **The error-reduction core (PROVED).**  `boost_correct_off_iInter`: boost agrees with the target on every input
+  *outside the intersection* of the `k` error sets — `bad(boost) ⊆ ⋂ⱼ bad j`.  This is exactly the boosting step.
+* **The probabilistic ingredients (sockets).**  `SingleSubsetAgreement` (per-clause `≥ 1/2`, provable over `F₂` by the
+  parity-toggle involution) and `IndependentIntersectionBound` (independence ⇒ `|⋂ⱼ bad j| ≤ ∏ⱼ |bad j|/2^{n(k-1)}`).
+  Composed with the proved boosting they drive `|bad(boost)| ≤ 2ⁿ·2^{-k}`.
+
+**Net:** the boosting *algebra* (OR-of-approximators, error-set intersection `bad(boost) ⊆ ⋂ⱼ bad j`) is machine-proved.
+What remains inside `PolynomialMethodApproximation` is now reduced to two sharply-named probabilistic facts — the
+per-clause `≥ 1/2` agreement and the independence of the random subsets — which together with the proved per-gate and
+boosting algebra would complete the single-gate low-degree approximation.  Those two are the residue of the open
+Razborov–Smolensky core.  Not faked, not a separation.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the
