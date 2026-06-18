@@ -211,6 +211,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SeparatedLayers
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6StagedObservers
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6CarryState
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryRefinementCrossing
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryStateComplexity
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -3772,6 +3773,26 @@ theorem nw_field_based_modes_all_fail_frontier :
           ∧ ((2 : ZMod 6) ≠ 0 ∧ (2 : ZMod 6) ^ (6 - 1) ≠ 1)) :=
   ACC0CarryRefinementCrossing.field_based_modes_all_fail
 
+/-- **First field-free carry invariant — `MOD_m` needs `≥ m` carry states (proved, Myhill–Nerode).**
+nw_carry_observer_mod_card_ge_frontier (PROVED): a carry observer (state set `Q`, increment `δ`, accept `acc`) computing
+`MOD_m` has `≥ m` states — the `m` residues are pairwise distinguishable under continuations of `1`-bits. Entirely
+field-free (no fields, no polynomials) — exactly the characteristic-independent kind the composite wall calls for. The
+first genuine attempt at the open `CarryRefinementCrossing` invariant (entry 284). -/
+theorem nw_carry_observer_mod_card_ge_frontier {Q : Type} [Fintype Q] (q₀ : Q) (δ : Q → Q) (acc : Q → Bool)
+    (m : ℕ) (hcomp : ∀ w : ℕ, acc (δ^[w] q₀) = decide (w % m = 0)) :
+    m ≤ Fintype.card Q :=
+  ACC0CarryStateComplexity.carry_observer_mod_card_ge q₀ δ acc m hcomp
+
+/-- **Field-free carry invariant grows with the count range (proved).**
+nw_carry_observer_count_card_ge_frontier (PROVED): a carry observer outputting the exact Hamming weight on `n` bits needs
+`≥ n + 1` states — carry state grows with the count range. The regime where carry-state complexity has teeth; for a
+*fixed* modulus `MOD₆` the bound collapses to the constant `6` (achievable, `MOD₆ ∈ ACC⁰[6]`), so the composite
+separation needs a target whose carry genuinely grows — the open step (entry 284). -/
+theorem nw_carry_observer_count_card_ge_frontier {Q : Type} [Fintype Q] (q₀ : Q) (δ : Q → Q) (out : Q → ℕ)
+    (n : ℕ) (hcomp : ∀ w : ℕ, w ≤ n → out (δ^[w] q₀) = w) :
+    n + 1 ≤ Fintype.card Q :=
+  ACC0CarryStateComplexity.carry_observer_count_card_ge q₀ δ out n hcomp
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4304,3 +4325,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.moment_integrand_is_sparse
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.level_count_eq_alternating_moments
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.beigel_tarui_monomial_count
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_carry_observer_mod_card_ge_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_carry_observer_count_card_ge_frontier

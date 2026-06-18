@@ -35,6 +35,13 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
     • stage     → bounded degree < growing req.  (bounded_depth_staged_no_go, 281)
     • carry     → product ring not a field, Fermat fails  (…carry_state_no_traction, 282)
   ⇒ needs a CHARACTERISTIC-INDEPENDENT invariant (open research; not faked)
+
+  FIELD-FREE invariant — first genuine attempt (carry-state complexity, 284):
+    • carry_observer_mod_card_ge   : MOD_m needs ≥ m carry states   (Myhill–Nerode, field-free)
+    • carry_observer_count_card_ge : exact count needs ≥ n+1 states (carry grows with count range)
+    ⇒ for FIXED MOD₆ the bound is the constant 6 (= 2·3, achievable: MOD₆ ∈ ACC⁰[6])
+       so carry-state separates count/growing-modulus but NOT fixed-MOD₆ composite;
+       the separation needs a target whose carry GROWS under bounded composition (still open)
 ```
 
 ## Tier 1 — AC⁰ (switching method): **DONE & FENCED**

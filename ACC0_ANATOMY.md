@@ -655,6 +655,29 @@ The capstone (`…ACC0CarryRefinementCrossing`): freeze the result and name the 
 composite obstruction is one precisely-named theorem (`CarryRefinementCrossing`) whose every natural attack is refuted,
 awaiting a new characteristic-independent idea.  That is the honest terminus and the live frontier.
 
+## 5z. First field-free carry invariant — carry-state complexity (entry 284, the live frontier engaged)
+
+The frontier of §5y (steps 4–5) calls for a *characteristic-independent* invariant.  Entry 284
+(`…ACC0CarryStateComplexity`) builds the first genuine one — **carry-state complexity** — and is honest about exactly
+where it bites and where it stops.
+
+* **The model (field-free).**  A *carry observer* is a finite state set `Q`, initial `q₀`, increment map `δ : Q → Q`
+  (one more `1`-bit), and accept/output map.  After weight `w` the carry is `δ^[w] q₀`.  No fields, no polynomials — only
+  states and the increment map.  This is precisely the characteristic-independent setting §5y demanded.
+* **Modular lower bound (PROVED).**  `carry_observer_mod_card_ge`: computing `MOD_m` needs `≥ m` carry states.  The `m`
+  residues are pairwise distinguishable — if `a < b < m` shared a state, the continuation of `m − a` more `1`-bits would
+  accept `a` (weight `m`) but reject `b` (weight `≡ b − a ≢ 0`).  A field-free Myhill–Nerode argument on `δ` via
+  `Function.iterate_add_apply`.
+* **Count lower bound (PROVED).**  `carry_observer_count_card_ge`: outputting the exact weight on `n` bits needs
+  `≥ n + 1` states — the carry *grows* with the count range.
+* **`MOD₆` (PROVED).**  `mod6_carry_state_ge_six`: `≥ 6` carry states; `mod_observer_too_small_fails`: `< m` states ⇒
+  cannot compute `MOD_m`.
+* **Honest caveat — where it stops.**  For a *fixed* modulus the bound is the **constant** `6` (`= 2·3`, the CRT
+  product) and is achievable — `MOD₆ ∈ ACC⁰[6]`.  So carry-state complexity separates the *count* (growing, `≥ n+1`) and
+  growing moduli, but **not** fixed-`MOD₆` composite by itself.  A composite separation needs a target whose carry-state
+  complexity *grows* under bounded-observer composition — locating that target and proving the growth is the genuinely
+  open `CarryRefinementCrossing` step.  Real field-free progress, not a separation, not faked.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the
