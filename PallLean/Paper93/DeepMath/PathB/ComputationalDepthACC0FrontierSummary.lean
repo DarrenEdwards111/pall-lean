@@ -189,6 +189,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AffineHyperplanes
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AffineHyperplaneLowerBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CoFiring
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FirePatternRichness
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0VaryingAffinePatterns
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -882,6 +883,15 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   has NO pattern of size ≥2. Strengthened socket: AlgExpander → PatternRich → CrossFieldCountHard; implication ──
    ──   bridge: CrossFieldCountHard → ACC0CompositeComponent (upstream of Williams; proven MOD_q instance via 244). ───
    ──   General = Smolensky core (238). NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── VARYING-DIRECTION AFFINE (a SECOND proved AlgExpander+PatternRich family, beyond dictator/MOD_q): ──────────────
+   ──   varGate a b i x := decide(⟨a i,x⟩ = b i), own direction a i per gate. Under general position (dotEval a ─────
+   ──   surjective): nw_varyingAffine_patternRich_frontier (PROVED) PatternRich(2^s, every subset realized); ──────────
+   ──   nw_varyingAffine_coFiringRich_frontier (PROVED) CoFiringRich s (one input fires ALL gates — content the ───────
+   ──   parallel family lacks); varyingAffine_algExpander (PROVED). parallel_pattern_image_ne_univ (PROVED, s≥2): ─────
+   ──   parallel = degenerate easy subcase (full pattern never realized, general position FAILS). Real target socket: ─
+   ──   PatternRichCrossFieldLowerBound; RS attack invariant NonNativeDegreeLowerBound (non-native deg /F_q); ─────────
+   ──   patternRich_lb_of_nonNativeDegree + varyingAffine_ACC0_chain (PROVED) wire to ACC0CompositeComponent modulo ───
+   ──   the two named sockets. NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3268,6 +3278,26 @@ theorem nw_parallel_no_large_patterns_frontier {p n s : ℕ} (targets : Fin s �
     ¬ 2 ≤ (ACC0CoFiring.firePattern
         (fun (i : Fin s) (x : Fin (n + 1) → ZMod p) => decide ((∑ j, x j) = targets i)) x).card :=
   ACC0FirePatternRichness.parallel_no_large_patterns targets hinj x
+
+/-- **Varying-direction affine hyperplanes — a SECOND proved AlgExpander + PatternRich family (beyond dictator/MOD_q).**
+`varGate a b i x := decide (⟨a i, x⟩ = b i)` (own direction `a i` per gate).  Under general position
+(`Function.Surjective (dotEval a)`): `varyingAffine_patternRich` (PROVED) gives `PatternRich (2^s)` (every subset
+realized), `varyingAffine_coFiringRich` (PROVED) gives `CoFiringRich s` (all gates co-fire on one input),
+`varyingAffine_algExpander` (PROVED) gives AlgExpander.  Parallel = degenerate easy subcase
+(`parallel_pattern_image_ne_univ`).  `varyingAffine_ACC0_chain` (PROVED) wires it to the ACC⁰[composite] component
+modulo the two named sockets. -/
+theorem nw_varyingAffine_patternRich_frontier {p n s : ℕ} [Fact p.Prime] [NeZero p]
+    (a : Fin s → Fin n → ZMod p) (b : Fin s → ZMod p)
+    (hsurj : Function.Surjective (ACC0VaryingAffinePatterns.dotEval a)) :
+    ACC0FirePatternRichness.PatternRich (ACC0VaryingAffinePatterns.varGate a b) (2 ^ s) :=
+  ACC0VaryingAffinePatterns.varyingAffine_patternRich a b hsurj
+
+/-- **Varying-direction affine hyperplanes co-fire fully (proved): a single input fires all `s` gates.** -/
+theorem nw_varyingAffine_coFiringRich_frontier {p n s : ℕ} [Fact p.Prime]
+    (a : Fin s → Fin n → ZMod p) (b : Fin s → ZMod p)
+    (hsurj : Function.Surjective (ACC0VaryingAffinePatterns.dotEval a)) :
+    ACC0CoFiring.CoFiringRich (ACC0VaryingAffinePatterns.varGate a b) s :=
+  ACC0VaryingAffinePatterns.varyingAffine_coFiringRich a b hsurj
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 

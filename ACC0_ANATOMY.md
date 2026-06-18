@@ -180,6 +180,31 @@ non-vacuous with a **proven hard instance**: the dictator/`MOD_q` family satisfi
 is Smolensky-strength (the open core); the implication `CrossFieldCountHard ⇒ ACC⁰[composite] lower-bound component`
 (upstream of Williams `NEXP ⊄ ACC⁰`) is the named bridge.
 
+## 5d. A second proved family + the real lower-bound target and its RS attack (entry 262)
+
+To move from cataloguing invariants to *connecting the stack to a lower bound*, the program now (a) exhibits a **second**
+genuinely-different family satisfying both hardness clauses, (b) names the single missing theorem, and (c) names its
+Razborov–Smolensky attack invariant — all in `…ACC0VaryingAffinePatterns`.
+
+* **Second proved family — varying-direction affine hyperplanes.**  `varGate a b i x := decide (⟨a i, x⟩ = b i)`: each
+  gate `i` is the affine hyperplane with its *own* direction `a i` (vs the parallel family's one fixed all-ones
+  direction).  Under **general position** (`dotEval a : x ↦ (⟨a i, x⟩)ᵢ` *surjective* — for `n = s` the direction
+  matrix is invertible), every subset is realized as a fire-pattern, giving `PatternRich (2^s)`
+  (`varyingAffine_patternRich`), all gates co-firing on one input `CoFiringRich s` (`varyingAffine_coFiringRich`), and
+  linear independence `AlgExpander` via private witnesses (`varyingAffine_algExpander`) — all PROVED.  The **parallel**
+  family is the degenerate easy subcase: its all-fire pattern is never realized, so general position fails
+  (`parallel_pattern_image_ne_univ`).
+* **The single named missing theorem.**  `PatternRichCrossFieldLowerBound`: `AlgExpander → PatternRich (2^s) →
+  CrossFieldCountHard`.  This replaces the prose "general socket" with one named target.
+* **The RS attack invariant.**  `NonNativeDegreeLowerBound` factors the target through *non-native polynomial degree
+  over `F_q`* (`q ≠ p`) — the measure closest to Razborov–Smolensky: `(AlgExpander ∧ PatternRich ⇒ HighNonNativeDegree)
+  ∧ (HighNonNativeDegree ⇒ CrossFieldCountHard)`.  `patternRich_lb_of_nonNativeDegree` (PROVED) shows this route
+  suffices for the target.
+* **Wiring it in.**  `varyingAffine_ACC0_chain` (PROVED): *given* the lower-bound socket and the §5c bridge
+  `crossFieldHard_to_ACC0Component`, the varying-affine family yields the `ACC⁰[composite]` component **with
+  `AlgExpander` and `PatternRich` discharged** for this family.  Two proved families (dictator/`MOD_q`, varying-affine)
+  now reach the antecedent; only the two named sockets (the lower bound + the bridge) remain open.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the
