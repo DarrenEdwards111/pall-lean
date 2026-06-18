@@ -229,6 +229,38 @@ and letting `φ(x)_m := m(x)` (the monomial feature map, `m` over degree-`≤ d`
 validating `AlgExpander ∧ PatternRich` across three distinct geometries; the wall is localized to the single named
 `PatternRichCrossFieldLowerBound` with an RS-flavoured attack route.
 
+## 5f. Attacking the wall — the Smolensky counting engine, PROVED; the target reduced to one analytic socket (entry 264)
+
+The direct attack on `PatternRichCrossFieldLowerBound` along the non-native degree route (`…ACC0NonNativeDegree`).  The
+route factors into two halves:
+
+* **(B) richness ⇒ high non-native degree** — Smolensky's *counting* argument;
+* **(A) small resources ⇒ low non-native degree** — the *polynomial-method* approximation of `AC⁰[p]` circuits.
+
+This file **proves the entire (B) engine** — the mechanism by which the route works — and reduces the target to the
+*single* named analytic socket (A).
+
+* **The counting engine (PROVED).**  `lowDegreeDim n D := ∑_{i≤D} C(n,i)` is the dimension of the non-native
+  degree-`≤ D` function space; `lowDegreeDim_lt_two_pow` proves `D < n ⇒ lowDegreeDim n D < 2^n` (the low-degree space
+  is strictly smaller than the full space — why low-degree polynomials cannot compute rich functions).
+* **The rank pigeonhole (PROVED).**  `exists_notMem_of_finrank_lt` (a family spanning more than `finrank W` escapes
+  `W`) and `algExpander_forces_high_degree`: an `AlgExpander` family of `s` gates with `lowDegreeDim n D < s` must
+  contain a gate of non-native degree `> D`.  *Too many independent gates cannot all be low-degree* — this is the actual
+  Smolensky lower-bound mechanism, machine-proved.
+* **The count is `MOD_q` (PROVED).**  `crossFieldCount_eq_firePattern_card_mod`: the cross-field count is `|firing
+  pattern| mod q` = `MOD_q` on the pattern indicator, the function hard by the in-arc `Layer4.mod_q_indicators_false`.
+* **The reduction (PROVED, modulo one socket).**  `nonNativeDegreeLowerBound_via_counting` builds a concrete
+  `NonNativeDegreeLowerBound` with the (B) half *proved* by the engine and the (A) half = the socket
+  `PolynomialMethodApproximation` (the probabilistic polynomial method, `AC⁰[p] ⇒` low-degree approximation — the
+  genuine open RS core, instances = in-arc `Layer3`/`Layer4`).  `patternRichCrossFieldLowerBound_via_nonNativeDegree`
+  feeds it through §5d's `patternRich_lb_of_nonNativeDegree` to the target.
+
+**Net:** the Smolensky *counting + rank* mechanism — the part that makes the non-native degree route work — is now
+machine-proved as reusable kernels, and the entire open target `PatternRichCrossFieldLowerBound` is reduced to the
+*single* analytic socket `PolynomialMethodApproximation` (the probabilistic polynomial method).  That socket is the
+genuine open Razborov–Smolensky core; its concrete instances are already in-arc (`Layer3`/`Layer4`), but the general
+form is exactly the `ACC⁰[composite]` wall and is not faked.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the

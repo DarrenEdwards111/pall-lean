@@ -191,6 +191,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CoFiring
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FirePatternRichness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0VaryingAffinePatterns
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ReedMullerGates
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NonNativeDegree
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -901,6 +902,16 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   (PROVED) CoFiringRich s; rmGate_algExpander (PROVED). rmGate_ACC0_chain (PROVED) wires to ACC0CompositeComponent
    ──   modulo the two named sockets. RS attack invariant = non-native degree over F_q = Reed-Muller distance. ────────
    ──   THREE proved families now reach the antecedent. NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── NON-NATIVE DEGREE ROUTE: the Smolensky COUNTING ENGINE is PROVED, target reduced to ONE analytic socket: ───────
+   ──   lowDegreeDim n D := ∑_{i≤D} C(n,i). nw_lowDegreeDim_lt_two_pow_frontier (PROVED): D<n ⇒ lowDegreeDim n D<2^n ──
+   ──   (low-degree space strictly smaller than full). exists_notMem_of_finrank_lt (PROVED): rank kernel. ────────────
+   ──   nw_algExpander_forces_high_degree_frontier (PROVED): the Smolensky PIGEONHOLE — an AlgExpander family of s ────
+   ──   gates with lowDegreeDim n D<s contains a gate of non-native degree >D (too many independent gates can't all be
+   ──   low-degree). crossFieldCount = |firePattern| mod q = MOD_q (proved, rfl). patternRichCrossFieldLowerBound_via_
+   ──   nonNativeDegree (PROVED): reduces the open target to the SINGLE socket PolynomialMethodApproximation (the ─────
+   ──   probabilistic polynomial method AC⁰[p]⇒low-degree, the genuine open RS core; instances = in-arc Layer3/Layer4)
+   ──   via entry-262 patternRich_lb_of_nonNativeDegree. The (B)-half of the RS route is now MACHINE-PROVED. ──────────
+   ──   NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3327,6 +3338,27 @@ theorem nw_rmGate_degree_one_eq_varGate_frontier {p n s : ℕ}
     ACC0ReedMullerGates.rmGate (fun (m : Fin n) (x : Fin n → ZMod p) => x m) a b
       = ACC0VaryingAffinePatterns.varGate a b :=
   ACC0ReedMullerGates.rmGate_degree_one_eq_varGate a b
+
+/-- **Attacking PatternRichCrossFieldLowerBound via the non-native degree route — the Smolensky counting engine, PROVED.**
+The (B)-half of the RS route is now machine-proved: `lowDegreeDim n D := ∑_{i≤D} C(n,i)`; `lowDegreeDim_lt_two_pow`
+(PROVED) `D<n ⇒ lowDegreeDim n D < 2^n` (the low-degree space is strictly smaller than the full one);
+`exists_notMem_of_finrank_lt` (PROVED) the rank kernel; `algExpander_forces_high_degree` (PROVED) the Smolensky
+pigeonhole — an AlgExpander family of `s` gates with `lowDegreeDim n D < s` must contain a gate of non-native degree
+`>D`.  `patternRichCrossFieldLowerBound_via_nonNativeDegree` (PROVED) reduces the open target to the single analytic
+socket `PolynomialMethodApproximation` (the probabilistic polynomial method, the genuine open RS core) via entry-262's
+`patternRich_lb_of_nonNativeDegree`. -/
+theorem nw_lowDegreeDim_lt_two_pow_frontier {n D : ℕ} (h : D < n) :
+    ACC0NonNativeDegree.lowDegreeDim n D < 2 ^ n :=
+  ACC0NonNativeDegree.lowDegreeDim_lt_two_pow h
+
+/-- **Smolensky pigeonhole (proved): too many independent gates cannot all be low non-native degree.** -/
+theorem nw_algExpander_forces_high_degree_frontier {X F : Type} [Fintype X] [Field F] {s : ℕ}
+    (gates : Fin s → (X → Bool)) (hAE : ACC0AlgebraicExpansion.AlgExpander (F := F) gates)
+    (W : Submodule F (X → F)) (n D : ℕ)
+    (hW : Module.finrank F W = ACC0NonNativeDegree.lowDegreeDim n D)
+    (hlt : ACC0NonNativeDegree.lowDegreeDim n D < s) :
+    ∃ i, ACC0AlgebraicExpansion.gateInd gates i ∉ W :=
+  ACC0NonNativeDegree.algExpander_forces_high_degree gates hAE W n D hW hlt
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
