@@ -428,6 +428,26 @@ quantitative inputs — the size/depth → degree refinement (assembly of commit
 (the wall).  Supplying both completes the *prime*-`MOD` lower bound; the *composite* case feeds `ACC0CompositeComponent`
 → Williams and is the single open barrier.  Not faked, not a separation.
 
+## 5o. The quantitative depth bound — the clean per-layer step (entry 273, roadmap (A))
+
+Roadmap step (A), built *on top of* the committed `or_step`/`and_step` (`…ACC0QuantitativeDepthBound`).  The committed
+steps left the gate-boosting error in the awkward form `(2^k)^t·Eg ≤ 2ⁿ·(2^{k-1})^t`; this entry extracts the clean
+fraction.
+
+* **The clean per-gate bound (PROVED).**  `gate_error_le`: that awkward bound (with `1 ≤ k`) cancels to `2^t·Eg ≤ 2ⁿ` —
+  each gate's boosting error is at most a `2^{-t}` fraction of the inputs, *independent of fan-in*.
+* **The clean per-layer step (PROVED).**  `or_layer_quant`/`and_layer_quant`: `or_step`/`and_step` repackaged with that
+  clean bound (degree `≤ t·D`, error `≤ k·E + Eg`, `2^t·Eg ≤ 2ⁿ`).
+* **The degree closed form (PROVED).**  `pow_depth_degree`: `(·t)` iterated `d` times on `D₀` is `t^d·D₀` — depth-`d`
+  approximant degree `≤ t^d·D₀`.
+
+**Net:** the quantitative per-layer ingredient — the part `or_step` left awkward — is now clean and proved (the gate
+error is a transparent `2^{-t}` fraction), and the degree closed form `t^d·D₀` is in hand.  The remaining piece of
+`QuantitativeDepthBound` is the structural iteration over the committed `Circ` (apply the layer step gate-by-gate,
+accumulating degree `t^d`, error `size·2ⁿ·2^{-t}`) — the quantitative refinement of `approximable_exists`, which lives in
+the committed circuit arc.  Of roadmap (A), the clean analytic content is done; only that structural iteration and the
+Smolensky wall (B) remain.  Not faked, not a separation.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the

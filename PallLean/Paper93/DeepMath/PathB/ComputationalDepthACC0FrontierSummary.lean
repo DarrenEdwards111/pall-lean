@@ -200,6 +200,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Independence
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpGate
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NativeNonNativeBridge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PolynomialMethodApproximation
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0QuantitativeDepthBound
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -970,6 +971,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   QuantitativeDepthBound ∧ SmolenskyNonNativeLowerBound ⇒ False (the contradiction core). Sockets: ─────────────
    ──   QuantitativeDepthBound (size/depth→degree, threads Codex or_step/and_step+boosting) + SmolenskyNonNativeLower
    ──   Bound (= the wall; mechanism algExpander_forces_high_degree/264; composite = 238). NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── QUANTITATIVE DEPTH BOUND (roadmap (A)) — clean per-gate error + per-layer step (on top of committed or_step): ──
+   ──   nw_gate_error_le_frontier (PROVED): committed (2^k)^t·Eg ≤ N·(2^{k-1})^t SIMPLIFIES to clean 2^t·Eg ≤ N ──────
+   ──   (gate error = 2^{-t} fraction, fan-in-independent). or_layer_quant/and_layer_quant (PROVED): clean per-layer ──
+   ──   step (deg t·D, err k·E+Eg, 2^t·Eg ≤ 2^n). nw_pow_depth_degree_frontier (PROVED): degree closed form t^d·D₀. ──
+   ──   Remaining: structural Circ iteration (committed arc's quantitative approximable_exists). NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3530,6 +3536,20 @@ theorem nw_polynomial_method_contradiction_frontier {n : ℕ} (f : (Fin n → Bo
     (hbridge : ACC0PolynomialMethodApproximation.QuantitativeDepthBound f D E)
     (hwall : ACC0PolynomialMethodApproximation.SmolenskyNonNativeLowerBound f D E) : False :=
   ACC0PolynomialMethodApproximation.polynomial_method_contradiction f D E hbridge hwall
+
+/-- **The quantitative depth bound — clean per-gate error extraction + per-layer step (roadmap (A)).**
+nw_gate_error_le_frontier (PROVED): the committed or_step gate bound (2^k)^t·Eg ≤ N·(2^{k-1})^t simplifies to the clean
+2^t·Eg ≤ N — gate error is a 2^{-t} fraction, fan-in-independent. or_layer_quant/and_layer_quant (PROVED): the clean
+per-layer step (degree t·D, error k·E + Eg with 2^t·Eg ≤ 2^n). pow_depth_degree (PROVED): degree closed form t^d·D₀.
+Remaining: the structural Circ iteration (committed arc). -/
+theorem nw_gate_error_le_frontier {k t Eg N : ℕ} (hk : 1 ≤ k)
+    (hgate : (Fintype.card (Finset (Fin k))) ^ t * Eg ≤ N * (2 ^ (k - 1)) ^ t) :
+    2 ^ t * Eg ≤ N :=
+  ACC0QuantitativeDepthBound.gate_error_le hk hgate
+
+/-- **The closed-form degree recurrence (proved): per-layer t·D iterated d times = t^d·D₀.** -/
+theorem nw_pow_depth_degree_frontier (t D₀ d : ℕ) : (fun D => t * D)^[d] D₀ = t ^ d * D₀ :=
+  ACC0QuantitativeDepthBound.pow_depth_degree t D₀ d
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
