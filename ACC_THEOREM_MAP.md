@@ -66,6 +66,19 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
     FINDING: comm boundary ANTI-tracks ACC⁰[6]-hardness — MOD_M comm-EASY (boundary M, O(log M)),
       equality/disjointness comm-HARD (2^k), BOTH ∈ AC⁰[6]. Separating resource is NOT boundary size
       but the characteristic/CRT structure (280-283), which raw communication cannot see.
+
+  CHARACTERISTIC-COUPLED (TYPED) INVARIANT — survives the equality counterexample (288):
+    CrossCharacteristic m S := ∃ p prime, p∣m ∧ p∉S    (keyed to prime factors, NOT boundary size)
+    classification (all PROVED):
+      • equality_not_count_predicate : equality carries NO modulus ⇒ NEVER flagged (beats 287)
+      • mod5_cross_acc6 / mod30_cross_acc6 : 5∉{2,3} ⇒ MOD_5, MOD_30 obstructed for ACC⁰[6]
+      • mod6_not_cross_acc6 : factors {2,3}⊆{2,3} ⇒ MOD₆ NOT flagged (correctly: MOD₆∈ACC⁰[6])
+      • mod6_cross_single_field : ∀ prime p, MOD₆ cross {p}  (carry crossing over a single field)
+    TypedCarryRefinementCrossing Computes S := ∀ m, CrossCharacteristic m S → ¬ Computes S m
+      typed_crossing_excludes_mod5 (PROVED cond.): ⇒ MOD_5 ∉ ACC⁰[6]
+      typed_separation_chain (PROVED cond.): + component socket ⇒ composite-ACC⁰ ingredient → Williams
+    DEEP socket (open, separation-strength): "cross-characteristic ⇒ ¬ACC⁰[6]-computable" = Smolensky-composite
+      (single-prime instance MOD_q∉AC⁰[p] already PROVED = Layer4.mod_q_indicators_false; composite lift open)
 ```
 
 ## Tier 1 — AC⁰ (switching method): **DONE & FENCED**

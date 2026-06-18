@@ -746,6 +746,35 @@ Pushing on the entry-286 socket head-on **breaks** it (`…ACC0BoundaryBoundedne
   §5v–§5x (entries 280–283) that raw communication cannot see.  Attacking the socket directly re-localizes the
   obstruction back onto characteristic mixing and confirms it is not a communication-counting fact.
 
+## 5z⁗. A characteristic-coupled (typed) invariant — surviving the equality counterexample (entry 288)
+
+Entry 287's no-go pointed the way: the separating invariant must be characteristic-*aware* (keyed to prime
+characteristic), not boundary size.  Entry 288 (`…ACC0TypedBoundary`) builds it.
+
+* **The invariant.**  `CrossCharacteristic m S := ∃ p prime, p ∣ m ∧ p ∉ S` — the modulus `m` forces a characteristic
+  outside the available set `S` (`ACC⁰[6]` ⇒ `S = {2,3}`).  Keyed to the *prime factorisation*, so it applies only to
+  genuine `MOD` targets — it cannot fire on a function with no modulus.
+* **Classification (all PROVED).**  `mod5_cross_acc6`, `mod30_cross_acc6`: `MOD_5`, `MOD_30` are cross (`5 ∉ {2,3}`),
+  obstructed.  `mod6_not_cross_acc6`: `MOD₆` is *not* cross for `ACC⁰[6]` — correctly leaving `MOD₆ ∈ ACC⁰[6]`
+  unobstructed (no over-firing).  `mod6_cross_single_field`: `MOD₆` is cross for *every single* field `{p}` — the
+  no-common-characteristic carry crossing of §5v–§5x, now in the typed invariant.
+* **The discriminator (PROVED) — beats entry 287.**  `equality_not_count_predicate`: equality is not a count/MOD
+  predicate (`(10,01)` and `(10,10)` share total weight `2` but differ in equality), so it carries no modulus and the
+  characteristic invariant *never flags it* — exactly the asymmetry raw boundary size could not see (equality has huge
+  boundary yet is not characteristic-coupled).
+* **The typed crossing.**  `TypedCarryRefinementCrossing Computes S := ∀ m, CrossCharacteristic m S → ¬ Computes S m`
+  (the characteristic-coupled analog of §5y's `CarryRefinementCrossing`, immune to the equality counterexample).
+  `typed_crossing_excludes_mod5` (PROVED conditional): ⟹ `MOD_5 ∉ ACC⁰[6]`.  `typed_separation_chain` (PROVED
+  conditional): + the component socket ⟹ the composite-`ACC⁰` ingredient toward Williams.
+* **The open socket.**  The deep implication "cross-characteristic ⟹ not `ACC⁰[6]`-computable" is the Smolensky-composite
+  barrier — separation-strength.  Its *single-prime* instance `MOD_q ∉ AC⁰[p]` is already proved in this arc
+  (`Layer4.mod_q_indicators_false`); the lift to the composite class `ACC⁰[6]` is the open part, kept as the socket.
+
+**Net:** the field-free program now has an invariant that *provably distinguishes* the easy functions (equality, `MOD₆ ∈
+ACC⁰[6]`) from the genuine obstruction (`MOD_5`, `MOD_30 ∉ ACC⁰[6]`) — passing the entry-287 test that killed boundary
+size.  The classification is fully machine-checked; the remaining gap is the one open Smolensky-composite implication,
+honestly socketed and wired to Williams.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the

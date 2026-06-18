@@ -215,6 +215,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryStateComplexit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CommunicationComplexity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryBoundaryGrowth
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BoundaryBoundednessRefutation
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TypedBoundary
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -3843,6 +3844,29 @@ theorem nw_equality_refutes_boundary_bounded_frontier {A : Type} [Fintype A] [De
     Fintype.card A ≤ budget :=
   ACC0BoundaryBoundednessRefutation.equality_refutes_boundary_bounded Realizable hEq budget hbb
 
+/-- **Characteristic-coupled invariant survives the equality counterexample (proved classification).**
+nw_typed_boundary_classification_frontier (PROVED): the typed invariant `CrossCharacteristic` correctly classifies all
+test cases — `MOD_5` cross for `ACC⁰[6]` (obstructed), `MOD₆` NOT cross for `ACC⁰[6]` (so `MOD₆ ∈ ACC⁰[6]`), `MOD₆`
+cross for every single field (carry crossing), and equality is not even a count predicate (never flagged).  This is the
+characteristic-aware invariant entry 287 said was needed — keyed to prime factors, not boundary size (entry 288). -/
+theorem nw_typed_boundary_classification_frontier :
+    ACC0TypedBoundary.CrossCharacteristic 5 ACC0TypedBoundary.acc6
+      ∧ ¬ ACC0TypedBoundary.CrossCharacteristic 6 ACC0TypedBoundary.acc6
+      ∧ (∀ p : ℕ, p.Prime → ACC0TypedBoundary.CrossCharacteristic 6 ({p} : Finset ℕ))
+      ∧ (¬ ∃ g : ℕ → Bool, ∀ a b : Fin 2 → Bool,
+          decide (a = b) = g (ACC0TypedBoundary.wt2 a + ACC0TypedBoundary.wt2 b)) :=
+  ⟨ACC0TypedBoundary.mod5_cross_acc6, ACC0TypedBoundary.mod6_not_cross_acc6,
+   ACC0TypedBoundary.mod6_cross_single_field, ACC0TypedBoundary.equality_not_count_predicate⟩
+
+/-- **Typed crossing excludes `MOD_5` from `ACC⁰[6]` (proved conditional).**
+nw_typed_crossing_excludes_mod5_frontier (PROVED conditional): the characteristic-coupled `TypedCarryRefinementCrossing`
+applied to the smallest unavailable-prime target gives `MOD_5 ∉ ACC⁰[6]` — the typed analog of `CarryRefinementCrossing`
+feeding the composite-`ACC⁰` ingredient toward Williams (entry 288). -/
+theorem nw_typed_crossing_excludes_mod5_frontier {Computes : Finset ℕ → ℕ → Prop}
+    (h : ACC0TypedBoundary.TypedCarryRefinementCrossing Computes ACC0TypedBoundary.acc6) :
+    ¬ Computes ACC0TypedBoundary.acc6 5 :=
+  ACC0TypedBoundary.typed_crossing_excludes_mod5 h
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4381,3 +4405,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_crt_product_observer_boundary_ge_two_pow_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_composite_ACC0_separation_from_socket_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_equality_refutes_boundary_bounded_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_typed_boundary_classification_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_typed_crossing_excludes_mod5_frontier
