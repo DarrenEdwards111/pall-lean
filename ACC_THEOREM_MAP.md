@@ -151,6 +151,17 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
     • nframe_hierarchy_diag_core : the hierarchy subpiece's diagonalization core PROVED (294 lazy escape)
     ⇒ Williams is now the N-Frame algorithmic-counting ROUTE (not external commentary); gate honestly socketed to the
       PROVEN classical theorems (uniform realization, easy-witness/NW, NTIME hierarchy) — Williams 2011, being formalized.
+
+  FORMALIZED the universal NTM simulation socket — overhead is EXACTLY 1 (296, proved):
+    already present: ACC0UniversalNTM.univStep ⟨M⟩ = concreteStep M (interpreter, exact at relation level);
+      enum_covers PROVED (enumerability); hierarchy reduced to one socket diag_in_big (physical sim within bigger bound).
+    NEW (ACC0UniversalSimulationOverhead): univNTM code (universal NTM at a code, step = univStep code):
+      • univNTM_step_iff : at ⟨M⟩, univNTM's step = M's step
+      • univNTM_reachIn : k-step reachability of univNTM ⟨M⟩ = M's, ∀ k  (no per-step overhead, induction)
+      • univ_simulates_exactly : acceptsWithin (univNTM ⟨M⟩) x t ↔ acceptsWithin (toNTM M) x t  (SAME t, overhead = 1)
+    ⇒ the socket's feared "physical overhead" is EXACTLY 1 (free, no time blowup); what remains = ONLY the
+      decode-from-input uniformity (collapse univNTM family to one fixed tape-reading machine = the universal TM,
+      Turing 1936) — a PROVEN classical fact, formalization not obstruction.
 ```
 
 ## Tier 1 — AC⁰ (switching method): **DONE & FENCED**

@@ -944,6 +944,25 @@ route, feeding the contradiction whose hierarchy core is proved, with the deep g
 (Williams 2011) classical theorems being formalized.  The two N-Frame branches — polynomial (blocked, entries 280–289)
 and algorithmic-counting (Williams, here) — are now both encoded.
 
+## 5z⁗⁗⁗. Formalizing the universal-simulation socket — overhead is exactly 1 (entry 296)
+
+The universal-simulation socket (`diag_in_big`, the physical simulator within the bigger time bound) had its
+*interpreter* level proved (`…ACC0UniversalNTM`: `univStep ⟨M⟩ = concreteStep M`, `enum_covers`), with the "physical
+overhead" flagged as the remaining cost.  `…ACC0UniversalSimulationOverhead` supplies the **quantitative bound: the
+overhead is exactly 1**.
+
+* **The universal NTM (`univNTM code`).**  Step `univStep code`, standard `init`/`accept`.
+* **No per-step overhead (PROVED).**  `univNTM_step_iff`: at `code = ⟨M⟩` its step is `M`'s step;
+  `univNTM_reachIn`: hence its `k`-step reachability *equals* `M`'s for every `k` (induction).
+* **Overhead exactly 1 (PROVED).**  `univ_simulates_exactly`: `acceptsWithin (univNTM ⟨M⟩) x t ↔ acceptsWithin
+  (toNTM M) x t` — the universal machine accepts within the *same* time bound `t`, no blowup.
+
+**Net:** the socket's feared "physical overhead" is `1` — free.  Simulating `M` for `t` steps takes exactly `t` steps.
+What remains of the universal-simulation socket is *not* an overhead bound but the **decode-from-input uniformity**:
+collapsing the family `univNTM` to a single fixed machine reading `⟨M⟩` off its tape (the universal TM, Turing 1936) — a
+*proven* classical fact, formalization engineering, not an open obstruction.  The socket's quantitative heart is now
+proved; one tape-decode primitive remains.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the

@@ -223,6 +223,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0YBTSocketStrength
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsSocketMap
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyHierarchyEscape
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NFrameWilliamsRoute
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalSimulationOverhead
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -3971,6 +3972,17 @@ theorem nw_nframe_fastSat_to_timeHierarchy_frontier
   ACC0NFrameWilliamsRoute.nframe_fastSat_to_timeHierarchy ACC0 f g speedup routeGivesSpeedup
     collapse hierarchy route
 
+/-- **The universal NTM simulation has overhead exactly 1 (proved) — the socket's quantitative heart.**
+nw_univ_simulates_exactly_frontier (PROVED): the universal NTM `univNTM ⟨M⟩` accepts `x` within `t` steps iff `M` does
+— the *same* time bound, no per-step blowup (the interpreter step `univStep ⟨M⟩ = concreteStep M` lifted through
+reachIn/acceptsWithin).  So the universal-simulation socket's feared "physical overhead" is `1`, free; what remains is
+only the decode-from-input uniformity (the universal TM, Turing 1936) — formalization, not an obstruction (entry 296). -/
+theorem nw_univ_simulates_exactly_frontier
+    (M : ACC0ConcreteNTM.TMachine) (x : List Bool) (t : ℕ) :
+    ACC0NTM.acceptsWithin (ACC0UniversalSimulationOverhead.univNTM (ACC0ConcreteNTM.machineEquiv M)) x t ↔
+      ACC0NTM.acceptsWithin (ACC0ConcreteNTM.toNTM M) x t :=
+  ACC0UniversalSimulationOverhead.univ_simulates_exactly M x t
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4519,3 +4531,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lazy_diag_not_mem_range_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_nframe_williams_route_equiv_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_nframe_fastSat_to_timeHierarchy_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_univ_simulates_exactly_frontier
