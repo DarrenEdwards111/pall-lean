@@ -218,6 +218,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BoundaryBoundedness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TypedBoundary
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeReductionProbe
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AlgorithmicEscape
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FastSATCharacteristicUniversal
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -3893,6 +3894,18 @@ theorem nw_algorithmic_escape_frontier :
     ∧ (∀ (F : Type) [Field F] (p q : ℕ), p ≠ q → CharP F p → CharP F q → False) :=
   ACC0AlgorithmicEscape.algorithmic_escape
 
+/-- **The Williams fast-SAT counting step is characteristic-universal (proved).**
+nw_fastSat_decides_every_modulus_frontier (PROVED): one count-cell image `image(gateCount g)` decides `MOD_M`-SAT for
+*every* modulus `M` (`∃ c ∈ image, c % M = 0`) — the integer-count statistic does not depend on the modular top.  So the
+counting/savings step is modulus-agnostic (entry 290's escape, concrete in the fast-SAT); the composite-`MOD` barrier is
+localised entirely to the open YBT exact-normal-form socket, not the count search (entry 291). -/
+theorem nw_fastSat_decides_every_modulus_frontier
+    {n m : ℕ} (g : Fin m → (Fin n → Bool) → Bool) (M : ℕ) :
+    NFrameACC0Speedup.Satisfiable
+        (ACC0SymmetricObserver.symEval g (ACC0FastSATCharacteristicUniversal.modIndicator M)) ↔
+      ∃ c ∈ Finset.univ.image (ACC0SymmetricObserver.gateCount g), c % M = 0 :=
+  ACC0FastSATCharacteristicUniversal.fastSat_decides_every_modulus g M
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4435,3 +4448,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_typed_crossing_excludes_mod5_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_composite_lift_irreducible_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_algorithmic_escape_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_fastSat_decides_every_modulus_frontier

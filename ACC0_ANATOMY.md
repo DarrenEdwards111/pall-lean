@@ -824,6 +824,28 @@ machine-proved, and tied to the typed invariant.  It does **not** prove `NEXP �
 lower-bound machinery (the existing `…WilliamsFastSat` / Karp–Lipton / NW–IKW sockets) is not re-proved here.  It
 explains *why* the algorithmic route can win where the polynomial method provably cannot.
 
+## 5z⁗‴. Digging into the `WilliamsFastSat` socket — the counting step is characteristic-universal (entry 291)
+
+Entry 290's escape, made concrete *inside* the fast-SAT (`…ACC0FastSATCharacteristicUniversal`).  The Williams fast-SAT
+observable is `gateCount` — an integer count — and `observed_sat_iff` decides satisfiability by searching its *image*,
+which does not depend on the symmetric top.
+
+* **One image, every top (PROVED).**  `fastSat_universal_in_top`: `image(gateCount g)` decides `symEval g h` for *every*
+  `h`.  `fastSat_decides_every_modulus`: hence decides `MOD_M`-SAT for *every* `M` (`∃ c ∈ image, c % M = 0`), against
+  the same image.
+* **`MOD₆` via CRT inside the fast-SAT (PROVED).**  `fastSat_mod6_via_crt`: the `MOD₆` decision factors through the
+  count's mod-2 *and* mod-3 residues simultaneously — entry 290's escape realised in the algorithm.
+* **Modulus-free cost and savings (PROVED).**  `fastSat_cells_modulus_free`: the `≤ m + 1` cell bound is independent of
+  the modulus.  `fastSat_modm_savings`: the savings `2^k · cells ≤ 2^n` hold for *every* `M` (instantiating
+  `symAnd_williams_fastSat` at the `MOD_M` top).
+* **Localisation.**  So the composite-`MOD` barrier is **not** in the counting/savings step — that is modulus-agnostic,
+  exonerated.  It lives entirely in the two open separation-strength sockets: the YBT *exact* `SYM∘AND` normal form for
+  composite `MOD` (link 1) and the uniform TM realisation (link 2).
+
+**Net:** digging into the `WilliamsFastSat` socket proves precisely which part is barrier-bound (the YBT reduction) and
+which is free (the integer-count search) — confirming, concretely in the algorithm, entry 290's account of why counting
+escapes.  The separation-strength content stays in the named sockets, not re-proved.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the

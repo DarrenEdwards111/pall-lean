@@ -98,6 +98,16 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
     • no_field_carries_two_primes : but no FIELD has two prime chars (no_common_char) — the contrast
     ⇒ counting (char 0, carries all primes) SIDESTEPS the field barrier that kills polynomials (280-289)
       = structural reason Williams went ALGORITHMIC. Deep #SAT⇒LB machinery stays the existing socket.
+
+  DUG INTO WilliamsFastSat socket — the counting step is CHARACTERISTIC-UNIVERSAL (291, proved):
+    fast-SAT observable = gateCount (an INTEGER); decision searches image(gateCount g), indep of the top h
+    • fastSat_universal_in_top : ONE count-cell image decides symEval g h for EVERY h (observed_sat_iff)
+    • fastSat_decides_every_modulus : ⇒ decides MOD_M-SAT for EVERY M (∃ c∈image, c%M=0), same image
+    • fastSat_mod6_via_crt : MOD₆ decision factors through c%2=0 ∧ c%3=0 (290's CRT, inside fast-SAT)
+    • fastSat_cells_modulus_free : cell bound ≤ m+1 indep of modulus
+    • fastSat_modm_savings : Williams savings 2^k·cells ≤ 2^n hold for EVERY M (symAnd_williams_fastSat at MOD_M)
+    ⇒ composite-MOD barrier is NOT in counting/savings (modulus-agnostic, exonerated) — it lives ENTIRELY
+      in the open YBT exact-normal-form socket (link 1) + uniform TM realization (link 2), both separation-strength.
 ```
 
 ## Tier 1 — AC⁰ (switching method): **DONE & FENCED**
