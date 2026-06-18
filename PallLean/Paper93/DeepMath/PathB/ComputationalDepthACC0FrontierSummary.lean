@@ -195,6 +195,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NonNativeDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultilinearBasis
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -935,6 +936,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   bad(boost) ⊆ ⋂ⱼ bad j — the boosting step. Sockets: SingleSubsetAgreement (per-clause ≥1/2, provable over F2 by
    ──   parity-toggle involution) + IndependentIntersectionBound (independence ⇒ product) ⇒ error 2^{-k} at deg k(p-1).
    ──   NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── PER-CLAUSE AGREEMENT over F2 — SingleSubsetAgreement DISCHARGED (exactly 1/2): ───────────────────────────────
+   ──   nw_singleSubsetAgreement_two_frontier (PROVED): for x with a true coord, 2^n ≤ 2·#{S : parity ≠ 0} — exactly ──
+   ──   half — by the PARITY-TOGGLE INVOLUTION S↦S△{j} (par_tog: toggling j∈supp x flips parity; tog_injective ⇒ ─────
+   ──   bijection between the two parity fibers). Discharges entry-267's SingleSubsetAgreement socket over F2. Only ───
+   ──   IndependentIntersectionBound remains for the single-gate low-degree approximation. NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3426,6 +3432,14 @@ theorem nw_boost_correct_off_iInter_frontier {F : Type} [Field F] {X : Type} {k 
     (x : X) (hx : ∃ j, x ∉ bad j) :
     ACC0Boosting.boostPoly e x = tgt x :=
   ACC0Boosting.boost_correct_off_iInter e tgt bad htgt hone hcorrect x hx
+
+/-- **Per-clause agreement over F2, discharging SingleSubsetAgreement (proved).**  For any x with a true coordinate, at
+least half the subsets make the clause parity nonzero — exactly 1/2 — by the parity-toggle involution `S ↦ S △ {j}`
+(`par_tog`: toggling j∈supp x flips the parity; `tog_injective`).  Discharges entry-267's `SingleSubsetAgreement`
+socket over F2; only `IndependentIntersectionBound` remains for the single-gate low-degree approximation. -/
+theorem nw_singleSubsetAgreement_two_frontier {n : ℕ} (x : Fin n → Bool) (hx : ∃ i, x i = true) :
+    ACC0Boosting.SingleSubsetAgreement 2 n x :=
+  ACC0SingleSubsetF2.singleSubsetAgreement_two x hx
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 

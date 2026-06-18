@@ -324,6 +324,25 @@ per-clause `≥ 1/2` agreement and the independence of the random subsets — wh
 boosting algebra would complete the single-gate low-degree approximation.  Those two are the residue of the open
 Razborov–Smolensky core.  Not faked, not a separation.
 
+## 5j. The per-clause `1/2` — discharging `SingleSubsetAgreement` over `F₂` (entry 268)
+
+The first of the two probabilistic residues is now *proved* over `F₂` (`…ACC0SingleSubsetF2`), and there it is *exactly*
+`1/2`, by a clean parity-toggle involution.
+
+* **The toggle (PROVED).**  For a nonzero input `x`, fix `j` with `xⱼ = true`.  `tog j S := S △ {j}` is an involution
+  (`tog_tog`, `tog_injective`) that *flips* the clause parity: `par_tog` proves `parF2 x (tog j S) = parF2 x S + 1`
+  over `F₂` (the `j`-term contributes `1`).
+* **Equinumerous fibers (PROVED).**  `tog j` therefore bijects `{S : par = 0} ↔ {S : par ≠ 0}`, so the two parity
+  fibers have equal cardinality; as they partition the `2ⁿ` subsets, each is `2ⁿ⁻¹`.
+* **The bound (PROVED).**  `singleSubsetAgreement_two`: `2ⁿ ≤ 2·#{S : par x S ≠ 0}` — i.e. `SingleSubsetAgreement 2 n x`.
+  The clause fires correctly on exactly half the subsets.
+
+**Net:** the per-clause `≥ 1/2` agreement — the *base probabilistic primitive* of the polynomial method — is now
+machine-proved over `F₂`.  Of the entire Razborov–Smolensky chain, the **only** ingredient still socketed for the
+single-gate low-degree approximation is `IndependentIntersectionBound` (independence of the random subsets).  Every other
+layer — counting, rank pigeonhole, multilinear dimension, per-gate Fermat/exact reps, boosting error-reduction, and now
+the per-clause `1/2` — is proved.  Not faked, not a separation.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the
