@@ -466,6 +466,29 @@ decomposition into the solver.  After that, the route's only open theorem is the
 (`SmolenskyNonNativeLowerBound`) — for composite modulus, entry-238 `CarryRefinementCrossing`.  Not faked, not a
 separation.
 
+## 5q. The Smolensky pigeonhole — the counting/rank half of the wall, proved (entry 275, step 4)
+
+The attack on the wall itself (`…ACC0SmolenskyPigeonhole`).  The Razborov–Smolensky non-native lower bound splits into
+**(counting/rank)** + **(degree-halving representation)**; this entry *proves the counting/rank half* via the §5f rank
+kernel and §5g dimension, isolating the degree-halving as the single residual socket.
+
+* **Point indicators independent (PROVED).**  `ptInd_linearIndependent`: the point indicators over a finset `S` span a
+  space of dimension `|S|`.
+* **The pigeonhole (PROVED).**  `smolensky_pigeonhole`: if every point indicator of `S` lies in `W` with
+  `finrank W < |S|`, then `False` — the `|S|`-dim span cannot embed in `W` (§5f `exists_notMem_of_finrank_lt`).
+  `smolensky_pigeonhole_lowDegree` instantiates `W = lowDegreeSubmodule n D'` (§5g): a good set bigger than the
+  low-degree dimension forces a high-degree point function.
+* **The reduction (PROVED).**  `smolensky_lower_bound_via_pigeonhole`: degree-halving + (good set large) ⇒ `False`.
+* **The residual socket.**  `SmolenskyDegreeHalving` — a degree-`D` approximator makes every good-set point function
+  degree `≤ n/2+D` (the Razborov–Smolensky representation lemma, using `MOD_q`'s algebra over `F_p`).  The genuine
+  remaining core; composite = §3/entry-238 `CarryRefinementCrossing`.
+
+**Net:** the wall's *counting/rank half* is now machine-proved — a large good set provably cannot have all-low-degree
+point functions (the §5f pigeonhole, §5g dimension).  The Smolensky lower bound is reduced to the *single* socket
+`SmolenskyDegreeHalving` (the degree-halving representation lemma).  Of the entire ACC route, the only open content is
+now that one classical representation lemma (prime case) / the composite carry-crossing (entry 238) plus the committed
+arc's structural `Circ` recursion.  Not faked, not a separation.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the

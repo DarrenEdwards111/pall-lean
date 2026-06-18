@@ -202,6 +202,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NativeNonNativeBrid
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PolynomialMethodApproximation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0QuantitativeDepthBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0QuantitativeIteration
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SmolenskyPigeonhole
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -983,6 +984,13 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   = closed-form solution of the size/depth/error recurrence. quantitative_iteration_closed_form (PROVED). ──────
    ──   nw_small_ACC0p_for_nonNativeMOD_false_frontier (PROVED skeleton): QuantitativeDepthBound ∧ Smolensky ⇒ False ──
    ──   = the headline route contradiction. Remaining: structural Circ recursion (Codex arc) + the WALL (B). NOT P≠NP.
+   ── SMOLENSKY PIGEONHOLE (step 4 via the 264 rank kernel) — the counting/rank HALF of the wall, PROVED: ──────────
+   ──   nw_smolensky_pigeonhole_frontier (PROVED): good set S, every point indicator ptInd g ∈ W, finrank W < |S| ⇒ ──
+   ──   False (point indicators independent [ptInd_linearIndependent], span dim |S|, can't embed in smaller W; reuses
+   ──   264 exists_notMem_of_finrank_lt). At W=lowDegreeSubmodule n D' (finrank=lowDegreeDim n D'/265): good set bigger
+   ──   than low-degree dim ⇒ high-degree point function. nw_smolensky_lower_bound_via_pigeonhole_frontier (PROVED): ──
+   ──   SmolenskyDegreeHalving + (lowDegreeDim n D' < |S|) ⇒ False. SOCKET SmolenskyDegreeHalving = the degree-halving
+   ──   representation lemma (genuine RS core; prime via this; composite = 238). NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3573,6 +3581,25 @@ theorem nw_small_ACC0p_for_nonNativeMOD_false_frontier {n : ℕ} (f : (Fin n →
     (hbridge : ACC0PolynomialMethodApproximation.QuantitativeDepthBound f D E)
     (hwall : ACC0PolynomialMethodApproximation.SmolenskyNonNativeLowerBound f D E) : False :=
   ACC0PolynomialMethodApproximation.polynomial_method_contradiction f D E hbridge hwall
+
+/-- **The Smolensky pigeonhole — attacking the wall (step 4) via the entry-264 rank kernel (proved).**  The
+counting/rank half of the Smolensky lower bound: if every point indicator of a good set `S` lies in `W` with
+`finrank W < |S|`, then `False` (point indicators are independent, span dim `|S|`, can't embed in smaller `W`; reuses
+entry-264 exists_notMem_of_finrank_lt). At `W = lowDegreeSubmodule n D'` (finrank = lowDegreeDim n D', entry 265): a good
+set bigger than the low-degree dimension forces a high-degree point function. Remaining socket: SmolenskyDegreeHalving
+(the degree-halving representation lemma, the genuine RS core; composite = 238). -/
+theorem nw_smolensky_pigeonhole_frontier {X F : Type} [Fintype X] [DecidableEq X] [Field F]
+    (S : Finset X) (W : Submodule F (X → F))
+    (hrep : ∀ g ∈ S, (ACC0SmolenskyPigeonhole.ptInd g : X → F) ∈ W)
+    (hlt : Module.finrank F W < S.card) : False :=
+  ACC0SmolenskyPigeonhole.smolensky_pigeonhole S W hrep hlt
+
+/-- **The Smolensky lower bound via the pigeonhole (proved, modulo the degree-halving socket).** -/
+theorem nw_smolensky_lower_bound_via_pigeonhole_frontier {F : Type} [Field F] {n D' : ℕ}
+    (S : Finset (Fin n → Bool))
+    (hhalving : ACC0SmolenskyPigeonhole.SmolenskyDegreeHalving (F := F) (D' := D') S)
+    (hbig : ACC0NonNativeDegree.lowDegreeDim n D' < S.card) : False :=
+  ACC0SmolenskyPigeonhole.smolensky_lower_bound_via_pigeonhole S hhalving hbig
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
