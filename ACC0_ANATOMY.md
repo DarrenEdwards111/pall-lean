@@ -448,6 +448,24 @@ accumulating degree `t^d`, error `size·2ⁿ·2^{-t}`) — the quantitative refi
 the committed circuit arc.  Of roadmap (A), the clean analytic content is done; only that structural iteration and the
 Smolensky wall (B) remain.  Not faked, not a separation.
 
+## 5p. The quantitative iteration — the recurrence solved in closed form (entry 274, roadmap step 1)
+
+The iteration math (`…ACC0QuantitativeIteration`), on top of entry 273.  The per-layer estimates become the full
+closed-form bound.
+
+* **Error accumulation (PROVED).**  `error_accumulation`: the per-gate `2^{-t}` errors (entry 273) sum, via the
+  committed union bound (`E ≤ ∑ᵢ Eg i`), to `2^t·E ≤ m·2ⁿ`; `error_accumulation_size` gives `2^t·E ≤ size·2ⁿ` — the
+  total error is a `size·2^{-t}` fraction.
+* **The combined solver (PROVED).**  `quantitative_iteration_closed_form`: degree `≤ t^d·D₀` (entry 273) ∧
+  `2^t·E ≤ m·2ⁿ` — the closed-form solution of the size/depth/error recurrence.
+
+**Net:** the analytic content of the iteration is done — the closed-form degree `t^d·D₀` and error `size·2^{-t}` are
+proved.  The one remaining piece of `QuantitativeDepthBound` is the structural `Circ` recursion
+(`CircuitStructuralRecursion`, the committed arc's quantitative `approximable_exists`) that feeds the per-gate
+decomposition into the solver.  After that, the route's only open theorem is the Smolensky wall
+(`SmolenskyNonNativeLowerBound`) — for composite modulus, entry-238 `CarryRefinementCrossing`.  Not faked, not a
+separation.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the

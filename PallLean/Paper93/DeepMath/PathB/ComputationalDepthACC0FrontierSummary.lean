@@ -201,6 +201,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpGate
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NativeNonNativeBridge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PolynomialMethodApproximation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0QuantitativeDepthBound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0QuantitativeIteration
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -976,6 +977,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   (gate error = 2^{-t} fraction, fan-in-independent). or_layer_quant/and_layer_quant (PROVED): clean per-layer ──
    ──   step (deg t·D, err k·E+Eg, 2^t·Eg ≤ 2^n). nw_pow_depth_degree_frontier (PROVED): degree closed form t^d·D₀. ──
    ──   Remaining: structural Circ iteration (committed arc's quantitative approximable_exists). NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── QUANTITATIVE ITERATION (roadmap step 1) — the recurrence solved in closed form: ─────────────────────────────
+   ──   nw_error_accumulation_frontier (PROVED): per-gate 2^t·Eg i ≤ 2^n (273) + union bound E ≤ ∑Eg i (committed ─────
+   ──   error_union_bound) ⇒ total 2^t·E ≤ m·2^n (error = size·2^{-t} fraction). With pow_depth_degree (degree t^d·D₀)
+   ──   = closed-form solution of the size/depth/error recurrence. quantitative_iteration_closed_form (PROVED). ──────
+   ──   nw_small_ACC0p_for_nonNativeMOD_false_frontier (PROVED skeleton): QuantitativeDepthBound ∧ Smolensky ⇒ False ──
+   ──   = the headline route contradiction. Remaining: structural Circ recursion (Codex arc) + the WALL (B). NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3550,6 +3557,22 @@ theorem nw_gate_error_le_frontier {k t Eg N : ℕ} (hk : 1 ≤ k)
 /-- **The closed-form degree recurrence (proved): per-layer t·D iterated d times = t^d·D₀.** -/
 theorem nw_pow_depth_degree_frontier (t D₀ d : ℕ) : (fun D => t * D)^[d] D₀ = t ^ d * D₀ :=
   ACC0QuantitativeDepthBound.pow_depth_degree t D₀ d
+
+/-- **The quantitative iteration — error accumulation closed form (roadmap step 1).**  Solves the error recurrence:
+per-gate `2^t·Eg i ≤ 2^n` (entry 273) + the union bound `E ≤ ∑ Eg i` (committed error_union_bound) ⇒ total
+`2^t·E ≤ m·2^n` — the total error is a `size·2^{-t}` fraction. With pow_depth_degree (degree `t^d·D₀`) this is the
+closed-form solution of the size/depth/error recurrence; only the structural Circ recursion (committed arc) remains. -/
+theorem nw_error_accumulation_frontier {m n t : ℕ} (Eg : Fin m → ℕ) (E : ℕ)
+    (hE : E ≤ ∑ i, Eg i) (hgate : ∀ i, 2 ^ t * Eg i ≤ 2 ^ n) :
+    2 ^ t * E ≤ m * 2 ^ n :=
+  ACC0QuantitativeIteration.error_accumulation Eg E hE hgate
+
+/-- **The route contradiction, headline (proved skeleton).**  A degree-`≤D` `≤E`-error approximant of a target that
+*requires* high degree gives False — the final polynomial-method contradiction step (entry 272). -/
+theorem nw_small_ACC0p_for_nonNativeMOD_false_frontier {n : ℕ} (f : (Fin n → Bool) → ZMod 2) (D E : ℕ)
+    (hbridge : ACC0PolynomialMethodApproximation.QuantitativeDepthBound f D E)
+    (hwall : ACC0PolynomialMethodApproximation.SmolenskyNonNativeLowerBound f D E) : False :=
+  ACC0PolynomialMethodApproximation.polynomial_method_contradiction f D E hbridge hwall
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
