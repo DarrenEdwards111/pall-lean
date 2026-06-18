@@ -1003,6 +1003,28 @@ lazy-diagonal decider machine — the per-block bookkeeping feeding each `enum i
 compiled over the universal machine (pieces under development in `…ACC0UniversalHStep` and the decode/lookup/rewrite
 sub-machines) — a proven classical fact, formalization engineering, not an open obstruction.
 
+## 5z⁗⁗⁗‴. Lazy-diagonal decider — the boundary complement realized (entry 299)
+
+The lazy-diagonal decider's hard case is the **boundary complement** (`D(boundary) = ¬ enum i (start)`).  For a
+nondeterministic machine this is not free — except, as lazy diagonalization exploits, the start input is tiny, so the
+bounded computation is exhaustively explorable.  `…ACC0BoundedAcceptanceDecidable` proves the foundation: **bounded
+acceptance in the concrete model is decidable**.
+
+* **Finite branching (PROVED).**  `mem_succs`: `concreteStep M` has finite one-step successors (`M` a finite rule list),
+  `d ∈ succs M c ↔ concreteStep M c d`.
+* **Finite reachability (PROVED).**  `mem_reachExactly`: `reachExactly M k c` (a finite list) enumerates the `k`-step
+  reachable configs, `d ∈ reachExactly M k c ↔ reachIn (toNTM M) k c d`.
+* **Decidable acceptance (PROVED).**  `acceptsWithin_iff_decAccept`: `acceptsWithin (toNTM M) x t` is the finite search
+  `decAccept M x t`; `instDecidableAcceptsWithin`: hence `Decidable`.
+* **Boundary complement computable (PROVED).**  `boundary_complement_decidable`: `Decidable (¬ acceptsWithin (toNTM M)
+  x t)` — complementing a bounded nondeterministic computation is a finite, computable operation.
+
+**Net:** this is the crux of *why* lazy diagonalization's single boundary complement is affordable (exhaustive search of
+the small bounded computation), now machine-checked over the transition-table model — the foundation of the
+lazy-diagonal decider's boundary case.  The full decider still needs the per-block bookkeeping assembly (decode index,
+route copy [universal sim, 296/297] vs boundary [this decidability], with clocking 298) — physical engineering,
+proven-classical, not an open obstruction.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the

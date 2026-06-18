@@ -183,6 +183,17 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
       (lazy) diagonal within f. Clocking proves the time bound achievable; remaining = BUILDING that decider.
     ⇒ realization wiring's quantitative core PROVED; remaining = the lazy-diagonal decider machine (per-block
       bookkeeping + boundary complement, compiled over the universal machine — physical, parallel to UniversalHStep).
+
+  LAZY-DIAGONAL DECIDER — boundary complement realized: bounded acceptance is DECIDABLE (299, proved):
+    concreteStep M has FINITE branching (M a finite rule list) ⇒ reachable configs are finitely enumerable:
+    • succs / mem_succs : d ∈ succs M c ↔ concreteStep M c d (finite one-step successors)
+    • reachExactly / mem_reachExactly : d ∈ reachExactly M k c ↔ reachIn (toNTM M) k c d (finite k-step reach)
+    • acceptsWithin_iff_decAccept : acceptsWithin = decAccept (a bounded finite search)
+    • instDecidableAcceptsWithin : Decidable (acceptsWithin (toNTM M) x t)
+    • boundary_complement_decidable : Decidable (¬ acceptsWithin ...) ⇒ the boundary complement is COMPUTABLE
+    ⇒ the crux of WHY lazy diagonalization's single boundary complement is affordable (exhaustive search of the small
+      bounded computation) — machine-checked. Remaining for the full decider: per-block bookkeeping assembly
+      (decode index, route copy[=universal sim 296/297]-vs-boundary[=this], + clocking 298) — physical engineering.
 ```
 
 ## Tier 1 — AC⁰ (switching method): **DONE & FENCED**

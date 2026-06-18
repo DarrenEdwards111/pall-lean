@@ -226,6 +226,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NFrameWilliamsRoute
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalSimulationOverhead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DecodeUniformity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RealizationClocking
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BoundedAcceptanceDecidable
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -4009,6 +4010,17 @@ theorem nw_uniformU_clocked_within_frontier
       (ACC0DecodeUniformity.encPair (ACC0ConcreteNTM.machineEquiv M) x) t' :=
   ACC0RealizationClocking.uniformU_clocked_within M x htt' hsim
 
+/-- **The lazy diagonal's boundary complement is realized — bounded acceptance is decidable (proved).**
+nw_acceptsWithin_iff_decAccept_frontier (PROVED): `acceptsWithin (toNTM M) x t` is the finite reachable-config search
+`decAccept M x t` — hence decidable, hence its complement computable.  This is the crux of why Cook's lazy
+diagonalization can afford its single boundary complement (the small bounded computation is exhaustively explorable),
+machine-checked over the transition-table model (entry 299). -/
+theorem nw_acceptsWithin_iff_decAccept_frontier
+    (M : ACC0ConcreteNTM.TMachine) (x : List Bool) (t : ℕ) :
+    ACC0NTM.acceptsWithin (ACC0ConcreteNTM.toNTM M) x t ↔
+      ACC0BoundedAcceptanceDecidable.decAccept M x t = true :=
+  ACC0BoundedAcceptanceDecidable.acceptsWithin_iff_decAccept M x t
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4560,3 +4572,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_univ_simulates_exactly_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_uniformU_simulates_enc_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_uniformU_clocked_within_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_acceptsWithin_iff_decAccept_frontier
