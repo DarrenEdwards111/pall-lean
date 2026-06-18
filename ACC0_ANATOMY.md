@@ -108,6 +108,14 @@ Precisely:
 So the N-Frame search did not weaken the wall; it *located* it exactly, and proved that the surrounding program (size,
 decode, layer degree, observer faithfulness, counting budget) is *not* where the difficulty lies.
 
+**Further localization (the MOD₆ laboratory, `…ACC0ProductFieldMixing`).**  A *single layer* of mixed `MOD_2`/`MOD_3`
+gates feeding a Boolean combiner composes **without collapse**: the output is determined by the product observer state
+`(count mod 2, count mod 3) = count mod 6` (`mixedOut_determined`, no axioms; `mixedOut_determined_by_mod6`), with `≤ 6`
+cells — the gate outputs are bits and the combiner is Boolean, touching no field arithmetic.  So the obstruction is
+**not** single-layer mixing; it is **depth ≥ 2 nesting** — a `MOD_q` gate *fed by* a non-native `MOD_p` output, which
+forces arithmetizing `MOD_p` over `F_q` (Smolensky-blocked).  The irreducible core is therefore pinned to the depth
+composition of different-modulus `MOD` gates.
+
 ---
 
 ## 5. What is proved vs. socketed vs. open
