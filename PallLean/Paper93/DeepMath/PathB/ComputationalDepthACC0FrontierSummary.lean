@@ -182,6 +182,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CrossFieldCountCore
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BlockOverlapCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TreewidthCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ExpanderCountObstruction
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ExpanderFamilies
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -834,6 +835,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   strength, def not theorem): ExpanderCountObstruction — ANY observer (incl. ALGEBRAIC) computing mod-q fire- ───
    ──   count needs large boundary; the gap from the DP bound = ruling out algebraic shortcuts = the real wall. ───────
    ──   Positive side (bounded separator ⇒ factor) = 251-253. Next = special expander families. NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── SPECIAL EXPANDER FAMILIES (instantiate ExpanderIncidence + honest refinement): nw_expander_of_pairwise_inter ────
+   ──   _frontier (PROVED): every 2 gates share ≥d vars ⇒ ExpanderIncidence supp d (any separator contains the cross- ─
+   ──   part intersection); nw_fullSupport_expander_frontier (PROVED): all-variables gates ⇒ ExpanderIncidence n. ─────
+   ──   HONEST REFINEMENT: full-support is a separator-expander but its count is plausibly EASY (shared support ⇒ no ──
+   ──   cross-field mixing), so ExpanderIncidence ALONE ≠ count-hardness — the 254 socket needs the ALGEBRAIC content, ─
+   ──   not just no-small-separator. Confirms the socket is genuinely Smolensky-strength. NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3107,6 +3114,25 @@ theorem nw_dp_observer_needs_large_boundary_frontier {V Gate : Type} [Fintype Ga
     (hsep : ACC0ExpanderCountObstruction.IsSeparator supp boundary) :
     k ≤ ACC0ExpanderCountObstruction.ObserverBoundarySize boundary :=
   ACC0ExpanderCountObstruction.dp_observer_needs_large_boundary supp k boundary hexp hsep
+
+/-- **Special expander families: instantiating `ExpanderIncidence`, + the honest refinement.**
+`expander_of_pairwise_inter` (PROVED): high pairwise gate-intersection (every 2 gates share ≥ d vars) ⇒
+ExpanderIncidence supp d; `fullSupport_expander` (PROVED): all-variables gates ⇒ ExpanderIncidence (fun _ => univ) n.
+HONEST REFINEMENT: the full-support family is a separator-expander yet its count is plausibly easy (shared support ⇒ no
+cross-field mixing) — so ExpanderIncidence alone is NOT count-hardness; the entry-254 socket genuinely needs the
+algebraic content, not just no-small-separator. -/
+theorem nw_expander_of_pairwise_inter_frontier {V Gate : Type} [Fintype Gate] [DecidableEq Gate]
+    [DecidableEq V] (supp : Gate → Finset V) (d : ℕ)
+    (hpair : ∀ g g', g ≠ g' → d ≤ (supp g ∩ supp g').card) :
+    ACC0ExpanderCountObstruction.ExpanderIncidence supp d :=
+  ACC0ExpanderFamilies.expander_of_pairwise_inter supp d hpair
+
+/-- **Special family: the full-support incidence is maximally expander (proved).** -/
+theorem nw_fullSupport_expander_frontier {V Gate : Type} [Fintype Gate] [DecidableEq Gate]
+    [DecidableEq V] [Fintype V] :
+    ACC0ExpanderCountObstruction.ExpanderIncidence
+      (fun _ : Gate => (Finset.univ : Finset V)) (Fintype.card V) :=
+  ACC0ExpanderFamilies.fullSupport_expander
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
