@@ -700,6 +700,31 @@ decides `α + β ≡ 0`.
   composite separation — that needs a target whose communication boundary *grows* under bounded composition.  Both
   routes converge: the obstruction is not the size of any single boundary, but growth under composition.
 
+## 5z″. The target changed to growth — CRT product, frontier reduced to one socket (entry 286)
+
+Two field-free routes converging on the constant `6` was the signal to **change the target**: a fixed modulus has
+constant complexity and cannot witness a separation (`…ACC0CarryBoundaryGrowth`).  The growth lives in the CRT product
+`M = ∏ mᵢ`.
+
+* **Growing bound (PROVED).**  `crt_product_observer_boundary_ge` / `crt_product_carry_card_ge`: computing `MOD_(∏ mᵢ)`
+  needs boundary / state `≥ ∏ mᵢ` (the entry-285/284 bounds at `m = ∏ mᵢ`, `NeZero` from positivity).
+* **Exponential growth (PROVED).**  `product_ge_two_pow` + `crt_product_observer_boundary_ge_two_pow`: each `mᵢ ≥ 2` ⟹
+  `≥ 2^k`, exponential in the number of CRT factors — the unbounded growth fixed `MOD₆` lacks.  By CRT the bound is
+  tight (tracking the `k` factors jointly costs the *product* `∏ mᵢ`, not the sum `∑ mᵢ` — the carry-refinement
+  crossing).
+* **Genuine growth (PROVED).**  `growing_modulus_exceeds_budget`: no fixed boundary budget `< ∏ mᵢ` suffices — the
+  requirement climbs past any bound (in particular any polynomial, for a fast-growing product).
+* **The frontier reduced to ONE socket.**  `BoundedCompositionKeepsBoundaryBounded` (named, **open**): does
+  `ACC⁰[6]`-bounded composition of resource `s` realize `MOD_M` only via product observers of boundary `≤ boundaryBudget
+  s`?  `composite_ACC0_separation_from_socket` (PROVED conditional): that socket with `boundaryBudget s < ∏ mᵢ` ⟹
+  `MOD_(∏ mᵢ) ∉` size-`s` `ACC⁰[6]`.  The proved growing lower bound discharges the separation **modulo exactly the
+  socket** — every other step machine-checked.
+
+**Net:** the composite `ACC⁰` problem is now reduced, on the field-free side, to a single crisp statement: *bounded
+`ACC⁰[6]` composition keeps the product-observer boundary polynomially bounded.*  Proving it (for a polynomial budget)
+*is* the separation — separation-strength, the boundary-invariant restatement of `CarryRefinementCrossing`, **not**
+proved here.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the

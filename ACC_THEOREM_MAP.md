@@ -47,6 +47,16 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
     ⇒ BOTH routes: for FIXED MOD₆ the bound is the constant 6 (= 2·3, achievable: MOD₆ ∈ ACC⁰[6])
        so they separate count/growing-modulus but NOT fixed-MOD₆ composite;
        the separation needs a target whose carry/boundary GROWS under bounded composition (still open)
+
+  TARGET CHANGED TO GROWTH — CRT product (286, the actual frontier):
+    • crt_product_observer_boundary_ge       : MOD_(∏ mᵢ) needs boundary ≥ ∏ mᵢ   (grows)
+    • crt_product_carry_card_ge              : same in streaming carry model
+    • crt_product_observer_boundary_ge_two_pow : mᵢ≥2 ⇒ boundary ≥ 2^k  (EXPONENTIAL in #factors)
+    • growing_modulus_exceeds_budget         : no fixed budget < ∏ mᵢ suffices (genuine growth)
+    REDUCED TO ONE SOCKET:
+      BoundedCompositionKeepsBoundaryBounded (open): does ACC⁰[6]-bounded composition keep boundary ≤ poly?
+      composite_ACC0_separation_from_socket (PROVED conditional): socket + boundaryBudget s < ∏ mᵢ
+        ⇒ MOD_(∏ mᵢ) ∉ size-s ACC⁰[6].  Proving the socket (poly budget) = the composite separation.
 ```
 
 ## Tier 1 — AC⁰ (switching method): **DONE & FENCED**

@@ -213,6 +213,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6CarryState
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryRefinementCrossing
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryStateComplexity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CommunicationComplexity
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryBoundaryGrowth
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -3806,6 +3807,29 @@ theorem nw_mod_product_observer_boundary_ge_frontier {m : ℕ} [NeZero m]
     m ≤ Fintype.card B :=
   ACC0CommunicationComplexity.mod_product_observer_boundary_ge msg decode hcorrect
 
+/-- **Target changed to growth — CRT product boundary grows exponentially in #factors (proved).**
+nw_crt_product_observer_boundary_ge_two_pow_frontier (PROVED): computing `MOD_(∏ mᵢ)` with each `mᵢ ≥ 2` needs `≥ 2^k`
+boundary states — exponential in the number of CRT factors, the unbounded growth fixed `MOD₆` lacks (entry 286).  The
+target moved from a fixed modulus (constant complexity, 284/285) to the CRT product (growing complexity). -/
+theorem nw_crt_product_observer_boundary_ge_two_pow_frontier {k : ℕ} (mods : Fin k → ℕ) (h2 : ∀ i, 2 ≤ mods i)
+    {B : Type} [Fintype B] (msg : ZMod (∏ i, mods i) → B) (decode : B → ZMod (∏ i, mods i) → Bool)
+    (hcorrect : ∀ α β : ZMod (∏ i, mods i),
+      decode (msg α) β = ACC0CommunicationComplexity.commValue (∏ i, mods i) α β) :
+    2 ^ k ≤ Fintype.card B :=
+  ACC0CarryBoundaryGrowth.crt_product_observer_boundary_ge_two_pow mods h2 msg decode hcorrect
+
+/-- **The composite frontier reduced to ONE socket (proved conditional).**
+nw_composite_ACC0_separation_from_socket_frontier (PROVED conditional): *given* the open socket
+`BoundedCompositionKeepsBoundaryBounded` (does `ACC⁰[6]`-bounded composition keep the product-observer boundary `≤
+boundaryBudget`?) and a CRT product exceeding that budget, `MOD_(∏ mᵢ)` is not realizable by size-`s` `ACC⁰[6]`.  The
+proved growing lower bound discharges the separation modulo exactly this one separation-strength socket (entry 286). -/
+theorem nw_composite_ACC0_separation_from_socket_frontier {k : ℕ} (mods : Fin k → ℕ) (hpos : ∀ i, 0 < mods i)
+    (RealizableBy : ℕ → ℕ → Prop) (boundaryBudget : ℕ → ℕ)
+    (hsock : ACC0CarryBoundaryGrowth.BoundedCompositionKeepsBoundaryBounded RealizableBy boundaryBudget)
+    (s : ℕ) (hgrow : boundaryBudget s < ∏ i, mods i) :
+    ¬ RealizableBy s (∏ i, mods i) :=
+  ACC0CarryBoundaryGrowth.composite_ACC0_separation_from_socket mods hpos RealizableBy boundaryBudget hsock s hgrow
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4341,3 +4365,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_carry_observer_mod_card_ge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_carry_observer_count_card_ge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_mod_product_observer_boundary_ge_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_crt_product_observer_boundary_ge_two_pow_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_composite_ACC0_separation_from_socket_frontier
