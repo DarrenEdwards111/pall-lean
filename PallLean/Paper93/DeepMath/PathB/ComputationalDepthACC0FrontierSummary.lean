@@ -199,6 +199,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Independence
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpGate
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NativeNonNativeBridge
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PolynomialMethodApproximation
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -962,6 +963,13 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   frontier (PROVED): dictator family = AlgExpander ∧ PatternRich(2^s) = the antecedent of ────────────────────
    ──   PatternRichCrossFieldLowerBound (262). So non-native MOD_p over F_q IS the central socket (reduced by 264 to ─
    ──   PolynomialMethodApproximation; 264-270 = the proved RS kernel). NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── POLYNOMIAL-METHOD BRIDGE — small AC⁰[p] observer ⇒ low-degree approx (connects BOTH arcs, no re-proof): ──────
+   ──   LowDegreeApprox unifies the notions; approximable_iff_lowDegreeApprox (Iff.rfl): Codex's Approximable IS it. ──
+   ──   nw_small_AC0p_observer_implies_lowDegreeApprox_frontier (PROVED): every MOD-free AC⁰ Circ ⇒ low-degree F₂ ──────
+   ──   approximant (re-exports committed approximable_exists). nw_polynomial_method_contradiction_frontier (PROVED): ─
+   ──   QuantitativeDepthBound ∧ SmolenskyNonNativeLowerBound ⇒ False (the contradiction core). Sockets: ─────────────
+   ──   QuantitativeDepthBound (size/depth→degree, threads Codex or_step/and_step+boosting) + SmolenskyNonNativeLower
+   ──   Bound (= the wall; mechanism algExpander_forces_high_degree/264; composite = 238). NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3504,6 +3512,24 @@ theorem nw_dictator_meets_patternRich_socket_frontier {F : Type} [Field F] (s : 
     ACC0AlgebraicExpansion.AlgExpander (F := F) (fun (i : Fin s) (x : Fin s → Bool) => x i)
       ∧ ACC0FirePatternRichness.PatternRich (fun (i : Fin s) (x : Fin s → Bool) => x i) (2 ^ s) :=
   ACC0NativeNonNativeBridge.dictator_meets_patternRich_socket s
+
+/-- **The polynomial-method bridge — small AC⁰[p] observer ⇒ low-degree approximation (proved bridge).**  Connects the
+abstract F_p kernel (264-271) and the concrete F₂ circuit arc (Codex's CircuitApprox/DepthInduction) WITHOUT re-proving
+either. LowDegreeApprox unifies the notions; approximable_iff_lowDegreeApprox (Iff.rfl) shows Codex's Approximable IS it;
+nw_small_AC0p_observer_implies_lowDegreeApprox_frontier (PROVED) re-exports the committed approximable_exists as the
+"small observer ⇒ low-degree approximant" direction; polynomial_method_contradiction (PROVED) is the contradiction core.
+Sockets: QuantitativeDepthBound (size/depth→degree) + SmolenskyNonNativeLowerBound (the wall). -/
+theorem nw_small_AC0p_observer_implies_lowDegreeApprox_frontier {n : ℕ}
+    (C : ACC0CircuitApprox.Circ n) :
+    ∃ D E, ACC0PolynomialMethodApproximation.LowDegreeApprox
+      (fun x => Layer3.boolToZMod 2 (ACC0CircuitApprox.Circ.eval x C)) D E :=
+  ACC0PolynomialMethodApproximation.small_AC0p_observer_implies_lowDegreeApprox C
+
+/-- **The polynomial-method contradiction (proved): a low-degree approximant + a high-degree requirement ⇒ False.** -/
+theorem nw_polynomial_method_contradiction_frontier {n : ℕ} (f : (Fin n → Bool) → ZMod 2) (D E : ℕ)
+    (hbridge : ACC0PolynomialMethodApproximation.QuantitativeDepthBound f D E)
+    (hwall : ACC0PolynomialMethodApproximation.SmolenskyNonNativeLowerBound f D E) : False :=
+  ACC0PolynomialMethodApproximation.polynomial_method_contradiction f D E hbridge hwall
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 

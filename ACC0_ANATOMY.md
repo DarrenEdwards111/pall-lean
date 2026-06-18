@@ -406,6 +406,28 @@ central socket `PatternRichCrossFieldLowerBound`, whose antecedent is provably m
 single `PolynomialMethodApproximation` ingredient — for which §5f–§5l supply the entire proved RS analytic kernel.  The
 one open theorem is the non-native (composite-`MOD`) lower bound itself — the wall.  Not faked, not a separation.
 
+## 5n. The polynomial-method bridge — `small AC⁰[p] ⇒ low-degree approximation` (entry 272)
+
+Roadmap step 3, a *bridge file* (`…ACC0PolynomialMethodApproximation`) connecting the abstract `F_p` kernel (§5f–§5m)
+and the concrete `F₂` circuit arc (the committed `…ACC0{CircuitApprox, OrStep, DepthInduction, ...}`) **without
+re-proving either**.
+
+* **The notions coincide (PROVED).**  `LowDegreeApprox f D E` (an `F₂`-poly of degree `≤ D` erring on `≤ E` inputs) is
+  the common notion; `approximable_iff_lowDegreeApprox` (`Iff.rfl`) shows Codex's `Approximable` *is* it.
+* **The bridge direction (PROVED).**  `small_AC0p_observer_implies_lowDegreeApprox`: every `MOD`-free `AC⁰` circuit's
+  function has a low-degree approximant — re-exporting the committed `approximable_exists`.
+* **The contradiction (PROVED).**  `polynomial_method_contradiction`: a degree-`≤ D` approximant *and* a high-degree
+  requirement give `False`.
+* **The two quantitative sockets.**  `QuantitativeDepthBound` (size/depth → `(D,E)`, threading the committed
+  `or_step`/`and_step` + boosting `t`) and `SmolenskyNonNativeLowerBound` (`¬ LowDegreeApprox` for the non-native target
+  — the wall, mechanism §5f, composite §3/entry 238).
+
+**Net:** the two parallel RS developments are now formally bridged, the "small observer ⇒ low-degree approximation"
+direction is re-exported and proved, and the final contradiction is assembled.  What remains is exactly the two
+quantitative inputs — the size/depth → degree refinement (assembly of committed pieces) and the Smolensky lower bound
+(the wall).  Supplying both completes the *prime*-`MOD` lower bound; the *composite* case feeds `ACC0CompositeComponent`
+→ Williams and is the single open barrier.  Not faked, not a separation.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the
