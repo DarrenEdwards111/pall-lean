@@ -219,6 +219,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TypedBoundary
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeReductionProbe
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AlgorithmicEscape
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FastSATCharacteristicUniversal
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0YBTSocketStrength
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -3906,6 +3907,22 @@ theorem nw_fastSat_decides_every_modulus_frontier
       ∃ c ∈ Finset.univ.image (ACC0SymmetricObserver.gateCount g), c % M = 0 :=
   ACC0FastSATCharacteristicUniversal.fastSat_decides_every_modulus g M
 
+/-- **Answered: the YBT socket is NOT separation-strength (proved bundle).**
+nw_ybt_socket_not_separation_strength_frontier (PROVED): (a) the exact `SYM∘AND` form exists *unconditionally* for every
+`ACC⁰` circuit (`acc0circuit_hasSymAndForm`); (b) the YBT socket is purely the size bound `symAndSize C + 1 < 2^n`
+firing on that existing form (the true Beigel–Tarui quasipoly bound); (c) the separation-strength is the *downstream*
+realization socket (`↔ NEXP ⊄ ACC⁰` once the speedup holds).  So YBT is the true/known front half, not separation-strength;
+the separation lives in realization + Williams (entry 292). -/
+theorem nw_ybt_socket_not_separation_strength_frontier {n : ℕ} {NEXPnotACC0 : Prop} :
+    (∀ C : ACC0CircuitModel.ACC0Circuit n,
+        ACC0YBTExactCompose.HasSymAndForm (fun x => ACC0CircuitModel.eval C x)
+          (ACC0YBTExactCompose.symAndSize C))
+    ∧ (∀ C : ACC0CircuitModel.ACC0Circuit n,
+        ACC0YBTExactCompose.symAndSize C + 1 < 2 ^ n → ACC0YBTSocket.HasExactSymAndForm C)
+    ∧ (∀ (_hspeedup : ∀ k, ACC0WilliamsCashout.MixedACCResidueSatSpeedup k),
+        ACC0WilliamsCashout.UniformWilliamsRealizationSocket NEXPnotACC0 ↔ NEXPnotACC0) :=
+  ACC0YBTSocketStrength.ybt_socket_not_separation_strength
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4449,3 +4466,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_composite_lift_irreducible_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_algorithmic_escape_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_fastSat_decides_every_modulus_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_ybt_socket_not_separation_strength_frontier

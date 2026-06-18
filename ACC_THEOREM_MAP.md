@@ -106,8 +106,18 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
     • fastSat_mod6_via_crt : MOD₆ decision factors through c%2=0 ∧ c%3=0 (290's CRT, inside fast-SAT)
     • fastSat_cells_modulus_free : cell bound ≤ m+1 indep of modulus
     • fastSat_modm_savings : Williams savings 2^k·cells ≤ 2^n hold for EVERY M (symAnd_williams_fastSat at MOD_M)
-    ⇒ composite-MOD barrier is NOT in counting/savings (modulus-agnostic, exonerated) — it lives ENTIRELY
-      in the open YBT exact-normal-form socket (link 1) + uniform TM realization (link 2), both separation-strength.
+    ⇒ composite-MOD barrier is NOT in counting/savings (modulus-agnostic, exonerated) — it lives in the
+      YBT exact-normal-form socket (link 1) + uniform TM realization (link 2).
+
+  IS THE YBT SOCKET SEPARATION-STRENGTH? ANSWER: NO (292, proved — honest correction):
+    • exact_symAnd_form_exists : EVERY ACC⁰ circuit has an exact SYM∘AND form UNCONDITIONALLY (acc0circuit_hasSymAndForm)
+    • mod_form_characteristic_free : MOD_q form exists for EVERY q (counting-based modQStatOn, composite no barrier — 290)
+    • ybt_socket_is_size_bound : HasExactSymAndForm = just symAndSize C + 1 < 2^n firing (quasipoly SIZE = Beigel–Tarui)
+    • ybt_socket_yields_cell_search : socket ⇒ only a < 2^n CELL search, NOT a uniform algorithm
+    • realization_is_separation_strength / williams_is_separation_strength : the DOWNSTREAM sockets are ↔ NEXP⊄ACC⁰
+    VERDICT: YBT is NOT separation-strength — it's a TRUE classical theorem (existence proved; quasipoly size = hard
+      combinatorics, not a hardness assumption). The separation-strength lives in realization + Williams (links 2,3).
+      Composite-MOD never even blocks YBT EXISTENCE (counting/char-free); only the SIZE is the open Beigel–Tarui work.
 ```
 
 ## Tier 1 — AC⁰ (switching method): **DONE & FENCED**

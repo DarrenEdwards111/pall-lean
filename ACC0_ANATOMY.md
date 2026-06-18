@@ -846,6 +846,30 @@ which does not depend on the symmetric top.
 which is free (the integer-count search) — confirming, concretely in the algorithm, entry 290's account of why counting
 escapes.  The separation-strength content stays in the named sockets, not re-proved.
 
+## 5z⁗⁗. Is the YBT socket separation-strength?  Answer: NO (entry 292 — honest correction)
+
+The natural assumption is that the YBT exact-normal-form socket carries the separation difficulty.  Digging in
+(`…ACC0YBTSocketStrength`), the answer is the **opposite**, and the discipline requires reporting it.
+
+* **The exact form exists unconditionally (PROVED).**  `acc0circuit_hasSymAndForm`: every `ACC⁰` circuit *equals* a
+  count gate over `symAndSize C` monomial-`AND`s — a genuine theorem, no socket.  `mod_form_characteristic_free`
+  (`hasSymAndForm_mod`): a `MOD_q` gate has an exact form for *every* `q`, composite included — it is counting-based
+  (`modQStatOn`, an integer weight), hence characteristic-free.  So composite `MOD` is *no barrier to existence* — entry
+  290's escape, inside the YBT reduction.
+* **The socket is purely a size bound (PROVED).**  `acc0circuit_hasExactSymAndForm`: once `symAndSize C + 1 < 2^n` the
+  always-existing form *is* the socket.  The only open content is the quasipolynomial *size* — the Beigel–Tarui theorem,
+  true and known, hard *combinatorics* to formalize, **not** a hardness assumption.
+* **It yields only a cell-model search (PROVED).**  `ybt_socket_searchable`: the socket gives a `< 2^n`-cell search, not
+  a uniform algorithm, not the separation.
+* **The separation-strength is downstream (PROVED self-audit).**  `realization_socket_iff_separation`,
+  `williams_socket_iff_separation`: once the cell speedup holds, the *realization* and *Williams* sockets are each
+  *logically equivalent to* `NEXP ⊄ ACC⁰`.  Those carry the whole difficulty.
+
+**Net (`ybt_socket_not_separation_strength`):** even with YBT fully formalized, the separation would still require
+realization + Williams — which *are* separation-strength.  YBT is the true, known, combinatorially-hard **front half**;
+it is **not** separation-strength.  This corrects the premise honestly: the separation lives in the realization +
+Williams cash-out, not in the YBT depth collapse.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the
