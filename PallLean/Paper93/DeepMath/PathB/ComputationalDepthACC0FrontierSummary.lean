@@ -185,6 +185,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ExpanderCountObstru
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ExpanderFamilies
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AlgebraicExpansion
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IndicatorRank
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AffineHyperplanes
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -855,6 +856,11 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   gates (fire iff input=i) = standard basis indicators ⇒ AlgExpander (concrete full-rank family). RS LINK: the ──
    ──   count LB under AlgExpander = Razborov-Smolensky, proven in-arc for MOD_q (Layer4.mod_q_indicators_false, 244); ─
    ──   general = open Smolensky core (238). NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── AFFINE HYPERPLANES (a genuine non-trivial algebraic-expander family): nw_private_witness_indep_frontier (PROVED ─
+   ──   reusable tool: private witnesses ⇒ AlgExpander); nw_affineHyperplane_algExpander_frontier (PROVED): parallel ──
+   ──   affine hyperplanes {∑ⱼ xⱼ = targets i} over F_p^{n+1} (injective targets) are AlgExpander — private witness for
+   ──   gate i = Pi.single 0 (targets i). A genuine AFFINE (non-dictator) full-rank family. The count LB on it = the ──
+   ──   Smolensky-strength socket (256/257), NOT proved. NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3179,6 +3185,24 @@ theorem nw_algExpander_gateRank_eq_frontier {X : Type} {s : ℕ} {F : Type} [Fie
 theorem nw_pointFamily_algExpander_frontier {F : Type} [Field F] (s : ℕ) :
     ACC0AlgebraicExpansion.AlgExpander (F := F) (fun (i : Fin s) (x : Fin s) => decide (x = i)) :=
   ACC0IndicatorRank.pointFamily_algExpander (F := F) s
+
+/-- **Affine hyperplane indicators: a genuine non-trivial algebraic-expander family (proved).**
+`private_witness_indep` (PROVED, reusable tool): private witnesses (each gate fires on its own witness, no other does)
+⇒ AlgExpander.  `affineHyperplane_algExpander` (PROVED): parallel affine hyperplanes `{∑ⱼ xⱼ = targets i}` over F_p^{n+1}
+(injective targets) are AlgExpander — private witness for gate i = `Pi.single 0 (targets i)`.  A genuine affine
+(non-dictator) full-rank family; the count LB on it remains the Smolensky-strength socket. -/
+theorem nw_affineHyperplane_algExpander_frontier {F : Type} [Field F] {p n s : ℕ}
+    (targets : Fin s → ZMod p) (hinj : Function.Injective targets) :
+    ACC0AlgebraicExpansion.AlgExpander (F := F)
+      (fun (i : Fin s) (x : Fin (n + 1) → ZMod p) => decide ((∑ j, x j) = targets i)) :=
+  ACC0AffineHyperplanes.affineHyperplane_algExpander (F := F) targets hinj
+
+/-- **Affine hyperplanes: the reusable private-witness ⇒ AlgExpander tool (proved).** -/
+theorem nw_private_witness_indep_frontier {X : Type} {s : ℕ} {F : Type} [Field F]
+    (gates : Fin s → (X → Bool)) (wit : Fin s → X)
+    (hself : ∀ i, gates i (wit i) = true) (hother : ∀ i j, j ≠ i → gates j (wit i) = false) :
+    ACC0AlgebraicExpansion.AlgExpander (F := F) gates :=
+  ACC0AffineHyperplanes.private_witness_indep (F := F) gates wit hself hother
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
