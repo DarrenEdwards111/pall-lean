@@ -893,6 +893,32 @@ entire algorithmic route (YBT + realization + Williams) has **one** irreducible 
 time-hierarchy / Williams algorithmic argument — with everything else proved, true-classical, or routine.  That single
 gate is `↔ NEXP ⊄ ACC⁰`, the honest open content.
 
+## 5z⁗⁗″. Attacking the gate directly — the hierarchy's diagonalization logic is fully proved (entry 294)
+
+Attacking the single classical gate (the nondeterministic time hierarchy inside Williams' route) to its core.  **Note:
+`NEXP ⊄ ACC⁰` is a *proven* theorem (Williams 2011)** — the gate is its *formalization*, not an open problem; the
+"separation-strength" label means "formalization-complete-strength," not "open."  The diagonalization logic is now
+decomposed completely:
+
+* **Contradiction (entry 219, proved).**  `lazy_diag_false`: no machine decides its own lazy diagonal — the telescoping
+  chain forces `M(a) = ¬M(a)` using only the *single* boundary complement, so it works without closure under complement
+  (the reason it applies to nondeterministic classes).
+* **Placement (NTIME accounting, proved).**  `clocked_in_NEXP` / `lazy_diagonal_in_nexp`: a clocked machine deciding a
+  language within the `NEXP` budget places it in `NEXP`.
+* **Enumeration escape (entry 294, proved — the missing link).**  Entry 200 proved only the *Cantor* escape
+  `diag_not_mem_range` with the *naive direct-complement* diagonal — not valid for nondeterministic classes.
+  `…ACC0LazyHierarchyEscape` supplies the complement-free upgrade: with `D` lazily copying `enum i` on the next input
+  per block and complementing only at the boundary, `lazy_diag_escapes_enumeration` gives `D ≠ enum i` for every `i`
+  (via the proved kernel), so `lazy_diag_not_mem_range`: `D ∉ range enum`.  This is the escape that genuinely applies to
+  nondeterministic classes.
+
+**Net:** the hierarchy's *diagonalization logic* — contradiction, placement, and enumeration escape — is fully proved.
+What remains is **not** diagonalization but the **realization** primitive: a clocked NTM deciding `D` in the bigger time
+bound via universal simulation (`ClockedSimulation`) — a *proven* classical fact (efficient universal NTM), formalization
+engineering, not an open obstruction.  Likewise IKW easy-witness and NW guess-verify are proven classical lemmas.  The
+gate is the formalization of a **theorem**, decomposed to model-substrate and classical-lemma atoms; the genuine open
+frontier (`P ≠ NP`) lies elsewhere.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the

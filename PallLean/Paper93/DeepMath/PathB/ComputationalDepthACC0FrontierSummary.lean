@@ -221,6 +221,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AlgorithmicEscape
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FastSATCharacteristicUniversal
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0YBTSocketStrength
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsSocketMap
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyHierarchyEscape
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -3936,6 +3937,19 @@ theorem nw_cost_bridge_unlocked_by_quasipoly_ybt_frontier {n D k cells : ℕ}
     2 ^ k * cells ≤ 2 ^ n :=
   ACC0WilliamsSocketMap.cost_bridge_unlocked_by_quasipoly_ybt hquasipoly hk hfit
 
+/-- **Attacking the classical gate: the lazy diagonal escapes the enumeration, complement-free (proved).**
+nw_lazy_diag_not_mem_range_frontier (PROVED): with `D` set up on each index's block to lazily copy `enum i` on the next
+input and complement only at the boundary, the lazy kernel gives `D ∉ range enum` — the complement-free upgrade of
+entry 200's Cantor escape, the form that applies to nondeterministic classes.  Completes the diagonalization logic of
+the nondeterministic time hierarchy (contradiction + placement + escape all proved); the realization primitive
+(universal NTM sim) is the remaining true-classical model substrate (entry 294). -/
+theorem nw_lazy_diag_not_mem_range_frontier
+    (enum : ℕ → (ℕ → Bool)) (D : ℕ → Bool) (block len : ℕ → ℕ)
+    (hlazy : ∀ i k, k < len i → D (block i + k) = enum i (block i + k + 1))
+    (hbdy : ∀ i, D (block i + len i) = ! enum i (block i)) :
+    D ∉ Set.range enum :=
+  ACC0LazyHierarchyEscape.lazy_diag_not_mem_range enum D block len hlazy hbdy
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4481,3 +4495,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_fastSat_decides_every_modulus_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_ybt_socket_not_separation_strength_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_cost_bridge_unlocked_by_quasipoly_ybt_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lazy_diag_not_mem_range_frontier

@@ -129,6 +129,17 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
     • williams_route_socket_classification: full-route map (YBT exists uncond + cost-bridge unlocked + reduce to S4 + S4↔sep)
     VERDICT: entire algorithmic route (YBT+realization+Williams) has ONE irreducible separation-strength gate = the
       nondeterministic-time-hierarchy / Williams argument; all else proved / true-classical (YBT size) / routine.
+
+  ATTACKED that gate directly — the NTIME hierarchy's diagonalization logic is FULLY PROVED (294):
+    NB: NEXP⊄ACC⁰ is a PROVEN theorem (Williams 2011) — the gate is its FORMALIZATION, not an open problem.
+    • Cantor escape (200): diag_not_mem_range [naive direct complement — NOT valid for nondet classes]
+    • lazy telescoping CONTRADICTION (219): lazy_diag_false [complement-free, single boundary flip]
+    • NEXP PLACEMENT (NTIMEAccounting): clocked_in_NEXP, lazy_diagonal_in_nexp
+    • lazy ENUMERATION ESCAPE (294, NEW): lazy_diag_not_mem_range = complement-free upgrade of 200, the form
+      that applies to nondeterministic classes (built on lazy_diag_false; ∀ i D ≠ enum i ⇒ D ∉ range enum)
+    ⇒ diagonalization logic of the hierarchy COMPLETE (contradiction + placement + escape all proved).
+    REMAINING = the REALIZATION primitive (ClockedSimulation: clocked NTM decides D in bigger bound via universal
+      sim) + IKW easy-witness + NW guess-verify — all PROVEN classical facts (formalization, not open obstruction).
 ```
 
 ## Tier 1 — AC⁰ (switching method): **DONE & FENCED**
