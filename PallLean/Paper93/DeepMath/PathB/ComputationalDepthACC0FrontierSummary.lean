@@ -184,6 +184,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TreewidthCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ExpanderCountObstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ExpanderFamilies
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AlgebraicExpansion
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IndicatorRank
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -848,6 +849,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   255 full-support degeneracy via LinearIndependent.injective); algExpander_indicators_injective (non-redundancy).
    ──   AlgExpanderCountObstruction = the 254 socket restated under the CORRECT (algebraic) hypothesis. Cut-expansion ─
    ──   governs DP (251-253); algebraic expansion is needed for count-hardness. Still Smolensky-strength (238). NOT P≠NP.
+   ── INDICATOR RANK (algebraic-hardness invariant, stronger than treewidth + concrete family + RS link): ────────────
+   ──   nw_algExpander_gateRank_eq_frontier (PROVED): AlgExpander ⇒ gateRank=s (full indicator-span dim; treewidth=DP, ─
+   ──   rank=count-hardness, via finrank_span_eq_card); nw_pointFamily_algExpander_frontier (PROVED): point/dictator ──
+   ──   gates (fire iff input=i) = standard basis indicators ⇒ AlgExpander (concrete full-rank family). RS LINK: the ──
+   ──   count LB under AlgExpander = Razborov-Smolensky, proven in-arc for MOD_q (Layer4.mod_q_indicators_false, 244); ─
+   ──   general = open Smolensky core (238). NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3157,6 +3164,21 @@ theorem nw_algExpander_indicators_injective_frontier {X : Type} {s : ℕ} {F : T
     (gates : Fin s → (X → Bool)) (h : ACC0AlgebraicExpansion.AlgExpander (F := F) gates) :
     Function.Injective (ACC0AlgebraicExpansion.gateInd gates (F := F)) :=
   ACC0AlgebraicExpansion.algExpander_indicators_injective gates h
+
+/-- **Indicator rank — the algebraic-hardness invariant (stronger than treewidth) + a concrete full-rank family + RS
+link.**  `algExpander_gateRank_eq` (PROVED): AlgExpander ⇒ gateRank = s (full indicator-span dimension; treewidth=DP,
+rank=count-hardness).  `pointFamily_algExpander` (PROVED): the point/dictator gates (fire iff input=i) have indicators =
+standard basis ⇒ AlgExpander (concrete full-rank algebraic expander).  RS LINK: the count LB under AlgExpander is
+Razborov-Smolensky, proven in-arc for the MOD_q family (Layer4.mod_q_indicators_false, 244); general = open. -/
+theorem nw_algExpander_gateRank_eq_frontier {X : Type} {s : ℕ} {F : Type} [Field F]
+    (gates : Fin s → (X → Bool)) (h : ACC0AlgebraicExpansion.AlgExpander (F := F) gates) :
+    ACC0IndicatorRank.gateRank (F := F) gates = s :=
+  ACC0IndicatorRank.algExpander_gateRank_eq gates h
+
+/-- **Indicator rank: a concrete full-rank algebraic-expander family (proved).** -/
+theorem nw_pointFamily_algExpander_frontier {F : Type} [Field F] (s : ℕ) :
+    ACC0AlgebraicExpansion.AlgExpander (F := F) (fun (i : Fin s) (x : Fin s) => decide (x = i)) :=
+  ACC0IndicatorRank.pointFamily_algExpander (F := F) s
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 

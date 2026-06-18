@@ -139,6 +139,26 @@ open territory.  The localized core is exactly the gap between these.
 
 ---
 
+## 5b. Refined conclusion — the wall is *algebraic*, not cut (entries 251–256)
+
+Pushing the localized core (§4) further produced a clean separation of two notions, both machine-checked:
+
+* **Cut-expansion governs *DP tractability* exactly.**  Disjoint (overlap rank 1, `…ACC0CrossFieldCountCore`),
+  block-diagonal (bounded local overlap, `…ACC0BlockOverlapCount`), and bounded-treewidth (separator conditioning,
+  `…ACC0TreewidthCount` `separator_factor`) incidence ⇒ the cross-field count factors by an N-Frame observer DP.  The
+  positive side is proved up the parametrized-complexity ladder.
+* **Cut-expansion is *not* count-hardness.**  The full-support family (`…ACC0ExpanderFamilies` `fullSupport_expander`)
+  is a separator-expander (no small separator) whose count is easy when its gates are redundant.  So no-small-separator
+  is necessary for DP-failure but **not sufficient** for the count lower bound.
+* **The correct hypothesis is *algebraic expansion*.**  `AlgExpander` (`…ACC0AlgebraicExpansion`) = the gate-indicator
+  functions are *linearly independent over the field* `F` (high gate-function rank).  This is about the gate functions,
+  not the cut; it rules out the redundant-gate degeneracy (`not_algExpander_of_duplicate`).
+
+> **Refined wall.**  Bounded separator/treewidth incidence is tractable by N-Frame observer factorization (proved).
+> The remaining `ACC⁰[composite]` wall is **algebraically-independent cross-field fire-counting**: *linearly-independent
+> `F_p`-gate indicators ⇒ the mod-`q` fire-count needs superpolynomial resources* — the Razborov–Smolensky theorem in
+> its sharpest form, socketed as `AlgExpanderCountObstruction`.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the
