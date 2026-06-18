@@ -612,6 +612,27 @@ bounded depth — which `MOD₆`'s growing non-native CRT factor defeats.  So bo
 definite, proved reason — the carry-crossing wall (§3/entry 238) for the staged model.  A characteristic-independent
 method is still needed.  Not faked, not a separation.
 
+## 5x. The composite wall — product-field observers with explicit carry state (entry 282, step 5, the namesake)
+
+The third composite no-go (`…ACC0Mod6CarryState`), and the one whose failure mode is literally
+`CarryRefinementCrossing`'s namesake.  After §5v (separate) and §5w (stage) fail, the natural next idea is to **track
+both fields at once via an explicit carry state** — work over the product `ZMod 2 × ZMod 3 ≃ ZMod 6`.  This proves *why
+the carry fails*: it lands in a ring that is not a field.
+
+* **The carry ring is not a field (PROVED).**  `carry_state_has_zero_divisors` / `carry_state_not_domain`: `ZMod 6` has
+  zero divisors (`2·3 = 0`), so it is not a domain, not a field.
+* **Fermat fails there (PROVED).**  `fermat_fails_on_carry`: `(2 : ZMod 6) ≠ 0` yet `2^{6-1} = 2 ≠ 1` — Fermat's little
+  theorem, the engine of the degree-halving (§5h, entry 266), is *false* over the carry ring.
+* **No traction (PROVED).**  `product_field_carry_state_no_traction`: the entire Smolensky method (§5f–§5u, all over
+  `[Field F]`, resting on the Fermat indicator) cannot run on the carry state.
+
+**Net — the three composite no-gos converge.**  Separating (§5v), staging (§5w), and carry-tracking (§5x) all fail for
+the *same* root reason: the polynomial method lives over a single field, and composite modulus forces either two
+incompatible fields or their product *ring* (zero divisors, Fermat false).  The carry that would couple the components
+does *not* refine into a single-field computation — which is exactly the content of the name `CarryRefinementCrossing`
+(§3/entry 238).  All three natural attacks are now *proved* to fail.  Composite `ACC⁰` genuinely needs a new,
+characteristic-independent idea — the one honest open object the whole arc points to.  Not faked, not a separation.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the

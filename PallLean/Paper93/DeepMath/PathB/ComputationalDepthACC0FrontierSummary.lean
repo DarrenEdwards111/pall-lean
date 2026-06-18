@@ -209,6 +209,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SmolenskyPrime
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimeMechanicalClosure
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SeparatedLayers
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6StagedObservers
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6CarryState
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -1035,6 +1036,13 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   ≥ R growing with input (Smolensky 275-279). nw_bounded_depth_staged_no_go_frontier (PROVED): t^d·D₀ < R ⇒ ─────
    ──   False. Staging adds intermediate fields but the final output field is defeated by the growing non-native degree
    ──   = CarryRefinementCrossing (238) for the staged model. A proved no-go. NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── COMPOSITE WALL, carry-state no-go (step 5 cont., THE NAMESAKE) — product-field + explicit carry fails (proved):
+   ──   tracking both chars via a carry forces the product ring ZMod 6 ≃ ZMod 2 × ZMod 3. ──────────────────────────
+   ──   nw_carry_state_has_zero_divisors_frontier (PROVED): zero divisors 2·3=0 ⇒ NOT a field. ─────────────────────
+   ──   nw_fermat_fails_on_carry_frontier (PROVED): (2:ZMod 6)^5 ≠ 1 though 2≠0 ⇒ Fermat (degree-halving engine 266)
+   ──   is FALSE over the carry ring. So the field-essential Smolensky method (264-279, all [Field F]) has NO traction.
+   ──   The carry doesn't refine into a single field = LITERALLY CarryRefinementCrossing (238). Composite needs a ─────
+   ──   field-free / char-independent method. A proved no-go. NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3729,6 +3737,20 @@ theorem nw_bounded_depth_staged_no_go_frontier {t d D₀ R observerDeg : ℕ}
     (hbounded : observerDeg ≤ t ^ d * D₀) (hneed : R ≤ observerDeg) (hgrow : t ^ d * D₀ < R) :
     False :=
   ACC0Mod6StagedObservers.bounded_depth_staged_no_go hbounded hneed hgrow
+
+/-- **Composite wall, carry-state no-go (step 5 cont., the namesake) — product-field + explicit carry fails (proved).**
+Tracking both characteristics via a carry forces the product ring ZMod 6 ≃ ZMod 2 × ZMod 3.
+nw_carry_state_has_zero_divisors_frontier (PROVED): it has zero divisors (2·3=0) — NOT a field. nw_fermat_fails_on_carry_
+frontier (PROVED): (2:ZMod 6)^5 ≠ 1 though 2≠0 — Fermat (the degree-halving engine 266) is FALSE. So the field-essential
+Smolensky method (264-279, all [Field F]) has no traction. The carry doesn't refine into a single field = literally
+CarryRefinementCrossing (238). -/
+theorem nw_carry_state_has_zero_divisors_frontier :
+    ∃ a b : ZMod 6, a ≠ 0 ∧ b ≠ 0 ∧ a * b = 0 :=
+  ACC0Mod6CarryState.carry_state_has_zero_divisors
+
+/-- **Fermat fails on the carry ring (proved): (2:ZMod 6)≠0 yet (2:ZMod 6)^(6-1)≠1 — the degree-halving engine dies.** -/
+theorem nw_fermat_fails_on_carry_frontier : (2 : ZMod 6) ≠ 0 ∧ (2 : ZMod 6) ^ (6 - 1) ≠ 1 :=
+  ACC0Mod6CarryState.fermat_fails_on_carry
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
