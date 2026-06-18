@@ -140,6 +140,17 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
     ⇒ diagonalization logic of the hierarchy COMPLETE (contradiction + placement + escape all proved).
     REMAINING = the REALIZATION primitive (ClockedSimulation: clocked NTM decides D in bigger bound via universal
       sim) + IKW easy-witness + NW guess-verify — all PROVEN classical facts (formalization, not open obstruction).
+
+  WILLIAMS INTERNALIZED as the N-Frame algorithmic-counting branch (295, proved):
+    NFrameWilliamsRoute = ∀ ACC⁰ circuit, ∃ SYM∘AND form (m+1 < 2^n):
+      observer = integer gateCount | boundary = count-cell image | compression = <2^n cells | escape = char-0 CRT univ
+    • nframe_williams_route_equiv : NFrameWilliamsRoute ↔ WilliamsFastSatRoute  (Iff.rfl — the route IS fast-SAT, defeq)
+    • nframe_observer_characteristic_free : integer count decides MOD_M-SAT for EVERY M (the char-0 escape, 290/291)
+    • nframe_fastSat_to_timeHierarchy (PROVED cond.): route → speedup → (easy-witness/NW collapse + NTIME hierarchy)
+        ⇒ ¬(NEXP ⊆ ACC⁰), via williams_concrete (composition proved; deep ingredients = named classical sockets)
+    • nframe_hierarchy_diag_core : the hierarchy subpiece's diagonalization core PROVED (294 lazy escape)
+    ⇒ Williams is now the N-Frame algorithmic-counting ROUTE (not external commentary); gate honestly socketed to the
+      PROVEN classical theorems (uniform realization, easy-witness/NW, NTIME hierarchy) — Williams 2011, being formalized.
 ```
 
 ## Tier 1 — AC⁰ (switching method): **DONE & FENCED**

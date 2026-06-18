@@ -919,6 +919,31 @@ engineering, not an open obstruction.  Likewise IKW easy-witness and NW guess-ve
 gate is the formalization of a **theorem**, decomposed to model-substrate and classical-lemma atoms; the genuine open
 frontier (`P ≠ NP`) lies elsewhere.
 
+## 5z⁗⁗‴. Williams internalized as the N-Frame algorithmic-counting branch (entry 295)
+
+Williams' route is no longer external commentary — it is encoded directly as the N-Frame *algorithmic-counting branch*
+(`…ACC0NFrameWilliamsRoute`), the counting twin of the (blocked) polynomial route.
+
+* **The route (four N-Frame ingredients).**  `NFrameWilliamsRoute := ∀ ACC⁰ circuit, ∃ SYM∘AND form with m+1 < 2^n`:
+  *observer* = the integer gate-count `gateCount` (entry 291); *boundary* = its count-cell image; *compression* =
+  `< 2^n` cells (the YBT exact form, entry 292); *escape* = characteristic-0 CRT universality (entries 290/291).
+* **Equivalence (PROVED).**  `nframe_williams_route_equiv`: `NFrameWilliamsRoute ↔ WilliamsFastSatRoute` — by `Iff.rfl`;
+  the N-Frame counting route *is* the fast-SAT route, definitionally (the four ingredients repackage
+  `HasExactSymAndForm`).
+* **The escape (PROVED).**  `nframe_observer_characteristic_free`: the integer count observer decides `MOD_M`-SAT for
+  *every* modulus against one image — the char-0 universality that handles composite `MOD` where the single-field
+  polynomial method is blocked (`no_common_char`).
+* **The hard gate, encoded (PROVED conditional).**  `nframe_fastSat_to_timeHierarchy`: the route ⇒ a uniform speedup ⇒
+  (easy-witness/NW collapse + nondeterministic time hierarchy) ⇒ `¬ (NEXP ⊆ ACC⁰)`, via `williams_concrete`.  Deep
+  ingredients = named classical sockets; composition = proved glue.  `nframe_hierarchy_diag_core`: the hierarchy
+  subpiece's diagonalization core is proved (entry 294 lazy escape), leaving only the realization primitive.
+
+**Net:** Williams *is* the N-Frame algorithmic-counting route — the special case where the integer-count observer's
+char-0 universality escapes the composite barrier that blocks the polynomial route — proved equivalent to the fast-SAT
+route, feeding the contradiction whose hierarchy core is proved, with the deep gate honestly socketed to the proven
+(Williams 2011) classical theorems being formalized.  The two N-Frame branches — polynomial (blocked, entries 280–289)
+and algorithmic-counting (Williams, here) — are now both encoded.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the

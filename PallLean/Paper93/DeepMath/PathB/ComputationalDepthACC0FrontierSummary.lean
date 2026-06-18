@@ -222,6 +222,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FastSATCharacterist
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0YBTSocketStrength
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsSocketMap
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyHierarchyEscape
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NFrameWilliamsRoute
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -3950,6 +3951,26 @@ theorem nw_lazy_diag_not_mem_range_frontier
     D ∉ Set.range enum :=
   ACC0LazyHierarchyEscape.lazy_diag_not_mem_range enum D block len hlazy hbdy
 
+/-- **Williams internalized as the N-Frame algorithmic-counting branch (proved equivalence + socketed gate).**
+nw_nframe_williams_route_equiv_frontier (PROVED): `NFrameWilliamsRoute ↔ WilliamsFastSatRoute` — the N-Frame counting
+route (integer gateCount observer, count-cell boundary, `< 2^n` compression, char-0 CRT escape) *is* the fast-SAT route
+(`Iff.rfl`, defeq).  nw_nframe_fastSat_to_timeHierarchy_frontier (PROVED conditional): the route ⇒ speedup ⇒ (easy-witness
+/NW collapse + nondeterministic time hierarchy) ⇒ `¬(NEXP ⊆ ACC⁰)` — Williams encoded through the N-Frame route, deep
+ingredients socketed to the named classical theorems (entry 295). -/
+theorem nw_nframe_williams_route_equiv_frontier :
+    ACC0NFrameWilliamsRoute.NFrameWilliamsRoute ↔ ACC0NFrameWilliamsRoute.WilliamsFastSatRoute :=
+  ACC0NFrameWilliamsRoute.nframe_williams_route_equiv
+
+theorem nw_nframe_fastSat_to_timeHierarchy_frontier
+    (ACC0 : ACC0WilliamsMetaTheorem.CClass) (f g : ℕ → ℕ) (speedup : Prop)
+    (routeGivesSpeedup : ACC0NFrameWilliamsRoute.NFrameWilliamsRoute → speedup)
+    (collapse : speedup → ACC0NTM.NEXP ⊆ ACC0 → ACC0NTM.NTIME f ⊆ ACC0NTM.NTIME g)
+    (hierarchy : ¬ (ACC0NTM.NTIME f ⊆ ACC0NTM.NTIME g))
+    (route : ACC0NFrameWilliamsRoute.NFrameWilliamsRoute) :
+    ¬ (ACC0NTM.NEXP ⊆ ACC0) :=
+  ACC0NFrameWilliamsRoute.nframe_fastSat_to_timeHierarchy ACC0 f g speedup routeGivesSpeedup
+    collapse hierarchy route
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4496,3 +4517,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_ybt_socket_not_separation_strength_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_cost_bridge_unlocked_by_quasipoly_ybt_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lazy_diag_not_mem_range_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_nframe_williams_route_equiv_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_nframe_fastSat_to_timeHierarchy_frontier
