@@ -592,6 +592,26 @@ fails by field incompatibility*.  This is exactly why composite `ACC⁰` is the 
 committed to a single characteristic*.  A proved negative structural fact (the `CarryRefinementCrossing` shape at
 `n = 6`), not a circumvention.  Not faked, not a separation.
 
+## 5w. The composite wall — bounded-depth staged observers fail too (entry 281, step 5 cont.)
+
+The second composite no-go (`…ACC0Mod6StagedObservers`): the natural fix for §5v's field-incompatibility is to *stage*
+the computation (`MOD₂` over `F₂`, `MOD₃` over `F₃`, combine), keeping each stage bounded-depth.  This proves *where
+staging fails*.
+
+* **Bounded depth ⇒ bounded degree (PROVED).**  `staged_degree_bound`: a depth-`d` staged observer's degree is
+  `t^d · D₀` (the layer recurrence, §5o/entry 273) — a fixed bound.
+* **The output field is non-native for one factor (PROVED).**  `mod6_staged_output_field_not_native`: the *final*
+  output is over a single field, which (§5v/entry 280) cannot be native for both `MOD₂` and `MOD₃`.
+* **The non-native factor needs growing degree.**  By the prime Smolensky bound (§5q–§5u), the non-native `MOD_q` factor
+  (`q ≠ char F`) requires degree `R(n)` growing with the input — eventually exceeding any fixed `t^d · D₀`.
+* **The no-go (PROVED).**  `bounded_depth_staged_no_go`: `observerDeg ≤ t^d·D₀` + `R ≤ observerDeg` (computing `MOD₆`
+  needs the factor) + `t^d·D₀ < R` (growing requirement) ⇒ `False`.
+
+**Net:** staging adds intermediate fields, but the *final output* is over one field, capped at degree `t^d·D₀` by
+bounded depth — which `MOD₆`'s growing non-native CRT factor defeats.  So bounded-depth staged observers fail for a
+definite, proved reason — the carry-crossing wall (§3/entry 238) for the staged model.  A characteristic-independent
+method is still needed.  Not faked, not a separation.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the

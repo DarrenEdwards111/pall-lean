@@ -208,6 +208,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FullProductGoodSet
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SmolenskyPrime
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimeMechanicalClosure
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SeparatedLayers
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6StagedObservers
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -1028,6 +1029,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   factor native ONLY in its own char (270); the prime route commits to ONE char ⇒ does NOT lift to MOD₆. ───────
    ──   This IS CarryRefinementCrossing (238) at n=6 — a PROVED no-go (the natural separated-layers idea fails by field
    ──   incompatibility), NOT a circumvention. Composite ACC⁰ needs a char-independent method. NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── COMPOSITE WALL, staged-observer no-go (step 5 cont.) — bounded-depth staging fails TOO (proved): ─────────────
+   ──   bounded depth ⇒ degree ≤ t^d·D₀ (273 pow_depth_degree, staged_degree_bound). MOD₆'s output is over ONE field ──
+   ──   (mod6_staged_output_field_not_native/280: not native for both factors). The non-native CRT factor needs degree
+   ──   ≥ R growing with input (Smolensky 275-279). nw_bounded_depth_staged_no_go_frontier (PROVED): t^d·D₀ < R ⇒ ─────
+   ──   False. Staging adds intermediate fields but the final output field is defeated by the growing non-native degree
+   ──   = CarryRefinementCrossing (238) for the staged model. A proved no-go. NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3712,6 +3719,16 @@ theorem nw_mod6_fires_iff_frontier {n : ℕ} (x : Fin n → Bool) :
 /-- **MOD₆ separated layers cross fields (proved no-go): no single field is native for both MOD₂ and MOD₃.** -/
 theorem nw_mod6_layers_cross_fields_frontier (F : Type*) [Field F] : ¬ (CharP F 2 ∧ CharP F 3) :=
   ACC0Mod6SeparatedLayers.mod6_layers_cross_fields F
+
+/-- **Composite wall, staged-observer no-go (step 5 cont.): bounded-depth staging fails too (proved).**
+nw_bounded_depth_staged_no_go_frontier (PROVED): bounded depth ⇒ degree ≤ t^d·D₀ (273 pow_depth_degree); MOD₆ forces
+degree ≥ R (non-native CRT factor, Smolensky 275-279); t^d·D₀ < R (growing requirement) ⇒ False. Staging adds
+intermediate fields but the final output is over one field (mod6_staged_output_field_not_native, via 280), which the
+growing non-native degree defeats. The carry-crossing wall (238) for the staged model. -/
+theorem nw_bounded_depth_staged_no_go_frontier {t d D₀ R observerDeg : ℕ}
+    (hbounded : observerDeg ≤ t ^ d * D₀) (hneed : R ≤ observerDeg) (hgrow : t ^ d * D₀ < R) :
+    False :=
+  ACC0Mod6StagedObservers.bounded_depth_staged_no_go hbounded hneed hgrow
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
