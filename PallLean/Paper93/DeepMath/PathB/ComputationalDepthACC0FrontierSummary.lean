@@ -179,6 +179,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ProductFieldMixing
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Depth2CrossModulus
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0StagedFastSAT
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CrossFieldCountCore
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BlockOverlapCount
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -813,6 +814,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   nw_crossFieldCount_lt_frontier — <q cells. FINDING: the obstruction is an OVERLAP phenomenon — low overlap ────
    ──   rank ⇒ tractable (PROVED for disjoint); high overlap rank ⇒ Smolensky (open general case, 238). Candidate ─────
    ──   invariant = overlap/incidence rank. NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── BLOCK-OVERLAP COUNT (tractable fragment BEYOND disjoint): nw_block_pattern_count_frontier — independent variable
+   ──   blocks with ARBITRARY within-block predicates ⇒ count FACTORS across blocks (gates may overlap freely INSIDE a
+   ──   block); nw_block_count_le_frontier — bounded block size W ⇒ count ≤ W^m (poly, convolution of per-block dists).
+   ──   So tractability boundary = incidence graph's BLOCK decomposition (bounded LOCAL overlap), NOT global disjoint- ─
+   ──   ness. Refines the overlap-rank invariant: bounded-size connected components ⇒ fast; large components (high ────
+   ──   global overlap, expander-like) = the open Smolensky core (238). NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3038,6 +3045,23 @@ theorem nw_crossFieldCount_lt_frontier {X : Type} {s : ℕ} (q : ℕ) (hq : 0 < 
     (gates : Fin s → (X → Bool)) (x : X) :
     ACC0CrossFieldCountCore.crossFieldCount q gates x < q :=
   ACC0CrossFieldCountCore.crossFieldCount_lt q hq gates x
+
+/-- **Block-overlap count: the tractable fragment beyond disjoint (proved).**  `block_pattern_count`: independent
+variable blocks with arbitrary within-block predicates ⇒ count FACTORS across blocks (gates may overlap freely INSIDE a
+block); `block_count_le`: bounded block size W ⇒ count ≤ W^m (poly-time, convolution of per-block distributions).  So
+the tractability boundary is the incidence graph's BLOCK decomposition (bounded local overlap), not global disjointness;
+the open case = large connected components (high global overlap, Smolensky). -/
+theorem nw_block_pattern_count_frontier {m : ℕ} {Z : Fin m → Type} [∀ b, Fintype (Z b)]
+    [∀ b, DecidableEq (Z b)] (P : ∀ b, Z b → Bool) :
+    (Finset.univ.filter (fun x : (∀ b, Z b) => ∀ b, P b (x b) = true)).card
+      = ∏ b, (Finset.univ.filter (fun z : Z b => P b z = true)).card :=
+  ACC0BlockOverlapCount.block_pattern_count P
+
+/-- **Block-overlap count: bounded block size ⇒ count ≤ W^m (proved).** -/
+theorem nw_block_count_le_frontier {m : ℕ} {Z : Fin m → Type} [∀ b, Fintype (Z b)]
+    [∀ b, DecidableEq (Z b)] (P : ∀ b, Z b → Bool) (W : ℕ) (hW : ∀ b, Fintype.card (Z b) ≤ W) :
+    (Finset.univ.filter (fun x : (∀ b, Z b) => ∀ b, P b (x b) = true)).card ≤ W ^ m :=
+  ACC0BlockOverlapCount.block_count_le P W hW
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
