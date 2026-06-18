@@ -203,6 +203,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PolynomialMethodApp
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0QuantitativeDepthBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0QuantitativeIteration
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SmolenskyPigeonhole
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SmolenskyDegreeHalving
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -991,6 +992,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   than low-degree dim ⇒ high-degree point function. nw_smolensky_lower_bound_via_pigeonhole_frontier (PROVED): ──
    ──   SmolenskyDegreeHalving + (lowDegreeDim n D' < |S|) ⇒ False. SOCKET SmolenskyDegreeHalving = the degree-halving
    ──   representation lemma (genuine RS core; prime via this; composite = 238). NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── SMOLENSKY DEGREE-HALVING (prime case, textbook) — the substitution identity, PROVED: ────────────────────────
+   ──   over the {±1} encoding (yᵢ²=1): nw_smolensky_substitution_frontier (PROVED) ∏_{i∈S} yᵢ = (∏ᵢ yᵢ)·(∏_{i∈Sᶜ} yᵢ)
+   ──   [via prod_mul_prod_compl + (∏_Sᶜ)²=1]. nw_monomial_halving_frontier (PROVED): |S|>n/2 ⇒ high monomial = full ──
+   ──   product × complement with 2·|Sᶜ|<n. Replacing the full product by the degree-D approximator on the good set ──
+   ──   (socket FullProductLowDegreeOnGoodSet) ⇒ degree ≤ n/2+D = SmolenskyDegreeHalving (275). PRIME = textbook; ─────
+   ──   COMPOSITE = the open 238 CarryRefinementCrossing wall (untouched). NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3600,6 +3607,23 @@ theorem nw_smolensky_lower_bound_via_pigeonhole_frontier {F : Type} [Field F] {n
     (hhalving : ACC0SmolenskyPigeonhole.SmolenskyDegreeHalving (F := F) (D' := D') S)
     (hbig : ACC0NonNativeDegree.lowDegreeDim n D' < S.card) : False :=
   ACC0SmolenskyPigeonhole.smolensky_lower_bound_via_pigeonhole S hhalving hbig
+
+/-- **The Smolensky degree-halving substitution — the prime-case algebraic core (proved).**  Over the {±1} encoding
+(`yᵢ²=1`): `∏_{i∈S} yᵢ = (∏ᵢ yᵢ)·(∏_{i∈Sᶜ} yᵢ)` (nw_smolensky_substitution_frontier, via prod_mul_prod_compl +
+`(∏_Sᶜ)²=1`), and for `|S|>n/2` the complement has `2·|Sᶜ|<n` factors (compl_card_lt_half). So a high-degree monomial
+= full product × sub-half-degree complement: monomial_halving (PROVED). Replacing the full product by the degree-D
+approximator on the good set (socket FullProductLowDegreeOnGoodSet) gives degree ≤ n/2+D = SmolenskyDegreeHalving (275).
+Prime case = textbook Smolensky; composite = the open 238 wall. -/
+theorem nw_smolensky_substitution_frontier {F : Type} [CommRing F] {n : ℕ} (y : Fin n → F)
+    (hy : ∀ i, y i ^ 2 = 1) (S : Finset (Fin n)) :
+    (∏ i ∈ S, y i) = (∏ i, y i) * (∏ i ∈ Sᶜ, y i) :=
+  ACC0SmolenskyDegreeHalving.smolensky_substitution y hy S
+
+/-- **The monomial halving step (proved): high-degree monomial = full product × sub-half-degree complement.** -/
+theorem nw_monomial_halving_frontier {F : Type} [CommRing F] {n : ℕ} (y : Fin n → F)
+    (hy : ∀ i, y i ^ 2 = 1) (S : Finset (Fin n)) (h : n < 2 * S.card) :
+    (∏ i ∈ S, y i) = (∏ i, y i) * (∏ i ∈ Sᶜ, y i) ∧ 2 * Sᶜ.card < n :=
+  ACC0SmolenskyDegreeHalving.monomial_halving y hy S h
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 

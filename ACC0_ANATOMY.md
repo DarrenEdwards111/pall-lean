@@ -489,6 +489,26 @@ point functions (the §5f pigeonhole, §5g dimension).  The Smolensky lower boun
 now that one classical representation lemma (prime case) / the composite carry-crossing (entry 238) plus the committed
 arc's structural `Circ` recursion.  Not faked, not a separation.
 
+## 5r. The Smolensky degree-halving — the prime-case substitution identity (entry 276)
+
+The attack on the residual socket `SmolenskyDegreeHalving`, **prime case only** (`…ACC0SmolenskyDegreeHalving`) —
+*composite untouched* (the §3/entry-238 `CarryRefinementCrossing` wall).  The algebraic core of degree-halving is proved.
+
+* **The substitution identity (PROVED).**  `smolensky_substitution`: over the `{±1}` encoding (`yᵢ² = 1`),
+  `∏_{i∈S} yᵢ = (∏ᵢ yᵢ)·(∏_{i∈Sᶜ} yᵢ)` — the full product is `∏_S·∏_{Sᶜ}` and `(∏_{Sᶜ})² = 1`, so it collapses to
+  `∏_S` (closed by `linear_combination`, sidestepping the dependent-motive `rw` on the `univ` product).
+* **The halving (PROVED).**  `compl_card_lt_half` (`|S| > n/2 ⇒ 2·|Sᶜ| < n`) + `monomial_halving`: a high-degree
+  monomial equals the *full product* times a *sub-half-degree* complement.
+* **The residual socket.**  `FullProductLowDegreeOnGoodSet` — replacing the full product by the degree-`D` approximator
+  on the good set; combined with `monomial_halving`, every monomial on `G` has degree `≤ n/2 + D`, discharging
+  `SmolenskyDegreeHalving` (§5q).  Prime = textbook; composite = §3/entry-238.
+
+**Net:** the algebraic heart of Smolensky's degree-halving — the `{±1}` substitution trading a degree-`|S|` monomial for
+the full product times a degree-`(n−|S|)` complement — is machine-proved.  With §5q's pigeonhole, the prime-`MOD` lower
+bound now rests on the *single* circuit-specific socket `FullProductLowDegreeOnGoodSet` (the approximator equals the full
+symmetric product on its good set).  Composite modulus remains the open `CarryRefinementCrossing` wall.  Not faked, not a
+separation.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the
