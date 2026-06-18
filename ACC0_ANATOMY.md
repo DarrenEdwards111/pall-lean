@@ -531,6 +531,26 @@ the Smolensky lower bound is now assembled from proved parts: approximation (goo
 bookkeeping).  **Composite modulus stays the open `CarryRefinementCrossing` wall** (§3/entry 238) — deliberately
 untouched.  Not faked, not a separation.
 
+## 5t. The prime Smolensky lower bound, assembled + wired to ACC (entry 278, steps 3–4)
+
+The capstone of the prime route (`…ACC0SmolenskyPrime`): the prime-case Smolensky lower bound, assembled from the proved
+pieces, and wired to `ACC0CompositeComponent`.
+
+* **Step 3 (PROVED).**  `smolensky_prime_goodset_bound`: under degree-halving (§5r/§5s), `|G| ≤ lowDegreeDim n D'` (the
+  pigeonhole §5q in positive form — the good set is bounded by the low-degree dimension).  `no_small_approximator`: with
+  a large good set (`2ⁿ − E ≤ |G|`, the approximation machinery's small-bad-set output) and the binomial tail
+  (`lowDegreeDim n D' < 2ⁿ − E`), this is a contradiction — *no low-degree small-error approximator of the symmetric
+  `MOD`/parity target exists*.
+* **Step 4 (PROVED).**  `prime_route_to_ACC0Component`: the resulting `CrossFieldCountHard` feeds the §5c/entry-261
+  bridge to `ACC0CompositeComponent`, the component upstream of Williams.
+
+**Net:** the entire prime-case Razborov–Smolensky route is now assembled from machine-proved parts — approximation →
+full-product replacement (§5s) → degree-halving (§5r) → pigeonhole bound (§5q) → contradiction (`no_small_approximator`)
+→ `ACC0CompositeComponent` (§5c) — modulo only mechanical/standard residuals (`ApproximatorDegreeBound` product-degree
+bookkeeping, the binomial tail, the prime-case `CrossFieldCountHard` identification) and the committed arc's structural
+`Circ` recursion.  **Composite modulus is the one genuinely-open object** — the `CarryRefinementCrossing` wall (§3/entry
+238), deliberately untouched.  Not faked, not a separation.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the

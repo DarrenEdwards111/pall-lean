@@ -205,6 +205,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0QuantitativeIterati
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SmolenskyPigeonhole
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SmolenskyDegreeHalving
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FullProductGoodSet
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SmolenskyPrime
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -1005,6 +1006,13 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   High-degree monomial → approximator × sub-half-degree complement on G — the BRIDGE from 276 into the proven ──
    ──   approximation machinery (boosting 267 / Approximable). The agreement hyp IS the approximation output. Residual:
    ──   ApproximatorDegreeBound (product-degree bookkeeping). Composite = 238 (untouched). NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── PRIME SMOLENSKY LOWER BOUND, ASSEMBLED (steps 3–4) — from the proved pigeonhole/halving/wiring: ─────────────
+   ──   nw_smolensky_prime_goodset_bound_frontier (PROVED): degree-halving (276/277) ⇒ |G| ≤ lowDegreeDim n D' (275).
+   ──   nw_no_small_approximator_frontier (PROVED): degree-halving + |G|≥2ⁿ−E + lowDegreeDim n D'<2ⁿ−E (binomial tail)
+   ──   ⇒ False = no low-degree small-error approximator of the symmetric MOD/parity target = the PRIME Smolensky LB. ─
+   ──   prime_route_to_ACC0Component (PROVED): CrossFieldCountHard + entry-261 bridge ⇒ ACC0CompositeComponent (step 4).
+   ──   Residual: ApproximatorDegreeBound (mechanical) + binomial tail + CFH identification. COMPOSITE = 238 (the wall,
+   ──   untouched). NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3644,6 +3652,26 @@ theorem nw_fullProduct_replace_on_goodSet_frontier {F : Type} [CommRing F] {n : 
     (hP : ∀ x ∈ G, P x = ∏ i, yenc x i) :
     ∀ x ∈ G, (∏ i ∈ S, yenc x i) = P x * (∏ i ∈ Sᶜ, yenc x i) :=
   ACC0FullProductGoodSet.fullProduct_replace_on_goodSet yenc hy P G S hP
+
+/-- **The prime Smolensky lower bound, assembled (roadmap steps 3–4, proved).**
+nw_smolensky_prime_goodset_bound_frontier (PROVED): under degree-halving (276/277), `|G| ≤ lowDegreeDim n D'` (pigeonhole
+275). nw_no_small_approximator_frontier (PROVED): degree-halving + good set `≥ 2ⁿ−E` + `lowDegreeDim n D' < 2ⁿ−E`
+(binomial tail) ⇒ False — no low-degree small-error approximator of the symmetric MOD/parity target. prime_route_to_
+ACC0Component (PROVED): CrossFieldCountHard + entry-261 bridge ⇒ ACC0CompositeComponent. Prime case assembled from proved
+parts; composite = the open 238 wall (untouched). -/
+theorem nw_smolensky_prime_goodset_bound_frontier {F : Type} [Field F] {n D' : ℕ}
+    (G : Finset (Fin n → Bool))
+    (hhalving : ACC0SmolenskyPigeonhole.SmolenskyDegreeHalving (F := F) (D' := D') G) :
+    G.card ≤ ACC0NonNativeDegree.lowDegreeDim n D' :=
+  ACC0SmolenskyPrime.smolensky_prime_goodset_bound G hhalving
+
+/-- **The prime Smolensky lower bound (proved): no low-degree small-error approximator with a large good set.** -/
+theorem nw_no_small_approximator_frontier {F : Type} [Field F] {n D' E : ℕ}
+    (G : Finset (Fin n → Bool))
+    (hhalving : ACC0SmolenskyPigeonhole.SmolenskyDegreeHalving (F := F) (D' := D') G)
+    (hGsize : 2 ^ n - E ≤ G.card) (htail : ACC0NonNativeDegree.lowDegreeDim n D' < 2 ^ n - E) :
+    False :=
+  ACC0SmolenskyPrime.no_small_approximator G hhalving hGsize htail
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
