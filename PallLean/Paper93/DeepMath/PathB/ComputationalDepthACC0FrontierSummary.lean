@@ -183,6 +183,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BlockOverlapCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TreewidthCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ExpanderCountObstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ExpanderFamilies
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AlgebraicExpansion
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -841,6 +842,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   HONEST REFINEMENT: full-support is a separator-expander but its count is plausibly EASY (shared support ⇒ no ──
    ──   cross-field mixing), so ExpanderIncidence ALONE ≠ count-hardness — the 254 socket needs the ALGEBRAIC content, ─
    ──   not just no-small-separator. Confirms the socket is genuinely Smolensky-strength. NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── ALGEBRAIC EXPANSION (the REFINED condition — gate-function independence, not cut): AlgExpander gates := ─────────
+   ──   LinearIndependent F (gateInd gates) [gate indicators lin. indep. over F — about gate FUNCTIONS not supports]. ─
+   ──   nw_not_algExpander_of_duplicate_frontier (PROVED): duplicate/redundant gates FAIL AlgExpander (excludes the ────
+   ──   255 full-support degeneracy via LinearIndependent.injective); algExpander_indicators_injective (non-redundancy).
+   ──   AlgExpanderCountObstruction = the 254 socket restated under the CORRECT (algebraic) hypothesis. Cut-expansion ─
+   ──   governs DP (251-253); algebraic expansion is needed for count-hardness. Still Smolensky-strength (238). NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3133,6 +3140,23 @@ theorem nw_fullSupport_expander_frontier {V Gate : Type} [Fintype Gate] [Decidab
     ACC0ExpanderCountObstruction.ExpanderIncidence
       (fun _ : Gate => (Finset.univ : Finset V)) (Fintype.card V) :=
   ACC0ExpanderFamilies.fullSupport_expander
+
+/-- **Algebraic expansion: the refined condition (gate-function independence), rules out the cut-expander degeneracy.**
+`AlgExpander gates := LinearIndependent F (gateInd gates)` — gate indicators linearly independent over F (about gate
+FUNCTIONS, not variable supports).  `not_algExpander_of_duplicate` (PROVED): duplicate/redundant gates fail AlgExpander
+(excludes the entry-255 full-support degeneracy).  The count LB under AlgExpander (`AlgExpanderCountObstruction`) is the
+entry-254 socket restated under the CORRECT (algebraic) hypothesis — cut-expansion governs DP, algebraic expansion is
+needed for count-hardness; still Smolensky-strength. -/
+theorem nw_not_algExpander_of_duplicate_frontier {X : Type} {s : ℕ} {F : Type} [Field F]
+    (gates : Fin s → (X → Bool)) (i j : Fin s) (hij : i ≠ j) (heq : gates i = gates j) :
+    ¬ ACC0AlgebraicExpansion.AlgExpander (F := F) gates :=
+  ACC0AlgebraicExpansion.not_algExpander_of_duplicate gates i j hij heq
+
+/-- **Algebraic expansion ⇒ non-redundant gate indicators (proved).** -/
+theorem nw_algExpander_indicators_injective_frontier {X : Type} {s : ℕ} {F : Type} [Field F]
+    (gates : Fin s → (X → Bool)) (h : ACC0AlgebraicExpansion.AlgExpander (F := F) gates) :
+    Function.Injective (ACC0AlgebraicExpansion.gateInd gates (F := F)) :=
+  ACC0AlgebraicExpansion.algExpander_indicators_injective gates h
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
