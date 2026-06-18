@@ -36,12 +36,17 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
     • carry     → product ring not a field, Fermat fails  (…carry_state_no_traction, 282)
   ⇒ needs a CHARACTERISTIC-INDEPENDENT invariant (open research; not faked)
 
-  FIELD-FREE invariant — first genuine attempt (carry-state complexity, 284):
-    • carry_observer_mod_card_ge   : MOD_m needs ≥ m carry states   (Myhill–Nerode, field-free)
+  FIELD-FREE invariants — genuine attempts at the char-independent obstruction:
+   route 1 (carry-state complexity, 284, streaming / Myhill–Nerode):
+    • carry_observer_mod_card_ge   : MOD_m needs ≥ m carry states
     • carry_observer_count_card_ge : exact count needs ≥ n+1 states (carry grows with count range)
-    ⇒ for FIXED MOD₆ the bound is the constant 6 (= 2·3, achievable: MOD₆ ∈ ACC⁰[6])
-       so carry-state separates count/growing-modulus but NOT fixed-MOD₆ composite;
-       the separation needs a target whose carry GROWS under bounded composition (still open)
+   route 2 (communication complexity, 285, two-party / fooling-set):
+    • commValue_row_injective              : MOD_m comm-matrix has m distinct rows
+    • mod_product_observer_boundary_ge     : MOD_m needs ≥ m cross-cut boundary states
+    • mod6_boundary_six_achievable         : 6 is tight (identity protocol)
+    ⇒ BOTH routes: for FIXED MOD₆ the bound is the constant 6 (= 2·3, achievable: MOD₆ ∈ ACC⁰[6])
+       so they separate count/growing-modulus but NOT fixed-MOD₆ composite;
+       the separation needs a target whose carry/boundary GROWS under bounded composition (still open)
 ```
 
 ## Tier 1 — AC⁰ (switching method): **DONE & FENCED**

@@ -212,6 +212,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6StagedObservers
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6CarryState
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryRefinementCrossing
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryStateComplexity
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CommunicationComplexity
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -3793,6 +3794,18 @@ theorem nw_carry_observer_count_card_ge_frontier {Q : Type} [Fintype Q] (q₀ : 
     n + 1 ≤ Fintype.card Q :=
   ACC0CarryStateComplexity.carry_observer_count_card_ge q₀ δ out n hcomp
 
+/-- **Field-free invariant, route 2 — `MOD_m` needs a `≥ m` communication boundary (proved, fooling-set).**
+nw_mod_product_observer_boundary_ge_frontier (PROVED): a two-party product observer for `MOD_m` (encoder `msg`, decoder
+`decode`, correct across a cut) needs `≥ m` boundary states — the `m` communication-matrix rows are pairwise distinct
+(`commValue_row_injective`), so `msg` is injective. A different model (two-party communication) and tool
+(communication-matrix distinct rows) from the streaming Myhill–Nerode bound of entry 284, same honest verdict: constant
+for fixed `MOD₆` (entry 285). -/
+theorem nw_mod_product_observer_boundary_ge_frontier {m : ℕ} [NeZero m]
+    {B : Type} [Fintype B] (msg : ZMod m → B) (decode : B → ZMod m → Bool)
+    (hcorrect : ∀ α β : ZMod m, decode (msg α) β = ACC0CommunicationComplexity.commValue m α β) :
+    m ≤ Fintype.card B :=
+  ACC0CommunicationComplexity.mod_product_observer_boundary_ge msg decode hcorrect
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4327,3 +4340,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.beigel_tarui_monomial_count
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_carry_observer_mod_card_ge_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_carry_observer_count_card_ge_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_mod_product_observer_boundary_ge_frontier

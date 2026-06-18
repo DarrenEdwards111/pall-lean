@@ -678,6 +678,28 @@ where it bites and where it stops.
   complexity *grows* under bounded-observer composition — locating that target and proving the growth is the genuinely
   open `CarryRefinementCrossing` step.  Real field-free progress, not a separation, not faked.
 
+## 5z′. Field-free invariant route 2 — communication complexity / boundary (entry 285)
+
+A second characteristic-independent invariant, in a different model and with a different proof tool
+(`…ACC0CommunicationComplexity`).  Split the input across a cut: Alice holds residue `α`, Bob residue `β`; `MOD_m`
+decides `α + β ≡ 0`.
+
+* **Communication matrix (field-free).**  `commValue m α β := decide (α + β = 0)` — the `MOD_m` matrix.  A *product
+  observer* is a boundary alphabet `B`, encoder `msg : ZMod m → B`, decoder `decode : B → ZMod m → Bool`, correct when
+  `decode (msg α) β = commValue m α β`.  Only residues and the boundary alphabet — no fields, no polynomials.
+* **Distinct rows (PROVED).**  `commValue_row_injective`: the `m` rows are pairwise distinct (row `α` fires only at
+  `β = -α`) — the fooling-set / rank-`m` core.
+* **Boundary lower bound (PROVED).**  `mod_product_observer_boundary_ge`: correctness forces `msg` injective, so any
+  product observer for `MOD_m` has `≥ m` boundary states.  `mod6_product_observer_requires_large_boundary`: `≥ 6` for
+  `MOD₆`.
+* **Tightness (PROVED).**  `mod6_boundary_six_achievable`: the identity protocol (Alice sends her residue mod 6)
+  achieves a `6`-state boundary — the bound is the *constant* `6`, achievable, so `MOD₆` is communication-cheap
+  (`Θ(1)`).
+* **Same honest verdict.**  As in §5z, the bound is constant for a fixed modulus (`6 = 2·3`, the CRT product; separate
+  CRT channels `ZMod 2 × ZMod 3` match it exactly, no blow-up).  A real field-free communication bound, but **not** a
+  composite separation — that needs a target whose communication boundary *grows* under bounded composition.  Both
+  routes converge: the obstruction is not the size of any single boundary, but growth under composition.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the
