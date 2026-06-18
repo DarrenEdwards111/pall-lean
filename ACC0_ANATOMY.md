@@ -343,6 +343,26 @@ single-gate low-degree approximation is `IndependentIntersectionBound` (independ
 layer — counting, rank pigeonhole, multilinear dimension, per-gate Fermat/exact reps, boosting error-reduction, and now
 the per-clause `1/2` — is proved.  Not faked, not a separation.
 
+## 5k. Independence — the joint `2^{-k}` bound (entry 269)
+
+The second probabilistic residue is now proved (`…ACC0Independence`), in the honest model where the `k` random subsets
+are *independent*: the **product space `∀ j, Y j`** of the `k` draws.
+
+* **Independence factorization (PROVED).**  Each clause's bad event is a cylinder (depends only on its own draw), so the
+  joint bad event `⋂ⱼ bad j = {y : ∀ j, y j ∈ B j}` is the product box `Fintype.piFinset B`, and `jointBad_card` gives
+  `|⋂ⱼ bad j| = ∏ⱼ |B j|`.
+* **The `2^{-k}` bound (PROVED).**  With each clause bad on at most half its draws (`2·|B j| ≤ |Y j|`, the per-clause
+  `1/2` of §5j), `independent_intersection_bound` / `joint_error_le` give `2^k·|jointBad| ≤ |∀ j, Y j|` — joint failure
+  on at most a `2^{-k}` fraction of the randomness space.
+
+**Net:** both probabilistic residues of `PolynomialMethodApproximation` are now machine-proved — the per-clause `1/2`
+(§5j) and the independence `2^{-k}` (§5k).  Composed with the proved boosting (§5i, `bad(boost) ⊆ ⋂ⱼ bad j`) and the
+proved per-gate algebra (§5h), the **entire single-gate low-degree approximation is assembled from proved parts**.  The
+only ingredient still socketed is the *structural* lifting from a single gate to a circuit to an observer
+(`PolynomialMethodApproximation` proper) — combinatorial bookkeeping over the gate graph, not a new analytic idea.  Every
+analytic layer of Razborov–Smolensky — counting, rank, multilinear dimension, Fermat indicator, exact reps, boosting,
+per-clause `1/2`, independence `2^{-k}` — is now proved.  Not faked, not a separation.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the

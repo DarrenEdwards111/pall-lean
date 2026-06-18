@@ -196,6 +196,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultilinearBasis
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Independence
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -941,6 +942,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   half — by the PARITY-TOGGLE INVOLUTION S↦S△{j} (par_tog: toggling j∈supp x flips parity; tog_injective ⇒ ─────
    ──   bijection between the two parity fibers). Discharges entry-267's SingleSubsetAgreement socket over F2. Only ───
    ──   IndependentIntersectionBound remains for the single-gate low-degree approximation. NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── INDEPENDENCE — joint failure of k clauses ≤ 2^{-k}, IndependentIntersectionBound DISCHARGED: ─────────────────
+   ──   in the product-of-independent-draws model the bad events are CYLINDERS, so jointBad_card (PROVED): ──────────
+   ──   |{y : ∀ j, y j ∈ B j}| = ∏ⱼ |B j| (Fintype.card_piFinset — independence factorization). ────────────────────
+   ──   nw_joint_error_le_frontier (PROVED): with 2·|B j| ≤ |Y j| (per-clause 1/2 of 268), 2^k·|jointBad| ≤ |∀ j,Y j| ─
+   ──   (Fintype.card_pi). Discharges the LAST probabilistic socket. Only the structural single-gate→circuit→observer
+   ──   lifting (PolynomialMethodApproximation glue) remains. NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3440,6 +3447,16 @@ socket over F2; only `IndependentIntersectionBound` remains for the single-gate 
 theorem nw_singleSubsetAgreement_two_frontier {n : ℕ} (x : Fin n → Bool) (hx : ∃ i, x i = true) :
     ACC0Boosting.SingleSubsetAgreement 2 n x :=
   ACC0SingleSubsetF2.singleSubsetAgreement_two x hx
+
+/-- **Independence: the joint failure of k clauses is ≤ 2^{-k} (proved), discharging IndependentIntersectionBound.**
+In the product-of-independent-draws model the bad events are cylinders, so the intersection factorizes
+(jointBad_card: |{y : ∀ j, y j ∈ B j}| = ∏ⱼ |B j|, via Fintype.card_piFinset); with each clause bad on ≤ half its
+draws (2·|B j| ≤ |Y j|, the per-clause 1/2 of entry 268), `2^k · |jointBad| ≤ |∀ j, Y j|` (Fintype.card_pi). -/
+theorem nw_joint_error_le_frontier {k : ℕ} (Y : Fin k → Type) [∀ j, Fintype (Y j)]
+    [∀ j, DecidableEq (Y j)] (B : ∀ j, Finset (Y j))
+    (h : ∀ j, 2 * (B j).card ≤ Fintype.card (Y j)) :
+    2 ^ k * (Fintype.piFinset B).card ≤ Fintype.card (∀ j, Y j) :=
+  ACC0Independence.joint_error_le Y B h
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
