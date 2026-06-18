@@ -187,6 +187,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AlgebraicExpansion
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IndicatorRank
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AffineHyperplanes
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AffineHyperplaneLowerBound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CoFiring
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -868,6 +869,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   is AlgExpander(258) YET count-EASY ⇒ AlgExpander (indicator rank) is NOT sufficient for count-hardness; the LB ─
    ──   needs CO-FIRING richness (overlapping/varying-direction gates), not just independence. Naive AlgExpander⇒sep ──
    ──   bridge is UNSOUND. Correct hard family = varying-direction hyperplanes; LB = Smolensky socket (proved MOD_q 244).
+   ── CO-FIRING RICHNESS (the CORRECTED hardness invariant): CoFiringRich gates k := ∃x, k ≤ #(firePattern gates x) ───
+   ──   (some input fires ≥k gates simultaneously). nw_parallel_not_coFiringRich_frontier (PROVED): parallel affine ──
+   ──   FAILS CoFiringRich 2 (patterns ≤1 — why it's count-easy); nw_dictator_coFiringRich_frontier + ─────────────────
+   ──   dictator_algExpander (PROVED): dictator family (fire iff bit i set) satisfies BOTH AlgExpander AND CoFiringRich
+   ──   (non-vacuous; its mod-q fire-count = Hamming weight mod q = MOD_q, proved hard in-arc Layer4/244). CORRECTED ──
+   ──   socket: AlgExpander → CoFiringRich → CrossFieldCountHard. Co-firing exactly tracks easy/hard. NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3221,6 +3228,23 @@ theorem nw_affineHyperplane_crossFieldCount_le_one_frontier {p n s : ℕ} (q : �
     ACC0CrossFieldCountCore.crossFieldCount q
       (fun (i : Fin s) (x : Fin (n + 1) → ZMod p) => decide ((∑ j, x j) = targets i)) x ≤ 1 :=
   ACC0AffineHyperplaneLowerBound.affineHyperplane_crossFieldCount_le_one q targets hinj x
+
+/-- **Co-firing richness — the corrected hardness invariant separating parallel (easy) from dictator/MOD_q (hard).**
+`CoFiringRich gates k := ∃ x, k ≤ #(firePattern gates x)` (some input fires ≥k gates simultaneously).
+`parallel_not_coFiringRich` (PROVED): parallel affine fails CoFiringRich 2 (all patterns ≤1) — why its count is easy.
+`dictator_coFiringRich` + `dictator_algExpander` (PROVED): the dictator family (fire iff bit i set) satisfies BOTH —
+non-vacuous; its mod-q fire-count = Hamming weight mod q = MOD_q (proved hard in-arc, Layer4, 244).  Corrected socket:
+AlgExpander → CoFiringRich → CrossFieldCountHard. -/
+theorem nw_parallel_not_coFiringRich_frontier {p n s : ℕ} (targets : Fin s → ZMod p)
+    (hinj : Function.Injective targets) :
+    ¬ ACC0CoFiring.CoFiringRich
+        (fun (i : Fin s) (x : Fin (n + 1) → ZMod p) => decide ((∑ j, x j) = targets i)) 2 :=
+  ACC0CoFiring.parallel_not_coFiringRich targets hinj
+
+/-- **Co-firing: the dictator/MOD_q family satisfies both AlgExpander and CoFiringRich (proved, non-vacuous).** -/
+theorem nw_dictator_coFiringRich_frontier (s : ℕ) :
+    ACC0CoFiring.CoFiringRich (fun (i : Fin s) (x : Fin s → Bool) => x i) s :=
+  ACC0CoFiring.dictator_coFiringRich s
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
