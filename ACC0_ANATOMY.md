@@ -205,6 +205,30 @@ Razborov–Smolensky attack invariant — all in `…ACC0VaryingAffinePatterns`.
   `AlgExpander` and `PatternRich` discharged** for this family.  Two proved families (dictator/`MOD_q`, varying-affine)
   now reach the antecedent; only the two named sockets (the lower bound + the bridge) remain open.
 
+## 5e. A third proved family — Reed–Muller / low-degree polynomial gates, closest to RS (entry 263)
+
+The third family is the one closest to Razborov–Smolensky, obtained by a clean reduction (`…ACC0ReedMullerGates`):
+
+> **A low-degree polynomial gate is an affine gate in the monomial feature space.**
+
+Gate `i` is a degree-`≤ d` polynomial `Pᵢ` over `ZMod p`, firing iff `Pᵢ(x) = bᵢ`.  Writing `Pᵢ = ∑_m coeffᵢ,m · m`
+and letting `φ(x)_m := m(x)` (the monomial feature map, `m` over degree-`≤ d` monomials — `RM(d,n)` is the span), we get
+`Pᵢ(x) = ⟨coeffᵢ, φ(x)⟩`, so `rmGate = varGate ∘ φ`.
+
+* **Reduction made exact.**  `rmGate_degree_one_eq_varGate` (PROVED): the degree-1 features `feat m x = x_m` give
+  `rmGate = varGate` — the §5d varying-affine family is the degree-1 special case.
+* **Inheriting the invariants.**  Under **feature general position** (`rmEval feat coeff : x ↦ (Pᵢ(x))ᵢ` *surjective* —
+  Reed–Muller non-degeneracy / large code distance), all of §5d lifts: `rmGate_patternRich` (`PatternRich (2^s)`),
+  `rmGate_coFiringRich` (`CoFiringRich s`), `rmGate_algExpander` (`AlgExpander`) — all PROVED.
+* **Wiring it in.**  `rmGate_ACC0_chain` (PROVED): given the §5d lower-bound socket and the §5c bridge, Reed–Muller
+  yields the `ACC⁰[composite]` component with `AlgExpander`/`PatternRich` discharged.  The RS attack invariant
+  `NonNativeDegreeLowerBound` applies verbatim (non-native degree over `F_q` = Reed–Muller distance — the literal RS
+  measure).
+
+**Net:** three proved families (dictator/`MOD_q`, varying-affine, Reed–Muller) now reach the count-hardness antecedent,
+validating `AlgExpander ∧ PatternRich` across three distinct geometries; the wall is localized to the single named
+`PatternRichCrossFieldLowerBound` with an RS-flavoured attack route.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the

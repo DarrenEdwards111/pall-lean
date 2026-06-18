@@ -190,6 +190,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AffineHyperplaneLow
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CoFiring
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FirePatternRichness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0VaryingAffinePatterns
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ReedMullerGates
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -892,6 +893,14 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   PatternRichCrossFieldLowerBound; RS attack invariant NonNativeDegreeLowerBound (non-native deg /F_q); ─────────
    ──   patternRich_lb_of_nonNativeDegree + varyingAffine_ACC0_chain (PROVED) wire to ACC0CompositeComponent modulo ───
    ──   the two named sockets. NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── REED-MULLER / LOW-DEGREE POLYNOMIAL GATES (a THIRD proved AlgExpander+PatternRich family, closest to RS): ──────
+   ──   rmGate feat coeff b i x := decide(∑_m coeffᵢ,m·feat m x = bᵢ) = Pᵢ(x)=bᵢ — an AFFINE gate (varGate) in the ───
+   ──   MONOMIAL FEATURE SPACE feat. nw_rmGate_degree_one_eq_varGate_frontier (PROVED): degree-1 case (feat m x=x_m) ──
+   ──   IS the entry-262 varying-affine family (so affine = degree-1 special case). Under feature general position ────
+   ──   (rmEval feat coeff surjective): nw_rmGate_patternRich_frontier (PROVED) PatternRich(2^s); rmGate_coFiringRich ─
+   ──   (PROVED) CoFiringRich s; rmGate_algExpander (PROVED). rmGate_ACC0_chain (PROVED) wires to ACC0CompositeComponent
+   ──   modulo the two named sockets. RS attack invariant = non-native degree over F_q = Reed-Muller distance. ────────
+   ──   THREE proved families now reach the antecedent. NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3298,6 +3307,26 @@ theorem nw_varyingAffine_coFiringRich_frontier {p n s : ℕ} [Fact p.Prime]
     (hsurj : Function.Surjective (ACC0VaryingAffinePatterns.dotEval a)) :
     ACC0CoFiring.CoFiringRich (ACC0VaryingAffinePatterns.varGate a b) s :=
   ACC0VaryingAffinePatterns.varyingAffine_coFiringRich a b hsurj
+
+/-- **Reed–Muller / low-degree polynomial gates — a THIRD proved AlgExpander + PatternRich family.**
+`rmGate feat coeff b i x := decide (∑_m coeffᵢ,m · feat m x = bᵢ)` = `Pᵢ(x) = bᵢ`: a low-degree polynomial gate, i.e.
+an affine gate `varGate` in the monomial feature space `feat`.  `rmGate_degree_one_eq_varGate` (PROVED): the degree-1
+case (`feat m x = x_m`) IS the entry-262 varying-affine family.  Under feature general position (`rmEval feat coeff`
+surjective): `rmGate_patternRich` (PROVED) `PatternRich (2^s)`, `rmGate_coFiringRich` (PROVED) `CoFiringRich s`,
+`rmGate_algExpander` (PROVED) AlgExpander.  `rmGate_ACC0_chain` (PROVED) wires to ACC⁰[composite] modulo the two
+named sockets. -/
+theorem nw_rmGate_patternRich_frontier {p : ℕ} [Fact p.Prime] {X M : Type} [Fintype M] [Fintype X]
+    {s : ℕ} (feat : M → X → ZMod p) (coeff : Fin s → M → ZMod p) (b : Fin s → ZMod p)
+    (hsurj : Function.Surjective (ACC0ReedMullerGates.rmEval feat coeff)) :
+    ACC0FirePatternRichness.PatternRich (ACC0ReedMullerGates.rmGate feat coeff b) (2 ^ s) :=
+  ACC0ReedMullerGates.rmGate_patternRich feat coeff b hsurj
+
+/-- **Reed–Muller degree-1 = the varying-affine family (proved): the affine family is the degree-1 special case.** -/
+theorem nw_rmGate_degree_one_eq_varGate_frontier {p n s : ℕ}
+    (a : Fin s → Fin n → ZMod p) (b : Fin s → ZMod p) :
+    ACC0ReedMullerGates.rmGate (fun (m : Fin n) (x : Fin n → ZMod p) => x m) a b
+      = ACC0VaryingAffinePatterns.varGate a b :=
+  ACC0ReedMullerGates.rmGate_degree_one_eq_varGate a b
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
