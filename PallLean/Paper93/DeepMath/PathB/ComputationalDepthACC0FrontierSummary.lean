@@ -193,6 +193,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0VaryingAffinePatter
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ReedMullerGates
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NonNativeDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultilinearBasis
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -920,6 +921,13 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   nw_lowDegreeDimensionIdentity_discharged_frontier (PROVED): finrank(degree-≤D space) = lowDegreeDim n D, so ───
    ──   the secondary socket is GONE. patternRichCrossFieldLowerBound_no_dimSocket (PROVED): for Boolean gate families
    ──   the open target now rests on the SINGLE socket PolynomialMethodApproximation. NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── POLYNOMIAL APPROX OF A SINGLE AND GATE (base case of the RS polynomial method = first rung of the socket): ─────
+   ──   nw_fermat_indicator_frontier (PROVED): y^(p-1) = [y≠0] over F_p (Fermat) — the degree-(p-1) engine. ──────────
+   ──   andExact/orExact (PROVED): exact AND/OR monomials. clauseIndicator (PROVED): 1-(∑_{i∈S} xᵢ)^(p-1) = [∑=0], a ──
+   ──   degree-(p-1) FAN-IN-FREE clause detector. nw_andIndicator_mem_lowDegree_frontier (PROVED): AND indicator = ────
+   ──   mlMon univ ∈ lowDegreeSubmodule n n (exact degree-n rep, connects to entry 265). RandomizedLowDegreeApprox ────
+   ──   socket: low-degree (D≪n) approx via random restriction+boosting = the open RS step (proved non-vacuous at the
+   ──   exact endpoint D=n,k=0 via and_exact_is_zeroError_approximation). NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3382,6 +3390,21 @@ theorem nw_lowDegreeDimensionIdentity_discharged_frontier {F : Type} [Field F] {
     ACC0NonNativeDegree.LowDegreeDimensionIdentity
       (ACC0MultilinearBasis.lowDegreeSubmodule (F := F) n D) n D :=
   ACC0MultilinearBasis.lowDegreeDimensionIdentity_discharged
+
+/-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
+`y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
+degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
+(nw_andIndicator_mem_lowDegree_frontier, exact degree-n) — connecting to entry 265.  The probabilistic low-degree
+(D≪n) boosting is the open socket RandomizedLowDegreeApproximation (proved non-vacuous at the exact endpoint D=n,k=0). -/
+theorem nw_fermat_indicator_frontier {p : ℕ} [Fact p.Prime] (y : ZMod p) :
+    y ^ (p - 1) = if y = 0 then 0 else 1 :=
+  ACC0AndGateApprox.fermat_indicator y
+
+/-- **AND indicator lies in the degree-≤n multilinear submodule (proved): the exact single-gate representation.** -/
+theorem nw_andIndicator_mem_lowDegree_frontier {F : Type} [Field F] {n : ℕ} :
+    ACC0MultilinearBasis.mlMon (F := F) (Finset.univ : Finset (Fin n))
+      ∈ ACC0MultilinearBasis.lowDegreeSubmodule (F := F) n n :=
+  ACC0AndGateApprox.andIndicator_mem_lowDegree
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 

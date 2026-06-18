@@ -281,6 +281,29 @@ the Smolensky counting/rank engine *and* the multilinear-basis dimension identit
 is the genuine open Razborov–Smolensky core; its concrete instances are already in-arc (`Layer3`/`Layer4`), but the
 general form is exactly the `ACC⁰[composite]` wall and is not faked.
 
+## 5h. Into the last socket — the single-gate polynomial method (entry 266)
+
+The first rung *inside* `PolynomialMethodApproximation`: how one gate is represented/approximated by a polynomial over
+`F` (`…ACC0AndGateApprox`).  The genuinely-provable algebraic substrate is built; the probabilistic boosting is the one
+open ingredient.
+
+* **The Fermat engine (PROVED).**  `fermat_indicator`: over `F_p`, `y^{p-1} = [y ≠ 0]` (Fermat's little theorem) — the
+  degree-`p-1` device that turns a *sum* of literals into a `0/1` value, *independent of fan-in*.
+* **Exact monomials (PROVED).**  `andExact` (`AND_n = ∏ᵢ xᵢ`) and `orExact` (`OR_n = 1 − ∏ᵢ(1 − xᵢ)`), both degree `n`.
+* **The clause indicator (PROVED).**  `clauseIndicator`: `1 − (∑_{i∈S} xᵢ)^{p-1} = [∑_{i∈S} xᵢ = 0]`, degree `p-1`
+  *regardless of `|S|`* — the RS building block.
+* **Landing in the framework (PROVED).**  `andIndicator_mem_lowDegree`: the AND indicator is `mlMon univ` (§5g), hence
+  lies in `lowDegreeSubmodule n n`.  `and_exact_is_zeroError_approximation` witnesses the approximation socket at the
+  exact endpoint `(D = n, k = 0)`.
+* **The open ingredient.**  `RandomizedLowDegreeApproximation F n D k` (a degree-`≤ D` polynomial agreeing with `AND_n`
+  except on `≤ k` inputs).  The RS content — `D ≪ n` with `k ≤ ε·2ⁿ` via random restriction + boosting of the clause
+  indicators — is the single-gate base case of `PolynomialMethodApproximation`, and is left as the named socket.
+
+**Net:** the polynomial method's *per-gate algebra* is now machine-proved (Fermat indicator, exact AND/OR, the
+fan-in-free clause indicator, membership in the degree-`≤ n` submodule), with a proved zero-error endpoint.  The single
+remaining open step is the *low-degree* probabilistic approximation — the irreducible analytic core of Razborov–Smolensky
+(`ACC⁰[composite]`, entry-238 `CarryRefinementCrossing`).  Not faked, not a separation.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the
