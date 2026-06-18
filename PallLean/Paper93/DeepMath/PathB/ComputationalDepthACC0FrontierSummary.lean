@@ -186,6 +186,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ExpanderFamilies
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AlgebraicExpansion
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IndicatorRank
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AffineHyperplanes
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AffineHyperplaneLowerBound
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -861,6 +862,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   affine hyperplanes {∑ⱼ xⱼ = targets i} over F_p^{n+1} (injective targets) are AlgExpander — private witness for
    ──   gate i = Pi.single 0 (targets i). A genuine AFFINE (non-dictator) full-rank family. The count LB on it = the ──
    ──   Smolensky-strength socket (256/257), NOT proved. NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── AFFINE HYPERPLANE LOWER BOUND (honest NEGATIVE — the fire-count is EASY): affineHyperplane_fireCount_le_one ─────
+   ──   (PROVED): parallel hyperplanes DISJOINT ⇒ fire-count ≤1; nw_affineHyperplane_crossFieldCount_le_one_frontier ──
+   ──   (PROVED): mod-q fire-count ≤1 = trivially easy ⇒ REFUTES "affineHyperplane_fireCount_modq_hard". So the family
+   ──   is AlgExpander(258) YET count-EASY ⇒ AlgExpander (indicator rank) is NOT sufficient for count-hardness; the LB ─
+   ──   needs CO-FIRING richness (overlapping/varying-direction gates), not just independence. Naive AlgExpander⇒sep ──
+   ──   bridge is UNSOUND. Correct hard family = varying-direction hyperplanes; LB = Smolensky socket (proved MOD_q 244).
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3203,6 +3210,17 @@ theorem nw_private_witness_indep_frontier {X : Type} {s : ℕ} {F : Type} [Field
     (hself : ∀ i, gates i (wit i) = true) (hother : ∀ i j, j ≠ i → gates j (wit i) = false) :
     ACC0AlgebraicExpansion.AlgExpander (F := F) gates :=
   ACC0AffineHyperplanes.private_witness_indep (F := F) gates wit hself hother
+
+/-- **Affine hyperplane lower bound — the honest NEGATIVE: the fire-count is EASY, refining the hard hypothesis.**
+`affineHyperplane_fireCount_le_one` (PROVED): parallel hyperplanes are disjoint ⇒ fire-count ≤ 1;
+`affineHyperplane_crossFieldCount_le_one` (PROVED): mod-q fire-count ≤ 1 — trivially easy.  So the family is AlgExpander
+(258) YET count-easy ⇒ AlgExpander (indicator rank) is NOT sufficient for count-hardness; the count LB needs CO-FIRING
+richness (overlapping/varying-direction gates), not just independence.  Naive AlgExpander⇒separation bridge is unsound. -/
+theorem nw_affineHyperplane_crossFieldCount_le_one_frontier {p n s : ℕ} (q : ℕ)
+    (targets : Fin s → ZMod p) (hinj : Function.Injective targets) (x : Fin (n + 1) → ZMod p) :
+    ACC0CrossFieldCountCore.crossFieldCount q
+      (fun (i : Fin s) (x : Fin (n + 1) → ZMod p) => decide ((∑ j, x j) = targets i)) x ≤ 1 :=
+  ACC0AffineHyperplaneLowerBound.affineHyperplane_crossFieldCount_le_one q targets hinj x
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
