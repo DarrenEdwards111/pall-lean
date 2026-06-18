@@ -870,6 +870,29 @@ realization + Williams — which *are* separation-strength.  YBT is the true, kn
 it is **not** separation-strength.  This corrects the premise honestly: the separation lives in the realization +
 Williams cash-out, not in the YBT depth collapse.
 
+## 5z⁗⁗′. Probing the realization socket — no new obstacle; the route has one deep gate (entry 293)
+
+The realization socket (Williams link 2) was already split into S1–S4 (`…ACC0WilliamsRealizationSplit`): S1 encoding
+[routine], S2 cost bridge [arithmetic proved, `cell_count_savings`], S3 uniformity [standard], S4 time-hierarchy
+[separation-strength, self-audited `↔ NEXP⊄ACC⁰`].  Entry 293 (`…ACC0WilliamsSocketMap`) completes the picture.
+
+* **The missing link, now proved.**  `proved_speedup_is_trivial_savings` had only the `k = 0` savings and *described*
+  the super-poly case as "supplied by the quasipoly exact form."  `cost_bridge_unlocked_by_quasipoly_ybt` **proves it**:
+  a quasipolynomial cell bound `(D+1)·n^D + 1 ≤ 2^{n−k}` (the YBT *size* socket's content, entry 292) delivers the
+  genuine `2^k` super-poly savings.  So the realization cost bridge bites *exactly* when the (true-classical) YBT
+  quasipoly-size wall is crossed — the two non-deep walls compose, no separation-strength content between them.
+* **One deep gate.**  `williams_route_single_separation_gate`: the realization S4 socket and the downstream Williams
+  socket have the *same* shape `(established hypothesis → NEXP⊄ACC⁰)`, each `↔ NEXP⊄ACC⁰` once its antecedent holds —
+  so they are the *same* gate (the nondeterministic-time-hierarchy / Williams argument), not two.
+* **Full-route classification.**  `williams_route_socket_classification` bundles it: YBT form exists unconditionally
+  (292); the cost bridge is unlocked by quasipoly YBT size; the realization socket reduces to S4; S4 `↔` the separation.
+
+**Net:** the realization socket adds **no** new separation-strength obstacle — routine parts grounded, cost bridge
+unlocked by the true-classical YBT size, and its sole deep piece S4 is the *same* gate as the Williams socket.  So the
+entire algorithmic route (YBT + realization + Williams) has **one** irreducible separation-strength gate — the
+time-hierarchy / Williams algorithmic argument — with everything else proved, true-classical, or routine.  That single
+gate is `↔ NEXP ⊄ ACC⁰`, the honest open content.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the

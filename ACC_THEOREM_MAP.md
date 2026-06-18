@@ -118,6 +118,17 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
     VERDICT: YBT is NOT separation-strength — it's a TRUE classical theorem (existence proved; quasipoly size = hard
       combinatorics, not a hardness assumption). The separation-strength lives in realization + Williams (links 2,3).
       Composite-MOD never even blocks YBT EXISTENCE (counting/char-free); only the SIZE is the open Beigel–Tarui work.
+
+  PROBED the REALIZATION socket — it adds NO new separation-strength obstacle; route has ONE deep gate (293, proved):
+    realization already split S1-S4 (WilliamsRealizationSplit): S1 encoding [routine], S2 cost-bridge [arith proved],
+      S3 uniformity [standard], S4 time-hierarchy [separation-strength, ↔ NEXP⊄ACC⁰ self-audited].
+    • cost_bridge_unlocked_by_quasipoly_ybt (NEW proved): quasipoly cell bound (D+1)·n^D+1 ≤ 2^{n-k} ⇒ 2^k·cells ≤ 2^n
+      (super-poly savings) — the cost bridge bites EXACTLY when the YBT quasipoly-size wall (292) is crossed; the link
+      proved_speedup_is_trivial_savings only gestured at (k=0), now proved for k=Ω(n).
+    • williams_route_single_separation_gate: S4 and the Williams socket are the SAME shape (X→sep), each ↔ sep ⇒ ONE gate
+    • williams_route_socket_classification: full-route map (YBT exists uncond + cost-bridge unlocked + reduce to S4 + S4↔sep)
+    VERDICT: entire algorithmic route (YBT+realization+Williams) has ONE irreducible separation-strength gate = the
+      nondeterministic-time-hierarchy / Williams argument; all else proved / true-classical (YBT size) / routine.
 ```
 
 ## Tier 1 — AC⁰ (switching method): **DONE & FENCED**

@@ -220,6 +220,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeReductionP
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AlgorithmicEscape
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FastSATCharacteristicUniversal
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0YBTSocketStrength
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsSocketMap
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -3923,6 +3924,18 @@ theorem nw_ybt_socket_not_separation_strength_frontier {n : ℕ} {NEXPnotACC0 : 
         ACC0WilliamsCashout.UniformWilliamsRealizationSocket NEXPnotACC0 ↔ NEXPnotACC0) :=
   ACC0YBTSocketStrength.ybt_socket_not_separation_strength
 
+/-- **The realization cost bridge is unlocked by the quasipoly YBT size (proved, the missing link).**
+nw_cost_bridge_unlocked_by_quasipoly_ybt_frontier (PROVED): a quasipolynomial cell bound `cells ≤ (D+1)·n^D + 1` (the
+YBT *size* socket's content) fitting `≤ 2^{n−k}` delivers the genuine `2^k` super-poly savings the realization cost
+bridge needs.  So the realization socket adds no new separation-strength obstacle — its cost bridge bites exactly when
+the (true-classical) YBT quasipoly-size wall is crossed; the whole route has ONE deep gate (the time-hierarchy /
+Williams argument), self-audited as `↔ NEXP⊄ACC⁰` (entry 293). -/
+theorem nw_cost_bridge_unlocked_by_quasipoly_ybt_frontier {n D k cells : ℕ}
+    (hquasipoly : cells ≤ (D + 1) * n ^ D + 1) (hk : k ≤ n)
+    (hfit : (D + 1) * n ^ D + 1 ≤ 2 ^ (n - k)) :
+    2 ^ k * cells ≤ 2 ^ n :=
+  ACC0WilliamsSocketMap.cost_bridge_unlocked_by_quasipoly_ybt hquasipoly hk hfit
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4467,3 +4480,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_algorithmic_escape_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_fastSat_decides_every_modulus_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_ybt_socket_not_separation_strength_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_cost_bridge_unlocked_by_quasipoly_ybt_frontier
