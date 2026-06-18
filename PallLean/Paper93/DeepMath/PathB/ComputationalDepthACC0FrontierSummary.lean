@@ -180,6 +180,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Depth2CrossModulus
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0StagedFastSAT
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CrossFieldCountCore
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BlockOverlapCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TreewidthCount
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -820,6 +821,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   So tractability boundary = incidence graph's BLOCK decomposition (bounded LOCAL overlap), NOT global disjoint- ─
    ──   ness. Refines the overlap-rank invariant: bounded-size connected components ⇒ fast; large components (high ────
    ──   global overlap, expander-like) = the open Smolensky core (238). NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── TREEWIDTH COUNT (separator conditioning = bounded-treewidth DP core): nw_separator_factor_frontier — a separator
+   ──   S splitting gates into A,B sharing only S ⇒ #{x:Pₐ∧P_b} = ∑_s #{a:Pₐ(s,a)}·#{b:P_b(s,b)} (variable-elimination
+   ──   recurrence); nw_separator_factor_indep_frontier — empty separator ⇒ product (block/disjoint 251/252 recovered).
+   ──   Iterated over a tree decomposition of width ≤w (separators ≤2^w) = FPT-in-treewidth DP. Disjoint=tw 0, block= ─
+   ──   bounded-tw disconnected. OPEN: unbounded treewidth / expander incidence (no small separators) = Smolensky (238).
+   ──   NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3062,6 +3069,25 @@ theorem nw_block_count_le_frontier {m : ℕ} {Z : Fin m → Type} [∀ b, Fintyp
     [∀ b, DecidableEq (Z b)] (P : ∀ b, Z b → Bool) (W : ℕ) (hW : ∀ b, Fintype.card (Z b) ≤ W) :
     (Finset.univ.filter (fun x : (∀ b, Z b) => ∀ b, P b (x b) = true)).card ≤ W ^ m :=
   ACC0BlockOverlapCount.block_count_le P W hW
+
+/-- **Treewidth count — separator conditioning, the bounded-treewidth DP core (proved).**  `separator_factor`: a
+separator S splitting the gates into parts A,B sharing only S ⇒ `#{x : Pₐ ∧ P_b} = ∑_s #{a : Pₐ(s,a)}·#{b : P_b(s,b)}`
+(the variable-elimination recurrence); `separator_factor_indep`: empty separator ⇒ product (block/disjoint, 251/252,
+recovered).  Iterated over a tree decomposition of width ≤ w (separators ≤ 2^w) gives the FPT-in-treewidth DP.  Open
+case = unbounded treewidth / expander incidence (Smolensky, 238). -/
+theorem nw_separator_factor_frontier (S A B : Type) [Fintype S] [Fintype A] [Fintype B]
+    (PA : S → A → Bool) (PB : S → B → Bool) :
+    (Finset.univ.filter (fun x : S × A × B => PA x.1 x.2.1 ∧ PB x.1 x.2.2)).card
+      = ∑ s : S, (Finset.univ.filter (fun a => PA s a)).card
+                  * (Finset.univ.filter (fun b => PB s b)).card :=
+  ACC0TreewidthCount.separator_factor S A B PA PB
+
+/-- **Treewidth count: empty separator ⇒ product (proved, recovers block/disjoint).** -/
+theorem nw_separator_factor_indep_frontier (A B : Type) [Fintype A] [Fintype B]
+    (PA : A → Bool) (PB : B → Bool) :
+    (Finset.univ.filter (fun x : A × B => PA x.1 ∧ PB x.2)).card
+      = (Finset.univ.filter (fun a => PA a)).card * (Finset.univ.filter (fun b => PB b)).card :=
+  ACC0TreewidthCount.separator_factor_indep A B PA PB
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
