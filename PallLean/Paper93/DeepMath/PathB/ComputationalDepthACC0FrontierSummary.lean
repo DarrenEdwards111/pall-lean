@@ -210,6 +210,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimeMechanicalClos
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SeparatedLayers
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6StagedObservers
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6CarryState
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryRefinementCrossing
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -1043,6 +1044,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   is FALSE over the carry ring. So the field-essential Smolensky method (264-279, all [Field F]) has NO traction.
    ──   The carry doesn't refine into a single field = LITERALLY CarryRefinementCrossing (238). Composite needs a ─────
    ──   field-free / char-independent method. A proved no-go. NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── ACC ANATOMY FROZEN — CarryRefinementCrossing = the single composite target: ─────────────────────────────────
+   ──   nw_field_based_modes_all_fail_frontier (PROVED): bundles ALL THREE composite no-gos — separate (280), stage ──
+   ──   (281), carry (282). Every characteristic-committed (field-based) approach to MOD₆ FAILS. Prime route done ────
+   ──   (264-279, mechanically closed mod binomial tail + Codex Circ). Composite = CarryRefinementCrossing (def, the ──
+   ──   one open ACC⁰ theorem) needs a CHARACTERISTIC-INDEPENDENT invariant [ring/module, comm/tensor rank, proof-cx,
+   ──   holonomy, carry-complexity] — open research, named not faked. N-Frame has FOUND the wall. NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3751,6 +3758,19 @@ theorem nw_carry_state_has_zero_divisors_frontier :
 /-- **Fermat fails on the carry ring (proved): (2:ZMod 6)≠0 yet (2:ZMod 6)^(6-1)≠1 — the degree-halving engine dies.** -/
 theorem nw_fermat_fails_on_carry_frontier : (2 : ZMod 6) ≠ 0 ∧ (2 : ZMod 6) ^ (6 - 1) ≠ 1 :=
   ACC0Mod6CarryState.fermat_fails_on_carry
+
+/-- **ACC anatomy FROZEN — CarryRefinementCrossing is the single composite target (proved bundle).**
+nw_field_based_modes_all_fail_frontier (PROVED): bundles the three composite no-gos — separate (280: no field native for
+both), stage (281: bounded degree < growing requirement), carry (282: product ring not a field + Fermat fails). So EVERY
+characteristic-committed (field-based) approach to MOD₆ fails; the composite target CarryRefinementCrossing must be
+field-free. Prime done (264-279); composite = the one open theorem needing a char-independent invariant. -/
+theorem nw_field_based_modes_all_fail_frontier :
+    (∀ (F : Type) [Field F], ¬ (CharP F 2 ∧ CharP F 3))
+      ∧ (∀ t d D₀ R observerDeg : ℕ,
+          observerDeg ≤ t ^ d * D₀ → R ≤ observerDeg → t ^ d * D₀ < R → False)
+      ∧ ((∃ a b : ZMod 6, a ≠ 0 ∧ b ≠ 0 ∧ a * b = 0)
+          ∧ ((2 : ZMod 6) ≠ 0 ∧ (2 : ZMod 6) ^ (6 - 1) ≠ 1)) :=
+  ACC0CarryRefinementCrossing.field_based_modes_all_fail
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 

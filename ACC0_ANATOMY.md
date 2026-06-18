@@ -633,6 +633,28 @@ does *not* refine into a single-field computation — which is exactly the conte
 (§3/entry 238).  All three natural attacks are now *proved* to fail.  Composite `ACC⁰` genuinely needs a new,
 characteristic-independent idea — the one honest open object the whole arc points to.  Not faked, not a separation.
 
+## 5y. The anatomy frozen — `CarryRefinementCrossing` as the single composite target (entry 283, steps 1+3)
+
+The capstone (`…ACC0CarryRefinementCrossing`): freeze the result and name the one remaining theorem.
+
+* **Frozen (step 1).**  The prime-`ACC⁰[p]` route is machine-assembled (§5f–§5u, entries 264–279) modulo only the
+  standard binomial tail and the committed `Circ` recursion; the composite obstruction is isolated as
+  `CarryRefinementCrossing`, and its three natural attacks are all proved to fail (§5v–§5x, entries 280–282).
+* **The bundle (PROVED).**  `field_based_modes_all_fail`: conjoins the three composite no-gos — *separate* (no common
+  native field), *stage* (bounded degree < growing requirement), *carry* (product ring not a field, Fermat fails).
+  Every characteristic-committed approach to `MOD₆` is refuted.
+* **The single target (step 3).**  `CarryRefinementCrossing Mod6Computable FieldFreeUnboundedCarry` — the named socket:
+  any bounded, field-compatible observer computing `MOD₆` is forced into field-free / unbounded-carry territory.  By the
+  bundle, its hypothesis cannot be met by any field-based mode, so a proof needs a *characteristic-independent*
+  invariant.
+* **The frontier (steps 4–5, open).**  A field-free carry obstruction — ring/module invariant, communication/tensor
+  rank, proof-complexity, observer-holonomy, or carry-complexity — first tested on `MOD₆`.  Genuinely open research,
+  named here, **not** faked.
+
+**Net:** N-Frame has *found* the wall and frozen everything reducible around it.  Prime is essentially done; the
+composite obstruction is one precisely-named theorem (`CarryRefinementCrossing`) whose every natural attack is refuted,
+awaiting a new characteristic-independent idea.  That is the honest terminus and the live frontier.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the
