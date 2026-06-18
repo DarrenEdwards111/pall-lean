@@ -799,6 +799,31 @@ The single-prime tool covers each characteristic individually; combining across 
 the open problem, and the obstruction is pinned to `no_common_char`.  This confirms entry 288's socket is the real open
 barrier.
 
+## 5z⁗″. The pivot — why the algorithmic route escapes the barrier (entry 290)
+
+The polynomial / field-free route is provably blocked (§5v–§5z⁗′): a finite field commits to one characteristic, and
+`no_common_char` forbids the two that `MOD₆` demands.  Williams' `NEXP ⊄ ACC⁰` route is **algorithmic** — it *counts*
+satisfying assignments — and `…ACC0AlgorithmicEscape` pins why that escapes the barrier.
+
+* **Counting lives in characteristic 0.**  A count is an integer `c : ℤ`; `ℤ` is the initial ring, mapping onto `ZMod m`
+  for *every* `m` (`integer_carries_every_characteristic`, `Int.castRingHom`).  So one integer carries *all*
+  characteristics at once.
+* **One integer realises the CRT decomposition (PROVED).**  `count_crt_mod6`: `c % 6 = 0 ↔ (c % 2 = 0 ∧ c % 3 = 0)` —
+  a single count determines `MOD₆` via its mod-2 and mod-3 residues simultaneously, exactly what `no_common_char` forbids
+  a single field.
+* **Never characteristic-blocked (PROVED).**  `count_route_covers`: the count route's available set is `m.primeFactors`
+  (reduce the integer mod each prime), so `CrossCharacteristic m m.primeFactors` is *false* for every `m ≠ 0` — the typed
+  obstruction (entry 288) is specific to the single-characteristic polynomial method and vanishes for counting.
+* **The contrast (PROVED, re-export).**  `no_field_carries_two_primes` — a field commits to one characteristic; this is
+  the barrier counting sidesteps.
+* **`algorithmic_escape`** bundles the three: counting (char 0, all primes) is not characteristic-bound; the polynomial
+  method (one field) is.
+
+**Net:** this isolates the *structural enabler* of Williams' route — characteristic-universality of integer counting —
+machine-proved, and tied to the typed invariant.  It does **not** prove `NEXP ⊄ ACC⁰`: the deep `#SAT`-algorithm ⇒
+lower-bound machinery (the existing `…WilliamsFastSat` / Karp–Lipton / NW–IKW sockets) is not re-proved here.  It
+explains *why* the algorithmic route can win where the polynomial method provably cannot.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the

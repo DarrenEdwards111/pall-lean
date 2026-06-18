@@ -217,6 +217,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryBoundaryGrowth
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BoundaryBoundednessRefutation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TypedBoundary
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeReductionProbe
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AlgorithmicEscape
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -3880,6 +3881,18 @@ theorem nw_composite_lift_irreducible_frontier :
         ACC0CompositeReductionProbe.SingleFieldReductionCovers F ACC0TypedBoundary.acc6 :=
   ACC0CompositeReductionProbe.composite_lift_not_single_field_reducible
 
+/-- **The algorithmic route escapes the composite barrier — counting carries all characteristics (proved).**
+nw_algorithmic_escape_frontier (PROVED): (1) one integer count realises `MOD₆`'s CRT decomposition
+(`c%6=0 ↔ c%2=0 ∧ c%3=0`); (2) the count route is never characteristic-blocked (`¬ CrossCharacteristic m
+m.primeFactors`); (3) yet no single field carries two distinct prime characteristics (`no_common_char`).  So integer
+counting (characteristic 0) sidesteps the exact barrier (280–289) that blocks the polynomial method — the structural
+reason Williams went algorithmic (entry 290).  The deep `#SAT ⇒ lower bound` machinery remains the existing socket. -/
+theorem nw_algorithmic_escape_frontier :
+    (∀ c : ℕ, (c % 6 = 0) ↔ (c % 2 = 0 ∧ c % 3 = 0))
+    ∧ (∀ m : ℕ, m ≠ 0 → ¬ ACC0TypedBoundary.CrossCharacteristic m m.primeFactors)
+    ∧ (∀ (F : Type) [Field F] (p q : ℕ), p ≠ q → CharP F p → CharP F q → False) :=
+  ACC0AlgorithmicEscape.algorithmic_escape
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4421,3 +4434,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_typed_boundary_classification_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_typed_crossing_excludes_mod5_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_composite_lift_irreducible_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_algorithmic_escape_frontier

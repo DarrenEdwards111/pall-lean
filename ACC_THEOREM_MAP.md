@@ -89,6 +89,15 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
     • composite_lift_not_single_field_reducible : sub-classes coverable BUT joint class is not
     VERDICT: single-prime method works prime-by-prime, provably CANNOT combine at the joint class;
       obstruction = exactly no_common_char (280). Composite barrier GENUINE, not a missing reduction.
+
+  PIVOT — why the ALGORITHMIC route escapes the barrier (290, proved):
+    counting = integer count c∈ℤ (characteristic 0), reads MOD_m off ONE integer for EVERY m
+    • count_crt_mod6 : c%6=0 ↔ (c%2=0 ∧ c%3=0)   — one integer carries char-2 AND char-3 at once
+    • integer_carries_every_characteristic : ℤ →+* ZMod m for all m (ℤ initial, char 0)
+    • count_route_covers : ¬ CrossCharacteristic m m.primeFactors — count route NEVER char-blocked
+    • no_field_carries_two_primes : but no FIELD has two prime chars (no_common_char) — the contrast
+    ⇒ counting (char 0, carries all primes) SIDESTEPS the field barrier that kills polynomials (280-289)
+      = structural reason Williams went ALGORITHMIC. Deep #SAT⇒LB machinery stays the existing socket.
 ```
 
 ## Tier 1 — AC⁰ (switching method): **DONE & FENCED**
