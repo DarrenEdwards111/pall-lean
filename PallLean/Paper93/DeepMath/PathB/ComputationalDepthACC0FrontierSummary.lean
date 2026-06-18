@@ -192,6 +192,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FirePatternRichness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0VaryingAffinePatterns
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ReedMullerGates
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NonNativeDegree
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultilinearBasis
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -912,6 +913,13 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   probabilistic polynomial method AC⁰[p]⇒low-degree, the genuine open RS core; instances = in-arc Layer3/Layer4)
    ──   via entry-262 patternRich_lb_of_nonNativeDegree. The (B)-half of the RS route is now MACHINE-PROVED. ──────────
    ──   NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── MULTILINEAR BASIS over F: discharges the LowDegreeDimensionIdentity socket COMPLETELY: ───────────────────────
+   ──   mlMon S x := ∏_{i∈S} xᵢ over the Boolean cube. nw_mlMon_linearIndependent_frontier (PROVED, general-field ────
+   ──   generalisation of in-arc anf_involutive/F2): the 2^n monomials are independent via triangular eval ───────────
+   ──   χ_S(e_T)=[S⊆T] + Möbius induction. card_subtype_card_le (PROVED): #{S:card≤D}=lowDegreeDim n D. ──────────────
+   ──   nw_lowDegreeDimensionIdentity_discharged_frontier (PROVED): finrank(degree-≤D space) = lowDegreeDim n D, so ───
+   ──   the secondary socket is GONE. patternRichCrossFieldLowerBound_no_dimSocket (PROVED): for Boolean gate families
+   ──   the open target now rests on the SINGLE socket PolynomialMethodApproximation. NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3359,6 +3367,21 @@ theorem nw_algExpander_forces_high_degree_frontier {X F : Type} [Fintype X] [Fie
     (hlt : ACC0NonNativeDegree.lowDegreeDim n D < s) :
     ∃ i, ACC0AlgebraicExpansion.gateInd gates i ∉ W :=
   ACC0NonNativeDegree.algExpander_forces_high_degree gates hAE W n D hW hlt
+
+/-- **The multilinear monomial basis over F, discharging LowDegreeDimensionIdentity.**  `mlMon S x := ∏_{i∈S} xᵢ` over
+the Boolean cube; `mlMon_linearIndependent` (PROVED, general-field generalisation of in-arc anf_involutive) via the
+triangular evaluation `χ_S(e_T)=[S⊆T]` + Möbius induction; `lowDegreeSubmodule_finrank` (PROVED): the degree-≤D space
+has dimension exactly lowDegreeDim n D.  So the secondary socket of entry 264 is DISCHARGED — after this the open target
+rests on the SINGLE socket PolynomialMethodApproximation. -/
+theorem nw_mlMon_linearIndependent_frontier {F : Type} [Field F] {n : ℕ} :
+    LinearIndependent F (fun S : Finset (Fin n) => ACC0MultilinearBasis.mlMon (F := F) S) :=
+  ACC0MultilinearBasis.mlMon_linearIndependent
+
+/-- **Discharged (proved): the degree-≤D function space has dimension lowDegreeDim n D.** -/
+theorem nw_lowDegreeDimensionIdentity_discharged_frontier {F : Type} [Field F] {n D : ℕ} :
+    ACC0NonNativeDegree.LowDegreeDimensionIdentity
+      (ACC0MultilinearBasis.lowDegreeSubmodule (F := F) n D) n D :=
+  ACC0MultilinearBasis.lowDegreeDimensionIdentity_discharged
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 

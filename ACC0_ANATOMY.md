@@ -256,10 +256,30 @@ This file **proves the entire (B) engine** — the mechanism by which the route 
   feeds it through §5d's `patternRich_lb_of_nonNativeDegree` to the target.
 
 **Net:** the Smolensky *counting + rank* mechanism — the part that makes the non-native degree route work — is now
-machine-proved as reusable kernels, and the entire open target `PatternRichCrossFieldLowerBound` is reduced to the
-*single* analytic socket `PolynomialMethodApproximation` (the probabilistic polynomial method).  That socket is the
-genuine open Razborov–Smolensky core; its concrete instances are already in-arc (`Layer3`/`Layer4`), but the general
-form is exactly the `ACC⁰[composite]` wall and is not faked.
+machine-proved as reusable kernels, and the entire open target `PatternRichCrossFieldLowerBound` is reduced to *two*
+named sockets: the analytic `PolynomialMethodApproximation` and the secondary `LowDegreeDimensionIdentity`.
+
+## 5g. Discharging the dimension socket — the multilinear basis over `F` (entry 265)
+
+The secondary socket `LowDegreeDimensionIdentity` (`finrank W = lowDegreeDim n D`) is now **discharged completely** by
+building the multilinear monomial basis over an arbitrary field `F` (`…ACC0MultilinearBasis`) — the `F`-analogue of the
+in-arc `anf_involutive` (which did this over `F₂`).
+
+* **The basis (PROVED).**  `mlMon S x := ∏_{i∈S} (xᵢ : F)` over the Boolean cube.  The key is the *triangular
+  evaluation* `mlMon_eval`: `χ_S(e_T) = [S ⊆ T]` at `e_T(i) = [i ∈ T]` (the unitriangular subset/zeta matrix).
+  `mlMon_linearIndependent` then proves the `2ⁿ` monomials independent over `F` by Möbius/strong induction on the subset
+  lattice (`∑_{S ⊆ T} c_S = 0 ∀T ⇒ c_T = 0`) — a genuine general-field generalisation of `anf_involutive`.
+* **The dimension (PROVED).**  `card_subtype_card_le`: `#{S : S.card ≤ D} = lowDegreeDim n D` (partition by
+  cardinality); `lowDegreeSubmodule_finrank`: `span {χ_S : |S| ≤ D}` has dimension exactly `lowDegreeDim n D`.
+* **Socket discharged (PROVED).**  `lowDegreeDimensionIdentity_discharged` gives `LowDegreeDimensionIdentity
+  (lowDegreeSubmodule n D) n D`; `patternRichCrossFieldLowerBound_no_dimSocket` then shows that for Boolean gate
+  families the open target rests on the **single** remaining socket `PolynomialMethodApproximation`.
+
+**Net:** after entries 264–265, the open target `PatternRichCrossFieldLowerBound` is reduced to the *one* analytic
+socket `PolynomialMethodApproximation` — the probabilistic polynomial method (`AC⁰[p] ⇒` low-degree approximation).  Both
+the Smolensky counting/rank engine *and* the multilinear-basis dimension identity are machine-proved.  That last socket
+is the genuine open Razborov–Smolensky core; its concrete instances are already in-arc (`Layer3`/`Layer4`), but the
+general form is exactly the `ACC⁰[composite]` wall and is not faked.
 
 ## 6. Honest conclusion
 
