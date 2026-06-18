@@ -176,6 +176,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SmolenskyLowerBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultiSortedObserver
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultiSortedFastSAT
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ProductFieldMixing
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Depth2CrossModulus
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -791,6 +792,13 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   touches no field arithmetic); nw_mixedOut_by_mod6_frontier — read by count mod 6 (CRT ZMod 6≅ZMod 2×ZMod 3); ──
    ──   mixedOut_cells_le_six (≤6 cells). LOCALIZES the wall to DEPTH ≥ 2 nesting: MOD_q fed by non-native MOD_p forces
    ──   arithmetizing MOD_p over F_q = Smolensky-blocked (244). One-layer = partial crossing. NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── DEPTH-2 CROSS-MODULUS (outer MOD₃ fed by inner MOD₂: STAGED works; FLATTENING is the wall): ───────────────────
+   ──   nw_depth2_outer_mod3_deg_le_two_frontier — outer MOD₃ is degree ≤2 over F₃ IN THE INNER BITS (reads them); ────
+   ──   inner_mod2_deg_le_one — inner MOD₂ degree ≤1 over F₂; nw_depth2_outer_reads_inner_bits_frontier — outer reads ──
+   ──   inner bits over F₃ ([#true ≡0 mod 3]). ANSWER to the core question: YES, product-observer states compose ──────
+   ──   through outer MOD₃ WITHOUT representing MOD₂ over F₃ (each layer low-deg over its OWN field, outer reads bits).
+   ──   The MOD₂-over-F₃ collapse is forced ONLY by FLATTENING to one field (BT depth-reduction = Smolensky-blocked, ──
+   ──   244) = the open core (238). Staged route is a possible crossing IF staged fast-SAT (246) consumes it. NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2966,6 +2974,24 @@ theorem nw_mixedOut_determined_frontier (comb : Bool → Bool → Bool) (k k' : 
 theorem nw_mixedOut_by_mod6_frontier (comb : Bool → Bool → Bool) (k k' : ℕ) (h : k % 6 = k' % 6) :
     ACC0ProductFieldMixing.mixedOut comb k = ACC0ProductFieldMixing.mixedOut comb k' :=
   ACC0ProductFieldMixing.mixedOut_determined_by_mod6 comb k k' h
+
+/-- **Depth-2 cross-modulus (outer MOD₃ fed by inner MOD₂): staged composition works; flattening is the wall.**
+`outer_mod3_deg_le_two`: the outer MOD₃ is degree ≤ 2 over F₃ IN THE INNER BITS (reads them, no MOD₂-over-F₃);
+`inner_mod2_deg_le_one`: inner MOD₂ degree ≤ 1 over F₂.  So each layer is low-degree over its OWN field — the product
+observer composes through the outer MOD₃ WITHOUT representing MOD₂ over F₃ (answers the core question YES at the staged
+level).  The MOD₂-over-F₃ collapse is forced only by FLATTENING to one field (Smolensky-blocked, 244) = the open core. -/
+theorem nw_depth2_outer_mod3_deg_le_two_frontier (s : ℕ) :
+    haveI : Fact (Nat.Prime 3) := ⟨by norm_num⟩
+    (ACC0LayeredCarryDegree.modpIndicatorPoly s 3).totalDegree ≤ 2 :=
+  ACC0Depth2CrossModulus.outer_mod3_deg_le_two s
+
+/-- **Depth-2 cross-modulus: the outer MOD₃ reads the inner bits over F₃ (proved).** -/
+theorem nw_depth2_outer_reads_inner_bits_frontier (s : ℕ) (b : Fin s → Bool) :
+    haveI : Fact (Nat.Prime 3) := ⟨by norm_num⟩
+    MvPolynomial.eval (fun i => ACC0LayeredCarryDegree.boolToZMod 3 (b i))
+        (ACC0LayeredCarryDegree.modpIndicatorPoly s 3)
+      = if ACC0LayeredCarryDegree.countSum s 3 b = 0 then 1 else 0 :=
+  ACC0Depth2CrossModulus.outer_mod3_reads_inner_bits s b
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
