@@ -173,6 +173,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeCountDegre
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LayeredCarryDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CrossFieldCombination
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SmolenskyLowerBound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultiSortedObserver
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -770,6 +771,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   the Smolensky budget (q∤p) ⇒ single-field low-deg F_p representation of non-native MOD_q is IMPOSSIBLE ⇒ the ──
    ──   field route to CarryRefinementCrossing (238/243) is a NO-GO. Only open escape = multi-sorted/product-field ────
    ──   observer in ∏_p F_p (step 4, NOT reducible to one F_p, NOT touched by this no-go). NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── MULTI-SORTED PRODUCT-FIELD OBSERVER (construction PROVED; fast-SAT feed = open socket): ───────────────────────
+   ──   nw_modm_iff_modp_and_modq_frontier — MOD_{pq}=MOD_p∧MOD_q for coprime p,q (CRT combiner); nw_prod_field_iso ───
+   ──   _frontier — ZMod(pq)≃+*ZMod p×ZMod q (∏F_{pᵢ} structure); prodObs_bijective (faithful CRT tuple). Each ────────
+   ──   per-prime component low-deg over its OWN field (242). The observer WORKS as a faithful MOD_m reader; the OPEN ─
+   ──   step-5 = does it feed Williams/BT fast-SAT (quasipoly SYM∘AND) WITHOUT collapsing to one field (Smolensky- ────
+   ──   blocked, 244)? Needs a product-sorted fast-SAT machinery, NOT constructed. NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2901,6 +2908,21 @@ theorem nw_crossField_modq_fieldRoute_nogo_frontier (p q : ℕ) [Fact p.Prime] [
     (hdepth : ∀ j ∈ Finset.range q, (C j).depth ≤ d)
     (hwindow : 16 * (((p - 1) * t) ^ d) ^ 2 < 2 * m + 3) : False :=
   ACC0SmolenskyLowerBound.crossField_modq_fieldRoute_nogo p q hpq ht1 hpt1 C hCind hAC ht hdepth hwindow
+
+/-- **Multi-sorted product-field observer (proved construction; feeding fast-SAT is the open socket).**
+`modm_iff_modp_and_modq`: MOD_{pq} = MOD_p ∧ MOD_q for coprime p,q (CRT) — the product-field combiner.
+`prod_field_iso`: ZMod(pq) ≃+* ZMod p × ZMod q (the product structure ∏ F_{pᵢ}).  `prodObs_bijective`: the CRT residue
+tuple is a faithful bijection.  Each per-prime component is low-degree over its own field (entry 242).  The observer
+works; whether it feeds Williams/BT fast-SAT without collapsing to one field (Smolensky-blocked, 244) is the open
+step-5 question. -/
+theorem nw_modm_iff_modp_and_modq_frontier (p q k : ℕ) (h : Nat.Coprime p q) :
+    (p * q) ∣ k ↔ p ∣ k ∧ q ∣ k :=
+  ACC0MultiSortedObserver.modm_iff_modp_and_modq p q k h
+
+/-- **Multi-sorted observer: the product-field structure ZMod(pq) ≃+* ZMod p × ZMod q (proved).** -/
+theorem nw_prod_field_iso_frontier (p q : ℕ) (h : Nat.Coprime p q) :
+    Nonempty (ZMod (p * q) ≃+* ZMod p × ZMod q) :=
+  ACC0MultiSortedObserver.prod_field_iso p q h
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
