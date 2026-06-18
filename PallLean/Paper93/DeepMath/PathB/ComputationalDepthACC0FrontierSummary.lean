@@ -216,6 +216,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CommunicationComple
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CarryBoundaryGrowth
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BoundaryBoundednessRefutation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TypedBoundary
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeReductionProbe
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -3867,6 +3868,18 @@ theorem nw_typed_crossing_excludes_mod5_frontier {Computes : Finset ℕ → ℕ 
     ¬ Computes ACC0TypedBoundary.acc6 5 :=
   ACC0TypedBoundary.typed_crossing_excludes_mod5 h
 
+/-- **Probe answered: the composite lift does NOT reduce to the single-prime no-go (proved).**
+nw_composite_lift_irreducible_frontier (PROVED): each prime sub-class `{2}`, `{3}` is single-field-reducible (so the
+proved single-prime no-go `Layer4.mod_q_indicators_false` gives `MOD_5 ∉ AC⁰[2]`, `MOD_5 ∉ AC⁰[3]`), but the joint class
+`AC⁰[{2,3}]` is NOT (no field has char 2 and 3, `no_common_char`).  So the single-field method cannot combine across
+primes — the composite `ACC⁰[6]` barrier is genuine, not a missing reduction (entry 289). -/
+theorem nw_composite_lift_irreducible_frontier :
+    (∃ (F : Type) (_ : Field F), ACC0CompositeReductionProbe.SingleFieldReductionCovers F ({2} : Finset ℕ))
+    ∧ (∃ (F : Type) (_ : Field F), ACC0CompositeReductionProbe.SingleFieldReductionCovers F ({3} : Finset ℕ))
+    ∧ ¬ ∃ (F : Type) (_ : Field F),
+        ACC0CompositeReductionProbe.SingleFieldReductionCovers F ACC0TypedBoundary.acc6 :=
+  ACC0CompositeReductionProbe.composite_lift_not_single_field_reducible
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4407,3 +4420,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_equality_refutes_boundary_bounded_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_typed_boundary_classification_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_typed_crossing_excludes_mod5_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_composite_lift_irreducible_frontier

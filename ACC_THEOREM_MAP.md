@@ -79,6 +79,16 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
       typed_separation_chain (PROVED cond.): + component socket ⇒ composite-ACC⁰ ingredient → Williams
     DEEP socket (open, separation-strength): "cross-characteristic ⇒ ¬ACC⁰[6]-computable" = Smolensky-composite
       (single-prime instance MOD_q∉AC⁰[p] already PROVED = Layer4.mod_q_indicators_false; composite lift open)
+
+  PROBE — does the composite lift REDUCE to the single-prime no-go? ANSWER: NO (289, proved):
+    NativelyLinearizes F p := CharP F p   (Fermat indicator native ⇔ char p)
+    SingleFieldReductionCovers F S := ∀ p∈S, NativelyLinearizes F p
+    • single_prime_coverable : each {p} coverable (ZMod p) ⇒ single-prime no-go gives MOD_5∉AC⁰[2], ∉AC⁰[3]
+    • acc6_reduction_needs_char_2_and_3 : covering {2,3} forces CharP F 2 ∧ CharP F 3
+    • no_single_field_covers_acc6 : ¬∃ such field (no_common_char) ⇒ AC⁰[{2,3}] NOT single-field-reducible
+    • composite_lift_not_single_field_reducible : sub-classes coverable BUT joint class is not
+    VERDICT: single-prime method works prime-by-prime, provably CANNOT combine at the joint class;
+      obstruction = exactly no_common_char (280). Composite barrier GENUINE, not a missing reduction.
 ```
 
 ## Tier 1 — AC⁰ (switching method): **DONE & FENCED**

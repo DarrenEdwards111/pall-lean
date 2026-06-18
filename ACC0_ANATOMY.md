@@ -775,6 +775,30 @@ ACC⁰[6]`) from the genuine obstruction (`MOD_5`, `MOD_30 ∉ ACC⁰[6]`) — p
 size.  The classification is fully machine-checked; the remaining gap is the one open Smolensky-composite implication,
 honestly socketed and wired to Williams.
 
+## 5z⁗′. Probing the composite lift — it does NOT reduce to the single-prime no-go (entry 289)
+
+The honest test of entry 288's socket: can `MOD_5 ∉ ACC⁰[6]` be *reduced* to the proved single-prime no-go
+(`Layer4.mod_q_indicators_false`)?  `…ACC0CompositeReductionProbe` answers **no**, and proves why.
+
+* **The model.**  `NativelyLinearizes F p := CharP F p` — a single field `F` linearises a `MOD_p` gate by the Fermat
+  indicator (degree `p-1`) iff `F` is native (char `p`); over any other characteristic `MOD_p` is high-degree (the
+  single-prime no-go itself).  `SingleFieldReductionCovers F S := ∀ p ∈ S, NativelyLinearizes F p`.
+* **Sub-classes are coverable (PROVED).**  `single_prime_coverable`: each singleton `{p}` is single-field-reducible
+  (witness `ZMod p`), so the proved single-prime no-go applies on every `AC⁰[p]` — giving `MOD_5 ∉ AC⁰[2]` and
+  `MOD_5 ∉ AC⁰[3]`.
+* **The joint class is NOT (PROVED).**  `acc6_reduction_needs_char_2_and_3`: covering `{2,3}` forces
+  `CharP F 2 ∧ CharP F 3`; `no_single_field_covers_acc6`: impossible by `no_common_char`.  So a single-field Smolensky
+  reduction cannot linearise an `AC⁰[6]` circuit (which mixes `MOD_2` and `MOD_3`).
+* **Verdict (PROVED).**  `composite_lift_not_single_field_reducible`: the single-prime method works prime-by-prime but
+  provably cannot combine at the joint class — the obstruction is exactly `no_common_char` (§5v).
+  `cross_characteristic_witnesses_irreducibility` ties it to the typed invariant: cross-characteristic targets are
+  precisely those the single-field method cannot reach.
+
+**Net:** the composite `ACC⁰[6]` barrier is *genuine* — not a gap a reduction to the single-prime no-go could close.
+The single-prime tool covers each characteristic individually; combining across incompatible characteristics is exactly
+the open problem, and the obstruction is pinned to `no_common_char`.  This confirms entry 288's socket is the real open
+barrier.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the
