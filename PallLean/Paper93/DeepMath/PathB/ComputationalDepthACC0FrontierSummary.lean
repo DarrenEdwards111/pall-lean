@@ -207,6 +207,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SmolenskyDegreeHalv
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FullProductGoodSet
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SmolenskyPrime
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimeMechanicalClosure
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SeparatedLayers
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -1021,6 +1022,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   prime_smolensky_route_closed (PROVED, no axioms): CrossFieldCountHard + 261 bridge ⇒ ACC0CompositeComponent. ──
    ──   Prime ACC⁰[p] LB now mechanically closed; the ONE open frontier = COMPOSITE = 238 CarryRefinementCrossing. ───
    ──   NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── COMPOSITE WALL, smallest case (step 5) — MOD₆ separated MOD₂/MOD₃ layers CROSS FIELDS (proved NO-GO): ────────
+   ──   nw_mod6_fires_iff_frontier (PROVED): MOD₆ fires iff MOD₂ ∧ MOD₃ fire (CRT, coprime 2,3 / 245 + 270). ─────────
+   ──   nw_mod6_layers_cross_fields_frontier (PROVED): no field has CharP 2 ∧ CharP 3 (no_common_char/243). Each ─────
+   ──   factor native ONLY in its own char (270); the prime route commits to ONE char ⇒ does NOT lift to MOD₆. ───────
+   ──   This IS CarryRefinementCrossing (238) at n=6 — a PROVED no-go (the natural separated-layers idea fails by field
+   ──   incompatibility), NOT a circumvention. Composite ACC⁰ needs a char-independent method. NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3691,6 +3698,20 @@ theorem nw_approximator_product_totalDegree_frontier {σ R : Type} [CommSemiring
     (P Q : MvPolynomial σ R) (D d : ℕ) (hP : P.totalDegree ≤ D) (hQ : Q.totalDegree ≤ d) :
     (P * Q).totalDegree ≤ D + d :=
   ACC0PrimeMechanicalClosure.approximator_times_complement_totalDegree P Q D d hP hQ
+
+/-- **The composite wall, smallest case (step 5) — MOD₆ separated MOD₂/MOD₃ layers cross fields (proved no-go).**
+nw_mod6_fires_iff_frontier (PROVED): MOD₆ fires iff MOD₂ ∧ MOD₃ fire (CRT, coprime 2,3). nw_mod6_layers_cross_fields_
+frontier (PROVED): no field has CharP 2 ∧ CharP 3 (no_common_char/243), so the separated layers — each native only in
+its own characteristic (270) — can't be unified over one polynomial-method field. The prime route (one fixed char)
+does NOT lift to MOD₆: this IS CarryRefinementCrossing (238) at n=6. A proved no-go, not a circumvention. -/
+theorem nw_mod6_fires_iff_frontier {n : ℕ} (x : Fin n → Bool) :
+    ACC0ModpGate.modpGate 6 x = true
+      ↔ (ACC0ModpGate.modpGate 2 x = true ∧ ACC0ModpGate.modpGate 3 x = true) :=
+  ACC0Mod6SeparatedLayers.mod6_fires_iff_mod2_and_mod3 x
+
+/-- **MOD₆ separated layers cross fields (proved no-go): no single field is native for both MOD₂ and MOD₃.** -/
+theorem nw_mod6_layers_cross_fields_frontier (F : Type*) [Field F] : ¬ (CharP F 2 ∧ CharP F 3) :=
+  ACC0Mod6SeparatedLayers.mod6_layers_cross_fields F
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 

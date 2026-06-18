@@ -571,6 +571,27 @@ binomial tail) and the committed `Circ` recursion outside Lean.  **The single ge
 modulus** — the `CarryRefinementCrossing` wall (§3/entry 238).  It is not bookkeeping; it needs a new idea, and is left
 as the one honest open object.
 
+## 5v. The composite wall, smallest case — MOD₆ separated layers cross fields (entry 280, step 5)
+
+The honest composite attack (`…ACC0Mod6SeparatedLayers`): take `6 = 2·3` and the natural "separated layers" idea, and
+**prove precisely where it fails** — pinning `CarryRefinementCrossing` (§3/entry 238) at `n = 6`.  *This is a no-go, not
+a way through.*
+
+* **The CRT factorization (PROVED).**  `mod6_fires_iff_mod2_and_mod3`: `MOD₆` fires iff both `MOD₂` and `MOD₃` fire
+  (`6 ∣ #trues ↔ 2 ∣ #trues ∧ 3 ∣ #trues`, coprimality of 2,3, entries 245/270).  So `MOD₆` genuinely separates into a
+  `MOD₂` and a `MOD₃` layer.
+* **What works field-by-field.**  Each factor is native over its own field (entry 270 — `MOD₂` degree 1 over `F₂`,
+  `MOD₃` degree 2 over `F₃`); the Fermat representation works precisely in characteristic equal to the modulus.
+* **Where it fails (PROVED no-go).**  `mod6_layers_cross_fields`: no field has `CharP F 2 ∧ CharP F 3` (`no_common_char`,
+  entry 243), so the two CRT factors demand *incompatible* characteristics.  The prime route (§5q–§5u) commits to one
+  characteristic; it cannot run on the combined `MOD₆` gate.  **This is the carry-crossing obstruction in its smallest
+  instance** — the polynomial method picks one field, and composite modulus lives over several.
+
+**Net:** the natural way to extend the prime Smolensky route to composite modulus — separate the CRT layers — *provably
+fails by field incompatibility*.  This is exactly why composite `ACC⁰` is the genuine wall: it needs a method *not
+committed to a single characteristic*.  A proved negative structural fact (the `CarryRefinementCrossing` shape at
+`n = 6`), not a circumvention.  Not faked, not a separation.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the
