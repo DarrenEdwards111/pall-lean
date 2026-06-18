@@ -177,6 +177,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultiSortedObserver
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultiSortedFastSAT
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ProductFieldMixing
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Depth2CrossModulus
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0StagedFastSAT
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -799,6 +800,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   through outer MOD₃ WITHOUT representing MOD₂ over F₃ (each layer low-deg over its OWN field, outer reads bits).
    ──   The MOD₂-over-F₃ collapse is forced ONLY by FLATTENING to one field (BT depth-reduction = Smolensky-blocked, ──
    ──   244) = the open core (238). Staged route is a possible crossing IF staged fast-SAT (246) consumes it. NOT P≠NP.
+   ── STAGED FAST-SAT WITHOUT FLATTENING (outer stages FREE; obstruction RELOCATES into the per-cell count): ─────────
+   ──   nw_stagedSAT_outer_decomp_frontier (NO axioms) — SAT through the outer gate = bounded disjunction over accepting
+   ──   residue-classes (outer MOD₃ = ≤3-way case split, NOT flattened); nw_staged_work_le_frontier — outer = |S|-fold
+   ──   constant factor. BUT each per-cell branch counts inputs by #(inner MOD₂ gates firing) mod 3 = cross-field ──────
+   ──   MIXING in COUNTING form (244/249). CONCLUSION: staging without flattening does NOT bypass the wall — it ───────
+   ──   RELOCATES the cross-field mixing into the per-cell count. No crossing, no faked no-go. NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2992,6 +2999,21 @@ theorem nw_depth2_outer_reads_inner_bits_frontier (s : ℕ) (b : Fin s → Bool)
         (ACC0LayeredCarryDegree.modpIndicatorPoly s 3)
       = if ACC0LayeredCarryDegree.countSum s 3 b = 0 then 1 else 0 :=
   ACC0Depth2CrossModulus.outer_mod3_reads_inner_bits s b
+
+/-- **Staged fast-SAT without flattening: outer stages for free; obstruction relocates into the per-cell count.**
+`stagedSAT_outer_decomp` (NO axioms): SAT through the outer gate is a bounded disjunction over accepting residue-classes
+— the outer MOD₃ is a ≤3-way case split, NOT flattened.  `staged_work_le`: the outer contributes only a |S|-fold
+constant factor.  But each per-cell branch counts inputs by #(inner MOD₂ gates firing) mod 3 = cross-field mixing in
+counting form (244/249).  CONCLUSION: staging without flattening does NOT bypass the wall — it relocates the
+cross-field mixing into the per-cell count. -/
+theorem nw_stagedSAT_outer_decomp_frontier {X : Type} (P : X → ℕ) (S : Set ℕ) :
+    (∃ x, P x ∈ S) ↔ ∃ v ∈ S, ∃ x, P x = v :=
+  ACC0StagedFastSAT.stagedSAT_outer_decomp P S
+
+/-- **Staged fast-SAT: the outer staging is a constant (|S|-fold) factor (proved).** -/
+theorem nw_staged_work_le_frontier (S : Finset ℕ) (W : ℕ → ℕ) (M : ℕ) (h : ∀ v ∈ S, W v ≤ M) :
+    ∑ v ∈ S, W v ≤ S.card * M :=
+  ACC0StagedFastSAT.staged_work_le S W M h
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
