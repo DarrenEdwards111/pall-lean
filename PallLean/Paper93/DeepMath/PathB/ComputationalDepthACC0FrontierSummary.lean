@@ -181,6 +181,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0StagedFastSAT
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CrossFieldCountCore
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BlockOverlapCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TreewidthCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ExpanderCountObstruction
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -827,6 +828,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   Iterated over a tree decomposition of width ≤w (separators ≤2^w) = FPT-in-treewidth DP. Disjoint=tw 0, block= ─
    ──   bounded-tw disconnected. OPEN: unbounded treewidth / expander incidence (no small separators) = Smolensky (238).
    ──   NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── EXPANDER COUNT OBSTRUCTION (the conjectural bridge; DP-restricted bound PROVED, general bound SOCKETED): ───────
+   ──   IsSeparator/ExpanderIncidence (no small separator) geometry. nw_dp_observer_needs_large_boundary_frontier ─────
+   ──   (PROVED, trivial): a separator-DP observer's boundary IS a separator ⇒ on an expander ≥ k. SOCKET (Smolensky- ─
+   ──   strength, def not theorem): ExpanderCountObstruction — ANY observer (incl. ALGEBRAIC) computing mod-q fire- ───
+   ──   count needs large boundary; the gap from the DP bound = ruling out algebraic shortcuts = the real wall. ───────
+   ──   Positive side (bounded separator ⇒ factor) = 251-253. Next = special expander families. NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3088,6 +3095,18 @@ theorem nw_separator_factor_indep_frontier (A B : Type) [Fintype A] [Fintype B]
     (Finset.univ.filter (fun x : A × B => PA x.1 ∧ PB x.2)).card
       = (Finset.univ.filter (fun a => PA a)).card * (Finset.univ.filter (fun b => PB b)).card :=
   ACC0TreewidthCount.separator_factor_indep A B PA PB
+
+/-- **Expander count obstruction: the conjectural bridge — DP-restricted bound proved, general bound socketed.**
+`dp_observer_needs_large_boundary` (PROVED, trivial): a separator-DP observer's boundary IS a separator, so on an
+expander (no small separator) it must be ≥ k.  The general lower bound — ANY observer (incl. algebraic) computing the
+mod-q fire-count needs large boundary — is the named socket `ExpanderCountObstruction`, Smolensky-strength, NOT proved.
+The gap = ruling out algebraic shortcuts.  Positive side (bounded separator ⇒ factor) = 251-253. -/
+theorem nw_dp_observer_needs_large_boundary_frontier {V Gate : Type} [Fintype Gate] [DecidableEq Gate]
+    [DecidableEq V] (supp : Gate → Finset V) (k : ℕ) (boundary : Finset V)
+    (hexp : ACC0ExpanderCountObstruction.ExpanderIncidence supp k)
+    (hsep : ACC0ExpanderCountObstruction.IsSeparator supp boundary) :
+    k ≤ ACC0ExpanderCountObstruction.ObserverBoundarySize boundary :=
+  ACC0ExpanderCountObstruction.dp_observer_needs_large_boundary supp k boundary hexp hsep
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
