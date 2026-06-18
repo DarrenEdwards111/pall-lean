@@ -386,6 +386,26 @@ Hamming weight is `≡ 0 mod p`.
 (§5l) — and the native/non-native split is made precise: every gate is *low-degree native*, and the entire difficulty is
 concentrated in the *non-native composite-`MOD`* lower bound, which is the single open wall.  Not faked, not a separation.
 
+## 5m. The native/non-native bridge — split made theorem-level (entry 271)
+
+The assembly step (`…ACC0NativeNonNativeBridge`): the native/non-native split, hitherto stated as commentary, is now a
+*theorem*, with `MOD_p` wired to the `PatternRich`/cross-field socket via the **dictator family** `gᵢ(x) := xᵢ`.
+
+* **Native (PROVED).**  `modp_native_easy`: over `F_p`, `MOD_p` has the exact degree-`(p-1)` representation (§5l) —
+  the native side is easy.
+* **The cross-field identity (PROVED).**  `modp_iff_dictator_crossFieldCount_zero`: `MOD_p` fires iff the dictator
+  cross-field count mod `p` is `0` — `MOD_p` *is* the entry-251 cross-field-count object (`modpGate_fires_iff` +
+  `Nat.dvd_iff_mod_eq_zero`).
+* **The non-native target (PROVED antecedent).**  `dictator_meets_patternRich_socket`: the dictator family is
+  `AlgExpander ∧ PatternRich (2^s)` (§5c–§5d) — it satisfies the antecedent of `PatternRichCrossFieldLowerBound` (§5d).
+  So the non-native hardness of `MOD_p`'s cross-field count over `F_q` *is* that central socket.
+* **The split (PROVED).**  `native_nonnative_split` packages both: native exact `F_p` rep + cross-field identification.
+
+**Net:** the path from here is pure assembly.  The split is theorem-level; the non-native object is identified with the
+central socket `PatternRichCrossFieldLowerBound`, whose antecedent is provably met and which §5f already reduced to the
+single `PolynomialMethodApproximation` ingredient — for which §5f–§5l supply the entire proved RS analytic kernel.  The
+one open theorem is the non-native (composite-`MOD`) lower bound itself — the wall.  Not faked, not a separation.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the

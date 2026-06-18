@@ -198,6 +198,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Independence
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpGate
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NativeNonNativeBridge
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -955,6 +956,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   nw_modpGate_fires_iff_frontier (PROVED): MOD_p = (p ∣ #trues) = the SYM/cross-field-count object (251). ──────
    ──   DICHOTOMY: native (F_p) easy degree p-1; non-native (F_ℓ, ℓ≠p) high degree = the RS wall (mechanism = ────────
    ──   algExpander_forces_high_degree/264; composite modulus = the open wall 238). NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── NATIVE/NON-NATIVE BRIDGE — the split is now THEOREM-LEVEL + MOD_p wired to the PatternRich socket: ───────────
+   ──   nw_native_nonnative_split_frontier (PROVED): (native) MOD_p = exact degree-(p-1) F_p rep; (cross-field) MOD_p ─
+   ──   fires iff DICTATOR cross-field count mod p = 0 (= the entry-251 object). nw_dictator_meets_patternRich_socket_
+   ──   frontier (PROVED): dictator family = AlgExpander ∧ PatternRich(2^s) = the antecedent of ────────────────────
+   ──   PatternRichCrossFieldLowerBound (262). So non-native MOD_p over F_q IS the central socket (reduced by 264 to ─
+   ──   PolynomialMethodApproximation; 264-270 = the proved RS kernel). NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3478,6 +3485,25 @@ theorem nw_modp_native_repr_frontier {p : ℕ} [Fact p.Prime] {n : ℕ} (x : Fin
 theorem nw_modpGate_fires_iff_frontier {p n : ℕ} (x : Fin n → Bool) :
     ACC0ModpGate.modpGate p x = true ↔ p ∣ (Finset.univ.filter (fun i => x i = true)).card :=
   ACC0ModpGate.modpGate_fires_iff x
+
+/-- **The native/non-native bridge — split theorem-level + MOD_p wired to the PatternRich socket (proved).**
+nw_native_nonnative_split_frontier (PROVED): (native) MOD_p has the exact degree-(p-1) F_p rep; (cross-field) MOD_p
+fires iff the DICTATOR cross-field count mod p is 0 — identifying MOD_p with the entry-251 object.
+dictator_meets_patternRich_socket (PROVED): the dictator family is AlgExpander ∧ PatternRich(2^s), hitting the
+antecedent of PatternRichCrossFieldLowerBound (262). So the non-native MOD_p hardness over F_q IS the central socket
+(reduced by 264 to PolynomialMethodApproximation, with 264-270 the proved RS kernel). -/
+theorem nw_native_nonnative_split_frontier {p : ℕ} [Fact p.Prime] {n : ℕ} :
+    (∀ x : Fin n → Bool, ACC0ModpGate.modpPoly p x = if ACC0ModpGate.modpGate p x then 1 else 0)
+      ∧ (∀ x : Fin n → Bool, ACC0ModpGate.modpGate p x = true
+          ↔ ACC0CrossFieldCountCore.crossFieldCount p
+              (fun (i : Fin n) (x : Fin n → Bool) => x i) x = 0) :=
+  ACC0NativeNonNativeBridge.native_nonnative_split
+
+/-- **The dictator family hits the central lower-bound socket's antecedent (proved): AlgExpander ∧ PatternRich(2^s).** -/
+theorem nw_dictator_meets_patternRich_socket_frontier {F : Type} [Field F] (s : ℕ) :
+    ACC0AlgebraicExpansion.AlgExpander (F := F) (fun (i : Fin s) (x : Fin s → Bool) => x i)
+      ∧ ACC0FirePatternRichness.PatternRich (fun (i : Fin s) (x : Fin s → Bool) => x i) (2 ^ s) :=
+  ACC0NativeNonNativeBridge.dictator_meets_patternRich_socket s
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
