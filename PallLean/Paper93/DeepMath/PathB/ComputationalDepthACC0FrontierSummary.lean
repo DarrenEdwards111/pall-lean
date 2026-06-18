@@ -175,6 +175,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CrossFieldCombinati
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SmolenskyLowerBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultiSortedObserver
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultiSortedFastSAT
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ProductFieldMixing
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -784,6 +785,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   fast-SAT WOULD run IF the per-field SYM∘AND reps of the composite MOD_m gates existed — but they CAN'T ────────
    ──   (Smolensky 244 + cross-field MIXING inside the circuit, not just readout). That mixing = the blocked ─────────
    ──   ACC⁰[composite] core (238). Counting fine; per-field gate representation NOT built. NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── MOD₆ ONE-LAYER PRODUCT-FIELD MIXING (one layer composes WITHOUT collapse; depth = the wall): ──────────────────
+   ──   nw_mixedOut_determined_frontier (NO axioms) — a one-layer mixed MOD_2/MOD_3 output is determined by the PRODUCT
+   ──   observer state (count mod 2, count mod 3) — NO collapse to F_2/F_3 (gate outputs are bits, combiner is Boolean,
+   ──   touches no field arithmetic); nw_mixedOut_by_mod6_frontier — read by count mod 6 (CRT ZMod 6≅ZMod 2×ZMod 3); ──
+   ──   mixedOut_cells_le_six (≤6 cells). LOCALIZES the wall to DEPTH ≥ 2 nesting: MOD_q fed by non-native MOD_p forces
+   ──   arithmetizing MOD_p over F_q = Smolensky-blocked (244). One-layer = partial crossing. NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -2944,6 +2951,21 @@ theorem nw_jointCells_le_pow_frontier {k : ℕ} (mcount : Fin k → ℕ) (M : �
 theorem nw_multiSorted_savings_frontier (W n j : ℕ) (hj : j ≤ n) (hW : W ≤ 2 ^ (n - j)) :
     2 ^ j * W ≤ 2 ^ n :=
   ACC0MultiSortedFastSAT.multiSorted_savings W n j hj hW
+
+/-- **MOD₆ one-layer product-field mixing: one layer composes WITHOUT collapse (proved); depth is the wall.**
+`mixedOut_determined` (NO axioms): a one-layer mixed MOD_2/MOD_3 output is determined by the product observer state
+(count mod 2, count mod 3) — no collapse to F_2/F_3 (gate outputs are bits, combiner is Boolean).
+`mixedOut_determined_by_mod6`: equivalently read by count mod 6 (CRT ZMod 6 ≅ ZMod 2 × ZMod 3); `mixedOut_cells_le_six`:
+≤ 6 cells.  Localizes the wall to DEPTH ≥ 2 nesting (MOD_q fed by non-native MOD_p = Smolensky-blocked, 244). -/
+theorem nw_mixedOut_determined_frontier (comb : Bool → Bool → Bool) (k k' : ℕ)
+    (h2 : k % 2 = k' % 2) (h3 : k % 3 = k' % 3) :
+    ACC0ProductFieldMixing.mixedOut comb k = ACC0ProductFieldMixing.mixedOut comb k' :=
+  ACC0ProductFieldMixing.mixedOut_determined comb k k' h2 h3
+
+/-- **MOD₆ one-layer mixing read by the product observer count mod 6 (proved).** -/
+theorem nw_mixedOut_by_mod6_frontier (comb : Bool → Bool → Bool) (k k' : ℕ) (h : k % 6 = k' % 6) :
+    ACC0ProductFieldMixing.mixedOut comb k = ACC0ProductFieldMixing.mixedOut comb k' :=
+  ACC0ProductFieldMixing.mixedOut_determined_by_mod6 comb k k' h
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
