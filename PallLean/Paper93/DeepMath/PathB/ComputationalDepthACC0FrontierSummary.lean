@@ -204,6 +204,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0QuantitativeDepthBo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0QuantitativeIteration
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SmolenskyPigeonhole
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SmolenskyDegreeHalving
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FullProductGoodSet
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -998,6 +999,12 @@ into one conditional theorem whose only open inputs are the two genuine walls.
    ──   product × complement with 2·|Sᶜ|<n. Replacing the full product by the degree-D approximator on the good set ──
    ──   (socket FullProductLowDegreeOnGoodSet) ⇒ degree ≤ n/2+D = SmolenskyDegreeHalving (275). PRIME = textbook; ─────
    ──   COMPOSITE = the open 238 CarryRefinementCrossing wall (untouched). NOT NEXP⊄ACC⁰, NOT P≠NP.
+   ── PRIME-CASE WIRING (step 1) — replace the full product by the approximator on the good set, PROVED: ──────────
+   ──   nw_fullProduct_replace_on_goodSet_frontier (PROVED): if approximator P = full product ∏ᵢ yencₓ i on good set G,
+   ──   then on G the monomial ∏_{i∈S} yencₓ i = P x · ∏_{i∈Sᶜ} yencₓ i (substitute agreement into 276's substitution).
+   ──   High-degree monomial → approximator × sub-half-degree complement on G — the BRIDGE from 276 into the proven ──
+   ──   approximation machinery (boosting 267 / Approximable). The agreement hyp IS the approximation output. Residual:
+   ──   ApproximatorDegreeBound (product-degree bookkeeping). Composite = 238 (untouched). NOT NEXP⊄ACC⁰, NOT P≠NP.
  Route B: composite Beigel-Tarui ⇒ NEXP⊄ACC⁰   PROVED   williams_route_frontier             (…ACC0RankRouteFrontier)
    open socket: composite_BT_degree (composite-modulus quasipoly SYM∘AND rep) + williams + hierarchy
  ── cell-count route: the sharpest observer invariant (cells, not rank) — the OFFICIAL FINAL TARGET ───────
@@ -3624,6 +3631,19 @@ theorem nw_monomial_halving_frontier {F : Type} [CommRing F] {n : ℕ} (y : Fin 
     (hy : ∀ i, y i ^ 2 = 1) (S : Finset (Fin n)) (h : n < 2 * S.card) :
     (∏ i ∈ S, y i) = (∏ i, y i) * (∏ i ∈ Sᶜ, y i) ∧ 2 * Sᶜ.card < n :=
   ACC0SmolenskyDegreeHalving.monomial_halving y hy S h
+
+/-- **Prime-case wiring (roadmap step 1): replace the full product by the approximator on the good set (proved).**
+nw_fullProduct_replace_on_goodSet_frontier (PROVED): if the approximator P agrees with the full product ∏ᵢ yencₓ i on the
+good set G, then on G the monomial ∏_{i∈S} yencₓ i = P x · ∏_{i∈Sᶜ} yencₓ i (substitute the agreement into entry-276's
+smolensky_substitution). So a high-degree monomial becomes approximator × sub-half-degree complement on G — the bridge
+from entry 276 into the approximation machinery (boosting 267 / Approximable). Residual: ApproximatorDegreeBound
+(product-degree bookkeeping). -/
+theorem nw_fullProduct_replace_on_goodSet_frontier {F : Type} [CommRing F] {n : ℕ} {X : Type}
+    (yenc : X → Fin n → F) (hy : ∀ x i, (yenc x i) ^ 2 = 1)
+    (P : X → F) (G : Finset X) (S : Finset (Fin n))
+    (hP : ∀ x ∈ G, P x = ∏ i, yenc x i) :
+    ∀ x ∈ G, (∏ i ∈ S, yenc x i) = P x * (∏ i ∈ Sᶜ, yenc x i) :=
+  ACC0FullProductGoodSet.fullProduct_replace_on_goodSet yenc hy P G S hP
 
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 

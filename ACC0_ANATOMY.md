@@ -509,6 +509,28 @@ bound now rests on the *single* circuit-specific socket `FullProductLowDegreeOnG
 symmetric product on its good set).  Composite modulus remains the open `CarryRefinementCrossing` wall.  Not faked, not a
 separation.
 
+## 5s. The prime-case wiring — replacing the full product by the approximator (entry 277, step 1)
+
+The bridge from entry 276 into the proven approximation machinery (`…ACC0FullProductGoodSet`).  Entry 276's residual
+socket `FullProductLowDegreeOnGoodSet` needed *the approximator to equal the full product on the good set*; this entry
+shows that agreement is exactly what replaces the full product by the approximator inside the halving.
+
+* **The wiring (PROVED).**  `fullProduct_replace_on_goodSet`: given `∀ x ∈ G, P x = ∏ᵢ yencₓ i` (the approximator agrees
+  with the full product on the good set), then on `G`, `∏_{i∈S} yencₓ i = P x · ∏_{i∈Sᶜ} yencₓ i` — substitute the
+  agreement into §5r's `smolensky_substitution`.  The hard full product is replaced by the degree-`D` approximator.
+* **The halving packaged (PROVED).**  `monomial_eq_approx_times_lowComplement`: for `|S| > n/2`, on `G` the high-degree
+  monomial equals approximator × sub-half-degree complement (`2·|Sᶜ| < n`).
+* **The residual socket.**  `ApproximatorDegreeBound` — `P` degree `≤ D` ⇒ the product has degree `≤ D + n/2`, so
+  good-set point functions ∈ `lowDegreeSubmodule n (D + n/2)`, discharging `SmolenskyDegreeHalving` (§5q/§5r).
+
+**Net:** the *agreement input* of the degree-halving socket — formerly the unspecified "approximator = full product on
+good set" — is now wired to the approximation machinery: it is precisely what boosting (§5i) / `Approximable` (committed
+arc) supply (the `AC⁰[p]` approximator agreeing with the symmetric target off a small bad set).  For the **prime case**,
+the Smolensky lower bound is now assembled from proved parts: approximation (good set large) → full-product replacement
+(§5s) → degree-halving (§5r) → pigeonhole contradiction (§5q), modulo only `ApproximatorDegreeBound` (product-degree
+bookkeeping).  **Composite modulus stays the open `CarryRefinementCrossing` wall** (§3/entry 238) — deliberately
+untouched.  Not faked, not a separation.
+
 ## 6. Honest conclusion
 
 The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the
