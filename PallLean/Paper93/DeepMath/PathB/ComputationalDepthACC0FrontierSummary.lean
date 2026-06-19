@@ -247,6 +247,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanTran
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanTransFromPres
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMWriteAtId
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanListPres
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanTransFromEq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4272,6 +4273,18 @@ theorem nw_scanNatFrom_run_eq_frontier (s s' n h : ℕ) (tp : List Bool)
       (s, h, tp) (s', h + n + 1, tp) :=
   ACC0UniversalTMScanListPres.scanNatFrom_run_eq s s' n h tp htrue hfalse hbound
 
+/-- **Entry 371: the list-preserving record scanner `scanTransFrom_run_eq` (PROVED).**  Composing the list-preserving
+field scanners: scanning one transition on `T = pre ++ encodeTransBits t ++ rest` from state `base` returns `T`
+*exactly* (head past the record).  Every field scan is on the same `T`, so there is no preservation-transport — the
+property the rule-table loop needs to re-run the scanner on the post-scan tape. -/
+theorem nw_scanTransFrom_run_eq_frontier (base : ℕ) (t : ACC0ConcreteNTM.TMTrans) (pre rest : List Bool) :
+    ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (ACC0UniversalTMScanTransFrom.scanTransFrom base))
+      (t.1.1 + t.2.1 + t.2.2.2.val + 5)
+      (base, pre.length, pre ++ ACC0UniversalTMScannable.encodeTransBits t ++ rest)
+      (base + 5, pre.length + (t.1.1 + t.2.1 + t.2.2.2.val + 5),
+        pre ++ ACC0UniversalTMScannable.encodeTransBits t ++ rest) :=
+  ACC0UniversalTMScanTransFromEq.scanTransFrom_run_eq base t pre rest
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5595,3 +5608,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanTransFrom_run_pres_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_writeAt_id_of_lt_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanNatFrom_run_eq_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanTransFrom_run_eq_frontier
