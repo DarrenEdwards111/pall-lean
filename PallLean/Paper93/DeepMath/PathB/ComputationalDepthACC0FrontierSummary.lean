@@ -197,6 +197,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeCandidateU
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ForeignGateObstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountingObserverWilliams
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountingBranchSeparation
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWReconstructionBridgeYao
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3621,6 +3622,32 @@ theorem nw_nframe_counting_branch_to_williams_separation_frontier
     ACC0CountingObserverWilliams.NFrameCountingBranch → ¬ (ACC0NTM.NEXP ⊆ ACC0) :=
   ACC0CountingBranchSeparation.nframe_counting_branch_to_williams_separation ACC0 f g speedup residues
 
+/-- **Entry 321: `bridgeYao` discharged in the NW reconstruction assembly (PROVED).**  The probability-level Yao
+predictor yields the concrete small predictor circuit `SmallPredictor D gidx` (size `≤ size D + 3`, guess-and-correct
+rule) — the residual `YaoCircuitEfficiency` socket of entry 316, proved via entry 194's `yaoCircuitEfficiency_discharge`.
+Instantiated into 316's assembly, `HardFunction → PRGExists` now rests on only `bridgeRecon`. -/
+theorem nw_bridgeYao_discharged_frontier {Nc : ℕ} (D : ACC0NisanWigdersonYaoCircuit.Circ Nc) (gidx : Fin Nc)
+    (f : ℕ → ℝ) (m : ℕ) (ε : ℝ) :
+    ACC0NisanWigdersonYao.YaoNextBitPredictor f m ε → ACC0NisanWigdersonYaoCircuit.SmallPredictor D gidx :=
+  ACC0NWReconstructionBridgeYao.bridgeYao_discharged D gidx f m ε
+
+/-- **Entry 321: `HardFunction → PRGExists` with `bridgeYao` discharged (PROVED).**  Only `bridgeRecon`, the irreducible
+hardness, and the proved design remain. -/
+theorem nw_hardFn_to_prgExists_bridgeYao_discharged_frontier
+    {n : ℕ} (f : ℕ → ℝ) (m : ℕ) (ε : ℝ) (hε : 0 < ε)
+    (predictorSize numOther k s : ℕ) (r : Fin numOther → ℕ)
+    {Nc : ℕ} (D : ACC0NisanWigdersonYaoCircuit.Circ Nc) (gidx : Fin Nc)
+    (fbool : (Fin n → Bool) → Bool)
+    (bridgeRecon : ACC0NisanWigdersonReconstruction.SmallCircuitForFAt
+        (ACC0NisanWigdersonYaoCircuit.SmallPredictor D gidx)
+        (predictorSize + ∑ j, Fintype.card (Fin (r j) → Bool))
+        (predictorSize + numOther * 2 ^ k) → ACC0NisanWigdersonHardness.HasCircuitOfSize fbool s)
+    (hdesign : ACC0NisanWigdersonReconstruction.ReconDesign numOther k r) :
+    ACC0NisanWigdersonHardness.HardFor fbool s →
+      ¬ ACC0NisanWigdersonHybrid.GlobalAdvantage f m ε :=
+  ACC0NWReconstructionBridgeYao.hardFn_to_prgExists_bridgeYao_discharged f m ε hε
+    predictorSize numOther k s r D gidx fbool bridgeRecon hdesign
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -4876,3 +4903,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_countingObserver_to_williamsRoute_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_nframe_counting_branch_eq_williams_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_nframe_counting_branch_to_williams_separation_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_bridgeYao_discharged_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_hardFn_to_prgExists_bridgeYao_discharged_frontier
