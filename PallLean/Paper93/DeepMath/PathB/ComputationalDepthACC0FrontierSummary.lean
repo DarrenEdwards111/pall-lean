@@ -235,6 +235,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalOverhead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWGuessVerify
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IKWHardFnSeparation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PhysicalUniversalLoop
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PhysicalUniversalMachine
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -4119,6 +4120,16 @@ theorem nw_physical_tracks_lift_frontier {Realizes : List Bool → List Bool →
     Realizes (enc s) (enc t) (k * B) :=
   ACC0PhysicalUniversalLoop.physical_tracks_lift enc B refl0 perStep compose k s t h
 
+/-- **`perStep` discharged: the concrete phased machine `physU` tracks the full run (proved, no hypotheses).**
+nw_physU_tracks_frontier (PROVED): the explicit four-phase controller `physU` (decode→lookup→apply→re-encode) realizes
+the entire encoded universal run in `4k` physical steps — `reachIn uEncNTM k s t → reachIn physU (k*4) (tape s)
+(tape t)` — discharging entry-308's `perStep`/`compose` hypotheses with no remaining open hypotheses (entry 309). -/
+theorem nw_physU_tracks_frontier (k : ℕ) (s t : List Bool)
+    (h : ACC0NTM.reachIn ACC0UniversalRun.uEncNTM k s t) :
+    ACC0NTM.reachIn ACC0PhysicalUniversalMachine.physU (k * 4)
+      (ACC0PhysicalUniversalMachine.PUConfig.tape s) (ACC0PhysicalUniversalMachine.PUConfig.tape t) :=
+  ACC0PhysicalUniversalMachine.physU_tracks k s t h
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4679,3 +4690,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_guess_verify_within_fast_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_hardFnSeparation_from_parts_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_physical_tracks_lift_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_physU_tracks_frontier

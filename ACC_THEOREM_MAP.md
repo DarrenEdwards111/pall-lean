@@ -240,6 +240,17 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
       hypotheses: perStep [one uEncStep = B=stepOverhead primitive steps, the decode→lookup→apply→encode loop, 305] +
       compose/refl0 [U's reachability composes additively, standard]. Classical TM engineering, not open.
 
+  PHYSICAL UNIVERSAL MACHINE — perStep DISCHARGED by an explicit phased controller (309, proved):
+    PUConfig (tape s | dec M c | loc M c t | app M d); physStep advances one phase per step, each move = a phase contract:
+      tape s →[decodeSim s=some(M,c)] dec M c →[t∈matchingRules] loc M c t →[d=applyTrans c t] app M d →[u=encodeSim M d] tape u
+    • perStep_phys : uEncStep s u → reachIn physU 4 (tape s)(tape u) — the 4-phase trace, from the proved contracts
+    • physU_tracks : reachIn uEncNTM k s t → reachIn physU (k*4)(tape s)(tape t) — via physical_tracks_lift with physU,
+      perStep_phys + reachIn_add (compose), NO REMAINING HYPOTHESES.
+    ⇒ entry-308's perStep/compose/refl0 hypotheses DISCHARGED with a concrete machine. Transition-table compile now:
+      logical[304]+resource-B[305]+phase-assembly[308]+lift[308]+perStep-discharge[309] ALL PROVED. physU at phase
+      granularity (B=4 macro-steps), per-phase time = stepOverhead [305]; only refinement left = phase→primitive-cell-ops
+      (phase-internal detail). The U-rule-table loop is GROUND OUT to a concrete machine with proved step/time bounds.
+
   NW GUESS-VERIFY (target 2, Williams link 3) — verify inside the fast-SAT framework (306, proved):
     already proved: gvDecider_eq (correctness), guess_verify_within (two-phase time), guessVerify_subset (collapse).
     • nw_guess_verify_within_fast : guess small (guessT ≤ 2^{n-k}) + verify via fast-SAT (verifyT ≤ 2^{n-k})
