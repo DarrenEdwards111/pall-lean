@@ -209,6 +209,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RoutingMachineCompo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RoutingMachineWiring
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RoutingMachineSequencing
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RoutingMachinePhaseDemo
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AbstractConcreteBridge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3822,6 +3823,17 @@ theorem nw_demoRouting_accepts_frontier (qexit s : ℕ) (x : List Bool) :
     ACC0NTM.acceptsWithin (ACC0ConcreteNTM.toNTM (ACC0RoutingMachinePhaseDemo.demoRouting qexit s)) x 3 :=
   ACC0RoutingMachinePhaseDemo.demoRouting_accepts qexit s x
 
+/-- **Entry 333: the abstract-NTM → concrete-TMachine bridge — simulation transfers acceptance (PROVED).**  A concrete
+`TMachine` that step-simulates an abstract `NTM` (the `Realizes` interface: each step = `cost` steps, init/accept
+matched) transfers acceptance with a `× cost` time blowup: `acceptsWithin A x t → acceptsWithin (toNTM M) x (t*cost)`.
+Reduces the universal-simulation phase to one named construction — a concrete universal TM table realizing `physU`. -/
+theorem nw_acceptsWithin_realize_frontier {A : ACC0NTM.NTM} {M : ACC0ConcreteNTM.TMachine}
+    {φ : A.Config → ACC0ConcreteNTM.CConfig} {cost : ℕ}
+    (h : ACC0AbstractConcreteBridge.Realizes A M φ cost) {x : List Bool} {t : ℕ}
+    (ha : ACC0NTM.acceptsWithin A x t) :
+    ACC0NTM.acceptsWithin (ACC0ConcreteNTM.toNTM M) x (t * cost) :=
+  ACC0AbstractConcreteBridge.acceptsWithin_realize h ha
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5099,3 +5111,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reachIn_in_combined_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reachIn_seq_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_demoRouting_accepts_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_acceptsWithin_realize_frontier
