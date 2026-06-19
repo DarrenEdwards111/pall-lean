@@ -231,6 +231,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalCharObstru
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyDiagonalConstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyDeciderAssembly
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalRun
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalOverhead
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -4065,6 +4066,18 @@ theorem nw_uEncNTM_tracks_frontier (M : ACC0ConcreteNTM.TMachine) (k : ℕ) (c c
       (ACC0UniversalDecode.encodeSim M c) (ACC0UniversalDecode.encodeSim M c') :=
   ACC0UniversalRun.uEncNTM_tracks M k c c' h
 
+/-- **The universal step overhead B is polynomially bounded (proved).**
+nw_uStep_cost_bound_frontier (PROVED): at any config reached in `≤ k` steps from `(0,0,x)`, one universal step's
+resource footprint (rules scanned + tape region up to the head) is `≤ stepOverhead M.length (|x| + k)` — from the
+rule-scan bound (`≤ M.length`) and the bounded head region (`≤ k`).  The concrete per-step overhead `B` the
+transition-table compile socket asked for (entry 305). -/
+theorem nw_uStep_cost_bound_frontier (M : ACC0ConcreteNTM.TMachine) (k : ℕ) (x : List Bool)
+    (c : ACC0ConcreteNTM.CConfig)
+    (h : ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM M) k (0, 0, x) c) :
+    (ACC0RuleLookup.matchingRules M c.1 (ACC0ConcreteNTM.readSym c)).length + (c.2.1 + 1)
+      ≤ ACC0UniversalOverhead.stepOverhead M.length (x.length + k) :=
+  ACC0UniversalOverhead.uStep_cost_bound M k x c h
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4621,3 +4634,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lazyDiagLang_escapes_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lazy_time_hierarchy_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_uEncNTM_tracks_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_uStep_cost_bound_frontier

@@ -221,6 +221,16 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
       faithfully simulates M's entire k-step computation. Closes the LOGICAL side of the compile socket; remaining =
       physical realisation of uEncStep as concrete TMachine rules with per-step overhead B (decode/lookup/rewrite sub-machines).
 
+  UNIVERSAL OVERHEAD — the per-step bound B is poly (305, proved):
+    stepOverhead mLen tapeBound := mLen + tapeBound + 1  [scan + region + O(1)]
+    • head_bound_from_init : reachIn (toNTM M) k (0,0,x) c ⇒ c.2.1 ≤ k (bounded head region, from reachIn_head_le)
+    • uStep_cost_bound : one step's footprint (matchingRules.length + (head+1)) ≤ stepOverhead M.length (|x|+k)
+      [from matchingRules_length_le (scan ≤ M.length) + head bound (≤k)]
+    ⇒ the concrete per-step overhead B = poly(M.length, |x|+k) on one universal step's RESOURCES, from the proved
+      RuleLookup + HeadLocation contracts. Remaining = U's rules executing one resource-op per primitive step
+      (the interpreter loop) — classical engineering. So compile socket = LOGICAL [304] + RESOURCE-B [305] DONE;
+      only the U-rule-table-executes-one-op-per-step realisation remains.
+
   LAZY-DECIDER ASSEMBLY — complement-free hierarchy, ONE socket left (303, proved):
     • lazy_diag_not_in_smaller : Smaller ⊆ range enum ⇒ lazyDiagLang enum ∉ Smaller (from 302 escape)
     • lazy_time_hierarchy : henum + hbig(lazyDiagLang ∈ Bigger) ⇒ ¬(Bigger ⊆ Smaller) — the NTIME hierarchy on the
