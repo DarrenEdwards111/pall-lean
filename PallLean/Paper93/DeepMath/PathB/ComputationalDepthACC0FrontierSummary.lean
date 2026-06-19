@@ -198,6 +198,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ForeignGateObstruct
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountingObserverWilliams
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountingBranchSeparation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWReconstructionBridgeYao
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWReconstructionBridgeRecon
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3648,6 +3649,25 @@ theorem nw_hardFn_to_prgExists_bridgeYao_discharged_frontier
   ACC0NWReconstructionBridgeYao.hardFn_to_prgExists_bridgeYao_discharged f m ε hε
     predictorSize numOther k s r D gidx fbool bridgeRecon hdesign
 
+/-- **Entry 322: `bridgeRecon` constructed — the reconstructed circuit built syntactically (PROVED).**  The last
+model-dependent bridge of entry 316: the reconstructed circuit is `csubst tables P` (the Yao predictor `P` with the
+hardwired block tables substituted into its inputs), its semantics proved (`subst_eval`) and its size bounded
+(`subst_size_le`).  Given the composition correctness (entry 196) and bounded tables, it is a concrete circuit computing
+`fbool` of size `≤ P.size · M`: `HasCircuitOfSize fbool (P.size * M)`. -/
+theorem nw_reconstructed_hasCircuit_frontier {n Nc : ℕ}
+    (P : ACC0NisanWigdersonYaoCircuit.Circ Nc) (tables : Fin Nc → ACC0NisanWigdersonYaoCircuit.Circ n)
+    (fbool : (Fin n → Bool) → Bool) (M : ℕ) (hM : ∀ j, (tables j).size ≤ M) (hM1 : 1 ≤ M)
+    (hcomp : ∀ x, P.eval (fun j => (tables j).eval x) = fbool x) :
+    ACC0NisanWigdersonHardness.HasCircuitOfSize fbool (P.size * M) :=
+  ACC0NWReconstructionBridgeRecon.reconstructed_hasCircuit P tables fbool M hM hM1 hcomp
+
+/-- **Entry 322: circuit substitution preserves semantics (PROVED): the reconstruction wiring mechanism.** -/
+theorem nw_csubst_eval_frontier {n Nc : ℕ}
+    (g : Fin Nc → ACC0NisanWigdersonYaoCircuit.Circ n) (P : ACC0NisanWigdersonYaoCircuit.Circ Nc)
+    (x : Fin n → Bool) :
+    (ACC0NWReconstructionBridgeRecon.csubst g P).eval x = P.eval (fun j => (g j).eval x) :=
+  ACC0NWReconstructionBridgeRecon.subst_eval g P x
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -4905,3 +4925,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_nframe_counting_branch_to_williams_separation_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_bridgeYao_discharged_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_hardFn_to_prgExists_bridgeYao_discharged_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reconstructed_hasCircuit_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_csubst_eval_frontier
