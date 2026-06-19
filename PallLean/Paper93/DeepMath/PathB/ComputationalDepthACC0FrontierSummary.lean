@@ -243,6 +243,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCopyBitR
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCopyStep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCopyBlock
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCopyBlockReturn
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanTransFrom
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4229,6 +4230,17 @@ theorem nw_copyBlockReturn_run_frontier (m L s j : ℕ) (tp : List Bool) (hL : L
       (∀ q, q < j + m → tp'.getD q false = tp.getD q false) :=
   ACC0UniversalTMCopyBlockReturn.copyBlockReturn_run m L s j tp hL
 
+/-- **Entry 367: the relocatable record scanner `scanTransFrom` (PROVED).**  `scanTrans` generalised to an arbitrary
+state base and head offset: from state `base` at the start of a record (head `pre.length`), `scanTransFrom base` scans
+the whole `encodeTransBits t` in `rs+ws+mv+5` steps to state `base+5`, head past the record — the loopable unit of the
+rule-table traversal. -/
+theorem nw_scanTransFrom_run_frontier (base : ℕ) (t : ACC0ConcreteNTM.TMTrans) (pre rest : List Bool) :
+    ∃ tp', ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (ACC0UniversalTMScanTransFrom.scanTransFrom base))
+        (t.1.1 + t.2.1 + t.2.2.2.val + 5)
+        (base, pre.length, pre ++ ACC0UniversalTMScannable.encodeTransBits t ++ rest)
+        (base + 5, pre.length + (t.1.1 + t.2.1 + t.2.2.2.val + 5), tp') :=
+  ACC0UniversalTMScanTransFrom.scanTransFrom_run base t pre rest
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5548,3 +5560,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_copyStep_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_copyBlock_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_copyBlockReturn_run_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanTransFrom_run_frontier
