@@ -216,6 +216,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMLookup
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMLoop
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScannable
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMBitLookup
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMBitApply
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3911,6 +3912,19 @@ theorem nw_bitLookup_sound_frontier (M : ACC0ConcreteNTM.TMachine) (c : ACC0Conc
     ACC0ConcreteNTM.concreteStep M c (ACC0ConcreteNTM.applyTrans c t) :=
   ACC0UniversalTMBitLookup.bitLookup_sound M c t h
 
+/-- **Entry 340: universal-TM build, brick 7 — bit-level apply equals the abstract applyTrans (PROVED).**
+`bitApply (encodeConfig c) t = encodeConfig (applyTrans c t)`: applying the matched transition at the encoding level
+produces the encoding of the abstractly-applied transition (the config-update step over the encoded tape). -/
+theorem nw_bitApply_encodeConfig_frontier (c : ACC0ConcreteNTM.CConfig) (t : ACC0ConcreteNTM.TMTrans) :
+    ACC0UniversalTMBitApply.bitApply (ACC0UniversalTMBitApply.encodeConfig c) t
+      = ACC0UniversalTMBitApply.encodeConfig (ACC0ConcreteNTM.applyTrans c t) :=
+  ACC0UniversalTMBitApply.bitApply_encodeConfig c t
+
+/-- **Entry 340: configuration round-trip (PROVED): scan an encoded `(state, head, tape)` config, leave the rest.** -/
+theorem nw_decodeConfig_encodeConfig_frontier (c : ACC0ConcreteNTM.CConfig) (rest : List Bool) :
+    ACC0UniversalTMBitApply.decodeConfig (ACC0UniversalTMBitApply.encodeConfig c ++ rest) = (c, rest) :=
+  ACC0UniversalTMBitApply.decodeConfig_encodeConfig c rest
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5200,3 +5214,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_decodeTransBits_encodeTransBits_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_bitLookup_eq_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_bitLookup_sound_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_bitApply_encodeConfig_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_decodeConfig_encodeConfig_frontier
