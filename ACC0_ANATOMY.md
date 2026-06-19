@@ -799,6 +799,24 @@ The single-prime tool covers each characteristic individually; combining across 
 the open problem, and the obstruction is pinned to `no_common_char`.  This confirms entry 288's socket is the real open
 barrier.
 
+### The universal characteristic obstruction (entry 300)
+
+The no-go landscape (no common field, 280; product ring `ZMod 6` fails, 282) has a single **universal** root, proved in
+`…ACC0UniversalCharObstruction`: **no nontrivial commutative ring is native to two coprime moduli.**
+
+* `two_three_native_trivial`: `(2 : R) = 0 → (3 : R) = 0 → (1 : R) = 0` (`1 = 3 - 2`).
+* `no_nontrivial_ring_both_native`: hence no *nontrivial* ring has both — subsuming the field no-go (280), the
+  product-ring no-go (282), and the tensor collapse `F₂ ⊗ F₃ = 0`.
+* `coprime_native_trivial`: the general form for coprime `p, q` (Bézout `u·p + v·q = 1` cast into `R`).
+
+Since the Razborov–Smolensky polynomial method represents `MOD_p` at low degree *only* where `p = 0` (the Fermat
+indicator `1 - x^(p-1)`), this is the algebraic root of the entire composite barrier: **every** native polynomial-method
+attack on `ACC⁰[6]` (single field, product ring, tensor, …) fails for the single reason `1 = 3 - 2 = 0`.  The counting
+escape (entry 290) avoids it by working in `ℤ` (characteristic 0, no `p = 0`), abandoning native low-degree.  This does
+**not** close the composite barrier — a *non-native* / non-Fermat representation (not committed to `p = 0`) is not
+excluded — but it pins the precise reason every native attack fails, and sharpens the open frontier: a polynomial-method
+separation must abandon native low-degree `MOD` representation.
+
 ## 5z⁗″. The pivot — why the algorithmic route escapes the barrier (entry 290)
 
 The polynomial / field-free route is provably blocked (§5v–§5z⁗′): a finite field commits to one characteristic, and

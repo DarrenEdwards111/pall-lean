@@ -227,6 +227,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalSimulation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DecodeUniformity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RealizationClocking
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BoundedAcceptanceDecidable
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalCharObstruction
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -4021,6 +4022,15 @@ theorem nw_acceptsWithin_iff_decAccept_frontier
       ACC0BoundedAcceptanceDecidable.decAccept M x t = true :=
   ACC0BoundedAcceptanceDecidable.acceptsWithin_iff_decAccept M x t
 
+/-- **The universal characteristic obstruction — no nontrivial ring is native to two coprime moduli (proved).**
+nw_coprime_native_trivial_frontier (PROVED): for coprime `p, q`, any commutative ring with `(p:R) = 0` and `(q:R) = 0`
+has `1 = 0`.  Since the Fermat-native polynomial method needs `p = 0` to represent `MOD_p` at low degree, this is the
+algebraic root of the composite barrier: every native polynomial attack on `ACC⁰[6]` (field, product ring, tensor)
+fails for one reason — `1 = 3 - 2 = 0`.  The counting escape (290) avoids it via `ℤ` (no `p = 0`).  Entry 300. -/
+theorem nw_coprime_native_trivial_frontier {R : Type*} [CommRing R] {p q : ℕ}
+    (hpq : Nat.Coprime p q) (hp : (p : R) = 0) (hq : (q : R) = 0) : (1 : R) = 0 :=
+  ACC0UniversalCharObstruction.coprime_native_trivial hpq hp hq
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4573,3 +4583,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_uniformU_simulates_enc_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_uniformU_clocked_within_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_acceptsWithin_iff_decAccept_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_coprime_native_trivial_frontier

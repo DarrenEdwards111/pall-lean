@@ -90,6 +90,16 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
     VERDICT: single-prime method works prime-by-prime, provably CANNOT combine at the joint class;
       obstruction = exactly no_common_char (280). Composite barrier GENUINE, not a missing reduction.
 
+  UNIVERSAL CHARACTERISTIC OBSTRUCTION — no nontrivial RING is native to two coprime moduli (300, proved):
+    • two_three_native_trivial : [CommRing R] (2:R)=0 → (3:R)=0 → (1:R)=0   (linear_combination, 1 = 3-2)
+    • no_nontrivial_ring_both_native : [Nontrivial] ⇒ False  — subsumes field(280)+product-ring(282)+tensor collapse
+    • coprime_native_trivial : coprime p q → (p:R)=0 → (q:R)=0 → (1:R)=0  (Bézout u·p+v·q=1 cast into R)
+    • field_both_native_absurd : subsumes no_common_char
+    ⇒ THE algebraic root: Fermat-native polynomial method needs p=0 to low-degree-represent MOD_p; NO nontrivial ring
+      has two coprime moduli =0, so every native polynomial attack (field/product/tensor) fails for one reason 1=3-2=0.
+      Counting escape (290) avoids it via ℤ [char 0, no p=0]. SHARPENS open frontier: a polynomial-method separation
+      must use a NON-native (non-Fermat, not p=0) representation. Composite barrier still OPEN; this pins its root.
+
   PIVOT — why the ALGORITHMIC route escapes the barrier (290, proved):
     counting = integer count c∈ℤ (characteristic 0), reads MOD_m off ONE integer for EVERY m
     • count_crt_mod6 : c%6=0 ↔ (c%2=0 ∧ c%3=0)   — one integer carries char-2 AND char-3 at once
