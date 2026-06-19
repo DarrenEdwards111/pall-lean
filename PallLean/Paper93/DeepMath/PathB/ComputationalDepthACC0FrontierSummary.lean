@@ -207,6 +207,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ConcreteLazyHierarc
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyDiagDecider
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RoutingMachineComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RoutingMachineWiring
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RoutingMachineSequencing
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3800,6 +3801,19 @@ theorem nw_reachIn_in_combined_frontier (s : ℕ) (M₁ M₂ : ACC0ConcreteNTM.T
       (ACC0RoutingMachineWiring.shiftConfig s c) (ACC0RoutingMachineWiring.shiftConfig s d) :=
   ACC0RoutingMachineWiring.reachIn_in_combined s M₁ M₂ k c d hr
 
+/-- **Entry 331: routing-machine sequencing — the control-flow handoff composes (PROVED).**  Phase-1 run (`a` steps of
+`M₁` to exit state `qexit`) + handoff (1 step) + phase-2 run (`b` steps of `shiftMachine s M₂`) ⟹ a run of
+`seqMachine M₁ M₂ qexit s = M₁ ++ handoffRules ++ shiftMachine s M₂` of length `a+1+b` — the routing machine's verified
+control structure. -/
+theorem nw_reachIn_seq_frontier (M₁ M₂ : ACC0ConcreteNTM.TMachine) (qexit s a b : ℕ)
+    (c c_mid c_final : ACC0ConcreteNTM.CConfig)
+    (h1 : ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM M₁) a c c_mid) (hq : c_mid.1 = qexit)
+    (h2 : ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (ACC0RoutingMachineWiring.shiftMachine s M₂)) b
+            (ACC0RoutingMachineSequencing.postHandoff qexit s c_mid) c_final) :
+    ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (ACC0RoutingMachineSequencing.seqMachine M₁ M₂ qexit s))
+      (a + 1 + b) c c_final :=
+  ACC0RoutingMachineSequencing.reachIn_seq M₁ M₂ qexit s a b c c_mid c_final h1 hq h2
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5075,3 +5089,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lazyDiagDecide_boundary_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_acceptsWithin_mono_machine_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reachIn_in_combined_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reachIn_seq_frontier
