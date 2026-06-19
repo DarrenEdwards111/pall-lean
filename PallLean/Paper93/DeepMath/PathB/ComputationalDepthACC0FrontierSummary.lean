@@ -212,6 +212,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RoutingMachinePhase
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AbstractConcreteBridge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMBuild
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMEncoding
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMLookup
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3855,6 +3856,18 @@ theorem nw_decodeTape_encodeTape_frontier (M : ACC0ConcreteNTM.TMachine) (x : Li
     ACC0UniversalTMEncoding.decodeTape (ACC0UniversalTMEncoding.encodeTape M x) = some (M, x) :=
   ACC0UniversalTMEncoding.decodeTape_encodeTape M x
 
+/-- **Entry 336: universal-TM build, brick 3 — the rule-lookup is sound (PROVED).**  `applyLookup M c = some d → concreteStep
+M c d`: the found-and-applied matching transition is a genuine step (the simulation cycle's lookup, verified). -/
+theorem nw_applyLookup_sound_frontier (M : ACC0ConcreteNTM.TMachine) (c d : ACC0ConcreteNTM.CConfig)
+    (h : ACC0UniversalTMLookup.applyLookup M c = some d) : ACC0ConcreteNTM.concreteStep M c d :=
+  ACC0UniversalTMLookup.applyLookup_sound M c d h
+
+/-- **Entry 336: universal-TM build, brick 3 — the rule-lookup is complete (PROVED).**  Whenever a step exists, the
+lookup finds a matching rule. -/
+theorem nw_lookup_complete_frontier (M : ACC0ConcreteNTM.TMachine) (c d : ACC0ConcreteNTM.CConfig)
+    (h : ACC0ConcreteNTM.concreteStep M c d) : ∃ t, ACC0UniversalTMLookup.lookup M c = some t :=
+  ACC0UniversalTMLookup.lookup_complete M c d h
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5136,3 +5149,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_realizes_self_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_walkRight_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_decodeTape_encodeTape_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_applyLookup_sound_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lookup_complete_frontier
