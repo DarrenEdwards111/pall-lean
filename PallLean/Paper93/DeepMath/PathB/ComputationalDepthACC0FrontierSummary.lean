@@ -201,6 +201,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWReconstructionBri
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWReconstructionBridgeRecon
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitBridgeACC0Faithful
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedFanin
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedBridges
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3708,6 +3709,28 @@ theorem nw_usubst_eval_frontier {n n' : ℕ} (g : Fin n → ACC0UnboundedFanin.U
       = ACC0UnboundedFanin.UCirc.eval (fun i => ACC0UnboundedFanin.UCirc.eval x (g i)) C :=
   ACC0UnboundedFanin.usubst_eval g x C
 
+/-- **Entry 325: the Yao predictor ported to the unbounded-fan-in model (PROVED): `upredictor D gidx = ¬MOD₂([var gidx,
+¬D])` computes the guess-and-correct rule.** -/
+theorem nw_upredictor_eval_frontier {n : ℕ} (D : ACC0UnboundedFanin.UCirc n) (gidx : Fin n) (x : Fin n → Bool) :
+    ACC0UnboundedFanin.UCirc.eval x (ACC0UnboundedBridges.upredictor D gidx)
+      = (if ACC0UnboundedFanin.UCirc.eval x D then x gidx else !(x gidx)) :=
+  ACC0UnboundedBridges.upredictor_eval D gidx x
+
+/-- **Entry 325: the Yao predictor is ACC⁰[2] of constant depth in the unbounded model (PROVED).** -/
+theorem nw_upredictor_depth_frontier {n : ℕ} (D : ACC0UnboundedFanin.UCirc n) (gidx : Fin n) :
+    (ACC0UnboundedBridges.upredictor D gidx).depth = D.depth + 3 :=
+  ACC0UnboundedBridges.upredictor_depth D gidx
+
+/-- **Entry 325: the reconstruction ported to the unbounded-fan-in model (PROVED): a bounded-depth table family wired
+into the predictor gives a depth-`≤ P.depth + dt` circuit computing `f` — the NW reconstruction, faithful in depth,
+gate type, AND unbounded fan-in.** -/
+theorem nw_ureconstructed_hasDepth_frontier {n Nc : ℕ} (P : ACC0UnboundedFanin.UCirc Nc)
+    (tables : Fin Nc → ACC0UnboundedFanin.UCirc n) (fbool : (Fin n → Bool) → Bool) (dt : ℕ)
+    (hg : ∀ j, (tables j).depth ≤ dt)
+    (hcomp : ∀ x, ACC0UnboundedFanin.UCirc.eval (fun j => ACC0UnboundedFanin.UCirc.eval x (tables j)) P = fbool x) :
+    ACC0UnboundedBridges.HasUCircuitOfDepth fbool (P.depth + dt) :=
+  ACC0UnboundedBridges.ureconstructed_hasDepth P tables fbool dt hg hcomp
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -4972,3 +4995,6 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_csubst_xorFree_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_uand_vars_depth_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_usubst_eval_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_upredictor_eval_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_upredictor_depth_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_ureconstructed_hasDepth_frontier
