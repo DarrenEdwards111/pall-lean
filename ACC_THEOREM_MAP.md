@@ -100,6 +100,13 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
       Counting escape (290) avoids it via ℤ [char 0, no p=0]. SHARPENS open frontier: a polynomial-method separation
       must use a NON-native (non-Fermat, not p=0) representation. Composite barrier still OPEN; this pins its root.
 
+  SEMIRING OBSTRUCTION — the native escape fails even WITHOUT subtraction (312, proved):
+    • two_three_semiring_trivial : [AddCommMonoidWithOne R] (2:R)=0 → (3:R)=0 → (1:R)=0  (3=2+1, 2=0 ⟹ 3=1; NO subtraction)
+    • no_nontrivial_semiring_both_native : [Semiring][Nontrivial] ⇒ False
+    ⇒ extends entry-300 (CommRing, used 1=3-2) to ALL AddCommMonoidWithOne — semirings, tropical/idempotent, any +,0,1.
+      KILLS NFRAME_TWO_ROUTES §4 candidate 4 (semiring/non-ring native observers). Obstruction needs only additive
+      numeral structure. Open candidates remaining: non-native (1), staged-no-flatten (2), probabilistic/approximate (3).
+
   PIVOT — why the ALGORITHMIC route escapes the barrier (290, proved):
     counting = integer count c∈ℤ (characteristic 0), reads MOD_m off ONE integer for EVERY m
     • count_crt_mod6 : c%6=0 ↔ (c%2=0 ∧ c%3=0)   — one integer carries char-2 AND char-3 at once

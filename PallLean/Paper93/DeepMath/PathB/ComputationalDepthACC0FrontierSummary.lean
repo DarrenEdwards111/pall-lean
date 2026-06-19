@@ -238,6 +238,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PhysicalUniversalLo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PhysicalUniversalMachine
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ScanCellOps
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PhaseCellOpsRest
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SemiringObstruction
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -4151,6 +4152,15 @@ theorem nw_apply_phase_celled_frontier (t : ACC0ConcreteNTM.TMTrans) (c : ACC0Co
     ACC0NTM.reachIn (ACC0PhaseCellOpsRest.applyNTM t) 3 (0, c) (3, ACC0ConcreteNTM.applyTrans c t) :=
   ACC0PhaseCellOpsRest.apply_phase_celled t c
 
+/-- **Composite frontier: the semiring/non-ring native escape is closed (proved).**
+nw_two_three_semiring_trivial_frontier (PROVED): in any `AddCommMonoidWithOne`, `(2:R)=0 → (3:R)=0 → (1:R)=0` — with no
+subtraction (`3 = 2 + 1`, `2 = 0 ⟹ 3 = 1`).  Extends the Universal Native Characteristic Obstruction (entry 300, a ring
+proof using `1 = 3 − 2`) to all additive structures with `+`, `0`, `1` — semirings included — so candidate 4 of
+`NFRAME_TWO_ROUTES.md` §4 (semiring/non-ring native observers) is eliminated (entry 312). -/
+theorem nw_two_three_semiring_trivial_frontier {R : Type*} [AddCommMonoidWithOne R]
+    (h2 : (2 : R) = 0) (h3 : (3 : R) = 0) : (1 : R) = 0 :=
+  ACC0SemiringObstruction.two_three_semiring_trivial h2 h3
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4714,3 +4724,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_physU_tracks_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scan_phase_celled_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_apply_phase_celled_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_two_three_semiring_trivial_frontier

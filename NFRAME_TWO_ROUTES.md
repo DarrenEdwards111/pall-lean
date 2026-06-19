@@ -85,8 +85,10 @@ Candidate structures to test (each its own sub-question; none resolved):
    low-degree fails — this is *why* native methods use finite fields.  Plausibly a dead end for low-degree.
 2. **CRT / product observers** (`ZMod 2 × ZMod 3`).  Hosts both gates by projection, but the approximation factors
    componentwise and each component sees the *other* prime's gate at high degree (the cross-modulus blow-up, 282).
-3. **Semiring / non-ring structures.**  Drop subtraction (the obstruction used `1 = 3 − 2`); whether a semiring or other
-   weaker structure can host both transparently is untested here.
+3. **Semiring / non-ring structures.**  ~~Drop subtraction (the obstruction used `1 = 3 − 2`); whether a semiring can
+   host both transparently is untested.~~  **ELIMINATED (entry 312, `…ACC0SemiringObstruction`):** the obstruction
+   holds in any `AddCommMonoidWithOne` with *no* subtraction — `3 = 2 + 1`, so `2 = 0 ⟹ 3 = 1`, hence `3 = 0 ⟹ 1 = 0`.
+   No native additive structure (semiring, tropical/idempotent, …) escapes.
 4. **Probabilistic / approximate polynomials.**  Razborov–Smolensky already uses approximation over one field; a
    *cross-characteristic* approximate representation is the natural next object.
 5. **Staged / layered observers that never flatten.**  Compute `MOD₂` and `MOD₃` in separate stages and combine without
