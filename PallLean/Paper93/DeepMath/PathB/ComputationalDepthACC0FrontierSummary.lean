@@ -232,6 +232,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyDiagonalConstru
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyDeciderAssembly
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalRun
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalOverhead
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWGuessVerify
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -4078,6 +4079,18 @@ theorem nw_uStep_cost_bound_frontier (M : ACC0ConcreteNTM.TMachine) (k : ℕ) (x
       ≤ ACC0UniversalOverhead.stepOverhead M.length (x.length + k) :=
   ACC0UniversalOverhead.uStep_cost_bound M k x c h
 
+/-- **NW guess-verify: verify the guessed witness inside the fast-SAT framework (proved).**
+nw_guess_verify_within_fast_frontier (PROVED): guess a small witness (`guessT ≤ 2^{n-k}`) + verify via the fast-SAT
+(`verifyT ≤ 2^{n-k}`, entry 291) ⟹ the guess-and-verify decider accepts within `2·2^{n-k}` — the `2ⁿ/superpoly` fast
+budget — via the proved two-phase time composition.  Connects NW's verify phase to the fast-SAT speedup (entry 306). -/
+theorem nw_guess_verify_within_fast_frontier (M : ACC0NTM.NTM) (x : List Bool) (guessT verifyT n k : ℕ)
+    (mid : M.Config)
+    (hguess : ACC0NTM.reachIn M guessT (M.init x) mid)
+    (hverify : ACC0GuessVerifyTime.acceptsFrom M mid verifyT)
+    (hguessSmall : guessT ≤ 2 ^ (n - k)) (hverifyFast : verifyT ≤ 2 ^ (n - k)) :
+    ACC0NTM.acceptsWithin M x (2 * 2 ^ (n - k)) :=
+  ACC0NWGuessVerify.nw_guess_verify_within_fast M x guessT verifyT n k mid hguess hverify hguessSmall hverifyFast
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4635,3 +4648,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lazy_time_hierarchy_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_uEncNTM_tracks_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_uStep_cost_bound_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_guess_verify_within_fast_frontier

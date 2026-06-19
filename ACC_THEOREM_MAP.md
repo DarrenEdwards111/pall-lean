@@ -231,6 +231,15 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
       (the interpreter loop) — classical engineering. So compile socket = LOGICAL [304] + RESOURCE-B [305] DONE;
       only the U-rule-table-executes-one-op-per-step realisation remains.
 
+  NW GUESS-VERIFY (target 2, Williams link 3) — verify inside the fast-SAT framework (306, proved):
+    already proved: gvDecider_eq (correctness), guess_verify_within (two-phase time), guessVerify_subset (collapse).
+    • nw_guess_verify_within_fast : guess small (guessT ≤ 2^{n-k}) + verify via fast-SAT (verifyT ≤ 2^{n-k})
+        ⇒ decider accepts within 2·2^{n-k} = 2ⁿ/superpoly (via guess_verify_within composition)
+    • verify_fastSat_savings : verify work ≤ 2^{n-k} ⇒ 2^k·work ≤ 2ⁿ (the entry-291 speedup margin)
+    ⇒ NW's verify phase CONNECTED to the fast-SAT: a guessed small ACC⁰ witness is verified by the ACC⁰-SAT speedup
+      in ≤ 2^{n-k}, so the guess-verify decider runs in 2ⁿ/superpoly. Socket reduced to the two phase-realisation
+      facts: guess poly [IKW small-witness = target 3] + verify ACC⁰-SAT-searchable [291, YBT] — proven-classical.
+
   LAZY-DECIDER ASSEMBLY — complement-free hierarchy, ONE socket left (303, proved):
     • lazy_diag_not_in_smaller : Smaller ⊆ range enum ⇒ lazyDiagLang enum ∉ Smaller (from 302 escape)
     • lazy_time_hierarchy : henum + hbig(lazyDiagLang ∈ Bigger) ⇒ ¬(Bigger ⊆ Smaller) — the NTIME hierarchy on the
