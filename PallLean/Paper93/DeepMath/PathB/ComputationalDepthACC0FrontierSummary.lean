@@ -251,6 +251,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanTran
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanTable
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMBranchCheckEq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMWalkRightKEq
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareDistantEq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4317,6 +4318,16 @@ theorem nw_walkRightK_run_eq_frontier (k s h : ℕ) (tp : List Bool) (hbound : h
       (s, h, tp) (s + k, h + k, tp) :=
   ACC0UniversalTMWalkRightKEq.walkRightK_run_eq k s h tp hbound
 
+/-- **Entry 375: the list-preserving distant comparison `compareDistant_run_eq` (PROVED).**  If cells `j`, `j+m` agree
+and `j+m < tp.length`, `compareDistant m s sT0 sF0 E N` reaches the equal-state `E` in `m+2` steps leaving the tape
+*identical* (every component — carry, walk, compare — runs on the same `tp`).  The comparison-step the rule-table
+scan-and-match needs to leave the tape intact for the apply. -/
+theorem nw_compareDistant_run_eq_listpres_frontier (m s sT0 sF0 E N j : ℕ) (tp : List Bool)
+    (heq : tp.getD j false = tp.getD (j + m) false) (hbound : j + m < tp.length) :
+    ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (ACC0UniversalTMCompareDistant.compareDistant m s sT0 sF0 E N))
+      (m + 2) (s, j, tp) (E, j + m + 1, tp) :=
+  ACC0UniversalTMCompareDistantEq.compareDistant_run_eq m s sT0 sF0 E N j tp heq hbound
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5644,3 +5655,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanTable_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_checkBit_run_match_eq_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_walkRightK_run_eq_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareDistant_run_eq_listpres_frontier
