@@ -212,6 +212,15 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
       positions per index, escaping every enumeration. Remaining = the decider MACHINE (compute lazyDiagLang within f:
       copy via universal sim 296/297, boundary via decidable complement 299, clocked 298) — physical engineering.
 
+  UNIVERSAL RUN — multi-step hstep faithfulness, encoded machine tracks full computation (304, proved):
+    uEncStep s s' := ∃ M c t, decodeSim s = some(M,c) ∧ t∈M ∧ t.1=(c.1,readSym c) ∧ s'=encodeSim M (applyTrans c t)
+      [U's logical step: decode→lookup firing rule→apply→re-encode]; uEncNTM = the encoded universal NTM.
+    • uEncStep_of_concreteStep : one M-step ⇒ one encoded universal step
+    • uEncNTM_tracks : reachIn (toNTM M) k c c' ⇒ reachIn uEncNTM k (encodeSim M c)(encodeSim M c') — FULL run, induction
+    ⇒ lifts UniversalHStep's SINGLE-step hstep contract to the MULTI-step run: the encoded universal machine
+      faithfully simulates M's entire k-step computation. Closes the LOGICAL side of the compile socket; remaining =
+      physical realisation of uEncStep as concrete TMachine rules with per-step overhead B (decode/lookup/rewrite sub-machines).
+
   LAZY-DECIDER ASSEMBLY — complement-free hierarchy, ONE socket left (303, proved):
     • lazy_diag_not_in_smaller : Smaller ⊆ range enum ⇒ lazyDiagLang enum ∉ Smaller (from 302 escape)
     • lazy_time_hierarchy : henum + hbig(lazyDiagLang ∈ Bigger) ⇒ ¬(Bigger ⊆ Smaller) — the NTIME hierarchy on the

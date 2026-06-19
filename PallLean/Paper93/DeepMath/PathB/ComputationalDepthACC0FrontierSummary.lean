@@ -230,6 +230,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BoundedAcceptanceDe
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalCharObstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyDiagonalConstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyDeciderAssembly
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalRun
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -4053,6 +4054,17 @@ theorem nw_lazy_time_hierarchy_frontier {enum : ℕ → (ℕ → Bool)} {Smaller
     ¬ (Bigger ⊆ Smaller) :=
   ACC0LazyDeciderAssembly.lazy_time_hierarchy henum hbig
 
+/-- **The universal run — the encoded universal machine tracks the simulated machine's full computation (proved).**
+nw_uEncNTM_tracks_frontier (PROVED): an entire `M`-run `reachIn (toNTM M) k c c'` lifts to an encoded universal run
+`reachIn uEncNTM k (encodeSim M c) (encodeSim M c')` — the multi-step `hstep` faithfulness, lifting the single-step
+contract (`…ACC0UniversalHStep`) to the full computation.  Closes the logical side of the transition-table compile
+socket; remaining = the physical realisation of `uEncStep` as concrete `TMachine` rules with overhead `B` (entry 304). -/
+theorem nw_uEncNTM_tracks_frontier (M : ACC0ConcreteNTM.TMachine) (k : ℕ) (c c' : ACC0ConcreteNTM.CConfig)
+    (h : ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM M) k c c') :
+    ACC0NTM.reachIn ACC0UniversalRun.uEncNTM k
+      (ACC0UniversalDecode.encodeSim M c) (ACC0UniversalDecode.encodeSim M c') :=
+  ACC0UniversalRun.uEncNTM_tracks M k c c' h
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4608,3 +4620,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_coprime_native_trivial_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lazyDiagLang_escapes_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lazy_time_hierarchy_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_uEncNTM_tracks_frontier
