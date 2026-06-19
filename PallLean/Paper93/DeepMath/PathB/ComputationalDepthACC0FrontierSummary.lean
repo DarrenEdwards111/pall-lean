@@ -218,6 +218,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScannabl
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMBitLookup
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMBitApply
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMEncodedRun
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMEmit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3943,6 +3944,19 @@ theorem nw_encodedStep_correct_frontier (M : ACC0ConcreteNTM.TMachine) (c : ACC0
       = (ACC0UniversalTMLookup.applyLookup M c).map ACC0UniversalTMBitApply.encodeConfig :=
   ACC0UniversalTMEncodedRun.encodedStep_correct M c
 
+/-- **Entry 342: universal-TM build, brick 9 — emission lifts to the full simulation (PROVED).**  If a concrete `U`
+emits each encoded step in `cost` transitions (`EmitsEncodedStep`), then a whole `k`-step `simIter` simulation is a
+`k*cost`-step run of `U` — reducing the universal TM to the single per-macro-step emission obligation, full-run lifting
+proved. -/
+theorem nw_universalSim_of_emits_frontier (U : ACC0ConcreteNTM.TMachine)
+    (φ : List Bool → List Bool → ACC0ConcreteNTM.CConfig) (cost : ℕ)
+    (hemit : ACC0UniversalTMEmit.EmitsEncodedStep U φ cost) (M : ACC0ConcreteNTM.TMachine)
+    (k : ℕ) (c0 cf : ACC0ConcreteNTM.CConfig) (h : ACC0UniversalTMLoop.simIter M k c0 = some cf) :
+    ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM U) (k * cost)
+      (φ (ACC0UniversalTMScannable.encodeMachineBits M) (ACC0UniversalTMBitApply.encodeConfig c0))
+      (φ (ACC0UniversalTMScannable.encodeMachineBits M) (ACC0UniversalTMBitApply.encodeConfig cf)) :=
+  ACC0UniversalTMEmit.universalSim_of_emits U φ cost hemit M k c0 cf h
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5236,3 +5250,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_decodeConfig_encodeConfig_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_encodedRun_correct_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_encodedStep_correct_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_universalSim_of_emits_frontier
