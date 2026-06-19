@@ -214,6 +214,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMBuild
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMEncoding
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMLookup
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMLoop
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScannable
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3881,6 +3882,20 @@ theorem nw_simIter_acceptsWithin_frontier (M : ACC0ConcreteNTM.TMachine) (x : Li
     ACC0NTM.acceptsWithin (ACC0ConcreteNTM.toNTM M) x k :=
   ACC0UniversalTMLoop.simIter_acceptsWithin M x k d h hacc
 
+/-- **Entry 338: universal-TM build, brick 5 — scannable encoding, machine round-trip (PROVED).**  Over the concrete
+unary bit-grammar, `decodeMachineBits (encodeMachineBits M ++ rest) = some (M, rest)`: a scanner consumes exactly the
+encoded transition table and leaves `rest` — the cursor correctness for the bit-level reader. -/
+theorem nw_decodeMachineBits_encodeMachineBits_frontier (M : ACC0ConcreteNTM.TMachine) (rest : List Bool) :
+    ACC0UniversalTMScannable.decodeMachineBits
+        (ACC0UniversalTMScannable.encodeMachineBits M ++ rest) = some (M, rest) :=
+  ACC0UniversalTMScannable.decodeMachineBits_encodeMachineBits M rest
+
+/-- **Entry 338: scannable encoding, transition round-trip (PROVED): scan one transition, leave the rest.** -/
+theorem nw_decodeTransBits_encodeTransBits_frontier (t : ACC0ConcreteNTM.TMTrans) (rest : List Bool) :
+    ACC0UniversalTMScannable.decodeTransBits
+        (ACC0UniversalTMScannable.encodeTransBits t ++ rest) = some (t, rest) :=
+  ACC0UniversalTMScannable.decodeTransBits_encodeTransBits t rest
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5166,3 +5181,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lookup_complete_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_simIter_sound_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_simIter_acceptsWithin_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_decodeMachineBits_encodeMachineBits_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_decodeTransBits_encodeTransBits_frontier
