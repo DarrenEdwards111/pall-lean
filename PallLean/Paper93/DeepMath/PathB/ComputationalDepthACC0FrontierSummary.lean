@@ -235,6 +235,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareA
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareAdjacentNe
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMWalkRightK
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareDistant
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMWriteConst
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4143,6 +4144,14 @@ theorem nw_compareDistant_run_eq_frontier (m s sT0 sF0 E N j : ℕ) (tp : List B
       (s, j, tp) (E, j + m + 1, tp') :=
   ACC0UniversalTMCompareDistant.compareDistant_run_eq m s sT0 sF0 E N j tp heq
 
+/-- **Entry 359: the overwrite primitive `writeConst` (PROVED).**  The first machine in the table build to *change* a
+tape cell rather than restore it — `writeConst b s s'` overwrites the head cell with the constant `b` (whatever it held)
+and advances, reaching `(s', h+1, writeAt tp h b)` in one step.  The atom of the apply phase. -/
+theorem nw_writeConst_run_frontier (b : Bool) (s s' h : ℕ) (tp : List Bool) :
+    ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (ACC0UniversalTMWriteConst.writeConst b s s')) 1
+      (s, h, tp) (s', h + 1, ACC0ConcreteNTM.writeAt tp h b) :=
+  ACC0UniversalTMWriteConst.writeConst_run b s s' h tp
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5454,3 +5463,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareAdjacent_run_ne_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_walkRightK_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareDistant_run_eq_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_writeConst_run_frontier
