@@ -239,6 +239,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PhysicalUniversalMa
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ScanCellOps
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PhaseCellOpsRest
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SemiringObstruction
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0KarpLiptonMA
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -4161,6 +4162,18 @@ theorem nw_two_three_semiring_trivial_frontier {R : Type*} [AddCommMonoidWithOne
     (h2 : (2 : R) = 0) (h3 : (3 : R) = 0) : (1 : R) = 0 :=
   ACC0SemiringObstruction.two_three_semiring_trivial h2 h3
 
+/-- **Workstream A: Karp–Lipton MA inclusion assembled (proved glue).**
+nw_karp_lipton_NEXP_ACC_to_MA_frontier (PROVED): `NexpEqMIP` (NEXP=MIP) + `MIPRealizedGuessable` (IKW small prover under
+circuits) ⟹ `NEXP ⊆ ACC⁰ → NEXP ⊆ MA` — the Karp–Lipton MA inclusion reduced to two named classical residues, glue +
+Merlin/Arthur mechanism proved.  Discharges entry-307's `karpLipton` hypothesis; removes the Karp–Lipton piece of
+caveat 1 (entry 313). -/
+theorem nw_karp_lipton_NEXP_ACC_to_MA_frontier
+    (NEXP MIP ACC0 MA : ACC0WilliamsMetaTheorem.CClass)
+    (heq : ACC0BFLCollapse.NexpEqMIP NEXP MIP)
+    (realized : ACC0GuessableProver.MIPRealizedGuessable MIP ACC0 MA) :
+    NEXP ⊆ ACC0 → NEXP ⊆ MA :=
+  ACC0KarpLiptonMA.karp_lipton_NEXP_ACC_to_MA NEXP MIP ACC0 MA heq realized
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4725,3 +4738,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scan_phase_celled_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_apply_phase_celled_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_two_three_semiring_trivial_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_karp_lipton_NEXP_ACC_to_MA_frontier

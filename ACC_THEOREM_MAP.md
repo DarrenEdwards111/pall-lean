@@ -283,6 +283,14 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
       in ≤ 2^{n-k}, so the guess-verify decider runs in 2ⁿ/superpoly. Socket reduced to the two phase-realisation
       facts: guess poly [IKW small-witness = target 3] + verify ACC⁰-SAT-searchable [291, YBT] — proven-classical.
 
+  WORKSTREAM A — KARP–LIPTON MA INCLUSION assembled (313, proved): NEXP⊆ACC⁰→NEXP⊆MA
+    • karp_lipton_NEXP_ACC_to_MA : NexpEqMIP (NEXP=MIP) + MIPRealizedGuessable (IKW small prover) ⇒ NEXP⊆ACC⁰→NEXP⊆MA
+      (= nexpSubsetMA_via_MIP ∘ mipSubsetMA_of_realized; Merlin sends prover circuit, Arthur verifies = mipLang_eq_maLang).
+    • hardFnSeparation_via_karpLipton : DISCHARGES entry-307's karpLipton hypothesis with the above.
+    ⇒ removes the Karp–Lipton piece of caveat 1: NEXP⊆ACC⁰→NEXP⊆MA is no longer a monolithic socket — reduced to two
+      NAMED classical residues [NexpEqMIP = BFL NEXP=MIP, sum-check engine proved 226-227; MIPRealizedGuessable = IKW
+      small prover, collapse mechanism mipLang_eq_maLang proved], glue + Merlin/Arthur mechanism PROVED.
+
   IKW EASY-WITNESS (target 3, the deepest) — sub-socket 2 decomposed (307, proved):
     IKW EasyWitnessLemma ⟸ (1) NoEasyWitnessHardFn [DISCHARGED 150, the witness w IS the hard fn] ∧ (2) HardFnSeparation.
     • hardFnSeparation_from_parts : HardFnSeparation ⟸ KarpLipton(NEXP⊆ACC⁰→NEXP⊆MA) + derand(HardFn→MA⊆NP)
