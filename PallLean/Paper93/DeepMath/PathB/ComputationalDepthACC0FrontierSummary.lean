@@ -194,6 +194,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ReedMullerGates
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NonNativeDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultilinearBasis
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeCandidateUnification
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ForeignGateObstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3568,6 +3569,29 @@ theorem nw_exists_nontrivial_field_two_three_neZero_frontier :
     ∃ (F : Type) (_inst : Field F), Nontrivial F ∧ (2 : F) ≠ 0 ∧ (3 : F) ≠ 0 :=
   ACC0CompositeCandidateUnification.exists_nontrivial_field_two_three_neZero
 
+/-- **Workstream B: why RS does not extend to composite — the foreign-gate obstruction (entry 318, proved).**  The
+polynomial method runs over a single field; `AC⁰[6]` always presents a foreign `MOD_q` gate (`q∈{2,3}`, `¬q∣p`) to a
+field of characteristic `p` (`acc6_foreign_prime_exists`, the `2≠3` root); and the proved general-`q` RS bound
+(`Layer4.qary_full_contradiction`) shows the foreign gate has NO low-degree approximation over `F_{p^{q-1}}`
+(`foreign_mod_no_lowDegree_approx`).  So the single open socket `PolynomialMethodApproximation` cannot be discharged for
+composite modulus the way it is for a single prime — the technique stalls.  NOT a lower bound against `AC⁰[6]`. -/
+theorem nw_acc6_foreign_prime_exists_frontier (p : ℕ) (hp : p.Prime) :
+    ∃ q : ℕ, q.Prime ∧ q ∣ 6 ∧ ¬ q ∣ p ∧ (q = 2 ∨ q = 3) :=
+  ACC0ForeignGateObstruction.acc6_foreign_prime_exists p hp
+
+/-- **The foreign `MOD_q` gate has no low-degree approximation over the wrong characteristic (entry 318, proved): the
+proof-technique form of the foreign gate's hardness, repackaging `Layer4.qary_full_contradiction`.** -/
+theorem nw_foreign_mod_no_lowDegree_approx_frontier (p q : ℕ) [Fact p.Prime] [Fact q.Prime] (hpq : ¬ q ∣ p)
+    {m Δ : ℕ} (hwindow : 16 * Δ ^ 2 < 2 * m + 3) :
+    ¬ ∃ (g : ℕ → MvPolynomial (Fin (2 * m + 1)) (GaloisField p (q - 1)))
+         (A : ℕ → Finset (Fin (2 * m + 1) → Bool)),
+        (∀ j, (g j).totalDegree ≤ Δ) ∧
+        (∀ j ∈ Finset.range q, ∀ x ∈ A j,
+          MvPolynomial.eval (fun i => Layer4.boolToField (GaloisField p (q - 1)) (x i)) (g j)
+            = Layer4.modIndicator (GaloisField p (q - 1)) q j x) ∧
+        (∀ j ∈ Finset.range q, 4 * q * (Finset.univ \ A j).card ≤ 2 ^ (2 * m + 1)) :=
+  ACC0ForeignGateObstruction.foreign_mod_no_lowDegree_approx p q hpq hwindow
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -4818,3 +4842,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_composite_lowDegreeSubmodule_ne_top_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_charZero_no_low_degree_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_exists_nontrivial_field_two_three_neZero_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_acc6_foreign_prime_exists_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_foreign_mod_no_lowDegree_approx_frontier
