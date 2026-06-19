@@ -196,6 +196,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultilinearBasis
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeCandidateUnification
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ForeignGateObstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountingObserverWilliams
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountingBranchSeparation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3610,6 +3611,16 @@ theorem nw_nframe_counting_branch_eq_williams_frontier :
     ACC0CountingObserverWilliams.NFrameCountingBranch ↔ ACC0NFrameWilliamsRoute.WilliamsFastSatRoute :=
   ACC0CountingObserverWilliams.nframe_counting_branch_eq_williams
 
+/-- **Entry 320: the counting-branch separation packaged with all residues explicit (PROVED).**  The whole
+Williams/N-Frame route in one theorem: the N-Frame counting branch (entry 319) plus a single explicit residue bundle
+(`WilliamsClassicalResidues`: uniform realization, easy-witness/NW collapse, nondeterministic time hierarchy — each a
+proven classical theorem being formalized) ⇒ `¬ (NEXP ⊆ ACC0)`.  Does NOT prove the residues; names them. -/
+theorem nw_nframe_counting_branch_to_williams_separation_frontier
+    (ACC0 : ACC0WilliamsMetaTheorem.CClass) (f g : ℕ → ℕ) (speedup : Prop)
+    (residues : ACC0CountingBranchSeparation.WilliamsClassicalResidues ACC0 f g speedup) :
+    ACC0CountingObserverWilliams.NFrameCountingBranch → ¬ (ACC0NTM.NEXP ⊆ ACC0) :=
+  ACC0CountingBranchSeparation.nframe_counting_branch_to_williams_separation ACC0 f g speedup residues
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -4864,3 +4875,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_foreign_mod_no_lowDegree_approx_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_countingObserver_to_williamsRoute_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_nframe_counting_branch_eq_williams_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_nframe_counting_branch_to_williams_separation_frontier
