@@ -220,6 +220,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMBitApply
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMEncodedRun
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMEmit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMDecide
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanNat
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3970,6 +3971,19 @@ theorem nw_universalReachesAccept_of_emits_frontier (U : ACC0ConcreteNTM.TMachin
         (φ (ACC0UniversalTMScannable.encodeMachineBits M) (ACC0UniversalTMBitApply.encodeConfig c0)) d ∧ d.1 = 1 :=
   ACC0UniversalTMDecide.universalReachesAccept_of_emits U φ cost hemit hlay M k c0 cf hsim hacc
 
+/-- **Entry 344: transition-table build begins — write-back preserves the tape (PROVED).**  `(writeAt tape p (tape.getD
+p false)).getD q false = tape.getD q false`: a scan step writing back the read symbol leaves every cell unchanged — the
+non-destructive-scan invariant the universal-TM scanner relies on. -/
+theorem nw_writeAt_getD_self_frontier (tape : List Bool) (p q : ℕ) :
+    (ACC0ConcreteNTM.writeAt tape p (tape.getD p false)).getD q false = tape.getD q false :=
+  ACC0UniversalTMScanNat.writeAt_getD_self tape p q
+
+/-- **Entry 344: `scanNat` advances over a `true` cell (PROVED): the cursor-advance step of the universal scanner.** -/
+theorem nw_scanNat_step_true_frontier (j : ℕ) (tp : List Bool) (h : tp.getD j false = true) :
+    ACC0ConcreteNTM.concreteStep ACC0UniversalTMScanNat.scanNat (0, j, tp)
+      (0, j + 1, ACC0ConcreteNTM.writeAt tp j true) :=
+  ACC0UniversalTMScanNat.scanNat_step_true j tp h
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5265,3 +5279,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_encodedStep_correct_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_universalSim_of_emits_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_universalReachesAccept_of_emits_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_writeAt_getD_self_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanNat_step_true_frontier
