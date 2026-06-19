@@ -228,6 +228,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMFieldCom
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanBit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanTrans
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMBranch
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCheckBit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4067,6 +4068,15 @@ theorem nw_branchBit_run_true_frontier (s sTrue sFalse h : ℕ) (tp : List Bool)
         (s, h, tp) (sTrue, h, tp') ∧ ∀ q, tp'.getD q false = tp.getD q false :=
   ACC0UniversalTMBranch.branchBit_run_true s sTrue sFalse h tp hb
 
+/-- **Entry 352: the expected-bit checker `checkBit` (PROVED).**  Read a cell, compare it to the constant expected bit
+`b`, advance, and route to `sCont` on a match — the per-bit verification primitive a fixed-pattern key match is chained
+from.  Here is the matching branch. -/
+theorem nw_checkBit_run_match_frontier (b : Bool) (s sCont sFail h : ℕ) (tp : List Bool)
+    (hb : tp.getD h false = b) :
+    ∃ tp', ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (ACC0UniversalTMCheckBit.checkBit b s sCont sFail)) 1
+        (s, h, tp) (sCont, h + 1, tp') ∧ ∀ q, tp'.getD q false = tp.getD q false :=
+  ACC0UniversalTMCheckBit.checkBit_run_match b s sCont sFail h tp hb
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5371,3 +5381,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanBit_run_pres_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanTrans_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_branchBit_run_true_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_checkBit_run_match_frontier
