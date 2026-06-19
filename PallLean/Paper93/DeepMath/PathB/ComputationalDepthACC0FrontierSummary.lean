@@ -232,6 +232,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCheckBit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMMatchPattern
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMMoveLeft
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareAdjacent
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareAdjacentNe
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4110,6 +4111,16 @@ theorem nw_compareAdjacent_run_eq_frontier (s j : ℕ) (tp : List Bool)
       (s, j, tp) (s + 5, j + 2, tp') :=
   ACC0UniversalTMCompareAdjacent.compareAdjacent_run_eq s j tp heq
 
+/-- **Entry 356: the not-equal branch of `compareAdjacent` (PROVED).**  Completing the two-cell equality decision: if
+cells `j` and `j+1` differ, `compareAdjacent s` runs three steps from `(s, j, tp)` to the not-equal state
+`(s+6, j+2, tp')`.  With entry 355's equal branch, the machine routes to `s+5` exactly on a match and `s+6` exactly on a
+mismatch. -/
+theorem nw_compareAdjacent_run_ne_frontier (s j : ℕ) (tp : List Bool)
+    (hne : tp.getD j false ≠ tp.getD (j + 1) false) :
+    ∃ tp', ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (ACC0UniversalTMCompareAdjacent.compareAdjacent s)) 3
+      (s, j, tp) (s + 6, j + 2, tp') :=
+  ACC0UniversalTMCompareAdjacentNe.compareAdjacent_run_ne s j tp hne
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5418,3 +5429,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_matchPattern_run_match_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_moveLeft_run_pres_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareAdjacent_run_eq_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareAdjacent_run_ne_frontier
