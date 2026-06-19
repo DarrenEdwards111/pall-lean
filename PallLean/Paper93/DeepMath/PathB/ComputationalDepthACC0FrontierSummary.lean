@@ -208,6 +208,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyDiagDecider
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RoutingMachineComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RoutingMachineWiring
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RoutingMachineSequencing
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RoutingMachinePhaseDemo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3814,6 +3815,13 @@ theorem nw_reachIn_seq_frontier (M₁ M₂ : ACC0ConcreteNTM.TMachine) (qexit s 
       (a + 1 + b) c c_final :=
   ACC0RoutingMachineSequencing.reachIn_seq M₁ M₂ qexit s a b c c_mid c_final h1 hq h2
 
+/-- **Entry 332: phase instantiation — a concrete sequenced machine that accepts (PROVED).**  `demoRouting qexit s`
+(three `handoffRules` jump tables, `0 → qexit → s → 1`) accepts every input in 3 steps via the full handoff pipeline,
+reaching the global accept state — validating the routing control skeleton (329/331) on concrete `TMachine`s. -/
+theorem nw_demoRouting_accepts_frontier (qexit s : ℕ) (x : List Bool) :
+    ACC0NTM.acceptsWithin (ACC0ConcreteNTM.toNTM (ACC0RoutingMachinePhaseDemo.demoRouting qexit s)) x 3 :=
+  ACC0RoutingMachinePhaseDemo.demoRouting_accepts qexit s x
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5090,3 +5098,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_acceptsWithin_mono_machine_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reachIn_in_combined_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reachIn_seq_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_demoRouting_accepts_frontier
