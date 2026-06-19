@@ -200,6 +200,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountingBranchSepar
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWReconstructionBridgeYao
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWReconstructionBridgeRecon
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitBridgeACC0Faithful
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedFanin
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3693,6 +3694,20 @@ theorem nw_csubst_xorFree_frontier {n Nc : ℕ} (g : Fin Nc → ACC0NisanWigders
     ACC0CircuitBridgeACC0Faithful.xorFree (ACC0NWReconstructionBridgeRecon.csubst g P) :=
   ACC0CircuitBridgeACC0Faithful.csubst_xorFree g P hg hP
 
+/-- **Entry 324: unbounded fan-in at constant depth in the `UCirc` model (PROVED): an `AND` over `|L|` input variables
+has depth `1` — the defining ACC⁰ property the binary model cannot express.** -/
+theorem nw_uand_vars_depth_frontier {n : ℕ} (L : List (Fin n)) :
+    (ACC0UnboundedFanin.UCirc.uand (L.map ACC0UnboundedFanin.UCirc.var)).depth = 1 :=
+  ACC0UnboundedFanin.uand_vars_depth L
+
+/-- **Entry 324: substitution preserves semantics in the unbounded-fan-in model (PROVED): the reconstruction wiring,
+faithful to unbounded fan-in.** -/
+theorem nw_usubst_eval_frontier {n n' : ℕ} (g : Fin n → ACC0UnboundedFanin.UCirc n')
+    (x : Fin n' → Bool) (C : ACC0UnboundedFanin.UCirc n) :
+    ACC0UnboundedFanin.UCirc.eval x (ACC0UnboundedFanin.usubst g C)
+      = ACC0UnboundedFanin.UCirc.eval (fun i => ACC0UnboundedFanin.UCirc.eval x (g i)) C :=
+  ACC0UnboundedFanin.usubst_eval g x C
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -4955,3 +4970,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_predictor_depth_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_csubst_depth_le_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_csubst_xorFree_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_uand_vars_depth_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_usubst_eval_frontier
