@@ -223,6 +223,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMDecide
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanNat
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanNatRun
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanField
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompose
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4005,6 +4006,17 @@ theorem nw_scanNatFrom_run_frontier (s s' n h : ℕ) (tp : List Bool)
       (s, h, tp) (s', h + n + 1, tp') :=
   ACC0UniversalTMScanField.scanNatFrom_run s s' n h tp htrue hfalse
 
+/-- **Entry 347: rule-list non-interference + sequential composition (PROVED).**  A run of sub-table `M₁` from `c` to
+`d` followed by a run of `M₂` from `d` to `e` is a single run of the union `M₁ ++ M₂` from `c` to `e` — no disjointness
+needed (`concreteStep` is existential over rules, a superset only adds witnesses).  The wiring law for chaining the
+relocatable field scanners `scanNatFrom` into one machine. -/
+theorem nw_reachIn_union_seq_frontier (M₁ M₂ : ACC0ConcreteNTM.TMachine) (a b : ℕ)
+    (c d e : ACC0ConcreteNTM.CConfig)
+    (h1 : ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM M₁) a c d)
+    (h2 : ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM M₂) b d e) :
+    ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (M₁ ++ M₂)) (a + b) c e :=
+  ACC0UniversalTMCompose.reachIn_seq M₁ M₂ a b c d e h1 h2
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5304,3 +5316,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanNat_step_true_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanNat_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanNatFrom_run_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reachIn_union_seq_frontier
