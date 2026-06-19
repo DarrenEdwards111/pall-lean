@@ -242,6 +242,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SemiringObstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0KarpLiptonMA
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWDerand
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PRGCollapse
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWReconstructionAssembly
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -4203,6 +4204,26 @@ theorem nw_prgCollapsesMAtoNP_of_realizes_frontier (PRGExists : Prop)
     ACC0DerandCollapse.PRGCollapsesMAtoNP PRGExists MA NP :=
   ACC0PRGCollapse.prgCollapsesMAtoNP_of_realizes PRGExists MA NP h
 
+/-- **Workstream A step 3 (final residue): the NW reconstruction assembled end-to-end (proved).**
+nw_hardFn_to_prgExists_assembled_frontier (PROVED): `HardFunction → PRGExists` (`HardFor fbool s → ¬ GlobalAdvantage`)
+assembled by chaining the proved sub-pieces — hybrid telescoping, Yao predict-from-distinguish identity, reconstruction
+poly-size accounting, hardness collision — through `nw_hybrid_no_distinguisher`, leaving exactly the two named
+model-dependent bridges (`bridgeYao` = `YaoCircuitEfficiency`, `bridgeRecon` = `ReconstructionCorrectness`), the
+irreducible hardness `HardFor fbool s`, and the proved low-intersection design (entry 316). -/
+theorem nw_hardFn_to_prgExists_assembled_frontier
+    {n : ℕ} (f : ℕ → ℝ) (m : ℕ) (ε : ℝ) (hε : 0 < ε)
+    (predictorSize numOther k s : ℕ) (r : Fin numOther → ℕ)
+    (ComputesF : Prop) (fbool : (Fin n → Bool) → Bool)
+    (bridgeYao : ACC0NisanWigdersonYao.YaoNextBitPredictor f m ε → ComputesF)
+    (bridgeRecon : ACC0NisanWigdersonReconstruction.SmallCircuitForFAt ComputesF
+        (predictorSize + ∑ j, Fintype.card (Fin (r j) → Bool))
+        (predictorSize + numOther * 2 ^ k) → ACC0NisanWigdersonHardness.HasCircuitOfSize fbool s)
+    (hdesign : ACC0NisanWigdersonReconstruction.ReconDesign numOther k r) :
+    ACC0NisanWigdersonHardness.HardFor fbool s →
+      ¬ ACC0NisanWigdersonHybrid.GlobalAdvantage f m ε :=
+  ACC0NWReconstructionAssembly.hardFn_to_prgExists_assembled f m ε hε
+    predictorSize numOther k s r ComputesF fbool bridgeYao bridgeRecon hdesign
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4770,3 +4791,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_karp_lipton_NEXP_ACC_to_MA_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_hardFnSeparation_fully_assembled_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_prgCollapsesMAtoNP_of_realizes_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_hardFn_to_prgExists_assembled_frontier

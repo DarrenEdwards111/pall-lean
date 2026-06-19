@@ -309,6 +309,27 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
     ⇒ opens the PRGCollapsesMAtoNP residue: seed-enumeration mechanism PROVED + decidable seed verifier; reduces it to
       the genuine pseudorandomness residue PRGFools. Next: HardFunction→PRGExists (the NW/IW PRG construction).
 
+  WORKSTREAM A step 3 (FINAL residue) — HardFunction→PRGExists: the NW reconstruction ASSEMBLED end-to-end (316, proved):
+    222 proved the reconstruction-contradiction glue (prgFools_of_hard : NWReconstruction D S → ¬S → ¬D), leaving the
+    ABSTRACT NWReconstruction socket. 190–196 separately proved the CONCRETE sub-pieces, each discharging its OWN socket
+    in isolation; they were never chained, and the chain does NOT close on types (Yao outputs a probability-level
+    predictor; recon consumes a predictor-computes hyp & outputs size≤bound; hardness consumes a concrete Circ).
+    THIS entry chains them through nw_hybrid_no_distinguisher:
+      GlobalAdvantage --[hybrid_advantage PROVED]--> AdjacentAdvantage --[yaoPredictor_discharge PROVED]-->
+      YaoNextBitPredictor --[bridgeYao = YaoCircuitEfficiency]--> ComputesF
+      --[reconstruction_socket_discharge PROVED + ReconDesign]--> SmallCircuitForFAt(size≤bound)
+      --[bridgeRecon = ReconstructionCorrectness]--> HasCircuitOfSize fbool s.
+    • reconstruction_rebridge : pre/post-compose Reconstruction P D C with pre:P'→P, post:C→C' ⇒ Reconstruction P' D C'
+      (the type-level glue matching Yao-output→recon-input and recon-output→hardness-input).
+    • nwReconstruction_assembled : discharges NWReconstruction (GlobalAdvantage) (HasCircuitOfSize fbool s) from the
+      proved sub-pieces + the two bridges + the design.
+    • hardFn_to_prgExists_assembled : HardFor fbool s → ¬GlobalAdvantage f m ε  (= HardFunction→PRGExists), via
+      prgFools_of_hard ∘ nwReconstruction_assembled.
+    ⇒ HardFunction→PRGExists is no longer monolithic: ANALYTIC CORE assembled (hybrid telescoping, Yao identity, poly-size
+      accounting, hardness collision all PROVED & chained); remaining = two NAMED model-dependent circuit-realisation
+      bridges (bridgeYao=YaoCircuitEfficiency, bridgeRecon=ReconstructionCorrectness) + irreducible hardness HardFor +
+      proved low-intersection design. Caveat-1 step 3 complete at the assembly level. NOT NEXP⊄ACC⁰, NOT P≠NP.
+
   IKW EASY-WITNESS (target 3, the deepest) — sub-socket 2 decomposed (307, proved):
     IKW EasyWitnessLemma ⟸ (1) NoEasyWitnessHardFn [DISCHARGED 150, the witness w IS the hard fn] ∧ (2) HardFnSeparation.
     • hardFnSeparation_from_parts : HardFnSeparation ⟸ KarpLipton(NEXP⊆ACC⁰→NEXP⊆MA) + derand(HardFn→MA⊆NP)
