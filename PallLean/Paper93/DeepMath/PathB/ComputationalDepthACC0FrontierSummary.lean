@@ -213,6 +213,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AbstractConcreteBri
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMBuild
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMEncoding
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMLookup
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMLoop
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3868,6 +3869,18 @@ theorem nw_lookup_complete_frontier (M : ACC0ConcreteNTM.TMachine) (c d : ACC0Co
     (h : ACC0ConcreteNTM.concreteStep M c d) : ∃ t, ACC0UniversalTMLookup.lookup M c = some t :=
   ACC0UniversalTMLookup.lookup_complete M c d h
 
+/-- **Entry 337: universal-TM build, brick 4 — the simulation loop is sound (PROVED).**  `simIter M k c = some d →
+reachIn (toNTM M) k c d`: iterating the verified lookup-and-apply step is a genuine run of the machine. -/
+theorem nw_simIter_sound_frontier (M : ACC0ConcreteNTM.TMachine) (k : ℕ) (c d : ACC0ConcreteNTM.CConfig)
+    (h : ACC0UniversalTMLoop.simIter M k c = some d) : ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM M) k c d :=
+  ACC0UniversalTMLoop.simIter_sound M k c d h
+
+/-- **Entry 337: universal-TM build, brick 4 — an accepting simulation witnesses acceptance (PROVED).** -/
+theorem nw_simIter_acceptsWithin_frontier (M : ACC0ConcreteNTM.TMachine) (x : List Bool) (k : ℕ)
+    (d : ACC0ConcreteNTM.CConfig) (h : ACC0UniversalTMLoop.simIter M k (0, 0, x) = some d) (hacc : d.1 = 1) :
+    ACC0NTM.acceptsWithin (ACC0ConcreteNTM.toNTM M) x k :=
+  ACC0UniversalTMLoop.simIter_acceptsWithin M x k d h hacc
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5151,3 +5164,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_decodeTape_encodeTape_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_applyLookup_sound_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lookup_complete_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_simIter_sound_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_simIter_acceptsWithin_frontier
