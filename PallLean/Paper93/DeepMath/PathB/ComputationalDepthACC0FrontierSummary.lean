@@ -252,6 +252,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanTabl
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMBranchCheckEq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMWalkRightKEq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareDistantEq
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMWalkLeftKEq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4328,6 +4329,14 @@ theorem nw_compareDistant_run_eq_listpres_frontier (m s sT0 sF0 E N j : ℕ) (tp
       (m + 2) (s, j, tp) (E, j + m + 1, tp) :=
   ACC0UniversalTMCompareDistantEq.compareDistant_run_eq m s sT0 sF0 E N j tp heq hbound
 
+/-- **Entry 376: the list-preserving fixed-distance left walk `walkLeftK_run_eq` (PROVED).**  With the head in bounds
+(so all written positions are `≤ h < tp.length`), `walkLeftK k s` walks `k` cells left returning the *identical* tape —
+the return walk the comparison loop needs, completing the list-preserving motion set (right + left). -/
+theorem nw_walkLeftK_run_eq_frontier (k s h : ℕ) (tp : List Bool) (hbound : h < tp.length) :
+    ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (ACC0UniversalTMWalkLeftK.walkLeftK k s)) k
+      (s, h, tp) (s + k, h - k, tp) :=
+  ACC0UniversalTMWalkLeftKEq.walkLeftK_run_eq k s h tp hbound
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5656,3 +5665,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_checkBit_run_match_eq_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_walkRightK_run_eq_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareDistant_run_eq_listpres_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_walkLeftK_run_eq_frontier
