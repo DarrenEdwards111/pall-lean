@@ -259,6 +259,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareU
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareUnaryNe
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMKeyMatch
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMKeyMatchNe
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Sym
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4411,6 +4412,14 @@ theorem nw_keyMatch_run_ne_state_frontier (m sT0 sF0 sCont matchSt noMatch bT0 b
   ACC0UniversalTMKeyMatchNe.keyMatch_run_ne_state m sT0 sF0 sCont matchSt noMatch bT0 bF0 fullMatch k j tp
     htrueA htrueB hdiff hbound
 
+/-- **Entry 383: the 3-symbol (marker) tape model `writeAt3_id_of_lt` (PROVED).**  The rule-loop needs varying-distance
+key comparison, impossible with the fixed-gap 2-symbol machines; the marker route founds a 3-symbol model
+(`Sym3 = O/I/M`) reusing the generic `NTM`/`reachIn` layer.  Here is the foundational in-bounds write-back identity over
+the new alphabet (the basis for list-preserving 3-symbol scans). -/
+theorem nw_writeAt3_id_of_lt_frontier (tape : List ACC0UniversalTM3Sym.Sym3) (p : ℕ) (hp : p < tape.length) :
+    ACC0UniversalTM3Sym.writeAt3 tape p (tape.getD p ACC0UniversalTM3Sym.Sym3.O) = tape :=
+  ACC0UniversalTM3Sym.writeAt3_id_of_lt tape p hp
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5746,3 +5755,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareUnary_run_ne_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_keyMatch_run_match_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_keyMatch_run_ne_state_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_writeAt3_id_of_lt_frontier
