@@ -211,6 +211,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RoutingMachineSeque
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RoutingMachinePhaseDemo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AbstractConcreteBridge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMBuild
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMEncoding
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3847,6 +3848,13 @@ theorem nw_walkRight_run_frontier (x : List Bool) (k : ℕ) :
     ∃ tp : List Bool, ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM ACC0UniversalTMBuild.walkRight) k (0, 0, x) (0, k, tp) :=
   ACC0UniversalTMBuild.walkRight_run x k
 
+/-- **Entry 335: universal-TM build, brick 2 — the tape encoding of `(machine, input)` round-trips (PROVED).**
+`decodeTape (encodeTape M x) = some (M, x)`: the machine to simulate and its input are recoverable from the encoded
+tape — the universal machine's input format. -/
+theorem nw_decodeTape_encodeTape_frontier (M : ACC0ConcreteNTM.TMachine) (x : List Bool) :
+    ACC0UniversalTMEncoding.decodeTape (ACC0UniversalTMEncoding.encodeTape M x) = some (M, x) :=
+  ACC0UniversalTMEncoding.decodeTape_encodeTape M x
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5127,3 +5135,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_acceptsWithin_realize_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_realizes_self_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_walkRight_run_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_decodeTape_encodeTape_frontier
