@@ -224,6 +224,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanNat
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanNatRun
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanField
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompose
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMFieldCompose
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4017,6 +4018,20 @@ theorem nw_reachIn_union_seq_frontier (M₁ M₂ : ACC0ConcreteNTM.TMachine) (a 
     ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (M₁ ++ M₂)) (a + b) c e :=
   ACC0UniversalTMCompose.reachIn_seq M₁ M₂ a b c d e h1 h2
 
+/-- **Entry 348: two consecutive nat fields scanned in one machine (PROVED).**  Given encoded nats of lengths `n₁`,
+`n₂` at offsets `h` and `h+n₁+1`, the union machine `scanNatFrom 0 1 ++ scanNatFrom 1 2` runs `(n₁+1)+(n₂+1)` steps
+from `(0, h, tp)` to state `2` at head `h+n₁+1+n₂+1` — the first genuine multi-field scan, with field 2's content
+hypothesis discharged on the post-field-1 tape via the preservation-tracking run `scanNatFrom_run_pres`. -/
+theorem nw_scanTwoNats_frontier (n₁ n₂ h : ℕ) (tp : List Bool)
+    (ht1 : ∀ i, i < n₁ → tp.getD (h + i) false = true)
+    (hf1 : tp.getD (h + n₁) false = false)
+    (ht2 : ∀ i, i < n₂ → tp.getD (h + n₁ + 1 + i) false = true)
+    (hf2 : tp.getD (h + n₁ + 1 + n₂) false = false) :
+    ∃ tp', ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM
+        (ACC0UniversalTMScanField.scanNatFrom 0 1 ++ ACC0UniversalTMScanField.scanNatFrom 1 2))
+      ((n₁ + 1) + (n₂ + 1)) (0, h, tp) (2, h + n₁ + 1 + n₂ + 1, tp') :=
+  ACC0UniversalTMFieldCompose.scanTwoNats n₁ n₂ h tp ht1 hf1 ht2 hf2
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5317,3 +5332,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanNat_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanNatFrom_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reachIn_union_seq_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanTwoNats_frontier
