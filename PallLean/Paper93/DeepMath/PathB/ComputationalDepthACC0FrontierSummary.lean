@@ -233,6 +233,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyDeciderAssembly
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalRun
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalOverhead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWGuessVerify
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IKWHardFnSeparation
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -4091,6 +4092,19 @@ theorem nw_guess_verify_within_fast_frontier (M : ACC0NTM.NTM) (x : List Bool) (
     ACC0NTM.acceptsWithin M x (2 * 2 ^ (n - k)) :=
   ACC0NWGuessVerify.nw_guess_verify_within_fast M x guessT verifyT n k mid hguess hverify hguessSmall hverifyFast
 
+/-- **IKW (target 3): a hard function ⇒ the separation, decomposed (proved glue).**
+nw_hardFnSeparation_from_parts_frontier (PROVED): IKW's deepest atom `HardFnSeparation` follows from Karp–Lipton
+(`NEXP ⊆ ACC⁰ → NEXP ⊆ MA`) + NW-derandomisation (`HardFunction → MA ⊆ NP`) + `NP ⊆ MA ⊆ NEXP` + the *proved*
+`NEXP ≠ NP` (entry 200): the chain collapses `NEXP = NP`, contradicting the hierarchy.  Reduces IKW to two classical
+sub-sockets, both decomposed elsewhere (entry 307). -/
+theorem nw_hardFnSeparation_from_parts_frontier
+    (NEXP ACC0 MA NP : ACC0WilliamsMetaTheorem.CClass) (HardFunction : Prop)
+    (karpLipton : NEXP ⊆ ACC0 → NEXP ⊆ MA) (derand : HardFunction → MA ⊆ NP)
+    (hNPMA : NP ⊆ MA) (hMANEXP : MA ⊆ NEXP) (hNexpNeqNp : NEXP ≠ NP) :
+    ACC0IKWEasyWitness.HardFnSeparation NEXP ACC0 HardFunction :=
+  ACC0IKWHardFnSeparation.hardFnSeparation_from_parts NEXP ACC0 MA NP HardFunction
+    karpLipton derand hNPMA hMANEXP hNexpNeqNp
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4649,3 +4663,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_uEncNTM_tracks_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_uStep_cost_bound_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_guess_verify_within_fast_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_hardFnSeparation_from_parts_frontier

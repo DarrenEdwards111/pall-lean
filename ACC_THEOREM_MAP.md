@@ -240,6 +240,14 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
       in ≤ 2^{n-k}, so the guess-verify decider runs in 2ⁿ/superpoly. Socket reduced to the two phase-realisation
       facts: guess poly [IKW small-witness = target 3] + verify ACC⁰-SAT-searchable [291, YBT] — proven-classical.
 
+  IKW EASY-WITNESS (target 3, the deepest) — sub-socket 2 decomposed (307, proved):
+    IKW EasyWitnessLemma ⟸ (1) NoEasyWitnessHardFn [DISCHARGED 150, the witness w IS the hard fn] ∧ (2) HardFnSeparation.
+    • hardFnSeparation_from_parts : HardFnSeparation ⟸ KarpLipton(NEXP⊆ACC⁰→NEXP⊆MA) + derand(HardFn→MA⊆NP)
+        + NP⊆MA⊆NEXP + NEXP≠NP[200 PROVED]: chain ⇒ NEXP⊆NP ∧ NP⊆NEXP ⇒ NEXP=NP, contra NEXP≠NP (antisymm)
+    • ikw_from_parts : NoEasyWitnessHardFn + decomposition ⇒ full EasyWitnessLemma
+    ⇒ IKW now rests on exactly TWO classical sub-sockets: Karp–Lipton circuit-collapse + NW-derandomisation MA⊆NP,
+      both decomposed elsewhere [199/202/221/222/229]; with NEXP≠NP PROVED [200] and NoEasyWitnessHardFn discharged [150].
+
   LAZY-DECIDER ASSEMBLY — complement-free hierarchy, ONE socket left (303, proved):
     • lazy_diag_not_in_smaller : Smaller ⊆ range enum ⇒ lazyDiagLang enum ∉ Smaller (from 302 escape)
     • lazy_time_hierarchy : henum + hbig(lazyDiagLang ∈ Bigger) ⇒ ¬(Bigger ⊆ Smaller) — the NTIME hierarchy on the
