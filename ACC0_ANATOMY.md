@@ -799,10 +799,15 @@ The single-prime tool covers each characteristic individually; combining across 
 the open problem, and the obstruction is pinned to `no_common_char`.  This confirms entry 288's socket is the real open
 barrier.
 
-### The universal characteristic obstruction (entry 300)
+### The Universal Native Characteristic Obstruction (entry 300)
+
+> Named theorem: `universal_native_characteristic_obstruction`.  Full N-Frame synthesis and the two-routes split:
+> `NFRAME_TWO_ROUTES.md`.
 
 The no-go landscape (no common field, 280; product ring `ZMod 6` fails, 282) has a single **universal** root, proved in
-`…ACC0UniversalCharObstruction`: **no nontrivial commutative ring is native to two coprime moduli.**
+`…ACC0UniversalCharObstruction`: **no nontrivial commutative ring is native to two coprime moduli** — equivalently, the
+Universal Native Characteristic Obstruction **blocks every native single-ring polynomial method for a composite
+modulus.**
 
 * `two_three_native_trivial`: `(2 : R) = 0 → (3 : R) = 0 → (1 : R) = 0` (`1 = 3 - 2`).
 * `no_nontrivial_ring_both_native`: hence no *nontrivial* ring has both — subsuming the field no-go (280), the

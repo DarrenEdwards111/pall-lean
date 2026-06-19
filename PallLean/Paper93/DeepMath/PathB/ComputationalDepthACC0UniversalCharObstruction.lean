@@ -74,6 +74,15 @@ nontrivial commutative ring), so the polynomial method's two native characterist
 theorem field_both_native_absurd {F : Type*} [Field F] (h2 : (2 : F) = 0) (h3 : (3 : F) = 0) : False :=
   no_nontrivial_ring_both_native h2 h3
 
+/-- **The Universal Native Characteristic Obstruction (stable name, PROVED).**  For coprime moduli `p, q`, no
+nontrivial commutative ring is native to both (`(p : R) = 0` and `(q : R) = 0` force `(1 : R) = 0`).  This is the
+algebraic root of the composite polynomial barrier: it **blocks every native single-ring polynomial method for a
+composite modulus** — the Fermat-indicator representation of `MOD_p` requires `p = 0`, and no nontrivial ring carries two
+coprime moduli at `0`.  (Alias of `coprime_native_trivial`; the canonical reference for entry 300.) -/
+theorem universal_native_characteristic_obstruction {R : Type*} [CommRing R] {p q : ℕ}
+    (hpq : Nat.Coprime p q) (hp : (p : R) = 0) (hq : (q : R) = 0) : (1 : R) = 0 :=
+  coprime_native_trivial hpq hp hq
+
 /-!
 **The universal obstruction.**  No nontrivial commutative ring is native to both `2` and `3`
 (`no_nontrivial_ring_both_native`) — or to any two coprime moduli (`coprime_native_trivial`).  Since the
