@@ -56,8 +56,18 @@ representation: counting is not a low-degree polynomial observer, it is an integ
 | Observer | low-degree polynomial over a field | integer gate-count over `ℤ` |
 | Transparency of `MOD_p` | needs characteristic `p` (`p = 0`) | quotient `ℤ → ZMod p`, no collapse |
 | Composite `MOD` | **blocked** (entry 300: no ring is native to coprime `p, q`) | **escapes** (entry 290: char 0 carries all) |
-| Entries | **280–300** | **290–299** |
+| Entries | **280–300** | **290–299, 319** |
 | Status | *anatomized and blocked* (genuinely open whether a *non-native* representation exists) | *being formalized*; `NEXP ⊄ ACC⁰` is a proven theorem (Williams 2011), alive |
+
+**Update (entry 319, `…ACC0CountingObserverWilliams`, PROVED):** the counting/Williams route is now a *single bridge
+theorem*, not "Williams special case" language.  Its four ingredients are explicit N-Frame data —
+`CharacteristicZeroCountingObserver` (the integer count `∑ⱼ [g j x] : ℕ`, no `p = 0`, not subject to the native
+obstruction), `CRTResidueReadout` (`MOD_M` read via `c % M`, every `M`, not a native polynomial), `FastSATCompression`
+(`< 2ⁿ` count cells, the Williams speedup object), `LazyHierarchyContradiction` (the complement-safe lazy diagonal) —
+and `nframe_counting_branch_eq_williams` proves `NFrameCountingBranch ↔ WilliamsFastSatRoute`: the counting branch **is**
+the Williams route, deriving `¬ (NEXP ⊆ ACC⁰)` through the named sockets (`nframe_counting_branch_derives_separation`).
+This is *precisely* the route that is **not** the native polynomial branch the composite barrier blocks — the integer
+count carries every characteristic, so it is never characteristic-blocked.
 
 * **280–300 — native/polynomial route: anatomized and blocked.**  Every natural attack proved to fail (separated
   layers 280, staged observers 281, product-ring carry 282), the composite target frozen as `CarryRefinementCrossing`

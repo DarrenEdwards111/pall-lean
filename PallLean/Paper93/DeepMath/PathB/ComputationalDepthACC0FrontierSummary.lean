@@ -195,6 +195,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NonNativeDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultilinearBasis
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeCandidateUnification
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ForeignGateObstruction
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountingObserverWilliams
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3592,6 +3593,23 @@ theorem nw_foreign_mod_no_lowDegree_approx_frontier (p q : ℕ) [Fact p.Prime] [
         (∀ j ∈ Finset.range q, 4 * q * (Finset.univ \ A j).card ≤ 2 ^ (2 * m + 1)) :=
   ACC0ForeignGateObstruction.foreign_mod_no_lowDegree_approx p q hpq hwindow
 
+/-- **Entry 319: the counting observer realizes the Williams route (PROVED).**  The Williams route is the N-Frame
+COUNTING-OBSERVER branch — char-0 integer counts, CRT residue readout, fast-SAT `< 2ⁿ` compression, lazy hierarchy —
+formally EQUAL to `WilliamsFastSatRoute` (`nframe_counting_branch_eq_williams`), NOT the native polynomial branch the
+composite barrier (280–318) blocks.  The four ingredients ⇒ the route. -/
+theorem nw_countingObserver_to_williamsRoute_frontier :
+    ACC0CountingObserverWilliams.CharacteristicZeroCountingObserver →
+    ACC0CountingObserverWilliams.CRTResidueReadout →
+    ACC0CountingObserverWilliams.FastSATCompression →
+    ACC0CountingObserverWilliams.LazyHierarchyContradiction →
+    ACC0NFrameWilliamsRoute.WilliamsFastSatRoute :=
+  ACC0CountingObserverWilliams.countingObserver_to_williamsRoute
+
+/-- **The counting branch IS the Williams route (PROVED), not merely analogous.** -/
+theorem nw_nframe_counting_branch_eq_williams_frontier :
+    ACC0CountingObserverWilliams.NFrameCountingBranch ↔ ACC0NFrameWilliamsRoute.WilliamsFastSatRoute :=
+  ACC0CountingObserverWilliams.nframe_counting_branch_eq_williams
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -4844,3 +4862,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_exists_nontrivial_field_two_three_neZero_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_acc6_foreign_prime_exists_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_foreign_mod_no_lowDegree_approx_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_countingObserver_to_williamsRoute_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_nframe_counting_branch_eq_williams_frontier
