@@ -217,6 +217,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMLoop
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScannable
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMBitLookup
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMBitApply
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMEncodedRun
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3925,6 +3926,23 @@ theorem nw_decodeConfig_encodeConfig_frontier (c : ACC0ConcreteNTM.CConfig) (res
     ACC0UniversalTMBitApply.decodeConfig (ACC0UniversalTMBitApply.encodeConfig c ++ rest) = (c, rest) :=
   ACC0UniversalTMBitApply.decodeConfig_encodeConfig c rest
 
+/-- **Entry 341: universal-TM build, brick 8 — the encoded simulation run is correct (PROVED).**  `encodedRun
+(encodeMachineBits M) k (encodeConfig c) = (simIter M k c).map encodeConfig`: the entire `k`-step deterministic
+simulation runs correctly on the scannable bit-encoding (config encoding + lookup + apply + loop all verified equal to
+the abstract engine). The lone residual is realising `encodedStep` as `TMachine` transitions. -/
+theorem nw_encodedRun_correct_frontier (M : ACC0ConcreteNTM.TMachine) (k : ℕ) (c : ACC0ConcreteNTM.CConfig) :
+    ACC0UniversalTMEncodedRun.encodedRun (ACC0UniversalTMScannable.encodeMachineBits M) k
+        (ACC0UniversalTMBitApply.encodeConfig c)
+      = (ACC0UniversalTMLoop.simIter M k c).map ACC0UniversalTMBitApply.encodeConfig :=
+  ACC0UniversalTMEncodedRun.encodedRun_correct M k c
+
+/-- **Entry 341: one encoded simulation step equals the abstract step (PROVED).** -/
+theorem nw_encodedStep_correct_frontier (M : ACC0ConcreteNTM.TMachine) (c : ACC0ConcreteNTM.CConfig) :
+    ACC0UniversalTMEncodedRun.encodedStep (ACC0UniversalTMScannable.encodeMachineBits M)
+        (ACC0UniversalTMBitApply.encodeConfig c)
+      = (ACC0UniversalTMLookup.applyLookup M c).map ACC0UniversalTMBitApply.encodeConfig :=
+  ACC0UniversalTMEncodedRun.encodedStep_correct M c
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5216,3 +5234,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_bitLookup_sound_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_bitApply_encodeConfig_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_decodeConfig_encodeConfig_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_encodedRun_correct_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_encodedStep_correct_frontier
