@@ -203,6 +203,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitBridgeACC0Fa
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedFanin
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedBridges
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NondetHierarchyInternals
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ConcreteLazyHierarchy
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3745,6 +3746,22 @@ theorem nw_concreteHierarchy_of_diagonal_frontier (f g : ℕ → ℕ) (D : ACC0W
     ACC0NTM.ConcreteHierarchy f g :=
   ACC0NondetHierarchyInternals.concreteHierarchy_of_diagonal f g D hf hdiag
 
+/-- **Entry 327: the concrete nondeterministic time hierarchy, complement-safe, on one residual (PROVED).**  Any `D`
+escaping the (proved, `TMachine ≃ ℕ`) enumeration of `cNTIME g` and decided by a routing `TMachine` within `f` witnesses
+`¬ (cNTIME f ⊆ cNTIME g)`.  Uses the proved `enum_covers`; complement-safe (lazy, not Cantor flip). The lone residual is
+the routing decider `M`. -/
+theorem nw_concrete_lazy_hierarchy_of_decider_frontier (f g : ℕ → ℕ) (D : ACC0WilliamsMetaTheorem.Lang)
+    (hescape : D ∉ Set.range (ACC0UniversalNTM.enum g))
+    (M : ACC0ConcreteNTM.TMachine)
+    (hM : ∀ x, D x ↔ ACC0NTM.acceptsWithin (ACC0ConcreteNTM.toNTM M) x (f x.length)) :
+    ¬ (ACC0UniversalNTM.cNTIME f ⊆ ACC0UniversalNTM.cNTIME g) :=
+  ACC0ConcreteLazyHierarchy.concrete_lazy_hierarchy_of_decider f g D hescape M hM
+
+/-- **Entry 327: concrete enumerability discharged (PROVED): `cNTIME g ⊆ range (enum g)` via `TMachine ≃ ℕ`.** -/
+theorem nw_cNTIME_enumerable_frontier (g : ℕ → ℕ) :
+    ACC0UniversalNTM.cNTIME g ⊆ Set.range (ACC0UniversalNTM.enum g) :=
+  ACC0ConcreteLazyHierarchy.cNTIME_enumerable g
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5014,3 +5031,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_ureconstructed_hasDepth_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_mem_NTIME_iff_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_concreteHierarchy_of_diagonal_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_concrete_lazy_hierarchy_of_decider_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_cNTIME_enumerable_frontier
