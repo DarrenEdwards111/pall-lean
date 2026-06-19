@@ -204,6 +204,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedFanin
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedBridges
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NondetHierarchyInternals
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ConcreteLazyHierarchy
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyDiagDecider
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3762,6 +3763,23 @@ theorem nw_cNTIME_enumerable_frontier (g : ℕ → ℕ) :
     ACC0UniversalNTM.cNTIME g ⊆ Set.range (ACC0UniversalNTM.enum g) :=
   ACC0ConcreteLazyHierarchy.cNTIME_enumerable g
 
+/-- **Entry 328: the lazy-diagonal decider's copy case is a nondeterministic acceptance (PROVED): at even `n`, the
+decider accepts iff machine `n/2` accepts `inp (n+1)` within `g` — realised by universal simulation, in NTIME.** -/
+theorem nw_lazyDiagDecide_copy_frontier (g : ℕ → ℕ) (inp : ℕ → List Bool) (n : ℕ) (hn : n % 2 = 0) :
+    ACC0LazyDiagDecider.lazyDiagDecide g inp n = true ↔
+      ACC0NTM.acceptsWithin (ACC0ConcreteNTM.toNTM (ACC0ConcreteNTM.machineEquiv.symm (n / 2)))
+        (inp (n + 1)) (g (inp (n + 1)).length) :=
+  ACC0LazyDiagDecider.lazyDiagDecide_copy g inp n hn
+
+/-- **Entry 328: the lazy-diagonal decider's boundary case is the decidable bounded complement (PROVED): at odd `n`, the
+decider accepts iff machine `n/2` rejects `inp (n−1)` within `g` (entry 299) — the one complement lazy diagonalisation
+affords.** -/
+theorem nw_lazyDiagDecide_boundary_frontier (g : ℕ → ℕ) (inp : ℕ → List Bool) (n : ℕ) (hn : ¬ n % 2 = 0) :
+    ACC0LazyDiagDecider.lazyDiagDecide g inp n = true ↔
+      ¬ ACC0NTM.acceptsWithin (ACC0ConcreteNTM.toNTM (ACC0ConcreteNTM.machineEquiv.symm (n / 2)))
+        (inp (n - 1)) (g (inp (n - 1)).length) :=
+  ACC0LazyDiagDecider.lazyDiagDecide_boundary g inp n hn
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5033,3 +5051,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_concreteHierarchy_of_diagonal_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_concrete_lazy_hierarchy_of_decider_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_cNTIME_enumerable_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lazyDiagDecide_copy_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lazyDiagDecide_boundary_frontier
