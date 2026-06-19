@@ -215,6 +215,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMEncoding
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMLookup
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMLoop
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScannable
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMBitLookup
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3896,6 +3897,20 @@ theorem nw_decodeTransBits_encodeTransBits_frontier (t : ACC0ConcreteNTM.TMTrans
         (ACC0UniversalTMScannable.encodeTransBits t ++ rest) = some (t, rest) :=
   ACC0UniversalTMScannable.decodeTransBits_encodeTransBits t rest
 
+/-- **Entry 339: universal-TM build, brick 6 — bit-level rule lookup equals the abstract lookup (PROVED).**
+`bitLookup (encodeMachineBits M) c = lookup M c`: scanning the encoded table for the matching rule is exactly the
+abstract lookup (brick 336), hence sound w.r.t. `concreteStep`. -/
+theorem nw_bitLookup_eq_frontier (M : ACC0ConcreteNTM.TMachine) (c : ACC0ConcreteNTM.CConfig) :
+    ACC0UniversalTMBitLookup.bitLookup (ACC0UniversalTMScannable.encodeMachineBits M) c
+      = ACC0UniversalTMLookup.lookup M c :=
+  ACC0UniversalTMBitLookup.bitLookup_encodeMachineBits M c
+
+/-- **Entry 339: bit-level lookup is sound (PROVED): a rule found by scanning the encoded table yields a `concreteStep`.** -/
+theorem nw_bitLookup_sound_frontier (M : ACC0ConcreteNTM.TMachine) (c : ACC0ConcreteNTM.CConfig)
+    (t : ACC0ConcreteNTM.TMTrans) (h : ACC0UniversalTMBitLookup.bitLookup (ACC0UniversalTMScannable.encodeMachineBits M) c = some t) :
+    ACC0ConcreteNTM.concreteStep M c (ACC0ConcreteNTM.applyTrans c t) :=
+  ACC0UniversalTMBitLookup.bitLookup_sound M c t h
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5183,3 +5198,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_simIter_acceptsWithin_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_decodeMachineBits_encodeMachineBits_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_decodeTransBits_encodeTransBits_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_bitLookup_eq_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_bitLookup_sound_frontier
