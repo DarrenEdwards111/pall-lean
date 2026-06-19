@@ -231,6 +231,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMBranch
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCheckBit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMMatchPattern
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMMoveLeft
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareAdjacent
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4098,6 +4099,17 @@ theorem nw_moveLeft_run_pres_frontier (s s' h : ℕ) (tp : List Bool) :
         (s, h, tp) (s', h - 1, tp') ∧ ∀ q, tp'.getD q false = tp.getD q false :=
   ACC0UniversalTMMoveLeft.moveLeft_run_pres s s' h tp
 
+/-- **Entry 355: the two-cell comparison `compareAdjacent` reaches the equal-state on equal cells (PROVED).**  The first
+machine to read two tape cells and compare them: read cell `j` and carry its value (`branchBit`), advance (`scanBit`),
+check cell `j+1` equals it (`checkBit`).  If the cells agree, it runs three steps from `(s, j, tp)` to the equal-state
+`(s+5, j+2, tp')` — the carry-and-compare core of the two-pointer key match, the two arms unified by the
+non-interference law. -/
+theorem nw_compareAdjacent_run_eq_frontier (s j : ℕ) (tp : List Bool)
+    (heq : tp.getD j false = tp.getD (j + 1) false) :
+    ∃ tp', ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (ACC0UniversalTMCompareAdjacent.compareAdjacent s)) 3
+      (s, j, tp) (s + 5, j + 2, tp') :=
+  ACC0UniversalTMCompareAdjacent.compareAdjacent_run_eq s j tp heq
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5405,3 +5417,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_checkBit_run_match_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_matchPattern_run_match_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_moveLeft_run_pres_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareAdjacent_run_eq_frontier
