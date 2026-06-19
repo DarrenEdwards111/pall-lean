@@ -231,6 +231,15 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
       (the interpreter loop) — classical engineering. So compile socket = LOGICAL [304] + RESOURCE-B [305] DONE;
       only the U-rule-table-executes-one-op-per-step realisation remains.
 
+  PHYSICAL UNIVERSAL INTERPRETER LOOP — phases assembled + multi-step cost k·B (308, proved):
+    • physical_uStep_phases : one universal step via the 4 PROVED phases — decode (decodeSim_encodeSim) + lookup
+      (matching rule fires, scan ≤ M.length, lookup_phase) + apply (applyTrans) + re-encode (round-trip).
+    • physical_tracks_lift : reachIn uEncNTM k s t ⇒ Realizes (enc s)(enc t)(k·B), given perStep (one uEncStep in B) +
+      compose (additive) + refl0; induction on k accumulating B. = physicalU_tracks_uEncNTM (C=0).
+    ⇒ the interpreter loop ASSEMBLED + the multi-step cost lift k·B PROVED. Last two physical primitives isolated as
+      hypotheses: perStep [one uEncStep = B=stepOverhead primitive steps, the decode→lookup→apply→encode loop, 305] +
+      compose/refl0 [U's reachability composes additively, standard]. Classical TM engineering, not open.
+
   NW GUESS-VERIFY (target 2, Williams link 3) — verify inside the fast-SAT framework (306, proved):
     already proved: gvDecider_eq (correctness), guess_verify_within (two-phase time), guessVerify_subset (collapse).
     • nw_guess_verify_within_fast : guess small (guessT ≤ 2^{n-k}) + verify via fast-SAT (verifyT ≤ 2^{n-k})

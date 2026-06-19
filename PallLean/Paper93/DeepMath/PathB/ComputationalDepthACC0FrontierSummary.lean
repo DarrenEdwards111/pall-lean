@@ -234,6 +234,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalRun
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalOverhead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWGuessVerify
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IKWHardFnSeparation
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PhysicalUniversalLoop
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -4105,6 +4106,19 @@ theorem nw_hardFnSeparation_from_parts_frontier
   ACC0IKWHardFnSeparation.hardFnSeparation_from_parts NEXP ACC0 MA NP HardFunction
     karpLipton derand hNPMA hMANEXP hNexpNeqNp
 
+/-- **The physical universal interpreter loop — multi-step cost `k·B` (proved).**
+nw_physical_tracks_lift_frontier (PROVED): given a physical realization `Realizes` handling one `uEncStep` in `B` steps
+and composing additively, an entire encoded run `reachIn uEncNTM k s t` is realized in `k·B` physical steps — the
+interpreter loop's multi-step cost, the last mechanical piece of the transition-table compile (entry 308). -/
+theorem nw_physical_tracks_lift_frontier {Realizes : List Bool → List Bool → ℕ → Prop}
+    (enc : List Bool → List Bool) (B : ℕ)
+    (refl0 : ∀ a, Realizes a a 0)
+    (perStep : ∀ s u, ACC0UniversalRun.uEncStep s u → Realizes (enc s) (enc u) B)
+    (compose : ∀ a b c m n, Realizes a b m → Realizes b c n → Realizes a c (m + n))
+    (k : ℕ) (s t : List Bool) (h : ACC0NTM.reachIn ACC0UniversalRun.uEncNTM k s t) :
+    Realizes (enc s) (enc t) (k * B) :=
+  ACC0PhysicalUniversalLoop.physical_tracks_lift enc B refl0 perStep compose k s t h
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4664,3 +4678,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_uStep_cost_bound_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_guess_verify_within_fast_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_hardFnSeparation_from_parts_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_physical_tracks_lift_frontier
