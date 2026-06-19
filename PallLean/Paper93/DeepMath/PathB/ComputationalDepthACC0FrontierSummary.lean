@@ -225,6 +225,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanNatR
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanField
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompose
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMFieldCompose
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanBit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4032,6 +4033,15 @@ theorem nw_scanTwoNats_frontier (n₁ n₂ h : ℕ) (tp : List Bool)
       ((n₁ + 1) + (n₂ + 1)) (0, h, tp) (2, h + n₁ + 1 + n₂ + 1, tp') :=
   ACC0UniversalTMFieldCompose.scanTwoNats n₁ n₂ h tp ht1 hf1 ht2 hf2
 
+/-- **Entry 349: the one-bit scanner `scanBit` run (PROVED).**  Consuming one symbol bit at offset `h` (uniformly in
+its value), `scanBit s s'` goes from `(s, h, tp)` to `(s', h+1, tp')` in one step, preserving the tape — the composable
+unit for the symbol fields interleaved in `encodeTransBits` (`nat, sym, nat, sym, nat`), matching the shape of
+`scanNatFrom_run_pres` so nat and bit scans compose under `reachIn_seq`. -/
+theorem nw_scanBit_run_pres_frontier (s s' h : ℕ) (tp : List Bool) :
+    ∃ tp', ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (ACC0UniversalTMScanBit.scanBit s s')) 1
+        (s, h, tp) (s', h + 1, tp') ∧ ∀ q, tp'.getD q false = tp.getD q false :=
+  ACC0UniversalTMScanBit.scanBit_run_pres s s' h tp
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5333,3 +5343,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanNatFrom_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reachIn_union_seq_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanTwoNats_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanBit_run_pres_frontier
