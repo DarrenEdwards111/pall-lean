@@ -98,6 +98,17 @@ Candidate structures to test (each its own sub-question; none resolved):
 > `1 = 3 − 2 = 0`; the counting route escapes by abandoning native collapse; and any new polynomial-method separation
 > must produce a non-native representation from the list above (each plausibly `ACC⁰[m]`-hard).
 
+**Update (entry 317, `…ACC0CompositeCandidateUnification`, PROVED):** none of the surviving candidates is an
+*independent* escape.  (i) The native algebraic obstruction (280/300/312) *requires* `2 = 0 ∧ 3 = 0`; this fails over a
+nontrivial field (`ℚ`, `exists_nontrivial_field_two_three_neZero`), so the algebraic no-go is simply *silent* on the
+non-native candidates — not killed by it, but gaining nothing from it.  (ii) The **dimension barrier is
+characteristic-independent**: the degree-`≤ D` submodule is a *proper* subspace (`finrank = lowDegreeDim n D < 2ⁿ`) over
+**every** field, char-0 `ℚ` included (`lowDegreeSubmodule_ne_top`, `charZero_no_low_degree`) — so candidate 1 (char-0)
+gains nothing dimensionally, and candidates 2/4/5, over their ambient single field, face the identical proper-subspace
+bound.  Hence every surviving candidate reduces, over its field, to the *same* single open analytic socket
+`PolynomialMethodApproximation` (the Razborov–Smolensky core): the choice of ambient field/structure is **not** where a
+separation can come from.  The composite barrier is genuinely *one* open problem, not a family of routes.
+
 ---
 
 ## 5. Where effort goes next

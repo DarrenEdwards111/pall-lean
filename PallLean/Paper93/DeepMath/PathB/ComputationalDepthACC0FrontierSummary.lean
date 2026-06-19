@@ -193,6 +193,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0VaryingAffinePatter
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ReedMullerGates
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NonNativeDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultilinearBasis
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeCandidateUnification
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3545,6 +3546,28 @@ theorem nw_lowDegreeDimensionIdentity_discharged_frontier {F : Type} [Field F] {
       (ACC0MultilinearBasis.lowDegreeSubmodule (F := F) n D) n D :=
   ACC0MultilinearBasis.lowDegreeDimensionIdentity_discharged
 
+/-- **Workstream B: the composite candidates collapse onto the single open socket (entry 317, proved).**  The native
+algebraic obstruction (280/300/312) needs `2=0 ∧ 3=0`, which fails over a nontrivial field (`ℚ`), so it is silent on the
+non-native candidates; and the dimension barrier is characteristic-INDEPENDENT — the degree-≤D submodule is PROPER over
+EVERY field including char-0 `ℚ` (`lowDegreeSubmodule_ne_top`, `finrank = lowDegreeDim n D < 2ⁿ`).  So candidate 1
+(char-0) gains nothing dimensionally and the candidates are re-skins of the single open socket
+`PolynomialMethodApproximation`, not independent escapes. -/
+theorem nw_composite_lowDegreeSubmodule_ne_top_frontier {F : Type} [Field F] {n D : ℕ} (h : D < n) :
+    ACC0MultilinearBasis.lowDegreeSubmodule (F := F) n D ≠ ⊤ :=
+  ACC0CompositeCandidateUnification.lowDegreeSubmodule_ne_top h
+
+/-- **Candidate 1 (char-0 `ℚ`) gains nothing dimensionally (entry 317, proved): a function of true degree >D exists over
+`ℚ` for every D<n, exactly as over a finite field.** -/
+theorem nw_charZero_no_low_degree_frontier {n D : ℕ} (h : D < n) :
+    ∃ f : (Fin n → Bool) → ℚ, f ∉ ACC0MultilinearBasis.lowDegreeSubmodule (F := ℚ) n D :=
+  ACC0CompositeCandidateUnification.charZero_no_low_degree h
+
+/-- **The native obstruction is inapplicable to the non-native candidates (entry 317, proved): a nontrivial field with
+`2≠0 ∧ 3≠0` exists, so the `2=0 ∧ 3=0` hypothesis of 280/300/312 is vacuous.** -/
+theorem nw_exists_nontrivial_field_two_three_neZero_frontier :
+    ∃ (F : Type) (_inst : Field F), Nontrivial F ∧ (2 : F) ≠ 0 ∧ (3 : F) ≠ 0 :=
+  ACC0CompositeCandidateUnification.exists_nontrivial_field_two_three_neZero
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -4792,3 +4815,6 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_hardFnSeparation_fully_assembled_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_prgCollapsesMAtoNP_of_realizes_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_hardFn_to_prgExists_assembled_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_composite_lowDegreeSubmodule_ne_top_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_charZero_no_low_degree_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_exists_nontrivial_field_two_three_neZero_frontier
