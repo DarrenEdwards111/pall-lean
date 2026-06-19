@@ -229,6 +229,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanBit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanTrans
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMBranch
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCheckBit
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMMatchPattern
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4077,6 +4078,17 @@ theorem nw_checkBit_run_match_frontier (b : Bool) (s sCont sFail h : ℕ) (tp : 
         (s, h, tp) (sCont, h + 1, tp') ∧ ∀ q, tp'.getD q false = tp.getD q false :=
   ACC0UniversalTMCheckBit.checkBit_run_match b s sCont sFail h tp hb
 
+/-- **Entry 353: the fixed-pattern matcher `matchPattern` succeeds on a matching tape (PROVED).**  Chaining one
+`checkBit` per pattern bit (failures funnelled to a common `F`), if the tape from offset `h` agrees with the constant
+pattern `pat`, the matcher runs `pat.length` steps to the success state `s + pat.length` (head past the pattern),
+preserving the tape — the first composite control-flow machine of the matching half. -/
+theorem nw_matchPattern_run_match_frontier (pat : List Bool) (s F h : ℕ) (tp : List Bool)
+    (hmatch : ∀ i, i < pat.length → tp.getD (h + i) false = pat.getD i false) :
+    ∃ tp', ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (ACC0UniversalTMMatchPattern.matchPattern pat s F))
+        pat.length (s, h, tp) (s + pat.length, h + pat.length, tp') ∧
+      ∀ q, tp'.getD q false = tp.getD q false :=
+  ACC0UniversalTMMatchPattern.matchPattern_run_match pat s F h tp hmatch
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5382,3 +5394,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanTrans_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_branchBit_run_true_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_checkBit_run_match_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_matchPattern_run_match_frontier
