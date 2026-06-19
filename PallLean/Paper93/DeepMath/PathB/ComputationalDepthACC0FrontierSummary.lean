@@ -239,6 +239,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMWriteCon
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCopyBit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMFillConst
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMWalkLeftK
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCopyBitReturn
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4184,6 +4185,16 @@ theorem nw_walkLeftK_run_frontier (k s h : ℕ) (tp : List Bool) :
         (s, h, tp) (s + k, h - k, tp') ∧ ∀ q, tp'.getD q false = tp.getD q false :=
   ACC0UniversalTMWalkLeftK.walkLeftK_run k s h tp
 
+/-- **Entry 363: the copy-and-return body `copyBitReturn` (PROVED).**  The verified iteration unit of a block copy:
+copy cell `j` to cell `j+m` (`copyBit`), then walk `m` cells back left to the next source cell (`walkLeftK`).  Runs
+`2m+2` steps from `(s, j, tp)` to `(E+m, j+1, tp')`, with cell `j+m` now holding cell `j`'s value, every other cell
+unchanged, and the head back at the next source cell. -/
+theorem nw_copyBitReturn_run_frontier (m s sT0 sF0 E j : ℕ) (tp : List Bool) :
+    ∃ tp', ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (ACC0UniversalTMCopyBitReturn.copyBitReturn m s sT0 sF0 E))
+        (2 * m + 2) (s, j, tp) (E + m, j + 1, tp') ∧ tp'.getD (j + m) false = tp.getD j false ∧
+      ∀ q, q ≠ j + m → tp'.getD q false = tp.getD q false :=
+  ACC0UniversalTMCopyBitReturn.copyBitReturn_run m s sT0 sF0 E j tp
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5499,3 +5510,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_copyBit_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_fillConst_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_walkLeftK_run_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_copyBitReturn_run_frontier
