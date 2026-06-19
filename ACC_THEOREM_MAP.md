@@ -251,6 +251,15 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
       granularity (B=4 macro-steps), per-phase time = stepOverhead [305]; only refinement left = phase→primitive-cell-ops
       (phase-internal detail). The U-rule-table loop is GROUND OUT to a concrete machine with proved step/time bounds.
 
+  PHASE-INTERNAL CELL-OP REFINEMENT — lookup phase as primitive single-rule steps (310, proved):
+    scanStep (one rule per step: pop head, append iff matches); scanNTM.
+    • scan_reaches : from (rules, acc), in rules.length steps reach ([], acc ++ rules.filter p) (induction on rules)
+    • scan_phase_celled : from (M,[]), in EXACTLY M.length primitive single-rule comparisons, reach
+      ([], matchingRules M state sym) — the lookup macro-step expanded to primitive ops, exact count = the 305 bound.
+    ⇒ the representative phase macro-step (lookup) is refined to primitive cell-ops with exact step count M.length;
+      decode/re-encode (tape-cell traversal, |tape| steps) + apply (O(1)) follow the same fold-as-small-steps pattern.
+      The compile is now ground from logical down to primitive single-operation steps. Pure mechanical bookkeeping.
+
   NW GUESS-VERIFY (target 2, Williams link 3) — verify inside the fast-SAT framework (306, proved):
     already proved: gvDecider_eq (correctness), guess_verify_within (two-phase time), guessVerify_subset (collapse).
     • nw_guess_verify_within_fast : guess small (guessT ≤ 2^{n-k}) + verify via fast-SAT (verifyT ≤ 2^{n-k})

@@ -236,6 +236,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWGuessVerify
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IKWHardFnSeparation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PhysicalUniversalLoop
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PhysicalUniversalMachine
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ScanCellOps
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -4130,6 +4131,16 @@ theorem nw_physU_tracks_frontier (k : ℕ) (s t : List Bool)
       (ACC0PhysicalUniversalMachine.PUConfig.tape s) (ACC0PhysicalUniversalMachine.PUConfig.tape t) :=
   ACC0PhysicalUniversalMachine.physU_tracks k s t h
 
+/-- **Phase-internal refinement: the lookup phase as primitive single-rule-comparison steps (proved).**
+nw_scan_phase_celled_frontier (PROVED): from `(M, [])`, in exactly `M.length` primitive single-rule comparisons, the
+scanner reaches `([], matchingRules M state sym)` — the lookup phase macro-step expanded into primitive operations, the
+exact step count matching the entry-305 resource bound.  Decode/re-encode (tape-cell traversal) and apply (O(1)) follow
+the same pattern (entry 310). -/
+theorem nw_scan_phase_celled_frontier (M : ACC0ConcreteNTM.TMachine) (state : ℕ) (sym : Bool) :
+    ACC0NTM.reachIn (ACC0ScanCellOps.scanNTM (fun t => decide (t.1 = (state, sym)))) M.length
+      (M, []) ([], ACC0RuleLookup.matchingRules M state sym) :=
+  ACC0ScanCellOps.scan_phase_celled M state sym
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4691,3 +4702,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_hardFnSeparation_from_parts_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_physical_tracks_lift_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_physU_tracks_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scan_phase_celled_frontier
