@@ -248,6 +248,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanTran
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMWriteAtId
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanListPres
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanTransFromEq
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanTable
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4285,6 +4286,18 @@ theorem nw_scanTransFrom_run_eq_frontier (base : ℕ) (t : ACC0ConcreteNTM.TMTra
         pre ++ ACC0UniversalTMScannable.encodeTransBits t ++ rest) :=
   ACC0UniversalTMScanTransFromEq.scanTransFrom_run_eq base t pre rest
 
+/-- **Entry 372: the rule-table scan `scanTable` (PROVED).**  Loops the list-preserving record scanner over the whole
+transition list: `scanTable base Ms` scans the encoded rule table `Ms.flatMap encodeTransBits` from state `base`,
+advancing the control state by `5` per transition and returning the *identical* tape, head past the table.  The loop is
+a clean recursion thanks to list-preservation (the inductive step re-runs the scanner on the same tape). -/
+theorem nw_scanTable_run_frontier (base : ℕ) (Ms : List ACC0ConcreteNTM.TMTrans) (pre rest : List Bool) :
+    ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (ACC0UniversalTMScanTable.scanTable base Ms))
+      (Ms.flatMap ACC0UniversalTMScannable.encodeTransBits).length
+      (base, pre.length, pre ++ Ms.flatMap ACC0UniversalTMScannable.encodeTransBits ++ rest)
+      (base + 5 * Ms.length, pre.length + (Ms.flatMap ACC0UniversalTMScannable.encodeTransBits).length,
+        pre ++ Ms.flatMap ACC0UniversalTMScannable.encodeTransBits ++ rest) :=
+  ACC0UniversalTMScanTable.scanTable_run base Ms pre rest
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5609,3 +5622,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_writeAt_id_of_lt_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanNatFrom_run_eq_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanTransFrom_run_eq_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanTable_run_frontier
