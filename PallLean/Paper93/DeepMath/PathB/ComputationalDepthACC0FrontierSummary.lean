@@ -219,6 +219,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMBitLooku
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMBitApply
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMEncodedRun
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMEmit
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMDecide
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3957,6 +3958,18 @@ theorem nw_universalSim_of_emits_frontier (U : ACC0ConcreteNTM.TMachine)
       (φ (ACC0UniversalTMScannable.encodeMachineBits M) (ACC0UniversalTMBitApply.encodeConfig cf)) :=
   ACC0UniversalTMEmit.universalSim_of_emits U φ cost hemit M k c0 cf h
 
+/-- **Entry 343: universal-TM build, brick 10 — emission ⇒ the universal machine decides (PROVED).**  Given the emission
+socket and the natural accept-layout, a simulation reaching an accepting config yields a `U`-run reaching `U`'s accept
+state — `U` decides what the simulated machine decides, conditional on the single transition-table socket. -/
+theorem nw_universalReachesAccept_of_emits_frontier (U : ACC0ConcreteNTM.TMachine)
+    (φ : List Bool → List Bool → ACC0ConcreteNTM.CConfig) (cost : ℕ)
+    (hemit : ACC0UniversalTMEmit.EmitsEncodedStep U φ cost) (hlay : ACC0UniversalTMDecide.AcceptLayout φ)
+    (M : ACC0ConcreteNTM.TMachine) (k : ℕ) (c0 cf : ACC0ConcreteNTM.CConfig)
+    (hsim : ACC0UniversalTMLoop.simIter M k c0 = some cf) (hacc : cf.1 = 1) :
+    ∃ d, ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM U) (k * cost)
+        (φ (ACC0UniversalTMScannable.encodeMachineBits M) (ACC0UniversalTMBitApply.encodeConfig c0)) d ∧ d.1 = 1 :=
+  ACC0UniversalTMDecide.universalReachesAccept_of_emits U φ cost hemit hlay M k c0 cf hsim hacc
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5251,3 +5264,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_encodedRun_correct_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_encodedStep_correct_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_universalSim_of_emits_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_universalReachesAccept_of_emits_frontier
