@@ -202,6 +202,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWReconstructionBri
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitBridgeACC0Faithful
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedFanin
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedBridges
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NondetHierarchyInternals
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3731,6 +3732,19 @@ theorem nw_ureconstructed_hasDepth_frontier {n Nc : ℕ} (P : ACC0UnboundedFanin
     ACC0UnboundedBridges.HasUCircuitOfDepth fbool (P.depth + dt) :=
   ACC0UnboundedBridges.ureconstructed_hasDepth P tables fbool dt hg hcomp
 
+/-- **Entry 326: the NTIME-class characterisation (PROVED): `L ∈ NTIME g ↔ ∃ M, L = langOf M g` — the internal of the
+nondeterministic time-hierarchy residue.** -/
+theorem nw_mem_NTIME_iff_frontier (g : ℕ → ℕ) (L : ACC0WilliamsMetaTheorem.Lang) :
+    L ∈ ACC0NTM.NTIME g ↔ ∃ M : ACC0NTM.NTM, L = ACC0NondetHierarchyInternals.langOf M g :=
+  ACC0NondetHierarchyInternals.mem_NTIME_iff g L
+
+/-- **Entry 326: the time-hierarchy diagonalisation assembly (PROVED): a diagonal `D ∈ NTIME f` differing from every
+`g`-clocked machine witnesses `¬ (NTIME f ⊆ NTIME g)` — reducing the hierarchy residue to placement + diagonalisation.** -/
+theorem nw_concreteHierarchy_of_diagonal_frontier (f g : ℕ → ℕ) (D : ACC0WilliamsMetaTheorem.Lang)
+    (hf : D ∈ ACC0NTM.NTIME f) (hdiag : ∀ M : ACC0NTM.NTM, D ≠ ACC0NondetHierarchyInternals.langOf M g) :
+    ACC0NTM.ConcreteHierarchy f g :=
+  ACC0NondetHierarchyInternals.concreteHierarchy_of_diagonal f g D hf hdiag
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -4998,3 +5012,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_upredictor_eval_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_upredictor_depth_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_ureconstructed_hasDepth_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_mem_NTIME_iff_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_concreteHierarchy_of_diagonal_frontier
