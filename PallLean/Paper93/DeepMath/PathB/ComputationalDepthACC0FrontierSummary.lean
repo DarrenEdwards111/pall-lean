@@ -221,6 +221,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMEncodedR
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMEmit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMDecide
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanNat
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanNatRun
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3984,6 +3985,14 @@ theorem nw_scanNat_step_true_frontier (j : ℕ) (tp : List Bool) (h : tp.getD j 
       (0, j + 1, ACC0ConcreteNTM.writeAt tp j true) :=
   ACC0UniversalTMScanNat.scanNat_step_true j tp h
 
+/-- **Entry 345: the full `scanNat` run (PROVED).**  From `(0,0, encodeNatBits n ++ rest)`, `scanNat` runs `n+1` steps
+to state `1` at head `n+1` — the verified cursor-advance over one encoded nat (tape-invariant induction on the
+write-back invariant). -/
+theorem nw_scanNat_run_frontier (n : ℕ) (rest : List Bool) :
+    ∃ tp, ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM ACC0UniversalTMScanNat.scanNat) (n + 1)
+      (0, 0, ACC0UniversalTMScannable.encodeNatBits n ++ rest) (1, n + 1, tp) :=
+  ACC0UniversalTMScanNatRun.scanNat_run n rest
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5281,3 +5290,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_universalReachesAccept_of_emits_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_writeAt_getD_self_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanNat_step_true_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanNat_run_frontier
