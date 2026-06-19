@@ -230,6 +230,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanTran
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMBranch
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCheckBit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMMatchPattern
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMMoveLeft
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4089,6 +4090,14 @@ theorem nw_matchPattern_run_match_frontier (pat : List Bool) (s F h : ℕ) (tp :
       ∀ q, tp'.getD q false = tp.getD q false :=
   ACC0UniversalTMMatchPattern.matchPattern_run_match pat s F h tp hmatch
 
+/-- **Entry 354: the leftward move `moveLeft` (PROVED).**  The first machine in the table build to travel left
+(move `0`, `h ↦ h-1`) — the head direction the two-pointer key comparison needs to return between tape regions.  From
+`(s, h, tp)` it reaches `(s', h-1, tp')` in one step, preserving the tape, uniformly in the read symbol. -/
+theorem nw_moveLeft_run_pres_frontier (s s' h : ℕ) (tp : List Bool) :
+    ∃ tp', ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (ACC0UniversalTMMoveLeft.moveLeft s s')) 1
+        (s, h, tp) (s', h - 1, tp') ∧ ∀ q, tp'.getD q false = tp.getD q false :=
+  ACC0UniversalTMMoveLeft.moveLeft_run_pres s s' h tp
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5395,3 +5404,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_branchBit_run_true_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_checkBit_run_match_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_matchPattern_run_match_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_moveLeft_run_pres_frontier
