@@ -238,6 +238,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareD
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMWriteConst
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCopyBit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMFillConst
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMWalkLeftK
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4175,6 +4176,14 @@ theorem nw_fillConst_run_frontier (b : Bool) (L s h : ℕ) (tp : List Bool) :
       (∀ q, h + L ≤ q → tp'.getD q false = tp.getD q false) :=
   ACC0UniversalTMFillConst.fillConst_run b L s h tp
 
+/-- **Entry 362: the fixed-distance left walk `walkLeftK` (PROVED).**  The left analog of `walkRightK` and the
+return-trip primitive for the apply's block copy: `walkLeftK k s` walks the head left `k` cells through the states
+`s, …, s+k`, ending in state `s+k` at head `h-k`, preserving the tape. -/
+theorem nw_walkLeftK_run_frontier (k s h : ℕ) (tp : List Bool) :
+    ∃ tp', ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (ACC0UniversalTMWalkLeftK.walkLeftK k s)) k
+        (s, h, tp) (s + k, h - k, tp') ∧ ∀ q, tp'.getD q false = tp.getD q false :=
+  ACC0UniversalTMWalkLeftK.walkLeftK_run k s h tp
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5489,3 +5498,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_writeConst_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_copyBit_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_fillConst_run_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_walkLeftK_run_frontier
