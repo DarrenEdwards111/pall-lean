@@ -254,6 +254,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMWalkRigh
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareDistantEq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMWalkLeftKEq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareBitReturn
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareStep3
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4347,6 +4348,15 @@ theorem nw_compareBitReturn_run_eq_frontier (m s sT0 sF0 E N j : ℕ) (tp : List
       (2 * m + 2) (s, j, tp) (E + m, j + 1, tp) :=
   ACC0UniversalTMCompareBitReturn.compareBitReturn_run_eq m s sT0 sF0 E N j tp heq hbound
 
+/-- **Entry 378: the three-way comparison step `compareStep3` (PROVED), continue case.**  Per cell pair: both `true`
+→ `cont` (fields still running), both `false` → `matchSt` (aligned separators), differ → `noMatch` — the loop body of a
+unary-field equality test, leaving the tape *identical*.  Here is the continue case. -/
+theorem nw_compareStep3_run_cont_frontier (m s sT0 sF0 cont matchSt noMatch j : ℕ) (tp : List Bool)
+    (hj : tp.getD j false = true) (hjm : tp.getD (j + m) false = true) (hbound : j + m < tp.length) :
+    ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (ACC0UniversalTMCompareStep3.compareStep3 m s sT0 sF0 cont matchSt noMatch))
+      (m + 2) (s, j, tp) (cont, j + m + 1, tp) :=
+  ACC0UniversalTMCompareStep3.compareStep3_run_cont m s sT0 sF0 cont matchSt noMatch j tp hj hjm hbound
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5677,3 +5687,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareDistant_run_eq_listpres_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_walkLeftK_run_eq_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareBitReturn_run_eq_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareStep3_run_cont_frontier
