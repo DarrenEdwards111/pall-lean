@@ -300,6 +300,15 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
       residues. Caveat-1 pieces done: Karp-Lipton [313] + NW-derand MA⊆NP [314]; remaining = PRG-fooling internals
       (DerandGivesPRG/PRGCollapsesMAtoNP + NexpEqMIP/MIPRealizedGuessable arithmetization) = workstream-A step 3.
 
+  WORKSTREAM A step 3 — PRG-COLLAPSE SEED-ENUMERATION mechanism (315, proved):
+    • seedAccept V seeds x w := seeds.length < 2·#{r∈seeds | V x w r} [finite seed-majority NP verifier], DECIDABLE
+      (instDecidableSeedAccept), count bounded (seed_count_le). Sub-bricks 1+4.
+    • PRGFools probAccept V seeds := ∀ x w, probAccept x w ↔ seedAccept ... [completeness+soundness transfer]. Sub-bricks 2+3.
+    • maLang_eq_npLang : PRGFools ⇒ MALang probAccept = NPLang V seeds (collapse mechanism, exists_congr).
+    • prgCollapsesMAtoNP_of_realizes : PRGRealizesCollapse ⇒ PRGCollapsesMAtoNP.
+    ⇒ opens the PRGCollapsesMAtoNP residue: seed-enumeration mechanism PROVED + decidable seed verifier; reduces it to
+      the genuine pseudorandomness residue PRGFools. Next: HardFunction→PRGExists (the NW/IW PRG construction).
+
   IKW EASY-WITNESS (target 3, the deepest) — sub-socket 2 decomposed (307, proved):
     IKW EasyWitnessLemma ⟸ (1) NoEasyWitnessHardFn [DISCHARGED 150, the witness w IS the hard fn] ∧ (2) HardFnSeparation.
     • hardFnSeparation_from_parts : HardFnSeparation ⟸ KarpLipton(NEXP⊆ACC⁰→NEXP⊆MA) + derand(HardFn→MA⊆NP)

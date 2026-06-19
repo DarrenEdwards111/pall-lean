@@ -241,6 +241,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PhaseCellOpsRest
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SemiringObstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0KarpLiptonMA
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWDerand
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PRGCollapse
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -4191,6 +4192,17 @@ theorem nw_hardFnSeparation_fully_assembled_frontier
   ACC0NWDerand.hardFnSeparation_fully_assembled NEXP MIP ACC0 MA NP HardFunction PRGExists
     heq realized hardToPRG prgCollapse hNPMA hMANEXP hNexpNeqNp
 
+/-- **Workstream A step 3: the PRG-collapse seed-enumeration mechanism (proved).**
+nw_prgCollapsesMAtoNP_of_realizes_frontier (PROVED): `PRGCollapsesMAtoNP` discharged from the realized form — under
+`PRGExists`, every `MA` language is a `probAccept`-language with a fooling PRG whose seed-majority `NP` language is in
+`NP`; the seed-enumeration mechanism (`maLang_eq_npLang`) collapses `MA ⊆ NP`.  Reduces `PRGCollapsesMAtoNP` to the
+genuine pseudorandomness residue `PRGFools` (entry 315). -/
+theorem nw_prgCollapsesMAtoNP_of_realizes_frontier (PRGExists : Prop)
+    (MA NP : ACC0WilliamsMetaTheorem.CClass)
+    (h : ACC0PRGCollapse.PRGRealizesCollapse PRGExists MA NP) :
+    ACC0DerandCollapse.PRGCollapsesMAtoNP PRGExists MA NP :=
+  ACC0PRGCollapse.prgCollapsesMAtoNP_of_realizes PRGExists MA NP h
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4757,3 +4769,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_two_three_semiring_trivial_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_karp_lipton_NEXP_ACC_to_MA_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_hardFnSeparation_fully_assembled_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_prgCollapsesMAtoNP_of_realizes_frontier
