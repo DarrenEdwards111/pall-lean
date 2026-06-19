@@ -257,6 +257,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareB
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareStep3
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareUnary
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareUnaryNe
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMKeyMatch
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4382,6 +4383,21 @@ theorem nw_compareUnary_run_ne_frontier (m sT0 sF0 sCont matchSt noMatch k j : �
       N (sCont + m, j, tp) (noMatch, j + k + m + 1, tp) :=
   ACC0UniversalTMCompareUnaryNe.compareUnary_run_ne m sT0 sF0 sCont matchSt noMatch k j tp htrueA htrueB hdiff hbound
 
+/-- **Entry 381: the full key match `keyMatch_run_match` (PROVED).**  A transition key is `(state, readSym)` — a unary
+state field then a symbol bit (`encodeTransBits` layout).  This composes the unary state-field equality (entry 379) with
+the symbol-bit comparison (entry 375): equal state fields (length `L`) *and* equal symbol bits drive the machine to
+`fullMatch`, tape identical.  Exploits the layout — after the state compare the head lands exactly on the rule symbol,
+`m` cells right of the config symbol. -/
+theorem nw_keyMatch_run_match_frontier (m sT0 sF0 sCont matchSt noMatch bT0 bF0 fullMatch L j : ℕ) (tp : List Bool)
+    (htrueA : ∀ i, i < L → tp.getD (j + i) false = true) (htrueB : ∀ i, i < L → tp.getD (j + m + i) false = true)
+    (hsepA : tp.getD (j + L) false = false) (hsepB : tp.getD (j + m + L) false = false)
+    (hsym : tp.getD (j + L + 1) false = tp.getD ((j + L + 1) + m) false) (hbound : j + L + m + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM
+        (ACC0UniversalTMKeyMatch.keyMatch m sT0 sF0 sCont matchSt noMatch bT0 bF0 fullMatch)) N
+      (sCont + m, j, tp) (fullMatch, (j + L + 1) + m + 1, tp) :=
+  ACC0UniversalTMKeyMatch.keyMatch_run_match m sT0 sF0 sCont matchSt noMatch bT0 bF0 fullMatch L j tp
+    htrueA htrueB hsepA hsepB hsym hbound
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5715,3 +5731,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareStep3_run_cont_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareUnary_run_match_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareUnary_run_ne_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_keyMatch_run_match_frontier
