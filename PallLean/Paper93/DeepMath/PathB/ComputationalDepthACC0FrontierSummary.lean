@@ -206,6 +206,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NondetHierarchyInte
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ConcreteLazyHierarchy
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyDiagDecider
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RoutingMachineComposition
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RoutingMachineWiring
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3790,6 +3791,15 @@ theorem nw_acceptsWithin_mono_machine_frontier {M M' : ACC0ConcreteNTM.TMachine}
     ACC0NTM.acceptsWithin (ACC0ConcreteNTM.toNTM M') x t :=
   ACC0RoutingMachineComposition.acceptsWithin_mono_machine h ha
 
+/-- **Entry 330: routing-machine wiring — phase placed on disjoint states keeps its run in the combined table (PROVED).**
+`M₂`'s run, state-offset by `s`, holds in `M₁ ++ shiftMachine s M₂` — state-offset preserves computation
+(`reachIn_shift`) then entry-329 monotonicity lifts it.  The state-disjoint embedding for the routing table. -/
+theorem nw_reachIn_in_combined_frontier (s : ℕ) (M₁ M₂ : ACC0ConcreteNTM.TMachine) (k : ℕ)
+    (c d : ACC0ConcreteNTM.CConfig) (hr : ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM M₂) k c d) :
+    ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (M₁ ++ ACC0RoutingMachineWiring.shiftMachine s M₂)) k
+      (ACC0RoutingMachineWiring.shiftConfig s c) (ACC0RoutingMachineWiring.shiftConfig s d) :=
+  ACC0RoutingMachineWiring.reachIn_in_combined s M₁ M₂ k c d hr
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5064,3 +5074,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lazyDiagDecide_copy_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lazyDiagDecide_boundary_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_acceptsWithin_mono_machine_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reachIn_in_combined_frontier
