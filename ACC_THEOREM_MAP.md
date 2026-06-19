@@ -256,9 +256,16 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
     • scan_reaches : from (rules, acc), in rules.length steps reach ([], acc ++ rules.filter p) (induction on rules)
     • scan_phase_celled : from (M,[]), in EXACTLY M.length primitive single-rule comparisons, reach
       ([], matchingRules M state sym) — the lookup macro-step expanded to primitive ops, exact count = the 305 bound.
-    ⇒ the representative phase macro-step (lookup) is refined to primitive cell-ops with exact step count M.length;
-      decode/re-encode (tape-cell traversal, |tape| steps) + apply (O(1)) follow the same fold-as-small-steps pattern.
-      The compile is now ground from logical down to primitive single-operation steps. Pure mechanical bookkeeping.
+    ⇒ the representative phase macro-step (lookup) is refined to primitive cell-ops with exact step count M.length.
+
+  ALL FOUR PHASES CELL-REFINED — decode/re-encode (tape walk) + apply (O(1)) (311, proved):
+    • walk_reaches : generic tape-cell traversal — from (cells, acc) in cells.length steps reach ([], cells.foldl g acc)
+      = the decode (read) / re-encode (write) cell-cost model (|tape| primitive steps; correctness = decodeSim_encodeSim).
+    • apply_phase_celled : reachIn (applyNTM t) 3 (0,c)(3, applyTrans c t) — apply = 3 primitive field-updates
+      (write symbol → move head → set state), composing exactly to applyTrans.
+    ⇒ ALL FOUR phases now cell-refined to EXACT primitive step counts: decode |tape|, lookup M.length [310], apply 3,
+      re-encode |tape| — together the per-uEncStep stepOverhead [305]. The transition-table compile is ground from
+      logical tracking [304] ALL THE WAY DOWN to primitive single-operation steps. Pure mechanical bookkeeping.
 
   NW GUESS-VERIFY (target 2, Williams link 3) — verify inside the fast-SAT framework (306, proved):
     already proved: gvDecider_eq (correctness), guess_verify_within (two-phase time), guessVerify_subset (collapse).

@@ -237,6 +237,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IKWHardFnSeparation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PhysicalUniversalLoop
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PhysicalUniversalMachine
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ScanCellOps
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PhaseCellOpsRest
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -4141,6 +4142,15 @@ theorem nw_scan_phase_celled_frontier (M : ACC0ConcreteNTM.TMachine) (state : �
       (M, []) ([], ACC0RuleLookup.matchingRules M state sym) :=
   ACC0ScanCellOps.scan_phase_celled M state sym
 
+/-- **Apply phase in 3 primitive steps (proved).**
+nw_apply_phase_celled_frontier (PROVED): applying a rule `t` is exactly 3 primitive field-updates (write → move →
+state) composing to `applyTrans c t`: `reachIn (applyNTM t) 3 (0, c) (3, applyTrans c t)`.  With decode/re-encode
+(tape walk, `|tape|` steps) and lookup (`M.length`, entry 310), all four phases are cell-refined to exact primitive
+step counts (entry 311). -/
+theorem nw_apply_phase_celled_frontier (t : ACC0ConcreteNTM.TMTrans) (c : ACC0ConcreteNTM.CConfig) :
+    ACC0NTM.reachIn (ACC0PhaseCellOpsRest.applyNTM t) 3 (0, c) (3, ACC0ConcreteNTM.applyTrans c t) :=
+  ACC0PhaseCellOpsRest.apply_phase_celled t c
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4703,3 +4713,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_physical_tracks_lift_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_physU_tracks_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scan_phase_celled_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_apply_phase_celled_frontier
