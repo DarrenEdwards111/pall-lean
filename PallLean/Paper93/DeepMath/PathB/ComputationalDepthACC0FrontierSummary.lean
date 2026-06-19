@@ -229,6 +229,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RealizationClocking
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BoundedAcceptanceDecidable
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalCharObstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyDiagonalConstruction
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyDeciderAssembly
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -4040,6 +4041,18 @@ theorem nw_lazyDiagLang_escapes_frontier (enum : ℕ → (ℕ → Bool)) :
     ACC0LazyDiagonalConstruction.lazyDiagLang enum ∉ Set.range enum :=
   ACC0LazyDiagonalConstruction.lazyDiagLang_escapes enum
 
+/-- **The lazy-diagonal decider assembly — complement-free hierarchy, one socket left (proved).**
+nw_lazy_time_hierarchy_frontier (PROVED): the unconditional lazy escape (302) + enumerability + the decider socket
+(lazy diagonal decided in the bigger class) ⟹ `¬ (Bigger ⊆ Smaller)` — the nondeterministic time hierarchy built on the
+lazy (one-boundary-complement) escape, honest without closure under complement.  The one remaining socket
+(`lazyDiagLang ∈ Bigger`) is supported by copy=universal sim 296/297 clocked 298, boundary=decidable complement 299;
+lacks only the transition-table `TMachine` compilation (entry 303). -/
+theorem nw_lazy_time_hierarchy_frontier {enum : ℕ → (ℕ → Bool)} {Smaller Bigger : Set (ℕ → Bool)}
+    (henum : Smaller ⊆ Set.range enum)
+    (hbig : ACC0LazyDiagonalConstruction.lazyDiagLang enum ∈ Bigger) :
+    ¬ (Bigger ⊆ Smaller) :=
+  ACC0LazyDeciderAssembly.lazy_time_hierarchy henum hbig
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4594,3 +4607,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_acceptsWithin_iff_decAccept_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_coprime_native_trivial_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lazyDiagLang_escapes_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lazy_time_hierarchy_frontier

@@ -211,6 +211,15 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
     ⇒ the structural skeleton of the lazy-diagonal decider: total language tiling ℕ into copy(even)/boundary(odd)
       positions per index, escaping every enumeration. Remaining = the decider MACHINE (compute lazyDiagLang within f:
       copy via universal sim 296/297, boundary via decidable complement 299, clocked 298) — physical engineering.
+
+  LAZY-DECIDER ASSEMBLY — complement-free hierarchy, ONE socket left (303, proved):
+    • lazy_diag_not_in_smaller : Smaller ⊆ range enum ⇒ lazyDiagLang enum ∉ Smaller (from 302 escape)
+    • lazy_time_hierarchy : henum + hbig(lazyDiagLang ∈ Bigger) ⇒ ¬(Bigger ⊆ Smaller) — the NTIME hierarchy on the
+      LAZY (one-boundary-complement) escape, HONEST for nondet classes (no co-nondeterminism, unlike Cantor version)
+    ⇒ the lazy-diagonal hierarchy implication is ASSEMBLED; the ONE remaining socket (lazyDiagLang ∈ Bigger = the lazy
+      diagonal decided in the bigger bound) is supported by copy[universal sim 296/297, clocked 298] + boundary[decidable
+      complement 299]; lacks ONLY the transition-table TMachine compilation of the routing (UniversalHStep line) —
+      proven-classical physical engineering, NOT an open obstruction.
 ```
 
 ## Tier 1 — AC⁰ (switching method): **DONE & FENCED**
