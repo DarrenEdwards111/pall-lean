@@ -255,6 +255,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareD
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMWalkLeftKEq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareBitReturn
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareStep3
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareUnary
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4357,6 +4358,18 @@ theorem nw_compareStep3_run_cont_frontier (m s sT0 sF0 cont matchSt noMatch j : 
       (m + 2) (s, j, tp) (cont, j + m + 1, tp) :=
   ACC0UniversalTMCompareStep3.compareStep3_run_cont m s sT0 sF0 cont matchSt noMatch j tp hj hjm hbound
 
+/-- **Entry 379: the unary-field equality comparison `compareUnary_run_match` (PROVED).**  The first *cyclic,
+data-dependent* loop of the build: two *equal* unary fields of common length `L` (region A at `j`, region B at `j+m`)
+drive the comparison machine from its loop head to the equal-state `matchSt`, leaving the tape identical — proved by
+induction on `L`, the `cont` exit's `walkLeftK` return closing the cycle. -/
+theorem nw_compareUnary_run_match_frontier (m sT0 sF0 sCont matchSt noMatch L j : ℕ) (tp : List Bool)
+    (htrueA : ∀ i, i < L → tp.getD (j + i) false = true) (htrueB : ∀ i, i < L → tp.getD (j + m + i) false = true)
+    (hsepA : tp.getD (j + L) false = false) (hsepB : tp.getD (j + m + L) false = false)
+    (hbound : j + m + L + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (ACC0UniversalTMCompareUnary.compareUnary m sT0 sF0 sCont matchSt noMatch))
+      N (sCont + m, j, tp) (matchSt, j + L + m + 1, tp) :=
+  ACC0UniversalTMCompareUnary.compareUnary_run_match m sT0 sF0 sCont matchSt noMatch L j tp htrueA htrueB hsepA hsepB hbound
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5688,3 +5701,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_walkLeftK_run_eq_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareBitReturn_run_eq_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareStep3_run_cont_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareUnary_run_match_frontier
