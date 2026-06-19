@@ -291,6 +291,15 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
       NAMED classical residues [NexpEqMIP = BFL NEXP=MIP, sum-check engine proved 226-227; MIPRealizedGuessable = IKW
       small prover, collapse mechanism mipLang_eq_maLang proved], glue + Merlin/Arthur mechanism PROVED.
 
+  WORKSTREAM A step 2 — NW-DERANDOMISATION HardFunction→MA⊆NP assembled (314, proved):
+    • nw_hardFn_MA_subset_NP : (HardFunction→PRGExists)[NW hardness-to-PRG] + PRGCollapsesMAtoNP[seed enum] ⇒
+      HardFunction→MA⊆NP (= derandMASubsetNP_via_PRG at Derand:=HardFunction).
+    • hardFnSeparation_fully_assembled : HardFnSeparation from PURELY named residues — NexpEqMIP + MIPRealizedGuessable
+      (Karp-Lipton 313) + (HardFunction→PRGExists) + PRGCollapsesMAtoNP (derand) + NP⊆MA⊆NEXP + NEXP≠NP[200 proved].
+    ⇒ BOTH entry-307 hypotheses (karpLipton, derand) DISCHARGED. IKW chain now rests on purely named proven-classical
+      residues. Caveat-1 pieces done: Karp-Lipton [313] + NW-derand MA⊆NP [314]; remaining = PRG-fooling internals
+      (DerandGivesPRG/PRGCollapsesMAtoNP + NexpEqMIP/MIPRealizedGuessable arithmetization) = workstream-A step 3.
+
   IKW EASY-WITNESS (target 3, the deepest) — sub-socket 2 decomposed (307, proved):
     IKW EasyWitnessLemma ⟸ (1) NoEasyWitnessHardFn [DISCHARGED 150, the witness w IS the hard fn] ∧ (2) HardFnSeparation.
     • hardFnSeparation_from_parts : HardFnSeparation ⟸ KarpLipton(NEXP⊆ACC⁰→NEXP⊆MA) + derand(HardFn→MA⊆NP)

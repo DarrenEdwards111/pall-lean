@@ -240,6 +240,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ScanCellOps
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PhaseCellOpsRest
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SemiringObstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0KarpLiptonMA
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWDerand
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -4174,6 +4175,22 @@ theorem nw_karp_lipton_NEXP_ACC_to_MA_frontier
     NEXP ⊆ ACC0 → NEXP ⊆ MA :=
   ACC0KarpLiptonMA.karp_lipton_NEXP_ACC_to_MA NEXP MIP ACC0 MA heq realized
 
+/-- **Workstream A: NW-derandomisation + fully-assembled HardFnSeparation (proved glue).**
+nw_hardFnSeparation_fully_assembled_frontier (PROVED): entry-307 `HardFnSeparation` from purely named residues —
+`NexpEqMIP` + `MIPRealizedGuessable` (Karp–Lipton, BFL/IKW), `HardFunction → PRGExists` + `PRGCollapsesMAtoNP`
+(NW-derandomisation), `NP ⊆ MA ⊆ NEXP`, and the proved `NEXP ≠ NP`.  Both the `karpLipton` and `derand` hypotheses are
+discharged (entries 313+314); the IKW chain rests on named, proven-classical residues. -/
+theorem nw_hardFnSeparation_fully_assembled_frontier
+    (NEXP MIP ACC0 MA NP : ACC0WilliamsMetaTheorem.CClass) (HardFunction PRGExists : Prop)
+    (heq : ACC0BFLCollapse.NexpEqMIP NEXP MIP)
+    (realized : ACC0GuessableProver.MIPRealizedGuessable MIP ACC0 MA)
+    (hardToPRG : HardFunction → PRGExists)
+    (prgCollapse : ACC0DerandCollapse.PRGCollapsesMAtoNP PRGExists MA NP)
+    (hNPMA : NP ⊆ MA) (hMANEXP : MA ⊆ NEXP) (hNexpNeqNp : NEXP ≠ NP) :
+    ACC0IKWEasyWitness.HardFnSeparation NEXP ACC0 HardFunction :=
+  ACC0NWDerand.hardFnSeparation_fully_assembled NEXP MIP ACC0 MA NP HardFunction PRGExists
+    heq realized hardToPRG prgCollapse hNPMA hMANEXP hNexpNeqNp
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4739,3 +4756,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_apply_phase_celled_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_two_three_semiring_trivial_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_karp_lipton_NEXP_ACC_to_MA_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_hardFnSeparation_fully_assembled_frontier
