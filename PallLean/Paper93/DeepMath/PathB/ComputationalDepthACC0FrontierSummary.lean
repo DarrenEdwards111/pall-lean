@@ -234,6 +234,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMMoveLeft
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareAdjacent
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareAdjacentNe
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMWalkRightK
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareDistant
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4131,6 +4132,17 @@ theorem nw_walkRightK_run_frontier (k s h : ℕ) (tp : List Bool) :
         (s, h, tp) (s + k, h + k, tp') ∧ ∀ q, tp'.getD q false = tp.getD q false :=
   ACC0UniversalTMWalkRightK.walkRightK_run k s h tp
 
+/-- **Entry 358: the distant-region comparison `compareDistant` reaches the equal-state (PROVED).**  The
+full-generality two-pointer match: a finite-control machine compares cell `j` with the distant cell `j+m` by carrying
+cell `j` in the control state (`branchBit`), traversing the gap on a per-value track (`walkRightK`), and comparing on
+arrival (`checkBit`).  If the cells agree, it runs `m+2` steps from `(s, j, tp)` to the equal-state `(E, j+m+1, tp')`. -/
+theorem nw_compareDistant_run_eq_frontier (m s sT0 sF0 E N j : ℕ) (tp : List Bool)
+    (heq : tp.getD j false = tp.getD (j + m) false) :
+    ∃ tp', ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM
+        (ACC0UniversalTMCompareDistant.compareDistant m s sT0 sF0 E N)) (m + 2)
+      (s, j, tp) (E, j + m + 1, tp') :=
+  ACC0UniversalTMCompareDistant.compareDistant_run_eq m s sT0 sF0 E N j tp heq
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5441,3 +5453,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareAdjacent_run_eq_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareAdjacent_run_ne_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_walkRightK_run_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareDistant_run_eq_frontier
