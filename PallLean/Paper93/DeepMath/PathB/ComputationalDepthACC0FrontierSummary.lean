@@ -246,6 +246,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCopyBloc
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanTransFrom
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanTransFromPres
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMWriteAtId
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanListPres
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4260,6 +4261,17 @@ theorem nw_writeAt_id_of_lt_frontier (tape : List Bool) (p : ℕ) (hp : p < tape
     ACC0ConcreteNTM.writeAt tape p (tape.getD p false) = tape :=
   ACC0UniversalTMWriteAtId.writeAt_id_of_lt tape p hp
 
+/-- **Entry 370: list-preserving nat-field scanner `scanNatFrom_run_eq` (PROVED).**  Given the field content hypotheses
+and the whole field in bounds (`h + n < tp.length`), the nat-field scan returns the *same tape list* (not just a
+`getD`-equal one) — each write-back is the identity (`writeAt_id_of_lt`).  This is the list-level preservation the
+rule-table loop needs to re-run the scanner on the post-scan tape. -/
+theorem nw_scanNatFrom_run_eq_frontier (s s' n h : ℕ) (tp : List Bool)
+    (htrue : ∀ i, i < n → tp.getD (h + i) false = true) (hfalse : tp.getD (h + n) false = false)
+    (hbound : h + n < tp.length) :
+    ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (ACC0UniversalTMScanField.scanNatFrom s s')) (n + 1)
+      (s, h, tp) (s', h + n + 1, tp) :=
+  ACC0UniversalTMScanListPres.scanNatFrom_run_eq s s' n h tp htrue hfalse hbound
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5582,3 +5594,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanTransFrom_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanTransFrom_run_pres_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_writeAt_id_of_lt_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanNatFrom_run_eq_frontier
