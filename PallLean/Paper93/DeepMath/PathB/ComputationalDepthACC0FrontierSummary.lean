@@ -226,6 +226,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanFiel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompose
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMFieldCompose
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanBit
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMScanTrans
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4042,6 +4043,20 @@ theorem nw_scanBit_run_pres_frontier (s s' h : ℕ) (tp : List Bool) :
         (s, h, tp) (s', h + 1, tp') ∧ ∀ q, tp'.getD q false = tp.getD q false :=
   ACC0UniversalTMScanBit.scanBit_run_pres s s' h tp
 
+/-- **Entry 350: the full five-field transition scan `scanTrans` (PROVED).**  The machine `scanNatFrom 0 1 ++ scanBit 1
+2 ++ scanNatFrom 2 3 ++ scanBit 3 4 ++ scanNatFrom 4 5` scans a whole encoded transition `encodeTransBits t ++ rest` in
+`|encodeTransBits t| = t.1.1 + t.2.1 + t.2.2.2.val + 5` steps, ending in state `5` with the head exactly past the
+transition — the first complete traversal of one `encodeTransBits` record, composing the verified nat/bit field scanners
+under `reachIn_seq` with content discharged on the post-scan tape via accumulated preservation. -/
+theorem nw_scanTrans_frontier (t : ACC0ConcreteNTM.TMTrans) (rest : List Bool) :
+    ∃ tp', ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM
+        (ACC0UniversalTMScanField.scanNatFrom 0 1 ++ ACC0UniversalTMScanBit.scanBit 1 2 ++
+         ACC0UniversalTMScanField.scanNatFrom 2 3 ++ ACC0UniversalTMScanBit.scanBit 3 4 ++
+         ACC0UniversalTMScanField.scanNatFrom 4 5))
+      (t.1.1 + t.2.1 + t.2.2.2.val + 5) (0, 0, ACC0UniversalTMScannable.encodeTransBits t ++ rest)
+      (5, t.1.1 + t.2.1 + t.2.2.2.val + 5, tp') :=
+  ACC0UniversalTMScanTrans.scanTrans t rest
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5344,3 +5359,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reachIn_union_seq_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanTwoNats_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanBit_run_pres_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanTrans_frontier
