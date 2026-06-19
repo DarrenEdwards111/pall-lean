@@ -228,6 +228,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DecodeUniformity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RealizationClocking
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BoundedAcceptanceDecidable
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalCharObstruction
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyDiagonalConstruction
 
 /-!
 # ACC⁰ frontier summary — the dependency graph as Lean theorems
@@ -4031,6 +4032,14 @@ theorem nw_coprime_native_trivial_frontier {R : Type*} [CommRing R] {p q : ℕ}
     (hpq : Nat.Coprime p q) (hp : (p : R) = 0) (hq : (q : R) = 0) : (1 : R) = 0 :=
   ACC0UniversalCharObstruction.coprime_native_trivial hpq hp hq
 
+/-- **The lazy diagonal, concretely constructed — unconditional escape (proved).**
+nw_lazyDiagLang_escapes_frontier (PROVED): the concrete lazy diagonal `lazyDiagLang enum` (blocks `{2i, 2i+1}`: copy on
+even, one boundary complement on odd) escapes *every* enumeration, `∉ Set.range enum`, with no hypotheses — entry 294's
+escape with the block layout discharged.  The structural skeleton of the lazy-diagonal decider (entry 302). -/
+theorem nw_lazyDiagLang_escapes_frontier (enum : ℕ → (ℕ → Bool)) :
+    ACC0LazyDiagonalConstruction.lazyDiagLang enum ∉ Set.range enum :=
+  ACC0LazyDiagonalConstruction.lazyDiagLang_escapes enum
+
 /-! ## The cell-count route — the sharpest observer invariant (cells, not rank); the official final target
 
 The official open target is `FullACC0ForcesLowCellCount` (`∃ L, cellPatternCount supports L < |L|`), the *sharpest*
@@ -4584,3 +4593,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_uniformU_clocked_within_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_acceptsWithin_iff_decAccept_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_coprime_native_trivial_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lazyDiagLang_escapes_frontier

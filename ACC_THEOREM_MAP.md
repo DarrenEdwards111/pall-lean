@@ -204,6 +204,13 @@ COMPOSITE wall (the one open object):  CarryRefinementCrossing  (238 ≡ 283)
     ⇒ the crux of WHY lazy diagonalization's single boundary complement is affordable (exhaustive search of the small
       bounded computation) — machine-checked. Remaining for the full decider: per-block bookkeeping assembly
       (decode index, route copy[=universal sim 296/297]-vs-boundary[=this], + clocking 298) — physical engineering.
+
+  LAZY-DIAGONAL CONSTRUCTION — concrete block bookkeeping, unconditional escape (302, proved):
+    lazyDiagLang enum n := if n%2=0 then enum (n/2) (n+1) else !enum (n/2) (n-1)  [block i={2i,2i+1}, len 1]
+    • lazyDiagLang_escapes : ∉ Set.range enum UNCONDITIONALLY (294's escape, block layout discharged by omega)
+    ⇒ the structural skeleton of the lazy-diagonal decider: total language tiling ℕ into copy(even)/boundary(odd)
+      positions per index, escaping every enumeration. Remaining = the decider MACHINE (compute lazyDiagLang within f:
+      copy via universal sim 296/297, boundary via decidable complement 299, clocked 298) — physical engineering.
 ```
 
 ## Tier 1 — AC⁰ (switching method): **DONE & FENCED**
