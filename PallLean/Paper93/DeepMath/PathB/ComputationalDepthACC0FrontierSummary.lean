@@ -205,6 +205,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedBridges
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NondetHierarchyInternals
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ConcreteLazyHierarchy
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyDiagDecider
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RoutingMachineComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3780,6 +3781,15 @@ theorem nw_lazyDiagDecide_boundary_frontier (g : ℕ → ℕ) (inp : ℕ → Lis
         (inp (n - 1)) (g (inp (n - 1)).length) :=
   ACC0LazyDiagDecider.lazyDiagDecide_boundary g inp n hn
 
+/-- **Entry 329: routing-machine assembly foundation (PROVED): a phase sub-machine's bounded acceptance lifts to the
+combined transition table (`M ⊆ M'`) — the sound mechanism for building the routing table by union of the universal-sim
+and complement sub-machines.** -/
+theorem nw_acceptsWithin_mono_machine_frontier {M M' : ACC0ConcreteNTM.TMachine} (h : M ⊆ M')
+    {x : List Bool} {t : ℕ}
+    (ha : ACC0NTM.acceptsWithin (ACC0ConcreteNTM.toNTM M) x t) :
+    ACC0NTM.acceptsWithin (ACC0ConcreteNTM.toNTM M') x t :=
+  ACC0RoutingMachineComposition.acceptsWithin_mono_machine h ha
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5053,3 +5063,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_cNTIME_enumerable_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lazyDiagDecide_copy_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_lazyDiagDecide_boundary_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_acceptsWithin_mono_machine_frontier
