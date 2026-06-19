@@ -236,6 +236,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareA
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMWalkRightK
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareDistant
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMWriteConst
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCopyBit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4152,6 +4153,16 @@ theorem nw_writeConst_run_frontier (b : Bool) (s s' h : ℕ) (tp : List Bool) :
       (s, h, tp) (s', h + 1, ACC0ConcreteNTM.writeAt tp h b) :=
   ACC0UniversalTMWriteConst.writeConst_run b s s' h tp
 
+/-- **Entry 360: the inter-region bit copy `copyBit` (PROVED).**  The dual of `compareDistant` — read cell `j`, carry
+it (`branchBit`), walk `m` cells to region B (`walkRightK`), and *write* the carried value at `j+m` (`writeConst`),
+copying cell `j` to cell `j+m`.  Runs `m+2` steps to `E`, with cell `j+m` now holding cell `j`'s value and every other
+cell unchanged — the apply's transplant operation. -/
+theorem nw_copyBit_run_frontier (m s sT0 sF0 E j : ℕ) (tp : List Bool) :
+    ∃ tp', ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (ACC0UniversalTMCopyBit.copyBit m s sT0 sF0 E)) (m + 2)
+        (s, j, tp) (E, j + m + 1, tp') ∧ tp'.getD (j + m) false = tp.getD j false ∧
+      ∀ q, q ≠ j + m → tp'.getD q false = tp.getD q false :=
+  ACC0UniversalTMCopyBit.copyBit_run m s sT0 sF0 E j tp
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5464,3 +5475,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_walkRightK_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareDistant_run_eq_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_writeConst_run_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_copyBit_run_frontier
