@@ -210,6 +210,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RoutingMachineWirin
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RoutingMachineSequencing
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RoutingMachinePhaseDemo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AbstractConcreteBridge
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMBuild
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3834,6 +3835,18 @@ theorem nw_acceptsWithin_realize_frontier {A : ACC0NTM.NTM} {M : ACC0ConcreteNTM
     ACC0NTM.acceptsWithin (ACC0ConcreteNTM.toNTM M) x (t * cost) :=
   ACC0AbstractConcreteBridge.acceptsWithin_realize h ha
 
+/-- **Entry 334: universal-TM build, brick 1 — the `Realizes` interface is inhabited (PROVED).**  Every concrete
+`TMachine` realizes its own abstract embedding (`Realizes (toNTM M) M id 1`): the entry-333 bridge is non-vacuous. -/
+theorem nw_realizes_self_frontier (M : ACC0ConcreteNTM.TMachine) :
+    ACC0AbstractConcreteBridge.Realizes (ACC0ConcreteNTM.toNTM M) M id 1 :=
+  ACC0UniversalTMBuild.realizes_self M
+
+/-- **Entry 334: universal-TM build, brick 1 — verified tape-traversal primitive (PROVED).**  `walkRight` runs `k`
+steps to head position `k` — the universal TM's scanning loop. -/
+theorem nw_walkRight_run_frontier (x : List Bool) (k : ℕ) :
+    ∃ tp : List Bool, ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM ACC0UniversalTMBuild.walkRight) k (0, 0, x) (0, k, tp) :=
+  ACC0UniversalTMBuild.walkRight_run x k
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5112,3 +5125,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reachIn_seq_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_demoRouting_accepts_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_acceptsWithin_realize_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_realizes_self_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_walkRight_run_frontier
