@@ -256,6 +256,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMWalkLeft
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareBitReturn
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareStep3
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareUnary
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMCompareUnaryNe
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4370,6 +4371,17 @@ theorem nw_compareUnary_run_match_frontier (m sT0 sF0 sCont matchSt noMatch L j 
       N (sCont + m, j, tp) (matchSt, j + L + m + 1, tp) :=
   ACC0UniversalTMCompareUnary.compareUnary_run_match m sT0 sF0 sCont matchSt noMatch L j tp htrueA htrueB hsepA hsepB hbound
 
+/-- **Entry 380: the unary comparison mismatch direction `compareUnary_run_ne` (PROVED).**  If two unary fields agree
+on a `true`-prefix of length `k` but differ at position `k`, `compareUnary` reaches `noMatch` at head `j+k+m+1`, tape
+identical (same cyclic structure as the match case, no-match base).  With entry 379 this decides unary-field
+equality. -/
+theorem nw_compareUnary_run_ne_frontier (m sT0 sF0 sCont matchSt noMatch k j : ℕ) (tp : List Bool)
+    (htrueA : ∀ i, i < k → tp.getD (j + i) false = true) (htrueB : ∀ i, i < k → tp.getD (j + m + i) false = true)
+    (hdiff : tp.getD (j + k) false ≠ tp.getD (j + m + k) false) (hbound : j + m + k + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0ConcreteNTM.toNTM (ACC0UniversalTMCompareUnary.compareUnary m sT0 sF0 sCont matchSt noMatch))
+      N (sCont + m, j, tp) (noMatch, j + k + m + 1, tp) :=
+  ACC0UniversalTMCompareUnaryNe.compareUnary_run_ne m sT0 sF0 sCont matchSt noMatch k j tp htrueA htrueB hdiff hbound
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5702,3 +5714,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareBitReturn_run_eq_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareStep3_run_cont_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareUnary_run_match_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_compareUnary_run_ne_frontier
