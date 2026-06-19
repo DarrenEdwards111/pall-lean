@@ -199,6 +199,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountingObserverWil
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountingBranchSeparation
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWReconstructionBridgeYao
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NWReconstructionBridgeRecon
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitBridgeACC0Faithful
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -3668,6 +3669,30 @@ theorem nw_csubst_eval_frontier {n Nc : ℕ}
     (ACC0NWReconstructionBridgeRecon.csubst g P).eval x = P.eval (fun j => (g j).eval x) :=
   ACC0NWReconstructionBridgeRecon.subst_eval g P x
 
+/-- **Entry 323: the Yao bridge is ACC⁰[2]-depth-faithful (PROVED): `(predictor D gidx).depth = D.depth + 2`, constant
+depth overhead (a `NOT` then a `MOD₂`).** -/
+theorem nw_predictor_depth_frontier {n : ℕ} (D : ACC0NisanWigdersonYaoCircuit.Circ n) (gidx : Fin n) :
+    ACC0CircuitBridgeACC0Faithful.depth (ACC0NisanWigdersonYaoCircuit.predictor D gidx)
+      = ACC0CircuitBridgeACC0Faithful.depth D + 2 :=
+  ACC0CircuitBridgeACC0Faithful.predictor_depth D gidx
+
+/-- **Entry 323: the reconstruction bridge is ACC⁰-depth-faithful (PROVED): `(csubst g P).depth ≤ P.depth + dt` when all
+sub-circuits have depth `≤ dt` — additive depth, so bounded in ⇒ bounded out.** -/
+theorem nw_csubst_depth_le_frontier {n Nc : ℕ} (g : Fin Nc → ACC0NisanWigdersonYaoCircuit.Circ n) (dt : ℕ)
+    (hg : ∀ j, ACC0CircuitBridgeACC0Faithful.depth (g j) ≤ dt) (P : ACC0NisanWigdersonYaoCircuit.Circ Nc) :
+    ACC0CircuitBridgeACC0Faithful.depth (ACC0NWReconstructionBridgeRecon.csubst g P)
+      ≤ ACC0CircuitBridgeACC0Faithful.depth P + dt :=
+  ACC0CircuitBridgeACC0Faithful.csubst_depth_le g dt hg P
+
+/-- **Entry 323: the reconstruction bridge is gate-type-faithful (PROVED): substitution preserves `XOR`-freeness, so it
+introduces no `MOD₂` gate beyond those of `P` and the tables — gate types tracked, no foreign modulus possible.** -/
+theorem nw_csubst_xorFree_frontier {n Nc : ℕ} (g : Fin Nc → ACC0NisanWigdersonYaoCircuit.Circ n)
+    (P : ACC0NisanWigdersonYaoCircuit.Circ Nc)
+    (hg : ∀ j, ACC0CircuitBridgeACC0Faithful.xorFree (g j))
+    (hP : ACC0CircuitBridgeACC0Faithful.xorFree P) :
+    ACC0CircuitBridgeACC0Faithful.xorFree (ACC0NWReconstructionBridgeRecon.csubst g P) :=
+  ACC0CircuitBridgeACC0Faithful.csubst_xorFree g P hg hP
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -4927,3 +4952,6 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_hardFn_to_prgExists_bridgeYao_discharged_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reconstructed_hasCircuit_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_csubst_eval_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_predictor_depth_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_csubst_depth_le_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_csubst_xorFree_frontier
