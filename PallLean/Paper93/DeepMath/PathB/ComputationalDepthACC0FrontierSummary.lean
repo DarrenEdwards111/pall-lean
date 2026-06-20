@@ -283,6 +283,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Probe
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3BitCompare
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3FieldStep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3FieldCompare
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3KeyMatch
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4681,6 +4682,28 @@ theorem nw_fieldCompare3_run_frontier (sMatch sFail d : ℕ) (tp : List ACC0Univ
     ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3FieldCompare.fieldCompare3 s sMatch sFail d L)) N
       (s, c, tp) ((if a = b then sMatch else sFail), c + min a b, tp) :=
   ACC0UniversalTM3FieldCompare.fieldCompare3_run sMatch sFail d tp hd hM L s c a b hL hbnd hco hcs hro hrs
+
+/-- **Entry 407: the single-record key matcher `recordKeyMatch3_run` (PROVED).**  Decides whether one encoded transition
+fires on the current configuration: compares the state fields (`fieldCompare3`) then — once they are equal so the symbol
+cells sit at the same distance `d` — the symbol cells (`bitCompareAtDist3`), routing to `recMatch` iff `a = b ∧ rs = cs`.
+Composes the field loop (406) and the single-bit compare (404); `M₀ = base + L*(2d+16)` is the first state past the
+field-compare corridor. -/
+theorem nw_recordKeyMatch3_run_frontier (base recMatch recFail d : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3) (hd : 1 ≤ d)
+    (hM : ∀ j, tp.getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (L c a b : ℕ) (cs rs : ACC0UniversalTM3Sym.Sym3)
+    (hcs : cs = ACC0UniversalTM3Sym.Sym3.O ∨ cs = ACC0UniversalTM3Sym.Sym3.I)
+    (hL : min a b < L) (hbnd : c + a + 1 + d < tp.length)
+    (hco : ∀ i, i < a → tp.getD (c + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hcsep : tp.getD (c + a) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hro : ∀ i, i < b → tp.getD (c + d + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hrsep : tp.getD (c + d + b) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hcsym : tp.getD (c + a + 1) ACC0UniversalTM3Sym.Sym3.O = cs)
+    (hrsym : tp.getD (c + d + b + 1) ACC0UniversalTM3Sym.Sym3.O = rs) :
+    ∃ N q, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
+        (ACC0UniversalTM3KeyMatch.recordKeyMatch3 base recMatch recFail d L)) N (base, c, tp)
+      ((if a = b ∧ rs = cs then recMatch else recFail), q, tp) :=
+  ACC0UniversalTM3KeyMatch.recordKeyMatch3_run base recMatch recFail d tp hd hM L c a b cs rs hcs hL hbnd
+    hco hcsep hro hrsep hcsym hrsym
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
