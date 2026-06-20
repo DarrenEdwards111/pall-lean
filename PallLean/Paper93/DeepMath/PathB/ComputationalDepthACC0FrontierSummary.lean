@@ -349,6 +349,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Advance
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SkipOnesL
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ScanLoop
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MarkAdvance
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Cross
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5819,6 +5820,25 @@ theorem nw_markAdvance3_run_end_frontier (s smid sCont sEnd j : ℕ) (tp : List 
       (sEnd, j + 1, ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 tp j ACC0UniversalTM3Sym.Sym3.I)
         (j + 1) ACC0UniversalTM3Sym.Sym3.O) :=
   ACC0UniversalTM3MarkAdvance.markAdvance3_run_end s smid sCont sEnd j tp hM hO
+
+/-- **Entry 473: the comparison shuttle's inter-cursor moves `crossRight`/`crossLeft` (PROVED).**  Cross from one cursor to
+its partner across the marker-free gap: step off the current cursor, then seek to the partner marker. -/
+theorem nw_crossRight_run_frontier (s mid found cont p d : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hp : p < tp.length) (hM : tp.getD (p + 1 + d) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hclear : ∀ k, k < d → tp.getD (p + 1 + k) ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hbound : p + 1 + d < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3Cross.crossRight s mid found cont)) N
+      (s, p, tp) (found, p + 1 + d, tp) :=
+  ACC0UniversalTM3Cross.crossRight_run s mid found cont p d tp hp hM hclear hbound
+
+/-- **Entry 473 (cont.): the leftward inter-cursor shuttle (PROVED).** -/
+theorem nw_crossLeft_run_frontier (s mid found cont q d : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hM : tp.getD q ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hclear : ∀ k, 0 < k → k ≤ d → tp.getD (q + k) ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hbound : q + d + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3Cross.crossLeft s mid found cont)) N
+      (s, q + d + 1, tp) (found, q, tp) :=
+  ACC0UniversalTM3Cross.crossLeft_run s mid found cont q d tp hM hclear hbound
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
