@@ -304,6 +304,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteEn
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EmitPrefix
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EmitConfig
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Navigate
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Transfer
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5010,6 +5011,21 @@ theorem nw_navigateToSource3_run_frontier (s found cont mid d' home dq : ℕ) (t
     ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3Navigate.navigateToSource3 s found cont mid d')) N
       (s, home + dq, tp) (mid + d', home + 1 + d', tp) :=
   ACC0UniversalTM3Navigate.navigateToSource3_run s found cont mid d' home dq tp hmark hno hbnd1 hbnd2
+
+/-- **Entry 428: the full field transfer `transferFieldLeft3_run` (PROVED).**  The cross-region field transfer end to end:
+navigate to the data-dependent rule source `c+d'` (427) then copy its field leftward into the config at `c` (415) — built
+from proven parts, no counter-driven walk.  Copies the rule field at `home+1+d'` into the config at `home+1`. -/
+theorem nw_transferFieldLeft3_run_frontier (s found cont mid d' sDone L home dq m : ℕ)
+    (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hmark : tp.getD home ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hno : ∀ k, 0 < k → k ≤ dq → tp.getD (home + k) ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hbnd1 : home + dq < tp.length) (hmL : m < L) (hd : 1 ≤ d') (hbnd : home + 1 + d' + m < tp.length)
+    (hco : ∀ i, i < m → tp.getD (home + 1 + d' + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hcs : tp.getD (home + 1 + d' + m) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3Transfer.transferFieldLeft3 s found cont mid d' sDone L))
+      N (s, home + dq, tp)
+      (sDone, home + 1 + d' + m, ACC0UniversalTM3CopyFieldLeft.copyBlockLeft tp (home + 1 + d') d' m) :=
+  ACC0UniversalTM3Transfer.transferFieldLeft3_run s found cont mid d' sDone L home dq m tp hmark hno hbnd1 hmL hd hbnd hco hcs
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
