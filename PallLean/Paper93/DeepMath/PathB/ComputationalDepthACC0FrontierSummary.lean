@@ -328,6 +328,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3StateUp
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ApplyWriteMove
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ApplyTape
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TapeShift
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TapeShiftRight
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5508,6 +5509,15 @@ theorem nw_shiftLeftBlock_getD_frontier (tp : List ACC0UniversalTM3Sym.Sym3) (c 
       = if c - d ≤ k ∧ k ≤ c + m - d then tp.getD (k + d) ACC0UniversalTM3Sym.Sym3.O
         else tp.getD k ACC0UniversalTM3Sym.Sym3.O :=
   ACC0UniversalTM3TapeShift.shiftLeftBlock_getD tp c d m k hd hdc
+
+/-- **Entry 452: the rightward tape-shift content `shiftRightBlock_getD` (PROVED).**  The dual of 451 for state growth: the
+high-to-low fold `copyBlockRight` characterised as a right shift — the block `[c+d, c+m+d]` reads the source shifted right
+by `d`, every other cell unchanged. (List-level content; the realising right-to-left machine is a separate build.) -/
+theorem nw_shiftRightBlock_getD_frontier (tp : List ACC0UniversalTM3Sym.Sym3) (c d m k : ℕ) (hd : 1 ≤ d) :
+    (ACC0UniversalTM3TapeShiftRight.copyBlockRight tp c d m).getD k ACC0UniversalTM3Sym.Sym3.O
+      = if c + d ≤ k ∧ k ≤ c + m + d then tp.getD (k - d) ACC0UniversalTM3Sym.Sym3.O
+        else tp.getD k ACC0UniversalTM3Sym.Sym3.O :=
+  ACC0UniversalTM3TapeShiftRight.shiftRightBlock_getD tp c d m k hd
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
