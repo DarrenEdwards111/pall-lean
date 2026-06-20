@@ -296,6 +296,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3UnarySt
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Fetch
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Walk
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3HeadMove
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ReadHead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4900,6 +4901,20 @@ theorem nw_headMoveLeft3_run_frontier (s sOut p : ℕ) (tp : List ACC0UniversalT
         (ACC0UniversalTM3Sym.writeAt3 tp p (tp.getD (p - 1) ACC0UniversalTM3Sym.Sym3.O)) (p - 1)
         ACC0UniversalTM3Sym.Sym3.M) :=
   ACC0UniversalTM3HeadMove.headMoveLeft3_run s sOut p tp hc hp hbnd
+
+/-- **Entry 420: read the current symbol at the marker `readHeadSym3_run` (PROVED).**  The bridge from the marker head
+representation (419) back to the matcher/apply: distance-independently seek right to the head marker `M`, step onto the
+current cell (right after `M`), and branch the control state on its value — no fixed-offset cache needed. -/
+theorem nw_readHeadSym3_run_frontier (s sO sI d h : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hmark : tp.getD (h + d) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hclear : ∀ k, k < d → tp.getD (h + k) ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hbound : h + d < tp.length) (hbound2 : h + d + 1 < tp.length)
+    (hcur : tp.getD (h + d + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O ∨
+      tp.getD (h + d + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3ReadHead.readHeadSym3 s sO sI)) N (s, h, tp)
+      ((if tp.getD (h + d + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O then sO else sI),
+        h + d + 1, tp) :=
+  ACC0UniversalTM3ReadHead.readHeadSym3_run s sO sI d h tp hmark hclear hbound hbound2 hcur
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
