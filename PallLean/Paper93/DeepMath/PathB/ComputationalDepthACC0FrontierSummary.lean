@@ -345,6 +345,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Phi
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3PhiLookup
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Descriptors
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SkipOnes
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3AdvanceRecord
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5762,6 +5763,16 @@ theorem nw_skipOnesRight_run_frontier (s stop cont : ℕ) (tp : List ACC0Univers
     ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3SkipOnes.skipOnesRight s stop cont)) N
       (s, h, tp) (stop, h + d, tp) :=
   ACC0UniversalTM3SkipOnes.skipOnesRight_run s stop cont tp d h hones hstop hbound
+
+/-- **Entry 469: the generic scan loop's record-advance `advanceRecord3_run` (PROVED).**  Second fixed-state component:
+consume a record's unary field, step past the separator and symbol, reaching the next record start (a record occupies
+`b+2` cells) — regardless of the field length. -/
+theorem nw_advanceRecord3_run_frontier (s m1 m2 stop cont : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3) (b h : ℕ)
+    (hones : ∀ k, k < b → tp.getD (h + k) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hsep : tp.getD (h + b) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O) (hbound : h + b + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3AdvanceRecord.advanceRecord3 s m1 m2 stop cont)) N
+      (s, h, tp) (stop, h + b + 2, tp) :=
+  ACC0UniversalTM3AdvanceRecord.advanceRecord3_run s m1 m2 stop cont tp b h hones hsep hbound
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
