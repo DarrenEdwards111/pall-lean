@@ -285,6 +285,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3FieldSt
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3FieldCompare
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3KeyMatch
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ResetHome
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3KeyMatchWin
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4717,6 +4718,27 @@ theorem nw_resetToHome3_run_frontier (s found cont out home d : ℕ) (tp : List 
     ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3ResetHome.resetToHome3 s found cont out)) N
       (s, home + d, tp) (out, home + 1, tp) :=
   ACC0UniversalTM3ResetHome.resetToHome3_run s found cont out home d tp hmark hno hbound
+
+/-- **Entry 409: the windowed single-record key matcher `recordKeyMatch3_run_windowed` (PROVED).**  `recordKeyMatch3_run`
+(407) with the global no-marker hypothesis replaced by a window `(c, c+a+1+d]` — a marker is forbidden only in the cells
+the matcher shuttles through, leaving the config home cell `c-1` free for the persistent marker the table loop maintains.
+Same machine, weaker hypothesis ⇒ strictly stronger; proof mirrors 407 atop the windowed field compare. -/
+theorem nw_recordKeyMatch3_run_windowed_frontier (base recMatch recFail d : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hd : 1 ≤ d) (L c a b : ℕ) (cs rs : ACC0UniversalTM3Sym.Sym3)
+    (hcs : cs = ACC0UniversalTM3Sym.Sym3.O ∨ cs = ACC0UniversalTM3Sym.Sym3.I)
+    (hL : min a b < L) (hbnd : c + a + 1 + d < tp.length)
+    (hWin : ∀ j, c < j → j ≤ c + a + 1 + d → tp.getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hco : ∀ i, i < a → tp.getD (c + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hcsep : tp.getD (c + a) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hro : ∀ i, i < b → tp.getD (c + d + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hrsep : tp.getD (c + d + b) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hcsym : tp.getD (c + a + 1) ACC0UniversalTM3Sym.Sym3.O = cs)
+    (hrsym : tp.getD (c + d + b + 1) ACC0UniversalTM3Sym.Sym3.O = rs) :
+    ∃ N q, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
+        (ACC0UniversalTM3KeyMatch.recordKeyMatch3 base recMatch recFail d L)) N (base, c, tp)
+      ((if a = b ∧ rs = cs then recMatch else recFail), q, tp) :=
+  ACC0UniversalTM3KeyMatchWin.recordKeyMatch3_run_windowed base recMatch recFail d tp hd L c a b cs rs hcs
+    hL hbnd hWin hco hcsep hro hrsep hcsym hrsym
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
