@@ -347,6 +347,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Descrip
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SkipOnes
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3AdvanceRecord
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SkipOnesL
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ScanLoop
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5784,6 +5785,19 @@ theorem nw_skipOnesLeft_run_frontier (s stop cont p : ℕ) (tp : List ACC0Univer
     ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3SkipOnesL.skipOnesLeft s stop cont)) N
       (s, p + d, tp) (stop, p, tp) :=
   ACC0UniversalTM3SkipOnesL.skipOnesLeft_run s stop cont p tp hstop d hones hbound
+
+/-- **Entry 471: the generic scan loop's record-walk skeleton `skipRecordsToEnd_run` (PROVED).**  The architectural heart:
+a *single fixed* machine walks the whole rule table to the terminator `M` — at each record start, branch on the marker
+(exit if terminator, else advance to the next record and loop via a back-edge).  Correct by induction on the record count
+(data), machine fixed — the structural backbone into which the per-record comparison will be inserted. -/
+theorem nw_skipRecordsToEnd_run_frontier (s done advE m1 m2 cont : ℕ) (tp tail : List ACC0UniversalTM3Sym.Sym3)
+    (recs : List (ℕ × Bool)) (pre : List ACC0UniversalTM3Sym.Sym3)
+    (htp : tp = pre ++ ACC0UniversalTM3RecordsLayout.recordsTape3 recs ++ ACC0UniversalTM3Sym.Sym3.M :: tail) :
+    ∃ N, ACC0NTM.reachIn
+      (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3ScanLoop.skipRecordsToEnd s done advE m1 m2 cont)) N
+      (s, pre.length, tp)
+      (done, (pre ++ ACC0UniversalTM3RecordsLayout.recordsTape3 recs).length, tp) :=
+  ACC0UniversalTM3ScanLoop.skipRecordsToEnd_run s done advE m1 m2 cont tp tail recs pre htp
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
