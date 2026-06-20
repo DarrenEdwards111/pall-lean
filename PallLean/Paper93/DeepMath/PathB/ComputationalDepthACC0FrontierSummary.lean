@@ -318,6 +318,8 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MoveDis
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MoveRightHome
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MoveClean
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TwoMove
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MoveLeftHome
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MoveFromHome
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5299,6 +5301,54 @@ theorem nw_twoMoveRight3_run_frontier
       (out2, home + 1, ACC0UniversalTM3TwoMove.movedRight (ACC0UniversalTM3TwoMove.movedRight tp p) (p + 1)) :=
   ACC0UniversalTM3TwoMove.twoMoveRight3_run a0 a1 a2 a3 a4 a5 a6 a7 a8 mid b1 b2 b3 b4 b5 b6 b7 b8 out2 home p tp
     hhp hmarkHome hmarkHead hclean hc1 hc2 hbnd1 hbnd2
+
+/-- **Entry 442: the home-to-home left move `moveLeftFromHome3_run` (PROVED).**  Symmetric to 439: seek from the config
+home to the head marker (388), then move the head left and return home (437). -/
+theorem nw_moveLeftFromHome3_run_frontier (sStart sFound sCont s1 f1 c1 s2 f2 c2 out home p : ℕ)
+    (tp : List ACC0UniversalTM3Sym.Sym3) (hhp : home + 2 ≤ p)
+    (hmarkHome : tp.getD home ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hmarkHead : tp.getD p ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hclean : ∀ j, home < j → j < p → tp.getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hc : tp.getD (p - 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O ∨
+      tp.getD (p - 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I) (hbnd : p < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
+        (ACC0UniversalTM3MoveLeftHome.moveLeftFromHome3 sStart sFound sCont s1 f1 c1 s2 f2 c2 out)) N
+      (sStart, home + 1, tp) (out, home + 1, ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 tp p
+        (tp.getD (p - 1) ACC0UniversalTM3Sym.Sym3.O)) (p - 1) ACC0UniversalTM3Sym.Sym3.M) :=
+  ACC0UniversalTM3MoveLeftHome.moveLeftFromHome3_run sStart sFound sCont s1 f1 c1 s2 f2 c2 out home p tp hhp
+    hmarkHome hmarkHead hclean hc hbnd
+
+/-- **Entry 443: the home-to-home move dispatch (right entry) `moveFromHome3_run_right` (PROVED).**  Both home-to-home move
+phases (439, 442) under one machine; entered at `rS` it runs the right move. -/
+theorem nw_moveFromHome3_run_right_frontier
+    (rS rF rC r1 rf1 rc1 r2 rf2 rc2 rO lS lF lC l1 lf1 lc1 l2 lf2 lc2 lO home p : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hhp : home < p) (hmarkHome : tp.getD home ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hmarkHead : tp.getD p ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hclean : ∀ j, home < j → j < p → tp.getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hc : tp.getD (p + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O ∨
+      tp.getD (p + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I) (hbnd : p + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
+        (ACC0UniversalTM3MoveFromHome.moveFromHome3 rS rF rC r1 rf1 rc1 r2 rf2 rc2 rO lS lF lC l1 lf1 lc1 l2 lf2 lc2 lO)) N
+      (rS, home + 1, tp) (rO, home + 1, ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 tp p
+        (tp.getD (p + 1) ACC0UniversalTM3Sym.Sym3.O)) (p + 1) ACC0UniversalTM3Sym.Sym3.M) :=
+  ACC0UniversalTM3MoveFromHome.moveFromHome3_run_right rS rF rC r1 rf1 rc1 r2 rf2 rc2 rO lS lF lC l1 lf1 lc1 l2 lf2 lc2 lO
+    home p tp hhp hmarkHome hmarkHead hclean hc hbnd
+
+/-- **Entry 443 (cont.): the home-to-home move dispatch (left entry) `moveFromHome3_run_left` (PROVED).**  Entered at `lS`
+it runs the left move. -/
+theorem nw_moveFromHome3_run_left_frontier
+    (rS rF rC r1 rf1 rc1 r2 rf2 rc2 rO lS lF lC l1 lf1 lc1 l2 lf2 lc2 lO home p : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hhp : home + 2 ≤ p) (hmarkHome : tp.getD home ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hmarkHead : tp.getD p ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hclean : ∀ j, home < j → j < p → tp.getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hc : tp.getD (p - 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O ∨
+      tp.getD (p - 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I) (hbnd : p < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
+        (ACC0UniversalTM3MoveFromHome.moveFromHome3 rS rF rC r1 rf1 rc1 r2 rf2 rc2 rO lS lF lC l1 lf1 lc1 l2 lf2 lc2 lO)) N
+      (lS, home + 1, tp) (lO, home + 1, ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 tp p
+        (tp.getD (p - 1) ACC0UniversalTM3Sym.Sym3.O)) (p - 1) ACC0UniversalTM3Sym.Sym3.M) :=
+  ACC0UniversalTM3MoveFromHome.moveFromHome3_run_left rS rF rC r1 rf1 rc1 r2 rf2 rc2 rO lS lF lC l1 lf1 lc1 l2 lf2 lc2 lO
+    home p tp hhp hmarkHome hmarkHead hclean hc hbnd
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
