@@ -300,6 +300,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ReadHea
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Apply
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteField
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteFieldBit
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteEncode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4964,6 +4965,15 @@ theorem nw_writeFieldBit3_run_frontier (s sOut n j : ℕ) (w : ACC0UniversalTM3S
     ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3WriteFieldBit.writeFieldBit3 s sOut n w)) N (s, j, tp)
       (sOut, j + n + 1, ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3WriteField.writeFieldBlock tp j n) (j + n + 1) w) :=
   ACC0UniversalTM3WriteFieldBit.writeFieldBit3_run s sOut n j w tp h
+
+/-- **Entry 424: the writer emits the encoding `writeUnaryFieldN3_emits` (PROVED).**  Output-side correctness: running the
+field writer on `pre ++ X` lays down exactly the abstract encoding `encodeNatBits3 n` (entry 392), prefix and tail intact —
+the link between the machine's tape and the encoding it must emit. -/
+theorem nw_writeUnaryFieldN3_emits_frontier (s sOut n : ℕ) (pre X : List ACC0UniversalTM3Sym.Sym3) (hX : n < X.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3WriteField.writeUnaryFieldN3 s sOut n)) N
+      (s, pre.length, pre ++ X)
+      (sOut, pre.length + n, pre ++ ACC0UniversalTM3Encode.encodeNatBits3 n ++ X.drop (n + 1)) :=
+  ACC0UniversalTM3WriteEncode.writeUnaryFieldN3_emits s sOut n pre X hX
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
