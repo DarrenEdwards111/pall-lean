@@ -326,6 +326,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3StateUp
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteSymHome
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3StateUpdateWindowed
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ApplyWriteMove
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ApplyTape
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5471,6 +5472,31 @@ theorem nw_applyWriteMoveRight3_run_frontier
         p w) (p + 1) ACC0UniversalTM3Sym.Sym3.M) :=
   ACC0UniversalTM3ApplyWriteMove.applyWriteMoveRight3_run a aF aC b c cF cC dd dF dC mid sFound sCont s1 f1 c1 s2 f2 c2 outM
     home p w tp hhp hmarkHome hmarkHead hclean hw hbnd
+
+/-- **Entry 450: the tape-side master apply `applyTapeRight3_run` (PROVED).**  Write the rule's symbol, advance the head
+right, then refresh the cache to the new current symbol — three home-to-home phases (449 + 444) composed, with the
+cache-refresh hypotheses discharged on the post-move tape, under the layout relation `home+1+a'+1 < p`. -/
+theorem nw_applyTapeRight3_run_frontier (a aF aC bb c cF cC dd dF dC mid sFound sCont s1 f1 c1 s2 f2 c2 mid2
+    sO sI oF1 oC1 oS2 oF2 oC2 oMid oMidW iF1 iC1 iS2 iF2 iC2 iMid iMidW sFin rf rc rout home p a' : ℕ)
+    (w : ACC0UniversalTM3Sym.Sym3) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hhp : home < p) (hcacheLt : home + 1 + a' + 1 < p)
+    (hmarkHome : tp.getD home ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hmarkHead : tp.getD p ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hclean : ∀ j, home < j → j < p → tp.getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hw : w = ACC0UniversalTM3Sym.Sym3.O ∨ w = ACC0UniversalTM3Sym.Sym3.I)
+    (hco : ∀ i, i < a' → tp.getD (home + 1 + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hcsep : tp.getD (home + 1 + a') ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hc2 : tp.getD (p + 2) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O ∨
+      tp.getD (p + 2) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I) (hbnd : p + 2 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3ApplyTape.applyTapeRight3 a aF aC bb c cF cC dd dF dC
+        mid sFound sCont s1 f1 c1 s2 f2 c2 mid2 sO sI oF1 oC1 oS2 oF2 oC2 oMid oMidW iF1 iC1 iS2 iF2 iC2 iMid iMidW sFin
+        rf rc rout w)) N (a, home + 1, tp)
+      (rout, home + 1, ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3
+        (ACC0UniversalTM3Sym.writeAt3 tp (p + 1) w) p w) (p + 1) ACC0UniversalTM3Sym.Sym3.M) (home + 1 + a' + 1)
+        (tp.getD (p + 2) ACC0UniversalTM3Sym.Sym3.O)) :=
+  ACC0UniversalTM3ApplyTape.applyTapeRight3_run a aF aC bb c cF cC dd dF dC mid sFound sCont s1 f1 c1 s2 f2 c2 mid2
+    sO sI oF1 oC1 oS2 oF2 oC2 oMid oMidW iF1 iC1 iS2 iF2 iC2 iMid iMidW sFin rf rc rout home p a' w tp hhp hcacheLt
+    hmarkHome hmarkHead hclean hw hco hcsep hc2 hbnd
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
