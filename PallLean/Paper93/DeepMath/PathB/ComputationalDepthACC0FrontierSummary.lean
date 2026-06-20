@@ -263,6 +263,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Sym
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Compose
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Move
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Mark
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Seek
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4450,6 +4451,18 @@ theorem nw_branchMark3_run_mark_frontier (s sFound sCont j : ℕ) (tp : List ACC
       (s, j, tp) (sFound, j, tp) :=
   ACC0UniversalTM3Mark.branchMark3_run_mark s sFound sCont j tp h hbound
 
+/-- **Entry 387: the seek-to-marker loop `seekMarkLeft_run` (PROVED).**  The distance-agnostic anchor-find: a cyclic
+machine walks left until it reaches the marker `M`, *no matter how far*.  With the marker at `p` and the `d` cells above
+it non-marker, it drives from `(s, p+d, tp)` to `(found, p, tp)` (`∃` step count), tape identical — by induction on the
+distance `d`.  This is what makes the *varying gap* of the rule-loop irrelevant. -/
+theorem nw_seekMarkLeft_run_frontier (s found cont p : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hmark : tp.getD p ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M) (d : ℕ)
+    (hclear : ∀ k, 0 < k → k ≤ d → tp.getD (p + k) ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hbound : p + d < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3Seek.seekMarkLeft s found cont)) N
+      (s, p + d, tp) (found, p, tp) :=
+  ACC0UniversalTM3Seek.seekMarkLeft_run s found cont p tp hmark d hclear hbound
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5789,3 +5802,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reachIn_seq3_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_writeMark3_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_branchMark3_run_mark_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_seekMarkLeft_run_frontier
