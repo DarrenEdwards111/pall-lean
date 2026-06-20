@@ -336,6 +336,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EmitEx
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3HomeLayout
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3RecordLayout
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3RecordsLayout
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SimTapeLayout
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5623,6 +5624,26 @@ theorem nw_records_RecOK_frontier (pre : List ACC0UniversalTM3Sym.Sym3) (front :
     ACC0UniversalTM3MatchTable.RecOK (pre ++ ACC0UniversalTM3RecordsLayout.recordsTape3 (front ++ (b, rs) :: back)) c a L
       (d, b, ACC0UniversalTM3EncTrans.boolToSym3 rs) :=
   ACC0UniversalTM3RecordsLayout.records_RecOK pre front b rs back c d a L hpre hd hmin hbnd
+
+/-- **Entry 460: the simulated-tape region `simTapeRegion_marker`/`_current`/`_clean` (PROVED).**  The TM tape encoded as
+`Sym3` bits with the head marker `M` before the head cell — with exactly the apply-side invariants: head marker at `h`,
+current cell a bit, no other marker. -/
+theorem nw_simTapeRegion_marker_frontier (tp : List Bool) (h : ℕ) (hh : h ≤ tp.length) :
+    (ACC0UniversalTM3SimTapeLayout.simTapeRegion tp h).getD h ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M :=
+  ACC0UniversalTM3SimTapeLayout.simTapeRegion_marker tp h hh
+
+/-- **Entry 460 (cont.): the current cell is a bit (PROVED).** -/
+theorem nw_simTapeRegion_current_frontier (tp : List Bool) (h : ℕ) (hh : h ≤ tp.length) :
+    (ACC0UniversalTM3SimTapeLayout.simTapeRegion tp h).getD (h + 1) ACC0UniversalTM3Sym.Sym3.O
+      = ACC0UniversalTM3Sym.Sym3.O ∨
+    (ACC0UniversalTM3SimTapeLayout.simTapeRegion tp h).getD (h + 1) ACC0UniversalTM3Sym.Sym3.O
+      = ACC0UniversalTM3Sym.Sym3.I :=
+  ACC0UniversalTM3SimTapeLayout.simTapeRegion_current tp h hh
+
+/-- **Entry 460 (cont.): no marker except at `h` (PROVED).** -/
+theorem nw_simTapeRegion_clean_frontier (tp : List Bool) (h j : ℕ) (hh : h ≤ tp.length) (hj : j ≠ h) :
+    (ACC0UniversalTM3SimTapeLayout.simTapeRegion tp h).getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M :=
+  ACC0UniversalTM3SimTapeLayout.simTapeRegion_clean tp h j hh hj
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
