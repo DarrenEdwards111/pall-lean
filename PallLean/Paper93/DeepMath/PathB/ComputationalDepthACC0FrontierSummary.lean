@@ -339,6 +339,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Records
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SimTapeLayout
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3FullLayout
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3FullHead
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3RegionClean
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5679,6 +5680,16 @@ theorem nw_fullTape3_head_current_frontier (a : ℕ) (cs : Bool) (rules : List (
         ((ACC0UniversalTM3FullLayout.cfgHead a cs ++ ACC0UniversalTM3RecordsLayout.recordsTape3 rules).length + h + 1)
         ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I :=
   ACC0UniversalTM3FullHead.fullTape3_head_current a cs rules simTp h hh
+
+/-- **Entry 463: the config+rule region is marker-free `fullTape3_matcher_clean` (PROVED).**  The matcher's window on the
+stitched tape (everything after the home marker, before the simulated tape) contains no marker — the region is built only
+from `encodeNatBits3`/`boolToSym3` (bits) — so the matcher can walk it with the head marker living beyond, in the sim-tape. -/
+theorem nw_fullTape3_matcher_clean_frontier (a : ℕ) (cs : Bool) (rules : List (ℕ × Bool))
+    (simtape : List ACC0UniversalTM3Sym.Sym3) (j : ℕ) (hj0 : 0 < j)
+    (hj : j < (ACC0UniversalTM3FullLayout.cfgHead a cs ++ ACC0UniversalTM3RecordsLayout.recordsTape3 rules).length) :
+    (ACC0UniversalTM3FullLayout.fullTape3 a cs rules simtape).getD j ACC0UniversalTM3Sym.Sym3.O
+      ≠ ACC0UniversalTM3Sym.Sym3.M :=
+  ACC0UniversalTM3RegionClean.fullTape3_matcher_clean a cs rules simtape j hj0 hj
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
