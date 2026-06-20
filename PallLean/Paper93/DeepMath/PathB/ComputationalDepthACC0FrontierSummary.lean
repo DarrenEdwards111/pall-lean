@@ -348,6 +348,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SkipOne
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3AdvanceRecord
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SkipOnesL
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ScanLoop
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MarkAdvance
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5798,6 +5799,26 @@ theorem nw_skipRecordsToEnd_run_frontier (s done advE m1 m2 cont : ℕ) (tp tail
       (s, pre.length, tp)
       (done, (pre ++ ACC0UniversalTM3RecordsLayout.recordsTape3 recs).length, tp) :=
   ACC0UniversalTM3ScanLoop.skipRecordsToEnd_run s done advE m1 m2 cont tp tail recs pre htp
+
+/-- **Entry 472: the comparison shuttle's cursor-advance `markAdvance3` (PROVED).**  A cursor (a marker `M` on a unary
+field) advances tape-preservingly: restore the marked cell to `I`, move the marker one cell right, detecting whether the
+field continues (`markAdvance3_run_cont`, next cell `I`) or ends (`markAdvance3_run_end`, next cell `O`). -/
+theorem nw_markAdvance3_run_cont_frontier (s smid sCont sEnd j : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hM : tp.getD j ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hI : tp.getD (j + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I) :
+    ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3MarkAdvance.markAdvance3 s smid sCont sEnd)) 2 (s, j, tp)
+      (sCont, j + 1, ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 tp j ACC0UniversalTM3Sym.Sym3.I)
+        (j + 1) ACC0UniversalTM3Sym.Sym3.M) :=
+  ACC0UniversalTM3MarkAdvance.markAdvance3_run_cont s smid sCont sEnd j tp hM hI
+
+/-- **Entry 472 (cont.): cursor reaches the field end (PROVED).** -/
+theorem nw_markAdvance3_run_end_frontier (s smid sCont sEnd j : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hM : tp.getD j ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hO : tp.getD (j + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O) :
+    ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3MarkAdvance.markAdvance3 s smid sCont sEnd)) 2 (s, j, tp)
+      (sEnd, j + 1, ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 tp j ACC0UniversalTM3Sym.Sym3.I)
+        (j + 1) ACC0UniversalTM3Sym.Sym3.O) :=
+  ACC0UniversalTM3MarkAdvance.markAdvance3_run_end s smid sCont sEnd j tp hM hO
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
