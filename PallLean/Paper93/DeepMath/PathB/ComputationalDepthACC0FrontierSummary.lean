@@ -343,6 +343,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3RegionC
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MatchTableWin
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Phi
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3PhiLookup
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Descriptors
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5739,6 +5740,17 @@ theorem nw_phiLookup_fullTape_frontier (recMatch L a : ℕ) (csBool : Bool) (rul
       (base, 1, ACC0UniversalTM3FullLayout.fullTape3 a csBool rules simtape)
       (recMatch, q, ACC0UniversalTM3FullLayout.fullTape3 a csBool rules simtape) :=
   ACC0UniversalTM3PhiLookup.phiLookup_fullTape recMatch L a csBool rules simtape recs base hOK hHead hEx
+
+/-- **Entry 467: the descriptor list `descriptorsOf_match` (PROVED).**  A record descriptor matches the config key
+(`RecMatch`) iff some rule key matches `(a, csBool)` — the descriptor offset is irrelevant to matching.  HONEST FINDING:
+`matchTable3` is unrolled (machine size ∝ rule count), so it is NOT a fixed universal machine; a true fixed `U` needs a
+generic tape-driven scan loop (a separate construction). -/
+theorem nw_descriptorsOf_match_frontier (a : ℕ) (csBool : Bool) (rules : List (ℕ × Bool)) :
+    (∃ rec ∈ ACC0UniversalTM3Descriptors.descriptorsOf a rules,
+        ACC0UniversalTM3MatchTable.RecMatch a (ACC0UniversalTM3EncTrans.boolToSym3 csBool) rec) ↔
+      (∃ p ∈ rules, a = p.1 ∧ p.2 = csBool) :=
+  ACC0UniversalTM3Descriptors.descriptorsOf_match a csBool rules
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
