@@ -355,6 +355,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Advance
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TandemStep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteAlg
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CursTape
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TandemCanon
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5927,6 +5928,25 @@ theorem nw_cursTape_other_frontier (tp : List ACC0UniversalTM3Sym.Sym3) (cp g i 
     (h2 : x ≠ cp + g + i) :
     (ACC0UniversalTM3CursTape.cursTape tp cp g i).getD x ACC0UniversalTM3Sym.Sym3.O = tp.getD x ACC0UniversalTM3Sym.Sym3.O :=
   ACC0UniversalTM3CursTape.cursTape_other tp cp g i x h1 h2
+
+/-- **Entry 479: one canonical tandem step `tandemStepCanon_run` (PROVED).**  One full tandem iteration (476) maps the
+canonical comparison tape (478) at step `i` to step `i+1` — both cursors advance one.  The post-step six-layer `writeAt3`
+tape is shown equal to `cursTape … (i+1)` by `List.ext_getElem` (`getD` extensionality via `writeAt3_getD`). -/
+theorem nw_tandemStepCanon_run_frontier
+    (s smid sCont sEnd crMid crFound crCont lmid lCont lEnd lcrMid lcrFound lcrCont : ℕ)
+    (tp : List ACC0UniversalTM3Sym.Sym3) (cp g i : ℕ) (hg : 2 ≤ g)
+    (hfC : tp.getD (cp + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hfC1 : tp.getD (cp + i + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hfR : tp.getD (cp + g + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hfR1 : tp.getD (cp + g + i + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hgap : ∀ j, cp + i < j → j < cp + g + i → tp.getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hbound : cp + g + i + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
+      (ACC0UniversalTM3TandemStep.tandemStep3 s smid sCont sEnd crMid crFound crCont lmid lCont lEnd lcrMid lcrFound
+        lcrCont)) N (s, cp + i, ACC0UniversalTM3CursTape.cursTape tp cp g i)
+      (lcrFound, cp + i + 1, ACC0UniversalTM3CursTape.cursTape tp cp g (i + 1)) :=
+  ACC0UniversalTM3TandemCanon.tandemStepCanon_run s smid sCont sEnd crMid crFound crCont lmid lCont lEnd lcrMid lcrFound
+    lcrCont tp cp g i hg hfC hfC1 hfR hfR1 hgap hbound
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
