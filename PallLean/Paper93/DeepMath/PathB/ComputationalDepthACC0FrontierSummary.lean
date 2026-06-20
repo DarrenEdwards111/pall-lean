@@ -290,6 +290,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MatchTa
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CopyBit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CopyField
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Config
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CopyBitLeft
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4800,6 +4801,18 @@ theorem nw_writeSym3_run_frontier (s s' q : ℕ) (sym sym' : Bool) (pre rest : L
       (s, pre.length + q + 1, pre ++ ACC0UniversalTM3Config.configEncode3 q sym rest)
       (s', pre.length + q + 1, pre ++ ACC0UniversalTM3Config.configEncode3 q sym' rest) :=
   ACC0UniversalTM3Config.writeSym3_run s s' q sym sym' pre rest
+
+/-- **Entry 414: the leftward single-cell copy `copyBitAtDistLeft3_run` (PROVED).**  The mirror of the rightward copy
+(411) — the direction the apply phase needs, since the configuration sits to the *left* of the rule table.  Read the
+source bit marker-free, walk left `d`, write it at `p-d`, walk back right the fixed `d` cells.  Copies `tp[p]` into cell
+`p-d`, head back at `p`, source unchanged. -/
+theorem nw_copyBitAtDistLeft3_run_frontier (s sOut d p : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hbit : tp.getD p ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O ∨
+      tp.getD p ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hd : 1 ≤ d) (hdp : d ≤ p) (hp : p < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3CopyBitLeft.copyBitAtDistLeft3 s sOut d)) N
+      (s, p, tp) (sOut, p, ACC0UniversalTM3Sym.writeAt3 tp (p - d) (tp.getD p ACC0UniversalTM3Sym.Sym3.O)) :=
+  ACC0UniversalTM3CopyBitLeft.copyBitAtDistLeft3_run s sOut d p tp hbit hd hdp hp
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
