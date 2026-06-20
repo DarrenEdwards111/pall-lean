@@ -352,6 +352,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MarkAdv
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Cross
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3AdvanceCross
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3AdvanceCrossL
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TandemStep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5876,6 +5877,26 @@ theorem nw_advanceCrossLeft_cont_run_frontier (s smid sCont sEnd crMid crFound c
           (pc + d + 1) ACC0UniversalTM3Sym.Sym3.M) :=
   ACC0UniversalTM3AdvanceCrossL.advanceCrossLeft_cont_run s smid sCont sEnd crMid crFound crCont pc d tp hd hM hI
     hPartner hgap hbound
+
+/-- **Entry 476: the comparison loop body `tandemStep3_run` (PROVED).**  One full tandem iteration fuses `advanceCrossRight`
+(474) and `advanceCrossLeft` (475): both unary-field cursors step right by one, the head returning to the config cursor —
+the constant-gap two-cursor walk comparing two unary fields cell-by-cell. -/
+theorem nw_tandemStep3_run_frontier (s smid sCont sEnd crMid crFound crCont lmid lCont lEnd lcrMid lcrFound lcrCont : ℕ)
+    (tp : List ACC0UniversalTM3Sym.Sym3) (cp g : ℕ) (hg : 2 ≤ g)
+    (hM : tp.getD cp ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hI : tp.getD (cp + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hMr : tp.getD (cp + g) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hIr : tp.getD (cp + g + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hgap : ∀ j, cp < j → j < cp + g → tp.getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hbound : cp + g + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
+      (ACC0UniversalTM3TandemStep.tandemStep3 s smid sCont sEnd crMid crFound crCont lmid lCont lEnd lcrMid lcrFound
+        lcrCont)) N (s, cp, tp) (lcrFound, cp + 1,
+        ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3
+          (ACC0UniversalTM3Sym.writeAt3 tp cp ACC0UniversalTM3Sym.Sym3.I) (cp + 1) ACC0UniversalTM3Sym.Sym3.M)
+          (cp + g) ACC0UniversalTM3Sym.Sym3.I) (cp + g + 1) ACC0UniversalTM3Sym.Sym3.M) :=
+  ACC0UniversalTM3TandemStep.tandemStep3_run s smid sCont sEnd crMid crFound crCont lmid lCont lEnd lcrMid lcrFound
+    lcrCont tp cp g hg hM hI hMr hIr hgap hbound
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
