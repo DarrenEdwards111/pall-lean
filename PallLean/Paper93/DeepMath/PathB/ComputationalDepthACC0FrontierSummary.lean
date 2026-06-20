@@ -275,6 +275,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Scan
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3FieldContent
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ScanTrans
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ScanTable
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TestBit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4579,6 +4580,16 @@ theorem nw_scanTable3_run_frontier (base : ℕ) (Ms : List ACC0ConcreteNTM.TMTra
         pre ++ Ms.flatMap ACC0UniversalTM3EncTrans.encodeTransBits3 ++ rest) :=
   ACC0UniversalTM3ScanTable.scanTable3_run base Ms pre rest
 
+/-- **Entry 399: the fixed-symbol bit test `testBit3_run` (PROVED).**  The match atom of the rule-loop: data-vs-data
+comparison becomes state-vs-constant because `markCarry3` reads the config-key bit into the control-state lineage, so at
+the distant rule-key cell the test is against a constant `w`.  One step, head fixed, tape identical, control routed on
+`head = w`. -/
+theorem nw_testBit3_run_frontier (s sEq sNe j : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3) (w : ACC0UniversalTM3Sym.Sym3)
+    (hbound : j < tp.length) :
+    ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3TestBit.testBit3 s sEq sNe w)) 1 (s, j, tp)
+      ((if ACC0UniversalTM3Sym.readSym3 (s, j, tp) = w then sEq else sNe), j, tp) :=
+  ACC0UniversalTM3TestBit.testBit3_run s sEq sNe j tp w hbound
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5930,3 +5941,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_field_content3_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanTransFrom3_run_eq_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanTable3_run_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_testBit3_run_frontier
