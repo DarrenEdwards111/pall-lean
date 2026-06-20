@@ -344,6 +344,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MatchTa
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Phi
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3PhiLookup
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Descriptors
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SkipOnes
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5750,6 +5751,17 @@ theorem nw_descriptorsOf_match_frontier (a : ℕ) (csBool : Bool) (rules : List 
         ACC0UniversalTM3MatchTable.RecMatch a (ACC0UniversalTM3EncTrans.boolToSym3 csBool) rec) ↔
       (∃ p ∈ rules, a = p.1 ∧ p.2 = csBool) :=
   ACC0UniversalTM3Descriptors.descriptorsOf_match a csBool rules
+
+/-- **Entry 468: the generic scan loop's unary-consume component `skipOnesRight_run` (PROVED).**  First fixed-state
+component of the generic rule-table scan loop a *fixed* universal `U` needs (per the fixed-`U` finding, entry 467).
+`skipOnesRight s stop cont := branchOne3 s cont stop ++ moveRight3 cont s` walks right past a unary field (`I`s) to the
+delimiter regardless of length — a constant-size machine with a back-edge, mirroring `seekMarkRight`. -/
+theorem nw_skipOnesRight_run_frontier (s stop cont : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3) (d h : ℕ)
+    (hones : ∀ k, k < d → tp.getD (h + k) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hstop : tp.getD (h + d) ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.I) (hbound : h + d < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3SkipOnes.skipOnesRight s stop cont)) N
+      (s, h, tp) (stop, h + d, tp) :=
+  ACC0UniversalTM3SkipOnes.skipOnesRight_run s stop cont tp d h hones hstop hbound
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
