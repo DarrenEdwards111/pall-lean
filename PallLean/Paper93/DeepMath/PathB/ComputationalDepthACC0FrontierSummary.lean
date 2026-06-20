@@ -289,6 +289,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3KeyMatc
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MatchTable
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CopyBit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CopyField
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Config
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4787,6 +4788,18 @@ theorem nw_copyField3_run_frontier (sDone d L s c m : ℕ) (tp : List ACC0Univer
     ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3CopyField.copyField3 s sDone d L)) N (s, c, tp)
       (sDone, c + m, ACC0UniversalTM3CopyField.copyBlock tp c d m) :=
   ACC0UniversalTM3CopyField.copyField3_run sDone d L s c m tp hmL hmd hbnd hco hcs
+
+/-- **Entry 413: the configuration layout & symbol write (PROVED).**  Pins the simulated-machine configuration encoding
+(`configEncode3 q sym rest = encodeNatBits3 q ++ boolToSym3 sym :: rest`, consistent with the rule key) and proves the
+apply phase's symbol update: with the head at the current-symbol cell `c+q+1`, one `unmark3` step rewrites the symbol from
+`sym` to `sym'`, the rest of the tape untouched.  `configEncode3_content` (not shown) bridges to the matcher's
+state-field/symbol-cell hypotheses. -/
+theorem nw_writeSym3_run_frontier (s s' q : ℕ) (sym sym' : Bool) (pre rest : List ACC0UniversalTM3Sym.Sym3) :
+    ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
+        (ACC0UniversalTM3Unmark.unmark3 s s' (ACC0UniversalTM3EncTrans.boolToSym3 sym'))) 1
+      (s, pre.length + q + 1, pre ++ ACC0UniversalTM3Config.configEncode3 q sym rest)
+      (s', pre.length + q + 1, pre ++ ACC0UniversalTM3Config.configEncode3 q sym' rest) :=
+  ACC0UniversalTM3Config.writeSym3_run s s' q sym sym' pre rest
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
