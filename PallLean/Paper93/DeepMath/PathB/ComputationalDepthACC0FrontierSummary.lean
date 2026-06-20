@@ -353,6 +353,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Cross
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3AdvanceCross
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3AdvanceCrossL
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TandemStep
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteAlg
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5897,6 +5898,20 @@ theorem nw_tandemStep3_run_frontier (s smid sCont sEnd crMid crFound crCont lmid
           (cp + g) ACC0UniversalTM3Sym.Sym3.I) (cp + g + 1) ACC0UniversalTM3Sym.Sym3.M) :=
   ACC0UniversalTM3TandemStep.tandemStep3_run s smid sCont sEnd crMid crFound crCont lmid lCont lEnd lcrMid lcrFound
     lcrCont tp cp g hg hM hI hMr hIr hgap hbound
+
+/-- **Entry 477: in-bounds tape-write algebra `writeAt3_eq_set`/`_overwrite`/`_comm` (PROVED).**  In bounds `writeAt3` is
+`List.set`, so overwrites collapse (last write wins) and writes at distinct cells commute — the algebra needed to iterate the
+tandem comparison step (476). -/
+theorem nw_writeAt3_eq_set_frontier (t : List ACC0UniversalTM3Sym.Sym3) (p : ℕ) (w : ACC0UniversalTM3Sym.Sym3)
+    (hp : p < t.length) : ACC0UniversalTM3Sym.writeAt3 t p w = t.set p w :=
+  ACC0UniversalTM3WriteAlg.writeAt3_eq_set t p w hp
+
+/-- **Entry 477 (cont.): writes at distinct in-bounds cells commute (PROVED).** -/
+theorem nw_writeAt3_comm_frontier (t : List ACC0UniversalTM3Sym.Sym3) (p q : ℕ) (a b : ACC0UniversalTM3Sym.Sym3)
+    (hpq : p ≠ q) (hp : p < t.length) (hq : q < t.length) :
+    ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 t p a) q b
+      = ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 t q b) p a :=
+  ACC0UniversalTM3WriteAlg.writeAt3_comm t p q a b hpq hp hq
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
