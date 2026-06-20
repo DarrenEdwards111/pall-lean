@@ -292,6 +292,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CopyFie
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Config
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CopyBitLeft
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CopyFieldLeft
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3UnaryStep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4826,6 +4827,27 @@ theorem nw_copyFieldLeft3_run_frontier (sDone d L s c m : ℕ) (tp : List ACC0Un
     ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3CopyFieldLeft.copyFieldLeft3 s sDone d L)) N
       (s, c, tp) (sDone, c + m, ACC0UniversalTM3CopyFieldLeft.copyBlockLeft tp c d m) :=
   ACC0UniversalTM3CopyFieldLeft.copyFieldLeft3_run sDone d L s c m tp hmL hd hdc hbnd hco hcs
+
+/-- **Entry 416: the unary head-pointer step `unaryInc3_run` / `unaryDec3_run` (PROVED).**  Per the chosen config layout
+the simulated head position is an explicit unary field; a move updates it by `±1` via a single cell flip after a field
+scan.  Increment flips the separator `h+n` to `I` (the reserved-blank `h+n+1` becomes the new separator); the content
+corollaries `unaryInc3_field`/`unaryDec3_field` (not shown) confirm the result is a unary field of length `n±1`. -/
+theorem nw_unaryInc3_run_frontier (s s' n h : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (htrue : ∀ i, i < n → tp.getD (h + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hfalse : tp.getD (h + n) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hbound : h + n + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3UnaryStep.unaryInc3 s s')) N (s, h, tp)
+      (s', h + n, ACC0UniversalTM3Sym.writeAt3 tp (h + n) ACC0UniversalTM3Sym.Sym3.I) :=
+  ACC0UniversalTM3UnaryStep.unaryInc3_run s s' n h tp htrue hfalse hbound
+
+/-- **Entry 416 (cont.): the unary decrement run (PROVED).**  For `n ≥ 1`, flips the last one `h+n-1` to `O`. -/
+theorem nw_unaryDec3_run_frontier (s s' n h : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3) (hn : 1 ≤ n)
+    (htrue : ∀ i, i < n → tp.getD (h + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hfalse : tp.getD (h + n) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hbound : h + n + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3UnaryStep.unaryDec3 s s')) N (s, h, tp)
+      (s', h + n - 1, ACC0UniversalTM3Sym.writeAt3 tp (h + n - 1) ACC0UniversalTM3Sym.Sym3.O) :=
+  ACC0UniversalTM3UnaryStep.unaryDec3_run s s' n h tp hn htrue hfalse hbound
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
