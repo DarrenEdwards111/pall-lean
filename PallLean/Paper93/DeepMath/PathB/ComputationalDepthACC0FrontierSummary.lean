@@ -267,6 +267,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Seek
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SeekR
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MarkCarry
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Unmark
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteWrite
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4496,6 +4497,15 @@ theorem nw_unmark3_run_frontier (s s' : ℕ) (w : ACC0UniversalTM3Sym.Sym3) (j :
       (s, j, tp) (s', j, ACC0UniversalTM3Sym.writeAt3 tp j w) :=
   ACC0UniversalTM3Unmark.unmark3_run s s' w j tp
 
+/-- **Entry 391: double-write collapse `writeAt3_writeAt3` (PROVED).**  Writing twice at the same cell keeps only the
+last write — the algebraic basis of the marker restore (anchor with `M`, then write the carried value back collapses to
+a single write of that value). -/
+theorem nw_writeAt3_writeAt3_frontier (tape : List ACC0UniversalTM3Sym.Sym3) (p : ℕ)
+    (a b : ACC0UniversalTM3Sym.Sym3) :
+    ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 tape p a) p b
+      = ACC0UniversalTM3Sym.writeAt3 tape p b :=
+  ACC0UniversalTM3WriteWrite.writeAt3_writeAt3 tape p a b
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5839,3 +5849,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_seekMarkRight_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_markCarry3_run_O_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_unmark3_run_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_writeAt3_writeAt3_frontier
