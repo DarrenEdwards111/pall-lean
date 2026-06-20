@@ -320,6 +320,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MoveCle
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TwoMove
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MoveLeftHome
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MoveFromHome
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CacheRefreshHome
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5349,6 +5350,30 @@ theorem nw_moveFromHome3_run_left_frontier
         (tp.getD (p - 1) ACC0UniversalTM3Sym.Sym3.O)) (p - 1) ACC0UniversalTM3Sym.Sym3.M) :=
   ACC0UniversalTM3MoveFromHome.moveFromHome3_run_left rS rF rC r1 rf1 rc1 r2 rf2 rc2 rO lS lF lC l1 lf1 lc1 l2 lf2 lc2 lO
     home p tp hhp hmarkHome hmarkHead hclean hc hbnd
+
+/-- **Entry 444: the home-to-home cache refresh `cacheRefreshHome3_run` (PROVED).**  The cache refresh (435) made
+home-to-home by appending a reset (408) from the cache cell back to the config home.  Sets the cache cell to the current
+symbol and returns the head to `home+1`; result tape is the single `writeAt3 tp (home+1+a+1) (current symbol)`. -/
+theorem nw_cacheRefreshHome3_run_frontier
+    (s sO sI oF1 oC1 oS2 oF2 oC2 oMid oMidW iF1 iC1 iS2 iF2 iC2 iMid iMidW sFin rf rc rout d home a : ℕ)
+    (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hmark : tp.getD ((home + 1) + d) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hclear : ∀ k, k < d → tp.getD ((home + 1) + k) ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hbound : (home + 1) + d < tp.length) (hbound2 : (home + 1) + d + 1 < tp.length)
+    (hcur : tp.getD ((home + 1) + d + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O ∨
+      tp.getD ((home + 1) + d + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hmarkHome : tp.getD home ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hnoHome : ∀ k, 0 < k → k ≤ (home + 1) + d - 1 - home →
+      tp.getD (home + k) ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hco : ∀ i, i < a → tp.getD (home + 1 + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hcsep : tp.getD (home + 1 + a) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hbnd2 : home + 1 + a < tp.length) (hcache : home + 1 + a + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3CacheRefreshHome.cacheRefreshHome3
+        s sO sI oF1 oC1 oS2 oF2 oC2 oMid oMidW iF1 iC1 iS2 iF2 iC2 iMid iMidW sFin rf rc rout)) N (s, home + 1, tp)
+      (rout, home + 1, ACC0UniversalTM3Sym.writeAt3 tp (home + 1 + a + 1)
+        (tp.getD ((home + 1) + d + 1) ACC0UniversalTM3Sym.Sym3.O)) :=
+  ACC0UniversalTM3CacheRefreshHome.cacheRefreshHome3_run s sO sI oF1 oC1 oS2 oF2 oC2 oMid oMidW iF1 iC1 iS2 iF2 iC2 iMid
+    iMidW sFin rf rc rout d home a tp hmark hclear hbound hbound2 hcur hmarkHome hnoHome hco hcsep hbnd2 hcache
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
