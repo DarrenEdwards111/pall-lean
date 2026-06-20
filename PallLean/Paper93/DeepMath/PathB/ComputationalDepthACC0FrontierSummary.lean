@@ -334,6 +334,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3StateUp
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MatcherLookup
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EmitEx
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3HomeLayout
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3RecordLayout
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5599,6 +5600,16 @@ theorem nw_homeConfigTape3_content_frontier (q : ℕ) (sym : Bool) (rest : List 
     ∧ (ACC0UniversalTM3HomeLayout.homeConfigTape3 q sym rest).getD (1 + q + 1) ACC0UniversalTM3Sym.Sym3.O
         = ACC0UniversalTM3EncTrans.boolToSym3 sym :=
   ACC0UniversalTM3HomeLayout.homeConfigTape3_content q sym rest
+
+/-- **Entry 458: the rule-record layout `record_RecOK` (PROVED).**  The rule-table region's per-record bridge: an encoded
+rule record `configEncode3 b rs rest` at offset `c+d` satisfies the matcher's `RecOK` precondition (410) with key
+`(b, boolToSym3 rs)` — the matcher reads a rule's key exactly as it reads the config key. -/
+theorem nw_record_RecOK_frontier (pre rest : List ACC0UniversalTM3Sym.Sym3) (c d b a L : ℕ) (rs : Bool)
+    (hpre : pre.length = c + d) (hd : 1 ≤ d) (hmin : min a b < L)
+    (hbnd : c + a + 1 + d < (pre ++ ACC0UniversalTM3Config.configEncode3 b rs rest).length) :
+    ACC0UniversalTM3MatchTable.RecOK (pre ++ ACC0UniversalTM3Config.configEncode3 b rs rest) c a L
+      (d, b, ACC0UniversalTM3EncTrans.boolToSym3 rs) :=
+  ACC0UniversalTM3RecordLayout.record_RecOK pre rest c d b a L rs hpre hd hmin hbnd
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
