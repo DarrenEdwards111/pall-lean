@@ -281,6 +281,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MoveN
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ProbeTail
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Probe
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3BitCompare
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3FieldStep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4646,6 +4647,22 @@ theorem nw_bitCompareAtDist3_run_frontier (s sEq sNe p d : ℕ) (tp : List ACC0U
       (s, p, tp)
       ((if tp.getD (p + d) ACC0UniversalTM3Sym.Sym3.O = tp.getD p ACC0UniversalTM3Sym.Sym3.O then sEq else sNe), p, tp) :=
   ACC0UniversalTM3BitCompare.bitCompareAtDist3_run s sEq sNe p d tp hbit hd hno hp hbound
+
+/-- **Entry 405: the three-way field-loop body `fieldStep3_run` (PROVED).**  `bitCompareAtDist3` refined so the two
+agreeing cases get distinct targets: config-`O` (separator) routes to `sMatch` (rule `O`, fields ended together) or
+`sFail` (rule `I`); config-`I` (a one) routes to `sCont` (rule `I`, both continue) or `sFail` (rule `O`).  This is the
+genuine field-compare loop body — one cell-pair deciding continue / match / fail, tape restored, head back at `p`. -/
+theorem nw_fieldStep3_run_frontier (s sCont sMatch sFail p d : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hbit : tp.getD p ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O ∨
+      tp.getD p ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I) (hd : 1 ≤ d)
+    (hno : ∀ k, 0 < k → k ≤ d → tp.getD (p + k) ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hp : p < tp.length) (hbound : p + d < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3FieldStep.fieldStep3 s sCont sMatch sFail d)) N
+      (s, p, tp)
+      ((if tp.getD p ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O
+          then (if tp.getD (p + d) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O then sMatch else sFail)
+          else (if tp.getD (p + d) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I then sCont else sFail)), p, tp) :=
+  ACC0UniversalTM3FieldStep.fieldStep3_run s sCont sMatch sFail p d tp hbit hd hno hp hbound
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
