@@ -266,6 +266,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Mark
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Seek
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SeekR
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MarkCarry
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Unmark
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4486,6 +4487,15 @@ theorem nw_markCarry3_run_O_frontier (s sO sI sM j : ℕ) (tp : List ACC0Univers
       (s, j, tp) (sO, j, ACC0UniversalTM3Sym.writeAt3 tp j ACC0UniversalTM3Sym.Sym3.M) :=
   ACC0UniversalTM3MarkCarry.markCarry3_run_O s sO sI sM j tp h
 
+/-- **Entry 390: the restore primitive `unmark3_run` (PROVED).**  The dual of `markCarry3`: after carrying a cell's bit
+in the control state and comparing, the machine restores the cell by writing the carried value `w` back over the marker.
+`unmark3 s s' w` overwrites the head cell with `w`, staying in place. -/
+theorem nw_unmark3_run_frontier (s s' : ℕ) (w : ACC0UniversalTM3Sym.Sym3) (j : ℕ)
+    (tp : List ACC0UniversalTM3Sym.Sym3) :
+    ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3Unmark.unmark3 s s' w)) 1
+      (s, j, tp) (s', j, ACC0UniversalTM3Sym.writeAt3 tp j w) :=
+  ACC0UniversalTM3Unmark.unmark3_run s s' w j tp
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5828,3 +5838,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_seekMarkLeft_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_seekMarkRight_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_markCarry3_run_O_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_unmark3_run_frontier
