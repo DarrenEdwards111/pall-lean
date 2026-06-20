@@ -262,6 +262,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTMKeyMatch
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Sym
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Compose
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Move
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Mark
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4440,6 +4441,15 @@ theorem nw_writeMark3_run_frontier (s s' j : ℕ) (tp : List ACC0UniversalTM3Sym
       (s, j, tp) (s', j + 1, ACC0UniversalTM3Sym.writeAt3 tp j ACC0UniversalTM3Sym.Sym3.M) :=
   ACC0UniversalTM3Move.writeMark3_run s s' j tp
 
+/-- **Entry 386: the branch-on-marker `branchMark3_run_mark` (PROVED).**  The primitive that makes the gap irrelevant: a
+seek loop reads the cell and `branchMark3` routes to `sFound` if it is the marker `M`, else to `sCont` — so the head can
+find the anchor regardless of distance.  Here is the found (marker) branch, leaving the tape identical. -/
+theorem nw_branchMark3_run_mark_frontier (s sFound sCont j : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (h : ACC0UniversalTM3Sym.readSym3 (s, j, tp) = ACC0UniversalTM3Sym.Sym3.M) (hbound : j < tp.length) :
+    ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3Mark.branchMark3 s sFound sCont)) 1
+      (s, j, tp) (sFound, j, tp) :=
+  ACC0UniversalTM3Mark.branchMark3_run_mark s sFound sCont j tp h hbound
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5778,3 +5788,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_writeAt3_id_of_lt_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_reachIn_seq3_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_writeMark3_run_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_branchMark3_run_mark_frontier
