@@ -321,6 +321,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TwoMove
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MoveLeftHome
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MoveFromHome
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CacheRefreshHome
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CopyContent
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5374,6 +5375,22 @@ theorem nw_cacheRefreshHome3_run_frontier
         (tp.getD ((home + 1) + d + 1) ACC0UniversalTM3Sym.Sym3.O)) :=
   ACC0UniversalTM3CacheRefreshHome.cacheRefreshHome3_run s sO sI oF1 oC1 oS2 oF2 oC2 oMid oMidW iF1 iC1 iS2 iF2 iC2 iMid
     iMidW sFin rf rc rout d home a tp hmark hclear hbound hbound2 hcur hmarkHome hnoHome hco hcsep hbnd2 hcache
+
+/-- **Entry 445: the leftward copier's content (PROVED).**  In the disjoint case `m < d`, `copyBlockLeft` (415) preserves
+cells outside the destination `[c-d, c+m-d]` and writes the source `tp.getD (k+d)` into the destination — so a marker-free
+source yields a marker-free destination. -/
+theorem nw_copyBlockLeft_getD_outside_frontier (tp : List ACC0UniversalTM3Sym.Sym3) (c d m k : ℕ) (hmd : m < d)
+    (hdc : d ≤ c) (hk : k < c - d ∨ c + m - d < k) :
+    (ACC0UniversalTM3CopyFieldLeft.copyBlockLeft tp c d m).getD k ACC0UniversalTM3Sym.Sym3.O
+      = tp.getD k ACC0UniversalTM3Sym.Sym3.O :=
+  ACC0UniversalTM3CopyContent.copyBlockLeft_getD_outside tp c d m k hmd hdc hk
+
+/-- **Entry 445 (cont.): the copier writes the source into the destination (PROVED).** -/
+theorem nw_copyBlockLeft_getD_inside_frontier (tp : List ACC0UniversalTM3Sym.Sym3) (c d m k : ℕ) (hmd : m < d)
+    (hdc : d ≤ c) (hk1 : c - d ≤ k) (hk2 : k ≤ c + m - d) :
+    (ACC0UniversalTM3CopyFieldLeft.copyBlockLeft tp c d m).getD k ACC0UniversalTM3Sym.Sym3.O
+      = tp.getD (k + d) ACC0UniversalTM3Sym.Sym3.O :=
+  ACC0UniversalTM3CopyContent.copyBlockLeft_getD_inside tp c d m k hmd hdc hk1 hk2
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
