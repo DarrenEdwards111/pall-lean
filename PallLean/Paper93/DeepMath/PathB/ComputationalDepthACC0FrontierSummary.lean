@@ -294,6 +294,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CopyBit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CopyFieldLeft
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3UnaryStep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Fetch
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Walk
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4864,6 +4865,17 @@ theorem nw_fetchBitFromDist3_run_frontier (s sOut p d : ℕ) (tp : List ACC0Univ
     ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3Fetch.fetchBitFromDist3 s sOut d)) N (s, p, tp)
       (sOut, p, ACC0UniversalTM3Sym.writeAt3 tp p (tp.getD (p + d) ACC0UniversalTM3Sym.Sym3.O)) :=
   ACC0UniversalTM3Fetch.fetchBitFromDist3_run s sOut p d tp hbit hd hno hbound hfar
+
+/-- **Entry 418: the counter-driven walk `walkRightClearField3_run` (PROVED).**  The first genuine piece of unary
+head-pointer *data-dependent addressing*: walk the head right by an amount given by a unary tally, consuming it (read the
+cell, on a one clear to `O` and step right, on the separator stop).  The head ends at `h+m`, the tally cleared. -/
+theorem nw_walkRightClearField3_run_frontier (sDone L s h m : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hmL : m < L) (hbnd : h + m < tp.length)
+    (hco : ∀ i, i < m → tp.getD (h + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hcs : tp.getD (h + m) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3Walk.walkRightClearField3 s sDone L)) N (s, h, tp)
+      (sDone, h + m, ACC0UniversalTM3Walk.clearBlock tp h m) :=
+  ACC0UniversalTM3Walk.walkRightClearField3_run sDone L s h m tp hmL hbnd hco hcs
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
