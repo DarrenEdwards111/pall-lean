@@ -338,6 +338,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3RecordL
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3RecordsLayout
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SimTapeLayout
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3FullLayout
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3FullHead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5657,6 +5658,27 @@ theorem nw_fullTape3_record_RecOK_frontier (a : ℕ) (cs : Bool) (front : List (
     ACC0UniversalTM3MatchTable.RecOK (ACC0UniversalTM3FullLayout.fullTape3 a cs (front ++ (b, rs) :: back) simtape) 1 a L
       (a + 2 + (front.flatMap ACC0UniversalTM3RecordsLayout.recordBlock).length, b, ACC0UniversalTM3EncTrans.boolToSym3 rs) :=
   ACC0UniversalTM3FullLayout.fullTape3_record_RecOK a cs front b rs back simtape L hmin hbnd
+
+/-- **Entry 462: the head marker at the full-tape offset `fullTape3_head_marker`/`_current` (PROVED).**  With the sim-tape
+region placed as the trailing region of `fullTape3`, the head marker sits at `(cfgHead a cs ++ recordsTape3 rules).length +
+h` and the current cell (`+ h + 1`) is a bit — connecting the local sim-tape invariants (460) to their absolute positions. -/
+theorem nw_fullTape3_head_marker_frontier (a : ℕ) (cs : Bool) (rules : List (ℕ × Bool)) (simTp : List Bool) (h : ℕ)
+    (hh : h ≤ simTp.length) :
+    (ACC0UniversalTM3FullLayout.fullTape3 a cs rules (ACC0UniversalTM3SimTapeLayout.simTapeRegion simTp h)).getD
+      ((ACC0UniversalTM3FullLayout.cfgHead a cs ++ ACC0UniversalTM3RecordsLayout.recordsTape3 rules).length + h)
+      ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M :=
+  ACC0UniversalTM3FullHead.fullTape3_head_marker a cs rules simTp h hh
+
+/-- **Entry 462 (cont.): the current cell at the full-tape offset is a bit (PROVED).** -/
+theorem nw_fullTape3_head_current_frontier (a : ℕ) (cs : Bool) (rules : List (ℕ × Bool)) (simTp : List Bool) (h : ℕ)
+    (hh : h ≤ simTp.length) :
+    (ACC0UniversalTM3FullLayout.fullTape3 a cs rules (ACC0UniversalTM3SimTapeLayout.simTapeRegion simTp h)).getD
+        ((ACC0UniversalTM3FullLayout.cfgHead a cs ++ ACC0UniversalTM3RecordsLayout.recordsTape3 rules).length + h + 1)
+        ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O ∨
+    (ACC0UniversalTM3FullLayout.fullTape3 a cs rules (ACC0UniversalTM3SimTapeLayout.simTapeRegion simTp h)).getD
+        ((ACC0UniversalTM3FullLayout.cfgHead a cs ++ ACC0UniversalTM3RecordsLayout.recordsTape3 rules).length + h + 1)
+        ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I :=
+  ACC0UniversalTM3FullHead.fullTape3_head_current a cs rules simTp h hh
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
