@@ -301,6 +301,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Apply
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteField
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteFieldBit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteEncode
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EmitPrefix
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4974,6 +4975,16 @@ theorem nw_writeUnaryFieldN3_emits_frontier (s sOut n : ℕ) (pre X : List ACC0U
       (s, pre.length, pre ++ X)
       (sOut, pre.length + n, pre ++ ACC0UniversalTM3Encode.encodeNatBits3 n ++ X.drop (n + 1)) :=
   ACC0UniversalTM3WriteEncode.writeUnaryFieldN3_emits s sOut n pre X hX
+
+/-- **Entry 425: the field-then-bit machine emits the encoded prefix `writeFieldBit3_emits` (PROVED).**  Running the
+field-then-bit emitter (423) lays down exactly the encoded prefix `encodeNatBits3 n ++ w :: rest` (the transition/config
+prefix shape) — combining the emitter's run with the writer-correctness lemma (424) and the boundary write for the symbol. -/
+theorem nw_writeFieldBit3_emits_frontier (s sOut n : ℕ) (w : ACC0UniversalTM3Sym.Sym3)
+    (pre X : List ACC0UniversalTM3Sym.Sym3) (hX : n + 1 < X.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3WriteFieldBit.writeFieldBit3 s sOut n w)) N
+      (s, pre.length, pre ++ X)
+      (sOut, pre.length + n + 1, pre ++ ACC0UniversalTM3Encode.encodeNatBits3 n ++ w :: X.drop (n + 2)) :=
+  ACC0UniversalTM3EmitPrefix.writeFieldBit3_emits s sOut n w pre X hX
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
