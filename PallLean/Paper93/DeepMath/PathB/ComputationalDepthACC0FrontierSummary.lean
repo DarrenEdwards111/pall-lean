@@ -346,6 +346,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3PhiLook
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Descriptors
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SkipOnes
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3AdvanceRecord
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SkipOnesL
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5773,6 +5774,16 @@ theorem nw_advanceRecord3_run_frontier (s m1 m2 stop cont : ℕ) (tp : List ACC0
     ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3AdvanceRecord.advanceRecord3 s m1 m2 stop cont)) N
       (s, h, tp) (stop, h + b + 2, tp) :=
   ACC0UniversalTM3AdvanceRecord.advanceRecord3_run s m1 m2 stop cont tp b h hones hsep hbound
+
+/-- **Entry 470: the generic scan loop's leftward unary-consume `skipOnesLeft_run` (PROVED).**  The leftward mirror of
+`skipOnesRight` (468), for the comparison shuttle: walk left over `I`s to a non-`I` cell, regardless of field length. -/
+theorem nw_skipOnesLeft_run_frontier (s stop cont p : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hstop : tp.getD p ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.I) (d : ℕ)
+    (hones : ∀ k, 0 < k → k ≤ d → tp.getD (p + k) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hbound : p + d < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3SkipOnesL.skipOnesLeft s stop cont)) N
+      (s, p + d, tp) (stop, p, tp) :=
+  ACC0UniversalTM3SkipOnesL.skipOnesLeft_run s stop cont p tp hstop d hones hbound
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
