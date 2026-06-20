@@ -333,6 +333,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ShiftRi
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3StateUpdateFull
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MatcherLookup
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EmitEx
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3HomeLayout
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5585,6 +5586,19 @@ theorem nw_universalSimEx_of_emits3_frontier (U : ACC0UniversalTM3Sym.TMachine3)
       (φ (ACC0UniversalTMScannable.encodeMachineBits M) (ACC0UniversalTMBitApply.encodeConfig c0))
       (φ (ACC0UniversalTMScannable.encodeMachineBits M) (ACC0UniversalTMBitApply.encodeConfig cf)) :=
   ACC0UniversalTM3EmitEx.universalSimEx_of_emits3 U φ hemit M k c0 cf h
+
+/-- **Entry 457: the config-region layout `homeConfigTape3_content` (PROVED).**  The first concrete artifact of the
+assembly layout `φ`: the home marker + encoded configuration, with exactly the phase preconditions at `home = 0`, `c = 1`
+(home marker at 0, state field of `q` ones at 1, separator at `1+q`, cache at `1+q+1`). -/
+theorem nw_homeConfigTape3_content_frontier (q : ℕ) (sym : Bool) (rest : List ACC0UniversalTM3Sym.Sym3) :
+    (ACC0UniversalTM3HomeLayout.homeConfigTape3 q sym rest).getD 0 ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M
+    ∧ (∀ i, i < q → (ACC0UniversalTM3HomeLayout.homeConfigTape3 q sym rest).getD (1 + i) ACC0UniversalTM3Sym.Sym3.O
+        = ACC0UniversalTM3Sym.Sym3.I)
+    ∧ (ACC0UniversalTM3HomeLayout.homeConfigTape3 q sym rest).getD (1 + q) ACC0UniversalTM3Sym.Sym3.O
+        = ACC0UniversalTM3Sym.Sym3.O
+    ∧ (ACC0UniversalTM3HomeLayout.homeConfigTape3 q sym rest).getD (1 + q + 1) ACC0UniversalTM3Sym.Sym3.O
+        = ACC0UniversalTM3EncTrans.boolToSym3 sym :=
+  ACC0UniversalTM3HomeLayout.homeConfigTape3_content q sym rest
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
