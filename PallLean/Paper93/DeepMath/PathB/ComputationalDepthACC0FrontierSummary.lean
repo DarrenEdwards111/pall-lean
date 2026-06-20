@@ -272,6 +272,9 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Encode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EncTrans
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EncMachine
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Scan
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3FieldContent
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ScanTrans
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ScanTable
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4543,6 +4546,39 @@ theorem nw_scanNatFrom3_run_eq_frontier (s s' n h : ℕ) (tp : List ACC0Universa
       (s, h, tp) (s', h + n + 1, tp) :=
   ACC0UniversalTM3Scan.scanNatFrom3_run_eq s s' n h tp htrue hfalse hbound
 
+/-- **Entry 396: the 3-symbol field-content lemma `field_content3` (PROVED).**  If `T = pre ++ (encodeNatBits3 n ++
+rest)` with `pre.length = h`, then cells `h .. h+n-1` read `I` and cell `h+n` reads `O` — exactly the hypotheses the
+`Sym3` field scanner consumes.  The `Sym3` port of entry 350. -/
+theorem nw_field_content3_frontier (pre rest T : List ACC0UniversalTM3Sym.Sym3) (n h : ℕ) (hlen : pre.length = h)
+    (hT : T = pre ++ (ACC0UniversalTM3Encode.encodeNatBits3 n ++ rest)) :
+    (∀ i, i < n → T.getD (h + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I) ∧
+      T.getD (h + n) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O :=
+  ACC0UniversalTM3FieldContent.field_content3 pre rest T n h hlen hT
+
+/-- **Entry 397: the 3-symbol record scanner `scanTransFrom3_run_eq` (PROVED).**  Scanning one transition on
+`T = pre ++ encodeTransBits3 t ++ rest` from state `base` returns `T` exactly, head past the record — the loopable unit
+of the rule-table traversal.  The `Sym3` port of entry 371. -/
+theorem nw_scanTransFrom3_run_eq_frontier (base : ℕ) (t : ACC0ConcreteNTM.TMTrans)
+    (pre rest : List ACC0UniversalTM3Sym.Sym3) :
+    ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3ScanTrans.scanTransFrom3 base))
+      (t.1.1 + t.2.1 + t.2.2.2.val + 5)
+      (base, pre.length, pre ++ ACC0UniversalTM3EncTrans.encodeTransBits3 t ++ rest)
+      (base + 5, pre.length + (t.1.1 + t.2.1 + t.2.2.2.val + 5),
+        pre ++ ACC0UniversalTM3EncTrans.encodeTransBits3 t ++ rest) :=
+  ACC0UniversalTM3ScanTrans.scanTransFrom3_run_eq base t pre rest
+
+/-- **Entry 398: the 3-symbol rule-table scan `scanTable3_run` (PROVED).**  `scanTable3 base Ms` scans the whole encoded
+transition list `Ms.flatMap encodeTransBits3` from state `base`, returning the *identical* tape, head past the table —
+the loop a clean recursion thanks to the list-preserving record scanner.  The `Sym3` port of entry 372. -/
+theorem nw_scanTable3_run_frontier (base : ℕ) (Ms : List ACC0ConcreteNTM.TMTrans)
+    (pre rest : List ACC0UniversalTM3Sym.Sym3) :
+    ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3ScanTable.scanTable3 base Ms))
+      (Ms.flatMap ACC0UniversalTM3EncTrans.encodeTransBits3).length
+      (base, pre.length, pre ++ Ms.flatMap ACC0UniversalTM3EncTrans.encodeTransBits3 ++ rest)
+      (base + 5 * Ms.length, pre.length + (Ms.flatMap ACC0UniversalTM3EncTrans.encodeTransBits3).length,
+        pre ++ Ms.flatMap ACC0UniversalTM3EncTrans.encodeTransBits3 ++ rest) :=
+  ACC0UniversalTM3ScanTable.scanTable3_run base Ms pre rest
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5891,3 +5927,6 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_encodeTransBits3_length_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_encodeMachineBits3_length_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanNatFrom3_run_eq_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_field_content3_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanTransFrom3_run_eq_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanTable3_run_frontier
