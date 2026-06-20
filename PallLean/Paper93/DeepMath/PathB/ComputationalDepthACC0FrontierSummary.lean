@@ -342,6 +342,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3FullHea
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3RegionClean
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MatchTableWin
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Phi
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3PhiLookup
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5722,6 +5723,22 @@ theorem nw_layoutPhi3_wellformed_frontier (initState : ℕ) (Mbits cbits : List 
     ∧ (ACC0UniversalTM3Phi.layoutPhi3 initState Mbits cbits).2.2.getD 0 ACC0UniversalTM3Sym.Sym3.O
         = ACC0UniversalTM3Sym.Sym3.M :=
   ACC0UniversalTM3Phi.layoutPhi3_wellformed initState Mbits cbits
+
+/-- **Entry 466: the lookup phase on the stitched tape `phiLookup_fullTape` (PROVED).**  The rule-table matcher runs on the
+concrete `fullTape3` at the config home (`c = 1`): the windowed matcher (464) instantiated with every layout hypothesis
+discharged from the proven invariants (home marker, config key — 461; windowed cleanliness — 463).  Given descriptors each
+`RecOK`, before the head marker, with one matching, the matcher reaches the match-found state. -/
+theorem nw_phiLookup_fullTape_frontier (recMatch L a : ℕ) (csBool : Bool) (rules : List (ℕ × Bool))
+    (simtape : List ACC0UniversalTM3Sym.Sym3) (recs : List (ℕ × ℕ × ACC0UniversalTM3Sym.Sym3)) (base : ℕ)
+    (hOK : ∀ rec ∈ recs, ACC0UniversalTM3MatchTable.RecOK
+      (ACC0UniversalTM3FullLayout.fullTape3 a csBool rules simtape) 1 a L rec)
+    (hHead : ∀ rec ∈ recs, 1 + a + 1 + rec.1
+      < (ACC0UniversalTM3FullLayout.cfgHead a csBool ++ ACC0UniversalTM3RecordsLayout.recordsTape3 rules).length)
+    (hEx : ∃ rec ∈ recs, ACC0UniversalTM3MatchTable.RecMatch a (ACC0UniversalTM3EncTrans.boolToSym3 csBool) rec) :
+    ∃ N q, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3MatchTable.matchTable3 recMatch L base recs)) N
+      (base, 1, ACC0UniversalTM3FullLayout.fullTape3 a csBool rules simtape)
+      (recMatch, q, ACC0UniversalTM3FullLayout.fullTape3 a csBool rules simtape) :=
+  ACC0UniversalTM3PhiLookup.phiLookup_fullTape recMatch L a csBool rules simtape recs base hOK hHead hEx
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
