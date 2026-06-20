@@ -307,6 +307,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Navigat
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Transfer
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ClearContent
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3StateUpdate
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3NavigateCache
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5064,6 +5065,21 @@ theorem nw_clearStateField3_run_frontier (s sMid found cont mid d' sDone L1 L2 h
           (home + 1 + d') d' newlen) :=
   ACC0UniversalTM3StateUpdate.clearStateField3_run s sMid found cont mid d' sDone L1 L2 home oldlen newlen tp
     hmark hclean hd' hdold hL1 hL2 hbnd hcold hcoldsep hcnew hcnewsep
+
+/-- **Entry 431: navigation to the symbol cache `navigateToCache3_run` (PROVED).**  Reconciles the matcher's fixed-offset
+symbol cache with the marker head: from any config-window position, return to the config home (408) then scan past the
+variable-length state field (395) to the cache cell `c+a+1`.  Reaches the fixed-offset cache by scanning the data-length
+state field; tape identical. -/
+theorem nw_navigateToCache3_run_frontier (s found cont mid sOut home dq a : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hmark : tp.getD home ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hno : ∀ k, 0 < k → k ≤ dq → tp.getD (home + k) ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hbnd1 : home + dq < tp.length)
+    (hco : ∀ i, i < a → tp.getD (home + 1 + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hcsep : tp.getD (home + 1 + a) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hbnd2 : home + 1 + a < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3NavigateCache.navigateToCache3 s found cont mid sOut))
+      N (s, home + dq, tp) (sOut, home + 1 + a + 1, tp) :=
+  ACC0UniversalTM3NavigateCache.navigateToCache3_run s found cont mid sOut home dq a tp hmark hno hbnd1 hco hcsep hbnd2
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
