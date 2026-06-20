@@ -299,6 +299,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3HeadMov
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ReadHead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Apply
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteField
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteFieldBit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4954,6 +4955,15 @@ theorem nw_writeUnaryFieldN3_run_frontier (sOut n s j : ℕ) (tp : List ACC0Univ
     ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3WriteField.writeUnaryFieldN3 s sOut n)) N (s, j, tp)
       (sOut, j + n, ACC0UniversalTM3WriteField.writeFieldBlock tp j n) :=
   ACC0UniversalTM3WriteField.writeUnaryFieldN3_run sOut n s j tp
+
+/-- **Entry 423: the field-then-bit emitter `writeFieldBit3_run` (PROVED).**  An output composition for encoded structures:
+lay down `encodeNatBits3 n` then a symbol cell `w` (the shape of a transition/config prefix), chaining the field writer
+(422) with a bit write so the head flows from one field to the next. -/
+theorem nw_writeFieldBit3_run_frontier (s sOut n j : ℕ) (w : ACC0UniversalTM3Sym.Sym3)
+    (tp : List ACC0UniversalTM3Sym.Sym3) (h : j + n < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3WriteFieldBit.writeFieldBit3 s sOut n w)) N (s, j, tp)
+      (sOut, j + n + 1, ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3WriteField.writeFieldBlock tp j n) (j + n + 1) w) :=
+  ACC0UniversalTM3WriteFieldBit.writeFieldBit3_run s sOut n j w tp h
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
