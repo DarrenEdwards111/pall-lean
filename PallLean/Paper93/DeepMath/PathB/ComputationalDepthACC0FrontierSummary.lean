@@ -356,6 +356,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TandemS
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteAlg
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CursTape
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TandemCanon
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TandemLoop
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5947,6 +5948,21 @@ theorem nw_tandemStepCanon_run_frontier
       (lcrFound, cp + i + 1, ACC0UniversalTM3CursTape.cursTape tp cp g (i + 1)) :=
   ACC0UniversalTM3TandemCanon.tandemStepCanon_run s smid sCont sEnd crMid crFound crCont lmid lCont lEnd lcrMid lcrFound
     lcrCont tp cp g i hg hfC hfC1 hfR hfR1 hgap hbound
+
+/-- **Entry 480: the iterated tandem comparison `tandemLoop_run` (PROVED).**  With a back-edge (`lcrFound := s`), the tandem
+step (479) loops: `d` iterations walk both unary-field cursors from step `0` to step `d` on the canonical tape — the
+distance-agnostic two-cursor unary comparison, by induction on `d`. -/
+theorem nw_tandemLoop_run_frontier (s smid sCont sEnd crMid crFound crCont lmid lCont lEnd lcrMid lcrCont : ℕ)
+    (tp : List ACC0UniversalTM3Sym.Sym3) (cp g : ℕ) (hg : 2 ≤ g) (d : ℕ)
+    (hCF : ∀ k, k ≤ d → tp.getD (cp + k) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hRF : ∀ k, k ≤ d → tp.getD (cp + g + k) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hGap : ∀ j, cp < j → j < cp + g + d → tp.getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hbnd : cp + g + d < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
+      (ACC0UniversalTM3TandemLoop.tandemLoop s smid sCont sEnd crMid crFound crCont lmid lCont lEnd lcrMid lcrCont)) N
+      (s, cp, ACC0UniversalTM3CursTape.cursTape tp cp g 0) (s, cp + d, ACC0UniversalTM3CursTape.cursTape tp cp g d) :=
+  ACC0UniversalTM3TandemLoop.tandemLoop_run s smid sCont sEnd crMid crFound crCont lmid lCont lEnd lcrMid lcrCont
+    tp cp g hg d hCF hRF hGap hbnd
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
