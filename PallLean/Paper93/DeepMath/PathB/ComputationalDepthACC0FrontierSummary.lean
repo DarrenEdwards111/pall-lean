@@ -264,6 +264,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Compose
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Move
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Mark
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Seek
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SeekR
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4463,6 +4464,18 @@ theorem nw_seekMarkLeft_run_frontier (s found cont p : ℕ) (tp : List ACC0Unive
       (s, p + d, tp) (found, p, tp) :=
   ACC0UniversalTM3Seek.seekMarkLeft_run s found cont p tp hmark d hclear hbound
 
+/-- **Entry 388: the rightward seek-to-marker `seekMarkRight_run` (PROVED).**  The mirror of entry 387: a cyclic
+machine walks *right* to the marker `M` regardless of distance.  With the marker at `h+d` and the `d` cells below it
+non-marker, it drives from `(s, h, tp)` to `(found, h+d, tp)` (`∃` step count), tape identical — completing the
+distance-agnostic seek pair. -/
+theorem nw_seekMarkRight_run_frontier (s found cont d h : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hmark : tp.getD (h + d) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hclear : ∀ k, k < d → tp.getD (h + k) ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hbound : h + d < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3SeekR.seekMarkRight s found cont)) N
+      (s, h, tp) (found, h + d, tp) :=
+  ACC0UniversalTM3SeekR.seekMarkRight_run s found cont tp d h hmark hclear hbound
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5803,3 +5816,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_writeMark3_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_branchMark3_run_mark_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_seekMarkLeft_run_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_seekMarkRight_run_frontier
