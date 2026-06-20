@@ -306,6 +306,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EmitCon
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Navigate
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Transfer
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ClearContent
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3StateUpdate
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5041,6 +5042,28 @@ theorem nw_clearBlock_getD_inside_frontier (tp : List ACC0UniversalTM3Sym.Sym3) 
     (hge : h ≤ j) (hlt : j < h + m) :
     (ACC0UniversalTM3Walk.clearBlock tp h m).getD j ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O :=
   ACC0UniversalTM3ClearContent.clearBlock_getD_inside tp h m j hge hlt
+
+/-- **Entry 430: the state-field update `clearStateField3_run` (PROVED).**  The complete simulated-state update: clear the
+config's old state field (418), then transfer the matched rule's new-state field in (428), handling the length change.  The
+two phases run on different tapes; the cross-tape obligations (home marker and the distant rule field survive clearing) are
+discharged by the clearer-content lemmas (429).  Replaces the config state field with a copy of the rule's new state. -/
+theorem nw_clearStateField3_run_frontier (s sMid found cont mid d' sDone L1 L2 home oldlen newlen : ℕ)
+    (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hmark : tp.getD home ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hclean : ∀ j, j ≠ home → tp.getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hd' : 1 ≤ d') (hdold : oldlen < d') (hL1 : oldlen < L1) (hL2 : newlen < L2)
+    (hbnd : home + 1 + d' + newlen < tp.length)
+    (hcold : ∀ i, i < oldlen → tp.getD (home + 1 + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hcoldsep : tp.getD (home + 1 + oldlen) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hcnew : ∀ i, i < newlen → tp.getD (home + 1 + d' + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hcnewsep : tp.getD (home + 1 + d' + newlen) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
+        (ACC0UniversalTM3StateUpdate.clearStateField3 s sMid found cont mid d' sDone L1 L2)) N (s, home + 1, tp)
+      (sDone, home + 1 + d' + newlen,
+        ACC0UniversalTM3CopyFieldLeft.copyBlockLeft (ACC0UniversalTM3Walk.clearBlock tp (home + 1) oldlen)
+          (home + 1 + d') d' newlen) :=
+  ACC0UniversalTM3StateUpdate.clearStateField3_run s sMid found cont mid d' sDone L1 L2 home oldlen newlen tp
+    hmark hclean hd' hdold hL1 hL2 hbnd hcold hcoldsep hcnew hcnewsep
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
