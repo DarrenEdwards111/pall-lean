@@ -330,6 +330,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ApplyTa
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TapeShift
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TapeShiftRight
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ShiftRightMachine
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3StateUpdateFull
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5530,6 +5531,34 @@ theorem nw_copyFieldRight3_run_frontier (sDone d : ℕ) (hd : 1 ≤ d) (n s c : 
     ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3ShiftRightMachine.copyFieldRight3 s sDone d n)) N
       (s, c + n, tp) (sDone, c, ACC0UniversalTM3TapeShiftRight.copyBlockRight tp c d n) :=
   ACC0UniversalTM3ShiftRightMachine.copyFieldRight3_run sDone d hd n s c tp hbit hbnd
+
+/-- **Entry 454: the full state update `stateUpdateFull3_run` (PROVED).**  Handles the variable-length unary state field by
+re-placing the cache (not shifting the marker-containing sim-tape): write the new state field (448) then refresh the cache
+at the new boundary (444).  The config state field becomes the rule's new state; the cache is re-placed with the current
+symbol; head returns home. -/
+theorem nw_stateUpdateFull3_run_frontier (s sMid found cont mid d' sDone L1 L2 rf rc mid2
+    sO sI oF1 oC1 oS2 oF2 oC2 oMid oMidW iF1 iC1 iS2 iF2 iC2 iMid iMidW sFin rf2 rc2 rout
+    home hm oldlen newlen : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hmarkHome : tp.getD home ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hmarkHead : tp.getD hm ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hclean : ∀ j, home < j → j < hm → tp.getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hd' : 1 ≤ d') (hdold : oldlen < d') (hnd : newlen < d') (hL1 : oldlen < L1) (hL2 : newlen < L2)
+    (hgap : home + 1 + d' + newlen < hm)
+    (hcold : ∀ i, i < oldlen → tp.getD (home + 1 + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hcoldsep : tp.getD (home + 1 + oldlen) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hcnew : ∀ i, i < newlen → tp.getD (home + 1 + d' + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hcnewsep : tp.getD (home + 1 + d' + newlen) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hcur : tp.getD (hm + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O ∨
+      tp.getD (hm + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I) (hbnd : hm + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3StateUpdateFull.stateUpdateFull3
+        s sMid found cont mid d' sDone L1 L2 rf rc mid2 sO sI oF1 oC1 oS2 oF2 oC2 oMid oMidW iF1 iC1 iS2 iF2 iC2 iMid
+        iMidW sFin rf2 rc2 rout)) N (s, home + 1, tp)
+      (rout, home + 1, ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3CopyFieldLeft.copyBlockLeft
+        (ACC0UniversalTM3Walk.clearBlock tp (home + 1) oldlen) (home + 1 + d') d' newlen) (home + 1 + newlen + 1)
+        (tp.getD (hm + 1) ACC0UniversalTM3Sym.Sym3.O)) :=
+  ACC0UniversalTM3StateUpdateFull.stateUpdateFull3_run s sMid found cont mid d' sDone L1 L2 rf rc mid2 sO sI oF1 oC1 oS2
+    oF2 oC2 oMid oMidW iF1 iC1 iS2 iF2 iC2 iMid iMidW sFin rf2 rc2 rout home hm oldlen newlen tp hmarkHome hmarkHead
+    hclean hd' hdold hnd hL1 hL2 hgap hcold hcoldsep hcnew hcnewsep hcur hbnd
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
