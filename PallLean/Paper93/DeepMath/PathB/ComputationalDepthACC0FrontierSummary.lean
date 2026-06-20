@@ -313,6 +313,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CacheNa
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CacheWrite
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CacheRefresh
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3HeadRightHome
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3HeadLeftHome
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5176,6 +5177,22 @@ theorem nw_headRightReturnHome3_run_frontier (s s1 f1 c1 s2 f2 c2 out home p : �
       (out, home + 1, ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 tp p
         (tp.getD (p + 1) ACC0UniversalTM3Sym.Sym3.O)) (p + 1) ACC0UniversalTM3Sym.Sym3.M) :=
   ACC0UniversalTM3HeadRightHome.headRightReturnHome3_run s s1 f1 c1 s2 f2 c2 out home p tp hhp hmarkHome hmarkHead
+    hclean hc hbnd
+
+/-- **Entry 437: advance the head left and return home `headLeftReturnHome3_run` (PROVED).**  The symmetric companion of
+436: from the head marker, move it left (419), skip the relocated marker (432), and reset to the config home (408).  Marker
+`p → p-1`, head returns to `home+1`, tape is the moved tape — the second canonical move phase for the direction branch. -/
+theorem nw_headLeftReturnHome3_run_frontier (s s1 f1 c1 s2 f2 c2 out home p : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hhp : home + 2 ≤ p) (hmarkHome : tp.getD home ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hmarkHead : tp.getD p ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hclean : ∀ j, home < j → j < p → tp.getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hc : tp.getD (p - 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O ∨
+      tp.getD (p - 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I) (hbnd : p < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
+        (ACC0UniversalTM3HeadLeftHome.headLeftReturnHome3 s s1 f1 c1 s2 f2 c2 out)) N (s, p, tp)
+      (out, home + 1, ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 tp p
+        (tp.getD (p - 1) ACC0UniversalTM3Sym.Sym3.O)) (p - 1) ACC0UniversalTM3Sym.Sym3.M) :=
+  ACC0UniversalTM3HeadLeftHome.headLeftReturnHome3_run s s1 f1 c1 s2 f2 c2 out home p tp hhp hmarkHome hmarkHead
     hclean hc hbnd
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
