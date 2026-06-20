@@ -305,6 +305,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EmitPre
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EmitConfig
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Navigate
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Transfer
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ClearContent
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5026,6 +5027,20 @@ theorem nw_transferFieldLeft3_run_frontier (s found cont mid d' sDone L home dq 
       N (s, home + dq, tp)
       (sDone, home + 1 + d' + m, ACC0UniversalTM3CopyFieldLeft.copyBlockLeft tp (home + 1 + d') d' m) :=
   ACC0UniversalTM3Transfer.transferFieldLeft3_run s found cont mid d' sDone L home dq m tp hmark hno hbnd1 hmL hd hbnd hco hcs
+
+/-- **Entry 429: the clearer's content (PROVED).**  Characterises the field clearer's (418) effect — cells outside the
+cleared region `[h, h+m)` are preserved, cells inside become `O`.  The dual of the writer-correctness lemma (424); the
+outside direction shows a distant field (e.g. the rule's new-state field) survives clearing the config field. -/
+theorem nw_clearBlock_getD_outside_frontier (tp : List ACC0UniversalTM3Sym.Sym3) (h m j : ℕ)
+    (hj : j < h ∨ h + m ≤ j) :
+    (ACC0UniversalTM3Walk.clearBlock tp h m).getD j ACC0UniversalTM3Sym.Sym3.O = tp.getD j ACC0UniversalTM3Sym.Sym3.O :=
+  ACC0UniversalTM3ClearContent.clearBlock_getD_outside tp h m j hj
+
+/-- **Entry 429 (cont.): cells inside the cleared region become `O` (PROVED).** -/
+theorem nw_clearBlock_getD_inside_frontier (tp : List ACC0UniversalTM3Sym.Sym3) (h m j : ℕ)
+    (hge : h ≤ j) (hlt : j < h + m) :
+    (ACC0UniversalTM3Walk.clearBlock tp h m).getD j ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O :=
+  ACC0UniversalTM3ClearContent.clearBlock_getD_inside tp h m j hge hlt
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
