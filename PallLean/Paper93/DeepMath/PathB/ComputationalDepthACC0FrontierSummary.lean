@@ -315,6 +315,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CacheRe
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3HeadRightHome
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3HeadLeftHome
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MoveDispatch
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MoveRightHome
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5229,6 +5230,22 @@ theorem nw_moveHeadDispatch3_run_left_frontier
   ACC0UniversalTM3MoveDispatch.moveHeadDispatch3_run_left sR sR1 fR1 cR1 sR2 fR2 cR2 outR sL sL1 fL1 cL1 sL2 fL2 cL2 outL
     home p tp hhp hmarkHome hmarkHead hclean hc hbnd
 
+/-- **Entry 439: the home-to-home right move `moveRightFromHome3_run` (PROVED).**  A master-sequence phase that starts and
+ends at the config home: seek from the home to the head marker (388), then advance the head right and return home (436).
+The head marker advances `p → p+1`, head returns to `home+1`. -/
+theorem nw_moveRightFromHome3_run_frontier (sStart sFound sCont s1 f1 c1 s2 f2 c2 out home p : ℕ)
+    (tp : List ACC0UniversalTM3Sym.Sym3) (hhp : home < p)
+    (hmarkHome : tp.getD home ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hmarkHead : tp.getD p ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hclean : ∀ j, home < j → j < p → tp.getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hc : tp.getD (p + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O ∨
+      tp.getD (p + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I) (hbnd : p + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
+        (ACC0UniversalTM3MoveRightHome.moveRightFromHome3 sStart sFound sCont s1 f1 c1 s2 f2 c2 out)) N
+      (sStart, home + 1, tp) (out, home + 1, ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 tp p
+        (tp.getD (p + 1) ACC0UniversalTM3Sym.Sym3.O)) (p + 1) ACC0UniversalTM3Sym.Sym3.M) :=
+  ACC0UniversalTM3MoveRightHome.moveRightFromHome3_run sStart sFound sCont s1 f1 c1 s2 f2 c2 out home p tp hhp
+    hmarkHome hmarkHead hclean hc hbnd
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
