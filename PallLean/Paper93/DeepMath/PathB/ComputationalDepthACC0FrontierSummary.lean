@@ -298,6 +298,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Walk
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3HeadMove
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ReadHead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Apply
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteField
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4945,6 +4946,14 @@ theorem nw_moveLeftWrite3_run_frontier (s sOut q : ℕ) (w : ACC0UniversalTM3Sym
         (ACC0UniversalTM3Sym.writeAt3 tp (q + 1) w) q (tp.getD (q - 1) ACC0UniversalTM3Sym.Sym3.O)) (q - 1)
         ACC0UniversalTM3Sym.Sym3.M) :=
   ACC0UniversalTM3Apply.moveLeftWrite3_run s sOut q w tp hq1 hq hcl
+
+/-- **Entry 422: the unary-field writer `writeUnaryFieldN3_run` (PROVED).**  The output dual of the field scanner/clearer:
+lay down `encodeNatBits3 n` (n ones then an `O` separator) at the head, advancing — the primitive for emitting encoded
+fields toward `EmitsEncodedStep3`. -/
+theorem nw_writeUnaryFieldN3_run_frontier (sOut n s j : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3WriteField.writeUnaryFieldN3 s sOut n)) N (s, j, tp)
+      (sOut, j + n, ACC0UniversalTM3WriteField.writeFieldBlock tp j n) :=
+  ACC0UniversalTM3WriteField.writeUnaryFieldN3_run sOut n s j tp
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
