@@ -309,6 +309,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ClearCo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3StateUpdate
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3NavigateCache
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SkipMark
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CacheNav
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5093,6 +5094,25 @@ theorem nw_skipMarkLeft3_run_frontier (s found cont s' p d : ℕ) (tp : List ACC
     ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3SkipMark.skipMarkLeft3 s found cont s')) N
       (s, p + d, tp) (s', p - 1, tp) :=
   ACC0UniversalTM3SkipMark.skipMarkLeft3_run s found cont s' p d tp hmark hno hbnd
+
+/-- **Entry 433: the cache-refresh navigation `cacheRefreshNav3_run` (PROVED).**  From inside the tape (right of the head
+marker), skip the head marker (432) then navigate to the cache (431) — seeking past to the home marker and scanning the
+state field to the cache cell `c+a+1`.  Tape identical. -/
+theorem nw_cacheRefreshNav3_run_frontier (s found1 cont1 s2 found2 cont2 mid sOut hm e home a : ℕ)
+    (tp : List ACC0UniversalTM3Sym.Sym3) (hhome_lt : home + 1 ≤ hm)
+    (hmarkHead : tp.getD hm ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hnoHead : ∀ k, 0 < k → k ≤ e → tp.getD (hm + k) ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hmarkHome : tp.getD home ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hnoHome : ∀ k, 0 < k → k ≤ hm - 1 - home → tp.getD (home + k) ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hbndSkip : hm + e < tp.length)
+    (hco : ∀ i, i < a → tp.getD (home + 1 + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hcsep : tp.getD (home + 1 + a) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hbnd2 : home + 1 + a < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
+        (ACC0UniversalTM3CacheNav.cacheRefreshNav3 s found1 cont1 s2 found2 cont2 mid sOut)) N (s, hm + e, tp)
+      (sOut, home + 1 + a + 1, tp) :=
+  ACC0UniversalTM3CacheNav.cacheRefreshNav3_run s found1 cont1 s2 found2 cont2 mid sOut hm e home a tp hhome_lt
+    hmarkHead hnoHead hmarkHome hnoHome hbndSkip hco hcsep hbnd2
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
