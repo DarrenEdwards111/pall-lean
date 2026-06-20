@@ -360,6 +360,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TandemL
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EndMatch
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EndMismatch
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EndMismatchRC
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ReadSymbol
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -6018,6 +6019,26 @@ theorem nw_endMismatchRC_run_frontier (s a1 a2 a3 b1 b2 b3 c1 c2 c3 d1 d2 failSt
       (s, cp + d, ACC0UniversalTM3CursTape.cursTape tp cp g d) (failSt, cp + d + 1, tp) :=
   ACC0UniversalTM3EndMismatchRC.endMismatchRC_run s a1 a2 a3 b1 b2 b3 c1 c2 c3 d1 d2 failSt tp cp g d hg hCfield
     hCcont hRfield hRsep hgap hbound
+
+/-- **Entry 484: structural symbol read `readSymbolAt_run_I`/`_O` (PROVED).**  Reach and read a record's one-cell symbol
+generically: consume the unary field (`skipOnesRight`, 468) to its terminator, step once, and branch on the symbol —
+routing to a state that remembers `I` vs `O` (no marker; the value is carried in the control state). -/
+theorem nw_readSymbolAt_run_I_frontier (s m1 cont m2 sI sO : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3) (a fs : ℕ)
+    (hones : ∀ k, k < a → tp.getD (fs + k) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hsep : tp.getD (fs + a) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hsym : tp.getD (fs + a + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I) (hbound : fs + a + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3ReadSymbol.readSymbolAt s m1 cont m2 sI sO)) N
+      (s, fs, tp) (sI, fs + a + 1, tp) :=
+  ACC0UniversalTM3ReadSymbol.readSymbolAt_run_I s m1 cont m2 sI sO tp a fs hones hsep hsym hbound
+
+/-- **Entry 484 (cont.): reading a record with symbol `O` reaches `sO` (PROVED).** -/
+theorem nw_readSymbolAt_run_O_frontier (s m1 cont m2 sI sO : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3) (a fs : ℕ)
+    (hones : ∀ k, k < a → tp.getD (fs + k) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hsep : tp.getD (fs + a) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hsym : tp.getD (fs + a + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O) (hbound : fs + a + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3ReadSymbol.readSymbolAt s m1 cont m2 sI sO)) N
+      (s, fs, tp) (sO, fs + a + 1, tp) :=
+  ACC0UniversalTM3ReadSymbol.readSymbolAt_run_O s m1 cont m2 sI sO tp a fs hones hsep hsym hbound
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
