@@ -303,6 +303,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteFi
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteEncode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EmitPrefix
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EmitConfig
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Navigate
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4997,6 +4998,18 @@ theorem nw_writeFieldBit3_emits_config_frontier (s sOut n : ℕ) (sym : Bool)
       (s, pre.length, pre ++ X)
       (sOut, pre.length + n + 1, pre ++ ACC0UniversalTM3Config.configEncode3 n sym (X.drop (n + 2))) :=
   ACC0UniversalTM3EmitConfig.writeFieldBit3_emits_config s sOut n sym pre X hX
+
+/-- **Entry 427: the transfer-side navigation `navigateToSource3_run` (PROVED).**  The clean addressing solution for the
+apply transfer: combine the config-home reset (408, distance-independent return to `c` via the home marker) with a
+fixed-offset rightward move (401), reaching a data-dependent rule source `c+d'` — no counter-driven walk. From any
+config-window position the head ends at `home+1+d' = c+d'`, tape identical. -/
+theorem nw_navigateToSource3_run_frontier (s found cont mid d' home dq : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hmark : tp.getD home ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hno : ∀ k, 0 < k → k ≤ dq → tp.getD (home + k) ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hbnd1 : home + dq < tp.length) (hbnd2 : home + 1 + d' ≤ tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3Navigate.navigateToSource3 s found cont mid d')) N
+      (s, home + dq, tp) (mid + d', home + 1 + d', tp) :=
+  ACC0UniversalTM3Navigate.navigateToSource3_run s found cont mid d' home dq tp hmark hno hbnd1 hbnd2
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
