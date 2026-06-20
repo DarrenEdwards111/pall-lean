@@ -337,6 +337,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3HomeLay
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3RecordLayout
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3RecordsLayout
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SimTapeLayout
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3FullLayout
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5644,6 +5645,18 @@ theorem nw_simTapeRegion_current_frontier (tp : List Bool) (h : ℕ) (hh : h ≤
 theorem nw_simTapeRegion_clean_frontier (tp : List Bool) (h j : ℕ) (hh : h ≤ tp.length) (hj : j ≠ h) :
     (ACC0UniversalTM3SimTapeLayout.simTapeRegion tp h).getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M :=
   ACC0UniversalTM3SimTapeLayout.simTapeRegion_clean tp h j hh hj
+
+/-- **Entry 461: the stitched full tape `fullTape3_record_RecOK` (PROVED).**  The `φ` stitching of config + rule table: on
+`fullTape3 a cs rules simtape := M :: configEncode3 a cs (recordsTape3 rules ++ simtape)`, every rule record satisfies the
+matcher's `RecOK` at `c = 1` (via `recordsTape3_split` + a record absorbing the trailing tape + the per-record bridge 458).
+The config-key invariants also hold (it is definitionally `homeConfigTape3 …`). -/
+theorem nw_fullTape3_record_RecOK_frontier (a : ℕ) (cs : Bool) (front : List (ℕ × Bool)) (b : ℕ) (rs : Bool)
+    (back : List (ℕ × Bool)) (simtape : List ACC0UniversalTM3Sym.Sym3) (L : ℕ) (hmin : min a b < L)
+    (hbnd : 1 + a + 1 + (a + 2 + (front.flatMap ACC0UniversalTM3RecordsLayout.recordBlock).length)
+      < (ACC0UniversalTM3FullLayout.fullTape3 a cs (front ++ (b, rs) :: back) simtape).length) :
+    ACC0UniversalTM3MatchTable.RecOK (ACC0UniversalTM3FullLayout.fullTape3 a cs (front ++ (b, rs) :: back) simtape) 1 a L
+      (a + 2 + (front.flatMap ACC0UniversalTM3RecordsLayout.recordBlock).length, b, ACC0UniversalTM3EncTrans.boolToSym3 rs) :=
+  ACC0UniversalTM3FullLayout.fullTape3_record_RecOK a cs front b rs back simtape L hmin hbnd
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
