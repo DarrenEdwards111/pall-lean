@@ -282,6 +282,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ProbeTa
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Probe
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3BitCompare
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3FieldStep
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3FieldCompare
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4663,6 +4664,23 @@ theorem nw_fieldStep3_run_frontier (s sCont sMatch sFail p d : ℕ) (tp : List A
           then (if tp.getD (p + d) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O then sMatch else sFail)
           else (if tp.getD (p + d) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I then sCont else sFail)), p, tp) :=
   ACC0UniversalTM3FieldStep.fieldStep3_run s sCont sMatch sFail p d tp hbit hd hno hp hbound
+
+/-- **Entry 406: the full unary field compare `fieldCompare3_run` (PROVED).**  Loops `fieldStep3` over a whole key field:
+compares the config-key field (unary nat `a` at `c`) against the rule-key field (unary nat `b` at `c+d`, same distance
+cell by cell) and routes to `sMatch` iff `a = b`.  Corridor unrolled `L` times (static budget `min a b < L`); each
+iteration is a `fieldStep3` cell-pair then a `moveRight3` advance on the continue path.  Proved by induction on `L`,
+reducing `(a,b) → (a-1,b-1)` and terminating when either field hits its `O` separator: head ends at `c + min a b`, tape
+restored. -/
+theorem nw_fieldCompare3_run_frontier (sMatch sFail d : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3) (hd : 1 ≤ d)
+    (hM : ∀ j, tp.getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (L s c a b : ℕ) (hL : min a b < L) (hbnd : c + a + d < tp.length)
+    (hco : ∀ i, i < a → tp.getD (c + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hcs : tp.getD (c + a) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hro : ∀ i, i < b → tp.getD (c + d + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hrs : tp.getD (c + d + b) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3FieldCompare.fieldCompare3 s sMatch sFail d L)) N
+      (s, c, tp) ((if a = b then sMatch else sFail), c + min a b, tp) :=
+  ACC0UniversalTM3FieldCompare.fieldCompare3_run sMatch sFail d tp hd hM L s c a b hL hbnd hco hcs hro hrs
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
