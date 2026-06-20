@@ -268,6 +268,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SeekR
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MarkCarry
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Unmark
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteWrite
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Encode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4506,6 +4507,14 @@ theorem nw_writeAt3_writeAt3_frontier (tape : List ACC0UniversalTM3Sym.Sym3) (p 
       = ACC0UniversalTM3Sym.writeAt3 tape p b :=
   ACC0UniversalTM3WriteWrite.writeAt3_writeAt3 tape p a b
 
+/-- **Entry 392: the 3-symbol encoding `encNat3_getD_lt` (PROVED).**  Migrating toward a `Sym3` universal machine (so
+the marker rule-loop can run on the encoded tape): a nat `n` is `n` ones (`I`) then a zero/separator (`O`).  Here is the
+ones content lemma, the `Sym3` port of entry 345. -/
+theorem nw_encNat3_getD_lt_frontier (n : ℕ) (rest : List ACC0UniversalTM3Sym.Sym3) (j : ℕ) (hj : j < n) :
+    (ACC0UniversalTM3Encode.encodeNatBits3 n ++ rest).getD j ACC0UniversalTM3Sym.Sym3.O
+      = ACC0UniversalTM3Sym.Sym3.I :=
+  ACC0UniversalTM3Encode.encNat3_getD_lt n rest j hj
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5850,3 +5859,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_markCarry3_run_O_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_unmark3_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_writeAt3_writeAt3_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_encNat3_getD_lt_frontier
