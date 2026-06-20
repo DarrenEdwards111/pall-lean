@@ -323,6 +323,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MoveFro
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CacheRefreshHome
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CopyContent
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3StateUpdateHome
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteSymHome
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5413,6 +5414,21 @@ theorem nw_clearStateFieldHome3_run_frontier (s sMid found cont mid d' sDone L1 
         (ACC0UniversalTM3Walk.clearBlock tp (home + 1) oldlen) (home + 1 + d') d' newlen) :=
   ACC0UniversalTM3StateUpdateHome.clearStateFieldHome3_run s sMid found cont mid d' sDone L1 L2 rf rc rout home oldlen
     newlen tp hmark hclean hd' hdold hnd hL1 hL2 hbnd hcold hcoldsep hcnew hcnewsep
+
+/-- **Entry 447: the home-to-home symbol write `writeSymHome3_run` (PROVED).**  Write the matched rule's symbol at the
+simulated current cell as a home-to-home phase: seek to the marker (388), step onto the current cell, write `w` (`unmark3`),
+skip the marker (432), reset to home (408).  Sets the current cell `p+1` to `w`, head returns to `home+1`. -/
+theorem nw_writeSymHome3_run_frontier (a aF aC b c cF cC d dF dC out home p : ℕ) (w : ACC0UniversalTM3Sym.Sym3)
+    (tp : List ACC0UniversalTM3Sym.Sym3) (hhp : home < p)
+    (hmarkHome : tp.getD home ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hmarkHead : tp.getD p ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hclean : ∀ j, home < j → j < p → tp.getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hw : w = ACC0UniversalTM3Sym.Sym3.O ∨ w = ACC0UniversalTM3Sym.Sym3.I) (hbnd : p + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
+        (ACC0UniversalTM3WriteSymHome.writeSymHome3 a aF aC b c cF cC d dF dC out w)) N (a, home + 1, tp)
+      (out, home + 1, ACC0UniversalTM3Sym.writeAt3 tp (p + 1) w) :=
+  ACC0UniversalTM3WriteSymHome.writeSymHome3_run a aF aC b c cF cC d dF dC out home p w tp hhp hmarkHome hmarkHead
+    hclean hw hbnd
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
