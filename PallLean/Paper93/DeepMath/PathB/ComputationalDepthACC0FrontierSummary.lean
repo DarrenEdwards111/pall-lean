@@ -288,6 +288,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ResetHo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3KeyMatchWin
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MatchTable
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CopyBit
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CopyField
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4774,6 +4775,18 @@ theorem nw_copyBitAtDist3_run_frontier (s sOut d p : ℕ) (tp : List ACC0Univers
     ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3CopyBit.copyBitAtDist3 s sOut d)) N (s, p, tp)
       (sOut, p, ACC0UniversalTM3Sym.writeAt3 tp (p + d) (tp.getD p ACC0UniversalTM3Sym.Sym3.O)) :=
   ACC0UniversalTM3CopyBit.copyBitAtDist3_run s sOut d p tp hbit hd hp hpd
+
+/-- **Entry 412: the unary field copy `copyField3_run` (PROVED).**  Loops the single-cell copy (411) over a whole unary
+field — the new-state copy of the apply phase, the copy-side analogue of `fieldCompare3` (406).  Copies the field (`m`
+ones then `O` at `c`) to the destination region `c+d … c+m+d` (`m < d` keeps source/destination disjoint), leaving the
+source unchanged; the resulting tape is the fold `copyBlock`. -/
+theorem nw_copyField3_run_frontier (sDone d L s c m : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hmL : m < L) (hmd : m < d) (hbnd : c + m + d < tp.length)
+    (hco : ∀ i, i < m → tp.getD (c + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hcs : tp.getD (c + m) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3CopyField.copyField3 s sDone d L)) N (s, c, tp)
+      (sDone, c + m, ACC0UniversalTM3CopyField.copyBlock tp c d m) :=
+  ACC0UniversalTM3CopyField.copyField3_run sDone d L s c m tp hmL hmd hbnd hco hcs
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
