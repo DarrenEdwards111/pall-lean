@@ -324,6 +324,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CacheRe
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CopyContent
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3StateUpdateHome
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteSymHome
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3StateUpdateWindowed
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5429,6 +5430,27 @@ theorem nw_writeSymHome3_run_frontier (a aF aC b c cF cC d dF dC out home p : �
       (out, home + 1, ACC0UniversalTM3Sym.writeAt3 tp (p + 1) w) :=
   ACC0UniversalTM3WriteSymHome.writeSymHome3_run a aF aC b c cF cC d dF dC out home p w tp hhp hmarkHome hmarkHead
     hclean hw hbnd
+
+/-- **Entry 448: the windowed-clean home-to-home state update `clearStateFieldHome3_runW` (PROVED).**  The marker-model
+reconciliation: the home-to-home state update under a *windowed* clean hypothesis (no marker in `(home, home+1+d'+newlen]`),
+so a head marker beyond the rule region is permitted — the four apply phases now share one marker model. -/
+theorem nw_clearStateFieldHome3_runW_frontier (s sMid found cont mid d' sDone L1 L2 rf rc rout home oldlen newlen : ℕ)
+    (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hmark : tp.getD home ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hcleanW : ∀ j, home < j → j ≤ home + 1 + d' + newlen → tp.getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hd' : 1 ≤ d') (hdold : oldlen < d') (hnd : newlen < d') (hL1 : oldlen < L1) (hL2 : newlen < L2)
+    (hbnd : home + 1 + d' + newlen < tp.length)
+    (hcold : ∀ i, i < oldlen → tp.getD (home + 1 + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hcoldsep : tp.getD (home + 1 + oldlen) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hcnew : ∀ i, i < newlen → tp.getD (home + 1 + d' + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hcnewsep : tp.getD (home + 1 + d' + newlen) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
+        (ACC0UniversalTM3StateUpdateHome.clearStateFieldHome3 s sMid found cont mid d' sDone L1 L2 rf rc rout)) N
+      (s, home + 1, tp)
+      (rout, home + 1, ACC0UniversalTM3CopyFieldLeft.copyBlockLeft
+        (ACC0UniversalTM3Walk.clearBlock tp (home + 1) oldlen) (home + 1 + d') d' newlen) :=
+  ACC0UniversalTM3StateUpdateWindowed.clearStateFieldHome3_runW s sMid found cont mid d' sDone L1 L2 rf rc rout home oldlen
+    newlen tp hmark hcleanW hd' hdold hnd hL1 hL2 hbnd hcold hcoldsep hcnew hcnewsep
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
