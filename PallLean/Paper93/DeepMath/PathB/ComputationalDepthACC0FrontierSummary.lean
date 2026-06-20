@@ -311,6 +311,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Navigat
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SkipMark
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CacheNav
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CacheWrite
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CacheRefresh
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5134,6 +5135,32 @@ theorem nw_navigateAndWriteCache3_run_frontier (s found1 cont1 s2 found2 cont2 m
       (sOut2, home + 1 + a + 1, ACC0UniversalTM3Sym.writeAt3 tp (home + 1 + a + 1) w) :=
   ACC0UniversalTM3CacheWrite.navigateAndWriteCache3_run s found1 cont1 s2 found2 cont2 mid sMidW sOut2 hm e home a w tp
     hhome_lt hmarkHead hnoHead hmarkHome hnoHome hbndSkip hco hcsep hbnd2
+
+/-- **Entry 435: the full cache refresh `cacheRefresh3_run` (PROVED).**  The rep-unification operation `cache := current
+symbol`: read the symbol at the head marker (420, routing O/I), then on each lineage navigate to the cache and write it
+(434).  A two-branch assembly (append-lifting both lineage sub-machines).  Sets the cache cell `c+a+1` to the current
+symbol `tp[h+d+1]`, both lineages converging to `sFin`. -/
+theorem nw_cacheRefresh3_run_frontier
+    (s sO sI oF1 oC1 oS2 oF2 oC2 oMid oMidW iF1 iC1 iS2 iF2 iC2 iMid iMidW sFin d h home a : ℕ)
+    (tp : List ACC0UniversalTM3Sym.Sym3) (hmark : tp.getD (h + d) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hclear : ∀ k, k < d → tp.getD (h + k) ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hbound : h + d < tp.length) (hbound2 : h + d + 1 < tp.length)
+    (hcur : tp.getD (h + d + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O ∨
+      tp.getD (h + d + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hhome_lt : home + 1 ≤ h + d) (hmarkHome : tp.getD home ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hnoHome : ∀ k, 0 < k → k ≤ h + d - 1 - home →
+      tp.getD (home + k) ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hco : ∀ i, i < a → tp.getD (home + 1 + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hcsep : tp.getD (home + 1 + a) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hbnd2 : home + 1 + a < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
+        (ACC0UniversalTM3CacheRefresh.cacheRefresh3 s sO sI oF1 oC1 oS2 oF2 oC2 oMid oMidW iF1 iC1 iS2 iF2 iC2 iMid iMidW sFin))
+      N (s, h, tp)
+      (sFin, home + 1 + a + 1,
+        ACC0UniversalTM3Sym.writeAt3 tp (home + 1 + a + 1) (tp.getD (h + d + 1) ACC0UniversalTM3Sym.Sym3.O)) :=
+  ACC0UniversalTM3CacheRefresh.cacheRefresh3_run s sO sI oF1 oC1 oS2 oF2 oC2 oMid oMidW iF1 iC1 iS2 iF2 iC2 iMid iMidW sFin
+    d h home a tp hmark hclear hbound hbound2 hcur hhome_lt hmarkHome hnoHome hco hcsep hbnd2
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
