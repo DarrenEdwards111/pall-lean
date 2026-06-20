@@ -280,6 +280,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Emit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MoveN
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ProbeTail
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Probe
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3BitCompare
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4633,6 +4634,19 @@ theorem nw_probe3_run_frontier (s sEq sNe p d : ℕ) (b : ACC0UniversalTM3Sym.Sy
       ((if tp.getD (p + d) ACC0UniversalTM3Sym.Sym3.O = b then sEq else sNe), p, ACC0UniversalTM3Sym.writeAt3 tp p b) :=
   ACC0UniversalTM3Probe.probe3_run s sEq sNe p d b tp hmark hno hbound
 
+/-- **Entry 404: the self-contained single-bit compare `bitCompareAtDist3_run` (PROVED).**  `probe3` with its own anchor
+management: `markCarry3` reads the config-key bit into the lineage and lays the anchor, the matching `probe3` lineage
+tests the rule-key bit, and the tape is restored — routes to `sEq` iff `tp[p] = tp[p+d]`. -/
+theorem nw_bitCompareAtDist3_run_frontier (s sEq sNe p d : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hbit : tp.getD p ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O ∨
+      tp.getD p ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I) (hd : 1 ≤ d)
+    (hno : ∀ k, 0 < k → k ≤ d → tp.getD (p + k) ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hp : p < tp.length) (hbound : p + d < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3BitCompare.bitCompareAtDist3 s sEq sNe d)) N
+      (s, p, tp)
+      ((if tp.getD (p + d) ACC0UniversalTM3Sym.Sym3.O = tp.getD p ACC0UniversalTM3Sym.Sym3.O then sEq else sNe), p, tp) :=
+  ACC0UniversalTM3BitCompare.bitCompareAtDist3_run s sEq sNe p d tp hbit hd hno hp hbound
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5989,3 +6003,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_moveRightN3_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_probeTail3_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_probe3_run_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_bitCompareAtDist3_run_frontier
