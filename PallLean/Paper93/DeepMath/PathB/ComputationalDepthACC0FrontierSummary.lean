@@ -335,6 +335,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Matcher
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EmitEx
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3HomeLayout
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3RecordLayout
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3RecordsLayout
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5610,6 +5611,18 @@ theorem nw_record_RecOK_frontier (pre rest : List ACC0UniversalTM3Sym.Sym3) (c d
     ACC0UniversalTM3MatchTable.RecOK (pre ++ ACC0UniversalTM3Config.configEncode3 b rs rest) c a L
       (d, b, ACC0UniversalTM3EncTrans.boolToSym3 rs) :=
   ACC0UniversalTM3RecordLayout.record_RecOK pre rest c d b a L rs hpre hd hmin hbnd
+
+/-- **Entry 459: the records-list cumulative layout `records_RecOK` (PROVED).**  The rule table laid contiguously
+(`recordsTape3`); every record, at its cumulative offset `(front.flatMap recordBlock).length`, satisfies the matcher's
+`RecOK` — so the matcher can walk the whole table. -/
+theorem nw_records_RecOK_frontier (pre : List ACC0UniversalTM3Sym.Sym3) (front : List (ℕ × Bool)) (b : ℕ) (rs : Bool)
+    (back : List (ℕ × Bool)) (c d a L : ℕ)
+    (hpre : (pre ++ front.flatMap ACC0UniversalTM3RecordsLayout.recordBlock).length = c + d) (hd : 1 ≤ d)
+    (hmin : min a b < L)
+    (hbnd : c + a + 1 + d < (pre ++ ACC0UniversalTM3RecordsLayout.recordsTape3 (front ++ (b, rs) :: back)).length) :
+    ACC0UniversalTM3MatchTable.RecOK (pre ++ ACC0UniversalTM3RecordsLayout.recordsTape3 (front ++ (b, rs) :: back)) c a L
+      (d, b, ACC0UniversalTM3EncTrans.boolToSym3 rs) :=
+  ACC0UniversalTM3RecordsLayout.records_RecOK pre front b rs back c d a L hpre hd hmin hbnd
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
