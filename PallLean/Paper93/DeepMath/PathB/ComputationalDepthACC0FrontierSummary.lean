@@ -327,6 +327,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteSy
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3StateUpdateWindowed
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ApplyWriteMove
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ApplyTape
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TapeShift
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5497,6 +5498,16 @@ theorem nw_applyTapeRight3_run_frontier (a aF aC bb c cF cC dd dF dC mid sFound 
   ACC0UniversalTM3ApplyTape.applyTapeRight3_run a aF aC bb c cF cC dd dF dC mid sFound sCont s1 f1 c1 s2 f2 c2 mid2
     sO sI oF1 oC1 oS2 oF2 oC2 oMid oMidW iF1 iC1 iS2 iF2 iC2 iMid iMidW sFin rf rc rout home p a' w tp hhp hcacheLt
     hmarkHome hmarkHead hclean hw hco hcsep hc2 hbnd
+
+/-- **Entry 451: the tape-shift content primitive `shiftLeftBlock_getD` (PROVED).**  `copyBlockLeft` (the `copyFieldLeft3`
+machine, 415) characterised as a left shift for *any* `d` (the `m < d` restriction of 445 was never needed): for `d ≤ c`,
+the block `[c-d, c+m-d]` reads the source shifted left by `d`, every other cell unchanged — the tape shift the state update
+needs for the variable-length unary state field. -/
+theorem nw_shiftLeftBlock_getD_frontier (tp : List ACC0UniversalTM3Sym.Sym3) (c d m k : ℕ) (hd : 1 ≤ d) (hdc : d ≤ c) :
+    (ACC0UniversalTM3CopyFieldLeft.copyBlockLeft tp c d m).getD k ACC0UniversalTM3Sym.Sym3.O
+      = if c - d ≤ k ∧ k ≤ c + m - d then tp.getD (k + d) ACC0UniversalTM3Sym.Sym3.O
+        else tp.getD k ACC0UniversalTM3Sym.Sym3.O :=
+  ACC0UniversalTM3TapeShift.shiftLeftBlock_getD tp c d m k hd hdc
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
