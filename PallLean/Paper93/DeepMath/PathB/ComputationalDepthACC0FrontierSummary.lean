@@ -332,6 +332,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TapeShi
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ShiftRightMachine
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3StateUpdateFull
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MatcherLookup
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EmitEx
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5570,6 +5571,20 @@ theorem nw_recMatch_iff_bitLookup_frontier (M : ACC0ConcreteNTM.TMachine) (c : A
         ACC0UniversalTM3MatchTable.RecMatch c.1 (ACC0UniversalTM3EncTrans.boolToSym3 (ACC0ConcreteNTM.readSym c)) rec) ↔
       (ACC0UniversalTMBitLookup.bitLookup (ACC0UniversalTMScannable.encodeMachineBits M) c).isSome :=
   ACC0UniversalTM3MatcherLookup.recMatch_iff_bitLookup M c
+
+/-- **Entry 456: the existence-cost emission lifting `universalSimEx_of_emits3` (PROVED).**  The honest, obstruction-free
+reformulation of entry 400: an `∃ N`-per-step emission (`EmitsEncodedStepEx3` — no fixed `cost`) lifts to the whole
+`simIter` simulation reaching the encoded final config in *some* number of transitions.  This is the spec the construction
+(entries 404–455, each an `∃ N, reachIn N` run) can actually discharge. -/
+theorem nw_universalSimEx_of_emits3_frontier (U : ACC0UniversalTM3Sym.TMachine3)
+    (φ : List Bool → List Bool → ACC0UniversalTM3Sym.CConfig3)
+    (hemit : ACC0UniversalTM3EmitEx.EmitsEncodedStepEx3 U φ) (M : ACC0ConcreteNTM.TMachine)
+    (k : ℕ) (c0 cf : ACC0ConcreteNTM.CConfig)
+    (h : ACC0UniversalTMLoop.simIter M k c0 = some cf) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 U) N
+      (φ (ACC0UniversalTMScannable.encodeMachineBits M) (ACC0UniversalTMBitApply.encodeConfig c0))
+      (φ (ACC0UniversalTMScannable.encodeMachineBits M) (ACC0UniversalTMBitApply.encodeConfig cf)) :=
+  ACC0UniversalTM3EmitEx.universalSimEx_of_emits3 U φ hemit M k c0 cf h
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
