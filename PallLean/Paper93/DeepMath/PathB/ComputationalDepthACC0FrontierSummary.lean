@@ -351,6 +351,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ScanLoo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MarkAdvance
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Cross
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3AdvanceCross
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3AdvanceCrossL
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5857,6 +5858,24 @@ theorem nw_advanceCrossRight_cont_run_frontier (s smid sCont sEnd crMid crFound 
           (cp + 1) ACC0UniversalTM3Sym.Sym3.M) :=
   ACC0UniversalTM3AdvanceCross.advanceCrossRight_cont_run s smid sCont sEnd crMid crFound crCont cp d tp hM hI hPartner
     hgap hbound
+
+/-- **Entry 475: the comparison shuttle's leftward half-tandem move `advanceCrossLeft_cont_run` (PROVED).**  The mirror of
+474: advance the right cursor one cell, then cross left back to the partner cursor.  `advanceCrossRight` then
+`advanceCrossLeft` form one full tandem iteration (both cursors step right, head back on the left cursor). -/
+theorem nw_advanceCrossLeft_cont_run_frontier (s smid sCont sEnd crMid crFound crCont pc d : ℕ)
+    (tp : List ACC0UniversalTM3Sym.Sym3) (hd : 1 ≤ d)
+    (hM : tp.getD (pc + d) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hI : tp.getD (pc + d + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hPartner : tp.getD pc ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hgap : ∀ k, 0 < k → k < d → tp.getD (pc + k) ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hbound : pc + d + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn
+      (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3AdvanceCrossL.advanceCrossLeft s smid sCont sEnd crMid crFound crCont)) N
+      (s, pc + d, tp) (crFound, pc,
+        ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 tp (pc + d) ACC0UniversalTM3Sym.Sym3.I)
+          (pc + d + 1) ACC0UniversalTM3Sym.Sym3.M) :=
+  ACC0UniversalTM3AdvanceCrossL.advanceCrossLeft_cont_run s smid sCont sEnd crMid crFound crCont pc d tp hd hM hI
+    hPartner hgap hbound
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
