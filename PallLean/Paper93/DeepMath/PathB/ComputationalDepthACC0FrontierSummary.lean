@@ -317,6 +317,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3HeadLef
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MoveDispatch
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MoveRightHome
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MoveClean
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TwoMove
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5278,6 +5279,26 @@ theorem nw_moveLeft_preserves_clean_frontier (tp : List ACC0UniversalTM3Sym.Sym3
       (ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 tp p (tp.getD (p - 1) ACC0UniversalTM3Sym.Sym3.O))
         (p - 1) ACC0UniversalTM3Sym.Sym3.M).getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M) :=
   ACC0UniversalTM3MoveClean.moveLeft_preserves_clean tp home p hhp hmarkHome hclean
+
+/-- **Entry 441: chaining two home-to-home phases `twoMoveRight3_run` (PROVED).**  The first master-sequence composition:
+two home-to-home right moves chained, the second phase's preconditions discharged from the first's output via the
+invariant-preservation lemma (440).  From the config home, the head marker advances `p → p+1 → p+2`, head returns home. -/
+theorem nw_twoMoveRight3_run_frontier
+    (a0 a1 a2 a3 a4 a5 a6 a7 a8 mid b1 b2 b3 b4 b5 b6 b7 b8 out2 home p : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hhp : home < p) (hmarkHome : tp.getD home ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hmarkHead : tp.getD p ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hclean : ∀ j, home < j → j < p → tp.getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hc1 : tp.getD (p + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O ∨
+      tp.getD (p + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hc2 : tp.getD (p + 2) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O ∨
+      tp.getD (p + 2) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hbnd1 : p + 1 < tp.length) (hbnd2 : p + 2 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
+        (ACC0UniversalTM3TwoMove.twoMoveRight3 a0 a1 a2 a3 a4 a5 a6 a7 a8 mid b1 b2 b3 b4 b5 b6 b7 b8 out2)) N
+      (a0, home + 1, tp)
+      (out2, home + 1, ACC0UniversalTM3TwoMove.movedRight (ACC0UniversalTM3TwoMove.movedRight tp p) (p + 1)) :=
+  ACC0UniversalTM3TwoMove.twoMoveRight3_run a0 a1 a2 a3 a4 a5 a6 a7 a8 mid b1 b2 b3 b4 b5 b6 b7 b8 out2 home p tp
+    hhp hmarkHome hmarkHead hclean hc1 hc2 hbnd1 hbnd2
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
