@@ -284,6 +284,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3BitComp
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3FieldStep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3FieldCompare
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3KeyMatch
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ResetHome
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4704,6 +4705,18 @@ theorem nw_recordKeyMatch3_run_frontier (base recMatch recFail d : ℕ) (tp : Li
       ((if a = b ∧ rs = cs then recMatch else recFail), q, tp) :=
   ACC0UniversalTM3KeyMatch.recordKeyMatch3_run base recMatch recFail d tp hd hM L c a b cs rs hcs hL hbnd
     hco hcsep hro hrsep hcsym hrsym
+
+/-- **Entry 408: the config-home reset `resetToHome3_run` (PROVED).**  The inter-record head reset for the rule-table
+match loop: each per-record matcher leaves the head at a data-dependent config-side position, and a data-dependent left
+move needs a marker seek.  With a home marker at `home = c-1`, `resetToHome3` seeks left to it (`seekMarkLeft`) and steps
+one cell right, returning the head to `c = home+1`, tape unchanged. -/
+theorem nw_resetToHome3_run_frontier (s found cont out home d : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hmark : tp.getD home ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hno : ∀ k, 0 < k → k ≤ d → tp.getD (home + k) ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hbound : home + d < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3ResetHome.resetToHome3 s found cont out)) N
+      (s, home + d, tp) (out, home + 1, tp) :=
+  ACC0UniversalTM3ResetHome.resetToHome3_run s found cont out home d tp hmark hno hbound
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
