@@ -359,6 +359,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TandemC
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TandemLoop
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EndMatch
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EndMismatch
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EndMismatchRC
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -6000,6 +6001,23 @@ theorem nw_endMismatchCR_run_frontier (s mid1 cont1 e1 m2 sc2 mid3 endM erEntry 
       (s, cp + d, ACC0UniversalTM3CursTape.cursTape tp cp g d) (failSt, cp + g + d + 1, tp) :=
   ACC0UniversalTM3EndMismatch.endMismatchCR_run s mid1 cont1 e1 m2 sc2 mid3 endM erEntry failSt tp cp g d hg hCfield
     hCsep hRfield hRcont hgap hbound
+
+/-- **Entry 483: the symmetric mismatch verdict `endMismatchRC_run` (PROVED).**  Config field continues but the record ends
+(`a > b`): the leftover cursor is the config one — advance it (cont), cross to the record cursor, advance it (end-case,
+removed), seek *left* back to the config cursor, and erase it — restoring the tape and landing in the fail state. -/
+theorem nw_endMismatchRC_run_frontier (s a1 a2 a3 b1 b2 b3 c1 c2 c3 d1 d2 failSt : ℕ)
+    (tp : List ACC0UniversalTM3Sym.Sym3) (cp g d : ℕ) (hg : 2 ≤ g)
+    (hCfield : tp.getD (cp + d) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hCcont : tp.getD (cp + d + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hRfield : tp.getD (cp + g + d) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hRsep : tp.getD (cp + g + d + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hgap : ∀ j, cp + d < j → j < cp + g + d → tp.getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hbound : cp + g + d + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
+      (ACC0UniversalTM3EndMismatchRC.endMismatchRC s a1 a2 a3 b1 b2 b3 c1 c2 c3 d1 d2 failSt)) N
+      (s, cp + d, ACC0UniversalTM3CursTape.cursTape tp cp g d) (failSt, cp + d + 1, tp) :=
+  ACC0UniversalTM3EndMismatchRC.endMismatchRC_run s a1 a2 a3 b1 b2 b3 c1 c2 c3 d1 d2 failSt tp cp g d hg hCfield
+    hCcont hRfield hRsep hgap hbound
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
