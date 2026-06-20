@@ -276,6 +276,10 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3FieldCo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ScanTrans
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ScanTable
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TestBit
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Emit
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MoveN
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ProbeTail
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Probe
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4590,6 +4594,45 @@ theorem nw_testBit3_run_frontier (s sEq sNe j : ℕ) (tp : List ACC0UniversalTM3
       ((if ACC0UniversalTM3Sym.readSym3 (s, j, tp) = w then sEq else sNe), j, tp) :=
   ACC0UniversalTM3TestBit.testBit3_run s sEq sNe j tp w hbound
 
+/-- **Entry 400: the `Sym3` emission lifting `universalSim_of_emits3` (PROVED).**  The per-macro-step obligation
+`EmitsEncodedStep3` over the marker machine suffices to realise the entire `simIter` simulation — the whole abstract
+simulation correctness reused verbatim from the Bool layer; only `U`/`φ`/`reachIn` are `Sym3`-specific. -/
+theorem nw_universalSim_of_emits3_frontier (U : ACC0UniversalTM3Sym.TMachine3)
+    (φ : List Bool → List Bool → ACC0UniversalTM3Sym.CConfig3) (cost : ℕ)
+    (hemit : ACC0UniversalTM3Emit.EmitsEncodedStep3 U φ cost) (M : ACC0ConcreteNTM.TMachine)
+    (k : ℕ) (c0 cf : ACC0ConcreteNTM.CConfig) (h : ACC0UniversalTMLoop.simIter M k c0 = some cf) :
+    ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 U) (k * cost)
+      (φ (ACC0UniversalTMScannable.encodeMachineBits M) (ACC0UniversalTMBitApply.encodeConfig c0))
+      (φ (ACC0UniversalTMScannable.encodeMachineBits M) (ACC0UniversalTMBitApply.encodeConfig cf)) :=
+  ACC0UniversalTM3Emit.universalSim_of_emits3 U φ cost hemit M k c0 cf h
+
+/-- **Entry 401: the n-step right move `moveRightN3_run` (PROVED).**  The outbound leg of the marker shuttle: a corridor
+of `n` states advancing head `j → j+n` list-preservingly. -/
+theorem nw_moveRightN3_run_frontier (s n j : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3) (hbound : j + n ≤ tp.length) :
+    ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3MoveN.moveRightN3 s n)) n (s, j, tp) (s + n, j + n, tp) :=
+  ACC0UniversalTM3MoveN.moveRightN3_run s n j tp hbound
+
+/-- **Entry 402: the marker-shuttle return-and-restore `probeTail3_run` (PROVED).**  From a distant cell, `seekMarkLeft`
+walks back to the anchor `M` (distance-independently) and `unmark3` restores it to the carried bit `b`. -/
+theorem nw_probeTail3_run_frontier (sIn sFound sCont sOut p d : ℕ) (b : ACC0UniversalTM3Sym.Sym3)
+    (tp : List ACC0UniversalTM3Sym.Sym3) (hmark : tp.getD p ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hno : ∀ k, 0 < k → k ≤ d → tp.getD (p + k) ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hbound : p + d < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3ProbeTail.probeTail3 sIn sFound sCont sOut b)) N
+      (sIn, p + d, tp) (sOut, p, ACC0UniversalTM3Sym.writeAt3 tp p b) :=
+  ACC0UniversalTM3ProbeTail.probeTail3_run sIn sFound sCont sOut p d b tp hmark hno hbound
+
+/-- **Entry 403: the single-bit compare-after-mark `probe3_run` (PROVED) — the crux of the marker route.**  With the
+anchor `M` at `p`, walk out `d`, test the rule-key cell against the carried bit `b`, return distance-independently, and
+restore the anchor — routing on `tp[p+d] = b`.  This is the marker route's resolution of the data-vs-data comparison. -/
+theorem nw_probe3_run_frontier (s sEq sNe p d : ℕ) (b : ACC0UniversalTM3Sym.Sym3) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hmark : tp.getD p ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hno : ∀ k, 0 < k → k ≤ d → tp.getD (p + k) ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hbound : p + d < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3Probe.probe3 s sEq sNe d b)) N (s, p, tp)
+      ((if tp.getD (p + d) ACC0UniversalTM3Sym.Sym3.O = b then sEq else sNe), p, ACC0UniversalTM3Sym.writeAt3 tp p b) :=
+  ACC0UniversalTM3Probe.probe3_run s sEq sNe p d b tp hmark hno hbound
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5942,3 +5985,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanTransFrom3_run_eq_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_scanTable3_run_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_testBit3_run_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_universalSim_of_emits3_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_moveRightN3_run_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_probeTail3_run_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_probe3_run_frontier
