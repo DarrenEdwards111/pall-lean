@@ -308,6 +308,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Transfe
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ClearContent
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3StateUpdate
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3NavigateCache
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SkipMark
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5080,6 +5081,18 @@ theorem nw_navigateToCache3_run_frontier (s found cont mid sOut home dq a : ℕ)
     ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3NavigateCache.navigateToCache3 s found cont mid sOut))
       N (s, home + dq, tp) (sOut, home + 1 + a + 1, tp) :=
   ACC0UniversalTM3NavigateCache.navigateToCache3_run s found cont mid sOut home dq a tp hmark hno hbnd1 hco hcsep hbnd2
+
+/-- **Entry 432: skip a marker leftward `skipMarkLeft3_run` (PROVED).**  Resolves the single-symbol two-marker conflict
+(home marker vs simulated head marker, both `M`): seek left to the marker (387) and step one cell past it (386), so a
+second leftward seek reaches the home marker.  From any position right of the marker `p`, the head ends just left of it
+(`p-1`), tape identical. -/
+theorem nw_skipMarkLeft3_run_frontier (s found cont s' p d : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hmark : tp.getD p ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hno : ∀ k, 0 < k → k ≤ d → tp.getD (p + k) ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hbnd : p + d < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3SkipMark.skipMarkLeft3 s found cont s')) N
+      (s, p + d, tp) (s', p - 1, tp) :=
+  ACC0UniversalTM3SkipMark.skipMarkLeft3_run s found cont s' p d tp hmark hno hbnd
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
