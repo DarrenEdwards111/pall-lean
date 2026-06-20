@@ -341,6 +341,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3FullLay
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3FullHead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3RegionClean
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MatchTableWin
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Phi
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5711,6 +5712,16 @@ theorem nw_matchTable3_run_windowed_frontier (recMatch L : ℕ) (tp : List ACC0U
       (base, c, tp) (recMatch, q, tp) :=
   ACC0UniversalTM3MatchTableWin.matchTable3_run_windowed recMatch L tp c a hm cs hc hcs hmark hcleanW hco hcsep hcsym
     recs base hOK hHead hEx
+
+/-- **Entry 465: the bit-decoding layout `layoutPhi3_wellformed` (PROVED).**  The concrete `φ : List Bool → List Bool →
+CConfig3` for `EmitsEncodedStepEx3`: decode `cbits`/`Mbits` (as `encodedStep` does) and build the stitched tape (461).
+Control at `initState`, head at the config home `1`, home marker at cell `0`. -/
+theorem nw_layoutPhi3_wellformed_frontier (initState : ℕ) (Mbits cbits : List Bool) :
+    (ACC0UniversalTM3Phi.layoutPhi3 initState Mbits cbits).1 = initState
+    ∧ (ACC0UniversalTM3Phi.layoutPhi3 initState Mbits cbits).2.1 = 1
+    ∧ (ACC0UniversalTM3Phi.layoutPhi3 initState Mbits cbits).2.2.getD 0 ACC0UniversalTM3Sym.Sym3.O
+        = ACC0UniversalTM3Sym.Sym3.M :=
+  ACC0UniversalTM3Phi.layoutPhi3_wellformed initState Mbits cbits
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
