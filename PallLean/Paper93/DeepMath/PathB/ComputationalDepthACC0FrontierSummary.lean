@@ -293,6 +293,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Config
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CopyBitLeft
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CopyFieldLeft
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3UnaryStep
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Fetch
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4848,6 +4849,21 @@ theorem nw_unaryDec3_run_frontier (s s' n h : ℕ) (tp : List ACC0UniversalTM3Sy
     ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3UnaryStep.unaryDec3 s s')) N (s, h, tp)
       (s', h + n - 1, ACC0UniversalTM3Sym.writeAt3 tp (h + n - 1) ACC0UniversalTM3Sym.Sym3.O) :=
   ACC0UniversalTM3UnaryStep.unaryDec3_run s s' n h tp hn htrue hfalse hbound
+
+/-- **Entry 417: the distant-cell fetch `fetchBitFromDist3_run` (PROVED).**  The apply's read-far/write-near primitive —
+the mirror of the matcher's `probe3`, which reaches a distant cell but only *compares* it.  Anchors the local cell (its old
+value is discarded), walks right `d`, reads the source cell, and walks back writing the read value at the anchor: cell
+`p ← tp[p+d]`, source unchanged.  Used to bring rule/tape values into the configuration (cache refresh, write-symbol carry). -/
+theorem nw_fetchBitFromDist3_run_frontier (s sOut p d : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hbit : tp.getD p ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O ∨
+      tp.getD p ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hd : 1 ≤ d) (hno : ∀ k, 0 < k → k ≤ d → tp.getD (p + k) ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hbound : p + d < tp.length)
+    (hfar : tp.getD (p + d) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O ∨
+      tp.getD (p + d) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3Fetch.fetchBitFromDist3 s sOut d)) N (s, p, tp)
+      (sOut, p, ACC0UniversalTM3Sym.writeAt3 tp p (tp.getD (p + d) ACC0UniversalTM3Sym.Sym3.O)) :=
+  ACC0UniversalTM3Fetch.fetchBitFromDist3_run s sOut p d tp hbit hd hno hbound hfar
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
