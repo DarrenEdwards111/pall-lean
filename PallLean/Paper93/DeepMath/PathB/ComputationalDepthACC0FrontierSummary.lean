@@ -302,6 +302,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteFi
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteFieldBit
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteEncode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EmitPrefix
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EmitConfig
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4985,6 +4986,17 @@ theorem nw_writeFieldBit3_emits_frontier (s sOut n : ℕ) (w : ACC0UniversalTM3S
       (s, pre.length, pre ++ X)
       (sOut, pre.length + n + 1, pre ++ ACC0UniversalTM3Encode.encodeNatBits3 n ++ w :: X.drop (n + 2)) :=
   ACC0UniversalTM3EmitPrefix.writeFieldBit3_emits s sOut n w pre X hX
+
+/-- **Entry 426: the emitter emits a configuration `writeFieldBit3_emits_config` (PROVED).**  Identifies the emitter's
+output (425) with the configuration encoding `configEncode3` (413): with `w = boolToSym3 sym`, the field-then-bit machine
+emits exactly `pre ++ configEncode3 n sym rest` — an encoded configuration. The output side fully linked to the encoding. -/
+theorem nw_writeFieldBit3_emits_config_frontier (s sOut n : ℕ) (sym : Bool)
+    (pre X : List ACC0UniversalTM3Sym.Sym3) (hX : n + 1 < X.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
+        (ACC0UniversalTM3WriteFieldBit.writeFieldBit3 s sOut n (ACC0UniversalTM3EncTrans.boolToSym3 sym))) N
+      (s, pre.length, pre ++ X)
+      (sOut, pre.length + n + 1, pre ++ ACC0UniversalTM3Config.configEncode3 n sym (X.drop (n + 2))) :=
+  ACC0UniversalTM3EmitConfig.writeFieldBit3_emits_config s sOut n sym pre X hX
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
