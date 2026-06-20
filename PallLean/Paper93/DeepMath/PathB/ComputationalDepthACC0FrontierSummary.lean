@@ -340,6 +340,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SimTape
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3FullLayout
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3FullHead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3RegionClean
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MatchTableWin
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5690,6 +5691,26 @@ theorem nw_fullTape3_matcher_clean_frontier (a : ℕ) (cs : Bool) (rules : List 
     (ACC0UniversalTM3FullLayout.fullTape3 a cs rules simtape).getD j ACC0UniversalTM3Sym.Sym3.O
       ≠ ACC0UniversalTM3Sym.Sym3.M :=
   ACC0UniversalTM3RegionClean.fullTape3_matcher_clean a cs rules simtape j hj0 hj
+
+/-- **Entry 464: the windowed rule-table match loop `matchTable3_run_windowed` (PROVED).**  The matcher (410) re-proved with
+a *windowed* clean hypothesis (no marker in `(c-1, hm)`) and the records before `hm` — so the simulated tape's head marker
+(beyond `hm`) is permitted, exactly the stitched-tape situation (entry 463 supplies the window). -/
+theorem nw_matchTable3_run_windowed_frontier (recMatch L : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3) (c a hm : ℕ)
+    (cs : ACC0UniversalTM3Sym.Sym3) (hc : 1 ≤ c)
+    (hcs : cs = ACC0UniversalTM3Sym.Sym3.O ∨ cs = ACC0UniversalTM3Sym.Sym3.I)
+    (hmark : tp.getD (c - 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hcleanW : ∀ j, c - 1 < j → j < hm → tp.getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hco : ∀ i, i < a → tp.getD (c + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hcsep : tp.getD (c + a) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hcsym : tp.getD (c + a + 1) ACC0UniversalTM3Sym.Sym3.O = cs)
+    (recs : List (ℕ × ℕ × ACC0UniversalTM3Sym.Sym3)) (base : ℕ)
+    (hOK : ∀ rec ∈ recs, ACC0UniversalTM3MatchTable.RecOK tp c a L rec)
+    (hHead : ∀ rec ∈ recs, c + a + 1 + rec.1 < hm)
+    (hEx : ∃ rec ∈ recs, ACC0UniversalTM3MatchTable.RecMatch a cs rec) :
+    ∃ N q, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3MatchTable.matchTable3 recMatch L base recs)) N
+      (base, c, tp) (recMatch, q, tp) :=
+  ACC0UniversalTM3MatchTableWin.matchTable3_run_windowed recMatch L tp c a hm cs hc hcs hmark hcleanW hco hcsep hcsym
+    recs base hOK hHead hEx
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
