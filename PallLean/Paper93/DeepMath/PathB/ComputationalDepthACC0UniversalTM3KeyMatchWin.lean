@@ -119,8 +119,8 @@ theorem recordKeyMatch3_run_windowed (base recMatch recFail d : ℕ) (tp : List 
     (hco : ∀ i, i < a → tp.getD (c + i) Sym3.O = Sym3.I) (hcsep : tp.getD (c + a) Sym3.O = Sym3.O)
     (hro : ∀ i, i < b → tp.getD (c + d + i) Sym3.O = Sym3.I) (hrsep : tp.getD (c + d + b) Sym3.O = Sym3.O)
     (hcsym : tp.getD (c + a + 1) Sym3.O = cs) (hrsym : tp.getD (c + d + b + 1) Sym3.O = rs) :
-    ∃ N q, reachIn (toNTM3 (recordKeyMatch3 base recMatch recFail d L)) N (base, c, tp)
-      ((if a = b ∧ rs = cs then recMatch else recFail), q, tp) := by
+    ∃ N q, (reachIn (toNTM3 (recordKeyMatch3 base recMatch recFail d L)) N (base, c, tp)
+      ((if a = b ∧ rs = cs then recMatch else recFail), q, tp)) ∧ c ≤ q ∧ q ≤ c + a + 1 := by
   obtain ⟨N1, hFCraw⟩ := fieldCompare3_run_windowed (base + L * (2 * d + 16)) recFail d tp hd L base c a b
     hL (by omega) (fun j hj1 hj2 => hWin j hj1 (by omega)) hco hcsep hro hrsep
   by_cases hab : a = b
@@ -140,13 +140,13 @@ theorem recordKeyMatch3_run_windowed (base recMatch recFail d : ℕ) (tp : List 
     have seq2 := reachIn_seq3 _ (bitCompareAtDist3 (base + L * (2 * d + 16) + 1) recMatch recFail d)
       (N1 + 1) N3 _ _ _ seq1 hBC
     simp only [show (a = b ∧ rs = cs) ↔ (rs = cs) from by simp [hab]]
-    exact ⟨N1 + 1 + N3, c + a + 1, seq2⟩
+    exact ⟨N1 + 1 + N3, c + a + 1, seq2, by omega, by omega⟩
   · rw [if_neg hab] at hFCraw
     have h1 := reachIn_append_left3 (fieldCompare3 base (base + L * (2 * d + 16)) recFail d L)
       (moveRight3 (base + L * (2 * d + 16)) (base + L * (2 * d + 16) + 1)) N1 _ _ hFCraw
     have h2 := reachIn_append_left3 _ (bitCompareAtDist3 (base + L * (2 * d + 16) + 1) recMatch recFail d) N1 _ _ h1
     rw [if_neg (show ¬ (a = b ∧ rs = cs) from fun h => hab h.1)]
-    exact ⟨N1, c + min a b, h2⟩
+    exact ⟨N1, c + min a b, h2, by omega, by omega⟩
 
 /-!
 **The windowed matcher, proved.**  `fieldCompare3` and `recordKeyMatch3` run under a no-marker hypothesis confined to the

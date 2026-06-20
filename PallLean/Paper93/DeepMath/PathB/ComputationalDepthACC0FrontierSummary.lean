@@ -286,6 +286,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3FieldCo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3KeyMatch
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ResetHome
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3KeyMatchWin
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MatchTable
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4734,11 +4735,32 @@ theorem nw_recordKeyMatch3_run_windowed_frontier (base recMatch recFail d : ℕ)
     (hrsep : tp.getD (c + d + b) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
     (hcsym : tp.getD (c + a + 1) ACC0UniversalTM3Sym.Sym3.O = cs)
     (hrsym : tp.getD (c + d + b + 1) ACC0UniversalTM3Sym.Sym3.O = rs) :
-    ∃ N q, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
+    ∃ N q, (ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
         (ACC0UniversalTM3KeyMatch.recordKeyMatch3 base recMatch recFail d L)) N (base, c, tp)
-      ((if a = b ∧ rs = cs then recMatch else recFail), q, tp) :=
+      ((if a = b ∧ rs = cs then recMatch else recFail), q, tp)) ∧ c ≤ q ∧ q ≤ c + a + 1 :=
   ACC0UniversalTM3KeyMatchWin.recordKeyMatch3_run_windowed base recMatch recFail d tp hd L c a b cs rs hcs
     hL hbnd hWin hco hcsep hro hrsep hcsym hrsym
+
+/-- **Entry 410: the rule-table match loop `matchTable3_run` (PROVED).**  Walks the encoded transition list, deciding each
+record's key against the configuration key (`recordKeyMatch3`, windowed) and on a mismatch returning the head to the config
+home (`resetToHome3`) before trying the next record; on a match it reaches `recMatch`.  Relies on a persistent home marker
+at `c-1` and the bounded fail position `[c, c+a+1]` proved in 409.  Records are descriptors `(d, b, rs)`; if **some** record
+matches (`∃ rec ∈ recs, RecMatch a cs rec`), the match-found state is reachable (the `∃`-direction in the non-deterministic
+`toNTM3`). -/
+theorem nw_matchTable3_run_frontier (recMatch L : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3) (c a : ℕ)
+    (cs : ACC0UniversalTM3Sym.Sym3) (hc : 1 ≤ c)
+    (hcs : cs = ACC0UniversalTM3Sym.Sym3.O ∨ cs = ACC0UniversalTM3Sym.Sym3.I)
+    (hmark : tp.getD (c - 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hclean : ∀ j, j ≠ c - 1 → tp.getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hco : ∀ i, i < a → tp.getD (c + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hcsep : tp.getD (c + a) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hcsym : tp.getD (c + a + 1) ACC0UniversalTM3Sym.Sym3.O = cs)
+    (recs : List (ℕ × ℕ × ACC0UniversalTM3Sym.Sym3)) (base : ℕ)
+    (hOK : ∀ rec ∈ recs, ACC0UniversalTM3MatchTable.RecOK tp c a L rec)
+    (hEx : ∃ rec ∈ recs, ACC0UniversalTM3MatchTable.RecMatch a cs rec) :
+    ∃ N q, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
+        (ACC0UniversalTM3MatchTable.matchTable3 recMatch L base recs)) N (base, c, tp) (recMatch, q, tp) :=
+  ACC0UniversalTM3MatchTable.matchTable3_run recMatch L tp c a cs hc hcs hmark hclean hco hcsep hcsym recs base hOK hEx
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
