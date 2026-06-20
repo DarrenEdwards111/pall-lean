@@ -331,6 +331,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TapeShi
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TapeShiftRight
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ShiftRightMachine
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3StateUpdateFull
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MatcherLookup
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5559,6 +5560,16 @@ theorem nw_stateUpdateFull3_run_frontier (s sMid found cont mid d' sDone L1 L2 r
   ACC0UniversalTM3StateUpdateFull.stateUpdateFull3_run s sMid found cont mid d' sDone L1 L2 rf rc mid2 sO sI oF1 oC1 oS2
     oF2 oC2 oMid oMidW iF1 iC1 iS2 iF2 iC2 iMid iMidW sFin rf2 rc2 rout home hm oldlen newlen tp hmarkHome hmarkHead
     hclean hd' hdold hnd hL1 hL2 hgap hcold hcoldsep hcnew hcnewsep hcur hbnd
+
+/-- **Entry 455: the matcher ↔ lookup correspondence `recMatch_iff_lookup` / `recMatch_iff_bitLookup` (PROVED).**  The crux
+bridge: the concrete matcher's match-existence condition `∃ rec ∈ recsOf M c, RecMatch c.1 (boolToSym3 (readSym c)) rec`
+coincides with the abstract `lookup`/`bitLookup` finding a rule — because `RecMatch` (state-length & read-symbol agree) is
+exactly `lookup`'s condition (`r.1 = (c.1, readSym c)`), via `boolToSym3` injectivity. -/
+theorem nw_recMatch_iff_bitLookup_frontier (M : ACC0ConcreteNTM.TMachine) (c : ACC0ConcreteNTM.CConfig) :
+    (∃ rec ∈ ACC0UniversalTM3MatcherLookup.recsOf M c,
+        ACC0UniversalTM3MatchTable.RecMatch c.1 (ACC0UniversalTM3EncTrans.boolToSym3 (ACC0ConcreteNTM.readSym c)) rec) ↔
+      (ACC0UniversalTMBitLookup.bitLookup (ACC0UniversalTMScannable.encodeMachineBits M) c).isSome :=
+  ACC0UniversalTM3MatcherLookup.recMatch_iff_bitLookup M c
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
