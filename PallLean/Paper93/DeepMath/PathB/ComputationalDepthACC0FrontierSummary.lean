@@ -270,6 +270,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Unmark
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteWrite
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Encode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EncTrans
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EncMachine
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4523,6 +4524,14 @@ theorem nw_encodeTransBits3_length_frontier (t : ACC0ConcreteNTM.TMTrans) :
     (ACC0UniversalTM3EncTrans.encodeTransBits3 t).length = t.1.1 + t.2.1 + t.2.2.2.val + 5 :=
   ACC0UniversalTM3EncTrans.encodeTransBits3_length t
 
+/-- **Entry 394: the 3-symbol machine encoding `encodeMachineBits3_length` (PROVED).**  A machine `M` is encoded over
+`Sym3` as its length (`I`-run + separator) then its transitions concatenated; its length is `(M.length + 1) +
+(M.flatMap encodeTransBits3).length`.  The `Sym3` port of entry 338. -/
+theorem nw_encodeMachineBits3_length_frontier (M : List ACC0ConcreteNTM.TMTrans) :
+    (ACC0UniversalTM3EncMachine.encodeMachineBits3 M).length
+      = (M.length + 1) + (M.flatMap ACC0UniversalTM3EncTrans.encodeTransBits3).length :=
+  ACC0UniversalTM3EncMachine.encodeMachineBits3_length M
+
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
@@ -5869,3 +5878,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_writeAt3_writeAt3_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_encNat3_getD_lt_frontier
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_encodeTransBits3_length_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0FrontierSummary.nw_encodeMachineBits3_length_frontier
