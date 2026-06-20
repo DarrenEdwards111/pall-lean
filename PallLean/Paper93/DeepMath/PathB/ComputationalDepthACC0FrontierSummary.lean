@@ -297,6 +297,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Fetch
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Walk
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3HeadMove
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ReadHead
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Apply
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4915,6 +4916,35 @@ theorem nw_readHeadSym3_run_frontier (s sO sI d h : ℕ) (tp : List ACC0Universa
       ((if tp.getD (h + d + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O then sO else sI),
         h + d + 1, tp) :=
   ACC0UniversalTM3ReadHead.readHeadSym3_run s sO sI d h tp hmark hclear hbound hbound2 hcur
+
+/-- **Entry 421: the apply tape step (PROVED).**  The tape transformation of one simulated step under the marker head rep:
+write the rule's symbol at the current cell and move the head.  `moveRightWrite3` is the clean combined write-and-move-right
+(`q ← w`, `q+1 ← M`); `writeSymAtHead3` is stay (write only); `moveLeftWrite3` composes the write with the local left head
+move.  Built from the proven single-cell machines, chained by `reachIn_seq3`. -/
+theorem nw_moveRightWrite3_run_frontier (s sOut q : ℕ) (w : ACC0UniversalTM3Sym.Sym3)
+    (tp : List ACC0UniversalTM3Sym.Sym3) (hq : q + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3Apply.moveRightWrite3 s sOut w)) N (s, q, tp)
+      (sOut, q + 1, ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 tp q w) (q + 1)
+        ACC0UniversalTM3Sym.Sym3.M) :=
+  ACC0UniversalTM3Apply.moveRightWrite3_run s sOut q w tp hq
+
+/-- **Entry 421 (cont.): the stay write (PROVED).** -/
+theorem nw_writeSymAtHead3_run_frontier (s sOut q : ℕ) (w : ACC0UniversalTM3Sym.Sym3)
+    (tp : List ACC0UniversalTM3Sym.Sym3) (hq : q + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3Apply.writeSymAtHead3 s sOut w)) N (s, q, tp)
+      (sOut, q, ACC0UniversalTM3Sym.writeAt3 tp (q + 1) w) :=
+  ACC0UniversalTM3Apply.writeSymAtHead3_run s sOut q w tp hq
+
+/-- **Entry 421 (cont.): the write-and-move-left run (PROVED).** -/
+theorem nw_moveLeftWrite3_run_frontier (s sOut q : ℕ) (w : ACC0UniversalTM3Sym.Sym3)
+    (tp : List ACC0UniversalTM3Sym.Sym3) (hq1 : 1 ≤ q) (hq : q + 1 < tp.length)
+    (hcl : tp.getD (q - 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O ∨
+      tp.getD (q - 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3Apply.moveLeftWrite3 s sOut w)) N (s, q, tp)
+      (sOut, q - 1, ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3
+        (ACC0UniversalTM3Sym.writeAt3 tp (q + 1) w) q (tp.getD (q - 1) ACC0UniversalTM3Sym.Sym3.O)) (q - 1)
+        ACC0UniversalTM3Sym.Sym3.M) :=
+  ACC0UniversalTM3Apply.moveLeftWrite3_run s sOut q w tp hq1 hq hcl
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
