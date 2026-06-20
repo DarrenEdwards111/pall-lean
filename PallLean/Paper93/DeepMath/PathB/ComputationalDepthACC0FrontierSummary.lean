@@ -354,6 +354,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Advance
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3AdvanceCrossL
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TandemStep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3WriteAlg
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CursTape
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5912,6 +5913,20 @@ theorem nw_writeAt3_comm_frontier (t : List ACC0UniversalTM3Sym.Sym3) (p q : ℕ
     ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 t p a) q b
       = ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 t q b) p a :=
   ACC0UniversalTM3WriteAlg.writeAt3_comm t p q a b hpq hp hq
+
+/-- **Entry 478: the canonical comparison tape `cursTape` cell-value lemmas (PROVED).**  The two-cursor comparison state —
+base tape with config cursor `M` at `cp+i`, record cursor `M` at `cp+g+i` — with its cell values (`M` at the two cursors,
+`= tp` elsewhere), used to discharge `tandemStep3`'s hypotheses across the iteration. -/
+theorem nw_cursTape_cursorL_frontier (tp : List ACC0UniversalTM3Sym.Sym3) (cp g i : ℕ) (hg : 1 ≤ g) :
+    (ACC0UniversalTM3CursTape.cursTape tp cp g i).getD (cp + i) ACC0UniversalTM3Sym.Sym3.O
+      = ACC0UniversalTM3Sym.Sym3.M :=
+  ACC0UniversalTM3CursTape.cursTape_cursorL tp cp g i hg
+
+/-- **Entry 478 (cont.): the canonical tape agrees with the base away from the cursors (PROVED).** -/
+theorem nw_cursTape_other_frontier (tp : List ACC0UniversalTM3Sym.Sym3) (cp g i x : ℕ) (h1 : x ≠ cp + i)
+    (h2 : x ≠ cp + g + i) :
+    (ACC0UniversalTM3CursTape.cursTape tp cp g i).getD x ACC0UniversalTM3Sym.Sym3.O = tp.getD x ACC0UniversalTM3Sym.Sym3.O :=
+  ACC0UniversalTM3CursTape.cursTape_other tp cp g i x h1 h2
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
