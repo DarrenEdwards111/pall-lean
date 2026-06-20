@@ -316,6 +316,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3HeadRig
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3HeadLeftHome
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MoveDispatch
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MoveRightHome
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3MoveClean
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5246,6 +5247,37 @@ theorem nw_moveRightFromHome3_run_frontier (sStart sFound sCont s1 f1 c1 s2 f2 c
         (tp.getD (p + 1) ACC0UniversalTM3Sym.Sym3.O)) (p + 1) ACC0UniversalTM3Sym.Sym3.M) :=
   ACC0UniversalTM3MoveRightHome.moveRightFromHome3_run sStart sFound sCont s1 f1 c1 s2 f2 c2 out home p tp hhp
     hmarkHome hmarkHead hclean hc hbnd
+
+/-- **Entry 440: the right move preserves the clean configuration `moveRight_preserves_clean` (PROVED).**  The marker
+invariant (home marker fixed, single head marker, clean window) persists across a right head move with the head marker
+relocated to `p+1` — so one home-to-home phase's output meets the next phase's hypotheses. -/
+theorem nw_moveRight_preserves_clean_frontier (tp : List ACC0UniversalTM3Sym.Sym3) (home p : ℕ) (hhp : home < p)
+    (hmarkHome : tp.getD home ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hclean : ∀ j, home < j → j < p → tp.getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hc : tp.getD (p + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O ∨
+      tp.getD (p + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I) :
+    (ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 tp p (tp.getD (p + 1) ACC0UniversalTM3Sym.Sym3.O))
+        (p + 1) ACC0UniversalTM3Sym.Sym3.M).getD home ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M ∧
+    (ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 tp p (tp.getD (p + 1) ACC0UniversalTM3Sym.Sym3.O))
+        (p + 1) ACC0UniversalTM3Sym.Sym3.M).getD (p + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M ∧
+    (∀ j, home < j → j < p + 1 →
+      (ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 tp p (tp.getD (p + 1) ACC0UniversalTM3Sym.Sym3.O))
+        (p + 1) ACC0UniversalTM3Sym.Sym3.M).getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M) :=
+  ACC0UniversalTM3MoveClean.moveRight_preserves_clean tp home p hhp hmarkHome hclean hc
+
+/-- **Entry 440 (cont.): the left move preserves the clean configuration `moveLeft_preserves_clean` (PROVED).**  Symmetric:
+head marker relocated to `p-1`. -/
+theorem nw_moveLeft_preserves_clean_frontier (tp : List ACC0UniversalTM3Sym.Sym3) (home p : ℕ) (hhp : home + 2 ≤ p)
+    (hmarkHome : tp.getD home ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hclean : ∀ j, home < j → j < p → tp.getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M) :
+    (ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 tp p (tp.getD (p - 1) ACC0UniversalTM3Sym.Sym3.O))
+        (p - 1) ACC0UniversalTM3Sym.Sym3.M).getD home ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M ∧
+    (ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 tp p (tp.getD (p - 1) ACC0UniversalTM3Sym.Sym3.O))
+        (p - 1) ACC0UniversalTM3Sym.Sym3.M).getD (p - 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M ∧
+    (∀ j, home < j → j < p - 1 →
+      (ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 tp p (tp.getD (p - 1) ACC0UniversalTM3Sym.Sym3.O))
+        (p - 1) ACC0UniversalTM3Sym.Sym3.M).getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M) :=
+  ACC0UniversalTM3MoveClean.moveLeft_preserves_clean tp home p hhp hmarkHome hclean
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
