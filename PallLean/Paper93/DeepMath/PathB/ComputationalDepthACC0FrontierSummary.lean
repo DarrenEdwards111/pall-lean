@@ -329,6 +329,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ApplyWr
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ApplyTape
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TapeShift
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3TapeShiftRight
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ShiftRightMachine
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -5518,6 +5519,17 @@ theorem nw_shiftRightBlock_getD_frontier (tp : List ACC0UniversalTM3Sym.Sym3) (c
       = if c + d ≤ k ∧ k ≤ c + m + d then tp.getD (k - d) ACC0UniversalTM3Sym.Sym3.O
         else tp.getD k ACC0UniversalTM3Sym.Sym3.O :=
   ACC0UniversalTM3TapeShiftRight.shiftRightBlock_getD tp c d m k hd
+
+/-- **Entry 453: the right-to-left shift machine `copyFieldRight3_run` (PROVED).**  The machine realising the rightward
+tape shift (452): copy high-to-low (each cell rightward by `d` via 411, stepping left via 386).  Starting at the high cell
+`c+n`, the block `c … c+n` is shifted right by `d`, head ending at `c`; the tape is `copyBlockRight tp c d n`. -/
+theorem nw_copyFieldRight3_run_frontier (sDone d : ℕ) (hd : 1 ≤ d) (n s c : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hbit : ∀ i, i ≤ n → tp.getD (c + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O ∨
+      tp.getD (c + i) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hbnd : c + n + d < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3ShiftRightMachine.copyFieldRight3 s sDone d n)) N
+      (s, c + n, tp) (sDone, c, ACC0UniversalTM3TapeShiftRight.copyBlockRight tp c d n) :=
+  ACC0UniversalTM3ShiftRightMachine.copyFieldRight3_run sDone d hd n s c tp hbit hbnd
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
 degree-(p-1) fan-in-free clause indicator (clauseIndicator); the AND indicator ∈ lowDegreeSubmodule n n
