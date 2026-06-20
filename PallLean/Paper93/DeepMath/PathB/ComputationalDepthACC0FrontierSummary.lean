@@ -295,6 +295,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3CopyFie
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3UnaryStep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Fetch
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3Walk
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3HeadMove
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -4876,6 +4877,29 @@ theorem nw_walkRightClearField3_run_frontier (sDone L s h m : ℕ) (tp : List AC
     ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3Walk.walkRightClearField3 s sDone L)) N (s, h, tp)
       (sDone, h + m, ACC0UniversalTM3Walk.clearBlock tp h m) :=
   ACC0UniversalTM3Walk.walkRightClearField3_run sDone L s h m tp hmL hbnd hco hcs
+
+/-- **Entry 419: the marker-on-current-cell head move `headMoveRight3_run` / `headMoveLeft3_run` (PROVED).**  Switches the
+simulated-head representation to a marker `M` on the current cell, making head moves **local** (a swap of the marker with
+its neighbour) — no data-dependent walk.  Reuses the proven single-cell copies: a right move carries the neighbour's symbol
+one cell left over the old marker (`copyBitAtDistLeft3` at distance 1), then marks the neighbour. -/
+theorem nw_headMoveRight3_run_frontier (s sOut p : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hc : tp.getD (p + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O ∨
+      tp.getD (p + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I) (hbnd : p + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3HeadMove.headMoveRight3 s sOut)) N (s, p, tp)
+      (sOut, p + 1, ACC0UniversalTM3Sym.writeAt3
+        (ACC0UniversalTM3Sym.writeAt3 tp p (tp.getD (p + 1) ACC0UniversalTM3Sym.Sym3.O)) (p + 1)
+        ACC0UniversalTM3Sym.Sym3.M) :=
+  ACC0UniversalTM3HeadMove.headMoveRight3_run s sOut p tp hc hbnd
+
+/-- **Entry 419 (cont.): the left head move (PROVED).**  Mirror via `copyBitAtDist3` at distance 1. -/
+theorem nw_headMoveLeft3_run_frontier (s sOut p : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hc : tp.getD (p - 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O ∨
+      tp.getD (p - 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I) (hp : 1 ≤ p) (hbnd : p < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3HeadMove.headMoveLeft3 s sOut)) N (s, p, tp)
+      (sOut, p - 1, ACC0UniversalTM3Sym.writeAt3
+        (ACC0UniversalTM3Sym.writeAt3 tp p (tp.getD (p - 1) ACC0UniversalTM3Sym.Sym3.O)) (p - 1)
+        ACC0UniversalTM3Sym.Sym3.M) :=
+  ACC0UniversalTM3HeadMove.headMoveLeft3_run s sOut p tp hc hp hbnd
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
