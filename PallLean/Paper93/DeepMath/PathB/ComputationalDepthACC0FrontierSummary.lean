@@ -93,6 +93,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0StrictSep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimeSep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0StrictSep3
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultiMod
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedParity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6749,6 +6750,20 @@ theorem nw_acc03_strict_subset_acc023_frontier {n d : ℕ} (hd : 2 * 2 ^ d < n) 
       ¬ ∃ C : ACC0CircuitModel.ACC0Circuit n, ACC0CircuitReprP.ModpOnly 3 C
         ∧ ACC0CircuitModel.depth C ≤ d ∧ ACC0CircuitModel.eval C = ACC0ParityBarrier.parityFn :=
   ACC0MultiMod.acc03_strict_subset_acc023 hd
+
+/-- **Bridge (model upgrade): PARITY needs super-poly size in UNBOUNDED-fan-in `AC⁰[p]` `parity_superpoly_ac0p` (PROVED).**
+The real Razborov–Smolensky bound in the genuine model (`BoolCircuitSyntax`, `List`-based unbounded-fan-in gates), upgrading
+the binary-fan-in `parity_not_ac0`: an `AC⁰[p]` circuit (`IsAC0pSyntax`) of depth `d` computing `PARITY` has `p^t <
+4·#{distinct subcircuits}` in the RS window — super-polynomial size.  Composes `Layer3.parity_function_lower_bound` with
+`Layer4.hmod_of_isAC0p`. -/
+theorem nw_parity_superpoly_ac0p_frontier (p : ℕ) [Fact p.Prime] (hp2 : (2 : ZMod p) ≠ 0) {m d : ℕ}
+    (Cir : BoolCircuitSyntax (2 * m + 1)) (hac : BoolCircuitSyntax.IsAC0pSyntax p Cir)
+    (hd : Cir.depth ≤ d) (t : ℕ) (ht1 : 1 ≤ t)
+    (hparity : ∀ x : Fin (2 * m + 1) → Bool,
+      Cir.eval x = decide (Odd (Finset.univ.filter (fun i => x i = true)).card))
+    (hm : 8 * (((p - 1) * t) ^ d) ^ 2 ≤ m) :
+    p ^ t < 4 * (Layer3.subcircuits Cir).toFinset.card :=
+  ACC0UnboundedParity.parity_superpoly_ac0p p hp2 Cir hac hd t ht1 hparity hm
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
