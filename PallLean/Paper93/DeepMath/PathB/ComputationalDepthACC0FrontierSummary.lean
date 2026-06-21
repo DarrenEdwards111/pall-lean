@@ -49,6 +49,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SquarefreeMOD
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimeMODMvPoly
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MonomialCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModSymAndForm
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DegreeCompose
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6186,6 +6187,22 @@ theorem nw_modGate_hasExactSymAndForm_frontier {n : ℕ} (m : ℕ) (hn : n + 1 <
       (ACC0ModSymAndForm.modGateFn m : (Fin n → Bool) → Bool)
         = ACC0SymmetricObserver.symEval (fun j x => ACC0PolyToSymAnd.monoAND (mono j) x) h ∧ M + 1 < 2 ^ n :=
   ACC0ModSymAndForm.modGate_hasExactSymAndForm m hn
+
+/-- **Brick C: degree composes multiplicatively under substitution `totalDegree_bind₁_le` (PROVED).**  The genuine YBT
+depth-reduction core: if the outer polynomial has degree `≤ D₁` and each substituted polynomial has degree `≤ D₂`, the
+composition has degree `≤ D₁·D₂`.  Over constant depth `d`, degree stays `≤ D^d` (polylog), and Brick D bounds the monomials
+by `(n+1)^{D^d}` (quasipoly) — the right parameter the gate-count blow-up missed. -/
+theorem nw_totalDegree_bind₁_le_frontier {σ τ R : Type*} [CommSemiring R] (g : σ → MvPolynomial τ R)
+    (P : MvPolynomial σ R) (d : ℕ) (hg : ∀ i, (g i).totalDegree ≤ d) :
+    (MvPolynomial.bind₁ g P).totalDegree ≤ P.totalDegree * d :=
+  ACC0DegreeCompose.totalDegree_bind₁_le g P d hg
+
+/-- **Brick C (cont.): degree multiplies across two layers (PROVED).** -/
+theorem nw_totalDegree_bind₁_comp_le_frontier {σ τ υ R : Type*} [CommSemiring R] (g : τ → MvPolynomial υ R)
+    (h : σ → MvPolynomial τ R) (P : MvPolynomial σ R) (dg dh : ℕ)
+    (hg : ∀ i, (g i).totalDegree ≤ dg) (hh : ∀ i, (h i).totalDegree ≤ dh) :
+    (MvPolynomial.bind₁ g (MvPolynomial.bind₁ h P)).totalDegree ≤ P.totalDegree * dh * dg :=
+  ACC0DegreeCompose.totalDegree_bind₁_comp_le g h P dg dh hg hh
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
