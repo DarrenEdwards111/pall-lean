@@ -45,6 +45,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TriAspectBoundary
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeBTTarget
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMODFactor
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimeMODLowDegree
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SquarefreeMOD
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6143,6 +6144,15 @@ theorem nw_modp_iff_fermat_frontier {n : ℕ} (p : ℕ) [Fact p.Prime] (x : Fin 
     (ACC0CompositeBT.hammingWeight x : ZMod p) = 0 ↔
       (∑ i, (if x i then (1 : ZMod p) else 0)) ^ (p - 1) = 0 :=
   ACC0PrimeMODLowDegree.modp_iff_fermat p x
+
+/-- **Brick A.2b: squarefree composite-`MOD_m` as a product of degree-`(p-1)` `F_p` polynomials `modm_squarefree_fermat`
+(PROVED).**  Assembling A.1 (CRT) and A.2 (Fermat): for squarefree `m`, the `MOD_m` gate is exactly the conjunction over its
+prime factors `p` of `(∑ᵢ [xᵢ])^{p-1} = 0` over `F_p` — a low-degree representation of an entire family of composite gates
+(`MOD₆`, `MOD₃₀`, …). -/
+theorem nw_modm_squarefree_fermat_frontier {m n : ℕ} (hm : m ≠ 0) (hsq : Squarefree m) (x : Fin n → Bool) :
+    ACC0CompositeMODFactor.modm m x ↔
+      ∀ p ∈ m.primeFactors, (∑ i, (if x i then (1 : ZMod p) else 0)) ^ (p - 1) = 0 :=
+  ACC0SquarefreeMOD.modm_squarefree_fermat hm hsq x
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
