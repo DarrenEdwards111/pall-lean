@@ -91,6 +91,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ParityAC0
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqAC0
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0StrictSep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimeSep
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0StrictSep3
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6726,6 +6727,17 @@ theorem nw_acc02_not_subset_acc03_frontier {n d : ℕ} (hd : 2 * 2 ^ d < n) :
       ¬ ∃ C : ACC0CircuitModel.ACC0Circuit n, ACC0CircuitReprP.ModpOnly 3 C
         ∧ ACC0CircuitModel.depth C ≤ d ∧ ACC0CircuitModel.eval C = ACC0ParityBarrier.parityFn :=
   ACC0PrimeSep.acc02_not_subset_acc03 hd
+
+/-- **Bridge (AC⁰ ⊊ AC⁰[3]): every prime modulus strictly extends AC⁰ `ac0_strict_subset_acc03` (PROVED).**  `MOD_3` is
+computed by a single `MOD_3` gate (depth 1) so lies in `AC⁰[3]`, but `MOD_3 ∉ AC⁰` (`mod3_not_ac0`, `n ≡ 1 mod 6`).  Hence
+`AC⁰ ⊊ AC⁰[3]` — the `q=3` companion to `AC⁰ ⊊ AC⁰[2]`. -/
+theorem nw_ac0_strict_subset_acc03_frontier {n : ℕ} (hn1 : 1 ≤ n) (hper : 6 ∣ (n - 1)) {d : ℕ}
+    (hd : 6 * 2 ^ d < n) :
+    (∃ C : ACC0CircuitModel.ACC0Circuit n, ACC0CircuitReprP.ModpOnly 3 C
+        ∧ ACC0CircuitModel.depth C ≤ 1 ∧ ACC0CircuitModel.eval C = ACC0ModqWitness.modqFn 3) ∧
+      ¬ ∃ C : ACC0CircuitModel.ACC0Circuit n, ACC0ParityAC0.ModFree C
+        ∧ ACC0CircuitModel.depth C ≤ d ∧ ACC0CircuitModel.eval C = ACC0ModqWitness.modqFn 3 :=
+  ACC0StrictSep3.ac0_strict_subset_acc03 hn1 hper hd
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
