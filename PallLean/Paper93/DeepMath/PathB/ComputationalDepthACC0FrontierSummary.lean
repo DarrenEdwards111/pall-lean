@@ -57,6 +57,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Multilinearize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndPoly
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0OrApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Balancedness
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Amplify
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6288,6 +6289,15 @@ so its zero-fiber (the kernel of a rank-1 map) has exactly `p^{n-1}` points — 
 theorem nw_card_linearForm_eq_zero_frontier (p n : ℕ) [Fact p.Prime] (x : Fin n → ZMod p) (hx : x ≠ 0) :
     (Finset.univ.filter (fun a : Fin n → ZMod p => ∑ i, x i * a i = 0)).card = p ^ (n - 1) :=
   ACC0Balancedness.card_linearForm_eq_zero p n x hx
+
+/-- **Brick (amplify): `t`-fold amplification shrinks the bad set to `p^{-t}` `card_allBad_eq` (PROVED).**  For `x ≠ 0`, the
+`t`-tuples on which *every* random linear form vanishes number exactly `(p^{n-1})^t` — a `p^{-t}` fraction of all `(p^n)^t`
+tuples (independence = product).  So `t` independent forms compute `OR` on each nonzero input with error `≤ p^{-t}` at degree
+`t(p-1)`. -/
+theorem nw_card_allBad_eq_frontier (p n t : ℕ) [Fact p.Prime] (x : Fin n → ZMod p) (hx : x ≠ 0) :
+    (Finset.univ.filter
+        (fun a : Fin t → (Fin n → ZMod p) => ∀ j, ∑ i, x i * (a j) i = 0)).card = (p ^ (n - 1)) ^ t :=
+  ACC0Amplify.card_allBad_eq p n t x hx
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
