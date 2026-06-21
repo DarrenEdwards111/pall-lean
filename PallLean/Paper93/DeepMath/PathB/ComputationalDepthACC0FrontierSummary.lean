@@ -46,6 +46,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeBTTarget
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMODFactor
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimeMODLowDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SquarefreeMOD
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimeMODMvPoly
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6153,6 +6154,19 @@ theorem nw_modm_squarefree_fermat_frontier {m n : ℕ} (hm : m ≠ 0) (hsq : Squ
     ACC0CompositeMODFactor.modm m x ↔
       ∀ p ∈ m.primeFactors, (∑ i, (if x i then (1 : ZMod p) else 0)) ^ (p - 1) = 0 :=
   ACC0SquarefreeMOD.modm_squarefree_fermat hm hsq x
+
+/-- **Brick A.2c: the `MOD_p` indicator as an `MvPolynomial` of total degree `≤ p-1` `modp_iff_modpPoly` (PROVED).**  Makes
+the degree claim typed: `modpPoly p n := (∑ᵢ Xᵢ)^{p-1}` over `F_p` has `totalDegree ≤ p-1` (`modpPoly_totalDegree_le`), and
+`MOD_p` of the weight is decided by it. -/
+theorem nw_modpPoly_totalDegree_le_frontier (p n : ℕ) [Fact p.Prime] :
+    (ACC0PrimeMODMvPoly.modpPoly p n).totalDegree ≤ p - 1 :=
+  ACC0PrimeMODMvPoly.modpPoly_totalDegree_le p n
+
+/-- **Brick A.2c (cont.): the degree-`≤(p-1)` polynomial decides the `MOD_p` gate (PROVED).** -/
+theorem nw_modp_iff_modpPoly_frontier (p n : ℕ) [Fact p.Prime] (x : Fin n → Bool) :
+    (ACC0CompositeBT.hammingWeight x : ZMod p) = 0 ↔
+      MvPolynomial.eval (fun i => if x i then (1 : ZMod p) else 0) (ACC0PrimeMODMvPoly.modpPoly p n) = 0 :=
+  ACC0PrimeMODMvPoly.modp_iff_modpPoly p n x
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
