@@ -94,6 +94,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimeSep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0StrictSep3
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultiMod
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedParity
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedAC0
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6764,6 +6765,19 @@ theorem nw_parity_superpoly_ac0p_frontier (p : ℕ) [Fact p.Prime] (hp2 : (2 : Z
     (hm : 8 * (((p - 1) * t) ^ d) ^ 2 ≤ m) :
     p ^ t < 4 * (Layer3.subcircuits Cir).toFinset.card :=
   ACC0UnboundedParity.parity_superpoly_ac0p p hp2 Cir hac hd t ht1 hparity hm
+
+/-- **Bridge (PARITY ∉ poly-size AC⁰, real model): Håstad via RS in unbounded fan-in `parity_superpoly_ac0` (PROVED).**  The
+canonical FSS/Håstad lower bound in the genuine `BoolCircuitSyntax` model: a `MOD`-free (`IsAC0Syntax`) circuit of depth `d`
+computing `PARITY` has `p^t < 4·#{distinct subcircuits}` (any odd prime `p`, RS window) — super-polynomial size.  The `hmod`
+condition is vacuous (`hmod_of_isAC0`: no `MOD` gates). -/
+theorem nw_parity_superpoly_ac0_frontier (p : ℕ) [Fact p.Prime] (hp2 : (2 : ZMod p) ≠ 0) {m d : ℕ}
+    (Cir : BoolCircuitSyntax (2 * m + 1)) (hac : BoolCircuitSyntax.IsAC0Syntax Cir)
+    (hd : Cir.depth ≤ d) (t : ℕ) (ht1 : 1 ≤ t)
+    (hparity : ∀ x : Fin (2 * m + 1) → Bool,
+      Cir.eval x = decide (Odd (Finset.univ.filter (fun i => x i = true)).card))
+    (hm : 8 * (((p - 1) * t) ^ d) ^ 2 ≤ m) :
+    p ^ t < 4 * (Layer3.subcircuits Cir).toFinset.card :=
+  ACC0UnboundedAC0.parity_superpoly_ac0 p hp2 Cir hac hd t ht1 hparity hm
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
