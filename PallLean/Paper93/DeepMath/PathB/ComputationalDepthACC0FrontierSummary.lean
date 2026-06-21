@@ -54,6 +54,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DepthDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerMOD
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpCompositionDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Multilinearize
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndPoly
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6249,6 +6250,20 @@ theorem nw_composed_andTerms_card_le_frontier {n : ℕ} {R : Type*} [CommSemirin
     (D : ℕ) (hg : ∀ i, (g i).totalDegree ≤ D) (P : MvPolynomial (Fin n) R) (d : ℕ) :
     (((MvPolynomial.bind₁ g)^[d] P).support.image (fun e => e.support)).card ≤ (n + 1) ^ (P.totalDegree * D ^ d) :=
   ACC0Multilinearize.composed_andTerms_card_le g D hg P d
+
+/-- **Brick (AND): the `AND` gate as an exact polynomial `∏ Xᵢ` `andPoly_eval` (PROVED).**  `andPoly S = ∏_{i∈S} Xᵢ` evaluates
+to the `AND` of the bits in `S` on Booleans, with total degree `≤ |S|` (the fan-in).  The *exact* `AND`/`OR` representation —
+faithful, one `AND`-term, degree = fan-in; under composition the exact degree multiplies as fan-in^depth, which is why YBT
+needs the approximate RS polynomial (open, not faked). -/
+theorem nw_andPoly_eval_frontier {n : ℕ} {R : Type*} [CommSemiring R] (S : Finset (Fin n)) (x : Fin n → Bool) :
+    MvPolynomial.eval (fun i => if x i then (1 : R) else 0) (ACC0AndPoly.andPoly S)
+      = if (∀ i ∈ S, x i = true) then 1 else 0 :=
+  ACC0AndPoly.andPoly_eval S x
+
+/-- **Brick (AND, cont.): the exact `AND` polynomial has degree at most the fan-in (PROVED).** -/
+theorem nw_andPoly_totalDegree_le_frontier {n : ℕ} {R : Type*} [CommSemiring R] [Nontrivial R] (S : Finset (Fin n)) :
+    (ACC0AndPoly.andPoly S : MvPolynomial (Fin n) R).totalDegree ≤ S.card :=
+  ACC0AndPoly.andPoly_totalDegree_le S
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
