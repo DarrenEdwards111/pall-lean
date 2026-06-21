@@ -72,6 +72,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountingWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ParityWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ParityBarrier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DepthDegreeBound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CharWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6474,6 +6475,17 @@ theorem nw_parity_not_acc0p_depth_frontier {n p : ℕ} [Fact p.Prime] (hp2 : p �
         ACC0CircuitReprP.ModpOnly p C ∧ ACC0CircuitModel.depth C ≤ d
           ∧ ACC0CircuitModel.eval C = ACC0ParityBarrier.parityFn :=
   ACC0DepthDegreeBound.parity_not_acc0p_depth hp2 hd
+
+/-- **Brick (char witness): the `MOD_q` character has no low-degree `F_p` representation `charWt_no_lowdeg_repr` (PROVED).**
+For any `ζ ≠ 1` in `F_p` (`p` odd), the `q`-ary character `charWt_ζ(x) = ζ^{weight(x)}` has no degree-`<n` `F_p`
+representation — the general-`q` generalisation of the parity (`ζ=−1`) witness, via `Dsign(charWt_ζ) = (1−ζ)^n ≠ 0`.  For `ζ`
+a primitive `q`-th root (`q ∣ p−1`) this is the `MOD_q` character. -/
+theorem nw_charWt_no_lowdeg_repr_frontier {n p : ℕ} [Fact p.Prime] (hp2 : p ≠ 2) (ζ : ZMod p) (hζ : ζ ≠ 1)
+    {D : ℕ} (hn : D < n) :
+    ¬ ∃ P : MvPolynomial (Fin n) (ZMod p),
+        P.totalDegree ≤ D ∧ ∀ x, MvPolynomial.eval (fun i => (ACC0CircuitRepr.bv (x i) : ZMod p)) P
+          = ACC0CharWitness.charWt ζ x :=
+  ACC0CharWitness.charWt_no_lowdeg_repr hp2 ζ hζ hn
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
