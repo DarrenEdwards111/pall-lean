@@ -43,6 +43,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankRouteFrontier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankShrinkWall
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TriAspectBoundary
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeBTTarget
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMODFactor
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6124,6 +6125,15 @@ theorem nw_endMatchTail_run_frontier (s skf skc rm rc matchSt : ℕ) (t : List A
       (s, q, t) (matchSt, r + 1, ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 t r ACC0UniversalTM3Sym.Sym3.I)
         (r + 1) ACC0UniversalTM3Sym.Sym3.O) :=
   ACC0UniversalTM3EndMatchTail.endMatchTail_run s skf skc rm rc matchSt t q r hq hMrec hRsep hclean hbound
+
+/-- **Brick A.1: general composite-`MOD_m` CRT residue decomposition `modm_iff_residues` (PROVED).**  The Beigel–Tarui
+integer/product-observer move, generalised from the tree's `MOD₆` case to *arbitrary* modulus `m`: a `MOD_m` gate equals the
+conjunction over its prime-power factors `p^{e_p}` of `weight ≡ 0 (mod p^{e_p})` (read by `ZMod m ≃ ∏ ZMod (p^{e_p})`).  The
+CRT-reduction half of the single composite gate; the per-prime-power polylog-degree bound (Toda/RS) remains open. -/
+theorem nw_modm_iff_residues_frontier {m n : ℕ} (hm : m ≠ 0) (x : Fin n → Bool) :
+    ACC0CompositeMODFactor.modm m x ↔
+      ∀ p ∈ m.primeFactors, (ACC0CompositeBT.hammingWeight x : ZMod (p ^ m.factorization p)) = 0 :=
+  ACC0CompositeMODFactor.modm_iff_residues hm x
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
