@@ -85,6 +85,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PinSize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqUniform
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqSize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod3Acc5
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqExp
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6656,6 +6657,21 @@ theorem nw_mod3_requires_large_size_acc05_frontier {d : ℕ} (D : (N : ℕ) → 
     (t : ℕ) (ht1 : 1 ≤ t) :
     ∃ N, 5 ^ t < 12 * (Layer3.subcircuits (ACC0ToBoolSyntax.toBoolSyntax (D N))).length :=
   ACC0Mod3Acc5.mod3_requires_large_size_acc05 D hDind hDmod hDdepth t ht1
+
+/-- **Bridge (explicit exponential): `MOD_q` size reaches `p^t` by a polynomial arity `modq_size_blowup` (PROVED).**  The
+explicit exponential size lower bound: for any uniform `AC⁰[p]` family computing `MOD_q` at depth `d` and any `t`, within
+arities `N ≤ 16((p−1)t)^d)²+1+q` (polynomial in `t`) some circuit has `p^t < 4q·(subcircuits (toBoolSyntax (D N))).length` —
+i.e. `size(n) ≥ p^{Ω(n^{1/2d})}`. -/
+theorem nw_modq_size_blowup_frontier (p q : ℕ) [Fact p.Prime] [Fact q.Prime] (hpq : ¬ q ∣ p)
+    {d : ℕ} (D : (N : ℕ) → ACC0CircuitModel.ACC0Circuit N)
+    (hDind : ∀ N, ∀ y : Fin N → Bool, ACC0CircuitModel.eval (D N) y
+      = decide ((Finset.univ.filter (fun i => y i = true)).card % q = 0))
+    (hDmod : ∀ N, ACC0CircuitReprP.ModpOnly p (D N))
+    (hDdepth : ∀ N, BoolCircuitSyntax.depth (ACC0ToBoolSyntax.toBoolSyntax (D N)) ≤ d)
+    (t : ℕ) (ht1 : 1 ≤ t) (hpt1 : 1 ≤ (p - 1) * t) :
+    ∃ N, N ≤ 16 * (((p - 1) * t) ^ d) ^ 2 + 1 + q ∧
+      p ^ t < 4 * q * (Layer3.subcircuits (ACC0ToBoolSyntax.toBoolSyntax (D N))).length :=
+  ACC0ModqExp.modq_size_blowup p q hpq D hDind hDmod hDdepth t ht1 hpt1
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
