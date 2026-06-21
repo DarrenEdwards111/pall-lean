@@ -73,6 +73,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ParityWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ParityBarrier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DepthDegreeBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CharWitness
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6486,6 +6487,19 @@ theorem nw_charWt_no_lowdeg_repr_frontier {n p : ℕ} [Fact p.Prime] (hp2 : p �
         P.totalDegree ≤ D ∧ ∀ x, MvPolynomial.eval (fun i => (ACC0CircuitRepr.bv (x i) : ZMod p)) P
           = ACC0CharWitness.charWt ζ x :=
   ACC0CharWitness.charWt_no_lowdeg_repr hp2 ζ hζ hn
+
+/-- **Brick (MOD_q indicator): `MOD_q ∉` constant-depth `AC⁰[p]` when `Dsign(MOD_q) ≠ 0` `modq_not_acc0p_depth` (PROVED).**  The
+Boolean `MOD_q` indicator `[q ∣ weight]`: the sign-functional detects non-low-degree (`no_lowdeg_of_Dsign_ne`), so `MOD_q ∉`
+depth-`d` `AC⁰[p]` whenever `(p−1)·2^d < n` and the top coefficient `Dsign(MOD_q) ≠ 0` (always for `q=2`; for `q>2` holds for
+many `n`, the unconditional case being the harder RS rank bound). -/
+theorem nw_modq_not_acc0p_depth_frontier {n p : ℕ} [Fact p.Prime] (hp2 : p ≠ 2) (q : ℕ)
+    (hq : (∑ x : Fin n → Bool, ACC0ParityWitness.signWt p x
+            * (ACC0CircuitRepr.bv (ACC0ModqWitness.modqFn q x) : ZMod p)) ≠ 0)
+    {d : ℕ} (hd : (p - 1) * 2 ^ d < n) :
+    ¬ ∃ C : ACC0CircuitModel.ACC0Circuit n,
+        ACC0CircuitReprP.ModpOnly p C ∧ ACC0CircuitModel.depth C ≤ d
+          ∧ ACC0CircuitModel.eval C = ACC0ModqWitness.modqFn q :=
+  ACC0ModqWitness.modq_not_acc0p_depth hp2 q hq hd
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
