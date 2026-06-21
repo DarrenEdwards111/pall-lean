@@ -87,6 +87,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqSize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod3Acc5
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqExp
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqSuperpoly
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ParityAC0
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6687,6 +6688,14 @@ theorem nw_modq_superpoly_frontier (p q : ℕ) [Fact p.Prime] [Fact q.Prime] (hp
     (c : ℕ) :
     ∃ N, N ^ c < 4 * q * (Layer3.subcircuits (ACC0ToBoolSyntax.toBoolSyntax (D N))).length :=
   ACC0Superpoly.modq_superpoly p q hpq D hDind hDmod hDdepth c
+
+/-- **Bridge (PARITY ∉ AC⁰): the classic constant-depth lower bound `parity_not_ac0` (PROVED).**  Via Razborov–Smolensky:
+`AC⁰ ⊆ AC⁰[p]`, so `MOD_2 ∉ AC⁰[3]` gives `PARITY ∉ AC⁰`.  A `MOD`-free (`ModFree`) circuit is `AC⁰[p]` for every `p`
+(`modFree_modpOnly`), so for `n > 2^{d+1}` no depth-`d` `AC⁰` circuit computes `PARITY`. -/
+theorem nw_parity_not_ac0_frontier {n : ℕ} {d : ℕ} (hd : 2 * 2 ^ d < n) :
+    ¬ ∃ C : ACC0CircuitModel.ACC0Circuit n, ACC0ParityAC0.ModFree C ∧ ACC0CircuitModel.depth C ≤ d
+        ∧ ACC0CircuitModel.eval C = ACC0ParityBarrier.parityFn :=
+  ACC0ParityAC0.parity_not_ac0 hd
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
