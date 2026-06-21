@@ -52,6 +52,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModSymAndForm
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DegreeCompose
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DepthDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerMOD
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpCompositionDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6224,6 +6225,15 @@ theorem nw_primePowerMod_hasExactSymAndForm_frontier (p e : ℕ) {n : ℕ} (hn :
       (ACC0ModSymAndForm.modGateFn (p ^ e) : (Fin n → Bool) → Bool)
         = ACC0SymmetricObserver.symEval (fun j x => ACC0PolyToSymAnd.monoAND (mono j) x) h ∧ M + 1 < 2 ^ n :=
   ACC0PrimePowerMOD.primePowerMod_hasExactSymAndForm p e hn
+
+/-- **Brick C∘A.2c: same-prime constant-depth `MOD_p` circuit has bounded degree `modp_composition_degree` (PROVED).**  A
+depth-`(d+1)` uniform same-prime `MOD_p` circuit (iterated substitution of `modpPoly`) has total degree `≤ (p-1)^{d+1}` —
+constant for constant `d, p`.  Brick C-iterate instantiated at Brick A.2c's per-gate degree; the YBT degree machinery
+composing end-to-end on a real circuit class, no socket. -/
+theorem nw_modp_composition_degree_frontier (p n d : ℕ) [Fact p.Prime] :
+    ((MvPolynomial.bind₁ (fun _ : Fin n => ACC0PrimeMODMvPoly.modpPoly p n))^[d]
+      (ACC0PrimeMODMvPoly.modpPoly p n)).totalDegree ≤ (p - 1) ^ (d + 1) :=
+  ACC0ModpCompositionDegree.modp_composition_degree p n d
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
