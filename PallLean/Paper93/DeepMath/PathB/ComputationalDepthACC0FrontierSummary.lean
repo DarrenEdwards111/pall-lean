@@ -98,6 +98,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedAC0
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedModq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedSep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedPrimeSep
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedModqUniform
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6818,6 +6819,20 @@ theorem nw_acc02_not_subset_acc03_unbounded_frontier {m d t : ℕ} (ht1 : 1 ≤ 
       (∀ Cir : BoolCircuitSyntax (2 * m + 1), BoolCircuitSyntax.IsAC0pSyntax 3 Cir → Cir.depth ≤ d →
         Cir.eval = ACC0ParityBarrier.parityFn → 3 ^ t < 4 * (Layer3.subcircuits Cir).toFinset.card) :=
   ACC0UnboundedPrimeSep.acc02_not_subset_acc03_unbounded ht1 hm
+
+/-- **Bridge (MOD_q ∉ AC⁰[p], real model, single function): uniform residue-0 family no-go `modq_uniform_false_real`
+(PROVED).**  The single-`MOD_q` lower bound in unbounded fan-in: no uniform `AC⁰[p]` family computes `MOD_q` (residue-`0`
+indicator `[weight ≡ 0 mod q]`) — one circuit per arity, bounded depth/size — within the RS window (`q ∤ p`, `p,q` prime).
+Assembled via `Layer4.mod_q_family_false` (the real-model residue construction). -/
+theorem nw_modq_uniform_false_real_frontier (p q : ℕ) [Fact p.Prime] [Fact q.Prime] (hpq : ¬ q ∣ p)
+    {m t d : ℕ} (ht1 : 1 ≤ t) (hpt1 : 1 ≤ (p - 1) * t) (D : (N : ℕ) → BoolCircuitSyntax N)
+    (hD : ∀ N, ∀ x : Fin N → Bool,
+      (D N).eval x = decide ((Finset.univ.filter (fun i => x i = true)).card % q = 0))
+    (hDAC : ∀ N, BoolCircuitSyntax.IsAC0pSyntax p (D N))
+    (hDsize : ∀ N, 4 * q * ((Layer3.subcircuits (D N)).toFinset.card + ((2 * m + 1) + q)) ≤ p ^ t)
+    (hDdepth : ∀ N, (D N).depth ≤ d)
+    (hwindow : 16 * (((p - 1) * t) ^ d) ^ 2 < 2 * m + 3) : False :=
+  ACC0UnboundedModqUniform.modq_uniform_false_real p q hpq ht1 hpt1 D hD hDAC hDsize hDdepth hwindow
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
