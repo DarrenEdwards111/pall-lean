@@ -67,6 +67,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ReprPAndTerms
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndForm
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymEvalRepack
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymEvalFinM
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LowDegreeBarrier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6416,6 +6417,18 @@ theorem nw_reprP_hasSymAndForm_frontier {n p : ℕ} [Fact p.Prime] (C : ACC0Circ
           = ACC0SymmetricObserver.symEval (fun j x => ACC0PolyToSymAnd.monoAND (mono j) x) hh)
         ∧ m + 1 < 2 ^ n :=
   ACC0SymEvalFinM.reprP_hasSymAndForm C h hbudget
+
+/-- **Brick (low-degree barrier): the Razborov–Smolensky barrier from the AC⁰[p] representation `not_acc0p_of_no_lowdeg_repr`
+(PROVED).**  Since `AC⁰[p]` is exactly low-degree over `F_p` (`reprP`), any function with **no** degree-`≤D` `F_p`
+representation is not a bounded-degree `AC⁰[p]` circuit.  Feeding in the not-low-degree witness for `g` (e.g. `MOD_q`, `q≠p` —
+the RS lower bound) yields `g ∉ AC⁰[p]`. -/
+theorem nw_not_acc0p_of_no_lowdeg_repr_frontier {n p : ℕ} [Fact p.Prime] (f : (Fin n → Bool) → Bool) (D : ℕ)
+    (hno : ¬ ∃ P : MvPolynomial (Fin n) (ZMod p),
+        P.totalDegree ≤ D ∧ ∀ x, MvPolynomial.eval (fun i => (ACC0CircuitRepr.bv (x i) : ZMod p)) P
+          = ACC0CircuitRepr.bv (f x)) :
+    ¬ ∃ C : ACC0CircuitModel.ACC0Circuit n,
+        ACC0CircuitReprP.ModpOnly p C ∧ ACC0CircuitReprP.reprDegP p C ≤ D ∧ ACC0CircuitModel.eval C = f :=
+  ACC0LowDegreeBarrier.not_acc0p_of_no_lowdeg_repr f D hno
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
