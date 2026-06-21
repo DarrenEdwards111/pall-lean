@@ -62,6 +62,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnionBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0OrPolyPackage
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitRepr
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0OrPolyComposition
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitReprP
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6346,6 +6347,22 @@ theorem nw_orPoly_composition_degree_frontier (p n t d : ℕ) [Fact p.Prime] (a 
     ((MvPolynomial.bind₁ (fun _ : Fin n => ACC0OrPolyPackage.orPoly p n t a))^[d]
       (ACC0OrPolyPackage.orPoly p n t a)).totalDegree ≤ (t * (p - 1)) ^ (d + 1) :=
   ACC0OrPolyComposition.orPoly_composition_degree p n t d a
+
+/-- **Brick (AC⁰[p] repr): recursive faithful representation of AC⁰[p] circuits over `F_p` `reprP_eval` (PROVED).**  Every
+`AC⁰[p]` circuit (binary AND/OR/NOT + `MOD_p` gates) is represented *exactly* by `reprP C` over `F_p`, with `eval (bv ∘ x)
+(reprP C) = bv (ACC0Circuit.eval C x)` on all Boolean inputs, of degree `≤ reprDegP C`.  The `MOD_p` gate `[∑_{i∈S} xᵢ ≡ t]`
+is the Fermat indicator `1 - (∑_{i∈S} Xᵢ - t)^{p-1}`.  This is the object the RS separation runs on; `MOD_q` (`q≠p`) having no
+such representation is the lower bound's content. -/
+theorem nw_reprP_eval_frontier {n p : ℕ} [Fact p.Prime] (C : ACC0CircuitModel.ACC0Circuit n)
+    (x : Fin n → Bool) (h : ACC0CircuitReprP.ModpOnly p C) :
+    MvPolynomial.eval (fun i => (ACC0CircuitRepr.bv (x i) : ZMod p)) (ACC0CircuitReprP.reprP p C)
+      = ACC0CircuitRepr.bv (ACC0CircuitModel.eval C x) :=
+  ACC0CircuitReprP.reprP_eval C x h
+
+/-- **Brick (AC⁰[p] repr, cont.): the representation has degree at most `reprDegP` (PROVED).** -/
+theorem nw_reprP_totalDegree_le_frontier {n p : ℕ} [Fact p.Prime] (C : ACC0CircuitModel.ACC0Circuit n) :
+    (ACC0CircuitReprP.reprP p C).totalDegree ≤ ACC0CircuitReprP.reprDegP p C :=
+  ACC0CircuitReprP.reprP_totalDegree_le C
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
