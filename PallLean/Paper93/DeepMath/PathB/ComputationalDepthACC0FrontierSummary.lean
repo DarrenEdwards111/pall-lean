@@ -66,6 +66,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitReprP
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ReprPAndTerms
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndForm
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymEvalRepack
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymEvalFinM
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6401,6 +6402,20 @@ theorem nw_reprP_symEval_frontier {n p : ℕ} [Fact p.Prime] (C : ACC0CircuitMod
     (x : Fin n → Bool) (h : ACC0CircuitReprP.ModpOnly p C) :
     ACC0CircuitModel.eval C x = decide ((ACC0SymEvalRepack.repCount (ACC0CircuitReprP.reprP p C) x : ZMod p) = 1) :=
   ACC0SymEvalRepack.reprP_symEval C x h
+
+/-- **Brick (Fin m symEval): the literal `HasExactSymAndForm` object for AC⁰[p] `reprP_hasSymAndForm` (PROVED).**  Realising
+`repCount` as the tree's literal `Fin m` `gateCount` (replicate each `AND`-gate by its coefficient): for an `AC⁰[p]` circuit
+`C` under the size budget, `∃ m mono h, eval C = symEval (monoAND ∘ mono) h ∧ m+1 < 2^n` — the exact `SYM∘AND` normal-form
+object, completed for `AC⁰[p]`. -/
+theorem nw_reprP_hasSymAndForm_frontier {n p : ℕ} [Fact p.Prime] (C : ACC0CircuitModel.ACC0Circuit n)
+    (h : ACC0CircuitReprP.ModpOnly p C)
+    (hbudget : (∑ e ∈ (ACC0CircuitReprP.reprP p C).support,
+      (MvPolynomial.coeff e (ACC0CircuitReprP.reprP p C)).val) + 1 < 2 ^ n) :
+    ∃ (m : ℕ) (mono : Fin m → Finset (Fin n)) (hh : ℕ → Bool),
+      (ACC0CircuitModel.eval C
+          = ACC0SymmetricObserver.symEval (fun j x => ACC0PolyToSymAnd.monoAND (mono j) x) hh)
+        ∧ m + 1 < 2 ^ n :=
+  ACC0SymEvalFinM.reprP_hasSymAndForm C h hbudget
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
