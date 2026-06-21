@@ -81,6 +81,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqInfiniteSet
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ToBoolSyntax
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Layer4Discharge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ResidueFamily
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PinSize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6600,6 +6601,15 @@ theorem nw_weight_extend_frontier {n k : ℕ} (x : Fin n → Bool) :
     (Finset.univ.filter (fun i : Fin (n + k) => ACC0ResidueFamily.extend x i = true)).card
       = (Finset.univ.filter (fun i : Fin n => x i = true)).card + k :=
   ACC0ResidueFamily.weight_extend x
+
+/-- **Bridge (size bound through `pinTrue`): subcircuit count monotone under input-pinning `pinTrue_card_le` (PROVED).**
+`pinTrue` only shrinks circuits (var→leaf, mod support shrinks), so the translated pinned circuit's subcircuit count is bounded
+by the original's subcircuit-list length — transferring a residue-`0` size bound to every pinned residue indicator (feeding
+`modq_indicators_false_acc0`'s subcircuit-count hypothesis). -/
+theorem nw_pinTrue_card_le_frontier {n k : ℕ} (C : ACC0CircuitModel.ACC0Circuit (n + k)) :
+    (Layer3.subcircuits (ACC0ToBoolSyntax.toBoolSyntax (ACC0ResidueFamily.pinTrue C))).toFinset.card
+      ≤ (Layer3.subcircuits (ACC0ToBoolSyntax.toBoolSyntax C)).length :=
+  ACC0PinSize.pinTrue_card_le C
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
