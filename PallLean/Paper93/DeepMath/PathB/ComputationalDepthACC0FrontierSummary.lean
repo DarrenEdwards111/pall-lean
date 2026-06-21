@@ -76,6 +76,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CharWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqFourier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqPeriod
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqInfinite
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6524,6 +6525,17 @@ theorem nw_modq_not_acc0p_depth_period_frontier {n p : ℕ} [Fact p.Prime] (hp2 
         ACC0CircuitReprP.ModpOnly p C ∧ ACC0CircuitModel.depth C ≤ d
           ∧ ACC0CircuitModel.eval C = ACC0ModqWitness.modqFn q :=
   ACC0ModqPeriod.modq_not_acc0p_depth_period hp2 q hq2 hq ζ hord hn1 hper hd
+
+/-- **Brick (MOD_q infinite): `MOD_q ∉` constant-depth `AC⁰[p]` for arbitrarily large arities `exists_large_arity_modq_not_acc0p`
+(PROVED).**  The asymptotic form: since `n ≡ 1 mod (p−1)` admits infinitely many `n`, for every `N` there is `n > N` with the
+`n`-ary `MOD_q` not computed by any depth-`d` `AC⁰[p]` circuit — the standard "infinitely many `n`" `q>2` Razborov–Smolensky
+separation, unconditional. -/
+theorem nw_exists_large_arity_modq_not_acc0p_frontier {p : ℕ} [Fact p.Prime] (hp2 : p ≠ 2) (q : ℕ)
+    (hq2 : 2 ≤ q) (hq : (q : ZMod p) ≠ 0) (ζ : ZMod p) (hord : orderOf ζ = q) (d : ℕ) (N : ℕ) :
+    ∃ n : ℕ, N < n ∧ ¬ ∃ C : ACC0CircuitModel.ACC0Circuit n,
+      ACC0CircuitReprP.ModpOnly p C ∧ ACC0CircuitModel.depth C ≤ d
+        ∧ ACC0CircuitModel.eval C = ACC0ModqWitness.modqFn q :=
+  ACC0ModqInfinite.exists_large_arity_modq_not_acc0p hp2 q hq2 hq ζ hord d N
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
