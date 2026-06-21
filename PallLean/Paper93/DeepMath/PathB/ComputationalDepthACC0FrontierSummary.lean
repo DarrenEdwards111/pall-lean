@@ -63,6 +63,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0OrPolyPackage
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitRepr
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0OrPolyComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitReprP
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ReprPAndTerms
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6363,6 +6364,21 @@ theorem nw_reprP_eval_frontier {n p : ℕ} [Fact p.Prime] (C : ACC0CircuitModel.
 theorem nw_reprP_totalDegree_le_frontier {n p : ℕ} [Fact p.Prime] (C : ACC0CircuitModel.ACC0Circuit n) :
     (ACC0CircuitReprP.reprP p C).totalDegree ≤ ACC0CircuitReprP.reprDegP p C :=
   ACC0CircuitReprP.reprP_totalDegree_le C
+
+/-- **Brick (AC⁰[p] cash-out): AC⁰[p] circuits use `≤ (n+1)^{reprDegP C}` `AND`-terms `reprP_andTerms_card_le` (PROVED).**  The
+genuine size cash-out of the proven bricks: `reprP` (AC⁰[p] representation) ∘ `andTerms_card_le` (degree→AND-term bridge).
+Polynomial for constant depth, `< 2^n` under the degree budget — the size quantity the Williams/Route-B counting step
+consumes, discharged with real math for `AC⁰[p]`. -/
+theorem nw_reprP_andTerms_card_le_frontier {n p : ℕ} [Fact p.Prime] (C : ACC0CircuitModel.ACC0Circuit n) :
+    ((ACC0CircuitReprP.reprP p C).support.image (fun e => e.support)).card
+      ≤ (n + 1) ^ (ACC0CircuitReprP.reprDegP p C) :=
+  ACC0ReprPAndTerms.reprP_andTerms_card_le C
+
+/-- **Brick (AC⁰[p] cash-out, cont.): under the degree budget the `AND`-term count is `< 2^n` (PROVED).** -/
+theorem nw_reprP_andTerms_lt_frontier {n p : ℕ} [Fact p.Prime] (C : ACC0CircuitModel.ACC0Circuit n)
+    (hbudget : (n + 1) ^ (ACC0CircuitReprP.reprDegP p C) < 2 ^ n) :
+    ((ACC0CircuitReprP.reprP p C).support.image (fun e => e.support)).card < 2 ^ n :=
+  ACC0ReprPAndTerms.reprP_andTerms_lt C hbudget
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
