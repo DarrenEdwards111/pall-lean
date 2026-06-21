@@ -61,6 +61,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Amplify
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnionBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0OrPolyPackage
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitRepr
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0OrPolyComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6336,6 +6337,15 @@ theorem nw_circuitRepr_totalDegree_le_frontier {n : ℕ} {F : Type*} [CommRing F
     (C : ACC0CircuitModel.ACC0Circuit n) :
     (ACC0CircuitRepr.repr C : MvPolynomial (Fin n) F).totalDegree ≤ ACC0CircuitRepr.reprDeg C :=
   ACC0CircuitRepr.repr_totalDegree_le C
+
+/-- **Brick (approx wiring): depth-`d` composition of the approximate-`OR` keeps degree `≤ (t(p-1))^{d+1}`
+`orPoly_composition_degree` (PROVED).**  The degree side of the RS approximate-polynomial wiring through a circuit: composing
+the degree-`t(p-1)` `orPoly` across depth `d` (C-iterate) stays at degree `≤ (t(p-1))^{d+1}` — polylog for `t` polylog, `d`
+constant, hence quasipoly `AND`-terms via the bridge. -/
+theorem nw_orPoly_composition_degree_frontier (p n t d : ℕ) [Fact p.Prime] (a : Fin t → (Fin n → ZMod p)) :
+    ((MvPolynomial.bind₁ (fun _ : Fin n => ACC0OrPolyPackage.orPoly p n t a))^[d]
+      (ACC0OrPolyPackage.orPoly p n t a)).totalDegree ≤ (t * (p - 1)) ^ (d + 1) :=
+  ACC0OrPolyComposition.orPoly_composition_degree p n t d a
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
