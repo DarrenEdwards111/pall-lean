@@ -82,6 +82,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ToBoolSyntax
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Layer4Discharge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ResidueFamily
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PinSize
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqUniform
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6610,6 +6611,22 @@ theorem nw_pinTrue_card_le_frontier {n k : ℕ} (C : ACC0CircuitModel.ACC0Circui
     (Layer3.subcircuits (ACC0ToBoolSyntax.toBoolSyntax (ACC0ResidueFamily.pinTrue C))).toFinset.card
       ≤ (Layer3.subcircuits (ACC0ToBoolSyntax.toBoolSyntax C)).length :=
   ACC0PinSize.pinTrue_card_le C
+
+/-- **Bridge (final assembly): `MOD_q ∉ AC⁰[p]` from a uniform residue-`0` family `modq_not_acc0p_uniform` (PROVED).**  The
+Layer4 route, assembled end to end: if `MOD_q` (residue-`0` indicator) is computed by a uniform `AC⁰[p]` family — one circuit
+per arity, bounded depth and subcircuit-list size — then `False` in the Razborov–Smolensky window (`q ∤ p`, `p,q` prime).
+Each residue indicator `[weight ≡ j mod q]` at arity `2m+1` is built as `pinTrue (D ((2m+1)+(q−j)))` (residue shift), with
+`pinTrue` preserving `AC⁰[p]`/depth/size — contradicting `modq_indicators_false_acc0`. -/
+theorem nw_modq_not_acc0p_uniform_frontier (p q : ℕ) [Fact p.Prime] [Fact q.Prime] (hpq : ¬ q ∣ p)
+    {m t d : ℕ} (ht1 : 1 ≤ t) (hpt1 : 1 ≤ (p - 1) * t)
+    (hwindow : 16 * (((p - 1) * t) ^ d) ^ 2 < 2 * m + 3) (D : (N : ℕ) → ACC0CircuitModel.ACC0Circuit N)
+    (hDind : ∀ N, ∀ y : Fin N → Bool, ACC0CircuitModel.eval (D N) y
+      = decide ((Finset.univ.filter (fun i => y i = true)).card % q = 0))
+    (hDmod : ∀ N, ACC0CircuitReprP.ModpOnly p (D N))
+    (hDdepth : ∀ N, BoolCircuitSyntax.depth (ACC0ToBoolSyntax.toBoolSyntax (D N)) ≤ d)
+    (hDsize : ∀ N, 4 * q * (Layer3.subcircuits (ACC0ToBoolSyntax.toBoolSyntax (D N))).length ≤ p ^ t) :
+    False :=
+  ACC0ModqUniform.modq_not_acc0p_uniform p q hpq ht1 hpt1 hwindow D hDind hDmod hDdepth hDsize
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
