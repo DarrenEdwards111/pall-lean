@@ -361,6 +361,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EndMatc
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EndMismatch
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EndMismatchRC
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ReadSymbol
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3GotoConfig
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -6039,6 +6040,17 @@ theorem nw_readSymbolAt_run_O_frontier (s m1 cont m2 sI sO : ℕ) (tp : List ACC
     ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3ReadSymbol.readSymbolAt s m1 cont m2 sI sO)) N
       (s, fs, tp) (sO, fs + a + 1, tp) :=
   ACC0UniversalTM3ReadSymbol.readSymbolAt_run_O s m1 cont m2 sI sO tp a fs hones hsep hsym hbound
+
+/-- **Entry 485: return to the config start `gotoConfigStart_run` (PROVED).**  Reposition the head at the config field start
+(cell 1) by seeking left to the home marker (cell 0) and stepping right — the navigation glue for the symbol compare and
+general re-positioning. -/
+theorem nw_gotoConfigStart_run_frontier (s mid found cont p : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hmark : tp.getD 0 ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hclean : ∀ k, 0 < k → k ≤ p → tp.getD k ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hp : p < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3GotoConfig.gotoConfigStart s mid found cont)) N
+      (s, p, tp) (found, 1, tp) :=
+  ACC0UniversalTM3GotoConfig.gotoConfigStart_run s mid found cont p tp hmark hclean hp
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
