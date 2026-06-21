@@ -79,6 +79,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqPeriod
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqInfinite
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqInfiniteSet
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ToBoolSyntax
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Layer4Discharge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6563,6 +6564,22 @@ theorem nw_toBoolSyntax_isAC0p_frontier {n p : ℕ} (C : ACC0CircuitModel.ACC0Ci
     (h : ACC0CircuitReprP.ModpOnly p C) :
     BoolCircuitSyntax.IsAC0pSyntax p (ACC0ToBoolSyntax.toBoolSyntax C) :=
   ACC0ToBoolSyntax.toBoolSyntax_isAC0p p C h
+
+/-- **Bridge (Layer4 discharge): the `MOD_q` residue-indicator family lower bound in the `ACC0Circuit` model
+`modq_indicators_false_acc0` (PROVED).**  Discharges `Layer4.mod_q_indicators_false` via the model translation: no `AC⁰[p]`
+`ACC0Circuit` family computes all `q` residue indicators `[weight ≡ j mod q]` (`q ∤ p`, `p,q` prime) within the RS depth/size
+window — the genuine RS family bound, native to this framework.  (Single `MOD_q` all-`n` would need the residue-family
+construction — separate, not done.) -/
+theorem nw_modq_indicators_false_acc0_frontier (p q : ℕ) [Fact p.Prime] [Fact q.Prime] (hpq : ¬ q ∣ p)
+    {m t d : ℕ} (ht1 : 1 ≤ t) (hpt1 : 1 ≤ (p - 1) * t) (C : ℕ → ACC0CircuitModel.ACC0Circuit (2 * m + 1))
+    (hmod : ∀ j ∈ Finset.range q, ACC0CircuitReprP.ModpOnly p (C j))
+    (hind : ∀ j ∈ Finset.range q, ∀ x : Fin (2 * m + 1) → Bool,
+      ACC0CircuitModel.eval (C j) x = decide ((Finset.univ.filter (fun i => x i = true)).card % q = j))
+    (hsize : ∀ j ∈ Finset.range q,
+      4 * q * (Layer3.subcircuits (ACC0ToBoolSyntax.toBoolSyntax (C j))).toFinset.card ≤ p ^ t)
+    (hdepth : ∀ j ∈ Finset.range q, BoolCircuitSyntax.depth (ACC0ToBoolSyntax.toBoolSyntax (C j)) ≤ d)
+    (hwindow : 16 * (((p - 1) * t) ^ d) ^ 2 < 2 * m + 3) : False :=
+  ACC0Layer4Discharge.modq_indicators_false_acc0 p q hpq ht1 hpt1 C hmod hind hsize hdepth hwindow
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
