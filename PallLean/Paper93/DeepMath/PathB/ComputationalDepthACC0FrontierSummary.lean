@@ -47,6 +47,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMODFactor
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimeMODLowDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SquarefreeMOD
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimeMODMvPoly
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MonomialCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6167,6 +6168,13 @@ theorem nw_modp_iff_modpPoly_frontier (p n : ℕ) [Fact p.Prime] (x : Fin n → 
     (ACC0CompositeBT.hammingWeight x : ZMod p) = 0 ↔
       MvPolynomial.eval (fun i => if x i then (1 : ZMod p) else 0) (ACC0PrimeMODMvPoly.modpPoly p n) = 0 :=
   ACC0PrimeMODMvPoly.modp_iff_modpPoly p n x
+
+/-- **Brick D: quasipolynomial monomial count for `SYM∘AND` packaging `degLeMonomials_card_le` (PROVED).**  A degree-`≤ D`
+polynomial has at most `(n+1)^D` monomials (subsets of size `≤ D`, each an `AND` of `≤ D` variables) — quasipolynomial for
+`D = polylog`, the size guarantee of the `SYM∘AND` form.  Via a surjection from `Fin D → Option (Fin n)`. -/
+theorem nw_degLeMonomials_card_le_frontier (n D : ℕ) :
+    (ACC0MonomialCount.degLeMonomials n D).card ≤ (n + 1) ^ D :=
+  ACC0MonomialCount.degLeMonomials_card_le n D
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
