@@ -64,6 +64,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitRepr
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0OrPolyComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitReprP
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ReprPAndTerms
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndForm
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6379,6 +6380,17 @@ theorem nw_reprP_andTerms_lt_frontier {n p : ℕ} [Fact p.Prime] (C : ACC0Circui
     (hbudget : (n + 1) ^ (ACC0CircuitReprP.reprDegP p C) < 2 ^ n) :
     ((ACC0CircuitReprP.reprP p C).support.image (fun e => e.support)).card < 2 ^ n :=
   ACC0ReprPAndTerms.reprP_andTerms_lt C hbudget
+
+/-- **Brick (SYM∘AND form): the AC⁰[p] value as an `F_p`-weighted sum over `AND`-gates `reprP_eq_sum_andTerms` (PROVED).**  The
+`SYM∘AND` form object built from `reprP`: `bv(eval C x) = ∑_{e ∈ support} coeff e (reprP p C) · andVal(e.support) x`, where
+`andVal S x = bv(monoAND S x)` is the `AND`-gate value — the `AND`-gate layer with an `F_p`-linear `SYM` summation gate,
+faithful on all Boolean inputs (`≤ (n+1)^{reprDegP C}` `AND`-terms). -/
+theorem nw_reprP_eq_sum_andTerms_frontier {n p : ℕ} [Fact p.Prime] (C : ACC0CircuitModel.ACC0Circuit n)
+    (x : Fin n → Bool) (h : ACC0CircuitReprP.ModpOnly p C) :
+    (ACC0CircuitRepr.bv (ACC0CircuitModel.eval C x) : ZMod p)
+      = ∑ e ∈ (ACC0CircuitReprP.reprP p C).support,
+          MvPolynomial.coeff e (ACC0CircuitReprP.reprP p C) * ACC0SymAndForm.andVal e.support x :=
+  ACC0SymAndForm.reprP_eq_sum_andTerms C x h
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
