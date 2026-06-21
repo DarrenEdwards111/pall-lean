@@ -51,6 +51,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MonomialCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModSymAndForm
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DegreeCompose
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DepthDegree
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerMOD
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6213,6 +6214,16 @@ theorem nw_totalDegree_bind₁_iterate_frontier {σ R : Type*} [CommSemiring R] 
     (hg : ∀ i, (g i).totalDegree ≤ D) (P : MvPolynomial σ R) (d : ℕ) :
     ((MvPolynomial.bind₁ g)^[d] P).totalDegree ≤ P.totalDegree * D ^ d :=
   ACC0DepthDegree.totalDegree_bind₁_iterate g D hg P d
+
+/-- **Brick A.3: prime-power `MOD_{p^e}` — single gate done, composition obstruction honest.**  A single `MOD_{p^e}` gate is
+a symmetric function of the weight, so it has the exact `SYM∘AND` form (Brick D-assembly, any modulus).  With A.1 this closes
+the single-gate case for *every* modulus.  The composition-level low-degree lift for `e≥2` has no clean `F_p`/`ZMod (p^e)`
+form (RS-barrier-adjacent) and is the genuine open Toda content — NOT faked. -/
+theorem nw_primePowerMod_hasExactSymAndForm_frontier (p e : ℕ) {n : ℕ} (hn : n + 1 < 2 ^ n) :
+    ∃ (M : ℕ) (mono : Fin M → Finset (Fin n)) (h : ℕ → Bool),
+      (ACC0ModSymAndForm.modGateFn (p ^ e) : (Fin n → Bool) → Bool)
+        = ACC0SymmetricObserver.symEval (fun j x => ACC0PolyToSymAnd.monoAND (mono j) x) h ∧ M + 1 < 2 ^ n :=
+  ACC0PrimePowerMOD.primePowerMod_hasExactSymAndForm p e hn
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
