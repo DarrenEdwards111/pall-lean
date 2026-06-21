@@ -90,6 +90,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqSuperpoly
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ParityAC0
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqAC0
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0StrictSep
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimeSep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6716,6 +6717,15 @@ theorem nw_ac0_strict_subset_acc02_frontier {n d : ℕ} (hd : 2 * 2 ^ d < n) :
       ¬ ∃ C : ACC0CircuitModel.ACC0Circuit n, ACC0ParityAC0.ModFree C
         ∧ ACC0CircuitModel.depth C ≤ d ∧ ACC0CircuitModel.eval C = ACC0ParityBarrier.parityFn :=
   ACC0StrictSep.ac0_strict_subset_acc02 hd
+
+/-- **Bridge (AC⁰[2] ⊄ AC⁰[3]): the prime modulus matters `acc02_not_subset_acc03` (PROVED).**  `PARITY` lies in `AC⁰[2]`
+(one `MOD_2` gate) but not in `AC⁰[3]` (RS at odd prime `3`, all `n`), so the `MOD`-prime classes differ: `AC⁰[2] ≠ AC⁰[3]`. -/
+theorem nw_acc02_not_subset_acc03_frontier {n d : ℕ} (hd : 2 * 2 ^ d < n) :
+    (∃ C : ACC0CircuitModel.ACC0Circuit n, ACC0CircuitReprP.ModpOnly 2 C
+        ∧ ACC0CircuitModel.depth C ≤ 1 ∧ ACC0CircuitModel.eval C = ACC0ParityBarrier.parityFn) ∧
+      ¬ ∃ C : ACC0CircuitModel.ACC0Circuit n, ACC0CircuitReprP.ModpOnly 3 C
+        ∧ ACC0CircuitModel.depth C ≤ d ∧ ACC0CircuitModel.eval C = ACC0ParityBarrier.parityFn :=
+  ACC0PrimeSep.acc02_not_subset_acc03 hd
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
