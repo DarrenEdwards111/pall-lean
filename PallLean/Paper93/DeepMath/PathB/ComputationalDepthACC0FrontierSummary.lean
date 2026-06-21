@@ -75,6 +75,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DepthDegreeBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CharWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqFourier
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqPeriod
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6511,6 +6512,18 @@ theorem nw_Dsign_modq_frontier {n p : ℕ} [Fact p.Prime] (q : ℕ) (hq : (q : Z
         * (ACC0CircuitRepr.bv (ACC0ModqWitness.modqFn q x) : ZMod p))
       = (q : ZMod p)⁻¹ * ∑ j ∈ Finset.range q, (1 - ζ ^ j) ^ n :=
   ACC0ModqFourier.Dsign_modq q hq ζ hord
+
+/-- **Brick (MOD_q period): unconditional `MOD_q ∉` constant-depth `AC⁰[p]` for `n ≡ 1 mod (p−1)` `modq_not_acc0p_depth_period`
+(PROVED).**  By Fermat periodicity `(1−ζʲ)^n = 1−ζʲ` for `n ≡ 1 mod (p−1)`, so `Dsign(MOD_q) = q⁻¹·q = 1 ≠ 0`, discharging the
+conditional separation: `MOD_q ∉` depth-`d` `AC⁰[p]` *unconditionally* for every `n ≡ 1 mod (p−1)` with `(p−1)·2^d < n` (`ζ` a
+primitive `q`-th root, `q ∣ p−1`). -/
+theorem nw_modq_not_acc0p_depth_period_frontier {n p : ℕ} [Fact p.Prime] (hp2 : p ≠ 2) (q : ℕ) (hq2 : 2 ≤ q)
+    (hq : (q : ZMod p) ≠ 0) (ζ : ZMod p) (hord : orderOf ζ = q) (hn1 : 1 ≤ n) (hper : (p - 1) ∣ (n - 1))
+    {d : ℕ} (hd : (p - 1) * 2 ^ d < n) :
+    ¬ ∃ C : ACC0CircuitModel.ACC0Circuit n,
+        ACC0CircuitReprP.ModpOnly p C ∧ ACC0CircuitModel.depth C ≤ d
+          ∧ ACC0CircuitModel.eval C = ACC0ModqWitness.modqFn q :=
+  ACC0ModqPeriod.modq_not_acc0p_depth_period hp2 q hq2 hq ζ hord hn1 hper hd
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
