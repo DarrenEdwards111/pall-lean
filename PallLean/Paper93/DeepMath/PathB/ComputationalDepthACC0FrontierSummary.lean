@@ -92,6 +92,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqAC0
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0StrictSep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimeSep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0StrictSep3
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultiMod
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6738,6 +6739,16 @@ theorem nw_ac0_strict_subset_acc03_frontier {n : ℕ} (hn1 : 1 ≤ n) (hper : 6 
       ¬ ∃ C : ACC0CircuitModel.ACC0Circuit n, ACC0ParityAC0.ModFree C
         ∧ ACC0CircuitModel.depth C ≤ d ∧ ACC0CircuitModel.eval C = ACC0ModqWitness.modqFn 3 :=
   ACC0StrictSep3.ac0_strict_subset_acc03 hn1 hper hd
+
+/-- **Bridge (AC⁰[3] ⊊ AC⁰[{2,3}]): adding moduli strictly grows the class `acc03_strict_subset_acc023` (PROVED).**  With
+`AC⁰[{2,3}]` = circuits whose `MOD` gates use modulus `2` or `3` (`ModIn23`), `AC⁰[3] ⊆ AC⁰[{2,3}]` (`modpOnly3_modIn23`)
+strictly: `PARITY` is a single `MOD_2` gate (∈ `AC⁰[{2,3}]`) but `PARITY ∉ AC⁰[3]`.  So granting a new prime strictly helps. -/
+theorem nw_acc03_strict_subset_acc023_frontier {n d : ℕ} (hd : 2 * 2 ^ d < n) :
+    (∃ C : ACC0CircuitModel.ACC0Circuit n, ACC0MultiMod.ModIn23 C
+        ∧ ACC0CircuitModel.depth C ≤ 1 ∧ ACC0CircuitModel.eval C = ACC0ParityBarrier.parityFn) ∧
+      ¬ ∃ C : ACC0CircuitModel.ACC0Circuit n, ACC0CircuitReprP.ModpOnly 3 C
+        ∧ ACC0CircuitModel.depth C ≤ d ∧ ACC0CircuitModel.eval C = ACC0ParityBarrier.parityFn :=
+  ACC0MultiMod.acc03_strict_subset_acc023 hd
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
