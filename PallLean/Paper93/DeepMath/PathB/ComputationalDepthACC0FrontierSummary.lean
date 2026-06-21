@@ -363,6 +363,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EndMism
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ReadSymbol
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3GotoConfig
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ConfigSymbol
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SymbolCompare
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -6078,6 +6079,28 @@ theorem nw_configSymbolVerdict_run_O_frontier (s gm gf gc rm rc rm2 sI sO : ℕ)
       (ACC0UniversalTM3ConfigSymbol.configSymbolVerdict s gm gf gc rm rc rm2 sI sO)) N (s, p, tp) (sO, 1 + ac + 1, tp) :=
   ACC0UniversalTM3ConfigSymbol.configSymbolVerdict_run_O s gm gf gc rm rc rm2 sI sO tp p ac hmark hclean hp hcones hcsep
     hcsym hcbound
+
+/-- **Entry 487: the full symbol compare `symbolCompare_run` (PROVED).**  Read the record symbol (484), then read the config
+symbol (486) with verdict states wired so equal symbols reach `matchSt` and unequal reach `failSt`: `reach (if rsym = csym
+then matchSt else failSt)`. -/
+theorem nw_symbolCompare_run_frontier
+    (s rm1 rcont rm2 sRecI sRecO igm igf igc irm irc irm2 ogm ogf ogc orm orc orm2 matchSt failSt : ℕ)
+    (tp : List ACC0UniversalTM3Sym.Sym3) (fsR ar ac : ℕ) (rsym csym : Bool)
+    (hRones : ∀ k, k < ar → tp.getD (fsR + k) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hRsep : tp.getD (fsR + ar) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hRsym : tp.getD (fsR + ar + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3EncTrans.boolToSym3 rsym)
+    (hRbound : fsR + ar + 1 < tp.length)
+    (hmark : tp.getD 0 ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hclean : ∀ k, 0 < k → k ≤ fsR + ar + 1 → tp.getD k ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hCones : ∀ k, k < ac → tp.getD (1 + k) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hCsep : tp.getD (1 + ac) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hCsym : tp.getD (1 + ac + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3EncTrans.boolToSym3 csym)
+    (hCbound : 1 + ac + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3SymbolCompare.symbolCompare s rm1 rcont rm2 sRecI
+      sRecO igm igf igc irm irc irm2 ogm ogf ogc orm orc orm2 matchSt failSt)) N (s, fsR, tp)
+      ((if rsym = csym then matchSt else failSt), 1 + ac + 1, tp) :=
+  ACC0UniversalTM3SymbolCompare.symbolCompare_run s rm1 rcont rm2 sRecI sRecO igm igf igc irm irc irm2 ogm ogf ogc orm orc
+    orm2 matchSt failSt tp fsR ar ac rsym csym hRones hRsep hRsym hRbound hmark hclean hCones hCsep hCsym hCbound
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
