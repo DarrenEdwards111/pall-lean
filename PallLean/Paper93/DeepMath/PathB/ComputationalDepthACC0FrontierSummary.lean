@@ -77,6 +77,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqFourier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqPeriod
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqInfinite
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqInfiniteSet
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6536,6 +6537,16 @@ theorem nw_exists_large_arity_modq_not_acc0p_frontier {p : ℕ} [Fact p.Prime] (
       ACC0CircuitReprP.ModpOnly p C ∧ ACC0CircuitModel.depth C ≤ d
         ∧ ACC0CircuitModel.eval C = ACC0ModqWitness.modqFn q :=
   ACC0ModqInfinite.exists_large_arity_modq_not_acc0p hp2 q hq2 hq ζ hord d N
+
+/-- **Brick (MOD_q infinite set): the `MOD_q`-hard arities form an infinite set `modq_hard_arities_infinite` (PROVED).**  The
+set `{n | MOD_q ∉ depth-d AC⁰[p]}` is `Set.Infinite` — the standard set-theoretic form of the unconditional `q>2`
+Razborov–Smolensky separation (from unboundedness of the `n ≡ 1 mod (p−1)` family). -/
+theorem nw_modq_hard_arities_infinite_frontier {p : ℕ} [Fact p.Prime] (hp2 : p ≠ 2) (q : ℕ) (hq2 : 2 ≤ q)
+    (hq : (q : ZMod p) ≠ 0) (ζ : ZMod p) (hord : orderOf ζ = q) (d : ℕ) :
+    {n : ℕ | ¬ ∃ C : ACC0CircuitModel.ACC0Circuit n,
+        ACC0CircuitReprP.ModpOnly p C ∧ ACC0CircuitModel.depth C ≤ d
+          ∧ ACC0CircuitModel.eval C = ACC0ModqWitness.modqFn q}.Infinite :=
+  ACC0ModqInfiniteSet.modq_hard_arities_infinite hp2 q hq2 hq ζ hord d
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
