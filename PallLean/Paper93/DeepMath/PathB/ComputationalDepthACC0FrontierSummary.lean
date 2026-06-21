@@ -80,6 +80,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqInfinite
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqInfiniteSet
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ToBoolSyntax
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Layer4Discharge
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ResidueFamily
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6580,6 +6581,25 @@ theorem nw_modq_indicators_false_acc0_frontier (p q : ℕ) [Fact p.Prime] [Fact 
     (hdepth : ∀ j ∈ Finset.range q, BoolCircuitSyntax.depth (ACC0ToBoolSyntax.toBoolSyntax (C j)) ≤ d)
     (hwindow : 16 * (((p - 1) * t) ^ d) ^ 2 < 2 * m + 3) : False :=
   ACC0Layer4Discharge.modq_indicators_false_acc0 p q hpq ht1 hpt1 C hmod hind hsize hdepth hwindow
+
+/-- **Bridge (residue-family construction): `pinTrue` arity-extension, eval-correct `pinTrue_residue_shift` (PROVED).**  The
+family-from-one operation: padding an input with `k` true bits raises weight by `k` (`weight_extend`), and the input-pinning
+circuit `pinTrue` realises it (`eval (pinTrue C) x = eval C (x⧺1ᵏ)`, AC⁰[p]/depth preserved).  So a residue-`0` `AC⁰[p]`
+circuit at arity `n+k`, pinned, computes `[weight(x)+k ≡ 0 mod q]` — building any residue indicator from one.  (The full
+single-`MOD_q` all-`n` discharge additionally needs the size bound through `pinTrue` + uniform family.) -/
+theorem nw_pinTrue_residue_shift_frontier {n k : ℕ} (q : ℕ) (C : ACC0CircuitModel.ACC0Circuit (n + k))
+    (x : Fin n → Bool)
+    (hC : ∀ y : Fin (n + k) → Bool, ACC0CircuitModel.eval C y
+      = decide ((Finset.univ.filter (fun i => y i = true)).card % q = 0)) :
+    ACC0CircuitModel.eval (ACC0ResidueFamily.pinTrue C) x
+      = decide (((Finset.univ.filter (fun i => x i = true)).card + k) % q = 0) :=
+  ACC0ResidueFamily.pinTrue_residue_shift q C x hC
+
+/-- **Bridge (residue-family construction, cont.): padding raises weight by `k` `weight_extend` (PROVED).** -/
+theorem nw_weight_extend_frontier {n k : ℕ} (x : Fin n → Bool) :
+    (Finset.univ.filter (fun i : Fin (n + k) => ACC0ResidueFamily.extend x i = true)).card
+      = (Finset.univ.filter (fun i : Fin n => x i = true)).card + k :=
+  ACC0ResidueFamily.weight_extend x
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
