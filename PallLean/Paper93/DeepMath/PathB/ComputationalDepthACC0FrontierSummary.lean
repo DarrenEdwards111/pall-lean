@@ -53,6 +53,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DegreeCompose
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DepthDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerMOD
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpCompositionDegree
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Multilinearize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6234,6 +6235,20 @@ theorem nw_modp_composition_degree_frontier (p n d : ℕ) [Fact p.Prime] :
     ((MvPolynomial.bind₁ (fun _ : Fin n => ACC0PrimeMODMvPoly.modpPoly p n))^[d]
       (ACC0PrimeMODMvPoly.modpPoly p n)).totalDegree ≤ (p - 1) ^ (d + 1) :=
   ACC0ModpCompositionDegree.modp_composition_degree p n d
+
+/-- **Bridge: degree ⇒ quasipoly `AND`-term count `composed_andTerms_card_le` (PROVED).**  Multilinearization: on Boolean
+inputs a degree-`≤D` polynomial uses `≤ (n+1)^D` distinct `AND`-terms (variable-sets, `degLeMonomials`/Brick D).  With
+C-iterate, a depth-`d` composition uses `≤ (n+1)^{deg·D^d}` `AND`-terms — quasipoly for constant `d`, the `SYM∘AND` size. -/
+theorem nw_andTerms_card_le_frontier {n : ℕ} {R : Type*} [CommSemiring R] (P : MvPolynomial (Fin n) R) (D : ℕ)
+    (hP : P.totalDegree ≤ D) :
+    (P.support.image (fun e => e.support)).card ≤ (n + 1) ^ D :=
+  ACC0Multilinearize.andTerms_card_le P D hP
+
+/-- **Bridge (cont.): a depth-`d` composition uses `≤ (n+1)^{deg·D^d}` `AND`-terms (PROVED).** -/
+theorem nw_composed_andTerms_card_le_frontier {n : ℕ} {R : Type*} [CommSemiring R] (g : Fin n → MvPolynomial (Fin n) R)
+    (D : ℕ) (hg : ∀ i, (g i).totalDegree ≤ D) (P : MvPolynomial (Fin n) R) (d : ℕ) :
+    (((MvPolynomial.bind₁ g)^[d] P).support.image (fun e => e.support)).card ≤ (n + 1) ^ (P.totalDegree * D ^ d) :=
+  ACC0Multilinearize.composed_andTerms_card_le g D hg P d
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
