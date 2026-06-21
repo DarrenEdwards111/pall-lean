@@ -68,6 +68,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndForm
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymEvalRepack
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymEvalFinM
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LowDegreeBarrier
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountingWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6429,6 +6430,16 @@ theorem nw_not_acc0p_of_no_lowdeg_repr_frontier {n p : ℕ} [Fact p.Prime] (f : 
     ¬ ∃ C : ACC0CircuitModel.ACC0Circuit n,
         ACC0CircuitReprP.ModpOnly p C ∧ ACC0CircuitReprP.reprDegP p C ≤ D ∧ ACC0CircuitModel.eval C = f :=
   ACC0LowDegreeBarrier.not_acc0p_of_no_lowdeg_repr f D hno
+
+/-- **Brick (counting witness): some function has no low-degree `F_p` representation `exists_no_lowdeg_repr` (PROVED).**  The
+Shannon/counting witness in the barrier's shape: for `D < n` the degree-`≤D` representable functions number `≤ p^{|degLeMonomials|}
+< p^{2^n}`, so some `g` has no degree-`≤D` `F_p` representation — feeding the low-degree barrier.  (The *explicit* `MOD_q`
+witness is the RS lower bound, tree's `Layer4`/`Layer3Smolensky`; not re-proved.) -/
+theorem nw_exists_no_lowdeg_repr_frontier {n p D : ℕ} [Fact p.Prime] (h : D < n) :
+    ∃ g : (Fin n → Bool) → ZMod p,
+      ¬ ∃ P : MvPolynomial (Fin n) (ZMod p),
+        P.totalDegree ≤ D ∧ ∀ x, MvPolynomial.eval (fun i => (ACC0CircuitRepr.bv (x i) : ZMod p)) P = g x :=
+  ACC0CountingWitness.exists_no_lowdeg_repr h
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
