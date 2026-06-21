@@ -48,6 +48,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimeMODLowDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SquarefreeMOD
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimeMODMvPoly
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MonomialCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModSymAndForm
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6175,6 +6176,16 @@ polynomial has at most `(n+1)^D` monomials (subsets of size `≤ D`, each an `AN
 theorem nw_degLeMonomials_card_le_frontier (n D : ℕ) :
     (ACC0MonomialCount.degLeMonomials n D).card ≤ (n + 1) ^ D :=
   ACC0MonomialCount.degLeMonomials_card_le n D
+
+/-- **Brick D-assembly: a single `MOD_m` gate has an exact `SYM∘AND` form `modGate_hasExactSymAndForm` (PROVED).**  The gate
+is a symmetric function of the weight = `gateCount` of the `n` singleton `AND`s (`monoAND {i} = xᵢ`), so `MOD_m = symEval
+(singletons) (fun c => decide (m ∣ c))` — the `HasExactSymAndForm` shape with `M = n`, `n+1 < 2^n`.  (A single gate is the
+easy case; depth composition — where Brick D's `(n+1)^D` count applies — is the real YBT difficulty.) -/
+theorem nw_modGate_hasExactSymAndForm_frontier {n : ℕ} (m : ℕ) (hn : n + 1 < 2 ^ n) :
+    ∃ (M : ℕ) (mono : Fin M → Finset (Fin n)) (h : ℕ → Bool),
+      (ACC0ModSymAndForm.modGateFn m : (Fin n → Bool) → Bool)
+        = ACC0SymmetricObserver.symEval (fun j x => ACC0PolyToSymAnd.monoAND (mono j) x) h ∧ M + 1 < 2 ^ n :=
+  ACC0ModSymAndForm.modGate_hasExactSymAndForm m hn
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
