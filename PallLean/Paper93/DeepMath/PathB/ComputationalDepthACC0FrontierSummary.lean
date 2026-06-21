@@ -362,6 +362,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EndMism
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EndMismatchRC
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ReadSymbol
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3GotoConfig
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ConfigSymbol
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -6051,6 +6052,32 @@ theorem nw_gotoConfigStart_run_frontier (s mid found cont p : ℕ) (tp : List AC
     ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3GotoConfig.gotoConfigStart s mid found cont)) N
       (s, p, tp) (found, 1, tp) :=
   ACC0UniversalTM3GotoConfig.gotoConfigStart_run s mid found cont p tp hmark hclean hp
+
+/-- **Entry 486: read the config symbol `configSymbolVerdict_run_I`/`_O` (PROVED).**  From a record position, navigate to the
+config field start (`gotoConfigStart`, 485) and read the config symbol there (`readSymbolAt`, 484), routing on its value —
+the config-side half of the symbol compare. -/
+theorem nw_configSymbolVerdict_run_I_frontier (s gm gf gc rm rc rm2 sI sO : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (p ac : ℕ) (hmark : tp.getD 0 ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hclean : ∀ k, 0 < k → k ≤ p → tp.getD k ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M) (hp : p < tp.length)
+    (hcones : ∀ k, k < ac → tp.getD (1 + k) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hcsep : tp.getD (1 + ac) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hcsym : tp.getD (1 + ac + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I) (hcbound : 1 + ac + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
+      (ACC0UniversalTM3ConfigSymbol.configSymbolVerdict s gm gf gc rm rc rm2 sI sO)) N (s, p, tp) (sI, 1 + ac + 1, tp) :=
+  ACC0UniversalTM3ConfigSymbol.configSymbolVerdict_run_I s gm gf gc rm rc rm2 sI sO tp p ac hmark hclean hp hcones hcsep
+    hcsym hcbound
+
+/-- **Entry 486 (cont.): config symbol `O` ⇒ reach `sO` (PROVED).** -/
+theorem nw_configSymbolVerdict_run_O_frontier (s gm gf gc rm rc rm2 sI sO : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (p ac : ℕ) (hmark : tp.getD 0 ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hclean : ∀ k, 0 < k → k ≤ p → tp.getD k ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M) (hp : p < tp.length)
+    (hcones : ∀ k, k < ac → tp.getD (1 + k) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I)
+    (hcsep : tp.getD (1 + ac) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hcsym : tp.getD (1 + ac + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O) (hcbound : 1 + ac + 1 < tp.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3
+      (ACC0UniversalTM3ConfigSymbol.configSymbolVerdict s gm gf gc rm rc rm2 sI sO)) N (s, p, tp) (sO, 1 + ac + 1, tp) :=
+  ACC0UniversalTM3ConfigSymbol.configSymbolVerdict_run_O s gm gf gc rm rc rm2 sI sO tp p ac hmark hclean hp hcones hcsep
+    hcsym hcbound
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
