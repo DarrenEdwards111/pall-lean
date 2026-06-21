@@ -56,6 +56,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpCompositionDegr
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Multilinearize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndPoly
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0OrApprox
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Balancedness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6279,6 +6280,14 @@ theorem nw_orApprox_eval_of_form_ne_zero_frontier (p n : ℕ) [Fact p.Prime] (a 
     (h : (∑ i, a i * (if x i then (1 : ZMod p) else 0)) ≠ 0) :
     MvPolynomial.eval (fun i => if x i then (1 : ZMod p) else 0) (ACC0OrApprox.orApprox p n a) = 1 :=
   ACC0OrApprox.orApprox_eval_of_form_ne_zero p n a x h
+
+/-- **Brick (balancedness): a nonzero linear form over `F_p` vanishes with probability `1/p` `card_linearForm_eq_zero` (PROVED).**
+The genuine probabilistic heart of the RS `OR` approximator: for `x ≠ 0`, the linear functional `a ↦ ∑ᵢ xᵢ aᵢ` is surjective,
+so its zero-fiber (the kernel of a rank-1 map) has exactly `p^{n-1}` points — the bad set has measure `1/p`.  With
+`orApprox_eval_of_form_ne_zero`, a single random linear form computes `OR` with error `≤ 1/p`. -/
+theorem nw_card_linearForm_eq_zero_frontier (p n : ℕ) [Fact p.Prime] (x : Fin n → ZMod p) (hx : x ≠ 0) :
+    (Finset.univ.filter (fun a : Fin n → ZMod p => ∑ i, x i * a i = 0)).card = p ^ (n - 1) :=
+  ACC0Balancedness.card_linearForm_eq_zero p n x hx
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
