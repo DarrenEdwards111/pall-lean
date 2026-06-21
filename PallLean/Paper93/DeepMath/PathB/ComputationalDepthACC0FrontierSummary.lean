@@ -96,6 +96,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultiMod
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedParity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedAC0
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedModq
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedSep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6793,6 +6794,18 @@ theorem nw_modq_indicators_false_ac0_frontier (p q : ℕ) [Fact p.Prime] [Fact q
     (hdepth : ∀ j ∈ Finset.range q, (C j).depth ≤ d)
     (hwindow : 16 * (((p - 1) * t) ^ d) ^ 2 < 2 * m + 3) : False :=
   ACC0UnboundedModq.modq_indicators_false_ac0 p q hpq ht1 hpt1 C hCind hac ht hdepth hwindow
+
+/-- **Bridge (AC⁰ ⊊ AC⁰[2], real model): strict separation in unbounded fan-in `ac0_strict_subset_acc02_unbounded`
+(PROVED).**  `PARITY` is a depth-`1` `AC⁰[2]` circuit (one unbounded-fan-in `MOD_2` gate = `toBoolSyntax (mod 2 univ 1)`),
+but every depth-`d` `AC⁰` circuit computing it has `3^t < 4·#{subcircuits}` (super-poly).  So `AC⁰ ⊊ AC⁰[2]` in the real
+model. -/
+theorem nw_ac0_strict_subset_acc02_unbounded_frontier {m d t : ℕ} (ht1 : 1 ≤ t)
+    (hm : 8 * ((2 * t) ^ d) ^ 2 ≤ m) :
+    (∃ Cir : BoolCircuitSyntax (2 * m + 1), BoolCircuitSyntax.IsAC0pSyntax 2 Cir ∧ Cir.depth ≤ 1
+        ∧ Cir.eval = ACC0ParityBarrier.parityFn) ∧
+      (∀ Cir : BoolCircuitSyntax (2 * m + 1), BoolCircuitSyntax.IsAC0Syntax Cir → Cir.depth ≤ d →
+        Cir.eval = ACC0ParityBarrier.parityFn → 3 ^ t < 4 * (Layer3.subcircuits Cir).toFinset.card) :=
+  ACC0UnboundedSep.ac0_strict_subset_acc02_unbounded ht1 hm
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
