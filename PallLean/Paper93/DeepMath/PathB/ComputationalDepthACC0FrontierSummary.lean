@@ -99,6 +99,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedModq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedSep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedPrimeSep
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedModqUniform
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedModqAC0
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6833,6 +6834,19 @@ theorem nw_modq_uniform_false_real_frontier (p q : ℕ) [Fact p.Prime] [Fact q.P
     (hDdepth : ∀ N, (D N).depth ≤ d)
     (hwindow : 16 * (((p - 1) * t) ^ d) ^ 2 < 2 * m + 3) : False :=
   ACC0UnboundedModqUniform.modq_uniform_false_real p q hpq ht1 hpt1 D hD hDAC hDsize hDdepth hwindow
+
+/-- **Bridge (MOD_q ∉ AC⁰, real model, single function): uniform no-go in unbounded fan-in `modq_uniform_false_ac0_real`
+(PROVED).**  No uniform `AC⁰` (`MOD`-free) family computes `MOD_q` (residue-`0`) within the RS window — via `AC⁰ ⊆ AC⁰[p]`
+(`isAC0_isAC0p`) + the `AC⁰[p]` single-`MOD_q` no-go (`modq_uniform_false_real`). -/
+theorem nw_modq_uniform_false_ac0_real_frontier (p q : ℕ) [Fact p.Prime] [Fact q.Prime] (hpq : ¬ q ∣ p)
+    {m t d : ℕ} (ht1 : 1 ≤ t) (hpt1 : 1 ≤ (p - 1) * t) (D : (N : ℕ) → BoolCircuitSyntax N)
+    (hD : ∀ N, ∀ x : Fin N → Bool,
+      (D N).eval x = decide ((Finset.univ.filter (fun i => x i = true)).card % q = 0))
+    (hDAC : ∀ N, (D N).IsAC0Syntax)
+    (hDsize : ∀ N, 4 * q * ((Layer3.subcircuits (D N)).toFinset.card + ((2 * m + 1) + q)) ≤ p ^ t)
+    (hDdepth : ∀ N, (D N).depth ≤ d)
+    (hwindow : 16 * (((p - 1) * t) ^ d) ^ 2 < 2 * m + 3) : False :=
+  ACC0UnboundedModqAC0.modq_uniform_false_ac0_real p q hpq ht1 hpt1 D hD hDAC hDsize hDdepth hwindow
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
