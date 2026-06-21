@@ -65,6 +65,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0OrPolyComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitReprP
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ReprPAndTerms
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndForm
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymEvalRepack
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6391,6 +6392,15 @@ theorem nw_reprP_eq_sum_andTerms_frontier {n p : ℕ} [Fact p.Prime] (C : ACC0Ci
       = ∑ e ∈ (ACC0CircuitReprP.reprP p C).support,
           MvPolynomial.coeff e (ACC0CircuitReprP.reprP p C) * ACC0SymAndForm.andVal e.support x :=
   ACC0SymAndForm.reprP_eq_sum_andTerms C x h
+
+/-- **Brick (count-symEval): the AC⁰[p] value as a count-based symmetric function `reprP_symEval` (PROVED).**  Replicating each
+`AND`-gate by its coefficient, the plain count of accepting gates `repCount`, read mod `p`, recovers the circuit value:
+`eval C x = decide((repCount (reprP p C) x : ZMod p) = 1)` — the count-based `symEval` shape `h(count of accepting AND-gates)`
+with `h(c) = decide((c:ZMod p)=1)`. -/
+theorem nw_reprP_symEval_frontier {n p : ℕ} [Fact p.Prime] (C : ACC0CircuitModel.ACC0Circuit n)
+    (x : Fin n → Bool) (h : ACC0CircuitReprP.ModpOnly p C) :
+    ACC0CircuitModel.eval C x = decide ((ACC0SymEvalRepack.repCount (ACC0CircuitReprP.reprP p C) x : ZMod p) = 1) :=
+  ACC0SymEvalRepack.reprP_symEval C x h
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
