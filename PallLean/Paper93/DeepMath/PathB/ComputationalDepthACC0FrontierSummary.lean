@@ -453,6 +453,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0YBTSocketStrength
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsSocketMap
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyHierarchyEscape
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NFrameWilliamsRoute
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NFrameWilliamsAnatomy
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalSimulationOverhead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DecodeUniformity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RealizationClocking
@@ -6847,6 +6848,19 @@ theorem nw_modq_uniform_false_ac0_real_frontier (p q : ℕ) [Fact p.Prime] [Fact
     (hDdepth : ∀ N, (D N).depth ≤ d)
     (hwindow : 16 * (((p - 1) * t) ^ d) ^ 2 < 2 * m + 3) : False :=
   ACC0UnboundedModqAC0.modq_uniform_false_ac0_real p q hpq ht1 hpt1 D hD hDAC hDsize hDdepth hwindow
+
+/-- **Bridge (Williams via N-Frame, honest anatomy): the algorithmic-method collapse socket is separation-strength
+`nframe_collapse_socket_iff_separation` (PROVED).**  Given the (proved-structure) N-Frame counting route + uniform
+realization socket + the nondeterministic time hierarchy, the collapse socket holds *iff* `NEXP ⊄ ACC⁰` — so the Williams/
+N-Frame route does NOT reduce the separation to anything weaker (the load-bearing socket IS the separation). Self-audit, no
+fake closure. -/
+theorem nw_nframe_collapse_socket_iff_separation_frontier
+    (ACC0 : ACC0WilliamsMetaTheorem.CClass) (f g : ℕ → ℕ) (speedup : Prop)
+    (routeGivesSpeedup : ACC0NFrameWilliamsRoute.NFrameWilliamsRoute → speedup)
+    (hierarchy : ¬ (ACC0NTM.NTIME f ⊆ ACC0NTM.NTIME g))
+    (route : ACC0NFrameWilliamsRoute.NFrameWilliamsRoute) :
+    (speedup → ACC0NTM.NEXP ⊆ ACC0 → ACC0NTM.NTIME f ⊆ ACC0NTM.NTIME g) ↔ ¬ (ACC0NTM.NEXP ⊆ ACC0) :=
+  ACC0NFrameWilliamsAnatomy.nframe_collapse_socket_iff_separation ACC0 f g speedup routeGivesSpeedup hierarchy route
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
