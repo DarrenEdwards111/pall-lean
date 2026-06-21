@@ -71,6 +71,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LowDegreeBarrier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountingWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ParityWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ParityBarrier
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DepthDegreeBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6462,6 +6463,17 @@ theorem nw_parityFn_not_acc0p_frontier {n p : ℕ} [Fact p.Prime] (hp2 : p ≠ 2
         ACC0CircuitReprP.ModpOnly p C ∧ ACC0CircuitReprP.reprDegP p C ≤ D
           ∧ ACC0CircuitModel.eval C = ACC0ParityBarrier.parityFn :=
   ACC0ParityBarrier.parityFn_not_acc0p hp2 hn
+
+/-- **Brick (depth→degree): `MOD_2 ∉` constant-depth `AC⁰[p]` for odd `p` `parity_not_acc0p_depth` (PROVED).**  Binary gates ⇒
+`reprDegP C ≤ (p−1)·2^{depth C}` (`reprDegP_le_depth`), so a depth-`d` circuit has degree `≤ (p−1)·2^d`; for `(p−1)·2^d < n`
+the low-degree barrier kills `MOD_2`.  The standard constant-depth `q=2` Razborov–Smolensky separation, with explicit
+`n`-threshold. -/
+theorem nw_parity_not_acc0p_depth_frontier {n p : ℕ} [Fact p.Prime] (hp2 : p ≠ 2) {d : ℕ}
+    (hd : (p - 1) * 2 ^ d < n) :
+    ¬ ∃ C : ACC0CircuitModel.ACC0Circuit n,
+        ACC0CircuitReprP.ModpOnly p C ∧ ACC0CircuitModel.depth C ≤ d
+          ∧ ACC0CircuitModel.eval C = ACC0ParityBarrier.parityFn :=
+  ACC0DepthDegreeBound.parity_not_acc0p_depth hp2 hd
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
