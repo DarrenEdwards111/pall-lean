@@ -70,6 +70,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymEvalFinM
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LowDegreeBarrier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountingWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ParityWitness
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ParityBarrier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6451,6 +6452,16 @@ theorem nw_signWt_no_lowdeg_repr_frontier {n p : ℕ} [Fact p.Prime] (hp2 : p �
         P.totalDegree ≤ D ∧ ∀ x, MvPolynomial.eval (fun i => (ACC0CircuitRepr.bv (x i) : ZMod p)) P
           = ACC0ParityWitness.signWt p x :=
   ACC0ParityWitness.signWt_no_lowdeg_repr hp2 hn
+
+/-- **Brick (parity barrier): `MOD_2 ∉` bounded-degree `AC⁰[p]` for odd `p` `parityFn_not_acc0p` (PROVED).**  The concrete
+`q=2` Razborov–Smolensky separation in-framework: `AC⁰[p]` is exactly low-degree over `F_p` (`reprP`) while `MOD_2` is not
+(`signWt_no_lowdeg_repr` via the affine `signWt = 1−2·parity`), so no `ModpOnly` `AC⁰[p]` circuit of degree `≤ D < n` computes
+`MOD_2`. -/
+theorem nw_parityFn_not_acc0p_frontier {n p : ℕ} [Fact p.Prime] (hp2 : p ≠ 2) {D : ℕ} (hn : D < n) :
+    ¬ ∃ C : ACC0CircuitModel.ACC0Circuit n,
+        ACC0CircuitReprP.ModpOnly p C ∧ ACC0CircuitReprP.reprDegP p C ≤ D
+          ∧ ACC0CircuitModel.eval C = ACC0ParityBarrier.parityFn :=
+  ACC0ParityBarrier.parityFn_not_acc0p hp2 hn
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
