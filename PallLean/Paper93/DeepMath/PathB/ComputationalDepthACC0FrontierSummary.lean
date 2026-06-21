@@ -88,6 +88,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod3Acc5
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqExp
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqSuperpoly
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ParityAC0
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqAC0
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6696,6 +6697,14 @@ theorem nw_parity_not_ac0_frontier {n : ℕ} {d : ℕ} (hd : 2 * 2 ^ d < n) :
     ¬ ∃ C : ACC0CircuitModel.ACC0Circuit n, ACC0ParityAC0.ModFree C ∧ ACC0CircuitModel.depth C ≤ d
         ∧ ACC0CircuitModel.eval C = ACC0ParityBarrier.parityFn :=
   ACC0ParityAC0.parity_not_ac0 hd
+
+/-- **Bridge (MOD_q ∉ AC⁰): the `MOD`-counting lower bound in plain `AC⁰` `mod3_not_ac0` (PROVED).**  The `q>2` analogue of
+`PARITY ∉ AC⁰`, via Razborov–Smolensky: `MOD_q ∉ AC⁰` for `n ≡ 1 mod (p−1)` given a primitive `q`-th root in `F_p`
+(`modq_not_ac0_period`); concretely `MOD_3 ∉ AC⁰` for `n ≡ 1 mod 6` (`p=7`, `ζ=2`). -/
+theorem nw_mod3_not_ac0_frontier {n : ℕ} (hn1 : 1 ≤ n) (hper : 6 ∣ (n - 1)) {d : ℕ} (hd : 6 * 2 ^ d < n) :
+    ¬ ∃ C : ACC0CircuitModel.ACC0Circuit n, ACC0ParityAC0.ModFree C ∧ ACC0CircuitModel.depth C ≤ d
+        ∧ ACC0CircuitModel.eval C = ACC0ModqWitness.modqFn 3 :=
+  ACC0ModqAC0.mod3_not_ac0 hn1 hper hd
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
