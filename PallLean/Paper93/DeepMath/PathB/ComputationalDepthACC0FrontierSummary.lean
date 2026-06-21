@@ -95,6 +95,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0StrictSep3
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultiMod
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedParity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedAC0
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnboundedModq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6778,6 +6779,20 @@ theorem nw_parity_superpoly_ac0_frontier (p : ℕ) [Fact p.Prime] (hp2 : (2 : ZM
     (hm : 8 * (((p - 1) * t) ^ d) ^ 2 ≤ m) :
     p ^ t < 4 * (Layer3.subcircuits Cir).toFinset.card :=
   ACC0UnboundedAC0.parity_superpoly_ac0 p hp2 Cir hac hd t ht1 hparity hm
+
+/-- **Bridge (MOD_q ∉ AC⁰, real model): the residue-family no-go in unbounded fan-in `modq_indicators_false_ac0` (PROVED).**
+Via `AC⁰ ⊆ AC⁰[p]` (`isAC0_isAC0p`: a `MOD`-free circuit is `AC⁰[p]` for every `p`) + `Layer4.mod_q_indicators_false`: no
+unbounded-fan-in `AC⁰` (`IsAC0Syntax`) family computes all `q` residue indicators `[weight ≡ j mod q]` (`q ∤ p`, `p,q` prime)
+within the RS window. -/
+theorem nw_modq_indicators_false_ac0_frontier (p q : ℕ) [Fact p.Prime] [Fact q.Prime] (hpq : ¬ q ∣ p)
+    {m t d : ℕ} (ht1 : 1 ≤ t) (hpt1 : 1 ≤ (p - 1) * t) (C : ℕ → BoolCircuitSyntax (2 * m + 1))
+    (hCind : ∀ j ∈ Finset.range q, ∀ x : Fin (2 * m + 1) → Bool,
+      (C j).eval x = decide ((Finset.univ.filter (fun i => x i = true)).card % q = j))
+    (hac : ∀ j ∈ Finset.range q, (C j).IsAC0Syntax)
+    (ht : ∀ j ∈ Finset.range q, 4 * q * (Layer3.subcircuits (C j)).toFinset.card ≤ p ^ t)
+    (hdepth : ∀ j ∈ Finset.range q, (C j).depth ≤ d)
+    (hwindow : 16 * (((p - 1) * t) ^ d) ^ 2 < 2 * m + 3) : False :=
+  ACC0UnboundedModq.modq_indicators_false_ac0 p q hpq ht1 hpt1 C hCind hac ht hdepth hwindow
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
