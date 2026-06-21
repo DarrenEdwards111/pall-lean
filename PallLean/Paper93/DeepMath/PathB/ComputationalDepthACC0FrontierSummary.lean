@@ -69,6 +69,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymEvalRepack
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymEvalFinM
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LowDegreeBarrier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CountingWitness
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ParityWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6440,6 +6441,16 @@ theorem nw_exists_no_lowdeg_repr_frontier {n p D : ℕ} [Fact p.Prime] (h : D < 
       ¬ ∃ P : MvPolynomial (Fin n) (ZMod p),
         P.totalDegree ≤ D ∧ ∀ x, MvPolynomial.eval (fun i => (ACC0CircuitRepr.bv (x i) : ZMod p)) P = g x :=
   ACC0CountingWitness.exists_no_lowdeg_repr h
+
+/-- **Brick (parity witness): an explicit function with no low-degree `F_p` representation `signWt_no_lowdeg_repr` (PROVED).**
+The explicit RS witness for the sign/`±1`-parity (`MOD_2`-sign) function over odd `p`: for `D < n`, `signWt = ∏ᵢ(−1)^{xᵢ}` has
+no degree-`≤D` `F_p` representation.  Via the sign-functional `∑ₓ signWt x · (·)`, which kills low-degree (toggle-bit
+involution) but gives `2^n ≠ 0` on `signWt` (since `signWt² = 1`). -/
+theorem nw_signWt_no_lowdeg_repr_frontier {n p : ℕ} [Fact p.Prime] (hp2 : p ≠ 2) {D : ℕ} (hn : D < n) :
+    ¬ ∃ P : MvPolynomial (Fin n) (ZMod p),
+        P.totalDegree ≤ D ∧ ∀ x, MvPolynomial.eval (fun i => (ACC0CircuitRepr.bv (x i) : ZMod p)) P
+          = ACC0ParityWitness.signWt p x :=
+  ACC0ParityWitness.signWt_no_lowdeg_repr hp2 hn
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
