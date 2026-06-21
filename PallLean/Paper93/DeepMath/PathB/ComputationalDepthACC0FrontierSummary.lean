@@ -44,6 +44,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RankShrinkWall
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TriAspectBoundary
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeBTTarget
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMODFactor
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimeMODLowDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6134,6 +6135,14 @@ theorem nw_modm_iff_residues_frontier {m n : ℕ} (hm : m ≠ 0) (x : Fin n → 
     ACC0CompositeMODFactor.modm m x ↔
       ∀ p ∈ m.primeFactors, (ACC0CompositeBT.hammingWeight x : ZMod (p ^ m.factorization p)) = 0 :=
   ACC0CompositeMODFactor.modm_iff_residues hm x
+
+/-- **Brick A.2: single prime-`MOD_p` gate as a degree-`(p-1)` `F_p` polynomial `modp_iff_fermat` (PROVED).**  The
+Razborov–Smolensky/Fermat seed: the weight casts to the linear form `∑ᵢ[xᵢ]`, and by Fermat `MOD_p` of the weight `↔ (∑ᵢ
+[xᵢ])^{p-1} = 0` — degree `p-1`.  With A.1 this covers every *squarefree* composite-`MOD` gate. -/
+theorem nw_modp_iff_fermat_frontier {n : ℕ} (p : ℕ) [Fact p.Prime] (x : Fin n → Bool) :
+    (ACC0CompositeBT.hammingWeight x : ZMod p) = 0 ↔
+      (∑ i, (if x i then (1 : ZMod p) else 0)) ^ (p - 1) = 0 :=
+  ACC0PrimeMODLowDegree.modp_iff_fermat p x
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
