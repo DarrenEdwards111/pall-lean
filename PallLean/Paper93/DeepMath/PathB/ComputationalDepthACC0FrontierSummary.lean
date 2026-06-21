@@ -84,6 +84,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ResidueFamily
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PinSize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqUniform
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqSize
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod3Acc5
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6642,6 +6643,19 @@ theorem nw_modq_requires_large_size_frontier (p q : ℕ) [Fact p.Prime] [Fact q.
     (t : ℕ) (ht1 : 1 ≤ t) (hpt1 : 1 ≤ (p - 1) * t) :
     ∃ N, p ^ t < 4 * q * (Layer3.subcircuits (ACC0ToBoolSyntax.toBoolSyntax (D N))).length :=
   ACC0ModqSize.modq_requires_large_size p q hpq D hDind hDmod hDdepth t ht1 hpt1
+
+/-- **Bridge (concrete instantiation): `MOD_3` needs super-polynomial `AC⁰[5]` size `mod3_requires_large_size_acc05`
+(PROVED).**  A concrete instance (`p=5, q=3`, `3 ∤ 5`) of the RS size lower bound: no uniform `AC⁰[5]` family computes `MOD_3`
+at constant depth with polynomially bounded size — for every `t`, some arity `N` has `5^t < 12·(subcircuits (toBoolSyntax
+(D N))).length`. -/
+theorem nw_mod3_requires_large_size_acc05_frontier {d : ℕ} (D : (N : ℕ) → ACC0CircuitModel.ACC0Circuit N)
+    (hDind : ∀ N, ∀ y : Fin N → Bool, ACC0CircuitModel.eval (D N) y
+      = decide ((Finset.univ.filter (fun i => y i = true)).card % 3 = 0))
+    (hDmod : ∀ N, ACC0CircuitReprP.ModpOnly 5 (D N))
+    (hDdepth : ∀ N, BoolCircuitSyntax.depth (ACC0ToBoolSyntax.toBoolSyntax (D N)) ≤ d)
+    (t : ℕ) (ht1 : 1 ≤ t) :
+    ∃ N, 5 ^ t < 12 * (Layer3.subcircuits (ACC0ToBoolSyntax.toBoolSyntax (D N))).length :=
+  ACC0Mod3Acc5.mod3_requires_large_size_acc05 D hDind hDmod hDdepth t ht1
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
