@@ -59,6 +59,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0OrApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Balancedness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Amplify
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnionBound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0OrPolyPackage
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6308,6 +6309,16 @@ theorem nw_exists_good_form_frontier (p n t : ℕ) [Fact p.Prime] (X : Finset (F
     (hX : ∀ x ∈ X, x ≠ 0) (hlt : X.card * (p ^ (n - 1)) ^ t < (p ^ n) ^ t) :
     ∃ a : Fin t → (Fin n → ZMod p), ∀ x ∈ X, ∃ j, ∑ i, x i * (a j) i ≠ 0 :=
   ACC0UnionBound.exists_good_form p n t X hX hlt
+
+/-- **Brick (OR package): one degree-`t(p-1)` polynomial computing `OR` everywhere `exists_orPoly` (PROVED).**  Packages the RS
+construction: `orPoly a = 1 - ∏ⱼ(1 - orApprox aⱼ)` (degree `≤ t(p-1)`), and via the union bound there is a *fixed* `P` with
+`P = 1` on all of `X` and `P(0) = 0`.  Taking `X` = nonzero inputs and `t` with `p^t > |X|`, this is one fixed low-degree
+polynomial computing `OR` correctly everywhere — the fully-assembled RS approximate-`OR`. -/
+theorem nw_exists_orPoly_frontier (p n t : ℕ) [Fact p.Prime] (X : Finset (Fin n → ZMod p))
+    (hX : ∀ x ∈ X, x ≠ 0) (hlt : X.card * (p ^ (n - 1)) ^ t < (p ^ n) ^ t) :
+    ∃ P : MvPolynomial (Fin n) (ZMod p),
+      P.totalDegree ≤ t * (p - 1) ∧ (∀ x ∈ X, MvPolynomial.eval x P = 1) ∧ MvPolynomial.eval 0 P = 0 :=
+  ACC0OrPolyPackage.exists_orPoly p n t X hX hlt
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
