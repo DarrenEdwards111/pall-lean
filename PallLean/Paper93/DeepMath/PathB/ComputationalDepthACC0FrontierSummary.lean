@@ -58,6 +58,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndPoly
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0OrApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Balancedness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Amplify
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UnionBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6298,6 +6299,15 @@ theorem nw_card_allBad_eq_frontier (p n t : ℕ) [Fact p.Prime] (x : Fin n → Z
     (Finset.univ.filter
         (fun a : Fin t → (Fin n → ZMod p) => ∀ j, ∑ i, x i * (a j) i = 0)).card = (p ^ (n - 1)) ^ t :=
   ACC0Amplify.card_allBad_eq p n t x hx
+
+/-- **Brick (union bound): existence of one globally-good random-form choice `exists_good_form` (PROVED).**  The probabilistic
+method: if the bad tuples (`≤ |X|·(p^{n-1})^t`, by amplify) are fewer than the total `(p^n)^t` — equivalently `|X| < p^t` —
+then some coefficient tuple `a` makes a nonzero linear form on *every* `x ∈ X`, so (via Fermat) the degree-`t(p-1)` `OR`
+approximator is correct on all of `X` at once. -/
+theorem nw_exists_good_form_frontier (p n t : ℕ) [Fact p.Prime] (X : Finset (Fin n → ZMod p))
+    (hX : ∀ x ∈ X, x ≠ 0) (hlt : X.card * (p ^ (n - 1)) ^ t < (p ^ n) ^ t) :
+    ∃ a : Fin t → (Fin n → ZMod p), ∀ x ∈ X, ∃ j, ∑ i, x i * (a j) i ≠ 0 :=
+  ACC0UnionBound.exists_good_form p n t X hX hlt
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
