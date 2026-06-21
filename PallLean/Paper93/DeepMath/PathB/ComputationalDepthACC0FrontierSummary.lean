@@ -50,6 +50,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimeMODMvPoly
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MonomialCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModSymAndForm
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DegreeCompose
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DepthDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6203,6 +6204,15 @@ theorem nw_totalDegree_bind₁_comp_le_frontier {σ τ υ R : Type*} [CommSemiri
     (hg : ∀ i, (g i).totalDegree ≤ dg) (hh : ∀ i, (h i).totalDegree ≤ dh) :
     (MvPolynomial.bind₁ g (MvPolynomial.bind₁ h P)).totalDegree ≤ P.totalDegree * dh * dg :=
   ACC0DegreeCompose.totalDegree_bind₁_comp_le g h P dg dh hg hh
+
+/-- **Brick C-iterate: depth-`d` composition keeps degree `≤ D^d` `totalDegree_bind₁_iterate` (PROVED).**  Iterating Brick C
+across `d` layers: `((bind₁ g)^[d] P).totalDegree ≤ P.totalDegree · D^d`.  For constant `d`, polylog `D`, this is polylog;
+Brick D then caps monomials at `(n+1)^{D^d}` (quasipoly).  Holds over any `CommSemiring` — incl. the CRT product ring, so
+cross-prime composition needs no new degree lemma. -/
+theorem nw_totalDegree_bind₁_iterate_frontier {σ R : Type*} [CommSemiring R] (g : σ → MvPolynomial σ R) (D : ℕ)
+    (hg : ∀ i, (g i).totalDegree ≤ D) (P : MvPolynomial σ R) (d : ℕ) :
+    ((MvPolynomial.bind₁ g)^[d] P).totalDegree ≤ P.totalDegree * D ^ d :=
+  ACC0DepthDegree.totalDegree_bind₁_iterate g D hg P d
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
