@@ -55,6 +55,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerMOD
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpCompositionDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Multilinearize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndPoly
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0OrApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6264,6 +6265,20 @@ theorem nw_andPoly_eval_frontier {n : ℕ} {R : Type*} [CommSemiring R] (S : Fin
 theorem nw_andPoly_totalDegree_le_frontier {n : ℕ} {R : Type*} [CommSemiring R] [Nontrivial R] (S : Finset (Fin n)) :
     (ACC0AndPoly.andPoly S : MvPolynomial (Fin n) R).totalDegree ≤ S.card :=
   ACC0AndPoly.andPoly_totalDegree_le S
+
+/-- **Brick (OR-approx): the RS random-linear-form `OR` approximator `orApprox_eval_of_form_ne_zero` (PROVED).**  `orApprox a =
+(∑ᵢ aᵢ Xᵢ)^{p-1}` over `F_p` has degree `≤ p-1` *independent of fan-in*, is `0` on the all-false input, and `1` whenever the
+linear form `∑ aᵢ xᵢ ≠ 0` — exact `OR` off the bad set.  The deterministic skeleton of the RS probabilistic polynomial that
+makes `AND`/`OR` low-degree under composition (the probabilistic bad-set/amplification/existence part is open, not faked). -/
+theorem nw_orApprox_totalDegree_le_frontier (p n : ℕ) [Fact p.Prime] (a : Fin n → ZMod p) :
+    (ACC0OrApprox.orApprox p n a).totalDegree ≤ p - 1 :=
+  ACC0OrApprox.orApprox_totalDegree_le p n a
+
+/-- **Brick (OR-approx, cont.): the approximator is `1` whenever the random linear form is nonzero (PROVED).** -/
+theorem nw_orApprox_eval_of_form_ne_zero_frontier (p n : ℕ) [Fact p.Prime] (a : Fin n → ZMod p) (x : Fin n → Bool)
+    (h : (∑ i, a i * (if x i then (1 : ZMod p) else 0)) ≠ 0) :
+    MvPolynomial.eval (fun i => if x i then (1 : ZMod p) else 0) (ACC0OrApprox.orApprox p n a) = 1 :=
+  ACC0OrApprox.orApprox_eval_of_form_ne_zero p n a x h
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
