@@ -78,6 +78,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqFourier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqPeriod
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqInfinite
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqInfiniteSet
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ToBoolSyntax
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6547,6 +6548,21 @@ theorem nw_modq_hard_arities_infinite_frontier {p : ℕ} [Fact p.Prime] (hp2 : p
         ACC0CircuitReprP.ModpOnly p C ∧ ACC0CircuitModel.depth C ≤ d
           ∧ ACC0CircuitModel.eval C = ACC0ModqWitness.modqFn q}.Infinite :=
   ACC0ModqInfiniteSet.modq_hard_arities_infinite hp2 q hq2 hq ζ hord d
+
+/-- **Bridge (model translation): `ACC0Circuit → BoolCircuitSyntax`, eval/AC0p-preserving `toBoolSyntax_eval` (PROVED).**  A
+faithful translation to the tree's `BoolCircuitSyntax` (the `Layer3/Layer4` model): on `AC⁰[p]` (`ModpOnly`) circuits,
+`BoolCircuitSyntax.eval (toBoolSyntax C) x = ACC0Circuit.eval C x` and `IsAC0pSyntax p (toBoolSyntax C)`.  The model-bridge
+artifact connecting the two formalizations.  (It does NOT discharge `MOD_q` — Layer4 needs the residue family + size bound.) -/
+theorem nw_toBoolSyntax_eval_frontier {n p : ℕ} [NeZero p] (C : ACC0CircuitModel.ACC0Circuit n) (x : Fin n → Bool)
+    (h : ACC0CircuitReprP.ModpOnly p C) :
+    BoolCircuitSyntax.eval (ACC0ToBoolSyntax.toBoolSyntax C) x = ACC0CircuitModel.eval C x :=
+  ACC0ToBoolSyntax.toBoolSyntax_eval p C x h
+
+/-- **Bridge (model translation, cont.): `IsAC0pSyntax` preserved (PROVED).** -/
+theorem nw_toBoolSyntax_isAC0p_frontier {n p : ℕ} (C : ACC0CircuitModel.ACC0Circuit n)
+    (h : ACC0CircuitReprP.ModpOnly p C) :
+    BoolCircuitSyntax.IsAC0pSyntax p (ACC0ToBoolSyntax.toBoolSyntax C) :=
+  ACC0ToBoolSyntax.toBoolSyntax_isAC0p p C h
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
