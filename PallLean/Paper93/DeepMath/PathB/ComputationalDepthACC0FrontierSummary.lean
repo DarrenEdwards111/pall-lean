@@ -86,6 +86,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqUniform
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqSize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod3Acc5
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqExp
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqSuperpoly
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6672,6 +6673,20 @@ theorem nw_modq_size_blowup_frontier (p q : ℕ) [Fact p.Prime] [Fact q.Prime] (
     ∃ N, N ≤ 16 * (((p - 1) * t) ^ d) ^ 2 + 1 + q ∧
       p ^ t < 4 * q * (Layer3.subcircuits (ACC0ToBoolSyntax.toBoolSyntax (D N))).length :=
   ACC0ModqExp.modq_size_blowup p q hpq D hDind hDmod hDdepth t ht1 hpt1
+
+/-- **Bridge (super-polynomial): `MOD_q ∉` polynomial-size `AC⁰[p]` `modq_superpoly` (PROVED).**  The definitive form: for any
+uniform `AC⁰[p]` family computing `MOD_q` at constant depth and *every* exponent `c`, some arity `N` has `N^c <
+4q·(subcircuits (toBoolSyntax (D N))).length` — the size beats every polynomial.  Via the explicit blow-up `modq_size_blowup`
++ exponential-beats-polynomial (`exp_beats_poly`). -/
+theorem nw_modq_superpoly_frontier (p q : ℕ) [Fact p.Prime] [Fact q.Prime] (hpq : ¬ q ∣ p)
+    {d : ℕ} (D : (N : ℕ) → ACC0CircuitModel.ACC0Circuit N)
+    (hDind : ∀ N, ∀ y : Fin N → Bool, ACC0CircuitModel.eval (D N) y
+      = decide ((Finset.univ.filter (fun i => y i = true)).card % q = 0))
+    (hDmod : ∀ N, ACC0CircuitReprP.ModpOnly p (D N))
+    (hDdepth : ∀ N, BoolCircuitSyntax.depth (ACC0ToBoolSyntax.toBoolSyntax (D N)) ≤ d)
+    (c : ℕ) :
+    ∃ N, N ^ c < 4 * q * (Layer3.subcircuits (ACC0ToBoolSyntax.toBoolSyntax (D N))).length :=
+  ACC0Superpoly.modq_superpoly p q hpq D hDind hDmod hDdepth c
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
