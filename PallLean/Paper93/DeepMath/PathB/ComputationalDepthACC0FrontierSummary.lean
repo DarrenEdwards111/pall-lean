@@ -364,6 +364,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ReadSym
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3GotoConfig
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ConfigSymbol
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SymbolCompare
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3PlaceCursor
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -6101,6 +6102,14 @@ theorem nw_symbolCompare_run_frontier
       ((if rsym = csym then matchSt else failSt), 1 + ac + 1, tp) :=
   ACC0UniversalTM3SymbolCompare.symbolCompare_run s rm1 rcont rm2 sRecI sRecO igm igf igc irm irc irm2 ogm ogf ogc orm orc
     orm2 matchSt failSt tp fsR ar ac rsym csym hRones hRsep hRsym hRbound hmark hclean hCones hCsep hCsym hCbound
+
+/-- **Entry 488: cursor placement `placeCursor_run` (PROVED).**  Write a comparison cursor `M` onto a field cell — the setup
+step that turns the real rule table into the canonical `cursTape` the comparison machines (472–483) consume. -/
+theorem nw_placeCursor_run_frontier (s s' j : ℕ) (tp : List ACC0UniversalTM3Sym.Sym3)
+    (hI : tp.getD j ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.I) :
+    ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3PlaceCursor.placeCursor s s')) 1 (s, j, tp)
+      (s', j, ACC0UniversalTM3Sym.writeAt3 tp j ACC0UniversalTM3Sym.Sym3.M) :=
+  ACC0UniversalTM3PlaceCursor.placeCursor_run s s' j tp hI
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
