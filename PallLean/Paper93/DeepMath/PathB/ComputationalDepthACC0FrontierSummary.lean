@@ -74,6 +74,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ParityBarrier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DepthDegreeBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CharWitness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqWitness
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModqFourier
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Mod6SymAndDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymAndComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MiniBTTwoCount
@@ -6500,6 +6501,16 @@ theorem nw_modq_not_acc0p_depth_frontier {n p : ℕ} [Fact p.Prime] (hp2 : p ≠
         ACC0CircuitReprP.ModpOnly p C ∧ ACC0CircuitModel.depth C ≤ d
           ∧ ACC0CircuitModel.eval C = ACC0ModqWitness.modqFn q :=
   ACC0ModqWitness.modq_not_acc0p_depth hp2 q hq hd
+
+/-- **Brick (MOD_q Fourier): the character decomposition of the Boolean `MOD_q` indicator `Dsign_modq` (PROVED).**  For `ζ` a
+primitive `q`-th root of unity in `F_p` (`q ∣ p−1`), `bv(MOD_q x) = q⁻¹ ∑_{j<q} charWt_{ζʲ}(x)` (`modq_fourier`), hence
+`Dsign(MOD_q) = q⁻¹ ∑_{j<q} (1−ζʲ)^n` — the exact top coefficient whose nonvanishing drives the conditional separation. -/
+theorem nw_Dsign_modq_frontier {n p : ℕ} [Fact p.Prime] (q : ℕ) (hq : (q : ZMod p) ≠ 0) (ζ : ZMod p)
+    (hord : orderOf ζ = q) :
+    (∑ x : Fin n → Bool, ACC0ParityWitness.signWt p x
+        * (ACC0CircuitRepr.bv (ACC0ModqWitness.modqFn q x) : ZMod p))
+      = (q : ZMod p)⁻¹ * ∑ j ∈ Finset.range q, (1 - ζ ^ j) ^ n :=
+  ACC0ModqFourier.Dsign_modq q hq ζ hord
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
