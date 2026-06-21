@@ -365,6 +365,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3GotoCon
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3ConfigSymbol
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3SymbolCompare
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3PlaceCursor
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalTM3EndMatchTail
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AndGateApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0Boosting
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SingleSubsetF2
@@ -6110,6 +6111,19 @@ theorem nw_placeCursor_run_frontier (s s' j : ℕ) (tp : List ACC0UniversalTM3Sy
     ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3PlaceCursor.placeCursor s s')) 1 (s, j, tp)
       (s', j, ACC0UniversalTM3Sym.writeAt3 tp j ACC0UniversalTM3Sym.Sym3.M) :=
   ACC0UniversalTM3PlaceCursor.placeCursor_run s s' j tp hI
+
+/-- **Entry 489: the match-tail connector `endMatchTail_run` (PROVED).**  `endMatch` (481) minus its config step, stated
+generically: after the config cursor is removed, seek to the record cursor and advance it onto its separator → `matchSt`,
+removing it.  The reusable tail to attach after a config-end step in the branching comparison loop. -/
+theorem nw_endMatchTail_run_frontier (s skf skc rm rc matchSt : ℕ) (t : List ACC0UniversalTM3Sym.Sym3) (q r : ℕ)
+    (hq : q ≤ r) (hMrec : t.getD r ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.M)
+    (hRsep : t.getD (r + 1) ACC0UniversalTM3Sym.Sym3.O = ACC0UniversalTM3Sym.Sym3.O)
+    (hclean : ∀ j, q ≤ j → j < r → t.getD j ACC0UniversalTM3Sym.Sym3.O ≠ ACC0UniversalTM3Sym.Sym3.M)
+    (hbound : r + 1 < t.length) :
+    ∃ N, ACC0NTM.reachIn (ACC0UniversalTM3Sym.toNTM3 (ACC0UniversalTM3EndMatchTail.endMatchTail s skf skc rm rc matchSt)) N
+      (s, q, t) (matchSt, r + 1, ACC0UniversalTM3Sym.writeAt3 (ACC0UniversalTM3Sym.writeAt3 t r ACC0UniversalTM3Sym.Sym3.I)
+        (r + 1) ACC0UniversalTM3Sym.Sym3.O) :=
+  ACC0UniversalTM3EndMatchTail.endMatchTail_run s skf skc rm rc matchSt t q r hq hMrec hRsep hclean hbound
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
