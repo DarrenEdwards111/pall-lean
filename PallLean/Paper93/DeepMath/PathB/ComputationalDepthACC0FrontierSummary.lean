@@ -465,6 +465,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpeDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpeDepth3
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellRecursion
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellTree
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellTreeBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalSimulationOverhead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DecodeUniformity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RealizationClocking
@@ -6987,6 +6988,15 @@ node via `cells_pair`).  With prime-power `MOD_{p^e}∘AND` leaves this is quasi
 theorem nw_ctree_cells_le_frontier {n : ℕ} (t : ACC0CellTree.CTree n) :
     (Finset.univ.image (ACC0CellTree.ceval t)).card ≤ ACC0CellTree.cbound t :=
   ACC0CellTree.ctree_cells_le t
+
+/-- **Bridge (hard math, quantitative tree bound): tree of prime-power blocks has cell count ≤ (k+1)^{#leaves}
+`modpe_tree_cells_le` (PROVED).**  A count-tree of `MOD_{p^e}∘AND` blocks (each `≤ k` `AND`-gates) has cell count
+`≤ (k+1)^{#leaves}` (`ctree_cells_le` + `cbound ≤ C^{#leaves}` for `C`-bounded leaves + `cells_card_le`) — quasipolynomial for
+constant depth, field-independent. -/
+theorem nw_modpe_tree_cells_le_frontier {n : ℕ} (k : ℕ) (t : ACC0CellTree.CTree n)
+    (h : ACC0CellTreeBound.IsModpeTree k t) :
+    (Finset.univ.image (ACC0CellTree.ceval t)).card ≤ (k + 1) ^ ACC0CellTreeBound.leafCount t :=
+  ACC0CellTreeBound.modpe_tree_cells_le k t h
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
