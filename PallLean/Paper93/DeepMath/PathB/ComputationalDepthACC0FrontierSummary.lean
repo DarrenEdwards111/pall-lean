@@ -454,6 +454,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0WilliamsSocketMap
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyHierarchyEscape
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NFrameWilliamsRoute
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NFrameWilliamsAnatomy
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GatePolyDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalSimulationOverhead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DecodeUniformity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RealizationClocking
@@ -6861,6 +6862,14 @@ theorem nw_nframe_collapse_socket_iff_separation_frontier
     (route : ACC0NFrameWilliamsRoute.NFrameWilliamsRoute) :
     (speedup → ACC0NTM.NEXP ⊆ ACC0 → ACC0NTM.NTIME f ⊆ ACC0NTM.NTIME g) ↔ ¬ (ACC0NTM.NEXP ⊆ ACC0) :=
   ACC0NFrameWilliamsAnatomy.nframe_collapse_socket_iff_separation ACC0 f g speedup routeGivesSpeedup hierarchy route
+
+/-- **Bridge (hard math, Beigel–Tarui gate-degree rung): Boolean gates are low-degree `gateBinary_degree` (PROVED).**  The
+residual content of Beigel–Tarui (`compositeBT_representation`'s `hgu`/`hgb`) for the Boolean gates: every binary Boolean
+function has an exact multilinear polynomial of total degree `≤ 2` (and unary `≤ 1`), eval-correct (`gateBinary_eval`).  This
+is the `δ = 2` gate-degree input to BT — the `MOD_m` gate's polylog (Toda) degree is the remaining hard combinatorics. -/
+theorem nw_gateBinary_degree_frontier {R : Type*} [CommRing R] [Nontrivial R] (g : Bool → Bool → Bool) :
+    (ACC0GatePolyDegree.gateBinary g : MvPolynomial (Fin 2) R).totalDegree ≤ 2 :=
+  ACC0GatePolyDegree.gateBinary_degree g
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
