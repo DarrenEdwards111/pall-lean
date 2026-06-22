@@ -466,6 +466,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpeDepth3
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellRecursion
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellTreeBound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitToCellTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalSimulationOverhead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DecodeUniformity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RealizationClocking
@@ -6997,6 +6998,15 @@ theorem nw_modpe_tree_cells_le_frontier {n : ℕ} (k : ℕ) (t : ACC0CellTree.CT
     (h : ACC0CellTreeBound.IsModpeTree k t) :
     (Finset.univ.image (ACC0CellTree.ceval t)).card ≤ (k + 1) ^ ACC0CellTreeBound.leafCount t :=
   ACC0CellTreeBound.modpe_tree_cells_le k t h
+
+/-- **Bridge (concrete↔abstract): faithful translation `ACC0Circuit → CTree` `ceval_toCTree` (PROVED).**  Every concrete
+`ACC0Circuit` translates to a count-tree whose evaluation is the `{0,1}`-indicator of the circuit's Boolean output, and
+circuit-SAT corresponds to the tree producing `1` — making the abstract cell-count machinery applicable to the real circuit
+model.  (Naive Boolean leaves ⇒ loose bound; the quasipoly benefit needs `MOD∘AND`-block leaves.) -/
+theorem nw_ceval_toCTree_frontier {n : ℕ} (C : ACC0CircuitModel.ACC0Circuit n) (x : Fin n → Bool) :
+    ACC0CellTree.ceval (ACC0CircuitToCellTree.toCTree C) x
+      = if ACC0CircuitModel.eval C x then 1 else 0 :=
+  ACC0CircuitToCellTree.ceval_toCTree C x
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
