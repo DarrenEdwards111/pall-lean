@@ -12,6 +12,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IntegerDepth3Speedu
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymmetricEscapesNoGo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultiCountCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitToSymAnd
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitSatSearchable
 
 /-!
 # ACC⁰ integer/exact arc — machine-checked manifest
@@ -39,6 +40,9 @@ manifests.
   multi-count function is *exactly* a single-count SYM∘AND.
 * `acc0circuit_eval_hasSymAndRep` — **the syntactic lift**: *every* `ACC0Circuit`'s `eval` is exactly a
   single-count SYM∘AND (structural induction over `const/var/not/and/or/mod`).
+* `acc0circuit_eval_hasSymAndRepSize`, `acc0circuit_sat_searchable` — **the algorithmic cash-out**:
+  size-tracking the lift (`circuitTowerSize`), any `ACC0Circuit` with `circuitTowerSize C + 1 < 2^n` has
+  a sub-`2^n` SAT search (conditional Williams-style speedup, regime explicit).
 
 **Approximate (RS) route — quasipoly but lossy:**
 * `toAgree_rs_depth_composition` — one oracle: degree `≤ L^D` ∧ quasipoly support ∧ bounded error.
@@ -57,8 +61,10 @@ manifests.
 The **exact side is complete at both levels**: every cross-layer multi-count function collapses
 exactly to a single-count `SYM∘AND` (`multiCount_factors` + `hasMultiSymRep_collapses`), and — lifting
 to the real circuit type — *every* `ACC0Circuit`'s `eval` is exactly a single-count `SYM∘AND`
-(`acc0circuit_eval_hasSymAndRep`, structural induction).  The single open quantity is the **collapsed
-layer size**: exact ⇒ iterated mixed-radix **tower**; quasipoly ⇒ only RS-approximate.
+(`acc0circuit_eval_hasSymAndRep`, structural induction), and this **cashes out** to a conditional SAT
+speedup: `circuitTowerSize C + 1 < 2^n` ⇒ a sub-`2^n` search (`acc0circuit_sat_searchable`).  The single
+open quantity is the **collapsed layer size** `circuitTowerSize`: exact ⇒ iterated mixed-radix **tower**
+(blows past `2^n` for unbounded depth); quasipoly ⇒ only RS-approximate.
 Keeping it quasipoly across unbounded depth is the Beigel–Tarui integer construction
 (`MixedACCDepthReductionSocket` / `composite_BT_degree`), Williams-strength.  Composite-modulus
 amplification is the Razborov–Smolensky barrier.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
@@ -86,6 +92,8 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0IntegerExactArcManifest
 #check @ACC0MultiCountCollapse.hasMultiSymRep_collapses
 #check @ACC0CircuitToSymAnd.acc0circuit_eval_hasSymAndRep
 #check @ACC0CircuitToSymAnd.modGateOn_hasSymAndRep
+#check @ACC0CircuitSatSearchable.acc0circuit_eval_hasSymAndRepSize
+#check @ACC0CircuitSatSearchable.acc0circuit_sat_searchable
 
 -- Approximate (RS) route
 #check @ACC0RSDepthComposition.toAgree_rs_depth_composition
@@ -102,6 +110,7 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0IntegerExactArcManifest
 #print axioms ACC0MultiCountCollapse.multiCount_factors
 #print axioms ACC0MultiCountCollapse.hasMultiSymRep_collapses
 #print axioms ACC0CircuitToSymAnd.acc0circuit_eval_hasSymAndRep
+#print axioms ACC0CircuitSatSearchable.acc0circuit_sat_searchable
 #print axioms ACC0RSDepthComposition.toAgree_rs_depth_composition
 
 end PallLean.Paper93.DeepMath.PathB.ACC0IntegerExactArcManifest
