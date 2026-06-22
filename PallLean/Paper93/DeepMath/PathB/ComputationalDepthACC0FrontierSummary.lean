@@ -458,6 +458,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GatePolyDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpTodaPoly
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerToda
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpEndToEnd
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMODCRT
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalSimulationOverhead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DecodeUniformity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RealizationClocking
@@ -6908,6 +6909,15 @@ theorem nw_modp_endToEnd_frontier (p : ℕ) [Fact p.Prime] (hp3 : 3 ≤ p) {n : 
           = ∑ d ∈ (ACC0ModpEndToEnd.substP p c).support,
               (ACC0ModpEndToEnd.substP p c).coeff d * (2 : ZMod p) ^ (n - d.support.card) :=
   ACC0ModpEndToEnd.modp_endToEnd p hp3 c
+
+/-- **Bridge (hard math, composite MOD_m CRT assembly): squarefree MOD_m = AND of prime MOD_p `modm_squarefree_and`
+(PROVED).**  For squarefree `m`, every prime factor has multiplicity 1, so the prime-power residue decomposition collapses:
+`MOD_m(x) ↔ ∀ p ∈ m.primeFactors, (weight x : ZMod p) = 0` — the composite gate is the conjunction of the prime `MOD_p`
+gates, carrying the per-prime Toda/Fermat low-degree + quasipoly-count results to composite (squarefree) moduli. -/
+theorem nw_modm_squarefree_and_frontier {m n : ℕ} (hm0 : m ≠ 0) (hsf : Squarefree m) (x : Fin n → Bool) :
+    ACC0CompositeMODFactor.modm m x ↔ ∀ p ∈ m.primeFactors,
+      (PallLean.Paper93.DeepMath.PathB.ACC0CompositeBT.hammingWeight x : ZMod p) = 0 :=
+  ACC0CompositeMODCRT.modm_squarefree_and hm0 hsf x
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
