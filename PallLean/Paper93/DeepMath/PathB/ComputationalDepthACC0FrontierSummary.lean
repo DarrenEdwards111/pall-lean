@@ -460,6 +460,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerToda
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpEndToEnd
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMODCRT
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpFastSAT
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMultiplicity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalSimulationOverhead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DecodeUniformity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RealizationClocking
@@ -6928,6 +6929,16 @@ theorem nw_modp_fastsat_regime_frontier (p : ℕ) [Fact p.Prime] (hp3 : 3 ≤ p)
     ∃ n, 1 ≤ n ∧ ∀ c : ACC0CircuitSubstitution.Circ n, ACC0LowDegreeSubstitution.depth c ≤ d →
       ((ACC0ModpEndToEnd.substP p c).support.image (fun e => e.support)).card < 2 ^ n :=
   ACC0ModpFastSAT.modp_fastsat_regime p hp3 d
+
+/-- **Bridge (hard math, composite MOD_m prime-power multiplicity): root-of-unity representation for any m `modm_charSum`
+(PROVED).**  Composite `m = ∏ p_i^{a_i}` (any multiplicity) has the root-of-unity representation with no dependence on
+factorization: over `F_ℓ` with a primitive `m`-th root `ζ`, `bv(MOD_m x) = m⁻¹ ∑_{j<m} charWt(ζʲ) x` (`modq_fourier` at
+`q = m`).  Concrete: `MOD_{12} = MOD_{2²·3}` over `F_13`, `ζ = 2` (`mod12_charSum`). -/
+theorem nw_modm_charSum_frontier {n : ℕ} (ℓ : ℕ) [Fact ℓ.Prime] (m : ℕ)
+    (hq : ((m : ℕ) : ZMod ℓ) ≠ 0) (ζ : ZMod ℓ) (hord : orderOf ζ = m) (x : Fin n → Bool) :
+    (ACC0CircuitRepr.bv (ACC0ModqWitness.modqFn m x) : ZMod ℓ)
+      = ((m : ℕ) : ZMod ℓ)⁻¹ * ∑ j ∈ Finset.range m, ACC0CharWitness.charWt (ζ ^ j) x :=
+  ACC0CompositeMultiplicity.modm_charSum ℓ m hq ζ hord x
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
