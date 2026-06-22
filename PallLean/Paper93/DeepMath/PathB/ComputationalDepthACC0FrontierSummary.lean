@@ -457,6 +457,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NFrameWilliamsAnato
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GatePolyDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpTodaPoly
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerToda
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpEndToEnd
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalSimulationOverhead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DecodeUniformity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RealizationClocking
@@ -6890,6 +6891,23 @@ theorem nw_primePowerMod_charSum_frontier {n : ℕ} (ℓ : ℕ) [Fact ℓ.Prime]
     (ACC0CircuitRepr.bv (ACC0ModqWitness.modqFn (p ^ e) x) : ZMod ℓ)
       = ((p ^ e : ℕ) : ZMod ℓ)⁻¹ * ∑ j ∈ Finset.range (p ^ e), ACC0CharWitness.charWt (ζ ^ j) x :=
   ACC0PrimePowerToda.primePowerMod_charSum ℓ p e hq ζ hord x
+
+/-- **Bridge (hard math, SYM∘AND composition count for MOD_p circuits): unconditional quasipoly count `modp_endToEnd`
+(PROVED).**  The `MOD_p` analogue of `endToEnd_BT`: discharging `modP_circuit_representation` with the concrete substitution
+(`una → MOD_p` gate `modPGate p = 1−X^{p−1}` degree `p−1`; `bin → gbP` degree 2).  For odd prime `p` and a `MOD_p`-circuit
+`c` of depth `d`, the composed polynomial has degree `≤ (p−1)^{d+1}` and monomial-support (`SYM∘AND` `AND`-term) count
+`≤ (n+1)^{(p−1)^{d+1}}` — quasipolynomial for constant depth. -/
+theorem nw_modp_endToEnd_frontier (p : ℕ) [Fact p.Prime] (hp3 : 3 ≤ p) {n : ℕ}
+    (c : ACC0CircuitSubstitution.Circ n) :
+    (ACC0ModpEndToEnd.substP p c).totalDegree ≤ (p - 1) ^ (ACC0LowDegreeSubstitution.depth c + 1)
+      ∧ ((ACC0ModpEndToEnd.substP p c).support.image (fun d => d.support)).card
+          ≤ (n + 1) ^ ((p - 1) ^ (ACC0LowDegreeSubstitution.depth c + 1))
+      ∧ (∑ x : Fin n → Bool,
+            MvPolynomial.eval (fun i => (ACC0Multilinearisation.boolVal (x i) : ZMod p))
+              (ACC0ModpEndToEnd.substP p c))
+          = ∑ d ∈ (ACC0ModpEndToEnd.substP p c).support,
+              (ACC0ModpEndToEnd.substP p c).coeff d * (2 : ZMod p) ^ (n - d.support.card) :=
+  ACC0ModpEndToEnd.modp_endToEnd p hp3 c
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
