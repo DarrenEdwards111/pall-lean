@@ -459,6 +459,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpTodaPoly
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerToda
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpEndToEnd
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMODCRT
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpFastSAT
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalSimulationOverhead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DecodeUniformity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RealizationClocking
@@ -6918,6 +6919,15 @@ theorem nw_modm_squarefree_and_frontier {m n : ℕ} (hm0 : m ≠ 0) (hsf : Squar
     ACC0CompositeMODFactor.modm m x ↔ ∀ p ∈ m.primeFactors,
       (PallLean.Paper93.DeepMath.PathB.ACC0CompositeBT.hammingWeight x : ZMod p) = 0 :=
   ACC0CompositeMODCRT.modm_squarefree_and hm0 hsf x
+
+/-- **Bridge (hard math, BT count ⇒ fast-SAT regime): the quasipoly SYM∘AND count drops below `2^n` `modp_fastsat_regime`
+(PROVED).**  `modp_endToEnd` bounds the `MOD_p`-circuit `SYM∘AND` count by `(n+1)^{(p−1)^{d+1}}` (quasipoly); since a
+fixed-degree polynomial is eventually `< 2^n` (`quasipoly_lt_exp`, from `exp_beats_poly`), the cell search examines `< 2^n`
+cells — the Williams algorithmic fast-SAT ingredient. -/
+theorem nw_modp_fastsat_regime_frontier (p : ℕ) [Fact p.Prime] (hp3 : 3 ≤ p) (d : ℕ) :
+    ∃ n, 1 ≤ n ∧ ∀ c : ACC0CircuitSubstitution.Circ n, ACC0LowDegreeSubstitution.depth c ≤ d →
+      ((ACC0ModpEndToEnd.substP p c).support.image (fun e => e.support)).card < 2 ^ n :=
+  ACC0ModpFastSAT.modp_fastsat_regime p hp3 d
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
