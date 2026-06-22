@@ -469,6 +469,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellTreeBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitToCellTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModGateCells
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModLayerCells
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModLayerFastSAT
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalSimulationOverhead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DecodeUniformity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RealizationClocking
@@ -7028,6 +7029,19 @@ theorem nw_modLayer_cells_le_frontier {n t s : ℕ} {β : Type*} [DecidableEq β
     (hF : ∀ x, F x = H (fun i => TwoGateCorrelation.weightOn (S i) x)) :
     (Finset.univ.image F).card ≤ (s + 1) ^ t :=
   ACC0ModLayerCells.modLayer_cells_le S hs H F hF
+
+/-- **Bridge (concrete↔abstract, algorithmic payoff): fast-SAT for a real MOD-layer circuit `modLayer_fastsat` (PROVED).**
+A real depth-2 circuit `F x = H(weightOn S_1 x,…,weightOn S_t x)` (supports `≤ s`) is satisfiable iff some achievable joint
+weight-vector satisfies `H`, and the joint-weight image has `≤ (s+1)^t` cells — so SAT is a search over `≤ (s+1)^t` weight-cells
+(beating `2^n` brute force when `(s+1)^t < 2^n`), the Williams speedup made concrete. -/
+theorem nw_modLayer_fastsat_frontier {n t s : ℕ}
+    (S : Fin t → Finset (Fin n)) (hs : ∀ i, (S i).card ≤ s)
+    (H : (Fin t → ℕ) → Bool) (F : (Fin n → Bool) → Bool)
+    (hF : ∀ x, F x = H (fun i => TwoGateCorrelation.weightOn (S i) x)) :
+    ((∃ x, F x = true) ↔
+        ∃ w ∈ Finset.univ.image (fun x (i : Fin t) => TwoGateCorrelation.weightOn (S i) x), H w = true)
+      ∧ (Finset.univ.image (fun x (i : Fin t) => TwoGateCorrelation.weightOn (S i) x)).card ≤ (s + 1) ^ t :=
+  ACC0ModLayerFastSAT.modLayer_fastsat S hs H F hF
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
