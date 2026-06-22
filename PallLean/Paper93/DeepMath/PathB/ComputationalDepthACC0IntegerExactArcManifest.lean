@@ -11,6 +11,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimeExactExists
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0IntegerDepth3Speedup
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymmetricEscapesNoGo
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultiCountCollapse
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitToSymAnd
 
 /-!
 # ACC⁰ integer/exact arc — machine-checked manifest
@@ -36,6 +37,8 @@ manifests.
 * `miniBT_collapse_size`, `merge_size_ge_mul` — the two-count collapse, with its multiplicative size.
 * `multiCount_factors`, `hasMultiSymRep_collapses` — **the k-count collapse**: any cross-layer
   multi-count function is *exactly* a single-count SYM∘AND.
+* `acc0circuit_eval_hasSymAndRep` — **the syntactic lift**: *every* `ACC0Circuit`'s `eval` is exactly a
+  single-count SYM∘AND (structural induction over `const/var/not/and/or/mod`).
 
 **Approximate (RS) route — quasipoly but lossy:**
 * `toAgree_rs_depth_composition` — one oracle: degree `≤ L^D` ∧ quasipoly support ∧ bounded error.
@@ -51,9 +54,11 @@ manifests.
 
 ## The wall
 
-Every constant-depth ACC⁰ structure over `AND` bottoms collapses **exactly** to a single-count
-`SYM∘AND` (`multiCount_factors` + `hasMultiSymRep_collapses`).  The single open quantity is the
-**collapsed layer size**: exact ⇒ iterated mixed-radix **tower**; quasipoly ⇒ only RS-approximate.
+The **exact side is complete at both levels**: every cross-layer multi-count function collapses
+exactly to a single-count `SYM∘AND` (`multiCount_factors` + `hasMultiSymRep_collapses`), and — lifting
+to the real circuit type — *every* `ACC0Circuit`'s `eval` is exactly a single-count `SYM∘AND`
+(`acc0circuit_eval_hasSymAndRep`, structural induction).  The single open quantity is the **collapsed
+layer size**: exact ⇒ iterated mixed-radix **tower**; quasipoly ⇒ only RS-approximate.
 Keeping it quasipoly across unbounded depth is the Beigel–Tarui integer construction
 (`MixedACCDepthReductionSocket` / `composite_BT_degree`), Williams-strength.  Composite-modulus
 amplification is the Razborov–Smolensky barrier.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
@@ -79,6 +84,8 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0IntegerExactArcManifest
 #check @ACC0MiniBTSize.merge_size_ge_mul
 #check @ACC0MultiCountCollapse.multiCount_factors
 #check @ACC0MultiCountCollapse.hasMultiSymRep_collapses
+#check @ACC0CircuitToSymAnd.acc0circuit_eval_hasSymAndRep
+#check @ACC0CircuitToSymAnd.modGateOn_hasSymAndRep
 
 -- Approximate (RS) route
 #check @ACC0RSDepthComposition.toAgree_rs_depth_composition
@@ -94,6 +101,7 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0IntegerExactArcManifest
 -- Clean-axiom confirmation of the two exact-collapse headlines
 #print axioms ACC0MultiCountCollapse.multiCount_factors
 #print axioms ACC0MultiCountCollapse.hasMultiSymRep_collapses
+#print axioms ACC0CircuitToSymAnd.acc0circuit_eval_hasSymAndRep
 #print axioms ACC0RSDepthComposition.toAgree_rs_depth_composition
 
 end PallLean.Paper93.DeepMath.PathB.ACC0IntegerExactArcManifest
