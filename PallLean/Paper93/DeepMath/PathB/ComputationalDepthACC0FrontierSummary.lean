@@ -467,6 +467,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellRecursion
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellTreeBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitToCellTree
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModGateCells
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalSimulationOverhead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DecodeUniformity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RealizationClocking
@@ -7007,6 +7008,14 @@ theorem nw_ceval_toCTree_frontier {n : ℕ} (C : ACC0CircuitModel.ACC0Circuit n)
     ACC0CellTree.ceval (ACC0CircuitToCellTree.toCTree C) x
       = if ACC0CircuitModel.eval C x then 1 else 0 :=
   ACC0CircuitToCellTree.ceval_toCTree C x
+
+/-- **Bridge (concrete↔abstract, symmetric leaf): the `ACC0Circuit` `MOD` gate has `≤ |S|+1` cells `modGate_satisfiable_iff`
+(PROVED).**  The real `MOD` gate factors through `weightOn S` (`≤ |S|+1` values), so its SAT is a residue check over `≤ |S|+1`
+weight-cells — the symmetric structure (linear, not `2^{|S|}`) that the polynomial method cannot exploit for prime powers. -/
+theorem nw_modGate_satisfiable_iff_frontier {n : ℕ} (q : ℕ) (S : Finset (Fin n)) (t : ZMod q) :
+    NFrameACC0Speedup.Satisfiable (ACC0CircuitModel.eval (.mod q S t)) ↔
+      ∃ w ∈ Finset.univ.image (TwoGateCorrelation.weightOn S), (w : ZMod q) = t :=
+  ACC0ModGateCells.modGate_satisfiable_iff q S t
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
