@@ -456,6 +456,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NFrameWilliamsRoute
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NFrameWilliamsAnatomy
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GatePolyDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpTodaPoly
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0PrimePowerToda
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalSimulationOverhead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DecodeUniformity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RealizationClocking
@@ -6879,6 +6880,16 @@ of the composite-`MOD` Toda degree that drives Beigel–Tarui. -/
 theorem nw_modpPoly_degree_frontier (p : ℕ) [Fact p.Prime] {n : ℕ} (S : Finset (Fin n)) :
     (ACC0ModpTodaPoly.modpPoly p S).totalDegree ≤ p - 1 :=
   ACC0ModpTodaPoly.modpPoly_degree p S
+
+/-- **Bridge (hard math, prime-power Toda lifting): `MOD_{p^e}` root-of-unity representation `primePowerMod_charSum`
+(PROVED).**  Where the Fermat `F_p` polynomial fails (`e ≥ 2`, RS barrier), the discrete-Fourier / root-of-unity
+representation lifts: over `F_ℓ` with a primitive `(p^e)`-th root `ζ`, `bv(MOD_{p^e} x) = (p^e)⁻¹ ∑_{j<p^e} charWt(ζʲ) x`
+(instantiating `modq_fourier` at `q = p^e`).  Concrete: `MOD_4` over `F_5`, `ζ = 2` (`mod4_charSum`). -/
+theorem nw_primePowerMod_charSum_frontier {n : ℕ} (ℓ : ℕ) [Fact ℓ.Prime] (p e : ℕ)
+    (hq : ((p ^ e : ℕ) : ZMod ℓ) ≠ 0) (ζ : ZMod ℓ) (hord : orderOf ζ = p ^ e) (x : Fin n → Bool) :
+    (ACC0CircuitRepr.bv (ACC0ModqWitness.modqFn (p ^ e) x) : ZMod ℓ)
+      = ((p ^ e : ℕ) : ZMod ℓ)⁻¹ * ∑ j ∈ Finset.range (p ^ e), ACC0CharWitness.charWt (ζ ^ j) x :=
+  ACC0PrimePowerToda.primePowerMod_charSum ℓ p e hq ζ hord x
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
