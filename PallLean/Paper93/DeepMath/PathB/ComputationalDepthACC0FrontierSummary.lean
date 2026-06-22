@@ -464,6 +464,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMultiplici
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpeDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpeDepth3
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellRecursion
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalSimulationOverhead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DecodeUniformity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RealizationClocking
@@ -6978,6 +6979,14 @@ theorem nw_cells_factor_frontier {n : ℕ} {β γ : Type*} [DecidableEq β] [Dec
     (hF : ∀ x, F x = H (fun i => G i x)) (hG : ∀ i, (Finset.univ.image (G i)).card ≤ C) :
     (Finset.univ.image F).card ≤ C ^ t :=
   ACC0CellRecursion.cells_factor C G H F hF hG
+
+/-- **Bridge (hard math, circuit-tree assembly): any count-tree has cell count ≤ product over the tree `ctree_cells_le`
+(PROVED).**  The end-to-end recursion over a concrete recursive datatype: a binary count-tree (leaves = count-gates, nodes =
+binary aggregations) has `(image (ceval t)).card ≤ cbound t` = the product of its leaf cell counts (structural induction, each
+node via `cells_pair`).  With prime-power `MOD_{p^e}∘AND` leaves this is quasipolynomial for constant depth. -/
+theorem nw_ctree_cells_le_frontier {n : ℕ} (t : ACC0CellTree.CTree n) :
+    (Finset.univ.image (ACC0CellTree.ceval t)).card ≤ ACC0CellTree.cbound t :=
+  ACC0CellTree.ctree_cells_le t
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
