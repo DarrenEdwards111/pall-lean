@@ -468,6 +468,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellTreeBound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitToCellTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModGateCells
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModLayerCells
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalSimulationOverhead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DecodeUniformity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RealizationClocking
@@ -7016,6 +7017,17 @@ theorem nw_modGate_satisfiable_iff_frontier {n : ℕ} (q : ℕ) (S : Finset (Fin
     NFrameACC0Speedup.Satisfiable (ACC0CircuitModel.eval (.mod q S t)) ↔
       ∃ w ∈ Finset.univ.image (TwoGateCorrelation.weightOn S), (w : ZMod q) = t :=
   ACC0ModGateCells.modGate_satisfiable_iff q S t
+
+/-- **Bridge (concrete↔abstract payoff): real MOD-layer circuit has ≤ (s+1)^t cells `modLayer_cells_le` (PROVED).**  Combining
+the concrete symmetric leaf (`weightOn_cells_le`: `≤|S|+1` cells) with the abstract recursion (`cells_factor`): any function
+`F x = H(weightOn S_1 x,…,weightOn S_t x)` over `t` `MOD` gates (supports `≤ s`) has `≤ (s+1)^t` cells — quasipolynomial for
+constant fan-in/bounded supports, the symmetric structure the polynomial method can't exploit for prime powers. -/
+theorem nw_modLayer_cells_le_frontier {n t s : ℕ} {β : Type*} [DecidableEq β]
+    (S : Fin t → Finset (Fin n)) (hs : ∀ i, (S i).card ≤ s)
+    (H : (Fin t → ℕ) → β) (F : (Fin n → Bool) → β)
+    (hF : ∀ x, F x = H (fun i => TwoGateCorrelation.weightOn (S i) x)) :
+    (Finset.univ.image F).card ≤ (s + 1) ^ t :=
+  ACC0ModLayerCells.modLayer_cells_le S hs H F hF
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
