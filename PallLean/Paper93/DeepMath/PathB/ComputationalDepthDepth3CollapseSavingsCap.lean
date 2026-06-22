@@ -71,11 +71,29 @@ theorem collapse_savings_le_log (hunsat : ∀ a : Edge → ZMod 2, ∃ v, ¬ TCo
   have hpos : 0 < M.collapseLen (M.size D) := lt_of_lt_of_le (pow_pos (by norm_num) j) h
   exact (Nat.le_log_iff_pow_le (by norm_num) hpos.ne').mpr h
 
+/-- **The route is polynomially capped under polynomial `collapseLen` (PROVED).**  If
+`collapseLen s ≤ s^K`, then the route's own exponential lower bound `2^j` is itself at most
+`(size D)^K` — *polynomial* in the object size.  So the collapse route **cannot** produce a
+super-polynomial circuit lower bound when `collapseLen` is polynomial: the `2^j` savings is swallowed
+by `poly(size)`.  This is the AC⁰-ceiling in its sharpest form. -/
+theorem collapse_lb_le_poly (hunsat : ∀ a : Edge → ZMod 2, ∃ v, ¬ TConstr G charge v a)
+    (M : Depth3CollapseModel G charge)
+    {c t : ℕ} (hc : 1 ≤ c) (hexp : G.HasExpansion c) (ht2 : 2 ≤ t)
+    (hcard : 4 * t ≤ Fintype.card V) {d k j : ℕ} (hd : 0 < d) (hk1 : 1 ≤ k)
+    (hdn : d < Fintype.card (TLit Edge)) (hkd : Fintype.card (TLit Edge) - d ≤ k * d)
+    (hsmall : M.w₀ + d + k * j < c * t)
+    {K : ℕ} (hpoly : ∀ s, M.collapseLen s ≤ s ^ K)
+    (D : M.Circuit) (hD : M.Refutes D) :
+    2 ^ j ≤ (M.size D) ^ K :=
+  le_trans (collapseLen_ge_two_pow hunsat M hc hexp ht2 hcard hd hk1 hdn hkd hsmall D hD)
+    (hpoly (M.size D))
+
 /-!
-**Collapse savings cap proved.**  `j ≤ log₂ (collapseLen (size D))` — poly `collapseLen` ⇒ `O(log)`
-savings ⇒ AC⁰ ceiling.  The general-circuit gate (poly `collapseLen` for general circuits, which refute
-Tseitin in poly size) is BSW-forbidden / P≠NP-strength; not faked.  Collapse for general circuits and
-P≠NP untouched.
+**Collapse savings cap + polynomial ceiling proved.**  `j ≤ log₂ (collapseLen (size D))`, and under
+poly `collapseLen` (`≤ s^K`) the route's lower bound satisfies `2^j ≤ (size D)^K` — polynomial, so the
+route **cannot** separate super-polynomially.  The general-circuit gate (poly `collapseLen` for general
+circuits, which refute Tseitin in poly size) is therefore BSW-forbidden / P≠NP-strength; not faked.
+Collapse for general circuits and P≠NP untouched.
 -/
 
 end Depth3CollapseModel
