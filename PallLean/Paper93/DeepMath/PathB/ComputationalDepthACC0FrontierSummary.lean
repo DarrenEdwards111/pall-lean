@@ -463,6 +463,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpFastSAT
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMultiplicity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpeDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpeDepth3
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CellRecursion
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalSimulationOverhead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DecodeUniformity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RealizationClocking
@@ -6967,6 +6968,16 @@ theorem nw_depth3_modpe_cells_frontier {t n : ℕ} (k : ℕ) (mono : Fin t → F
           ACC0SymmetricObserver.gateCount (fun j x => ACC0PolyToSymAnd.monoAND (mono i j) x) x)).card
       ≤ (k + 1) ^ t :=
   ACC0ModpeDepth3.depth3_modpe_cells k mono
+
+/-- **Bridge (hard math, arbitrary-depth nesting recursion): a gate's cells ≤ product over sub-circuits `cells_factor`
+(PROVED).**  The inductive step for arbitrary depth: if `F x = H(G_1 x,…,G_t x)` and each `G_i` has `≤ C` cells, then `F` has
+`≤ C^t` cells.  Applied at every node of a depth-`d`, fan-in-`f` circuit, this iterates to a `C^{f^d}` cell bound —
+quasipolynomial for constant depth, field-independent (so it survives the prime-power RS barrier). -/
+theorem nw_cells_factor_frontier {n : ℕ} {β γ : Type*} [DecidableEq β] [DecidableEq γ] {t : ℕ} (C : ℕ)
+    (G : Fin t → (Fin n → Bool) → β) (H : (Fin t → β) → γ) (F : (Fin n → Bool) → γ)
+    (hF : ∀ x, F x = H (fun i => G i x)) (hG : ∀ i, (Finset.univ.image (G i)).card ≤ C) :
+    (Finset.univ.image F).card ≤ C ^ t :=
+  ACC0CellRecursion.cells_factor C G H F hF hG
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
