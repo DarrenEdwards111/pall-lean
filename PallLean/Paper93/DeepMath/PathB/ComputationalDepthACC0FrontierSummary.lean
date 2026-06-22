@@ -470,6 +470,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitToCellTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModGateCells
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModLayerCells
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModLayerFastSAT
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModLayerFamily
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalSimulationOverhead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DecodeUniformity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RealizationClocking
@@ -7042,6 +7043,17 @@ theorem nw_modLayer_fastsat_frontier {n t s : ℕ}
         ∃ w ∈ Finset.univ.image (fun x (i : Fin t) => TwoGateCorrelation.weightOn (S i) x), H w = true)
       ∧ (Finset.univ.image (fun x (i : Fin t) => TwoGateCorrelation.weightOn (S i) x)).card ≤ (s + 1) ^ t :=
   ACC0ModLayerFastSAT.modLayer_fastsat S hs H F hF
+
+/-- **Bridge (algorithmic payoff, unconditional family): MOD-layer fast-SAT beats brute force at large arity
+`modLayer_family_beats_bruteforce` (PROVED).**  For constant `s,t`, `(s+1)^t` is a constant, eventually `< 2^n`
+(`const_lt_two_pow`), so for `n ≥ (s+1)^t` the weight-cell search has `< 2^n` cells — the brute-force-beating speedup with NO
+side hypothesis, for the whole constant-parameter `MOD`-layer family. -/
+theorem nw_modLayer_family_beats_bruteforce_frontier {n t s : ℕ} (hn : (s + 1) ^ t ≤ n)
+    (S : Fin t → Finset (Fin n)) (hs : ∀ i, (S i).card ≤ s)
+    (H : (Fin t → ℕ) → Bool) (F : (Fin n → Bool) → Bool)
+    (hF : ∀ x, F x = H (fun i => TwoGateCorrelation.weightOn (S i) x)) :
+    (Finset.univ.image (fun x (i : Fin t) => TwoGateCorrelation.weightOn (S i) x)).card < 2 ^ n :=
+  ACC0ModLayerFamily.modLayer_family_beats_bruteforce hn S hs H F hF
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
