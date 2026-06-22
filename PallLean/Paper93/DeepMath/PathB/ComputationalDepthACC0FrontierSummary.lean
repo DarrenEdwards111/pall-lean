@@ -461,6 +461,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpEndToEnd
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMODCRT
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpFastSAT
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMultiplicity
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpeDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalSimulationOverhead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DecodeUniformity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RealizationClocking
@@ -6939,6 +6940,21 @@ theorem nw_modm_charSum_frontier {n : ℕ} (ℓ : ℕ) [Fact ℓ.Prime] (m : ℕ
     (ACC0CircuitRepr.bv (ACC0ModqWitness.modqFn m x) : ZMod ℓ)
       = ((m : ℕ) : ZMod ℓ)⁻¹ * ∑ j ∈ Finset.range m, ACC0CharWitness.charWt (ζ ^ j) x :=
   ACC0CompositeMultiplicity.modm_charSum ℓ m hq ζ hord x
+
+/-- **Bridge (hard math, depth-2 prime-power SYM∘AND count): `MOD_{p^e} ∘ AND` has linear cell count `modpe_depth2_count`
+(PROVED).**  A prime-power `MOD` gate over `k` `AND`-gates is a `SYM∘AND` form whose value depends only on the count of
+satisfied `AND`-gates; that count is in `{0,…,k}`, so there are `≤ k+1` cells, and SAT is decided by a `p^e`-residue check
+over them — linear, no blow-up (where the polynomial-degree route fails for `e ≥ 2`). -/
+theorem nw_modpe_depth2_count_frontier {n : ℕ} (p e k : ℕ) (mono : Fin k → Finset (Fin n)) :
+    (Finset.univ.image (ACC0SymmetricObserver.gateCount (fun j x => ACC0PolyToSymAnd.monoAND (mono j) x))).card
+        ≤ k + 1
+      ∧ (NFrameACC0Speedup.Satisfiable
+            (ACC0SymmetricObserver.symEval (fun j x => ACC0PolyToSymAnd.monoAND (mono j) x)
+              (ACC0FastSATCharacteristicUniversal.modIndicator (p ^ e)))
+          ↔ ∃ c ∈ Finset.univ.image
+              (ACC0SymmetricObserver.gateCount (fun j x => ACC0PolyToSymAnd.monoAND (mono j) x)),
+              c % p ^ e = 0) :=
+  ACC0ModpeDepth2.modpe_depth2_count p e k mono
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
