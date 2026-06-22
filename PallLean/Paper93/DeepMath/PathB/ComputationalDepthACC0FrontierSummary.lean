@@ -462,6 +462,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMODCRT
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpFastSAT
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CompositeMultiplicity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpeDepth2
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpeDepth3
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalSimulationOverhead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DecodeUniformity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RealizationClocking
@@ -6955,6 +6956,17 @@ theorem nw_modpe_depth2_count_frontier {n : ℕ} (p e k : ℕ) (mono : Fin k →
               (ACC0SymmetricObserver.gateCount (fun j x => ACC0PolyToSymAnd.monoAND (mono j) x)),
               c % p ^ e = 0) :=
   ACC0ModpeDepth2.modpe_depth2_count p e k mono
+
+/-- **Bridge (hard math, depth-3 prime-power composition): cell count multiplies per layer `depth3_modpe_cells` (PROVED).**
+A depth-3 circuit over `t` depth-2 `MOD_{p^e}∘AND` blocks (each `k` `AND`-gates) factors through the joint count vector
+`(c_1,…,c_t) ∈ {0,…,k}^t`, so has `≤ (k+1)^t` distinct cells — the cell count multiplies per layer (polynomial for constant
+depth, the symmetric-structure count that survives where the polynomial method fails for `e ≥ 2`). -/
+theorem nw_depth3_modpe_cells_frontier {t n : ℕ} (k : ℕ) (mono : Fin t → Fin k → Finset (Fin n)) :
+    (Finset.univ.image
+        (fun x (i : Fin t) =>
+          ACC0SymmetricObserver.gateCount (fun j x => ACC0PolyToSymAnd.monoAND (mono i j) x) x)).card
+      ≤ (k + 1) ^ t :=
+  ACC0ModpeDepth3.depth3_modpe_cells k mono
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
