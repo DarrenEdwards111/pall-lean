@@ -471,6 +471,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModGateCells
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModLayerCells
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModLayerFastSAT
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModLayerFamily
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SharpSAT
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalSimulationOverhead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DecodeUniformity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RealizationClocking
@@ -7054,6 +7055,19 @@ theorem nw_modLayer_family_beats_bruteforce_frontier {n t s : ℕ} (hn : (s + 1)
     (hF : ∀ x, F x = H (fun i => TwoGateCorrelation.weightOn (S i) x)) :
     (Finset.univ.image (fun x (i : Fin t) => TwoGateCorrelation.weightOn (S i) x)).card < 2 ^ n :=
   ACC0ModLayerFamily.modLayer_family_beats_bruteforce hn S hs H F hF
+
+/-- **Bridge (algorithmic payoff, #SAT): the satisfying-assignment count is a quasipolynomial sum `bt_sharpSat` (PROVED).**
+Via the proved `endToEnd_BT`: for any general (unary/binary) `Circ` circuit, `#{x : eval c x = true} = ∑_{d ∈ support(subst c)}
+coeff_d · 2^{n−|d|}` (over any nontrivial `CommRing`), a sum over `≤ (n+1)^{2^{depth+1}}` monomial features — quasipolynomial
+for constant depth, so #SAT is computable from the sparse polynomial and SAT = nonzeroness of the sum. -/
+theorem nw_bt_sharpSat_frontier {R : Type*} [CommRing R] [Nontrivial R] {n : ℕ}
+    (c : ACC0CircuitSubstitution.Circ n) :
+    ((Finset.univ.filter (fun x => ACC0CircuitSubstitution.eval c x = true)).card : R)
+        = ∑ d ∈ (ACC0SubstitutionPoly.subst (R := R) c).support,
+            (ACC0SubstitutionPoly.subst c).coeff d * (2 : R) ^ (n - d.support.card)
+      ∧ ((ACC0SubstitutionPoly.subst (R := R) c).support.image (fun d => d.support)).card
+          ≤ (n + 1) ^ (2 ^ (ACC0LowDegreeSubstitution.depth c + 1)) :=
+  ACC0SharpSAT.bt_sharpSat c
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
