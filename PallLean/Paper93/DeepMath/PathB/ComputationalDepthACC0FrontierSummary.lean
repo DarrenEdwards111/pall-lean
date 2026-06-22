@@ -455,6 +455,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0LazyHierarchyEscape
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NFrameWilliamsRoute
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0NFrameWilliamsAnatomy
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0GatePolyDegree
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ModpTodaPoly
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0UniversalSimulationOverhead
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DecodeUniformity
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0RealizationClocking
@@ -6870,6 +6871,14 @@ is the `δ = 2` gate-degree input to BT — the `MOD_m` gate's polylog (Toda) de
 theorem nw_gateBinary_degree_frontier {R : Type*} [CommRing R] [Nontrivial R] (g : Bool → Bool → Bool) :
     (ACC0GatePolyDegree.gateBinary g : MvPolynomial (Fin 2) R).totalDegree ≤ 2 :=
   ACC0GatePolyDegree.gateBinary_degree g
+
+/-- **Bridge (hard math, Toda/RS MOD degree): `MOD_p` is degree `p−1` over `F_p` `modpPoly_degree` (PROVED).**  The exact
+low-degree representation of the prime-modulus `MOD` gate: `MOD_p = 1 − (∑_{i∈S} X_i)^{p−1}` over `ZMod p`, total degree
+`≤ p−1` (`modpPoly_degree`), eval-correct as the `MOD_p` residue-`0` indicator (`modpPoly_eval`, via Fermat).  The base rung
+of the composite-`MOD` Toda degree that drives Beigel–Tarui. -/
+theorem nw_modpPoly_degree_frontier (p : ℕ) [Fact p.Prime] {n : ℕ} (S : Finset (Fin n)) :
+    (ACC0ModpTodaPoly.modpPoly p S).totalDegree ≤ p - 1 :=
+  ACC0ModpTodaPoly.modpPoly_degree p S
 
 /-- **Polynomial approximation of a single AND gate — the base case of Razborov–Smolensky.**  The Fermat indicator
 `y^(p-1) = [y≠0]` over F_p (nw_fermat_indicator_frontier); the exact AND/OR monomials (andExact, orExact); the
