@@ -10,12 +10,15 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaTower
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaTowerDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MixedTowerDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MixedTowerValue
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0OrNode
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FullTowerDegree
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FullTowerValue
 
 /-!
 # Toda integer-route ladder — machine-checked manifest
 
 A single verified entry point for the Beigel–Tarui **integer** route's core mechanism, built this run as
-the genuine attack on the polynomial wall (exact-quasipoly for large/unbounded `MOD`).  All 12 rungs are
+the genuine attack on the polynomial wall (exact-quasipoly for large/unbounded `MOD`).  All 14 rungs are
 clean; the ladder rungs (1–4) depend on **no `Classical.choice`** (`[propext, Quot.sound]` only) — pure
 ring/divisibility and `MvPolynomial` degree facts.
 
@@ -57,6 +60,11 @@ value (exact mod `p^{2^k}`) and degree (`(3^k(p−1))^depth`).
 12. **Mixed `MOD`/`AND` tower (value)** — `mixed_tower`: `p^{2^k} ∣ (mrepv t − mval t)` — the mixed tower's
     representation equals its Boolean value mod `p^{2^k}` (`MOD` via Toda, `AND` via the product
     congruence).  So the mixed tower is bounded in **both** value and degree.
+13. **`OR`-gate laws** — `or_node_dvd` (value congruence) and `or_node_deg` (degree `≤ ∑`): the De Morgan
+    gate `1 − ∏(1 − ·)`, generic, joining `MOD`/`AND` so every ACC⁰[p] gate has an integer-route law.
+14. **Full `MOD`/`AND`/`OR` tower** — `frep_totalDegree_le` (degree `≤ (max w (3^k(p−1)))^depth`) and
+    `full_tower` (value `p^{2^k} ∣ (vrep t − vval t)`): the complete gate set in **one** tower, bounded in
+    **both** value and degree across arbitrary depth — the realistic ACC⁰[p] via the integer route.
 
 ## The remaining wall
 
@@ -85,6 +93,10 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0TodaLadderManifest
 #check @ACC0TodaTowerDegree.prep_totalDegree_le
 #check @ACC0MixedTowerDegree.mrep_totalDegree_le
 #check @ACC0MixedTowerValue.mixed_tower
+#check @ACC0OrNode.or_node_dvd
+#check @ACC0OrNode.or_node_deg
+#check @ACC0FullTowerDegree.frep_totalDegree_le
+#check @ACC0FullTowerValue.full_tower
 
 -- Minimal-axiom confirmation (no Classical.choice on the ladder rungs)
 #print axioms ACC0TodaAmplify.todaAmp_amplifies
@@ -95,5 +107,7 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0TodaLadderManifest
 #print axioms ACC0TodaTowerDegree.prep_totalDegree_le
 #print axioms ACC0MixedTowerDegree.mrep_totalDegree_le
 #print axioms ACC0MixedTowerValue.mixed_tower
+#print axioms ACC0FullTowerDegree.frep_totalDegree_le
+#print axioms ACC0FullTowerValue.full_tower
 
 end PallLean.Paper93.DeepMath.PathB.ACC0TodaLadderManifest
