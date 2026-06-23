@@ -16,6 +16,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitSatSearchabl
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ExactGateDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ExactBoundedDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ExactBTNormalForm
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ExactBoundedAndOr
 
 /-!
 # ACC⁰ integer/exact arc — machine-checked manifest
@@ -50,6 +51,9 @@ manifests.
   `acc0_exact_bt_normal_form` — **the exact (non-RS) route for bounded fan-in**: exact per-gate degree
   laws (`MOD` factor `q−1` is fan-in-independent), assembled to exact degree `≤ w^depth`, cashed out to
   the exact BT normal form (eval-exact + degree `≤ w^D` + quasipoly support) — *no approximation*.
+* `toPoly_totalDegree_le_of_faninLeAndOr` — the same exact degree bound with **unbounded MOD fan-in**
+  (`FaninLeAndOr`: only `AND`/`OR` bounded) — the realistic ACC⁰[p], since `MOD` degree `q−1` is
+  fan-in-independent.
 
 **Approximate (RS) route — quasipoly but lossy:**
 * `toAgree_rs_depth_composition` — one oracle: degree `≤ L^D` ∧ quasipoly support ∧ bounded error.
@@ -70,10 +74,11 @@ exactly to a single-count `SYM∘AND` (`multiCount_factors` + `hasMultiSymRep_co
 to the real circuit type — *every* `ACC0Circuit`'s `eval` is exactly a single-count `SYM∘AND`
 (`acc0circuit_eval_hasSymAndRep`, structural induction), and this **cashes out** to a conditional SAT
 speedup: `circuitTowerSize C + 1 < 2^n` ⇒ a sub-`2^n` search (`acc0circuit_sat_searchable`).
-Independently, for **bounded fan-in** the polynomial route is exact-*and*-quasipoly with **no**
-approximation (`acc0_exact_bt_normal_form`: eval-exact, degree `≤ w^D`, support `≤ (n+1)^{w^D}`).  The
-single open quantity is **unbounded fan-in**: there the exact collapse `circuitTowerSize` is an iterated
-mixed-radix **tower**, and quasipoly is only RS-approximate.
+Independently, for **bounded `AND`/`OR` fan-in** the polynomial route is exact-*and*-quasipoly with
+**no** approximation (`acc0_exact_bt_normal_form`; and `toPoly_totalDegree_le_of_faninLeAndOr` allows
+**unbounded `MOD` fan-in** — the realistic ACC⁰[p], since `MOD` degree `q−1` is fan-in-independent).  The
+single open quantity is **unbounded `AND`/`OR` fan-in**: there the exact route no-gos (degree `=`
+fan-in) / the collapse `circuitTowerSize` towers, and quasipoly is only RS-approximate.
 Keeping it quasipoly across unbounded depth is the Beigel–Tarui integer construction
 (`MixedACCDepthReductionSocket` / `composite_BT_degree`), Williams-strength.  Composite-modulus
 amplification is the Razborov–Smolensky barrier.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
@@ -109,6 +114,7 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0IntegerExactArcManifest
 #check @ACC0ExactGateDegree.toPoly_modGate_totalDegree_le
 #check @ACC0ExactBoundedDegree.toPoly_totalDegree_le_of_faninLe
 #check @ACC0ExactBTNormalForm.acc0_exact_bt_normal_form
+#check @ACC0ExactBoundedAndOr.toPoly_totalDegree_le_of_faninLeAndOr
 
 -- Approximate (RS) route
 #check @ACC0RSDepthComposition.toAgree_rs_depth_composition
