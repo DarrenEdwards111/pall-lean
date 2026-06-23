@@ -2,6 +2,11 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaAmplify
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaIterate
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaIndicator
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaModGate
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaModCompose
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaExtract
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaDepth2
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaTower
 
 /-!
 # Toda integer-route ladder — machine-checked manifest
@@ -26,12 +31,27 @@ So a `MOD_p` gate (`d = 1`) gets a degree-`3^k` polynomial computing its `{0,1}`
 with `2^k` past the fan-in and `k ≈ log log` this is the **exact, polylog-degree** representation of an
 **unbounded-fan-in `MOD`** gate — modulus exponential-in-`k`, degree only `3^k`.
 
+## The across-depth assembly (5 rungs — all-`MOD` tower, value-level)
+
+5. **Single `MOD_p` gate** — `todaMod_amplifies`: the gate's value `≡ [p ∣ y] (mod p^{2^k})` via the
+   Fermat lift `1 − y^{p−1}` fed through `A^{[k]}`.
+6. **`MOD_p` over a rep layer** — `todaMod_compose`: the accepting count transfers from reps to values
+   (`p ∣ ∑ g ↔ p ∣ ∑ b`).
+7. **Exact extraction** — `todaMod_extract`: over the common modulus `ZMod (p^{2^k})` (uniform `k`), the
+   rep **is** the gate's exact `{0,1}` output.
+8. **Two-layer stack** — `toda_depth2`: `MOD_p∘MOD_p` composes (inner `mod p^{2^k}` weakens to `mod p`).
+9. **Depth-`d` tower** — `toda_tower`: for *every* `ModTower`, `p^{2^k} ∣ (rep t − val t)` — the all-`MOD`
+   tower is Toda-represented at **arbitrary depth** with a uniform `k`.
+
+So the ACC⁰[p] **`MOD`-skeleton** is fully Toda-represented across unbounded depth (value-level).
+
 ## The remaining wall
 
-Supplying `q` as the actual bottom-`AND` count of a depth-`d` ACC⁰ circuit and assembling the per-gate
-indicators into **one** exact quasipoly `SYM∘AND` across depth (choosing `2^k` against the global count)
-is the Beigel–Tarui integer construction body — Williams-strength, **not** built.  (Unbounded `AND`/`OR`
-stays the exact-degree no-go, `ACC0ExactDegreeNoGo`.)  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+The all-`MOD` tower (`toda_tower`) is value-level; the remaining Beigel–Tarui integer construction needs
+the **polynomial/degree form across the tower** (`(3^k(p−1))^depth`), the **`AND`/`OR` layers**, and the
+**exact-quasipoly** choice of `2^k` against the global count.  Williams-strength, **not** built.
+(Unbounded `AND`/`OR` stays the exact-degree no-go, `ACC0ExactDegreeNoGo`.)  Nothing here is
+`NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.ACC0TodaLadderManifest
@@ -41,10 +61,18 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0TodaLadderManifest
 #check @ACC0TodaDegree.todaAmpIterP_totalDegree_le
 #check @ACC0TodaIndicator.todaIterate_indicator
 
--- Minimal-axiom confirmation (no Classical.choice)
+-- Across-depth assembly (5 rungs)
+#check @ACC0TodaModGate.todaMod_amplifies
+#check @ACC0TodaModCompose.todaMod_compose
+#check @ACC0TodaExtract.todaMod_extract
+#check @ACC0TodaDepth2.toda_depth2
+#check @ACC0TodaTower.toda_tower
+
+-- Minimal-axiom confirmation (no Classical.choice on the ladder rungs)
 #print axioms ACC0TodaAmplify.todaAmp_amplifies
 #print axioms ACC0TodaIterate.todaAmpIter_amplifies
 #print axioms ACC0TodaDegree.todaAmpIterP_totalDegree_le
 #print axioms ACC0TodaIndicator.todaIterate_indicator
+#print axioms ACC0TodaTower.toda_tower
 
 end PallLean.Paper93.DeepMath.PathB.ACC0TodaLadderManifest
