@@ -14,9 +14,9 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MixedTowerDegree
 # Toda integer-route ladder — machine-checked manifest
 
 A single verified entry point for the Beigel–Tarui **integer** route's core mechanism, built this run as
-the genuine attack on the polynomial wall (exact-quasipoly for large/unbounded `MOD`).  All four rungs
-are clean and depend on **no `Classical.choice`** (`[propext, Quot.sound]` only) — pure ring/divisibility
-and `MvPolynomial` degree facts.
+the genuine attack on the polynomial wall (exact-quasipoly for large/unbounded `MOD`).  All 11 rungs are
+clean; the ladder rungs (1–4) depend on **no `Classical.choice`** (`[propext, Quot.sound]` only) — pure
+ring/divisibility and `MvPolynomial` degree facts.
 
 ## The ladder (4 rungs)
 
