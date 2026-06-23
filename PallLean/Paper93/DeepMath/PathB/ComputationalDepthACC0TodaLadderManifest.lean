@@ -68,13 +68,13 @@ value (exact mod `p^{2^k}`) and degree (`(3^k(p−1))^depth`).
 
 ## The remaining wall
 
-The mixed `MOD`/bounded-`AND` tower is now bounded in **both** value (`mixed_tower`) and degree
-(`mrep_totalDegree_le`) across arbitrary depth.  The remaining Beigel–Tarui integer construction needs:
-**`OR`** (the De Morgan analogue, same laws as `AND`), the **exact-quasipoly choice of `2^k`** against the
-global count (to extract exact `{0,1}` over `ZMod (p^{2^k})` and bound the support), and the final
-**`SYM∘AND` assembly** with the `NEXP ⊄ ACC⁰` cash-out.  Williams-strength, **not** built.  (Unbounded
-`AND`/`OR` stays the exact-degree no-go, `ACC0ExactDegreeNoGo` — needs RS approximation.)  Nothing here is
-`NEXP ⊄ ACC⁰` or `P ≠ NP`.
+The **full `MOD`/`AND`/`OR` tower** is now bounded in **both** value (`full_tower`) and degree
+(`frep_totalDegree_le`) across arbitrary depth — the integer route's *representation* of bounded-`AND`/`OR`
+ACC⁰[p] is complete.  The remaining Beigel–Tarui construction is the **cash-out**: the **exact-quasipoly
+choice of `2^k`** against the global count (to extract exact `{0,1}` over `ZMod (p^{2^k})` and bound the
+support quasipoly), the final **`SYM∘AND` assembly**, and the **`NEXP ⊄ ACC⁰`** contradiction.
+Williams-strength, **not** built.  (Unbounded `AND`/`OR` stays the exact-degree no-go,
+`ACC0ExactDegreeNoGo` — needs RS approximation.)  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.ACC0TodaLadderManifest
