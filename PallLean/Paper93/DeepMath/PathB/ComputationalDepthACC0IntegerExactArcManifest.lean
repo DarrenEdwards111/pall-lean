@@ -13,6 +13,9 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SymmetricEscapesNoG
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MultiCountCollapse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitToSymAnd
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0CircuitSatSearchable
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ExactGateDegree
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ExactBoundedDegree
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ExactBTNormalForm
 
 /-!
 # ACC⁰ integer/exact arc — machine-checked manifest
@@ -43,6 +46,10 @@ manifests.
 * `acc0circuit_eval_hasSymAndRepSize`, `acc0circuit_sat_searchable` — **the algorithmic cash-out**:
   size-tracking the lift (`circuitTowerSize`), any `ACC0Circuit` with `circuitTowerSize C + 1 < 2^n` has
   a sub-`2^n` SAT search (conditional Williams-style speedup, regime explicit).
+* `toPoly_orGate_totalDegree_le`, `toPoly_modGate_totalDegree_le`, `toPoly_totalDegree_le_of_faninLe`,
+  `acc0_exact_bt_normal_form` — **the exact (non-RS) route for bounded fan-in**: exact per-gate degree
+  laws (`MOD` factor `q−1` is fan-in-independent), assembled to exact degree `≤ w^depth`, cashed out to
+  the exact BT normal form (eval-exact + degree `≤ w^D` + quasipoly support) — *no approximation*.
 
 **Approximate (RS) route — quasipoly but lossy:**
 * `toAgree_rs_depth_composition` — one oracle: degree `≤ L^D` ∧ quasipoly support ∧ bounded error.
@@ -62,9 +69,11 @@ The **exact side is complete at both levels**: every cross-layer multi-count fun
 exactly to a single-count `SYM∘AND` (`multiCount_factors` + `hasMultiSymRep_collapses`), and — lifting
 to the real circuit type — *every* `ACC0Circuit`'s `eval` is exactly a single-count `SYM∘AND`
 (`acc0circuit_eval_hasSymAndRep`, structural induction), and this **cashes out** to a conditional SAT
-speedup: `circuitTowerSize C + 1 < 2^n` ⇒ a sub-`2^n` search (`acc0circuit_sat_searchable`).  The single
-open quantity is the **collapsed layer size** `circuitTowerSize`: exact ⇒ iterated mixed-radix **tower**
-(blows past `2^n` for unbounded depth); quasipoly ⇒ only RS-approximate.
+speedup: `circuitTowerSize C + 1 < 2^n` ⇒ a sub-`2^n` search (`acc0circuit_sat_searchable`).
+Independently, for **bounded fan-in** the polynomial route is exact-*and*-quasipoly with **no**
+approximation (`acc0_exact_bt_normal_form`: eval-exact, degree `≤ w^D`, support `≤ (n+1)^{w^D}`).  The
+single open quantity is **unbounded fan-in**: there the exact collapse `circuitTowerSize` is an iterated
+mixed-radix **tower**, and quasipoly is only RS-approximate.
 Keeping it quasipoly across unbounded depth is the Beigel–Tarui integer construction
 (`MixedACCDepthReductionSocket` / `composite_BT_degree`), Williams-strength.  Composite-modulus
 amplification is the Razborov–Smolensky barrier.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
@@ -95,6 +104,12 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0IntegerExactArcManifest
 #check @ACC0CircuitSatSearchable.acc0circuit_eval_hasSymAndRepSize
 #check @ACC0CircuitSatSearchable.acc0circuit_sat_searchable
 
+-- Exact (non-RS) bounded-fan-in route
+#check @ACC0ExactGateDegree.toPoly_orGate_totalDegree_le
+#check @ACC0ExactGateDegree.toPoly_modGate_totalDegree_le
+#check @ACC0ExactBoundedDegree.toPoly_totalDegree_le_of_faninLe
+#check @ACC0ExactBTNormalForm.acc0_exact_bt_normal_form
+
 -- Approximate (RS) route
 #check @ACC0RSDepthComposition.toAgree_rs_depth_composition
 #check @ACC0PrimeExactExists.exists_exact_toAgree
@@ -111,6 +126,7 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0IntegerExactArcManifest
 #print axioms ACC0MultiCountCollapse.hasMultiSymRep_collapses
 #print axioms ACC0CircuitToSymAnd.acc0circuit_eval_hasSymAndRep
 #print axioms ACC0CircuitSatSearchable.acc0circuit_sat_searchable
+#print axioms ACC0ExactBTNormalForm.acc0_exact_bt_normal_form
 #print axioms ACC0RSDepthComposition.toAgree_rs_depth_composition
 
 end PallLean.Paper93.DeepMath.PathB.ACC0IntegerExactArcManifest
