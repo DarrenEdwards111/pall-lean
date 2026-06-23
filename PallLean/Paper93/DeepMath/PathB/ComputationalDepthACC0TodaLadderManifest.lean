@@ -13,12 +13,15 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MixedTowerValue
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0OrNode
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FullTowerDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FullTowerValue
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FullTowerExtract
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FullTowerBool
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FullTowerSparse
 
 /-!
 # Toda integer-route ladder — machine-checked manifest
 
 A single verified entry point for the Beigel–Tarui **integer** route's core mechanism, built this run as
-the genuine attack on the polynomial wall (exact-quasipoly for large/unbounded `MOD`).  All 14 rungs are
+the genuine attack on the polynomial wall (exact-quasipoly for large/unbounded `MOD`).  All 17 rungs are
 clean; the ladder rungs (1–4) depend on **no `Classical.choice`** (`[propext, Quot.sound]` only) — pure
 ring/divisibility and `MvPolynomial` degree facts.
 
@@ -66,14 +69,25 @@ value (exact mod `p^{2^k}`) and degree (`(3^k(p−1))^depth`).
     `full_tower` (value `p^{2^k} ∣ (vrep t − vval t)`): the complete gate set in **one** tower, bounded in
     **both** value and degree across arbitrary depth — the realistic ACC⁰[p] via the integer route.
 
+## The `SYM∘AND` structure (3 rungs — the cash-out's representation half)
+
+15. **Exact extraction** — `full_tower_extract`: `(vrep t : ZMod (p^{2^k})) = (vval t : ZMod (p^{2^k}))` —
+    over the common modulus the rep **is** the value (no residual error).
+16. **Boolean value** — `vval_mem_bool`: `vval t ∈ {0,1}` — so the extraction is an exact *Boolean* value.
+17. **`SYM∘AND` width** — `full_tower_sparse`: `≤ (n+1)^{K^depth}` distinct monomial-`AND` sets.
+
+So the full tower's polynomial is a **degree-`K^depth`, `(n+1)^{K^depth}`-sparse polynomial over
+`ZMod (p^{2^k})` computing the circuit's exact Boolean output** — a quasipoly `SYM∘AND` for polylog `K`,
+constant depth.  (NB: the Toda rep is a *large* integer; only its residue mod `p^{2^k}` is Boolean — the
+cash-out is the `SYM∘AND` structure, not integer smallness.)
+
 ## The remaining wall
 
-The **full `MOD`/`AND`/`OR` tower** is now bounded in **both** value (`full_tower`) and degree
-(`frep_totalDegree_le`) across arbitrary depth — the integer route's *representation* of bounded-`AND`/`OR`
-ACC⁰[p] is complete.  The remaining Beigel–Tarui construction is the **cash-out**: the **exact-quasipoly
-choice of `2^k`** against the global count (to extract exact `{0,1}` over `ZMod (p^{2^k})` and bound the
-support quasipoly), the final **`SYM∘AND` assembly**, and the **`NEXP ⊄ ACC⁰`** contradiction.
-Williams-strength, **not** built.  (Unbounded `AND`/`OR` stays the exact-degree no-go,
+The full `MOD`/`AND`/`OR` tower's *representation* **and** its `SYM∘AND` *structure* (degree `K^depth`,
+width `(n+1)^{K^depth}`, exact Boolean value over `ZMod (p^{2^k})`) are now complete.  The remaining
+Beigel–Tarui cash-out is: the **`2^k`-vs-global-count choice** (so the `ZMod (p^{2^k})` readout is the
+*whole* circuit's exact output) and the **`NEXP ⊄ ACC⁰`** contradiction (Williams diagonalization — the
+algorithmic half).  Williams-strength, **not** built.  (Unbounded `AND`/`OR` stays the exact-degree no-go,
 `ACC0ExactDegreeNoGo` — needs RS approximation.)  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
 
@@ -97,6 +111,9 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0TodaLadderManifest
 #check @ACC0OrNode.or_node_deg
 #check @ACC0FullTowerDegree.frep_totalDegree_le
 #check @ACC0FullTowerValue.full_tower
+#check @ACC0FullTowerExtract.full_tower_extract
+#check @ACC0FullTowerBool.vval_mem_bool
+#check @ACC0FullTowerSparse.full_tower_sparse
 
 -- Minimal-axiom confirmation (no Classical.choice on the ladder rungs)
 #print axioms ACC0TodaAmplify.todaAmp_amplifies
@@ -109,5 +126,8 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0TodaLadderManifest
 #print axioms ACC0MixedTowerValue.mixed_tower
 #print axioms ACC0FullTowerDegree.frep_totalDegree_le
 #print axioms ACC0FullTowerValue.full_tower
+#print axioms ACC0FullTowerExtract.full_tower_extract
+#print axioms ACC0FullTowerBool.vval_mem_bool
+#print axioms ACC0FullTowerSparse.full_tower_sparse
 
 end PallLean.Paper93.DeepMath.PathB.ACC0TodaLadderManifest
