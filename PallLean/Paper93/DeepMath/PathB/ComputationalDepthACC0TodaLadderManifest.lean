@@ -7,6 +7,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaModCompose
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaExtract
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaTower
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaTowerDegree
 
 /-!
 # Toda integer-route ladder — machine-checked manifest
@@ -40,10 +41,13 @@ with `2^k` past the fan-in and `k ≈ log log` this is the **exact, polylog-degr
 7. **Exact extraction** — `todaMod_extract`: over the common modulus `ZMod (p^{2^k})` (uniform `k`), the
    rep **is** the gate's exact `{0,1}` output.
 8. **Two-layer stack** — `toda_depth2`: `MOD_p∘MOD_p` composes (inner `mod p^{2^k}` weakens to `mod p`).
-9. **Depth-`d` tower** — `toda_tower`: for *every* `ModTower`, `p^{2^k} ∣ (rep t − val t)` — the all-`MOD`
-   tower is Toda-represented at **arbitrary depth** with a uniform `k`.
+9. **Depth-`d` tower (value)** — `toda_tower`: for *every* `ModTower`, `p^{2^k} ∣ (rep t − val t)` — the
+   all-`MOD` tower is Toda-represented at **arbitrary depth** with a uniform `k`.
+10. **Depth-`d` tower (degree)** — `prep_totalDegree_le`: `deg(prep t) ≤ (3^k(p−1))^(pdepth t)` —
+    polylog degree (`k ≈ log log`, constant depth) for the polynomial tower with degree-≤1 leaves.
 
-So the ACC⁰[p] **`MOD`-skeleton** is fully Toda-represented across unbounded depth (value-level).
+So the ACC⁰[p] **`MOD`-skeleton** is fully Toda-represented across unbounded depth, bounded in **both**
+value (exact mod `p^{2^k}`) and degree (`(3^k(p−1))^depth`).
 
 ## The remaining wall
 
@@ -67,6 +71,7 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0TodaLadderManifest
 #check @ACC0TodaExtract.todaMod_extract
 #check @ACC0TodaDepth2.toda_depth2
 #check @ACC0TodaTower.toda_tower
+#check @ACC0TodaTowerDegree.prep_totalDegree_le
 
 -- Minimal-axiom confirmation (no Classical.choice on the ladder rungs)
 #print axioms ACC0TodaAmplify.todaAmp_amplifies
@@ -74,5 +79,6 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0TodaLadderManifest
 #print axioms ACC0TodaDegree.todaAmpIterP_totalDegree_le
 #print axioms ACC0TodaIndicator.todaIterate_indicator
 #print axioms ACC0TodaTower.toda_tower
+#print axioms ACC0TodaTowerDegree.prep_totalDegree_le
 
 end PallLean.Paper93.DeepMath.PathB.ACC0TodaLadderManifest
