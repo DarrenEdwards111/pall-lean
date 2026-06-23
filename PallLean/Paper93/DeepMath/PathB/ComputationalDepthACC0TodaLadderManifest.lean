@@ -9,12 +9,13 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaTower
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaTowerDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MixedTowerDegree
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MixedTowerValue
 
 /-!
 # Toda integer-route ladder — machine-checked manifest
 
 A single verified entry point for the Beigel–Tarui **integer** route's core mechanism, built this run as
-the genuine attack on the polynomial wall (exact-quasipoly for large/unbounded `MOD`).  All 11 rungs are
+the genuine attack on the polynomial wall (exact-quasipoly for large/unbounded `MOD`).  All 12 rungs are
 clean; the ladder rungs (1–4) depend on **no `Classical.choice`** (`[propext, Quot.sound]` only) — pure
 ring/divisibility and `MvPolynomial` degree facts.
 
@@ -53,6 +54,9 @@ value (exact mod `p^{2^k}`) and degree (`(3^k(p−1))^depth`).
 11. **Mixed `MOD`/`AND` tower (degree)** — `mrep_totalDegree_le`: degree `≤ (max w (3^k(p−1)))^depth` for
     `MOD` (Toda, *any* modulus) + bounded-fan-in `AND` — the realistic ACC⁰[p], strictly more than
     `ExactBoundedAndOr` (which caps the `MOD` modulus).
+12. **Mixed `MOD`/`AND` tower (value)** — `mixed_tower`: `p^{2^k} ∣ (mrepv t − mval t)` — the mixed tower's
+    representation equals its Boolean value mod `p^{2^k}` (`MOD` via Toda, `AND` via the product
+    congruence).  So the mixed tower is bounded in **both** value and degree.
 
 ## The remaining wall
 
@@ -78,6 +82,7 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0TodaLadderManifest
 #check @ACC0TodaTower.toda_tower
 #check @ACC0TodaTowerDegree.prep_totalDegree_le
 #check @ACC0MixedTowerDegree.mrep_totalDegree_le
+#check @ACC0MixedTowerValue.mixed_tower
 
 -- Minimal-axiom confirmation (no Classical.choice on the ladder rungs)
 #print axioms ACC0TodaAmplify.todaAmp_amplifies
@@ -87,5 +92,6 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0TodaLadderManifest
 #print axioms ACC0TodaTower.toda_tower
 #print axioms ACC0TodaTowerDegree.prep_totalDegree_le
 #print axioms ACC0MixedTowerDegree.mrep_totalDegree_le
+#print axioms ACC0MixedTowerValue.mixed_tower
 
 end PallLean.Paper93.DeepMath.PathB.ACC0TodaLadderManifest
