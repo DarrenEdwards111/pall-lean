@@ -8,6 +8,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaExtract
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaDepth2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaTower
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaTowerDegree
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0MixedTowerDegree
 
 /-!
 # Toda integer-route ladder — machine-checked manifest
@@ -49,6 +50,10 @@ with `2^k` past the fan-in and `k ≈ log log` this is the **exact, polylog-degr
 So the ACC⁰[p] **`MOD`-skeleton** is fully Toda-represented across unbounded depth, bounded in **both**
 value (exact mod `p^{2^k}`) and degree (`(3^k(p−1))^depth`).
 
+11. **Mixed `MOD`/`AND` tower (degree)** — `mrep_totalDegree_le`: degree `≤ (max w (3^k(p−1)))^depth` for
+    `MOD` (Toda, *any* modulus) + bounded-fan-in `AND` — the realistic ACC⁰[p], strictly more than
+    `ExactBoundedAndOr` (which caps the `MOD` modulus).
+
 ## The remaining wall
 
 The all-`MOD` tower (`toda_tower`) is value-level; the remaining Beigel–Tarui integer construction needs
@@ -72,6 +77,7 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0TodaLadderManifest
 #check @ACC0TodaDepth2.toda_depth2
 #check @ACC0TodaTower.toda_tower
 #check @ACC0TodaTowerDegree.prep_totalDegree_le
+#check @ACC0MixedTowerDegree.mrep_totalDegree_le
 
 -- Minimal-axiom confirmation (no Classical.choice on the ladder rungs)
 #print axioms ACC0TodaAmplify.todaAmp_amplifies
@@ -80,5 +86,6 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0TodaLadderManifest
 #print axioms ACC0TodaIndicator.todaIterate_indicator
 #print axioms ACC0TodaTower.toda_tower
 #print axioms ACC0TodaTowerDegree.prep_totalDegree_le
+#print axioms ACC0MixedTowerDegree.mrep_totalDegree_le
 
 end PallLean.Paper93.DeepMath.PathB.ACC0TodaLadderManifest
