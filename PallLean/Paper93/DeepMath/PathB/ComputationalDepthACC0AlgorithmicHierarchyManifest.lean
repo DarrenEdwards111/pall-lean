@@ -5,6 +5,8 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ComputableHierarchy
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTSizeRecurrence
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TimedEnumeration
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TimedHierarchy
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TimedModelProps
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TimedModelComplete
 
 /-!
 # Williams algorithmic half — machine-checked manifest of the hierarchy ladder
@@ -14,7 +16,7 @@ point #3): the `¬ Collapse` hierarchy ladder, built rung by rung from the inter
 single concrete machine-model gap.  All clean (no `sorry`, no custom axioms); the diagonalization rungs
 depend on **no axioms at all**.  Mirrors the exact-arc manifest (`ACC0IntegerExactArcManifest`).
 
-## The ladder (7 rungs)
+## The ladder (8 rungs)
 
 1. **Interface socket** — `probabilistic_route_to_NEXP_not_ACC0`: the abstract modus-ponens
    `RSRep → ACC0SatSpeedup`, `williams : ACC0SatSpeedup → NEXPHasACC0Circuits → Collapse`,
@@ -33,6 +35,10 @@ depend on **no axioms at all**.  Mirrors the exact-arc manifest (`ACC0IntegerExa
 7. **`TIME(bound) ⊊ Computable`** — `timed_class_proper` / `timed_collapse_false`: rung 6 wired into the
    abstract hierarchy, discharging **both** inputs concretely (`hsmall` definitional, `hbig` =
    `timedEnum_diag_computable`).  The hierarchy is non-vacuous with a *genuine timed class*.
+8. **Timed-model metatheory** — `timedEnum_accept_mono` (acceptance monotone in the budget),
+   `timedEnum_sound` (bounded ⇒ true acceptance), `timedEnum_captures_eval` (`⋃_k`-acceptance `=` true
+   acceptance), `timedEnum_input_bound` (acceptance ⇒ `n < bound n`): the model is a faithful resource
+   refinement of the partial-recursive semantics.
 
 ## The single remaining gap
 
@@ -74,11 +80,18 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0AlgorithmicHierarchyManifest
 #check @ACC0TimedHierarchy.timed_class_proper
 #check @ACC0TimedHierarchy.timed_collapse_false
 
+-- Rung 8: timed-model metatheory (monotonicity, soundness, completeness, input bound)
+#check @ACC0TimedModelProps.timedEnum_accept_mono
+#check @ACC0TimedModelProps.timedEnum_sound
+#check @ACC0TimedModelComplete.timedEnum_captures_eval
+#check @ACC0TimedModelComplete.timedEnum_input_bound
+
 -- Axiom confirmation: the diagonalization rungs are axiom-free; the hierarchy is clean
 #print axioms ACC0DiagonalizationKernel.diag_not_mem_range
 #print axioms ACC0AbstractHierarchy.abstract_time_hierarchy
 #print axioms ACC0HierarchyCountable.time_hierarchy_of_countable
 #print axioms ACC0ComputableHierarchy.computable_hierarchy
 #print axioms ACC0TimedHierarchy.timed_class_proper
+#print axioms ACC0TimedModelComplete.timedEnum_captures_eval
 
 end PallLean.Paper93.DeepMath.PathB.ACC0AlgorithmicHierarchyManifest
