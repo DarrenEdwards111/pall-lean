@@ -9,6 +9,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaIndicator
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaTower
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaTowerDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FullTowerEvalBridge
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaSymAndCapstone
 
 /-!
 # ACC⁰ Williams route — complete anatomy (top-level capstone manifest)
@@ -67,6 +68,8 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0WilliamsRouteAnatomy
 #check @ACC0TodaTower.toda_tower
 #check @ACC0TodaTowerDegree.prep_totalDegree_le
 #check @ACC0FullTowerEvalBridge.eval_frep_bridge
+-- Half A headline: the polynomial half packaged in one theorem
+#check @ACC0TodaSymAndCapstone.acc0_toda_symand
 
 -- Half B: algorithmic interface
 #check @ACC0BTSizeRecurrence.probabilistic_route_to_NEXP_not_ACC0
@@ -76,5 +79,6 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0WilliamsRouteAnatomy
 -- Clean-axiom confirmation of the two headline halves
 #print axioms ACC0ExactBTNormalForm.acc0_exact_bt_normal_form
 #print axioms ACC0HierarchyCountable.time_hierarchy_of_countable
+#print axioms ACC0TodaSymAndCapstone.acc0_toda_symand
 
 end PallLean.Paper93.DeepMath.PathB.ACC0WilliamsRouteAnatomy
