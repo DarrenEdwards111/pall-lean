@@ -60,10 +60,12 @@ value (exact mod `p^{2^k}`) and degree (`(3^k(p−1))^depth`).
 
 ## The remaining wall
 
-The all-`MOD` tower (`toda_tower`) is value-level; the remaining Beigel–Tarui integer construction needs
-the **polynomial/degree form across the tower** (`(3^k(p−1))^depth`), the **`AND`/`OR` layers**, and the
-**exact-quasipoly** choice of `2^k` against the global count.  Williams-strength, **not** built.
-(Unbounded `AND`/`OR` stays the exact-degree no-go, `ACC0ExactDegreeNoGo`.)  Nothing here is
+The mixed `MOD`/bounded-`AND` tower is now bounded in **both** value (`mixed_tower`) and degree
+(`mrep_totalDegree_le`) across arbitrary depth.  The remaining Beigel–Tarui integer construction needs:
+**`OR`** (the De Morgan analogue, same laws as `AND`), the **exact-quasipoly choice of `2^k`** against the
+global count (to extract exact `{0,1}` over `ZMod (p^{2^k})` and bound the support), and the final
+**`SYM∘AND` assembly** with the `NEXP ⊄ ACC⁰` cash-out.  Williams-strength, **not** built.  (Unbounded
+`AND`/`OR` stays the exact-degree no-go, `ACC0ExactDegreeNoGo` — needs RS approximation.)  Nothing here is
 `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
 
