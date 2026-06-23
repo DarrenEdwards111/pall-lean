@@ -3,6 +3,8 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0AbstractHierarchy
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0HierarchyCountable
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ComputableHierarchy
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTSizeRecurrence
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TimedEnumeration
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TimedHierarchy
 
 /-!
 # Williams algorithmic half — machine-checked manifest of the hierarchy ladder
@@ -12,7 +14,7 @@ point #3): the `¬ Collapse` hierarchy ladder, built rung by rung from the inter
 single concrete machine-model gap.  All clean (no `sorry`, no custom axioms); the diagonalization rungs
 depend on **no axioms at all**.  Mirrors the exact-arc manifest (`ACC0IntegerExactArcManifest`).
 
-## The ladder (5 rungs)
+## The ladder (7 rungs)
 
 1. **Interface socket** — `probabilistic_route_to_NEXP_not_ACC0`: the abstract modus-ponens
    `RSRep → ACC0SatSpeedup`, `williams : ACC0SatSpeedup → NEXPHasACC0Circuits → Collapse`,
@@ -25,13 +27,20 @@ depend on **no axioms at all**.  Mirrors the exact-arc manifest (`ACC0IntegerExa
    so only `hbig` remains.
 5. **Computable instance** — `computable_hierarchy`: `hbig` discharged in the **untimed** regime
    (`Big := Computable`) — the structure is non-vacuous.
+6. **Concrete `evaln` timed class** — `timedEnum` + `timedEnum_diag_not_mem` (the diagonal decided by no
+   `bound`-time program) + `timedEnum_diag_computable` (the diagonal computable): a real step-counted model
+   via Mathlib's `Nat.Partrec.Code.evaln`, not the abstract parametric `Small`.
+7. **`TIME(bound) ⊊ Computable`** — `timed_class_proper` / `timed_collapse_false`: rung 6 wired into the
+   abstract hierarchy, discharging **both** inputs concretely (`hsmall` definitional, `hbig` =
+   `timedEnum_diag_computable`).  The hierarchy is non-vacuous with a *genuine timed class*.
 
 ## The single remaining gap
 
-`hbig` for the **quantitative** time classes: the diagonal computable within the big class's *budget* —
-a universal simulator with **bounded overhead** + nondeterministic lazy diagonalization — together with
-the `williams` succinct-SAT reduction.  That is the machine-model gap, Williams-strength, **not** built.
-Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+The **time** hierarchy proper (`TIME(bound) ⊊ TIME(bigbound)` for `bigbound` only slightly larger than
+`bound`): the diagonal computable within the big class's *budget* — a universal simulator with **bounded
+overhead** (`evaln`'s running time `≤ bigbound`, Hennie–Stearns `t·polylog`) + nondeterministic lazy
+diagonalization — together with the `williams` succinct-SAT reduction.  That overhead analysis is the
+machine-model gap, Williams-strength, **not** built.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.ACC0AlgorithmicHierarchyManifest
@@ -56,10 +65,20 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0AlgorithmicHierarchyManifest
 #check @ACC0ComputableHierarchy.computable_diag
 #check @ACC0ComputableHierarchy.computable_hierarchy
 
+-- Rung 6: concrete evaln timed class
+#check @ACC0TimedEnumeration.timedEnum
+#check @ACC0TimedEnumeration.timedEnum_diag_not_mem
+#check @ACC0TimedEnumeration.timedEnum_diag_computable
+
+-- Rung 7: TIME(bound) ⊊ Computable (abstract hierarchy discharged concretely)
+#check @ACC0TimedHierarchy.timed_class_proper
+#check @ACC0TimedHierarchy.timed_collapse_false
+
 -- Axiom confirmation: the diagonalization rungs are axiom-free; the hierarchy is clean
 #print axioms ACC0DiagonalizationKernel.diag_not_mem_range
 #print axioms ACC0AbstractHierarchy.abstract_time_hierarchy
 #print axioms ACC0HierarchyCountable.time_hierarchy_of_countable
 #print axioms ACC0ComputableHierarchy.computable_hierarchy
+#print axioms ACC0TimedHierarchy.timed_class_proper
 
 end PallLean.Paper93.DeepMath.PathB.ACC0AlgorithmicHierarchyManifest
