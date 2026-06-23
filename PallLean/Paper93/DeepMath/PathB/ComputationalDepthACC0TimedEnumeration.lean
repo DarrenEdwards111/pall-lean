@@ -21,21 +21,21 @@ Two genuine facts, replacing the abstract parametric `Small`/`hsmall` with a rea
   `timedEnum_eval_computable` — the underlying `evaln` evaluation is computable (when `bound` is), via
   `primrec_evaln` — the computable core for the untimed upper bound.
 
-The diagonal is decided by no `bound`-time program, and the underlying `evaln` evaluation is computable —
-the lower-bound half plus the computable core, toward a `Computable ⊋ TIME(bound)` separation on a
-*concrete* evaln-based model.
+So the diagonal is **computable** (`timedEnum_diag_computable`) yet decided by **no** program within the
+`bound` step budget (`timedEnum_diag_not_mem`): a genuine `Computable ⊋ TIME(bound)` separation on a
+*concrete* `evaln`-based model.
 
 ## What is proved (clean axioms, no `sorry`)
 
 * `timedEnum` — the concrete step-counted time-bounded enumeration.
 * `timedEnum_diag_escapes` / `timedEnum_diag_not_mem` — the diagonal escapes every `bound`-time decider.
 * `timedEnum_eval_computable` — the underlying `evaln` evaluation is computable.
+* `timedEnum_diag_computable` — the diagonal is computable (untimed upper bound).
 
 ## Honest scope
 
-This is rung 1: a concrete model with the diagonal *not `bound`-time-decidable* and the `evaln` core
-computable.  The full diagonal computability and the Williams **time** hierarchy (the diagonal decidable
-within a *slightly larger* budget `bigbound`) remain —
+This is rung 1: a concrete model with the diagonal *computable but not `bound`-time-decidable*.  The
+Williams **time** hierarchy (the diagonal decidable within a *slightly larger* budget `bigbound`) remains —
 i.e. an **efficient** universal simulator (`evaln`'s running time `≤ bigbound`, Hennie–Stearns-style
 `t·polylog` overhead).  That overhead bound is the remaining machine-model gap, Williams-strength, **not**
 built.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
@@ -69,13 +69,25 @@ theorem timedEnum_eval_computable (bound : ℕ → ℕ) (hb : Computable bound) 
     Computable (fun k : ℕ => Code.evaln (bound k) (Denumerable.ofNat Code k) k) :=
   Code.primrec_evaln.to_comp.comp ((hb.pair (Computable.ofNat Code)).pair Computable.id)
 
+/-- **The diagonal is computable (proved), when `bound` is.**  The untimed upper bound: `diag (timedEnum
+bound)` is a computable predicate.  With `timedEnum_diag_not_mem` this is a genuine
+`Computable ⊋ TIME(bound)` separation on the concrete `evaln` model. -/
+theorem timedEnum_diag_computable (bound : ℕ → ℕ) (hb : Computable bound) :
+    Computable (diag (timedEnum bound)) := by
+  obtain ⟨_, hp⟩ : PrimrecPred (fun o : Option ℕ => o = some 1) :=
+    PrimrecRel.comp Primrec.eq Primrec.id (Primrec.const (some 1))
+  have hdec : Computable (fun k : ℕ => timedEnum bound k k) :=
+    (hp.to_comp.comp (timedEnum_eval_computable bound hb)).of_eq (fun k => by
+      unfold timedEnum; congr 1)
+  show Computable (fun k => !(timedEnum bound k k))
+  exact (Primrec.dom_bool Bool.not).to_comp.comp hdec
+
 /-!
 **Rung 1 proved.**  A concrete step-counted model (`evaln`): the diagonal `diag (timedEnum bound)` is
-decided by **no** program within the `bound` step budget (`timedEnum_diag_not_mem`), and the underlying
-`evaln` evaluation is computable (`timedEnum_eval_computable`).  Remaining sub-rungs: (i) assemble the
-diagonal's full computability (`decide (· = some 1)` + `Bool.not` over `timedEnum_eval_computable`) for the
-untimed `Computable ⊋ TIME(bound)` separation; (ii) the **time** hierarchy — the diagonal within a
-*slightly larger* budget via an efficient universal simulator (`evaln` overhead `≤ bigbound`), the deep
+decided by **no** program within the `bound` step budget (`timedEnum_diag_not_mem`) yet is **computable**
+(`timedEnum_diag_computable`) — an untimed `Computable ⊋ TIME(bound)` separation.  Remaining: the **time**
+hierarchy — the diagonal within a *slightly larger* budget via an efficient universal simulator (`evaln`
+overhead `≤ bigbound`, Hennie–Stearns `t·polylog`), the deep
 machine-model gap.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
 
@@ -83,3 +95,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0TimedEnumeration
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0TimedEnumeration.timedEnum_diag_not_mem
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0TimedEnumeration.timedEnum_eval_computable
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0TimedEnumeration.timedEnum_diag_computable
