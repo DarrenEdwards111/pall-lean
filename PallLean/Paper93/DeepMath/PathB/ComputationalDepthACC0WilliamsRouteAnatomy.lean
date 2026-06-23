@@ -6,6 +6,8 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0HierarchyCountable
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0ComputableHierarchy
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0BTSizeRecurrence
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaIndicator
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaTower
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TodaTowerDegree
 
 /-!
 # ACC⁰ Williams route — complete anatomy (top-level capstone manifest)
@@ -40,11 +42,12 @@ For every constant-depth ACC⁰[p] circuit, build a sparse low-degree `SYM∘AND
 
 1. **Polynomial wall** — exact-*and*-quasipoly for **unbounded `AND`/`OR` fan-in** across depth: the
    exact polynomial route no-gos (degree `=` fan-in, `ACC0ExactDegreeNoGo`) and the exact symmetric
-   collapse towers.  The Beigel–Tarui **integer** (Toda) route's *core mechanism* is now **built**
-   (`todaIterate_indicator`: a `MOD` gate gets a degree-`3^k` polynomial exact mod `p^{2^k}` — exact
-   polylog-degree for *unbounded `MOD` fan-in*); the residual wall is the **across-depth assembly** of
-   those per-gate indicators into one exact quasipoly `SYM∘AND` (and `AND`/`OR` still need RS
-   approximation or the integer construction's `AC⁰` part).
+   collapse towers.  The Beigel–Tarui **integer** (Toda) route's *core mechanism* and its full
+   **`MOD`-skeleton** are now **built**: `toda_tower` (value — exact mod `p^{2^k}` at arbitrary depth)
+   and `prep_totalDegree_le` (degree `(3^k(p−1))^depth`, polylog) bound the all-`MOD` tower in **both**
+   value and degree.  The residual wall is the **`AND`/`OR` layers** (unbounded `AND`/`OR` is the
+   exact-degree no-go — needs RS approximation, already built separately) and the **exact-quasipoly
+   choice of `2^k`** against the global count, assembled into one `SYM∘AND` for general ACC⁰.
 2. **Algorithmic wall** — the quantitative `hbig`: the diagonal computable within the big class's
    *budget*, i.e. a bounded-overhead universal simulator + nondeterministic lazy diagonalization, plus
    the `williams` succinct-SAT reduction.
@@ -60,6 +63,8 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0WilliamsRouteAnatomy
 #check @ACC0ExactBoundedAndOr.toPoly_totalDegree_le_of_faninLeAndOr
 #check @ACC0CircuitSatSearchable.acc0circuit_sat_searchable
 #check @ACC0TodaIndicator.todaIterate_indicator
+#check @ACC0TodaTower.toda_tower
+#check @ACC0TodaTowerDegree.prep_totalDegree_le
 
 -- Half B: algorithmic interface
 #check @ACC0BTSizeRecurrence.probabilistic_route_to_NEXP_not_ACC0
