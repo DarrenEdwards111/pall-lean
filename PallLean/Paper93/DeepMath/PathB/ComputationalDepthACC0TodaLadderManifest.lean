@@ -16,12 +16,14 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FullTowerValue
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FullTowerExtract
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FullTowerBool
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FullTowerSparse
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FullTowerModulusChoice
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0FullTowerEvalBridge
 
 /-!
 # Toda integer-route ladder — machine-checked manifest
 
 A single verified entry point for the Beigel–Tarui **integer** route's core mechanism, built this run as
-the genuine attack on the polynomial wall (exact-quasipoly for large/unbounded `MOD`).  All 17 rungs are
+the genuine attack on the polynomial wall (exact-quasipoly for large/unbounded `MOD`).  All 19 rungs are
 clean; the ladder rungs (1–4) depend on **no `Classical.choice`** (`[propext, Quot.sound]` only) — pure
 ring/divisibility and `MvPolynomial` degree facts.
 
@@ -81,13 +83,24 @@ So the full tower's polynomial is a **degree-`K^depth`, `(n+1)^{K^depth}`-sparse
 constant depth.  (NB: the Toda rep is a *large* integer; only its residue mod `p^{2^k}` is Boolean — the
 cash-out is the `SYM∘AND` structure, not integer smallness.)
 
+## The readout (2 rungs — the polynomial *is* the circuit)
+
+18. **Modulus choice** — `exists_modulus_clears_width`: a uniform (polylog) `k` makes `p^{2^k}` exceed the
+    `SYM∘AND` width, so the `ZMod (p^{2^k})` readout is unambiguous.
+19. **Eval-bridge** — `eval_frep_bridge`: `p^{2^k} ∣ (eval x (frep p k t) − bval p x t)` — the polynomial
+    *evaluated at any input* equals the circuit's Boolean value mod `p^{2^k}`.
+
+So the *same* `frep` is degree-`K^depth`, `(n+1)^{K^depth}`-sparse, **and computes the circuit** — the
+Beigel–Tarui integer `SYM∘AND` for bounded-`AND`/`OR` ACC⁰[p] is end-to-end.
+
 ## The remaining wall
 
-The full `MOD`/`AND`/`OR` tower's *representation* **and** its `SYM∘AND` *structure* (degree `K^depth`,
-width `(n+1)^{K^depth}`, exact Boolean value over `ZMod (p^{2^k})`) are now complete.  The remaining
-Beigel–Tarui cash-out is: the **`2^k`-vs-global-count choice** (so the `ZMod (p^{2^k})` readout is the
-*whole* circuit's exact output) and the **`NEXP ⊄ ACC⁰`** contradiction (Williams diagonalization — the
-algorithmic half).  Williams-strength, **not** built.  (Unbounded `AND`/`OR` stays the exact-degree no-go,
+For bounded-`AND`/`OR` ACC⁰[p] the Beigel–Tarui integer `SYM∘AND` is now **end-to-end**: a polynomial
+`frep` that is degree-`K^depth` (`frep_totalDegree_le`), `(n+1)^{K^depth}`-sparse (`full_tower_sparse`),
+and **computes the circuit** mod `p^{2^k}` (`eval_frep_bridge`) with a uniform polylog modulus
+(`exists_modulus_clears_width`).  The single remaining ingredient is the **`NEXP ⊄ ACC⁰` contradiction**
+itself (Williams diagonalization — the algorithmic half: `ACC0AlgorithmicHierarchyManifest`).
+Williams-strength, **not** built.  (Unbounded `AND`/`OR` stays the exact-degree no-go,
 `ACC0ExactDegreeNoGo` — needs RS approximation.)  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
 
@@ -114,6 +127,8 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0TodaLadderManifest
 #check @ACC0FullTowerExtract.full_tower_extract
 #check @ACC0FullTowerBool.vval_mem_bool
 #check @ACC0FullTowerSparse.full_tower_sparse
+#check @ACC0FullTowerModulusChoice.exists_modulus_clears_width
+#check @ACC0FullTowerEvalBridge.eval_frep_bridge
 
 -- Minimal-axiom confirmation (no Classical.choice on the ladder rungs)
 #print axioms ACC0TodaAmplify.todaAmp_amplifies
@@ -129,5 +144,6 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0TodaLadderManifest
 #print axioms ACC0FullTowerExtract.full_tower_extract
 #print axioms ACC0FullTowerBool.vval_mem_bool
 #print axioms ACC0FullTowerSparse.full_tower_sparse
+#print axioms ACC0FullTowerEvalBridge.eval_frep_bridge
 
 end PallLean.Paper93.DeepMath.PathB.ACC0TodaLadderManifest
