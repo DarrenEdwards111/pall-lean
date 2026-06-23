@@ -7,6 +7,9 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TimedEnumeration
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TimedHierarchy
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TimedModelProps
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TimedModelComplete
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TimedHierarchyConditional
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0DiagHasCode
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0TimedHierarchyUnconditional
 
 /-!
 # Williams algorithmic half — machine-checked manifest of the hierarchy ladder
@@ -16,7 +19,7 @@ point #3): the `¬ Collapse` hierarchy ladder, built rung by rung from the inter
 single concrete machine-model gap.  All clean (no `sorry`, no custom axioms); the diagonalization rungs
 depend on **no axioms at all**.  Mirrors the exact-arc manifest (`ACC0IntegerExactArcManifest`).
 
-## The ladder (8 rungs)
+## The ladder (9 rungs)
 
 1. **Interface socket** — `probabilistic_route_to_NEXP_not_ACC0`: the abstract modus-ponens
    `RSRep → ACC0SatSpeedup`, `williams : ACC0SatSpeedup → NEXPHasACC0Circuits → Collapse`,
@@ -39,14 +42,21 @@ depend on **no axioms at all**.  Mirrors the exact-arc manifest (`ACC0IntegerExa
    `timedEnum_sound` (bounded ⇒ true acceptance), `timedEnum_captures_eval` (`⋃_k`-acceptance `=` true
    acceptance), `timedEnum_input_bound` (acceptance ⇒ `n < bound n`): the model is a faithful resource
    refinement of the partial-recursive semantics.
+9. **Time hierarchy — conditional then unconditional** — `timed_hierarchy_of_simulator` (the hierarchy
+   follows from `hsim`, a `bigbound`-time program computing the diagonal; the `¬TIME(bound)` half is
+   unconditional), `diag_has_code` (that program **exists** as a concrete `Code`, by completeness over the
+   computable diagonal), and `timed_hierarchy_unconditional` (**`hsim` discharged**: choosing `bigbound`
+   as the diagonal-Code's halting budget gives `∃ bigbound, TIME(bound) ⊊ TIME(bigbound)` outright).
+
+So the **bare strict time hierarchy is now unconditional** (crude `bigbound`).
 
 ## The single remaining gap
 
-The **time** hierarchy proper (`TIME(bound) ⊊ TIME(bigbound)` for `bigbound` only slightly larger than
-`bound`): the diagonal computable within the big class's *budget* — a universal simulator with **bounded
-overhead** (`evaln`'s running time `≤ bigbound`, Hennie–Stearns `t·polylog`) + nondeterministic lazy
-diagonalization — together with the `williams` succinct-SAT reduction.  That overhead analysis is the
-machine-model gap, Williams-strength, **not** built.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+**Efficiency**: that `bigbound` can be taken only *slightly* larger than `bound` (polylog overhead), not
+the diagonal-Code's opaque halting budget — i.e. an `evaln` **running-time** bound (Hennie–Stearns
+`t·polylog`), together with the `williams` succinct-SAT reduction.  This efficiency is *essential* (a crude
+hierarchy does **not** give `NEXP ⊄ ACC⁰`) and needs an `evaln` cost analysis Mathlib lacks —
+Williams-strength, **not** built.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.ACC0AlgorithmicHierarchyManifest
@@ -86,6 +96,11 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0AlgorithmicHierarchyManifest
 #check @ACC0TimedModelComplete.timedEnum_captures_eval
 #check @ACC0TimedModelComplete.timedEnum_input_bound
 
+-- Rung 9: time hierarchy — conditional, program-exists, then unconditional (crude)
+#check @ACC0TimedHierarchyConditional.timed_hierarchy_of_simulator
+#check @ACC0DiagHasCode.diag_has_code
+#check @ACC0TimedHierarchyUnconditional.timed_hierarchy_unconditional
+
 -- Axiom confirmation: the diagonalization rungs are axiom-free; the hierarchy is clean
 #print axioms ACC0DiagonalizationKernel.diag_not_mem_range
 #print axioms ACC0AbstractHierarchy.abstract_time_hierarchy
@@ -93,5 +108,6 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0AlgorithmicHierarchyManifest
 #print axioms ACC0ComputableHierarchy.computable_hierarchy
 #print axioms ACC0TimedHierarchy.timed_class_proper
 #print axioms ACC0TimedModelComplete.timedEnum_captures_eval
+#print axioms ACC0TimedHierarchyUnconditional.timed_hierarchy_unconditional
 
 end PallLean.Paper93.DeepMath.PathB.ACC0AlgorithmicHierarchyManifest
