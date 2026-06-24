@@ -33,18 +33,23 @@ unconditional time hierarchy (opaque `bigbound`) into the *efficient* one.  Buil
     (decremented by one per step).
 5c. **base fuel** — `evaln_zero/succ/left/right_fuel` (+ `evaln_zero_none`): input-linear leaves.
 
-**Net result (all nine constructors):** `evaln` fuel = (iteration depth) + (input-linear non-iterating
-cost) = **polynomial** in the simulated step budget and input — *never exponential*, since iteration
-decrements fuel by one per step.  So `DiagRuntimePolyBounded` has a *polynomial* target: **efficiency is
-structurally achievable.**
+**Net result (all nine constructors):** the fuel rules compose, and iteration decrements fuel by one per
+step (so iteration contributes linearly).  **Caveat (honest):** the guard `n ≤ k` holds at *every* node,
+including inner nodes where `n` is an *intermediate value* — so `evaln` fuel is `≥` the largest
+intermediate value, not merely the original input.  Thus the fuel is *(iteration depth) + (max intermediate
+value)*, and whether that is **polynomial** for a universal simulator depends on the intermediate values
+staying polynomial.  There is reason to expect this (`evaln`'s own guards bound the *simulated*
+computation's values to `≤ bound e`), but it is **not proved here** — it is precisely the delicate
+value-bookkeeping of Hennie–Stearns.  So efficiency is *plausible but not established*; the cost model is a
+genuine foundation, not a proof of polynomial overhead.
 
 ## The remaining gap
 
 Assemble the fuel rules into an **explicit fuel-bounded universal simulator code** (a `Code` interpreting
-`evaln`, the Kleene universal machine — Mathlib's `exists_code` is *opaque*), discharging
-`DiagRuntimePolyBounded`.  The cost model makes the target bound concrete (polynomial), so this is a
-definite construction rather than an exponential wall — but a substantial one, **not** built.  Then the
-efficient hierarchy feeds the Williams `NEXP ⊄ ACC⁰` interface.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+`evaln`, the Kleene universal machine — Mathlib's `exists_code` is *opaque*) **and** prove its intermediate
+values stay polynomial, discharging `DiagRuntimePolyBounded`.  Both are substantial (the value-bookkeeping
+is the Hennie–Stearns core), **not** built.  Then the efficient hierarchy feeds the Williams `NEXP ⊄ ACC⁰`
+interface.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.ACC0EffSimManifest
