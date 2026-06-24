@@ -50,7 +50,7 @@ theorem eval_mulCode (a b : ℕ) : mulCode.eval (Nat.pair a b) = Part.some (a * 
                 (Nat.pair a (Nat.pair k prev)))
         from prec_eval_succ _ _ _ _, ih]
     simp only [Part.bind_eq_bind, Part.bind_some]
-    rw [mul_body]
+    rw [show a * (k + 1) = a * k + a from by ring, mul_body]
 
 /-!
 **Multiplication proved.**  `mulCode` computes `a * b` — for the rank arithmetic.  `div`/`mod`, the per-cell
