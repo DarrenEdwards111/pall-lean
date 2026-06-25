@@ -51,7 +51,7 @@ theorem comp_ea_le (E B N k n vb : ℕ) (a b : UCode) (spec : ℕ → ℕ)
 /-- The `comp` handler: data-dependent branch-free computation of the encoded `comp`-result. -/
 def compHandler : Code :=
   Code.comp mulCode (Code.pair
-    (Code.comp leqIndicatorCode (Code.pair (Code.comp Code.right (Code.comp Code.right Code.right)) (Code.comp Code.left Code.right)))
+    (Code.comp leqIndicatorCode (Code.pair (Code.comp Code.right (Code.comp Code.right Code.right)) (Code.comp predCode (Code.comp Code.left Code.right))))
     (Code.comp mulCode (Code.pair (Code.comp isPosCode (readerCode sndSubCode))
       (Code.comp mulCode (Code.pair
         (Code.comp leqIndicatorCode (Code.pair (Code.comp predCode (readerCode sndSubCode)) (Code.comp Code.right (Code.comp Code.left Code.left))))
@@ -61,18 +61,20 @@ theorem eval_compHandler (E B N k n : ℕ) (a b : UCode) (spec : ℕ → ℕ)
     (hec : (UCode.comp a b).enc ≤ E) (hn : n ≤ B) (hN : N = cfgRank E B k (UCode.comp a b).enc n) :
     compHandler.eval (Nat.pair (Nat.pair (Nat.pair E B) (Nat.pair N (encodeList (tableList spec N))))
         (Nat.pair k (Nat.pair (UCode.comp a b).enc n)))
-      = Part.some ((if n ≤ k then 1 else 0) * ((if spec (cfgRank E B k b.enc n) = 0 then 0 else 1)
+      = Part.some ((if n ≤ k - 1 then 1 else 0) * ((if spec (cfgRank E B k b.enc n) = 0 then 0 else 1)
           * (if spec (cfgRank E B k b.enc n) - 1 ≤ B
               then spec (cfgRank E B k a.enc (spec (cfgRank E B k b.enc n) - 1)) else 0))) := by
   set X := Nat.pair (Nat.pair (Nat.pair E B) (Nat.pair N (encodeList (tableList spec N)))) (Nat.pair k (Nat.pair (UCode.comp a b).enc n)) with hX
   have heb := comp_eb E B N k n a b spec hec hn hN
-  have hk : (Code.comp Code.left Code.right).eval X = Part.some k := by rw [hX]; simp [Code.eval, Nat.unpair_pair]
+  have hkp : (Code.comp predCode (Code.comp Code.left Code.right)).eval X = Part.some (k - 1) := by
+    rw [comp_eval _ _ _ _ (show (Code.comp Code.left Code.right).eval X = Part.some k from by
+      rw [hX]; simp [Code.eval, Nat.unpair_pair]), eval_predCode, Nat.pred_eq_sub_one]
   have hn2 : (Code.comp Code.right (Code.comp Code.right Code.right)).eval X = Part.some n := by rw [hX]; simp [Code.eval, Nat.unpair_pair]
   have hBv : (Code.comp Code.right (Code.comp Code.left Code.left)).eval X = Part.some B := by rw [hX]; simp [Code.eval, Nat.unpair_pair]
   have hvb : (Code.comp predCode (readerCode sndSubCode)).eval X = Part.some (spec (cfgRank E B k b.enc n) - 1) := by
     rw [comp_eval _ _ _ _ heb, eval_predCode, Nat.pred_eq_sub_one]
-  have hleqN : (Code.comp leqIndicatorCode (Code.pair (Code.comp Code.right (Code.comp Code.right Code.right)) (Code.comp Code.left Code.right))).eval X = Part.some (if n ≤ k then 1 else 0) := by
-    rw [comp_pair_eval _ _ _ _ _ _ hn2 hk, eval_leqIndicatorCode]
+  have hleqN : (Code.comp leqIndicatorCode (Code.pair (Code.comp Code.right (Code.comp Code.right Code.right)) (Code.comp predCode (Code.comp Code.left Code.right)))).eval X = Part.some (if n ≤ k - 1 then 1 else 0) := by
+    rw [comp_pair_eval _ _ _ _ _ _ hn2 hkp, eval_leqIndicatorCode]
   have hisb : (Code.comp isPosCode (readerCode sndSubCode)).eval X = Part.some (if spec (cfgRank E B k b.enc n) = 0 then 0 else 1) := by
     rw [comp_eval _ _ _ _ heb, eval_isPosCode]
   have hleqVbB : (Code.comp leqIndicatorCode (Code.pair (Code.comp predCode (readerCode sndSubCode)) (Code.comp Code.right (Code.comp Code.left Code.left)))).eval X = Part.some (if spec (cfgRank E B k b.enc n) - 1 ≤ B then 1 else 0) := by

@@ -25,7 +25,7 @@ open PallLean.Paper93.DeepMath.PathB.KleeneRank (cfgRank)
 def pairHandler : Code :=
   Code.comp mulCode (Code.pair
     (Code.comp leqIndicatorCode (Code.pair (Code.comp Code.right (Code.comp Code.right Code.right))
-      (Code.comp Code.left Code.right)))
+      (Code.comp predCode (Code.comp Code.left Code.right))))
     (Code.comp mulCode (Code.pair (Code.comp isPosCode eaCode)
       (Code.comp mulCode (Code.pair (Code.comp isPosCode ebCode)
         (Code.comp Code.succ (Code.pair (Code.comp predCode eaCode) (Code.comp predCode ebCode))))))))
@@ -34,19 +34,21 @@ theorem eval_pairHandler (E B N k n : ℕ) (a b : UCode) (spec : ℕ → ℕ)
     (hec : (UCode.pair a b).enc ≤ E) (hn : n ≤ B) (hN : N = cfgRank E B k (UCode.pair a b).enc n) :
     pairHandler.eval (Nat.pair (Nat.pair (Nat.pair E B) (Nat.pair N (encodeList (tableList spec N))))
         (Nat.pair k (Nat.pair (UCode.pair a b).enc n)))
-      = Part.some ((if n ≤ k then 1 else 0) * ((if spec (cfgRank E B k a.enc n) = 0 then 0 else 1)
+      = Part.some ((if n ≤ k - 1 then 1 else 0) * ((if spec (cfgRank E B k a.enc n) = 0 then 0 else 1)
           * ((if spec (cfgRank E B k b.enc n) = 0 then 0 else 1)
               * (Nat.pair (spec (cfgRank E B k a.enc n) - 1) (spec (cfgRank E B k b.enc n) - 1) + 1)))) := by
   set X := Nat.pair (Nat.pair (Nat.pair E B) (Nat.pair N (encodeList (tableList spec N))))
     (Nat.pair k (Nat.pair (UCode.pair a b).enc n)) with hX
   have hea := eval_eaCode E B N k n a b spec hec hn hN
   have heb := eval_ebCode E B N k n a b spec hec hn hN
-  have hk : (Code.comp Code.left Code.right).eval X = Part.some k := by rw [hX]; simp [Code.eval, Nat.unpair_pair]
+  have hkp : (Code.comp predCode (Code.comp Code.left Code.right)).eval X = Part.some (k - 1) := by
+    rw [comp_eval _ _ _ _ (show (Code.comp Code.left Code.right).eval X = Part.some k from by
+      rw [hX]; simp [Code.eval, Nat.unpair_pair]), eval_predCode, Nat.pred_eq_sub_one]
   have hn2 : (Code.comp Code.right (Code.comp Code.right Code.right)).eval X = Part.some n := by
     rw [hX]; simp [Code.eval, Nat.unpair_pair]
   have hleq : (Code.comp leqIndicatorCode (Code.pair (Code.comp Code.right (Code.comp Code.right Code.right))
-      (Code.comp Code.left Code.right))).eval X = Part.some (if n ≤ k then 1 else 0) := by
-    rw [comp_pair_eval _ _ _ _ _ _ hn2 hk, eval_leqIndicatorCode]
+      (Code.comp predCode (Code.comp Code.left Code.right)))).eval X = Part.some (if n ≤ k - 1 then 1 else 0) := by
+    rw [comp_pair_eval _ _ _ _ _ _ hn2 hkp, eval_leqIndicatorCode]
   have hpa : (Code.comp isPosCode eaCode).eval X
       = Part.some (if spec (cfgRank E B k a.enc n) = 0 then 0 else 1) := by
     rw [comp_eval _ _ _ _ hea, eval_isPosCode]
