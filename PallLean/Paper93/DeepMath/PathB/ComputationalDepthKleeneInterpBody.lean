@@ -55,12 +55,26 @@ noncomputable def tagSrc : Code := Code.comp Code.left ecSrc
 /-- `k` from the decoded triple. -/
 noncomputable def kSrcBody : Code := Code.comp Code.left decodedSrc
 
-/-- The per-cell interpreter body: decode → dispatch over 8 handlers → zero on fuel 0. -/
+/-- Cap a tag at 8 (`t - (t - 8) = min t 8`): tags `≥ 8` (malformed `ec`) route to the padding zero-handler,
+matching `decodeU`'s `_ => zero` default. -/
+noncomputable def capCode : Code :=
+  Code.comp subCode (Code.pair idCode (Code.comp subCode (Code.pair idCode (Code.const 8))))
+
+theorem eval_capCode (t : ℕ) : capCode.eval t = Part.some (min t 8) := by
+  show (Code.comp subCode (Code.pair idCode (Code.comp subCode (Code.pair idCode (Code.const 8))))).eval t = _
+  have hid : (idCode : Code).eval t = Part.some t := eval_idCode t
+  have h8 : (Code.const 8 : Code).eval t = Part.some 8 := by simp [Code.eval]
+  have hinner : (Code.comp subCode (Code.pair idCode (Code.const 8))).eval t = Part.some (t - 8) := by
+    rw [comp_pair_eval _ _ _ _ _ _ hid h8, eval_subCode]
+  rw [comp_pair_eval _ _ _ _ _ _ hid hinner, eval_subCode]; congr 1; omega
+
+/-- The per-cell interpreter body: decode → dispatch over 8 handlers (+ a 9th zero-handler for capped
+out-of-range tags) → zero on fuel 0. -/
 noncomputable def interpBody : Code :=
   Code.comp mulCode (Code.pair (Code.comp isPosCode kSrcBody)
     (Code.comp (mkDispatch [baseAdapt zeroHandler, baseAdapt succHandler, baseAdapt leftHandler,
-        baseAdapt rightHandler, pairHandler, compHandler, precHandler, rfindHandler])
-      (Code.pair bundleSrc tagSrc)))
+        baseAdapt rightHandler, pairHandler, compHandler, precHandler, rfindHandler, baseAdapt zeroHandler])
+      (Code.pair bundleSrc (Code.comp capCode tagSrc))))
 
 end PallLean.Paper93.DeepMath.PathB.KleeneUCode
 
