@@ -83,6 +83,42 @@ theorem satCount_decompose (symFn : ℕ → Bool) (gates : List (AndGate n)) :
   rw [hset, levelCard]
   by_cases hs : symFn k = true <;> simp [hs]
 
+/-- **The level sets partition the input space**: their sizes sum to `2ⁿ` (every assignment fires exactly some
+number of gates).  So the `#gates + 1` numbers `levelCard gates 0, …, levelCard gates #gates` carry the full
+mass of `{0,1}ⁿ` — computing them is exactly what a fast `SYM∘AND`-counting algorithm must do. -/
+theorem sum_levelCard (gates : List (AndGate n)) :
+    ∑ k ∈ Finset.range (gates.length + 1), levelCard gates k = 2 ^ n := by
+  have h := Finset.card_eq_sum_card_fiberwise
+    (s := (Finset.univ : Finset (Fin n → Bool)))
+    (f := fun x => firingCount gates x) (t := Finset.range (gates.length + 1))
+    (fun x _ => Finset.mem_range.mpr (Nat.lt_succ_of_le (firingCount_le gates x)))
+  simp only [levelCard]
+  rw [← h, Finset.card_univ]
+  simp
+
+/-- **Brute-force baseline**: a `SYM∘AND` circuit has at most `2ⁿ` satisfying assignments.  The content of the
+Williams program is to *count* them in time `≪ 2ⁿ`; `satCount_decompose` reduces that to computing the level-set
+sizes, the genuinely hard step (left to the cited axioms). -/
+theorem satCount_le (symFn : ℕ → Bool) (gates : List (AndGate n)) :
+    satCount symFn gates ≤ 2 ^ n := by
+  refine le_trans (Finset.card_filter_le _ _) ?_
+  rw [Finset.card_univ]
+  simp
+
+/-- **`satCount` depends on the gate structure only through the `level-set sizes` and `symFn`.**  Two `SYM∘AND`
+circuits with the same symmetric function and the same level-set profile (and same gate count) have the same
+satisfying-count — the precise sense in which the count is a *symmetric* quantity, and why an algorithm need
+only produce the `levelCard` profile. -/
+theorem satCount_eq_of_levelCard (symFn : ℕ → Bool) (gates gates' : List (AndGate n))
+    (hlen : gates.length = gates'.length)
+    (hlc : ∀ k, levelCard gates k = levelCard gates' k) :
+    satCount symFn gates = satCount symFn gates' := by
+  rw [satCount_decompose, satCount_decompose, hlen]
+  exact Finset.sum_congr rfl (fun k _ => by rw [hlc])
+
 end PallLean.Paper93.DeepMath.PathB.SymAnd
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SymAnd.satCount_decompose
+#print axioms PallLean.Paper93.DeepMath.PathB.SymAnd.sum_levelCard
+#print axioms PallLean.Paper93.DeepMath.PathB.SymAnd.satCount_le
+#print axioms PallLean.Paper93.DeepMath.PathB.SymAnd.satCount_eq_of_levelCard
