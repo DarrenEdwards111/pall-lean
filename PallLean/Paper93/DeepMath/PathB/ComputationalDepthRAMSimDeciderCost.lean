@@ -185,6 +185,129 @@ theorem loop_valueBounded (N : ℕ) :
       exact ih M' N V (base + 1) hM0 hM1 hM2 (by omega) hINC hMbV (by omega)
         (by omega) (by rw [hM3]; omega) (j - 17) (by omega)
 
+set_option maxHeartbeats 2000000 in
+set_option linter.unusedTactic false in
+/-- **Intra-tick value bound for a NOP tick** (fetched opcode `≠ 0`).  Same as `tick_intra_valueBounded` but the
+loop takes the NOP path (`incr := 0`, `sim_acc` unchanged); still `17` steps, still bounded by `V`.  The only
+new accumulator value is the fetched opcode itself (`≤ V` by `hbV`). -/
+theorem tick_intra_valueBounded_nop (m : Mem) (acc0 V N C A : ℕ)
+    (h0 : m 0 = N + 1) (h1 : m 1 = 1) (h2 : m 2 = C) (h3 : m 3 = A) (hacc0 : acc0 ≤ V)
+    (hnop : m C ≠ 0)
+    (hbV : ∀ x, m x ≤ V) (hN : N + 1 ≤ V) (hA : A + 1 ≤ V) (hC : C + 1 ≤ V) :
+    ∀ j, j ≤ 17 → ValueBounded (run simDecider ⟨m, acc0, 14, false⟩ j) V := by
+  intro j hj
+  interval_cases j <;>
+    refine ⟨by simp [run, step, simDecider, List.getD, h0, h1, h2, h3, hnop] <;>
+              first | omega | exact hbV _,
+            by intro x
+               simp [run, step, simDecider, List.getD, Mem.set, h0, h1, h2, h3, hnop]
+               (try split_ifs) <;> first | omega | exact hbV _⟩
+
+set_option maxHeartbeats 4000000 in
+set_option linter.unusedSimpArgs false in
+/-- **The full simulator-loop value bound for ARBITRARY code** (mixed `INC`/`NOP`).  Like `loop_valueBounded`
+but without the all-`INC` hypothesis: at each tick, `by_cases` on the fetched opcode selects the `INC` or `NOP`
+path (`tick_intra_valueBounded`/`_nop` for the intra states, `simLoop_one`/`_nop` for the tick boundary).  The
+timing is uniform (`17` steps either way) and `sim_acc` only grows on `INC` ticks, so the same climbing bounds
+`base + N ≤ V`, `sim_acc + N ≤ V` suffice. -/
+theorem loop_valueBounded_mixed (N : ℕ) :
+    ∀ (m : Mem) (acc V base : ℕ), m 0 = N → m 1 = 1 → m 2 = base → 5 ≤ base →
+      (∀ x, m x ≤ V) → acc ≤ V → base + N ≤ V → m 3 + N ≤ V →
+      ∀ j, j ≤ 17 * N + 3 → ValueBounded (run simDecider ⟨m, acc, 14, false⟩ j) V := by
+  induction N with
+  | zero =>
+    intro m acc V base h0 _ _ _ hbV hacc _ _ j hj
+    interval_cases j <;>
+      refine ⟨by simp [run, step, simDecider, List.getD, h0] <;> omega,
+              by intro x
+                 simp [run, step, simDecider, List.getD, Mem.set, h0]
+                 first | omega | exact hacc | exact hbV _⟩
+  | succ N ih =>
+    intro m acc V base h0 h1 h2 hb5 hbV hacc hbase hsim j hj
+    by_cases hcd : m base = 0
+    · -- INC tick
+      by_cases hj17 : j ≤ 17
+      · exact tick_intra_valueBounded m acc V N base (m 3) h0 h1 h2 rfl hacc
+          hcd hbV (by omega) (by omega) (by omega) j hj17
+      · have hone : run simDecider ⟨m, acc, 14, false⟩ 17
+            = ⟨(((m.set 4 1).set 3 (m 3 + 1)).set 2 (m 2 + 1)).set 0 N, N, 14, false⟩ :=
+          simLoop_one m acc N h0 h1 (by rw [h2]; exact hcd)
+        set M' : Mem := (((m.set 4 1).set 3 (m 3 + 1)).set 2 (m 2 + 1)).set 0 N with hM'
+        have hsplit : run simDecider ⟨m, acc, 14, false⟩ j
+            = run simDecider ⟨M', N, 14, false⟩ (j - 17) := by
+          have hh : run simDecider ⟨m, acc, 14, false⟩ (17 + (j - 17))
+              = run simDecider ⟨M', N, 14, false⟩ (j - 17) := by rw [run_add, hone]
+          rwa [show 17 + (j - 17) = j from by omega] at hh
+        rw [hsplit]
+        have hM0 : M' 0 = N := by simp [hM']
+        have hM1 : M' 1 = 1 := by simp [hM', h1]
+        have hM2 : M' 2 = base + 1 := by simp [hM', h2]
+        have hM3 : M' 3 = m 3 + 1 := by simp [hM']
+        have hMbV : ∀ x, M' x ≤ V := by
+          intro x; simp only [hM', Mem.set]; split_ifs <;> first | omega | exact hbV _
+        exact ih M' N V (base + 1) hM0 hM1 hM2 (by omega) hMbV (by omega)
+          (by omega) (by rw [hM3]; omega) (j - 17) (by omega)
+    · -- NOP tick
+      by_cases hj17 : j ≤ 17
+      · exact tick_intra_valueBounded_nop m acc V N base (m 3) h0 h1 h2 rfl hacc
+          hcd hbV (by omega) (by omega) (by omega) j hj17
+      · have hone : run simDecider ⟨m, acc, 14, false⟩ 17
+            = ⟨(((m.set 4 0).set 3 (m 3)).set 2 (m 2 + 1)).set 0 N, N, 14, false⟩ :=
+          simLoop_one_nop m acc N h0 h1 (by rw [h2]; exact hcd)
+        set M' : Mem := (((m.set 4 0).set 3 (m 3)).set 2 (m 2 + 1)).set 0 N with hM'
+        have hsplit : run simDecider ⟨m, acc, 14, false⟩ j
+            = run simDecider ⟨M', N, 14, false⟩ (j - 17) := by
+          have hh : run simDecider ⟨m, acc, 14, false⟩ (17 + (j - 17))
+              = run simDecider ⟨M', N, 14, false⟩ (j - 17) := by rw [run_add, hone]
+          rwa [show 17 + (j - 17) = j from by omega] at hh
+        rw [hsplit]
+        have hM0 : M' 0 = N := by simp [hM']
+        have hM1 : M' 1 = 1 := by simp [hM', h1]
+        have hM2 : M' 2 = base + 1 := by simp [hM', h2]
+        have hM3 : M' 3 = m 3 := by simp [hM']
+        have hMbV : ∀ x, M' x ≤ V := by
+          intro x; simp only [hM', Mem.set]; split_ifs <;> first | omega | exact hbV _
+        exact ih M' N V (base + 1) hM0 hM1 hM2 (by omega) hMbV (by omega)
+          (by omega) (by rw [hM3]; omega) (j - 17) (by omega)
+
+/-- **The copy branch keeps the value bound — ARBITRARY code** (mixed `INC`/`NOP`).  Like `copy_valueBounded`
+but with no all-`INC` hypothesis, using `loop_valueBounded_mixed`. -/
+theorem copy_valueBounded_mixed (m : Mem) (acc V : ℕ)
+    (hin : ∀ x, m x ≤ V) (hacc : acc ≤ V) (h1 : 1 ≤ V) (hmode : m 11 = 0)
+    (hb5 : 5 ≤ m 13) (hsum : m 13 + m 10 ≤ V) :
+    ∀ k, k ≤ 10 + (17 * m 10 + 3) → ValueBounded (run simDecider ⟨m, acc, 0, false⟩ k) V := by
+  intro k hk
+  by_cases hk9 : k ≤ 9
+  · exact (init_valueBounded m acc V hin hacc h1 k hk9).1
+  · set IM : Mem := (((m.set 0 (m 10)).set 1 1).set 3 0).set 2 (m 13) with hIM
+    have hpre : run simDecider ⟨m, acc, 0, false⟩ 10 = ⟨IM, 0, 14, false⟩ :=
+      simDecider_copy_prefix m acc hmode
+    have hsplit : run simDecider ⟨m, acc, 0, false⟩ k
+        = run simDecider ⟨IM, 0, 14, false⟩ (k - 10) := by
+      have hh : run simDecider ⟨m, acc, 0, false⟩ (10 + (k - 10))
+          = run simDecider ⟨IM, 0, 14, false⟩ (k - 10) := by rw [run_add, hpre]
+      rwa [show 10 + (k - 10) = k from by omega] at hh
+    rw [hsplit]
+    have hI0 : IM 0 = m 10 := by simp [hIM]
+    have hI1 : IM 1 = 1 := by simp [hIM]
+    have hI2 : IM 2 = m 13 := by simp [hIM]
+    have hI3 : IM 3 = 0 := by simp [hIM]
+    have hIbV : ∀ x, IM x ≤ V := by
+      intro x; simp only [hIM, Mem.set]; split_ifs <;> first | omega | exact hin _
+    exact loop_valueBounded_mixed (m 10) IM 0 V (m 13) hI0 hI1 hI2 hb5 hIbV (by omega)
+      (by omega) (by rw [hI3]; omega) (k - 10) (by omega)
+
+/-- **The copy branch runs in polynomial bit-cost — ARBITRARY code** (mixed `INC`/`NOP`), unconditionally.  No
+all-`INC` hypothesis: `runCost ≤ (10 + (17·bound + 3))·(3W + 1)` for any simulated program, given only a
+`V`-bounded input, copy mode, `bitlen V ≤ W`, `W ≥ 6`, and the climbing bound `m 13 + m 10 ≤ V`. -/
+theorem simDecider_copy_cost_mixed (m : Mem) (acc V W : ℕ)
+    (hin : ∀ x, m x ≤ V) (hacc : acc ≤ V) (h1 : 1 ≤ V) (hmode : m 11 = 0)
+    (hb5 : 5 ≤ m 13) (hsum : m 13 + m 10 ≤ V) (hV : bitlen V ≤ W) (hW : 6 ≤ W) :
+    runCost simDecider ⟨m, acc, 0, false⟩ (10 + (17 * m 10 + 3))
+      ≤ (10 + (17 * m 10 + 3)) * (3 * W + 1) :=
+  simDecider_runCost_le m acc (10 + (17 * m 10 + 3)) W V hV hW
+    (fun k hk => copy_valueBounded_mixed m acc V hin hacc h1 hmode hb5 hsum k (by omega))
+
 /-- **The copy branch keeps the value bound (the whole run).**  Glues the init/dispatch prefix
 (`simDecider_copy_prefix`, `10` steps to the loop top) and the simulator loop (`loop_valueBounded`): for a
 `V`-bounded input with copy mode (`m 11 = 0`), code base `m 13 ≥ 5`, all-`INC` code on the simulated range, and
@@ -246,3 +369,4 @@ end PallLean.Paper93.DeepMath.PathB.RAM
 #print axioms PallLean.Paper93.DeepMath.PathB.RAM.tick_intra_valueBounded
 #print axioms PallLean.Paper93.DeepMath.PathB.RAM.loop_valueBounded
 #print axioms PallLean.Paper93.DeepMath.PathB.RAM.simDecider_copy_cost
+#print axioms PallLean.Paper93.DeepMath.PathB.RAM.simDecider_copy_cost_mixed
