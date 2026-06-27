@@ -116,9 +116,35 @@ theorem satCount_eq_of_levelCard (symFn : ℕ → Bool) (gates gates' : List (An
   rw [satCount_decompose, satCount_decompose, hlen]
   exact Finset.sum_congr rfl (fun k _ => by rw [hlc])
 
+/-- **`firingCount` is a sum of gate indicators** — `Σ_g [g fires]`.  This is the bridge to the polynomial
+method: the firing count is a linear form in the gate-output indicators, each of which is a product of literal
+indicators (an `AND`), so the count is represented by a polynomial whose degree is controlled by the gate
+fan-ins — the algebraic handle the Razborov–Smolensky / Williams machinery uses. -/
+theorem firingCount_eq_sum (gates : List (AndGate n)) (x : Fin n → Bool) :
+    firingCount gates x = (gates.map (fun g => (andEval g x).toNat)).sum := by
+  induction gates with
+  | nil => rfl
+  | cons g gs ih =>
+    have hc : firingCount (g :: gs) x = firingCount gs x + (andEval g x).toNat := by
+      simp only [firingCount, List.countP_cons]
+      cases andEval g x <;> simp
+    rw [hc, ih, List.map_cons, List.sum_cons]
+    omega
+
+/-- **The empty `SYM∘AND` circuit** fires no gates, so its output is the constant `symFn 0`. -/
+@[simp] theorem firingCount_nil (x : Fin n → Bool) : firingCount ([] : List (AndGate n)) x = 0 := rfl
+
+/-- **Satisfying-count of the constant (empty) circuit**: all `2ⁿ` assignments if `symFn 0`, none otherwise. -/
+theorem satCount_nil (symFn : ℕ → Bool) :
+    satCount symFn ([] : List (AndGate n)) = if symFn 0 then 2 ^ n else 0 := by
+  rw [satCount]
+  by_cases hs : symFn 0 = true <;> simp [symEval, hs]
+
 end PallLean.Paper93.DeepMath.PathB.SymAnd
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SymAnd.satCount_decompose
+#print axioms PallLean.Paper93.DeepMath.PathB.SymAnd.firingCount_eq_sum
+#print axioms PallLean.Paper93.DeepMath.PathB.SymAnd.satCount_nil
 #print axioms PallLean.Paper93.DeepMath.PathB.SymAnd.sum_levelCard
 #print axioms PallLean.Paper93.DeepMath.PathB.SymAnd.satCount_le
 #print axioms PallLean.Paper93.DeepMath.PathB.SymAnd.satCount_eq_of_levelCard
