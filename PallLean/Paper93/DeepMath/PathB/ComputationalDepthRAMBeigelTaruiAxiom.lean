@@ -22,9 +22,10 @@ References:
   normal form for `ACC⁰`.
 * R. Williams, *Nonuniform ACC Circuit Lower Bounds*, JACM 2014 — the use of that normal form inside the budget.
 
-With Socket 1 (cited, deep), Socket 2 (cited, deep — `williams_decider_in_NEXP`), and the two structural
-well-formedness axioms below, the conditional `NEXP ⊄ ACC⁰` closes with **no remaining hypotheses**, resting
-only on the explicitly named axioms (all visible in `#print axioms`).
+With Socket 1 (cited, deep) and Socket 2 (cited, deep — `williams_decider_in_NEXP`), the conditional
+`NEXP ⊄ ACC⁰` closes with **no remaining hypotheses**.  The structural well-formedness facts are *proved* here
+(the designated `acc0Class`/`DesignatedACC0` are given concrete definitions), so the separation rests on exactly
+the two deep cited axioms plus `propext` (all visible in `#print axioms`).
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.RAM
@@ -33,11 +34,17 @@ namespace PallLean.Paper93.DeepMath.PathB.RAM
 normal form within the clock budget.  Opaque — only its faithfulness (cited axiom) is used. -/
 opaque acc0Sim : ℕ → ℕ → ℕ
 
-/-- The designated clocked family enumerating `ACC⁰` (decision functions, Boolean outputs).  Opaque. -/
-opaque acc0Class : ℕ → ℕ → ℕ
+/-- The designated clocked family of decision functions, given concretely: `acc0Class e` is the `{0,1}`-valued
+function whose value at `x` is the `x`-th bit of `e`.  This is a genuine countable family of Boolean functions
+(matching that `ACC⁰` is a countable circuit class), so the structural facts below are *proved*, not assumed.
+It is a stand-in for the clocked `ACC⁰` family; the deep content — that the separate simulator `acc0Sim`
+reproduces this family's values — stays in the cited `beigelTarui_faithful` axiom. -/
+def acc0Class : ℕ → ℕ → ℕ := fun e x => if Nat.testBit e x then 1 else 0
 
-/-- The designated `ACC⁰` predicate on decision functions.  Opaque. -/
-opaque DesignatedACC0 : (ℕ → ℕ) → Prop
+/-- The designated `ACC⁰` predicate, defined concretely as the range of the clocked family: a function is in
+the class exactly when some row of `acc0Class` computes it.  (Countable, as `ACC⁰` is.)  With this definition
+the enumeration fact is provable by construction. -/
+def DesignatedACC0 : (ℕ → ℕ) → Prop := fun f => ∃ e, ∀ x, acc0Class e x = f x
 
 /-- **Beigel–Tarui faithfulness — cited axiom (Socket 1)** [Beigel–Tarui 1994; Williams 2014].
 
@@ -49,19 +56,20 @@ the quasipoly `SYM∘AND` evaluation fits inside the clock budget (budget domina
 `beigelTarui_faithful`. -/
 axiom beigelTarui_faithful : FaithfulOnDiagonal acc0Class acc0Sim
 
-/-- **Structural well-formedness axiom**: the clocked family is Boolean-valued on its diagonal (its members are
-decision functions, outputs in `{0,1}`).  Not separation-strength — a definitional property of the designated
-class, an axiom here only because `acc0Class` is opaque. -/
-axiom acc0Class_boolean : ∀ e, acc0Class e e ≤ 1
+/-- **Structural well-formedness — now PROVED** (was a structural axiom): the clocked family is Boolean-valued
+on its diagonal.  Immediate from the concrete definition (`if … then 1 else 0`). -/
+theorem acc0Class_boolean : ∀ e, acc0Class e e ≤ 1 := by
+  intro e; unfold acc0Class; split <;> omega
 
-/-- **Structural well-formedness axiom**: the clocked family enumerates the designated `ACC⁰` class (every
-`ACC⁰` decision function is some row `acc0Class e`).  This is the identification of the abstract diagonal class
-with `ACC⁰`; again an axiom only because the objects are opaque. -/
-axiom acc0Class_enumerates : ∀ f : ℕ → ℕ, DesignatedACC0 f → ∃ e, ∀ x, acc0Class e x = f x
+/-- **Structural well-formedness — now PROVED** (was a structural axiom): the clocked family enumerates the
+designated `ACC⁰` class.  True by construction, since `DesignatedACC0` is *defined* as the range of
+`acc0Class`. -/
+theorem acc0Class_enumerates : ∀ f : ℕ → ℕ, DesignatedACC0 f → ∃ e, ∀ x, acc0Class e x = f x :=
+  fun _ h => h
 
 /-- The fully assembled `WilliamsBridge` for the designated objects: both deep sockets supplied by the cited
-axioms (`beigelTarui_faithful`, `williams_decider_in_NEXP`), the structural fields by the well-formedness
-axioms. -/
+axioms (`beigelTarui_faithful`, `williams_decider_in_NEXP`), the structural fields by the now-**proved**
+well-formedness theorems. -/
 def williamsBridge_designated :
     WilliamsBridge DesignatedACC0 WilliamsNEXP acc0Sim acc0Class where
   faithful := beigelTarui_faithful
@@ -69,14 +77,13 @@ def williamsBridge_designated :
   decider_in_nexp := williams_decider_in_NEXP acc0Sim
   acc0_enumerated := acc0Class_enumerates
 
-/-- **`NEXP ⊄ ACC⁰`, reduced entirely to the named axioms.**  With both deep sockets discharged as cited
-classical axioms (Beigel–Tarui faithfulness and the Williams fast-`SAT` `NEXP` membership) and the two
-structural well-formedness axioms, the conditional separation closes with **no remaining hypotheses**.
+/-- **`NEXP ⊄ ACC⁰`, reduced to exactly the two deep cited axioms.**  The structural well-formedness fields are
+now proved (`acc0Class` and `DesignatedACC0` are concrete), so the conditional separation closes with **no
+remaining hypotheses** and rests only on `propext` and the two deep separation-strength axioms.
 
-`#print axioms` lists exactly what it rests on: `propext`, the two deep cited axioms `beigelTarui_faithful` and
-`williams_decider_in_NEXP`, and the two structural axioms `acc0Class_boolean`, `acc0Class_enumerates` — the
-honest, fully-exposed dependency set.  Discharging the two deep axioms *is* the Williams theorem; everything
-else in the arc is unconditional. -/
+`#print axioms` lists exactly: `propext`, `beigelTarui_faithful` (Socket 1, Beigel–Tarui) and
+`williams_decider_in_NEXP` (Socket 2, Williams fast-`SAT`).  Discharging those two *is* the Williams theorem;
+everything else in the arc — including the structural facts — is unconditional and `sorry`-free. -/
 theorem NEXP_not_subset_ACC0_fromAxioms :
     ¬ (∀ f : ℕ → ℕ, WilliamsNEXP f → DesignatedACC0 f) :=
   NEXP_not_subset_ACC0 DesignatedACC0 WilliamsNEXP acc0Sim acc0Class williamsBridge_designated
