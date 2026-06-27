@@ -140,9 +140,59 @@ theorem satCount_nil (symFn : ℕ → Bool) :
   rw [satCount]
   by_cases hs : symFn 0 = true <;> simp [symEval, hs]
 
+/-! ### The polynomial method: AND as a product of literals -/
+
+/-- A single literal of gate `g` at variable `i` holds at `x`: vacuously if `i` is unconstrained, else the
+required match. -/
+def litHolds (g : AndGate n) (i : Fin n) (x : Fin n → Bool) : Prop := ∀ b, g i = some b → x i = b
+
+instance (g : AndGate n) (i : Fin n) (x : Fin n → Bool) : Decidable (litHolds g i x) := by
+  unfold litHolds; infer_instance
+
+/-- The `0/1` indicator of a single literal — `1` if it holds (or the variable is unconstrained), `0` if the
+literal is violated.  Each is a degree-`≤ 1` term in the variable `x i`. -/
+def litIndicator (g : AndGate n) (i : Fin n) (x : Fin n → Bool) : ℕ :=
+  if litHolds g i x then 1 else 0
+
+/-- **AND as a product of literals.**  An `AND` gate fires iff every literal holds, so its `0/1` value is the
+**product** of the literal indicators: `[g fires] = ∏ᵢ litIndicatorᵢ`.  This is the algebraic representation at
+the base of the polynomial method — a conjunction is a monomial whose degree is the number of literals. -/
+theorem andEval_eq_prod (g : AndGate n) (x : Fin n → Bool) :
+    (andEval g x).toNat = ∏ i, litIndicator g i x := by
+  have hiff : (∀ i ∈ (Finset.univ : Finset (Fin n)), litHolds g i x) ↔ AndFires g x := by
+    simp [litHolds, AndFires]
+  simp only [litIndicator, Finset.prod_boole, hiff, andEval]
+  by_cases h : AndFires g x <;> simp [h]
+
+/-- **The firing count is a sum of products** — i.e. a polynomial in the inputs: `Σ_g ∏ᵢ litIndicatorᵢ`.  Each
+summand is a monomial of degree = that gate's fan-in, so the whole firing count is computed by a polynomial of
+degree = the maximum gate fan-in.  This is the algebraic form the Razborov–Smolensky / Williams machinery
+operates on. -/
+theorem firingCount_eq_sum_prod (gates : List (AndGate n)) (x : Fin n → Bool) :
+    firingCount gates x = (gates.map (fun g => ∏ i, litIndicator g i x)).sum := by
+  rw [firingCount_eq_sum]; simp only [andEval_eq_prod]
+
+/-- The fan-in (degree) of an `AND` gate: the number of literals — variables it constrains. -/
+def gateDegree (g : AndGate n) : ℕ := (Finset.univ.filter (fun i => g i ≠ none)).card
+
+/-- **The AND product runs over only the literals.**  The unconstrained factors are `1`, so the gate's
+representation is a product of exactly `gateDegree g` nontrivial (degree-1) factors — making precise that the
+`AND`'s polynomial degree equals its fan-in. -/
+theorem andEval_eq_prod_support (g : AndGate n) (x : Fin n → Bool) :
+    (andEval g x).toNat
+      = ∏ i ∈ Finset.univ.filter (fun i => g i ≠ none), litIndicator g i x := by
+  rw [andEval_eq_prod]
+  refine (Finset.prod_subset (Finset.filter_subset _ _) ?_).symm
+  intro i _ hi
+  simp only [Finset.mem_filter, Finset.mem_univ, true_and, not_not] at hi
+  simp [litIndicator, litHolds, hi]
+
 end PallLean.Paper93.DeepMath.PathB.SymAnd
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SymAnd.satCount_decompose
+#print axioms PallLean.Paper93.DeepMath.PathB.SymAnd.andEval_eq_prod
+#print axioms PallLean.Paper93.DeepMath.PathB.SymAnd.firingCount_eq_sum_prod
+#print axioms PallLean.Paper93.DeepMath.PathB.SymAnd.andEval_eq_prod_support
 #print axioms PallLean.Paper93.DeepMath.PathB.SymAnd.firingCount_eq_sum
 #print axioms PallLean.Paper93.DeepMath.PathB.SymAnd.satCount_nil
 #print axioms PallLean.Paper93.DeepMath.PathB.SymAnd.sum_levelCard
