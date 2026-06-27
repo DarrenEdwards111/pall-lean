@@ -131,6 +131,60 @@ theorem tick_intra_valueBounded (m : Mem) (acc0 V N C A : ℕ)
                simp [run, step, simDecider, List.getD, Mem.set, h0, h1, h2, h3, hCcode]
                (try split_ifs) <;> first | omega | exact hbV _⟩
 
+set_option maxHeartbeats 4000000 in
+set_option linter.unusedSimpArgs false in
+/-- **The full simulator-loop value bound** (all-`INC` code).  Composing `tick_intra_valueBounded` (intra-tick)
+over the `N` ticks via `simLoop_one` (tick step) and the run decomposition `j = 17·t + i`: from the loop top
+`pc = 14` with clock `= N`, pointer `= base ≥ 5`, all-`INC` code on the range, and the bounds `base + N ≤ V`,
+`sim_acc + N ≤ V` (the pointer and accumulator climb to `base + N` / `sim_acc + N`), **every** state of the
+`17·N + 3`-step loop run stays value-bounded by `V`.  Induction on the tick count `N`. -/
+theorem loop_valueBounded (N : ℕ) :
+    ∀ (m : Mem) (acc V base : ℕ), m 0 = N → m 1 = 1 → m 2 = base → 5 ≤ base →
+      (∀ i, i < N → m (base + i) = 0) → (∀ x, m x ≤ V) → acc ≤ V →
+      base + N ≤ V → m 3 + N ≤ V →
+      ∀ j, j ≤ 17 * N + 3 → ValueBounded (run simDecider ⟨m, acc, 14, false⟩ j) V := by
+  induction N with
+  | zero =>
+    intro m acc V base h0 _ _ _ _ hbV hacc _ _ j hj
+    interval_cases j <;>
+      refine ⟨by simp [run, step, simDecider, List.getD, h0] <;> omega,
+              by intro x
+                 simp [run, step, simDecider, List.getD, Mem.set, h0]
+                 first | omega | exact hacc | exact hbV _⟩
+  | succ N ih =>
+    intro m acc V base h0 h1 h2 hb5 hcode hbV hacc hbase hsim j hj
+    have hc0 : m base = 0 := by have := hcode 0 (by omega); simpa using this
+    by_cases hj17 : j ≤ 17
+    · exact tick_intra_valueBounded m acc V N base (m 3) h0 h1 h2 rfl hacc
+        hc0 hbV (by omega) (by omega) (by omega) j hj17
+    · have hone : run simDecider ⟨m, acc, 14, false⟩ 17
+          = ⟨(((m.set 4 1).set 3 (m 3 + 1)).set 2 (m 2 + 1)).set 0 N, N, 14, false⟩ :=
+        simLoop_one m acc N h0 h1 (by rw [h2]; exact hc0)
+      set M' : Mem := (((m.set 4 1).set 3 (m 3 + 1)).set 2 (m 2 + 1)).set 0 N with hM'
+      have hsplit : run simDecider ⟨m, acc, 14, false⟩ j
+          = run simDecider ⟨M', N, 14, false⟩ (j - 17) := by
+        have hh : run simDecider ⟨m, acc, 14, false⟩ (17 + (j - 17))
+            = run simDecider ⟨M', N, 14, false⟩ (j - 17) := by rw [run_add, hone]
+        rwa [show 17 + (j - 17) = j from by omega] at hh
+      rw [hsplit]
+      have hM0 : M' 0 = N := by simp [hM']
+      have hM1 : M' 1 = 1 := by simp [hM', h1]
+      have hM2 : M' 2 = base + 1 := by simp [hM', h2]
+      have hM3 : M' 3 = m 3 + 1 := by simp [hM']
+      have hINC : ∀ i, i < N → M' (base + 1 + i) = 0 := by
+        intro i hi
+        have hc := hcode (i + 1) (by omega)
+        have he : M' (base + 1 + i) = m (base + 1 + i) := by
+          rw [hM', Mem.set_get_ne _ 0 _ _ (by omega), Mem.set_get_ne _ 2 _ _ (by omega),
+            Mem.set_get_ne _ 3 _ _ (by omega), Mem.set_get_ne _ 4 _ _ (by omega)]
+        rw [he, show base + 1 + i = base + (i + 1) from by ring]; exact hc
+      have hMbV : ∀ x, M' x ≤ V := by
+        intro x
+        simp only [hM', Mem.set]
+        split_ifs <;> first | omega | exact hbV _
+      exact ih M' N V (base + 1) hM0 hM1 hM2 (by omega) hINC hMbV (by omega)
+        (by omega) (by rw [hM3]; omega) (j - 17) (by omega)
+
 end PallLean.Paper93.DeepMath.PathB.RAM
 
 #print axioms PallLean.Paper93.DeepMath.PathB.RAM.run_succ_right
@@ -138,3 +192,4 @@ end PallLean.Paper93.DeepMath.PathB.RAM
 #print axioms PallLean.Paper93.DeepMath.PathB.RAM.complement_valueBounded
 #print axioms PallLean.Paper93.DeepMath.PathB.RAM.simDecider_complement_cost
 #print axioms PallLean.Paper93.DeepMath.PathB.RAM.tick_intra_valueBounded
+#print axioms PallLean.Paper93.DeepMath.PathB.RAM.loop_valueBounded
