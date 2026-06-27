@@ -104,9 +104,37 @@ theorem simDecider_complement_cost (m : Mem) (acc V W : ℕ)
   simDecider_runCost_le m acc 14 W V hV hW
     (fun k hk => (complement_valueBounded m acc V hin hacc h1 hmode k (by omega)).1)
 
+set_option maxHeartbeats 2000000 in
+set_option linter.unusedTactic false in
+/-- **Intra-tick value bound — the crux of the copy-branch (simulator-loop) value bound.**  This is where the
+loop differs from the init/complement phases: the values *grow* (the code pointer `C` and `sim_acc` `A` climb),
+and the body has `addI` at `pc 25`/`pc 28` operating on `A`/`C`.  The generic accumulator bound `≤ V` does not
+suffice (`addI` would give `≤ V+1`); one must know the *exact* accumulator at each `pc`.
+
+For one **`INC`** tick (fetched opcode `0`) from the loop top `pc = 14`, with the tick-top values bounded
+(`clock = N+1`, pointer `C`, `sim_acc = A`, all `≤ V`, and `A+1, C+1, N+1 ≤ V` giving headroom for the two
+`addI`s), every one of the `17` intra-tick states stays value-bounded by `V`.  Proved by computing each of the
+`17` states explicitly (`interval_cases j` + `simp [run, …]`) and bounding its accumulator and memory — the
+per-`pc` accumulator is thereby exact, discharging the `addI` growth.
+
+Composing this over the `bound` ticks (via `simLoop_one` for the tick boundaries) and the run decomposition
+`k = 17·t + j` gives the full copy-branch value bound; that assembly is the remaining mechanical step. -/
+theorem tick_intra_valueBounded (m : Mem) (acc0 V N C A : ℕ)
+    (h0 : m 0 = N + 1) (h1 : m 1 = 1) (h2 : m 2 = C) (h3 : m 3 = A) (hacc0 : acc0 ≤ V)
+    (hCcode : m C = 0)
+    (hbV : ∀ x, m x ≤ V) (hN : N + 1 ≤ V) (hA : A + 1 ≤ V) (hC : C + 1 ≤ V) :
+    ∀ j, j ≤ 17 → ValueBounded (run simDecider ⟨m, acc0, 14, false⟩ j) V := by
+  intro j hj
+  interval_cases j <;>
+    refine ⟨by simp [run, step, simDecider, List.getD, h0, h1, h2, h3, hCcode] <;> omega,
+            by intro x
+               simp [run, step, simDecider, List.getD, Mem.set, h0, h1, h2, h3, hCcode]
+               (try split_ifs) <;> first | omega | exact hbV _⟩
+
 end PallLean.Paper93.DeepMath.PathB.RAM
 
 #print axioms PallLean.Paper93.DeepMath.PathB.RAM.run_succ_right
 #print axioms PallLean.Paper93.DeepMath.PathB.RAM.init_valueBounded
 #print axioms PallLean.Paper93.DeepMath.PathB.RAM.complement_valueBounded
 #print axioms PallLean.Paper93.DeepMath.PathB.RAM.simDecider_complement_cost
+#print axioms PallLean.Paper93.DeepMath.PathB.RAM.tick_intra_valueBounded
