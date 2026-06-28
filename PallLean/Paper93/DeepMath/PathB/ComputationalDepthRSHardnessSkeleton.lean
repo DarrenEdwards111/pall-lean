@@ -22,10 +22,12 @@ fences — precisely, as documented gaps, not as silent sockets — what genuine
 `hard_of_walshFn_univ` + `no_computing_circuit` do **not** yet give a real separation.  Three concrete gaps remain,
 each a genuine piece of mathematics, none of them faked here:
 
-1. **Range / affine bridge.**  `cf p C` is `{0,1}`-valued; `walshFn univ` is `{−1,+1}`-valued.  So `cf p C =
-   walshFn univ` is *unsatisfiable* — instantiating `no_computing_circuit` with `f = walshFn univ` is vacuous.  A
-   real target must be a `{0,1}` function (e.g. the `0/1` `MOD_q` indicator), with an affine `0/1 ↔ ±1` bridge
-   relating its Walsh-approximability to that of `walshFn univ`.
+1. **Range / affine bridge — CLOSED.**  `cf p C` is `{0,1}`-valued; `walshFn univ` is `{−1,+1}`-valued, so
+   `cf p C = walshFn univ` is *unsatisfiable* (instantiating with `f = walshFn univ` is vacuous).  This is now
+   resolved by `hard_of_affine`: any `{0,1}` function `f` with `walshFn univ = 1 − 2·f` inherits the parity
+   hardness at the *same* degree and bound (a degree-`d` approximator of `f` becomes one of `walshFn univ` via
+   `aCoef ↦ δ_∅ − 2·aCoef`).  What remains to a *concrete* `{0,1}` target is the arithmetic identity
+   `walshFn univ x = 1 − 2·(0/1 parity)` — a packaging detail, not a barrier.
 
 2. **Sharp dimension bound — CLOSED.**  `hard_of_walshFn_univ` exposes only `B = 2ⁿ − 1` (because
    `boosting_surjection`'s stated conclusion is `< 2ⁿ`), which makes `no_computing_circuit`'s
@@ -87,8 +89,37 @@ theorem hard_of_walshFn_univ_sharp {p : ℕ} [Fact p.Prime] (h2 : (2 : ZMod p) �
   intro aCoef G hsupp hagree
   exact boosting_surjection_sharp h2 aCoef hsupp G (fun b hb => (hagree b hb).symm)
 
+/-- **The affine `0/1 ↔ ±1` bridge — gap (1) CLOSED.**  If a `{−1,+1}` function `h` is hard and a `{0,1}` function
+`f` is its affine image `h = 1 − 2·f`, then `f` is hard with the *same* degree `d` and bound `B`.  A degree-`d`
+Walsh approximator `aCoef` of `f` on `G` is turned into a degree-`d` approximator `δ_∅ − 2·aCoef` of `h` (the
+constant `1 = walshFn ∅` adds only the degree-`0` term `∅`), so `h`'s hardness applies.  This is what lets the
+`{−1,+1}` parity lower bound (`hard_of_walshFn_univ_sharp`) be transported to a genuine `{0,1}`-valued target — the
+range mismatch in `no_computing_circuit`'s `cf p C = f`. -/
+theorem hard_of_affine {p : ℕ} [Fact p.Prime] (h f : (Fin n → Bool) → ZMod p)
+    (haff : ∀ x, h x = 1 - 2 * f x) (d B : ℕ)
+    (hh : ∀ (aCoef : Finset (Fin n) → ZMod p) (G : Finset (Fin n → Bool)),
+            (∀ T, d < T.card → aCoef T = 0) → (∀ x ∈ G, h x = evalW aCoef x) → G.card ≤ B) :
+    ∀ (aCoef : Finset (Fin n) → ZMod p) (G : Finset (Fin n → Bool)),
+      (∀ T, d < T.card → aCoef T = 0) → (∀ x ∈ G, f x = evalW aCoef x) → G.card ≤ B := by
+  intro aCoef G hsupp hagree
+  refine hh (fun T => (if T = ∅ then 1 else 0) - 2 * aCoef T) G ?_ ?_
+  · intro T hT
+    have hT0 : T ≠ ∅ := fun h0 => by rw [h0] at hT; simp at hT
+    show (if T = ∅ then (1 : ZMod p) else 0) - 2 * aCoef T = 0
+    rw [if_neg hT0, hsupp T hT]; ring
+  · intro x hx
+    have key : evalW (fun T => (if T = ∅ then (1 : ZMod p) else 0) - 2 * aCoef T) x
+             = 1 - 2 * evalW aCoef x := by
+      simp only [evalW, sub_mul, Finset.sum_sub_distrib]
+      congr 1
+      · simp [ite_mul, Finset.sum_ite_eq', walshFn]
+      · rw [Finset.mul_sum]
+        exact Finset.sum_congr rfl (fun S _ => by ring)
+    rw [haff x, hagree x hx, key]
+
 end PallLean.Paper93.DeepMath.PathB.ACC0.Circuit
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.no_computing_circuit
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.hard_of_walshFn_univ
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.hard_of_walshFn_univ_sharp
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.hard_of_affine
