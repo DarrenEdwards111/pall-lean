@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMultilinear
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthTriangularInv
 import Mathlib
 
 /-!
@@ -78,8 +79,76 @@ theorem omegaProd_eq_sum_mono {F : Type*} [CommRing F] {n : ℕ} (ω : F) (b : F
   refine Finset.sum_congr rfl (fun T _ => ?_)
   rw [Finset.prod_const_one, mul_one, Finset.prod_mul_distrib, Finset.prod_const, Multilinear.monomialFn]
 
+/-! ### The `q`-ary character span (the analogue of `WalshSpan.evalW_surjective`). -/
+
+variable {F : Type*} [Field F] {n : ℕ}
+
+/-- The `q`-ary character `∏_{i∈S} ω^{bᵢ}` (each bit valued in `{1, ω}`). -/
+noncomputable def omegaFn (ω : F) (S : Finset (Fin n)) (b : Fin n → Bool) : F :=
+  ∏ i ∈ S, (if b i then ω else 1)
+
+/-- Evaluate the `q`-ary character polynomial with coefficient vector `c`. -/
+noncomputable def evalΩ (ω : F) (c : Finset (Fin n) → F) (b : Fin n → Bool) : F :=
+  ∑ S, c S * omegaFn ω S b
+
+/-- The triangular change-of-basis transform: `(Mω c) T = (ω−1)^{|T|} · Σ_{S ⊇ T} c S`. -/
+noncomputable def Mω (ω : F) (c : Finset (Fin n) → F) : Finset (Fin n) → F :=
+  fun T => (ω - 1) ^ T.card * ∑ S ∈ Finset.univ.filter (fun S => T ⊆ S), c S
+
+/-- **The `q`-ary evaluation factors through the `{0,1}` one.**  `evalΩ ω c = eval0 (Mω ω c)` — substitute
+`omegaProd_eq_sum_mono` into each character and swap the order of summation (Fubini over `T ⊆ S`).  The exact
+`q`-ary mirror of `WalshSpan.evalW_eq_eval0_M`. -/
+theorem evalΩ_eq_eval0_M (ω : F) (c : Finset (Fin n) → F) (b : Fin n → Bool) :
+    evalΩ ω c b = Multilinear.eval (Mω ω c) b := by
+  rw [evalΩ]
+  simp_rw [omegaFn, omegaProd_eq_sum_mono, Finset.mul_sum]
+  rw [Finset.sum_comm' (t' := Finset.univ)
+      (s' := fun T => Finset.univ.filter (fun S => T ⊆ S))
+      (by intro S T; simp [Finset.mem_powerset, Finset.mem_filter])]
+  rw [Multilinear.eval]
+  refine Finset.sum_congr rfl (fun T _ => ?_)
+  rw [Mω, ← Finset.sum_mul]
+  ring
+
+/-- **`Mω` is injective** when `ω ≠ 1`: the scalar `(ω−1)^{|T|}` cancels, leaving all upset sums of `c − c'` zero,
+and `superset_sum_eq_zero` gives `c = c'`.  (`ω ≠ 1` holds for any primitive `q`-th root, `q ≥ 2`.) -/
+theorem Mω_injective (ω : F) (hω : ω ≠ 1) : Function.Injective (Mω ω (n := n)) := by
+  intro c c' hM
+  have hsup : ∀ T : Finset (Fin n),
+      ∑ S ∈ Finset.univ.filter (fun S => T ⊆ S), (c S - c' S) = 0 := by
+    intro T
+    have hT : Mω ω c T = Mω ω c' T := congrFun hM T
+    simp only [Mω] at hT
+    have hne : (ω - 1) ^ T.card ≠ 0 := pow_ne_zero _ (sub_ne_zero.mpr hω)
+    have heq := mul_left_cancel₀ hne hT
+    rw [Finset.sum_sub_distrib]
+    exact sub_eq_zero.mpr heq
+  funext S
+  exact sub_eq_zero.mp (TriangularInv.superset_sum_eq_zero (fun S => c S - c' S) hsup S)
+
+/-- **`evalΩ` is injective** (`ω ≠ 1`): factor through `eval0 ∘ Mω` and compose the two injectivities. -/
+theorem evalΩ_injective (ω : F) (hω : ω ≠ 1) : Function.Injective (evalΩ ω (n := n)) := by
+  intro c c' h
+  apply Mω_injective ω hω
+  apply Multilinear.eval_injective
+  funext b
+  rw [← evalΩ_eq_eval0_M ω c b, ← evalΩ_eq_eval0_M ω c' b]
+  exact congrFun h b
+
+/-- **The `q`-ary character span.**  For `ω ≠ 1`, `evalΩ ω` is surjective (indeed bijective): every function on the
+`{0,1}` cube is a `q`-ary character polynomial.  The `q`-ary analogue of `WalshSpan.evalW_surjective` — the span
+foundation the `q`-ary boosting/dimension argument consumes. -/
+theorem evalΩ_surjective [Fintype F] [DecidableEq F] (ω : F) (hω : ω ≠ 1) :
+    Function.Surjective (evalΩ ω (n := n)) := by
+  have hcard : Fintype.card (Finset (Fin n) → F) = Fintype.card ((Fin n → Bool) → F) := by
+    simp [Fintype.card_finset, Fintype.card_bool]
+  exact ((Fintype.bijective_iff_injective_and_card (evalΩ ω)).mpr
+    ⟨evalΩ_injective ω hω, hcard⟩).surjective
+
 end PallLean.Paper93.DeepMath.PathB.ModQReduction
 
+#print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.evalΩ_eq_eval0_M
+#print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.evalΩ_surjective
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.omegaProd_eq_sum_mono
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.rootsOfUnity_filter
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.modq_indicator_eq
