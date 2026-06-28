@@ -163,8 +163,20 @@ theorem omegaFn_fold (ω : F) {q : ℕ} (hq1 : 1 ≤ q) (hq : ω ^ q = 1) (S : F
   rw [← Finset.prod_mul_prod_compl S (fun i => if b i then ω else 1), mul_assoc,
     ← Finset.prod_mul_distrib, hone, mul_one]
 
+/-- **The fold on the agreement set (first step of the `q`-ary boosting collection).**  At a point `b` where the
+degree-`d` approximator `aCoef` agrees with the full product (`evalΩ ω aCoef b = omegaFn ω univ b`), *every*
+character folds as `omegaFn ω S b = (evalΩ ω aCoef b) · omegaFn (ω^{q-1}) Sᶜ b` — the full product replaced by its
+approximator.  For `|S| > n/2` the right side has degree `≤ d + (n−|S|) < d + n/2`, so on the agreement set every
+character is low degree.  The `q`-ary analogue of `WalshSpan.evalW_fold_on_G`. -/
+theorem omegaFn_fold_on_G (ω : F) {q : ℕ} (hq1 : 1 ≤ q) (hq : ω ^ q = 1)
+    (aCoef : Finset (Fin n) → F) (b : Fin n → Bool)
+    (hb : evalΩ ω aCoef b = omegaFn ω Finset.univ b) (S : Finset (Fin n)) :
+    omegaFn ω S b = evalΩ ω aCoef b * omegaFn (ω ^ (q - 1)) Sᶜ b := by
+  rw [omegaFn_fold ω hq1 hq, ← hb]
+
 end PallLean.Paper93.DeepMath.PathB.ModQReduction
 
+#print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.omegaFn_fold_on_G
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.omegaFn_fold
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.evalΩ_eq_eval0_M
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.evalΩ_surjective
