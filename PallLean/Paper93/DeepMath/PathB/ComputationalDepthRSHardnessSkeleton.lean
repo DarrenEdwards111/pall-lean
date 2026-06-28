@@ -117,8 +117,55 @@ theorem hard_of_affine {p : ℕ} [Fact p.Prime] (h f : (Fin n → Bool) → ZMod
         exact Finset.sum_congr rfl (fun S _ => by ring)
     rw [haff x, hagree x hx, key]
 
+/-- The `{0,1}` parity of a Boolean input, as an element of `𝔽_p`: the number of `true` bits, mod `2`. -/
+noncomputable def boolParity {p : ℕ} (x : Fin n → Bool) : ZMod p :=
+  (((∑ i, (x i).toNat) % 2 : ℕ) : ZMod p)
+
+/-- `(-1)^k = 1 − 2·(k mod 2)` in `ZMod p`: the sign `(-1)^k` is `1`/`-1` according to the parity of `k`. -/
+theorem neg_one_pow_eq {p : ℕ} (k : ℕ) : (-1 : ZMod p) ^ k = 1 - 2 * ((k % 2 : ℕ) : ZMod p) := by
+  rw [neg_one_pow_eq_pow_mod_two]
+  rcases Nat.mod_two_eq_zero_or_one k with h | h <;> rw [h] <;> push_cast <;> ring
+
+/-- **Parity packaging identity.**  The full parity `walshFn univ` (`{−1,+1}`-valued) is the affine image of the
+`{0,1}` parity `boolParity`: `walshFn univ x = 1 − 2·boolParity x`.  Each bit contributes `(-1)^{xᵢ}`, so the
+product is `(-1)^(Σ xᵢ)`, whose sign is `1 − 2·(Σxᵢ mod 2)`. -/
+theorem walshFn_univ_eq {p : ℕ} [Fact p.Prime] (x : Fin n → Bool) :
+    walshFn (Finset.univ) x = 1 - 2 * boolParity (p := p) x := by
+  have h1 : walshFn (Finset.univ : Finset (Fin n)) x = (-1 : ZMod p) ^ (∑ i, (x i).toNat) := by
+    rw [walshFn, ← Finset.prod_pow_eq_pow_sum]
+    exact Finset.prod_congr rfl (fun i _ => by cases x i <;> simp)
+  rw [h1, boolParity, neg_one_pow_eq]
+
+/-- **The `{0,1}` parity is hard (gaps (1)+(2) assembled, parity case).**  Any degree-`d` Walsh polynomial agreeing
+with `boolParity` on `G` has `|G| ≤ Σ_{i ≤ n/2+d} C(n,i)`: `hard_of_affine` applied to the packaging identity and
+the sharp parity bound.  The `hard` hypothesis of `no_computing_circuit`, now for the genuine `{0,1}`-valued
+`boolParity` (matching `cf p C = f`).  No `MOD_q` reduction is needed — parity *is* the full product. -/
+theorem hard_of_boolParity {p : ℕ} [Fact p.Prime] (h2 : (2 : ZMod p) ≠ 0) (d : ℕ) :
+    ∀ (aCoef : Finset (Fin n) → ZMod p) (G : Finset (Fin n → Bool)),
+      (∀ T, d < T.card → aCoef T = 0) → (∀ x ∈ G, boolParity x = evalW aCoef x) →
+      G.card ≤ ∑ i ∈ Finset.range (n / 2 + d + 1), n.choose i :=
+  hard_of_affine (walshFn Finset.univ) boolParity (fun x => walshFn_univ_eq x) d _
+    (hard_of_walshFn_univ_sharp h2 d)
+
+/-- **Parity lower bound (the `q = 2` Razborov–Smolensky case, assembled).**  No well-formed AC⁰[p] circuit of
+degree `≤ d` with bad-set budget `size·2^(n-t) + Σ_{i≤n/2+d} C(n,i) < 2ⁿ` computes the `{0,1}` parity.  This is a
+*genuine, non-vacuous* lower bound: it combines the upper-bound machinery (`no_computing_circuit`) with the parity
+hardness (`hard_of_boolParity`), with no barriered hypothesis — the parity case needs no `MOD_q` reduction.  (For
+poly-size constant-depth circuits, choosing `t ≈ c·log n` makes the budget hold and `d = (t(p−1))^depth` polylog,
+so the conclusion is non-trivial; that parameter instantiation is the only quantitative step left for the parity
+separation.  General `MOD_q`, `q ≠ 2`, still needs the reduction of gap (3).) -/
+theorem no_boolParity_circuit {p t : ℕ} [Fact p.Prime] (ht : 1 ≤ t) (htn : t ≤ n)
+    (h2 : (2 : ZMod p) ≠ 0) (d : ℕ) :
+    ¬ ∃ C : Circuit n, WF p C ∧ (t * (p - 1)) ^ depth C ≤ d ∧
+        size C * 2 ^ (n - t) + (∑ i ∈ Finset.range (n / 2 + d + 1), n.choose i) < 2 ^ n ∧
+        (∀ x, cf p C x = boolParity x) :=
+  no_computing_circuit ht htn h2 d _ boolParity (hard_of_boolParity h2 d)
+
 end PallLean.Paper93.DeepMath.PathB.ACC0.Circuit
 
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.walshFn_univ_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.hard_of_boolParity
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.no_boolParity_circuit
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.no_computing_circuit
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.hard_of_walshFn_univ
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.hard_of_walshFn_univ_sharp
