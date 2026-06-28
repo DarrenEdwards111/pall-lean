@@ -263,8 +263,38 @@ theorem no_boolParity_circuit_odd {p t m : ℕ} [Fact p.Prime] (ht : 1 ≤ t) (h
     rw [pow_succ, pow_mul]; norm_num [mul_comm]
   omega
 
+/-- **The unconditional parity (`q=2`) lower bound.**  For odd `n = 2m+1`: no well-formed AC⁰[p] circuit of depth
+`≤ Δ` and size `≤ s` computes the `{0,1}` parity, provided the two *clean arithmetic parameter conditions*
+`16·((t(p−1))^Δ)² ≤ 2m+2` (degree small — `(t(p−1))^Δ = O(√m)`) and `2·s·2^(n-t) ≤ 4^m` (size small —
+`s ≤ 2^{t-2}`) hold.  No binomial sum, no central-binomial term, no analytic content survives in the hypotheses:
+`choose_mid_lt` (the central-binomial concentration) discharges the degree term and the size term splits off
+cleanly.  For poly-size constant-depth circuits, `t ≈ log s` satisfies both conditions at large `n`, so this is a
+genuine, non-vacuous parity separation — the full `q=2` Razborov–Smolensky lower bound. -/
+theorem no_parity_circuit {p t m Δ s : ℕ} [Fact p.Prime] (ht : 1 ≤ t) (htn : t ≤ 2 * m + 1)
+    (h2 : (2 : ZMod p) ≠ 0) (hdeg : 16 * ((t * (p - 1)) ^ Δ) ^ 2 ≤ 2 * m + 2)
+    (hsize : 2 * (s * 2 ^ (2 * m + 1 - t)) ≤ 4 ^ m) :
+    ¬ ∃ C : Circuit (2 * m + 1),
+      WF p C ∧ depth C ≤ Δ ∧ size C ≤ s ∧ (∀ x, cf p C x = boolParity x) := by
+  rintro ⟨C, hC, hΔ, hs, hCf⟩
+  have hb1 : 1 ≤ t * (p - 1) := by
+    have hp : 2 ≤ p := (Fact.out : p.Prime).two_le
+    calc 1 = 1 * 1 := by ring
+      _ ≤ t * (p - 1) := Nat.mul_le_mul ht (by omega)
+  refine no_boolParity_circuit_odd ht htn h2 ((t * (p - 1)) ^ Δ) ⟨C, hC, ?_, ?_, hCf⟩
+  · exact Nat.pow_le_pow_right hb1 hΔ
+  · have hdC : 2 * ((t * (p - 1)) ^ Δ * (2 * m + 1).choose m) < 4 ^ m := by
+      have hkey := choose_mid_lt (m := m) (d := 2 * (t * (p - 1)) ^ Δ)
+        (by rw [show 4 * (2 * (t * (p - 1)) ^ Δ) ^ 2 = 16 * ((t * (p - 1)) ^ Δ) ^ 2 by ring]; exact hdeg)
+      calc 2 * ((t * (p - 1)) ^ Δ * (2 * m + 1).choose m)
+          = (2 * (t * (p - 1)) ^ Δ) * (2 * m + 1).choose m := by ring
+        _ < 4 ^ m := hkey
+    have hsz : 2 * (size C * 2 ^ (2 * m + 1 - t)) ≤ 4 ^ m :=
+      le_trans (Nat.mul_le_mul_left _ (Nat.mul_le_mul_right _ hs)) hsize
+    omega
+
 end PallLean.Paper93.DeepMath.PathB.ACC0.Circuit
 
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.no_parity_circuit
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.centralBinom_sq_le
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.choose_mid_lt
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.sum_choose_mid_le
