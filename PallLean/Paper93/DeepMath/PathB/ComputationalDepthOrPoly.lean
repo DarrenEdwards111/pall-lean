@@ -72,7 +72,38 @@ theorem orPoly_eval [Fact p.Prime] (P : Fin k → MvPolynomial (Fin n) (ZMod p))
   rw [Finset.prod_boole]
   by_cases h : ∀ j, OrApprox.linForm (fun i => eval point (P i)) (Ss j) = 0 <;> simp [h]
 
+/-- **The OR-gate pointwise correctness.**  At a point where the children's polynomials equal the children's true
+`0/1` outputs `b` (i.e. off the children's bad sets), and where the forms do *not* disagree (off the gate's bad
+set), `orPoly P Ss` evaluates to the `OR` of the children: `0` if all `bᵢ` are `false`, else `1`.  Proof: by
+`orPoly_eval` the value is `[∃ j, linForm = 0]`; if the boolean vector is `0` (all false) all forms vanish and
+both sides are `0`; otherwise `¬disagree` forces some form nonzero and both sides are `1`. -/
+theorem orPoly_eval_eq_or [Fact p.Prime] (P : Fin k → MvPolynomial (Fin n) (ZMod p))
+    (Ss : Fin t → Finset (Fin k)) (point : Fin n → ZMod p) (b : Fin k → Bool)
+    (hv : ∀ i, eval point (P i) = ((b i).toNat : ZMod p))
+    (hdis : ¬ ((∀ j, OrApprox.linForm (fun i => ((b i).toNat : ZMod p)) (Ss j) = 0)
+              ∧ (fun i => ((b i).toNat : ZMod p)) ≠ 0)) :
+    eval point (orPoly P Ss) = if (∀ i, b i = false) then (0 : ZMod p) else 1 := by
+  rw [orPoly_eval, funext hv]
+  by_cases hb0 : (fun i => ((b i).toNat : ZMod p)) = 0
+  · have hall : ∀ j, OrApprox.linForm (fun i => ((b i).toNat : ZMod p)) (Ss j) = 0 := by
+      intro j; rw [hb0]; simp [OrApprox.linForm]
+    have hbf : ∀ i, b i = false := by
+      intro i
+      by_contra hbi
+      simp only [Bool.not_eq_false] at hbi
+      have hc := congrFun hb0 i
+      rw [Pi.zero_apply, hbi] at hc
+      simp at hc
+    rw [if_pos hall, if_pos hbf]
+  · have hnall : ¬ ∀ j, OrApprox.linForm (fun i => ((b i).toNat : ZMod p)) (Ss j) = 0 :=
+      fun hall => hdis ⟨hall, hb0⟩
+    have hbf : ¬ ∀ i, b i = false := by
+      intro hbf
+      exact hb0 (funext (fun i => by rw [hbf i]; simp))
+    rw [if_neg hnall, if_neg hbf]
+
 end PallLean.Paper93.DeepMath.PathB.OrPoly
 
 #print axioms PallLean.Paper93.DeepMath.PathB.OrPoly.orPoly_totalDegree_le
 #print axioms PallLean.Paper93.DeepMath.PathB.OrPoly.orPoly_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.OrPoly.orPoly_eval_eq_or
