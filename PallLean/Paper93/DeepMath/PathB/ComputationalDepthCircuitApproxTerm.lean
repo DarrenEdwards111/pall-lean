@@ -186,6 +186,54 @@ theorem cf_and_eq (p : ℕ) (cs : List (Circuit n)) (x : Fin n → Bool) :
     rw [Bool.toNat_false, if_neg hcond]
     simp
 
+/-- The number of children evaluating to `true` (`countP`) equals the sum of their `0/1` outputs over
+`Fin cs.length` — the `MOD`-gate analogue of `sum_size_eq_sizeList`, relating the gate's `countP` semantics to the
+sum the `MOD_p` polynomial computes. -/
+theorem sum_toNat_eq_countP (P : Circuit n → Bool) (cs : List (Circuit n)) :
+    ∑ i : Fin cs.length, (P (cs.get i)).toNat = cs.countP P := by
+  induction cs with
+  | nil => simp
+  | cons c cs ih =>
+    rw [List.countP_cons, ← ih]
+    simp only [List.length_cons]
+    rw [Fin.sum_univ_succ]
+    simp only [List.get_cons_zero]
+    cases P c
+    · simp
+    · simp [add_comm]
+
+/-- **MOD-gate pointwise correctness (assembled).**  `MOD_p` is *exact* over `𝔽_p`: the gate polynomial
+`1 - (Σᵢ Pᵢ)^(p-1)` (the `MOD_p` polynomial on the children's polynomials).  Off the children's bad sets, it equals
+`cf (mod p cs)`.  The bridge: `Σ eval(Pᵢ) = (#true children : 𝔽_p)` (via `sum_toNat_eq_countP`), Fermat
+(`pow_card_sub_one`) gives `[Σ = 0]`, and `(#true : 𝔽_p) = 0 ⟺ p ∣ #true ⟺ #true % p = 0` (`CharP.cast_eq_zero_iff`)
+matches the gate's `countP % p = 0`.  Note: the MOD gate must be `MOD_p` (`m = p`) — `MOD_q` (`q ≠ p`) is the
+*hard* direction, not low degree over `𝔽_p`. -/
+theorem caMod_pointwise {p : ℕ} [Fact p.Prime] (cs : List (Circuit n))
+    (P : Fin cs.length → MvPolynomial (Fin n) (ZMod p)) (x : Fin n → Bool)
+    (hchild : ∀ i, cf p (cs.get i) x = pf p (P i) x) :
+    cf p (mod p cs) x = pf p (1 - (∑ i, P i) ^ (p - 1)) x := by
+  rw [pf, map_sub, map_one, map_pow, map_sum]
+  have hsum : (∑ i, MvPolynomial.eval (fun j => ((x j).toNat : ZMod p)) (P i))
+      = ((cs.countP (Circuit.eval x) : ℕ) : ZMod p) := by
+    calc ∑ i, MvPolynomial.eval (fun j => ((x j).toNat : ZMod p)) (P i)
+        = ∑ i, ((Circuit.eval x (cs.get i)).toNat : ZMod p) := by
+          refine Finset.sum_congr rfl (fun i _ => ?_)
+          have h := hchild i
+          simp only [cf, pf] at h
+          exact h.symm
+      _ = ((∑ i, (Circuit.eval x (cs.get i)).toNat : ℕ) : ZMod p) := by rw [Nat.cast_sum]
+      _ = ((cs.countP (Circuit.eval x) : ℕ) : ZMod p) := by rw [sum_toNat_eq_countP]
+  rw [hsum, OrApprox.pow_card_sub_one, cf, eval_mod]
+  by_cases hc : cs.countP (Circuit.eval x) % p = 0
+  · have hz : ((cs.countP (Circuit.eval x) : ℕ) : ZMod p) = 0 :=
+      (CharP.cast_eq_zero_iff (ZMod p) p _).mpr (Nat.dvd_of_mod_eq_zero hc)
+    simp [hc, hz]
+  · have hz : ((cs.countP (Circuit.eval x) : ℕ) : ZMod p) ≠ 0 := by
+      intro h0
+      have hd : p ∣ cs.countP (Circuit.eval x) := (CharP.cast_eq_zero_iff (ZMod p) p _).mp h0
+      omega
+    simp [hc, hz]
+
 open Classical in
 /-- **The OR-gate constructor.**  From the children's approximation data, build the `CircuitApproxData` for
 `or cs`: the gate polynomial `orPoly P Ss` (children's polys substituted into the OR-approximator with forms `Ss`
@@ -325,6 +373,45 @@ noncomputable def caAnd {p t : ℕ} [Fact p.Prime] (cs : List (Circuit n))
           ≤ sizeList cs * 2 ^ (n - t) + 2 ^ (n - t) := Nat.add_le_add hbu hf
         _ = (sizeList cs + 1) * 2 ^ (n - t) := by ring }
 
+open Classical in
+/-- **The MOD-gate constructor (exact).**  `MOD_p` is computed *exactly* over `𝔽_p` (no probabilistic error), so
+the bad set is just the union of the children's bad sets — no gate bad set.  The polynomial is
+`1 - (Σᵢ Pᵢ)^(p-1)` (the `MOD_p` polynomial on the children's polynomials).  Requires `1 ≤ t` (so the degree
+`(p-1)·degApproxList` fits under `degApprox = t(p-1)·degApproxList`).  Only handles `MOD_p` — `MOD_q` (`q ≠ p`) is
+the hard direction. -/
+noncomputable def caMod {p t : ℕ} [Fact p.Prime] (ht : 1 ≤ t) (cs : List (Circuit n))
+    (dat : ∀ i : Fin cs.length, CircuitApproxData p t (cs.get i)) :
+    CircuitApproxData p t (mod p cs) :=
+  let P : Fin cs.length → MvPolynomial (Fin n) (ZMod p) := fun i => (dat i).poly
+  { poly := 1 - (∑ i, P i) ^ (p - 1)
+    bad := Finset.univ.biUnion fun i => (dat i).bad
+    approx := by
+      intro x hx
+      have hbu : ∀ i, x ∉ (dat i).bad := fun i hi =>
+        hx (Finset.mem_biUnion.mpr ⟨i, Finset.mem_univ i, hi⟩)
+      have hchild : ∀ i, cf p (cs.get i) x = pf p (P i) x := fun i => (dat i).approx x (hbu i)
+      exact caMod_pointwise cs P x hchild
+    degree_le := by
+      rw [degApprox]
+      refine le_trans (totalDegree_sub _ _) ?_
+      rw [totalDegree_one]
+      refine max_le (Nat.zero_le _) ?_
+      refine le_trans (totalDegree_pow _ _) ?_
+      have hsd : (∑ i, P i).totalDegree ≤ degApproxList (t * (p - 1)) cs := by
+        refine le_trans (totalDegree_finset_sum _ _) ?_
+        refine Finset.sup_le (fun i _ => ?_)
+        exact le_trans (dat i).degree_le (degApprox_le_degApproxList cs (cs.get i) (List.get_mem cs i))
+      exact Nat.mul_le_mul (Nat.le_mul_of_pos_left _ ht) hsd
+    bad_le := by
+      refine le_trans Finset.card_biUnion_le ?_
+      rw [size]
+      calc ∑ i : Fin cs.length, ((dat i).bad).card
+          ≤ ∑ i : Fin cs.length, size (cs.get i) * 2 ^ (n - t) :=
+            Finset.sum_le_sum (fun i _ => (dat i).bad_le)
+        _ = (∑ i : Fin cs.length, size (cs.get i)) * 2 ^ (n - t) := by rw [← Finset.sum_mul]
+        _ = sizeList cs * 2 ^ (n - t) := by rw [sum_size_eq_sizeList]
+        _ ≤ (sizeList cs + 1) * 2 ^ (n - t) := Nat.mul_le_mul_right _ (Nat.le_succ _) }
+
 end PallLean.Paper93.DeepMath.PathB.ACC0.Circuit
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caVar
@@ -337,3 +424,6 @@ end PallLean.Paper93.DeepMath.PathB.ACC0.Circuit
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.cf_and_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caAnd_pointwise
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caAnd
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.sum_toNat_eq_countP
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caMod_pointwise
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caMod
