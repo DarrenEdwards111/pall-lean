@@ -54,7 +54,24 @@ theorem evalW_fold_on_G (aCoef c : Finset (Fin n) → F) (b : Fin n → Bool)
     simp only [walshFn]
     exact Boosting.prod_eq_full_mul_prod_compl _ (fun i => Boosting.sign_sq_one b i) S
 
+/-- **Convolution by a monomial.**  Multiplying a Walsh polynomial by a single monomial `walshFn T` *shifts* its
+coefficients by symmetric difference: `evalW aCoef · walshFn T = evalW (U ↦ aCoef (U ∆ T))`.  Proof: distribute,
+apply `walshFn_mul` termwise, and reindex the sum by the involution `· ∆ T`.  This is the convolution that
+collects each folded high term `a · walshFn Sᶜ` back into Walsh coefficients (shifted by `Sᶜ`, hence supported on
+`U` with `|U| ≤ |U ∆ Sᶜ| + |Sᶜ| ≤ d + |Sᶜ| ≤ d + n/2`). -/
+theorem evalW_mul_walshFn (aCoef : Finset (Fin n) → F) (T : Finset (Fin n)) (b : Fin n → Bool) :
+    evalW aCoef b * walshFn T b = evalW (fun U => aCoef (U ∆ T)) b := by
+  have hinv : Function.Involutive (fun S : Finset (Fin n) => S ∆ T) := fun S => by
+    show (S ∆ T) ∆ T = S
+    rw [symmDiff_symmDiff_cancel_right]
+  rw [evalW, evalW, Finset.sum_mul,
+    ← Equiv.sum_comp hinv.toPerm (fun U => aCoef (U ∆ T) * walshFn U b)]
+  refine Finset.sum_congr rfl (fun R _ => ?_)
+  show aCoef R * walshFn R b * walshFn T b = aCoef ((R ∆ T) ∆ T) * walshFn (R ∆ T) b
+  rw [mul_assoc, walshFn_mul, symmDiff_symmDiff_cancel_right]
+
 end PallLean.Paper93.DeepMath.PathB.WalshSpan
 
 #print axioms PallLean.Paper93.DeepMath.PathB.WalshSpan.walshFn_mul
 #print axioms PallLean.Paper93.DeepMath.PathB.WalshSpan.evalW_fold_on_G
+#print axioms PallLean.Paper93.DeepMath.PathB.WalshSpan.evalW_mul_walshFn
