@@ -6,6 +6,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthModPoly
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthGateApproxGen
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthOrPoly
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMultilinear
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRSHardnessSkeleton
 import Mathlib
 
 /-!
@@ -106,5 +107,12 @@ open PallLean.Paper93.DeepMath.PathB
 -- 8. The assembled composition and the conditional separation.
 #check @ACC0.Circuit.circuit_walsh_approx
 #check @ACC0.Circuit.no_acp_circuit
+
+-- 9. The q=2 case CLOSED: the unconditional parity Razborov–Smolensky lower bound.
+--    (gaps (1) affine, (2) sharp dimension, packaging, and the central-binomial Stirling bound all proved;
+--     only general MOD_q, q≠2, still needs the barriered reduction of gap (3).)
+#check @ACC0.Circuit.walshFn_univ_eq            -- parity packaging: walshFn univ = 1 − 2·boolParity
+#check @ACC0.Circuit.centralBinom_sq_le         -- central-binomial concentration (√-free Stirling)
+#check @ACC0.Circuit.no_parity_circuit          -- parity ∉ small AC⁰[p] (clean arithmetic hypotheses)
 
 end PallLean.Paper93.DeepMath.PathB.RSIndex
