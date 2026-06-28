@@ -412,6 +412,67 @@ noncomputable def caMod {p t : ℕ} [Fact p.Prime] (ht : 1 ≤ t) (cs : List (Ci
         _ = sizeList cs * 2 ^ (n - t) := by rw [sum_size_eq_sizeList]
         _ ≤ (sizeList cs + 1) * 2 ^ (n - t) := Nat.mul_le_mul_right _ (Nat.le_succ _) }
 
+mutual
+/-- **Well-formed AC⁰[p] circuit.**  Every `MOD` gate is `MOD_p` (the only low-degree case over `𝔽_p`) and every
+`AND`/`OR`/`MOD` gate is nonempty (the `caOr`/`caAnd`/`caMod` constructors require `1 ≤ fan-in`).  These are exactly
+the side conditions the term-carrying recursion needs. -/
+def WF (p : ℕ) : Circuit n → Prop
+  | var _ => True
+  | const _ => True
+  | not c => WF p c
+  | and cs => 1 ≤ cs.length ∧ WFList p cs
+  | or cs => 1 ≤ cs.length ∧ WFList p cs
+  | mod m cs => m = p ∧ 1 ≤ cs.length ∧ WFList p cs
+/-- A list of children is well-formed when each child is. -/
+def WFList (p : ℕ) : List (Circuit n) → Prop
+  | [] => True
+  | c :: cs => WF p c ∧ WFList p cs
+end
+
+/-- Each child of a well-formed gate is well-formed. -/
+theorem wf_of_mem_wfList {p : ℕ} (c : Circuit n) :
+    ∀ {cs : List (Circuit n)}, WFList p cs → c ∈ cs → WF p c := by
+  intro cs
+  induction cs with
+  | nil => intro _ hc; simp at hc
+  | cons d cs ih =>
+    intro h hc
+    rw [WFList] at h
+    rcases List.mem_cons.mp hc with rfl | hmem
+    · exact h.1
+    · exact ih h.2 hmem
+
+/-- **The term-carrying circuit approximation (the recursion).**  For every well-formed AC⁰[p] circuit `C`, build
+its approximating polynomial package by structural recursion: leaves/constants exactly (`caVar`/`caConst`),
+negation by `caNot`, the `AND`/`OR` gates probabilistically (`caAnd`/`caOr`), and `MOD_p` exactly (`caMod`).  The
+recursion is well-founded on `sizeOf C` (each child is smaller).  Requires `1 ≤ t` and `t ≤ n` (the parameters the
+gate constructors thread). -/
+noncomputable def approxCircuit {p t : ℕ} [Fact p.Prime] (ht : 1 ≤ t) (htn : t ≤ n) :
+    (C : Circuit n) → WF p C → CircuitApproxData p t C
+  | var i, _ => caVar p t i
+  | const b, _ => caConst p t b
+  | not c, h => caNot p t c (approxCircuit ht htn c h)
+  | and cs, h =>
+      caAnd cs h.1 htn (fun i =>
+        have hmem : cs.get i ∈ cs := List.get_mem cs i
+        approxCircuit ht htn (cs.get i) (wf_of_mem_wfList (cs.get i) h.2 hmem))
+  | or cs, h =>
+      caOr cs h.1 htn (fun i =>
+        have hmem : cs.get i ∈ cs := List.get_mem cs i
+        approxCircuit ht htn (cs.get i) (wf_of_mem_wfList (cs.get i) h.2 hmem))
+  | mod m cs, h => by
+      obtain ⟨hm, _, hwf⟩ := h
+      subst hm
+      exact caMod ht cs (fun i =>
+        have hmem : cs.get i ∈ cs := List.get_mem cs i
+        approxCircuit ht htn (cs.get i) (wf_of_mem_wfList (cs.get i) hwf hmem))
+  termination_by C => sizeOf C
+  decreasing_by
+    all_goals simp_wf
+    all_goals first
+      | omega
+      | (have := List.sizeOf_lt_of_mem hmem; rw [List.get_eq_getElem] at this; omega)
+
 end PallLean.Paper93.DeepMath.PathB.ACC0.Circuit
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caVar
@@ -427,3 +488,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0.Circuit
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.sum_toNat_eq_countP
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caMod_pointwise
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caMod
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.wf_of_mem_wfList
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.approxCircuit
