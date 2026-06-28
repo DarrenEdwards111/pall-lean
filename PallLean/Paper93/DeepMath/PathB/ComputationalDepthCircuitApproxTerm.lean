@@ -473,6 +473,32 @@ noncomputable def approxCircuit {p t : ℕ} [Fact p.Prime] (ht : 1 ≤ t) (htn :
       | omega
       | (have := List.sizeOf_lt_of_mem hmem; rw [List.get_eq_getElem] at this; omega)
 
+/-- **The Razborov–Smolensky bridge: AC⁰[p] ⇒ low-degree approximation on a large set.**  Every well-formed
+AC⁰[p] circuit `C` is computed, on a set `G` of size `≥ 2ⁿ − size(C)·2^(n-t)`, by a single polynomial of total
+degree `≤ (t(p−1))^depth(C)`.  This packages the entire term-carrying recursion (`approxCircuit`) with the degree
+guarantee (`degApprox_le_pow_depth`) and the bad-set card accounting into exactly the hypothesis the dimension
+argument consumes: a low-degree function agreeing with the circuit off a small bad set.
+
+To close `MOD_q ∉ AC⁰[p]` one feeds this into the boosting/dimension argument (`boosting_surjection`) — which
+requires transferring the `{0,1}`-polynomial here to the `{−1,+1}` Walsh basis and using that `MOD_q` is *not*
+low-degree (the deep Razborov–Smolensky lower-bound direction, still the cited/open core). -/
+theorem circuit_low_degree_approx {p t : ℕ} [Fact p.Prime] (ht : 1 ≤ t) (htn : t ≤ n)
+    (C : Circuit n) (hC : WF p C) :
+    ∃ (P : MvPolynomial (Fin n) (ZMod p)) (G : Finset (Fin n → Bool)),
+      P.totalDegree ≤ (t * (p - 1)) ^ depth C ∧
+      2 ^ n ≤ size C * 2 ^ (n - t) + G.card ∧
+      ∀ x ∈ G, cf p C x = pf p P x := by
+  obtain ⟨P, bad, approx, degree_le, bad_le⟩ := approxCircuit ht htn C hC
+  have hp2 : 2 ≤ p := (Fact.out : p.Prime).two_le
+  refine ⟨P, Finset.univ \ bad, ?_, ?_, ?_⟩
+  · exact le_trans degree_le (degApprox_le_pow_depth (Nat.mul_pos ht (by omega)) C)
+  · have hcard : (Finset.univ \ bad).card + bad.card = 2 ^ n := by
+      rw [Finset.card_sdiff_add_card_eq_card (Finset.subset_univ bad), Finset.card_univ,
+        Fintype.card_fun, Fintype.card_bool, Fintype.card_fin]
+    omega
+  · intro x hx
+    exact approx x (Finset.mem_sdiff.mp hx).2
+
 end PallLean.Paper93.DeepMath.PathB.ACC0.Circuit
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caVar
@@ -490,3 +516,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0.Circuit
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caMod
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.wf_of_mem_wfList
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.approxCircuit
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.circuit_low_degree_approx
