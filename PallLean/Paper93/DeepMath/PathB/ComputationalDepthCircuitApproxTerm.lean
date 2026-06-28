@@ -2,6 +2,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCircuitApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCircuitDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthOrPoly
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthGateApproxGen
 import Mathlib
 
 /-!
@@ -146,6 +147,66 @@ theorem orPoly_degree_le_or {p t : ℕ} (cs : List (Circuit n))
   exact OrPoly.orPoly_totalDegree_le P Ss (degApproxList (t * (p - 1)) cs)
     (fun i => le_trans (hdeg i) (degApprox_le_degApproxList cs (cs.get i) (List.get_mem cs i)))
 
+/-- The sum of the children's sizes (over `Fin cs.length`) equals `sizeList cs` — needed for the `OR`/`AND` gate
+bad-set card bound (`card_biUnion_le` gives `Σ child.bad.card`, bounded by `Σ size · 2^(n-t)`). -/
+theorem sum_size_eq_sizeList (cs : List (Circuit n)) :
+    ∑ i : Fin cs.length, size (cs.get i) = sizeList cs := by
+  induction cs with
+  | nil => simp [sizeList]
+  | cons c cs ih =>
+    rw [sizeList, ← ih]
+    simp only [List.length_cons]
+    rw [Fin.sum_univ_succ]
+    simp
+
+open Classical in
+/-- **The OR-gate constructor.**  From the children's approximation data, build the `CircuitApproxData` for
+`or cs`: the gate polynomial `orPoly P Ss` (children's polys substituted into the OR-approximator with forms `Ss`
+chosen by `exists_forms_few_disagree`), the bad set `(⋃ child bad) ∪ (disagree set)`, and the three field proofs
+(`approx` via `caOr_pointwise`, `degree_le` via `orPoly_degree_le_or`, `bad_le` via `card_biUnion_le` +
+`sum_size_eq_sizeList` + the disagree count).  Requires `cs` nonempty (`1 ≤ cs.length`) and `t ≤ n`. -/
+noncomputable def caOr {p t : ℕ} [Fact p.Prime] (cs : List (Circuit n))
+    (hk : 1 ≤ cs.length) (htn : t ≤ n)
+    (dat : ∀ i : Fin cs.length, CircuitApproxData p t (cs.get i)) :
+    CircuitApproxData p t (or cs) :=
+  let P : Fin cs.length → MvPolynomial (Fin n) (ZMod p) := fun i => (dat i).poly
+  let v : (Fin n → Bool) → (Fin cs.length → ZMod p) :=
+    fun x i => MvPolynomial.eval (fun j => ((x j).toNat : ZMod p)) (P i)
+  let Ss := (GateApprox.exists_forms_few_disagree hk htn v).choose
+  { poly := OrPoly.orPoly P Ss
+    bad := (Finset.univ.biUnion fun i => (dat i).bad)
+            ∪ Finset.univ.filter fun x => GateApprox.disagreeGen v Ss x
+    approx := by
+      intro x hx
+      have hbu : ∀ i, x ∉ (dat i).bad := fun i hi =>
+        hx (Finset.mem_union_left _ (Finset.mem_biUnion.mpr ⟨i, Finset.mem_univ i, hi⟩))
+      have hfilt : ¬ GateApprox.disagreeGen v Ss x := fun hd =>
+        hx (Finset.mem_union_right _ (Finset.mem_filter.mpr ⟨Finset.mem_univ x, hd⟩))
+      have hchild : ∀ i, cf p (cs.get i) x = pf p (P i) x := fun i => (dat i).approx x (hbu i)
+      refine caOr_pointwise cs P Ss x hchild (fun hcon => ?_)
+      have hvx : v x = fun i => ((Circuit.eval x (cs.get i)).toNat : ZMod p) := by
+        funext i
+        have h := hchild i
+        simp only [cf, pf] at h
+        exact h.symm
+      exact hfilt (by simp only [GateApprox.disagreeGen, hvx]; exact hcon)
+    degree_le := orPoly_degree_le_or cs P Ss (fun i => (dat i).degree_le)
+    bad_le := by
+      refine le_trans (Finset.card_union_le _ _) ?_
+      have hbu : (Finset.univ.biUnion fun i => (dat i).bad).card ≤ sizeList cs * 2 ^ (n - t) := by
+        refine le_trans Finset.card_biUnion_le ?_
+        calc ∑ i : Fin cs.length, ((dat i).bad).card
+            ≤ ∑ i : Fin cs.length, size (cs.get i) * 2 ^ (n - t) :=
+              Finset.sum_le_sum (fun i _ => (dat i).bad_le)
+          _ = (∑ i : Fin cs.length, size (cs.get i)) * 2 ^ (n - t) := by rw [← Finset.sum_mul]
+          _ = sizeList cs * 2 ^ (n - t) := by rw [sum_size_eq_sizeList]
+      have hf := (GateApprox.exists_forms_few_disagree hk htn v).choose_spec
+      rw [size]
+      calc (Finset.univ.biUnion fun i => (dat i).bad).card
+              + (Finset.univ.filter fun x => GateApprox.disagreeGen v Ss x).card
+          ≤ sizeList cs * 2 ^ (n - t) + 2 ^ (n - t) := Nat.add_le_add hbu hf
+        _ = (sizeList cs + 1) * 2 ^ (n - t) := by ring }
+
 end PallLean.Paper93.DeepMath.PathB.ACC0.Circuit
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caVar
@@ -153,3 +214,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0.Circuit
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.cf_or_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caOr_pointwise
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.orPoly_degree_le_or
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.sum_size_eq_sizeList
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caOr
