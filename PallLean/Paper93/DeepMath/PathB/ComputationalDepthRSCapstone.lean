@@ -45,6 +45,19 @@ theorem dimension_argument {n m : ℕ} (hm : m < n)
   rw [Fintype.card_subtype, Dimension.card_subsets_card_le] at h1
   exact lt_of_le_of_lt h1 (Dimension.sum_choose_lt hm)
 
+/-- **The sharp dimension bound.**  Same hypotheses as `dimension_argument`, but keeping the exact count: a
+surjection from the degree-`≤m` coefficient space onto `G → 𝔽` forces `|G| ≤ Σ_{i≤m} C(n,i)` (the dimension of
+that space), the bound `dimension_argument` discards in favour of `< 2ⁿ`.  No `m < n` is needed here. -/
+theorem dimension_argument_sharp {n m : ℕ}
+    {F : Type*} [Fintype F] [DecidableEq F] (hF : 1 < Fintype.card F)
+    {G : Type*} [Fintype G] [DecidableEq G]
+    (φ : ({S : Finset (Fin n) // S.card ≤ m} → F) → (G → F))
+    (hφ : Function.Surjective φ) :
+    Fintype.card G ≤ ∑ i ∈ Finset.range (m + 1), n.choose i := by
+  have h1 : Fintype.card G ≤ Fintype.card {S : Finset (Fin n) // S.card ≤ m} :=
+    Dimension.card_le_of_surjective hF φ hφ
+  rwa [Fintype.card_subtype, Dimension.card_subsets_card_le] at h1
+
 /-- **Low degree is insufficient (abstract lower bound).**  For `m < n`, the degree-`≤m` multilinear polynomials
 do *not* surject onto all functions on the cube `{0,1}ⁿ`: there are `2ⁿ` functions but only `Σ_{i≤m} C(n,i) < 2ⁿ`
 degrees of freedom.  This is the dimension argument's conclusion — the abstract shape of `MOD_q ∉ AC⁰[p]`. -/

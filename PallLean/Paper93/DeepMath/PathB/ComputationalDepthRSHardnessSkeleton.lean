@@ -27,11 +27,12 @@ each a genuine piece of mathematics, none of them faked here:
    real target must be a `{0,1}` function (e.g. the `0/1` `MOD_q` indicator), with an affine `0/1 ↔ ±1` bridge
    relating its Walsh-approximability to that of `walshFn univ`.
 
-2. **Sharp dimension bound.**  `hard_of_walshFn_univ` exposes only `B = 2ⁿ − 1` (because `boosting_surjection`'s
-   stated conclusion is `< 2ⁿ`).  But `no_computing_circuit`'s `size·2^(n-t) + B < 2ⁿ` then forces
-   `size·2^(n-t) < 1`, impossible.  A non-vacuous separation needs the *sharp* `B = Σ_{i ≤ n/2+d} C(n,i)` (the
-   coefficient-space size — `card_le_of_surjective` already gives it, but `dimension_argument`/`boosting_surjection`
-   discard it for `< 2ⁿ`).  Re-proving boosting with the sharp bound is the quantitative work.
+2. **Sharp dimension bound — CLOSED.**  `hard_of_walshFn_univ` exposes only `B = 2ⁿ − 1` (because
+   `boosting_surjection`'s stated conclusion is `< 2ⁿ`), which makes `no_computing_circuit`'s
+   `size·2^(n-t) + B < 2ⁿ` force `size·2^(n-t) < 1`, impossible.  This is now resolved:
+   `WalshSpan.boosting_surjection_sharp` (via `RazborovSmolensky.dimension_argument_sharp`) keeps the exact bound
+   `|G| ≤ Σ_{i ≤ n/2+d} C(n,i)`, and `hard_of_walshFn_univ_sharp` is the corresponding hardness predicate — a
+   genuinely non-vacuous `B` (`< 2ⁿ` when `n/2+d < n`).
 
 3. **The `MOD_q` reduction (the barriered core).**  Boosting handles `walshFn univ` (the full product = parity).
    `MOD_q` (`q ≠ 2`) is *not* the full product; reducing its non-approximability to parity's is the genuine,
@@ -73,7 +74,21 @@ theorem hard_of_walshFn_univ {p : ℕ} [Fact p.Prime] (h2 : (2 : ZMod p) ≠ 0) 
   have h := boosting_surjection h2 aCoef hsupp G (fun b hb => (hagree b hb).symm) hmn
   omega
 
+/-- **Sharp hardness for parity — gap (2) CLOSED.**  `boosting_surjection_sharp` gives the exact dimension bound:
+any degree-`d` Walsh polynomial agreeing with `walshFn univ` on `G` has `|G| ≤ Σ_{i ≤ n/2+d} C(n,i)`.  This is the
+non-vacuous bound (`< 2ⁿ` when `n/2+d < n`), so plugged into `no_computing_circuit` with
+`B = Σ_{i ≤ n/2+d} C(n,i)` the budget `size·2^(n-t) + B < 2ⁿ` is genuinely satisfiable.  Gaps (1) range/affine and
+(3) the `MOD_q` reduction remain. -/
+theorem hard_of_walshFn_univ_sharp {p : ℕ} [Fact p.Prime] (h2 : (2 : ZMod p) ≠ 0) (d : ℕ) :
+    ∀ (aCoef : Finset (Fin n) → ZMod p) (G : Finset (Fin n → Bool)),
+      (∀ T, d < T.card → aCoef T = 0) →
+      (∀ x ∈ G, walshFn Finset.univ x = evalW aCoef x) →
+      G.card ≤ ∑ i ∈ Finset.range (n / 2 + d + 1), n.choose i := by
+  intro aCoef G hsupp hagree
+  exact boosting_surjection_sharp h2 aCoef hsupp G (fun b hb => (hagree b hb).symm)
+
 end PallLean.Paper93.DeepMath.PathB.ACC0.Circuit
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.no_computing_circuit
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.hard_of_walshFn_univ
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.hard_of_walshFn_univ_sharp

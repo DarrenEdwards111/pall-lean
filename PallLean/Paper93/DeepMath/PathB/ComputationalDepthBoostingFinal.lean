@@ -76,7 +76,47 @@ theorem boosting_surjection [Fintype F] [DecidableEq F] {d : ℕ} (h2 : (2 : F) 
     rw [dif_pos b.2]
   rwa [Fintype.card_coe] at hkey
 
+/-- **The boosting surjection (factored out).**  The degree-`≤ n/2+d` coefficient space surjects onto the functions
+`{b ∈ G} → 𝔽`: extend an arbitrary `g` to all of `{−1,+1}ⁿ` (`evalW_surjective`), then `collectCoef` it against the
+parity-approximator `aCoef` to a degree-`≤ n/2+d` vector that still agrees on `G`.  The surjectivity content shared
+by `boosting_surjection` and its sharp form. -/
+theorem boosting_surjective [Fintype F] [DecidableEq F] {d : ℕ} (h2 : (2 : F) ≠ 0)
+    (aCoef : Finset (Fin n) → F) (hd : ∀ R, d < R.card → aCoef R = 0)
+    (G : Finset (Fin n → Bool)) (hG : ∀ b ∈ G, evalW aCoef b = walshFn Finset.univ b) :
+    Function.Surjective
+      (fun (dCoef : {S : Finset (Fin n) // S.card ≤ n / 2 + d} → F) (b : {b : Fin n → Bool // b ∈ G}) =>
+        evalW (fun T => if h : T.card ≤ n / 2 + d then dCoef ⟨T, h⟩ else 0) b.1) := by
+  intro g
+  obtain ⟨c, hc⟩ := evalW_surjective h2 (fun b => if hb : b ∈ G then g ⟨b, hb⟩ else 0)
+  refine ⟨fun Tsub => collectCoef aCoef c Tsub.1, ?_⟩
+  funext b
+  have hext :
+      (fun T => if _h : T.card ≤ n / 2 + d then collectCoef aCoef c T else (0 : F))
+        = collectCoef aCoef c := by
+    funext T
+    by_cases hTm : T.card ≤ n / 2 + d
+    · rw [dif_pos hTm]
+    · rw [dif_neg hTm]
+      exact (collectCoef_support aCoef c hd T (by omega)).symm
+  show evalW (fun T => if _h : T.card ≤ n / 2 + d then collectCoef aCoef c T else 0) b.1 = g b
+  rw [hext, evalW_collectCoef_on_G aCoef c b.1 (hG b.1 b.2), hc]
+  show (if hb : b.1 ∈ G then g ⟨b.1, hb⟩ else (0 : F)) = g b
+  rw [dif_pos b.2]
+
+/-- **The sharp boosting lower bound.**  If a degree-`d` Walsh polynomial agrees with the full parity on
+`G ⊆ {−1,+1}ⁿ`, then `|G| ≤ Σ_{i ≤ n/2+d} C(n,i)` — the *exact* dimension bound, sharper than
+`boosting_surjection`'s `< 2ⁿ`.  (`< 2ⁿ` follows when `n/2+d < n` via `sum_choose_lt`.)  This is the quantitative
+strengthening the non-vacuous circuit lower bound needs. -/
+theorem boosting_surjection_sharp [Fintype F] [DecidableEq F] {d : ℕ} (h2 : (2 : F) ≠ 0)
+    (aCoef : Finset (Fin n) → F) (hd : ∀ R, d < R.card → aCoef R = 0)
+    (G : Finset (Fin n → Bool)) (hG : ∀ b ∈ G, evalW aCoef b = walshFn Finset.univ b) :
+    G.card ≤ ∑ i ∈ Finset.range (n / 2 + d + 1), n.choose i := by
+  have h := RazborovSmolensky.dimension_argument_sharp (F := F) (Fintype.one_lt_card (α := F))
+    _ (boosting_surjective h2 aCoef hd G hG)
+  rwa [Fintype.card_coe] at h
+
 end PallLean.Paper93.DeepMath.PathB.WalshSpan
 
 #print axioms PallLean.Paper93.DeepMath.PathB.WalshSpan.collectCoef_support
 #print axioms PallLean.Paper93.DeepMath.PathB.WalshSpan.boosting_surjection
+#print axioms PallLean.Paper93.DeepMath.PathB.WalshSpan.boosting_surjection_sharp
