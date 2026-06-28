@@ -74,6 +74,21 @@ decreasing_by
   all_goals simp_wf
   all_goals (rename_i hc; have := List.sizeOf_lt_of_mem hc; omega)
 
+/-- Each child's approximation degree is at most the children's max (`degApproxList`).  Needed for the `OR`/`AND`
+gate constructors: `orPoly`'s degree bound `t(p-1)·B` uses `B = degApproxList`, and each child's polynomial degree
+is `≤ degApprox (child) ≤ degApproxList`. -/
+theorem degApprox_le_degApproxList {D : ℕ} (cs : List (Circuit n)) (c : Circuit n) :
+    c ∈ cs → degApprox D c ≤ degApproxList D cs := by
+  induction cs with
+  | nil => intro hc; simp at hc
+  | cons d cs ih =>
+    intro hc
+    rw [degApproxList]
+    rcases List.mem_cons.mp hc with h | h
+    · subst h; exact Nat.le_max_left _ _
+    · exact le_trans (ih h) (Nat.le_max_right _ _)
+
 end PallLean.Paper93.DeepMath.PathB.ACC0.Circuit
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.degApprox_le_pow_depth
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.degApprox_le_degApproxList
