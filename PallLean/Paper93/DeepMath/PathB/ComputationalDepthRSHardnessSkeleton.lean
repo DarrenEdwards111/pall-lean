@@ -161,8 +161,43 @@ theorem no_boolParity_circuit {p t : ℕ} [Fact p.Prime] (ht : 1 ≤ t) (htn : t
         (∀ x, cf p C x = boolParity x) :=
   no_computing_circuit ht htn h2 d _ boolParity (hard_of_boolParity h2 d)
 
+/-- **Quantitative dimension bound (odd `n = 2m+1`).**  The degree-`(m+d)` coefficient count splits as the exact
+lower half plus the `d` middle terms: `Σ_{i≤m+d} C(2m+1,i) ≤ 4^m + d·C(2m+1,m)`.  The lower half is exactly `4^m`
+(`sum_range_choose_halfway`), and each of the `d` extra terms is at most the central binomial `C(2m+1,m)`
+(`choose_le_middle`).  This reduces the parity budget's binomial *sum* to a single central term. -/
+theorem sum_choose_mid_le (m d : ℕ) :
+    ∑ i ∈ Finset.range (m + d + 1), (2 * m + 1).choose i ≤ 4 ^ m + d * (2 * m + 1).choose m := by
+  rw [show m + d + 1 = (m + 1) + d by ring, Finset.sum_range_add, Nat.sum_range_choose_halfway]
+  refine Nat.add_le_add_left ?_ _
+  calc ∑ i ∈ Finset.range d, (2 * m + 1).choose (m + 1 + i)
+      ≤ ∑ _i ∈ Finset.range d, (2 * m + 1).choose m := by
+        refine Finset.sum_le_sum (fun i _ => ?_)
+        have h := Nat.choose_le_middle (m + 1 + i) (2 * m + 1)
+        rwa [show (2 * m + 1) / 2 = m by omega] at h
+    _ = d * (2 * m + 1).choose m := by rw [Finset.sum_const, Finset.card_range, smul_eq_mul]
+
+/-- **Parity lower bound with the central-binomial budget (odd `n`).**  Reformulates `no_boolParity_circuit` for
+`n = 2m+1` with the *sharper* budget `size·2^(n-t) + d·C(2m+1,m) < 4^m` (= `2^(n-1)`), obtained by bounding the
+binomial sum via `sum_choose_mid_le`.  The remaining quantity is the single central binomial `C(2m+1,m)`: an
+unconditional poly-size parity separation needs only the Stirling estimate `C(2m+1,m) = O(4^m/√m)` (so that
+`d·C(2m+1,m) ≪ 4^m` for `d` polylog) — the last analytic ingredient, not present in `Mathlib`'s `Choose/Bounds`. -/
+theorem no_boolParity_circuit_odd {p t m : ℕ} [Fact p.Prime] (ht : 1 ≤ t) (htn : t ≤ 2 * m + 1)
+    (h2 : (2 : ZMod p) ≠ 0) (d : ℕ) :
+    ¬ ∃ C : Circuit (2 * m + 1), WF p C ∧ (t * (p - 1)) ^ depth C ≤ d ∧
+        size C * 2 ^ (2 * m + 1 - t) + d * (2 * m + 1).choose m < 4 ^ m ∧
+        (∀ x, cf p C x = boolParity x) := by
+  rintro ⟨C, hC, hdeg, hbudget, hCf⟩
+  refine no_boolParity_circuit (n := 2 * m + 1) ht htn h2 d ⟨C, hC, hdeg, ?_, hCf⟩
+  rw [show (2 * m + 1) / 2 = m by omega]
+  have hsum := sum_choose_mid_le m d
+  have h4 : (2 : ℕ) ^ (2 * m + 1) = 2 * 4 ^ m := by
+    rw [pow_succ, pow_mul]; norm_num [mul_comm]
+  omega
+
 end PallLean.Paper93.DeepMath.PathB.ACC0.Circuit
 
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.sum_choose_mid_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.no_boolParity_circuit_odd
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.walshFn_univ_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.hard_of_boolParity
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.no_boolParity_circuit
