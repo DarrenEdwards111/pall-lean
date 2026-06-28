@@ -113,9 +113,42 @@ theorem monomialFn_eq_sum_walsh (h2 : (2 : F) ≠ 0) (b : Fin n → Bool) (S : F
   rw [Finset.prod_mul_distrib, Finset.prod_const, Finset.prod_const, walshFn]
   ring
 
+/-- The Walsh coefficients of a `{0,1}` multilinear polynomial: `(walshCoef c) T` collects, over all supersets
+`S ⊇ T`, the contribution of `c S`'s monomial to the Walsh monomial `T` (the transpose of `monomialFn_eq_sum_walsh`). -/
+noncomputable def walshCoef (c : Finset (Fin n) → F) : Finset (Fin n) → F :=
+  fun T => ∑ S ∈ Finset.univ.filter (fun S => T ⊆ S),
+    c S * ((-(2⁻¹ : F)) ^ T.card * (2⁻¹ : F) ^ (S \ T).card)
+
+/-- **The `{0,1}` evaluation factors through the Walsh one.**  `eval0 c = evalW (walshCoef c)`: substitute the
+forward change of basis into each `{0,1}` monomial and swap the order of summation (Fubini over `T ⊆ S`).  The
+exact mirror of `evalW_eq_eval0_M`. -/
+theorem eval_eq_evalW (h2 : (2 : F) ≠ 0) (c : Finset (Fin n) → F) (b : Fin n → Bool) :
+    Multilinear.eval c b = evalW (walshCoef c) b := by
+  rw [Multilinear.eval]
+  simp_rw [monomialFn_eq_sum_walsh h2 b, Finset.mul_sum]
+  rw [Finset.sum_comm' (t' := Finset.univ)
+      (s' := fun T => Finset.univ.filter (fun S => T ⊆ S))
+      (by intro S T; simp [Finset.mem_powerset, Finset.mem_filter])]
+  rw [evalW]
+  refine Finset.sum_congr rfl (fun T _ => ?_)
+  rw [walshCoef, Finset.sum_mul]
+  refine Finset.sum_congr rfl (fun S _ => ?_)
+  ring
+
+/-- **The transfer is degree-preserving.**  If `c` is supported on subsets of size `≤ d` (a degree-`d` `{0,1}`
+polynomial), then so is `walshCoef c`: for `|T| > d`, every superset `S ⊇ T` has `|S| ≥ |T| > d`, so `c S = 0`. -/
+theorem walshCoef_support {d : ℕ} (c : Finset (Fin n) → F) (hc : ∀ S, d < S.card → c S = 0)
+    (T : Finset (Fin n)) (hT : d < T.card) : walshCoef c T = 0 := by
+  rw [walshCoef]
+  refine Finset.sum_eq_zero (fun S hS => ?_)
+  rw [Finset.mem_filter] at hS
+  rw [hc S (lt_of_lt_of_le hT (Finset.card_le_card hS.2)), zero_mul]
+
 end PallLean.Paper93.DeepMath.PathB.WalshSpan
 
 #print axioms PallLean.Paper93.DeepMath.PathB.WalshSpan.evalW_eq_eval0_M
 #print axioms PallLean.Paper93.DeepMath.PathB.WalshSpan.monomialFn_eq_sum_walsh
+#print axioms PallLean.Paper93.DeepMath.PathB.WalshSpan.eval_eq_evalW
+#print axioms PallLean.Paper93.DeepMath.PathB.WalshSpan.walshCoef_support
 #print axioms PallLean.Paper93.DeepMath.PathB.WalshSpan.M_injective
 #print axioms PallLean.Paper93.DeepMath.PathB.WalshSpan.evalW_surjective
