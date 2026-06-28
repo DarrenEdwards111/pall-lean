@@ -72,6 +72,29 @@ theorem exists_good_forms_gen [Fintype X] {p : ℕ} [Fact p.Prime] (hk : 1 ≤ k
     rw [hpow] at hd
     exact Nat.le_of_mul_le_mul_left hd (by positivity)
 
+/-- **Few-disagreement form.**  Over the cube `X = {0,1}ⁿ`, some fixed tuple of forms disagrees with `OR(v x)` on
+at most `2^(n-t)` inputs — a `2⁻ᵗ` fraction.  Obtained from `exists_good_forms_gen` by dividing out the number of
+tuples (`2^(kt)`) and the cube size (`2ⁿ`).  This is the disagree-count bound `caOr`'s bad-set card consumes. -/
+theorem exists_forms_few_disagree {n k t p : ℕ} [Fact p.Prime] (hk : 1 ≤ k) (htn : t ≤ n)
+    (v : (Fin n → Bool) → (Fin k → ZMod p)) :
+    ∃ Ss : Fin t → Finset (Fin k),
+      (Finset.univ.filter (fun x : Fin n → Bool => disagreeGen v Ss x)).card ≤ 2 ^ (n - t) := by
+  obtain ⟨Ss, hSs⟩ := exists_good_forms_gen hk v
+  refine ⟨Ss, ?_⟩
+  have hc1 : Fintype.card (Fin t → Finset (Fin k)) = 2 ^ (k * t) := by
+    rw [Fintype.card_fun, Fintype.card_finset, Fintype.card_fin, Fintype.card_fin, ← pow_mul]
+  have hc2 : Fintype.card (Fin n → Bool) = 2 ^ n := by
+    rw [Fintype.card_fun, Fintype.card_bool, Fintype.card_fin]
+  rw [hc1, hc2] at hSs
+  have hkt : (k - 1) * t + t = k * t := by
+    conv_rhs => rw [← Nat.sub_add_cancel hk]
+    rw [add_mul, one_mul]
+  have heq : (2 : ℕ) ^ ((k - 1) * t) * 2 ^ n = 2 ^ (k * t) * 2 ^ (n - t) := by
+    rw [← pow_add, ← pow_add]; congr 1; omega
+  rw [heq, mul_comm (2 ^ (k * t)) (2 ^ (n - t))] at hSs
+  exact Nat.le_of_mul_le_mul_right hSs (by positivity)
+
 end PallLean.Paper93.DeepMath.PathB.GateApprox
 
 #print axioms PallLean.Paper93.DeepMath.PathB.GateApprox.exists_good_forms_gen
+#print axioms PallLean.Paper93.DeepMath.PathB.GateApprox.exists_forms_few_disagree
