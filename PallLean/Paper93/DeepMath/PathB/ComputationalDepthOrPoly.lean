@@ -1,3 +1,4 @@
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthOrApprox
 import Mathlib
 
 /-!
@@ -50,6 +51,28 @@ theorem orPoly_totalDegree_le (P : Fin k → MvPolynomial (Fin n) (ZMod p))
     _ = t * (p - 1) * B := by
         rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul, mul_assoc]
 
+/-- **Evaluation of the OR-gate polynomial.**  At a point, `orPoly P Ss` equals the `OR`-indicator over the
+random forms: `0` if *all* forms vanish on the value-vector `v i = eval point (Pᵢ)`, else `1`.  Proof: `eval` is a
+ring hom (commutes with `1 - ∏(1 - (Σ·)^(p-1))`); Fermat (`pow_card_sub_one`) turns each `(linForm)^(p-1)` into
+`[linForm ≠ 0]`, and `prod_boole` turns the product of `[linForm = 0]`-indicators into `[∀ j, linForm = 0]`. -/
+theorem orPoly_eval [Fact p.Prime] (P : Fin k → MvPolynomial (Fin n) (ZMod p))
+    (Ss : Fin t → Finset (Fin k)) (point : Fin n → ZMod p) :
+    eval point (orPoly P Ss)
+      = if (∀ j, OrApprox.linForm (fun i => eval point (P i)) (Ss j) = 0) then 0 else 1 := by
+  rw [orPoly, map_sub, map_one, map_prod]
+  have hfac : ∀ j : Fin t, eval point (1 - (∑ i ∈ Ss j, P i) ^ (p - 1))
+      = if OrApprox.linForm (fun i => eval point (P i)) (Ss j) = 0 then 1 else 0 := by
+    intro j
+    rw [map_sub, map_one, map_pow, map_sum]
+    show (1 : ZMod p) - (OrApprox.linForm (fun i => eval point (P i)) (Ss j)) ^ (p - 1)
+        = if OrApprox.linForm (fun i => eval point (P i)) (Ss j) = 0 then 1 else 0
+    rw [OrApprox.pow_card_sub_one]
+    split <;> simp
+  simp_rw [hfac]
+  rw [Finset.prod_boole]
+  by_cases h : ∀ j, OrApprox.linForm (fun i => eval point (P i)) (Ss j) = 0 <;> simp [h]
+
 end PallLean.Paper93.DeepMath.PathB.OrPoly
 
 #print axioms PallLean.Paper93.DeepMath.PathB.OrPoly.orPoly_totalDegree_le
+#print axioms PallLean.Paper93.DeepMath.PathB.OrPoly.orPoly_eval
