@@ -86,7 +86,38 @@ noncomputable def caNot (p t : ℕ) (c : Circuit n) (d : CircuitApproxData p t c
     rw [size]
     exact le_trans d.bad_le (Nat.mul_le_mul_right _ (Nat.le_succ _))
 
+/-- **OR-to-`Fin`-indexed bridge.**  The circuit `or cs` (a `List`-based disjunction) as an `𝔽_p`-function equals
+the `OR`-indicator over the `Fin`-indexed children: `0` if every child `cs.get i` evaluates to `false`, else `1`.
+This connects the `Circuit` `OR` gate to the form `OrPoly.orPoly_eval_eq_or` consumes (`b i = (cs.get i).eval x`). -/
+theorem cf_or_eq (p : ℕ) (cs : List (Circuit n)) (x : Fin n → Bool) :
+    cf p (or cs) x
+      = if (∀ i : Fin cs.length, Circuit.eval x (cs.get i) = false) then (0 : ZMod p) else 1 := by
+  rw [cf, Circuit.eval_or]
+  cases hany : cs.any (Circuit.eval x) with
+  | false =>
+    have hcond : ∀ i : Fin cs.length, Circuit.eval x (cs.get i) = false := by
+      intro i
+      by_contra hi
+      rw [Bool.not_eq_false] at hi
+      have hT : cs.any (Circuit.eval x) = true :=
+        List.any_eq_true.mpr ⟨cs.get i, List.get_mem cs i, hi⟩
+      rw [hany] at hT
+      exact Bool.false_ne_true hT
+    rw [Bool.toNat_false, if_pos hcond]
+    simp
+  | true =>
+    have hcond : ¬ ∀ i : Fin cs.length, Circuit.eval x (cs.get i) = false := by
+      rw [List.any_eq_true] at hany
+      obtain ⟨a, ha, hpa⟩ := hany
+      obtain ⟨i, rfl⟩ := List.get_of_mem ha
+      intro hall
+      rw [hall i] at hpa
+      exact Bool.false_ne_true hpa
+    rw [Bool.toNat_true, if_neg hcond]
+    simp
+
 end PallLean.Paper93.DeepMath.PathB.ACC0.Circuit
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caVar
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caNot
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.cf_or_eq
