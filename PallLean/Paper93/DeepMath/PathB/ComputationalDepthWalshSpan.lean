@@ -92,8 +92,30 @@ theorem evalW_surjective [Fintype F] [DecidableEq F] (h2 : (2 : F) ≠ 0) :
     simp [Fintype.card_finset, Fintype.card_bool]
   exact ((Fintype.bijective_iff_injective_and_card evalW).mpr ⟨evalW_injective h2, hcard⟩).surjective
 
+/-- **Forward change-of-basis: a `{0,1}` monomial in the Walsh basis.**  The dual of
+`RepUnify.walshFn_eq_sum_mono0`: each `{0,1}` monomial `∏_{i∈S} (bᵢ as 0/1)` expands as a Walsh combination
+supported on subsets `T ⊆ S` — total Walsh-degree `≤ |S|`, via `(bᵢ as 0/1) = 2⁻¹·(1 − (−1)^{bᵢ})`.  Because the
+support is contained in `S.powerset`, this is **degree-preserving**: a degree-`d` `{0,1}` polynomial is a degree-`d`
+Walsh polynomial — the representation transfer that lets the `{0,1}`-circuit approximation feed the `{−1,+1}`
+`boosting_surjection`. -/
+theorem monomialFn_eq_sum_walsh (h2 : (2 : F) ≠ 0) (b : Fin n → Bool) (S : Finset (Fin n)) :
+    Multilinear.monomialFn (F := F) S b
+      = ∑ T ∈ S.powerset, ((-(2⁻¹ : F)) ^ T.card * (2⁻¹ : F) ^ (S \ T).card) * walshFn T b := by
+  have h2' : (2⁻¹ : F) + 2⁻¹ = 1 := by rw [← two_mul, mul_inv_cancel₀ h2]
+  have hterm : ∀ i, (if b i then (1 : F) else 0)
+      = -(2⁻¹ : F) * (if b i then (-1 : F) else 1) + 2⁻¹ := by
+    intro i
+    cases b i <;> simp [h2']
+  unfold Multilinear.monomialFn
+  simp_rw [hterm]
+  rw [Finset.prod_add]
+  refine Finset.sum_congr rfl (fun T _ => ?_)
+  rw [Finset.prod_mul_distrib, Finset.prod_const, Finset.prod_const, walshFn]
+  ring
+
 end PallLean.Paper93.DeepMath.PathB.WalshSpan
 
 #print axioms PallLean.Paper93.DeepMath.PathB.WalshSpan.evalW_eq_eval0_M
+#print axioms PallLean.Paper93.DeepMath.PathB.WalshSpan.monomialFn_eq_sum_walsh
 #print axioms PallLean.Paper93.DeepMath.PathB.WalshSpan.M_injective
 #print axioms PallLean.Paper93.DeepMath.PathB.WalshSpan.evalW_surjective
