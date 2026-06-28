@@ -1,3 +1,4 @@
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMultilinear
 import Mathlib
 
 /-!
@@ -58,7 +59,27 @@ theorem modq_indicator_eq {F : Type*} [Field F] {n q : ℕ} {ω : F} (hω : orde
   refine Finset.sum_congr rfl (fun j _ => ?_)
   rw [Finset.prod_pow_eq_pow_sum, ← pow_mul, Nat.mul_comm]
 
+/-- **The `q`-ary change-of-basis bridge (first step of the `q`-ary Walsh generalization).**  A `q`-ary character
+`∏_{i∈S} ω^{bᵢ}` (each bit valued in `{1, ω}`) is a triangular combination of `{0,1}` multilinear monomials:
+`∏_{i∈S} ω^{bᵢ} = Σ_{T⊆S} (ω−1)^{|T|} · monomialFn T b`, via `ω^{bᵢ} = (ω−1)·bᵢ + 1` for `bᵢ ∈ {0,1}`.  This is the
+exact `q`-ary analogue of `RepUnify.walshFn_eq_sum_mono0` (which is the `ω = −1` case, `ω−1 = −2`).  The diagonal
+term (`T = S`) is `(ω−1)^{|S|}`, so the change of basis is invertible whenever `ω ≠ 1` (any primitive `q`-th root,
+`q ≥ 2`) — so it transfers the existing `Multilinear.eval_surjective` span to the `q`-ary characters, the foundation
+the `q`-ary boosting/dimension argument needs.  (The folding, span transfer, and dimension count over `𝔽_{p^ℓ}`
+remain to be generalized.) -/
+theorem omegaProd_eq_sum_mono {F : Type*} [CommRing F] {n : ℕ} (ω : F) (b : Fin n → Bool)
+    (S : Finset (Fin n)) :
+    (∏ i ∈ S, (if b i then ω else 1))
+      = ∑ T ∈ S.powerset, (ω - 1) ^ T.card * Multilinear.monomialFn T b := by
+  have hterm : ∀ i, (if b i then ω else 1) = (ω - 1) * (if b i then (1 : F) else 0) + 1 := by
+    intro i; cases b i <;> simp
+  simp_rw [hterm]
+  rw [Finset.prod_add]
+  refine Finset.sum_congr rfl (fun T _ => ?_)
+  rw [Finset.prod_const_one, mul_one, Finset.prod_mul_distrib, Finset.prod_const, Multilinear.monomialFn]
+
 end PallLean.Paper93.DeepMath.PathB.ModQReduction
 
+#print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.omegaProd_eq_sum_mono
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.rootsOfUnity_filter
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.modq_indicator_eq
