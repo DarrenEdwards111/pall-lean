@@ -134,9 +134,22 @@ theorem caOr_pointwise {p t : ℕ} [Fact p.Prime] (cs : List (Circuit n))
   rw [cf_or_eq, pf, OrPoly.orPoly_eval_eq_or P Ss (fun j => ((x j).toNat : ZMod p))
     (fun i => Circuit.eval x (cs.get i)) hv hdis]
 
+/-- **OR-gate degree bound (assembled).**  If each child polynomial has degree `≤ degApprox D (cs.get i)`, then
+the OR-gate polynomial `orPoly P Ss` has degree `≤ degApprox D (or cs) = D · degApproxList D cs`.  This is `caOr`'s
+`degree_le` field: `orPoly_totalDegree_le` with bound `B = degApproxList D cs`, each child degree `≤ B` by
+`degApprox_le_degApproxList`. -/
+theorem orPoly_degree_le_or {p t : ℕ} (cs : List (Circuit n))
+    (P : Fin cs.length → MvPolynomial (Fin n) (ZMod p)) (Ss : Fin t → Finset (Fin cs.length))
+    (hdeg : ∀ i, (P i).totalDegree ≤ degApprox (t * (p - 1)) (cs.get i)) :
+    (OrPoly.orPoly P Ss).totalDegree ≤ degApprox (t * (p - 1)) (or cs) := by
+  rw [degApprox]
+  exact OrPoly.orPoly_totalDegree_le P Ss (degApproxList (t * (p - 1)) cs)
+    (fun i => le_trans (hdeg i) (degApprox_le_degApproxList cs (cs.get i) (List.get_mem cs i)))
+
 end PallLean.Paper93.DeepMath.PathB.ACC0.Circuit
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caVar
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caNot
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.cf_or_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caOr_pointwise
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.orPoly_degree_le_or
