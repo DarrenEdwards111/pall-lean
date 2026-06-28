@@ -161,6 +161,74 @@ theorem no_boolParity_circuit {p t : ℕ} [Fact p.Prime] (ht : 1 ≤ t) (htn : t
         (∀ x, cf p C x = boolParity x) :=
   no_computing_circuit ht htn h2 d _ boolParity (hard_of_boolParity h2 d)
 
+/-- **Central-binomial concentration (`√`-free).**  `(centralBinom n)² · (2n+1) ≤ 16ⁿ` — the integer form of
+`centralBinom n ≤ 4ⁿ/√(2n+1)` (Stirling concentration), proved by induction with no real analysis: the recurrence
+`(n+1)·centralBinom(n+1) = 2(2n+1)·centralBinom n` (`succ_mul_centralBinom_succ`) squared, against
+`(2n+1)(2n+3) ≤ 4(n+1)²` (tight, off by one).  This is the `√n` upper bound `Mathlib`'s `Choose/Bounds` lacks. -/
+theorem centralBinom_sq_le (n : ℕ) : (Nat.centralBinom n) ^ 2 * (2 * n + 1) ≤ 16 ^ n := by
+  induction n with
+  | zero => simp [Nat.centralBinom_zero]
+  | succ n ih =>
+    rw [show 2 * (n + 1) + 1 = 2 * n + 3 by ring]
+    have hsm : (n + 1) * Nat.centralBinom (n + 1) = 2 * (2 * n + 1) * Nat.centralBinom n :=
+      Nat.succ_mul_centralBinom_succ n
+    have h1 : (n + 1) ^ 2 * Nat.centralBinom (n + 1) ^ 2
+            = (2 * (2 * n + 1)) ^ 2 * Nat.centralBinom n ^ 2 := by
+      rw [← mul_pow, hsm, mul_pow]
+    have hkey : (n + 1) ^ 2 * (Nat.centralBinom (n + 1) ^ 2 * (2 * n + 3))
+              ≤ (n + 1) ^ 2 * 16 ^ (n + 1) := by
+      calc (n + 1) ^ 2 * (Nat.centralBinom (n + 1) ^ 2 * (2 * n + 3))
+          = ((n + 1) ^ 2 * Nat.centralBinom (n + 1) ^ 2) * (2 * n + 3) := by ring
+        _ = (2 * (2 * n + 1)) ^ 2 * Nat.centralBinom n ^ 2 * (2 * n + 3) := by rw [h1]
+        _ = (4 * (2 * n + 1) * (2 * n + 3)) * (Nat.centralBinom n ^ 2 * (2 * n + 1)) := by ring
+        _ ≤ (4 * (2 * n + 1) * (2 * n + 3)) * 16 ^ n := Nat.mul_le_mul_left _ ih
+        _ ≤ (16 * (n + 1) ^ 2) * 16 ^ n := Nat.mul_le_mul_right _ (by nlinarith)
+        _ = (n + 1) ^ 2 * 16 ^ (n + 1) := by rw [pow_succ]; ring
+    exact Nat.le_of_mul_le_mul_left hkey (by positivity)
+
+/-- `2·C(2m+1,m) = centralBinom(m+1)`: the two equal central entries of row `2m+2` sum to it (Pascal + symmetry). -/
+theorem two_mul_choose_mid (m : ℕ) : 2 * (2 * m + 1).choose m = Nat.centralBinom (m + 1) := by
+  have hsymm : (2 * m + 1).choose (m + 1) = (2 * m + 1).choose m := by
+    rw [← Nat.choose_symm (by omega : m + 1 ≤ 2 * m + 1)]; congr 1; omega
+  rw [Nat.centralBinom_eq_two_mul_choose, show 2 * (m + 1) = (2 * m + 1) + 1 by ring,
+    Nat.choose_succ_succ, hsymm]; ring
+
+/-- The central binomial term `C(2m+1,m)` satisfies the `√`-free concentration `C(2m+1,m)²·(2m+3) ≤ 4·16^m`
+(from `centralBinom_sq_le (m+1)` and `two_mul_choose_mid`). -/
+theorem choose_mid_sq_le (m : ℕ) : ((2 * m + 1).choose m) ^ 2 * (2 * m + 3) ≤ 4 * 16 ^ m := by
+  have h := centralBinom_sq_le (m + 1)
+  rw [show 2 * (m + 1) + 1 = 2 * m + 3 by ring, ← two_mul_choose_mid] at h
+  have h2 : 4 * (((2 * m + 1).choose m) ^ 2 * (2 * m + 3)) ≤ 4 * (4 * 16 ^ m) := by
+    calc 4 * (((2 * m + 1).choose m) ^ 2 * (2 * m + 3))
+        = (2 * (2 * m + 1).choose m) ^ 2 * (2 * m + 3) := by ring
+      _ ≤ 16 ^ (m + 1) := h
+      _ = 4 * (4 * 16 ^ m) := by rw [pow_succ]; ring
+  exact Nat.le_of_mul_le_mul_left h2 (by norm_num)
+
+/-- **The central binomial term is small when `d` is `O(√m)`.**  If `4d² ≤ 2m+2`, then `d·C(2m+1,m) < 4^m`.  Square
+both sides and use `choose_mid_sq_le`: `(d·C)²·(2m+3) ≤ 4d²·16^m ≤ (2m+2)·16^m < (2m+3)·16^m`, so `(d·C)² < 16^m`,
+i.e. `d·C < 4^m`.  This discharges the central-binomial term of the parity budget for `d` up to `~√m` (so polylog
+`d` works for large `m`) — *unconditionally*, the Stirling gap closed. -/
+theorem choose_mid_lt {m d : ℕ} (hd : 4 * d ^ 2 ≤ 2 * m + 2) :
+    d * (2 * m + 1).choose m < 4 ^ m := by
+  have hCsq := choose_mid_sq_le m
+  have h16 : (16 : ℕ) ^ m = (4 ^ m) ^ 2 := by
+    rw [show (16 : ℕ) = 4 ^ 2 by norm_num, ← pow_mul, ← pow_mul]; congr 1; ring
+  have h1 : (d * (2 * m + 1).choose m) ^ 2 < (4 ^ m) ^ 2 := by
+    have hstep : (d * (2 * m + 1).choose m) ^ 2 * (2 * m + 3) < 16 ^ m * (2 * m + 3) := by
+      calc (d * (2 * m + 1).choose m) ^ 2 * (2 * m + 3)
+          = d ^ 2 * (((2 * m + 1).choose m) ^ 2 * (2 * m + 3)) := by ring
+        _ ≤ d ^ 2 * (4 * 16 ^ m) := Nat.mul_le_mul_left _ hCsq
+        _ = (4 * d ^ 2) * 16 ^ m := by ring
+        _ ≤ (2 * m + 2) * 16 ^ m := Nat.mul_le_mul_right _ hd
+        _ < (2 * m + 3) * 16 ^ m := mul_lt_mul_of_pos_right (by omega) (by positivity)
+        _ = 16 ^ m * (2 * m + 3) := by ring
+    rw [← h16]
+    exact Nat.lt_of_mul_lt_mul_right hstep
+  by_contra hcon
+  push_neg at hcon
+  exact absurd (Nat.pow_le_pow_left hcon 2) (Nat.not_le.mpr h1)
+
 /-- **Quantitative dimension bound (odd `n = 2m+1`).**  The degree-`(m+d)` coefficient count splits as the exact
 lower half plus the `d` middle terms: `Σ_{i≤m+d} C(2m+1,i) ≤ 4^m + d·C(2m+1,m)`.  The lower half is exactly `4^m`
 (`sum_range_choose_halfway`), and each of the `d` extra terms is at most the central binomial `C(2m+1,m)`
@@ -178,9 +246,10 @@ theorem sum_choose_mid_le (m d : ℕ) :
 
 /-- **Parity lower bound with the central-binomial budget (odd `n`).**  Reformulates `no_boolParity_circuit` for
 `n = 2m+1` with the *sharper* budget `size·2^(n-t) + d·C(2m+1,m) < 4^m` (= `2^(n-1)`), obtained by bounding the
-binomial sum via `sum_choose_mid_le`.  The remaining quantity is the single central binomial `C(2m+1,m)`: an
-unconditional poly-size parity separation needs only the Stirling estimate `C(2m+1,m) = O(4^m/√m)` (so that
-`d·C(2m+1,m) ≪ 4^m` for `d` polylog) — the last analytic ingredient, not present in `Mathlib`'s `Choose/Bounds`. -/
+binomial sum via `sum_choose_mid_le`.  The central-binomial term `d·C(2m+1,m)` is now provably `< 4^m` whenever
+`4d² ≤ 2m+2` (`choose_mid_lt`, from the `√`-free concentration `centralBinom_sq_le`) — so for `d` up to `~√m`
+(polylog `d` at large `m`) the only remaining hypothesis is the size term `size·2^(n-t)`, a clean
+`t ≈ log(size)` choice.  The Stirling gap is closed. -/
 theorem no_boolParity_circuit_odd {p t m : ℕ} [Fact p.Prime] (ht : 1 ≤ t) (htn : t ≤ 2 * m + 1)
     (h2 : (2 : ZMod p) ≠ 0) (d : ℕ) :
     ¬ ∃ C : Circuit (2 * m + 1), WF p C ∧ (t * (p - 1)) ^ depth C ≤ d ∧
@@ -196,6 +265,8 @@ theorem no_boolParity_circuit_odd {p t m : ℕ} [Fact p.Prime] (ht : 1 ≤ t) (h
 
 end PallLean.Paper93.DeepMath.PathB.ACC0.Circuit
 
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.centralBinom_sq_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.choose_mid_lt
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.sum_choose_mid_le
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.no_boolParity_circuit_odd
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.walshFn_univ_eq
