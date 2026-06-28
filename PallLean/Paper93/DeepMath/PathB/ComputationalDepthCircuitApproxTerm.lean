@@ -159,6 +159,33 @@ theorem sum_size_eq_sizeList (cs : List (Circuit n)) :
     rw [Fin.sum_univ_succ]
     simp
 
+/-- **AND-to-`Fin`-indexed bridge.**  The circuit `and cs` as an `𝔽_p`-function equals the `AND`-indicator over
+the `Fin`-indexed children: `1` if every child evaluates to `true`, else `0`.  The AND analogue of `cf_or_eq`. -/
+theorem cf_and_eq (p : ℕ) (cs : List (Circuit n)) (x : Fin n → Bool) :
+    cf p (and cs) x
+      = if (∀ i : Fin cs.length, Circuit.eval x (cs.get i) = true) then (1 : ZMod p) else 0 := by
+  rw [cf, Circuit.eval_and]
+  cases hall : cs.all (Circuit.eval x) with
+  | true =>
+    have hcond : ∀ i : Fin cs.length, Circuit.eval x (cs.get i) = true := by
+      rw [List.all_eq_true] at hall
+      intro i
+      exact hall _ (List.get_mem cs i)
+    rw [Bool.toNat_true, if_pos hcond]
+    simp
+  | false =>
+    have hcond : ¬ ∀ i : Fin cs.length, Circuit.eval x (cs.get i) = true := by
+      intro hall'
+      have hT : cs.all (Circuit.eval x) = true := by
+        rw [List.all_eq_true]
+        intro a ha
+        obtain ⟨i, rfl⟩ := List.get_of_mem ha
+        exact hall' i
+      rw [hall] at hT
+      exact Bool.false_ne_true hT
+    rw [Bool.toNat_false, if_neg hcond]
+    simp
+
 open Classical in
 /-- **The OR-gate constructor.**  From the children's approximation data, build the `CircuitApproxData` for
 `or cs`: the gate polynomial `orPoly P Ss` (children's polys substituted into the OR-approximator with forms `Ss`
@@ -207,6 +234,97 @@ noncomputable def caOr {p t : ℕ} [Fact p.Prime] (cs : List (Circuit n))
           ≤ sizeList cs * 2 ^ (n - t) + 2 ^ (n - t) := Nat.add_le_add hbu hf
         _ = (sizeList cs + 1) * 2 ^ (n - t) := by ring }
 
+/-- **AND-gate pointwise correctness (assembled).**  AND via De Morgan at the polynomial level: the AND-gate
+polynomial is `1 - orPoly (fun i => 1 - Pᵢ) Ss` (the OR-approximator on the *negated* children).  Off the children's
+bad sets and the gate's bad set, it evaluates to `cf (and cs)`.  Combines `cf_and_eq` with `orPoly_eval_eq_or`
+applied to the negated children `b'ᵢ = ¬(cs.get i).eval x`. -/
+theorem caAnd_pointwise {p t : ℕ} [Fact p.Prime] (cs : List (Circuit n))
+    (P : Fin cs.length → MvPolynomial (Fin n) (ZMod p)) (Ss : Fin t → Finset (Fin cs.length))
+    (x : Fin n → Bool) (hchild : ∀ i, cf p (cs.get i) x = pf p (P i) x)
+    (hdis : ¬ ((∀ j, OrApprox.linForm
+                (fun i => ((!Circuit.eval x (cs.get i)).toNat : ZMod p)) (Ss j) = 0)
+              ∧ (fun i => ((!Circuit.eval x (cs.get i)).toNat : ZMod p)) ≠ 0)) :
+    cf p (and cs) x = pf p (1 - OrPoly.orPoly (fun i => 1 - P i) Ss) x := by
+  have hv : ∀ i, MvPolynomial.eval (fun j => ((x j).toNat : ZMod p)) (1 - P i)
+      = ((!Circuit.eval x (cs.get i)).toNat : ZMod p) := by
+    intro i
+    rw [map_sub, map_one]
+    have h := hchild i
+    simp only [cf, pf] at h
+    rw [← h]
+    cases Circuit.eval x (cs.get i) <;> simp
+  rw [cf_and_eq, pf, map_sub, map_one,
+    OrPoly.orPoly_eval_eq_or (fun i => 1 - P i) Ss (fun j => ((x j).toNat : ZMod p))
+      (fun i => !Circuit.eval x (cs.get i)) hv hdis]
+  by_cases h : ∀ i, Circuit.eval x (cs.get i) = true
+  · rw [if_pos h, if_pos (fun i => by rw [h i]; rfl)]
+    simp
+  · rw [if_neg h, if_neg ?_]
+    · simp
+    · intro hc
+      exact h (fun i => by have := hc i; cases hb : Circuit.eval x (cs.get i) <;> simp_all)
+
+open Classical in
+/-- **The AND-gate constructor.**  AND via De Morgan at the polynomial level: from the children's data, build the
+`CircuitApproxData` for `and cs` with polynomial `1 - orPoly (fun i => 1 - Pᵢ) Ss` (the OR-approximator on the
+negated children, then negated).  Mirrors `caOr`: `Ss` from `exists_forms_few_disagree` on the negated value
+vector, bad set `(⋃ child bad) ∪ (disagree set)`, fields via `caAnd_pointwise` / `orPoly_totalDegree_le` /
+`card_biUnion_le` + `sum_size_eq_sizeList`. -/
+noncomputable def caAnd {p t : ℕ} [Fact p.Prime] (cs : List (Circuit n))
+    (hk : 1 ≤ cs.length) (htn : t ≤ n)
+    (dat : ∀ i : Fin cs.length, CircuitApproxData p t (cs.get i)) :
+    CircuitApproxData p t (and cs) :=
+  let P : Fin cs.length → MvPolynomial (Fin n) (ZMod p) := fun i => (dat i).poly
+  let v : (Fin n → Bool) → (Fin cs.length → ZMod p) :=
+    fun x i => MvPolynomial.eval (fun j => ((x j).toNat : ZMod p)) (1 - P i)
+  let Ss := (GateApprox.exists_forms_few_disagree hk htn v).choose
+  { poly := 1 - OrPoly.orPoly (fun i => 1 - P i) Ss
+    bad := (Finset.univ.biUnion fun i => (dat i).bad)
+            ∪ Finset.univ.filter fun x => GateApprox.disagreeGen v Ss x
+    approx := by
+      intro x hx
+      have hbu : ∀ i, x ∉ (dat i).bad := fun i hi =>
+        hx (Finset.mem_union_left _ (Finset.mem_biUnion.mpr ⟨i, Finset.mem_univ i, hi⟩))
+      have hfilt : ¬ GateApprox.disagreeGen v Ss x := fun hd =>
+        hx (Finset.mem_union_right _ (Finset.mem_filter.mpr ⟨Finset.mem_univ x, hd⟩))
+      have hchild : ∀ i, cf p (cs.get i) x = pf p (P i) x := fun i => (dat i).approx x (hbu i)
+      refine caAnd_pointwise cs P Ss x hchild (fun hcon => ?_)
+      have hvx : v x = fun i => ((!Circuit.eval x (cs.get i)).toNat : ZMod p) := by
+        funext i
+        show MvPolynomial.eval (fun j => ((x j).toNat : ZMod p)) (1 - P i) = _
+        rw [map_sub, map_one]
+        have h := hchild i
+        simp only [cf, pf] at h
+        rw [← h]
+        cases Circuit.eval x (cs.get i) <;> simp
+      exact hfilt (by simp only [GateApprox.disagreeGen, hvx]; exact hcon)
+    degree_le := by
+      rw [degApprox]
+      refine le_trans (totalDegree_sub _ _) ?_
+      rw [totalDegree_one]
+      refine max_le (Nat.zero_le _) ?_
+      exact OrPoly.orPoly_totalDegree_le (fun i => 1 - P i) Ss (degApproxList (t * (p - 1)) cs)
+        (fun i => by
+          refine le_trans (totalDegree_sub _ _) ?_
+          rw [totalDegree_one]
+          exact max_le (Nat.zero_le _)
+            (le_trans (dat i).degree_le (degApprox_le_degApproxList cs (cs.get i) (List.get_mem cs i))))
+    bad_le := by
+      refine le_trans (Finset.card_union_le _ _) ?_
+      have hbu : (Finset.univ.biUnion fun i => (dat i).bad).card ≤ sizeList cs * 2 ^ (n - t) := by
+        refine le_trans Finset.card_biUnion_le ?_
+        calc ∑ i : Fin cs.length, ((dat i).bad).card
+            ≤ ∑ i : Fin cs.length, size (cs.get i) * 2 ^ (n - t) :=
+              Finset.sum_le_sum (fun i _ => (dat i).bad_le)
+          _ = (∑ i : Fin cs.length, size (cs.get i)) * 2 ^ (n - t) := by rw [← Finset.sum_mul]
+          _ = sizeList cs * 2 ^ (n - t) := by rw [sum_size_eq_sizeList]
+      have hf := (GateApprox.exists_forms_few_disagree hk htn v).choose_spec
+      rw [size]
+      calc (Finset.univ.biUnion fun i => (dat i).bad).card
+              + (Finset.univ.filter fun x => GateApprox.disagreeGen v Ss x).card
+          ≤ sizeList cs * 2 ^ (n - t) + 2 ^ (n - t) := Nat.add_le_add hbu hf
+        _ = (sizeList cs + 1) * 2 ^ (n - t) := by ring }
+
 end PallLean.Paper93.DeepMath.PathB.ACC0.Circuit
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caVar
@@ -216,3 +334,6 @@ end PallLean.Paper93.DeepMath.PathB.ACC0.Circuit
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.orPoly_degree_le_or
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.sum_size_eq_sizeList
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caOr
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.cf_and_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caAnd_pointwise
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caAnd
