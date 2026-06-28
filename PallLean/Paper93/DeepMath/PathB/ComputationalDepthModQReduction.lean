@@ -145,8 +145,27 @@ theorem evalΩ_surjective [Fintype F] [DecidableEq F] (ω : F) (hω : ω ≠ 1) 
   exact ((Fintype.bijective_iff_injective_and_card (evalΩ ω)).mpr
     ⟨evalΩ_injective ω hω, hcard⟩).surjective
 
+/-- **The `q`-ary folding identity (the structurally novel step).**  Where the binary boosting folds a high-degree
+monomial using `xᵢ² = 1` (`∏_S = (∏ all)·∏_{Sᶜ}`), the `q`-ary case uses `ω^q = 1`: a character `omegaFn ω S`
+equals the *full product* `omegaFn ω univ` times the **complementary character in `ω^{q-1}` (`= ω⁻¹`)**,
+`omegaFn (ω^{q-1}) Sᶜ` — because on `Sᶜ` the two factors multiply coordinatewise to `ω^q = 1`.  For `|S| > n/2` the
+complement `Sᶜ` has degree `n−|S| < n/2`, so replacing the full product by its degree-`d` approximator drops a
+degree-`|S|` character to degree `d + (n−|S|) < d + n/2` — the `q`-ary boosting handle. -/
+theorem omegaFn_fold (ω : F) {q : ℕ} (hq1 : 1 ≤ q) (hq : ω ^ q = 1) (S : Finset (Fin n)) (b : Fin n → Bool) :
+    omegaFn ω S b = omegaFn ω Finset.univ b * omegaFn (ω ^ (q - 1)) Sᶜ b := by
+  have hone : (∏ i ∈ Sᶜ, ((if b i then ω else 1) * (if b i then ω ^ (q - 1) else 1))) = 1 := by
+    refine Finset.prod_eq_one (fun i _ => ?_)
+    cases b i
+    · simp
+    · simp only [if_true]
+      rw [mul_comm, ← pow_succ, Nat.sub_add_cancel hq1]; exact hq
+  simp only [omegaFn]
+  rw [← Finset.prod_mul_prod_compl S (fun i => if b i then ω else 1), mul_assoc,
+    ← Finset.prod_mul_distrib, hone, mul_one]
+
 end PallLean.Paper93.DeepMath.PathB.ModQReduction
 
+#print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.omegaFn_fold
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.evalΩ_eq_eval0_M
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.evalΩ_surjective
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.omegaProd_eq_sum_mono
