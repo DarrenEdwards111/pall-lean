@@ -1,6 +1,7 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCircuitApprox
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCircuitDegree
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthOrPoly
 import Mathlib
 
 /-!
@@ -116,8 +117,26 @@ theorem cf_or_eq (p : ℕ) (cs : List (Circuit n)) (x : Fin n → Bool) :
     rw [Bool.toNat_true, if_neg hcond]
     simp
 
+/-- **OR-gate pointwise correctness (assembled).**  At a point `x` off the children's bad sets (`hchild`: each
+child's polynomial equals the child's value there) and off the gate's bad set (`hdis`: the forms do not disagree),
+the gate polynomial `orPoly P Ss` evaluates to `cf (or cs)` — the `OR` of the children.  Combines `cf_or_eq` (the
+circuit `OR` as the `Fin`-indexed indicator) with `OrPoly.orPoly_eval_eq_or` (the gate polynomial as that same
+indicator).  This is the `ApproxOn` content of `caOr`, pointwise. -/
+theorem caOr_pointwise {p t : ℕ} [Fact p.Prime] (cs : List (Circuit n))
+    (P : Fin cs.length → MvPolynomial (Fin n) (ZMod p)) (Ss : Fin t → Finset (Fin cs.length))
+    (x : Fin n → Bool) (hchild : ∀ i, cf p (cs.get i) x = pf p (P i) x)
+    (hdis : ¬ ((∀ j, OrApprox.linForm (fun i => ((Circuit.eval x (cs.get i)).toNat : ZMod p)) (Ss j) = 0)
+              ∧ (fun i => ((Circuit.eval x (cs.get i)).toNat : ZMod p)) ≠ 0)) :
+    cf p (or cs) x = pf p (OrPoly.orPoly P Ss) x := by
+  have hv : ∀ i, MvPolynomial.eval (fun j => ((x j).toNat : ZMod p)) (P i)
+      = ((Circuit.eval x (cs.get i)).toNat : ZMod p) :=
+    fun i => by simpa only [cf, pf] using (hchild i).symm
+  rw [cf_or_eq, pf, OrPoly.orPoly_eval_eq_or P Ss (fun j => ((x j).toNat : ZMod p))
+    (fun i => Circuit.eval x (cs.get i)) hv hdis]
+
 end PallLean.Paper93.DeepMath.PathB.ACC0.Circuit
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caVar
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caNot
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.cf_or_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0.Circuit.caOr_pointwise
