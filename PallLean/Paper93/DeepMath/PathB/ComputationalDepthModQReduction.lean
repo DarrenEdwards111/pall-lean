@@ -187,6 +187,19 @@ theorem Mω_injective (ω : F) (hω : ω ≠ 1) : Function.Injective (Mω ω (n 
   funext S
   exact sub_eq_zero.mp (TriangularInv.superset_sum_eq_zero (fun S => c S - c' S) hsup S)
 
+/-- **`Mω` is degree-preserving.**  If `aCoef` is supported on `|S| ≤ d`, so is `Mω ω aCoef`: for `|T| > d` every
+superset `S ⊇ T` has `|S| ≥ |T| > d`, so the upset sum is zero.  (So the approximator's transform stays degree-`d`,
+the input to the high-character degree drop.) -/
+theorem Mω_support {d : ℕ} (ω : F) (aCoef : Finset (Fin n) → F)
+    (hd : ∀ S, d < S.card → aCoef S = 0) (T : Finset (Fin n)) (hT : d < T.card) :
+    Mω ω aCoef T = 0 := by
+  rw [Mω]
+  have hz : (∑ S ∈ Finset.univ.filter (fun S => T ⊆ S), aCoef S) = 0 := by
+    refine Finset.sum_eq_zero (fun S hS => ?_)
+    rw [Finset.mem_filter] at hS
+    exact hd S (lt_of_lt_of_le hT (Finset.card_le_card hS.2))
+  rw [hz, mul_zero]
+
 /-- **`evalΩ` is injective** (`ω ≠ 1`): factor through `eval0 ∘ Mω` and compose the two injectivities. -/
 theorem evalΩ_injective (ω : F) (hω : ω ≠ 1) : Function.Injective (evalΩ ω (n := n)) := by
   intro c c' h
@@ -224,6 +237,23 @@ theorem omegaFn_fold (ω : F) {q : ℕ} (hq1 : 1 ≤ q) (hq : ω ^ q = 1) (S : F
   rw [← Finset.prod_mul_prod_compl S (fun i => if b i then ω else 1), mul_assoc,
     ← Finset.prod_mul_distrib, hone, mul_one]
 
+/-- **A `q`-ary character is a multilinear polynomial of its own degree.**  `omegaFn ω S = Multilinear.eval c`
+with `c T = (ω−1)^{|T|}` for `T ⊆ S` and `0` otherwise — directly from `omegaProd_eq_sum_mono`.  The coefficients
+are supported on `T ⊆ S`, hence on `|T| ≤ |S|`: a `|S|`-degree multilinear polynomial.  (Used for the low-degree
+characters `|S| ≤ n/2` in the collection.) -/
+theorem omegaFn_eq_eval (ω : F) (S : Finset (Fin n)) (b : Fin n → Bool) :
+    omegaFn ω S b = Multilinear.eval (fun T => if T ⊆ S then (ω - 1) ^ T.card else 0) b := by
+  rw [omegaFn, omegaProd_eq_sum_mono, Multilinear.eval]
+  have hzero : ∀ T ∈ (Finset.univ : Finset (Finset (Fin n))), T ∉ S.powerset →
+      (if T ⊆ S then (ω - 1) ^ T.card else 0) * Multilinear.monomialFn T b = 0 := by
+    intro T _ hT
+    rw [Finset.mem_powerset] at hT
+    rw [if_neg hT, zero_mul]
+  rw [← Finset.sum_subset (Finset.subset_univ S.powerset) hzero]
+  refine Finset.sum_congr rfl (fun T hT => ?_)
+  rw [Finset.mem_powerset] at hT
+  rw [if_pos hT]
+
 /-- **The fold on the agreement set (first step of the `q`-ary boosting collection).**  At a point `b` where the
 degree-`d` approximator `aCoef` agrees with the full product (`evalΩ ω aCoef b = omegaFn ω univ b`), *every*
 character folds as `omegaFn ω S b = (evalΩ ω aCoef b) · omegaFn (ω^{q-1}) Sᶜ b` — the full product replaced by its
@@ -234,6 +264,19 @@ theorem omegaFn_fold_on_G (ω : F) {q : ℕ} (hq1 : 1 ≤ q) (hq : ω ^ q = 1)
     (hb : evalΩ ω aCoef b = omegaFn ω Finset.univ b) (S : Finset (Fin n)) :
     omegaFn ω S b = evalΩ ω aCoef b * omegaFn (ω ^ (q - 1)) Sᶜ b := by
   rw [omegaFn_fold ω hq1 hq, ← hb]
+
+/-- **The high-character degree drop (the heart of the `q`-ary collection).**  On the agreement set, a *high*-degree
+character `omegaFn ω S` (`|S| > n/2`) equals a multilinear polynomial `Multilinear.eval (mlConv (Mω ω aCoef) …)`:
+the fold (`omegaFn_fold_on_G`) replaces the full product by the degree-`d` approximator (`evalΩ_eq_eval0_M`), the
+complementary character is degree-`|Sᶜ|` (`omegaFn_eq_eval`), and their product is multilinear (`eval_mul`).  By
+`Mω_support` + `mlConv_support` the result has degree `≤ d + |Sᶜ| = d + (n − |S|) < d + n/2` — every character is a
+degree-`≤ n/2 + d` multilinear polynomial on `G`, exactly what the dimension argument consumes. -/
+theorem omegaFn_high_eq_eval_on_G (ω : F) {q : ℕ} (hq1 : 1 ≤ q) (hq : ω ^ q = 1)
+    (aCoef : Finset (Fin n) → F) (b : Fin n → Bool)
+    (hb : evalΩ ω aCoef b = omegaFn ω Finset.univ b) (S : Finset (Fin n)) :
+    omegaFn ω S b = Multilinear.eval
+      (mlConv (Mω ω aCoef) (fun T => if T ⊆ Sᶜ then (ω ^ (q - 1) - 1) ^ T.card else 0)) b := by
+  rw [omegaFn_fold_on_G ω hq1 hq aCoef b hb S, evalΩ_eq_eval0_M, omegaFn_eq_eval, eval_mul]
 
 end PallLean.Paper93.DeepMath.PathB.ModQReduction
 
