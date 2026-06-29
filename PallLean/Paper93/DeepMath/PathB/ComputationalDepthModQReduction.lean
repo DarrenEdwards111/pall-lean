@@ -96,6 +96,50 @@ theorem monomialFn_mul {F : Type*} [CommRing F] {n : ℕ} (S T : Finset (Fin n))
     · rw [if_pos hS, if_neg hT, if_neg (fun h => hT (Finset.forall_mem_union.mp h).2), mul_zero]
   · rw [if_neg hS, if_neg (fun h => hS (Finset.forall_mem_union.mp h).1), zero_mul]
 
+/-- The multilinear convolution: `(mlConv c c') U` collects `c S · c' T` over all pairs with `S ∪ T = U` — the
+coefficients of the pointwise product `eval c · eval c'`. -/
+noncomputable def mlConv {F : Type*} [CommRing F] {n : ℕ} (c c' : Finset (Fin n) → F) :
+    Finset (Fin n) → F :=
+  fun U => ∑ p ∈ (Finset.univ ×ˢ Finset.univ : Finset (Finset (Fin n) × Finset (Fin n))).filter
+    (fun p => p.1 ∪ p.2 = U), c p.1 * c' p.2
+
+/-- **The product of multilinear evaluations is a multilinear evaluation.**  `eval c · eval c' = eval (mlConv c c')`
+on the cube: expand the product, collapse each `monomialFn S · monomialFn T` to `monomialFn (S ∪ T)`
+(`monomialFn_mul`), and group the pairs by their union. -/
+theorem eval_mul {F : Type*} [CommRing F] {n : ℕ} (c c' : Finset (Fin n) → F) (x : Fin n → Bool) :
+    Multilinear.eval c x * Multilinear.eval c' x = Multilinear.eval (mlConv c c') x := by
+  have hterm : ∀ S T : Finset (Fin n),
+      (c S * Multilinear.monomialFn (F := F) S x) * (c' T * Multilinear.monomialFn T x)
+        = (c S * c' T) * Multilinear.monomialFn (S ∪ T) x :=
+    fun S T => by rw [← monomialFn_mul]; ring
+  rw [Multilinear.eval, Multilinear.eval, Finset.sum_mul_sum]
+  simp_rw [hterm]
+  rw [← Finset.sum_product']
+  rw [← Finset.sum_fiberwise_of_maps_to (g := fun p : Finset (Fin n) × Finset (Fin n) => p.1 ∪ p.2)
+    (t := Finset.univ) (fun p _ => Finset.mem_univ _)]
+  rw [Multilinear.eval]
+  refine Finset.sum_congr rfl (fun U _ => ?_)
+  rw [mlConv, Finset.sum_mul]
+  refine Finset.sum_congr rfl (fun p hp => ?_)
+  rw [Finset.mem_filter] at hp
+  rw [hp.2]
+
+/-- **The product is degree-additive.**  If `c` is supported on `|S| ≤ a` and `c'` on `|T| ≤ b`, then `mlConv c c'`
+is supported on `|U| ≤ a + b`: any pair with `S ∪ T = U` and both coefficients nonzero has
+`|U| = |S ∪ T| ≤ |S| + |T| ≤ a + b`.  So the product of a degree-`a` and a degree-`b` multilinear polynomial has
+degree `≤ a + b` — the bound the `q`-ary collection needs. -/
+theorem mlConv_support {F : Type*} [CommRing F] {n a b : ℕ} (c c' : Finset (Fin n) → F)
+    (hc : ∀ S, a < S.card → c S = 0) (hc' : ∀ T, b < T.card → c' T = 0)
+    (U : Finset (Fin n)) (hU : a + b < U.card) : mlConv c c' U = 0 := by
+  rw [mlConv]
+  refine Finset.sum_eq_zero (fun p hp => ?_)
+  rw [Finset.mem_filter] at hp
+  by_cases h1 : a < p.1.card
+  · rw [hc p.1 h1, zero_mul]
+  · have hcard : U.card ≤ p.1.card + p.2.card := by
+      rw [← hp.2]; exact Finset.card_union_le p.1 p.2
+    rw [hc' p.2 (by omega), mul_zero]
+
 /-! ### The `q`-ary character span (the analogue of `WalshSpan.evalW_surjective`). -/
 
 variable {F : Type*} [Field F] {n : ℕ}
