@@ -79,6 +79,23 @@ theorem omegaProd_eq_sum_mono {F : Type*} [CommRing F] {n : ℕ} (ω : F) (b : F
   refine Finset.sum_congr rfl (fun T _ => ?_)
   rw [Finset.prod_const_one, mul_one, Finset.prod_mul_distrib, Finset.prod_const, Multilinear.monomialFn]
 
+/-! ### Multilinear products on the cube (the foundation the `q`-ary collection needs). -/
+
+/-- **The multilinear product law.**  On the `{0,1}` cube a coordinate is idempotent, so the pointwise product of
+two multilinear monomials is again a monomial: `monomialFn S · monomialFn T = monomialFn (S ∪ T)`.  Hence the
+product has degree `|S ∪ T| ≤ |S| + |T|` — the bound that lets the `q`-ary boosting collection (where the character
+product is *not* a clean character shift, unlike the binary Walsh case) stay low degree. -/
+theorem monomialFn_mul {F : Type*} [CommRing F] {n : ℕ} (S T : Finset (Fin n)) (x : Fin n → Bool) :
+    Multilinear.monomialFn (F := F) S x * Multilinear.monomialFn T x
+      = Multilinear.monomialFn (S ∪ T) x := by
+  simp only [Multilinear.monomialFn]
+  rw [Finset.prod_boole, Finset.prod_boole, Finset.prod_boole]
+  by_cases hS : ∀ i ∈ S, x i = true
+  · by_cases hT : ∀ i ∈ T, x i = true
+    · rw [if_pos hS, if_pos hT, if_pos (Finset.forall_mem_union.mpr ⟨hS, hT⟩), mul_one]
+    · rw [if_pos hS, if_neg hT, if_neg (fun h => hT (Finset.forall_mem_union.mp h).2), mul_zero]
+  · rw [if_neg hS, if_neg (fun h => hS (Finset.forall_mem_union.mp h).1), zero_mul]
+
 /-! ### The `q`-ary character span (the analogue of `WalshSpan.evalW_surjective`). -/
 
 variable {F : Type*} [Field F] {n : ℕ}
