@@ -33,9 +33,17 @@ dimension argument bounds.  This file then carries out the **full `q`-ary genera
     agreeing with the full product on `G` forces `|G| ≤ Σ_{i ≤ n/2+d} C(n,i)`.  The general-`MOD_q` analogue of the
     parity bound `WalshSpan.boosting_surjection_sharp`.
 
-**What remains (honestly fenced):** the *concrete field extension* — instantiate `ω` as a primitive `q`-th root in
-`𝔽_{p^ℓ}` with `q ∣ p^ℓ − 1`, lift the AC⁰[p] approximator into it, and feed `modq_indicator_eq` + `omega_boosting_le`
-into the circuit lower bound.  The boosting machinery is done; the extension instantiation is the last step.
+It then builds the **concrete field extension**:
+
+  * `exists_pow_sub_one_dvd` — for `q` coprime to `p`, some `ℓ ≥ 1` has `q ∣ p^ℓ − 1` (`p` has finite order mod `q`);
+  * `exists_primitive_root` — a finite field with `q ∣ |F| − 1` carries an `ω` with `orderOf ω = q`;
+  * `exists_extension_primitive_root` — so `𝔽_{p^ℓ} = GaloisField p ℓ` (order `p^ℓ`) contains the primitive `q`-th
+    root `ω` that `omega_boosting_le` consumes.
+
+**What remains (honestly fenced):** the *lift + final assembly* — view the AC⁰[p] approximator (over `ZMod p`)
+inside `𝔽_{p^ℓ}` via `ZMod p ↪ 𝔽_{p^ℓ}`, and chain `circuit_low_degree_approx` → `modq_indicator_eq` (turn a
+`MOD_q` approximator into a full-product approximator on a large `G`) → `omega_boosting_le` → contradiction.  The
+`q`-ary boosting machinery and the concrete extension/root are done; only this plumbing and final chain remain.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.ModQReduction
@@ -412,6 +420,37 @@ theorem exists_primitive_root {F : Type*} [Field F] [Fintype F] [DecidableEq F] 
   simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hu
   exact ⟨↑u, by rw [orderOf_units]; exact hu⟩
 
+/-- **`q ∣ p^ℓ − 1` for some `ℓ ≥ 1` when `q` is coprime to `p`.**  Since `gcd(p, q) = 1`, `p` is a unit mod `q`;
+in the finite group `(ZMod q)ˣ` it has finite order `ℓ = orderOf p`, so `p^ℓ ≡ 1 (mod q)`, i.e. `q ∣ p^ℓ − 1`.
+This is exactly the condition under which the extension `𝔽_{p^ℓ}` (of order `p^ℓ`) carries a primitive `q`-th root
+(`exists_primitive_root`), since `q ∣ p^ℓ − 1 = |𝔽_{p^ℓ}| − 1`. -/
+theorem exists_pow_sub_one_dvd {p q : ℕ} (hq : 2 ≤ q) (hcop : Nat.Coprime p q) :
+    ∃ ℓ : ℕ, 1 ≤ ℓ ∧ q ∣ p ^ ℓ - 1 := by
+  haveI : NeZero q := ⟨by omega⟩
+  have hp0 : 0 < p := Nat.pos_of_ne_zero (by rintro rfl; rw [Nat.coprime_zero_left] at hcop; omega)
+  refine ⟨orderOf (ZMod.unitOfCoprime p hcop), orderOf_pos _, ?_⟩
+  have hp1 : 1 ≤ p ^ orderOf (ZMod.unitOfCoprime p hcop) := Nat.one_le_pow _ _ hp0
+  have hcast : ((p ^ orderOf (ZMod.unitOfCoprime p hcop) : ℕ) : ZMod q) = 1 := by
+    push_cast
+    rw [← ZMod.coe_unitOfCoprime p hcop, ← Units.val_pow_eq_pow_val, pow_orderOf_eq_one, Units.val_one]
+  apply (CharP.cast_eq_zero_iff (ZMod q) q _).mp
+  rw [Nat.cast_sub hp1, Nat.cast_one, hcast, sub_self]
+
+/-- **The concrete extension carries a primitive `q`-th root.**  For a prime `p` and `q ≥ 2` coprime to `p`, there
+is an `ℓ ≥ 1` such that the Galois field `𝔽_{p^ℓ}` (of order `p^ℓ`, with `q ∣ p^ℓ − 1` by `exists_pow_sub_one_dvd`)
+contains a primitive `q`-th root of unity `ω` (`orderOf ω = q`).  This is the concrete field the `MOD_q` reduction
+works in: `ω` feeds `omega_boosting_le`, the AC⁰[p] approximator lifts via `ZMod p ↪ 𝔽_{p^ℓ}`, and
+`modq_indicator_eq` expresses `MOD_q` through `ω`'s full product. -/
+theorem exists_extension_primitive_root {p q : ℕ} [Fact p.Prime] (hq : 2 ≤ q) (hcop : Nat.Coprime p q) :
+    ∃ ℓ : ℕ, 1 ≤ ℓ ∧ ∃ ω : GaloisField p ℓ, orderOf ω = q := by
+  obtain ⟨ℓ, hℓ, hdvd⟩ := exists_pow_sub_one_dvd hq hcop
+  haveI : Fintype (GaloisField p ℓ) := Fintype.ofFinite (GaloisField p ℓ)
+  haveI : DecidableEq (GaloisField p ℓ) := Classical.decEq _
+  refine ⟨ℓ, hℓ, ?_⟩
+  have hcard : Fintype.card (GaloisField p ℓ) = p ^ ℓ := by
+    rw [← Nat.card_eq_fintype_card]; exact GaloisField.card p ℓ (by omega)
+  exact exists_primitive_root (by omega) (by rw [hcard]; exact hdvd)
+
 end PallLean.Paper93.DeepMath.PathB.ModQReduction
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.omegaFn_fold_on_G
@@ -422,3 +461,5 @@ end PallLean.Paper93.DeepMath.PathB.ModQReduction
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.rootsOfUnity_filter
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.modq_indicator_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.omega_boosting_le
+
+#print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.exists_extension_primitive_root
