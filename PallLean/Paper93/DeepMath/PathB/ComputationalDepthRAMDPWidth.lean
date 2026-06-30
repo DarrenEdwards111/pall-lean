@@ -53,7 +53,102 @@ theorem dpLoop_widthBounded_of_value_le (s : State) (V W : ℕ)
   widthBounded_of_value_le dpLoop s V W hacc hmem hV
     (fun i hi => le_trans (dpLoop_instrWidth i hi) hW)
 
+set_option maxHeartbeats 4000000 in
+/-- **Within one active iteration, every value stays `≤ V`.**  From a start state with a live counter
+(`m 0 ≠ 0`), `m 1 = 1`, pointer `m 2 ≥ 4`, and bounds `m 2 + 1 ≤ V`, `m 3 + 1 ≤ V`, `acc ≤ V`, `∀x m x ≤ V`, each
+of the `13` micro-steps keeps the accumulator and every memory cell `≤ V`.  Proved by evaluating each of the 14
+reachable states explicitly (`acc` and `mem` handled separately to avoid blowing up the run-unfolding under `∀x`). -/
+theorem dpLoop_iter_values_le (m : Mem) (acc V : ℕ)
+    (h0 : m 0 ≠ 0) (h1 : m 1 = 1) (hb : 4 ≤ m 2)
+    (hmem : ∀ x, m x ≤ V) (hacc : acc ≤ V) (hp : m 2 + 1 ≤ V) (hv : m 3 + 1 ≤ V) :
+    ∀ k, k ≤ 13 → (run dpLoop ⟨m, acc, 0, false⟩ k).acc ≤ V
+        ∧ ∀ x, (run dpLoop ⟨m, acc, 0, false⟩ k).mem x ≤ V := by
+  have hm0 := hmem 0
+  have hm2 := hmem 2
+  have hm3 := hmem 3
+  have e0 : (0 : ℕ) ≠ m 2 := by omega
+  have e1 : (1 : ℕ) ≠ m 2 := by omega
+  have e2 : (2 : ℕ) ≠ m 2 := by omega
+  have e3 : (3 : ℕ) ≠ m 2 := by omega
+  intro k hk
+  interval_cases k <;> refine ⟨?_, ?_⟩ <;>
+    first
+      | (intro x
+         simp [run, step, dpLoop, h0, h1, Mem.set,
+           e0, e1, e2]
+         split_ifs <;> first | exact hmem _ | omega)
+      | (simp [run, step, dpLoop, h0, h1, Mem.set,
+           e0, e1, e2]
+         omega)
+
+set_option maxHeartbeats 4000000 in
+/-- **The `dpLoop` value bound.**  From counter `N`, with `m 1 = 1`, pointer `≥ 4`, and `V` dominating the grown
+values (`m 2 + N ≤ V`, `m 3 + N ≤ V`) and the initial cells (`acc ≤ V`, `∀x m x ≤ V`), *every* reached state in the
+exact `13·N+3`-step run keeps the accumulator and every memory cell `≤ V`.  Induction on `N`: each iteration uses
+`dpLoop_iter_values_le` for its `13` micro-steps, then `dpLoop_one` advances to the next iteration's start
+(`dpNext`), whose cells are again `≤ V`. -/
+theorem dpLoop_values_le (V : ℕ) : ∀ (N : ℕ) (m : Mem) (acc : ℕ),
+    m 0 = N → m 1 = 1 → 4 ≤ m 2 → m 2 + N ≤ V → m 3 + N ≤ V → acc ≤ V → (∀ x, m x ≤ V) →
+    ∀ k, k ≤ 13 * N + 3 → (run dpLoop ⟨m, acc, 0, false⟩ k).acc ≤ V
+        ∧ ∀ x, (run dpLoop ⟨m, acc, 0, false⟩ k).mem x ≤ V := by
+  intro N
+  induction N with
+  | zero =>
+    intro m acc h0 h1 _ _ _ hacc hmem k hk
+    interval_cases k <;> refine ⟨?_, ?_⟩ <;>
+      first
+        | (intro x
+           simp [run, step, dpLoop, h0]
+           exact hmem x)
+        | (simp [run, step, dpLoop, h0] <;> omega)
+  | succ N ih =>
+    intro m acc h0 h1 hb hp hv hacc hmem k hk
+    rcases Nat.lt_or_ge k 14 with hk13 | hk13
+    · exact dpLoop_iter_values_le m acc V (by omega) h1 hb hmem hacc (by omega) (by omega) k
+        (by omega)
+    · obtain ⟨k', rfl⟩ : ∃ k', k = 13 + k' := ⟨k - 13, by omega⟩
+      have hk' : k' ≤ 13 * N + 3 := by omega
+      rw [run_add, dpLoop_one m acc N h0 h1 hb]
+      have hdp : ∀ x, dpNext m N x ≤ V := by
+        intro x
+        by_cases hx0 : x = 0
+        · subst hx0; rw [dpNext_0]; omega
+        · by_cases hx2 : x = 2
+          · subst hx2; rw [dpNext_2]; omega
+          · by_cases hx3 : x = 3
+            · subst hx3; rw [dpNext_3]; omega
+            · by_cases hxb : x = m 2
+              · subst hxb; rw [dpNext_base m N hb]; omega
+              · rw [dpNext_other m N x hx0 hx2 hx3 hxb]; exact hmem x
+      exact ih (dpNext m N) N (dpNext_0 m N) (by rw [dpNext_1 m N hb]; exact h1)
+        (by rw [dpNext_2 m N]; omega) (by rw [dpNext_2 m N]; omega) (by rw [dpNext_3 m N]; omega)
+        (by omega) hdp k' hk'
+
+/-- **The `dpLoop` width invariant — DISCHARGED.**  With `V` dominating the grown values and `bitlen V ≤ W`
+(`4 ≤ W`), every reached state of the `13·N+3`-step run is `W`-width-bounded.  This is exactly the hypothesis
+`dpLoop_runCost_le` assumed. -/
+theorem dpLoop_maintains_width (m : Mem) (acc V W N : ℕ)
+    (h0 : m 0 = N) (h1 : m 1 = 1) (hb : 4 ≤ m 2)
+    (hp : m 2 + N ≤ V) (hv : m 3 + N ≤ V) (hacc : acc ≤ V) (hmem : ∀ x, m x ≤ V)
+    (hVW : bitlen V ≤ W) (hW : 4 ≤ W) :
+    ∀ k, k < 13 * N + 3 → WidthBounded dpLoop (run dpLoop ⟨m, acc, 0, false⟩ k) W := by
+  intro k hk
+  obtain ⟨hkacc, hkmem⟩ := dpLoop_values_le V N m acc h0 h1 hb hp hv hacc hmem k (by omega)
+  exact dpLoop_widthBounded_of_value_le _ V W hkacc hkmem hVW hW
+
+/-- **Unconditional poly bit-cost of the memo DP.**  Discharging the width invariant, the exact `13·N+3`-step run
+costs `≤ (13·N+3)·(3W+1)` bits with **no** width hypothesis — only that `W` accommodates the values
+(`bitlen V ≤ W`, `V` dominating `m 2 + N`, `m 3 + N`, and the initial cells).  The `dpLoop_runCost_le` socket is
+now closed. -/
+theorem dpLoop_runCost_unconditional (m : Mem) (acc V W N : ℕ)
+    (h0 : m 0 = N) (h1 : m 1 = 1) (hb : 4 ≤ m 2)
+    (hp : m 2 + N ≤ V) (hv : m 3 + N ≤ V) (hacc : acc ≤ V) (hmem : ∀ x, m x ≤ V)
+    (hVW : bitlen V ≤ W) (hW : 4 ≤ W) :
+    runCost dpLoop ⟨m, acc, 0, false⟩ (13 * N + 3) ≤ (13 * N + 3) * (3 * W + 1) :=
+  dpLoop_runCost_le m acc N W (dpLoop_maintains_width m acc V W N h0 h1 hb hp hv hacc hmem hVW hW)
+
 end PallLean.Paper93.DeepMath.PathB.RAM
 
-#print axioms PallLean.Paper93.DeepMath.PathB.RAM.widthBounded_of_value_le
-#print axioms PallLean.Paper93.DeepMath.PathB.RAM.dpLoop_instrWidth
+#print axioms PallLean.Paper93.DeepMath.PathB.RAM.dpLoop_iter_values_le
+#print axioms PallLean.Paper93.DeepMath.PathB.RAM.dpLoop_values_le
+#print axioms PallLean.Paper93.DeepMath.PathB.RAM.dpLoop_runCost_unconditional
