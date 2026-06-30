@@ -172,6 +172,26 @@ theorem eval_smul {F : Type*} [CommRing F] {n : ℕ} (a : F) (c : Finset (Fin n)
   simp only [Multilinear.eval, Pi.smul_apply, smul_eq_mul, Finset.mul_sum]
   exact Finset.sum_congr rfl (fun S _ => by ring)
 
+/-! ### The lift: push coefficients through a ring hom (degree-preserving). -/
+
+/-- A ring hom fixes the `{0,1}` multilinear monomials: `φ (monomialFn S b) = monomialFn S b`, since each factor
+is `0` or `1`. -/
+theorem map_monomialFn {R F : Type*} [CommRing R] [CommRing F] {n : ℕ} (φ : R →+* F)
+    (S : Finset (Fin n)) (b : Fin n → Bool) :
+    φ (Multilinear.monomialFn S b) = Multilinear.monomialFn S b := by
+  rw [Multilinear.monomialFn, map_prod, Multilinear.monomialFn]
+  exact Finset.prod_congr rfl (fun i _ => by cases b i <;> simp)
+
+/-- **The lift commutes with evaluation.**  For any ring hom `φ : R →+* F`,
+`φ (Multilinear.eval c b) = Multilinear.eval (φ ∘ c) b` — so lifting a multilinear polynomial's coefficients
+through `φ` (e.g. the embedding `ZMod p ↪ 𝔽_{p^ℓ}`) computes the same function in the target.  Degree is preserved:
+if `c S = 0` then `φ (c S) = 0`, so the lifted support is contained in the original. -/
+theorem eval_ringHom_comm {R F : Type*} [CommRing R] [CommRing F] {n : ℕ} (φ : R →+* F)
+    (c : Finset (Fin n) → R) (b : Fin n → Bool) :
+    φ (Multilinear.eval c b) = Multilinear.eval (fun S => φ (c S)) b := by
+  rw [Multilinear.eval, map_sum, Multilinear.eval]
+  exact Finset.sum_congr rfl (fun S _ => by rw [map_mul, map_monomialFn])
+
 /-! ### The `q`-ary character span (the analogue of `WalshSpan.evalW_surjective`). -/
 
 variable {F : Type*} [Field F] {n : ℕ}
@@ -450,6 +470,14 @@ theorem exists_extension_primitive_root {p q : ℕ} [Fact p.Prime] (hq : 2 ≤ q
   have hcard : Fintype.card (GaloisField p ℓ) = p ^ ℓ := by
     rw [← Nat.card_eq_fintype_card]; exact GaloisField.card p ℓ (by omega)
   exact exists_primitive_root (by omega) (by rw [hcard]; exact hdvd)
+
+/-- **The base-field embedding is injective.**  `ZMod p ↪ 𝔽_{p^ℓ}` (the structure map of the algebra `GaloisField p ℓ`
+over its prime field `ZMod p`) is injective — a ring hom out of a field into a nonzero ring.  This is what lets the
+AC⁰[p] approximator (built over `ZMod p`) be transported into the extension where `ω` lives, with agreement on `G`
+preserved (`eval_ringHom_comm`). -/
+theorem algebraMap_zmod_galoisField_injective (p ℓ : ℕ) [Fact p.Prime] :
+    Function.Injective (algebraMap (ZMod p) (GaloisField p ℓ)) :=
+  FaithfulSMul.algebraMap_injective (ZMod p) (GaloisField p ℓ)
 
 end PallLean.Paper93.DeepMath.PathB.ModQReduction
 
