@@ -423,6 +423,103 @@ theorem omega_boosting_le [Fintype F] [DecidableEq F] {q d : ℕ} (ω : F) (hω 
     (Fintype.one_lt_card (α := F)) _ hsurj
   rwa [Fintype.card_coe] at hkey
 
+/-! ### The multilinear-input boosting bound (the variant the reduction feeds).
+
+`omega_boosting_le` consumes a *character*-basis approximator (`evalΩ ω aCoef = omegaFn ω univ` on `G`).  The
+reduction `MOD_q ⇝ full product` instead produces a *multilinear* approximator (`Multilinear.eval Q = omegaFn ω univ`
+on `G`).  This variant takes that multilinear `Q` directly — the fold and collection are identical, only the
+high-character branch uses `Q` (degree `d` by hypothesis) in place of `Mω ω aCoef`.  This removes the basis
+mismatch, so the recombined approximator feeds the boosting with no change of basis. -/
+
+/-- The high-character degree drop, multilinear-input version: at `b` where `Multilinear.eval Q b = omegaFn ω univ b`,
+`omegaFn ω S b = Multilinear.eval (mlConv Q …) b`. -/
+theorem omegaFn_high_eq_eval_on_G' (ω : F) {q : ℕ} (hq1 : 1 ≤ q) (hq : ω ^ q = 1)
+    (Q : Finset (Fin n) → F) (b : Fin n → Bool)
+    (hb : Multilinear.eval Q b = omegaFn ω Finset.univ b) (S : Finset (Fin n)) :
+    omegaFn ω S b = Multilinear.eval
+      (mlConv Q (fun T => if T ⊆ Sᶜ then (ω ^ (q - 1) - 1) ^ T.card else 0)) b := by
+  rw [omegaFn_fold ω hq1 hq, ← hb, omegaFn_eq_eval, eval_mul]
+
+/-- The per-character coefficient, multilinear-input version (high branch folds against `Q`). -/
+noncomputable def charCoefM (ω : F) (q : ℕ) (Q : Finset (Fin n) → F) (S : Finset (Fin n)) :
+    Finset (Fin n) → F :=
+  if S.card ≤ n / 2 then (fun U => if U ⊆ S then (ω - 1) ^ U.card else 0)
+  else mlConv Q (fun T => if T ⊆ Sᶜ then (ω ^ (q - 1) - 1) ^ T.card else 0)
+
+theorem charCoefM_eval_on_G (ω : F) {q : ℕ} (hq1 : 1 ≤ q) (hq : ω ^ q = 1)
+    (Q : Finset (Fin n) → F) (b : Fin n → Bool)
+    (hb : Multilinear.eval Q b = omegaFn ω Finset.univ b) (S : Finset (Fin n)) :
+    Multilinear.eval (charCoefM ω q Q S) b = omegaFn ω S b := by
+  rw [charCoefM]
+  split_ifs with h
+  · exact (omegaFn_eq_eval ω S b).symm
+  · exact (omegaFn_high_eq_eval_on_G' ω hq1 hq Q b hb S).symm
+
+theorem charCoefM_support {q d : ℕ} (ω : F) (Q : Finset (Fin n) → F)
+    (hQ : ∀ T, d < T.card → Q T = 0) (S U : Finset (Fin n)) (hU : n / 2 + d < U.card) :
+    charCoefM ω q Q S U = 0 := by
+  rw [charCoefM]
+  split_ifs with h
+  · have hUS : ¬ U ⊆ S := fun hUS => by have := Finset.card_le_card hUS; omega
+    show (if U ⊆ S then (ω - 1) ^ U.card else 0) = 0
+    rw [if_neg hUS]
+  · have hSc : Sᶜ.card = n - S.card := by rw [Finset.card_compl, Fintype.card_fin]
+    refine mlConv_support (a := d) (b := Sᶜ.card) _ _ (fun T hT => hQ T hT) (fun T hT => ?_) U (by omega)
+    have hTSc : ¬ T ⊆ Sᶜ := fun hTSc => by have := Finset.card_le_card hTSc; omega
+    rw [if_neg hTSc]
+
+/-- The collected coefficient vector, multilinear-input version. -/
+noncomputable def collectΩM (ω : F) (q : ℕ) (Q c : Finset (Fin n) → F) : Finset (Fin n) → F :=
+  ∑ S, c S • charCoefM ω q Q S
+
+theorem evalΩ_collectΩM_on_G (ω : F) {q : ℕ} (hq1 : 1 ≤ q) (hq : ω ^ q = 1)
+    (Q c : Finset (Fin n) → F) (b : Fin n → Bool)
+    (hb : Multilinear.eval Q b = omegaFn ω Finset.univ b) :
+    Multilinear.eval (collectΩM ω q Q c) b = evalΩ ω c b := by
+  rw [collectΩM, eval_sum, evalΩ]
+  refine Finset.sum_congr rfl (fun S _ => ?_)
+  rw [eval_smul, charCoefM_eval_on_G ω hq1 hq Q b hb S]
+
+theorem collectΩM_support {q d : ℕ} (ω : F) (Q c : Finset (Fin n) → F)
+    (hQ : ∀ T, d < T.card → Q T = 0) (U : Finset (Fin n)) (hU : n / 2 + d < U.card) :
+    collectΩM ω q Q c U = 0 := by
+  rw [collectΩM]
+  simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+  refine Finset.sum_eq_zero (fun S _ => ?_)
+  rw [charCoefM_support ω Q hQ S U hU, mul_zero]
+
+/-- **The multilinear-input `q`-ary boosting bound.**  If a *multilinear* polynomial `Multilinear.eval Q` of degree
+`d` agrees with the full product `omegaFn ω univ` on `G` (`ω` a primitive `q`-th root, `q ≥ 2`), then
+`|G| ≤ Σ_{i ≤ n/2+d} C(n,i)`.  Same proof as `omega_boosting_le` with `Q` folding the high characters in place of
+`Mω ω aCoef`; this is the form the reduction `MOD_q ⇝ full product` produces directly. -/
+theorem omega_boosting_le_multilinear [Fintype F] [DecidableEq F] {q d : ℕ} (ω : F) (hω : orderOf ω = q)
+    (hq2 : 2 ≤ q) (Q : Finset (Fin n) → F) (hQ : ∀ S, d < S.card → Q S = 0)
+    (G : Finset (Fin n → Bool)) (hG : ∀ b ∈ G, Multilinear.eval Q b = omegaFn ω Finset.univ b) :
+    G.card ≤ ∑ i ∈ Finset.range (n / 2 + d + 1), n.choose i := by
+  have hq : ω ^ q = 1 := by rw [← hω]; exact pow_orderOf_eq_one ω
+  have hω1 : ω ≠ 1 := by intro h; rw [h, orderOf_one] at hω; omega
+  have hsurj : Function.Surjective
+      (fun (dCoef : {U : Finset (Fin n) // U.card ≤ n / 2 + d} → F) (b : {b : Fin n → Bool // b ∈ G}) =>
+        Multilinear.eval (fun U => if h : U.card ≤ n / 2 + d then dCoef ⟨U, h⟩ else 0) b.1) := by
+    intro g
+    obtain ⟨c, hc⟩ := evalΩ_surjective ω hω1 (fun b => if hb : b ∈ G then g ⟨b, hb⟩ else 0)
+    refine ⟨fun Usub => collectΩM ω q Q c Usub.1, ?_⟩
+    funext b
+    have hext : (fun U => if _h : U.card ≤ n / 2 + d then collectΩM ω q Q c U else 0)
+              = collectΩM ω q Q c := by
+      funext U
+      by_cases hUm : U.card ≤ n / 2 + d
+      · rw [dif_pos hUm]
+      · rw [dif_neg hUm]
+        exact (collectΩM_support ω Q c hQ U (by omega)).symm
+    show Multilinear.eval (fun U => if _h : U.card ≤ n / 2 + d then collectΩM ω q Q c U else 0) b.1 = g b
+    rw [hext, evalΩ_collectΩM_on_G ω (by omega) hq Q c b.1 (hG b.1 b.2), hc]
+    show (if hb : b.1 ∈ G then g ⟨b.1, hb⟩ else (0 : F)) = g b
+    rw [dif_pos b.2]
+  have hkey := RazborovSmolensky.dimension_argument_sharp (F := F) (m := n / 2 + d)
+    (Fintype.one_lt_card (α := F)) _ hsurj
+  rwa [Fintype.card_coe] at hkey
+
 /-! ### The reduction `MOD_q ⇝ full product` (the recombination half). -/
 
 /-- **The full product is an `𝔽`-combination of the residue indicators.**  `ω^{Σxᵢ} = Σ_{r<q} ω^r·[Σxᵢ ≡ r (mod q)]`:
