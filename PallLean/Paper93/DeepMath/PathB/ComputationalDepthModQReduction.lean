@@ -423,6 +423,27 @@ theorem omega_boosting_le [Fintype F] [DecidableEq F] {q d : ℕ} (ω : F) (hω 
     (Fintype.one_lt_card (α := F)) _ hsurj
   rwa [Fintype.card_coe] at hkey
 
+/-! ### The reduction `MOD_q ⇝ full product` (the recombination half). -/
+
+/-- **The full product is an `𝔽`-combination of the residue indicators.**  `ω^{Σxᵢ} = Σ_{r<q} ω^r·[Σxᵢ ≡ r (mod q)]`:
+since exactly one residue `r = Σxᵢ mod q` matches and `ω^q = 1`, both sides equal `ω^{Σxᵢ mod q}`.  This is the
+*inverse* of `modq_indicator_eq` (which writes the indicator via full-product powers); here the full product
+`omegaFn ω univ` is written via the residue indicators.  It is the recombination half of the reduction
+`MOD_q approximator ⇝ full-product approximator`: if each residue indicator `[Σxᵢ ≡ r]` has a degree-`d`
+approximator (a shifted `MOD_q` approximator), this fixed `𝔽`-combination yields a degree-`d` approximator of
+`omegaFn ω univ`, which `omega_boosting_le` then refutes on a large `G`. -/
+theorem omegaFn_univ_eq_sum_residue (ω : F) {q : ℕ} (hq : 0 < q) (hω : ω ^ q = 1) (b : Fin n → Bool) :
+    omegaFn ω Finset.univ b
+      = ∑ r ∈ Finset.range q, ω ^ r * (if (∑ i, (b i).toNat) % q = r then (1 : F) else 0) := by
+  have hLHS : omegaFn ω Finset.univ b = ω ^ (∑ i, (b i).toNat) := by
+    rw [omegaFn, ← Finset.prod_pow_eq_pow_sum]
+    exact Finset.prod_congr rfl (fun i _ => by cases b i <;> simp)
+  rw [hLHS]
+  simp_rw [mul_boole]
+  rw [Finset.sum_ite_eq (Finset.range q) ((∑ i, (b i).toNat) % q) (fun r => ω ^ r),
+    if_pos (Finset.mem_range.mpr (Nat.mod_lt _ hq))]
+  conv_lhs => rw [← Nat.div_add_mod (∑ i, (b i).toNat) q, pow_add, pow_mul, hω, one_pow, one_mul]
+
 /-! ### The field extension: a primitive `q`-th root exists when `q ∣ |F| − 1`. -/
 
 /-- **A primitive `q`-th root of unity exists when `q ∣ |F| − 1`.**  In a finite field `F`, the unit group `Fˣ` is
