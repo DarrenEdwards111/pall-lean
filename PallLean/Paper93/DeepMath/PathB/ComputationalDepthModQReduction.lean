@@ -541,6 +541,44 @@ theorem omegaFn_univ_eq_sum_residue (ω : F) {q : ℕ} (hq : 0 < q) (hω : ω ^ 
     if_pos (Finset.mem_range.mpr (Nat.mod_lt _ hq))]
   conv_lhs => rw [← Nat.div_add_mod (∑ i, (b i).toNat) q, pow_add, pow_mul, hω, one_pow, one_mul]
 
+/-- **The residue-shift arithmetic.**  For `r < q`, `a ≡ r (mod q)` iff `a + (q − r) ≡ 0 (mod q)`: adding `q − r`
+turns the residue-`r` condition into the residue-`0` condition (`MOD_q`).  (`omega` cannot do variable-modulus
+arithmetic; proved through `Nat.ModEq`.) -/
+theorem resInd_shift {a q r : ℕ} (hr : r < q) : (a % q = r) ↔ ((a + (q - r)) % q = 0) := by
+  have hrq : r + (q - r) = q := by omega
+  constructor
+  · intro h
+    have hm : a ≡ r [MOD q] := by unfold Nat.ModEq; rw [h, Nat.mod_eq_of_lt hr]
+    have h2 : a + (q - r) ≡ r + (q - r) [MOD q] := hm.add_right _
+    rw [hrq] at h2
+    have h4 : a + (q - r) ≡ 0 [MOD q] := h2.trans ((Nat.modEq_zero_iff_dvd).mpr dvd_rfl)
+    simpa [Nat.ModEq] using h4
+  · intro h
+    have h4 : a + (q - r) ≡ 0 [MOD q] := by simpa [Nat.ModEq] using h
+    have h2 : a + (q - r) ≡ r + (q - r) [MOD q] := by
+      rw [hrq]; exact h4.trans ((Nat.modEq_zero_iff_dvd).mpr dvd_rfl).symm
+    have hm : a ≡ r [MOD q] := h2.add_right_cancel' _
+    simpa [Nat.ModEq, Nat.mod_eq_of_lt hr] using hm
+
+/-- **The residue indicator is `MOD_q` of a shifted input.**  `[Σ_{i<n} xᵢ ≡ r (mod q)]` equals
+`[Σ ≡ 0 (mod q)]` (`MOD_q`) evaluated on `x` extended with `q − r` constant-`true` coordinates: the extra trues add
+`q − r` to the count, turning residue `r` into residue `0` (`resInd_shift`).  This is the *specification* of the
+residue-shift: each residue indicator is a `MOD_q` instance on a slightly larger input.  At the circuit level it
+means an AC⁰[p] circuit for the residue-`r` indicator is obtained from the `MOD_q` family member on `n + (q−r)`
+inputs by fixing the last `q − r` inputs to `true` — that input-substitution (and the resulting degree-`d`
+approximator) is the remaining circuit-level step. -/
+theorem resInd_eq_modq_append {n q r : ℕ} (hr : r < q) (x : Fin n → Bool) :
+    ((∑ i, (x i).toNat) % q = r)
+      ↔ ((∑ i, ((Fin.append x (fun _ : Fin (q - r) => true)) i).toNat) % q = 0) := by
+  have hsum : (∑ i, ((Fin.append x (fun _ : Fin (q - r) => true)) i).toNat)
+            = (∑ i, (x i).toNat) + (q - r) := by
+    rw [Fin.sum_univ_add]
+    congr 1
+    · exact Finset.sum_congr rfl (fun i _ => by rw [Fin.append_left])
+    · simp [Fin.append_right]
+  rw [hsum]
+  exact resInd_shift hr
+
 /-! ### The field extension: a primitive `q`-th root exists when `q ∣ |F| − 1`. -/
 
 /-- **A primitive `q`-th root of unity exists when `q ∣ |F| − 1`.**  In a finite field `F`, the unit group `Fˣ` is
