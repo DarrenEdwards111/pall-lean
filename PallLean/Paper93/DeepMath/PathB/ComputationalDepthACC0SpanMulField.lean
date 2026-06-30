@@ -74,8 +74,39 @@ theorem sqf_prod_mem_span {ι : Type*} (g : ι → (Fin n → Bool) → F) (D : 
     exact sqf_mul_mem_span (hg a (Finset.mem_insert_self a s))
       (ih (fun i hi => hg i (Finset.mem_insert_of_mem hi)))
 
+/-- **The generators are monotone in degree (proved).**  `D ≤ E ⇒ sqfGens F n D ⊆ sqfGens F n E`. -/
+theorem sqfGens_mono {D E : ℕ} (h : D ≤ E) : sqfGens F n D ⊆ sqfGens F n E := by
+  rintro f ⟨⟨S, hS⟩, rfl⟩
+  simp only [lowDegMonomials, Finset.mem_filter, Finset.mem_powerset, Finset.subset_univ,
+    true_and] at hS
+  exact ⟨⟨S, by
+    simp only [lowDegMonomials, Finset.mem_filter, Finset.mem_powerset, Finset.subset_univ, true_and]
+    exact le_trans hS h⟩, rfl⟩
+
+/-- **The span is monotone in degree (proved).** -/
+theorem sqfSpan_mono {D E : ℕ} (h : D ≤ E) :
+    Submodule.span F (sqfGens F n D) ≤ Submodule.span F (sqfGens F n E) :=
+  Submodule.span_mono (sqfGens_mono h)
+
+/-- **`1` is a degree-`≤D` span element for any `D` (proved).** -/
+theorem one_mem_sqfSpan' (D : ℕ) : (1 : (Fin n → Bool) → F) ∈ Submodule.span F (sqfGens F n D) :=
+  sqfSpan_mono (Nat.zero_le D) one_mem_sqfSpan
+
+/-- **Bounded-fan-in `OR` composition (proved).**  By De Morgan, `OR_{i∈s} gᵢ = 1 − ∏_{i∈s}(1 − gᵢ)`; if each
+`gᵢ ∈ span(deg ≤ D i)` then `1 − gᵢ ∈ span(deg ≤ D i)` (additive closure), the product is in `span(deg ≤ ∑ D i)`
+(`sqf_prod_mem_span`), and so is `1 −` it.  This is the `OR` gate of arbitrary (bounded) fan-in — the disjunctive
+step of the depth recurrence, the De Morgan dual of `sqf_prod_mem_span`. -/
+theorem sqf_deMorgan_mem_span {ι : Type*} (g : ι → (Fin n → Bool) → F) (D : ι → ℕ) (s : Finset ι)
+    (hg : ∀ i ∈ s, g i ∈ Submodule.span F (sqfGens F n (D i))) :
+    (1 - ∏ i ∈ s, (1 - g i)) ∈ Submodule.span F (sqfGens F n (∑ i ∈ s, D i)) := by
+  have hprod : (∏ i ∈ s, (1 - g i)) ∈ Submodule.span F (sqfGens F n (∑ i ∈ s, D i)) :=
+    sqf_prod_mem_span (fun i => 1 - g i) D s
+      (fun i hi => Submodule.sub_mem _ (one_mem_sqfSpan' (D i)) (hg i hi))
+  exact Submodule.sub_mem _ (one_mem_sqfSpan' (∑ i ∈ s, D i)) hprod
+
 end PallLean.Paper93.DeepMath.PathB.ACC0ModFieldExact
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0ModFieldExact.sqfSpan_mul_le
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0ModFieldExact.sqf_mul_mem_span
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0ModFieldExact.sqf_prod_mem_span
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0ModFieldExact.sqf_deMorgan_mem_span
