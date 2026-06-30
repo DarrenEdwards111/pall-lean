@@ -28,6 +28,8 @@ ACC⁰ circuit  ──[YBT, socket]──►  SYM∘AND of m gates  ──[PROVE
 * `fastSat_savings_of_work_le` — **the savings**: `work ≤ 2^{n−k}` ⇒ `2^k · work ≤ 2^n` (savings `≥ 2^k`).
 * `fastSatWork_le_of_degree` — a degree‑`≤D` injective monomial‑`AND` family has work `≤ (∑_{i≤D} C(n,i)) + 1`.
 * `lowDegMonomialCount_le_pow` — the gate count is quasipolynomial: `∑_{i≤D} C(n,i) ≤ (D+1)·n^D`.
+* `lowDegMonomialCount_le_pow_size` — the **bit-width form**: `∑_{i≤D} C(n,i) ≤ (D+1)·2^{D·size n}`, making
+  "`D` polylog ⇒ subexponential" explicit (`D·size n = polylog(n)·O(log n) = o(n)`).
 * **`symAnd_williams_fastSat`** — the headline: a `SYM∘AND` (degree `≤D`, injective) decides SAT by the count‑cell
   search, the cell count fits the budget `2^{n−k}`, **and** that work delivers Williams savings `≥ 2^k`.
 * **`symAnd_williams_fastSat_quasipoly`** — the explicit quasipolynomial regime: with `(D+1)·n^D + 1 ≤ 2^{n−k}`,
@@ -89,6 +91,19 @@ theorem lowDegMonomialCount_le_pow (hn : 1 ≤ n) :
         exact le_trans (Nat.choose_le_pow n i) (Nat.pow_le_pow_right hn hi)
     _ = (D + 1) * n ^ D := by rw [Finset.sum_const, Finset.card_range, smul_eq_mul]
 
+/-- **The gate count in bit-width form (proved): `∑_{i≤D} C(n,i) ≤ (D+1)·2^{D·size n}`.**  Since `n < 2^{size n}`
+(`size n = bitlen n`), `n^D ≤ 2^{D·size n}`, so the quasipolynomial gate count is `≤ (D+1)·2^{D·size n}`.  This is
+the explicit form behind "`D` polylog and constant depth ⇒ subexponential": `D·size n = polylog(n)·O(log n) = o(n)`,
+so the count is `2^{o(n)} ≪ 2^n` — the savings exponent `k = n − D·size n − O(log D) = Ω(n)`. -/
+theorem lowDegMonomialCount_le_pow_size (hn : 1 ≤ n) :
+    ∑ i ∈ Finset.range (D + 1), n.choose i ≤ (D + 1) * 2 ^ (D * n.size) := by
+  refine le_trans (lowDegMonomialCount_le_pow hn) ?_
+  have hns : n ≤ 2 ^ n.size := le_of_lt (Nat.size_le.mp (le_refl n.size))
+  have hpow : n ^ D ≤ 2 ^ (D * n.size) := by
+    calc n ^ D ≤ (2 ^ n.size) ^ D := Nat.pow_le_pow_left hns D
+      _ = 2 ^ (D * n.size) := by rw [← pow_mul, Nat.mul_comm]
+  exact Nat.mul_le_mul (le_refl (D + 1)) hpow
+
 /-- **The `SYM∘AND` Williams fast‑SAT (proved).**  A symmetric top `h` over a degree‑`≤D` injective monomial‑`AND`
 family `mono`:
 * decides SAT by examining only the **count‑cell image** (no `2^n` enumeration);
@@ -128,3 +143,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0WilliamsFastSat
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0WilliamsFastSat.symAnd_williams_fastSat
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0WilliamsFastSat.symAnd_williams_fastSat_quasipoly
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0WilliamsFastSat.lowDegMonomialCount_le_pow_size
