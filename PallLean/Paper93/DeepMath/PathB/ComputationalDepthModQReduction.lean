@@ -395,6 +395,23 @@ theorem omega_boosting_le [Fintype F] [DecidableEq F] {q d : ℕ} (ω : F) (hω 
     (Fintype.one_lt_card (α := F)) _ hsurj
   rwa [Fintype.card_coe] at hkey
 
+/-! ### The field extension: a primitive `q`-th root exists when `q ∣ |F| − 1`. -/
+
+/-- **A primitive `q`-th root of unity exists when `q ∣ |F| − 1`.**  In a finite field `F`, the unit group `Fˣ` is
+cyclic of order `|F| − 1`; if `q ∣ |F| − 1` then (since a cyclic group of order `N` has `φ(d) ≥ 1` elements of each
+order `d ∣ N`) there is a unit of order `q`, i.e. an `ω : F` with `orderOf ω = q`.  This supplies the `ω` that
+`omega_boosting_le` consumes — so an extension `𝔽_{p^ℓ}` with `q ∣ p^ℓ − 1` (which exists for `q` coprime to `p`)
+carries a primitive `q`-th root. -/
+theorem exists_primitive_root {F : Type*} [Field F] [Fintype F] [DecidableEq F] {q : ℕ} (hq : 0 < q)
+    (hdvd : q ∣ Fintype.card F - 1) : ∃ ω : F, orderOf ω = q := by
+  have hcard : q ∣ Fintype.card Fˣ := by rw [Fintype.card_units]; exact hdvd
+  have h := IsCyclic.card_orderOf_eq_totient (α := Fˣ) hcard
+  have hpos : 0 < q.totient := Nat.totient_pos.mpr hq
+  rw [← h] at hpos
+  obtain ⟨u, hu⟩ := Finset.card_pos.mp hpos
+  simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hu
+  exact ⟨↑u, by rw [orderOf_units]; exact hu⟩
+
 end PallLean.Paper93.DeepMath.PathB.ModQReduction
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.omegaFn_fold_on_G
