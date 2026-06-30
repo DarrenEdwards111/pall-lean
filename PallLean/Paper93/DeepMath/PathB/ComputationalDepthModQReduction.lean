@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMultilinear
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthTriangularInv
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRSCapstone
 import Mathlib
 
 /-!
@@ -22,10 +23,19 @@ exactly as parity is `∏(-1)^{xᵢ}`:
         `2·[2 ∣ Σxᵢ] = 1 + ∏(-1)^{xᵢ} = 1 + walshFn univ`, the `q = 2` packaging.)
 
 So `MOD_q` is, up to the field-`q`-ary Fourier transform, the full product `∏ᵢ ω^{xᵢ}` — the object the boosting /
-dimension argument bounds.  **What remains (honestly fenced, a real undertaking, not faked):** generalize the
-boosting surjection, the Walsh span, and the dimension argument from the binary cube to the `q`-ary cube over
-`𝔽_{p^ℓ}`, and instantiate `ω` via a concrete extension with `q ∣ p^ℓ − 1`.  That re-does, `q`-ary, what the
-`q = 2` files prove.  It is **not** done here; this file is the algebraic bridge only.
+dimension argument bounds.  This file then carries out the **full `q`-ary generalization** of the `q = 2` argument:
+
+  * `omegaProd_eq_sum_mono` / `evalΩ_surjective` — the `q`-ary character span (over `𝔽` with `ω ≠ 1`);
+  * `omegaFn_fold` / `omegaFn_fold_on_G` — the `q`-ary folding (`ω^q = 1` replaces `x² = 1`);
+  * `monomialFn_mul` / `eval_mul` / `mlConv_support` — the multilinear product-degree bound (the character product
+    is *not* a clean shift, unlike the binary Walsh case, so the collection works in the multilinear basis);
+  * `charCoef` / `collectΩ` / `omega_boosting_le` — the boosting bound: a degree-`d` `q`-ary character polynomial
+    agreeing with the full product on `G` forces `|G| ≤ Σ_{i ≤ n/2+d} C(n,i)`.  The general-`MOD_q` analogue of the
+    parity bound `WalshSpan.boosting_surjection_sharp`.
+
+**What remains (honestly fenced):** the *concrete field extension* — instantiate `ω` as a primitive `q`-th root in
+`𝔽_{p^ℓ}` with `q ∣ p^ℓ − 1`, lift the AC⁰[p] approximator into it, and feed `modq_indicator_eq` + `omega_boosting_le`
+into the circuit lower bound.  The boosting machinery is done; the extension instantiation is the last step.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.ModQReduction
@@ -139,6 +149,20 @@ theorem mlConv_support {F : Type*} [CommRing F] {n a b : ℕ} (c c' : Finset (Fi
   · have hcard : U.card ≤ p.1.card + p.2.card := by
       rw [← hp.2]; exact Finset.card_union_le p.1 p.2
     rw [hc' p.2 (by omega), mul_zero]
+
+/-- `Multilinear.eval` is linear in the coefficient vector: it commutes with finite sums. -/
+theorem eval_sum {F : Type*} [CommRing F] {n : ℕ} {ι : Type*} (s : Finset ι)
+    (f : ι → Finset (Fin n) → F) (x : Fin n → Bool) :
+    Multilinear.eval (∑ i ∈ s, f i) x = ∑ i ∈ s, Multilinear.eval (f i) x := by
+  simp only [Multilinear.eval, Finset.sum_apply]
+  simp_rw [Finset.sum_mul]
+  rw [Finset.sum_comm]
+
+/-- `Multilinear.eval` is linear in the coefficient vector: it commutes with scalar multiplication. -/
+theorem eval_smul {F : Type*} [CommRing F] {n : ℕ} (a : F) (c : Finset (Fin n) → F) (x : Fin n → Bool) :
+    Multilinear.eval (a • c) x = a * Multilinear.eval c x := by
+  simp only [Multilinear.eval, Pi.smul_apply, smul_eq_mul, Finset.mul_sum]
+  exact Finset.sum_congr rfl (fun S _ => by ring)
 
 /-! ### The `q`-ary character span (the analogue of `WalshSpan.evalW_surjective`). -/
 
@@ -278,6 +302,99 @@ theorem omegaFn_high_eq_eval_on_G (ω : F) {q : ℕ} (hq1 : 1 ≤ q) (hq : ω ^ 
       (mlConv (Mω ω aCoef) (fun T => if T ⊆ Sᶜ then (ω ^ (q - 1) - 1) ^ T.card else 0)) b := by
   rw [omegaFn_fold_on_G ω hq1 hq aCoef b hb S, evalΩ_eq_eval0_M, omegaFn_eq_eval, eval_mul]
 
+/-! ### The `q`-ary boosting bound (the analogue of `WalshSpan.boosting_surjection_sharp`). -/
+
+/-- The per-character multilinear coefficient vector: low characters (`|S| ≤ n/2`) use their own degree-`|S|`
+representation; high characters use the folded degree-`≤ d + |Sᶜ|` one. -/
+noncomputable def charCoef (ω : F) (q : ℕ) (aCoef : Finset (Fin n) → F) (S : Finset (Fin n)) :
+    Finset (Fin n) → F :=
+  if S.card ≤ n / 2 then (fun U => if U ⊆ S then (ω - 1) ^ U.card else 0)
+  else mlConv (Mω ω aCoef) (fun T => if T ⊆ Sᶜ then (ω ^ (q - 1) - 1) ^ T.card else 0)
+
+/-- On the agreement set, `charCoef`'s multilinear polynomial equals the character (`omegaFn_eq_eval` /
+`omegaFn_high_eq_eval_on_G`). -/
+theorem charCoef_eval_on_G (ω : F) {q : ℕ} (hq1 : 1 ≤ q) (hq : ω ^ q = 1)
+    (aCoef : Finset (Fin n) → F) (b : Fin n → Bool)
+    (hb : evalΩ ω aCoef b = omegaFn ω Finset.univ b) (S : Finset (Fin n)) :
+    Multilinear.eval (charCoef ω q aCoef S) b = omegaFn ω S b := by
+  rw [charCoef]
+  split_ifs with h
+  · exact (omegaFn_eq_eval ω S b).symm
+  · exact (omegaFn_high_eq_eval_on_G ω hq1 hq aCoef b hb S).symm
+
+/-- `charCoef` is supported on `|U| ≤ n/2 + d`: low characters have degree `≤ |S| ≤ n/2`, high characters degree
+`≤ d + |Sᶜ| ≤ n/2 + d` (`mlConv_support` + `Mω_support`, with `|Sᶜ| ≤ n/2` when `|S| > n/2`). -/
+theorem charCoef_support {q d : ℕ} (ω : F) (aCoef : Finset (Fin n) → F)
+    (hd : ∀ S, d < S.card → aCoef S = 0) (S U : Finset (Fin n)) (hU : n / 2 + d < U.card) :
+    charCoef ω q aCoef S U = 0 := by
+  rw [charCoef]
+  split_ifs with h
+  · have hUS : ¬ U ⊆ S := fun hUS => by have := Finset.card_le_card hUS; omega
+    show (if U ⊆ S then (ω - 1) ^ U.card else 0) = 0
+    rw [if_neg hUS]
+  · have hSc : Sᶜ.card = n - S.card := by rw [Finset.card_compl, Fintype.card_fin]
+    refine mlConv_support (a := d) (b := Sᶜ.card) _ _ (fun T hT => Mω_support ω aCoef hd T hT)
+      (fun T hT => ?_) U (by omega)
+    have hTSc : ¬ T ⊆ Sᶜ := fun hTSc => by have := Finset.card_le_card hTSc; omega
+    rw [if_neg hTSc]
+
+/-- The collected coefficient vector: `Σ_S c S • charCoef S` — a single degree-`≤ n/2 + d` multilinear vector. -/
+noncomputable def collectΩ (ω : F) (q : ℕ) (aCoef c : Finset (Fin n) → F) : Finset (Fin n) → F :=
+  ∑ S, c S • charCoef ω q aCoef S
+
+/-- **The collection agrees with the character polynomial on `G`.**  `eval (collectΩ ω q aCoef c) = evalΩ ω c`
+on the agreement set — by linearity of `eval` and `charCoef_eval_on_G` per character. -/
+theorem evalΩ_collectΩ_on_G (ω : F) {q : ℕ} (hq1 : 1 ≤ q) (hq : ω ^ q = 1)
+    (aCoef c : Finset (Fin n) → F) (b : Fin n → Bool)
+    (hb : evalΩ ω aCoef b = omegaFn ω Finset.univ b) :
+    Multilinear.eval (collectΩ ω q aCoef c) b = evalΩ ω c b := by
+  rw [collectΩ, eval_sum, evalΩ]
+  refine Finset.sum_congr rfl (fun S _ => ?_)
+  rw [eval_smul, charCoef_eval_on_G ω hq1 hq aCoef b hb S]
+
+/-- `collectΩ` is supported on `|U| ≤ n/2 + d` (each `charCoef` is). -/
+theorem collectΩ_support {q d : ℕ} (ω : F) (aCoef c : Finset (Fin n) → F)
+    (hd : ∀ S, d < S.card → aCoef S = 0) (U : Finset (Fin n)) (hU : n / 2 + d < U.card) :
+    collectΩ ω q aCoef c U = 0 := by
+  rw [collectΩ]
+  simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+  refine Finset.sum_eq_zero (fun S _ => ?_)
+  rw [charCoef_support ω aCoef hd S U hU, mul_zero]
+
+/-- **The `q`-ary boosting bound (the analogue of `WalshSpan.boosting_surjection_sharp`).**  If a degree-`d`
+`q`-ary character polynomial agrees with the full product `omegaFn ω univ` on `G ⊆ {0,1}ⁿ` (`ω` a primitive
+`q`-th root, `q ≥ 2`), then `|G| ≤ Σ_{i ≤ n/2+d} C(n,i)`.  Proof: `collectΩ` realises every function on `G` by a
+degree-`≤ n/2+d` multilinear polynomial (`evalΩ_collectΩ_on_G` + `collectΩ_support`), giving a surjection from the
+degree-`≤ n/2+d` coefficient space onto `G → 𝔽`; `dimension_argument_sharp` bounds `|G|`.  This is the general
+`MOD_q` analogue of the parity bound `boosting_surjection_sharp`. -/
+theorem omega_boosting_le [Fintype F] [DecidableEq F] {q d : ℕ} (ω : F) (hω : orderOf ω = q) (hq2 : 2 ≤ q)
+    (aCoef : Finset (Fin n) → F) (hd : ∀ S, d < S.card → aCoef S = 0)
+    (G : Finset (Fin n → Bool)) (hG : ∀ b ∈ G, evalΩ ω aCoef b = omegaFn ω Finset.univ b) :
+    G.card ≤ ∑ i ∈ Finset.range (n / 2 + d + 1), n.choose i := by
+  have hq : ω ^ q = 1 := by rw [← hω]; exact pow_orderOf_eq_one ω
+  have hω1 : ω ≠ 1 := by intro h; rw [h, orderOf_one] at hω; omega
+  have hsurj : Function.Surjective
+      (fun (dCoef : {U : Finset (Fin n) // U.card ≤ n / 2 + d} → F) (b : {b : Fin n → Bool // b ∈ G}) =>
+        Multilinear.eval (fun U => if h : U.card ≤ n / 2 + d then dCoef ⟨U, h⟩ else 0) b.1) := by
+    intro g
+    obtain ⟨c, hc⟩ := evalΩ_surjective ω hω1 (fun b => if hb : b ∈ G then g ⟨b, hb⟩ else 0)
+    refine ⟨fun Usub => collectΩ ω q aCoef c Usub.1, ?_⟩
+    funext b
+    have hext : (fun U => if _h : U.card ≤ n / 2 + d then collectΩ ω q aCoef c U else 0)
+              = collectΩ ω q aCoef c := by
+      funext U
+      by_cases hUm : U.card ≤ n / 2 + d
+      · rw [dif_pos hUm]
+      · rw [dif_neg hUm]
+        exact (collectΩ_support ω aCoef c hd U (by omega)).symm
+    show Multilinear.eval (fun U => if _h : U.card ≤ n / 2 + d then collectΩ ω q aCoef c U else 0) b.1 = g b
+    rw [hext, evalΩ_collectΩ_on_G ω (by omega) hq aCoef c b.1 (hG b.1 b.2), hc]
+    show (if hb : b.1 ∈ G then g ⟨b.1, hb⟩ else (0 : F)) = g b
+    rw [dif_pos b.2]
+  have hkey := RazborovSmolensky.dimension_argument_sharp (F := F) (m := n / 2 + d)
+    (Fintype.one_lt_card (α := F)) _ hsurj
+  rwa [Fintype.card_coe] at hkey
+
 end PallLean.Paper93.DeepMath.PathB.ModQReduction
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.omegaFn_fold_on_G
@@ -287,3 +404,4 @@ end PallLean.Paper93.DeepMath.PathB.ModQReduction
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.omegaProd_eq_sum_mono
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.rootsOfUnity_filter
 #print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.modq_indicator_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.ModQReduction.omega_boosting_le
