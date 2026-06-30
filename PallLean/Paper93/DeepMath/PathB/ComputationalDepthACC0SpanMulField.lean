@@ -21,7 +21,7 @@ remains the barrier).
 namespace PallLean.Paper93.DeepMath.PathB.ACC0ModFieldExact
 
 open MvPolynomial
-open PallLean.Paper93.DeepMath.PathB.Layer4 (sqfEval sqfEval_mul)
+open PallLean.Paper93.DeepMath.PathB.Layer4 (sqfEval sqfEval_mul sqfEval_empty)
 open PallLean.Paper93.DeepMath.PathB.Layer3 (lowDegMonomials)
 
 variable {n : ℕ} {F : Type*} [Field F]
@@ -51,7 +51,31 @@ theorem sqf_mul_mem_span {D E : ℕ} {f g : (Fin n → Bool) → F}
     f * g ∈ Submodule.span F (sqfGens F n (D + E)) :=
   sqfSpan_mul_le D E (Submodule.mul_mem_mul hf hg)
 
+/-- **The constant `1` is a degree-`0` span element (proved).**  `1 = sqfEval ∅`, and `∅` is a degree-`≤0`
+monomial. -/
+theorem one_mem_sqfSpan : (1 : (Fin n → Bool) → F) ∈ Submodule.span F (sqfGens F n 0) := by
+  rw [← sqfEval_empty F]
+  apply Submodule.subset_span
+  refine ⟨⟨∅, ?_⟩, rfl⟩
+  simp [lowDegMonomials]
+
+/-- **Bounded-fan-in `AND` composition (proved).**  A finite product of monomial-`AND` span elements, each of
+degree `≤ D i`, lies in the span of degree `≤ ∑ D i`: `∏_{i∈s} gᵢ ∈ span(deg ≤ ∑_{i∈s} D i)`.  This is the `AND`
+gate of arbitrary (bounded) fan-in for the `SYM∘AND` bottom layer over `F_{p^k}` — the depth recurrence's
+multiplicative step, with degree summing over the children. -/
+theorem sqf_prod_mem_span {ι : Type*} (g : ι → (Fin n → Bool) → F) (D : ι → ℕ) (s : Finset ι)
+    (hg : ∀ i ∈ s, g i ∈ Submodule.span F (sqfGens F n (D i))) :
+    (∏ i ∈ s, g i) ∈ Submodule.span F (sqfGens F n (∑ i ∈ s, D i)) := by
+  classical
+  induction s using Finset.induction with
+  | empty => simpa using one_mem_sqfSpan
+  | insert a s ha ih =>
+    rw [Finset.prod_insert ha, Finset.sum_insert ha]
+    exact sqf_mul_mem_span (hg a (Finset.mem_insert_self a s))
+      (ih (fun i hi => hg i (Finset.mem_insert_of_mem hi)))
+
 end PallLean.Paper93.DeepMath.PathB.ACC0ModFieldExact
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0ModFieldExact.sqfSpan_mul_le
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0ModFieldExact.sqf_mul_mem_span
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0ModFieldExact.sqf_prod_mem_span
