@@ -183,9 +183,36 @@ theorem simDecider_complement_runCost_unconditional (m : Mem) (acc V W : ℕ)
   obtain ⟨hkacc, hkmem⟩ := simDecider_complement_values_le m acc V hmode hbase hmem hacc k (by omega)
   exact simDecider_widthBounded_of_value_le _ V W hkacc hkmem hVW hW
 
+/-- **The diagonal decider runs with polynomial bit-cost per step (unconditional).**  For *either* dispatch
+(`mode = 0` copy or `mode ≠ 0` complement), `simDecider` halts within its branch's exact step count and the total
+bit-cost is `≤ 17·(m 10 + 1)·(3W + 1)` — i.e. `O(steps · W)`, with `W` accommodating the values.  This unifies
+both branch bounds: the per-step cost is `O(W)` (polynomial in the bit-width) and the step count is `O(m 10)` (the
+clock budget); no width hypothesis is assumed.  This is the culmination of the RAM cost tower.
+
+**Honest ceiling.**  Polynomial bit-cost *per step* is exactly the resource accounting Williams' algorithm needs —
+but the next step, "this decider therefore lies in `NEXP`", is the named axiom `williams_decider_in_NEXP`, the
+genuine deep classical theorem.  Nothing here is `NEXP ⊄ ACC⁰`. -/
+theorem simDecider_runCost_poly (m : Mem) (acc V W : ℕ)
+    (hbase : 5 ≤ m 13) (hmem : ∀ x, m x ≤ V) (hacc : acc ≤ V)
+    (hp : m 13 + m 10 ≤ V) (hVW : bitlen V ≤ W) (hW : 6 ≤ W) :
+    runCost simDecider ⟨m, acc, 0, false⟩ (if m 11 = 0 then 10 + (17 * m 10 + 3) else 14)
+      ≤ 17 * (m 10 + 1) * (3 * W + 1) := by
+  by_cases hmode : m 11 = 0
+  · rw [if_pos hmode]
+    refine le_trans
+      (simDecider_copy_runCost_unconditional m acc V W hmode hbase hmem hacc hp hVW hW) ?_
+    gcongr
+    omega
+  · rw [if_neg hmode]
+    refine le_trans
+      (simDecider_complement_runCost_unconditional m acc V W hmode hbase hmem hacc hVW hW) ?_
+    gcongr
+    omega
+
 end PallLean.Paper93.DeepMath.PathB.RAM
 
 #print axioms PallLean.Paper93.DeepMath.PathB.RAM.simDecider_instrWidth
 #print axioms PallLean.Paper93.DeepMath.PathB.RAM.simLoop_values_le
 #print axioms PallLean.Paper93.DeepMath.PathB.RAM.simDecider_copy_runCost_unconditional
 #print axioms PallLean.Paper93.DeepMath.PathB.RAM.simDecider_complement_runCost_unconditional
+#print axioms PallLean.Paper93.DeepMath.PathB.RAM.simDecider_runCost_poly
