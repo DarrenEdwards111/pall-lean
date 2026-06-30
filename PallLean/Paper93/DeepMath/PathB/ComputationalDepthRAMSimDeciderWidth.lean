@@ -152,8 +152,40 @@ theorem simDecider_copy_runCost_unconditional (m : Mem) (acc V W : ℕ)
   obtain ⟨hkacc, hkmem⟩ := simDecider_copy_values_le m acc V hmode hbase hmem hacc hp k (by omega)
   exact simDecider_widthBounded_of_value_le _ V W hkacc hkmem hVW hW
 
+set_option maxHeartbeats 4000000 in
+/-- **The complement-branch value bound** (`mode ≠ 0`).  The 14-step complement run (10-step init+dispatch, then
+`constI 1; subI 12; storeI 3; haltI` producing `result = 1 − inp`) keeps the accumulator and every memory cell
+`≤ V`: all values touched (`m 10, m 13, m 11, 1, 1 − m 12`) are `≤ V`. -/
+theorem simDecider_complement_values_le (m : Mem) (acc V : ℕ)
+    (hmode : m 11 ≠ 0) (hbase : 5 ≤ m 13) (hmem : ∀ x, m x ≤ V) (hacc : acc ≤ V) :
+    ∀ k, k ≤ 14 → (run simDecider ⟨m, acc, 0, false⟩ k).acc ≤ V
+        ∧ ∀ x, (run simDecider ⟨m, acc, 0, false⟩ k).mem x ≤ V := by
+  have hm10 := hmem 10
+  have hm11 := hmem 11
+  have hm12 := hmem 12
+  have hm13 := hmem 13
+  intro k hk
+  interval_cases k <;> refine ⟨?_, ?_⟩ <;>
+    first
+      | (intro x
+         simp [run, step, simDecider, hmode, Mem.set]
+         first | exact hmem _ | omega | (split_ifs <;> first | exact hmem _ | omega))
+      | (simp [run, step, simDecider, hmode, Mem.set] <;> omega)
+
+/-- **Unconditional poly bit-cost of the complement decider.**  The exact `14`-step complement run costs
+`≤ 14·(3W+1)` bits with **no** width hypothesis — only that `W` accommodates the initial cells. -/
+theorem simDecider_complement_runCost_unconditional (m : Mem) (acc V W : ℕ)
+    (hmode : m 11 ≠ 0) (hbase : 5 ≤ m 13) (hmem : ∀ x, m x ≤ V) (hacc : acc ≤ V)
+    (hVW : bitlen V ≤ W) (hW : 6 ≤ W) :
+    runCost simDecider ⟨m, acc, 0, false⟩ 14 ≤ 14 * (3 * W + 1) := by
+  apply runCost_width_le
+  intro k hk
+  obtain ⟨hkacc, hkmem⟩ := simDecider_complement_values_le m acc V hmode hbase hmem hacc k (by omega)
+  exact simDecider_widthBounded_of_value_le _ V W hkacc hkmem hVW hW
+
 end PallLean.Paper93.DeepMath.PathB.RAM
 
 #print axioms PallLean.Paper93.DeepMath.PathB.RAM.simDecider_instrWidth
 #print axioms PallLean.Paper93.DeepMath.PathB.RAM.simLoop_values_le
 #print axioms PallLean.Paper93.DeepMath.PathB.RAM.simDecider_copy_runCost_unconditional
+#print axioms PallLean.Paper93.DeepMath.PathB.RAM.simDecider_complement_runCost_unconditional
