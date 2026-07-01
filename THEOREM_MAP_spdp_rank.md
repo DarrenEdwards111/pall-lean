@@ -130,8 +130,26 @@ are in the block `B = range e` and fixes `1`/`0` on/off the diagonal outside:
 
 So the correct N-Frame object is `BoundarySPDP` over *admissible* boundaries, under which the hardest object we have (the
 `VNP`-complete permanent) is robust — exactly the structure a hardness-aimed invariant needs, and what *destructive*
-boundaries destroy.  Making a hard target admissibly-robust *and* proving its SPDP rank stays high under every admissible
-boundary is the barriered `A3` hard-survival.
+boundaries destroy.
+
+### C4 — the `A3` rank lower bound over the block family
+
+`ComputationalDepthBlockPermRankLB.lean` supplies the quantitative half — a genuine SPDP-rank *lower* bound for the
+restricted permanent, **uniform over the whole admissible block family**:
+  `spdpRank_subPermPoly_flat_ge` — for every embedding `e : Fin k ↪ Fin n`, the (flattened) block permanent
+        `subPermPoly e` has `spdpRank 1 0 ≥ k²`.
+  `spdpRank_renamePerm_ge` — the abstract core: for any injective relabelling `ψ`, `spdpRank 1 0 (rename ψ Permₖ) ≥ k²`.
+Mechanism: `pderiv_permPoly` — the permanent's `k²` first partials are the minors `∂_{(a,b)} Permₖ = minorₐᵦ`;
+`minorPoly_support_key` — every monomial of `minorₐᵦ` uses row-set `univ.erase a` and col-set `univ.erase b`, so distinct
+`(a,b)` give pairwise-disjoint supports; `linearIndependent_of_key` (reusable) — disjoint supports ⟹ linear independence;
+hence the order-`1` SPDP subspace has dimension `≥ k²`.  Uniform over `e` because `subPermPoly e = rename ψₑ Permₖ` and
+injective renaming preserves derivatives (`pderiv_rename`) and independence (`rename_injective`).
+
+This is `k²` (from `κ = 1`); the exponential `κ = k/2` bound `C(k,κ)²` (iterated derivatives → complementary
+sub-permanents, same disjoint-support argument) is the natural extension.  Crucially this is the *easy* side: a large
+lower bound on a *hard* polynomial's rank does **not** separate classes.  Making a hard target admissibly-robust *and*
+matching it with the *upper* bound (small circuits ⟹ small rank) is the barriered `A3`/wall — the lower bound here is
+real and uniform, the upper bound is the open problem.
 
 ---
 
