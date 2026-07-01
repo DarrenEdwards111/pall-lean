@@ -283,7 +283,26 @@ composite `MOD_m` the arithmetisation has large (quasi-poly) degree, so `deg P �
 function's linear N-Frame complexity.  `symSumProd_degree_lb_of_modq` pins this: representing `MOD_q` as `SYM∘∑∏` forces
 `deg P · m · t ≥ ⌈n/2⌉` — the composite-MOD cost is *exactly* the `deg P` factor.  So the low side does extend to full
 `ACC⁰`, but not to a *small* bound — because `MOD_q ∈ ACC⁰` has high N-Frame complexity (C11).  This is the quantitative
-anatomy of the composite-MOD barrier, not a crossing of it.  Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
+anatomy of the composite-MOD barrier, not a crossing of it.  `deg P` itself is bounded in C13.  Not `NEXP ⊄ ACC⁰`, not
+`P ≠ NP`.
+
+### C13 — bounding `deg P` for the composite-MOD gate
+
+`ComputationalDepthNFrameSymDegree.lean` (namespace `NFrameACC0`).  A composite-`MOD` gate is *symmetric* — a function of
+the *sum* of the `s` products it reads, so `g : {0,…,s} → F`.  Over a field where the `s+1` nodes `0,…,s` are distinct
+(`char 0` or `char > s`), Lagrange interpolation bounds the arithmetisation degree by the fan-in:
+  `natDegree_symGateArith_le` — `deg (symGateArith g) ≤ N` (`symGateArith g = Lagrange.interpolate` on nodes `0,…,N`).
+  `eval_symGateArith` — the arithmetisation agrees with the gate on `{0,…,N}`.
+  `natDegree_modmGate_arith_le` — the concrete `MOD_m` gate: `deg ≤ N`.
+  `modq_BTsize_lb` — feeding `deg P ≤ s` into C12: if `MOD_q = P(∑∏Q)` with `P` a symmetric gate of fan-in `≤ s`, then
+        `s · m · t ≥ ⌈n/2⌉` — a size lower bound in the raw circuit parameters (`s` products, `m` factors, degree `t`).
+
+**The composite-MOD subtlety, kept honest.**  `deg P ≤ s` needs the `s+1` nodes distinct (`char > s`).  Over `F_p` with
+`p ≤ s` they wrap, and every function `F_p → F_p` is degree `≤ p−1` — but a genuine composite `MOD_m` (`m` coprime to
+`p`) is then *not* a function of `∑ mod p`, so no low-degree `P(∑∏)` over `F_p` represents it.  That missing
+arithmetisation *is* the composite-MOD barrier; C13 bounds `deg P` exactly in the regime where the gate is a low-degree
+symmetric polynomial (`char > s`), and marks the small-characteristic composite case as the standing barrier.  Not
+`NEXP ⊄ ACC⁰`, not `P ≠ NP`.
 
 ---
 
