@@ -446,6 +446,20 @@ monomial-`AND` to the full BT shape: an arbitrary `SYM∘AND` circuit bounded by
   This pins the barrier's real location: **not** a single `MOD` gate (discharged here for any modulus), but the
         composition of *different-modulus* `MOD` gates across depth `> 2` — the standing open rung.
 
+**Discharged: the depth-3 `MOD∘MOD∘AND` instance** — `ComputationalDepthNFrameYBTDepth3.lean`.
+  `Depth3Circuit n size sizeMid` — `MOD_{topMod}` over `m ≤ size` depth-2 `ModAndCircuit` middle gates;
+        `Depth3Circuit.eval = [#(accepting middle gates) ≡ topRes mod topMod]`.
+  `depth3_ybtCompiler` — **proved `YBTCompiler` (`exact := rfl`)**: the top `MOD` is the symmetric observer over the
+        *middle-gate count*.  `depth3_fastSATModel` / `depth3_fastSATSpeedup` follow.  `mkPrimePowerDepth3` — the
+        prime-power-top `MOD_{p^e}∘MOD∘AND` case.
+  **Honest scope (important)**: in the count-cell observer model the arithmetisation does *not* fire at depth 3 — a `MOD`
+        gate is symmetric over the layer *directly below*, so `MOD∘(middle)` is observed by the middle-gate count for
+        *any* top modulus.  The prime-power arithmetisation is load-bearing *one layer down*: to reach a true quasipoly
+        `SYM∘AND` the cell count must be over the **bottom `AND`s**, which requires flattening the middle `MOD_b∘AND` into
+        a low-degree monomial-`AND` family (`MOD_p∘AND = 1−(∑AND)^{p−1}`, C15's Fermat form) — dischargeable for
+        prime-power matched to `char`, open (C14–C16) for a middle modulus coprime to `char`.  So the composite barrier
+        is localised to the **middle-layer flattening**, not the top gate.
+
 This bypasses the `MOD_6` wall because the claim is *algorithmic* (fast #SAT via a compact representation), not
 "`MOD_6` is hard over a field" — so the C15/C16 obstruction does not apply.  Honest scope: the deep content
 (easy-witness/IKW collapse, nondeterministic time hierarchy) are named classical sockets, **not** proved here; building
