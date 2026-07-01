@@ -671,3 +671,17 @@ NFrameSeparation), hard side = MOD_q approx degree Ω(√n) (repo `nframeComplex
 HONEST: this is the EXACT (G=univ) AC⁰-level bound, transported cleanly. The ACC⁰[p] separation needs the APPROXIMATE
 version (agreement on (1−ε)·2ⁿ fraction) = repo probabilistic-degree easy side + MOD_q Ω(√n) approx-degree hard side (the
 standing RS work; framework now consumes them). Not `NEXP⊄ACC⁰`, not `P≠NP`.
+
+### Part E rung — exact→approximate: parity has high APPROXIMATE degree (via repo Smolensky)
+
+`ComputationalDepthCubeApproxSmolensky.lean` strengthens the exact (G=univ) bound to the genuine RS approximate one.
+  `chiUniv p = ∏ᵢ pmOne(xᵢ)` (±1 parity character as cube fn); `boolFn_prod_eq_cubeMonomial/add/smul` (boolFn linear,
+        monomials→cubeMonomial).
+  **`lowDegSpan_repr`** — every `g ∈ lowDegSpan Δ` is `boolFn q` for `q.totalDegree ≤ Δ` (Submodule.span_induction). The
+        bridge from cube approximation space to MvPolynomial degree.
+  **`not_lowApproxDeg_chiUniv`** — over ZMod p (p odd prime), NO degree-≤Δ poly agrees with parity on a ≥3/4 set G when
+        `16Δ²<2m+3` ⇒ parity approx degree Ω(√m). Discharged via repo `Layer3.smolensky_contradiction` (the proved
+        dimension argument), NOT re-derived. `boolFn q x = eval(boolToZMod) q` by rfl connects the frameworks.
+RS HARD SIDE in the cube measure's language (approximate, agreement on a fraction, not just everywhere). Full PARITY∉AC⁰[p]
+also needs the easy side (repo `toAgree_totalDegree_le`, `exists_large_agreement_set`, `parity_function_lower_bound`).
+Not `NEXP⊄ACC⁰`, not `P≠NP`.
