@@ -471,6 +471,15 @@ Discharges that middle-layer flattening for prime-power (char-matching), extendi
   Forks at the modulus: the Fermat step needs `[∑=0 in F] = [count ≡ 0 mod p]` (modulus = char `p`); a coprime middle
         modulus gives `count mod p ≠ count mod b` (C14/C15/C16), the flattening fails — the standing composite barrier.
 
+**The composite case — no low-degree flattening (proved)** — `ComputationalDepthNFrameCompositeFlatten.lean`.
+  `composite_middle_no_lowdeg_flatten` — a coprime `MOD_q` gate (`omegaFn`, order-`q` root, `char ≠ q`) is **not** `boolFn p`
+        for *any* `p` of total degree `< ⌈n/2⌉`.  It has `NFrameComplexity ≥ ⌈n/2⌉` (C11), while any degree-`<⌈n/2⌉`
+        flattening has `NFrameComplexity < ⌈n/2⌉` (C10) — contradiction.  **No low-degree flattening exists.**
+  `composite_flatten_fork` — the fork in one measure: prime-power (`char`-matching) flattens (`≤ (|F|−1)·D`, LOW);
+        composite/coprime is `≥ ⌈n/2⌉` (HIGH) — irreconcilable exactly in the low-degree regime the fast-SAT needs.
+  This does **not** compile a composite-`MOD` circuit — it proves the low-degree route *cannot*.  Every technique in the
+        repo (polynomial and algorithmic) reaches this same obstruction; `MOD_6` / `ACC⁰[6]` stays open, not fakeable.
+
 This bypasses the `MOD_6` wall because the claim is *algorithmic* (fast #SAT via a compact representation), not
 "`MOD_6` is hard over a field" — so the C15/C16 obstruction does not apply.  Honest scope: the deep content
 (easy-witness/IKW collapse, nondeterministic time hierarchy) are named classical sockets, **not** proved here; building
