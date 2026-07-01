@@ -249,7 +249,25 @@ the RS lower bound (`parity_function_lower_bound`, effective-dim deficit) is sta
 
 So the C8 normal form has **low N-Frame complexity** on the cube.  Combined with a hard function's *high* N-Frame
 complexity (the repo's RS layer), this is the honest, cube-correct separation route: my `∑∏` upper-bound arc now feeds
-the existing RS lower-bound layer *through the right (cube-invariant) measure*.  Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
+the existing RS lower-bound layer *through the right (cube-invariant) measure*.  Closed in C11.  Not `NEXP ⊄ ACC⁰`, not
+`P ≠ NP`.
+
+### C11 — separation closed: `MOD_q` is not a shallow `∑∏` on the cube
+
+`ComputationalDepthNFrameSeparation.lean` (namespace `NFrameACC0`) meets the two cube-invariant sides:
+* **Low (C10)** `nframeComplexity_boolFn_sumProd_le` — shallow `∑∏` ⟹ `NFrameComplexity (boolFn ∑∏Q) ≤ m·t`.
+* **High (repo)** `nframeComplexity_omegaFn_univ_ge` — `MOD_q` (`omegaFn ω univ`, `ω` primitive `q`-th root over `F`) has
+  `NFrameComplexity ≥ n − n/2 = ⌈n/2⌉`.
+Combined:
+  `hard_not_shallow_sumProd` — any `h` with `m·t < NFrameComplexity F h` satisfies `h ≠ boolFn (∑_{i<s} ∏_{j<m} Q_{ij})`.
+  `modq_not_shallow_sumProd` — for `m·t < ⌈n/2⌉`, `MOD_q` is **not** computed on the cube by any shallow `∑∏` of
+        degree-`≤t` factors.
+
+The two-sided N-Frame skeleton is closed for the `∑∏` (Beigel–Tarui inner-layer) model, using only the *cube-invariant*
+measure C9 identified as the right one.  Honest scope: `MOD_q` over `char ≠ q` (Smolensky regime); separation is against
+*exact* cube-computation by shallow `∑∏`, `m·t < ⌈n/2⌉`; **not** full `ACC⁰` (the `SYM`/composite-`MOD` outer layer +
+unbounded depth remain the barrier), and exact `∑∏`-representation is stronger than `AC⁰[p]` membership.  Not
+`NEXP ⊄ ACC⁰`, not `P ≠ NP`.
 
 ---
 
