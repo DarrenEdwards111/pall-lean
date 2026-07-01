@@ -460,6 +460,17 @@ monomial-`AND` to the full BT shape: an arbitrary `SYM∘AND` circuit bounded by
         prime-power matched to `char`, open (C14–C16) for a middle modulus coprime to `char`.  So the composite barrier
         is localised to the **middle-layer flattening**, not the top gate.
 
+**The prime-power flattening, fired** — `ComputationalDepthNFrameModpAndFlatten.lean` (namespace `NFrameACC0`).
+Discharges that middle-layer flattening for prime-power (char-matching), extending C15 from inputs to `AND` gates.
+  `evalMonomial_eq_monoAND` — an `AND` gate `monoAND S` equals its monomial `∏_{i∈S}Xᵢ`'s cube-evaluation.
+  `charModAndFn_eq_boolFn` — **fired (proved)**: on the cube `[#(accepting AND gates) ≡ 0 mod p] =
+        boolFn(1 − (∑_j∏_{i∈S_j}Xᵢ)^{|F|−1})` (Fermat over `F`, char `p`) — `MOD_p∘AND` *is* an exact low-degree
+        monomial-`AND` polynomial.
+  `totalDegree_charModAndPoly_le` / `nframeComplexity_charModAndFn_le` — degree `≤ (|F|−1)·D`, so
+        `NFrameComplexity (MOD_p∘AND) ≤ (|F|−1)·D` (LOW, cube-invariant) — the middle-layer object the depth-3 rung needed.
+  Forks at the modulus: the Fermat step needs `[∑=0 in F] = [count ≡ 0 mod p]` (modulus = char `p`); a coprime middle
+        modulus gives `count mod p ≠ count mod b` (C14/C15/C16), the flattening fails — the standing composite barrier.
+
 This bypasses the `MOD_6` wall because the claim is *algorithmic* (fast #SAT via a compact representation), not
 "`MOD_6` is hard over a field" — so the C15/C16 obstruction does not apply.  Honest scope: the deep content
 (easy-witness/IKW collapse, nondeterministic time hierarchy) are named classical sockets, **not** proved here; building
