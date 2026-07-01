@@ -614,3 +614,17 @@ function (the classically-easy direction; composite MOD_q stays behind the F_2/F
         bound, the global separator FIRING on a concrete function.
 Real RESTRICTED separation (parity ∉ shallow ∑∏ of <n/2^D terms, classically easy). NOT MOD_q∉ACC⁰ (needs SYM top +
 composite-MOD discharge). Not `NEXP⊄ACC⁰`, not `P≠NP`.
+
+### Part E rung — MOD_q instance of GlobalRobust: MOD_q ∉ small ∑∏ + the sharp SYM/ACC⁰ wall
+
+`ComputationalDepthCubeModQSeparation.lean` discharges `GlobalRobust` for MOD_q and draws the exact line where it stops.
+  `cubeCount`, `modQFn q x = [#(true bits) ≡ 0 mod q]` (valued in F).
+  `restrictB_dictatorB_modQFn` — dictator boundary collapses to weight-0/1: `restrictB (dictatorB i) MOD_q = fun x => if
+        xᵢ then 0 else 1` (MOD_q differs at weight 0 vs 1: g(0)=1, g(1)=0 for q≥2).
+  `cubeDeriv_notX_eq` — `Δᵢ(that) = −dict i`; `dict_mem_globalCubeSpan_modQ` — so `dict i` ∈ MOD_q's global span.
+  **`n_le_globalCubeRank_modQFn`** — `n ≤ globalCubeRank dictatorFamily 1 (MOD_q)` (GlobalRobust discharged, same dict LI).
+  **`modQFn_ne_boolFn_sumProd_of_fanin`** — `MOD_q ≠ boolFn(∑∏)` when `m·2^D < n`.
+SHARP WALL: this is MOD_q ∉ small PLAIN ∑∏ (depth-2), the classically-easy statement — NOT MOD_q∉ACC⁰. ACC⁰=SYM∘∑∏
+(Beigel–Tarui); (1) the criterion bounds only plain ∑∏ (SYM top not linear in the features), (2) dictator family is
+weight-0/1-blind (SYM reshapes the whole weight profile, composite count lives across all residues). Lifting to SYM∘∑∏ =
+the F_2/F_3 composite wall (`…CompositeCRT`), P≠NP-strength, NOT built, NOT fakeable. Not `NEXP⊄ACC⁰`, not `P≠NP`.
