@@ -60,6 +60,51 @@ differentiation vanishes**:
 
 ---
 
+## Part C — dynamic / observer-boundary invariants (fixing raw rank's flaw)
+
+Raw `spdpRank` is exponential even for the *easy* `∏Xᵢ` (Part B1), so it does not track hardness.  This part tests
+*dynamic* / *restriction-based* refinements.  Key fact throughout: `MOD_q`'s multilinear polynomial is itself an
+**affine product** `∏ᵢ(1 + (ω-1)Xᵢ)` (`ComputationalDepthSPDPRestricted.lean`), so it has the *same* exponential raw
+rank as `∏Xᵢ` — the two can only be told apart by a *finer* measure.
+
+### C0 — two proved no-gos on accumulation measures
+
+`ComputationalDepthSPDPDynamic.lean` — `spdpRank_add_le` (the genuine `+`-gate subadditivity), and
+  `fullProd_dynamicTraceCost_ge`: "max `spdpRank` across a construction trace" is `≥ C(n,κ)` for `∏Xᵢ` (the final
+  state is in the trace) — the max-rank dynamic cost **cannot** make `∏Xᵢ` cheap.
+`ComputationalDepthSPDPIncremental.lean` — `fullProd_incrementalSum_ge` (per-step increments telescope to `C(n,κ)`)
+  and `fullProd_length_mul_maxInc_ge` (bounded increments force super-poly trace length).  Per-step incremental rank
+  **also** fails.  ⇒ no rank-*accumulation* measure escapes the exponential final rank.
+`ComputationalDepthPcrankTest.lean` — the existing communication `pcrank`: `crank_and_le_two` (`∏Xᵢ` rank `≤ 2`) and
+  `crank_modq_le` (`MOD_q` rank `≤ q`) — `pcrank` makes **both low**, failing to separate (`MOD_q` factors across a
+  cut, easy for communication though hard for `AC⁰`).
+
+### C1 — the restriction / observer-boundary invariant (the one that separates)
+
+`ComputationalDepthSPDPRestricted.lean` — qualitative: `fullProd_restrict_zero` (`∏Xᵢ` killable by `Xⱼ:=0`) vs
+  `modqPoly_restrict_ne_zero` (`MOD_q`'s affine factors never vanish at `0/1`, so it is never killed).
+
+Quantitative engine — `ComputationalDepthAffinePderiv.lean`:
+`pderiv_aeval_aff` — **the pderiv-under-affine chain rule `pderiv i (aeval(1+cX) p) = C c · aeval(1+cX)(pderiv i p)`,
+  which Mathlib lacks** — plus `iterDerivList_aeval_aff` and `aeval_aff_injective` (`φ = aeval(1+cX)` an automorphism).
+`ComputationalDepthAffineProdBound.lean` — `spdpRank_affProd_choose_ge`: `spdpRank κ 0 (∏ᵢ(1+cXᵢ)) ≥ C(n,κ)` (`φ`
+  carries the linear independence from the monomials to the affine products).
+`ComputationalDepthObserverBoundary.lean` — the invariant:
+  `spdpRank_affProd_subset_ge` (visible-slice bound `≥ C(|s|,κ)`), `spdpRank_le_C_mul` (constant factors are free),
+  `spdpRank_restrictBoundary_modqPoly_ge` — **`MOD_q` is boundary-robust: `≥ (visible.card).choose κ`** across every
+  Boolean boundary; `fullProd_restrictBoundary_zero` — **`∏Xᵢ` is fragile (`= 0`)**.  So the observer-boundary
+  invariant separates `MOD_q` from `∏Xᵢ` quantitatively where raw rank and `pcrank` could not.
+
+### C2 — but it is NOT a hardness measure (proved on a hard target)
+
+`ComputationalDepthBoundaryHardFail.lean` — `permPoly_restrictRow_zero`: the **permanent** (`VNP`-complete) is killed
+  by fixing one row to `0` (`n²−n` variables still visible), because every monomial covers every row.  So a genuinely
+  hard target is boundary-**fragile** (`BoundarySPDP = 0`), *like the easy `∏Xᵢ`*.  The boundary invariant detects a
+  *nonvanishing-product structure* (which `MOD_q`'s affine product has), **not** computational hardness —
+  restriction-robustness ≠ hardness.  So it does not extend to hard targets and is not an `ACC⁰` route.
+
+---
+
 ## The wall (open / barriered — NOT crossed, NOT faked)
 
 All of Part B is for **concrete, easy** families (the full product; a sum of products with **disjoint** variable
@@ -74,3 +119,9 @@ hard (`A3` hard-survival).  That is barriered short of `P/poly`, audited as assu
 The honest arc of this direction: single monomial (`≥ C(n,κ)`, exponential) → sum of *disjoint* products (ranks add,
 determinant shape) → the *overlapping* determinant (the wall).  Each proved step is a genuine, from-scratch SPDP-rank
 lower bound; the last step is the open problem itself, and is left as such.
+
+Part C reaches the same wall from the *refinement* side: every accumulation measure inherits `∏Xᵢ`'s exponential rank
+(C0, proved), and the one measure that separates `MOD_q` from `∏Xᵢ` — restriction/boundary robustness (C1, proved) —
+separates by *nonvanishing-product structure*, not hardness, so it classifies the hard permanent as fragile (C2,
+proved).  Making a genuinely hard target boundary-robust *and* proving its rank stays high **is** the barriered `A3`
+hard-survival — the same wall.  Every step across both parts is proved; the wall is located, not crossed.
