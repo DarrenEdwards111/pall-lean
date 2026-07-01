@@ -111,13 +111,27 @@ structure survives it.
 ### C3 — the refinement: admissible (minor-preserving) boundaries
 
 A destructive boundary (zero a row) is not an admissible observer context — it destroys the witness/minor structure.
-Restricting to **admissible** boundaries repairs this:
-  `permPoly_restrictDiagonal_eq` / `permPoly_restrictDiagonal_ne_zero` — fixing the *off-diagonal* to `0` (an
-  admissible, diagonal/minor-preserving boundary) reduces the permanent to `∏ᵢ X_{i,i}` (a nonzero product of `n`
-  distinct variables, SPDP rank `≥ C(n,κ)`).  So the permanent *survives* admissible boundaries (`Permₙ ↦ scalar·Permₖ`,
-  here the `k=n` diagonal case).  The correct N-Frame object is `BoundarySPDP` over *admissible* boundaries; formalising
-  admissibility in general (and `Permₙ ↦ Permₖ` for `k<n`) is the next step toward a hardness-aimed invariant.  Making a
-  hard target admissibly-robust *and* proving its rank stays high is the barriered `A3` hard-survival.
+Restricting to **admissible** boundaries repairs this.  Warm-up (`ComputationalDepthBoundaryHardFail.lean`):
+  `permPoly_restrictDiagonal_eq` / `permPoly_restrictDiagonal_ne_zero` — fixing the *off-diagonal* to `0` reduces the
+  permanent to `∏ᵢ X_{i,i}` (nonzero, SPDP rank `≥ C(n,κ)`) — the `k=n` diagonal case.
+
+**The general `Permₙ ↦ Permₖ` reduction** — `ComputationalDepthAdmissibleBoundary.lean`.  For an embedding
+`e : Fin k ↪ Fin n` (the visible `k×k` minor), the block boundary `blockBoundary e` keeps `X_{i,j}` when both `i,j`
+are in the block `B = range e` and fixes `1`/`0` on/off the diagonal outside:
+  `permPoly_blockBoundary_eq` — `aeval (blockBoundary e) Permₙ = subPermPoly e`, the block sub-permanent
+        `∑_{τ∈Sₖ} ∏ₐ X_{e a, e(τ a)}`.  Proof: only permutations mapping `B` into itself survive (a permutation crossing
+        out of `B` hits a fixed `0`); these are exactly the `extendDomain`s of `Sₖ` (`Equiv.Perm.extendDomain`), and the
+        surviving sum reindexes bijectively onto `Permₖ` (`Finset.sum_bij`, `extendDomainHom_injective`).
+  `subPermPoly_eq_rename` — `subPermPoly e = aeval (X_{a,b} ↦ X_{e a, e b}) Permₖ`: it is literally `Permₖ` reindexed
+        into the block, so this is a genuine `Permₙ ↦ Permₖ` reduction.
+  `permPoly_ne_zero` / `subPermPoly_ne_zero` / `permPoly_blockBoundary_ne_zero` — evaluate at the identity matrix
+        (`perm(I)=1`): the permanent, and its block reduction, are nonzero.  So the permanent **survives** every
+        admissible block boundary, reducing functorially `Permₙ ↦ Permₖ`.
+
+So the correct N-Frame object is `BoundarySPDP` over *admissible* boundaries, under which the hardest object we have (the
+`VNP`-complete permanent) is robust — exactly the structure a hardness-aimed invariant needs, and what *destructive*
+boundaries destroy.  Making a hard target admissibly-robust *and* proving its SPDP rank stays high under every admissible
+boundary is the barriered `A3` hard-survival.
 
 ---
 
