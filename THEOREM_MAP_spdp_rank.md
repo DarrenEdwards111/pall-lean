@@ -301,8 +301,26 @@ the *sum* of the `s` products it reads, so `g : {0,…,s} → F`.  Over a field 
 `p ≤ s` they wrap, and every function `F_p → F_p` is degree `≤ p−1` — but a genuine composite `MOD_m` (`m` coprime to
 `p`) is then *not* a function of `∑ mod p`, so no low-degree `P(∑∏)` over `F_p` represents it.  That missing
 arithmetisation *is* the composite-MOD barrier; C13 bounds `deg P` exactly in the regime where the gate is a low-degree
-symmetric polynomial (`char > s`), and marks the small-characteristic composite case as the standing barrier.  Not
-`NEXP ⊄ ACC⁰`, not `P ≠ NP`.
+symmetric polynomial (`char > s`).  The small-characteristic composite case is handled in C14.  Not `NEXP ⊄ ACC⁰`, not
+`P ≠ NP`.
+
+### C14 — the small-characteristic composite-MOD case: the arithmetisation does not exist
+
+`ComputationalDepthNFrameCompositeMOD.lean` (namespace `NFrameACC0`).  In the remaining regime — `char = ℓ ≤ s`,
+composite `MOD_m` — the honest resolution is a **non-existence** theorem.  Over characteristic `ℓ`, the `F`-sum of `c`
+Boolean products is `(c : F) = c mod ℓ`: it only tracks the count mod `ℓ`, while `MOD_m` needs it mod `m`.
+  `modmGate_not_evalPoly_of_char` — if `(ℓ : F) = 0` and `m ∤ ℓ`, there is **no** univariate `P` with
+        `[c ≡ 0 mod m] = eval (c : F) P` for all counts `c` (counts `0` and `ℓ` collide in `F` but differ under `MOD_m`).
+  `modmGate_not_evalPoly_of_ringChar` — same via `ringChar F`.
+
+So over `F_ℓ`, a composite `MOD_m` (`m ∤ ℓ`) has **no** `P(∑∏)` arithmetisation — not merely high-degree, it does not
+exist.  With C13 this splits the outer layer completely: `char > fan-in ⟹ deg P ≤ s` (method works, `modq_BTsize_lb`);
+`char ≤ fan-in`, composite `MOD_m` ⟹ no `P` (method over `F_ℓ` provably fails).  The escape (C11's root-of-unity
+`omegaFn = ω^{∑}`, tracking the count mod `q` without casting into `F_ℓ`) works for **prime-power** modulus only; a
+genuine multi-prime composite `m` needs one root of unity per prime-power factor and the combined object keeps high
+N-Frame complexity — the standing `MOD_6`-type barrier.  C14 proves the naive `P(∑∏)`-over-`F_ℓ` route fails, isolating
+exactly why one must go to roots of unity and why multi-prime composite modulus stays open.  Not `NEXP ⊄ ACC⁰`, not
+`P ≠ NP`.
 
 ---
 
