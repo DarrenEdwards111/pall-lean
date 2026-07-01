@@ -423,6 +423,19 @@ monomial-`AND` to the full BT shape: an arbitrary `SYM∘AND` circuit bounded by
   Next rung: compile arbitrary constant-depth `ACC⁰` (composite `MOD`, depth `>1`) *into* this BT normal form with
         quasipolynomial size — the classical YBT theorem, the hard structural step (open socket).
 
+**The YBT-compiler interface (last rung, stated precisely)** — `ComputationalDepthNFrameYBTCompiler.lean`.
+  `YBTCompiler n Circuit evalC` — the interface: `exact : evalC C = symEval (gates C) (top C)` (compiles to *exact*
+        `SYM∘AND`) with `size_fit : size C + 1 ≤ 2^{n−budget}` (size within the fast-SAT budget).  Instantiating it for a
+        circuit class *is* providing that class's Yao–Beigel–Tarui normal form.
+  `ybtCompiler_fastSATModel` — **the bridge (proved)**: a `YBTCompiler` yields a `FastSATModel` (`correct` from
+        `observed_sat_iff`, `work_le` from `size_fit`); `ybtCompiler_fastSATSpeedup` gives the speedup Prop.  Everything
+        downstream fires — so the whole ladder is proved *conditional on the compiler*.
+  `btYBTCompiler` — non-vacuity: the BT rung is trivially a `YBTCompiler` (already `SYM∘AND`).
+  **Open, stated exactly**: a `YBTCompiler (ACC0Circuit n) eval` for arbitrary `ACC⁰` (composite `MOD`, depth `>1`) is
+        the classical YBT theorem with quasipoly size (the corpus's `HasExactSymAndForm` / `MixedACCDepthReductionSocket`)
+        — dischargeable for depth-`2` / prime-power `MOD`, open for general composite.  The composite-`MOD` barrier is now
+        localised to *one* structure instance; the fast-SAT machinery is proved.
+
 This bypasses the `MOD_6` wall because the claim is *algorithmic* (fast #SAT via a compact representation), not
 "`MOD_6` is hard over a field" — so the C15/C16 obstruction does not apply.  Honest scope: the deep content
 (easy-witness/IKW collapse, nondeterministic time hierarchy) are named classical sockets, **not** proved here; building
