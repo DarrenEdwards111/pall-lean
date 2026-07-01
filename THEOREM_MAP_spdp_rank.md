@@ -265,9 +265,25 @@ Combined:
 
 The two-sided N-Frame skeleton is closed for the `∑∏` (Beigel–Tarui inner-layer) model, using only the *cube-invariant*
 measure C9 identified as the right one.  Honest scope: `MOD_q` over `char ≠ q` (Smolensky regime); separation is against
-*exact* cube-computation by shallow `∑∏`, `m·t < ⌈n/2⌉`; **not** full `ACC⁰` (the `SYM`/composite-`MOD` outer layer +
-unbounded depth remain the barrier), and exact `∑∏`-representation is stronger than `AC⁰[p]` membership.  Not
-`NEXP ⊄ ACC⁰`, not `P ≠ NP`.
+*exact* cube-computation by shallow `∑∏`, `m·t < ⌈n/2⌉`.  The full BT shape (with the `SYM`/composite-`MOD` outer layer)
+is handled in C12.  Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
+
+### C12 — the low side extended to full ACC⁰: the SYM / composite-MOD outer layer
+
+`ComputationalDepthNFrameSymLayer.lean` (namespace `NFrameACC0`).  Beigel–Tarui: every `ACC⁰` function has the shape
+`f = P(∑_{i<s}∏_{j<m} Q_{ij})` — a symmetric/composite-`MOD` outer gate arithmetised as a *univariate* `P` over `F`, over
+the `∑∏` inner layer.  The low side extends to this full shape:
+  `totalDegree_polyAeval_le` — `totalDegree(P(h)) ≤ deg P · totalDegree h`.
+  `nframeComplexity_boolFn_symSumProd_le` — **extended low side**: `NFrameComplexity (boolFn (P(∑∏Q))) ≤ deg P · m · t`.
+  `symSumProd_degree_lb_of_modq` — **the barrier quantified**: if `MOD_q = P(∑∏Q)` on the cube then `deg P · m · t ≥ ⌈n/2⌉`.
+
+This *covers full `ACC⁰`* structurally (every ACC⁰ function is some `P(∑∏)`), but the bound carries the factor `deg P` =
+the arithmetised outer-gate degree.  For `AC⁰[p]` a `MOD_p` gate is degree `1` over `F_p` (bound bites); for genuine
+composite `MOD_m` the arithmetisation has large (quasi-poly) degree, so `deg P · m · t` is too weak to beat a hard
+function's linear N-Frame complexity.  `symSumProd_degree_lb_of_modq` pins this: representing `MOD_q` as `SYM∘∑∏` forces
+`deg P · m · t ≥ ⌈n/2⌉` — the composite-MOD cost is *exactly* the `deg P` factor.  So the low side does extend to full
+`ACC⁰`, but not to a *small* bound — because `MOD_q ∈ ACC⁰` has high N-Frame complexity (C11).  This is the quantitative
+anatomy of the composite-MOD barrier, not a crossing of it.  Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
 
 ---
 
