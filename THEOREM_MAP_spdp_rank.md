@@ -642,3 +642,19 @@ cannot separate from ACC⁰. Exact rank is large on MOD gates (which are IN ACC�
 bounded on all of ACC⁰ = requires APPROXIMATION (Razborov–Smolensky), not exact cube rank. This no-go formalises WHY the
 exact-rank arc tops out at plain ∑∏. Real MOD_q∉ACC⁰ needs approximation + composite-field (F_2/F_3) machinery, P≠NP-
 adjacent, NOT built. Not `NEXP⊄ACC⁰`, not `P≠NP`.
+
+### Part E rung — the approximation/low-degree measure (the tool the no-go called for)
+
+`ComputationalDepthCubeApproxDegree.lean` builds the Razborov–Smolensky measure that IS bounded on the easy class (where
+globalCubeRank was large — the no-go's demand).
+  `cubeMonomial S = ∏_{i∈S}[xᵢ]`; `lowDegSubsets d` (|S|≤d); `lowDegSpan d = span{cubeMonomial S : |S|≤d}`.
+  **`finrank_lowDegSpan_le`** — `finrank(lowDegSpan d) ≤ (lowDegSubsets d).card (=∑_{k≤d}C(n,k))`: the measure is BOUNDED
+        (few low-degree polys), via `Finsupp.range_linearCombination` + `Module.finrank_finsupp_self`. Exactly what
+        globalCubeRank lacked.
+  `LowApproxDeg d G f` — f agrees with a degree-≤d poly on input set G (large G = good approx); `restrictToFinset`.
+  **`exists_not_lowApproxDeg`** — if `(lowDegSubsets d).card < |G|` then SOME function has no degree-≤d approx on G
+        (low-deg restrictions to G span a proper subspace, dim ≤ card < |G|). The RS dimension/counting argument, proved.
+FRAMEWORK the no-go demanded (bounded approximation measure + RS counting). Specific ACC⁰[p] separation still needs the
+quantitative RS ingredients NOT re-derived here: easy side = probabilistic degree polylog (repo NFrameComplexity/
+NFrameSeparation), hard side = MOD_q approx degree Ω(√n) (repo `nframeComplexity_omegaFn_univ_ge`,
+`parity_function_lower_bound`) — cited, not rebuilt. Not `NEXP⊄ACC⁰`, not `P≠NP`.
