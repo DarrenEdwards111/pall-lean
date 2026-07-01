@@ -480,6 +480,16 @@ Discharges that middle-layer flattening for prime-power (char-matching), extendi
   This does **not** compile a composite-`MOD` circuit — it proves the low-degree route *cannot*.  Every technique in the
         repo (polynomial and algorithmic) reaches this same obstruction; `MOD_6` / `ACC⁰[6]` stays open, not fakeable.
 
+**Decomposing the barrier: `MOD_m = ⋀ᵢ MOD_{pᵢ^{eᵢ}}` (CRT)** — `ComputationalDepthNFrameCompositeCRT.lean`.
+  `modMFn m S` — `MOD_m∘AND` (residue 0) as a Boolean function.
+  `modMFn_mul_coprime` — **CRT (proved)**: coprime `a,b` ⟹ `MOD_{ab}∘AND = MOD_a∘AND ∧ MOD_b∘AND`.
+  `modMFn_prod_coprime` — pairwise-coprime factors ⟹ `MOD_{∏mᵢ}∘AND = ⋀ᵢ MOD_{mᵢ}∘AND`.
+  `mod6_eq_mod2_and_mod3` — the concrete case: `MOD_6∘AND = MOD_2∘AND ∧ MOD_3∘AND`.
+  This pins the barrier to *pure field incompatibility*: each prime-power factor flattens over `F_{pᵢ}`
+        (`nframeComplexity_charModAndFn_le`), so composite `MOD` is a conjunction of *individually-flattenable* pieces —
+        just over **incompatible characteristics** (`F_2` and `F_3`, C15 two-fields; `∏F_{pᵢ}` not a field, C16
+        `zmod6_not_isField`).  Crossing = flatten a conjunction across two characteristics at once — the genuinely open step.
+
 This bypasses the `MOD_6` wall because the claim is *algorithmic* (fast #SAT via a compact representation), not
 "`MOD_6` is hard over a field" — so the C15/C16 obstruction does not apply.  Honest scope: the deep content
 (easy-witness/IKW collapse, nondeterministic time hierarchy) are named classical sockets, **not** proved here; building
