@@ -336,8 +336,27 @@ So for a `MOD_6` circuit (`MOD_2` and `MOD_3` gates): over `F_2` the `MOD_2` gat
 argument) while `MOD_3` is high; over `F_3`, the reverse.  **No single field makes all moduli of a multi-prime circuit
 hard** — each field has a blind spot at its own characteristic.  That is exactly why the single-field polynomial method
 cannot prove multi-prime composite `MOD` lower bounds, and why `MOD_6` is open.  C15 formalises the obstruction (the
-char-matching modulus is a genuine low-complexity blind spot, from Fermat), not a crossing — that needs a
-multi-field/non-polynomial argument.  Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
+char-matching modulus is a genuine low-complexity blind spot, from Fermat), not a crossing.  The multi-field route is
+analysed in C16.  Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
+
+### C16 — the multi-field / CRT route: obstruction, not a crossing (open problem)
+
+`ComputationalDepthNFrameMultiFieldObstruction.lean` (namespace `NFrameACC0`).  **Crossing the multi-prime barrier is
+the open problem** (`MOD_6`/`ACC⁰[6]`); no known polynomial (single- or multi-field) argument does it, and this file
+does **not** claim one — it isolates why the natural multi-field route fails.
+
+The multi-field/CRT response to C14–C15: combine characteristics.  By CRT `MOD_6 = ([·≡0 mod 2],[·≡0 mod 3])`
+arithmetises over the *product ring* `ZMod 6 ≅ F_2 × F_3` — recovering the arithmetisation C14 lacked over each single
+field.  But the N-Frame lower bound requires a **field** (`NFrameComplexity` is a `Module.finrank` of a span — linear
+independence over a field), and the CRT object is not one:
+  `zmod6_not_isField` — `¬ IsField (ZMod 6)` (`2·3 = 0`, `2,3 ≠ 0`: zero divisors).
+  `zmod_not_isField_of_zero_divisors` — the general reason: the CRT product ring always has zero divisors.
+
+So the route trades gaps: **`F_ℓ` gives the field but not the arithmetisation (C14); `ZMod 6` gives the arithmetisation
+but not the field (C16).** Neither supports both the arithmetisation *and* the field-based dimension lower bound at once
+— the precise technical heart of why the polynomial method does not prove multi-prime composite `MOD` lower bounds.
+Crossing it genuinely needs a technique that is *not* a field-linear-algebra dimension count on one characteristic —
+Williams' algorithmic `NEXP ⊄ ACC⁰` route, or something new.  Not built here; not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
 
 ---
 
