@@ -544,3 +544,23 @@ AND/MOD rung showed was needed — and it flips the naive-measure inversion the 
 Cube-native analog of `permPoly_blockBoundary_ne_zero` vs `permPoly_restrictRow_zero`, proved on the two extreme
 witnesses.  Not yet the general boundary-robust LB for a full family under *all* admissible boundaries (next rung).
 Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
+
+### Part E rung — cube ADMISSIBLE boundary (general observer cuts): boundaryCubeRank
+
+`ComputationalDepthCubeAdmissibleBoundary.lean` lifts the single-coordinate boundary to a general admissible boundary
+(HAL's boundary-first Godmove step 1–3 + the two sanity witnesses).
+  `CubeBoundary n = Fin n → Option Bool` (none = visible/free, some b = hidden/fixed); `visible ρ` the free set.
+  `restrictB ρ f x = f (fun k => (ρ k).getD (x k))` — the projection through the boundary.
+  `boundaryCubeRank ρ κ f := cubeDerivRank κ (restrictB ρ f)` — derivative features visible through `ρ` (hidden-direction
+        derivatives vanish automatically).
+  `boundaryCubeRank_cubeInvariant` — the C9 fix persists through the boundary.
+  **Fragility**: `boundaryCubeRank_fullAnd_eq_zero` — any boundary hiding one coord at `false` gives `boundaryCubeRank ρ κ
+        (boolFn ∏Xⱼ) = 0`.
+  **Robustness**: `restrictPoint_flip_comm` → `cubeDeriv_restrictB_chiFull` (visible `j`: `Δⱼ(restrictB ρ χ) = −2·(…)`),
+        `restrictB_chiFull_ne_zero` (survives every boundary), `one_le_boundaryCubeRank_chiFull` (visible coord + `2≠0` ⇒
+        `boundaryCubeRank ρ 1 χ ≥ 1`).
+  `boundary_separates_fullAnd_parity_general` — through any boundary hiding some `i` (false) with some `j` visible:
+        `∏Xᵢ` boundary-rank `0`, parity `≥ 1` — correct hardness order at general-boundary generality.
+Steps 1–3 + fragility/robustness witnesses of HAL's cube-Godmove path.  NOT steps 4–8 (all shallow `∑∏`/BT/SYM
+boundary-compressible; composite-MOD incompatible-field observer; global dual separator = the actual Cube Godmove;
+Williams bridge) — the load-bearing rungs, not built, not fakeable.  Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
