@@ -217,6 +217,23 @@ degree to `t = polylog`, and `finrank(restrictTotalDegree κt)` then overtakes `
 C-arc barrier).  Whether known `ACC⁰[p]` machinery (Razborov–Smolensky) gives a controlled-blowup normal form of this
 shape is the separate open question — *not* claimed here.
 
+### C9 — approximation-aware: agreement on the cube, and why `spdpRank` is the wrong measure
+
+`ComputationalDepthSPDPApprox.lean` (namespace `SPDPApprox`).  Razborov–Smolensky delivers *agreement on a large
+fraction of the Boolean cube*, not a polynomial identity.  The honest consequences:
+  `spdpRank_normalForm_add_error_le` (positive) — splitting off an ACC normal form `h = ∑∏Q` localises the residual:
+        `spdpRank κ 0 f ≤ s·(#{J:|J|≤κ})·finrank(restrictTotalDegree κt) + spdpRank κ 0 (f−h)` (subadditivity + C8).
+  `spdpRank_not_cubeInvariant` (obstruction) — `0` and `X₀²−X₀` agree on the entire cube yet
+        `spdpRank 0 0 0 = 0 < 1 ≤ spdpRank 0 0 (X₀²−X₀)` (`spdpRank_zero`, `one_le_spdpRank_of_ne_zero`,
+        `sq_sub_ne_zero`).  So a cube-vanishing error carries arbitrary SPDP rank.
+
+Conclusion: an RS-style approximation pins `f` down only on the cube, and the error `e = f−h` (living in the ideal
+`(Xᵢ²−Xᵢ)`) can vanish on the whole cube while carrying arbitrary `spdpRank` — so agreement does **not** bound
+`spdpRank(f)`.  This is precisely why the polynomial method uses a **cube-invariant** measure — the multilinear
+representative / low-degree approximant dimension (this repo's `NFrameComplexity` / `sqfSpan`, effective-dimension
+deficit) — not raw shifted-partial rank.  The honest bridge from `∑∏` normal forms to `ACC⁰[p]` runs through that
+cube-invariant layer.  Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
+
 ---
 
 ## The wall (open / barriered — NOT crossed, NOT faked)
