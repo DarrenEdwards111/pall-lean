@@ -658,3 +658,16 @@ FRAMEWORK the no-go demanded (bounded approximation measure + RS counting). Spec
 quantitative RS ingredients NOT re-derived here: easy side = probabilistic degree polylog (repo NFrameComplexity/
 NFrameSeparation), hard side = MOD_q approx degree Ω(√n) (repo `nframeComplexity_omegaFn_univ_ge`,
 `parity_function_lower_bound`) — cited, not rebuilt. Not `NEXP⊄ACC⁰`, not `P≠NP`.
+
+### Part E rung — the bridge: cube approximation measure ⟷ repo NFrameComplexity/MOD_q bound
+
+`ComputationalDepthCubeApproxBridge.lean` wires the cube approximation framework to the repo's PROVED RS number.
+  `cubeMonomial_eq_sqfEval`, `lowDegSpan_eq_sqfSpan` — **the two measures coincide DEFINITIONALLY** (both `rfl`):
+        cubeMonomial=sqfEval (both ∏[xᵢ]), lowDegSubsets=lowDegMonomials, so `lowDegSpan d = span(sqfGens F n d)`.
+  `nframeComplexity_le_of_mem_lowDegSpan` / `not_mem_lowDegSpan_of_nframeComplexity_gt` — the sInf bridge.
+  `lowApproxDeg_univ_iff_mem` — exact agreement (G=univ) ⟺ f ∈ lowDegSpan.
+  **`not_lowApproxDeg_omegaFn`** — payoff: over a field with order-q root ω, MOD_q (omegaFn) has NO degree-<⌈n/2⌉ poly
+        agreeing everywhere — repo's `nframeComplexity_omegaFn_univ_ge` (≥n−n/2) transported into the framework.
+HONEST: this is the EXACT (G=univ) AC⁰-level bound, transported cleanly. The ACC⁰[p] separation needs the APPROXIMATE
+version (agreement on (1−ε)·2ⁿ fraction) = repo probabilistic-degree easy side + MOD_q Ω(√n) approx-degree hard side (the
+standing RS work; framework now consumes them). Not `NEXP⊄ACC⁰`, not `P≠NP`.
