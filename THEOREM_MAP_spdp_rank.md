@@ -145,11 +145,23 @@ Mechanism: `pderiv_permPoly` — the permanent's `k²` first partials are the mi
 hence the order-`1` SPDP subspace has dimension `≥ k²`.  Uniform over `e` because `subPermPoly e = rename ψₑ Permₖ` and
 injective renaming preserves derivatives (`pderiv_rename`) and independence (`rename_injective`).
 
-This is `k²` (from `κ = 1`); the exponential `κ = k/2` bound `C(k,κ)²` (iterated derivatives → complementary
-sub-permanents, same disjoint-support argument) is the natural extension.  Crucially this is the *easy* side: a large
-lower bound on a *hard* polynomial's rank does **not** separate classes.  Making a hard target admissibly-robust *and*
-matching it with the *upper* bound (small circuits ⟹ small rank) is the barriered `A3`/wall — the lower bound here is
-real and uniform, the upper bound is the open problem.
+This is `k²` (from `κ = 1`); the exponential version follows in C5.
+
+### C5 — the exponential `C(k,κ)²` bound
+
+`ComputationalDepthBlockPermRankExp.lean` upgrades C4 to the full order-`κ` bound:
+  `spdpRank_subPermPoly_flat_choose_ge` — for every embedding `e`, `spdpRank κ 0 (subPermPoly e) ≥ C(k,κ)²`
+        — **exponential** (`≈ 4^k/k`) at `κ = k/2`, uniform over the whole block family.
+  `spdpRank_renamePerm_choose_ge` — abstract core: `spdpRank κ 0 (rename ψ Permₖ) ≥ C(k,κ)²` for injective `ψ`.
+Mechanism: the order-`κ` derivative of the permanent along a partial-permutation matching a `κ`-row-set `R` to a
+`κ`-col-set `C` is the **complementary sub-permanent** on `(Rᶜ,Cᶜ)` (`blockDeriv`, `blockDeriv_eq_sum` via the iterated
+`iterPD` + `iterPD_monomial`); every monomial uses row-set `Rᶜ`, col-set `Cᶜ` (`blockDeriv_support_key`), nonzero via
+the explicit matching permutation `matchPerm` (`blockDeriv_ne_zero`); the `C(k,κ)²` choices of `(R,C)` give
+pairwise-disjoint supports ⟹ linearly independent (`linearIndependent_of_key`).
+
+Crucially this is the *easy* side: a large lower bound on a *hard* polynomial's rank does **not** separate classes.
+Making a hard target admissibly-robust *and* matching it with the *upper* bound (small circuits ⟹ small rank) is the
+barriered `A3`/wall — the lower bound here is real, exponential, and uniform; the upper bound is the open problem.
 
 ---
 
