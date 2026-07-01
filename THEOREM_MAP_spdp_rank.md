@@ -526,3 +526,21 @@ Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
 high, hard low) — exactly the C0/C9 lesson recurring cube-natively.  **Redirect**: the separation must come from the
 **boundary/admissible-observer refinement** (cube-native Part C), which this rung proves is *needed* — not from raw
 cube-rank.  Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
+
+### Part E rung — cube-native admissible boundary: robust parity vs fragile ∏Xᵢ
+
+`ComputationalDepthCubeBoundaryRestrict.lean` builds the cube-native admissible boundary (subcube restriction) that the
+AND/MOD rung showed was needed — and it flips the naive-measure inversion the right way.
+  `restrictCoord i b f x = f (update x i b)` — restrict `f` to the subcube `{xᵢ = b}` (the cube boundary).
+  **Fragility of ∏Xᵢ**: `restrictCoord_fullAnd_eq_zero` — `restrictCoord i false (boolFn ∏Xⱼ) = 0`;
+        `cubeDerivRank_restrictCoord_fullAnd_eq_zero` — cube-rank drops to `0` under the boundary.
+  **Robustness of parity**: `flipBit_update_comm` (flip/update commute on distinct coords) →
+        `cubeDeriv_restrictCoord_chiFull` — for `j ≠ i`, `Δⱼ(restrictCoord i b χ) = −2·(restrictCoord i b χ)` (eigenvalue
+        survives on every free coordinate); `restrictCoord_chiFull_ne_zero` — parity never collapses under *any*
+        restriction.
+  `boundary_separates_fullAnd_parity` — the packaged contrast: under the boundary the fragile `∏Xᵢ` has cube-rank `0`,
+        parity stays nonzero + eigen-structured.  So **boundary-refined** cube-rank ranks parity/`MOD` *above* `∏Xᵢ` —
+        the correct hardness direction, the cube-native Part C robust-vs-fragile split.
+Cube-native analog of `permPoly_blockBoundary_ne_zero` vs `permPoly_restrictRow_zero`, proved on the two extreme
+witnesses.  Not yet the general boundary-robust LB for a full family under *all* admissible boundaries (next rung).
+Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
