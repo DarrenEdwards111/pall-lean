@@ -398,6 +398,18 @@ algorithmic route bypasses this** — it needs a *nontrivial SAT algorithm* for 
         **Conditional** on the fast-SAT model and the sockets — a schema, not an unconditional separation.
   `toyModel` / `toy_speedup` — non-vacuity: the interface is inhabitable.
 
+**The `SYM∘AND` rung (real instance)** — `ComputationalDepthNFrameFastSATSymAnd.lean`.  The toy is replaced by a real
+proved circuit class: the `SYM∘AND` bounded-degree family (`SymAndCircuit n D`: `m` injective monomial-`AND` gates of
+degree `≤D` under a symmetric top).
+  `symAnd_fastSATModel` — proved `FastSATModel` for `SymAndCircuit`, in the regime where the quasipolynomial gate count
+        fits the budget `2^{n−k}`.  `correct` is `observed_sat_iff` (the count-cell search decides SAT *exactly*, not
+        just the work count); `work_le` is `fastSatWork_le_of_degree` ∘ the fit hypothesis.
+  `symAnd_nframe_fastSAT_savings` / `symAnd_nframe_fastSATSpeedup` — the savings `2^k·fastSatWork m ≤ 2^n` and the
+        speedup Prop, *through the interface*, for the real family.
+  Ladder: `toy → `**`SYM∘AND`**` → BT normal form → ACC⁰ → Williams fires`.  This is the bounded-degree rung — genuinely
+        proved (correctness + quasipoly cell count + savings), now faithfully inhabiting the interface.  Next rungs: the
+        BT `P(∑∏)` normal form (explicit parameter blowup), then recursive depth / composite-`MOD`.
+
 This bypasses the `MOD_6` wall because the claim is *algorithmic* (fast #SAT via a compact representation), not
 "`MOD_6` is hard over a field" — so the C15/C16 obstruction does not apply.  Honest scope: the deep content
 (easy-witness/IKW collapse, nondeterministic time hierarchy) are named classical sockets, **not** proved here; building
