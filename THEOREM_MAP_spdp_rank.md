@@ -628,3 +628,17 @@ SHARP WALL: this is MOD_q ∉ small PLAIN ∑∏ (depth-2), the classically-easy
 (Beigel–Tarui); (1) the criterion bounds only plain ∑∏ (SYM top not linear in the features), (2) dictator family is
 weight-0/1-blind (SYM reshapes the whole weight profile, composite count lives across all residues). Lifting to SYM∘∑∏ =
 the F_2/F_3 composite wall (`…CompositeCRT`), P≠NP-strength, NOT built, NOT fakeable. Not `NEXP⊄ACC⁰`, not `P≠NP`.
+
+### Part E rung — the SYM/ACC⁰ NO-GO: globalCubeRank cannot separate from SYM∘∑∏
+
+`ComputationalDepthCubeSymNoGo.lean` proves the exact-rank method CANNOT reach ACC⁰ — a real no-go, the honest culmination.
+  `symCountFn h S x = h(∑ⱼ[monoAND (Sⱼ) x])` — general SYM∘∑∏ (ACC⁰, Beigel–Tarui); `IsSymCount f` class membership.
+  `monoAND_singleton`, `modQFn_eq_symCountFn`, `modQFn_isSymCount` — **MOD_q ∈ SYM∘∑∏** (h=[·≡0 mod q], singleton gates;
+        because ACC⁰ ⊇ MOD_q).
+  **`globalRank_cannot_certify_not_symCount`** — for every `bound < n` there's a SYM∘∑∏ (MOD_q) with `globalCubeRank >
+        bound`.  **`no_globalRank_criterion_for_symCount`** — "high globalCubeRank ⟹ ¬IsSymCount" is FALSE.
+KEY: MOD_q is IN SYM∘∑∏ AND is GlobalRobust (rank ≥ n), so SYM∘∑∏ contains globally-robust functions ⇒ globalCubeRank
+cannot separate from ACC⁰. Exact rank is large on MOD gates (which are IN ACC⁰); a measure separating from ACC⁰ must be
+bounded on all of ACC⁰ = requires APPROXIMATION (Razborov–Smolensky), not exact cube rank. This no-go formalises WHY the
+exact-rank arc tops out at plain ∑∏. Real MOD_q∉ACC⁰ needs approximation + composite-field (F_2/F_3) machinery, P≠NP-
+adjacent, NOT built. Not `NEXP⊄ACC⁰`, not `P≠NP`.
