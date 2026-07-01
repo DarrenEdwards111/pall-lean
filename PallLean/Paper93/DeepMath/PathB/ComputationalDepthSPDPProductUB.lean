@@ -171,8 +171,84 @@ theorem spdpRank_sum_le {ι : Type*} (κ ℓ : ℕ) (s : Finset ι) (f : ι → 
     rw [Finset.sum_insert ha, Finset.sum_insert ha]
     exact le_trans (SPDPLowerBound.spdpRank_add_le κ ℓ (f a) (∑ i ∈ s, f i)) (Nat.add_le_add_left ih _)
 
+/-! ### Concrete dimension bound: `finrank(prodDerivSpace) ≤ (#{J:|J|≤κ}) · (#degree-≤κt monomials)` -/
+
+/-- `finrank` of a `Finset.sup` of submodules (all inside a fixed finite-dimensional `W0`) is bounded by the sum of
+their `finrank`s. -/
+theorem finrank_finset_sup_le {ι : Type*} (s : Finset ι)
+    (p : ι → Submodule F (MvPolynomial (Fin n) F))
+    (W0 : Submodule F (MvPolynomial (Fin n) F)) [FiniteDimensional F ↥W0] (hle : ∀ i ∈ s, p i ≤ W0) :
+    Module.finrank F ↥(s.sup p) ≤ ∑ i ∈ s, Module.finrank F ↥(p i) := by
+  classical
+  induction s using Finset.induction with
+  | empty => rw [Finset.sup_empty, Finset.sum_empty]; exact le_of_eq (finrank_bot F _)
+  | insert a s ha ih =>
+    have hsub : s.sup p ≤ W0 := Finset.sup_le (fun i hi => hle i (Finset.mem_insert_of_mem hi))
+    haveI : FiniteDimensional F ↥(s.sup p) := Submodule.finiteDimensional_of_le hsub
+    haveI : FiniteDimensional F ↥(p a) :=
+      Submodule.finiteDimensional_of_le (hle a (Finset.mem_insert_self a s))
+    rw [Finset.sup_insert, Finset.sum_insert ha]
+    exact le_trans (Submodule.finrank_add_le_finrank_add_finrank _ _)
+      (Nat.add_le_add_left (ih (fun i hi => hle i (Finset.mem_insert_of_mem hi))) _)
+
+/-- The `J`-th piece of the decomposition: `(∏_{j∉J} Q_j) · (degree ≤ κt space)`. -/
+noncomputable def prodPiece (Q : Fin m → MvPolynomial (Fin n) F) (t κ : ℕ) (J : Finset (Fin m)) :
+    Submodule F (MvPolynomial (Fin n) F) :=
+  Submodule.map (LinearMap.mulLeft F (∏ j ∈ Jᶜ, Q j)) (MvPolynomial.restrictTotalDegree (Fin n) F (κ * t))
+
+theorem prodPiece_le_restrict (Q : Fin m → MvPolynomial (Fin n) F) (ht : ∀ j, (Q j).totalDegree ≤ t) (κ : ℕ)
+    (J : Finset (Fin m)) : prodPiece Q t κ J ≤ MvPolynomial.restrictTotalDegree (Fin n) F (m * t + κ * t) := by
+  rw [prodPiece, Submodule.map_le_iff_le_comap]
+  intro M hM
+  rw [MvPolynomial.mem_restrictTotalDegree] at hM
+  rw [Submodule.mem_comap, LinearMap.mulLeft_apply, MvPolynomial.mem_restrictTotalDegree]
+  refine le_trans (MvPolynomial.totalDegree_mul _ _) (Nat.add_le_add ?_ hM)
+  refine le_trans (MvPolynomial.totalDegree_finset_prod _ _) ?_
+  refine le_trans (Finset.sum_le_sum (fun j _ => ht j)) ?_
+  rw [Finset.sum_const, smul_eq_mul]
+  exact Nat.mul_le_mul_right t (le_trans (Finset.card_le_card (Finset.subset_univ _))
+    (by rw [Finset.card_univ, Fintype.card_fin]))
+
+theorem prodDerivSpace_le_sup (Q : Fin m → MvPolynomial (Fin n) F) (t κ : ℕ) :
+    prodDerivSpace Q t κ ≤ (Finset.univ.filter (fun J : Finset (Fin m) => J.card ≤ κ)).sup (prodPiece Q t κ) := by
+  classical
+  rw [prodDerivSpace, Submodule.span_le]
+  rintro _ ⟨J, M, hJ, hM, rfl⟩
+  have hpiece : (∏ j ∈ Jᶜ, Q j) * M ∈ prodPiece Q t κ J := by
+    rw [prodPiece]
+    refine Submodule.mem_map_of_mem ?_
+    rw [MvPolynomial.mem_restrictTotalDegree]; exact hM
+  have hJmem : J ∈ Finset.univ.filter (fun J : Finset (Fin m) => J.card ≤ κ) :=
+    Finset.mem_filter.mpr ⟨Finset.mem_univ J, hJ⟩
+  exact Finset.le_sup (f := prodPiece Q t κ) hJmem hpiece
+
+/-- **The concrete single-product SPDP-rank bound (proved)**: `spdpRank κ 0 (∏_{j=1}^m Q_j)` is at most the number of
+`≤ κ`-subsets of the `m` factors times the number of monomials of degree `≤ κt` — an explicit, *small* bound for
+shallow circuits. -/
+theorem spdpRank_prod_le_card (Q : Fin m → MvPolynomial (Fin n) F) (ht : ∀ j, (Q j).totalDegree ≤ t) (κ : ℕ) :
+    SPDP.spdpRank κ 0 (∏ j, Q j)
+      ≤ (Finset.univ.filter (fun J : Finset (Fin m) => J.card ≤ κ)).card
+          * Module.finrank F ↥(MvPolynomial.restrictTotalDegree (Fin n) F (κ * t)) := by
+  classical
+  haveI : FiniteDimensional F ↥(MvPolynomial.restrictTotalDegree (Fin n) F (κ * t)) := inferInstance
+  haveI : FiniteDimensional F ↥((Finset.univ.filter (fun J : Finset (Fin m) => J.card ≤ κ)).sup (prodPiece Q t κ)) :=
+    Submodule.finiteDimensional_of_le (Finset.sup_le (fun J _ => prodPiece_le_restrict Q ht κ J))
+  calc SPDP.spdpRank κ 0 (∏ j, Q j)
+      ≤ Module.finrank F ↥(prodDerivSpace Q t κ) := spdpRank_prod_le Q ht κ
+    _ ≤ Module.finrank F ↥((Finset.univ.filter (fun J : Finset (Fin m) => J.card ≤ κ)).sup (prodPiece Q t κ)) :=
+        Submodule.finrank_mono (prodDerivSpace_le_sup Q t κ)
+    _ ≤ ∑ J ∈ Finset.univ.filter (fun J : Finset (Fin m) => J.card ≤ κ), Module.finrank F ↥(prodPiece Q t κ J) :=
+        finrank_finset_sup_le _ (prodPiece Q t κ) (MvPolynomial.restrictTotalDegree (Fin n) F (m * t + κ * t))
+          (fun J _ => prodPiece_le_restrict Q ht κ J)
+    _ ≤ ∑ _J ∈ Finset.univ.filter (fun J : Finset (Fin m) => J.card ≤ κ),
+          Module.finrank F ↥(MvPolynomial.restrictTotalDegree (Fin n) F (κ * t)) := by
+        refine Finset.sum_le_sum (fun J _ => ?_)
+        rw [prodPiece]; exact Submodule.finrank_map_le _ _
+    _ = _ := by rw [Finset.sum_const, smul_eq_mul]
+
 end PallLean.Paper93.DeepMath.PathB.SPDPUpperBound
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SPDPUpperBound.spdpSubspace_prod_le
 #print axioms PallLean.Paper93.DeepMath.PathB.SPDPUpperBound.spdpRank_prod_le
+#print axioms PallLean.Paper93.DeepMath.PathB.SPDPUpperBound.spdpRank_prod_le_card
 #print axioms PallLean.Paper93.DeepMath.PathB.SPDPUpperBound.spdpRank_sum_le

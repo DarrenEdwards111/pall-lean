@@ -176,11 +176,27 @@ polynomial from a *shallow/product* model has **small** SPDP rank.
   `spdpRank_sum_le` — subadditivity over a sum (the depth-`4` `∑` layer): `spdpRank κ ℓ (∑_i f_i) ≤ ∑_i spdpRank κ ℓ (f_i)`,
         so a depth-`4` circuit `∑_{i=1}^s ∏_j Q_{ij}` has `spdpRank ≤ s·(single-product bound)`.
 
-**The restricted separation.**  C5 (lower, `C(k,κ)²` for the permanent) + C6 (upper, small for shallow products) give:
-the permanent has no small depth-`4` circuit with bounded bottom fan-in (the GKKS-style lower bound).  This is **not**
-`P ≠ NP`: the *full* wall — "every poly-size circuit ⟹ small SPDP rank" — is false / `P`-vs-`NP`-strength (SPDP rank
-does not upper-bound general circuits).  C6 proves exactly the honest, provable half: the upper bound for the
-shallow/product model.  The two halves meet at the restricted separation; the general wall remains the barrier.
+### C7 — the two halves meet: the concrete numerical separation
+
+`ComputationalDepthSPDPWall.lean` (namespace `SPDPWall`) makes the lower/upper meeting fully quantitative.  Concrete
+`finrank` bound first (`ComputationalDepthSPDPProductUB.lean`):
+  `spdpRank_prod_le_card` — `spdpRank κ 0 (∏_{j=1}^m Q_j) ≤ (#{J⊆[m]:|J|≤κ}) · finrank(restrictTotalDegree κt)`
+        (via `prodDerivSpace ≤ Finset.sup of pieces` (`prodDerivSpace_le_sup`) + `finrank_finset_sup_le` +
+        `Submodule.finrank_map_le`) — an explicit, small number.
+Then the separation:
+  `permanent_depth4_bound` — if `Permₖ` (flattened by injective `ψ`) `= ∑_{i<s} ∏_j Q_{ij}` (depth-`4`, `≤ mm` factors,
+        degree `≤ t`), then `C(k,κ)² ≤ s · (#{J:|J|≤κ}) · (#monomials of degree ≤ κt)`.  (C5 lower ∘ C6 subadditivity
+        ∘ the concrete C7 per-product bound.)
+  `permanent_no_small_depth4` — contrapositive: if that RHS is `< C(k,κ)²`, the permanent has **no** such circuit.
+
+At `κ = k/2` the threshold `C(k,κ)² ≈ 4ᵏ/k` is exponential while the RHS is polynomial in `s`, `#J ≤ 2^{mm}`, and
+`#monomials ≤ binom(N+κt, N)` — so a shallow circuit provably cannot compute the permanent.  This is the GKKS-style
+restricted separation, fully quantitative.
+
+**Honest scope.**  Restricted (depth-`4`, bounded bottom fan-in), **not** `P ≠ NP` or `NEXP ⊄ ACC⁰`.  The *full* wall —
+"every poly-size circuit ⟹ small SPDP rank" — is false / `P`-vs-`NP`-strength (SPDP rank does not upper-bound general
+circuits).  C1–C7 prove exactly the honest, provable object: lower bound (exponential, uniform), upper bound
+(shallow/product), and their concrete numerical meeting point.  The general wall remains the barrier.
 
 ---
 
