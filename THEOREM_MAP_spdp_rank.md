@@ -160,8 +160,27 @@ the explicit matching permutation `matchPerm` (`blockDeriv_ne_zero`); the `C(k,�
 pairwise-disjoint supports ⟹ linearly independent (`linearIndependent_of_key`).
 
 Crucially this is the *easy* side: a large lower bound on a *hard* polynomial's rank does **not** separate classes.
-Making a hard target admissibly-robust *and* matching it with the *upper* bound (small circuits ⟹ small rank) is the
-barriered `A3`/wall — the lower bound here is real, exponential, and uniform; the upper bound is the open problem.
+The matching *upper* bound is C6.
+
+### C6 — the upper-bound half of the wall (restricted, proved)
+
+`ComputationalDepthSPDPProductUB.lean` (namespace `SPDPUpperBound`) proves the honest, provable half of the wall: a
+polynomial from a *shallow/product* model has **small** SPDP rank.
+  `spdpSubspace_prod_le` — the core: for `f = ∏_{j=1}^m Q_j` with `deg Q_j ≤ t`, `spdpSubspace κ 0 f ≤ prodDerivSpace Q t κ`,
+        where `prodDerivSpace Q t κ = span{(∏_{j∉J}Q_j)·M : |J|≤κ, deg M ≤ κt}`.  Mechanism: each derivative touches
+        `≤ κ` of the `m` factors, so `∂_S(∏Q) ∈ span{(∏ of m−|J| factors)·M : |J|≤κ}` — proved by induction on the
+        derivative order (`pderiv_mem_prodDerivSpace`: one derivative raises the deletion-count by one, via the finset
+        product rule `pderiv_prod`), from `∏Q ∈ prodDerivSpace 0`.
+  `spdpRank_prod_le` — hence `spdpRank κ 0 (∏Q_j) ≤ finrank(prodDerivSpace Q t κ)`, a space spanned by
+        `(#{J:|J|≤κ})·(#monomials of degree ≤ κt)` generators — **small** for shallow circuits.
+  `spdpRank_sum_le` — subadditivity over a sum (the depth-`4` `∑` layer): `spdpRank κ ℓ (∑_i f_i) ≤ ∑_i spdpRank κ ℓ (f_i)`,
+        so a depth-`4` circuit `∑_{i=1}^s ∏_j Q_{ij}` has `spdpRank ≤ s·(single-product bound)`.
+
+**The restricted separation.**  C5 (lower, `C(k,κ)²` for the permanent) + C6 (upper, small for shallow products) give:
+the permanent has no small depth-`4` circuit with bounded bottom fan-in (the GKKS-style lower bound).  This is **not**
+`P ≠ NP`: the *full* wall — "every poly-size circuit ⟹ small SPDP rank" — is false / `P`-vs-`NP`-strength (SPDP rank
+does not upper-bound general circuits).  C6 proves exactly the honest, provable half: the upper bound for the
+shallow/product model.  The two halves meet at the restricted separation; the general wall remains the barrier.
 
 ---
 
