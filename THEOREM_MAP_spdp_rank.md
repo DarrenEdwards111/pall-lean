@@ -232,7 +232,24 @@ Conclusion: an RS-style approximation pins `f` down only on the cube, and the er
 `spdpRank(f)`.  This is precisely why the polynomial method uses a **cube-invariant** measure — the multilinear
 representative / low-degree approximant dimension (this repo's `NFrameComplexity` / `sqfSpan`, effective-dimension
 deficit) — not raw shifted-partial rank.  The honest bridge from `∑∏` normal forms to `ACC⁰[p]` runs through that
-cube-invariant layer.  Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
+cube-invariant layer — built in C10.  Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
+
+### C10 — the cube-invariant bridge: `∑∏` normal forms have low N-Frame complexity
+
+`ComputationalDepthNFrameProductBridge.lean` (namespace `NFrameACC0`) closes the loop C9 opened: the `∑∏` upper-bound
+machinery feeds the repo's **cube-invariant** `NFrameComplexity` (minimal multilinear-representation degree), the measure
+the RS lower bound (`parity_function_lower_bound`, effective-dim deficit) is stated against.
+  `boolFn p` — the Boolean cube-function `x ↦ eval (x as 0/1) p`.
+  `boolFn_mem_sqfSpan` — on the cube `Xᵢ²=Xᵢ`, so a total-degree-`≤D` polynomial's cube-function is a combination of
+        squarefree monomials of degree `≤D`: `boolFn p ∈ span (sqfGens F n D)` (each monomial `∏Xᵢ^{dᵢ}` collapses to the
+        squarefree `∏_{i∈supp d}Xᵢ`, degree `|supp d| ≤ deg d`).
+  `nframeComplexity_boolFn_le` — hence `NFrameComplexity F (boolFn p) ≤ totalDegree p`.
+  `nframeComplexity_boolFn_sumProd_le` — **the bridge**: a shallow `∑_{i<s}∏_{j<m} Q_{ij}` (`deg Q_{ij} ≤ t`) has
+        `NFrameComplexity F (boolFn (∑∏Q)) ≤ m·t` — a *cube-invariant* smallness statement, unlike `spdpRank`.
+
+So the C8 normal form has **low N-Frame complexity** on the cube.  Combined with a hard function's *high* N-Frame
+complexity (the repo's RS layer), this is the honest, cube-correct separation route: my `∑∏` upper-bound arc now feeds
+the existing RS lower-bound layer *through the right (cube-invariant) measure*.  Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
 
 ---
 
