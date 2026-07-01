@@ -495,3 +495,21 @@ This bypasses the `MOD_6` wall because the claim is *algorithmic* (fast #SAT via
 (easy-witness/IKW collapse, nondeterministic time hierarchy) are named classical sockets, **not** proved here; building
 an actual nontrivial N-Frame fast-SAT model for arbitrary `ACC⁰` is the open algorithmic target the interface is meant
 to be instantiated with.  Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
+
+---
+
+## Part E — cube-native SPDP (the C9 repair, pilot)
+
+C9 proved raw `spdpRank` is not cube-invariant.  `ComputationalDepthCubeBoundarySPDP.lean` (namespace `CubeBoundarySPDP`)
+pilots the fix: move the shifted-derivative-span idea onto the **hypercube graph** via discrete edge derivatives.
+  `flipBit i x` / `cubeDeriv i f = f(x⊕eᵢ) − f(x)` — Hamming-edge derivative; `cubeDerivList` / `cubeDerivSpan κ f` /
+        `cubeDerivRank κ f` — iterated derivative, its span, and finrank in the finite-dim space `(Fin n → Bool) → F`.
+  `cubeDerivRank_cubeInvariant` — **the C9 fix (proved)**: `AgreeOnCube p q ⟹ cubeDerivRank κ (boolFn p) =
+        cubeDerivRank κ (boolFn q)` — cube-invariant *by construction* (the measure lives on cube-functions), where
+        `spdpRank` differed.  `sqSub_cubeDerivRank_eq_zero_rank` — the concrete C9 witness (`X₀²−X₀` vs `0`) now has
+        *equal* rank.
+  `cubeDerivRank_const` — constants have rank `0`; `one_le_cubeDerivRank_boolFn_X` — a variable/`AND` has rank `≥ 1`
+        (non-degenerate).
+Pilot: establishes cube-native SPDP is well-defined, cube-invariant, non-degenerate.  Next (if it lands): low `∑∏`/BT
+rank, high `MOD_q` rank, admissible-boundary preservation — the cube-native reincarnation of the Part C boundary arc.
+Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
