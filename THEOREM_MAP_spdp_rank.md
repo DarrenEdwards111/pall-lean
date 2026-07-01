@@ -380,3 +380,26 @@ Part C reaches the same wall from the *refinement* side: every accumulation meas
 separates by *nonvanishing-product structure*, not hardness, so it classifies the hard permanent as fragile (C2,
 proved).  Making a genuinely hard target boundary-robust *and* proving its rank stays high **is** the barriered `A3`
 hard-survival — the same wall.  Every step across both parts is proved; the wall is located, not crossed.
+
+---
+
+## Part D — the algorithmic pivot (past the `MOD_6` wall)
+
+The polynomial-method arc (C1–C16) reached the real `MOD_6` wall: no single field makes every modulus of a multi-prime
+circuit hard (C15), and the CRT product ring where the arithmetisation exists is not a field (C16).  **Williams'
+algorithmic route bypasses this** — it needs a *nontrivial SAT algorithm* for `ACC⁰`, not a single hard field.
+`ComputationalDepthNFrameFastSAT.lean` (namespace `NFrameFastSAT`) pivots N-Frame from a *degree* certificate to a
+*compression / algorithmic* certificate, feeding the repo's Williams meta-theorem:
+  `NFrameProgram` / `FastSATModel` — a compact N-Frame DAG/DP representation deciding SAT by count-cell search, within a
+        `2^{n−budget}` budget (fast counting, not low degree).
+  `fastSATModel_savings` — proved: the model delivers Williams savings `2^budget·work ≤ 2^n`.
+  `nframe_fastSAT_gives_separation` — proved glue (`[propext]` only, no `sorryAx`): an N-Frame fast-SAT model for `ACC⁰`
+        + the two named classical sockets (`EasyWitnessCollapse`, `NondetTimeHierarchy`, Williams 2011) ⇒ `NEXP ⊄ ACC⁰`.
+        **Conditional** on the fast-SAT model and the sockets — a schema, not an unconditional separation.
+  `toyModel` / `toy_speedup` — non-vacuity: the interface is inhabitable.
+
+This bypasses the `MOD_6` wall because the claim is *algorithmic* (fast #SAT via a compact representation), not
+"`MOD_6` is hard over a field" — so the C15/C16 obstruction does not apply.  Honest scope: the deep content
+(easy-witness/IKW collapse, nondeterministic time hierarchy) are named classical sockets, **not** proved here; building
+an actual nontrivial N-Frame fast-SAT model for arbitrary `ACC⁰` is the open algorithmic target the interface is meant
+to be instantiated with.  Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
