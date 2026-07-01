@@ -198,6 +198,25 @@ restricted separation, fully quantitative.
 circuits).  C1–C7 prove exactly the honest, provable object: lower bound (exponential, uniform), upper bound
 (shallow/product), and their concrete numerical meeting point.  The general wall remains the barrier.
 
+### C8 — toward ACC: an ACC-normal-form bound stable under admissible boundaries
+
+`ComputationalDepthACCNormalForm.lean` (namespace `SPDPUpperBound`) takes the honest reachable step toward `ACC` — a
+compression theorem for a *specific* ACC-like normal form (the Beigel–Tarui inner layer), **not** all `ACC⁰`.
+  `spdpRank_sumProd_le` — for `f = ∑_{i<s} ∏_{j<m} Q_{ij}` with `deg Q_{ij} ≤ t`,
+        `spdpRank κ 0 f ≤ s·(#{J:|J|≤κ})·finrank(restrictTotalDegree κt)`.
+  `spdpRank_aevalBoundary_sumProd_le` — **the functorial compression**: an admissible boundary is a ring endomorphism
+        `aeval g` with `deg (g v) ≤ 1` (keep each variable or fix it to a constant); it commutes with `∑`/`∏`
+        (`map_sum`, `map_prod`) and is degree-non-increasing (`totalDegree_aeval_le_of_deg_le_one`), so it carries the
+        normal form to another normal form with the *same* budget — the SPDP bound is preserved.
+  `restrictBdry` / `spdpRank_restrictBdry_sumProd_le` — the concrete sub-cube boundary
+        `v ↦ if v ∈ visible then X v else C (assign v)` and its normal-form bound.
+
+**Honest scope.**  This covers the BT `∑∏` inner layer and shows admissible boundaries keep it in the product-derivative
+space.  It does **not** cover full `ACC⁰`/`ACC⁰[p]`: the symmetric/`MOD` composition `P` in `f = P(∑∏)` lifts the bottom
+degree to `t = polylog`, and `finrank(restrictTotalDegree κt)` then overtakes `C(k,κ)²` at the `κ` where it bites (the
+C-arc barrier).  Whether known `ACC⁰[p]` machinery (Razborov–Smolensky) gives a controlled-blowup normal form of this
+shape is the separate open question — *not* claimed here.
+
 ---
 
 ## The wall (open / barriered — NOT crossed, NOT faked)
