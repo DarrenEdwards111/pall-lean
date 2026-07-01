@@ -599,3 +599,18 @@ HONEST GATE: discharging `GlobalRobust` for a hard family (global rank grows pas
 load-bearing step 6 (global dual separator) — parity needs character-independence, composite MOD_q hits the F_2/F_3
 incompatible-field wall (`…CompositeCRT`). NOT discharged; left as explicit hypothesis. P≠NP-strength per book1. Not
 `NEXP⊄ACC⁰`, not `P≠NP`.
+
+### Part E rung — Step 6 (parity instance): parity is globally robust ⇒ parity ∉ small ∑∏
+
+`ComputationalDepthCubeParitySeparation.lean` DISCHARGES `GlobalRobust` for parity — the criterion FIRING on a concrete
+function (the classically-easy direction; composite MOD_q stays behind the F_2/F_3 wall).
+  `dict i = fun x => if xᵢ then −1 else 1` (=1−2xᵢ); `dictatorB i` hides all coords but `i` (false); `dictatorFamily`.
+  `restrictB_dictatorB_chiFull` — `restrictB (dictatorB i) χ = dict i` (Finset.prod_eq_single).
+  `linearIndependent_dict` — the `n` dictator characters are LI (evaluation at all-false + singletons eₖ; needs `2≠0`; no
+        Fourier theory).
+  `dict_mem_globalCubeSpan` — each `dict i = (−½)·Δᵢ(restrictB (dictatorB i) χ)` ∈ global span.
+  **`n_le_globalCubeRank_chiFull`** — `n ≤ globalCubeRank dictatorFamily 1 χ` (via `finrank_span_eq_card` + `finrank_mono`).
+  **`chiFull_ne_boolFn_sumProd_of_fanin`** — `parity ≠ boolFn(∑∏)` whenever `m·2^D < n`: a genuine cube-native lower
+        bound, the global separator FIRING on a concrete function.
+Real RESTRICTED separation (parity ∉ shallow ∑∏ of <n/2^D terms, classically easy). NOT MOD_q∉ACC⁰ (needs SYM top +
+composite-MOD discharge). Not `NEXP⊄ACC⁰`, not `P≠NP`.
