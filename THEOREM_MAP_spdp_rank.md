@@ -410,6 +410,19 @@ degree `≤D` under a symmetric top).
         proved (correctness + quasipoly cell count + savings), now faithfully inhabiting the interface.  Next rungs: the
         BT `P(∑∏)` normal form (explicit parameter blowup), then recursive depth / composite-`MOD`.
 
+**The BT normal-form rung (general `SYM∘AND`)** — `ComputationalDepthNFrameFastSATBT.lean`.  Generalises from
+monomial-`AND` to the full BT shape: an arbitrary `SYM∘AND` circuit bounded by a size budget.
+  `BTCircuit n size` — `m ≤ size` arbitrary Boolean sub-gates under a symmetric top `h` (the full BT layer).
+  `bt_fastSATModel` — proved `FastSATModel` for `BTCircuit`, budget `k`, when `size + 1 ≤ 2^{n−k}`; correctness
+        (`observed_sat_iff`) and count-cell work hold for *any* sub-gates.  `bt_nframe_fastSAT_savings` /
+        `bt_nframe_fastSATSpeedup` follow.
+  `SymAndCircuit.toBT` / `btSatOf_toBT` — the previous rung embeds: a degree-`≤D` monomial-`AND` circuit is a `BTCircuit`
+        of size `∑_{i≤D}C(n,i)`, SAT-preserving.
+  `symAnd_fastSATSpeedup_quasipoly` — **explicit parameter blowup**: budget as the BT quasipolynomial
+        `(D+1)·2^{D·⌈log n⌉}+1 ≤ 2^{n−k}` — `D` polylog ⇒ `2^{o(n)}` ⇒ `k = Ω(n)` (the Williams margin).
+  Next rung: compile arbitrary constant-depth `ACC⁰` (composite `MOD`, depth `>1`) *into* this BT normal form with
+        quasipolynomial size — the classical YBT theorem, the hard structural step (open socket).
+
 This bypasses the `MOD_6` wall because the claim is *algorithmic* (fast #SAT via a compact representation), not
 "`MOD_6` is hard over a field" — so the C15/C16 obstruction does not apply.  Honest scope: the deep content
 (easy-witness/IKW collapse, nondeterministic time hierarchy) are named classical sockets, **not** proved here; building
