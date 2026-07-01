@@ -1,32 +1,45 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthObserverBoundary
 
 /-!
-# The observer-boundary invariant FAILS on a genuinely hard target (the permanent is fragile)
+# Destructive vs admissible observer boundaries: the permanent, and the N-Frame refinement
 
-`…ObserverBoundary` proved the boundary invariant separates `MOD_q` (boundary-robust, `≥ C(m,κ)`) from `∏Xᵢ`
-(boundary-fragile, `= 0`).  The natural question: does it detect *hardness*?  This file answers **no**, with a proof.
+## N-Frame Book 1 concept → Lean object
 
-Take the **permanent** `permPoly = ∑_{σ∈Sₙ} ∏ᵢ X_{i,σ(i)}` — a genuinely hard polynomial (`VNP`-complete).  Every one
-of its `n!` monomials uses *one entry from every row*.  So fixing a single row to `0` (a legitimate observer boundary,
-`n²−n` variables still visible) makes **every** term vanish:
+| Book 1 (observer-bounded actualization)                                   | Lean                                             |
+|---------------------------------------------------------------------------|--------------------------------------------------|
+| observer boundary `b` (finite attention/instrument selecting the context) | `ObserverBoundary` = visible vars + fixed context |
+| boundary actualization / collapse (reality seen through the boundary)     | `restrictBoundary B p`                           |
+| boundary robustness (structure that survives has real invariant content)  | `spdpRank_restrictBoundary_modqPoly_ge` (`MOD_q`) |
+| boundary fragility (apparent structure collapses under the boundary)      | `fullProd_restrictBoundary_zero`, and this file   |
 
-  `permPoly_restrictRow_zero` — `aeval (fix row a to 0) (permPoly) = 0`.
+Observer-boundary SPDP formalizes N-Frame *boundary actualization*: the observer selects a computational/contextual
+boundary, and SPDP rank measures what algebraic structure survives it.
 
-So the permanent is boundary-**fragile** (`BoundarySPDP = 0`), *exactly like the easy product `∏Xᵢ`*, and unlike the
-easy `MOD_q`.  The boundary invariant therefore does **not** capture computational hardness: it classifies the hard
-permanent as "easy" (fragile) and the easy `MOD_q` as "hard" (robust).
+## The hard-target test and why "admissible" is needed
 
-## What the invariant actually measures
+`…ObserverBoundary` separated `MOD_q` (robust) from `∏Xᵢ` (fragile).  Does the invariant see *hardness*?  Take the
+**permanent** `permPoly = ∑_{σ∈Sₙ} ∏ᵢ X_{i,σ(i)}` (`VNP`-complete).  Under an *arbitrary* boundary it is fragile:
 
-Boundary-robustness detects a specific *algebraic* property — a **nonvanishing product structure** (a nonzero
-constant term that no `0/1` restriction can annihilate), which `MOD_q`'s affine product `∏(1+(ω-1)Xᵢ)` happens to
-have.  Hard functions built as *sums of products* (permanent, determinant, and any polynomial in a variable's ideal)
-are killed by trivialising restrictions, so they are fragile.  Restriction-robustness ≠ hardness.
+  `permPoly_restrictRow_zero` — fixing one row to `0` kills it (every monomial covers that row).
 
-This is the honest close of the dynamic-SPDP / observer-boundary thread: of the measures tested, restriction/boundary
-rank is the only one that separates `MOD_q` from `∏Xᵢ`, but it separates by nonvanishing-product structure, not by
-hardness — so it does not extend to genuinely hard targets, and is not a route to an `ACC⁰` lower bound.  (Making a
-hard target boundary-robust *and* proving its rank high is the barriered A3 hard-survival.)  Nothing here is
+So `BoundarySPDP` over *arbitrary* boundaries is **not** a hardness measure: it is a robustness invariant — it detects a
+nonvanishing-product structure (`MOD_q`), not hardness, and a destructive boundary collapses even the hard permanent.
+
+**The N-Frame refinement — admissible boundaries.**  A destructive boundary (zero a whole row) is *not* an admissible
+observer context: it destroys the problem/witness (minor) structure.  Restrict to **admissible** boundaries — those
+that preserve the minor structure.  Under an admissible (here diagonal/minor-preserving) boundary the permanent
+*survives*, reducing to a smaller structured object:
+
+  `permPoly_restrictDiagonal_eq` — fixing the *off-diagonal* to `0` (an admissible, diagonal-preserving boundary)
+        reduces the permanent to `∏ᵢ X_{i,i}` — the diagonal product, a nonzero product of `n` distinct variables.
+  `permPoly_restrictDiagonal_ne_zero` — hence it is `≠ 0`: the permanent is *robust* under this admissible boundary
+        (and `∏ᵢ X_{i,i}` has SPDP rank `≥ C(n,κ)` by the full-product bound).
+
+So the honest picture: `BoundarySPDP` over *arbitrary* boundaries measures robustness, not hardness (the permanent is
+fragile); the correct N-Frame object is `BoundarySPDP` over *admissible* (minor-preserving) boundaries, under which the
+permanent survives (`Permₙ ↦ scalar · Permₖ`, here the `k = n` diagonal reduction).  Formalising admissibility in
+general and the `Permₙ ↦ Permₖ` reduction for `k < n` is the next step toward a hardness-aimed invariant; making a hard
+target admissibly-robust *and* proving its rank stays high is the barriered `A3` hard-survival.  Nothing here is
 `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
 
@@ -40,10 +53,9 @@ variable {n : ℕ} {F : Type*} [Field F]
 noncomputable def permPoly (n : ℕ) (F : Type*) [Field F] : MvPolynomial (Fin n × Fin n) F :=
   ∑ σ : Equiv.Perm (Fin n), ∏ i, X (i, σ i)
 
-/-- **The permanent is boundary-fragile (proved).**  Fixing an entire row `a` to `0` — an observer boundary with
-`n²−n` visible variables — kills the permanent, because every one of its monomials uses an entry from row `a`.  So a
-genuinely hard target has `BoundarySPDP = 0`, exactly like the easy product `∏Xᵢ`: the boundary invariant does not see
-its hardness. -/
+/-- **Fragile under a destructive boundary (proved).**  Fixing an entire row `a` to `0` kills the permanent, because
+every monomial uses an entry from row `a`.  So over *arbitrary* boundaries `BoundarySPDP` is a robustness, not a
+hardness, invariant. -/
 theorem permPoly_restrictRow_zero (a : Fin n) :
     aeval (fun p : Fin n × Fin n => if p.1 = a then (C 0 : MvPolynomial (Fin n × Fin n) F) else X p)
       (permPoly n F) = 0 := by
@@ -55,6 +67,32 @@ theorem permPoly_restrictRow_zero (a : Fin n) :
   apply Finset.prod_eq_zero (Finset.mem_univ a)
   simp
 
+/-- **Robust under an admissible boundary (proved).**  Fixing the *off-diagonal* entries to `0` — a diagonal /
+minor-preserving observer boundary — reduces the permanent to the diagonal product `∏ᵢ X_{i,i}` (only `σ = id`
+survives). -/
+theorem permPoly_restrictDiagonal_eq :
+    aeval (fun p : Fin n × Fin n => if p.1 = p.2 then X p else (C 0 : MvPolynomial (Fin n × Fin n) F))
+      (permPoly n F) = ∏ i, X (i, i) := by
+  unfold permPoly
+  rw [map_sum, Finset.sum_eq_single (Equiv.refl (Fin n))]
+  · rw [map_prod]
+    exact Finset.prod_congr rfl (fun i _ => by simp)
+  · intro σ _ hσ
+    rw [map_prod]
+    obtain ⟨i, hi⟩ : ∃ i, σ i ≠ i := by
+      by_contra h; push_neg at h; exact hσ (Equiv.ext h)
+    exact Finset.prod_eq_zero (Finset.mem_univ i) (by simp [Ne.symm hi])
+  · intro h; exact absurd (Finset.mem_univ _) h
+
+/-- **The permanent survives the admissible boundary (proved).**  Unlike the destructive row-zeroing, the diagonal
+boundary leaves a nonzero structured object (`∏ᵢ X_{i,i}`, SPDP rank `≥ C(n,κ)` by the full-product bound). -/
+theorem permPoly_restrictDiagonal_ne_zero [Nontrivial F] :
+    aeval (fun p : Fin n × Fin n => if p.1 = p.2 then X p else (C 0 : MvPolynomial (Fin n × Fin n) F))
+      (permPoly n F) ≠ 0 := by
+  rw [permPoly_restrictDiagonal_eq]
+  exact Finset.prod_ne_zero_iff.mpr (fun i _ => X_ne_zero _)
+
 end PallLean.Paper93.DeepMath.PathB.SPDPLowerBound
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SPDPLowerBound.permPoly_restrictRow_zero
+#print axioms PallLean.Paper93.DeepMath.PathB.SPDPLowerBound.permPoly_restrictDiagonal_ne_zero

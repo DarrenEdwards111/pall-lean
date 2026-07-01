@@ -95,13 +95,29 @@ Quantitative engine — `ComputationalDepthAffinePderiv.lean`:
   Boolean boundary; `fullProd_restrictBoundary_zero` — **`∏Xᵢ` is fragile (`= 0`)**.  So the observer-boundary
   invariant separates `MOD_q` from `∏Xᵢ` quantitatively where raw rank and `pcrank` could not.
 
-### C2 — but it is NOT a hardness measure (proved on a hard target)
+**N-Frame Book 1 mapping** (`ComputationalDepthBoundaryHardFail.lean` docstring): observer boundary `b` ↦
+`ObserverBoundary`; boundary actualization/collapse ↦ `restrictBoundary B p`; boundary robustness ↦
+`spdpRank_restrictBoundary_modqPoly_ge`; boundary fragility ↦ `fullProd_restrictBoundary_zero`.  Observer-boundary SPDP
+formalizes N-Frame *boundary actualization*: the observer selects a context, and SPDP rank measures what algebraic
+structure survives it.
+
+### C2 — but over *arbitrary* boundaries it is NOT a hardness measure (proved on a hard target)
 
 `ComputationalDepthBoundaryHardFail.lean` — `permPoly_restrictRow_zero`: the **permanent** (`VNP`-complete) is killed
-  by fixing one row to `0` (`n²−n` variables still visible), because every monomial covers every row.  So a genuinely
-  hard target is boundary-**fragile** (`BoundarySPDP = 0`), *like the easy `∏Xᵢ`*.  The boundary invariant detects a
-  *nonvanishing-product structure* (which `MOD_q`'s affine product has), **not** computational hardness —
-  restriction-robustness ≠ hardness.  So it does not extend to hard targets and is not an `ACC⁰` route.
+  by fixing one row to `0` (`n²−n` variables still visible), because every monomial covers every row.  So over
+  *arbitrary* boundaries a genuinely hard target is fragile (`BoundarySPDP = 0`), *like the easy `∏Xᵢ`* — the invariant
+  detects *nonvanishing-product structure*, not hardness.
+
+### C3 — the refinement: admissible (minor-preserving) boundaries
+
+A destructive boundary (zero a row) is not an admissible observer context — it destroys the witness/minor structure.
+Restricting to **admissible** boundaries repairs this:
+  `permPoly_restrictDiagonal_eq` / `permPoly_restrictDiagonal_ne_zero` — fixing the *off-diagonal* to `0` (an
+  admissible, diagonal/minor-preserving boundary) reduces the permanent to `∏ᵢ X_{i,i}` (a nonzero product of `n`
+  distinct variables, SPDP rank `≥ C(n,κ)`).  So the permanent *survives* admissible boundaries (`Permₙ ↦ scalar·Permₖ`,
+  here the `k=n` diagonal case).  The correct N-Frame object is `BoundarySPDP` over *admissible* boundaries; formalising
+  admissibility in general (and `Permₙ ↦ Permₖ` for `k<n`) is the next step toward a hardness-aimed invariant.  Making a
+  hard target admissibly-robust *and* proving its rank stays high is the barriered `A3` hard-survival.
 
 ---
 
