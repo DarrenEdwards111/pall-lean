@@ -513,3 +513,16 @@ pilots the fix: move the shifted-derivative-span idea onto the **hypercube graph
 Pilot: establishes cube-native SPDP is well-defined, cube-invariant, non-degenerate.  Next (if it lands): low `∑∏`/BT
 rank, high `MOD_q` rank, admissible-boundary preservation — the cube-native reincarnation of the Part C boundary arc.
 Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
+
+### Part E rung — AND/MOD: parity character is an eigenfunction (rank ≤ 1), the naive measure is inverted
+
+`ComputationalDepthCubeBoundarySPDPParity.lean` works out AND vs MOD for cube-derivative rank — with an honest surprise.
+  `chiFull x = ∏ₖ (−1)^{xₖ}` — the ±1 parity character.  `chiFull_flip` — `χ(x⊕eᵢ) = −χ(x)`.
+  `cubeDeriv_chiFull` — **`Δᵢχ = −2·χ`** (eigenfunction, eigenvalue −2); `cubeDerivList_chiFull` — every iterated
+        derivative is `(−2)^{|L|}·χ`, all collinear.
+  `cubeDerivRank_chiFull_le_one` — **`cubeDerivRank κ χ ≤ 1`**: parity/`MOD` is *low* cube-rank (Fourier-concentrated).
+**Honest finding**: raw cube-derivative rank measures Fourier *spread* — the easy full-`AND` `∏xᵢ` has support `2ⁿ`
+(high rank, `C(n,κ)`) while parity is a single character (rank ≤ 1, low).  So the raw measure *inverts* hardness (easy
+high, hard low) — exactly the C0/C9 lesson recurring cube-natively.  **Redirect**: the separation must come from the
+**boundary/admissible-observer refinement** (cube-native Part C), which this rung proves is *needed* — not from raw
+cube-rank.  Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
