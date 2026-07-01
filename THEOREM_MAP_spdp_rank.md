@@ -564,3 +564,21 @@ Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
 Steps 1–3 + fragility/robustness witnesses of HAL's cube-Godmove path.  NOT steps 4–8 (all shallow `∑∏`/BT/SYM
 boundary-compressible; composite-MOD incompatible-field observer; global dual separator = the actual Cube Godmove;
 Williams bridge) — the load-bearing rungs, not built, not fakeable.  Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
+
+### Part E rung — Step 4: shallow ∑∏/BT boundary-compressibility (easy side, upper bound)
+
+`ComputationalDepthCubeSumProdCompress.lean` proves the easy side of HAL's cube-Godmove: shallow `∑∏` has small
+cube-derivative rank, INDEPENDENT of n (cube-native analog of Part C `spdpRank_prod_le_card`).
+  **Subadditivity**: `cubeDeriv_add`/`cubeDerivList_add` → `cubeDerivRank_add_le` (via `finrank_sup_add_finrank_inf_eq`) →
+        `cubeDerivRank_sum_le`.
+  **Locality**: `embS S` (pullback of `↥S→Bool` functions, dim `2^{|S|}`); `boolFn_monoAND_mem_range` +
+        `cubeDeriv_mem_range_embS` (range closed under `cubeDeriv`, j∈S flips one S-coord / j∉S gives 0) →
+        `cubeDerivList_mem_range_embS` → `cubeDerivRank_boolFn_monoAND_le`: `cubeDerivRank κ (boolFn ∏_{i∈S}Xᵢ) ≤ 2^{|S|}`
+        (via `LinearMap.finrank_range_le` + `Module.finrank_pi`).
+  **Combine** (`boolFn_sum` linearity): `cubeDerivRank_boolFn_sumProd_le` (`≤ ∑ⱼ 2^{|Sⱼ|}`);
+        `cubeDerivRank_boolFn_sumProd_le_fanin` (`≤ m·2^D` under fan-in ≤ D).
+  **Through any boundary** (`restrictB_sum` linear + `restrictB_mem_range_embS`): `boundaryCubeRank_boolFn_monoAND_le`,
+        `boundaryCubeRank_boolFn_sumProd_le` — same `≤ ∑ⱼ 2^{|Sⱼ|}` through EVERY observer cut.
+Easy = boundary-compressible (upper bound), complements parity/MOD robustness (`≥1` under every cut). NOT the separation
+(hard-side robustness LB across a boundary FAMILY = HAL steps 5–6 = global dual separator, not built). Not `NEXP⊄ACC⁰`,
+not `P≠NP`.
