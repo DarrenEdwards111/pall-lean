@@ -318,9 +318,26 @@ exist.  With C13 this splits the outer layer completely: `char > fan-in ⟹ deg 
 `char ≤ fan-in`, composite `MOD_m` ⟹ no `P` (method over `F_ℓ` provably fails).  The escape (C11's root-of-unity
 `omegaFn = ω^{∑}`, tracking the count mod `q` without casting into `F_ℓ`) works for **prime-power** modulus only; a
 genuine multi-prime composite `m` needs one root of unity per prime-power factor and the combined object keeps high
-N-Frame complexity — the standing `MOD_6`-type barrier.  C14 proves the naive `P(∑∏)`-over-`F_ℓ` route fails, isolating
-exactly why one must go to roots of unity and why multi-prime composite modulus stays open.  Not `NEXP ⊄ ACC⁰`, not
-`P ≠ NP`.
+N-Frame complexity — the standing `MOD_6`-type barrier, analysed in C15.  Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
+
+### C15 — the multi-prime composite barrier: the char-matching modulus is a blind spot
+
+`ComputationalDepthNFrameTwoFields.lean` (namespace `NFrameACC0`).  A genuine multi-prime `m = p₁ᵉ¹⋯` (`MOD_6`) needs one
+root of unity per prime-power factor and the single-field method fails.  The structural reason — formalised — is the
+**two-fields blind spot**: over a field of characteristic `ℓ`, the modulus *matching* the characteristic is **low**
+N-Frame complexity, while a coprime modulus is high.
+  `charModFn` — `MOD_ℓ`, the Boolean `[∑ xᵢ ≡ 0 in F]`.
+  `charModFn_eq_boolFn` — Fermat: on the cube `[∑ = 0 in F] = 1 − (∑Xᵢ)^{|F|−1}` (degree `|F|−1`).
+  `nframeComplexity_charModFn_le` — hence `NFrameComplexity (MOD_ℓ) ≤ |F| − 1` (LOW).
+  `two_fields_blindspot` — over `F`, `NFrameComplexity (MOD_ℓ) < NFrameComplexity (MOD_q)` (coprime `MOD_q`, C11) once
+        `|F| − 1 < ⌈n/2⌉`.
+
+So for a `MOD_6` circuit (`MOD_2` and `MOD_3` gates): over `F_2` the `MOD_2` gates are low-degree (invisible to the `F_2`
+argument) while `MOD_3` is high; over `F_3`, the reverse.  **No single field makes all moduli of a multi-prime circuit
+hard** — each field has a blind spot at its own characteristic.  That is exactly why the single-field polynomial method
+cannot prove multi-prime composite `MOD` lower bounds, and why `MOD_6` is open.  C15 formalises the obstruction (the
+char-matching modulus is a genuine low-complexity blind spot, from Fermat), not a crossing — that needs a
+multi-field/non-polynomial argument.  Not `NEXP ⊄ ACC⁰`, not `P ≠ NP`.
 
 ---
 
