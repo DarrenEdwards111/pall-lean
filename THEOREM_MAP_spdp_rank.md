@@ -685,3 +685,16 @@ standing RS work; framework now consumes them). Not `NEXP⊄ACC⁰`, not `P≠NP
 RS HARD SIDE in the cube measure's language (approximate, agreement on a fraction, not just everywhere). Full PARITY∉AC⁰[p]
 also needs the easy side (repo `toAgree_totalDegree_le`, `exists_large_agreement_set`, `parity_function_lower_bound`).
 Not `NEXP⊄ACC⁰`, not `P≠NP`.
+
+### Part E rung — the AC⁰[p] easy side: every AC⁰[p] circuit has low LowApproxDeg
+
+`ComputationalDepthCubeApproxEasySide.lean` — the matching easy half (both RS halves now in the cube measure's language).
+  `boolFn_mem_lowDegSpan` — converse of lowDegSpan_repr: `boolFn q ∈ lowDegSpan Δ` when `q.totalDegree ≤ Δ` (repo
+        `boolFn_mem_sqfSpan` + span equality).
+  `cubeCircuitFn p C = fun x => boolToZMod p (C.eval x)`.
+  **`lowApproxDeg_ac0p`** — an AC⁰[p] circuit (mod-gates all mod p) with horizon t covering its subcircuits has a ≥3/4 set
+        G with `LowApproxDeg ((p−1)t)^{depth} G (cubeCircuitFn p C)`. Consumes repo `exists_large_agreement_set` +
+        `toAgree_totalDegree_le`. boolFn(toAgree)=eval(boolToZMod)(toAgree) by rfl on G.
+Both RS halves now LowApproxDeg statements: hard `not_lowApproxDeg_chiUniv` (parity Ω(√m)) vs easy `lowApproxDeg_ac0p`
+(AC⁰[p] ≤((p−1)t)^depth). Their contradiction = repo `parity_function_lower_bound` (PARITY∉AC⁰[p]). AC⁰[p] single prime,
+NOT ACC⁰[6] (composite F_2/F_3 wall). Not `NEXP⊄ACC⁰`, not `P≠NP`.
