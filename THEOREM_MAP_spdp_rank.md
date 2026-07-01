@@ -582,3 +582,20 @@ cube-derivative rank, INDEPENDENT of n (cube-native analog of Part C `spdpRank_p
 Easy = boundary-compressible (upper bound), complements parity/MOD robustness (`≥1` under every cut). NOT the separation
 (hard-side robustness LB across a boundary FAMILY = HAL steps 5–6 = global dual separator, not built). Not `NEXP⊄ACC⁰`,
 not `P≠NP`.
+
+### Part E rung — Step 5 scaffolding: global observer separator (no single observer compresses all)
+
+`ComputationalDepthCubeGlobalSeparator.lean` formalises the global separator across a boundary FAMILY (HAL step 5).
+  `globalCubeSpan Fam κ f = ⊔_{ρ∈Fam} cubeDerivSpan κ (restrictB ρ f)`; `globalCubeRank Fam κ f` its dim.
+        Helpers: `cubeDerivList_finset_sum`, `finrank_finset_sup_le`.
+  `le_globalCubeRank_of_mem` — single-boundary rank ≤ global rank (monotone).
+  **`globalCubeRank_boolFn_sumProd_le`** (KEY positive): a shallow ∑∏ has `globalCubeRank Fam κ (boolFn ∑∏) ≤ ∑ⱼ2^{|Sⱼ|}`
+        for EVERY family — all boundary-restrictions of each monomial live in the SAME 2^{|Sⱼ|}-dim pullback subspace, so
+        no observer family can inflate the rank. (`restrictB_mem_range_embS` Fam-independence.)
+  `not_sumProd_of_globalCubeRank_gt` / `sumProd_separation_of_globalRobust` — SEPARATION CRITERION: `globalCubeRank >
+        ∑ⱼ2^{|Sⱼ|}` for some family ⇒ f ∉ that shallow ∑∏. `GlobalRobust κ f bound` the hard-side predicate.
+  `one_le_globalCubeRank_chiFull` — non-vacuity: parity has NONZERO global rank (not that it GROWS).
+HONEST GATE: discharging `GlobalRobust` for a hard family (global rank grows past m·2^D while easy bound is fixed) is the
+load-bearing step 6 (global dual separator) — parity needs character-independence, composite MOD_q hits the F_2/F_3
+incompatible-field wall (`…CompositeCRT`). NOT discharged; left as explicit hypothesis. P≠NP-strength per book1. Not
+`NEXP⊄ACC⁰`, not `P≠NP`.
