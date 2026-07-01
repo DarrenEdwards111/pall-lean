@@ -436,6 +436,16 @@ monomial-`AND` to the full BT shape: an arbitrary `SYM∘AND` circuit bounded by
         — dischargeable for depth-`2` / prime-power `MOD`, open for general composite.  The composite-`MOD` barrier is now
         localised to *one* structure instance; the fast-SAT machinery is proved.
 
+**Discharged: the depth-2 `MOD∘AND` instance** — `ComputationalDepthNFrameYBTDepth2.lean`.  A `MOD` gate is *symmetric*
+(a function of the sub-gate count), so a depth-2 `MOD∘AND` circuit is *already* `SYM∘AND` — no arithmetisation.
+  `ModAndCircuit n size` / `ModAndCircuit.eval` — a `MOD_m∘AND` circuit and its semantics `[#(AND gates) ≡ residue mod m]`.
+  `modAnd_ybtCompiler` — **the discharged `YBTCompiler` (proved, `exact := rfl`)**: the `MOD` residue *is* the symmetric
+        top over the `AND`-count.  `modAnd_fastSATModel` / `modAnd_fastSATSpeedup` follow via the bridge.
+  `mkPrimePowerModAnd` — the prime-power `MOD_{p^e}∘AND` case the ladder called out (no prime-power hypothesis needed —
+        a single `MOD` gate is symmetric for *any* modulus).
+  This pins the barrier's real location: **not** a single `MOD` gate (discharged here for any modulus), but the
+        composition of *different-modulus* `MOD` gates across depth `> 2` — the standing open rung.
+
 This bypasses the `MOD_6` wall because the claim is *algorithmic* (fast #SAT via a compact representation), not
 "`MOD_6` is hard over a field" — so the C15/C16 obstruction does not apply.  Honest scope: the deep content
 (easy-witness/IKW collapse, nondeterministic time hierarchy) are named classical sockets, **not** proved here; building
