@@ -698,3 +698,17 @@ Not `NEXP⊄ACC⁰`, not `P≠NP`.
 Both RS halves now LowApproxDeg statements: hard `not_lowApproxDeg_chiUniv` (parity Ω(√m)) vs easy `lowApproxDeg_ac0p`
 (AC⁰[p] ≤((p−1)t)^depth). Their contradiction = repo `parity_function_lower_bound` (PARITY∉AC⁰[p]). AC⁰[p] single prime,
 NOT ACC⁰[6] (composite F_2/F_3 wall). Not `NEXP⊄ACC⁰`, not `P≠NP`.
+
+### Part E rung — the composite MOD_6/ACC⁰[6] BARRIER (why the AC⁰[p] easy side can't extend)
+
+`ComputationalDepthCubeACC6Barrier.lean` — the composite case, honestly a PROVED BARRIER (not a separation; ACC⁰[6] lower
+bounds are OPEN, only Williams NEXP⊄ACC⁰ known via non-RS).
+  `not_lowApproxDeg_mod6` — over a field with an order-6 root ω, the MOD_6 gate (omegaFn ω) has NO degree-<⌈n/2⌉ poly
+        agreeing everywhere (q=6 instance of not_lowApproxDeg_omegaFn): HIGH approx degree, unlike the AC⁰[p] MOD_p gate
+        which FLATTENS over F_p (repo nframeComplexity_charModAndFn_le).
+  `acc6_easySide_gate_not_low` — an ACC⁰[6] gate (MOD_6) is NOT low approx degree ⇒ the easy side `lowApproxDeg_ac0p`
+        (every gate low degree over the working field) has NO analogue for ACC⁰[6].
+MECHANISM (repo CRT): MOD_6=MOD_2∧MOD_3; no single field flattens both — over char p coprime to 6 MOD_6 is the full-support
+character (high); over char 2 the MOD_3 factor is high, over char 3 the MOD_2 factor is (composite_middle_no_lowdeg_flatten,
+two_fields_blindspot). RS easy side is single-field; MOD_6 refuses low degree over ANY single field. This documents the
+obstruction as a THEOREM. Crossing = P≠NP-adjacent, NOT built, NOT fakeable. Not `NEXP⊄ACC⁰`, not `P≠NP`.
