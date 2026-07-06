@@ -1253,3 +1253,51 @@ works" and "ε-biased fails" IS the explicit-rigidity barrier, now sharply locat
 union-bound-over-cuts step.  A provable explicit every-cut bound needs a NON-per-cut certificate
 (an algebraic every-cut induced-matching guarantee) — the open problem.  This closes the
 ε-biased sub-question honestly: it is the wrong tool.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+# THE INDUCED-MATCHING ROUTE: explicit cut-rigidity via expanders (sub-target (a) RESOLVED)
+
+The ε-biased attempt failed on the union-bound-over-cuts barrier.  The induced-matching route
+BYPASSES it, and it WORKS — correcting the earlier "spectral expanders don't suffice."  Core
+frozen in Lean (`ComputationalDepthNFrameInducedMatch.lean`).
+
+## The chain (explicit, no union bound)
+
+    d-regular edge-expander M (explicit, Ramanujan), edge expansion h > 0
+  ⟹ every balanced cut has ≥ h·N/2 crossing edges                           [expansion — a DETERMINISTIC every-cut guarantee]
+  ⟹ a matching of size ≥ h·N/(2(2d−1))                                      [greedy: each edge kills ≤ 2d−1]
+  ⟹ an INDUCED matching of size r ≥ Θ(N/d²)                                 [greedy: each edge blocks ≤ 2d others]
+  ⟹ M_{S,Sᶜ} has an r×r IDENTITY submatrix ⟹ rank_{F₂}(M_{S,Sᶜ}) ≥ r = Θ(N)  [linear algebra]
+
+The crucial point: edge expansion is a "for every cut" guarantee that is PROVEN for explicit
+expanders (via the spectral gap / Cheeger) — NO union bound over cuts.  The ε-biased approach
+died on the union bound; the induced-matching approach never invokes one.
+
+## The correction
+
+The earlier claim "spectral expanders do not suffice" was about the spectral-RANK approach
+(bounding `F₂`-rank via the real spectrum — which genuinely fails).  The COMBINATORIAL route
+— edge expansion → matching → induced matching → identity submatrix → `F₂`-rank — is different
+and WORKS.  A cycle has low-rank interval cuts because it is NOT an edge-expander (`h → 0`); a
+constant-degree edge-expander has `rank_{F₂}(M_{S,Sᶜ}) = Θ(N)` at every balanced cut.
+
+## What is proved (Lean) and what is cited (paper)
+
+- **Lean (this file), clean axioms**: `induced_matching_distinct` — an induced matching
+  (identity detection matrix `bilinSym A (e_{t k})(e_{s l}) = [k=l]`, which by `bilinSym_units`
+  IS the identity submatrix of `M`) gives `2^r` pairwise-distinguished tuple rows under
+  completions.  So the induced matching yields cut-rank `≥ r` via `cut_row_capacity`.  Plus the
+  bilinearity infrastructure (`bilinSym_add_right`/`_sum_right`/`_zero_*`).
+- **Cited (standard graph theory)**: edge expansion → matching → induced matching (greedy).
+
+## Honest status: sub-target (a) RESOLVED; (b) unchanged
+
+Explicit cut-rigid `M` is DONE: a constant-degree Ramanujan graph, provably `Θ(N)` `F₂`-rank at
+every balanced cut, giving `cbudget(qform) ≥ (2+c)N` for the flat quadratic form over that
+expander — the drag method now provably EXCEEDS the block-count cap on an EXPLICIT family.  The
+remaining caveat is sub-target (b), UNCHANGED: `qform` is EASY (`O(dN)` gates), so this is a
+`(2+c)N` lower bound for an easy function — a demonstration, not a hard-function separation.
+`(2 + Ω(1))N` for a HARD function still needs cut-rigidity AND super-linear hardness in one flat
+family; the rigidity half is now explicit, the hardness half remains open.  Nothing here is
+`NEXP ⊄ ACC⁰` or `P ≠ NP`.
