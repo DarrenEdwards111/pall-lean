@@ -864,3 +864,98 @@ Frozen Lean (`ComputationalDepthNFrameTensorFamily.lean`, clean axioms): the ten
 value, `groupCount_eq_parityFamily`, `tensorParity_single_diff`, and `tensor_detect_localizes`
 — the structural core, true and reusable for any multi-witness successor.  Nothing here is
 `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+# ROUTE G: index-encoding detection — the super-√N regime and its hard barrier
+
+Design of the index-encoding detection method, worked on paper per discipline.  Outcome,
+honest: index-encoding raises the detectable witness dimension from `√N` to `N/log N`
+(a genuine super-`√N` improvement, the first sub-linear-error regime), via a detection
+PRIMITIVE that survives the encoding's nonlinearity; but it is CAPPED at `N/log N` by a
+fixed-menu barrier, so constant `c` in `(2+c)N` stays out of reach — and that cap is a
+genuine METHOD BARRIER for affine `⊕#SAT` families, not a construction defect.
+
+## G.1 The encoding
+
+Fix a rich menu `menu : (block, slot, index) → Lit v` as a FAMILY PARAMETER (free, like the
+codebook), with `M = poly(v)` entries spanning `F₂^v`.  Each block has `w = O(1)` slots; slot
+`s` holds an INDEX `∈ [M]` encoded in `⌈log M⌉ = O(log v)` input bits; the block's clause is
+`{menu(idx_1), …, menu(idx_w)}`.  A block costs `O(log v)` input bits, so `N = m·w·log M`, and
+with `m = Θ(v)` (hardness) the witness dimension is `v = Θ(N / log N) = N^{1−o(1)}`.  The
+menu being a parameter (not input) is what buys the rich `v`-dim span at `log v` input cost.
+
+## G.2 Why the presence-bit detection breaks, and what replaces it
+
+Toggling one index bit performs a MENU-JUMP `menu(idx) → menu(idx ⊕ e_t)` — nonlinear in the
+input (the resulting literal depends on the OTHER index bits of the slot).  The presence-bit
+`xbit`/`decodeBlock`/`rowOf` machinery (toggle position `p` ⟺ toggle literal `code(i)`) is
+gone: there is no per-position literal.
+
+FALSE START (linear menu): make `menu(idx).func = λ_0 + Σ_t idx_t·g_t` so toggles are linear
+shifts `+g_t`.  Then `O(log v)` generators `g_t` span only `O(log v)` functional dimensions,
+collapsing the witness space to `O(log v)` — the same bottleneck.  A LINEAR menu cannot span
+`F₂^v` with `O(log v)` index bits.  So the menu MUST be nonlinear; detection must handle it.
+
+THE PRIMITIVE (proved, `ComputationalDepthNFrameIndexDetect.lean`): pin the witness to a LINE
+`{a₀, a₀+u}` (the two-point set, as in the parity drag).  Then for ANY literal `ℓ`,
+
+    twoPointCount ℓ a₀ u := [ℓ holds at a₀] + [ℓ holds at a₀+u]  (in ZMod 2)  =  dotp ℓ.1 u.
+
+The two-point PARITY of a literal equals its FUNCTIONAL dotted with the pin-direction —
+VALUE-INDEPENDENT (`ℓ.2` and `a₀` drop out).  Hence an index toggle `idx → idx'` is detectable
+(under pin `u`) iff `dotp (menu(idx)).1 u ≠ dotp (menu(idx')).1 u` — a pure functional-
+separation test on the menu, INDEPENDENT of demanded values and base points
+(`twoPoint_detect`, `menu_toggle_detect`).  This is the detection method Route G needed: it
+reads the nonlinear menu through the LINEAR functional it selects, which is exactly the
+quantity the line-pin exposes.
+
+## G.3 The improvement — super-√N
+
+- Spread channel: at one balanced cut, price `Θ(v) = Θ(N/log N)` index bits, each detected by
+  the primitive with a per-target line-pin `u`; a generic `u` separates ~half the menu
+  toggles, so a constant fraction is priced → `|V| = Θ(N/log N)`, `CE ≥ Θ(N/log N)` (under
+  spread-forcing, as always).
+- Concentration channel: a block now carries `O(log v)` index bits selecting from a `v`-dim
+  menu — it is INFORMATION-DENSE, hosting up to `Θ(log v)` independent detected directions per
+  block (vs `O(1)` for a presence block).  This finally beats the annulus `+1`-per-scale
+  charge: `k` scales × `Θ(log v)` bits/scale = `Θ(k log v)` detected vs `+k` charged, so
+  `CE ≥ Θ(k log v) − k = Θ(k log v)`.  Harvesting the full witness cap `v` needs `k = v/log v`
+  scales, giving `CE ≥ v − v/log v = Θ(v) = Θ(N/log N)`.  **The concentration bottleneck is
+  raised from `√N` to `N/log N` — index-density is what the annulus ledger rewards.**
+
+Either channel yields `CE = Θ(N/log N)`, i.e. `cbudget ≥ 2N + Θ(N/log N) = (2 + Θ(1/log N))N`.
+
+## G.4 The hard barrier — why constant `c` is out of reach
+
+The detectable rank is `≤ v` (all detection is `dotp (functional) u`, functionals in `F₂^v`).
+The witness dimension obeys, in ANY fixed-menu affine encoding:
+
+    N = m·w·log M,   m ≥ v (hardness),   M ≥ v (menu spans F₂^v)   ⟹   N ≥ v·log v,
+    hence  v = O(N / log N).
+
+So `CE = O(v) = O(N/log N)` and `cbudget ≤ 2N + O(N/log N) = (2 + o(1))N` by this method.
+**`(2+c)N` with CONSTANT `c` is UNREACHABLE for affine `⊕#SAT` families under N-frame
+(witness-rank) detection.**  The `log v` factor is irreducible: cheaper indices (`o(log v)`
+bits) cannot address a `v`-spanning menu; a smaller menu cannot span `F₂^v`; a non-spanning
+menu collapses the witness space.  This is the honest ceiling of the entire affine-parity
+program: it reaches `(2 + o(1))N`, never `(2 + Ω(1))N`.
+
+## G.5 The frontier beyond the barrier
+
+Constant `c` requires detection NOT bounded by an affine witness-rank — i.e. a family whose
+sensitivity is not `dotp (functional) u`.  Candidates (all undesigned): a NON-affine literal
+menu (e.g. degree-2 / quadratic constraints, where the two-point primitive gives a quadratic
+form, not a linear functional, and the "rank" is the quadratic-form rank up to `v²` — but
+description cost of a quadratic form is `v²` bits, re-forcing the barrier one power up unless
+the quadratic menu is also index-encoded); or a detection instrument that reads MULTIPLE line-
+pins per position (a `(v−t)`-flat instead of a line), whose two-point parity is a degree-`t`
+object — trading witness-rank for a higher-degree cap at higher description cost.  Each trades
+the same way; the meta-barrier is that DESCRIPTION COST and DETECTION RANK scale together, and
+`N = (rank) × (bits per unit rank)` with bits-per-unit `≥ log(rank)`.  Breaking `(2+Ω(1))N`
+needs a family where detection rank is `Θ(N)` at `O(1)` description-bits per rank-unit — which
+no affine or bounded-degree menu provides.
+
+Frozen Lean (`ComputationalDepthNFrameIndexDetect.lean`, clean axioms): `twoPointCount`,
+`twoPointCount_eq_dotp` (the primitive), `twoPoint_detect`, `menu_toggle_detect` — the index-
+encoding detection core, true and reusable.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
