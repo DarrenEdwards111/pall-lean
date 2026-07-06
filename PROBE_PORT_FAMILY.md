@@ -327,3 +327,73 @@ robustness). Chain: `j ≥ Θ(S-mass at C-blocks)/const = Θ(T)` at any moderate
   algebra + counting — very formalizable), and the `F = Z mod 2` reduction.
 
 Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+# TASK 5: the parity rank-completion lemma — frozen statement + second red-team
+
+## 1. The general paper statement (rank-general, consistency by extension)
+
+Let `Sys` be affine literals over `F₂^v` (pins with asserted values, scaffold and
+block content with complemented values), `W := {a : Sys holds}` its solution set,
+`λ*` a functional, `b` a value. Then:
+
+- **(Counting)** `W` is empty or a coset of `ker(Sys) := span(functionals)^⊥`;
+  `|W| = 2^{v − rank}` when consistent. `|W|` is ODD iff `Sys` is consistent and
+  `rank = v`.
+- **(Consistency by extension)** If the functionals of `Sys` are linearly
+  independent, `Sys` is consistent for every RHS; in general, extend any
+  independent subsystem — full-rank extensions are always consistent.
+- **(Flip, general form)** If `Sys` is consistent with `rank = v − r` (`r ≥ 1`
+  free directions) and `λ*` is NONCONSTANT on `ker(Sys)` (equivalently
+  `λ* ∉ span(functionals)`), then the two `λ*`-slices of `W` are equinumerous
+  (`= 2^{v−rank−1}` each). Hence: count(`Sys`) is even, and
+  count(`Sys ∧ ⟨λ*,a⟩ = b`) is odd **iff `r = 1`** — the flip 0 → 1 happens
+  exactly when `λ*` removes the LAST free direction, for BOTH values of `b`.
+- **(Transversal discipline — design-side, not a hypothesis)** In the drag, rows
+  SELECT which hosted positions vary; the adversary controls only which positions
+  are in `S`. Rows select an independent transversal (rank ≥ mass/12) and hold
+  all other hosted positions constant-OFF — dependent hosting never enters any
+  instantiated system. The lemma's independence hypotheses are therefore
+  satisfiable by construction, per pair, with pins+scaffold completing
+  `T ∖ {λ*}` to rank `v − 1` while avoiding `λ*` (possible exactly by
+  transversal independence).
+
+## 2. Second red-team (four questions, answered)
+
+**(a) Dependent+independent mixes vs the transversal.** Defeated structurally:
+selection is ours. The only quantitative question is the matroid bound — rank of
+any hosted multiset ≥ (#distinct functionals)/2 (Λ's circuits are cycles) and
+positions-per-functional-per-block = 6 (after removing `(0,1)`), so priced ≥
+mass/12 per block, worst case, mix-independent. Remark: even tautology positions
+are priceable with full-rank pins (`F` flips 1 vs 0 there), so the only true dead
+class was the removed contradiction selector.
+
+**(b) Mass concentration hiding the transversal.** Saturating blocks caps the
+per-block transversal at rank ≤ v while hosting up to `Θ(d·v)` per block: a
+`Θ(d)` constant loss, no more — priced ≥ `Θ(T/d)` = `Θ(N)` for constant `d`.
+Tradeoff noted: small `d` improves this constant but weakens expansion in the
+kill-cost lemma; `d ∈ [8,16]` is the working range.
+
+**(c) Hardness.** Singleton selectors embed 3-CNF PARSIMONIOUSLY (same witness
+set over the same `a ∈ F₂^v`), so `sat3X⊕` ⊇ ⊕3SAT — ⊕P-hard-shaped;
+polynomial-size circuits for the family would be a ⊕P ⊆ P/poly-strength event.
+
+**(d) Cheap upper-bound quirks.** Unit-clause (purely affine) instances are
+poly-time (Gaussian) — harmless, hardness lives in the OR-width. Per-probe `Z`
+computations are linear algebra, but the FUNCTION ranges over all instances;
+inclusion–exclusion expansions are exponential; no collapse found. Honest upper
+bound stays brute force `2^v·poly = 2^{Θ(√N)}`. Watched corner: parity-specific
+algebraic algorithms (e.g. ⊕2SAT-style special cases) — none apply at general
+width.
+
+## 3. Lean scout target (next file)
+
+The kernel-form statements (hypotheses-first — no rank machinery, duality stays
+on paper): (i) SLICE: a constraint-preserving direction `w` with `⟨l,w⟩ = 1`
+makes the two `l`-slices of any solution set equinumerous; (ii) EVEN: hence any
+surviving free direction forces an even count; (iii) ODD: a unique solution
+gives count 1; (iv) FLIP: solutions `= {a₀, a₀+w}` with `⟨l*,w⟩ = 1` give
+count even, sliced count odd, for both slice values.
+
+Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
