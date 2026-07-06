@@ -1158,3 +1158,59 @@ explicit rigidity, and fails (c); block-menu #SAT families have (c) and fail (a)
 explicit family has all three — that intersection is the honest remaining problem, and it is a
 rigidity × hardness question, not another drag variant.  Nothing here is `NEXP ⊄ ACC⁰` or
 `P ≠ NP`.
+
+---
+
+# PINNING DOWN EXPLICIT CUT-RIGID A: a design correction + the honest barrier
+
+Attempt to pin down the explicit `A` for `qform`.  Working the polarization by hand caught a
+design bug and located the barrier precisely; both frozen in Lean
+(`ComputationalDepthNFrameCutRigid.lean`).
+
+## The correction (a real bug in the flat-form design)
+
+The polarization is `bilinSym A x δ = xᵀ(A + Aᵀ)δ` (`bilinSym_eq`, PROVED).  So for a
+SYMMETRIC `A` — an undirected graph adjacency, which is what "expander adjacency" meant —
+`A + Aᵀ = 2A = 0` over `F₂`, hence `bilinSym A ≡ 0` (`bilinSym_symm_zero`, PROVED): the
+quadratic form of a symmetric `F₂` matrix is LINEAR (its diagonal), and detection is
+identically zero.  The naive "expander-adjacency `A`" is DEGENERATE.
+
+Fix: `A` must be an ORIENTATION — the strict upper triangle of a graph `M`, so
+`qform A x = ∑_{i<j, M_{ij}=1} x_i x_j`.  Then `A + Aᵀ = M` (the undirected adjacency), the
+polarization is `xᵀ M δ`, and the cut-rank of `qform A` across `(S, Sᶜ)` is
+`rank_{F₂}(M_{S,Sᶜ})`.  So the cut-rigidity requirement lands on the UNDIRECTED graph `M`:
+`rank_{F₂}(M_{S,Sᶜ}) = Θ(N)` at every balanced cut.
+
+## Why the explicit `A` cannot be honestly pinned down
+
+The corrected target is: an explicit undirected graph `M` with `rank_{F₂}(M_{S,Sᶜ}) = Θ(N)` at
+EVERY balanced cut `(S, Sᶜ)`.  This is the `F₂`-rank version of matrix rigidity / high
+rank-width-at-every-balanced-cut.  Honest status of the candidates:
+
+- **Random / ε-biased `M`**: works whp / by the pseudorandom-rank property, but is not a
+  PROVEN explicit every-cut bound.  ε-biased sets are explicit, and an ε-biased `M` is the best
+  concrete candidate, but proving `rank_{F₂}(M_{S,Sᶜ}) ≥ cN` for ALL balanced `S` is exactly
+  the rigidity-style statement that is not known for any explicit `M`.
+- **Spectral expanders do NOT suffice.**  The expander mixing lemma bounds the REAL top
+  singular value of `M_{S,Sᶜ}` (`≈ d|S||Sᶜ|/N`, a near-rank-1 REAL approximation) — it says
+  nothing about the `F₂`-rank of the sub-block.  Extreme case: the cycle `C_N` (a sparse
+  expander) has interval cuts of `F₂`-rank `2`.  So spectral pseudorandomness is the wrong
+  handle.
+- **Algebraic constructions** (Paley, projective-plane incidence, Cayley graphs) have known
+  FULL-matrix `F₂`-ranks (Hamada-type formulas), but their sub-block ranks over `F₂` at every
+  balanced cut are not controlled by any known theorem.
+
+So: the reduction is EXACT and the target PRECISE (explicit every-balanced-cut `F₂`-rigid `M`),
+but that target is an open explicit-rigidity problem.  I cannot pin down an explicit `A` with a
+proof, and neither can the field at `Θ(N)` strength.  The honest deliverable is the correction
+(orientation, `cut-rank = rank_{F₂}(M_{S,Sᶜ})`) and the precise open statement; the instantiation
+awaits an explicit rigid `M`.
+
+## The consolidated frontier (all routes)
+
+`(2 + Ω(1))N` for a hard function needs FLAT + CUT-RIGID + HARD in one family.  The pieces:
+`qform` gives FLAT + (rigid modulo explicit `M`) but not HARD; block-menu `⊕#SAT` gives HARD but
+not FLAT (block-count-capped at `N/log N`).  The two open sub-targets are now sharp: (a) an
+explicit every-balanced-cut `F₂`-rigid `M` (this section — rigidity frontier), and (b) a flat
+family that is also hard (form-hardness frontier).  Both are recognized hard problems, not drag
+variants.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
