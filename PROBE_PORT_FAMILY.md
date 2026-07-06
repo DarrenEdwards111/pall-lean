@@ -1214,3 +1214,42 @@ not FLAT (block-count-capped at `N/log N`).  The two open sub-targets are now sh
 explicit every-balanced-cut `F₂`-rigid `M` (this section — rigidity frontier), and (b) a flat
 family that is also hard (form-hardness frontier).  Both are recognized hard problems, not drag
 variants.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+# ε-BIASED M FOR CUT-RIGIDITY: honest outcome — the wrong certificate (union-bound barrier)
+
+Attempt to prove an explicit ε-biased `M` gives a weak every-cut `F₂`-rank bound.  Detection
+bridge frozen in Lean (`ComputationalDepthNFrameEpsBias.lean`); the ε-biased bound itself worked
+on paper with an HONEST negative outcome.
+
+## The detection bridge (proved)
+
+`bilinSym_units` (PROVED): `bilinSym A (e_a) (e_b) = A_{ab} + A_{ba}` = the `(a,b)` entry of
+`M = A + Aᵀ`.  So the detection matrix of `qform A` is EXACTLY `M`; the cut-rank across
+`(S, Sᶜ)` is `rank_{F₂}(M_{S,Sᶜ})`, and an induced cross-matching of size `r` gives `r`
+independent detectable directions (`bilinSym_edge` is the atom).  The reduction to `M`-rigidity
+is now exact and Lean-anchored.
+
+## The ε-biased bound: it does NOT hold provably (and why)
+
+- **Random `M` works.**  `Pr[corank ≥ t]` at a fixed cut `≈ 2^{-t²}`; union over `≤ 2^N` cuts
+  needs `t > √N`, so a random `M` has `rank_{F₂}(M_{S,Sᶜ}) ≥ N/2 − O(√N) = Θ(N)` at EVERY
+  balanced cut whp.  Target achievable, non-explicitly.
+- **ε-biased FAILS.**  ε-biasedness controls linear tests (`|Pr[all zero] − 2^{-r}| < ε`).  The
+  first-moment kernel bound is `E[#t-dim kernels] ≤ 1 + ε·2^{tN/2}`, so forcing corank `< t` at
+  one cut needs `ε < 2^{-tN/2}`, and with the union over `2^N` cuts, `ε ≤ 2^{-Θ(N^{1.5})}` —
+  seed `Θ(N^{1.5})`, no better than random.  A small-bias set (`ε = 1/poly`, seed `O(log N)`)
+  does NOT survive.  ε-biasedness is a "few linear tests" tool; the every-cut kernel analysis
+  has `2^{Θ(N)}` events.  **The union bound over exponentially many cuts is the barrier, and
+  ε-biasedness cannot pay for it.**
+
+## Honest verdict
+
+ε-biased `M` does not provably give a weak every-cut bound — not because the bound is false
+(random has it) but because the ε-biased CERTIFICATE (per-linear-test bias) is the wrong
+certificate for an every-cut, exponentially-many-events property.  The gap between "random
+works" and "ε-biased fails" IS the explicit-rigidity barrier, now sharply located at the
+union-bound-over-cuts step.  A provable explicit every-cut bound needs a NON-per-cut certificate
+(an algebraic every-cut induced-matching guarantee) — the open problem.  This closes the
+ε-biased sub-question honestly: it is the wrong tool.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
