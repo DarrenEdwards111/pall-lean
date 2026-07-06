@@ -495,3 +495,88 @@ Status of the checklist against this framing: root shape CLOSED (generic +
 parity instantiation, unconditional); drag-side codebook glue = bookkeeping;
 expander = the interface discharge above.  Nothing here is `NEXP ⊄ ACC⁰` or
 `P ≠ NP`.
+
+---
+
+# THE DISCHARGE DESIGN (rung E-ladder): scaffold-covered companions, and where expansion actually stood
+
+Full paper pass over the interface discharge before Lean, per standing discipline.
+Outcome: one load-bearing simplification found and red-teamed, one honest correction
+to the counting round's framing of the expander's role.
+
+## E.1 The scaffold-companion simplification (red-teamed, adopted)
+
+The counting round's edge route forced `e_j` indirectly as
+`e_j = edge(j,j'') + e_{j''}` and required the companion `j''` to have live forcing
+of its own — hence deadness closed under decomposition, hence the boundary-counting
+of `closed_dead_alternative`, hence SPECTRAL EXPANSION as the load-bearing input.
+
+The simplification: choose the companion OUTSIDE `K ∪ {j*}`.  Then the companion is
+scaffold-covered — the failure-forced literal `(e_{j''}, 1)` already pins
+`a j'' = 0` in the two-point system — and the edge pin `(e_j + e_{j''}, b_j + 1)`
+alone forces `a j = b_j + 1`.  The companion needs NO pin, NO liveness, and may
+itself be killed.  Audit against the supply algebra (now `route_supply`, PROVED):
+- `a₀`-consistency: `dotp (e_j + e_{j''}) a₀ = a₀ j + a₀ j'' = (b_j+1) + 0` ✓.
+- `w`-kernel: `j ≠ j*` (priced), `j'' ≠ j*` (by choice) ✓.
+- pair identity: routes + scaffold-failure force `a` on `K` and on the complement,
+  leaving exactly the `j*` direction free — two solutions ✓ (`route_supply`).
+- probe machinery: a pin is still ONE codebook index at one reserve block —
+  `probeOn`/`rowOf` unchanged ✓.
+
+Consequence for the kill-accounting: to keep a priced coordinate `j` dead the
+adversary must bury, per usable reserve block, the direct selector columns AND the
+edge-selector columns of ALL `d` edges at `j` — companions inside the killed set
+still work.  Killing a set `A` costs its incident-edge-column mass
+`|A| + e_inc(A) ≥ (1 + d/2)·|A|` on ANY `d`-regular graph (equality only when `A`
+is a union of components; strict on a connected graph).  **No spectral expansion is
+required for the ratio: `1 + d/2 > 1` is generic.**
+
+## E.2 Where the designer's freedom is spent (the independent-set step)
+
+Per-block priced width must be `Θ(v)` for `|V| = Θ(m²) = Θ(N)`, so `K` is LARGE and
+companions must avoid `K`.  The designer prices, within the surviving columns of a
+data block, a set `K` that is INDEPENDENT in the route graph — then every priced
+`j` has all `d` companions outside `K` (choose any not equal to `j*`; `d ≥ 2`
+suffices).  Any graph has, inside every subset `U`, an independent subset of size
+`≥ |U|/(d+1)` (greedy) — a GENERIC fact, no expansion.  This costs a factor
+`d+1` in the priced fraction, which the `1 + d/2` ratio absorbs: the fraction
+stays a positive constant, which is all `(2+c)N` needs.
+
+## E.3 The honest correction to the framing
+
+The certified interface (`Expander (nbr) (c)`, canonical Ramanujan) remains VALID —
+any certified expander still discharges everything.  But the load-bearing property
+is weaker than expansion: `d`-regularity + connectivity + the generic greedy
+independent-set bound.  The canonical discharge can therefore be an explicit
+CIRCULANT (`j ↦ j ± 1, …, j ± d/2 (mod v)`) — certifiable in Lean by elementary
+counting, no spectral theory, no Mathlib gap.  Ramanujan remains the flagship
+STORY for constants (its expansion strictly improves the priced fraction via
+`closed_dead_alternative` if one later restores companion-liveness routes), but it
+is no longer on the critical path.  This supersedes "the expander's load-bearing
+site" (§3 of the counting round): that analysis was correct FOR ITS route design;
+the route design changed.
+
+## E.4 The discharge ladder (frozen)
+
+- **E1 — route supply** (`ComputationalDepthNFrameParityRouteSupply.lean`, PROVED):
+  `route_supply` generalizes `singleton_supply` to route assignments (direct or
+  edge with off-`K∪{j*}` companion); `direct_routes_are_routes` checks the
+  specialization.  All linear slots of the 28c pair machinery re-supplied.
+- **E2 — route re-threading**: mirror 28e/28g with `route_supply` in place of
+  `singleton_supply`; the drag hypotheses `hpinCode`/`hpinCover` generalize from
+  singleton-complement shape to route shape.  Mechanical mirror.
+- **E3 — extended codebook**: `xstdL v = (2+d)·v + 1` — tautology, singleton
+  columns, and edge columns for the explicit circulant; enumeration reads,
+  injectivity, disjointness (the `stdCode` pattern).
+- **E4 — the graph layer**: circulant `nbr`, `d`-regularity, symmetry, and the
+  generic greedy independent-set-in-any-subset bound.  Elementary; replaces the
+  spectral long-pole.
+- **E5 — the kill-accounting assembly**: at any balanced cut of the extended-
+  codebook parity family — Markov designation (heaviest blocks = data), survivor
+  columns, independent `K` within survivors, route selection, reserve transversal —
+  producing the E2 drag package with `|V| ≥ frac·|S| − O(m)`.  The big rung; all
+  counting, no new algebra.
+- **E6 — headline re-assembly**: essentials at `xstdCode` (`2·m·(2+d)·v ~ 2N`) +
+  the E5 drag at a heavy band via the generic wire cut ⇒ `cbudget ≥ (2+c)N`.
+
+Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
