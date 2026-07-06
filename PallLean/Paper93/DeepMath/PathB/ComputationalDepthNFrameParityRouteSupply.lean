@@ -20,7 +20,8 @@ expansion required.  The certified interface weakens accordingly.
   `route_supply` — **PROVED, THE GENERALIZED SUPPLY PACKAGE**: for every target `(j*, b*)`
         and priced set `K ∌ j*` with values `bval`, and ANY route assignment `r` (direct or
         edge with off-`K∪{j*}` companion), explicit `(w, a₀)` satisfying all the linear
-        slots: `hlw`, the route `w`-kernels, the `a₀`-falsifications, route consistency at
+        slots: `hlw`, the route AND singleton `w`-kernels (the latter exposed
+        because `w` is existentially bound and opaque downstream), the `a₀`-falsifications, route consistency at
         `a₀`, and the pair-solution identity (routes hold ∧ scaffold-false ⟺
         `a ∈ {a₀, a₀ + w}`).  `singleton_supply` is the all-direct special case.
 
@@ -70,6 +71,7 @@ theorem route_supply (v : ℕ) (jstar : Fin v) (bstar : ZMod 2)
     ∃ w a₀ : Fin v → ZMod 2,
       dotp (single v jstar) w = 1
       ∧ (∀ j ∈ K, dotp (r j).1 w = 0)
+      ∧ (∀ j ∈ K, dotp (single v j) w = 0)
       ∧ ¬ litHolds a₀ (single v jstar, bstar)
       ∧ (∀ j ∈ K, ¬ litHolds a₀ (single v j, bval j))
       ∧ (∀ j ∈ K, litHolds a₀ (r j))
@@ -127,7 +129,13 @@ theorem route_supply (v : ℕ) (jstar : Fin v) (bstar : ZMod 2)
       show dotp (single v j + single v j'') a₀ = bval j + 1
       rw [dotp_add_left, dotp_single, dotp_single, ha₀K j hj,
         ha₀off j'' hj''K hj''s, add_zero]
-  refine ⟨single v jstar, a₀, ?_, hker, ?_, ?_, hpins₀, ?_⟩
+  have hsker : ∀ j ∈ K, dotp (single v j) (single v jstar) = 0 := by
+    intro j hj
+    have hjs : j ≠ jstar := fun hcon => hK (hcon ▸ hj)
+    rw [dotp_single]
+    show (if j = jstar then (1 : ZMod 2) else 0) = 0
+    rw [if_neg hjs]
+  refine ⟨single v jstar, a₀, ?_, hker, hsker, ?_, ?_, hpins₀, ?_⟩
   · rw [dotp_single]
     show (if jstar = jstar then (1 : ZMod 2) else 0) = 1
     rw [if_pos rfl]

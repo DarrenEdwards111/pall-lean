@@ -580,3 +580,33 @@ the route design changed.
   the E5 drag at a heavy band via the generic wire cut ⇒ `cbudget ≥ (2+c)N`.
 
 Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+## E.5 Framing RATIFIED (HAL): circulant on the critical path
+
+The trade is confirmed: the proof interface never needed spectral optimality, only
+enough certified expansion/incident-edge mass to clear the constant — with
+scaffold-covered companions giving ratio `≥ 1 + d/2`, spectral machinery is overkill
+for landing the theorem.  The hierarchy:
+
+- **Critical Lean path**: explicit circulant + elementary counting (E3–E5).
+- **Paper narrative**: Ramanujan is the canonical/high-quality instantiation; the
+  proof accepts any certified expander.
+- **Upgrade path**: Ramanujan discharge later if worth it (constants/continuity).
+
+## E.6 E2 status: DONE (route re-threading)
+
+- `route_supply` extended with the singleton `w`-kernels (exposed in the conclusion
+  because the existential `w` is opaque downstream — the 28e thread's `hwE` slot
+  consumes them).
+- **E2a** (`ComputationalDepthNFrameParityRouteThread.lean`, PROVED):
+  `parity_pair_dist_route` — the route-general mirror of 28e.  Rung 28c was already
+  pin-literal-generic (pins enter only through `litHolds a (code (pinIdx c))`), so
+  the re-thread touches exactly the two pin-layout slots.
+- **E2b** (`ComputationalDepthNFrameParityRouteAssembly.lean`, PROVED):
+  `parity_route_pair` + `parity_route_drag` (same `rowOf`/probe/reads, per-target
+  route assignments `rF`) + `parity_route_drag_direct` (the all-direct
+  instantiation reproduces `parity_assembled_drag`'s exact hypothesis shape — the
+  generalization is strict, nothing regressed).
+
+Next: E3 extended codebook with edge columns.  Nothing here is `NEXP ⊄ ACC⁰` or
+`P ≠ NP`.
