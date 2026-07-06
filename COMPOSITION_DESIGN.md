@@ -47,8 +47,10 @@ untouched, so the recovered amount can be ~0 while the baseline drops by
 
 **Setup.** Nested balanced wires `w ⊑ w'` on one chain, `S = varsOf w ⊂ S'
 = varsOf w'`, bands `T < T'`. Define the annulus
-`Ann(w, w') := cone(w') ∖ cone(w)` (a gate set) and its excess
-`E_a := |Ann| − (|S'| − |S|)` (gates above the tree-cost of the new leaves).
+`Ann(w, w') := cone(w') ∖ cone(w)` (a wire set) and its excess `E_a` in the
+model's own currency — excess fan-out attributed to annulus wires (precise
+form fixed by the audit, §4(d)); annuli of a chain then partition the root
+cone's wires and `Σ_a E_a ≤ coneExcess(root)` is an identity.
 
 **Conjecture (Annulus Factorization).** The induced map
 
@@ -84,47 +86,65 @@ annulus at its own scale, not the sum).
   `cbudget ≥ 2·live + Ω(N) = (2+c)·N`. This is HAL's step-1 target — IF
   §4 does not kill it first.
 
-## 4. THE GATING PRESSURE-TEST: the sat3 upper-bound audit (do FIRST)
+## 4. THE UPPER-BOUND AUDIT — RESOLVED: threat withdrawn, `(2+c)N` is live
 
-Designing the composition law exposed a threat that must be settled before
-any Lean: **`(2+c)·N` may simply be FALSE for `sat3Family`.**
+**Audit performed against the actual definitions**
+(`ComputationalDepthNFrameSATTarget.lean`,
+`ComputationalDepthNFrameCircuitUpgrade.lean`,
+`ComputationalDepthNFrameSlotConnectivity.lean`). Findings:
 
-`sat3Family`'s only cross-block state is the shared `v`-bit assignment tail
-(plus O(v) sign/tail structure). Each block needs data-DEPENDENT access to
-assignment bits (its selectors choose which), which naively costs a `Θ(v)`
-multiplexer per block ⇒ `Θ(m·v) = Θ(N)` extra — that would make `(2+c)N`
-plausible. BUT the lookups of all `m` blocks can plausibly be served
-TOGETHER by one shared sorting/routing network (bitonic / Beneš-style,
-data-dependent control computed from the selectors) in `Õ(m + v) = Õ(√N)`
-gates total. If such a circuit is valid in the CGate model, then
+**(a) The threat scenario rested on a misreading and is withdrawn.**
+`sat3Family N x = decide (∃ a : Fin v → Bool, sat3Eval N x a)` — it is
+GENUINE SATISFIABILITY. The input `x` encodes only the instance (`m`
+clauses × 3 slots × (`v` selectors + sign)); the assignment is
+existentially quantified over all `2^v` candidates and is NOT part of the
+input. (The "assignment tail" this section previously assumed does not
+exist — the ledger's `3v+3` slack term is the `N mod D` remainder junk.)
+The `Õ(m+v)` routing circuit routes lookups into an input tail that isn't
+there; it does not compute `sat3Family`. No cheap upper bound follows.
 
-    cbudget(sat3Family) ≤ 2N + Õ(√N),
+**(b) Honest upper-bound status.** Best known construction is brute force
+over assignments: `cbudget(sat3Family) ≤ 2^v · poly(N) = 2^{Θ(√N)}`. The
+encoding is genuinely NP-hard-shaped: singleton selectors embed arbitrary
+sparse 3-CNF over `v` variables with `m ≈ v/3` clauses, so polynomial-size
+circuits for the family (at scale) are an NP ⊆ P/poly-strength event. Every
+target on the amplification ladder — `(2+c)N`, superlinear, polynomial —
+is consistent with the function's expected complexity.
 
-rung 21 is Θ̃-TIGHT, and NO composition theorem can reach `(2+c)N` for this
-encoding — the strong annulus payoff would contradict a true upper bound,
-so at least one of them fails, and the audit decides which.
+**(c) Consequence: rung 21 is NOT tight, and the `Ω(√N)` ceiling is in the
+INSTRUMENTS, not the function** — the pool cap (rung 8) and the straddle
+channel (rung 20) are limits of the pin machinery; no circuit realizing
+`2N + Õ(√N)` was ever exhibited, and none is expected to exist. The
+composition program attacks flat sat3 directly; no family redesign is
+forced.
 
-**Audit task (paper math):** construct the explicit circuit — per-block
-evaluators + shared assignment-routing network + AND-tree — and count its
-cbudget and per-band coneExcess in the model's own accounting (exact CGate
-fan-in/fan-out pricing matters and must be read off the definitions, not
-assumed). Two outcomes:
+**(d) Model facts fixed by the audit (for the annulus statement).** CGate
+circuits have FREE fan-out (gates read earlier wires by index); `cbudget`
+counts gates; `coneExcess c root = Σ_{w ∈ cone∖{root}} (#readers(w) − 1)`
+is total EXCESS FAN-OUT, and the proven ledger is
+`2·m·D + coneExcess(root) ≤ cbudget + 1` (`sat3_excess_priced`). Rung 21's
+band bound is a lower bound on the ROOT's excess — every band charges the
+same global quantity, which is exactly the reuse problem §3 addresses. The
+annulus excess must therefore be defined in fan-out currency:
+`E_a := Σ_{w ∈ cone(w')∖cone(w)} (#readers-in-root-cone(w) − 1)`, with
+each excess read attributed to the annulus of the wire being READ; then
+annuli of a chain partition the cone's wire set and
+`Σ_a E_a ≤ coneExcess(root)` is exact — the additive ledger is an identity,
+and the whole burden is the factorization conjecture plus per-annulus
+diversity.
 
-- **(i) The routing circuit is valid and cheap.** Then `(2+c)N` moves to a
-  REDESIGNED family (§5) and rung 21 stands as the tight answer for sat3.
-  This would be a real result in itself: matching Θ̃(√N) bounds.
-- **(ii) The model's wire accounting blocks the shared routing** (fan-out
-  priced per wire-end, or CGate structural limits). Then `(2+c)N` is live
-  for sat3 itself and the annulus law attacks it directly.
+## 5. Dimension hierarchy / expander family — now ROUTE B, not forced
 
-## 5. Dimension hierarchy = scaling the shared state (HAL step 3, reframed)
-
-The reason sat3 caps near `√N` crossing-information: only `v = Θ(√N)` bits
-are global; everything else is block-local. The hierarchy family should
-make shared state scale with `N`: `k = Θ(m)` coupled assignment copies
+The §4 audit removed the original motivation (tightness-fear for flat
+sat3): the `Ω(√N)` ceiling is in the pin INSTRUMENTS (pool cap, straddle
+channel), not in the function, so the primary target of the composition
+program is flat sat3 itself. The family redesign below stays on the board
+as Route B — a vehicle on which the composition may be strictly EASIER to
+prove, because its coupling structure is engineered for exactly the
+additivity the tools need. The idea: `k = Θ(m)` coupled assignment copies
 with cross-consistency constraints between copies, arranged so that at
-every scale `s`, balanced cuts of size `s` must carry `Ω(s)` bits that
-cannot be locally summarized. Requirements to respect:
+every scale `s`, balanced cuts separating copies must carry `Ω(s)` bits
+that cannot be locally summarized. Requirements to respect:
 
 - crossing-info `Ω(s)` at every scale is superconcentrator-like; it can
   force at most LINEAR total wires by itself (superconcentrators have
@@ -187,21 +207,22 @@ Three honest caveats, so this stays a rung and not a leap:
 
 ## 6. Order of work
 
-1. **Upper-bound audit of sat3Family** (§4) — paper math, decides the
-   target family; it is also the audit template for the expander family
-   (which needs its own honest upper bound before any lower-bound claim).
-   No Lean.
-2. **Precise statement of the Annulus Factorization** (§3) against the
-   actual CutFactorization/mixOn definitions; pressure-test on the
-   caterpillar and on the §4 routing circuit. No Lean.
-3. **Expander-family specification** (§5b): parameters `(k, d, w₀, G)`,
-   NP-verifiability check, its upper bound, and the local edge law drafted
-   with the existing drag/window toolbox. No Lean.
-4. If 1–3 survive: **rung 22 = weak annulus validation**
+1. **Upper-bound audit of sat3Family** — DONE (§4). Verdict: threat
+   withdrawn; `sat3Family` is genuine ∃-SAT with brute-force upper bound
+   `2^{Θ(√N)}`; `(2+c)N` and everything above it is live for flat sat3;
+   rung 21 is instrument-capped, not function-capped.
+2. **Precise statement of the Annulus Factorization** (§3, currency fixed
+   by §4(d)) against the actual CutFactorization/mixOn/coneExcess
+   definitions; pressure-test on the caterpillar. This is now the sole
+   load-bearing new instrument. No Lean until the statement survives.
+3. If 2 survives: **rung 22 = weak annulus validation**
    (`Ω(√N log N)` via doubling scales, flat sat3) — first Lean of the new
-   phase, validating the ledger before the expander family raises stakes.
-5. Then the expander composition lemma toward `(2+c)N` on whichever
-   family 1–3 select.
+   phase, validating the ledger at low stakes.
+4. Then the dense chain (`Θ(m)` annuli spaced `Θ(v)`) toward `(2+c)N` on
+   flat sat3.
+5. Route B in parallel if 2 stalls: expander-family specification (§5b) —
+   parameters `(k, d, w₀, G)`, NP-verifiability, its own honest upper
+   bound, local edge law from the drag/window toolbox.
 
 ## 7. Honest scope
 
