@@ -469,3 +469,29 @@ root-shape/essential-variable mirrors + the `cbudget` conversion.  Honest claim
 when done: a restricted lower bound `cbudget(sat3X⊕) ≥ (2+c)N` for an explicit
 ⊕P-shaped family, conditional on the expander instantiation until that is built.
 Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+# THE EXPANDER FRAMING (agreed): canonical Ramanujan, certified interface
+
+The division of labor between the paper story and the Lean skeleton:
+
+- **The intended instantiation is Ramanujan** — the flagship construction stays
+  Ramanujan/Tseitin-flavoured, in continuity with the program's lineage, and the
+  counting-round constants were computed against `λ₂ ≤ 2√(d−1)`.
+- **The Lean interface accepts any certified expander** — the scout file's
+  `Expander (nbr) (c)` predicate (edge boundary `≥ c·|A|` for `2|A| ≤ v`) is the
+  ONLY thing the upper layers consume; no theorem above it depends on spectral
+  detail.  The two named liveness classes (`hlive`, `hTautProbe`) and the
+  kill-accounting fraction are all downstream of that one predicate.
+- **Ramanujan is the canonical discharge of the interface** — but any explicit
+  `d`-regular graph with certified edge expansion `c·d > 1` validates the whole
+  chain (priced fraction `(ratio−1)/(2·ratio) > 0` with `ratio = 1 + c·d`), so a
+  simpler certified expander (explicit small-parameter check, Margulis/zig-zag,
+  or a probabilistic-existence argument over a finite verification) can land the
+  skeleton first, with the Ramanujan discharge upgrading constants later.
+
+Status of the checklist against this framing: root shape CLOSED (generic +
+parity instantiation, unconditional); drag-side codebook glue = bookkeeping;
+expander = the interface discharge above.  Nothing here is `NEXP ⊄ ACC⁰` or
+`P ≠ NP`.
