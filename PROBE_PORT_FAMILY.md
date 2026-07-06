@@ -397,3 +397,75 @@ gives count 1; (iv) FLIP: solutions `= {a₀, a₀+w}` with `⟨l*,w⟩ = 1` giv
 count even, sliced count odd, for both slice values.
 
 Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+# THE 28c COUNTING ROUND: menus dissolve, the architecture corrects, the expander's site is exact
+
+## 1. The neutralization menus DISSOLVE (no residual risk)
+
+The taut dichotomy settles every block: if a block's tautology position is row-side,
+the rows set it ON — permanent kit, never dead, never pinnable; if probe-side, the
+probe sets it when the block is unused and clears it when pinning — fully flexible.
+The reserve is sized to the per-pair pin demand and pinned in EVERY pair (no unused
+reserve blocks), with surplus reserve blocks DUPLICATING needed pins (same literal at
+two blocks — trivially consistent).  No menu-consistency problem exists.  Taut-burial
+by the adversary (`Θ(m)` bits) only converts blocks to permanent kit — it shrinks the
+pin supply, which is the liveness counting below, and nothing else.
+
+## 2. Architecture correction (two wrong turns found and fixed)
+
+- WRONG (fear): cutting the witness space to a pair needs `v−1` unit-clause pins
+  (`> m` blocks — impossible).  WRONG (hope): the target-block scaffold alone carries
+  the rank (no pins at all).  The scaffold CANNOT cover the tuple coordinates: a
+  count-conditioned scaffold literal and a priced tuple literal on the same
+  coordinate demand contradictory values in the all-false system — both `Z`-sets
+  empty, no detection.
+- CORRECT: the rank splits.  PINS (clause-forced, at reserve blocks) cover exactly
+  the target block's TUPLE coordinates, forcing the COMPLEMENTS of its priced
+  literals — consistent by design (the forced value is `a₀`'s coordinate) and
+  `w`-kernel automatically.  SCAFFOLD (count-conditioned, no-lose at the target
+  block: any position class works, whichever side of the cut) covers the remaining
+  coordinates.  Pin demand = per-block priced width ≤ reserve size — feasible, and
+  `|V| = Θ(m²) = Θ(N)`-compatible.
+
+## 3. The expander's load-bearing site, exactly: pin liveness
+
+Killing the forcibility of one coordinate-value `(j,c)` unprices its data positions.
+- WITHOUT decompositions (singletons-only codebook): kill cost = reserve burial
+  `R·m/2`; capacity unlocked = data positions `R·m/2`.  **Ratio exactly 1 — a
+  knife-edge; `R`-fold redundancy scales both sides (the ∃-audit's old finding
+  recurs); the construction FAILS.**
+- WITH expander decompositions (indirect forcing `e_j = edge(j,j') + e_{j'}`;
+  deadness closed under decomposition — the scout file's `closed_dead_alternative`
+  verbatim): kill cost `≥ (1 + c_d·d)·R·m/2` while capacity stays `R·m/2` (edge
+  positions retain their DIRECT pin route — killing a coordinate does not unprice
+  its edges).  Ratio `1 + c_d·d`.
+- With the Markov data/reserve designation made AFTER seeing `S` (data := heaviest
+  blocks, so kill-bits ≤ half of `|S|`):
+
+      priced ≥ |S| · (ratio − 1)/(2·ratio) ≥ 0.36·|S|   (d = 8, Ramanujan),
+
+  i.e. `Θ(T)` priced mass at every balanced cut.  Numerically: 0.365 (d=8),
+  0.446 (d=16), 0.477 (d=32).
+
+## 4. Company-independence under ⊕ (why the refuge does not recur)
+
+Under ∃, content hosted in dead company was washed entirely.  Under ⊕ with the
+two-point machinery, hosted content is priced as long as its OWN complement-forcing
+lives — the company is irrelevant (the shared/scaffold part cancels in the
+comparison).  The adversary must kill each coordinate-value separately, at the
+expander-amplified price.
+
+## 5. Status
+
+The `(2+c)N` chain for `sat3X⊕` now has: all detection/capacity/supply theorems
+frozen in Lean (task 5, rungs 24–28c), and the counting closed ON PAPER with
+explicit constants, conditional on exactly one large deferred formalization — an
+explicit `d`-regular spectral expander in Lean (the scout lemmas consume it as a
+hypothesis).  Remaining mechanical: the per-target supply assembly over the
+singleton+edge codebook, `|V| = Θ(T)` via `markov_select`, and rung 29's
+root-shape/essential-variable mirrors + the `cbudget` conversion.  Honest claim
+when done: a restricted lower bound `cbudget(sat3X⊕) ≥ (2+c)N` for an explicit
+⊕P-shaped family, conditional on the expander instantiation until that is built.
+Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
