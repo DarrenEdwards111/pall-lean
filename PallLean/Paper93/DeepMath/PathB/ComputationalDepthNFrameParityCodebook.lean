@@ -66,7 +66,7 @@ theorem singleton_supply (v : ℕ) (jstar : Fin v) (bstar : ZMod 2)
       ∧ (∀ a : Fin v → ZMod 2,
           ((∀ j ∈ K, litHolds a (single v j, bval j + 1))
             ∧ ∀ j : Fin v, j ∉ K → j ≠ jstar → ¬ litHolds a (single v j, 1))
-          ↔ (a = a₀ ∨ a = a₀ + single v jstar)) := by
+          ↔ (a = a₀ ∨ a = a₀ + w)) := by
   classical
   have hy1 : ∀ x y : ZMod 2, ¬ x = y ↔ x = y + 1 := by decide
   have hy2 : ∀ y : ZMod 2, ¬ (y + 1 = y) := by decide
