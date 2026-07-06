@@ -610,3 +610,71 @@ for landing the theorem.  The hierarchy:
 
 Next: E3 extended codebook with edge columns.  Nothing here is `NEXP ⊄ ACC⁰` or
 `P ≠ NP`.
+
+---
+
+# E5 PAPER ROUND: two accounting errors found — the counting round's closure claim is SUPERSEDED
+
+Red-team of the kill-accounting before Lean, per standing discipline.  Outcome: the
+"counting CLOSED on paper" claim (28c counting round, §§1,3) does NOT survive; two
+genuine gaps, one with a verified fix, one requiring a design decision.  Named
+honestly; nothing below is certified closed until re-derived.
+
+## Finding (a): the taut-burial hole (§1's "nothing else" is WRONG) — FIX VERIFIED
+
+The counting round dismissed taut-burial as "converts blocks to permanent kit,
+shrinks the pin supply, and nothing else".  FALSE for data capacity: the frozen
+machinery (28g `rowOf` kit-blanket + `hTautProbe`) makes a block with row-side
+tautology unable to host TARGETS — one S-bit at the taut column kills the block's
+whole data capacity (`~L` bits) — AND multi-difference absorption (`hnt` across
+pairs differing at several blocks) requires an always-true literal in every hosting
+block's selection, which only a selected tautology provides.  Dead-hosting at
+taut-buried blocks costs `X + X/(L−1)` for `X` dead bits — ratio → 1, the drag dies
+at every band.
+
+**The fix (verified at the algebra level): the TAUT-PAIR ABSORBER.**  For any
+coordinate `j`, the two singleton columns `(e_j,0),(e_j,1)` jointly selected are an
+always-true absorber (`a j = 0 ∨ a j = 1`).  Whichever side of the cut each column
+falls, its OWNER sets it (row sets its half, probe sets the complement half) — the
+absorber is UNKILLABLE per pair; the adversary must control both halves of ALL `v`
+pairs at a block (cost `2v`) to force the row-policy dilemma.  Consequences:
+- the target block's row-side absorber half enters the target system as one more
+  failure-forced row — consistent iff the supply's off-`K∪{j*}` values generalize
+  from `0` to a designer vector `z` (`a₀ := … else z j`); the edge-route pin value
+  becomes `bval j + 1 + z j''`.  This is `route_supply_z` (E5-prep, Lean below).
+- `hTautProbe` leaves the critical path; the taut column becomes a convenience.
+- kill-cost of a block's absorber = `2v` against hosting capacity `(2+2dd)v`:
+  ratio `1+dd > 1` for SPREAD mass.  ✓
+
+## Finding (b): the FULL-BLOCK CONCENTRATION WALL — OPEN, design decision required
+
+The `1+dd` ratio only prices spread mass.  The adversary can CONCENTRATE: fully
+stuff `|S|/L` blocks (every column of the block in `S`).  A fully-stuffed block's
+absorber is dead (the `2v` kill-bits are part of the stuffing), so cross-block
+product families cannot host differences there, and the tuple drag prices NOTHING
+of that mass.  Per-block sub-drags cap at `|V_β| ≤ j` each (non-additive).  This is
+the flat-sat3 concentration battleground recurring at the parity family: the
+counting round's §3 never priced it.
+
+**Candidate resolution (designed, NOT yet audited): the TWO-CHANNEL DICHOTOMY.**
+Concentration is exactly the ALIGNED case (rung 18's alignment law: minimal
+circuits' cuts respect block boundaries up to `CE+1`), and the annulus machinery
+(rung 22) was built for aligned mass: nested chains price per-block families at
+their own scales, `log|Y| ≤ CE + k + 1` — `m/2` full blocks each carrying a
+`2^{Θ(L)}` same-block two-point family (same-block multi-difference IS handled by
+the 28c supply) would give `CE = Θ(N)`.  Spread mass falls to the absorber tuple
+drag at ratio `1+dd`.  The QUANTITATIVE split (per-block thresholds, chain
+existence through aligned blocks at the right scales, cross-channel additivity of
+the two prices against ONE ledger) is the open design work — it is the honest
+remaining distance to `(2+c)N`, and it is NOT mechanical.
+
+## Consequences for the ladder
+
+- E5-prep (SAFE under every variant, Lean now): `route_supply_z` (the `z`-general
+  supply) and the WEIGHTED greedy bound (mass-weighted independent selection, for
+  the global coordinate pool `P*` that row-side company/absorber choices need).
+- E5 proper (kill-accounting) is BLOCKED on the finding-(b) design round.
+- The honest current headline remains: `2N` baseline (unconditional, EssStd) +
+  `Ω(√N)`-strength drags; `(2+c)N` requires closing (b).
+
+Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
