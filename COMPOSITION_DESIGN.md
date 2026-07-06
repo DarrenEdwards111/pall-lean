@@ -264,11 +264,27 @@ Three honest caveats, so this stays a rung and not a leap:
    ~9× constant and infrastructure, not `(2+c)N`. The previous
    revision's `Ω(√N log N)` and flat-sat3 `(2+c)N` payoff claims are
    WITHDRAWN.
-3. **Rung 22 (Lean, ready now):** the k-scale capacity theorem — chain
-   selection (max-child path descent), nested-exit containment,
-   coordinate-counting capacity, localized exit ledger — validated by
-   the `coneExcess ≥ ~v/2` uniform band bound (constant-factor upgrade
-   of rung 21).
+3. **Rung 22 — DONE (`aa9514b5`,
+   `ComputationalDepthNFrameAnnulusCapacity.lean`):** `wireExits_nested`,
+   `exit_multiread`, `chain_union_card`, `chain_exit_ledger`
+   (`Σ newExits ≤ coneExcess + (k+1)`, disjoint annuli),
+   `exit_value_separation` (trace exposed as exit values — the form that
+   composes; the `∃φ` CutFactorization form does not),
+   `sat3_chain_capacity_excess` (`|Y| ≤ 2^{coneExcess + k + 1}`),
+   `balanced_chain_exists` (recurse `balanced_wire_exists` inside the
+   previous cone — no path formalization needed), and the packaged
+   `sat3_annulus_capacity`. All on `[propext, Classical.choice,
+   Quot.sound]`, no sorry. The Θ(v) diversity cap is stated in the file's
+   docstring so it cannot be silently resurrected.
+3b. **Rung 23 (Lean, next):** the honest flat-sat3 consequence —
+   uniform `coneExcess ≥ ~Θ(v)` with visible applicability threshold,
+   explicitly NOT `(2+c)N`. Blueprint: partial-row window instantiation
+   (`V_c := W ∩ S-row(c)` in the rung-20 parametric window) + two-stage
+   MARKOV selection for the greedy rectangle (no sorting needed: heavy
+   blocks = rowmass ≥ A/2m; if enough heavy blocks, any `γm` of them
+   carry `γA/2`; else heavy mass alone is `≥ A/2` — repeat on columns)
+   + the per-slot dichotomy tree of rung 21 with the full-mass-three
+   escape.
 4. **Task 3 (design, the `(2+c)N` path):** probe-port family
    specification — per-gadget unpoisonable probe channel with the
    no-lose dichotomy (port outside `S` ⇒ probe entrance; port inside
