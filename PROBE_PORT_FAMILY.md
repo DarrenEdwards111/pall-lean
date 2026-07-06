@@ -1096,3 +1096,65 @@ residual, but the CEILING `N/log N` is now proved.  The affine → tensor → in
 program is confirmed to ceiling at `(2 + o(1))N`; `(2 + Ω(1))N` needs a detection mechanism
 whose priced mass per cut is not block-count bounded — which no single-witness affine or
 bounded-degree family provides.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+# BEYOND THE BLOCK-COUNT CAP: the flat quadratic form (detection not one-bit-per-block)
+
+Design of a family whose detection is NOT block-organized, breaking the `|V| ≤ m` cap that
+ceilings every block-menu family at `(2 + o(1))N`.  Worked on paper, detection identity frozen
+in Lean (`ComputationalDepthNFrameQuadForm.lean`).
+
+## The construction
+
+    qform A x = ∑_{i,j} A_{ij}·x_i·x_j   over `F₂`,   x ∈ F₂^N,
+
+with `A` the adjacency matrix of an expander (or random sparse graph) on the `N` input bits.
+ONE input bit per vertex — NO blocks, NO clauses, NO literal menu, so no `Ω(log v)` addressing
+cost and no block count `m` to bound the priced mass.
+
+## Why detection is Θ(N)-dimensional and block-free
+
+The polarization (`qform_shift`, PROVED): `qform A (x+δ) = qform A x + bilinSym A x δ + qform A δ`,
+where `bilinSym A x δ = ∑ A_{ij}(x_iδ_j + δ_ix_j)` is the symmetric bilinear form of `A + Aᵀ`.
+A direction `δ` is DETECTABLE (`qform_detect_dir`, PROVED) iff its bilinear functional
+`x ↦ bilinSym A x δ` is nonzero — i.e. iff `δ` is NOT in the kernel of `A + Aᵀ`.  So the
+detectable directions are the ROW SPACE of `A + Aᵀ`, of `F₂`-dimension `= rank_{F₂}(A + Aᵀ)`.
+
+Now the cut.  For a balanced cut `(S, Sᶜ)`, restrict to `δ` supported on `S` and vary the
+`Sᶜ`-completion: two `S`-rows `y, y'` are distinguished iff `(y − y')` has nonzero bilinear
+functional against the `Sᶜ`-part, i.e. iff `(y−y')^T (A_{S,Sᶜ}) ≠ 0`.  So the number of
+distinguishable `S`-rows is `2^{rank_{F₂}(A_{S,Sᶜ})}` — the cut rank is the `F₂`-RANK OF THE
+CROSS-BLOCK `A_{S,Sᶜ}`.  For a good expander this rank is `Θ(N)` (a sparse `≈` full-rank
+bipartite matrix), distributed over ALL `N` inputs — NOT `≤ m` block targets.
+
+Hence `cut_row_capacity` gives `coneExcess ≥ rank_{F₂}(A_{S,Sᶜ}) − 1 = Θ(N)`, and with
+`|ESS| = N` (every vertex of degree `≥ 1` is essential), `cbudget ≥ 2N + Θ(N) = (2+c)N`.  The
+one-bit-per-block cap is broken: the priced mass is bounded by the cross-block RANK `Θ(N)`,
+not the block count.
+
+## The two honest caveats (why this is a step, not the summit)
+
+1. **`qform` is EASY.**  A quadratic form is computable in `O(#edges) = O(N)` gates.  So the
+   drag proving `cbudget ≥ (2+c)N` for `qform` is a valid lower bound for an EASY function —
+   it DEMONSTRATES the N-frame drag method exceeds the block-count cap, but it is not a
+   hard-function separation.  For P vs NP one needs cut-rank rigidity AND super-linear hardness
+   in ONE family.  A quadratic form cannot be hard; a genuinely hard family with `Θ(N)`
+   every-cut `F₂`-rank is the open target.
+2. **Every-cut `F₂`-rank rigidity is explicit-hard.**  `rank_{F₂}(A_{S,Sᶜ}) = Θ(N)` at EVERY
+   balanced cut is a rigidity-type condition: random sparse `A` satisfies it whp, but an
+   EXPLICIT such `A` is the matrix-rigidity frontier.  (A spectral expander is NOT automatically
+   enough — the expander mixing lemma controls the REAL spectrum, while `F₂`-rank of sub-blocks
+   is a different, subtler quantity.)
+
+## The sharpened frontier
+
+The block-count cap is now understood as a consequence of BLOCK-MENU structure (detection
+organized by menu-addressing units).  Flat detection (`qform`) removes it, at the cost of
+hardness.  The genuine `(2 + Ω(1))N`-for-a-hard-function target is now precise: a family that
+is (a) FLAT (detection = a `Θ(N)`-rank bilinear/higher form, no menu), (b) CUT-RIGID (that rank
+survives every balanced cut), and (c) HARD (super-linear cbudget).  `qform` has (a)+(b) modulo
+explicit rigidity, and fails (c); block-menu #SAT families have (c) and fail (a).  No known
+explicit family has all three — that intersection is the honest remaining problem, and it is a
+rigidity × hardness question, not another drag variant.  Nothing here is `NEXP ⊄ ACC⁰` or
+`P ≠ NP`.
