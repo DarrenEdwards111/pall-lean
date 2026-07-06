@@ -783,3 +783,84 @@ that concentration into few blocks still spans `ω(√N)` independent rank direc
 genuinely different construction (Route F, not yet designed).
 
 Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+# ROUTE F: the multi-witness tensor family — designed, assessed, and its true limit
+
+Design of the multi-witness escape from the E5′ `√N` witness cap, worked on paper per
+standing discipline.  Outcome, stated honestly: the tensor family BEATS the crude
+witness-rank cap (its detectable rank is genuinely `Θ(N)`, not `√N`), but it does NOT
+convert to `(2+c)N` — it reduces to the same spread-forcing statement, plus a decomposition
+hazard.  The genuine escape lies elsewhere (cheap-literal encoding).  No false closure.
+
+## F.1 The root cause of `√N`, made crisp
+
+For the presence-bit encoding, a block is a clause over `F₂^v`; specifying which affine
+literals it contains costs `L = Θ(v)` input bits (one presence bit per candidate literal),
+and `⊕#SAT`-hardness needs `m = Ω(v)` clauses.  Hence `N = m·L = Ω(v²)`, i.e.
+**`v ≤ √N` is FORCED** — the witness dimension cannot exceed `√N` in this encoding.  The
+E5′ detection cap `= v` is therefore `≤ √N`.  This is the whole bottleneck in one line.
+
+## F.2 The tensor construction
+
+Split the `m` blocks into `g` GROUPS, each a single-witness parity over its OWN `F₂^{v'}`
+witness space (disjoint across groups), and combine by XOR:
+
+    tensorParity BB = ⊕_γ parityFamily(BB γ) = (Σ_γ Z_γ) mod 2.
+
+Parameters: `v' = √{N'}`, `N' = N/g` per group; `g` groups; total witness `g·v'`.  The
+LOCALIZATION lemma (`tensor_detect_localizes`, PROVED): a change confined to group `γ*`
+flips the tensor iff it flips group `γ*`'s parity — disjoint witness spaces, so NO
+cross-group over-determination.  Total detectable rank `= Σ_γ v' = g·√{N/g} = √{gN}`.
+With `g = N^{1−2α}`, `v' = N^α`: detectable rank `= N^{1−α}` → `N` as `α → 0`.  **The crude
+witness-rank cap is beaten: the tensor exposes `N^{1−ε}` independent detectable directions,
+not `√N`.**  This is real and is the point of the construction.
+
+## F.3 Why it still does NOT give `(2+c)N` — three independent walls
+
+1. **Annulus ledger death (concentration channel).**  To harvest the `Θ(N)` directions
+   across a nested chain, the annulus charges `+1` per scale (`log|Y| ≤ CE + k + 1`).  At
+   concentration each fresh block hosts `O(1)` witness-capped directions, so `k = Θ(rank)`
+   scales are needed and the `+k` charge CANCELS the harvest: `CE ≥ rank − k ≈ 0`.  This is
+   encoding-independent — it killed the single family (E5′) and kills the tensor identically.
+   The annulus only pays when detection is `ω(1)` PER SCALE, which concentration forbids.
+
+2. **No new single-cut capacity (spread channel).**  The single-cut tuple drag already
+   prices `Θ(N)` positions across ALL blocks (hence all groups) at one balanced cut — for
+   ANY family.  The localization lemma shows each priced position detects within ONE group;
+   there is no cross-group amplification at a single cut.  So the tensor adds nothing the
+   spread channel did not already have; and the spread channel needs SPREAD-FORCING
+   (unproved, likely false by the rung-18 alignment analogy).
+
+3. **Decomposition hazard (the modularity = cheapness identity).**  Blocks of group `γ` read
+   disjoint inputs, so `cbudget(tensor) ≤ Σ_γ cbudget(bγ) + cbudget(XORtree)`.  If the
+   per-group families are near-baseline-easy (`cbudget(bγ) = 2N' + o(N')`), then
+   `cbudget(tensor) = 2N + o(N)` — `(2+c)N` is FALSE for the tensor.  The very independence
+   that removes over-determination (wall-free detection) is EXACTLY a group-local circuit
+   decomposition.  Independence and cheapness are the same coin.
+
+The reconciliation of walls 1/2 (rank is `Θ(N)`) with wall 3 (maybe cheap): the method's
+detectable RANK being `Θ(N)` does not mean the method can PROVE `cbudget ≥ 2N + Θ(N)` — it
+must BUILD a surviving detectable family at ONE cut (spread) or `ω(1)`-per-scale (annulus),
+and both are blocked.  Rank is necessary, not sufficient.
+
+## F.4 The honest verdict and the actual frontier
+
+Route F is a genuine sharpening: it PROVES the obstruction is NOT witness-rank (tensor fixes
+that) but the **single-cut-spread vs per-scale-annulus ledger tension**, gated by
+**spread-forcing**.  `(2+c)N` for the tensor family ⟺ spread-forcing for the tensor family —
+the same wall as the single family, now isolated from the witness-rank red herring.
+
+The one encoding that would raise `v` past `√N` is **cheap-literal (index) encoding**: a
+block selects `O(1)` literals by their `O(log v)`-bit INDICES from a fixed menu, so
+`L = O(log v)`, `N = Θ(v·log v)`, `v = Θ(N/log N) = Ω(N^{1−o(1)})`.  Then witness dimension
+≈ `N` and the E5′ cap is `≈ N`.  BUT index-encoding makes the block content a NONLINEAR
+function of the input bits, breaking the presence-bit `decodeBlock`/tuple-drag detection
+entirely.  A detection method compatible with index-encoding is a genuinely new instrument —
+the real Route-G frontier, undesigned.
+
+Frozen Lean (`ComputationalDepthNFrameTensorFamily.lean`, clean axioms): the tensor family
+value, `groupCount_eq_parityFamily`, `tensorParity_single_diff`, and `tensor_detect_localizes`
+— the structural core, true and reusable for any multi-witness successor.  Nothing here is
+`NEXP ⊄ ACC⁰` or `P ≠ NP`.
