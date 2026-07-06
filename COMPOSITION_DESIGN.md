@@ -287,12 +287,16 @@ Three honest caveats, so this stays a rung and not a leap:
    carry `γA/2`; else heavy mass alone is `≥ A/2` — repeat on columns)
    + the per-slot dichotomy tree of rung 21 with the full-mass-three
    escape.
-4. **Task 3 (design, the `(2+c)N` path):** probe-port family
-   specification — per-gadget unpoisonable probe channel with the
-   no-lose dichotomy (port outside `S` ⇒ probe entrance; port inside
-   `S` ⇒ free pattern bit), expander coupling per §5b, NP-verifiability,
-   honest upper bound. Then k-scale capacity × `Θ(v)`-bit unpoisonable
-   channels ⇒ `coneExcess = Ω(N)` on that family.
+4. **Task 3 — DRAFTED (`PROBE_PORT_FAMILY.md`): the expander-affine
+   family `sat3X`.** Literals = affine functionals `(λ, b)`, `λ ∈ Λ =
+   singletons ∪ expander edges` over the hidden witness `a ∈ F₂^v` — NO
+   sign bits; negation is by position; forcing is redundant through
+   `Λ`-decompositions, so no `O(m)`-sized guardian set exists (kill-cost
+   `Θ(m)` per functional, expander-closure amplified, `Θ(N)` total).
+   Four checks audited; naive per-bit no-lose REFUTED (dual-rail
+   counterexample) and replaced by the kill-cost form. GATE before any
+   Lean: the kill-cost lemma (closed dead sets on the expander), the
+   forcing-consistency lemma, and a red-team round (§5 of the spec).
 5. Only after that: superlinear targets and the P-side bridges (§7).
 
 ## 7. Honest scope
