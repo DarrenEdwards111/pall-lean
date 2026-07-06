@@ -169,3 +169,73 @@ This is a design, not a result. If the kill-cost lemma survives, the target is
 constant-factor lower bound for an NP-hard-shaped explicit family, NOT a
 superlinear bound, NOT `P ≠ NP`. The observer-captures-P and NP-escape bridges
 (roadmap steps 4–5) are untouched. Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+# KILL-COST AUDIT (task 3b): the three layers, run to the end
+
+## Layer 1 — dead-closure, algebraically (ANSWERED)
+
+The right closure is **affine-span closure of the pinnable literal set**, not graph
+closure: let `V ⊆ Λ×F₂` be the directly pinnable literals (a free selector position
+at enough pool blocks/∧-rows). Forcible literals
+`F := {(μ,c) : ∃ independent {(λᵢ,bᵢ)} ⊆ V, μ = Σλᵢ, c = Σbᵢ}`. The graph enters
+only through Λ's sparsity: PIN-RICH := {λ : both values in V}; if PIN-RICH spans
+F₂^v, everything is forcible. Killing r dimensions of span(PIN-RICH) requires a
+half-killed literal set X with dead-dimension vertex set A (|A| ≥ r) satisfying
+`X ⊇ {e_w : w ∈ A} ∪ E(A, Aᶜ)`.
+
+## Layer 2 — the expansion alternative (PROVED, sketch)
+
+Spectral expansion gives `e(A, Aᶜ) ≥ (d − λ₂ − o(1))·|A|` for `|A| ≤ v/2`, so
+`|X| ≥ (1 + d − λ₂)·|A|` — **no bulk discount**; and `|A| > v/2` costs
+`Θ(m·v) = Θ(N)` outright. Per-literal direct-kill cost `≥ (9/4)m` S-bits. This is
+the lemma as targeted, and it is TRUE.
+
+## Layer 3 — red-team verdict: the lemma is true but INSUFFICIENT
+
+**The parity-locked refuge (attack (b), generalized) breaks the cash-out.** The
+adversary buys a small dead sector (r = Θ(εv/d) dimensions, cost Θ(ε·N)) and hosts
+ALL of its balanced mass on ∨-slot positions of dead-sector functionals, killing
+exactly the complements of the hosted literals. Inside the refuge, suppression is
+impossible and the ∃-witness's free directions wash out all content beyond the
+per-slot emptiness bit (Θ(m) total). The accounting is UNFIXABLE by parameters:
+hosting capacity and kill cost are both counted in selector-positions-per-functional
+(Θ(m) each), and
+
+    capacity/cost = (3(1+d) + (9/4)(1+d−λ₂)) / ((9/4)(1+d−λ₂)) ∈ [2.6, 4.3]
+    (d = 8..128, Ramanujan; alive-side alone ≥ 1.4 for all d)
+
+— always ≥ 1, so the refuge is always affordable. Repair attempts audited and
+CLOSED: R-fold selector repetition (scales both sides); ∧-blocks/unit-clause pins
+(adversary hosts at ∨-blocks only); always-on affine isolation rows with no-lose
+coefficients (real, but per-pair forcing routes through the port CONSTANTS —
+`Θ(v)` bits — and hash-indirection is pigeonhole-bottlenecked at `2^{Θ(v)}`,
+pricing only Θ(v) of Θ(T) hosted mass).
+
+**The structural conclusion:** for ∃-witness families with witness size `Θ(√N)`
+read through coset probes (pins = affine slices), the dead-sector refuge is
+GENERIC: content whose functionals lie entirely in the witness's unforced
+directions is maximization-washed, and every port that could reach it is
+information-bottlenecked by the witness size. **The `Θ(v)` per-cut cap is a
+property of ∃-semantics + witness size, not of flat sat3's encoding.** sat3X as
+an ∃-family does NOT reach `(2+c)N`.
+
+## Surviving directions (honest ranking)
+
+1. **Parity semantics — `sat3X⊕` := parity of #satisfying assignments.** The ⊕
+   over the free coset SUMS instead of maximizing: dead-direction content stays
+   visible pointwise. This is the only audited route that dodges the wash-out
+   mechanism itself. Cost: the family is ⊕P-shaped; NP-relevance via
+   Valiant–Vazirani-style randomized reduction only — check 4 is weakened and the
+   roadmap's step-5 story must be reworked if this route is taken. The kill-cost
+   lemma (layer 2) remains load-bearing here — forcing/liveness is still how the
+   probe steers the coset it sums over.
+2. **Witness-size escalation** (`v = Θ(N/polylog)` hidden state): the refuge
+   costs `Θ(r·d·m)` per dimension with `m` blocks each `Θ(v)` wide — geometry
+   changes entirely; unexplored, may break the engine's band calculus.
+3. **Accept the ∃-cap as fundamental** and move the amplification to a different
+   layer (function composition rather than cut composition) — outside the
+   current engine.
+
+Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
