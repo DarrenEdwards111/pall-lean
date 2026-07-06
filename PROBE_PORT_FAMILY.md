@@ -678,3 +678,108 @@ remaining distance to `(2+c)N`, and it is NOT mechanical.
   `Ω(√N)`-strength drags; `(2+c)N` requires closing (b).
 
 Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+# E5′ PAPER ROUND: the concentration–spread dichotomy — one channel proved, the other bottlenecked
+
+Full paper pass on the two-channel dichotomy, per standing discipline (math before Lean),
+working through the four checks the task named.  Outcome, stated honestly: the SPREAD
+channel is real and gives `Θ(N)`; the CONCENTRATION channel is **witness-dimension
+bottlenecked at `Θ(v) = O(√N)`** and CANNOT give `Θ(N)`.  The dichotomy therefore does NOT
+close `(2+c)N` by itself — it REDUCES `(2+c)N` to a spread-forcing (anti-alignment)
+statement for minimal parity circuits, which is unresolved and, by analogy with the flat
+family's alignment law (rung 18), is the hard direction.  No false closure is claimed.
+
+## Check 1: the full-block threshold, precisely
+
+At a balanced cut `S` (from `parity_balanced_cut`, `T ≤ |S| ≤ 2T−2`, width `j ≤ CE+1`),
+for each block `c'` let `A_{c'} = |{i : xbit c' i ∈ S}|` be its row-side (S-side) mass, out
+of `L = xstdL v dd` columns.  A block is **full** iff `A_{c'} = L` (every column row-side)
+— equivalently its tautology column is row-side, so `hTautProbe` FAILS for it: the probe
+cannot zero its tautology, so it cannot be a tuple-drag TARGET.  Let
+`Full = {c' : A_{c'} = L}`, `spread(S) = ∑_{c' ∉ Full} A_{c'}`, `conc(S) = ∑_{c' ∈ Full} L`.
+Then `spread(S) + conc(S) = |S|`.  Threshold: fix `θ = 1/2`; either `spread ≥ |S|/2`
+(SPREAD regime) or `conc ≥ |S|/2` (CONCENTRATED regime).
+
+## Check 4 first (common ledger): both channels charge coneExcess
+
+Both channels bound the SAME quantity `CE = coneExcess c (root)`, through the SAME
+`connectivity_fanout` ledger `2·|ESS| + (drag) ≤ length + 1`.  The spread channel builds a
+tuple family `V` with `|V| ≤ j ≤ CE+1` (`parity_route_drag`/`parity_xstd_drag`).  The
+concentration channel builds a chain family `Y` with `log|Y| ≤ CE + k + 1`
+(`parity_chain_capacity_excess`, PROVED this rung).  Both are lower bounds on `CE`, both feed
+the ONE headline.  There is no double-counting BETWEEN channels because we invoke exactly
+ONE of them per band (whichever regime holds); we never add a spread price and a
+concentration price at the same band.  ✓ (This resolves the "compatible quantities in the
+same ledger" check — trivially, because we never sum across channels.)
+
+## Check 2: chain existence through concentrated blocks — HOLDS
+
+`balanced_chain_exists` (rung 22, generic) supplies a nested chain `ws_0 ⊑ … ⊑ ws_k` at ANY
+prescribed increasing band profile `T_0 < … < T_k ≤ (varsOf root).card`.  To capture `g`
+full blocks one-per-scale, set `T_i = T_0 + i·L` (each step admits one fresh full block's
+`L` columns); feasible whenever `g·L ≤ (varsOf root).card ≤ N`, i.e. `g ≤ m`.  So a chain
+threading up to `k = g` concentrated blocks exists.  ✓  (The INNERMOST-differing-scale
+trick makes the family well-defined: for a pair differing at scale-set `D`, detect at
+`i = min D` — outer differences are erased by the fixed completion `x` on `varsOf(ws_i)ᶜ`,
+inner blocks agree, so only block `β_i` differs.  This resolves multi-scale cancellation.)
+
+## Check 3: do per-block prices ADD through rung 22? — NO, they are WITNESS-CAPPED
+
+This is the check that fails, and it is the crux.  For block `β_i` to host `b_i` detectable
+two-point bits at scale `i`, the parity value must respond to `β_i`'s toggle against the
+fixed surroundings.  The parity value is `#{a ∈ F₂^v : instSat a} mod 2`.  Detection at
+`β_i` requires the combined affine system (β_i target + reserve pins + the INNER data blocks
+`β_0..β_{i-1}` at their agreed values) to be consistent and rank-changing — `parity_flip`'s
+hypotheses.  But:
+
+- **the witness space is `F₂^v`, dimension `v`**, shared by ALL blocks;
+- a detectable bit at `β_i` consumes a rank direction of that shared space (the target
+  literal must complete the rank — `parity_flip` is exactly rank-completion);
+- distinct detectable bits across the chain must complete DISTINCT rank directions (else
+  they are not independently detectable — their toggles' parity effects collide);
+- there are at most `v` independent rank directions.
+
+Hence `∑_i b_i ≤ v`.  Combined with `∑_i b_i = log|Y| ≤ CE + k + 1` (the chain ledger),
+the concentration channel yields `CE ≥ log|Y| − k − 1`, but `log|Y| ≤ v`, so it yields
+NOTHING beyond `CE ≥ v − k − 1` — and with `k = Θ(m)` scales this is `≤ v = Θ(√N)`.  The
+per-block prices do NOT add past the witness dimension; rung 22's additive EXIT ledger is
+real, but the FAMILY it can host is capped by `v`, not by the exit budget.
+
+**This is the same `√N` witness bottleneck that capped the flat family** — it is a property
+of the `⊕#SAT`-over-`F₂^v` semantics with `v = Θ(√N)`, not of the encoding.  Concentration
+lets the adversary force ALL detection through this bottleneck.
+
+## The honest reduction
+
+`(2+c)N` for `sat3X⊕` (standard parameters `v = Θ(√N)`) now rests on EXACTLY ONE unproved
+statement:
+
+  **(SPREAD-FORCING)** every minimal circuit for the parity family has, at some band
+  `T = Θ(N)`, a balanced cut with `spread(S) ≥ c·N` — i.e. concentration is NOT forced.
+
+If (SPREAD-FORCING) holds, the absorber tuple drag (E1–E4 + the taut-pair absorber) prices
+`spread(S) = Θ(N)` and `(2+c)N` follows.  If concentration is forced (as rung 18's
+alignment law forces for the flat family — cuts respect block boundaries, i.e. blocks are
+whole-in-or-whole-out, i.e. FULL or empty), then the drag is capped at `Θ(v) = O(√N)` and
+`(2+c)N` FAILS for this family.
+
+The default expectation, by analogy with rung 18, is that concentration IS forced — the
+alignment law says minimal circuits' cuts align to block boundaries, which is exactly
+concentration.  So the honest status is: **`(2+c)N` for `sat3X⊕` is BLOCKED at the same
+`√N` witness bottleneck; parity detectability defeats the ∃-refuge (real progress, rungs
+24–29) but does NOT enlarge the witness space, and the witness space is the true cap.**
+
+## What would actually break `√N`
+
+To exceed `Θ(√N)` the family needs witness dimension `v = ω(√N)` while keeping `m·L = N`
+and the family genuinely `⊕#SAT`-hard.  With `N = m·v·dd`, `v = ω(√N)` forces `m·dd =
+o(√N)`, i.e. `o(√N)` clauses — too few for `⊕#SAT`-hardness at that `v` (a `v`-variable
+`⊕#SAT` instance needs `Ω(v)` clauses to be hard, and `Ω(v) = ω(√N)` clauses need `m = ω(√N)`,
+contradiction).  So NO single-witness-space parity family in this framework escapes `√N`.
+The escape, if any, needs MULTIPLE independent witness spaces (a product/tensor family) so
+that concentration into few blocks still spans `ω(√N)` independent rank directions — a
+genuinely different construction (Route F, not yet designed).
+
+Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
