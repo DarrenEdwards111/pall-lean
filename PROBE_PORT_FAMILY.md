@@ -239,3 +239,91 @@ an ∃-family does NOT reach `(2+c)N`.
    current engine.
 
 Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+# sat3X⊕ AUDIT (task 3c): parity defeats the refuge — mechanism exact
+
+## Framing (per the agreed roadmap)
+
+`sat3X⊕ N x := (#{a ∈ F₂^v : instance(x) satisfied by a}) mod 2` — same layout as
+sat3X (blocks, slots, affine expander literals, tautology kit; the contradiction
+selector `(0,1)` is REMOVED from the encoding, see attack 2). Target: restricted
+lower bound for an explicit parity/#P-shaped family. NP bridge deferred/conditional
+(Valiant–Vazirani-style isolation). Not P ≠ NP.
+
+## The parity computation (why the eraser becomes the signal)
+
+With other blocks kit-neutralized (factor ≡ 1 — parity-neutral) and pins `P` as
+unit-clause factors, the whole count collapses to an affine solution count:
+
+    F = (2^{v−|P|} − Z) mod 2 = Z mod 2   (|P| < v),
+    Z := #{a : pins hold ∧ ALL selected literals of block c* FALSE}
+       = 0 or 2^{v − rank(joint system)}.
+
+Under ∃, free witness directions were the eraser (maximization washes content).
+Under ⊕, free directions force `Z` EVEN, i.e. `F = 0` — and the target literal's
+arrival flips the count to odd exactly when it completes the rank:
+
+**Parity rank-completion lemma (statement-stable; numerically verified 243/243
+after correction).** If the functionals of `P ∪ T` are jointly independent with
+`|P ∪ T| = v − 1`, and `λ*` is independent of them, then
+`F(P, T) = 0` and `F(P, T ∪ {(λ*, b)}) = 1` — **for both values of `b`.**
+Value-independence kills the parity-lock: the refuge's whole mechanism (killing
+complements so values can't be steered) is irrelevant, because detection never
+steers a value — the target literal itself supplies the missing rank.
+
+## The refuge, re-run under ⊕ — IT FAILS
+
+Adversary buys dead sector `A` (`r_d` dims), hosts all mass on dead-functional
+positions. Detection of a hosted position at data block `c*`: pins span the live
+directions (kill-cost lemma — the scout file's lemmas are load-bearing here,
+exactly as predicted); the SCAFFOLD (dead-direction singletons at `c*`) completes
+`v − 1` dimensions, missing only a direction the target hits. Scaffold positions
+are a genuine no-lose: outside `S` the probe supplies them; inside `S` the row
+supplies them as constants — and by value-independence the constants' VALUES no
+longer matter, closing the loophole that killed the isolation-row repair in the
+∃-audit. `F` flips on the target: hosted dead-company mass is priced.
+
+## New cancellation attacks found (the second half of the audit)
+
+1. **Dependent hosting (REAL — found numerically: 24/53 failures of the naive
+   lemma).** Hosting both values of one functional, tautology selectors, or
+   span-trapped literals makes the all-false system inconsistent: `Z = 0` on both
+   sides of a pair — undetectable. DISPOSITION: the independence discipline. Rows
+   price `V_c` := an independent transversal of the hosted positions; positions
+   per functional per block = 6 and Λ's circuits are cycle-shaped, so
+   `rank ≥ mass/12` — a constant-factor loss, then 243/243 detection.
+2. **Contradiction-selector positions** `(0,1)`: never satisfiable, never
+   detectable — `Θ(m)` dead loss. DISPOSITION: removed from the encoding (also
+   repairs essential-variables for the `2N` baseline).
+3. **Kit under parity**: tautology factor ≡ 1 is parity-neutral ✓; kit positions
+   remain mode-independent/no-lose ✓ (unchanged from the ∃-analysis).
+4. **Pin sabotage**: unchanged — pins are still needed to span the LIVE
+   directions, so the kill-cost/expansion lemmas (layer 2, scout file) carry over
+   verbatim. The dead sector stays `O(εv/d)`-dimensional; the scaffold covers it.
+
+## Engine consequences (the paper cash-out for sat3X⊕)
+
+The flat-sat3 case tree COLLAPSES: no sign columns exist, so no squeeze, no
+dichotomy, no poison horns. What remains: Markov block/column selection (rung 23,
+generic), kill-cost liveness (scout lemmas + expander instantiation), independence
+transversal (matroid, factor ≤ 12), rank-completion detection (above), and the
+generic capacity (`cut_row_capacity` is f-generic; rung-22 additivity for
+robustness). Chain: `j ≥ Θ(S-mass at C-blocks)/const = Θ(T)` at any moderate band
+⇒ `CE = Θ(N)` ⇒ `cbudget(sat3X⊕) ≥ 2·live + Θ(N) = (2+c)N`.
+
+## Gate before Lean (round 2 of red-team, then the scout)
+
+- Generalize the rank-completion lemma off the exact-`(v−1)` form (rank-based,
+  with consistency-by-extension) — statement work, low risk.
+- Red-team round 2: adversarial MIXES of dependent+independent hosting against
+  the transversal discipline; interaction of scaffold constants with multi-pair
+  tuple families (value-independence should make this vacuous — verify);
+  hardness audit for the ⊕-family (parsimonious 3-CNF embedding gives
+  ⊕P-hardness; check no affine-counting collapse — `Z` computations are per-probe
+  linear algebra, but the FUNCTION quantifies over all instances).
+- Then the Lean scout: the rank-completion lemma over `ZMod 2` (elementary linear
+  algebra + counting — very formalizable), and the `F = Z mod 2` reduction.
+
+Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
