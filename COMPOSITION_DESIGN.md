@@ -276,7 +276,9 @@ Three honest caveats, so this stays a rung and not a leap:
    `sat3_annulus_capacity`. All on `[propext, Classical.choice,
    Quot.sound]`, no sorry. The Θ(v) diversity cap is stated in the file's
    docstring so it cannot be silently resurrected.
-3b. **Rung 23 (Lean, next):** the honest flat-sat3 consequence —
+3b. **Rung 23 — DONE (`4caf0835`,
+   `ComputationalDepthNFramePartialRowBound.lean`):** the honest
+   flat-sat3 consequence —
    uniform `coneExcess ≥ ~Θ(v)` with visible applicability threshold,
    explicitly NOT `(2+c)N`. Blueprint: partial-row window instantiation
    (`V_c := W ∩ S-row(c)` in the rung-20 parametric window) + two-stage
