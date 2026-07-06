@@ -959,3 +959,85 @@ no affine or bounded-degree menu provides.
 Frozen Lean (`ComputationalDepthNFrameIndexDetect.lean`, clean axioms): `twoPointCount`,
 `twoPointCount_eq_dotp` (the primitive), `twoPoint_detect`, `menu_toggle_detect` — the index-
 encoding detection core, true and reusable.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+# ROUTE H: constant-description-rank detection — the non-affine attempt
+
+Direct attack on the Route-G frontier question: *a detection architecture with `Θ(N)`
+independent detectable rank at `O(1)` description bits per rank-unit.*  Worked on paper per
+discipline.  Outcome, honest: quadratic (degree-2) detection PROVABLY defeats the
+witness-collision that capped affine detection at `v` — its directions live in a `Θ(v²)`-dim
+space and do not collide until `N` — but it pays a NEW cost (base-point dependence) that
+breaks the value-independence the rung 24–29 drag relied on.  So Route H converts the
+question from "is there enough rank" (answered: YES, quadratic gives it) to "can a drag
+harvest it under the base-point cross-term and the concentration attack" (OPEN).
+
+## H.1 Why affine collides and quadratic does not
+
+Affine detection is `dotp (functional) u` (§G): the detection direction of a literal is its
+functional, an element of the `v`-dim dual `(F₂^v)^*`.  Any `v+1` functionals are linearly
+dependent — the directions COLLIDE at `v`, capping rank at `v = O(N/log N)`.  This is the
+whole affine ceiling.
+
+Quadratic detection lives in the space of quadratic forms, dimension `Θ(v²)`.  The
+two-point primitive (proved, `ComputationalDepthNFrameQuadDetect.lean`):
+
+    quadMonoCount i j t a₀ u  =  a₀_i·u_j + u_i·a₀_j + u_i·u_j.
+
+The `u_i·u_j` term is a genuine degree-2 direction, and `quad_directions_distinct` proves
+distinct pairs `{i,j}` give distinct directions.  There are `Θ(v²) ≫ N` of them, all
+linearly independent — **collision is deferred past `N`, so detection rank is capped only by
+the input count `N`, not by `v`.**  This is exactly the "`Θ(N)` rank at `O(1)` bits/unit"
+the question asked for: an index-encoded quadratic menu costs `O(log v)` bits per literal
+(same as affine) but accesses `Θ(v²)` non-colliding directions, so the `N ≥ v·log v` coupling
+no longer forces `rank ≤ v` — rank can reach `N`.
+
+**Answer to the god-move question:** the family that gives rank without paying `log(rank)` per
+unit is a QUADRATIC (or higher-degree) affine-form menu.  Degree `k` gives a `Θ(v^k)`-dim
+detection space at the SAME `O(log v)` description cost, decoupling rank from the witness
+dimension.  Rank is no longer the bottleneck.
+
+## H.2 The new cost — base-point dependence (why it is not automatic)
+
+The affine primitive was VALUE- and BASE-POINT-independent: `twoPointCount = dotp ℓ.1 u`,
+with `ℓ.2` and `a₀` absent.  That independence is what made the two-point rank-completion
+machinery work — `parity_two_point`'s `heven drops out`, `parity_flip`'s value-independence.
+
+The quadratic primitive is NOT base-point-independent: the cross-term `a₀_i·u_j + u_i·a₀_j`
+depends on `a₀`.  At the origin `a₀ = 0` it vanishes (`quadMonoCount_origin`:
+`quadMonoCount i j t 0 u = u_i·u_j`, clean), but the drag's witness line `{a₀, a₀+u}` is
+pinned by the OTHER blocks (reserve pins), which generally force `a₀ ≠ 0`.  So the clean
+direction is available only when the drag can pin the witness THROUGH the origin — a new
+constraint the affine drag never had.
+
+## H.3 What remains (the undischarged Route-H work)
+
+1. **A drag around the origin.**  Rebuild the rung 24–29 pipeline for quadratic literals with
+   the witness line pinned through `a₀ = 0` (or with the cross-term controlled/cancelled by a
+   companion structure, analogous to the scaffold-covered companions of E1).  The two-point
+   comparison must now track the `u_i·u_j` term; `parity_two_point` needs a quadratic analog.
+2. **Hardness of quadratic `⊕#SAT`.**  `⊕#SAT` over quadratic clauses is `⊕P`-complete
+   (quadratic forms over `F₂` already encode general `⊕#SAT`), so the baseline `2N` and the
+   family's genuine hardness are in hand — but the explicit family must be pinned down.
+3. **THE concentration/alignment attack — still the gatekeeper.**  Even with `Θ(N)` rank
+   available, the drag must survive the adversary's cut alignment (the wall that capped every
+   prior route).  Quadratic detection changes the local-rank calculus: a concentrated block
+   now hosts `Θ((log v)²)` quadratic directions (pairs of its index bits) rather than
+   `Θ(log v)` affine ones — a further boost to the annulus per-scale harvest — but whether it
+   defeats concentration or merely raises the exponent is the open quantitative question.  My
+   honest expectation: degree `k` pushes the reliable bound to `Θ(N · (log v)^{k-1} / log v)`-
+   shape, i.e. it keeps IMPROVING the constant-error term with degree but each fixed degree is
+   a fixed poly-log gain — reaching `(2+c)N` with constant `c` would need degree `k = ω(1)`
+   (super-constant), whose description cost `O(k log v)` per literal re-enters the coupling.
+   This is the meta-barrier's next form and is NOT yet resolved either way.
+
+## H.4 Honest status
+
+Route H answers the rank question affirmatively — quadratic/higher-degree detection gives
+`Θ(N)` non-colliding rank at `O(log v)` description cost, defeating the witness-collision cap
+that ceilinged the affine program.  It does NOT yet yield `(2+c)N`: the base-point
+cross-term demands a new origin-pinned drag, and the concentration attack must still be beaten
+at the new degree.  The proved primitives (`quadMonoCount_eq`, `quadMonoCount_origin`,
+`quad_directions_distinct`) are the tool; the drag and its concentration analysis are the
+next rungs.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
