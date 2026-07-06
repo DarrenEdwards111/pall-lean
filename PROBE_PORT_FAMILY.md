@@ -1041,3 +1041,58 @@ cross-term demands a new origin-pinned drag, and the concentration attack must s
 at the new degree.  The proved primitives (`quadMonoCount_eq`, `quadMonoCount_origin`,
 `quad_directions_distinct`) are the tool; the drag and its concentration analysis are the
 next rungs.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+# ROUTE H CONCENTRATION GATE: attacked — the drag ceilings at N/log N (Route G confirmed)
+
+Rigorous attack on the sole open gate of the quadratic drag: at a real balanced cut, can the
+priced mass |V| be Θ(N)?  Worked on paper, then the load-bearing cap frozen in Lean
+(`ComputationalDepthNFrameQuadConcentration.lean`).  Honest outcome: NO — the drag is capped
+at |V| ≤ m = N/L ≤ N/log N, confirming the Route G ceiling `(2 + o(1))N` from the drag side.
+
+## The two caps, and which one binds
+
+Route H established that the SINGLE-CUT DETECTION RANK is Θ(N) for quadratic literals (the
+witness-rank cap that held affine at √N is gone — `quadMonoCount`'s `Θ(v²)` non-colliding
+directions).  But detection rank is NOT the binding constraint for the drag.  The binding
+constraint is the PER-CUT BLOCK COUNT:
+
+- Each priced block must STRADDLE the cut: its quadratic monomial is row-side (`hVS`), its
+  tautology and scaffold are probe-side (`hTautProbe`/`hlive`/`hScaf`).  A block whole-in-S has
+  its tautology in S, so it cannot be a target; a block whole-in-Sᶜ carries no row-side priced
+  position.  So every priced block straddles.
+- The drag is built ONE priced position per block (`hVone`), so |V| = #priced blocks ≤ #blocks.
+
+**`priced_card_le_blocks` (PROVED): |V| ≤ m.**  The map `q ↦ q.1` is injective on `V`.
+**`priced_card_le_ratio` (PROVED): L·|V| ≤ N**, i.e. |V| ≤ N/L.
+
+## Why this caps `cbudget` at `(2 + o(1))N`
+
+The drag gives |V| ≤ jj ≤ coneExcess + 1, so it proves `coneExcess ≥ |V| − 1`.  But
+`|V| ≤ m = N/L`, and a block addressing a literal menu that spans `F₂^v` needs
+`L ≥ ⌈log(menu size)⌉ = Ω(log v)` selector bits (Route G's addressing cost — a `v`-spanning
+menu has `≥ v` entries, `≥ log v` index bits, and the presence-bit encoding needs `≥ v`
+positions outright).  Either way `L = Ω(log v)`, so
+
+    |V| ≤ N / L ≤ N / log v = O(N / log N),   hence   coneExcess = O(N / log N),
+
+and `cbudget ≤ 2·|ESS| + coneExcess ≤ 2N + O(N/log N) = (2 + o(1))N` by the drag method.
+
+## The honest resolution
+
+Route H's removal of the witness-rank cap is REAL but does not help the drag, because the
+per-cut priced mass is bounded by the block count `m`, not the per-block detection rank.  The
+block count `m = N/L` is itself capped by `L ≥ log v` — the SAME addressing barrier that
+ceilings Route G.  So the multi-difference quadratic drag, fully discharged
+(`gParity_quad_drag`), proves at most `coneExcess = O(N/log N)`: it reaches
+`(2 + Θ(1/log N))N`, never `(2 + Ω(1))N`.  Constant `c` is out of reach for the drag method.
+
+To exceed the ceiling the family would need `m = Θ(N)` blocks (`L = O(1)` selector bits per
+block) with each block STILL individually detectable — impossible, because `O(1)` bits cannot
+address a `v`-spanning menu, and a non-spanning menu collapses the witness space (§G.4).  The
+concentration/spread-forcing question (does the drag ACHIEVE `Θ(N/log N)` or less?) is the
+residual, but the CEILING `N/log N` is now proved.  The affine → tensor → index → quadratic
+program is confirmed to ceiling at `(2 + o(1))N`; `(2 + Ω(1))N` needs a detection mechanism
+whose priced mass per cut is not block-count bounded — which no single-witness affine or
+bounded-degree family provides.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
