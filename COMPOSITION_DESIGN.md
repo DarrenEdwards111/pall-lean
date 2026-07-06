@@ -52,39 +52,84 @@ model's own currency — excess fan-out attributed to annulus wires (precise
 form fixed by the audit, §4(d)); annuli of a chain then partition the root
 cone's wires and `Σ_a E_a ≤ coneExcess(root)` is an identity.
 
-**Conjecture (Annulus Factorization).** The induced map
+**Theorem candidate (k-scale trace capacity) — statement verified against
+the actual definitions (task 2, DONE).** Let `w_1 ⊑ w_2 ⊑ … ⊑ w_k` be a
+nested chain of wires (each in the next's cone; such chains exist at all
+prescribed size bands along the max-child root-to-leaf path, since
+`|varsOf|` at most doubles child→parent — a routine new selection lemma).
+Set `S_i := varsOf w_i`, `Ann_i := coneOf w_i ∖ coneOf w_{i−1}`, and
+`a_e(i) := #(wireExits(w_i) ∩ Ann_i)`. Then for any family `Y` of rows
+pairwise distinguished at SOME scale (for each pair, ∃i and an
+`S_iᶜ`-probe separating them):
 
-    (rows of the S-cut) × (inputs read in S' ∖ S)  →  (rows of the S'-cut)
+    |Y| ≤ 2^{ |wireExits(w_1)| + Σ_{i≥2} a_e(i) }
+    with   Σ_{i≥2} a_e(i) ≤ coneExcess(root) + (k−1).
 
-factors through `2^{j_a}` classes with `j_a ≤ E_a + O(1)`.
+**The proof mechanism is nearly free — pure coordinate counting.** The key
+containment: `wireExits(w_i) ∩ coneOf(w_{i−1}) ⊆ wireExits(w_{i−1})` (a
+reader outside `cone(w_i)` is outside `cone(w_{i−1})`, by `cone_trans` —
+one easy lemma). So the joint trace vector `(φ_1(y), …, φ_k(y))` has, at
+scale `i`, only `a_e(i)` coordinates not already present at scale `i−1`:
+its range is at most `2^{j_1 + Σ a_e(i)}` — no functional analysis of the
+annulus computation is needed at all (my earlier worry about duplicate
+var-gates was a phantom: duplicates feed the trace's VALUES, they do not
+add trace COORDINATES). Per-scale `CutFactorization` is the existing
+`sat3_wire_cut_factorization`; the ledger `Σ (a_e(i) − 1) ≤ coneExcess` is
+the existing `wireExits_card_le` argument localized (each non-top exit in
+`Ann_i` has an inside and an outside reader, hence is multi-read; the
+`Ann_i` are disjoint, and `Σ #multiread(Ann_i) ≤ coneExcess(root)`). This
+is real, provable infrastructure: it makes the excess ledger ADDITIVE
+across scales, permanently.
 
-Intuition: everything the outer boundary knows is computed from (i) the
-inner boundary's `2^j` row classes and (ii) gates living in the annulus;
-new row diversity must be paid for by annulus gates alone. This is the
-two-cut analogue of `cut_row_capacity` and is a genuinely NEW instrument —
-nothing in rungs 1–21 conditions one cut on another.
+### 3b. The pressure-test verdict: the diversity side caps at `Θ(v)` —
+### annuli buy constants and infrastructure, NOT `(2+c)N`
 
-**Why this composes.** Annuli of a nested chain are pairwise disjoint gate
-sets BY CONSTRUCTION. So for any chain of bands `T_1 < T_2 < …`:
+Running the forcing arithmetic honestly against the toolbox kills the
+payoff claims of the previous revision (both of them), for one reason:
 
-    Σ_i j_a(i)  ≤  Σ_i E_a(i) + O(#bands)  ≤  totalExcess + O(#bands).
+**The pin channel dies exactly at the `Θ(v)` threshold, at every scale
+simultaneously.** The min-form dichotomy is a two-sided weapon: at a
+moderate band (`|S_i| = εN`), `Q_t(S_i) ≥ j_i + 3` forces the slot-full
+horn `m·(v − j_i) ≤ |S_i|`, i.e. `j_i ≥ v(1 − 6ε)` — so an adversary who
+poisons any moderate cut's sign columns beyond `j_i + 2` has ALREADY paid
+`coneExcess = Θ(v)`. Conversely, while `CE ≲ v/2`, every moderate cut has
+a live slot and all instruments run. But that is precisely the trap: every
+diversity instrument in the pin paradigm is APPLICABLE only while
+`CE ≲ v/2` (pin room `|W| + 2|C| + Q ≤ m` with `Q ≤ CE + 3`), so the
+contradiction argument can push `CE` only up to its own applicability
+threshold. With the k-scale capacity in place the assembly reads
+`Θ(N) ≤ CE + 2k` under the hypothesis `CE ≲ v/2` — which refutes the
+hypothesis and yields `CE ≥ ~v/2`, i.e. `Θ(√N)` with a better constant
+(≈9× the rung-21 horn `m ≤ 6j+48`), and nothing more. The same analysis
+invalidates the previous revision's `Ω(√N log N)` doubling-scales claim —
+per-annulus charges are not independent of the global poison budget; they
+all share the same `Θ(v)`-threshold pin supply. And partial-row windows
+(`V_c := W ∩ S-row(c)`, admissible in `sat3_private_window` as stated)
+change constants, not the exponent: the `hroom` coupling of poison and
+pool self-caps them identically.
 
-The additive ledger is free. ALL difficulty moves into per-annulus row-
-diversity lower bounds — and that is exactly what the 21-rung toolbox
-produces, localized: patterns stored in `S' ∖ S`, probes outside `S'`,
-private kit unchanged, pins drawn from blocks outside `S'`, live pin slot
-by the squeeze. Expect per-annulus horn structure like rung 21's (the
-straddle/heavy analysis recurs at each annulus — that is fine, it caps each
-annulus at its own scale, not the sum).
+**So the honest theorem reachable from the annulus law on flat sat3 is:**
+`coneExcess ≥ ~v/2 = Θ(√N)` uniformly (constant-factor upgrade of rung 21)
+PLUS the additive-capacity infrastructure. `(2+c)·N` requires a diversity
+channel that survives total sign poisoning — a PINLESS channel carrying
+`ω(1)` bits per block. The only pinless channel in the toolbox (rung 18's
+emptiness channel) carries exactly 1 bit per block, `Θ(m)` total. That is
+the true frontier, stated exactly.
 
-**Payoff arithmetic (pressure-tested, honest).**
-- Weak version: doubling scales `T, 2T, 4T, …` with `Ω(m)` diversity per
-  annulus ⇒ `Σ = Ω(m log N) = Ω(√N · log N)`. A strict, CHEAP improvement
-  over rung 21 — the right first validation target for the law.
-- Strong version: bands spaced `Δ = Θ(v)` ⇒ `Θ(m)` annuli; per-annulus
-  diversity target `Ω(Δ) = Ω(v)` ⇒ `Σ = Ω(m·v) = Ω(N)` ⇒
-  `cbudget ≥ 2·live + Ω(N) = (2+c)·N`. This is HAL's step-1 target — IF
-  §4 does not kill it first.
+**Consequence for Route B (re-elevated to the `(2+c)N` path).** The pin
+bottleneck is an ARTIFACT OF THE ENCODING: probes must be synthesized from
+pool clauses, and the pin machinery is guarded by only `3m` sign bits. A
+redesigned family can build the probe channel into the function — e.g. a
+per-gadget "probe port" (an input bit that satisfies its gadget outright,
+or richer per-gadget control words), making per-gadget diversity readable
+WITHOUT pool pins. The adversary's counterplay against ports (absorb them
+into `S`) converts them into free pattern bits instead of killing the
+channel — the port design goal is exactly this no-lose dichotomy, and it
+needs careful specification (task 3). With an unpoisonable channel
+carrying `Θ(v)` bits per gadget, the k-scale capacity (§3) turns the
+per-gadget charges additive: `Θ(m)` annuli × `Θ(v)` bits ⇒
+`coneExcess = Ω(N)` ⇒ `cbudget ≥ (2+c)N` — on the redesigned family, with
+the expander coupling (§5b) preventing gadget-reuse across scales.
 
 ## 4. THE UPPER-BOUND AUDIT — RESOLVED: threat withdrawn, `(2+c)N` is live
 
@@ -209,20 +254,28 @@ Three honest caveats, so this stays a rung and not a leap:
 
 1. **Upper-bound audit of sat3Family** — DONE (§4). Verdict: threat
    withdrawn; `sat3Family` is genuine ∃-SAT with brute-force upper bound
-   `2^{Θ(√N)}`; `(2+c)N` and everything above it is live for flat sat3;
-   rung 21 is instrument-capped, not function-capped.
-2. **Precise statement of the Annulus Factorization** (§3, currency fixed
-   by §4(d)) against the actual CutFactorization/mixOn/coneExcess
-   definitions; pressure-test on the caterpillar. This is now the sole
-   load-bearing new instrument. No Lean until the statement survives.
-3. If 2 survives: **rung 22 = weak annulus validation**
-   (`Ω(√N log N)` via doubling scales, flat sat3) — first Lean of the new
-   phase, validating the ledger at low stakes.
-4. Then the dense chain (`Θ(m)` annuli spaced `Θ(v)`) toward `(2+c)N` on
-   flat sat3.
-5. Route B in parallel if 2 stalls: expander-family specification (§5b) —
-   parameters `(k, d, w₀, G)`, NP-verifiability, its own honest upper
-   bound, local edge law from the drag/window toolbox.
+   `2^{Θ(√N)}`; rung 21 is instrument-capped, not function-capped.
+2. **Annulus Factorization statement + pressure-test** — DONE (§3/§3b).
+   Verdict: the k-scale trace capacity is real and nearly free
+   (coordinate counting over nested exit sets); it makes the excess
+   ledger additive permanently. BUT the diversity side of the pin
+   paradigm caps at `Θ(v)` — the poison/full dichotomy is a global
+   constraint shared by all scales — so on flat sat3 the law buys a
+   ~9× constant and infrastructure, not `(2+c)N`. The previous
+   revision's `Ω(√N log N)` and flat-sat3 `(2+c)N` payoff claims are
+   WITHDRAWN.
+3. **Rung 22 (Lean, ready now):** the k-scale capacity theorem — chain
+   selection (max-child path descent), nested-exit containment,
+   coordinate-counting capacity, localized exit ledger — validated by
+   the `coneExcess ≥ ~v/2` uniform band bound (constant-factor upgrade
+   of rung 21).
+4. **Task 3 (design, the `(2+c)N` path):** probe-port family
+   specification — per-gadget unpoisonable probe channel with the
+   no-lose dichotomy (port outside `S` ⇒ probe entrance; port inside
+   `S` ⇒ free pattern bit), expander coupling per §5b, NP-verifiability,
+   honest upper bound. Then k-scale capacity × `Θ(v)`-bit unpoisonable
+   channels ⇒ `coneExcess = Ω(N)` on that family.
+5. Only after that: superlinear targets and the P-side bridges (§7).
 
 ## 7. Honest scope
 
