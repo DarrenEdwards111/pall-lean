@@ -351,3 +351,45 @@ direct sum is now converted into the well-posed algebra target — **construct a
 both rigid (`R − fr ≥ fresh`) and provably rank-additive under iterated direct sums** — with the barrier
 named on both horns (explicit tensor rigidity ∧ Strassen additivity). Nothing here is `NEXP ⊄ ACC⁰` or
 `P ≠ NP`.
+
+---
+
+## HYBRID MIXER via the SUBSTITUTION METHOD — reduced to substitution tightness
+
+`ComputationalDepthNFrameHybridSubstitution.lean` (clean `[propext, Quot.sound]`, no sorry). The
+candidate triage killed 4 families; the block-coupled hybrid (additive-certified local blocks + expander
+coupling) is the sole survivor. This file resolves what it needs by routing the mixer's rank through the
+SUBSTITUTION METHOD.
+
+### Why substitution is the right tool
+`MixerTargetSpec` asks for rank BOTH rigid (`R − fr ≥ fresh`) AND additive (`R2 ≥ 2R − fresh`). The
+substitution method (Pan, Hopcroft–Kerr, Bläser; Bürgisser–Clausen–Shokrollahi) is the unique general
+tensor-rank lower-bound tool that is DIRECT-SUM ADDITIVE by construction ("preserves direct sum"), so
+`LB(T^{⊕m}) ≥ m·LB(T)`. Hence `R2 ≥ 2·LB` for free — additivity is supplied by the PROOF TECHNIQUE, not
+a fragile tensor property. That is why the hybrid is not dead where the others are.
+
+### The reduction (LB = substitution bound, R = true rank, fr = flattening)
+- RIGIDITY needs `fr + fresh ≤ LB` (substitution beats flattening — Bläser-type bounds do).
+- ADDITIVITY needs `2R ≤ R2 + fresh`; with `R2 ≥ 2LB` this holds iff the RESIDUAL `R − LB ≤ fresh/2`
+  (substitution NEARLY TIGHT).
+
+The residual `R − LB` is the crux, both: (a) the only place non-additivity can hide (substitution-certified
+rank is additive, so sharing lives in what substitution misses); (b) un-certifiable as additive by the one
+additive tool. So `additivity ⟺ substitution tightness on the mixer` (up to `fresh/2`). Literature is
+explicit that substitution is NOT tight in general (Landsberg–Teitler; real-tensor bounds). Whether an
+explicit EXPANDER tensor admits a bound both STRONG (`LB − fr ≥ fresh`) and NEARLY TIGHT (`R − LB ≤ fresh/2`)
+is the open sub-question — NOT settled either way.
+
+### Theorems
+- `substitution_gives_spec_fields` (proved): strong + valid + additive-subst + near-tight ⟹ spec rigidity
+  and additivity.
+- `specFromSubstitution` (builder): such a family instantiates `MixerTargetSpec`.
+- `hybrid_forces_superlinear` (proved): substitution family + frozen deficit + bridge ⟹ `b·2^b ≤ T b`.
+- `substitution_tightness_necessary` (witness): strong + additive-subst but NOT tight ⟹ additivity FAILS.
+  Tightness is the crux, not optional.
+
+### Verdict
+Does NOT construct a mixer. Reduces the hybrid — the last live candidate — to ONE named property:
+substitution near-tightness on an explicit strong-bound expander tensor. Genuine refinement of "find an
+additive tensor" (now: "find a substitution-tight strong expander tensor"), with the residual `R − LB`
+named as the sole home of non-additivity. Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
