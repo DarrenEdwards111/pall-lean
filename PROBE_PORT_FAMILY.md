@@ -1392,3 +1392,49 @@ open target — equivalent to general super-linear circuit lower bounds, with th
 ingredient named (scale-composition rigidity, beyond the linear-superconcentrator barrier).  This
 is the sharpest reduction the arc reaches: super-linear ⟺ prove the rigid-mixing recursion holds
 under scale composition.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+# THE BASE CASE: two disjoint rigidities add (detection level) — and the Uhlig gap
+
+Proving the base case of the recursion (two disjoint rigid sub-cones ⟹ coneExcess adds).
+Detection-level direct sum frozen in Lean (`ComputationalDepthNFrameDirectSum.lean`); the
+cone-level lift is located precisely at the Uhlig barrier.
+
+## What is proved (detection level)
+
+- `bilinSym_cross_zero` (PROVED): coordinates in different blocks do not cross-detect
+  (`A_{ab}+A_{ba} = 0 ⟹ bilinSym A (e_a)(e_b) = 0`).  Two disjoint copies give a block-diagonal
+  `A`, hence no cross-detection.
+- `combined_detection_identity` (PROVED, THE DETECTION DIRECT SUM): two induced matchings on
+  disjoint blocks (block-internal identities, cross-detection zero) combine to a SINGLE induced
+  matching over `Fin r₁ ⊕ Fin r₂` with identity detection.  With `induced_matching_distinct`, the
+  two rigidities give `2^{r₁+r₂}` distinguished rows — cut-rank adds, `rank(F) ≥ r₁ + r₂`.
+
+So two disjoint rigidities DO add — at the detection/rigidity level, provably, no interference.
+
+## The gap: detection-level add is LINEAR; the recursion needs the CONE-level (Uhlig) direct sum
+
+The detection-level direct sum gives `rank(F) ≥ r₁ + r₂ ≤ (#inputs of F)` — a LINEAR bound, via
+cut capacity, squarely in the `log|Y| ≤ N` regime.  The recursion needs `coneExcess(f_{2N}) ≥
+2·coneExcess(f_N)` with `coneExcess(f_N)` SUPER-LINEAR (by induction) — and cut capacity cannot
+reach it (`≤ 2N < 2·coneExcess(f_N)`).  It requires the two `f_N` sub-CONES of a MINIMAL circuit
+to be DISJOINT — the DIRECT SUM problem for `coneExcess`.
+
+That is OPEN, and guarded: **Uhlig's mass-production theorem** shows the direct sum for circuit
+SIZE is FALSE in general — some functions compute many copies in `(1+o(1))×` the single-copy cost,
+by sharing a universal part.  So cone disjointness cannot be assumed; the detection-level base
+case (proved) does NOT lift to the cone level without a proof that the specific rigid `g` admits
+NO mass-production sharing — a DIRECT-SUM-HARDNESS statement for an explicit function, itself open.
+
+## Honest status — the boundary of the arc, precisely located
+
+The base case is TRUE and proved where provable — the detection/rigidity direct sum (disjoint
+rigidities add, no interference).  The remaining gap is exactly ONE named statement: the
+CONE-level direct sum for the explicit rigid `g` (its two disjoint copies have disjoint minimal
+sub-cones), i.e. `g` is direct-sum-hard / admits no Uhlig mass production.  This is the honest
+boundary: everything up to and including the detection-level direct sum is proved and clean; the
+one step past it (cone-level direct sum) is open, equivalent to direct-sum-hardness, guarded by
+Uhlig.  The full chain to super-linear is now: [proved] rigidity via expanders + detection direct
+sum ⟹ [open, Uhlig] cone-level direct sum ⟹ [proved arithmetic] recursion unrolls to Θ(N log N).
+Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
