@@ -1682,3 +1682,56 @@ across `log N` scales (each level linear, the sum super-linear) — and its open
 irreducibility of the recursion (sub-cone demands not sharing across levels), the same
 demand-irreducibility, now at the level of composition rather than a single expander.  Nothing here
 is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+# CROSS-SCALE DEMAND SHARING THROUGH THE MIXING LAYER — the firewall condition
+
+The last surviving super-linear route is COMPOSITION: `f_{2N}(x) = g(f_N(x₁), f_N(x₂))`, needing
+`demand ≥ 2·demand(f_N) + cN`.  The `2·` needs the two `f_N` sub-instances to NOT share demand
+through the mixing `g`.  Attacked whether `g` firewalls (forces each) or collapses (single output
+short-circuits them).  Frozen in Lean (`ComputationalDepthNFrameMixingFirewall.lean`).
+
+## The firewall condition — `g(·, b)` injective (via restriction)
+
+Fix `x₂ = c`: `f_{2N}(·, c) = g(f_N(·), f_N(c))`.  If `g(·, b)` is INJECTIVE, this restriction
+distinguishes every `x, x'` that `f_N` distinguishes — sub-instance forced.  If `g(·, b)`
+COLLAPSES two distinct sub-outputs, the restriction loses them — no firewall.
+- `injective_mixing_preserves_distinct` (PROVED): injective `g(·,b)` keeps distinct sub-outputs
+  distinct.
+- `firewall_restriction_distinguishes` (PROVED): composed with `f_N`, the restriction distinguishes
+  `x, x'` whenever `f_N` does — the `1×` sub-demand is forced through the mixing.
+- `noninjective_mixing_collapses` (PROVED): collapse (`g a b = g a' b`, `a ≠ a'`) ⟺ `g(·,b)` not
+  injective — firewall fails.
+
+## The correction — the mixing must be MULTI-OUTPUT
+
+- `single_output_mixing_not_injective` (PROVED): for `M ≥ 2`, ANY single-output map
+  `(Fin M → ZMod 2) → ZMod 2` is non-injective (`2^M > 2`).  So a SINGLE-OUTPUT mixing (the earlier
+  `qform` sketch, `g : {0,1}^{2M} → {0,1}`) CANNOT firewall — it collapses `2^M` sub-outputs to one
+  bit.  **Corrects the recursion's `g`**: it must be MULTI-output (`M`-bit), injective in each
+  argument — a bijection family, e.g. `a ↦ a ⊕ b` (`a ⊕ Bb`), NOT the single-output quadratic form.
+
+## Honest verdict — firewall gives `1×`; the `2×` is the composition (KRW) crux
+
+An injective multi-output mixing FIREWALLS in the restriction sense: each sub-instance's
+distinguishing (hence demand) is forced — but that gives `1×` (one restriction re-uses the whole
+circuit).  The `2×` — two forced sub-demands DISJOINT, not shared across scales — is NOT delivered
+by `g`; it is a composition-does-not-collapse statement in the Karchmer–Raz–Wigderson (KRW) family
+(`P` vs `NC¹`), OPEN.  So the attack: (i) identifies a necessary design constraint on `g`
+(multi-output, injective per argument — proved), (ii) shows injective `g` forces each sub-instance
+(`1×` — proved), (iii) locates the remaining `2×` as the KRW composition crux — open.  The
+single-shot routes are all closed; the composition route now rests on one named open conjecture
+(KRW), with `g`'s firewall requirement made precise and proved.
+
+## Arc endpoint (frozen, honest)
+
+drag 3N (rank≤N) → recursion escapes (proved arith) → base case (detection direct sum proved,
+Uhlig doesn't bind, cancellation ruled out for qform) → super-linear needs non-rank coneExcess cert
+→ two failure modes (rank N-cap; formula 2^{-cone} collapse) → demand cert dodges both, relocates
+to irreducibility=rigidity → single expander demand is LINEAR (sparsity caps) → only route =
+COMPOSITION → mixing firewall requires multi-output injective g (proved), gives 1×; the 2× = KRW
+composition conjecture (open).  Every single-shot route proved-closed; the entire super-linear
+question now rests on ONE named open conjecture — KRW composition — with all surrounding structure
+(firewall condition, g-design, demand dodges, base case) proved and clean.  Nothing here is
+`NEXP ⊄ ACC⁰` or `P ≠ NP`.
