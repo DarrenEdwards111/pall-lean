@@ -1438,3 +1438,49 @@ one step past it (cone-level direct sum) is open, equivalent to direct-sum-hardn
 Uhlig.  The full chain to super-linear is now: [proved] rigidity via expanders + detection direct
 sum ⟹ [open, Uhlig] cone-level direct sum ⟹ [proved arithmetic] recursion unrolls to Θ(N log N).
 Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+# UHLIG CHECK: does the rigid g admit mass production?  NO — wrong complexity regime
+
+Checked whether the explicit rigid `g` (expander quadratic form) admits Uhlig mass production.
+Outcome: NO, and it CORRECTS the previous step's "guarded by Uhlig" claim.  Frozen in Lean
+(`ComputationalDepthNFrameUhligCheck.lean`).
+
+## The regime check
+
+Uhlig's mass production: computing `f` on `m` inputs costs `≤ (1+o(1))·2^n/n` (the Lupanov
+worst-case bound).  A SAVINGS over `m·C(f)` ONLY when `C(f)` is near the max `2^n/n` — a
+near-maximally-hard function whose expensive universal table amortizes across copies.  For EASY
+`f` with `C(f) ≪ 2^n/n`, the Uhlig construction costs `~2^n/n ≫ m·C(f)` — USELESS.
+
+`g = qform A` (sparse expander form) has `C(g) = O(dN)` — LINEAR, exponentially far from `2^N/N`.
+Recursive `f_N = g(f_{N/2}, f_{N/2})` has `C(f_N) = O(N log N)` — QUASI-linear.  Neither is in
+the exponential regime where Uhlig applies.  **So `g` does NOT admit Uhlig mass production.**
+
+## Correction to the previous step
+
+The base-case file said the cone-level direct sum is "guarded by the Uhlig barrier."  That was
+imprecise: Uhlig guards the direct sum for near-maximally-hard functions; `g`/`f_N` are easy, so
+Uhlig does not bind here.  The specific obstruction cited does NOT apply.
+
+## The algebraic evidence (Lean)
+
+- `qform_additive_disjoint` (PROVED): non-cross-detecting inputs (`bilinSym A x y = 0`, i.e. two
+  disjoint copies under block-diagonal `A`) satisfy `qform A (x+y) = qform A x + qform A y` — the
+  copies decompose ADDITIVELY, disjoint monomial supports, no algebraic interaction, no shared
+  universal part to amortize.
+- `bilinSym_add_left` + `qform_additive_pair` (PROVED): the `k`-copy version — pairwise
+  non-cross-detecting inputs are additively independent under `qform`.
+
+## Honest status — barrier removed, but direct sum still open (weaker reason)
+
+Removing the Uhlig barrier is a real (if modest) correction — the specific obstruction does NOT
+apply to our easy `g`.  But it does NOT resolve the cone-level direct sum.  The direct sum for
+circuit `coneExcess` is OPEN in general (even for easy functions) because a minimal circuit could
+share via NON-table mechanisms (algebraic cancellation, bilinear tricks).  `qform_additive_disjoint`
+shows no ALGEBRAIC interaction (disjoint monomials) — EVIDENCE the copies are independent, but not
+a proof that a minimal circuit cannot share via cancellation.  Updated status: the cone-level
+direct sum for `g` is OPEN but NOT Uhlig-blocked; what remains is the general direct-sum problem
+for a quasi-linear function with additively-independent copies — no known obstruction, no known
+proof.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.

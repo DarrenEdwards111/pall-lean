@@ -35,8 +35,14 @@ to the CONE level without a proof that the specific rigid `g` admits NO mass-pro
 a direct-sum-hardness statement for an explicit function, which is open.
 
 So: the base case is TRUE and proved where it is provable (detection/rigidity direct sum), and the
-gap to the recursion is now exactly named — the cone-level direct sum, guarded by the Uhlig
-barrier.  This is the honest boundary of the arc.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+gap to the recursion is now exactly named — the cone-level direct sum.
+
+**UPDATE (see `ComputationalDepthNFrameUhligCheck.lean`)**: the "guarded by the Uhlig barrier"
+framing above is IMPRECISE and is corrected there.  Uhlig mass production only helps
+near-maximally-hard functions (`C(f) ~ 2^n/n`); our `g` is easy (`O(dN)`) and `f_N` quasi-linear
+(`O(N log N)`), so Uhlig does NOT apply here.  The cone-level direct sum remains OPEN, but for the
+general (weaker) reason, not the Uhlig obstruction.  This is the honest boundary of the arc.
+Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.NFrameDirectSum
