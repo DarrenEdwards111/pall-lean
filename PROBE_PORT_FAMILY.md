@@ -1578,3 +1578,61 @@ structural reason the problem is open.  This file freezes the formula-route coll
 is `rowFamily_card_le`.  This is the honest floor of the arc: the super-linear step requires a
 certificate outside both known families, and the two failure modes now name precisely what it must
 avoid.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+# SCOPING THE IRREDUCIBLE-DEMAND CERTIFICATE — coherent, dodges both, one new crux
+
+The non-rank search left exactly one shape past BOTH failure modes (input-`N` cap, `2^{-coneExcess}`
+fan-out decay): a certificate measuring IRREDUCIBLE DEMAND — how many times a value must be present
+across the computation.  Scoped it: defined the object, VERIFIED both dodges in Lean, located the
+single new obstruction.  Frozen in `ComputationalDepthNFrameDemandCert.lean`.
+
+## The object
+
+A demand structure for `f`: a family `{(Vᵢ, Dᵢ)}` where any circuit must make `Vᵢ` present at every
+site in `Dᵢ`.  A value demanded `K = |Dᵢ|` times forces ROUTE (fan-out `K−1`, charged to
+`coneExcess`) or RECOMPUTE (`K−1` extra copies at unit cost `c ≥ 1`, charged to `length`).  Both
+land in `length ≥ 2|ESS| + coneExcess`.  Certificate: `length ≥ 2|ESS| + Σᵢ(Kᵢ−1)` when demands
+are IRREDUCIBLE.
+
+## The two dodges, VERIFIED
+
+- `recompute_charge` (PROVED): `d ≤ d·c` for `c ≥ 1` — recomputing never beats routing's `d = K−1`
+  charge.  So a demand costs `≥ K−1` under EITHER strategy: the charge does NOT decay under fan-out
+  (dodges the formula route's `2^{-coneExcess}` collapse).
+- `demand_no_strategy_beats_total` (PROVED): for any route/recompute mix, `Σ(Kᵢ−1) ≤ Σ chargeᵢ` —
+  no strategy beats the total demand.
+- `demand_uncapped` (PROVED): the demand total exceeds every `N` and every `T` — unlike `rank ≤ N`,
+  demand is NOT bounded by the input dimension (dodges the rank route's `N` cap).
+- `demand_certificate` (PROVED): given irreducibility (`hcharge`) and the ledger, `2|ESS| + Σdᵢ ≤
+  length` — the demand total transfers to a `length` lower bound that can be super-linear.
+
+## The one new obstruction — irreducibility under SHARING (= rigidity)
+
+The dodges hold, so the SHAPE is sound.  But demand replaces the two orthogonal failure modes with
+ONE non-automatic requirement: IRREDUCIBILITY.  Demand is reducible by SHARING INTERMEDIATE VALUES
+(compute partial combinations once, reuse) — exactly what makes linear-size superconcentrators and
+`O(N log N)` linear circuits possible.  For the linear case (`x ↦ Mx`), irreducible demand IS the
+linear-circuit complexity of `M`, and proving it super-linear is Valiant's matrix-RIGIDITY program
+(open).  So the demand certificate does NOT evade the open problem — it RELOCATES it: from "beat two
+orthogonal failure modes" to "prove one demand structure is irreducible under sharing."
+
+## Honest status
+
+The certificate is coherent and provably dodges both known failure modes (verified).  Its
+irreducibility hypothesis is the open crux, coinciding with rigidity for the linear case — I did
+NOT prove irreducibility for any explicit `f` (that is the open problem).  What the scoping
+delivers: the demand certificate is the unique shape past both failure modes, and its single
+remaining requirement is now named and connected to rigidity — a concrete (open) target.
+Route/recompute floor, no-strategy-beats-total aggregate, uncapping, and the assembled certificate
+are proved; irreducibility is the hypothesis.
+
+## Arc map (frozen, honest)
+
+drag caps at 3N (rank ≤ N) → recursion escapes (arithmetic proved) → base case: detection direct
+sum proved, Uhlig doesn't bind (g easy), cancellation ruled out for qform → super-linear needs a
+non-rank coneExcess certificate → the two failure modes (rank `N`-cap; formula `2^{-coneExcess}`
+collapse) → the demand certificate dodges both, relocating the open problem to irreducibility =
+rigidity.  Everything at/below the rank frontier is proved; the super-linear step is one named,
+open, rigidity-equivalent requirement.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
