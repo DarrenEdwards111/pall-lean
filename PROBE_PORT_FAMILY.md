@@ -1636,3 +1636,49 @@ non-rank coneExcess certificate → the two failure modes (rank `N`-cap; formula
 collapse) → the demand certificate dodges both, relocating the open problem to irreducibility =
 rigidity.  Everything at/below the rank frontier is proved; the super-linear step is one named,
 open, rigidity-equivalent requirement.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+# DOES EXPANDER qform DEMAND INHERIT RIGIDITY FROM EXPANSION?  NO — sparsity caps it
+
+The one place our EXPLICIT construction might have leverage over general (open) rigidity: edge
+expansion gave every-cut rank `Θ(N)` — does it also lower-bound irreducible DEMAND super-linearly?
+Attacked it.  Answer: NO, a hard structural cap.  Frozen in Lean
+(`ComputationalDepthNFrameExpanderDemand.lean`).
+
+## Why NO — the expander is sparse, so its demand is linear
+
+`M = A + Aᵀ` is SPARSE: a `d`-regular graph has exactly `dN` nonzeros (bounded degree `d`).
+- `x ↦ Mx` is a sparse matrix-vector product, `O(nnz) = O(dN)` XOR gates.  Each input `xᵢ` demanded
+  `deg(i) = d` times; total demand `Σ deg = dN`.
+- So irreducible demand `= dN = O(N)`, LINEAR.  No super-linear demand to inherit; the qform
+  (single-output, `O(dN)` gates) and its detection map are both easy.
+Edge expansion is a GLOBAL cut property (cut-rank `Θ(N)`); demand is LOCAL (degree).  They diverge:
+cut-rank gives the LINEAR drag bound, demand `= dN` is ALSO linear.
+
+- `regular_demand_total` (PROVED): `d`-regular total demand `Σ d = d·N`.
+- `regular_demand_below_superlinear` (PROVED): bounded degree (`d < N`) ⟹ `d·N < N²`, strictly
+  below the super-linear (`N²`) regime rigidity needs.  Sparsity caps it.
+- `expander_demand_linear` (PROVED): the expander's demand certificate yields `2|ESS| + d·N ≤
+  length` — LINEAR, the same `(2+c)N` the drag already gives.
+
+## The tension
+
+The property that makes the expander EXPLICIT and every-cut rigid (bounded degree / sparsity, via
+induced matchings) is exactly the property that caps its demand at `O(N)`.  Super-linear demand
+from a single matrix needs super-constant degree `d = ω(1)` (destroys bounded-degree explicitness
+and the greedy induced-matching argument) or a DENSE/structured matrix (general rigidity — open,
+and where explicit constructions have repeatedly been proved NON-rigid).  So the expander has NO
+shortcut over general rigidity via demand.
+
+## Honest verdict — a real negative that redirects to composition
+
+The expander `qform`'s demand does NOT inherit super-linear rigidity from expansion — linear,
+capped by the sparsity expansion requires.  Closes the sub-question with a negative, and it is
+informative: it explains why the explicit construction cannot shortcut rigidity, and confirms
+super-linear cannot come from a SINGLE bounded-degree expander.  The only remaining route is
+COMPOSITION — the recursion `coneExcess(f_{2N}) ≥ 2·coneExcess(f_N) + cN`, whose demand accumulates
+across `log N` scales (each level linear, the sum super-linear) — and its open crux is the
+irreducibility of the recursion (sub-cone demands not sharing across levels), the same
+demand-irreducibility, now at the level of composition rather than a single expander.  Nothing here
+is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
