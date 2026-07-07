@@ -1340,3 +1340,55 @@ recursion / self-improvement / amplification escaping the one `log₂|Y| ≤ N` 
 does not: it also gives `log₂|Y| ≤ coneExcess + k`, and `log₂|Y| ≤ N` still caps it).  That
 different mechanism is the honest next target for super-linear; the drag itself has been pushed
 to its structural ceiling.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+# CONEEXCESS AMPLIFICATION: the recursion that escapes log|Y| ≤ N
+
+Design of a coneExcess amplification escaping the single-cut `log|Y| ≤ N` ceiling.  The
+arithmetic (the escape is real) is frozen in Lean (`ComputationalDepthNFrameConeAmplify.lean`);
+the recursion for an explicit family is the honest open target, precisely located.
+
+## The mechanism: recursion, not a bigger cut
+
+A single cut caps at `log|Y| ≤ N`.  A RECURSION sums many small certificates across scales:
+
+    coneExcess(f_{2N}) ≥ 2·coneExcess(f_N) + c·N     ⟹     coneExcess(f_N) ≥ c·N·log₂N.
+
+`coneExcess_amplify` (PROVED): `2·T k + c·2^{k+1} ≤ T(k+1)` ⟹ `c·(k·2^k) ≤ T k` — the recurrence
+solves to `Θ(N log N)` (`N = 2^k`).  `amplify_exceeds_linear` (PROVED): with `c ≥ 1`, `T` exceeds
+EVERY linear bound `b·N`, so it breaks the `3N` drag ceiling.  **The crucial point**: each level's
+`+c·N` term is certified by a cut of size `c·N ≤ (level's input count)` — NO single cut ever
+exceeds `log|Y| ≤ (level)`.  The recursion never violates the per-cut bound at any scale; it
+ACCUMULATES `log N` sub-`N` certificates.  That is exactly how one escapes the ceiling without
+breaking it.
+
+## The candidate family: recursive rigid mixing
+
+    f_{2N}(x) = g_N( f_N(x₁), f_N(x₂) )   on disjoint inputs x₁, x₂,
+
+with `g_N` a CUT-RIGID mixing (a `qform`-over-Ramanujan on the `2·(#outputs)` intermediate wires,
+resolved explicit in the induced-matching file) forcing `+c·N` fresh `coneExcess`, and the two
+`f_N` sub-cones DISJOINT so their `coneExcess` adds.  Structurally this yields the recursion.
+
+## The open step (precisely located) and the barrier
+
+The recursion inequality requires a MINIMAL circuit for `f_{2N}` to (i) contain two disjoint
+sub-cones each of `coneExcess ≥ coneExcess(f_N)`, and (ii) pay a fresh `+c·N` for the mixing — it
+CANNOT share or avoid the sub-instances.  Minimal circuits need NOT respect the recursive
+definition, so proving no-avoidance is the crux — and it IS the general super-linear circuit lower
+bound problem (open).  The specific barrier: linear-size superconcentrators exist, so pure
+CONNECTIVITY between sub-instances is achievable in linear size — the recursion cannot rest on
+connectivity; it must force fresh `coneExcess` via the RIGIDITY of `g_N` at every scale (which the
+induced-matching file makes explicit per level).  So the missing ingredient is a proof that
+rigid mixing at each scale cannot be amortized/shared across the recursion — a scale-composition
+rigidity statement.
+
+## Honest status
+
+The amplification's ARITHMETIC is proved sound: the recursion escapes `log|Y| ≤ N` and reaches
+`Θ(N log N)`, past the `3N` ceiling.  The recursion itself, for an explicit `f`, is the
+open target — equivalent to general super-linear circuit lower bounds, with the honest missing
+ingredient named (scale-composition rigidity, beyond the linear-superconcentrator barrier).  This
+is the sharpest reduction the arc reaches: super-linear ⟺ prove the rigid-mixing recursion holds
+under scale composition.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
