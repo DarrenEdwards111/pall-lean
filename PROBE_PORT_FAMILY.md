@@ -1484,3 +1484,51 @@ a proof that a minimal circuit cannot share via cancellation.  Updated status: t
 direct sum for `g` is OPEN but NOT Uhlig-blocked; what remains is the general direct-sum problem
 for a quasi-linear function with additively-independent copies — no known obstruction, no known
 proof.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+# RULING OUT THE CANCELLATION ROUTE FOR qform (base case)
+
+Can two disjoint copies of `g = qform A` be computed with `< 2·C(g)` gates via `F₂` cancellation
+(linear mixing so cross-terms cancel)?  For the base case (`qform`): NO — via an invariant
+cancellation cannot touch.  Additive-rank witness frozen in Lean
+(`ComputationalDepthNFrameCancellation.lean`).
+
+## Why cancellation can't help
+
+`F₂` cancellation IS a linear change of variables.  The detection matrix `M = A + Aᵀ` is a
+FUNCTION invariant (`bilinSym A (e_a)(e_b) = M_{ab}`), fixed by `qform`, unchanged by any circuit
+linear mixing.  Two facts bind every circuit:
+  (1) `rank_{F₂}(M)` is invariant under invertible change of variables — cancellation cannot lower it.
+  (2) `rank_{F₂}(M)` is ADDITIVE under direct sum: `rank(M₁ ⊕ M₂) = rank(M₁) + rank(M₂)`.
+By Mirwald–Schnorr (multiplicative complexity of a quadratic form over `F₂` is `≥ rank(M)/2`), the
+AND-gate count for the direct sum is `≥ (rank M₁ + rank M₂)/2` = the sum of the per-copy bounds.
+No linear mixing saves products.  Cancellation ruled out for `qform`.
+
+## The additive-rank witness (Lean)
+
+- `direct_sum_distinct` (PROVED): two induced matchings on disjoint blocks (block-internal
+  identity, zero cross-detection = block-diagonal `M`) combine to a pairwise-distinguished family
+  over `Fin (r₁+r₂)`.  So the direct sum carries an `(r₁+r₂)`-identity submatrix of `M`,
+  `rank(M₁ ⊕ M₂) ≥ r₁ + r₂` — a FUNCTION property holding for EVERY circuit, immune to
+  cancellation.  (Reindexes `combined_detection_identity` over `finSumFinEquiv` and applies
+  `induced_matching_distinct`.)
+
+## Honest status — base case resolved; super-linear lift untouched
+
+For `qform` the rank bound is (up to constants) TIGHT — `coneExcess(qform) = Θ(N) = Θ(rank)` — so
+the additive, cancellation-invariant rank forces `coneExcess(qform^{(2)}) = 2·Θ(N)`: the base-case
+direct sum HOLDS and cancellation is RULED OUT.  This does NOT lift to the recursive `f_N`, whose
+`coneExcess` is SUPER-linear and exceeds its rank; there the rank bound is not tight, so
+cancellation in COMBINING sub-results is not ruled out by rank.  So the cancellation route is
+CLOSED for the base case (`qform`), and the ONLY remaining gap is the super-linear lift
+(`coneExcess(f_{2N}) ≥ 2·coneExcess(f_N)` where the doubled quantity exceeds the rank).
+Mirwald–Schnorr cited, not re-formalized; the additive-rank witness is proved.
+
+## Updated full chain to super-linear
+
+[PROVED] rigidity via expanders + detection direct sum + `qform` cancellation-ruled-out (base
+case) ⟹ [OPEN, super-linear only] cone-level direct sum for the RECURSIVE `f_N` (coneExcess >
+rank, so neither cut capacity nor the rank/Mirwald–Schnorr bound reaches it) ⟹ [PROVED arithmetic]
+recursion unrolls to Θ(N log N).  The gap has narrowed to exactly the regime `coneExcess > rank` —
+the super-linear lift.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
