@@ -1301,3 +1301,42 @@ remaining caveat is sub-target (b), UNCHANGED: `qform` is EASY (`O(dN)` gates), 
 `(2 + Ω(1))N` for a HARD function still needs cut-rigidity AND super-linear hardness in one flat
 family; the rigidity half is now explicit, the hardness half remains open.  Nothing here is
 `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+# SUB-TARGET (b): FLAT + HARD — the drag is a linear method (ceiling at 3N)
+
+Attacking sub-target (b) — a flat family that is also super-linearly HARD — forced a precise
+look at what the drag can prove, and the honest finding is a ceiling on the METHOD.  Frozen in
+Lean (`ComputationalDepthNFrameDragCeiling.lean`).
+
+## The ceiling
+
+The drag proves `cbudget ≥ 2·|ESS| + coneExcess`, and it lower-bounds `coneExcess` ONLY via cut
+capacity: `cut_row_capacity` gives `|Y| ≤ 2^{coneExcess+1}` for a distinguished row family
+`Y ⊆ {0,1}^N`, so the certificate is `coneExcess ≥ log₂|Y| − 1`.  But `|Y| ≤ 2^N`
+(`rowFamily_card_le`, PROVED — there are only `2^N` possible rows), so `log₂|Y| ≤ N`.  With
+`|ESS| ≤ N`, the drag-provable bound is `2·|ESS| + coneExcess ≤ 2N + N = 3N`
+(`drag_linear_ceiling`, PROVED).  **The N-frame drag is structurally a linear (`≤ 3N`)
+lower-bound method.**
+
+## Why "flat + super-linearly-hard" is out of the drag's reach
+
+A flat family gives the MAXIMAL drag result: cut-rank `Θ(N)` ⟹ `coneExcess ≥ Θ(N)` ⟹
+`cbudget ≥ (2+c)N`.  Making the function HARDER cannot help, because the drag would need a
+certificate for `coneExcess = ω(N)`, and cut capacity structurally cannot supply one: a
+distinguished row family cannot exceed `2^N` members, so `log₂|Y| ≤ N` no matter how hard the
+function.  So the hardness of the function is INVISIBLE to the drag beyond `O(N)` — flat + hard
+is doubly obstructed (flat/low-degree tends to be easy AND the drag can't exploit hardness).
+
+## Honest verdict and the forward direction
+
+This is a ceiling on the TECHNIQUE (cut capacity for `coneExcess`), not on circuit complexity.
+The drag's actual product — an explicit `(2+c)N` for the flat cut-rigid family (`qform` over a
+Ramanujan graph, sub-target (a)) — is a genuine LINEAR circuit lower bound; the live question
+there is whether `c` competes with gate-elimination (`~3.1N`).  Going SUPER-linear (the P-vs-NP
+direction) needs a certificate for `coneExcess` that is NOT single-cut capacity — a
+recursion / self-improvement / amplification escaping the one `log₂|Y| ≤ N` bound (the annulus
+does not: it also gives `log₂|Y| ≤ coneExcess + k`, and `log₂|Y| ≤ N` still caps it).  That
+different mechanism is the honest next target for super-linear; the drag itself has been pushed
+to its structural ceiling.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
