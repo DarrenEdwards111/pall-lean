@@ -393,3 +393,38 @@ Does NOT construct a mixer. Reduces the hybrid — the last live candidate — t
 substitution near-tightness on an explicit strong-bound expander tensor. Genuine refinement of "find an
 additive tensor" (now: "find a substitution-tight strong expander tensor"), with the residual `R − LB`
 named as the sole home of non-additivity. Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+## CONCRETE SUBSTITUTION COMPUTATION → the tensor is NOT the wall; the BRIDGE is
+
+`ComputationalDepthNFrameBridgeObstruction.lean` (clean `[propext, Quot.sound]`, no sorry). Ran the
+substitution bound on a concrete tensor, as asked. Definite answer — and it redirects the whole route.
+
+### The computation (W tensor, by hand)
+`W = e₁e₁e₂ + e₁e₂e₁ + e₂e₁e₁`: fr(W)=2, true rank R(W)=3, substitution LB=3 (TIGHT). So W is coupled
+(R−fr=1) AND substitution-tight (R−LB=0) AND additive (R(W⊕W)=6). Scaling n W-gadgets → gap n, tight,
+additive. Injectivity (firewall) restored FREE by appending identity (u,w,C(u,w)) — linear, gap-neutral.
+So `identity ⊕ (n W-gadgets)` is injective + rigid (R−fr=Θ(N)) + substitution-tight + additive + explicit
+= satisfies the ENTIRE rank-side `MixerTargetSpec`.
+
+### The consequence: the tensor was never the obstruction
+An explicit tensor meets every rank condition yet obviously can't prove super-linear circuit LBs. So the
+load-bearing hypothesis is elsewhere: `hbridge : CE_share ≤ 2R − R2` in `forces_superlinear` — never
+proved, a modeling assumption. `CE_share` = GATE COUNT; `2R − R2` = RANK deficit. Bounding gates by rank
+IS the info-vs-size transfer that fails (hard-low-info sharing = few rank, many gates). The rigid-additive
+reduction had SMUGGLED the info-vs-size gap into the bridge.
+
+- `coupled_substitution_tight_exists` (proved): records W = (fr,LB,R)=(2,3,3).
+- `rank_spec_satisfiable` (proved): for all n, rank contract met by (fr,LB,R,R2)=(2n,3n,3n,6n).
+- `bridge_is_load_bearing` (proved witness): PERFECTLY rank-additive mixer (R2=2R, deficit 0) with
+  direct sum STILL FAILING because CE_share > rank deficit (bridge violated) and overruns fresh.
+  Witness (R,R2,CE_share,fresh,T_k,T_k1)=(100,200,50,10,100,160).
+
+### Verdict
+Definite answer to the concrete question: substitution IS tight+strong on an explicit W-gadget tensor, so
+the mixer TENSOR target is achievable — but it was never the wall. The rigid-additive-mixer reduction
+relocated the difficulty into the bridge `CE_share ≤ 2R − R2` = the info-vs-size gap in rank costume. The
+irreducible core is unchanged: circuit gate-sharing is NOT bounded by any rank/tensor quantity. The
+tensor-hunting programme is therefore not the live path — the info-vs-size bridge is. Nothing here is
+`NEXP ⊄ ACC⁰` or `P ≠ NP`.
