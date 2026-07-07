@@ -1532,3 +1532,49 @@ case) ⟹ [OPEN, super-linear only] cone-level direct sum for the RECURSIVE `f_N
 rank, so neither cut capacity nor the rank/Mirwald–Schnorr bound reaches it) ⟹ [PROVED arithmetic]
 recursion unrolls to Θ(N log N).  The gap has narrowed to exactly the regime `coneExcess > rank` —
 the super-linear lift.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+# THE SEARCH FOR A NON-RANK CERTIFICATE FOR coneExcess — the two failure modes
+
+Three barriers (cut capacity, Mirwald–Schnorr, Uhlig) all reach exactly `rank ≤ N`.  Searched for
+a non-rank certificate for `coneExcess` that could reach super-linear.  Honest result: none found
+(this IS the general super-linear problem), but the search PRODUCED a precise characterization of
+why.  Frozen in Lean (`ComputationalDepthNFrameNonRankCert.lean`).
+
+## Reframing: there is NO certificate for coneExcess in isolation
+
+Every function has a FORMULA (fan-out-1 circuit), and a formula has `coneExcess = 0`.  So NO
+function forces `coneExcess > 0` — there is no lower bound on `coneExcess` per se.  The drag's
+`coneExcess ≥ cut-rank` binds only SMALL (shared) circuits, not every circuit.  The real object is
+the length↔coneExcess TRADEOFF: `length ≥ 2|ESS| + coneExcess`.  A certificate must lower-bound
+`coneExcess` OR give a length bound in the LOW-fanout regime — exactly where formula (non-rank)
+bounds live.
+
+## The two failure modes
+
+- RANK route (cut capacity): `coneExcess ≥ cut-rank ≤ log₂|Y| ≤ N` (`rowFamily_card_le`).  Fails
+  by the INPUT-DIMENSION cap: capped at `N`, linear.
+- FORMULA route (Nechiporuk): a formula LB `F` (e.g. `N²/log N`) transfers to circuits ONLY through
+  the unfolding loss `formulaSize ≤ length·2^{coneExcess}` (excess fan-out `E` unfolds to a formula
+  of size `≤ length·2^E`).  So it yields `length ≥ F/2^{coneExcess}`, which COLLAPSES:
+  - `formula_cert_collapse` (PROVED): at `coneExcess = ⌈log₂ F⌉`, `F/2^{coneExcess} ≤ 1` — the
+    formula certificate gives nothing once fan-out reaches `log₂ F`.
+  - `formula_cert_ceiling` (PROVED): the best guaranteed `max(coneExcess, F/2^{coneExcess})` over
+    the circuit designer's fan-out choice is `≤ ⌈log₂ F⌉` — so the formula route certifies at most
+    `length ≥ log₂ F`, LOGARITHMIC, even from a super-linear formula bound.
+
+## Honest verdict
+
+No non-rank certificate reaching super-linear was found — none is known; this is the general
+super-linear circuit lower bound problem.  What the search produced is a precise characterization
+of WHY: the two available non-rank routes fail in ORTHOGONAL ways —
+  • RANK route: capped at input dimension `N` (a super-linear certificate must measure something
+    NOT bounded by `N`);
+  • FORMULA route: degrades as `2^{-coneExcess}`, collapses at `log₂ F` (must NOT lose under fan-out).
+A working certificate must dodge BOTH — uncapped by input dimension AND stable under fan-out.
+Every known technique has exactly ONE of these two failure modes; that orthogonality is a
+structural reason the problem is open.  This file freezes the formula-route collapse; the rank cap
+is `rowFamily_card_le`.  This is the honest floor of the arc: the super-linear step requires a
+certificate outside both known families, and the two failure modes now name precisely what it must
+avoid.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
