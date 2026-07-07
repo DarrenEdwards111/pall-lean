@@ -68,7 +68,19 @@ theorem amplify_exceeds_linear (c : ℕ) (T : ℕ → ℕ) (hc : 1 ≤ c)
     _ ≤ c * (b * 2 ^ b) := Nat.mul_le_mul_right _ hc
     _ ≤ T b := hamp
 
+/-- **THE UNCONDITIONAL 1× COROLLARY (proved)**: a SINGLE level of cut-rigidity — cut-rank
+`r ≤ coneExcess` (from an induced matching, `NFrameInducedMatch.induced_matching_distinct`) — plus
+the ledger `2K + coneExcess ≤ length + 1` gives `2K + r ≤ length + 1`.  With `r = c·N` (the
+expander's cut-rank), this is the UNCONDITIONAL `cbudget ≥ (2+c)N` for the flat cut-rigid family,
+NO `(KRW-C)` needed — the `1×` (log-factor `1`) bound that the conditional recursion lifts to the
+`Θ(N log N)` (log-factor `log N`) of `amplify_exceeds_linear`. -/
+theorem cut_rank_linear_bound (K r coneExcess length : ℕ)
+    (hr : r ≤ coneExcess) (hled : 2 * K + coneExcess ≤ length + 1) :
+    2 * K + r ≤ length + 1 := by
+  omega
+
 end PallLean.Paper93.DeepMath.PathB.NFrameConeAmplify
 
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameConeAmplify.coneExcess_amplify
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameConeAmplify.amplify_exceeds_linear
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameConeAmplify.cut_rank_linear_bound

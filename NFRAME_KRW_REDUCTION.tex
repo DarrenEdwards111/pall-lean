@@ -271,6 +271,46 @@ it for this explicit family is at least as hard as the corresponding composition
 lower bound.
 \end{remark}
 
+\subsection{The unconditional \texorpdfstring{$1\times$}{1x} corollary}
+\label{ss:unconditional}
+
+Before invoking (KRW-C) we record what a \emph{single} level of cut-rigidity yields
+outright---the $1\times$ bound, with log-factor $1$ rather than $\log N$, and no
+hypothesis.  This is the flat cut-rigid family of sub-target~(a).
+
+\begin{corollary}[Unconditional linear lower bound]
+\label{cor:unconditional-linear}
+For the expander quadratic form $q$, the top-level induced matching
+(Lemma~\ref{lem:direct-sum}) has size $r=\Theta(N)$, so
+$\mathrm{coneExcess}\ge r$; with the ledger \eqref{eq:ledger} this gives, for
+every circuit,
+\[
+  2K + r \;\le\; \mathrm{length}+1,
+  \qquad\text{i.e.}\qquad
+  \mathrm{cbudget}(q)\;\ge\;(2+c)\,N ,
+\]
+unconditionally---no appeal to \textup{(KRW-C)}.
+\end{corollary}
+\noindent\emph{[Lean: \texttt{NFrameInducedMatch.induced\_matching\_distinct}
+(the $2^{r}$ distinguished rows, hence $\mathrm{coneExcess}\ge r$);
+\texttt{NFrameConeAmplify.cut\_rank\_linear\_bound} (the ledger step).]}
+
+\begin{remark}[$1\times$ versus $\log N$]
+Corollary~\ref{cor:unconditional-linear} is the log-factor-$1$ case: one level of
+cut-rigidity, one certificate of size $r=\Theta(N)\le N$, squarely inside the
+$3N$ ceiling of Lemma~\ref{lem:drag-ceiling}.  The firewall
+(Lemma~\ref{lem:firewall}) forces, unconditionally, one sub-instance per
+recursion step ($\mathrm{coneExcess}(f_{k+1})\ge\mathrm{coneExcess}(f_k)$), but a
+single restriction re-uses the whole circuit, so this alone does not sum the
+levels.  Theorem~\ref{thm:conditional-superlinear} lifts the log-factor from $1$
+to $\log N$ precisely by upgrading the recurrence coefficient from $1$ to $2$
+(Assumption~(KRW-C)).  Thus the paper carries a proved-outright linear bound and a
+conditional super-linear one, differing by exactly the cross-scale disjointness.
+The unconditional $(2+c)N$ is itself a genuine super-$2N$ circuit lower bound for
+an explicit family; whether $c$ is competitive with gate-elimination ($\sim3.1N$)
+is a separate, and still linear-regime, question.
+\end{remark}
+
 \subsection{The conditional theorem}
 
 \begin{theorem}[Conditional super-linear drag bound]
@@ -309,10 +349,14 @@ Unconditionally and in Lean we have proved: the drag's linear ceiling
 modes of every non-demand certificate (Lemmas~\ref{lem:rank-cap}--%
 \ref{lem:formula-collapse}); the demand certificate and its two dodges
 (Lemma~\ref{lem:demand}); the sparsity cap on single-matrix demand
-(Lemma~\ref{lem:expander-cap}); and the firewall condition forcing a multi-output
-injective mixing (Lemma~\ref{lem:firewall}).  The one remaining gap---the upgrade
-from the proved $1\times$ firewall to the $2\times$ cross-scale disjointness---is
-isolated as Assumption~(KRW-C), a composition non-collapse in the KRW family.
+(Lemma~\ref{lem:expander-cap}); the firewall condition forcing a multi-output
+injective mixing (Lemma~\ref{lem:firewall}); and the unconditional linear bound
+$\mathrm{cbudget}(q)\ge(2+c)N$ (Corollary~\ref{cor:unconditional-linear}).  The one
+remaining gap---the upgrade from the proved $1\times$ firewall to the $2\times$
+cross-scale disjointness---is isolated as Assumption~(KRW-C), a composition
+non-collapse in the KRW family.  Thus the section states two results: an
+\emph{unconditional} super-$2N$ linear bound, and a \emph{conditional}
+super-linear ($\Theta(N\log N)$) bound, separated by exactly (KRW-C).
 
 We claim nothing beyond this.  The conclusion, even under (KRW-C), is a
 super-linear lower bound on $\mathrm{cbudget}$ (CGate count) for one explicit
