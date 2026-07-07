@@ -428,3 +428,40 @@ relocated the difficulty into the bridge `CE_share ≤ 2R − R2` = the info-vs-
 irreducible core is unchanged: circuit gate-sharing is NOT bounded by any rank/tensor quantity. The
 tensor-hunting programme is therefore not the live path — the info-vs-size bridge is. Nothing here is
 `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+---
+
+## EXIT (1) FALSIFICATION ATTEMPT: mass-production circuit for W-gadget F_k — FAILS structurally
+
+Direct attempt to KILL the route by constructing 2-copy mass production (CE_share > cN), tracking actual
+gate count. Result: no sharing > cN found; attempts fail structurally. Route ALIVE but blocked. (No Lean
+file — no new provable sub-fact; algebraic no-sharing already frozen in share_kernel_left_dim_bound /
+substitution work; the Boolean case IS the barrier.)
+
+### k=1, actual gates
+Mix(u,w) = (u, w, u1w2+u2w1, u1w1), F_0=identity, 2-bit cells. cbudget(F_1)=4 (3 AND + 1 XOR; identity =
+wires). Two copies on disjoint a,b: copy A = {a1a4+a2a3, a1a3} (4 gates), copy B = {b1b4+b2b3, b1b3} (4).
+AND a1a3 vs AND b1b3 = disjoint variables = different gates. CE_share=0, total=8=2*cbudget.
+
+### Three sharing mechanisms, gate ledgers
+1. Direct reuse: impossible (variable-disjoint). 0 shared.
+2. Cancellation: (a1+b1)(a3+b3)=a1a3+a1b3+b1a3+b1b3; extracting a1a3,b1b3 needs 2 cross ANDs (gives only
+   the SUM) + 1 direct = 4 products for the pair vs 2 direct. Costs MORE; CE_share < 0.
+3. Uhlig table (only technique beating direct sum): needs small-range bottleneck f=g(h(x),x), h few bits.
+   Mixer INJECTIVE => F_k(x) determines x => NO bottleneck => Uhlig has nothing to share. Fails.
+
+### Recursion (k>=2): sharing does not emerge
+Sub-instances variable-disjoint (no reuse); bilinear mixers (cancellation costs > saves at every node);
+injective mixers (bottleneck-free, Uhlig blocked). CE_share stays 0 across the tree.
+
+### Verdict
+NO CE_share > cN found. The 3 firewall properties (disjoint inputs / bilinear mixers / injective mixers)
+are EXACTLY the 3 that block the 3 mass-production mechanisms. BUT: failure-to-refute, NOT proof-of-
+resistance — a clever BOOLEAN circuit (not respecting the polynomial) is not excluded. That residual =
+"no Boolean circuit shares > cN" = the super-linear wall.
+
+BOTH EXITS NOW CHECKED: prove-it converges on info-vs-size gap / drag ceiling (frozen walls); refute-it
+fails structurally (Uhlig needs a bottleneck the injective mixers destroy). F_k sits where every explicit
+super-linear circuit LB sits: neither provable nor refutable with current techniques. The N-frame route is
+fully mapped; every internal reduction machine-checked; the single load-bearing inequality IS the
+super-linear circuit lower bound. Nothing here is NEXP not-subset ACC0 or P != NP.
