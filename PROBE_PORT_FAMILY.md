@@ -465,3 +465,32 @@ fails structurally (Uhlig needs a bottleneck the injective mixers destroy). F_k 
 super-linear circuit LB sits: neither provable nor refutable with current techniques. The N-frame route is
 fully mapped; every internal reduction machine-checked; the single load-bearing inequality IS the
 super-linear circuit lower bound. Nothing here is NEXP not-subset ACC0 or P != NP.
+
+---
+
+## EXPERIMENT (HAL 9000 step 5): two-copy sharing of the W-gadget mixer — FORCED DISJOINTNESS
+
+SAT-based exact circuit synthesis (full binary basis B2, pysat+Cadical), measuring
+CE_share = 2*cbudget(F) - cbudget(F(+)F) for small F. Scripts in scratchpad (satsynth.py).
+Data, not a theorem -- no Lean file.
+
+RESULTS (all exhaustively verified; SAT proves no circuit below 2*cbudget(F) exists):
+  AND, NAND (2-in):                      cF=1, cFF=2,  CE_share=0
+  (AND,OR),(AND,XOR),(XOR,AND):          cF=2, cFF=4,  CE_share=0
+  (x0x1)^x2, x0x1|x2, x0(x1^x2) (3-in):  cF=2, cFF=4,  CE_share=0
+  W-like3 (3-in, two deg-2 outs):        cF=4, cFF=8,  CE_share=0
+  W-coupling4 (REAL 4-in F_k mixer):     cF=4, cFF=8,  CE_share=0  <-- headline
+  maj3, W-coupl-3out: cbudget(F) resolved; F(+)F "no-sharing" UNSAT proof hit the SAT
+    time wall (no symmetry breaking) -> inconclusive, but no SAT witness found.
+
+FINDING: 10/10 exactly-solved functions show CE_share=0 -- FORCED DISJOINTNESS -- including
+the actual 4-input W-coupling mixer. Two disjoint copies of the F_k mixer provably cannot
+share a gate at this scale. Shape of the obstruction = forced disjointness (route NOT killed
+by observed sharing).
+
+CAVEATS (honest): (1) scale is tiny (cbudget<=4, <=8 inputs); Uhlig mass production is
+ASYMPTOTIC, so absence here is EXPECTED and does not prove asymptotic disjointness. (2) the
+observed disjointness is explained by known small-scale TENSOR-RANK ADDITIVITY (R(W+W)=2R(W)),
+which at scale IS the open direct sum -- no NEW asymptotic invariant surfaced; extending it is
+exactly what hit MeasureBarrier. Empirical confidence for the route, asymptotic LB unchanged.
+Nothing here is NEXP not-subset ACC0 or P != NP.
