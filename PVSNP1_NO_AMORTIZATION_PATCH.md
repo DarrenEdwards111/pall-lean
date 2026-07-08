@@ -10,7 +10,8 @@ It also records an important scale correction: the recurrence displayed here is
 an `N log N` / super-linear mechanism.  By itself it is **P vs NC¹-scale**, not
 `P ≠ NP`-scale.  To support a `P ≠ NP` conclusion, the paper needs additional
 super-polynomial amplification or a direct bridge from the cost/rank recurrence
-to the proved super-polynomial NP-side rank lower bound.
+to the proved super-polynomial NP-side rank lower bound.  See
+`PVSNP1_SCALE_AUDIT.md` for the full scale-and-structure audit.
 
 The goal is to make the load-bearing assumption explicit enough that the paper
 cannot accidentally hide it inside language such as "compiled collapse", "global
