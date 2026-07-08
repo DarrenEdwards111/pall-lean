@@ -251,3 +251,38 @@ circuit" bound. No intermediate regime. **H4 ("Global Godmove") is equivalent to
 circuit lower bound, not weaker than it**; naming it a hypothesis and deriving `P ≠ NP` is sound but
 content-free. The accumulation mechanism provably cannot reach the far shore; what is on the far shore is
 the whole theorem. Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+**(D) The flexible-boundary projection (PAC / amplituhedron `piPhi`) is the same far shore**
+(`FLEXIBLE_BOUNDARY_STATUS.md`, audit of ~20 gauge/projection files). The SPDP-side "Global Godmove" is a
+projection `Π_flexible` on the Cook–Levin compiled polynomial that should drop the rank to `poly(n)` on a
+trivial/P object (P-side) while preserving the identity-minor rank super-polynomially (NP-side). Audit
+verdict: **the two properties are not both proved for any real projection.**
+  • The only concrete projection on the real flat space, `satDeciderGaugeMapPiPhi`, is **proved `= LinearMap.id`**
+    (`satDeciderGaugeMapPiPhi_eq_id`) — it does nothing, and the P-side bound is **proved FALSE** for it at
+    paper scale (`identitySATDeciderGauge_not_pSideBound_at_large_n`, `r72_identity_not_pSide`,
+    `matrixGaugeToPolynomialProjectionPiPhi_not_pSideBound_at_large_n`). **Trivial-DTM test failed.**
+  • NP identity-minor "survives `piPhi`" is proved but **vacuous** (the projection is the identity there, and
+    the preserved bound is the machine-independent `any-DTM` floor `compiledPoly_rank_gt_npow200_at_large_n`).
+  • Every P-side conclusion carries the hard part as an **undischarged hypothesis** (`hunprojected : rank ≤ n^200`
+    — itself provably false; `CookLevinProfileTemplateCollapseLemma`; `SingletonQuotientSATGaugePSideObligation`;
+    `SATDeciderSpecificGaugeSubgoalDischarge`); `exists_amplituhedron_gauge_for_sat_decider` was demoted from
+    `axiom` to hypothesis. `cookLevinRichProjectionTarget_forces_nonflat_witness` has the codebase itself
+    certify the useful map must be `≠ id, ≠ piPhi` — and it is **unbuilt**.
+
+**The structural reason (same wall as (C)).** A rank-monotone gauge only delivers `rank(gauge p) ≤ rank p`,
+and the floor `rank(compiledPoly) > n^200` is (i) already above target and (ii) **machine-independent** — the
+same `C(n/3, log₂n)` grid family for the trivial and the SAT machine (built from `fobFamily`, a compilation
+artifact). So monotonicity cannot pull it down, and any projection keying **only on the grid** treats trivial
+and SAT identically: leave both high (fails P-side) or drop both low (kills the NP witness). Separating them
+forces `Π_flexible` to key on the machine's **function** — to decide which machine is hard — i.e. a
+super-polynomial separation of a machine-independent rank floor by hardness = a super-polynomial circuit lower
+bound. **`Π_flexible` is not a bridge to `P ≠ NP`; its single unfilled field (`CookLevinRichProjectionTarget`,
+forced non-flat) is the theorem.** The PAC/amplituhedron machinery is honest scaffolding (real
+rank-monotonicity, a real characterisation of `piPhi`, real negative results) around a socket whose discharge
+is `P ≠ NP`.
+
+**The unified far shore.** (C) circuit-side scale bridge and (D) SPDP-side flexible boundary are the *same
+object* seen from two sides: both reduce to producing a super-polynomial gap where a proved mechanism
+(additive/multiplicative accumulation; rank-monotone projection) only reaches a polynomial one, and closing
+the gap requires the target to depend on hardness the mechanism is blind to. That is `P ≠ NP`, not a lemma
+feeding it. Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
