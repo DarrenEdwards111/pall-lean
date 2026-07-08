@@ -149,6 +149,31 @@ counting handles (**why strong is provable**). Standard composition faces the fi
 
 ---
 
+## 5c. The typical-g rigidity attempt — counting gives the floor, misses the increment
+
+**Counting (random-object rigidity, à la random-matrix rigidity).** `g` admits a `C`-bit protocol iff
+`F = XOR_m ∘ g` has depth-`C` formula; `F` determines `g`, so
+`#{g : D(XOR∘g) ≤ C} ≤ #{depth-C formulas on mn bits} ≤ 2^{2^C·log(2mn)}`. Total `#g = 2^{2^n}`, so for
+`C < n − log log(mn)` a **majority of `g` have `D(XOR_m ∘ g) ≥ n − o`.** Real, unconditional — proves the
+*inner is hard*.
+
+**But the increment is below the counting floor.** Floor `~n`; target `n + log m`. The KRW increment
+`+log m` sits **entirely below counting resolution**: counting bounds *bulk* hardness (dominated by the
+inner `n`) and is structurally blind to the fine-grained `+log m`, which is a *no-amortization* property
+(fixed-`g` value-structure vs coordinate-structure correlation), not bulk hardness.
+
+**KRW-side twin of `MeasureBarrier`.** Circuit side: restriction/gate-elim reach `~N`, blind to the
+`+cN log N` amplification. KRW side: counting reaches `~n`, blind to the `+log m` composition increment.
+Both bulk techniques get the floor and miss the increment — because the increment is the *amortization*
+property. Strong composition / monotone get it by *forcing* independence; standard/general must extract it
+from a fixed object, which neither counting nor current information complexity can do.
+
+**Verdict.** Typical-`g` rigidity splits: bulk part (`D ≥ n−o`) provable by counting; increment part
+(`+log m`) provably below counting resolution → needs a NEW technique that resolves amortization above the
+floor (= controls fixed-`g` value/coordinate correlation). None known on either side of the unified barrier.
+
+---
+
 ## 6. Connection to the arc, and honest scope
 
 This sheet realizes the "global godmove" in its only surviving form: **information complexity as global
