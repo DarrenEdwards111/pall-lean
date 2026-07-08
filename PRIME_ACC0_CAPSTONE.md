@@ -35,6 +35,7 @@ Smolensky wall `SmolenskyNonNativeLowerBound`, and for prime `q` that wall is it
 | **Scale ceiling** — log-depth accumulation caps at `poly(N)` | `…NFrameScaleCeiling` | proves the N-frame reaches only super-linear |
 | **Binomial-tail** discharge of the prime route residual | `…ACC0BinomialTail` | `lowDegreeDim n D' < 2^n − C(n,D'+1)` |
 | **Quant-bridge wiring** (socket → theorem) | `…ACC0QuantBridgeWiring` | `QuantitativeDepthBound` discharged |
+| **Nečiporuk `Ω(N²/log N)`** formula-size LB (+ method, + ceiling no-go) | `…NeciporukCapstone` | De Morgan formula size; ceiling at `N²/log N` (see `NECIPORUK_CAPSTONE.md`) |
 
 All `sorry`-free, axioms ⊆ `{propext, Classical.choice, Quot.sound}`.
 
