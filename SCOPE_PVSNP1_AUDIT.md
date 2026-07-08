@@ -74,6 +74,21 @@ On **Route F (the clean route): yes.**  The P-side upper bound (Item 1) is the o
 as the Prop `CookLevinFrontierHyp`; the NP-side (Item 2) and the arithmetic sandwich (Item 4) are genuinely
 proved and axiom-free.  Discharging `CookLevinFrontierHyp` would give `P ≠ NP` with clean axioms.
 
+**What must `CookLevinFrontierHyp` contain?**
+After the N-frame/KRW amortization audit, the P-side gap is sharper: `CookLevinFrontierHyp` must include a
+**No Fixed-Structure Amortization** theorem.  It is not enough to assert that the compiled object has low local
+rank/cost.  One must also prove that a P-time compiled computation cannot exploit the fixed known global
+structure of the search object to reuse/cancel the fresh cost across recursive levels.  In recurrence form, the
+missing statement is that
+
+```text
+Amort(C_k) = 2·cost(C_{k-1}) + fresh_cost_k - cost(C_k)
+```
+
+is bounded by the allowed linear/error term at every level.  Without this no-amortization theorem, the P-side
+claim is exactly the fixed-object amortization frontier identified in the circuit/KRW barrier map.  See
+`PVSNP1_NO_AMORTIZATION_PATCH.md` for the paper-facing insertion.
+
 **But there is a second, *non-equivalent* load-bearing assumption.**
 Route G's God-Move extraction is **a live custom axiom** (`exists_amplituhedron_gauge` and the Theorem-207
 witnesses), **not** reducible to `CookLevinFrontierHyp` and **not** proved.  This is precisely item 3 of the
