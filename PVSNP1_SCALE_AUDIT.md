@@ -131,6 +131,68 @@ framework while still not touching the P vs NP1 SPDP-rank contradiction.
 
 ---
 
+## 2.5. Why H4 is different
+
+H1--H3 are hard lemmas of a normal kind.  They assert structure, fresh cost, and
+non-amortization.  They are difficult in the general setting, but they are at
+least meaningful theorem targets, and analogues are provable in restricted
+models such as formula, linear, and monotone computation.
+
+H4 is qualitatively different.  It is not merely the next hard lemma.  It is the
+P-vs-NP scale barrier itself.
+
+### Option 1: super-polynomial scale bridge
+
+The recurrence isolated above gives
+
+```text
+Ω(N log N)
+```
+
+for the recursive-doubling framework.  This is polynomial.  Asking for this
+mechanism to become super-polynomial is not a consequence of the mechanism; it
+is an additional super-polynomial lower-bound assertion.
+
+No known hardness-amplification method turns an `N log N` circuit-size lower
+bound into an `N^{ω(1)}` lower bound.  Standard amplification techniques amplify
+success probability, error, or direct-product hardness under additional models;
+they do not bridge the scale from super-linear to super-polynomial general
+circuit lower bounds.
+
+Thus Option 1 is not an ordinary bridge.  In the general circuit/P-side setting,
+it is essentially assuming the scale of the desired conclusion.
+
+### Option 2: same-measure SPDP bridge
+
+The second option asks that the no-amortization quantity be the same SPDP-rank
+quantity used in the P vs NP1 sandwich.  But the P-side threshold in the paper is
+polynomial, e.g. `n^200`.  A perfect bridge to that threshold still lives at
+polynomial scale.
+
+Consequently, by itself it does not create a super-polynomial separation.  It
+also risks returning to the already-refuted shape of the original paper: a
+polynomial SPDP-rank upper bound is not enough unless the NP-side lower bound and
+parameter translation are aligned so that the contradiction is genuinely
+super-polynomial in the original input size.
+
+So Option 2 is not a free upgrade from `N log N` to `P ≠ NP`; it must be checked
+against the exact parameterization of the NP-side lower bound.  Otherwise it
+walks back into the old polynomial-threshold claim.
+
+### Correct classification
+
+The load-bearing assumptions should therefore be classified as follows:
+
+```text
+H1--H3: hard lemmas; provable in restricted models; open in general.
+H4:    the P-vs-NP scale barrier itself.
+```
+
+No fillable version of H4 is currently known.  Treat it as the destination, not
+as a routine remaining lemma.
+
+---
+
 ## 3. Correct conditional conclusions
 
 ### What no-amortization alone supports

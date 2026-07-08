@@ -92,8 +92,11 @@ is bounded by the allowed linear/error term at every level.  But this recurrence
 `P ≠ NP` scale.  Therefore the full P-side hypothesis also needs a **Scale Bridge**: either the accumulated
 no-amortization rank/cost is super-polynomial in the original input size, or it is explicitly the same SPDP-rank
 quantity that contradicts the proved NP-side lower bound.  Without no-amortization **and** this scale bridge,
-the P-side claim is still open.  See `PVSNP1_NO_AMORTIZATION_PATCH.md` for the paper-facing insertion and
-`PVSNP1_SCALE_AUDIT.md` for the scale/structure correction.
+the P-side claim is still open.  Moreover, the Scale Bridge is not an ordinary remaining lemma: H1--H3 are
+hard but meaningful restricted-model theorem targets, whereas H4 is the P-vs-NP scale barrier itself.  Option 1
+amounts to assuming super-polynomial scale; Option 2 risks returning to the already-refuted polynomial-threshold
+SPDP claim unless the parameter bridge is proved exactly.  See `PVSNP1_NO_AMORTIZATION_PATCH.md` for the
+paper-facing insertion and `PVSNP1_SCALE_AUDIT.md` for the scale/structure correction.
 
 **But there is a second, *non-equivalent* load-bearing assumption.**
 Route G's God-Move extraction is **a live custom axiom** (`exists_amplituhedron_gauge` and the Theorem-207
