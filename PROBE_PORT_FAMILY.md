@@ -503,3 +503,14 @@ observed disjointness is explained by known small-scale TENSOR-RANK ADDITIVITY (
 which at scale IS the open direct sum -- no NEW asymptotic invariant surfaced; extending it is
 exactly what hit MeasureBarrier. Empirical confidence for the route, asymptotic LB unchanged.
 Nothing here is NEXP not-subset ACC0 or P != NP.
+
+F_2-LEVEL PUSH (result: INFEASIBLE at this scale). F_2 = Mix(F_1(a),F_1(b)) on 8 inputs, 2 outputs,
+DEGREE 4; predicted cbudget=12=2*cbudget(F_1)+mixer. Even with stronger symmetry breaking (added
+no-duplicate-nodes/structural hashing) the exact synthesis does NOT resolve: even the r=12 upper-bound
+SAT search runs >6min without converging; the decisive r=11 UNSAT (=> cbudget=12, recursion forces fresh
+cost at level 2) is far beyond reach. CEILING of pure-Python+Cadical exact synthesis = F_1-level (8 inputs,
+~8 gates). NOTE: F_2's two F_1 sub-copies are ALREADY settled non-sharing (that IS the resolved
+W-coupling4 (+) W-coupling4 = CE_share 0); the only unreached F_2 piece is whether the mixer fuses with the
+F_1 computations to beat 12 = the r=11 proof. To go higher: dedicated exact-synth engine (mockturtle/percy,
+incremental+portfolio SAT), not this harness. Experiment stands at: F_1-level forced disjointness proven
+(incl. real mixer); F_2-level not reachable. Nothing here is NEXP not-subset ACC0 or P != NP.
