@@ -208,3 +208,46 @@ machine-checked; the single load-bearing inequality is proved equivalent to expl
 general ones. This is not a path to `P ≠ NP` with current techniques; it is an honest conditional
 framework + barrier map + a proved restricted-class stepping stone. Nothing here is `NEXP ⊄ ACC⁰` or
 `P ≠ NP`.
+
+---
+
+## Closing layer: three type-level facts about the target (why the named targets are the theorem)
+
+Three exploratory candidates were floated late in the arc (FOER, observer-visible SPDP, "H4 = the
+super-polynomial scale bridge / Global Godmove"). Each is a correctly-*named* target and each is provably
+the destination, not a lemma feeding it. The three facts below are the honest crystallization; none claims
+progress past the barriers — they state precisely what the target's type-signature is.
+
+**(A) `MeasureBarrier` is the local shadow of Natural Proofs.** A per-gate cone-excess charge that is
+`O(1)`-restriction-Lipschitz is "simple enough to be natural" — constructive and large — and provably caps
+at linear (`DragCeiling.drag_linear_ceiling`, the `N log N` ceiling). A charge that jumps `ω(1)` on a
+single restriction is a *local hardness-detector* = exactly the constructive-and-large distinguisher
+Razborov–Rudich forbids against `P/poly`. So the local ceiling (MeasureBarrier) and the global obstruction
+(Natural Proofs) are one object: `O(1)`-Lipschitz ⟹ linear-capped; `ω(1)`-Lipschitz ⟹ natural ⟹ barriered.
+A non-circular super-poly certification would be an N-frame charge that is `ω(1)`-Lipschitz yet non-natural
+(its jumps correlate only with a non-constructive or target-sparse restriction set) — the GCT /
+bounded-arithmetic corner, unbuilt.
+
+**(B) FOER = the semantic name of Freshness; filter-passing ≠ viability.** "Fixed-Object Exploitation
+Resistance" (min fresh work after a poly observer exploits all structure) is the *semantic umbrella* over
+the Freshness Lemma: the formula/linear/monotone results are FOER lower bounds where exploitation is
+structurally disabled, and in the N-frame instantiation `FOER ≥ cN ⟺ savings ≤ cN` is the cross-branch
+inequality verbatim. But semantic FOER (`FOER(f)` low ⟺ `f ∈ P/poly`) *is* circuit complexity — Branch 1,
+circular. It passes the trivial-DTM/parity/Tseitin filters for the *same* reason it is circular: circuit
+complexity, the maximally circular measure, passes all of them. Filters split the space —
+**intrinsic** measures fail them (wrong on parity/Tseitin), **semantic** ones pass and are circular — so
+filter-passing carries zero evidence toward the hard direction.
+
+**(C) The scale ceiling: H4 is the far shore, not a bridge**
+(`ComputationalDepthNFrameScaleCeiling.lean`). A depth-`d` accumulation with per-level increment `≤ B` is
+capped at `d·B` additively (`scale_ceiling_additive`) and `A^d·c₀` multiplicatively
+(`scale_ceiling_multiplicative`). With `d = log₂N`: additive `≤ cN·log₂N` and even perfect doubling
+`≤ N·c₀` (`doubling_stays_polynomial_at_2pow100`) — both **polynomial in `N`**. Hence a super-polynomial
+total *forces a super-polynomial per-level increment* (`scale_bridge_needs_superpoly_per_level`;
+`scale_ceiling_forces_superpoly_per_level_at_2pow100`: at `N=2^100`, an `N^200` obstruction needs
+`100·B > N^200`), i.e. a single-scale super-poly circuit lower bound = `P ≠ NP` in one step. The only
+alternative — super-log depth — forces object size `2^{poly(n)}` and a vacuous "big object needs big
+circuit" bound. No intermediate regime. **H4 ("Global Godmove") is equivalent to a super-polynomial
+circuit lower bound, not weaker than it**; naming it a hypothesis and deriving `P ≠ NP` is sound but
+content-free. The accumulation mechanism provably cannot reach the far shore; what is on the far shore is
+the whole theorem. Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
