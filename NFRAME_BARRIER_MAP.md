@@ -174,3 +174,37 @@ current techniques, and it does not claim to be. Nothing here is `NEXP ⊄ ACC�
 `ConeAmplify`, `CrossBranch`, `CrossBranchDichotomy`, `ConeIntersection`, `ShareChargeBound`,
 `FreshLinear`, `RigidAdditiveMixer`, `MixerTargetSpec`, `HybridSubstitution`, `BridgeObstruction`;
 barriers `MeasureBarrier`, `InfoSizeGap`, `GlobalNecessity`, `ShareKernel`, `DragCeiling`.
+
+---
+
+## FINAL STATE: the Freshness terminus + restricted-class theorems
+
+The cross-branch direct sum has been compressed, through the whole arc, to a single equivalence:
+
+> **CONDITIONAL THEOREM (final).** For the recursive W-mixer family, the cross-branch direct sum
+> `CE_share(F_k ⊕ F_k) ≤ cN` holds **iff** the Freshness Lemma holds — no double-duty amortization —
+> which is **equivalent to explicit tensor subadditivity (non-Shitov-subadditivity) of the mixer's
+> cross-content tensor.** If it holds, the frozen amplification gives `cbudget(F_k) = Ω(N log N)`
+> (super-linear). Machine-checked: `ComputationalDepthNFrameFreshnessLemma.lean` (contract + restriction
+> pillar), chained through `ConeAmplify.amplify_exceeds_linear`.
+
+Double-duty amortization was analysed to the finest operational level (the `√m`-carrier construction):
+its net saving `= (counting saving) − (foreign-content cancellation cost)`, and the cancellation cost is
+exactly a tensor-rank-under-direct-sum quantity — **rank–nullity for linear (impossible), Shitov for
+nonlinear (open, generically possible)**. So general Freshness = explicit tensor subadditivity = the
+direct-sum / super-linear wall.
+
+**Freshness is a THEOREM in restricted classes** (`ComputationalDepthNFrameRestrictedFreshness.lean`):
+  • FORMULAS (fan-out ≤ 1): `coneInter = 0` structurally (`formula_freshness`).
+  • LINEAR (XOR): rank–nullity (`share_kernel_left_dim_bound`, frozen).
+  • MONOTONE: no negation ⟹ no cancellation ⟹ `beneficialInter = 0` (`no_cancellation_freshness`).
+In each, `restricted_freshness_forces_superlinear` runs the amplification UNCONDITIONALLY — consistent
+with the known monotone (Razborov) and formula (Andreev/KRW) super-polynomial lower bounds, validating
+the framework. General circuits have the amortization mechanism; there Freshness is open.
+
+**Verdict.** The N-frame arc is complete as a conditional framework: every internal reduction is
+machine-checked; the single load-bearing inequality is proved equivalent to explicit tensor subadditivity
+(= super-linear circuit lower bounds); it is a THEOREM for formula/linear/monotone circuits and OPEN for
+general ones. This is not a path to `P ≠ NP` with current techniques; it is an honest conditional
+framework + barrier map + a proved restricted-class stepping stone. Nothing here is `NEXP ⊄ ACC⁰` or
+`P ≠ NP`.
