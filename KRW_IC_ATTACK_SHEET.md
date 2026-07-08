@@ -91,17 +91,31 @@ instances** — bound how much solving `KW_f` "leaks" about the `KW_g` instances
 
 ## 5. TOY CASES (ranked by tractability, with the reason)
 
-| # | Case | Why tractable / status |
-|---|---|---|
-| 1 | **XOR ∘ random inner, standard** | Outer parity's KW game is trivial (find any differing bit → minimal outer leakage); strong version = 3.04 (arXiv 2410.10189). Attack: bound outer→inner leakage for parity. **Closest to done.** |
-| 2 | **XOR ∘ universal relation, standard** | Both sides structureless/parity — the universal relation has nothing to exploit; likely the cleanest first *standard* no-amortization proof. |
-| 3 | **Fixed outer, random inner** | Randomness of inner may destroy any correlation the players could exploit → forces `amort → 0`. Probabilistic argument, no explicitness needed for the toy. |
-| 4 | **Deterministic-transcript variant** | Deterministic `CC` amortization may be easier to rule out than randomized IC (no distributional subtleties); a stepping stone before the IC version. |
-| 5 | **Small inner `g` (constant `n`)** | `IC(KW_g)` is `O(1)`; the composition is `f` on `m` bits with `O(1)`-bit gadgets — reduces to lifting-style analysis with an explicit small gadget. |
+**CORRECTION (after working the toy).** `XOR ∘ U_n` (universal-relation *inner*) is **not open — it is the
+GMWW-proven case** (`f ⋄ U`, any `f`). Working it extracted the exact mechanism:
 
-**Recommended first target: #2 (XOR ∘ universal relation, standard)** — parity outer + structureless inner
-minimizes the correlation the players can exploit, so it is where "no outer→inner leakage" is most likely
-provable, and it directly tests whether the independence assumption can be *removed* rather than *assumed*.
+> **no-amortization ⟺ `inner answer ⊥ outer transcript`.** By the chain rule
+> `IC(Π) ≥ IC(outer) + IC(inner | outer transcript)`, additivity holds iff the inner differing-coordinate
+> is independent of everything the outer game reveals. The universal relation gets this **for free**
+> (structureless: which-row tells nothing about where-in-row). A **structured inner** does not — its
+> structure correlates which-row with which-coordinate, and *that* is the transcript amortization.
+
+This is the strong→standard gap in one line: **strong composition FORCES `inner ⊥ outer`; standard
+composition with a structured inner must PROVE it.** The universal relation is the boundary between free and
+not-free.
+
+**Corrected toy ranking (open = structured inner):**
+
+| # | Case | Status / why |
+|---|---|---|
+| — | XOR ∘ U_n (universal relation inner) | **PROVEN** (GMWW) — `inner ⊥ outer` is free. Baseline that teaches the mechanism, not a target. |
+| 1 | **XOR ∘ random function `g_n`, standard** | **OPEN, most attackable.** Random inner has *no* structure to correlate with → `inner ⊥ outer` should follow by a counting/probabilistic argument, *removing* independence rather than *forcing* it. Strong version = `3.04` (arXiv 2410.10189). Missing lemma: `IC(inner | outer XOR transcript) ≥ IC(inner) − o` for random `g_n`. |
+| 2 | **Deterministic-transcript variant of #1** | Deterministic `CC` amortization may be easier to rule out than randomized IC (no distributional subtleties); stepping stone. |
+| 3 | **XOR ∘ small explicit `g` (constant `n`)** | `IC(KW_g)=O(1)`; reduces to explicit-gadget / lifting analysis; tests structured `inner ⊥ outer` concretely at tiny scale. |
+
+**Recommended first target: #1 (XOR ∘ random function, standard).** Random inner is where structured
+`inner ⊥ outer` is most likely *provable* (no structure to exploit), and it is exactly the standard version
+of the current best strong-composition result.
 
 ---
 
