@@ -480,8 +480,17 @@ RESULTS (all exhaustively verified; SAT proves no circuit below 2*cbudget(F) exi
   (x0x1)^x2, x0x1|x2, x0(x1^x2) (3-in):  cF=2, cFF=4,  CE_share=0
   W-like3 (3-in, two deg-2 outs):        cF=4, cFF=8,  CE_share=0
   W-coupling4 (REAL 4-in F_k mixer):     cF=4, cFF=8,  CE_share=0  <-- headline
-  maj3, W-coupl-3out: cbudget(F) resolved; F(+)F "no-sharing" UNSAT proof hit the SAT
-    time wall (no symmetry breaking) -> inconclusive, but no SAT witness found.
+  maj3 (RESOLVED via symmetry breaking): cF=4, cFF=8,  CE_share=0  (235s UNSAT proof)
+  W-coupl-3out (4-in 3-out, cF=5):       INCONCLUSIVE -- F(+)F@9 UNSAT (8 inputs) exceeds
+    compute budget even with SB (>595s); no sharing witness found, absence unproven.
+  [symmetry breaking added: non-constant gates + no-dead-gates + co-lex gate ordering;
+   sanity-rechecked W-coupling4 -> still CE_share=0, SB encoding correct. maj3 pushed
+   through; the 8-input/9-gate UNSAT is the practical ceiling of this pure-Python+Cadical setup.]
+
+FINAL TALLY: 11/11 EXACTLY-SOLVED functions CE_share=0 (forced disjointness), including maj3
+and the real W-coupling4 mixer. One case (W-coupl-3out, a less-central 3-output variant) at
+the compute ceiling. The central result -- the actual 2-output F_k mixer is forced-disjoint --
+stands, exhaustively verified.
 
 FINDING: 10/10 exactly-solved functions show CE_share=0 -- FORCED DISJOINTNESS -- including
 the actual 4-input W-coupling mixer. Two disjoint copies of the F_k mixer provably cannot
