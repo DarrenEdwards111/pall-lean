@@ -3,8 +3,14 @@
 ## Scope
 
 This note does **not** prove `P ≠ NP`.  It records the honest replacement for the
-paper's vague P-side claim: the missing P-side theorem is a **no-amortization**
+paper's vague P-side claim: one missing P-side theorem is a **no-amortization**
 statement.  Without this theorem, the P vs NP1 route remains conditional.
+
+It also records an important scale correction: the recurrence displayed here is
+an `N log N` / super-linear mechanism.  By itself it is **P vs NC¹-scale**, not
+`P ≠ NP`-scale.  To support a `P ≠ NP` conclusion, the paper needs additional
+super-polynomial amplification or a direct bridge from the cost/rank recurrence
+to the proved super-polynomial NP-side rank lower bound.
 
 The goal is to make the load-bearing assumption explicit enough that the paper
 cannot accidentally hide it inside language such as "compiled collapse", "global
@@ -36,7 +42,8 @@ Amort(C_k) = 2·cost(C_{k-1}) + fresh_cost_k - cost(C_k).
 Large positive amortization means the P-side computation has reused/cancelled
 structure that the lower-bound argument intended to count as fresh.
 
-The missing theorem should therefore be stated as follows.
+For a recursive-doubling family of the N-frame/W-mixer type, the missing theorem
+should therefore be stated as follows.
 
 > **No Fixed-Structure Amortization / P-side Freshness.**
 > For every polynomial-time compiled computation `C_k` of the search object
@@ -74,7 +81,20 @@ CookLevinFrontierHyp
 ```
 
 The NP-side lower bound and arithmetic sandwich remain the proved assets.  The
-P-side remains the gap unless the no-amortization theorem is proved.
+P-side remains the gap unless the no-amortization theorem is proved **and** the
+paper supplies the correct scale bridge from this recurrence to the SPDP-rank
+contradiction.
+
+In particular, this patch does not by itself turn `CookLevinFrontierHyp` into a
+proof of `P ≠ NP`.  It identifies one necessary subcondition.  The full P-side
+hypothesis must include at least:
+
+1. a recursive/compositional structure for the compiled/search objects `S_k`;
+2. a per-level fresh-cost lower bound `fresh_cost_k` in the relevant rank/cost
+   measure;
+3. no fixed-structure amortization for P-time compiled computations;
+4. a scale bridge showing that the accumulated cost/rank is super-polynomial or
+   otherwise contradicts the proved NP-side lower bound.
 
 Route G / Global God-Move language should be treated similarly: any proposed
 rank-monotone extraction or conserved global charge must either prove the same
@@ -97,13 +117,20 @@ The obstruction is not local hardness.  It is **amortized reuse of known global
 structure**.  Counting, rank, and local restriction methods can see the bulk
 floor, but miss the fine increment that must accumulate across levels.
 
-Thus the correct paper statement is conditional:
+Thus the correct paper statement is conditional, but the conditional must be
+stated at the right scale:
 
-> If No Fixed-Structure Amortization holds for the compiled/search object, then
-> the existing lower-bound arithmetic can accumulate the fresh cost and produce
-> the desired separation.
+> If the compiled/search object has the recursive fresh-cost structure above,
+> and No Fixed-Structure Amortization holds, then the recurrence accumulates a
+> super-linear `N log N`-type lower bound.
 
-Without this lemma, the paper proves a conditional framework, not `P ≠ NP`.
+That conclusion is meaningful, but it is **not yet `P ≠ NP`**.  To obtain
+`P ≠ NP`, the paper must additionally prove a super-polynomial scale bridge or
+show that the accumulated no-amortization cost is exactly the SPDP-rank quantity
+that contradicts the proved NP-side lower bound.
+
+Without these extra scale assumptions, the paper proves a conditional framework,
+not `P ≠ NP`.
 
 ---
 
@@ -122,14 +149,24 @@ contradiction:
 > call this the No Fixed-Structure Amortization hypothesis.  The separation
 > theorem is conditional on this hypothesis.
 
-Then state the final theorem as:
+Then state the conditional theorem at the correct strength:
 
-> **Conditional P-side theorem.**
-> Assuming No Fixed-Structure Amortization for the compiled search object, the
-> P-side rank/cost bound contradicts the proved NP-side lower bound; hence under
-> this hypothesis `P ≠ NP`.
+> **Conditional no-amortization theorem.**
+> Assuming the compiled search objects form a recursive fresh-cost family and
+> No Fixed-Structure Amortization holds for them, the recurrence yields an
+> accumulated super-linear lower bound of `N log N` type.
+
+If the paper wants a `P ≠ NP` theorem, add a separate hypothesis:
+
+> **Scale-bridge hypothesis.**
+> The accumulated no-amortization cost/rank is super-polynomial in the original
+> input size, or is the same SPDP-rank quantity used in the proved NP-side lower
+> bound.
+
+Only under **No Fixed-Structure Amortization + Scale Bridge** may the final
+statement be phrased as a conditional route to `P ≠ NP`.
 
 And explicitly add:
 
-> We do not prove No Fixed-Structure Amortization here.  It is the remaining
-> load-bearing P-side frontier.
+> We do not prove No Fixed-Structure Amortization or the required Scale Bridge
+> here.  These are the remaining load-bearing P-side frontiers.

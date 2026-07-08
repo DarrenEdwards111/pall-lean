@@ -72,7 +72,9 @@ repo has **two distinct routes** to the conditional separation:
 **Does it all reduce to `CookLevinFrontierHyp`?**
 On **Route F (the clean route): yes.**  The P-side upper bound (Item 1) is the only unproved object, packaged
 as the Prop `CookLevinFrontierHyp`; the NP-side (Item 2) and the arithmetic sandwich (Item 4) are genuinely
-proved and axiom-free.  Discharging `CookLevinFrontierHyp` would give `P ≠ NP` with clean axioms.
+proved and axiom-free.  Discharging `CookLevinFrontierHyp` would give `P ≠ NP` with clean axioms, but only
+because `CookLevinFrontierHyp` is a full P-side frontier hypothesis; it must include all scale assumptions
+needed for a super-polynomial SPDP-rank contradiction, not merely an `N log N` no-amortization recurrence.
 
 **What must `CookLevinFrontierHyp` contain?**
 After the N-frame/KRW amortization audit, the P-side gap is sharper: `CookLevinFrontierHyp` must include a
@@ -85,9 +87,12 @@ missing statement is that
 Amort(C_k) = 2·cost(C_{k-1}) + fresh_cost_k - cost(C_k)
 ```
 
-is bounded by the allowed linear/error term at every level.  Without this no-amortization theorem, the P-side
-claim is exactly the fixed-object amortization frontier identified in the circuit/KRW barrier map.  See
-`PVSNP1_NO_AMORTIZATION_PATCH.md` for the paper-facing insertion.
+is bounded by the allowed linear/error term at every level.  But this recurrence by itself yields only an
+`N log N` / super-linear accumulation for a recursive-doubling family, i.e. P-vs-NC¹ scale rather than
+`P ≠ NP` scale.  Therefore the full P-side hypothesis also needs a **Scale Bridge**: either the accumulated
+no-amortization rank/cost is super-polynomial in the original input size, or it is explicitly the same SPDP-rank
+quantity that contradicts the proved NP-side lower bound.  Without no-amortization **and** this scale bridge,
+the P-side claim is still open.  See `PVSNP1_NO_AMORTIZATION_PATCH.md` for the paper-facing insertion.
 
 **But there is a second, *non-equivalent* load-bearing assumption.**
 Route G's God-Move extraction is **a live custom axiom** (`exists_amplituhedron_gauge` and the Theorem-207
