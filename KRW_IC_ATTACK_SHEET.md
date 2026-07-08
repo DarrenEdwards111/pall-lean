@@ -119,6 +119,36 @@ of the current best strong-composition result.
 
 ---
 
+## 5b. The counting attempt (XOR ∘ random g) — result
+
+**The clean argument (works for the distribution over `g`).** By the chain rule
+`IC(Π) ≥ IC(outer) + IC(inner | outer transcript)`, no-amortization ⟺ `inner answer ⊥ outer transcript`.
+For a **random** `g` and distinct `x ≠ y`, `g(x), g(y)` are **independent uniform bits**, so `g(x)≠g(y)` is
+a fair coin independent of `(x,y)` — hence independent of *which coordinate* they differ in. Conditioning on
+the outer constraint leaves the inner differing-coordinate distribution unchanged ⟹ `inner ⊥ outer` ⟹
+additive. Clean.
+
+**Why it does not finish (the exact obstruction).** The independence is over the random **choice** of `g`,
+but in the game `g` is a **fixed** function both players **know**. For fixed `g`, `g(x),g(y)` are determined
+and the players know the whole partition `g^{-1}(0)/g^{-1}(1)`; they can exploit `g`'s specific structure to
+correlate which-row (outer) with which-coordinate (inner). The counting proves the bound *on average over
+`g`* using independence a **fixed** `g` lacks.
+
+**This IS the strong→standard divide, made concrete.** Strong composition *forces* the inner games
+independent → the fixed-`g` correlations are broken → behaves like "fresh random" = exactly the case the
+counting handles (**why strong is provable**). Standard composition faces the fixed-known-`g` correlations
+(**why standard is open**).
+
+- **Provable (partial):** decomposition-respecting protocols (compute `g`-values locally, communicate only
+  about them, then solve inner) cannot amortize — the outer phase leaks `~0` about the critical row's
+  coordinates.
+- **Open (the real case):** combined/interleaved protocols exploiting the fixed `g`.
+- **Exact missing lemma:** *for a typical fixed `g`, the exploitable outer↔inner correlation is `o`* — a
+  **typical-`g` rigidity** statement (random `g` has no structure to exploit, but proving it for a fixed
+  random `g`, rather than assuming it via strong composition's independence, is the open reduction).
+
+---
+
 ## 6. Connection to the arc, and honest scope
 
 This sheet realizes the "global godmove" in its only surviving form: **information complexity as global
