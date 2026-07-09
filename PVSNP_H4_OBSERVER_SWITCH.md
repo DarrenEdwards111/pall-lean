@@ -471,10 +471,62 @@ This is intentionally an easy SAT family, so it does not prove `P ≠ NP`.  Its 
 machinery now fires on a real CNF residual family.  The live bridge is to replace the forced-assignment family by a hard
 SAT/search family where correctness of a P-time solver forces analogous decoded transcript labels.
 
-So the dynamic H4 bridge is now a concrete instantiation obligation:
+## Conditional dynamic-H4 theorem shape closed
 
-1. construct a hard SAT/search residual family `fam : FoolingResidualFamily m`;
-2. prove transcript observers induced by hypothetical P-time SAT solvers are sound on `fam`;
-3. prove those induced observers have polynomial boundary.
+The current route has now been closed into one exact conditional theorem in:
 
-The Bool-prefix no-go proves why the observer must include more than truth values; `ComputationalDepthDynamicSPDP.lean` proves the corrected dynamic shape; `ComputationalDepthPvsNPTranscriptObserver.lean` proves the fooling-set lower-bound schema; `ComputationalDepthPvsNPForcedAssignmentFamily.lean` proves the schema on concrete CNF residuals.
+```text
+PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPDynamicH4Theorem.lean
+```
+
+Lean check:
+
+```text
+~/.elan/bin/lake build PallLean.Paper93.DeepMath.PathB.ComputationalDepthPvsNPTranscriptObserver
+~/.elan/bin/lake env lean PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPDynamicH4Theorem.lean
+```
+
+The file defines:
+
+```lean
+DynamicH4Witness
+DynamicH4ForPTimeSAT
+```
+
+and proves:
+
+```lean
+dynamicH4Witness_impossible
+no_SATDecisionInP_of_DynamicH4
+deepSATSearch_of_DynamicH4_with_selfReduction
+```
+
+Formal content:
+
+```text
+DynamicH4ForPTimeSAT U
+⇒ ¬ SATDecisionInP U
+```
+
+where `DynamicH4ForPTimeSAT U` means:
+
+```text
+every correct polynomial-time SAT decider yields
+  a finite transcript observer,
+  a hard 2^m fooling residual family,
+  soundness on that family,
+  polynomial boundary size,
+  and an exponential gap.
+```
+
+Those fields are jointly inconsistent by the already-proved transcript/fooling lower bound.
+
+So the dynamic H4 bridge is now exactly one theorem-shaped instantiation obligation:
+
+```lean
+DynamicH4ForPTimeSAT U
+```
+
+To prove unconditional P≠NP in this machine model, prove `DynamicH4ForPTimeSAT U` for a genuine hard SAT/search residual family.
+
+The Bool-prefix no-go proves why the observer must include more than truth values; `ComputationalDepthDynamicSPDP.lean` proves the corrected dynamic shape; `ComputationalDepthPvsNPTranscriptObserver.lean` proves the fooling-set lower-bound schema; `ComputationalDepthPvsNPForcedAssignmentFamily.lean` proves the schema on concrete CNF residuals; `ComputationalDepthPvsNPDynamicH4Theorem.lean` proves dynamic H4 would rule out polynomial-time SAT.
