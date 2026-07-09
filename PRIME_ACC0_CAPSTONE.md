@@ -57,6 +57,8 @@ All `sorry`-free, axioms ⊆ `{propext, Classical.choice, Quot.sound}`.
 | Tight *general* Håstad switching lemma | `hinj` decoder (Razborov forward decoder) | **open** — proved on `hnf` regime; `AC⁰`/depth-3 scale, not `P≠NP` |
 | Forster ⇒ general circuit LB | poly circuit ⇒ cheap UPP protocol (`happrox`/`hmargin`) | **open** — sign-rank/UPP proved; circuit application socketed |
 | Tseitin general observer / spacetime | non-resolution machine-decomposition observer; spacetime volume | **open** — resolution space proved; general observer `P≠NP`-strength; Arc-2 spacetime is a socket harness |
+| RHA extraction (`…RamanujanHolographicAmplituhedron…`) | `preservesLabels` field | **socket, provably VACUOUS** — `impossible` proves the structure self-contradictory (pigeonhole: preserve `2^m` labels in `≤ m^k < 2^m` cells); cash-out is ex-falso; Ramanujan/holographic/amplituhedron payloads are decorative `Prop` fields |
+| Tseitin-expander RHA (`…TseitinExpanderRHA…`) | `preservesTseitinLabels` field | **socket, provably VACUOUS + field FALSE** — same pigeonhole vacuity; and `preservesTseitinLabels` over all P-solvers is refuted by Gaussian elimination (Tseitin ∈ P), so the "final hard theorem" is a false statement, not an open one |
 
 ---
 
