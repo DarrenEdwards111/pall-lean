@@ -587,3 +587,17 @@ preserves hard SAT/search fooling labels
 ```
 
 The identity projection is included as a sanity check: it preserves labels but does not compress.
+
+## 2026-07-09 — Dynamic H4 equivalence audit
+
+Lean file: `PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPDynamicH4Equivalence.lean`.
+
+Result: the named bridge `DynamicH4ForPTimeSAT U` is data-producing (`Type 1`), so the exact audit is by inhabitation:
+
+```lean
+Nonempty (DynamicH4ForPTimeSAT U) ↔ ¬ SATDecisionInP U
+```
+
+The forward direction is the existing H4 theorem. The reverse direction is vacuity: if no SAT decider exists, then any alleged decider gives contradiction, from which the requested `DynamicH4Witness` can be produced.
+
+Interpretation: the dynamic transcript/fooling-set machinery is sound, but the current bridge statement is theorem-equivalent to the target lower bound. Proving it directly would be proving P≠NP in renamed form. The next non-circular target must be a more structured extraction theorem that explicitly constructs the residual family, transcript observer, decoder/projection, and polynomial boundary from a concrete solver model before contradiction.
