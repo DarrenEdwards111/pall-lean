@@ -680,3 +680,55 @@ RamanujanHolographicAmplituhedronExtractionFor.preservation_is_still_the_gap
 ```
 
 Even with Ramanujan and holographic payloads realized, polynomially many positive cells below the exponential gap cannot preserve all fooling labels. Thus the actual mathematical frontier is to prove that the Ramanujan/holographic/amplituhedron geometry gives label preservation for a genuine hard SAT residual family, without making the positive cell set exponential.
+
+## 2026-07-09 — Tseitin-expander specialization of RHA extraction
+
+Lean file: `PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPTseitinExpanderRHAExtraction.lean`.
+
+This specializes the Ramanujan/holographic/amplituhedron extraction route to Tseitin residuals on expander/Ramanujan graphs. It imports the already-proved `ComputationalDepthExpanderTseitinWidthKernel`, so the expander lever is genuine:
+
+```lean
+support_combination_eq_boundary
+combination_support_card_ge_of_expansion
+exists_combination_ne_zero_of_expansion
+```
+
+New structures/theorems:
+
+```lean
+TseitinExpanderCertificate
+TseitinExpanderResidualFamily
+TseitinExpanderRHAExtractionFor
+TseitinExpanderRHAForPTimeSAT
+no_SATDecisionInP_of_TseitinExpanderRHA
+```
+
+Concrete non-vacuity sanity check:
+
+```lean
+K4_tseitinExpanderCertificate
+```
+
+uses the already-proved `K4_hasExpansion` certificate. This is not asymptotic, but it proves the certificate type is inhabited by a real graph.
+
+Exact final frontier now:
+
+```lean
+preservesTseitinLabels
+```
+
+The composed projection
+
+```text
+raw SAT-solver transcript -> holographic screen -> amplituhedron positive cell
+```
+
+must not merge distinct labels of the Tseitin-expander residual fooling family while keeping the positive-cell set polynomially bounded.
+
+Diagnostic theorem:
+
+```lean
+TseitinExpanderRHAExtractionFor.tseitin_label_preservation_is_the_gap
+```
+
+This proves that below the exponential gap, polynomial positive cells cannot preserve all Tseitin labels. Thus the proof must show the geometry/solver interaction forces such preservation from any alleged P-time SAT decider — that is the remaining hard theorem, now in Tseitin-expander form.
