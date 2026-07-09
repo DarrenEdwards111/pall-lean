@@ -530,3 +530,60 @@ DynamicH4ForPTimeSAT U
 To prove unconditional P≠NP in this machine model, prove `DynamicH4ForPTimeSAT U` for a genuine hard SAT/search residual family.
 
 The Bool-prefix no-go proves why the observer must include more than truth values; `ComputationalDepthDynamicSPDP.lean` proves the corrected dynamic shape; `ComputationalDepthPvsNPTranscriptObserver.lean` proves the fooling-set lower-bound schema; `ComputationalDepthPvsNPForcedAssignmentFamily.lean` proves the schema on concrete CNF residuals; `ComputationalDepthPvsNPDynamicH4Theorem.lean` proves dynamic H4 would rule out polynomial-time SAT.
+
+## PAC / amplituhedron projection socket formalized
+
+The PAC/amplituhedron layer has now been formalized as an explicit dynamic boundary projection in:
+
+```text
+PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPPACAmplituhedronProjection.lean
+```
+
+Lean check:
+
+```text
+~/.elan/bin/lake build PallLean.Paper93.DeepMath.PathB.ComputationalDepthPvsNPDynamicH4Theorem
+~/.elan/bin/lake env lean PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPPACAmplituhedronProjection.lean
+```
+
+The file defines:
+
+```lean
+PACAmplituhedronProjection
+projectedTranscriptObserver
+PACPreservesFoolingLabels
+PACCompressedAt
+identityPACProjection
+```
+
+and proves:
+
+```lean
+projected_sound_of_PACPreserves
+PAC_projection_contradicts_poly_boundary
+PAC_projection_must_lose_labels
+dynamicH4Witness_of_PAC_projection
+dynamicH4Witness_of_PAC_projection_impossible
+identityPAC_preserves_iff
+```
+
+Formal content:
+
+```text
+raw dynamic transcript states α
+  -- PAC/amplituhedron projection --> positive boundary cells β
+
+if β is polynomial-sized
+and the projection preserves fooling labels
+and m^k < 2^m
+then contradiction.
+```
+
+So the geometric PAC/amplituhedron idea is now a precise Lean projection socket.  What remains is not the abstract projection theorem; it is instantiating a nontrivial projection that both:
+
+```text
+compresses P-time solver transcript/state boundaries
+preserves hard SAT/search fooling labels
+```
+
+The identity projection is included as a sanity check: it preserves labels but does not compress.
