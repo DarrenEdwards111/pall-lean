@@ -241,14 +241,61 @@ contradiction
 
 This is not `P ≠ NP`; it is the first theorem-shaped obligation any Williams-style NP-search observer switch must satisfy.
 
+## Concrete residual-observer interface added
+
+The next SAT-side instantiation has now been added in:
+
+```text
+PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPResidualObserver.lean
+```
+
+Lean check:
+
+```text
+~/.elan/bin/lake build PallLean.Paper93.DeepMath.PathB.ComputationalDepthPvsNPObserverSwitchToy
+~/.elan/bin/lake env lean PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPResidualObserver.lean
+```
+
+The file defines:
+
+```lean
+assignmentPrefix
+ResidualObserver
+fullBranchObserver
+FullResidualDistinguishing
+PolyBoundaryAt
+residualSATTruth
+ResidualTruthSound
+```
+
+and proves:
+
+```lean
+full_residual_boundary_card_ge_exp
+small_boundary_not_full_residual_distinguishing
+poly_boundary_not_full_residual_distinguishing
+full_residual_distinguishing_contradicts_poly_boundary
+full_distinguishing_truth_sound_on_full_branches
+```
+
+So the pipeline is now two Lean modules:
+
+```text
+Toy finite core:
+  polynomial boundary + injective 2^n branches + n^k < 2^n ⇒ contradiction
+
+Residual SAT interface:
+  residual observer (φ,prefix) ↦ boundary state
+  full residual distinction plugs into the toy core
+```
+
 ## Practical next step
 
-Instantiate Candidate A on toy SAT/self-reduction:
+Instantiate the P-side and NP-side hard sockets:
 
-1. Define a concrete residual-search-state boundary for a deterministic SAT decider.
-2. Prove trivial/P-easy algorithms have small boundary.
-3. Attempt to prove SAT self-reduction forces the injectivity/preservation hypothesis.
-4. Run the kill basis immediately: parity, Tseitin-linear, trivial compilation.
+1. **P-side compression:** define a residual observer induced by a deterministic SAT decider / prefix-oracle trace and prove it has `PolyBoundaryAt n k α` under a polynomial runtime/state hypothesis.
+2. **NP-side preservation:** attempt to prove SAT self-reduction or an explicit hard family forces `FullResidualDistinguishing`, or a weaker many-branch lower bound.
+3. **Kill-basis audit:** test the observer against parity, Tseitin-linear systems, trivial Cook-Levin compilation, and easy SAT families.
 
 If the boundary is computable and large, it dies by RR. If it survives, it must be because it is algorithmic/diagonalizing rather than a static truth-table measure.
 
