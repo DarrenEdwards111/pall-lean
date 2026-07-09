@@ -601,3 +601,36 @@ Nonempty (DynamicH4ForPTimeSAT U) ↔ ¬ SATDecisionInP U
 The forward direction is the existing H4 theorem. The reverse direction is vacuity: if no SAT decider exists, then any alleged decider gives contradiction, from which the requested `DynamicH4Witness` can be produced.
 
 Interpretation: the dynamic transcript/fooling-set machinery is sound, but the current bridge statement is theorem-equivalent to the target lower bound. Proving it directly would be proving P≠NP in renamed form. The next non-circular target must be a more structured extraction theorem that explicitly constructs the residual family, transcript observer, decoder/projection, and polynomial boundary from a concrete solver model before contradiction.
+
+## 2026-07-09 — Structured dynamic-H4 extraction interface
+
+Lean file: `PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPStructuredExtraction.lean`.
+
+After the equivalence audit showed the old bridge is too extensional, this file introduces `StructuredDynamicH4ExtractionFor U D hD`, parameterized by a concrete claimed SAT decider. It separates the fields that a non-circular proof must actually construct:
+
+- raw transcript/state type
+- finite projected boundary type
+- transcript observer on residual SAT instances
+- boundary projection / positive-cell map
+- fooling residual family
+- preservation of fooling labels after projection
+- polynomial boundary bound
+- exponential gap
+
+Cash-out theorems proved:
+
+```lean
+StructuredDynamicH4ExtractionFor.impossible
+StructuredDynamicH4ExtractionFor.impossible_via_PAC
+DynamicH4ForPTimeSAT_of_structured
+no_SATDecisionInP_of_structuredDynamicH4
+no_SATDecisionInP_of_structuredDynamicH4_direct
+```
+
+Most important diagnostic theorem:
+
+```lean
+StructuredDynamicH4ExtractionFor.preservation_is_the_only_gap
+```
+
+This proves that once polynomial compression and the exponential gap are fixed, the preservation field cannot hold on a true `2^m` fooling family. So the live mathematical obstacle is exactly the preservation theorem: equality of projected boundary cells must force equality of hard residual/search labels.
