@@ -289,14 +289,91 @@ Residual SAT interface:
   full residual distinction plugs into the toy core
 ```
 
+## Naive missing lemma refuted, dynamic SPDP formalized
+
+The first attempted missing lemma would be:
+
+```text
+SAT self-reduction / residual SAT truth forces full residual distinction.
+```
+
+That is false.  It has now been formalized as a no-go in:
+
+```text
+PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPResidualObserverNoGo.lean
+```
+
+Lean check:
+
+```text
+~/.elan/bin/lake env lean PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPResidualObserverNoGo.lean
+```
+
+The file proves:
+
+```lean
+prefix_oracle_truth_sound
+bool_prefix_observer_poly_but_not_full_distinguishing
+```
+
+Meaning:
+
+```text
+a correct SAT prefix oracle is residual-truth-sound with only Bool = 2 boundary states,
+and therefore cannot distinguish all 2^n full branches when 2^n is larger than the chosen polynomial bound.
+```
+
+So SAT self-reduction alone does not force exponential boundary.  The observer cannot be mere residual SAT truth.
+
+The corrected statement — **SPDP must be dynamic** — is now formalized in:
+
+```text
+PallLean/Paper93/DeepMath/PathB/ComputationalDepthDynamicSPDP.lean
+```
+
+Lean check:
+
+```text
+~/.elan/bin/lake build PallLean.Paper93.DeepMath.PathB.ComputationalDepthPvsNPResidualObserverNoGo
+~/.elan/bin/lake env lean PallLean/Paper93/DeepMath/PathB/ComputationalDepthDynamicSPDP.lean
+```
+
+The file proves:
+
+```lean
+dynamicTranscriptObserver_injective
+dynamicTranscript_card
+dynamic_full_distinction_contradicts_poly_boundary
+bool_static_cannot_be_dynamic_full_distinguishing
+dynamicTranscript_not_poly_below_exp
+truth_sound_does_not_supply_dynamic_distinction
+```
+
+Formal content:
+
+```text
+static residual truth:
+  Bool boundary, truth-sound, not full-distinguishing
+
+dynamic transcript/state:
+  records branch/search path, can distinguish all 2^n branches,
+  and therefore cannot be polynomial-bounded below the exponential gap
+```
+
+This proves the design correction:
+
+```text
+H4 cannot be static residual truth.
+H4 must be dynamic transcript/state/fooling-set structure.
+```
+
 ## Practical next step
 
-Instantiate the P-side and NP-side hard sockets:
+Now instantiate dynamic SPDP with solver transcripts:
 
-1. **P-side compression:** define a residual observer induced by a deterministic SAT decider / prefix-oracle trace and prove it has `PolyBoundaryAt n k α` under a polynomial runtime/state hypothesis.
-2. **NP-side preservation:** attempt to prove SAT self-reduction or an explicit hard family forces `FullResidualDistinguishing`, or a weaker many-branch lower bound.
-3. **Kill-basis audit:** test the observer against parity, Tseitin-linear systems, trivial Cook-Levin compilation, and easy SAT families.
+1. **Transcript observer:** boundary state = adaptive query transcript / solver state across prefix self-reduction.
+2. **P-side compression:** P-time solver ⇒ polynomially bounded transcript/state family.
+3. **NP-side lower bound:** hard residual family ⇒ many inequivalent transcripts/states, weaker than full injectivity if needed.
+4. **Fooling-set observer:** prove a many-equivalence-class lower bound for carefully chosen formulas.
 
-If the boundary is computable and large, it dies by RR. If it survives, it must be because it is algorithmic/diagonalizing rather than a static truth-table measure.
-
-That is the P-vs-NP form of the ACC scale bridge.
+The Bool-prefix no-go proves why the observer must include more than truth values; `ComputationalDepthDynamicSPDP.lean` proves the corrected dynamic shape.
