@@ -37,6 +37,8 @@ Smolensky wall `SmolenskyNonNativeLowerBound`, and for prime `q` that wall is it
 | **Quant-bridge wiring** (socket → theorem) | `…ACC0QuantBridgeWiring` | `QuantitativeDepthBound` discharged |
 | **Nečiporuk `Ω(N²/log N)`** formula-size LB (+ method, + ceiling no-go) | `…NeciporukCapstone` | De Morgan formula size; ceiling at `N²/log N` (see `NECIPORUK_CAPSTONE.md`) |
 | **Håstad switching bound (`hnf` regime)** + weak general + modulo-decoder | `…SwitchingCapstone` | `AC⁰`/depth-3; **partial** — tight general open (see `SWITCHING_CAPSTONE.md`) |
+| **Forster sign-rank** `≥ n/‖·‖` + Walsh UPP `≥ k/2` (+ isotropic crux) | `…ForsterCapstone` | complete for sign-rank/UPP; circuit application fenced (see `FORSTER_CAPSTONE.md`) |
+| **Tseitin proof-space** `Ω(\|V\|)` (resolution, incl. min-over-refutations) | `…TseitinSpaceCapstone` | resolution proof-space; restricted (see `TSEITIN_SPACE_CAPSTONE.md`) |
 
 All `sorry`-free, axioms ⊆ `{propext, Classical.choice, Quot.sound}`.
 
@@ -53,6 +55,8 @@ All `sorry`-free, axioms ⊆ `{propext, Classical.choice, Quot.sound}`.
 | N-frame / FOER `P≠NP` | super-polynomial scale bridge (H4) | **≡ the theorem** — accumulation caps at `poly(N)`; H4 = a single-scale super-poly LB |
 | KRW / IC `P⊄NC¹` | fixed-known-`g` no-amortization | **open**, and `NC¹`/formula-depth scale, not full `P≠NP` |
 | Tight *general* Håstad switching lemma | `hinj` decoder (Razborov forward decoder) | **open** — proved on `hnf` regime; `AC⁰`/depth-3 scale, not `P≠NP` |
+| Forster ⇒ general circuit LB | poly circuit ⇒ cheap UPP protocol (`happrox`/`hmargin`) | **open** — sign-rank/UPP proved; circuit application socketed |
+| Tseitin general observer / spacetime | non-resolution machine-decomposition observer; spacetime volume | **open** — resolution space proved; general observer `P≠NP`-strength; Arc-2 spacetime is a socket harness |
 
 ---
 
