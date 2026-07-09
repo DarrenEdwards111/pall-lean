@@ -36,6 +36,7 @@ Smolensky wall `SmolenskyNonNativeLowerBound`, and for prime `q` that wall is it
 | **Binomial-tail** discharge of the prime route residual | `…ACC0BinomialTail` | `lowDegreeDim n D' < 2^n − C(n,D'+1)` |
 | **Quant-bridge wiring** (socket → theorem) | `…ACC0QuantBridgeWiring` | `QuantitativeDepthBound` discharged |
 | **Nečiporuk `Ω(N²/log N)`** formula-size LB (+ method, + ceiling no-go) | `…NeciporukCapstone` | De Morgan formula size; ceiling at `N²/log N` (see `NECIPORUK_CAPSTONE.md`) |
+| **Håstad switching bound (`hnf` regime)** + weak general + modulo-decoder | `…SwitchingCapstone` | `AC⁰`/depth-3; **partial** — tight general open (see `SWITCHING_CAPSTONE.md`) |
 
 All `sorry`-free, axioms ⊆ `{propext, Classical.choice, Quot.sound}`.
 
@@ -51,6 +52,7 @@ All `sorry`-free, axioms ⊆ `{propext, Classical.choice, Quot.sound}`.
 | Flexible-boundary projection | a non-flat rank-reducing `Π` (`CookLevinRichProjectionTarget`) | **≡ the theorem** — separating a machine-independent floor by hardness = super-poly circuit LB |
 | N-frame / FOER `P≠NP` | super-polynomial scale bridge (H4) | **≡ the theorem** — accumulation caps at `poly(N)`; H4 = a single-scale super-poly LB |
 | KRW / IC `P⊄NC¹` | fixed-known-`g` no-amortization | **open**, and `NC¹`/formula-depth scale, not full `P≠NP` |
+| Tight *general* Håstad switching lemma | `hinj` decoder (Razborov forward decoder) | **open** — proved on `hnf` regime; `AC⁰`/depth-3 scale, not `P≠NP` |
 
 ---
 
