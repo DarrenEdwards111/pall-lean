@@ -84,5 +84,43 @@ restricted class — at which point it is one of the capstones. Any Lean instanc
 `not_easy_linear_payload` for general P with a concrete family is either using a family that isn't actually
 shortcut-free (a hidden shortcut) or has proved `P ≠ NP`.
 
+---
+
+## 6. The restricted-solver frontier for this family (provable vs open)
+
+"Shortcut-free against general P" is `P ≠ NP` (§3). Against a *restricted* solver class it is a real,
+class-by-class question. Here is exactly where the wall sits for this family:
+
+| Solver class | Shortcut-free provable? | Witness / barrier |
+|---|---|---|
+| `AC⁰` (constant depth) | **yes** | `PARITY ∉ AC⁰` (Håstad) |
+| `AC⁰[p]`, `p` prime | **yes** | `MOD_q ∉ AC⁰[p]` — `ACC0PrimeCapstone` |
+| De Morgan formula, `Ω(N²/log N)` | **yes** | Nečiporuk — `NeciporukCapstone` |
+| De Morgan formula, `N^{3−o(1)}` | **yes (literature)** | Håstad shrinkage / Andreev — *not yet formalized here* |
+| monotone circuits | **yes** | Razborov clique (classic; not in repo) |
+| resolution / bounded proof-space | **yes** | expander Tseitin — `TseitinSpaceCapstone` |
+| sign-rank / UPP | **yes** | Forster / Walsh — `ForsterCapstone` |
+| OBDD / oblivious read-once BP | **yes** | `tseitin_not_poly_obdd` (repo Route 2) |
+| **`AC⁰[m]`, composite `m` (`AC⁰[6]`)** | **OPEN** | composite-MOD wall (`CarryRefinementCrossing`); no explicit NP LB known |
+| **`TC⁰` (threshold, depth ≥ 2)** | **OPEN** | no explicit NP LB known (even depth-2 `LTF∘LTF`) |
+| **general formulas `> N³` / `NC¹` / `P/poly`** | **OPEN** | `NC¹`/`P/poly` is the theorem |
+
+**The provable frontier is the capstones (plus shrinkage / monotone / OBDD).** Every class strictly stronger
+on the way to `P` — composite modulus, `TC⁰`, `NC¹` — is an *open research frontier*, not a bounded target
+one can discharge. So "prove shortcut-freeness against a class stronger than `AC⁰[p]`/resolution" has no
+this-turn answer: the first genuinely stronger class (`AC⁰[6]`, `TC⁰`) is where the open problems start.
+
+**Genuinely provable bounded step-ups that would strengthen the restricted result** (real, not open):
+1. **Close switching-lemma `hinj`** (`SwitchingCapstone`'s open primitive) → the *tight general* Håstad
+   switching lemma → cleaner/average-case `AC⁰` and `AC⁰[p]` bounds. Bounded target (Razborov's
+   satisfy-encoding forward decoder); most of the arc is already proved.
+2. **Formalize Håstad shrinkage → `N^{3−o(1)}` De Morgan formula** (Andreev) — a real step-up from Nečiporuk.
+3. **Monotone clique lower bound** (Razborov) — a new restricted capstone, provable classic.
+
+These are bounded and provable. `AC⁰[6]` / `TC⁰` shortcut-freeness for this family is not — it is the open
+frontier, and it will not be faked here.
+
+---
+
 *Companions: `PRIME_ACC0_CAPSTONE.md` (the master ledger), `NON_NATURAL_CANDIDATE_TRIAGE.md` (the same wall
 from the measure side). Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.*
