@@ -634,3 +634,49 @@ StructuredDynamicH4ExtractionFor.preservation_is_the_only_gap
 ```
 
 This proves that once polynomial compression and the exponential gap are fixed, the preservation field cannot hold on a true `2^m` fooling family. So the live mathematical obstacle is exactly the preservation theorem: equality of projected boundary cells must force equality of hard residual/search labels.
+
+## 2026-07-09 — Ramanujan → holographic projection → amplituhedron extraction socket
+
+Lean file: `PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPRamanujanHolographicAmplituhedronExtraction.lean`.
+
+Darren suggested the extraction theorem should link Ramanujan expander structure, holographic projection, and amplituhedron/positive-cell compression. This file formalizes that exact pipeline:
+
+```lean
+RamanujanBoundaryCertificate
+  -> HolographicProjectionStage
+  -> AmplituhedronPositiveCellStage
+  -> StructuredDynamicH4ExtractionFor
+  -> ¬ SATDecisionInP
+```
+
+Main theorem object:
+
+```lean
+RamanujanHolographicAmplituhedronForPTimeSAT U
+```
+
+For each claimed SAT decider it must provide a factored extraction with:
+
+- Ramanujan/expander boundary certificate
+- holographic projection from raw transcript states to screen data
+- amplituhedron projection from screen data to positive cells
+- hard fooling residual family
+- label preservation by the composed positive-cell projection
+- polynomial positive-cell bound
+- exponential gap
+
+Cash-outs proved:
+
+```lean
+structuredDynamicH4_of_RamanujanHolographicAmplituhedron
+no_SATDecisionInP_of_RamanujanHolographicAmplituhedron
+no_SATDecisionInP_of_RamanujanHolographicAmplituhedron_direct
+```
+
+Diagnostic theorem:
+
+```lean
+RamanujanHolographicAmplituhedronExtractionFor.preservation_is_still_the_gap
+```
+
+Even with Ramanujan and holographic payloads realized, polynomially many positive cells below the exponential gap cannot preserve all fooling labels. Thus the actual mathematical frontier is to prove that the Ramanujan/holographic/amplituhedron geometry gives label preservation for a genuine hard SAT residual family, without making the positive cell set exponential.
