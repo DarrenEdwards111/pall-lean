@@ -367,13 +367,63 @@ H4 cannot be static residual truth.
 H4 must be dynamic transcript/state/fooling-set structure.
 ```
 
-## Practical next step
+## Dynamic transcript/fooling-set schema proved
 
-Now instantiate dynamic SPDP with solver transcripts:
+The next H4 layer has now been formalized in:
 
-1. **Transcript observer:** boundary state = adaptive query transcript / solver state across prefix self-reduction.
-2. **P-side compression:** P-time solver ⇒ polynomially bounded transcript/state family.
-3. **NP-side lower bound:** hard residual family ⇒ many inequivalent transcripts/states, weaker than full injectivity if needed.
-4. **Fooling-set observer:** prove a many-equivalence-class lower bound for carefully chosen formulas.
+```text
+PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPTranscriptObserver.lean
+```
 
-The Bool-prefix no-go proves why the observer must include more than truth values; `ComputationalDepthDynamicSPDP.lean` proves the corrected dynamic shape.
+Lean check:
+
+```text
+~/.elan/bin/lake build PallLean.Paper93.DeepMath.PathB.ComputationalDepthDynamicSPDP
+~/.elan/bin/lake env lean PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPTranscriptObserver.lean
+```
+
+The file defines:
+
+```lean
+ResidualInstance
+TranscriptObserver
+FoolingResidualFamily
+identityFoolingFamily
+SoundOnFoolingFamily
+branchTranscriptObserver
+```
+
+and proves:
+
+```lean
+branchTranscript_injective_of_sound
+transcript_boundary_card_ge_exp_of_fooling
+transcript_fooling_contradicts_poly_boundary
+poly_transcript_boundary_fails_fooling_soundness
+identity_fooling_sound_iff_branch_injective
+```
+
+Formal content:
+
+```text
+fooling residual family indexed by 2^m branches
++ transcript observer soundness on semantic/search labels
++ injective labels
+--------------------------------------------------------
+observer boundary has ≥ 2^m states
+```
+
+and therefore:
+
+```text
+polynomial transcript boundary + exponential gap
+⇒ observer cannot be sound on the fooling family.
+```
+
+So the dynamic H4 bridge is now a concrete instantiation obligation:
+
+1. construct a SAT/search residual family `fam : FoolingResidualFamily m`;
+2. prove transcript observers induced by hypothetical P-time SAT solvers are sound on `fam`;
+3. prove those induced observers have polynomial boundary.
+
+The Bool-prefix no-go proves why the observer must include more than truth values; `ComputationalDepthDynamicSPDP.lean` proves the corrected dynamic shape; `ComputationalDepthPvsNPTranscriptObserver.lean` proves the fooling-set lower-bound schema.
