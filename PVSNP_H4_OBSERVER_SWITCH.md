@@ -420,10 +420,61 @@ polynomial transcript boundary + exponential gap
 ⇒ observer cannot be sound on the fooling family.
 ```
 
+## Concrete forced-assignment CNF family instantiated
+
+A first concrete SAT-shaped family has now been added in:
+
+```text
+PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPForcedAssignmentFamily.lean
+```
+
+Lean check:
+
+```text
+~/.elan/bin/lake build PallLean.Paper93.DeepMath.PathB.ComputationalDepthPvsNPTranscriptObserver
+~/.elan/bin/lake env lean PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPForcedAssignmentFamily.lean
+```
+
+The file defines:
+
+```lean
+forcedLit
+forcedClause
+forcedAssignmentCNF
+forcedResidualInstance
+forcedAssignmentFamily
+AssignmentDecoder
+DecodesForcedLabels
+```
+
+and proves:
+
+```lean
+soundOnForcedFamily_of_decodes
+forced_family_boundary_card_ge_exp
+forced_family_contradicts_poly_boundary
+poly_boundary_fails_forced_label_decoding
+forcedIndexObserver_injective
+```
+
+Formal content:
+
+```text
+for every m-bit assignment a,
+  forcedAssignmentCNF a = unit clauses pinning every bit of a
+
+any finite transcript boundary that decodes every forced label correctly
+  has ≥ 2^m states
+```
+
+This is intentionally an easy SAT family, so it does not prove `P ≠ NP`.  Its role is to show the dynamic H4/fooling
+machinery now fires on a real CNF residual family.  The live bridge is to replace the forced-assignment family by a hard
+SAT/search family where correctness of a P-time solver forces analogous decoded transcript labels.
+
 So the dynamic H4 bridge is now a concrete instantiation obligation:
 
-1. construct a SAT/search residual family `fam : FoolingResidualFamily m`;
+1. construct a hard SAT/search residual family `fam : FoolingResidualFamily m`;
 2. prove transcript observers induced by hypothetical P-time SAT solvers are sound on `fam`;
 3. prove those induced observers have polynomial boundary.
 
-The Bool-prefix no-go proves why the observer must include more than truth values; `ComputationalDepthDynamicSPDP.lean` proves the corrected dynamic shape; `ComputationalDepthPvsNPTranscriptObserver.lean` proves the fooling-set lower-bound schema.
+The Bool-prefix no-go proves why the observer must include more than truth values; `ComputationalDepthDynamicSPDP.lean` proves the corrected dynamic shape; `ComputationalDepthPvsNPTranscriptObserver.lean` proves the fooling-set lower-bound schema; `ComputationalDepthPvsNPForcedAssignmentFamily.lean` proves the schema on concrete CNF residuals.
