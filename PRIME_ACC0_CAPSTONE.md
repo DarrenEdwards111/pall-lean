@@ -59,6 +59,7 @@ All `sorry`-free, axioms ⊆ `{propext, Classical.choice, Quot.sound}`.
 | Tseitin general observer / spacetime | non-resolution machine-decomposition observer; spacetime volume | **open** — resolution space proved; general observer `P≠NP`-strength; Arc-2 spacetime is a socket harness |
 | RHA extraction (`…RamanujanHolographicAmplituhedron…`) | `preservesLabels` field | **socket, provably VACUOUS** — `impossible` proves the structure self-contradictory (pigeonhole: preserve `2^m` labels in `≤ m^k < 2^m` cells); cash-out is ex-falso; Ramanujan/holographic/amplituhedron payloads are decorative `Prop` fields |
 | Tseitin-expander RHA (`…TseitinExpanderRHA…`) | `preservesTseitinLabels` field | **socket, provably VACUOUS + field FALSE** — same pigeonhole vacuity; and `preservesTseitinLabels` over all P-solvers is refuted by Gaussian elimination (Tseitin ∈ P), so the "final hard theorem" is a false statement, not an open one |
+| Hard-residual decoder extraction (`…HardResidualFamily…`) | `decode_correct_of_decides_for_hard_residuals` field | **socket, CIRCULAR (not vacuous)** — improved: conditional (`DecidesSAT →`) field, so inhabitable when `¬DecidesSAT` rather than empty. But via the built-in `not_decidesSAT` pigeonhole, `HardResidualDecoderExtractionForAllMachines U ⟺ ¬SATDecisionInP U`, so the cash-out is `(≡¬SAT∈P)→¬SAT∈P`. The field = `¬DecidesSAT` per machine: FALSE for P-easy families (Gaussian), = the theorem for shortcut-free ones. `not_easy_linear_payload` fence unproven = the missing explicit object outside P |
 
 ---
 
