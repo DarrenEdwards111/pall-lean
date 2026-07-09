@@ -39,13 +39,19 @@ regime) and prove `hdec`; `Depth3.recoverStream_correct` already supplies the `h
 ## What is proved (clean axioms, no `sorry`)
 
 * `hinj_of_forward_decoder`, `hinj_of_sel_decoder`, `hinj_of_free_indicator` — the reduction chain above.
+* `hinj_hnf` — **`hinj` proved outright on the `hnf` regime** (unconditional, no `recT`, no label): where
+  every `ρ ∈ Bad` falsifies no term, `decodedSel_eq_replaySel` recovers `replaySel` from the end-state alone,
+  so `hinj` holds. The whole reduction chain closes end-to-end exactly where the decoder already exists.
 
 ## Honest scope
 
-Reduction/scaffolding bricks, not a proof of `hinj`: they pin the remaining target as tightly as the proved
-infrastructure allows — from "recover `ρ`" down to "the label recovers the star-pattern (which end-state
-coordinates are pivots)." The hard part — actually building that `freeSet` from the label — remains open (the
-Razborov satisfy-encoding decoder). `AC⁰`/depth-3; nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+The reduction chain pins the remaining target as tightly as the proved infrastructure allows — down to "the
+label recovers the star-pattern" — and `hinj_hnf` **closes `hinj` on the `hnf` regime** through that chain (a
+genuine proof, not scaffolding; combined with `switching_measure_bound_modulo_inj` it re-derives the
+unconditional `hnf` switching bound via injectivity). The general regime remains open at exactly one
+primitive: the term-recovery oracle `recT` (recover the active term per step from the end-state for general
+`ρ`) — the Razborov satisfy-encoding decoder, never constructed in the arc. `AC⁰`/depth-3; nothing here is
+`NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB
@@ -107,6 +113,23 @@ theorem hinj_of_free_indicator {w s : ℕ} (cs : List (Clause n))
     (fun endstate l => decodedSel cs endstate ∩ freeSet endstate l)
     (fun ρ hρ => hfree ρ hρ)
 
+/-- **`hinj` closed on the `hnf` regime (PROVED, unconditional).**  When every `ρ ∈ Bad` falsifies no term
+of `cs`, `decodedSel_eq_replaySel` gives `decodedSel cs (replayPath cs ρ s) = replaySel cs ρ s` — the
+selected set is recovered from the **end-state alone** (no `recT`, no label), because with nothing falsified
+by `ρ` there are no `ρ`-set coordinates to disambiguate.  Feeding `selDec = decodedSel ∘ end-state` into
+`hinj_of_sel_decoder` closes `hinj` on this regime.  This is the first end-to-end *proof* of `hinj` (not a
+reduction): the whole chain closes exactly where the decoder exists.  Combined with
+`switching_measure_bound_modulo_inj` it re-derives the unconditional `hnf` switching bound through the
+injectivity route.  The general regime still needs the term-recovery oracle `recT`. -/
+theorem hinj_hnf {w s : ℕ} (cs : List (Clause n))
+    (Bad : Finset (Restriction n)) (lab : Restriction n → PathLabel w s)
+    (hhnf : ∀ ρ ∈ Bad, ∀ T ∈ cs, termFalsified ρ T = false) :
+    ∀ x ∈ Bad, ∀ y ∈ Bad,
+      (replayPath cs x s, lab x) = (replayPath cs y s, lab y) → x = y := by
+  refine hinj_of_sel_decoder cs Bad lab (fun endstate _ => decodedSel cs endstate) ?_
+  intro ρ hρ
+  exact decodedSel_eq_replaySel (fun T hT => hhnf ρ hρ T hT) s
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
@@ -114,3 +137,4 @@ end PallLean.Paper93.DeepMath.PathB
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.hinj_of_forward_decoder
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.hinj_of_sel_decoder
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.hinj_of_free_indicator
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.hinj_hnf
