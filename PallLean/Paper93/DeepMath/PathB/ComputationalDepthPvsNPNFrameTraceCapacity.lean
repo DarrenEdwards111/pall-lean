@@ -31,6 +31,7 @@ namespace PallLean.Paper93.DeepMath.PathB.PvsNPNFrameTraceCapacity
 
 open PallLean.Paper93.DeepMath.PathB.PvsNPObserverSwitchToy
 open PallLean.Paper93.DeepMath.PathB.PvsNPTranscriptObserver
+open SATDepthMachine
 
 /-- A finite N-Frame trace channel on the `2^m` latent residual branches.
 
@@ -123,12 +124,91 @@ theorem identityTrace_stateCount (m : Nat) :
 theorem identityTrace_capacityBits (m : Nat) :
     (identityTraceChannel m).capacityBits = m := rfl
 
+/-- The information-theoretic lower bound is tight: an exact-recovery stabilized quotient with
+exactly `m` capacity bits exists at every label width. -/
+theorem exact_capacity_achievable (m : Nat) :
+    ∃ C : StabilizedNFrameTraceChannel m, C.capacityBits = m :=
+  ⟨identityTraceChannel m, rfl⟩
+
+/-- Any exact-recovery channel whose advertised capacity is at most the label width is optimal:
+its capacity is exactly `m`. -/
+theorem capacity_eq_label_bits_of_le {m : Nat} (C : StabilizedNFrameTraceChannel m)
+    (hupper : C.capacityBits ≤ m) : C.capacityBits = m := by
+  exact Nat.le_antisymm hupper C.label_bits_le_capacity
+
 /-- **Capacity pressure-test countermodel.** Even a linear `m`-bit boundary has exponentially many states.
 Thus replacing `card boundary ≤ poly(m)` by `capacityBits ≤ poly(m)` destroys the pigeonhole contradiction. -/
 theorem identityTrace_states_exceed_bit_count (m : Nat) :
     (identityTraceChannel m).capacityBits < (identityTraceChannel m).stateCount := by
   rw [identityTrace_capacityBits, identityTrace_stateCount]
   exact Nat.lt_two_pow_self
+
+/-! ## The proposed all-P capacity-deficit theorem is exactly the separation
+
+The sharpened N64 proposal says that SAT correctness should produce an exact-recovery stabilized
+quotient but also force that quotient below the `m` bits required by its injective task label.  The
+following interface records precisely that proposal for one machine.  Its two fields are deliberately
+kept separate: the first is the trace/stabilization construction, while the second is the genuinely
+load-bearing solver-specific capacity deficit.
+-/
+
+/-- A conditional N-Frame capacity-deficit claim for one alleged SAT decision machine. -/
+structure CapacityDeficitFromCorrectnessFor (U : MachineModel) (D : DecisionMachine U) where
+  m : Nat
+  channel_of_decides : DecidesSAT U D → StabilizedNFrameTraceChannel m
+  deficit_of_decides :
+    ∀ hD : DecidesSAT U D, (channel_of_decides hD).capacityBits < m
+
+namespace CapacityDeficitFromCorrectnessFor
+
+/-- Such a deficit theorem rules out the alleged SAT decider immediately. -/
+theorem not_decidesSAT {U : MachineModel} {D : DecisionMachine U}
+    (F : CapacityDeficitFromCorrectnessFor U D) : ¬ DecidesSAT U D := by
+  intro hD
+  exact (F.channel_of_decides hD).sublinear_capacity_impossible (F.deficit_of_decides hD)
+
+/-- If a particular machine is already known not to decide SAT, the conditional deficit interface
+is inhabited vacuously.  This direction is used only to calibrate the logical strength of the global
+proposal; it is not a trace construction. -/
+noncomputable def of_not_decidesSAT {U : MachineModel} (D : DecisionMachine U)
+    (hD : ¬ DecidesSAT U D) : CapacityDeficitFromCorrectnessFor U D where
+  m := 1
+  channel_of_decides := fun h => False.elim (hD h)
+  deficit_of_decides := fun h => False.elim (hD h)
+
+end CapacityDeficitFromCorrectnessFor
+
+/-- The proposed capacity-deficit theorem for every machine in the model. -/
+abbrev CapacityDeficitFromCorrectnessForAllMachines (U : MachineModel) : Type 1 :=
+  ∀ D : DecisionMachine U, CapacityDeficitFromCorrectnessFor U D
+
+/-- A global N-Frame capacity-deficit theorem implies that SAT has no polynomial-time decider in
+the abstract machine model. -/
+theorem no_SATDecisionInP_of_capacityDeficit {U : MachineModel}
+    (hDeficit : CapacityDeficitFromCorrectnessForAllMachines U) : ¬ SATDecisionInP U := by
+  intro hP
+  rcases hP with ⟨D, hD⟩
+  exact (hDeficit D).not_decidesSAT hD
+
+/-- Conversely, absence of a SAT decider vacuously inhabits the conditional global interface. -/
+noncomputable def capacityDeficit_of_no_SATDecisionInP {U : MachineModel}
+    (hNo : ¬ SATDecisionInP U) : CapacityDeficitFromCorrectnessForAllMachines U := by
+  intro D
+  refine CapacityDeficitFromCorrectnessFor.of_not_decidesSAT D ?_
+  intro hD
+  exact hNo ⟨D, hD⟩
+
+/-- **Exact calibration of the N64 route.**  Producing the proposed sub-`m` exact-recovery
+task quotient for every alleged SAT decider is logically equivalent to proving that the model has no
+polynomial-time SAT decider.  Hence the solver-specific deficit is not a smaller remaining lemma: it is
+the separation itself. -/
+theorem capacityDeficit_iff_no_SATDecisionInP {U : MachineModel} :
+    Nonempty (CapacityDeficitFromCorrectnessForAllMachines U) ↔ ¬ SATDecisionInP U := by
+  constructor
+  · rintro ⟨hDeficit⟩
+    exact no_SATDecisionInP_of_capacityDeficit hDeficit
+  · intro hNo
+    exact ⟨capacityDeficit_of_no_SATDecisionInP hNo⟩
 
 /-!
 ## Verdict for the unrestricted trace route
@@ -149,3 +229,7 @@ end PallLean.Paper93.DeepMath.PathB.PvsNPNFrameTraceCapacity
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPNFrameTraceCapacity.StabilizedNFrameTraceChannel.label_bits_le_capacity
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPNFrameTraceCapacity.StabilizedNFrameTraceChannel.sublinear_capacity_impossible
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPNFrameTraceCapacity.StabilizedNFrameTraceChannel.identityTrace_states_exceed_bit_count
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPNFrameTraceCapacity.StabilizedNFrameTraceChannel.exact_capacity_achievable
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPNFrameTraceCapacity.StabilizedNFrameTraceChannel.capacity_eq_label_bits_of_le
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPNFrameTraceCapacity.StabilizedNFrameTraceChannel.CapacityDeficitFromCorrectnessFor.not_decidesSAT
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPNFrameTraceCapacity.StabilizedNFrameTraceChannel.capacityDeficit_iff_no_SATDecisionInP

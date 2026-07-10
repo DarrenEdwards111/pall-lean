@@ -765,3 +765,17 @@ Decisive pressure-test verdict: a polynomial **bit-capacity** bound does not imp
 many states.  N-Frame supplies a useful formal language for projection and stabilization, but a P-vs-NP application
 still needs an additional, solver-specific theorem forcing the task-relevant stabilized quotient below `m` bits.
 Finiteness, Markovianity, support projection, and MERA-style hierarchical compression alone do not provide that bound.
+
+The follow-up calibration is now also machine-checked.  `exact_capacity_achievable` constructs an
+exact-recovery channel at the lower bound, and `capacity_eq_label_bits_of_le` proves that any channel
+advertised with at most `m` bits must use exactly `m`.  The proposed solver-specific escape hatch was
+packaged as `CapacityDeficitFromCorrectnessFor`: SAT correctness would have to yield both an exact-recovery
+channel and a capacity bound strictly below `m`.  Its global form satisfies
+
+```lean
+Nonempty (CapacityDeficitFromCorrectnessForAllMachines U) ↔ ¬ SATDecisionInP U
+```
+
+by `capacityDeficit_iff_no_SATDecisionInP`.  This closes the logical audit: the sublinear stabilized-quotient
+claim is not a weaker trace lemma waiting to be derived from polynomial runtime.  For all machines it is
+exactly the desired separation, with the reverse direction inhabited only vacuously once SAT-in-P is denied.
