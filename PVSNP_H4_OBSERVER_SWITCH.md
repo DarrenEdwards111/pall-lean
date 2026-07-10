@@ -1006,3 +1006,32 @@ shows any many-one hardness of the base problem survives this padding; `decider_
 Therefore NP-hardness plus many labels is insufficient.  The remaining concrete construction must make
 the holonomy coordinates decision-relevant via uniform CNF queries without encoding their answers by
 hand, and then compile that adaptive query transcript into the bounded-MERA dynamic boundary.
+
+## 2026-07-10 — Concrete SAT-query family and transcript-to-MERA compiler
+
+Lean file: `PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPDynamicHolonomyQueryTranscriptBridge.lean`.
+
+The two restricted semantic/compiler bridges are now instantiated without answer padding.
+`independentSATQueryFamily n` takes an actual `n`-tuple of arbitrary CNFs; coordinate `i` is the literal
+syntactic projection of the `i`th CNF and its label is that formula's SAT truth value.  Explicit yes/no
+CNFs prove that all `2^n` truth profiles occur.  The two reductions
+
+```lean
+SAT_reduces_to_independent_coordinate
+independent_coordinate_reduces_to_SAT
+```
+
+show that every nonempty coordinate has exactly the concrete SAT many-one degree.  The query constructor
+does not inspect a solver or place a precomputed answer in the formula.
+
+`MERAQueryTranscript` then represents a batch-query execution whose final answer vector is decoded from
+one bounded-MERA boundary trajectory.  `toDynamicHolonomyDecoder` uses SAT correctness plus label
+surjectivity to compile that execution into the previous exact dynamic holonomy decoder.  Consequently
+`stateAt_injective`, `two_pow_le_boundary_card`, `no_transcript_at_size`, and the final restricted cash-out
+`no_SAT_decider_with_independentQueryRestrictedMERA` follow.
+
+Honest ceiling: the semantic query family and transcript-to-dynamics map are complete, but an arbitrary
+polynomial-time SAT machine is not known to realize the whole independent query batch inside one fixed
+bounded-bond, logarithmic-depth MERA boundary.  That class assumption is isolated as
+`SATCorrectnessCompilesIndependentQueries`; extending it to every P-time machine would be the unrestricted
+model bridge, not a consequence of SAT correctness.
