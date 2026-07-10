@@ -732,3 +732,36 @@ TseitinExpanderRHAExtractionFor.tseitin_label_preservation_is_the_gap
 ```
 
 This proves that below the exponential gap, polynomial positive cells cannot preserve all Tseitin labels. Thus the proof must show the geometry/solver interaction forces such preservation from any alleged P-time SAT decider — that is the remaining hard theorem, now in Tseitin-expander form.
+
+## 2026-07-10 — N-Frame trace-channel capacity pressure test
+
+Source inspiration: Darren's `An N64.docx`, whose observer-boundary trace model uses a latent process,
+boundary projection/Markov kernel, finite information capacity, hierarchical compression, and variational
+stabilization.  Lean extraction:
+
+`PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPNFrameTraceCapacity.lean`.
+
+The discrete channel is:
+
+```text
+m-bit latent residual branch -> finite observer boundary -> stabilized semantic label
+```
+
+with `capacityBits` defined by `card boundary ≤ 2^capacityBits`.  Proved:
+
+```lean
+trace_injective
+stateCount_ge_labels
+label_bits_le_capacity
+sublinear_capacity_impossible
+```
+
+Thus correct stabilization of an injective `m`-bit label requires at least `m` boundary bits.  The bound is
+tight: `identityTraceChannel` uses exactly `m` bits and has exactly `2^m` states, with theorem
+`identityTrace_states_exceed_bit_count` showing the state count is already larger than the bit count.
+
+Decisive pressure-test verdict: a polynomial **bit-capacity** bound does not imply the old H4 polynomial
+**state-count** bound.  Polynomial-time/space traces can carry at least linearly many bits and hence exponentially
+many states.  N-Frame supplies a useful formal language for projection and stabilization, but a P-vs-NP application
+still needs an additional, solver-specific theorem forcing the task-relevant stabilized quotient below `m` bits.
+Finiteness, Markovianity, support projection, and MERA-style hierarchical compression alone do not provide that bound.
