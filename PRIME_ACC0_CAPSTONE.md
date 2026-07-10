@@ -60,10 +60,13 @@ a socket; all `sorry`-free, axioms ⊆ `{propext, Classical.choice, Quot.sound}`
 | **5 — interface discharge** | `…PvsNPParityInterfaceDischarge` | `realAC0p_parity_LB` proves `RealAC0pParitySizeLowerBoundAt` from the *subcircuit-form* capstone (`subcircuits_card_le_size` : `#subcircuits ≤ size`; `boolParity_eq_decide_odd` : `parityFunction` = Odd-count parity; `Layer4.hmod_of_isAC0p`). ⇒ `no_small_ac0p_parityCNF_decider_unconditional`: **no lower-bound hypothesis left** — for `t ≈ m^{1/(2(d+1))}`, any `AC⁰[p]` decider of the parity-CNF family on `2m+1` bits has *super-polynomial* size |
 | **6 — model bridge** | `…PvsNPParityAC0pClass` | `no_SATDecisionInClass_smallAC0pParity`: a genuine `RestrictedCapstoneTransfer` instance in an abstract `MachineModel U`. Class = decision machines whose parity-family decision `x ↦ decisionRun M.code (parityCNF (ofFn x))` is realised by a small `AC⁰[p]` circuit; `no_obstruction` from brick 5, `obstruction_of_decides` from `DecidesSAT` + brick 1. ⇒ **no SAT decider has a small `AC⁰[p]` realisation on the parity-CNF family** |
 
-**Gaps (i)–(iii) now closed:** (ii) discharged unconditionally (brick 5); (iii) closed by the
-`MachineModel` `RestrictedCapstoneTransfer` instance (brick 6); (i) subsumed — in brick 6 the class member
-`M` is a *general* SAT decider (`DecidesSAT ∀ φ`), and the restriction is only on the `AC⁰[p]` realisation of
-its parity-family behaviour, so no separate generic-CNF-encoding circuit is needed.
+| **7 — generic encoding** | `…PvsNPGenericCNFCodec`, `…PvsNPGenericCNFComposition` | a **general bounded-CNF bit-decoder** `decodeCNF`/`decodeFlat` (arbitrary incidences over `n+1` vars → arbitrary CNFs, incl. `3SAT`), `decodeCNF_sat_iff_even : Satisfiable (decodeCNF …) ↔ ⊕x=0`, an `AC⁰` depth-`≤1` circuit family `bvFamily` realising the parity bit-pattern, and `no_small_ac0p_generic_SAT_decider_unconditional`: any `AC⁰[p]` circuit deciding SAT for **every** `decodeFlat b` yields a super-poly `PARITY` circuit via `subst Dec bvFamily`. So "correct on all encoded CNFs" is a genuine general-SAT hypothesis |
+
+**Gaps (i)–(iii) all closed:** (ii) discharged unconditionally (brick 5); (iii) closed by the `MachineModel`
+`RestrictedCapstoneTransfer` instance (brick 6); (i) closed by brick 7 — a full generic CNF bit-codec so the
+decider hypothesis is correctness on *all* encoded CNFs (a real `SAT ∈ AC⁰[p]` hypothesis), with the parity
+family reached through a local `AC⁰` encoding.  (Brick 6 already met (i)'s intent in the `MachineModel`
+framing; brick 7 delivers the pure-circuit generic encoding.)
 
 **What this is / is not.** *Is:* a machine-checked, `sorry`-free, custom-axiom-free **unconditional restricted
 lower bound** — no SAT decider is realisable by a small (`< super-poly`) `AC⁰[p]` circuit on the parity-CNF
