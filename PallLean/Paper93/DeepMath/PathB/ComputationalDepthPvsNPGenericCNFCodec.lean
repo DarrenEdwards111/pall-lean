@@ -17,12 +17,23 @@ bits (structure) and `negated` bits that depend on a single `xᵢ` — so `parit
 
 ## Honest scope
 
-Gap (i), **step 1 only (structural groundwork)**: `chain_eq_flatMap` re-expresses the parity-CNF's recursive
-`chain` clause list as a `flatMap` over per-bit link-clause blocks — the shape a positional/incidence decoder
-produces, and the load-bearing lemma for matching a general decoder's clause list to `parityCNF`.  The full
-general decoder, the exact/eval match `decode (parityBits x) = parityCNF (ofFn x)`, the `AC⁰` circuit
-realisation of `parityBits`, and the composition with the capstone remain — a substantial multi-lemma
-formalisation.  `sorry`-free.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+Gap (i), **mathematical core (DONE)**: a genuinely general bounded-CNF decoder `decodeCNF` (arbitrary
+incidences over `n+1` variables → arbitrary bounded CNFs) together with the explicit, input-local parity
+bit-pattern (`bvHead`/`bvBlock1`/`bvBlock2`/`bvTail`), and the codec-correctness chain culminating in
+
+```lean
+decodeCNF_sat_iff_even :  Satisfiable (decodeCNF n (bvHead n) (bvBlock1 x) (bvBlock2 x) (bvTail n))
+                            ↔  ⊕ (ofFn x) = 0
+```
+
+So "the decider is correct on every `decodeCNF …`" is a *genuine* general-SAT hypothesis, and the parity
+family sits inside the decoder's range via a local (`AC⁰`, depth-`≤1`) bit-pattern.  This is the substantive,
+novel part of the generic encoding.  `sorry`-free, axioms ⊆ `{propext, Classical.choice, Quot.sound}`.
+
+**Remaining (mechanical bookkeeping, not yet built):** flatten the four structured incidence functions into a
+single `Fin N → Bool` circuit input, realise the parity bit-pattern as a concrete `AC⁰` depth-`≤1`
+`BoolCircuitSyntax n` family, and compose with the capstone (bricks 2–5) to get the unconditional "no small
+`AC⁰[p]` circuit decides SAT for all `decodeCNF …`".  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec
