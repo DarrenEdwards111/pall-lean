@@ -217,11 +217,64 @@ theorem decodeClause_bvBlock2_mem {n : Nat} (x : Fin n → Bool) (k : Nat) (hk :
       · exact ⟨⟨k + 1, by omega⟩, by aesop⟩
       · exact ⟨⟨k, by omega⟩, by aesop⟩
 
+/-! ## Assembly: `decodeCNF` of the parity bit-pattern is satisfiability-equivalent to `parityCNF` -/
+
+/-- `List.all` congruence over list membership. -/
+theorem all_congr_mem {α : Type*} {l : List α} {p q : α → Bool} (h : ∀ a ∈ l, p a = q a) :
+    l.all p = l.all q := by
+  induction l with
+  | nil => rfl
+  | cons c cs ih =>
+    simp only [List.all_cons]
+    rw [h c (by simp), ih (fun a ha => h a (List.mem_cons_of_mem c ha))]
+
+/-- **The general decoder of the parity bit-pattern has the same Boolean value as `parityCNF`** on every
+assignment — proved clause-by-clause from the four component membership lemmas. -/
+theorem decodeCNF_eval_eq {n : Nat} (x : Fin n → Bool) (a : RawAssignment) :
+    CNF.eval (decodeCNF n (bvHead n) (bvBlock1 x) (bvBlock2 x) (bvTail n)) a
+      = CNF.eval (parityCNF (List.ofFn x)) a := by
+  have hhead : Clause.eval a (decodeClause (n + 1) (bvHead n)) = Clause.eval a (negClause 0) :=
+    clause_eval_congr a _ _ (decodeClause_bvHead_mem n)
+  have htail : Clause.eval a (decodeClause (n + 1) (bvTail n)) = Clause.eval a (negClause n) :=
+    clause_eval_congr a _ _ (decodeClause_bvTail_mem n)
+  have hmid : ((List.range n).flatMap (fun k =>
+        [decodeClause (n + 1) (bvBlock1 x k), decodeClause (n + 1) (bvBlock2 x k)])).all
+        (fun c => Clause.eval a c)
+      = (chain (List.ofFn x) 0).all (fun c => Clause.eval a c) := by
+    rw [chain_eq_flatMap, List.length_ofFn, List.all_flatMap, List.all_flatMap]
+    apply all_congr_mem
+    intro k hk_mem
+    have hk : k < n := List.mem_range.mp hk_mem
+    have h1 := clause_eval_congr a _ _ (decodeClause_bvBlock1_mem x k hk)
+    have h2 := clause_eval_congr a _ _ (decodeClause_bvBlock2_mem x k hk)
+    rw [linkClauses_eq, Nat.zero_add]
+    simp only [List.all_cons, List.all_nil, Bool.and_true]
+    rw [h1, h2]
+  simp only [decodeCNF, parityCNF, CNF.eval, List.length_ofFn, List.all_cons, List.all_append,
+    List.all_nil, Bool.and_true]
+  rw [hhead, htail, hmid]
+
+/-- **Codec satisfiability equivalence.** -/
+theorem decodeCNF_sat_iff {n : Nat} (x : Fin n → Bool) :
+    Satisfiable (decodeCNF n (bvHead n) (bvBlock1 x) (bvBlock2 x) (bvTail n))
+      ↔ Satisfiable (parityCNF (List.ofFn x)) := by
+  have hvars : (decodeCNF n (bvHead n) (bvBlock1 x) (bvBlock2 x) (bvTail n)).vars
+      = (parityCNF (List.ofFn x)).vars := by simp [decodeCNF, parityCNF]
+  constructor
+  · rintro ⟨a, hlen, heval⟩
+    exact ⟨a, by rw [← hvars]; exact hlen, by rw [← decodeCNF_eval_eq]; exact heval⟩
+  · rintro ⟨a, hlen, heval⟩
+    exact ⟨a, by rw [hvars]; exact hlen, by rw [decodeCNF_eval_eq]; exact heval⟩
+
+/-- **The general decoder realises the parity family: `Satisfiable (decode …) ↔ ⊕ x = 0`** (via brick 1). -/
+theorem decodeCNF_sat_iff_even {n : Nat} (x : Fin n → Bool) :
+    Satisfiable (decodeCNF n (bvHead n) (bvBlock1 x) (bvBlock2 x) (bvTail n))
+      ↔ bxor (List.ofFn x) = false :=
+  (decodeCNF_sat_iff x).trans (parityCNF_sat_iff_even (List.ofFn x))
+
 end PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec
 
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec.chain_eq_flatMap
-#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec.mem_decodeClause
-#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec.clause_eval_congr
-#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec.decodeClause_bvHead_mem
-#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec.decodeClause_bvBlock1_mem
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec.decodeClause_bvBlock2_mem
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec.decodeCNF_eval_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec.decodeCNF_sat_iff_even
