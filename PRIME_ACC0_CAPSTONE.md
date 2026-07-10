@@ -44,7 +44,7 @@ All `sorry`-free, axioms ⊆ `{propext, Classical.choice, Quot.sound}`.
 
 ---
 
-## Cross-model bridge: uniform SAT ↔ `AC⁰[p]` capstone (bricks 1–3 PROVED, in progress)
+## Cross-model bridge: uniform SAT ↔ `AC⁰[p]` capstone (bricks 1–4 PROVED, in progress)
 
 Goal: connect the repo's uniform `MachineModel`/CNF-SAT world to the non-uniform `AC⁰[p]` prime capstone,
 yielding a machine-checked **`SAT ∉ AC⁰[p]`** (an elementary result — *not* `P ≠ NP`). Built from scratch
@@ -56,16 +56,17 @@ a socket; all `sorry`-free, axioms ⊆ `{propext, Classical.choice, Quot.sound}`
 | **1 — reduction** | `…PvsNPParityToSATReduction` | `parityCNF_sat_iff_even : Satisfiable (parityCNF x) ↔ ⊕x = 0` — a genuine two-sided many-one reduction `MOD₂ ≤ SAT` into the repo's real `CNF`. Forward: forced prefix-parity assignment; converse: any satisfying assignment is *forced* to the prefix-parity assignment (`negLit_forces`+`linkClauses_forces`+`chain_forces`), so `¬pₙ` forces `⊕x = 0`. Non-circular: the map decides nothing |
 | **2 — composition** | `…PvsNPCircuitComposition` | circuit substitution `subst` on `BoolCircuitSyntax` + `eval_subst` (composition-eval), `isAC0pSyntax_subst`/`isAC0Syntax_subst` (`AC⁰[p]`/`AC⁰` closed under substitution), `depth_subst_le` (additive depth). Genuine composition-closure of `AC⁰[p]`; `rec_size` size-bounded induction principle for the nested inductive |
 | **3 — transfer** | `…PvsNPParitySATBridge` | `decider_size_ge_of_parity_LB`: an `AC⁰[p]` decider for the parity-CNF family through an `AC⁰`, depth-`≤1` encoding, composed via bricks 1+2, is an `AC⁰[p]` circuit computing `PARITY` of depth `≤ Dec.depth+1` — so any parity `AC⁰[p]` size LB (`RealAC0pParitySizeLowerBoundAt`) forces `lower ≤ size(subst Dec enc)`. `enc` is fixed/input-local, so all deciding is in `Dec` — non-circular |
+| **4 — concrete SAT decider** | `…PvsNPParitySATDecider` | `no_small_ac0p_parityCNF_decider`: any `AC⁰[p]` circuit `Dec` with `(Dec.eval x = true ↔ Satisfiable (parityCNF (ofFn x)))` has `lower ≤ Dec.size + 1` under a parity `AC⁰[p]` size LB — a statement *literally about `Satisfiable (parityCNF …)`*, via brick 1 (`parityCNF_sat_iff_even`) and `bxor_ofFn : bxor (ofFn x) = parityFunction n x`. Identity encoding, so `not Dec` computes `PARITY` |
 
-**Honest remaining gap (NOT proved):** (i) **brick 4** — a concrete generic CNF bit-encoding realising the
-`enc` hypothesis of brick 3 as a real `AC⁰` family, so the transfer is provably about SAT-deciders (not a
-disguised restatement of the parity LB); the connection to brick 1 (`Dec` decides SAT ⟹ `Dec` computes
-parity via `enc`) is where SAT content enters. (ii) **interface discharge** — the prime capstone proves the
-parity `AC⁰[p]` bound in *subcircuit-count* form (`Layer3.parity_function_lower_bound`); wiring it to the
-`RealAC0pParitySizeLowerBoundAt` interface form used by brick 3 is a separate step. (iii) the
-**uniform↔non-uniform** identification of an abstract `MachineModel` SAT-decider with a `BoolCircuitSyntax`
-family (defining the class `C`) — this is the genuine model-bridge subtlety. Bricks 1–3 are the reusable,
-correct core; (i)–(iii) remain.
+**Honest remaining gap (NOT proved):** (i) **generic encoding** — brick 4 uses the *identity* encoding (the
+instance is determined by `x`), so the SAT framing is thin; a *generic* CNF bit-encoding (decider not
+specialised to the family) would strengthen it, but the theorem is already literally about
+`Satisfiable (parityCNF …)`. (ii) **interface discharge** — the prime capstone proves the parity `AC⁰[p]`
+bound in *subcircuit-count* form (`Layer3.parity_function_lower_bound`); wiring it to the
+`RealAC0pParitySizeLowerBoundAt` interface form used by bricks 3–4 is a separate step (would make the
+`lower` bound super-polynomial and unconditional). (iii) the **uniform↔non-uniform** identification of an
+abstract `MachineModel` SAT-decider with a `BoolCircuitSyntax` family (defining the class `C`) — the genuine
+model-bridge subtlety. Bricks 1–4 are the reusable, correct core; (i)–(iii) remain.
 
 ---
 
