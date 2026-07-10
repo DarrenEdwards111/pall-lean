@@ -826,3 +826,34 @@ with the identity channel recovering the full bulk label.  Since `R` reuse steps
 holographic area law alone does not yield a super-polynomial time lower bound.  The remaining bridge must
 prove a sub-`R` reuse restriction for arbitrary SAT solvers or a genuine holographic decoding-complexity
 lower bound; neither is supplied by the physical area law itself.
+
+## 2026-07-10 — Holographic decoding-complexity route
+
+Lean file: `PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPNFrameHolographicDecodingComplexity.lean`.
+
+This formalizes the Harlow--Hayden-style alternative: the complete bulk information may fit on the
+boundary, while extracting the task-relevant SAT result is computationally hard.  The audit has two sides.
+
+First, `oneStepSaturatedDecoder` proves that area law plus exact recovery alone is compatible with an
+abstract decoding-time annotation of one.  Geometry does not automatically supply decoder complexity.
+
+Second, `HolographicSATDecodingLowerBoundFor U D` names the actual solver-specific theorem.  From
+`DecidesSAT U D`, the alleged solver gives a polynomial decoding time, while concrete holographic dynamics
+would need to force a super-polynomial lower threshold.  Proved:
+
+```lean
+explicitSuperPolyThreshold_superPoly
+HolographicSATDecodingLowerBoundFor.not_decidesSAT
+no_SATDecisionInP_of_holographicDecoding
+holographicDecoding_iff_no_SATDecisionInP
+```
+
+The last theorem calibrates the global route exactly:
+
+```lean
+Nonempty (HolographicSATDecodingLowerBoundForAllMachines U) ↔ ¬ SATDecisionInP U.
+```
+
+Thus decoding complexity is the right *kind* of missing invariant, but deriving its super-polynomial
+lower bound from a concrete NP-complete residual family and every solver's internal holographic dynamics
+is exactly the separation.  The physical area law and N-Frame stabilization do not prove that field.
