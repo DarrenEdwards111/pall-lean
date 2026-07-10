@@ -53,6 +53,123 @@ theorem chain_eq_flatMap :
     congr 1
     omega
 
+/-! ## A general per-clause incidence decoder
+
+`decodeClause V inc` reads an incidence function `inc : Fin V → Bool → Bool` (for each variable and sign,
+is that literal present?) into a clause.  This covers **arbitrary** clauses over `V` variables (any width),
+so the whole-CNF decoder built on it covers arbitrary bounded CNFs — a genuine general SAT encoding. -/
+
+open SATDepthMachine
+
+/-- Decode one clause from a variable-indexed incidence function. -/
+def decodeClause (V : Nat) (inc : Fin V → Bool → Bool) : Clause :=
+  (List.finRange V).flatMap (fun v =>
+    (if inc v true then [({ var := v.val, pol := Polarity.pos } : Lit)] else []) ++
+    (if inc v false then [({ var := v.val, pol := Polarity.neg } : Lit)] else []))
+
+/-- Membership in a decoded clause is exactly the incidence. -/
+theorem mem_decodeClause (V : Nat) (inc : Fin V → Bool → Bool) (lit : Lit) :
+    lit ∈ decodeClause V inc ↔
+      ∃ v : Fin V, (inc v true = true ∧ lit = ⟨v.val, Polarity.pos⟩) ∨
+                   (inc v false = true ∧ lit = ⟨v.val, Polarity.neg⟩) := by
+  simp only [decodeClause, List.mem_flatMap, List.mem_finRange, true_and, List.mem_append]
+  constructor
+  · rintro ⟨v, hv⟩
+    refine ⟨v, ?_⟩
+    rcases hv with hv | hv
+    · left
+      by_cases hc : inc v true = true
+      · simp only [hc, if_true, List.mem_singleton] at hv; exact ⟨hc, hv⟩
+      · simp only [Bool.not_eq_true] at hc; simp [hc] at hv
+    · right
+      by_cases hc : inc v false = true
+      · simp only [hc, if_true, List.mem_singleton] at hv; exact ⟨hc, hv⟩
+      · simp only [Bool.not_eq_true] at hc; simp [hc] at hv
+  · rintro ⟨v, hv | hv⟩
+    · exact ⟨v, Or.inl (by simp [hv.1, hv.2])⟩
+    · exact ⟨v, Or.inr (by simp [hv.1, hv.2])⟩
+
+/-- Two clauses with the same literal membership evaluate identically under any assignment. -/
+theorem clause_eval_congr (a : RawAssignment) (c1 c2 : Clause)
+    (h : ∀ lit, lit ∈ c1 ↔ lit ∈ c2) : Clause.eval a c1 = Clause.eval a c2 := by
+  simp only [Clause.eval]
+  rw [Bool.eq_iff_iff]
+  simp only [List.any_eq_true]
+  constructor
+  · rintro ⟨lit, hm, he⟩; exact ⟨lit, (h lit).mp hm, he⟩
+  · rintro ⟨lit, hm, he⟩; exact ⟨lit, (h lit).mpr hm, he⟩
+
+/-! ## The whole-CNF decoder, laid out to match `parityCNF`
+
+`decodeCNF n headInc blockInc1 blockInc2 tailInc` produces a CNF over `n+1` variables with `2n+2` clauses in
+the layout `head :: (blocks ++ [tail])`, where each clause's contents are read from its own incidence
+function — so the range is **arbitrary bounded CNFs**.  The layout mirrors `parityCNF`'s clause order, which
+makes the equivalence proof component-by-component. -/
+
+/-- General bounded-CNF decoder, laid out `head :: (n link-blocks of 2) ++ [tail]`. -/
+def decodeCNF (n : Nat)
+    (headInc : Fin (n + 1) → Bool → Bool)
+    (blockInc1 blockInc2 : Nat → Fin (n + 1) → Bool → Bool)
+    (tailInc : Fin (n + 1) → Bool → Bool) : CNF :=
+  { vars := n + 1,
+    clauses := decodeClause (n + 1) headInc ::
+      ((List.range n).flatMap (fun k =>
+          [decodeClause (n + 1) (blockInc1 k), decodeClause (n + 1) (blockInc2 k)])
+        ++ [decodeClause (n + 1) tailInc]) }
+
+/-- Head incidence: the single literal `¬p₀`. -/
+def bvHead (n : Nat) : Fin (n + 1) → Bool → Bool := fun v s => decide (v.val = 0) && !s
+
+/-- Tail incidence: the single literal `¬pₙ`. -/
+def bvTail (n : Nat) : Fin (n + 1) → Bool → Bool := fun v s => decide (v.val = n) && !s
+
+/-- First link-clause incidence of block `k`: literals `p_{k+1}` and `(sign `xₖ`) pₖ`. -/
+def bvBlock1 {n : Nat} (x : Fin n → Bool) (k : Nat) : Fin (n + 1) → Bool → Bool := fun v s =>
+  (decide (v.val = k + 1) && s) || (decide (v.val = k) && (s == (List.ofFn x).getD k false))
+
+/-- Second link-clause incidence of block `k`: literals `¬p_{k+1}` and `(sign `¬xₖ`) pₖ`. -/
+def bvBlock2 {n : Nat} (x : Fin n → Bool) (k : Nat) : Fin (n + 1) → Bool → Bool := fun v s =>
+  (decide (v.val = k + 1) && !s) || (decide (v.val = k) && (s == !((List.ofFn x).getD k false)))
+
+/-- Membership of a `negClause`. -/
+theorem mem_negClause (j : Nat) (lit : Lit) :
+    lit ∈ negClause j ↔ lit = ⟨j, Polarity.neg⟩ := by
+  simp [negClause]
+
+/-- **Head component:** the decoded head clause has the same literals as `negClause 0`. -/
+theorem decodeClause_bvHead_mem (n : Nat) (lit : Lit) :
+    lit ∈ decodeClause (n + 1) (bvHead n) ↔ lit ∈ negClause 0 := by
+  rw [mem_decodeClause, mem_negClause]
+  constructor
+  · rintro ⟨v, hv | hv⟩
+    · simp only [bvHead, Bool.and_eq_true, Bool.not_eq_true'] at hv; simp at hv
+    · simp only [bvHead, Bool.and_eq_true, decide_eq_true_eq] at hv
+      obtain ⟨⟨hv0, _⟩, hlit⟩ := hv
+      rw [hlit, hv0]
+  · intro hlit
+    refine ⟨⟨0, by omega⟩, Or.inr ⟨?_, ?_⟩⟩
+    · simp [bvHead]
+    · rw [hlit]
+
+/-- **Tail component:** the decoded tail clause has the same literals as `negClause n`. -/
+theorem decodeClause_bvTail_mem (n : Nat) (lit : Lit) :
+    lit ∈ decodeClause (n + 1) (bvTail n) ↔ lit ∈ negClause n := by
+  rw [mem_decodeClause, mem_negClause]
+  constructor
+  · rintro ⟨v, hv | hv⟩
+    · simp only [bvTail, Bool.and_eq_true, Bool.not_eq_true'] at hv; simp at hv
+    · simp only [bvTail, Bool.and_eq_true, decide_eq_true_eq] at hv
+      obtain ⟨⟨hvn, _⟩, hlit⟩ := hv
+      rw [hlit, hvn]
+  · intro hlit
+    refine ⟨⟨n, by omega⟩, Or.inr ⟨?_, ?_⟩⟩
+    · simp [bvTail]
+    · rw [hlit]
+
 end PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec
 
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec.chain_eq_flatMap
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec.mem_decodeClause
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec.clause_eval_congr
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec.decodeClause_bvHead_mem
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec.decodeClause_bvTail_mem
