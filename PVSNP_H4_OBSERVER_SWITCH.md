@@ -1035,3 +1035,24 @@ polynomial-time SAT machine is not known to realize the whole independent query 
 bounded-bond, logarithmic-depth MERA boundary.  That class assumption is isolated as
 `SATCorrectnessCompilesIndependentQueries`; extending it to every P-time machine would be the unrestricted
 model bridge, not a consequence of SAT correctness.
+
+## 2026-07-10 — Ramanujan/expander query routing and MERA compiler audit
+
+Lean file: `PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPRamanujanQueryMERACompiler.lean`.
+
+`RamanujanExpanderQueryLayout n` now routes the `n` independent SAT-query coordinates injectively into
+the vertices of a certified `TseitinGraph.HasExpansion` source.  The graph component is substantive:
+`combination_width` and `exists_surviving_edge` inherit the proved expander width/no-vanishing kernel.
+`K4QueryLayout` supplies a concrete four-coordinate non-vacuity witness from the already proved `K4`
+expander certificate.
+
+`RamanujanMERAQueryTranscript` couples that layout to the exact bounded-MERA batch execution, and
+`toDynamicHolonomyDecoder` compiles it to the existing dynamic holonomy decoder.  The all-size compiler
+`RamanujanQueryMERACompiler` packages one fixed MERA family, an expander layout at every size, and the
+transcript realization.  Its `not_decidesSAT` theorem rules out SAT correctness for that restricted class.
+
+The audit theorem `expander_layout_does_not_supply_MERA_transcripts` is the key scope result: even a supplied
+all-size expander layout does not derive the exact polynomial-boundary query transcripts.  The remaining
+fields are machine-to-geometry preservation/locality, not graph expansion.  Also, the repository currently
+has a concrete finite `K4` expansion witness but not a constructed asymptotic spectral LPS family in this
+Path-B interface; an all-size layout is therefore correctly kept as compiler data.
