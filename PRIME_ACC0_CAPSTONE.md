@@ -44,7 +44,7 @@ All `sorry`-free, axioms ⊆ `{propext, Classical.choice, Quot.sound}`.
 
 ---
 
-## Cross-model bridge: uniform SAT ↔ `AC⁰[p]` capstone (bricks 1–4 PROVED, in progress)
+## Cross-model bridge: uniform SAT ↔ `AC⁰[p]` capstone (COMPLETE — unconditional restricted LB)
 
 Goal: connect the repo's uniform `MachineModel`/CNF-SAT world to the non-uniform `AC⁰[p]` prime capstone,
 yielding a machine-checked **`SAT ∉ AC⁰[p]`** (an elementary result — *not* `P ≠ NP`). Built from scratch
@@ -57,16 +57,20 @@ a socket; all `sorry`-free, axioms ⊆ `{propext, Classical.choice, Quot.sound}`
 | **2 — composition** | `…PvsNPCircuitComposition` | circuit substitution `subst` on `BoolCircuitSyntax` + `eval_subst` (composition-eval), `isAC0pSyntax_subst`/`isAC0Syntax_subst` (`AC⁰[p]`/`AC⁰` closed under substitution), `depth_subst_le` (additive depth). Genuine composition-closure of `AC⁰[p]`; `rec_size` size-bounded induction principle for the nested inductive |
 | **3 — transfer** | `…PvsNPParitySATBridge` | `decider_size_ge_of_parity_LB`: an `AC⁰[p]` decider for the parity-CNF family through an `AC⁰`, depth-`≤1` encoding, composed via bricks 1+2, is an `AC⁰[p]` circuit computing `PARITY` of depth `≤ Dec.depth+1` — so any parity `AC⁰[p]` size LB (`RealAC0pParitySizeLowerBoundAt`) forces `lower ≤ size(subst Dec enc)`. `enc` is fixed/input-local, so all deciding is in `Dec` — non-circular |
 | **4 — concrete SAT decider** | `…PvsNPParitySATDecider` | `no_small_ac0p_parityCNF_decider`: any `AC⁰[p]` circuit `Dec` with `(Dec.eval x = true ↔ Satisfiable (parityCNF (ofFn x)))` has `lower ≤ Dec.size + 1` under a parity `AC⁰[p]` size LB — a statement *literally about `Satisfiable (parityCNF …)`*, via brick 1 (`parityCNF_sat_iff_even`) and `bxor_ofFn : bxor (ofFn x) = parityFunction n x`. Identity encoding, so `not Dec` computes `PARITY` |
+| **5 — interface discharge** | `…PvsNPParityInterfaceDischarge` | `realAC0p_parity_LB` proves `RealAC0pParitySizeLowerBoundAt` from the *subcircuit-form* capstone (`subcircuits_card_le_size` : `#subcircuits ≤ size`; `boolParity_eq_decide_odd` : `parityFunction` = Odd-count parity; `Layer4.hmod_of_isAC0p`). ⇒ `no_small_ac0p_parityCNF_decider_unconditional`: **no lower-bound hypothesis left** — for `t ≈ m^{1/(2(d+1))}`, any `AC⁰[p]` decider of the parity-CNF family on `2m+1` bits has *super-polynomial* size |
+| **6 — model bridge** | `…PvsNPParityAC0pClass` | `no_SATDecisionInClass_smallAC0pParity`: a genuine `RestrictedCapstoneTransfer` instance in an abstract `MachineModel U`. Class = decision machines whose parity-family decision `x ↦ decisionRun M.code (parityCNF (ofFn x))` is realised by a small `AC⁰[p]` circuit; `no_obstruction` from brick 5, `obstruction_of_decides` from `DecidesSAT` + brick 1. ⇒ **no SAT decider has a small `AC⁰[p]` realisation on the parity-CNF family** |
 
-**Honest remaining gap (NOT proved):** (i) **generic encoding** — brick 4 uses the *identity* encoding (the
-instance is determined by `x`), so the SAT framing is thin; a *generic* CNF bit-encoding (decider not
-specialised to the family) would strengthen it, but the theorem is already literally about
-`Satisfiable (parityCNF …)`. (ii) **interface discharge** — the prime capstone proves the parity `AC⁰[p]`
-bound in *subcircuit-count* form (`Layer3.parity_function_lower_bound`); wiring it to the
-`RealAC0pParitySizeLowerBoundAt` interface form used by bricks 3–4 is a separate step (would make the
-`lower` bound super-polynomial and unconditional). (iii) the **uniform↔non-uniform** identification of an
-abstract `MachineModel` SAT-decider with a `BoolCircuitSyntax` family (defining the class `C`) — the genuine
-model-bridge subtlety. Bricks 1–4 are the reusable, correct core; (i)–(iii) remain.
+**Gaps (i)–(iii) now closed:** (ii) discharged unconditionally (brick 5); (iii) closed by the
+`MachineModel` `RestrictedCapstoneTransfer` instance (brick 6); (i) subsumed — in brick 6 the class member
+`M` is a *general* SAT decider (`DecidesSAT ∀ φ`), and the restriction is only on the `AC⁰[p]` realisation of
+its parity-family behaviour, so no separate generic-CNF-encoding circuit is needed.
+
+**What this is / is not.** *Is:* a machine-checked, `sorry`-free, custom-axiom-free **unconditional restricted
+lower bound** — no SAT decider is realisable by a small (`< super-poly`) `AC⁰[p]` circuit on the parity-CNF
+family — built from scratch against the repo's real `CNF` and `BoolCircuitSyntax`, backed by the genuine
+Razborov–Smolensky capstone (not a pigeonhole socket). *Is not:* general `SAT ∉ AC⁰[p]` (would need the bound
+for every `CNF` family, uniformly in the encoding), and emphatically not `P`-time ⊆ `AC⁰[p]` (false) or
+`P ≠ NP`. The restriction to the parity family and to fixed input size is inherent and stated.
 
 ---
 
