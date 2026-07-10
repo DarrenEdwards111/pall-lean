@@ -891,3 +891,28 @@ This is a genuine class-specific lower bound, not P≠NP.  Instantiating it for 
 genuine NP-complete projected-SPDP rank lower bound and correctness/transport into the decoder's accessible
 rank.  Extending it to all P would additionally require a compilation of every P-time SAT solver into a
 fixed-bond log-depth local MERA family, which is not established.
+
+## 2026-07-10 — Concrete parity-core SPDP versus restricted MERA bridge
+
+Lean file: `PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPNFrameMERAParityCoreBridge.lean`.
+
+The decoder-dependent diagonal witness has been replaced by a concrete projected-SPDP target.  At
+projection parameters `k = 0`, `d = 1`, the existing inner-product/parity cut matrix has rank exactly
+`2^n`.  Mathlib's exponential-dominates-polynomial theorem then gives a size where this target exceeds
+the fixed polynomial ceiling of every bounded-bond local logarithmic-depth MERA family.  Proved:
+
+```lean
+parityCoreSPDPRequiredRank_eq_two_pow
+exists_parityCoreRank_exceeds_ceiling
+not_preserves_parityCoreSPDPRequiredRank
+exists_parityCoreRank_exceeds_accessibleRank
+```
+
+The SAT frontier is isolated without being assumed.  `SATCorrectnessTransportsParityCoreRank` names the
+extra representation/decision bridge, and `not_decidesSAT_of_parityCore_transport` plus
+`no_SAT_decider_with_parityCoreFaithfulRestrictedMERA` cash it out for the explicitly restricted class.
+
+Honest ceiling: the parity/Tseitin linear core is in P.  Its exponential projected rank is a concrete
+restricted-MERA obstruction, but generic SAT language correctness does not force an arbitrary solver to
+preserve that representation-dependent rank.  A genuine NP-complete residual family and a proved
+correctness-to-rank transport theorem remain open; the new file does not claim either.
