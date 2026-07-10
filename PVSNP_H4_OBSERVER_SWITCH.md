@@ -947,3 +947,34 @@ restricted-class cash-outs proved.  Honest ceiling: holonomy escapes the local-p
 canonical signature is efficiently computable and is not itself an NP-complete lower bound.  The remaining
 theorem must connect a genuine NP-complete residual family to independent holonomy labels and prove that
 SAT-decoder correctness forces their preservation.
+
+## 2026-07-10 — Dynamic holographic MERA holonomy
+
+Lean file: `PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPNFrameDynamicMERAHolonomy.lean`.
+
+The restricted holographic theorem now has a genuine time axis.  `DynamicHolonomyMERADecoder M n`
+contains a finite boundary state, an `n`-bit holonomy encoder, a time-indexed deterministic transition,
+and a decoder after `M.layers n` steps.  `runFrom_add` proves prefix/suffix decomposition of the
+trajectory.
+
+The central theorem is `stateAt_injective`: exact final recovery forces the map from signatures to
+reachable states to be injective at **every** intermediate time.  If two signatures merged at time `t`,
+their common deterministic suffix would stay merged and the final decoder could not recover both.
+Consequently:
+
+```lean
+two_pow_le_boundary_card_at_time
+two_pow_le_accessibleRank
+no_dynamicDecoder_at_size
+exists_size_without_dynamicHolonomyDecoder
+```
+
+Every boundary slice therefore needs at least `2^n` states, contradicting the fixed-bond log-depth MERA
+polynomial ceiling at some size.  This is a real dynamic restricted-decoder lower bound, not merely an
+asymptotic rank annotation.
+
+`SATCorrectnessCompilesToDynamicHolonomy` names the exact remaining upstream bridge, and conditional
+restricted-class SAT cash-outs are proved.  Honest ceiling: SAT correctness supplies one decision bit,
+not exact recovery of every holonomy label.  A genuine NP-complete residual-to-holonomy construction and
+decision-invariance proof remain open, as does compilation of arbitrary P-time machines into this MERA
+architecture.
