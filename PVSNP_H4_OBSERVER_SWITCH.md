@@ -916,3 +916,34 @@ Honest ceiling: the parity/Tseitin linear core is in P.  Its exponential project
 restricted-MERA obstruction, but generic SAT language correctness does not force an arbitrary solver to
 preserve that representation-dependent rank.  A genuine NP-complete residual family and a proved
 correctness-to-rank transport theorem remain open; the new file does not claim either.
+
+## 2026-07-10 — MERA local-SPDP failure and holonomy replacement
+
+Lean file: `PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPNFrameMERAHolonomyBridge.lean`.
+
+The next high-degree affine/Tseitin-indicator probe was already resolved negatively by the repository's
+`ExpanderAmplificationBoundary`: when the fixed SPDP radius lies below residual distance, projected rank
+collapses to at most one.  The new bridge connects that result to MERA explicitly:
+
+```lean
+highDistance_spdpRank_le_MERA_ceiling
+not_MERA_ceiling_lt_highDistance_spdpRank
+```
+
+Thus fixed-order local SPDP cannot supply the strict rank gap required by the restricted MERA theorem.
+The file then replaces local SPDP with the global cycle-holonomy signature.  A canonical separated-cycle
+family realizes every Boolean signature, giving exactly `2^n` classes, and therefore eventually exceeds
+every fixed MERA polynomial ceiling:
+
+```lean
+holonomyPatternRank_eq_two_pow
+exists_holonomyRank_exceeds_MERA_ceiling
+not_preserves_holonomyPatternRank
+exists_holonomyRank_exceeds_accessibleRank
+```
+
+`SATCorrectnessTransportsHolonomyRank` names the remaining decision-invariance bridge, with conditional
+restricted-class cash-outs proved.  Honest ceiling: holonomy escapes the local-projection collapse, but the
+canonical signature is efficiently computable and is not itself an NP-complete lower bound.  The remaining
+theorem must connect a genuine NP-complete residual family to independent holonomy labels and prove that
+SAT-decoder correctness forces their preservation.
