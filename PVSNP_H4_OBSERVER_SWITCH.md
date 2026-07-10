@@ -795,3 +795,34 @@ the N-Frame information argument yields only a linear total-access requirement, 
 A super-polynomial SAT lower bound still needs new solver-specific structure that makes the required
 task information super-polynomial in the actual encoded input length or prevents polynomial-time
 computation of the Boolean decision; neither follows from exact label recovery plus bounded bandwidth.
+
+## 2026-07-10 — Holographic area-law pressure test
+
+Lean file: `PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPNFrameHolographicAreaLaw.lean`.
+
+The black-hole-inspired refinement is formalized at radius `R` as `R^3` bulk task-label bits and
+`R^2` boundary bits per sequential boundary use.  `HolographicAreaLawChannel` packages an exact-recovery
+N-Frame channel with the bound
+
+```lean
+capacityBits ≤ boundaryUses * R^2.
+```
+
+Machine-checked results:
+
+```lean
+bulk_bits_le_reused_area
+impossible_below_radius_reuse
+impossible_one_use
+saturatedStreamingChannel
+saturated_total_boundary_capacity
+saturated_recovers_bulk
+```
+
+The static area/volume idea works exactly: one `R^2` boundary cannot recover an injective `R^3`-bit
+bulk label for `R ≥ 2`.  More generally, recovery is impossible whenever `boundaryUses < R`.
+The tight countermodel reuses the boundary exactly `R` times and reaches total capacity `R * R^2 = R^3`,
+with the identity channel recovering the full bulk label.  Since `R` reuse steps are polynomial, the
+holographic area law alone does not yield a super-polynomial time lower bound.  The remaining bridge must
+prove a sub-`R` reuse restriction for arbitrary SAT solvers or a genuine holographic decoding-complexity
+lower bound; neither is supplied by the physical area law itself.
