@@ -143,6 +143,62 @@ theorem identityTrace_states_exceed_bit_count (m : Nat) :
   rw [identityTrace_capacityBits, identityTrace_stateCount]
   exact Nat.lt_two_pow_self
 
+/-! ## Operational access/bandwidth pressure test
+
+A storage bound alone is not a time bound.  The minimal operational strengthening is to bound how
+many task-relevant bits can enter the stabilized boundary per step.  If a run has `steps` interactions
+and each interaction carries at most `bitsPerStep`, then its available capacity is at most their product.
+This yields a genuine access lower bound, but the exact-recovery requirement only forces
+`m ≤ steps * bitsPerStep`—a linear information budget, fully compatible with polynomial time.
+-/
+
+/-- An N-Frame channel annotated with a sequential access/bandwidth budget. -/
+structure AccessBoundedTraceChannel (m : Nat) extends StabilizedNFrameTraceChannel m where
+  steps : Nat
+  bitsPerStep : Nat
+  capacity_from_access : toStabilizedNFrameTraceChannel.capacityBits ≤ steps * bitsPerStep
+
+namespace AccessBoundedTraceChannel
+
+/-- Exact recovery forces the total operational access budget to carry at least `m` bits. -/
+theorem label_bits_le_total_access {m : Nat} (C : AccessBoundedTraceChannel m) :
+    m ≤ C.steps * C.bitsPerStep :=
+  le_trans C.toStabilizedNFrameTraceChannel.label_bits_le_capacity C.capacity_from_access
+
+/-- Tight polynomial countermodel: read one task-relevant bit per step for `m` steps. -/
+def linearAccessIdentityChannel (m : Nat) : AccessBoundedTraceChannel m where
+  toStabilizedNFrameTraceChannel := identityTraceChannel m
+  steps := m
+  bitsPerStep := 1
+  capacity_from_access := by simp [identityTraceChannel]
+
+theorem linearAccess_steps (m : Nat) :
+    (linearAccessIdentityChannel m).steps = m := rfl
+
+theorem linearAccess_bitsPerStep (m : Nat) :
+    (linearAccessIdentityChannel m).bitsPerStep = 1 := rfl
+
+theorem linearAccess_total_access (m : Nat) :
+    (linearAccessIdentityChannel m).steps *
+        (linearAccessIdentityChannel m).bitsPerStep = m := by
+  simp [linearAccess_steps, linearAccess_bitsPerStep]
+
+/-- A second tight countermodel: one high-bandwidth step can carry the full `m`-bit label.  Therefore
+turning access into a time lower bound also requires an independently justified per-step bandwidth cap. -/
+def oneStepIdentityChannel (m : Nat) : AccessBoundedTraceChannel m where
+  toStabilizedNFrameTraceChannel := identityTraceChannel m
+  steps := 1
+  bitsPerStep := m
+  capacity_from_access := by simp [identityTraceChannel]
+
+theorem oneStep_steps (m : Nat) : (oneStepIdentityChannel m).steps = 1 := rfl
+
+theorem oneStep_total_access (m : Nat) :
+    (oneStepIdentityChannel m).steps * (oneStepIdentityChannel m).bitsPerStep = m := by
+  simp [oneStepIdentityChannel]
+
+end AccessBoundedTraceChannel
+
 /-! ## The proposed all-P capacity-deficit theorem is exactly the separation
 
 The sharpened N64 proposal says that SAT correctness should produce an exact-recovery stabilized
@@ -231,5 +287,8 @@ end PallLean.Paper93.DeepMath.PathB.PvsNPNFrameTraceCapacity
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPNFrameTraceCapacity.StabilizedNFrameTraceChannel.identityTrace_states_exceed_bit_count
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPNFrameTraceCapacity.StabilizedNFrameTraceChannel.exact_capacity_achievable
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPNFrameTraceCapacity.StabilizedNFrameTraceChannel.capacity_eq_label_bits_of_le
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPNFrameTraceCapacity.StabilizedNFrameTraceChannel.AccessBoundedTraceChannel.label_bits_le_total_access
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPNFrameTraceCapacity.StabilizedNFrameTraceChannel.AccessBoundedTraceChannel.linearAccess_total_access
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPNFrameTraceCapacity.StabilizedNFrameTraceChannel.AccessBoundedTraceChannel.oneStep_total_access
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPNFrameTraceCapacity.StabilizedNFrameTraceChannel.CapacityDeficitFromCorrectnessFor.not_decidesSAT
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPNFrameTraceCapacity.StabilizedNFrameTraceChannel.capacityDeficit_iff_no_SATDecisionInP

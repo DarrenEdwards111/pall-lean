@@ -779,3 +779,19 @@ Nonempty (CapacityDeficitFromCorrectnessForAllMachines U) ↔ ¬ SATDecisionInP 
 by `capacityDeficit_iff_no_SATDecisionInP`.  This closes the logical audit: the sublinear stabilized-quotient
 claim is not a weaker trace lemma waiting to be derived from polynomial runtime.  For all machines it is
 exactly the desired separation, with the reverse direction inhabited only vacuously once SAT-in-P is denied.
+
+The next operational strengthening was also pressure-tested.  `AccessBoundedTraceChannel` annotates an
+N-Frame channel with a step count and per-step task-relevant bandwidth, assuming
+`capacityBits ≤ steps * bitsPerStep`.  Exact recovery then proves the genuine access bound
+
+```lean
+m ≤ steps * bitsPerStep
+```
+
+via `label_bits_le_total_access`.  Two tight countermodels delimit what this buys:
+`linearAccessIdentityChannel` uses one bit per step for exactly `m` steps, while
+`oneStepIdentityChannel` uses one step of bandwidth `m`.  Thus even after adding sequential access,
+the N-Frame information argument yields only a linear total-access requirement, compatible with P.
+A super-polynomial SAT lower bound still needs new solver-specific structure that makes the required
+task information super-polynomial in the actual encoded input length or prevents polynomial-time
+computation of the Boolean decision; neither follows from exact label recovery plus bounded bandwidth.
