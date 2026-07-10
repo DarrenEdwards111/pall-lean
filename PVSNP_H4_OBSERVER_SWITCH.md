@@ -978,3 +978,31 @@ restricted-class SAT cash-outs are proved.  Honest ceiling: SAT correctness supp
 not exact recovery of every holonomy label.  A genuine NP-complete residual-to-holonomy construction and
 decision-invariance proof remain open, as does compilation of arbitrary P-time machines into this MERA
 architecture.
+
+## 2026-07-10 — Dynamic holonomy decision-relevance bridge
+
+Lean file: `PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPDynamicHolonomyDecisionRelevance.lean`.
+
+The missing SAT correctness-to-holonomy implication is now split at the correct semantic boundary.
+`SATQueryHolonomyFamily n` requires a concrete CNF query for each instance and holonomy coordinate, with
+query satisfiability equivalent to that coordinate bit, and requires all `2^n` signatures to occur.
+For any correct SAT decider, the following are proved rather than assumed:
+
+```lean
+answers_eq_label
+answers_surjective
+boundary_card_ge_two_pow_of_decodes_answers
+no_polyBoundary_decodes_answers
+```
+
+Thus coordinatewise SAT correctness really does recover the entire signature, and any finite boundary
+decoding those answers needs at least `2^n` states.
+
+The file also proves the necessary no-go.  `LabelIgnoredLift` attaches arbitrary exponential labels to
+an abstract decision problem while ignoring them in the predicate.  `reduction_lifts_to_labelIgnored`
+shows any many-one hardness of the base problem survives this padding; `decider_ignores_labels` and
+`no_decisionBit_decoder_for_ignored_labels` show correctness still contains no label information.
+
+Therefore NP-hardness plus many labels is insufficient.  The remaining concrete construction must make
+the holonomy coordinates decision-relevant via uniform CNF queries without encoding their answers by
+hand, and then compile that adaptive query transcript into the bounded-MERA dynamic boundary.
