@@ -102,6 +102,47 @@ def subst {n k : Nat} : BoolCircuitSyntax n → (Fin n → BoolCircuitSyntax k) 
   | .orGate Cs, f => .orGate (Cs.map (fun C => subst C f))
   | .modGate q r Cs, f => .modGate q r (Cs.map (fun C => subst C f))
 
+/-! ## Substitution size accounting -/
+
+/-- The size fold is the initial accumulator plus the sum of the child sizes. -/
+theorem foldl_size_eq {n : Nat} (Cs : List (BoolCircuitSyntax n)) (a : Nat) :
+    Cs.foldl (fun s C => s + C.size) a = a + (Cs.map BoolCircuitSyntax.size).sum := by
+  induction Cs generalizing a with
+  | nil => simp
+  | cons c cs ih => rw [List.foldl_cons, ih, List.map_cons, List.sum_cons]; omega
+
+/-- **Substitution size bound.** If every input replacement has size at most `M`, with `M ≥ 1`,
+then substituting them into `C` increases size by at most a factor of `M`. -/
+theorem subst_size_le {n k : Nat} (f : Fin n → BoolCircuitSyntax k) (M : Nat)
+    (hM : ∀ i, (f i).size ≤ M) (hM1 : 1 ≤ M) :
+    ∀ C : BoolCircuitSyntax n, (subst C f).size ≤ C.size * M := by
+  intro C
+  induction C using rec_size with
+  | const b => simp only [subst, BoolCircuitSyntax.size, one_mul]; exact hM1
+  | input i => simpa only [subst, BoolCircuitSyntax.size, one_mul] using hM i
+  | not C ih => simp only [subst, BoolCircuitSyntax.size]; nlinarith
+  | andGate Cs ih =>
+      have hsum : ((Cs.map (fun c => subst c f)).map BoolCircuitSyntax.size).sum
+          ≤ (Cs.map BoolCircuitSyntax.size).sum * M := by
+        rw [List.map_map, ← List.sum_map_mul_right]
+        exact List.sum_le_sum (fun c hc => ih c hc)
+      simp only [subst, BoolCircuitSyntax.size, foldl_size_eq]
+      nlinarith
+  | orGate Cs ih =>
+      have hsum : ((Cs.map (fun c => subst c f)).map BoolCircuitSyntax.size).sum
+          ≤ (Cs.map BoolCircuitSyntax.size).sum * M := by
+        rw [List.map_map, ← List.sum_map_mul_right]
+        exact List.sum_le_sum (fun c hc => ih c hc)
+      simp only [subst, BoolCircuitSyntax.size, foldl_size_eq]
+      nlinarith
+  | modGate q r Cs ih =>
+      have hsum : ((Cs.map (fun c => subst c f)).map BoolCircuitSyntax.size).sum
+          ≤ (Cs.map BoolCircuitSyntax.size).sum * M := by
+        rw [List.map_map, ← List.sum_map_mul_right]
+        exact List.sum_le_sum (fun c hc => ih c hc)
+      simp only [subst, BoolCircuitSyntax.size, foldl_size_eq]
+      nlinarith
+
 /-! ## Composition-eval identity -/
 
 /-- **The composition identity:** evaluating a substitution equals evaluating the outer circuit on the
@@ -242,6 +283,7 @@ theorem depth_subst_le {n k : Nat} (D : Nat) (C : BoolCircuitSyntax n)
 end PallLean.Paper93.DeepMath.PathB.PvsNPCircuitComposition
 
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPCircuitComposition.eval_subst
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPCircuitComposition.subst_size_le
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPCircuitComposition.isAC0pSyntax_subst
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPCircuitComposition.isAC0Syntax_subst
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPCircuitComposition.depth_subst_le

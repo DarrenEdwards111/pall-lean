@@ -126,6 +126,13 @@ theorem pCirc_depth_le (n : Nat) (j : Nat) (v : Fin (n + 1)) (s : Bool) :
   repeat' split
   all_goals simp [BoolCircuitSyntax.depth]
 
+/-- Every local parity-incidence circuit has at most two nodes. -/
+theorem pCirc_size_le (n : Nat) (j : Nat) (v : Fin (n + 1)) (s : Bool) :
+    (pCirc n j v s).size ≤ 2 := by
+  unfold pCirc
+  repeat' split
+  all_goals simp [BoolCircuitSyntax.size]
+
 /-! ## Flattening the incidence into a single `Fin N` circuit input -/
 
 /-- The flat incidence index: (clause, variable, sign). -/
@@ -140,6 +147,11 @@ def Nbits (n : Nat) : Nat := Fintype.card (Idx n)
 /-- The `AC⁰` depth-`≤1` circuit family realising the parity bit-pattern. -/
 noncomputable def bvFamily {n : Nat} (k : Fin (Nbits n)) : BoolCircuitSyntax n :=
   pCirc n ((e n).symm k).1.val ((e n).symm k).2.1 ((e n).symm k).2.2
+
+/-- Every member of the flattened local encoding family has size at most two. -/
+theorem bvFamily_size {n : Nat} (k : Fin (Nbits n)) :
+    (bvFamily k).size ≤ 2 := by
+  exact pCirc_size_le n ((e n).symm k).1.val ((e n).symm k).2.1 ((e n).symm k).2.2
 
 /-- The parity flat bit-pattern. -/
 noncomputable def bv {n : Nat} (x : Fin n → Bool) (k : Fin (Nbits n)) : Bool :=
@@ -272,12 +284,54 @@ theorem no_small_ac0p_generic_SAT_decider_unconditional
   exact no_small_ac0p_parityCNF_decider_unconditional p hp2 m t ht1 (subst Dec bvFamily)
     hwin hac0p hsat lower hlow
 
+/-- **Actual lower bound on the generic SAT-decider circuit itself.** The local codec replaces every
+input by a circuit of size at most two, so the parity lower bound on the composite implies
+`lower ≤ 2 * Dec.size + 1`. -/
+theorem generic_SAT_decider_size_lower_bound
+    (m p t lower : ℕ) [Fact p.Prime] (hp2 : (2 : ZMod p) ≠ 0) (ht1 : 1 ≤ t)
+    (hpt : 1 ≤ (p - 1) * t)
+    (Dec : BoolCircuitSyntax (Nbits (2 * m + 1)))
+    (hm : 8 * (((p - 1) * t) ^ (Dec.depth + 2)) ^ 2 ≤ m)
+    (hDec_ac0p : Dec.IsAC0pSyntax p)
+    (hDec : ∀ b : Fin (Nbits (2 * m + 1)) → Bool,
+      Dec.eval b = true ↔ Satisfiable (decodeFlat b))
+    (hlow : 4 * lower ≤ p ^ t) :
+    lower ≤ 2 * Dec.size + 1 := by
+  have hlower := no_small_ac0p_generic_SAT_decider_unconditional
+    m p t lower hp2 ht1 hpt Dec hm hDec_ac0p hDec hlow
+  have hsize : (subst Dec bvFamily).size ≤ Dec.size * 2 :=
+    subst_size_le bvFamily 2 bvFamily_size (by omega) Dec
+  omega
+
+/-- Fixed-depth packaging of the generic SAT-decider lower bound.  A uniform depth cap `d` supplies
+the Razborov--Smolensky window independently of the particular circuit's actual depth. -/
+theorem generic_SAT_decider_size_lower_bound_depth_le
+    (m p t lower d : ℕ) [Fact p.Prime] (hp2 : (2 : ZMod p) ≠ 0) (ht1 : 1 ≤ t)
+    (hpt : 1 ≤ (p - 1) * t)
+    (Dec : BoolCircuitSyntax (Nbits (2 * m + 1)))
+    (hdepth : Dec.depth ≤ d)
+    (hm : 8 * (((p - 1) * t) ^ (d + 2)) ^ 2 ≤ m)
+    (hDec_ac0p : Dec.IsAC0pSyntax p)
+    (hDec : ∀ b : Fin (Nbits (2 * m + 1)) → Bool,
+      Dec.eval b = true ↔ Satisfiable (decodeFlat b))
+    (hlow : 4 * lower ≤ p ^ t) :
+    lower ≤ 2 * Dec.size + 1 := by
+  have hpow : ((p - 1) * t) ^ (Dec.depth + 2) ≤ ((p - 1) * t) ^ (d + 2) :=
+    Nat.pow_le_pow_right hpt (by omega)
+  have hm' : 8 * (((p - 1) * t) ^ (Dec.depth + 2)) ^ 2 ≤ m := by
+    exact le_trans (Nat.mul_le_mul_left 8 (Nat.pow_le_pow_left hpow 2)) hm
+  exact generic_SAT_decider_size_lower_bound
+    m p t lower hp2 ht1 hpt Dec hm' hDec_ac0p hDec hlow
+
 end PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFComposition
 
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFComposition.pCirc_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFComposition.pCirc_ac0
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFComposition.pCirc_depth_le
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFComposition.pCirc_size_le
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFComposition.bvFamily_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFComposition.bvFamily_ac0
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFComposition.decodeFlat_sat_iff_even
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFComposition.no_small_ac0p_generic_SAT_decider_unconditional
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFComposition.generic_SAT_decider_size_lower_bound
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFComposition.generic_SAT_decider_size_lower_bound_depth_le
