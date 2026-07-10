@@ -857,3 +857,37 @@ Nonempty (HolographicSATDecodingLowerBoundForAllMachines U) ↔ ¬ SATDecisionIn
 Thus decoding complexity is the right *kind* of missing invariant, but deriving its super-polynomial
 lower bound from a concrete NP-complete residual family and every solver's internal holographic dynamics
 is exactly the separation.  The physical area law and N-Frame stabilization do not prove that field.
+
+## 2026-07-10 — Restricted bounded-bond MERA decoder theorem
+
+Lean file: `PallLean/Paper93/DeepMath/PathB/ComputationalDepthPvsNPNFrameRestrictedMERADecoder.lean`.
+
+Book 1's local MERA clue is now a real restricted theorem.  A
+`BoundedBondLocalMERADecoderFamily` has a fixed bond alphabet, fixed causal-cone width factor,
+at most `log₂ n` layers, and accessible task/SPDP rank bounded by the number of bond profiles in
+the causal cone.  Proved:
+
+```lean
+accessibleRank_le_poly
+not_preservesRequiredRank_of_exceeds_ceiling
+no_correct_decoder_at_size
+profileSaturated_accessibleRank
+diagonalRequiredRank_not_preserved
+```
+
+The exact ceiling is
+
+```text
+accessibleRank n
+  ≤ bondStates^(coneFactor * log₂ n)
+  ≤ n^(coneFactor * (log₂ bondStates + 1)).
+```
+
+Thus any target whose correctness requires greater projected rank is not decodable by that fixed
+bounded-bond, local, logarithmic-depth MERA family.  `profileSaturatedFamily` shows that the causal-cone
+profile count is tight, while `diagonalRequiredRank_not_preserved` supplies a concrete non-vacuity test.
+
+This is a genuine class-specific lower bound, not P≠NP.  Instantiating it for SAT still requires a
+genuine NP-complete projected-SPDP rank lower bound and correctness/transport into the decoder's accessible
+rank.  Extending it to all P would additionally require a compilation of every P-time SAT solver into a
+fixed-bond log-depth local MERA family, which is not established.
