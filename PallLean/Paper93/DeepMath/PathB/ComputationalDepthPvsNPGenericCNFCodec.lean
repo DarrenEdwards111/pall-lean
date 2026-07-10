@@ -166,10 +166,62 @@ theorem decodeClause_bvTail_mem (n : Nat) (lit : Lit) :
     · simp [bvTail]
     · rw [hlit]
 
+/-- The two clauses of a link block, explicitly. -/
+def linkClause1 (k : Nat) (b : Bool) : Clause :=
+  [⟨k + 1, Polarity.pos⟩, ⟨k, if b then Polarity.pos else Polarity.neg⟩]
+
+def linkClause2 (k : Nat) (b : Bool) : Clause :=
+  [⟨k + 1, Polarity.neg⟩, ⟨k, if b then Polarity.neg else Polarity.pos⟩]
+
+theorem linkClauses_eq (k : Nat) (b : Bool) :
+    linkClauses k b = [linkClause1 k b, linkClause2 k b] := by
+  cases b <;> simp [linkClauses, linkClause1, linkClause2]
+
+/-- **First link-clause component:** the decoded first block clause matches `linkClause1`. -/
+theorem decodeClause_bvBlock1_mem {n : Nat} (x : Fin n → Bool) (k : Nat) (hk : k < n) (lit : Lit) :
+    lit ∈ decodeClause (n + 1) (bvBlock1 x k) ↔
+      lit ∈ linkClause1 k ((List.ofFn x).getD k false) := by
+  rw [mem_decodeClause]
+  simp only [linkClause1, List.mem_cons, List.not_mem_nil, or_false,
+    bvBlock1, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq, Bool.and_true,
+    Bool.and_false, Bool.false_or, Bool.or_false]
+  constructor
+  · rintro ⟨v, ⟨hc, rfl⟩ | ⟨hc, rfl⟩⟩
+    · rcases hc with h1 | ⟨h1, _⟩
+      · exact Or.inl (by rw [h1])
+      · right; rw [h1]; rcases hx : (List.ofFn x).getD k false <;> simp_all
+    · rcases hc with ⟨h1, _⟩
+      right; rw [h1]; rcases hx : (List.ofFn x).getD k false <;> simp_all
+  · rintro (rfl | rfl)
+    · exact ⟨⟨k + 1, by omega⟩, Or.inl ⟨Or.inl rfl, rfl⟩⟩
+    · rcases hx : (List.ofFn x).getD k false <;>
+        [exact ⟨⟨k, by omega⟩, Or.inr ⟨⟨rfl, by simp [hx]⟩, by simp [hx]⟩⟩;
+         exact ⟨⟨k, by omega⟩, Or.inl ⟨Or.inr ⟨rfl, by simp [hx]⟩, by simp [hx]⟩⟩]
+
+/-- **Second link-clause component:** the decoded second block clause matches `linkClause2`. -/
+theorem decodeClause_bvBlock2_mem {n : Nat} (x : Fin n → Bool) (k : Nat) (hk : k < n) (lit : Lit) :
+    lit ∈ decodeClause (n + 1) (bvBlock2 x k) ↔
+      lit ∈ linkClause2 k ((List.ofFn x).getD k false) := by
+  have hget : (List.ofFn x).getD k false = x ⟨k, hk⟩ := by
+    rw [List.getD_eq_getElem?_getD, List.getElem?_ofFn]; simp [hk]
+  rw [mem_decodeClause, hget, linkClause2]
+  rcases hxk : x ⟨k, hk⟩ <;>
+  · simp only [bvBlock2, hget, hxk, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false,
+      Bool.not_true, Bool.not_false, Bool.and_true, Bool.and_false, Bool.false_or, Bool.or_false,
+      Bool.true_beq, Bool.false_beq, beq_self_eq_true, Bool.and_eq_true, Bool.or_eq_true,
+      decide_eq_true_eq, if_true, if_false]
+    constructor
+    · rintro ⟨v, hv⟩
+      aesop
+    · rintro (rfl | rfl)
+      · exact ⟨⟨k + 1, by omega⟩, by aesop⟩
+      · exact ⟨⟨k, by omega⟩, by aesop⟩
+
 end PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec
 
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec.chain_eq_flatMap
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec.mem_decodeClause
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec.clause_eval_congr
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec.decodeClause_bvHead_mem
-#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec.decodeClause_bvTail_mem
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec.decodeClause_bvBlock1_mem
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPGenericCNFCodec.decodeClause_bvBlock2_mem
