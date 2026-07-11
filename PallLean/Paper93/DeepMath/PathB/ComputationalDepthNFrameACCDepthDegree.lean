@@ -2,25 +2,48 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameACCBridge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameFpDegree
 
 /-!
-# The depth-`d` degree bound over `ACCCircuit`
+# A syntactic degree bound of a polynomial skeleton over `ACCCircuit` — **SYNTACTIC DEGREE ONLY**
 
-The gate recurrences (`NFrameFpDegree.modp_low_degree_representation`, `NFrameFpANDOR.orComp/andComp_
-totalDegree_le`) each show a single `AC⁰[p]` gate multiplies the `F_p` degree by `≤ p-1`, *independent of
-fan-in*.  This file assembles them over the actual `ACCCircuit` inductive (`NFrameACCBridge`) into a single
-theorem: a depth-`d` circuit has a degree-`≤ (p-1)^d` `F_p` polynomial skeleton.
+This file proves a *single* fact: a particular, syntactically-defined polynomial `rsPoly p C` has
+`totalDegree ≤ (p-1)^{depth C}`.  It does **NOT** prove that `rsPoly p C` computes or approximates the circuit
+`C`.  It is degree bookkeeping for a recursive expression — **not** a Razborov–Smolensky approximation theorem,
+and it must not be read as one.  (An earlier version of this docstring over-claimed it as "the AC⁰[p]
+degree/depth trade-off"; that was wrong.)
 
-`rsPoly p C` is the **Razborov–Smolensky single-form skeleton** of `C`: every gate becomes one linear-power
-`(Σ children)^{p-1}`, so `rsPoly_totalDegree_le` gives `totalDegree (rsPoly p C) ≤ (p-1)^{depth C}` by induction
-on the circuit.  For constant depth this is quasi-polynomial in `p`, matching the classical `AC⁰[p]`
-degree/depth trade-off — the degree side of the ACC-upper bound, now over the real circuit structure.
+## Why it is not a semantic (`AC⁰[p]`) statement
+
+`rsPoly` is a degree skeleton with three deliberate non-semantic simplifications:
+
+1. **The AND clause is semantically wrong.**  It uses `1 - (Σ childᵢ)^{p-1}`, which detects whether the sum of
+   the true children is `≡ 0 mod p` — not AND.  On the all-false input the sum is `0` and it returns `1`, while
+   AND returns `0`.  The correct dual form is `1 - (Σ wᵢ(1 - Pᵢ))^{p-1}` (with weights) — see
+   `NFrameFpANDOR.andComp` / `andComp_eval_eq`.
+2. **The MOD clause ignores its modulus.**  `.mod m l` discards `m` and always emits the `MOD_p` Fermat
+   detector.  For a gate labelled `MOD_m` with `m ≠ p` this polynomial has no semantic relation to the gate.  A
+   real `AC⁰[p]` statement must restrict to circuits whose MOD gates all use `p` (a datatype `AC0pCircuit p` or a
+   predicate `AllModulus p C`).
+3. **No weights / randomness.**  Every linear form uses coefficient `1`, so even the OR clause fails on nonzero
+   patterns whose Hamming weight is `≡ 0 mod p`.  The correct RS construction picks random weights and amplifies
+   (`NFrameFpAmplify.or_amplified_error_bound`).
+
+## What is actually true
+
+`rsPoly_totalDegree_le` : `totalDegree (rsPoly p C) ≤ (p-1)^{depth C}` — a valid, machine-checked *degree*
+inequality for this specific expression.  Note that `(p-1)^{depth}`, for fixed `p` and `depth`, is a
+**constant** (it does not grow with the input length `n`); it is *not* "quasi-polynomial in `n`".
+
+## The genuine theorem this is NOT yet
+
+To turn this into a real ACC-upper result one must: define `AC0pCircuit p` (or work under `AllModulus p C`); make
+`rsPoly` depend on gate-wise random / amplification seeds; use the correct complement form for AND; use the MOD
+detector only when the gate modulus is exactly `p`; prove a **pointwise error** theorem (each gate correct off a
+`p^{-t}` fraction); and then derive a circuit error `≤ size · p^{-t}` by a union bound.  Until that semantic
+theorem exists, this file combines degree inequalities only, not correctness.
 
 ## Honest scope
 
-This is the **degree** side: `rsPoly` witnesses the RS degree structure and `rsPoly_totalDegree_le` bounds it by
-`(p-1)^{depth}` over `ACCCircuit`.  It is not an *exact* computation of the circuit — the single-form skeleton is
-only approximately correct (correctness needs the amplification/error analysis of `NFrameFpAmplify`), and it
-applies to the matching prime `p` only (composite / mixed `MOD` is the wall, `NFrameCompositeMODWall`).  No ACC⁰
-lower bound.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+Recursive degree bookkeeping for one expression.  **No** correctness, **no** approximation, **no** `AC⁰[p]`
+statement, no ACC⁰ lower bound.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.NFrameACCDepthDegree
@@ -55,7 +78,9 @@ theorem totalDegree_list_sum_le {n : Nat} {p : Nat}
 
 /-! ## The Razborov–Smolensky degree skeleton -/
 
-/-- The RS single-form skeleton of an `ACC⁰` circuit over `F_p`: every gate is one linear-power. -/
+/-- A **degree skeleton** of an `ACC⁰` circuit over `F_p`: every gate becomes one linear-power.  This is a
+degree witness ONLY — it does not compute the circuit (the AND clause is semantically wrong and the MOD clause
+discards its modulus; see the module docstring). -/
 noncomputable def rsPoly (p : Nat) {n : Nat} : ACCCircuit n → MvPolynomial (Fin n) (ZMod p)
   | .input i => X i
   | .const b => C (if b then (1 : ZMod p) else 0)
@@ -77,8 +102,10 @@ theorem sum_deg_le (p : Nat) [Fact p.Prime] {n : Nat} (l : List (ACCCircuit n))
 
 /-! ## The depth-`d` degree bound -/
 
-/-- **The depth-`d` degree bound.**  Over `F_p` (`p` prime), the RS skeleton of a depth-`d` `ACC⁰` circuit has
-total degree `≤ (p-1)^d` — every gate multiplies the degree by `≤ p-1`, independent of fan-in. -/
+/-- **Syntactic degree bound (NOT a correctness theorem).**  The specific polynomial skeleton `rsPoly p C` has
+total degree `≤ (p-1)^{depth C}`.  This bounds the degree of the *expression* only; `rsPoly` does not compute or
+approximate `C` (its AND clause is semantically wrong and its MOD clause ignores the modulus — see the module
+docstring).  `(p-1)^{depth}` is a constant for fixed `p`, `depth`. -/
 theorem rsPoly_totalDegree_le (p : Nat) [Fact p.Prime] {n : Nat} :
     ∀ C : ACCCircuit n, (rsPoly p C).totalDegree ≤ (p - 1) ^ ACCCircuit.depth C
   | .input i => by simp [rsPoly, ACCCircuit.depth, MvPolynomial.totalDegree_X]

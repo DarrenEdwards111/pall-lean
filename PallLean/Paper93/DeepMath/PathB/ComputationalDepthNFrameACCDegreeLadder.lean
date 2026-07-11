@@ -29,7 +29,9 @@ in one place.  The arc pins down *exactly* how far the degree dynamic-SPDP reach
  R4b AND gate            dual: degree (p-1)·d                                                  [FpANDOR]
  R5a amplify (count)     ∃ W: error set ≤ 2^k/p^t                              (RS averaging)  [FpAmplify]
  R5b amplify (degree)    the amplifying polynomial has degree ≤ (p-1)·t                        [FpAmplify]
-      ⇒ AC⁰[p] ACC-upper is complete: depth d ⟹ degree ((p-1)t)^d, error ≤ size·p^{-t}.
+ R5c depth degree        SYNTACTIC DEGREE ONLY: a skeleton over ACCCircuit has degree ≤(p-1)^d [ACCDepthDegree]
+      per-gate machinery proven; the composed circuit-level RS approximation (correct AND/MOD_p,
+      seeds, degree ((p-1)t)^d, error ≤ size·p^{-t} by union bound) is NOT yet built — the repair.
  ─── the wall ──────────────────────────────────────────────────────────────────────────────
  R6a composite = ∧       MOD_{pq} = MOD_p ∧ MOD_q for distinct primes         (CRT)           [CompositeWall]
  R6b characteristic lock the F_p symmetric form computes MOD_p but PROVABLY NOT MOD_q          [CompositeWall]
@@ -41,17 +43,22 @@ in one place.  The arc pins down *exactly* how far the degree dynamic-SPDP reach
 * The **cash-out is mechanical** (R0): a semantically-invariant, `P`-bounded, hard-below resource separates.
 * The naive **ℚ-communication-rank fails** (R2): bounded on an isolated MOD gate, exponential on a depth-2
   `AC⁰[2]` circuit, and blind to the prime/composite split.
-* The **`F_p`-degree measure works for a single prime** (R3–R5): every `AC⁰[p]` gate multiplies degree by
-  `≤ p-1`, amplifiable to error `p^{-t}` — the genuine Razborov–Smolensky ACC-upper side.
+* The **`F_p`-degree per-gate machinery is proven** (R3–R5): each `AC⁰[p]` gate multiplies degree by `≤ p-1`
+  (R3/R4) with per-gate correctness off the linear form's zero set, amplifiable to error `p^{-t}` on a single OR
+  gate (R5).  **Not yet assembled into a circuit-level RS approximation** — the composed degree-`((p-1)t)^d`,
+  error-`≤ size·p^{-t}` theorem over a restricted `AC0pCircuit p` (correct AND form, `MOD_p`-only, gate-wise
+  seeds, union bound) is the genuine repair still to build.  **R5c is degree bookkeeping ONLY** (see its
+  docstring): it is not a correctness or approximation theorem.
 * The **composite / mixed `MOD` wall** (R6) is the terminal obstruction: the method is characteristic-locked, so
   it cannot span two primes — exactly why `AC⁰[p]` fell to the polynomial method and `NEXP ⊄ ACC⁰` needed
   Williams' algorithmic method instead.
 
 ## Honest scope
 
-A map + anchors.  It proves **no** ACC⁰ lower bound and crosses **no** wall: R0–R5 are the (crossable) `AC⁰[p]`
-upper machinery, R6 is the (uncrossable-by-this-method) obstruction, formalised.  Nothing here is
-`NEXP ⊄ ACC⁰` or `P ≠ NP`.
+A map + anchors.  It proves **no** ACC⁰ lower bound and crosses **no** wall.  R0–R5 are (proven) *per-gate*
+`AC⁰[p]` upper machinery; **R5c is a syntactic degree bound only**, and the circuit-level RS approximation is not
+yet built; R6 is the (uncrossable-by-this-method) obstruction, formalised.  Nothing here is `NEXP ⊄ ACC⁰` or
+`P ≠ NP`.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.NFrameACCDegreeLadder
@@ -98,8 +105,11 @@ abbrev ladder_R5a_amplified_error := @NFrameFpAmplify.or_amplified_error_bound
 /-- **Rung 5b — the amplifying polynomial's degree.**  `≤ (p-1)·t`, independent of fan-in. -/
 abbrev ladder_R5b_amplify_degree := @NFrameFpAmplify.orAmp_totalDegree_le
 
-/-- **Rung 5c — the assembled depth-`d` degree bound over `ACCCircuit`.**  The per-gate `×(p-1)` recurrences,
-composed over the real circuit inductive: a depth-`d` circuit's RS skeleton has degree `≤ (p-1)^d`. -/
+/-- **Rung 5c — SYNTACTIC DEGREE ONLY.**  A particular polynomial skeleton over `ACCCircuit` has total degree
+`≤ (p-1)^{depth}`.  This is degree bookkeeping for one expression — **not** a correctness or RS-approximation
+theorem: the skeleton's AND clause is semantically wrong, its MOD clause ignores the modulus, and it uses no
+weights, so it neither computes nor approximates the circuit.  `(p-1)^{depth}` is constant for fixed `p`,
+`depth` (not quasipoly in `n`).  See `NFrameACCDepthDegree` for the gaps and the repair path. -/
 abbrev ladder_R5c_depth_degree := @NFrameACCDepthDegree.rsPoly_totalDegree_le
 
 /-! ## R6 — the composite / mixed MOD wall -/
