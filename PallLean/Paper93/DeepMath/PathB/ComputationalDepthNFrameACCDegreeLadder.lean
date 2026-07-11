@@ -4,6 +4,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameFpDegree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameFpANDOR
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameFpAmplify
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameCompositeMODWall
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameACCDepthDegree
 
 /-!
 # The N-Frame → ACC⁰ degree dynamic-SPDP ladder
@@ -96,6 +97,10 @@ abbrev ladder_R5a_amplified_error := @NFrameFpAmplify.or_amplified_error_bound
 
 /-- **Rung 5b — the amplifying polynomial's degree.**  `≤ (p-1)·t`, independent of fan-in. -/
 abbrev ladder_R5b_amplify_degree := @NFrameFpAmplify.orAmp_totalDegree_le
+
+/-- **Rung 5c — the assembled depth-`d` degree bound over `ACCCircuit`.**  The per-gate `×(p-1)` recurrences,
+composed over the real circuit inductive: a depth-`d` circuit's RS skeleton has degree `≤ (p-1)^d`. -/
+abbrev ladder_R5c_depth_degree := @NFrameACCDepthDegree.rsPoly_totalDegree_le
 
 /-! ## R6 — the composite / mixed MOD wall -/
 
