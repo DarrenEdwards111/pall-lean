@@ -171,6 +171,68 @@ theorem ed_litCount_lower_explicit {b m : ℕ} (hb : 0 < b) (hbig : 2 * m ≤ Ds
   have h := ed_litCount_lower hb hbig hm F hF
   rwa [NF.card_Tok_eq, show 16 + 2 * nn b m + 1 = 2 * nn b m + 17 from by ring] at h
 
+/-- **`edFun` has super-linear formula size.**  For every `C` there is a `b` such that any `B₂` formula computing
+`edFun` on the pair-encoding balanced family (`m = 2^{b-1}`, `N = 2^{b-1}·(b+2)` variables) has more than `C·N`
+literals. -/
+theorem edFun_superlinear (C : ℕ) :
+    ∃ c : ℕ, ∀ (F : BFormula (nn (c + 1) (2 ^ c))),
+      (∀ x, BFormula.eval F x = edFun x) →
+      C * nn (c + 1) (2 ^ c) < BFormula.litCount F := by
+  obtain ⟨c, hc5, hcbig⟩ := expBeatsQuad (32 * C + 4)
+  refine ⟨c, fun F hF => ?_⟩
+  have hMpos : 0 < 2 ^ c := by positivity
+  have hdb : Dsize (c + 1) = 2 * 2 ^ c := by rw [dsize_eq, pow_succ]; ring
+  have hN : nn (c + 1) (2 ^ c) = 2 ^ c * (c + 3) := by unfold nn; rw [hdb]; ring
+  have hb : 0 < c + 1 := by omega
+  have hbig : 2 * 2 ^ c ≤ Dsize (c + 1) := by rw [hdb]
+  have hc32 : (32 : ℕ) ≤ 2 ^ c := by
+    calc (32 : ℕ) = 2 ^ 5 := by norm_num
+      _ ≤ 2 ^ c := Nat.pow_le_pow_right (by norm_num) hc5
+  have h4c : 4 * c ^ 2 < 2 ^ c := by nlinarith [hcbig, Nat.zero_le C, sq_nonneg c]
+  -- clog(2N+17) ≤ 2c+2
+  have hclog : Nat.clog 2 (2 * nn (c + 1) (2 ^ c) + 17) ≤ 2 * c + 2 := by
+    apply Nat.clog_le_of_le_pow
+    have hpow : (2 : ℕ) ^ (2 * c + 2) = 4 * (2 ^ c) ^ 2 := by
+      rw [pow_add, mul_comm 2 c, pow_mul]; ring
+    rw [hN, hpow]
+    nlinarith [h4c, hc5, hMpos]
+  -- the explicit bound with m = 2^c and multiplier 4(c+1)
+  have hexp := ed_litCount_lower_explicit hb hbig hMpos F hF
+  have hcL : 2 * Nat.clog 2 (2 * nn (c + 1) (2 ^ c) + 17) * BFormula.litCount F
+        ≤ 4 * (c + 1) * BFormula.litCount F := by
+    have hle : 2 * Nat.clog 2 (2 * nn (c + 1) (2 ^ c) + 17) ≤ 4 * (c + 1) := by omega
+    exact Nat.mul_le_mul hle (le_refl _)
+  have hexpB : 2 ^ c * (2 ^ c - 1)
+        ≤ 4 * (c + 1) * BFormula.litCount F + 2 * (2 ^ c + 1) :=
+    le_trans hexp (Nat.add_le_add_right hcL _)
+  have hid : 2 ^ c * (2 ^ c - 1) + 2 ^ c = 2 ^ c * 2 ^ c := by
+    have h1 : 2 ^ c - 1 + 1 = 2 ^ c := Nat.succ_pred_eq_of_pos hMpos
+    calc 2 ^ c * (2 ^ c - 1) + 2 ^ c = 2 ^ c * (2 ^ c - 1) + 2 ^ c * 1 := by ring
+      _ = 2 ^ c * (2 ^ c - 1 + 1) := by rw [Nat.mul_add]
+      _ = 2 ^ c * 2 ^ c := by rw [h1]
+  have hexpC : 2 ^ c * 2 ^ c
+        ≤ 4 * (c + 1) * BFormula.litCount F + 2 * (2 ^ c + 1) + 2 ^ c := by
+    rw [← hid]
+    exact Nat.add_le_add_right hexpB _
+  -- 2^c dominates the quadratic quantity 4(c+1)C(c+3)
+  have hQbig : 4 * (c + 1) * C * (c + 3) + 4 ≤ 2 ^ c := by
+    have hcc : (c + 1) * (c + 3) ≤ 8 * c ^ 2 := by nlinarith [hc5]
+    have h4 : (4 : ℕ) ≤ 4 * c ^ 2 := by nlinarith [hc5]
+    have key : 4 * (c + 1) * C * (c + 3) + 4 ≤ (32 * C + 4) * c ^ 2 := by
+      calc 4 * (c + 1) * C * (c + 3) + 4
+          = 4 * C * ((c + 1) * (c + 3)) + 4 := by ring
+        _ ≤ 4 * C * (8 * c ^ 2) + 4 * c ^ 2 :=
+            Nat.add_le_add (Nat.mul_le_mul (le_refl (4 * C)) hcc) h4
+        _ = (32 * C + 4) * c ^ 2 := by ring
+    omega
+  have hprod : (4 * (c + 1) * C * (c + 3) + 4) * 2 ^ c ≤ 2 ^ c * 2 ^ c :=
+    Nat.mul_le_mul hQbig (le_refl _)
+  have hgoaleq : C * nn (c + 1) (2 ^ c) = C * (2 ^ c * (c + 3)) := by rw [hN]
+  rw [hgoaleq]
+  have hbig2 : 4 * (c + 1) * (C * (2 ^ c * (c + 3))) < 4 * (c + 1) * BFormula.litCount F := by
+    nlinarith [hexpC, hprod, hc32]
+  exact lt_of_mul_lt_mul_left hbig2 (Nat.zero_le _)
+
 /-! ## Asymptotic wrappers: the width is unbounded (exponential) -/
 
 /-- **`hardF` has unbounded oblivious-BP width.**  For every constant `C` there is a depth parameter `b` such
@@ -225,3 +287,5 @@ end PallLean.Paper93.DeepMath.PathB.BranchingProgramFamilies
 #print axioms PallLean.Paper93.DeepMath.PathB.BranchingProgramFamilies.hardF_bp_width_unbounded
 #print axioms PallLean.Paper93.DeepMath.PathB.BranchingProgramFamilies.edFun_bp_width_unbounded
 #print axioms PallLean.Paper93.DeepMath.PathB.BranchingProgramFamilies.edFun_bp_width_ge
+#print axioms PallLean.Paper93.DeepMath.PathB.BranchingProgramFamilies.orMux_superlinear
+#print axioms PallLean.Paper93.DeepMath.PathB.BranchingProgramFamilies.edFun_superlinear
