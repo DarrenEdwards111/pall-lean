@@ -104,6 +104,73 @@ theorem edFun_bp_width_ge {b m w : ℕ} (hb : 0 < b) (hbig : 2 * m ≤ Dsize b) 
         Nat.log_mono_right hcnt
   omega
 
+/-! ## Formula-size asymptotic wrappers (super-linear) -/
+
+/-- Explicit clog form of the OR-multiplexer formula-size bound (alphabet count resolved via `NF.card_Tok_eq`). -/
+theorem orMux_litCount_lower_explicit {b m : ℕ} (F : BFormula (nn b m))
+    (hF : ∀ x, BFormula.eval F x = orMux x) :
+    m * (Dsize b - 1) ≤
+      2 * Nat.clog 2 (2 * nn b m + 17) * BFormula.litCount F + 2 * (m + 1) := by
+  have h := orMux_litCount_lower F hF
+  rwa [NF.card_Tok_eq, show 16 + 2 * nn b m + 1 = 2 * nn b m + 17 from by ring] at h
+
+/-- **`orMux` has super-linear formula size.**  For every `C` there is a `b` such that any `B₂` formula computing
+`orMux` on the balanced family (`m = 2^b`, `N = 2^b·(b+1)` variables) has more than `C·N` literals. -/
+theorem orMux_superlinear (C : ℕ) :
+    ∃ b : ℕ, ∀ (F : BFormula (nn b (2 ^ b))),
+      (∀ x, BFormula.eval F x = orMux x) →
+      C * nn b (2 ^ b) < BFormula.litCount F := by
+  obtain ⟨b, hb5, hbig⟩ := expBeatsQuad (8 * C + 4)
+  refine ⟨b, fun F hF => ?_⟩
+  have hdb : Dsize b = 2 ^ b := dsize_eq
+  have hN : nn b (2 ^ b) = 2 ^ b * (b + 1) := by unfold nn; rw [hdb]; ring
+  have hpb32 : (32 : ℕ) ≤ 2 ^ b := by
+    calc (32 : ℕ) = 2 ^ 5 := by norm_num
+      _ ≤ 2 ^ b := Nat.pow_le_pow_right (by norm_num) hb5
+  have hclog : Nat.clog 2 (2 * nn b (2 ^ b) + 17) ≤ 2 * b := by
+    apply Nat.clog_le_of_le_pow
+    rw [hN, show (2 : ℕ) ^ (2 * b) = 2 ^ b * 2 ^ b from by rw [two_mul, pow_add]]
+    have h4b2 : 4 * b ^ 2 < 2 ^ b := by nlinarith [hbig, Nat.zero_le (C * b ^ 2)]
+    have h5b : 5 * b ≤ b ^ 2 := by nlinarith [hb5]
+    have h2b3 : 2 * b + 3 ≤ 2 ^ b := by nlinarith [h4b2, h5b, hb5]
+    have hmul : 2 ^ b * (2 * b + 3) ≤ 2 ^ b * 2 ^ b := Nat.mul_le_mul_left _ h2b3
+    nlinarith [hmul, hpb32]
+  have hexp := orMux_litCount_lower_explicit (b := b) (m := 2 ^ b) F hF
+  rw [hdb] at hexp
+  have hcL : 2 * Nat.clog 2 (2 * nn b (2 ^ b) + 17) * BFormula.litCount F
+        ≤ 4 * b * BFormula.litCount F := by
+    have hle : 2 * Nat.clog 2 (2 * nn b (2 ^ b) + 17) ≤ 4 * b := by omega
+    exact Nat.mul_le_mul hle (le_refl _)
+  have hexpB : 2 ^ b * (2 ^ b - 1) ≤ 4 * b * BFormula.litCount F + 2 * (2 ^ b + 1) := by omega
+  have hid : 2 ^ b * (2 ^ b - 1) + 2 ^ b = 2 ^ b * 2 ^ b := by
+    have h1 : 2 ^ b - 1 + 1 = 2 ^ b := Nat.succ_pred_eq_of_pos (by positivity)
+    calc 2 ^ b * (2 ^ b - 1) + 2 ^ b
+        = 2 ^ b * (2 ^ b - 1) + 2 ^ b * 1 := by ring
+      _ = 2 ^ b * (2 ^ b - 1 + 1) := by rw [Nat.mul_add]
+      _ = 2 ^ b * 2 ^ b := by rw [h1]
+  have hexpC : 2 ^ b * 2 ^ b
+        ≤ 4 * b * BFormula.litCount F + 2 * (2 ^ b + 1) + 2 ^ b := by omega
+  have hbb : b ≤ b ^ 2 := by nlinarith [hb5]
+  have hQbig : 4 * C * b * (b + 1) + 4 ≤ 2 ^ b := by
+    have key : 4 * C * b * (b + 1) + 4 ≤ (8 * C + 4) * b ^ 2 := by
+      nlinarith [hbb, hb5, Nat.zero_le C]
+    omega
+  have hprod : (4 * C * b * (b + 1) + 4) * 2 ^ b ≤ 2 ^ b * 2 ^ b :=
+    Nat.mul_le_mul hQbig (le_refl _)
+  have hgoaleq : C * nn b (2 ^ b) = C * (2 ^ b * (b + 1)) := by rw [hN]
+  rw [hgoaleq]
+  have hbig2 : 4 * b * (C * (2 ^ b * (b + 1))) < 4 * b * BFormula.litCount F := by
+    nlinarith [hexpC, hprod, hpb32]
+  exact lt_of_mul_lt_mul_left hbig2 (Nat.zero_le _)
+
+/-- Explicit clog form of the element-distinctness formula-size bound. -/
+theorem ed_litCount_lower_explicit {b m : ℕ} (hb : 0 < b) (hbig : 2 * m ≤ Dsize b) (hm : 0 < m)
+    (F : BFormula (nn b m)) (hF : ∀ x, BFormula.eval F x = edFun x) :
+    m * (m - 1) ≤
+      2 * Nat.clog 2 (2 * nn b m + 17) * BFormula.litCount F + 2 * (m + 1) := by
+  have h := ed_litCount_lower hb hbig hm F hF
+  rwa [NF.card_Tok_eq, show 16 + 2 * nn b m + 1 = 2 * nn b m + 17 from by ring] at h
+
 /-! ## Asymptotic wrappers: the width is unbounded (exponential) -/
 
 /-- **`hardF` has unbounded oblivious-BP width.**  For every constant `C` there is a depth parameter `b` such
