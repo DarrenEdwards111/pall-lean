@@ -104,7 +104,57 @@ theorem edFun_bp_width_ge {b m w : ℕ} (hb : 0 < b) (hbig : 2 * m ≤ Dsize b) 
         Nat.log_mono_right hcnt
   omega
 
+/-! ## Asymptotic wrappers: the width is unbounded (exponential) -/
+
+/-- **`hardF` has unbounded oblivious-BP width.**  For every constant `C` there is a depth parameter `b` such
+that *any* oblivious width-`w` leveled BP computing `hardF` (reading its address block contiguously) has `w > C`.
+So the width is not `O(1)` — in fact `w ≥ (2^b − 1)/2`, exponential in `b`. -/
+theorem hardF_bp_width_unbounded (C : ℕ) :
+    ∃ b : ℕ, ∀ (w : ℕ) (P : LevBP (nn b 1) w),
+      (∀ x, P.eval x = hardF x) → ∀ (a s : ℕ), a + s ≤ P.len →
+      (∀ ℓ, ℓ < P.len → (P.var ℓ ∈ blockS (0 : Fin 1) ↔ a ≤ ℓ ∧ ℓ < a + s)) →
+      C < w := by
+  refine ⟨C + 2, fun w P hP a s has hblock => ?_⟩
+  have h := hardF_bp_width_ge (0 : Fin 1) P hP a s has hblock
+  rw [dsize_eq] at h
+  have hc : C < 2 ^ C := Nat.lt_two_pow_self
+  have he : (2 : ℕ) ^ (C + 2) = 4 * 2 ^ C := by rw [pow_add]; ring
+  omega
+
+/-- **`orMux` has unbounded oblivious-BP width** (exponential), by the same argument. -/
+theorem orMux_bp_width_unbounded (C : ℕ) :
+    ∃ b : ℕ, ∀ (w : ℕ) (P : LevBP (nn b 1) w),
+      (∀ x, P.eval x = orMux x) → ∀ (a s : ℕ), a + s ≤ P.len →
+      (∀ ℓ, ℓ < P.len → (P.var ℓ ∈ blockS (0 : Fin 1) ↔ a ≤ ℓ ∧ ℓ < a + s)) →
+      C < w := by
+  refine ⟨C + 2, fun w P hP a s has hblock => ?_⟩
+  have h := orMux_bp_width_ge (0 : Fin 1) P hP a s has hblock
+  rw [dsize_eq] at h
+  have hc : C < 2 ^ C := Nat.lt_two_pow_self
+  have he : (2 : ℕ) ^ (C + 2) = 4 * 2 ^ C := by rw [pow_add]; ring
+  omega
+
+/-- **`edFun` has unbounded oblivious-BP width** (exponential), via the pair-encoding family `m = 2^{b-1}`. -/
+theorem edFun_bp_width_unbounded (C : ℕ) :
+    ∃ b m : ℕ, 0 < m ∧ ∀ (w : ℕ) (k : Fin m) (P : LevBP (nn b m) w),
+      (∀ x, P.eval x = edFun x) → ∀ (a s : ℕ), a + s ≤ P.len →
+      (∀ ℓ, ℓ < P.len → (P.var ℓ ∈ blockS k ↔ a ≤ ℓ ∧ ℓ < a + s)) →
+      C < w := by
+  refine ⟨C + 2, 2 ^ (C + 1), by positivity, fun w k P hP a s has hblock => ?_⟩
+  have hb : 0 < C + 2 := by omega
+  have hbig : 2 * 2 ^ (C + 1) ≤ Dsize (C + 2) := by
+    have h1 : Dsize (C + 2) = 2 ^ (C + 2) := dsize_eq
+    have h2 : (2 : ℕ) ^ (C + 2) = 2 * 2 ^ (C + 1) := by rw [pow_succ]; ring
+    omega
+  have hm : 0 < 2 ^ (C + 1) := by positivity
+  have h := edFun_bp_width_ge hb hbig hm k P hP a s has hblock
+  have hc : C < 2 ^ C := Nat.lt_two_pow_self
+  have he : (2 : ℕ) ^ (C + 1) = 2 * 2 ^ C := by rw [pow_succ]; ring
+  omega
+
 end PallLean.Paper93.DeepMath.PathB.BranchingProgramFamilies
 
 #print axioms PallLean.Paper93.DeepMath.PathB.BranchingProgramFamilies.orMux_bp_width_ge
+#print axioms PallLean.Paper93.DeepMath.PathB.BranchingProgramFamilies.hardF_bp_width_unbounded
+#print axioms PallLean.Paper93.DeepMath.PathB.BranchingProgramFamilies.edFun_bp_width_unbounded
 #print axioms PallLean.Paper93.DeepMath.PathB.BranchingProgramFamilies.edFun_bp_width_ge
