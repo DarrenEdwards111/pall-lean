@@ -268,9 +268,42 @@ theorem ed_minBlockBoundary_ge (hb : 0 < b) (hbig : 2 * m ≤ Dsize b) (hm : 0 <
   intro k _
   exact ed_blockBoundary_ge hb hbig hm k F hF
 
+/-! ## The explicit formula-size lower bound -/
+
+/-- **Nečiporuk formula-size lower bound for element distinctness.**  Summing the per-block bound
+`m − 1` over the `m` address blocks (the data block contributes `≥ 0`) and plugging into the general
+Nečiporuk bound `neciporuk_formula_lower_bound` gives, for any `B₂` formula `F` computing `edFun`,
+`m·(m − 1) ≤ 2·clog₂(|Tok|+1)·litCount F + 2·(m + 1)`.  With `m ≈ 2^{b-1}` this is quadratic in the
+number of blocks (super-linear in the input length `nn ≈ 2^b`). -/
+theorem ed_litCount_lower (hb : 0 < b) (hbig : 2 * m ≤ Dsize b) (hm : 0 < m)
+    (F : BFormula (nn b m)) (hF : ∀ x, BFormula.eval F x = edFun x) :
+    m * (m - 1) ≤
+      2 * Nat.clog 2 (Fintype.card (NF.Tok (nn b m)) + 1) * BFormula.litCount F
+        + 2 * (m + 1) := by
+  classical
+  have hnec := neciporuk_formula_lower_bound
+    (Finset.univ : Finset (Option (Fin m))) (blkS (b := b) (m := m)) F blkS_disj blkS_cover
+  rw [Finset.card_univ, Fintype.card_option, Fintype.card_fin] at hnec
+  have hconst : ∑ _k : Fin m, (m - 1) = m * (m - 1) := by
+    rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul]
+  have hper : ∀ k : Fin m,
+      m - 1 ≤ Nat.log 2 ((blockResiduals (blkS (some k)) F).card) := by
+    intro k
+    rw [blkS_some]
+    exact ed_blockBoundary_ge hb hbig hm k F hF
+  have hge : m * (m - 1)
+      ≤ ∑ k : Fin m, Nat.log 2 ((blockResiduals (blkS (some k)) F).card) :=
+    hconst ▸ Finset.sum_le_sum (fun k _ => hper k)
+  have hlow : m * (m - 1)
+      ≤ ∑ o : Option (Fin m), Nat.log 2 ((blockResiduals (blkS o) F).card) := by
+    rw [Fintype.sum_option]
+    exact le_trans hge (Nat.le_add_left _ _)
+  exact le_trans hlow hnec
+
 end PallLean.Paper93.DeepMath.PathB.NecHardED
 
 #print axioms PallLean.Paper93.DeepMath.PathB.NecHardED.ed_collision
 #print axioms PallLean.Paper93.DeepMath.PathB.NecHardED.ed_all_distinct
 #print axioms PallLean.Paper93.DeepMath.PathB.NecHardED.ed_blockBoundary_ge
 #print axioms PallLean.Paper93.DeepMath.PathB.NecHardED.ed_minBlockBoundary_ge
+#print axioms PallLean.Paper93.DeepMath.PathB.NecHardED.ed_litCount_lower
