@@ -129,8 +129,40 @@ theorem orMux_minBlockBoundary_ge (hm : 0 < m) (F : BFormula (nn b m))
   intro k _
   exact orMux_blockBoundary_ge k F hF
 
+/-! ## The explicit formula-size lower bound -/
+
+/-- **Nečiporuk formula-size lower bound for the OR-multiplexer.**  Summing the per-block bound `2^b − 1`
+over the `m` address blocks (the data block contributes `≥ 0`) and plugging into the general Nečiporuk bound
+gives, for any `B₂` formula `F` computing `orMux`,
+`m·(2^b − 1) ≤ 2·clog₂(|Tok|+1)·litCount F + 2·(m + 1)` — the same explicit super-linear bound as `hardF`. -/
+theorem orMux_litCount_lower (F : BFormula (nn b m))
+    (hF : ∀ x, BFormula.eval F x = orMux x) :
+    m * (Dsize b - 1) ≤
+      2 * Nat.clog 2 (Fintype.card (NF.Tok (nn b m)) + 1) * BFormula.litCount F
+        + 2 * (m + 1) := by
+  classical
+  have hnec := neciporuk_formula_lower_bound
+    (Finset.univ : Finset (Option (Fin m))) (blkS (b := b) (m := m)) F blkS_disj blkS_cover
+  rw [Finset.card_univ, Fintype.card_option, Fintype.card_fin] at hnec
+  have hconst : ∑ _k : Fin m, (Dsize b - 1) = m * (Dsize b - 1) := by
+    rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul]
+  have hper : ∀ k : Fin m,
+      Dsize b - 1 ≤ Nat.log 2 ((blockResiduals (blkS (some k)) F).card) := by
+    intro k
+    rw [blkS_some]
+    exact orMux_blockBoundary_ge k F hF
+  have hge : m * (Dsize b - 1)
+      ≤ ∑ k : Fin m, Nat.log 2 ((blockResiduals (blkS (some k)) F).card) :=
+    hconst ▸ Finset.sum_le_sum (fun k _ => hper k)
+  have hlow : m * (Dsize b - 1)
+      ≤ ∑ o : Option (Fin m), Nat.log 2 ((blockResiduals (blkS o) F).card) := by
+    rw [Fintype.sum_option]
+    exact le_trans hge (Nat.le_add_left _ _)
+  exact le_trans hlow hnec
+
 end PallLean.Paper93.DeepMath.PathB.NecHardOr
 
 #print axioms PallLean.Paper93.DeepMath.PathB.NecHardOr.orMux_merge
+#print axioms PallLean.Paper93.DeepMath.PathB.NecHardOr.orMux_litCount_lower
 #print axioms PallLean.Paper93.DeepMath.PathB.NecHardOr.orMux_blockBoundary_ge
 #print axioms PallLean.Paper93.DeepMath.PathB.NecHardOr.orMux_minBlockBoundary_ge
