@@ -130,4 +130,67 @@ def PolyComputable (f : List Bool → List Bool) : Prop :=
 def PolyReduces (L L' : List Bool → Bool) : Prop :=
   ∃ f, PolyComputable f ∧ ∀ x, L x = L' (f x)
 
+/-! ## Sequential composition and its simulation lemmas -/
+
+/-- The sequential composition: run `Mf` (a transducer); when it halts, switch — with a pure control step
+(`none` write, `reset` move) that leaves the tape and moves the head to `0` — to `Mg` (a decider). -/
+def comp (Mf Mg : Machine) : Machine where
+  State := Mf.State ⊕ Mg.State
+  fin := inferInstance
+  dec := inferInstance
+  start := Sum.inl Mf.start
+  halt := fun s => match s with | .inl _ => false | .inr sg => Mg.halt sg
+  δ := fun s b => match s with
+    | .inl sf => if Mf.halt sf then (Sum.inr Mg.start, none, (3 : Move))
+                 else let tr := Mf.δ sf b; (Sum.inl tr.1, tr.2.1, tr.2.2)
+    | .inr sg => let tr := Mg.δ sg b; (Sum.inr tr.1, tr.2.1, tr.2.2)
+  accept := fun s => match s with | .inl _ => false | .inr sg => Mg.accept sg
+
+/-- Embed an `Mf` config into the composition (first phase). -/
+def embedL (Mf Mg : Machine) (c : Cfg Mf) : Cfg (comp Mf Mg) := ⟨Sum.inl c.st, c.hd, c.tp⟩
+
+/-- Embed an `Mg` config into the composition (second phase). -/
+def embedR (Mf Mg : Machine) (c : Cfg Mg) : Cfg (comp Mf Mg) := ⟨Sum.inr c.st, c.hd, c.tp⟩
+
+/-- Phase-1 step: while `Mf` has not halted, the composition mirrors `Mf`. -/
+theorem comp_step_inl (Mf Mg : Machine) (cf : Cfg Mf) (h : Mf.halt cf.st = false) :
+    step (comp Mf Mg) (embedL Mf Mg cf) = embedL Mf Mg (step Mf cf) := by
+  simp only [step, comp, embedL, h, Bool.false_eq_true, ↓reduceIte]
+
+/-- The switch step: when `Mf` has halted, one composition step moves to `Mg`'s start, resets the head to `0`,
+and leaves the tape (`= f x`) intact. -/
+theorem comp_step_switch (Mf Mg : Machine) (cf : Cfg Mf) (h : Mf.halt cf.st = true) :
+    step (comp Mf Mg) (embedL Mf Mg cf) = embedR Mf Mg ⟨Mg.start, 0, cf.tp⟩ := by
+  simp only [step, comp, embedL, embedR, h, Bool.false_eq_true, ↓reduceIte, moveHead]
+  rfl
+
+/-- Phase-2 step: the composition mirrors `Mg`. -/
+theorem comp_step_inr (Mf Mg : Machine) (cg : Cfg Mg) :
+    step (comp Mf Mg) (embedR Mf Mg cg) = embedR Mf Mg (step Mg cg) := by
+  simp only [step, comp, embedR]
+  by_cases h : Mg.halt cg.st = true
+  · simp [h]
+  · simp only [Bool.not_eq_true] at h
+    simp [h]
+
+/-- **Phase 1**: for `t` up to (just before) `Mf`'s first halt, the composition simulates `Mf`. -/
+theorem comp_phase1 (Mf Mg : Machine) (x : List Bool) (t : ℕ)
+    (hmin : ∀ s < t, Mf.halt (run Mf s (init Mf x)).st = false) :
+    run (comp Mf Mg) t (init (comp Mf Mg) x) = embedL Mf Mg (run Mf t (init Mf x)) := by
+  induction t with
+  | zero => rfl
+  | succ t ih =>
+    rw [run_succ, ih (fun s hs => hmin s (Nat.lt_succ_of_lt hs))]
+    rw [comp_step_inl Mf Mg _ (hmin t (Nat.lt_succ_self t)), ← run_succ]
+
+/-- **Phase 2**: from the switched configuration, the composition simulates `Mg`. -/
+theorem comp_phase2 (Mf Mg : Machine) (x : List Bool) (hf : ℕ) (y : List Bool) (s : ℕ)
+    (hsw : run (comp Mf Mg) (hf + 1) (init (comp Mf Mg) x) = embedR Mf Mg ⟨Mg.start, 0, y⟩) :
+    run (comp Mf Mg) (hf + 1 + s) (init (comp Mf Mg) x)
+      = embedR Mf Mg (run Mg s (init Mg y)) := by
+  induction s with
+  | zero => rw [Nat.add_zero, hsw]; rfl
+  | succ s ih =>
+    rw [← Nat.add_assoc, run_succ, ih, comp_step_inr, ← run_succ]
+
 end PallLean.Paper93.DeepMath.PathB.ComposableMachine
