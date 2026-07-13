@@ -1,145 +1,106 @@
-import Mathlib
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthChargedHolographicMachine
 
 /-!
-# Observer-Class Semantics for P vs NP — the faithful, uniform foundation
+# Observer-Class Semantics for P vs NP — on the NON-VACUOUS charged machine
 
-The observer-class reformulation, built to HAL's brutally-semantic, **uniform** scope.  It is a *foundation*, not
-a separation: faithful definitions, the structural theorems, and the one open quantity fenced exactly.
+**Correction.**  An earlier version of this file based `P` on a free `Machine` whose `init` was an arbitrary
+function — that is VACUOUS (`init x := decide (L x)` decides any `L` in 0 steps, so every language is in P), exactly
+the uncharged-init cheat.  This version bases `P` on the corpus's `ChargedMachine.InP`: `init` is **forced**
+(`⟨start, 0, x⟩`, copies the input; no computation), and steps are a fixed finite `delta` table — so `InP` is a
+genuine, uniform, non-vacuous P.
 
-* `Ptime` / `PLang` — the **P-observer**: ONE fixed step-counted machine (uniform — a single `Machine`, not a
-  program per length) deciding every input within `c·|x|^k` steps.
-* `NPObs` / `AcceptNP` — the **one-sector NP-observer**: a fixed poly verifier `V` and poly witness bound; `x` is
-  accepted iff **one** existentially-selected sector `w` verifies.  The full witness table is never materialised.
-* `accept_iff_nonempty` — `AcceptNP ob x ↔ (Boundary ob x).Nonempty`.
-* `p_subset_np` — every P-observer language is an NP-observer language.
-* `PolyCollapse` — the boundary admits **polynomial deterministic collapse**: deciding its nonemptiness is in P
-  (a *predicate*, per HAL — not a per-`n` numerical minimum, which would smuggle nonuniformity back in).
-* `bridge` — **`P = NP ⇔ every NP boundary admits polynomial deterministic collapse`.**
-* `fullBoundary_collapses`, `emptyBoundary_collapses`, `sameLang_sameCollapse` — **calibration**: a *huge* boundary
-  can collapse trivially, an empty one collapses, and two different verifiers for the same language have the same
-  collapse.  So boundary *size* and verifier *representation* are NOT the collapse cost.
-* `sat_bridge` — **conditional**: for an NP-complete SAT verifier, `¬ PolyCollapse SATV ⇔ P ≠ NP` (fenced; the
-  NP-completeness reduction is a hypothesis, not built here).
+The observer-class framing, faithfully, on that model:
 
-SPDP, holography, rigidity, and N-frame mixing are deliberately absent from this core — they are at most *proposed
-estimators* of `PolyCollapse`, elsewhere.  This file says exactly what P- and NP-observers can access.  Nothing
-here proves `P ≠ NP`; `¬ PolyCollapse SATV` is the open separation statement.  Nothing here is `NEXP ⊄ ACC⁰` or
-`P ≠ NP`.
+* `PLang := InP` — the P-observer: one fixed charged machine, poly clock.
+* `NPObs` / `AcceptNP` — the one-sector NP-observer: a fixed `InP` verifier and poly witness bound; `x` is
+  accepted iff **one** witness `w` (appended, `verify (x ++ w)`) verifies.  The full witness table is never read.
+* `p_subset_np`, `accept_iff_nonempty`, `satIsNP` — P ⊆ NP; accepting = boundary nonempty; every verifier's
+  boundary language is NP.
+* `PolyCollapse` — the boundary admits polynomial deterministic collapse (deciding nonemptiness is in P), a
+  predicate.
+* `bridge` — `P = NP ⇔ every NP boundary admits polynomial deterministic collapse`.
+* calibration — `fullBoundary_collapses`, `emptyBoundary_collapses`, `sameLang_sameCollapse`: boundary size and
+  verifier representation are NOT the collapse cost.
+* `sat_specialization` / `sat_separation` — **fenced, conditional on `SATComplete`** (Cook–Levin NP-hardness, a
+  hypothesis, not built): `P = NP ⇔ PolyCollapse SATV` and `¬ PolyCollapse SATV ⇔ P ≠ NP`.  The *`SAT ∈ NP`* half
+  is proved (`satIsNP`); the NP-hardness half is `SATComplete`, fenced.
+
+`¬ PolyCollapse SATV` is the open separation statement.  SPDP/holography/rigidity are absent (proposed estimators
+only).  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics
 
 open Classical
+open PallLean.Paper93.DeepMath.PathB.ChargedHolographicMachine (ChargedMachine InP)
+open PallLean.Paper93.DeepMath.PathB.PvsNPSeparatingInvariant (PolyBounded)
 
-/-- Polynomial growth. -/
-def IsPoly (T : ℕ → ℕ) : Prop := ∃ c k : ℕ, ∀ n, T n ≤ c * n ^ k + c
+/-- The P-observer languages: the corpus's genuine (forced-init, local-step) uniform P. -/
+def PLang (L : List Bool → Bool) : Prop := InP L
 
-theorem isPoly_zero : IsPoly (fun _ => 0) := ⟨0, 0, fun n => by simp⟩
+/-- `InP` respects pointwise equality of languages. -/
+theorem PLang_congr {L L' : List Bool → Bool} (h : ∀ x, L x = L' x) (hL : PLang L) : PLang L' := by
+  obtain ⟨M, hp, hd⟩ := hL
+  exact ⟨M, hp, fun x => (hd x).trans (h x)⟩
 
-/-- A deterministic machine (uniform: a single finitely-described object), with a genuine step count. -/
-structure Machine (α : Type) where
-  /-- Internal configuration space. -/
-  Config : Type
-  /-- One local step. -/
-  step : Config → Config
-  /-- Fixed local initialization from the input. -/
-  init : α → Config
-  /-- Output once halted (`some b`), else `none`. -/
-  output : Config → Option Bool
-
-/-- The configuration after `t` steps. -/
-def Machine.run {α : Type} (M : Machine α) (a : α) (t : ℕ) : M.Config := M.step^[t] (M.init a)
-
-/-- `M` decides `P` within time `T` (of the input size). -/
-def Decides {α : Type} (M : Machine α) (P : α → Prop) (size : α → ℕ) (T : ℕ → ℕ) : Prop :=
-  ∀ a, ∃ t, t ≤ T (size a) ∧ M.output (M.run a t) = some (decide (P a))
-
-/-- `P` is poly-time decidable: **one** machine, poly time. -/
-def Ptime {α : Type} (P : α → Prop) (size : α → ℕ) : Prop :=
-  ∃ (M : Machine α) (T : ℕ → ℕ), IsPoly T ∧ Decides M P size T
-
-/-- Poly-time is invariant under pointwise logical equivalence (the deciding machine outputs the same bit). -/
-theorem Ptime_congr {α : Type} {P P' : α → Prop} {size : α → ℕ}
-    (h : ∀ a, P a ↔ P' a) (hP : Ptime P size) : Ptime P' size := by
-  obtain ⟨M, T, hT, hdec⟩ := hP
-  refine ⟨M, T, hT, fun a => ?_⟩
-  obtain ⟨t, ht, ho⟩ := hdec a
-  exact ⟨t, ht, ho.trans (congrArg (fun p : Prop => some (decide p)) (propext (h a)))⟩
-
-/-- The always-`true` language is poly-time (a trivial one-step machine). -/
-theorem Ptime_true {α : Type} (size : α → ℕ) : Ptime (fun _ : α => True) size :=
-  ⟨{ Config := Unit, step := id, init := fun _ => (), output := fun _ => some true },
-    fun _ => 0, isPoly_zero, fun a => ⟨0, Nat.zero_le _, by simp [Machine.run]⟩⟩
-
-/-- The always-`false` language is poly-time. -/
-theorem Ptime_false {α : Type} (size : α → ℕ) : Ptime (fun _ : α => False) size :=
-  ⟨{ Config := Unit, step := id, init := fun _ => (), output := fun _ => some false },
-    fun _ => 0, isPoly_zero, fun a => ⟨0, Nat.zero_le _, by simp [Machine.run]⟩⟩
-
-/-- Any everywhere-true predicate is poly-time. -/
-theorem Ptime_of_forall {α : Type} {P : α → Prop} {size : α → ℕ} (h : ∀ a, P a) : Ptime P size :=
-  Ptime_congr (fun a => (iff_true_intro (h a)).symm) (Ptime_true size)
-
-/-- Any everywhere-false predicate is poly-time. -/
-theorem Ptime_of_forall_not {α : Type} {P : α → Prop} {size : α → ℕ} (h : ∀ a, ¬ P a) : Ptime P size :=
-  Ptime_congr (fun a => (iff_false_intro (h a)).symm) (Ptime_false size)
-
-/-- A language over bit strings. -/
-def Language := List Bool → Prop
-
-/-- **The P-observer languages** = P. -/
-def PLang (L : Language) : Prop := Ptime L List.length
+/-- Every constant language is in P (a one-state charged machine, zero clock). -/
+theorem PLang_const (b : Bool) : PLang (fun _ => b) := by
+  refine ⟨{ Q := 1, start := ⟨0, by omega⟩, delta := fun _ _ => (⟨0, by omega⟩, false, 2),
+            accept := fun _ => b, clock := fun _ => 0 }, ⟨0, 0, fun n => Nat.zero_le _⟩, fun x => ?_⟩
+  rfl
 
 /-! ## The one-sector NP-observer -/
 
-/-- A fixed poly verifier with a poly witness bound. -/
+/-- A fixed `InP` verifier with a poly witness bound. -/
 structure NPObs where
-  /-- Verify `(input, witness)`. -/
-  V : List Bool → List Bool → Bool
+  /-- Verify the appended string `input ++ witness`. -/
+  verify : List Bool → Bool
   /-- Witness-length bound. -/
-  wbound : ℕ → ℕ
+  wb : ℕ → ℕ
   /-- Poly witness bound. -/
-  poly_wbound : IsPoly wbound
-  /-- The verifier is poly-time. -/
-  ptime : Ptime (fun p : List Bool × List Bool => V p.1 p.2 = true) (fun p => p.1.length + p.2.length)
+  poly_wb : PolyBounded wb
+  /-- The verifier is in P. -/
+  ptime : PLang verify
 
-/-- **One accepting observation**: one existentially-selected sector verifies. -/
+/-- **One accepting observation**: one existentially-selected witness `w` verifies. -/
 def AcceptNP (ob : NPObs) (x : List Bool) : Prop :=
-  ∃ w, w.length ≤ ob.wbound x.length ∧ ob.V x w = true
+  ∃ w, w.length ≤ ob.wb x.length ∧ ob.verify (x ++ w) = true
 
-/-- The boundary of `x`: the set of accepting witnesses. -/
+/-- The boundary of `x`: the accepting witnesses. -/
 def Boundary (ob : NPObs) (x : List Bool) : Set (List Bool) :=
-  {w | w.length ≤ ob.wbound x.length ∧ ob.V x w = true}
+  {w | w.length ≤ ob.wb x.length ∧ ob.verify (x ++ w) = true}
 
-/-- Accepting = the boundary is nonempty (exhibit one member, do not read the whole set). -/
+/-- Accepting = the boundary is nonempty (exhibit one member). -/
 theorem accept_iff_nonempty (ob : NPObs) (x : List Bool) :
     AcceptNP ob x ↔ (Boundary ob x).Nonempty := Iff.rfl
 
+/-- The boundary-nonemptiness language of a verifier, as a `Bool` decision. -/
+noncomputable def acceptBool (ob : NPObs) : List Bool → Bool := fun x => decide (AcceptNP ob x)
+
+theorem acceptBool_iff (ob : NPObs) (x : List Bool) : acceptBool ob x = true ↔ AcceptNP ob x :=
+  decide_eq_true_iff
+
 /-- **The NP-observer languages** = NP. -/
-def NPLang (L : Language) : Prop := ∃ ob : NPObs, ∀ x, L x ↔ AcceptNP ob x
+def NPLang (L : List Bool → Bool) : Prop := ∃ ob : NPObs, ∀ x, L x = true ↔ AcceptNP ob x
+
+/-- **Every verifier's boundary language is NP** (in particular, a SAT verifier's is). -/
+theorem satIsNP (ob : NPObs) : NPLang (acceptBool ob) :=
+  ⟨ob, fun x => acceptBool_iff ob x⟩
 
 /-- **P ⊆ NP**: a deterministic observer is a one-sector NP-observer with the empty witness. -/
-theorem p_subset_np (L : Language) (h : PLang L) : NPLang L := by
-  have hLp : Ptime (fun p : List Bool × List Bool => L p.1) (fun p => p.1.length + p.2.length) := by
-    obtain ⟨M, T, ⟨c, k, hck⟩, hdec⟩ := h
-    refine ⟨{ Config := M.Config, step := M.step, init := fun p => M.init p.1, output := M.output },
-      fun n => c * n ^ k + c, ⟨c, k, fun n => le_refl _⟩, fun p => ?_⟩
-    obtain ⟨t, ht, ho⟩ := hdec p.1
-    refine ⟨t, ?_, ho⟩
-    calc t ≤ T p.1.length := ht
-      _ ≤ c * p.1.length ^ k + c := hck _
-      _ ≤ c * (p.1.length + p.2.length) ^ k + c := by
-          have : p.1.length ≤ p.1.length + p.2.length := Nat.le_add_right _ _
-          gcongr
-  refine ⟨{ V := fun x _ => decide (L x), wbound := fun _ => 0, poly_wbound := isPoly_zero,
-            ptime := Ptime_congr (fun p => decide_eq_true_iff.symm) hLp },
-          fun x => ⟨fun hx => ⟨[], by simp, decide_eq_true_iff.mpr hx⟩,
-                    fun ⟨w, _, hv⟩ => of_decide_eq_true hv⟩⟩
+theorem p_subset_np (L : List Bool → Bool) (h : PLang L) : NPLang L := by
+  refine ⟨{ verify := L, wb := fun _ => 0, poly_wb := ⟨0, 0, fun n => Nat.zero_le _⟩, ptime := h },
+    fun x => ?_⟩
+  constructor
+  · intro hx; exact ⟨[], Nat.le_refl 0, by simpa using hx⟩
+  · rintro ⟨w, hw, hv⟩
+    have : w = [] := List.length_eq_zero_iff.mp (Nat.le_zero.mp hw)
+    subst this; simpa using hv
 
 /-! ## Polynomial deterministic collapse and the bridge -/
 
 /-- **Polynomial deterministic collapse**: deciding the boundary's nonemptiness is in P (a predicate). -/
-def PolyCollapse (ob : NPObs) : Prop := PLang (fun x => AcceptNP ob x)
+def PolyCollapse (ob : NPObs) : Prop := PLang (acceptBool ob)
 
 /-- `P = NP` in the model. -/
 def PeqNP : Prop := ∀ L, NPLang L → PLang L
@@ -148,53 +109,71 @@ def PeqNP : Prop := ∀ L, NPLang L → PLang L
 theorem bridge : PeqNP ↔ ∀ ob : NPObs, PolyCollapse ob := by
   constructor
   · intro h ob
-    exact h (fun x => AcceptNP ob x) ⟨ob, fun _ => Iff.rfl⟩
+    exact h (acceptBool ob) (satIsNP ob)
   · intro h L hL
     obtain ⟨ob, hob⟩ := hL
-    exact Ptime_congr (fun x => (hob x).symm) (h ob)
+    refine PLang_congr (fun x => ?_) (h ob)
+    -- acceptBool ob x = L x
+    rw [Bool.eq_iff_iff, acceptBool_iff]
+    exact (hob x).symm
 
 /-! ## Calibration — boundary size and representation are NOT the collapse cost -/
 
 /-- A verifier that accepts everything (huge boundary). -/
 def fullObs : NPObs :=
-  { V := fun _ _ => true, wbound := fun _ => 0, poly_wbound := isPoly_zero,
-    ptime := Ptime_of_forall (fun _ => rfl) }
+  { verify := fun _ => true, wb := fun _ => 0, poly_wb := ⟨0, 0, fun n => Nat.zero_le _⟩,
+    ptime := PLang_const true }
 
-/-- **A huge boundary can collapse trivially.**  `fullObs` accepts every input (its boundary is all short
-witnesses), yet its language is `⊤ ∈ P` — so it collapses.  Boundary *size* is not the collapse cost. -/
-theorem fullBoundary_collapses : PolyCollapse fullObs :=
-  Ptime_of_forall (fun x => ⟨[], by simp [fullObs], rfl⟩)
+/-- **A huge boundary can collapse trivially.**  `fullObs` accepts every input, yet its language is `⊤ ∈ P`.
+Boundary *size* is not the collapse cost. -/
+theorem fullBoundary_collapses : PolyCollapse fullObs := by
+  refine PLang_congr (L := fun _ => true) (fun x => ?_) (PLang_const true)
+  show true = acceptBool fullObs x
+  exact (decide_eq_true_iff.mpr ⟨[], Nat.le_refl 0, rfl⟩).symm
 
 /-- A verifier that accepts nothing (empty boundary). -/
 def emptyObs : NPObs :=
-  { V := fun _ _ => false, wbound := fun _ => 0, poly_wbound := isPoly_zero,
-    ptime := Ptime_of_forall_not (fun _ => by simp) }
+  { verify := fun _ => false, wb := fun _ => 0, poly_wb := ⟨0, 0, fun n => Nat.zero_le _⟩,
+    ptime := PLang_const false }
 
 /-- **An empty boundary collapses** (the language is `∅ ∈ P`). -/
-theorem emptyBoundary_collapses : PolyCollapse emptyObs :=
-  Ptime_of_forall_not (fun x => by simp [AcceptNP, emptyObs])
+theorem emptyBoundary_collapses : PolyCollapse emptyObs := by
+  refine PLang_congr (L := fun _ => false) (fun x => ?_) (PLang_const false)
+  show false = acceptBool emptyObs x
+  have hnot : ¬ AcceptNP emptyObs x := by rintro ⟨w, _, hv⟩; simp [emptyObs] at hv
+  simp [acceptBool, hnot]
 
-/-- **Representation is not the collapse cost**: two verifiers accepting the same language have the same
-collapse, regardless of their boundary sizes. -/
+/-- **Representation is not the collapse cost**: two verifiers with the same acceptance have the same collapse. -/
 theorem sameLang_sameCollapse (ob ob' : NPObs) (h : ∀ x, AcceptNP ob x ↔ AcceptNP ob' x) :
-    PolyCollapse ob ↔ PolyCollapse ob' :=
-  ⟨fun hc => Ptime_congr h hc, fun hc => Ptime_congr (fun x => (h x).symm) hc⟩
+    PolyCollapse ob ↔ PolyCollapse ob' := by
+  have hb : ∀ x, acceptBool ob x = acceptBool ob' x := fun x => by
+    rw [Bool.eq_iff_iff, acceptBool_iff, acceptBool_iff]; exact h x
+  exact ⟨PLang_congr hb, PLang_congr (fun x => (hb x).symm)⟩
 
-/-! ## The fenced SAT specialization (conditional on NP-completeness) -/
+/-! ## The fenced SAT specialization (conditional on NP-completeness / Cook–Levin) -/
 
-/-- **Fenced separation.**  If `SATV`'s boundary is NP-complete (its collapse forces every NP language into P),
-then its boundary failing to collapse is *equivalent* to `P ≠ NP`.  The NP-completeness hypothesis is not built
-here; `¬ PolyCollapse SATV` is the open separation statement. -/
-theorem sat_bridge (SATV : NPObs)
-    (hcomplete : ∀ L, NPLang L → (PolyCollapse SATV → PLang L)) :
-    ¬ PolyCollapse SATV ↔ ¬ PeqNP := by
+/-- `SATV`'s boundary is NP-complete: its collapse forces every NP language into P.  This is the Cook–Levin
+NP-hardness half — a hypothesis, not built here. -/
+def SATComplete (SATV : NPObs) : Prop := ∀ L, NPLang L → (PolyCollapse SATV → PLang L)
+
+/-- **The SAT specialization** (conditional).  Given NP-completeness of `SATV`'s boundary, `P = NP` is equivalent
+to that single boundary collapsing. -/
+theorem sat_specialization (SATV : NPObs) (hc : SATComplete SATV) :
+    PeqNP ↔ PolyCollapse SATV := by
   constructor
-  · intro h hpeq; exact h ((bridge.mp hpeq) SATV)
-  · intro h hc; exact h (fun L hL => hcomplete L hL hc)
+  · intro h; exact (bridge.mp h) SATV
+  · intro hcol L hL; exact hc L hL hcol
+
+/-- **The fenced separation.**  `SATV`'s boundary failing to collapse is equivalent to `P ≠ NP`.  `¬ PolyCollapse
+SATV` is the open separation statement; the NP-hardness (`SATComplete`) is fenced. -/
+theorem sat_separation (SATV : NPObs) (hc : SATComplete SATV) :
+    ¬ PolyCollapse SATV ↔ ¬ PeqNP := by
+  rw [sat_specialization SATV hc]
 
 end PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics.p_subset_np
 #print axioms PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics.bridge
 #print axioms PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics.fullBoundary_collapses
-#print axioms PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics.sat_bridge
+#print axioms PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics.sat_specialization
+#print axioms PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics.sat_separation
