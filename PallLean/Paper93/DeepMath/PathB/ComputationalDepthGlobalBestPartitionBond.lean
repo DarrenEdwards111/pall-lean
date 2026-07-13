@@ -230,6 +230,33 @@ theorem exists_global_best_partition_bond (hh : 4 * r + 2 < h) :
     _ ≤ Module.finrank K (Submodule.span K (Set.range (residualOf S (QF (K := K) A)))) :=
         residual_finrank_ge A S
 
+/-! ## Step (1): the symmetric all-cut matrix, stated directly -/
+
+/-- `B` masked to the cross block `S × Sᶜ`. -/
+def crossBlock (B : Matrix (Fin (2 * h)) (Fin (2 * h)) (ZMod 2)) (S : Finset (Fin (2 * h))) :
+    Matrix (Fin (2 * h)) (Fin (2 * h)) (ZMod 2) :=
+  Matrix.of (fun i j => if i ∈ S ∧ j ∈ Sᶜ then B i j else 0)
+
+/-- **A symmetric, zero-diagonal `𝔽₂` matrix `B` whose every balanced cross block has rank `≥ r`.**  Stated
+directly as the symmetric all-cut matrix (`B = A + Aᵀ` for the `A` of `exists_symM_rank_ge`). -/
+theorem exists_symmetric_all_cut (hh : 4 * r + 2 < h) :
+    ∃ B : Matrix (Fin (2 * h)) (Fin (2 * h)) (ZMod 2),
+      Bᵀ = B ∧ (∀ i, B i i = 0) ∧
+        ∀ S : Finset (Fin (2 * h)), S.card = h → r ≤ (crossBlock B S).rank := by
+  obtain ⟨A, hA⟩ := exists_symM_rank_ge hh
+  refine ⟨A + Aᵀ, ?_, ?_, ?_⟩
+  · rw [Matrix.transpose_add, Matrix.transpose_transpose, add_comm]
+  · intro i
+    simp only [Matrix.add_apply, Matrix.transpose_apply]
+    exact CharTwo.add_self_eq_zero _
+  · intro S hS
+    have hcb : crossBlock (A + Aᵀ) S = symM A S := by
+      unfold crossBlock symM
+      ext i j
+      simp only [Matrix.of_apply, Matrix.add_apply, Matrix.transpose_apply]
+    rw [hcb]
+    exact hA S hS
+
 end PallLean.Paper93.DeepMath.PathB.GlobalBestPartitionBond
 
 #print axioms PallLean.Paper93.DeepMath.PathB.GlobalBestPartitionBond.exists_symM_rank_ge
