@@ -82,6 +82,13 @@ for algebraic-rank routes, with all-cut rank robustness — a cut-rank/rank-widt
    each hardwired cell on the fly), exactly as `qfProg A` (3 wires, quadratic re-reads) warns — static ordering
    bounds do not transfer to repeated-read programs.
 4. Horn B needs no new build — cite the three collapse theorems.
+5. **RESULTS (now built)**: the bridge and the cut-flow test are done. `ProgBPBridge.toBP` (program → oblivious
+   width-`2^w` BP, exact semantics) + `hardF_prog_width_conditional` (the wire bound under the explicit
+   contiguous-schedule hypothesis — the honest conditional form). And `CutFlow.cutflow_vacuous`: **unpinned
+   cut-flow is vacuous** — every program localizes to one side of a perfectly balanced cut (semantics- and
+   cost-preserving, zero crossings), so any layout-minimized cut-flow measure is identically zero. Surviving
+   candidates must PIN input ports; pinned single-cut caps at `n` (log-rank), pinned + bounded width leads into
+   time–space tradeoff theory (genuine, restricted, not a separation route).
 
 ## 5. Verdict
 
