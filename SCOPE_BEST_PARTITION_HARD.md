@@ -41,18 +41,32 @@ under *every* balanced partition is inherently random-like — which is precisel
 there is **no clean explicit best-partition-hard function to formalize**; producing one would resolve explicit
 matrix rigidity.
 
-## 3. The probabilistic existence — available, but a separate build
+## 3. The probabilistic existence — engine built (`LowRankCount`), assembly is mechanical
 
 A *random* symmetric `M` is rank-rigid with high probability, so a best-partition-hard function **exists**. Sketch:
-a fixed balanced off-diagonal block is an `h × h` `𝔽₂` matrix (`h = n/2`); `#{h×h : rank ≤ h − s} ≤ 2^{h² − s²}`
-(rank-factorization counting `M = A·B`, inner dimension `h − s`); the bad fraction per partition is `≤ 2^{−s²}`;
-union over `≤ 2^n = 2^{2h}` partitions is `< 1` once `s > √(2h) ≈ √n`. So some `M` has every balanced off-diagonal
-block of rank `≥ n/2 − O(√n)`, giving best-partition rank `≥ 2^{n/2 − O(√n)} = 2^{Ω(n)}`.
+a fixed balanced off-diagonal block is an `h × h` `𝔽₂` matrix (`h = n/2`); `#{h×h : rank ≤ s} ≤ 2^{2hs}` (rank
+factorization `M = A·B`, inner dimension `s`, counted by the domain `(A,B)`); the bad count per partition is
+`≤ 2^{2hs}·2^{N²−h²}` (block low-rank, complement free); union over `≤ 2^n` partitions is `< 2^{N²}` once
+`2r < h`. So some `M` has every balanced off-diagonal block of rank `≥ h/2 ≈ n/4`, giving best-partition rank
+`≥ 2^{Ω(n)}`.
 
-Formalizing this needs (a) the `𝔽₂` rank-distribution tail bound `#{rank ≤ h−s} ≤ 2^{h²−s²}` (via the surjection
-`(A,B) ↦ A·B` and `Finset.card` bounds), and (b) the union bound over the partition `Finset` — roughly a `~150–200`
-line counting/probabilistic-method build, using `chi_subset_finrank` as the rank engine at the end. It is bounded
-and buildable, but genuinely separate from the algebra done here.
+**The engine is now built and committed** (`ComputationalDepthLowRankCount.lean`, clean-axiom, no sorry):
+
+* `exists_span_of_finrank_le` — spanning family of size `s` from `finrank ≤ s`;
+* `rank_factor` — **the crux, absent from Mathlib**: `rank M ≤ s ⟹ M = A·B` (inner dimension `s`);
+* `card_lowRank_le` — `#{h×h 𝔽₂ matrices of rank ≤ s} ≤ 2^{2hs}` (via `rank_factor` + `(A,B) ↦ A·B`);
+* `exists_avoiding` — the probabilistic-method pigeonhole: `Σ_test |Bad test| < |Ω| ⟹` some object avoids every bad
+  set.
+
+What remains is **mechanical assembly** (all Mathlib tools confirmed present — `Finset.orderEmbOfFin` for the
+block, `Matrix.rank_submatrix` for reindexing, `Equiv.piEquivPiSubtypeProd` for the block/complement split): for a
+partition `S`, bound `|{M : rank(block_S M) < r}| ≤ (card_lowRank_le) · 2^{N²−h²}` via the injection
+`M ↦ (block_S M, M|_complement)`, sum over the `≤ 2^n` partitions, and apply `exists_avoiding` with the arithmetic
+`2h + 2hr < h²`. This is ~120 lines of `Finset`/`Fintype` bookkeeping on top of the engine — bounded and buildable,
+with no remaining mathematical obstruction, only the algebra of the sub-block/complement counting.
+
+So the genuinely hard, novel part — the `𝔽₂` rank factorization and its count — is done; the existence theorem is
+one mechanical assembly step away, and every ingredient it needs is proved.
 
 ## 4. Verdict
 
