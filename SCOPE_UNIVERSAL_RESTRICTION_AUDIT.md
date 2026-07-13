@@ -63,13 +63,14 @@ Two ways the NP-side high rank can be an **artifact** that does not bound decisi
   **compiled verifier/tableau representation**.  A **decider** carries no witness variables.  So Item 2 — genuine
   and axiom-free as it is — bounds the **wrong object** for the separation: verifier rank, not decider rank.
   Bridging verifier-rank to decider-rank is again the representation-invariance of check 2.
-* **QF calibration (machine-checked here).**  `QF A` is in P (`qfProg A`, `4n²` gates,
-  `ChargedCompiler.qfProg_correct`) yet has maximal *tensor/entanglement* rank across every cut
-  (`exists_global_best_partition_bond`).  If the SPDP measure inherits that behaviour, it assigns the **poly-time**
-  `QF A` (and witness-padded parity) high rank — over-counting, and falsifying "high rank ⇒ hard decision."  The
-  corpus's own `QF A` is the ready-made falsifier for any rank measure that is not proven to ignore poly-time
-  structure.  This check is NOT passed until the SPDP measure is shown to assign `QF A` low rank — which no
-  proved lemma currently does.
+* **QF calibration (corrected — see `SCOPE_QF_CALIBRATION_AUDIT.md`).**  `QF A` is in P (`qfProg A`, `4n²` gates,
+  `ChargedCompiler.qfProg_correct`) yet has maximal *tensor/entanglement* (Schmidt) rank across every cut
+  (`exists_global_best_partition_bond`).  **This makes `QF A` a clean falsifier for any COMMUNICATION/tensor-rank
+  measure — but NOT for SPDP** (shifted-partial-derivative) rank, a *different* measure: the natural quadratic
+  `q_A` has total degree 2, so at matched params `κ = log n ≥ 3` all `∂_S q_A` vanish and `spdpRank q_A = 0`.  So
+  the SPDP easy-function check is *passed* by the natural quadratic; QF A does not over-count *here*.  (My earlier
+  wording "ready falsifier for any SPDP measure" was an error, conflating tensor rank with SPDP rank.)  The
+  residual risk is only sub-case (a) above — verifier vs decider representation — which is check 2 again.
 
 ## 4. Cross-check against the prior audit and the memory refutation
 
