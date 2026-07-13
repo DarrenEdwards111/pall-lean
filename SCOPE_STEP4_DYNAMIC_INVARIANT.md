@@ -15,51 +15,56 @@ loads no oracles, `0 ≤ poly`, polynomial on every calibration, and derives wha
 vacuously. So the law system cannot force usefulness; all separating content lives in the absent sixth law —
 "`Inv` is superpolynomial for every correct SAT program" — which is exactly step 6.
 
-## 2. The no-free-lunch: law (3) makes step 6 ⟺ separation
+## 2. The no-free-lunch: law (3) makes step 6 a ONE-WAY reduction to the separation (audit-corrected)
 
 Suppose `Inv` satisfies law (3): `Inv(P) ≤ poly(cost(P))` for every charged program `P`. Then
 
-> "every SAT program has superpolynomial `Inv`"  ⟺  "every SAT program has superpolynomial cost"
+> "every SAT program has superpolynomial `Inv`"  ⟹  "every SAT program has superpolynomial cost"
 
-(⇒ by law (3) contrapositive; ⇐ because a poly-cost SAT program would need poly `Inv` by law (3)... the forward
-direction is the content; the equivalence with the compiler of step 3 in hand is immediate). This is not a defect
-of any particular `Inv` — it is what *sound* means. The invariant can only add **attack structure** to the
-separation; it cannot reduce its strength. HAL marked step 6 separation-strength; this makes it precise: *any*
-sound invariant's step 6 is the separation, verbatim.
+— invariant hardness implies computational hardness. **The converse does NOT follow** (audit correction): even if
+every SAT program had superpolynomial cost, `Inv ≡ 0` satisfies law (3) and stays zero, so the invariant-hardness
+claim can be false while the separation is true. Equivalence would additionally require `cost ≤ poly(Inv)` — which
+makes the invariant clock-equivalent (Horn B). So the correct statement: proving the step-6 hardness side is
+**at-least-separation-hard** (it implies the separation), and any sound invariant adds attack structure without
+reducing that strength.
 
 ## 3. The two horns, now with proofs available
 
-**Horn A — information-type measures are capped at `n` (provable no-go).** Take the canonical information
-invariant, `Inv_info(P) := max_t log₂ |image(x ↦ state_t(x))|` (any variant — cut log-rank, accumulated growth,
-total variation — is dominated by the same argument):
+**Horn A — instantaneous and min-over-programs information caps (audit-corrected to its provable strength).**
 
-* *It satisfies every law*: logic gates cannot increase the image count (the next state is a function of the
-  current one); an `input` gate at most doubles it. Hence `Inv_info ≤ #input gates ≤ cost` — laws (2), (3) — and
-  it is wire-permutation invariant (1) and polynomial on all calibrations (4).
-* *It is capped at `n` for every function*: every `f` has a **read-once** program — read the `n` inputs into `n`
-  dedicated wires (`n` input gates; image count ≤ 2^t ≤ 2^n during this phase), then compute by pure logic (image
-  count never increases). Copying a wire needs no input gate (`copy = two NOTs`), and every Boolean function is a
-  `{¬,∧,⊕}` straight-line program on loaded wires (Shannon expansion / `BForm` universality). Hence
-  `min_P Inv_info(P) ≤ n` for **every** `f`, SAT included.
+* *Instantaneous information caps at `n` universally, trivially*: at any fixed time the state is a function of the
+  `n`-bit input, so its range has `≤ 2^n` elements — for every program, no normalization needed
+  (`instantaneous_info_le_n`).
+* *Cumulative input-driven growth is bounded by reads, NOT by `n`, per program*: logic gates cannot increase the
+  image count; an input gate at most doubles it (`stateImage_card_le`: states `≤ 2^{reads}`). A single program may
+  forget and re-read — `qfProg A` re-reads quadratically — so per-program cumulative growth scales with reads
+  (`≤ cost`), and claiming a per-program `n`-cap would be FALSE.
+* *But the min over programs computing `f` caps at `n`*: read-once normalization (`readOnce`: load the `n` inputs
+  into `n` low wires, replace re-reads by two-`NOT` copies; semantics-preserving, `n` reads, cost `≤ n + 2·cost`)
+  gives every computable `f` a program whose reachable-state count stays `≤ 2^n` at every prefix (`info_cap`).
+  Since hardness claims quantify over all programs (the *minimal* charge), any invariant dominated by
+  prefix-state-counts has `min ≤ n` on every computable function — below even the Nečiporuk ceiling.
 
-  So the information horn cannot separate anything — it is capped at **linear**, worse even than the Nečiporuk
-  ceiling (`n²`, `NeciporukCeilingTotal`). The log-rank warning is subsumed: log-rank of any `n`-bit function is
-  `≤ n` across any cut, so even the "right" (growth) normalization caps. The corpus holds the exact witness pair:
-  `QF A` has raw rank `2^{Ω(n)}` at every cut (`exists_global_best_partition_bond`) but log-rank `≤ n` — raw rank
-  fails law (4), log rank caps at `n`. There is no setting of the rank dial that is both sound and unbounded.
+  What this does NOT cover (audit correction): **cut-communication, congestion, and layout-movement measures** —
+  these charge logic across cuts and are bounded by neither argument. Each such candidate needs its own
+  collapse-or-survive test (against `qfProg A` and the proved collapses) before any conclusion. The log-rank
+  observation stands: log-rank of any `n`-bit function is `≤ n` across any cut (`QF A`: raw rank `2^{Ω(n)}` every
+  cut, log-rank `≤ n`), so static rank in either normalization is sound-and-capped or unsound.
 
-**Horn B — clock-type measures are circular.** If `Inv` charges logic steps (to escape the cap), then
-`Inv = Θ(cost)` up to the charging weights, and the hardness claim for SAT is *verbatim* a time lower bound — the
-separation restated. This is not hypothetical: the corpus already proved it for the charged measures —
-`ChargedCanonicalQueryAudit.canonical_schemeResource_eq_clock` (the maximally-rich scheme's innovation is exactly
-the clock), `ChargedLengthObserverCollapse` / `ChargedDynamicQueryCollapse` (charged observer/dynamic measures
-collapse). Horn B is the machine-checked history of this project.
+**Horn B — the proved collapses (audit-corrected: specific, not universal).** Charging every logic step uniformly
+makes `Inv = Θ(cost)` and the hardness claim a time lower bound restated. The corpus proved this for three specific
+measures — `ChargedCanonicalQueryAudit.canonical_schemeResource_eq_clock`, `ChargedLengthObserverCollapse`,
+`ChargedDynamicQueryCollapse`. These refute *their* measures; they do NOT prove a universal dichotomy for every
+logic-sensitive invariant. Measures that charge only cross-cut communication, congestion, novelty, or
+layout-sensitive movement are refuted by neither horn as it stands.
 
-**The corridor is empty** (for information measures): anything logic-free caps at `n` (Horn A); anything
-logic-charging is the clock (Horn B). A two-sided invariant with provable superpolynomial SAT hardness must be a
-*non-information* semantic measure — and the known candidates are the known walls (algebraic degree/rigidity =
-Valiant; any truth-table-computable, random-large measure = natural proofs, which its hardness side would need to
-evade by non-constructivity or non-largeness).
+**Corrected corridor statement**: the corridor is closed for instantaneous-state information (universal `n`-cap)
+and for min-over-programs input-driven growth (read-once `n`-cap); it is **open** for cumulative cut-flow /
+congestion measures, which must be tested candidate-by-candidate (first gates: polynomial on `qfProg A`; not
+clock-equivalent; then confront the collapse precedents). A two-sided invariant with provable superpolynomial SAT
+hardness would additionally have to contend with natural proofs (if truth-table-computable and random-large) and,
+for algebraic-rank routes, with all-cut rank robustness — a cut-rank/rank-width–type property, related to but
+**distinct from** Valiant matrix rigidity (earlier "= Valiant" phrasing retracted).
 
 ## 4. What is genuinely buildable as step (4)
 
@@ -69,22 +74,24 @@ evade by non-constructivity or non-largeness).
    universality (Shannon expansion — standard, ~100 lines), (b) read-once normalization (replace re-reads by
    2-NOT copies from loaded wires). This machine-checks Horn A: **no information-type dynamic invariant can
    separate** — the honest closure of the invariant design space, same species as `NeciporukCeilingTotal`.
-3. **The genuine restricted instance**: bounded wires. A charged program on `w` wires with its fixed gate sequence
-   is an oblivious computation of width `2^w`; bridging `Prog → LevBP` and applying the proved BP bound
-   (`hardF_bp_width_ge`: `2^b − 1 ≤ 2·width`) gives: **any charged program computing `hardF` needs
-   `w ≥ b − O(log b)` wires** — a real, unconditional charged-space lower bound (small — `Ω(log n)` — but genuine,
-   and it connects the step-2 language to the BP arc). This is what a *sound and true* step-4 invariant can
-   actually deliver: space-type bounds in the restricted regime.
+3. **The restricted instance — CONDITIONAL only (audit-corrected)**: bridging `Prog → LevBP` (width `2^w`) is
+   buildable, but `hardF_bp_width_ge` assumes the address block is read in one contiguous level interval. An
+   arbitrary program interleaves and re-reads freely, so the valid theorem is: **any charged program whose
+   input-read schedule reads the chosen `hardF` address block contiguously needs `2^b − 1 ≤ 2·2^w`**. The
+   unconditional version is FALSE: `hardF` is computable with `O(1)` wires by re-reading (compare each address to
+   each hardwired cell on the fly), exactly as `qfProg A` (3 wires, quadratic re-reads) warns — static ordering
+   bounds do not transfer to repeated-read programs.
 4. Horn B needs no new build — cite the three collapse theorems.
 
 ## 5. Verdict
 
-* HAL's laws (1)–(5) are mutually satisfiable — by `Inv ≡ 0`, by `Inv_info`, by restricted space measures — but
-  they are all upper bounds; they admit trivial and capped instances and cannot force hardness.
-* The information instantiations are **provably capped at `n`** (buildable no-go, item 2), and the clock
-  instantiations are **circular** (already machine-checked). The corridor is empty for information measures.
-* The honest step-4 deliverable is: the cap theorem + the charged-space restricted bound + the explicit statement
-  that the missing hardness axiom *is* step 6 (separation-strength, not derivable from trace bookkeeping).
+* HAL's laws (1)–(4) are mutually satisfiable — by `Inv ≡ 0`, by `Inv_info`, by restricted space measures — but
+  they are upper bounds; they admit trivial and capped instances and cannot force hardness. (Law (5) is not yet
+  formal; the `Inv ≡ 0` observation applies to it only under a vacuous-upper-bound formalization.)
+* Instantaneous information and min-over-programs input-driven growth are **provably capped at `n`**; three clock
+  measures are **proved collapsed**; cut-flow/congestion candidates remain **open** and need per-candidate tests.
+* The honest step-4 deliverable is: the caps + honest growth bounds + the conditional (contiguous-schedule)
+  space instance + the explicit statement that the step-6 hardness side is at-least-separation-hard (one-way).
 * Step 5's horizon laws inherit this scoping: "reconstruction cost derived from the trace" is an information
   quantity (Horn A) unless it charges the clock (Horn B); the derived-horizon route should be scoped against the
   same dichotomy before building.
