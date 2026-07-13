@@ -69,15 +69,24 @@ self-reducibility route.
    `verifyWrap_sound`/`_complete`) pass gates 1–5 and are formalized; the failure lives at gate 3, formalized as
    `encode_exceeds_length`.  No lemma that *closes the wall* was manufactured.
 
-## 5. The finding: polarity ↔ size duality
+## 5. The finding: a size obstruction for the literal-hardwiring self-reference (NOT an explanation of Σ₂)
 
-The round did not survey — it moved the obstruction and pinned where it re-appears.  Self-reducibility converts the
-polarity obstruction (gate 2) into a size obstruction (gate 3): you can make every error NP-witnessable, but only
-by referencing the circuit, which forces the instance above the circuit's size and above its own length.  **These
-two obstructions are dual; no self-reference-based construction removes both.**  A route through the
-missing-witness frontier would need to reference `C_N`'s behaviour on a length-`N` instance *without encoding
-`C_N`* — i.e. a bounded, uniform-like handle on a non-uniform object — which is the open problem itself, now stated
-as sharply as this line of attack permits.
+**Correction (per Kannan 1982, Cai–Watanabe 2004).**  The classical placement of the fixed-polynomial circuit
+lower bound at `Σ₂ᵖ` is a theorem, but it is NOT established by any "polarity↔size duality"; the actual arguments
+(Kannan's, and Cai–Watanabe's constructive treatment) are different.  So this memo does not claim to explain the
+`Σ₂ᵖ` placement.  What the round *does* establish, honestly:
+
+* the polarity obstruction is convertible for a given circuit `C` (self-reducibility → false-negative-only `C'`,
+  `verifyWrap_sound`); and
+* the *specific* `literal-hardwiring` self-referential diagonal against `C'_N` cannot be a length-`N` instance,
+  because encoding `C'_N` costs `≥ |C'_N|` bits — a **conditional** obstruction: `descLen C'_N > N ⇒` no
+  length-`N` literal-hardwired diagonal (`CNFSelfReduction.hardwire_conditional`).
+
+This is *not* a proof about `P/poly`, and we do **not** infer `descLen C'_N > N` from the `P/poly` upper bound.  A
+route through the missing-witness frontier would need to reference `C_N`'s behaviour on a length-`N` instance
+*without* literally encoding `C_N` — a bounded, uniform-like handle on a non-uniform object — which is the open
+problem itself.  The encoded-CNF version of every mechanism here is `ComputationalDepthCNFSelfReduction.lean`; the
+truth-table `BF` sketch was insufficient and is superseded.
 
 Recommendation: freeze this route; the next genuinely new idea would have to break the size↔polarity duality
 (reference a large circuit's self-behaviour from a small instance), and none is proposed.  No closure is claimed.
