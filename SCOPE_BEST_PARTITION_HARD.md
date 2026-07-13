@@ -74,13 +74,14 @@ So a **rank-rigid matrix** is built end to end: `𝔽₂` rank factorization (`r
 * **Proved (matrix rigidity):** a random `𝔽₂` matrix has every balanced off-diagonal block of rank `≥ r ≈ n/4`
   (`exists_best_partition_hard`), and one block of rank `q` canonically generates `2^q` independent Walsh characters
   (`block_charspan_eq`, resting on `chi_subset_finrank`). Both clean-axiom, no sorry.
-* **NOT yet proved (the global bond — audit-corrected):** that these per-cut character families are the residuals of
-  **one** function. `exists_cutwise_charspan` builds a *fresh* family per cut; it is **not** `∃ f, ∀ balanced S,
-  2^r ≤ finrank(span(range (residualOf S f)))`. Closing this needs a single global quadratic form `QF A` plus the
-  residual factorization `residualOf S (QF A) α = D·c(α)·χ_{y(α)}`, and a probabilistic existence over the
-  **symmetrized** block `(A+Aᵀ)[S][Sᶜ]` (the directed `exists_best_partition_hard` does not transfer, and a directed
-  matrix cannot be glued into a Boolean quadratic form — one coefficient per unordered pair). Foundations verified
-  (`sgn(a+b)=sgn a·sgn b`; the residual sum-split); the full build is pending.
+* **Proved (the global bond — audit-corrected and now completed):** `GlobalBestPartitionBond.exists_global_best_partition_bond`
+  — for `4r + 2 < h`, there is a **single** function `f = QF A` with `∀ balanced S, 2^r ≤ finrank(span(range
+  (residualOf S f)))`, i.e. the tensor bond of *one* function across *every* partition. It uses the global quadratic
+  form `QF A z = sgn(∑ᵢⱼ Aᵢⱼ·bit zᵢ·bit zⱼ)`, the residual factorization `residualOf S (QF A) α = D·χ_{y(α)}·c(α)`
+  (`GlobalResidual.residual_factor`), the index count `#characters = 2^{rank(symM A S)}` (`indexImage_card`), and a
+  probabilistic existence over the **symmetrized** block `(A+Aᵀ)[S][Sᶜ]` (`exists_symM_rank_ge` — counting `symM`
+  directly as a `Fin(2h)` matrix, recovering `Aᵢⱼ = symMᵢⱼ + Aⱼᵢ` on the block). The symmetry is handled correctly
+  (one coefficient per unordered pair; a directed matrix cannot be glued in). Clean-axiom, no sorry.
 * **Blocked (explicit):** an *explicit* rank-rigid matrix is explicit matrix rigidity = Valiant's open problem; the
   natural algebraic ones provably fail (§2).
 
