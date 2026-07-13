@@ -2,11 +2,12 @@
 
 Task: define an invariant from the charged program/trace, minimized over legal layouts/gauges, satisfying HAL's
 laws — (1) gauge/layout invariance, (2) no oracle-loading, (3) `Inv ≤ poly(actual resources)`, (4) polynomial value
-for every calibration program (especially `QF A`), (5) horizon/reconstruction derived from the trace. **Verdict:
-the law system as stated is satisfiable but empty; every information-type instantiation is provably capped at
-`n`; every clock-type instantiation is circular. The corridor between them is empty for information measures — a
-formal no-go is buildable. The genuine step-4 deliverables are the no-go plus a real restricted instance (a
-charged-space lower bound). The hardness axiom the route needs is not derivable from any law list — it IS step 6.**
+for every calibration program (especially `QF A`), (5) horizon/reconstruction derived from the trace. **Verdict
+(audit-corrected): the law system as stated is satisfiable but empty (`Inv ≡ 0`); instantaneous-state information
+is universally capped at `n`, and min-over-programs input-driven growth is capped at `n` via read-once
+normalization — both now machine-checked. Three clock measures are proved collapsed; cut-flow/congestion
+candidates remain open and need per-candidate tests. The step-6 hardness side is at-least-separation-hard
+(one-way reduction — the earlier equivalence claim is retracted).**
 
 ## 1. The trivial-invariant observation: the laws are all upper bounds
 
@@ -70,10 +71,9 @@ for algebraic-rank routes, with all-cut rank robustness — a cut-rank/rank-widt
 
 1. **The trace-level information bound** (`info ≤ reads`): `log₂|image(state_t)| ≤ #input gates before t` — the
    trace generalization of `cost_ge_deps`, and laws (2)+(3) for `Inv_info`. Small, clean induction.
-2. **The cap theorem (the formal no-go)**: `∀ f, ∃ P computing f with Inv_info(P) ≤ n`. Needs (a) `BForm`
-   universality (Shannon expansion — standard, ~100 lines), (b) read-once normalization (replace re-reads by
-   2-NOT copies from loaded wires). This machine-checks Horn A: **no information-type dynamic invariant can
-   separate** — the honest closure of the invariant design space, same species as `NeciporukCeilingTotal`.
+2. **The cap theorem**: read-once normalization (generic — no universality needed: 2-NOT copies from loaded
+   wires) gives `min_P Inv_info(P) ≤ n` on every computable function (`info_cap`). Machine-checks the
+   instantaneous and min-over-programs caps — NOT a claim about cut-flow/congestion measures (see Horn A).
 3. **The restricted instance — CONDITIONAL only (audit-corrected)**: bridging `Prog → LevBP` (width `2^w`) is
    buildable, but `hardF_bp_width_ge` assumes the address block is read in one contiguous level interval. An
    arbitrary program interleaves and re-reads freely, so the valid theorem is: **any charged program whose
