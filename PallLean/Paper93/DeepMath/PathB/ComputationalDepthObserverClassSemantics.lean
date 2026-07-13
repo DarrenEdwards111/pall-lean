@@ -21,9 +21,13 @@ The observer-class framing, faithfully, on that model:
 * `bridge` — `P = NP ⇔ every NP boundary admits polynomial deterministic collapse`.
 * calibration — `fullBoundary_collapses`, `emptyBoundary_collapses`, `sameLang_sameCollapse`: boundary size and
   verifier representation are NOT the collapse cost.
-* `sat_specialization` / `sat_separation` — **fenced, conditional on `SATComplete`** (Cook–Levin NP-hardness, a
-  hypothesis, not built): `P = NP ⇔ PolyCollapse SATV` and `¬ PolyCollapse SATV ⇔ P ≠ NP`.  The *`SAT ∈ NP`* half
-  is proved (`satIsNP`); the NP-hardness half is `SATComplete`, fenced.
+* `sat_specialization` / `sat_separation` — conditional on `SATComplete`: `P = NP ⇔ PolyCollapse SATV` and
+  `¬ PolyCollapse SATV ⇔ P ≠ NP`.  The *`SAT ∈ NP`* half is proved (`satIsNP`).
+* `satComplete_of_cookLevin` — **the factoring** (proved): `SATComplete` follows from `ReductionClosure` (P closed
+  under reductions) `∧ CookLevin` (every NP many-one reduces to SAT).  So the completeness fence is *exactly* the
+  two standard named theorems; `sat_*_of_cookLevin` discharge the SAT separation from them.  Full Cook–Levin is not
+  formalized in the corpus (only single-DTM tableau correctness; the frontier hyp is refuted), so both ingredients
+  remain fenced — but the glue is proved and the fence is now standard, not ad hoc.
 
 `¬ PolyCollapse SATV` is the open separation statement.  SPDP/holography/rigidity are absent (proposed estimators
 only).  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
@@ -170,6 +174,54 @@ theorem sat_separation (SATV : NPObs) (hc : SATComplete SATV) :
     ¬ PolyCollapse SATV ↔ ¬ PeqNP := by
   rw [sat_specialization SATV hc]
 
+/-! ## Discharging `SATComplete` from Cook–Levin — the exact standard factoring
+
+Full Cook–Levin (every NP language many-one reduces to SAT) is NOT formalized in the corpus:
+`TuringMachine.cook_levin_correctness` is only tableau-correctness for one DTM, and `CookLevinFrontierHyp` is
+refuted/circular.  So `SATComplete` cannot be discharged unconditionally.  What we CAN do honestly is factor it
+into the two exact standard ingredients and prove the glue — turning the ad-hoc `SATComplete` into
+`ReductionClosure ∧ CookLevin`, both standard named results.  Then "discharge `SATComplete` once Cook–Levin is
+formalized" is precisely: supply `CookLevin` (the mountain) and `ReductionClosure` (P closed under reductions —
+standard, but needs a composition-friendly machine model, which this decision-only `ChargedMachine` is not). -/
+
+/-- A charged transducer's output is its final tape. -/
+noncomputable def transduce (M : ChargedMachine) (x : List Bool) : List Bool :=
+  (ChargedHolographicMachine.run M (M.clock x.length) (ChargedHolographicMachine.init M x)).tape
+
+/-- A poly-time string function (a charged transducer). -/
+def PolyComputable (f : List Bool → List Bool) : Prop :=
+  ∃ M : ChargedMachine, ChargedHolographicMachine.IsPolyTime M ∧ ∀ x, transduce M x = f x
+
+/-- Poly many-one reduction. -/
+def PolyReduces (L L' : List Bool → Bool) : Prop :=
+  ∃ f, PolyComputable f ∧ ∀ x, L x = L' (f x)
+
+/-- **Standard ingredient 1** — P is closed under poly many-one reductions.  (Provable with charged-machine
+sequential composition; this decision-only `ChargedMachine` is not composition-friendly, so it is fenced.) -/
+def ReductionClosure : Prop := ∀ L L' : List Bool → Bool, PolyReduces L L' → PLang L' → PLang L
+
+/-- **Standard ingredient 2** — Cook–Levin: every NP language many-one reduces to `SATV`'s boundary.  This is the
+NP-hardness mountain; not built here. -/
+def CookLevin (SATV : NPObs) : Prop := ∀ L, NPLang L → PolyReduces L (acceptBool SATV)
+
+/-- **The factoring, proved (pure logic).**  `SATComplete` follows from the two standard ingredients.  So the
+opaque completeness fence is exactly `ReductionClosure ∧ CookLevin`. -/
+theorem satComplete_of_cookLevin (SATV : NPObs) (hRC : ReductionClosure) (hCL : CookLevin SATV) :
+    SATComplete SATV := by
+  intro L hL hcol
+  exact hRC L (acceptBool SATV) (hCL L hL) hcol
+
+/-- **SAT specialization, discharged from Cook–Levin** (the glue is proved; the two ingredients are the fence). -/
+theorem sat_specialization_of_cookLevin (SATV : NPObs) (hRC : ReductionClosure) (hCL : CookLevin SATV) :
+    PeqNP ↔ PolyCollapse SATV :=
+  sat_specialization SATV (satComplete_of_cookLevin SATV hRC hCL)
+
+/-- **SAT separation, discharged from Cook–Levin.**  Once `CookLevin` (and `ReductionClosure`) are formalized,
+`¬ PolyCollapse SATV ↔ P ≠ NP` follows with no further fence. -/
+theorem sat_separation_of_cookLevin (SATV : NPObs) (hRC : ReductionClosure) (hCL : CookLevin SATV) :
+    ¬ PolyCollapse SATV ↔ ¬ PeqNP :=
+  sat_separation SATV (satComplete_of_cookLevin SATV hRC hCL)
+
 end PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics.p_subset_np
@@ -177,3 +229,5 @@ end PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics
 #print axioms PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics.fullBoundary_collapses
 #print axioms PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics.sat_specialization
 #print axioms PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics.sat_separation
+#print axioms PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics.satComplete_of_cookLevin
+#print axioms PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics.sat_separation_of_cookLevin
