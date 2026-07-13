@@ -9,9 +9,11 @@ overclaimed: the statements below are **cut-local**.  For each cut `S`, `charBlo
 character family from that cut's block `B`, i.e. a *different* bilinear function per cut.  There is no single global
 `f : (Fin (2h) → Bool) → K`, no `residualOf S f`, and no proof that these cut-local families are residuals of one
 function — so `finrank(span …)` here is **not** the tensor bond of a fixed function across every partition.  The
-genuine statement, `∃ f, ∀ balanced S, 2^r ≤ finrank(span(range (residualOf S f)))`, is proved separately in
-`ComputationalDepthGlobalBestPartitionBond.lean` (which supplies the global quadratic form and the residual
-factorization).
+genuine statement, `∃ f, ∀ balanced S, 2^r ≤ finrank(span(range (residualOf S f)))`, is **not yet formalized**: it
+requires a single global quadratic form `QF A z = sgn(∑ᵢⱼ Aᵢⱼ·bit zᵢ·bit zⱼ)`, the residual factorization
+`residualOf S (QF A) α = D(z)·c(α)·χ_{y(α)}` (sum-split + the sign homomorphism `sgn(a+b)=sgn a·sgn b`), and a
+probabilistic existence over the **symmetrized** block `(A+Aᵀ)[S][Sᶜ]` (the directed `exists_best_partition_hard`
+does not transfer).  Foundations verified; the full build is pending.
 
 What this file *correctly* proves is the **block-rank → character-span bridge**: a single `𝔽₂` block `B` of rank
 `q` canonically generates `2^q` linearly independent Walsh characters.
@@ -87,7 +89,7 @@ theorem block_charspan_eq (B : Matrix (Fin h) (Fin h) (ZMod 2)) :
 /-- **Cut-local character families.**  For `2r + 2 < h`, the rigid matrix supplies, at every balanced partition, a
 character family of span-dimension `≥ 2^r`.  NOTE: for each cut `S` this is a *different* family
 `charBlockSet (blk S M)` — a fresh bilinear function per cut, **not** the residual span of one shared function.  The
-global statement is `GlobalBestPartitionBond.exists_global_best_partition_bond`. -/
+global `∃ f, ∀ S` statement is not yet formalized (see the file header). -/
 theorem exists_cutwise_charspan (hh : 2 * r + 2 < h) :
     ∃ M : Matrix (Fin (2 * h)) (Fin (2 * h)) (ZMod 2),
       ∀ S : Finset (Fin (2 * h)), S.card = h →

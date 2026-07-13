@@ -65,23 +65,26 @@ block at **every** balanced partition has rank `≥ r ≈ n/4`. The block `blk S
 giving `|Bad_S| ≤ 2^{2hr}·2^{N²−h²}` (`fiber_bound`); the union over `≤ 2^n` partitions is `< 2^{N²}` by the
 arithmetic `2hr + 2h < h²`, and `exists_avoiding` produces the rigid `M`.
 
-So the entire chain is complete: `𝔽₂` rank factorization (`rank_factor`) → low-rank count (`card_lowRank_le`) →
-pigeonhole (`exists_avoiding`) → **a best-partition-hard matrix exists** (`exists_best_partition_hard`), and via the
-reduction (`chi_subset_finrank`) a best-partition-hard function exists — all clean-axiom, no sorry.
+So a **rank-rigid matrix** is built end to end: `𝔽₂` rank factorization (`rank_factor`) → low-rank count
+(`card_lowRank_le`) → pigeonhole (`exists_avoiding`) → **a matrix whose every balanced block has rank `≥ r` exists**
+(`exists_best_partition_hard`), all clean-axiom, no sorry.
 
-## 4. Verdict
+## 4. Verdict — what is and is not proved
 
-* **Proved:** the reduction and its engine — the communication rank of `Q_M` across any partition is
-  `2^{rank(off-diagonal block)}`, resting on `chi_subset_finrank` (distinct characters are full rank). This is the
-  correct, complete characterization of when the template is best-partition-hard.
-* **Blocked (explicit):** an *explicit* best-partition-hard function requires an explicit rank-rigid matrix =
-  explicit matrix rigidity = Valiant's open problem. No clean construction exists; the natural algebraic ones
-  provably fail (§2).
-* **Built (existential):** a *random* `M` works, so a best-partition-hard function **exists** — now formalized end
-  to end (`exists_best_partition_hard`, §3), clean-axiom and no sorry.
+* **Proved (matrix rigidity):** a random `𝔽₂` matrix has every balanced off-diagonal block of rank `≥ r ≈ n/4`
+  (`exists_best_partition_hard`), and one block of rank `q` canonically generates `2^q` independent Walsh characters
+  (`block_charspan_eq`, resting on `chi_subset_finrank`). Both clean-axiom, no sorry.
+* **NOT yet proved (the global bond — audit-corrected):** that these per-cut character families are the residuals of
+  **one** function. `exists_cutwise_charspan` builds a *fresh* family per cut; it is **not** `∃ f, ∀ balanced S,
+  2^r ≤ finrank(span(range (residualOf S f)))`. Closing this needs a single global quadratic form `QF A` plus the
+  residual factorization `residualOf S (QF A) α = D·c(α)·χ_{y(α)}`, and a probabilistic existence over the
+  **symmetrized** block `(A+Aᵀ)[S][Sᶜ]` (the directed `exists_best_partition_hard` does not transfer, and a directed
+  matrix cannot be glued into a Boolean quadratic form — one coefficient per unordered pair). Foundations verified
+  (`sgn(a+b)=sgn a·sgn b`; the residual sum-split); the full build is pending.
+* **Blocked (explicit):** an *explicit* rank-rigid matrix is explicit matrix rigidity = Valiant's open problem; the
+  natural algebraic ones provably fail (§2).
 
-So the corpus now contains an actual best-partition-hard object, obtained the only way available: the probabilistic
-method (a random matrix), since explicit rank-rigid matrices are Valiant-open. The full chain — `rank_factor` (the
-`𝔽₂` rank factorization, new to the corpus and absent from Mathlib) → `card_lowRank_le` → `exists_avoiding` →
-`exists_best_partition_hard`, with `chi_subset_finrank` as the rank engine — is complete. Nothing here is
-`NEXP ⊄ ACC⁰` or `P ≠ NP`.
+So the honest state: a **rank-rigid matrix exists** (probabilistically), and the block→character bridge is proved —
+but calling this a "best-partition-hard entanglement bond" is premature until the global residual identity above is
+formalized, and the Valiant-rigidity *equivalence* likewise rests on that identity. Nothing here is `NEXP ⊄ ACC⁰`
+or `P ≠ NP`.
