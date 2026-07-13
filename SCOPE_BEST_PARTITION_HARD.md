@@ -58,15 +58,16 @@ factorization `M = A·B`, inner dimension `s`, counted by the domain `(A,B)`); t
 * `exists_avoiding` — the probabilistic-method pigeonhole: `Σ_test |Bad test| < |Ω| ⟹` some object avoids every bad
   set.
 
-What remains is **mechanical assembly** (all Mathlib tools confirmed present — `Finset.orderEmbOfFin` for the
-block, `Matrix.rank_submatrix` for reindexing, `Equiv.piEquivPiSubtypeProd` for the block/complement split): for a
-partition `S`, bound `|{M : rank(block_S M) < r}| ≤ (card_lowRank_le) · 2^{N²−h²}` via the injection
-`M ↦ (block_S M, M|_complement)`, sum over the `≤ 2^n` partitions, and apply `exists_avoiding` with the arithmetic
-`2h + 2hr < h²`. This is ~120 lines of `Finset`/`Fintype` bookkeeping on top of the engine — bounded and buildable,
-with no remaining mathematical obstruction, only the algebra of the sub-block/complement counting.
+**The assembly is now built too** (`ComputationalDepthBestPartitionExistence.lean`, clean-axiom, no sorry):
+`exists_best_partition_hard` — for `2r + 2 < h`, there is an `𝔽₂` matrix `M` on `2h` variables whose off-diagonal
+block at **every** balanced partition has rank `≥ r ≈ n/4`. The block `blk S M` is `M.submatrix (orderEmbOfFin S)
+(orderEmbOfFin Sᶜ)`; the per-partition bad set injects via `M ↦ (blk S M, M|_complement)` (`blk_restOf_injective`),
+giving `|Bad_S| ≤ 2^{2hr}·2^{N²−h²}` (`fiber_bound`); the union over `≤ 2^n` partitions is `< 2^{N²}` by the
+arithmetic `2hr + 2h < h²`, and `exists_avoiding` produces the rigid `M`.
 
-So the genuinely hard, novel part — the `𝔽₂` rank factorization and its count — is done; the existence theorem is
-one mechanical assembly step away, and every ingredient it needs is proved.
+So the entire chain is complete: `𝔽₂` rank factorization (`rank_factor`) → low-rank count (`card_lowRank_le`) →
+pigeonhole (`exists_avoiding`) → **a best-partition-hard matrix exists** (`exists_best_partition_hard`), and via the
+reduction (`chi_subset_finrank`) a best-partition-hard function exists — all clean-axiom, no sorry.
 
 ## 4. Verdict
 
@@ -76,9 +77,11 @@ one mechanical assembly step away, and every ingredient it needs is proved.
 * **Blocked (explicit):** an *explicit* best-partition-hard function requires an explicit rank-rigid matrix =
   explicit matrix rigidity = Valiant's open problem. No clean construction exists; the natural algebraic ones
   provably fail (§2).
-* **Available (existential), separate build:** a *random* `M` works, so a best-partition-hard function exists; the
-  probabilistic-method formalization is a bounded but substantial counting argument (§3), offered as a follow-up.
+* **Built (existential):** a *random* `M` works, so a best-partition-hard function **exists** — now formalized end
+  to end (`exists_best_partition_hard`, §3), clean-axiom and no sorry.
 
-Recommendation: the reduction is the honest terminus of the direct-algebra approach. To get an actual function in
-the corpus, the tractable route is the **probabilistic existence** (§3) — a self-contained counting build ending in
-`chi_subset_finrank` — not an explicit construction, which is open. Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+So the corpus now contains an actual best-partition-hard object, obtained the only way available: the probabilistic
+method (a random matrix), since explicit rank-rigid matrices are Valiant-open. The full chain — `rank_factor` (the
+`𝔽₂` rank factorization, new to the corpus and absent from Mathlib) → `card_lowRank_le` → `exists_avoiding` →
+`exists_best_partition_hard`, with `chi_subset_finrank` as the rank engine — is complete. Nothing here is
+`NEXP ⊄ ACC⁰` or `P ≠ NP`.
