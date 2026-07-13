@@ -4,10 +4,11 @@ Target (the actual wall): `Step6` = `SAT ∉ P/poly` (stronger than `P ≠ NP`).
 self-reference force every erroneous SAT circuit to make a *witnessable* (NP-checkable) false-negative error,
 collapsing Kannan-style `Σ₂` diagonalization to `NP`?  **Result: the polarity obstruction IS convertible — SAT's
 downward self-reducibility turns any circuit into a false-negative-only one, so both error branches become
-NP-witnessable (gate 2 passes).  But the conversion exposes a size obstruction: the self-referential diagonal must
-encode the circuit and so exceeds its own length (gate 3 fails).  Polarity and size are DUAL; self-reducibility
-trades one for the other and cannot beat both.  This is exactly why non-uniform SAT diagonalization is stuck at
-`Σ₂`.  The obstruction is now formalized at its precise death-point, not surveyed.**
+NP-witnessable (gate 2 passes).  But the conversion exposes a size obstruction: a *literal-hardwiring*
+self-referential diagonal must encode the circuit and so exceeds its own length (gate 3 fails).  This is a
+CONDITIONAL obstruction on the specific construction — NOT a claim that it explains the classical `Σ₂ᵖ` placement
+(Kannan 1982, Cai–Watanabe 2004 place it there by different arguments; see §5).  The obstruction is formalized at
+its precise death-point on encoded objects (`CNFSelfReduction`), not surveyed, and no separation is claimed.**
 
 ## 1. The polarity problem (the starting obstruction)
 
