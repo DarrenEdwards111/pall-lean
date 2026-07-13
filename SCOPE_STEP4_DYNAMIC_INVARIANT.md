@@ -99,9 +99,11 @@ for algebraic-rank routes, with all-cut rank robustness — a cut-rank/rank-widt
   measures are **proved collapsed**; cut-flow/congestion candidates remain **open** and need per-candidate tests.
 * The honest step-4 deliverable is: the caps + honest growth bounds + the conditional (contiguous-schedule)
   space instance + the explicit statement that the step-6 hardness side is at-least-separation-hard (one-way).
-* Step 5's horizon laws inherit this scoping: "reconstruction cost derived from the trace" is an information
-  quantity (Horn A) unless it charges the clock (Horn B); the derived-horizon route should be scoped against the
-  same dichotomy before building.
+* Step 5's horizon laws are now DERIVED (`DerivedHorizonLaws`): forward determinism (the no-shortcut core),
+  the-decoder-is-the-suffix (output reconstructible from any time-`t` state at cost ≤ remaining charge),
+  collision safety (correct programs lose only `f`-irrelevant information — why an attached horizon cannot force
+  payment), and input-reconstruction impossibility. All consistency-shaped, derived from trace semantics; the
+  hardness content is step 6, as predicted.
 
 Recommendation: build items 1–3 (all clean-axiom, all honestly labelled — one no-go, one restricted bound), and do
 **not** attempt a "hardness law" for the invariant — it would either be false, vacuous, or the separation assumed.
