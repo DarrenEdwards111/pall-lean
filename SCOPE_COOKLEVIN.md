@@ -114,8 +114,9 @@ of the (moved) separator each round.
   rewritten every step (`zeroPrefix`), with reusable `writeAt_getD_ne`/`_self`, `getD_append_repl`.  This is the
   proof method every shift pass needs.
 * ✔ **Atomic write / addressing** — `markMachine.mark_correct`, `readAtUnary.readOut_encode`.
-* ☐ **Inner left-shift pass** — a machine that deletes cell `q` (copy `q+1→q`, `q+2→q+1`, …); needs the
-  evolving-tape invariant above plus a two-cell "carry" state.  Not built.
+* ✔ **Inner left-shift pass** — `CookLevinDeleteShift.run_shift`: `shiftMachine` deletes cell `q` by the 3-steps-
+  per-cell bounce (FETCH→R skip, GRAB→L read source + carry, WRITE→R write), proved as a run-invariant
+  `run (3k) ⟨FETCH,q,x⟩ = ⟨FETCH, q+k, lsTape x q k⟩`; `lsTape_shifted` confirms the window is left-shifted.
 * ☐ **Outer `v`-round loop** + separator re-location + `O(v·n)` clock.  Not built.
 
 The technique (evolving-tape invariant) and the two atomic operations (read-at-address, write/mark) are in place;
