@@ -1,33 +1,40 @@
-import PallLean.Paper93.DeepMath.PathB.ComputationalDepthChargedHolographicMachine
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthComposableMachine
 
 /-!
-# Observer-Class Semantics for P vs NP — on the NON-VACUOUS charged machine
+# Observer-Class Semantics for P vs NP — on the faithful, composition-friendly `ComposableMachine.InP`
 
-**Correction.**  An earlier version of this file based `P` on a free `Machine` whose `init` was an arbitrary
-function — that is VACUOUS (`init x := decide (L x)` decides any `L` in 0 steps, so every language is in P), exactly
-the uncharged-init cheat.  This version bases `P` on the corpus's `ChargedMachine.InP`: `init` is **forced**
-(`⟨start, 0, x⟩`, copies the input; no computation), and steps are a fixed finite `delta` table — so `InP` is a
-genuine, uniform, non-vacuous P.
+**Correction history.**  (1) An earlier version based `P` on a free `Machine` whose `init` was an arbitrary
+function — VACUOUS (`init x := decide (L x)` decides any `L` in 0 steps).  (2) The next version rebased on the
+corpus's `ChargedMachine.InP` (forced init, local `delta`).  But `ChargedMachine.clock` is a **free** field, and
+`decide` reads the accept bit at the timestep the clock names — so `ChargedMachine.InP` contains *every* tally
+language `x ↦ h|x|` for arbitrary (even non-computable) `h` (`InPModelGap.tally_in_charged_InP`): it is
+advice-contaminated, ⊋ uniform P.  **This version** rebases on `ComposableMachine.InP`: finite `State`, forced
+init, a **halt** flag, and the decision is read at a genuine halt state — so by `run_stable` the clock is only a
+halting certificate (a fixed machine decides exactly one language, `InPModelGap.composable_decides_unique`), and
+`InP` is genuine, uniform, non-vacuous P.
+
+The payoff of the halting model: `ReductionClosure` (P closed under poly many-one reductions) is now a **proved
+theorem** (`ComposableMachine.reductionClosure`), not a fenced hypothesis — the decision-only `ChargedMachine`
+could not sequence a reducer before a decider, but this model can.  So the SAT-completeness fence collapses to the
+*single* remaining standard ingredient, `CookLevin`.
 
 The observer-class framing, faithfully, on that model:
 
-* `PLang := InP` — the P-observer: one fixed charged machine, poly clock.
+* `PLang := InP` — the P-observer: one fixed halting machine, poly clock.
 * `NPObs` / `AcceptNP` — the one-sector NP-observer: a fixed `InP` verifier and poly witness bound; `x` is
   accepted iff **one** witness `w` (appended, `verify (x ++ w)`) verifies.  The full witness table is never read.
 * `p_subset_np`, `accept_iff_nonempty`, `satIsNP` — P ⊆ NP; accepting = boundary nonempty; every verifier's
   boundary language is NP.
-* `PolyCollapse` — the boundary admits polynomial deterministic collapse (deciding nonemptiness is in P), a
-  predicate.
+* `PolyCollapse` — the boundary admits polynomial deterministic collapse (deciding nonemptiness is in P).
 * `bridge` — `P = NP ⇔ every NP boundary admits polynomial deterministic collapse`.
 * calibration — `fullBoundary_collapses`, `emptyBoundary_collapses`, `sameLang_sameCollapse`: boundary size and
   verifier representation are NOT the collapse cost.
 * `sat_specialization` / `sat_separation` — conditional on `SATComplete`: `P = NP ⇔ PolyCollapse SATV` and
   `¬ PolyCollapse SATV ⇔ P ≠ NP`.  The *`SAT ∈ NP`* half is proved (`satIsNP`).
-* `satComplete_of_cookLevin` — **the factoring** (proved): `SATComplete` follows from `ReductionClosure` (P closed
-  under reductions) `∧ CookLevin` (every NP many-one reduces to SAT).  So the completeness fence is *exactly* the
-  two standard named theorems; `sat_*_of_cookLevin` discharge the SAT separation from them.  Full Cook–Levin is not
-  formalized in the corpus (only single-DTM tableau correctness; the frontier hyp is refuted), so both ingredients
-  remain fenced — but the glue is proved and the fence is now standard, not ad hoc.
+* `satComplete_of_cookLevin` — **the factoring** (proved): `SATComplete` follows from `CookLevin` alone, since
+  `ReductionClosure` is now discharged by `reductionClosure_holds`.  So the completeness fence is *exactly*
+  Cook–Levin NP-hardness — the one genuine mountain.  Full Cook–Levin is not formalized in the corpus (only
+  single-DTM tableau correctness; the frontier hyp is refuted), so `CookLevin` remains fenced.
 
 `¬ PolyCollapse SATV` is the open separation statement.  SPDP/holography/rigidity are absent (proposed estimators
 only).  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
@@ -36,22 +43,23 @@ only).  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 namespace PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics
 
 open Classical
-open PallLean.Paper93.DeepMath.PathB.ChargedHolographicMachine (ChargedMachine InP)
+open PallLean.Paper93.DeepMath.PathB.ComposableMachine (InP PolyReduces)
 open PallLean.Paper93.DeepMath.PathB.PvsNPSeparatingInvariant (PolyBounded)
 
-/-- The P-observer languages: the corpus's genuine (forced-init, local-step) uniform P. -/
+/-- The P-observer languages: the faithful (forced-init, halting, local-step) uniform P. -/
 def PLang (L : List Bool → Bool) : Prop := InP L
 
 /-- `InP` respects pointwise equality of languages. -/
 theorem PLang_congr {L L' : List Bool → Bool} (h : ∀ x, L x = L' x) (hL : PLang L) : PLang L' := by
-  obtain ⟨M, hp, hd⟩ := hL
-  exact ⟨M, hp, fun x => (hd x).trans (h x)⟩
+  obtain ⟨M, T, hp, hd⟩ := hL
+  exact ⟨M, T, hp, fun x => ⟨(hd x).1, (hd x).2.trans (h x)⟩⟩
 
-/-- Every constant language is in P (a one-state charged machine, zero clock). -/
+/-- Every constant language is in P (a one-state machine that halts immediately). -/
 theorem PLang_const (b : Bool) : PLang (fun _ => b) := by
-  refine ⟨{ Q := 1, start := ⟨0, by omega⟩, delta := fun _ _ => (⟨0, by omega⟩, false, 2),
-            accept := fun _ => b, clock := fun _ => 0 }, ⟨0, 0, fun n => Nat.zero_le _⟩, fun x => ?_⟩
-  rfl
+  refine ⟨{ State := Unit, fin := inferInstance, dec := inferInstance, start := (),
+            halt := fun _ => true, δ := fun _ _ => ((), none, 0), accept := fun _ => b },
+          fun _ => 0, ⟨0, 0, fun n => Nat.zero_le _⟩, fun x => ?_⟩
+  exact ⟨rfl, rfl⟩
 
 /-! ## The one-sector NP-observer -/
 
@@ -174,53 +182,43 @@ theorem sat_separation (SATV : NPObs) (hc : SATComplete SATV) :
     ¬ PolyCollapse SATV ↔ ¬ PeqNP := by
   rw [sat_specialization SATV hc]
 
-/-! ## Discharging `SATComplete` from Cook–Levin — the exact standard factoring
+/-! ## Discharging `SATComplete` — `ReductionClosure` is now PROVED, only Cook–Levin remains
 
-Full Cook–Levin (every NP language many-one reduces to SAT) is NOT formalized in the corpus:
-`TuringMachine.cook_levin_correctness` is only tableau-correctness for one DTM, and `CookLevinFrontierHyp` is
-refuted/circular.  So `SATComplete` cannot be discharged unconditionally.  What we CAN do honestly is factor it
-into the two exact standard ingredients and prove the glue — turning the ad-hoc `SATComplete` into
-`ReductionClosure ∧ CookLevin`, both standard named results.  Then "discharge `SATComplete` once Cook–Levin is
-formalized" is precisely: supply `CookLevin` (the mountain) and `ReductionClosure` (P closed under reductions —
-standard, but needs a composition-friendly machine model, which this decision-only `ChargedMachine` is not). -/
+On this halting model `ReductionClosure` (P closed under poly many-one reductions) is a *theorem*
+(`ComposableMachine.reductionClosure`, via `comp Mf Mg`: run the reducer to its first halt, switch tape-intact to
+the decider).  So `SATComplete` no longer needs it as a hypothesis — it factors through the single remaining
+standard ingredient, `CookLevin` (every NP language many-one reduces to SAT), which is the genuine NP-hardness
+mountain and is not built in the corpus. -/
 
-/-- A charged transducer's output is its final tape. -/
-noncomputable def transduce (M : ChargedMachine) (x : List Bool) : List Bool :=
-  (ChargedHolographicMachine.run M (M.clock x.length) (ChargedHolographicMachine.init M x)).tape
-
-/-- A poly-time string function (a charged transducer). -/
-def PolyComputable (f : List Bool → List Bool) : Prop :=
-  ∃ M : ChargedMachine, ChargedHolographicMachine.IsPolyTime M ∧ ∀ x, transduce M x = f x
-
-/-- Poly many-one reduction. -/
-def PolyReduces (L L' : List Bool → Bool) : Prop :=
-  ∃ f, PolyComputable f ∧ ∀ x, L x = L' (f x)
-
-/-- **Standard ingredient 1** — P is closed under poly many-one reductions.  (Provable with charged-machine
-sequential composition; this decision-only `ChargedMachine` is not composition-friendly, so it is fenced.) -/
+/-- **Standard ingredient 1 — now PROVED.**  P is closed under poly many-one reductions.  `PolyReduces` and `InP`
+here are `ComposableMachine`'s, so this is exactly `ComposableMachine.reductionClosure`. -/
 def ReductionClosure : Prop := ∀ L L' : List Bool → Bool, PolyReduces L L' → PLang L' → PLang L
 
-/-- **Standard ingredient 2** — Cook–Levin: every NP language many-one reduces to `SATV`'s boundary.  This is the
-NP-hardness mountain; not built here. -/
+/-- `ReductionClosure` holds — discharged by the composition-friendly model. -/
+theorem reductionClosure_holds : ReductionClosure := fun _ _ hred hL' =>
+  ComposableMachine.reductionClosure hred hL'
+
+/-- **Standard ingredient 2 — the fence.**  Cook–Levin: every NP language many-one reduces to `SATV`'s boundary.
+This is the NP-hardness mountain; not built here. -/
 def CookLevin (SATV : NPObs) : Prop := ∀ L, NPLang L → PolyReduces L (acceptBool SATV)
 
-/-- **The factoring, proved (pure logic).**  `SATComplete` follows from the two standard ingredients.  So the
-opaque completeness fence is exactly `ReductionClosure ∧ CookLevin`. -/
-theorem satComplete_of_cookLevin (SATV : NPObs) (hRC : ReductionClosure) (hCL : CookLevin SATV) :
+/-- **The factoring, proved.**  `SATComplete` follows from `CookLevin` alone, since `ReductionClosure` is now a
+theorem (`reductionClosure_holds`).  The opaque completeness fence is *exactly* Cook–Levin NP-hardness. -/
+theorem satComplete_of_cookLevin (SATV : NPObs) (hCL : CookLevin SATV) :
     SATComplete SATV := by
   intro L hL hcol
-  exact hRC L (acceptBool SATV) (hCL L hL) hcol
+  exact reductionClosure_holds L (acceptBool SATV) (hCL L hL) hcol
 
-/-- **SAT specialization, discharged from Cook–Levin** (the glue is proved; the two ingredients are the fence). -/
-theorem sat_specialization_of_cookLevin (SATV : NPObs) (hRC : ReductionClosure) (hCL : CookLevin SATV) :
+/-- **SAT specialization, discharged from Cook–Levin** (glue proved; only `CookLevin` is the fence). -/
+theorem sat_specialization_of_cookLevin (SATV : NPObs) (hCL : CookLevin SATV) :
     PeqNP ↔ PolyCollapse SATV :=
-  sat_specialization SATV (satComplete_of_cookLevin SATV hRC hCL)
+  sat_specialization SATV (satComplete_of_cookLevin SATV hCL)
 
-/-- **SAT separation, discharged from Cook–Levin.**  Once `CookLevin` (and `ReductionClosure`) are formalized,
-`¬ PolyCollapse SATV ↔ P ≠ NP` follows with no further fence. -/
-theorem sat_separation_of_cookLevin (SATV : NPObs) (hRC : ReductionClosure) (hCL : CookLevin SATV) :
+/-- **SAT separation, discharged from Cook–Levin.**  Once `CookLevin` is formalized, `¬ PolyCollapse SATV ↔ P ≠ NP`
+follows with no further fence. -/
+theorem sat_separation_of_cookLevin (SATV : NPObs) (hCL : CookLevin SATV) :
     ¬ PolyCollapse SATV ↔ ¬ PeqNP :=
-  sat_separation SATV (satComplete_of_cookLevin SATV hRC hCL)
+  sat_separation SATV (satComplete_of_cookLevin SATV hCL)
 
 end PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics
 
@@ -229,5 +227,6 @@ end PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics
 #print axioms PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics.fullBoundary_collapses
 #print axioms PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics.sat_specialization
 #print axioms PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics.sat_separation
+#print axioms PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics.reductionClosure_holds
 #print axioms PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics.satComplete_of_cookLevin
 #print axioms PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics.sat_separation_of_cookLevin
