@@ -92,3 +92,32 @@ These do not by themselves prove `CookLevin`; they are its honest foundation, an
 mountains (M1 emitter/evaluator, M2 tableau correctness) precise.
 
 Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+## 5. The full `read a_v` two-pointer shift loop (paper algorithm + brick status)
+
+Directed: build the full variable→value lookup.  Pressure-tested; it is a nested-loop `O(v·n)` **shift**
+construction, because the tape is Boolean (§1, M1): a mark cannot be a fresh third symbol.
+
+**Layout.** `1ᵛ 0 a₀ a₁ … aₘ` (unary index `v`, separator `0`, assignment).  Goal: output `a_v`.
+
+**Algorithm (delete/shift).** Repeat `v` times: delete the leading `1` (shift the whole suffix left one), then
+delete the assignment cell just right of the separator (shift its suffix left one).  After `i` rounds the tape is
+`1^{v−i} 0 a_i a_{i+1} …`; after `v` rounds it is `0 a_v a_{v+1} …`, so `a_v` sits one right of the separator —
+read it.  Each delete is an inner left-shift pass (`O(n)`); `v` rounds ⇒ `O(v·n)`.
+
+**Boundary subtlety (the hard part).** Consuming counter cells to `0` makes the "first `0`" ambiguous with the
+separator; the delete-and-shift avoids a third symbol but forces the inner copy-left pass and careful re-location
+of the (moved) separator each round.
+
+**Brick status.**
+* ✔ **Evolving-tape invariant technique** — `run_clear`/`clear_correct` (this file): a run-invariant over a tape
+  rewritten every step (`zeroPrefix`), with reusable `writeAt_getD_ne`/`_self`, `getD_append_repl`.  This is the
+  proof method every shift pass needs.
+* ✔ **Atomic write / addressing** — `markMachine.mark_correct`, `readAtUnary.readOut_encode`.
+* ☐ **Inner left-shift pass** — a machine that deletes cell `q` (copy `q+1→q`, `q+2→q+1`, …); needs the
+  evolving-tape invariant above plus a two-cell "carry" state.  Not built.
+* ☐ **Outer `v`-round loop** + separator re-location + `O(v·n)` clock.  Not built.
+
+The technique (evolving-tape invariant) and the two atomic operations (read-at-address, write/mark) are in place;
+the remaining work is the inner shift pass and the outer loop that composes them — a genuine construction, no
+hardness content.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
