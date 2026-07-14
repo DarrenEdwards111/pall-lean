@@ -143,4 +143,34 @@ theorem round_close {s P1 m1 KB P2 : ℕ} {TA TB : List Bool}
       = ⟨(7, 0, false, false), P2, TB⟩ from by rw [hP2], eR2]
   rw [run_add, st6, run_one, seam_RANCH2]
 
+/-- **One full counter-present loop iteration** = `round_open ; round_close`.  From the round-start config (loop
+head at `SEP` low `s`, `k ≥ 1` counters), the master executes one complete loop body and lands at the round-start
+config for `k-1` counters: head at the new `SEP` low `s-2`, tape `TB` with the `a₀` pair and one counter pair
+deleted.  This is the master-level `roundStep`: the doubled-tape realisation of `CookLevinReadAv.roundStep`
+(delete the leading counter, delete `a₀`).  `round_open` fixes the intermediate `RANCH1` entry
+(`P1 = s+2+2K+1`, `TA = rsTape T (s+2) (K+1)`, `m1 = K+1`); the only linking facts discharged here are the two
+arithmetic identities, the rest of `round_close`'s doubled-tape geometry is threaded. -/
+theorem round_full {s K KB P2 : ℕ} {T TA TB : List Bool}
+    (hs2 : 2 ≤ s)
+    (hcnt : T.getD (s - 1) false = true)
+    (hnr : ∀ i < K, (T.getD (s + 2 + 2 * i + 2) false && !(T.getD (s + 2 + 2 * i + 3) false)) = false)
+    (hrend : (T.getD (s + 2 + 2 * K + 2) false && !(T.getD (s + 2 + 2 * K + 3) false)) = true)
+    (hTA : TA = rsTape T (s + 2) (K + 1))
+    (hns1 : ∀ i < K + 1,
+      (!(TA.getD (s + 2 + 2 * K + 1 - 2 * i - 1) false) && TA.getD (s + 2 + 2 * K + 1 - 2 * i) false) = false)
+    (hsep1 : (!(TA.getD (s + 2 + 2 * K + 1 - 2 * (K + 1) - 1) false)
+      && TA.getD (s + 2 + 2 * K + 1 - 2 * (K + 1)) false) = true)
+    (hnrB : ∀ i < KB, (TA.getD (s - 2 + 2 * i + 2) false && !(TA.getD (s - 2 + 2 * i + 3) false)) = false)
+    (hrendB : (TA.getD (s - 2 + 2 * KB + 2) false && !(TA.getD (s - 2 + 2 * KB + 3) false)) = true)
+    (hTB : TB = rsTape TA (s - 2) (KB + 1))
+    (hP2 : P2 = s - 2 + 2 * KB + 1)
+    (hns2 : ∀ i < KB, (!(TB.getD (P2 - 2 * i - 1) false) && TB.getD (P2 - 2 * i) false) = false)
+    (hsep2 : (!(TB.getD (P2 - 2 * KB - 1) false) && TB.getD (P2 - 2 * KB) false) = true) :
+    run masterM ((2 + 1 + 2 + (8 * K + 8) + 1)
+        + ((2 * (K + 1) + 2) + 1 + 1 + (8 * KB + 8) + 1 + (2 * KB + 2) + 1))
+        ⟨(1, 0, false, false), s, T⟩
+      = ⟨(1, 0, false, false), s - 2, TB⟩ := by
+  rw [run_add, round_open (by omega) hcnt hnr hrend, ← hTA]
+  exact round_close hs2 (by omega) hns1 hsep1 hnrB hrendB hTB hP2 hns2 hsep2
+
 end PallLean.Paper93.DeepMath.PathB.CookLevinRoundBody
