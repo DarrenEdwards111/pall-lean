@@ -85,4 +85,123 @@ theorem readAv_clock_poly (v D : ℕ) (hv : v ≤ D) :
   have := clockSum_le_quad v D hv
   omega
 
+/-! ## A concrete encoding realising the promise -/
+
+/-- Double each bit: `b ↦ b b` (the data-region doubling). -/
+def double : List Bool → List Bool
+  | [] => []
+  | b :: rest => b :: b :: double rest
+
+theorem double_length (l : List Bool) : (double l).length = 2 * l.length := by
+  induction l with
+  | nil => rfl
+  | cons b rest ih => simp only [double, List.length_cons, ih]; omega
+
+/-- Reading the doubled list at `2j` or `2j+1` returns the `j`-th original bit. -/
+theorem double_getD (l : List Bool) : ∀ j,
+    (double l).getD (2 * j) false = l.getD j false ∧ (double l).getD (2 * j + 1) false = l.getD j false := by
+  induction l with
+  | nil => intro j; simp [double, List.getD_nil]
+  | cons b rest ih =>
+    intro j
+    cases j with
+    | zero => exact ⟨rfl, rfl⟩
+    | succ j =>
+      rw [double, show 2 * (j + 1) = 2 * j + 1 + 1 from by omega]
+      simp only [List.getD_cons_succ]
+      exact ih j
+
+/-- `getD` on the left part of an append. -/
+theorem getD_append_lt {l l' : List Bool} {n : ℕ} (h : n < l.length) :
+    (l ++ l').getD n false = l.getD n false := by
+  rw [List.getD_eq_getElem?_getD, List.getElem?_append_left h, List.getD_eq_getElem?_getD]
+
+/-- `getD` on the right part of an append. -/
+theorem getD_append_ge {l l' : List Bool} {n : ℕ} (h : l.length ≤ n) :
+    (l ++ l').getD n false = l'.getD (n - l.length) false := by
+  rw [List.getD_eq_getElem?_getD, List.getElem?_append_right h, List.getD_eq_getElem?_getD]
+
+/-- `getD` inside a `true`-block. -/
+theorem getD_replicate_true {n i : ℕ} (h : i < n) : (List.replicate n true).getD i false = true := by
+  rw [List.getD_eq_getElem?_getD, List.getElem?_replicate, if_pos h]; rfl
+
+/-- Peel a doubled-cell (2-element) prefix. -/
+theorem getD_pair_ge {a b : Bool} {l' : List Bool} {n : ℕ} (h : 2 ≤ n) :
+    ([a, b] ++ l').getD n false = l'.getD (n - 2) false := getD_append_ge h
+
+/-- Peel the counter (`replicate`) block. -/
+theorem getD_repl_ge {l' : List Bool} {m n : ℕ} (h : m ≤ n) :
+    (List.replicate m true ++ l').getD n false = l'.getD (n - m) false := by
+  rw [getD_append_ge (by rwa [List.length_replicate]), List.length_replicate]
+
+/-- Peel the doubled-data block. -/
+theorem getD_data_ge {a l' : List Bool} {n : ℕ} (h : 2 * a.length ≤ n) :
+    (double a ++ l').getD n false = l'.getD (n - 2 * a.length) false := by
+  rw [getD_append_ge (by rwa [double_length]), double_length]
+
+/-- The concrete SAT-witness encoding: doubled `LSENT counterᵛ SEP (double assignment) REND`.  `SEP` low sits at
+`2v+2`; the counter block is `2v` ones (`v` doubled `11` pairs); the data is the doubled assignment. -/
+def encode (assignment : List Bool) (v : ℕ) : List Bool :=
+  [true, false] ++ (List.replicate (2 * v) true ++ ([false, true] ++ (double assignment ++ [true, false])))
+
+/-- **The encoding is well-formed.**  `encode assignment v` satisfies `RoundInv` with `v` counters and
+`assignment.length` data pairs — so the whole `read a_v` machinery applies to it. -/
+theorem encode_roundInv (assignment : List Bool) (v : ℕ) :
+    RoundInv (encode assignment v) v assignment.length := by
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · -- counters: getD (2i), getD (2i+1) = true for 1 ≤ i ≤ v
+    intro i hi1 hi2
+    refine ⟨?_, ?_⟩ <;>
+    · rw [encode, getD_pair_ge (by omega), getD_append_lt (by rw [List.length_replicate]; omega)]
+      exact getD_replicate_true (by omega)
+  · -- SEP low = 0
+    rw [encode, getD_pair_ge (by omega), getD_repl_ge (by omega),
+      show 2 * v + 2 - 2 - 2 * v = 0 from by omega, getD_append_lt (by simp)]
+    rfl
+  · -- SEP high = 1
+    rw [encode, getD_pair_ge (by omega), getD_repl_ge (by omega),
+      show 2 * v + 3 - 2 - 2 * v = 1 from by omega, getD_append_lt (by simp)]
+    rfl
+  · -- data pairs equal (both = assignment[j])
+    intro j hj
+    have key : ∀ p, p < 2 * assignment.length →
+        (encode assignment v).getD (2 * v + 4 + p) false = (double assignment).getD p false := by
+      intro p hp
+      rw [encode, getD_pair_ge (by omega), getD_repl_ge (by omega), getD_pair_ge (by omega),
+        show 2 * v + 4 + p - 2 - 2 * v - 2 = p from by omega, getD_append_lt (by rw [double_length]; omega)]
+    rw [show 2 * v + 5 + 2 * j = 2 * v + 4 + (2 * j + 1) from by omega,
+      show 2 * v + 4 + 2 * j = 2 * v + 4 + (2 * j) from rfl,
+      key (2 * j) (by omega), key (2 * j + 1) (by omega),
+      (double_getD assignment j).1, (double_getD assignment j).2]
+  · -- REND low = 1
+    rw [encode, getD_pair_ge (by omega), getD_repl_ge (by omega), getD_pair_ge (by omega),
+      getD_data_ge (by omega),
+      show 2 * v + 4 + 2 * assignment.length - 2 - 2 * v - 2 - 2 * assignment.length = 0 from by omega]
+    rfl
+  · -- REND high = 0
+    rw [encode, getD_pair_ge (by omega), getD_repl_ge (by omega), getD_pair_ge (by omega),
+      getD_data_ge (by omega),
+      show 2 * v + 5 + 2 * assignment.length - 2 - 2 * v - 2 - 2 * assignment.length = 1 from by omega]
+    rfl
+  · -- LSENT high (pos 1) = 0
+    rw [encode, getD_append_lt (by simp)]
+    rfl
+
+/-- **Cook–Levin M1 read-`a_v`, fully concrete.**  For any assignment and valid index `v < |assignment|`, the master,
+started from its forced initial config on the concrete encoding `encode assignment v`, **halts** and its decision bit
+is exactly the assignment's `v`-th bit `assignment.getD v false`, within `2(v+1)+2 + 1 + (clockSum v |assignment| + 7)`
+steps — polynomial in `|assignment|` (`readAv_clock_poly`).  This is a concrete, halting, provably-correct,
+polynomial-time variable-lookup machine on the faithful `ComposableMachine` model. -/
+theorem readAv_encoded (assignment : List Bool) (v : ℕ) (hv : v < assignment.length) :
+    HaltsBy masterM (encode assignment v) (2 * (v + 1) + 2 + 1 + (clockSum v assignment.length + 7))
+    ∧ decideOut masterM (encode assignment v) (2 * (v + 1) + 2 + 1 + (clockSum v assignment.length + 7))
+        = assignment.getD v false := by
+  have hav : (encode assignment v).getD (2 * v + 4 + 2 * v) false = assignment.getD v false := by
+    rw [encode, getD_pair_ge (by omega), getD_repl_ge (by omega), getD_pair_ge (by omega),
+      show 2 * v + 4 + 2 * v - 2 - 2 * v - 2 = 2 * v from by omega,
+      getD_append_lt (by rw [double_length]; omega)]
+    exact (double_getD assignment v).1
+  have H := readAv_promise (encode assignment v) v assignment.length (by omega) (encode_roundInv assignment v)
+  rwa [hav] at H
+
 end PallLean.Paper93.DeepMath.PathB.CookLevinInP
