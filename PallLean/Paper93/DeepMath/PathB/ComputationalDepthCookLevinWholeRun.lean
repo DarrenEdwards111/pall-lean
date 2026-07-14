@@ -35,6 +35,33 @@ def clockSum : ℕ → ℕ → ℕ
   | 0, _ => 0
   | (v + 1), D => roundClock D + clockSum v (D - 1)
 
+/-! ## The `O(v·|x|)` clock bound -/
+
+/-- One round costs `≤ 32(D+1)` steps — linear in the data count (`roundClock D ≈ 20D+22`). -/
+theorem roundClock_le (D : ℕ) : roundClock D ≤ 32 * (D + 1) := by
+  unfold roundClock; omega
+
+/-- **The polynomial clock bound.**  `v` rounds cost `≤ 32·v·(D+1)` steps — `O(v·D)`.  With `D ≤ |x|` and `v ≤ |x|`
+this is `O(|x|²)`; the full run adds the constant terminal `+7`. -/
+theorem clockSum_le (v : ℕ) : ∀ D, clockSum v D ≤ 32 * v * (D + 1) := by
+  induction v with
+  | zero => intro D; simp [clockSum]
+  | succ v ih =>
+    intro D
+    simp only [clockSum]
+    have h2 : clockSum v (D - 1) ≤ 32 * v * (D - 1 + 1) := ih (D - 1)
+    have h3 : 32 * v * (D - 1 + 1) ≤ 32 * v * (D + 1) := Nat.mul_le_mul (le_refl _) (by omega)
+    have h1 : roundClock D ≤ 32 * (D + 1) := roundClock_le D
+    calc roundClock D + clockSum v (D - 1)
+        ≤ 32 * (D + 1) + 32 * v * (D + 1) := by omega
+      _ = 32 * (v + 1) * (D + 1) := by ring
+
+/-- **Quadratic clock bound** for the well-formed case `v ≤ D`: `clockSum v D ≤ 32(D+1)²` — polynomial in the data
+count `D` alone (hence in `|x|`), the form the `InP` clock needs. -/
+theorem clockSum_le_quad (v D : ℕ) (hv : v ≤ D) : clockSum v D ≤ 32 * (D + 1) * (D + 1) := by
+  calc clockSum v D ≤ 32 * v * (D + 1) := clockSum_le v D
+    _ ≤ 32 * (D + 1) * (D + 1) := Nat.mul_le_mul (Nat.mul_le_mul (le_refl _) (by omega)) (le_refl _)
+
 /-- **Whole-run induction on the counter `v`.**  From a round-start config satisfying `RoundInv T v D` (`v ≤ D`),
 `clockSum v D` master steps reach the counter-empty round-start config (head at `SEP` low `2`) on a tape `T'` with
 `RoundInv T' 0 (D-v)` — the first `v` data pairs and all `v` counters deleted. -/
