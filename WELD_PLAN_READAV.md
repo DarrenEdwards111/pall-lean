@@ -20,9 +20,15 @@ Data bit `b ↦ b b` (pairs `00`/`11`, cells **equal**).  Markers are **differin
 never occur in doubled data (`CookLevinDoubled` proves data pairs read equal).  Three roles are needed; only two
 single-pair markers exist, so exactly one role is a **composite** (two pairs):
 
+**REFINED (see `CookLevinScanLeftSep`):** the loop is **anchored at `SEP`**, not at a left sentinel.  Each round
+checks the pair *left of `SEP`* (`11` ⇒ counter, `10` ⇒ done) and deletes the pairs flanking `SEP`; deleting the
+*rightmost* counter cell decrements the unary counter identically to the leading one (`readAv_spec` net transform
+unchanged).  So `LSENT` is a **single** `10` checked locally at the loop control — **no composite marker, no
+2-pair-lookahead walk-left**.  S6 is just a scan-left to the single `SEP = 01`.
+
 | role | pattern | moves under shifts? | detection |
 |---|---|---|---|
-| `LSENT` left sentinel (loop head) | `10 10` (composite) | **no** (deletes are to its right) | two consecutive `10` (2-pair lookahead) |
+| `LSENT` left end (counter-empty test) | `10` (single) | no | pair left of `SEP` differs (`10`) vs `11` |
 | `SEP` separator (counter ‖ assignment) | `01` (single) | yes | pair differs, `c₀=0,c₁=1` |
 | `REND` right end (shift stop) | `10` (single) | yes | pair differs, `c₀=1,c₁=0` |
 
