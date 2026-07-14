@@ -95,23 +95,21 @@ def masterM : Machine where
     else if g = 1 then                  -- LOOPCHK (loopCtrl), halt sub-phase 2, bit in c0
       if sp = 2 then (if c0 then seam 2 1 else seam 8 1)   -- counter → REPA ; done → RRES
       else inGroup 1 (loopStep sp c0 b)
-    else if g = 2 then                  -- REPA: walk right to the a₀ shift dest (3 steps)
+    else if g = 2 then                  -- REPA: SEP low → a₀ low (net +2): one step (+1) then seam (+1)
       if sp = 0 then ((2, 1, c0, c1), none, 1)
-      else if sp = 1 then ((2, 2, c0, c1), none, 1)
       else seam 3 1
     else if g = 3 then                  -- SHA (rendShift, delete a₀), halt sub-phase 8
-      if sp = 8 then seam 4 0 else inGroup 3 (rendStep sp c0 c1 b)
+      if sp = 8 then seam 4 2 else inGroup 3 (rendStep sp c0 c1 b)    -- stay (SHA halts on a high cell = RANCH1 start)
     else if g = 4 then                  -- RANCH1 (scanLeftSep, REND → SEP), halt sub-phase 2
-      if sp = 2 then seam 5 0 else inGroup 4 (scanLeftStep sp c0 b)
-    else if g = 5 then                  -- REPB: walk left to the counter shift dest (2 steps)
-      if sp = 0 then ((5, 1, c0, c1), none, 0)
-      else seam 6 0
+      if sp = 2 then seam 5 0 else inGroup 4 (scanLeftStep sp c0 b)   -- move left → REPB
+    else if g = 5 then seam 6 0         -- REPB: SEP low → counter low (net −2): the RANCH1→REPB seam and this each −1
     else if g = 6 then                  -- SHB (rendShift, delete counter), halt sub-phase 8
-      if sp = 8 then seam 7 0 else inGroup 6 (rendStep sp c0 c1 b)
+      if sp = 8 then seam 7 2 else inGroup 6 (rendStep sp c0 c1 b)    -- stay (SHB halts on a high cell = RANCH2 start)
     else if g = 7 then                  -- RANCH2 (scanLeftSep, REND → SEP), halt sub-phase 2
-      if sp = 2 then seam 1 0 else inGroup 7 (scanLeftStep sp c0 b)   -- loop-back → LOOPCHK
+      if sp = 2 then seam 1 2 else inGroup 7 (scanLeftStep sp c0 b)   -- stay: loop-back → LOOPCHK at new SEP low
     else if g = 8 then                  -- RRES (readRes, read a_v), halt sub-phase 3
-      if sp = 3 then seam 9 2 else inGroup 8 (readResStep sp c0 b)
+      if sp = 3 then ((9, 0, c0, c1), none, 2)                        -- carry a_v (= c₀) into HALT (accept reads it)
+      else inGroup 8 (readResStep sp c0 b)
     else ((9, sp, c0, c1), none, 2)     -- HALT (idempotent)
   accept := fun s => s.2.2.1
 
