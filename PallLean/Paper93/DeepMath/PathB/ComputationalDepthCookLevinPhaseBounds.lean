@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCookLevinRendShift
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCookLevinScanLeftSep
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCookLevinScanRightSep
 
 /-!
 # Cook–Levin M1 — "no early halt" phase bounds for `rendShift` and `scanLeftSep`
@@ -24,6 +25,7 @@ namespace PallLean.Paper93.DeepMath.PathB.CookLevinPhaseBounds
 open PallLean.Paper93.DeepMath.PathB.ComposableMachine
 open PallLean.Paper93.DeepMath.PathB.CookLevinRendShift
 open PallLean.Paper93.DeepMath.PathB.CookLevinScanLeftSep
+open PallLean.Paper93.DeepMath.PathB.CookLevinScanRightSep (scanRightSep)
 
 /-! ## `rendShift`: phase stays `< 8` within a block (period 8) -/
 
@@ -90,5 +92,27 @@ theorem scanLeftSep_no_early_halt {st : Bool} {P : ℕ} {tape : List Bool} {m : 
   have hjm : i / 2 ≤ m := by omega
   rw [hir, run_add, run_scan_left tape P st (i / 2) (fun i' hi' => hns i' (by omega))]
   exact scanLeftSep_phase_lt (i % 2) hr2
+
+/-! ## `scanRightSep`: phase stays `< 2` within a block (period 2) — for the INIT phase -/
+
+/-- The first `r < 2` steps from a phase-`0` `scanRightSep` config reach phase `r` (never the halt phase `2`). -/
+theorem scanRightSep_phase_lt {st : Bool} {P : ℕ} {tape : List Bool} :
+    ∀ r, r < 2 → (run scanRightSep r ⟨(0, st), P, tape⟩).st.1 ≠ 2 := by
+  intro r hr
+  interval_cases r
+  · rw [run_zero]; simp
+  · rw [show (1 : ℕ) = 0 + 1 from rfl, run_succ, run_zero, CookLevinScanRightSep.step_readlo]; simp
+
+/-- **`scanRightSep` no early halt.**  If the first `m` pairs (going right from `P`) are non-`SEP`, then for every
+`i < 2m+2` the machine has not yet reached the halt phase `2`.  (At `i = 2m+2` it halts on the `SEP` pair.) -/
+theorem scanRightSep_no_early_halt {st : Bool} {P : ℕ} {tape : List Bool} {m : ℕ}
+    (hns : ∀ i < m, (!(tape.getD (P + 2 * i) false) && tape.getD (P + 2 * i + 1) false) = false) :
+    ∀ i, i < 2 * m + 2 → (run scanRightSep i ⟨(0, st), P, tape⟩).st.1 ≠ 2 := by
+  intro i hi
+  have hir : i = 2 * (i / 2) + i % 2 := by omega
+  have hr2 : i % 2 < 2 := by omega
+  have hjm : i / 2 ≤ m := by omega
+  rw [hir, run_add, CookLevinScanRightSep.run_scan_right tape P st (i / 2) (fun i' hi' => hns i' (by omega))]
+  exact scanRightSep_phase_lt (i % 2) hr2
 
 end PallLean.Paper93.DeepMath.PathB.CookLevinPhaseBounds
