@@ -117,8 +117,14 @@ of the (moved) separator each round.
 * ✔ **Inner left-shift pass** — `CookLevinDeleteShift.run_shift`: `shiftMachine` deletes cell `q` by the 3-steps-
   per-cell bounce (FETCH→R skip, GRAB→L read source + carry, WRITE→R write), proved as a run-invariant
   `run (3k) ⟨FETCH,q,x⟩ = ⟨FETCH, q+k, lsTape x q k⟩`; `lsTape_shifted` confirms the window is left-shifted.
-* ☐ **Outer `v`-round loop** + separator re-location + `O(v·n)` clock.  Not built.
+* ✔ **Outer-loop ALGORITHM correctness** — `CookLevinReadAv.readAv_spec`: iterating the round (delete leading
+  counter cell, delete `a_0`) `v` times brings `a_v` to position `1`; a final read returns `assignment.getD v`.
+  This is the math of the loop, proved (complements `run_shift` = each delete correct).
+* ☐ **Single-machine sequencing + termination** — **CORRECTION**: this is NOT "pure orchestration."  The Boolean
+  tape has no end/head-position detection, so each delete/shift has a real termination problem and the loop control
+  ("front = separator ⇒ done") needs position detection.  Assembling one *halting* machine needs an end-marker in
+  the encoding or explicit on-tape counters — genuine machinery.  Not built.
 
-The technique (evolving-tape invariant) and the two atomic operations (read-at-address, write/mark) are in place;
-the remaining work is the inner shift pass and the outer loop that composes them — a genuine construction, no
-hardness content.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+The technique (evolving-tape invariant), the atomic operations (read-at-address, write/mark), the inner shift pass,
+and the outer-loop algorithm correctness are all proved; what remains is the single-machine sequencing+termination,
+which needs position/end detection — no hardness content, but real machinery, not orchestration.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
