@@ -73,6 +73,8 @@ structure RoundInv (T : List Bool) (k D : ℕ) : Prop where
   rendlo : T.getD (2 * k + 4 + 2 * D) false = true
   /-- `REND` high cell is `0`. -/
   rendhi : T.getD (2 * k + 5 + 2 * D) false = false
+  /-- `LSENT` high cell (position `1`) is `0` — read by `LOOPCHK` on the counter-empty terminal branch. -/
+  lsent : T.getD 1 false = false
 
 /-- **Invariant preservation.**  The doubled-tape transform of one loop iteration — delete the `a₀` pair
 (`rsTape … (2k+4) D`, the `SHA` shift) then the counter pair (`rsTape … (2k) (D+1)`, the `SHB` shift) — carries a
@@ -96,7 +98,7 @@ theorem roundInv_preserved (T : List Bool) (k D : ℕ) (hk : 1 ≤ k) (hD : 1 �
     intro p hp1 hp2
     rw [hTB, rsTape_getD_lt TA (2 * k) (D + 1) p (by omega) (by omega), hTA,
       rsTape_getD_lt T (2 * k + 4) D (p + 2) (by omega) (by omega)]
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- counters 1 … k-1 survive
     intro i hi1 hik
     obtain ⟨hc, hc1⟩ := h.ctr i hi1 (by omega)
@@ -123,6 +125,8 @@ theorem roundInv_preserved (T : List Bool) (k D : ℕ) (hk : 1 ≤ k) (hD : 1 �
     rw [show 2 * (k - 1) + 5 + 2 * (D - 1) = 2 * k + 2 * D + 1 from by omega,
       dta (2 * k + 2 * D + 1) (by omega) (by omega),
       show 2 * k + 2 * D + 1 + 2 + 2 = 2 * k + 5 + 2 * D from by omega, h.rendhi]
+  · -- LSENT high (position 1) survives (before both windows)
+    rw [cnt 1 (by omega)]; exact h.lsent
 
 /-! ## Applying `round_full` from the invariant -/
 
