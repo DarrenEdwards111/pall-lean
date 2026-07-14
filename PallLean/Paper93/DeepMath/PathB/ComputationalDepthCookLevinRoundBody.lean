@@ -2,22 +2,26 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCookLevinMasterRound
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCookLevinPhaseBounds
 
 /-!
-# Cook–Levin M1 — the counter-present round body (composition, first half)
+# Cook–Levin M1 — the counter-present round body (composition)
 
 The counter-present branch of the loop is `LOOPCHK → REPA → SHA → RANCH1 → REPB → SHB → RANCH2 → (loop)`.  This
-file composes its opening half — `LOOPCHK → REPA → SHA` — into one master run, the counter-present analogue of
-`tail_read`.  The new ingredient over `tail_read` is that `SHA` (a `rendShift` delete of `a₀`) runs a
-*tape-dependent* number of steps `8K+8`, so its `sim_run` `hmin` is discharged by `rendShift_no_early_halt`
-(CookLevinPhaseBounds) from the doubled-tape non-`REND` hypotheses.
+file composes it into master runs, in two halves, the counter-present analogue of `tail_read`.  The new ingredient
+over `tail_read` is that `SHA`/`SHB` (`rendShift` deletes) and `RANCH1`/`RANCH2` (`scanLeftSep` scans) run
+*tape-dependent* step counts, so their `sim_run` `hmin`s are discharged by `rendShift_no_early_halt` /
+`scanLeftSep_no_early_halt` (CookLevinPhaseBounds) from the doubled-tape non-`REND`/non-`SEP` hypotheses.
 
-`round_open`: from the loop head at the `SEP` low cell `s` with the counter present (`T[s-1] = 1`) and the data
-right of `SEP` a run of `K` non-`REND` pairs terminated by `REND`, the master reads the counter, repositions to
-`a₀`, deletes it (shifting the data left by one pair and re-writing `REND`), and lands at the `RANCH1` entry on a
-high cell with the `a₀`-deleted tape `rsTape T (s+2) (K+1)`.
+`round_open` (`LOOPCHK → REPA → SHA`): from the loop head at the `SEP` low cell `s` with the counter present
+(`T[s-1] = 1`) and the data right of `SEP` a run of `K` non-`REND` pairs terminated by `REND`, the master reads the
+counter, repositions to `a₀`, deletes it (data shifts left one pair, `REND` re-written), and lands at the `RANCH1`
+entry on the high cell `s+2+2K+1` with the `a₀`-deleted tape `rsTape T (s+2) (K+1)`.
 
-The second half (`RANCH1 → REPB → SHB → RANCH2 → loop`, using `scanLeftSep_no_early_halt` and a second `rendShift`
-delete on the evolved tape) composes the same way and closes the loop back to `LOOPCHK`; that plus the whole-run
-induction on `v` into `readAv_spec` is the next chunk.
+`round_close` (`RANCH1 → REPB → SHB → RANCH2 → loop`): from that `RANCH1` entry, scans back to `SEP` low `s`,
+repositions to the counter, deletes it (`SEP`+data shift left one pair to `TB`), scans back to the *new* `SEP` low
+`s-2`, and lands at the next `LOOPCHK` entry — the round-start shape for `k-1` counters.  Positions are abstract so
+it composes with `round_open` (there `P1 = s+2+2K+1`, `TA = rsTape T (s+2) (K+1)`, `m1 = K+1`).
+
+Chaining `round_open` then `round_close` (discharging the linking `rsTape` geometry) gives one full loop iteration =
+one `roundStep` on the decoded list; that plus the whole-run induction on `v` into `readAv_spec` is the next chunk.
 
 Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
@@ -72,5 +76,71 @@ theorem round_open {s K : ℕ} {T : List Bool} (hs : 1 ≤ s)
           s + 2 + 2 * K + 1, rsTape T (s + 2) (K + 1)⟩ := by
     rw [run_add, step2, eSHA]
   rw [run_add, step3, run_one, seam_SHA]
+
+/-- **Counter-present round body, closing half** (`RANCH1 → REPB → SHB → RANCH2 → loop`).  From the `RANCH1` entry
+(high cell `P1`, `a₀`-deleted tape `TA`), scans back to `SEP` low `s`, repositions to the counter, deletes it
+(shifting `SEP`+data left by one pair to `TB`), scans back to the *new* `SEP` low `s-2`, and lands at the next
+`LOOPCHK` entry.  `scanLeftSep`/`rendShift` `hmin`s are discharged by the no-early-halt lemmas.  All positions are
+kept abstract so this composes with `round_open` (there `P1 = s+2+2K+1`, `TA = rsTape T (s+2) (K+1)`, `m1 = K+1`). -/
+theorem round_close {s P1 m1 KB P2 : ℕ} {TA TB : List Bool}
+    (hs2 : 2 ≤ s)
+    (hP1 : P1 = s + 2 * m1 + 1)
+    (hns1 : ∀ i < m1, (!(TA.getD (P1 - 2 * i - 1) false) && TA.getD (P1 - 2 * i) false) = false)
+    (hsep1 : (!(TA.getD (P1 - 2 * m1 - 1) false) && TA.getD (P1 - 2 * m1) false) = true)
+    (hnrB : ∀ i < KB, (TA.getD (s - 2 + 2 * i + 2) false && !(TA.getD (s - 2 + 2 * i + 3) false)) = false)
+    (hrendB : (TA.getD (s - 2 + 2 * KB + 2) false && !(TA.getD (s - 2 + 2 * KB + 3) false)) = true)
+    (hTB : TB = rsTape TA (s - 2) (KB + 1))
+    (hP2 : P2 = s - 2 + 2 * KB + 1)
+    (hns2 : ∀ i < KB, (!(TB.getD (P2 - 2 * i - 1) false) && TB.getD (P2 - 2 * i) false) = false)
+    (hsep2 : (!(TB.getD (P2 - 2 * KB - 1) false) && TB.getD (P2 - 2 * KB) false) = true) :
+    run masterM ((2 * m1 + 2) + 1 + 1 + (8 * KB + 8) + 1 + (2 * KB + 2) + 1) ⟨(4, 0, false, false), P1, TA⟩
+      = ⟨(1, 0, false, false), s - 2, TB⟩ := by
+  have hh1 : P1 - 2 * m1 - 1 = s := by omega
+  have hh1b : P1 - 2 * m1 = s + 1 := by omega
+  have hsub : s - 1 - 1 = s - 2 := by omega
+  have hh2 : P2 - 2 * KB - 1 = s - 2 := by omega
+  have hh2b : P2 - 2 * KB = s - 1 := by omega
+  -- RANCH1: scan back to SEP low s
+  have eR1 : run masterM (2 * m1 + 2) ⟨(4, 0, false, false), P1, TA⟩
+      = ⟨(4, 2, TA.getD (s + 1) false, false), s, TA⟩ := by
+    rw [show (⟨(4, 0, false, false), P1, TA⟩ : Cfg masterM) = embedScanL 4 ⟨(0, false), P1, TA⟩ from rfl,
+      sim_run_RANCH1 (2 * m1 + 2) ⟨(0, false), P1, TA⟩ (scanLeftSep_no_early_halt hns1),
+      CookLevinScanLeftSep.run_scan_left_halt TA P1 false m1 hns1 hsep1, hh1, hh1b]
+    rfl
+  -- SHB: delete the counter (tape-dependent 8KB+8 steps; hmin from rendShift_no_early_halt)
+  have eSHB : run masterM (8 * KB + 8) ⟨(6, 0, false, false), s - 2, TA⟩
+      = ⟨(6, 8, TA.getD (s - 2 + 2 * KB + 2) false, TA.getD (s - 2 + 2 * KB + 3) false),
+          s - 2 + 2 * KB + 1, TB⟩ := by
+    rw [show (⟨(6, 0, false, false), s - 2, TA⟩ : Cfg masterM) = embedRend 6 ⟨(0, false, false), s - 2, TA⟩ from rfl,
+      sim_run_SHB (8 * KB + 8) ⟨(0, false, false), s - 2, TA⟩ (rendShift_no_early_halt hnrB),
+      run_shift_halt TA (s - 2) false false KB hnrB hrendB, ← hTB]
+    rfl
+  -- RANCH2: scan back to the new SEP low s-2
+  have eR2 : run masterM (2 * KB + 2) ⟨(7, 0, false, false), P2, TB⟩
+      = ⟨(7, 2, TB.getD (s - 1) false, false), s - 2, TB⟩ := by
+    rw [show (⟨(7, 0, false, false), P2, TB⟩ : Cfg masterM) = embedScanL 7 ⟨(0, false), P2, TB⟩ from rfl,
+      sim_run_RANCH2 (2 * KB + 2) ⟨(0, false), P2, TB⟩ (scanLeftSep_no_early_halt hns2),
+      CookLevinScanLeftSep.run_scan_left_halt TB P2 false KB hns2 hsep2, hh2, hh2b]
+    rfl
+  -- assemble nested (each seam is one `run 1`)
+  have st1 : run masterM (2 * m1 + 2) ⟨(4, 0, false, false), P1, TA⟩
+      = ⟨(4, 2, TA.getD (s + 1) false, false), s, TA⟩ := eR1
+  have st2 : run masterM (2 * m1 + 2 + 1) ⟨(4, 0, false, false), P1, TA⟩ = ⟨(5, 0, false, false), s - 1, TA⟩ := by
+    rw [run_add, st1, run_one, seam_RANCH1]
+  have st3 : run masterM (2 * m1 + 2 + 1 + 1) ⟨(4, 0, false, false), P1, TA⟩
+      = ⟨(6, 0, false, false), s - 2, TA⟩ := by
+    rw [run_add, st2, run_one, repb_step, hsub]
+  have st4 : run masterM (2 * m1 + 2 + 1 + 1 + (8 * KB + 8)) ⟨(4, 0, false, false), P1, TA⟩
+      = ⟨(6, 8, TA.getD (s - 2 + 2 * KB + 2) false, TA.getD (s - 2 + 2 * KB + 3) false),
+          s - 2 + 2 * KB + 1, TB⟩ := by
+    rw [run_add, st3, eSHB]
+  have st5 : run masterM (2 * m1 + 2 + 1 + 1 + (8 * KB + 8) + 1) ⟨(4, 0, false, false), P1, TA⟩
+      = ⟨(7, 0, false, false), s - 2 + 2 * KB + 1, TB⟩ := by
+    rw [run_add, st4, run_one, seam_SHB]
+  have st6 : run masterM (2 * m1 + 2 + 1 + 1 + (8 * KB + 8) + 1 + (2 * KB + 2)) ⟨(4, 0, false, false), P1, TA⟩
+      = ⟨(7, 2, TB.getD (s - 1) false, false), s - 2, TB⟩ := by
+    rw [run_add, st5, show (⟨(7, 0, false, false), s - 2 + 2 * KB + 1, TB⟩ : Cfg masterM)
+      = ⟨(7, 0, false, false), P2, TB⟩ from by rw [hP2], eR2]
+  rw [run_add, st6, run_one, seam_RANCH2]
 
 end PallLean.Paper93.DeepMath.PathB.CookLevinRoundBody
