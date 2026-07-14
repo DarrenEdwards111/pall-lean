@@ -148,3 +148,50 @@ membership is required downstream.
 
 Estimated ~6 turns, ~800–1200 lines.  No hardness content anywhere — this is TM engineering with every termination
 obstacle already solved by the marker scheme (§2).  Nothing in this plan or its build is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+## 9. Master machine architecture (concrete — the assembly spec)
+
+The eight sub-machines (S1–S8) + `ScanRightSep` (INIT/re-anchor) are all proven run-lemmas.  The master is one
+`Machine` with a **loop-back** δ.  Concrete design:
+
+**State.**  `MState = Fin G × SubState`, where `G` tags the phase-group and `SubState = Fin 9 × Bool × Bool`
+(large enough for every sub-machine's local state — S5 is the widest).  `init` = `(INIT-start, scanRightSep.start
+padded)`.  Finite, forced init, local δ ⇒ non-vacuous.
+
+**Phase groups `G` and the flow** (loop head = `SEP` low cell):
+
+| G | body | on halt → |
+|---|---|---|
+| `INIT` | `ScanRightSep` from `0` (skip `LSENT`,`11` → `SEP`) | seam→ `LOOPCHK` |
+| `LOOPCHK` | S7 `loopCtrl` (read high cell left of `SEP`) | bit `1` → `SH_A`; bit `0` → `READRES` |
+| `SH_A` | reposition to `SEP+2`; S5 `rendShift` (delete `a₀`) → `REND` | seam→ `REANCH1` |
+| `REANCH1` | `ScanLeftSep` (`REND → SEP`) | seam→ `SH_B` |
+| `SH_B` | reposition to `SEP−2`; S5 `rendShift` (delete counter) → `REND` | seam→ `REANCH2` |
+| `REANCH2` | `ScanLeftSep` (`REND → SEP`) | **loop-back**→ `LOOPCHK` |
+| `READRES` | S8 `readRes` (read `SEP+2 = a_v`) | → `HALT` |
+| `HALT` | idempotent | — |
+
+**Seams.**  A seam is a single control-only step (like `comp`'s switch: `(next-start, none, move)`), taken when a
+sub-group reaches its halt state.  It re-tags `G` and resets the `SubState` to the next group's start; the head is
+moved only by the constant repositioning each group needs (`SEP low → SEP+2` = R,R; `SEP low → SEP−2` = L,L,L;
+`REANCH*` land on `SEP low` already; `LOOPCHK` ends at `SEP−1`, so its seam to `SH_A`/`READRES` walks back to `SEP`
+first — a 1-cell reposition).  All repositions are constant-length (≤ 3 steps), no data dependence.
+
+**Simulation lemmas** (reuse, don't re-prove).  For each group `G` with sub-machine `M`:
+`masterStep (G, s) = seam-or-(G, M.δ-image)`, giving
+`run master t (G, s, hd, tp) = (G, M-run t) ` until `M` halts, then the seam fires.  Proved once per group by
+`induction t` + the group's `run_*` run-lemma.  This is exactly the `comp_phase1/2` pattern, generalized.
+
+**Correctness chain.**
+1. **Per round** — from `⟨LOOPCHK, SEP, tp⟩` with counter present, the master reaches `⟨LOOPCHK, SEP', tp'⟩` where
+   `tp'` is `tp` with the counter pair and `a₀` pair deleted, `SEP'` two cells left.  Compose the group
+   simulation lemmas (S7→S5→S6→S5→S6) via `run_add`; the tape transform is `RendShift.rsTape` twice, which a
+   `getD`-level lemma equates to `encodeD ∘ roundStep` on the decoded list.
+2. **Whole run** — induction on `v`: `v` rounds bring `a_v` to `SEP+2` (invoking `ReadAv.readAv_spec`); then
+   `LOOPCHK` reads bit `0`, `READRES` reads `a_v`, `HALT`.
+3. **Clock / `InP`** — each round is `O(current length)` (a scan + two shifts + two re-anchors); `v` rounds ⇒
+   `O(v·|x|)`; `PolyBounded` via `ObserverInvariantBridge.polyBounded_time_comp`-style closure.  `Decides`/`InP`
+   under promise-(c) (§7): stated for `x ∈ range encode`.
+
+**Effort.**  State+δ+non-vacuity (~120 lines) · 6 group simulation lemmas (~50 each) · per-round lemma (~150) ·
+whole-run+clock (~120).  ~700 lines, ~4 turns.  No hardness content.
