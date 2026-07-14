@@ -246,6 +246,17 @@ theorem roundInv_step (T : List Bool) (k D : ℕ) (hk : 1 ≤ k) (hD : 1 ≤ D) 
   rw [show (2 * k + 2 - 2 : ℕ) = 2 * k from by omega] at key
   exact key
 
+/-- **Data-value shift.**  The round transform sends `TB`'s data pair `j` to `T`'s data pair `j+1`: the low cell of
+the new pair `j` reads the low cell of the old pair `j+1` (delete `a₀`, delete a counter — data slides one pair
+toward `SEP`).  This tracks the assignment values across a round. -/
+theorem round_data_shift (T : List Bool) (k D j : ℕ) (hk : 1 ≤ k) (hj : j < D) :
+    (rsTape (rsTape T (2 * k + 4) D) (2 * k) (D + 1)).getD (2 * (k - 1) + 4 + 2 * j) false
+      = T.getD (2 * k + 4 + 2 * (j + 1)) false := by
+  rw [show 2 * (k - 1) + 4 + 2 * j = 2 * k + 2 + 2 * j from by omega,
+    rsTape_getD_lt (rsTape T (2 * k + 4) D) (2 * k) (D + 1) (2 * k + 2 + 2 * j) (by omega) (by omega),
+    rsTape_getD_lt T (2 * k + 4) D (2 * k + 2 + 2 * j + 2) (by omega) (by omega),
+    show 2 * k + 2 + 2 * j + 2 + 2 = 2 * k + 4 + 2 * (j + 1) from by omega]
+
 /-- **Iterable per-round step.**  Combines application (`roundInv_step`) with preservation (`roundInv_preserved`):
 from a round-start config satisfying `RoundInv T k D`, one master loop iteration lands at the round-start config
 for `k-1` counters (head at the new `SEP` low `2(k-1)+2`) on a tape `T'` that again satisfies the invariant
@@ -254,8 +265,10 @@ theorem roundInv_round (T : List Bool) (k D : ℕ) (hk : 1 ≤ k) (hD : 1 ≤ D)
     ∃ T', run masterM ((2 + 1 + 2 + (8 * (D - 1) + 8) + 1)
           + ((2 * (D - 1 + 1) + 2) + 1 + 1 + (8 * D + 8) + 1 + (2 * D + 2) + 1))
           ⟨(1, 0, false, false), 2 * k + 2, T⟩
-        = ⟨(1, 0, false, false), 2 * (k - 1) + 2, T'⟩ ∧ RoundInv T' (k - 1) (D - 1) := by
-  refine ⟨rsTape (rsTape T (2 * k + 4) D) (2 * k) (D + 1), ?_, roundInv_preserved T k D hk hD h⟩
+        = ⟨(1, 0, false, false), 2 * (k - 1) + 2, T'⟩ ∧ RoundInv T' (k - 1) (D - 1)
+        ∧ ∀ j, j < D → T'.getD (2 * (k - 1) + 4 + 2 * j) false = T.getD (2 * k + 4 + 2 * (j + 1)) false := by
+  refine ⟨rsTape (rsTape T (2 * k + 4) D) (2 * k) (D + 1), ?_, roundInv_preserved T k D hk hD h,
+    fun j hj => round_data_shift T k D j hk hj⟩
   rw [show 2 * (k - 1) + 2 = 2 * k from by omega]
   exact roundInv_step T k D hk hD h
 
