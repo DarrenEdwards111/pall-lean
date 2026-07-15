@@ -43,16 +43,15 @@ The **correct** statement is a *quantitative tradeoff that only bites as `d` gro
 pushes the available induced matching down to `≈ N/√d`.  Useful, but a tradeoff, not an incompatibility.  (The
 expander-mixing bound itself is clean and formalizable.)
 
-## 3. The lean: NEGATIVE for the expander mixer
+## 3. The lean: evidence only (NOT a refutation)
 
-With `fresh ≤ O(N/d)`, the inequality needs `savings ≤ O(N/d)` — i.e. the **Ramanujan adjacency matrix must be
-rigid at scale `N/d`** (linear horn) / must decorrelate to overlap `≤ O(N/d)` (nonlinear horn).  The honest
-evidence leans against it: the adjacency matrices of structured/algebraic graphs are repeatedly found
-**non-rigid** (Dvir–Edelman, Alman–Williams, Dvir–Liu: Hadamard, Fourier, and various algebraic matrices have
-sub-maximal rigidity).  The Ramanujan mixer's rigidity is not established and trends non-rigid; so the linear horn
-**probably fails** for the specific mixer — `savings` can exceed the small `fresh`, and the inequality fails as
-constructed.  Closing it would require a genuinely **rigid** mixer = explicit Valiant rigidity (open), or a
-two-component / non-graph mixer that escapes the §2 tension (no candidate).
+Where the degree-dependent squeeze does bite (`fresh ≈ N/√d`), the linear horn would need the **Ramanujan
+adjacency matrix rigid at that scale**.  The honest evidence leans against it: the adjacency matrices of
+structured/algebraic graphs are repeatedly found **non-rigid** (Dvir–Edelman, Alman–Williams, Dvir–Liu: Hadamard,
+Fourier, and various algebraic matrices have sub-maximal rigidity).  So the linear horn's candidate bridge
+*likely* fails for a structured mixer — but this is a **lean from analogy, not a proof** (the Ramanujan mixer's
+rigidity is neither established nor refuted, and — per §1 — the sharing⇒rigidity reduction is itself unproved).
+No closure either way.
 
 ## 4. The truncated-family escape is refuted
 

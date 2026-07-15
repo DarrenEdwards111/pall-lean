@@ -142,7 +142,7 @@ theorem at_four_incr (h1 : T.getD p false = false) :
     intro p' T'; simp only [step, addTMachine, moveHead]; rfl
   rw [e0, e1, e2, e3]
 
-theorem at_healB (h1 : T.getD p false = true) (h2 : T.getD (p + 1) false = false) :
+theorem at_healB (h1 : T.getD p false = true) :
     run addTMachine 2 ⟨(9, s), p, T⟩ = ⟨(9, true), p + 2, writeAt T (p + 1) true⟩ := by
   rw [run_succ, run_succ, run_zero]
   have e0 : step addTMachine ⟨(9, s), p, T⟩ = ⟨(10, T.getD p false), p + 1, T⟩ := by
@@ -205,7 +205,7 @@ theorem at_healBs (v : ℕ) (E : List Bool) (s : Bool) (i : ℕ) (hi : i ≤ v) 
   | zero => rfl
   | succ i ih =>
     rw [show 2 * (i + 1) = 2 * i + 2 from by ring, run_add, ih (by omega),
-      at_healB (hlE_pair_lo v i E (by omega)) (hlE_pair_hi v i E (by omega)),
+      at_healB (hlE_pair_lo v i E (by omega)),
       hlT_heal v i E (by omega)]
     rfl
 
