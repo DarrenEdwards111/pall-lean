@@ -2181,4 +2181,821 @@ theorem q2_instr_spliceJ (body : List LInstr) (idx : Fin (body.length + 1))
 
 end InstrJ2
 
+/-! ### The splice-A instruction -/
+
+section InstrA
+variable {G g : ℕ}
+
+theorem q2_spa_round (body : List LInstr) (idx : Fin (body.length + 1)) (hg : g ≤ G)
+    (N a k i : ℕ) (hi : i < a) (hk : k < N) (OUT : List Bool) (s : Bool) :
+    run (loopProg2PMachine body) (2 * G + 4 * N + 2 * a + 2 * OUT.length + 2 * i + 14)
+      ⟨(49, idx, s), 0, cntT G g ++ (cntT N (k + 1)
+        ++ (cntT a i ++ (jT N k ++ encodeD (OUT ++ List.replicate i true))))⟩
+      = ⟨(49, idx, false), 0, cntT G g ++ (cntT N (k + 1)
+          ++ (cntT a (i + 1) ++ (jT N k
+            ++ encodeD (OUT ++ List.replicate (i + 1) true))))⟩ := by
+  have hW : (cntT G g).length = 2 * G + 2 := cntT_length G g hg
+  have hQ1 : (cntT N (k + 1)).length = 2 * N + 2 := cntT_length N (k + 1) (by omega)
+  have hQa : (cntT a (i + 1)).length = 2 * a + 2 := cntT_length a (i + 1) (by omega)
+  have hq4 : (cntT G g).length + (cntT N (k + 1)).length + (cntT a (i + 1)).length
+      + (jT N k).length = 2 * G + 4 * N + 2 * a + 8 := by
+    rw [hW, hQ1, hQa, jT_length N k (by omega)]; omega
+  have hlen : (OUT ++ List.replicate i true).length = OUT.length + i := by
+    rw [List.length_append, List.length_replicate]
+  have s1 := q2_skipWAs body (cntT G g ++ (cntT N (k + 1)
+      ++ (cntT a i ++ (jT N k ++ encodeD (OUT ++ List.replicate i true))))) 0 G idx s
+    (fun i' hi' => by simpa using cntE_lo G g _ i' hg hi')
+  simp only [Nat.zero_add] at s1
+  have s2 := q2_crossWA (body := body) (idx := idx) (s := if G = 0 then s else true)
+    (p := 2 * G) (T := cntT G g ++ (cntT N (k + 1)
+      ++ (cntT a i ++ (jT N k ++ encodeD (OUT ++ List.replicate i true)))))
+    (cntE_cm_lo G g _ hg) (cntE_cm_hi G g _ hg)
+  have s3 := q2_skipR1As body (cntT G g ++ (cntT N (k + 1)
+      ++ (cntT a i ++ (jT N k ++ encodeD (OUT ++ List.replicate i true)))))
+    (2 * G + 2) N idx false
+    (fun i' hi' => by
+      rw [show 2 * G + 2 + 2 * i' = 2 * G + 2 + (2 * i') from rfl]
+      exact liftJ _ _ hW (cntE_lo N (k + 1) _ i' (by omega) hi'))
+  have s4 := q2_crossR1A (body := body) (idx := idx) (s := if N = 0 then false else true)
+    (p := 2 * G + 2 + 2 * N) (T := cntT G g ++ (cntT N (k + 1)
+      ++ (cntT a i ++ (jT N k ++ encodeD (OUT ++ List.replicate i true)))))
+    (by rw [show 2 * G + 2 + 2 * N = 2 * G + 2 + (2 * N) from rfl]
+        exact liftJ _ _ hW (cntE_cm_lo N (k + 1) _ (by omega)))
+    (by rw [show 2 * G + 2 + 2 * N + 1 = 2 * G + 2 + (2 * N + 1) from by omega]
+        exact liftJ _ _ hW (cntE_cm_hi N (k + 1) _ (by omega)))
+  have s5 := q2_skipAms body (cntT G g ++ (cntT N (k + 1)
+      ++ (cntT a i ++ (jT N k ++ encodeD (OUT ++ List.replicate i true)))))
+    (2 * G + 2 + 2 * N + 2) i idx false
+    (fun i' hi' => ⟨by
+      rw [show 2 * G + 2 + 2 * N + 2 + 2 * i' = 2 * G + 2 + (2 * N + 2 + 2 * i')
+          from by omega]
+      exact liftJ2 _ _ _ hW hQ1 (cntE_mark_lo a i _ i' hi'), by
+      rw [show 2 * G + 2 + 2 * N + 2 + 2 * i' + 1 = 2 * G + 2 + (2 * N + 2 + (2 * i' + 1))
+          from by omega]
+      exact liftJ2 _ _ _ hW hQ1 (cntE_mark_hi a i _ i' hi')⟩)
+  have s6 := q2_markA (body := body) (idx := idx) (s := if i = 0 then false else true)
+    (p := 2 * G + 2 + 2 * N + 2 + 2 * i)
+    (T := cntT G g ++ (cntT N (k + 1)
+      ++ (cntT a i ++ (jT N k ++ encodeD (OUT ++ List.replicate i true)))))
+    (by rw [show 2 * G + 2 + 2 * N + 2 + 2 * i = 2 * G + 2 + (2 * N + 2 + 2 * i)
+          from by omega]
+        exact liftJ2 _ _ _ hW hQ1
+          (cntE_data a i _ (2 * i) (by omega) (by omega) (by omega)))
+    (by rw [show 2 * G + 2 + 2 * N + 2 + 2 * i + 1 = 2 * G + 2 + (2 * N + 2 + (2 * i + 1))
+          from by omega]
+        exact liftJ2 _ _ _ hW hQ1
+          (cntE_data a i _ (2 * i + 1) (by omega) (by omega) (by omega)))
+  have hw : writeAt (cntT G g ++ (cntT N (k + 1)
+      ++ (cntT a i ++ (jT N k ++ encodeD (OUT ++ List.replicate i true)))))
+      (2 * G + 2 + 2 * N + 2 + 2 * i + 1) false
+      = cntT G g ++ (cntT N (k + 1)
+          ++ (cntT a (i + 1) ++ (jT N k ++ encodeD (OUT ++ List.replicate i true)))) := by
+    rw [show 2 * G + 2 + 2 * N + 2 + 2 * i + 1 = 2 * G + 2 + (2 * N + 2 + (2 * i + 1))
+        from by omega,
+      writeAt_append_right2 _ _ _ (2 * G + 2) (2 * N + 2) (2 * i + 1) false hW hQ1
+        (by rw [List.length_append, cntT_length a i (by omega)]; omega),
+      cntT_mark a i _ hi]
+  rw [hw] at s6
+  have s7 := q2_scanS1s body (cntT G g ++ (cntT N (k + 1)
+      ++ (cntT a (i + 1) ++ (jT N k ++ encodeD (OUT ++ List.replicate i true)))))
+    (2 * G + 2 + 2 * N + 2 + 2 * i + 2) (a - i - 1) idx true
+    (fun i' hi' => by
+      have e1 : (cntT G g ++ (cntT N (k + 1) ++ (cntT a (i + 1)
+          ++ (jT N k ++ encodeD (OUT ++ List.replicate i true))))).getD
+          (2 * G + 2 + 2 * N + 2 + 2 * i + 2 + 2 * i') false = true := by
+        rw [show 2 * G + 2 + 2 * N + 2 + 2 * i + 2 + 2 * i'
+            = 2 * G + 2 + (2 * N + 2 + (2 * (i + 1) + 2 * i')) from by omega]
+        exact liftJ2 _ _ _ hW hQ1 (cntE_data a (i + 1) _ (2 * (i + 1) + 2 * i') (by omega)
+          (by omega) (by omega))
+      have e2 : (cntT G g ++ (cntT N (k + 1) ++ (cntT a (i + 1)
+          ++ (jT N k ++ encodeD (OUT ++ List.replicate i true))))).getD
+          (2 * G + 2 + 2 * N + 2 + 2 * i + 2 + 2 * i' + 1) false = true := by
+        rw [show 2 * G + 2 + 2 * N + 2 + 2 * i + 2 + 2 * i' + 1
+            = 2 * G + 2 + (2 * N + 2 + (2 * (i + 1) + 2 * i' + 1)) from by omega]
+        exact liftJ2 _ _ _ hW hQ1 (cntE_data a (i + 1) _ (2 * (i + 1) + 2 * i' + 1)
+          (by omega) (by omega) (by omega))
+      rw [e1, e2])
+  rw [show 2 * G + 2 + 2 * N + 2 + 2 * i + 2 + 2 * (a - i - 1)
+      = 2 * G + 2 + 2 * N + 2 + 2 * a from by omega] at s7
+  have s8 := q2_crossSS1 (body := body) (idx := idx)
+    (s := storedD (cntT G g ++ (cntT N (k + 1) ++ (cntT a (i + 1)
+      ++ (jT N k ++ encodeD (OUT ++ List.replicate i true)))))
+      (2 * G + 2 + 2 * N + 2 + 2 * i + 2) true (a - i - 1))
+    (p := 2 * G + 2 + 2 * N + 2 + 2 * a)
+    (T := cntT G g ++ (cntT N (k + 1) ++ (cntT a (i + 1)
+      ++ (jT N k ++ encodeD (OUT ++ List.replicate i true)))))
+    (by rw [show 2 * G + 2 + 2 * N + 2 + 2 * a = 2 * G + 2 + (2 * N + 2 + 2 * a)
+          from by omega]
+        exact liftJ2 _ _ _ hW hQ1 (cntE_cm_lo a (i + 1) _ (by omega)))
+    (by rw [show 2 * G + 2 + 2 * N + 2 + 2 * a + 1 = 2 * G + 2 + (2 * N + 2 + (2 * a + 1))
+          from by omega]
+        exact liftJ2 _ _ _ hW hQ1 (cntE_cm_hi a (i + 1) _ (by omega)))
+  have s9 := q2_scanS2s body (cntT G g ++ (cntT N (k + 1)
+      ++ (cntT a (i + 1) ++ (jT N k ++ encodeD (OUT ++ List.replicate i true)))))
+    (2 * G + 2 + 2 * N + 2 + 2 * a + 2) k idx false
+    (fun i' hi' => by
+      have e1 : (cntT G g ++ (cntT N (k + 1) ++ (cntT a (i + 1)
+          ++ (jT N k ++ encodeD (OUT ++ List.replicate i true))))).getD
+          (2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * i') false = true := by
+        rw [show 2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * i'
+            = 2 * G + 2 + (2 * N + 2 + (2 * a + 2 + 2 * i')) from by omega, ← jsT_zero N k]
+        exact liftJ3 _ _ _ _ hW hQ1 hQa
+          (jsE_data N k 0 _ (2 * i') (by omega) (by omega) (by omega))
+      have e2 : (cntT G g ++ (cntT N (k + 1) ++ (cntT a (i + 1)
+          ++ (jT N k ++ encodeD (OUT ++ List.replicate i true))))).getD
+          (2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * i' + 1) false = true := by
+        rw [show 2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * i' + 1
+            = 2 * G + 2 + (2 * N + 2 + (2 * a + 2 + (2 * i' + 1))) from by omega,
+          ← jsT_zero N k]
+        exact liftJ3 _ _ _ _ hW hQ1 hQa
+          (jsE_data N k 0 _ (2 * i' + 1) (by omega) (by omega) (by omega))
+      rw [e1, e2])
+  have s10 := q2_crossSS2 (body := body) (idx := idx)
+    (s := storedD (cntT G g ++ (cntT N (k + 1) ++ (cntT a (i + 1)
+      ++ (jT N k ++ encodeD (OUT ++ List.replicate i true)))))
+      (2 * G + 2 + 2 * N + 2 + 2 * a + 2) false k)
+    (p := 2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * k)
+    (T := cntT G g ++ (cntT N (k + 1) ++ (cntT a (i + 1)
+      ++ (jT N k ++ encodeD (OUT ++ List.replicate i true)))))
+    (by rw [show 2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * k
+          = 2 * G + 2 + (2 * N + 2 + (2 * a + 2 + 2 * k)) from by omega, ← jsT_zero N k]
+        exact liftJ3 _ _ _ _ hW hQ1 hQa (jsE_m_lo N k 0 _ (by omega)))
+    (by rw [show 2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * k + 1
+          = 2 * G + 2 + (2 * N + 2 + (2 * a + 2 + (2 * k + 1))) from by omega,
+        ← jsT_zero N k]
+        exact liftJ3 _ _ _ _ hW hQ1 hQa (jsE_m_hi N k 0 _ (by omega)))
+  have s11 := q2_scanS3s body (cntT G g ++ (cntT N (k + 1)
+      ++ (cntT a (i + 1) ++ (jT N k ++ encodeD (OUT ++ List.replicate i true)))))
+    (2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * k + 2) ((N - k) + (OUT.length + i)) idx false
+    (fun i' hi' => by
+      rcases Nat.lt_or_ge i' (N - k) with hilt | hige
+      · have e1 : (cntT G g ++ (cntT N (k + 1) ++ (cntT a (i + 1)
+            ++ (jT N k ++ encodeD (OUT ++ List.replicate i true))))).getD
+            (2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * k + 2 + 2 * i') false = false := by
+          rw [show 2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * k + 2 + 2 * i'
+              = 2 * G + 2 + (2 * N + 2 + (2 * a + 2 + (2 * k + 2 + 2 * i')))
+              from by omega, ← jsT_zero N k]
+          exact liftJ3 _ _ _ _ hW hQ1 hQa (jsE_pad N k 0 _ (2 * k + 2 + 2 * i') (by omega)
+            (by omega) (by omega) (by omega))
+        have e2 : (cntT G g ++ (cntT N (k + 1) ++ (cntT a (i + 1)
+            ++ (jT N k ++ encodeD (OUT ++ List.replicate i true))))).getD
+            (2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * k + 2 + 2 * i' + 1) false = false := by
+          rw [show 2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * k + 2 + 2 * i' + 1
+              = 2 * G + 2 + (2 * N + 2 + (2 * a + 2 + (2 * k + 2 + 2 * i' + 1)))
+              from by omega, ← jsT_zero N k]
+          exact liftJ3 _ _ _ _ hW hQ1 hQa (jsE_pad N k 0 _ (2 * k + 2 + 2 * i' + 1)
+            (by omega) (by omega) (by omega) (by omega))
+        rw [e1, e2]
+      · rw [show 2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * k + 2 + 2 * i'
+            = 2 * G + 4 * N + 2 * a + 8 + 2 * (i' - (N - k)) from by omega,
+          show 2 * G + 4 * N + 2 * a + 8 + 2 * (i' - (N - k)) + 1
+            = 2 * G + 4 * N + 2 * a + 8 + 2 * (i' - (N - k)) + 1 from rfl]
+        exact preD4_data_eq (cntT G g) (cntT N (k + 1)) (cntT a (i + 1)) (jT N k)
+          (OUT ++ List.replicate i true) (2 * G + 4 * N + 2 * a + 8) (i' - (N - k)) hq4
+          (by rw [List.length_append, List.length_replicate]; omega))
+  rw [show 2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * k + 2 + 2 * ((N - k) + (OUT.length + i))
+      = 2 * G + 4 * N + 2 * a + 8 + 2 * (OUT.length + i) from by omega] at s11
+  have hm1 := preD4_mark_lo (cntT G g) (cntT N (k + 1)) (cntT a (i + 1)) (jT N k)
+    (OUT ++ List.replicate i true) (2 * G + 4 * N + 2 * a + 8) hq4
+  have hm2 := preD4_mark_hi (cntT G g) (cntT N (k + 1)) (cntT a (i + 1)) (jT N k)
+    (OUT ++ List.replicate i true) (2 * G + 4 * N + 2 * a + 8) hq4
+  rw [hlen] at hm1 hm2
+  have s12 := q2_detectS3 (body := body) (idx := idx)
+    (s := storedD (cntT G g ++ (cntT N (k + 1) ++ (cntT a (i + 1)
+      ++ (jT N k ++ encodeD (OUT ++ List.replicate i true)))))
+      (2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * k + 2) false ((N - k) + (OUT.length + i)))
+    (p := 2 * G + 4 * N + 2 * a + 8 + 2 * (OUT.length + i)) hm1 hm2
+  have hsn := writes_snoc4 (cntT G g) (cntT N (k + 1)) (cntT a (i + 1)) (jT N k)
+    (OUT ++ List.replicate i true) (2 * G + 4 * N + 2 * a + 8) hq4 true
+  rw [hlen, List.append_assoc,
+    show (List.replicate i true ++ [true] : List Bool) = List.replicate (i + 1) true from by
+      rw [← List.replicate_succ']] at hsn
+  have s13 := q2_four_TA (body := body) (idx := idx) (s := false)
+    (p := 2 * G + 4 * N + 2 * a + 8 + 2 * (OUT.length + i))
+    (T := cntT G g ++ (cntT N (k + 1) ++ (cntT a (i + 1)
+      ++ (jT N k ++ encodeD (OUT ++ List.replicate i true)))))
+  rw [hsn] at s13
+  rw [show 2 * G + 4 * N + 2 * a + 2 * OUT.length + 2 * i + 14
+      = 2 * G + (2 + (2 * N + (2 + (2 * i + (2 + (2 * (a - i - 1) + (2 + (2 * k
+          + (2 + (2 * ((N - k) + (OUT.length + i)) + (2 + 4))))))))))) from by omega,
+    run_add, s1, run_add, s2, run_add, s3, run_add, s4, run_add, s5, run_add, s6,
+    run_add, s7, run_add, s8, run_add, s9, run_add, s10, run_add, s11, run_add, s12, s13]
+
+theorem q2_spa_rounds (body : List LInstr) (idx : Fin (body.length + 1)) (hg : g ≤ G)
+    (N a k : ℕ) (hk : k < N) (OUT : List Bool) (j : ℕ) (hj : j ≤ a) (s : Bool) :
+    run (loopProg2PMachine body)
+      (lp3SpRounds (2 * G + 4 * N + 2 * a + 2 * OUT.length + 14) j)
+      ⟨(49, idx, s), 0, cntT G g ++ (cntT N (k + 1)
+        ++ (cntT a 0 ++ (jT N k ++ encodeD OUT)))⟩
+      = ⟨(49, idx, if j = 0 then s else false), 0, cntT G g ++ (cntT N (k + 1)
+          ++ (cntT a j ++ (jT N k ++ encodeD (OUT ++ List.replicate j true))))⟩ := by
+  induction j with
+  | zero => simp only [lp3SpRounds]; rw [run_zero]; simp
+  | succ j ih =>
+    rw [show lp3SpRounds (2 * G + 4 * N + 2 * a + 2 * OUT.length + 14) (j + 1)
+        = lp3SpRounds (2 * G + 4 * N + 2 * a + 2 * OUT.length + 14) j
+            + (2 * G + 4 * N + 2 * a + 2 * OUT.length + 14 + 2 * j) from rfl,
+      show 2 * G + 4 * N + 2 * a + 2 * OUT.length + 14 + 2 * j
+        = 2 * G + 4 * N + 2 * a + 2 * OUT.length + 2 * j + 14 from by omega,
+      run_add, ih (by omega), q2_spa_round body idx hg N a k j (by omega) hk OUT _,
+      if_neg (by omega)]
+
+def lp2paCost (G N a L : ℕ) : ℕ :=
+  1 + (lp3SpRounds (2 * G + 4 * N + 2 * a + 2 * L + 14) a
+    + ((2 * G + 4 * N + 4 * a + 2 * L + 14) + (2 * G + 2 * N + 2 * a + 6)))
+
+/-- **A splice-A instruction**, prefixed: emit `encodeNat a`, heal the source, advance. -/
+theorem q2_instr_spliceA (body : List LInstr) (idx : Fin (body.length + 1))
+    (h : idx.val < body.length) (hp : body.getD idx.val .spliceJ = .spliceA)
+    (hg : g ≤ G) (N a k : ℕ) (hk : k < N) (OUT : List Bool) (s : Bool) :
+    run (loopProg2PMachine body) (lp2paCost G N a OUT.length)
+      ⟨(4, idx, s), 0, cntT G g ++ (cntT N (k + 1) ++ (unaryD a ++ (jT N k ++ encodeD OUT)))⟩
+      = ⟨(4, ⟨idx.val + 1, by omega⟩, false), 0,
+          cntT G g ++ (cntT N (k + 1) ++ (unaryD a
+            ++ (jT N k ++ encodeD (OUT ++ encodeNat a))))⟩ := by
+  have hW : (cntT G g).length = 2 * G + 2 := cntT_length G g hg
+  have hQ1 : (cntT N (k + 1)).length = 2 * N + 2 := cntT_length N (k + 1) (by omega)
+  have hQa : (cntT a a).length = 2 * a + 2 := cntT_length a a (le_refl a)
+  have hq4 : (cntT G g).length + (cntT N (k + 1)).length + (cntT a a).length
+      + (jT N k).length = 2 * G + 4 * N + 2 * a + 8 := by
+    rw [hW, hQ1, hQa, jT_length N k (by omega)]; omega
+  have hlen2 : (OUT ++ List.replicate a true).length = OUT.length + a := by
+    rw [List.length_append, List.length_replicate]
+  have g0 := q2_dispatch_spliceA (s := s) (p := 0)
+    (T := cntT G g ++ (cntT N (k + 1) ++ (unaryD a ++ (jT N k ++ encodeD OUT)))) h hp
+  have g1 := q2_spa_rounds body idx hg N a k hk OUT a (le_refl a) s
+  have g2 := q2_skipWAs body (cntT G g ++ (cntT N (k + 1)
+      ++ (cntT a a ++ (jT N k ++ encodeD (OUT ++ List.replicate a true))))) 0 G idx
+    (if a = 0 then s else false)
+    (fun i hi => by simpa using cntE_lo G g _ i hg hi)
+  simp only [Nat.zero_add] at g2
+  have g3 := q2_crossWA (body := body) (idx := idx)
+    (s := if G = 0 then (if a = 0 then s else false) else true) (p := 2 * G)
+    (T := cntT G g ++ (cntT N (k + 1)
+      ++ (cntT a a ++ (jT N k ++ encodeD (OUT ++ List.replicate a true)))))
+    (cntE_cm_lo G g _ hg) (cntE_cm_hi G g _ hg)
+  have g4 := q2_skipR1As body (cntT G g ++ (cntT N (k + 1)
+      ++ (cntT a a ++ (jT N k ++ encodeD (OUT ++ List.replicate a true)))))
+    (2 * G + 2) N idx false
+    (fun i hi => by
+      rw [show 2 * G + 2 + 2 * i = 2 * G + 2 + (2 * i) from rfl]
+      exact liftJ _ _ hW (cntE_lo N (k + 1) _ i (by omega) hi))
+  have g5 := q2_crossR1A (body := body) (idx := idx) (s := if N = 0 then false else true)
+    (p := 2 * G + 2 + 2 * N) (T := cntT G g ++ (cntT N (k + 1)
+      ++ (cntT a a ++ (jT N k ++ encodeD (OUT ++ List.replicate a true)))))
+    (by rw [show 2 * G + 2 + 2 * N = 2 * G + 2 + (2 * N) from rfl]
+        exact liftJ _ _ hW (cntE_cm_lo N (k + 1) _ (by omega)))
+    (by rw [show 2 * G + 2 + 2 * N + 1 = 2 * G + 2 + (2 * N + 1) from by omega]
+        exact liftJ _ _ hW (cntE_cm_hi N (k + 1) _ (by omega)))
+  have g6 := q2_skipAms body (cntT G g ++ (cntT N (k + 1)
+      ++ (cntT a a ++ (jT N k ++ encodeD (OUT ++ List.replicate a true)))))
+    (2 * G + 2 + 2 * N + 2) a idx false
+    (fun i hi => ⟨by
+      rw [show 2 * G + 2 + 2 * N + 2 + 2 * i = 2 * G + 2 + (2 * N + 2 + 2 * i)
+          from by omega]
+      exact liftJ2 _ _ _ hW hQ1 (cntE_mark_lo a a _ i hi), by
+      rw [show 2 * G + 2 + 2 * N + 2 + 2 * i + 1 = 2 * G + 2 + (2 * N + 2 + (2 * i + 1))
+          from by omega]
+      exact liftJ2 _ _ _ hW hQ1 (cntE_mark_hi a a _ i hi)⟩)
+  have g7 := q2_doneA (body := body) (idx := idx) (s := if a = 0 then false else true)
+    (p := 2 * G + 2 + 2 * N + 2 + 2 * a)
+    (T := cntT G g ++ (cntT N (k + 1)
+      ++ (cntT a a ++ (jT N k ++ encodeD (OUT ++ List.replicate a true)))))
+    (by rw [show 2 * G + 2 + 2 * N + 2 + 2 * a = 2 * G + 2 + (2 * N + 2 + 2 * a)
+          from by omega]
+        exact liftJ2 _ _ _ hW hQ1 (cntE_cm_lo a a _ (le_refl a)))
+    (by rw [show 2 * G + 2 + 2 * N + 2 + 2 * a + 1 = 2 * G + 2 + (2 * N + 2 + (2 * a + 1))
+          from by omega]
+        exact liftJ2 _ _ _ hW hQ1 (cntE_cm_hi a a _ (le_refl a)))
+  have g8 := q2_scanD1s body (cntT G g ++ (cntT N (k + 1)
+      ++ (cntT a a ++ (jT N k ++ encodeD (OUT ++ List.replicate a true)))))
+    (2 * G + 2 + 2 * N + 2 + 2 * a + 2) k idx false
+    (fun i hi => by
+      have e1 : (cntT G g ++ (cntT N (k + 1) ++ (cntT a a
+          ++ (jT N k ++ encodeD (OUT ++ List.replicate a true))))).getD
+          (2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * i) false = true := by
+        rw [show 2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * i
+            = 2 * G + 2 + (2 * N + 2 + (2 * a + 2 + 2 * i)) from by omega, ← jsT_zero N k]
+        exact liftJ3 _ _ _ _ hW hQ1 hQa
+          (jsE_data N k 0 _ (2 * i) (by omega) (by omega) (by omega))
+      have e2 : (cntT G g ++ (cntT N (k + 1) ++ (cntT a a
+          ++ (jT N k ++ encodeD (OUT ++ List.replicate a true))))).getD
+          (2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * i + 1) false = true := by
+        rw [show 2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * i + 1
+            = 2 * G + 2 + (2 * N + 2 + (2 * a + 2 + (2 * i + 1))) from by omega,
+          ← jsT_zero N k]
+        exact liftJ3 _ _ _ _ hW hQ1 hQa
+          (jsE_data N k 0 _ (2 * i + 1) (by omega) (by omega) (by omega))
+      rw [e1, e2])
+  have g9 := q2_crossSD1 (body := body) (idx := idx)
+    (s := storedD (cntT G g ++ (cntT N (k + 1) ++ (cntT a a
+      ++ (jT N k ++ encodeD (OUT ++ List.replicate a true)))))
+      (2 * G + 2 + 2 * N + 2 + 2 * a + 2) false k)
+    (p := 2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * k)
+    (T := cntT G g ++ (cntT N (k + 1) ++ (cntT a a
+      ++ (jT N k ++ encodeD (OUT ++ List.replicate a true)))))
+    (by rw [show 2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * k
+          = 2 * G + 2 + (2 * N + 2 + (2 * a + 2 + 2 * k)) from by omega, ← jsT_zero N k]
+        exact liftJ3 _ _ _ _ hW hQ1 hQa (jsE_m_lo N k 0 _ (by omega)))
+    (by rw [show 2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * k + 1
+          = 2 * G + 2 + (2 * N + 2 + (2 * a + 2 + (2 * k + 1))) from by omega,
+        ← jsT_zero N k]
+        exact liftJ3 _ _ _ _ hW hQ1 hQa (jsE_m_hi N k 0 _ (by omega)))
+  have g10 := q2_scanD2s body (cntT G g ++ (cntT N (k + 1)
+      ++ (cntT a a ++ (jT N k ++ encodeD (OUT ++ List.replicate a true)))))
+    (2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * k + 2) ((N - k) + (OUT.length + a)) idx false
+    (fun i hi => by
+      rcases Nat.lt_or_ge i (N - k) with hilt | hige
+      · have e1 : (cntT G g ++ (cntT N (k + 1) ++ (cntT a a
+            ++ (jT N k ++ encodeD (OUT ++ List.replicate a true))))).getD
+            (2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * k + 2 + 2 * i) false = false := by
+          rw [show 2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * k + 2 + 2 * i
+              = 2 * G + 2 + (2 * N + 2 + (2 * a + 2 + (2 * k + 2 + 2 * i))) from by omega,
+            ← jsT_zero N k]
+          exact liftJ3 _ _ _ _ hW hQ1 hQa (jsE_pad N k 0 _ (2 * k + 2 + 2 * i) (by omega)
+            (by omega) (by omega) (by omega))
+        have e2 : (cntT G g ++ (cntT N (k + 1) ++ (cntT a a
+            ++ (jT N k ++ encodeD (OUT ++ List.replicate a true))))).getD
+            (2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * k + 2 + 2 * i + 1) false = false := by
+          rw [show 2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * k + 2 + 2 * i + 1
+              = 2 * G + 2 + (2 * N + 2 + (2 * a + 2 + (2 * k + 2 + 2 * i + 1)))
+              from by omega, ← jsT_zero N k]
+          exact liftJ3 _ _ _ _ hW hQ1 hQa (jsE_pad N k 0 _ (2 * k + 2 + 2 * i + 1)
+            (by omega) (by omega) (by omega) (by omega))
+        rw [e1, e2]
+      · rw [show 2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * k + 2 + 2 * i
+            = 2 * G + 4 * N + 2 * a + 8 + 2 * (i - (N - k)) from by omega,
+          show 2 * G + 4 * N + 2 * a + 8 + 2 * (i - (N - k)) + 1
+            = 2 * G + 4 * N + 2 * a + 8 + 2 * (i - (N - k)) + 1 from rfl]
+        exact preD4_data_eq (cntT G g) (cntT N (k + 1)) (cntT a a) (jT N k)
+          (OUT ++ List.replicate a true) (2 * G + 4 * N + 2 * a + 8) (i - (N - k)) hq4
+          (by rw [List.length_append, List.length_replicate]; omega))
+  rw [show 2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * k + 2 + 2 * ((N - k) + (OUT.length + a))
+      = 2 * G + 4 * N + 2 * a + 8 + 2 * (OUT.length + a) from by omega] at g10
+  have hm1 := preD4_mark_lo (cntT G g) (cntT N (k + 1)) (cntT a a) (jT N k)
+    (OUT ++ List.replicate a true) (2 * G + 4 * N + 2 * a + 8) hq4
+  have hm2 := preD4_mark_hi (cntT G g) (cntT N (k + 1)) (cntT a a) (jT N k)
+    (OUT ++ List.replicate a true) (2 * G + 4 * N + 2 * a + 8) hq4
+  rw [hlen2] at hm1 hm2
+  have g11 := q2_detectD2 (body := body) (idx := idx)
+    (s := storedD (cntT G g ++ (cntT N (k + 1) ++ (cntT a a
+      ++ (jT N k ++ encodeD (OUT ++ List.replicate a true)))))
+      (2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * k + 2) false ((N - k) + (OUT.length + a)))
+    (p := 2 * G + 4 * N + 2 * a + 8 + 2 * (OUT.length + a)) hm1 hm2
+  have hsn := writes_snoc4 (cntT G g) (cntT N (k + 1)) (cntT a a) (jT N k)
+    (OUT ++ List.replicate a true) (2 * G + 4 * N + 2 * a + 8) hq4 false
+  rw [hlen2, List.append_assoc,
+    show (List.replicate a true ++ [false] : List Bool) = encodeNat a from rfl] at hsn
+  have g12 := q2_four_FA (body := body) (idx := idx) (s := false)
+    (p := 2 * G + 4 * N + 2 * a + 8 + 2 * (OUT.length + a))
+    (T := cntT G g ++ (cntT N (k + 1)
+      ++ (cntT a a ++ (jT N k ++ encodeD (OUT ++ List.replicate a true)))))
+  rw [hsn] at g12
+  have g13 := q2_skipWhAs body (cntT G g ++ (cntT N (k + 1)
+      ++ (hlT a 0 ++ (jT N k ++ encodeD (OUT ++ encodeNat a))))) 0 G idx false
+    (fun i hi => by simpa using cntE_lo G g _ i hg hi)
+  simp only [Nat.zero_add] at g13
+  have g14 := q2_crossWhA (body := body) (idx := idx) (s := if G = 0 then false else true)
+    (p := 2 * G) (T := cntT G g ++ (cntT N (k + 1)
+      ++ (hlT a 0 ++ (jT N k ++ encodeD (OUT ++ encodeNat a)))))
+    (cntE_cm_lo G g _ hg) (cntE_cm_hi G g _ hg)
+  have g15 := q2_skipR1hAs body (cntT G g ++ (cntT N (k + 1)
+      ++ (hlT a 0 ++ (jT N k ++ encodeD (OUT ++ encodeNat a))))) (2 * G + 2) N idx false
+    (fun i hi => by
+      rw [show 2 * G + 2 + 2 * i = 2 * G + 2 + (2 * i) from rfl]
+      exact liftJ _ _ hW (cntE_lo N (k + 1) _ i (by omega) hi))
+  have g16 := q2_crossR1hA (body := body) (idx := idx) (s := if N = 0 then false else true)
+    (p := 2 * G + 2 + 2 * N) (T := cntT G g ++ (cntT N (k + 1)
+      ++ (hlT a 0 ++ (jT N k ++ encodeD (OUT ++ encodeNat a)))))
+    (by rw [show 2 * G + 2 + 2 * N = 2 * G + 2 + (2 * N) from rfl]
+        exact liftJ _ _ hW (cntE_cm_lo N (k + 1) _ (by omega)))
+    (by rw [show 2 * G + 2 + 2 * N + 1 = 2 * G + 2 + (2 * N + 1) from by omega]
+        exact liftJ _ _ hW (cntE_cm_hi N (k + 1) _ (by omega)))
+  have g17 := q2_healAs body (cntT G g) (cntT N (k + 1)) G N a
+    (jT N k ++ encodeD (OUT ++ encodeNat a)) hW hQ1 idx false a (le_refl a)
+  have g18 := q2_doneHealA (body := body) (idx := idx)
+    (s := if a = 0 then false else true) (p := 2 * G + 2 + 2 * N + 2 + 2 * a)
+    (T := cntT G g ++ (cntT N (k + 1)
+      ++ (hlT a a ++ (jT N k ++ encodeD (OUT ++ encodeNat a))))) (by omega)
+    (by rw [show 2 * G + 2 + 2 * N + 2 + 2 * a = 2 * G + 2 + (2 * N + 2 + 2 * a)
+          from by omega]
+        exact liftJ2 _ _ _ hW hQ1 (hlE_cm_lo a _))
+    (by rw [show 2 * G + 2 + 2 * N + 2 + 2 * a + 1 = 2 * G + 2 + (2 * N + 2 + (2 * a + 1))
+          from by omega]
+        exact liftJ2 _ _ _ hW hQ1 (hlE_cm_hi a _))
+  rw [show lp2paCost G N a OUT.length
+      = 1 + (lp3SpRounds (2 * G + 4 * N + 2 * a + 2 * OUT.length + 14) a
+          + (2 * G + (2 + (2 * N + (2 + (2 * a + (2 + (2 * k + (2
+            + (2 * ((N - k) + (OUT.length + a)) + (2 + (4 + (2 * G + (2 + (2 * N + (2
+            + (2 * a + 2)))))))))))))))))
+      from by simp only [lp2paCost]; omega,
+    run_add, g0, ← cntT_zero a, run_add, g1, run_add, g2, run_add, g3, run_add, g4,
+    run_add, g5, run_add, g6, run_add, g7, run_add, g8, run_add, g9, run_add, g10,
+    run_add, g11, run_add, g12, ← hlT_zero a, run_add, g13, run_add, g14, run_add, g15,
+    run_add, g16, run_add, g17, g18, hlT_last, cntT_zero a]
+
+end InstrA
+
+/-! ## The instruction segment, the round, and the loop -/
+
+def lp2pInstrCost (body : List LInstr) (G N a k L : ℕ) (n : ℕ) : ℕ :=
+  match body.getD n .spliceJ with
+  | .bit _ => 2 * G + 4 * N + 2 * a + 2 * (L + (prog2OutN body a k n).length) + 15
+  | .spliceA => lp2paCost G N a (L + (prog2OutN body a k n).length)
+  | .spliceJ => lp2pjCost G N a k (L + (prog2OutN body a k n).length)
+
+def lp2pSegN (body : List LInstr) (G N a k L : ℕ) : ℕ → ℕ
+  | 0 => 0
+  | n + 1 => lp2pSegN body G N a k L n + lp2pInstrCost body G N a k L n
+
+/-- **The segment invariant**, prefixed. -/
+theorem q2_run_instrs (body : List LInstr) (G g : ℕ) (hg : g ≤ G) (N a k : ℕ) (hk : k < N)
+    (out' : List Bool) (n : ℕ) (hn : n ≤ body.length) (s : Bool) :
+    run (loopProg2PMachine body) (lp2pSegN body G N a k out'.length n)
+      ⟨(4, ⟨0, Nat.succ_pos _⟩, s), 0, cntT G g ++ (cntT N (k + 1)
+        ++ (unaryD a ++ (jT N k ++ encodeD out')))⟩
+      = ⟨(4, ⟨n, by omega⟩, if n = 0 then s else false), 0,
+          cntT G g ++ (cntT N (k + 1) ++ (unaryD a
+            ++ (jT N k ++ encodeD (out' ++ prog2OutN body a k n))))⟩ := by
+  induction n with
+  | zero => simp only [lp2pSegN]; rw [run_zero]; simp [prog2OutN]
+  | succ n ih =>
+    rw [show lp2pSegN body G N a k out'.length (n + 1)
+        = lp2pSegN body G N a k out'.length n + lp2pInstrCost body G N a k out'.length n
+        from rfl,
+      run_add, ih (by omega)]
+    cases hp : body.getD n .spliceJ with
+    | bit b =>
+      have hin := q2_instr_bit body ⟨n, by omega⟩
+        (show n < body.length from by omega) hp hg N a k hk (out' ++ prog2OutN body a k n)
+        (if n = 0 then s else false)
+      rw [List.length_append, List.append_assoc,
+        show prog2OutN body a k n ++ [b] = prog2OutN body a k (n + 1) from by
+          simp only [prog2OutN, hp]; rfl] at hin
+      simp only [lp2pInstrCost, hp]
+      rw [hin]
+      simp
+    | spliceA =>
+      have hin := q2_instr_spliceA body ⟨n, by omega⟩
+        (show n < body.length from by omega) hp hg N a k hk (out' ++ prog2OutN body a k n)
+        (if n = 0 then s else false)
+      rw [List.length_append, List.append_assoc,
+        show prog2OutN body a k n ++ encodeNat a = prog2OutN body a k (n + 1) from by
+          simp only [prog2OutN, hp]; rfl] at hin
+      simp only [lp2pInstrCost, hp]
+      rw [hin]
+      simp
+    | spliceJ =>
+      have hin := q2_instr_spliceJ body ⟨n, by omega⟩
+        (show n < body.length from by omega) hp hg N a k hk (out' ++ prog2OutN body a k n)
+        (if n = 0 then s else false)
+      rw [List.length_append, List.append_assoc,
+        show prog2OutN body a k n ++ encodeNat k = prog2OutN body a k (n + 1) from by
+          simp only [prog2OutN, hp]; rfl] at hin
+      simp only [lp2pInstrCost, hp]
+      rw [hin]
+      simp
+
+def lp2pRoundCost (body : List LInstr) (G N a k L : ℕ) : ℕ :=
+  (2 * G + 2 * k + 4) + (lp2pSegN body G N a k L body.length
+    + (2 * G + 2 * N + 2 * a + 2 * k + 11))
+
+/-- **One loop round**, prefixed. -/
+theorem q2_round (body : List LInstr) (G g : ℕ) (hg : g ≤ G) (N a k : ℕ) (hk : k < N)
+    (out' : List Bool) (ptrIn : Fin (body.length + 1)) (s : Bool) :
+    run (loopProg2PMachine body) (lp2pRoundCost body G N a k out'.length)
+      ⟨(0, ptrIn, s), 0, cntT G g ++ (cntT N k ++ (unaryD a ++ (jT N k ++ encodeD out')))⟩
+      = ⟨(0, ⟨0, Nat.succ_pos _⟩, false), 0,
+          cntT G g ++ (cntT N (k + 1) ++ (unaryD a ++ (jT N (k + 1)
+            ++ encodeD (out' ++ prog2Out body a k))))⟩ := by
+  have hW : (cntT G g).length = 2 * G + 2 := cntT_length G g hg
+  have hQ1 : (cntT N (k + 1)).length = 2 * N + 2 := cntT_length N (k + 1) (by omega)
+  have hQa : (unaryD a).length = 2 * a + 2 := unaryD_length a
+  have r0 := q2_skipWfs body (cntT G g ++ (cntT N k ++ (unaryD a
+      ++ (jT N k ++ encodeD out')))) 0 G ptrIn s
+    (fun i hi => by simpa using cntE_lo G g _ i hg hi)
+  simp only [Nat.zero_add] at r0
+  have r0' := q2_crossWf (body := body) (idx := ptrIn) (s := if G = 0 then s else true)
+    (p := 2 * G) (T := cntT G g ++ (cntT N k ++ (unaryD a ++ (jT N k ++ encodeD out'))))
+    (cntE_cm_lo G g _ hg) (cntE_cm_hi G g _ hg)
+  have r1 := q2_skipBms body (cntT G g ++ (cntT N k ++ (unaryD a
+      ++ (jT N k ++ encodeD out')))) (2 * G + 2) k ptrIn false
+    (fun i hi => ⟨by
+      rw [show 2 * G + 2 + 2 * i = 2 * G + 2 + (2 * i) from rfl]
+      exact liftJ _ _ hW (cntE_mark_lo N k _ i hi), by
+      rw [show 2 * G + 2 + 2 * i + 1 = 2 * G + 2 + (2 * i + 1) from by omega]
+      exact liftJ _ _ hW (cntE_mark_hi N k _ i hi)⟩)
+  have r2 := q2_markB (body := body) (idx := ptrIn) (s := if k = 0 then false else true)
+    (p := 2 * G + 2 + 2 * k)
+    (T := cntT G g ++ (cntT N k ++ (unaryD a ++ (jT N k ++ encodeD out'))))
+    (by rw [show 2 * G + 2 + 2 * k = 2 * G + 2 + (2 * k) from rfl]
+        exact liftJ _ _ hW (cntE_data N k _ (2 * k) (by omega) (by omega) (by omega)))
+    (by rw [show 2 * G + 2 + 2 * k + 1 = 2 * G + 2 + (2 * k + 1) from by omega]
+        exact liftJ _ _ hW (cntE_data N k _ (2 * k + 1) (by omega) (by omega) (by omega)))
+  have hwm : writeAt (cntT G g ++ (cntT N k ++ (unaryD a ++ (jT N k ++ encodeD out'))))
+      (2 * G + 2 + 2 * k + 1) false
+      = cntT G g ++ (cntT N (k + 1) ++ (unaryD a ++ (jT N k ++ encodeD out'))) := by
+    rw [show 2 * G + 2 + 2 * k + 1 = 2 * G + 2 + (2 * k + 1) from by omega,
+      writeAt_append_right _ _ (2 * G + 2) (2 * k + 1) false hW
+        (by rw [List.length_append, cntT_length N k (by omega)]; omega),
+      cntT_mark N k _ hk]
+  rw [hwm] at r2
+  have r3 := q2_run_instrs body G g hg N a k hk out' body.length (le_refl _) true
+  have r4 := q2_dispatch_incr (body := body)
+    (idx := ⟨body.length, Nat.lt_succ_self _⟩)
+    (s := if body.length = 0 then true else false) (p := 0)
+    (T := cntT G g ++ (cntT N (k + 1) ++ (unaryD a
+      ++ (jT N k ++ encodeD (out' ++ prog2OutN body a k body.length)))))
+    (Nat.lt_irrefl _)
+  have r5 := q2_skipWis body (cntT G g ++ (cntT N (k + 1) ++ (unaryD a
+      ++ (jT N k ++ encodeD (out' ++ prog2OutN body a k body.length))))) 0 G
+    ⟨body.length, Nat.lt_succ_self _⟩ (if body.length = 0 then true else false)
+    (fun i hi => by simpa using cntE_lo G g _ i hg hi)
+  simp only [Nat.zero_add] at r5
+  have r6 := q2_crossWi (body := body) (idx := ⟨body.length, Nat.lt_succ_self _⟩)
+    (s := if G = 0 then (if body.length = 0 then true else false) else true) (p := 2 * G)
+    (T := cntT G g ++ (cntT N (k + 1) ++ (unaryD a
+      ++ (jT N k ++ encodeD (out' ++ prog2OutN body a k body.length)))))
+    (cntE_cm_lo G g _ hg) (cntE_cm_hi G g _ hg)
+  have r7 := q2_skipR1is body (cntT G g ++ (cntT N (k + 1) ++ (unaryD a
+      ++ (jT N k ++ encodeD (out' ++ prog2OutN body a k body.length))))) (2 * G + 2) N
+    ⟨body.length, Nat.lt_succ_self _⟩ false
+    (fun i hi => by
+      rw [show 2 * G + 2 + 2 * i = 2 * G + 2 + (2 * i) from rfl]
+      exact liftJ _ _ hW (cntE_lo N (k + 1) _ i (by omega) hi))
+  have r8 := q2_crossR1i (body := body) (idx := ⟨body.length, Nat.lt_succ_self _⟩)
+    (s := if N = 0 then false else true) (p := 2 * G + 2 + 2 * N)
+    (T := cntT G g ++ (cntT N (k + 1) ++ (unaryD a
+      ++ (jT N k ++ encodeD (out' ++ prog2OutN body a k body.length)))))
+    (by rw [show 2 * G + 2 + 2 * N = 2 * G + 2 + (2 * N) from rfl]
+        exact liftJ _ _ hW (cntE_cm_lo N (k + 1) _ (by omega)))
+    (by rw [show 2 * G + 2 + 2 * N + 1 = 2 * G + 2 + (2 * N + 1) from by omega]
+        exact liftJ _ _ hW (cntE_cm_hi N (k + 1) _ (by omega)))
+  have r9 := q2_skipR2is body (cntT G g ++ (cntT N (k + 1) ++ (unaryD a
+      ++ (jT N k ++ encodeD (out' ++ prog2OutN body a k body.length)))))
+    (2 * G + 2 + 2 * N + 2) a ⟨body.length, Nat.lt_succ_self _⟩ false
+    (fun i hi => by
+      rw [show 2 * G + 2 + 2 * N + 2 + 2 * i = 2 * G + 2 + (2 * N + 2 + 2 * i)
+          from by omega, ← cntT_zero a]
+      exact liftJ2 _ _ _ hW hQ1 (cntE_lo a 0 _ i (by omega) hi))
+  have r10 := q2_crossR2i (body := body) (idx := ⟨body.length, Nat.lt_succ_self _⟩)
+    (s := if a = 0 then false else true) (p := 2 * G + 2 + 2 * N + 2 + 2 * a)
+    (T := cntT G g ++ (cntT N (k + 1) ++ (unaryD a
+      ++ (jT N k ++ encodeD (out' ++ prog2OutN body a k body.length)))))
+    (by rw [show 2 * G + 2 + 2 * N + 2 + 2 * a = 2 * G + 2 + (2 * N + 2 + 2 * a)
+          from by omega, ← cntT_zero a]
+        exact liftJ2 _ _ _ hW hQ1 (cntE_cm_lo a 0 _ (by omega)))
+    (by rw [show 2 * G + 2 + 2 * N + 2 + 2 * a + 1 = 2 * G + 2 + (2 * N + 2 + (2 * a + 1))
+          from by omega, ← cntT_zero a]
+        exact liftJ2 _ _ _ hW hQ1 (cntE_cm_hi a 0 _ (by omega)))
+  have r11 := q2_walkIs body (cntT G g ++ (cntT N (k + 1) ++ (unaryD a
+      ++ (jT N k ++ encodeD (out' ++ prog2OutN body a k body.length)))))
+    (2 * G + 2 + 2 * N + 2 + 2 * a + 2) k ⟨body.length, Nat.lt_succ_self _⟩ false
+    (fun i hi => by
+      rw [show 2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * i
+          = 2 * G + 2 + (2 * N + 2 + (2 * a + 2 + 2 * i)) from by omega, ← jsT_zero N k]
+      exact liftJ3 _ _ _ _ hW hQ1 hQa
+        (jsE_data N k 0 _ (2 * i) (by omega) (by omega) (by omega)))
+  have r12 := q2_four_incr (body := body) (idx := ⟨body.length, Nat.lt_succ_self _⟩)
+    (s := if k = 0 then false else true)
+    (p := 2 * G + 2 + (2 * N + 2 + (2 * a + 2 + 2 * k)))
+    (T := cntT G g ++ (cntT N (k + 1) ++ (unaryD a
+      ++ (jT N k ++ encodeD (out' ++ prog2OutN body a k body.length)))))
+    (by rw [← jsT_zero N k]
+        exact liftJ3 _ _ _ _ hW hQ1 hQa (jsE_m_lo N k 0 _ (by omega)))
+  rw [W4_append_right3 (cntT G g) (cntT N (k + 1)) (unaryD a)
+      (jT N k ++ encodeD (out' ++ prog2OutN body a k body.length)) (2 * G + 2) (2 * N + 2)
+      (2 * a + 2) (2 * k) true true false true hW hQ1 hQa
+      (by rw [List.length_append, jT_length N k (by omega)]; omega),
+    jT_incr N k _ hk] at r12
+  rw [show lp2pRoundCost body G N a k out'.length
+      = 2 * G + (2 + (2 * k + (2 + (lp2pSegN body G N a k out'.length body.length + (1
+          + (2 * G + (2 + (2 * N + (2 + (2 * a + (2 + (2 * k + 4))))))))))))
+      from by simp only [lp2pRoundCost]; omega,
+    run_add, r0, run_add, r0', run_add, r1, run_add, r2, run_add, r3, run_add, r4,
+    run_add, r5, run_add, r6, run_add, r7, run_add, r8, run_add, r9, run_add, r10,
+    run_add, r11,
+    show 2 * G + 2 + 2 * N + 2 + 2 * a + 2 + 2 * k
+      = 2 * G + 2 + (2 * N + 2 + (2 * a + 2 + 2 * k)) from by omega,
+    r12, prog2Out]
+
+def lp2pClockN (body : List LInstr) (G N a Lout : ℕ) : ℕ → ℕ
+  | 0 => 0
+  | k + 1 => lp2pClockN body G N a Lout k
+      + lp2pRoundCost body G N a k (Lout + (loop2OutN body a k).length)
+
+/-- **The rounds invariant**, prefixed. -/
+theorem q2_run_rounds (body : List LInstr) (G g : ℕ) (hg : g ≤ G) (N a : ℕ)
+    (out : List Bool) (k : ℕ) (hk : k ≤ N) (s : Bool) :
+    run (loopProg2PMachine body) (lp2pClockN body G N a out.length k)
+      ⟨(0, ⟨0, Nat.succ_pos _⟩, s), 0, cntT G g ++ (cntT N 0
+        ++ (unaryD a ++ (jT N 0 ++ encodeD out)))⟩
+      = ⟨(0, ⟨0, Nat.succ_pos _⟩, if k = 0 then s else false), 0,
+          cntT G g ++ (cntT N k ++ (unaryD a
+            ++ (jT N k ++ encodeD (out ++ loop2OutN body a k))))⟩ := by
+  induction k with
+  | zero => simp only [lp2pClockN]; rw [run_zero]; simp [loop2OutN]
+  | succ k ih =>
+    have hrd := q2_round body G g hg N a k (by omega) (out ++ loop2OutN body a k)
+      ⟨0, Nat.succ_pos _⟩ (if k = 0 then s else false)
+    rw [List.length_append, List.append_assoc,
+      show loop2OutN body a k ++ prog2Out body a k = loop2OutN body a (k + 1)
+        from rfl] at hrd
+    rw [show lp2pClockN body G N a out.length (k + 1)
+        = lp2pClockN body G N a out.length k
+            + lp2pRoundCost body G N a k (out.length + (loop2OutN body a k).length)
+        from rfl,
+      run_add, ih (by omega), hrd, if_neg (by omega)]
+
+def lp2pClock (body : List LInstr) (G N a Lout : ℕ) : ℕ :=
+  lp2pClockN body G N a Lout N
+    + (2 * G + (2 + (2 * N + (2 + (2 * G + (2 + (2 * N + 2)))))))
+
+/-- **THE PREFIXED TWO-SOURCE LOOP ENGINE RUNS TO COMPLETION** — the prefix preserved verbatim, the
+`rep_run` hypothesis shape. -/
+theorem loopProg2P_run (body : List LInstr) (G g : ℕ) (hg : g ≤ G) (N a : ℕ)
+    (out : List Bool) :
+    run (loopProg2PMachine body) (lp2pClock body G N a out.length)
+      (init (loopProg2PMachine body)
+        (cntT G g ++ (unaryD N ++ (unaryD a ++ (jT N 0 ++ encodeD out)))))
+      = ⟨(94, ⟨0, Nat.succ_pos _⟩, false), 2 * G + 2 + 2 * N + 1,
+          cntT G g ++ (unaryD N ++ (unaryD a
+            ++ (unaryD N ++ encodeD (out ++ loop2Out body a N))))⟩ := by
+  have hW : (cntT G g).length = 2 * G + 2 := cntT_length G g hg
+  rw [init_lp2p]
+  rw [show (cntT G g ++ (unaryD N ++ (unaryD a ++ (jT N 0 ++ encodeD out))) : List Bool)
+      = cntT G g ++ (cntT N 0 ++ (unaryD a ++ (jT N 0 ++ encodeD out))) from by
+    rw [cntT_zero]]
+  simp only [lp2pClock]
+  have f0 := q2_skipWfs body (cntT G g ++ (cntT N N ++ (unaryD a
+      ++ (jT N N ++ encodeD (out ++ loop2OutN body a N))))) 0 G ⟨0, Nat.succ_pos _⟩ false
+    (fun i hi => by simpa using cntE_lo G g _ i hg hi)
+  simp only [Nat.zero_add] at f0
+  have f0' := q2_crossWf (body := body) (idx := ⟨0, Nat.succ_pos _⟩)
+    (s := if G = 0 then false else true) (p := 2 * G)
+    (T := cntT G g ++ (cntT N N ++ (unaryD a
+      ++ (jT N N ++ encodeD (out ++ loop2OutN body a N)))))
+    (cntE_cm_lo G g _ hg) (cntE_cm_hi G g _ hg)
+  have f1 := q2_skipBms body (cntT G g ++ (cntT N N ++ (unaryD a
+      ++ (jT N N ++ encodeD (out ++ loop2OutN body a N))))) (2 * G + 2) N
+    ⟨0, Nat.succ_pos _⟩ false
+    (fun i hi => ⟨by
+      rw [show 2 * G + 2 + 2 * i = 2 * G + 2 + (2 * i) from rfl]
+      exact liftJ _ _ hW (cntE_mark_lo N N _ i hi), by
+      rw [show 2 * G + 2 + 2 * i + 1 = 2 * G + 2 + (2 * i + 1) from by omega]
+      exact liftJ _ _ hW (cntE_mark_hi N N _ i hi)⟩)
+  have f2 := q2_doneB (body := body) (idx := ⟨0, Nat.succ_pos _⟩)
+    (s := if N = 0 then false else true) (p := 2 * G + 2 + 2 * N)
+    (T := cntT G g ++ (cntT N N ++ (unaryD a
+      ++ (jT N N ++ encodeD (out ++ loop2OutN body a N)))))
+    (by rw [show 2 * G + 2 + 2 * N = 2 * G + 2 + (2 * N) from rfl]
+        exact liftJ _ _ hW (cntE_cm_lo N N _ (le_refl N)))
+    (by rw [show 2 * G + 2 + 2 * N + 1 = 2 * G + 2 + (2 * N + 1) from by omega]
+        exact liftJ _ _ hW (cntE_cm_hi N N _ (le_refl N)))
+  have f3 := q2_skipWfins body (cntT G g ++ (hlT N 0 ++ (unaryD a
+      ++ (jT N N ++ encodeD (out ++ loop2OutN body a N))))) 0 G ⟨0, Nat.succ_pos _⟩ false
+    (fun i hi => by simpa using cntE_lo G g _ i hg hi)
+  simp only [Nat.zero_add] at f3
+  have f3' := q2_crossWfin (body := body) (idx := ⟨0, Nat.succ_pos _⟩)
+    (s := if G = 0 then false else true) (p := 2 * G)
+    (T := cntT G g ++ (hlT N 0 ++ (unaryD a
+      ++ (jT N N ++ encodeD (out ++ loop2OutN body a N)))))
+    (cntE_cm_lo G g _ hg) (cntE_cm_hi G g _ hg)
+  have f4 := q2_healBs body (cntT G g) G N
+    (unaryD a ++ (jT N N ++ encodeD (out ++ loop2OutN body a N))) hW
+    ⟨0, Nat.succ_pos _⟩ false N (le_refl N)
+  have f5 := q2_doneFin (body := body) (idx := ⟨0, Nat.succ_pos _⟩)
+    (s := if N = 0 then false else true) (p := 2 * G + 2 + 2 * N)
+    (T := cntT G g ++ (hlT N N ++ (unaryD a
+      ++ (jT N N ++ encodeD (out ++ loop2OutN body a N)))))
+    (by rw [show 2 * G + 2 + 2 * N = 2 * G + 2 + (2 * N) from rfl]
+        exact liftJ _ _ hW (hlE_cm_lo N _))
+    (by rw [show 2 * G + 2 + 2 * N + 1 = 2 * G + 2 + (2 * N + 1) from by omega]
+        exact liftJ _ _ hW (hlE_cm_hi N _))
+  rw [run_add, q2_run_rounds body G g hg N a out N (le_refl N) false, ite_self,
+    run_add, f0, run_add, f0', run_add, f1, run_add, f2, ← hlT_zero, run_add, f3,
+    run_add, f3', run_add, f4, f5, hlT_last, jT_full,
+    show loop2Out body a N = loop2OutN body a N from rfl]
+
+/-- The machine **halts by itself** at its clock. -/
+theorem loopProg2P_halted (body : List LInstr) (G g : ℕ) (hg : g ≤ G) (N a : ℕ)
+    (out : List Bool) :
+    (loopProg2PMachine body).halt
+      (run (loopProg2PMachine body) (lp2pClock body G N a out.length)
+        (init (loopProg2PMachine body)
+          (cntT G g ++ (unaryD N ++ (unaryD a ++ (jT N 0 ++ encodeD out)))))).st = true := by
+  rw [loopProg2P_run body G g hg N a out]; rfl
+
+/-! ## Polynomial clock bounds -/
+
+/-- The per-instruction cap. -/
+def lp2pCap (G N a LM : ℕ) : ℕ :=
+  N * (2 * G + 4 * N + 2 * a + 2 * LM + 14 + 2 * N)
+    + a * (2 * G + 4 * N + 2 * a + 2 * LM + 14 + 2 * a)
+    + (2 * G + 4 * N + 2 * a + 2 * LM + 2 * N + 14) + (2 * G + 2 * N + 2 * a + 2 * N + 8)
+    + (2 * G + 4 * N + 4 * a + 2 * LM + 14) + (2 * G + 2 * N + 2 * a + 6)
+    + (2 * G + 4 * N + 2 * a + 2 * LM + 15) + 2
+
+theorem lp2pInstrCost_le (body : List LInstr) (G N a k L n LM : ℕ) (hk : k < N)
+    (hn : n ≤ body.length) (hL : L + body.length * (a + N + 1) ≤ LM) :
+    lp2pInstrCost body G N a k L n ≤ lp2pCap G N a LM := by
+  have hlen : (prog2OutN body a k n).length ≤ body.length * (a + N + 1) :=
+    le_trans (prog2OutN_length_le body a k n) (Nat.mul_le_mul hn (by omega))
+  cases hp : body.getD n .spliceJ with
+  | bit b =>
+    simp only [lp2pInstrCost, hp, lp2pCap]
+    omega
+  | spliceA =>
+    have h1 := lp3SpRounds_le (2 * G + 4 * N + 2 * a
+        + 2 * (L + (prog2OutN body a k n).length) + 14)
+      (2 * G + 4 * N + 2 * a + 2 * LM + 14) a a (by omega) (le_refl a)
+    simp only [lp2pInstrCost, hp, lp2paCost, lp2pCap]
+    omega
+  | spliceJ =>
+    have h1 := lp3SpRounds_le (2 * G + 4 * N + 2 * a
+        + 2 * (L + (prog2OutN body a k n).length) + 14)
+      (2 * G + 4 * N + 2 * a + 2 * LM + 14) k N (by omega) (by omega)
+    have h2 : k * (2 * G + 4 * N + 2 * a + 2 * LM + 14 + 2 * N)
+        ≤ N * (2 * G + 4 * N + 2 * a + 2 * LM + 14 + 2 * N) :=
+      Nat.mul_le_mul_right _ (by omega)
+    simp only [lp2pInstrCost, hp, lp2pjCost, lp2pCap]
+    omega
+
+theorem lp2pSegN_le (body : List LInstr) (G N a k L n LM : ℕ) (hk : k < N)
+    (hn : n ≤ body.length) (hL : L + body.length * (a + N + 1) ≤ LM) :
+    lp2pSegN body G N a k L n ≤ n * lp2pCap G N a LM := by
+  induction n with
+  | zero => simp [lp2pSegN]
+  | succ n ih =>
+    calc lp2pSegN body G N a k L (n + 1)
+        = lp2pSegN body G N a k L n + lp2pInstrCost body G N a k L n := rfl
+      _ ≤ n * lp2pCap G N a LM + lp2pCap G N a LM :=
+          Nat.add_le_add (ih (by omega))
+            (lp2pInstrCost_le body G N a k L n LM hk (by omega) hL)
+      _ = (n + 1) * lp2pCap G N a LM := by ring
+
+theorem lp2pRoundCost_le (body : List LInstr) (G N a k L LM : ℕ) (hk : k < N)
+    (hL : L + body.length * (a + N + 1) ≤ LM) :
+    lp2pRoundCost body G N a k L
+      ≤ body.length * lp2pCap G N a LM + (4 * G + 2 * N + 2 * a + 4 * N + 15) := by
+  have h := lp2pSegN_le body G N a k L body.length LM hk (le_refl _) hL
+  simp only [lp2pRoundCost]
+  omega
+
+/-- **The prefixed loop clock is polynomial.** -/
+theorem lp2pClock_le (body : List LInstr) (G N a Lout : ℕ) :
+    lp2pClock body G N a Lout
+      ≤ N * (body.length * lp2pCap G N a (Lout + N * (body.length * (a + N + 1))
+            + body.length * (a + N + 1)) + (4 * G + 2 * N + 2 * a + 4 * N + 15))
+        + (4 * G + 4 * N + 8) := by
+  have hrounds : ∀ k, k ≤ N → lp2pClockN body G N a Lout k
+      ≤ k * (body.length * lp2pCap G N a (Lout + N * (body.length * (a + N + 1))
+            + body.length * (a + N + 1)) + (4 * G + 2 * N + 2 * a + 4 * N + 15)) := by
+    intro k hk
+    induction k with
+    | zero => simp [lp2pClockN]
+    | succ k ih =>
+      have hLk : (Lout + (loop2OutN body a k).length) + body.length * (a + N + 1)
+          ≤ Lout + N * (body.length * (a + N + 1)) + body.length * (a + N + 1) := by
+        have h1 : (loop2OutN body a k).length ≤ k * (body.length * (a + N + 1)) :=
+          loop2OutN_length_le body N a k (by omega)
+        have h2 : k * (body.length * (a + N + 1)) ≤ N * (body.length * (a + N + 1)) :=
+          Nat.mul_le_mul_right _ (by omega)
+        omega
+      calc lp2pClockN body G N a Lout (k + 1)
+          = lp2pClockN body G N a Lout k
+              + lp2pRoundCost body G N a k (Lout + (loop2OutN body a k).length) := rfl
+        _ ≤ k * (body.length * lp2pCap G N a (Lout + N * (body.length * (a + N + 1))
+                + body.length * (a + N + 1)) + (4 * G + 2 * N + 2 * a + 4 * N + 15))
+            + (body.length * lp2pCap G N a (Lout + N * (body.length * (a + N + 1))
+                + body.length * (a + N + 1)) + (4 * G + 2 * N + 2 * a + 4 * N + 15)) :=
+            Nat.add_le_add (ih (by omega))
+              (lp2pRoundCost_le body G N a k (Lout + (loop2OutN body a k).length) _
+                (by omega) hLk)
+        _ = (k + 1) * (body.length * lp2pCap G N a (Lout + N * (body.length * (a + N + 1))
+                + body.length * (a + N + 1)) + (4 * G + 2 * N + 2 * a + 4 * N + 15)) := by
+            ring
+  have h := hrounds N (le_refl N)
+  simp only [lp2pClock]
+  omega
+
+/-! ## THE PREFIXED FAMILY DEMONSTRATION -/
+
+/-- **The tape-copy family under the grand bound**: the prefixed engine emits the whole family at
+time `t` — every clause of every `cellCopyClause t p`, `p = 0..P` — with the grand prefix preserved
+verbatim.  This is the exact per-round shape `rep_run` consumes for the grand `t`-loop. -/
+theorem cellCopyP_family_run (G g : ℕ) (hg : g ≤ G) (t P : ℕ) (out : List Bool) :
+    run (loopProg2PMachine cellCopyBody) (lp2pClock cellCopyBody G (P + 1) t out.length)
+      (init (loopProg2PMachine cellCopyBody)
+        (cntT G g ++ (unaryD (P + 1) ++ (unaryD t ++ (jT (P + 1) 0 ++ encodeD out)))))
+      = ⟨(94, ⟨0, Nat.succ_pos _⟩, false), 2 * G + 2 + 2 * (P + 1) + 1,
+          cntT G g ++ (unaryD (P + 1) ++ (unaryD t ++ (unaryD (P + 1) ++ encodeD (out
+            ++ ((List.range (P + 1)).map (fun p =>
+                encodeClause' [(headVar t p, true), (cellVar (t + 1) p, false),
+                  (cellVar t p, true)]
+                  ++ encodeClause' [(headVar t p, true), (cellVar (t + 1) p, true),
+                       (cellVar t p, false)])).flatten))))⟩ := by
+  have h := loopProg2P_run cellCopyBody G g hg (P + 1) t out
+  rwa [cellCopy_split] at h
+
 end PallLean.Paper93.DeepMath.PathB.CookLevinEmitLoopProg2P
