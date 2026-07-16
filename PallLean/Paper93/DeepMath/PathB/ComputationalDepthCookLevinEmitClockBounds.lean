@@ -199,17 +199,18 @@ theorem pairTRoundCost_le (body : List L3Instr) (G1 G2 CB C1 C2 NV t1 t2 k L : �
 /-! ## The pass clock -/
 
 /-- The uniform per-round bound with all rounds' output budgets majorised by `LM`. -/
-theorem pairTClockN_le (body : List L3Instr) (G1 G2 CB C1 C2 NV t1 t2 Lout LM : ℕ)
-    (hL : ∀ k, Lout + (loop3OutN body t1 t2 k).length ≤ LM) : ∀ j,
+theorem pairTClockN_le (body : List L3Instr) (G1 G2 CB C1 C2 NV t1 t2 Lout LM : ℕ) : ∀ j,
+    (∀ k, k < j → Lout + (loop3OutN body t1 t2 k).length ≤ LM) →
     pairTClockN body G1 G2 CB C1 C2 NV t1 t2 Lout j
       ≤ j * ((body.length + 1) * ((t1 + t2 + j + 2)
           * (2 * (G1 + G2 + CB + C1 + C2 + NV)
             + 2 * (LM + body.length * (t1 + t2 + j + 1)) + 2 * (t1 + t2 + j) + 26))
         + (4 * (G1 + G2 + CB + C1 + C2) + 4 * j + 27))
-  | 0 => by simp [pairTClockN]
-  | j + 1 => by
+  | 0, _ => by simp [pairTClockN]
+  | j + 1, hL => by
     rw [pairTClockN]
-    have h1 := pairTClockN_le body G1 G2 CB C1 C2 NV t1 t2 Lout LM hL j
+    have h1 := pairTClockN_le body G1 G2 CB C1 C2 NV t1 t2 Lout LM j
+      (fun k hk => hL k (by omega))
     have h2 := pairTRoundCost_le body G1 G2 CB C1 C2 NV t1 t2 j
       (Lout + (loop3OutN body t1 t2 j).length)
     -- monotonicity of the per-round bound in (k := j ↦ j + 1) and (L ↦ LM)
@@ -223,7 +224,7 @@ theorem pairTClockN_le (body : List L3Instr) (G1 G2 CB C1 C2 NV t1 t2 Lout LM : 
             + 2 * (LM + body.length * (t1 + t2 + (j + 1) + 1))
             + 2 * (t1 + t2 + (j + 1)) + 26))
         + (4 * (G1 + G2 + CB + C1 + C2) + 4 * (j + 1) + 27) := by
-      have hLj := hL j
+      have hLj := hL j (by omega)
       have hin : (t1 + t2 + j + 2) * (2 * (G1 + G2 + CB + C1 + C2 + NV)
           + 2 * ((Lout + (loop3OutN body t1 t2 j).length)
               + body.length * (t1 + t2 + j + 1)) + 2 * (t1 + t2 + j) + 26)
@@ -277,7 +278,7 @@ theorem pairTClockN_le (body : List L3Instr) (G1 G2 CB C1 C2 NV t1 t2 Lout LM : 
 
 /-- **The full pass clock bound**: with all output budgets `≤ LM`. -/
 theorem pairTClock_le (body : List L3Instr) (G1 G2 CB C1 C2 NV t1 t2 j Lout LM : ℕ)
-    (hL : ∀ k, Lout + (loop3OutN body t1 t2 k).length ≤ LM) :
+    (hL : ∀ k, k < j → Lout + (loop3OutN body t1 t2 k).length ≤ LM) :
     pairTClock body G1 G2 CB C1 C2 NV t1 t2 j Lout
       ≤ j * ((body.length + 1) * ((t1 + t2 + j + 2)
           * (2 * (G1 + G2 + CB + C1 + C2 + NV)
@@ -285,7 +286,7 @@ theorem pairTClock_le (body : List L3Instr) (G1 G2 CB C1 C2 NV t1 t2 j Lout LM :
         + (4 * (G1 + G2 + CB + C1 + C2) + 4 * j + 27))
         + (4 * G1 + 4 * G2 + 4 * j + 12) := by
   rw [pairTClock]
-  have h1 := pairTClockN_le body G1 G2 CB C1 C2 NV t1 t2 Lout LM hL j
+  have h1 := pairTClockN_le body G1 G2 CB C1 C2 NV t1 t2 Lout LM j hL
   omega
 
 /-! ## The grand and row round sums -/
