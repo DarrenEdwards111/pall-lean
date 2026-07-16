@@ -11,9 +11,11 @@ runs under TWO loop counters: the grand round and the row loop) and fifteen pad-
 layout pads the bound, both sources, and the live variable; see `TRIANGLE_PLAN.md`).  The
 boundary-event scans absorb padding as equal pairs, so the bit track and every splice seek keep
 their phases; the loop find and the finale heal are content-blind on the padded bound.  This file
-lands the machine, its full step layer, the six-region lift layer, the `jhT` heal walks, and the
+lands the machine, its full step layer, the six-region lift layer, the `jhT` heal walks, the
 four instruction lemmas (`qp_instr_bit`, `qp_instr_spAo`, `qp_instr_spCo`, `qp_instr_spJo`) with
-their `j`-independent clocks; the segment, the round, and the triangle composite follow in the
+their `j`-independent clocks, the segment invariant (`qp_run_instrs`), and the loop round
+(`qp_round`: find-mark on the padded bound, the body, the in-place increment across the three
+pads); the rounds invariant, the loop completion, and the triangle composite follow in the
 continuation bricks.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
 
@@ -6306,5 +6308,422 @@ theorem qp_instr_spJo (body : List L3Instr) (idx : Fin (body.length + 1))
     jsT_zero NV k]
 
 end InstrJ2
+
+/-! ## The instruction segment and the round -/
+
+/-- The per-instruction clock on the padded layout (`prog3OutN` reused with the source
+mirror values and the live value). -/
+def pairTInstrCost (body : List L3Instr) (G1 G2 CB C1 C2 NV t1 t2 k L : ℕ) (n : ℕ) : ℕ :=
+  match body.getD n .spJo with
+  | .bit _ => 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV
+      + 2 * (L + (prog3OutN body t1 t2 k n).length) + 19
+  | .spAo => pairTaCost G1 G2 CB C1 C2 NV t1 (L + (prog3OutN body t1 t2 k n).length)
+  | .spCo => pairTcCost G1 G2 CB C1 C2 NV t2 (L + (prog3OutN body t1 t2 k n).length)
+  | .spJo => pairTjCost G1 G2 CB C1 C2 NV k (L + (prog3OutN body t1 t2 k n).length)
+
+def pairTSegN (body : List L3Instr) (G1 G2 CB C1 C2 NV t1 t2 k L : ℕ) : ℕ → ℕ
+  | 0 => 0
+  | n + 1 => pairTSegN body G1 G2 CB C1 C2 NV t1 t2 k L n
+      + pairTInstrCost body G1 G2 CB C1 C2 NV t1 t2 k L n
+
+/-- **The segment invariant** on the padded layout. -/
+theorem qp_run_instrs (body : List L3Instr) (G1 g1 : ℕ) (hg1 : g1 ≤ G1) (G2 g2 : ℕ)
+    (hg2 : g2 ≤ G2) (CB C1 C2 NV j t1 t2 k : ℕ) (hj : j ≤ CB) (ht1 : t1 ≤ C1)
+    (ht2 : t2 ≤ C2) (hk : k < j) (hkV : k ≤ NV) (out' : List Bool) (n : ℕ)
+    (hn : n ≤ body.length) (s : Bool) :
+    run (pairTMachine body) (pairTSegN body G1 G2 CB C1 C2 NV t1 t2 k out'.length n)
+      ⟨(2, ⟨0, Nat.succ_pos _⟩, s), 0, cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1)
+        ++ (jT C1 t1 ++ (jT C2 t2 ++ (jT NV k ++ encodeD out')))))⟩
+      = ⟨(2, ⟨n, by omega⟩, if n = 0 then s else false), 0,
+          cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1 ++ (jT C2 t2
+            ++ (jT NV k ++ encodeD (out' ++ prog3OutN body t1 t2 k n))))))⟩ := by
+  induction n with
+  | zero => simp only [pairTSegN]; rw [run_zero]; simp [prog3OutN]
+  | succ n ih =>
+    rw [show pairTSegN body G1 G2 CB C1 C2 NV t1 t2 k out'.length (n + 1)
+        = pairTSegN body G1 G2 CB C1 C2 NV t1 t2 k out'.length n
+            + pairTInstrCost body G1 G2 CB C1 C2 NV t1 t2 k out'.length n from rfl,
+      run_add, ih (by omega)]
+    cases hp : body.getD n .spJo with
+    | bit b =>
+      have hin := qp_instr_bit body ⟨n, by omega⟩
+        (show n < body.length from by omega) hp hg1 hg2 CB C1 C2 NV j t1 t2 k hj ht1 ht2
+        hk hkV (out' ++ prog3OutN body t1 t2 k n) (if n = 0 then s else false)
+      rw [List.length_append, List.append_assoc,
+        show prog3OutN body t1 t2 k n ++ [b] = prog3OutN body t1 t2 k (n + 1) from by
+          simp only [prog3OutN, hp]; rfl] at hin
+      simp only [pairTInstrCost, hp]
+      rw [hin]
+      simp
+    | spAo =>
+      have hin := qp_instr_spAo body ⟨n, by omega⟩
+        (show n < body.length from by omega) hp hg1 hg2 CB C1 C2 NV j t1 t2 k hj ht1 ht2
+        hk hkV (out' ++ prog3OutN body t1 t2 k n) (if n = 0 then s else false)
+      rw [List.length_append, List.append_assoc,
+        show prog3OutN body t1 t2 k n ++ List.replicate t1 true
+            = prog3OutN body t1 t2 k (n + 1) from by simp only [prog3OutN, hp]; rfl] at hin
+      simp only [pairTInstrCost, hp]
+      rw [hin]
+      simp
+    | spCo =>
+      have hin := qp_instr_spCo body ⟨n, by omega⟩
+        (show n < body.length from by omega) hp hg1 hg2 CB C1 C2 NV j t1 t2 k hj ht1 ht2
+        hk hkV (out' ++ prog3OutN body t1 t2 k n) (if n = 0 then s else false)
+      rw [List.length_append, List.append_assoc,
+        show prog3OutN body t1 t2 k n ++ List.replicate t2 true
+            = prog3OutN body t1 t2 k (n + 1) from by simp only [prog3OutN, hp]; rfl] at hin
+      simp only [pairTInstrCost, hp]
+      rw [hin]
+      simp
+    | spJo =>
+      have hin := qp_instr_spJo body ⟨n, by omega⟩
+        (show n < body.length from by omega) hp hg1 hg2 CB C1 C2 NV j t1 t2 k hj ht1 ht2
+        hk hkV (out' ++ prog3OutN body t1 t2 k n) (if n = 0 then s else false)
+      rw [List.length_append, List.append_assoc,
+        show prog3OutN body t1 t2 k n ++ List.replicate k true
+            = prog3OutN body t1 t2 k (n + 1) from by simp only [prog3OutN, hp]; rfl] at hin
+      simp only [pairTInstrCost, hp]
+      rw [hin]
+      simp
+
+/-- The round clock: the doubly-prefixed loop find plus the segment plus the doubly-prefixed
+increment pass with its three pad-crossings; `j`-independent. -/
+def pairTRoundCost (body : List L3Instr) (G1 G2 CB C1 C2 NV t1 t2 k L : ℕ) : ℕ :=
+  (2 * G1 + 2 * G2 + 2 * k + 6) + (pairTSegN body G1 G2 CB C1 C2 NV t1 t2 k L body.length
+    + (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * k + 21))
+
+/-- **One loop round** on the padded layout: find-mark the padded bound's pair `k`, run the
+body, increment the live variable in place across the three pads. -/
+theorem qp_round (body : List L3Instr) (G1 g1 : ℕ) (hg1 : g1 ≤ G1) (G2 g2 : ℕ)
+    (hg2 : g2 ≤ G2) (CB C1 C2 NV j t1 t2 k : ℕ) (hj : j ≤ CB) (ht1 : t1 ≤ C1)
+    (ht2 : t2 ≤ C2) (hk : k < j) (hkV : k < NV) (out' : List Bool)
+    (ptrIn : Fin (body.length + 1)) (s : Bool) :
+    run (pairTMachine body) (pairTRoundCost body G1 G2 CB C1 C2 NV t1 t2 k out'.length)
+      ⟨(97, ptrIn, s), 0, cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j k
+        ++ (jT C1 t1 ++ (jT C2 t2 ++ (jT NV k ++ encodeD out')))))⟩
+      = ⟨(97, ⟨0, Nat.succ_pos _⟩, false), 0,
+          cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1 ++ (jT C2 t2
+            ++ (jT NV (k + 1) ++ encodeD (out' ++ prog3Out body t1 t2 k))))))⟩ := by
+  have hW1 : (cntT G1 g1).length = 2 * G1 + 2 := cntT_length G1 g1 hg1
+  have hW2 : (cntT G2 g2).length = 2 * G2 + 2 := cntT_length G2 g2 hg2
+  have hB : (jsT CB j (k + 1)).length = 2 * CB + 2 := jsT_length CB j (k + 1) (by omega) hj
+  have hS1 : (jT C1 t1).length = 2 * C1 + 2 := jT_length C1 t1 ht1
+  have hS2 : (jT C2 t2).length = 2 * C2 + 2 := jT_length C2 t2 ht2
+  have r0a := qp_skipWfs body (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j k ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD out')))))) 0 G1 ptrIn s
+    (fun i hi => by simpa using cntE_lo G1 g1 _ i hg1 hi)
+  simp only [Nat.zero_add] at r0a
+  have r0b := qp_crossWf (body := body) (idx := ptrIn) (s := if G1 = 0 then s else true)
+    (p := 2 * G1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j k ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD out'))))))
+    (cntE_cm_lo G1 g1 _ hg1) (cntE_cm_hi G1 g1 _ hg1)
+  have r0c := qp_skipW2fs body (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j k ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD out')))))) (2 * G1 + 2) G2 ptrIn false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * i = 2 * G1 + 2 + (2 * i) from rfl]
+      exact liftJ _ _ hW1 (cntE_lo G2 g2 _ i hg2 hi))
+  have r0d := qp_crossW2f (body := body) (idx := ptrIn)
+    (s := if G2 = 0 then false else true) (p := 2 * G1 + 2 + 2 * G2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j k ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD out'))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 = 2 * G1 + 2 + (2 * G2) from rfl]
+        exact liftJ _ _ hW1 (cntE_cm_lo G2 g2 _ hg2))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 1 = 2 * G1 + 2 + (2 * G2 + 1) from by omega]
+        exact liftJ _ _ hW1 (cntE_cm_hi G2 g2 _ hg2))
+  have r1 := qp_skipBs body (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j k ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD out')))))) (2 * G1 + 2 + 2 * G2 + 2) k ptrIn
+    false
+    (fun i hi => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * i = 2 * G1 + 2 + (2 * G2 + 2 + 2 * i)
+          from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_mark_lo CB j k _ i hi), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * i + 1)) from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_mark_hi CB j k _ i hi)⟩)
+  have r2 := qp_markB (body := body) (idx := ptrIn) (s := if k = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * k)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j k ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD out'))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * k = 2 * G1 + 2 + (2 * G2 + 2 + 2 * k)
+          from by omega]
+        exact liftJ2 _ _ _ hW1 hW2
+          (jsE_data CB j k _ (2 * k) (by omega) (by omega) (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * k + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * k + 1)) from by omega]
+        exact liftJ2 _ _ _ hW1 hW2
+          (jsE_data CB j k _ (2 * k + 1) (by omega) (by omega) (by omega)))
+  have hwm : writeAt (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j k ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD out'))))))
+      (2 * G1 + 2 + 2 * G2 + 2 + 2 * k + 1) false
+      = cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+          ++ (jT C2 t2 ++ (jT NV k ++ encodeD out'))))) := by
+    rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * k + 1
+        = 2 * G1 + 2 + (2 * G2 + 2 + (2 * k + 1)) from by omega,
+      writeAt_append_right2 (cntT G1 g1) (cntT G2 g2) _ (2 * G1 + 2) (2 * G2 + 2)
+        (2 * k + 1) false hW1 hW2
+        (by rw [List.length_append, jsT_length CB j k (by omega) hj]; omega),
+      jsT_mark CB j k _ hk hj]
+  rw [hwm] at r2
+  have r3 := qp_run_instrs body G1 g1 hg1 G2 g2 hg2 CB C1 C2 NV j t1 t2 k hj ht1 ht2 hk
+    (by omega) out' body.length (le_refl _) true
+  have r4 := qp_dispatch_incr (body := body)
+    (idx := ⟨body.length, Nat.lt_succ_self _⟩)
+    (s := if body.length = 0 then true else false) (p := 0)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1 ++ (jT C2 t2
+      ++ (jT NV k ++ encodeD (out' ++ prog3OutN body t1 t2 k body.length)))))))
+    (Nat.lt_irrefl _)
+  have r4a := qp_skipWis body (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1)
+      ++ (jT C1 t1 ++ (jT C2 t2 ++ (jT NV k
+        ++ encodeD (out' ++ prog3OutN body t1 t2 k body.length))))))) 0 G1
+    ⟨body.length, Nat.lt_succ_self _⟩ (if body.length = 0 then true else false)
+    (fun i hi => by simpa using cntE_lo G1 g1 _ i hg1 hi)
+  simp only [Nat.zero_add] at r4a
+  have r4b := qp_crossWi (body := body) (idx := ⟨body.length, Nat.lt_succ_self _⟩)
+    (s := if G1 = 0 then (if body.length = 0 then true else false) else true)
+    (p := 2 * G1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1 ++ (jT C2 t2
+      ++ (jT NV k ++ encodeD (out' ++ prog3OutN body t1 t2 k body.length)))))))
+    (cntE_cm_lo G1 g1 _ hg1) (cntE_cm_hi G1 g1 _ hg1)
+  have r4c := qp_skipW2is body (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1)
+      ++ (jT C1 t1 ++ (jT C2 t2 ++ (jT NV k
+        ++ encodeD (out' ++ prog3OutN body t1 t2 k body.length))))))) (2 * G1 + 2) G2
+    ⟨body.length, Nat.lt_succ_self _⟩ false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * i = 2 * G1 + 2 + (2 * i) from rfl]
+      exact liftJ _ _ hW1 (cntE_lo G2 g2 _ i hg2 hi))
+  have r4d := qp_crossW2i (body := body) (idx := ⟨body.length, Nat.lt_succ_self _⟩)
+    (s := if G2 = 0 then false else true) (p := 2 * G1 + 2 + 2 * G2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1 ++ (jT C2 t2
+      ++ (jT NV k ++ encodeD (out' ++ prog3OutN body t1 t2 k body.length)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 = 2 * G1 + 2 + (2 * G2) from rfl]
+        exact liftJ _ _ hW1 (cntE_cm_lo G2 g2 _ hg2))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 1 = 2 * G1 + 2 + (2 * G2 + 1) from by omega]
+        exact liftJ _ _ hW1 (cntE_cm_hi G2 g2 _ hg2))
+  have r5 := qp_skipi1s body (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1)
+      ++ (jT C1 t1 ++ (jT C2 t2 ++ (jT NV k
+        ++ encodeD (out' ++ prog3OutN body t1 t2 k body.length)))))))
+    (2 * G1 + 2 + 2 * G2 + 2) j ⟨body.length, Nat.lt_succ_self _⟩ false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * i = 2 * G1 + 2 + (2 * G2 + 2 + 2 * i)
+          from by omega]
+      rcases Nat.lt_or_ge i (k + 1) with hik | hik
+      · exact liftJ2 _ _ _ hW1 hW2 (jsE_mark_lo CB j (k + 1) _ i hik)
+      · exact liftJ2 _ _ _ hW1 hW2
+          (jsE_data CB j (k + 1) _ (2 * i) (by omega) (by omega) (by omega)))
+  have r6 := qp_crossi1 (body := body) (idx := ⟨body.length, Nat.lt_succ_self _⟩)
+    (s := if j = 0 then false else true) (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * j)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1 ++ (jT C2 t2
+      ++ (jT NV k ++ encodeD (out' ++ prog3OutN body t1 t2 k body.length)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j = 2 * G1 + 2 + (2 * G2 + 2 + 2 * j)
+          from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_lo CB j (k + 1) _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 1)) from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_hi CB j (k + 1) _ (by omega)))
+  have r6b := qp_padPI1s body (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1)
+      ++ (jT C1 t1 ++ (jT C2 t2 ++ (jT NV k
+        ++ encodeD (out' ++ prog3OutN body t1 t2 k body.length)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2) (CB - j)
+    ⟨body.length, Nat.lt_succ_self _⟩ false
+    (fun i hi => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 2 + 2 * i)) from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_pad CB j (k + 1) _ (2 * j + 2 + 2 * i)
+        (by omega) hj (by omega) (by omega)), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 2 + 2 * i + 1)) from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_pad CB j (k + 1) _ (2 * j + 2 + 2 * i + 1)
+        (by omega) hj (by omega) (by omega))⟩)
+  rw [ite_self, show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * (CB - j)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 from by omega] at r6b
+  have r6c := qp_padPI1_bound (body := body) (idx := ⟨body.length, Nat.lt_succ_self _⟩)
+    (s := false) (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1 ++ (jT C2 t2
+      ++ (jT NV k ++ encodeD (out' ++ prog3OutN body t1 t2 k body.length)))))))
+    (by rcases Nat.eq_zero_or_pos t1 with h0 | h0
+        · right
+          constructor
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * t1)) from by omega,
+              ← jsT_zero C1 t1]
+            exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_lo C1 t1 0 _ (by omega))
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 1
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 1))) from by omega,
+              ← jsT_zero C1 t1]
+            exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_hi C1 t1 0 _ (by omega))
+        · left
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2)) from by omega, ← jsT_zero C1 t1]
+          exact liftJ3 _ _ _ _ hW1 hW2 hB
+            (jsE_data C1 t1 0 _ 0 (by omega) (by omega) (by omega)))
+  have r7 := qp_skipi2s body (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1)
+      ++ (jT C1 t1 ++ (jT C2 t2 ++ (jT NV k
+        ++ encodeD (out' ++ prog3OutN body t1 t2 k body.length)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2) t1 ⟨body.length, Nat.lt_succ_self _⟩ false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * i)) from by omega,
+        ← jsT_zero C1 t1]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB
+        (jsE_data C1 t1 0 _ (2 * i) (by omega) (by omega) (by omega)))
+  have r8 := qp_crossi2 (body := body) (idx := ⟨body.length, Nat.lt_succ_self _⟩)
+    (s := if t1 = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1 ++ (jT C2 t2
+      ++ (jT NV k ++ encodeD (out' ++ prog3OutN body t1 t2 k body.length)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * t1)) from by omega,
+        ← jsT_zero C1 t1]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_lo C1 t1 0 _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 1))) from by omega,
+        ← jsT_zero C1 t1]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_hi C1 t1 0 _ (by omega)))
+  have r8b := qp_padPI2s body (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1)
+      ++ (jT C1 t1 ++ (jT C2 t2 ++ (jT NV k
+        ++ encodeD (out' ++ prog3OutN body t1 t2 k body.length)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2) (C1 - t1)
+    ⟨body.length, Nat.lt_succ_self _⟩ false
+    (fun i hi => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 2 + 2 * i)))
+          from by omega, ← jsT_zero C1 t1]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_pad C1 t1 0 _ (2 * t1 + 2 + 2 * i)
+        (by omega) ht1 (by omega) (by omega)), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 2 + 2 * i + 1)))
+          from by omega, ← jsT_zero C1 t1]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_pad C1 t1 0 _ (2 * t1 + 2 + 2 * i + 1)
+        (by omega) ht1 (by omega) (by omega))⟩)
+  rw [ite_self, show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * (C1 - t1)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 from by omega] at r8b
+  have r8c := qp_padPI2_bound (body := body) (idx := ⟨body.length, Nat.lt_succ_self _⟩)
+    (s := false) (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1 ++ (jT C2 t2
+      ++ (jT NV k ++ encodeD (out' ++ prog3OutN body t1 t2 k body.length)))))))
+    (by rcases Nat.eq_zero_or_pos t2 with h0 | h0
+        · right
+          constructor
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + 2 * t2)))
+                from by omega, ← jsT_zero C2 t2]
+            exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_lo C2 t2 0 _ (by omega))
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 1
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * t2 + 1))))
+                from by omega, ← jsT_zero C2 t2]
+            exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_hi C2 t2 0 _ (by omega))
+        · left
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2))) from by omega,
+            ← jsT_zero C2 t2]
+          exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1
+            (jsE_data C2 t2 0 _ 0 (by omega) (by omega) (by omega)))
+  have r9 := qp_skipi3s body (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1)
+      ++ (jT C1 t1 ++ (jT C2 t2 ++ (jT NV k
+        ++ encodeD (out' ++ prog3OutN body t1 t2 k body.length)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2) t2
+    ⟨body.length, Nat.lt_succ_self _⟩ false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + 2 * i)))
+          from by omega, ← jsT_zero C2 t2]
+      exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1
+        (jsE_data C2 t2 0 _ (2 * i) (by omega) (by omega) (by omega)))
+  have r10 := qp_crossi3 (body := body) (idx := ⟨body.length, Nat.lt_succ_self _⟩)
+    (s := if t2 = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1 ++ (jT C2 t2
+      ++ (jT NV k ++ encodeD (out' ++ prog3OutN body t1 t2 k body.length)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + 2 * t2)))
+          from by omega, ← jsT_zero C2 t2]
+        exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_lo C2 t2 0 _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * t2 + 1))))
+          from by omega, ← jsT_zero C2 t2]
+        exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_hi C2 t2 0 _ (by omega)))
+  have r10b := qp_padPI3s body (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1)
+      ++ (jT C1 t1 ++ (jT C2 t2 ++ (jT NV k
+        ++ encodeD (out' ++ prog3OutN body t1 t2 k body.length)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2) (C2 - t2)
+    ⟨body.length, Nat.lt_succ_self _⟩ false
+    (fun i hi => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2
+              + (2 * t2 + 2 + 2 * i)))) from by omega, ← jsT_zero C2 t2]
+      exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_pad C2 t2 0 _ (2 * t2 + 2 + 2 * i)
+        (by omega) ht2 (by omega) (by omega)), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2
+            + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2
+              + (2 * t2 + 2 + 2 * i + 1)))) from by omega, ← jsT_zero C2 t2]
+      exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_pad C2 t2 0 _ (2 * t2 + 2 + 2 * i + 1)
+        (by omega) ht2 (by omega) (by omega))⟩)
+  rw [ite_self, show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2
+        + 2 * (C2 - t2)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+      from by omega] at r10b
+  have r10c := qp_padPI3_bound (body := body) (idx := ⟨body.length, Nat.lt_succ_self _⟩)
+    (s := false) (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1 ++ (jT C2 t2
+      ++ (jT NV k ++ encodeD (out' ++ prog3OutN body t1 t2 k body.length)))))))
+    (by rcases Nat.eq_zero_or_pos k with h0 | h0
+        · right
+          constructor
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+                    + 2 * k)))) from by omega, ← jsT_zero NV k]
+            exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2 (jsE_m_lo NV k 0 _ (by omega))
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 1
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+                    + (2 * k + 1))))) from by omega, ← jsT_zero NV k]
+            exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2 (jsE_m_hi NV k 0 _ (by omega))
+        · left
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2))))
+              from by omega, ← jsT_zero NV k]
+          exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2
+            (jsE_data NV k 0 _ 0 (by omega) (by omega) (by omega)))
+  have r11 := qp_walkIs body (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1)
+      ++ (jT C1 t1 ++ (jT C2 t2 ++ (jT NV k
+        ++ encodeD (out' ++ prog3OutN body t1 t2 k body.length)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2) k
+    ⟨body.length, Nat.lt_succ_self _⟩ false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+              + 2 * i)))) from by omega, ← jsT_zero NV k]
+      exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2
+        (jsE_data NV k 0 _ (2 * i) (by omega) (by omega) (by omega)))
+  have r12 := qp_four_incr (body := body) (idx := ⟨body.length, Nat.lt_succ_self _⟩)
+    (s := if k = 0 then false else true)
+    (p := 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2 + 2 * k)))))
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1 ++ (jT C2 t2
+      ++ (jT NV k ++ encodeD (out' ++ prog3OutN body t1 t2 k body.length)))))))
+    (by rw [← jsT_zero NV k]
+        exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2 (jsE_m_lo NV k 0 _ (by omega)))
+  rw [W4_append_right5 (cntT G1 g1) (cntT G2 g2) (jsT CB j (k + 1)) (jT C1 t1) (jT C2 t2)
+      (jT NV k ++ encodeD (out' ++ prog3OutN body t1 t2 k body.length)) (2 * G1 + 2)
+      (2 * G2 + 2) (2 * CB + 2) (2 * C1 + 2) (2 * C2 + 2) (2 * k) true true false true
+      hW1 hW2 hB hS1 hS2
+      (by rw [List.length_append, jT_length NV k (by omega)]; omega),
+    jT_incr NV k _ hkV] at r12
+  rw [show pairTRoundCost body G1 G2 CB C1 C2 NV t1 t2 k out'.length
+      = 2 * G1 + (2 + (2 * G2 + (2 + (2 * k + (2
+          + (pairTSegN body G1 G2 CB C1 C2 NV t1 t2 k out'.length body.length + (1
+          + (2 * G1 + (2 + (2 * G2 + (2 + (2 * j + (2 + (2 * (CB - j) + (2 + (2 * t1 + (2
+          + (2 * (C1 - t1) + (2 + (2 * t2 + (2 + (2 * (C2 - t2) + (2
+          + (2 * k + 4))))))))))))))))))))))))
+      from by simp only [pairTRoundCost]; omega,
+    run_add, r0a, run_add, r0b, run_add, r0c, run_add, r0d, run_add, r1, run_add, r2,
+    run_add, r3, run_add, r4, run_add, r4a, run_add, r4b, run_add, r4c, run_add, r4d,
+    run_add, r5, run_add, r6, run_add, r6b, run_add, r6c, run_add, r7, run_add, r8,
+    run_add, r8b, run_add, r8c, run_add, r9, run_add, r10, run_add, r10b, run_add, r10c,
+    run_add, r11,
+    show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k
+      = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2 + 2 * k))))
+      from by omega,
+    r12, prog3Out]
 
 end PallLean.Paper93.DeepMath.PathB.CookLevinEmitPairT
