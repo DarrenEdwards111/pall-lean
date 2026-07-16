@@ -15,8 +15,10 @@ lands the machine, its full step layer, the six-region lift layer, the `jhT` hea
 four instruction lemmas (`qp_instr_bit`, `qp_instr_spAo`, `qp_instr_spCo`, `qp_instr_spJo`) with
 their `j`-independent clocks, the segment invariant (`qp_run_instrs`), and the loop round
 (`qp_round`: find-mark on the padded bound, the body, the in-place increment across the three
-pads); the rounds invariant, the loop completion, and the triangle composite follow in the
-continuation bricks.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+pads), the rounds invariant (`qp_run_rounds`), and the loop completion (`pairT_run`,
+`pairT_halted`: the engine drives the live variable to the bound's value and the content-blind
+finale heals the padded bound in place); the row interstitial and the triangle composite follow
+in the continuation bricks.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.CookLevinEmitPairT
@@ -6725,5 +6727,160 @@ theorem qp_round (body : List L3Instr) (G1 g1 : ℕ) (hg1 : g1 ≤ G1) (G2 g2 : 
       = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2 + 2 * k))))
       from by omega,
     r12, prog3Out]
+
+/-! ## The rounds invariant and the loop completion -/
+
+def pairTClockN (body : List L3Instr) (G1 G2 CB C1 C2 NV t1 t2 Lout : ℕ) : ℕ → ℕ
+  | 0 => 0
+  | k + 1 => pairTClockN body G1 G2 CB C1 C2 NV t1 t2 Lout k
+      + pairTRoundCost body G1 G2 CB C1 C2 NV t1 t2 k
+          (Lout + (loop3OutN body t1 t2 k).length)
+
+/-- **The rounds invariant** on the padded layout: `k` rounds find-mark the padded bound to
+`jsT CB j k` and drive the live variable to `jT NV k`, appending `loop3OutN`. -/
+theorem qp_run_rounds (body : List L3Instr) (G1 g1 : ℕ) (hg1 : g1 ≤ G1) (G2 g2 : ℕ)
+    (hg2 : g2 ≤ G2) (CB C1 C2 NV j t1 t2 : ℕ) (hj : j ≤ CB) (ht1 : t1 ≤ C1)
+    (ht2 : t2 ≤ C2) (hjV : j ≤ NV) (out : List Bool) (k : ℕ) (hk : k ≤ j) (s : Bool) :
+    run (pairTMachine body) (pairTClockN body G1 G2 CB C1 C2 NV t1 t2 out.length k)
+      ⟨(97, ⟨0, Nat.succ_pos _⟩, s), 0, cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j 0
+        ++ (jT C1 t1 ++ (jT C2 t2 ++ (jT NV 0 ++ encodeD out)))))⟩
+      = ⟨(97, ⟨0, Nat.succ_pos _⟩, if k = 0 then s else false), 0,
+          cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j k ++ (jT C1 t1 ++ (jT C2 t2
+            ++ (jT NV k ++ encodeD (out ++ loop3OutN body t1 t2 k))))))⟩ := by
+  induction k with
+  | zero => simp only [pairTClockN]; rw [run_zero]; simp [loop3OutN]
+  | succ k ih =>
+    have hrd := qp_round body G1 g1 hg1 G2 g2 hg2 CB C1 C2 NV j t1 t2 k hj ht1 ht2
+      (by omega) (by omega) (out ++ loop3OutN body t1 t2 k) ⟨0, Nat.succ_pos _⟩
+      (if k = 0 then s else false)
+    rw [List.length_append, List.append_assoc,
+      show loop3OutN body t1 t2 k ++ prog3Out body t1 t2 k
+        = loop3OutN body t1 t2 (k + 1) from rfl] at hrd
+    rw [show pairTClockN body G1 G2 CB C1 C2 NV t1 t2 out.length (k + 1)
+        = pairTClockN body G1 G2 CB C1 C2 NV t1 t2 out.length k
+            + pairTRoundCost body G1 G2 CB C1 C2 NV t1 t2 k
+                (out.length + (loop3OutN body t1 t2 k).length) from rfl,
+      run_add, ih (by omega), hrd, if_neg (by omega)]
+
+def pairTClock (body : List L3Instr) (G1 G2 CB C1 C2 NV t1 t2 j Lout : ℕ) : ℕ :=
+  pairTClockN body G1 G2 CB C1 C2 NV t1 t2 Lout j
+    + (2 * G1 + (2 + (2 * G2 + (2 + (2 * j + (2 + (2 * G1 + (2 + (2 * G2 + (2
+        + (2 * j + 2)))))))))))
+
+/-- **THE PADDED TRIANGLE-ROW ENGINE RUNS TO COMPLETION** — both prefixes preserved verbatim,
+the padded bound find-marked and healed by the content-blind finale, the live variable driven
+to the bound's value inside its fixed footprint. -/
+theorem pairT_run (body : List L3Instr) (G1 g1 : ℕ) (hg1 : g1 ≤ G1) (G2 g2 : ℕ)
+    (hg2 : g2 ≤ G2) (CB C1 C2 NV j t1 t2 : ℕ) (hj : j ≤ CB) (ht1 : t1 ≤ C1)
+    (ht2 : t2 ≤ C2) (hjV : j ≤ NV) (out : List Bool) :
+    run (pairTMachine body) (pairTClock body G1 G2 CB C1 C2 NV t1 t2 j out.length)
+      (init (pairTMachine body) (cntT G1 g1 ++ (cntT G2 g2 ++ (jT CB j ++ (jT C1 t1
+        ++ (jT C2 t2 ++ (jT NV 0 ++ encodeD out)))))))
+      = ⟨(96, ⟨0, Nat.succ_pos _⟩, false), 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 1,
+          cntT G1 g1 ++ (cntT G2 g2 ++ (jT CB j ++ (jT C1 t1 ++ (jT C2 t2
+            ++ (jT NV j ++ encodeD (out ++ loop3Out body t1 t2 j))))))⟩ := by
+  have hW1 : (cntT G1 g1).length = 2 * G1 + 2 := cntT_length G1 g1 hg1
+  have hW2 : (cntT G2 g2).length = 2 * G2 + 2 := cntT_length G2 g2 hg2
+  rw [init_pt]
+  rw [show (cntT G1 g1 ++ (cntT G2 g2 ++ (jT CB j ++ (jT C1 t1 ++ (jT C2 t2
+        ++ (jT NV 0 ++ encodeD out))))) : List Bool)
+      = cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j 0 ++ (jT C1 t1 ++ (jT C2 t2
+          ++ (jT NV 0 ++ encodeD out))))) from by rw [jsT_zero]]
+  simp only [pairTClock]
+  have f0a := qp_skipWfs body (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j j ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV j ++ encodeD (out ++ loop3OutN body t1 t2 j))))))) 0 G1
+    ⟨0, Nat.succ_pos _⟩ false (fun i hi => by simpa using cntE_lo G1 g1 _ i hg1 hi)
+  simp only [Nat.zero_add] at f0a
+  have f0b := qp_crossWf (body := body) (idx := ⟨0, Nat.succ_pos _⟩)
+    (s := if G1 = 0 then false else true) (p := 2 * G1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j j ++ (jT C1 t1 ++ (jT C2 t2
+      ++ (jT NV j ++ encodeD (out ++ loop3OutN body t1 t2 j)))))))
+    (cntE_cm_lo G1 g1 _ hg1) (cntE_cm_hi G1 g1 _ hg1)
+  have f0c := qp_skipW2fs body (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j j ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV j ++ encodeD (out ++ loop3OutN body t1 t2 j)))))))
+    (2 * G1 + 2) G2 ⟨0, Nat.succ_pos _⟩ false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * i = 2 * G1 + 2 + (2 * i) from rfl]
+      exact liftJ _ _ hW1 (cntE_lo G2 g2 _ i hg2 hi))
+  have f0d := qp_crossW2f (body := body) (idx := ⟨0, Nat.succ_pos _⟩)
+    (s := if G2 = 0 then false else true) (p := 2 * G1 + 2 + 2 * G2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j j ++ (jT C1 t1 ++ (jT C2 t2
+      ++ (jT NV j ++ encodeD (out ++ loop3OutN body t1 t2 j)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 = 2 * G1 + 2 + (2 * G2) from rfl]
+        exact liftJ _ _ hW1 (cntE_cm_lo G2 g2 _ hg2))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 1 = 2 * G1 + 2 + (2 * G2 + 1) from by omega]
+        exact liftJ _ _ hW1 (cntE_cm_hi G2 g2 _ hg2))
+  have f1 := qp_skipBs body (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j j ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV j ++ encodeD (out ++ loop3OutN body t1 t2 j)))))))
+    (2 * G1 + 2 + 2 * G2 + 2) j ⟨0, Nat.succ_pos _⟩ false
+    (fun i hi => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * i = 2 * G1 + 2 + (2 * G2 + 2 + 2 * i)
+          from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_mark_lo CB j j _ i hi), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * i + 1)) from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_mark_hi CB j j _ i hi)⟩)
+  have f2 := qp_doneB (body := body) (idx := ⟨0, Nat.succ_pos _⟩)
+    (s := if j = 0 then false else true) (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * j)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j j ++ (jT C1 t1 ++ (jT C2 t2
+      ++ (jT NV j ++ encodeD (out ++ loop3OutN body t1 t2 j)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j = 2 * G1 + 2 + (2 * G2 + 2 + 2 * j)
+          from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_lo CB j j _ (le_refl j)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 1)) from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_hi CB j j _ (le_refl j)))
+  have f3a := qp_skipWfins body (cntT G1 g1 ++ (cntT G2 g2 ++ (jhT CB j 0 ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV j ++ encodeD (out ++ loop3OutN body t1 t2 j))))))) 0 G1
+    ⟨0, Nat.succ_pos _⟩ false (fun i hi => by simpa using cntE_lo G1 g1 _ i hg1 hi)
+  simp only [Nat.zero_add] at f3a
+  have f3b := qp_crossWfin (body := body) (idx := ⟨0, Nat.succ_pos _⟩)
+    (s := if G1 = 0 then false else true) (p := 2 * G1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jhT CB j 0 ++ (jT C1 t1 ++ (jT C2 t2
+      ++ (jT NV j ++ encodeD (out ++ loop3OutN body t1 t2 j)))))))
+    (cntE_cm_lo G1 g1 _ hg1) (cntE_cm_hi G1 g1 _ hg1)
+  have f3c := qp_skipW2fins body (cntT G1 g1 ++ (cntT G2 g2 ++ (jhT CB j 0 ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV j ++ encodeD (out ++ loop3OutN body t1 t2 j)))))))
+    (2 * G1 + 2) G2 ⟨0, Nat.succ_pos _⟩ false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * i = 2 * G1 + 2 + (2 * i) from rfl]
+      exact liftJ _ _ hW1 (cntE_lo G2 g2 _ i hg2 hi))
+  have f3d := qp_crossW2fin (body := body) (idx := ⟨0, Nat.succ_pos _⟩)
+    (s := if G2 = 0 then false else true) (p := 2 * G1 + 2 + 2 * G2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jhT CB j 0 ++ (jT C1 t1 ++ (jT C2 t2
+      ++ (jT NV j ++ encodeD (out ++ loop3OutN body t1 t2 j)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 = 2 * G1 + 2 + (2 * G2) from rfl]
+        exact liftJ _ _ hW1 (cntE_cm_lo G2 g2 _ hg2))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 1 = 2 * G1 + 2 + (2 * G2 + 1) from by omega]
+        exact liftJ _ _ hW1 (cntE_cm_hi G2 g2 _ hg2))
+  have f4 := qp_healBJs body (cntT G1 g1) (cntT G2 g2) G1 G2 CB j
+    (jT C1 t1 ++ (jT C2 t2 ++ (jT NV j ++ encodeD (out ++ loop3OutN body t1 t2 j))))
+    hW1 hW2 hj ⟨0, Nat.succ_pos _⟩ false j (le_refl j)
+  have f5 := qp_doneFin (body := body) (idx := ⟨0, Nat.succ_pos _⟩)
+    (s := if j = 0 then false else true) (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * j)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jhT CB j j ++ (jT C1 t1 ++ (jT C2 t2
+      ++ (jT NV j ++ encodeD (out ++ loop3OutN body t1 t2 j)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j = 2 * G1 + 2 + (2 * G2 + 2 + 2 * j)
+          from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jhE_m_lo CB j _))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 1)) from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jhE_m_hi CB j _))
+  rw [run_add, qp_run_rounds body G1 g1 hg1 G2 g2 hg2 CB C1 C2 NV j t1 t2 hj ht1 ht2 hjV
+      out j (le_refl j) false, ite_self,
+    run_add, f0a, run_add, f0b, run_add, f0c, run_add, f0d, run_add, f1, run_add, f2,
+    ← jhT_zero CB j, run_add, f3a, run_add, f3b, run_add, f3c, run_add, f3d, run_add, f4,
+    f5, jhT_last,
+    show loop3Out body t1 t2 j = loop3OutN body t1 t2 j from rfl]
+
+/-- The engine **halts by itself** at its clock. -/
+theorem pairT_halted (body : List L3Instr) (G1 g1 : ℕ) (hg1 : g1 ≤ G1) (G2 g2 : ℕ)
+    (hg2 : g2 ≤ G2) (CB C1 C2 NV j t1 t2 : ℕ) (hj : j ≤ CB) (ht1 : t1 ≤ C1)
+    (ht2 : t2 ≤ C2) (hjV : j ≤ NV) (out : List Bool) :
+    (pairTMachine body).halt
+      (run (pairTMachine body) (pairTClock body G1 G2 CB C1 C2 NV t1 t2 j out.length)
+        (init (pairTMachine body) (cntT G1 g1 ++ (cntT G2 g2 ++ (jT CB j ++ (jT C1 t1
+          ++ (jT C2 t2 ++ (jT NV 0 ++ encodeD out)))))))).st = true := by
+  rw [pairT_run body G1 g1 hg1 G2 g2 hg2 CB C1 C2 NV j t1 t2 hj ht1 ht2 hjV out]; rfl
 
 end PallLean.Paper93.DeepMath.PathB.CookLevinEmitPairT
