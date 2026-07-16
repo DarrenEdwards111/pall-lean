@@ -291,26 +291,26 @@ theorem pairTClock_le (body : List L3Instr) (G1 G2 CB C1 C2 NV t1 t2 j Lout LM :
 
 /-! ## The grand and row round sums -/
 
-theorem repRounds_le (clk : ℕ → ℕ) (K : ℕ) (hclk : ∀ t, clk t ≤ K) : ∀ B,
+theorem repRounds_le (clk : ℕ → ℕ) (K : ℕ) : ∀ B, (∀ t, t < B → clk t ≤ K) →
     repRounds clk B ≤ B * (2 * B + 3 + K)
-  | 0 => by simp [repRounds]
-  | B + 1 => by
+  | 0, _ => by simp [repRounds]
+  | B + 1, hclk => by
     rw [repRounds]
-    have h1 := repRounds_le clk K hclk B
-    have h2 := hclk B
+    have h1 := repRounds_le clk K B (fun t ht => hclk t (by omega))
+    have h2 := hclk B (by omega)
     have h3 : B * (2 * B + 3 + K) ≤ B * (2 * (B + 1) + 3 + K) :=
       Nat.mul_le_mul_left _ (by omega)
     have h4 : (B + 1) * (2 * (B + 1) + 3 + K)
         = B * (2 * (B + 1) + 3 + K) + (2 * (B + 1) + 3 + K) := by ring
     omega
 
-theorem repPRounds_le (G : ℕ) (clk : ℕ → ℕ) (K : ℕ) (hclk : ∀ t, clk t ≤ K) : ∀ P,
+theorem repPRounds_le (G : ℕ) (clk : ℕ → ℕ) (K : ℕ) : ∀ P, (∀ t, t < P → clk t ≤ K) →
     repPRounds G clk P ≤ P * (2 * G + 2 * P + 5 + K)
-  | 0 => by simp [repPRounds]
-  | P + 1 => by
+  | 0, _ => by simp [repPRounds]
+  | P + 1, hclk => by
     rw [repPRounds]
-    have h1 := repPRounds_le G clk K hclk P
-    have h2 := hclk P
+    have h1 := repPRounds_le G clk K P (fun t ht => hclk t (by omega))
+    have h2 := hclk P (by omega)
     have h3 : P * (2 * G + 2 * P + 5 + K) ≤ P * (2 * G + 2 * (P + 1) + 5 + K) :=
       Nat.mul_le_mul_left _ (by omega)
     have h4 : (P + 1) * (2 * G + 2 * (P + 1) + 5 + K)

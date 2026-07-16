@@ -79,22 +79,24 @@ theorem loop3Out_le_passOut (body : List L3Instr) (BD t : ℕ) (hbd : body.lengt
   rw [qcPassOut]
   omega
 
-theorem qcOut_length_le (bodies : ℕ → List L3Instr) (t Q BD : ℕ)
-    (hbd : ∀ q, (bodies q).length ≤ BD) : ∀ n q0,
+theorem qcOut_length_le (bodies : ℕ → List L3Instr) (t Q BD : ℕ) : ∀ n q0,
+    (∀ q, q0 ≤ q → q < q0 + n → (bodies q).length ≤ BD) →
     (qcOut bodies t Q q0 n).length ≤ n * qcPassOut Q BD t
-  | 0, _ => by simp [qcOut]
-  | n + 1, q0 => by
+  | 0, _, _ => by simp [qcOut]
+  | n + 1, q0, hbd => by
+    have hbd0 : (bodies q0).length ≤ BD := hbd q0 (le_refl _) (by omega)
     rw [show qcOut bodies t Q q0 (n + 1)
         = loop3Out (bodies q0) t 1 (Q + 1) ++ qcOut bodies t Q (q0 + 1) n from rfl,
       List.length_append]
-    have h1 := loop3Out_le_passOut (bodies q0) BD t (hbd q0) Q (Q + 1) (le_refl _)
-    have h2 := qcOut_length_le bodies t Q BD hbd n (q0 + 1)
+    have h1 := loop3Out_le_passOut (bodies q0) BD t hbd0 Q (Q + 1) (le_refl _)
+    have h2 := qcOut_length_le bodies t Q BD n (q0 + 1)
+      (fun q ha hb => hbd q (by omega) (by omega))
     have h3 : (n + 1) * qcPassOut Q BD t = n * qcPassOut Q BD t + qcPassOut Q BD t := by
       ring
     exact le_trans (Nat.add_le_add h1 h2) (by omega)
 
 theorem qcEmitOut_length_le (bodies : ℕ → List L3Instr) (Q card BD : ℕ)
-    (hbd : ∀ q, (bodies q).length ≤ BD) : ∀ T,
+    (hbd : ∀ q, q < card → (bodies q).length ≤ BD) : ∀ T,
     (qcEmitOut bodies Q card T).length ≤ T * (card * qcPassOut Q BD T)
   | 0 => by simp [qcEmitOut]
   | T + 1 => by
@@ -102,7 +104,8 @@ theorem qcEmitOut_length_le (bodies : ℕ → List L3Instr) (Q card BD : ℕ)
         = qcEmitOut bodies Q card T ++ qcOut bodies T Q 0 card from rfl,
       List.length_append]
     have h1 := qcEmitOut_length_le bodies Q card BD hbd T
-    have h2 := qcOut_length_le bodies T Q BD hbd card 0
+    have h2 := qcOut_length_le bodies T Q BD card 0
+      (fun q ha hb => hbd q (by omega))
     have hmono : qcPassOut Q BD T ≤ qcPassOut Q BD (T + 1) := by
       rw [qcPassOut, qcPassOut]
       exact Nat.mul_le_mul_left _ (Nat.mul_le_mul_left _ (by omega))
@@ -118,18 +121,19 @@ theorem qcEmitOut_length_le (bodies : ℕ → List L3Instr) (Q card BD : ℕ)
 
 /-- The coupled chain clock (`qcClock`, brick 47): each step at most the pass bound plus the
 re-arm, the output budget threaded through the chain. -/
-theorem qcClock_le (bodies : ℕ → List L3Instr) (B P CB C1 C2 NV t BD : ℕ)
-    (hbd : ∀ q, (bodies q).length ≤ BD) : ∀ (n q0 L LM : ℕ),
+theorem qcClock_le (bodies : ℕ → List L3Instr) (B P CB C1 C2 NV t BD : ℕ) :
+    ∀ (n q0 L LM : ℕ), (∀ q, q0 ≤ q → q < q0 + n → (bodies q).length ≤ BD) →
     L + n * qcPassOut P BD t ≤ LM →
     qcClock bodies B P CB C1 C2 NV t q0 n L
       ≤ n * (qcPassBound B P CB C1 C2 NV t P BD LM
           + (2 * B + 2 * P + 2 * CB + 2 * C1 + 2 * C2 + 2 * (P + 1) + 20))
         + (2 * B + 2 * P + 2 * CB + 2 * t + 12)
-  | 0, q0, L, LM, _ => by
+  | 0, q0, L, LM, _, _ => by
     rw [show qcClock bodies B P CB C1 C2 NV t q0 0 L
         = 2 * B + 2 * P + 2 * CB + 2 * t + 12 from rfl]
     omega
-  | n + 1, q0, L, LM, hLM => by
+  | n + 1, q0, L, LM, hbd, hLM => by
+    have hbd0 : (bodies q0).length ≤ BD := hbd q0 (le_refl _) (by omega)
     rw [show qcClock bodies B P CB C1 C2 NV t q0 (n + 1) L
         = (pairTClock (bodies q0) B P CB C1 C2 NV t 1 (P + 1) L + 1
           + (2 * B + 2 * P + 2 * CB + 2 * C1 + 2 * C2 + 2 * (P + 1) + 18)) + 1
@@ -138,13 +142,14 @@ theorem qcClock_le (bodies : ℕ → List L3Instr) (B P CB C1 C2 NV t BD : ℕ)
     have hstep : (n + 1) * qcPassOut P BD t = n * qcPassOut P BD t + qcPassOut P BD t := by
       ring
     have hloop : (loop3Out (bodies q0) t 1 (P + 1)).length ≤ qcPassOut P BD t :=
-      loop3Out_le_passOut (bodies q0) BD t (hbd q0) P (P + 1) (le_refl _)
-    have hpt := pairTClock_le' (bodies q0) BD (hbd q0) B P CB C1 C2 NV t P L LM
+      loop3Out_le_passOut (bodies q0) BD t hbd0 P (P + 1) (le_refl _)
+    have hpt := pairTClock_le' (bodies q0) BD hbd0 B P CB C1 C2 NV t P L LM
       (fun k hk => by
-        have := loop3Out_le_passOut (bodies q0) BD t (hbd q0) P k (by omega)
+        have := loop3Out_le_passOut (bodies q0) BD t hbd0 P k (by omega)
         omega)
-    have hrec := qcClock_le bodies B P CB C1 C2 NV t BD hbd n (q0 + 1)
-      (L + (loop3Out (bodies q0) t 1 (P + 1)).length) LM (by omega)
+    have hrec := qcClock_le bodies B P CB C1 C2 NV t BD n (q0 + 1)
+      (L + (loop3Out (bodies q0) t 1 (P + 1)).length) LM
+      (fun q h1 h2 => hbd q (by omega) (by omega)) (by omega)
     have h4 : (n + 1) * (qcPassBound B P CB C1 C2 NV t P BD LM
         + (2 * B + 2 * P + 2 * CB + 2 * C1 + 2 * C2 + 2 * (P + 1) + 20))
         = n * (qcPassBound B P CB C1 C2 NV t P BD LM
@@ -154,18 +159,19 @@ theorem qcClock_le (bodies : ℕ → List L3Instr) (B P CB C1 C2 NV t BD : ℕ)
     omega
 
 /-- The decoupled chain clock (`qcClockD`, brick 50). -/
-theorem qcClockD_le (bodies : ℕ → List L3Instr) (G R Q CB C1 C2 NV t BD : ℕ)
-    (hbd : ∀ q, (bodies q).length ≤ BD) : ∀ (n q0 L LM : ℕ),
+theorem qcClockD_le (bodies : ℕ → List L3Instr) (G R Q CB C1 C2 NV t BD : ℕ) :
+    ∀ (n q0 L LM : ℕ), (∀ q, q0 ≤ q → q < q0 + n → (bodies q).length ≤ BD) →
     L + n * qcPassOut Q BD t ≤ LM →
     qcClockD bodies G R Q CB C1 C2 NV t q0 n L
       ≤ n * (qcPassBound G R CB C1 C2 NV t Q BD LM
           + (2 * G + 2 * R + 2 * CB + 2 * C1 + 2 * C2 + 2 * (Q + 1) + 20))
         + (2 * G + 2 * R + 2 * CB + 2 * t + 12)
-  | 0, q0, L, LM, _ => by
+  | 0, q0, L, LM, _, _ => by
     rw [show qcClockD bodies G R Q CB C1 C2 NV t q0 0 L
         = 2 * G + 2 * R + 2 * CB + 2 * t + 12 from rfl]
     omega
-  | n + 1, q0, L, LM, hLM => by
+  | n + 1, q0, L, LM, hbd, hLM => by
+    have hbd0 : (bodies q0).length ≤ BD := hbd q0 (le_refl _) (by omega)
     rw [show qcClockD bodies G R Q CB C1 C2 NV t q0 (n + 1) L
         = (pairTClock (bodies q0) G R CB C1 C2 NV t 1 (Q + 1) L + 1
           + (2 * G + 2 * R + 2 * CB + 2 * C1 + 2 * C2 + 2 * (Q + 1) + 18)) + 1
@@ -174,13 +180,14 @@ theorem qcClockD_le (bodies : ℕ → List L3Instr) (G R Q CB C1 C2 NV t BD : �
     have hstep : (n + 1) * qcPassOut Q BD t = n * qcPassOut Q BD t + qcPassOut Q BD t := by
       ring
     have hloop : (loop3Out (bodies q0) t 1 (Q + 1)).length ≤ qcPassOut Q BD t :=
-      loop3Out_le_passOut (bodies q0) BD t (hbd q0) Q (Q + 1) (le_refl _)
-    have hpt := pairTClock_le' (bodies q0) BD (hbd q0) G R CB C1 C2 NV t Q L LM
+      loop3Out_le_passOut (bodies q0) BD t hbd0 Q (Q + 1) (le_refl _)
+    have hpt := pairTClock_le' (bodies q0) BD hbd0 G R CB C1 C2 NV t Q L LM
       (fun k hk => by
-        have := loop3Out_le_passOut (bodies q0) BD t (hbd q0) Q k (by omega)
+        have := loop3Out_le_passOut (bodies q0) BD t hbd0 Q k (by omega)
         omega)
-    have hrec := qcClockD_le bodies G R Q CB C1 C2 NV t BD hbd n (q0 + 1)
-      (L + (loop3Out (bodies q0) t 1 (Q + 1)).length) LM (by omega)
+    have hrec := qcClockD_le bodies G R Q CB C1 C2 NV t BD n (q0 + 1)
+      (L + (loop3Out (bodies q0) t 1 (Q + 1)).length) LM
+      (fun q h1 h2 => hbd q (by omega) (by omega)) (by omega)
     have h4 : (n + 1) * (qcPassBound G R CB C1 C2 NV t Q BD LM
         + (2 * G + 2 * R + 2 * CB + 2 * C1 + 2 * C2 + 2 * (Q + 1) + 20))
         = n * (qcPassBound G R CB C1 C2 NV t Q BD LM
@@ -190,16 +197,17 @@ theorem qcClockD_le (bodies : ℕ → List L3Instr) (G R Q CB C1 C2 NV t BD : �
     omega
 
 /-- The no-bump chain clock (`qcnClockD`, brick 54). -/
-theorem qcnClockD_le (bodies : ℕ → List L3Instr) (G R Q CB C1 C2 NV t BD : ℕ)
-    (hbd : ∀ q, (bodies q).length ≤ BD) : ∀ (n q0 L LM : ℕ),
+theorem qcnClockD_le (bodies : ℕ → List L3Instr) (G R Q CB C1 C2 NV t BD : ℕ) :
+    ∀ (n q0 L LM : ℕ), (∀ q, q0 ≤ q → q < q0 + n → (bodies q).length ≤ BD) →
     L + n * qcPassOut Q BD t ≤ LM →
     qcnClockD bodies G R Q CB C1 C2 NV t q0 n L
       ≤ n * (qcPassBound G R CB C1 C2 NV t Q BD LM
           + (2 * G + 2 * R + 2 * CB + 2 * C1 + 2 * C2 + 2 * (Q + 1) + 20))
-  | 0, q0, L, LM, _ => by
+  | 0, q0, L, LM, _, _ => by
     rw [show qcnClockD bodies G R Q CB C1 C2 NV t q0 0 L = 0 from rfl]
     omega
-  | n + 1, q0, L, LM, hLM => by
+  | n + 1, q0, L, LM, hbd, hLM => by
+    have hbd0 : (bodies q0).length ≤ BD := hbd q0 (le_refl _) (by omega)
     rw [show qcnClockD bodies G R Q CB C1 C2 NV t q0 (n + 1) L
         = (pairTClock (bodies q0) G R CB C1 C2 NV t 1 (Q + 1) L + 1
           + (2 * G + 2 * R + 2 * CB + 2 * C1 + 2 * C2 + 2 * (Q + 1) + 18)) + 1
@@ -208,13 +216,14 @@ theorem qcnClockD_le (bodies : ℕ → List L3Instr) (G R Q CB C1 C2 NV t BD : �
     have hstep : (n + 1) * qcPassOut Q BD t = n * qcPassOut Q BD t + qcPassOut Q BD t := by
       ring
     have hloop : (loop3Out (bodies q0) t 1 (Q + 1)).length ≤ qcPassOut Q BD t :=
-      loop3Out_le_passOut (bodies q0) BD t (hbd q0) Q (Q + 1) (le_refl _)
-    have hpt := pairTClock_le' (bodies q0) BD (hbd q0) G R CB C1 C2 NV t Q L LM
+      loop3Out_le_passOut (bodies q0) BD t hbd0 Q (Q + 1) (le_refl _)
+    have hpt := pairTClock_le' (bodies q0) BD hbd0 G R CB C1 C2 NV t Q L LM
       (fun k hk => by
-        have := loop3Out_le_passOut (bodies q0) BD t (hbd q0) Q k (by omega)
+        have := loop3Out_le_passOut (bodies q0) BD t hbd0 Q k (by omega)
         omega)
-    have hrec := qcnClockD_le bodies G R Q CB C1 C2 NV t BD hbd n (q0 + 1)
-      (L + (loop3Out (bodies q0) t 1 (Q + 1)).length) LM (by omega)
+    have hrec := qcnClockD_le bodies G R Q CB C1 C2 NV t BD n (q0 + 1)
+      (L + (loop3Out (bodies q0) t 1 (Q + 1)).length) LM
+      (fun q h1 h2 => hbd q (by omega) (by omega)) (by omega)
     have h4 : (n + 1) * (qcPassBound G R CB C1 C2 NV t Q BD LM
         + (2 * G + 2 * R + 2 * CB + 2 * C1 + 2 * C2 + 2 * (Q + 1) + 20))
         = n * (qcPassBound G R CB C1 C2 NV t Q BD LM
