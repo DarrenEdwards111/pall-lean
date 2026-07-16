@@ -11,8 +11,10 @@ runs under TWO loop counters: the grand round and the row loop) and fifteen pad-
 layout pads the bound, both sources, and the live variable; see `TRIANGLE_PLAN.md`).  The
 boundary-event scans absorb padding as equal pairs, so the bit track and every splice seek keep
 their phases; the loop find and the finale heal are content-blind on the padded bound.  This file
-lands the machine and its full step layer; the instruction lemmas, rounds, and the triangle
-composite follow in the continuation bricks.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+lands the machine, its full step layer, the six-region lift layer, the `jhT` heal walks, and the
+four instruction lemmas (`qp_instr_bit`, `qp_instr_spAo`, `qp_instr_spCo`, `qp_instr_spJo`) with
+their `j`-independent clocks; the segment, the round, and the triangle composite follow in the
+continuation bricks.  Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.CookLevinEmitPairT
@@ -3313,5 +3315,2996 @@ theorem qp_padPI3s (body : List L3Instr) (T : List Bool) (q m : ℕ)
     rw [show 2 * (m + 1) = 2 * m + 2 from by ring, run_add,
       ih (fun i hi => h i (by omega)), qp_padPI3_pad hm.1 hm.2]
     rfl
+
+
+/-! ## The six-region lift layer -/
+
+theorem liftJ5 (A B C D E X : List Bool) {qa qb qc qd qe p : ℕ} (ha : A.length = qa)
+    (hb : B.length = qb) (hc : C.length = qc) (hd : D.length = qd) (he : E.length = qe)
+    {w : Bool} (h : X.getD p false = w) :
+    (A ++ (B ++ (C ++ (D ++ (E ++ X))))).getD (qa + (qb + (qc + (qd + (qe + p))))) false
+      = w := by
+  exact liftJ A _ ha (liftJ4 B C D E X hb hc hd he h)
+
+theorem writeAt_append_right5 (A B C D E X : List Bool) (qa qb qc qd qe p : ℕ) (w : Bool)
+    (ha : A.length = qa) (hb : B.length = qb) (hc : C.length = qc) (hd : D.length = qd)
+    (he : E.length = qe) (hp : p < X.length) :
+    writeAt (A ++ (B ++ (C ++ (D ++ (E ++ X))))) (qa + (qb + (qc + (qd + (qe + p))))) w
+      = A ++ (B ++ (C ++ (D ++ (E ++ writeAt X p w)))) := by
+  rw [writeAt_append_right A _ qa (qb + (qc + (qd + (qe + p)))) w ha
+      (by simp only [List.length_append]; omega),
+    writeAt_append_right4 B C D E X qb qc qd qe p w hb hc hd he hp]
+
+theorem preD6_data_eq (A B C D E F out : List Bool) (q i : ℕ)
+    (hq : A.length + B.length + C.length + D.length + E.length + F.length = q)
+    (h : i < out.length) :
+    (A ++ (B ++ (C ++ (D ++ (E ++ (F ++ encodeD out)))))).getD (q + 2 * i) false
+      = (A ++ (B ++ (C ++ (D ++ (E ++ (F ++ encodeD out)))))).getD (q + 2 * i + 1) false := by
+  have := preD_data_eq (A ++ (B ++ (C ++ (D ++ (E ++ F))))) out q i
+    (by simp only [List.length_append]; omega) h
+  simpa [List.append_assoc] using this
+
+theorem preD6_mark_lo (A B C D E F out : List Bool) (q : ℕ)
+    (hq : A.length + B.length + C.length + D.length + E.length + F.length = q) :
+    (A ++ (B ++ (C ++ (D ++ (E ++ (F ++ encodeD out)))))).getD (q + 2 * out.length) false
+      = false := by
+  have := preD_mark_lo (A ++ (B ++ (C ++ (D ++ (E ++ F))))) out q
+    (by simp only [List.length_append]; omega)
+  simpa [List.append_assoc] using this
+
+theorem preD6_mark_hi (A B C D E F out : List Bool) (q : ℕ)
+    (hq : A.length + B.length + C.length + D.length + E.length + F.length = q) :
+    (A ++ (B ++ (C ++ (D ++ (E ++ (F ++ encodeD out)))))).getD
+      (q + 2 * out.length + 1) false = true := by
+  have := preD_mark_hi (A ++ (B ++ (C ++ (D ++ (E ++ F))))) out q
+    (by simp only [List.length_append]; omega)
+  simpa [List.append_assoc] using this
+
+theorem writes_snoc6 (A B C D E F out : List Bool) (q : ℕ)
+    (hq : A.length + B.length + C.length + D.length + E.length + F.length = q) (b : Bool) :
+    writeAt (writeAt (writeAt (writeAt (A ++ (B ++ (C ++ (D ++ (E ++ (F ++ encodeD out))))))
+        (q + 2 * out.length) b) (q + 2 * out.length + 1) b) (q + 2 * out.length + 2) false)
+        (q + 2 * out.length + 3) true
+      = A ++ (B ++ (C ++ (D ++ (E ++ (F ++ encodeD (out ++ [b])))))) := by
+  have h := writes_snoc (A ++ (B ++ (C ++ (D ++ (E ++ F))))) out q
+    (by simp only [List.length_append]; omega) b
+  simpa [List.append_assoc] using h
+
+theorem W4_append_right5 (A B C D E X : List Bool) (qa qb qc qd qe p : ℕ)
+    (b1 b2 b3 b4 : Bool) (ha : A.length = qa) (hb : B.length = qb) (hc : C.length = qc)
+    (hd : D.length = qd) (he : E.length = qe) (hp : p + 3 < X.length) :
+    writeAt (writeAt (writeAt (writeAt (A ++ (B ++ (C ++ (D ++ (E ++ X)))))
+        (qa + (qb + (qc + (qd + (qe + p))))) b1)
+        (qa + (qb + (qc + (qd + (qe + p)))) + 1) b2)
+        (qa + (qb + (qc + (qd + (qe + p)))) + 2) b3)
+        (qa + (qb + (qc + (qd + (qe + p)))) + 3) b4
+      = A ++ (B ++ (C ++ (D ++ (E ++ writeAt (writeAt (writeAt (writeAt X p b1)
+          (p + 1) b2) (p + 2) b3) (p + 3) b4)))) := by
+  have hl1 : (writeAt X p b1).length = X.length := by
+    rw [writeAt_of_lt b1 (by omega), List.length_set]
+  have hl2 : (writeAt (writeAt X p b1) (p + 1) b2).length = X.length := by
+    rw [writeAt_of_lt b2 (by omega), List.length_set, hl1]
+  have hl3 : (writeAt (writeAt (writeAt X p b1) (p + 1) b2) (p + 2) b3).length
+      = X.length := by
+    rw [writeAt_of_lt b3 (by omega), List.length_set, hl2]
+  rw [writeAt_append_right5 A B C D E X qa qb qc qd qe p b1 ha hb hc hd he (by omega),
+    show qa + (qb + (qc + (qd + (qe + p)))) + 1
+      = qa + (qb + (qc + (qd + (qe + (p + 1))))) from by omega,
+    writeAt_append_right5 A B C D E _ qa qb qc qd qe (p + 1) b2 ha hb hc hd he
+      (by rw [hl1]; omega),
+    show qa + (qb + (qc + (qd + (qe + p)))) + 2
+      = qa + (qb + (qc + (qd + (qe + (p + 2))))) from by omega,
+    writeAt_append_right5 A B C D E _ qa qb qc qd qe (p + 2) b3 ha hb hc hd he
+      (by rw [hl2]; omega),
+    show qa + (qb + (qc + (qd + (qe + p)))) + 3
+      = qa + (qb + (qc + (qd + (qe + (p + 3))))) from by omega,
+    writeAt_append_right5 A B C D E _ qa qb qc qd qe (p + 3) b4 ha hb hc hd he
+      (by rw [hl3]; omega)]
+
+/-! ## The `jhT` heal walks on the six-region layout -/
+
+/-- Source-1 heal (phase 35, evolving `jhT`, three prefixes). -/
+theorem qp_healT1s (body : List L3Instr) (W1 W2 R : List Bool) (G1 G2 CB C1 t : ℕ)
+    (E : List Bool) (h1 : W1.length = 2 * G1 + 2) (h2 : W2.length = 2 * G2 + 2)
+    (hR : R.length = 2 * CB + 2) (ht : t ≤ C1) (idx : Fin (body.length + 1)) (s : Bool)
+    (i : ℕ) (hi : i ≤ t) :
+    run (pairTMachine body) (2 * i)
+      ⟨(35, idx, s), 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2,
+        W1 ++ (W2 ++ (R ++ (jhT C1 t 0 ++ E)))⟩
+      = ⟨(35, idx, if i = 0 then s else true), 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i,
+          W1 ++ (W2 ++ (R ++ (jhT C1 t i ++ E)))⟩ := by
+  induction i with
+  | zero => rfl
+  | succ i ih =>
+    have e1 : (W1 ++ (W2 ++ (R ++ (jhT C1 t i ++ E)))).getD
+        (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i) false = true := by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * i)) from by omega]
+      exact liftJ3 W1 W2 R _ h1 h2 hR (jhE_pair_lo C1 t i E (by omega))
+    have e2 : (W1 ++ (W2 ++ (R ++ (jhT C1 t i ++ E)))).getD
+        (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i + 1) false = false := by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * i + 1))) from by omega]
+      exact liftJ3 W1 W2 R _ h1 h2 hR (jhE_pair_hi C1 t i E (by omega))
+    have hw : writeAt (W1 ++ (W2 ++ (R ++ (jhT C1 t i ++ E))))
+        (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i + 1) true
+        = W1 ++ (W2 ++ (R ++ (jhT C1 t (i + 1) ++ E))) := by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * i + 1))) from by omega,
+        writeAt_append_right3 W1 W2 R _ (2 * G1 + 2) (2 * G2 + 2) (2 * CB + 2)
+          (2 * i + 1) true h1 h2 hR
+          (by rw [List.length_append, jhT_length C1 t i (by omega) (by omega)]; omega),
+        jhT_heal C1 t i E (by omega) (by omega)]
+    rw [show 2 * (i + 1) = 2 * i + 2 from by ring, run_add, ih (by omega),
+      qp_healA e1 e2, hw]
+    rfl
+
+/-- Source-2 heal (phase 57, four prefixes). -/
+theorem qp_healT2s (body : List L3Instr) (W1 W2 R S : List Bool) (G1 G2 CB C1 C2 j2 : ℕ)
+    (E : List Bool) (h1 : W1.length = 2 * G1 + 2) (h2 : W2.length = 2 * G2 + 2)
+    (hR : R.length = 2 * CB + 2) (hS : S.length = 2 * C1 + 2) (hj2 : j2 ≤ C2)
+    (idx : Fin (body.length + 1)) (s : Bool) (i : ℕ) (hi : i ≤ j2) :
+    run (pairTMachine body) (2 * i)
+      ⟨(57, idx, s), 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2,
+        W1 ++ (W2 ++ (R ++ (S ++ (jhT C2 j2 0 ++ E))))⟩
+      = ⟨(57, idx, if i = 0 then s else true),
+          2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i,
+          W1 ++ (W2 ++ (R ++ (S ++ (jhT C2 j2 i ++ E))))⟩ := by
+  induction i with
+  | zero => rfl
+  | succ i ih =>
+    have e1 : (W1 ++ (W2 ++ (R ++ (S ++ (jhT C2 j2 i ++ E))))).getD
+        (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i) false = true := by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + 2 * i)))
+          from by omega]
+      exact liftJ4 W1 W2 R S _ h1 h2 hR hS (jhE_pair_lo C2 j2 i E (by omega))
+    have e2 : (W1 ++ (W2 ++ (R ++ (S ++ (jhT C2 j2 i ++ E))))).getD
+        (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i + 1) false = false := by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * i + 1))))
+          from by omega]
+      exact liftJ4 W1 W2 R S _ h1 h2 hR hS (jhE_pair_hi C2 j2 i E (by omega))
+    have hw : writeAt (W1 ++ (W2 ++ (R ++ (S ++ (jhT C2 j2 i ++ E)))))
+        (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i + 1) true
+        = W1 ++ (W2 ++ (R ++ (S ++ (jhT C2 j2 (i + 1) ++ E)))) := by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * i + 1))))
+          from by omega,
+        writeAt_append_right4 W1 W2 R S _ (2 * G1 + 2) (2 * G2 + 2) (2 * CB + 2)
+          (2 * C1 + 2) (2 * i + 1) true h1 h2 hR hS
+          (by rw [List.length_append, jhT_length C2 j2 i (by omega) (by omega)]; omega),
+        jhT_heal C2 j2 i E (by omega) (by omega)]
+    rw [show 2 * (i + 1) = 2 * i + 2 from by ring, run_add, ih (by omega),
+      qp_healC e1 e2, hw]
+    rfl
+
+/-- Live heal (phase 81, five prefixes). -/
+theorem qp_healJ5s (body : List L3Instr) (W1 W2 R S U : List Bool)
+    (G1 G2 CB C1 C2 NV k : ℕ) (E : List Bool) (h1 : W1.length = 2 * G1 + 2)
+    (h2 : W2.length = 2 * G2 + 2) (hR : R.length = 2 * CB + 2) (hS : S.length = 2 * C1 + 2)
+    (hU : U.length = 2 * C2 + 2) (hk : k ≤ NV) (idx : Fin (body.length + 1)) (s : Bool)
+    (i : ℕ) (hi : i ≤ k) :
+    run (pairTMachine body) (2 * i)
+      ⟨(81, idx, s), 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2,
+        W1 ++ (W2 ++ (R ++ (S ++ (U ++ (jhT NV k 0 ++ E)))))⟩
+      = ⟨(81, idx, if i = 0 then s else true),
+          2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * i,
+          W1 ++ (W2 ++ (R ++ (S ++ (U ++ (jhT NV k i ++ E)))))⟩ := by
+  induction i with
+  | zero => rfl
+  | succ i ih =>
+    have e1 : (W1 ++ (W2 ++ (R ++ (S ++ (U ++ (jhT NV k i ++ E)))))).getD
+        (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * i) false
+        = true := by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2 + 2 * i))))
+          from by omega]
+      exact liftJ5 W1 W2 R S U _ h1 h2 hR hS hU (jhE_pair_lo NV k i E (by omega))
+    have e2 : (W1 ++ (W2 ++ (R ++ (S ++ (U ++ (jhT NV k i ++ E)))))).getD
+        (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * i + 1) false
+        = false := by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2
+              + (2 * C2 + 2 + (2 * i + 1))))) from by omega]
+      exact liftJ5 W1 W2 R S U _ h1 h2 hR hS hU (jhE_pair_hi NV k i E (by omega))
+    have hw : writeAt (W1 ++ (W2 ++ (R ++ (S ++ (U ++ (jhT NV k i ++ E))))))
+        (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * i + 1) true
+        = W1 ++ (W2 ++ (R ++ (S ++ (U ++ (jhT NV k (i + 1) ++ E))))) := by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2
+              + (2 * C2 + 2 + (2 * i + 1))))) from by omega,
+        writeAt_append_right5 W1 W2 R S U _ (2 * G1 + 2) (2 * G2 + 2) (2 * CB + 2)
+          (2 * C1 + 2) (2 * C2 + 2) (2 * i + 1) true h1 h2 hR hS hU
+          (by rw [List.length_append, jhT_length NV k i (by omega) (by omega)]; omega),
+        jhT_heal NV k i E (by omega) (by omega)]
+    rw [show 2 * (i + 1) = 2 * i + 2 from by ring, run_add, ih (by omega),
+      qp_healJ e1 e2, hw]
+    rfl
+
+/-- The padded-bound heal (the finale, phase 94, two prefixes, evolving `jhT`). -/
+theorem qp_healBJs (body : List L3Instr) (W1 W2 : List Bool) (G1 G2 CB j : ℕ)
+    (E : List Bool) (h1 : W1.length = 2 * G1 + 2) (h2 : W2.length = 2 * G2 + 2)
+    (hj : j ≤ CB) (idx : Fin (body.length + 1)) (s : Bool) (i : ℕ) (hi : i ≤ j) :
+    run (pairTMachine body) (2 * i)
+      ⟨(94, idx, s), 2 * G1 + 2 + 2 * G2 + 2, W1 ++ (W2 ++ (jhT CB j 0 ++ E))⟩
+      = ⟨(94, idx, if i = 0 then s else true), 2 * G1 + 2 + 2 * G2 + 2 + 2 * i,
+          W1 ++ (W2 ++ (jhT CB j i ++ E))⟩ := by
+  induction i with
+  | zero => rfl
+  | succ i ih =>
+    have e1 : (W1 ++ (W2 ++ (jhT CB j i ++ E))).getD
+        (2 * G1 + 2 + 2 * G2 + 2 + 2 * i) false = true := by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * i = 2 * G1 + 2 + (2 * G2 + 2 + 2 * i)
+          from by omega]
+      exact liftJ2 W1 W2 _ h1 h2 (jhE_pair_lo CB j i E (by omega))
+    have e2 : (W1 ++ (W2 ++ (jhT CB j i ++ E))).getD
+        (2 * G1 + 2 + 2 * G2 + 2 + 2 * i + 1) false = false := by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * i + 1 = 2 * G1 + 2 + (2 * G2 + 2 + (2 * i + 1))
+          from by omega]
+      exact liftJ2 W1 W2 _ h1 h2 (jhE_pair_hi CB j i E (by omega))
+    have hw : writeAt (W1 ++ (W2 ++ (jhT CB j i ++ E)))
+        (2 * G1 + 2 + 2 * G2 + 2 + 2 * i + 1) true
+        = W1 ++ (W2 ++ (jhT CB j (i + 1) ++ E)) := by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * i + 1 = 2 * G1 + 2 + (2 * G2 + 2 + (2 * i + 1))
+          from by omega,
+        writeAt_append_right2 W1 W2 _ (2 * G1 + 2) (2 * G2 + 2) (2 * i + 1) true h1 h2
+          (by rw [List.length_append, jhT_length CB j i (by omega) (by omega)]; omega),
+        jhT_heal CB j i E (by omega) (by omega)]
+    rw [show 2 * (i + 1) = 2 * i + 2 from by ring, run_add, ih (by omega),
+      qp_healB e1 e2, hw]
+    rfl
+/-! ## The instruction lemmas
+
+Round-`k` layout:
+`cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k+1) ++ (jT C1 t1 ++ (jT C2 t2 ++ (jT NV k
+++ encodeD OUT)))))` — the grand prefix at `[0, 2G1+2)`, the row prefix at
+`[2G1+2, 2G1+2G2+4)`, then the engine's padded regions (find-marked bound, the two source
+mirrors, the live variable), output at `2G1+2G2+2CB+2C1+2C2+2NV+12`.  Every boundary-event
+scan absorbs the padding as equal `(false,false)` pairs, so the leg counts pick up the
+capacities; the clocks stay value-independent in `j`. -/
+
+section Instr
+variable {G1 g1 G2 g2 : ℕ}
+
+/-- **An append instruction**, doubly prefixed on the padded layout: dispatch, skip both
+prefixes, skip the find-marked padded bound, four boundary-event scans absorbing every pad,
+snoc, advance. -/
+theorem qp_instr_bit (body : List L3Instr) (idx : Fin (body.length + 1))
+    (h : idx.val < body.length) {b : Bool} (hp : body.getD idx.val .spJo = .bit b)
+    (hg1 : g1 ≤ G1) (hg2 : g2 ≤ G2) (CB C1 C2 NV j t1 t2 k : ℕ) (hj : j ≤ CB)
+    (ht1 : t1 ≤ C1) (ht2 : t2 ≤ C2) (hk : k < j) (hkV : k ≤ NV) (OUT : List Bool)
+    (s : Bool) :
+    run (pairTMachine body)
+      (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 2 * OUT.length + 19)
+      ⟨(2, idx, s), 0, cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+        ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))⟩
+      = ⟨(2, ⟨idx.val + 1, by omega⟩, false), 0,
+          cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ [b]))))))⟩ := by
+  have hW1 : (cntT G1 g1).length = 2 * G1 + 2 := cntT_length G1 g1 hg1
+  have hW2 : (cntT G2 g2).length = 2 * G2 + 2 := cntT_length G2 g2 hg2
+  have hB : (jsT CB j (k + 1)).length = 2 * CB + 2 := jsT_length CB j (k + 1) (by omega) hj
+  have hS1 : (jT C1 t1).length = 2 * C1 + 2 := jT_length C1 t1 ht1
+  have hq6 : (cntT G1 g1).length + (cntT G2 g2).length + (jsT CB j (k + 1)).length
+      + (jT C1 t1).length + (jT C2 t2).length + (jT NV k).length
+      = 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12 := by
+    rw [hW1, hW2, hB, hS1, jT_length C2 t2 ht2, jT_length NV k hkV]; omega
+  have b0 := qp_dispatch_bit (s := s) (p := 0)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))) h hp
+  have b0a := qp_skipWbs body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))) 0 G1 idx s
+    (fun i hi => by simpa using cntE_lo G1 g1 _ i hg1 hi)
+  simp only [Nat.zero_add] at b0a
+  have b0b := qp_crossWb (body := body) (idx := idx) (s := if G1 = 0 then s else true)
+    (p := 2 * G1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT))))))
+    (cntE_cm_lo G1 g1 _ hg1) (cntE_cm_hi G1 g1 _ hg1)
+  have b0c := qp_skipW2bs body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))) (2 * G1 + 2) G2 idx false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * i = 2 * G1 + 2 + (2 * i) from rfl]
+      exact liftJ _ _ hW1 (cntE_lo G2 g2 _ i hg2 hi))
+  have b0d := qp_crossW2b (body := body) (idx := idx)
+    (s := if G2 = 0 then false else true) (p := 2 * G1 + 2 + 2 * G2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 = 2 * G1 + 2 + (2 * G2) from rfl]
+        exact liftJ _ _ hW1 (cntE_cm_lo G2 g2 _ hg2))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 1 = 2 * G1 + 2 + (2 * G2 + 1) from by omega]
+        exact liftJ _ _ hW1 (cntE_cm_hi G2 g2 _ hg2))
+  have b1 := qp_skipB1s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))) (2 * G1 + 2 + 2 * G2 + 2) j idx false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * i = 2 * G1 + 2 + (2 * G2 + 2 + 2 * i)
+          from by omega]
+      rcases Nat.lt_or_ge i (k + 1) with hik | hik
+      · exact liftJ2 _ _ _ hW1 hW2 (jsE_mark_lo CB j (k + 1) _ i hik)
+      · exact liftJ2 _ _ _ hW1 hW2
+          (jsE_data CB j (k + 1) _ (2 * i) (by omega) (by omega) (by omega)))
+  have b2 := qp_crossB1 (body := body) (idx := idx) (s := if j = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * j)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j = 2 * G1 + 2 + (2 * G2 + 2 + 2 * j)
+          from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_lo CB j (k + 1) _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 1)) from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_hi CB j (k + 1) _ (by omega)))
+  have b3 := qp_scanB2s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2) ((CB - j) + t1) idx false
+    (fun i hi => by
+      rcases Nat.lt_or_ge i (CB - j) with hilt | hige
+      · have e1 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i) false = false := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 2 + 2 * i)) from by omega]
+          exact liftJ2 _ _ _ hW1 hW2 (jsE_pad CB j (k + 1) _ (2 * j + 2 + 2 * i)
+            (by omega) hj (by omega) (by omega))
+        have e2 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i + 1) false = false := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i + 1
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 2 + 2 * i + 1)) from by omega]
+          exact liftJ2 _ _ _ hW1 hW2 (jsE_pad CB j (k + 1) _ (2 * j + 2 + 2 * i + 1)
+            (by omega) hj (by omega) (by omega))
+        rw [e1, e2]
+      · have e1 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i) false = true := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * (i - (CB - j))))
+              from by omega, ← jsT_zero C1 t1]
+          exact liftJ3 _ _ _ _ hW1 hW2 hB
+            (jsE_data C1 t1 0 _ (2 * (i - (CB - j))) (by omega) (by omega) (by omega))
+        have e2 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i + 1) false = true := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i + 1
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * (i - (CB - j)) + 1)))
+              from by omega, ← jsT_zero C1 t1]
+          exact liftJ3 _ _ _ _ hW1 hW2 hB
+            (jsE_data C1 t1 0 _ (2 * (i - (CB - j)) + 1) (by omega) (by omega) (by omega))
+        rw [e1, e2])
+  rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * ((CB - j) + t1)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 from by omega] at b3
+  have b4 := qp_crossSB2 (body := body) (idx := idx)
+    (s := storedD (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT))))))
+      (2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2) false ((CB - j) + t1))
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * t1)) from by omega,
+        ← jsT_zero C1 t1]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_lo C1 t1 0 _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 1))) from by omega,
+        ← jsT_zero C1 t1]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_hi C1 t1 0 _ (by omega)))
+  have b5 := qp_scanB3s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2) ((C1 - t1) + t2) idx false
+    (fun i hi => by
+      rcases Nat.lt_or_ge i (C1 - t1) with hilt | hige
+      · have e1 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i) false = false := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 2 + 2 * i)))
+              from by omega, ← jsT_zero C1 t1]
+          exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_pad C1 t1 0 _ (2 * t1 + 2 + 2 * i)
+            (by omega) ht1 (by omega) (by omega))
+        have e2 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i + 1) false
+            = false := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i + 1
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 2 + 2 * i + 1)))
+              from by omega, ← jsT_zero C1 t1]
+          exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_pad C1 t1 0 _ (2 * t1 + 2 + 2 * i + 1)
+            (by omega) ht1 (by omega) (by omega))
+        rw [e1, e2]
+      · have e1 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i) false = true := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2
+                  + 2 * (i - (C1 - t1))))) from by omega, ← jsT_zero C2 t2]
+          exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1
+            (jsE_data C2 t2 0 _ (2 * (i - (C1 - t1))) (by omega) (by omega) (by omega))
+        have e2 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i + 1) false
+            = true := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i + 1
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2
+                  + (2 * (i - (C1 - t1)) + 1)))) from by omega, ← jsT_zero C2 t2]
+          exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1
+            (jsE_data C2 t2 0 _ (2 * (i - (C1 - t1)) + 1) (by omega) (by omega) (by omega))
+        rw [e1, e2])
+  rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * ((C1 - t1) + t2)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 from by omega] at b5
+  have b6 := qp_crossSB3 (body := body) (idx := idx)
+    (s := storedD (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT))))))
+      (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2) false ((C1 - t1) + t2))
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + 2 * t2)))
+          from by omega, ← jsT_zero C2 t2]
+        exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_lo C2 t2 0 _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * t2 + 1))))
+          from by omega, ← jsT_zero C2 t2]
+        exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_hi C2 t2 0 _ (by omega)))
+  have b7 := qp_scanB4s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2) ((C2 - t2) + k)
+    idx false
+    (fun i hi => by
+      rcases Nat.lt_or_ge i (C2 - t2) with hilt | hige
+      · have e1 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2 + 2 * i) false
+            = false := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2 + 2 * i
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2
+                  + (2 * t2 + 2 + 2 * i)))) from by omega, ← jsT_zero C2 t2]
+          exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_pad C2 t2 0 _ (2 * t2 + 2 + 2 * i)
+            (by omega) ht2 (by omega) (by omega))
+        have e2 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2 + 2 * i + 1)
+            false = false := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2
+                + 2 * i + 1
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2
+                  + (2 * t2 + 2 + 2 * i + 1)))) from by omega, ← jsT_zero C2 t2]
+          exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1
+            (jsE_pad C2 t2 0 _ (2 * t2 + 2 + 2 * i + 1) (by omega) ht2 (by omega)
+              (by omega))
+        rw [e1, e2]
+      · have e1 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2 + 2 * i) false
+            = true := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2 + 2 * i
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+                  + 2 * (i - (C2 - t2)))))) from by omega, ← jsT_zero NV k]
+          exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 (jT_length C2 t2 ht2)
+            (jsE_data NV k 0 _ (2 * (i - (C2 - t2))) (by omega) (by omega) (by omega))
+        have e2 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2 + 2 * i + 1)
+            false = true := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2
+                + 2 * i + 1
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+                  + (2 * (i - (C2 - t2)) + 1))))) from by omega, ← jsT_zero NV k]
+          exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 (jT_length C2 t2 ht2)
+            (jsE_data NV k 0 _ (2 * (i - (C2 - t2)) + 1) (by omega) (by omega) (by omega))
+        rw [e1, e2])
+  rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2
+        + 2 * ((C2 - t2) + k)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k
+      from by omega] at b7
+  have b8 := qp_crossSB4 (body := body) (idx := idx)
+    (s := storedD (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT))))))
+      (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2) false
+      ((C2 - t2) + k))
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2 + 2 * k))))
+          from by omega, ← jsT_zero NV k]
+        exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 (jT_length C2 t2 ht2)
+          (jsE_m_lo NV k 0 _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+            + 2 * k + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+              + (2 * k + 1))))) from by omega, ← jsT_zero NV k]
+        exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 (jT_length C2 t2 ht2)
+          (jsE_m_hi NV k 0 _ (by omega)))
+  have b9 := qp_scanB5s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k + 2)
+    ((NV - k) + OUT.length) idx false
+    (fun i hi => by
+      rcases Nat.lt_or_ge i (NV - k) with hilt | hige
+      · have e1 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k + 2
+              + 2 * i) false = false := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+                + 2 * k + 2 + 2 * i
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+                  + (2 * k + 2 + 2 * i))))) from by omega, ← jsT_zero NV k]
+          exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 (jT_length C2 t2 ht2)
+            (jsE_pad NV k 0 _ (2 * k + 2 + 2 * i) (by omega) hkV (by omega) (by omega))
+        have e2 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k + 2
+              + 2 * i + 1) false = false := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+                + 2 * k + 2 + 2 * i + 1
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+                  + (2 * k + 2 + 2 * i + 1))))) from by omega, ← jsT_zero NV k]
+          exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 (jT_length C2 t2 ht2)
+            (jsE_pad NV k 0 _ (2 * k + 2 + 2 * i + 1) (by omega) hkV (by omega)
+              (by omega))
+        rw [e1, e2]
+      · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k
+              + 2 + 2 * i
+            = 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12
+                + 2 * (i - (NV - k)) from by omega]
+        exact preD6_data_eq (cntT G1 g1) (cntT G2 g2) (jsT CB j (k + 1)) (jT C1 t1)
+          (jT C2 t2) (jT NV k) OUT
+          (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12) (i - (NV - k)) hq6
+          (by omega))
+  rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k + 2
+        + 2 * ((NV - k) + OUT.length)
+      = 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12 + 2 * OUT.length
+      from by omega] at b9
+  have b10 := qp_detectB5 (body := body) (idx := idx)
+    (s := storedD (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT))))))
+      (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k + 2) false
+      ((NV - k) + OUT.length))
+    (p := 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12 + 2 * OUT.length)
+    (preD6_mark_lo (cntT G1 g1) (cntT G2 g2) (jsT CB j (k + 1)) (jT C1 t1) (jT C2 t2)
+      (jT NV k) OUT (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12) hq6)
+    (preD6_mark_hi (cntT G1 g1) (cntT G2 g2) (jsT CB j (k + 1)) (jT C1 t1) (jT C2 t2)
+      (jT NV k) OUT (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12) hq6)
+  have b11 := qp_four_bit (body := body) (idx := idx) (s := false)
+    (p := 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12 + 2 * OUT.length)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))) (by omega)
+  rw [hp] at b11
+  simp only [L3Instr.bitVal] at b11
+  rw [writes_snoc6 (cntT G1 g1) (cntT G2 g2) (jsT CB j (k + 1)) (jT C1 t1) (jT C2 t2)
+    (jT NV k) OUT (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12) hq6 b] at b11
+  rw [show 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 2 * OUT.length + 19
+      = 1 + (2 * G1 + (2 + (2 * G2 + (2 + (2 * j + (2 + (2 * ((CB - j) + t1) + (2
+          + (2 * ((C1 - t1) + t2) + (2 + (2 * ((C2 - t2) + k) + (2
+          + (2 * ((NV - k) + OUT.length) + (2 + 4))))))))))))))
+      from by omega,
+    run_add, b0, run_add, b0a, run_add, b0b, run_add, b0c, run_add, b0d, run_add, b1,
+    run_add, b2, run_add, b3, run_add, b4, run_add, b5, run_add, b6, run_add, b7,
+    run_add, b8, run_add, b9, run_add, b10, b11]
+
+end Instr
+
+/-! ### The open splice-A instruction on the padded layout -/
+
+section InstrA
+variable {G1 g1 G2 g2 : ℕ}
+
+/-- One splice-A sub-round on the padded layout: skip both prefixes, seek through the
+find-marked bound and its pad, mark the first source mirror's pair `i`, seek out through the
+second source, the live variable and every pad, emit a doubled `true`. -/
+theorem qp_spa_round (body : List L3Instr) (idx : Fin (body.length + 1)) (hg1 : g1 ≤ G1)
+    (hg2 : g2 ≤ G2) (CB C1 C2 NV j t1 t2 k i : ℕ) (hj : j ≤ CB) (ht1 : t1 ≤ C1)
+    (ht2 : t2 ≤ C2) (hk : k < j) (hkV : k ≤ NV) (hi : i < t1) (OUT : List Bool) (s : Bool) :
+    run (pairTMachine body)
+      (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 2 * OUT.length + 2 * i + 20)
+      ⟨(101, idx, s), 0, cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 i
+        ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true))))))⟩
+      = ⟨(101, idx, false), 0, cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1)
+          ++ (jsT C1 t1 (i + 1) ++ (jT C2 t2 ++ (jT NV k
+            ++ encodeD (OUT ++ List.replicate (i + 1) true))))))⟩ := by
+  have hW1 : (cntT G1 g1).length = 2 * G1 + 2 := cntT_length G1 g1 hg1
+  have hW2 : (cntT G2 g2).length = 2 * G2 + 2 := cntT_length G2 g2 hg2
+  have hB : (jsT CB j (k + 1)).length = 2 * CB + 2 := jsT_length CB j (k + 1) (by omega) hj
+  have hS1 : (jsT C1 t1 (i + 1)).length = 2 * C1 + 2 := jsT_length C1 t1 (i + 1) hi ht1
+  have hq6 : (cntT G1 g1).length + (cntT G2 g2).length + (jsT CB j (k + 1)).length
+      + (jsT C1 t1 (i + 1)).length + (jT C2 t2).length + (jT NV k).length
+      = 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12 := by
+    rw [hW1, hW2, hB, hS1, jT_length C2 t2 ht2, jT_length NV k hkV]; omega
+  have hlen : (OUT ++ List.replicate i true).length = OUT.length + i := by
+    rw [List.length_append, List.length_replicate]
+  have s0a := qp_skipWsas body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 i
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true))))))) 0 G1 idx s
+    (fun i' hi' => by simpa using cntE_lo G1 g1 _ i' hg1 hi')
+  simp only [Nat.zero_add] at s0a
+  have s0b := qp_crossWsa (body := body) (idx := idx) (s := if G1 = 0 then s else true)
+    (p := 2 * G1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 i
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (cntE_cm_lo G1 g1 _ hg1) (cntE_cm_hi G1 g1 _ hg1)
+  have s0c := qp_skipW2sas body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 i
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2) G2 idx false
+    (fun i' hi' => by
+      rw [show 2 * G1 + 2 + 2 * i' = 2 * G1 + 2 + (2 * i') from rfl]
+      exact liftJ _ _ hW1 (cntE_lo G2 g2 _ i' hg2 hi'))
+  have s0d := qp_crossW2sa (body := body) (idx := idx)
+    (s := if G2 = 0 then false else true) (p := 2 * G1 + 2 + 2 * G2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 i
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 = 2 * G1 + 2 + (2 * G2) from rfl]
+        exact liftJ _ _ hW1 (cntE_cm_lo G2 g2 _ hg2))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 1 = 2 * G1 + 2 + (2 * G2 + 1) from by omega]
+        exact liftJ _ _ hW1 (cntE_cm_hi G2 g2 _ hg2))
+  have s1 := qp_skipA1s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 i
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2) j idx false
+    (fun i' hi' => by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * i' = 2 * G1 + 2 + (2 * G2 + 2 + 2 * i')
+          from by omega]
+      rcases Nat.lt_or_ge i' (k + 1) with hik | hik
+      · exact liftJ2 _ _ _ hW1 hW2 (jsE_mark_lo CB j (k + 1) _ i' hik)
+      · exact liftJ2 _ _ _ hW1 hW2
+          (jsE_data CB j (k + 1) _ (2 * i') (by omega) (by omega) (by omega)))
+  have s2 := qp_crossA1 (body := body) (idx := idx) (s := if j = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * j)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 i
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j = 2 * G1 + 2 + (2 * G2 + 2 + 2 * j)
+          from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_lo CB j (k + 1) _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 1)) from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_hi CB j (k + 1) _ (by omega)))
+  have s2b := qp_padPA1s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 i
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2) (CB - j) idx false
+    (fun i' hi' => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i'
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 2 + 2 * i')) from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_pad CB j (k + 1) _ (2 * j + 2 + 2 * i')
+        (by omega) hj (by omega) (by omega)), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i' + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 2 + 2 * i' + 1)) from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_pad CB j (k + 1) _ (2 * j + 2 + 2 * i' + 1)
+        (by omega) hj (by omega) (by omega))⟩)
+  rw [ite_self, show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * (CB - j)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 from by omega] at s2b
+  have s2c := qp_padPA1_bound (body := body) (idx := idx) (s := false)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 i
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (Or.inl (by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2)) from by omega]
+      rcases Nat.eq_zero_or_pos i with h0 | h0
+      · exact liftJ3 _ _ _ _ hW1 hW2 hB
+          (jsE_data C1 t1 i _ 0 (by omega) (by omega) (by omega))
+      · exact liftJ3 _ _ _ _ hW1 hW2 hB (by
+          have := jsE_mark_lo C1 t1 i (jT C2 t2 ++ (jT NV k
+            ++ encodeD (OUT ++ List.replicate i true))) 0 h0
+          simpa using this)))
+  have s3 := qp_skipAms body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 i
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2) i idx false
+    (fun i' hi' => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i'
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * i')) from by omega]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_mark_lo C1 t1 i _ i' hi'), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i' + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * i' + 1))) from by omega]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_mark_hi C1 t1 i _ i' hi')⟩)
+  have s4 := qp_markA (body := body) (idx := idx) (s := if i = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 i
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * i)) from by omega]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB
+          (jsE_data C1 t1 i _ (2 * i) (by omega) (by omega) (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * i + 1))) from by omega]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB
+          (jsE_data C1 t1 i _ (2 * i + 1) (by omega) (by omega) (by omega)))
+  have hw : writeAt (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 i
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+      (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i + 1) false
+      = cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+          ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))) := by
+    rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i + 1
+        = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * i + 1))) from by omega,
+      writeAt_append_right3 (cntT G1 g1) (cntT G2 g2) (jsT CB j (k + 1)) _ (2 * G1 + 2)
+        (2 * G2 + 2) (2 * CB + 2) (2 * i + 1) false hW1 hW2 hB
+        (by rw [List.length_append, jsT_length C1 t1 i (by omega) ht1]; omega),
+      jsT_mark C1 t1 i _ hi ht1]
+  rw [hw] at s4
+  have s5 := qp_scanA2s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i + 2) (t1 - (i + 1)) idx true
+    (fun i' hi' => by
+      have e1 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+          ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true))))))).getD
+          (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i + 2 + 2 * i') false = true := by
+        rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i + 2 + 2 * i'
+            = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * i + 2 + 2 * i')))
+            from by omega]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB
+          (jsE_data C1 t1 (i + 1) _ (2 * i + 2 + 2 * i') (by omega) (by omega) (by omega))
+      have e2 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+          ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true))))))).getD
+          (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i + 2 + 2 * i' + 1) false
+          = true := by
+        rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i + 2 + 2 * i' + 1
+            = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * i + 2 + 2 * i' + 1)))
+            from by omega]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB
+          (jsE_data C1 t1 (i + 1) _ (2 * i + 2 + 2 * i' + 1) (by omega) (by omega)
+            (by omega))
+      rw [e1, e2])
+  rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i + 2 + 2 * (t1 - (i + 1))
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 from by omega] at s5
+  have s6 := qp_crossSA2 (body := body) (idx := idx)
+    (s := storedD (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+      (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i + 2) true (t1 - (i + 1)))
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * t1)) from by omega]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_lo C1 t1 (i + 1) _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 1))) from by omega]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_hi C1 t1 (i + 1) _ (by omega)))
+  have s7 := qp_scanA3s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2) ((C1 - t1) + t2) idx false
+    (fun i' hi' => by
+      rcases Nat.lt_or_ge i' (C1 - t1) with hilt | hige
+      · have e1 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true))))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i') false = false := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i'
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 2 + 2 * i')))
+              from by omega]
+          exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_pad C1 t1 (i + 1) _ (2 * t1 + 2 + 2 * i')
+            hi ht1 (by omega) (by omega))
+        have e2 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true))))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i' + 1) false
+            = false := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i' + 1
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 2 + 2 * i' + 1)))
+              from by omega]
+          exact liftJ3 _ _ _ _ hW1 hW2 hB
+            (jsE_pad C1 t1 (i + 1) _ (2 * t1 + 2 + 2 * i' + 1) hi ht1 (by omega)
+              (by omega))
+        rw [e1, e2]
+      · have e1 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true))))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i') false = true := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i'
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2
+                  + 2 * (i' - (C1 - t1))))) from by omega, ← jsT_zero C2 t2]
+          exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1
+            (jsE_data C2 t2 0 _ (2 * (i' - (C1 - t1))) (by omega) (by omega) (by omega))
+        have e2 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true))))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i' + 1) false
+            = true := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i' + 1
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2
+                  + (2 * (i' - (C1 - t1)) + 1)))) from by omega, ← jsT_zero C2 t2]
+          exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1
+            (jsE_data C2 t2 0 _ (2 * (i' - (C1 - t1)) + 1) (by omega) (by omega)
+              (by omega))
+        rw [e1, e2])
+  rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * ((C1 - t1) + t2)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 from by omega] at s7
+  have s8 := qp_crossSA3 (body := body) (idx := idx)
+    (s := storedD (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+      (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2) false ((C1 - t1) + t2))
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + 2 * t2)))
+          from by omega, ← jsT_zero C2 t2]
+        exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_lo C2 t2 0 _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * t2 + 1))))
+          from by omega, ← jsT_zero C2 t2]
+        exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_hi C2 t2 0 _ (by omega)))
+  have s9 := qp_scanA4s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2) ((C2 - t2) + k)
+    idx false
+    (fun i' hi' => by
+      rcases Nat.lt_or_ge i' (C2 - t2) with hilt | hige
+      · have e1 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true))))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2 + 2 * i')
+            false = false := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2 + 2 * i'
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2
+                  + (2 * t2 + 2 + 2 * i')))) from by omega, ← jsT_zero C2 t2]
+          exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_pad C2 t2 0 _ (2 * t2 + 2 + 2 * i')
+            (by omega) ht2 (by omega) (by omega))
+        have e2 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true))))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2 + 2 * i' + 1)
+            false = false := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2
+                + 2 * i' + 1
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2
+                  + (2 * t2 + 2 + 2 * i' + 1)))) from by omega, ← jsT_zero C2 t2]
+          exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1
+            (jsE_pad C2 t2 0 _ (2 * t2 + 2 + 2 * i' + 1) (by omega) ht2 (by omega)
+              (by omega))
+        rw [e1, e2]
+      · have e1 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true))))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2 + 2 * i')
+            false = true := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2 + 2 * i'
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+                  + 2 * (i' - (C2 - t2)))))) from by omega, ← jsT_zero NV k]
+          exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 (jT_length C2 t2 ht2)
+            (jsE_data NV k 0 _ (2 * (i' - (C2 - t2))) (by omega) (by omega) (by omega))
+        have e2 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true))))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2 + 2 * i' + 1)
+            false = true := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2
+                + 2 * i' + 1
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+                  + (2 * (i' - (C2 - t2)) + 1))))) from by omega, ← jsT_zero NV k]
+          exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 (jT_length C2 t2 ht2)
+            (jsE_data NV k 0 _ (2 * (i' - (C2 - t2)) + 1) (by omega) (by omega)
+              (by omega))
+        rw [e1, e2])
+  rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2
+        + 2 * ((C2 - t2) + k)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k
+      from by omega] at s9
+  have s10 := qp_crossSA4 (body := body) (idx := idx)
+    (s := storedD (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+      (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2) false
+      ((C2 - t2) + k))
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2 + 2 * k))))
+          from by omega, ← jsT_zero NV k]
+        exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 (jT_length C2 t2 ht2)
+          (jsE_m_lo NV k 0 _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+            + 2 * k + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+              + (2 * k + 1))))) from by omega, ← jsT_zero NV k]
+        exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 (jT_length C2 t2 ht2)
+          (jsE_m_hi NV k 0 _ (by omega)))
+  have s11 := qp_scanA5s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k + 2)
+    ((NV - k) + (OUT.length + i)) idx false
+    (fun i' hi' => by
+      rcases Nat.lt_or_ge i' (NV - k) with hilt | hige
+      · have e1 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true))))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k + 2
+              + 2 * i') false = false := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+                + 2 * k + 2 + 2 * i'
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+                  + (2 * k + 2 + 2 * i'))))) from by omega, ← jsT_zero NV k]
+          exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 (jT_length C2 t2 ht2)
+            (jsE_pad NV k 0 _ (2 * k + 2 + 2 * i') (by omega) hkV (by omega) (by omega))
+        have e2 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true))))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k + 2
+              + 2 * i' + 1) false = false := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+                + 2 * k + 2 + 2 * i' + 1
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+                  + (2 * k + 2 + 2 * i' + 1))))) from by omega, ← jsT_zero NV k]
+          exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 (jT_length C2 t2 ht2)
+            (jsE_pad NV k 0 _ (2 * k + 2 + 2 * i' + 1) (by omega) hkV (by omega)
+              (by omega))
+        rw [e1, e2]
+      · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k
+              + 2 + 2 * i'
+            = 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12
+                + 2 * (i' - (NV - k)) from by omega]
+        exact preD6_data_eq (cntT G1 g1) (cntT G2 g2) (jsT CB j (k + 1))
+          (jsT C1 t1 (i + 1)) (jT C2 t2) (jT NV k) (OUT ++ List.replicate i true)
+          (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12) (i' - (NV - k)) hq6
+          (by rw [List.length_append, List.length_replicate]; omega))
+  rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k + 2
+        + 2 * ((NV - k) + (OUT.length + i))
+      = 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12 + 2 * (OUT.length + i)
+      from by omega] at s11
+  have hm1 := preD6_mark_lo (cntT G1 g1) (cntT G2 g2) (jsT CB j (k + 1))
+    (jsT C1 t1 (i + 1)) (jT C2 t2) (jT NV k) (OUT ++ List.replicate i true)
+    (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12) hq6
+  have hm2 := preD6_mark_hi (cntT G1 g1) (cntT G2 g2) (jsT CB j (k + 1))
+    (jsT C1 t1 (i + 1)) (jT C2 t2) (jT NV k) (OUT ++ List.replicate i true)
+    (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12) hq6
+  rw [hlen] at hm1 hm2
+  have s12 := qp_detectA5 (body := body) (idx := idx)
+    (s := storedD (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+      (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k + 2) false
+      ((NV - k) + (OUT.length + i)))
+    (p := 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12
+      + 2 * (OUT.length + i)) hm1 hm2
+  have hsn := writes_snoc6 (cntT G1 g1) (cntT G2 g2) (jsT CB j (k + 1))
+    (jsT C1 t1 (i + 1)) (jT C2 t2) (jT NV k) (OUT ++ List.replicate i true)
+    (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12) hq6 true
+  rw [hlen, List.append_assoc,
+    show (List.replicate i true ++ [true] : List Bool) = List.replicate (i + 1) true from by
+      rw [← List.replicate_succ']] at hsn
+  have s13 := qp_four_TA (body := body) (idx := idx) (s := false)
+    (p := 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12 + 2 * (OUT.length + i))
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 (i + 1)
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+  rw [hsn] at s13
+  rw [show 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 2 * OUT.length + 2 * i
+        + 20
+      = 2 * G1 + (2 + (2 * G2 + (2 + (2 * j + (2 + (2 * (CB - j) + (2 + (2 * i + (2
+          + (2 * (t1 - (i + 1)) + (2 + (2 * ((C1 - t1) + t2) + (2 + (2 * ((C2 - t2) + k)
+          + (2 + (2 * ((NV - k) + (OUT.length + i)) + (2 + 4)))))))))))))))))
+      from by omega,
+    run_add, s0a, run_add, s0b, run_add, s0c, run_add, s0d, run_add, s1, run_add, s2,
+    run_add, s2b, run_add, s2c, run_add, s3, run_add, s4, run_add, s5, run_add, s6,
+    run_add, s7, run_add, s8, run_add, s9, run_add, s10, run_add, s11, run_add, s12, s13]
+
+theorem qp_spa_rounds (body : List L3Instr) (idx : Fin (body.length + 1)) (hg1 : g1 ≤ G1)
+    (hg2 : g2 ≤ G2) (CB C1 C2 NV j t1 t2 k : ℕ) (hj : j ≤ CB) (ht1 : t1 ≤ C1)
+    (ht2 : t2 ≤ C2) (hk : k < j) (hkV : k ≤ NV) (OUT : List Bool) (r : ℕ) (hr : r ≤ t1)
+    (s : Bool) :
+    run (pairTMachine body)
+      (lp3SpRounds (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV
+        + 2 * OUT.length + 20) r)
+      ⟨(101, idx, s), 0, cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 0
+        ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))⟩
+      = ⟨(101, idx, if r = 0 then s else false), 0, cntT G1 g1 ++ (cntT G2 g2
+          ++ (jsT CB j (k + 1) ++ (jsT C1 t1 r ++ (jT C2 t2 ++ (jT NV k
+            ++ encodeD (OUT ++ List.replicate r true))))))⟩ := by
+  induction r with
+  | zero => simp only [lp3SpRounds]; rw [run_zero]; simp
+  | succ r ih =>
+    rw [show lp3SpRounds (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV
+          + 2 * OUT.length + 20) (r + 1)
+        = lp3SpRounds (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV
+            + 2 * OUT.length + 20) r
+            + (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 2 * OUT.length + 20
+              + 2 * r) from rfl,
+      show 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 2 * OUT.length + 20
+          + 2 * r
+        = 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 2 * OUT.length + 2 * r
+          + 20 from by omega,
+      run_add, ih (by omega),
+      qp_spa_round body idx hg1 hg2 CB C1 C2 NV j t1 t2 k r hj ht1 ht2 hk hkV (by omega)
+        OUT _,
+      if_neg (by omega)]
+
+end InstrA
+
+/-- The padded splice-A instruction clock: the sub-rounds plus the twin seek and heal
+passes; `j`-independent (the bound skip and its pad-crossing always sum to `2CB+2`). -/
+def pairTaCost (G1 G2 CB C1 C2 NV t1 L : ℕ) : ℕ :=
+  1 + (lp3SpRounds (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 2 * L + 20) t1
+    + ((2 * G1 + 2 * G2 + 2 * CB + 2 * t1 + 10) + (2 * G1 + 2 * G2 + 2 * CB + 2 * t1 + 10)))
+
+section InstrA2
+variable {G1 g1 G2 g2 : ℕ}
+
+/-- **An open splice-A instruction**, doubly prefixed on the padded layout: emit `1^{t1}` from
+the first source mirror (no closing `false`), heal it, advance. -/
+theorem qp_instr_spAo (body : List L3Instr) (idx : Fin (body.length + 1))
+    (h : idx.val < body.length) (hp : body.getD idx.val .spJo = .spAo) (hg1 : g1 ≤ G1)
+    (hg2 : g2 ≤ G2) (CB C1 C2 NV j t1 t2 k : ℕ) (hj : j ≤ CB) (ht1 : t1 ≤ C1)
+    (ht2 : t2 ≤ C2) (hk : k < j) (hkV : k ≤ NV) (OUT : List Bool) (s : Bool) :
+    run (pairTMachine body) (pairTaCost G1 G2 CB C1 C2 NV t1 OUT.length)
+      ⟨(2, idx, s), 0, cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+        ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))⟩
+      = ⟨(2, ⟨idx.val + 1, by omega⟩, false), 0,
+          cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t1 true))))))⟩ := by
+  have hW1 : (cntT G1 g1).length = 2 * G1 + 2 := cntT_length G1 g1 hg1
+  have hW2 : (cntT G2 g2).length = 2 * G2 + 2 := cntT_length G2 g2 hg2
+  have hB : (jsT CB j (k + 1)).length = 2 * CB + 2 := jsT_length CB j (k + 1) (by omega) hj
+  have f0 := qp_dispatch_spAo (s := s) (p := 0)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))) h hp
+  have f1 := qp_spa_rounds body idx hg1 hg2 CB C1 C2 NV j t1 t2 k hj ht1 ht2 hk hkV OUT t1
+    (le_refl t1) s
+  have f2a := qp_skipWsas body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t1 true))))))) 0 G1 idx
+    (if t1 = 0 then s else false) (fun i hi => by simpa using cntE_lo G1 g1 _ i hg1 hi)
+  simp only [Nat.zero_add] at f2a
+  have f2b := qp_crossWsa (body := body) (idx := idx)
+    (s := if G1 = 0 then (if t1 = 0 then s else false) else true) (p := 2 * G1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t1 true)))))))
+    (cntE_cm_lo G1 g1 _ hg1) (cntE_cm_hi G1 g1 _ hg1)
+  have f2c := qp_skipW2sas body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t1 true)))))))
+    (2 * G1 + 2) G2 idx false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * i = 2 * G1 + 2 + (2 * i) from rfl]
+      exact liftJ _ _ hW1 (cntE_lo G2 g2 _ i hg2 hi))
+  have f2d := qp_crossW2sa (body := body) (idx := idx)
+    (s := if G2 = 0 then false else true) (p := 2 * G1 + 2 + 2 * G2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t1 true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 = 2 * G1 + 2 + (2 * G2) from rfl]
+        exact liftJ _ _ hW1 (cntE_cm_lo G2 g2 _ hg2))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 1 = 2 * G1 + 2 + (2 * G2 + 1) from by omega]
+        exact liftJ _ _ hW1 (cntE_cm_hi G2 g2 _ hg2))
+  have f2 := qp_skipA1s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t1 true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2) j idx false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * i = 2 * G1 + 2 + (2 * G2 + 2 + 2 * i)
+          from by omega]
+      rcases Nat.lt_or_ge i (k + 1) with hik | hik
+      · exact liftJ2 _ _ _ hW1 hW2 (jsE_mark_lo CB j (k + 1) _ i hik)
+      · exact liftJ2 _ _ _ hW1 hW2
+          (jsE_data CB j (k + 1) _ (2 * i) (by omega) (by omega) (by omega)))
+  have f3 := qp_crossA1 (body := body) (idx := idx) (s := if j = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * j)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t1 true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j = 2 * G1 + 2 + (2 * G2 + 2 + 2 * j)
+          from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_lo CB j (k + 1) _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 1)) from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_hi CB j (k + 1) _ (by omega)))
+  have f3b := qp_padPA1s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t1 true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2) (CB - j) idx false
+    (fun i hi => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 2 + 2 * i)) from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_pad CB j (k + 1) _ (2 * j + 2 + 2 * i)
+        (by omega) hj (by omega) (by omega)), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 2 + 2 * i + 1)) from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_pad CB j (k + 1) _ (2 * j + 2 + 2 * i + 1)
+        (by omega) hj (by omega) (by omega))⟩)
+  rw [ite_self, show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * (CB - j)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 from by omega] at f3b
+  have f3c := qp_padPA1_bound (body := body) (idx := idx) (s := false)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t1 true)))))))
+    (by rcases Nat.eq_zero_or_pos t1 with h0 | h0
+        · right
+          subst h0
+          constructor
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * 0)) from by omega]
+            exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_lo C1 0 0 _ (le_refl 0))
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 1
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * 0 + 1))) from by omega]
+            exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_hi C1 0 0 _ (le_refl 0))
+        · left
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2)) from by omega]
+          exact liftJ3 _ _ _ _ hW1 hW2 hB (by
+            have := jsE_mark_lo C1 t1 t1 (jT C2 t2 ++ (jT NV k
+              ++ encodeD (OUT ++ List.replicate t1 true))) 0 h0
+            simpa using this))
+  have f4 := qp_skipAms body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t1 true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2) t1 idx false
+    (fun i hi => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * i)) from by omega]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_mark_lo C1 t1 t1 _ i hi), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * i + 1))) from by omega]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_mark_hi C1 t1 t1 _ i hi)⟩)
+  have f5 := qp_doneA (body := body) (idx := idx) (s := if t1 = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jsT C1 t1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t1 true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * t1)) from by omega]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_lo C1 t1 t1 _ (le_refl t1)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 1))) from by omega]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_hi C1 t1 t1 _ (le_refl t1)))
+  have f6a := qp_skipWhas body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jhT C1 t1 0
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t1 true))))))) 0 G1 idx
+    false (fun i hi => by simpa using cntE_lo G1 g1 _ i hg1 hi)
+  simp only [Nat.zero_add] at f6a
+  have f6b := qp_crossWha (body := body) (idx := idx) (s := if G1 = 0 then false else true)
+    (p := 2 * G1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jhT C1 t1 0
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t1 true)))))))
+    (cntE_cm_lo G1 g1 _ hg1) (cntE_cm_hi G1 g1 _ hg1)
+  have f6c := qp_skipW2has body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jhT C1 t1 0
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t1 true)))))))
+    (2 * G1 + 2) G2 idx false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * i = 2 * G1 + 2 + (2 * i) from rfl]
+      exact liftJ _ _ hW1 (cntE_lo G2 g2 _ i hg2 hi))
+  have f6d := qp_crossW2ha (body := body) (idx := idx)
+    (s := if G2 = 0 then false else true) (p := 2 * G1 + 2 + 2 * G2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jhT C1 t1 0
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t1 true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 = 2 * G1 + 2 + (2 * G2) from rfl]
+        exact liftJ _ _ hW1 (cntE_cm_lo G2 g2 _ hg2))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 1 = 2 * G1 + 2 + (2 * G2 + 1) from by omega]
+        exact liftJ _ _ hW1 (cntE_cm_hi G2 g2 _ hg2))
+  have f6 := qp_skiphA1s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jhT C1 t1 0
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t1 true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2) j idx false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * i = 2 * G1 + 2 + (2 * G2 + 2 + 2 * i)
+          from by omega]
+      rcases Nat.lt_or_ge i (k + 1) with hik | hik
+      · exact liftJ2 _ _ _ hW1 hW2 (jsE_mark_lo CB j (k + 1) _ i hik)
+      · exact liftJ2 _ _ _ hW1 hW2
+          (jsE_data CB j (k + 1) _ (2 * i) (by omega) (by omega) (by omega)))
+  have f7 := qp_crosshA1 (body := body) (idx := idx) (s := if j = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * j)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jhT C1 t1 0
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t1 true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j = 2 * G1 + 2 + (2 * G2 + 2 + 2 * j)
+          from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_lo CB j (k + 1) _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 1)) from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_hi CB j (k + 1) _ (by omega)))
+  have f7b := qp_padPhA1s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jhT C1 t1 0
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t1 true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2) (CB - j) idx false
+    (fun i hi => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 2 + 2 * i)) from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_pad CB j (k + 1) _ (2 * j + 2 + 2 * i)
+        (by omega) hj (by omega) (by omega)), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 2 + 2 * i + 1)) from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_pad CB j (k + 1) _ (2 * j + 2 + 2 * i + 1)
+        (by omega) hj (by omega) (by omega))⟩)
+  rw [ite_self, show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * (CB - j)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 from by omega] at f7b
+  have f7c := qp_padPhA1_bound (body := body) (idx := idx) (s := false)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jhT C1 t1 0
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t1 true)))))))
+    (by rcases Nat.eq_zero_or_pos t1 with h0 | h0
+        · right
+          subst h0
+          constructor
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * 0)) from by omega]
+            exact liftJ3 _ _ _ _ hW1 hW2 hB (jhE_m_lo C1 0 _)
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 1
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * 0 + 1))) from by omega]
+            exact liftJ3 _ _ _ _ hW1 hW2 hB (jhE_m_hi C1 0 _)
+        · left
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2)) from by omega]
+          exact liftJ3 _ _ _ _ hW1 hW2 hB (by
+            have := jhE_pair_lo C1 t1 0 (jT C2 t2 ++ (jT NV k
+              ++ encodeD (OUT ++ List.replicate t1 true))) h0
+            simpa using this))
+  have f8 := qp_healT1s body (cntT G1 g1) (cntT G2 g2) (jsT CB j (k + 1)) G1 G2 CB C1 t1
+    (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t1 true))) hW1 hW2 hB ht1 idx
+    false t1 (le_refl t1)
+  have f9 := qp_doneHealA (body := body) (idx := idx)
+    (s := if t1 = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jhT C1 t1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t1 true)))))))
+    (by omega)
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * t1)) from by omega]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB (jhE_m_lo C1 t1 _))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 1))) from by omega]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB (jhE_m_hi C1 t1 _))
+  rw [show pairTaCost G1 G2 CB C1 C2 NV t1 OUT.length
+      = 1 + (lp3SpRounds (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV
+          + 2 * OUT.length + 20) t1
+          + (2 * G1 + (2 + (2 * G2 + (2 + (2 * j + (2 + (2 * (CB - j) + (2 + (2 * t1 + (2
+              + (2 * G1 + (2 + (2 * G2 + (2 + (2 * j + (2 + (2 * (CB - j) + (2
+              + (2 * t1 + 2))))))))))))))))))))
+      from by simp only [pairTaCost]; omega,
+    run_add, f0, ← jsT_zero C1 t1, run_add, f1, run_add, f2a, run_add, f2b, run_add, f2c,
+    run_add, f2d, run_add, f2, run_add, f3, run_add, f3b, run_add, f3c, run_add, f4,
+    run_add, f5, ← jhT_zero C1 t1, run_add, f6a, run_add, f6b, run_add, f6c, run_add, f6d,
+    run_add, f6, run_add, f7, run_add, f7b, run_add, f7c, run_add, f8, f9, jhT_last,
+    jsT_zero C1 t1]
+
+end InstrA2
+
+/-! ### The open splice-C instruction on the padded layout -/
+
+section InstrC
+variable {G1 g1 G2 g2 : ℕ}
+
+/-- One splice-C sub-round on the padded layout: skip both prefixes, seek through the bound,
+its pad, the first source and its pad, mark the second source mirror's pair `i`, seek out,
+emit a doubled `true`. -/
+theorem qp_spc_round (body : List L3Instr) (idx : Fin (body.length + 1)) (hg1 : g1 ≤ G1)
+    (hg2 : g2 ≤ G2) (CB C1 C2 NV j t1 t2 k i : ℕ) (hj : j ≤ CB) (ht1 : t1 ≤ C1)
+    (ht2 : t2 ≤ C2) (hk : k < j) (hkV : k ≤ NV) (hi : i < t2) (OUT : List Bool) (s : Bool) :
+    run (pairTMachine body)
+      (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 2 * OUT.length + 2 * i + 22)
+      ⟨(105, idx, s), 0, cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+        ++ (jsT C2 t2 i ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true))))))⟩
+      = ⟨(105, idx, false), 0, cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1)
+          ++ (jT C1 t1 ++ (jsT C2 t2 (i + 1) ++ (jT NV k
+            ++ encodeD (OUT ++ List.replicate (i + 1) true))))))⟩ := by
+  have hW1 : (cntT G1 g1).length = 2 * G1 + 2 := cntT_length G1 g1 hg1
+  have hW2 : (cntT G2 g2).length = 2 * G2 + 2 := cntT_length G2 g2 hg2
+  have hB : (jsT CB j (k + 1)).length = 2 * CB + 2 := jsT_length CB j (k + 1) (by omega) hj
+  have hS1 : (jT C1 t1).length = 2 * C1 + 2 := jT_length C1 t1 ht1
+  have hS2 : (jsT C2 t2 (i + 1)).length = 2 * C2 + 2 := jsT_length C2 t2 (i + 1) hi ht2
+  have hq6 : (cntT G1 g1).length + (cntT G2 g2).length + (jsT CB j (k + 1)).length
+      + (jT C1 t1).length + (jsT C2 t2 (i + 1)).length + (jT NV k).length
+      = 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12 := by
+    rw [hW1, hW2, hB, hS1, hS2, jT_length NV k hkV]; omega
+  have hlen : (OUT ++ List.replicate i true).length = OUT.length + i := by
+    rw [List.length_append, List.length_replicate]
+  have s0a := qp_skipWscs body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 i ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true))))))) 0 G1 idx
+    s (fun i' hi' => by simpa using cntE_lo G1 g1 _ i' hg1 hi')
+  simp only [Nat.zero_add] at s0a
+  have s0b := qp_crossWsc (body := body) (idx := idx) (s := if G1 = 0 then s else true)
+    (p := 2 * G1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 i ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (cntE_cm_lo G1 g1 _ hg1) (cntE_cm_hi G1 g1 _ hg1)
+  have s0c := qp_skipW2scs body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 i ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2) G2 idx false
+    (fun i' hi' => by
+      rw [show 2 * G1 + 2 + 2 * i' = 2 * G1 + 2 + (2 * i') from rfl]
+      exact liftJ _ _ hW1 (cntE_lo G2 g2 _ i' hg2 hi'))
+  have s0d := qp_crossW2sc (body := body) (idx := idx)
+    (s := if G2 = 0 then false else true) (p := 2 * G1 + 2 + 2 * G2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 i ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 = 2 * G1 + 2 + (2 * G2) from rfl]
+        exact liftJ _ _ hW1 (cntE_cm_lo G2 g2 _ hg2))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 1 = 2 * G1 + 2 + (2 * G2 + 1) from by omega]
+        exact liftJ _ _ hW1 (cntE_cm_hi G2 g2 _ hg2))
+  have s1 := qp_skipC1s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 i ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2) j idx false
+    (fun i' hi' => by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * i' = 2 * G1 + 2 + (2 * G2 + 2 + 2 * i')
+          from by omega]
+      rcases Nat.lt_or_ge i' (k + 1) with hik | hik
+      · exact liftJ2 _ _ _ hW1 hW2 (jsE_mark_lo CB j (k + 1) _ i' hik)
+      · exact liftJ2 _ _ _ hW1 hW2
+          (jsE_data CB j (k + 1) _ (2 * i') (by omega) (by omega) (by omega)))
+  have s2 := qp_crossC1 (body := body) (idx := idx) (s := if j = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * j)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 i ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j = 2 * G1 + 2 + (2 * G2 + 2 + 2 * j)
+          from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_lo CB j (k + 1) _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 1)) from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_hi CB j (k + 1) _ (by omega)))
+  have s2b := qp_padPC1s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 i ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2) (CB - j) idx false
+    (fun i' hi' => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i'
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 2 + 2 * i')) from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_pad CB j (k + 1) _ (2 * j + 2 + 2 * i')
+        (by omega) hj (by omega) (by omega)), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i' + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 2 + 2 * i' + 1)) from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_pad CB j (k + 1) _ (2 * j + 2 + 2 * i' + 1)
+        (by omega) hj (by omega) (by omega))⟩)
+  rw [ite_self, show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * (CB - j)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 from by omega] at s2b
+  have s2c := qp_padPC1_bound (body := body) (idx := idx) (s := false)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 i ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (by rcases Nat.eq_zero_or_pos t1 with h0 | h0
+        · right
+          constructor
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * t1)) from by omega,
+              ← jsT_zero C1 t1]
+            exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_lo C1 t1 0 _ (by omega))
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 1
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 1))) from by omega,
+              ← jsT_zero C1 t1]
+            exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_hi C1 t1 0 _ (by omega))
+        · left
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2)) from by omega, ← jsT_zero C1 t1]
+          exact liftJ3 _ _ _ _ hW1 hW2 hB
+            (jsE_data C1 t1 0 _ 0 (by omega) (by omega) (by omega)))
+  have s3 := qp_skipC2s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 i ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2) t1 idx false
+    (fun i' hi' => by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i'
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * i')) from by omega,
+        ← jsT_zero C1 t1]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB
+        (jsE_data C1 t1 0 _ (2 * i') (by omega) (by omega) (by omega)))
+  have s4 := qp_crossC2 (body := body) (idx := idx) (s := if t1 = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 i ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * t1)) from by omega,
+        ← jsT_zero C1 t1]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_lo C1 t1 0 _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 1))) from by omega,
+        ← jsT_zero C1 t1]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_hi C1 t1 0 _ (by omega)))
+  have s4b := qp_padPC2s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 i ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2) (C1 - t1) idx false
+    (fun i' hi' => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i'
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 2 + 2 * i')))
+          from by omega, ← jsT_zero C1 t1]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_pad C1 t1 0 _ (2 * t1 + 2 + 2 * i')
+        (by omega) ht1 (by omega) (by omega)), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i' + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 2 + 2 * i' + 1)))
+          from by omega, ← jsT_zero C1 t1]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_pad C1 t1 0 _ (2 * t1 + 2 + 2 * i' + 1)
+        (by omega) ht1 (by omega) (by omega))⟩)
+  rw [ite_self, show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * (C1 - t1)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 from by omega] at s4b
+  have s4c := qp_padPC2_bound (body := body) (idx := idx) (s := false)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 i ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (Or.inl (by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2))) from by omega]
+      rcases Nat.eq_zero_or_pos i with h0 | h0
+      · exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1
+          (jsE_data C2 t2 i _ 0 (by omega) (by omega) (by omega))
+      · exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (by
+          have := jsE_mark_lo C2 t2 i (jT NV k
+            ++ encodeD (OUT ++ List.replicate i true)) 0 h0
+          simpa using this)))
+  have s5 := qp_skipCms body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 i ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2) i idx false
+    (fun i' hi' => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i'
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + 2 * i')))
+          from by omega]
+      exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_mark_lo C2 t2 i _ i' hi'), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i' + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * i' + 1))))
+          from by omega]
+      exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_mark_hi C2 t2 i _ i' hi')⟩)
+  have s6 := qp_markC (body := body) (idx := idx) (s := if i = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 i ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + 2 * i)))
+          from by omega]
+        exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1
+          (jsE_data C2 t2 i _ (2 * i) (by omega) (by omega) (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * i + 1))))
+          from by omega]
+        exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1
+          (jsE_data C2 t2 i _ (2 * i + 1) (by omega) (by omega) (by omega)))
+  have hw : writeAt (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 i ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+      (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i + 1) false
+      = cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+          ++ (jsT C2 t2 (i + 1) ++ (jT NV k
+            ++ encodeD (OUT ++ List.replicate i true)))))) := by
+    rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i + 1
+        = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * i + 1))))
+        from by omega,
+      writeAt_append_right4 (cntT G1 g1) (cntT G2 g2) (jsT CB j (k + 1)) (jT C1 t1) _
+        (2 * G1 + 2) (2 * G2 + 2) (2 * CB + 2) (2 * C1 + 2) (2 * i + 1) false hW1 hW2 hB
+        hS1 (by rw [List.length_append, jsT_length C2 t2 i (by omega) ht2]; omega),
+      jsT_mark C2 t2 i _ hi ht2]
+  rw [hw] at s6
+  have s7 := qp_scanC3s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 (i + 1) ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i + 2) (t2 - (i + 1)) idx
+    true
+    (fun i' hi' => by
+      have e1 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+          ++ (jsT C2 t2 (i + 1) ++ (jT NV k
+            ++ encodeD (OUT ++ List.replicate i true))))))).getD
+          (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i + 2 + 2 * i') false
+          = true := by
+        rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i + 2 + 2 * i'
+            = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2
+                + (2 * i + 2 + 2 * i')))) from by omega]
+        exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1
+          (jsE_data C2 t2 (i + 1) _ (2 * i + 2 + 2 * i') (by omega) (by omega) (by omega))
+      have e2 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+          ++ (jsT C2 t2 (i + 1) ++ (jT NV k
+            ++ encodeD (OUT ++ List.replicate i true))))))).getD
+          (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i + 2 + 2 * i' + 1)
+          false = true := by
+        rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i + 2
+              + 2 * i' + 1
+            = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2
+                + (2 * i + 2 + 2 * i' + 1)))) from by omega]
+        exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1
+          (jsE_data C2 t2 (i + 1) _ (2 * i + 2 + 2 * i' + 1) (by omega) (by omega)
+            (by omega))
+      rw [e1, e2])
+  rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i + 2
+        + 2 * (t2 - (i + 1))
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 from by omega] at s7
+  have s8 := qp_crossSC3 (body := body) (idx := idx)
+    (s := storedD (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 (i + 1) ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+      (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i + 2) true (t2 - (i + 1)))
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 (i + 1) ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + 2 * t2)))
+          from by omega]
+        exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_lo C2 t2 (i + 1) _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * t2 + 1))))
+          from by omega]
+        exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_hi C2 t2 (i + 1) _ (by omega)))
+  have s9 := qp_scanC4s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 (i + 1) ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2) ((C2 - t2) + k) idx
+    false
+    (fun i' hi' => by
+      rcases Nat.lt_or_ge i' (C2 - t2) with hilt | hige
+      · have e1 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jsT C2 t2 (i + 1) ++ (jT NV k
+              ++ encodeD (OUT ++ List.replicate i true))))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2 + 2 * i')
+            false = false := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2 + 2 * i'
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2
+                  + (2 * t2 + 2 + 2 * i')))) from by omega]
+          exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1
+            (jsE_pad C2 t2 (i + 1) _ (2 * t2 + 2 + 2 * i') hi ht2 (by omega) (by omega))
+        have e2 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jsT C2 t2 (i + 1) ++ (jT NV k
+              ++ encodeD (OUT ++ List.replicate i true))))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2 + 2 * i' + 1)
+            false = false := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2
+                + 2 * i' + 1
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2
+                  + (2 * t2 + 2 + 2 * i' + 1)))) from by omega]
+          exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1
+            (jsE_pad C2 t2 (i + 1) _ (2 * t2 + 2 + 2 * i' + 1) hi ht2 (by omega)
+              (by omega))
+        rw [e1, e2]
+      · have e1 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jsT C2 t2 (i + 1) ++ (jT NV k
+              ++ encodeD (OUT ++ List.replicate i true))))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2 + 2 * i')
+            false = true := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2 + 2 * i'
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+                  + 2 * (i' - (C2 - t2)))))) from by omega, ← jsT_zero NV k]
+          exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2
+            (jsE_data NV k 0 _ (2 * (i' - (C2 - t2))) (by omega) (by omega) (by omega))
+        have e2 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jsT C2 t2 (i + 1) ++ (jT NV k
+              ++ encodeD (OUT ++ List.replicate i true))))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2 + 2 * i' + 1)
+            false = true := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2
+                + 2 * i' + 1
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+                  + (2 * (i' - (C2 - t2)) + 1))))) from by omega, ← jsT_zero NV k]
+          exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2
+            (jsE_data NV k 0 _ (2 * (i' - (C2 - t2)) + 1) (by omega) (by omega)
+              (by omega))
+        rw [e1, e2])
+  rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2
+        + 2 * ((C2 - t2) + k)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k
+      from by omega] at s9
+  have s10 := qp_crossSC4 (body := body) (idx := idx)
+    (s := storedD (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 (i + 1) ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+      (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2) false
+      ((C2 - t2) + k))
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 (i + 1) ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2 + 2 * k))))
+          from by omega, ← jsT_zero NV k]
+        exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2 (jsE_m_lo NV k 0 _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+            + 2 * k + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+              + (2 * k + 1))))) from by omega, ← jsT_zero NV k]
+        exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2 (jsE_m_hi NV k 0 _ (by omega)))
+  have s11 := qp_scanC5s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 (i + 1) ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k + 2)
+    ((NV - k) + (OUT.length + i)) idx false
+    (fun i' hi' => by
+      rcases Nat.lt_or_ge i' (NV - k) with hilt | hige
+      · have e1 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jsT C2 t2 (i + 1) ++ (jT NV k
+              ++ encodeD (OUT ++ List.replicate i true))))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k + 2
+              + 2 * i') false = false := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+                + 2 * k + 2 + 2 * i'
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+                  + (2 * k + 2 + 2 * i'))))) from by omega, ← jsT_zero NV k]
+          exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2
+            (jsE_pad NV k 0 _ (2 * k + 2 + 2 * i') (by omega) hkV (by omega) (by omega))
+        have e2 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jsT C2 t2 (i + 1) ++ (jT NV k
+              ++ encodeD (OUT ++ List.replicate i true))))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k + 2
+              + 2 * i' + 1) false = false := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+                + 2 * k + 2 + 2 * i' + 1
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+                  + (2 * k + 2 + 2 * i' + 1))))) from by omega, ← jsT_zero NV k]
+          exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2
+            (jsE_pad NV k 0 _ (2 * k + 2 + 2 * i' + 1) (by omega) hkV (by omega)
+              (by omega))
+        rw [e1, e2]
+      · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k
+              + 2 + 2 * i'
+            = 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12
+                + 2 * (i' - (NV - k)) from by omega]
+        exact preD6_data_eq (cntT G1 g1) (cntT G2 g2) (jsT CB j (k + 1)) (jT C1 t1)
+          (jsT C2 t2 (i + 1)) (jT NV k) (OUT ++ List.replicate i true)
+          (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12) (i' - (NV - k)) hq6
+          (by rw [List.length_append, List.length_replicate]; omega))
+  rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k + 2
+        + 2 * ((NV - k) + (OUT.length + i))
+      = 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12 + 2 * (OUT.length + i)
+      from by omega] at s11
+  have hm1 := preD6_mark_lo (cntT G1 g1) (cntT G2 g2) (jsT CB j (k + 1)) (jT C1 t1)
+    (jsT C2 t2 (i + 1)) (jT NV k) (OUT ++ List.replicate i true)
+    (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12) hq6
+  have hm2 := preD6_mark_hi (cntT G1 g1) (cntT G2 g2) (jsT CB j (k + 1)) (jT C1 t1)
+    (jsT C2 t2 (i + 1)) (jT NV k) (OUT ++ List.replicate i true)
+    (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12) hq6
+  rw [hlen] at hm1 hm2
+  have s12 := qp_detectC5 (body := body) (idx := idx)
+    (s := storedD (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 (i + 1) ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+      (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k + 2) false
+      ((NV - k) + (OUT.length + i)))
+    (p := 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12
+      + 2 * (OUT.length + i)) hm1 hm2
+  have hsn := writes_snoc6 (cntT G1 g1) (cntT G2 g2) (jsT CB j (k + 1)) (jT C1 t1)
+    (jsT C2 t2 (i + 1)) (jT NV k) (OUT ++ List.replicate i true)
+    (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12) hq6 true
+  rw [hlen, List.append_assoc,
+    show (List.replicate i true ++ [true] : List Bool) = List.replicate (i + 1) true from by
+      rw [← List.replicate_succ']] at hsn
+  have s13 := qp_four_TC (body := body) (idx := idx) (s := false)
+    (p := 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12 + 2 * (OUT.length + i))
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 (i + 1) ++ (jT NV k ++ encodeD (OUT ++ List.replicate i true)))))))
+  rw [hsn] at s13
+  rw [show 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 2 * OUT.length + 2 * i
+        + 22
+      = 2 * G1 + (2 + (2 * G2 + (2 + (2 * j + (2 + (2 * (CB - j) + (2 + (2 * t1 + (2
+          + (2 * (C1 - t1) + (2 + (2 * i + (2 + (2 * (t2 - (i + 1)) + (2
+          + (2 * ((C2 - t2) + k) + (2 + (2 * ((NV - k) + (OUT.length + i))
+          + (2 + 4)))))))))))))))))))
+      from by omega,
+    run_add, s0a, run_add, s0b, run_add, s0c, run_add, s0d, run_add, s1, run_add, s2,
+    run_add, s2b, run_add, s2c, run_add, s3, run_add, s4, run_add, s4b, run_add, s4c,
+    run_add, s5, run_add, s6, run_add, s7, run_add, s8, run_add, s9, run_add, s10,
+    run_add, s11, run_add, s12, s13]
+
+theorem qp_spc_rounds (body : List L3Instr) (idx : Fin (body.length + 1)) (hg1 : g1 ≤ G1)
+    (hg2 : g2 ≤ G2) (CB C1 C2 NV j t1 t2 k : ℕ) (hj : j ≤ CB) (ht1 : t1 ≤ C1)
+    (ht2 : t2 ≤ C2) (hk : k < j) (hkV : k ≤ NV) (OUT : List Bool) (r : ℕ) (hr : r ≤ t2)
+    (s : Bool) :
+    run (pairTMachine body)
+      (lp3SpRounds (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV
+        + 2 * OUT.length + 22) r)
+      ⟨(105, idx, s), 0, cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+        ++ (jsT C2 t2 0 ++ (jT NV k ++ encodeD OUT)))))⟩
+      = ⟨(105, idx, if r = 0 then s else false), 0, cntT G1 g1 ++ (cntT G2 g2
+          ++ (jsT CB j (k + 1) ++ (jT C1 t1 ++ (jsT C2 t2 r ++ (jT NV k
+            ++ encodeD (OUT ++ List.replicate r true))))))⟩ := by
+  induction r with
+  | zero => simp only [lp3SpRounds]; rw [run_zero]; simp
+  | succ r ih =>
+    rw [show lp3SpRounds (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV
+          + 2 * OUT.length + 22) (r + 1)
+        = lp3SpRounds (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV
+            + 2 * OUT.length + 22) r
+            + (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 2 * OUT.length + 22
+              + 2 * r) from rfl,
+      show 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 2 * OUT.length + 22
+          + 2 * r
+        = 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 2 * OUT.length + 2 * r
+          + 22 from by omega,
+      run_add, ih (by omega),
+      qp_spc_round body idx hg1 hg2 CB C1 C2 NV j t1 t2 k r hj ht1 ht2 hk hkV (by omega)
+        OUT _,
+      if_neg (by omega)]
+
+end InstrC
+
+/-- The padded splice-C instruction clock; `j`-independent as before. -/
+def pairTcCost (G1 G2 CB C1 C2 NV t2 L : ℕ) : ℕ :=
+  1 + (lp3SpRounds (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 2 * L + 22) t2
+    + ((2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * t2 + 14)
+      + (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * t2 + 14)))
+
+section InstrC2
+variable {G1 g1 G2 g2 : ℕ}
+
+/-- **An open splice-C instruction**, doubly prefixed on the padded layout: emit `1^{t2}` from
+the second source mirror (no closing `false`), heal it, advance. -/
+theorem qp_instr_spCo (body : List L3Instr) (idx : Fin (body.length + 1))
+    (h : idx.val < body.length) (hp : body.getD idx.val .spJo = .spCo) (hg1 : g1 ≤ G1)
+    (hg2 : g2 ≤ G2) (CB C1 C2 NV j t1 t2 k : ℕ) (hj : j ≤ CB) (ht1 : t1 ≤ C1)
+    (ht2 : t2 ≤ C2) (hk : k < j) (hkV : k ≤ NV) (OUT : List Bool) (s : Bool) :
+    run (pairTMachine body) (pairTcCost G1 G2 CB C1 C2 NV t2 OUT.length)
+      ⟨(2, idx, s), 0, cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+        ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))⟩
+      = ⟨(2, ⟨idx.val + 1, by omega⟩, false), 0,
+          cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true))))))⟩ := by
+  have hW1 : (cntT G1 g1).length = 2 * G1 + 2 := cntT_length G1 g1 hg1
+  have hW2 : (cntT G2 g2).length = 2 * G2 + 2 := cntT_length G2 g2 hg2
+  have hB : (jsT CB j (k + 1)).length = 2 * CB + 2 := jsT_length CB j (k + 1) (by omega) hj
+  have hS1 : (jT C1 t1).length = 2 * C1 + 2 := jT_length C1 t1 ht1
+  have f0 := qp_dispatch_spCo (s := s) (p := 0)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))) h hp
+  have f1 := qp_spc_rounds body idx hg1 hg2 CB C1 C2 NV j t1 t2 k hj ht1 ht2 hk hkV OUT t2
+    (le_refl t2) s
+  have f2a := qp_skipWscs body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true))))))) 0 G1
+    idx (if t2 = 0 then s else false)
+    (fun i hi => by simpa using cntE_lo G1 g1 _ i hg1 hi)
+  simp only [Nat.zero_add] at f2a
+  have f2b := qp_crossWsc (body := body) (idx := idx)
+    (s := if G1 = 0 then (if t2 = 0 then s else false) else true) (p := 2 * G1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (cntE_cm_lo G1 g1 _ hg1) (cntE_cm_hi G1 g1 _ hg1)
+  have f2c := qp_skipW2scs body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (2 * G1 + 2) G2 idx false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * i = 2 * G1 + 2 + (2 * i) from rfl]
+      exact liftJ _ _ hW1 (cntE_lo G2 g2 _ i hg2 hi))
+  have f2d := qp_crossW2sc (body := body) (idx := idx)
+    (s := if G2 = 0 then false else true) (p := 2 * G1 + 2 + 2 * G2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 = 2 * G1 + 2 + (2 * G2) from rfl]
+        exact liftJ _ _ hW1 (cntE_cm_lo G2 g2 _ hg2))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 1 = 2 * G1 + 2 + (2 * G2 + 1) from by omega]
+        exact liftJ _ _ hW1 (cntE_cm_hi G2 g2 _ hg2))
+  have f2 := qp_skipC1s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2) j idx false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * i = 2 * G1 + 2 + (2 * G2 + 2 + 2 * i)
+          from by omega]
+      rcases Nat.lt_or_ge i (k + 1) with hik | hik
+      · exact liftJ2 _ _ _ hW1 hW2 (jsE_mark_lo CB j (k + 1) _ i hik)
+      · exact liftJ2 _ _ _ hW1 hW2
+          (jsE_data CB j (k + 1) _ (2 * i) (by omega) (by omega) (by omega)))
+  have f3 := qp_crossC1 (body := body) (idx := idx) (s := if j = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * j)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j = 2 * G1 + 2 + (2 * G2 + 2 + 2 * j)
+          from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_lo CB j (k + 1) _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 1)) from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_hi CB j (k + 1) _ (by omega)))
+  have f3b := qp_padPC1s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2) (CB - j) idx false
+    (fun i hi => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 2 + 2 * i)) from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_pad CB j (k + 1) _ (2 * j + 2 + 2 * i)
+        (by omega) hj (by omega) (by omega)), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 2 + 2 * i + 1)) from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_pad CB j (k + 1) _ (2 * j + 2 + 2 * i + 1)
+        (by omega) hj (by omega) (by omega))⟩)
+  rw [ite_self, show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * (CB - j)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 from by omega] at f3b
+  have f3c := qp_padPC1_bound (body := body) (idx := idx) (s := false)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (by rcases Nat.eq_zero_or_pos t1 with h0 | h0
+        · right
+          constructor
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * t1)) from by omega,
+              ← jsT_zero C1 t1]
+            exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_lo C1 t1 0 _ (by omega))
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 1
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 1))) from by omega,
+              ← jsT_zero C1 t1]
+            exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_hi C1 t1 0 _ (by omega))
+        · left
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2)) from by omega, ← jsT_zero C1 t1]
+          exact liftJ3 _ _ _ _ hW1 hW2 hB
+            (jsE_data C1 t1 0 _ 0 (by omega) (by omega) (by omega)))
+  have f4 := qp_skipC2s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2) t1 idx false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * i)) from by omega,
+        ← jsT_zero C1 t1]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB
+        (jsE_data C1 t1 0 _ (2 * i) (by omega) (by omega) (by omega)))
+  have f5 := qp_crossC2 (body := body) (idx := idx) (s := if t1 = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * t1)) from by omega,
+        ← jsT_zero C1 t1]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_lo C1 t1 0 _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 1))) from by omega,
+        ← jsT_zero C1 t1]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_hi C1 t1 0 _ (by omega)))
+  have f5b := qp_padPC2s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2) (C1 - t1) idx false
+    (fun i hi => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 2 + 2 * i)))
+          from by omega, ← jsT_zero C1 t1]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_pad C1 t1 0 _ (2 * t1 + 2 + 2 * i)
+        (by omega) ht1 (by omega) (by omega)), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 2 + 2 * i + 1)))
+          from by omega, ← jsT_zero C1 t1]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_pad C1 t1 0 _ (2 * t1 + 2 + 2 * i + 1)
+        (by omega) ht1 (by omega) (by omega))⟩)
+  rw [ite_self, show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * (C1 - t1)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 from by omega] at f5b
+  have f5c := qp_padPC2_bound (body := body) (idx := idx) (s := false)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (by rcases Nat.eq_zero_or_pos t2 with h0 | h0
+        · right
+          constructor
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + 2 * t2)))
+                from by omega]
+            exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_lo C2 t2 t2 _ (le_refl t2))
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 1
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * t2 + 1))))
+                from by omega]
+            exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_hi C2 t2 t2 _ (le_refl t2))
+        · left
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2))) from by omega]
+          exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (by
+            have := jsE_mark_lo C2 t2 t2 (jT NV k
+              ++ encodeD (OUT ++ List.replicate t2 true)) 0 h0
+            simpa using this))
+  have f6 := qp_skipCms body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2) t2 idx false
+    (fun i hi => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + 2 * i)))
+          from by omega]
+      exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_mark_lo C2 t2 t2 _ i hi), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * i + 1))))
+          from by omega]
+      exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_mark_hi C2 t2 t2 _ i hi)⟩)
+  have f7 := qp_doneC (body := body) (idx := idx) (s := if t2 = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jsT C2 t2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + 2 * t2)))
+          from by omega]
+        exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_lo C2 t2 t2 _ (le_refl t2)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * t2 + 1))))
+          from by omega]
+        exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_hi C2 t2 t2 _ (le_refl t2)))
+  have f8a := qp_skipWhcs body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jhT C2 t2 0 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true))))))) 0 G1
+    idx false (fun i hi => by simpa using cntE_lo G1 g1 _ i hg1 hi)
+  simp only [Nat.zero_add] at f8a
+  have f8b := qp_crossWhc (body := body) (idx := idx) (s := if G1 = 0 then false else true)
+    (p := 2 * G1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jhT C2 t2 0 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (cntE_cm_lo G1 g1 _ hg1) (cntE_cm_hi G1 g1 _ hg1)
+  have f8c := qp_skipW2hcs body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jhT C2 t2 0 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (2 * G1 + 2) G2 idx false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * i = 2 * G1 + 2 + (2 * i) from rfl]
+      exact liftJ _ _ hW1 (cntE_lo G2 g2 _ i hg2 hi))
+  have f8d := qp_crossW2hc (body := body) (idx := idx)
+    (s := if G2 = 0 then false else true) (p := 2 * G1 + 2 + 2 * G2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jhT C2 t2 0 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 = 2 * G1 + 2 + (2 * G2) from rfl]
+        exact liftJ _ _ hW1 (cntE_cm_lo G2 g2 _ hg2))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 1 = 2 * G1 + 2 + (2 * G2 + 1) from by omega]
+        exact liftJ _ _ hW1 (cntE_cm_hi G2 g2 _ hg2))
+  have f8 := qp_skiphC1s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jhT C2 t2 0 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2) j idx false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * i = 2 * G1 + 2 + (2 * G2 + 2 + 2 * i)
+          from by omega]
+      rcases Nat.lt_or_ge i (k + 1) with hik | hik
+      · exact liftJ2 _ _ _ hW1 hW2 (jsE_mark_lo CB j (k + 1) _ i hik)
+      · exact liftJ2 _ _ _ hW1 hW2
+          (jsE_data CB j (k + 1) _ (2 * i) (by omega) (by omega) (by omega)))
+  have f9 := qp_crosshC1 (body := body) (idx := idx) (s := if j = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * j)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jhT C2 t2 0 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j = 2 * G1 + 2 + (2 * G2 + 2 + 2 * j)
+          from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_lo CB j (k + 1) _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 1)) from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_hi CB j (k + 1) _ (by omega)))
+  have f9b := qp_padPhC1s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jhT C2 t2 0 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2) (CB - j) idx false
+    (fun i hi => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 2 + 2 * i)) from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_pad CB j (k + 1) _ (2 * j + 2 + 2 * i)
+        (by omega) hj (by omega) (by omega)), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 2 + 2 * i + 1)) from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_pad CB j (k + 1) _ (2 * j + 2 + 2 * i + 1)
+        (by omega) hj (by omega) (by omega))⟩)
+  rw [ite_self, show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * (CB - j)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 from by omega] at f9b
+  have f9c := qp_padPhC1_bound (body := body) (idx := idx) (s := false)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jhT C2 t2 0 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (by rcases Nat.eq_zero_or_pos t1 with h0 | h0
+        · right
+          constructor
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * t1)) from by omega,
+              ← jsT_zero C1 t1]
+            exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_lo C1 t1 0 _ (by omega))
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 1
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 1))) from by omega,
+              ← jsT_zero C1 t1]
+            exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_hi C1 t1 0 _ (by omega))
+        · left
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2)) from by omega, ← jsT_zero C1 t1]
+          exact liftJ3 _ _ _ _ hW1 hW2 hB
+            (jsE_data C1 t1 0 _ 0 (by omega) (by omega) (by omega)))
+  have f10 := qp_skiphC2s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jhT C2 t2 0 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2) t1 idx false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * i)) from by omega,
+        ← jsT_zero C1 t1]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB
+        (jsE_data C1 t1 0 _ (2 * i) (by omega) (by omega) (by omega)))
+  have f11 := qp_crosshC2 (body := body) (idx := idx) (s := if t1 = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jhT C2 t2 0 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * t1)) from by omega,
+        ← jsT_zero C1 t1]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_lo C1 t1 0 _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 1))) from by omega,
+        ← jsT_zero C1 t1]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_hi C1 t1 0 _ (by omega)))
+  have f11b := qp_padPhC2s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jhT C2 t2 0 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2) (C1 - t1) idx false
+    (fun i hi => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 2 + 2 * i)))
+          from by omega, ← jsT_zero C1 t1]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_pad C1 t1 0 _ (2 * t1 + 2 + 2 * i)
+        (by omega) ht1 (by omega) (by omega)), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 2 + 2 * i + 1)))
+          from by omega, ← jsT_zero C1 t1]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_pad C1 t1 0 _ (2 * t1 + 2 + 2 * i + 1)
+        (by omega) ht1 (by omega) (by omega))⟩)
+  rw [ite_self, show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * (C1 - t1)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 from by omega] at f11b
+  have f11c := qp_padPhC2_bound (body := body) (idx := idx) (s := false)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jhT C2 t2 0 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (by rcases Nat.eq_zero_or_pos t2 with h0 | h0
+        · right
+          subst h0
+          constructor
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + 2 * 0)))
+                from by omega]
+            exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jhE_m_lo C2 0 _)
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 1
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * 0 + 1))))
+                from by omega]
+            exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jhE_m_hi C2 0 _)
+        · left
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2))) from by omega]
+          exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (by
+            have := jhE_pair_lo C2 t2 0 (jT NV k
+              ++ encodeD (OUT ++ List.replicate t2 true)) h0
+            simpa using this))
+  have f12 := qp_healT2s body (cntT G1 g1) (cntT G2 g2) (jsT CB j (k + 1)) (jT C1 t1) G1
+    G2 CB C1 C2 t2 (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)) hW1 hW2 hB hS1
+    ht2 idx false t2 (le_refl t2)
+  have f13 := qp_doneHealC (body := body) (idx := idx)
+    (s := if t2 = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jhT C2 t2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate t2 true)))))))
+    (by omega)
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + 2 * t2)))
+          from by omega]
+        exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jhE_m_lo C2 t2 _))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * t2 + 1))))
+          from by omega]
+        exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jhE_m_hi C2 t2 _))
+  rw [show pairTcCost G1 G2 CB C1 C2 NV t2 OUT.length
+      = 1 + (lp3SpRounds (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV
+          + 2 * OUT.length + 22) t2
+          + (2 * G1 + (2 + (2 * G2 + (2 + (2 * j + (2 + (2 * (CB - j) + (2 + (2 * t1 + (2
+              + (2 * (C1 - t1) + (2 + (2 * t2 + (2 + (2 * G1 + (2 + (2 * G2 + (2
+              + (2 * j + (2 + (2 * (CB - j) + (2 + (2 * t1 + (2 + (2 * (C1 - t1) + (2
+              + (2 * t2 + 2))))))))))))))))))))))))))))
+      from by simp only [pairTcCost]; omega,
+    run_add, f0, ← jsT_zero C2 t2, run_add, f1, run_add, f2a, run_add, f2b, run_add, f2c,
+    run_add, f2d, run_add, f2, run_add, f3, run_add, f3b, run_add, f3c, run_add, f4,
+    run_add, f5, run_add, f5b, run_add, f5c, run_add, f6, run_add, f7, ← jhT_zero C2 t2,
+    run_add, f8a, run_add, f8b, run_add, f8c, run_add, f8d, run_add, f8, run_add, f9,
+    run_add, f9b, run_add, f9c, run_add, f10, run_add, f11, run_add, f11b, run_add, f11c,
+    run_add, f12, f13, jhT_last, jsT_zero C2 t2]
+
+end InstrC2
+
+/-! ### The open splice-J instruction on the padded layout -/
+
+section InstrJ
+variable {G1 g1 G2 g2 : ℕ}
+
+/-- One splice-J sub-round on the padded layout: skip both prefixes, seek through the bound,
+both sources and all three pads, mark the live variable's pair `i`, seek out, emit a doubled
+`true`. -/
+theorem qp_spj_round (body : List L3Instr) (idx : Fin (body.length + 1)) (hg1 : g1 ≤ G1)
+    (hg2 : g2 ≤ G2) (CB C1 C2 NV j t1 t2 k i : ℕ) (hj : j ≤ CB) (ht1 : t1 ≤ C1)
+    (ht2 : t2 ≤ C2) (hk : k < j) (hkV : k ≤ NV) (hi : i < k) (OUT : List Bool) (s : Bool) :
+    run (pairTMachine body)
+      (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 2 * OUT.length + 2 * i + 24)
+      ⟨(109, idx, s), 0, cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+        ++ (jT C2 t2 ++ (jsT NV k i ++ encodeD (OUT ++ List.replicate i true))))))⟩
+      = ⟨(109, idx, false), 0, cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1)
+          ++ (jT C1 t1 ++ (jT C2 t2 ++ (jsT NV k (i + 1)
+            ++ encodeD (OUT ++ List.replicate (i + 1) true))))))⟩ := by
+  have hW1 : (cntT G1 g1).length = 2 * G1 + 2 := cntT_length G1 g1 hg1
+  have hW2 : (cntT G2 g2).length = 2 * G2 + 2 := cntT_length G2 g2 hg2
+  have hB : (jsT CB j (k + 1)).length = 2 * CB + 2 := jsT_length CB j (k + 1) (by omega) hj
+  have hS1 : (jT C1 t1).length = 2 * C1 + 2 := jT_length C1 t1 ht1
+  have hS2 : (jT C2 t2).length = 2 * C2 + 2 := jT_length C2 t2 ht2
+  have hq6 : (cntT G1 g1).length + (cntT G2 g2).length + (jsT CB j (k + 1)).length
+      + (jT C1 t1).length + (jT C2 t2).length + (jsT NV k (i + 1)).length
+      = 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12 := by
+    rw [hW1, hW2, hB, hS1, hS2, jsT_length NV k (i + 1) hi hkV]; omega
+  have hlen : (OUT ++ List.replicate i true).length = OUT.length + i := by
+    rw [List.length_append, List.length_replicate]
+  have s0a := qp_skipWsjs body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k i ++ encodeD (OUT ++ List.replicate i true))))))) 0 G1
+    idx s (fun i' hi' => by simpa using cntE_lo G1 g1 _ i' hg1 hi')
+  simp only [Nat.zero_add] at s0a
+  have s0b := qp_crossWsj (body := body) (idx := idx) (s := if G1 = 0 then s else true)
+    (p := 2 * G1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k i ++ encodeD (OUT ++ List.replicate i true)))))))
+    (cntE_cm_lo G1 g1 _ hg1) (cntE_cm_hi G1 g1 _ hg1)
+  have s0c := qp_skipW2sjs body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k i ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2) G2 idx false
+    (fun i' hi' => by
+      rw [show 2 * G1 + 2 + 2 * i' = 2 * G1 + 2 + (2 * i') from rfl]
+      exact liftJ _ _ hW1 (cntE_lo G2 g2 _ i' hg2 hi'))
+  have s0d := qp_crossW2sj (body := body) (idx := idx)
+    (s := if G2 = 0 then false else true) (p := 2 * G1 + 2 + 2 * G2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k i ++ encodeD (OUT ++ List.replicate i true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 = 2 * G1 + 2 + (2 * G2) from rfl]
+        exact liftJ _ _ hW1 (cntE_cm_lo G2 g2 _ hg2))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 1 = 2 * G1 + 2 + (2 * G2 + 1) from by omega]
+        exact liftJ _ _ hW1 (cntE_cm_hi G2 g2 _ hg2))
+  have s1 := qp_skipJr1s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k i ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2) j idx false
+    (fun i' hi' => by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * i' = 2 * G1 + 2 + (2 * G2 + 2 + 2 * i')
+          from by omega]
+      rcases Nat.lt_or_ge i' (k + 1) with hik | hik
+      · exact liftJ2 _ _ _ hW1 hW2 (jsE_mark_lo CB j (k + 1) _ i' hik)
+      · exact liftJ2 _ _ _ hW1 hW2
+          (jsE_data CB j (k + 1) _ (2 * i') (by omega) (by omega) (by omega)))
+  have s2 := qp_crossJr1 (body := body) (idx := idx) (s := if j = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * j)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k i ++ encodeD (OUT ++ List.replicate i true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j = 2 * G1 + 2 + (2 * G2 + 2 + 2 * j)
+          from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_lo CB j (k + 1) _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 1)) from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_hi CB j (k + 1) _ (by omega)))
+  have s2b := qp_padPJ1s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k i ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2) (CB - j) idx false
+    (fun i' hi' => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i'
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 2 + 2 * i')) from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_pad CB j (k + 1) _ (2 * j + 2 + 2 * i')
+        (by omega) hj (by omega) (by omega)), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i' + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 2 + 2 * i' + 1)) from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_pad CB j (k + 1) _ (2 * j + 2 + 2 * i' + 1)
+        (by omega) hj (by omega) (by omega))⟩)
+  rw [ite_self, show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * (CB - j)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 from by omega] at s2b
+  have s2c := qp_padPJ1_bound (body := body) (idx := idx) (s := false)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k i ++ encodeD (OUT ++ List.replicate i true)))))))
+    (by rcases Nat.eq_zero_or_pos t1 with h0 | h0
+        · right
+          constructor
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * t1)) from by omega,
+              ← jsT_zero C1 t1]
+            exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_lo C1 t1 0 _ (by omega))
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 1
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 1))) from by omega,
+              ← jsT_zero C1 t1]
+            exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_hi C1 t1 0 _ (by omega))
+        · left
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2)) from by omega, ← jsT_zero C1 t1]
+          exact liftJ3 _ _ _ _ hW1 hW2 hB
+            (jsE_data C1 t1 0 _ 0 (by omega) (by omega) (by omega)))
+  have s3 := qp_skipJr2s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k i ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2) t1 idx false
+    (fun i' hi' => by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i'
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * i')) from by omega,
+        ← jsT_zero C1 t1]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB
+        (jsE_data C1 t1 0 _ (2 * i') (by omega) (by omega) (by omega)))
+  have s4 := qp_crossJr2 (body := body) (idx := idx) (s := if t1 = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k i ++ encodeD (OUT ++ List.replicate i true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * t1)) from by omega,
+        ← jsT_zero C1 t1]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_lo C1 t1 0 _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 1))) from by omega,
+        ← jsT_zero C1 t1]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_hi C1 t1 0 _ (by omega)))
+  have s4b := qp_padPJ2s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k i ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2) (C1 - t1) idx false
+    (fun i' hi' => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i'
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 2 + 2 * i')))
+          from by omega, ← jsT_zero C1 t1]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_pad C1 t1 0 _ (2 * t1 + 2 + 2 * i')
+        (by omega) ht1 (by omega) (by omega)), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i' + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 2 + 2 * i' + 1)))
+          from by omega, ← jsT_zero C1 t1]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_pad C1 t1 0 _ (2 * t1 + 2 + 2 * i' + 1)
+        (by omega) ht1 (by omega) (by omega))⟩)
+  rw [ite_self, show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * (C1 - t1)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 from by omega] at s4b
+  have s4c := qp_padPJ2_bound (body := body) (idx := idx) (s := false)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k i ++ encodeD (OUT ++ List.replicate i true)))))))
+    (by rcases Nat.eq_zero_or_pos t2 with h0 | h0
+        · right
+          constructor
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + 2 * t2)))
+                from by omega, ← jsT_zero C2 t2]
+            exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_lo C2 t2 0 _ (by omega))
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 1
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * t2 + 1))))
+                from by omega, ← jsT_zero C2 t2]
+            exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_hi C2 t2 0 _ (by omega))
+        · left
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2))) from by omega,
+            ← jsT_zero C2 t2]
+          exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1
+            (jsE_data C2 t2 0 _ 0 (by omega) (by omega) (by omega)))
+  have s5 := qp_skipJr3s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k i ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2) t2 idx false
+    (fun i' hi' => by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i'
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + 2 * i')))
+          from by omega, ← jsT_zero C2 t2]
+      exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1
+        (jsE_data C2 t2 0 _ (2 * i') (by omega) (by omega) (by omega)))
+  have s6 := qp_crossJr3 (body := body) (idx := idx) (s := if t2 = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k i ++ encodeD (OUT ++ List.replicate i true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + 2 * t2)))
+          from by omega, ← jsT_zero C2 t2]
+        exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_lo C2 t2 0 _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * t2 + 1))))
+          from by omega, ← jsT_zero C2 t2]
+        exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_hi C2 t2 0 _ (by omega)))
+  have s6b := qp_padPJ3s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k i ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2) (C2 - t2) idx false
+    (fun i' hi' => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2 + 2 * i'
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2
+              + (2 * t2 + 2 + 2 * i')))) from by omega, ← jsT_zero C2 t2]
+      exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_pad C2 t2 0 _ (2 * t2 + 2 + 2 * i')
+        (by omega) ht2 (by omega) (by omega)), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2
+            + 2 * i' + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2
+              + (2 * t2 + 2 + 2 * i' + 1)))) from by omega, ← jsT_zero C2 t2]
+      exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_pad C2 t2 0 _ (2 * t2 + 2 + 2 * i' + 1)
+        (by omega) ht2 (by omega) (by omega))⟩)
+  rw [ite_self, show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2
+        + 2 * (C2 - t2)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+      from by omega] at s6b
+  have s6c := qp_padPJ3_bound (body := body) (idx := idx) (s := false)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k i ++ encodeD (OUT ++ List.replicate i true)))))))
+    (Or.inl (by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2))))
+          from by omega]
+      rcases Nat.eq_zero_or_pos i with h0 | h0
+      · exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2
+          (jsE_data NV k i _ 0 (by omega) (by omega) (by omega))
+      · exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2 (by
+          have := jsE_mark_lo NV k i (encodeD (OUT ++ List.replicate i true)) 0 h0
+          simpa using this)))
+  have s7 := qp_skipJms body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k i ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2) i idx false
+    (fun i' hi' => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * i'
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+              + 2 * i')))) from by omega]
+      exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2 (jsE_mark_lo NV k i _ i' hi'), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+            + 2 * i' + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+              + (2 * i' + 1))))) from by omega]
+      exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2 (jsE_mark_hi NV k i _ i' hi')⟩)
+  have s8 := qp_markJ (body := body) (idx := idx) (s := if i = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * i)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k i ++ encodeD (OUT ++ List.replicate i true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2 + 2 * i))))
+          from by omega]
+        exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2
+          (jsE_data NV k i _ (2 * i) (by omega) (by omega) (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+            + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+              + (2 * i + 1))))) from by omega]
+        exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2
+          (jsE_data NV k i _ (2 * i + 1) (by omega) (by omega) (by omega)))
+  have hw : writeAt (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k i ++ encodeD (OUT ++ List.replicate i true)))))))
+      (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * i + 1) false
+      = cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+          ++ (jT C2 t2 ++ (jsT NV k (i + 1)
+            ++ encodeD (OUT ++ List.replicate i true)))))) := by
+    rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * i + 1
+        = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+            + (2 * i + 1))))) from by omega,
+      writeAt_append_right5 (cntT G1 g1) (cntT G2 g2) (jsT CB j (k + 1)) (jT C1 t1)
+        (jT C2 t2) _ (2 * G1 + 2) (2 * G2 + 2) (2 * CB + 2) (2 * C1 + 2) (2 * C2 + 2)
+        (2 * i + 1) false hW1 hW2 hB hS1 hS2
+        (by rw [List.length_append, jsT_length NV k i (by omega) hkV]; omega),
+      jsT_mark NV k i _ hi hkV]
+  rw [hw] at s8
+  have s9 := qp_scanJ4s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k (i + 1) ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * i + 2)
+    (k - (i + 1)) idx true
+    (fun i' hi' => by
+      have e1 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+          ++ (jT C2 t2 ++ (jsT NV k (i + 1)
+            ++ encodeD (OUT ++ List.replicate i true))))))).getD
+          (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * i + 2
+            + 2 * i') false = true := by
+        rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * i
+              + 2 + 2 * i'
+            = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+                + (2 * i + 2 + 2 * i'))))) from by omega]
+        exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2
+          (jsE_data NV k (i + 1) _ (2 * i + 2 + 2 * i') (by omega) (by omega) (by omega))
+      have e2 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+          ++ (jT C2 t2 ++ (jsT NV k (i + 1)
+            ++ encodeD (OUT ++ List.replicate i true))))))).getD
+          (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * i + 2
+            + 2 * i' + 1) false = true := by
+        rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * i
+              + 2 + 2 * i' + 1
+            = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+                + (2 * i + 2 + 2 * i' + 1))))) from by omega]
+        exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2
+          (jsE_data NV k (i + 1) _ (2 * i + 2 + 2 * i' + 1) (by omega) (by omega)
+            (by omega))
+      rw [e1, e2])
+  rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * i + 2
+        + 2 * (k - (i + 1))
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k
+      from by omega] at s9
+  have s10 := qp_crossSJ4 (body := body) (idx := idx)
+    (s := storedD (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k (i + 1) ++ encodeD (OUT ++ List.replicate i true)))))))
+      (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * i + 2) true
+      (k - (i + 1)))
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k (i + 1) ++ encodeD (OUT ++ List.replicate i true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2 + 2 * k))))
+          from by omega]
+        exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2 (jsE_m_lo NV k (i + 1) _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+            + 2 * k + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+              + (2 * k + 1))))) from by omega]
+        exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2 (jsE_m_hi NV k (i + 1) _ (by omega)))
+  have s11 := qp_scanJ5s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k (i + 1) ++ encodeD (OUT ++ List.replicate i true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k + 2)
+    ((NV - k) + (OUT.length + i)) idx false
+    (fun i' hi' => by
+      rcases Nat.lt_or_ge i' (NV - k) with hilt | hige
+      · have e1 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jT C2 t2 ++ (jsT NV k (i + 1)
+              ++ encodeD (OUT ++ List.replicate i true))))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k + 2
+              + 2 * i') false = false := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+                + 2 * k + 2 + 2 * i'
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+                  + (2 * k + 2 + 2 * i'))))) from by omega]
+          exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2
+            (jsE_pad NV k (i + 1) _ (2 * k + 2 + 2 * i') hi hkV (by omega) (by omega))
+        have e2 : (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jT C2 t2 ++ (jsT NV k (i + 1)
+              ++ encodeD (OUT ++ List.replicate i true))))))).getD
+            (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k + 2
+              + 2 * i' + 1) false = false := by
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+                + 2 * k + 2 + 2 * i' + 1
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+                  + (2 * k + 2 + 2 * i' + 1))))) from by omega]
+          exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2
+            (jsE_pad NV k (i + 1) _ (2 * k + 2 + 2 * i' + 1) hi hkV (by omega)
+              (by omega))
+        rw [e1, e2]
+      · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k
+              + 2 + 2 * i'
+            = 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12
+                + 2 * (i' - (NV - k)) from by omega]
+        exact preD6_data_eq (cntT G1 g1) (cntT G2 g2) (jsT CB j (k + 1)) (jT C1 t1)
+          (jT C2 t2) (jsT NV k (i + 1)) (OUT ++ List.replicate i true)
+          (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12) (i' - (NV - k)) hq6
+          (by rw [List.length_append, List.length_replicate]; omega))
+  rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k + 2
+        + 2 * ((NV - k) + (OUT.length + i))
+      = 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12 + 2 * (OUT.length + i)
+      from by omega] at s11
+  have hm1 := preD6_mark_lo (cntT G1 g1) (cntT G2 g2) (jsT CB j (k + 1)) (jT C1 t1)
+    (jT C2 t2) (jsT NV k (i + 1)) (OUT ++ List.replicate i true)
+    (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12) hq6
+  have hm2 := preD6_mark_hi (cntT G1 g1) (cntT G2 g2) (jsT CB j (k + 1)) (jT C1 t1)
+    (jT C2 t2) (jsT NV k (i + 1)) (OUT ++ List.replicate i true)
+    (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12) hq6
+  rw [hlen] at hm1 hm2
+  have s12 := qp_detectJ5 (body := body) (idx := idx)
+    (s := storedD (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k (i + 1) ++ encodeD (OUT ++ List.replicate i true)))))))
+      (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k + 2) false
+      ((NV - k) + (OUT.length + i)))
+    (p := 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12
+      + 2 * (OUT.length + i)) hm1 hm2
+  have hsn := writes_snoc6 (cntT G1 g1) (cntT G2 g2) (jsT CB j (k + 1)) (jT C1 t1)
+    (jT C2 t2) (jsT NV k (i + 1)) (OUT ++ List.replicate i true)
+    (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12) hq6 true
+  rw [hlen, List.append_assoc,
+    show (List.replicate i true ++ [true] : List Bool) = List.replicate (i + 1) true from by
+      rw [← List.replicate_succ']] at hsn
+  have s13 := qp_four_TJ (body := body) (idx := idx) (s := false)
+    (p := 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 12 + 2 * (OUT.length + i))
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k (i + 1) ++ encodeD (OUT ++ List.replicate i true)))))))
+  rw [hsn] at s13
+  rw [show 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 2 * OUT.length + 2 * i
+        + 24
+      = 2 * G1 + (2 + (2 * G2 + (2 + (2 * j + (2 + (2 * (CB - j) + (2 + (2 * t1 + (2
+          + (2 * (C1 - t1) + (2 + (2 * t2 + (2 + (2 * (C2 - t2) + (2 + (2 * i + (2
+          + (2 * (k - (i + 1)) + (2 + (2 * ((NV - k) + (OUT.length + i))
+          + (2 + 4)))))))))))))))))))))
+      from by omega,
+    run_add, s0a, run_add, s0b, run_add, s0c, run_add, s0d, run_add, s1, run_add, s2,
+    run_add, s2b, run_add, s2c, run_add, s3, run_add, s4, run_add, s4b, run_add, s4c,
+    run_add, s5, run_add, s6, run_add, s6b, run_add, s6c, run_add, s7, run_add, s8,
+    run_add, s9, run_add, s10, run_add, s11, run_add, s12, s13]
+
+theorem qp_spj_rounds (body : List L3Instr) (idx : Fin (body.length + 1)) (hg1 : g1 ≤ G1)
+    (hg2 : g2 ≤ G2) (CB C1 C2 NV j t1 t2 k : ℕ) (hj : j ≤ CB) (ht1 : t1 ≤ C1)
+    (ht2 : t2 ≤ C2) (hk : k < j) (hkV : k ≤ NV) (OUT : List Bool) (r : ℕ) (hr : r ≤ k)
+    (s : Bool) :
+    run (pairTMachine body)
+      (lp3SpRounds (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV
+        + 2 * OUT.length + 24) r)
+      ⟨(109, idx, s), 0, cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+        ++ (jT C2 t2 ++ (jsT NV k 0 ++ encodeD OUT)))))⟩
+      = ⟨(109, idx, if r = 0 then s else false), 0, cntT G1 g1 ++ (cntT G2 g2
+          ++ (jsT CB j (k + 1) ++ (jT C1 t1 ++ (jT C2 t2 ++ (jsT NV k r
+            ++ encodeD (OUT ++ List.replicate r true))))))⟩ := by
+  induction r with
+  | zero => simp only [lp3SpRounds]; rw [run_zero]; simp
+  | succ r ih =>
+    rw [show lp3SpRounds (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV
+          + 2 * OUT.length + 24) (r + 1)
+        = lp3SpRounds (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV
+            + 2 * OUT.length + 24) r
+            + (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 2 * OUT.length + 24
+              + 2 * r) from rfl,
+      show 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 2 * OUT.length + 24
+          + 2 * r
+        = 2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 2 * OUT.length + 2 * r
+          + 24 from by omega,
+      run_add, ih (by omega),
+      qp_spj_round body idx hg1 hg2 CB C1 C2 NV j t1 t2 k r hj ht1 ht2 hk hkV (by omega)
+        OUT _,
+      if_neg (by omega)]
+
+end InstrJ
+
+/-- The padded splice-J instruction clock; `j`-independent as before. -/
+def pairTjCost (G1 G2 CB C1 C2 NV k L : ℕ) : ℕ :=
+  1 + (lp3SpRounds (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV + 2 * L + 24) k
+    + ((2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * k + 18)
+      + (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * k + 18)))
+
+section InstrJ2
+variable {G1 g1 G2 g2 : ℕ}
+
+/-- **An open splice-J instruction**, doubly prefixed on the padded layout: emit `1^k` from
+the live variable (no closing `false`), heal it, advance. -/
+theorem qp_instr_spJo (body : List L3Instr) (idx : Fin (body.length + 1))
+    (h : idx.val < body.length) (hp : body.getD idx.val .spJo = .spJo) (hg1 : g1 ≤ G1)
+    (hg2 : g2 ≤ G2) (CB C1 C2 NV j t1 t2 k : ℕ) (hj : j ≤ CB) (ht1 : t1 ≤ C1)
+    (ht2 : t2 ≤ C2) (hk : k < j) (hkV : k ≤ NV) (OUT : List Bool) (s : Bool) :
+    run (pairTMachine body) (pairTjCost G1 G2 CB C1 C2 NV k OUT.length)
+      ⟨(2, idx, s), 0, cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+        ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))⟩
+      = ⟨(2, ⟨idx.val + 1, by omega⟩, false), 0,
+          cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+            ++ (jT C2 t2 ++ (jT NV k ++ encodeD (OUT ++ List.replicate k true))))))⟩ := by
+  have hW1 : (cntT G1 g1).length = 2 * G1 + 2 := cntT_length G1 g1 hg1
+  have hW2 : (cntT G2 g2).length = 2 * G2 + 2 := cntT_length G2 g2 hg2
+  have hB : (jsT CB j (k + 1)).length = 2 * CB + 2 := jsT_length CB j (k + 1) (by omega) hj
+  have hS1 : (jT C1 t1).length = 2 * C1 + 2 := jT_length C1 t1 ht1
+  have hS2 : (jT C2 t2).length = 2 * C2 + 2 := jT_length C2 t2 ht2
+  have f0 := qp_dispatch_spJo (s := s) (p := 0)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jT NV k ++ encodeD OUT)))))) h hp
+  have f1 := qp_spj_rounds body idx hg1 hg2 CB C1 C2 NV j t1 t2 k hj ht1 ht2 hk hkV OUT k
+    (le_refl k) s
+  have f2a := qp_skipWsjs body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k k ++ encodeD (OUT ++ List.replicate k true))))))) 0 G1
+    idx (if k = 0 then s else false)
+    (fun i hi => by simpa using cntE_lo G1 g1 _ i hg1 hi)
+  simp only [Nat.zero_add] at f2a
+  have f2b := qp_crossWsj (body := body) (idx := idx)
+    (s := if G1 = 0 then (if k = 0 then s else false) else true) (p := 2 * G1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k k ++ encodeD (OUT ++ List.replicate k true)))))))
+    (cntE_cm_lo G1 g1 _ hg1) (cntE_cm_hi G1 g1 _ hg1)
+  have f2c := qp_skipW2sjs body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k k ++ encodeD (OUT ++ List.replicate k true)))))))
+    (2 * G1 + 2) G2 idx false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * i = 2 * G1 + 2 + (2 * i) from rfl]
+      exact liftJ _ _ hW1 (cntE_lo G2 g2 _ i hg2 hi))
+  have f2d := qp_crossW2sj (body := body) (idx := idx)
+    (s := if G2 = 0 then false else true) (p := 2 * G1 + 2 + 2 * G2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k k ++ encodeD (OUT ++ List.replicate k true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 = 2 * G1 + 2 + (2 * G2) from rfl]
+        exact liftJ _ _ hW1 (cntE_cm_lo G2 g2 _ hg2))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 1 = 2 * G1 + 2 + (2 * G2 + 1) from by omega]
+        exact liftJ _ _ hW1 (cntE_cm_hi G2 g2 _ hg2))
+  have f2 := qp_skipJr1s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k k ++ encodeD (OUT ++ List.replicate k true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2) j idx false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * i = 2 * G1 + 2 + (2 * G2 + 2 + 2 * i)
+          from by omega]
+      rcases Nat.lt_or_ge i (k + 1) with hik | hik
+      · exact liftJ2 _ _ _ hW1 hW2 (jsE_mark_lo CB j (k + 1) _ i hik)
+      · exact liftJ2 _ _ _ hW1 hW2
+          (jsE_data CB j (k + 1) _ (2 * i) (by omega) (by omega) (by omega)))
+  have f3 := qp_crossJr1 (body := body) (idx := idx) (s := if j = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * j)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k k ++ encodeD (OUT ++ List.replicate k true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j = 2 * G1 + 2 + (2 * G2 + 2 + 2 * j)
+          from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_lo CB j (k + 1) _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 1)) from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_hi CB j (k + 1) _ (by omega)))
+  have f3b := qp_padPJ1s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k k ++ encodeD (OUT ++ List.replicate k true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2) (CB - j) idx false
+    (fun i hi => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 2 + 2 * i)) from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_pad CB j (k + 1) _ (2 * j + 2 + 2 * i)
+        (by omega) hj (by omega) (by omega)), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 2 + 2 * i + 1)) from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_pad CB j (k + 1) _ (2 * j + 2 + 2 * i + 1)
+        (by omega) hj (by omega) (by omega))⟩)
+  rw [ite_self, show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * (CB - j)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 from by omega] at f3b
+  have f3c := qp_padPJ1_bound (body := body) (idx := idx) (s := false)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k k ++ encodeD (OUT ++ List.replicate k true)))))))
+    (by rcases Nat.eq_zero_or_pos t1 with h0 | h0
+        · right
+          constructor
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * t1)) from by omega,
+              ← jsT_zero C1 t1]
+            exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_lo C1 t1 0 _ (by omega))
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 1
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 1))) from by omega,
+              ← jsT_zero C1 t1]
+            exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_hi C1 t1 0 _ (by omega))
+        · left
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2)) from by omega, ← jsT_zero C1 t1]
+          exact liftJ3 _ _ _ _ hW1 hW2 hB
+            (jsE_data C1 t1 0 _ 0 (by omega) (by omega) (by omega)))
+  have f4 := qp_skipJr2s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k k ++ encodeD (OUT ++ List.replicate k true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2) t1 idx false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * i)) from by omega,
+        ← jsT_zero C1 t1]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB
+        (jsE_data C1 t1 0 _ (2 * i) (by omega) (by omega) (by omega)))
+  have f5 := qp_crossJr2 (body := body) (idx := idx) (s := if t1 = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k k ++ encodeD (OUT ++ List.replicate k true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * t1)) from by omega,
+        ← jsT_zero C1 t1]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_lo C1 t1 0 _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 1))) from by omega,
+        ← jsT_zero C1 t1]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_hi C1 t1 0 _ (by omega)))
+  have f5b := qp_padPJ2s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k k ++ encodeD (OUT ++ List.replicate k true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2) (C1 - t1) idx false
+    (fun i hi => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 2 + 2 * i)))
+          from by omega, ← jsT_zero C1 t1]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_pad C1 t1 0 _ (2 * t1 + 2 + 2 * i)
+        (by omega) ht1 (by omega) (by omega)), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 2 + 2 * i + 1)))
+          from by omega, ← jsT_zero C1 t1]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_pad C1 t1 0 _ (2 * t1 + 2 + 2 * i + 1)
+        (by omega) ht1 (by omega) (by omega))⟩)
+  rw [ite_self, show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * (C1 - t1)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 from by omega] at f5b
+  have f5c := qp_padPJ2_bound (body := body) (idx := idx) (s := false)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k k ++ encodeD (OUT ++ List.replicate k true)))))))
+    (by rcases Nat.eq_zero_or_pos t2 with h0 | h0
+        · right
+          constructor
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + 2 * t2)))
+                from by omega, ← jsT_zero C2 t2]
+            exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_lo C2 t2 0 _ (by omega))
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 1
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * t2 + 1))))
+                from by omega, ← jsT_zero C2 t2]
+            exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_hi C2 t2 0 _ (by omega))
+        · left
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2))) from by omega,
+            ← jsT_zero C2 t2]
+          exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1
+            (jsE_data C2 t2 0 _ 0 (by omega) (by omega) (by omega)))
+  have f6 := qp_skipJr3s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k k ++ encodeD (OUT ++ List.replicate k true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2) t2 idx false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + 2 * i)))
+          from by omega, ← jsT_zero C2 t2]
+      exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1
+        (jsE_data C2 t2 0 _ (2 * i) (by omega) (by omega) (by omega)))
+  have f7 := qp_crossJr3 (body := body) (idx := idx) (s := if t2 = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k k ++ encodeD (OUT ++ List.replicate k true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + 2 * t2)))
+          from by omega, ← jsT_zero C2 t2]
+        exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_lo C2 t2 0 _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * t2 + 1))))
+          from by omega, ← jsT_zero C2 t2]
+        exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_hi C2 t2 0 _ (by omega)))
+  have f7b := qp_padPJ3s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k k ++ encodeD (OUT ++ List.replicate k true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2) (C2 - t2) idx false
+    (fun i hi => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2
+              + (2 * t2 + 2 + 2 * i)))) from by omega, ← jsT_zero C2 t2]
+      exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_pad C2 t2 0 _ (2 * t2 + 2 + 2 * i)
+        (by omega) ht2 (by omega) (by omega)), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2
+            + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2
+              + (2 * t2 + 2 + 2 * i + 1)))) from by omega, ← jsT_zero C2 t2]
+      exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_pad C2 t2 0 _ (2 * t2 + 2 + 2 * i + 1)
+        (by omega) ht2 (by omega) (by omega))⟩)
+  rw [ite_self, show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2
+        + 2 * (C2 - t2)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+      from by omega] at f7b
+  have f7c := qp_padPJ3_bound (body := body) (idx := idx) (s := false)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k k ++ encodeD (OUT ++ List.replicate k true)))))))
+    (by rcases Nat.eq_zero_or_pos k with h0 | h0
+        · right
+          constructor
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+                    + 2 * k)))) from by omega]
+            exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2 (jsE_m_lo NV k k _ (le_refl k))
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 1
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+                    + (2 * k + 1))))) from by omega]
+            exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2 (jsE_m_hi NV k k _ (le_refl k))
+        · left
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2))))
+              from by omega]
+          exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2 (by
+            have := jsE_mark_lo NV k k (encodeD (OUT ++ List.replicate k true)) 0 h0
+            simpa using this))
+  have f8 := qp_skipJms body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k k ++ encodeD (OUT ++ List.replicate k true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2) k idx false
+    (fun i hi => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+              + 2 * i)))) from by omega]
+      exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2 (jsE_mark_lo NV k k _ i hi), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+            + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+              + (2 * i + 1))))) from by omega]
+      exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2 (jsE_mark_hi NV k k _ i hi)⟩)
+  have f9 := qp_doneJ (body := body) (idx := idx) (s := if k = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jsT NV k k ++ encodeD (OUT ++ List.replicate k true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2 + 2 * k))))
+          from by omega]
+        exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2 (jsE_m_lo NV k k _ (le_refl k)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+            + 2 * k + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+              + (2 * k + 1))))) from by omega]
+        exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2 (jsE_m_hi NV k k _ (le_refl k)))
+  have f10a := qp_skipWhjs body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jhT NV k 0 ++ encodeD (OUT ++ List.replicate k true))))))) 0 G1
+    idx false (fun i hi => by simpa using cntE_lo G1 g1 _ i hg1 hi)
+  simp only [Nat.zero_add] at f10a
+  have f10b := qp_crossWhj (body := body) (idx := idx)
+    (s := if G1 = 0 then false else true) (p := 2 * G1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jhT NV k 0 ++ encodeD (OUT ++ List.replicate k true)))))))
+    (cntE_cm_lo G1 g1 _ hg1) (cntE_cm_hi G1 g1 _ hg1)
+  have f10c := qp_skipW2hjs body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jhT NV k 0 ++ encodeD (OUT ++ List.replicate k true)))))))
+    (2 * G1 + 2) G2 idx false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * i = 2 * G1 + 2 + (2 * i) from rfl]
+      exact liftJ _ _ hW1 (cntE_lo G2 g2 _ i hg2 hi))
+  have f10d := qp_crossW2hj (body := body) (idx := idx)
+    (s := if G2 = 0 then false else true) (p := 2 * G1 + 2 + 2 * G2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jhT NV k 0 ++ encodeD (OUT ++ List.replicate k true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 = 2 * G1 + 2 + (2 * G2) from rfl]
+        exact liftJ _ _ hW1 (cntE_cm_lo G2 g2 _ hg2))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 1 = 2 * G1 + 2 + (2 * G2 + 1) from by omega]
+        exact liftJ _ _ hW1 (cntE_cm_hi G2 g2 _ hg2))
+  have f10 := qp_skiphJ1s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jhT NV k 0 ++ encodeD (OUT ++ List.replicate k true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2) j idx false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * i = 2 * G1 + 2 + (2 * G2 + 2 + 2 * i)
+          from by omega]
+      rcases Nat.lt_or_ge i (k + 1) with hik | hik
+      · exact liftJ2 _ _ _ hW1 hW2 (jsE_mark_lo CB j (k + 1) _ i hik)
+      · exact liftJ2 _ _ _ hW1 hW2
+          (jsE_data CB j (k + 1) _ (2 * i) (by omega) (by omega) (by omega)))
+  have f11 := qp_crosshJ1 (body := body) (idx := idx) (s := if j = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * j)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jhT NV k 0 ++ encodeD (OUT ++ List.replicate k true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j = 2 * G1 + 2 + (2 * G2 + 2 + 2 * j)
+          from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_lo CB j (k + 1) _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 1)) from by omega]
+        exact liftJ2 _ _ _ hW1 hW2 (jsE_m_hi CB j (k + 1) _ (by omega)))
+  have f11b := qp_padPhJ1s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jhT NV k 0 ++ encodeD (OUT ++ List.replicate k true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2) (CB - j) idx false
+    (fun i hi => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 2 + 2 * i)) from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_pad CB j (k + 1) _ (2 * j + 2 + 2 * i)
+        (by omega) hj (by omega) (by omega)), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * j + 2 + 2 * i + 1)) from by omega]
+      exact liftJ2 _ _ _ hW1 hW2 (jsE_pad CB j (k + 1) _ (2 * j + 2 + 2 * i + 1)
+        (by omega) hj (by omega) (by omega))⟩)
+  rw [ite_self, show 2 * G1 + 2 + 2 * G2 + 2 + 2 * j + 2 + 2 * (CB - j)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 from by omega] at f11b
+  have f11c := qp_padPhJ1_bound (body := body) (idx := idx) (s := false)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jhT NV k 0 ++ encodeD (OUT ++ List.replicate k true)))))))
+    (by rcases Nat.eq_zero_or_pos t1 with h0 | h0
+        · right
+          constructor
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * t1)) from by omega,
+              ← jsT_zero C1 t1]
+            exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_lo C1 t1 0 _ (by omega))
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 1
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 1))) from by omega,
+              ← jsT_zero C1 t1]
+            exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_hi C1 t1 0 _ (by omega))
+        · left
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2)) from by omega, ← jsT_zero C1 t1]
+          exact liftJ3 _ _ _ _ hW1 hW2 hB
+            (jsE_data C1 t1 0 _ 0 (by omega) (by omega) (by omega)))
+  have f12 := qp_skiphJ2s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jhT NV k 0 ++ encodeD (OUT ++ List.replicate k true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2) t1 idx false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * i)) from by omega,
+        ← jsT_zero C1 t1]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB
+        (jsE_data C1 t1 0 _ (2 * i) (by omega) (by omega) (by omega)))
+  have f13 := qp_crosshJ2 (body := body) (idx := idx) (s := if t1 = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jhT NV k 0 ++ encodeD (OUT ++ List.replicate k true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + 2 * t1)) from by omega,
+        ← jsT_zero C1 t1]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_lo C1 t1 0 _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 1))) from by omega,
+        ← jsT_zero C1 t1]
+        exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_m_hi C1 t1 0 _ (by omega)))
+  have f13b := qp_padPhJ2s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jhT NV k 0 ++ encodeD (OUT ++ List.replicate k true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2) (C1 - t1) idx false
+    (fun i hi => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 2 + 2 * i)))
+          from by omega, ← jsT_zero C1 t1]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_pad C1 t1 0 _ (2 * t1 + 2 + 2 * i)
+        (by omega) ht1 (by omega) (by omega)), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * t1 + 2 + 2 * i + 1)))
+          from by omega, ← jsT_zero C1 t1]
+      exact liftJ3 _ _ _ _ hW1 hW2 hB (jsE_pad C1 t1 0 _ (2 * t1 + 2 + 2 * i + 1)
+        (by omega) ht1 (by omega) (by omega))⟩)
+  rw [ite_self, show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * t1 + 2 + 2 * (C1 - t1)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 from by omega] at f13b
+  have f13c := qp_padPhJ2_bound (body := body) (idx := idx) (s := false)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jhT NV k 0 ++ encodeD (OUT ++ List.replicate k true)))))))
+    (by rcases Nat.eq_zero_or_pos t2 with h0 | h0
+        · right
+          constructor
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + 2 * t2)))
+                from by omega, ← jsT_zero C2 t2]
+            exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_lo C2 t2 0 _ (by omega))
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 1
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * t2 + 1))))
+                from by omega, ← jsT_zero C2 t2]
+            exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_hi C2 t2 0 _ (by omega))
+        · left
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2))) from by omega,
+            ← jsT_zero C2 t2]
+          exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1
+            (jsE_data C2 t2 0 _ 0 (by omega) (by omega) (by omega)))
+  have f14 := qp_skiphJ3s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jhT NV k 0 ++ encodeD (OUT ++ List.replicate k true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2) t2 idx false
+    (fun i hi => by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + 2 * i)))
+          from by omega, ← jsT_zero C2 t2]
+      exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1
+        (jsE_data C2 t2 0 _ (2 * i) (by omega) (by omega) (by omega)))
+  have f15 := qp_crosshJ3 (body := body) (idx := idx) (s := if t2 = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jhT NV k 0 ++ encodeD (OUT ++ List.replicate k true)))))))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + 2 * t2)))
+          from by omega, ← jsT_zero C2 t2]
+        exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_lo C2 t2 0 _ (by omega)))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * t2 + 1))))
+          from by omega, ← jsT_zero C2 t2]
+        exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_m_hi C2 t2 0 _ (by omega)))
+  have f15b := qp_padPhJ3s body
+    (cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jhT NV k 0 ++ encodeD (OUT ++ List.replicate k true)))))))
+    (2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2) (C2 - t2) idx false
+    (fun i hi => ⟨by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2 + 2 * i
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2
+              + (2 * t2 + 2 + 2 * i)))) from by omega, ← jsT_zero C2 t2]
+      exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_pad C2 t2 0 _ (2 * t2 + 2 + 2 * i)
+        (by omega) ht2 (by omega) (by omega)), by
+      rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2
+            + 2 * i + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2
+              + (2 * t2 + 2 + 2 * i + 1)))) from by omega, ← jsT_zero C2 t2]
+      exact liftJ4 _ _ _ _ _ hW1 hW2 hB hS1 (jsE_pad C2 t2 0 _ (2 * t2 + 2 + 2 * i + 1)
+        (by omega) ht2 (by omega) (by omega))⟩)
+  rw [ite_self, show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * t2 + 2
+        + 2 * (C2 - t2)
+      = 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+      from by omega] at f15b
+  have f15c := qp_padPhJ3_bound (body := body) (idx := idx) (s := false)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jhT NV k 0 ++ encodeD (OUT ++ List.replicate k true)))))))
+    (by rcases Nat.eq_zero_or_pos k with h0 | h0
+        · right
+          subst h0
+          constructor
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+                    + 2 * 0)))) from by omega]
+            exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2 (jhE_m_lo NV 0 _)
+          · rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 1
+                = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+                    + (2 * 0 + 1))))) from by omega]
+            exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2 (jhE_m_hi NV 0 _)
+        · left
+          rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+              = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2))))
+              from by omega]
+          exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2 (by
+            have := jhE_pair_lo NV k 0 (encodeD (OUT ++ List.replicate k true)) h0
+            simpa using this))
+  have f16 := qp_healJ5s body (cntT G1 g1) (cntT G2 g2) (jsT CB j (k + 1)) (jT C1 t1)
+    (jT C2 t2) G1 G2 CB C1 C2 NV k (encodeD (OUT ++ List.replicate k true)) hW1 hW2 hB
+    hS1 hS2 hkV idx false k (le_refl k)
+  have f17 := qp_doneHealJ (body := body) (idx := idx)
+    (s := if k = 0 then false else true)
+    (p := 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k)
+    (T := cntT G1 g1 ++ (cntT G2 g2 ++ (jsT CB j (k + 1) ++ (jT C1 t1
+      ++ (jT C2 t2 ++ (jhT NV k k ++ encodeD (OUT ++ List.replicate k true)))))))
+    (by omega)
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2 + 2 * k
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2 + 2 * k))))
+          from by omega]
+        exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2 (jhE_m_lo NV k _))
+    (by rw [show 2 * G1 + 2 + 2 * G2 + 2 + 2 * CB + 2 + 2 * C1 + 2 + 2 * C2 + 2
+            + 2 * k + 1
+          = 2 * G1 + 2 + (2 * G2 + 2 + (2 * CB + 2 + (2 * C1 + 2 + (2 * C2 + 2
+              + (2 * k + 1))))) from by omega]
+        exact liftJ5 _ _ _ _ _ _ hW1 hW2 hB hS1 hS2 (jhE_m_hi NV k _))
+  rw [show pairTjCost G1 G2 CB C1 C2 NV k OUT.length
+      = 1 + (lp3SpRounds (2 * G1 + 2 * G2 + 2 * CB + 2 * C1 + 2 * C2 + 2 * NV
+          + 2 * OUT.length + 24) k
+          + (2 * G1 + (2 + (2 * G2 + (2 + (2 * j + (2 + (2 * (CB - j) + (2 + (2 * t1 + (2
+              + (2 * (C1 - t1) + (2 + (2 * t2 + (2 + (2 * (C2 - t2) + (2 + (2 * k + (2
+              + (2 * G1 + (2 + (2 * G2 + (2 + (2 * j + (2 + (2 * (CB - j) + (2
+              + (2 * t1 + (2 + (2 * (C1 - t1) + (2 + (2 * t2 + (2 + (2 * (C2 - t2) + (2
+              + (2 * k + 2))))))))))))))))))))))))))))))))))))
+      from by simp only [pairTjCost]; omega,
+    run_add, f0, ← jsT_zero NV k, run_add, f1, run_add, f2a, run_add, f2b, run_add, f2c,
+    run_add, f2d, run_add, f2, run_add, f3, run_add, f3b, run_add, f3c, run_add, f4,
+    run_add, f5, run_add, f5b, run_add, f5c, run_add, f6, run_add, f7, run_add, f7b,
+    run_add, f7c, run_add, f8, run_add, f9, ← jhT_zero NV k, run_add, f10a, run_add, f10b,
+    run_add, f10c, run_add, f10d, run_add, f10, run_add, f11, run_add, f11b, run_add,
+    f11c, run_add, f12, run_add, f13, run_add, f13b, run_add, f13c, run_add, f14,
+    run_add, f15, run_add, f15b, run_add, f15c, run_add, f16, f17, jhT_last,
+    jsT_zero NV k]
+
+end InstrJ2
 
 end PallLean.Paper93.DeepMath.PathB.CookLevinEmitPairT
