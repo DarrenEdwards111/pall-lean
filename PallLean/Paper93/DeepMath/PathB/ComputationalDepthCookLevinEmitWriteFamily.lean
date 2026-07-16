@@ -123,7 +123,7 @@ def qcClock (bodies : ℕ → List L3Instr) (B P CB C1 C2 NV t : ℕ) : ℕ → 
 set_option maxHeartbeats 1600000 in
 /-- **The `q`-chain runs**: every body's stale-bound block emitted in index order, the live
 re-armed between blocks, the `t`-mirror advanced once at the close. -/
-theorem qc_run (bodies : ℕ → List L3Instr) (B P CB C1 C2 NV t : ℕ) (hP : 0 < P)
+theorem qc_run (bodies : ℕ → List L3Instr) (B P CB C1 C2 NV t : ℕ)
     (hCB : P < CB) (hC2 : P < C2) (hNV : P < NV) (ht : t < B) (hBC1 : B ≤ C1) :
     ∀ (q0 n : ℕ) (out : List Bool),
     run (qcMachine bodies q0 n)
@@ -148,7 +148,7 @@ theorem qc_run (bodies : ℕ → List L3Instr) (B P CB C1 C2 NV t : ℕ) (hP : 0
     rw [cntT_zero P] at hR
     have h1 := seq_run (pairTMachine (bodies q0)) rearm6Machine _ _ _ _ _ _ _ _ _
       hPT rfl hR rearm6_halt
-    have hrec := qc_run bodies B P CB C1 C2 NV t hP hCB hC2 hNV ht hBC1 (q0 + 1) n
+    have hrec := qc_run bodies B P CB C1 C2 NV t hCB hC2 hNV ht hBC1 (q0 + 1) n
       (out ++ loop3Out (bodies q0) t 1 (P + 1))
     have h2 := seq_run _ (qcMachine bodies (q0 + 1) n) _ _ _ _ _ _ _ _ _ h1
       (seq_halt_final _ rearm6Machine _ rearm6_halt) hrec
@@ -168,7 +168,7 @@ def qcEmitOut (bodies : ℕ → List L3Instr) (P card : ℕ) : ℕ → List Bool
 set_option maxHeartbeats 1600000 in
 /-- **The generic `q`-chain family stream**: `B` grand rounds of the chain. -/
 theorem rep_qcFamily_run (bodies : ℕ → List L3Instr) (card B P CB C1 C2 NV : ℕ)
-    (hP : 0 < P) (hCB : P < CB) (hC2 : P < C2) (hNV : P < NV) (hBC1 : B ≤ C1)
+    (hCB : P < CB) (hC2 : P < C2) (hNV : P < NV) (hBC1 : B ≤ C1)
     (out : List Bool) :
     run (repMachine (qcMachine bodies 0 card))
       (repRounds (fun t =>
@@ -189,7 +189,7 @@ theorem rep_qcFamily_run (bodies : ℕ → List L3Instr) (card B P CB C1 C2 NV :
     (fun t => 2 * B + 2 * P + 2 * CB + 2 * t + 9)
     (fun t ht => by
       constructor
-      · have hrd := qc_run bodies B P CB C1 C2 NV t hP hCB hC2 hNV ht hBC1 0 card
+      · have hrd := qc_run bodies B P CB C1 C2 NV t hCB hC2 hNV ht hBC1 0 card
           (out ++ qcEmitOut bodies P card t)
         rw [show (out ++ qcEmitOut bodies P card t) ++ qcOut bodies t P 0 card
             = out ++ qcEmitOut bodies P card (t + 1) from by
