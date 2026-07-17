@@ -255,12 +255,662 @@ theorem cmpFinal_succ (i t' p' : ℕ) (rest : List Bool) :
       cmpFinal, if_neg (by omega), if_pos (by omega)]
     congr 1 <;> omega
 
-/- **Next piece (4b-part-2)**: `cmpM_run` — the four-case grand induction (both
-exhausted / block-2 live / block-2 exhausts first / full round + IH), producing
-`⟨(10, decide (t' < p')), _, cmpFinal i t' p' rest⟩`.  The composition chains hit a
-rewrite-ordering interaction between the walk-clock normalizations and the
-position-shows (the `2·i`-to-length conversions corrupt the remaining segment clocks
-in a way that needs staged `have`-computation rather than one rw-chain); the staged
-restructure is the next brick. -/
+/-- **The compare machine** (staged-have assembly): halts with the accept bit
+`decide (t' < p')` and the exact per-branch tape. -/
+theorem cmpM_run : ∀ (t' p' i : ℕ) (rest : List Bool) (ans : Bool),
+    ∃ t, t ≤ (t' + 1) * (2 * (i + t') + 2 * (i + p') + 12) ∧ ∃ pos,
+      run cmpMachine t ⟨(0, ans), 0, cmpTape i t' i p' rest⟩
+        = ⟨(10, decide (t' < p')), pos, cmpFinal i t' p' rest⟩ := by
+  intro t'
+  induction t' with
+  | zero =>
+    intro p' i rest ans
+    rcases p' with _ | p'
+    · -- t' = p' = 0
+      have h1 : run cmpMachine (2 * i) (⟨(0, ans), 0,
+          flat2 (List.replicate i false) ++ (false :: (false :: (flat2 (List.replicate i false)
+            ++ (false :: (false :: rest)))))⟩ : Cfg cmpMachine)
+          = ⟨(0, ans), 2 * i, flat2 (List.replicate i false)
+              ++ (false :: (false :: (flat2 (List.replicate i false)
+                ++ (false :: (false :: rest)))))⟩ := by
+        have hw := walkS1 i [] (false :: (false :: (flat2 (List.replicate i false)
+          ++ (false :: (false :: rest))))) ans
+        simp only [List.length_nil, List.nil_append, Nat.zero_add] at hw
+        exact hw
+      have h2 : run cmpMachine 1 (⟨(0, ans), 2 * i,
+          flat2 (List.replicate i false) ++ (false :: (false :: (flat2 (List.replicate i false)
+            ++ (false :: (false :: rest)))))⟩ : Cfg cmpMachine)
+          = ⟨(7, ans), 2 * i + 1, flat2 (List.replicate i false)
+              ++ (false :: (false :: (flat2 (List.replicate i false)
+                ++ (false :: (false :: rest)))))⟩ := by
+        rw [run_one, show (2 * i : ℕ) = (flat2 (List.replicate i false)).length from by
+            simp [DIndexMachine.flat2_length],
+          step_S10_F (getD_at _ false _)]
+      have h3 : run cmpMachine 1 (⟨(7, ans), 2 * i + 1,
+          flat2 (List.replicate i false) ++ (false :: (false :: (flat2 (List.replicate i false)
+            ++ (false :: (false :: rest)))))⟩ : Cfg cmpMachine)
+          = ⟨(8, ans), 2 * i + 1 + 1, flat2 (List.replicate i false)
+              ++ (false :: (false :: (flat2 (List.replicate i false)
+                ++ (false :: (false :: rest)))))⟩ := by
+        rw [run_one, step_Xc]
+      have h4 : run cmpMachine (2 * i) (⟨(8, ans), 2 * i + 1 + 1,
+          flat2 (List.replicate i false) ++ (false :: (false :: (flat2 (List.replicate i false)
+            ++ (false :: (false :: rest)))))⟩ : Cfg cmpMachine)
+          = ⟨(8, ans), 2 * i + 1 + 1 + 2 * i, flat2 (List.replicate i false)
+              ++ (false :: (false :: (flat2 (List.replicate i false)
+                ++ (false :: (false :: rest)))))⟩ := by
+        have hw := walkS3 i (flat2 (List.replicate i false) ++ [false, false])
+          (false :: (false :: rest)) ans
+        rw [show flat2 (List.replicate i false)
+            ++ (false :: (false :: (flat2 (List.replicate i false)
+              ++ (false :: (false :: rest)))))
+          = (flat2 (List.replicate i false) ++ [false, false])
+              ++ (flat2 (List.replicate i false) ++ (false :: (false :: rest))) from by
+            simp,
+          show (2 * i + 1 + 1 : ℕ)
+            = (flat2 (List.replicate i false) ++ [false, false]).length from by
+            simp [DIndexMachine.flat2_length]
+            try omega]
+        exact hw
+      have h5 : run cmpMachine 1 (⟨(8, ans), 2 * i + 1 + 1 + 2 * i,
+          flat2 (List.replicate i false) ++ (false :: (false :: (flat2 (List.replicate i false)
+            ++ (false :: (false :: rest)))))⟩ : Cfg cmpMachine)
+          = ⟨(10, false), 2 * i + 1 + 1 + 2 * i, flat2 (List.replicate i false)
+              ++ (false :: (false :: (flat2 (List.replicate i false)
+                ++ (false :: (false :: rest)))))⟩ := by
+        rw [run_one,
+          show flat2 (List.replicate i false)
+              ++ (false :: (false :: (flat2 (List.replicate i false)
+                ++ (false :: (false :: rest)))))
+            = ((flat2 (List.replicate i false) ++ [false, false])
+                ++ flat2 (List.replicate i false)) ++ false :: (false :: rest) from by
+              simp,
+          show (2 * i + 1 + 1 + 2 * i : ℕ)
+            = ((flat2 (List.replicate i false) ++ [false, false])
+                ++ flat2 (List.replicate i false)).length from by
+            simp [DIndexMachine.flat2_length]
+            try omega,
+          step_S30_F (getD_at _ false _)]
+      refine ⟨2 * i + (1 + (1 + (2 * i + 1))), by omega, 2 * i + 1 + 1 + 2 * i, ?_⟩
+      rw [show (⟨(0, ans), 0, cmpTape i 0 i 0 rest⟩ : Cfg cmpMachine)
+          = ⟨(0, ans), 0, flat2 (List.replicate i false)
+              ++ (false :: (false :: (flat2 (List.replicate i false)
+                ++ (false :: (false :: rest)))))⟩ from by
+          simp [cmpTape, flat2],
+        run_add, h1, run_add, h2, run_add, h3, run_add, h4, h5,
+        show (decide (0 < 0) : Bool) = false from by simp,
+        show cmpFinal i 0 0 rest = flat2 (List.replicate i false)
+            ++ (false :: (false :: (flat2 (List.replicate i false)
+              ++ (false :: (false :: rest))))) from by
+          rw [cmpFinal, if_neg (by omega), if_neg (by omega)]
+          simp [cmpTape, flat2]]
+    · -- t' = 0 < p' + 1
+      have h1 : run cmpMachine (2 * i) (⟨(0, ans), 0,
+          flat2 (List.replicate i false) ++ (false :: (false :: (flat2 (List.replicate i false)
+            ++ (true :: (true :: (flat2 (List.replicate p' true)
+              ++ false :: false :: rest))))))⟩ : Cfg cmpMachine)
+          = ⟨(0, ans), 2 * i, flat2 (List.replicate i false)
+              ++ (false :: (false :: (flat2 (List.replicate i false)
+                ++ (true :: (true :: (flat2 (List.replicate p' true)
+                  ++ false :: false :: rest))))))⟩ := by
+        have hw := walkS1 i [] (false :: (false :: (flat2 (List.replicate i false)
+          ++ (true :: (true :: (flat2 (List.replicate p' true)
+            ++ false :: false :: rest)))))) ans
+        simp only [List.length_nil, List.nil_append, Nat.zero_add] at hw
+        exact hw
+      have h2 : run cmpMachine 1 (⟨(0, ans), 2 * i,
+          flat2 (List.replicate i false) ++ (false :: (false :: (flat2 (List.replicate i false)
+            ++ (true :: (true :: (flat2 (List.replicate p' true)
+              ++ false :: false :: rest))))))⟩ : Cfg cmpMachine)
+          = ⟨(7, ans), 2 * i + 1, flat2 (List.replicate i false)
+              ++ (false :: (false :: (flat2 (List.replicate i false)
+                ++ (true :: (true :: (flat2 (List.replicate p' true)
+                  ++ false :: false :: rest))))))⟩ := by
+        rw [run_one, show (2 * i : ℕ) = (flat2 (List.replicate i false)).length from by
+            simp [DIndexMachine.flat2_length],
+          step_S10_F (getD_at _ false _)]
+      have h3 : run cmpMachine 1 (⟨(7, ans), 2 * i + 1,
+          flat2 (List.replicate i false) ++ (false :: (false :: (flat2 (List.replicate i false)
+            ++ (true :: (true :: (flat2 (List.replicate p' true)
+              ++ false :: false :: rest))))))⟩ : Cfg cmpMachine)
+          = ⟨(8, ans), 2 * i + 1 + 1, flat2 (List.replicate i false)
+              ++ (false :: (false :: (flat2 (List.replicate i false)
+                ++ (true :: (true :: (flat2 (List.replicate p' true)
+                  ++ false :: false :: rest))))))⟩ := by
+        rw [run_one, step_Xc]
+      have h4 : run cmpMachine (2 * i) (⟨(8, ans), 2 * i + 1 + 1,
+          flat2 (List.replicate i false) ++ (false :: (false :: (flat2 (List.replicate i false)
+            ++ (true :: (true :: (flat2 (List.replicate p' true)
+              ++ false :: false :: rest))))))⟩ : Cfg cmpMachine)
+          = ⟨(8, ans), 2 * i + 1 + 1 + 2 * i, flat2 (List.replicate i false)
+              ++ (false :: (false :: (flat2 (List.replicate i false)
+                ++ (true :: (true :: (flat2 (List.replicate p' true)
+                  ++ false :: false :: rest))))))⟩ := by
+        have hw := walkS3 i (flat2 (List.replicate i false) ++ [false, false])
+          (true :: (true :: (flat2 (List.replicate p' true) ++ false :: false :: rest))) ans
+        rw [show flat2 (List.replicate i false)
+            ++ (false :: (false :: (flat2 (List.replicate i false)
+              ++ (true :: (true :: (flat2 (List.replicate p' true)
+                ++ false :: false :: rest))))))
+          = (flat2 (List.replicate i false) ++ [false, false])
+              ++ (flat2 (List.replicate i false)
+                ++ (true :: (true :: (flat2 (List.replicate p' true)
+                  ++ false :: false :: rest)))) from by simp,
+          show (2 * i + 1 + 1 : ℕ)
+            = (flat2 (List.replicate i false) ++ [false, false]).length from by
+            simp [DIndexMachine.flat2_length]
+            try omega]
+        exact hw
+      have h5 : run cmpMachine 1 (⟨(8, ans), 2 * i + 1 + 1 + 2 * i,
+          flat2 (List.replicate i false) ++ (false :: (false :: (flat2 (List.replicate i false)
+            ++ (true :: (true :: (flat2 (List.replicate p' true)
+              ++ false :: false :: rest))))))⟩ : Cfg cmpMachine)
+          = ⟨(9, ans), 2 * i + 1 + 1 + 2 * i + 1, flat2 (List.replicate i false)
+              ++ (false :: (false :: (flat2 (List.replicate i false)
+                ++ (true :: (true :: (flat2 (List.replicate p' true)
+                  ++ false :: false :: rest))))))⟩ := by
+        rw [run_one,
+          show flat2 (List.replicate i false)
+              ++ (false :: (false :: (flat2 (List.replicate i false)
+                ++ (true :: (true :: (flat2 (List.replicate p' true)
+                  ++ false :: false :: rest))))))
+            = ((flat2 (List.replicate i false) ++ [false, false])
+                ++ flat2 (List.replicate i false))
+                ++ true :: (true :: (flat2 (List.replicate p' true)
+                  ++ false :: false :: rest)) from by simp,
+          show (2 * i + 1 + 1 + 2 * i : ℕ)
+            = ((flat2 (List.replicate i false) ++ [false, false])
+                ++ flat2 (List.replicate i false)).length from by
+            simp [DIndexMachine.flat2_length]
+            try omega,
+          step_S30_T (getD_at _ true _)]
+      have h6 : run cmpMachine 1 (⟨(9, ans), 2 * i + 1 + 1 + 2 * i + 1,
+          flat2 (List.replicate i false) ++ (false :: (false :: (flat2 (List.replicate i false)
+            ++ (true :: (true :: (flat2 (List.replicate p' true)
+              ++ false :: false :: rest))))))⟩ : Cfg cmpMachine)
+          = ⟨(10, true), 2 * i + 1 + 1 + 2 * i + 1, flat2 (List.replicate i false)
+              ++ (false :: (false :: (flat2 (List.replicate i false)
+                ++ (true :: (true :: (flat2 (List.replicate p' true)
+                  ++ false :: false :: rest))))))⟩ := by
+        rw [run_one,
+          show flat2 (List.replicate i false)
+              ++ (false :: (false :: (flat2 (List.replicate i false)
+                ++ (true :: (true :: (flat2 (List.replicate p' true)
+                  ++ false :: false :: rest))))))
+            = (((flat2 (List.replicate i false) ++ [false, false])
+                ++ flat2 (List.replicate i false)) ++ [true])
+                ++ true :: (flat2 (List.replicate p' true)
+                  ++ false :: false :: rest) from by simp,
+          show (2 * i + 1 + 1 + 2 * i + 1 : ℕ)
+            = (((flat2 (List.replicate i false) ++ [false, false])
+                ++ flat2 (List.replicate i false)) ++ [true]).length from by
+            simp [DIndexMachine.flat2_length]
+            try omega,
+          step_S31_T (getD_at _ true _)]
+      refine ⟨2 * i + (1 + (1 + (2 * i + (1 + 1)))), by omega,
+        2 * i + 1 + 1 + 2 * i + 1, ?_⟩
+      rw [show (⟨(0, ans), 0, cmpTape i 0 i (p' + 1) rest⟩ : Cfg cmpMachine)
+          = ⟨(0, ans), 0, flat2 (List.replicate i false)
+              ++ (false :: (false :: (flat2 (List.replicate i false)
+                ++ (true :: (true :: (flat2 (List.replicate p' true)
+                  ++ false :: false :: rest))))))⟩ from by
+          simp [cmpTape, flat2, List.replicate_succ],
+        run_add, h1, run_add, h2, run_add, h3, run_add, h4, run_add, h5, h6,
+        show (decide (0 < p' + 1) : Bool) = true from by simp,
+        show cmpFinal i 0 (p' + 1) rest = flat2 (List.replicate i false)
+            ++ (false :: (false :: (flat2 (List.replicate i false)
+              ++ (true :: (true :: (flat2 (List.replicate p' true)
+                ++ false :: false :: rest)))))) from by
+          rw [cmpFinal, if_pos (by omega)]
+          simp [cmpTape, flat2, List.replicate_succ]]
+  | succ t' ih =>
+    intro p' i rest ans
+    -- shared round stages on B2 := block-2 content
+    rcases p' with _ | p'
+    · -- p' = 0 < t' + 1
+      have h1 : run cmpMachine (2 * i) (⟨(0, ans), 0,
+          flat2 (List.replicate i false) ++ (true :: (true :: (flat2 (List.replicate t' true)
+            ++ false :: false :: (flat2 (List.replicate i false)
+              ++ (false :: (false :: rest))))))⟩ : Cfg cmpMachine)
+          = ⟨(0, ans), 2 * i, flat2 (List.replicate i false)
+              ++ (true :: (true :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (false :: (false :: rest))))))⟩ := by
+        have hw := walkS1 i [] (true :: (true :: (flat2 (List.replicate t' true)
+          ++ false :: false :: (flat2 (List.replicate i false)
+            ++ (false :: (false :: rest)))))) ans
+        simp only [List.length_nil, List.nil_append, Nat.zero_add] at hw
+        exact hw
+      have h2 : run cmpMachine 1 (⟨(0, ans), 2 * i,
+          flat2 (List.replicate i false) ++ (true :: (true :: (flat2 (List.replicate t' true)
+            ++ false :: false :: (flat2 (List.replicate i false)
+              ++ (false :: (false :: rest))))))⟩ : Cfg cmpMachine)
+          = ⟨(1, ans), 2 * i + 1, flat2 (List.replicate i false)
+              ++ (true :: (true :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (false :: (false :: rest))))))⟩ := by
+        rw [run_one, show (2 * i : ℕ) = (flat2 (List.replicate i false)).length from by
+            simp [DIndexMachine.flat2_length],
+          step_S10_T (getD_at _ true _)]
+      have h3 : run cmpMachine 1 (⟨(1, ans), 2 * i + 1,
+          flat2 (List.replicate i false) ++ (true :: (true :: (flat2 (List.replicate t' true)
+            ++ false :: false :: (flat2 (List.replicate i false)
+              ++ (false :: (false :: rest))))))⟩ : Cfg cmpMachine)
+          = ⟨(2, ans), 2 * i + 1 + 1, flat2 (List.replicate i false)
+              ++ (true :: (false :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (false :: (false :: rest))))))⟩ := by
+        rw [run_one,
+          show flat2 (List.replicate i false)
+              ++ (true :: (true :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (false :: (false :: rest))))))
+            = (flat2 (List.replicate i false) ++ [true])
+                ++ true :: (flat2 (List.replicate t' true)
+                  ++ false :: false :: (flat2 (List.replicate i false)
+                    ++ (false :: (false :: rest)))) from by simp,
+          show (2 * i + 1 : ℕ) = (flat2 (List.replicate i false) ++ [true]).length
+            from by simp [DIndexMachine.flat2_length]
+                    try omega,
+          step_S11_T (getD_at _ true _), writeAt_boundary,
+          show (flat2 (List.replicate i false) ++ [true])
+              ++ false :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (false :: (false :: rest))))
+            = flat2 (List.replicate i false)
+                ++ (true :: (false :: (flat2 (List.replicate t' true)
+                  ++ false :: false :: (flat2 (List.replicate i false)
+                    ++ (false :: (false :: rest)))))) from by simp]
+      have h4 : run cmpMachine (2 * t') (⟨(2, ans), 2 * i + 1 + 1,
+          flat2 (List.replicate i false) ++ (true :: (false :: (flat2 (List.replicate t' true)
+            ++ false :: false :: (flat2 (List.replicate i false)
+              ++ (false :: (false :: rest))))))⟩ : Cfg cmpMachine)
+          = ⟨(2, ans), 2 * i + 1 + 1 + 2 * t', flat2 (List.replicate i false)
+              ++ (true :: (false :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (false :: (false :: rest))))))⟩ := by
+        have hw := walkHunt (List.replicate t' true)
+          (flat2 (List.replicate i false) ++ [true, false])
+          (false :: (false :: (flat2 (List.replicate i false)
+            ++ (false :: (false :: rest))))) ans
+        rw [List.length_replicate] at hw
+        rw [show flat2 (List.replicate i false)
+            ++ (true :: (false :: (flat2 (List.replicate t' true)
+              ++ false :: false :: (flat2 (List.replicate i false)
+                ++ (false :: (false :: rest))))))
+          = (flat2 (List.replicate i false) ++ [true, false])
+              ++ (flat2 (List.replicate t' true)
+                ++ (false :: (false :: (flat2 (List.replicate i false)
+                  ++ (false :: (false :: rest)))))) from by simp,
+          show (2 * i + 1 + 1 : ℕ)
+            = (flat2 (List.replicate i false) ++ [true, false]).length from by
+            simp [DIndexMachine.flat2_length]
+            try omega]
+        exact hw
+      have h5 : run cmpMachine 1 (⟨(2, ans), 2 * i + 1 + 1 + 2 * t',
+          flat2 (List.replicate i false) ++ (true :: (false :: (flat2 (List.replicate t' true)
+            ++ false :: false :: (flat2 (List.replicate i false)
+              ++ (false :: (false :: rest))))))⟩ : Cfg cmpMachine)
+          = ⟨(4, ans), 2 * i + 1 + 1 + 2 * t' + 1, flat2 (List.replicate i false)
+              ++ (true :: (false :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (false :: (false :: rest))))))⟩ := by
+        rw [run_one,
+          show flat2 (List.replicate i false)
+              ++ (true :: (false :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (false :: (false :: rest))))))
+            = ((flat2 (List.replicate i false) ++ [true, false])
+                ++ flat2 (List.replicate t' true))
+                ++ false :: (false :: (flat2 (List.replicate i false)
+                  ++ (false :: (false :: rest)))) from by simp,
+          show (2 * i + 1 + 1 + 2 * t' : ℕ)
+            = ((flat2 (List.replicate i false) ++ [true, false])
+                ++ flat2 (List.replicate t' true)).length from by
+            simp [DIndexMachine.flat2_length]
+            try omega,
+          step_H0_F (getD_at _ false _)]
+      have h6 : run cmpMachine 1 (⟨(4, ans), 2 * i + 1 + 1 + 2 * t' + 1,
+          flat2 (List.replicate i false) ++ (true :: (false :: (flat2 (List.replicate t' true)
+            ++ false :: false :: (flat2 (List.replicate i false)
+              ++ (false :: (false :: rest))))))⟩ : Cfg cmpMachine)
+          = ⟨(5, ans), 2 * i + 1 + 1 + 2 * t' + 1 + 1, flat2 (List.replicate i false)
+              ++ (true :: (false :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (false :: (false :: rest))))))⟩ := by
+        rw [run_one, step_C1]
+      have h7 : run cmpMachine (2 * i) (⟨(5, ans), 2 * i + 1 + 1 + 2 * t' + 1 + 1,
+          flat2 (List.replicate i false) ++ (true :: (false :: (flat2 (List.replicate t' true)
+            ++ false :: false :: (flat2 (List.replicate i false)
+              ++ (false :: (false :: rest))))))⟩ : Cfg cmpMachine)
+          = ⟨(5, ans), 2 * i + 1 + 1 + 2 * t' + 1 + 1 + 2 * i,
+              flat2 (List.replicate i false)
+              ++ (true :: (false :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (false :: (false :: rest))))))⟩ := by
+        have hw := walkS2 i
+          (((flat2 (List.replicate i false) ++ [true, false])
+            ++ flat2 (List.replicate t' true)) ++ [false, false])
+          (false :: (false :: rest)) ans
+        rw [show flat2 (List.replicate i false)
+            ++ (true :: (false :: (flat2 (List.replicate t' true)
+              ++ false :: false :: (flat2 (List.replicate i false)
+                ++ (false :: (false :: rest))))))
+          = (((flat2 (List.replicate i false) ++ [true, false])
+              ++ flat2 (List.replicate t' true)) ++ [false, false])
+              ++ (flat2 (List.replicate i false)
+                ++ (false :: (false :: rest))) from by simp,
+          show (2 * i + 1 + 1 + 2 * t' + 1 + 1 : ℕ)
+            = (((flat2 (List.replicate i false) ++ [true, false])
+                ++ flat2 (List.replicate t' true)) ++ [false, false]).length from by
+            simp [DIndexMachine.flat2_length]
+            try omega]
+        exact hw
+      have h8 : run cmpMachine 1 (⟨(5, ans), 2 * i + 1 + 1 + 2 * t' + 1 + 1 + 2 * i,
+          flat2 (List.replicate i false) ++ (true :: (false :: (flat2 (List.replicate t' true)
+            ++ false :: false :: (flat2 (List.replicate i false)
+              ++ (false :: (false :: rest))))))⟩ : Cfg cmpMachine)
+          = ⟨(10, false), 2 * i + 1 + 1 + 2 * t' + 1 + 1 + 2 * i,
+              flat2 (List.replicate i false)
+              ++ (true :: (false :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (false :: (false :: rest))))))⟩ := by
+        rw [run_one,
+          show flat2 (List.replicate i false)
+              ++ (true :: (false :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (false :: (false :: rest))))))
+            = ((((flat2 (List.replicate i false) ++ [true, false])
+                ++ flat2 (List.replicate t' true)) ++ [false, false])
+                ++ flat2 (List.replicate i false)) ++ false :: (false :: rest)
+            from by simp,
+          show (2 * i + 1 + 1 + 2 * t' + 1 + 1 + 2 * i : ℕ)
+            = ((((flat2 (List.replicate i false) ++ [true, false])
+                ++ flat2 (List.replicate t' true)) ++ [false, false])
+                ++ flat2 (List.replicate i false)).length from by
+            simp [DIndexMachine.flat2_length]
+            try omega,
+          step_S20_F (getD_at _ false _)]
+      refine ⟨2 * i + (1 + (1 + (2 * t' + (1 + (1 + (2 * i + 1)))))), by
+        have hexp : (t' + 1 + 1) * (2 * (i + (t' + 1)) + 2 * (i + 0) + 12)
+            = (t' + 1) * (2 * (i + (t' + 1)) + 2 * (i + 0) + 12)
+              + (2 * (i + (t' + 1)) + 2 * (i + 0) + 12) := by ring
+        have hpos : 0 < (t' + 1) * (2 * (i + (t' + 1)) + 2 * (i + 0) + 12) :=
+          Nat.mul_pos (by omega) (by omega)
+        omega, 2 * i + 1 + 1 + 2 * t' + 1 + 1 + 2 * i, ?_⟩
+      rw [show (⟨(0, ans), 0, cmpTape i (t' + 1) i 0 rest⟩ : Cfg cmpMachine)
+          = ⟨(0, ans), 0, flat2 (List.replicate i false)
+              ++ (true :: (true :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (false :: (false :: rest))))))⟩ from by
+          simp [cmpTape, flat2, List.replicate_succ],
+        run_add, h1, run_add, h2, run_add, h3, run_add, h4, run_add, h5,
+        run_add, h6, run_add, h7, h8,
+        show (decide (t' + 1 < 0) : Bool) = false from by simp,
+        show cmpFinal i (t' + 1) 0 rest = flat2 (List.replicate i false)
+            ++ (true :: (false :: (flat2 (List.replicate t' true)
+              ++ false :: false :: (flat2 (List.replicate i false)
+                ++ (false :: (false :: rest)))))) from by
+          rw [cmpFinal, if_neg (by omega), if_pos (by omega)]
+          have hb1 : flat2 (List.replicate (i + 1) false)
+              = flat2 (List.replicate i false) ++ [true, false] := by
+            have := List.replicate_succ' (n := i) (a := false)
+            rw [this, flat2_append]
+            rfl
+          rw [show i + 0 + 1 = i + 1 from by omega, show i + 0 = i from by omega,
+            show t' + 1 - 0 - 1 = t' from by omega, cmpTape, hb1]
+          simp [flat2]]
+    · -- full round, then induction
+      obtain ⟨t₂, ht₂, pos, hIH⟩ := ih p' (i + 1) rest ans
+      have h1 : run cmpMachine (2 * i) (⟨(0, ans), 0,
+          flat2 (List.replicate i false) ++ (true :: (true :: (flat2 (List.replicate t' true)
+            ++ false :: false :: (flat2 (List.replicate i false)
+              ++ (true :: (true :: (flat2 (List.replicate p' true)
+                ++ false :: false :: rest)))))))⟩ : Cfg cmpMachine)
+          = ⟨(0, ans), 2 * i, flat2 (List.replicate i false)
+              ++ (true :: (true :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (true :: (true :: (flat2 (List.replicate p' true)
+                    ++ false :: false :: rest)))))))⟩ := by
+        have hw := walkS1 i [] (true :: (true :: (flat2 (List.replicate t' true)
+          ++ false :: false :: (flat2 (List.replicate i false)
+            ++ (true :: (true :: (flat2 (List.replicate p' true)
+              ++ false :: false :: rest))))))) ans
+        simp only [List.length_nil, List.nil_append, Nat.zero_add] at hw
+        exact hw
+      have h2 : run cmpMachine 1 (⟨(0, ans), 2 * i,
+          flat2 (List.replicate i false) ++ (true :: (true :: (flat2 (List.replicate t' true)
+            ++ false :: false :: (flat2 (List.replicate i false)
+              ++ (true :: (true :: (flat2 (List.replicate p' true)
+                ++ false :: false :: rest)))))))⟩ : Cfg cmpMachine)
+          = ⟨(1, ans), 2 * i + 1, flat2 (List.replicate i false)
+              ++ (true :: (true :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (true :: (true :: (flat2 (List.replicate p' true)
+                    ++ false :: false :: rest)))))))⟩ := by
+        rw [run_one, show (2 * i : ℕ) = (flat2 (List.replicate i false)).length from by
+            simp [DIndexMachine.flat2_length],
+          step_S10_T (getD_at _ true _)]
+      have h3 : run cmpMachine 1 (⟨(1, ans), 2 * i + 1,
+          flat2 (List.replicate i false) ++ (true :: (true :: (flat2 (List.replicate t' true)
+            ++ false :: false :: (flat2 (List.replicate i false)
+              ++ (true :: (true :: (flat2 (List.replicate p' true)
+                ++ false :: false :: rest)))))))⟩ : Cfg cmpMachine)
+          = ⟨(2, ans), 2 * i + 1 + 1, flat2 (List.replicate i false)
+              ++ (true :: (false :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (true :: (true :: (flat2 (List.replicate p' true)
+                    ++ false :: false :: rest)))))))⟩ := by
+        rw [run_one,
+          show flat2 (List.replicate i false)
+              ++ (true :: (true :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (true :: (true :: (flat2 (List.replicate p' true)
+                    ++ false :: false :: rest)))))))
+            = (flat2 (List.replicate i false) ++ [true])
+                ++ true :: (flat2 (List.replicate t' true)
+                  ++ false :: false :: (flat2 (List.replicate i false)
+                    ++ (true :: (true :: (flat2 (List.replicate p' true)
+                      ++ false :: false :: rest))))) from by simp,
+          show (2 * i + 1 : ℕ) = (flat2 (List.replicate i false) ++ [true]).length
+            from by simp [DIndexMachine.flat2_length]
+                    try omega,
+          step_S11_T (getD_at _ true _), writeAt_boundary,
+          show (flat2 (List.replicate i false) ++ [true])
+              ++ false :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (true :: (true :: (flat2 (List.replicate p' true)
+                    ++ false :: false :: rest)))))
+            = flat2 (List.replicate i false)
+                ++ (true :: (false :: (flat2 (List.replicate t' true)
+                  ++ false :: false :: (flat2 (List.replicate i false)
+                    ++ (true :: (true :: (flat2 (List.replicate p' true)
+                      ++ false :: false :: rest))))))) from by simp]
+      have h4 : run cmpMachine (2 * t') (⟨(2, ans), 2 * i + 1 + 1,
+          flat2 (List.replicate i false) ++ (true :: (false :: (flat2 (List.replicate t' true)
+            ++ false :: false :: (flat2 (List.replicate i false)
+              ++ (true :: (true :: (flat2 (List.replicate p' true)
+                ++ false :: false :: rest)))))))⟩ : Cfg cmpMachine)
+          = ⟨(2, ans), 2 * i + 1 + 1 + 2 * t', flat2 (List.replicate i false)
+              ++ (true :: (false :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (true :: (true :: (flat2 (List.replicate p' true)
+                    ++ false :: false :: rest)))))))⟩ := by
+        have hw := walkHunt (List.replicate t' true)
+          (flat2 (List.replicate i false) ++ [true, false])
+          (false :: (false :: (flat2 (List.replicate i false)
+            ++ (true :: (true :: (flat2 (List.replicate p' true)
+              ++ false :: false :: rest)))))) ans
+        rw [List.length_replicate] at hw
+        rw [show flat2 (List.replicate i false)
+            ++ (true :: (false :: (flat2 (List.replicate t' true)
+              ++ false :: false :: (flat2 (List.replicate i false)
+                ++ (true :: (true :: (flat2 (List.replicate p' true)
+                  ++ false :: false :: rest)))))))
+          = (flat2 (List.replicate i false) ++ [true, false])
+              ++ (flat2 (List.replicate t' true)
+                ++ (false :: (false :: (flat2 (List.replicate i false)
+                  ++ (true :: (true :: (flat2 (List.replicate p' true)
+                    ++ false :: false :: rest))))))) from by simp,
+          show (2 * i + 1 + 1 : ℕ)
+            = (flat2 (List.replicate i false) ++ [true, false]).length from by
+            simp [DIndexMachine.flat2_length]
+            try omega]
+        exact hw
+      have h5 : run cmpMachine 1 (⟨(2, ans), 2 * i + 1 + 1 + 2 * t',
+          flat2 (List.replicate i false) ++ (true :: (false :: (flat2 (List.replicate t' true)
+            ++ false :: false :: (flat2 (List.replicate i false)
+              ++ (true :: (true :: (flat2 (List.replicate p' true)
+                ++ false :: false :: rest)))))))⟩ : Cfg cmpMachine)
+          = ⟨(4, ans), 2 * i + 1 + 1 + 2 * t' + 1, flat2 (List.replicate i false)
+              ++ (true :: (false :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (true :: (true :: (flat2 (List.replicate p' true)
+                    ++ false :: false :: rest)))))))⟩ := by
+        rw [run_one,
+          show flat2 (List.replicate i false)
+              ++ (true :: (false :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (true :: (true :: (flat2 (List.replicate p' true)
+                    ++ false :: false :: rest)))))))
+            = ((flat2 (List.replicate i false) ++ [true, false])
+                ++ flat2 (List.replicate t' true))
+                ++ false :: (false :: (flat2 (List.replicate i false)
+                  ++ (true :: (true :: (flat2 (List.replicate p' true)
+                    ++ false :: false :: rest))))) from by simp,
+          show (2 * i + 1 + 1 + 2 * t' : ℕ)
+            = ((flat2 (List.replicate i false) ++ [true, false])
+                ++ flat2 (List.replicate t' true)).length from by
+            simp [DIndexMachine.flat2_length]
+            try omega,
+          step_H0_F (getD_at _ false _)]
+      have h6 : run cmpMachine 1 (⟨(4, ans), 2 * i + 1 + 1 + 2 * t' + 1,
+          flat2 (List.replicate i false) ++ (true :: (false :: (flat2 (List.replicate t' true)
+            ++ false :: false :: (flat2 (List.replicate i false)
+              ++ (true :: (true :: (flat2 (List.replicate p' true)
+                ++ false :: false :: rest)))))))⟩ : Cfg cmpMachine)
+          = ⟨(5, ans), 2 * i + 1 + 1 + 2 * t' + 1 + 1, flat2 (List.replicate i false)
+              ++ (true :: (false :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (true :: (true :: (flat2 (List.replicate p' true)
+                    ++ false :: false :: rest)))))))⟩ := by
+        rw [run_one, step_C1]
+      have h7 : run cmpMachine (2 * i) (⟨(5, ans), 2 * i + 1 + 1 + 2 * t' + 1 + 1,
+          flat2 (List.replicate i false) ++ (true :: (false :: (flat2 (List.replicate t' true)
+            ++ false :: false :: (flat2 (List.replicate i false)
+              ++ (true :: (true :: (flat2 (List.replicate p' true)
+                ++ false :: false :: rest)))))))⟩ : Cfg cmpMachine)
+          = ⟨(5, ans), 2 * i + 1 + 1 + 2 * t' + 1 + 1 + 2 * i,
+              flat2 (List.replicate i false)
+              ++ (true :: (false :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (true :: (true :: (flat2 (List.replicate p' true)
+                    ++ false :: false :: rest)))))))⟩ := by
+        have hw := walkS2 i
+          (((flat2 (List.replicate i false) ++ [true, false])
+            ++ flat2 (List.replicate t' true)) ++ [false, false])
+          (true :: (true :: (flat2 (List.replicate p' true)
+            ++ false :: false :: rest))) ans
+        rw [show flat2 (List.replicate i false)
+            ++ (true :: (false :: (flat2 (List.replicate t' true)
+              ++ false :: false :: (flat2 (List.replicate i false)
+                ++ (true :: (true :: (flat2 (List.replicate p' true)
+                  ++ false :: false :: rest)))))))
+          = (((flat2 (List.replicate i false) ++ [true, false])
+              ++ flat2 (List.replicate t' true)) ++ [false, false])
+              ++ (flat2 (List.replicate i false)
+                ++ (true :: (true :: (flat2 (List.replicate p' true)
+                  ++ false :: false :: rest)))) from by simp,
+          show (2 * i + 1 + 1 + 2 * t' + 1 + 1 : ℕ)
+            = (((flat2 (List.replicate i false) ++ [true, false])
+                ++ flat2 (List.replicate t' true)) ++ [false, false]).length from by
+            simp [DIndexMachine.flat2_length]
+            try omega]
+        exact hw
+      have h8 : run cmpMachine 1 (⟨(5, ans), 2 * i + 1 + 1 + 2 * t' + 1 + 1 + 2 * i,
+          flat2 (List.replicate i false) ++ (true :: (false :: (flat2 (List.replicate t' true)
+            ++ false :: false :: (flat2 (List.replicate i false)
+              ++ (true :: (true :: (flat2 (List.replicate p' true)
+                ++ false :: false :: rest)))))))⟩ : Cfg cmpMachine)
+          = ⟨(6, ans), 2 * i + 1 + 1 + 2 * t' + 1 + 1 + 2 * i + 1,
+              flat2 (List.replicate i false)
+              ++ (true :: (false :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (true :: (true :: (flat2 (List.replicate p' true)
+                    ++ false :: false :: rest)))))))⟩ := by
+        rw [run_one,
+          show flat2 (List.replicate i false)
+              ++ (true :: (false :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (true :: (true :: (flat2 (List.replicate p' true)
+                    ++ false :: false :: rest)))))))
+            = ((((flat2 (List.replicate i false) ++ [true, false])
+                ++ flat2 (List.replicate t' true)) ++ [false, false])
+                ++ flat2 (List.replicate i false))
+                ++ true :: (true :: (flat2 (List.replicate p' true)
+                  ++ false :: false :: rest)) from by simp,
+          show (2 * i + 1 + 1 + 2 * t' + 1 + 1 + 2 * i : ℕ)
+            = ((((flat2 (List.replicate i false) ++ [true, false])
+                ++ flat2 (List.replicate t' true)) ++ [false, false])
+                ++ flat2 (List.replicate i false)).length from by
+            simp [DIndexMachine.flat2_length]
+            try omega,
+          step_S20_T (getD_at _ true _)]
+      have h9 : run cmpMachine 1 (⟨(6, ans), 2 * i + 1 + 1 + 2 * t' + 1 + 1 + 2 * i + 1,
+          flat2 (List.replicate i false) ++ (true :: (false :: (flat2 (List.replicate t' true)
+            ++ false :: false :: (flat2 (List.replicate i false)
+              ++ (true :: (true :: (flat2 (List.replicate p' true)
+                ++ false :: false :: rest)))))))⟩ : Cfg cmpMachine)
+          = ⟨(0, ans), 0, cmpTape (i + 1) t' (i + 1) p' rest⟩ := by
+        have hb1 : flat2 (List.replicate i false) ++ [true, false]
+            = flat2 (List.replicate (i + 1) false) := by
+          have := List.replicate_succ' (n := i) (a := false)
+          rw [this, flat2_append]
+          rfl
+        rw [run_one,
+          show flat2 (List.replicate i false)
+              ++ (true :: (false :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (true :: (true :: (flat2 (List.replicate p' true)
+                    ++ false :: false :: rest)))))))
+            = (((((flat2 (List.replicate i false) ++ [true, false])
+                ++ flat2 (List.replicate t' true)) ++ [false, false])
+                ++ flat2 (List.replicate i false)) ++ [true])
+                ++ true :: (flat2 (List.replicate p' true)
+                  ++ false :: false :: rest) from by simp,
+          show (2 * i + 1 + 1 + 2 * t' + 1 + 1 + 2 * i + 1 : ℕ)
+            = (((((flat2 (List.replicate i false) ++ [true, false])
+                ++ flat2 (List.replicate t' true)) ++ [false, false])
+                ++ flat2 (List.replicate i false)) ++ [true]).length from by
+            simp [DIndexMachine.flat2_length]
+            try omega,
+          step_S21_T (getD_at _ true _), writeAt_boundary,
+          show (((((flat2 (List.replicate i false) ++ [true, false])
+              ++ flat2 (List.replicate t' true)) ++ [false, false])
+              ++ flat2 (List.replicate i false)) ++ [true])
+              ++ false :: (flat2 (List.replicate p' true)
+                ++ false :: false :: rest)
+            = cmpTape (i + 1) t' (i + 1) p' rest from by
+            simp only [cmpTape, ← hb1]
+            simp [List.append_assoc]]
+      refine ⟨2 * i + (1 + (1 + (2 * t' + (1 + (1 + (2 * i + (1 + (1 + t₂)))))))), by
+        have hmono : (t' + 1) * (2 * (i + 1 + t') + 2 * (i + 1 + p') + 12)
+            ≤ (t' + 1) * (2 * (i + (t' + 1)) + 2 * (i + (p' + 1)) + 12) :=
+          Nat.mul_le_mul_left _ (by omega)
+        have hexp : (t' + 1 + 1) * (2 * (i + (t' + 1)) + 2 * (i + (p' + 1)) + 12)
+            = (t' + 1) * (2 * (i + (t' + 1)) + 2 * (i + (p' + 1)) + 12)
+              + (2 * (i + (t' + 1)) + 2 * (i + (p' + 1)) + 12) := by ring
+        omega, pos, ?_⟩
+      rw [show (⟨(0, ans), 0, cmpTape i (t' + 1) i (p' + 1) rest⟩ : Cfg cmpMachine)
+          = ⟨(0, ans), 0, flat2 (List.replicate i false)
+              ++ (true :: (true :: (flat2 (List.replicate t' true)
+                ++ false :: false :: (flat2 (List.replicate i false)
+                  ++ (true :: (true :: (flat2 (List.replicate p' true)
+                    ++ false :: false :: rest)))))))⟩ from by
+          simp [cmpTape, flat2, List.replicate_succ],
+        run_add, h1, run_add, h2, run_add, h3, run_add, h4, run_add, h5,
+        run_add, h6, run_add, h7, run_add, h8, run_add, h9, hIH, cmpFinal_succ,
+        show (decide (t' < p') : Bool) = decide (t' + 1 < p' + 1) from
+          decide_eq_decide.mpr (by omega)]
 
 end PallLean.Paper93.DeepMath.PathB.UnaryCmpMachine
