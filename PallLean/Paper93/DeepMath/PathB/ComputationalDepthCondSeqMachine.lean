@@ -5,15 +5,16 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCookLevinEmitSeq
 
 `seqMachine` chains two machines linearly; the pair-assembly needs a *branch*: after the
 compare machine, dispatch to a `p²+t` machine or a `t²+t+p` machine depending on `t < p`.
-`condSeqMachine M₁ Mt Mf` is that primitive — it runs `M₁`, and at the handoff reads the
-head cell (the flag `M₁` halts on) and dispatches to `Mt` (flag `true`) or `Mf` (flag
-`false`), resetting the head to `0`.
+`condSeqMachine M₁ Mt Mf` is that primitive — it runs `M₁`, and at the handoff reads
+`M₁`'s **accept bit** (available from `M₁`'s halt state, no tape gymnastics) and dispatches
+to `Mt` (accept `true`) or `Mf` (accept `false`), resetting the head to `0`.  This matches
+`cmpMachine`, whose comparison answer is exactly its accept bit — so the compare machine
+feeds the branch verbatim, unmodified.
 
 Two composition theorems, `condSeq_run_true` / `condSeq_run_false`, mirror `seq_run`:
-given `M₁`'s run to a halt at `⟨s₁f, p₁, T₁⟩` with halt-cell `T₁.getD p₁ = flag`, and the
-chosen arm's run `T₁ ↦ T₂`, the composite reaches the chosen final configuration — halted —
-at exactly the clock `t₁ + 1 + t₂`.  The freeze semantics absorbs any slack, as in
-`seq_run`.
+given `M₁`'s run to a halt at `⟨s₁f, p₁, T₁⟩` with `M₁.accept s₁f = flag`, and the chosen
+arm's run `T₁ ↦ T₂`, the composite reaches the chosen final configuration — halted — at
+exactly the clock `t₁ + 1 + t₂`.  The freeze semantics absorbs any slack, as in `seq_run`.
 
 Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
@@ -36,7 +37,8 @@ def condSeqMachine (M1 Mt Mf : Machine) : Machine where
   δ := fun s b => match s with
     | .inl s1 =>
       if M1.halt s1 then
-        (if b then Sum.inr (Sum.inl Mt.start) else Sum.inr (Sum.inr Mf.start), none, 3)
+        (if M1.accept s1 then Sum.inr (Sum.inl Mt.start) else Sum.inr (Sum.inr Mf.start),
+          none, 3)
       else (Sum.inl (M1.δ s1 b).1, (M1.δ s1 b).2.1, (M1.δ s1 b).2.2)
     | .inr (.inl st) =>
       (Sum.inr (Sum.inl (Mt.δ st b).1), (Mt.δ st b).2.1, (Mt.δ st b).2.2)
@@ -81,17 +83,19 @@ theorem cond_delta_inl (s1 : M1.State) (b : Bool) (h : M1.halt s1 = false) :
   show (if M1.halt s1 then _ else _) = _
   rw [h]; simp
 
-theorem cond_delta_handoff_true (s1 : M1.State) (h : M1.halt s1 = true) :
-    (condSeqMachine M1 Mt Mf).δ (Sum.inl s1) true
+theorem cond_delta_handoff_true (s1 : M1.State) (b : Bool) (h : M1.halt s1 = true)
+    (ha : M1.accept s1 = true) :
+    (condSeqMachine M1 Mt Mf).δ (Sum.inl s1) b
       = (Sum.inr (Sum.inl Mt.start), none, 3) := by
   show (if M1.halt s1 then _ else _) = _
-  rw [h]; simp
+  rw [h, ha]; simp
 
-theorem cond_delta_handoff_false (s1 : M1.State) (h : M1.halt s1 = true) :
-    (condSeqMachine M1 Mt Mf).δ (Sum.inl s1) false
+theorem cond_delta_handoff_false (s1 : M1.State) (b : Bool) (h : M1.halt s1 = true)
+    (ha : M1.accept s1 = false) :
+    (condSeqMachine M1 Mt Mf).δ (Sum.inl s1) b
       = (Sum.inr (Sum.inr Mf.start), none, 3) := by
   show (if M1.halt s1 then _ else _) = _
-  rw [h]; simp
+  rw [h, ha]; simp
 
 /-- Left phase, not halted: simulate `M₁`. -/
 theorem step_cond_inl (c : Cfg M1) (h : M1.halt c.st = false) :
@@ -105,26 +109,28 @@ theorem step_cond_inl (c : Cfg M1) (h : M1.halt c.st = false) :
 
 /-- Handoff on flag `true`: to `Mt.start`, head reset. -/
 theorem step_cond_handoff_true (c : Cfg M1) (h : M1.halt c.st = true)
-    (hb : c.tp.getD c.hd false = true) :
+    (ha : M1.accept c.st = true) :
     step (condSeqMachine M1 Mt Mf) (inlCfg M1 Mt Mf c)
       = ⟨Sum.inr (Sum.inl Mt.start), 0, c.tp⟩ := by
   unfold step
   rw [show (inlCfg M1 Mt Mf c).st = Sum.inl c.st from rfl, cond_halt_inl]
   simp only [Bool.false_eq_true, if_false]
   rw [show (inlCfg M1 Mt Mf c).tp = c.tp from rfl,
-    show (inlCfg M1 Mt Mf c).hd = c.hd from rfl, hb, cond_delta_handoff_true c.st h]
+    show (inlCfg M1 Mt Mf c).hd = c.hd from rfl,
+    cond_delta_handoff_true c.st _ h ha]
   rfl
 
 /-- Handoff on flag `false`: to `Mf.start`, head reset. -/
 theorem step_cond_handoff_false (c : Cfg M1) (h : M1.halt c.st = true)
-    (hb : c.tp.getD c.hd false = false) :
+    (ha : M1.accept c.st = false) :
     step (condSeqMachine M1 Mt Mf) (inlCfg M1 Mt Mf c)
       = ⟨Sum.inr (Sum.inr Mf.start), 0, c.tp⟩ := by
   unfold step
   rw [show (inlCfg M1 Mt Mf c).st = Sum.inl c.st from rfl, cond_halt_inl]
   simp only [Bool.false_eq_true, if_false]
   rw [show (inlCfg M1 Mt Mf c).tp = c.tp from rfl,
-    show (inlCfg M1 Mt Mf c).hd = c.hd from rfl, hb, cond_delta_handoff_false c.st h]
+    show (inlCfg M1 Mt Mf c).hd = c.hd from rfl,
+    cond_delta_handoff_false c.st _ h ha]
   rfl
 
 /-- `true`-arm simulation. -/
@@ -208,13 +214,13 @@ private theorem cond_left (T0 T1 : List Bool) (t1 : ℕ) (s1f : M1.State) (p1 : 
 theorem condSeq_run_true (T0 T1 T2 : List Bool) (t1 t2 : ℕ)
     (s1f : M1.State) (p1 : ℕ) (s2f : Mt.State) (p2 : ℕ)
     (h1 : run M1 t1 (init M1 T0) = ⟨s1f, p1, T1⟩) (hh1 : M1.halt s1f = true)
-    (hb : T1.getD p1 false = true)
+    (ha : M1.accept s1f = true)
     (h2 : run Mt t2 (init Mt T1) = ⟨s2f, p2, T2⟩) (hh2 : Mt.halt s2f = true) :
     run (condSeqMachine M1 Mt Mf) (t1 + 1 + t2) (init (condSeqMachine M1 Mt Mf) T0)
       = ⟨Sum.inr (Sum.inl s2f), p2, T2⟩ := by
   obtain ⟨nf, hnf, hleft⟩ := cond_left (Mt := Mt) (Mf := Mf) T0 T1 t1 s1f p1 h1 hh1
   have hstep := step_cond_handoff_true (M1 := M1) (Mt := Mt) (Mf := Mf)
-    (⟨s1f, p1, T1⟩ : Cfg M1) hh1 hb
+    (⟨s1f, p1, T1⟩ : Cfg M1) hh1 ha
   have hs2 := run_cond_inrl (M1 := M1) (Mt := Mt) (Mf := Mf) (init Mt T1) t2
   rw [h2] at hs2
   have hfin : (condSeqMachine M1 Mt Mf).halt
@@ -234,13 +240,13 @@ theorem condSeq_run_true (T0 T1 T2 : List Bool) (t1 t2 : ℕ)
 theorem condSeq_run_false (T0 T1 T2 : List Bool) (t1 t2 : ℕ)
     (s1f : M1.State) (p1 : ℕ) (s2f : Mf.State) (p2 : ℕ)
     (h1 : run M1 t1 (init M1 T0) = ⟨s1f, p1, T1⟩) (hh1 : M1.halt s1f = true)
-    (hb : T1.getD p1 false = false)
+    (ha : M1.accept s1f = false)
     (h2 : run Mf t2 (init Mf T1) = ⟨s2f, p2, T2⟩) (hh2 : Mf.halt s2f = true) :
     run (condSeqMachine M1 Mt Mf) (t1 + 1 + t2) (init (condSeqMachine M1 Mt Mf) T0)
       = ⟨Sum.inr (Sum.inr s2f), p2, T2⟩ := by
   obtain ⟨nf, hnf, hleft⟩ := cond_left (Mt := Mt) (Mf := Mf) T0 T1 t1 s1f p1 h1 hh1
   have hstep := step_cond_handoff_false (M1 := M1) (Mt := Mt) (Mf := Mf)
-    (⟨s1f, p1, T1⟩ : Cfg M1) hh1 hb
+    (⟨s1f, p1, T1⟩ : Cfg M1) hh1 ha
   have hs2 := run_cond_inrr (M1 := M1) (Mt := Mt) (Mf := Mf) (init Mf T1) t2
   rw [h2] at hs2
   have hfin : (condSeqMachine M1 Mt Mf).halt
