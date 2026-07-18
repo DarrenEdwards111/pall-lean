@@ -152,6 +152,81 @@ theorem walkCross (d : ℕ) (P Z : List Bool) (ans : Bool)
           = P ++ (flat2 (List.replicate d false) ++ false :: Z) from by simp]
       exact hnext)]
 
+/-- Hunt over live units (states `2`/`3`): two steps each. -/
+theorem walkLive (k : ℕ) : ∀ (P Z : List Bool) (ans : Bool),
+    run crossAddMachine (2 * k)
+      ⟨(2, ans), P.length, P ++ (flat2 (List.replicate k true) ++ Z)⟩
+      = ⟨(2, ans), P.length + 2 * k, P ++ (flat2 (List.replicate k true) ++ Z)⟩ := by
+  induction k with
+  | zero => intro P Z ans; simp [flat2, run_zero]
+  | succ k ih =>
+    intro P Z ans
+    show run crossAddMachine (2 * (k + 1))
+        ⟨(2, ans), P.length, P ++ (true :: true :: (flat2 (List.replicate k true) ++ Z))⟩
+      = ⟨(2, ans), P.length + 2 * (k + 1),
+          P ++ (true :: true :: (flat2 (List.replicate k true) ++ Z))⟩
+    rw [show P.length + 2 * (k + 1) = (P ++ [true, true]).length + 2 * k from by
+      simp; omega]
+    rw [show 2 * (k + 1) = 2 + 2 * k from by omega, run_add, run_two,
+      step_B0_T (getD_at P true _), step_B1,
+      show P.length + 1 + 1 = (P ++ [true, true]).length from by simp,
+      show P ++ (true :: true :: (flat2 (List.replicate k true) ++ Z))
+        = (P ++ [true, true]) ++ (flat2 (List.replicate k true) ++ Z) from by simp,
+      ih (P ++ [true, true]) Z ans]
+
+/-- The acc-run walk (state `5`): `getD`-conditioned. -/
+theorem walkC : ∀ (m : ℕ) (x : List Bool) (p : ℕ) (ans : Bool),
+    (∀ i < m, x.getD (p + i) false = true) →
+    run crossAddMachine m ⟨(5, ans), p, x⟩ = ⟨(5, ans), p + m, x⟩
+  | 0, x, p, ans, _ => rfl
+  | m + 1, x, p, ans, h => by
+    rw [show m + 1 = 1 + m from by omega, run_add, run_one,
+      step_C_T (by simpa using h 0 (by omega)),
+      walkC m x (p + 1) ans (fun i hi => by
+        have := h (i + 1) (by omega)
+        rwa [show p + (i + 1) = p + 1 + i from by omega] at this)]
+    rw [show p + (1 + m) = p + 1 + m from by omega]
+
+/-- The crossing-select tape: one dead block `[T,F]^d`, its `[F]` separator, then a partially
+consumed live block (`j` marked, `k` live), the acc terminator, acc `1^(s+j)`, and frontier
+zeros. -/
+def crossTape (d j k s : ℕ) (rest : List Bool) : List Bool :=
+  flat2 (List.replicate d false) ++ false :: UnaryCopyMachine.copyTape j k s rest
+
+/-- The dead prefix the seek crosses each round. -/
+def deadPrefix (d : ℕ) : List Bool := flat2 (List.replicate d false) ++ [false]
+
+theorem deadPrefix_length (d : ℕ) : (deadPrefix d).length = 2 * d + 1 := by
+  simp [deadPrefix, DIndexMachine.flat2_length]
+
+theorem crossTape_eq (d j k s : ℕ) (rest : List Bool) :
+    crossTape d j k s rest = deadPrefix d ++ UnaryCopyMachine.copyTape j k s rest := by
+  simp [crossTape, deadPrefix]
+
+/-- **The dead-prefix crossing**, as a run from the tape start: the seek skips the `d` dead
+units and crosses the `[F]` separator, landing in seek state at the live-block region (whose
+first cell is `T`). -/
+theorem run_cross (d : ℕ) (tail : List Bool) (ans : Bool)
+    (htail : tail.getD 0 false = true) :
+    run crossAddMachine (2 * d + 2)
+      ⟨(0, ans), 0, flat2 (List.replicate d false) ++ false :: tail⟩
+      = ⟨(0, ans), (deadPrefix d).length, deadPrefix d ++ tail⟩ := by
+  have hget : (flat2 (List.replicate d false) ++ false :: tail).getD (2 * d + 1) false = true := by
+    rw [show (2 * d + 1 : ℕ) = (flat2 (List.replicate d false)).length + 1 from by
+        simp [DIndexMachine.flat2_length],
+      show flat2 (List.replicate d false) ++ false :: tail
+        = (flat2 (List.replicate d false) ++ [false]) ++ tail from by simp,
+      List.getD_eq_getElem?_getD,
+      List.getElem?_append_right (by simp),
+      show (flat2 (List.replicate d false)).length + 1
+          - (flat2 (List.replicate d false) ++ [false]).length = 0 from by simp,
+      ← List.getD_eq_getElem?_getD]
+    exact htail
+  have hc := walkCross d [] tail ans (by simpa using hget)
+  simp only [List.length_nil, List.nil_append, Nat.zero_add] at hc
+  rw [hc, deadPrefix_length]
+  simp [deadPrefix, List.append_assoc]
+
 /-- The machine halts at state `6`. -/
 theorem crossAdd_halt (ans : Bool) : crossAddMachine.halt ((6 : Fin 8), ans) = true := rfl
 
