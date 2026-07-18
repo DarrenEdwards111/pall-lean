@@ -1,35 +1,31 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthTraceRelativization
 
 /-!
-# The schema evades algebrization: `traceInv` is not language-invariant
+# A measure-level non-language-invariance fact: `traceInv` is not language-invariant
 
-The barrier audit's third and final pillar.  Algebrization (Aaronson–Wigderson) strengthens
-relativization: a proof algebrizes if it holds relative to a low-degree extension `Ã` of the
-oracle `A`.  The algebrization barrier blocks even some non-relativizing techniques.
+**Scope, stated honestly up front.**  This file proves a *measure-level* fact — `traceInv` is not
+determined by the decided language — and connects it, informally, to algebrization.  It is **not** a
+genuine algebrization-barrier evasion.  Algebrization (Aaronson–Wigderson) is about proof techniques
+that hold relative to a low-degree extension `Ã` of an oracle; escaping it requires exhibiting a
+technique that fails against some such extension, which needs the full oracle/low-degree-extension
+machine model — entirely absent here.  What is proved is only that one measure reads more than the
+language and any language-determined view of it.
 
-The two barriers share a common core at the measure level.  A *relativizing* technique sees a
-machine only through its decided language; an *algebrizing* technique additionally sees the
-extension `Ã` — but `Ã` is a deterministic function of the language `A`, so both barriers see the
-machine only through **functions of its decided language**.  Any measure that is *language-
-invariant* — determined by the decided language alone — is therefore blocked by both.
+The content: a *relativizing* view sees a machine through its decided language; an *algebrizing*
+view additionally sees the extension `Ã`, but `Ã` is a deterministic function of the language, so
+both are **functions of the decided language**.  A measure determined by the decided language alone
+(`LanguageInvariant`) is invisible to both.  `traceInv` is not language-invariant: the two machines
+of `TraceRelativization` decide the **same** language yet have different `traceInv`
+(`traceInv_not_languageInvariant`).  So `traceInv` reads the actual computation, strictly more than
+any function of the language.  Read this as "the measure is not language-invariant," not "the schema
+evades algebrization."
 
-`traceInv` is not language-invariant: the two machines of `TraceRelativization` decide the
-**same** language yet have different `traceInv` (`traceInv_not_languageInvariant`).  So `traceInv`
-reads strictly more than the language and any function of it — including the low-degree extension
-— by reading the actual computation.  Hence the schema evades algebrization as well as
-relativization.
-
-**Scope, honestly.**  This captures the *measure-level* reason both barriers fail: `traceInv`
-depends on the internal computation, which no black-box or algebraic-extension view of the
-language can access.  It is the standard form of a barrier-evasion argument — a witness two same-
-behavior machines that the barrier cannot distinguish but the technique can.  A fully faithful
-oracle-machine algebrization model (machines with `Ã`-oracle access) is a separate development;
-the non-invariance proved here is the essential obstruction to *any* language-determined barrier.
-
-**Barrier trilogy complete.**  Relativization (machine-dependence, `TraceRelativization`), natural
-proofs (non-largeness, `NaturalProofs`), and now algebrization (non-language-invariance) are all
-evaded.  The surviving super-additive candidate (`TraceSchemaCapstone.SuperAdditiveWitness`) is
-blocked by none of the three classical barriers.
+**Three measure-level non-invariance facts, not three barrier evasions.**  Machine-dependence
+(`TraceRelativization`), non-largeness (`NaturalProofs`), and non-language-invariance (here) are
+each a necessary condition for a language-determined / density-based barrier not to apply — a
+suggestive record that the schema's measures are not invariant in the ways the classical barriers
+exploit, but weaker than genuine evasion of the relativization / natural-proofs / algebrization
+barriers, each of which is a statement in a model this development does not build.
 
 Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
@@ -52,7 +48,8 @@ def LanguageInvariant (F : Machine → (ℕ → ℕ)) : Prop :=
 /-- **`traceInv` is not language-invariant.**  Two machines deciding the same language have
 different `traceInv traceSize`, so the measure is not determined by the decided language — it
 reads the actual computation, strictly more than the language or any function of it (including
-the low-degree extension).  The schema therefore evades algebrization, not only relativization. -/
+the low-degree extension).  (This is machine-dependence at the measure level, not a proof that
+the schema evades the algebrization barrier.) -/
 theorem traceInv_not_languageInvariant : ¬ LanguageInvariant (traceInv traceSize) := by
   obtain ⟨M₁, M₂, L, T₁, T₂, hD1, hD2, hne⟩ := traceInv_machine_dependent
   intro hinv

@@ -1,27 +1,25 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNonSizeDominated
 
 /-!
-# The schema evades relativization: `traceInv` is machine-dependent
+# A measure-level machine-dependence fact: `traceInv` is not language-invariant
 
-The ceiling tower (`PolyCeiling`) showed that any content beyond time must come from a
-super-additive measure — cross-row correlation.  A prior obstruction one might fear is
-**relativization**: a proof technique relativizes if it holds relative to any oracle, and a
-complexity measure is *language-invariant* (relativizing) if it is determined by the decided
-language alone.  Language-invariant measures cannot separate P from NP by the classical
-relativization barrier.
+**Scope, stated honestly up front.**  This file proves a *measure-level* fact — `traceInv` is
+machine-dependent, i.e. not determined by the decided language alone — and connects it, informally,
+to relativization.  It is **not** a genuine relativization-barrier evasion.  The relativization
+barrier is about proof *techniques* that hold relative to every oracle; escaping it requires a
+technique that provably fails for some oracle, an oracle-construction argument entirely absent
+here.  What is proved is only that one particular measure reads more than the language — a necessary
+condition for a language-determined barrier not to apply, not a demonstration of evasion.
 
-This file shows the trace measures are **not** language-invariant, so the schema is not blocked
-by relativization a priori.  Two machines that decide the *same* language have *different*
-`traceInv`:
+The content: two machines that decide the *same* language have *different* `traceInv`:
 
 * `haltMachine` halts at step `0`; its trace on `x` is `[x]`.
 * `delay1Machine` takes one no-op step then halts; its trace on `x` is `[x, x]`.
 
 Both decide the constant-false language (`haltMachine_decides`, `delay1Machine_decides`), yet
 `traceInv_haltMachine_one = 2 ≠ 4 = traceInv_delay1Machine_one` (`traceInv_machine_dependent`).
-So `traceInv` reads the machine's *actual computation*, not just its language behavior — exactly
-the non-relativizing property.  A separation via a trace measure (super-additive or otherwise)
-is therefore not excluded by relativization.
+So `traceInv` reads the machine's *actual computation*, not just its language behavior.  Read this
+as "the measure is machine-dependent," not "the schema evades the relativization barrier."
 
 Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
@@ -118,9 +116,9 @@ theorem traceInv_delay1Machine_one : traceInv traceSize delay1Machine 1 = 4 := b
 
 /-- **`traceInv` is machine-dependent.**  Two machines deciding the same (constant-false)
 language have different `traceInv traceSize` — so the trace measure is not a function of the
-decided language.  A relativizing (language-invariant) measure could not distinguish them;
-`traceInv` does, by reading the actual computation.  The schema is not blocked by
-relativization. -/
+decided language.  A language-invariant measure could not distinguish them; `traceInv` does, by
+reading the actual computation.  (Machine-dependence is a necessary condition for a
+language-determined barrier not to apply, not a proof of relativization-barrier evasion.) -/
 theorem traceInv_machine_dependent :
     ∃ (M₁ M₂ : Machine) (L : List Bool → Bool) (T₁ T₂ : ℕ → ℕ),
       Decides M₁ L T₁ ∧ Decides M₂ L T₂
