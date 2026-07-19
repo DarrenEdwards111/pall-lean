@@ -1,40 +1,38 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthTranscriptInfoCap
 
 /-!
-# Stress-testing the cumulative-novelty measure (falsify-first, before defining it)
+# Building blocks for a cumulative-novelty measure, and two risks they expose
 
-The transcript cap (`transcriptInfo_le`) killed *static* information: it is `≤ n`.  The proposed
-escape is a **cumulative** measure — how often the computation creates and discards distinctions
-among possibilities — hoped to be time-bounded, simulation-stable, and *not* capped by `n`.  Before
-defining it in full we test it against the two traps it must avoid:
+The transcript cap (`transcriptInfo_le`) showed that *static* information of the input is `≤ n`.  The
+proposed way forward is a **cumulative** measure — how often the computation creates and discards
+distinctions among possibilities.  Before defining such a measure in full, this file records a few
+*proved facts* about two candidate building-block quantities, and the risks they flag.  It does not
+attempt a definition, and it does not claim any measure succeeds or fails.
 
-* **Trap A (runtime hidden inside it ⇒ content-free).**  If novelty is counted *along a single
-  computation*, it is bounded by the number of time steps, so it is `≤` time and gives no leverage
-  beyond "time is superpolynomial", i.e. beyond the separation itself.
-* **Trap B (not size-dominated).**  To beat Trap A it must aggregate *across inputs* — but then it is
-  bounded by the input entropy (`≤ 2^n`) and by the transcript capacity (`≤ (2|State|+1)^T`,
-  exponential in `T`), so a raw cross-input count is not `≤` time and fails size-domination.
+## Proved facts
 
-## The dichotomy, made precise
+* `cumulativeNovelty` / `cumulativeNovelty_le_time` — the number of *distinct configurations* visited
+  in `[0,T]` is `≤ T+1`.  A quantity read off a single trajectory this way is bounded by time.
+* `crossInputNovelty_le_input_entropy` — the number of distinct transcripts at a cut, as the length-`n`
+  input varies (`transcriptSupport`), is `≤ 2^n`.
+* `crossInputNovelty_le_capacity` — the same count is `≤ (2|State|+1)^T`.
 
-* `cumulativeNovelty` / `cumulativeNovelty_le_time` — **Trap A horn.**  Per-computation novelty (the
-  number of *distinct configurations* visited in `[0,T]`, an upper bound on any per-trajectory count
-  of "new distinctions") is `≤ T+1`.  So it is size-dominated, hence content-free: its hardness for
-  SAT holds iff time is superpolynomial, i.e. iff SAT ∉ P — no new leverage.
-* **Trap B horn** (already proved, cited here): the cross-input distinction count is exactly
-  `transcriptSupport`, with `transcriptSupport_le : ≤ 2^n` and
-  `transcriptInfo_le_length : ≤ (2|State|+1)^T`.  Bounded by input entropy and exponential in time —
-  a raw cross-input count is not size-dominated; capping it at time reintroduces Trap A.
+## Two risks these facts expose (risks, not verdicts)
 
-## Verdict
+* **Risk from Risk-A quantities.**  A per-trajectory count like distinct configurations is bounded by
+  time.  *Being bounded by time is not a defect* — it is exactly the soundness (size-domination) half
+  a valid invariant needs.  The open question it leaves is whether a time-bounded novelty quantity
+  can *also* be forced high on SAT.  For `cumulativeNovelty` specifically we prove only the upper
+  bound `≤ T+1`; we do not show it is high on SAT, nor that it cannot be.
+* **Risk from cross-input counts.**  The distinct-transcript count is bounded by `2^n`, a ceiling
+  that could obstruct superpolynomial-in-`n` growth.  Note the `(2|State|+1)^T` bound is only an
+  *upper* bound; it does **not** establish that this count exceeds time or fails size-domination —
+  that would require a lower bound, which is not proved here.
 
-Neither natural reading survives: per-computation cumulative novelty *is* time (content-free);
-cross-input cumulative novelty is bounded by static input entropy and is exponential in time (not
-size-dominated).  A measure that is simultaneously (i) `≤` poly(time), (ii) not a re-labelling of
-time, and (iii) not capped by `n`, must thread between these — and the two natural definitions do
-not.  The real object (if it exists) has to count distinctions that are *re-created* across time
-without being either a per-step count or a static cross-input count.  This file does **not** claim
-such an object exists; it records that the two obvious candidates are dead.
+These are cautions to respect when designing a cumulative measure.  They do **not** constitute a
+dichotomy, do **not** show the measure equals time or the separation, and do **not** rule out a
+hybrid time-bounded cumulative measure.  A time-bounded measure that is also provably high on SAT
+remains the open target.
 
 Nothing here proves `P ≠ NP`, SAT hardness, or a lower bound.  Nothing here is `NEXP ⊄ ACC⁰` or
 `P ≠ NP`.
@@ -46,29 +44,28 @@ open PallLean.Paper93.DeepMath.PathB.ComposableMachine
 
 variable {M : Machine}
 
-/-- Per-computation cumulative novelty: the number of *distinct configurations* visited in `[0,T]`.
-This upper-bounds any per-trajectory count of "new distinctions created" along the computation. -/
+/-- The number of *distinct configurations* visited in `[0,T]`. -/
 noncomputable def cumulativeNovelty (M : Machine) (c : Cfg M) (T : ℕ) : ℕ :=
   letI := Classical.decEq (Cfg M)
   ((Finset.range (T + 1)).image (fun t => run M t c)).card
 
-/-- **Trap A horn.**  Per-computation cumulative novelty is `≤ T+1`: there are only `T+1` time steps,
-so at most `T+1` distinct configurations.  Hence it is size-dominated — and therefore content-free:
-it is superpolynomial exactly when time is, giving no leverage beyond the separation itself. -/
+/-- The number of distinct configurations visited in `[0,T]` is `≤ T+1`: there are only `T+1` time
+steps.  So this per-trajectory quantity is bounded by time — the soundness (size-domination) side of
+what an invariant needs.  Whether such a time-bounded quantity can be forced high on SAT is not
+addressed here. -/
 theorem cumulativeNovelty_le_time (c : Cfg M) (T : ℕ) :
     cumulativeNovelty M c T ≤ T + 1 := by
   classical
   unfold cumulativeNovelty
   exact le_trans Finset.card_image_le (le_of_eq (Finset.card_range _))
 
-/-- **Trap B horn**, as a named restatement: the cross-input distinction count is `transcriptSupport`,
-bounded by the input entropy `2^n`. -/
+/-- The distinct-transcript count at a cut, as the length-`n` input varies, is `≤ 2^n`. -/
 theorem crossInputNovelty_le_input_entropy (b T n : ℕ) :
     transcriptSupport M b T n ≤ 2 ^ n :=
   transcriptSupport_le b T n
 
-/-- **Trap B horn**, capacity side: the cross-input distinction count is exponential in time,
-`≤ (2|State|+1)^T`, not `≤` poly(time). -/
+/-- The same distinct-transcript count is `≤ (2|State|+1)^T`.  This is an upper bound only; it does
+not by itself establish that the count exceeds time. -/
 theorem crossInputNovelty_le_capacity (b T n : ℕ) :
     transcriptSupport M b T n ≤ (2 * Fintype.card M.State + 1) ^ T :=
   transcriptInfo_le_length b T n
