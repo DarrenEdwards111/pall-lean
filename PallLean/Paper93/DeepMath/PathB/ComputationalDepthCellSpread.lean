@@ -1,31 +1,30 @@
-import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCrossingComplexity
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCrossingEnergyExpansion
 
 /-!
-# Concrete cell-spreading simulation (foundation)
+# Concrete cell-spreading simulation — `hpreserve` discharged
 
-Goal: build an explicit space-expansion simulator `spreadM M` — each tape cell of `M` laid out over
-two cells (value cell + inserted blank), head at doubled coordinates — and discharge the
-`hpreserve` hypothesis of `crossingEnergy_survives_expansion` by proving crossing counts are
-preserved at the embedded boundaries.
+An explicit space-expansion simulator `spreadM M` — each tape cell of `M` laid out over two cells
+(value cell + inserted blank), head at doubled coordinates — with the `hpreserve` hypothesis of
+`crossingEnergy_survives_expansion` **fully discharged**: `crossingEnergy_survives_spread` shows this
+real machine cannot lower quadratic energy, with no remaining assumptions.
 
-This file lands: the **tape encoding** (`spreadTape` + read/length lemmas), the **simulator machine**
-(`spreadM`, `spreadCfg`), the **`getD` core** (`writeAt_getD`, `append_replicate_getD` — writes read
-back positionally, up to trailing blanks), and the **congruence carrier** (`Congr`, `step_congr` —
-the `getD`-equivalence a step cannot see through, which handles the delicate part below).
-`hpreserve` is **not** yet discharged.
+The pipeline:
 
-The **full semantic simulation is now machine-checked**: `two_step_spread` (two simulator steps
-realise one `M` step, up to `Congr`), `run_spread` (`Congr (run (spreadM M) (2t) (spreadCfg c))
-(spreadCfg (run M t c))` by induction via `step_congr` + transitivity), and `headAt_spread_even`
-(the simulator's head at even times is exactly `2·(M's head)`).  The `getD`-equivalence subtlety
-(writing past the tape end leaves a trailing-blank list mismatch invisible to `getD`) is fully
-handled by `Congr`/`step_congr`.
+* **tape encoding** (`spreadTape` + read/length lemmas);
+* **simulator machine** (`spreadM`, `spreadCfg`);
+* **`getD` core** (`writeAt_getD`, `append_replicate_getD`) and **congruence carrier** (`Congr`,
+  `step_congr`) — handle the `getD`-equivalence subtlety (writing past the tape end leaves a
+  trailing-blank list mismatch invisible to `getD`);
+* **semantic simulation** (`two_step_spread`, `run_spread`, `headAt_spread_even`) — two simulator
+  steps realise one `M` step, so at even times the head is exactly `2·(M's head)`;
+* **crossing bijection** (`spread_crosses_of_crosses`, `crossingCount_le_spread`) — each `M`-crossing
+  of `b` at step `t` is a `spreadM`-crossing of `2b` at step `2t` or `2t+1`, an injection;
+* **discharge** (`crossingEnergy_survives_spread`) — `crossingEnergy M c S T ≤ crossingEnergy
+  (spreadM M) (spreadCfg c) (2S) (2T)`.
 
-What remains for `hpreserve` is only the crossing bijection `crossingCount M c b T ≤
-crossingCount (spreadM M) (spreadCfg c) (2b) (2T)`: each `M`-crossing of `b` at step `t` is a
-`spreadM`-crossing of `2b` at step `2t` or `2t+1`, giving an injection.  This needs the odd-time head
-`headAt (spreadM) (2t+1)` (the first half-move, obtainable from `step_congr` + `spread_step_inl`) and
-a per-step count — the final ~80 lines.
+So cell-spreading is now a machine-checked, genuine (non-vacuous) member of the crossing-preserving
+class: it really is crossing-preserving, and it really does not flatten quadratic energy.  (Flattening
+still requires a re-crossing-reducing simulation, outside this class — the open question.)
 
 Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
@@ -33,6 +32,7 @@ Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 namespace PallLean.Paper93.DeepMath.PathB.CellSpread
 
 open PallLean.Paper93.DeepMath.PathB.ComposableMachine
+open PallLean.Paper93.DeepMath.PathB.CrossingComplexity
 
 /-- Lay each cell out over two: value cell followed by an inserted blank. -/
 def spreadTape : List Bool → List Bool
@@ -245,5 +245,61 @@ theorem run_spread {M : Machine} (c : Cfg M) (t : ℕ) :
 theorem headAt_spread_even {M : Machine} (c : Cfg M) (t : ℕ) :
     (run (spreadM M) (2 * t) (spreadCfg c)).hd = 2 * (run M t c).hd :=
   (run_spread c t).2.1
+
+/-! ## The crossing bijection and the discharge -/
+
+/-- **Each `M`-crossing of `b` induces a `spreadM`-crossing of `2b`** at step `2t` or `2t+1`.  The
+head at `2t` and `2t+2` straddle `2b` (by `headAt_spread_even`); wherever the intermediate head sits,
+one of the two sub-steps crosses `2b`. -/
+theorem spread_crosses_of_crosses {M : Machine} (c : Cfg M) (b t : ℕ)
+    (h : crossesAt M c b t) :
+    crossesAt (spreadM M) (spreadCfg c) (2 * b) (2 * t) ∨
+      crossesAt (spreadM M) (spreadCfg c) (2 * b) (2 * t + 1) := by
+  have e0 := headAt_spread_even c t
+  have e2 : (run (spreadM M) (2 * t + 1 + 1) (spreadCfg c)).hd = 2 * (run M (t + 1) c).hd := by
+    rw [show 2 * t + 1 + 1 = 2 * (t + 1) from by omega]; exact headAt_spread_even c (t + 1)
+  simp only [crossesAt, headAt] at h ⊢
+  rw [e0, e2]
+  set H1 := (run (spreadM M) (2 * t + 1) (spreadCfg c)).hd
+  rcases h with ⟨h1, h2⟩ | ⟨h1, h2⟩
+  · rcases Nat.lt_or_ge (2 * b) H1 with hH | hH
+    · left; left; omega
+    · right; left; omega
+  · rcases Nat.lt_or_ge (2 * b) H1 with hH | hH
+    · right; right; omega
+    · left; right; omega
+
+/-- **The crossing bijection (as an injection).**  `M`'s crossings of `b` inject into `spreadM`'s
+crossings of `2b`, so the count does not drop. -/
+theorem crossingCount_le_spread {M : Machine} (c : Cfg M) (b T : ℕ) :
+    crossingCount M c b T ≤ crossingCount (spreadM M) (spreadCfg c) (2 * b) (2 * T) := by
+  classical
+  unfold crossingCount crossingTimes
+  apply Finset.card_le_card_of_injOn
+    (fun t => if crossesAt (spreadM M) (spreadCfg c) (2 * b) (2 * t) then 2 * t else 2 * t + 1)
+  · intro t ht
+    simp only [Finset.mem_coe, Finset.mem_filter, Finset.mem_range] at ht ⊢
+    obtain ⟨htT, htc⟩ := ht
+    split_ifs with hc
+    · exact ⟨by omega, hc⟩
+    · refine ⟨by omega, ?_⟩
+      rcases spread_crosses_of_crosses c b t htc with h | h
+      · exact absurd h hc
+      · exact h
+  · intro t1 _ t2 _ heq
+    dsimp only at heq
+    split_ifs at heq <;> omega
+
+/-- **`hpreserve` discharged for a real space expansion.**  The concrete cell-spreading simulator is
+crossing-preserving with embedding `g b = 2b`, so by `crossingEnergy_survives_expansion` it does not
+lower quadratic energy.  The survival theorem's hypothesis is now a proven fact for an explicit
+machine, not an assumption. -/
+theorem crossingEnergy_survives_spread {M : Machine} (c : Cfg M) (S T : ℕ) :
+    crossingEnergy M c S T ≤ crossingEnergy (spreadM M) (spreadCfg c) (2 * S) (2 * T) := by
+  refine crossingEnergy_survives_expansion c (spreadCfg c) S (2 * S) T (2 * T) (fun b => 2 * b)
+    ?_ ?_ ?_
+  · intro a _ b _ hab; dsimp only at hab; omega
+  · intro b hb; simp only [Finset.mem_range] at hb ⊢; omega
+  · intro b _; exact crossingCount_le_spread c b T
 
 end PallLean.Paper93.DeepMath.PathB.CellSpread
