@@ -7,13 +7,12 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthHenniePeak
 
 ## Status correction after the local-peak audit
 
-The global-final-frontier part is now machine-checked below, including the exact bridge to
-`distinctRows`.  It proves a time bound in terms of **final tape length** and distinct rows.  The
-stronger moving-frontier claim in the older prose below is still open: `HenniePeak` requires its
-chosen frontier to remain blank throughout the halting run, so it cannot be applied directly at a
-frontier that is written later.  The remaining theorem is therefore a local constant-tape excursion
-and frontier-growth bound, not Finset bookkeeping.  Until that theorem lands, `NoEmptySpaceComputation`
-and the claimed polynomial equivalence are not proved.
+The global-final-frontier part is machine-checked below, including the exact bridge to
+`distinctRows`.  The separate modules `HennieLocalWrite` and `HennieFrontierAccounting` now supply
+the previously missing sound moving-frontier argument: they split at write attempts, apply
+`HenniePeak` only to an auxiliary globally write-free phase, and inject strict frontier increases
+into distinct tape snapshots.  The latter module composes those results into the full polynomial
+time bound and discharges `NoEmptySpaceComputation` with actual `PolyBounded` hypotheses.
 
 Step 4 left one question: can a SAT decider have polynomially many distinct tape snapshots with
 superpolynomially many head positions — using head position as data without writing to the tape?
@@ -34,20 +33,19 @@ answers eliminate `distinctRows` as a *useful* proxy:
   rank.
 
 So `distinctRows` is not viable in either branch.  The formal anchor below records the "sufficient"
-direction that always holds; the branch analysis is honest prose, and the deciding lemma is stated
-but not formalized (see the boundary note).
+direction that always holds.  `ComputationalDepthHennieFrontierAccounting` now machine-checks the
+other branch too: a polynomial distinct-row bound yields an explicit polynomial time bound.
 
-## The formalization boundary
+## The discharged formalization boundary
 
 The obstruction is the classical **"no computation in empty space"** fact: to reach head position
 `H` a halting machine needs a non-blank landmark in every `|State|`-window of `[|x|, H]` (it cannot
 traverse more than `|State|` consecutive blank cells while halting — a pigeonhole on states forces a
 non-halting drift or loop), and each new rightmost landmark is a distinct tape.  Hence
-`H ≤ |x| + |State|·distinctTapes`, giving `time ≤ poly(distinctTapes, |x|)` via the structural bound
-— i.e. the obstruction *holds*.  This is a Hennie-machine-style crossing-sequence argument; I was
-**not** able to formalize the blank-traversal liveness step cleanly in this session, so the
-settlement here is at the level of mathematical argument, not a machine-checked proof of the
-implication.  What is machine-checked is the sufficiency direction and the size-domination.
+`H ≤ |x| + O(|State|)·distinctTapes`, giving `time ≤ poly(distinctTapes, |x|)` via the structural
+bound.  `HennieDrift`, `HenniePeak`, and `HennieLocalWrite` machine-check the local liveness argument;
+`HennieFrontierAccounting` splits at write attempts, counts frontier increases, constructs the
+explicit polynomial clock, and proves the `NoEmptySpaceComputation` proposition defined below.
 
 ## Verdict
 
@@ -138,8 +136,9 @@ theorem reads_false_beyond_final (M : Machine) (c : Cfg M) {T : ℕ}
   simp [List.getD, List.getElem?_eq_none hlen]
 
 /-- **Checked global head accounting.**  In a first-halting run, every visited head is below the
-final tape length plus one plus the number of states.  This is the valid use of `HenniePeak`: the
-chosen frontier remains blank for the whole run, unlike the still-open moving-frontier argument. -/
+final tape length plus one plus the number of states.  This is the valid global use of `HenniePeak`:
+the chosen frontier remains blank for the whole run.  The separate moving-frontier argument is
+discharged in `HennieFrontierAccounting` by splitting into write-free phases. -/
 theorem head_lt_finalTape_add_states (M : Machine) (x : List Bool) {T : ℕ}
     (hhalt : M.halt (run M T (init M x)).st = true)
     (hfirst : ∀ j, j < T → M.halt (run M j (init M x)).st = false)
@@ -173,10 +172,9 @@ theorem visitedHeads_card_le_finalTape_add_states (M : Machine) (x : List Bool) 
           exact head_lt_finalTape_add_states M x hhalt hfirst t (by omega)
     _ = B := Finset.card_range B
 
-/-- **The fully checked bound up to the moving-frontier obligation.**  Halt time is bounded by
-states times `(final tape length + 1 + states)` times the exact trace-level distinct-row count.
-The only missing ingredient for polynomial equivalence is now a bound on final tape length in terms
-of input length and distinct rows. -/
+/-- **The checked global-final-frontier bound.**  Halt time is bounded by states times
+`(final tape length + 1 + states)` times the exact trace-level distinct-row count.  The companion
+frontier-accounting module supplies the final-tape bound and composes it with this theorem. -/
 theorem time_le_finalTape_mul_distinctRows (M : Machine) (x : List Bool) {T : ℕ}
     (hhalt : M.halt (run M T (init M x)).st = true)
     (hfirst : ∀ j, j < T → M.halt (run M j (init M x)).st = false) :
@@ -202,17 +200,17 @@ theorem distinctRows_hard_imp_sep (SATV : NPObs) (hH : InvHard SATV (traceInv di
     ¬ PolyCollapse SATV :=
   (sizeDominated_hard_iff_sep SATV).mp ⟨distinctRows, distinctRows_sizeDominated, hH⟩
 
-/-- **The remaining obstruction, named.**  `poly distinctTapes ⟹ poly time`: no machine runs
-superpolynomially long with only polynomially many distinct tape snapshots.  The checked theorem
-`time_le_finalTape_mul_distinctRows` reduces it to controlling final frontier growth.  The required
-local constant-tape excursion/frontier-growth theorem is not machine-checked here. -/
+/-- **The obstruction, correctly polynomially packaged.**  A polynomial bound on distinct tape
+snapshots yields a polynomial bound on first-halt time. -/
 def NoEmptySpaceComputation : Prop :=
   ∀ (M : ComposableMachine.Machine) (p : ℕ → ℕ),
+    PvsNPSeparatingInvariant.PolyBounded p →
     (∀ x T, M.halt (ComposableMachine.run M T (ComposableMachine.init M x)).st = true →
         (∀ k, k < T → M.halt (ComposableMachine.run M k (ComposableMachine.init M x)).st = false) →
         distinctRows (traceObj M T x) ≤ p x.length) →
-    ∃ q : ℕ → ℕ, ∀ x T, M.halt (ComposableMachine.run M T (ComposableMachine.init M x)).st = true →
-      (∀ k, k < T → M.halt (ComposableMachine.run M k (ComposableMachine.init M x)).st = false) →
-      T ≤ q x.length
+    ∃ q : ℕ → ℕ, PvsNPSeparatingInvariant.PolyBounded q ∧
+      ∀ x T, M.halt (ComposableMachine.run M T (ComposableMachine.init M x)).st = true →
+        (∀ k, k < T → M.halt (ComposableMachine.run M k (ComposableMachine.init M x)).st = false) →
+        T ≤ q x.length
 
 end PallLean.Paper93.DeepMath.PathB.TraceDistinctRowsObstruction
