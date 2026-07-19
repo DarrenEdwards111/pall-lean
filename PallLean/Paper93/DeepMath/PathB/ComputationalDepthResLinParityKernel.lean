@@ -24,6 +24,15 @@ structure Equation (n : ℕ) where
   rhs : ZMod 2
   deriving DecidableEq
 
+@[ext]
+theorem Equation.ext {n : ℕ} {e f : Equation n}
+    (hcoeff : ∀ i, e.coeff i = f.coeff i) (hrhs : e.rhs = f.rhs) : e = f := by
+  cases e
+  cases f
+  congr
+  funext i
+  exact hcoeff i
+
 /-- A `Res(⊕)` line is a finite disjunction of affine equations. -/
 abbrev Clause (n : ℕ) := Finset (Equation n)
 
