@@ -14,14 +14,18 @@ back positionally, up to trailing blanks), and the **congruence carrier** (`Cong
 the `getD`-equivalence a step cannot see through, which handles the delicate part below).
 `hpreserve` is **not** yet discharged.
 
-The `getD`-equivalence subtlety: `spreadM` writes the value cell then completes a doubled move, so
-two of its steps realise one `M` step — but only *up to `getD`-equivalence* on the tape.  When `M`
-writes past its current tape end, `writeAt (spreadTape tp) (2h) w` and `spreadTape (writeAt tp h w)`
-agree at every position yet differ as lists by a trailing blank.  `Congr`/`step_congr` now carry that
-equivalence through the run.  What remains is mechanical: the two-step lemma
-`Congr (step² (spreadCfg c)) (spreadCfg (step M c))` (head arithmetic per move + tape via the
-even/odd read lemmas), the run induction via `step_congr` + transitivity, and the crossing bijection
-`crossingCount M c b T = crossingCount (spreadM M) (spreadCfg c) (2b+1) (2T)`.
+The **full semantic simulation is now machine-checked**: `two_step_spread` (two simulator steps
+realise one `M` step, up to `Congr`), `run_spread` (`Congr (run (spreadM M) (2t) (spreadCfg c))
+(spreadCfg (run M t c))` by induction via `step_congr` + transitivity), and `headAt_spread_even`
+(the simulator's head at even times is exactly `2·(M's head)`).  The `getD`-equivalence subtlety
+(writing past the tape end leaves a trailing-blank list mismatch invisible to `getD`) is fully
+handled by `Congr`/`step_congr`.
+
+What remains for `hpreserve` is only the crossing bijection `crossingCount M c b T ≤
+crossingCount (spreadM M) (spreadCfg c) (2b) (2T)`: each `M`-crossing of `b` at step `t` is a
+`spreadM`-crossing of `2b` at step `2t` or `2t+1`, giving an injection.  This needs the odd-time head
+`headAt (spreadM) (2t+1)` (the first half-move, obtainable from `step_congr` + `spread_step_inl`) and
+a per-step count — the final ~80 lines.
 
 Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
 -/
@@ -164,5 +168,82 @@ theorem step_congr {M' : Machine} {d1 d2 : Cfg M'} (h : Congr d1 d2) :
         by_cases hi : i = d2.hd
         · rw [if_pos hi, if_pos hi]
         · rw [if_neg hi, if_neg hi]; exact htp i
+
+/-! ## Two-step simulation and the run induction -/
+
+/-- A non-halted step, spelled out. -/
+theorem step_active {M' : Machine} (d : Cfg M') (hh : ¬ M'.halt d.st = true) :
+    step M' d = ⟨(M'.δ d.st (d.tp.getD d.hd false)).1,
+                 moveHead d.hd (M'.δ d.st (d.tp.getD d.hd false)).2.2,
+                 match (M'.δ d.st (d.tp.getD d.hd false)).2.1 with
+                 | none => d.tp | some w => writeAt d.tp d.hd w⟩ := by
+  unfold step; rw [if_neg hh]; rfl
+
+/-- The doubled move lands on the doubled target. -/
+theorem head_two_step (h : ℕ) (mv : Move) :
+    moveHead (moveHead (2 * h) mv) (if mv = 3 then 2 else mv) = 2 * moveHead h mv := by
+  fin_cases mv <;> simp [moveHead] <;> omega
+
+/-- First simulator step from a phase-0 configuration. -/
+theorem spread_step_inl {M : Machine} (c : Cfg M) (hh : ¬ M.halt c.st = true) :
+    step (spreadM M) (spreadCfg c)
+      = ⟨Sum.inr ((M.δ c.st (c.tp.getD c.hd false)).1, (M.δ c.st (c.tp.getD c.hd false)).2.2),
+         moveHead (2 * c.hd) (M.δ c.st (c.tp.getD c.hd false)).2.2,
+         match (M.δ c.st (c.tp.getD c.hd false)).2.1 with
+         | none => spreadTape c.tp
+         | some v => writeAt (spreadTape c.tp) (2 * c.hd) v⟩ := by
+  rw [step_active (spreadCfg c) hh]
+  simp only [spreadM, spreadCfg, spreadTape_getD_even]
+
+/-- Second simulator step from a phase-1 configuration completes the doubled move. -/
+theorem spread_step_inr {M : Machine} (s' : M.State) (mv : Move) (hd : ℕ) (tp : List Bool) :
+    step (spreadM M) ⟨Sum.inr (s', mv), hd, tp⟩
+      = ⟨Sum.inl s', moveHead hd (if mv = 3 then 2 else mv), tp⟩ := by
+  rw [step_active (M' := spreadM M) ⟨Sum.inr (s', mv), hd, tp⟩ (by simp [spreadM])]
+  simp only [spreadM]
+
+/-- **Two steps of the simulator realise one `M` step**, up to congruence. -/
+theorem two_step_spread {M : Machine} (c : Cfg M) :
+    Congr (step (spreadM M) (step (spreadM M) (spreadCfg c))) (spreadCfg (step M c)) := by
+  by_cases hh : M.halt c.st = true
+  · have h1 : step (spreadM M) (spreadCfg c) = spreadCfg c := step_of_halted (spreadM M) hh
+    rw [h1, h1, step_of_halted M hh]; exact Congr.rfl' _
+  · rw [spread_step_inl c hh, spread_step_inr, step_active c hh]
+    refine ⟨rfl, head_two_step c.hd _, ?_⟩
+    intro i
+    simp only [spreadCfg]
+    cases hw : (M.δ c.st (c.tp.getD c.hd false)).2.1 with
+    | none => rfl
+    | some v =>
+        rw [writeAt_getD]
+        rcases Nat.even_or_odd i with he | ho
+        · obtain ⟨j, hje⟩ := he
+          have hij : i = 2 * j := by omega
+          subst hij
+          rw [spreadTape_getD_even, spreadTape_getD_even, writeAt_getD]
+          by_cases hjc : j = c.hd
+          · rw [if_pos (by omega), if_pos hjc]
+          · rw [if_neg (by omega), if_neg hjc]
+        · obtain ⟨j, hjo⟩ := ho
+          subst hjo
+          rw [spreadTape_getD_odd, if_neg (by omega), spreadTape_getD_odd]
+
+/-- **The simulation invariant.**  After `2t` simulator steps the configuration is congruent to the
+spread of `M`'s configuration after `t` steps — in particular the head sits at `2·(M's head)`. -/
+theorem run_spread {M : Machine} (c : Cfg M) (t : ℕ) :
+    Congr (run (spreadM M) (2 * t) (spreadCfg c)) (spreadCfg (run M t c)) := by
+  induction t with
+  | zero => simp only [Nat.mul_zero, run_zero]; exact Congr.rfl' _
+  | succ t ih =>
+    have hstep : run (spreadM M) (2 * (t + 1)) (spreadCfg c)
+               = step (spreadM M) (step (spreadM M) (run (spreadM M) (2 * t) (spreadCfg c))) := by
+      rw [show 2 * (t + 1) = 2 * t + 1 + 1 from by omega, run_succ, run_succ]
+    rw [hstep, run_succ]
+    exact Congr.trans' (step_congr (step_congr ih)) (two_step_spread (run M t c))
+
+/-- The simulator's head at even times is exactly the doubled head of `M`. -/
+theorem headAt_spread_even {M : Machine} (c : Cfg M) (t : ℕ) :
+    (run (spreadM M) (2 * t) (spreadCfg c)).hd = 2 * (run M t c).hd :=
+  (run_spread c t).2.1
 
 end PallLean.Paper93.DeepMath.PathB.CellSpread
