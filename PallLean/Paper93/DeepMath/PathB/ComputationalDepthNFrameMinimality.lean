@@ -1,27 +1,32 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameFactorCircuit
+import Mathlib.LinearAlgebra.Dimension.Free
+import Mathlib.LinearAlgebra.Basis.Defs
+import Mathlib.LinearAlgebra.Basis.Basic
+import Mathlib.LinearAlgebra.Pi
+import Mathlib.Algebra.Module.Projective
+import Mathlib.LinearAlgebra.Matrix.ToLin
 
 /-!
-# Minimality of the gate count — the padding half, and the honest core gap
+# Minimality of the gate count — gate count equals rank exactly
 
-To make the gate count *exactly* the rank we need `rank M ≤ k ⟹ M` factors through `k` dims.  That
-splits into a **core** (factor through `rank M` dims) and **padding** (extend `rank M → k` for
-`rank M ≤ k`).  This file delivers the padding cleanly.
+To make the gate count *exactly* the rank we need `rank M ≤ k ⟹ M` factors through `k` dims.  This
+file proves it, in both its pieces.
 
-* `factor_pad` — a factorization `M = A' · B'` through `r` dims lifts to one through `k` dims whenever
-  there are conjugate rectangles `Q · R = 1` (`Q : r×k`, `R : k×r`): `M = (A'·Q) · (R·B')`.  For
-  `r ≤ k` such `Q, R` exist (the coordinate inclusion and its retraction), so a factorization through
-  `r ≤ k` dims *is* a factorization through `k` dims.
+* `rank_factorization` — **the core**: `rank M ≤ k ⟹ ∃ A B, M = A · B` (`A : n×k`, `B : k×n`).  Built
+  by factoring `M.mulVecLin` through a basis of its range (dim `= rank ≤ k`): lift the
+  range-restriction along a surjection `Fin k → F ↠ range` (projectivity of `Fin n → F` via
+  `projective_lifting_property`), then read off matrices via `toMatrix'_comp`.
+* `factor_pad` — the padding: a factorization through `r` dims lifts to one through `k` given conjugate
+  rectangles `Q · R = 1` (`Q : r×k`, `R : k×r`).
 
-## Honest scope — the core is a real construction, not built here
+## What this completes
 
-The **core**, `rank M ≤ k ⟹ ∃` a factorization through `rank M` dims, is genuine linear algebra that
-Mathlib does not provide directly: `Matrix.rank M := finrank (range M.mulVecLin)`, and turning that
-finrank bound into a concrete `M = A · B` requires factoring `M.mulVecLin` through a basis of its
-range (`Module.finBasis` on `range`, a section of the coordinate projection, then `toMatrix'_comp`).
-That is a multi-lemma development, and I am **not** claiming it here.  What is complete: the *padding*
-half above, plus the interchange from the previous files (any factorization ⇒ `k` gates ⇒ rank `≤ k`).
-Together with the core, the gate count would equal the rank exactly; without it, the barrier identity
-(the residual `≡` rigidity, both directions) already stands — this file only refines the *count*.
+With `rank_factorization` (rank `≤ k` ⇒ a `k`-dim factorization ⇒, by `factorization_eq_sum_gates`, a
+`k`-gate circuit) and the forward `rank_le_inner_dim` (a `k`-gate circuit ⇒ rank `≤ k`), the **minimal
+gate count of the shared computation equals its rank exactly**.  So the N-Frame `coneInter` count and
+the algebraic rank of the low-rank share coincide precisely: the residual `coneInter ≤ cN` and Valiant
+rigidity are the *same* quantity, both directions, with the count now pinned to the rank.  The
+famous-open core — rigidity itself — is untouched.
 
 Nothing here proves `P ≠ NP`, resolves rigidity, discharges the capture, or is `NEXP ⊄ ACC⁰`.
 -/
@@ -40,5 +45,35 @@ theorem factor_pad {r : ℕ} (M : Matrix (Fin n) (Fin n) F)
   have h : (A' * Q) * (R * B') = A' * B' := by
     rw [Matrix.mul_assoc, ← Matrix.mul_assoc Q R B', hQR, Matrix.one_mul]
   rw [hM]; exact h.symm
+
+/-- **The core rank-factorization.**  A matrix of rank `≤ k` factors through `k` dimensions:
+`M = A · B` with `A : n×k`, `B : k×n`.  Built by factoring `M.mulVecLin` through a basis of its range
+(dim `= rank ≤ k`): lift the range-restriction along a surjection `Fin k → F ↠ range` (projectivity of
+`Fin n → F`), then read off matrices via `toMatrix'`. -/
+theorem rank_factorization {n : ℕ} (M : Matrix (Fin n) (Fin n) F) (h : M.rank ≤ k) :
+    ∃ (A : Matrix (Fin n) (Fin k) F) (B : Matrix (Fin k) (Fin n) F), M = A * B := by
+  classical
+  let f : (Fin n → F) →ₗ[F] (Fin n → F) := M.mulVecLin
+  let R : Submodule F (Fin n → F) := LinearMap.range f
+  have hle : Module.finrank F R ≤ k := h
+  let b := Module.finBasis F R
+  let proj : (Fin k → F) →ₗ[F] (Fin (Module.finrank F R) → F) :=
+    LinearMap.funLeft F F (Fin.castLE hle)
+  have hproj : Function.Surjective proj := by
+    intro u
+    exact ⟨Function.extend (Fin.castLE hle) u 0, by
+      ext i
+      simp only [proj, LinearMap.funLeft_apply]
+      exact (Fin.castLE_injective hle).extend_apply u 0 i⟩
+  let s : (Fin k → F) →ₗ[F] R := b.equivFun.symm.toLinearMap.comp proj
+  have hs : Function.Surjective s := b.equivFun.symm.surjective.comp hproj
+  obtain ⟨B', hB'⟩ := Module.projective_lifting_property s f.rangeRestrict hs
+  refine ⟨LinearMap.toMatrix' (R.subtype.comp s), LinearMap.toMatrix' B', ?_⟩
+  rw [← LinearMap.toMatrix'_comp]
+  have hcomp : (R.subtype.comp s).comp B' = f := by
+    rw [LinearMap.comp_assoc, hB']
+    ext x; rfl
+  rw [hcomp, show f = Matrix.toLin' M from (Matrix.toLin'_apply' M).symm,
+    LinearMap.toMatrix'_toLin']
 
 end PallLean.Paper93.DeepMath.PathB.NFrameValiantRigidity
