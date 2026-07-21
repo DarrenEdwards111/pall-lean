@@ -9,14 +9,13 @@ gate are exactly the **single-reader** circuits, where all of `xᵢ`'s influence
 through one Boolean value `op (xᵢ, u)` — including mixed-row readers
 (`op(0,·)` constant, `op(1,·) = id`), not only xor-type.  Hence:
 
-* `BitMediated f i` — `f = H (op (xᵢ, u(x))) x` with `H`, `u` blind to `xᵢ`: the
-  semantic content of "some circuit realizes `f` with a single mediating wire";
-* **the three-kill statement (recorded, next brick)**: two-kill guard at `i` plus
-  `¬ BitMediated f i` implies `cbudget (restrictF f i b) + 3 ≤ cbudget f` — the
-  refuted mediation forces every minimal circuit into ≥ 2 `var i` gates or ≥ 2
-  in-range readers, and each configuration cascades to a third kill (the
-  constant-cascade-at-output sub-case reduces to the affine relation the two-kill
-  guard already excludes);
+* `BitMediated f i` — `f = H (op (xᵢ, u(x))) x` with `H`, `u` blind to `xᵢ`.
+  **RETRACTION (see `ComputationalDepthThreeKillNoGo.lean`)**: this predicate is
+  VACUOUS — every `f` bit-mediates at every `i` (`bitMediated_trivial`), so the
+  guard `¬ BitMediated` proposed here is unsatisfiable, and moreover NO per-step
+  semantic three-kill exists (`threekill_per_step_no_go`: `(x₀ ⊕ x₁) ∧ x₂`
+  satisfies the two-kill guard and loses exactly two gates).  The definition is
+  kept as the machine-checked record of the refuted design;
 * `runFrom_gate_swap` / `output_gate_swap` — **PROVED**: replacing one gate by any
   gate of equal value at its position preserves the whole run — the primitive for
   extracting `H` from a single-reader circuit (freeze the mediating wire to `w`).
