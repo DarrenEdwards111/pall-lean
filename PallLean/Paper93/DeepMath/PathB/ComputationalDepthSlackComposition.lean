@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSATSlackTransfer
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthGuardedTwoKillChain
 
 /-!
 # The composition test: does the slack add across disjoint gadgets?
@@ -115,3 +116,23 @@ end PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer
 
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer.cbudget_AEm_one
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer.cbudget_AEm_floor
+
+namespace PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer
+
+/-- **The chain route to `6m` is refuted (proved).**  After pinning one gadget
+coordinate `true`, the gadget is AND-structured, and the two-kill guard dies: for
+`g = y₀ ∧ y₁`, the `false`-restriction at either variable is constant.  Hence the
+per-gadget chain banks only `2+1+1 = 4`, totaling `4m + 2 < 6m − 1` for `m ≥ 2` —
+the `6m` datapoint needs the general read-once-tree extraction instead. -/
+theorem andGate_not_guarded :
+    ¬ GuardedStep (fun y : Fin 2 → Bool => y 0 && y 1) 0 := by
+  rintro ⟨⟨x, y, hxy⟩, -, -, -⟩
+  exact hxy (by
+    show (Function.update x 0 false 0 && Function.update x 0 false 1)
+      = (Function.update y 0 false 0 && Function.update y 0 false 1)
+    rw [Function.update_self, Function.update_self]
+    rfl)
+
+end PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer
+
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer.andGate_not_guarded
