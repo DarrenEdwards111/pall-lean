@@ -49,24 +49,12 @@ theorem andreev_shrinkage_of_miss {k m : ℕ} (hm : 0 < m) (hk : 0 < k)
         + 2 * (r * bigN (k * m) r) :=
   andreev_lb_of_count hm hk f r hr (bigN_le_two_hitCount hm r hmiss)
 
-/-- **FENCE (unproved): the miss bound.** The standard permutation-counting fact
-that good restriction sequences dominate: `2·Σ_bi missCount ≤ bigN`, provable
-from `missCount bi r univ = 2^r·P(r,m)·P(n−m,r−m)` and `2k·P(r,m) ≤ P(n,m)` for
-`n = k·m` and free-set size `n − r ≈ 2k·log(2k)`.  This is a PURE ℕ counting
-statement — a vast reduction from the original whole-shrinkage fence. -/
-def AndreevMissBound : Prop :=
-  ∀ (k m r : ℕ) (hm : 0 < m),
-    2 * (∑ bi : Fin k, missCount hm bi r (Finset.univ : Finset (Fin (k * m))))
-      ≤ bigN (k * m) r
-
-/-- The exact Andreev shrinkage inequality follows from `AndreevMissBound`. -/
-theorem andreev_shrinkage_of_fence (hfence : AndreevMissBound) {k m : ℕ}
-    (hm : 0 < m) (hk : 0 < k) (f : (Fin k → Bool) → Bool) (r : ℕ)
-    (hr : r + 2 ≤ k * m) :
-    bigN (k * m) r * dmsizeC f
-      ≤ 2 * (shrinkP (k * m) r * dmsizeC (andreevStar hm f))
-        + 2 * (r * bigN (k * m) r) :=
-  andreev_shrinkage_of_miss hm hk f r hr (hfence k m r hm)
+/- The single remaining unproved ingredient is the PER-PARAMETER miss bound
+`2·Σ_bi missCount ≤ bigN` — a pure ℕ permutation-counting fact, TRUE for the
+balanced parameters (free-set size `n − r ≈ 2k·log(2k)`) but FALSE in general
+(e.g. `r = n`, where every block is missed).  It is therefore taken as a
+per-`(k,m,r)` hypothesis (`hmiss` above), NOT a universal fence.  It reduces
+(A9h/A9i) to the falling-factorial inequality `2k·perm r m ≤ perm n m`. -/
 
 end PallLean.Paper93.DeepMath.PathB.Khrapchenko
 
