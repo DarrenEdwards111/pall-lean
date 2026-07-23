@@ -59,11 +59,9 @@ theorem kwComputes_of_hasProtocol {A B : Finset (Fin n → Bool)} {d : ℕ}
     · intro x hx y hy
       cases hpy : p y with
       | false =>
-        have hyf : y ∈ B.filter (fun y => p y = false) := Finset.mem_filter.mpr ⟨hy, hpy⟩
-        simpa only [run, hpy, cond_false] using hP0 x hx y hyf
+        simpa only [run, hpy, cond_false] using hP0 x hx y (Finset.mem_filter.mpr ⟨hy, hpy⟩)
       | true =>
-        have hyt : y ∈ B.filter (fun y => p y = true) := Finset.mem_filter.mpr ⟨hy, hpy⟩
-        simpa only [run, hpy, cond_true] using hP1 x hx y hyt
+        simpa only [run, hpy, cond_true] using hP1 x hx y (Finset.mem_filter.mpr ⟨hy, hpy⟩)
     · simp only [cost]; omega
   | alice p h0 h1 ih0 ih1 =>
     obtain ⟨P0, hP0, hc0⟩ := ih0
@@ -72,11 +70,9 @@ theorem kwComputes_of_hasProtocol {A B : Finset (Fin n → Bool)} {d : ℕ}
     · intro x hx y hy
       cases hpx : p x with
       | false =>
-        have hxf : x ∈ A.filter (fun x => p x = false) := Finset.mem_filter.mpr ⟨hx, hpx⟩
-        simpa only [run, hpx, cond_false] using hP0 x hxf y hy
+        simpa only [run, hpx, cond_false] using hP0 x (Finset.mem_filter.mpr ⟨hx, hpx⟩) y hy
       | true =>
-        have hxt : x ∈ A.filter (fun x => p x = true) := Finset.mem_filter.mpr ⟨hx, hpx⟩
-        simpa only [run, hpx, cond_true] using hP1 x hxt y hy
+        simpa only [run, hpx, cond_true] using hP1 x (Finset.mem_filter.mpr ⟨hx, hpx⟩) y hy
     · simp only [cost]; omega
 
 /-- **Concrete → abstract (proved)**: a concrete KW protocol gives an abstract one at
