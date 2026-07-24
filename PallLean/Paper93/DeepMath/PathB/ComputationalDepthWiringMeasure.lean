@@ -14,15 +14,21 @@ Boolean gates (`input/const/not/and/or`), not by any ring evaluation.  Its induc
 
 * **`minDepth_le_of_mem`** — condition (A): `f ∈ SIZE n s → minDepth n f ≤ s`.  (Via `depth ≤ size`.)
 
-So `minDepth` is a genuine non-algebraic wiring measure that satisfies the P-side bound SPDP failed.  It
+So `minDepth` is a genuine non-algebraic wiring measure that satisfies the P-side bound SPDP failed —
+this shows condition (A) *is* dischargeable non-algebraically, reading the wiring rather than a ring.  It
 plugs straight into the target:
 
 * **`depthMeasure`** — `¬(minDepth poly-bounded on L) → SeparatingMeasure L`, and
 * **`depthMeasure_gives_separation`** — the hardness of `minDepth` on `L` would prove `L ∉ P/poly`.
 
-What remains open is exactly (B): whether `minDepth` (or any wiring measure) is superpolynomial on the
-target.  Being non-algebraic, it *dodges* the algebrization barrier that killed SPDP — it is on the right
-side of the barriers, with (A) discharged.  Nothing here is `P ≠ NP`.
+**Honest caveat — depth is the wrong wiring quantity for (B).**  Depth demonstrates the *P-side* half
+non-algebraically, but it is *too weak* for the *NP-side* half: by Spira's theorem
+min-formula-depth `= O(log size) = O(n)`, so `minDepth` is bounded and can never be superpolynomial —
+its own ceiling, analogous to gate-elimination's linear cap.  The wiring measure whose (B) is *exactly*
+the separation is **minimum circuit size** (`UniversalityEquivalence.minSize`, equally non-algebraic):
+`separatingMeasure_iff_not_ppoly` gives `minSize` superpolynomial on `L` ↔ `L ∉ P/poly`.  So the genuine
+open target is (B) for `minSize` — a non-algebraic wiring measure on the right side of every barrier —
+and the equivalence proves that *is* the separation.  Nothing here is `P ≠ NP`.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.WiringMeasure
@@ -74,7 +80,8 @@ noncomputable def depthMeasure (L : Layer7.BoolLang)
   hardOnTarget := hB
 
 /-- **The wiring route to the separation (proved).**  Superpolynomial `minDepth` on `L` proves
-`L ∉ P/poly`.  This is exactly the open content — (B) for a non-algebraic wiring measure. -/
+`L ∉ P/poly`.  Conditional on `hB`; for *depth* the antecedent is unreachable (Spira: `minDepth = O(n)`),
+so this route is realised by `minSize`, not depth.  See the header caveat. -/
 theorem depthMeasure_gives_separation (L : Layer7.BoolLang)
     (hB : ¬ ∃ p : ℕ → ℕ, Layer7.IsPolyBounded p ∧ ∀ n, minDepth n (L n) ≤ p n) :
     ¬ Layer9.Ppoly L :=
