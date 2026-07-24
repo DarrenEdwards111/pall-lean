@@ -66,8 +66,69 @@ theorem aac_beta_no_factor_split_r :
         ap2 F0 F1 F2 F3 (ap2 o0 o1 o2 o3 r (ap2 h0 h1 h2 h3 p q)) (ap1 g0 g1 r) := by
   decide
 
+/-! ### Consumable `→ False` forms
+
+The circuit β analysis produces the factorisation as an equality between the gadget's
+reachable-set output (`= allEq3`) and a *general* `Bool → Bool → Bool` combiner form
+`Φ (op (w) (h …)) (g r)`.  The `decide` crux above is stated over the four *defining
+Bool-values* of each combiner; the two η-lemmas turn any concrete combiner into that
+form, so the crux discharges the general statement.  These `_contra` lemmas are the exact
+interface the `(a,a,c)` β kill will call: hand it the structural equality, get `False`. -/
+
+/-- A binary Bool function is its own four-value `ap2` reconstruction. -/
+theorem ap2_eta (f : Bool → Bool → Bool) (x y : Bool) :
+    f x y = ap2 (f false false) (f false true) (f true false) (f true true) x y := by
+  cases x <;> cases y <;> rfl
+
+/-- A unary Bool function is its own two-value `ap1` reconstruction. -/
+theorem ap1_eta (g : Bool → Bool) (x : Bool) : g x = ap1 (g false) (g true) x := by
+  cases x <;> rfl
+
+/-- **β-kill interface, split at `p` (proved).**  If the gadget output factors as
+`Φ(op(p, h(q,r)), g(r))` on all sign triples while equalling `allEq3`, that is a
+contradiction. -/
+theorem aac_beta_no_factor_split_p_contra
+    (Φ op h : Bool → Bool → Bool) (g : Bool → Bool)
+    (hF : ∀ p q r, allEq3 p q r = Φ (op p (h q r)) (g r)) : False := by
+  obtain ⟨p, q, r, hne⟩ := aac_beta_no_factor_split_p
+    (Φ false false) (Φ false true) (Φ true false) (Φ true true)
+    (op false false) (op false true) (op true false) (op true true)
+    (h false false) (h false true) (h true false) (h true true)
+    (g false) (g true)
+  apply hne
+  rw [hF p q r, ap2_eta Φ (op p (h q r)) (g r), ap2_eta op p (h q r),
+    ap2_eta h q r, ap1_eta g r]
+
+/-- **β-kill interface, split at `q` (proved).** -/
+theorem aac_beta_no_factor_split_q_contra
+    (Φ op h : Bool → Bool → Bool) (g : Bool → Bool)
+    (hF : ∀ p q r, allEq3 p q r = Φ (op q (h p r)) (g r)) : False := by
+  obtain ⟨p, q, r, hne⟩ := aac_beta_no_factor_split_q
+    (Φ false false) (Φ false true) (Φ true false) (Φ true true)
+    (op false false) (op false true) (op true false) (op true true)
+    (h false false) (h false true) (h true false) (h true true)
+    (g false) (g true)
+  apply hne
+  rw [hF p q r, ap2_eta Φ (op q (h p r)) (g r), ap2_eta op q (h p r),
+    ap2_eta h p r, ap1_eta g r]
+
+/-- **β-kill interface, split at `r` (the `c`-sign) (proved).** -/
+theorem aac_beta_no_factor_split_r_contra
+    (Φ op h : Bool → Bool → Bool) (g : Bool → Bool)
+    (hF : ∀ p q r, allEq3 p q r = Φ (op r (h p q)) (g r)) : False := by
+  obtain ⟨p, q, r, hne⟩ := aac_beta_no_factor_split_r
+    (Φ false false) (Φ false true) (Φ true false) (Φ true true)
+    (op false false) (op false true) (op true false) (op true true)
+    (h false false) (h false true) (h true false) (h true true)
+    (g false) (g true)
+  apply hne
+  rw [hF p q r, ap2_eta Φ (op r (h p q)) (g r), ap2_eta op r (h p q),
+    ap2_eta h p q, ap1_eta g r]
+
 end PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer
 
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer.aac_beta_no_factor_split_p
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer.aac_beta_no_factor_split_q
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer.aac_beta_no_factor_split_r
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer.aac_beta_no_factor_split_p_contra
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer.aac_beta_no_factor_split_r_contra
