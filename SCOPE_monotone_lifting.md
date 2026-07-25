@@ -23,7 +23,9 @@ monotone KW games). Ceiling is monotone-P vs monotone-NC¹, **not** P vs NP.
   needs no separate universality brick.
 
 ## Phase 3 — the communication lower bound  ← THE RESEARCH CORE (hard, high risk)
-**brick 1 (function + game): ✅ DONE** (`ComputationalDepthSTConnectivity.lean`) — `stconn` (edge-indicator input, fits `mkwCC`/`mdepth`), `stconn_mono`, `reach_cut_crossing` (cut-crossing = mKW solvability + Fork seed), `stconn_game_solvable`. Remaining: the Fork reduction + round argument.
+**brick 1 (function + game): ✅ DONE** (`ComputationalDepthSTConnectivity.lean`) — `stconn`, `stconn_mono`, `reach_cut_crossing`, `stconn_game_solvable`.
+**brick 2 (Fork game + reduction core): ✅ DONE** (`ComputationalDepthForkGame.lean`) — `IsFork`, `fork_exists` (well-posedness), `bExcludes` (Bob's cut), `alice_edge_excluded_iff_fork` + `fork_distinguishing_edge` (the reduction's combinatorial core: a distinguishing edge IS a fork). Reduction worked out concretely in the file header.
+Remaining: (i) instantiate the layered graph (`ends`) + prove `stconn x=1`/`stconn y=0` via `Reach` (mechanical, substantial); (ii) protocol transfer `mkwCC(stconn) ≥ ForkCC`; (iii) **the wall** — Fork lower bound `ForkCC=Ω(log²)` (round elimination).
 Need a **deterministic** CC lower bound `ω(log n)` for an *explicit* monotone KW game. No shortcut:
 fooling sets give only `Ω(log n)` (nondeterministic); super-log needs the round structure.
 
