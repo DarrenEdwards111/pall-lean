@@ -26,7 +26,9 @@ monotone KW games). Ceiling is monotone-P vs monotone-NC¹, **not** P vs NP.
 **brick 1 (function + game): ✅ DONE** (`ComputationalDepthSTConnectivity.lean`) — `stconn`, `stconn_mono`, `reach_cut_crossing`, `stconn_game_solvable`.
 **brick 2 (Fork game + reduction core): ✅ DONE** (`ComputationalDepthForkGame.lean`) — `IsFork`, `fork_exists`, `bExcludes`, `alice_edge_excluded_iff_fork`, `fork_distinguishing_edge`.
 **brick 3 (graph wiring): ✅ DONE** (`ComputationalDepthForkReduction.lean`) — generalized `STConnectivity` to arbitrary vertex/edge types; `Vtx`/`Edg`/`ends` layered graph, `aliceX`/`bobY`, `alice_connected` (`stconn=1`), `bobY_reach_inv` (s-reachable = `{s}∪{node i (b i)}`), `bob_disconnected` (`stconn=0`). Graph side of the reduction fully formal.
-Remaining: (i) protocol transfer `mkwCC(stconn) ≥ ForkCC` (`ε = Fin m` transport); (ii) **the wall** — Fork lower bound `ForkCC=Ω(log²)` (round elimination).
+**brick 4 (decode + soundness): ✅ DONE** (`edge_distinguishing_is_fork` + `reduced_mkw_yields_fork`) — a distinguishing edge decodes to a fork; solving the reduced mKW game yields a fork. Reduction operationally sound end-to-end.
+Remaining for the protocol-DEPTH transfer `mkwCC(stconn) ≥ ForkCC`: (a) a FINITE edge type (`Edg` has `ℕ` layers = infinite; need `FinEdg` with `Fin ℓ` layers, or generalize `MonotoneKW` to a `Fintype` index) so `stconn` plugs into `mkwCC`; (b) a `ForkCC` definition + protocol pullback. Substantial (Fin-arithmetic / refactor), NOT yet done.
+Then (c) **the wall** — Fork lower bound `ForkCC=Ω(log²)` (round elimination).
 Need a **deterministic** CC lower bound `ω(log n)` for an *explicit* monotone KW game. No shortcut:
 fooling sets give only `Ω(log n)` (nondeterministic); super-log needs the round structure.
 

@@ -134,7 +134,53 @@ theorem bob_disconnected (ℓ : ℕ) (b : ℕ → Fin w) :
   · exact absurd h1 (by simp)
   · exact absurd hj (by simp)
 
+/-! ### Brick 4: the decode direction — a distinguishing edge IS a fork
+
+`ForkGame` gave the encode direction (fork ⟹ excluded edge).  Here is the decode: under the promise,
+the *only* edges present in Alice's set but absent from Bob's are the transition-fork edges (source
+and sink edges survive because `a 0 = b 0` and `a ℓ ≠ b ℓ`).  So any monotone-KW distinguishing edge
+decodes to a fork — the reduction is operationally sound. -/
+
+open PallLean.Paper93.DeepMath.PathB.ForkGame
+
+/-- **The decode lemma (proved)**: under the promise, a distinguishing edge (in `aliceX`, not in
+`bobY`) is exactly a transition edge at a fork position. -/
+theorem edge_distinguishing_is_fork (ℓ : ℕ) (a b : ℕ → Fin w)
+    (h0 : a 0 = b 0) (hℓ : a ℓ ≠ b ℓ) (e : Edg w)
+    (hx : aliceX ℓ a e = true) (hy : bobY ℓ b e = false) :
+    ∃ i, IsFork ℓ a b i ∧ e = Edg.trans i (a i) (a (i + 1)) := by
+  cases e with
+  | src v =>
+    have hv : v = a 0 := by simpa only [aliceX, decide_eq_true_eq] using hx
+    have hvb : v ≠ b 0 := by simpa only [bobY, decide_eq_false_iff_not] using hy
+    exact absurd (hv.trans h0) hvb
+  | trans i u v =>
+    have hax : i < ℓ ∧ u = a i ∧ v = a (i + 1) := by
+      simpa only [aliceX, decide_eq_true_eq] using hx
+    have hby : u = b i ∧ v ≠ b (i + 1) := by
+      have hh := hy; simp only [bobY, decide_eq_false_iff_not, not_not] at hh; exact hh
+    refine ⟨i, ⟨hax.1, hax.2.1.symm.trans hby.1, hax.2.2 ▸ hby.2⟩, ?_⟩
+    rw [hax.2.1, hax.2.2]
+  | snk v =>
+    have hv : v = a ℓ := by simpa only [aliceX, decide_eq_true_eq] using hx
+    have hvb : v = b ℓ := by
+      have hh := hy; simp only [bobY, decide_eq_false_iff_not, not_not] at hh; exact hh
+    exact absurd (hv ▸ hvb) hℓ
+
+/-- **The reduction is operationally sound (proved)**: solving the `st`-connectivity monotone KW game
+on the reduced instances `(aliceX a, bobY b)` yields a fork.  This chains `alice_connected` +
+`bob_disconnected` + `stconn_mkw_solvable` (cut-crossing) + the decode lemma — an independent,
+reduction-based proof of `fork_exists`, certifying the graph reduction end-to-end. -/
+theorem reduced_mkw_yields_fork (ℓ : ℕ) (a b : ℕ → Fin w)
+    (h0 : a 0 = b 0) (hℓ : a ℓ ≠ b ℓ) : ∃ i, IsFork ℓ a b i := by
+  obtain ⟨e, hx, hy⟩ := stconn_mkw_solvable (ends ℓ) Vtx.s Vtx.t
+    (alice_connected ℓ a) (bob_disconnected ℓ b)
+  obtain ⟨i, hfork, _⟩ := edge_distinguishing_is_fork ℓ a b h0 hℓ e hx hy
+  exact ⟨i, hfork⟩
+
 end PallLean.Paper93.DeepMath.PathB.ForkReduction
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ForkReduction.alice_connected
 #print axioms PallLean.Paper93.DeepMath.PathB.ForkReduction.bob_disconnected
+#print axioms PallLean.Paper93.DeepMath.PathB.ForkReduction.edge_distinguishing_is_fork
+#print axioms PallLean.Paper93.DeepMath.PathB.ForkReduction.reduced_mkw_yields_fork
