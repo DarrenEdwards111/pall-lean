@@ -1,39 +1,40 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthKRW11
 
 /-!
-# Monotone Karchmer–Wigderson: the framework (Phase 1–2 of the monotone-lifting scope)
+# The monotone Karchmer–Wigderson theorem (Phase 1–2 of the monotone-lifting scope)
 
-The stress-test showed the *general*-depth base socket is circular.  The one place a non-circular
-super-log depth lower bound genuinely exists is the **monotone** world (query-to-communication
-lifting is unconditional there).  This brick lays the tractable foundation of that programme —
-monotone formulas, monotone depth, and the monotone KW game — reusing the repo's `HasProtocol`
-machinery with two changes: negation-free formulas and the monotone leaf relation
-`x i = 1 ∧ y i = 0` (instead of `x i ≠ y i`).
+The one non-circular route to a super-log depth lower bound lives in the **monotone** world.  This
+file builds its foundation — monotone formulas, monotone depth, the monotone KW game — and proves the
+full **monotone Karchmer–Wigderson theorem** `mkwCC f = mdepth f` (given any monotone formula for
+`f`).  It reuses the repo's `HasProtocol` template with two changes: negation-free formulas and the
+monotone leaf relation `x i = 1 ∧ y i = 0` (instead of `x i ≠ y i`).
 
-* **`MTree`** — monotone DeMorgan formulas (`var / and / or`, no negation); `eval`, `dep`;
-* **`MTree.eval_mono` (proved)** — monotone formulas compute monotone functions;
+* **`MTree`** — monotone DeMorgan formulas (`var / cst / and / or`, no negation).  Constants are
+  needed for the converse's empty sub-rectangles (any negation-free `var/and/or` formula is `false`
+  at all-zeros, so cannot be constant `true`); constants are themselves monotone.
+* **`MTree.eval_mono`** — monotone formulas compute monotone functions;
 * **`mdepth`** — minimal monotone-formula depth;
-* **`HasMProtocol`** — a depth-`d` monotone KW protocol (leaf = a coordinate `i` with `x i = 1`,
-  `y i = 0` for all pairs); **`HasMProtocol.mono`**;
-* **`mformula_gives_mprotocol` (proved)** — a monotone formula gives a monotone KW protocol of its
-  depth (`∧` ⇒ Bob splits on the left value, `∨` ⇒ Alice splits) — the EASY direction of the
-  monotone KW theorem;
-* **`mkwCC`** and **`mkwCC_le_of_mformula` (proved)** — `CC(mKW_f) ≤` any monotone formula depth.
+* **`HasMProtocol`** — monotone KW protocol (leaf = a coordinate `i` with `x i = 1`, `y i = 0`);
+* **`mformula_gives_mprotocol`** — formula ⇒ protocol (easy direction);
+* **`mprotocol_gives_mformula`** — protocol ⇒ formula (converse; Bob ⇒ `∧`, Alice ⇒ `∨`, leaf ⇒
+  `var i`, empty side ⇒ `cst`);
+* **`mkw_theorem` (proved)** — `mkwCC f = mdepth f`.  Exact equality (no `+1`: `cst` has depth `0`).
 
-**Scope note.**  This is the non-circular foundation.  What remains (see the scope block below) is
-the converse (protocol ⇒ monotone formula), monotone universality, and — the research core — a
-**deterministic** communication lower bound for an *explicit* monotone KW game (`st`-connectivity's
-`Ω(log²n)` via the Fork game, or Raz–McKenzie lifting).  Nothing here is a lower bound yet; it is the
-machine on which one would be proved.  Nothing here is `P ≠ NP`.
+**Scope.**  This completes Phase 2 (the monotone KW theorem) unconditionally.  Phase 3 — the
+research core — is a *deterministic* super-log communication lower bound for an explicit monotone KW
+game (`st`-connectivity `Ω(log²n)` via the Fork game, or Raz–McKenzie lifting).  Nothing here is a
+lower bound yet; it is the exact interface one consumes.  Nothing here is `P ≠ NP`; the programme's
+ceiling is monotone-`P` ⊄ monotone-`NC¹`.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.MonotoneKW
 
 open PallLean.Paper93.DeepMath.PathB.Khrapchenko
 
-/-- Monotone DeMorgan formulas: variables, `∧`, `∨` — no negation. -/
+/-- Monotone DeMorgan formulas: variables, constants, `∧`, `∨` — no negation. -/
 inductive MTree (n : ℕ) : Type
   | var : Fin n → MTree n
+  | cst : Bool → MTree n
   | and : MTree n → MTree n → MTree n
   | or : MTree n → MTree n → MTree n
 
@@ -42,12 +43,14 @@ variable {n : ℕ}
 /-- Evaluation of a monotone formula. -/
 def MTree.eval : MTree n → (Fin n → Bool) → Bool
   | .var i, x => x i
+  | .cst b, _ => b
   | .and l r, x => l.eval x && r.eval x
   | .or l r, x => l.eval x || r.eval x
 
-/-- Depth of a monotone formula. -/
+/-- Depth of a monotone formula (constants and variables are depth `0`). -/
 def MTree.dep : MTree n → ℕ
   | .var _ => 0
+  | .cst _ => 0
   | .and l r => 1 + max l.dep r.dep
   | .or l r => 1 + max l.dep r.dep
 
@@ -56,6 +59,7 @@ theorem MTree.eval_mono (t : MTree n) {x y : Fin n → Bool} (h : ∀ i, x i ≤
     t.eval x ≤ t.eval y := by
   induction t with
   | var i => exact h i
+  | cst b => exact le_refl b
   | and l r ihl ihr =>
     simp only [MTree.eval]; revert ihl ihr
     cases l.eval x <;> cases l.eval y <;> cases r.eval x <;> cases r.eval y <;> decide
@@ -94,17 +98,20 @@ theorem HasMProtocol.mono {A B : Finset (Fin n → Bool)} {d d' : ℕ}
     exact HasMProtocol.alice p (ih0 (by omega)) (ih1 (by omega))
 
 /-- **The monotone KW easy direction (proved)**: a monotone formula gives a monotone KW protocol of
-its depth. -/
-theorem mformula_gives_mprotocol (t : MTree n) :
+its depth.  (`0 < n` only to name a coordinate in the vacuous constant leaf.) -/
+theorem mformula_gives_mprotocol (hn : 0 < n) (t : MTree n) :
     ∀ (A B : Finset (Fin n → Bool)),
       (∀ x ∈ A, t.eval x = true) → (∀ y ∈ B, t.eval y = false) →
       HasMProtocol A B t.dep := by
   induction t with
   | var i =>
     intro A B hA hB
-    apply HasMProtocol.leaf 0 i
-    intro x hx y hy
-    exact ⟨hA x hx, hB y hy⟩
+    exact HasMProtocol.leaf 0 i (fun x hx y hy => ⟨hA x hx, hB y hy⟩)
+  | cst b =>
+    intro A B hA hB
+    refine HasMProtocol.leaf 0 ⟨0, hn⟩ (fun x hx y hy => ?_)
+    have h1 := hA x hx; have h2 := hB y hy; simp only [MTree.eval] at h1 h2
+    exact absurd (h1.symm.trans h2) (by decide)
   | and l r ihl ihr =>
     intro A B hA hB
     have hAl : ∀ x ∈ A, l.eval x = true := by
@@ -151,21 +158,97 @@ theorem mformula_gives_mprotocol (t : MTree n) :
     rw [Nat.add_comm]
     exact HasMProtocol.alice (fun x => l.eval x) h0' h1'
 
+/-- **The monotone KW converse (proved)**: a monotone KW protocol of depth `d` gives a monotone
+formula of depth `≤ d` that is `1` on `A` and `0` on `B` (Bob ⇒ `∧`, Alice ⇒ `∨`, leaf ⇒ `var i`,
+empty side ⇒ a constant). -/
+theorem mprotocol_gives_mformula {A B : Finset (Fin n → Bool)} {d : ℕ}
+    (h : HasMProtocol A B d) :
+    ∃ t : MTree n, t.dep ≤ d
+      ∧ (∀ x ∈ A, t.eval x = true) ∧ (∀ y ∈ B, t.eval y = false) := by
+  induction h with
+  | leaf d i hi =>
+    rename_i A B
+    by_cases hA : A.Nonempty
+    · by_cases hB : B.Nonempty
+      · obtain ⟨y₀, hy₀⟩ := hB
+        obtain ⟨x₀, hx₀⟩ := hA
+        refine ⟨MTree.var i, by simp [MTree.dep], ?_, ?_⟩
+        · intro x hx; exact (hi x hx y₀ hy₀).1
+        · intro y hy; exact (hi x₀ hx₀ y hy).2
+      · refine ⟨MTree.cst true, by simp [MTree.dep], ?_, ?_⟩
+        · intro x _; rfl
+        · intro y hy; exact absurd ⟨y, hy⟩ hB
+    · refine ⟨MTree.cst false, by simp [MTree.dep], ?_, ?_⟩
+      · intro x hx; exact absurd ⟨x, hx⟩ hA
+      · intro y _; rfl
+  | bob p h0 h1 ih0 ih1 =>
+    obtain ⟨t0, hd0, ha0, hb0⟩ := ih0
+    obtain ⟨t1, hd1, ha1, hb1⟩ := ih1
+    refine ⟨MTree.and t0 t1, by simp only [MTree.dep]; omega, ?_, ?_⟩
+    · intro x hx; simp [MTree.eval, ha0 x hx, ha1 x hx]
+    · intro y hy
+      by_cases hpy : p y = false
+      · simp [MTree.eval, hb0 y (Finset.mem_filter.mpr ⟨hy, hpy⟩)]
+      · have hpy' : p y = true := by
+          cases hh : p y with | false => exact absurd hh hpy | true => rfl
+        simp [MTree.eval, hb1 y (Finset.mem_filter.mpr ⟨hy, hpy'⟩)]
+  | alice p h0 h1 ih0 ih1 =>
+    obtain ⟨t0, hd0, ha0, hb0⟩ := ih0
+    obtain ⟨t1, hd1, ha1, hb1⟩ := ih1
+    refine ⟨MTree.or t0 t1, by simp only [MTree.dep]; omega, ?_, ?_⟩
+    · intro x hx
+      by_cases hpx : p x = false
+      · simp [MTree.eval, ha0 x (Finset.mem_filter.mpr ⟨hx, hpx⟩)]
+      · have hpx' : p x = true := by
+          cases hh : p x with | false => exact absurd hh hpx | true => rfl
+        simp [MTree.eval, ha1 x (Finset.mem_filter.mpr ⟨hx, hpx'⟩)]
+    · intro y hy; simp [MTree.eval, hb0 y hy, hb1 y hy]
+
 /-- Monotone KW communication complexity: the least monotone-protocol depth. -/
 noncomputable def mkwCC (f : (Fin n → Bool) → Bool) : ℕ :=
   sInf {d | HasMProtocol (onesOf f) (zerosOf f) d}
 
-/-- **`CC(mKW_f) ≤ (monotone formula depth)` (proved)** — the monotone KW upper bound, per formula. -/
-theorem mkwCC_le_of_mformula (f : (Fin n → Bool) → Bool) (t : MTree n)
+/-- **`CC(mKW_f) ≤ (monotone formula depth)` (proved)** — per formula. -/
+theorem mkwCC_le_of_mformula (hn : 0 < n) (f : (Fin n → Bool) → Bool) (t : MTree n)
     (ht : ∀ x, t.eval x = f x) : mkwCC f ≤ t.dep := by
   have hp : HasMProtocol (onesOf f) (zerosOf f) t.dep :=
-    mformula_gives_mprotocol t (onesOf f) (zerosOf f)
+    mformula_gives_mprotocol hn t (onesOf f) (zerosOf f)
       (fun x hx => by rw [ht]; exact (Finset.mem_filter.mp hx).2)
       (fun y hy => by rw [ht]; exact (Finset.mem_filter.mp hy).2)
   exact Nat.sInf_le hp
 
+/-- **`mkwCC f ≤ mdepth f` (proved)** — given any monotone formula for `f`. -/
+theorem mkwCC_le_mdepth (hn : 0 < n) (f : (Fin n → Bool) → Bool) (t : MTree n)
+    (ht : ∀ x, t.eval x = f x) : mkwCC f ≤ mdepth f := by
+  have hne : {d | ∃ t' : MTree n, (∀ x, t'.eval x = f x) ∧ t'.dep = d}.Nonempty :=
+    ⟨t.dep, t, ht, rfl⟩
+  obtain ⟨t', ht', hdep'⟩ := Nat.sInf_mem hne
+  calc mkwCC f ≤ t'.dep := mkwCC_le_of_mformula hn f t' ht'
+    _ = mdepth f := hdep'
+
+/-- **`mdepth f ≤ mkwCC f` (proved)** — given any monotone formula for `f`. -/
+theorem mdepth_le_mkwCC (hn : 0 < n) (f : (Fin n → Bool) → Bool) (t : MTree n)
+    (ht : ∀ x, t.eval x = f x) : mdepth f ≤ mkwCC f := by
+  have hne : {d | HasMProtocol (onesOf f) (zerosOf f) d}.Nonempty := by
+    refine ⟨t.dep, mformula_gives_mprotocol hn t (onesOf f) (zerosOf f) ?_ ?_⟩
+    · intro x hx; rw [ht]; exact (Finset.mem_filter.mp hx).2
+    · intro y hy; rw [ht]; exact (Finset.mem_filter.mp hy).2
+  obtain ⟨s, hd, ha, hb⟩ := mprotocol_gives_mformula (Nat.sInf_mem hne)
+  have hcomp : ∀ x, s.eval x = f x := by
+    intro x
+    cases hfx : f x
+    · exact hb x (Finset.mem_filter.mpr ⟨Finset.mem_univ x, hfx⟩)
+    · exact ha x (Finset.mem_filter.mpr ⟨Finset.mem_univ x, hfx⟩)
+  calc mdepth f ≤ s.dep := Nat.sInf_le ⟨s, hcomp, rfl⟩
+    _ ≤ mkwCC f := hd
+
+/-- **THE MONOTONE KARCHMER–WIGDERSON THEOREM (proved)**: `mkwCC f = mdepth f`, given any monotone
+formula for `f`.  Exact equality — no `+1`, since `MTree` has depth-`0` constants. -/
+theorem mkw_theorem (hn : 0 < n) (f : (Fin n → Bool) → Bool) (t : MTree n)
+    (ht : ∀ x, t.eval x = f x) : mkwCC f = mdepth f :=
+  le_antisymm (mkwCC_le_mdepth hn f t ht) (mdepth_le_mkwCC hn f t ht)
+
 end PallLean.Paper93.DeepMath.PathB.MonotoneKW
 
-#print axioms PallLean.Paper93.DeepMath.PathB.MonotoneKW.MTree.eval_mono
-#print axioms PallLean.Paper93.DeepMath.PathB.MonotoneKW.mformula_gives_mprotocol
-#print axioms PallLean.Paper93.DeepMath.PathB.MonotoneKW.mkwCC_le_of_mformula
+#print axioms PallLean.Paper93.DeepMath.PathB.MonotoneKW.mprotocol_gives_mformula
+#print axioms PallLean.Paper93.DeepMath.PathB.MonotoneKW.mkw_theorem

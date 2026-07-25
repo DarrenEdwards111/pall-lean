@@ -14,13 +14,13 @@ monotone KW games). Ceiling is monotone-P vs monotone-NC¹, **not** P vs NP.
 ## Phase 1 — monotone model  ✅ DONE (`ComputationalDepthMonotoneKW.lean`)
 - `MTree` (monotone formulas), `eval`, `dep`; `MTree.eval_mono` (axiom-free); `mdepth`.
 
-## Phase 2 — monotone KW theorem  (easy dir DONE; ~3–5 bricks remaining, TRACTABLE)
-- ✅ `HasMProtocol`, `mformula_gives_mprotocol`, `mkwCC`, `mkwCC_le_of_mformula` (easy: `mkwCC ≤ mdepth`).
-- ☐ B-conv: `mprotocol_gives_mformula` — protocol ⇒ monotone formula (adapt `protocol_gives_formula`;
-  Bob-node ⇒ `∧`, Alice-node ⇒ `∨`, leaf-coord `i` with `x_i=1,y_i=0` ⇒ the variable `var i`).
-- ☐ B-univ: monotone universality — every monotone `f` has a monotone formula (monotone DNF over
-  minimal 1-inputs), so `mdepth` is well-defined / achieved.
-- ☐ B-thm: `mkw_theorem`: `mkwCC f ≤ mdepth f ≤ mkwCC f + 1` (assemble). **Clean unconditional result.**
+## Phase 2 — monotone KW theorem  ✅ DONE (`ComputationalDepthMonotoneKW.lean`)
+- ✅ `HasMProtocol`, `mformula_gives_mprotocol`, `mkwCC`, `mkwCC_le_of_mformula` (easy direction).
+- ✅ `mprotocol_gives_mformula` — protocol ⇒ monotone formula (Bob ⇒ `∧`, Alice ⇒ `∨`, leaf ⇒
+  `var i`, empty side ⇒ `cst`; needed adding depth-`0` constants to `MTree`).
+- ✅ `mkw_theorem`: **`mkwCC f = mdepth f`** — exact (no `+1`, since `cst` has depth `0`).
+  Stated taking a monotone formula for `f` as the witness (that IS monotone-computability), so it
+  needs no separate universality brick.
 
 ## Phase 3 — the communication lower bound  ← THE RESEARCH CORE (hard, high risk)
 Need a **deterministic** CC lower bound `ω(log n)` for an *explicit* monotone KW game. No shortcut:
