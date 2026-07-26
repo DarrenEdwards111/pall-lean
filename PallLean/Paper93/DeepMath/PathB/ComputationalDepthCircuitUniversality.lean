@@ -309,6 +309,119 @@ theorem tseitin_sound (x : Fin n → Bool) (c : List (CGate n)) (hx : output c x
     simp [evalClause, evalLit, hval]
   simp [List.all_cons, List.all_nil, hfv, hout]
 
+/-! ### Completeness: a satisfying assignment yields a circuit input -/
+
+/-- Gate `m`'s gadget clauses all sit inside the gadget block. -/
+theorem gadgets_contains (n L : ℕ) : ∀ (gs : List (CGate n)) (m₀ m : ℕ), m < gs.length →
+    gateClauses n L (m₀ + m) (gs.getD m default) ⊆ gadgets n L m₀ gs := by
+  intro gs
+  induction gs with
+  | nil => intro m₀ m hm; simp at hm
+  | cons g gs ih =>
+      intro m₀ m hm
+      cases m with
+      | zero =>
+          simp only [Nat.add_zero, List.getD_cons_zero, gadgets]
+          exact List.subset_append_left _ _
+      | succ m' =>
+          simp only [gadgets, List.getD_cons_succ]
+          rw [show m₀ + (m' + 1) = (m₀ + 1) + m' from by omega]
+          exact (ih (m₀ + 1) m' (by simpa using hm)).trans (List.subset_append_right _ _)
+
+/-- Gate `m`'s gadget is satisfied by any assignment satisfying the whole gadget block. -/
+theorem gate_clauses_sat_of_gadgets (a : ℕ → Bool) (c : List (CGate n)) (m : ℕ) (hm : m < c.length)
+    (hg : evalFormula a (gadgets n c.length 0 c) = true) :
+    evalFormula a (gateClauses n c.length m (c.getD m default)) = true := by
+  rw [evalFormula, List.all_eq_true]
+  intro cl hcl
+  rw [evalFormula, List.all_eq_true] at hg
+  apply hg
+  have hsub := gadgets_contains n c.length c 0 m hm
+  rw [Nat.zero_add] at hsub
+  exact hsub hcl
+
+/-- **Wire agreement.**  A satisfying assignment carries exactly the circuit's wire values. -/
+theorem wire_agree (a : ℕ → Bool) (c : List (CGate n))
+    (hg : evalFormula a (gadgets n c.length 0 c) = true) (hfv : a (n + c.length) = false) :
+    ∀ m, m < c.length → a (n + m) = (wvals (fun i => a i.val) c).getD m false := by
+  intro m
+  induction m using Nat.strong_induction_on with
+  | _ m ih =>
+    intro hm
+    set x : Fin n → Bool := fun i => a i.val with hxdef
+    have hread : ∀ j, a (readVar n c.length j m) = (wvals x (c.take m)).getD j false := by
+      intro j
+      unfold readVar
+      split
+      · rename_i hj
+        rw [ih j hj (by omega), ← wvals_take x c m (le_of_lt hm),
+          getD_take_lt (wvals x c) m j false hj]
+      · rename_i hj
+        rw [hfv]
+        symm
+        exact getD_eq_default _ _ _ (by rw [wvals_length, List.length_take]; omega)
+    have hgm : evalFormula a (gateClauses n c.length m (c.getD m default)) = true :=
+      gate_clauses_sat_of_gadgets a c m hm hg
+    rw [wire_eq x c m hm]
+    cases hgd : c.getD m default with
+    | var i =>
+        rw [hgd] at hgm
+        simp only [hgd, gateClauses, evalFormula, evalClause, evalLit, List.all_cons, List.all_nil,
+          List.any_cons, List.any_nil, Bool.and_true, Bool.or_false, Bool.and_eq_true,
+          Bool.or_eq_true, beq_iff_eq] at hgm
+        simp only [evalGate]
+        show a (n + m) = a i.val
+        cases hp : a (n + m) <;> cases hq : a i.val <;> simp_all
+    | cst b =>
+        rw [hgd] at hgm
+        simp only [hgd, gateClauses, evalFormula, evalClause, evalLit, List.all_cons, List.all_nil,
+          List.any_cons, List.any_nil, Bool.and_true, Bool.or_false, beq_iff_eq] at hgm
+        simpa only [evalGate] using hgm
+    | un op j =>
+        rw [hgd] at hgm
+        simp only [hgd, gateClauses, evalFormula, evalClause, evalLit, List.all_cons, List.all_nil,
+          List.any_cons, List.any_nil, Bool.and_true, Bool.or_false, Bool.and_eq_true,
+          Bool.or_eq_true, beq_iff_eq] at hgm
+        simp only [evalGate]
+        rw [← hread j]
+        cases hy : a (readVar n c.length j m) <;> simp_all
+    | bin op j k =>
+        rw [hgd] at hgm
+        simp only [hgd, gateClauses, evalFormula, evalClause, evalLit, List.all_cons, List.all_nil,
+          List.any_cons, List.any_nil, Bool.and_true, Bool.or_false, Bool.and_eq_true,
+          Bool.or_eq_true, beq_iff_eq] at hgm
+        simp only [evalGate]
+        rw [← hread j, ← hread k]
+        cases hy : a (readVar n c.length j m) <;>
+          cases hz : a (readVar n c.length k m) <;> simp_all
+
+/-- **Completeness.**  A satisfying assignment gives an input on which the circuit outputs `true`. -/
+theorem tseitin_complete (c : List (CGate n)) (h : Satisfiable (tseitin c)) :
+    ∃ x, output c x = true := by
+  obtain ⟨a, ha⟩ := h
+  rw [tseitin, evalFormula, List.all_append, Bool.and_eq_true] at ha
+  obtain ⟨hgad, htail⟩ := ha
+  simp only [List.all_cons, List.all_nil, Bool.and_true, Bool.and_eq_true] at htail
+  obtain ⟨hfvc, houtc⟩ := htail
+  have hfv : a (n + c.length) = false := by
+    simp only [evalClause, evalLit, List.any_cons, List.any_nil, Bool.or_false, beq_iff_eq] at hfvc
+    exact hfvc
+  have hout : a (n + (c.length - 1)) = true := by
+    simp only [evalClause, evalLit, List.any_cons, List.any_nil, Bool.or_false, beq_iff_eq] at houtc
+    exact houtc
+  refine ⟨fun i => a i.val, ?_⟩
+  by_cases hcl : c.length = 0
+  · exfalso
+    rw [hcl] at hfv hout
+    simp only [Nat.add_zero, Nat.zero_sub, Nat.sub_zero] at hfv hout
+    rw [hfv] at hout
+    exact Bool.noConfusion hout
+  · have hlt : c.length - 1 < c.length := by omega
+    have hwa := wire_agree a c hgad hfv (c.length - 1) hlt
+    show output c (fun i => a i.val) = true
+    rw [show output c (fun i => a i.val)
+        = (wvals (fun i => a i.val) c).getD (c.length - 1) false from rfl, ← hwa, hout]
+
 /-- **Circuit evaluation is expressible as satisfiability** — the concrete self-reference fact:
 `tseitin c` is satisfiable iff the circuit outputs `true` on some input. -/
 def CircuitEvalExpressible {n : ℕ} (c : List (CGate n)) : Prop :=
@@ -328,20 +441,29 @@ circuit evaluation is expressible as satisfiability for *every* circuit.  This i
 (true), and its full proof is the remaining Tseitin-correctness arc. -/
 def Universality : Prop := ∀ (n : ℕ) (c : List (CGate n)), CircuitEvalExpressible c
 
-/-- **The self-reference conjecture, un-fakeable.**  `Universality` is now fixed, so this cannot be
-discharged by degenerate instantiation.  The `P ≠ NP` content is the genuine open implication. -/
+/-- **Universality is a THEOREM (proved).**  The full Tseitin correctness — circuit evaluation is
+expressible as satisfiability, for every circuit — assembled from soundness and completeness.  The
+concretized `Universal` is no longer just a fixed statement: it is now a machine-checked fact, so the
+self-reference conjecture stands alone as the pure open implication. -/
+theorem universality : Universality :=
+  fun _ c => ⟨tseitin_complete c, fun ⟨x, hx⟩ => tseitin_sound x c hx⟩
+
+/-- **The self-reference conjecture, un-fakeable.**  With `Universality` now a proved theorem, this is
+the pure open implication — no free `Prop`, no degenerate escape.  The `P ≠ NP` content is entirely
+here. -/
 def SelfReferenceForcesDoubling (cbudget : ℕ → ℕ) : Prop :=
   Universality → WhatIsLeft cbudget
 
-/-- **Self-reference closes the wall, if it holds (proved reduction).**  *Given* a proof of
-`Universality` (the Tseitin-correctness theorem) and of the conjecture, the separation follows.  Both
-inputs are now real statements — no free `Prop`, no degenerate escape. -/
+/-- **Self-reference closes the wall, if it holds (proved reduction).**  `Universality` is discharged
+by `universality`; the conjecture is applied to it and the separation follows.  The only open input is
+the conjecture itself. -/
 theorem selfref_closes (cbudget : ℕ → ℕ) (hbase : 1 ≤ cbudget 0)
-    (huniv : Universality) (hconj : SelfReferenceForcesDoubling cbudget)
+    (hconj : SelfReferenceForcesDoubling cbudget)
     (B : ℕ) (hbdd : ∀ d, cbudget d ≤ B) : False :=
-  left_breaks_P cbudget (hconj huniv) hbase B hbdd
+  left_breaks_P cbudget (hconj universality) hbase B hbdd
 
 end PallLean.Paper93.DeepMath.PathB.CircuitUniversality
 
+#print axioms PallLean.Paper93.DeepMath.PathB.CircuitUniversality.universality
 #print axioms PallLean.Paper93.DeepMath.PathB.CircuitUniversality.tseitin_witness
 #print axioms PallLean.Paper93.DeepMath.PathB.CircuitUniversality.selfref_closes
