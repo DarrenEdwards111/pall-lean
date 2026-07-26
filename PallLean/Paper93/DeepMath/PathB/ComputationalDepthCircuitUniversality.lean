@@ -76,11 +76,66 @@ def gateClauses (n L m : ℕ) : CGate n → Formula
        [(y, false), (z, true), (n + m, op true false)],
        [(y, false), (z, false), (n + m, op true true)]]
 
+/-- A default gate, so wire indexing can use `getD` without `Fin` proofs. -/
+instance : Inhabited (CGate n) := ⟨CGate.cst false⟩
+
+/-- The gadget clauses for a suffix of the circuit, threading the absolute wire index `m`. -/
+def gadgets (n L : ℕ) : ℕ → List (CGate n) → Formula
+  | _, [] => []
+  | m, g :: gs => gateClauses n L m g ++ gadgets n L (m + 1) gs
+
 /-- The Tseitin encoding of a circuit into CNF: gadget clauses per gate, a forced-false variable, and
 the output clause forcing the last wire true. -/
 def tseitin {n : ℕ} (c : List (CGate n)) : Formula :=
-  (c.mapIdx (fun m g => gateClauses n c.length m g)).flatten
+  gadgets n c.length 0 c
     ++ [[(n + c.length, false)], [(n + (c.length - 1), true)]]
+
+/-! ### Wire semantics: the runtime values a circuit produces -/
+
+/-- The wire values of a circuit on input `x`: the list of gate outputs. -/
+def wvals (x : Fin n → Bool) (c : List (CGate n)) : List Bool := runFrom x [] c
+
+theorem runFrom_length (x : Fin n → Bool) :
+    ∀ (vals : List Bool) (c : List (CGate n)), (runFrom x vals c).length = vals.length + c.length := by
+  intro vals c
+  induction c generalizing vals with
+  | nil => simp [runFrom]
+  | cons g gs ih =>
+      rw [runFrom, ih (vals ++ [evalGate x vals g])]
+      simp only [List.length_append, List.length_cons, List.length_nil]
+      omega
+
+theorem wvals_length (x : Fin n → Bool) (c : List (CGate n)) : (wvals x c).length = c.length := by
+  simp [wvals, runFrom_length]
+
+/-- Appending a gate appends its evaluation over the current wires. -/
+theorem wvals_snoc (x : Fin n → Bool) (c : List (CGate n)) (g : CGate n) :
+    wvals x (c ++ [g]) = wvals x c ++ [evalGate x (wvals x c) g] := by
+  simp only [wvals, runFrom_append]
+  rfl
+
+/-- `getD` at the end of a snoc is the appended element. -/
+theorem getD_snoc {α : Type*} (l : List α) (e d : α) : (l ++ [e]).getD l.length d = e := by
+  induction l with
+  | nil => rfl
+  | cons a as ih => simpa using ih
+
+/-- **The wire recurrence.**  Wire `m` is `gate m` evaluated over the first `m` wires. -/
+theorem wire_eq (x : Fin n → Bool) (c : List (CGate n)) (m : ℕ) (hm : m < c.length) :
+    (wvals x c).getD m false = evalGate x (wvals x (c.take m)) (c.getD m default) := by
+  induction c using List.reverseRecOn with
+  | nil => simp at hm
+  | append_singleton c g ih =>
+      rw [wvals_snoc]
+      rw [List.length_append, List.length_singleton] at hm
+      rcases Nat.lt_or_ge m c.length with hlt | hge
+      · rw [List.getD_append _ _ _ _ (by rw [wvals_length]; exact hlt)]
+        rw [List.take_append_of_le_length (by omega)]
+        rw [List.getD_append _ _ _ _ (by omega)]
+        exact ih hlt
+      · have hm' : m = c.length := by omega
+        subst hm'
+        rw [List.take_left, getD_snoc, ← wvals_length x c, getD_snoc]
 
 /-- **Circuit evaluation is expressible as satisfiability** — the concrete self-reference fact:
 `tseitin c` is satisfiable iff the circuit outputs `true` on some input. -/
