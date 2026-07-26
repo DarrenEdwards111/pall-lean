@@ -137,6 +137,92 @@ theorem wire_eq (x : Fin n → Bool) (c : List (CGate n)) (m : ℕ) (hm : m < c.
         subst hm'
         rw [List.take_left, getD_snoc, ← wvals_length x c, getD_snoc]
 
+/-- `getD` on a prefix agrees with the full list below the cut. -/
+theorem getD_take_lt {α : Type*} : ∀ (l : List α) (m j : ℕ) (d : α), j < m →
+    (l.take m).getD j d = l.getD j d := by
+  intro l
+  induction l with
+  | nil => intro m j d _; simp
+  | cons a as ih =>
+      intro m j d h
+      cases m with
+      | zero => omega
+      | succ m' =>
+          cases j with
+          | zero => simp
+          | succ j' =>
+              rw [List.take_succ_cons, List.getD_cons_succ, List.getD_cons_succ]
+              exact ih m' j' d (by omega)
+
+/-- `getD` past the end is the default. -/
+theorem getD_eq_default {α : Type*} : ∀ (l : List α) (j : ℕ) (d : α), l.length ≤ j →
+    l.getD j d = d := by
+  intro l
+  induction l with
+  | nil => intro j d _; simp
+  | cons a as ih =>
+      intro j d h
+      cases j with
+      | zero => simp at h
+      | succ j' => rw [List.getD_cons_succ]; exact ih j' d (by simp only [List.length_cons] at h; omega)
+
+/-- `runFrom` only extends its wire list. -/
+theorem runFrom_extends (x : Fin n → Bool) :
+    ∀ (vals : List Bool) (c : List (CGate n)), ∃ suf, runFrom x vals c = vals ++ suf := by
+  intro vals c
+  induction c generalizing vals with
+  | nil => exact ⟨[], by simp [runFrom]⟩
+  | cons g gs ih =>
+      obtain ⟨suf, hsuf⟩ := ih (vals ++ [evalGate x vals g])
+      exact ⟨evalGate x vals g :: suf, by rw [runFrom, hsuf, List.append_assoc]; rfl⟩
+
+/-- The first `m` wire values of the whole circuit are the wire values of its length-`m` prefix. -/
+theorem wvals_take (x : Fin n → Bool) (c : List (CGate n)) (m : ℕ) (hm : m ≤ c.length) :
+    (wvals x c).take m = wvals x (c.take m) := by
+  obtain ⟨suf, hsuf⟩ := runFrom_extends x (runFrom x [] (c.take m)) (c.drop m)
+  have hc : wvals x c = wvals x (c.take m) ++ suf := by
+    have h2 := hsuf
+    rw [← runFrom_append, List.take_append_drop] at h2
+    exact h2
+  rw [hc, List.take_append_of_le_length (by rw [wvals_length, List.length_take]; omega),
+      List.take_of_length_le (by rw [wvals_length, List.length_take]; omega)]
+
+/-! ### The canonical assignment -/
+
+/-- The satisfying assignment built from a circuit input: inputs to `x`, wires to their values. -/
+def canon (x : Fin n → Bool) (c : List (CGate n)) : ℕ → Bool :=
+  fun v => if h : v < n then x ⟨v, h⟩ else (wvals x c).getD (v - n) false
+
+theorem canon_input (x : Fin n → Bool) (c : List (CGate n)) (i : Fin n) :
+    canon x c i.val = x i := by
+  show (if h : (i.val) < n then x ⟨i.val, h⟩ else _) = x i
+  rw [dif_pos i.isLt]
+
+theorem canon_wire (x : Fin n → Bool) (c : List (CGate n)) (m : ℕ) :
+    canon x c (n + m) = (wvals x c).getD m false := by
+  show (if h : (n + m) < n then _ else (wvals x c).getD ((n + m) - n) false) = _
+  rw [dif_neg (by omega)]
+  congr 1
+  omega
+
+theorem canon_false (x : Fin n → Bool) (c : List (CGate n)) :
+    canon x c (n + c.length) = false := by
+  rw [canon_wire]
+  exact getD_eq_default _ _ _ (le_of_eq (wvals_length x c))
+
+/-- **Read matching.**  Under the canonical assignment, the CNF variable a gate reads carries exactly
+the wire value `evalGate` reads. -/
+theorem read_canon (x : Fin n → Bool) (c : List (CGate n)) (j m : ℕ) (hm : m ≤ c.length) :
+    canon x c (readVar n c.length j m) = (wvals x (c.take m)).getD j false := by
+  unfold readVar
+  split
+  · rename_i hj
+    rw [canon_wire, ← wvals_take x c m hm, getD_take_lt (wvals x c) m j false hj]
+  · rename_i hj
+    rw [canon_false]
+    symm
+    exact getD_eq_default _ _ _ (by rw [wvals_length, List.length_take]; omega)
+
 /-- **Circuit evaluation is expressible as satisfiability** — the concrete self-reference fact:
 `tseitin c` is satisfiable iff the circuit outputs `true` on some input. -/
 def CircuitEvalExpressible {n : ℕ} (c : List (CGate n)) : Prop :=
