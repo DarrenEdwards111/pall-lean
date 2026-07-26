@@ -204,6 +204,63 @@ theorem collapse_disjoint_bound_fails : ¬ (3 * 3 ≤ collapseWitness.gates.card
 the pigeonhole demands (`9 ≤ 3·3`). -/
 theorem collapse_mult_full : ∀ g ∈ collapseWitness.gates, mult collapseWitness g = 3 := by decide
 
+/-! ### The reason for all: `|gates| ≥ k·b − overlap`, for arbitrary circuits -/
+
+/-- The **distinct witnesses**: the union of all witness sets. -/
+def distinctWitnesses {k b : ℕ} (C : SharedCircuitForTarget k b) : Finset ℕ :=
+  Finset.univ.biUnion C.witness
+
+/-- The **overlap**: the double-counted witness mass — total demand minus distinct supply. -/
+def overlap {k b : ℕ} (C : SharedCircuitForTarget k b) : ℕ :=
+  (∑ i, (C.witness i).card) - (distinctWitnesses C).card
+
+/-- Distinct witnesses are real gates. -/
+theorem distinctWitnesses_subset {k b : ℕ} (C : SharedCircuitForTarget k b) :
+    distinctWitnesses C ⊆ C.gates := by
+  intro x hx
+  rw [distinctWitnesses, Finset.mem_biUnion] at hx
+  obtain ⟨i, _, hxi⟩ := hx
+  exact C.wit_sub i hxi
+
+/-- Inclusion–exclusion, ℕ-clean: distinct witnesses plus overlap is exactly the witness mass. -/
+theorem union_card_add_overlap {k b : ℕ} (C : SharedCircuitForTarget k b) :
+    (distinctWitnesses C).card + overlap C = ∑ i, (C.witness i).card :=
+  Nat.add_sub_cancel' Finset.card_biUnion_le
+
+/-- **The reason for all (proved, arbitrary circuit, no hypotheses).**
+`k·b ≤ |gates| + overlap` — equivalently `|gates| ≥ k·b − overlap`: every circuit pays the full
+disjoint bound EXCEPT what it double-counts.  This is a genuine `∀`-body — it holds for every `C`
+with no side condition — but its strength is contingent on ONE adversary-controlled scalar:
+`overlap C`.  Bounding that scalar below `k·b − (target)` for all small circuits IS `cost_super`. -/
+theorem the_reason_with_overlap {k b : ℕ} (C : SharedCircuitForTarget k b) :
+    k * b ≤ C.gates.card + overlap C := by
+  have h1 : k * b ≤ ∑ i, (C.witness i).card := kb_le_witness_sum C
+  have h2 : (distinctWitnesses C).card + overlap C = ∑ i, (C.witness i).card :=
+    union_card_add_overlap C
+  have h3 : (distinctWitnesses C).card ≤ C.gates.card :=
+    Finset.card_le_card (distinctWitnesses_subset C)
+  omega
+
+/-- Disjoint witnesses have zero overlap … -/
+theorem overlap_eq_zero_of_disjoint {k b : ℕ} (C : SharedCircuitForTarget k b)
+    (hdisj : ∀ i j, i ≠ j → Disjoint (C.witness i) (C.witness j)) :
+    overlap C = 0 := by
+  have hcard : (distinctWitnesses C).card = ∑ i, (C.witness i).card :=
+    Finset.card_biUnion (fun i _ j _ hij => hdisj i j hij)
+  rw [overlap, hcard, Nat.sub_self]
+
+/-- … so at `overlap = 0` the reason-for-all IS the old disjoint theorem. -/
+theorem disjoint_recovered_via_overlap {k b : ℕ} (C : SharedCircuitForTarget k b)
+    (hdisj : ∀ i j, i ≠ j → Disjoint (C.witness i) (C.witness j)) :
+    k * b ≤ C.gates.card := by
+  have h := the_reason_with_overlap C
+  rw [overlap_eq_zero_of_disjoint C hdisj] at h
+  omega
+
+/-- On the full-overlap witness the bound is TIGHT: `overlap = 6` and `9 ≤ 3 + 6` exactly — the
+adversary's saving is precisely its double-counting, no more. -/
+theorem collapse_overlap : overlap collapseWitness = 6 := by decide
+
 end PallLean.Paper93.DeepMath.PathB.TheReasonShared
 
 #print axioms PallLean.Paper93.DeepMath.PathB.TheReasonShared.the_reason_shared
@@ -211,3 +268,6 @@ end PallLean.Paper93.DeepMath.PathB.TheReasonShared
 #print axioms PallLean.Paper93.DeepMath.PathB.TheReasonShared.disjoint_case_recovered
 #print axioms PallLean.Paper93.DeepMath.PathB.TheReasonShared.graded_survivor
 #print axioms PallLean.Paper93.DeepMath.PathB.TheReasonShared.collapse_disjoint_bound_fails
+#print axioms PallLean.Paper93.DeepMath.PathB.TheReasonShared.the_reason_with_overlap
+#print axioms PallLean.Paper93.DeepMath.PathB.TheReasonShared.disjoint_recovered_via_overlap
+#print axioms PallLean.Paper93.DeepMath.PathB.TheReasonShared.collapse_overlap
