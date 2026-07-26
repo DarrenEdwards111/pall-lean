@@ -223,6 +223,92 @@ theorem read_canon (x : Fin n → Bool) (c : List (CGate n)) (j m : ℕ) (hm : m
     symm
     exact getD_eq_default _ _ _ (by rw [wvals_length, List.length_take]; omega)
 
+/-- The canonical assignment sends wire variable `m` to gate `m`'s value. -/
+theorem canon_gate (x : Fin n → Bool) (c : List (CGate n)) (m : ℕ) (hm : m < c.length) :
+    canon x c (n + m) = evalGate x (wvals x (c.take m)) (c.getD m default) := by
+  rw [canon_wire, wire_eq x c m hm]
+
+/-! ### Soundness: the canonical assignment satisfies the encoding -/
+
+/-- **Each gate's gadget is satisfied by the canonical assignment.** -/
+theorem gate_clauses_sound (x : Fin n → Bool) (c : List (CGate n)) (m : ℕ) (hm : m < c.length) :
+    evalFormula (canon x c) (gateClauses n c.length m (c.getD m default)) = true := by
+  have hmaster := canon_gate x c m hm
+  cases hg : c.getD m default with
+  | var i =>
+      rw [hg] at hmaster
+      simp only [evalGate] at hmaster
+      simp only [hg, gateClauses, evalFormula, evalClause, evalLit, List.all_cons, List.all_nil,
+        List.any_cons, List.any_nil, Bool.and_true, Bool.or_false]
+      rw [hmaster, ← canon_input x c i]
+      cases canon x c i.val <;> decide
+  | cst b =>
+      rw [hg] at hmaster
+      simp only [evalGate] at hmaster
+      simp only [hg, gateClauses, evalFormula, evalClause, evalLit, List.all_cons, List.all_nil,
+        List.any_cons, List.any_nil, Bool.and_true, Bool.or_false]
+      rw [hmaster]
+      cases b <;> decide
+  | un op j =>
+      rw [hg] at hmaster
+      simp only [evalGate] at hmaster
+      rw [← read_canon x c j m (le_of_lt hm)] at hmaster
+      simp only [hg, gateClauses, evalFormula, evalClause, evalLit, List.all_cons, List.all_nil,
+        List.any_cons, List.any_nil, Bool.and_true, Bool.or_false]
+      rw [hmaster]
+      cases canon x c (readVar n c.length j m) <;> simp
+  | bin op j k =>
+      rw [hg] at hmaster
+      simp only [evalGate] at hmaster
+      rw [← read_canon x c j m (le_of_lt hm), ← read_canon x c k m (le_of_lt hm)] at hmaster
+      simp only [hg, gateClauses, evalFormula, evalClause, evalLit, List.all_cons, List.all_nil,
+        List.any_cons, List.any_nil, Bool.and_true, Bool.or_false]
+      rw [hmaster]
+      cases canon x c (readVar n c.length j m) <;>
+        cases canon x c (readVar n c.length k m) <;> simp
+
+/-- Every clause in `gadgets` comes from a gate's gadget. -/
+theorem gadgets_mem (n L m₀ : ℕ) : ∀ (gs : List (CGate n)) (cl : Clause),
+    cl ∈ gadgets n L m₀ gs →
+    ∃ i, i < gs.length ∧ cl ∈ gateClauses n L (m₀ + i) (gs.getD i default) := by
+  intro gs
+  induction gs generalizing m₀ with
+  | nil => intro cl h; simp [gadgets] at h
+  | cons g gs ih =>
+      intro cl h
+      simp only [gadgets, List.mem_append] at h
+      cases h with
+      | inl h => exact ⟨0, by simp, by simpa using h⟩
+      | inr h =>
+          obtain ⟨i, hi, hmem⟩ := ih (m₀ + 1) cl h
+          refine ⟨i + 1, by simpa using hi, ?_⟩
+          rw [List.getD_cons_succ, show m₀ + (i + 1) = m₀ + 1 + i from by omega]
+          exact hmem
+
+/-- **The whole gadget block is satisfied by the canonical assignment.** -/
+theorem gadgets_all_sound (x : Fin n → Bool) (c : List (CGate n)) :
+    evalFormula (canon x c) (gadgets n c.length 0 c) = true := by
+  rw [evalFormula, List.all_eq_true]
+  intro cl hcl
+  obtain ⟨i, hi, hmem⟩ := gadgets_mem n c.length 0 c cl hcl
+  have hsound := gate_clauses_sound x c i hi
+  rw [evalFormula, List.all_eq_true] at hsound
+  simp only [Nat.zero_add] at hmem
+  exact hsound cl hmem
+
+/-- **Soundness.**  A circuit output on `x` yields a satisfying assignment `canon x c`. -/
+theorem tseitin_sound (x : Fin n → Bool) (c : List (CGate n)) (hx : output c x = true) :
+    Satisfiable (tseitin c) := by
+  refine ⟨canon x c, ?_⟩
+  rw [tseitin, evalFormula, List.all_append, Bool.and_eq_true]
+  refine ⟨gadgets_all_sound x c, ?_⟩
+  have hfv : evalClause (canon x c) [(n + c.length, false)] = true := by
+    simp [evalClause, evalLit, canon_false]
+  have hout : evalClause (canon x c) [(n + (c.length - 1), true)] = true := by
+    have hval : canon x c (n + (c.length - 1)) = true := by rw [canon_wire]; exact hx
+    simp [evalClause, evalLit, hval]
+  simp [List.all_cons, List.all_nil, hfv, hout]
+
 /-- **Circuit evaluation is expressible as satisfiability** — the concrete self-reference fact:
 `tseitin c` is satisfiable iff the circuit outputs `true` on some input. -/
 def CircuitEvalExpressible {n : ℕ} (c : List (CGate n)) : Prop :=
