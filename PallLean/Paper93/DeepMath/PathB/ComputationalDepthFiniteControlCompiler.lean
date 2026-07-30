@@ -106,6 +106,13 @@ theorem asmRun_succ (P : Program) (t : ℕ) (c : AsmCfg P) :
     asmRun P (t + 1) c = asmStep P (asmRun P t c) :=
   Function.iterate_succ_apply' (asmStep P) t c
 
+/-- Split a source run into consecutive phases. -/
+theorem asmRun_add (P : Program) (a b : ℕ) (c : AsmCfg P) :
+    asmRun P (a + b) c = asmRun P b (asmRun P a c) := by
+  unfold asmRun
+  rw [add_comm a b]
+  exact Function.iterate_add_apply (asmStep P) b a c
+
 /-- Lower the assembly program to the faithful finite-control machine model. -/
 def compile (P : Program) : Machine where
   State := P.Label
