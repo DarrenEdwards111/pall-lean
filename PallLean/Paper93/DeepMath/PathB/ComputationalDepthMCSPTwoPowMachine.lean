@@ -727,6 +727,93 @@ theorem twoPow_run (n : ℕ) (rest : List Bool) :
   simp only [Nat.zero_add, iterAcc_from_zero]
   exact finish_counter (2 ^ n - 1) n rest
 
+/-! ## Polynomial clock calibration -/
+
+/-- The canonical non-payload tape length. -/
+def mass (a done k : ℕ) : ℕ :=
+  2 * a + workspace a k + 2 * done + 2 * k + 4
+
+theorem powTape_length (a done k : ℕ) (rest : List Bool) :
+    (powTape a done k rest).length = mass a done k + rest.length := by
+  simp [powTape, mass,
+    PallLean.Paper93.DeepMath.PathB.DIndexMachine.flat2_length]
+  omega
+
+theorem mass_round (a done k : ℕ) :
+    mass (2 * a + 1) (done + 1) k = mass a done (k + 1) := by
+  simp only [mass, workspace_succ]
+  omega
+
+set_option maxHeartbeats 800000 in
+private theorem roundCost_le (a done k : ℕ) :
+    (2 * a + 1 + workspace a (k + 1) + 2 * done + 5) +
+        ((a + 1) * (4 * a + 12) + 4 * a + 3) + 4
+      ≤ 32 * (mass a done (k + 1) + 1) ^ 2 := by
+  let S := mass a done (k + 1) + 1
+  have hSa : a + 1 ≤ S := by
+    simp only [S, mass]
+    omega
+  have hSlin :
+      2 * a + 1 + workspace a (k + 1) + 2 * done + 5 ≤ S + 4 := by
+    simp only [S, mass]
+    omega
+  have hfour : 4 * a + 12 ≤ 12 * S := by
+    nlinarith
+  have hprod :
+      (a + 1) * (4 * a + 12) ≤ 12 * S ^ 2 := by
+    calc
+      _ ≤ S * (12 * S) := Nat.mul_le_mul hSa hfour
+      _ = 12 * S ^ 2 := by ring
+  have htail : 4 * a + 3 ≤ 4 * S := by
+    nlinarith
+  have hSpos : 1 ≤ S := by simp [S]
+  calc
+    _ ≤ (S + 4) + (12 * S ^ 2 + 4 * S) + 4 := by
+      exact Nat.add_le_add_right
+        (Nat.add_le_add hSlin (Nat.add_le_add hprod htail)) 4
+    _ ≤ 32 * S ^ 2 := by nlinarith
+
+theorem powCost_le_mass : ∀ (k a done : ℕ),
+    powCost a done k ≤ 32 * k * (mass a done k + 1) ^ 2 := by
+  intro k
+  induction k with
+  | zero => intro a done; simp [powCost]
+  | succ k ih =>
+      intro a done
+      simp only [powCost]
+      have hr := roundCost_le a done k
+      have hi := ih (2 * a + 1) (done + 1)
+      rw [mass_round] at hi
+      calc
+        _ ≤ 32 * (mass a done (k + 1) + 1) ^ 2 +
+            32 * k * (mass a done (k + 1) + 1) ^ 2 :=
+          Nat.add_le_add hr hi
+        _ = 32 * (k + 1) * (mass a done (k + 1) + 1) ^ 2 := by ring
+
+theorem powCost_initial_cubic (n : ℕ) (rest : List Bool) :
+    powCost 0 0 n ≤ 32 * ((powTape 0 0 n rest).length + 1) ^ 3 := by
+  have hc := powCost_le_mass n 0 0
+  have hk : n ≤ mass 0 0 n + rest.length + 1 := by
+    simp only [mass]
+    omega
+  have hlen := powTape_length 0 0 n rest
+  rw [hlen]
+  calc
+    powCost 0 0 n
+        ≤ 32 * n * (mass 0 0 n + 1) ^ 2 := hc
+    _ ≤ 32 * (mass 0 0 n + rest.length + 1) *
+          (mass 0 0 n + rest.length + 1) ^ 2 := by
+      gcongr <;> omega
+    _ = 32 * (mass 0 0 n + rest.length + 1) ^ 3 := by ring
+
+/-- A uniform cubic clock in total tape length. -/
+def twoPowClock (N : ℕ) : ℕ := 36 * (N + 1) ^ 3
+
+theorem twoPowClock_poly :
+    PallLean.Paper93.DeepMath.PathB.PvsNPSeparatingInvariant.PolyBounded
+      twoPowClock :=
+  ⟨36, 3, fun N => by simp [twoPowClock]⟩
+
 end PallLean.Paper93.DeepMath.PathB.MCSPTwoPowMachine
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MCSPTwoPowMachine.workspace_succ
