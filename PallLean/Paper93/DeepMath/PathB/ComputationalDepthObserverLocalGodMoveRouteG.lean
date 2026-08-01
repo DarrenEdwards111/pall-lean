@@ -65,15 +65,15 @@ structure RouteGData (Collapse : Prop) where
   Obj : Type*
   frame : ObserverFrame Obj
   source : Collapse → Obj
-  target : Obj
+  target : Collapse → Obj
   sourceCap : ℕ
   targetFloor : ℕ
   overhead : ℕ
   gap : sourceCap + overhead < targetFloor
   insideLow : ∀ h : Collapse, frame.accessibleRank (source h) ≤ sourceCap
   buildLocalMove : ∀ h : Collapse,
-    LocalGodMove frame (source h) target overhead
-  outsideHigh : targetFloor ≤ frame.accessibleRank target
+    LocalGodMove frame (source h) (target h) overhead
+  outsideHigh : ∀ h : Collapse, targetFloor ≤ frame.accessibleRank (target h)
 
 /-- The observer-consistent local Route G beam.
 
@@ -84,14 +84,14 @@ theorem routeG_refutes_collapse {Collapse : Prop} (G : RouteGData Collapse) :
     ¬ Collapse := by
   intro h
   have htransport :
-      G.frame.accessibleRank G.target ≤
+      G.frame.accessibleRank (G.target h) ≤
         G.frame.accessibleRank (G.source h) + G.overhead :=
     target_rank_le_source_add_overhead (G.buildLocalMove h)
   have hupper :
       G.frame.accessibleRank (G.source h) + G.overhead ≤
         G.sourceCap + G.overhead :=
     Nat.add_le_add_right (G.insideLow h) G.overhead
-  have hlower := G.outsideHigh
+  have hlower := G.outsideHigh h
   have hgap := G.gap
   omega
 
