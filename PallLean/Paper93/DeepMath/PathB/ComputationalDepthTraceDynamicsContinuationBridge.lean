@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthContinuationCompleteDynamicHolonomy
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthPvsNPNFrameDynamicMERAHolonomy
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthTraceCrossingCeiling
 
 /-!
 # Actual trace dynamics to continuation-complete holonomy
@@ -41,6 +42,8 @@ open MultiplicativeHolonomyBoundaryCapacity.DynamicGeneratorBank
 open ContinuationObserver
 open ContinuationCompleteDynamicHolonomy
 open PvsNPNFrameDynamicMERAHolonomy
+open PallLean.Paper93.DeepMath.PathB.ComposableMachine
+open PallLean.Paper93.DeepMath.PathB.CrossingComplexity
 
 variable {Pre Suf State : Type*}
 
@@ -123,6 +126,30 @@ theorem exact_recovery_two_pow_capacity_at_every_cut
     2 ^ n ≤ @Fintype.card D.BoundaryState D.stateFintype :=
   D.two_pow_le_boundary_card_at_time time htime
 
+/-! ## Adaptive rereading through crossing histories -/
+
+/-- A continuation-complete exposure physically encoded by at most one Boolean
+generator per crossing inherits the trace paper's runtime ceiling.  Thus crossing
+histories correctly account for adaptive rereading, but cannot manufacture more
+than `T` independent visible generators in `T` steps.
+
+The hypothesis `hphysical` is deliberately explicit: proving that a solver's
+actual crossing history carries the required continuation-complete exposure is
+the SAT-specific semantic-force obligation, not a consequence of this counting
+lemma. -/
+theorem crossing_factored_separated_rank_le_time [Inhabited Suf]
+    {R : ActualDecisionRun (Pre × Suf) State} {g k : Nat}
+    {M : Machine} (c : Cfg M) (boundary T : Nat)
+    (F : TraceContinuationFactorization R g)
+    {P : Finset Pre}
+    (hsep : Separated (fun p s => R.finalAnswer (p, s)) P)
+    (hmany : 2 ^ k ≤ P.card)
+    (hphysical : g ≤ crossingCount M c boundary T) :
+    k ≤ T := by
+  exact
+    (F.separated_forces_generators hsep hmany).trans
+      (hphysical.trans (crossingCount_le_time c boundary T))
+
 /-! ## Guardrail: a final decision trace is not the connector -/
 
 /-- Equality already refutes the claim that one exposed trace bit plus generic
@@ -145,4 +172,5 @@ end PallLean.Paper93.DeepMath.PathB.TraceDynamicsContinuationBridge
 #print axioms PallLean.Paper93.DeepMath.PathB.TraceDynamicsContinuationBridge.TraceContinuationFactorization.separated_forces_generators
 #print axioms PallLean.Paper93.DeepMath.PathB.TraceDynamicsContinuationBridge.exact_recovery_no_merging_at_every_cut
 #print axioms PallLean.Paper93.DeepMath.PathB.TraceDynamicsContinuationBridge.exact_recovery_two_pow_capacity_at_every_cut
+#print axioms PallLean.Paper93.DeepMath.PathB.TraceDynamicsContinuationBridge.crossing_factored_separated_rank_le_time
 #print axioms PallLean.Paper93.DeepMath.PathB.TraceDynamicsContinuationBridge.no_one_bit_trace_factorization_for_equality
