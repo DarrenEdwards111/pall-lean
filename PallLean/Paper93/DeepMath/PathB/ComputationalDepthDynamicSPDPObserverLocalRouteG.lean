@@ -21,10 +21,12 @@ inequality is precisely the already-proved operational theorem
 `globalGodMove_le_finalBoundary`.
 
 This does **not** prove that SAT correctness emits an exponential global minor.
-That remains the named semantic frontier `SATCorrectnessFormsGlobalGodMove`.  What
-is proved here is that, if collapse supplies such a minor on a profile-bounded
-actual run, the rebuilt observer-local Route G refutes collapse without comparing
-different observers or assuming a global rank-monotone extractor.
+Moreover, the repository's calibration theorem proves that the older all-size
+statement `SATCorrectnessFormsGlobalGodMove` is equivalent to the machine not
+deciding SAT, so it is not a legitimate frontier to assume.  What is proved here
+is only the local contradiction beam.  The final calibration theorem below makes
+explicit that its collapse-relative exponential-emission premise is itself
+equivalent to refuting collapse once a contradictory bounded profile is fixed.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB.DynamicSPDPObserverLocalRouteG
@@ -117,7 +119,29 @@ theorem dynamic_routeG_refutes_collapse
     ¬ Collapse :=
   routeG_refutes_collapse (dynamicRouteGData Collapse G hminor hgap)
 
+/-- Exact calibration of the fixed-profile exponential-emission socket.
+
+Once `G` and an exponential gap are fixed, asking collapse to emit the forbidden
+minor is logically equivalent to `¬ Collapse`: the forward direction is the Route G
+contradiction and the reverse direction is vacuous.  Therefore this socket must not
+be advertised as the missing constructive God-Move.  A viable replacement has to
+state weaker local event-generation facts that do not already contradict the
+profile by themselves. -/
+theorem collapseEmitsDynamicMinor_iff_not_collapse
+    (Collapse : Prop)
+    {P : BoundedLocalAccessProfile} {n : ℕ}
+    {R : ActualDecisionRun Input State}
+    (G : ProfileBoundedDynamicGodMove P n R)
+    (hgap : P.exposedRank n < 2 ^ n) :
+    CollapseEmitsDynamicMinor Collapse G.observer n ↔ ¬ Collapse := by
+  constructor
+  · intro hminor
+    exact dynamic_routeG_refutes_collapse Collapse G hminor hgap
+  · intro hno h
+    exact False.elim (hno h)
+
 end PallLean.Paper93.DeepMath.PathB.DynamicSPDPObserverLocalRouteG
 
 #print axioms PallLean.Paper93.DeepMath.PathB.DynamicSPDPObserverLocalRouteG.dynamicLocalGodMove
 #print axioms PallLean.Paper93.DeepMath.PathB.DynamicSPDPObserverLocalRouteG.dynamic_routeG_refutes_collapse
+#print axioms PallLean.Paper93.DeepMath.PathB.DynamicSPDPObserverLocalRouteG.collapseEmitsDynamicMinor_iff_not_collapse
