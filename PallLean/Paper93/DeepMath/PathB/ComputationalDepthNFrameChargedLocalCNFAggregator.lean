@@ -145,7 +145,7 @@ theorem run_clause (P c rest : List Bool) (A C : Bool) :
         rw [show P ++ encodeClauseValues (b :: c) ++ rest =
           (P ++ [true]) ++ b :: (encodeClauseValues c ++ rest) by
             simp [encodeClauseValues, List.append_assoc]]
-        simp [getD_append_boundary]
+        simp
       have hfirst : run cnfAggregator 2
           ⟨(1, (A, C)), P.length, P ++ encodeClauseValues (b :: c) ++ rest⟩ =
           ⟨(1, (A, C || b)), P'.length,
