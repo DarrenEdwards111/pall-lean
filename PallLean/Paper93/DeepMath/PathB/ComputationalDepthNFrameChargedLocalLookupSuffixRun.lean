@@ -4,9 +4,8 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLooku
 # Charged local lookup: complete suffix-run transport
 
 The suffix adapter's local theorem is lifted here to an arbitrary finite body
-run.  The only hypothesis is an explicit path predicate saying that every
-executed body step is nonhalting, reset-free, does not move left from relative
-head zero, and writes only at an existing body-tape cell.
+run.  The only hypothesis is an explicit path predicate saying that every live
+body step is reset-free and does not move left from relative head zero.
 
 The result is then specialized to the repository's canonical literal lookup.
 Once the canonical `masterM` path satisfies this predicate, the adapter runs
@@ -31,11 +30,10 @@ open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixAdapter
 prefix.  Each field corresponds exactly to a hypothesis of
 `suffixAdapter_step_body`. -/
 structure PrefixSafeStep (M : Machine) (c : Cfg M) : Prop where
-  notHalted : M.halt c.st = false
-  noReset : (M.δ c.st (c.tp.getD c.hd false)).2.2 ≠ 3
-  leftInside : (M.δ c.st (c.tp.getD c.hd false)).2.2 = 0 → 0 < c.hd
-  writeInside : (M.δ c.st (c.tp.getD c.hd false)).2.1 ≠ none →
-    c.hd < c.tp.length
+  noReset : M.halt c.st = false →
+    (M.δ c.st (c.tp.getD c.hd false)).2.2 ≠ 3
+  leftInside : M.halt c.st = false →
+    (M.δ c.st (c.tp.getD c.hd false)).2.2 = 0 → 0 < c.hd
 
 /-- Every actually executed step among the first `n` body transitions is
 prefix-safe. -/
@@ -62,7 +60,7 @@ theorem suffixAdapter_run_body (M : Machine) (pre : List Bool)
       have hs := hsafe n (by omega)
       simpa only [run_succ] using
         suffixAdapter_step_body M pre (run M n c)
-          hs.notHalted hs.noReset hs.leftInside hs.writeInside
+          hs.noReset hs.leftInside
 
 /-- Scan a marked controller countdown and then execute the complete protected
 body run on its suffix. -/
@@ -100,6 +98,32 @@ def MasterLiteralPrefixSafe (w : List Bool) (l : Lit) : Prop :=
   PrefixSafeRun masterM (init masterM (literalLookupTape w l))
     (literalLookupClock w l)
 
+/-- After halted-step and arbitrary-write transport are discharged, this is
+the sole canonical path condition: a live left-moving lookup transition never
+occurs at relative head zero. -/
+def MasterLiteralLeftSafe (w : List Bool) (l : Lit) : Prop :=
+  ∀ i, i < literalLookupClock w l →
+    masterM.halt
+      (run masterM i (init masterM (literalLookupTape w l))).st = false →
+    (masterM.δ
+      (run masterM i (init masterM (literalLookupTape w l))).st
+      ((run masterM i (init masterM (literalLookupTape w l))).tp.getD
+        (run masterM i (init masterM (literalLookupTape w l))).hd false)).2.2 = 0 →
+    0 < (run masterM i (init masterM (literalLookupTape w l))).hd
+
+/-- Canonical prefix safety is exactly the one remaining left-boundary
+condition; reset-freedom is supplied by `masterM_reset_free`. -/
+theorem masterLiteralPrefixSafe_iff_leftSafe (w : List Bool) (l : Lit) :
+    MasterLiteralPrefixSafe w l ↔ MasterLiteralLeftSafe w l := by
+  constructor
+  · intro h i hi hhalt hmove
+    exact (h i hi).leftInside hhalt hmove
+  · intro h i hi
+    refine ⟨?_, ?_⟩
+    · intro _
+      exact masterM_reset_free _ _
+    · exact h i hi
+
 /-- Under the exact canonical-path safety property, the protected adapter
 performs the entire literal lookup behind any marked controller prefix, halts,
 and returns the correct signed literal value. -/
@@ -136,15 +160,31 @@ theorem suffixAdapter_masterM_reads_literal (B j : Nat) (hj : j ≤ B)
           evalLit (fun k => w.getD k false) l
   simpa only [literalLookupClock] using hmaster
 
+/-- Direct canonical cashout from the sole left-boundary invariant. -/
+theorem suffixAdapter_masterM_reads_literal_of_leftSafe
+    (B j : Nat) (hj : j ≤ B) (w : List Bool) (l : Lit)
+    (hleft : MasterLiteralLeftSafe w l) :
+    HaltsBy (suffixAdapter masterM)
+        (cntT B j ++ literalLookupTape w l)
+        (2 * B + 3 + literalLookupClock w l) ∧
+      decideOut (suffixAdapter masterM)
+        (cntT B j ++ literalLookupTape w l)
+        (2 * B + 3 + literalLookupClock w l) =
+          evalLit (fun k => w.getD k false) l :=
+  suffixAdapter_masterM_reads_literal B j hj w l
+    ((masterLiteralPrefixSafe_iff_leftSafe w l).2 hleft)
+
 /-- `masterM`'s reset obligation is already unconditional; canonical path
-safety consists only of the nonhalting-prefix, left-boundary, and write-range
-facts. -/
+safety consists only of the left-boundary fact on live steps. -/
 theorem masterLiteral_noReset (w : List Bool) (l : Lit) (i : Nat) :
-    (masterM.δ
-      (run masterM i (init masterM (literalLookupTape w l))).st
-      ((run masterM i (init masterM (literalLookupTape w l))).tp.getD
-        (run masterM i (init masterM (literalLookupTape w l))).hd false)).2.2 ≠ 3 :=
-  masterM_reset_free _ _
+    masterM.halt
+      (run masterM i (init masterM (literalLookupTape w l))).st = false →
+      (masterM.δ
+        (run masterM i (init masterM (literalLookupTape w l))).st
+        ((run masterM i (init masterM (literalLookupTape w l))).tp.getD
+          (run masterM i (init masterM (literalLookupTape w l))).hd false)).2.2 ≠ 3 := by
+  intro _
+  exact masterM_reset_free _ _
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixRun
 
@@ -152,5 +192,7 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixRun.suffixAdapter_run_body
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixRun.suffixAdapter_run_cntT_body
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixRun.suffixAdapter_run_cntT_tape
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixRun.masterLiteralPrefixSafe_iff_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixRun.suffixAdapter_masterM_reads_literal
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixRun.suffixAdapter_masterM_reads_literal_of_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixRun.masterLiteral_noReset

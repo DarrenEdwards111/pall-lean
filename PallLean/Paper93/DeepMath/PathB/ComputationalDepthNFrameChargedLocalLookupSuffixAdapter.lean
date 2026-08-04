@@ -165,13 +165,30 @@ theorem moveHead_add_of_no_reset (q h : Nat) (m : Move)
     moveHead (q + h) m = q + moveHead h m := by
   fin_cases m <;> simp_all [moveHead] <;> omega
 
-theorem suffixAdapter_step_body (M : Machine) (pre : List Bool)
+/-- `writeAt` commutes with shifting an arbitrary tape behind one cell. -/
+theorem writeAt_cons_succ (a : Bool) (t : List Bool) (p : Nat) (w : Bool) :
+    writeAt (a :: t) (p + 1) w = a :: writeAt t p w := by
+  unfold writeAt
+  simp only [List.length_cons]
+  rw [show p + 1 + 1 - (t.length + 1) = p + 1 - t.length by omega]
+  simp
+
+/-- `writeAt` commutes with shifting behind any protected prefix, including
+when the write extends the body tape with padding. -/
+theorem writeAt_append_shift (pre t : List Bool) (p : Nat) (w : Bool) :
+    writeAt (pre ++ t) (pre.length + p) w = pre ++ writeAt t p w := by
+  induction pre with
+  | nil => simp
+  | cons a pre ih =>
+      simp only [List.cons_append, List.length_cons]
+      rw [show pre.length + 1 + p = (pre.length + p) + 1 by omega,
+        writeAt_cons_succ, ih]
+
+private theorem suffixAdapter_step_body_running (M : Machine) (pre : List Bool)
     (c : Cfg M)
     (hhalt : M.halt c.st = false)
     (hreset : (M.δ c.st (c.tp.getD c.hd false)).2.2 ≠ 3)
-    (hleft : (M.δ c.st (c.tp.getD c.hd false)).2.2 = 0 → 0 < c.hd)
-    (hwrite : (M.δ c.st (c.tp.getD c.hd false)).2.1 ≠ none →
-      c.hd < c.tp.length) :
+    (hleft : (M.δ c.st (c.tp.getD c.hd false)).2.2 = 0 → 0 < c.hd) :
     step (suffixAdapter M) (embedSuffix M pre c) =
       embedSuffix M pre (step M c) := by
   have hread : (pre ++ c.tp).getD (pre.length + c.hd) false =
@@ -187,11 +204,25 @@ theorem suffixAdapter_step_body (M : Machine) (pre : List Bool)
   | none => simp
   | some w =>
       simp only
-      have hne : (M.δ c.st (c.tp.getD c.hd false)).2.1 ≠ none := by
-        rw [hw]
-        simp
-      rw [writeAt_append_right pre c.tp pre.length c.hd w rfl
-        (hwrite hne)]
+      rw [writeAt_append_shift]
+
+/-- One body step commutes with suffix embedding.  Halted configurations need
+no side conditions because both machines freeze.  On a live step, only a
+reset-free move and protection against crossing left through relative head
+zero are required; arbitrary writes commute with suffix shifting. -/
+theorem suffixAdapter_step_body (M : Machine) (pre : List Bool)
+    (c : Cfg M)
+    (hreset : M.halt c.st = false →
+      (M.δ c.st (c.tp.getD c.hd false)).2.2 ≠ 3)
+    (hleft : M.halt c.st = false →
+      (M.δ c.st (c.tp.getD c.hd false)).2.2 = 0 → 0 < c.hd) :
+    step (suffixAdapter M) (embedSuffix M pre c) =
+      embedSuffix M pre (step M c) := by
+  cases hh : M.halt c.st with
+  | false =>
+      exact suffixAdapter_step_body_running M pre c hh (hreset hh) (hleft hh)
+  | true =>
+      simp [step, suffixAdapter, embedSuffix, hh]
 
 /-! ## The concrete lookup body satisfies the reset discipline -/
 
@@ -278,5 +309,6 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixAdapter
 
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixAdapter.suffixAdapter_enter_cntT
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixAdapter.moveHead_add_of_no_reset
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixAdapter.writeAt_append_shift
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixAdapter.suffixAdapter_step_body
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixAdapter.masterM_reset_free
