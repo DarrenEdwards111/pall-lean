@@ -17,6 +17,7 @@ open PallLean.Paper93.DeepMath.PathB.ComposableMachine
 open PallLean.Paper93.DeepMath.PathB.CookLevinReduction
 open PallLean.Paper93.DeepMath.PathB.CookLevinShiftLoop
 open PallLean.Paper93.DeepMath.PathB.CookLevinEmitCounterIncr
+open PallLean.Paper93.DeepMath.PathB.CookLevinEmitSeq
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLiteralWeld
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupDynamicRoute
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupOutputCapacity
@@ -210,8 +211,86 @@ theorem scheduledRuntimeRelativeOutput_zeroCopyRebaseMachine
   · exact hr.1
   · rw [hr.2, hfuture, zeroCopyRebasePrefix_archive]
 
+/-- The actual cashout and executable rebase are one sequential finite-control
+machine.  Its final tape is already a canonical selector state for the
+remaining schedule; there is no semantic tape edit between the two phases. -/
+theorem scheduledRuntimeRelativeOutput_zeroCopyCombined
+    (x w : List Bool) {t : Nat}
+    (ht : t < (decodedLiterals x).length)
+    (htnext : t + 1 < (decodedLiterals x).length) :
+    let B := (decodedLiterals x).length
+    let schedule := literalTapeSchedule x w
+    let preBlocks := schedule.take t
+    let l := scheduledLiteral x t
+    let bits := literalLookupTape w l
+    let rest := schedule.drop (t + 1)
+    let pre := selectedPrefix (B - t) preBlocks
+    let out := (scheduledTruths x w).take t
+    let T := sourceSelectorInput B t schedule
+    let n := sourceRuntimeLookupClock (B - t) preBlocks w l
+    let M1 := acceptRouteMachine (runtimeRelativeOutputSourceMachine B)
+    let clock1 := runtimeRelativeOutputRouteClock B out T n
+    let R := 2 * B + 2 + pre.length + 2 * bits.length + 4
+    let P := R - (zeroCopyRebasePrefix rest.length).length
+    let M2 := zeroCopyRebaseMachine R rest.length
+    let clock2 := zeroCopyRebaseClock R rest.length
+    let M := seqMachine M1 M2
+    let cf := run M (clock1 + 1 + clock2)
+      (init M (outputCap B out ++ T))
+    M.halt cf.st = true ∧
+      cf.tp.drop P = sourceSelectorInput rest.length 0 rest := by
+  dsimp only
+  let B := (decodedLiterals x).length
+  let schedule := literalTapeSchedule x w
+  let preBlocks := schedule.take t
+  let l := scheduledLiteral x t
+  let bits := literalLookupTape w l
+  let rest := schedule.drop (t + 1)
+  let pre := selectedPrefix (B - t) preBlocks
+  let out := (scheduledTruths x w).take t
+  let T := sourceSelectorInput B t schedule
+  let n := sourceRuntimeLookupClock (B - t) preBlocks w l
+  let M1 := acceptRouteMachine (runtimeRelativeOutputSourceMachine B)
+  let clock1 := runtimeRelativeOutputRouteClock B out T n
+  let rcf := run M1 clock1 (init M1 (outputCap B out ++ T))
+  let R := 2 * B + 2 + pre.length + 2 * bits.length + 4
+  let P := R - (zeroCopyRebasePrefix rest.length).length
+  let rb := zeroCopyRebasePrefix rest.length
+  let M2 := zeroCopyRebaseMachine R rest.length
+  let clock2 := zeroCopyRebaseClock R rest.length
+  let S := stagedTape P rb rb.length rcf.tp
+  have hroute := scheduledRuntimeRelativeOutputSourceRoute x w ht
+  have hh1 : M1.halt rcf.st = true := by
+    simpa [B, schedule, preBlocks, l, out, T, n, M1, clock1, rcf] using
+      hroute.1
+  have hclock2 : clock2 = P + rb.length := by
+    dsimp [clock2, zeroCopyRebaseClock, P, rb]
+  have h2 : run M2 clock2 (init M2 rcf.tp) =
+      ⟨stageFinalState P rb, P + rb.length, S⟩ := by
+    simpa [M2, zeroCopyRebaseMachine, hclock2, P, rb, S] using
+      stageMachine_run P rb rcf.tp
+  have hh2 : M2.halt (stageFinalState P rb) = true := by
+    simpa [M2, zeroCopyRebaseMachine, P, rb] using
+      stageMachine_halt_final P rb
+  have hs := seq_run M1 M2 (outputCap B out ++ T) rcf.tp S
+    clock1 clock2 rcf.st rcf.hd (stageFinalState P rb) (P + rb.length)
+    rfl hh1 h2 hh2
+  have hscheduled :=
+    scheduledRuntimeRelativeOutput_zeroCopyRebaseMachine x w ht htnext
+  have htail : S.drop P = sourceSelectorInput rest.length 0 rest := by
+    have hr := hscheduled.2
+    rw [h2] at hr
+    simpa [B, schedule, preBlocks, l, bits, rest, pre, out, T, n,
+      M1, clock1, rcf, R, P, rb, M2, clock2, S] using hr
+  constructor
+  · rw [hs]
+    exact hh2
+  · rw [hs]
+    exact htail
+
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeZeroCopyRebaseMachine
 
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeZeroCopyRebaseMachine.stagedTape_zeroCopy_splice
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeZeroCopyRebaseMachine.zeroCopyRebaseMachine_run
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeZeroCopyRebaseMachine.scheduledRuntimeRelativeOutput_zeroCopyRebaseMachine
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeZeroCopyRebaseMachine.scheduledRuntimeRelativeOutput_zeroCopyCombined
