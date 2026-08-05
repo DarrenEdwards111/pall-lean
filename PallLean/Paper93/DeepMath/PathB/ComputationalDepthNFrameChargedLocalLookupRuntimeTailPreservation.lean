@@ -27,6 +27,12 @@ open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixRun
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceCompact
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceSelect
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceLookup
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRelativeOutput
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupDynamicRoute
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupOutputCapacity
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRepeatController
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeStage
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupScheduleBound
 
 theorem rsTape_length_of_le (x : List Bool) (q k : Nat)
     (h : q + 2 * k ≤ x.length) :
@@ -303,9 +309,109 @@ theorem sourceRuntimeLookup_trailer (d : Nat)
   rw [← List.drop_drop, List.drop_left]
   simpa [bits, trailer, mcf] using htail
 
+/-- After the complete physical cashout, dropping the fixed output footprint,
+the evolved selected prefix, the original literal footprint, the four-cell
+trailer, and its equal-length padding lands exactly on the untouched future
+archive.  No bulk copy is required for progression. -/
+theorem scheduledRuntimeRelativeOutput_futureArchive
+    (x w : List Bool) {t : Nat}
+    (ht : t < (decodedLiterals x).length) :
+    let B := (decodedLiterals x).length
+    let schedule := literalTapeSchedule x w
+    let preBlocks := schedule.take t
+    let l := scheduledLiteral x t
+    let bits := literalLookupTape w l
+    let rest := schedule.drop (t + 1)
+    let pre := selectedPrefix (B - t) preBlocks
+    let out := (scheduledTruths x w).take t
+    let T := sourceSelectorInput B t schedule
+    let n := sourceRuntimeLookupClock (B - t) preBlocks w l
+    let M := runtimeRelativeOutputSourceMachine B
+    let clock := runtimeRelativeOutputRouteClock B out T n
+    let rcf := run (acceptRouteMachine M) clock
+      (init (acceptRouteMachine M) (outputCap B out ++ T))
+    rcf.tp.drop (2 * B + 2 + pre.length +
+      2 * bits.length + 4) = selectedTail rest := by
+  dsimp only
+  let B := (decodedLiterals x).length
+  let schedule := literalTapeSchedule x w
+  let preBlocks := schedule.take t
+  let l := scheduledLiteral x t
+  let bits := literalLookupTape w l
+  let rest := schedule.drop (t + 1)
+  let pre := selectedPrefix (B - t) preBlocks
+  let out := (scheduledTruths x w).take t
+  let T := sourceSelectorInput B t schedule
+  let n := sourceRuntimeLookupClock (B - t) preBlocks w l
+  let cf := run sourceRuntimeLookupCore n (init sourceRuntimeLookupCore T)
+  have hshape : T =
+      flattenPairs (progressPairs (B - t) [] preBlocks (bits :: rest)) := by
+    have hget : schedule.getD t [] = bits := by
+      dsimp [schedule, bits, l]
+      exact literalTapeSchedule_getD x w ht
+    have hslen : schedule.length = B := by
+      simp [schedule, B, literalTapeSchedule]
+    have hts : t < schedule.length := by simpa [hslen] using ht
+    have hbit : schedule[t] = bits := by
+      rw [← hget, List.getD_eq_getElem schedule [] hts]
+    have hsplit : schedule = preBlocks ++ bits :: rest := by
+      dsimp [preBlocks, rest]
+      conv_lhs => rw [← List.take_append_drop t schedule]
+      rw [List.drop_eq_getElem_cons hts, hbit]
+    have hprelen : preBlocks.length = t := by
+      dsimp [preBlocks]
+      rw [List.length_take, Nat.min_eq_left hts.le]
+    dsimp [T]
+    rw [sourceSelectorInput, progressPairs, sourceArchive, hsplit]
+    simp [hprelen, List.append_assoc]
+  have hcore : cf.tp.drop (pre.length + bits.length) =
+      [true, false, false, true] ++ List.replicate bits.length true ++
+        selectedTail rest := by
+    dsimp [cf, n]
+    rw [hshape]
+    simpa [bits, pre] using sourceRuntimeLookup_trailer
+      (B - t) preBlocks w l rest
+  have hroute := scheduledRuntimeRelativeOutputSourceRoute x w ht
+  have houtlen : out.length ≤ B := by
+    have : out.length = t := by
+      dsimp [out]
+      rw [List.length_take, scheduledTruths_length,
+        Nat.min_eq_left (by simpa [B] using ht.le)]
+    omega
+  have hcap : (outputCap B
+      (out ++ [evalLit (fun k => w.getD k false) l])).length = 2 * B + 2 := by
+    apply outputCap_length
+    simp only [List.length_append, List.length_singleton]
+    have : out.length = t := by
+      dsimp [out]
+      rw [List.length_take, scheduledTruths_length,
+        Nat.min_eq_left (by simpa [B] using ht.le)]
+    omega
+  have htp : (run (acceptRouteMachine (runtimeRelativeOutputSourceMachine B))
+      (runtimeRelativeOutputRouteClock B out T n)
+      (init (acceptRouteMachine (runtimeRelativeOutputSourceMachine B))
+        (outputCap B out ++ T))).tp =
+      outputCap B
+        (out ++ [evalLit (fun k => w.getD k false) l]) ++ cf.tp := by
+    simpa [B, schedule, preBlocks, l, out, T, n, cf] using hroute.2
+  rw [htp]
+  rw [show 2 * B + 2 + pre.length + 2 * bits.length + 4 =
+      (2 * B + 2) + ((pre.length + bits.length) +
+        (4 + bits.length)) by omega]
+  rw [← List.drop_drop, ← hcap, List.drop_left]
+  rw [← List.drop_drop, hcore]
+  change List.drop (4 + bits.length)
+    ([true, false, false, true] ++ List.replicate bits.length true ++
+      selectedTail rest) = selectedTail rest
+  rw [show 4 + bits.length =
+      4 + (List.replicate bits.length true).length by simp]
+  rw [← List.drop_drop]
+  simp
+
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeTailPreservation
 
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeTailPreservation.rsTape_drop_of_le
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeTailPreservation.rounds_drop
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeTailPreservation.masterM_literal_trailer
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeTailPreservation.sourceRuntimeLookup_trailer
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeTailPreservation.scheduledRuntimeRelativeOutput_futureArchive
