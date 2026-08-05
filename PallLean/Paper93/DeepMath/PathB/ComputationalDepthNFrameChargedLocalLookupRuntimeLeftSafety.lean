@@ -11,7 +11,18 @@ phase, one-step handoff, right phase, early halt, and unused frozen slack.
 namespace PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeLeftSafety
 
 open PallLean.Paper93.DeepMath.PathB.ComposableMachine
+open PallLean.Paper93.DeepMath.PathB.CookLevinMaster
+open PallLean.Paper93.DeepMath.PathB.CookLevinRoundInvariant
+open PallLean.Paper93.DeepMath.PathB.CookLevinWholeRun
+open PallLean.Paper93.DeepMath.PathB.CookLevinInP
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupLeftBoundaryTerminal
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupLeftBoundaryWholeRun
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixAdapter
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixRun
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupScheduleBound
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRepeatController
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeStage
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLiteralWeld
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceSelect
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceCompact
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceLookup
@@ -668,6 +679,26 @@ theorem sourceCompact_run_leftSafe (pre bits tail : List Bool) :
   rw [hRounds]
   simpa [compactTape, List.append_assoc] using hsFinish
 
+/-- Prefix-shifting a prefix-safe execution preserves left safety.  A
+nonempty prefix makes every embedded head positive; an empty prefix reduces
+to the original left-safe execution. -/
+theorem leftSafeRun_shiftCfg (M : Machine) (pre : List Bool) (c : Cfg M)
+    (n : Nat) (hsafe : PrefixSafeRun M c n)
+    (hleft : LeftSafeRun M c n) :
+    LeftSafeRun M (shiftCfg M pre c) n := by
+  by_cases hp : pre = []
+  · subst pre
+    simpa [shiftCfg] using hleft
+  · have hplen : 0 < pre.length := by
+      cases pre with
+      | nil => simp at hp
+      | cons b bs => simp
+    intro i hi _ _
+    have hr := run_shiftCfg M pre c i (prefixSafeRun_mono hsafe (by omega))
+    rw [hr]
+    simp [shiftCfg]
+    omega
+
 theorem leftSafeRun_of_halted {M : Machine} {c : Cfg M} (n : Nat)
     (hh : M.halt c.st = true) : LeftSafeRun M c n := by
   intro i _ hlive _
@@ -843,6 +874,185 @@ theorem headSeq_leftSafe (M1 M2 : Machine) (T0 T1 : List Bool)
     hrun] at hp
   simpa [headCfgToAccept] using hp
 
+/-- The fixed selector-to-compactor composition is left-safe on every valid
+runtime archive shape. -/
+theorem sourceSelectCompact_leftSafe (d : Nat)
+    (preBlocks : List (List Bool)) (bits : List Bool)
+    (rest : List (List Bool)) :
+    LeftSafeRun sourceSelectCompactMachine
+      (init sourceSelectCompactMachine
+        (flattenPairs (progressPairs d [] preBlocks (bits :: rest))))
+      (sourceSelectCompactClock d preBlocks bits) := by
+  let pre := selectedPrefix d preBlocks
+  let tail := selectedTail rest
+  have hsel := sourceSelect_run d preBlocks bits rest
+  have hshape := selected_progress_shape d preBlocks bits rest
+  have hhead := selected_progress_head d preBlocks
+  have hsel' : run sourceSelectMachine (sourceSelectClock d preBlocks)
+      (init sourceSelectMachine
+        (flattenPairs (progressPairs d [] preBlocks (bits :: rest)))) =
+      ⟨SourceSelectState.done, pre.length + 2,
+        pre ++ [true, false] ++ encodeD bits ++ tail⟩ := by
+    rw [hshape, hhead] at hsel
+    simpa [pre, tail, List.append_assoc] using hsel
+  have hsSel := sourceSelect_leftSafe_any
+    (init sourceSelectMachine
+      (flattenPairs (progressPairs d [] preBlocks (bits :: rest))))
+    (sourceSelectClock d preBlocks)
+  have hsComp : LeftSafeRun sourceCompactMachine
+      ⟨sourceCompactMachine.start, pre.length + 2,
+        pre ++ [true, false] ++ encodeD bits ++ tail⟩
+      (sourceCompactClock bits) := by
+    simpa [sourceCompactMachine] using sourceCompact_run_leftSafe pre bits tail
+  have hhComp : sourceCompactMachine.halt
+      (run sourceCompactMachine (sourceCompactClock bits)
+        ⟨sourceCompactMachine.start, pre.length + 2,
+          pre ++ [true, false] ++ encodeD bits ++ tail⟩).st = true := by
+    simpa [sourceCompactMachine] using sourceCompact_halted pre bits tail
+  have hs := headSeq_leftSafe sourceSelectMachine sourceCompactMachine
+    (flattenPairs (progressPairs d [] preBlocks (bits :: rest)))
+    (pre ++ [true, false] ++ encodeD bits ++ tail)
+    (sourceSelectClock d preBlocks) (sourceCompactClock bits)
+    (pre.length + 2) SourceSelectState.done hsel' rfl hsSel hsComp hhComp
+  simpa [sourceSelectCompactMachine, sourceSelectCompactClock,
+    Nat.add_assoc] using hs
+
+/-- The complete fixed runtime lookup core is left-safe on every live
+scheduled archive.  This is the final local premise required by the
+reset-aware relative-prefix transport. -/
+theorem sourceRuntimeLookup_leftSafe_scheduled (x w : List Bool) {t : Nat}
+    (ht : t < (decodedLiterals x).length) :
+    let B := (decodedLiterals x).length
+    let schedule := literalTapeSchedule x w
+    let preBlocks := schedule.take t
+    let l := scheduledLiteral x t
+    LeftSafeRun sourceRuntimeLookupCore
+      (init sourceRuntimeLookupCore (sourceSelectorInput B t schedule))
+      (sourceRuntimeLookupClock (B - t) preBlocks w l) := by
+  dsimp only
+  let B := (decodedLiterals x).length
+  let schedule := literalTapeSchedule x w
+  let preBlocks := schedule.take t
+  let l := scheduledLiteral x t
+  let bits := literalLookupTape w l
+  let rest := schedule.drop (t + 1)
+  let pre := selectedPrefix (B - t) preBlocks
+  have hcompact := sourceSelectCompact_run (B - t) preBlocks bits rest
+  have hshape : sourceSelectorInput B t schedule =
+      flattenPairs (progressPairs (B - t) [] preBlocks (bits :: rest)) := by
+    have hget : schedule.getD t [] = bits := by
+      dsimp only [schedule, bits, l]
+      exact literalTapeSchedule_getD x w ht
+    have hslen : schedule.length = B := by
+      simp [schedule, B, literalTapeSchedule]
+    have hts : t < schedule.length := by simpa [hslen] using ht
+    have hbit : schedule[t] = bits := by
+      rw [← hget, List.getD_eq_getElem schedule [] hts]
+    have hsplit : schedule = preBlocks ++ bits :: rest := by
+      dsimp only [preBlocks, rest]
+      conv_lhs => rw [← List.take_append_drop t schedule]
+      rw [List.drop_eq_getElem_cons hts, hbit]
+    have hprelen : preBlocks.length = t := by
+      dsimp only [preBlocks]
+      rw [List.length_take, Nat.min_eq_left hts.le]
+    rw [sourceSelectorInput, progressPairs, sourceArchive, hsplit]
+    simp [hprelen, List.append_assoc]
+  let trailer := [true, false, false, true] ++
+    List.replicate bits.length true ++ selectedTail rest
+  have hcompact' : run sourceSelectCompactMachine
+      (sourceSelectCompactClock (B - t) preBlocks bits)
+      (init sourceSelectCompactMachine (sourceSelectorInput B t schedule)) =
+      ⟨Sum.inr SourceCompactState.done,
+        pre.length + bits.length + 3,
+        pre ++ bits ++ trailer⟩ := by
+    rw [hshape]
+    simpa [pre, trailer, List.append_assoc] using hcompact
+  have hscompact : LeftSafeRun sourceSelectCompactMachine
+      (init sourceSelectCompactMachine (sourceSelectorInput B t schedule))
+      (sourceSelectCompactClock (B - t) preBlocks bits) := by
+    rw [hshape]
+    exact sourceSelectCompact_leftSafe (B - t) preBlocks bits rest
+  have hrew := sourceRewind_literal pre w l
+    (List.replicate bits.length true ++ selectedTail rest)
+  have hrew' : run sourceRewindMachine (canonicalRewindClock w l)
+      ⟨sourceRewindMachine.start, pre.length + bits.length + 3,
+        pre ++ bits ++ trailer⟩ =
+      ⟨SourceRewindState.done, pre.length, pre ++ bits ++ trailer⟩ := by
+    simpa [bits, l, trailer, List.append_assoc] using hrew
+  have hsrew : LeftSafeRun sourceRewindMachine
+      ⟨sourceRewindMachine.start, pre.length + bits.length + 3,
+        pre ++ bits ++ trailer⟩ (canonicalRewindClock w l) := by
+    simpa [bits, l, trailer, canonicalRewindClock, rewindTape,
+      literalLookupTape_rewind_shape, List.append_assoc] using
+      sourceRewind_run_leftSafe pre (literalMiddlePairs w l)
+        (List.replicate bits.length true ++ selectedTail rest)
+        (literalMiddlePairs_noRend w l)
+  have hfirst := headSeq_run sourceSelectCompactMachine sourceRewindMachine
+    (sourceSelectorInput B t schedule)
+    (pre ++ bits ++ trailer) (pre ++ bits ++ trailer)
+    (sourceSelectCompactClock (B - t) preBlocks bits)
+    (canonicalRewindClock w l)
+    (pre.length + bits.length + 3) pre.length
+    (Sum.inr SourceCompactState.done) SourceRewindState.done
+    hcompact' rfl hrew' rfl
+  have hsfirst : LeftSafeRun sourceSelectCompactRewindMachine
+      (init sourceSelectCompactRewindMachine
+        (sourceSelectorInput B t schedule))
+      (sourceSelectCompactClock (B - t) preBlocks bits + 1 +
+        canonicalRewindClock w l) := by
+    exact headSeq_leftSafe sourceSelectCompactMachine sourceRewindMachine
+      (sourceSelectorInput B t schedule) (pre ++ bits ++ trailer)
+      (sourceSelectCompactClock (B - t) preBlocks bits)
+      (canonicalRewindClock w l)
+      (pre.length + bits.length + 3) (Sum.inr SourceCompactState.done)
+      hcompact' rfl hscompact hsrew (by rw [hrew']; rfl)
+  let mcf := run masterM (literalLookupClock w l)
+    (init masterM (bits ++ trailer))
+  have hmaster : run masterM (literalLookupClock w l)
+      ⟨masterM.start, pre.length, pre ++ bits ++ trailer⟩ =
+      shiftCfg masterM pre mcf := by
+    simpa [bits, mcf, List.append_assoc] using
+      masterM_run_shifted pre w l trailer
+  let A := signedLookupAssignment w l.1 l.2
+  have hv : l.1 ≤ A.length := by
+    dsimp only [A]
+    rw [signedLookupAssignment_length]
+    omega
+  have hinv : RoundInv (bits ++ trailer) l.1 A.length := by
+    dsimp only [bits, A]
+    exact literalLookupTape_append_roundInv w l trailer
+  have happ := readAv_promise (bits ++ trailer) l.1 A.length hv hinv
+  have hmhalt : masterM.halt mcf.st = true := by
+    simpa [mcf, literalLookupClock, A, bits] using happ.1
+  have hmasterLeft : LeftSafeRun masterM
+      (init masterM (bits ++ trailer)) (literalLookupClock w l) := by
+    have hs := fullRun_leftSafe (bits ++ trailer) l.1 A.length hv hinv
+    simpa [literalLookupClock, A, bits, master_forced_init] using hs
+  have hmasterPrefix : PrefixSafeRun masterM
+      (init masterM (bits ++ trailer)) (literalLookupClock w l) := by
+    intro i hi
+    exact ⟨fun _ => masterM_reset_free _ _, hmasterLeft i hi⟩
+  have hmasterShift : LeftSafeRun masterM
+      ⟨masterM.start, pre.length, pre ++ bits ++ trailer⟩
+      (literalLookupClock w l) := by
+    simpa [shiftCfg] using leftSafeRun_shiftCfg masterM pre
+      (init masterM (bits ++ trailer)) (literalLookupClock w l)
+      hmasterPrefix hmasterLeft
+  have hmasterHalt : masterM.halt
+      (run masterM (literalLookupClock w l)
+        ⟨masterM.start, pre.length, pre ++ bits ++ trailer⟩).st = true := by
+    rw [hmaster]
+    simpa [shiftCfg] using hmhalt
+  have hsall := headSeqAccept_leftSafe
+    sourceSelectCompactRewindMachine masterM
+    (sourceSelectorInput B t schedule) (pre ++ bits ++ trailer)
+    (sourceSelectCompactClock (B - t) preBlocks bits + 1 +
+      canonicalRewindClock w l)
+    (literalLookupClock w l) pre.length (Sum.inr SourceRewindState.done)
+    hfirst rfl hsfirst hmasterShift hmasterHalt
+  simpa [sourceRuntimeLookupCore, sourceRuntimeLookupClock, bits,
+    Nat.add_assoc] using hsall
+
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeLeftSafety
 
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeLeftSafety.headSeqAccept_leftSafe
@@ -850,3 +1060,4 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeLeftSafety
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeLeftSafety.sourceSelect_leftSafe_any
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeLeftSafety.sourceRewind_run_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeLeftSafety.sourceCompact_run_leftSafe
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeLeftSafety.sourceRuntimeLookup_leftSafe_scheduled
