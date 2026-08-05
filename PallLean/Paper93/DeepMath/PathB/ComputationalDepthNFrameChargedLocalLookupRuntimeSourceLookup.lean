@@ -25,6 +25,7 @@ open PallLean.Paper93.DeepMath.PathB.CookLevinMaster
 open PallLean.Paper93.DeepMath.PathB.CookLevinRoundInvariant
 open PallLean.Paper93.DeepMath.PathB.CookLevinWholeRun
 open PallLean.Paper93.DeepMath.PathB.CookLevinInP
+open PallLean.Paper93.DeepMath.PathB.CookLevinEmitAppendBlock
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLiteralWeld
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixAdapter
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixRun
@@ -35,6 +36,7 @@ open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRepeatController
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeStage
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceSelect
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceCompact
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupDynamicRoute
 
 /-! ## Fixed canonical rewind -/
 
@@ -443,14 +445,128 @@ theorem masterM_run_shifted (pre w : List Bool) (l : Lit)
 def sourceSelectCompactRewindMachine : Machine :=
   headSeqMachine sourceSelectCompactMachine sourceRewindMachine
 
+/-- Head-preserving sequential composition whose final observational bit is
+the second machine's actual accept bit. -/
+def headSeqAcceptMachine (M1 M2 : Machine) : Machine where
+  State := M1.State ⊕ M2.State
+  fin := letI := M1.fin; letI := M2.fin; inferInstance
+  dec := letI := M1.dec; letI := M2.dec; inferInstance
+  start := Sum.inl M1.start
+  halt := fun s => match s with
+    | .inl _ => false
+    | .inr s2 => M2.halt s2
+  δ := fun s b => match s with
+    | .inl s1 =>
+        if M1.halt s1 then (Sum.inr M2.start, none, 2)
+        else (Sum.inl (M1.δ s1 b).1, (M1.δ s1 b).2.1,
+          (M1.δ s1 b).2.2)
+    | .inr s2 =>
+        (Sum.inr (M2.δ s2 b).1, (M2.δ s2 b).2.1,
+          (M2.δ s2 b).2.2)
+  accept := fun s => match s with
+    | .inl _ => false
+    | .inr s2 => M2.accept s2
+
+def headAcceptInlCfg (M1 M2 : Machine) (c : Cfg M1) :
+    Cfg (headSeqAcceptMachine M1 M2) :=
+  ⟨Sum.inl c.st, c.hd, c.tp⟩
+
+def headAcceptInrCfg (M1 M2 : Machine) (c : Cfg M2) :
+    Cfg (headSeqAcceptMachine M1 M2) :=
+  ⟨Sum.inr c.st, c.hd, c.tp⟩
+
+theorem headSeqAccept_step_inl (M1 M2 : Machine) (c : Cfg M1)
+    (h : M1.halt c.st = false) :
+    step (headSeqAcceptMachine M1 M2) (headAcceptInlCfg M1 M2 c) =
+      headAcceptInlCfg M1 M2 (step M1 c) := by
+  simp [step, headSeqAcceptMachine, headAcceptInlCfg, h]
+
+theorem headSeqAccept_step_handoff (M1 M2 : Machine) (c : Cfg M1)
+    (h : M1.halt c.st = true) :
+    step (headSeqAcceptMachine M1 M2) (headAcceptInlCfg M1 M2 c) =
+      headAcceptInrCfg M1 M2 ⟨M2.start, c.hd, c.tp⟩ := by
+  simp [step, headSeqAcceptMachine, headAcceptInlCfg, headAcceptInrCfg,
+    h, moveHead]
+
+theorem headSeqAccept_step_inr (M1 M2 : Machine) (c : Cfg M2) :
+    step (headSeqAcceptMachine M1 M2) (headAcceptInrCfg M1 M2 c) =
+      headAcceptInrCfg M1 M2 (step M2 c) := by
+  by_cases h : M2.halt c.st = true
+  · rw [step_of_halted M2 h]
+    apply step_of_halted
+    simpa [headSeqAcceptMachine, headAcceptInrCfg] using h
+  · have h' : M2.halt c.st = false := by simpa using h
+    simp [step, headSeqAcceptMachine, headAcceptInrCfg, h']
+
+theorem headSeqAccept_run_inl (M1 M2 : Machine) (c : Cfg M1) (t : Nat)
+    (h : ∀ s < t, M1.halt (run M1 s c).st = false) :
+    run (headSeqAcceptMachine M1 M2) t (headAcceptInlCfg M1 M2 c) =
+      headAcceptInlCfg M1 M2 (run M1 t c) := by
+  induction t with
+  | zero => rfl
+  | succ t ih =>
+      rw [run_succ, ih (fun s hs => h s (by omega)),
+        headSeqAccept_step_inl M1 M2 _ (h t (by omega)), ← run_succ]
+
+theorem headSeqAccept_run_inr (M1 M2 : Machine) (c : Cfg M2) (t : Nat) :
+    run (headSeqAcceptMachine M1 M2) t (headAcceptInrCfg M1 M2 c) =
+      headAcceptInrCfg M1 M2 (run M2 t c) := by
+  induction t with
+  | zero => rfl
+  | succ t ih =>
+      rw [run_succ, ih, headSeqAccept_step_inr, ← run_succ]
+
+/-- Exact head-preserving composition, with `M2.accept` exposed and the same
+least-halt slack absorption as `headSeq_run`. -/
+theorem headSeqAccept_run (M1 M2 : Machine) (T0 T1 T2 : List Bool)
+    (t1 t2 p1 p2 : Nat) (s1 : M1.State) (s2 : M2.State)
+    (h1 : run M1 t1 (init M1 T0) = ⟨s1, p1, T1⟩)
+    (hh1 : M1.halt s1 = true)
+    (h2 : run M2 t2 ⟨M2.start, p1, T1⟩ = ⟨s2, p2, T2⟩)
+    (hh2 : M2.halt s2 = true) :
+    run (headSeqAcceptMachine M1 M2) (t1 + 1 + t2)
+        (init (headSeqAcceptMachine M1 M2) T0) =
+      ⟨Sum.inr s2, p2, T2⟩ := by
+  have hex : ∃ t, M1.halt (run M1 t (init M1 T0)).st = true :=
+    ⟨t1, by rw [h1]; exact hh1⟩
+  let tm := Nat.find hex
+  have htm : M1.halt (run M1 tm (init M1 T0)).st = true :=
+    Nat.find_spec hex
+  have htmle : tm ≤ t1 := Nat.find_le (by rw [h1]; exact hh1)
+  have hfrozen : run M1 tm (init M1 T0) = ⟨s1, p1, T1⟩ := by
+    rw [← run_stable M1 T0 htmle htm, h1]
+  have hno : ∀ s < tm, M1.halt (run M1 s (init M1 T0)).st = false := by
+    intro s hs
+    simpa using Nat.find_min hex hs
+  have hleft := headSeqAccept_run_inl M1 M2 (init M1 T0) tm hno
+  rw [hfrozen] at hleft
+  have hright := headSeqAccept_run_inr M1 M2
+    (⟨M2.start, p1, T1⟩ : Cfg M2) t2
+  rw [h2] at hright
+  have hhalt : (headSeqAcceptMachine M1 M2).halt (Sum.inr s2) = true := by
+    simpa [headSeqAcceptMachine] using hh2
+  rw [show t1 + 1 + t2 = tm + (1 + (t2 + (t1 - tm))) by omega,
+    run_add]
+  change run (headSeqAcceptMachine M1 M2) tm
+      (headAcceptInlCfg M1 M2 (init M1 T0)) = _ at hleft
+  rw [show init (headSeqAcceptMachine M1 M2) T0 =
+      headAcceptInlCfg M1 M2 (init M1 T0) from rfl]
+  rw [hleft, run_add]
+  have hswitch := headSeqAccept_step_handoff M1 M2
+    (⟨s1, p1, T1⟩ : Cfg M1) hh1
+  rw [show run (headSeqAcceptMachine M1 M2) 1
+      (headAcceptInlCfg M1 M2 (⟨s1, p1, T1⟩ : Cfg M1)) =
+      headAcceptInrCfg M1 M2 ⟨M2.start, p1, T1⟩ by
+        rw [run_succ, run_zero]; exact hswitch,
+    run_add, hright]
+  exact run_of_halted (headSeqAcceptMachine M1 M2) hhalt _
+
 def sourceRuntimeLookupCore : Machine :=
-  headSeqMachine sourceSelectCompactRewindMachine masterM
+  headSeqAcceptMachine sourceSelectCompactRewindMachine masterM
 
 /-- Read the nested final `masterM` state of the fixed sequential core. -/
 def sourceRuntimeLookupAccept (s : sourceRuntimeLookupCore.State) : Bool :=
-  match s with
-  | .inl _ => false
-  | .inr sm => masterM.accept sm
+  sourceRuntimeLookupCore.accept s
 
 def sourceRuntimeLookupClock (d : Nat) (preBlocks : List (List Bool))
     (w : List Bool) (l : Lit) : Nat :=
@@ -568,7 +684,7 @@ theorem sourceRuntimeLookup_scheduled (x w : List Bool) {t : Nat}
     rw [List.getD_append bits trailer false
       (2 * l.1 + 4 + 2 * l.1) hidx, hvalue] at ha
     simpa [decideOut, mcf, literalLookupClock, A, bits] using ha
-  have hsecond := headSeq_run sourceSelectCompactRewindMachine masterM
+  have hsecond := headSeqAccept_run sourceSelectCompactRewindMachine masterM
     (sourceSelectorInput B t schedule)
     (pre ++ bits ++ trailer) (pre ++ mcf.tp)
     (sourceSelectCompactClock (B - t) preBlocks bits + 1 +
@@ -590,8 +706,97 @@ theorem sourceRuntimeLookup_scheduled (x w : List Bool) {t : Nat}
   · change (pre ++ mcf.tp).take pre.length = pre
     simp
 
+/-- Route-ready formulation: the fixed core's actual `Machine.accept` field,
+not an external decoder, is the scheduled truth value. -/
+theorem sourceRuntimeLookup_accept_scheduled (x w : List Bool) {t : Nat}
+    (ht : t < (decodedLiterals x).length) :
+    let B := (decodedLiterals x).length
+    let schedule := literalTapeSchedule x w
+    let preBlocks := schedule.take t
+    let l := scheduledLiteral x t
+    let pre := selectedPrefix (B - t) preBlocks
+    let cf := run sourceRuntimeLookupCore
+      (sourceRuntimeLookupClock (B - t) preBlocks w l)
+      (init sourceRuntimeLookupCore (sourceSelectorInput B t schedule))
+    sourceRuntimeLookupCore.halt cf.st = true ∧
+      sourceRuntimeLookupCore.accept cf.st =
+        evalLit (fun k => w.getD k false) l ∧
+      cf.tp.take pre.length = pre := by
+  simpa only [sourceRuntimeLookupAccept] using
+    sourceRuntimeLookup_scheduled x w ht
+
+/-- On a false scheduled value, the existing dynamic router reads the fixed
+core's real accept field and enters its verified false append branch. -/
+theorem sourceRuntimeLookup_route_step_false (x w : List Bool) {t : Nat}
+    (ht : t < (decodedLiterals x).length)
+    (hb : evalLit (fun k => w.getD k false) (scheduledLiteral x t) = false) :
+    let B := (decodedLiterals x).length
+    let schedule := literalTapeSchedule x w
+    let preBlocks := schedule.take t
+    let l := scheduledLiteral x t
+    let cf := run sourceRuntimeLookupCore
+      (sourceRuntimeLookupClock (B - t) preBlocks w l)
+      (init sourceRuntimeLookupCore (sourceSelectorInput B t schedule))
+    step (acceptRouteMachine sourceRuntimeLookupCore)
+        (embedAcceptBody sourceRuntimeLookupCore cf) =
+      embedFalseRouter sourceRuntimeLookupCore
+        (init (appendMachine [false]) cf.tp) := by
+  dsimp only
+  let B := (decodedLiterals x).length
+  let schedule := literalTapeSchedule x w
+  let preBlocks := schedule.take t
+  let l := scheduledLiteral x t
+  let cf := run sourceRuntimeLookupCore
+    (sourceRuntimeLookupClock (B - t) preBlocks w l)
+    (init sourceRuntimeLookupCore (sourceSelectorInput B t schedule))
+  have hs := sourceRuntimeLookup_accept_scheduled x w ht
+  have hh : sourceRuntimeLookupCore.halt cf.st = true := by
+    simpa [B, schedule, preBlocks, l, cf] using hs.1
+  have ha : sourceRuntimeLookupCore.accept cf.st = false := by
+    rw [show sourceRuntimeLookupCore.accept cf.st =
+        evalLit (fun k => w.getD k false) l by
+      simpa [B, schedule, preBlocks, l, cf] using hs.2.1]
+    exact hb
+  exact acceptRoute_step_false sourceRuntimeLookupCore cf hh ha
+
+/-- The true scheduled value selects the verified true append branch. -/
+theorem sourceRuntimeLookup_route_step_true (x w : List Bool) {t : Nat}
+    (ht : t < (decodedLiterals x).length)
+    (hb : evalLit (fun k => w.getD k false) (scheduledLiteral x t) = true) :
+    let B := (decodedLiterals x).length
+    let schedule := literalTapeSchedule x w
+    let preBlocks := schedule.take t
+    let l := scheduledLiteral x t
+    let cf := run sourceRuntimeLookupCore
+      (sourceRuntimeLookupClock (B - t) preBlocks w l)
+      (init sourceRuntimeLookupCore (sourceSelectorInput B t schedule))
+    step (acceptRouteMachine sourceRuntimeLookupCore)
+        (embedAcceptBody sourceRuntimeLookupCore cf) =
+      embedTrueRouter sourceRuntimeLookupCore
+        (init (appendMachine [true]) cf.tp) := by
+  dsimp only
+  let B := (decodedLiterals x).length
+  let schedule := literalTapeSchedule x w
+  let preBlocks := schedule.take t
+  let l := scheduledLiteral x t
+  let cf := run sourceRuntimeLookupCore
+    (sourceRuntimeLookupClock (B - t) preBlocks w l)
+    (init sourceRuntimeLookupCore (sourceSelectorInput B t schedule))
+  have hs := sourceRuntimeLookup_accept_scheduled x w ht
+  have hh : sourceRuntimeLookupCore.halt cf.st = true := by
+    simpa [B, schedule, preBlocks, l, cf] using hs.1
+  have ha : sourceRuntimeLookupCore.accept cf.st = true := by
+    rw [show sourceRuntimeLookupCore.accept cf.st =
+        evalLit (fun k => w.getD k false) l by
+      simpa [B, schedule, preBlocks, l, cf] using hs.2.1]
+    exact hb
+  exact acceptRoute_step_true sourceRuntimeLookupCore cf hh ha
+
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceLookup
 
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceLookup.sourceRewind_literal
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceLookup.masterM_run_shifted
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceLookup.sourceRuntimeLookup_scheduled
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceLookup.sourceRuntimeLookup_accept_scheduled
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceLookup.sourceRuntimeLookup_route_step_false
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceLookup.sourceRuntimeLookup_route_step_true
