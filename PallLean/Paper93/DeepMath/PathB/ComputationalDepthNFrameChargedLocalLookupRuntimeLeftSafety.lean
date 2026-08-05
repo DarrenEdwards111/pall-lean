@@ -27,6 +27,167 @@ theorem sourceSelect_leftSafe_any (c : Cfg sourceSelectMachine) (n : Nat) :
   intro i _ _ hmove
   exact absurd hmove (sourceSelect_no_left _ _)
 
+open SourceRewindState
+
+theorem sourceRewind_boot_leftSafe (pre : List Bool)
+    (mid : List (Bool × Bool)) (tail : List Bool) :
+    LeftSafeRun sourceRewindMachine
+      ⟨back0, pre.length + (rewindRaw mid).length + 3,
+        rewindTape pre mid ([true, false, false, true] ++ tail)⟩ 4 := by
+  intro i hi _ _
+  interval_cases i <;>
+    simp [run_succ, step, sourceRewindMachine, moveHead, rewindRaw]
+
+theorem sourceRewind_pair_leftSafe (P : List Bool) (lo hi : Bool)
+    (R : List Bool) (seen : Bool) (hP : 0 < P.length) :
+    LeftSafeRun sourceRewindMachine
+      ⟨scanHi seen, (P ++ [lo, hi]).length - 1,
+        P ++ [lo, hi] ++ R⟩ 2 := by
+  let T := P ++ [lo, hi] ++ R
+  have hhi : T.getD (P.length + 1) false = hi := by
+    simp [T, List.getD_eq_getElem?_getD]
+  have hstep : run sourceRewindMachine 1
+      ⟨scanHi seen, (P ++ [lo, hi]).length - 1, T⟩ =
+      ⟨scanLo seen hi, P.length, T⟩ := by
+    rw [run_succ, run_zero]
+    rw [show (P ++ [lo, hi]).length - 1 = P.length + 1 by simp]
+    rw [List.getD_eq_getElem?_getD] at hhi
+    simp [step, sourceRewindMachine, moveHead, hhi]
+  intro i hiN _ _
+  have hiCases : i = 0 ∨ i = 1 := by omega
+  rcases hiCases with rfl | rfl
+  · simpa [T] using (show 0 < (P ++ [lo, hi]).length - 1 by simp)
+  · rw [hstep]
+    exact hP
+
+theorem sourceRewind_take_end_leftSafe (P R : List Bool)
+    (hP : 0 < P.length) :
+    LeftSafeRun sourceRewindMachine
+      ⟨scanHi false, (P ++ [true, false]).length - 1,
+        P ++ [true, false] ++ R⟩ 2 :=
+  sourceRewind_pair_leftSafe P true false R false hP
+
+theorem sourceRewind_finish_leftSafe (pre R : List Bool) :
+    LeftSafeRun sourceRewindMachine
+      ⟨scanHi true, (pre ++ [true, false]).length - 1,
+        pre ++ [true, false] ++ R⟩ 2 := by
+  let T := pre ++ [true, false] ++ R
+  have hhi : T.getD (pre.length + 1) false = false := by
+    simp [T, List.getD_eq_getElem?_getD]
+  have hlo : T.getD pre.length false = true := by
+    simp [T, List.getD_eq_getElem?_getD]
+  have hstep : run sourceRewindMachine 1
+      ⟨scanHi true, (pre ++ [true, false]).length - 1, T⟩ =
+      ⟨scanLo true false, pre.length, T⟩ := by
+    rw [run_succ, run_zero]
+    rw [show (pre ++ [true, false]).length - 1 = pre.length + 1 by simp]
+    rw [List.getD_eq_getElem?_getD] at hhi
+    simp [step, sourceRewindMachine, moveHead, hhi]
+  intro i hiN _ hmove
+  have hiCases : i = 0 ∨ i = 1 := by omega
+  rcases hiCases with rfl | rfl
+  · simp
+  · rw [hstep] at hmove ⊢
+    rw [List.getD_eq_getElem?_getD] at hlo
+    simp [sourceRewindMachine, hlo] at hmove
+
+theorem sourceRewind_pairs_leftSafe : ∀ (pre : List Bool)
+    (revps : List (Bool × Bool)) (tail : List Bool),
+    NoRendPair revps →
+    LeftSafeRun sourceRewindMachine
+      ⟨scanHi true,
+        (pre ++ [true, false] ++ flattenPairs revps.reverse).length - 1,
+        pre ++ [true, false] ++ flattenPairs revps.reverse ++ tail⟩
+      (sourceRewindPairsClock revps)
+  | pre, [], tail, _ => by simp [sourceRewindPairsClock, LeftSafeRun]
+  | pre, (lo, hi) :: revps, tail, hvalid => by
+      have hp : ¬(lo && !hi) := hvalid (lo, hi) (by simp)
+      have hps : NoRendPair revps := by
+        intro p hp'
+        exact hvalid p (by simp [hp'])
+      rw [sourceRewindPairsClock, List.length_cons]
+      rw [show 2 * (revps.length + 1) =
+        2 + sourceRewindPairsClock revps by
+          simp [sourceRewindPairsClock]; omega]
+      let P := pre ++ [true, false] ++ flattenPairs revps.reverse
+      have hsPair : LeftSafeRun sourceRewindMachine
+          ⟨scanHi true, (P ++ [lo, hi]).length - 1,
+            P ++ [lo, hi] ++ tail⟩ 2 :=
+        sourceRewind_pair_leftSafe P lo hi tail true (by simp [P])
+      have hpRun := sourceRewind_pair P lo hi tail true hp
+      have hsRest := sourceRewind_pairs_leftSafe pre revps
+        (lo :: hi :: tail) hps
+      have hshape : flattenPairs ((lo, hi) :: revps).reverse =
+          flattenPairs revps.reverse ++ [lo, hi] := by
+        simp [flattenPairs_append, flattenPairs]
+      rw [hshape]
+      have hsPair' : LeftSafeRun sourceRewindMachine
+          ⟨scanHi true,
+            (pre ++ [true, false] ++
+              (flattenPairs revps.reverse ++ [lo, hi])).length - 1,
+            pre ++ [true, false] ++
+              (flattenPairs revps.reverse ++ [lo, hi]) ++ tail⟩ 2 := by
+        simpa [P, List.append_assoc] using hsPair
+      have hpRun' : run sourceRewindMachine 2
+          ⟨scanHi true,
+            (pre ++ [true, false] ++
+              (flattenPairs revps.reverse ++ [lo, hi])).length - 1,
+            pre ++ [true, false] ++
+              (flattenPairs revps.reverse ++ [lo, hi]) ++ tail⟩ =
+          ⟨scanHi true, P.length - 1, P ++ [lo, hi] ++ tail⟩ := by
+        simpa [P, List.append_assoc] using hpRun
+      apply leftSafeRun_add hsPair'
+      rw [hpRun']
+      simpa [P, List.append_assoc] using hsRest
+
+/-- The complete canonical rewind never crosses its own tape origin, even
+when the protected archive prefix is empty. -/
+theorem sourceRewind_run_leftSafe (pre : List Bool)
+    (mid : List (Bool × Bool)) (tail : List Bool) (hmid : NoRendPair mid) :
+    LeftSafeRun sourceRewindMachine
+      ⟨back0, pre.length + (rewindRaw mid).length + 3,
+        rewindTape pre mid ([true, false, false, true] ++ tail)⟩
+      (sourceRewindClock mid) := by
+  have hsBoot := sourceRewind_boot_leftSafe pre mid tail
+  have hb := sourceRewind_boot pre mid tail
+  let P := pre ++ [true, false] ++ flattenPairs mid
+  let R := [true, false, false, true] ++ tail
+  have hsEnd := sourceRewind_take_end_leftSafe P R (by simp [P])
+  have he := sourceRewind_take_end P R
+  have hsPairs := sourceRewind_pairs_leftSafe pre mid.reverse
+    ([true, false] ++ R) (by
+      intro p hp
+      exact hmid p (by simpa using hp))
+  have hpairs := sourceRewind_pairs pre mid.reverse
+    ([true, false] ++ R) (by
+      intro p hp
+      exact hmid p (by simpa using hp))
+  have hsFinish := sourceRewind_finish_leftSafe pre
+    (flattenPairs mid ++ [true, false] ++ R)
+  rw [sourceRewindClock, show 8 + 2 * mid.length =
+    4 + (2 + (2 * mid.length + 2)) by omega]
+  apply leftSafeRun_add hsBoot
+  rw [hb]
+  apply leftSafeRun_add (by simpa [P, R, rewindTape, rewindRaw,
+    List.append_assoc] using hsEnd)
+  rw [show run sourceRewindMachine 2
+      ⟨scanHi false, pre.length + (rewindRaw mid).length - 1,
+        rewindTape pre mid ([true, false, false, true] ++ tail)⟩ =
+      ⟨scanHi true, P.length - 1, P ++ [true, false] ++ R⟩ by
+        simpa [P, R, rewindTape, rewindRaw, List.append_assoc] using he]
+  have hsPairs' : LeftSafeRun sourceRewindMachine
+      ⟨scanHi true, P.length - 1, P ++ [true, false] ++ R⟩
+      (2 * mid.length) := by
+    convert hsPairs using 1 <;>
+      simp [P, R, sourceRewindPairsClock, List.append_assoc] <;> omega
+  apply leftSafeRun_add hsPairs'
+  rw [show run sourceRewindMachine (2 * mid.length)
+      ⟨scanHi true, P.length - 1, P ++ [true, false] ++ R⟩ =
+      ⟨scanHi true, (pre ++ [true, false]).length - 1,
+        pre ++ [true, false] ++ flattenPairs mid ++ [true, false] ++ R⟩ by
+        simpa [sourceRewindPairsClock, P, List.append_assoc] using hpairs]
+  simpa [R, List.append_assoc] using hsFinish
+
 theorem leftSafeRun_of_halted {M : Machine} {c : Cfg M} (n : Nat)
     (hh : M.halt c.st = true) : LeftSafeRun M c n := by
   intro i _ hlive _
@@ -207,3 +368,4 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeLeftSafety
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeLeftSafety.headSeqAccept_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeLeftSafety.headSeq_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeLeftSafety.sourceSelect_leftSafe_any
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeLeftSafety.sourceRewind_run_leftSafe
