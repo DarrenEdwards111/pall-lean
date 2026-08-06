@@ -950,4 +950,154 @@ theorem runtimeUnaryRebase_run_restoreArchive
   rw [hr']
   exact he
 
+/-! ## Whole marked-prefix reverse traversal -/
+
+theorem markedArchive_append_last (init : List (List Bool))
+    (bits : List Bool) (hne : init ≠ []) :
+    markedArchive (init ++ [bits]) =
+      markedArchive init ++ markedSourceBlock false bits := by
+  obtain ⟨first, more, rfl⟩ := List.exists_cons_of_ne_nil hne
+  simp [markedArchive, List.flatMap_append, List.append_assoc]
+
+theorem encodeD_eq_core_term (bits : List Bool) :
+    ∃ core, encodeD bits = core ++ [false, true] := by
+  induction bits with
+  | nil => exact ⟨[], rfl⟩
+  | cons bit bits ih =>
+      obtain ⟨core, hcore⟩ := ih
+      refine ⟨[bit, bit] ++ core, ?_⟩
+      simp [encodeD, hcore, List.append_assoc]
+
+theorem markedArchive_eq_core_term (rest : List (List Bool))
+    (hne : rest ≠ []) :
+    ∃ core, markedArchive rest = core ++ [false, true] := by
+  induction rest using List.reverseRecOn with
+  | nil => exact absurd rfl hne
+  | @append_singleton init bits ih =>
+      by_cases hinit : init = []
+      · subst init
+        obtain ⟨core, hcore⟩ := encodeD_eq_core_term bits
+        refine ⟨[false, false] ++ core, ?_⟩
+        simp [markedArchive, markedSourceBlock, hcore, List.append_assoc]
+      · obtain ⟨core, hcore⟩ := encodeD_eq_core_term bits
+        refine ⟨markedArchive init ++ [true, true] ++ core, ?_⟩
+        rw [markedArchive_append_last init bits hinit]
+        simp [markedSourceBlock, hcore, List.append_assoc]
+
+set_option maxHeartbeats 800000 in
+/-- Reverse all marked block bodies from the last data/header pair back to
+the seed boundary.  The theorem is existential in the clock because only
+the operational composition—not a closed arithmetic normal form—is needed
+by the outer round controller. -/
+theorem runtimeUnaryRebase_run_reverseMarkedBodies
+    (pre tail : List Bool) (rest : List (List Bool)) (last : Bool)
+    (hne : rest ≠ []) (hpre : 4 ≤ pre.length) :
+    let T := pre ++ [false, true] ++ markedArchive rest ++ tail
+    ∃ n, run runtimeUnaryRebaseMachine n
+        ⟨revHi last,
+          pre.length + 2 + (markedArchive rest).length - 3, T⟩ =
+      ⟨tallyHi last, pre.length - 1, T⟩ := by
+  dsimp only
+  induction rest using List.reverseRecOn generalizing tail with
+  | nil => exact absurd rfl hne
+  | @append_singleton init bits ih =>
+      by_cases hinit : init = []
+      · subst init
+        let T := pre ++ [false, true] ++ markedSourceBlock true bits ++ tail
+        have hp := runtimeUnaryRebase_run_revPairs T
+          (pre.length + 2) (bits.length + 1) last (by omega) (by
+            intro i hi
+            have H := markedRegion_pair_eq
+              (pre ++ [false, true]) bits tail true i hi
+            simpa [T, List.append_assoc, Nat.add_assoc,
+              Nat.add_comm, Nat.add_left_comm] using H)
+        have hp' : run runtimeUnaryRebaseMachine (2 * (bits.length + 1))
+            ⟨revHi last,
+              pre.length + 2 + (markedSourceBlock true bits).length - 3, T⟩ =
+            ⟨revHi last, pre.length + 1, T⟩ := by
+          simpa [markedSourceBlock_length, Nat.add_assoc,
+            Nat.add_comm, Nat.add_left_comm] using hp
+        have hb := runtimeUnaryRebase_run_boundaryOrigin pre
+          (encodeD bits ++ tail) last hpre
+        have hb' : run runtimeUnaryRebaseMachine 8
+            ⟨revHi last, pre.length + 1, T⟩ =
+            ⟨tallyHi last, pre.length - 1, T⟩ := by
+          simpa [T, markedSourceBlock, List.append_assoc] using hb
+        have hrun : run runtimeUnaryRebaseMachine
+            (2 * (bits.length + 1) + 8)
+            ⟨revHi last,
+              pre.length + 2 + (markedSourceBlock true bits).length - 3, T⟩ =
+          ⟨tallyHi last, pre.length - 1, T⟩ := by
+            rw [run_add, hp', hb']
+        refine ⟨2 * (bits.length + 1) + 8, ?_⟩
+        simpa [T, markedArchive] using hrun
+      · have hneInit : init ≠ [] := hinit
+        obtain ⟨core, hcore⟩ := markedArchive_eq_core_term init hneInit
+        let P := pre ++ [false, true] ++ core
+        let T := pre ++ [false, true] ++ markedArchive (init ++ [bits]) ++ tail
+        have hTblock : T =
+            (pre ++ [false, true] ++ markedArchive init) ++
+              markedSourceBlock false bits ++ tail := by
+          simp [T, markedArchive_append_last init bits hinit,
+            List.append_assoc]
+        have hp := runtimeUnaryRebase_run_revPairs T
+          (pre.length + 2 + (markedArchive init).length)
+          (bits.length + 1) last (by omega) (by
+            intro i hi
+            have H := markedRegion_pair_eq
+              (pre ++ [false, true] ++ markedArchive init) bits tail false i hi
+            rw [hTblock]
+            simpa [List.append_assoc, Nat.add_assoc, Nat.add_comm,
+              Nat.add_left_comm,
+              show 1 + (1 + (2 * i + (markedArchive init).length)) =
+                2 + (2 * i + (markedArchive init).length) by omega,
+              show 1 + (1 + (1 + (2 * i + (markedArchive init).length))) =
+                1 + (2 + (2 * i + (markedArchive init).length)) by omega]
+              using H)
+        have hp' : run runtimeUnaryRebaseMachine (2 * (bits.length + 1))
+            ⟨revHi last,
+              pre.length + 2 + (markedArchive (init ++ [bits])).length - 3,
+              T⟩ =
+            ⟨revHi last,
+              pre.length + 2 + (markedArchive init).length - 1, T⟩ := by
+          rw [markedArchive_append_last init bits hinit, List.length_append,
+            markedSourceBlock_length]
+          rw [show pre.length + 2 +
+              ((markedArchive init).length + (2 * bits.length + 4)) - 3 =
+              pre.length + 2 + (markedArchive init).length +
+                2 * (bits.length + 1) - 1 by omega]
+          exact hp
+        have hb := runtimeUnaryRebase_run_boundaryInter P
+          (encodeD bits ++ tail) last (by simp [P]; omega)
+        have hb' : run runtimeUnaryRebaseMachine 8
+            ⟨revHi last,
+              pre.length + 2 + (markedArchive init).length - 1, T⟩ =
+            ⟨revHi last,
+              pre.length + 2 + (markedArchive init).length - 3, T⟩ := by
+          have hT : T = P ++ [false, true, true, true] ++
+              encodeD bits ++ tail := by
+            simp [T, P, markedArchive_append_last init bits hinit,
+              markedSourceBlock, hcore, List.append_assoc]
+          rw [hT]
+          simpa [P, hcore, Nat.add_assoc, Nat.add_comm,
+            Nat.add_left_comm] using hb
+        have hi := ih (markedSourceBlock false bits ++ tail) hneInit
+        have hi' : ∃ n, run runtimeUnaryRebaseMachine n
+            ⟨revHi last,
+              pre.length + 2 + (markedArchive init).length - 3, T⟩ =
+            ⟨tallyHi last, pre.length - 1, T⟩ := by
+          simpa [T, markedArchive_append_last init bits hinit,
+            List.append_assoc] using hi
+        obtain ⟨n, hn⟩ := hi'
+        have hrun : run runtimeUnaryRebaseMachine
+            (2 * (bits.length + 1) + 8 + n)
+            ⟨revHi last,
+              pre.length + 2 + (markedArchive (init ++ [bits])).length - 3,
+              T⟩ =
+          ⟨tallyHi last, pre.length - 1, T⟩ := by
+            rw [show 2 * (bits.length + 1) + 8 + n =
+              2 * (bits.length + 1) + (8 + n) by omega,
+              run_add, hp', run_add, hb', hn]
+        exact ⟨2 * (bits.length + 1) + 8 + n, hrun⟩
+
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeUnaryRebaseWriter
