@@ -890,7 +890,7 @@ theorem runtimeUnaryRebase_run_restoreLaterArchive
           (2 * bits.length + 4) + restoreArchiveClock rest := by
         simp [restoreArchiveClock]
       rw [hc, run_add]
-      simp only [List.flatMap_cons]
+      simp only [List.flatMap_cons, List.append_assoc]
       rw [hb']
       simpa [selectedTail_cons, encodeD_length, List.append_assoc,
         Nat.add_assoc, Nat.add_comm, Nat.add_left_comm,
@@ -1099,5 +1099,471 @@ theorem runtimeUnaryRebase_run_reverseMarkedBodies
               2 * (bits.length + 1) + (8 + n) by omega,
               run_add, hp', run_add, hb', hn]
         exact ⟨2 * (bits.length + 1) + 8 + n, hrun⟩
+
+/-! ## Forward processed-prefix scan and one complete visit -/
+
+theorem runtimeUnaryRebase_run_processedLaterArchive
+    (pre tail : List Bool) (rest : List (List Bool)) :
+    ∃ n, run runtimeUnaryRebaseMachine n
+        ⟨headerLo, pre.length,
+          pre ++ rest.flatMap (markedSourceBlock false) ++ tail⟩ =
+      ⟨headerLo,
+        pre.length + (rest.flatMap (markedSourceBlock false)).length,
+        pre ++ rest.flatMap (markedSourceBlock false) ++ tail⟩ := by
+  induction rest generalizing pre with
+  | nil => exact ⟨0, rfl⟩
+  | cons bits rest ih =>
+      have hb := runtimeUnaryRebase_run_processedBlock pre bits
+        (rest.flatMap (markedSourceBlock false) ++ tail)
+      obtain ⟨n, hn⟩ := ih (pre ++ markedSourceBlock false bits)
+      have hn' : run runtimeUnaryRebaseMachine n
+          ⟨headerLo, pre.length + (markedSourceBlock false bits).length,
+            pre ++ markedSourceBlock false bits ++
+              rest.flatMap (markedSourceBlock false) ++ tail⟩ =
+          ⟨headerLo,
+            pre.length + (markedSourceBlock false bits).length +
+              (rest.flatMap (markedSourceBlock false)).length,
+            pre ++ markedSourceBlock false bits ++
+              rest.flatMap (markedSourceBlock false) ++ tail⟩ := by
+        simpa [List.append_assoc] using hn
+      have hb' : run runtimeUnaryRebaseMachine (2 * bits.length + 4)
+          ⟨headerLo, pre.length,
+            pre ++ markedSourceBlock false bits ++
+              rest.flatMap (markedSourceBlock false) ++ tail⟩ =
+          ⟨headerLo, pre.length + (markedSourceBlock false bits).length,
+            pre ++ markedSourceBlock false bits ++
+              rest.flatMap (markedSourceBlock false) ++ tail⟩ := by
+        simpa [markedSourceBlock_length, List.append_assoc] using hb
+      have hrun : run runtimeUnaryRebaseMachine (2 * bits.length + 4 + n)
+          ⟨headerLo, pre.length,
+            pre ++ markedSourceBlock false bits ++
+              rest.flatMap (markedSourceBlock false) ++ tail⟩ =
+          ⟨headerLo,
+            pre.length + (markedSourceBlock false bits).length +
+              (rest.flatMap (markedSourceBlock false)).length,
+            pre ++ markedSourceBlock false bits ++
+              rest.flatMap (markedSourceBlock false) ++ tail⟩ := by
+        rw [run_add, hb', hn']
+      refine ⟨2 * bits.length + 4 + n, ?_⟩
+      simpa [List.flatMap_cons, List.append_assoc, Nat.add_assoc] using hrun
+
+theorem runtimeUnaryRebase_run_processedArchive
+    (pre tail : List Bool) (first : List Bool)
+    (more : List (List Bool)) :
+    ∃ n, run runtimeUnaryRebaseMachine n
+        ⟨firstLo, pre.length,
+          pre ++ markedArchive (first :: more) ++ tail⟩ =
+      ⟨headerLo, pre.length + (markedArchive (first :: more)).length,
+        pre ++ markedArchive (first :: more) ++ tail⟩ := by
+  have hf := runtimeUnaryRebase_run_processedFirstBlock pre first
+    (more.flatMap (markedSourceBlock false) ++ tail)
+  obtain ⟨n, hn⟩ := runtimeUnaryRebase_run_processedLaterArchive
+    (pre ++ markedSourceBlock true first) tail more
+  refine ⟨2 * first.length + 4 + n, ?_⟩
+  rw [run_add]
+  have hf' : run runtimeUnaryRebaseMachine (2 * first.length + 4)
+      ⟨firstLo, pre.length,
+        pre ++ markedArchive (first :: more) ++ tail⟩ =
+      ⟨headerLo, pre.length + (markedSourceBlock true first).length,
+        pre ++ markedArchive (first :: more) ++ tail⟩ := by
+    simpa [markedArchive, markedSourceBlock_length,
+      List.append_assoc] using hf
+  rw [hf']
+  simpa [markedArchive, List.append_assoc, Nat.add_assoc] using hn
+
+theorem selectedTail_head (bits : List Bool) (rest : List (List Bool)) :
+    (selectedTail (bits :: rest)).getD 0 false = true := by
+  rw [selectedTail_cons]
+  simp
+
+theorem selectedTail_nil : selectedTail [] = [] := by
+  simp [selectedTail, flattenPairs]
+
+theorem markedArchive_append_singleton_length
+    (done : List (List Bool)) (bits : List Bool) :
+    4 ≤ (markedArchive (done ++ [bits])).length := by
+  cases done with
+  | nil => simp [markedArchive, markedSourceBlock_length]
+  | cons first later =>
+      rw [markedArchive_append_last (first :: later) bits (by simp),
+        List.length_append, markedSourceBlock_length]
+      omega
+
+set_option maxHeartbeats 1000000 in
+theorem runtimeUnaryRebase_run_markNext
+    (pre : List Bool) (done : List (List Bool))
+    (bits : List Bool) (more : List (List Bool)) :
+    let T0 := pre ++ markedArchive done ++ selectedTail (bits :: more)
+    let T1 := pre ++ markedArchive (done ++ [bits]) ++ selectedTail more
+    ∃ n, run runtimeUnaryRebaseMachine n
+        ⟨firstLo, pre.length, T0⟩ =
+      ⟨revTermHi (more = []),
+        pre.length + (markedArchive (done ++ [bits])).length - 1, T1⟩ := by
+  dsimp only
+  let T0 := pre ++ markedArchive done ++ selectedTail (bits :: more)
+  let T1 := pre ++ markedArchive (done ++ [bits]) ++ selectedTail more
+  cases done with
+  | nil =>
+      cases more with
+      | nil =>
+          have H := runtimeUnaryRebase_run_freshFirstBlock pre bits [] false (by simp)
+          refine ⟨2 * bits.length + 7, ?_⟩
+          have hT0 : T0 = pre ++ [true, false] ++ encodeD bits := by
+            simp [T0, markedArchive, selectedTail_cons, selectedTail_nil,
+              List.append_assoc]
+          have hT1 : T1 = pre ++ markedSourceBlock true bits := by
+            simp [T1, markedArchive, selectedTail_nil]
+          simpa [markedArchive, selectedTail_cons, selectedTail_nil,
+            markedSourceBlock_length, List.append_assoc] using H
+      | cons next more =>
+          have H := runtimeUnaryRebase_run_freshFirstBlock pre bits
+            (selectedTail (next :: more)) true (selectedTail_head next more)
+          refine ⟨2 * bits.length + 7, ?_⟩
+          have hT0 : T0 = pre ++ [true, false] ++ encodeD bits ++
+              selectedTail (next :: more) := by
+            simp [T0, markedArchive, selectedTail_cons, List.append_assoc]
+          have hT1 : T1 = pre ++ markedSourceBlock true bits ++
+              selectedTail (next :: more) := by
+            simp [T1, markedArchive, List.append_assoc]
+          simpa [markedArchive, selectedTail_cons,
+            markedSourceBlock_length, List.append_assoc] using H
+  | cons first later =>
+      obtain ⟨ns, hs⟩ := runtimeUnaryRebase_run_processedArchive pre
+        (selectedTail (bits :: more)) first later
+      have happ : markedArchive (first :: later ++ [bits]) =
+          markedArchive (first :: later) ++ markedSourceBlock false bits := by
+        simpa using markedArchive_append_last (first :: later) bits (by simp)
+      cases more with
+      | nil =>
+          have hf := runtimeUnaryRebase_run_freshBlock
+            (pre ++ markedArchive (first :: later)) bits [] false (by simp)
+          refine ⟨ns + (2 * bits.length + 5), ?_⟩
+          rw [run_add, hs]
+          rw [happ]
+          convert hf using 1 <;> simp [T0, T1,
+            selectedTail_cons, selectedTail_nil,
+            List.append_assoc, markedSourceBlock_length] <;> omega
+      | cons next more =>
+          have hf := runtimeUnaryRebase_run_freshBlock
+            (pre ++ markedArchive (first :: later)) bits
+            (selectedTail (next :: more)) true (selectedTail_head next more)
+          refine ⟨ns + (2 * bits.length + 5), ?_⟩
+          rw [run_add, hs]
+          rw [happ]
+          convert hf using 1 <;> simp [T0, T1,
+            selectedTail_cons, List.append_assoc, markedSourceBlock_length,
+            Bool.not_true] <;> omega
+
+set_option maxHeartbeats 1000000 in
+theorem runtimeUnaryRebase_run_returnMarked
+    (pre : List Bool) (a b : Bool) (done : List (List Bool))
+    (bits : List Bool) (more : List (List Bool)) :
+    let A := pre ++ [a, b] ++ unaryRebaseFrontier done.length
+    let T := A ++ markedArchive (done ++ [bits]) ++ selectedTail more
+    ∃ n, run runtimeUnaryRebaseMachine n
+        ⟨revTermHi (more = []),
+          A.length + (markedArchive (done ++ [bits])).length - 1, T⟩ =
+      ⟨tallyHi (more = []), pre.length + 2 * done.length + 3, T⟩ := by
+  dsimp only
+  let A := pre ++ [a, b] ++ unaryRebaseFrontier done.length
+  let T := A ++ markedArchive (done ++ [bits]) ++ selectedTail more
+  let P := pre ++ [a, b] ++ [false, true] ++
+    List.replicate (2 * done.length) true
+  have hm := markedArchive_append_singleton_length done bits
+  have ht := runtimeUnaryRebase_run_revTerm T
+    (A.length + (markedArchive (done ++ [bits])).length - 1)
+    (more = []) (by simp [A, unaryRebaseFrontier]; omega)
+  obtain ⟨nr, hr⟩ := runtimeUnaryRebase_run_reverseMarkedBodies P
+    (selectedTail more) (done ++ [bits]) (more = []) (by simp)
+    (by simp [P]; omega)
+  have hstart : P.length + 2 + (markedArchive (done ++ [bits])).length - 3 =
+      A.length + (markedArchive (done ++ [bits])).length - 3 := by
+    simp [P, A, unaryRebaseFrontier]
+    omega
+  have hphead : P.length - 1 = pre.length + 2 * done.length + 3 := by
+    simp [P]
+    omega
+  rw [hstart, hphead] at hr
+  refine ⟨2 + nr, ?_⟩
+  rw [run_add, ht]
+  have hsub : A.length + (markedArchive (done ++ [bits])).length - 1 - 2 =
+      A.length + (markedArchive (done ++ [bits])).length - 3 := by omega
+  rw [hsub]
+  simpa [A, P, T, unaryRebaseFrontier, List.append_assoc] using hr
+
+theorem runtimeUnaryRebase_run_markReturn
+    (pre : List Bool) (a b : Bool) (done : List (List Bool))
+    (bits : List Bool) (more : List (List Bool)) :
+    let A := pre ++ [a, b] ++ unaryRebaseFrontier done.length
+    let T0 := A ++ markedArchive done ++ selectedTail (bits :: more)
+    let T1 := A ++ markedArchive (done ++ [bits]) ++ selectedTail more
+    ∃ n, run runtimeUnaryRebaseMachine n ⟨firstLo, A.length, T0⟩ =
+      ⟨tallyHi (more = []), pre.length + 2 * done.length + 3, T1⟩ := by
+  dsimp only
+  obtain ⟨nf, hf⟩ := runtimeUnaryRebase_run_markNext
+    (pre ++ [a, b] ++ unaryRebaseFrontier done.length) done bits more
+  obtain ⟨nb, hb⟩ := runtimeUnaryRebase_run_returnMarked
+    pre a b done bits more
+  refine ⟨nf + nb, ?_⟩
+  rw [run_add, hf, hb]
+
+theorem runtimeUnaryRebase_run_extendMarked
+    (pre : List Bool) (a b : Bool) (done : List (List Bool))
+    (bits : List Bool) (more : List (List Bool)) :
+    let T0 := pre ++ [a, b] ++ unaryRebaseFrontier done.length ++
+      markedArchive (done ++ [bits]) ++ selectedTail more
+    let T1 := pre ++ unaryRebaseFrontier (done.length + 1) ++
+      markedArchive (done ++ [bits]) ++ selectedTail more
+    run runtimeUnaryRebaseMachine (4 * done.length + 9)
+        ⟨tallyHi (more = []), pre.length + 2 * done.length + 3, T0⟩ =
+      ⟨if more = [] then restoreFirstLo else firstLo,
+        pre.length + 2 * done.length + 6, T1⟩ := by
+  dsimp only
+  simpa [List.append_assoc] using
+    runtimeUnaryRebase_run_extendFrontier pre
+      (markedArchive (done ++ [bits]) ++ selectedTail more)
+      a b (more = []) done.length
+
+set_option maxHeartbeats 1000000 in
+/-- One complete visit: scan the marked prefix, mark the next fresh block,
+reverse the entire enlarged prefix, and emit one unary pair. -/
+theorem runtimeUnaryRebase_run_visit
+    (pre : List Bool) (a b : Bool) (done : List (List Bool))
+    (bits : List Bool) (more : List (List Bool)) :
+    let k := done.length
+    let T0 := pre ++ [a, b] ++ unaryRebaseFrontier k ++
+      markedArchive done ++ selectedTail (bits :: more)
+    let T1 := pre ++ unaryRebaseFrontier (k + 1) ++
+      markedArchive (done ++ [bits]) ++ selectedTail more
+    ∃ n, run runtimeUnaryRebaseMachine n
+        ⟨firstLo, pre.length + 2 * k + 6, T0⟩ =
+      ⟨if more = [] then restoreFirstLo else firstLo,
+        pre.length + 2 * k + 6, T1⟩ := by
+  dsimp only
+  let A := pre ++ [a, b] ++ unaryRebaseFrontier done.length
+  let T0 := A ++ markedArchive done ++ selectedTail (bits :: more)
+  obtain ⟨nm, hm⟩ := runtimeUnaryRebase_run_markReturn
+    pre a b done bits more
+  have hhead : (pre ++ [a, b] ++ unaryRebaseFrontier done.length).length =
+      pre.length + 2 * done.length + 6 := by
+    simp [unaryRebaseFrontier]
+    omega
+  rw [hhead] at hm
+  have he := runtimeUnaryRebase_run_extendMarked pre a b done bits more
+  refine ⟨nm + (4 * done.length + 9), ?_⟩
+  rw [run_add, hm, he]
+
+theorem split_last_two {xs : List Bool} {n : Nat}
+    (hlen : xs.length = n + 2) :
+    ∃ pre a b, xs = pre ++ [a, b] ∧ pre.length = n := by
+  have hxs : xs ≠ [] := by
+    intro h
+    subst xs
+    simp at hlen
+  let ys := xs.dropLast
+  have hyslen : ys.length = n + 1 := by
+    simp [ys, List.length_dropLast, hlen]
+  have hys : ys ≠ [] := by
+    intro h
+    have hz := congrArg List.length h
+    simp [ys, List.length_dropLast, hlen] at hz
+  let b := xs.getLast hxs
+  let a := ys.getLast hys
+  let pre := ys.dropLast
+  have hpre : pre.length = n := by
+    simp [pre, List.length_dropLast, hyslen]
+  have hxb := List.dropLast_append_getLast hxs
+  have hya := List.dropLast_append_getLast hys
+  refine ⟨pre, a, b, ?_, hpre⟩
+  calc
+    xs = ys ++ [b] := by simpa [ys, b] using hxb.symm
+    _ = (pre ++ [a]) ++ [b] := by rw [show pre ++ [a] = ys by
+      simpa [pre, a] using hya]
+    _ = pre ++ [a, b] := by simp [List.append_assoc]
+
+set_option maxHeartbeats 1000000 in
+theorem runtimeUnaryRebase_run_visits
+    (base scratch : List Bool) (done todo : List (List Bool))
+    (htodo : todo ≠ []) (hscratch : scratch.length = 2 * todo.length) :
+    let R := base.length + scratch.length + 2 * done.length + 4
+    let T0 := base ++ scratch ++ unaryRebaseFrontier done.length ++
+      markedArchive done ++ selectedTail todo
+    let T1 := base ++ unaryRebaseFrontier (done.length + todo.length) ++
+      markedArchive (done ++ todo)
+    ∃ n, run runtimeUnaryRebaseMachine n ⟨firstLo, R, T0⟩ =
+      ⟨restoreFirstLo, R, T1⟩ := by
+  dsimp only
+  induction todo generalizing scratch done with
+  | nil => exact absurd rfl htodo
+  | cons bits more ih =>
+      have hslen : scratch.length = 2 * more.length + 2 := by
+        simpa using hscratch
+      obtain ⟨pre, a, b, hshape, hpre⟩ := split_last_two hslen
+      subst scratch
+      obtain ⟨nv, hv⟩ := runtimeUnaryRebase_run_visit
+        (base ++ pre) a b done bits more
+      have hdoneLen : (done ++ [bits]).length = done.length + 1 := by simp
+      cases more with
+      | nil =>
+          have htodoLen : [bits].length = 1 := rfl
+          have hpnil : pre = [] :=
+            List.eq_nil_of_length_eq_zero (by simpa using hpre)
+          subst pre
+          refine ⟨nv, ?_⟩
+          convert hv using 2 <;> simp [selectedTail_nil, List.append_assoc,
+            List.length_cons, List.length_nil, Nat.add_assoc,
+            hdoneLen, htodoLen, Nat.add_comm, Nat.add_left_comm] <;> omega
+      | cons next later =>
+          have htodoLen : (bits :: next :: later).length =
+              (next :: later).length + 1 := rfl
+          have hprelen : pre.length = 2 * (next :: later).length := by
+            simpa using hpre
+          obtain ⟨ni, hi⟩ := ih pre (done ++ [bits]) (by simp) hprelen
+          have hv' : run runtimeUnaryRebaseMachine nv
+              ⟨firstLo,
+                base.length + (pre ++ [a, b]).length +
+                  2 * done.length + 4,
+                base ++ (pre ++ [a, b]) ++
+                  unaryRebaseFrontier done.length ++ markedArchive done ++
+                  selectedTail (bits :: next :: later)⟩ =
+              ⟨firstLo,
+                base.length + pre.length +
+                  2 * (done ++ [bits]).length + 4,
+                base ++ pre ++ unaryRebaseFrontier (done ++ [bits]).length ++
+                  markedArchive (done ++ [bits]) ++
+                  selectedTail (next :: later)⟩ := by
+            convert hv using 2 <;> simp [List.append_assoc, Nat.add_assoc,
+              List.length_cons, List.length_nil, Nat.add_comm,
+              hdoneLen, htodoLen, Nat.add_left_comm] <;> omega
+          refine ⟨nv + ni, ?_⟩
+          rw [run_add]
+          rw [hv']
+          convert hi using 1 <;> simp [List.append_assoc, Nat.add_assoc,
+            Nat.add_comm, Nat.add_left_comm] <;> omega
+
+set_option maxHeartbeats 1000000 in
+theorem runtimeUnaryRebase_run_complete
+    (base scratch : List Bool) (a b : Bool)
+    (bits : List Bool) (more : List (List Bool))
+    (hscratch : scratch.length = 2 * (bits :: more).length) :
+    let R := base.length + scratch.length + 4
+    let T0 := base ++ scratch ++ [a, b, false, true] ++
+      selectedTail (bits :: more)
+    let T1 := base ++ unaryRebaseFrontier (bits :: more).length ++
+      selectedTail (bits :: more)
+    ∃ n, run runtimeUnaryRebaseMachine n ⟨init1, R, T0⟩ =
+      ⟨done, R + (selectedTail (bits :: more)).length, T1⟩ := by
+  dsimp only
+  have hi := runtimeUnaryRebase_run_init (base ++ scratch)
+    (selectedTail (bits :: more)) a b
+  obtain ⟨nv, hv⟩ := runtimeUnaryRebase_run_visits base scratch []
+    (bits :: more) (by simp) hscratch
+  have hr := runtimeUnaryRebase_run_restoreArchive
+    (base ++ unaryRebaseFrontier (bits :: more).length) bits more
+  let nc := 2 * bits.length + 4 + restoreArchiveClock more + 1
+  have hi' : run runtimeUnaryRebaseMachine 8
+      ⟨init1, base.length + scratch.length + 4,
+        base ++ scratch ++ [a, b, false, true] ++
+          selectedTail (bits :: more)⟩ =
+      ⟨firstLo, base.length + scratch.length + 4,
+        base ++ scratch ++ unaryRebaseFrontier 0 ++
+          selectedTail (bits :: more)⟩ := by
+    simpa [unaryRebaseFrontier_zero, List.append_assoc] using hi
+  have hv' : run runtimeUnaryRebaseMachine nv
+      ⟨firstLo, base.length + scratch.length + 4,
+        base ++ scratch ++ unaryRebaseFrontier 0 ++
+          selectedTail (bits :: more)⟩ =
+      ⟨restoreFirstLo, base.length + scratch.length + 4,
+        base ++ unaryRebaseFrontier (bits :: more).length ++
+          markedArchive (bits :: more)⟩ := by
+    simpa [List.append_assoc] using hv
+  have hpre : (base ++ unaryRebaseFrontier (bits :: more).length).length =
+      base.length + scratch.length + 4 := by
+    simp [unaryRebaseFrontier, hscratch]
+    omega
+  have hr' := hr
+  rw [hpre] at hr'
+  refine ⟨8 + nv + nc, ?_⟩
+  rw [show 8 + nv + nc = 8 + (nv + nc) by omega,
+    run_add, hi', run_add, hv']
+  simpa [nc, selectedTail_nil, List.append_assoc, Nat.add_assoc,
+    Nat.add_comm, Nat.add_left_comm] using hr'
+
+theorem flattenPairs_replicate_true (d : Nat) :
+    flattenPairs (List.replicate d (true, true)) =
+      List.replicate (2 * d) true := by
+  induction d with
+  | zero => rfl
+  | succ d ih =>
+      rw [List.replicate_succ]
+      simp only [flattenPairs, List.flatMap_cons]
+      rw [ih, show 2 * (d + 1) = 2 + 2 * d by omega,
+        List.replicate_add]
+      rfl
+
+theorem unaryRebaseFrontier_eq_boundary_prefix (d : Nat) :
+    unaryRebaseFrontier d =
+      [false, true] ++ zeroCopyRebasePrefix d := by
+  simp [unaryRebaseFrontier, zeroCopyRebasePrefix,
+    flattenPairs_append, flattenPairs_replicate_true, flattenPairs,
+    List.append_assoc]
+
+set_option maxHeartbeats 1000000 in
+theorem runtimeUnaryRebase_run_physical
+    (phys : List Bool) (bits : List Bool) (more : List (List Bool))
+    (hfit : 2 * (bits :: more).length + 2 ≤ phys.length) :
+    let R := phys.length + 2
+    let T0 := phys ++ [false, true] ++ selectedTail (bits :: more)
+    ∃ base n,
+      base.length = phys.length - (2 * (bits :: more).length + 2) ∧
+      run runtimeUnaryRebaseMachine n ⟨init1, R, T0⟩ =
+        ⟨done, R + (selectedTail (bits :: more)).length,
+          base ++ [false, true] ++
+            sourceSelectorInput (bits :: more).length 0 (bits :: more)⟩ := by
+  dsimp only
+  let L := 2 * (bits :: more).length + 2
+  let p := phys.length - L
+  let suffix := phys.drop p
+  have hsuffix : suffix.length = 2 * (bits :: more).length + 2 := by
+    simp only [suffix, List.length_drop]
+    change phys.length - (phys.length - L) = L
+    omega
+  obtain ⟨scratch, a, b, hs, hscratch⟩ := split_last_two hsuffix
+  let base := phys.take p
+  have hphys : phys = base ++ scratch ++ [a, b] := by
+    have H := List.take_append_drop p phys
+    rw [show phys.drop p = suffix by rfl, hs] at H
+    simpa [base, List.append_assoc] using H.symm
+  obtain ⟨n, hn⟩ := runtimeUnaryRebase_run_complete
+    base scratch a b bits more hscratch
+  refine ⟨base, n, ?_, ?_⟩
+  · have hp : p ≤ phys.length := by simp [p]
+    simp [base, List.length_take, hp, p, L]
+  · have hR : phys.length + 2 = base.length + scratch.length + 4 := by
+      rw [hphys]
+      simp
+      omega
+    have hT : phys ++ [false, true] ++ selectedTail (bits :: more) =
+        base ++ scratch ++ [a, b, false, true] ++
+          selectedTail (bits :: more) := by
+      rw [hphys]
+      simp [List.append_assoc]
+    have hn' := hn
+    rw [unaryRebaseFrontier_eq_boundary_prefix] at hn'
+    have hout : base ++
+          ([false, true] ++ zeroCopyRebasePrefix (bits :: more).length) ++
+          selectedTail (bits :: more) =
+        base ++ [false, true] ++
+          sourceSelectorInput (bits :: more).length 0 (bits :: more) := by
+      rw [show base ++
+          ([false, true] ++ zeroCopyRebasePrefix (bits :: more).length) ++
+          selectedTail (bits :: more) =
+        base ++ [false, true] ++
+          (zeroCopyRebasePrefix (bits :: more).length ++
+            selectedTail (bits :: more)) by simp [List.append_assoc],
+        zeroCopyRebasePrefix_archive]
+    rw [hout] at hn'
+    rw [hR, hT]
+    simpa [List.append_assoc] using hn'
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeUnaryRebaseWriter
