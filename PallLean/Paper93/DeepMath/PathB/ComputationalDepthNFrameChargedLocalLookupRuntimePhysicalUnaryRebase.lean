@@ -53,7 +53,7 @@ theorem scheduled_unaryRebaseScratch_fits_afterOutput
     let bits := literalLookupTape w (scheduledLiteral x t)
     let rest := schedule.drop (t + 1)
     let pre := selectedPrefix (B - t) preBlocks
-    2 * rest.length + 2 ≤ pre.length + 2 * bits.length + 2 := by
+    2 * rest.length + 4 ≤ pre.length + 2 * bits.length + 2 := by
   dsimp only
   let B := (decodedLiterals x).length
   let schedule := literalTapeSchedule x w
@@ -81,23 +81,23 @@ untouched `base` is not merely length-correct: it is the literal leading
 prefix of the incoming physical tape. -/
 theorem runtimeUnaryRebase_run_physical_prefix
     (phys : List Bool) (bits : List Bool) (more : List (List Bool))
-    (hfit : 2 * (bits :: more).length + 2 ≤ phys.length) :
+    (hfit : 2 * (bits :: more).length + 4 ≤ phys.length) :
     let R := phys.length + 2
     let T0 := phys ++ [false, true] ++ selectedTail (bits :: more)
     ∃ base n,
       base.IsPrefix phys ∧
-      base.length = phys.length - (2 * (bits :: more).length + 2) ∧
+      base.length = phys.length - (2 * (bits :: more).length + 4) ∧
       run runtimeUnaryRebaseMachine n
           ⟨RuntimeUnaryRebaseState.init1, R, T0⟩ =
         ⟨RuntimeUnaryRebaseState.done,
           R + (selectedTail (bits :: more)).length,
-          base ++ [false, true] ++
+          base ++ [false, true, false, true] ++
             sourceSelectorInput (bits :: more).length 0 (bits :: more)⟩ := by
   dsimp only
-  let L := 2 * (bits :: more).length + 2
+  let L := 2 * (bits :: more).length + 4
   let p := phys.length - L
   let suffix := phys.drop p
-  have hsuffix : suffix.length = 2 * (bits :: more).length + 2 := by
+  have hsuffix : suffix.length = 2 * (bits :: more).length + 4 := by
     simp only [suffix, List.length_drop]
     change phys.length - (phys.length - L) = L
     omega
@@ -124,14 +124,14 @@ theorem runtimeUnaryRebase_run_physical_prefix
       simp [List.append_assoc]
     have hn' := hn
     rw [unaryRebaseFrontier_eq_boundary_prefix] at hn'
-    have hout : base ++
+    have hout : base ++ [false, true] ++
           ([false, true] ++ zeroCopyRebasePrefix (bits :: more).length) ++
           selectedTail (bits :: more) =
-        base ++ [false, true] ++
+        base ++ [false, true, false, true] ++
           sourceSelectorInput (bits :: more).length 0 (bits :: more) := by
       have hz := zeroCopyRebasePrefix_archive (bits :: more)
       simpa [List.append_assoc] using
-        congrArg (fun X => base ++ [false, true] ++ X) hz
+        congrArg (fun X => base ++ [false, true, false, true] ++ X) hz
     rw [hout] at hn'
     rw [hR, hT]
     exact hn'
@@ -168,7 +168,7 @@ theorem scheduledRuntimeRelativeOutput_physicalUnaryRebase
           (init outputWorkspaceArchiveReturnUnaryRebaseMachine rcf.tp) =
         ⟨outputWorkspaceArchiveReturnUnaryRebaseDone,
           R + (selectedTail rest).length,
-          outputCap B out' ++ residue ++ [false, true] ++
+          outputCap B out' ++ residue ++ [false, true, false, true] ++
             sourceSelectorInput rest.length 0 rest⟩ := by
   dsimp only
   let B := (decodedLiterals x).length
@@ -207,9 +207,9 @@ theorem scheduledRuntimeRelativeOutput_physicalUnaryRebase
   obtain ⟨first, more, hrest⟩ := List.exists_cons_of_ne_nil
     (List.ne_nil_of_length_pos hrestpos)
   have hfit0 := scheduled_unaryRebaseScratch_fits_afterOutput x w ht
-  have hfit : 2 * rest.length + 2 ≤ phys.length := by
-    have hs : 2 * rest.length + 2 ≤ pre.length + 2 * bits.length + 4 := by
-      have hs0 : 2 * rest.length + 2 ≤
+  have hfit : 2 * rest.length + 4 ≤ phys.length := by
+    have hs : 2 * rest.length + 4 ≤ pre.length + 2 * bits.length + 4 := by
+      have hs0 : 2 * rest.length + 4 ≤
           pre.length + 2 * bits.length + 2 := by
         simpa [B, schedule, preBlocks, bits, rest, pre] using hfit0
       omega
@@ -219,13 +219,13 @@ theorem scheduledRuntimeRelativeOutput_physicalUnaryRebase
     exact le_trans hs hphysLower
   have hunaryPack : ∃ base unaryClock,
       base.IsPrefix phys ∧
-      base.length = phys.length - (2 * rest.length + 2) ∧
+      base.length = phys.length - (2 * rest.length + 4) ∧
       run runtimeUnaryRebaseMachine unaryClock
           ⟨RuntimeUnaryRebaseState.init1, phys.length + 2,
             phys ++ [false, true] ++ selectedTail rest⟩ =
         ⟨RuntimeUnaryRebaseState.done,
           phys.length + 2 + (selectedTail rest).length,
-          base ++ [false, true] ++
+          base ++ [false, true, false, true] ++
             sourceSelectorInput rest.length 0 rest⟩ := by
     simpa [hrest] using runtimeUnaryRebase_run_physical_prefix phys first more (by
       simpa [hrest] using hfit)
@@ -241,7 +241,8 @@ theorem scheduledRuntimeRelativeOutput_physicalUnaryRebase
         phys ++ [false, true] ++ selectedTail rest⟩ =
       ⟨RuntimeUnaryRebaseState.done,
         R + (selectedTail rest).length,
-        base ++ [false, true] ++ sourceSelectorInput rest.length 0 rest⟩ := by
+        base ++ [false, true, false, true] ++
+          sourceSelectorInput rest.length 0 rest⟩ := by
     simpa [hrest, hR] using hunary
   let cf := run sourceRuntimeLookupCore lookupClock
     (init sourceRuntimeLookupCore T)
@@ -270,9 +271,9 @@ theorem scheduledRuntimeRelativeOutput_physicalUnaryRebase
     simpa using htake.symm
   have hcapBase : (outputCap B out').length ≤ base.length := by
     have hscratch : (outputCap B out').length +
-        (2 * rest.length + 2) ≤ phys.length := by
+        (2 * rest.length + 4) ≤ phys.length := by
       rw [hcaplen, hphys']
-      have hs0 : 2 * rest.length + 2 ≤
+      have hs0 : 2 * rest.length + 4 ≤
           pre.length + 2 * bits.length + 2 := by
         simpa [B, schedule, preBlocks, bits, rest, pre] using hfit0
       simp only [R]
@@ -290,7 +291,8 @@ theorem scheduledRuntimeRelativeOutput_physicalUnaryRebase
   have hjoin := headSeq_run outputWorkspaceArchiveReturnSeedMachine
     runtimeUnaryRebaseMachine rcf.tp
     (phys ++ [false, true] ++ selectedTail rest)
-    (base ++ [false, true] ++ sourceSelectorInput rest.length 0 rest)
+    (base ++ [false, true, false, true] ++
+      sourceSelectorInput rest.length 0 rest)
     (prefixClock + 1 + seedClock) unaryClock R
     (R + (selectedTail rest).length)
     (Sum.inr (Sum.inr RuntimeRebaseSeedState.done))
