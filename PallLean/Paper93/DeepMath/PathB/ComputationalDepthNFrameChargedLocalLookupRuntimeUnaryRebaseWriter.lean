@@ -21,6 +21,7 @@ open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceCompac
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeZeroCopyRebase
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRebaseLocator
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeArchiveReturnWriter
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeArchiveLocator
 
 inductive RuntimeUnaryRebaseState
   | init1 | init2 | init3 | init4 | init5 | init6 | init7 | init8
@@ -582,5 +583,371 @@ theorem runtimeUnaryRebase_run_reverseMarkedBlock
   apply runtimeUnaryRebase_run_revPairs T pre.length (bits.length + 1) last hpre
   intro i hi
   exact markedRegion_pair_eq pre bits tail first i hi
+
+/-! ## Exact unary-frontier extension -/
+
+theorem runtimeUnaryRebase_run_tallyTruePair
+    (T : List Bool) (p : Nat) (last : Bool) (hp : 1 ≤ p)
+    (hhi : T.getD p false = true)
+    (hlo : T.getD (p - 1) false = true) :
+    run runtimeUnaryRebaseMachine 2 ⟨tallyHi last, p, T⟩ =
+      ⟨tallyHi last, p - 2, T⟩ := by
+  rw [List.getD_eq_getElem?_getD] at hhi hlo
+  simp [run_succ, step, runtimeUnaryRebaseMachine, moveHead, hhi, hlo]
+  omega
+
+theorem runtimeUnaryRebase_run_tallyTruePairs
+    (T : List Bool) (H n : Nat) (last : Bool) (hH : 1 ≤ H)
+    (htrue : ∀ i, i < 2 * n → T.getD (H + i) false = true) :
+    run runtimeUnaryRebaseMachine (2 * n)
+        ⟨tallyHi last, H + 2 * n - 1, T⟩ =
+      ⟨tallyHi last, H - 1, T⟩ := by
+  induction n with
+  | zero => simp
+  | succ n ih =>
+      have hs := runtimeUnaryRebase_run_tallyTruePair T
+        (H + 2 * (n + 1) - 1) last (by omega)
+        (by convert htrue (2 * n + 1) (by omega) using 1 <;> omega) (by
+          convert htrue (2 * n) (by omega) using 1 <;> omega)
+      have hs' : run runtimeUnaryRebaseMachine 2
+          ⟨tallyHi last, H + 2 * (n + 1) - 1, T⟩ =
+          ⟨tallyHi last, H + 2 * n - 1, T⟩ := by
+        convert hs using 1 <;> omega
+      calc
+        run runtimeUnaryRebaseMachine (2 * (n + 1))
+            ⟨tallyHi last, H + 2 * (n + 1) - 1, T⟩ =
+            run runtimeUnaryRebaseMachine (2 * n)
+              (run runtimeUnaryRebaseMachine 2
+                ⟨tallyHi last, H + 2 * (n + 1) - 1, T⟩) := by
+              rw [show 2 * (n + 1) = 2 + 2 * n by omega]
+              simpa only [Nat.mul_add, Nat.mul_one] using
+                run_add runtimeUnaryRebaseMachine 2 (2 * n)
+                  ⟨tallyHi last, H + (2 + 2 * n) - 1, T⟩
+        _ = run runtimeUnaryRebaseMachine (2 * n)
+              ⟨tallyHi last, H + 2 * n - 1, T⟩ := by rw [hs']
+        _ = ⟨tallyHi last, H - 1, T⟩ :=
+          ih (fun i hi => htrue i (by omega))
+
+theorem runtimeUnaryRebase_run_frontierWrite
+    (pre tail : List Bool) (a b last : Bool) :
+    let T0 := pre ++ [a, b, false, true] ++ tail
+    let T1 := pre ++ [false, true, true, true] ++ tail
+    run runtimeUnaryRebaseMachine 4
+        ⟨tallyHi last, pre.length + 3, T0⟩ =
+      ⟨returnRight last, pre.length + 1, T1⟩ := by
+  dsimp only
+  simp [run_succ, step, runtimeUnaryRebaseMachine, moveHead, writeAt]
+
+theorem runtimeUnaryRebase_run_returnTrueCells
+    (pre tail : List Bool) (n : Nat) (last : Bool) :
+    let T := pre ++ List.replicate n true ++ tail
+    run runtimeUnaryRebaseMachine n
+        ⟨returnRight last, pre.length, T⟩ =
+      ⟨returnRight last, pre.length + n, T⟩ := by
+  dsimp only
+  induction n generalizing pre with
+  | zero => simp
+  | succ n ih =>
+      rw [List.replicate_succ]
+      rw [show n + 1 = 1 + n by omega, run_add]
+      have hread : (pre ++ true :: List.replicate n true ++ tail).getD
+          pre.length false = true := by simp
+      rw [List.getD_eq_getElem?_getD] at hread
+      simp [run_succ, step, runtimeUnaryRebaseMachine, hread, moveHead]
+      have H := ih (pre ++ [true])
+      simpa [List.append_assoc, Nat.add_assoc] using H
+
+theorem runtimeUnaryRebase_run_returnSeed
+    (pre archive : List Bool) (last : Bool) :
+    let T := pre ++ [false, true] ++ archive
+    run runtimeUnaryRebaseMachine 2
+        ⟨returnRight last, pre.length, T⟩ =
+      ⟨if last then restoreFirstLo else firstLo,
+        pre.length + 2, T⟩ := by
+  dsimp only
+  cases last <;>
+    simp [run_succ, step, runtimeUnaryRebaseMachine, moveHead]
+
+theorem prefixed_replicate_true
+    (pre tail : List Bool) (n i : Nat) (hi : i < n) :
+    (pre ++ List.replicate n true ++ tail).getD
+      (pre.length + i) false = true := by
+  rw [List.append_assoc, List.getD_append_right (h := by omega)]
+  rw [Nat.add_sub_cancel_left]
+  rw [List.getD_append (h := by simp; omega)]
+  simp [List.getD_replicate, hi]
+
+/-- One completed archive-block visit extends the left-moving frontier by
+exactly one `11` pair and returns to the archive origin. -/
+theorem runtimeUnaryRebase_run_extendFrontier
+    (pre archive : List Bool) (a b last : Bool) (k : Nat) :
+    let T0 := pre ++ [a, b] ++ unaryRebaseFrontier k ++ archive
+    let T1 := pre ++ unaryRebaseFrontier (k + 1) ++ archive
+    run runtimeUnaryRebaseMachine (4 * k + 9)
+        ⟨tallyHi last, pre.length + 2 * k + 3, T0⟩ =
+      ⟨if last then restoreFirstLo else firstLo,
+        pre.length + 2 * k + 6, T1⟩ := by
+  dsimp only
+  let T0 := pre ++ [a, b] ++ unaryRebaseFrontier k ++ archive
+  let Tmid := pre ++ [false, true, true, true] ++
+    List.replicate (2 * k) true ++ [false, true] ++ archive
+  have ht : run runtimeUnaryRebaseMachine (2 * k)
+      ⟨tallyHi last, pre.length + 2 * k + 3, T0⟩ =
+      ⟨tallyHi last, pre.length + 3, T0⟩ := by
+    have H := runtimeUnaryRebase_run_tallyTruePairs T0
+      (pre.length + 4) k last (by omega) (by
+        intro i hi
+        have := prefixed_replicate_true
+          (pre ++ [a, b, false, true]) ([false, true] ++ archive)
+          (2 * k) i hi
+        simpa [T0, unaryRebaseFrontier, List.append_assoc] using this)
+    simpa [Nat.add_assoc, Nat.add_left_comm, Nat.add_comm] using H
+  have hw := runtimeUnaryRebase_run_frontierWrite pre
+    (List.replicate (2 * k) true ++ [false, true] ++ archive) a b last
+  have hw' : run runtimeUnaryRebaseMachine 4
+      ⟨tallyHi last, pre.length + 3, T0⟩ =
+      ⟨returnRight last, pre.length + 1, Tmid⟩ := by
+    simpa [T0, Tmid, unaryRebaseFrontier, List.append_assoc] using hw
+  let P := pre ++ [false]
+  have hr := runtimeUnaryRebase_run_returnTrueCells P
+    ([false, true] ++ archive) (2 * k + 3) last
+  have hTmid : Tmid =
+      P ++ List.replicate (2 * k + 3) true ++ [false, true] ++ archive := by
+    rw [show 2 * k + 3 = 3 + 2 * k by omega, List.replicate_add]
+    simp [P, Tmid, List.append_assoc]
+  have hr' : run runtimeUnaryRebaseMachine (2 * k + 3)
+      ⟨returnRight last, pre.length + 1, Tmid⟩ =
+      ⟨returnRight last, pre.length + 2 * k + 4, Tmid⟩ := by
+    rw [hTmid]
+    simpa [P, List.append_assoc, Nat.add_assoc,
+      show 1 + (2 * k + 3) = 2 * k + 4 by omega] using hr
+  have hs := runtimeUnaryRebase_run_returnSeed
+    (pre ++ [false, true, true, true] ++ List.replicate (2 * k) true)
+    archive last
+  have hs' : run runtimeUnaryRebaseMachine 2
+      ⟨returnRight last, pre.length + 2 * k + 4, Tmid⟩ =
+      ⟨if last then restoreFirstLo else firstLo,
+        pre.length + 2 * k + 6, Tmid⟩ := by
+    simpa [Tmid, List.append_assoc, Nat.add_assoc,
+      show 1 + (1 + (1 + (1 + 2 * k))) = 2 * k + 4 by omega,
+      show 1 + (1 + (1 + (1 + (2 + 2 * k)))) = 2 * k + 6 by omega]
+      using hs
+  rw [show 4 * k + 9 = 2 * k + (4 + ((2 * k + 3) + 2)) by omega,
+    run_add, ht, run_add, hw', run_add, hr', hs']
+  congr 2
+  simp [Tmid, unaryRebaseFrontier_succ, List.append_assoc]
+
+/-! ## Restoration of temporary archive headers -/
+
+theorem runtimeUnaryRebase_run_restoreEqualPair
+    (T : List Bool) (p : Nat) (lo : Bool)
+    (hlo : T.getD p false = lo)
+    (hhi : T.getD (p + 1) false = lo) :
+    run runtimeUnaryRebaseMachine 2 ⟨restoreDataLo, p, T⟩ =
+      ⟨restoreDataLo, p + 2, T⟩ := by
+  rw [List.getD_eq_getElem?_getD] at hlo hhi
+  simp [run_succ, step, runtimeUnaryRebaseMachine, moveHead, hlo, hhi]
+
+theorem runtimeUnaryRebase_run_restoreEncodeData
+    (pre bits tail : List Bool) :
+    let T := pre ++ encodeD bits ++ tail
+    run runtimeUnaryRebaseMachine (2 * bits.length)
+        ⟨restoreDataLo, pre.length, T⟩ =
+      ⟨restoreDataLo, pre.length + 2 * bits.length, T⟩ := by
+  dsimp only
+  induction bits generalizing pre with
+  | nil => rfl
+  | cons bit bits ih =>
+      let T := pre ++ bit :: bit :: encodeD bits ++ tail
+      have hp := runtimeUnaryRebase_run_restoreEqualPair T pre.length bit
+        (by simp [T]) (by simp [T])
+      have hr := ih (pre ++ [bit, bit])
+      rw [show 2 * (bit :: bits).length = 2 + 2 * bits.length by simp; omega,
+        run_add]
+      rw [show pre ++ encodeD (bit :: bits) ++ tail = T by
+        simp [T, encodeD, List.append_assoc]]
+      rw [hp]
+      convert hr using 1 <;> simp [T, List.append_assoc] <;> omega
+
+theorem runtimeUnaryRebase_run_restoreTerminator
+    (T : List Bool) (p : Nat)
+    (hlo : T.getD p false = false)
+    (hhi : T.getD (p + 1) false = true) :
+    run runtimeUnaryRebaseMachine 2 ⟨restoreDataLo, p, T⟩ =
+      ⟨restoreNext, p + 2, T⟩ := by
+  rw [List.getD_eq_getElem?_getD] at hlo hhi
+  simp [run_succ, step, runtimeUnaryRebaseMachine, moveHead, hlo, hhi]
+
+theorem runtimeUnaryRebase_run_restoreEncodeD
+    (pre bits tail : List Bool) :
+    let T := pre ++ encodeD bits ++ tail
+    run runtimeUnaryRebaseMachine (2 * bits.length + 2)
+        ⟨restoreDataLo, pre.length, T⟩ =
+      ⟨restoreNext, pre.length + 2 * bits.length + 2, T⟩ := by
+  dsimp only
+  let T := pre ++ encodeD bits ++ tail
+  have hd := runtimeUnaryRebase_run_restoreEncodeData pre bits tail
+  have ht := runtimeUnaryRebase_run_restoreTerminator T
+    (pre.length + 2 * bits.length)
+    (by simpa [T, List.append_assoc] using
+      prefixed_encodeD_markLo pre bits tail)
+    (by simpa [T, List.append_assoc] using
+      prefixed_encodeD_markHi pre bits tail)
+  rw [run_add, hd]
+  exact ht
+
+theorem runtimeUnaryRebase_run_restoreFirstHeader
+    (pre bits tail : List Bool) :
+    let T0 := pre ++ [false, false] ++ encodeD bits ++ tail
+    let T1 := pre ++ [true, false] ++ encodeD bits ++ tail
+    run runtimeUnaryRebaseMachine 2 ⟨restoreFirstLo, pre.length, T0⟩ =
+      ⟨restoreDataLo, pre.length + 2, T1⟩ := by
+  dsimp only
+  simp [run_succ, step, runtimeUnaryRebaseMachine, moveHead, writeAt]
+
+theorem runtimeUnaryRebase_run_restoreLaterHeader
+    (pre bits tail : List Bool) :
+    let T0 := pre ++ [true, true] ++ encodeD bits ++ tail
+    let T1 := pre ++ [true, false] ++ encodeD bits ++ tail
+    run runtimeUnaryRebaseMachine 2 ⟨restoreNext, pre.length, T0⟩ =
+      ⟨restoreDataLo, pre.length + 2, T1⟩ := by
+  dsimp only
+  simp [run_succ, step, runtimeUnaryRebaseMachine, moveHead, writeAt]
+
+theorem runtimeUnaryRebase_run_restoreFirstBlock
+    (pre bits : List Bool) (rest : List (List Bool)) :
+    let T0 := pre ++ markedSourceBlock true bits ++
+      rest.flatMap (markedSourceBlock false)
+    let T1 := pre ++ [true, false] ++ encodeD bits ++
+      rest.flatMap (markedSourceBlock false)
+    run runtimeUnaryRebaseMachine (2 * bits.length + 4)
+        ⟨restoreFirstLo, pre.length, T0⟩ =
+      ⟨restoreNext, pre.length + 2 * bits.length + 4, T1⟩ := by
+  dsimp only
+  have hh := runtimeUnaryRebase_run_restoreFirstHeader pre bits
+    (rest.flatMap (markedSourceBlock false))
+  have hd := runtimeUnaryRebase_run_restoreEncodeD
+    (pre ++ [true, false]) bits (rest.flatMap (markedSourceBlock false))
+  rw [show 2 * bits.length + 4 = 2 + (2 * bits.length + 2) by omega,
+    run_add]
+  rw [show pre ++ markedSourceBlock true bits ++
+      rest.flatMap (markedSourceBlock false) =
+      pre ++ [false, false] ++ encodeD bits ++
+        rest.flatMap (markedSourceBlock false) by
+    simp [markedSourceBlock, List.append_assoc]]
+  rw [hh]
+  convert hd using 1 <;> simp [List.append_assoc] <;> omega
+
+theorem runtimeUnaryRebase_run_restoreLaterBlock
+    (pre bits : List Bool) (rest : List (List Bool)) :
+    let T0 := pre ++ markedSourceBlock false bits ++
+      rest.flatMap (markedSourceBlock false)
+    let T1 := pre ++ [true, false] ++ encodeD bits ++
+      rest.flatMap (markedSourceBlock false)
+    run runtimeUnaryRebaseMachine (2 * bits.length + 4)
+        ⟨restoreNext, pre.length, T0⟩ =
+      ⟨restoreNext, pre.length + 2 * bits.length + 4, T1⟩ := by
+  dsimp only
+  have hh := runtimeUnaryRebase_run_restoreLaterHeader pre bits
+    (rest.flatMap (markedSourceBlock false))
+  have hd := runtimeUnaryRebase_run_restoreEncodeD
+    (pre ++ [true, false]) bits (rest.flatMap (markedSourceBlock false))
+  rw [show 2 * bits.length + 4 = 2 + (2 * bits.length + 2) by omega,
+    run_add]
+  rw [show pre ++ markedSourceBlock false bits ++
+      rest.flatMap (markedSourceBlock false) =
+      pre ++ [true, true] ++ encodeD bits ++
+        rest.flatMap (markedSourceBlock false) by
+    simp [markedSourceBlock, List.append_assoc]]
+  rw [hh]
+  convert hd using 1 <;> simp [List.append_assoc] <;> omega
+
+def restoreArchiveClock (rest : List (List Bool)) : Nat :=
+  (rest.map (fun bits => 2 * bits.length + 4)).sum
+
+theorem runtimeUnaryRebase_run_restoreLaterArchive
+    (pre : List Bool) (rest : List (List Bool)) :
+    let T0 := pre ++ rest.flatMap (markedSourceBlock false)
+    let T1 := pre ++ selectedTail rest
+    run runtimeUnaryRebaseMachine (restoreArchiveClock rest)
+        ⟨restoreNext, pre.length, T0⟩ =
+      ⟨restoreNext, pre.length + (selectedTail rest).length, T1⟩ := by
+  dsimp only
+  induction rest generalizing pre with
+  | nil => simp [restoreArchiveClock, selectedTail, flattenPairs]
+  | cons bits rest ih =>
+      have hb := runtimeUnaryRebase_run_restoreLaterBlock pre bits rest
+      have hr := ih (pre ++ [true, false] ++ encodeD bits)
+      have hb' : run runtimeUnaryRebaseMachine (2 * bits.length + 4)
+          ⟨restoreNext, pre.length,
+            pre ++ (markedSourceBlock false bits ++
+              rest.flatMap (markedSourceBlock false))⟩ =
+          ⟨restoreNext, pre.length + 2 * bits.length + 4,
+            pre ++ [true, false] ++ encodeD bits ++
+              rest.flatMap (markedSourceBlock false)⟩ := by
+        simpa [List.append_assoc] using hb
+      have hc : restoreArchiveClock (bits :: rest) =
+          (2 * bits.length + 4) + restoreArchiveClock rest := by
+        simp [restoreArchiveClock]
+      rw [hc, run_add]
+      simp only [List.flatMap_cons]
+      rw [hb']
+      simpa [selectedTail_cons, encodeD_length, List.append_assoc,
+        Nat.add_assoc, Nat.add_comm, Nat.add_left_comm,
+        show 1 + (1 + (2 + 2 * bits.length)) =
+          2 * bits.length + 4 by omega,
+        show 1 + (1 + (2 + (2 * bits.length +
+            (selectedTail rest).length))) =
+          2 * bits.length + (4 + (selectedTail rest).length) by omega] using hr
+
+theorem runtimeUnaryRebase_run_restoreEnd (T : List Bool) (p : Nat)
+    (hblank : T.getD p false = false) :
+    run runtimeUnaryRebaseMachine 1 ⟨restoreNext, p, T⟩ =
+      ⟨done, p, T⟩ := by
+  rw [List.getD_eq_getElem?_getD] at hblank
+  simp [run_succ, step, runtimeUnaryRebaseMachine, moveHead, hblank]
+
+/-- The final pass restores every temporary header and halts on the blank
+immediately after the byte-for-byte canonical archive. -/
+theorem runtimeUnaryRebase_run_restoreArchive
+    (pre bits : List Bool) (rest : List (List Bool)) :
+    let T0 := pre ++ markedArchive (bits :: rest)
+    let T1 := pre ++ selectedTail (bits :: rest)
+    run runtimeUnaryRebaseMachine
+        (2 * bits.length + 4 + restoreArchiveClock rest + 1)
+        ⟨restoreFirstLo, pre.length, T0⟩ =
+      ⟨done, pre.length + (selectedTail (bits :: rest)).length, T1⟩ := by
+  dsimp only
+  have hb := runtimeUnaryRebase_run_restoreFirstBlock pre bits rest
+  have hb' : run runtimeUnaryRebaseMachine (2 * bits.length + 4)
+      ⟨restoreFirstLo, pre.length, pre ++ markedArchive (bits :: rest)⟩ =
+      ⟨restoreNext, pre.length + 2 * bits.length + 4,
+        pre ++ [true, false] ++ encodeD bits ++
+          rest.flatMap (markedSourceBlock false)⟩ := by
+    simpa [markedArchive, List.append_assoc] using hb
+  let P := pre ++ [true, false] ++ encodeD bits
+  have hr := runtimeUnaryRebase_run_restoreLaterArchive P rest
+  let T1 := pre ++ selectedTail (bits :: rest)
+  have he := runtimeUnaryRebase_run_restoreEnd T1
+    (pre.length + (selectedTail (bits :: rest)).length) (by
+      simp [T1])
+  rw [show 2 * bits.length + 4 + restoreArchiveClock rest + 1 =
+      (2 * bits.length + 4) + (restoreArchiveClock rest + 1) by omega,
+    run_add, hb', run_add]
+  have hr' : run runtimeUnaryRebaseMachine (restoreArchiveClock rest)
+      ⟨restoreNext, pre.length + 2 * bits.length + 4,
+        pre ++ [true, false] ++ encodeD bits ++
+          rest.flatMap (markedSourceBlock false)⟩ =
+      ⟨restoreNext, pre.length + (selectedTail (bits :: rest)).length,
+        T1⟩ := by
+    simpa [P, T1, selectedTail_cons, encodeD_length, List.append_assoc,
+      Nat.add_assoc, Nat.add_comm, Nat.add_left_comm,
+      show 1 + (1 + (2 + 2 * bits.length)) =
+        2 * bits.length + 4 by omega,
+      show 1 + (1 + (2 + (2 * bits.length +
+          (selectedTail rest).length))) =
+        2 * bits.length + (4 + (selectedTail rest).length) by omega] using hr
+  rw [hr']
+  exact he
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeUnaryRebaseWriter
