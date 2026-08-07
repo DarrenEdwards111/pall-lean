@@ -520,6 +520,253 @@ theorem runtimeArchiveReturnSeed_leftSafe_prefixed
 
 /-! ## Unary writer boundary phases -/
 
+/-- Every unary-writer step loses at most one physical head cell.  The
+controller has no reset transition, so the statement also covers rejection
+and already-halted configurations. -/
+theorem runtimeUnaryRebase_step_head_lower
+    (c : Cfg runtimeUnaryRebaseMachine) :
+    c.hd ≤ (step runtimeUnaryRebaseMachine c).hd + 1 := by
+  by_cases hh : runtimeUnaryRebaseMachine.halt c.st = true
+  · rw [step_of_halted _ hh]
+    omega
+  · have hh' : runtimeUnaryRebaseMachine.halt c.st = false := by
+      simpa using hh
+    simp only [step, hh', Bool.false_eq_true, if_false]
+    apply moveHead_lower_of_ne_reset
+    cases c.st <;>
+      simp [runtimeUnaryRebaseMachine] <;>
+      split_ifs <;> simp
+
+theorem runtimeUnaryRebase_run_head_lower
+    (c : Cfg runtimeUnaryRebaseMachine) (i : Nat) :
+    c.hd ≤ (run runtimeUnaryRebaseMachine i c).hd + i := by
+  induction i with
+  | zero => simp
+  | succ i ih =>
+      rw [run_succ]
+      have hs := runtimeUnaryRebase_step_head_lower
+        (run runtimeUnaryRebaseMachine i c)
+      omega
+
+/-- A unary-writer phase whose clock does not exceed its entry head is
+automatically safe, irrespective of the tape it inspects. -/
+theorem runtimeUnaryRebase_leftSafe_of_clock
+    (s : RuntimeUnaryRebaseState) (T : List Bool) (p n : Nat)
+    (hn : n ≤ p) :
+    LeftSafeRun runtimeUnaryRebaseMachine ⟨s, p, T⟩ n := by
+  intro i hi hlive hmove
+  have hlower := runtimeUnaryRebase_run_head_lower
+    (⟨s, p, T⟩ : Cfg runtimeUnaryRebaseMachine) i
+  change p ≤ (run runtimeUnaryRebaseMachine i
+    ⟨s, p, T⟩).hd + i at hlower
+  omega
+
+/-- A doubled marked region can be traversed backwards without reaching
+physical origin. -/
+theorem runtimeUnaryRebase_revPairs_leftSafe
+    (T : List Bool) (H n : Nat) (last : Bool) (hH : 1 ≤ H) :
+    LeftSafeRun runtimeUnaryRebaseMachine
+      ⟨RuntimeUnaryRebaseState.revHi last, H + 2 * n - 1, T⟩
+      (2 * n) := by
+  apply runtimeUnaryRebase_leftSafe_of_clock
+  omega
+
+/-- The unary tally traverses its doubled `11` region under the same exact
+head budget as the marked-body reverse walk. -/
+theorem runtimeUnaryRebase_tallyPairs_leftSafe
+    (T : List Bool) (H n : Nat) (last : Bool) (hH : 1 ≤ H) :
+    LeftSafeRun runtimeUnaryRebaseMachine
+      ⟨RuntimeUnaryRebaseState.tallyHi last, H + 2 * n - 1, T⟩
+      (2 * n) := by
+  apply runtimeUnaryRebase_leftSafe_of_clock
+  omega
+
+/-- The eight-step inter-block turn stays within its concrete marked
+separator. -/
+theorem runtimeUnaryRebase_boundaryInter_leftSafe
+    (pre tail : List Bool) (last : Bool) (hpre : 4 ≤ pre.length) :
+    LeftSafeRun runtimeUnaryRebaseMachine
+      ⟨RuntimeUnaryRebaseState.revHi last, pre.length + 1,
+        pre ++ [false, true, true, true] ++ tail⟩ 8 := by
+  have h0 : (pre ++ [false, true, true, true] ++ tail).getD
+      pre.length false = false := by simp
+  have h1 : (pre ++ [false, true, true, true] ++ tail).getD
+      (pre.length + 1) false = true := by simp
+  have h2 : (pre ++ [false, true, true, true] ++ tail).getD
+      (pre.length + 2) false = true := by simp
+  have h3 : (pre ++ [false, true, true, true] ++ tail).getD
+      (pre.length + 3) false = true := by simp
+  rw [List.getD_eq_getElem?_getD] at h0 h1 h2 h3
+  intro i hi hlive hmove
+  interval_cases i <;>
+    simp [run_succ, step, runtimeUnaryRebaseMachine, moveHead, writeAt,
+      h0, h1, h2, h3, Nat.add_assoc]
+      at hlive hmove ⊢ <;>
+    omega
+
+/-- The eight-step origin turn reaches the tally without crossing the
+physical prefix. -/
+theorem runtimeUnaryRebase_boundaryOrigin_leftSafe
+    (pre tail : List Bool) (last : Bool) (hpre : 4 ≤ pre.length) :
+    LeftSafeRun runtimeUnaryRebaseMachine
+      ⟨RuntimeUnaryRebaseState.revHi last, pre.length + 1,
+        pre ++ [false, true, false, false] ++ tail⟩ 8 := by
+  have h0 : (pre ++ [false, true, false, false] ++ tail).getD
+      pre.length false = false := by simp
+  have h1 : (pre ++ [false, true, false, false] ++ tail).getD
+      (pre.length + 1) false = true := by simp
+  have h2 : (pre ++ [false, true, false, false] ++ tail).getD
+      (pre.length + 2) false = false := by simp
+  have h3 : (pre ++ [false, true, false, false] ++ tail).getD
+      (pre.length + 3) false = false := by simp
+  rw [List.getD_eq_getElem?_getD] at h0 h1 h2 h3
+  intro i hi hlive hmove
+  interval_cases i <;>
+    simp [run_succ, step, runtimeUnaryRebaseMachine, moveHead, writeAt,
+      h0, h1, h2, h3, Nat.add_assoc]
+      at hlive hmove ⊢ <;>
+    omega
+
+/-- The nonfinal four-step frontier write uses three predecessor cells and
+never attempts a fourth backup. -/
+theorem runtimeUnaryRebase_frontierWrite_leftSafe
+    (pre tail : List Bool) (a b : Bool) :
+    LeftSafeRun runtimeUnaryRebaseMachine
+      ⟨RuntimeUnaryRebaseState.tallyHi false, pre.length + 3,
+        pre ++ [a, b, false, true] ++ tail⟩ 4 := by
+  intro i hi hlive hmove
+  interval_cases i <;>
+    simp [run_succ, step, runtimeUnaryRebaseMachine, moveHead, writeAt]
+      at hlive hmove ⊢ <;> omega
+
+/-- The final frontier write consumes the additional reserved marker pair,
+but every live backup still occurs at a positive head. -/
+theorem runtimeUnaryRebase_finalFrontierWrite_leftSafe
+    (pre tail : List Bool) (c d a b : Bool) :
+    LeftSafeRun runtimeUnaryRebaseMachine
+      ⟨RuntimeUnaryRebaseState.tallyHi true, pre.length + 5,
+        pre ++ [c, d, a, b, false, true] ++ tail⟩ 8 := by
+  intro i hi hlive hmove
+  interval_cases i <;>
+    simp [run_succ, step, runtimeUnaryRebaseMachine, moveHead, writeAt]
+      at hlive hmove ⊢ <;> omega
+
+/-- Returning across a concrete run of true cells only moves right. -/
+theorem runtimeUnaryRebase_returnTrueCells_leftSafe
+    (pre tail : List Bool) (n : Nat) (last : Bool) :
+    LeftSafeRun runtimeUnaryRebaseMachine
+      ⟨RuntimeUnaryRebaseState.returnRight last, pre.length,
+        pre ++ List.replicate n true ++ tail⟩ n := by
+  induction n generalizing pre with
+  | zero =>
+      intro i hi
+      omega
+  | succ n ih =>
+      rw [List.replicate_succ]
+      rw [show n + 1 = 1 + n by omega]
+      apply leftSafeRun_add (a := 1) (b := n)
+      · apply leftSafeRun_one_of_not_left
+        simp [runtimeUnaryRebaseMachine]
+      · have hstep : run runtimeUnaryRebaseMachine 1
+            ⟨RuntimeUnaryRebaseState.returnRight last, pre.length,
+              pre ++ true :: List.replicate n true ++ tail⟩ =
+            ⟨RuntimeUnaryRebaseState.returnRight last, pre.length + 1,
+              pre ++ true :: List.replicate n true ++ tail⟩ := by
+          simp [run_succ, step, runtimeUnaryRebaseMachine, moveHead]
+        rw [hstep]
+        simpa [List.append_assoc, Nat.add_assoc] using ih (pre ++ [true])
+
+/-- Crossing the concrete `01` seed pair uses two right moves. -/
+theorem runtimeUnaryRebase_returnSeed_leftSafe
+    (pre archive : List Bool) (last : Bool) :
+    LeftSafeRun runtimeUnaryRebaseMachine
+      ⟨RuntimeUnaryRebaseState.returnRight last, pre.length,
+        pre ++ [false, true] ++ archive⟩ 2 := by
+  intro i hi hlive hmove
+  interval_cases i <;>
+    simp [run_succ, step, runtimeUnaryRebaseMachine, moveHead]
+      at hlive hmove ⊢
+
+/-- The complete nonfinal tally/write/right-return phase is left-safe on the
+exact unary frontier produced by a visit. -/
+theorem runtimeUnaryRebase_extendFrontier_leftSafe
+    (pre archive : List Bool) (a b : Bool) (k : Nat) :
+    let T0 := pre ++ [a, b] ++ unaryRebaseFrontier k ++ archive
+    LeftSafeRun runtimeUnaryRebaseMachine
+      ⟨RuntimeUnaryRebaseState.tallyHi false,
+        pre.length + 2 * k + 3, T0⟩ (4 * k + 9) := by
+  dsimp only
+  let T0 := pre ++ [a, b] ++ unaryRebaseFrontier k ++ archive
+  let Tmid := pre ++ [false, true, true, true] ++
+    List.replicate (2 * k) true ++ [false, true] ++ archive
+  have ht := runtimeUnaryRebase_run_tallyTruePairs T0
+    (pre.length + 4) k false (by omega) (by
+      intro i hi
+      have h := prefixed_replicate_true
+        (pre ++ [a, b, false, true]) ([false, true] ++ archive)
+        (2 * k) i hi
+      simpa [T0, unaryRebaseFrontier, List.append_assoc] using h)
+  have ht' : run runtimeUnaryRebaseMachine (2 * k)
+      ⟨RuntimeUnaryRebaseState.tallyHi false,
+        pre.length + 2 * k + 3, T0⟩ =
+      ⟨RuntimeUnaryRebaseState.tallyHi false, pre.length + 3, T0⟩ := by
+    simpa [Nat.add_assoc, Nat.add_left_comm, Nat.add_comm] using ht
+  have hsTally : LeftSafeRun runtimeUnaryRebaseMachine
+      ⟨RuntimeUnaryRebaseState.tallyHi false,
+        pre.length + 2 * k + 3, T0⟩ (2 * k) := by
+    simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using
+      runtimeUnaryRebase_tallyPairs_leftSafe
+        T0 (pre.length + 4) k false (by omega)
+  have hw := runtimeUnaryRebase_run_frontierWrite pre
+    (List.replicate (2 * k) true ++ [false, true] ++ archive) a b
+  have hw' : run runtimeUnaryRebaseMachine 4
+      ⟨RuntimeUnaryRebaseState.tallyHi false, pre.length + 3, T0⟩ =
+      ⟨RuntimeUnaryRebaseState.returnRight false,
+        pre.length + 1, Tmid⟩ := by
+    simpa [T0, Tmid, unaryRebaseFrontier, List.append_assoc] using hw
+  have hsWrite : LeftSafeRun runtimeUnaryRebaseMachine
+      ⟨RuntimeUnaryRebaseState.tallyHi false, pre.length + 3, T0⟩ 4 := by
+    simpa [T0, unaryRebaseFrontier, List.append_assoc] using
+      runtimeUnaryRebase_frontierWrite_leftSafe pre
+        (List.replicate (2 * k) true ++ [false, true] ++ archive) a b
+  let P := pre ++ [false]
+  have hTmid : Tmid =
+      P ++ List.replicate (2 * k + 3) true ++ [false, true] ++ archive := by
+    rw [show 2 * k + 3 = 3 + 2 * k by omega, List.replicate_add]
+    simp [P, Tmid, List.append_assoc]
+  have hr := runtimeUnaryRebase_run_returnTrueCells P
+    ([false, true] ++ archive) (2 * k + 3) false
+  have hr' : run runtimeUnaryRebaseMachine (2 * k + 3)
+      ⟨RuntimeUnaryRebaseState.returnRight false,
+        pre.length + 1, Tmid⟩ =
+      ⟨RuntimeUnaryRebaseState.returnRight false,
+        pre.length + 2 * k + 4, Tmid⟩ := by
+    rw [hTmid]
+    convert hr using 1 <;>
+      simp [P, List.append_assoc, Nat.add_assoc] <;> omega
+  have hsReturn : LeftSafeRun runtimeUnaryRebaseMachine
+      ⟨RuntimeUnaryRebaseState.returnRight false,
+        pre.length + 1, Tmid⟩ (2 * k + 3) := by
+    rw [hTmid]
+    simpa [P, List.append_assoc, Nat.add_assoc] using
+      runtimeUnaryRebase_returnTrueCells_leftSafe P
+        ([false, true] ++ archive) (2 * k + 3) false
+  have hsSeed : LeftSafeRun runtimeUnaryRebaseMachine
+      ⟨RuntimeUnaryRebaseState.returnRight false,
+        pre.length + 2 * k + 4, Tmid⟩ 2 := by
+    simpa [Tmid, List.append_assoc, Nat.add_assoc] using
+      runtimeUnaryRebase_returnSeed_leftSafe
+        (pre ++ [false, true, true, true] ++
+          List.replicate (2 * k) true) archive false
+  rw [show 4 * k + 9 = 2 * k + (4 + ((2 * k + 3) + 2)) by omega]
+  apply leftSafeRun_add hsTally
+  rw [ht']
+  apply leftSafeRun_add hsWrite
+  rw [hw']
+  apply leftSafeRun_add hsReturn
+  rw [hr']
+  exact hsSeed
+
 /-- The eight-step unary-writer initialization backs up exactly four cells
 before returning to the archive origin. -/
 theorem runtimeUnaryRebase_init_leftSafe
@@ -589,4 +836,6 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftS
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeArchiveReturnSeed_leftSafe_of_runs
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeArchiveReturnSeed_leftSafe_prefixed
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeUnaryRebase_init_leftSafe
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeUnaryRebase_boundaryOrigin_leftSafe
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeUnaryRebase_extendFrontier_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeUnaryRebase_restore_leftSafe
