@@ -18,6 +18,8 @@ open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupLeftBoundaryTermina
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeLeftSafety
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeOutputSourceLocator
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceCompact
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceSelect
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeZeroCopyRebase
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeWorkspaceLocator
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalWorkspace
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeWorkspaceTailLocator
@@ -25,6 +27,7 @@ open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalArch
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeArchiveLocator
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeArchiveReturnWriter
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeUnaryRebaseWriter
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalUnaryRebase
 
 /-! ## Head-preserving safety from an already discovered head -/
 
@@ -1878,6 +1881,110 @@ theorem runtimeUnaryRebase_complete_safeRun
     rw [hv']
     exact hsr
 
+/-- Physical scratch splitting preserves the complete unary writer's exact
+endpoint and safety certificate, while exposing the untouched leading base. -/
+theorem runtimeUnaryRebase_physical_safeRun
+    (phys : List Bool) (bits : List Bool) (more : List (List Bool))
+    (hfit : 2 * (bits :: more).length + 4 ≤ phys.length) :
+    let R := phys.length + 2
+    let T0 := phys ++ [false, true] ++ selectedTail (bits :: more)
+    ∃ base n,
+      base.IsPrefix phys ∧
+      base.length = phys.length - (2 * (bits :: more).length + 4) ∧
+      run runtimeUnaryRebaseMachine n
+          ⟨RuntimeUnaryRebaseState.init1, R, T0⟩ =
+        ⟨RuntimeUnaryRebaseState.done,
+          R + (selectedTail (bits :: more)).length,
+          base ++ [false, true, false, true] ++
+            sourceSelectorInput (bits :: more).length 0 (bits :: more)⟩ ∧
+      LeftSafeRun runtimeUnaryRebaseMachine
+        ⟨RuntimeUnaryRebaseState.init1, R, T0⟩ n := by
+  dsimp only
+  let L := 2 * (bits :: more).length + 4
+  let p := phys.length - L
+  let suffix := phys.drop p
+  have hsuffix : suffix.length = 2 * (bits :: more).length + 4 := by
+    simp only [suffix, List.length_drop]
+    change phys.length - (phys.length - L) = L
+    omega
+  obtain ⟨scratch, a, b, hs, hscratch⟩ := split_last_two hsuffix
+  let base := phys.take p
+  have hphys : phys = base ++ scratch ++ [a, b] := by
+    have H := List.take_append_drop p phys
+    rw [show phys.drop p = suffix by rfl, hs] at H
+    simpa [base, List.append_assoc] using H.symm
+  obtain ⟨n, hn, hsn⟩ := runtimeUnaryRebase_complete_safeRun
+    base scratch a b bits more hscratch
+  refine ⟨base, n, ?_, ?_, ?_, ?_⟩
+  · exact ⟨scratch ++ [a, b], by simpa [List.append_assoc] using hphys.symm⟩
+  · have hp : p ≤ phys.length := by simp [p]
+    simp [base, List.length_take, p, L]
+  · have hR : phys.length + 2 = base.length + scratch.length + 4 := by
+      rw [hphys]
+      simp
+      omega
+    have hT : phys ++ [false, true] ++ selectedTail (bits :: more) =
+        base ++ scratch ++ [a, b, false, true] ++
+          selectedTail (bits :: more) := by
+      rw [hphys]
+      simp [List.append_assoc]
+    have hn' := hn
+    rw [unaryRebaseFrontier_eq_boundary_prefix] at hn'
+    have hout : base ++ [false, true] ++
+          ([false, true] ++ zeroCopyRebasePrefix (bits :: more).length) ++
+          selectedTail (bits :: more) =
+        base ++ [false, true, false, true] ++
+          sourceSelectorInput (bits :: more).length 0 (bits :: more) := by
+      have hz := zeroCopyRebasePrefix_archive (bits :: more)
+      simpa [List.append_assoc] using
+        congrArg (fun X => base ++ [false, true, false, true] ++ X) hz
+    rw [hout] at hn'
+    rw [hR, hT]
+    exact hn'
+  · have hR : phys.length + 2 = base.length + scratch.length + 4 := by
+      rw [hphys]
+      simp
+      omega
+    have hT : phys ++ [false, true] ++ selectedTail (bits :: more) =
+        base ++ scratch ++ [a, b, false, true] ++
+          selectedTail (bits :: more) := by
+      rw [hphys]
+      simp [List.append_assoc]
+    rw [hR, hT]
+    exact hsn
+
+/-- Exact safety compositor for the real physical controller: physical
+workspace/archive return and seed installation hand directly to the complete
+unary writer without changing the discovered head. -/
+theorem outputWorkspaceArchiveReturnUnaryRebase_leftSafe_of_runs
+    (T0 Tseed Tout : List Bool) (seedClock unaryClock R finalHead : Nat)
+    (hseed : run outputWorkspaceArchiveReturnSeedMachine seedClock
+        (init outputWorkspaceArchiveReturnSeedMachine T0) =
+      ⟨Sum.inr (Sum.inr RuntimeRebaseSeedState.done), R, Tseed⟩)
+    (hsSeed : LeftSafeRun outputWorkspaceArchiveReturnSeedMachine
+      (init outputWorkspaceArchiveReturnSeedMachine T0) seedClock)
+    (hunary : run runtimeUnaryRebaseMachine unaryClock
+        ⟨RuntimeUnaryRebaseState.init1, R, Tseed⟩ =
+      ⟨RuntimeUnaryRebaseState.done, finalHead, Tout⟩)
+    (hsUnary : LeftSafeRun runtimeUnaryRebaseMachine
+      ⟨RuntimeUnaryRebaseState.init1, R, Tseed⟩ unaryClock) :
+    LeftSafeRun outputWorkspaceArchiveReturnUnaryRebaseMachine
+      (init outputWorkspaceArchiveReturnUnaryRebaseMachine T0)
+      (seedClock + 1 + unaryClock) := by
+  have hhUnary : runtimeUnaryRebaseMachine.halt
+      (run runtimeUnaryRebaseMachine unaryClock
+        ⟨runtimeUnaryRebaseMachine.start, R, Tseed⟩).st = true := by
+    change runtimeUnaryRebaseMachine.halt
+      (run runtimeUnaryRebaseMachine unaryClock
+        ⟨RuntimeUnaryRebaseState.init1, R, Tseed⟩).st = true
+    rw [hunary]
+    rfl
+  simpa [outputWorkspaceArchiveReturnUnaryRebaseMachine] using
+    headSeq_leftSafe outputWorkspaceArchiveReturnSeedMachine
+      runtimeUnaryRebaseMachine T0 Tseed seedClock unaryClock R
+      (Sum.inr (Sum.inr RuntimeRebaseSeedState.done)) hseed rfl hsSeed
+      hsUnary hhUnary
+
 /-- The eight-step unary-writer initialization backs up exactly four cells
 before returning to the archive origin. -/
 theorem runtimeUnaryRebase_init_leftSafe
@@ -1956,4 +2063,6 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftS
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeUnaryRebase_visit_final_safeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeUnaryRebase_visits_safeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeUnaryRebase_complete_safeRun
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeUnaryRebase_physical_safeRun
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.outputWorkspaceArchiveReturnUnaryRebase_leftSafe_of_runs
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeUnaryRebase_restore_leftSafe
