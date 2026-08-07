@@ -1095,6 +1095,401 @@ theorem runtimeUnaryRebase_processedArchive_safeRun
     simpa [markedArchive, markedSourceBlock_length,
       List.append_assoc, Nat.add_assoc] using hsn
 
+set_option maxHeartbeats 1000000 in
+/-- `markNext` now exports one clock carrying both its exact fresh-block
+endpoint and the complete forward-scan safety proof. -/
+theorem runtimeUnaryRebase_markNext_safeRun
+    (pre : List Bool) (done : List (List Bool))
+    (bits : List Bool) (more : List (List Bool)) :
+    let T0 := pre ++ markedArchive done ++ selectedTail (bits :: more)
+    let T1 := pre ++ markedArchive (done ++ [bits]) ++ selectedTail more
+    ∃ n,
+      run runtimeUnaryRebaseMachine n
+          ⟨RuntimeUnaryRebaseState.firstLo, pre.length, T0⟩ =
+        ⟨RuntimeUnaryRebaseState.revTermHi (more = []),
+          pre.length + (markedArchive (done ++ [bits])).length - 1, T1⟩ ∧
+      LeftSafeRun runtimeUnaryRebaseMachine
+        ⟨RuntimeUnaryRebaseState.firstLo, pre.length, T0⟩ n := by
+  dsimp only
+  let T0 := pre ++ markedArchive done ++ selectedTail (bits :: more)
+  let T1 := pre ++ markedArchive (done ++ [bits]) ++ selectedTail more
+  cases done with
+  | nil =>
+      cases more with
+      | nil =>
+          have hr := runtimeUnaryRebase_run_freshFirstBlock
+            pre bits [] false (by simp)
+          have hs := runtimeUnaryRebase_freshFirstBlock_leftSafe
+            pre bits [] false (by simp)
+          refine ⟨2 * bits.length + 7, ?_, ?_⟩
+          · simpa [T0, T1, markedArchive, selectedTail_cons,
+              selectedTail_nil, markedSourceBlock_length,
+              List.append_assoc] using hr
+          · simpa [T0, markedArchive, selectedTail_cons,
+              selectedTail_nil, List.append_assoc] using hs
+      | cons next later =>
+          have hr := runtimeUnaryRebase_run_freshFirstBlock pre bits
+            (selectedTail (next :: later)) true (selectedTail_head next later)
+          have hs := runtimeUnaryRebase_freshFirstBlock_leftSafe pre bits
+            (selectedTail (next :: later)) true (selectedTail_head next later)
+          refine ⟨2 * bits.length + 7, ?_, ?_⟩
+          · simpa [T0, T1, markedArchive, selectedTail_cons,
+              markedSourceBlock_length, List.append_assoc] using hr
+          · simpa [T0, markedArchive, selectedTail_cons,
+              List.append_assoc] using hs
+  | cons first later =>
+      obtain ⟨ns, hrs, hss⟩ := runtimeUnaryRebase_processedArchive_safeRun
+        pre (selectedTail (bits :: more)) first later
+      have happ : markedArchive (first :: later ++ [bits]) =
+          markedArchive (first :: later) ++ markedSourceBlock false bits := by
+        simpa using markedArchive_append_last (first :: later) bits (by simp)
+      cases more with
+      | nil =>
+          have hrf := runtimeUnaryRebase_run_freshBlock
+            (pre ++ markedArchive (first :: later)) bits [] false (by simp)
+          have hsf := runtimeUnaryRebase_freshBlock_leftSafe
+            (pre ++ markedArchive (first :: later)) bits [] false (by simp)
+          refine ⟨ns + (2 * bits.length + 5), ?_, ?_⟩
+          · rw [run_add, hrs, happ]
+            convert hrf using 1 <;> simp [T0, T1,
+              selectedTail_cons, selectedTail_nil,
+              List.append_assoc, markedSourceBlock_length] <;> omega
+          · apply leftSafeRun_add hss
+            rw [hrs]
+            simpa [T0, selectedTail_cons, selectedTail_nil,
+              List.append_assoc] using hsf
+      | cons next later' =>
+          have hrf := runtimeUnaryRebase_run_freshBlock
+            (pre ++ markedArchive (first :: later)) bits
+            (selectedTail (next :: later')) true (selectedTail_head next later')
+          have hsf := runtimeUnaryRebase_freshBlock_leftSafe
+            (pre ++ markedArchive (first :: later)) bits
+            (selectedTail (next :: later')) true (selectedTail_head next later')
+          refine ⟨ns + (2 * bits.length + 5), ?_, ?_⟩
+          · rw [run_add, hrs, happ]
+            convert hrf using 1 <;> simp [T0, T1,
+              selectedTail_cons, List.append_assoc,
+              markedSourceBlock_length, Bool.not_true] <;> omega
+          · apply leftSafeRun_add hss
+            rw [hrs]
+            simpa [T0, selectedTail_cons, List.append_assoc] using hsf
+
+set_option maxHeartbeats 1000000 in
+/-- Reverse traversal of every marked block body exports the same existential
+clock for its exact endpoint and safety certificate. -/
+theorem runtimeUnaryRebase_reverseMarkedBodies_safeRun
+    (pre tail : List Bool) (rest : List (List Bool)) (last : Bool)
+    (hne : rest ≠ []) (hpre : 4 ≤ pre.length) :
+    let T := pre ++ [false, true] ++ markedArchive rest ++ tail
+    ∃ n,
+      run runtimeUnaryRebaseMachine n
+          ⟨RuntimeUnaryRebaseState.revHi last,
+            pre.length + 2 + (markedArchive rest).length - 3, T⟩ =
+        ⟨RuntimeUnaryRebaseState.tallyHi last, pre.length - 1, T⟩ ∧
+      LeftSafeRun runtimeUnaryRebaseMachine
+        ⟨RuntimeUnaryRebaseState.revHi last,
+          pre.length + 2 + (markedArchive rest).length - 3, T⟩ n := by
+  dsimp only
+  induction rest using List.reverseRecOn generalizing tail with
+  | nil => exact absurd rfl hne
+  | @append_singleton init bits ih =>
+      by_cases hinit : init = []
+      · subst init
+        let T := pre ++ [false, true] ++ markedSourceBlock true bits ++ tail
+        have hp := runtimeUnaryRebase_run_revPairs T
+          (pre.length + 2) (bits.length + 1) last (by omega) (by
+            intro i hi
+            have H := markedRegion_pair_eq
+              (pre ++ [false, true]) bits tail true i hi
+            simpa [T, List.append_assoc, Nat.add_assoc,
+              Nat.add_comm, Nat.add_left_comm] using H)
+        have hp' : run runtimeUnaryRebaseMachine (2 * (bits.length + 1))
+            ⟨RuntimeUnaryRebaseState.revHi last,
+              pre.length + 2 + (markedSourceBlock true bits).length - 3, T⟩ =
+          ⟨RuntimeUnaryRebaseState.revHi last, pre.length + 1, T⟩ := by
+          simpa [markedSourceBlock_length, Nat.add_assoc,
+            Nat.add_comm, Nat.add_left_comm] using hp
+        have hsPairs : LeftSafeRun runtimeUnaryRebaseMachine
+            ⟨RuntimeUnaryRebaseState.revHi last,
+              pre.length + 2 + (markedSourceBlock true bits).length - 3, T⟩
+            (2 * (bits.length + 1)) := by
+          simpa [markedSourceBlock_length, Nat.add_assoc,
+            Nat.add_comm, Nat.add_left_comm] using
+            runtimeUnaryRebase_revPairs_leftSafe T (pre.length + 2)
+              (bits.length + 1) last (by omega)
+        have hb := runtimeUnaryRebase_run_boundaryOrigin pre
+          (encodeD bits ++ tail) last hpre
+        have hb' : run runtimeUnaryRebaseMachine 8
+            ⟨RuntimeUnaryRebaseState.revHi last, pre.length + 1, T⟩ =
+          ⟨RuntimeUnaryRebaseState.tallyHi last, pre.length - 1, T⟩ := by
+          simpa [T, markedSourceBlock, List.append_assoc] using hb
+        have hsBoundary : LeftSafeRun runtimeUnaryRebaseMachine
+            ⟨RuntimeUnaryRebaseState.revHi last, pre.length + 1, T⟩ 8 := by
+          simpa [T, markedSourceBlock, List.append_assoc] using
+            runtimeUnaryRebase_boundaryOrigin_leftSafe pre
+              (encodeD bits ++ tail) last hpre
+        refine ⟨2 * (bits.length + 1) + 8, ?_, ?_⟩
+        · have hrun : run runtimeUnaryRebaseMachine
+              (2 * (bits.length + 1) + 8)
+              ⟨RuntimeUnaryRebaseState.revHi last,
+                pre.length + 2 + (markedSourceBlock true bits).length - 3, T⟩ =
+            ⟨RuntimeUnaryRebaseState.tallyHi last, pre.length - 1, T⟩ := by
+            rw [run_add, hp', hb']
+          simpa [T, markedArchive] using hrun
+        · have hsafe : LeftSafeRun runtimeUnaryRebaseMachine
+              ⟨RuntimeUnaryRebaseState.revHi last,
+                pre.length + 2 + (markedSourceBlock true bits).length - 3, T⟩
+              (2 * (bits.length + 1) + 8) := by
+            apply leftSafeRun_add hsPairs
+            rw [hp']
+            exact hsBoundary
+          simpa [T, markedArchive] using hsafe
+      · have hneInit : init ≠ [] := hinit
+        obtain ⟨core, hcore⟩ := markedArchive_eq_core_term init hneInit
+        let P := pre ++ [false, true] ++ core
+        let T := pre ++ [false, true] ++ markedArchive (init ++ [bits]) ++ tail
+        have hTblock : T =
+            (pre ++ [false, true] ++ markedArchive init) ++
+              markedSourceBlock false bits ++ tail := by
+          simp [T, markedArchive_append_last init bits hinit,
+            List.append_assoc]
+        have hp := runtimeUnaryRebase_run_revPairs T
+          (pre.length + 2 + (markedArchive init).length)
+          (bits.length + 1) last (by omega) (by
+            intro i hi
+            have H := markedRegion_pair_eq
+              (pre ++ [false, true] ++ markedArchive init) bits tail false i hi
+            rw [hTblock]
+            simpa [List.append_assoc, Nat.add_assoc, Nat.add_comm,
+              Nat.add_left_comm,
+              show 1 + (1 + (2 * i + (markedArchive init).length)) =
+                2 + (2 * i + (markedArchive init).length) by omega,
+              show 1 + (1 + (1 + (2 * i + (markedArchive init).length))) =
+                1 + (2 + (2 * i + (markedArchive init).length)) by omega]
+              using H)
+        have hp' : run runtimeUnaryRebaseMachine (2 * (bits.length + 1))
+            ⟨RuntimeUnaryRebaseState.revHi last,
+              pre.length + 2 + (markedArchive (init ++ [bits])).length - 3,
+              T⟩ =
+          ⟨RuntimeUnaryRebaseState.revHi last,
+            pre.length + 2 + (markedArchive init).length - 1, T⟩ := by
+          rw [markedArchive_append_last init bits hinit, List.length_append,
+            markedSourceBlock_length]
+          rw [show pre.length + 2 +
+              ((markedArchive init).length + (2 * bits.length + 4)) - 3 =
+              pre.length + 2 + (markedArchive init).length +
+                2 * (bits.length + 1) - 1 by omega]
+          exact hp
+        have hsPairs : LeftSafeRun runtimeUnaryRebaseMachine
+            ⟨RuntimeUnaryRebaseState.revHi last,
+              pre.length + 2 + (markedArchive (init ++ [bits])).length - 3,
+              T⟩ (2 * (bits.length + 1)) := by
+          rw [markedArchive_append_last init bits hinit, List.length_append,
+            markedSourceBlock_length]
+          convert runtimeUnaryRebase_revPairs_leftSafe T
+            (pre.length + 2 + (markedArchive init).length)
+            (bits.length + 1) last (by omega) using 1 <;>
+            simp [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] <;> omega
+        have hb := runtimeUnaryRebase_run_boundaryInter P
+          (encodeD bits ++ tail) last (by simp [P]; omega)
+        have hb' : run runtimeUnaryRebaseMachine 8
+            ⟨RuntimeUnaryRebaseState.revHi last,
+              pre.length + 2 + (markedArchive init).length - 1, T⟩ =
+          ⟨RuntimeUnaryRebaseState.revHi last,
+            pre.length + 2 + (markedArchive init).length - 3, T⟩ := by
+          have hT : T = P ++ [false, true, true, true] ++
+              encodeD bits ++ tail := by
+            simp [T, P, markedArchive_append_last init bits hinit,
+              markedSourceBlock, hcore, List.append_assoc]
+          rw [hT]
+          simpa [P, hcore, Nat.add_assoc, Nat.add_comm,
+            Nat.add_left_comm] using hb
+        have hsBoundary : LeftSafeRun runtimeUnaryRebaseMachine
+            ⟨RuntimeUnaryRebaseState.revHi last,
+              pre.length + 2 + (markedArchive init).length - 1, T⟩ 8 := by
+          have hT : T = P ++ [false, true, true, true] ++
+              encodeD bits ++ tail := by
+            simp [T, P, markedArchive_append_last init bits hinit,
+              markedSourceBlock, hcore, List.append_assoc]
+          rw [hT]
+          simpa [P, hcore, Nat.add_assoc, Nat.add_comm,
+            Nat.add_left_comm] using
+            runtimeUnaryRebase_boundaryInter_leftSafe P
+              (encodeD bits ++ tail) last (by simp [P]; omega)
+        obtain ⟨n, hn, hsn⟩ := ih
+          (markedSourceBlock false bits ++ tail) hneInit
+        have hn' : run runtimeUnaryRebaseMachine n
+            ⟨RuntimeUnaryRebaseState.revHi last,
+              pre.length + 2 + (markedArchive init).length - 3, T⟩ =
+          ⟨RuntimeUnaryRebaseState.tallyHi last, pre.length - 1, T⟩ := by
+          simpa [T, markedArchive_append_last init bits hinit,
+            List.append_assoc] using hn
+        have hsn' : LeftSafeRun runtimeUnaryRebaseMachine
+            ⟨RuntimeUnaryRebaseState.revHi last,
+              pre.length + 2 + (markedArchive init).length - 3, T⟩ n := by
+          simpa [T, markedArchive_append_last init bits hinit,
+            List.append_assoc] using hsn
+        refine ⟨2 * (bits.length + 1) + 8 + n, ?_, ?_⟩
+        · rw [show 2 * (bits.length + 1) + 8 + n =
+            2 * (bits.length + 1) + (8 + n) by omega,
+            run_add, hp', run_add, hb', hn']
+        · rw [show 2 * (bits.length + 1) + 8 + n =
+            2 * (bits.length + 1) + (8 + n) by omega]
+          apply leftSafeRun_add hsPairs
+          rw [hp']
+          apply leftSafeRun_add hsBoundary
+          rw [hb']
+          exact hsn'
+
+/-- The complete reverse return from the marked archive to the unary tally
+frontier shares one exact operational and safe clock. -/
+theorem runtimeUnaryRebase_returnMarked_safeRun
+    (pre : List Bool) (a b : Bool) (done : List (List Bool))
+    (bits : List Bool) (more : List (List Bool)) :
+    let A := pre ++ [a, b] ++ unaryRebaseFrontier done.length
+    let T := A ++ markedArchive (done ++ [bits]) ++ selectedTail more
+    ∃ n,
+      run runtimeUnaryRebaseMachine n
+          ⟨RuntimeUnaryRebaseState.revTermHi (more = []),
+            A.length + (markedArchive (done ++ [bits])).length - 1, T⟩ =
+        ⟨RuntimeUnaryRebaseState.tallyHi (more = []),
+          pre.length + 2 * done.length + 3, T⟩ ∧
+      LeftSafeRun runtimeUnaryRebaseMachine
+        ⟨RuntimeUnaryRebaseState.revTermHi (more = []),
+          A.length + (markedArchive (done ++ [bits])).length - 1, T⟩ n := by
+  dsimp only
+  let A := pre ++ [a, b] ++ unaryRebaseFrontier done.length
+  let T := A ++ markedArchive (done ++ [bits]) ++ selectedTail more
+  let P := pre ++ [a, b] ++ [false, true] ++
+    List.replicate (2 * done.length) true
+  have hm := markedArchive_append_singleton_length done bits
+  have ht := runtimeUnaryRebase_run_revTerm T
+    (A.length + (markedArchive (done ++ [bits])).length - 1)
+    (more = []) (by simp [A, unaryRebaseFrontier]; omega)
+  have hst : LeftSafeRun runtimeUnaryRebaseMachine
+      ⟨RuntimeUnaryRebaseState.revTermHi (more = []),
+        A.length + (markedArchive (done ++ [bits])).length - 1, T⟩ 2 := by
+    apply runtimeUnaryRebase_leftSafe_of_clock
+    simp [A, unaryRebaseFrontier]
+    omega
+  obtain ⟨nr, hr, hsr⟩ := runtimeUnaryRebase_reverseMarkedBodies_safeRun P
+    (selectedTail more) (done ++ [bits]) (more = []) (by simp)
+    (by simp [P]; omega)
+  have hstart : P.length + 2 + (markedArchive (done ++ [bits])).length - 3 =
+      A.length + (markedArchive (done ++ [bits])).length - 3 := by
+    simp [P, A, unaryRebaseFrontier]
+    omega
+  have hphead : P.length - 1 = pre.length + 2 * done.length + 3 := by
+    simp [P]
+    omega
+  rw [hstart, hphead] at hr
+  rw [hstart] at hsr
+  refine ⟨2 + nr, ?_, ?_⟩
+  · rw [run_add, ht]
+    have hsub : A.length + (markedArchive (done ++ [bits])).length - 1 - 2 =
+        A.length + (markedArchive (done ++ [bits])).length - 3 := by omega
+    rw [hsub]
+    simpa [A, P, T, unaryRebaseFrontier, List.append_assoc] using hr
+  · apply leftSafeRun_add hst
+    rw [ht]
+    have hsub : A.length + (markedArchive (done ++ [bits])).length - 1 - 2 =
+        A.length + (markedArchive (done ++ [bits])).length - 3 := by omega
+    rw [hsub]
+    simpa [A, P, T, unaryRebaseFrontier, List.append_assoc] using hsr
+
+/-- Forward marking and the complete reverse return are now one visit-prefix
+certificate, exactly matching `runtimeUnaryRebase_run_markReturn`. -/
+theorem runtimeUnaryRebase_markReturn_safeRun
+    (pre : List Bool) (a b : Bool) (done : List (List Bool))
+    (bits : List Bool) (more : List (List Bool)) :
+    let A := pre ++ [a, b] ++ unaryRebaseFrontier done.length
+    let T0 := A ++ markedArchive done ++ selectedTail (bits :: more)
+    let T1 := A ++ markedArchive (done ++ [bits]) ++ selectedTail more
+    ∃ n,
+      run runtimeUnaryRebaseMachine n
+          ⟨RuntimeUnaryRebaseState.firstLo, A.length, T0⟩ =
+        ⟨RuntimeUnaryRebaseState.tallyHi (more = []),
+          pre.length + 2 * done.length + 3, T1⟩ ∧
+      LeftSafeRun runtimeUnaryRebaseMachine
+        ⟨RuntimeUnaryRebaseState.firstLo, A.length, T0⟩ n := by
+  dsimp only
+  let A := pre ++ [a, b] ++ unaryRebaseFrontier done.length
+  let T0 := A ++ markedArchive done ++ selectedTail (bits :: more)
+  let T1 := A ++ markedArchive (done ++ [bits]) ++ selectedTail more
+  obtain ⟨nf, hf, hsf⟩ := runtimeUnaryRebase_markNext_safeRun
+    A done bits more
+  obtain ⟨nb, hb, hsb⟩ := runtimeUnaryRebase_returnMarked_safeRun
+    pre a b done bits more
+  refine ⟨nf + nb, ?_, ?_⟩
+  · rw [run_add, hf, hb]
+  · apply leftSafeRun_add hsf
+    rw [hf]
+    exact hsb
+
+theorem runtimeUnaryRebase_extendMarked_nonfinal_leftSafe
+    (pre : List Bool) (a b : Bool) (done : List (List Bool))
+    (bits next : List Bool) (later : List (List Bool)) :
+    let T0 := pre ++ [a, b] ++ unaryRebaseFrontier done.length ++
+      markedArchive (done ++ [bits]) ++ selectedTail (next :: later)
+    LeftSafeRun runtimeUnaryRebaseMachine
+      ⟨RuntimeUnaryRebaseState.tallyHi false,
+        pre.length + 2 * done.length + 3, T0⟩
+      (4 * done.length + 9) := by
+  dsimp only
+  simpa [List.append_assoc] using
+    runtimeUnaryRebase_extendFrontier_leftSafe pre
+      (markedArchive (done ++ [bits]) ++ selectedTail (next :: later))
+      a b done.length
+
+set_option maxHeartbeats 1000000 in
+/-- A complete nonfinal visit now carries its exact endpoint and composed
+left-safety certificate under the same clock. -/
+theorem runtimeUnaryRebase_visit_nonfinal_safeRun
+    (pre : List Bool) (a b : Bool) (done : List (List Bool))
+    (bits next : List Bool) (later : List (List Bool)) :
+    let k := done.length
+    let T0 := pre ++ [a, b] ++ unaryRebaseFrontier k ++
+      markedArchive done ++ selectedTail (bits :: next :: later)
+    let T1 := pre ++ unaryRebaseFrontier (k + 1) ++
+      markedArchive (done ++ [bits]) ++ selectedTail (next :: later)
+    ∃ n,
+      run runtimeUnaryRebaseMachine n
+          ⟨RuntimeUnaryRebaseState.firstLo,
+            pre.length + 2 * k + 6, T0⟩ =
+        ⟨RuntimeUnaryRebaseState.firstLo,
+          pre.length + 2 * k + 6, T1⟩ ∧
+      LeftSafeRun runtimeUnaryRebaseMachine
+        ⟨RuntimeUnaryRebaseState.firstLo,
+          pre.length + 2 * k + 6, T0⟩ n := by
+  dsimp only
+  obtain ⟨nm, hm, hsm⟩ := runtimeUnaryRebase_markReturn_safeRun
+    pre a b done bits (next :: later)
+  have hm' : run runtimeUnaryRebaseMachine nm
+      ⟨RuntimeUnaryRebaseState.firstLo,
+        pre.length + 2 * done.length + 6,
+        pre ++ [a, b] ++ unaryRebaseFrontier done.length ++
+          markedArchive done ++ selectedTail (bits :: next :: later)⟩ =
+    ⟨RuntimeUnaryRebaseState.tallyHi false,
+      pre.length + 2 * done.length + 3,
+      pre ++ [a, b] ++ unaryRebaseFrontier done.length ++
+        markedArchive (done ++ [bits]) ++ selectedTail (next :: later)⟩ := by
+    simpa [unaryRebaseFrontier, List.append_assoc] using hm
+  have hsm' : LeftSafeRun runtimeUnaryRebaseMachine
+      ⟨RuntimeUnaryRebaseState.firstLo,
+        pre.length + 2 * done.length + 6,
+        pre ++ [a, b] ++ unaryRebaseFrontier done.length ++
+          markedArchive done ++ selectedTail (bits :: next :: later)⟩ nm := by
+    simpa [unaryRebaseFrontier, List.append_assoc] using hsm
+  have he := runtimeUnaryRebase_run_extendMarked_nonfinal
+    pre a b done bits next later
+  have hse := runtimeUnaryRebase_extendMarked_nonfinal_leftSafe
+    pre a b done bits next later
+  refine ⟨nm + (4 * done.length + 9), ?_, ?_⟩
+  · rw [run_add, hm', he]
+  · apply leftSafeRun_add hsm'
+    rw [hm']
+    exact hse
+
 /-- The eight-step unary-writer initialization backs up exactly four cells
 before returning to the archive origin. -/
 theorem runtimeUnaryRebase_init_leftSafe
@@ -1168,4 +1563,6 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftS
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeUnaryRebase_extendFrontier_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeUnaryRebase_freshFirstBlock_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeUnaryRebase_processedArchive_safeRun
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeUnaryRebase_markReturn_safeRun
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeUnaryRebase_visit_nonfinal_safeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeUnaryRebase_restore_leftSafe
