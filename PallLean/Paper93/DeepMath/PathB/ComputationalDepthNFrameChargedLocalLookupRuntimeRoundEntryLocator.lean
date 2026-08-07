@@ -21,6 +21,9 @@ open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceSelect
 inductive RuntimeRoundEntryState
   | lo (previousSep : Bool)
   | hi (previousSep loBit : Bool)
+  | markerLo
+  | markerHi (loBit : Bool)
+  | markerBack
   | done
   deriving DecidableEq, Fintype
 
@@ -38,8 +41,10 @@ def RuntimeNoDoubleSepFrom : Bool → List (Bool × Bool) → Prop
       ¬ (previous = true ∧ runtimePairIsSep p = true) ∧
         RuntimeNoDoubleSepFrom (runtimePairIsSep p) ps
 
-/-- Scan aligned doubled pairs and halt immediately after the first `01 01`.
-The remembered Boolean says whether the preceding complete pair was `01`. -/
+/-- Scan aligned doubled pairs.  After seeing at least two consecutive `01`
+pairs, consume the first following nonseparator pair and back up to its first
+cell.  Delaying acceptance in this way makes the delimiter robust when the
+reachable prefix itself ends in an ordinary isolated `01`. -/
 def runtimeRoundEntryLocatorMachine : Machine where
   State := RuntimeRoundEntryState
   fin := inferInstance
@@ -51,8 +56,14 @@ def runtimeRoundEntryLocatorMachine : Machine where
     | .lo previous => (.hi previous b, none, 1)
     | .hi previous loBit =>
         let sep := !loBit && b
-        if previous && sep then (.done, none, 1)
+        if previous && sep then (.markerLo, none, 1)
         else (.lo sep, none, 1)
+    | .markerLo => (.markerHi b, none, 1)
+    | .markerHi loBit =>
+        let sep := !loBit && b
+        if sep then (.markerLo, none, 1)
+        else (.markerBack, none, 0)
+    | .markerBack => (.done, none, 2)
     | .done => (.done, none, 2)
   accept := fun _ => false
 
@@ -69,19 +80,41 @@ theorem runtimeRoundEntry_run_pair (T : List Bool) (q : Nat)
     simp_all [run_succ, step, runtimeRoundEntryLocatorMachine, moveHead,
       runtimePairIsSep]
 
-theorem runtimeRoundEntry_run_marker (T : List Bool) (q : Nat)
+theorem runtimeRoundEntry_run_marker_toSelector (T : List Bool) (q : Nat)
     (h0 : T.getD q false = false)
     (h1 : T.getD (q + 1) false = true)
     (h2 : T.getD (q + 2) false = false)
-    (h3 : T.getD (q + 3) false = true) :
-    run runtimeRoundEntryLocatorMachine 4 ⟨lo false, q, T⟩ =
+    (h3 : T.getD (q + 3) false = true)
+    (hs0 hs1 : Bool)
+    (h4 : T.getD (q + 4) false = hs0)
+    (h5 : T.getD (q + 5) false = hs1)
+    (hnonsep : runtimePairIsSep (hs0, hs1) = false) :
+    run runtimeRoundEntryLocatorMachine 7 ⟨lo false, q, T⟩ =
       ⟨done, q + 4, T⟩ := by
   have hfirst := runtimeRoundEntry_run_pair T q false false true h0 h1 (by
     simp [runtimePairIsSep])
-  rw [show 4 = 2 + 2 by omega, run_add, hfirst]
-  rw [List.getD_eq_getElem?_getD] at h2 h3
-  simp [run_succ, step, runtimeRoundEntryLocatorMachine, moveHead,
-    runtimePairIsSep, h2, h3]
+  rw [show 7 = 2 + 5 by omega, run_add, hfirst]
+  rw [List.getD_eq_getElem?_getD] at h2 h3 h4 h5
+  cases hs0 <;> cases hs1 <;>
+    simp_all [run_succ, step, runtimeRoundEntryLocatorMachine, moveHead,
+      runtimePairIsSep]
+
+theorem runtimeRoundEntry_run_marker_toSelector_afterSep
+    (T : List Bool) (q : Nat)
+    (h0 : T.getD q false = false)
+    (h1 : T.getD (q + 1) false = true)
+    (h2 : T.getD (q + 2) false = false)
+    (h3 : T.getD (q + 3) false = true)
+    (hs0 hs1 : Bool)
+    (h4 : T.getD (q + 4) false = hs0)
+    (h5 : T.getD (q + 5) false = hs1)
+    (hnonsep : runtimePairIsSep (hs0, hs1) = false) :
+    run runtimeRoundEntryLocatorMachine 7 ⟨lo true, q, T⟩ =
+      ⟨done, q + 4, T⟩ := by
+  rw [List.getD_eq_getElem?_getD] at h0 h1 h2 h3 h4 h5
+  cases hs0 <;> cases hs1 <;>
+    simp_all [run_succ, step, runtimeRoundEntryLocatorMachine, moveHead,
+      runtimePairIsSep]
 
 theorem runtimeRoundEntry_run_pairs
     (pre : List Bool) (pairs : List (Bool × Bool)) (tail : List Bool)
@@ -115,31 +148,58 @@ theorem runtimeRoundEntry_run_pairs
         Nat.add_assoc] using htail
 
 /-- Exact complete scan of an arbitrary aligned prefix with isolated `01`
-tokens, followed by the reserved doubled delimiter `01 01`. -/
+tokens, followed by the reserved doubled delimiter `01 01` and a nonseparator
+first selector pair. -/
 theorem runtimeRoundEntryLocator_run
     (pairs : List (Bool × Bool)) (tail : List Bool)
+    (tailLo tailHi : Bool)
     (hsafe : RuntimeNoDoubleSepFrom false pairs)
-    (hend : runtimeEntryPrev false pairs = false) :
+    (htail : tail = tailLo :: tailHi :: tail.drop 2)
+    (hnonsep : runtimePairIsSep (tailLo, tailHi) = false) :
     let marker := flattenPairs [(false, true), (false, true)]
     let T := flattenPairs pairs ++ marker ++ tail
-    run runtimeRoundEntryLocatorMachine (2 * pairs.length + 4)
+    run runtimeRoundEntryLocatorMachine (2 * pairs.length + 7)
         (init runtimeRoundEntryLocatorMachine T) =
       ⟨done, 2 * pairs.length + 4, T⟩ := by
   dsimp only
   let marker := flattenPairs [(false, true), (false, true)]
   let T := flattenPairs pairs ++ marker ++ tail
   have hp := runtimeRoundEntry_run_pairs [] pairs (marker ++ tail) false hsafe
-  have hm : run runtimeRoundEntryLocatorMachine 4
+  have hmFalse : run runtimeRoundEntryLocatorMachine 7
       ⟨lo false, 2 * pairs.length, T⟩ =
       ⟨done, 2 * pairs.length + 4, T⟩ := by
-    apply runtimeRoundEntry_run_marker
-    all_goals simp [T, marker, flattenPairs]
+    refine runtimeRoundEntry_run_marker_toSelector T (2 * pairs.length)
+      ?_ ?_ ?_ ?_ tailLo tailHi ?_ ?_ hnonsep
+    · simp [T, marker, flattenPairs]
+    · simp [T, marker, flattenPairs]
+    · simp [T, marker, flattenPairs]
+    · simp [T, marker, flattenPairs]
+    · dsimp [T]; rw [htail]; simp [marker, flattenPairs]
+    · dsimp [T]; rw [htail]; simp [marker, flattenPairs]
+  have hmTrue : run runtimeRoundEntryLocatorMachine 7
+      ⟨lo true, 2 * pairs.length, T⟩ =
+      ⟨done, 2 * pairs.length + 4, T⟩ := by
+    refine runtimeRoundEntry_run_marker_toSelector_afterSep T
+      (2 * pairs.length) ?_ ?_ ?_ ?_ tailLo tailHi ?_ ?_ hnonsep
+    · simp [T, marker, flattenPairs]
+    · simp [T, marker, flattenPairs]
+    · simp [T, marker, flattenPairs]
+    · simp [T, marker, flattenPairs]
+    · dsimp [T]; rw [htail]; simp [marker, flattenPairs]
+    · dsimp [T]; rw [htail]; simp [marker, flattenPairs]
   have hp' : run runtimeRoundEntryLocatorMachine (2 * pairs.length)
       (init runtimeRoundEntryLocatorMachine T) =
-      ⟨lo false, 2 * pairs.length, T⟩ := by
-    simpa [T, marker, hend, List.append_assoc] using hp
-  rw [run_add, hp']
-  exact hm
+      ⟨lo (runtimeEntryPrev false pairs), 2 * pairs.length, T⟩ := by
+    simpa [T, marker, List.append_assoc] using hp
+  rw [run_add]
+  rw [hp']
+  simpa [T, marker, List.append_assoc] using
+    (show run runtimeRoundEntryLocatorMachine 7
+        ⟨lo (runtimeEntryPrev false pairs), 2 * pairs.length, T⟩ =
+          ⟨done, 2 * pairs.length + 4, T⟩ by
+      cases hprev : runtimeEntryPrev false pairs
+      · simpa [hprev] using hmFalse
+      · simpa [hprev] using hmTrue)
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundEntryLocator
 
