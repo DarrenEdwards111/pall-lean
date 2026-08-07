@@ -23,6 +23,106 @@ open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeWorkspaceTai
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalArchive
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeArchiveLocator
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeArchiveReturnWriter
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeUnaryRebaseWriter
+
+/-! ## Head-preserving safety from an already discovered head -/
+
+theorem headSeq_leftSafe_inl_at (M1 M2 : Machine) (c : Cfg M1)
+    (t : Nat) (hno : ∀ i < t, M1.halt (run M1 i c).st = false)
+    (hsafe : LeftSafeRun M1 c t) :
+    LeftSafeRun (headSeqMachine M1 M2) (headInlCfg M1 M2 c) t := by
+  intro i hi hhalt hmove
+  have hr := headSeq_run_inl M1 M2 c i
+    (fun j hj => hno j (by omega))
+  rw [hr] at hhalt hmove ⊢
+  have hh1 : M1.halt (run M1 i c).st = false := hno i hi
+  have hm1 : (M1.δ (run M1 i c).st
+      ((run M1 i c).tp.getD (run M1 i c).hd false)).2.2 = 0 := by
+    simpa [headSeqMachine, headInlCfg, hh1] using hmove
+  exact hsafe i hi hh1 hm1
+
+theorem headSeq_leftSafe_handoff_at (M1 M2 : Machine) (c : Cfg M1)
+    (hh : M1.halt c.st = true) :
+    LeftSafeRun (headSeqMachine M1 M2) (headInlCfg M1 M2 c) 1 := by
+  apply leftSafeRun_one_of_not_left
+  simp [headSeqMachine, headInlCfg, hh]
+
+theorem headSeq_leftSafe_inr_at (M1 M2 : Machine) (c : Cfg M2)
+    (t : Nat) (hsafe : LeftSafeRun M2 c t) :
+    LeftSafeRun (headSeqMachine M1 M2) (headInrCfg M1 M2 c) t := by
+  intro i hi hhalt hmove
+  rw [headSeq_run_inr M1 M2 c i] at hhalt hmove ⊢
+  have hh2 : M2.halt (run M2 i c).st = false := by
+    simpa [headSeqMachine, headInrCfg] using hhalt
+  have hm2 : (M2.δ (run M2 i c).st
+      ((run M2 i c).tp.getD (run M2 i c).hd false)).2.2 = 0 := by
+    simpa [headSeqMachine, headInrCfg] using hmove
+  exact hsafe i hi hh2 hm2
+
+/-- `headSeqMachine` safety composition from an arbitrary physical head,
+including least-halt slack exactly as in its execution theorem. -/
+theorem headSeq_leftSafe_at (M1 M2 : Machine) (T0 T1 : List Bool)
+    (p0 t1 t2 p1 : Nat) (s1 : M1.State)
+    (h1 : run M1 t1 ⟨M1.start, p0, T0⟩ = ⟨s1, p1, T1⟩)
+    (hh1 : M1.halt s1 = true)
+    (hsafe1 : LeftSafeRun M1 ⟨M1.start, p0, T0⟩ t1)
+    (hsafe2 : LeftSafeRun M2 ⟨M2.start, p1, T1⟩ t2)
+    (hh2 : M2.halt (run M2 t2 ⟨M2.start, p1, T1⟩).st = true) :
+    LeftSafeRun (headSeqMachine M1 M2)
+      ⟨(headSeqMachine M1 M2).start, p0, T0⟩ (t1 + 1 + t2) := by
+  let c0 : Cfg M1 := ⟨M1.start, p0, T0⟩
+  have hex : ∃ t, M1.halt (run M1 t c0).st = true :=
+    ⟨t1, by rw [h1]; exact hh1⟩
+  let tm := Nat.find hex
+  have htm : M1.halt (run M1 tm c0).st = true := Nat.find_spec hex
+  have htmle : tm ≤ t1 := Nat.find_le (by rw [h1]; exact hh1)
+  have hfrozen : run M1 tm c0 = ⟨s1, p1, T1⟩ := by
+    rw [← run_stable_cfg M1 c0 htmle htm, h1]
+  have hno : ∀ i < tm, M1.halt (run M1 i c0).st = false := by
+    intro i hi
+    simpa using Nat.find_min hex hi
+  have hs1 : LeftSafeRun (headSeqMachine M1 M2)
+      ⟨(headSeqMachine M1 M2).start, p0, T0⟩ tm := by
+    change LeftSafeRun (headSeqMachine M1 M2) (headInlCfg M1 M2 c0) tm
+    exact headSeq_leftSafe_inl_at M1 M2 c0 tm hno
+      (fun i hi => hsafe1 i (by omega))
+  have hrun1 : run (headSeqMachine M1 M2) tm
+      ⟨(headSeqMachine M1 M2).start, p0, T0⟩ =
+      headInlCfg M1 M2 (⟨s1, p1, T1⟩ : Cfg M1) := by
+    change run (headSeqMachine M1 M2) tm (headInlCfg M1 M2 c0) = _
+    rw [headSeq_run_inl M1 M2 _ tm hno, hfrozen]
+  have hsSwitch : LeftSafeRun (headSeqMachine M1 M2)
+      (run (headSeqMachine M1 M2) tm
+        ⟨(headSeqMachine M1 M2).start, p0, T0⟩) 1 := by
+    rw [hrun1]
+    exact headSeq_leftSafe_handoff_at M1 M2 _ hh1
+  have hafter : run (headSeqMachine M1 M2) 1
+      (run (headSeqMachine M1 M2) tm
+        ⟨(headSeqMachine M1 M2).start, p0, T0⟩) =
+      headInrCfg M1 M2 ⟨M2.start, p1, T1⟩ := by
+    rw [hrun1, run_succ, run_zero]
+    exact headSeq_step_handoff M1 M2 _ hh1
+  have hs2 : LeftSafeRun (headSeqMachine M1 M2)
+      (run (headSeqMachine M1 M2) (tm + 1)
+        ⟨(headSeqMachine M1 M2).start, p0, T0⟩) t2 := by
+    rw [run_add, hafter]
+    exact headSeq_leftSafe_inr_at M1 M2 _ t2 hsafe2
+  have hsMain : LeftSafeRun (headSeqMachine M1 M2)
+      ⟨(headSeqMachine M1 M2).start, p0, T0⟩ (tm + 1 + t2) :=
+    leftSafeRun_add (leftSafeRun_add hs1 hsSwitch) hs2
+  have hhaltAt : (headSeqMachine M1 M2).halt
+      (run (headSeqMachine M1 M2) (tm + 1 + t2)
+        ⟨(headSeqMachine M1 M2).start, p0, T0⟩).st =
+      M2.halt (run M2 t2 ⟨M2.start, p1, T1⟩).st := by
+    rw [show tm + 1 + t2 = (tm + 1) + t2 by omega, run_add]
+    rw [run_add, hafter, headSeq_run_inr]
+    rfl
+  have hsSlack : LeftSafeRun (headSeqMachine M1 M2)
+      (run (headSeqMachine M1 M2) (tm + 1 + t2)
+        ⟨(headSeqMachine M1 M2).start, p0, T0⟩) (t1 - tm) :=
+    leftSafeRun_of_halted _ (by rw [hhaltAt, hh2])
+  have hsAll := leftSafeRun_add hsMain hsSlack
+  convert hsAll using 1 <;> omega
 
 /-- The output-capacity parser has no left-moving transition. -/
 theorem outputSourceLocator_leftSafe (T : List Bool) (n : Nat) :
@@ -296,8 +396,197 @@ theorem runtimeRebaseSeed_leftSafe
     simp [run_succ, step, runtimeRebaseSeedMachine, moveHead] at hlive hmove ⊢ <;>
     omega
 
+/-- Phase-exact safety of marker installation, forward archive discovery,
+reverse return, and final seed installation as their real nested controller.
+The reverse clock premise is purely physical and is discharged by the
+reachable archive geometry. -/
+theorem runtimeArchiveReturnSeed_leftSafe_of_runs
+    (T0 Tm T1 : List Bool) (R E locatorClock reverseClock : Nat)
+    (hR : 2 ≤ R)
+    (hm : run runtimeRebaseMarkMachine 4
+      ⟨runtimeRebaseMarkMachine.start, R, T0⟩ =
+      ⟨RuntimeRebaseSeedState.done, R, Tm⟩)
+    (hf : run runtimeArchiveLocatorMachine locatorClock
+      ⟨runtimeArchiveLocatorMachine.start, R, Tm⟩ =
+      ⟨RuntimeArchiveLocatorState.done, E, Tm⟩)
+    (hr : run runtimeArchiveReverseMachine reverseClock
+      ⟨runtimeArchiveReverseMachine.start, E, Tm⟩ =
+      ⟨RuntimeArchiveReverseState.done, R, Tm⟩)
+    (hbudget : reverseClock ≤ E)
+    (hs : run runtimeRebaseSeedMachine 4
+      ⟨runtimeRebaseSeedMachine.start, R, Tm⟩ =
+      ⟨RuntimeRebaseSeedState.done, R, T1⟩) :
+    LeftSafeRun runtimeArchiveReturnSeedMachine
+      ⟨runtimeArchiveReturnSeedMachine.start, R, T0⟩
+      (4 + 1 + locatorClock + 1 + reverseClock + 1 + 4) := by
+  have hsafeMarkLocate : LeftSafeRun runtimeArchiveMarkLocateMachine
+      ⟨runtimeArchiveMarkLocateMachine.start, R, T0⟩
+      (4 + 1 + locatorClock) := by
+    simpa [runtimeArchiveMarkLocateMachine] using
+      headSeq_leftSafe_at runtimeRebaseMarkMachine runtimeArchiveLocatorMachine
+        T0 Tm R 4 locatorClock R RuntimeRebaseSeedState.done hm rfl
+        (by simpa [runtimeRebaseMarkMachine] using
+          runtimeRebaseMark_leftSafe T0 R hR)
+        (by simpa [runtimeArchiveLocatorMachine] using
+          runtimeArchiveLocator_leftSafe Tm R locatorClock)
+        (by rw [hf]; simp [runtimeArchiveLocatorMachine])
+  have hmf := headSeq_run_at runtimeRebaseMarkMachine
+    runtimeArchiveLocatorMachine T0 Tm Tm R 4 locatorClock R E
+    RuntimeRebaseSeedState.done RuntimeArchiveLocatorState.done
+    hm rfl hf rfl
+  have hsafeMarkLocateReturn :
+      LeftSafeRun runtimeArchiveMarkLocateReturnMachine
+        ⟨runtimeArchiveMarkLocateReturnMachine.start, R, T0⟩
+        (4 + 1 + locatorClock + 1 + reverseClock) := by
+    simpa [runtimeArchiveMarkLocateReturnMachine] using
+      headSeq_leftSafe_at runtimeArchiveMarkLocateMachine
+        runtimeArchiveReverseMachine T0 Tm R
+        (4 + 1 + locatorClock) reverseClock E
+        (Sum.inr RuntimeArchiveLocatorState.done)
+        (by simpa [runtimeArchiveMarkLocateMachine] using hmf) rfl
+        (by simpa [runtimeArchiveMarkLocateMachine] using hsafeMarkLocate)
+        (by simpa [runtimeArchiveReverseMachine] using
+          runtimeArchiveReverse_leftSafe Tm E reverseClock hbudget)
+        (by rw [hr]; simp [runtimeArchiveReverseMachine])
+  have hmfr := headSeq_run_at runtimeArchiveMarkLocateMachine
+    runtimeArchiveReverseMachine T0 Tm Tm R
+    (4 + 1 + locatorClock) reverseClock E R
+    (Sum.inr RuntimeArchiveLocatorState.done)
+    RuntimeArchiveReverseState.done
+    (by simpa [runtimeArchiveMarkLocateMachine] using hmf) rfl hr rfl
+  simpa [runtimeArchiveReturnSeedMachine, Nat.add_assoc] using
+    headSeq_leftSafe_at runtimeArchiveMarkLocateReturnMachine
+      runtimeRebaseSeedMachine T0 Tm R
+      (4 + 1 + locatorClock + 1 + reverseClock) 4 R
+      (Sum.inr RuntimeArchiveReverseState.done)
+      (by simpa [runtimeArchiveMarkLocateReturnMachine] using hmfr) rfl
+      (by simpa [runtimeArchiveMarkLocateReturnMachine] using
+        hsafeMarkLocateReturn)
+      (by simpa [runtimeRebaseSeedMachine] using
+        runtimeRebaseSeed_leftSafe Tm R hR)
+      (by rw [hs]; simp [runtimeRebaseSeedMachine])
+
+/-- Canonical specialization for a nonempty archive behind a physical prefix.
+Two prefix cells suffice to discharge the reverse clock budget. -/
+theorem runtimeArchiveReturnSeed_leftSafe_prefixed
+    (pre : List Bool) (a b : Bool) (first : List Bool)
+    (more : List (List Bool)) (hpre : 2 ≤ pre.length) :
+    let rest := first :: more
+    let T0 := pre ++ [a, b] ++ selectedTail rest
+    let R := pre.length + 2
+    LeftSafeRun runtimeArchiveReturnSeedMachine
+      ⟨runtimeArchiveReturnSeedMachine.start, R, T0⟩
+      (runtimeArchiveReturnSeedClock rest) := by
+  dsimp only
+  let rest := first :: more
+  let T0 := pre ++ [a, b] ++ selectedTail rest
+  let Tm := pre ++ [true, true] ++ selectedTail rest
+  let T1 := pre ++ [false, true] ++ selectedTail rest
+  let R := pre.length + 2
+  let E := R + (selectedTail rest).length + 2
+  have hm0 := runtimeRebaseMark_run T0 R (by simp [R])
+  have hm : run runtimeRebaseMarkMachine 4
+      ⟨runtimeRebaseMarkMachine.start, R, T0⟩ =
+      ⟨RuntimeRebaseSeedState.done, R, Tm⟩ := by
+    dsimp [T0, Tm, R, runtimeRebaseMarkMachine] at hm0 ⊢
+    rw [markArchiveBoundary_prefixed] at hm0
+    exact hm0
+  have hf0 := runtimeArchiveLocator_run_prefixed
+    (pre ++ [true, true]) rest
+  have hf : run runtimeArchiveLocatorMachine
+      (runtimeArchiveLocatorClock rest)
+      ⟨runtimeArchiveLocatorMachine.start, R, Tm⟩ =
+      ⟨RuntimeArchiveLocatorState.done, E, Tm⟩ := by
+    simpa [Tm, R, E, List.append_assoc] using hf0
+  have hr0 := runtimeArchiveReverse_run_markedPrefixed pre [] first more
+  have hr : run runtimeArchiveReverseMachine
+      (runtimeArchiveReverseClock rest)
+      ⟨runtimeArchiveReverseMachine.start, E, Tm⟩ =
+      ⟨RuntimeArchiveReverseState.done, R, Tm⟩ := by
+    simpa [rest, Tm, R, E, List.append_assoc] using hr0
+  have hs0 := runtimeRebaseSeed_run Tm R (by simp [R])
+  have hs : run runtimeRebaseSeedMachine 4
+      ⟨runtimeRebaseSeedMachine.start, R, Tm⟩ =
+      ⟨RuntimeRebaseSeedState.done, R, T1⟩ := by
+    dsimp [Tm, T1, R, runtimeRebaseSeedMachine] at hs0 ⊢
+    rw [seedRebaseBoundary_prefixed] at hs0
+    exact hs0
+  have hsafe := runtimeArchiveReturnSeed_leftSafe_of_runs
+    T0 Tm T1 R E (runtimeArchiveLocatorClock rest)
+    (runtimeArchiveReverseClock rest) (by simp [R]) hm hf hr
+    (by unfold runtimeArchiveReverseClock; simp [E, R]; omega) hs
+  dsimp [rest, T0, R] at hsafe ⊢
+  simpa [runtimeArchiveReturnSeedClock, Nat.add_assoc] using hsafe
+
+/-! ## Unary writer boundary phases -/
+
+/-- The eight-step unary-writer initialization backs up exactly four cells
+before returning to the archive origin. -/
+theorem runtimeUnaryRebase_init_leftSafe
+    (T : List Bool) (R : Nat) (hR : 4 ≤ R) :
+    LeftSafeRun runtimeUnaryRebaseMachine
+      ⟨RuntimeUnaryRebaseState.init1, R, T⟩ 8 := by
+  intro i hi hlive hmove
+  interval_cases i <;>
+    simp [run_succ, step, runtimeUnaryRebaseMachine, moveHead, writeAt] at hlive hmove ⊢ <;>
+    omega
+
+/-- Control-region invariant for the final archive restoration pass. -/
+def RuntimeUnaryRestoreInv (c : Cfg runtimeUnaryRebaseMachine) : Prop :=
+  match c.st with
+  | .restoreFirstLo | .restoreFirstHi
+  | .restoreDataLo | .restoreDataHi _
+  | .restoreNext | .restoreHeaderHi | .done | .reject => True
+  | _ => False
+
+theorem runtimeUnaryRestoreInv_step
+    (c : Cfg runtimeUnaryRebaseMachine) (h : RuntimeUnaryRestoreInv c) :
+    RuntimeUnaryRestoreInv (step runtimeUnaryRebaseMachine c) := by
+  by_cases hh : runtimeUnaryRebaseMachine.halt c.st = true
+  · rw [step_of_halted _ hh]
+    exact h
+  · have hh' : runtimeUnaryRebaseMachine.halt c.st = false := by
+      simpa using hh
+    simp only [step, hh', Bool.false_eq_true, if_false]
+    cases hs : c.st <;>
+      simp [RuntimeUnaryRestoreInv, runtimeUnaryRebaseMachine, hs] at h ⊢ <;>
+      split_ifs <;> simp
+
+theorem runtimeUnaryRestoreInv_run
+    (c : Cfg runtimeUnaryRebaseMachine) (h : RuntimeUnaryRestoreInv c)
+    (n : Nat) :
+    RuntimeUnaryRestoreInv (run runtimeUnaryRebaseMachine n c) := by
+  induction n with
+  | zero => simpa using h
+  | succ n ih =>
+      rw [run_succ]
+      exact runtimeUnaryRestoreInv_step _ ih
+
+/-- The entire restoration phase is universally left-free, for any tape and
+clock; malformed input can only reject, never introduce a backup. -/
+theorem runtimeUnaryRebase_restore_leftSafe
+    (T : List Bool) (p n : Nat) :
+    LeftSafeRun runtimeUnaryRebaseMachine
+      ⟨RuntimeUnaryRebaseState.restoreFirstLo, p, T⟩ n := by
+  intro i hi hlive hmove
+  have hinv := runtimeUnaryRestoreInv_run
+    (⟨RuntimeUnaryRebaseState.restoreFirstLo, p, T⟩ :
+      Cfg runtimeUnaryRebaseMachine) (by simp [RuntimeUnaryRestoreInv]) i
+  generalize hc : run runtimeUnaryRebaseMachine i
+    ⟨RuntimeUnaryRebaseState.restoreFirstLo, p, T⟩ = c at hinv
+  rw [hc] at hlive hmove
+  rcases c with ⟨s, q, tp⟩
+  cases s <;>
+    simp [RuntimeUnaryRestoreInv] at hinv <;>
+    simp [runtimeUnaryRebaseMachine] at hmove <;>
+    split_ifs at hmove <;> simp_all
+
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety
 
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.outputWorkspaceTailLocator_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeArchiveReverse_canonical_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeRebaseSeed_leftSafe
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeArchiveReturnSeed_leftSafe_of_runs
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeArchiveReturnSeed_leftSafe_prefixed
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeUnaryRebase_init_leftSafe
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeUnaryRebase_restore_leftSafe
