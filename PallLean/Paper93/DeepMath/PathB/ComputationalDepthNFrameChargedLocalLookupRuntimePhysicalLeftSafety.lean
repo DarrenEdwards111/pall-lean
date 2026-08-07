@@ -2247,13 +2247,16 @@ theorem scheduled_outputWorkspaceArchiveReturnUnaryRebase_safeRun
     let prefixClock := locateClock + 1 + tailClock
     let seedClock := runtimeArchiveReturnSeedClock rest
     let R := 2 * B + 2 + pre.length + 2 * bits.length + 4
-    ∃ base unaryClock,
+    ∃ residue unaryClock,
+      (outputCap B out' ++ residue).IsPrefix rcf.tp ∧
+      (outputCap B out' ++ residue).length =
+        (R - 2) - (2 * rest.length + 4) ∧
       run outputWorkspaceArchiveReturnUnaryRebaseMachine
           ((prefixClock + 1 + seedClock) + 1 + unaryClock)
           (init outputWorkspaceArchiveReturnUnaryRebaseMachine rcf.tp) =
         ⟨outputWorkspaceArchiveReturnUnaryRebaseDone,
           R + (selectedTail rest).length,
-          base ++ [false, true, false, true] ++
+          outputCap B out' ++ residue ++ [false, true, false, true] ++
             sourceSelectorInput rest.length 0 rest⟩ ∧
       LeftSafeRun outputWorkspaceArchiveReturnUnaryRebaseMachine
         (init outputWorkspaceArchiveReturnUnaryRebaseMachine rcf.tp)
@@ -2305,6 +2308,8 @@ theorem scheduled_outputWorkspaceArchiveReturnUnaryRebase_safeRun
   obtain ⟨base, unaryClock, hbasePrefix, hbase, hunary, hsunary⟩ :=
     runtimeUnaryRebase_physical_safeRun phys first more
       (by simpa [hrest] using hfit)
+  have hbaseRest : base.length = phys.length - (2 * rest.length + 4) := by
+    simpa [hrest] using hbase
   have hR : phys.length + 2 = R := by
     have hRge : 2 ≤ R := by simp [R]
     rw [hphys']
@@ -2336,6 +2341,51 @@ theorem scheduled_outputWorkspaceArchiveReturnUnaryRebase_safeRun
       lookupClock, M, routeClock, rcf, locateClock, tailClock,
       prefixClock, seedClock] using hsseed)
     hunary' hsunary'
+  have houtlen : out'.length = t + 1 := by
+    dsimp [out']
+    rw [List.length_take, scheduledTruths_length,
+      Nat.min_eq_left (by simpa [B] using htnext.le)]
+  have hcaplen : (outputCap B out').length = 2 * B + 2 :=
+    outputCap_length B out' (by omega)
+  have hcapPhys : (outputCap B out').length ≤ phys.length := by
+    rw [hcaplen, hphys']
+    simp only [R]
+    omega
+  have houtputPhys : (outputCap B out').IsPrefix phys := by
+    rw [List.prefix_iff_eq_take]
+    have heq : phys ++ [a, b] ++ selectedTail rest = rcf.tp := hshape.symm
+    have hroute := scheduledRuntimeRelativeOutputSourceRoute x w ht
+    let cf := run sourceRuntimeLookupCore lookupClock
+      (init sourceRuntimeLookupCore T)
+    have hrouteTape : rcf.tp = outputCap B out' ++ cf.tp := by
+      have hs := scheduledTruths_take_succ x w ht
+      simpa [B, schedule, preBlocks, l, out, out', T, lookupClock, cf, M,
+        routeClock, rcf, hs] using hroute.2
+    have htake := congrArg (List.take (outputCap B out').length)
+      (heq.trans hrouteTape)
+    rw [List.take_append_of_le_length (by simp; omega)] at htake
+    rw [List.take_append_of_le_length hcapPhys] at htake
+    simpa using htake.symm
+  have hcapBase : (outputCap B out').length ≤ base.length := by
+    rw [hbaseRest, hphys']
+    have hs0 : 2 * rest.length + 4 ≤
+        pre.length + 2 * bits.length + 2 := by
+      simpa [B, schedule, preBlocks, bits, rest, pre] using hfit0
+    rw [hcaplen]
+    simp only [R]
+    omega
+  have houtputBase : (outputCap B out').IsPrefix base := by
+    rw [List.prefix_iff_eq_take] at houtputPhys ⊢
+    calc
+      outputCap B out' = phys.take (outputCap B out').length := houtputPhys
+      _ = base.take (outputCap B out').length := by
+        obtain ⟨tail, htail⟩ := hbasePrefix
+        rw [← htail, List.take_append_of_le_length hcapBase]
+  obtain ⟨residue, hbaseEq⟩ := houtputBase
+  have hphysRcf : phys.IsPrefix rcf.tp := by
+    refine ⟨[a, b] ++ selectedTail rest, ?_⟩
+    simpa [List.append_assoc] using hshape.symm
+  have hbaseRcf : base.IsPrefix rcf.tp := hbasePrefix.trans hphysRcf
   have hjoin := headSeq_run outputWorkspaceArchiveReturnSeedMachine
     runtimeUnaryRebaseMachine rcf.tp
     (phys ++ [false, true] ++ selectedTail rest)
@@ -2349,12 +2399,15 @@ theorem scheduled_outputWorkspaceArchiveReturnUnaryRebase_safeRun
       lookupClock, M, routeClock, rcf, locateClock, tailClock,
       prefixClock, seedClock, R] using hseedrun)
     rfl hunary' rfl
-  refine ⟨base, unaryClock, ?_, ?_⟩
+  refine ⟨residue, unaryClock, ?_, ?_, ?_, ?_⟩
+  · rw [hbaseEq]
+    exact hbaseRcf
+  · rw [hbaseEq, hbaseRest, hphys']
   · convert hjoin using 1 <;> simp [outputWorkspaceArchiveReturnUnaryRebaseMachine,
       outputWorkspaceArchiveReturnUnaryRebaseDone,
       B, schedule, preBlocks, l, bits, rest, pre, out, out', T,
       lookupClock, M, routeClock, rcf, locateClock, tailClock,
-      prefixClock, seedClock, R, hrestlen, Nat.add_assoc] <;> omega
+      prefixClock, seedClock, R, hrestlen, hbaseEq, Nat.add_assoc] <;> omega
   · exact hsfull
 
 /-- The eight-step unary-writer initialization backs up exactly four cells
