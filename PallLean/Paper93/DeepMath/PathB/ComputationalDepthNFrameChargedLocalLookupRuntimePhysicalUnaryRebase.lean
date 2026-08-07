@@ -163,6 +163,9 @@ theorem scheduledRuntimeRelativeOutput_physicalUnaryRebase
     let seedClock := runtimeArchiveReturnSeedClock rest
     let R := 2 * B + 2 + pre.length + 2 * bits.length + 4
     ∃ residue unaryClock,
+      (outputCap B out' ++ residue).IsPrefix rcf.tp ∧
+      (outputCap B out' ++ residue).length =
+        (R - 2) - (2 * rest.length + 4) ∧
       run outputWorkspaceArchiveReturnUnaryRebaseMachine
           ((prefixClock + 1 + seedClock) + 1 + unaryClock)
           (init outputWorkspaceArchiveReturnUnaryRebaseMachine rcf.tp) =
@@ -288,6 +291,10 @@ theorem scheduledRuntimeRelativeOutput_physicalUnaryRebase
         obtain ⟨tail, htail⟩ := hbasePrefix
         rw [← htail, List.take_append_of_le_length hcapBase]
   obtain ⟨residue, hbaseEq⟩ := houtputBase
+  have hphysRcf : phys.IsPrefix rcf.tp := by
+    refine ⟨[a, b] ++ selectedTail rest, ?_⟩
+    simpa [List.append_assoc] using hshape.symm
+  have hbaseRcf : base.IsPrefix rcf.tp := hbasePrefix.trans hphysRcf
   have hjoin := headSeq_run outputWorkspaceArchiveReturnSeedMachine
     runtimeUnaryRebaseMachine rcf.tp
     (phys ++ [false, true] ++ selectedTail rest)
@@ -301,13 +308,16 @@ theorem scheduledRuntimeRelativeOutput_physicalUnaryRebase
       lookupClock, M, routeClock, rcf, locateClock, tailClock,
       prefixClock, seedClock, R] using hseedrun)
     rfl hunary' rfl
-  refine ⟨residue, unaryClock, ?_⟩
-  simpa [outputWorkspaceArchiveReturnUnaryRebaseMachine,
-    outputWorkspaceArchiveReturnUnaryRebaseDone,
-    B, schedule, preBlocks, l, bits, rest, pre, out, out', T,
-    lookupClock, M, routeClock, rcf, locateClock, tailClock,
-    prefixClock, seedClock, R, hrestlen, hbaseEq,
-    List.append_assoc] using hjoin
+  refine ⟨residue, unaryClock, ?_, ?_, ?_⟩
+  · rw [hbaseEq]
+    exact hbaseRcf
+  · rw [hbaseEq, hbase, hphys']
+  · simpa [outputWorkspaceArchiveReturnUnaryRebaseMachine,
+      outputWorkspaceArchiveReturnUnaryRebaseDone,
+      B, schedule, preBlocks, l, bits, rest, pre, out, out', T,
+      lookupClock, M, routeClock, rcf, locateClock, tailClock,
+      prefixClock, seedClock, R, hrestlen, hbaseEq,
+      List.append_assoc] using hjoin
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalUnaryRebase
 

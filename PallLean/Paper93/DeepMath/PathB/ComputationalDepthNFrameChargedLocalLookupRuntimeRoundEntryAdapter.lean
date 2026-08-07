@@ -16,7 +16,10 @@ open PallLean.Paper93.DeepMath.PathB.ComposableMachine
 open PallLean.Paper93.DeepMath.PathB.CookLevinDoubled
 open PallLean.Paper93.DeepMath.PathB.CookLevinEmitSeq
 open PallLean.Paper93.DeepMath.PathB.CookLevinReduction
+open PallLean.Paper93.DeepMath.PathB.CookLevinMaster
+open PallLean.Paper93.DeepMath.PathB.CookLevinRoundInvariant
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLiteralWeld
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixRun
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupDynamicRoute
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupOutputCapacity
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRepeatController
@@ -31,6 +34,9 @@ open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceSelect
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeUnaryRebaseWriter
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalUnaryRebase
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundEntryLocator
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeWorkspaceLocator
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRendCorridor
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeTailPreservation
 
 /-! ## Structural grammar bricks -/
 
@@ -39,6 +45,86 @@ def runtimeOutputCapPairs (B : Nat) (out : List Bool) :
   dataPairs out ++ [(false, true)] ++
     List.replicate (B - out.length) (false, false)
 
+theorem flattenPairs_getD_lo (pairs : List (Bool × Bool)) (i : Nat) :
+    (flattenPairs pairs).getD (2 * i) false =
+      (pairs.getD i (false, false)).1 := by
+  induction pairs generalizing i with
+  | nil => simp [flattenPairs]
+  | cons p pairs ih =>
+      cases i with
+      | zero => simp [flattenPairs]
+      | succ i =>
+          simpa [flattenPairs, Nat.mul_add] using ih i
+
+theorem flattenPairs_getD_hi (pairs : List (Bool × Bool)) (i : Nat) :
+    (flattenPairs pairs).getD (2 * i + 1) false =
+      (pairs.getD i (false, false)).2 := by
+  induction pairs generalizing i with
+  | nil => simp [flattenPairs]
+  | cons p pairs ih =>
+      cases i with
+      | zero => simp [flattenPairs]
+      | succ i =>
+          simpa [flattenPairs, Nat.mul_add] using ih i
+
+/-- Reconstruct an aligned finite tape from its pairwise cell facts. -/
+theorem eq_flattenPairs_of_length_getD (T : List Bool)
+    (pairs : List (Bool × Bool))
+    (hlen : T.length = 2 * pairs.length)
+    (hpairs : ∀ i, i < pairs.length →
+      T.getD (2 * i) false = (pairs.getD i (false, false)).1 ∧
+      T.getD (2 * i + 1) false = (pairs.getD i (false, false)).2) :
+    T = flattenPairs pairs := by
+  apply List.ext_getElem
+  · simpa [hlen]
+  · intro j hjT hjF
+    have hj : j < 2 * pairs.length := by simpa [hlen] using hjT
+    let i := j / 2
+    have hi : i < pairs.length := by dsimp [i]; omega
+    have hm : j % 2 = 0 ∨ j % 2 = 1 := by omega
+    rcases hm with hm | hm
+    · have hji : j = 2 * i := by dsimp [i]; omega
+      have h := (hpairs i hi).1
+      have hf := flattenPairs_getD_lo pairs i
+      rw [← hji, List.getD_eq_getElem _ _ hjT,
+        List.getD_eq_getElem _ _ hi] at h
+      rw [← hji, List.getD_eq_getElem _ _ hjF,
+        List.getD_eq_getElem _ _ hi] at hf
+      exact h.trans hf.symm
+    · have hji : j = 2 * i + 1 := by dsimp [i]; omega
+      have h := (hpairs i hi).2
+      have hf := flattenPairs_getD_hi pairs i
+      rw [← hji, List.getD_eq_getElem _ _ hjT,
+        List.getD_eq_getElem _ _ hi] at h
+      rw [← hji, List.getD_eq_getElem _ _ hjF,
+        List.getD_eq_getElem _ _ hi] at hf
+      exact h.trans hf.symm
+
+theorem flattenPairs_take (pairs : List (Bool × Bool)) (k : Nat) :
+    flattenPairs (pairs.take k) = (flattenPairs pairs).take (2 * k) := by
+  induction pairs generalizing k with
+  | nil => simp [flattenPairs]
+  | cons p pairs ih =>
+      cases k with
+      | zero => rfl
+      | succ k =>
+          simp only [List.take_succ_cons, flattenPairs, ih]
+          rw [show 2 * (k + 1) = 2 + 2 * k by omega]
+          rw [show 2 + 2 * k = Nat.succ (Nat.succ (2 * k)) by omega]
+          simp only [List.take_succ_cons]
+
+theorem runtimeNoDoubleSepFrom_take (previous : Bool)
+    (pairs : List (Bool × Bool)) (k : Nat)
+    (hsafe : RuntimeNoDoubleSepFrom previous pairs) :
+    RuntimeNoDoubleSepFrom previous (pairs.take k) := by
+  induction pairs generalizing previous k with
+  | nil => simp [RuntimeNoDoubleSepFrom]
+  | cons p pairs ih =>
+      cases k with
+      | zero => simp [RuntimeNoDoubleSepFrom]
+      | succ k =>
+          simp only [List.take_succ_cons, RuntimeNoDoubleSepFrom]
+          exact ⟨hsafe.1, ih (runtimePairIsSep p) k hsafe.2⟩
 theorem runtimeEntryPrev_append (previous : Bool)
     (xs ys : List (Bool × Bool)) :
     runtimeEntryPrev previous (xs ++ ys) =
@@ -332,6 +418,189 @@ theorem runtimeWorkspaceFrontPairs_safe (value : Bool) (m n : Nat)
   simpa [runtimeWorkspaceFrontPairs, left, mid, List.append_assoc] using
     And.intro hall hend
 
+/-- The reachable completed `masterM` workspace has the exact pair grammar
+used above, through the entire live padding. -/
+theorem masterM_literal_workspaceFrontPairs (w : List Bool) (l : Lit)
+    (tail : List Bool) :
+    let bits := literalLookupTape w l
+    let trailer := [true, false, false, true] ++
+      List.replicate bits.length true ++ tail
+    let mcf := run masterM (literalLookupClock w l)
+      (init masterM (bits ++ trailer))
+    let m := 2 * l.1 + 2
+    let n := 2 * l.1 + 4
+    ∃ value,
+      mcf.tp.take (2 * bits.length + 4) =
+        flattenPairs (runtimeWorkspaceFrontPairs value m n) := by
+  dsimp only
+  let bits := literalLookupTape w l
+  let trailer := [true, false, false, true] ++
+    List.replicate bits.length true ++ tail
+  let mcf := run masterM (literalLookupClock w l)
+    (init masterM (bits ++ trailer))
+  let m := 2 * l.1 + 2
+  let n := 2 * l.1 + 4
+  let value := mcf.tp.getD 4 false
+  have hbitslen : bits.length = 4 * l.1 + 8 := by
+    simp [bits, literalLookupTape,
+      PallLean.Paper93.DeepMath.PathB.CookLevinInP.encode,
+      signedLookupAssignment_length,
+      PallLean.Paper93.DeepMath.PathB.CookLevinInP.double_length]
+    ring
+  have hstart := masterM_literal_startToken w l trailer
+  have hinv := masterM_literal_terminalRoundInv w l trailer
+  have hcorr : RendCorridor mcf.tp 6 m := by
+    simpa [mcf, bits, trailer, m] using
+      masterM_literal_rendCorridor w l
+        (List.replicate bits.length true ++ tail)
+  have hdrop : mcf.tp.drop bits.length = trailer := by
+    simpa [mcf, bits, trailer] using masterM_literal_trailer w l trailer
+  have hlenDrop := congrArg List.length hdrop
+  have hlen : 2 * bits.length + 4 ≤ mcf.tp.length := by
+    simp only [List.length_drop] at hlenDrop
+    simp [trailer] at hlenDrop
+    omega
+  let front := mcf.tp.take (2 * bits.length + 4)
+  let pairs := runtimeWorkspaceFrontPairs value m n
+  have hpairsLen : pairs.length = bits.length + 2 := by
+    simp [pairs, runtimeWorkspaceFrontPairs, m, n, hbitslen]
+    omega
+  have hfrontLen : front.length = 2 * pairs.length := by
+    simp [front, List.length_take, Nat.min_eq_left hlen, hpairsLen]
+    omega
+  have hget (j : Nat) :
+      mcf.tp.getD (bits.length + j) false = trailer.getD j false := by
+    have hle : bits.length ≤ mcf.tp.length := by omega
+    let pre := mcf.tp.take bits.length
+    have hprelen : pre.length = bits.length := by
+      simp [pre, List.length_take, Nat.min_eq_left hle]
+    have hshape : mcf.tp = pre ++ trailer := by
+      rw [← List.take_append_drop bits.length mcf.tp, hdrop]
+    rw [hshape, show bits.length + j = pre.length + j by rw [hprelen],
+      List.getD_append_right (h := by omega)]
+    rw [show pre.length + j - pre.length = j by omega]
+  have hfrontGet (j : Nat) (hj : j < 2 * bits.length + 4) :
+      front.getD j false = mcf.tp.getD j false := by
+    rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD]
+    simp [front, hj]
+  have hpairRend (j : Nat) (hj : j < m) :
+      pairs.getD (3 + j) (false, false) = (true, false) := by
+    dsimp [pairs, runtimeWorkspaceFrontPairs]
+    rw [show 3 + j = j + 1 + 1 + 1 by omega]
+    simp only [List.getD_cons_succ]
+    rw [List.append_assoc]
+    have hj' : j < (List.replicate m (true, false)).length := by
+      simpa using hj
+    rw [List.getD_append (List.replicate m (true, false))
+      ([(false, true)] ++ List.replicate n (true, true)) _ j hj']
+    simp [List.getD_replicate, hj]
+  have hpairBoundary :
+      pairs.getD (3 + m) (false, false) = (false, true) := by
+    dsimp [pairs, runtimeWorkspaceFrontPairs]
+    rw [show 3 + m = m + 1 + 1 + 1 by omega]
+    simp only [List.getD_cons_succ]
+    rw [List.append_assoc]
+    rw [List.getD_append_right (List.replicate m (true, false))
+      ([(false, true)] ++ List.replicate n (true, true)) _ m (by simp)]
+    simp
+  have hpairPad (j : Nat) (hj : j < n) :
+      pairs.getD (4 + m + j) (false, false) = (true, true) := by
+    dsimp [pairs, runtimeWorkspaceFrontPairs]
+    rw [show 4 + m + j = (m + j + 1) + 1 + 1 + 1 by omega]
+    simp only [List.getD_cons_succ]
+    rw [List.append_assoc]
+    rw [List.getD_append_right (List.replicate m (true, false))
+      ([(false, true)] ++ List.replicate n (true, true)) _ (m + j + 1)
+      (by simp; omega)]
+    rw [show m + j + 1 - (List.replicate m (true, false)).length =
+      j + 1 by simp only [List.length_replicate]; omega]
+    simp only [List.singleton_append, List.getD_cons_succ]
+    exact List.getD_replicate (x := (true, true))
+      (y := (false, false)) hj
+  have hpairFacts : ∀ i, i < pairs.length →
+      front.getD (2 * i) false = (pairs.getD i (false, false)).1 ∧
+      front.getD (2 * i + 1) false = (pairs.getD i (false, false)).2 := by
+    intro i hi
+    have hiCells : 2 * i + 1 < 2 * bits.length + 4 := by
+      rw [hpairsLen] at hi
+      omega
+    rw [hfrontGet (2 * i) (by omega), hfrontGet (2 * i + 1) hiCells]
+    by_cases h0 : i = 0
+    · subst i
+      simpa [pairs, runtimeWorkspaceFrontPairs, value, mcf, bits, trailer]
+        using hstart
+    by_cases h1 : i = 1
+    · subst i
+      simpa [pairs, runtimeWorkspaceFrontPairs, mcf, bits, trailer]
+        using And.intro hinv.seplo hinv.sephi
+    by_cases h2 : i = 2
+    · subst i
+      have hd := hinv.dat 0 (by omega)
+      constructor
+      · simp [pairs, runtimeWorkspaceFrontPairs, value]
+      · simpa [pairs, runtimeWorkspaceFrontPairs, value] using hd.symm
+    by_cases hr : i < 3 + m
+    · let j := i - 3
+      have hj : j < m := by dsimp [j]; omega
+      have hc := hcorr j hj
+      have hij : i = 3 + j := by dsimp [j]; omega
+      rw [hij]
+      rw [hpairRend j hj]
+      simpa [Nat.mul_add, Nat.add_assoc] using hc
+    by_cases hb : i = 3 + m
+    · subst i
+      have hb0 : mcf.tp.getD (2 * (3 + m)) false = false := by
+        rw [show 2 * (3 + m) = bits.length + 2 by
+          simp [m, hbitslen]; omega, hget]
+        simp [trailer]
+      have hb1 : mcf.tp.getD (2 * (3 + m) + 1) false = true := by
+        rw [show 2 * (3 + m) + 1 = bits.length + 3 by
+          simp [m, hbitslen]; omega, hget]
+        simp [trailer]
+      rw [hpairBoundary]
+      exact ⟨hb0, hb1⟩
+    · let j := i - (4 + m)
+      have hij : i = 4 + m + j := by dsimp [j]; omega
+      have hj : j < n := by
+        rw [hpairsLen] at hi
+        simp [m, n, hbitslen] at hi ⊢
+        dsimp [j]
+        omega
+      have hj0 : 2 * j < bits.length := by
+        simp [n, hbitslen] at hj ⊢
+        omega
+      have hj1 : 2 * j + 1 < bits.length := by
+        simp [n, hbitslen] at hj ⊢
+        omega
+      have hp0 : mcf.tp.getD (2 * i) false = true := by
+        rw [hij, show 2 * (4 + m + j) = bits.length + (4 + 2 * j) by
+          simp [m, hbitslen]; omega, hget]
+        dsimp [trailer]
+        rw [show 4 + 2 * j = 2 * j + 1 + 1 + 1 + 1 by omega]
+        simp only [List.getD_cons_succ]
+        have hj0' : 2 * j < (List.replicate bits.length true).length := by
+          simpa using hj0
+        rw [List.getD_append (h := hj0')]
+        exact List.getD_replicate (x := true) (y := false) hj0
+      have hp1 : mcf.tp.getD (2 * i + 1) false = true := by
+        rw [hij, show 2 * (4 + m + j) + 1 =
+          bits.length + (4 + (2 * j + 1)) by
+          simp [m, hbitslen]; omega, hget]
+        dsimp [trailer]
+        rw [show 4 + (2 * j + 1) = (2 * j + 1) + 1 + 1 + 1 + 1 by omega]
+        simp only [List.getD_cons_succ]
+        have hj1' : 2 * j + 1 <
+            (List.replicate bits.length true).length := by simpa using hj1
+        rw [List.getD_append (h := hj1')]
+        exact List.getD_replicate (x := true) (y := false) hj1
+      rw [hij]
+      rw [hpairPad j hj]
+      rw [hij] at hp0 hp1
+      exact ⟨hp0, hp1⟩
+  refine ⟨value, ?_⟩
+  change front = flattenPairs pairs
+  exact eq_flattenPairs_of_length_getD front pairs hfrontLen hpairFacts
+
 /-- The complete physical nonterminal body followed by its reset-to-origin
 entry scan.  Both components are fixed machines. -/
 def outputWorkspaceArchiveReturnUnaryRebaseEntryMachine : Machine :=
@@ -387,13 +656,7 @@ set_option maxHeartbeats 1000000 in
 theorem scheduledRuntimeRelativeOutput_physicalUnaryRebaseEntry
     (x w : List Bool) {t : Nat}
     (ht : t < (decodedLiterals x).length)
-    (htnext : t + 1 < (decodedLiterals x).length)
-    (hgrammar : ∀ (residue : List Bool),
-      ∃ pairs : List (Bool × Bool),
-        outputCap (decodedLiterals x).length
-            ((scheduledTruths x w).take (t + 1)) ++ residue =
-            flattenPairs pairs ∧
-        RuntimeNoDoubleSepFrom false pairs) :
+    (htnext : t + 1 < (decodedLiterals x).length) :
     let B := (decodedLiterals x).length
     let schedule := literalTapeSchedule x w
     let preBlocks := schedule.take t
@@ -445,9 +708,125 @@ theorem scheduledRuntimeRelativeOutput_physicalUnaryRebaseEntry
   let prefixClock := locateClock + 1 + tailClock
   let seedClock := runtimeArchiveReturnSeedClock rest
   let R := 2 * B + 2 + pre.length + 2 * bits.length + 4
-  obtain ⟨residue, unaryClock, hleft⟩ :=
+  obtain ⟨residue, unaryClock, hbasePrefix, hbaseLen, hleft⟩ :=
     scheduledRuntimeRelativeOutput_physicalUnaryRebase x w ht htnext
-  obtain ⟨pairs, hpairs, hsafe⟩ := hgrammar residue
+  let trailer := [true, false, false, true] ++
+    List.replicate bits.length true ++ selectedTail rest
+  let mcf := run masterM (literalLookupClock w l)
+    (init masterM (bits ++ trailer))
+  let m := 2 * l.1 + 2
+  let n := 2 * l.1 + 4
+  obtain ⟨value, hworkspace⟩ :=
+    masterM_literal_workspaceFrontPairs w l (selectedTail rest)
+  let fullPairs := runtimeOutputCapPairs B out' ++
+    selectedPrefixPairs (B - t) preBlocks ++
+    runtimeWorkspaceFrontPairs value m n
+  have houtlen : out'.length = t + 1 := by
+    dsimp [out']
+    rw [List.length_take, scheduledTruths_length,
+      Nat.min_eq_left (by simpa [B] using htnext.le)]
+  have houtlt : out'.length < B := by omega
+  have hselected := runtimeOutputSelectedPairs_safe B out'
+    (B - t) preBlocks houtlt
+  have hworkspaceSafe := runtimeWorkspaceFrontPairs_safe value m n (by
+    simp [n])
+  have hfullSafe : RuntimeNoDoubleSepFrom false fullPairs := by
+    dsimp [fullPairs]
+    rw [runtimeNoDoubleSepFrom_append, hselected.2]
+    exact ⟨hselected.1, hworkspaceSafe.1⟩
+  let cf := run sourceRuntimeLookupCore lookupClock
+    (init sourceRuntimeLookupCore T)
+  have hcfTape : cf.tp = pre ++ mcf.tp := by
+    simpa [B, schedule, preBlocks, l, bits, rest, pre, trailer, mcf,
+      T, lookupClock, cf] using sourceRuntimeLookup_scheduled_tape x w ht
+  have hroute := scheduledRuntimeRelativeOutputSourceRoute x w ht
+  have hrouteTape : rcf.tp = outputCap B out' ++ cf.tp := by
+    have hs := scheduledTruths_take_succ x w ht
+    simpa [B, schedule, preBlocks, l, out, out', T, lookupClock, cf, M,
+      routeClock, rcf, hs] using hroute.2
+  have hworkspace' : mcf.tp.take (2 * bits.length + 4) =
+      flattenPairs (runtimeWorkspaceFrontPairs value m n) := by
+    simpa [bits, trailer, mcf, m, n] using hworkspace
+  have hworkspacePrefix :
+      (flattenPairs (runtimeWorkspaceFrontPairs value m n)).IsPrefix
+        mcf.tp := by
+    rw [← hworkspace']
+    exact List.take_prefix _ _
+  obtain ⟨workspaceTail, hworkspaceTail⟩ := hworkspacePrefix
+  have hfullPrefix : (flattenPairs fullPairs).IsPrefix rcf.tp := by
+    refine ⟨workspaceTail, ?_⟩
+    dsimp [fullPairs]
+    rw [flattenPairs_append, flattenPairs_append,
+      runtimeOutputCapPairs_flatten, ← selectedPrefix]
+    calc
+      (outputCap B out' ++ pre ++
+          flattenPairs (runtimeWorkspaceFrontPairs value m n)) ++
+          workspaceTail = outputCap B out' ++ pre ++ mcf.tp := by
+            simpa [List.append_assoc] using congrArg
+              (fun z => outputCap B out' ++ pre ++ z) hworkspaceTail
+      _ = outputCap B out' ++ cf.tp := by
+        rw [hcfTape]
+        simp [List.append_assoc]
+      _ = rcf.tp := hrouteTape.symm
+  have hbitslen : bits.length = 4 * l.1 + 8 := by
+    simp [bits, literalLookupTape,
+      PallLean.Paper93.DeepMath.PathB.CookLevinInP.encode,
+      signedLookupAssignment_length,
+      PallLean.Paper93.DeepMath.PathB.CookLevinInP.double_length]
+    ring
+  have houtputPairsLen : (runtimeOutputCapPairs B out').length = B + 1 := by
+    simp [runtimeOutputCapPairs, dataPairs]
+    omega
+  have hworkspacePairsLen :
+      (runtimeWorkspaceFrontPairs value m n).length = bits.length + 2 := by
+    simp [runtimeWorkspaceFrontPairs, m, n, hbitslen]
+    omega
+  have hselectedPairsLen :
+      2 * (selectedPrefixPairs (B - t) preBlocks).length = pre.length := by
+    simp [pre, selectedPrefix]
+  have hfullLen : (flattenPairs fullPairs).length = R := by
+    simp only [flattenPairs_length, fullPairs, List.length_append,
+      houtputPairsLen, hworkspacePairsLen]
+    dsimp [R]
+    omega
+  let base := outputCap B out' ++ residue
+  have hbaseLen' : base.length = (R - 2) - (2 * rest.length + 4) := by
+    simpa [base, B, schedule, preBlocks, l, bits, rest, pre, out, out', T,
+      lookupClock, M, routeClock, rcf, locateClock, tailClock, prefixClock,
+      seedClock, R] using hbaseLen
+  have hbaseFull : base.IsPrefix (flattenPairs fullPairs) := by
+    rw [List.prefix_iff_eq_take] at hbasePrefix hfullPrefix ⊢
+    have hle : base.length ≤ (flattenPairs fullPairs).length := by
+      rw [hfullLen]
+      rw [hbaseLen']
+      omega
+    calc
+      base = rcf.tp.take base.length := by simpa [base] using hbasePrefix
+      _ = (rcf.tp.take (flattenPairs fullPairs).length).take base.length := by
+        rw [List.take_take, Nat.min_eq_left hle]
+      _ = (flattenPairs fullPairs).take base.length := by rw [← hfullPrefix]
+  have hbaseEven : ∃ k, base.length = 2 * k := by
+    have hpreEven : ∃ q, pre.length = 2 * q := by
+      refine ⟨(selectedPrefixPairs (B - t) preBlocks).length, ?_⟩
+      simp [pre, selectedPrefix]
+    obtain ⟨q, hq⟩ := hpreEven
+    let s := B + 1 + q + bits.length + 2
+    have hRtwo : R = 2 * s := by
+      simp only [R, s]
+      rw [hq]
+      omega
+    refine ⟨(s - 1) - (rest.length + 2), ?_⟩
+    rw [hbaseLen', hRtwo]
+    omega
+  obtain ⟨k, hbaseK⟩ := hbaseEven
+  let pairs := fullPairs.take k
+  have hpairs : base = flattenPairs pairs := by
+    rw [List.prefix_iff_eq_take] at hbaseFull
+    rw [hbaseFull, hbaseK]
+    dsimp [pairs]
+    rw [flattenPairs_take]
+  have hsafe : RuntimeNoDoubleSepFrom false pairs :=
+    runtimeNoDoubleSepFrom_take false fullPairs k hfullSafe
   have hleft' : run outputWorkspaceArchiveReturnUnaryRebaseMachine
       ((prefixClock + 1 + seedClock) + 1 + unaryClock)
       (init outputWorkspaceArchiveReturnUnaryRebaseMachine rcf.tp) =
@@ -456,7 +835,7 @@ theorem scheduledRuntimeRelativeOutput_physicalUnaryRebaseEntry
       flattenPairs pairs ++ [false, true, false, true] ++
         sourceSelectorInput rest.length 0 rest⟩ := by
     rw [← hpairs]
-    simpa [B, schedule, preBlocks, l, bits, rest, pre, out, out', T,
+    simpa [base, B, schedule, preBlocks, l, bits, rest, pre, out, out', T,
       lookupClock, M, routeClock, rcf, locateClock, tailClock,
       prefixClock, seedClock, R, List.append_assoc] using hleft
   have hrestlen : rest.length = B - (t + 1) := by
@@ -479,7 +858,7 @@ theorem scheduledRuntimeRelativeOutput_physicalUnaryRebaseEntry
     (R + (selectedTail rest).length) hsafe true true hselectorHead
     (by simp [runtimePairIsSep]) hleft'
   refine ⟨residue, unaryClock, pairs, hpairs, ?_⟩
-  simpa [B, schedule, preBlocks, l, bits, rest, pre, out, out', T,
+  simpa [base, B, schedule, preBlocks, l, bits, rest, pre, out, out', T,
     lookupClock, M, routeClock, rcf, locateClock, tailClock,
     prefixClock, seedClock, R, hpairs, List.append_assoc] using hrun
 
@@ -490,3 +869,4 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundEntryAda
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundEntryAdapter.runtimeOutputCapPairs_safe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundEntryAdapter.runtimeSelectedPrefixPairs_safe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundEntryAdapter.runtimeWorkspaceFrontPairs_safe
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundEntryAdapter.masterM_literal_workspaceFrontPairs

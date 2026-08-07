@@ -449,6 +449,48 @@ theorem masterM_literal_startToken (w : List Bool) (l : Lit)
   · rw [hone]
     exact hinv.lsent
 
+/-- The concrete completed literal lookup retains the full terminal
+`RoundInv`, not only its two-cell start token.  Since a signed literal lookup
+has exactly one surviving data pair, this exposes the canonical
+`10 01 dd 10` front used by the physical round-entry grammar. -/
+theorem masterM_literal_terminalRoundInv (w : List Bool) (l : Lit)
+    (trailer : List Bool) :
+    let bits := literalLookupTape w l
+    let mcf := run masterM (literalLookupClock w l)
+      (init masterM (bits ++ trailer))
+    RoundInv mcf.tp 0 1 := by
+  dsimp only
+  let bits := literalLookupTape w l
+  let A := signedLookupAssignment w l.1 l.2
+  have hv : l.1 ≤ A.length := by
+    dsimp [A]
+    rw [signedLookupAssignment_length]
+    omega
+  have hinv : RoundInv (bits ++ trailer) l.1 A.length := by
+    dsimp [bits, A]
+    exact literalLookupTape_append_roundInv w l trailer
+  obtain ⟨T', hrounds, hinv', _, _⟩ :=
+    rounds_startToken l.1 (bits ++ trailer) A.length hv hinv
+  have htail : run masterM 7
+      ⟨(1, 0, false, false), 2, T'⟩ =
+      ⟨(9, 0, T'.getD 4 false, false), 4, T'⟩ := by
+    exact tail_read (s := 2) (tape := T') (by omega)
+      (by simpa using hinv'.lsent)
+  have hrun : run masterM (literalLookupClock w l)
+      (init masterM (bits ++ trailer)) =
+      ⟨(9, 0, T'.getD 4 false, false), 4, T'⟩ := by
+    rw [literalLookupClock, master_forced_init, run_add,
+      PallLean.Paper93.DeepMath.PathB.CookLevinInP.init_phase
+        (bits ++ trailer) l.1 A.length hinv,
+      run_add, hrounds]
+    exact htail
+  rw [hrun]
+  have hlen : A.length - l.1 = 1 := by
+    dsimp [A]
+    rw [signedLookupAssignment_length]
+    omega
+  simpa [hlen] using hinv'
+
 /-- The fixed locator specializes unconditionally to the real destructive
 runtime lookup result: the semantic source-origin tape is traversed to the
 actual nested `masterM` workspace, whose start token is proved above. -/
@@ -491,4 +533,5 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeWorkspaceLoca
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeWorkspaceLocator.workspace_prefixed_block_run
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeWorkspaceLocator.runtimeWorkspaceLocator_run
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeWorkspaceLocator.masterM_literal_startToken
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeWorkspaceLocator.masterM_literal_terminalRoundInv
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeWorkspaceLocator.sourceRuntimeLookup_workspaceLocate

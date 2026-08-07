@@ -706,6 +706,114 @@ theorem sourceRuntimeLookup_scheduled (x w : List Bool) {t : Nat}
   · change (pre ++ mcf.tp).take pre.length = pre
     simp
 
+/-- Tape-exact companion to `sourceRuntimeLookup_scheduled`.  It retains the
+actual completed `masterM` suffix instead of projecting it away to the
+consumed-prefix observation. -/
+theorem sourceRuntimeLookup_scheduled_tape (x w : List Bool) {t : Nat}
+    (ht : t < (decodedLiterals x).length) :
+    let B := (decodedLiterals x).length
+    let schedule := literalTapeSchedule x w
+    let preBlocks := schedule.take t
+    let l := scheduledLiteral x t
+    let bits := literalLookupTape w l
+    let rest := schedule.drop (t + 1)
+    let pre := selectedPrefix (B - t) preBlocks
+    let trailer := [true, false, false, true] ++
+      List.replicate bits.length true ++ selectedTail rest
+    let mcf := run masterM (literalLookupClock w l)
+      (init masterM (bits ++ trailer))
+    let cf := run sourceRuntimeLookupCore
+      (sourceRuntimeLookupClock (B - t) preBlocks w l)
+      (init sourceRuntimeLookupCore (sourceSelectorInput B t schedule))
+    cf.tp = pre ++ mcf.tp := by
+  dsimp only
+  let B := (decodedLiterals x).length
+  let schedule := literalTapeSchedule x w
+  let preBlocks := schedule.take t
+  let l := scheduledLiteral x t
+  let bits := literalLookupTape w l
+  let rest := schedule.drop (t + 1)
+  let pre := selectedPrefix (B - t) preBlocks
+  have hcompact := sourceSelectCompact_run (B - t) preBlocks bits rest
+  have hshape : sourceSelectorInput B t schedule =
+      flattenPairs (progressPairs (B - t) [] preBlocks (bits :: rest)) := by
+    have hget : schedule.getD t [] = bits := by
+      dsimp only [schedule, bits, l]
+      exact literalTapeSchedule_getD x w ht
+    have hslen : schedule.length = B := by
+      simp [schedule, B, literalTapeSchedule]
+    have hts : t < schedule.length := by simpa [hslen] using ht
+    have hbit : schedule[t] = bits := by
+      rw [← hget, List.getD_eq_getElem schedule [] hts]
+    have hsplit : schedule = preBlocks ++ bits :: rest := by
+      dsimp only [preBlocks, rest]
+      conv_lhs => rw [← List.take_append_drop t schedule]
+      rw [List.drop_eq_getElem_cons hts, hbit]
+    have hprelen : preBlocks.length = t := by
+      dsimp only [preBlocks]
+      rw [List.length_take, Nat.min_eq_left hts.le]
+    rw [sourceSelectorInput, progressPairs, sourceArchive, hsplit]
+    simp [hprelen, List.append_assoc]
+  let trailer := [true, false, false, true] ++
+    List.replicate bits.length true ++ selectedTail rest
+  have hcompact' : run sourceSelectCompactMachine
+      (sourceSelectCompactClock (B - t) preBlocks bits)
+      (init sourceSelectCompactMachine (sourceSelectorInput B t schedule)) =
+      ⟨Sum.inr SourceCompactState.done,
+        pre.length + bits.length + 3,
+        pre ++ bits ++ trailer⟩ := by
+    rw [hshape]
+    simpa [pre, trailer, List.append_assoc] using hcompact
+  have hrew := sourceRewind_literal pre w l
+    (List.replicate bits.length true ++ selectedTail rest)
+  have hrew' : run sourceRewindMachine (canonicalRewindClock w l)
+      ⟨sourceRewindMachine.start, pre.length + bits.length + 3,
+        pre ++ bits ++ trailer⟩ =
+      ⟨SourceRewindState.done, pre.length, pre ++ bits ++ trailer⟩ := by
+    simpa [bits, l, trailer, List.append_assoc] using hrew
+  have hfirst := headSeq_run sourceSelectCompactMachine sourceRewindMachine
+    (sourceSelectorInput B t schedule)
+    (pre ++ bits ++ trailer) (pre ++ bits ++ trailer)
+    (sourceSelectCompactClock (B - t) preBlocks bits)
+    (canonicalRewindClock w l)
+    (pre.length + bits.length + 3) pre.length
+    (Sum.inr SourceCompactState.done) SourceRewindState.done
+    hcompact' rfl hrew' rfl
+  let mcf := run masterM (literalLookupClock w l)
+    (init masterM (bits ++ trailer))
+  have hmaster : run masterM (literalLookupClock w l)
+      ⟨masterM.start, pre.length, pre ++ bits ++ trailer⟩ =
+      shiftCfg masterM pre mcf := by
+    simpa [bits, mcf, List.append_assoc] using
+      masterM_run_shifted pre w l trailer
+  let A := signedLookupAssignment w l.1 l.2
+  have hv : l.1 ≤ A.length := by
+    dsimp only [A]
+    rw [signedLookupAssignment_length]
+    omega
+  have hinv : RoundInv (bits ++ trailer) l.1 A.length := by
+    dsimp only [bits, A]
+    exact literalLookupTape_append_roundInv w l trailer
+  have happ := readAv_promise (bits ++ trailer) l.1 A.length hv hinv
+  have hmhalt : masterM.halt mcf.st = true := by
+    simpa [mcf, literalLookupClock, A, bits] using happ.1
+  have hsecond := headSeqAccept_run sourceSelectCompactRewindMachine masterM
+    (sourceSelectorInput B t schedule)
+    (pre ++ bits ++ trailer) (pre ++ mcf.tp)
+    (sourceSelectCompactClock (B - t) preBlocks bits + 1 +
+      canonicalRewindClock w l)
+    (literalLookupClock w l)
+    pre.length (pre.length + mcf.hd)
+    (Sum.inr SourceRewindState.done) mcf.st
+    hfirst rfl (by simpa [shiftCfg] using hmaster) hmhalt
+  have hrun : run sourceRuntimeLookupCore
+      (sourceRuntimeLookupClock (B - t) preBlocks w l)
+      (init sourceRuntimeLookupCore (sourceSelectorInput B t schedule)) =
+      ⟨Sum.inr mcf.st, pre.length + mcf.hd, pre ++ mcf.tp⟩ := by
+    simpa [sourceRuntimeLookupClock, sourceRuntimeLookupCore, bits,
+      Nat.add_assoc] using hsecond
+  rw [hrun]
+
 /-- Route-ready formulation: the fixed core's actual `Machine.accept` field,
 not an external decoder, is the scheduled truth value. -/
 theorem sourceRuntimeLookup_accept_scheduled (x w : List Bool) {t : Nat}
@@ -797,6 +905,7 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceLookup
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceLookup.sourceRewind_literal
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceLookup.masterM_run_shifted
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceLookup.sourceRuntimeLookup_scheduled
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceLookup.sourceRuntimeLookup_scheduled_tape
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceLookup.sourceRuntimeLookup_accept_scheduled
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceLookup.sourceRuntimeLookup_route_step_false
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceLookup.sourceRuntimeLookup_route_step_true
