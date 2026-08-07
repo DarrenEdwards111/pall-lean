@@ -14,11 +14,22 @@ namespace PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysica
 
 open PallLean.Paper93.DeepMath.PathB.ComposableMachine
 open PallLean.Paper93.DeepMath.PathB.CookLevinDoubled
+open PallLean.Paper93.DeepMath.PathB.CookLevinMaster
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLiteralWeld
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupLeftBoundaryTerminal
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupDynamicRoute
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupOutputCapacity
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRepeatController
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixRun
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeLeftSafety
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeOutputSourceLocator
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceCompact
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceSelect
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceLookup
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRelativeOutput
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeStage
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeTailPreservation
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupScheduleBound
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeZeroCopyRebase
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeWorkspaceLocator
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalWorkspace
@@ -299,6 +310,121 @@ theorem outputWorkspaceTailLocator_leftSafe
       simpa [runtimeWorkspaceTailLocatorMachine] using congrArg
         (fun c => runtimeWorkspaceTailLocatorMachine.halt c.st) htail
       )
+
+set_option maxHeartbeats 1000000 in
+/-- The real scheduled origin→workspace→future-archive locator is left-safe
+under exactly the clock used by the physical seed controller. -/
+theorem scheduled_outputWorkspaceTailLocator_leftSafe
+    (x w : List Bool) {t : Nat}
+    (ht : t < (decodedLiterals x).length)
+    (htnext : t + 1 < (decodedLiterals x).length) :
+    let B := (decodedLiterals x).length
+    let schedule := literalTapeSchedule x w
+    let preBlocks := schedule.take t
+    let l := scheduledLiteral x t
+    let out := (scheduledTruths x w).take t
+    let out' := (scheduledTruths x w).take (t + 1)
+    let T := sourceSelectorInput B t schedule
+    let n := sourceRuntimeLookupClock (B - t) preBlocks w l
+    let M := runtimeRelativeOutputSourceMachine B
+    let routeClock := runtimeRelativeOutputRouteClock B out T n
+    let rcf := run (acceptRouteMachine M) routeClock
+      (init (acceptRouteMachine M) (outputCap B out ++ T))
+    let locateClock := outputSourceLocatorClock B out' + 1 +
+      ((selectedPrefix (B - t) preBlocks).length + 2)
+    let tailClock := 8 * l.1 + 22
+    LeftSafeRun outputWorkspaceTailLocatorMachine
+      (init outputWorkspaceTailLocatorMachine rcf.tp)
+      (locateClock + 1 + tailClock) := by
+  dsimp only
+  let B := (decodedLiterals x).length
+  let schedule := literalTapeSchedule x w
+  let preBlocks := schedule.take t
+  let l := scheduledLiteral x t
+  let bits := literalLookupTape w l
+  let rest := schedule.drop (t + 1)
+  let pre := selectedPrefix (B - t) preBlocks
+  let out := (scheduledTruths x w).take t
+  let out' := (scheduledTruths x w).take (t + 1)
+  let T := sourceSelectorInput B t schedule
+  let n := sourceRuntimeLookupClock (B - t) preBlocks w l
+  let cf := run sourceRuntimeLookupCore n (init sourceRuntimeLookupCore T)
+  let M := runtimeRelativeOutputSourceMachine B
+  let routeClock := runtimeRelativeOutputRouteClock B out T n
+  let rcf := run (acceptRouteMachine M) routeClock
+    (init (acceptRouteMachine M) (outputCap B out ++ T))
+  let trailer := [true, false, false, true] ++
+    List.replicate bits.length true ++ selectedTail rest
+  let mcf := run masterM (literalLookupClock w l)
+    (init masterM (bits ++ trailer))
+  let locateClock := outputSourceLocatorClock B out' + 1 + (pre.length + 2)
+  let tailClock := 8 * l.1 + 22
+  let W := 2 * B + 2 + pre.length
+  let R := W + 2 * bits.length + 4
+  have hslen : schedule.length = B := by
+    simp [schedule, B, literalTapeSchedule]
+  have hts : t < schedule.length := by simpa [hslen] using ht
+  have hget : schedule.getD t [] = bits := by
+    dsimp [schedule, bits, l]
+    exact literalTapeSchedule_getD x w ht
+  have hbit : schedule[t] = bits := by
+    rw [← hget, List.getD_eq_getElem schedule [] hts]
+  have hsplit : schedule = preBlocks ++ bits :: rest := by
+    dsimp [preBlocks, rest]
+    conv_lhs => rw [← List.take_append_drop t schedule]
+    rw [List.drop_eq_getElem_cons hts, hbit]
+  have hprelen : preBlocks.length = t := by
+    dsimp [preBlocks]
+    rw [List.length_take, Nat.min_eq_left hts.le]
+  have hinput : T =
+      flattenPairs (progressPairs (B - t) [] preBlocks (bits :: rest)) := by
+    dsimp [T]
+    rw [sourceSelectorInput, progressPairs, sourceArchive, hsplit]
+    simp [hprelen, List.append_assoc]
+  have hcf : cf.tp = pre ++ mcf.tp := by
+    have hr := sourceRuntimeLookup_run_shape (B - t) preBlocks w l rest
+    dsimp [cf, n]
+    rw [hinput]
+    simpa [bits, pre, trailer, mcf] using congrArg Cfg.tp hr
+  have hroute := scheduledRuntimeRelativeOutputSourceRoute x w ht
+  have hs := scheduledTruths_take_succ x w ht
+  have htp : rcf.tp = outputCap B out' ++ cf.tp := by
+    simpa [B, schedule, preBlocks, l, out, out', T, n, cf, M,
+      routeClock, rcf, hs] using hroute.2
+  have hphysical : rcf.tp = outputCap B out' ++ pre ++ mcf.tp := by
+    rw [htp, hcf]
+    simp [List.append_assoc]
+  have hout : out'.length = t + 1 := by
+    dsimp [out']
+    rw [List.length_take, scheduledTruths_length,
+      Nat.min_eq_left (by simpa [B] using htnext.le)]
+  have houtle : out'.length ≤ B := by rw [hout]; exact htnext.le
+  have hsource := scheduledRuntimeRelativeOutput_sourceOriginLocate
+    x w ht htnext
+  have hsource' : run outputSourceLocatorMachine
+      (outputSourceLocatorClock B out')
+      (init outputSourceLocatorMachine rcf.tp) =
+    ⟨OutputSourceLocatorState.done, (outputCap B out').length, rcf.tp⟩ := by
+    rw [outputCap_length B out' houtle]
+    simpa [B, schedule, preBlocks, l, out, out', T, n, M,
+      routeClock, rcf] using hsource
+  have htoken : mcf.tp.getD 0 false = true ∧
+      mcf.tp.getD 1 false = false := by
+    simpa [bits, trailer, mcf] using masterM_literal_startToken w l trailer
+  have hworkspace := scheduledRuntimeRelativeOutput_physicalWorkspaceLocate
+    x w ht htnext
+  have hsafeWorkspace := outputWorkspaceLocator_leftSafe rcf.tp
+    (outputCap B out') mcf.tp (B - t) preBlocks
+    (outputSourceLocatorClock B out') hphysical hsource' htoken.1 htoken.2
+  have htail := scheduledRuntimeRelativeOutput_workspaceTailLocate
+    x w ht htnext
+  apply outputWorkspaceTailLocator_leftSafe rcf.tp locateClock tailClock W R
+  · simpa [B, schedule, preBlocks, l, out, out', T, n, M, routeClock,
+      rcf, locateClock, pre] using hworkspace
+  · simpa [B, schedule, preBlocks, l, out, out', T, n, M, routeClock,
+      rcf, locateClock, pre] using hsafeWorkspace
+  · simpa [B, schedule, preBlocks, l, bits, out, T, n, M, routeClock,
+      rcf, W, R, tailClock, pre] using htail
 
 /-! ## Archive discovery and reverse return -/
 
@@ -1985,6 +2111,252 @@ theorem outputWorkspaceArchiveReturnUnaryRebase_leftSafe_of_runs
       (Sum.inr (Sum.inr RuntimeRebaseSeedState.done)) hseed rfl hsSeed
       hsUnary hhUnary
 
+set_option maxHeartbeats 1000000 in
+/-- The scheduled physical workspace/tail locator and canonical archive
+return/seed controller form one unconditional safety certificate. -/
+theorem scheduled_outputWorkspaceArchiveReturnSeed_leftSafe
+    (x w : List Bool) {t : Nat}
+    (ht : t < (decodedLiterals x).length)
+    (htnext : t + 1 < (decodedLiterals x).length) :
+    let B := (decodedLiterals x).length
+    let schedule := literalTapeSchedule x w
+    let preBlocks := schedule.take t
+    let l := scheduledLiteral x t
+    let bits := literalLookupTape w l
+    let rest := schedule.drop (t + 1)
+    let pre := selectedPrefix (B - t) preBlocks
+    let out := (scheduledTruths x w).take t
+    let out' := (scheduledTruths x w).take (t + 1)
+    let T := sourceSelectorInput B t schedule
+    let n := sourceRuntimeLookupClock (B - t) preBlocks w l
+    let M := runtimeRelativeOutputSourceMachine B
+    let routeClock := runtimeRelativeOutputRouteClock B out T n
+    let rcf := run (acceptRouteMachine M) routeClock
+      (init (acceptRouteMachine M) (outputCap B out ++ T))
+    let locateClock := outputSourceLocatorClock B out' + 1 +
+      (pre.length + 2)
+    let tailClock := 8 * l.1 + 22
+    let prefixClock := locateClock + 1 + tailClock
+    LeftSafeRun outputWorkspaceArchiveReturnSeedMachine
+      (init outputWorkspaceArchiveReturnSeedMachine rcf.tp)
+      (prefixClock + 1 + runtimeArchiveReturnSeedClock rest) := by
+  dsimp only
+  let B := (decodedLiterals x).length
+  let schedule := literalTapeSchedule x w
+  let preBlocks := schedule.take t
+  let l := scheduledLiteral x t
+  let bits := literalLookupTape w l
+  let rest := schedule.drop (t + 1)
+  let pre := selectedPrefix (B - t) preBlocks
+  let out := (scheduledTruths x w).take t
+  let out' := (scheduledTruths x w).take (t + 1)
+  let T := sourceSelectorInput B t schedule
+  let n := sourceRuntimeLookupClock (B - t) preBlocks w l
+  let M := runtimeRelativeOutputSourceMachine B
+  let routeClock := runtimeRelativeOutputRouteClock B out T n
+  let rcf := run (acceptRouteMachine M) routeClock
+    (init (acceptRouteMachine M) (outputCap B out ++ T))
+  let locateClock := outputSourceLocatorClock B out' + 1 + (pre.length + 2)
+  let tailClock := 8 * l.1 + 22
+  let prefixClock := locateClock + 1 + tailClock
+  let R := 2 * B + 2 + pre.length + 2 * bits.length + 4
+  have hrestlen : rest.length = B - (t + 1) := by
+    have hslen : schedule.length = B := by
+      simp [schedule, B, literalTapeSchedule]
+    simp [rest, hslen]
+  have hrestpos : 0 < rest.length := by
+    rw [hrestlen]
+    omega
+  obtain ⟨first, more, hrest⟩ := List.exists_cons_of_ne_nil
+    (List.ne_nil_of_length_pos hrestpos)
+  obtain ⟨phys, a, b, hphys, hshape, harchive⟩ :=
+    scheduledRuntimeRelativeOutput_archiveReturnSeed x w ht htnext
+  have hRphys : R = phys.length + 2 := by
+    simp [B, schedule, preBlocks, l, bits, rest, pre, out, T, n, M,
+      routeClock, rcf, R] at hphys
+    rw [hphys]
+  have hphys2 : 2 ≤ phys.length := by
+    have hB : 2 ≤ B := by
+      dsimp [B]
+      omega
+    simp [B, schedule, preBlocks, l, bits, rest, pre, out, T, n, M,
+      routeClock, rcf, R] at hphys
+    rw [hphys]
+    omega
+  have hsArchive0 := runtimeArchiveReturnSeed_leftSafe_prefixed
+    phys a b first more hphys2
+  have hsArchive : LeftSafeRun runtimeArchiveReturnSeedMachine
+      ⟨runtimeArchiveReturnSeedMachine.start, R, rcf.tp⟩
+      (runtimeArchiveReturnSeedClock rest) := by
+    rw [hshape, hRphys]
+    change LeftSafeRun runtimeArchiveReturnSeedMachine
+      ⟨runtimeArchiveReturnSeedMachine.start, phys.length + 2,
+        phys ++ [a, b] ++ selectedTail rest⟩
+      (runtimeArchiveReturnSeedClock rest)
+    rw [hrest]
+    exact hsArchive0
+  have hloc := scheduledRuntimeRelativeOutput_physicalWorkspaceTailLocate
+    x w ht htnext
+  have hsLoc := scheduled_outputWorkspaceTailLocator_leftSafe
+    x w ht htnext
+  have hhArchive : runtimeArchiveReturnSeedMachine.halt
+      (run runtimeArchiveReturnSeedMachine
+        (runtimeArchiveReturnSeedClock rest)
+        ⟨runtimeArchiveReturnSeedMachine.start, R, rcf.tp⟩).st = true := by
+    rw [harchive]
+    rfl
+  simpa [outputWorkspaceArchiveReturnSeedMachine, B, schedule, preBlocks,
+    l, bits, rest, pre, out, out', T, n, M, routeClock, rcf,
+    locateClock, tailClock, prefixClock, R] using
+    headSeq_leftSafe outputWorkspaceTailLocatorMachine
+      runtimeArchiveReturnSeedMachine rcf.tp rcf.tp prefixClock
+      (runtimeArchiveReturnSeedClock rest) R
+      (Sum.inr RuntimeWorkspaceTailLocatorState.done)
+      (by simpa [B, schedule, preBlocks, l, bits, rest, pre, out, out', T,
+        n, M, routeClock, rcf, locateClock, tailClock, prefixClock, R]
+        using hloc)
+      rfl
+      (by simpa [B, schedule, preBlocks, l, out, out', T, n, M,
+        routeClock, rcf, locateClock, tailClock, prefixClock] using hsLoc)
+      hsArchive hhArchive
+
+set_option maxHeartbeats 1000000 in
+/-- The complete scheduled physical controller exports one clock carrying
+both its exact halted unary endpoint and its full left-safety certificate. -/
+theorem scheduled_outputWorkspaceArchiveReturnUnaryRebase_safeRun
+    (x w : List Bool) {t : Nat}
+    (ht : t < (decodedLiterals x).length)
+    (htnext : t + 1 < (decodedLiterals x).length) :
+    let B := (decodedLiterals x).length
+    let schedule := literalTapeSchedule x w
+    let preBlocks := schedule.take t
+    let l := scheduledLiteral x t
+    let bits := literalLookupTape w l
+    let rest := schedule.drop (t + 1)
+    let pre := selectedPrefix (B - t) preBlocks
+    let out := (scheduledTruths x w).take t
+    let out' := (scheduledTruths x w).take (t + 1)
+    let T := sourceSelectorInput B t schedule
+    let lookupClock := sourceRuntimeLookupClock (B - t) preBlocks w l
+    let M := runtimeRelativeOutputSourceMachine B
+    let routeClock := runtimeRelativeOutputRouteClock B out T lookupClock
+    let rcf := run (acceptRouteMachine M) routeClock
+      (init (acceptRouteMachine M) (outputCap B out ++ T))
+    let locateClock := outputSourceLocatorClock B out' + 1 + (pre.length + 2)
+    let tailClock := 8 * l.1 + 22
+    let prefixClock := locateClock + 1 + tailClock
+    let seedClock := runtimeArchiveReturnSeedClock rest
+    let R := 2 * B + 2 + pre.length + 2 * bits.length + 4
+    ∃ base unaryClock,
+      run outputWorkspaceArchiveReturnUnaryRebaseMachine
+          ((prefixClock + 1 + seedClock) + 1 + unaryClock)
+          (init outputWorkspaceArchiveReturnUnaryRebaseMachine rcf.tp) =
+        ⟨outputWorkspaceArchiveReturnUnaryRebaseDone,
+          R + (selectedTail rest).length,
+          base ++ [false, true, false, true] ++
+            sourceSelectorInput rest.length 0 rest⟩ ∧
+      LeftSafeRun outputWorkspaceArchiveReturnUnaryRebaseMachine
+        (init outputWorkspaceArchiveReturnUnaryRebaseMachine rcf.tp)
+        ((prefixClock + 1 + seedClock) + 1 + unaryClock) := by
+  dsimp only
+  let B := (decodedLiterals x).length
+  let schedule := literalTapeSchedule x w
+  let preBlocks := schedule.take t
+  let l := scheduledLiteral x t
+  let bits := literalLookupTape w l
+  let rest := schedule.drop (t + 1)
+  let pre := selectedPrefix (B - t) preBlocks
+  let out := (scheduledTruths x w).take t
+  let out' := (scheduledTruths x w).take (t + 1)
+  let T := sourceSelectorInput B t schedule
+  let lookupClock := sourceRuntimeLookupClock (B - t) preBlocks w l
+  let M := runtimeRelativeOutputSourceMachine B
+  let routeClock := runtimeRelativeOutputRouteClock B out T lookupClock
+  let rcf := run (acceptRouteMachine M) routeClock
+    (init (acceptRouteMachine M) (outputCap B out ++ T))
+  let locateClock := outputSourceLocatorClock B out' + 1 + (pre.length + 2)
+  let tailClock := 8 * l.1 + 22
+  let prefixClock := locateClock + 1 + tailClock
+  let seedClock := runtimeArchiveReturnSeedClock rest
+  let R := 2 * B + 2 + pre.length + 2 * bits.length + 4
+  obtain ⟨phys, a, b, hphys, hshape, hseedrun⟩ :=
+    scheduledRuntimeRelativeOutput_physicalArchiveReturnSeed x w ht htnext
+  have hphys' : phys.length = R - 2 := by
+    simpa [B, schedule, preBlocks, l, bits, rest, pre, R] using hphys
+  have hrestlen : rest.length = B - (t + 1) := by
+    have hslen : schedule.length = B := by
+      simp [schedule, B, literalTapeSchedule]
+    simp [rest, hslen]
+  have hrestpos : 0 < rest.length := by
+    rw [hrestlen]
+    omega
+  obtain ⟨first, more, hrest⟩ := List.exists_cons_of_ne_nil
+    (List.ne_nil_of_length_pos hrestpos)
+  have hfit0 := scheduled_unaryRebaseScratch_fits_afterOutput x w ht
+  have hfit : 2 * rest.length + 4 ≤ phys.length := by
+    have hs : 2 * rest.length + 4 ≤ pre.length + 2 * bits.length + 4 := by
+      have hs0 : 2 * rest.length + 4 ≤ pre.length + 2 * bits.length + 2 := by
+        simpa [B, schedule, preBlocks, bits, rest, pre] using hfit0
+      omega
+    have hphysLower : pre.length + 2 * bits.length + 4 ≤ phys.length := by
+      rw [hphys']
+      omega
+    exact le_trans hs hphysLower
+  obtain ⟨base, unaryClock, hbasePrefix, hbase, hunary, hsunary⟩ :=
+    runtimeUnaryRebase_physical_safeRun phys first more
+      (by simpa [hrest] using hfit)
+  have hR : phys.length + 2 = R := by
+    have hRge : 2 ≤ R := by simp [R]
+    rw [hphys']
+    exact Nat.sub_add_cancel hRge
+  have hunary' : run runtimeUnaryRebaseMachine unaryClock
+      ⟨RuntimeUnaryRebaseState.init1, R,
+        phys ++ [false, true] ++ selectedTail rest⟩ =
+    ⟨RuntimeUnaryRebaseState.done,
+      R + (selectedTail rest).length,
+      base ++ [false, true, false, true] ++
+        sourceSelectorInput rest.length 0 rest⟩ := by
+    simpa [hrest, hR] using hunary
+  have hsunary' : LeftSafeRun runtimeUnaryRebaseMachine
+      ⟨RuntimeUnaryRebaseState.init1, R,
+        phys ++ [false, true] ++ selectedTail rest⟩ unaryClock := by
+    simpa [hrest, hR] using hsunary
+  have hsseed := scheduled_outputWorkspaceArchiveReturnSeed_leftSafe
+    x w ht htnext
+  have hsfull := outputWorkspaceArchiveReturnUnaryRebase_leftSafe_of_runs
+    rcf.tp (phys ++ [false, true] ++ selectedTail rest)
+    (base ++ [false, true, false, true] ++
+      sourceSelectorInput rest.length 0 rest)
+    (prefixClock + 1 + seedClock) unaryClock R
+    (R + (selectedTail rest).length)
+    (by simpa [B, schedule, preBlocks, l, bits, rest, pre, out, out', T,
+      lookupClock, M, routeClock, rcf, locateClock, tailClock,
+      prefixClock, seedClock, R] using hseedrun)
+    (by simpa [B, schedule, preBlocks, l, bits, rest, pre, out, out', T,
+      lookupClock, M, routeClock, rcf, locateClock, tailClock,
+      prefixClock, seedClock] using hsseed)
+    hunary' hsunary'
+  have hjoin := headSeq_run outputWorkspaceArchiveReturnSeedMachine
+    runtimeUnaryRebaseMachine rcf.tp
+    (phys ++ [false, true] ++ selectedTail rest)
+    (base ++ [false, true, false, true] ++
+      sourceSelectorInput rest.length 0 rest)
+    (prefixClock + 1 + seedClock) unaryClock R
+    (R + (selectedTail rest).length)
+    (Sum.inr (Sum.inr RuntimeRebaseSeedState.done))
+    RuntimeUnaryRebaseState.done
+    (by simpa [B, schedule, preBlocks, l, bits, rest, pre, out, out', T,
+      lookupClock, M, routeClock, rcf, locateClock, tailClock,
+      prefixClock, seedClock, R] using hseedrun)
+    rfl hunary' rfl
+  refine ⟨base, unaryClock, ?_, ?_⟩
+  · convert hjoin using 1 <;> simp [outputWorkspaceArchiveReturnUnaryRebaseMachine,
+      outputWorkspaceArchiveReturnUnaryRebaseDone,
+      B, schedule, preBlocks, l, bits, rest, pre, out, out', T,
+      lookupClock, M, routeClock, rcf, locateClock, tailClock,
+      prefixClock, seedClock, R, hrestlen, Nat.add_assoc] <;> omega
+  · exact hsfull
+
 /-- The eight-step unary-writer initialization backs up exactly four cells
 before returning to the archive origin. -/
 theorem runtimeUnaryRebase_init_leftSafe
@@ -2049,6 +2421,7 @@ theorem runtimeUnaryRebase_restore_leftSafe
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety
 
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.outputWorkspaceTailLocator_leftSafe
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.scheduled_outputWorkspaceTailLocator_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeArchiveReverse_canonical_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeRebaseSeed_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeArchiveReturnSeed_leftSafe_of_runs
@@ -2065,4 +2438,6 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftS
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeUnaryRebase_complete_safeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeUnaryRebase_physical_safeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.outputWorkspaceArchiveReturnUnaryRebase_leftSafe_of_runs
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.scheduled_outputWorkspaceArchiveReturnSeed_leftSafe
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.scheduled_outputWorkspaceArchiveReturnUnaryRebase_safeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety.runtimeUnaryRebase_restore_leftSafe
