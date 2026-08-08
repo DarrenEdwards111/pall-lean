@@ -1142,6 +1142,121 @@ theorem runtimeContinuationDispatch_leftSafe_nonterminal
       markerPre, T] using hrebaseHalt)
   simpa [runtimeContinuationDispatchMachine, bits, rest, d, sourcePre,
     archiveTail, trailer, mcf, markerPre, T] using hs
+/-- The complete first fixed-round adjacency, with the sole remaining native
+premise being the physical rebaser's exact run/safety pair on the marked
+cashout endpoint. -/
+theorem runtimeRoundZero_nonterminalCertificate_of_rebase
+    (w : List Bool) (l : Lit) (first : List Bool)
+    (more : List (List Bool))
+    (rebaseClock rebaseHead : Nat)
+    (rebaseState : outputWorkspaceArchiveReturnUnaryRebaseMachine.State)
+    (rebaseTape : List Bool)
+    (hrebase :
+      let bits := literalLookupTape w l
+      let rest := first :: more
+      let B := (bits :: rest).length
+      let bv := evalLit (fun k => w.getD k false) l
+      let sourcePre := flattenPairs
+        (List.replicate (bits :: rest).length (true, true)) ++ [false, true]
+      let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+      let trailer := [true, false, false, true] ++
+        List.replicate bits.length true ++ archiveTail
+      let mcf := run masterM (literalLookupClock w l)
+        (init masterM (bits ++ trailer))
+      let Tcash := outputCap B [bv] ++ [false, true, false, true] ++
+        sourcePre ++ mcf.tp
+      run outputWorkspaceArchiveReturnUnaryRebaseMachine rebaseClock
+          (init outputWorkspaceArchiveReturnUnaryRebaseMachine Tcash) =
+        ⟨rebaseState, rebaseHead, rebaseTape⟩)
+    (hhrebase : outputWorkspaceArchiveReturnUnaryRebaseMachine.halt
+      rebaseState = true)
+    (hrebaseSafe :
+      let bits := literalLookupTape w l
+      let rest := first :: more
+      let B := (bits :: rest).length
+      let bv := evalLit (fun k => w.getD k false) l
+      let sourcePre := flattenPairs
+        (List.replicate (bits :: rest).length (true, true)) ++ [false, true]
+      let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+      let trailer := [true, false, false, true] ++
+        List.replicate bits.length true ++ archiveTail
+      let mcf := run masterM (literalLookupClock w l)
+        (init masterM (bits ++ trailer))
+      let Tcash := outputCap B [bv] ++ [false, true, false, true] ++
+        sourcePre ++ mcf.tp
+      LeftSafeRun outputWorkspaceArchiveReturnUnaryRebaseMachine
+        (init outputWorkspaceArchiveReturnUnaryRebaseMachine Tcash)
+        rebaseClock) :
+    let bits := literalLookupTape w l
+    let rest := first :: more
+    let B := (bits :: rest).length
+    RuntimeFixedRoundCertificate
+      (runtimeRoundZeroTape B (bits :: rest)) rebaseTape := by
+  dsimp only
+  let bits := literalLookupTape w l
+  let rest := first :: more
+  let B := (bits :: rest).length
+  let bv := evalLit (fun k => w.getD k false) l
+  let pairs0 := runtimeOutputCapPairs B []
+  let pairs1 := runtimeOutputCapPairs B [bv]
+  let sourcePre := flattenPairs (List.replicate B (true, true)) ++
+    [false, true]
+  let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+  let trailer := [true, false, false, true] ++
+    List.replicate bits.length true ++ archiveTail
+  let mcf := run masterM (literalLookupClock w l)
+    (init masterM (bits ++ trailer))
+  let Tcash := outputCap B [bv] ++ [false, true, false, true] ++
+    sourcePre ++ mcf.tp
+  obtain ⟨sf, pf, hcash, hhcash, hcashSafe⟩ :=
+    runtimeRoundZero_cashout_safeRun w l rest
+  have hout1 : [bv].length < B := by simp [B, rest]
+  have hpairs1 : outputCap B [bv] = flattenPairs pairs1 := by
+    simpa [pairs1] using (runtimeOutputCapPairs_flatten B [bv]).symm
+  have hTcash : Tcash = flattenPairs pairs1 ++
+      [false, true, false, true] ++ sourcePre ++ mcf.tp := by
+    simp [Tcash, hpairs1, List.append_assoc]
+  have hsafe1 : RuntimeNoDoubleSepFrom false pairs1 :=
+    (runtimeOutputCapPairs_safe B [bv] hout1).1
+  have hdispatch := runtimeContinuationDispatch_run_nonterminal
+    pairs1 w l first more hsafe1 rebaseClock rebaseHead rebaseState
+    rebaseTape
+    (by dsimp only; rw [← hTcash]; exact hrebase)
+    hhrebase
+  have hrebaseHalt : outputWorkspaceArchiveReturnUnaryRebaseMachine.halt
+      (run outputWorkspaceArchiveReturnUnaryRebaseMachine rebaseClock
+        (init outputWorkspaceArchiveReturnUnaryRebaseMachine Tcash)).st =
+        true := by
+    rw [hrebase]
+    exact hhrebase
+  have hdispatchSafe := runtimeContinuationDispatch_leftSafe_nonterminal
+    pairs1 w l first more hsafe1 rebaseClock
+    (by dsimp only; rw [← hTcash]; exact hrebaseSafe)
+    (by dsimp only; rw [← hTcash]; exact hrebaseHalt)
+  have hdispatch' : run runtimeContinuationDispatchMachine
+      (runtimeMarkedContinuationClock pairs1 B l + 1 + rebaseClock)
+      (init runtimeContinuationDispatchMachine Tcash) =
+        ⟨Sum.inr (Sum.inl rebaseState), rebaseHead, rebaseTape⟩ := by
+    rw [hTcash]
+    exact hdispatch
+  have hdispatchSafe' : LeftSafeRun runtimeContinuationDispatchMachine
+      (init runtimeContinuationDispatchMachine Tcash)
+      (runtimeMarkedContinuationClock pairs1 B l + 1 + rebaseClock) := by
+    rw [hTcash]
+    exact hdispatchSafe
+  apply runtimeFixedRoundCertificate_nonterminal_of_runs
+    (runtimeRoundZeroTape B (bits :: rest)) Tcash rebaseTape
+    (runtimeMarkedFrontOutputClock pairs0 B w l [])
+    (runtimeMarkedContinuationClock pairs1 B l + 1 + rebaseClock)
+    pf rebaseHead sf rebaseState
+  · simpa [bits, rest, B, bv, pairs0, sourcePre, archiveTail,
+      trailer, mcf, Tcash] using hcash
+  · exact hhcash
+  · simpa [bits, rest, B, pairs0] using hcashSafe
+  · exact hdispatch'
+  · exact hhrebase
+  · exact hdispatchSafe'
+
 theorem scheduled_physicalUnaryRebase_pairSafeRun
     (x w : List Bool) {t : Nat}
     (ht : t < (decodedLiterals x).length)
@@ -1317,6 +1432,7 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRep_run_of_fixedRound_chain
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZeroTape_pairSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_cashout_safeRun
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_nonterminalCertificate_of_rebase
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.selectedPrefix_succ
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_selectedPrefix_succ
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkedFrontOutput_exact
