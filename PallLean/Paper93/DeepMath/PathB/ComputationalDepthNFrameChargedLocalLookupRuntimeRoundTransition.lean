@@ -667,6 +667,30 @@ theorem runtimeRep_run_of_fixedRound_certificates (B : Nat)
     (runtimeRep_run runtimeFixedRoundBody B tail bodyClock sf pf
       hrun hhalt hleft)
 
+/-- Finite-chain interface for the concrete scheduled construction.  A list
+of `B + 1` physical tapes and synchronized certificates between adjacent
+entries is enough to run the complete repetition controller. -/
+theorem runtimeRep_run_of_fixedRound_chain (B : Nat)
+    (tapes : List (List Bool))
+    (hlen : tapes.length = B + 1)
+    (hchain : ∀ t, t < B →
+      RuntimeFixedRoundCertificate (tapes.getD t [])
+        (tapes.getD (t + 1) [])) :
+    ∃ totalClock,
+      run (repMachine (runtimeCountdownBody B runtimeFixedRoundBody))
+          totalClock
+          (init (repMachine (runtimeCountdownBody B runtimeFixedRoundBody))
+            (cntT B 0 ++ tapes.getD 0 [])) =
+        ⟨Sum.inl (4, false), 2 * B + 1,
+          unaryD B ++ tapes.getD B []⟩ := by
+  let tail := fun t => tapes.getD t []
+  have hcert : ∀ t, t < B →
+      RuntimeFixedRoundCertificate (tail t) (tail (t + 1)) := by
+    intro t ht
+    exact hchain t ht
+  simpa [tail] using
+    (runtimeRep_run_of_fixedRound_certificates B tail hcert)
+
 def runtimeFixedRoundClock (pairs : List (Bool × Bool))
     (d : Nat) (w : List Bool) (l : Lit) (out : List Bool)
     (dispatchClock : Nat) : Nat :=
@@ -1214,6 +1238,7 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_physicalUnaryRebase_canonicalSafeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_family_of_certificates
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRep_run_of_fixedRound_certificates
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRep_run_of_fixedRound_chain
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.selectedPrefix_succ
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_selectedPrefix_succ
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkedFrontOutput_exact
