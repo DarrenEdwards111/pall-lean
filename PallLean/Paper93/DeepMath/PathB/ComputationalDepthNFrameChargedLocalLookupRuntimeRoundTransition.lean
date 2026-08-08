@@ -619,6 +619,55 @@ theorem runtimeMarkedFrontOutput_leftSafe
     simpa [runtimeMarkedFrontOutputMachine, runtimeMarkedFrontOutputClock,
       bodyClock, bits, d, source, marker, T, Nat.add_assoc] using hs
 
+/-- Exact run and safety of the first cashout on the concrete round-zero
+tape.  The result is the marked completed-lookup tape consumed by the
+continuation dispatcher. -/
+theorem runtimeRoundZero_cashout_safeRun (w : List Bool) (l : Lit)
+    (rest : List (List Bool)) :
+    let bits := literalLookupTape w l
+    let schedule := bits :: rest
+    let B := schedule.length
+    let pairs := runtimeOutputCapPairs B []
+    let sourcePre := flattenPairs (List.replicate B (true, true)) ++
+      [false, true]
+    let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+    let trailer := [true, false, false, true] ++
+      List.replicate bits.length true ++ archiveTail
+    let mcf := run masterM (literalLookupClock w l)
+      (init masterM (bits ++ trailer))
+    let bv := evalLit (fun k => w.getD k false) l
+    let T' := outputCap B [bv] ++ [false, true, false, true] ++
+      sourcePre ++ mcf.tp
+    let clock := runtimeMarkedFrontOutputClock pairs B w l []
+    ∃ sf pf,
+      run runtimeMarkedFrontOutputMachine clock
+          (init runtimeMarkedFrontOutputMachine
+            (runtimeRoundZeroTape B schedule)) = ⟨sf, pf, T'⟩ ∧
+      runtimeMarkedFrontOutputMachine.halt sf = true ∧
+      LeftSafeRun runtimeMarkedFrontOutputMachine
+        (init runtimeMarkedFrontOutputMachine
+          (runtimeRoundZeroTape B schedule)) clock := by
+  dsimp only
+  let bits := literalLookupTape w l
+  let schedule := bits :: rest
+  let B := schedule.length
+  let pairs := runtimeOutputCapPairs B []
+  have hpairs : outputCap B [] ++ [] = flattenPairs pairs := by
+    simpa [pairs] using (runtimeOutputCapPairs_flatten B []).symm
+  have hout : (0 : Nat) < B := by simp [B, schedule]
+  have hsafe : RuntimeNoDoubleSepFrom false pairs :=
+    (runtimeOutputCapPairs_safe B [] hout).1
+  obtain ⟨sf, pf, hrun, hhalt⟩ :=
+    runtimeMarkedFrontOutput_exact B [] [] pairs w l rest hout hpairs hsafe
+  have hleft :=
+    runtimeMarkedFrontOutput_leftSafe B [] [] pairs w l rest
+      hout hpairs hsafe
+  refine ⟨sf, pf, ?_, hhalt, ?_⟩
+  · simpa [bits, schedule, B, pairs, runtimeRoundZeroTape,
+      List.append_assoc] using hrun
+  · simpa [bits, schedule, B, pairs, runtimeRoundZeroTape,
+      List.append_assoc] using hleft
+
 /-! ## Fixed round body -/
 
 def runtimeFixedRoundBody : Machine :=
@@ -1267,6 +1316,7 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRep_run_of_fixedRound_certificates
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRep_run_of_fixedRound_chain
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZeroTape_pairSafe
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_cashout_safeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.selectedPrefix_succ
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_selectedPrefix_succ
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkedFrontOutput_exact
