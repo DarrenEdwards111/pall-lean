@@ -1290,6 +1290,138 @@ theorem runtimeRoundZero_markedWorkspaceArchiveReturnSeed_leftSafe
       (Sum.inr (Sum.inr RuntimeWorkspaceTailLocatorState.done))
       hloc rfl hsLoc hsSeed hhSeed
 
+/-- Complete marked physical controller through unary rebasing. -/
+def runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine : Machine :=
+  headSeqMachine runtimeMarkedWorkspaceArchiveReturnSeedMachine
+    runtimeUnaryRebaseMachine
+
+set_option maxHeartbeats 4000000 in
+theorem runtimeRoundZero_markedPhysicalUnaryRebase_safeRun
+    (w : List Bool) (l : Lit) (first : List Bool)
+    (more : List (List Bool)) :
+    let bits := literalLookupTape w l
+    let rest := first :: more
+    let B := (bits :: rest).length
+    let bv := evalLit (fun k => w.getD k false) l
+    let pairs := runtimeOutputCapPairs B [bv]
+    let markerPre := flattenPairs pairs ++ [false, true, false, true]
+    let sourcePre := flattenPairs (List.replicate B (true, true)) ++
+      [false, true]
+    let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+    let trailer := [true, false, false, true] ++
+      List.replicate bits.length true ++ archiveTail
+    let mcf := run masterM (literalLookupClock w l)
+      (init masterM (bits ++ trailer))
+    let Tcash := markerPre ++ sourcePre ++ mcf.tp
+    let markerClock := 2 * pairs.length + 7
+    let workspaceClock := sourcePre.length + 2
+    let tailClock := 8 * l.1 + 22
+    let locateClock := markerClock + 1 +
+      (workspaceClock + 1 + tailClock)
+    let seedClock := runtimeArchiveReturnSeedClock rest
+    let prefixClock := locateClock + 1 + seedClock
+    let R := 4 * B + 2 * bits.length + 12
+    ∃ base unaryClock,
+      run runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine
+          (prefixClock + 1 + unaryClock)
+          (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash) =
+        ⟨Sum.inr RuntimeUnaryRebaseState.done,
+          R + (selectedTail rest).length,
+          base ++ [false, true, false, true] ++
+            sourceSelectorInput rest.length 0 rest⟩ ∧
+      LeftSafeRun runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine
+        (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash)
+        (prefixClock + 1 + unaryClock) := by
+  dsimp only
+  let bits := literalLookupTape w l
+  let rest := first :: more
+  let B := (bits :: rest).length
+  let bv := evalLit (fun k => w.getD k false) l
+  let pairs := runtimeOutputCapPairs B [bv]
+  let markerPre := flattenPairs pairs ++ [false, true, false, true]
+  let sourcePre := flattenPairs (List.replicate B (true, true)) ++
+    [false, true]
+  let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+  let trailer := [true, false, false, true] ++
+    List.replicate bits.length true ++ archiveTail
+  let mcf := run masterM (literalLookupClock w l)
+    (init masterM (bits ++ trailer))
+  let Tcash := markerPre ++ sourcePre ++ mcf.tp
+  let markerClock := 2 * pairs.length + 7
+  let workspaceClock := sourcePre.length + 2
+  let tailClock := 8 * l.1 + 22
+  let locateClock := markerClock + 1 +
+    (workspaceClock + 1 + tailClock)
+  let seedClock := runtimeArchiveReturnSeedClock rest
+  let prefixClock := locateClock + 1 + seedClock
+  let R := 4 * B + 2 * bits.length + 12
+  obtain ⟨pre, a, b, hpre, hshape, hseedrun⟩ :=
+    runtimeRoundZero_markedWorkspaceArchiveReturnSeed_run w l first more
+  have hfit : 2 * rest.length + 4 ≤ pre.length := by
+    rw [hpre]
+    simp [R, B, rest]
+    omega
+  obtain ⟨base, unaryClock, _, _, hunary, hsunary⟩ :=
+    runtimeUnaryRebase_physical_safeRun pre first more
+      (by simpa [rest] using hfit)
+  have hR : pre.length + 2 = R := by
+    rw [hpre]
+    exact Nat.sub_add_cancel (by simp [R])
+  have hunary' : run runtimeUnaryRebaseMachine unaryClock
+      ⟨RuntimeUnaryRebaseState.init1, R,
+        pre ++ [false, true] ++ selectedTail rest⟩ =
+      ⟨RuntimeUnaryRebaseState.done,
+        R + (selectedTail rest).length,
+        base ++ [false, true, false, true] ++
+          sourceSelectorInput rest.length 0 rest⟩ := by
+    simpa [rest, hR] using hunary
+  have hsunary' : LeftSafeRun runtimeUnaryRebaseMachine
+      ⟨RuntimeUnaryRebaseState.init1, R,
+        pre ++ [false, true] ++ selectedTail rest⟩ unaryClock := by
+    simpa [rest, hR] using hsunary
+  have hsseed0 := runtimeRoundZero_markedWorkspaceArchiveReturnSeed_leftSafe
+    w l first more
+  have hsseed : LeftSafeRun runtimeMarkedWorkspaceArchiveReturnSeedMachine
+      (init runtimeMarkedWorkspaceArchiveReturnSeedMachine Tcash)
+      prefixClock := by
+    simpa [bits, rest, B, bv, pairs, markerPre, sourcePre, archiveTail,
+      trailer, mcf, Tcash, markerClock, workspaceClock, tailClock,
+      locateClock, seedClock, prefixClock] using hsseed0
+  have hseedrun' : run runtimeMarkedWorkspaceArchiveReturnSeedMachine
+      prefixClock (init runtimeMarkedWorkspaceArchiveReturnSeedMachine Tcash) =
+      ⟨Sum.inr (Sum.inr RuntimeRebaseSeedState.done), R,
+        pre ++ [false, true] ++ selectedTail rest⟩ := by
+    simpa [bits, rest, B, bv, pairs, markerPre, sourcePre, archiveTail,
+      trailer, mcf, Tcash, markerClock, workspaceClock, tailClock,
+      locateClock, seedClock, prefixClock, R] using hseedrun
+  have hjoin := headSeq_run runtimeMarkedWorkspaceArchiveReturnSeedMachine
+    runtimeUnaryRebaseMachine Tcash
+    (pre ++ [false, true] ++ selectedTail rest)
+    (base ++ [false, true, false, true] ++
+      sourceSelectorInput rest.length 0 rest)
+    prefixClock unaryClock R (R + (selectedTail rest).length)
+    (Sum.inr (Sum.inr RuntimeRebaseSeedState.done))
+    RuntimeUnaryRebaseState.done hseedrun' rfl hunary' rfl
+  have hsjoin := headSeq_leftSafe
+    runtimeMarkedWorkspaceArchiveReturnSeedMachine runtimeUnaryRebaseMachine
+    Tcash (pre ++ [false, true] ++ selectedTail rest)
+    prefixClock unaryClock R
+    (Sum.inr (Sum.inr RuntimeRebaseSeedState.done))
+    hseedrun' rfl hsseed hsunary' (by
+      have := congrArg (fun c => runtimeUnaryRebaseMachine.halt c.st) hunary'
+      simpa [runtimeUnaryRebaseMachine] using this)
+  refine ⟨base, unaryClock, ?_, ?_⟩
+  · simpa [runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine,
+      prefixClock, locateClock, markerClock, workspaceClock, tailClock,
+      seedClock, sourcePre, flattenPairs_length, pairs, B, rest, bv, bits,
+      Tcash, markerPre, archiveTail, trailer, mcf, R, List.append_assoc]
+      using hjoin
+  · simpa [runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine,
+      prefixClock, locateClock, markerClock, workspaceClock, tailClock,
+      seedClock, sourcePre, flattenPairs_length, pairs, B, rest, bv, bits,
+      Tcash, markerPre, archiveTail, trailer, mcf, R, List.append_assoc]
+      using hsjoin
+
 /-! ## Fixed round body -/
 
 def runtimeFixedRoundBody : Machine :=
@@ -2060,6 +2192,7 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedWorkspaceTailLocate_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedWorkspaceArchiveReturnSeed_run
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedWorkspaceArchiveReturnSeed_leftSafe
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedPhysicalUnaryRebase_safeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_nonterminalCertificate_of_rebase
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.selectedPrefix_succ
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_selectedPrefix_succ
