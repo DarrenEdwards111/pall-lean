@@ -20,6 +20,7 @@ open PallLean.Paper93.DeepMath.PathB.CookLevinMaster
 open PallLean.Paper93.DeepMath.PathB.CookLevinReduction
 open PallLean.Paper93.DeepMath.PathB.CookLevinDoubled
 open PallLean.Paper93.DeepMath.PathB.CookLevinEmitAppendBlock
+open PallLean.Paper93.DeepMath.PathB.CookLevinEmitSeq
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLiteralWeld
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupDynamicRoute
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupOutputCapacity
@@ -44,6 +45,7 @@ open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundEntryAd
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeMarkedEntry
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeFrontLookup
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeFrontOutput
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeContinuationLocator
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeContinuationDispatch
 
 set_option maxHeartbeats 1000000
@@ -540,6 +542,35 @@ theorem runtimeMarkedFrontOutput_leftSafe
     simpa [runtimeMarkedFrontOutputMachine, runtimeMarkedFrontOutputClock,
       bodyClock, bits, d, source, marker, T, Nat.add_assoc] using hs
 
+/-! ## Fixed round body -/
+
+def runtimeFixedRoundBody : Machine :=
+  seqMachine runtimeMarkedFrontOutputMachine runtimeContinuationDispatchMachine
+
+def runtimeFixedRoundClock (pairs : List (Bool × Bool))
+    (d : Nat) (w : List Bool) (l : Lit) (out : List Bool)
+    (dispatchClock : Nat) : Nat :=
+  runtimeMarkedFrontOutputClock pairs d w l out + 1 + dispatchClock
+
+/-- Exact terminal round assembly from the already concrete cashout and
+terminal-dispatch endpoints. -/
+theorem runtimeFixedRound_run_terminal_of_runs
+    (T T' : List Bool) (cashClock dispatchClock pf : Nat)
+    (sf : runtimeMarkedFrontOutputMachine.State)
+    (hcash : run runtimeMarkedFrontOutputMachine cashClock
+      (init runtimeMarkedFrontOutputMachine T) = ⟨sf, pf, T'⟩)
+    (hhcash : runtimeMarkedFrontOutputMachine.halt sf = true)
+    (hdispatch : run runtimeContinuationDispatchMachine dispatchClock
+      (init runtimeContinuationDispatchMachine T') =
+        ⟨Sum.inr (Sum.inr ()), 0, T'⟩) :
+    run runtimeFixedRoundBody (cashClock + 1 + dispatchClock)
+        (init runtimeFixedRoundBody T) =
+      ⟨Sum.inr (Sum.inr (Sum.inr ())), 0, T'⟩ := by
+  simpa [runtimeFixedRoundBody] using
+    seq_run runtimeMarkedFrontOutputMachine
+      runtimeContinuationDispatchMachine T T' T' cashClock dispatchClock
+      sf pf (Sum.inr (Sum.inr ())) 0 hcash hhcash hdispatch
+      runtimeContinuationDispatch_halt_terminal
 theorem scheduled_physicalUnaryRebase_pairSafeRun
     (x w : List Bool) {t : Nat}
     (ht : t < (decodedLiterals x).length)
@@ -628,3 +659,4 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkedFrontOutput_exact
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkedFrontLookup_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkedFrontOutput_leftSafe
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_run_terminal_of_runs
