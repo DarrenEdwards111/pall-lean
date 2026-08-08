@@ -21,6 +21,9 @@ open PallLean.Paper93.DeepMath.PathB.CookLevinReduction
 open PallLean.Paper93.DeepMath.PathB.CookLevinDoubled
 open PallLean.Paper93.DeepMath.PathB.CookLevinEmitAppendBlock
 open PallLean.Paper93.DeepMath.PathB.CookLevinEmitSeq
+open PallLean.Paper93.DeepMath.PathB.CookLevinEmitCounterIncr (unaryD)
+open PallLean.Paper93.DeepMath.PathB.CookLevinEmitSplice (cntT)
+open PallLean.Paper93.DeepMath.PathB.CookLevinEmitRep (repMachine repRounds)
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLiteralWeld
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupDynamicRoute
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupOutputCapacity
@@ -47,6 +50,7 @@ open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeFrontLookup
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeFrontOutput
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeContinuationLocator
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeContinuationDispatch
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRepeatAdapter
 
 set_option maxHeartbeats 1000000
 
@@ -593,6 +597,76 @@ theorem runtimeMarkedFrontOutput_leftSafe
 def runtimeFixedRoundBody : Machine :=
   seqMachine runtimeMarkedFrontOutputMachine runtimeContinuationDispatchMachine
 
+/-- The single datum needed for one indexed use of `runtimeRep_run`: an
+exact transition to the next tail, together with halt and left-safety at the
+same clock and endpoint. -/
+def RuntimeFixedRoundCertificate (T T' : List Bool) : Prop :=
+  ∃ clock sf pf,
+    run runtimeFixedRoundBody clock (init runtimeFixedRoundBody T) =
+        ⟨sf, pf, T'⟩ ∧
+      runtimeFixedRoundBody.halt sf = true ∧
+      LeftSafeRun runtimeFixedRoundBody
+        (init runtimeFixedRoundBody T) clock
+
+/-- Convert per-index existential round certificates into the coherent
+clock/state/head functions expected by `runtimeRep_run`.  Values outside the
+live range are harmless defaults; inside `t < B`, all three projections come
+from the same certificate. -/
+theorem runtimeFixedRound_family_of_certificates (B : Nat)
+    (tail : Nat → List Bool)
+    (hcert : ∀ t, t < B →
+      RuntimeFixedRoundCertificate (tail t) (tail (t + 1))) :
+    ∃ bodyClock : Nat → Nat,
+      ∃ sf : Nat → runtimeFixedRoundBody.State,
+      ∃ pf : Nat → Nat,
+        (∀ t, t < B →
+          run runtimeFixedRoundBody (bodyClock t)
+              (init runtimeFixedRoundBody (tail t)) =
+            ⟨sf t, pf t, tail (t + 1)⟩) ∧
+        (∀ t, t < B → runtimeFixedRoundBody.halt (sf t) = true) ∧
+        (∀ t, t < B →
+          LeftSafeRun runtimeFixedRoundBody
+            (init runtimeFixedRoundBody (tail t)) (bodyClock t)) := by
+  let bodyClock := fun t => if ht : t < B then (hcert t ht).choose else 0
+  let sf := fun t => if ht : t < B then
+    (hcert t ht).choose_spec.choose else runtimeFixedRoundBody.start
+  let pf := fun t => if ht : t < B then
+    (hcert t ht).choose_spec.choose_spec.choose else 0
+  refine ⟨bodyClock, sf, pf, ?_, ?_, ?_⟩
+  · intro t ht
+    simp only [bodyClock, sf, pf, dif_pos ht]
+    exact (hcert t ht).choose_spec.choose_spec.choose_spec.1
+  · intro t ht
+    simp only [sf, dif_pos ht]
+    exact (hcert t ht).choose_spec.choose_spec.choose_spec.2.1
+  · intro t ht
+    simp only [bodyClock, dif_pos ht]
+    exact (hcert t ht).choose_spec.choose_spec.choose_spec.2.2
+
+/-- Direct existential-clock application of `runtimeRep_run`.  Once a
+concrete scheduled construction supplies one synchronized certificate for
+each live index, the verified repetition controller and its countdown
+adapter run end to end with no further clock/state witness choices. -/
+theorem runtimeRep_run_of_fixedRound_certificates (B : Nat)
+    (tail : Nat → List Bool)
+    (hcert : ∀ t, t < B →
+      RuntimeFixedRoundCertificate (tail t) (tail (t + 1))) :
+    ∃ totalClock,
+      run (repMachine (runtimeCountdownBody B runtimeFixedRoundBody))
+          totalClock
+          (init (repMachine (runtimeCountdownBody B runtimeFixedRoundBody))
+            (cntT B 0 ++ tail 0)) =
+        ⟨Sum.inl (4, false), 2 * B + 1, unaryD B ++ tail B⟩ := by
+  obtain ⟨bodyClock, sf, pf, hrun, hhalt, hleft⟩ :=
+    runtimeFixedRound_family_of_certificates B tail hcert
+  let protectedClock := fun t =>
+    runtimeCountdownBodyClock B runtimeFixedRoundBody
+      (tail t) (bodyClock t)
+  refine ⟨repRounds protectedClock B + (4 * B + 4), ?_⟩
+  simpa [protectedClock] using
+    (runtimeRep_run runtimeFixedRoundBody B tail bodyClock sf pf
+      hrun hhalt hleft)
+
 def runtimeFixedRoundClock (pairs : List (Bool × Bool))
     (d : Nat) (w : List Bool) (l : Lit) (out : List Bool)
     (dispatchClock : Nat) : Nat :=
@@ -1092,6 +1166,8 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_physicalUnaryRebase_pairSafeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_physicalUnaryRebase_canonicalSafeRun
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_family_of_certificates
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRep_run_of_fixedRound_certificates
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.selectedPrefix_succ
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_selectedPrefix_succ
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkedFrontOutput_exact
