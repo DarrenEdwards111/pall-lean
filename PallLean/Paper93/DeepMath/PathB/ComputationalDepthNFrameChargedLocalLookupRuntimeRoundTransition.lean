@@ -732,6 +732,81 @@ theorem runtimeRoundZero_markedCashout_futureArchive
   change mcf.tp.drop (2 * bits.length + 4) = archiveTail
   exact hmcf
 
+set_option maxHeartbeats 4000000 in
+/-- At the absolute future-archive boundary of the marked round-zero cashout,
+the genuine archive-return controller installs the canonical `01` seed.  The
+same clock also carries its complete left-safety certificate. -/
+theorem runtimeRoundZero_markedCashout_archiveReturnSeed_safeRun
+    (w : List Bool) (l : Lit) (first : List Bool)
+    (more : List (List Bool)) :
+    let bits := literalLookupTape w l
+    let rest := first :: more
+    let B := (bits :: rest).length
+    let bv := evalLit (fun k => w.getD k false) l
+    let sourcePre := flattenPairs (List.replicate B (true, true)) ++
+      [false, true]
+    let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+    let trailer := [true, false, false, true] ++
+      List.replicate bits.length true ++ archiveTail
+    let mcf := run masterM (literalLookupClock w l)
+      (init masterM (bits ++ trailer))
+    let Tcash := outputCap B [bv] ++ [false, true, false, true] ++
+      sourcePre ++ mcf.tp
+    let R := 4 * B + 2 * bits.length + 12
+    ∃ pre a b,
+      pre.length = R - 2 ∧
+      Tcash = pre ++ [a, b] ++ selectedTail rest ∧
+      run runtimeArchiveReturnSeedMachine
+          (runtimeArchiveReturnSeedClock rest)
+          ⟨runtimeArchiveReturnSeedMachine.start, R, Tcash⟩ =
+        ⟨Sum.inr RuntimeRebaseSeedState.done, R,
+          pre ++ [false, true] ++ selectedTail rest⟩ ∧
+      LeftSafeRun runtimeArchiveReturnSeedMachine
+        ⟨runtimeArchiveReturnSeedMachine.start, R, Tcash⟩
+        (runtimeArchiveReturnSeedClock rest) := by
+  dsimp only
+  let bits := literalLookupTape w l
+  let rest := first :: more
+  let B := (bits :: rest).length
+  let bv := evalLit (fun k => w.getD k false) l
+  let sourcePre := flattenPairs (List.replicate B (true, true)) ++
+    [false, true]
+  let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+  let trailer := [true, false, false, true] ++
+    List.replicate bits.length true ++ archiveTail
+  let mcf := run masterM (literalLookupClock w l)
+    (init masterM (bits ++ trailer))
+  let Tcash := outputCap B [bv] ++ [false, true, false, true] ++
+    sourcePre ++ mcf.tp
+  let R := 4 * B + 2 * bits.length + 12
+  have hdrop : Tcash.drop R = selectedTail rest := by
+    simpa [bits, rest, B, bv, sourcePre, archiveTail, trailer, mcf,
+      Tcash, R] using runtimeRoundZero_markedCashout_futureArchive
+        w l first more
+  have hR : 2 ≤ R := by simp [R]
+  have hsuffix : 0 < (selectedTail rest).length := by
+    simp [selectedTail, rest, freshSourceBlock, flattenPairs_length]
+  have hRlen : R ≤ Tcash.length := by
+    have := congrArg List.length hdrop
+    simp only [List.length_drop] at this
+    omega
+  obtain ⟨pre, a, b, hpre, hshape, hrun⟩ :=
+    runtimeArchiveReturnSeed_run_of_drop Tcash R first more
+      hR hRlen (by simpa [rest] using hdrop)
+  have hpre2 : 2 ≤ pre.length := by rw [hpre]; omega
+  have hsafe0 := runtimeArchiveReturnSeed_leftSafe_prefixed
+    pre a b first more hpre2
+  have hsafe : LeftSafeRun runtimeArchiveReturnSeedMachine
+      ⟨runtimeArchiveReturnSeedMachine.start, R, Tcash⟩
+      (runtimeArchiveReturnSeedClock rest) := by
+    rw [hshape, show R = pre.length + 2 by omega]
+    change LeftSafeRun runtimeArchiveReturnSeedMachine
+      ⟨runtimeArchiveReturnSeedMachine.start, pre.length + 2,
+        pre ++ [a, b] ++ selectedTail (first :: more)⟩
+      (runtimeArchiveReturnSeedClock (first :: more))
+    exact hsafe0
+  exact ⟨pre, a, b, hpre, hshape, hrun, hsafe⟩
+
 /-! ## Fixed round body -/
 
 def runtimeFixedRoundBody : Machine :=
@@ -1497,6 +1572,7 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZeroTape_pairSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_cashout_safeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedCashout_futureArchive
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedCashout_archiveReturnSeed_safeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_nonterminalCertificate_of_rebase
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.selectedPrefix_succ
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_selectedPrefix_succ
