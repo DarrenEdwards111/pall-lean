@@ -50,6 +50,52 @@ open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeContinuation
 
 set_option maxHeartbeats 1000000
 
+/-- Advancing the scheduled source archive by one block extends the selected
+prefix by exactly that block's completed representation.  The leading unary
+regions merely exchange one cell, so their concatenation is unchanged. -/
+theorem selectedPrefix_succ (d : Nat) (preBlocks : List (List Bool))
+    (bits : List Bool) (hd : 0 < d) :
+    selectedPrefix (d - 1) (preBlocks ++ [bits]) =
+      selectedPrefix d preBlocks ++ flattenPairs (passedSourceBlock bits) := by
+  have hrepl :
+      List.replicate (preBlocks.length + 1) (true, true) ++
+          List.replicate (d - 1) (true, true) =
+        List.replicate preBlocks.length (true, true) ++
+          List.replicate d (true, true) := by
+    rw [← List.replicate_add, ← List.replicate_add]
+    congr 1
+    omega
+  simp only [selectedPrefix, selectedPrefixPairs, List.length_append,
+    List.length_singleton, List.flatMap_append, List.flatMap_singleton]
+  rw [hrepl]
+  rw [← List.append_assoc]
+  exact flattenPairs_append _ _
+
+/-- Scheduled specialization of `selectedPrefix_succ`: the prefix expected
+by round `t + 1` is the round-`t` prefix extended by the block just
+completed. -/
+theorem scheduled_selectedPrefix_succ (x w : List Bool) {t : Nat}
+    (ht : t < (decodedLiterals x).length) :
+    let B := (decodedLiterals x).length
+    let schedule := literalTapeSchedule x w
+    let bits := literalLookupTape w (scheduledLiteral x t)
+    selectedPrefix (B - (t + 1)) (schedule.take (t + 1)) =
+      selectedPrefix (B - t) (schedule.take t) ++
+        flattenPairs (passedSourceBlock bits) := by
+  dsimp only
+  let B := (decodedLiterals x).length
+  let schedule := literalTapeSchedule x w
+  let bits := literalLookupTape w (scheduledLiteral x t)
+  have hslen : schedule.length = B := by
+    simp [schedule, B, literalTapeSchedule]
+  have hts : t < schedule.length := by simpa [hslen] using ht
+  have hbit : schedule[t] = bits := by
+    rw [← List.getD_eq_getElem schedule [] hts]
+    exact literalTapeSchedule_getD x w ht
+  have hd : 0 < B - t := by omega
+  rw [List.take_add_one, List.getElem?_eq_getElem hts, hbit]
+  simpa [B] using selectedPrefix_succ (B - t) (schedule.take t) bits hd
+
 /-- Full-configuration form of the marked-front cashout theorem.  In
 particular, the exact tape handed to the continuation dispatcher is carried
 by the same halted witness; it is not recovered from a second existential
@@ -968,6 +1014,8 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_physicalUnaryRebase_pairSafeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_physicalUnaryRebase_canonicalSafeRun
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.selectedPrefix_succ
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_selectedPrefix_succ
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkedFrontOutput_exact
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkedFrontLookup_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkedFrontOutput_leftSafe
