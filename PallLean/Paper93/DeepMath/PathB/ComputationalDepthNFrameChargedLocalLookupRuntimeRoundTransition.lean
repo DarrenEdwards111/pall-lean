@@ -1,6 +1,8 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLookupRuntimePhysicalLeftSafety
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLookupRuntimeRoundEntryAdapter
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLookupRuntimeRepeatAdapter
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLookupRuntimeFrontOutput
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLookupRuntimeContinuationDispatch
 
 /-!
 # Charged local lookup: certified concrete round transition
@@ -37,8 +39,78 @@ open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRelativeOutp
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalUnaryRebase
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundEntryAdapter
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeFrontOutput
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeContinuationDispatch
 
 set_option maxHeartbeats 1000000
+
+/-- Full-configuration form of the marked-front cashout theorem.  In
+particular, the exact tape handed to the continuation dispatcher is carried
+by the same halted witness; it is not recovered from a second existential
+run. -/
+theorem runtimeMarkedFrontOutput_exact
+    (B : Nat) (out residue : List Bool)
+    (pairs : List (Bool × Bool)) (w : List Bool) (l : Lit)
+    (rest : List (List Bool))
+    (hout : out.length < B)
+    (hpairs : outputCap B out ++ residue = flattenPairs pairs)
+    (hsafe : RuntimeNoDoubleSepFrom false pairs) :
+    let bits := literalLookupTape w l
+    let d := (bits :: rest).length
+    let source := sourceSelectorInput d 0 (bits :: rest)
+    let marker := [false, true, false, true]
+    let sourcePre := flattenPairs (List.replicate d (true, true)) ++
+      [false, true]
+    let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+    let trailer := [true, false, false, true] ++
+      List.replicate bits.length true ++ archiveTail
+    let mcf := run masterM (literalLookupClock w l)
+      (init masterM (bits ++ trailer))
+    let bv := evalLit (fun k => w.getD k false) l
+    let T := outputCap B out ++ residue ++ marker ++ source
+    let T' := outputCap B (out ++ [bv]) ++ residue ++ marker ++
+      sourcePre ++ mcf.tp
+    let clock := runtimeMarkedFrontOutputClock pairs d w l out
+    ∃ sf pf,
+      run runtimeMarkedFrontOutputMachine clock
+          (init runtimeMarkedFrontOutputMachine T) = ⟨sf, pf, T'⟩ ∧
+      runtimeMarkedFrontOutputMachine.halt sf = true := by
+  dsimp only
+  let bits := literalLookupTape w l
+  let d := (bits :: rest).length
+  let source := sourceSelectorInput d 0 (bits :: rest)
+  let marker := [false, true, false, true]
+  let sourcePre := flattenPairs (List.replicate d (true, true)) ++
+    [false, true]
+  let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+  let trailer := [true, false, false, true] ++
+    List.replicate bits.length true ++ archiveTail
+  let mcf := run masterM (literalLookupClock w l)
+    (init masterM (bits ++ trailer))
+  let bv := evalLit (fun k => w.getD k false) l
+  let T := outputCap B out ++ residue ++ marker ++ source
+  let T' := outputCap B (out ++ [bv]) ++ residue ++ marker ++
+    sourcePre ++ mcf.tp
+  let clock := runtimeMarkedFrontOutputClock pairs d w l out
+  have h := runtimeMarkedFrontOutput_run B out residue pairs w l rest
+    hout hpairs hsafe
+  have hhalt : runtimeMarkedFrontOutputMachine.halt
+      (run runtimeMarkedFrontOutputMachine clock
+        (init runtimeMarkedFrontOutputMachine T)).st = true := by
+    simpa [bits, d, source, marker, sourcePre, archiveTail, trailer, mcf,
+      bv, T, T', clock] using h.1
+  have htape : (run runtimeMarkedFrontOutputMachine clock
+      (init runtimeMarkedFrontOutputMachine T)).tp = T' := by
+    simpa [bits, d, source, marker, sourcePre, archiveTail, trailer, mcf,
+      bv, T, T', clock, List.append_assoc] using h.2
+  cases hrun : run runtimeMarkedFrontOutputMachine clock
+      (init runtimeMarkedFrontOutputMachine T) with
+  | mk sf pf tp =>
+      have htape' : tp = T' := by simpa [hrun] using htape
+      subst tp
+      refine ⟨sf, pf, ?_, ?_⟩
+      · rfl
+      · simpa [hrun] using hhalt
 
 theorem scheduled_physicalUnaryRebase_pairSafeRun
     (x w : List Bool) {t : Nat}
@@ -125,3 +197,4 @@ theorem scheduled_physicalUnaryRebase_pairSafeRun
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition
 
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_physicalUnaryRebase_pairSafeRun
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkedFrontOutput_exact
