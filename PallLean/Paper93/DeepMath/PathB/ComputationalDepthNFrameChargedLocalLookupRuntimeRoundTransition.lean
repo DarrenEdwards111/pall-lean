@@ -35,6 +35,10 @@ open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixRun
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupLeftBoundaryTerminal
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeLeftSafety
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeTailPreservation
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeWorkspaceLocator
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeWorkspaceTailLocator
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalWorkspace
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalArchive
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeStage
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceCompact
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceSelect
@@ -807,6 +811,147 @@ theorem runtimeRoundZero_markedCashout_archiveReturnSeed_safeRun
     exact hsafe0
   exact ⟨pre, a, b, hpre, hshape, hrun, hsafe⟩
 
+/-- Physical locator for a marked continuation tape: first cross the robust
+doubled entry marker, then traverse the selector prefix and the completed
+literal workspace to the untouched future archive. -/
+def runtimeMarkedWorkspaceTailLocatorMachine : Machine :=
+  headSeqMachine runtimeRoundEntryLocatorMachine
+    (headSeqMachine runtimeWorkspaceLocatorMachine
+      runtimeWorkspaceTailLocatorMachine)
+
+set_option maxHeartbeats 4000000 in
+theorem runtimeRoundZero_markedWorkspaceTailLocate
+    (w : List Bool) (l : Lit) (first : List Bool)
+    (more : List (List Bool)) :
+    let bits := literalLookupTape w l
+    let rest := first :: more
+    let B := (bits :: rest).length
+    let bv := evalLit (fun k => w.getD k false) l
+    let pairs := runtimeOutputCapPairs B [bv]
+    let markerPre := flattenPairs pairs ++ [false, true, false, true]
+    let sourcePre := flattenPairs (List.replicate B (true, true)) ++
+      [false, true]
+    let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+    let trailer := [true, false, false, true] ++
+      List.replicate bits.length true ++ archiveTail
+    let mcf := run masterM (literalLookupClock w l)
+      (init masterM (bits ++ trailer))
+    let Tcash := markerPre ++ sourcePre ++ mcf.tp
+    let markerClock := 2 * pairs.length + 7
+    let workspaceClock := sourcePre.length + 2
+    let tailClock := 8 * l.1 + 22
+    let locateClock := markerClock + 1 +
+      (workspaceClock + 1 + tailClock)
+    let R := 4 * B + 2 * bits.length + 12
+    run runtimeMarkedWorkspaceTailLocatorMachine locateClock
+        (init runtimeMarkedWorkspaceTailLocatorMachine Tcash) =
+      ⟨Sum.inr (Sum.inr RuntimeWorkspaceTailLocatorState.done),
+        R, Tcash⟩ := by
+  dsimp only
+  let bits := literalLookupTape w l
+  let rest := first :: more
+  let B := (bits :: rest).length
+  let bv := evalLit (fun k => w.getD k false) l
+  let pairs := runtimeOutputCapPairs B [bv]
+  let markerPre := flattenPairs pairs ++ [false, true, false, true]
+  let sourcePre := flattenPairs (List.replicate B (true, true)) ++
+    [false, true]
+  let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+  let trailer := [true, false, false, true] ++
+    List.replicate bits.length true ++ archiveTail
+  let mcf := run masterM (literalLookupClock w l)
+    (init masterM (bits ++ trailer))
+  let Tcash := markerPre ++ sourcePre ++ mcf.tp
+  let markerClock := 2 * pairs.length + 7
+  let workspaceClock := sourcePre.length + 2
+  let tailClock := 8 * l.1 + 22
+  let locateClock := markerClock + 1 +
+    (workspaceClock + 1 + tailClock)
+  let R := 4 * B + 2 * bits.length + 12
+  have hout : [bv].length < B := by simp [B, rest]
+  have hpairs : RuntimeNoDoubleSepFrom false pairs :=
+    (runtimeOutputCapPairs_safe B [bv] hout).1
+  have hB : 0 < B := by simp [B, rest]
+  have hsourceCons : ∃ tail, sourcePre = true :: true :: tail := by
+    cases hrep : List.replicate B (true, true) with
+    | nil =>
+        have := congrArg List.length hrep
+        simp at this
+        omega
+    | cons p ps =>
+        have hp : p = (true, true) := by
+          have := List.eq_replicate_iff.mp hrep.symm
+          exact this.2 p (by simp)
+        subst p
+        exact ⟨flattenPairs ps ++ [false, true], by
+          simp [sourcePre, hrep, flattenPairs]⟩
+  obtain ⟨sourceTail, hsourceCons⟩ := hsourceCons
+  have htailShape : sourcePre ++ mcf.tp =
+      true :: true :: (sourcePre ++ mcf.tp).drop 2 := by
+    rw [hsourceCons]
+    simp
+  have hmarker : run runtimeRoundEntryLocatorMachine markerClock
+      (init runtimeRoundEntryLocatorMachine Tcash) =
+      ⟨RuntimeRoundEntryState.done, markerPre.length, Tcash⟩ := by
+    simpa [markerClock, Tcash, markerPre, flattenPairs,
+      List.append_assoc] using runtimeRoundEntryLocator_run pairs
+        (sourcePre ++ mcf.tp) true true hpairs htailShape (by decide)
+  have htoken := masterM_literal_startToken w l trailer
+  have hsource : sourcePre = selectedPrefix B [] := by
+    simp [sourcePre, selectedPrefix, selectedPrefixPairs,
+      flattenPairs_append, flattenPairs]
+  have hworkspace : run runtimeWorkspaceLocatorMachine workspaceClock
+      ⟨RuntimeWorkspaceLocatorState.countLo, markerPre.length, Tcash⟩ =
+      ⟨RuntimeWorkspaceLocatorState.done,
+        markerPre.length + sourcePre.length, Tcash⟩ := by
+    have h := runtimeWorkspaceLocator_run_prefixed markerPre B [] mcf.tp
+      (by simpa [mcf, bits, trailer] using htoken.1)
+      (by simpa [mcf, bits, trailer] using htoken.2)
+    simpa [workspaceClock, Tcash, hsource, List.append_assoc] using h
+  have htail := masterM_literal_workspaceTailLocate_prefixed
+    (markerPre ++ sourcePre) w l first more
+  have htail' : run runtimeWorkspaceTailLocatorMachine tailClock
+      ⟨RuntimeWorkspaceTailLocatorState.boot0,
+        markerPre.length + sourcePre.length, Tcash⟩ =
+      ⟨RuntimeWorkspaceTailLocatorState.done,
+        markerPre.length + sourcePre.length + 2 * bits.length + 4,
+        Tcash⟩ := by
+    simpa [tailClock, Tcash, mcf, bits, rest, trailer,
+      List.append_assoc] using htail
+  have hinner := headSeq_run_at runtimeWorkspaceLocatorMachine
+    runtimeWorkspaceTailLocatorMachine Tcash Tcash Tcash
+    markerPre.length workspaceClock tailClock
+    (markerPre.length + sourcePre.length)
+    (markerPre.length + sourcePre.length + 2 * bits.length + 4)
+    RuntimeWorkspaceLocatorState.done
+    RuntimeWorkspaceTailLocatorState.done hworkspace rfl htail' rfl
+  have hall := headSeq_run runtimeRoundEntryLocatorMachine
+    (headSeqMachine runtimeWorkspaceLocatorMachine
+      runtimeWorkspaceTailLocatorMachine)
+    Tcash Tcash Tcash markerClock (workspaceClock + 1 + tailClock)
+    markerPre.length
+    (markerPre.length + sourcePre.length + 2 * bits.length + 4)
+    RuntimeRoundEntryState.done
+    (Sum.inr RuntimeWorkspaceTailLocatorState.done)
+    hmarker rfl (by simpa using hinner) rfl
+  have hmarkerLen : markerPre.length = 2 * B + 6 := by
+    have hp := runtimeOutputCapPairs_flatten B [bv]
+    have hcap := outputCap_length B [bv] (by simp [B, rest])
+    simp [markerPre, ← hp] at hcap ⊢
+    omega
+  have hsourceLen : sourcePre.length = 2 * B + 2 := by
+    simp [sourcePre, flattenPairs_length]
+  have hhead : markerPre.length + sourcePre.length +
+      2 * bits.length + 4 = R := by
+    rw [hmarkerLen, hsourceLen]
+    simp [R]
+    omega
+  rw [hhead] at hall
+  simpa [runtimeMarkedWorkspaceTailLocatorMachine, locateClock, markerClock,
+    workspaceClock, tailClock, sourcePre, flattenPairs_length, pairs, B,
+    rest, bv, bits, Tcash, markerPre, archiveTail, trailer, mcf, R,
+    List.append_assoc] using hall
+
 /-! ## Fixed round body -/
 
 def runtimeFixedRoundBody : Machine :=
@@ -1573,6 +1718,7 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_cashout_safeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedCashout_futureArchive
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedCashout_archiveReturnSeed_safeRun
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedWorkspaceTailLocate
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_nonterminalCertificate_of_rebase
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.selectedPrefix_succ
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_selectedPrefix_succ
