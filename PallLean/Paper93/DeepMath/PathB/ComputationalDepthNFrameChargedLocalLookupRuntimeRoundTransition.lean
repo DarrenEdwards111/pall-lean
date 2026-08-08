@@ -571,6 +571,144 @@ theorem runtimeFixedRound_run_terminal_of_runs
       runtimeContinuationDispatchMachine T T' T' cashClock dispatchClock
       sf pf (Sum.inr (Sum.inr ())) 0 hcash hhcash hdispatch
       runtimeContinuationDispatch_halt_terminal
+
+/-- Exact nonterminal round assembly from cashout into the physical
+archive-return/unary-rebase arm selected by the continuation classifier. -/
+theorem runtimeFixedRound_run_nonterminal_of_runs
+    (T T' T'' : List Bool) (cashClock dispatchClock pf rebaseHead : Nat)
+    (sf : runtimeMarkedFrontOutputMachine.State)
+    (rebaseState : outputWorkspaceArchiveReturnUnaryRebaseMachine.State)
+    (hcash : run runtimeMarkedFrontOutputMachine cashClock
+      (init runtimeMarkedFrontOutputMachine T) = ⟨sf, pf, T'⟩)
+    (hhcash : runtimeMarkedFrontOutputMachine.halt sf = true)
+    (hdispatch : run runtimeContinuationDispatchMachine dispatchClock
+      (init runtimeContinuationDispatchMachine T') =
+        ⟨Sum.inr (Sum.inl rebaseState), rebaseHead, T''⟩)
+    (hhrebase : outputWorkspaceArchiveReturnUnaryRebaseMachine.halt
+      rebaseState = true) :
+    run runtimeFixedRoundBody (cashClock + 1 + dispatchClock)
+        (init runtimeFixedRoundBody T) =
+      ⟨Sum.inr (Sum.inr (Sum.inl rebaseState)), rebaseHead, T''⟩ := by
+  simpa [runtimeFixedRoundBody] using
+    seq_run runtimeMarkedFrontOutputMachine
+      runtimeContinuationDispatchMachine T T' T'' cashClock dispatchClock
+      sf pf (Sum.inr (Sum.inl rebaseState)) rebaseHead hcash hhcash
+      hdispatch (runtimeContinuationDispatch_halt_nonterminal _ hhrebase)
+
+/-! ## Resetting sequential-composition safety -/
+
+theorem seq_leftSafe_inl (M1 M2 : Machine) (c : Cfg M1)
+    (t : Nat) (hno : ∀ i < t, M1.halt (run M1 i c).st = false)
+    (hsafe : LeftSafeRun M1 c t) :
+    LeftSafeRun (seqMachine M1 M2) (inlCfg M1 M2 c) t := by
+  intro i hi hhalt hmove
+  have hr := run_seq_inl M1 M2 c i (fun j hj => hno j (by omega))
+  rw [hr] at hhalt hmove ⊢
+  have hh := hno i hi
+  have hm : (M1.δ (run M1 i c).st
+      ((run M1 i c).tp.getD (run M1 i c).hd false)).2.2 = 0 := by
+    simpa [seqMachine, inlCfg, hh] using hmove
+  exact hsafe i hi hh hm
+
+theorem seq_leftSafe_handoff (M1 M2 : Machine) (c : Cfg M1)
+    (hh : M1.halt c.st = true) :
+    LeftSafeRun (seqMachine M1 M2) (inlCfg M1 M2 c) 1 := by
+  apply leftSafeRun_one_of_not_left
+  simp [seqMachine, inlCfg, hh]
+
+theorem seq_leftSafe_inr (M1 M2 : Machine) (c : Cfg M2)
+    (t : Nat) (hsafe : LeftSafeRun M2 c t) :
+    LeftSafeRun (seqMachine M1 M2) (inrCfg M1 M2 c) t := by
+  intro i hi hhalt hmove
+  rw [run_seq_inr M1 M2 c i] at hhalt hmove ⊢
+  have hh : M2.halt (run M2 i c).st = false := by
+    simpa [seqMachine, inrCfg] using hhalt
+  have hm : (M2.δ (run M2 i c).st
+      ((run M2 i c).tp.getD (run M2 i c).hd false)).2.2 = 0 := by
+    simpa [seqMachine, inrCfg] using hmove
+  exact hsafe i hi hh hm
+
+/-- `seqMachine` preserves left-safety across its real reset-to-origin
+handoff, including slack between the first halt and the advertised clock. -/
+theorem seq_leftSafe (M1 M2 : Machine) (T0 T1 : List Bool)
+    (t1 t2 p1 : Nat) (s1 : M1.State)
+    (h1 : run M1 t1 (init M1 T0) = ⟨s1, p1, T1⟩)
+    (hh1 : M1.halt s1 = true)
+    (hsafe1 : LeftSafeRun M1 (init M1 T0) t1)
+    (hsafe2 : LeftSafeRun M2 (init M2 T1) t2)
+    (hh2 : M2.halt (run M2 t2 (init M2 T1)).st = true) :
+    LeftSafeRun (seqMachine M1 M2)
+      (init (seqMachine M1 M2) T0) (t1 + 1 + t2) := by
+  have hex : ∃ t, M1.halt (run M1 t (init M1 T0)).st = true :=
+    ⟨t1, by rw [h1]; exact hh1⟩
+  let tm := Nat.find hex
+  have htm := Nat.find_spec hex
+  have htmle : tm ≤ t1 := Nat.find_le (by rw [h1]; exact hh1)
+  have hfrozen : run M1 tm (init M1 T0) = ⟨s1, p1, T1⟩ := by
+    rw [← run_stable M1 T0 htmle htm, h1]
+  have hno : ∀ i < tm, M1.halt (run M1 i (init M1 T0)).st = false := by
+    intro i hi
+    simpa using Nat.find_min hex hi
+  have hs1 : LeftSafeRun (seqMachine M1 M2)
+      (init (seqMachine M1 M2) T0) tm := by
+    change LeftSafeRun (seqMachine M1 M2)
+      (inlCfg M1 M2 (init M1 T0)) tm
+    exact seq_leftSafe_inl M1 M2 _ tm hno
+      (fun i hi => hsafe1 i (by omega))
+  have hr1 : run (seqMachine M1 M2) tm
+      (init (seqMachine M1 M2) T0) =
+      inlCfg M1 M2 (⟨s1, p1, T1⟩ : Cfg M1) := by
+    change run (seqMachine M1 M2) tm (inlCfg M1 M2 (init M1 T0)) = _
+    rw [run_seq_inl M1 M2 _ tm hno, hfrozen]
+  have hsSwitch : LeftSafeRun (seqMachine M1 M2)
+      (run (seqMachine M1 M2) tm (init (seqMachine M1 M2) T0)) 1 := by
+    rw [hr1]
+    exact seq_leftSafe_handoff M1 M2 _ hh1
+  have hafter : run (seqMachine M1 M2) 1
+      (run (seqMachine M1 M2) tm (init (seqMachine M1 M2) T0)) =
+      inrCfg M1 M2 (init M2 T1) := by
+    rw [hr1, run_succ, run_zero]
+    exact step_seq_handoff M1 M2 _ hh1
+  have hs2 : LeftSafeRun (seqMachine M1 M2)
+      (run (seqMachine M1 M2) (tm + 1)
+        (init (seqMachine M1 M2) T0)) t2 := by
+    rw [run_add, hafter]
+    exact seq_leftSafe_inr M1 M2 _ t2 hsafe2
+  have hsMain := leftSafeRun_add (leftSafeRun_add hs1 hsSwitch) hs2
+  have hhaltAt : (seqMachine M1 M2).halt
+      (run (seqMachine M1 M2) (tm + 1 + t2)
+        (init (seqMachine M1 M2) T0)).st = true := by
+    rw [show tm + 1 + t2 = (tm + 1) + t2 by omega, run_add,
+      run_add, hafter, run_seq_inr]
+    simpa [seqMachine, inrCfg] using hh2
+  have hsSlack : LeftSafeRun (seqMachine M1 M2)
+      (run (seqMachine M1 M2) (tm + 1 + t2)
+        (init (seqMachine M1 M2) T0)) (t1 - tm) :=
+    leftSafeRun_of_halted _ hhaltAt
+  have hsAll := leftSafeRun_add hsMain hsSlack
+  convert hsAll using 1
+  omega
+
+/-- Safety packaging for either fixed-round branch. -/
+theorem runtimeFixedRound_leftSafe_of_runs
+    (T T' : List Bool) (cashClock dispatchClock pf : Nat)
+    (sf : runtimeMarkedFrontOutputMachine.State)
+    (hcash : run runtimeMarkedFrontOutputMachine cashClock
+      (init runtimeMarkedFrontOutputMachine T) = ⟨sf, pf, T'⟩)
+    (hhcash : runtimeMarkedFrontOutputMachine.halt sf = true)
+    (hcashSafe : LeftSafeRun runtimeMarkedFrontOutputMachine
+      (init runtimeMarkedFrontOutputMachine T) cashClock)
+    (hdispatchSafe : LeftSafeRun runtimeContinuationDispatchMachine
+      (init runtimeContinuationDispatchMachine T') dispatchClock)
+    (hhdispatch : runtimeContinuationDispatchMachine.halt
+      (run runtimeContinuationDispatchMachine dispatchClock
+        (init runtimeContinuationDispatchMachine T')).st = true) :
+    LeftSafeRun runtimeFixedRoundBody (init runtimeFixedRoundBody T)
+      (cashClock + 1 + dispatchClock) := by
+  simpa [runtimeFixedRoundBody] using
+    seq_leftSafe runtimeMarkedFrontOutputMachine
+      runtimeContinuationDispatchMachine T T' cashClock dispatchClock pf sf
+      hcash hhcash hcashSafe hdispatchSafe hhdispatch
 theorem scheduled_physicalUnaryRebase_pairSafeRun
     (x w : List Bool) {t : Nat}
     (ht : t < (decodedLiterals x).length)
@@ -660,3 +798,5 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkedFrontLookup_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkedFrontOutput_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_run_terminal_of_runs
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_run_nonterminal_of_runs
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_leftSafe_of_runs
