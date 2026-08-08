@@ -797,6 +797,43 @@ theorem runtimeFixedRound_nonterminal_safeRun_of_runs
   · exact runtimeFixedRound_leftSafe_of_runs T T' cashClock dispatchClock
       pf sf hcash hhcash hcashSafe hdispatchSafe hhdispatch
 
+/-- Terminal companion to `runtimeFixedRound_nonterminal_safeRun_of_runs`.
+It presents the last scheduled round through the same synchronized
+run/halt/safety interface, with the terminal dispatcher preserving `T'` and
+returning to physical origin. -/
+theorem runtimeFixedRound_terminal_safeRun_of_runs
+    (T T' : List Bool) (cashClock dispatchClock pf : Nat)
+    (sf : runtimeMarkedFrontOutputMachine.State)
+    (hcash : run runtimeMarkedFrontOutputMachine cashClock
+      (init runtimeMarkedFrontOutputMachine T) = ⟨sf, pf, T'⟩)
+    (hhcash : runtimeMarkedFrontOutputMachine.halt sf = true)
+    (hcashSafe : LeftSafeRun runtimeMarkedFrontOutputMachine
+      (init runtimeMarkedFrontOutputMachine T) cashClock)
+    (hdispatch : run runtimeContinuationDispatchMachine dispatchClock
+      (init runtimeContinuationDispatchMachine T') =
+        ⟨Sum.inr (Sum.inr ()), 0, T'⟩)
+    (hdispatchSafe : LeftSafeRun runtimeContinuationDispatchMachine
+      (init runtimeContinuationDispatchMachine T') dispatchClock) :
+    run runtimeFixedRoundBody (cashClock + 1 + dispatchClock)
+        (init runtimeFixedRoundBody T) =
+        ⟨Sum.inr (Sum.inr (Sum.inr ())), 0, T'⟩ ∧
+      runtimeFixedRoundBody.halt
+        (Sum.inr (Sum.inr (Sum.inr ()))) = true ∧
+      LeftSafeRun runtimeFixedRoundBody (init runtimeFixedRoundBody T)
+        (cashClock + 1 + dispatchClock) := by
+  have hrun := runtimeFixedRound_run_terminal_of_runs T T' cashClock
+    dispatchClock pf sf hcash hhcash hdispatch
+  have hhdispatch : runtimeContinuationDispatchMachine.halt
+      (run runtimeContinuationDispatchMachine dispatchClock
+        (init runtimeContinuationDispatchMachine T')).st = true := by
+    rw [hdispatch]
+    exact runtimeContinuationDispatch_halt_terminal
+  refine ⟨hrun, ?_, ?_⟩
+  · simpa [runtimeFixedRoundBody, seqMachine] using
+      runtimeContinuationDispatch_halt_terminal
+  · exact runtimeFixedRound_leftSafe_of_runs T T' cashClock dispatchClock
+      pf sf hcash hhcash hcashSafe hdispatchSafe hhdispatch
+
 /-- Concrete safety of the nonterminal continuation arm from the reachable
 completed-lookup tape. -/
 theorem runtimeContinuationDispatch_leftSafe_nonterminal
@@ -1064,4 +1101,5 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_run_nonterminal_of_runs
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_leftSafe_of_runs
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_nonterminal_safeRun_of_runs
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_terminal_safeRun_of_runs
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeContinuationDispatch_leftSafe_nonterminal
