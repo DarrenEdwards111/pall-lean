@@ -911,7 +911,8 @@ theorem scheduled_physicalUnaryRebase_canonicalSafeRun
     let seedClock := runtimeArchiveReturnSeedClock rest
     let R := 2 * B + 2 + pre.length + 2 * bits.length + 4
     let cut := (R - 2) - (2 * rest.length + 4)
-    ∃ unaryClock pairs,
+    ∃ residue unaryClock pairs,
+      rcf.tp.take cut = outputCap B out' ++ residue ∧
       rcf.tp.take cut = flattenPairs pairs ∧
       RuntimeNoDoubleSepFrom false pairs ∧
       run outputWorkspaceArchiveReturnUnaryRebaseMachine
@@ -954,7 +955,7 @@ theorem scheduled_physicalUnaryRebase_canonicalSafeRun
       outputCap B out' ++ residue =
           rcf.tp.take (outputCap B out' ++ residue).length := hpref
       _ = rcf.tp.take cut := by rw [hlen]
-  refine ⟨unaryClock, pairs, ?_, hsafe, ?_, ?_⟩
+  refine ⟨residue, unaryClock, pairs, hcanon.symm, ?_, hsafe, ?_, ?_⟩
   · rw [← hpairs, hcanon]
   · simpa [B, schedule, preBlocks, l, bits, rest, pre, out, out', T,
       lookupClock, M, routeClock, rcf, locateClock, tailClock,
