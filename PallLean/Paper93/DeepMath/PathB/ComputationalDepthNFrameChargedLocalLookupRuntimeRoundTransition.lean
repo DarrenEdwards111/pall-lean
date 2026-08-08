@@ -39,6 +39,8 @@ open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRelativeOutp
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalUnaryRebase
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundEntryAdapter
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeMarkedEntry
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeFrontLookup
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeFrontOutput
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeContinuationDispatch
 
@@ -111,6 +113,73 @@ theorem runtimeMarkedFrontOutput_exact
       refine ⟨sf, pf, ?_, ?_⟩
       · rfl
       · simpa [hrun] using hhalt
+
+/-- The complete marker-relative lookup phase of cashout is left-safe on the
+same concrete pair decomposition used by the exact run theorem. -/
+theorem runtimeMarkedFrontLookup_leftSafe
+    (pairs : List (Bool × Bool)) (w : List Bool) (l : Lit)
+    (rest : List (List Bool))
+    (hsafe : RuntimeNoDoubleSepFrom false pairs) :
+    let bits := literalLookupTape w l
+    let d := (bits :: rest).length
+    let source := sourceSelectorInput d 0 (bits :: rest)
+    let markerPre := flattenPairs pairs ++ [false, true, false, true]
+    let T := markerPre ++ source
+    LeftSafeRun runtimeMarkedFrontLookupMachine
+      (init runtimeMarkedFrontLookupMachine T)
+      (runtimeMarkedFrontLookupClock pairs d w l) := by
+  dsimp only
+  let bits := literalLookupTape w l
+  let d := (bits :: rest).length
+  let source := sourceSelectorInput d 0 (bits :: rest)
+  let markerPre := flattenPairs pairs ++ [false, true, false, true]
+  let T := markerPre ++ source
+  let locatorClock := 2 * pairs.length + 7
+  let bodyClock := runtimeFrontLookupClock d w l
+  have htail : source = true :: true :: source.drop 2 := by
+    change sourceSelectorInput (bits :: rest).length 0 (bits :: rest) =
+      true :: true ::
+        (sourceSelectorInput (bits :: rest).length 0 (bits :: rest)).drop 2
+    rw [sourceSelectorInput_front]
+    simp [runtimeFrontSelectorInput, List.replicate_succ, flattenPairs,
+      List.append_assoc]
+  have hloc0 := runtimeRoundEntryLocator_run pairs source true true
+    hsafe htail (by simp [runtimePairIsSep])
+  have hloc : run runtimeRoundEntryLocatorMachine locatorClock
+      (init runtimeRoundEntryLocatorMachine T) =
+      ⟨RuntimeRoundEntryState.done, markerPre.length, T⟩ := by
+    simpa [locatorClock, T, markerPre, flattenPairs_length,
+      List.append_assoc] using hloc0
+  have hbody0 := runtimeFrontLookup_run w l rest
+  have hbodyPrefix := runtimeFrontLookup_prefixSafe w l rest
+  have hbodyLeft : LeftSafeRun runtimeFrontLookupCore
+      (init runtimeFrontLookupCore source) bodyClock := by
+    simpa [bodyClock, bits, d, source] using
+      runtimeFrontLookup_leftSafe w l rest
+  have hbodyShift : LeftSafeRun runtimeFrontLookupCore
+      ⟨runtimeFrontLookupCore.start, markerPre.length, T⟩ bodyClock := by
+    have hs := leftSafeRun_shiftCfg runtimeFrontLookupCore markerPre
+      (init runtimeFrontLookupCore source) bodyClock hbodyPrefix hbodyLeft
+    simpa [shiftCfg, T, init] using hs
+  have hlocLeft := runtimeRoundEntryLocator_leftSafe T locatorClock
+  have hbodyHalt : runtimeFrontLookupCore.halt
+      (run runtimeFrontLookupCore bodyClock
+        ⟨runtimeFrontLookupCore.start, markerPre.length, T⟩).st = true := by
+    have hshift := run_shiftCfg runtimeFrontLookupCore markerPre
+      (init runtimeFrontLookupCore source) bodyClock hbodyPrefix
+    have hstart : shiftCfg runtimeFrontLookupCore markerPre
+        (init runtimeFrontLookupCore source) =
+      (⟨runtimeFrontLookupCore.start, markerPre.length, T⟩ :
+        Cfg runtimeFrontLookupCore) := by
+      simp [shiftCfg, T, init]
+    rw [← hstart, hshift]
+    exact (runtimeFrontLookup_halt_accept w l rest).1
+  have hs := headSeqAccept_leftSafe runtimeRoundEntryLocatorMachine
+    runtimeFrontLookupCore T T locatorClock bodyClock markerPre.length
+    RuntimeRoundEntryState.done hloc rfl hlocLeft hbodyShift hbodyHalt
+  simpa [runtimeMarkedFrontLookupMachine, runtimeMarkedFrontLookupClock,
+    runtimeMarkedAcceptBody, runtimeMarkedAcceptClock, locatorClock,
+    bodyClock, bits, d, source, markerPre, T, Nat.add_assoc] using hs
 
 theorem scheduled_physicalUnaryRebase_pairSafeRun
     (x w : List Bool) {t : Nat}
@@ -198,3 +267,4 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_physicalUnaryRebase_pairSafeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkedFrontOutput_exact
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkedFrontLookup_leftSafe
