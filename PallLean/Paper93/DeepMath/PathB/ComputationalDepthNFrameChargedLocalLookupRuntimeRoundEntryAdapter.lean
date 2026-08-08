@@ -676,8 +676,14 @@ theorem scheduledRuntimeRelativeOutput_physicalUnaryRebaseEntry
     let tailClock := 8 * l.1 + 22
     let prefixClock := locateClock + 1 + tailClock
     let seedClock := runtimeArchiveReturnSeedClock rest
+    let R := 2 * B + 2 + pre.length + 2 *
+      (literalLookupTape w l).length + 4
     ∃ residue unaryClock pairs,
+      (outputCap B out' ++ residue).IsPrefix rcf.tp ∧
+      (outputCap B out' ++ residue).length =
+        (R - 2) - (2 * rest.length + 4) ∧
       outputCap B out' ++ residue = flattenPairs pairs ∧
+      RuntimeNoDoubleSepFrom false pairs ∧
       run outputWorkspaceArchiveReturnUnaryRebaseEntryMachine
           (((prefixClock + 1 + seedClock) + 1 + unaryClock) + 1 +
             (2 * pairs.length + 7))
@@ -857,7 +863,8 @@ theorem scheduledRuntimeRelativeOutput_physicalUnaryRebaseEntry
     ((prefixClock + 1 + seedClock) + 1 + unaryClock)
     (R + (selectedTail rest).length) hsafe true true hselectorHead
     (by simp [runtimePairIsSep]) hleft'
-  refine ⟨residue, unaryClock, pairs, hpairs, ?_⟩
+  refine ⟨residue, unaryClock, pairs, hbasePrefix, hbaseLen, hpairs,
+    hsafe, ?_⟩
   simpa [base, B, schedule, preBlocks, l, bits, rest, pre, out, out', T,
     lookupClock, M, routeClock, rcf, locateClock, tailClock,
     prefixClock, seedClock, R, hpairs, List.append_assoc] using hrun
