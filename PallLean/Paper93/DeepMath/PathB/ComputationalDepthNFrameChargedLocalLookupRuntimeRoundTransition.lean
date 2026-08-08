@@ -952,6 +952,103 @@ theorem runtimeRoundZero_markedWorkspaceTailLocate
     rest, bv, bits, Tcash, markerPre, archiveTail, trailer, mcf, R,
     List.append_assoc] using hall
 
+/-- Marked origin-to-archive discovery followed by canonical archive return
+and seed installation. -/
+def runtimeMarkedWorkspaceArchiveReturnSeedMachine : Machine :=
+  headSeqMachine runtimeMarkedWorkspaceTailLocatorMachine
+    runtimeArchiveReturnSeedMachine
+
+set_option maxHeartbeats 4000000 in
+theorem runtimeRoundZero_markedWorkspaceArchiveReturnSeed_run
+    (w : List Bool) (l : Lit) (first : List Bool)
+    (more : List (List Bool)) :
+    let bits := literalLookupTape w l
+    let rest := first :: more
+    let B := (bits :: rest).length
+    let bv := evalLit (fun k => w.getD k false) l
+    let pairs := runtimeOutputCapPairs B [bv]
+    let markerPre := flattenPairs pairs ++ [false, true, false, true]
+    let sourcePre := flattenPairs (List.replicate B (true, true)) ++
+      [false, true]
+    let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+    let trailer := [true, false, false, true] ++
+      List.replicate bits.length true ++ archiveTail
+    let mcf := run masterM (literalLookupClock w l)
+      (init masterM (bits ++ trailer))
+    let Tcash := markerPre ++ sourcePre ++ mcf.tp
+    let markerClock := 2 * pairs.length + 7
+    let workspaceClock := sourcePre.length + 2
+    let tailClock := 8 * l.1 + 22
+    let locateClock := markerClock + 1 +
+      (workspaceClock + 1 + tailClock)
+    let seedClock := runtimeArchiveReturnSeedClock rest
+    let R := 4 * B + 2 * bits.length + 12
+    ∃ pre a b,
+      pre.length = R - 2 ∧
+      Tcash = pre ++ [a, b] ++ selectedTail rest ∧
+      run runtimeMarkedWorkspaceArchiveReturnSeedMachine
+          (locateClock + 1 + seedClock)
+          (init runtimeMarkedWorkspaceArchiveReturnSeedMachine Tcash) =
+        ⟨Sum.inr (Sum.inr RuntimeRebaseSeedState.done), R,
+          pre ++ [false, true] ++ selectedTail rest⟩ := by
+  dsimp only
+  let bits := literalLookupTape w l
+  let rest := first :: more
+  let B := (bits :: rest).length
+  let bv := evalLit (fun k => w.getD k false) l
+  let pairs := runtimeOutputCapPairs B [bv]
+  let markerPre := flattenPairs pairs ++ [false, true, false, true]
+  let sourcePre := flattenPairs (List.replicate B (true, true)) ++
+    [false, true]
+  let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+  let trailer := [true, false, false, true] ++
+    List.replicate bits.length true ++ archiveTail
+  let mcf := run masterM (literalLookupClock w l)
+    (init masterM (bits ++ trailer))
+  let Tcash := markerPre ++ sourcePre ++ mcf.tp
+  let markerClock := 2 * pairs.length + 7
+  let workspaceClock := sourcePre.length + 2
+  let tailClock := 8 * l.1 + 22
+  let locateClock := markerClock + 1 +
+    (workspaceClock + 1 + tailClock)
+  let seedClock := runtimeArchiveReturnSeedClock rest
+  let R := 4 * B + 2 * bits.length + 12
+  have hcap : flattenPairs pairs = outputCap B [bv] := by
+    simpa [pairs] using runtimeOutputCapPairs_flatten B [bv]
+  have hTcash : Tcash = outputCap B [bv] ++
+      [false, true, false, true] ++ sourcePre ++ mcf.tp := by
+    simp [Tcash, markerPre, hcap, List.append_assoc]
+  have hloc := runtimeRoundZero_markedWorkspaceTailLocate w l first more
+  have hloc' : run runtimeMarkedWorkspaceTailLocatorMachine locateClock
+      (init runtimeMarkedWorkspaceTailLocatorMachine Tcash) =
+      ⟨Sum.inr (Sum.inr RuntimeWorkspaceTailLocatorState.done),
+        R, Tcash⟩ := by
+    simpa [bits, rest, B, bv, pairs, markerPre, sourcePre, archiveTail,
+      trailer, mcf, Tcash, markerClock, workspaceClock, tailClock,
+      locateClock, R] using hloc
+  obtain ⟨pre, a, b, hpre, hshape, hseed, _⟩ :=
+    runtimeRoundZero_markedCashout_archiveReturnSeed_safeRun
+      w l first more
+  have hseed' : run runtimeArchiveReturnSeedMachine seedClock
+      ⟨runtimeArchiveReturnSeedMachine.start, R, Tcash⟩ =
+      ⟨Sum.inr RuntimeRebaseSeedState.done, R,
+        pre ++ [false, true] ++ selectedTail rest⟩ := by
+    rw [hTcash]
+    exact hseed
+  have hall := headSeq_run runtimeMarkedWorkspaceTailLocatorMachine
+    runtimeArchiveReturnSeedMachine Tcash Tcash
+    (pre ++ [false, true] ++ selectedTail rest)
+    locateClock seedClock R R
+    (Sum.inr (Sum.inr RuntimeWorkspaceTailLocatorState.done))
+    (Sum.inr RuntimeRebaseSeedState.done) hloc' rfl hseed' rfl
+  refine ⟨pre, a, b, hpre, ?_, ?_⟩
+  · rw [hcap]
+    exact hshape
+  · simpa [runtimeMarkedWorkspaceArchiveReturnSeedMachine, locateClock,
+      markerClock, workspaceClock, tailClock, seedClock, sourcePre,
+      flattenPairs_length, pairs, B, rest, bv, bits, Tcash, markerPre,
+      archiveTail, trailer, mcf, R, List.append_assoc] using hall
+
 /-! ## Fixed round body -/
 
 def runtimeFixedRoundBody : Machine :=
@@ -1719,6 +1816,7 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedCashout_futureArchive
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedCashout_archiveReturnSeed_safeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedWorkspaceTailLocate
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedWorkspaceArchiveReturnSeed_run
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_nonterminalCertificate_of_rebase
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.selectedPrefix_succ
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_selectedPrefix_succ
