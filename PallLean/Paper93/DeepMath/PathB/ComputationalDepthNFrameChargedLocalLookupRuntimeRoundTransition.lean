@@ -811,15 +811,10 @@ theorem runtimeRoundZero_markedCashout_archiveReturnSeed_safeRun
     exact hsafe0
   exact ⟨pre, a, b, hpre, hshape, hrun, hsafe⟩
 
+set_option maxHeartbeats 4000000 in
 /-- Physical locator for a marked continuation tape: first cross the robust
 doubled entry marker, then traverse the selector prefix and the completed
 literal workspace to the untouched future archive. -/
-def runtimeMarkedWorkspaceTailLocatorMachine : Machine :=
-  headSeqMachine runtimeRoundEntryLocatorMachine
-    (headSeqMachine runtimeWorkspaceLocatorMachine
-      runtimeWorkspaceTailLocatorMachine)
-
-set_option maxHeartbeats 4000000 in
 theorem runtimeRoundZero_markedWorkspaceTailLocate
     (w : List Bool) (l : Lit) (first : List Bool)
     (more : List (List Bool)) :
@@ -1095,13 +1090,9 @@ theorem runtimeRoundZero_markedWorkspaceTailLocate_leftSafe
     (markerPre.length + sourcePre.length + 2 * bits.length + 4)
     hmarker hworkspace htail
 
+set_option maxHeartbeats 4000000 in
 /-- Marked origin-to-archive discovery followed by canonical archive return
 and seed installation. -/
-def runtimeMarkedWorkspaceArchiveReturnSeedMachine : Machine :=
-  headSeqMachine runtimeMarkedWorkspaceTailLocatorMachine
-    runtimeArchiveReturnSeedMachine
-
-set_option maxHeartbeats 4000000 in
 theorem runtimeRoundZero_markedWorkspaceArchiveReturnSeed_run
     (w : List Bool) (l : Lit) (first : List Bool)
     (more : List (List Bool)) :
@@ -1290,12 +1281,8 @@ theorem runtimeRoundZero_markedWorkspaceArchiveReturnSeed_leftSafe
       (Sum.inr (Sum.inr RuntimeWorkspaceTailLocatorState.done))
       hloc rfl hsLoc hsSeed hhSeed
 
-/-- Complete marked physical controller through unary rebasing. -/
-def runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine : Machine :=
-  headSeqMachine runtimeMarkedWorkspaceArchiveReturnSeedMachine
-    runtimeUnaryRebaseMachine
-
 set_option maxHeartbeats 4000000 in
+/-- Complete marked physical controller through unary rebasing. -/
 theorem runtimeRoundZero_markedPhysicalUnaryRebase_safeRun
     (w : List Bool) (l : Lit) (first : List Bool)
     (more : List (List Bool)) :
@@ -1551,14 +1538,14 @@ archive-return/unary-rebase arm selected by the continuation classifier. -/
 theorem runtimeFixedRound_run_nonterminal_of_runs
     (T T' T'' : List Bool) (cashClock dispatchClock pf rebaseHead : Nat)
     (sf : runtimeMarkedFrontOutputMachine.State)
-    (rebaseState : outputWorkspaceArchiveReturnUnaryRebaseMachine.State)
+    (rebaseState : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.State)
     (hcash : run runtimeMarkedFrontOutputMachine cashClock
       (init runtimeMarkedFrontOutputMachine T) = ⟨sf, pf, T'⟩)
     (hhcash : runtimeMarkedFrontOutputMachine.halt sf = true)
     (hdispatch : run runtimeContinuationDispatchMachine dispatchClock
       (init runtimeContinuationDispatchMachine T') =
         ⟨Sum.inr (Sum.inl rebaseState), rebaseHead, T''⟩)
-    (hhrebase : outputWorkspaceArchiveReturnUnaryRebaseMachine.halt
+    (hhrebase : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt
       rebaseState = true) :
     run runtimeFixedRoundBody (cashClock + 1 + dispatchClock)
         (init runtimeFixedRoundBody T) =
@@ -1691,7 +1678,7 @@ the recursive `runtimeRep_run` family. -/
 theorem runtimeFixedRound_nonterminal_safeRun_of_runs
     (T T' T'' : List Bool) (cashClock dispatchClock pf rebaseHead : Nat)
     (sf : runtimeMarkedFrontOutputMachine.State)
-    (rebaseState : outputWorkspaceArchiveReturnUnaryRebaseMachine.State)
+    (rebaseState : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.State)
     (hcash : run runtimeMarkedFrontOutputMachine cashClock
       (init runtimeMarkedFrontOutputMachine T) = ⟨sf, pf, T'⟩)
     (hhcash : runtimeMarkedFrontOutputMachine.halt sf = true)
@@ -1700,7 +1687,7 @@ theorem runtimeFixedRound_nonterminal_safeRun_of_runs
     (hdispatch : run runtimeContinuationDispatchMachine dispatchClock
       (init runtimeContinuationDispatchMachine T') =
         ⟨Sum.inr (Sum.inl rebaseState), rebaseHead, T''⟩)
-    (hhrebase : outputWorkspaceArchiveReturnUnaryRebaseMachine.halt
+    (hhrebase : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt
       rebaseState = true)
     (hdispatchSafe : LeftSafeRun runtimeContinuationDispatchMachine
       (init runtimeContinuationDispatchMachine T') dispatchClock) :
@@ -1767,7 +1754,7 @@ indexed certificate family consumed by `runtimeRep_run_of_fixedRound_certificate
 theorem runtimeFixedRoundCertificate_nonterminal_of_runs
     (T T' T'' : List Bool) (cashClock dispatchClock pf rebaseHead : Nat)
     (sf : runtimeMarkedFrontOutputMachine.State)
-    (rebaseState : outputWorkspaceArchiveReturnUnaryRebaseMachine.State)
+    (rebaseState : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.State)
     (hcash : run runtimeMarkedFrontOutputMachine cashClock
       (init runtimeMarkedFrontOutputMachine T) = ⟨sf, pf, T'⟩)
     (hhcash : runtimeMarkedFrontOutputMachine.halt sf = true)
@@ -1776,7 +1763,7 @@ theorem runtimeFixedRoundCertificate_nonterminal_of_runs
     (hdispatch : run runtimeContinuationDispatchMachine dispatchClock
       (init runtimeContinuationDispatchMachine T') =
         ⟨Sum.inr (Sum.inl rebaseState), rebaseHead, T''⟩)
-    (hhrebase : outputWorkspaceArchiveReturnUnaryRebaseMachine.halt
+    (hhrebase : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt
       rebaseState = true)
     (hdispatchSafe : LeftSafeRun runtimeContinuationDispatchMachine
       (init runtimeContinuationDispatchMachine T') dispatchClock) :
@@ -1827,8 +1814,8 @@ theorem runtimeContinuationDispatch_leftSafe_nonterminal
       let mcf := run masterM (literalLookupClock w l)
         (init masterM (bits ++ trailer))
       let markerPre := flattenPairs pairs ++ [false, true, false, true]
-      LeftSafeRun outputWorkspaceArchiveReturnUnaryRebaseMachine
-        (init outputWorkspaceArchiveReturnUnaryRebaseMachine
+      LeftSafeRun runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine
+        (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine
           (markerPre ++ sourcePre ++ mcf.tp)) rebaseClock)
     (hrebaseHalt :
       let bits := literalLookupTape w l
@@ -1842,9 +1829,9 @@ theorem runtimeContinuationDispatch_leftSafe_nonterminal
       let mcf := run masterM (literalLookupClock w l)
         (init masterM (bits ++ trailer))
       let markerPre := flattenPairs pairs ++ [false, true, false, true]
-      outputWorkspaceArchiveReturnUnaryRebaseMachine.halt
-        (run outputWorkspaceArchiveReturnUnaryRebaseMachine rebaseClock
-          (init outputWorkspaceArchiveReturnUnaryRebaseMachine
+      runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt
+        (run runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine rebaseClock
+          (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine
             (markerPre ++ sourcePre ++ mcf.tp))).st = true) :
     let bits := literalLookupTape w l
     let rest := first :: more
@@ -1884,7 +1871,7 @@ theorem runtimeContinuationDispatch_leftSafe_nonterminal
       using hloc0
   have hsLoc := runtimeMarkedContinuation_leftSafe pairs w l rest hsafe
   have hs := condSeq_leftSafe_true runtimeMarkedContinuationMachine
-    outputWorkspaceArchiveReturnUnaryRebaseMachine runtimeTerminalHaltMachine
+    runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine runtimeTerminalHaltMachine
     T T (runtimeMarkedContinuationClock pairs d l) rebaseClock
     (markerPre.length + (sourcePre.length + 2 * bits.length + 6))
     (Sum.inr (RuntimeContinuationLocatorState.done true)) hloc rfl rfl
@@ -1903,7 +1890,7 @@ theorem runtimeRoundZero_nonterminalCertificate_of_rebase
     (w : List Bool) (l : Lit) (first : List Bool)
     (more : List (List Bool))
     (rebaseClock rebaseHead : Nat)
-    (rebaseState : outputWorkspaceArchiveReturnUnaryRebaseMachine.State)
+    (rebaseState : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.State)
     (rebaseTape : List Bool)
     (hrebase :
       let bits := literalLookupTape w l
@@ -1919,10 +1906,10 @@ theorem runtimeRoundZero_nonterminalCertificate_of_rebase
         (init masterM (bits ++ trailer))
       let Tcash := outputCap B [bv] ++ [false, true, false, true] ++
         sourcePre ++ mcf.tp
-      run outputWorkspaceArchiveReturnUnaryRebaseMachine rebaseClock
-          (init outputWorkspaceArchiveReturnUnaryRebaseMachine Tcash) =
+      run runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine rebaseClock
+          (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash) =
         ⟨rebaseState, rebaseHead, rebaseTape⟩)
-    (hhrebase : outputWorkspaceArchiveReturnUnaryRebaseMachine.halt
+    (hhrebase : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt
       rebaseState = true)
     (hrebaseSafe :
       let bits := literalLookupTape w l
@@ -1938,8 +1925,8 @@ theorem runtimeRoundZero_nonterminalCertificate_of_rebase
         (init masterM (bits ++ trailer))
       let Tcash := outputCap B [bv] ++ [false, true, false, true] ++
         sourcePre ++ mcf.tp
-      LeftSafeRun outputWorkspaceArchiveReturnUnaryRebaseMachine
-        (init outputWorkspaceArchiveReturnUnaryRebaseMachine Tcash)
+      LeftSafeRun runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine
+        (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash)
         rebaseClock) :
     let bits := literalLookupTape w l
     let rest := first :: more
@@ -1977,9 +1964,9 @@ theorem runtimeRoundZero_nonterminalCertificate_of_rebase
     rebaseTape
     (by dsimp only; rw [← hTcash]; exact hrebase)
     hhrebase
-  have hrebaseHalt : outputWorkspaceArchiveReturnUnaryRebaseMachine.halt
-      (run outputWorkspaceArchiveReturnUnaryRebaseMachine rebaseClock
-        (init outputWorkspaceArchiveReturnUnaryRebaseMachine Tcash)).st =
+  have hrebaseHalt : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt
+      (run runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine rebaseClock
+        (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash)).st =
         true := by
     rw [hrebase]
     exact hhrebase
@@ -2010,6 +1997,76 @@ theorem runtimeRoundZero_nonterminalCertificate_of_rebase
   · exact hdispatch'
   · exact hhrebase
   · exact hdispatchSafe'
+
+set_option maxHeartbeats 4000000 in
+/-- Unconditional certified first adjacency: the corrected marked physical
+controller supplies the dispatcher premise internally. -/
+theorem runtimeRoundZero_nonterminalCertificate
+    (w : List Bool) (l : Lit) (first : List Bool)
+    (more : List (List Bool)) :
+    let bits := literalLookupTape w l
+    let rest := first :: more
+    let B := (bits :: rest).length
+    ∃ nextTape,
+      RuntimeFixedRoundCertificate
+        (runtimeRoundZeroTape B (bits :: rest)) nextTape := by
+  dsimp only
+  let bits := literalLookupTape w l
+  let rest := first :: more
+  let B := (bits :: rest).length
+  let bv := evalLit (fun k => w.getD k false) l
+  let pairs := runtimeOutputCapPairs B [bv]
+  let markerPre := flattenPairs pairs ++ [false, true, false, true]
+  let sourcePre := flattenPairs (List.replicate B (true, true)) ++
+    [false, true]
+  let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+  let trailer := [true, false, false, true] ++
+    List.replicate bits.length true ++ archiveTail
+  let mcf := run masterM (literalLookupClock w l)
+    (init masterM (bits ++ trailer))
+  let Tmarked := markerPre ++ sourcePre ++ mcf.tp
+  let markerClock := 2 * pairs.length + 7
+  let workspaceClock := sourcePre.length + 2
+  let tailClock := 8 * l.1 + 22
+  let locateClock := markerClock + 1 +
+    (workspaceClock + 1 + tailClock)
+  let seedClock := runtimeArchiveReturnSeedClock rest
+  let prefixClock := locateClock + 1 + seedClock
+  let R := 4 * B + 2 * bits.length + 12
+  obtain ⟨base, unaryClock, hrun, hsafe⟩ :=
+    runtimeRoundZero_markedPhysicalUnaryRebase_safeRun w l first more
+  let nextTape := base ++ [false, true, false, true] ++
+    sourceSelectorInput rest.length 0 rest
+  have hcap : flattenPairs pairs = outputCap B [bv] := by
+    simpa [pairs] using runtimeOutputCapPairs_flatten B [bv]
+  have hTmarked : Tmarked = outputCap B [bv] ++
+      [false, true, false, true] ++ sourcePre ++ mcf.tp := by
+    simp [Tmarked, markerPre, hcap, List.append_assoc]
+  have hrun' : run runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine
+      (prefixClock + 1 + unaryClock)
+      (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tmarked) =
+      ⟨Sum.inr RuntimeUnaryRebaseState.done,
+        R + (selectedTail rest).length, nextTape⟩ := by
+    simpa [bits, rest, B, bv, pairs, markerPre, sourcePre, archiveTail,
+      trailer, mcf, Tmarked, markerClock, workspaceClock, tailClock,
+      locateClock, seedClock, prefixClock, R, nextTape] using hrun
+  have hsafe' : LeftSafeRun
+      runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine
+      (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tmarked)
+      (prefixClock + 1 + unaryClock) := by
+    simpa [bits, rest, B, bv, pairs, markerPre, sourcePre, archiveTail,
+      trailer, mcf, Tmarked, markerClock, workspaceClock, tailClock,
+      locateClock, seedClock, prefixClock] using hsafe
+  refine ⟨nextTape, runtimeRoundZero_nonterminalCertificate_of_rebase
+    w l first more (prefixClock + 1 + unaryClock)
+    (R + (selectedTail rest).length)
+    (Sum.inr RuntimeUnaryRebaseState.done) nextTape ?_ rfl ?_⟩
+  · dsimp only
+    rw [← hTmarked]
+    exact hrun'
+  · dsimp only
+    rw [← hTmarked]
+    exact hsafe'
 
 theorem scheduled_physicalUnaryRebase_pairSafeRun
     (x w : List Bool) {t : Nat}
@@ -2194,6 +2251,7 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedWorkspaceArchiveReturnSeed_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedPhysicalUnaryRebase_safeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_nonterminalCertificate_of_rebase
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_nonterminalCertificate
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.selectedPrefix_succ
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_selectedPrefix_succ
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkedFrontOutput_exact

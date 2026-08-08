@@ -20,6 +20,11 @@ namespace PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeContinu
 
 open PallLean.Paper93.DeepMath.PathB.ComposableMachine
 open PallLean.Paper93.DeepMath.PathB.CondSeqMachine
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceCompact
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeWorkspaceLocator
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeWorkspaceTailLocator
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeArchiveReturnWriter
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeUnaryRebaseWriter
 open PallLean.Paper93.DeepMath.PathB.CookLevinReduction
 open PallLean.Paper93.DeepMath.PathB.CookLevinMaster
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLiteralWeld
@@ -47,9 +52,22 @@ def runtimeTerminalHaltMachine : Machine where
 
 /-- Tape-driven post-cashout branch: future archive means physical rebase;
 terminal blank means immediate final halt. -/
+def runtimeMarkedWorkspaceTailLocatorMachine : Machine :=
+  headSeqMachine runtimeRoundEntryLocatorMachine
+    (headSeqMachine runtimeWorkspaceLocatorMachine
+      runtimeWorkspaceTailLocatorMachine)
+
+def runtimeMarkedWorkspaceArchiveReturnSeedMachine : Machine :=
+  headSeqMachine runtimeMarkedWorkspaceTailLocatorMachine
+    runtimeArchiveReturnSeedMachine
+
+def runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine : Machine :=
+  headSeqMachine runtimeMarkedWorkspaceArchiveReturnSeedMachine
+    runtimeUnaryRebaseMachine
+
 def runtimeContinuationDispatchMachine : Machine :=
   condSeqMachine runtimeMarkedContinuationMachine
-    outputWorkspaceArchiveReturnUnaryRebaseMachine runtimeTerminalHaltMachine
+    runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine runtimeTerminalHaltMachine
 
 /-! ## Concrete marked-classifier left safety -/
 
@@ -400,7 +418,7 @@ theorem runtimeContinuationDispatch_run_nonterminal
     (first : List Bool) (more : List (List Bool))
     (hsafe : RuntimeNoDoubleSepFrom false pairs)
     (rebaseClock rebaseHead : Nat)
-    (rebaseState : outputWorkspaceArchiveReturnUnaryRebaseMachine.State)
+    (rebaseState : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.State)
     (rebaseTape : List Bool)
     (hrebase :
       let bits := literalLookupTape w l
@@ -414,12 +432,12 @@ theorem runtimeContinuationDispatch_run_nonterminal
       let mcf := run masterM (literalLookupClock w l)
         (init masterM (bits ++ trailer))
       let markerPre := flattenPairs pairs ++ [false, true, false, true]
-      run outputWorkspaceArchiveReturnUnaryRebaseMachine rebaseClock
-          (init outputWorkspaceArchiveReturnUnaryRebaseMachine
+      run runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine rebaseClock
+          (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine
             (markerPre ++ sourcePre ++ mcf.tp)) =
         ⟨rebaseState, rebaseHead, rebaseTape⟩)
     (hrebaseHalt :
-      outputWorkspaceArchiveReturnUnaryRebaseMachine.halt rebaseState = true) :
+      runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt rebaseState = true) :
     let bits := literalLookupTape w l
     let rest := first :: more
     let d := (bits :: rest).length
@@ -512,7 +530,7 @@ theorem runtimeContinuationDispatch_run_terminal
       using hloc
   have hdispatch := condSeq_run_false
     (M1 := runtimeMarkedContinuationMachine)
-    (Mt := outputWorkspaceArchiveReturnUnaryRebaseMachine)
+    (Mt := runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine)
     (Mf := runtimeTerminalHaltMachine)
     T T T (runtimeMarkedContinuationClock pairs d l) 0
     (Sum.inr (RuntimeContinuationLocatorState.done false))
@@ -564,7 +582,7 @@ theorem runtimeContinuationDispatch_leftSafe_terminal
       using hloc0
   have hleft := runtimeMarkedContinuation_leftSafe pairs w l rest hsafe
   have hs := condSeq_leftSafe_false runtimeMarkedContinuationMachine
-    outputWorkspaceArchiveReturnUnaryRebaseMachine runtimeTerminalHaltMachine
+    runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine runtimeTerminalHaltMachine
     T T (runtimeMarkedContinuationClock pairs d l) 0
     (markerPre.length + (sourcePre.length + 2 * bits.length + 6))
     (Sum.inr (RuntimeContinuationLocatorState.done false))
@@ -576,14 +594,14 @@ theorem runtimeContinuationDispatch_leftSafe_terminal
     archiveTail, trailer, mcf, markerPre, T] using hs
 
 theorem runtimeContinuationDispatch_halt_nonterminal
-    (s : outputWorkspaceArchiveReturnUnaryRebaseMachine.State)
-    (h : outputWorkspaceArchiveReturnUnaryRebaseMachine.halt s = true) :
+    (s : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.State)
+    (h : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt s = true) :
     runtimeContinuationDispatchMachine.halt
       (Sum.inr (Sum.inl s)) = true := by
   simpa [runtimeContinuationDispatchMachine] using
     cond_halt_final_true
       (M1 := runtimeMarkedContinuationMachine)
-      (Mt := outputWorkspaceArchiveReturnUnaryRebaseMachine)
+      (Mt := runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine)
       (Mf := runtimeTerminalHaltMachine) s h
 
 theorem runtimeContinuationDispatch_halt_terminal :
