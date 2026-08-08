@@ -3,6 +3,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLooku
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLookupRuntimeRepeatAdapter
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLookupRuntimeFrontOutput
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLookupRuntimeContinuationDispatch
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLookupRuntimeTailPreservation
 
 /-!
 # Charged local lookup: certified concrete round transition
@@ -33,6 +34,7 @@ open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupScheduleBound
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixRun
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupLeftBoundaryTerminal
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeLeftSafety
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeTailPreservation
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeStage
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceCompact
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceSelect
@@ -667,6 +669,68 @@ theorem runtimeRoundZero_cashout_safeRun (w : List Bool) (l : Lit)
       List.append_assoc] using hrun
   · simpa [bits, schedule, B, pairs, runtimeRoundZeroTape,
       List.append_assoc] using hleft
+
+/-- Exact future-archive suffix of the marked round-zero cashout tape.  This
+is the physical offset equation needed by the archive-return/unary-rebase
+controller; it accounts for the output capacity, doubled marker, rebased
+source prefix, completed literal payload, trailer, and equal-length padding. -/
+theorem runtimeRoundZero_markedCashout_futureArchive
+    (w : List Bool) (l : Lit) (first : List Bool)
+    (more : List (List Bool)) :
+    let bits := literalLookupTape w l
+    let rest := first :: more
+    let B := (bits :: rest).length
+    let bv := evalLit (fun k => w.getD k false) l
+    let sourcePre := flattenPairs (List.replicate B (true, true)) ++
+      [false, true]
+    let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+    let trailer := [true, false, false, true] ++
+      List.replicate bits.length true ++ archiveTail
+    let mcf := run masterM (literalLookupClock w l)
+      (init masterM (bits ++ trailer))
+    let Tcash := outputCap B [bv] ++ [false, true, false, true] ++
+      sourcePre ++ mcf.tp
+    let R := 4 * B + 2 * bits.length + 12
+    Tcash.drop R = selectedTail rest := by
+  dsimp only
+  let bits := literalLookupTape w l
+  let rest := first :: more
+  let B := (bits :: rest).length
+  let bv := evalLit (fun k => w.getD k false) l
+  let sourcePre := flattenPairs (List.replicate B (true, true)) ++
+    [false, true]
+  let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+  let trailer := [true, false, false, true] ++
+    List.replicate bits.length true ++ archiveTail
+  let mcf := run masterM (literalLookupClock w l)
+    (init masterM (bits ++ trailer))
+  let Tcash := outputCap B [bv] ++ [false, true, false, true] ++
+    sourcePre ++ mcf.tp
+  let R := 4 * B + 2 * bits.length + 12
+  have hout : [bv].length ≤ B := by simp [B, rest]
+  have houtlen := outputCap_length B [bv] hout
+  have hsourceLen : sourcePre.length = 2 * B + 2 := by
+    simp [sourcePre, flattenPairs_length]
+  have htrailer : mcf.tp.drop bits.length = trailer := by
+    simpa [mcf, bits, trailer] using masterM_literal_trailer w l trailer
+  have hmcf : mcf.tp.drop (2 * bits.length + 4) = archiveTail := by
+    rw [show 2 * bits.length + 4 = bits.length + (bits.length + 4) by omega,
+      ← List.drop_drop, htrailer]
+    simp [trailer, archiveTail]
+  have hprefixLen :
+      (outputCap B [bv] ++ [false, true, false, true] ++ sourcePre).length =
+        4 * B + 8 := by
+    simp [houtlen, hsourceLen]
+    omega
+  change List.drop R
+      ((outputCap B [bv] ++ [false, true, false, true] ++ sourcePre) ++
+        mcf.tp) = selectedTail rest
+  rw [show R =
+      (outputCap B [bv] ++ [false, true, false, true] ++ sourcePre).length +
+        (2 * bits.length + 4) by rw [hprefixLen]; omega]
+  rw [← List.drop_drop, List.drop_left]
+  change mcf.tp.drop (2 * bits.length + 4) = archiveTail
+  exact hmcf
 
 /-! ## Fixed round body -/
 
@@ -1432,6 +1496,7 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRep_run_of_fixedRound_chain
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZeroTape_pairSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_cashout_safeRun
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedCashout_futureArchive
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_nonterminalCertificate_of_rebase
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.selectedPrefix_succ
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_selectedPrefix_succ
