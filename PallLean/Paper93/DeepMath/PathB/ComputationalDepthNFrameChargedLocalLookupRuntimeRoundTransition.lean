@@ -756,6 +756,47 @@ theorem runtimeFixedRound_leftSafe_of_runs
       runtimeContinuationDispatchMachine T T' cashClock dispatchClock pf sf
       hcash hhcash hcashSafe hdispatchSafe hhdispatch
 
+/-- One synchronized certificate for a complete nonterminal fixed round.
+The endpoint equation, its halt proof, and left-safety all share the same
+cashout and dispatcher witnesses, which is the exact interface required by
+the recursive `runtimeRep_run` family. -/
+theorem runtimeFixedRound_nonterminal_safeRun_of_runs
+    (T T' T'' : List Bool) (cashClock dispatchClock pf rebaseHead : Nat)
+    (sf : runtimeMarkedFrontOutputMachine.State)
+    (rebaseState : outputWorkspaceArchiveReturnUnaryRebaseMachine.State)
+    (hcash : run runtimeMarkedFrontOutputMachine cashClock
+      (init runtimeMarkedFrontOutputMachine T) = ⟨sf, pf, T'⟩)
+    (hhcash : runtimeMarkedFrontOutputMachine.halt sf = true)
+    (hcashSafe : LeftSafeRun runtimeMarkedFrontOutputMachine
+      (init runtimeMarkedFrontOutputMachine T) cashClock)
+    (hdispatch : run runtimeContinuationDispatchMachine dispatchClock
+      (init runtimeContinuationDispatchMachine T') =
+        ⟨Sum.inr (Sum.inl rebaseState), rebaseHead, T''⟩)
+    (hhrebase : outputWorkspaceArchiveReturnUnaryRebaseMachine.halt
+      rebaseState = true)
+    (hdispatchSafe : LeftSafeRun runtimeContinuationDispatchMachine
+      (init runtimeContinuationDispatchMachine T') dispatchClock) :
+    run runtimeFixedRoundBody (cashClock + 1 + dispatchClock)
+        (init runtimeFixedRoundBody T) =
+        ⟨Sum.inr (Sum.inr (Sum.inl rebaseState)), rebaseHead, T''⟩ ∧
+      runtimeFixedRoundBody.halt
+        (Sum.inr (Sum.inr (Sum.inl rebaseState))) = true ∧
+      LeftSafeRun runtimeFixedRoundBody (init runtimeFixedRoundBody T)
+        (cashClock + 1 + dispatchClock) := by
+  have hrun := runtimeFixedRound_run_nonterminal_of_runs T T' T''
+    cashClock dispatchClock pf rebaseHead sf rebaseState hcash hhcash
+    hdispatch hhrebase
+  have hhdispatch : runtimeContinuationDispatchMachine.halt
+      (run runtimeContinuationDispatchMachine dispatchClock
+        (init runtimeContinuationDispatchMachine T')).st = true := by
+    rw [hdispatch]
+    exact runtimeContinuationDispatch_halt_nonterminal rebaseState hhrebase
+  refine ⟨hrun, ?_, ?_⟩
+  · simpa [runtimeFixedRoundBody, seqMachine] using
+      (runtimeContinuationDispatch_halt_nonterminal rebaseState hhrebase)
+  · exact runtimeFixedRound_leftSafe_of_runs T T' cashClock dispatchClock
+      pf sf hcash hhcash hcashSafe hdispatchSafe hhdispatch
+
 /-- Concrete safety of the nonterminal continuation arm from the reachable
 completed-lookup tape. -/
 theorem runtimeContinuationDispatch_leftSafe_nonterminal
@@ -1022,4 +1063,5 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_run_terminal_of_runs
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_run_nonterminal_of_runs
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_leftSafe_of_runs
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_nonterminal_safeRun_of_runs
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeContinuationDispatch_leftSafe_nonterminal
