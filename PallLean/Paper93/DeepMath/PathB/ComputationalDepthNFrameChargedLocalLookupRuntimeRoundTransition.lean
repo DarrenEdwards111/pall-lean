@@ -709,6 +709,95 @@ theorem runtimeFixedRound_leftSafe_of_runs
     seq_leftSafe runtimeMarkedFrontOutputMachine
       runtimeContinuationDispatchMachine T T' cashClock dispatchClock pf sf
       hcash hhcash hcashSafe hdispatchSafe hhdispatch
+
+/-- Concrete safety of the nonterminal continuation arm from the reachable
+completed-lookup tape. -/
+theorem runtimeContinuationDispatch_leftSafe_nonterminal
+    (pairs : List (Bool × Bool)) (w : List Bool) (l : Lit)
+    (first : List Bool) (more : List (List Bool))
+    (hsafe : RuntimeNoDoubleSepFrom false pairs)
+    (rebaseClock : Nat)
+    (hrebaseSafe :
+      let bits := literalLookupTape w l
+      let rest := first :: more
+      let d := (bits :: rest).length
+      let sourcePre := flattenPairs (List.replicate d (true, true)) ++
+        [false, true]
+      let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+      let trailer := [true, false, false, true] ++
+        List.replicate bits.length true ++ archiveTail
+      let mcf := run masterM (literalLookupClock w l)
+        (init masterM (bits ++ trailer))
+      let markerPre := flattenPairs pairs ++ [false, true, false, true]
+      LeftSafeRun outputWorkspaceArchiveReturnUnaryRebaseMachine
+        (init outputWorkspaceArchiveReturnUnaryRebaseMachine
+          (markerPre ++ sourcePre ++ mcf.tp)) rebaseClock)
+    (hrebaseHalt :
+      let bits := literalLookupTape w l
+      let rest := first :: more
+      let d := (bits :: rest).length
+      let sourcePre := flattenPairs (List.replicate d (true, true)) ++
+        [false, true]
+      let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+      let trailer := [true, false, false, true] ++
+        List.replicate bits.length true ++ archiveTail
+      let mcf := run masterM (literalLookupClock w l)
+        (init masterM (bits ++ trailer))
+      let markerPre := flattenPairs pairs ++ [false, true, false, true]
+      outputWorkspaceArchiveReturnUnaryRebaseMachine.halt
+        (run outputWorkspaceArchiveReturnUnaryRebaseMachine rebaseClock
+          (init outputWorkspaceArchiveReturnUnaryRebaseMachine
+            (markerPre ++ sourcePre ++ mcf.tp))).st = true) :
+    let bits := literalLookupTape w l
+    let rest := first :: more
+    let d := (bits :: rest).length
+    let sourcePre := flattenPairs (List.replicate d (true, true)) ++
+      [false, true]
+    let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+    let trailer := [true, false, false, true] ++
+      List.replicate bits.length true ++ archiveTail
+    let mcf := run masterM (literalLookupClock w l)
+      (init masterM (bits ++ trailer))
+    let markerPre := flattenPairs pairs ++ [false, true, false, true]
+    let T := markerPre ++ sourcePre ++ mcf.tp
+    LeftSafeRun runtimeContinuationDispatchMachine
+      (init runtimeContinuationDispatchMachine T)
+      (runtimeMarkedContinuationClock pairs d l + 1 + rebaseClock) := by
+  dsimp only
+  let bits := literalLookupTape w l
+  let rest := first :: more
+  let d := (bits :: rest).length
+  let sourcePre := flattenPairs (List.replicate d (true, true)) ++
+    [false, true]
+  let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+  let trailer := [true, false, false, true] ++
+    List.replicate bits.length true ++ archiveTail
+  let mcf := run masterM (literalLookupClock w l)
+    (init masterM (bits ++ trailer))
+  let markerPre := flattenPairs pairs ++ [false, true, false, true]
+  let T := markerPre ++ sourcePre ++ mcf.tp
+  have hloc0 := runtimeMarkedContinuation_run pairs w l rest hsafe
+  have hloc : run runtimeMarkedContinuationMachine
+      (runtimeMarkedContinuationClock pairs d l)
+      (init runtimeMarkedContinuationMachine T) =
+      ⟨Sum.inr (RuntimeContinuationLocatorState.done true),
+        markerPre.length + (sourcePre.length + 2 * bits.length + 6), T⟩ := by
+    simpa [bits, rest, d, sourcePre, archiveTail, trailer, mcf, markerPre, T]
+      using hloc0
+  have hsLoc := runtimeMarkedContinuation_leftSafe pairs w l rest hsafe
+  have hs := condSeq_leftSafe_true runtimeMarkedContinuationMachine
+    outputWorkspaceArchiveReturnUnaryRebaseMachine runtimeTerminalHaltMachine
+    T T (runtimeMarkedContinuationClock pairs d l) rebaseClock
+    (markerPre.length + (sourcePre.length + 2 * bits.length + 6))
+    (Sum.inr (RuntimeContinuationLocatorState.done true)) hloc rfl rfl
+    (by simpa [bits, rest, d, sourcePre, archiveTail, trailer, mcf,
+      markerPre, T] using hsLoc)
+    (by simpa [bits, rest, d, sourcePre, archiveTail, trailer, mcf,
+      markerPre, T] using hrebaseSafe)
+    (by simpa [bits, rest, d, sourcePre, archiveTail, trailer, mcf,
+      markerPre, T] using hrebaseHalt)
+  simpa [runtimeContinuationDispatchMachine, bits, rest, d, sourcePre,
+    archiveTail, trailer, mcf, markerPre, T] using hs
 theorem scheduled_physicalUnaryRebase_pairSafeRun
     (x w : List Bool) {t : Nat}
     (ht : t < (decodedLiterals x).length)
@@ -800,3 +889,4 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_run_terminal_of_runs
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_run_nonterminal_of_runs
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_leftSafe_of_runs
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeContinuationDispatch_leftSafe_nonterminal
