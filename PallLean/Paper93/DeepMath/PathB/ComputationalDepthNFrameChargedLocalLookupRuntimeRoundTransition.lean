@@ -908,6 +908,52 @@ theorem runtimeFixedRound_terminal_safeRun_of_runs
   · exact runtimeFixedRound_leftSafe_of_runs T T' cashClock dispatchClock
       pf sf hcash hhcash hcashSafe hdispatchSafe hhdispatch
 
+/-- Constructor form of the synchronized nonterminal package, ready for the
+indexed certificate family consumed by `runtimeRep_run_of_fixedRound_certificates`. -/
+theorem runtimeFixedRoundCertificate_nonterminal_of_runs
+    (T T' T'' : List Bool) (cashClock dispatchClock pf rebaseHead : Nat)
+    (sf : runtimeMarkedFrontOutputMachine.State)
+    (rebaseState : outputWorkspaceArchiveReturnUnaryRebaseMachine.State)
+    (hcash : run runtimeMarkedFrontOutputMachine cashClock
+      (init runtimeMarkedFrontOutputMachine T) = ⟨sf, pf, T'⟩)
+    (hhcash : runtimeMarkedFrontOutputMachine.halt sf = true)
+    (hcashSafe : LeftSafeRun runtimeMarkedFrontOutputMachine
+      (init runtimeMarkedFrontOutputMachine T) cashClock)
+    (hdispatch : run runtimeContinuationDispatchMachine dispatchClock
+      (init runtimeContinuationDispatchMachine T') =
+        ⟨Sum.inr (Sum.inl rebaseState), rebaseHead, T''⟩)
+    (hhrebase : outputWorkspaceArchiveReturnUnaryRebaseMachine.halt
+      rebaseState = true)
+    (hdispatchSafe : LeftSafeRun runtimeContinuationDispatchMachine
+      (init runtimeContinuationDispatchMachine T') dispatchClock) :
+    RuntimeFixedRoundCertificate T T'' := by
+  have h := runtimeFixedRound_nonterminal_safeRun_of_runs T T' T''
+    cashClock dispatchClock pf rebaseHead sf rebaseState hcash hhcash
+    hcashSafe hdispatch hhrebase hdispatchSafe
+  exact ⟨cashClock + 1 + dispatchClock,
+    Sum.inr (Sum.inr (Sum.inl rebaseState)), rebaseHead,
+    h.1, h.2.1, h.2.2⟩
+
+/-- Constructor form of the synchronized terminal package. -/
+theorem runtimeFixedRoundCertificate_terminal_of_runs
+    (T T' : List Bool) (cashClock dispatchClock pf : Nat)
+    (sf : runtimeMarkedFrontOutputMachine.State)
+    (hcash : run runtimeMarkedFrontOutputMachine cashClock
+      (init runtimeMarkedFrontOutputMachine T) = ⟨sf, pf, T'⟩)
+    (hhcash : runtimeMarkedFrontOutputMachine.halt sf = true)
+    (hcashSafe : LeftSafeRun runtimeMarkedFrontOutputMachine
+      (init runtimeMarkedFrontOutputMachine T) cashClock)
+    (hdispatch : run runtimeContinuationDispatchMachine dispatchClock
+      (init runtimeContinuationDispatchMachine T') =
+        ⟨Sum.inr (Sum.inr ()), 0, T'⟩)
+    (hdispatchSafe : LeftSafeRun runtimeContinuationDispatchMachine
+      (init runtimeContinuationDispatchMachine T') dispatchClock) :
+    RuntimeFixedRoundCertificate T T' := by
+  have h := runtimeFixedRound_terminal_safeRun_of_runs T T' cashClock
+    dispatchClock pf sf hcash hhcash hcashSafe hdispatch hdispatchSafe
+  exact ⟨cashClock + 1 + dispatchClock,
+    Sum.inr (Sum.inr (Sum.inr ())), 0, h.1, h.2.1, h.2.2⟩
+
 /-- Concrete safety of the nonterminal continuation arm from the reachable
 completed-lookup tape. -/
 theorem runtimeContinuationDispatch_leftSafe_nonterminal
@@ -1178,4 +1224,6 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_leftSafe_of_runs
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_nonterminal_safeRun_of_runs
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_terminal_safeRun_of_runs
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRoundCertificate_nonterminal_of_runs
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRoundCertificate_terminal_of_runs
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeContinuationDispatch_leftSafe_nonterminal
