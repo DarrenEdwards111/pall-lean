@@ -100,6 +100,33 @@ theorem scheduled_selectedPrefix_succ (x w : List Bool) {t : Nat}
   rw [List.take_add_one, List.getElem?_eq_getElem hts, hbit]
   simpa [B] using selectedPrefix_succ (B - t) (schedule.take t) bits hd
 
+/-! ## Concrete scheduled-chain base -/
+
+/-- Physical tape presented to the fixed marked-front body at round zero. -/
+def runtimeRoundZeroTape (B : Nat) (schedule : List (List Bool)) : List Bool :=
+  outputCap B [] ++ [false, true, false, true] ++
+    sourceSelectorInput B 0 schedule
+
+/-- The round-zero output region has the exact aligned pair decomposition
+and separator safety required by the marked cashout theorem. -/
+theorem runtimeRoundZeroTape_pairSafe (B : Nat)
+    (schedule : List (List Bool)) (hB : 0 < B) :
+    let pairs := runtimeOutputCapPairs B []
+    runtimeRoundZeroTape B schedule =
+        flattenPairs pairs ++ [false, true, false, true] ++
+          sourceSelectorInput B 0 schedule ∧
+      RuntimeNoDoubleSepFrom false pairs := by
+  dsimp only
+  let pairs := runtimeOutputCapPairs B []
+  have hflat : flattenPairs pairs = outputCap B [] := by
+    simpa [pairs] using runtimeOutputCapPairs_flatten B []
+  have hsafe := (runtimeOutputCapPairs_safe B [] (by simpa using hB)).1
+  constructor
+  · simpa [runtimeRoundZeroTape, pairs, List.append_assoc] using
+      congrArg (fun z => z ++ [false, true, false, true] ++
+        sourceSelectorInput B 0 schedule) hflat.symm
+  · simpa [pairs] using hsafe
+
 /-- Full-configuration form of the marked-front cashout theorem.  In
 particular, the exact tape handed to the continuation dispatcher is carried
 by the same halted witness; it is not recovered from a second existential
@@ -1239,6 +1266,7 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_family_of_certificates
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRep_run_of_fixedRound_certificates
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRep_run_of_fixedRound_chain
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZeroTape_pairSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.selectedPrefix_succ
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_selectedPrefix_succ
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkedFrontOutput_exact
