@@ -1028,6 +1028,169 @@ theorem runtimeConsumingRoundEntryLocator_safeRun
     by simpa [runtimeConsumingRoundEntryLocatorMachine, T, markerClock]
       using hleft⟩
 
+set_option maxHeartbeats 4000000 in
+/-- Corrected origin-to-archive locator: consume the stale doubled marker,
+then traverse the selector prefix and completed literal workspace on the
+normalized tape. -/
+theorem runtimeConsumingMarkedWorkspaceTailLocator_safeRun
+    (pairs : List (Bool × Bool)) (w : List Bool) (l : Lit)
+    (first : List Bool) (more : List (List Bool))
+    (hsafe : RuntimeNoDoubleSepFrom false pairs) :
+    let bits := literalLookupTape w l
+    let rest := first :: more
+    let d := (bits :: rest).length
+    let markerPre := flattenPairs pairs ++ [false, true, false, true]
+    let cleanPre := flattenPairs pairs ++ [false, false, false, false]
+    let sourcePre := flattenPairs (List.replicate d (true, true)) ++
+      [false, true]
+    let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+    let trailer := [true, false, false, true] ++
+      List.replicate bits.length true ++ archiveTail
+    let mcf := run masterM (literalLookupClock w l)
+      (init masterM (bits ++ trailer))
+    let Tcash := markerPre ++ sourcePre ++ mcf.tp
+    let Tclean := cleanPre ++ sourcePre ++ mcf.tp
+    let markerClock := 2 * pairs.length + 7
+    let entryClock := markerClock + 1 + 8
+    let workspaceClock := sourcePre.length + 2
+    let tailClock := 8 * l.1 + 22
+    let locateClock := entryClock + 1 +
+      (workspaceClock + 1 + tailClock)
+    let R := cleanPre.length + sourcePre.length + 2 * bits.length + 4
+    run runtimeConsumingMarkedWorkspaceTailLocatorMachine locateClock
+        (init runtimeConsumingMarkedWorkspaceTailLocatorMachine Tcash) =
+      ⟨Sum.inr (Sum.inr RuntimeWorkspaceTailLocatorState.done),
+        R, Tclean⟩ ∧
+      LeftSafeRun runtimeConsumingMarkedWorkspaceTailLocatorMachine
+        (init runtimeConsumingMarkedWorkspaceTailLocatorMachine Tcash)
+        locateClock := by
+  dsimp only
+  let bits := literalLookupTape w l
+  let rest := first :: more
+  let d := (bits :: rest).length
+  let markerPre := flattenPairs pairs ++ [false, true, false, true]
+  let cleanPre := flattenPairs pairs ++ [false, false, false, false]
+  let sourcePre := flattenPairs (List.replicate d (true, true)) ++
+    [false, true]
+  let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+  let trailer := [true, false, false, true] ++
+    List.replicate bits.length true ++ archiveTail
+  let mcf := run masterM (literalLookupClock w l)
+    (init masterM (bits ++ trailer))
+  let Tcash := markerPre ++ sourcePre ++ mcf.tp
+  let Tclean := cleanPre ++ sourcePre ++ mcf.tp
+  let markerClock := 2 * pairs.length + 7
+  let entryClock := markerClock + 1 + 8
+  let workspaceClock := sourcePre.length + 2
+  let tailClock := 8 * l.1 + 22
+  let locateClock := entryClock + 1 +
+    (workspaceClock + 1 + tailClock)
+  let R := cleanPre.length + sourcePre.length + 2 * bits.length + 4
+  have hsourceCons : sourcePre ++ mcf.tp =
+      true :: true :: (sourcePre ++ mcf.tp).drop 2 := by
+    have hd : 0 < d := by simp [d, rest]
+    cases hrep : List.replicate d (true, true) with
+    | nil =>
+        have hlen := congrArg List.length hrep
+        simp [d, rest] at hlen
+    | cons p ps =>
+        have hp : p = (true, true) := by
+          have hmem : p ∈ List.replicate d (true, true) := by
+            rw [hrep]
+            simp
+          simpa using (List.mem_replicate.mp hmem).2
+        subst p
+        simp [sourcePre, hrep, flattenPairs]
+  have hentry0 := runtimeConsumingRoundEntryLocator_safeRun
+    pairs (sourcePre ++ mcf.tp) hsafe hsourceCons
+  have hentry : run runtimeConsumingRoundEntryLocatorMachine entryClock
+      (init runtimeConsumingRoundEntryLocatorMachine Tcash) =
+      ⟨Sum.inr RuntimeMarkerConsumeState.done,
+        cleanPre.length, Tclean⟩ := by
+    simpa [bits, rest, d, markerPre, cleanPre, sourcePre, archiveTail,
+      trailer, mcf, Tcash, Tclean, markerClock, entryClock,
+      flattenPairs_length, List.append_assoc] using hentry0.1
+  have hentrySafe : LeftSafeRun runtimeConsumingRoundEntryLocatorMachine
+      (init runtimeConsumingRoundEntryLocatorMachine Tcash) entryClock := by
+    simpa [bits, rest, d, markerPre, cleanPre, sourcePre, archiveTail,
+      trailer, mcf, Tcash, markerClock, entryClock, List.append_assoc]
+      using hentry0.2
+  have htoken := masterM_literal_startToken w l trailer
+  have hsource : sourcePre = selectedPrefix d [] := by
+    simp [sourcePre, selectedPrefix, selectedPrefixPairs,
+      flattenPairs_append, flattenPairs]
+  have hworkspace : run runtimeWorkspaceLocatorMachine workspaceClock
+      ⟨RuntimeWorkspaceLocatorState.countLo, cleanPre.length, Tclean⟩ =
+      ⟨RuntimeWorkspaceLocatorState.done,
+        cleanPre.length + sourcePre.length, Tclean⟩ := by
+    have h := runtimeWorkspaceLocator_run_prefixed cleanPre d [] mcf.tp
+      (by simpa [mcf, bits, trailer] using htoken.1)
+      (by simpa [mcf, bits, trailer] using htoken.2)
+    simpa [workspaceClock, Tclean, hsource, List.append_assoc] using h
+  have htail0 := masterM_literal_workspaceTailLocate_prefixed
+    (cleanPre ++ sourcePre) w l first more
+  have htail : run runtimeWorkspaceTailLocatorMachine tailClock
+      ⟨RuntimeWorkspaceTailLocatorState.boot0,
+        cleanPre.length + sourcePre.length, Tclean⟩ =
+      ⟨RuntimeWorkspaceTailLocatorState.done, R, Tclean⟩ := by
+    simpa [tailClock, Tclean, mcf, bits, rest, trailer, R,
+      List.append_assoc] using htail0
+  have hinner := headSeq_run_at runtimeWorkspaceLocatorMachine
+    runtimeWorkspaceTailLocatorMachine Tclean Tclean Tclean
+    cleanPre.length workspaceClock tailClock
+    (cleanPre.length + sourcePre.length) R
+    RuntimeWorkspaceLocatorState.done
+    RuntimeWorkspaceTailLocatorState.done hworkspace rfl htail rfl
+  have hrun := headSeq_run runtimeConsumingRoundEntryLocatorMachine
+    (headSeqMachine runtimeWorkspaceLocatorMachine
+      runtimeWorkspaceTailLocatorMachine)
+    Tcash Tclean Tclean entryClock (workspaceClock + 1 + tailClock)
+    cleanPre.length R (Sum.inr RuntimeMarkerConsumeState.done)
+    (Sum.inr RuntimeWorkspaceTailLocatorState.done)
+    hentry rfl (by simpa using hinner) rfl
+  have hsInner := headSeq_leftSafe_at runtimeWorkspaceLocatorMachine
+    runtimeWorkspaceTailLocatorMachine Tclean Tclean cleanPre.length
+    workspaceClock tailClock (cleanPre.length + sourcePre.length)
+    RuntimeWorkspaceLocatorState.done (by simpa using hworkspace) rfl
+    (runtimeWorkspaceLocator_leftSafe Tclean cleanPre.length workspaceClock)
+    (runtimeWorkspaceTailLocator_leftSafe Tclean
+      (cleanPre.length + sourcePre.length) tailClock)
+    (by rw [show run (headSeqMachine runtimeWorkspaceLocatorMachine
+        runtimeWorkspaceTailLocatorMachine)
+        (workspaceClock + 1 + tailClock)
+        ⟨(headSeqMachine runtimeWorkspaceLocatorMachine
+          runtimeWorkspaceTailLocatorMachine).start, cleanPre.length, Tclean⟩ =
+        ⟨Sum.inr RuntimeWorkspaceTailLocatorState.done, R, Tclean⟩ by
+          simpa using hinner]; rfl)
+  have hinnerHalt : (headSeqMachine runtimeWorkspaceLocatorMachine
+      runtimeWorkspaceTailLocatorMachine).halt
+      (run (headSeqMachine runtimeWorkspaceLocatorMachine
+        runtimeWorkspaceTailLocatorMachine)
+        (workspaceClock + 1 + tailClock)
+        ⟨(headSeqMachine runtimeWorkspaceLocatorMachine
+          runtimeWorkspaceTailLocatorMachine).start,
+          cleanPre.length, Tclean⟩).st = true := by
+    rw [show run (headSeqMachine runtimeWorkspaceLocatorMachine
+        runtimeWorkspaceTailLocatorMachine)
+        (workspaceClock + 1 + tailClock)
+        ⟨(headSeqMachine runtimeWorkspaceLocatorMachine
+          runtimeWorkspaceTailLocatorMachine).start,
+          cleanPre.length, Tclean⟩ =
+        ⟨Sum.inr RuntimeWorkspaceTailLocatorState.done, R, Tclean⟩ by
+          simpa using hinner]
+    rfl
+  have hleft := headSeq_leftSafe
+    runtimeConsumingRoundEntryLocatorMachine
+    (headSeqMachine runtimeWorkspaceLocatorMachine
+      runtimeWorkspaceTailLocatorMachine)
+    Tcash Tclean entryClock (workspaceClock + 1 + tailClock)
+    cleanPre.length (Sum.inr RuntimeMarkerConsumeState.done)
+    hentry rfl hentrySafe hsInner hinnerHalt
+  exact ⟨by simpa [runtimeConsumingMarkedWorkspaceTailLocatorMachine,
+      locateClock] using hrun,
+    by simpa [runtimeConsumingMarkedWorkspaceTailLocatorMachine,
+      locateClock] using hleft⟩
+
 /-- Safety compositor for the three phases of the marked physical locator. -/
 theorem runtimeMarkedWorkspaceTailLocator_leftSafe_of_runs
     (T : List Bool) (markerClock workspaceClock tailClock
@@ -2965,6 +3128,7 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkerConsume_run
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkerConsume_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeConsumingRoundEntryLocator_safeRun
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeConsumingMarkedWorkspaceTailLocator_safeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_cashout_safeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedCashout_futureArchive
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedCashout_archiveReturnSeed_safeRun
