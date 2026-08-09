@@ -3388,6 +3388,66 @@ theorem scheduled_nextMarkedEntry_pairSafe
       lookupClock, M, routeClock, rcf, R, cut, physPrefix, nextEntry]
       using h
 
+/-- The current consuming endpoint cannot yet be identified with the
+canonical scheduled successor: its retained cut is exactly two cells too
+long.  This theorem records the obstruction explicitly so the next adapter
+must discharge it rather than hiding it behind an existential tape. -/
+theorem scheduled_consumingCut_eq_successorLength_add_two
+    (x w : List Bool) {t : Nat}
+    (ht : t < (decodedLiterals x).length)
+    (htnext : t + 1 < (decodedLiterals x).length) :
+    let B := (decodedLiterals x).length
+    let schedule := literalTapeSchedule x w
+    let preBlocks := schedule.take t
+    let l := scheduledLiteral x t
+    let bits := literalLookupTape w l
+    let rest := schedule.drop (t + 1)
+    let pre := selectedPrefix (B - t) preBlocks
+    let out' := (scheduledTruths x w).take (t + 1)
+    let cleanPre := outputCap B out' ++ pre ++
+      [false, false, false, false]
+    let sourcePre := flattenPairs
+      (List.replicate (bits :: rest).length (true, true)) ++ [false, true]
+    let R := cleanPre.length + sourcePre.length + 2 * bits.length + 4
+    let cut := (R - 2) - (2 * rest.length + 4)
+    let successorPrefix := outputCap B out' ++ pre ++
+      flattenPairs (passedSourceBlock bits)
+    cut = successorPrefix.length + 2 := by
+  dsimp only
+  let B := (decodedLiterals x).length
+  let schedule := literalTapeSchedule x w
+  let preBlocks := schedule.take t
+  let l := scheduledLiteral x t
+  let bits := literalLookupTape w l
+  let rest := schedule.drop (t + 1)
+  let pre := selectedPrefix (B - t) preBlocks
+  let out' := (scheduledTruths x w).take (t + 1)
+  have houtlen : out'.length = t + 1 := by
+    dsimp [out']
+    rw [List.length_take, scheduledTruths_length,
+      Nat.min_eq_left (by simpa [B] using htnext.le)]
+  have hout : out'.length ≤ B := by omega
+  have hcap := outputCap_length B out' hout
+  have hpassed : (passedSourceBlock bits).length = bits.length + 2 := by
+    simp [passedSourceBlock, dataPairs]
+  have hprelen : pre.length =
+      (selectedPrefix ((decodedLiterals x).length - t)
+        ((literalTapeSchedule x w).take t)).length := rfl
+  have hbound : 2 + (2 * rest.length + 4) ≤
+      (outputCap B out' ++ pre ++ [false, false, false, false]).length +
+        (flattenPairs
+          (List.replicate (bits :: rest).length (true, true)) ++
+          [false, true]).length + 2 * bits.length + 4 := by
+    simp only [List.length_append, List.length_cons, List.length_nil,
+      flattenPairs_length, List.length_replicate]
+    rw [hcap]
+    omega
+  rw [Nat.sub_sub, Nat.sub_eq_iff_eq_add hbound]
+  simp only [List.length_append, List.length_cons, List.length_nil,
+    Nat.add_zero, flattenPairs_length, List.length_replicate]
+  rw [hcap, hpassed]
+  omega
+
 set_option maxHeartbeats 4000000 in
 /-- Every scheduled nonfinal index has an unconditional fixed-round
 certificate from its canonical output/selected-prefix marked entry.  The two
@@ -3470,6 +3530,7 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_physicalUnaryRebase_pairSafeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_physicalUnaryRebase_canonicalSafeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_nextMarkedEntry_pairSafe
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_consumingCut_eq_successorLength_add_two
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_nonterminalCertificate
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_family_of_certificates
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRep_run_of_fixedRound_certificates
