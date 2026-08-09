@@ -2801,10 +2801,82 @@ theorem scheduled_physicalUnaryRebase_canonicalSafeRun
       lookupClock, M, routeClock, rcf, locateClock, tailClock,
       prefixClock, seedClock, R, cut] using hleft
 
+/-! ## Canonical scheduled marked entries -/
+
+/-- The physical cut produced at scheduled index `t` is the unique aligned,
+separator-safe prefix for the marked entry at `t + 1`.  This packages the
+successor representation independently of the obsolete unmarked controller
+state type: only the canonical routed-tape `take` is retained. -/
+theorem scheduled_nextMarkedEntry_pairSafe
+    (x w : List Bool) {t : Nat}
+    (ht : t < (decodedLiterals x).length)
+    (htnext : t + 1 < (decodedLiterals x).length) :
+    let B := (decodedLiterals x).length
+    let schedule := literalTapeSchedule x w
+    let preBlocks := schedule.take t
+    let l := scheduledLiteral x t
+    let bits := literalLookupTape w l
+    let rest := schedule.drop (t + 1)
+    let pre := selectedPrefix (B - t) preBlocks
+    let out := (scheduledTruths x w).take t
+    let out' := (scheduledTruths x w).take (t + 1)
+    let T := sourceSelectorInput B t schedule
+    let lookupClock := sourceRuntimeLookupClock (B - t) preBlocks w l
+    let M := runtimeRelativeOutputSourceMachine B
+    let routeClock := runtimeRelativeOutputRouteClock B out T lookupClock
+    let rcf := run (acceptRouteMachine M) routeClock
+      (init (acceptRouteMachine M) (outputCap B out ++ T))
+    let R := 2 * B + 2 + pre.length + 2 * bits.length + 4
+    let cut := (R - 2) - (2 * rest.length + 4)
+    let physPrefix := rcf.tp.take cut
+    let nextEntry := physPrefix ++ [false, true, false, true] ++
+      sourceSelectorInput rest.length 0 rest
+    ∃ residue pairs,
+      physPrefix = outputCap B out' ++ residue ∧
+      physPrefix = flattenPairs pairs ∧
+      RuntimeNoDoubleSepFrom false pairs ∧
+      nextEntry = flattenPairs pairs ++ [false, true, false, true] ++
+        sourceSelectorInput rest.length 0 rest := by
+  dsimp only
+  let B := (decodedLiterals x).length
+  let schedule := literalTapeSchedule x w
+  let preBlocks := schedule.take t
+  let l := scheduledLiteral x t
+  let bits := literalLookupTape w l
+  let rest := schedule.drop (t + 1)
+  let pre := selectedPrefix (B - t) preBlocks
+  let out := (scheduledTruths x w).take t
+  let out' := (scheduledTruths x w).take (t + 1)
+  let T := sourceSelectorInput B t schedule
+  let lookupClock := sourceRuntimeLookupClock (B - t) preBlocks w l
+  let M := runtimeRelativeOutputSourceMachine B
+  let routeClock := runtimeRelativeOutputRouteClock B out T lookupClock
+  let rcf := run (acceptRouteMachine M) routeClock
+    (init (acceptRouteMachine M) (outputCap B out ++ T))
+  let R := 2 * B + 2 + pre.length + 2 * bits.length + 4
+  let cut := (R - 2) - (2 * rest.length + 4)
+  let physPrefix := rcf.tp.take cut
+  let nextEntry := physPrefix ++ [false, true, false, true] ++
+    sourceSelectorInput rest.length 0 rest
+  obtain ⟨residue, unaryClock, pairs, hprefix, hpairs, hsafe,
+      hrun, hleft⟩ :=
+    scheduled_physicalUnaryRebase_canonicalSafeRun x w ht htnext
+  refine ⟨residue, pairs, ?_, ?_, hsafe, ?_⟩
+  · simpa [B, schedule, preBlocks, l, bits, rest, pre, out, out', T,
+      lookupClock, M, routeClock, rcf, R, cut, physPrefix] using hprefix
+  · simpa [B, schedule, preBlocks, l, bits, rest, pre, out, out', T,
+      lookupClock, M, routeClock, rcf, R, cut, physPrefix] using hpairs
+  · have h := congrArg (fun z => z ++ [false, true, false, true] ++
+        sourceSelectorInput rest.length 0 rest) hpairs
+    simpa [B, schedule, preBlocks, l, bits, rest, pre, out, out', T,
+      lookupClock, M, routeClock, rcf, R, cut, physPrefix, nextEntry]
+      using h
+
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition
 
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_physicalUnaryRebase_pairSafeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_physicalUnaryRebase_canonicalSafeRun
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_nextMarkedEntry_pairSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_family_of_certificates
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRep_run_of_fixedRound_certificates
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRep_run_of_fixedRound_chain
