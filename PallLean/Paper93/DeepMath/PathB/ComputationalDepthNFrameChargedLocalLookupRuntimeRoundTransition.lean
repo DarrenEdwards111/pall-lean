@@ -3473,6 +3473,50 @@ theorem scheduled_consumingPrefix_content_mismatch
   · simp
   · simp [passedSourceBlock, flattenPairs, dataPairs]
 
+/-! ## Marked-to-compact handoff contract -/
+
+/-- Exact physical layout that must be implemented by the missing
+post-cashout compactor.  The marked controller currently retains `stale`,
+consisting of the four-cell routing marker and the obsolete selector prefix;
+the already-certified unmarked archive/unary controller expects the compact
+layout with that entire middle region removed. -/
+theorem markedCashout_compactTarget_layout
+    (retained workspace : List Bool) (d : Nat) :
+    let marker := [false, true, false, true]
+    let selectorPre := flattenPairs (List.replicate d (true, true)) ++
+      [false, true]
+    let stale := marker ++ selectorPre
+    let marked := retained ++ stale ++ workspace
+    let compact := retained ++ workspace
+    marked = retained ++ stale ++ workspace ∧
+      compact = retained ++ workspace ∧
+      stale.length = 2 * d + 6 := by
+  dsimp only
+  refine ⟨rfl, rfl, ?_⟩
+  simp [flattenPairs_length]
+
+/-- The required compaction span is not the two-cell endpoint discrepancy:
+it is the complete routing/selector region, of size `2*d + 6`.  Removing
+that region makes the completed workspace immediately follow the retained
+scheduled prefix, which is the layout used by the routed-tape theorems. -/
+theorem markedCashout_compactTarget_drop_stale
+    (retained workspace : List Bool) (d : Nat) :
+    let marker := [false, true, false, true]
+    let selectorPre := flattenPairs (List.replicate d (true, true)) ++
+      [false, true]
+    let stale := marker ++ selectorPre
+    let marked := retained ++ stale ++ workspace
+    marked.drop (retained.length + stale.length) = workspace ∧
+      marked.take retained.length = retained := by
+  dsimp only
+  constructor
+  · simpa [List.append_assoc] using
+      (@List.drop_left Bool
+        (retained ++ [false, true, false, true] ++
+          (flattenPairs (List.replicate d (true, true)) ++ [false, true]))
+        workspace)
+  · simp
+
 set_option maxHeartbeats 4000000 in
 /-- Every scheduled nonfinal index has an unconditional fixed-round
 certificate from its canonical output/selected-prefix marked entry.  The two
@@ -3557,6 +3601,8 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_nextMarkedEntry_pairSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_consumingCut_eq_successorLength_add_two
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_consumingPrefix_content_mismatch
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.markedCashout_compactTarget_layout
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.markedCashout_compactTarget_drop_stale
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_nonterminalCertificate
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_family_of_certificates
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRep_run_of_fixedRound_certificates
