@@ -91,6 +91,14 @@ def runtimeConsumingMarkedWorkspaceTailLocatorMachine : Machine :=
     (headSeqMachine runtimeWorkspaceLocatorMachine
       runtimeWorkspaceTailLocatorMachine)
 
+def runtimeConsumingMarkedWorkspaceArchiveReturnSeedMachine : Machine :=
+  headSeqMachine runtimeConsumingMarkedWorkspaceTailLocatorMachine
+    runtimeArchiveReturnSeedMachine
+
+def runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine : Machine :=
+  headSeqMachine runtimeConsumingMarkedWorkspaceArchiveReturnSeedMachine
+    runtimeUnaryRebaseMachine
+
 def runtimeMarkedWorkspaceArchiveReturnSeedMachine : Machine :=
   headSeqMachine runtimeMarkedWorkspaceTailLocatorMachine
     runtimeArchiveReturnSeedMachine
