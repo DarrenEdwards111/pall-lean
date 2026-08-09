@@ -949,36 +949,6 @@ theorem runtimeRoundZero_markedWorkspaceTailLocate
 
 /-! ## Consuming marked-entry adapter -/
 
-/-- Finite cleanup controller entered immediately after the marked locator.
-It backs over the consumed doubled `01 01` routing marker, normalizes it to
-two data pairs `00 00`, and returns to the selector origin.  Consequently the
-old routing marker can safely survive inside the next round's aligned prefix. -/
-inductive RuntimeMarkerConsumeState
-  | boot | cell3 | cell2 | cell1 | cell0
-  | return1 | return2 | return3 | done
-  deriving DecidableEq, Fintype
-
-open RuntimeMarkerConsumeState
-
-def runtimeMarkerConsumeMachine : Machine where
-  State := RuntimeMarkerConsumeState
-  fin := inferInstance
-  dec := inferInstance
-  start := .boot
-  halt := fun s => decide (s = .done)
-  δ := fun s _ =>
-    match s with
-    | .boot => (.cell3, none, 0)
-    | .cell3 => (.cell2, some false, 0)
-    | .cell2 => (.cell1, some false, 0)
-    | .cell1 => (.cell0, some false, 0)
-    | .cell0 => (.return1, some false, 1)
-    | .return1 => (.return2, none, 1)
-    | .return2 => (.return3, none, 1)
-    | .return3 => (.done, none, 1)
-    | .done => (.done, none, 2)
-  accept := fun _ => false
-
 /-- Exact marker consumption on an arbitrary prefixed tape. -/
 theorem runtimeMarkerConsume_run (pre tail : List Bool) :
     run runtimeMarkerConsumeMachine 8
@@ -998,6 +968,65 @@ theorem runtimeMarkerConsume_leftSafe (pre tail : List Bool) :
   interval_cases i <;>
     simp [run_succ, step, runtimeMarkerConsumeMachine, moveHead, writeAt]
       at hlive hmove ⊢ <;> omega
+
+/-- Exact and left-safe marked-entry location followed by destructive marker
+normalization.  The selector begins at the same physical head, while the old
+delimiter has become safe aligned data. -/
+theorem runtimeConsumingRoundEntryLocator_safeRun
+    (pairs : List (Bool × Bool)) (source : List Bool)
+    (hsafe : RuntimeNoDoubleSepFrom false pairs)
+    (htail : source = true :: true :: source.drop 2) :
+    let T := flattenPairs pairs ++ [false, true, false, true] ++ source
+    let Tclean := flattenPairs pairs ++ [false, false, false, false] ++ source
+    let markerHead := (flattenPairs pairs ++
+      [false, true, false, true]).length
+    let markerClock := 2 * pairs.length + 7
+    run runtimeConsumingRoundEntryLocatorMachine (markerClock + 1 + 8)
+        (init runtimeConsumingRoundEntryLocatorMachine T) =
+      ⟨Sum.inr RuntimeMarkerConsumeState.done, markerHead, Tclean⟩ ∧
+      LeftSafeRun runtimeConsumingRoundEntryLocatorMachine
+        (init runtimeConsumingRoundEntryLocatorMachine T)
+        (markerClock + 1 + 8) := by
+  dsimp only
+  let T := flattenPairs pairs ++ [false, true, false, true] ++ source
+  let Tclean := flattenPairs pairs ++ [false, false, false, false] ++ source
+  let markerHead := (flattenPairs pairs ++
+    [false, true, false, true]).length
+  let markerClock := 2 * pairs.length + 7
+  have hloc0 := runtimeRoundEntryLocator_run pairs source true true
+    hsafe htail (by decide)
+  have hloc : run runtimeRoundEntryLocatorMachine markerClock
+      (init runtimeRoundEntryLocatorMachine T) =
+      ⟨RuntimeRoundEntryState.done, markerHead, T⟩ := by
+    simpa [T, markerHead, markerClock, flattenPairs_length,
+      List.append_assoc] using hloc0
+  have hconsume : run runtimeMarkerConsumeMachine 8
+      ⟨runtimeMarkerConsumeMachine.start, markerHead, T⟩ =
+      ⟨RuntimeMarkerConsumeState.done, markerHead, Tclean⟩ := by
+    simpa [T, Tclean, markerHead, List.append_assoc] using
+      runtimeMarkerConsume_run (flattenPairs pairs) source
+  have hrun := headSeq_run runtimeRoundEntryLocatorMachine
+    runtimeMarkerConsumeMachine T T Tclean markerClock 8
+    markerHead markerHead RuntimeRoundEntryState.done
+    RuntimeMarkerConsumeState.done hloc rfl hconsume rfl
+  have hconsumeSafe : LeftSafeRun runtimeMarkerConsumeMachine
+      ⟨runtimeMarkerConsumeMachine.start, markerHead, T⟩ 8 := by
+    simpa [T, markerHead, List.append_assoc] using
+      runtimeMarkerConsume_leftSafe (flattenPairs pairs) source
+  have hconsumeHalt : runtimeMarkerConsumeMachine.halt
+      (run runtimeMarkerConsumeMachine 8
+        ⟨runtimeMarkerConsumeMachine.start, markerHead, T⟩).st = true := by
+    rw [hconsume]
+    rfl
+  have hleft := headSeq_leftSafe runtimeRoundEntryLocatorMachine
+    runtimeMarkerConsumeMachine T T markerClock 8 markerHead
+    RuntimeRoundEntryState.done hloc rfl
+    (runtimeRoundEntryLocator_leftSafe T markerClock)
+    hconsumeSafe hconsumeHalt
+  exact ⟨by simpa [runtimeConsumingRoundEntryLocatorMachine, T, Tclean,
+      markerHead, markerClock, flattenPairs_length] using hrun,
+    by simpa [runtimeConsumingRoundEntryLocatorMachine, T, markerClock]
+      using hleft⟩
 
 /-- Safety compositor for the three phases of the marked physical locator. -/
 theorem runtimeMarkedWorkspaceTailLocator_leftSafe_of_runs
@@ -2935,6 +2964,7 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZeroTape_pairSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkerConsume_run
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkerConsume_leftSafe
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeConsumingRoundEntryLocator_safeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_cashout_safeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedCashout_futureArchive
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedCashout_archiveReturnSeed_safeRun

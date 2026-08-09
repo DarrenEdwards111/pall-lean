@@ -52,8 +52,42 @@ def runtimeTerminalHaltMachine : Machine where
 
 /-- Tape-driven post-cashout branch: future archive means physical rebase;
 terminal blank means immediate final halt. -/
+inductive RuntimeMarkerConsumeState
+  | boot | cell3 | cell2 | cell1 | cell0
+  | return1 | return2 | return3 | done
+  deriving DecidableEq, Fintype
+
+def runtimeMarkerConsumeMachine : Machine where
+  State := RuntimeMarkerConsumeState
+  fin := inferInstance
+  dec := inferInstance
+  start := .boot
+  halt := fun s => decide (s = .done)
+  δ := fun s _ =>
+    match s with
+    | .boot => (.cell3, none, 0)
+    | .cell3 => (.cell2, some false, 0)
+    | .cell2 => (.cell1, some false, 0)
+    | .cell1 => (.cell0, some false, 0)
+    | .cell0 => (.return1, some false, 1)
+    | .return1 => (.return2, none, 1)
+    | .return2 => (.return3, none, 1)
+    | .return3 => (.done, none, 1)
+    | .done => (.done, none, 2)
+  accept := fun _ => false
+
+def runtimeConsumingRoundEntryLocatorMachine : Machine :=
+  headSeqMachine runtimeRoundEntryLocatorMachine runtimeMarkerConsumeMachine
+
 def runtimeMarkedWorkspaceTailLocatorMachine : Machine :=
   headSeqMachine runtimeRoundEntryLocatorMachine
+    (headSeqMachine runtimeWorkspaceLocatorMachine
+      runtimeWorkspaceTailLocatorMachine)
+
+/-- Corrected locator path used by the recursive controller: locate and
+consume the old routing marker before traversing the workspace/archive tail. -/
+def runtimeConsumingMarkedWorkspaceTailLocatorMachine : Machine :=
+  headSeqMachine runtimeConsumingRoundEntryLocatorMachine
     (headSeqMachine runtimeWorkspaceLocatorMachine
       runtimeWorkspaceTailLocatorMachine)
 
