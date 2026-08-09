@@ -76,6 +76,33 @@ def runtimeMarkerConsumeMachine : Machine where
     | .done => (.done, none, 2)
   accept := fun _ => false
 
+/-- Local primitive for the marked-to-compact shifter.  Starting on a
+two-cell `00` hole followed by one arbitrary pair, it bubbles the hole one
+pair to the right while retaining the pair in finite control. -/
+inductive RuntimeCompactBubbleState
+  | holeLo | holeHi | readLo | readHi (lo : Bool)
+  | clearLo (lo hi : Bool) | writeHi (lo hi : Bool)
+  | writeLo (lo : Bool) | done
+  deriving DecidableEq, Fintype
+
+def runtimeCompactBubbleMachine : Machine where
+  State := RuntimeCompactBubbleState
+  fin := inferInstance
+  dec := inferInstance
+  start := .holeLo
+  halt := fun s => decide (s = .done)
+  δ := fun s b =>
+    match s with
+    | .holeLo => (.holeHi, none, 1)
+    | .holeHi => (.readLo, none, 1)
+    | .readLo => (.readHi b, none, 1)
+    | .readHi lo => (.clearLo lo b, some false, 0)
+    | .clearLo lo hi => (.writeHi lo hi, some false, 0)
+    | .writeHi lo hi => (.writeLo lo, some hi, 0)
+    | .writeLo lo => (.done, some lo, 2)
+    | .done => (.done, none, 2)
+  accept := fun _ => false
+
 def runtimeConsumingRoundEntryLocatorMachine : Machine :=
   headSeqMachine runtimeRoundEntryLocatorMachine runtimeMarkerConsumeMachine
 

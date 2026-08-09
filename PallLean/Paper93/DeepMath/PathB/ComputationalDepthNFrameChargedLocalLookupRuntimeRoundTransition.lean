@@ -970,6 +970,135 @@ theorem runtimeMarkerConsume_leftSafe (pre tail : List Bool) :
     simp [run_succ, step, runtimeMarkerConsumeMachine, moveHead, writeAt]
       at hlive hmove ⊢ <;> omega
 
+/-! ## Marked-to-compact pair bubbling -/
+
+private theorem runtimeCompact_write0 (pre tail : List Bool)
+    (a b c d w : Bool) :
+    writeAt (pre ++ [a, b, c, d] ++ tail) pre.length w =
+      pre ++ [w, b, c, d] ++ tail := by
+  rw [PallLean.Paper93.DeepMath.PathB.CookLevinEmitCounterIncr.writeAt_of_lt
+    w (by simp only [List.length_append, List.length_cons, List.length_nil]; omega)]
+  simp
+
+private theorem runtimeCompact_write1 (pre tail : List Bool)
+    (a b c d w : Bool) :
+    writeAt (pre ++ [a, b, c, d] ++ tail) (pre.length + 1) w =
+      pre ++ [a, w, c, d] ++ tail := by
+  rw [PallLean.Paper93.DeepMath.PathB.CookLevinEmitCounterIncr.writeAt_of_lt
+    w (by simp)]
+  simp
+
+private theorem runtimeCompact_write2 (pre tail : List Bool)
+    (a b c d w : Bool) :
+    writeAt (pre ++ [a, b, c, d] ++ tail) (pre.length + 2) w =
+      pre ++ [a, b, w, d] ++ tail := by
+  rw [PallLean.Paper93.DeepMath.PathB.CookLevinEmitCounterIncr.writeAt_of_lt
+    w (by simp)]
+  simp
+
+private theorem runtimeCompact_write2' (pre tail : List Bool)
+    (a b c d w : Bool) :
+    writeAt (pre ++ [a, b, c, d] ++ tail) (pre.length + 1 + 1) w =
+      pre ++ [a, b, w, d] ++ tail := by
+  simpa only [show pre.length + 1 + 1 = pre.length + 2 by omega] using
+    runtimeCompact_write2 pre tail a b c d w
+
+private theorem runtimeCompact_write3 (pre tail : List Bool)
+    (a b c d w : Bool) :
+    writeAt (pre ++ [a, b, c, d] ++ tail) (pre.length + 3) w =
+      pre ++ [a, b, c, w] ++ tail := by
+  rw [PallLean.Paper93.DeepMath.PathB.CookLevinEmitCounterIncr.writeAt_of_lt
+    w (by simp only [List.length_append, List.length_cons, List.length_nil]; omega)]
+  simp
+
+private theorem runtimeCompact_write3' (pre tail : List Bool)
+    (a b c d w : Bool) :
+    writeAt (pre ++ [a, b, c, d] ++ tail) (pre.length + 1 + 1 + 1) w =
+      pre ++ [a, b, c, w] ++ tail := by
+  simpa only [show pre.length + 1 + 1 + 1 = pre.length + 3 by omega] using
+    runtimeCompact_write3 pre tail a b c d w
+
+private theorem runtimeCompact_get2 (pre tail : List Bool)
+    (a b c d : Bool) :
+    (pre ++ [a, b, c, d] ++ tail).getD (pre.length + 1 + 1) false = c := by
+  rw [show pre.length + 1 + 1 = pre.length + 2 by omega]
+  rw [getD_append_middle pre [a, b, c, d] tail 2 (by simp)]
+  simp
+
+private theorem runtimeCompact_get3 (pre tail : List Bool)
+    (a b c d : Bool) :
+    (pre ++ [a, b, c, d] ++ tail).getD
+        (pre.length + 1 + 1 + 1) false = d := by
+  rw [show pre.length + 1 + 1 + 1 = pre.length + 3 by omega]
+  rw [getD_append_middle pre [a, b, c, d] tail 3 (by simp)]
+  simp
+
+private theorem runtimeCompact_getElem2 (pre tail : List Bool)
+    (a b c d : Bool) :
+    ((pre ++ [a, b, c, d] ++ tail)[pre.length + 1 + 1]?).getD false = c := by
+  rw [← List.getD_eq_getElem?_getD]
+  exact runtimeCompact_get2 pre tail a b c d
+
+private theorem runtimeCompact_getElem3 (pre tail : List Bool)
+    (a b c d : Bool) :
+    ((pre ++ [a, b, c, d] ++ tail)[pre.length + 1 + 1 + 1]?).getD false = d := by
+  rw [← List.getD_eq_getElem?_getD]
+  exact runtimeCompact_get3 pre tail a b c d
+
+private theorem runtimeCompact_bubble_writes (pre tail : List Bool)
+    (lo hi : Bool) :
+    writeAt
+        (writeAt
+          (writeAt
+            (writeAt (pre ++ [false, false, lo, hi] ++ tail)
+              (pre.length + 1 + 1 + 1) false)
+            (pre.length + 1 + 1) false)
+          (pre.length + 1) hi)
+        pre.length lo =
+      pre ++ [lo, hi, false, false] ++ tail := by
+  rw [runtimeCompact_write3', runtimeCompact_write2', runtimeCompact_write1,
+    runtimeCompact_write0]
+
+private theorem runtimeCompact_bubble_after_clear (pre tail : List Bool)
+    (lo hi : Bool) :
+    writeAt
+        (writeAt
+          (writeAt (pre ++ [false, false, lo, false] ++ tail)
+            (pre.length + 1 + 1) false)
+          (pre.length + 1) hi)
+        pre.length lo =
+      pre ++ [lo, hi, false, false] ++ tail := by
+  rw [runtimeCompact_write2', runtimeCompact_write1, runtimeCompact_write0]
+
+/-- One exact local compaction step: an aligned two-cell hole moves right
+across an arbitrary data pair. -/
+theorem runtimeCompactBubble_run
+    (pre tail : List Bool) (lo hi : Bool) :
+    run runtimeCompactBubbleMachine 7
+        ⟨runtimeCompactBubbleMachine.start, pre.length,
+          pre ++ [false, false, lo, hi] ++ tail⟩ =
+      ⟨RuntimeCompactBubbleState.done, pre.length,
+        pre ++ [lo, hi, false, false] ++ tail⟩ := by
+  cases lo <;> cases hi <;>
+    simp only [run_succ, step, runtimeCompactBubbleMachine, moveHead,
+      Machine.halt, Machine.δ, Cfg.st, Cfg.head, Cfg.tape]
+  all_goals
+    rw [runtimeCompact_getElem3, runtimeCompact_getElem2,
+      runtimeCompact_write3', runtimeCompact_bubble_after_clear]
+
+/-- The local bubble never crosses the physical left boundary, including
+when the hole begins at physical origin. -/
+theorem runtimeCompactBubble_leftSafe
+    (pre tail : List Bool) (lo hi : Bool) :
+    LeftSafeRun runtimeCompactBubbleMachine
+      ⟨runtimeCompactBubbleMachine.start, pre.length,
+        pre ++ [false, false, lo, hi] ++ tail⟩ 7 := by
+  intro i hlt hlive hmove
+  interval_cases i <;>
+    cases lo <;> cases hi <;>
+    simp [run_succ, step, runtimeCompactBubbleMachine, moveHead, writeAt]
+      at hlive hmove ⊢ <;> omega
+
 /-- Exact and left-safe marked-entry location followed by destructive marker
 normalization.  The selector begins at the same physical head, while the old
 delimiter has become safe aligned data. -/
@@ -3610,6 +3739,8 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZeroTape_pairSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkerConsume_run
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkerConsume_leftSafe
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeCompactBubble_run
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeCompactBubble_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeConsumingRoundEntryLocator_safeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeConsumingMarkedWorkspaceTailLocator_safeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeConsumingMarkedPhysicalUnaryRebase_complete
