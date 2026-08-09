@@ -3388,11 +3388,89 @@ theorem scheduled_nextMarkedEntry_pairSafe
       lookupClock, M, routeClock, rcf, R, cut, physPrefix, nextEntry]
       using h
 
+set_option maxHeartbeats 4000000 in
+/-- Every scheduled nonfinal index has an unconditional fixed-round
+certificate from its canonical output/selected-prefix marked entry.  The two
+aligned pair witnesses are constructed from the same retained physical
+prefix, so the consuming controller's normalization and the scheduled
+successor representation cannot diverge through independent residue choices. -/
+theorem scheduled_nonterminalCertificate
+    (x w : List Bool) {t : Nat}
+    (ht : t < (decodedLiterals x).length)
+    (htnext : t + 1 < (decodedLiterals x).length) :
+    let B := (decodedLiterals x).length
+    let schedule := literalTapeSchedule x w
+    let preBlocks := schedule.take t
+    let l := scheduledLiteral x t
+    let bits := literalLookupTape w l
+    let rest := schedule.drop (t + 1)
+    let pre := selectedPrefix (B - t) preBlocks
+    let out := (scheduledTruths x w).take t
+    let T := outputCap B out ++ pre ++ [false, true, false, true] ++
+      sourceSelectorInput (bits :: rest).length 0 (bits :: rest)
+    ∃ nextTape, RuntimeFixedRoundCertificate T nextTape := by
+  dsimp only
+  let B := (decodedLiterals x).length
+  let schedule := literalTapeSchedule x w
+  let preBlocks := schedule.take t
+  let l := scheduledLiteral x t
+  let bits := literalLookupTape w l
+  let rest := schedule.drop (t + 1)
+  let pre := selectedPrefix (B - t) preBlocks
+  let out := (scheduledTruths x w).take t
+  let pairs := runtimeOutputCapPairs B out ++
+    selectedPrefixPairs (B - t) preBlocks
+  let bv := evalLit (fun k => w.getD k false) l
+  let pairs' := runtimeOutputCapPairs B (out ++ [bv]) ++
+    selectedPrefixPairs (B - t) preBlocks
+  have houtlen : out.length = t := by
+    dsimp [out]
+    rw [List.length_take, scheduledTruths_length,
+      Nat.min_eq_left (by simpa [B] using ht.le)]
+  have hout : out.length < B := by omega
+  have hout' : (out ++ [bv]).length < B := by
+    simp [houtlen]
+    omega
+  have hpairs : outputCap B out ++ pre = flattenPairs pairs := by
+    simp [pairs, pre, selectedPrefix, flattenPairs_append,
+      runtimeOutputCapPairs_flatten]
+  have hpairs' : outputCap B (out ++ [bv]) ++ pre =
+      flattenPairs pairs' := by
+    simp [pairs', pre, selectedPrefix, flattenPairs_append,
+      runtimeOutputCapPairs_flatten]
+  have hsafe : RuntimeNoDoubleSepFrom false pairs :=
+    (runtimeOutputSelectedPairs_safe B out (B - t) preBlocks hout).1
+  have hsafe' : RuntimeNoDoubleSepFrom false pairs' :=
+    (runtimeOutputSelectedPairs_safe B (out ++ [bv])
+      (B - t) preBlocks hout').1
+  have hrestlen : rest.length = B - (t + 1) := by
+    have hschedule : schedule.length = B := by
+      simp [schedule, B, literalTapeSchedule]
+    simp [rest, hschedule]
+  have hrest : rest ≠ [] := by
+    intro hz
+    have : rest.length = 0 := by simp [hz]
+    rw [hrestlen] at this
+    omega
+  obtain ⟨first, more, hrestEq⟩ := List.exists_cons_of_ne_nil hrest
+  have hcert := runtimeMarked_nonterminalCertificate B out pre pairs pairs'
+    w l first more hout hpairs hsafe hpairs' hsafe'
+  have hcert' : ∃ nextTape,
+      RuntimeFixedRoundCertificate
+        (outputCap B out ++ pre ++ [false, true, false, true] ++
+          sourceSelectorInput (bits :: rest).length 0 (bits :: rest))
+        nextTape := by
+    rw [hrestEq]
+    simpa [bits, List.append_assoc] using hcert
+  simpa [B, schedule, preBlocks, l, bits, rest, pre, out,
+    List.append_assoc] using hcert'
+
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition
 
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_physicalUnaryRebase_pairSafeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_physicalUnaryRebase_canonicalSafeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_nextMarkedEntry_pairSafe
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_nonterminalCertificate
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_family_of_certificates
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRep_run_of_fixedRound_certificates
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRep_run_of_fixedRound_chain
