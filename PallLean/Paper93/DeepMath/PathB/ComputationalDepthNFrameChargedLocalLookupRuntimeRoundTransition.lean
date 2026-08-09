@@ -849,6 +849,7 @@ theorem runtimeRoundZero_markedWorkspaceTailLocate
   let bv := evalLit (fun k => w.getD k false) l
   let pairs := runtimeOutputCapPairs B [bv]
   let markerPre := flattenPairs pairs ++ [false, true, false, true]
+  let cleanPre := flattenPairs pairs ++ [false, false, false, false]
   let sourcePre := flattenPairs (List.replicate B (true, true)) ++
     [false, true]
   let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
@@ -1155,13 +1156,10 @@ theorem runtimeConsumingMarkedWorkspaceTailLocator_safeRun
     (runtimeWorkspaceLocator_leftSafe Tclean cleanPre.length workspaceClock)
     (runtimeWorkspaceTailLocator_leftSafe Tclean
       (cleanPre.length + sourcePre.length) tailClock)
-    (by rw [show run (headSeqMachine runtimeWorkspaceLocatorMachine
-        runtimeWorkspaceTailLocatorMachine)
-        (workspaceClock + 1 + tailClock)
-        ⟨(headSeqMachine runtimeWorkspaceLocatorMachine
-          runtimeWorkspaceTailLocatorMachine).start, cleanPre.length, Tclean⟩ =
-        ⟨Sum.inr RuntimeWorkspaceTailLocatorState.done, R, Tclean⟩ by
-          simpa using hinner]; rfl)
+    (by
+      have hh := congrArg
+        (fun c => runtimeWorkspaceTailLocatorMachine.halt c.st) htail
+      simpa [runtimeWorkspaceTailLocatorMachine] using hh)
   have hinnerHalt : (headSeqMachine runtimeWorkspaceLocatorMachine
       runtimeWorkspaceTailLocatorMachine).halt
       (run (headSeqMachine runtimeWorkspaceLocatorMachine
@@ -1186,10 +1184,7 @@ theorem runtimeConsumingMarkedWorkspaceTailLocator_safeRun
     Tcash Tclean entryClock (workspaceClock + 1 + tailClock)
     cleanPre.length (Sum.inr RuntimeMarkerConsumeState.done)
     hentry rfl hentrySafe hsInner hinnerHalt
-  exact ⟨by simpa [runtimeConsumingMarkedWorkspaceTailLocatorMachine,
-      locateClock] using hrun,
-    by simpa [runtimeConsumingMarkedWorkspaceTailLocatorMachine,
-      locateClock] using hleft⟩
+  exact ⟨hrun, hleft⟩
 
 set_option maxHeartbeats 4000000 in
 /-- Complete corrected physical controller.  It consumes the stale routing
@@ -1381,11 +1376,7 @@ theorem runtimeConsumingMarkedPhysicalUnaryRebase_complete
       have hh := congrArg (fun c => runtimeUnaryRebaseMachine.halt c.st)
         hunary'
       simpa [runtimeUnaryRebaseMachine] using hh)
-  exact ⟨base, unaryClock,
-    by simpa [runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine]
-      using hjoin,
-    by simpa [runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine]
-      using hsjoin⟩
+  exact ⟨base, unaryClock, hjoin, hsjoin⟩
 
 /-- Safety compositor for the three phases of the marked physical locator. -/
 theorem runtimeMarkedWorkspaceTailLocator_leftSafe_of_runs
@@ -2357,14 +2348,14 @@ archive-return/unary-rebase arm selected by the continuation classifier. -/
 theorem runtimeFixedRound_run_nonterminal_of_runs
     (T T' T'' : List Bool) (cashClock dispatchClock pf rebaseHead : Nat)
     (sf : runtimeMarkedFrontOutputMachine.State)
-    (rebaseState : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.State)
+    (rebaseState : runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine.State)
     (hcash : run runtimeMarkedFrontOutputMachine cashClock
       (init runtimeMarkedFrontOutputMachine T) = ⟨sf, pf, T'⟩)
     (hhcash : runtimeMarkedFrontOutputMachine.halt sf = true)
     (hdispatch : run runtimeContinuationDispatchMachine dispatchClock
       (init runtimeContinuationDispatchMachine T') =
         ⟨Sum.inr (Sum.inl rebaseState), rebaseHead, T''⟩)
-    (hhrebase : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt
+    (hhrebase : runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt
       rebaseState = true) :
     run runtimeFixedRoundBody (cashClock + 1 + dispatchClock)
         (init runtimeFixedRoundBody T) =
@@ -2497,7 +2488,7 @@ the recursive `runtimeRep_run` family. -/
 theorem runtimeFixedRound_nonterminal_safeRun_of_runs
     (T T' T'' : List Bool) (cashClock dispatchClock pf rebaseHead : Nat)
     (sf : runtimeMarkedFrontOutputMachine.State)
-    (rebaseState : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.State)
+    (rebaseState : runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine.State)
     (hcash : run runtimeMarkedFrontOutputMachine cashClock
       (init runtimeMarkedFrontOutputMachine T) = ⟨sf, pf, T'⟩)
     (hhcash : runtimeMarkedFrontOutputMachine.halt sf = true)
@@ -2506,7 +2497,7 @@ theorem runtimeFixedRound_nonterminal_safeRun_of_runs
     (hdispatch : run runtimeContinuationDispatchMachine dispatchClock
       (init runtimeContinuationDispatchMachine T') =
         ⟨Sum.inr (Sum.inl rebaseState), rebaseHead, T''⟩)
-    (hhrebase : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt
+    (hhrebase : runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt
       rebaseState = true)
     (hdispatchSafe : LeftSafeRun runtimeContinuationDispatchMachine
       (init runtimeContinuationDispatchMachine T') dispatchClock) :
@@ -2573,7 +2564,7 @@ indexed certificate family consumed by `runtimeRep_run_of_fixedRound_certificate
 theorem runtimeFixedRoundCertificate_nonterminal_of_runs
     (T T' T'' : List Bool) (cashClock dispatchClock pf rebaseHead : Nat)
     (sf : runtimeMarkedFrontOutputMachine.State)
-    (rebaseState : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.State)
+    (rebaseState : runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine.State)
     (hcash : run runtimeMarkedFrontOutputMachine cashClock
       (init runtimeMarkedFrontOutputMachine T) = ⟨sf, pf, T'⟩)
     (hhcash : runtimeMarkedFrontOutputMachine.halt sf = true)
@@ -2582,7 +2573,7 @@ theorem runtimeFixedRoundCertificate_nonterminal_of_runs
     (hdispatch : run runtimeContinuationDispatchMachine dispatchClock
       (init runtimeContinuationDispatchMachine T') =
         ⟨Sum.inr (Sum.inl rebaseState), rebaseHead, T''⟩)
-    (hhrebase : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt
+    (hhrebase : runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt
       rebaseState = true)
     (hdispatchSafe : LeftSafeRun runtimeContinuationDispatchMachine
       (init runtimeContinuationDispatchMachine T') dispatchClock) :
@@ -2633,8 +2624,8 @@ theorem runtimeContinuationDispatch_leftSafe_nonterminal
       let mcf := run masterM (literalLookupClock w l)
         (init masterM (bits ++ trailer))
       let markerPre := flattenPairs pairs ++ [false, true, false, true]
-      LeftSafeRun runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine
-        (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine
+      LeftSafeRun runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine
+        (init runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine
           (markerPre ++ sourcePre ++ mcf.tp)) rebaseClock)
     (hrebaseHalt :
       let bits := literalLookupTape w l
@@ -2648,9 +2639,9 @@ theorem runtimeContinuationDispatch_leftSafe_nonterminal
       let mcf := run masterM (literalLookupClock w l)
         (init masterM (bits ++ trailer))
       let markerPre := flattenPairs pairs ++ [false, true, false, true]
-      runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt
-        (run runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine rebaseClock
-          (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine
+      runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt
+        (run runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine rebaseClock
+          (init runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine
             (markerPre ++ sourcePre ++ mcf.tp))).st = true) :
     let bits := literalLookupTape w l
     let rest := first :: more
@@ -2690,7 +2681,7 @@ theorem runtimeContinuationDispatch_leftSafe_nonterminal
       using hloc0
   have hsLoc := runtimeMarkedContinuation_leftSafe pairs w l rest hsafe
   have hs := condSeq_leftSafe_true runtimeMarkedContinuationMachine
-    runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine runtimeTerminalHaltMachine
+    runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine runtimeTerminalHaltMachine
     T T (runtimeMarkedContinuationClock pairs d l) rebaseClock
     (markerPre.length + (sourcePre.length + 2 * bits.length + 6))
     (Sum.inr (RuntimeContinuationLocatorState.done true)) hloc rfl rfl
@@ -2718,7 +2709,7 @@ theorem runtimeMarked_nonterminalCertificate_of_rebase
       flattenPairs pairs')
     (hsafe' : RuntimeNoDoubleSepFrom false pairs')
     (rebaseClock rebaseHead : Nat)
-    (rebaseState : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.State)
+    (rebaseState : runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine.State)
     (rebaseTape : List Bool)
     (hrebase :
       let bits := literalLookupTape w l
@@ -2733,10 +2724,10 @@ theorem runtimeMarked_nonterminalCertificate_of_rebase
         (init masterM (bits ++ trailer))
       let Tcash := flattenPairs pairs' ++ [false, true, false, true] ++
         sourcePre ++ mcf.tp
-      run runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine rebaseClock
-          (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash) =
+      run runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine rebaseClock
+          (init runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash) =
         ⟨rebaseState, rebaseHead, rebaseTape⟩)
-    (hhrebase : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt
+    (hhrebase : runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt
       rebaseState = true)
     (hrebaseSafe :
       let bits := literalLookupTape w l
@@ -2751,8 +2742,8 @@ theorem runtimeMarked_nonterminalCertificate_of_rebase
         (init masterM (bits ++ trailer))
       let Tcash := flattenPairs pairs' ++ [false, true, false, true] ++
         sourcePre ++ mcf.tp
-      LeftSafeRun runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine
-        (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash)
+      LeftSafeRun runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine
+        (init runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash)
         rebaseClock) :
     let bits := literalLookupTape w l
     let rest := first :: more
@@ -2797,9 +2788,9 @@ theorem runtimeMarked_nonterminalCertificate_of_rebase
   have hdispatch := runtimeContinuationDispatch_run_nonterminal
     pairs' w l first more hsafe' rebaseClock rebaseHead rebaseState
       rebaseTape hrebase hhrebase
-  have hrebaseHalt : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt
-      (run runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine rebaseClock
-        (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash)).st =
+  have hrebaseHalt : runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt
+      (run runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine rebaseClock
+        (init runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash)).st =
         true := by
     rw [hrebase]
     exact hhrebase
@@ -2844,6 +2835,7 @@ theorem runtimeMarked_nonterminalCertificate
   let rest := first :: more
   let d := (bits :: rest).length
   let markerPre := flattenPairs pairs' ++ [false, true, false, true]
+  let cleanPre := flattenPairs pairs' ++ [false, false, false, false]
   let sourcePre := flattenPairs (List.replicate d (true, true)) ++
     [false, true]
   let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
@@ -2853,32 +2845,33 @@ theorem runtimeMarked_nonterminalCertificate
     (init masterM (bits ++ trailer))
   let Tcash := markerPre ++ sourcePre ++ mcf.tp
   let markerClock := 2 * pairs'.length + 7
+  let entryClock := markerClock + 1 + 8
   let workspaceClock := sourcePre.length + 2
   let tailClock := 8 * l.1 + 22
-  let locateClock := markerClock + 1 +
+  let locateClock := entryClock + 1 +
     (workspaceClock + 1 + tailClock)
   let seedClock := runtimeArchiveReturnSeedClock rest
   let prefixClock := locateClock + 1 + seedClock
-  let R := markerPre.length + sourcePre.length + 2 * bits.length + 4
+  let R := cleanPre.length + sourcePre.length + 2 * bits.length + 4
   obtain ⟨base, unaryClock, hrun, hleft⟩ :=
-    runtimeMarkedPhysicalUnaryRebase_complete
+    runtimeConsumingMarkedPhysicalUnaryRebase_complete
       pairs' w l first more hsafe'
   let nextTape := base ++ [false, true, false, true] ++
     sourceSelectorInput rest.length 0 rest
-  have hrun' : run runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine
+  have hrun' : run runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine
       (prefixClock + 1 + unaryClock)
-      (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash) =
+      (init runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash) =
       ⟨Sum.inr RuntimeUnaryRebaseState.done,
         R + (selectedTail rest).length, nextTape⟩ := by
-    simpa [bits, rest, d, markerPre, sourcePre, archiveTail, trailer,
-      mcf, Tcash, markerClock, workspaceClock, tailClock, locateClock,
+    simpa [bits, rest, d, markerPre, cleanPre, sourcePre, archiveTail, trailer,
+      mcf, Tcash, markerClock, entryClock, workspaceClock, tailClock, locateClock,
       seedClock, prefixClock, R, nextTape] using hrun
   have hleft' : LeftSafeRun
-      runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine
-      (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash)
+      runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine
+      (init runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash)
       (prefixClock + 1 + unaryClock) := by
-    simpa [bits, rest, d, markerPre, sourcePre, archiveTail, trailer,
-      mcf, Tcash, markerClock, workspaceClock, tailClock, locateClock,
+    simpa [bits, rest, d, markerPre, cleanPre, sourcePre, archiveTail, trailer,
+      mcf, Tcash, markerClock, entryClock, workspaceClock, tailClock, locateClock,
       seedClock, prefixClock, R] using hleft
   refine ⟨nextTape, runtimeMarked_nonterminalCertificate_of_rebase
     B out residue pairs pairs' w l first more hout hpairs hsafe hpairs'
@@ -2897,7 +2890,7 @@ theorem runtimeRoundZero_nonterminalCertificate_of_rebase
     (w : List Bool) (l : Lit) (first : List Bool)
     (more : List (List Bool))
     (rebaseClock rebaseHead : Nat)
-    (rebaseState : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.State)
+    (rebaseState : runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine.State)
     (rebaseTape : List Bool)
     (hrebase :
       let bits := literalLookupTape w l
@@ -2913,10 +2906,10 @@ theorem runtimeRoundZero_nonterminalCertificate_of_rebase
         (init masterM (bits ++ trailer))
       let Tcash := outputCap B [bv] ++ [false, true, false, true] ++
         sourcePre ++ mcf.tp
-      run runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine rebaseClock
-          (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash) =
+      run runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine rebaseClock
+          (init runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash) =
         ⟨rebaseState, rebaseHead, rebaseTape⟩)
-    (hhrebase : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt
+    (hhrebase : runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt
       rebaseState = true)
     (hrebaseSafe :
       let bits := literalLookupTape w l
@@ -2932,8 +2925,8 @@ theorem runtimeRoundZero_nonterminalCertificate_of_rebase
         (init masterM (bits ++ trailer))
       let Tcash := outputCap B [bv] ++ [false, true, false, true] ++
         sourcePre ++ mcf.tp
-      LeftSafeRun runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine
-        (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash)
+      LeftSafeRun runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine
+        (init runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash)
         rebaseClock) :
     let bits := literalLookupTape w l
     let rest := first :: more
@@ -2971,9 +2964,9 @@ theorem runtimeRoundZero_nonterminalCertificate_of_rebase
     rebaseTape
     (by dsimp only; rw [← hTcash]; exact hrebase)
     hhrebase
-  have hrebaseHalt : runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt
-      (run runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine rebaseClock
-        (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash)).st =
+  have hrebaseHalt : runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine.halt
+      (run runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine rebaseClock
+        (init runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash)).st =
         true := by
     rw [hrebase]
     exact hhrebase
@@ -3032,16 +3025,20 @@ theorem runtimeRoundZero_nonterminalCertificate
   let mcf := run masterM (literalLookupClock w l)
     (init masterM (bits ++ trailer))
   let Tmarked := markerPre ++ sourcePre ++ mcf.tp
+  let cleanPre := flattenPairs pairs ++ [false, false, false, false]
   let markerClock := 2 * pairs.length + 7
+  let entryClock := markerClock + 1 + 8
   let workspaceClock := sourcePre.length + 2
   let tailClock := 8 * l.1 + 22
-  let locateClock := markerClock + 1 +
+  let locateClock := entryClock + 1 +
     (workspaceClock + 1 + tailClock)
   let seedClock := runtimeArchiveReturnSeedClock rest
   let prefixClock := locateClock + 1 + seedClock
-  let R := 4 * B + 2 * bits.length + 12
+  let R := cleanPre.length + sourcePre.length + 2 * bits.length + 4
   obtain ⟨base, unaryClock, hrun, hsafe⟩ :=
-    runtimeRoundZero_markedPhysicalUnaryRebase_safeRun w l first more
+    runtimeConsumingMarkedPhysicalUnaryRebase_complete
+      pairs w l first more
+      (runtimeOutputCapPairs_safe B [bv] (by simp [B, rest])).1
   let nextTape := base ++ [false, true, false, true] ++
     sourceSelectorInput rest.length 0 rest
   have hcap : flattenPairs pairs = outputCap B [bv] := by
@@ -3049,20 +3046,20 @@ theorem runtimeRoundZero_nonterminalCertificate
   have hTmarked : Tmarked = outputCap B [bv] ++
       [false, true, false, true] ++ sourcePre ++ mcf.tp := by
     simp [Tmarked, markerPre, hcap, List.append_assoc]
-  have hrun' : run runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine
+  have hrun' : run runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine
       (prefixClock + 1 + unaryClock)
-      (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tmarked) =
+      (init runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tmarked) =
       ⟨Sum.inr RuntimeUnaryRebaseState.done,
         R + (selectedTail rest).length, nextTape⟩ := by
-    simpa [bits, rest, B, bv, pairs, markerPre, sourcePre, archiveTail,
-      trailer, mcf, Tmarked, markerClock, workspaceClock, tailClock,
+    simpa [bits, rest, B, bv, pairs, markerPre, cleanPre, sourcePre, archiveTail,
+      trailer, mcf, Tmarked, markerClock, entryClock, workspaceClock, tailClock,
       locateClock, seedClock, prefixClock, R, nextTape] using hrun
   have hsafe' : LeftSafeRun
-      runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine
-      (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tmarked)
+      runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine
+      (init runtimeConsumingMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tmarked)
       (prefixClock + 1 + unaryClock) := by
-    simpa [bits, rest, B, bv, pairs, markerPre, sourcePre, archiveTail,
-      trailer, mcf, Tmarked, markerClock, workspaceClock, tailClock,
+    simpa [bits, rest, B, bv, pairs, markerPre, cleanPre, sourcePre, archiveTail,
+      trailer, mcf, Tmarked, markerClock, entryClock, workspaceClock, tailClock,
       locateClock, seedClock, prefixClock] using hsafe
   refine ⟨nextTape, runtimeRoundZero_nonterminalCertificate_of_rebase
     w l first more (prefixClock + 1 + unaryClock)
