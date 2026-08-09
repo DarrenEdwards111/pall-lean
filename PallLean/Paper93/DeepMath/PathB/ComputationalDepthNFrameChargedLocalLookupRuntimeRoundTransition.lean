@@ -947,6 +947,58 @@ theorem runtimeRoundZero_markedWorkspaceTailLocate
     rest, bv, bits, Tcash, markerPre, archiveTail, trailer, mcf, R,
     List.append_assoc] using hall
 
+/-! ## Consuming marked-entry adapter -/
+
+/-- Finite cleanup controller entered immediately after the marked locator.
+It backs over the consumed doubled `01 01` routing marker, normalizes it to
+two data pairs `00 00`, and returns to the selector origin.  Consequently the
+old routing marker can safely survive inside the next round's aligned prefix. -/
+inductive RuntimeMarkerConsumeState
+  | boot | cell3 | cell2 | cell1 | cell0
+  | return1 | return2 | return3 | done
+  deriving DecidableEq, Fintype
+
+open RuntimeMarkerConsumeState
+
+def runtimeMarkerConsumeMachine : Machine where
+  State := RuntimeMarkerConsumeState
+  fin := inferInstance
+  dec := inferInstance
+  start := .boot
+  halt := fun s => decide (s = .done)
+  δ := fun s _ =>
+    match s with
+    | .boot => (.cell3, none, 0)
+    | .cell3 => (.cell2, some false, 0)
+    | .cell2 => (.cell1, some false, 0)
+    | .cell1 => (.cell0, some false, 0)
+    | .cell0 => (.return1, some false, 1)
+    | .return1 => (.return2, none, 1)
+    | .return2 => (.return3, none, 1)
+    | .return3 => (.done, none, 1)
+    | .done => (.done, none, 2)
+  accept := fun _ => false
+
+/-- Exact marker consumption on an arbitrary prefixed tape. -/
+theorem runtimeMarkerConsume_run (pre tail : List Bool) :
+    run runtimeMarkerConsumeMachine 8
+        ⟨runtimeMarkerConsumeMachine.start, pre.length + 4,
+          pre ++ [false, true, false, true] ++ tail⟩ =
+      ⟨RuntimeMarkerConsumeState.done, pre.length + 4,
+        pre ++ [false, false, false, false] ++ tail⟩ := by
+  simp [run_succ, step, runtimeMarkerConsumeMachine, moveHead, writeAt,
+    List.append_assoc]
+
+/-- Marker consumption never crosses the physical left boundary. -/
+theorem runtimeMarkerConsume_leftSafe (pre tail : List Bool) :
+    LeftSafeRun runtimeMarkerConsumeMachine
+      ⟨runtimeMarkerConsumeMachine.start, pre.length + 4,
+        pre ++ [false, true, false, true] ++ tail⟩ 8 := by
+  intro i hi hlive hmove
+  interval_cases i <;>
+    simp [run_succ, step, runtimeMarkerConsumeMachine, moveHead, writeAt]
+      at hlive hmove ⊢ <;> omega
+
 /-- Safety compositor for the three phases of the marked physical locator. -/
 theorem runtimeMarkedWorkspaceTailLocator_leftSafe_of_runs
     (T : List Bool) (markerClock workspaceClock tailClock
@@ -2881,6 +2933,8 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRep_run_of_fixedRound_certificates
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRep_run_of_fixedRound_chain
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZeroTape_pairSafe
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkerConsume_run
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkerConsume_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_cashout_safeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedCashout_futureArchive
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedCashout_archiveReturnSeed_safeRun
