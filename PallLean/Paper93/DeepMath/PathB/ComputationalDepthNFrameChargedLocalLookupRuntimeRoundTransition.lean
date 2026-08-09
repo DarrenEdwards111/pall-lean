@@ -3448,6 +3448,31 @@ theorem scheduled_consumingCut_eq_successorLength_add_two
   rw [hcap, hpassed]
   omega
 
+/-- The scheduled mismatch is semantic as well as arithmetic.  Immediately
+after the retained output/selected prefix, the consuming tape still contains
+the normalized old routing marker `00`, whereas the canonical completed
+source block starts with the passed-block tag `11`.  Consequently a mere
+two-cell head shift cannot close adjacency; the stale marker/selector region
+must be physically compacted out of the successor prefix. -/
+theorem scheduled_consumingPrefix_content_mismatch
+    (x w : List Bool) {t : Nat}
+    (ht : t < (decodedLiterals x).length) :
+    let B := (decodedLiterals x).length
+    let schedule := literalTapeSchedule x w
+    let preBlocks := schedule.take t
+    let l := scheduledLiteral x t
+    let bits := literalLookupTape w l
+    let pre := selectedPrefix (B - t) preBlocks
+    let out' := (scheduledTruths x w).take (t + 1)
+    let retained := outputCap B out' ++ pre
+    let normalized := retained ++ [false, false, false, false]
+    (normalized.drop retained.length).take 2 = [false, false] ∧
+      (flattenPairs (passedSourceBlock bits)).take 2 = [true, true] := by
+  dsimp only
+  constructor
+  · simp
+  · simp [passedSourceBlock, flattenPairs, dataPairs]
+
 set_option maxHeartbeats 4000000 in
 /-- Every scheduled nonfinal index has an unconditional fixed-round
 certificate from its canonical output/selected-prefix marked entry.  The two
@@ -3531,6 +3556,7 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_physicalUnaryRebase_canonicalSafeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_nextMarkedEntry_pairSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_consumingCut_eq_successorLength_add_two
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_consumingPrefix_content_mismatch
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.scheduled_nonterminalCertificate
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeFixedRound_family_of_certificates
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRep_run_of_fixedRound_certificates
