@@ -1294,6 +1294,84 @@ theorem runtimeMarkedPhysicalUnaryRebase_safeRun
   exact ⟨base, unaryClock, hjoin, hsjoin⟩
 
 set_option maxHeartbeats 4000000 in
+/-- Unconditional form of the generic marked controller on the concrete
+completed-literal workspace.  Tail preservation supplies the archive `drop`
+equation, while the selector prefix alone supplies enough unary scratch. -/
+theorem runtimeMarkedPhysicalUnaryRebase_complete
+    (pairs : List (Bool × Bool)) (w : List Bool) (l : Lit)
+    (first : List Bool) (more : List (List Bool))
+    (hsafe : RuntimeNoDoubleSepFrom false pairs) :
+    let bits := literalLookupTape w l
+    let rest := first :: more
+    let d := (bits :: rest).length
+    let markerPre := flattenPairs pairs ++ [false, true, false, true]
+    let sourcePre := flattenPairs (List.replicate d (true, true)) ++
+      [false, true]
+    let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+    let trailer := [true, false, false, true] ++
+      List.replicate bits.length true ++ archiveTail
+    let mcf := run masterM (literalLookupClock w l)
+      (init masterM (bits ++ trailer))
+    let Tcash := markerPre ++ sourcePre ++ mcf.tp
+    let markerClock := 2 * pairs.length + 7
+    let workspaceClock := sourcePre.length + 2
+    let tailClock := 8 * l.1 + 22
+    let locateClock := markerClock + 1 +
+      (workspaceClock + 1 + tailClock)
+    let seedClock := runtimeArchiveReturnSeedClock rest
+    let prefixClock := locateClock + 1 + seedClock
+    let R := markerPre.length + sourcePre.length + 2 * bits.length + 4
+    ∃ base unaryClock,
+      run runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine
+          (prefixClock + 1 + unaryClock)
+          (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash) =
+        ⟨Sum.inr RuntimeUnaryRebaseState.done,
+          R + (selectedTail rest).length,
+          base ++ [false, true, false, true] ++
+            sourceSelectorInput rest.length 0 rest⟩ ∧
+      LeftSafeRun runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine
+        (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash)
+        (prefixClock + 1 + unaryClock) := by
+  dsimp only
+  let bits := literalLookupTape w l
+  let rest := first :: more
+  let d := (bits :: rest).length
+  let markerPre := flattenPairs pairs ++ [false, true, false, true]
+  let sourcePre := flattenPairs (List.replicate d (true, true)) ++
+    [false, true]
+  let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+  let trailer := [true, false, false, true] ++
+    List.replicate bits.length true ++ archiveTail
+  let mcf := run masterM (literalLookupClock w l)
+    (init masterM (bits ++ trailer))
+  let Tcash := markerPre ++ sourcePre ++ mcf.tp
+  let R := markerPre.length + sourcePre.length + 2 * bits.length + 4
+  have hmaster := masterM_literal_trailer w l trailer
+  have hmcf : mcf.tp.drop bits.length = trailer := by
+    simpa [bits, trailer, mcf] using hmaster
+  have hmcfTail : mcf.tp.drop (2 * bits.length + 4) =
+      selectedTail rest := by
+    rw [show 2 * bits.length + 4 = bits.length + (4 + bits.length) by omega,
+      ← List.drop_drop, hmcf]
+    change List.drop (4 + bits.length)
+      ([true, false, false, true] ++ List.replicate bits.length true ++
+        archiveTail) = selectedTail rest
+    rw [show 4 + bits.length =
+      4 + (List.replicate bits.length true).length by simp,
+      ← List.drop_drop]
+    simp [archiveTail, selectedTail]
+  have hdrop : Tcash.drop R = selectedTail rest := by
+    rw [show R = (markerPre ++ sourcePre).length +
+        (2 * bits.length + 4) by simp [R]; omega,
+      ← List.drop_drop]
+    simp [Tcash, List.append_assoc, hmcfTail]
+  have hfit : 2 * rest.length + 4 ≤ R - 2 := by
+    simp [R, markerPre, sourcePre, flattenPairs_length, d, rest]
+    omega
+  exact runtimeMarkedPhysicalUnaryRebase_safeRun
+    pairs w l first more hsafe hdrop hfit
+
+set_option maxHeartbeats 4000000 in
 theorem runtimeRoundZero_markedWorkspaceTailLocate_leftSafe
     (w : List Bool) (l : Lit) (first : List Bool)
     (more : List (List Bool)) :
@@ -2663,6 +2741,7 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedWorkspaceTailLocate
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkedWorkspaceTailLocator_safeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkedPhysicalUnaryRebase_safeRun
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarkedPhysicalUnaryRebase_complete
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedWorkspaceTailLocate_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedWorkspaceArchiveReturnSeed_run
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedWorkspaceArchiveReturnSeed_leftSafe
