@@ -2376,6 +2376,80 @@ theorem runtimeMarked_nonterminalCertificate_of_rebase
   · exact hhrebase
   · exact hdispatchSafe
 
+set_option maxHeartbeats 4000000 in
+/-- Unconditional generic nonterminal adjacency.  Once the physical output
+prefix has safe aligned pair decompositions before and after the singleton
+cashout, the corrected marked controller supplies its own rebase clock,
+endpoint, halt, and safety witnesses. -/
+theorem runtimeMarked_nonterminalCertificate
+    (B : Nat) (out residue : List Bool)
+    (pairs pairs' : List (Bool × Bool))
+    (w : List Bool) (l : Lit) (first : List Bool)
+    (more : List (List Bool))
+    (hout : out.length < B)
+    (hpairs : outputCap B out ++ residue = flattenPairs pairs)
+    (hsafe : RuntimeNoDoubleSepFrom false pairs)
+    (hpairs' : outputCap B
+        (out ++ [evalLit (fun k => w.getD k false) l]) ++ residue =
+      flattenPairs pairs')
+    (hsafe' : RuntimeNoDoubleSepFrom false pairs') :
+    let bits := literalLookupTape w l
+    let rest := first :: more
+    let d := (bits :: rest).length
+    let T := outputCap B out ++ residue ++ [false, true, false, true] ++
+      sourceSelectorInput d 0 (bits :: rest)
+    ∃ nextTape, RuntimeFixedRoundCertificate T nextTape := by
+  dsimp only
+  let bits := literalLookupTape w l
+  let rest := first :: more
+  let d := (bits :: rest).length
+  let markerPre := flattenPairs pairs' ++ [false, true, false, true]
+  let sourcePre := flattenPairs (List.replicate d (true, true)) ++
+    [false, true]
+  let archiveTail := flattenPairs (rest.flatMap freshSourceBlock)
+  let trailer := [true, false, false, true] ++
+    List.replicate bits.length true ++ archiveTail
+  let mcf := run masterM (literalLookupClock w l)
+    (init masterM (bits ++ trailer))
+  let Tcash := markerPre ++ sourcePre ++ mcf.tp
+  let markerClock := 2 * pairs'.length + 7
+  let workspaceClock := sourcePre.length + 2
+  let tailClock := 8 * l.1 + 22
+  let locateClock := markerClock + 1 +
+    (workspaceClock + 1 + tailClock)
+  let seedClock := runtimeArchiveReturnSeedClock rest
+  let prefixClock := locateClock + 1 + seedClock
+  let R := markerPre.length + sourcePre.length + 2 * bits.length + 4
+  obtain ⟨base, unaryClock, hrun, hleft⟩ :=
+    runtimeMarkedPhysicalUnaryRebase_complete
+      pairs' w l first more hsafe'
+  let nextTape := base ++ [false, true, false, true] ++
+    sourceSelectorInput rest.length 0 rest
+  have hrun' : run runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine
+      (prefixClock + 1 + unaryClock)
+      (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash) =
+      ⟨Sum.inr RuntimeUnaryRebaseState.done,
+        R + (selectedTail rest).length, nextTape⟩ := by
+    simpa [bits, rest, d, markerPre, sourcePre, archiveTail, trailer,
+      mcf, Tcash, markerClock, workspaceClock, tailClock, locateClock,
+      seedClock, prefixClock, R, nextTape] using hrun
+  have hleft' : LeftSafeRun
+      runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine
+      (init runtimeMarkedWorkspaceArchiveReturnUnaryRebaseMachine Tcash)
+      (prefixClock + 1 + unaryClock) := by
+    simpa [bits, rest, d, markerPre, sourcePre, archiveTail, trailer,
+      mcf, Tcash, markerClock, workspaceClock, tailClock, locateClock,
+      seedClock, prefixClock, R] using hleft
+  refine ⟨nextTape, runtimeMarked_nonterminalCertificate_of_rebase
+    B out residue pairs pairs' w l first more hout hpairs hsafe hpairs'
+    hsafe' (prefixClock + 1 + unaryClock)
+    (R + (selectedTail rest).length)
+    (Sum.inr RuntimeUnaryRebaseState.done) nextTape ?_ rfl ?_⟩
+  · dsimp only
+    exact hrun'
+  · dsimp only
+    exact hleft'
+
 /-- The complete first fixed-round adjacency, with the sole remaining native
 premise being the physical rebaser's exact run/safety pair on the marked
 cashout endpoint. -/
@@ -2747,6 +2821,7 @@ end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransiti
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedWorkspaceArchiveReturnSeed_leftSafe
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_markedPhysicalUnaryRebase_safeRun
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarked_nonterminalCertificate_of_rebase
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeMarked_nonterminalCertificate
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_nonterminalCertificate_of_rebase
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.runtimeRoundZero_nonterminalCertificate
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition.selectedPrefix_succ
