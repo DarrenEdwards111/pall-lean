@@ -789,6 +789,144 @@ theorem runtimeMarkedCompact_certificate
       (runtimeMarkedStalePairs d),
     runtimeCompactBubble_passes retained tail workspace (d + 3)⟩
 
+/-! ## Exact-clock halting adapter -/
+
+/-- Add a finite exact clock to a machine.  The wrapped machine performs
+exactly `n` transitions of `M`, then halts without changing the tape or head.
+This is the control adapter needed to place the restart-free clear, bubble,
+and rewind loops inside `headSeqMachine`. -/
+def exactClockMachine (M : Machine) (n : Nat) : Machine where
+  State := Fin (n + 1) × M.State
+  fin := inferInstance
+  dec := inferInstance
+  start := (⟨0, by omega⟩, M.start)
+  halt := fun s => decide (s.1.val = n)
+  δ := fun s b =>
+    let tr := M.δ s.2 b
+    let next : Fin (n + 1) :=
+      if h : s.1.val < n then ⟨s.1.val + 1, by omega⟩ else s.1
+    ((next, tr.1), tr.2.1, tr.2.2)
+  accept := fun s => M.accept s.2
+
+/-- Embed an underlying configuration at clock value `t ≤ n`. -/
+def exactClockCfg (M : Machine) (n t : Nat) (ht : t ≤ n)
+    (c : Cfg M) : Cfg (exactClockMachine M n) :=
+  ⟨(⟨t, by omega⟩, c.st), c.hd, c.tp⟩
+
+@[simp] theorem exactClockMachine_halt_at (M : Machine) (n : Nat)
+    (s : M.State) :
+    (exactClockMachine M n).halt (⟨n, by omega⟩, s) = true := by
+  simp [exactClockMachine]
+
+/-- Below the exact clock, one wrapped step is precisely one underlying
+step, with the clock incremented.  The underlying machines used here are
+nonhalting loops, which is stated explicitly rather than hidden. -/
+theorem exactClockMachine_step (M : Machine) (n t : Nat) (ht : t < n)
+    (c : Cfg M) (hlive : M.halt c.st = false) :
+    step (exactClockMachine M n) (exactClockCfg M n t (by omega) c) =
+      exactClockCfg M n (t + 1) (by omega) (step M c) := by
+  simp only [step, exactClockCfg, exactClockMachine, Machine.halt, Cfg.st,
+    Bool.decide_eq_true, Cfg.tp, Cfg.hd, Machine.δ]
+  have hne : t ≠ n := by omega
+  simp [ht, hne, hlive]
+
+/-- A clock segment starting at counter `k` mirrors the corresponding
+underlying run as long as it remains strictly below the terminal count. -/
+theorem exactClockMachine_run_segment (M : Machine) (n k t : Nat)
+    (hkt : k + t ≤ n) (c : Cfg M)
+    (hlive : ∀ i < t, M.halt (run M i c).st = false) :
+    run (exactClockMachine M n) t (exactClockCfg M n k (by omega) c) =
+      exactClockCfg M n (k + t) hkt (run M t c) := by
+  induction t generalizing k c with
+  | zero => rfl
+  | succ t ih =>
+      rw [run_succ]
+      have hprefix := ih (k := k) (c := c) (by omega)
+        (fun i hi => hlive i (by omega))
+      rw [hprefix]
+      have hs := exactClockMachine_step M n (k + t) (by omega)
+        (run M t c) (hlive t (by omega))
+      rw [← run_succ] at hs
+      simpa only [Nat.add_assoc] using hs
+
+/-- Running the adapter for its full clock gives exactly the underlying
+`n`-step configuration and a genuinely halting wrapper state. -/
+theorem exactClockMachine_run (M : Machine) (n : Nat) (c : Cfg M)
+    (hlive : ∀ t < n, M.halt (run M t c).st = false) :
+    run (exactClockMachine M n) n (exactClockCfg M n 0 (Nat.zero_le _) c) =
+      exactClockCfg M n n (le_rfl) (run M n c) := by
+  simpa using exactClockMachine_run_segment M n 0 n (by omega) c hlive
+
+/-- The exact-clock wrapper around each compaction loop has no early halt:
+its unique halt occurs precisely at the terminal counter. -/
+theorem exactClockMachine_not_halted_before (M : Machine) (n t : Nat)
+    (ht : t < n) (s : M.State) :
+    (exactClockMachine M n).halt (⟨t, by omega⟩, s) = false := by
+  simp [exactClockMachine, show t ≠ n by omega]
+
+/-- Physical adjacency between restart-free clearing and the first bubble
+pass.  Clearing stops at the first workspace cell, so exactly two no-write
+left moves place the head on the low cell of the rightmost cleared hole.
+The tape is unchanged and the bridge is physically left-safe. -/
+structure RuntimeMarkedClearFirstHoleBridge
+    (retained : List Bool) (workspace : List (Bool × Bool))
+    (tail : List Bool) (d : Nat) : Prop where
+  clearRun :
+    run runtimeCompactClearLoopMachine (2 * (d + 3))
+        ⟨runtimeCompactClearLoopMachine.start, retained.length,
+          retained ++ flattenPairs (runtimeMarkedStalePairs d) ++
+            flattenPairs workspace ++ tail⟩ =
+      ⟨(), retained.length + 2 * (d + 3),
+        retained ++ List.replicate (2 * (d + 3)) false ++
+          flattenPairs workspace ++ tail⟩
+  rewindRun :
+    run runtimeCompactRewindMachine 2
+        ⟨runtimeCompactRewindMachine.start,
+          retained.length + 2 * (d + 3),
+          retained ++ List.replicate (2 * (d + 3)) false ++
+            flattenPairs workspace ++ tail⟩ =
+      ⟨(), retained.length + 2 * (d + 2),
+        retained ++ List.replicate (2 * (d + 3)) false ++
+          flattenPairs workspace ++ tail⟩
+  clearSafe : LeftSafeRun runtimeCompactClearLoopMachine
+    ⟨runtimeCompactClearLoopMachine.start, retained.length,
+      retained ++ flattenPairs (runtimeMarkedStalePairs d) ++
+        flattenPairs workspace ++ tail⟩ (2 * (d + 3))
+  rewindSafe : LeftSafeRun runtimeCompactRewindMachine
+    ⟨runtimeCompactRewindMachine.start,
+      retained.length + 2 * (d + 3),
+      retained ++ List.replicate (2 * (d + 3)) false ++
+        flattenPairs workspace ++ tail⟩ 2
+
+theorem runtimeMarkedClearFirstHoleBridge_certificate
+    (retained tail : List Bool) (workspace : List (Bool × Bool)) (d : Nat) :
+    RuntimeMarkedClearFirstHoleBridge retained workspace tail d := by
+  have hc := runtimeMarkedPhysicalClear_certificate retained
+    (flattenPairs workspace) tail d
+  have hr := runtimeCompactRewind_run
+    (retained ++ List.replicate (2 * (d + 2)) false)
+    ([false, false] ++ flattenPairs workspace ++ tail) 2
+  have hrs := runtimeCompactRewind_leftSafe
+    (retained ++ List.replicate (2 * (d + 2)) false)
+    ([false, false] ++ flattenPairs workspace ++ tail) 2
+  have hstart :
+      (retained ++ List.replicate (2 * (d + 2)) false).length + 2 =
+        retained.length + 2 * (d + 3) := by simp; omega
+  have hend :
+      (retained ++ List.replicate (2 * (d + 2)) false).length =
+        retained.length + 2 * (d + 2) := by simp
+  have htape :
+      retained ++ List.replicate (2 * (d + 2)) false ++
+          ([false, false] ++ flattenPairs workspace ++ tail) =
+        retained ++ List.replicate (2 * (d + 3)) false ++
+          flattenPairs workspace ++ tail := by
+    simp [List.replicate_add, List.append_assoc, Nat.mul_add]
+  constructor
+  · exact hc.run_eq
+  · simpa only [hstart, hend, htape] using hr
+  · exact hc.leftSafe
+  · simpa only [hstart, htape] using hrs
+
 #print axioms runtimeCompactBubble_run
 #print axioms runtimeCompactBubble_leftSafe
 #print axioms runtimeCompactBubble_chain
@@ -808,5 +946,7 @@ theorem runtimeMarkedCompact_certificate
 #print axioms runtimeCompactClearLoop_leftSafe
 #print axioms runtimeMarkedPhysicalClear_certificate
 #print axioms runtimeMarkedCompact_certificate
+#print axioms exactClockMachine_run
+#print axioms runtimeMarkedClearFirstHoleBridge_certificate
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeCompactChain
