@@ -477,6 +477,65 @@ theorem runtimeCompactPassRewind_certificate
   · simpa [shifted, runtimeCompactRewindMachine, List.append_assoc,
       Nat.mul_add, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hrewindSafe
 
+/-! ## Complete physical pass schedule -/
+
+/-- A physical schedule for moving every cleared stale pair across the
+workspace.  `one` performs the final pass without rewinding; `more` performs
+one pass+rewind bridge and continues with one fewer leading hole and one more
+trailing hole. -/
+inductive RuntimeCompactAllPasses
+    (retained : List Bool) (workspace : List (Bool × Bool)) :
+    List Bool → Nat → Prop
+  | one (tail : List Bool)
+      (finalRun :
+        run runtimeCompactBubbleLoopMachine (8 * workspace.length)
+            ⟨runtimeCompactBubbleLoopMachine.start, retained.length,
+              retained ++ [false, false] ++ flattenPairs workspace ++ tail⟩ =
+          ⟨runtimeCompactBubbleLoopMachine.start,
+            retained.length + 2 * workspace.length,
+            retained ++ flattenPairs workspace ++ [false, false] ++ tail⟩)
+      (finalSafe : LeftSafeRun runtimeCompactBubbleLoopMachine
+        ⟨runtimeCompactBubbleLoopMachine.start, retained.length,
+          retained ++ [false, false] ++ flattenPairs workspace ++ tail⟩
+        (8 * workspace.length)) :
+      RuntimeCompactAllPasses retained workspace tail 1
+  | more (tail : List Bool) (n : Nat)
+      (bridge : RuntimeCompactPassRewindCertificate
+        (retained ++ flattenPairs (List.replicate n (false, false)))
+        workspace tail)
+      (rest : RuntimeCompactAllPasses retained workspace
+        ([false, false] ++ tail) (n + 1)) :
+      RuntimeCompactAllPasses retained workspace tail (n + 2)
+
+/-- Every positive number of cleared stale pairs has a complete physical
+pass schedule, with rewind omitted exactly after the final pass. -/
+theorem runtimeCompactAllPasses_certificate
+    (retained tail : List Bool) (workspace : List (Bool × Bool))
+    {k : Nat} (hk : 0 < k) :
+    RuntimeCompactAllPasses retained workspace tail k := by
+  induction k generalizing tail with
+  | zero => omega
+  | succ k ih =>
+      cases k with
+      | zero =>
+          exact .one tail
+            (runtimeCompactBubbleLoop_run retained tail workspace)
+            (runtimeCompactBubbleLoop_leftSafe retained tail workspace)
+      | succ n =>
+          exact .more tail n
+            (runtimeCompactPassRewind_certificate
+              (retained ++ flattenPairs (List.replicate n (false, false)))
+              tail workspace)
+            (ih (tail := [false, false] ++ tail) (by omega))
+
+/-- Scheduled specialization: the exact `d + 3` stale pairs produced by the
+marked clear phase all cross the workspace, and the final pass does not
+rewind away from the compact archive-side endpoint. -/
+theorem runtimeMarkedAllPasses_certificate
+    (retained tail : List Bool) (workspace : List (Bool × Bool)) (d : Nat) :
+    RuntimeCompactAllPasses retained workspace tail (d + 3) := by
+  exact runtimeCompactAllPasses_certificate retained tail workspace (by omega)
+
 /-- Repeated marked-compaction passes.  At stage `n + 1`, the rightmost
 remaining `00` hole is bubbled across the whole workspace pair list.  The
 resulting hole is appended to the protected tail, and the construction
@@ -740,6 +799,8 @@ theorem runtimeMarkedCompact_certificate
 #print axioms runtimeCompactRewind_run
 #print axioms runtimeCompactRewind_leftSafe
 #print axioms runtimeCompactPassRewind_certificate
+#print axioms runtimeCompactAllPasses_certificate
+#print axioms runtimeMarkedAllPasses_certificate
 #print axioms runtimeCompactClear_run
 #print axioms runtimeCompactClear_leftSafe
 #print axioms runtimeCompactClear_chain
