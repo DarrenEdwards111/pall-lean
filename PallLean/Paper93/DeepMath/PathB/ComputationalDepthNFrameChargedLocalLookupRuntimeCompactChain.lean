@@ -16,6 +16,9 @@ open PallLean.Paper93.DeepMath.PathB.CookLevinMaster
 open PallLean.Paper93.DeepMath.PathB.CookLevinReduction
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeLeftSafety
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeContinuationDispatch
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeWorkspaceLocator
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupLeftBoundaryTerminal
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceSelect
 
 private theorem compact_write0 (pre tail : List Bool)
     (a b c d w : Bool) :
@@ -105,13 +108,66 @@ theorem runtimeCompactBubble_run (pre tail : List Bool) (lo hi : Bool) :
           pre ++ [false, false, lo, hi] ++ tail⟩ =
       ⟨RuntimeCompactBubbleState.done, pre.length,
         pre ++ [lo, hi, false, false] ++ tail⟩ := by
-  cases lo <;> cases hi <;>
-    simp only [run_succ, step, runtimeCompactBubbleMachine, moveHead,
-      Machine.halt, Machine.δ, Cfg.st, Cfg.head, Cfg.tape]
-  all_goals
-    rw [compact_getElem3, compact_getElem2, compact_write3',
-      compact_bubble_after_clear]
+  let T0 := pre ++ [false, false, lo, hi] ++ tail
+  let T1 := pre ++ [false, false, lo, false] ++ tail
+  let T2 := pre ++ [false, false, false, false] ++ tail
+  let T3 := pre ++ [false, hi, false, false] ++ tail
+  let T4 := pre ++ [lo, hi, false, false] ++ tail
+  have h1 : step runtimeCompactBubbleMachine
+      ⟨RuntimeCompactBubbleState.holeLo, pre.length, T0⟩ =
+      ⟨RuntimeCompactBubbleState.holeHi, pre.length + 1, T0⟩ := by
+    simp [step, runtimeCompactBubbleMachine, moveHead]
+  have h2 : step runtimeCompactBubbleMachine
+      ⟨RuntimeCompactBubbleState.holeHi, pre.length + 1, T0⟩ =
+      ⟨RuntimeCompactBubbleState.readLo, pre.length + 2, T0⟩ := by
+    simp [step, runtimeCompactBubbleMachine, moveHead]
+  have h3 : step runtimeCompactBubbleMachine
+      ⟨RuntimeCompactBubbleState.readLo, pre.length + 2, T0⟩ =
+      ⟨RuntimeCompactBubbleState.readHi lo, pre.length + 3, T0⟩ := by
+    simp only [step, runtimeCompactBubbleMachine, moveHead, Machine.δ,
+      Machine.halt, Cfg.st, Cfg.hd, Cfg.tp]
+    rw [List.getD_eq_getElem?_getD, compact_getElem2]
+    simp
+  have h4 : step runtimeCompactBubbleMachine
+      ⟨RuntimeCompactBubbleState.readHi lo, pre.length + 3, T0⟩ =
+      ⟨RuntimeCompactBubbleState.clearLo lo hi, pre.length + 2, T1⟩ := by
+    simp only [step, runtimeCompactBubbleMachine, moveHead, Machine.δ,
+      Machine.halt, Cfg.st, Cfg.hd, Cfg.tp]
+    rw [List.getD_eq_getElem?_getD, compact_getElem3, compact_write3']
+    simp [T0, T1]
+  have h5 : step runtimeCompactBubbleMachine
+      ⟨RuntimeCompactBubbleState.clearLo lo hi, pre.length + 2, T1⟩ =
+      ⟨RuntimeCompactBubbleState.writeHi lo hi, pre.length + 1, T2⟩ := by
+    simp only [step, runtimeCompactBubbleMachine, moveHead, Machine.δ,
+      Machine.halt, Cfg.st, Cfg.hd, Cfg.tp]
+    rw [compact_write2']
+    simp [T1, T2]
+  have h6 : step runtimeCompactBubbleMachine
+      ⟨RuntimeCompactBubbleState.writeHi lo hi, pre.length + 1, T2⟩ =
+      ⟨RuntimeCompactBubbleState.writeLo lo, pre.length, T3⟩ := by
+    simp only [step, runtimeCompactBubbleMachine, moveHead, Machine.δ,
+      Machine.halt, Cfg.st, Cfg.hd, Cfg.tp]
+    rw [compact_write1]
+    simp [T2, T3]
+  have h7 : step runtimeCompactBubbleMachine
+      ⟨RuntimeCompactBubbleState.writeLo lo, pre.length, T3⟩ =
+      ⟨RuntimeCompactBubbleState.done, pre.length, T4⟩ := by
+    simp only [step, runtimeCompactBubbleMachine, moveHead, Machine.δ,
+      Machine.halt, Cfg.st, Cfg.hd, Cfg.tp]
+    rw [compact_write0]
+    simp [T3, T4]
+  change run runtimeCompactBubbleMachine 7
+      ⟨RuntimeCompactBubbleState.holeLo, pre.length, T0⟩ = _
+  rw [show 7 = 6 + 1 by omega, run_succ,
+    show 6 = 5 + 1 by omega, run_succ,
+    show 5 = 4 + 1 by omega, run_succ,
+    show 4 = 3 + 1 by omega, run_succ,
+    show 3 = 2 + 1 by omega, run_succ,
+    show 2 = 1 + 1 by omega, run_succ,
+    show 1 = 0 + 1 by omega, run_succ, run_zero,
+    h1, h2, h3, h4, h5, h6, h7]
 
+set_option maxHeartbeats 4000000 in
 /-- Every local bubble run stays to the right of the physical boundary. -/
 theorem runtimeCompactBubble_leftSafe (pre tail : List Bool) (lo hi : Bool) :
     LeftSafeRun runtimeCompactBubbleMachine
