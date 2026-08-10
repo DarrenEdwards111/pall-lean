@@ -265,6 +265,64 @@ def runtimeCompactClearMachine : Machine where
     | .done => (.done, none, 2)
   accept := fun _ => false
 
+/-- Restart-free stale clearing controller.  Its clock is the exact stale
+cell count; every transition clears the current cell and advances right. -/
+def runtimeCompactClearLoopMachine : Machine where
+  State := Unit
+  fin := inferInstance
+  dec := inferInstance
+  start := ()
+  halt := fun _ => false
+  δ := fun _ _ => ((), some false, 1)
+  accept := fun _ => false
+
+private theorem clearLoop_write_head
+    (pre tail : List Bool) (b : Bool) :
+    writeAt (pre ++ b :: tail) pre.length false =
+      pre ++ false :: tail := by
+  rw [PallLean.Paper93.DeepMath.PathB.CookLevinEmitCounterIncr.writeAt_of_lt
+    false (by simp)]
+  simp
+
+/-- One physical run clears an arbitrary contiguous cell block and ends
+immediately after it; there are no semantic state or head restarts. -/
+theorem runtimeCompactClearLoop_run
+    (pre cells tail : List Bool) :
+    run runtimeCompactClearLoopMachine cells.length
+        ⟨runtimeCompactClearLoopMachine.start, pre.length,
+          pre ++ cells ++ tail⟩ =
+      ⟨(), pre.length + cells.length,
+        pre ++ List.replicate cells.length false ++ tail⟩ := by
+  induction cells generalizing pre with
+  | nil => simp [runtimeCompactClearLoopMachine]
+  | cons b cells ih =>
+      rw [show (b :: cells).length = 1 + cells.length by simp [Nat.add_comm],
+        run_add]
+      have hstep : run runtimeCompactClearLoopMachine 1
+          ⟨runtimeCompactClearLoopMachine.start, pre.length,
+            pre ++ (b :: cells) ++ tail⟩ =
+        ⟨(), pre.length + 1, pre ++ false :: cells ++ tail⟩ := by
+        rw [run_succ, run_zero]
+        simp [step, runtimeCompactClearLoopMachine, moveHead,
+          clearLoop_write_head]
+      rw [hstep]
+      have hih := ih (pre := pre ++ [false])
+      rw [show List.replicate (1 + cells.length) false =
+          false :: List.replicate cells.length false by
+            rw [Nat.add_comm]
+            rfl]
+      simpa [runtimeCompactClearLoopMachine,
+        List.append_assoc, Nat.add_assoc] using hih
+
+/-- The restart-free clearer never moves left. -/
+theorem runtimeCompactClearLoop_leftSafe
+    (pre cells tail : List Bool) :
+    LeftSafeRun runtimeCompactClearLoopMachine
+      ⟨runtimeCompactClearLoopMachine.start, pre.length,
+        pre ++ cells ++ tail⟩ cells.length := by
+  intro i hlt hlive hmove
+  simp [runtimeCompactClearLoopMachine] at hmove
+
 private theorem clear_write0 (pre tail : List Bool) (lo hi : Bool) :
     writeAt (pre ++ [lo, hi] ++ tail) pre.length false =
       pre ++ [false, hi] ++ tail := by
@@ -360,6 +418,37 @@ theorem runtimeMarkedStalePairs_length (d : Nat) :
     (runtimeMarkedStalePairs d).length = d + 3 := by
   simp [runtimeMarkedStalePairs]
 
+structure RuntimeMarkedPhysicalClearCertificate
+    (retained workspace tail : List Bool) (d : Nat) : Prop where
+  run_eq :
+    run runtimeCompactClearLoopMachine (2 * (d + 3))
+        ⟨runtimeCompactClearLoopMachine.start, retained.length,
+          retained ++ flattenPairs (runtimeMarkedStalePairs d) ++
+            workspace ++ tail⟩ =
+      ⟨(), retained.length + 2 * (d + 3),
+        retained ++ List.replicate (2 * (d + 3)) false ++
+          workspace ++ tail⟩
+  leftSafe : LeftSafeRun runtimeCompactClearLoopMachine
+    ⟨runtimeCompactClearLoopMachine.start, retained.length,
+      retained ++ flattenPairs (runtimeMarkedStalePairs d) ++
+        workspace ++ tail⟩ (2 * (d + 3))
+
+/-- The exact marked stale region is cleared by one contiguous physical run,
+with the head returned at the first workspace cell. -/
+theorem runtimeMarkedPhysicalClear_certificate
+    (retained workspace tail : List Bool) (d : Nat) :
+    RuntimeMarkedPhysicalClearCertificate retained workspace tail d := by
+  have hlen : (flattenPairs (runtimeMarkedStalePairs d)).length =
+      2 * (d + 3) := by
+    rw [flattenPairs_length, runtimeMarkedStalePairs_length]
+  constructor
+  · simpa [hlen, List.append_assoc] using
+      runtimeCompactClearLoop_run retained
+        (flattenPairs (runtimeMarkedStalePairs d)) (workspace ++ tail)
+  · simpa [hlen, List.append_assoc] using
+      runtimeCompactClearLoop_leftSafe retained
+        (flattenPairs (runtimeMarkedStalePairs d)) (workspace ++ tail)
+
 /-- Complete certified marked-to-compact plan: physically clear the exact
 stale marker/selector block, then move all `d + 3` resulting holes across the
 completed workspace. -/
@@ -384,6 +473,9 @@ theorem runtimeMarkedCompact_certificate
 #print axioms runtimeCompactClear_run
 #print axioms runtimeCompactClear_leftSafe
 #print axioms runtimeCompactClear_chain
+#print axioms runtimeCompactClearLoop_run
+#print axioms runtimeCompactClearLoop_leftSafe
+#print axioms runtimeMarkedPhysicalClear_certificate
 #print axioms runtimeMarkedCompact_certificate
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeCompactChain
