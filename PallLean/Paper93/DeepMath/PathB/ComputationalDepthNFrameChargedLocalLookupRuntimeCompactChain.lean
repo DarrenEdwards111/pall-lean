@@ -244,9 +244,146 @@ theorem runtimeCompactBubble_passes
           tail workspace)
         (ih (tail := [false, false] ++ tail))
 
+/-! ## Physical stale-pair clearing -/
+
+/-- Two-step primitive that destructively clears one arbitrary aligned pair
+and returns to its low cell. -/
+inductive RuntimeCompactClearState
+  | lo | hi | done
+  deriving DecidableEq, Fintype
+
+def runtimeCompactClearMachine : Machine where
+  State := RuntimeCompactClearState
+  fin := inferInstance
+  dec := inferInstance
+  start := .lo
+  halt := fun s => decide (s = .done)
+  δ := fun s _ =>
+    match s with
+    | .lo => (.hi, some false, 1)
+    | .hi => (.done, some false, 0)
+    | .done => (.done, none, 2)
+  accept := fun _ => false
+
+private theorem clear_write0 (pre tail : List Bool) (lo hi : Bool) :
+    writeAt (pre ++ [lo, hi] ++ tail) pre.length false =
+      pre ++ [false, hi] ++ tail := by
+  rw [PallLean.Paper93.DeepMath.PathB.CookLevinEmitCounterIncr.writeAt_of_lt
+    false (by simp)]
+  simp
+
+private theorem clear_write1 (pre tail : List Bool) (hi : Bool) :
+    writeAt (pre ++ [false, hi] ++ tail) (pre.length + 1) false =
+      pre ++ [false, false] ++ tail := by
+  rw [PallLean.Paper93.DeepMath.PathB.CookLevinEmitCounterIncr.writeAt_of_lt
+    false (by simp)]
+  simp
+
+/-- Exact physical clearing of one arbitrary aligned pair. -/
+theorem runtimeCompactClear_run
+    (pre tail : List Bool) (lo hi : Bool) :
+    run runtimeCompactClearMachine 2
+        ⟨runtimeCompactClearMachine.start, pre.length,
+          pre ++ [lo, hi] ++ tail⟩ =
+      ⟨RuntimeCompactClearState.done, pre.length,
+        pre ++ [false, false] ++ tail⟩ := by
+  rw [run_succ, run_succ, run_zero]
+  have h1 : step runtimeCompactClearMachine
+      ⟨RuntimeCompactClearState.lo, pre.length,
+        pre ++ [lo, hi] ++ tail⟩ =
+      ⟨RuntimeCompactClearState.hi, pre.length + 1,
+        pre ++ [false, hi] ++ tail⟩ := by
+    simp only [step, runtimeCompactClearMachine, moveHead]
+    rw [clear_write0]
+    simp
+  change step runtimeCompactClearMachine
+      (step runtimeCompactClearMachine
+        ⟨RuntimeCompactClearState.lo, pre.length,
+          pre ++ [lo, hi] ++ tail⟩) = _
+  rw [h1]
+  simp only [step, runtimeCompactClearMachine, moveHead]
+  rw [clear_write1]
+  simp
+
+/-- Clearing one pair never crosses the physical left boundary. -/
+theorem runtimeCompactClear_leftSafe
+    (pre tail : List Bool) (lo hi : Bool) :
+    LeftSafeRun runtimeCompactClearMachine
+      ⟨runtimeCompactClearMachine.start, pre.length,
+        pre ++ [lo, hi] ++ tail⟩ 2 := by
+  intro i hlt hlive hmove
+  interval_cases i <;>
+    simp [run_succ, step, runtimeCompactClearMachine, moveHead, writeAt]
+      at hlive hmove ⊢ <;> omega
+
+/-- Certified left-to-right clearing of an arbitrary aligned pair list. -/
+inductive RuntimeCompactClearChain (tail : List Bool) :
+    List Bool → List (Bool × Bool) → Prop
+  | nil (pre : List Bool) : RuntimeCompactClearChain tail pre []
+  | cons (pre : List Bool) (lo hi : Bool) (ps : List (Bool × Bool))
+      (hrun :
+        run runtimeCompactClearMachine 2
+            ⟨runtimeCompactClearMachine.start, pre.length,
+              pre ++ [lo, hi] ++ flattenPairs ps ++ tail⟩ =
+          ⟨RuntimeCompactClearState.done, pre.length,
+            pre ++ [false, false] ++ flattenPairs ps ++ tail⟩)
+      (hsafe :
+        LeftSafeRun runtimeCompactClearMachine
+          ⟨runtimeCompactClearMachine.start, pre.length,
+            pre ++ [lo, hi] ++ flattenPairs ps ++ tail⟩ 2)
+      (hrest : RuntimeCompactClearChain tail
+        (pre ++ [false, false]) ps) :
+      RuntimeCompactClearChain tail pre ((lo, hi) :: ps)
+
+theorem runtimeCompactClear_chain
+    (pre tail : List Bool) (ps : List (Bool × Bool)) :
+    RuntimeCompactClearChain tail pre ps := by
+  induction ps generalizing pre with
+  | nil => exact .nil pre
+  | cons p ps ih =>
+      rcases p with ⟨lo, hi⟩
+      exact .cons pre lo hi ps
+        (by simpa [List.append_assoc] using
+          runtimeCompactClear_run pre (flattenPairs ps ++ tail) lo hi)
+        (by simpa [List.append_assoc] using
+          runtimeCompactClear_leftSafe pre (flattenPairs ps ++ tail) lo hi)
+        (ih (pre := pre ++ [false, false]))
+
+/-- The exact post-cashout stale region in aligned-pair form: two routing
+marker pairs, `d` obsolete unary selector pairs, and the final selector
+delimiter pair. -/
+def runtimeMarkedStalePairs (d : Nat) : List (Bool × Bool) :=
+  [(false, false), (false, false)] ++
+    List.replicate d (true, true) ++ [(false, true)]
+
+theorem runtimeMarkedStalePairs_length (d : Nat) :
+    (runtimeMarkedStalePairs d).length = d + 3 := by
+  simp [runtimeMarkedStalePairs]
+
+/-- Complete certified marked-to-compact plan: physically clear the exact
+stale marker/selector block, then move all `d + 3` resulting holes across the
+completed workspace. -/
+structure RuntimeMarkedCompactCertificate
+    (retained : List Bool) (workspace : List (Bool × Bool))
+    (tail : List Bool) (d : Nat) : Prop where
+  clear : RuntimeCompactClearChain (flattenPairs workspace ++ tail)
+    retained (runtimeMarkedStalePairs d)
+  shift : RuntimeCompactBubblePasses retained workspace tail (d + 3)
+
+theorem runtimeMarkedCompact_certificate
+    (retained tail : List Bool) (workspace : List (Bool × Bool)) (d : Nat) :
+    RuntimeMarkedCompactCertificate retained workspace tail d := by
+  exact ⟨runtimeCompactClear_chain retained (flattenPairs workspace ++ tail)
+      (runtimeMarkedStalePairs d),
+    runtimeCompactBubble_passes retained tail workspace (d + 3)⟩
+
 #print axioms runtimeCompactBubble_run
 #print axioms runtimeCompactBubble_leftSafe
 #print axioms runtimeCompactBubble_chain
 #print axioms runtimeCompactBubble_passes
+#print axioms runtimeCompactClear_run
+#print axioms runtimeCompactClear_leftSafe
+#print axioms runtimeCompactClear_chain
+#print axioms runtimeMarkedCompact_certificate
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeCompactChain
