@@ -213,8 +213,40 @@ theorem runtimeCompactBubble_chain
           runtimeCompactBubble_leftSafe pre (flattenPairs ps ++ tail) lo hi
       · exact ih (pre := pre ++ [lo, hi])
 
+/-- Repeated marked-compaction passes.  At stage `n + 1`, the rightmost
+remaining `00` hole is bubbled across the whole workspace pair list.  The
+resulting hole is appended to the protected tail, and the construction
+continues with the remaining `n` holes. -/
+inductive RuntimeCompactBubblePasses
+    (retained : List Bool) (workspace : List (Bool × Bool)) :
+    List Bool → Nat → Prop
+  | zero (tail : List Bool) :
+      RuntimeCompactBubblePasses retained workspace tail 0
+  | succ (tail : List Bool) (n : Nat)
+      (hpass : RuntimeCompactBubbleChain tail
+        (retained ++ flattenPairs (List.replicate n (false, false))) workspace)
+      (hrest : RuntimeCompactBubblePasses retained workspace
+        ([false, false] ++ tail) n) :
+      RuntimeCompactBubblePasses retained workspace tail (n + 1)
+
+/-- Every finite aligned stale region, once cleared to `00` pairs, admits a
+complete sequence of certified workspace-shifting passes.  No run, endpoint,
+or left-safety witness is supplied by the caller. -/
+theorem runtimeCompactBubble_passes
+    (retained tail : List Bool) (workspace : List (Bool × Bool)) (n : Nat) :
+    RuntimeCompactBubblePasses retained workspace tail n := by
+  induction n generalizing tail with
+  | zero => exact .zero tail
+  | succ n ih =>
+      exact .succ tail n
+        (runtimeCompactBubble_chain
+          (retained ++ flattenPairs (List.replicate n (false, false)))
+          tail workspace)
+        (ih (tail := [false, false] ++ tail))
+
 #print axioms runtimeCompactBubble_run
 #print axioms runtimeCompactBubble_leftSafe
 #print axioms runtimeCompactBubble_chain
+#print axioms runtimeCompactBubble_passes
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeCompactChain
