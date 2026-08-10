@@ -368,6 +368,115 @@ theorem runtimeCompactBubbleLoop_leftSafe
         simpa [flattenPairs, List.append_assoc] using
           ih (pre := pre ++ [lo, hi])
 
+/-! ## Physical between-pass rewind -/
+
+/-- Clocked no-write rewind controller. -/
+def runtimeCompactRewindMachine : Machine where
+  State := Unit
+  fin := inferInstance
+  dec := inferInstance
+  start := ()
+  halt := fun _ => false
+  δ := fun _ _ => ((), none, 0)
+  accept := fun _ => false
+
+/-- Rewinding `n` cells from `pre.length + n` returns exactly to the end of
+`pre` and preserves the whole tape. -/
+theorem runtimeCompactRewind_run
+    (pre tail : List Bool) (n : Nat) :
+    run runtimeCompactRewindMachine n
+        ⟨runtimeCompactRewindMachine.start, pre.length + n, pre ++ tail⟩ =
+      ⟨(), pre.length, pre ++ tail⟩ := by
+  induction n with
+  | zero => simp [runtimeCompactRewindMachine]
+  | succ n ih =>
+      rw [show n + 1 = 1 + n by omega, run_add]
+      have hstep : run runtimeCompactRewindMachine 1
+          ⟨runtimeCompactRewindMachine.start, pre.length + (1 + n),
+            pre ++ tail⟩ =
+        ⟨(), pre.length + n, pre ++ tail⟩ := by
+        rw [run_succ, run_zero]
+        simp [step, runtimeCompactRewindMachine, moveHead]
+        omega
+      rw [hstep]
+      simpa [runtimeCompactRewindMachine] using ih
+
+/-- The exact rewind is physically left-safe: every left move begins at a
+strictly positive head. -/
+theorem runtimeCompactRewind_leftSafe
+    (pre tail : List Bool) (n : Nat) :
+    LeftSafeRun runtimeCompactRewindMachine
+      ⟨runtimeCompactRewindMachine.start, pre.length + n, pre ++ tail⟩ n := by
+  induction n with
+  | zero => simp [LeftSafeRun]
+  | succ n ih =>
+      rw [show n + 1 = 1 + n by omega]
+      apply leftSafeRun_add
+      · exact leftSafeRun_one_of_positive (by simp)
+      · have hstep : run runtimeCompactRewindMachine 1
+            ⟨runtimeCompactRewindMachine.start, pre.length + (1 + n),
+              pre ++ tail⟩ =
+          ⟨(), pre.length + n, pre ++ tail⟩ := by
+            rw [run_succ, run_zero]
+            simp [step, runtimeCompactRewindMachine, moveHead]
+            omega
+        rw [hstep]
+        simpa [runtimeCompactRewindMachine] using ih
+
+structure RuntimeCompactPassRewindCertificate
+    (pre : List Bool) (workspace : List (Bool × Bool))
+    (tail : List Bool) : Prop where
+  passRun :
+    run runtimeCompactBubbleLoopMachine (8 * workspace.length)
+        ⟨runtimeCompactBubbleLoopMachine.start, pre.length + 2,
+          pre ++ [false, false, false, false] ++
+            flattenPairs workspace ++ tail⟩ =
+      ⟨runtimeCompactBubbleLoopMachine.start,
+        pre.length + 2 + 2 * workspace.length,
+        pre ++ [false, false] ++ flattenPairs workspace ++
+          [false, false] ++ tail⟩
+  passSafe : LeftSafeRun runtimeCompactBubbleLoopMachine
+    ⟨runtimeCompactBubbleLoopMachine.start, pre.length + 2,
+      pre ++ [false, false, false, false] ++ flattenPairs workspace ++ tail⟩
+    (8 * workspace.length)
+  rewindRun :
+    run runtimeCompactRewindMachine (2 * (workspace.length + 1))
+        ⟨runtimeCompactRewindMachine.start,
+          pre.length + 2 + 2 * workspace.length,
+          pre ++ [false, false] ++ flattenPairs workspace ++
+            [false, false] ++ tail⟩ =
+      ⟨(), pre.length,
+        pre ++ [false, false] ++ flattenPairs workspace ++
+          [false, false] ++ tail⟩
+  rewindSafe : LeftSafeRun runtimeCompactRewindMachine
+    ⟨runtimeCompactRewindMachine.start,
+      pre.length + 2 + 2 * workspace.length,
+      pre ++ [false, false] ++ flattenPairs workspace ++
+        [false, false] ++ tail⟩ (2 * (workspace.length + 1))
+
+/-- One complete nonfinal compaction pass followed by its physical rewind
+lands exactly on the preceding hole. -/
+theorem runtimeCompactPassRewind_certificate
+    (pre tail : List Bool) (workspace : List (Bool × Bool)) :
+    RuntimeCompactPassRewindCertificate pre workspace tail := by
+  let shifted := [false, false] ++ flattenPairs workspace ++
+    [false, false] ++ tail
+  have hpass := runtimeCompactBubbleLoop_run
+    (pre ++ [false, false]) tail workspace
+  have hpassSafe := runtimeCompactBubbleLoop_leftSafe
+    (pre ++ [false, false]) tail workspace
+  have hrewind := runtimeCompactRewind_run pre shifted
+    (2 * (workspace.length + 1))
+  have hrewindSafe := runtimeCompactRewind_leftSafe pre shifted
+    (2 * (workspace.length + 1))
+  constructor
+  · simpa [List.append_assoc, flattenPairs_length] using hpass
+  · simpa [List.append_assoc] using hpassSafe
+  · simpa [shifted, runtimeCompactRewindMachine, List.append_assoc,
+      Nat.mul_add, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hrewind
+  · simpa [shifted, runtimeCompactRewindMachine, List.append_assoc,
+      Nat.mul_add, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hrewindSafe
+
 /-- Repeated marked-compaction passes.  At stage `n + 1`, the rightmost
 remaining `00` hole is bubbled across the whole workspace pair list.  The
 resulting hole is appended to the protected tail, and the construction
@@ -628,6 +737,9 @@ theorem runtimeMarkedCompact_certificate
 #print axioms runtimeCompactBubbleLoop_round
 #print axioms runtimeCompactBubbleLoop_run
 #print axioms runtimeCompactBubbleLoop_leftSafe
+#print axioms runtimeCompactRewind_run
+#print axioms runtimeCompactRewind_leftSafe
+#print axioms runtimeCompactPassRewind_certificate
 #print axioms runtimeCompactClear_run
 #print axioms runtimeCompactClear_leftSafe
 #print axioms runtimeCompactClear_chain
