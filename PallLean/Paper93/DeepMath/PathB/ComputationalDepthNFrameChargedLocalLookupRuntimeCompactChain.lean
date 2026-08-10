@@ -213,6 +213,161 @@ theorem runtimeCompactBubble_chain
           runtimeCompactBubble_leftSafe pre (flattenPairs ps ++ tail) lo hi
       · exact ih (pre := pre ++ [lo, hi])
 
+/-! ## Restart-free bubble passes -/
+
+/-- Looping form of the bubble primitive.  Unlike the halting diagnostic
+primitive, an eight-step round finishes in `holeLo` at the newly-created hole,
+ready to consume the next workspace pair without a state or head restart. -/
+inductive RuntimeCompactBubbleLoopState
+  | holeLo | holeHi | readLo | readHi (lo : Bool)
+  | clearLo (lo hi : Bool) | writeHi (lo hi : Bool)
+  | writeLo (lo : Bool) | advance
+  deriving DecidableEq, Fintype
+
+def runtimeCompactBubbleLoopMachine : Machine where
+  State := RuntimeCompactBubbleLoopState
+  fin := inferInstance
+  dec := inferInstance
+  start := .holeLo
+  halt := fun _ => false
+  δ := fun s b =>
+    match s with
+    | .holeLo => (.holeHi, none, 1)
+    | .holeHi => (.readLo, none, 1)
+    | .readLo => (.readHi b, none, 1)
+    | .readHi lo => (.clearLo lo b, some false, 0)
+    | .clearLo lo hi => (.writeHi lo hi, some false, 0)
+    | .writeHi lo hi => (.writeLo lo, some hi, 0)
+    | .writeLo lo => (.advance, some lo, 1)
+    | .advance => (.holeLo, none, 1)
+  accept := fun _ => false
+
+/-- One restart-free bubble round ends at the moved hole. -/
+theorem runtimeCompactBubbleLoop_round
+    (pre tail : List Bool) (lo hi : Bool) :
+    run runtimeCompactBubbleLoopMachine 8
+        ⟨runtimeCompactBubbleLoopMachine.start, pre.length,
+          pre ++ [false, false, lo, hi] ++ tail⟩ =
+      ⟨runtimeCompactBubbleLoopMachine.start, pre.length + 2,
+        pre ++ [lo, hi, false, false] ++ tail⟩ := by
+  let T0 := pre ++ [false, false, lo, hi] ++ tail
+  let T1 := pre ++ [false, false, lo, false] ++ tail
+  let T2 := pre ++ [false, false, false, false] ++ tail
+  let T3 := pre ++ [false, hi, false, false] ++ tail
+  let T4 := pre ++ [lo, hi, false, false] ++ tail
+  have h1 : step runtimeCompactBubbleLoopMachine
+      ⟨RuntimeCompactBubbleLoopState.holeLo, pre.length, T0⟩ =
+      ⟨RuntimeCompactBubbleLoopState.holeHi, pre.length + 1, T0⟩ := by
+    simp [step, runtimeCompactBubbleLoopMachine, moveHead]
+  have h2 : step runtimeCompactBubbleLoopMachine
+      ⟨RuntimeCompactBubbleLoopState.holeHi, pre.length + 1, T0⟩ =
+      ⟨RuntimeCompactBubbleLoopState.readLo, pre.length + 2, T0⟩ := by
+    simp [step, runtimeCompactBubbleLoopMachine, moveHead]
+  have h3 : step runtimeCompactBubbleLoopMachine
+      ⟨RuntimeCompactBubbleLoopState.readLo, pre.length + 2, T0⟩ =
+      ⟨RuntimeCompactBubbleLoopState.readHi lo, pre.length + 3, T0⟩ := by
+    simp only [step, runtimeCompactBubbleLoopMachine, moveHead]
+    rw [List.getD_eq_getElem?_getD, compact_getElem2]
+    simp
+  have h4 : step runtimeCompactBubbleLoopMachine
+      ⟨RuntimeCompactBubbleLoopState.readHi lo, pre.length + 3, T0⟩ =
+      ⟨RuntimeCompactBubbleLoopState.clearLo lo hi, pre.length + 2, T1⟩ := by
+    simp only [step, runtimeCompactBubbleLoopMachine, moveHead]
+    rw [List.getD_eq_getElem?_getD, compact_getElem3, compact_write3']
+    simp [T0, T1]
+  have h5 : step runtimeCompactBubbleLoopMachine
+      ⟨RuntimeCompactBubbleLoopState.clearLo lo hi, pre.length + 2, T1⟩ =
+      ⟨RuntimeCompactBubbleLoopState.writeHi lo hi, pre.length + 1, T2⟩ := by
+    simp only [step, runtimeCompactBubbleLoopMachine, moveHead]
+    rw [compact_write2']
+    simp [T1, T2]
+  have h6 : step runtimeCompactBubbleLoopMachine
+      ⟨RuntimeCompactBubbleLoopState.writeHi lo hi, pre.length + 1, T2⟩ =
+      ⟨RuntimeCompactBubbleLoopState.writeLo lo, pre.length, T3⟩ := by
+    simp only [step, runtimeCompactBubbleLoopMachine, moveHead]
+    rw [compact_write1]
+    simp [T2, T3]
+  have h7 : step runtimeCompactBubbleLoopMachine
+      ⟨RuntimeCompactBubbleLoopState.writeLo lo, pre.length, T3⟩ =
+      ⟨RuntimeCompactBubbleLoopState.advance, pre.length + 1, T4⟩ := by
+    simp only [step, runtimeCompactBubbleLoopMachine, moveHead]
+    rw [compact_write0]
+    simp [T3, T4]
+  have h8 : step runtimeCompactBubbleLoopMachine
+      ⟨RuntimeCompactBubbleLoopState.advance, pre.length + 1, T4⟩ =
+      ⟨RuntimeCompactBubbleLoopState.holeLo, pre.length + 2, T4⟩ := by
+    simp [step, runtimeCompactBubbleLoopMachine, moveHead]
+  change run runtimeCompactBubbleLoopMachine 8
+      ⟨RuntimeCompactBubbleLoopState.holeLo, pre.length, T0⟩ = _
+  rw [show 8 = 7 + 1 by omega, run_succ,
+    show 7 = 6 + 1 by omega, run_succ,
+    show 6 = 5 + 1 by omega, run_succ,
+    show 5 = 4 + 1 by omega, run_succ,
+    show 4 = 3 + 1 by omega, run_succ,
+    show 3 = 2 + 1 by omega, run_succ,
+    show 2 = 1 + 1 by omega, run_succ,
+    show 1 = 0 + 1 by omega, run_succ, run_zero,
+    h1, h2, h3, h4, h5, h6, h7, h8]
+  simp [runtimeCompactBubbleLoopMachine, T4]
+
+/-- An entire workspace pass is one uninterrupted physical run. -/
+theorem runtimeCompactBubbleLoop_run
+    (pre tail : List Bool) (ps : List (Bool × Bool)) :
+    run runtimeCompactBubbleLoopMachine (8 * ps.length)
+        ⟨runtimeCompactBubbleLoopMachine.start, pre.length,
+          pre ++ [false, false] ++ flattenPairs ps ++ tail⟩ =
+      ⟨runtimeCompactBubbleLoopMachine.start, pre.length + 2 * ps.length,
+        pre ++ flattenPairs ps ++ [false, false] ++ tail⟩ := by
+  induction ps generalizing pre with
+  | nil => simp [runtimeCompactBubbleLoopMachine, flattenPairs]
+  | cons p ps ih =>
+      rcases p with ⟨lo, hi⟩
+      have hround : run runtimeCompactBubbleLoopMachine 8
+          ⟨runtimeCompactBubbleLoopMachine.start, pre.length,
+            pre ++ [false, false] ++ flattenPairs ((lo, hi) :: ps) ++ tail⟩ =
+        ⟨runtimeCompactBubbleLoopMachine.start, pre.length + 2,
+          pre ++ [lo, hi, false, false] ++ flattenPairs ps ++ tail⟩ := by
+        simpa [flattenPairs, List.append_assoc] using
+          runtimeCompactBubbleLoop_round pre (flattenPairs ps ++ tail) lo hi
+      rw [show 8 * (((lo, hi) :: ps).length) = 8 + 8 * ps.length by
+          simp only [List.length_cons]
+          omega,
+        run_add, hround]
+      have hih := ih (pre := pre ++ [lo, hi])
+      convert hih using 1 <;>
+        simp [flattenPairs, List.append_assoc, flattenPairs_length] <;> omega
+
+set_option maxHeartbeats 4000000 in
+/-- The uninterrupted workspace pass is physically left-safe. -/
+theorem runtimeCompactBubbleLoop_leftSafe
+    (pre tail : List Bool) (ps : List (Bool × Bool)) :
+    LeftSafeRun runtimeCompactBubbleLoopMachine
+      ⟨runtimeCompactBubbleLoopMachine.start, pre.length,
+        pre ++ [false, false] ++ flattenPairs ps ++ tail⟩
+      (8 * ps.length) := by
+  induction ps generalizing pre with
+  | nil => simp [LeftSafeRun]
+  | cons p ps ih =>
+      rcases p with ⟨lo, hi⟩
+      have hround : run runtimeCompactBubbleLoopMachine 8
+          ⟨runtimeCompactBubbleLoopMachine.start, pre.length,
+            pre ++ [false, false] ++ flattenPairs ((lo, hi) :: ps) ++ tail⟩ =
+        ⟨runtimeCompactBubbleLoopMachine.start, pre.length + 2,
+          pre ++ [lo, hi, false, false] ++ flattenPairs ps ++ tail⟩ := by
+        simpa [flattenPairs, List.append_assoc] using
+          runtimeCompactBubbleLoop_round pre (flattenPairs ps ++ tail) lo hi
+      rw [show 8 * (((lo, hi) :: ps).length) = 8 + 8 * ps.length by
+        simp only [List.length_cons]
+        omega]
+      apply leftSafeRun_add
+      · intro i hlt hlive hmove
+        interval_cases i <;>
+          simp [run_succ, step, runtimeCompactBubbleLoopMachine, moveHead,
+            writeAt] at hlive hmove ⊢ <;> omega
+      · rw [hround]
+        simpa [flattenPairs, List.append_assoc] using
+          ih (pre := pre ++ [lo, hi])
+
 /-- Repeated marked-compaction passes.  At stage `n + 1`, the rightmost
 remaining `00` hole is bubbled across the whole workspace pair list.  The
 resulting hole is appended to the protected tail, and the construction
@@ -470,6 +625,9 @@ theorem runtimeMarkedCompact_certificate
 #print axioms runtimeCompactBubble_leftSafe
 #print axioms runtimeCompactBubble_chain
 #print axioms runtimeCompactBubble_passes
+#print axioms runtimeCompactBubbleLoop_round
+#print axioms runtimeCompactBubbleLoop_run
+#print axioms runtimeCompactBubbleLoop_leftSafe
 #print axioms runtimeCompactClear_run
 #print axioms runtimeCompactClear_leftSafe
 #print axioms runtimeCompactClear_chain
