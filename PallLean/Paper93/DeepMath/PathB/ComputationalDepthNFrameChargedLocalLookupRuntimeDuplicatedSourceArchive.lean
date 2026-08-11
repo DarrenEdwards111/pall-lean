@@ -23,9 +23,12 @@ open PallLean.Paper93.DeepMath.PathB.CookLevinInP
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLiteralWeld
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceCompact
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceLookup
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeStage
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRepeatController
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePreservedPassedCopy
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundEntryAdapter
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixRun
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupScheduleBound
 
 def duplicatedSourceBlock (bits : List Bool) : List (Bool × Bool) :=
   freshSourceBlock bits ++ passedSourceBlock bits
@@ -759,6 +762,80 @@ theorem sourceRuntimeLookupCore_run_duplicated (d : Nat)
   simpa [bits, tail, trailer, mcf] using
     masterM_after_preservedPassed_decomposition w l rest
 
+def duplicatedSourceSelectorInput (B t : Nat)
+    (schedule : List (List Bool)) : List Bool :=
+  flattenPairs
+    (List.replicate t (true, false) ++
+      List.replicate (B - t) (true, true) ++ [(false, true)] ++
+      (schedule.take t).flatMap freshSourceBlock ++
+      freshSourceBlock (schedule.getD t []) ++
+      passedSourceBlock (schedule.getD t []) ++
+      duplicatedSourceArchive (schedule.drop (t + 1)))
+
+/-- The round-indexed canonical duplicated input is exactly the generic
+preserved-progress layout consumed by the fixed selector. -/
+theorem duplicatedSourceSelectorInput_shape (x w : List Bool) {t : Nat}
+    (ht : t < (decodedLiterals x).length) :
+    let B := (decodedLiterals x).length
+    let schedule := literalTapeSchedule x w
+    let bits := literalLookupTape w (scheduledLiteral x t)
+    duplicatedSourceSelectorInput B t schedule =
+      flattenPairs (progressPreservedPairs (B - t) [] (schedule.take t)
+        [bits] (passedSourceBlock bits ++
+          duplicatedSourceArchive (schedule.drop (t + 1)))) := by
+  dsimp only
+  let B := (decodedLiterals x).length
+  let schedule := literalTapeSchedule x w
+  let bits := literalLookupTape w (scheduledLiteral x t)
+  have hget : schedule.getD t [] = bits := by
+    dsimp only [schedule, bits]
+    exact literalTapeSchedule_getD x w ht
+  have hslen : schedule.length = B := by
+    simp [schedule, B, literalTapeSchedule]
+  have hts : t < schedule.length := by simpa [hslen] using ht
+  have hprelen : (schedule.take t).length = t := by
+    rw [List.length_take, Nat.min_eq_left hts.le]
+  rw [duplicatedSourceSelectorInput, progressPreservedPairs, progressPairs,
+    hget]
+  rw [hprelen]
+  simp [bits, List.append_assoc]
+
+/-- Scheduled specialization of the universal duplicated lookup controller. -/
+theorem sourceRuntimeLookupCore_scheduled_duplicated (x w : List Bool)
+    {t : Nat} (ht : t < (decodedLiterals x).length) :
+    let B := (decodedLiterals x).length
+    let schedule := literalTapeSchedule x w
+    let preBlocks := schedule.take t
+    let l := scheduledLiteral x t
+    let bits := literalLookupTape w l
+    let rest := schedule.drop (t + 1)
+    let pre := selectedPrefix (B - t) preBlocks
+    let tail := flattenPairs (duplicatedSourceArchive rest)
+    let trailer := preservedPassedTrailer bits tail
+    let mcf := run masterM (literalLookupClock w l)
+      (init masterM (bits ++ trailer))
+    run sourceRuntimeLookupCore
+        (sourceRuntimeLookupClock (B - t) preBlocks w l)
+        (init sourceRuntimeLookupCore
+          (duplicatedSourceSelectorInput B t schedule)) =
+      ⟨Sum.inr mcf.st, pre.length + mcf.hd, pre ++ mcf.tp⟩ ∧
+    ∃ value,
+      mcf.tp = flattenPairs (runtimeWorkspaceFrontPairs value
+        (2 * l.1 + 2) (2 * l.1 + 4)) ++
+        flattenPairs (passedSourceBlock bits) ++ tail := by
+  dsimp only
+  let B := (decodedLiterals x).length
+  let schedule := literalTapeSchedule x w
+  let preBlocks := schedule.take t
+  let l := scheduledLiteral x t
+  let bits := literalLookupTape w l
+  let rest := schedule.drop (t + 1)
+  have hshape := duplicatedSourceSelectorInput_shape x w ht
+  have hrun := sourceRuntimeLookupCore_run_duplicated
+    (B - t) preBlocks w l rest
+  rw [hshape]
+  simpa [B, schedule, preBlocks, l, bits, rest] using hrun
+
 #print axioms duplicatedSourceArchive_length
 #print axioms duplicatedSourceArchive_schedule_split
 #print axioms duplicatedSourceArchive_selected_tail
@@ -774,5 +851,7 @@ theorem sourceRuntimeLookupCore_run_duplicated (d : Nat)
 #print axioms sourceCompact_run_with_preservedPassed
 #print axioms masterM_after_preservedPassed_decomposition
 #print axioms sourceRuntimeLookupCore_run_duplicated
+#print axioms duplicatedSourceSelectorInput_shape
+#print axioms sourceRuntimeLookupCore_scheduled_duplicated
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeDuplicatedSourceArchive
