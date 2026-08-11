@@ -92,6 +92,196 @@ theorem flattenPairs_duplicatedSourceArchive_cons
   simp [duplicatedSourceArchive, duplicatedSourceBlock,
     flattenPairs_append, List.append_assoc]
 
+def preservedSelectedPairs (d : Nat) (done : List (List Bool))
+    (bits : List Bool) (suffix : List (Bool × Bool)) : List (Bool × Bool) :=
+  List.replicate done.length (true, true) ++
+    List.replicate d (true, true) ++ [(false, true)] ++
+    done.flatMap passedSourceBlock ++ freshSourceBlock bits ++ suffix
+
+/-- The final selector scan is suffix-parametric: it halts at the current
+fresh payload without inspecting or changing the adjacent preserved copy. -/
+theorem sourceSelect_final_preserved_suffix (d : Nat)
+    (done : List (List Bool)) (bits : List Bool)
+    (suffix : List (Bool × Bool)) :
+    run sourceSelectMachine (sourceSelectFinalClock d done)
+        ⟨SourceSelectState.cntLo, 0,
+          flattenPairs (preservedSelectedPairs d done bits suffix)⟩ =
+      ⟨SourceSelectState.done, 2 * (done.length + d + 1 +
+          (done.flatMap passedSourceBlock).length + 1),
+        flattenPairs (preservedSelectedPairs d done bits suffix)⟩ := by
+  let T := flattenPairs (preservedSelectedPairs d done bits suffix)
+  let cnt := List.replicate done.length (true, true) ++
+    List.replicate d (true, true)
+  have hcntNo : NoFreshMark cnt := by
+    intro p hp
+    unfold cnt at hp
+    rcases List.mem_append.mp hp with hp | hp
+    · rcases List.mem_replicate.mp hp with ⟨_, rfl⟩; simp
+    · rcases List.mem_replicate.mp hp with ⟨_, rfl⟩; simp
+  have hcntLo : ∀ p ∈ cnt, p.1 = true := by
+    intro p hp
+    unfold cnt at hp
+    rcases List.mem_append.mp hp with hp | hp
+    · rcases List.mem_replicate.mp hp with ⟨_, rfl⟩; rfl
+    · rcases List.mem_replicate.mp hp with ⟨_, rfl⟩; rfl
+  have hscan := cnt_skip_pairStream [] cnt
+    ((false, true) :: done.flatMap passedSourceBlock ++
+      freshSourceBlock bits ++ suffix) hcntNo hcntLo
+  have hloBoundary : T.getD (2 * (done.length + d)) false = false := by
+    unfold T preservedSelectedPairs
+    simpa [List.append_assoc] using pair_start_lo
+      (List.replicate done.length (true, true) ++
+        List.replicate d (true, true)) false true
+      (done.flatMap passedSourceBlock ++ freshSourceBlock bits ++ suffix)
+  have hfinish := cnt_finish T (2 * (done.length + d)) hloBoundary
+  have hpassed := select_skip_pairStream
+    (List.replicate (done.length + d) (true, true) ++ [(false, true)])
+    (done.flatMap passedSourceBlock) (freshSourceBlock bits ++ suffix)
+    (passedArchive_noFresh done)
+  let q := done.length + d + 1 + (done.flatMap passedSourceBlock).length
+  have hloArchive : T.getD (2 * q) false = true := by
+    unfold T preservedSelectedPairs q
+    have he : done.length + d +
+        ((done.flatMap passedSourceBlock).length + 1) = q := by
+      unfold q
+      omega
+    have he2 : done.length + d +
+        ((done.map fun a => (passedSourceBlock a).length).sum + 1) =
+        done.length + d + 1 +
+          (done.map fun a => (passedSourceBlock a).length).sum := by omega
+    simpa [List.append_assoc, freshSourceBlock, he, he2] using
+      pair_start_lo
+        (List.replicate done.length (true, true) ++
+          List.replicate d (true, true) ++ [(false, true)] ++
+          done.flatMap passedSourceBlock) true false
+        (dataPairs bits ++ [(false, true)] ++ suffix)
+  have hhiArchive : T.getD (2 * q + 1) false = false := by
+    unfold T preservedSelectedPairs q
+    have he : done.length + d +
+        ((done.flatMap passedSourceBlock).length + 1) = q := by
+      unfold q
+      omega
+    have he2 : done.length + d +
+        ((done.map fun a => (passedSourceBlock a).length).sum + 1) =
+        done.length + d + 1 +
+          (done.map fun a => (passedSourceBlock a).length).sum := by omega
+    simpa [List.append_assoc, freshSourceBlock, he, he2] using
+      pair_start_hi
+        (List.replicate done.length (true, true) ++
+          List.replicate d (true, true) ++ [(false, true)] ++
+          done.flatMap passedSourceBlock) true false
+        (dataPairs bits ++ [(false, true)] ++ suffix)
+  have htake := select_take_mark T (2 * q) hloArchive hhiArchive
+  have hscan' : run sourceSelectMachine (2 * (done.length + d))
+      ⟨SourceSelectState.cntLo, 0, T⟩ =
+      ⟨SourceSelectState.cntLo, 2 * (done.length + d), T⟩ := by
+    simpa [T, cnt, preservedSelectedPairs, List.append_assoc] using hscan
+  have hpassed' :
+      run sourceSelectMachine (2 * (done.flatMap passedSourceBlock).length)
+        ⟨SourceSelectState.selectLo, 2 * (done.length + d) + 2, T⟩ =
+      ⟨SourceSelectState.selectLo, 2 * q, T⟩ := by
+    have hs : 2 * (done.length + d + 1) = 2 * (done.length + d) + 2 := by
+      omega
+    have he : 2 * (done.length + d + 1 +
+        (done.flatMap passedSourceBlock).length) = 2 * q := by
+      unfold q
+      omega
+    simpa [T, preservedSelectedPairs, q, List.append_assoc, hs, he] using hpassed
+  have hfirst : run sourceSelectMachine (2 * (done.length + d) + 2)
+      ⟨SourceSelectState.cntLo, 0, T⟩ =
+      ⟨SourceSelectState.selectLo, 2 * (done.length + d) + 2, T⟩ := by
+    rw [run_add, hscan', hfinish]
+  have hsecond : run sourceSelectMachine
+      (2 * (done.flatMap passedSourceBlock).length + 2)
+      ⟨SourceSelectState.selectLo, 2 * (done.length + d) + 2, T⟩ =
+      ⟨SourceSelectState.done, 2 * q + 2, T⟩ := by
+    rw [run_add, hpassed', htake]
+  unfold sourceSelectFinalClock
+  rw [run_add, hfirst, hsecond]
+  unfold q T
+  congr 2
+
+/-- Concrete final-scan specialization for the duplicated source archive. -/
+theorem sourceSelect_final_duplicated (d : Nat)
+    (done : List (List Bool)) (bits : List Bool)
+    (rest : List (List Bool)) :
+    run sourceSelectMachine (sourceSelectFinalClock d done)
+        ⟨SourceSelectState.cntLo, 0,
+          flattenPairs (preservedSelectedPairs d done bits
+            (passedSourceBlock bits ++ duplicatedSourceArchive rest))⟩ =
+      ⟨SourceSelectState.done, 2 * (done.length + d + 1 +
+          (done.flatMap passedSourceBlock).length + 1),
+        flattenPairs (preservedSelectedPairs d done bits
+          (passedSourceBlock bits ++ duplicatedSourceArchive rest))⟩ :=
+  sourceSelect_final_preserved_suffix d done bits
+    (passedSourceBlock bits ++ duplicatedSourceArchive rest)
+
+theorem flattenPairs_preservedSelected_duplicated (d : Nat)
+    (done : List (List Bool)) (bits : List Bool)
+    (rest : List (List Bool)) :
+    flattenPairs (preservedSelectedPairs d done bits
+      (passedSourceBlock bits ++ duplicatedSourceArchive rest)) =
+      selectedPrefix d done ++ [true, false] ++ encodeD bits ++
+        flattenPairs (passedSourceBlock bits) ++
+          flattenPairs (duplicatedSourceArchive rest) := by
+  simp [preservedSelectedPairs, selectedPrefix, selectedPrefixPairs,
+    freshSourceBlock, flattenPairs_append, flattenPairs, List.append_assoc]
+  simpa [List.append_assoc] using congrArg
+    (fun z => z ++ flattenPairs (passedSourceBlock bits) ++
+      flattenPairs (duplicatedSourceArchive rest))
+    (flattenPairs_dataPairs bits)
+
+def sourceSelectCompactFinalClock (d : Nat) (done : List (List Bool))
+    (bits : List Bool) : Nat :=
+  sourceSelectFinalClock d done + 1 + sourceCompactClock bits
+
+/-- From the already-normalized selected layout, the fixed selector and
+decoder expose the raw payload while preserving its adjacent canonical copy. -/
+theorem sourceSelectCompact_final_duplicated (d : Nat)
+    (done : List (List Bool)) (bits : List Bool)
+    (rest : List (List Bool)) :
+    run sourceSelectCompactMachine
+        (sourceSelectCompactFinalClock d done bits)
+        (init sourceSelectCompactMachine
+          (flattenPairs (preservedSelectedPairs d done bits
+            (passedSourceBlock bits ++ duplicatedSourceArchive rest)))) =
+      ⟨Sum.inr SourceCompactState.done,
+        (selectedPrefix d done).length + bits.length + 3,
+        selectedPrefix d done ++ bits ++ preservedPassedTrailer bits
+          (flattenPairs (duplicatedSourceArchive rest))⟩ := by
+  rw [flattenPairs_preservedSelected_duplicated]
+  have hsel := sourceSelect_final_duplicated d done bits rest
+  rw [flattenPairs_preservedSelected_duplicated,
+    selected_progress_head] at hsel
+  have hcomp0 := sourceCompact_run (selectedPrefix d done) bits
+    (flattenPairs (passedSourceBlock bits) ++
+      flattenPairs (duplicatedSourceArchive rest))
+  have hcomp : run sourceCompactMachine (sourceCompactClock bits)
+      ⟨SourceCompactState.backHi, (selectedPrefix d done).length + 2,
+        selectedPrefix d done ++ [true, false] ++ encodeD bits ++
+          flattenPairs (passedSourceBlock bits) ++
+            flattenPairs (duplicatedSourceArchive rest)⟩ =
+      ⟨SourceCompactState.done,
+        (selectedPrefix d done).length + bits.length + 3,
+        selectedPrefix d done ++ bits ++ preservedPassedTrailer bits
+          (flattenPairs (duplicatedSourceArchive rest))⟩ := by
+    simpa [preservedPassedTrailer,
+      PallLean.Paper93.DeepMath.PathB.CookLevinDoubled.encodeD,
+      List.append_assoc] using hcomp0
+  exact headSeq_run sourceSelectMachine sourceCompactMachine
+    (selectedPrefix d done ++ [true, false] ++ encodeD bits ++
+      flattenPairs (passedSourceBlock bits) ++
+        flattenPairs (duplicatedSourceArchive rest))
+    (selectedPrefix d done ++ [true, false] ++ encodeD bits ++
+      flattenPairs (passedSourceBlock bits) ++
+        flattenPairs (duplicatedSourceArchive rest))
+    (selectedPrefix d done ++ bits ++ preservedPassedTrailer bits
+      (flattenPairs (duplicatedSourceArchive rest)))
+    (sourceSelectFinalClock d done) (sourceCompactClock bits)
+    ((selectedPrefix d done).length + 2)
+    ((selectedPrefix d done).length + bits.length + 3)
+    SourceSelectState.done SourceCompactState.done hsel rfl hcomp rfl
+
 /-- The existing fixed decoder consumes the fresh working block while the
 adjacent canonical copy and duplicated future archive remain untouched. -/
 theorem sourceCompact_run_with_preservedPassed
@@ -132,6 +322,9 @@ theorem masterM_after_preservedPassed_decomposition
 #print axioms duplicatedSourceArchive_length
 #print axioms duplicatedSourceArchive_schedule_split
 #print axioms duplicatedSourceArchive_selected_tail
+#print axioms sourceSelect_final_preserved_suffix
+#print axioms sourceSelect_final_duplicated
+#print axioms sourceSelectCompact_final_duplicated
 #print axioms sourceCompact_run_with_preservedPassed
 #print axioms masterM_after_preservedPassed_decomposition
 
