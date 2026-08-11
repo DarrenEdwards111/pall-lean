@@ -37,20 +37,30 @@ theorem stageMachine_zero_leftSafe (target tape : List Bool) :
       ⟨⟨i, by omega⟩, i, stagedTape 0 target i tape⟩ := by
     simpa [init] using hirun
   rw [hirun'] at hlive hleft ⊢
-  simp [stageMachine] at hleft
+  exfalso
+  simpa [stageMachine, hi] using hleft
 
 theorem stageMachine_zero_prefixSafe (target tape : List Bool) :
     PrefixSafeRun (stageMachine 0 target) (init (stageMachine 0 target) tape)
       target.length := by
   intro i hi
-  refine ⟨?_, stageMachine_zero_leftSafe target tape i hi⟩
-  intro _
-  simp [stageMachine]
+  have hirun := stageMachine_run_write 0 target tape i (by omega)
+  have hirun' : run (stageMachine 0 target) i
+      (init (stageMachine 0 target) tape) =
+      ⟨⟨i, by omega⟩, i, stagedTape 0 target i tape⟩ := by
+    simpa [init] using hirun
+  rw [hirun']
+  constructor
+  · intro _
+    simp [stageMachine, hi]
+  · intro _ hleft
+    exfalso
+    simpa [stageMachine, hi] using hleft
 
 /-- Exact physical run at an arbitrary protected prefix.  The head begins at
 the first workspace cell and ends immediately after the rewritten block. -/
 theorem runtimeWorkspaceTranslator_run (pre old tail bits : List Bool)
-    (hlen : old.length = (flattenPairs (passedSourceBlock bits)).length) :
+    (_hlen : old.length = (flattenPairs (passedSourceBlock bits)).length) :
     run (runtimeWorkspaceTranslatorMachine bits)
         (runtimeWorkspaceTranslatorClock bits)
         ⟨(runtimeWorkspaceTranslatorMachine bits).start, pre.length,
@@ -71,7 +81,7 @@ theorem runtimeWorkspaceTranslator_run (pre old tail bits : List Bool)
     simpa using hbase
   rw [hbase'] at hshift
   simpa [runtimeWorkspaceTranslatorMachine, runtimeWorkspaceTranslatorClock,
-    target, shiftCfg, hlen, Nat.zero_add, List.append_assoc] using hshift
+    target, shiftCfg, Nat.zero_add, List.append_assoc] using hshift
 
 /-- Every cell of the rewritten span is the corresponding canonical passed
 block cell. -/
