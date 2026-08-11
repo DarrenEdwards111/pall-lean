@@ -4,6 +4,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLooku
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLookupRuntimeTranslatedScheduled
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLookupRuntimeCompactCompositionSafety
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLookupRuntimeParametricRoundCertificate
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLookupRuntimePreservedPassedCopy
 
 /-!
 # Marked compaction semantic integration audit
