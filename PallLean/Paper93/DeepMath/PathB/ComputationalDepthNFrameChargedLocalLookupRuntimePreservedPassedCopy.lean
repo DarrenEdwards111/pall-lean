@@ -46,6 +46,50 @@ theorem unmarkedPassedBoundary_collision :
       List.replicate 2 (true, true) ++ passedSourceBlock [] := by
   rfl
 
+/-- Pair-aligned soundness of the reserved marker.  The completed grammar may
+contain one `00` value pair, but never two adjacent `00` pairs. -/
+theorem runtimeWorkspaceFrontPairs_no_boundaryMarker
+    (value : Bool) (m n : Nat) :
+    ¬ List.IsInfix runtimePassedBoundaryMarker
+      (runtimeWorkspaceFrontPairs value m n) := by
+  let R : (Bool × Bool) → (Bool × Bool) → Prop :=
+    fun a b => ¬ (a = (false, false) ∧ b = (false, false))
+  have chain_of_nozero (xs : List (Bool × Bool))
+      (h : ∀ x ∈ xs, x ≠ (false, false)) : List.IsChain R xs := by
+    induction xs with
+    | nil => simp
+    | cons a xs ih =>
+        rw [List.isChain_cons]
+        constructor
+        · intro b hb
+          simp [R, h a (by simp)]
+        · exact ih (by
+            intro x hx
+            exact h x (by simp [hx]))
+  have hw : List.IsChain R (runtimeWorkspaceFrontPairs value m n) := by
+    let suffix := List.replicate m (true, false) ++
+      (false, true) :: List.replicate n (true, true)
+    have hsNon : ∀ x ∈ suffix, x ≠ (false, false) := by
+      intro x hx
+      simp [suffix] at hx
+      rcases hx with h | h | h <;> simp_all
+    have hs := chain_of_nozero suffix hsNon
+    have hfalse : List.IsChain R ((false, false) :: suffix) := by
+      rw [List.isChain_cons]
+      exact ⟨(by
+        intro b hb
+        simp [R, hsNon b
+          (List.mem_of_mem_head? (l := suffix) hb)]), hs⟩
+    have htrue : List.IsChain R ((true, true) :: suffix) := by
+      rw [List.isChain_cons]
+      exact ⟨(by simp [R]), hs⟩
+    cases value
+    · simpa [runtimeWorkspaceFrontPairs, suffix, R] using hfalse
+    · simpa [runtimeWorkspaceFrontPairs, suffix, R] using htrue
+  intro hin
+  have hm := hw.infix hin
+  simp [R, runtimePassedBoundaryMarker] at hm
+
 /-- `masterM` preserves the explicit marker, canonical passed copy, and all
 later archive data verbatim. -/
 theorem masterM_literal_workspace_markedPassed_decomposition
@@ -195,6 +239,7 @@ theorem masterM_literal_workspace_preservedPassed_decomposition
 #print axioms masterM_literal_preservedPassed_drop
 #print axioms masterM_literal_workspace_preservedPassed_decomposition
 #print axioms unmarkedPassedBoundary_collision
+#print axioms runtimeWorkspaceFrontPairs_no_boundaryMarker
 #print axioms masterM_literal_workspace_markedPassed_decomposition
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePreservedPassedCopy
