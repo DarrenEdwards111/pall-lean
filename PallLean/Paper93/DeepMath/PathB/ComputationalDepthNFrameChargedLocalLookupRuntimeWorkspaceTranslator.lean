@@ -70,6 +70,13 @@ theorem stageMachine_prefixSafe_any (P : Nat) (target tape : List Bool)
     simp only [stageMachine] at hleft
     split_ifs at hleft <;> simp_all
 
+theorem stageMachine_leftSafe_any (P : Nat) (target tape : List Bool)
+    (n : Nat) :
+    LeftSafeRun (stageMachine P target) (init (stageMachine P target) tape) n := by
+  have hs := stageMachine_prefixSafe_any P target tape n
+  intro i hi
+  exact (hs i hi).leftInside
+
 /-- Exact physical run at an arbitrary protected prefix.  The head begins at
 the first workspace cell and ends immediately after the rewritten block. -/
 theorem runtimeWorkspaceTranslator_run (pre old tail bits : List Bool)

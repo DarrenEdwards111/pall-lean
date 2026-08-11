@@ -19,6 +19,7 @@ open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeArchiveRetur
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalUnaryRebase
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeUnaryRebaseWriter
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeCompactChain
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupLeftBoundaryTerminal
 
 /-- The exact-clock run theorem in the configuration shape consumed by
 `headSeq_run_at`. -/
@@ -33,6 +34,25 @@ theorem exactClockMachine_run_of_run (M : Machine) (n p p' : Nat)
     (⟨M.start, p, T⟩ : Cfg M) (fun _ _ => hlive _)
   rw [hrun] at hclock
   simpa [exactClockCfg, exactClockMachine] using hclock
+
+/-- Exact clocking preserves a certified left-safe execution. -/
+theorem exactClockMachine_leftSafe (M : Machine) (n : Nat) (c : Cfg M)
+    (hlive : ∀ st, M.halt st = false)
+    (hsafe : LeftSafeRun M c n) :
+    LeftSafeRun (exactClockMachine M n)
+      (exactClockCfg M n 0 (Nat.zero_le _) c) n := by
+  intro i hi hhalt hmove
+  have hrun := exactClockMachine_run_segment M n 0 i (by omega) c
+    (fun _ _ => hlive _)
+  have hrun' : run (exactClockMachine M n) i
+      (exactClockCfg M n 0 (Nat.zero_le _) c) =
+      exactClockCfg M n i (by omega) (run M i c) := by
+    simpa using hrun
+  rw [hrun'] at hhalt hmove ⊢
+  have hmove' :
+      (M.δ (run M i c).st ((run M i c).tp.getD (run M i c).hd false)).2.2 = 0 := by
+    simpa [exactClockMachine, exactClockCfg, hi] using hmove
+  exact hsafe i hi (hlive _) hmove'
 
 /-- Recursive physical controller for all workspace passes.  A nonfinal
 round is one exact-clock bubble pass, one exact-clock rewind, and the
