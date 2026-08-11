@@ -1,6 +1,7 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLookupRuntimeCompactComposition
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLookupRuntimeWorkspaceTranslator
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLookupRuntimePhysicalLeftSafety
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLookupRuntimeCompactCompositionSafety
 
 /-!
 # Translate, compact, return, and unary-rebase composition
@@ -291,7 +292,57 @@ theorem runtimeTranslatedMarkedUnary_leftSafe_of_repair
     runtimeTranslatedMarkedPrefixClock, stageM, rewindM, repairM,
     rewindClock, stale, target, T0, Nat.add_assoc] using houter
 
+set_option maxHeartbeats 4000000 in
+/-- Choose the unary clock from the certified repair safe run, then lift its
+safety through translation and rewind without changing that clock. -/
+theorem runtimeTranslatedMarkedUnary_safeRun
+    (retained old bits : List Bool) (first : List Bool)
+    (more : List (List Bool)) (d : Nat)
+    (hlen : old.length = (flattenPairs (passedSourceBlock bits)).length)
+    (hfit : 2 * (first :: more).length + 4 ≤
+      (retained ++ flattenPairs (passedSourceBlock bits) ++
+        List.replicate (2 * (d + 2)) false).length) :
+    ∃ base unaryClock s,
+      base.IsPrefix
+        (retained ++ flattenPairs (passedSourceBlock bits) ++
+          List.replicate (2 * (d + 2)) false) ∧
+      run (runtimeMarkedCompactArchiveUnaryMachine (passedSourceBlock bits) d)
+          (runtimeMarkedCompactArchiveClock (passedSourceBlock bits) d
+            (first :: more) + 1 + unaryClock)
+          ⟨(runtimeMarkedCompactArchiveUnaryMachine
+              (passedSourceBlock bits) d).start,
+            retained.length,
+            retained ++ flattenPairs (runtimeMarkedStalePairs d) ++
+              flattenPairs (passedSourceBlock bits) ++
+                selectedTail (first :: more)⟩ =
+        ⟨s,
+          (retained ++ flattenPairs (passedSourceBlock bits) ++
+              List.replicate (2 * (d + 2)) false).length + 2 +
+            (selectedTail (first :: more)).length,
+          base ++ [false, true, false, true] ++
+            sourceSelectorInput (first :: more).length 0 (first :: more)⟩ ∧
+      (runtimeMarkedCompactArchiveUnaryMachine
+        (passedSourceBlock bits) d).halt s = true ∧
+      LeftSafeRun (runtimeTranslatedMarkedUnaryMachine bits d)
+        ⟨(runtimeTranslatedMarkedUnaryMachine bits d).start,
+          retained.length,
+          retained ++ flattenPairs (runtimeMarkedStalePairs d) ++
+            old ++ selectedTail (first :: more)⟩
+        (runtimeTranslatedMarkedPrefixClock bits d +
+          (runtimeMarkedCompactArchiveClock (passedSourceBlock bits) d
+            (first :: more) + 1 + unaryClock)) := by
+  obtain ⟨base, unaryClock, s, hbase, hrun, hhalt, hsafe⟩ :=
+    runtimeMarkedCompactArchiveUnary_safeRun retained
+      (passedSourceBlock bits) first more d hfit
+  refine ⟨base, unaryClock, s, hbase, hrun, hhalt, ?_⟩
+  exact runtimeTranslatedMarkedUnary_leftSafe_of_repair
+    retained old bits (selectedTail (first :: more)) d
+    (runtimeMarkedCompactArchiveClock (passedSourceBlock bits) d
+      (first :: more) + 1 + unaryClock)
+    hlen hsafe (by rw [hrun]; exact hhalt)
+
 #print axioms runtimeTranslatedMarkedUnary_run
 #print axioms runtimeTranslatedMarkedUnary_leftSafe_of_repair
+#print axioms runtimeTranslatedMarkedUnary_safeRun
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeTranslatedComposition
