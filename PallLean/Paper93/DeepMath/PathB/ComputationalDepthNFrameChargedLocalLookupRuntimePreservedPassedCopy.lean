@@ -45,7 +45,17 @@ theorem masterM_literal_preservedPassed_drop (w : List Bool) (l : Lit)
   rw [show 2 * bits.length + 4 = bits.length + (4 + bits.length) by omega,
     ← List.drop_drop, hdrop]
   change List.drop (4 + bits.length) trailer = copy ++ tail
-  simp [trailer, preservedPassedTrailer, copy]
+  let front : List Bool :=
+    [true, false, false, true] ++ List.replicate bits.length true
+  rw [show trailer = front ++ (copy ++ tail) by
+    simp [trailer, front, copy, preservedPassedTrailer, List.append_assoc]]
+  have hfrontlen : front.length = 4 + bits.length := by
+    simp [front]
+    omega
+  rw [← hfrontlen,
+    List.drop_append_of_le_length (l₁ := front) (l₂ := copy ++ tail)
+      (i := front.length) le_rfl]
+  simp
 
 set_option maxHeartbeats 4000000 in
 /-- Exact corrected terminal layout: completed workspace, preserved canonical
@@ -72,13 +82,28 @@ theorem masterM_literal_workspace_preservedPassed_decomposition
   let n := 2 * l.1 + 4
   obtain ⟨value, hfront⟩ :=
     masterM_literal_workspaceFrontPairs w l (copy ++ tail)
+  have htrailer : trailer = [true, false, false, true] ++
+      List.replicate bits.length true ++ (copy ++ tail) := by
+    simp [trailer, copy, preservedPassedTrailer, List.append_assoc]
+  have hcf : cf = run masterM (literalLookupClock w l)
+      (init masterM (bits ++ ([true, false, false, true] ++
+        List.replicate bits.length true ++ (copy ++ tail)))) := by
+    simp [cf, htrailer]
+  have hfront' : cf.tp.take (2 * bits.length + 4) =
+      flattenPairs (runtimeWorkspaceFrontPairs value m n) := by
+    rw [hcf]
+    exact hfront
   have hdrop : cf.tp.drop (2 * bits.length + 4) = copy ++ tail := by
     simpa [bits, copy, trailer, cf] using
       masterM_literal_preservedPassed_drop w l tail
   refine ⟨value, ?_⟩
-  rw [← List.take_append_drop (2 * bits.length + 4) cf.tp,
-    hdrop]
-  simpa [bits, copy, trailer, cf, m, n] using hfront
+  calc
+    cf.tp = cf.tp.take (2 * bits.length + 4) ++
+        cf.tp.drop (2 * bits.length + 4) :=
+      (List.take_append_drop (2 * bits.length + 4) cf.tp).symm
+    _ = flattenPairs (runtimeWorkspaceFrontPairs value m n) ++ copy ++ tail := by
+      rw [hfront', hdrop]
+      simp [List.append_assoc]
 
 #print axioms masterM_literal_preservedPassed_drop
 #print axioms masterM_literal_workspace_preservedPassed_decomposition
