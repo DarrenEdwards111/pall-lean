@@ -98,6 +98,85 @@ def preservedSelectedPairs (d : Nat) (done : List (List Bool))
     List.replicate d (true, true) ++ [(false, true)] ++
     done.flatMap passedSourceBlock ++ freshSourceBlock bits ++ suffix
 
+def cycleInputPreservedPairs (k r d : Nat) (done : List (List Bool))
+    (bits : List Bool) (rest : List (List Bool))
+    (suffix : List (Bool × Bool)) : List (Bool × Bool) :=
+  cycleInputPairs k r d done bits rest ++ suffix
+
+def cycleCountPreservedPairs (k r d : Nat) (done : List (List Bool))
+    (bits : List Bool) (rest : List (List Bool))
+    (suffix : List (Bool × Bool)) : List (Bool × Bool) :=
+  cycleCountMarkedPairs k r d done bits rest ++ suffix
+
+def cycleOutputPreservedPairs (k r d : Nat) (done : List (List Bool))
+    (bits : List Bool) (rest : List (List Bool))
+    (suffix : List (Bool × Bool)) : List (Bool × Bool) :=
+  cycleOutputPairs k r d done bits rest ++ suffix
+
+@[simp] theorem cycleInputPreservedPairs_length_pos (k r d : Nat)
+    (done : List (List Bool)) (bits : List Bool)
+    (rest : List (List Bool)) (suffix : List (Bool × Bool)) :
+    k < (cycleInputPreservedPairs k r d done bits rest suffix).length := by
+  have h := cycleInputPairs_length_pos k r d done bits rest
+  simp only [cycleInputPreservedPairs, List.length_append]
+  omega
+
+theorem cycle_preserved_count_write (k r d : Nat)
+    (done : List (List Bool)) (bits : List Bool)
+    (rest : List (List Bool)) (suffix : List (Bool × Bool)) :
+    writeAt (flattenPairs
+      (cycleInputPreservedPairs k r d done bits rest suffix))
+        (2 * k + 1) true =
+      flattenPairs (cycleCountPreservedPairs k r d done bits rest suffix) := by
+  rw [writeAt_flattenPairs_hi _ k
+    (cycleInputPreservedPairs_length_pos k r d done bits rest suffix) true]
+  congr 1
+  let A := List.replicate k (true, true)
+  let tail := List.replicate r (true, false) ++
+    List.replicate d (true, true) ++ [(false, true)] ++
+    done.flatMap passedSourceBlock ++ freshSourceBlock bits ++
+    rest.flatMap freshSourceBlock ++ suffix
+  have hin : cycleInputPreservedPairs k r d done bits rest suffix =
+      A ++ (true, false) :: tail := by
+    simp [cycleInputPreservedPairs, cycleInputPairs, A, tail,
+      List.append_assoc]
+  have hout : cycleCountPreservedPairs k r d done bits rest suffix =
+      A ++ (true, true) :: tail := by
+    rw [cycleCountPreservedPairs, cycleCountMarkedPairs,
+      List.replicate_succ']
+    simp [A, tail, List.append_assoc]
+  have hk : k = A.length := by simp [A]
+  rw [hin, hout, hk]
+  exact set_fresh_header A tail
+
+theorem cycle_preserved_archive_write (k r d : Nat)
+    (done : List (List Bool)) (bits : List Bool)
+    (rest : List (List Bool)) (suffix : List (Bool × Bool)) :
+    let ps := cycleCountPreservedPairs k r d done bits rest suffix
+    let q := k + 1 + r + d + 1 + (done.flatMap passedSourceBlock).length
+    writeAt (flattenPairs ps) (2 * q + 1) true =
+      flattenPairs (cycleOutputPreservedPairs k r d done bits rest suffix) := by
+  dsimp only
+  let A := List.replicate (k + 1) (true, true) ++
+    List.replicate r (true, false) ++ List.replicate d (true, true) ++
+    [(false, true)] ++ done.flatMap passedSourceBlock
+  let tail := dataPairs bits ++ [(false, true)] ++
+    rest.flatMap freshSourceBlock ++ suffix
+  have hq : k + 1 + r + d + 1 + (done.flatMap passedSourceBlock).length =
+      A.length := by simp [A]; omega
+  have hform : cycleCountPreservedPairs k r d done bits rest suffix =
+      A ++ (true, false) :: tail := by
+    simp [cycleCountPreservedPairs, cycleCountMarkedPairs, A, tail,
+      freshSourceBlock, List.append_assoc]
+  have hout : cycleOutputPreservedPairs k r d done bits rest suffix =
+      A ++ (true, true) :: tail := by
+    simp [cycleOutputPreservedPairs, cycleOutputPairs, A, tail,
+      passedSourceBlock, List.append_assoc]
+  rw [hq, writeAt_flattenPairs_hi _ A.length (by rw [hform]; simp) true]
+  congr 1
+  rw [hform, hout]
+  exact set_fresh_header A tail
+
 /-- The final selector scan is suffix-parametric: it halts at the current
 fresh payload without inspecting or changing the adjacent preserved copy. -/
 theorem sourceSelect_final_preserved_suffix (d : Nat)
@@ -322,6 +401,8 @@ theorem masterM_after_preservedPassed_decomposition
 #print axioms duplicatedSourceArchive_length
 #print axioms duplicatedSourceArchive_schedule_split
 #print axioms duplicatedSourceArchive_selected_tail
+#print axioms cycle_preserved_count_write
+#print axioms cycle_preserved_archive_write
 #print axioms sourceSelect_final_preserved_suffix
 #print axioms sourceSelect_final_duplicated
 #print axioms sourceSelectCompact_final_duplicated
