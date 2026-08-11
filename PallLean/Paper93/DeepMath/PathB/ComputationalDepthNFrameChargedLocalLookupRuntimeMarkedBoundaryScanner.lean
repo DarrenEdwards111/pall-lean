@@ -15,6 +15,7 @@ set_option maxHeartbeats 4000000
 
 open PallLean.Paper93.DeepMath.PathB.ComposableMachine
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceSelect
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundEntryAdapter
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePreservedPassedCopy
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupLeftBoundaryTerminal
 
@@ -187,6 +188,59 @@ theorem runtimeMarkedBoundaryScan_marker (pre tail : List Bool) :
     scan_candidateHi_zero_step T pre.length h3,
     scan_backOne_step T pre.length, scan_backTwo_step T pre.length]
 
+/-! ## Complete fixed scan over the workspace grammar -/
+
+/-- A list containing no zero pair is crossed at exactly two transitions per
+pair, with one fixed scanner state reused at every boundary. -/
+theorem runtimeMarkedBoundaryScan_nonzeroPairs
+    (pre tail : List Bool) (ps : List (Bool × Bool))
+    (hnz : ∀ p ∈ ps, p.1 = true ∨ p.2 = true) :
+    run runtimeMarkedBoundaryScanMachine (2 * ps.length)
+        ⟨runtimeMarkedBoundaryScanMachine.start, pre.length,
+          pre ++ flattenPairs ps ++ tail⟩ =
+      ⟨runtimeMarkedBoundaryScanMachine.start,
+        pre.length + 2 * ps.length,
+        pre ++ flattenPairs ps ++ tail⟩ := by
+  induction ps generalizing pre with
+  | nil => simp
+  | cons p ps ih =>
+      have hp : p.1 = true ∨ p.2 = true := hnz p (by simp)
+      have hrest : ∀ q ∈ ps, q.1 = true ∨ q.2 = true := by
+        intro q hq
+        exact hnz q (by simp [hq])
+      rw [show 2 * (p :: ps).length = 2 + 2 * ps.length by simp; omega,
+        run_add]
+      have hfirst := runtimeMarkedBoundaryScan_nonzero
+        pre (flattenPairs ps ++ tail) p.1 p.2 hp
+      rw [show flattenPairs (p :: ps) = [p.1, p.2] ++
+          flattenPairs ps by cases p; rfl]
+      simp only [List.append_assoc] at hfirst ⊢
+      rw [hfirst]
+      have hih := ih (pre := pre ++ [p.1, p.2]) hrest
+      simpa [List.append_assoc, Nat.add_assoc] using hih
+
+/-- Nonzero pairs followed by the reserved marker scan to one genuine halt
+at the marker origin. -/
+theorem runtimeMarkedBoundaryScan_nonzeroPrefix_marker
+    (pre tail : List Bool) (ps : List (Bool × Bool))
+    (hnz : ∀ p ∈ ps, p.1 = true ∨ p.2 = true) :
+    run runtimeMarkedBoundaryScanMachine (2 * ps.length + 6)
+        ⟨runtimeMarkedBoundaryScanMachine.start, pre.length,
+          pre ++ flattenPairs ps ++
+            flattenPairs runtimePassedBoundaryMarker ++ tail⟩ =
+      ⟨RuntimeMarkedBoundaryScanState.done,
+        pre.length + 2 * ps.length,
+        pre ++ flattenPairs ps ++
+          flattenPairs runtimePassedBoundaryMarker ++ tail⟩ := by
+  rw [run_add]
+  have hp := runtimeMarkedBoundaryScan_nonzeroPairs pre
+    (flattenPairs runtimePassedBoundaryMarker ++ tail) ps hnz
+  simp only [List.append_assoc] at hp ⊢
+  rw [hp]
+  have hm := runtimeMarkedBoundaryScan_marker
+    (pre ++ flattenPairs ps) tail
+  simpa [List.append_assoc, Nat.add_assoc] using hm
+
 @[simp] theorem runtimeMarkedBoundaryScan_done_halts :
     runtimeMarkedBoundaryScanMachine.halt
       RuntimeMarkedBoundaryScanState.done = true := by
@@ -195,5 +249,7 @@ theorem runtimeMarkedBoundaryScan_marker (pre tail : List Bool) :
 #print axioms runtimeMarkedBoundaryScan_nonzero
 #print axioms runtimeMarkedBoundaryScan_singleZero
 #print axioms runtimeMarkedBoundaryScan_marker
+#print axioms runtimeMarkedBoundaryScan_nonzeroPairs
+#print axioms runtimeMarkedBoundaryScan_nonzeroPrefix_marker
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeMarkedBoundaryScanner
