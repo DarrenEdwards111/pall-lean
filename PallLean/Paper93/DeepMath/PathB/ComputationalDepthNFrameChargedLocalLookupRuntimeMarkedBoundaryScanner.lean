@@ -372,6 +372,80 @@ theorem runtimeMarkedBoundaryScan_workspace
     exact runtimeMarkedBoundaryScan_nonzeroPrefix_marker pre tail
       (runtimeWorkspaceFrontPairs true m n) hall
 
+/-! ## Structural left safety -/
+
+/-- Minimum physical head positions forced by the scanner's control phase. -/
+def RuntimeMarkedBoundaryScanHeadInvariant
+    (c : Cfg runtimeMarkedBoundaryScanMachine) : Prop :=
+  match c.st with
+  | .lo | .done => True
+  | .hi _ => 1 ≤ c.hd
+  | .candidateLo => 2 ≤ c.hd
+  | .candidateHi _ => 3 ≤ c.hd
+  | .backOne => 2 ≤ c.hd
+  | .backTwo => 1 ≤ c.hd
+
+theorem runtimeMarkedBoundaryScan_invariant_step
+    (c : Cfg runtimeMarkedBoundaryScanMachine)
+    (h : RuntimeMarkedBoundaryScanHeadInvariant c) :
+    RuntimeMarkedBoundaryScanHeadInvariant
+      (step runtimeMarkedBoundaryScanMachine c) := by
+  cases hs : c.st with
+  | lo | candidateLo | done =>
+      simp_all [RuntimeMarkedBoundaryScanHeadInvariant, step,
+        runtimeMarkedBoundaryScanMachine, moveHead]
+  | backOne =>
+      simp_all [RuntimeMarkedBoundaryScanHeadInvariant, step,
+        runtimeMarkedBoundaryScanMachine, moveHead]
+      omega
+  | backTwo =>
+      simp_all [RuntimeMarkedBoundaryScanHeadInvariant, step,
+        runtimeMarkedBoundaryScanMachine, moveHead]
+  | hi loBit | candidateHi loBit =>
+      generalize hb : c.tp[c.hd]?.getD false = b
+      cases loBit <;> cases b <;>
+        simp_all [RuntimeMarkedBoundaryScanHeadInvariant, step,
+          runtimeMarkedBoundaryScanMachine, moveHead] <;> omega
+
+theorem runtimeMarkedBoundaryScan_invariant_run
+    (c : Cfg runtimeMarkedBoundaryScanMachine)
+    (h : RuntimeMarkedBoundaryScanHeadInvariant c) (n : Nat) :
+    RuntimeMarkedBoundaryScanHeadInvariant
+      (run runtimeMarkedBoundaryScanMachine n c) := by
+  induction n with
+  | zero => simpa
+  | succ n ih =>
+      rw [run_succ]
+      exact runtimeMarkedBoundaryScan_invariant_step _ ih
+
+/-- The fixed scanner is left-safe for every clock from every configuration
+satisfying its phase/head invariant. -/
+theorem runtimeMarkedBoundaryScan_leftSafe
+    (c : Cfg runtimeMarkedBoundaryScanMachine)
+    (h : RuntimeMarkedBoundaryScanHeadInvariant c) (n : Nat) :
+    LeftSafeRun runtimeMarkedBoundaryScanMachine c n := by
+  intro i hi hhalt hmove
+  have hinv := runtimeMarkedBoundaryScan_invariant_run c h i
+  generalize hs : (run runtimeMarkedBoundaryScanMachine i c).st = s at hinv hmove
+  cases s <;>
+    simp_all [RuntimeMarkedBoundaryScanHeadInvariant,
+      runtimeMarkedBoundaryScanMachine] <;> omega
+
+/-- Scheduled workspace scan safety at the identical clock as the exact run
+theorem. -/
+theorem runtimeMarkedBoundaryScan_workspace_leftSafe
+    (pre tail : List Bool) (value : Bool) (m n : Nat) :
+    let workspace := runtimeWorkspaceFrontPairs value m n
+    LeftSafeRun runtimeMarkedBoundaryScanMachine
+      ⟨runtimeMarkedBoundaryScanMachine.start, pre.length,
+        pre ++ flattenPairs workspace ++
+          flattenPairs runtimePassedBoundaryMarker ++ tail⟩
+      (2 * workspace.length + 6) := by
+  dsimp only
+  apply runtimeMarkedBoundaryScan_leftSafe
+  simp [RuntimeMarkedBoundaryScanHeadInvariant,
+    runtimeMarkedBoundaryScanMachine]
+
 @[simp] theorem runtimeMarkedBoundaryScan_done_halts :
     runtimeMarkedBoundaryScanMachine.halt
       RuntimeMarkedBoundaryScanState.done = true := by
@@ -384,5 +458,8 @@ theorem runtimeMarkedBoundaryScan_workspace
 #print axioms runtimeMarkedBoundaryScan_nonzeroPrefix_marker
 #print axioms runtimeMarkedBoundaryScan_isolatedZero_marker
 #print axioms runtimeMarkedBoundaryScan_workspace
+#print axioms runtimeMarkedBoundaryScan_invariant_step
+#print axioms runtimeMarkedBoundaryScan_leftSafe
+#print axioms runtimeMarkedBoundaryScan_workspace_leftSafe
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeMarkedBoundaryScanner
