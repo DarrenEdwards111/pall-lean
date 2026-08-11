@@ -241,6 +241,137 @@ theorem runtimeMarkedBoundaryScan_nonzeroPrefix_marker
     (pre ++ flattenPairs ps) tail
   simpa [List.append_assoc, Nat.add_assoc] using hm
 
+/-- Generic isolated-zero splice used by the reachable false-value
+workspace: nonzero front, one `00`, its nonzero successor, a nonzero
+remainder, and finally the reserved marker. -/
+theorem runtimeMarkedBoundaryScan_isolatedZero_marker
+    (pre tail : List Bool) (front rest : List (Bool × Bool))
+    (q : Bool × Bool)
+    (hfront : ∀ p ∈ front, p.1 = true ∨ p.2 = true)
+    (hq : q.1 = true ∨ q.2 = true)
+    (hrest : ∀ p ∈ rest, p.1 = true ∨ p.2 = true) :
+    let ps := front ++ [(false, false), q] ++ rest
+    run runtimeMarkedBoundaryScanMachine (2 * ps.length + 6)
+        ⟨runtimeMarkedBoundaryScanMachine.start, pre.length,
+          pre ++ flattenPairs ps ++
+            flattenPairs runtimePassedBoundaryMarker ++ tail⟩ =
+      ⟨RuntimeMarkedBoundaryScanState.done,
+        pre.length + 2 * ps.length,
+        pre ++ flattenPairs ps ++
+          flattenPairs runtimePassedBoundaryMarker ++ tail⟩ := by
+  dsimp only
+  let Ttail := flattenPairs rest ++
+    flattenPairs runtimePassedBoundaryMarker ++ tail
+  rw [show 2 * (front ++ [(false, false), q] ++ rest).length + 6 =
+      2 * front.length + (4 + (2 * rest.length + 6)) by simp; omega,
+    run_add]
+  have hp := runtimeMarkedBoundaryScan_nonzeroPairs pre
+    (flattenPairs [(false, false), q] ++ Ttail) front hfront
+  have hp' : run runtimeMarkedBoundaryScanMachine (2 * front.length)
+      ⟨runtimeMarkedBoundaryScanMachine.start, pre.length,
+        pre ++ flattenPairs (front ++ [(false, false), q] ++ rest) ++
+          flattenPairs runtimePassedBoundaryMarker ++ tail⟩ =
+    ⟨runtimeMarkedBoundaryScanMachine.start,
+      pre.length + 2 * front.length,
+      pre ++ flattenPairs (front ++ [(false, false), q] ++ rest) ++
+        flattenPairs runtimePassedBoundaryMarker ++ tail⟩ := by
+    simpa [Ttail, flattenPairs_append, List.append_assoc] using hp
+  rw [hp', run_add]
+  have hz := runtimeMarkedBoundaryScan_singleZero
+    (pre ++ flattenPairs front)
+    (flattenPairs rest ++ flattenPairs runtimePassedBoundaryMarker ++ tail)
+    q.1 q.2 hq
+  have hz' : run runtimeMarkedBoundaryScanMachine 4
+      ⟨runtimeMarkedBoundaryScanMachine.start,
+        pre.length + 2 * front.length,
+        pre ++ flattenPairs (front ++ [(false, false), q] ++ rest) ++
+          flattenPairs runtimePassedBoundaryMarker ++ tail⟩ =
+    ⟨runtimeMarkedBoundaryScanMachine.start,
+      pre.length + 2 * front.length + 4,
+      pre ++ flattenPairs (front ++ [(false, false), q] ++ rest) ++
+        flattenPairs runtimePassedBoundaryMarker ++ tail⟩ := by
+    simpa [flattenPairs_append, List.append_assoc, flattenPairs_length,
+      Nat.add_assoc] using hz
+  rw [hz']
+  have hr := runtimeMarkedBoundaryScan_nonzeroPrefix_marker
+    (pre ++ flattenPairs front ++ [false, false, q.1, q.2])
+    tail rest hrest
+  cases q
+  convert hr using 1 <;>
+    simp [flattenPairs_append, flattenPairs, List.append_assoc,
+      flattenPairs_length, Nat.add_assoc] <;> omega
+
+/-- Full fixed scan of the completed workspace grammar. -/
+theorem runtimeMarkedBoundaryScan_workspace
+    (pre tail : List Bool) (value : Bool) (m n : Nat) :
+    let workspace := runtimeWorkspaceFrontPairs value m n
+    run runtimeMarkedBoundaryScanMachine (2 * workspace.length + 6)
+        ⟨runtimeMarkedBoundaryScanMachine.start, pre.length,
+          pre ++ flattenPairs workspace ++
+            flattenPairs runtimePassedBoundaryMarker ++ tail⟩ =
+      ⟨RuntimeMarkedBoundaryScanState.done,
+        pre.length + 2 * workspace.length,
+        pre ++ flattenPairs workspace ++
+          flattenPairs runtimePassedBoundaryMarker ++ tail⟩ := by
+  dsimp only
+  cases value
+  · cases m with
+    | zero =>
+        let front : List (Bool × Bool) :=
+          [(true, false), (false, true)]
+        let q : Bool × Bool := (false, true)
+        let rest := List.replicate n (true, true)
+        have hf : ∀ p ∈ front, p.1 = true ∨ p.2 = true := by
+          intro p hp
+          simp [front] at hp
+          rcases hp with rfl | rfl <;> simp
+        have hq : q.1 = true ∨ q.2 = true := by simp [q]
+        have hr : ∀ p ∈ rest, p.1 = true ∨ p.2 = true := by
+          intro p hp
+          simp [rest] at hp
+          rcases hp with ⟨_, rfl⟩
+          simp
+        simpa [runtimeWorkspaceFrontPairs, front, q, rest,
+          List.append_assoc] using
+          runtimeMarkedBoundaryScan_isolatedZero_marker
+            pre tail front rest q hf hq hr
+    | succ k =>
+        let front : List (Bool × Bool) :=
+          [(true, false), (false, true)]
+        let q : Bool × Bool := (true, false)
+        let rest := List.replicate k (true, false) ++
+          [(false, true)] ++ List.replicate n (true, true)
+        have hf : ∀ p ∈ front, p.1 = true ∨ p.2 = true := by
+          intro p hp
+          simp [front] at hp
+          rcases hp with rfl | rfl <;> simp
+        have hq : q.1 = true ∨ q.2 = true := by simp [q]
+        have hr : ∀ p ∈ rest, p.1 = true ∨ p.2 = true := by
+          intro p hp
+          simp [rest] at hp
+          rcases hp with h | h | h
+          · rcases h with ⟨_, rfl⟩; simp
+          · subst p; simp
+          · rcases h with ⟨_, rfl⟩; simp
+        simpa [runtimeWorkspaceFrontPairs, front, q, rest,
+          List.replicate_succ, List.append_assoc] using
+          runtimeMarkedBoundaryScan_isolatedZero_marker
+            pre tail front rest q hf hq hr
+  · have hall : ∀ p ∈ runtimeWorkspaceFrontPairs true m n,
+        p.1 = true ∨ p.2 = true := by
+      intro p hp
+      simp [runtimeWorkspaceFrontPairs] at hp
+      rcases hp with h | h | h | h
+      · subst p; simp
+      · subst p; simp
+      · subst p; simp
+      · rcases h with ⟨_, rfl⟩ | rfl | ⟨_, rfl⟩
+        · exact Or.inl rfl
+        · exact Or.inr rfl
+        · exact Or.inl rfl
+    exact runtimeMarkedBoundaryScan_nonzeroPrefix_marker pre tail
+      (runtimeWorkspaceFrontPairs true m n) hall
+
 @[simp] theorem runtimeMarkedBoundaryScan_done_halts :
     runtimeMarkedBoundaryScanMachine.halt
       RuntimeMarkedBoundaryScanState.done = true := by
@@ -251,5 +382,7 @@ theorem runtimeMarkedBoundaryScan_nonzeroPrefix_marker
 #print axioms runtimeMarkedBoundaryScan_marker
 #print axioms runtimeMarkedBoundaryScan_nonzeroPairs
 #print axioms runtimeMarkedBoundaryScan_nonzeroPrefix_marker
+#print axioms runtimeMarkedBoundaryScan_isolatedZero_marker
+#print axioms runtimeMarkedBoundaryScan_workspace
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeMarkedBoundaryScanner
