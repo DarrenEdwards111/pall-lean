@@ -836,6 +836,58 @@ theorem sourceRuntimeLookupCore_scheduled_duplicated (x w : List Bool)
   rw [hshape]
   simpa [B, schedule, preBlocks, l, bits, rest] using hrun
 
+/-- Exact downstream repair boundary.  The completed workspace and preserved
+canonical block have equal physical spans; a universal repair may therefore
+clear the former and shift the latter without reconstructing any payload. -/
+theorem scheduledDuplicated_repairLayout (x w : List Bool)
+    {t : Nat} (ht : t < (decodedLiterals x).length)
+    (retained : List Bool) :
+    let schedule := literalTapeSchedule x w
+    let l := scheduledLiteral x t
+    let bits := literalLookupTape w l
+    let rest := schedule.drop (t + 1)
+    let tail := flattenPairs (duplicatedSourceArchive rest)
+    let trailer := preservedPassedTrailer bits tail
+    let mcf := run masterM (literalLookupClock w l)
+      (init masterM (bits ++ trailer))
+    ∃ value,
+      let workspace := runtimeWorkspaceFrontPairs value
+        (2 * l.1 + 2) (2 * l.1 + 4)
+      retained ++ mcf.tp = retained ++ flattenPairs workspace ++
+        flattenPairs (passedSourceBlock bits) ++ tail ∧
+      (flattenPairs workspace).length =
+        (flattenPairs (passedSourceBlock bits)).length := by
+  dsimp only
+  let schedule := literalTapeSchedule x w
+  let l := scheduledLiteral x t
+  let bits := literalLookupTape w l
+  let rest := schedule.drop (t + 1)
+  let tail := flattenPairs (duplicatedSourceArchive rest)
+  let trailer := preservedPassedTrailer bits tail
+  let mcf := run masterM (literalLookupClock w l)
+    (init masterM (bits ++ trailer))
+  obtain ⟨_, hshape⟩ := sourceRuntimeLookupCore_scheduled_duplicated x w ht
+  obtain ⟨value, hmcf⟩ := hshape
+  let workspace := runtimeWorkspaceFrontPairs value
+    (2 * l.1 + 2) (2 * l.1 + 4)
+  have hbitslen : bits.length = 4 * l.1 + 8 := by
+    simp [bits, literalLookupTape,
+      PallLean.Paper93.DeepMath.PathB.CookLevinInP.encode,
+      signedLookupAssignment_length,
+      PallLean.Paper93.DeepMath.PathB.CookLevinInP.double_length]
+    ring
+  have hworkspaceLen : workspace.length = bits.length + 2 := by
+    simp [workspace, runtimeWorkspaceFrontPairs, hbitslen]
+    omega
+  refine ⟨value, ?_, ?_⟩
+  · simpa [workspace, bits, tail, trailer, mcf, List.append_assoc] using
+      congrArg (fun z => retained ++ z) hmcf
+  · rw [flattenPairs_length, flattenPairs_length]
+    congr 1
+    change workspace.length = (passedSourceBlock bits).length
+    rw [hworkspaceLen]
+    simp [passedSourceBlock, dataPairs]
+
 #print axioms duplicatedSourceArchive_length
 #print axioms duplicatedSourceArchive_schedule_split
 #print axioms duplicatedSourceArchive_selected_tail
@@ -853,5 +905,6 @@ theorem sourceRuntimeLookupCore_scheduled_duplicated (x w : List Bool)
 #print axioms sourceRuntimeLookupCore_run_duplicated
 #print axioms duplicatedSourceSelectorInput_shape
 #print axioms sourceRuntimeLookupCore_scheduled_duplicated
+#print axioms scheduledDuplicated_repairLayout
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeDuplicatedSourceArchive
