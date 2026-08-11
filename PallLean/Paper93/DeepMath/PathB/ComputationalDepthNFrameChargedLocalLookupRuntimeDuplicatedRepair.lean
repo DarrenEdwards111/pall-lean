@@ -17,6 +17,8 @@ open PallLean.Paper93.DeepMath.PathB.CookLevinMaster
 open PallLean.Paper93.DeepMath.PathB.CookLevinReduction
 open PallLean.Paper93.DeepMath.PathB.CookLevinRoundInvariant
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceSelect
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceCompact
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeArchiveReturnWriter
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeCompactChain
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeCompactComposition
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeDuplicatedSourceArchive
@@ -101,6 +103,84 @@ theorem runtimeDuplicatedRepair_certificate
   · simpa [pre, htape, hhead] using hr
   · simpa [pre, htape, hhead] using hrs
 
+/-! ## One-machine exact composition -/
+
+/-- Exact-clock composition of the certified clear, one-pair rewind, and
+complete shift schedule.  This is the concrete physical handoff used below;
+the clocks are proof indices and the three underlying controllers remain the
+fixed clear, rewind, and bubble machines. -/
+def runtimeDuplicatedRepairMachine
+    (old kept : List (Bool × Bool)) : Machine :=
+  headSeqMachine
+    (exactClockMachine runtimeCompactClearLoopMachine (2 * old.length))
+    (headSeqMachine
+      (exactClockMachine runtimeCompactRewindMachine 2)
+      (runtimeCompactPassScheduleMachine kept old.length))
+
+def runtimeDuplicatedRepairClock
+    (old kept : List (Bool × Bool)) : Nat :=
+  2 * old.length + 1 +
+    (2 + 1 + runtimeCompactPassScheduleClock kept old.length)
+
+/-- The complete equal-span repair is a single genuinely halting nested
+machine run with the preserved block in the old workspace position. -/
+theorem runtimeDuplicatedRepairMachine_run
+    (retained tail : List Bool) (old kept : List (Bool × Bool))
+    (c : RuntimeDuplicatedRepairCertificate retained old kept tail) :
+    ∃ s : (runtimeDuplicatedRepairMachine old kept).State,
+      run (runtimeDuplicatedRepairMachine old kept)
+          (runtimeDuplicatedRepairClock old kept)
+          ⟨(runtimeDuplicatedRepairMachine old kept).start,
+            retained.length,
+            retained ++ flattenPairs old ++ flattenPairs kept ++ tail⟩ =
+        ⟨s, retained.length + 2 * kept.length,
+          retained ++ flattenPairs kept ++
+            List.replicate (2 * old.length) false ++ tail⟩ ∧
+      (runtimeDuplicatedRepairMachine old kept).halt s = true := by
+  let T0 := retained ++ flattenPairs old ++ flattenPairs kept ++ tail
+  let Tclear := retained ++ List.replicate (2 * old.length) false ++
+    flattenPairs kept ++ tail
+  let Tfinal := retained ++ flattenPairs kept ++
+    List.replicate (2 * old.length) false ++ tail
+  let clearM := exactClockMachine runtimeCompactClearLoopMachine
+    (2 * old.length)
+  let rewindM := exactClockMachine runtimeCompactRewindMachine 2
+  let passM := runtimeCompactPassScheduleMachine kept old.length
+  have hc := exactClockMachine_run_of_run runtimeCompactClearLoopMachine
+    (2 * old.length) retained.length (retained.length + 2 * old.length)
+    T0 Tclear () (by intro; rfl) (by simpa [T0, Tclear] using c.clearRun)
+  have hr := exactClockMachine_run_of_run runtimeCompactRewindMachine
+    2 (retained.length + 2 * old.length)
+    (retained.length + 2 * (old.length - 1)) Tclear Tclear ()
+    (by intro; rfl) (by simpa [Tclear] using c.rewindRun)
+  obtain ⟨spass, hp, hpHalt⟩ :=
+    runtimeCompactAllPasses_machine_run retained tail kept c.shift
+  have hp' : run passM (runtimeCompactPassScheduleClock kept old.length)
+      ⟨passM.start, retained.length + 2 * (old.length - 1), Tclear⟩ =
+    ⟨spass, retained.length + 2 * kept.length, Tfinal⟩ := by
+    simpa [passM, Tclear, Tfinal] using hp
+  have hright := headSeq_run_at rewindM passM Tclear Tclear Tfinal
+    (retained.length + 2 * old.length) 2
+    (runtimeCompactPassScheduleClock kept old.length)
+    (retained.length + 2 * (old.length - 1))
+    (retained.length + 2 * kept.length)
+    (⟨2, by omega⟩, ()) spass hr
+    (exactClockMachine_halt_at _ _ _) hp' hpHalt
+  have hall := headSeq_run_at clearM (headSeqMachine rewindM passM)
+    T0 Tclear Tfinal retained.length (2 * old.length)
+    (2 + 1 + runtimeCompactPassScheduleClock kept old.length)
+    (retained.length + 2 * old.length)
+    (retained.length + 2 * kept.length)
+    (⟨2 * old.length, by omega⟩, ()) (Sum.inr spass)
+    hc (exactClockMachine_halt_at _ _ _) hright
+    (by simpa [headSeqMachine] using hpHalt)
+  refine ⟨Sum.inr (Sum.inr spass), ?_, ?_⟩
+  · simpa [runtimeDuplicatedRepairMachine,
+      runtimeDuplicatedRepairClock, clearM, rewindM, passM,
+      T0, Tclear, Tfinal, Nat.add_assoc] using hall
+  · simpa [runtimeDuplicatedRepairMachine, headSeqMachine,
+      rewindM, passM] using hpHalt
+
 /-- The preserved passed source is always nonempty, so the generic physical
 repair plan applies to every completed scheduled lookup endpoint. -/
 theorem scheduledDuplicated_repairCertificate (x w : List Bool)
@@ -140,6 +220,7 @@ theorem scheduledDuplicated_repairCertificate (x w : List Bool)
     runtimeDuplicatedRepair_certificate retained _ old kept hlen hpos⟩
 
 #print axioms runtimeDuplicatedRepair_certificate
+#print axioms runtimeDuplicatedRepairMachine_run
 #print axioms scheduledDuplicated_repairCertificate
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeDuplicatedRepair
