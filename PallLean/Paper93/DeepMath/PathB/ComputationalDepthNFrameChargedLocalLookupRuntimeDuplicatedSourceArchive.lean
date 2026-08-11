@@ -177,6 +177,201 @@ theorem cycle_preserved_archive_write (k r d : Nat)
   rw [hform, hout]
   exact set_fresh_header A tail
 
+/-- One complete destructive selection cycle commutes with an arbitrary
+pair suffix placed after the modeled remaining fresh archive. -/
+theorem sourceSelect_cycle_preserved_suffix (k r d : Nat)
+    (done : List (List Bool)) (bits : List Bool)
+    (rest : List (List Bool)) (suffix : List (Bool × Bool)) :
+    run sourceSelectMachine (sourceSelectCycleClock k r d done)
+        ⟨SourceSelectState.cntLo, 0, flattenPairs
+          (cycleInputPreservedPairs k r d done bits rest suffix)⟩ =
+      ⟨SourceSelectState.cntLo, 0, flattenPairs
+        (cycleOutputPreservedPairs k r d done bits rest suffix)⟩ := by
+  let old := cycleInputPreservedPairs k r d done bits rest suffix
+  let mid := cycleCountPreservedPairs k r d done bits rest suffix
+  let new := cycleOutputPreservedPairs k r d done bits rest suffix
+  have hcnt : NoFreshMark (List.replicate k (true, true)) := by
+    intro p hp
+    rcases List.mem_replicate.mp hp with ⟨_, rfl⟩
+    simp
+  have hskipCnt := cnt_skip_pairStream [] (List.replicate k (true, true))
+    ((true, false) :: List.replicate r (true, false) ++
+      List.replicate d (true, true) ++ [(false, true)] ++
+      done.flatMap passedSourceBlock ++ freshSourceBlock bits ++
+      rest.flatMap freshSourceBlock ++ suffix) hcnt (by
+        intro p hp
+        rcases List.mem_replicate.mp hp with ⟨_, rfl⟩
+        rfl)
+  have hloCnt : (flattenPairs old).getD (2 * k) false = true := by
+    unfold old cycleInputPreservedPairs cycleInputPairs
+    simpa [List.append_assoc] using
+      pair_start_lo (List.replicate k (true, true)) true false
+        (List.replicate r (true, false) ++ List.replicate d (true, true) ++
+          [(false, true)] ++ done.flatMap passedSourceBlock ++
+          freshSourceBlock bits ++ rest.flatMap freshSourceBlock ++ suffix)
+  have hhiCnt : (flattenPairs old).getD (2 * k + 1) false = false := by
+    unfold old cycleInputPreservedPairs cycleInputPairs
+    simpa [List.append_assoc] using
+      pair_start_hi (List.replicate k (true, true)) true false
+        (List.replicate r (true, false) ++ List.replicate d (true, true) ++
+          [(false, true)] ++ done.flatMap passedSourceBlock ++
+          freshSourceBlock bits ++ rest.flatMap freshSourceBlock ++ suffix)
+  have hmarkCnt := cnt_take_mark (flattenPairs old) (2 * k) hloCnt hhiCnt
+  have hcountWrite : writeAt (flattenPairs old) (2 * k + 1) true =
+      flattenPairs mid := by
+    exact cycle_preserved_count_write k r d done bits rest suffix
+  have hdataLo : ∀ p ∈ (List.replicate (k + 1) (true, true) ++
+      List.replicate r (true, false) ++ List.replicate d (true, true)),
+      p.1 = true := by
+    intro p hp
+    rcases List.mem_append.mp hp with hp | hp
+    · rcases List.mem_append.mp hp with hp | hp
+      · rcases List.mem_replicate.mp hp with ⟨_, rfl⟩; rfl
+      · rcases List.mem_replicate.mp hp with ⟨_, rfl⟩; rfl
+    · rcases List.mem_replicate.mp hp with ⟨_, rfl⟩; rfl
+  have hboundary := boundary_skip_pairStream []
+    (List.replicate (k + 1) (true, true) ++
+      List.replicate r (true, false) ++ List.replicate d (true, true))
+    ((false, true) :: done.flatMap passedSourceBlock ++
+      freshSourceBlock bits ++ rest.flatMap freshSourceBlock ++ suffix) hdataLo
+  have hloBound : (flattenPairs mid).getD
+      (2 * (k + 1 + r + d)) false = false := by
+    unfold mid cycleCountPreservedPairs cycleCountMarkedPairs
+    have hh := pair_start_lo
+      (List.replicate (k + 1) (true, true) ++
+        List.replicate r (true, false) ++ List.replicate d (true, true))
+      false true (done.flatMap passedSourceBlock ++ freshSourceBlock bits ++
+        rest.flatMap freshSourceBlock ++ suffix)
+    have he : 2 * (k + 1 + (r + d)) = 2 * (k + 1 + r + d) := by omega
+    simpa [List.append_assoc, he] using hh
+  have hfinish := boundary_finish (flattenPairs mid)
+    (2 * (k + 1 + r + d)) hloBound
+  have hadvance := advance_skip_pairStream
+    (List.replicate (k + 1) (true, true) ++
+      List.replicate r (true, false) ++ List.replicate d (true, true) ++
+      [(false, true)]) (done.flatMap passedSourceBlock)
+    (freshSourceBlock bits ++ rest.flatMap freshSourceBlock ++ suffix)
+    (passedArchive_noFresh done)
+  let q := k + 1 + r + d + 1 + (done.flatMap passedSourceBlock).length
+  let archivePre := List.replicate (k + 1) (true, true) ++
+    List.replicate r (true, false) ++ List.replicate d (true, true) ++
+    [(false, true)] ++ done.flatMap passedSourceBlock
+  have harchivePre : archivePre.length = q := by
+    simp [archivePre, q]
+    omega
+  have hloArchive : (flattenPairs mid).getD (2 * q) false = true := by
+    unfold mid cycleCountPreservedPairs cycleCountMarkedPairs
+    have hh := pair_start_lo archivePre true false
+      (dataPairs bits ++ [(false, true)] ++
+        rest.flatMap freshSourceBlock ++ suffix)
+    rw [harchivePre] at hh
+    simpa [archivePre, List.append_assoc, freshSourceBlock] using hh
+  have hhiArchive : (flattenPairs mid).getD (2 * q + 1) false = false := by
+    unfold mid cycleCountPreservedPairs cycleCountMarkedPairs
+    have hh := pair_start_hi archivePre true false
+      (dataPairs bits ++ [(false, true)] ++
+        rest.flatMap freshSourceBlock ++ suffix)
+    rw [harchivePre] at hh
+    simpa [archivePre, List.append_assoc, freshSourceBlock] using hh
+  have hmarkArchive := advance_take_mark (flattenPairs mid) (2 * q)
+    hloArchive hhiArchive
+  have harchiveWrite : writeAt (flattenPairs mid) (2 * q + 1) true =
+      flattenPairs new := by
+    exact cycle_preserved_archive_write k r d done bits rest suffix
+  have hskipCnt' : run sourceSelectMachine (2 * k)
+      ⟨SourceSelectState.cntLo, 0, flattenPairs old⟩ =
+      ⟨SourceSelectState.cntLo, 2 * k, flattenPairs old⟩ := by
+    simpa [old, cycleInputPreservedPairs, cycleInputPairs,
+      List.append_assoc] using hskipCnt
+  have hboundary' : run sourceSelectMachine (2 * (k + 1 + r + d))
+      ⟨SourceSelectState.boundaryLo, 0, flattenPairs mid⟩ =
+      ⟨SourceSelectState.boundaryLo, 2 * (k + 1 + r + d),
+        flattenPairs mid⟩ := by
+    have he : k + 1 + (r + d) = k + 1 + r + d := by omega
+    simpa [mid, cycleCountPreservedPairs, cycleCountMarkedPairs,
+      List.append_assoc, he] using hboundary
+  have hadvance' :
+      run sourceSelectMachine (2 * (done.flatMap passedSourceBlock).length)
+        ⟨SourceSelectState.advanceLo, 2 * (k + 1 + r + d) + 2,
+          flattenPairs mid⟩ =
+      ⟨SourceSelectState.advanceLo, 2 * q, flattenPairs mid⟩ := by
+    have hs : 2 * (k + 1 + (r + (d + 1))) =
+        2 * (k + 1 + r + d) + 2 := by omega
+    have he : 2 * (k + 1 + (r + (d + 1)) +
+        (done.flatMap passedSourceBlock).length) =
+        2 * (k + 1 + r + d + 1 +
+          (done.flatMap passedSourceBlock).length) := by omega
+    have he2 : 2 * (k + 1 + (r + (d + 1)) +
+        (done.map fun a => (passedSourceBlock a).length).sum) =
+        2 * (k + 1 + r + d + 1 +
+          (done.map fun a => (passedSourceBlock a).length).sum) := by omega
+    simpa [mid, cycleCountPreservedPairs, cycleCountMarkedPairs, q,
+      List.append_assoc, hs, he, he2] using hadvance
+  have hfirst : run sourceSelectMachine (2 * k + 2)
+      ⟨SourceSelectState.cntLo, 0, flattenPairs old⟩ =
+      ⟨SourceSelectState.boundaryLo, 0, flattenPairs mid⟩ := by
+    rw [run_add, hskipCnt', hmarkCnt, hcountWrite]
+  have hsecond : run sourceSelectMachine (2 * (k + 1 + r + d) + 2)
+      ⟨SourceSelectState.boundaryLo, 0, flattenPairs mid⟩ =
+      ⟨SourceSelectState.advanceLo, 2 * (k + 1 + r + d) + 2,
+        flattenPairs mid⟩ := by
+    rw [run_add, hboundary', hfinish]
+  have hthird : run sourceSelectMachine
+      (2 * (done.flatMap passedSourceBlock).length + 2)
+      ⟨SourceSelectState.advanceLo, 2 * (k + 1 + r + d) + 2,
+        flattenPairs mid⟩ =
+      ⟨SourceSelectState.cntLo, 0, flattenPairs new⟩ := by
+    rw [run_add, hadvance', hmarkArchive, harchiveWrite]
+  unfold sourceSelectCycleClock
+  rw [show (2 * k + 2) + (2 * (k + 1 + r + d) + 2) +
+      (2 * (done.flatMap passedSourceBlock).length + 2) =
+      2 * k + 2 + (2 * (k + 1 + r + d) + 2 +
+        (2 * (done.flatMap passedSourceBlock).length + 2)) by omega,
+    run_add]
+  rw [hfirst, run_add, hsecond, hthird]
+
+def progressPreservedPairs (d : Nat) (done todo future : List (List Bool))
+    (suffix : List (Bool × Bool)) : List (Bool × Bool) :=
+  progressPairs d done todo future ++ suffix
+
+theorem cycleInputPreserved_progress (d : Nat)
+    (done : List (List Bool)) (bits : List Bool)
+    (rest future : List (List Bool)) (suffix : List (Bool × Bool)) :
+    cycleInputPreservedPairs done.length rest.length d done bits
+      (rest ++ future) suffix =
+      progressPreservedPairs d done (bits :: rest) future suffix := by
+  simp [cycleInputPreservedPairs, progressPreservedPairs,
+    cycleInputPairs_progress]
+
+theorem cycleOutputPreserved_progress (d : Nat)
+    (done : List (List Bool)) (bits : List Bool)
+    (rest future : List (List Bool)) (suffix : List (Bool × Bool)) :
+    cycleOutputPreservedPairs done.length rest.length d done bits
+      (rest ++ future) suffix =
+      progressPreservedPairs d (done ++ [bits]) rest future suffix := by
+  simp [cycleOutputPreservedPairs, progressPreservedPairs,
+    cycleOutputPairs_progress]
+
+/-- Every repeated pre-selection cycle preserves one common arbitrary suffix. -/
+theorem sourceSelect_rounds_preserved_suffix (d : Nat)
+    (done todo future : List (List Bool))
+    (suffix : List (Bool × Bool)) :
+    run sourceSelectMachine (sourceSelectRoundsClock d done todo)
+        ⟨SourceSelectState.cntLo, 0,
+          flattenPairs (progressPreservedPairs d done todo future suffix)⟩ =
+      ⟨SourceSelectState.cntLo, 0,
+        flattenPairs (progressPreservedPairs d (done ++ todo) [] future suffix)⟩ := by
+  induction todo generalizing done with
+  | nil => simp [sourceSelectRoundsClock, progressPreservedPairs]
+  | cons bits rest ih =>
+      rw [sourceSelectRoundsClock, run_add,
+        ← cycleInputPreserved_progress d done bits rest future suffix,
+        sourceSelect_cycle_preserved_suffix done.length rest.length d done bits
+          (rest ++ future) suffix,
+        cycleOutputPreserved_progress d done bits rest future suffix,
+        ih (done ++ [bits])]
+      simp [List.append_assoc]
+
 /-- The final selector scan is suffix-parametric: it halts at the current
 fresh payload without inspecting or changing the adjacent preserved copy. -/
 theorem sourceSelect_final_preserved_suffix (d : Nat)
@@ -280,6 +475,28 @@ theorem sourceSelect_final_preserved_suffix (d : Nat)
   unfold q T
   congr 2
 
+/-- Complete fixed source selection with a byte-for-byte preserved suffix
+after the selected fresh block. -/
+theorem sourceSelect_run_preserved_suffix (d : Nat)
+    (preBlocks : List (List Bool)) (bits : List Bool)
+    (suffix : List (Bool × Bool)) :
+    run sourceSelectMachine (sourceSelectClock d preBlocks)
+        (init sourceSelectMachine
+          (flattenPairs (progressPreservedPairs d [] preBlocks [bits] suffix))) =
+      ⟨SourceSelectState.done,
+        2 * (preBlocks.length + d + 1 +
+          (preBlocks.flatMap passedSourceBlock).length + 1),
+        flattenPairs (preservedSelectedPairs d preBlocks bits suffix)⟩ := by
+  rw [sourceSelectClock, run_add]
+  change run sourceSelectMachine (sourceSelectFinalClock d preBlocks)
+      (run sourceSelectMachine (sourceSelectRoundsClock d [] preBlocks)
+        ⟨SourceSelectState.cntLo, 0,
+          flattenPairs (progressPreservedPairs d [] preBlocks [bits] suffix)⟩) = _
+  rw [sourceSelect_rounds_preserved_suffix d [] preBlocks [bits] suffix]
+  simpa [progressPreservedPairs, preservedSelectedPairs, progressPairs,
+    List.append_assoc] using
+    sourceSelect_final_preserved_suffix d preBlocks bits suffix
+
 /-- Concrete final-scan specialization for the duplicated source archive. -/
 theorem sourceSelect_final_duplicated (d : Nat)
     (done : List (List Bool)) (bits : List Bool)
@@ -361,6 +578,52 @@ theorem sourceSelectCompact_final_duplicated (d : Nat)
     ((selectedPrefix d done).length + bits.length + 3)
     SourceSelectState.done SourceCompactState.done hsel rfl hcomp rfl
 
+/-- Complete repeated selector cycles, final scan, and in-place decode on the
+duplicated archive, all inside the original fixed composed machine. -/
+theorem sourceSelectCompact_run_duplicated (d : Nat)
+    (preBlocks : List (List Bool)) (bits : List Bool)
+    (rest : List (List Bool)) :
+    run sourceSelectCompactMachine
+        (sourceSelectCompactClock d preBlocks bits)
+        (init sourceSelectCompactMachine
+          (flattenPairs (progressPreservedPairs d [] preBlocks [bits]
+            (passedSourceBlock bits ++ duplicatedSourceArchive rest)))) =
+      ⟨Sum.inr SourceCompactState.done,
+        (selectedPrefix d preBlocks).length + bits.length + 3,
+        selectedPrefix d preBlocks ++ bits ++ preservedPassedTrailer bits
+          (flattenPairs (duplicatedSourceArchive rest))⟩ := by
+  have hsel := sourceSelect_run_preserved_suffix d preBlocks bits
+    (passedSourceBlock bits ++ duplicatedSourceArchive rest)
+  rw [flattenPairs_preservedSelected_duplicated,
+    selected_progress_head] at hsel
+  have hcomp0 := sourceCompact_run (selectedPrefix d preBlocks) bits
+    (flattenPairs (passedSourceBlock bits) ++
+      flattenPairs (duplicatedSourceArchive rest))
+  have hcomp : run sourceCompactMachine (sourceCompactClock bits)
+      ⟨SourceCompactState.backHi, (selectedPrefix d preBlocks).length + 2,
+        selectedPrefix d preBlocks ++ [true, false] ++ encodeD bits ++
+          flattenPairs (passedSourceBlock bits) ++
+            flattenPairs (duplicatedSourceArchive rest)⟩ =
+      ⟨SourceCompactState.done,
+        (selectedPrefix d preBlocks).length + bits.length + 3,
+        selectedPrefix d preBlocks ++ bits ++ preservedPassedTrailer bits
+          (flattenPairs (duplicatedSourceArchive rest))⟩ := by
+    simpa [preservedPassedTrailer,
+      PallLean.Paper93.DeepMath.PathB.CookLevinDoubled.encodeD,
+      List.append_assoc] using hcomp0
+  exact headSeq_run sourceSelectMachine sourceCompactMachine
+    (flattenPairs (progressPreservedPairs d [] preBlocks [bits]
+      (passedSourceBlock bits ++ duplicatedSourceArchive rest)))
+    (selectedPrefix d preBlocks ++ [true, false] ++ encodeD bits ++
+      flattenPairs (passedSourceBlock bits) ++
+        flattenPairs (duplicatedSourceArchive rest))
+    (selectedPrefix d preBlocks ++ bits ++ preservedPassedTrailer bits
+      (flattenPairs (duplicatedSourceArchive rest)))
+    (sourceSelectClock d preBlocks) (sourceCompactClock bits)
+    ((selectedPrefix d preBlocks).length + 2)
+    ((selectedPrefix d preBlocks).length + bits.length + 3)
+    SourceSelectState.done SourceCompactState.done hsel rfl hcomp rfl
+
 /-- The existing fixed decoder consumes the fresh working block while the
 adjacent canonical copy and duplicated future archive remain untouched. -/
 theorem sourceCompact_run_with_preservedPassed
@@ -403,9 +666,13 @@ theorem masterM_after_preservedPassed_decomposition
 #print axioms duplicatedSourceArchive_selected_tail
 #print axioms cycle_preserved_count_write
 #print axioms cycle_preserved_archive_write
+#print axioms sourceSelect_cycle_preserved_suffix
+#print axioms sourceSelect_rounds_preserved_suffix
 #print axioms sourceSelect_final_preserved_suffix
 #print axioms sourceSelect_final_duplicated
+#print axioms sourceSelect_run_preserved_suffix
 #print axioms sourceSelectCompact_final_duplicated
+#print axioms sourceSelectCompact_run_duplicated
 #print axioms sourceCompact_run_with_preservedPassed
 #print axioms masterM_after_preservedPassed_decomposition
 
