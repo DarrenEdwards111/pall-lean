@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLookupRuntimePreservedPassedCopy
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLookupRuntimeSourceLookup
 
 /-!
 # Duplicated scheduled source archive
@@ -16,8 +17,12 @@ open PallLean.Paper93.DeepMath.PathB.ComposableMachine
 open PallLean.Paper93.DeepMath.PathB.CookLevinMaster
 open PallLean.Paper93.DeepMath.PathB.CookLevinReduction
 open PallLean.Paper93.DeepMath.PathB.CookLevinDoubled
+open PallLean.Paper93.DeepMath.PathB.CookLevinRoundInvariant
+open PallLean.Paper93.DeepMath.PathB.CookLevinWholeRun
+open PallLean.Paper93.DeepMath.PathB.CookLevinInP
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLiteralWeld
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceCompact
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceLookup
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePreservedPassedCopy
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundEntryAdapter
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupSuffixRun
@@ -661,6 +666,99 @@ theorem masterM_after_preservedPassed_decomposition
   simpa using masterM_literal_workspace_preservedPassed_decomposition
     w l (flattenPairs (duplicatedSourceArchive rest))
 
+/-- The existing fixed selector/rewind/lookup core runs unchanged on the
+duplicated layout and reaches a completed workspace followed by the preserved
+canonical current block and duplicated future archive. -/
+theorem sourceRuntimeLookupCore_run_duplicated (d : Nat)
+    (preBlocks : List (List Bool)) (w : List Bool) (l : Lit)
+    (rest : List (List Bool)) :
+    let bits := literalLookupTape w l
+    let pre := selectedPrefix d preBlocks
+    let tail := flattenPairs (duplicatedSourceArchive rest)
+    let trailer := preservedPassedTrailer bits tail
+    let mcf := run masterM (literalLookupClock w l)
+      (init masterM (bits ++ trailer))
+    run sourceRuntimeLookupCore
+        (sourceRuntimeLookupClock d preBlocks w l)
+        (init sourceRuntimeLookupCore
+          (flattenPairs (progressPreservedPairs d [] preBlocks [bits]
+            (passedSourceBlock bits ++ duplicatedSourceArchive rest)))) =
+      ⟨Sum.inr mcf.st, pre.length + mcf.hd, pre ++ mcf.tp⟩ ∧
+    ∃ value,
+      mcf.tp = flattenPairs (runtimeWorkspaceFrontPairs value
+        (2 * l.1 + 2) (2 * l.1 + 4)) ++
+        flattenPairs (passedSourceBlock bits) ++ tail := by
+  dsimp only
+  let bits := literalLookupTape w l
+  let pre := selectedPrefix d preBlocks
+  let tail := flattenPairs (duplicatedSourceArchive rest)
+  let trailer := preservedPassedTrailer bits tail
+  have hcompact := sourceSelectCompact_run_duplicated d preBlocks bits rest
+  have hcompact' : run sourceSelectCompactMachine
+      (sourceSelectCompactClock d preBlocks bits)
+      (init sourceSelectCompactMachine
+        (flattenPairs (progressPreservedPairs d [] preBlocks [bits]
+          (passedSourceBlock bits ++ duplicatedSourceArchive rest)))) =
+      ⟨Sum.inr SourceCompactState.done, pre.length + bits.length + 3,
+        pre ++ bits ++ trailer⟩ := by
+    simpa [pre, tail, trailer] using hcompact
+  have hrew := sourceRewind_literal pre w l
+    (List.replicate bits.length true ++
+      flattenPairs (passedSourceBlock bits) ++ tail)
+  have hrew' : run sourceRewindMachine (canonicalRewindClock w l)
+      ⟨sourceRewindMachine.start, pre.length + bits.length + 3,
+        pre ++ bits ++ trailer⟩ =
+      ⟨SourceRewindState.done, pre.length, pre ++ bits ++ trailer⟩ := by
+    simpa [bits, trailer, preservedPassedTrailer, List.append_assoc] using hrew
+  have hfirst := headSeq_run sourceSelectCompactMachine sourceRewindMachine
+    (flattenPairs (progressPreservedPairs d [] preBlocks [bits]
+      (passedSourceBlock bits ++ duplicatedSourceArchive rest)))
+    (pre ++ bits ++ trailer) (pre ++ bits ++ trailer)
+    (sourceSelectCompactClock d preBlocks bits)
+    (canonicalRewindClock w l)
+    (pre.length + bits.length + 3) pre.length
+    (Sum.inr SourceCompactState.done) SourceRewindState.done
+    hcompact' rfl hrew' rfl
+  let mcf := run masterM (literalLookupClock w l)
+    (init masterM (bits ++ trailer))
+  have hmaster : run masterM (literalLookupClock w l)
+      ⟨masterM.start, pre.length, pre ++ bits ++ trailer⟩ =
+      shiftCfg masterM pre mcf := by
+    simpa [bits, mcf, List.append_assoc] using
+      masterM_run_shifted pre w l trailer
+  let A := signedLookupAssignment w l.1 l.2
+  have hv : l.1 ≤ A.length := by
+    dsimp only [A]
+    rw [signedLookupAssignment_length]
+    omega
+  have hinv : RoundInv (bits ++ trailer) l.1 A.length := by
+    dsimp only [bits, A]
+    exact literalLookupTape_append_roundInv w l trailer
+  have happ := readAv_promise (bits ++ trailer) l.1 A.length hv hinv
+  have hmhalt : masterM.halt mcf.st = true := by
+    simpa [mcf, literalLookupClock, A, bits] using happ.1
+  have hsecond := headSeqAccept_run sourceSelectCompactRewindMachine masterM
+    (flattenPairs (progressPreservedPairs d [] preBlocks [bits]
+      (passedSourceBlock bits ++ duplicatedSourceArchive rest)))
+    (pre ++ bits ++ trailer) (pre ++ mcf.tp)
+    (sourceSelectCompactClock d preBlocks bits + 1 +
+      canonicalRewindClock w l)
+    (literalLookupClock w l)
+    pre.length (pre.length + mcf.hd)
+    (Sum.inr SourceRewindState.done) mcf.st
+    hfirst rfl (by simpa [shiftCfg] using hmaster) hmhalt
+  have hrun : run sourceRuntimeLookupCore
+      (sourceRuntimeLookupClock d preBlocks w l)
+      (init sourceRuntimeLookupCore
+        (flattenPairs (progressPreservedPairs d [] preBlocks [bits]
+          (passedSourceBlock bits ++ duplicatedSourceArchive rest)))) =
+      ⟨Sum.inr mcf.st, pre.length + mcf.hd, pre ++ mcf.tp⟩ := by
+    simpa [sourceRuntimeLookupClock, sourceRuntimeLookupCore, bits,
+      Nat.add_assoc] using hsecond
+  refine ⟨hrun, ?_⟩
+  simpa [bits, tail, trailer, mcf] using
+    masterM_after_preservedPassed_decomposition w l rest
+
 #print axioms duplicatedSourceArchive_length
 #print axioms duplicatedSourceArchive_schedule_split
 #print axioms duplicatedSourceArchive_selected_tail
@@ -675,5 +773,6 @@ theorem masterM_after_preservedPassed_decomposition
 #print axioms sourceSelectCompact_run_duplicated
 #print axioms sourceCompact_run_with_preservedPassed
 #print axioms masterM_after_preservedPassed_decomposition
+#print axioms sourceRuntimeLookupCore_run_duplicated
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeDuplicatedSourceArchive
