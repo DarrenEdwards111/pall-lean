@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLookupRuntimeDuplicatedSourceArchive
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLookupRuntimeCompactComposition
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameChargedLocalLookupRuntimeCompactCompositionSafety
 
 /-!
 # Universal repair from a duplicated passed source
@@ -19,6 +20,7 @@ open PallLean.Paper93.DeepMath.PathB.CookLevinRoundInvariant
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceSelect
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceCompact
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeArchiveReturnWriter
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePhysicalLeftSafety
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeCompactChain
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeCompactComposition
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeDuplicatedSourceArchive
@@ -181,6 +183,84 @@ theorem runtimeDuplicatedRepairMachine_run
   · simpa [runtimeDuplicatedRepairMachine, headSeqMachine,
       rewindM, passM] using hpHalt
 
+/-- The exact outer repair composition stays at or to the right of the
+physical origin for precisely the same clock as its exact run theorem. -/
+theorem runtimeDuplicatedRepairMachine_leftSafe
+    (retained tail : List Bool) (old kept : List (Bool × Bool))
+    (c : RuntimeDuplicatedRepairCertificate retained old kept tail) :
+    LeftSafeRun (runtimeDuplicatedRepairMachine old kept)
+      ⟨(runtimeDuplicatedRepairMachine old kept).start, retained.length,
+        retained ++ flattenPairs old ++ flattenPairs kept ++ tail⟩
+      (runtimeDuplicatedRepairClock old kept) := by
+  let T0 := retained ++ flattenPairs old ++ flattenPairs kept ++ tail
+  let Tclear := retained ++ List.replicate (2 * old.length) false ++
+    flattenPairs kept ++ tail
+  let Tfinal := retained ++ flattenPairs kept ++
+    List.replicate (2 * old.length) false ++ tail
+  let clearM := exactClockMachine runtimeCompactClearLoopMachine
+    (2 * old.length)
+  let rewindM := exactClockMachine runtimeCompactRewindMachine 2
+  let passM := runtimeCompactPassScheduleMachine kept old.length
+  have hc := exactClockMachine_run_of_run runtimeCompactClearLoopMachine
+    (2 * old.length) retained.length (retained.length + 2 * old.length)
+    T0 Tclear () (by intro; rfl) (by simpa [T0, Tclear] using c.clearRun)
+  have hcSafe : LeftSafeRun clearM
+      ⟨clearM.start, retained.length, T0⟩ (2 * old.length) := by
+    simpa [clearM, exactClockCfg, T0] using
+      exactClockMachine_leftSafe runtimeCompactClearLoopMachine
+        (2 * old.length)
+        ⟨runtimeCompactClearLoopMachine.start, retained.length, T0⟩
+        (by intro; rfl) (by simpa [T0] using c.clearSafe)
+  have hr := exactClockMachine_run_of_run runtimeCompactRewindMachine
+    2 (retained.length + 2 * old.length)
+    (retained.length + 2 * (old.length - 1)) Tclear Tclear ()
+    (by intro; rfl) (by simpa [Tclear] using c.rewindRun)
+  have hrSafe : LeftSafeRun rewindM
+      ⟨rewindM.start, retained.length + 2 * old.length, Tclear⟩ 2 := by
+    simpa [rewindM, exactClockCfg, Tclear] using
+      exactClockMachine_leftSafe runtimeCompactRewindMachine 2
+        ⟨runtimeCompactRewindMachine.start,
+          retained.length + 2 * old.length, Tclear⟩
+        (by intro; rfl) (by simpa [Tclear] using c.rewindSafe)
+  obtain ⟨spass, hp, hpHalt⟩ :=
+    runtimeCompactAllPasses_machine_run retained tail kept c.shift
+  have hp' : run passM (runtimeCompactPassScheduleClock kept old.length)
+      ⟨passM.start, retained.length + 2 * (old.length - 1), Tclear⟩ =
+    ⟨spass, retained.length + 2 * kept.length, Tfinal⟩ := by
+    simpa [passM, Tclear, Tfinal] using hp
+  have hpSafe : LeftSafeRun passM
+      ⟨passM.start, retained.length + 2 * (old.length - 1), Tclear⟩
+      (runtimeCompactPassScheduleClock kept old.length) := by
+    simpa [passM, Tclear] using
+      runtimeCompactAllPasses_machine_leftSafe retained tail kept c.shift
+  have hright : LeftSafeRun (headSeqMachine rewindM passM)
+      ⟨(headSeqMachine rewindM passM).start,
+        retained.length + 2 * old.length, Tclear⟩
+      (2 + 1 + runtimeCompactPassScheduleClock kept old.length) := by
+    exact headSeq_leftSafe_at rewindM passM Tclear Tclear
+      (retained.length + 2 * old.length) 2
+      (runtimeCompactPassScheduleClock kept old.length)
+      (retained.length + 2 * (old.length - 1))
+      (⟨2, by omega⟩, ()) hr (exactClockMachine_halt_at _ _ _)
+      hrSafe hpSafe (by rw [hp']; exact hpHalt)
+  have hall := headSeq_leftSafe_at clearM
+    (headSeqMachine rewindM passM) T0 Tclear retained.length
+    (2 * old.length)
+    (2 + 1 + runtimeCompactPassScheduleClock kept old.length)
+    (retained.length + 2 * old.length)
+    (⟨2 * old.length, by omega⟩, ()) hc
+    (exactClockMachine_halt_at _ _ _) hcSafe hright
+    (by
+      rw [headSeq_run_at rewindM passM Tclear Tclear Tfinal
+        (retained.length + 2 * old.length) 2
+        (runtimeCompactPassScheduleClock kept old.length)
+        (retained.length + 2 * (old.length - 1))
+        (retained.length + 2 * kept.length) (⟨2, by omega⟩, ())
+        spass hr (exactClockMachine_halt_at _ _ _) hp' hpHalt]
+      simpa [headSeqMachine, passM] using hpHalt)
+  simpa [runtimeDuplicatedRepairMachine, runtimeDuplicatedRepairClock,
+    clearM, rewindM, passM, T0, Nat.add_assoc] using hall
+
 /-- The preserved passed source is always nonempty, so the generic physical
 repair plan applies to every completed scheduled lookup endpoint. -/
 theorem scheduledDuplicated_repairCertificate (x w : List Bool)
@@ -221,6 +301,7 @@ theorem scheduledDuplicated_repairCertificate (x w : List Bool)
 
 #print axioms runtimeDuplicatedRepair_certificate
 #print axioms runtimeDuplicatedRepairMachine_run
+#print axioms runtimeDuplicatedRepairMachine_leftSafe
 #print axioms scheduledDuplicated_repairCertificate
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeDuplicatedRepair
