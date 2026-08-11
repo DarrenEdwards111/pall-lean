@@ -30,6 +30,7 @@ open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeCompactChain
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeCompactComposition
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeTranslatedComposition
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundTransition
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupLeftBoundaryTerminal
 
 set_option maxHeartbeats 4000000 in
 /-- On every scheduled nonterminal round, the genuine normalized cashout tape
@@ -75,7 +76,13 @@ theorem scheduled_runtimeTranslatedMarkedUnary_run
             (selectedTail rest).length,
           base ++ [false, true, false, true] ++
             sourceSelectorInput rest.length 0 rest⟩ ∧
-      (runtimeTranslatedMarkedUnaryMachine bits d).halt s = true := by
+      (runtimeTranslatedMarkedUnaryMachine bits d).halt s = true ∧
+      LeftSafeRun (runtimeTranslatedMarkedUnaryMachine bits d)
+        ⟨(runtimeTranslatedMarkedUnaryMachine bits d).start,
+          retained.length, Tclean⟩
+        (runtimeTranslatedMarkedPrefixClock bits d +
+          runtimeMarkedCompactArchiveClock (passedSourceBlock bits) d rest +
+            1 + unaryClock) := by
   dsimp only
   let B := (decodedLiterals x).length
   let schedule := literalTapeSchedule x w
@@ -140,9 +147,15 @@ theorem scheduled_runtimeTranslatedMarkedUnary_run
     omega
   have hrun := runtimeTranslatedMarkedUnary_run retained old bits first more d
     (by simpa using hlen) (by simpa [← hrest] using hfit)
-  obtain ⟨base, unaryClock, s, hbase, hmachine, hhalt⟩ := hrun
+  obtain ⟨base, unaryClock, s, hbase, hmachine, hhalt,
+    hrepairSafe, hrepairHalt⟩ := hrun
+  have houterSafe0 := runtimeTranslatedMarkedUnary_leftSafe_of_repair
+    retained old bits (selectedTail (first :: more)) d
+    (runtimeMarkedCompactArchiveClock (passedSourceBlock bits) d
+      (first :: more) + 1 + unaryClock)
+    (by simpa using hlen) hrepairSafe hrepairHalt
   have hcanonical := scheduled_selectedPrefix_succ x w ht
-  refine ⟨base, unaryClock, s, ?_, ?_, ?_, ?_⟩
+  refine ⟨base, unaryClock, s, ?_, ?_, ?_, ?_, ?_⟩
   · simpa [retained, pre, B, schedule, preBlocks, bits, out',
       List.append_assoc] using congrArg (fun z => outputCap B out' ++ z)
         hcanonical.symm
@@ -170,6 +183,22 @@ theorem scheduled_runtimeTranslatedMarkedUnary_run
     rw [hTclean]
     exact hmachine'
   · exact hhalt
+  · have houterSafe := houterSafe0
+    rw [← hrest] at houterSafe
+    have hTclean : Tclean =
+        retained ++ flattenPairs (runtimeMarkedStalePairs d) ++
+          old ++ selectedTail rest := by
+      dsimp only [Tclean]
+      rw [hmcfSplit]
+      simp [List.append_assoc]
+    change LeftSafeRun (runtimeTranslatedMarkedUnaryMachine bits d)
+      ⟨(runtimeTranslatedMarkedUnaryMachine bits d).start,
+        retained.length, Tclean⟩
+      (runtimeTranslatedMarkedPrefixClock bits d +
+        runtimeMarkedCompactArchiveClock (passedSourceBlock bits) d rest +
+          1 + unaryClock)
+    rw [hTclean]
+    simpa [Nat.add_assoc] using houterSafe
 
 #print axioms scheduled_runtimeTranslatedMarkedUnary_run
 

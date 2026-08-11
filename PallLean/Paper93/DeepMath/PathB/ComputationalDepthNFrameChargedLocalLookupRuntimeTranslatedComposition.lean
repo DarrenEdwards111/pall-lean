@@ -73,7 +73,28 @@ theorem runtimeTranslatedMarkedUnary_run
             (selectedTail (first :: more)).length,
           base ++ [false, true, false, true] ++
             sourceSelectorInput (first :: more).length 0 (first :: more)⟩ ∧
-      (runtimeTranslatedMarkedUnaryMachine bits d).halt s = true := by
+      (runtimeTranslatedMarkedUnaryMachine bits d).halt s = true ∧
+      LeftSafeRun
+        (runtimeMarkedCompactArchiveUnaryMachine (passedSourceBlock bits) d)
+        ⟨(runtimeMarkedCompactArchiveUnaryMachine
+            (passedSourceBlock bits) d).start,
+          retained.length,
+          retained ++ flattenPairs (runtimeMarkedStalePairs d) ++
+            flattenPairs (passedSourceBlock bits) ++
+              selectedTail (first :: more)⟩
+        (runtimeMarkedCompactArchiveClock (passedSourceBlock bits) d
+          (first :: more) + 1 + unaryClock) ∧
+      (runtimeMarkedCompactArchiveUnaryMachine (passedSourceBlock bits) d).halt
+        (run (runtimeMarkedCompactArchiveUnaryMachine
+            (passedSourceBlock bits) d)
+          (runtimeMarkedCompactArchiveClock (passedSourceBlock bits) d
+            (first :: more) + 1 + unaryClock)
+          ⟨(runtimeMarkedCompactArchiveUnaryMachine
+              (passedSourceBlock bits) d).start,
+            retained.length,
+            retained ++ flattenPairs (runtimeMarkedStalePairs d) ++
+              flattenPairs (passedSourceBlock bits) ++
+                selectedTail (first :: more)⟩).st = true := by
   let stale := flattenPairs (runtimeMarkedStalePairs d)
   let target := flattenPairs (passedSourceBlock bits)
   let tail := selectedTail (first :: more)
@@ -112,8 +133,9 @@ theorem runtimeTranslatedMarkedUnary_run
     rewindClock (retained.length + rewindClock) retained.length
     Ttranslated Ttranslated () (by intro; rfl) (by
       simpa [rewindClock, Ttranslated, List.append_assoc] using hrew0)
-  obtain ⟨base, unaryClock, sr, hbase, hrepair, hrepairHalt⟩ :=
-    runtimeMarkedCompactArchiveUnary_run retained (passedSourceBlock bits)
+  obtain ⟨base, unaryClock, sr, hbase, hrepair, hrepairHalt,
+      hrepairSafe⟩ :=
+    runtimeMarkedCompactArchiveUnary_safeRun retained (passedSourceBlock bits)
       first more d hfit
   let Tout := base ++ [false, true, false, true] ++
     sourceSelectorInput (first :: more).length 0 (first :: more)
@@ -159,12 +181,15 @@ theorem runtimeTranslatedMarkedUnary_run
     (stageFinalState stale.length target) (Sum.inr sr) hstage
     (stageMachine_halt_final stale.length target) hright'
     (by simpa [headSeqMachine, repairM] using hrepairHalt)
-  refine ⟨base, unaryClock, Sum.inr (Sum.inr sr), hbase, ?_, ?_⟩
+  refine ⟨base, unaryClock, Sum.inr (Sum.inr sr), hbase, ?_, ?_,
+    hrepairSafe, ?_⟩
   · simpa [runtimeTranslatedMarkedUnaryMachine,
       runtimeTranslatedMarkedPrefixClock, stageM, rewindM, repairM,
       rewindClock, stale, target, tail, T0, Tout, Nat.add_assoc] using hall
   · simpa [runtimeTranslatedMarkedUnaryMachine, headSeqMachine,
       rewindM, repairM] using hrepairHalt
+  · rw [hrepair]
+    exact hrepairHalt
 
 /-- Composition rule for the translated controller's safety.  Translation
 and the exact rewind are discharged internally; callers provide only the
