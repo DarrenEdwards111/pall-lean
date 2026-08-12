@@ -971,6 +971,37 @@ theorem binaryTranscriptSeparated_card_le_pow
   have hcard := Fintype.card_le_of_injective f hinjective
   simpa [f, Fintype.card_fun, Fintype.card_fin, Fintype.card_bool] using hcard
 
+/-! ## Direct-transition charging audit
+
+A tempting repair is to demand that every contextual residual obligation be
+charged to a distinct transition.  For finite index sets this demand is
+exactly equivalent to the desired lower bound, so it is not an independently
+weaker certificate.  A valid use must derive the injection from SAT/machine
+topology (as formula trees do), rather than postulate it.
+-/
+
+/-- A non-amortized transition charge assigns each of `K` obligations to a
+different one of `T` physical transitions. -/
+def NonAmortizedTransitionCharge (K T : Nat) : Prop :=
+  ∃ charge : Fin K → Fin T, Function.Injective charge
+
+/-- A non-amortized charge immediately gives the claimed transition lower
+bound. -/
+theorem obligations_le_transitions_of_nonAmortizedCharge
+    {K T : Nat} (h : NonAmortizedTransitionCharge K T) : K ≤ T := by
+  rcases h with ⟨charge, hinjective⟩
+  simpa using Fintype.card_le_of_injective charge hinjective
+
+/-- Conversely, the numerical lower bound already constructs such a charge.
+Thus in the unrestricted finite model, non-amortized transition charging is
+logically equivalent to the lower bound it is meant to prove. -/
+theorem nonAmortizedTransitionCharge_iff (K T : Nat) :
+    NonAmortizedTransitionCharge K T ↔ K ≤ T := by
+  constructor
+  · exact obligations_le_transitions_of_nonAmortizedCharge
+  · intro hKT
+    exact ⟨Fin.castLE hKT, Fin.castLE_injective hKT⟩
+
 #print axioms liveRank_le_action
 #print axioms GroundedTrajectoryNFrameActionCertificate.toActionCertificate
 #print axioms groundedCertificateOfFoolingSet
@@ -1007,5 +1038,7 @@ theorem binaryTranscriptSeparated_card_le_pow
 #print axioms twoBits_clear_threeWayPairDebt
 #print axioms booleanOutputSeparated_card_le_two
 #print axioms binaryTranscriptSeparated_card_le_pow
+#print axioms obligations_le_transitions_of_nonAmortizedCharge
+#print axioms nonAmortizedTransitionCharge_iff
 
 end PallLean.Paper93.DeepMath.PathB.ObserverCentricNFrameActionBridge
