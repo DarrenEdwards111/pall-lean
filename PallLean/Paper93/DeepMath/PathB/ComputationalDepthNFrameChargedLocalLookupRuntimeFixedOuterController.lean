@@ -11,6 +11,7 @@ forward pass; `final` enters the sole genuine halt state.
 namespace PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeFixedOuterController
 
 open PallLean.Paper93.DeepMath.PathB.ComposableMachine
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceSelect
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeUniversalPassedShift
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeProgressReturn
 
@@ -299,6 +300,210 @@ theorem runtimeFixedOuterController_exhaust_final_exact
   rw [hr] at h
   simpa using h
 
+/-! ## Complete uninterrupted controller rounds -/
+
+/-- When another ordinary progress word remains, the single fixed controller
+runs the complete forward shift, reverse return, and exhaustion test, then
+loops back to its genuine start state at the newly consumed physical hole. -/
+theorem runtimeFixedOuterController_round_more
+    (pre tail bits : List Bool) :
+    let block := passedSourceBlock bits
+    let T0 := pre ++ [true, false, true, false, false, false] ++
+      flattenPairs block ++ tail
+    let T2 := pre ++ [true, false, false, false] ++
+      flattenPairs block ++ [false, false] ++ tail
+    run runtimeFixedOuterControllerMachine
+        ((8 * block.length + 1) +
+          ((1 + 2 * block.length + 3 + 1) + 3))
+        ⟨runtimeFixedOuterControllerMachine.start, pre.length + 4, T0⟩ =
+      ⟨runtimeFixedOuterControllerMachine.start, pre.length + 2, T2⟩ := by
+  dsimp only
+  let block := passedSourceBlock bits
+  let T0 := pre ++ [true, false, true, false, false, false] ++
+    flattenPairs block ++ tail
+  let T1 := pre ++ [true, false, true, false] ++
+    flattenPairs block ++ [false, false] ++ tail
+  let T2 := pre ++ [true, false, false, false] ++
+    flattenPairs block ++ [false, false] ++ tail
+  change run runtimeFixedOuterControllerMachine
+      ((8 * block.length + 1) +
+        ((1 + 2 * block.length + 3 + 1) + 3))
+      ⟨runtimeFixedOuterControllerMachine.start, pre.length + 4, T0⟩ =
+    ⟨runtimeFixedOuterControllerMachine.start, pre.length + 2, T2⟩
+  rw [run_add]
+  have hsExact := runtimeUniversalPassedShift_passedSourceBlock
+    (pre ++ [true, false, true, false]) tail bits
+  have hsNoEarly := runtimeUniversalPassedShift_passedSourceBlock_no_early
+    (pre ++ [true, false, true, false]) tail bits
+  have hsHalt : runtimeUniversalPassedShiftMachine.halt
+      (run runtimeUniversalPassedShiftMachine (8 * block.length)
+        ⟨runtimeUniversalPassedShiftMachine.start, pre.length + 4, T0⟩).st = true := by
+    rw [show run runtimeUniversalPassedShiftMachine (8 * block.length)
+        ⟨runtimeUniversalPassedShiftMachine.start, pre.length + 4, T0⟩ =
+        ⟨RuntimeUniversalPassedShiftState.done,
+          pre.length + 4 + 2 * block.length, T1⟩ by
+      simpa [block, T0, T1, List.append_assoc, Nat.add_assoc] using hsExact]
+    simp [runtimeUniversalPassedShiftMachine]
+  have hs := runtimeFixedOuterController_shift_run_handoff
+    ⟨runtimeUniversalPassedShiftMachine.start, pre.length + 4, T0⟩
+    (8 * block.length)
+    (by simpa [block, T0, List.append_assoc, Nat.add_assoc] using hsNoEarly)
+    hsHalt
+  rw [show run runtimeFixedOuterControllerMachine (8 * block.length + 1)
+      ⟨runtimeFixedOuterControllerMachine.start, pre.length + 4, T0⟩ =
+      outerReturnCfg
+        ⟨runtimeProgressReturnMachine.start,
+          pre.length + 4 + 2 * block.length, T1⟩ by
+    change run runtimeFixedOuterControllerMachine (8 * block.length + 1)
+        (outerShiftCfg
+          ⟨runtimeUniversalPassedShiftMachine.start, pre.length + 4, T0⟩) = _
+    rw [hs]
+    rw [show run runtimeUniversalPassedShiftMachine (8 * block.length)
+        ⟨runtimeUniversalPassedShiftMachine.start, pre.length + 4, T0⟩ =
+        ⟨RuntimeUniversalPassedShiftState.done,
+          pre.length + 4 + 2 * block.length, T1⟩ by
+      simpa [block, T0, T1, List.append_assoc, Nat.add_assoc] using hsExact]]
+  rw [run_add]
+  have hrExact := runtimeProgressReturn_passed_progress
+    (pre ++ [true, false]) tail bits
+  have hrNoEarly := runtimeProgressReturn_passed_progress_no_early
+    (pre ++ [true, false]) tail bits
+  have hrHalt : runtimeProgressReturnMachine.halt
+      (run runtimeProgressReturnMachine (1 + 2 * block.length + 3)
+        ⟨runtimeProgressReturnMachine.start,
+          pre.length + 4 + 2 * block.length, T1⟩).st = true := by
+    rw [show run runtimeProgressReturnMachine (1 + 2 * block.length + 3)
+        ⟨runtimeProgressReturnMachine.start,
+          pre.length + 4 + 2 * block.length, T1⟩ =
+        ⟨RuntimeProgressReturnState.done, pre.length + 2, T2⟩ by
+      simpa [block, T1, T2, List.append_assoc, Nat.add_assoc] using hrExact]
+    simp [runtimeProgressReturnMachine]
+  have hr := runtimeFixedOuterController_return_run_handoff
+    ⟨runtimeProgressReturnMachine.start,
+      pre.length + 4 + 2 * block.length, T1⟩
+    (1 + 2 * block.length + 3)
+    (by simpa [block, T1, List.append_assoc, Nat.add_assoc] using hrNoEarly)
+    hrHalt
+  rw [show run runtimeFixedOuterControllerMachine
+      (1 + 2 * block.length + 3 + 1)
+      (outerReturnCfg
+        ⟨runtimeProgressReturnMachine.start,
+          pre.length + 4 + 2 * block.length, T1⟩) =
+      outerExhaustCfg
+        ⟨runtimeProgressExhaustMachine.start, pre.length + 2, T2⟩ by
+    rw [hr]
+    rw [show run runtimeProgressReturnMachine
+        (1 + 2 * block.length + 3)
+        ⟨runtimeProgressReturnMachine.start,
+          pre.length + 4 + 2 * block.length, T1⟩ =
+        ⟨RuntimeProgressReturnState.done, pre.length + 2, T2⟩ by
+      simpa [block, T1, T2, List.append_assoc, Nat.add_assoc] using hrExact]]
+  have he := runtimeFixedOuterController_exhaust_more_exact pre
+    (flattenPairs block ++ [false, false] ++ tail)
+  simpa [T2, block, List.append_assoc] using he
+
+/-- With the last ordinary progress word, the same controller completes all
+three phases, clears the permanent `01` sentinel, and reaches its sole genuine
+halt state. -/
+theorem runtimeFixedOuterController_round_final
+    (pre tail bits : List Bool) :
+    let block := passedSourceBlock bits
+    let T0 := pre ++ [false, true, true, false, false, false] ++
+      flattenPairs block ++ tail
+    let T3 := pre ++ [false, false, false, false] ++
+      flattenPairs block ++ [false, false] ++ tail
+    run runtimeFixedOuterControllerMachine
+        ((8 * block.length + 1) +
+          ((1 + 2 * block.length + 3 + 1) + 4))
+        ⟨runtimeFixedOuterControllerMachine.start, pre.length + 4, T0⟩ =
+      ⟨RuntimeFixedOuterControllerState.final, pre.length + 1, T3⟩ := by
+  dsimp only
+  let block := passedSourceBlock bits
+  let T0 := pre ++ [false, true, true, false, false, false] ++
+    flattenPairs block ++ tail
+  let T1 := pre ++ [false, true, true, false] ++
+    flattenPairs block ++ [false, false] ++ tail
+  let T2 := pre ++ [false, true, false, false] ++
+    flattenPairs block ++ [false, false] ++ tail
+  let T3 := pre ++ [false, false, false, false] ++
+    flattenPairs block ++ [false, false] ++ tail
+  change run runtimeFixedOuterControllerMachine
+      ((8 * block.length + 1) +
+        ((1 + 2 * block.length + 3 + 1) + 4))
+      ⟨runtimeFixedOuterControllerMachine.start, pre.length + 4, T0⟩ =
+    ⟨RuntimeFixedOuterControllerState.final, pre.length + 1, T3⟩
+  rw [run_add]
+  have hsExact := runtimeUniversalPassedShift_passedSourceBlock
+    (pre ++ [false, true, true, false]) tail bits
+  have hsNoEarly := runtimeUniversalPassedShift_passedSourceBlock_no_early
+    (pre ++ [false, true, true, false]) tail bits
+  have hsHalt : runtimeUniversalPassedShiftMachine.halt
+      (run runtimeUniversalPassedShiftMachine (8 * block.length)
+        ⟨runtimeUniversalPassedShiftMachine.start, pre.length + 4, T0⟩).st = true := by
+    rw [show run runtimeUniversalPassedShiftMachine (8 * block.length)
+        ⟨runtimeUniversalPassedShiftMachine.start, pre.length + 4, T0⟩ =
+        ⟨RuntimeUniversalPassedShiftState.done,
+          pre.length + 4 + 2 * block.length, T1⟩ by
+      simpa [block, T0, T1, List.append_assoc, Nat.add_assoc] using hsExact]
+    simp [runtimeUniversalPassedShiftMachine]
+  have hs := runtimeFixedOuterController_shift_run_handoff
+    ⟨runtimeUniversalPassedShiftMachine.start, pre.length + 4, T0⟩
+    (8 * block.length)
+    (by simpa [block, T0, List.append_assoc, Nat.add_assoc] using hsNoEarly)
+    hsHalt
+  rw [show run runtimeFixedOuterControllerMachine (8 * block.length + 1)
+      ⟨runtimeFixedOuterControllerMachine.start, pre.length + 4, T0⟩ =
+      outerReturnCfg
+        ⟨runtimeProgressReturnMachine.start,
+          pre.length + 4 + 2 * block.length, T1⟩ by
+    change run runtimeFixedOuterControllerMachine (8 * block.length + 1)
+        (outerShiftCfg
+          ⟨runtimeUniversalPassedShiftMachine.start, pre.length + 4, T0⟩) = _
+    rw [hs]
+    rw [show run runtimeUniversalPassedShiftMachine (8 * block.length)
+        ⟨runtimeUniversalPassedShiftMachine.start, pre.length + 4, T0⟩ =
+        ⟨RuntimeUniversalPassedShiftState.done,
+          pre.length + 4 + 2 * block.length, T1⟩ by
+      simpa [block, T0, T1, List.append_assoc, Nat.add_assoc] using hsExact]]
+  rw [run_add]
+  have hrExact := runtimeProgressReturn_passed_progress
+    (pre ++ [false, true]) tail bits
+  have hrNoEarly := runtimeProgressReturn_passed_progress_no_early
+    (pre ++ [false, true]) tail bits
+  have hrHalt : runtimeProgressReturnMachine.halt
+      (run runtimeProgressReturnMachine (1 + 2 * block.length + 3)
+        ⟨runtimeProgressReturnMachine.start,
+          pre.length + 4 + 2 * block.length, T1⟩).st = true := by
+    rw [show run runtimeProgressReturnMachine (1 + 2 * block.length + 3)
+        ⟨runtimeProgressReturnMachine.start,
+          pre.length + 4 + 2 * block.length, T1⟩ =
+        ⟨RuntimeProgressReturnState.done, pre.length + 2, T2⟩ by
+      simpa [block, T1, T2, List.append_assoc, Nat.add_assoc] using hrExact]
+    simp [runtimeProgressReturnMachine]
+  have hr := runtimeFixedOuterController_return_run_handoff
+    ⟨runtimeProgressReturnMachine.start,
+      pre.length + 4 + 2 * block.length, T1⟩
+    (1 + 2 * block.length + 3)
+    (by simpa [block, T1, List.append_assoc, Nat.add_assoc] using hrNoEarly)
+    hrHalt
+  rw [show run runtimeFixedOuterControllerMachine
+      (1 + 2 * block.length + 3 + 1)
+      (outerReturnCfg
+        ⟨runtimeProgressReturnMachine.start,
+          pre.length + 4 + 2 * block.length, T1⟩) =
+      outerExhaustCfg
+        ⟨runtimeProgressExhaustMachine.start, pre.length + 2, T2⟩ by
+    rw [hr]
+    rw [show run runtimeProgressReturnMachine
+        (1 + 2 * block.length + 3)
+        ⟨runtimeProgressReturnMachine.start,
+          pre.length + 4 + 2 * block.length, T1⟩ =
+        ⟨RuntimeProgressReturnState.done, pre.length + 2, T2⟩ by
+      simpa [block, T1, T2, List.append_assoc, Nat.add_assoc] using hrExact]]
+  have he := runtimeFixedOuterController_exhaust_final_exact pre
+    (flattenPairs block ++ [false, false] ++ tail)
+  simpa [T2, T3, block, List.append_assoc] using he
+
 @[simp] theorem runtimeFixedOuterController_final_halts :
     runtimeFixedOuterControllerMachine.halt
       RuntimeFixedOuterControllerState.final = true := by
@@ -319,5 +524,7 @@ theorem runtimeFixedOuterController_exhaust_final_exact
 #print axioms runtimeProgressExhaust_final_no_early
 #print axioms runtimeFixedOuterController_exhaust_more_exact
 #print axioms runtimeFixedOuterController_exhaust_final_exact
+#print axioms runtimeFixedOuterController_round_more
+#print axioms runtimeFixedOuterController_round_final
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeFixedOuterController
