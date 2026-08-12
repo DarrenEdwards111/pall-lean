@@ -1020,6 +1020,69 @@ theorem runtimeProgressRecordClear_workspace_no_early
     rw [hc]
     simpa [runtimeWorkspaceFrontPairs, rest, List.append_assoc] using h
 
+/-! ## Structural left safety -/
+
+def RuntimeProgressRecordClearHeadInvariant
+    (c : Cfg runtimeProgressRecordClearMachine) : Prop :=
+  match c.st with
+  | .candidateHi _ => 0 < c.hd
+  | _ => True
+
+theorem runtimeProgressRecordClear_invariant_step
+    (c : Cfg runtimeProgressRecordClearMachine)
+    (h : RuntimeProgressRecordClearHeadInvariant c) :
+    RuntimeProgressRecordClearHeadInvariant
+      (step runtimeProgressRecordClearMachine c) := by
+  rcases c with ⟨st, hd, tp⟩
+  cases st with
+  | firstHi loBit | hi loBit | candidateHi loBit =>
+      cases hbit : tp[hd]?.getD false <;> cases loBit <;>
+        simp_all [RuntimeProgressRecordClearHeadInvariant, step,
+          runtimeProgressRecordClearMachine, moveHead]
+  | firstLo | lo | candidateLo | rewriteCandidateLo | advanceCandidate |
+      backOne | backTwo | done =>
+      simp_all [RuntimeProgressRecordClearHeadInvariant, step,
+        runtimeProgressRecordClearMachine, moveHead]
+
+theorem runtimeProgressRecordClear_invariant_run
+    (c : Cfg runtimeProgressRecordClearMachine)
+    (h : RuntimeProgressRecordClearHeadInvariant c) (n : Nat) :
+    RuntimeProgressRecordClearHeadInvariant
+      (run runtimeProgressRecordClearMachine n c) := by
+  induction n with
+  | zero => simpa
+  | succ n ih =>
+      rw [run_succ]
+      exact runtimeProgressRecordClear_invariant_step _ ih
+
+theorem runtimeProgressRecordClear_leftSafe
+    (c : Cfg runtimeProgressRecordClearMachine)
+    (h : RuntimeProgressRecordClearHeadInvariant c) (n : Nat) :
+    LeftSafeRun runtimeProgressRecordClearMachine c n := by
+  intro i hi hhalt hmove
+  have hinv := runtimeProgressRecordClear_invariant_run c h i
+  generalize hs : (run runtimeProgressRecordClearMachine i c).st = s
+    at hinv hhalt hmove
+  generalize hb : (run runtimeProgressRecordClearMachine i c).tp.getD
+      (run runtimeProgressRecordClearMachine i c).hd false = b at hmove
+  cases b <;> cases s <;>
+    simp_all [RuntimeProgressRecordClearHeadInvariant,
+      runtimeProgressRecordClearMachine] <;>
+    split at hmove <;> simp_all
+
+theorem runtimeProgressRecordClear_workspace_leftSafe
+    (pre tail : List Bool) (value : Bool) (m n : Nat) :
+    let workspace := runtimeWorkspaceFrontPairs value m n
+    let clock := 2 * workspace.length + 6 + if value then 0 else 2
+    LeftSafeRun runtimeProgressRecordClearMachine
+      ⟨runtimeProgressRecordClearMachine.start, pre.length,
+        pre ++ flattenPairs workspace ++
+          flattenPairs runtimePassedBoundaryMarker ++ tail⟩ clock := by
+  dsimp only
+  apply runtimeProgressRecordClear_leftSafe
+  simp [RuntimeProgressRecordClearHeadInvariant,
+    runtimeProgressRecordClearMachine]
+
 @[simp] theorem runtimeProgressRecordClear_done_halts :
     runtimeProgressRecordClearMachine.halt
       RuntimeProgressRecordClearState.done = true := by
@@ -1047,5 +1110,8 @@ theorem runtimeProgressRecordClear_workspace_no_early
 #print axioms runtimeProgressRecordClear_isolatedZero_marker_no_early
 #print axioms runtimeProgressRecordClear_first_front_isolatedZero_marker_no_early
 #print axioms runtimeProgressRecordClear_workspace_no_early
+#print axioms runtimeProgressRecordClear_invariant_step
+#print axioms runtimeProgressRecordClear_leftSafe
+#print axioms runtimeProgressRecordClear_workspace_leftSafe
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeProgressRecordClear
