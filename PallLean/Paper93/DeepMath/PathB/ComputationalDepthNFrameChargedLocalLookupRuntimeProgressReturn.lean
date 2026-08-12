@@ -18,6 +18,7 @@ namespace PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeProgres
 set_option maxHeartbeats 4000000
 
 open PallLean.Paper93.DeepMath.PathB.ComposableMachine
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceSelect
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupLeftBoundaryTerminal
 
 inductive RuntimeProgressReturnState
@@ -104,6 +105,55 @@ theorem runtimeProgressReturn_nonmarker
     simp_all [step, runtimeProgressReturnMachine, moveHead,
       List.getD_eq_getElem?_getD]
 
+/-- Any nonempty list containing no `10` pair is crossed right-to-left by
+one uninterrupted run, starting at the final high cell. -/
+theorem runtimeProgressReturn_nonmarkerPairs
+    (pre tail : List Bool) (ps : List (Bool × Bool))
+    (hpos : 0 < ps.length)
+    (hnm : ∀ p ∈ ps, ¬ (p.1 = true ∧ p.2 = false)) :
+    run runtimeProgressReturnMachine (2 * ps.length)
+        ⟨RuntimeProgressReturnState.hi,
+          pre.length + 2 * ps.length - 1,
+          pre ++ flattenPairs ps ++ tail⟩ =
+      ⟨RuntimeProgressReturnState.hi, pre.length - 1,
+        pre ++ flattenPairs ps ++ tail⟩ := by
+  induction ps using List.reverseRecOn generalizing pre tail with
+  | nil => simp at hpos
+  | append_singleton ps p ih =>
+      rcases p with ⟨lo, hi⟩
+      have hp : ¬ (lo = true ∧ hi = false) := hnm (lo, hi) (by simp)
+      by_cases hempty : ps = []
+      · subst ps
+        simpa [flattenPairs, List.append_assoc] using
+          runtimeProgressReturn_nonmarker pre tail lo hi hp
+      · have hpspos : 0 < ps.length := by
+          cases ps with
+          | nil => contradiction
+          | cons => simp
+        have hrest : ∀ q ∈ ps, ¬ (q.1 = true ∧ q.2 = false) := by
+          intro q hq
+          exact hnm q (by simp [hq])
+        rw [show 2 * (ps ++ [(lo, hi)]).length = 2 + 2 * ps.length by
+            simp; omega,
+          run_add]
+        have hlast := runtimeProgressReturn_nonmarker
+          (pre ++ flattenPairs ps) tail lo hi hp
+        have hlast' : run runtimeProgressReturnMachine 2
+            ⟨RuntimeProgressReturnState.hi,
+              pre.length + 2 * (ps ++ [(lo, hi)]).length - 1,
+              pre ++ flattenPairs (ps ++ [(lo, hi)]) ++ tail⟩ =
+          ⟨RuntimeProgressReturnState.hi,
+            pre.length + 2 * ps.length - 1,
+            pre ++ flattenPairs (ps ++ [(lo, hi)]) ++ tail⟩ := by
+          simpa [flattenPairs_append, flattenPairs, flattenPairs_length,
+            List.append_assoc] using hlast
+        rw [show pre.length + (2 + 2 * ps.length) - 1 =
+            pre.length + 2 * (ps ++ [(lo, hi)]).length - 1 by
+          simp; omega,
+          hlast']
+        have hih := ih (pre := pre) (tail := [lo, hi] ++ tail) hpspos hrest
+        simpa [flattenPairs_append, flattenPairs, List.append_assoc] using hih
+
 /-- The ordinary `10` progress word is consumed to `00`; the controller
 returns to its low cell and genuinely halts. -/
 theorem runtimeProgressReturn_marker (pre tail : List Bool) :
@@ -150,6 +200,7 @@ theorem runtimeProgressReturn_marker_leftSafe (pre tail : List Bool) :
 
 #print axioms runtimeProgressReturn_enter
 #print axioms runtimeProgressReturn_nonmarker
+#print axioms runtimeProgressReturn_nonmarkerPairs
 #print axioms runtimeProgressReturn_marker
 #print axioms runtimeProgressReturn_marker_leftSafe
 
