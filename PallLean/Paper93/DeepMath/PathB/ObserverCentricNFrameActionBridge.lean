@@ -896,6 +896,48 @@ theorem operationalSAT_action_lower_of_nframe_extraction
   exact ⟨minor, cert,
     action_gt_polynomial_of_certificate hn20 hlog minor cert⟩
 
+/-! ## Locality and Boolean-output audits
+
+The configuration-grounded certificate deliberately retains its `service`
+field.  The following finite counterexample explains why it cannot be filled
+from determinism alone: a single one-bit refinement can separate several raw
+must-separate pairs simultaneously.  Thus raw pair count is not a
+one-transition-Lipschitz potential.
+-/
+
+private def threeWayResidual : Fin 3 → Fin 3 := id
+
+private def constantThreeWayView : Fin 3 → Fin 1 := fun _ => 0
+
+private def binaryThreeWayView : Fin 3 → Fin 2 := fun x =>
+  if x = 0 then 0 else 1
+
+/-- A binary refinement drops ordered residual-pair debt from six to two in
+one step.  In particular, the unit-service inequality required by the raw
+pair-count certificate is false for arbitrary deterministic observations. -/
+theorem rawPairDebt_not_unitLipschitz :
+    debtCount (residualFooling threeWayResidual) constantThreeWayView >
+      debtCount (residualFooling threeWayResidual) binaryThreeWayView + 1 := by
+  decide
+
+/-- If a family is pairwise distinguished solely by a Boolean decision, it
+has at most two members.  Consequently a binomial-size continuation family
+cannot be justified merely by assigning different final SAT answer bits; it
+requires a contextual residual/continuation semantics. -/
+theorem booleanOutputSeparated_card_le_two
+    {X : Type*} [Fintype X] [DecidableEq X]
+    (P : Finset X) (out : X → Bool)
+    (hseparate :
+      ∀ x ∈ P, ∀ y ∈ P, out x = out y → x = y) :
+    P.card ≤ 2 := by
+  let f : {x : X // x ∈ P} → Bool := fun x => out x.1
+  have hinjective : Function.Injective f := by
+    intro x y hxy
+    apply Subtype.ext
+    exact hseparate x.1 x.2 y.1 y.2 hxy
+  have hcard := Fintype.card_le_of_injective f hinjective
+  simpa [f] using hcard
+
 #print axioms liveRank_le_action
 #print axioms GroundedTrajectoryNFrameActionCertificate.toActionCertificate
 #print axioms groundedCertificateOfFoolingSet
@@ -928,5 +970,7 @@ theorem operationalSAT_action_lower_of_nframe_extraction
 #print axioms groundedExtraction_of_geometryAndServicing
 #print axioms action_gt_polynomial_of_certificate
 #print axioms operationalSAT_action_lower_of_nframe_extraction
+#print axioms rawPairDebt_not_unitLipschitz
+#print axioms booleanOutputSeparated_card_le_two
 
 end PallLean.Paper93.DeepMath.PathB.ObserverCentricNFrameActionBridge
