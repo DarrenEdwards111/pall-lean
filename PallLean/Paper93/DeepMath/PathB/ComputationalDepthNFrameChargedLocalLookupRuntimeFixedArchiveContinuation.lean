@@ -113,6 +113,86 @@ theorem runtimeFixedArchiveContinuation_workspace
     seedClock, inputTape, cleanedTape, physicalPrefix, R,
     flattenPairs_length, Nat.add_assoc, List.append_assoc] using hall
 
+/-- Matching left-boundary certificate for cleanup, relocation, and the full
+archive-return seed installation. -/
+theorem runtimeFixedArchiveContinuation_workspace_leftSafe
+    (pre bits first : List Bool) (more : List (List Bool))
+    (value : Bool) (m n : Nat) :
+    let workspace := runtimeWorkspaceFrontPairs value m n
+    let clearClock := 2 * workspace.length + 6 + if value then 0 else 2
+    let leftClock := runtimeFixedCleanupRelocateClock bits workspace.length clearClock
+    let seedClock := runtimeArchiveReturnSeedClock (first :: more)
+    let inputTape := pre ++ flattenPairs workspace ++
+      flattenPairs runtimePassedBoundaryMarker ++
+      flattenPairs (passedSourceBlock bits) ++ selectedTail (first :: more)
+    LeftSafeRun runtimeFixedArchiveContinuationMachine
+      ⟨runtimeFixedArchiveContinuationMachine.start,
+        pre.length, inputTape⟩
+      (leftClock + 1 + seedClock) := by
+  dsimp only
+  let workspace := runtimeWorkspaceFrontPairs value m n
+  let clearClock := 2 * workspace.length + 6 + if value then 0 else 2
+  let leftClock := runtimeFixedCleanupRelocateClock bits workspace.length clearClock
+  let seedClock := runtimeArchiveReturnSeedClock (first :: more)
+  let inputTape := pre ++ flattenPairs workspace ++
+    flattenPairs runtimePassedBoundaryMarker ++
+    flattenPairs (passedSourceBlock bits) ++ selectedTail (first :: more)
+  let physicalPrefix := pre ++ [false, false, false, false] ++
+    flattenPairs (passedSourceBlock bits) ++
+    flattenPairs (List.replicate workspace.length (false, false))
+  let cleanedTape := physicalPrefix ++ selectedTail (first :: more)
+  let R := pre.length + 4 +
+    2 * (passedSourceBlock bits ++
+      List.replicate workspace.length (false, false)).length
+  have hprefixLen : physicalPrefix.length = R := by
+    simp [physicalPrefix, R, flattenPairs_length]
+    omega
+  have hleft := runtimeFixedCleanupRelocate_workspace
+    pre bits first more value m n
+  have hleftSafe := runtimeFixedCleanupRelocate_workspace_leftSafe
+    pre bits first more value m n
+  have hleftHalt : runtimeFixedCleanupRelocateMachine.halt
+      runtimeFixedCleanupRelocateDone = true := by
+    simp [runtimeFixedCleanupRelocateMachine,
+      runtimeFixedCleanupRelocateDone, headSeqMachine,
+      runtimeFixedContinuationRelocatorMachine]
+  have hR : 2 ≤ R := by
+    simp [R, passedSourceBlock, workspace, runtimeWorkspaceFrontPairs]
+    omega
+  have hRlen : R ≤ cleanedTape.length := by
+    simp [cleanedTape, hprefixLen]
+  have hdrop : cleanedTape.drop R = selectedTail (first :: more) := by
+    change (physicalPrefix ++ selectedTail (first :: more)).drop R = _
+    rw [← hprefixLen]
+    simp
+  obtain ⟨archivePre, a, b, hpre, hshape, hseed⟩ :=
+    runtimeArchiveReturnSeed_run_of_drop cleanedTape R first more
+      hR hRlen hdrop
+  have hseedSafe' : LeftSafeRun runtimeArchiveReturnSeedMachine
+      ⟨runtimeArchiveReturnSeedMachine.start, R, cleanedTape⟩ seedClock := by
+    rw [hshape, show R = archivePre.length + 2 by omega]
+    simpa [seedClock] using runtimeArchiveReturnSeed_leftSafe_prefixed
+      archivePre a b first more (by omega)
+  have hseedHalt : runtimeArchiveReturnSeedMachine.halt
+      (run runtimeArchiveReturnSeedMachine seedClock
+        ⟨runtimeArchiveReturnSeedMachine.start, R, cleanedTape⟩).st = true := by
+    rw [hseed]
+    simp [runtimeArchiveReturnSeedMachine, headSeqMachine,
+      runtimeRebaseSeedMachine]
+  have hs := headSeq_leftSafe_at runtimeFixedCleanupRelocateMachine
+    runtimeArchiveReturnSeedMachine inputTape cleanedTape pre.length
+    leftClock seedClock R runtimeFixedCleanupRelocateDone
+    (by simpa [workspace, clearClock, leftClock, inputTape, cleanedTape,
+      physicalPrefix, R, flattenPairs_append, List.append_assoc] using hleft)
+    hleftHalt
+    (by simpa [workspace, clearClock, leftClock, inputTape,
+      List.append_assoc] using hleftSafe)
+    hseedSafe'
+    hseedHalt
+  simpa [runtimeFixedArchiveContinuationMachine, workspace, clearClock,
+    leftClock, seedClock, inputTape, Nat.add_assoc] using hs
+
 #print axioms runtimeFixedArchiveContinuation_workspace
+#print axioms runtimeFixedArchiveContinuation_workspace_leftSafe
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeFixedArchiveContinuation
