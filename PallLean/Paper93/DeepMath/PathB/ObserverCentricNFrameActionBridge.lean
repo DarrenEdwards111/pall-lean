@@ -141,6 +141,57 @@ structure TrajectoryNFrameFoolingCertificate
   service : ∀ t, debt t ≤ debt (t + 1) + rate t
   cleared : debt horizon = 0
 
+/-- Static half of the remaining theorem: SAT continuation geometry at one
+live N-frame minor.  This contains no temporal accounting. -/
+structure TrajectoryNFrameContinuationGeometry
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine} {n : Nat}
+    (minor : TrajectoryGodMoveBoundaryMinor enc T n)
+    (X : Type*) [DecidableEq X] where
+  stateCount : Nat
+  sectors : Finset X
+  view : X → Fin stateCount
+  mustSeparate : Finset (X × X)
+  fooling : ∀ x ∈ sectors, ∀ y ∈ sectors, x ≠ y →
+    (x, y) ∈ mustSeparate
+  rank_fits_collisions : minor.liveRank ≤ sectors.card - stateCount
+
+/-- Dynamic half of the remaining theorem for a fixed continuation geometry:
+the actual initial collision debt evolves locally and is cleared by the
+observer's successful computation. -/
+structure TrajectoryNFrameLocalServicing
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine} {n : Nat}
+    {minor : TrajectoryGodMoveBoundaryMinor enc T n}
+    {X : Type*} [DecidableEq X]
+    (geometry : TrajectoryNFrameContinuationGeometry minor X) where
+  debt : Nat → Nat
+  rate : Nat → Nat
+  horizon : Nat
+  initialDebt : debt 0 = debtCount geometry.mustSeparate geometry.view
+  service : ∀ t, debt t ≤ debt (t + 1) + rate t
+  cleared : debt horizon = 0
+
+/-- Static continuation geometry and dynamic local servicing assemble into the
+minimal fooling certificate. -/
+def TrajectoryNFrameContinuationGeometry.withServicing
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine} {n : Nat}
+    {minor : TrajectoryGodMoveBoundaryMinor enc T n}
+    {X : Type*} [DecidableEq X]
+    (geometry : TrajectoryNFrameContinuationGeometry minor X)
+    (servicing : TrajectoryNFrameLocalServicing geometry) :
+    TrajectoryNFrameFoolingCertificate minor X where
+  stateCount := geometry.stateCount
+  sectors := geometry.sectors
+  view := geometry.view
+  mustSeparate := geometry.mustSeparate
+  fooling := geometry.fooling
+  rank_fits_collisions := geometry.rank_fits_collisions
+  debt := servicing.debt
+  rate := servicing.rate
+  horizon := servicing.horizon
+  initialDebt := servicing.initialDebt
+  service := servicing.service
+  cleared := servicing.cleared
+
 /-- A fooling-set certificate canonically produces the grounded merged-pair
 certificate. -/
 def TrajectoryNFrameFoolingCertificate.toGrounded
@@ -207,6 +258,26 @@ def HasTrajectoryNFrameFoolingCertificateAt
   ∃ (minor : TrajectoryGodMoveBoundaryMinor enc T n)
       (X : Type) (_inst : DecidableEq X),
     Nonempty (TrajectoryNFrameFoolingCertificate minor X)
+
+/-- Fixed-length frontier split into its static and dynamic halves. -/
+def HasTrajectoryNFrameGeometryAndServicingAt
+    (enc : ThreeCNFEncoding) (T : TrajectoryObserverMachine) (n : Nat) : Prop :=
+  ∃ (minor : TrajectoryGodMoveBoundaryMinor enc T n)
+      (X : Type) (_inst : DecidableEq X)
+      (geometry : TrajectoryNFrameContinuationGeometry minor X),
+    Nonempty (TrajectoryNFrameLocalServicing geometry)
+
+/-- The two honest obligations assemble without any further mathematical
+assumption. -/
+theorem hasFoolingCertificate_of_geometryAndServicing
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine} {n : Nat}
+    (h : HasTrajectoryNFrameGeometryAndServicingAt enc T n) :
+    HasTrajectoryNFrameFoolingCertificateAt enc T n := by
+  rcases h with ⟨minor, X, inst, geometry, hservicing⟩
+  letI : DecidableEq X := inst
+  rcases hservicing with ⟨servicing⟩
+  exact ⟨minor, X, inferInstance,
+    ⟨geometry.withServicing servicing⟩⟩
 
 /-- Fooling-set geometry supplies the fully grounded action certificate. -/
 theorem hasGroundedCertificate_of_fooling
@@ -276,6 +347,32 @@ def TimeExponentParametricOperationalSATGroundedNFrameActionExtraction
       OperationalTrajectoryObserverDecidesSATAtMost enc e T →
       HasGroundedTrajectoryNFrameActionCertificateAt enc T n
 
+/-- Universal static+dynamic N-frame program.  This formulation identifies
+the two remaining theorem families separately: continuation non-collapse and
+local debt servicing. -/
+def TimeExponentParametricOperationalSATNFrameGeometryAndServicing
+    (enc : ThreeCNFEncoding) : Prop :=
+  ∀ e c : Nat, ∃ n : Nat,
+    n ≥ 2 ^ 20 ∧
+    4 * (c + 1) ≤ Nat.log 2 n ∧
+    ∀ T : TrajectoryObserverMachine,
+      OperationalTrajectoryObserverDecidesSATAtMost enc e T →
+      HasTrajectoryNFrameGeometryAndServicingAt enc T n
+
+/-- The split static/dynamic program implies the fully grounded extraction
+theorem. -/
+theorem groundedExtraction_of_geometryAndServicing
+    (enc : ThreeCNFEncoding)
+    (hprogram :
+      TimeExponentParametricOperationalSATNFrameGeometryAndServicing enc) :
+    TimeExponentParametricOperationalSATGroundedNFrameActionExtraction enc := by
+  intro e c
+  rcases hprogram e c with ⟨n, hn20, hlog, hcert⟩
+  refine ⟨n, hn20, hlog, ?_⟩
+  intro T hT
+  exact hasGroundedCertificate_of_fooling
+    (hasFoolingCertificate_of_geometryAndServicing (hcert T hT))
+
 /-- The grounded continuation-pair theorem supplies the abstract extraction
 socket without any additional hypothesis. -/
 theorem nframeActionExtraction_of_grounded
@@ -315,11 +412,14 @@ theorem operationalSAT_action_lower_of_nframe_extraction
 #print axioms GroundedTrajectoryNFrameActionCertificate.toActionCertificate
 #print axioms groundedCertificateOfFoolingSet
 #print axioms TrajectoryNFrameFoolingCertificate.toGrounded
+#print axioms TrajectoryNFrameContinuationGeometry.withServicing
 #print axioms binomial_le_action
 #print axioms binomial_le_action_of_grounded
 #print axioms hasTrajectoryCertificate_of_grounded
 #print axioms hasGroundedCertificate_of_fooling
+#print axioms hasFoolingCertificate_of_geometryAndServicing
 #print axioms nframeActionExtraction_of_grounded
+#print axioms groundedExtraction_of_geometryAndServicing
 #print axioms action_gt_polynomial_of_certificate
 #print axioms operationalSAT_action_lower_of_nframe_extraction
 
