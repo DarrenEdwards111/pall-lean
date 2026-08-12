@@ -51,7 +51,7 @@ def runtimeUniversalPassedShiftMachine : Machine where
     | .writeLo lo terminal =>
         (.advance terminal, some lo, 1)
     | .advance terminal =>
-        if terminal then (.done, none, 2) else (.holeLo, none, 1)
+        if terminal then (.done, none, 1) else (.holeLo, none, 1)
     | .done => (.done, none, 2)
   accept := fun _ => false
 
@@ -87,6 +87,66 @@ private theorem shift_write3 (pre tail : List Bool) (lo hi : Bool) :
     lo (by simp)]
   simp
 
+private theorem shift_holeLo_step (T : List Bool) (p : Nat) :
+    step runtimeUniversalPassedShiftMachine
+        ⟨RuntimeUniversalPassedShiftState.holeLo, p, T⟩ =
+      ⟨RuntimeUniversalPassedShiftState.holeHi, p + 1, T⟩ := by
+  simp [step, runtimeUniversalPassedShiftMachine, moveHead]
+
+private theorem shift_holeHi_step (T : List Bool) (p : Nat) :
+    step runtimeUniversalPassedShiftMachine
+        ⟨RuntimeUniversalPassedShiftState.holeHi, p + 1, T⟩ =
+      ⟨RuntimeUniversalPassedShiftState.readLo, p + 2, T⟩ := by
+  simp [step, runtimeUniversalPassedShiftMachine, moveHead]
+
+private theorem shift_readLo_step (T : List Bool) (p : Nat) (lo : Bool)
+    (hr : T[p + 2]?.getD false = lo) :
+    step runtimeUniversalPassedShiftMachine
+        ⟨RuntimeUniversalPassedShiftState.readLo, p + 2, T⟩ =
+      ⟨RuntimeUniversalPassedShiftState.readHi lo, p + 3, T⟩ := by
+  simp [step, runtimeUniversalPassedShiftMachine, moveHead, hr]
+
+private theorem shift_readHi_step (T T' : List Bool) (p : Nat) (lo hi : Bool)
+    (hr : T[p + 3]?.getD false = hi)
+    (hw : writeAt T (p + 3) false = T') :
+    step runtimeUniversalPassedShiftMachine
+        ⟨RuntimeUniversalPassedShiftState.readHi lo, p + 3, T⟩ =
+      ⟨RuntimeUniversalPassedShiftState.clearLo lo hi (!lo && hi), p + 2, T'⟩ := by
+  simp [step, runtimeUniversalPassedShiftMachine, moveHead, hr, hw]
+
+private theorem shift_clearLo_step (T T' : List Bool) (p : Nat)
+    (lo hi terminal : Bool) (hw : writeAt T (p + 2) false = T') :
+    step runtimeUniversalPassedShiftMachine
+        ⟨RuntimeUniversalPassedShiftState.clearLo lo hi terminal, p + 2, T⟩ =
+      ⟨RuntimeUniversalPassedShiftState.writeHi lo hi terminal, p + 1, T'⟩ := by
+  simp [step, runtimeUniversalPassedShiftMachine, moveHead, hw]
+
+private theorem shift_writeHi_step (T T' : List Bool) (p : Nat)
+    (lo hi terminal : Bool) (hw : writeAt T (p + 1) hi = T') :
+    step runtimeUniversalPassedShiftMachine
+        ⟨RuntimeUniversalPassedShiftState.writeHi lo hi terminal, p + 1, T⟩ =
+      ⟨RuntimeUniversalPassedShiftState.writeLo lo terminal, p, T'⟩ := by
+  simp [step, runtimeUniversalPassedShiftMachine, moveHead, hw]
+
+private theorem shift_writeLo_step (T T' : List Bool) (p : Nat)
+    (lo terminal : Bool) (hw : writeAt T p lo = T') :
+    step runtimeUniversalPassedShiftMachine
+        ⟨RuntimeUniversalPassedShiftState.writeLo lo terminal, p, T⟩ =
+      ⟨RuntimeUniversalPassedShiftState.advance terminal, p + 1, T'⟩ := by
+  simp [step, runtimeUniversalPassedShiftMachine, moveHead, hw]
+
+private theorem shift_advance_nonterminal_step (T : List Bool) (p : Nat) :
+    step runtimeUniversalPassedShiftMachine
+        ⟨RuntimeUniversalPassedShiftState.advance false, p + 1, T⟩ =
+      ⟨RuntimeUniversalPassedShiftState.holeLo, p + 2, T⟩ := by
+  simp [step, runtimeUniversalPassedShiftMachine, moveHead]
+
+private theorem shift_advance_terminal_step (T : List Bool) (p : Nat) :
+    step runtimeUniversalPassedShiftMachine
+        ⟨RuntimeUniversalPassedShiftState.advance true, p + 1, T⟩ =
+      ⟨RuntimeUniversalPassedShiftState.done, p + 2, T⟩ := by
+  simp [step, runtimeUniversalPassedShiftMachine, moveHead]
+
 /-- One nonterminal pair is moved left over the hole in eight transitions;
 control continues at the moved hole. -/
 theorem runtimeUniversalPassedShift_nonterminal
@@ -97,17 +157,43 @@ theorem runtimeUniversalPassedShift_nonterminal
           pre ++ [false, false, lo, hi] ++ tail⟩ =
       ⟨runtimeUniversalPassedShiftMachine.start, pre.length + 2,
         pre ++ [lo, hi, false, false] ++ tail⟩ := by
-  rw [show 8 = 7 + 1 by omega, run_succ,
-    show 7 = 6 + 1 by omega, run_succ,
-    show 6 = 5 + 1 by omega, run_succ,
-    show 5 = 4 + 1 by omega, run_succ,
-    show 4 = 3 + 1 by omega, run_succ,
-    show 3 = 2 + 1 by omega, run_succ,
-    show 2 = 1 + 1 by omega, run_succ,
-    show 1 = 0 + 1 by omega, run_succ, run_zero]
-  cases lo <;> cases hi <;>
-    simp_all [step, runtimeUniversalPassedShiftMachine, moveHead,
-      List.getD_eq_getElem?_getD, writeAt]
+  let T0 := pre ++ [false, false, lo, hi] ++ tail
+  let T1 := pre ++ [false, false, lo, false] ++ tail
+  let T2 := pre ++ [false, false, false, false] ++ tail
+  let T3 := pre ++ [false, hi, false, false] ++ tail
+  let T4 := pre ++ [lo, hi, false, false] ++ tail
+  have hr0 : T0[pre.length + 2]?.getD false = lo := by simp [T0]
+  have hr1 : T0[pre.length + 3]?.getD false = hi := by simp [T0]
+  have hw0 : writeAt T0 (pre.length + 3) false = T1 := by
+    simpa [T0, T1] using shift_write0 pre tail lo hi
+  have hw1 : writeAt T1 (pre.length + 2) false = T2 := by
+    simpa [T1, T2] using shift_write1 pre tail lo
+  have hw2 : writeAt T2 (pre.length + 1) hi = T3 := by
+    simpa [T2, T3] using shift_write2 pre tail lo hi
+  have hw3 : writeAt T3 pre.length lo = T4 := by
+    simpa [T3, T4] using shift_write3 pre tail lo hi
+  have ht : (!lo && hi) = false := by
+    cases lo <;> cases hi <;> simp_all
+  change run runtimeUniversalPassedShiftMachine 8
+      ⟨RuntimeUniversalPassedShiftState.holeLo, pre.length, T0⟩ =
+    ⟨RuntimeUniversalPassedShiftState.holeLo, pre.length + 2, T4⟩
+  rw [show run runtimeUniversalPassedShiftMachine 8 _ =
+      step runtimeUniversalPassedShiftMachine
+        (step runtimeUniversalPassedShiftMachine
+          (step runtimeUniversalPassedShiftMachine
+            (step runtimeUniversalPassedShiftMachine
+              (step runtimeUniversalPassedShiftMachine
+                (step runtimeUniversalPassedShiftMachine
+                  (step runtimeUniversalPassedShiftMachine
+                    (step runtimeUniversalPassedShiftMachine
+                      ⟨RuntimeUniversalPassedShiftState.holeLo, pre.length, T0⟩))))))) by rfl]
+  rw [shift_holeLo_step T0 pre.length, shift_holeHi_step T0 pre.length,
+    shift_readLo_step T0 pre.length lo hr0,
+    shift_readHi_step T0 T1 pre.length lo hi hr1 hw0, ht,
+    shift_clearLo_step T1 T2 pre.length lo hi false hw1,
+    shift_writeHi_step T2 T3 pre.length lo hi false hw2,
+    shift_writeLo_step T3 T4 pre.length lo false hw3,
+    shift_advance_nonterminal_step T4 pre.length]
 
 /-- The canonical closing pair `01` is moved left over the hole and the
 same fixed controller genuinely halts immediately afterward. -/
@@ -118,16 +204,40 @@ theorem runtimeUniversalPassedShift_terminal
           pre ++ [false, false, false, true] ++ tail⟩ =
       ⟨RuntimeUniversalPassedShiftState.done, pre.length + 2,
         pre ++ [false, true, false, false] ++ tail⟩ := by
-  rw [show 8 = 7 + 1 by omega, run_succ,
-    show 7 = 6 + 1 by omega, run_succ,
-    show 6 = 5 + 1 by omega, run_succ,
-    show 5 = 4 + 1 by omega, run_succ,
-    show 4 = 3 + 1 by omega, run_succ,
-    show 3 = 2 + 1 by omega, run_succ,
-    show 2 = 1 + 1 by omega, run_succ,
-    show 1 = 0 + 1 by omega, run_succ, run_zero]
-  simp [step, runtimeUniversalPassedShiftMachine, moveHead,
-    List.getD_eq_getElem?_getD, writeAt]
+  let T0 := pre ++ [false, false, false, true] ++ tail
+  let T1 := pre ++ [false, false, false, false] ++ tail
+  let T2 := pre ++ [false, true, false, false] ++ tail
+  have hr0 : T0[pre.length + 2]?.getD false = false := by simp [T0]
+  have hr1 : T0[pre.length + 3]?.getD false = true := by simp [T0]
+  have hw0 : writeAt T0 (pre.length + 3) false = T1 := by
+    simpa [T0, T1] using shift_write0 pre tail false true
+  have hw1 : writeAt T1 (pre.length + 2) false = T1 := by
+    simpa [T1] using shift_write1 pre tail false
+  have hw2 : writeAt T1 (pre.length + 1) true = T2 := by
+    simpa [T1, T2] using shift_write2 pre tail false true
+  have hw3 : writeAt T2 pre.length false = T2 := by
+    simpa [T2] using shift_write3 pre tail false true
+  change run runtimeUniversalPassedShiftMachine 8
+      ⟨RuntimeUniversalPassedShiftState.holeLo, pre.length, T0⟩ =
+    ⟨RuntimeUniversalPassedShiftState.done, pre.length + 2, T2⟩
+  rw [show run runtimeUniversalPassedShiftMachine 8 _ =
+      step runtimeUniversalPassedShiftMachine
+        (step runtimeUniversalPassedShiftMachine
+          (step runtimeUniversalPassedShiftMachine
+            (step runtimeUniversalPassedShiftMachine
+              (step runtimeUniversalPassedShiftMachine
+                (step runtimeUniversalPassedShiftMachine
+                  (step runtimeUniversalPassedShiftMachine
+                    (step runtimeUniversalPassedShiftMachine
+                      ⟨RuntimeUniversalPassedShiftState.holeLo, pre.length, T0⟩))))))) by rfl]
+  rw [shift_holeLo_step T0 pre.length, shift_holeHi_step T0 pre.length,
+    shift_readLo_step T0 pre.length false hr0,
+    shift_readHi_step T0 T1 pre.length false true hr1 hw0,
+    show (!false && true) = true by decide,
+    shift_clearLo_step T1 T1 pre.length false true true hw1,
+    shift_writeHi_step T1 T2 pre.length false true true hw2,
+    shift_writeLo_step T2 T2 pre.length false true hw3,
+    shift_advance_terminal_step T2 pre.length]
 
 theorem runtimeUniversalPassedShift_dataPairs
     (pre tail : List Bool) (bits : List Bool) :
@@ -154,7 +264,8 @@ theorem runtimeUniversalPassedShift_dataPairs
       rw [hfirst']
       have hih := ih (pre := pre ++ [b, b])
       convert hih using 1 <;>
-        simp [dataPairs, flattenPairs, List.append_assoc, Nat.add_assoc]
+        simp [dataPairs, flattenPairs, List.append_assoc, Nat.add_assoc,
+          Nat.mul_add, Nat.add_comm]
 
 /-- Full self-delimiting passed-block pass.  Its clock appears only in the
 run theorem; the machine itself contains no length parameter. -/
@@ -171,7 +282,9 @@ theorem runtimeUniversalPassedShift_passedSourceBlock
           [false, false] ++ tail⟩ := by
   rw [show 8 * (passedSourceBlock bits).length =
       8 + (8 * bits.length + 8) by
-    simp [passedSourceBlock, dataPairs],
+    simp [passedSourceBlock, dataPairs, Nat.mul_add, Nat.add_comm,
+      Nat.add_left_comm]
+    ring_nf,
     run_add]
   have hhead := runtimeUniversalPassedShift_nonterminal pre
     (flattenPairs (dataPairs bits) ++ [false, true] ++ tail)
@@ -200,7 +313,8 @@ theorem runtimeUniversalPassedShift_passedSourceBlock
     (pre ++ [true, true] ++ flattenPairs (dataPairs bits)) tail
   convert hend using 1 <;>
     simp [passedSourceBlock, flattenPairs, flattenPairs_append,
-      dataPairs, List.append_assoc, Nat.add_assoc] <;> omega
+      dataPairs, List.append_assoc, Nat.add_assoc, Nat.add_comm,
+      Nat.add_left_comm] <;> ring_nf
 
 /-! ## Structural left safety -/
 
@@ -217,9 +331,12 @@ theorem runtimeUniversalPassedShift_invariant_step
     (h : RuntimeUniversalPassedShiftHeadInvariant c) :
     RuntimeUniversalPassedShiftHeadInvariant
       (step runtimeUniversalPassedShiftMachine c) := by
-  cases hs : c.st <;>
+  rcases c with ⟨st, hd, tp⟩
+  cases st <;>
     simp_all [RuntimeUniversalPassedShiftHeadInvariant, step,
-      runtimeUniversalPassedShiftMachine, moveHead] <;> omega
+      runtimeUniversalPassedShiftMachine, moveHead] <;> try omega
+  case advance terminal =>
+    cases terminal <;> simp
 
 theorem runtimeUniversalPassedShift_invariant_run
     (c : Cfg runtimeUniversalPassedShiftMachine)
