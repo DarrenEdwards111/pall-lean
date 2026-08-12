@@ -19,6 +19,7 @@ set_option maxHeartbeats 4000000
 
 open PallLean.Paper93.DeepMath.PathB.ComposableMachine
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceSelect
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundEntryAdapter
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePreservedPassedCopy
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupLeftBoundaryTerminal
 
@@ -467,6 +468,174 @@ theorem runtimeProgressRecordClear_isolatedZero_marker
   rw [hend]
   simpa only [List.append_assoc] using hr
 
+/-- Add the genuine initial sentinel step and an arbitrary nonzero front to
+the isolated-zero core. -/
+theorem runtimeProgressRecordClear_first_front_isolatedZero_marker
+    (pre tail : List Bool) (first next : Bool × Bool)
+    (front rest : List (Bool × Bool))
+    (hfirst : first.1 = true ∨ first.2 = true)
+    (hfront : ∀ p ∈ front, p.1 = true ∨ p.2 = true)
+    (hnext : next.1 = true ∨ next.2 = true)
+    (hrest : ∀ p ∈ rest, p.1 = true ∨ p.2 = true) :
+    run runtimeProgressRecordClearMachine
+        (2 + (2 * front.length + (6 + (2 * rest.length + 6))))
+        ⟨runtimeProgressRecordClearMachine.start, pre.length,
+          pre ++ flattenPairs
+            (first :: (front ++ [(false, false), next] ++ rest)) ++
+            flattenPairs runtimePassedBoundaryMarker ++ tail⟩ =
+      ⟨RuntimeProgressRecordClearState.done,
+        pre.length + 2 + 2 * front.length + 4 + 2 * rest.length + 2,
+        pre ++ [false, true] ++
+          flattenPairs (List.replicate front.length (true, false)) ++
+          [true, false, true, false] ++
+          flattenPairs (List.replicate (rest.length + 1) (true, false)) ++
+          [false, false] ++ tail⟩ := by
+  rw [run_add]
+  have hf := runtimeProgressRecordClear_first pre
+    (flattenPairs (front ++ [(false, false), next] ++ rest) ++
+      flattenPairs runtimePassedBoundaryMarker ++ tail)
+    first.1 first.2 hfirst
+  have hf' : run runtimeProgressRecordClearMachine 2
+      ⟨runtimeProgressRecordClearMachine.start, pre.length,
+        pre ++ flattenPairs
+          (first :: (front ++ [(false, false), next] ++ rest)) ++
+          flattenPairs runtimePassedBoundaryMarker ++ tail⟩ =
+    ⟨RuntimeProgressRecordClearState.lo, pre.length + 2,
+      pre ++ [false, true] ++
+        flattenPairs (front ++ [(false, false), next] ++ rest) ++
+        flattenPairs runtimePassedBoundaryMarker ++ tail⟩ := by
+    simpa [flattenPairs, List.append_assoc] using hf
+  rw [hf', run_add]
+  have hp := runtimeProgressRecordClear_nonzeroPairs
+    (pre ++ [false, true])
+    (flattenPairs ([(false, false), next] ++ rest) ++
+      flattenPairs runtimePassedBoundaryMarker ++ tail) front hfront
+  have hp' : run runtimeProgressRecordClearMachine (2 * front.length)
+      ⟨RuntimeProgressRecordClearState.lo, pre.length + 2,
+        pre ++ [false, true] ++
+          flattenPairs (front ++ [(false, false), next] ++ rest) ++
+          flattenPairs runtimePassedBoundaryMarker ++ tail⟩ =
+    ⟨RuntimeProgressRecordClearState.lo,
+      pre.length + 2 + 2 * front.length,
+      pre ++ [false, true] ++
+        flattenPairs (List.replicate front.length (true, false)) ++
+        flattenPairs ([(false, false), next] ++ rest) ++
+        flattenPairs runtimePassedBoundaryMarker ++ tail⟩ := by
+    simpa [flattenPairs_append, List.append_assoc, Nat.add_assoc] using hp
+  rw [hp']
+  have hz := runtimeProgressRecordClear_isolatedZero_marker
+    (pre ++ [false, true] ++
+      flattenPairs (List.replicate front.length (true, false)))
+    tail next rest hnext hrest
+  have hpre : (pre ++ [false, true] ++
+      flattenPairs (List.replicate front.length (true, false))).length =
+      pre.length + 2 + 2 * front.length := by
+    simp [flattenPairs_length]
+    omega
+  rw [hpre] at hz
+  have hend : pre.length + 2 + 2 * front.length + 4 +
+      2 * rest.length + 2 =
+      pre.length + 2 + 2 * front.length + (4 + 2 * rest.length + 2) := by omega
+  convert hz using 1
+
+/-- Complete progress-record production for the exact reachable workspace
+grammar, including both Boolean values and all `m,n`. -/
+theorem runtimeProgressRecordClear_workspace
+    (pre tail : List Bool) (value : Bool) (m n : Nat) :
+    let workspace := runtimeWorkspaceFrontPairs value m n
+    let clock := 2 * workspace.length + 6 + if value then 0 else 2
+    run runtimeProgressRecordClearMachine clock
+        ⟨runtimeProgressRecordClearMachine.start, pre.length,
+          pre ++ flattenPairs workspace ++
+            flattenPairs runtimePassedBoundaryMarker ++ tail⟩ =
+      ⟨RuntimeProgressRecordClearState.done,
+        pre.length + 2 * workspace.length + 2,
+        pre ++ [false, true] ++
+          flattenPairs (List.replicate workspace.length (true, false)) ++
+          [false, false] ++ tail⟩ := by
+  dsimp only
+  cases value
+  · cases m with
+    | zero =>
+        let front : List (Bool × Bool) := [(false, true)]
+        let rest : List (Bool × Bool) := List.replicate n (true, true)
+        have hf : ∀ p ∈ front, p.1 = true ∨ p.2 = true := by
+          intro p hp
+          simp [front] at hp
+          subst p
+          simp
+        have hr : ∀ p ∈ rest, p.1 = true ∨ p.2 = true := by
+          intro p hp
+          simp [rest] at hp
+          rcases hp with ⟨_, rfl⟩
+          simp
+        have h := runtimeProgressRecordClear_first_front_isolatedZero_marker
+          pre tail (true, false) (false, true) front rest
+          (by simp) hf (by simp) hr
+        have hc : 2 * (runtimeWorkspaceFrontPairs false 0 n).length + 6 + 2 =
+            2 + (2 * front.length + (6 + (2 * rest.length + 6))) := by
+          simp [runtimeWorkspaceFrontPairs, front, rest]
+          omega
+        simp only [Bool.false_eq_true, if_false]
+        rw [hc]
+        convert h using 1
+        all_goals simp [runtimeWorkspaceFrontPairs, front, rest, progressWords_add,
+          progressWords_commute, flattenPairs, List.append_assoc]
+        all_goals omega
+    | succ k =>
+        let front : List (Bool × Bool) := [(false, true)]
+        let rest : List (Bool × Bool) :=
+          List.replicate k (true, false) ++ [(false, true)] ++
+            List.replicate n (true, true)
+        have hf : ∀ p ∈ front, p.1 = true ∨ p.2 = true := by
+          intro p hp
+          simp [front] at hp
+          subst p
+          simp
+        have hr : ∀ p ∈ rest, p.1 = true ∨ p.2 = true := by
+          intro p hp
+          simp [rest] at hp
+          rcases hp with h | h | h
+          · rcases h with ⟨_, rfl⟩; simp
+          · subst p; simp
+          · rcases h with ⟨_, rfl⟩; simp
+        have h := runtimeProgressRecordClear_first_front_isolatedZero_marker
+          pre tail (true, false) (true, false) front rest
+          (by simp) hf (by simp) hr
+        have hc : 2 * (runtimeWorkspaceFrontPairs false (k + 1) n).length + 6 + 2 =
+            2 + (2 * front.length + (6 + (2 * rest.length + 6))) := by
+          simp [runtimeWorkspaceFrontPairs, front, rest]
+          omega
+        simp only [Bool.false_eq_true, if_false]
+        rw [hc]
+        convert h using 1
+        all_goals simp [runtimeWorkspaceFrontPairs, front, rest,
+          List.replicate_succ, flattenPairs, List.append_assoc]
+        all_goals omega
+  · let rest := (false, true) :: (true, true) ::
+        (List.replicate m (true, false) ++ [(false, true)] ++
+          List.replicate n (true, true))
+    have hr : ∀ p ∈ rest, p.1 = true ∨ p.2 = true := by
+      intro p hp
+      simp [rest] at hp
+      rcases hp with h | h | h | h
+      · subst p; simp
+      · subst p; simp
+      · rcases h with ⟨_, rfl⟩; simp
+      · rcases h with rfl | ⟨_, rfl⟩
+        · simp
+        · simp
+    have h := runtimeProgressRecordClear_nonzeroWorkspace
+      pre tail (true, false) rest (by simp) hr
+    have hc : 2 * (runtimeWorkspaceFrontPairs true m n).length + 6 =
+        2 + (2 * rest.length + 6) := by
+      simp [runtimeWorkspaceFrontPairs, rest]
+      omega
+    rw [hc]
+    convert h using 1
+    all_goals simp [runtimeWorkspaceFrontPairs, rest, List.append_assoc]
+    all_goals omega
+
 @[simp] theorem runtimeProgressRecordClear_done_halts :
     runtimeProgressRecordClearMachine.halt
       RuntimeProgressRecordClearState.done = true := by
@@ -480,5 +649,7 @@ theorem runtimeProgressRecordClear_isolatedZero_marker
 #print axioms runtimeProgressRecordClear_nonzeroPrefix_marker
 #print axioms runtimeProgressRecordClear_nonzeroWorkspace
 #print axioms runtimeProgressRecordClear_isolatedZero_marker
+#print axioms runtimeProgressRecordClear_first_front_isolatedZero_marker
+#print axioms runtimeProgressRecordClear_workspace
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeProgressRecordClear
