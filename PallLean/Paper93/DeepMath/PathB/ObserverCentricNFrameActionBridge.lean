@@ -210,6 +210,33 @@ theorem hasContinuationGeometry_of_surjectiveResidual
     Nonempty (TrajectoryNFrameContinuationGeometry minor C) :=
   ⟨continuationGeometryOfSurjectiveResidual minor residual hsurj view hrank⟩
 
+/-- The irreducible static witness in residual language.  Unlike the derived
+geometry, every load-bearing quantity is visible: residual dimension `r`,
+boundary exponent `B`, surjectivity, and the collision surplus needed by the
+live minor. -/
+structure TrajectoryNFrameResidualNoncollapse
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine} {n : Nat}
+    (minor : TrajectoryGodMoveBoundaryMinor enc T n)
+    (C : Type*) [Fintype C] [DecidableEq C] where
+  residualDimension : Nat
+  boundaryExponent : Nat
+  residual : C → Fin (2 ^ residualDimension)
+  residual_surjective : Function.Surjective residual
+  view : C → Fin (2 ^ boundaryExponent)
+  rank_fits_residual_surplus :
+    minor.liveRank ≤ 2 ^ residualDimension - 2 ^ boundaryExponent
+
+/-- Residual non-collapse compiles to static continuation geometry with no
+additional combinatorial premise. -/
+noncomputable def TrajectoryNFrameResidualNoncollapse.toGeometry
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine} {n : Nat}
+    {minor : TrajectoryGodMoveBoundaryMinor enc T n}
+    {C : Type*} [Fintype C] [DecidableEq C]
+    (cert : TrajectoryNFrameResidualNoncollapse minor C) :
+    TrajectoryNFrameContinuationGeometry minor C :=
+  continuationGeometryOfSurjectiveResidual minor cert.residual
+    cert.residual_surjective cert.view cert.rank_fits_residual_surplus
+
 /-- Dynamic half of the remaining theorem for a fixed continuation geometry:
 the actual initial collision debt evolves locally and is cleared by the
 observer's successful computation. -/
@@ -314,6 +341,31 @@ def HasTrajectoryNFrameFoolingCertificateAt
       (X : Type) (_inst : DecidableEq X),
     Nonempty (TrajectoryNFrameFoolingCertificate minor X)
 
+/-- Static residual non-collapse at one trajectory and input length. -/
+def HasTrajectoryNFrameResidualNoncollapseAt
+    (enc : ThreeCNFEncoding) (T : TrajectoryObserverMachine) (n : Nat) : Prop :=
+  ∃ (minor : TrajectoryGodMoveBoundaryMinor enc T n)
+      (C : Type) (_fintype : Fintype C) (_decEq : DecidableEq C),
+    Nonempty (TrajectoryNFrameResidualNoncollapse minor C)
+
+/-- Static continuation geometry at one trajectory and input length. -/
+def HasTrajectoryNFrameContinuationGeometryAt
+    (enc : ThreeCNFEncoding) (T : TrajectoryObserverMachine) (n : Nat) : Prop :=
+  ∃ (minor : TrajectoryGodMoveBoundaryMinor enc T n)
+      (C : Type) (_decEq : DecidableEq C),
+    Nonempty (TrajectoryNFrameContinuationGeometry minor C)
+
+/-- The residual formulation implies the static geometry formulation. -/
+theorem hasContinuationGeometry_of_residualNoncollapse
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine} {n : Nat}
+    (h : HasTrajectoryNFrameResidualNoncollapseAt enc T n) :
+    HasTrajectoryNFrameContinuationGeometryAt enc T n := by
+  rcases h with ⟨minor, C, fintype, decEq, hcert⟩
+  letI : Fintype C := fintype
+  letI : DecidableEq C := decEq
+  rcases hcert with ⟨cert⟩
+  exact ⟨minor, C, inferInstance, ⟨cert.toGeometry⟩⟩
+
 /-- Fixed-length frontier split into its static and dynamic halves. -/
 def HasTrajectoryNFrameGeometryAndServicingAt
     (enc : ThreeCNFEncoding) (T : TrajectoryObserverMachine) (n : Nat) : Prop :=
@@ -402,6 +454,39 @@ def TimeExponentParametricOperationalSATGroundedNFrameActionExtraction
       OperationalTrajectoryObserverDecidesSATAtMost enc e T →
       HasGroundedTrajectoryNFrameActionCertificateAt enc T n
 
+/-- Exact universal static frontier in residual language.  This is where the
+fixed-decomposition expander theorem must be upgraded to every bounded-time
+adaptive SAT trajectory. -/
+def TimeExponentParametricOperationalSATResidualNoncollapse
+    (enc : ThreeCNFEncoding) : Prop :=
+  ∀ e c : Nat, ∃ n : Nat,
+    n ≥ 2 ^ 20 ∧
+    4 * (c + 1) ≤ Nat.log 2 n ∧
+    ∀ T : TrajectoryObserverMachine,
+      OperationalTrajectoryObserverDecidesSATAtMost enc e T →
+      HasTrajectoryNFrameResidualNoncollapseAt enc T n
+
+/-- Universal residual non-collapse gives the universal static geometry
+program.  It does not supply dynamic locality/servicing. -/
+def TimeExponentParametricOperationalSATContinuationGeometry
+    (enc : ThreeCNFEncoding) : Prop :=
+  ∀ e c : Nat, ∃ n : Nat,
+    n ≥ 2 ^ 20 ∧
+    4 * (c + 1) ≤ Nat.log 2 n ∧
+    ∀ T : TrajectoryObserverMachine,
+      OperationalTrajectoryObserverDecidesSATAtMost enc e T →
+      HasTrajectoryNFrameContinuationGeometryAt enc T n
+
+theorem continuationGeometry_of_residualNoncollapse
+    (enc : ThreeCNFEncoding)
+    (hnoncollapse :
+      TimeExponentParametricOperationalSATResidualNoncollapse enc) :
+    TimeExponentParametricOperationalSATContinuationGeometry enc := by
+  intro e c
+  rcases hnoncollapse e c with ⟨n, hn20, hlog, hcert⟩
+  exact ⟨n, hn20, hlog, fun T hT =>
+    hasContinuationGeometry_of_residualNoncollapse (hcert T hT)⟩
+
 /-- Universal static+dynamic N-frame program.  This formulation identifies
 the two remaining theorem families separately: continuation non-collapse and
 local debt servicing. -/
@@ -469,6 +554,9 @@ theorem operationalSAT_action_lower_of_nframe_extraction
 #print axioms TrajectoryNFrameFoolingCertificate.toGrounded
 #print axioms continuationGeometryOfSurjectiveResidual
 #print axioms hasContinuationGeometry_of_surjectiveResidual
+#print axioms TrajectoryNFrameResidualNoncollapse.toGeometry
+#print axioms hasContinuationGeometry_of_residualNoncollapse
+#print axioms continuationGeometry_of_residualNoncollapse
 #print axioms TrajectoryNFrameContinuationGeometry.withServicing
 #print axioms binomial_le_action
 #print axioms binomial_le_action_of_grounded
