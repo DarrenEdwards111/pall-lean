@@ -24,6 +24,7 @@ namespace PallLean.Paper93.DeepMath.PathB.ObserverCentricNFrameActionBridge
 
 open PallLean.Paper93.DeepMath.PathB
 open PallLean.Paper93.DeepMath.PathB.ObserverTimeDebt
+open PallLean.Paper93.DeepMath.PathB.BoundaryDebt
 
 /-- Observer-time servicing data attached to a concrete trajectory-local
 N-frame minor.  `initialDebt_ge_liveRank` is the substantive semantic link:
@@ -38,6 +39,50 @@ structure TrajectoryNFrameActionCertificate
   service : ∀ t, debt t ≤ debt (t + 1) + rate t
   cleared : debt horizon = 0
   initialDebt_ge_liveRank : minor.liveRank ≤ debt 0
+
+/-- A grounded certificate replaces the free inequality
+`liveRank ≤ initialDebt` by an explicit family `mergedPairs` of
+must-separate continuation pairs that the initial boundary view merges.
+
+The only substantive inputs are now visible data: the pairs really belong to
+the must-separate relation, the view really merges them, and there are at least
+`liveRank` of them. -/
+structure GroundedTrajectoryNFrameActionCertificate
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine} {n : Nat}
+    (minor : TrajectoryGodMoveBoundaryMinor enc T n)
+    (X S : Type*) [DecidableEq S] where
+  mustSeparate : Finset (X × X)
+  initialView : X → S
+  mergedPairs : Finset (X × X)
+  mergedPairs_subset : mergedPairs ⊆ mustSeparate
+  mergedPairs_merged :
+    ∀ p ∈ mergedPairs, initialView p.1 = initialView p.2
+  liveRank_le_mergedPairs : minor.liveRank ≤ mergedPairs.card
+  debt : Nat → Nat
+  rate : Nat → Nat
+  horizon : Nat
+  initialDebt : debt 0 = debtCount mustSeparate initialView
+  service : ∀ t, debt t ≤ debt (t + 1) + rate t
+  cleared : debt horizon = 0
+
+/-- Explicit merged must-separate pairs generate the abstract action
+certificate.  Thus the live-rank/debt link is no longer an unconstrained field. -/
+def GroundedTrajectoryNFrameActionCertificate.toActionCertificate
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine} {n : Nat}
+    {minor : TrajectoryGodMoveBoundaryMinor enc T n}
+    {X S : Type*} [DecidableEq S]
+    (cert : GroundedTrajectoryNFrameActionCertificate minor X S) :
+    TrajectoryNFrameActionCertificate minor where
+  debt := cert.debt
+  rate := cert.rate
+  horizon := cert.horizon
+  service := cert.service
+  cleared := cert.cleared
+  initialDebt_ge_liveRank := by
+    rw [cert.initialDebt]
+    exact le_trans cert.liveRank_le_mergedPairs
+      (merge_creates_debt cert.mustSeparate cert.initialView
+        cert.mergedPairs_subset cert.mergedPairs_merged)
 
 /-- A correct observer carrying a trajectory-local N-frame minor must spend at
 least the minor's live rank in time-integrated boundary action. -/
@@ -59,12 +104,43 @@ theorem binomial_le_action
       observerTimeAction cert.rate cert.horizon :=
   le_trans minor.rank_lower (liveRank_le_action minor cert)
 
+/-- Fully grounded cash-out: an explicit merged family of continuation pairs
+forces the binomial N-frame action lower bound. -/
+theorem binomial_le_action_of_grounded
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine} {n : Nat}
+    (minor : TrajectoryGodMoveBoundaryMinor enc T n)
+    {X S : Type*} [DecidableEq S]
+    (cert : GroundedTrajectoryNFrameActionCertificate minor X S) :
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
+      observerTimeAction cert.rate cert.horizon :=
+  binomial_le_action minor cert.toActionCertificate
+
 /-- A trajectory has an N-frame action certificate at length `n` when it has a
 live minor together with honest observer-time debt servicing data. -/
 def HasTrajectoryNFrameActionCertificateAt
     (enc : ThreeCNFEncoding) (T : TrajectoryObserverMachine) (n : Nat) : Prop :=
   ∃ minor : TrajectoryGodMoveBoundaryMinor enc T n,
     Nonempty (TrajectoryNFrameActionCertificate minor)
+
+/-- Grounded version of the fixed-length certificate: the witness includes an
+actual continuation universe, boundary-state type, and merged must-separate
+pair family. -/
+def HasGroundedTrajectoryNFrameActionCertificateAt
+    (enc : ThreeCNFEncoding) (T : TrajectoryObserverMachine) (n : Nat) : Prop :=
+  ∃ (minor : TrajectoryGodMoveBoundaryMinor enc T n)
+      (X S : Type) (_inst : DecidableEq S),
+    Nonempty (GroundedTrajectoryNFrameActionCertificate minor X S)
+
+/-- Forgetting the explicit pair geometry yields the abstract action
+certificate used by the generic conservation cash-out. -/
+theorem hasTrajectoryCertificate_of_grounded
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine} {n : Nat}
+    (h : HasGroundedTrajectoryNFrameActionCertificateAt enc T n) :
+    HasTrajectoryNFrameActionCertificateAt enc T n := by
+  rcases h with ⟨minor, X, S, inst, hcert⟩
+  letI : DecidableEq S := inst
+  rcases hcert with ⟨cert⟩
+  exact ⟨minor, ⟨cert.toActionCertificate⟩⟩
 
 /-- The action paid by a chosen certificate. -/
 def certificateAction
@@ -100,6 +176,30 @@ def TimeExponentParametricOperationalSATNFrameActionExtraction
       OperationalTrajectoryObserverDecidesSATAtMost enc e T →
       HasTrajectoryNFrameActionCertificateAt enc T n
 
+/-- Fully grounded observer-centric frontier.  This is the precise new-math
+target: every bounded-time SAT trajectory must exhibit enough explicitly
+merged, must-separate continuations to support its live N-frame minor. -/
+def TimeExponentParametricOperationalSATGroundedNFrameActionExtraction
+    (enc : ThreeCNFEncoding) : Prop :=
+  ∀ e c : Nat, ∃ n : Nat,
+    n ≥ 2 ^ 20 ∧
+    4 * (c + 1) ≤ Nat.log 2 n ∧
+    ∀ T : TrajectoryObserverMachine,
+      OperationalTrajectoryObserverDecidesSATAtMost enc e T →
+      HasGroundedTrajectoryNFrameActionCertificateAt enc T n
+
+/-- The grounded continuation-pair theorem supplies the abstract extraction
+socket without any additional hypothesis. -/
+theorem nframeActionExtraction_of_grounded
+    (enc : ThreeCNFEncoding)
+    (hgrounded :
+      TimeExponentParametricOperationalSATGroundedNFrameActionExtraction enc) :
+    TimeExponentParametricOperationalSATNFrameActionExtraction enc := by
+  intro e c
+  rcases hgrounded e c with ⟨n, hn20, hlog, hcert⟩
+  exact ⟨n, hn20, hlog, fun T hT =>
+    hasTrajectoryCertificate_of_grounded (hcert T hT)⟩
+
 /-- Cash-out of the observer-centric frontier: the extracted certificate for
 every bounded-time SAT trajectory necessarily has super-`n^c` action at the
 chosen scale. -/
@@ -124,7 +224,11 @@ theorem operationalSAT_action_lower_of_nframe_extraction
     action_gt_polynomial_of_certificate hn20 hlog minor cert⟩
 
 #print axioms liveRank_le_action
+#print axioms GroundedTrajectoryNFrameActionCertificate.toActionCertificate
 #print axioms binomial_le_action
+#print axioms binomial_le_action_of_grounded
+#print axioms hasTrajectoryCertificate_of_grounded
+#print axioms nframeActionExtraction_of_grounded
 #print axioms action_gt_polynomial_of_certificate
 #print axioms operationalSAT_action_lower_of_nframe_extraction
 
