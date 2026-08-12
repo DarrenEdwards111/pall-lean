@@ -313,6 +313,115 @@ theorem runtimeProgressRecordClear_marker (pre tail : List Bool) :
     record_candidateHi_zero_step T1 T1 pre.length h3 hw3,
     record_backOne_step T1 pre.length, record_backTwo_step T1 pre.length]
 
+/-! ## Exact first-halt facts for local segments -/
+
+/-- Symbol-independent lower bound on transitions remaining before `done` can
+be reached from each clearer control state. -/
+def runtimeProgressRecordClearDistance : RuntimeProgressRecordClearState → Nat
+  | .done => 0
+  | .backTwo => 1
+  | .backOne => 2
+  | .candidateHi _ => 3
+  | .candidateLo => 4
+  | .hi _ => 5
+  | .firstHi _ => 5
+  | .lo => 6
+  | .firstLo => 6
+  | .advanceCandidate => 7
+  | .rewriteCandidateLo => 8
+
+theorem runtimeProgressRecordClear_distance_step
+    (c : Cfg runtimeProgressRecordClearMachine) :
+    runtimeProgressRecordClearDistance c.st ≤
+      runtimeProgressRecordClearDistance
+        (step runtimeProgressRecordClearMachine c).st + 1 := by
+  rcases c with ⟨st, hd, tp⟩
+  cases st with
+  | firstHi loBit | hi loBit | candidateHi loBit =>
+      cases hbit : tp[hd]?.getD false <;> cases loBit <;>
+        simp [runtimeProgressRecordClearDistance, step,
+          runtimeProgressRecordClearMachine, hbit]
+  | firstLo | lo | candidateLo | rewriteCandidateLo | advanceCandidate |
+      backOne | backTwo | done =>
+      simp [runtimeProgressRecordClearDistance, step,
+        runtimeProgressRecordClearMachine]
+
+theorem runtimeProgressRecordClear_distance_run
+    (c : Cfg runtimeProgressRecordClearMachine) (n : Nat) :
+    runtimeProgressRecordClearDistance c.st ≤
+      runtimeProgressRecordClearDistance
+        (run runtimeProgressRecordClearMachine n c).st + n := by
+  induction n with
+  | zero => simp
+  | succ n ih =>
+      rw [run_succ]
+      have hs := runtimeProgressRecordClear_distance_step
+        (run runtimeProgressRecordClearMachine n c)
+      omega
+
+theorem runtimeProgressRecordClear_no_halt_before_distance
+    (c : Cfg runtimeProgressRecordClearMachine) (n : Nat)
+    (hn : n < runtimeProgressRecordClearDistance c.st) :
+    runtimeProgressRecordClearMachine.halt
+      (run runtimeProgressRecordClearMachine n c).st = false := by
+  have hd := runtimeProgressRecordClear_distance_run c n
+  have hpos : 0 < runtimeProgressRecordClearDistance
+      (run runtimeProgressRecordClearMachine n c).st := by omega
+  generalize hs : (run runtimeProgressRecordClearMachine n c).st = s at hpos ⊢
+  cases s <;> simp_all [runtimeProgressRecordClearDistance,
+    runtimeProgressRecordClearMachine]
+
+/-- The initial sentinel rewrite cannot halt during either local transition. -/
+theorem runtimeProgressRecordClear_first_no_early
+    (pre tail : List Bool) (lo hi : Bool)
+    (_hnz : lo = true ∨ hi = true) :
+    ∀ i < 2, runtimeProgressRecordClearMachine.halt
+      (run runtimeProgressRecordClearMachine i
+        ⟨runtimeProgressRecordClearMachine.start, pre.length,
+          pre ++ [lo, hi] ++ tail⟩).st = false := by
+  intro i hi2
+  apply runtimeProgressRecordClear_no_halt_before_distance
+  simp [runtimeProgressRecordClearMachine,
+    runtimeProgressRecordClearDistance]
+  omega
+
+/-- An ordinary nonzero pair cannot halt during its two-step rewrite. -/
+theorem runtimeProgressRecordClear_nonzero_no_early
+    (pre tail : List Bool) (lo hi : Bool)
+    (_hnz : lo = true ∨ hi = true) :
+    ∀ i < 2, runtimeProgressRecordClearMachine.halt
+      (run runtimeProgressRecordClearMachine i
+        ⟨RuntimeProgressRecordClearState.lo, pre.length,
+          pre ++ [lo, hi] ++ tail⟩).st = false := by
+  intro i hi2
+  apply runtimeProgressRecordClear_no_halt_before_distance
+  simp [runtimeProgressRecordClearDistance]
+  omega
+
+/-- The legal isolated-zero detour returns to scanning without entering
+`done` at any strict prefix of its six-transition clock. -/
+theorem runtimeProgressRecordClear_isolatedZero_no_early
+    (pre tail : List Bool) (lo hi : Bool)
+    (_hnz : lo = true ∨ hi = true) :
+    ∀ i < 6, runtimeProgressRecordClearMachine.halt
+      (run runtimeProgressRecordClearMachine i
+        ⟨RuntimeProgressRecordClearState.lo, pre.length,
+          pre ++ [false, false, lo, hi] ++ tail⟩).st = false := by
+  intro i hi6
+  apply runtimeProgressRecordClear_no_halt_before_distance
+  simpa [runtimeProgressRecordClearDistance]
+
+/-- The reserved double-zero marker first reaches `done` exactly on its
+sixth transition; neither scan nor physical rewind routes early. -/
+theorem runtimeProgressRecordClear_marker_no_early (pre tail : List Bool) :
+    ∀ i < 6, runtimeProgressRecordClearMachine.halt
+      (run runtimeProgressRecordClearMachine i
+        ⟨RuntimeProgressRecordClearState.lo, pre.length,
+          pre ++ [false, false, false, false] ++ tail⟩).st = false := by
+  intro i hi6
+  apply runtimeProgressRecordClear_no_halt_before_distance
+  simpa [runtimeProgressRecordClearDistance]
+
 /-! ## Structural lifts -/
 
 private theorem progressWords_succ (n : Nat) :
@@ -651,5 +760,11 @@ theorem runtimeProgressRecordClear_workspace
 #print axioms runtimeProgressRecordClear_isolatedZero_marker
 #print axioms runtimeProgressRecordClear_first_front_isolatedZero_marker
 #print axioms runtimeProgressRecordClear_workspace
+#print axioms runtimeProgressRecordClear_first_no_early
+#print axioms runtimeProgressRecordClear_distance_step
+#print axioms runtimeProgressRecordClear_no_halt_before_distance
+#print axioms runtimeProgressRecordClear_nonzero_no_early
+#print axioms runtimeProgressRecordClear_isolatedZero_no_early
+#print axioms runtimeProgressRecordClear_marker_no_early
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeProgressRecordClear
