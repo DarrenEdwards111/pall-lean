@@ -250,6 +250,70 @@ structure CanonicalDTMResidualActionCertificate
   cleared : debt horizon = 0
   horizon_le_runtime : horizon ≤ TuringMachine.timeSteps M n
 
+/-- Configuration-grounded replacement for the canonical DTM certificate.
+Debt is no longer an arbitrary sequence: it is definitionally the number of
+must-separate continuation pairs merged by a finite observation of the actual
+DTM configurations reached from those continuations at time `t`.
+
+The one-step service field is intentionally explicit.  It is the genuine local
+transition theorem and is not derivable merely from determinism: one observed
+transition may split many pairs at once. -/
+structure ConfigurationGroundedDTMResidualActionCertificate
+    (M : TuringMachine.DTM) (n : Nat)
+    (C : Type*) [Fintype C] [DecidableEq C] where
+  positiveLength : 1 ≤ n
+  residualDimension : Nat
+  boundaryExponent : Nat
+  residual : C → Fin (2 ^ residualDimension)
+  residual_surjective : Function.Surjective residual
+  continuationInput : C → (Fin n → Bool)
+  observe : TuringMachine.Configuration M (TuringMachine.tapeSize M n) →
+    Fin (2 ^ boundaryExponent)
+  binomial_fits_residual_surplus :
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
+      2 ^ residualDimension - 2 ^ boundaryExponent
+  horizon : Nat
+  service : ∀ t,
+    debtCount (residualFooling residual)
+        (fun c => observe (TuringMachine.run M n t
+          (TuringMachine.initialConfig M n positiveLength
+            (continuationInput c)))) ≤
+      debtCount (residualFooling residual)
+        (fun c => observe (TuringMachine.run M n (t + 1)
+          (TuringMachine.initialConfig M n positiveLength
+            (continuationInput c)))) + 1
+  separatedAtHorizon :
+    debtCount (residualFooling residual)
+      (fun c => observe (TuringMachine.run M n horizon
+        (TuringMachine.initialConfig M n positiveLength
+          (continuationInput c)))) = 0
+  horizon_le_runtime : horizon ≤ TuringMachine.timeSteps M n
+
+/-- Configuration-grounded certificates still force binomial DTM runtime, but
+now every debt term refers to an actual run configuration. -/
+theorem binomial_le_runtime_of_configurationGroundedDTMCertificate
+    {M : TuringMachine.DTM} {n : Nat}
+    {C : Type*} [Fintype C] [DecidableEq C]
+    (cert : ConfigurationGroundedDTMResidualActionCertificate M n C) :
+    Nat.choose (n / 3) (Nat.log 2 n) ≤ TuringMachine.timeSteps M n := by
+  let debt : Nat → Nat := fun t =>
+    debtCount (residualFooling cert.residual)
+      (fun c => cert.observe (TuringMachine.run M n t
+        (TuringMachine.initialConfig M n cert.positiveLength
+          (cert.continuationInput c))))
+  have hinitial :
+      2 ^ cert.residualDimension - 2 ^ cert.boundaryExponent ≤ debt 0 := by
+    change 2 ^ cert.residualDimension - 2 ^ cert.boundaryExponent ≤
+      debtCount (residualFooling cert.residual) _
+    exact surjective_residual_forces_debt cert.residual
+      cert.residual_surjective _
+  have haction : debt 0 ≤ cert.horizon := by
+    have h := correct_needs_action debt (fun _ => 1) cert.service
+      cert.horizon cert.separatedAtHorizon
+    simpa [observerTimeAction] using h
+  exact le_trans cert.binomial_fits_residual_surplus
+    (le_trans hinitial (le_trans haction cert.horizon_le_runtime))
+
 /-- Canonical action cash-out: an honest residual/action certificate forces the
 full binomial N-frame scale below the actual number of DTM transitions. -/
 theorem binomial_le_runtime_of_canonicalDTMCertificate
@@ -451,6 +515,22 @@ def HasCanonicalDTMResidualActionCertificateAt
   ∃ (C : Type) (_fintype : Fintype C) (_decEq : DecidableEq C),
     Nonempty (CanonicalDTMResidualActionCertificate M n C)
 
+/-- Configuration-grounded canonical certificate at one length. -/
+def HasConfigurationGroundedDTMResidualActionCertificateAt
+    (M : TuringMachine.DTM) (n : Nat) : Prop :=
+  ∃ (C : Type) (_fintype : Fintype C) (_decEq : DecidableEq C),
+    Nonempty (ConfigurationGroundedDTMResidualActionCertificate M n C)
+
+theorem binomial_le_runtime_of_hasConfigurationGroundedDTMCertificate
+    {M : TuringMachine.DTM} {n : Nat}
+    (h : HasConfigurationGroundedDTMResidualActionCertificateAt M n) :
+    Nat.choose (n / 3) (Nat.log 2 n) ≤ TuringMachine.timeSteps M n := by
+  rcases h with ⟨C, fintype, decEq, hcert⟩
+  letI : Fintype C := fintype
+  letI : DecidableEq C := decEq
+  rcases hcert with ⟨cert⟩
+  exact binomial_le_runtime_of_configurationGroundedDTMCertificate cert
+
 theorem binomial_le_runtime_of_hasCanonicalDTMCertificate
     {M : TuringMachine.DTM} {n : Nat}
     (h : HasCanonicalDTMResidualActionCertificateAt M n) :
@@ -621,6 +701,30 @@ def TimeExponentParametricSATCanonicalDTMResidualAction
     ∀ M : TuringMachine.DTM,
       DTMDecidesSATWithEncodingAtMost enc e M →
       HasCanonicalDTMResidualActionCertificateAt M n
+
+/-- Fully configuration-grounded canonical DTM frontier. -/
+def TimeExponentParametricSATConfigurationGroundedDTMResidualAction
+    (enc : ThreeCNFEncoding) : Prop :=
+  ∀ e : Nat, ∃ n : Nat,
+    n ≥ 2 ^ 20 ∧
+    4 * (e + 1) ≤ Nat.log 2 n ∧
+    ∀ M : TuringMachine.DTM,
+      DTMDecidesSATWithEncodingAtMost enc e M →
+      HasConfigurationGroundedDTMResidualActionCertificateAt M n
+
+theorem no_DTMDecidesSAT_of_configurationGroundedResidualAction
+    (enc : ThreeCNFEncoding)
+    (hprogram :
+      TimeExponentParametricSATConfigurationGroundedDTMResidualAction enc) :
+    Not (∃ M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M) := by
+  rintro ⟨M, hdec⟩
+  rcases hprogram M.timeBound with ⟨n, hn20, hlog, hcert⟩
+  have hlower :=
+    binomial_le_runtime_of_hasConfigurationGroundedDTMCertificate
+      (hcert M ⟨hdec, le_rfl⟩)
+  have hgap := arithmetic_gap_for_exponent M.timeBound n hn20 hlog
+  exact (not_le_of_gt hgap) (by
+    simpa [TuringMachine.timeSteps] using hlower)
 
 /-- The canonical DTM residual/action frontier directly rules out every
 polynomial-time SAT DTM.  The contradiction uses the real identity
@@ -801,6 +905,9 @@ theorem operationalSAT_action_lower_of_nframe_extraction
 #print axioms binomial_le_runtime_of_canonicalDTMCertificate
 #print axioms binomial_le_runtime_of_hasCanonicalDTMCertificate
 #print axioms no_DTMDecidesSAT_of_canonicalResidualAction
+#print axioms binomial_le_runtime_of_configurationGroundedDTMCertificate
+#print axioms binomial_le_runtime_of_hasConfigurationGroundedDTMCertificate
+#print axioms no_DTMDecidesSAT_of_configurationGroundedResidualAction
 #print axioms TrajectoryNFrameResidualNoncollapse.toGeometry
 #print axioms hasContinuationGeometry_of_residualNoncollapse
 #print axioms continuationGeometry_of_residualNoncollapse
