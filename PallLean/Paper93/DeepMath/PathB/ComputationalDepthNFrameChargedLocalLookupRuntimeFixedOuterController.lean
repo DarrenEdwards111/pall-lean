@@ -228,6 +228,77 @@ theorem runtimeFixedOuterController_exhaust_final_run_handoff
   subst hf
   exact runtimeFixedOuterController_final_handoff _ _
 
+/-! ## Concrete first-halt facts -/
+
+/-- The two-step `more` test cannot reach either routing state early. -/
+theorem runtimeProgressExhaust_more_no_early
+    (pre tail : List Bool) :
+    ∀ i < 2,
+      (run runtimeProgressExhaustMachine i
+        ⟨runtimeProgressExhaustMachine.start, pre.length + 2,
+          pre ++ [true, false, false, false] ++ tail⟩).st ≠ .more ∧
+      (run runtimeProgressExhaustMachine i
+        ⟨runtimeProgressExhaustMachine.start, pre.length + 2,
+          pre ++ [true, false, false, false] ++ tail⟩).st ≠ .final := by
+  intro i hi
+  interval_cases i <;>
+    simp [run_succ, step, runtimeProgressExhaustMachine, moveHead]
+
+/-- The three-step sentinel test cannot reach either routing state early. -/
+theorem runtimeProgressExhaust_final_no_early
+    (pre tail : List Bool) :
+    ∀ i < 3,
+      (run runtimeProgressExhaustMachine i
+        ⟨runtimeProgressExhaustMachine.start, pre.length + 2,
+          pre ++ [false, true, false, false] ++ tail⟩).st ≠ .more ∧
+      (run runtimeProgressExhaustMachine i
+        ⟨runtimeProgressExhaustMachine.start, pre.length + 2,
+          pre ++ [false, true, false, false] ++ tail⟩).st ≠ .final := by
+  intro i hi
+  interval_cases i <;>
+    simp [run_succ, step, runtimeProgressExhaustMachine, moveHead,
+      List.getD_eq_getElem?_getD, writeAt]
+
+/-- The concrete `more` test, including its loop-back control transition,
+lifts to one exact run of the fixed wrapper. -/
+theorem runtimeFixedOuterController_exhaust_more_exact
+    (pre tail : List Bool) :
+    run runtimeFixedOuterControllerMachine 3
+        (outerExhaustCfg
+          ⟨runtimeProgressExhaustMachine.start, pre.length + 2,
+            pre ++ [true, false, false, false] ++ tail⟩) =
+      ⟨runtimeFixedOuterControllerMachine.start, pre.length + 2,
+        pre ++ [true, false, false, false] ++ tail⟩ := by
+  have hr := runtimeProgressExhaust_more pre tail
+  have hh : (run runtimeProgressExhaustMachine 2
+      ⟨runtimeProgressExhaustMachine.start, pre.length + 2,
+        pre ++ [true, false, false, false] ++ tail⟩).st = .more := by
+    rw [hr]
+  have h := runtimeFixedOuterController_exhaust_more_run_handoff
+    _ 2 (runtimeProgressExhaust_more_no_early pre tail) hh
+  rw [hr] at h
+  simpa using h
+
+/-- The concrete sentinel test, including the final pure-control transition,
+lifts to an exact genuinely halted wrapper run. -/
+theorem runtimeFixedOuterController_exhaust_final_exact
+    (pre tail : List Bool) :
+    run runtimeFixedOuterControllerMachine 4
+        (outerExhaustCfg
+          ⟨runtimeProgressExhaustMachine.start, pre.length + 2,
+            pre ++ [false, true, false, false] ++ tail⟩) =
+      ⟨RuntimeFixedOuterControllerState.final, pre.length + 1,
+        pre ++ [false, false, false, false] ++ tail⟩ := by
+  have hr := runtimeProgressExhaust_final pre tail
+  have hh : (run runtimeProgressExhaustMachine 3
+      ⟨runtimeProgressExhaustMachine.start, pre.length + 2,
+        pre ++ [false, true, false, false] ++ tail⟩).st = .final := by
+    rw [hr]
+  have h := runtimeFixedOuterController_exhaust_final_run_handoff
+    _ 3 (runtimeProgressExhaust_final_no_early pre tail) hh
+  rw [hr] at h
+  simpa using h
+
 @[simp] theorem runtimeFixedOuterController_final_halts :
     runtimeFixedOuterControllerMachine.halt
       RuntimeFixedOuterControllerState.final = true := by
@@ -244,5 +315,9 @@ theorem runtimeFixedOuterController_exhaust_final_run_handoff
 #print axioms runtimeFixedOuterController_return_run_handoff
 #print axioms runtimeFixedOuterController_exhaust_more_run_handoff
 #print axioms runtimeFixedOuterController_exhaust_final_run_handoff
+#print axioms runtimeProgressExhaust_more_no_early
+#print axioms runtimeProgressExhaust_final_no_early
+#print axioms runtimeFixedOuterController_exhaust_more_exact
+#print axioms runtimeFixedOuterController_exhaust_final_exact
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeFixedOuterController
