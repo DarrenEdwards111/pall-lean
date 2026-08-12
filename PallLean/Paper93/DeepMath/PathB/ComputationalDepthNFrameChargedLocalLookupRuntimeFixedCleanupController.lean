@@ -13,6 +13,7 @@ tape-preserving control transition starts the universal outer controller.
 namespace PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeFixedCleanupController
 
 open PallLean.Paper93.DeepMath.PathB.ComposableMachine
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupLeftBoundaryTerminal
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceSelect
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeRoundEntryAdapter
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePreservedPassedCopy
@@ -105,6 +106,29 @@ theorem runtimeFixedCleanupController_clear_run_handoff
   rw [run_succ, runtimeFixedCleanupController_clear_run c t hno,
     runtimeFixedCleanupController_clear_handoff _ hh]
 
+theorem runtimeFixedCleanupController_clear_leftSafe
+    (c : Cfg runtimeProgressRecordClearMachine) (t : Nat)
+    (hno : ∀ i < t, runtimeProgressRecordClearMachine.halt
+      (run runtimeProgressRecordClearMachine i c).st = false)
+    (hsafe : LeftSafeRun runtimeProgressRecordClearMachine c t) :
+    LeftSafeRun runtimeFixedCleanupControllerMachine (cleanupClearCfg c) t := by
+  intro i hi hhalt hmove
+  have hrun := runtimeFixedCleanupController_clear_run c i
+    (fun j hj => hno j (by omega))
+  rw [hrun] at hhalt hmove ⊢
+  simp only [cleanupClearCfg] at hhalt hmove ⊢
+  have hlocalHalt : runtimeProgressRecordClearMachine.halt
+      (run runtimeProgressRecordClearMachine i c).st = false := hno i hi
+  simp [runtimeFixedCleanupControllerMachine, hlocalHalt] at hmove
+  exact hsafe i hi hlocalHalt hmove
+
+theorem runtimeFixedCleanupController_clear_handoff_leftSafe
+    (c : Cfg runtimeProgressRecordClearMachine)
+    (hh : runtimeProgressRecordClearMachine.halt c.st = true) :
+    LeftSafeRun runtimeFixedCleanupControllerMachine (cleanupClearCfg c) 1 := by
+  apply leftSafeRun_one_of_not_left
+  simp [runtimeFixedCleanupControllerMachine, cleanupClearCfg, hh]
+
 /-- Every outer-controller transition is faithfully embedded, including its
 sole final self-loop. -/
 theorem runtimeFixedCleanupController_outer_step
@@ -125,6 +149,75 @@ theorem runtimeFixedCleanupController_outer_run
   | zero => rfl
   | succ t ih =>
       rw [run_succ, ih, runtimeFixedCleanupController_outer_step, ← run_succ]
+
+theorem runtimeFixedCleanupController_outer_leftSafe
+    (c : Cfg runtimeFixedOuterControllerMachine) (t : Nat)
+    (hsafe : LeftSafeRun runtimeFixedOuterControllerMachine c t) :
+    LeftSafeRun runtimeFixedCleanupControllerMachine (cleanupOuterCfg c) t := by
+  intro i hi hhalt hmove
+  rw [runtimeFixedCleanupController_outer_run] at hhalt hmove ⊢
+  simp only [cleanupOuterCfg] at hhalt hmove ⊢
+  have hlocalHalt : runtimeFixedOuterControllerMachine.halt
+      (run runtimeFixedOuterControllerMachine i c).st = false := by
+    simpa [runtimeFixedCleanupControllerMachine] using hhalt
+  have hlocalMove : (runtimeFixedOuterControllerMachine.δ
+      (run runtimeFixedOuterControllerMachine i c).st
+      ((run runtimeFixedOuterControllerMachine i c).tp.getD
+        (run runtimeFixedOuterControllerMachine i c).hd false)).2.2 = 0 := by
+    simpa [runtimeFixedCleanupControllerMachine] using hmove
+  exact hsafe i hi hlocalHalt hlocalMove
+
+/-- The already-certified clear phase and its pure-control handoff are safe
+as one prefix of the combined cleanup run. -/
+theorem runtimeFixedCleanupController_workspace_clear_leftSafe
+    (pre tail bits : List Bool) (value : Bool) (m n : Nat) :
+    let workspace := runtimeWorkspaceFrontPairs value m n
+    let clearClock := 2 * workspace.length + 6 + if value then 0 else 2
+    let inputTape := pre ++ flattenPairs workspace ++
+      flattenPairs runtimePassedBoundaryMarker ++
+      flattenPairs (passedSourceBlock bits) ++ tail
+    LeftSafeRun runtimeFixedCleanupControllerMachine
+      ⟨runtimeFixedCleanupControllerMachine.start, pre.length, inputTape⟩
+      (clearClock + 1) := by
+  dsimp only
+  let workspace := runtimeWorkspaceFrontPairs value m n
+  let clearClock := 2 * workspace.length + 6 + if value then 0 else 2
+  let inputTape := pre ++ flattenPairs workspace ++
+    flattenPairs runtimePassedBoundaryMarker ++
+    flattenPairs (passedSourceBlock bits) ++ tail
+  apply leftSafeRun_add
+  · change LeftSafeRun runtimeFixedCleanupControllerMachine
+      (cleanupClearCfg
+        ⟨runtimeProgressRecordClearMachine.start, pre.length, inputTape⟩)
+      clearClock
+    apply runtimeFixedCleanupController_clear_leftSafe
+    · simpa [workspace, clearClock, inputTape, List.append_assoc] using
+        runtimeProgressRecordClear_workspace_no_early pre
+          (flattenPairs (passedSourceBlock bits) ++ tail) value m n
+    · simpa [workspace, clearClock, inputTape, List.append_assoc] using
+        runtimeProgressRecordClear_workspace_leftSafe pre
+          (flattenPairs (passedSourceBlock bits) ++ tail) value m n
+  · have hc := runtimeProgressRecordClear_workspace pre
+      (flattenPairs (passedSourceBlock bits) ++ tail) value m n
+    rw [show run runtimeFixedCleanupControllerMachine clearClock
+        ⟨runtimeFixedCleanupControllerMachine.start, pre.length, inputTape⟩ =
+        cleanupClearCfg
+          ⟨RuntimeProgressRecordClearState.done,
+            pre.length + 2 * workspace.length + 2,
+            pre ++ [false, true] ++
+              flattenPairs (List.replicate workspace.length (true, false)) ++
+              [false, false] ++ flattenPairs (passedSourceBlock bits) ++ tail⟩ by
+      change run runtimeFixedCleanupControllerMachine clearClock
+          (cleanupClearCfg
+            ⟨runtimeProgressRecordClearMachine.start, pre.length, inputTape⟩) = _
+      rw [runtimeFixedCleanupController_clear_run _ clearClock]
+      · congr 1
+        simpa [workspace, clearClock, inputTape, List.append_assoc] using hc
+      · simpa [workspace, clearClock, inputTape, List.append_assoc] using
+          runtimeProgressRecordClear_workspace_no_early pre
+            (flattenPairs (passedSourceBlock bits) ++ tail) value m n]
+    apply runtimeFixedCleanupController_clear_handoff_leftSafe
+    simp [runtimeProgressRecordClearMachine]
 
 /-- Complete exact cleanup run on a certified workspace followed immediately
 by one self-delimiting passed block.  The fixed machine clears the workspace,
@@ -226,6 +319,9 @@ theorem runtimeFixedCleanupController_workspace
 #print axioms runtimeFixedCleanupController_outer_step
 #print axioms runtimeFixedCleanupController_outer_run
 #print axioms runtimeFixedCleanupController_clear_run_handoff
+#print axioms runtimeFixedCleanupController_clear_leftSafe
+#print axioms runtimeFixedCleanupController_outer_leftSafe
+#print axioms runtimeFixedCleanupController_workspace_clear_leftSafe
 #print axioms runtimeFixedCleanupController_workspace
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeFixedCleanupController
