@@ -105,6 +105,21 @@ theorem runtimeProgressReturn_nonmarker
     simp_all [step, runtimeProgressReturnMachine, moveHead,
       List.getD_eq_getElem?_getD]
 
+/-- Crossing a non-marker pair cannot enter `done` during either strict
+prefix of its two-transition run. -/
+theorem runtimeProgressReturn_nonmarker_no_early
+    (pre tail : List Bool) (lo hi : Bool)
+    (hnm : ¬ (lo = true ∧ hi = false)) :
+    ∀ i < 2, runtimeProgressReturnMachine.halt
+      (run runtimeProgressReturnMachine i
+        ⟨RuntimeProgressReturnState.hi, pre.length + 1,
+          pre ++ [lo, hi] ++ tail⟩).st = false := by
+  intro i hi2
+  interval_cases i <;>
+    cases lo <;> cases hi <;>
+      simp_all [run_succ, step, runtimeProgressReturnMachine,
+        moveHead, List.getD_eq_getElem?_getD]
+
 /-- Any nonempty list containing no `10` pair is crossed right-to-left by
 one uninterrupted run, starting at the final high cell. -/
 theorem runtimeProgressReturn_nonmarkerPairs
@@ -154,6 +169,59 @@ theorem runtimeProgressReturn_nonmarkerPairs
         have hih := ih (pre := pre) (tail := [lo, hi] ++ tail) hpspos hrest
         simpa [flattenPairs_append, flattenPairs, List.append_assoc] using hih
 
+/-- A nonempty aligned list of non-marker pairs cannot halt before its exact
+right-to-left traversal clock. -/
+theorem runtimeProgressReturn_nonmarkerPairs_no_early
+    (pre tail : List Bool) (ps : List (Bool × Bool))
+    (hpos : 0 < ps.length)
+    (hnm : ∀ p ∈ ps, ¬ (p.1 = true ∧ p.2 = false)) :
+    ∀ i < 2 * ps.length, runtimeProgressReturnMachine.halt
+      (run runtimeProgressReturnMachine i
+        ⟨RuntimeProgressReturnState.hi,
+          pre.length + 2 * ps.length - 1,
+          pre ++ flattenPairs ps ++ tail⟩).st = false := by
+  induction ps using List.reverseRecOn generalizing pre tail with
+  | nil => simp at hpos
+  | append_singleton ps p ih =>
+      rcases p with ⟨lo, hi⟩
+      have hp : ¬ (lo = true ∧ hi = false) := hnm (lo, hi) (by simp)
+      intro i hitotal
+      by_cases hempty : ps = []
+      · subst ps
+        have hlocal := runtimeProgressReturn_nonmarker_no_early
+          pre tail lo hi hp i
+        simpa [flattenPairs, List.append_assoc] using hlocal (by simpa using hitotal)
+      · have hpspos : 0 < ps.length := by
+          cases ps with
+          | nil => contradiction
+          | cons => simp
+        have hrest : ∀ q ∈ ps, ¬ (q.1 = true ∧ q.2 = false) := by
+          intro q hq
+          exact hnm q (by simp [hq])
+        by_cases hi2 : i < 2
+        · have hlocal := runtimeProgressReturn_nonmarker_no_early
+            (pre ++ flattenPairs ps) tail lo hi hp i hi2
+          simpa [flattenPairs_append, flattenPairs, flattenPairs_length,
+            List.append_assoc] using hlocal
+        · obtain ⟨j, rfl⟩ : ∃ j, i = 2 + j := by
+            exact ⟨i - 2, by omega⟩
+          rw [run_add]
+          have hlast := runtimeProgressReturn_nonmarker
+            (pre ++ flattenPairs ps) tail lo hi hp
+          rw [show run runtimeProgressReturnMachine 2
+              ⟨RuntimeProgressReturnState.hi,
+                pre.length + 2 * (ps ++ [(lo, hi)]).length - 1,
+                pre ++ flattenPairs (ps ++ [(lo, hi)]) ++ tail⟩ =
+              ⟨RuntimeProgressReturnState.hi,
+                pre.length + 2 * ps.length - 1,
+                pre ++ flattenPairs (ps ++ [(lo, hi)]) ++ tail⟩ by
+            simpa [flattenPairs_append, flattenPairs, flattenPairs_length,
+              List.append_assoc] using hlast]
+          have hj : j < 2 * ps.length := by simp at hitotal; omega
+          have hih := ih (pre := pre) (tail := [lo, hi] ++ tail)
+            hpspos hrest j hj
+          simpa [flattenPairs_append, flattenPairs, List.append_assoc] using hih
+
 /-- The canonical passed block contains no ordinary `10` progress word. -/
 theorem passedSourceBlock_no_progressMark (bits : List Bool) :
     ∀ p ∈ passedSourceBlock bits,
@@ -189,6 +257,17 @@ private theorem runtimeProgressReturn_marker_core (pre tail : List Bool) :
   rw [progress_hi_step T0 pre.length false hhi,
     progress_lo_marker_step T0 T1 pre.length hlo hw0,
     progress_clear_step T1 T1 pre.length hw1]
+
+/-- The progress-marker branch first enters `done` on its third transition. -/
+theorem runtimeProgressReturn_marker_no_early (pre tail : List Bool) :
+    ∀ i < 3, runtimeProgressReturnMachine.halt
+      (run runtimeProgressReturnMachine i
+        ⟨RuntimeProgressReturnState.hi, pre.length + 1,
+          pre ++ [true, false] ++ tail⟩).st = false := by
+  intro i hi3
+  interval_cases i <;>
+    simp [run_succ, step, runtimeProgressReturnMachine, moveHead,
+      List.getD_eq_getElem?_getD, writeAt]
 
 /-- Starting at the trailing hole left cell, the fixed reverse controller
 crosses the complete moved passed block and consumes the adjacent ordinary
@@ -231,6 +310,65 @@ theorem runtimeProgressReturn_passed_progress
   have hm := runtimeProgressReturn_marker_core pre
     (flattenPairs block ++ [false, false] ++ tail)
   simpa [T, block, List.append_assoc] using hm
+
+/-- The complete reverse return first halts at its certified clock: entry,
+the whole self-delimiting passed block, then the adjacent progress marker. -/
+theorem runtimeProgressReturn_passed_progress_no_early
+    (pre tail bits : List Bool) :
+    ∀ i < 1 + 2 * (passedSourceBlock bits).length + 3,
+      runtimeProgressReturnMachine.halt
+        (run runtimeProgressReturnMachine i
+          ⟨runtimeProgressReturnMachine.start,
+            pre.length + 2 + 2 * (passedSourceBlock bits).length,
+            pre ++ [true, false] ++
+              flattenPairs (passedSourceBlock bits) ++
+                [false, false] ++ tail⟩).st = false := by
+  intro i hi
+  let block := passedSourceBlock bits
+  let T := pre ++ [true, false] ++ flattenPairs block ++
+    [false, false] ++ tail
+  by_cases hi1 : i < 1
+  · have hiz : i = 0 := by omega
+    subst i
+    simp [runtimeProgressReturnMachine]
+  · obtain ⟨j, rfl⟩ : ∃ j, i = 1 + j := by
+      exact ⟨i - 1, by omega⟩
+    rw [run_add]
+    have he := runtimeProgressReturn_enter T
+      (pre.length + 2 + 2 * block.length)
+    rw [show run runtimeProgressReturnMachine 1
+        ⟨runtimeProgressReturnMachine.start,
+          pre.length + 2 + 2 * (passedSourceBlock bits).length,
+          pre ++ [true, false] ++ flattenPairs (passedSourceBlock bits) ++
+            [false, false] ++ tail⟩ =
+        ⟨RuntimeProgressReturnState.hi,
+          pre.length + 2 + 2 * block.length - 1, T⟩ by
+      simpa [block, T] using he]
+    by_cases hjblock : j < 2 * block.length
+    · have hb := runtimeProgressReturn_nonmarkerPairs_no_early
+        (pre ++ [true, false]) ([false, false] ++ tail) block
+        (by simp [block, passedSourceBlock])
+        (by simpa [block] using passedSourceBlock_no_progressMark bits)
+        j hjblock
+      simpa [T, block, flattenPairs_length, List.append_assoc] using hb
+    · obtain ⟨k, rfl⟩ : ∃ k, j = 2 * block.length + k := by
+        exact ⟨j - 2 * block.length, by omega⟩
+      rw [run_add]
+      have hb := runtimeProgressReturn_nonmarkerPairs
+        (pre ++ [true, false]) ([false, false] ++ tail) block
+        (by simp [block, passedSourceBlock])
+        (by simpa [block] using passedSourceBlock_no_progressMark bits)
+      rw [show run runtimeProgressReturnMachine (2 * block.length)
+          ⟨RuntimeProgressReturnState.hi,
+            pre.length + 2 + 2 * block.length - 1, T⟩ =
+          ⟨RuntimeProgressReturnState.hi, pre.length + 1, T⟩ by
+        simpa [T, block, flattenPairs_length, List.append_assoc] using hb]
+      have hk : k < 3 := by
+        simp [block] at hi
+        omega
+      have hm := runtimeProgressReturn_marker_no_early pre
+        (flattenPairs block ++ [false, false] ++ tail) k hk
+      simpa [T, block, List.append_assoc] using hm
 
 /-- The ordinary `10` progress word is consumed to `00`; the controller
 returns to its low cell and genuinely halts. -/
@@ -339,6 +477,10 @@ theorem runtimeProgressExhaust_final_leftSafe (pre tail : List Bool) :
 #print axioms passedSourceBlock_no_progressMark
 #print axioms runtimeProgressReturn_passed_progress
 #print axioms runtimeProgressReturn_marker
+#print axioms runtimeProgressReturn_nonmarker_no_early
+#print axioms runtimeProgressReturn_nonmarkerPairs_no_early
+#print axioms runtimeProgressReturn_marker_no_early
+#print axioms runtimeProgressReturn_passed_progress_no_early
 #print axioms runtimeProgressReturn_marker_leftSafe
 #print axioms runtimeProgressExhaust_more
 #print axioms runtimeProgressExhaust_final
