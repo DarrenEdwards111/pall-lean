@@ -1079,6 +1079,31 @@ theorem nframePolynomialRuntime_forces_superpolynomialReuse
   rw [← pow_add]
   exact arithmetic_gap_for_exponent (e + c) n hn20 (by omega)
 
+/-- **Sharp observer-centric N-frame dichotomy.**  Any bounded-reuse schedule
+for the binomial obligation family has either runtime above `n^e` or reuse
+above `n^c`.  No anti-sharing premise is used.  Turning this disjunction into
+a runtime lower bound requires independently ruling out the reuse branch. -/
+theorem nframe_runtime_or_reuse
+    {n e c T readK : Nat}
+    (R : BoundedTransitionReuse
+      (Nat.choose (n / 3) (Nat.log 2 n)) T readK)
+    (hn20 : n ≥ 2 ^ 20)
+    (hlog : 4 * (e + c + 1) ≤ Nat.log 2 n) :
+    n ^ e < T ∨ n ^ c < readK := by
+  by_cases htime : n ^ e < T
+  · exact Or.inl htime
+  · right
+    have hT : T ≤ n ^ e := Nat.le_of_not_gt htime
+    by_contra hre
+    have hread : readK ≤ n ^ c := Nat.le_of_not_gt hre
+    have hcapacity := obligations_le_transitions_mul_reuse R
+    have hproduct : T * readK ≤ n ^ e * n ^ c :=
+      Nat.mul_le_mul hT hread
+    have hgap : n ^ (e + c) < Nat.choose (n / 3) (Nat.log 2 n) :=
+      arithmetic_gap_for_exponent (e + c) n hn20 (by omega)
+    rw [pow_add] at hgap
+    exact (Nat.not_lt_of_ge (hcapacity.trans hproduct)) hgap
+
 #print axioms liveRank_le_action
 #print axioms GroundedTrajectoryNFrameActionCertificate.toActionCertificate
 #print axioms groundedCertificateOfFoolingSet
@@ -1123,5 +1148,6 @@ theorem nframePolynomialRuntime_forces_superpolynomialReuse
 #print axioms reuse_gt_of_runtime_capacity_gap
 #print axioms nontrivial_reuse_of_runtime_lt_obligations
 #print axioms nframePolynomialRuntime_forces_superpolynomialReuse
+#print axioms nframe_runtime_or_reuse
 
 end PallLean.Paper93.DeepMath.PathB.ObserverCentricNFrameActionBridge
