@@ -912,12 +912,27 @@ private def constantThreeWayView : Fin 3 → Fin 1 := fun _ => 0
 private def binaryThreeWayView : Fin 3 → Fin 2 := fun x =>
   if x = 0 then 0 else 1
 
+private def twoBitThreeWayView : Fin 3 → (Fin 2 → Bool) := fun x i =>
+  match x.1, i.1 with
+  | 0, _ => false
+  | 1, 0 => false
+  | 1, _ => true
+  | _, 0 => true
+  | _, _ => false
+
 /-- A binary refinement drops ordered residual-pair debt from six to two in
 one step.  In particular, the unit-service inequality required by the raw
 pair-count certificate is false for arbitrary deterministic observations. -/
 theorem rawPairDebt_not_unitLipschitz :
     debtCount (residualFooling threeWayResidual) constantThreeWayView >
       debtCount (residualFooling threeWayResidual) binaryThreeWayView + 1 := by
+  decide
+
+/-- After only two binary observations, the same three residual classes are
+completely separated and all six ordered pair-debts have vanished.  Pair debt
+therefore overcounts the information that an adaptive transcript must acquire. -/
+theorem twoBits_clear_threeWayPairDebt :
+    debtCount (residualFooling threeWayResidual) twoBitThreeWayView = 0 := by
   decide
 
 /-- If a family is pairwise distinguished solely by a Boolean decision, it
@@ -937,6 +952,24 @@ theorem booleanOutputSeparated_card_le_two
     exact hseparate x.1 x.2 y.1 y.2 hxy
   have hcard := Fintype.card_le_of_injective f hinjective
   simpa [f] using hcard
+
+/-- The honest generic information bound: a length-`T` binary transcript can
+distinguish as many as `2^T` sectors.  Thus pairwise collision counts cannot be
+charged one-for-one to transitions; only logarithmic transcript information is
+generic without an additional direct-sum/non-amortization theorem. -/
+theorem binaryTranscriptSeparated_card_le_pow
+    {X : Type*} [Fintype X] [DecidableEq X]
+    (P : Finset X) (transcript : X → (Fin T → Bool))
+    (hseparate :
+      ∀ x ∈ P, ∀ y ∈ P, transcript x = transcript y → x = y) :
+    P.card ≤ 2 ^ T := by
+  let f : {x : X // x ∈ P} → (Fin T → Bool) := fun x => transcript x.1
+  have hinjective : Function.Injective f := by
+    intro x y hxy
+    apply Subtype.ext
+    exact hseparate x.1 x.2 y.1 y.2 hxy
+  have hcard := Fintype.card_le_of_injective f hinjective
+  simpa [f, Fintype.card_fun, Fintype.card_fin, Fintype.card_bool] using hcard
 
 #print axioms liveRank_le_action
 #print axioms GroundedTrajectoryNFrameActionCertificate.toActionCertificate
@@ -971,6 +1004,8 @@ theorem booleanOutputSeparated_card_le_two
 #print axioms action_gt_polynomial_of_certificate
 #print axioms operationalSAT_action_lower_of_nframe_extraction
 #print axioms rawPairDebt_not_unitLipschitz
+#print axioms twoBits_clear_threeWayPairDebt
 #print axioms booleanOutputSeparated_card_le_two
+#print axioms binaryTranscriptSeparated_card_le_pow
 
 end PallLean.Paper93.DeepMath.PathB.ObserverCentricNFrameActionBridge
