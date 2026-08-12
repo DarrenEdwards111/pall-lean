@@ -1,6 +1,7 @@
 import PallLean.Paper93.DeepMath.PathB.ObserverTrajectoryDCEW
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthObserverTimeDebt
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthFoolingDebt
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthExpanderNoHiding
 
 /-!
 # Observer-centric N-frame action bridge
@@ -154,6 +155,60 @@ structure TrajectoryNFrameContinuationGeometry
   fooling : ∀ x ∈ sectors, ∀ y ∈ sectors, x ≠ y →
     (x, y) ∈ mustSeparate
   rank_fits_collisions : minor.liveRank ≤ sectors.card - stateCount
+
+/-- A surjective residual map supplies the entire static continuation geometry.
+The only quantitative premise left is the transparent collision budget
+`liveRank ≤ 2^r - 2^B`.  Thus the expander/no-hiding route need not construct
+sectors, fooling pairs, or a boundary view by hand: a section of the residual
+map gives canonical representatives of all residual outcomes. -/
+noncomputable def continuationGeometryOfSurjectiveResidual
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine} {n r B : Nat}
+    (minor : TrajectoryGodMoveBoundaryMinor enc T n)
+    {C : Type*} [Fintype C] [DecidableEq C]
+    (residual : C → Fin (2 ^ r))
+    (hsurj : Function.Surjective residual)
+    (view : C → Fin (2 ^ B))
+    (hrank : minor.liveRank ≤ 2 ^ r - 2 ^ B) :
+    TrajectoryNFrameContinuationGeometry minor C := by
+  classical
+  let representative : Fin (2 ^ r) → C := Function.surjInv hsurj
+  let sectors : Finset C := Finset.univ.image representative
+  have hrepresentative_injective : Function.Injective representative :=
+    Function.injective_surjInv hsurj
+  have hrepresentative_residual :
+      ∀ o : Fin (2 ^ r), residual (representative o) = o :=
+    Function.surjInv_eq hsurj
+  have hsectors_card : sectors.card = 2 ^ r := by
+    simp [sectors, Finset.card_image_of_injective _ hrepresentative_injective]
+  refine
+    { stateCount := 2 ^ B
+      sectors := sectors
+      view := view
+      mustSeparate := residualFooling residual
+      fooling := ?_
+      rank_fits_collisions := ?_ }
+  · intro x hx y hy hxy
+    rw [residualFooling, Finset.mem_filter]
+    refine ⟨Finset.mem_univ _, ?_⟩
+    obtain ⟨ox, _, rfl⟩ := Finset.mem_image.mp hx
+    obtain ⟨oy, _, rfl⟩ := Finset.mem_image.mp hy
+    simpa [hrepresentative_residual] using
+      (show ox ≠ oy from fun h => hxy (congrArg representative h))
+  · simpa [hsectors_card] using hrank
+
+/-- Existential residual non-collapse is exactly sufficient for the new static
+geometry socket.  This is the reusable adapter for expander-derived residual
+maps at a concrete observer trajectory. -/
+theorem hasContinuationGeometry_of_surjectiveResidual
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine} {n r B : Nat}
+    (minor : TrajectoryGodMoveBoundaryMinor enc T n)
+    {C : Type*} [Fintype C] [DecidableEq C]
+    (residual : C → Fin (2 ^ r))
+    (hsurj : Function.Surjective residual)
+    (view : C → Fin (2 ^ B))
+    (hrank : minor.liveRank ≤ 2 ^ r - 2 ^ B) :
+    Nonempty (TrajectoryNFrameContinuationGeometry minor C) :=
+  ⟨continuationGeometryOfSurjectiveResidual minor residual hsurj view hrank⟩
 
 /-- Dynamic half of the remaining theorem for a fixed continuation geometry:
 the actual initial collision debt evolves locally and is cleared by the
@@ -412,6 +467,8 @@ theorem operationalSAT_action_lower_of_nframe_extraction
 #print axioms GroundedTrajectoryNFrameActionCertificate.toActionCertificate
 #print axioms groundedCertificateOfFoolingSet
 #print axioms TrajectoryNFrameFoolingCertificate.toGrounded
+#print axioms continuationGeometryOfSurjectiveResidual
+#print axioms hasContinuationGeometry_of_surjectiveResidual
 #print axioms TrajectoryNFrameContinuationGeometry.withServicing
 #print axioms binomial_le_action
 #print axioms binomial_le_action_of_grounded
