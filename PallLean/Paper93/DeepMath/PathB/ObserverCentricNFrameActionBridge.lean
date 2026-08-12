@@ -1041,6 +1041,44 @@ therefore supplies no separation. -/
 theorem fullTransitionAmortization_saturates (K : Nat) :
     K = 1 * K := by simp
 
+/-- **Runtime-or-reuse dichotomy.**  If `K` obligations are served by `T`
+transitions and `T * r` is still too small, then some transition must be reused
+more than `r` times.  This is the unconditional conclusion that survives when
+anti-sharing is unavailable. -/
+theorem reuse_gt_of_runtime_capacity_gap
+    {K T readK r : Nat} (R : BoundedTransitionReuse K T readK)
+    (hgap : T * r < K) : r < readK := by
+  by_contra h
+  have hre : readK ≤ r := Nat.le_of_not_gt h
+  have hcapacity : K ≤ T * readK :=
+    obligations_le_transitions_mul_reuse R
+  have hmono : T * readK ≤ T * r := Nat.mul_le_mul_left T hre
+  exact (Nat.not_lt_of_ge (hcapacity.trans hmono)) hgap
+
+/-- In particular, any schedule beating the obligation count in runtime must
+reuse at least one transition.  Fast computation is not ruled out; it is
+forced into the sharing regime. -/
+theorem nontrivial_reuse_of_runtime_lt_obligations
+    {K T readK : Nat} (R : BoundedTransitionReuse K T readK)
+    (hfast : T < K) : 1 < readK := by
+  apply reuse_gt_of_runtime_capacity_gap R
+  simpa using hfast
+
+/-- At the calibrated N-frame scale, polynomial runtime can cover the
+binomial obligation family only through reuse exceeding any preselected
+polynomial degree.  This is an honest reuse lower bound, not a runtime lower
+bound: unrestricted machines are allowed to realize that sharing. -/
+theorem nframePolynomialRuntime_forces_superpolynomialReuse
+    {n e c readK : Nat}
+    (R : BoundedTransitionReuse
+      (Nat.choose (n / 3) (Nat.log 2 n)) (n ^ e) readK)
+    (hn20 : n ≥ 2 ^ 20)
+    (hlog : 4 * (e + c + 1) ≤ Nat.log 2 n) :
+    n ^ c < readK := by
+  apply reuse_gt_of_runtime_capacity_gap R
+  rw [← pow_add]
+  exact arithmetic_gap_for_exponent (e + c) n hn20 (by omega)
+
 #print axioms liveRank_le_action
 #print axioms GroundedTrajectoryNFrameActionCertificate.toActionCertificate
 #print axioms groundedCertificateOfFoolingSet
@@ -1082,5 +1120,8 @@ theorem fullTransitionAmortization_saturates (K : Nat) :
 #print axioms obligations_le_transitions_mul_reuse
 #print axioms fullTransitionAmortization
 #print axioms fullTransitionAmortization_saturates
+#print axioms reuse_gt_of_runtime_capacity_gap
+#print axioms nontrivial_reuse_of_runtime_lt_obligations
+#print axioms nframePolynomialRuntime_forces_superpolynomialReuse
 
 end PallLean.Paper93.DeepMath.PathB.ObserverCentricNFrameActionBridge
