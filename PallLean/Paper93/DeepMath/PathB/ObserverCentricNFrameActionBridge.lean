@@ -252,6 +252,59 @@ structure TrajectoryNFrameLocalServicing
   service : ∀ t, debt t ≤ debt (t + 1) + rate t
   cleared : debt horizon = 0
 
+/-- Audit witness: the certificate-chosen servicing interface above is
+inhabited for every geometry, independently of the observer.  Put all initial
+debt into one freely chosen rate payment and clear at time one.  Consequently
+this interface by itself is bookkeeping, not a dynamic lower-bound premise. -/
+def TrajectoryNFrameContinuationGeometry.freeServicing
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine} {n : Nat}
+    {minor : TrajectoryGodMoveBoundaryMinor enc T n}
+    {X : Type*} [DecidableEq X]
+    (geometry : TrajectoryNFrameContinuationGeometry minor X) :
+    TrajectoryNFrameLocalServicing geometry where
+  debt := fun t => if t = 0 then debtCount geometry.mustSeparate geometry.view else 0
+  rate := fun t => if t = 0 then debtCount geometry.mustSeparate geometry.view else 0
+  horizon := 1
+  initialDebt := by simp
+  service := by
+    intro t
+    by_cases ht : t = 0
+    · subst t
+      simp
+    · simp [ht]
+  cleared := by simp
+
+/-- Honest dynamic interface: the servicing rate is no longer selected by the
+certificate.  It is definitionally the concrete trajectory observer's live
+boundary rank along the minor's actual input. -/
+structure TrajectoryNFrameObservedServicing
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine} {n : Nat}
+    {minor : TrajectoryGodMoveBoundaryMinor enc T n}
+    {X : Type*} [DecidableEq X]
+    (geometry : TrajectoryNFrameContinuationGeometry minor X) where
+  debt : Nat → Nat
+  horizon : Nat
+  initialDebt : debt 0 = debtCount geometry.mustSeparate geometry.view
+  service : ∀ t,
+    debt t ≤ debt (t + 1) + T.liveBoundaryRank n minor.input t
+  cleared : debt horizon = 0
+
+/-- An observed servicing certificate forgets to the earlier generic
+interface, but fixes its rate to the actual trajectory data. -/
+def TrajectoryNFrameObservedServicing.toLocal
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine} {n : Nat}
+    {minor : TrajectoryGodMoveBoundaryMinor enc T n}
+    {X : Type*} [DecidableEq X]
+    {geometry : TrajectoryNFrameContinuationGeometry minor X}
+    (servicing : TrajectoryNFrameObservedServicing geometry) :
+    TrajectoryNFrameLocalServicing geometry where
+  debt := servicing.debt
+  rate := fun t => T.liveBoundaryRank n minor.input t
+  horizon := servicing.horizon
+  initialDebt := servicing.initialDebt
+  service := servicing.service
+  cleared := servicing.cleared
+
 /-- Static continuation geometry and dynamic local servicing assemble into the
 minimal fooling certificate. -/
 def TrajectoryNFrameContinuationGeometry.withServicing
@@ -373,6 +426,37 @@ def HasTrajectoryNFrameGeometryAndServicingAt
       (X : Type) (_inst : DecidableEq X)
       (geometry : TrajectoryNFrameContinuationGeometry minor X),
     Nonempty (TrajectoryNFrameLocalServicing geometry)
+
+/-- Honest fixed-length frontier: geometry plus servicing charged to the
+observer's own live boundary-rank trajectory. -/
+def HasTrajectoryNFrameGeometryAndObservedServicingAt
+    (enc : ThreeCNFEncoding) (T : TrajectoryObserverMachine) (n : Nat) : Prop :=
+  ∃ (minor : TrajectoryGodMoveBoundaryMinor enc T n)
+      (X : Type) (_inst : DecidableEq X)
+      (geometry : TrajectoryNFrameContinuationGeometry minor X),
+    Nonempty (TrajectoryNFrameObservedServicing geometry)
+
+/-- The older generic servicing predicate is automatically inhabited once
+static geometry exists.  This formally exposes why its free `rate` field
+cannot be treated as observer action. -/
+theorem hasGeometryAndServicing_of_continuationGeometry
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine} {n : Nat}
+    (h : HasTrajectoryNFrameContinuationGeometryAt enc T n) :
+    HasTrajectoryNFrameGeometryAndServicingAt enc T n := by
+  rcases h with ⟨minor, X, inst, hgeometry⟩
+  letI : DecidableEq X := inst
+  rcases hgeometry with ⟨geometry⟩
+  exact ⟨minor, X, inferInstance, geometry, ⟨geometry.freeServicing⟩⟩
+
+/-- Honest observed servicing still feeds the existing conservation wiring. -/
+theorem hasGeometryAndServicing_of_observed
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine} {n : Nat}
+    (h : HasTrajectoryNFrameGeometryAndObservedServicingAt enc T n) :
+    HasTrajectoryNFrameGeometryAndServicingAt enc T n := by
+  rcases h with ⟨minor, X, inst, geometry, hservicing⟩
+  letI : DecidableEq X := inst
+  rcases hservicing with ⟨servicing⟩
+  exact ⟨minor, X, inferInstance, geometry, ⟨servicing.toLocal⟩⟩
 
 /-- The two honest obligations assemble without any further mathematical
 assumption. -/
@@ -499,6 +583,29 @@ def TimeExponentParametricOperationalSATNFrameGeometryAndServicing
       OperationalTrajectoryObserverDecidesSATAtMost enc e T →
       HasTrajectoryNFrameGeometryAndServicingAt enc T n
 
+/-- Corrected static+dynamic frontier: servicing is charged to the concrete
+observer trajectory rather than to a certificate-chosen rate. -/
+def TimeExponentParametricOperationalSATNFrameGeometryAndObservedServicing
+    (enc : ThreeCNFEncoding) : Prop :=
+  ∀ e c : Nat, ∃ n : Nat,
+    n ≥ 2 ^ 20 ∧
+    4 * (c + 1) ≤ Nat.log 2 n ∧
+    ∀ T : TrajectoryObserverMachine,
+      OperationalTrajectoryObserverDecidesSATAtMost enc e T →
+      HasTrajectoryNFrameGeometryAndObservedServicingAt enc T n
+
+/-- The corrected frontier implies the older generic program, preserving all
+downstream kernel-checked conservation results. -/
+theorem geometryAndServicing_of_observedProgram
+    (enc : ThreeCNFEncoding)
+    (hprogram :
+      TimeExponentParametricOperationalSATNFrameGeometryAndObservedServicing enc) :
+    TimeExponentParametricOperationalSATNFrameGeometryAndServicing enc := by
+  intro e c
+  rcases hprogram e c with ⟨n, hn20, hlog, hcert⟩
+  exact ⟨n, hn20, hlog, fun T hT =>
+    hasGeometryAndServicing_of_observed (hcert T hT)⟩
+
 /-- The split static/dynamic program implies the fully grounded extraction
 theorem. -/
 theorem groundedExtraction_of_geometryAndServicing
@@ -557,12 +664,17 @@ theorem operationalSAT_action_lower_of_nframe_extraction
 #print axioms TrajectoryNFrameResidualNoncollapse.toGeometry
 #print axioms hasContinuationGeometry_of_residualNoncollapse
 #print axioms continuationGeometry_of_residualNoncollapse
+#print axioms TrajectoryNFrameContinuationGeometry.freeServicing
+#print axioms TrajectoryNFrameObservedServicing.toLocal
 #print axioms TrajectoryNFrameContinuationGeometry.withServicing
 #print axioms binomial_le_action
 #print axioms binomial_le_action_of_grounded
 #print axioms hasTrajectoryCertificate_of_grounded
 #print axioms hasGroundedCertificate_of_fooling
 #print axioms hasFoolingCertificate_of_geometryAndServicing
+#print axioms hasGeometryAndServicing_of_continuationGeometry
+#print axioms hasGeometryAndServicing_of_observed
+#print axioms geometryAndServicing_of_observedProgram
 #print axioms nframeActionExtraction_of_grounded
 #print axioms groundedExtraction_of_geometryAndServicing
 #print axioms action_gt_polynomial_of_certificate
