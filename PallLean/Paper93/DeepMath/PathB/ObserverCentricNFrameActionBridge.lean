@@ -1104,6 +1104,41 @@ theorem nframe_runtime_or_reuse
     rw [pow_add] at hgap
     exact (Nat.not_lt_of_ge (hcapacity.trans hproduct)) hgap
 
+/-- Conditional cash-out of anti-sharing.  A polynomial reuse cap eliminates
+the second branch of `nframe_runtime_or_reuse` and forces the runtime lower
+bound.  This theorem performs only the accounting implication; establishing
+`readK ≤ n^c` for SAT DTMs remains the missing lower-bound theorem. -/
+theorem nframe_runtime_lower_of_polynomialReuse
+    {n e c T readK : Nat}
+    (R : BoundedTransitionReuse
+      (Nat.choose (n / 3) (Nat.log 2 n)) T readK)
+    (hn20 : n ≥ 2 ^ 20)
+    (hlog : 4 * (e + c + 1) ≤ Nat.log 2 n)
+    (hreuse : readK ≤ n ^ c) :
+    n ^ e < T := by
+  rcases nframe_runtime_or_reuse R hn20 hlog with htime | hhighReuse
+  · exact htime
+  · exact absurd hhighReuse (Nat.not_lt_of_ge hreuse)
+
+/-- Pointwise form of the exact missing anti-sharing input at one calibrated
+length.  It is deliberately a property of the concrete obligation schedule,
+not an observer-chosen annotation. -/
+def PolynomialReuseAt
+    (n c T readK : Nat)
+    (_R : BoundedTransitionReuse
+      (Nat.choose (n / 3) (Nat.log 2 n)) T readK) : Prop :=
+  readK ≤ n ^ c
+
+theorem nframe_runtime_lower_of_polynomialReuseAt
+    {n e c T readK : Nat}
+    (R : BoundedTransitionReuse
+      (Nat.choose (n / 3) (Nat.log 2 n)) T readK)
+    (hn20 : n ≥ 2 ^ 20)
+    (hlog : 4 * (e + c + 1) ≤ Nat.log 2 n)
+    (hanti : PolynomialReuseAt n c T readK R) :
+    n ^ e < T :=
+  nframe_runtime_lower_of_polynomialReuse R hn20 hlog hanti
+
 #print axioms liveRank_le_action
 #print axioms GroundedTrajectoryNFrameActionCertificate.toActionCertificate
 #print axioms groundedCertificateOfFoolingSet
@@ -1149,5 +1184,7 @@ theorem nframe_runtime_or_reuse
 #print axioms nontrivial_reuse_of_runtime_lt_obligations
 #print axioms nframePolynomialRuntime_forces_superpolynomialReuse
 #print axioms nframe_runtime_or_reuse
+#print axioms nframe_runtime_lower_of_polynomialReuse
+#print axioms nframe_runtime_lower_of_polynomialReuseAt
 
 end PallLean.Paper93.DeepMath.PathB.ObserverCentricNFrameActionBridge
