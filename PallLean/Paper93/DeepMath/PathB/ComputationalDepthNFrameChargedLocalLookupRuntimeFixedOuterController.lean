@@ -125,6 +125,109 @@ theorem runtimeFixedOuterController_final_handoff
       ⟨RuntimeFixedOuterControllerState.final, p, T⟩ := by
   simp [step, runtimeFixedOuterControllerMachine, moveHead]
 
+/-! ## Exact run lifting through the wrapper -/
+
+theorem runtimeFixedOuterController_shift_run
+    (c : Cfg runtimeUniversalPassedShiftMachine) (t : Nat)
+    (hno : ∀ i < t, runtimeUniversalPassedShiftMachine.halt
+      (run runtimeUniversalPassedShiftMachine i c).st = false) :
+    run runtimeFixedOuterControllerMachine t (outerShiftCfg c) =
+      outerShiftCfg (run runtimeUniversalPassedShiftMachine t c) := by
+  induction t with
+  | zero => rfl
+  | succ t ih =>
+      rw [run_succ, ih (fun i hi => hno i (by omega)),
+        runtimeFixedOuterController_shift_step _ (hno t (by omega)),
+        ← run_succ]
+
+theorem runtimeFixedOuterController_shift_run_handoff
+    (c : Cfg runtimeUniversalPassedShiftMachine) (t : Nat)
+    (hno : ∀ i < t, runtimeUniversalPassedShiftMachine.halt
+      (run runtimeUniversalPassedShiftMachine i c).st = false)
+    (hh : runtimeUniversalPassedShiftMachine.halt
+      (run runtimeUniversalPassedShiftMachine t c).st = true) :
+    run runtimeFixedOuterControllerMachine (t + 1) (outerShiftCfg c) =
+      outerReturnCfg
+        ⟨runtimeProgressReturnMachine.start,
+          (run runtimeUniversalPassedShiftMachine t c).hd,
+          (run runtimeUniversalPassedShiftMachine t c).tp⟩ := by
+  rw [run_succ, runtimeFixedOuterController_shift_run c t hno,
+    runtimeFixedOuterController_shift_handoff _ hh]
+
+theorem runtimeFixedOuterController_return_run
+    (c : Cfg runtimeProgressReturnMachine) (t : Nat)
+    (hno : ∀ i < t, runtimeProgressReturnMachine.halt
+      (run runtimeProgressReturnMachine i c).st = false) :
+    run runtimeFixedOuterControllerMachine t (outerReturnCfg c) =
+      outerReturnCfg (run runtimeProgressReturnMachine t c) := by
+  induction t with
+  | zero => rfl
+  | succ t ih =>
+      rw [run_succ, ih (fun i hi => hno i (by omega)),
+        runtimeFixedOuterController_return_step _ (hno t (by omega)),
+        ← run_succ]
+
+theorem runtimeFixedOuterController_return_run_handoff
+    (c : Cfg runtimeProgressReturnMachine) (t : Nat)
+    (hno : ∀ i < t, runtimeProgressReturnMachine.halt
+      (run runtimeProgressReturnMachine i c).st = false)
+    (hh : runtimeProgressReturnMachine.halt
+      (run runtimeProgressReturnMachine t c).st = true) :
+    run runtimeFixedOuterControllerMachine (t + 1) (outerReturnCfg c) =
+      outerExhaustCfg
+        ⟨runtimeProgressExhaustMachine.start,
+          (run runtimeProgressReturnMachine t c).hd,
+          (run runtimeProgressReturnMachine t c).tp⟩ := by
+  rw [run_succ, runtimeFixedOuterController_return_run c t hno,
+    runtimeFixedOuterController_return_handoff _ hh]
+
+theorem runtimeFixedOuterController_exhaust_run
+    (c : Cfg runtimeProgressExhaustMachine) (t : Nat)
+    (hno : ∀ i < t,
+      (run runtimeProgressExhaustMachine i c).st ≠ .more ∧
+      (run runtimeProgressExhaustMachine i c).st ≠ .final) :
+    run runtimeFixedOuterControllerMachine t (outerExhaustCfg c) =
+      outerExhaustCfg (run runtimeProgressExhaustMachine t c) := by
+  induction t with
+  | zero => rfl
+  | succ t ih =>
+      rw [run_succ, ih (fun i hi => hno i (by omega)),
+        runtimeFixedOuterController_exhaust_step _
+          (hno t (by omega)).1 (hno t (by omega)).2,
+        ← run_succ]
+
+theorem runtimeFixedOuterController_exhaust_more_run_handoff
+    (c : Cfg runtimeProgressExhaustMachine) (t : Nat)
+    (hno : ∀ i < t,
+      (run runtimeProgressExhaustMachine i c).st ≠ .more ∧
+      (run runtimeProgressExhaustMachine i c).st ≠ .final)
+    (hm : (run runtimeProgressExhaustMachine t c).st = .more) :
+    run runtimeFixedOuterControllerMachine (t + 1) (outerExhaustCfg c) =
+      ⟨runtimeFixedOuterControllerMachine.start,
+        (run runtimeProgressExhaustMachine t c).hd,
+        (run runtimeProgressExhaustMachine t c).tp⟩ := by
+  rw [run_succ, runtimeFixedOuterController_exhaust_run c t hno]
+  cases hrun : run runtimeProgressExhaustMachine t c
+  simp only [hrun] at hm ⊢
+  subst hm
+  exact runtimeFixedOuterController_more_handoff _ _
+
+theorem runtimeFixedOuterController_exhaust_final_run_handoff
+    (c : Cfg runtimeProgressExhaustMachine) (t : Nat)
+    (hno : ∀ i < t,
+      (run runtimeProgressExhaustMachine i c).st ≠ .more ∧
+      (run runtimeProgressExhaustMachine i c).st ≠ .final)
+    (hf : (run runtimeProgressExhaustMachine t c).st = .final) :
+    run runtimeFixedOuterControllerMachine (t + 1) (outerExhaustCfg c) =
+      ⟨RuntimeFixedOuterControllerState.final,
+        (run runtimeProgressExhaustMachine t c).hd,
+        (run runtimeProgressExhaustMachine t c).tp⟩ := by
+  rw [run_succ, runtimeFixedOuterController_exhaust_run c t hno]
+  cases hrun : run runtimeProgressExhaustMachine t c
+  simp only [hrun] at hf ⊢
+  subst hf
+  exact runtimeFixedOuterController_final_handoff _ _
+
 @[simp] theorem runtimeFixedOuterController_final_halts :
     runtimeFixedOuterControllerMachine.halt
       RuntimeFixedOuterControllerState.final = true := by
@@ -137,5 +240,9 @@ theorem runtimeFixedOuterController_final_handoff
 #print axioms runtimeFixedOuterController_exhaust_step
 #print axioms runtimeFixedOuterController_more_handoff
 #print axioms runtimeFixedOuterController_final_handoff
+#print axioms runtimeFixedOuterController_shift_run_handoff
+#print axioms runtimeFixedOuterController_return_run_handoff
+#print axioms runtimeFixedOuterController_exhaust_more_run_handoff
+#print axioms runtimeFixedOuterController_exhaust_final_run_handoff
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeFixedOuterController
