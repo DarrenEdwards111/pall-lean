@@ -18,6 +18,8 @@ namespace PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeProgres
 set_option maxHeartbeats 4000000
 
 open PallLean.Paper93.DeepMath.PathB.ComposableMachine
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceSelect
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimePreservedPassedCopy
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupLeftBoundaryTerminal
 
 inductive RuntimeProgressRecordClearState
@@ -310,6 +312,116 @@ theorem runtimeProgressRecordClear_marker (pre tail : List Bool) :
     record_candidateHi_zero_step T1 T1 pre.length h3 hw3,
     record_backOne_step T1 pre.length, record_backTwo_step T1 pre.length]
 
+/-! ## Structural lifts -/
+
+private theorem progressWords_succ (n : Nat) :
+    flattenPairs (List.replicate (n + 1) (true, false)) =
+      flattenPairs (List.replicate n (true, false)) ++ [true, false] := by
+  rw [List.replicate_add, flattenPairs_append]
+  rfl
+
+private theorem progressWords_commute (n : Nat) :
+    flattenPairs (List.replicate n (true, false)) ++ [true, false] =
+      [true, false] ++ flattenPairs (List.replicate n (true, false)) := by
+  induction n with
+  | zero => rfl
+  | succ n ih =>
+      simp [List.replicate_succ, flattenPairs] at ih ⊢
+      exact ih
+
+/-- From the ordinary scan state, any nonzero pair prefix becomes a
+contiguous list of `10` progress words in one uninterrupted run. -/
+theorem runtimeProgressRecordClear_nonzeroPairs
+    (pre tail : List Bool) (ps : List (Bool × Bool))
+    (hnz : ∀ p ∈ ps, p.1 = true ∨ p.2 = true) :
+    run runtimeProgressRecordClearMachine (2 * ps.length)
+        ⟨RuntimeProgressRecordClearState.lo, pre.length,
+          pre ++ flattenPairs ps ++ tail⟩ =
+      ⟨RuntimeProgressRecordClearState.lo,
+        pre.length + 2 * ps.length,
+        pre ++ flattenPairs (List.replicate ps.length (true, false)) ++ tail⟩ := by
+  induction ps generalizing pre with
+  | nil => simp [flattenPairs]
+  | cons p ps ih =>
+      rcases p with ⟨lo, hi⟩
+      have hp : lo = true ∨ hi = true := hnz (lo, hi) (by simp)
+      have hrest : ∀ q ∈ ps, q.1 = true ∨ q.2 = true := by
+        intro q hq
+        exact hnz q (by simp [hq])
+      rw [show 2 * ((lo, hi) :: ps).length = 2 + 2 * ps.length by
+          simp; omega,
+        run_add]
+      have hfirst := runtimeProgressRecordClear_nonzero
+        pre (flattenPairs ps ++ tail) lo hi hp
+      have hfirst' : run runtimeProgressRecordClearMachine 2
+          ⟨RuntimeProgressRecordClearState.lo, pre.length,
+            pre ++ flattenPairs ((lo, hi) :: ps) ++ tail⟩ =
+        ⟨RuntimeProgressRecordClearState.lo, pre.length + 2,
+          pre ++ [true, false] ++ flattenPairs ps ++ tail⟩ := by
+        simpa [flattenPairs, List.append_assoc] using hfirst
+      rw [hfirst']
+      have hih := ih (pre := pre ++ [true, false]) hrest
+      convert hih using 1 <;>
+        simp [progressWords_succ, progressWords_commute,
+          List.append_assoc, Nat.add_assoc]
+
+/-- A nonzero suffix is converted to progress words and the reserved marker
+becomes the final progress word followed by the initial hole. -/
+theorem runtimeProgressRecordClear_nonzeroPrefix_marker
+    (pre tail : List Bool) (ps : List (Bool × Bool))
+    (hnz : ∀ p ∈ ps, p.1 = true ∨ p.2 = true) :
+    run runtimeProgressRecordClearMachine (2 * ps.length + 6)
+        ⟨RuntimeProgressRecordClearState.lo, pre.length,
+          pre ++ flattenPairs ps ++
+            flattenPairs runtimePassedBoundaryMarker ++ tail⟩ =
+      ⟨RuntimeProgressRecordClearState.done,
+        pre.length + 2 * ps.length + 2,
+        pre ++ flattenPairs (List.replicate (ps.length + 1) (true, false)) ++
+          [false, false] ++ tail⟩ := by
+  rw [run_add]
+  have hp := runtimeProgressRecordClear_nonzeroPairs pre
+    (flattenPairs runtimePassedBoundaryMarker ++ tail) ps hnz
+  simp only [List.append_assoc] at hp ⊢
+  rw [hp]
+  have hm := runtimeProgressRecordClear_marker
+    (pre ++ flattenPairs (List.replicate ps.length (true, false))) tail
+  simpa [progressWords_succ, List.append_assoc,
+    Nat.add_assoc] using hm
+
+/-- Starting from the machine's genuine initial state, a nonzero first pair
+becomes the sentinel and an all-nonzero remainder is lifted through the
+marker to the initial hole. -/
+theorem runtimeProgressRecordClear_nonzeroWorkspace
+    (pre tail : List Bool) (q : Bool × Bool) (rest : List (Bool × Bool))
+    (hq : q.1 = true ∨ q.2 = true)
+    (hrest : ∀ p ∈ rest, p.1 = true ∨ p.2 = true) :
+    run runtimeProgressRecordClearMachine (2 + (2 * rest.length + 6))
+        ⟨runtimeProgressRecordClearMachine.start, pre.length,
+          pre ++ flattenPairs (q :: rest) ++
+            flattenPairs runtimePassedBoundaryMarker ++ tail⟩ =
+      ⟨RuntimeProgressRecordClearState.done,
+        pre.length + 2 + 2 * rest.length + 2,
+        pre ++ [false, true] ++
+          flattenPairs (List.replicate (rest.length + 1) (true, false)) ++
+          [false, false] ++ tail⟩ := by
+  rw [run_add]
+  have hf := runtimeProgressRecordClear_first pre
+    (flattenPairs rest ++ flattenPairs runtimePassedBoundaryMarker ++ tail)
+    q.1 q.2 hq
+  have hf' : run runtimeProgressRecordClearMachine 2
+      ⟨runtimeProgressRecordClearMachine.start, pre.length,
+        pre ++ flattenPairs (q :: rest) ++
+          flattenPairs runtimePassedBoundaryMarker ++ tail⟩ =
+    ⟨RuntimeProgressRecordClearState.lo, pre.length + 2,
+      pre ++ [false, true] ++ flattenPairs rest ++
+        flattenPairs runtimePassedBoundaryMarker ++ tail⟩ := by
+    simpa [flattenPairs, List.append_assoc] using hf
+  rw [hf']
+  have hr := runtimeProgressRecordClear_nonzeroPrefix_marker
+    (pre ++ [false, true]) tail rest hrest
+  simpa only [List.length_append, List.length_cons, List.length_nil,
+    Nat.add_zero, List.append_assoc] using hr
+
 @[simp] theorem runtimeProgressRecordClear_done_halts :
     runtimeProgressRecordClearMachine.halt
       RuntimeProgressRecordClearState.done = true := by
@@ -319,5 +431,8 @@ theorem runtimeProgressRecordClear_marker (pre tail : List Bool) :
 #print axioms runtimeProgressRecordClear_nonzero
 #print axioms runtimeProgressRecordClear_isolatedZero
 #print axioms runtimeProgressRecordClear_marker
+#print axioms runtimeProgressRecordClear_nonzeroPairs
+#print axioms runtimeProgressRecordClear_nonzeroPrefix_marker
+#print axioms runtimeProgressRecordClear_nonzeroWorkspace
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeProgressRecordClear
