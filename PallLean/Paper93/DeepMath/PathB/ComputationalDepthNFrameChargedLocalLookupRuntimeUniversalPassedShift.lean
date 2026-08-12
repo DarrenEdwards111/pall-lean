@@ -239,6 +239,35 @@ theorem runtimeUniversalPassedShift_terminal
     shift_writeLo_step T2 T2 pre.length false true hw3,
     shift_advance_terminal_step T2 pre.length]
 
+/-! ## First-halt certification -/
+
+/-- An ordinary pair never enters the halt state during its eight-transition
+move. -/
+theorem runtimeUniversalPassedShift_nonterminal_no_early
+    (pre tail : List Bool) (lo hi : Bool)
+    (hterm : ¬ (lo = false ∧ hi = true)) :
+    ∀ i < 8, runtimeUniversalPassedShiftMachine.halt
+      (run runtimeUniversalPassedShiftMachine i
+        ⟨runtimeUniversalPassedShiftMachine.start, pre.length,
+          pre ++ [false, false, lo, hi] ++ tail⟩).st = false := by
+  intro i hi8
+  interval_cases i <;>
+    cases lo <;> cases hi <;>
+      simp_all [run_succ, step, runtimeUniversalPassedShiftMachine,
+        moveHead, List.getD_eq_getElem?_getD, writeAt]
+
+/-- The terminal `01` pair first enters `done` exactly on transition eight. -/
+theorem runtimeUniversalPassedShift_terminal_no_early
+    (pre tail : List Bool) :
+    ∀ i < 8, runtimeUniversalPassedShiftMachine.halt
+      (run runtimeUniversalPassedShiftMachine i
+        ⟨runtimeUniversalPassedShiftMachine.start, pre.length,
+          pre ++ [false, false, false, true] ++ tail⟩).st = false := by
+  intro i hi8
+  interval_cases i <;>
+    simp [run_succ, step, runtimeUniversalPassedShiftMachine,
+      moveHead, List.getD_eq_getElem?_getD, writeAt]
+
 theorem runtimeUniversalPassedShift_dataPairs
     (pre tail : List Bool) (bits : List Bool) :
     run runtimeUniversalPassedShiftMachine (8 * bits.length)
@@ -266,6 +295,40 @@ theorem runtimeUniversalPassedShift_dataPairs
       convert hih using 1 <;>
         simp [dataPairs, flattenPairs, List.append_assoc, Nat.add_assoc,
           Nat.mul_add, Nat.add_comm]
+
+/-- No payload prefix can halt the universal pass: all payload pairs are
+nonterminal `00` or `11`. -/
+theorem runtimeUniversalPassedShift_dataPairs_no_early
+    (pre tail : List Bool) (bits : List Bool) :
+    ∀ i < 8 * bits.length, runtimeUniversalPassedShiftMachine.halt
+      (run runtimeUniversalPassedShiftMachine i
+        ⟨runtimeUniversalPassedShiftMachine.start, pre.length,
+          pre ++ [false, false] ++ flattenPairs (dataPairs bits) ++ tail⟩).st = false := by
+  induction bits generalizing pre with
+  | nil => simp
+  | cons b bits ih =>
+      intro i hi
+      by_cases h8 : i < 8
+      · have hlocal := runtimeUniversalPassedShift_nonterminal_no_early
+          pre (flattenPairs (dataPairs bits) ++ tail) b b
+          (by cases b <;> simp)
+        have hs := hlocal i h8
+        simpa [dataPairs, flattenPairs, List.append_assoc] using hs
+      · obtain ⟨j, rfl⟩ : ∃ j, i = 8 + j := by
+          exact ⟨i - 8, by omega⟩
+        rw [run_add]
+        have hfirst := runtimeUniversalPassedShift_nonterminal pre
+          (flattenPairs (dataPairs bits) ++ tail) b b
+          (by cases b <;> simp)
+        rw [show run runtimeUniversalPassedShiftMachine 8
+            ⟨runtimeUniversalPassedShiftMachine.start, pre.length,
+              pre ++ [false, false] ++ flattenPairs (dataPairs (b :: bits)) ++ tail⟩ =
+            ⟨runtimeUniversalPassedShiftMachine.start, pre.length + 2,
+              pre ++ [b, b, false, false] ++ flattenPairs (dataPairs bits) ++ tail⟩ by
+          simpa [dataPairs, flattenPairs, List.append_assoc] using hfirst]
+        have hj : j < 8 * bits.length := by simp at hi; omega
+        have hih := ih (pre := pre ++ [b, b]) j hj
+        simpa [List.append_assoc, Nat.add_assoc] using hih
 
 /-- Full self-delimiting passed-block pass.  Its clock appears only in the
 run theorem; the machine itself contains no length parameter. -/
@@ -315,6 +378,50 @@ theorem runtimeUniversalPassedShift_passedSourceBlock
     simp [passedSourceBlock, flattenPairs, flattenPairs_append,
       dataPairs, List.append_assoc, Nat.add_assoc, Nat.add_comm,
       Nat.add_left_comm] <;> ring_nf
+
+/-- The self-delimiting pass first halts exactly after crossing its terminal
+pair; no strict prefix of its certified clock is halted. -/
+theorem runtimeUniversalPassedShift_passedSourceBlock_no_early
+    (pre tail bits : List Bool) :
+    ∀ i < 8 * (passedSourceBlock bits).length,
+      runtimeUniversalPassedShiftMachine.halt
+        (run runtimeUniversalPassedShiftMachine i
+          ⟨runtimeUniversalPassedShiftMachine.start, pre.length,
+            pre ++ [false, false] ++
+              flattenPairs (passedSourceBlock bits) ++ tail⟩).st = false := by
+  intro i hi
+  let prefixBits := true :: bits
+  by_cases hp : i < 8 * prefixBits.length
+  · have h := runtimeUniversalPassedShift_dataPairs_no_early
+      pre ([false, true] ++ tail) prefixBits i hp
+    simpa [prefixBits, passedSourceBlock, dataPairs, flattenPairs,
+      List.append_assoc] using h
+  · obtain ⟨j, rfl⟩ : ∃ j, i = 8 * prefixBits.length + j := by
+      exact ⟨i - 8 * prefixBits.length, by omega⟩
+    rw [run_add]
+    have hprefix := runtimeUniversalPassedShift_dataPairs
+      pre ([false, true] ++ tail) prefixBits
+    rw [show run runtimeUniversalPassedShiftMachine (8 * prefixBits.length)
+        ⟨runtimeUniversalPassedShiftMachine.start, pre.length,
+          pre ++ [false, false] ++ flattenPairs (passedSourceBlock bits) ++ tail⟩ =
+        ⟨runtimeUniversalPassedShiftMachine.start,
+          pre.length + 2 * prefixBits.length,
+          pre ++ flattenPairs (dataPairs prefixBits) ++
+            [false, false, false, true] ++ tail⟩ by
+      simpa [prefixBits, passedSourceBlock, dataPairs, flattenPairs,
+        List.append_assoc] using hprefix]
+    have hj : j < 8 := by
+      simp [prefixBits, passedSourceBlock, dataPairs] at hi
+      omega
+    have ht := runtimeUniversalPassedShift_terminal_no_early
+      (pre ++ flattenPairs (dataPairs prefixBits)) tail j hj
+    have hlen : (dataPairs prefixBits).length = prefixBits.length := by
+      simp [dataPairs]
+    have hhead : (pre ++ flattenPairs (dataPairs prefixBits)).length =
+        pre.length + 2 * prefixBits.length := by
+      simp [flattenPairs_length, hlen]
+    rw [hhead] at ht
+    simpa [List.append_assoc] using ht
 
 /-! ## Structural left safety -/
 
@@ -379,8 +486,12 @@ theorem runtimeUniversalPassedShift_passedSourceBlock_leftSafe
 
 #print axioms runtimeUniversalPassedShift_nonterminal
 #print axioms runtimeUniversalPassedShift_terminal
+#print axioms runtimeUniversalPassedShift_nonterminal_no_early
+#print axioms runtimeUniversalPassedShift_terminal_no_early
 #print axioms runtimeUniversalPassedShift_dataPairs
+#print axioms runtimeUniversalPassedShift_dataPairs_no_early
 #print axioms runtimeUniversalPassedShift_passedSourceBlock
+#print axioms runtimeUniversalPassedShift_passedSourceBlock_no_early
 #print axioms runtimeUniversalPassedShift_invariant_step
 #print axioms runtimeUniversalPassedShift_leftSafe
 #print axioms runtimeUniversalPassedShift_passedSourceBlock_leftSafe
