@@ -303,6 +303,75 @@ theorem runtimeFixedCleanupController_workspace
       Nat.add_comm, Nat.add_left_comm] using ho]
   rfl
 
+/-- Matching left-boundary certificate for the complete exact cleanup run. -/
+theorem runtimeFixedCleanupController_workspace_leftSafe
+    (pre tail bits : List Bool) (value : Bool) (m n : Nat) :
+    let workspace := runtimeWorkspaceFrontPairs value m n
+    let clearClock := 2 * workspace.length + 6 + if value then 0 else 2
+    let outerClock := runtimeFixedOuterControllerRoundsClock bits workspace.length
+    let inputTape := pre ++ flattenPairs workspace ++
+      flattenPairs runtimePassedBoundaryMarker ++
+      flattenPairs (passedSourceBlock bits) ++ tail
+    LeftSafeRun runtimeFixedCleanupControllerMachine
+      ⟨runtimeFixedCleanupControllerMachine.start, pre.length, inputTape⟩
+      ((clearClock + 1) + outerClock) := by
+  dsimp only
+  let workspace := runtimeWorkspaceFrontPairs value m n
+  let clearClock := 2 * workspace.length + 6 + if value then 0 else 2
+  let inputTape := pre ++ flattenPairs workspace ++
+    flattenPairs runtimePassedBoundaryMarker ++
+    flattenPairs (passedSourceBlock bits) ++ tail
+  let recordTape := pre ++ [false, true] ++
+    flattenPairs (List.replicate workspace.length (true, false)) ++
+    [false, false] ++ flattenPairs (passedSourceBlock bits) ++ tail
+  apply leftSafeRun_add
+  · simpa [workspace, clearClock, inputTape] using
+      runtimeFixedCleanupController_workspace_clear_leftSafe
+        pre tail bits value m n
+  · have hcExact := runtimeProgressRecordClear_workspace pre
+      (flattenPairs (passedSourceBlock bits) ++ tail) value m n
+    have hcNoEarly := runtimeProgressRecordClear_workspace_no_early pre
+      (flattenPairs (passedSourceBlock bits) ++ tail) value m n
+    have hcHalt : runtimeProgressRecordClearMachine.halt
+        (run runtimeProgressRecordClearMachine clearClock
+          ⟨runtimeProgressRecordClearMachine.start, pre.length, inputTape⟩).st = true := by
+      rw [show run runtimeProgressRecordClearMachine clearClock
+          ⟨runtimeProgressRecordClearMachine.start, pre.length, inputTape⟩ =
+          ⟨RuntimeProgressRecordClearState.done,
+            pre.length + 2 * workspace.length + 2, recordTape⟩ by
+        simpa [workspace, clearClock, inputTape, recordTape,
+          List.append_assoc] using hcExact]
+      simp [runtimeProgressRecordClearMachine]
+    have hc := runtimeFixedCleanupController_clear_run_handoff
+      ⟨runtimeProgressRecordClearMachine.start, pre.length, inputTape⟩
+      clearClock
+      (by simpa [workspace, clearClock, inputTape, List.append_assoc] using hcNoEarly)
+      hcHalt
+    rw [show run runtimeFixedCleanupControllerMachine (clearClock + 1)
+        ⟨runtimeFixedCleanupControllerMachine.start, pre.length, inputTape⟩ =
+        cleanupOuterCfg
+          ⟨runtimeFixedOuterControllerMachine.start,
+            pre.length + 2 * workspace.length + 2, recordTape⟩ by
+      change run runtimeFixedCleanupControllerMachine (clearClock + 1)
+          (cleanupClearCfg
+            ⟨runtimeProgressRecordClearMachine.start, pre.length, inputTape⟩) = _
+      rw [hc]
+      rw [show run runtimeProgressRecordClearMachine clearClock
+          ⟨runtimeProgressRecordClearMachine.start, pre.length, inputTape⟩ =
+          ⟨RuntimeProgressRecordClearState.done,
+            pre.length + 2 * workspace.length + 2, recordTape⟩ by
+        simpa [workspace, clearClock, inputTape, recordTape,
+          List.append_assoc] using hcExact]]
+    apply runtimeFixedCleanupController_outer_leftSafe
+    have hwpos : 0 < workspace.length := by
+      simp [workspace, runtimeWorkspaceFrontPairs]
+    have ho := runtimeFixedOuterController_rounds_leftSafe pre tail bits
+      (workspace.length - 1)
+    have hpred : workspace.length - 1 + 1 = workspace.length := by omega
+    rw [hpred] at ho
+    simpa [recordTape, workspace, List.append_assoc, Nat.add_assoc,
+      Nat.add_comm, Nat.add_left_comm] using ho
+
 @[simp] theorem runtimeFixedCleanupController_outer_final_halts :
     runtimeFixedCleanupControllerMachine.halt
       (.outer RuntimeFixedOuterControllerState.final) = true := by
@@ -323,5 +392,6 @@ theorem runtimeFixedCleanupController_workspace
 #print axioms runtimeFixedCleanupController_outer_leftSafe
 #print axioms runtimeFixedCleanupController_workspace_clear_leftSafe
 #print axioms runtimeFixedCleanupController_workspace
+#print axioms runtimeFixedCleanupController_workspace_leftSafe
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeFixedCleanupController
