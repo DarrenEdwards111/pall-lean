@@ -2,6 +2,7 @@ import PallLean.Paper93.DeepMath.PathB.ObserverTrajectoryDCEW
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthObserverTimeDebt
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthFoolingDebt
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthExpanderNoHiding
+import PallLean.Paper93.DeepMath.PathB.OperationalZeroBoundaryObstruction
 
 /-!
 # Observer-centric N-frame action bridge
@@ -571,6 +572,29 @@ theorem continuationGeometry_of_residualNoncollapse
   exact ⟨n, hn20, hlog, fun T hT =>
     hasContinuationGeometry_of_residualNoncollapse (hcert T hT)⟩
 
+/-- Audit: if a polynomial-time SAT DTM exists, the universal residual
+non-collapse program is false for its zero-boundary operational presentation.
+The residual witness contains a positive-rank live minor, which cannot exist
+in that presentation.  Thus this static frontier already carries the complete
+P-vs-NP lower-bound strength. -/
+theorem not_residualNoncollapse_of_zeroBoundaryDecider
+    {enc : ThreeCNFEncoding} {M : TuringMachine.DTM}
+    (hdec : DTMDecidesSATWithEncoding enc M) :
+    Not (TimeExponentParametricOperationalSATResidualNoncollapse enc) := by
+  intro hprogram
+  rcases hprogram M.timeBound 0 with ⟨n, hn20, hlog, hcert⟩
+  have hgap : n ^ 0 < Nat.choose (n / 3) (Nat.log 2 n) :=
+    arithmetic_gap_for_exponent 0 n hn20 hlog
+  have hchoose_pos : 0 < Nat.choose (n / 3) (Nat.log 2 n) := by
+    exact lt_trans (by simp) hgap
+  have hsat :=
+    zeroBoundaryOperationalTrajectoryObserver_decidesSATAtMost hdec
+  rcases hcert (zeroBoundaryOperationalTrajectoryObserver M) hsat with
+    ⟨minor, C, fintype, decEq, _⟩
+  exact
+    (no_trajectoryMinor_of_zeroBoundaryOperationalObserver
+      (enc := enc) M hchoose_pos) ⟨minor⟩
+
 /-- Universal static+dynamic N-frame program.  This formulation identifies
 the two remaining theorem families separately: continuation non-collapse and
 local debt servicing. -/
@@ -605,6 +629,29 @@ theorem geometryAndServicing_of_observedProgram
   rcases hprogram e c with ⟨n, hn20, hlog, hcert⟩
   exact ⟨n, hn20, hlog, fun T hT =>
     hasGeometryAndServicing_of_observed (hcert T hT)⟩
+
+/-- The corrected observed-servicing program has the same zero-boundary
+obstruction: its required live minor cannot exist for the operationally valid
+zero-boundary presentation of a hypothetical SAT decider. -/
+theorem not_geometryAndObservedServicing_of_zeroBoundaryDecider
+    {enc : ThreeCNFEncoding} {M : TuringMachine.DTM}
+    (hdec : DTMDecidesSATWithEncoding enc M) :
+    Not
+      (TimeExponentParametricOperationalSATNFrameGeometryAndObservedServicing
+        enc) := by
+  intro hprogram
+  rcases hprogram M.timeBound 0 with ⟨n, hn20, hlog, hcert⟩
+  have hgap : n ^ 0 < Nat.choose (n / 3) (Nat.log 2 n) :=
+    arithmetic_gap_for_exponent 0 n hn20 hlog
+  have hchoose_pos : 0 < Nat.choose (n / 3) (Nat.log 2 n) := by
+    exact lt_trans (by simp) hgap
+  have hsat :=
+    zeroBoundaryOperationalTrajectoryObserver_decidesSATAtMost hdec
+  rcases hcert (zeroBoundaryOperationalTrajectoryObserver M) hsat with
+    ⟨minor, X, inst, geometry, servicing⟩
+  exact
+    (no_trajectoryMinor_of_zeroBoundaryOperationalObserver
+      (enc := enc) M hchoose_pos) ⟨minor⟩
 
 /-- The split static/dynamic program implies the fully grounded extraction
 theorem. -/
@@ -664,6 +711,7 @@ theorem operationalSAT_action_lower_of_nframe_extraction
 #print axioms TrajectoryNFrameResidualNoncollapse.toGeometry
 #print axioms hasContinuationGeometry_of_residualNoncollapse
 #print axioms continuationGeometry_of_residualNoncollapse
+#print axioms not_residualNoncollapse_of_zeroBoundaryDecider
 #print axioms TrajectoryNFrameContinuationGeometry.freeServicing
 #print axioms TrajectoryNFrameObservedServicing.toLocal
 #print axioms TrajectoryNFrameContinuationGeometry.withServicing
@@ -675,6 +723,7 @@ theorem operationalSAT_action_lower_of_nframe_extraction
 #print axioms hasGeometryAndServicing_of_continuationGeometry
 #print axioms hasGeometryAndServicing_of_observed
 #print axioms geometryAndServicing_of_observedProgram
+#print axioms not_geometryAndObservedServicing_of_zeroBoundaryDecider
 #print axioms nframeActionExtraction_of_grounded
 #print axioms groundedExtraction_of_geometryAndServicing
 #print axioms action_gt_polynomial_of_certificate
