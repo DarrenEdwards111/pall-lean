@@ -504,6 +504,110 @@ theorem runtimeFixedOuterController_round_final
     (flattenPairs block ++ [false, false] ++ tail)
   simpa [T2, T3, block, List.append_assoc] using he
 
+/-! ## Structural iteration of the actual fixed controller -/
+
+def runtimeFixedOuterControllerMoreClock (bits : List Bool) : Nat :=
+  let block := passedSourceBlock bits
+  (8 * block.length + 1) + ((1 + 2 * block.length + 3 + 1) + 3)
+
+def runtimeFixedOuterControllerFinalClock (bits : List Bool) : Nat :=
+  let block := passedSourceBlock bits
+  (8 * block.length + 1) + ((1 + 2 * block.length + 3 + 1) + 4)
+
+/-- Exact clock for a nonempty physical progress record.  This number occurs
+only in the proof statement; the fixed controller discovers every iteration
+and the final branch from tape symbols. -/
+def runtimeFixedOuterControllerRoundsClock (bits : List Bool) : Nat → Nat
+  | 0 => 0
+  | 1 => runtimeFixedOuterControllerFinalClock bits
+  | k + 2 => runtimeFixedOuterControllerMoreClock bits +
+      runtimeFixedOuterControllerRoundsClock bits (k + 1)
+
+/-- Every nonempty `10` progress record drives one uninterrupted run of the
+single fixed controller.  The rightmost word is consumed first; induction
+therefore follows the physical record from right to left until the permanent
+`01` sentinel selects the genuine final state. -/
+theorem runtimeFixedOuterController_rounds
+    (pre tail bits : List Bool) (k : Nat) :
+    let block := passedSourceBlock bits
+    let marks := flattenPairs (List.replicate (k + 1) (true, false))
+    let T0 := pre ++ [false, true] ++ marks ++ [false, false] ++
+      flattenPairs block ++ tail
+    let Tf := pre ++ [false, false, false, false] ++
+      flattenPairs block ++
+      flattenPairs (List.replicate (k + 1) (false, false)) ++ tail
+    run runtimeFixedOuterControllerMachine
+        (runtimeFixedOuterControllerRoundsClock bits (k + 1))
+        ⟨runtimeFixedOuterControllerMachine.start,
+          pre.length + 2 + 2 * (k + 1), T0⟩ =
+      ⟨RuntimeFixedOuterControllerState.final, pre.length + 1, Tf⟩ := by
+  induction k generalizing tail with
+  | zero =>
+      simpa [runtimeFixedOuterControllerRoundsClock,
+        runtimeFixedOuterControllerFinalClock, flattenPairs,
+        List.append_assoc, Nat.add_assoc] using
+        runtimeFixedOuterController_round_final pre tail bits
+  | succ k ih =>
+      dsimp only
+      let block := passedSourceBlock bits
+      let earlier := flattenPairs (List.replicate k (true, false))
+      let roundPre := pre ++ [false, true] ++ earlier
+      let T0 := roundPre ++ [true, false, true, false, false, false] ++
+        flattenPairs block ++ tail
+      let T1 := roundPre ++ [true, false, false, false] ++
+        flattenPairs block ++ [false, false] ++ tail
+      have hmarks :
+          flattenPairs (List.replicate (k + 1 + 1) (true, false)) =
+            earlier ++ [true, false, true, false] := by
+        rw [show k + 1 + 1 = k + 2 by omega,
+          List.replicate_add]
+        simp [earlier, flattenPairs_append, flattenPairs]
+      have hzeros :
+          flattenPairs (List.replicate (k + 1 + 1) (false, false)) =
+            flattenPairs (List.replicate (k + 1) (false, false)) ++
+              [false, false] := by
+        rw [show k + 1 + 1 = (k + 1) + 1 by omega,
+          List.replicate_add]
+        simp [flattenPairs_append, flattenPairs]
+      have hremaining :
+          flattenPairs (List.replicate (k + 1) (true, false)) =
+            earlier ++ [true, false] := by
+        rw [show k + 1 = k + 1 by rfl, List.replicate_add]
+        simp [earlier, flattenPairs_append, flattenPairs]
+      have hhead0 : pre.length + 2 + 2 * (k + 1 + 1) =
+          roundPre.length + 4 := by
+        simp [roundPre, earlier, flattenPairs_length]
+        omega
+      have hhead1 : roundPre.length + 2 =
+          pre.length + 2 + 2 * (k + 1) := by
+        simp [roundPre, earlier, flattenPairs_length]
+        omega
+      rw [show runtimeFixedOuterControllerRoundsClock bits (k + 1 + 1) =
+          runtimeFixedOuterControllerMoreClock bits +
+            runtimeFixedOuterControllerRoundsClock bits (k + 1) by
+        rw [show k + 1 + 1 = k + 2 by omega]
+        rfl]
+      rw [run_add]
+      have hm := runtimeFixedOuterController_round_more roundPre tail bits
+      rw [show run runtimeFixedOuterControllerMachine
+          (runtimeFixedOuterControllerMoreClock bits)
+          ⟨runtimeFixedOuterControllerMachine.start,
+            pre.length + 2 + 2 * (k + 1 + 1),
+            pre ++ [false, true] ++
+              flattenPairs (List.replicate (k + 1 + 1) (true, false)) ++
+              [false, false] ++ flattenPairs block ++ tail⟩ =
+          ⟨runtimeFixedOuterControllerMachine.start,
+            roundPre.length + 2, T1⟩ by
+        rw [hmarks, hhead0]
+        simpa [runtimeFixedOuterControllerMoreClock, block, T0, T1,
+          roundPre, List.append_assoc] using hm]
+      have hih := ih (tail := [false, false] ++ tail)
+      rw [hremaining] at hih
+      rw [hzeros]
+      rw [hhead1]
+      simpa [block, earlier, roundPre, T1, List.append_assoc,
+        Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hih
+
 @[simp] theorem runtimeFixedOuterController_final_halts :
     runtimeFixedOuterControllerMachine.halt
       RuntimeFixedOuterControllerState.final = true := by
@@ -526,5 +630,6 @@ theorem runtimeFixedOuterController_round_final
 #print axioms runtimeFixedOuterController_exhaust_final_exact
 #print axioms runtimeFixedOuterController_round_more
 #print axioms runtimeFixedOuterController_round_final
+#print axioms runtimeFixedOuterController_rounds
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeFixedOuterController
