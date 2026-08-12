@@ -154,9 +154,16 @@ theorem runtimeProgressReturn_nonmarkerPairs
         have hih := ih (pre := pre) (tail := [lo, hi] ++ tail) hpspos hrest
         simpa [flattenPairs_append, flattenPairs, List.append_assoc] using hih
 
-/-- The ordinary `10` progress word is consumed to `00`; the controller
-returns to its low cell and genuinely halts. -/
-theorem runtimeProgressReturn_marker (pre tail : List Bool) :
+/-- The canonical passed block contains no ordinary `10` progress word. -/
+theorem passedSourceBlock_no_progressMark (bits : List Bool) :
+    ∀ p ∈ passedSourceBlock bits,
+      ¬ (p.1 = true ∧ p.2 = false) := by
+  intro p hp
+  have h := passedSourceBlock_noFresh bits p hp
+  rcases p with ⟨lo, hi⟩
+  cases lo <;> cases hi <;> simp_all
+
+private theorem runtimeProgressReturn_marker_core (pre tail : List Bool) :
     run runtimeProgressReturnMachine 3
         ⟨RuntimeProgressReturnState.hi, pre.length + 1,
           pre ++ [true, false] ++ tail⟩ =
@@ -183,6 +190,58 @@ theorem runtimeProgressReturn_marker (pre tail : List Bool) :
     progress_lo_marker_step T0 T1 pre.length hlo hw0,
     progress_clear_step T1 T1 pre.length hw1]
 
+/-- Starting at the trailing hole left cell, the fixed reverse controller
+crosses the complete moved passed block and consumes the adjacent ordinary
+progress word.  The endpoint is the consumed word's low cell. -/
+theorem runtimeProgressReturn_passed_progress
+    (pre tail bits : List Bool) :
+    run runtimeProgressReturnMachine
+        (1 + 2 * (passedSourceBlock bits).length + 3)
+        ⟨runtimeProgressReturnMachine.start,
+          pre.length + 2 + 2 * (passedSourceBlock bits).length,
+          pre ++ [true, false] ++
+            flattenPairs (passedSourceBlock bits) ++ [false, false] ++ tail⟩ =
+      ⟨RuntimeProgressReturnState.done, pre.length,
+        pre ++ [false, false] ++
+          flattenPairs (passedSourceBlock bits) ++ [false, false] ++ tail⟩ := by
+  let block := passedSourceBlock bits
+  let T := pre ++ [true, false] ++ flattenPairs block ++
+    [false, false] ++ tail
+  rw [show 1 + 2 * (passedSourceBlock bits).length + 3 =
+      1 + (2 * block.length + 3) by simp [block]; omega,
+    run_add]
+  have he := runtimeProgressReturn_enter T
+    (pre.length + 2 + 2 * block.length)
+  rw [show run runtimeProgressReturnMachine 1
+      ⟨runtimeProgressReturnMachine.start,
+        pre.length + 2 + 2 * block.length, T⟩ =
+      ⟨RuntimeProgressReturnState.hi,
+        pre.length + 2 + 2 * block.length - 1, T⟩ by
+    simpa using he,
+    run_add]
+  have hb := runtimeProgressReturn_nonmarkerPairs
+    (pre ++ [true, false]) ([false, false] ++ tail) block
+    (by simp [block, passedSourceBlock])
+    (by simpa [block] using passedSourceBlock_no_progressMark bits)
+  rw [show run runtimeProgressReturnMachine (2 * block.length)
+      ⟨RuntimeProgressReturnState.hi,
+        pre.length + 2 + 2 * block.length - 1, T⟩ =
+      ⟨RuntimeProgressReturnState.hi, pre.length + 1, T⟩ by
+    simpa [T, block, flattenPairs_length, List.append_assoc] using hb]
+  have hm := runtimeProgressReturn_marker_core pre
+    (flattenPairs block ++ [false, false] ++ tail)
+  simpa [T, block, List.append_assoc] using hm
+
+/-- The ordinary `10` progress word is consumed to `00`; the controller
+returns to its low cell and genuinely halts. -/
+theorem runtimeProgressReturn_marker (pre tail : List Bool) :
+    run runtimeProgressReturnMachine 3
+        ⟨RuntimeProgressReturnState.hi, pre.length + 1,
+          pre ++ [true, false] ++ tail⟩ =
+      ⟨RuntimeProgressReturnState.done, pre.length,
+        pre ++ [false, false] ++ tail⟩ := by
+  exact runtimeProgressReturn_marker_core pre tail
+
 /-- Consuming a progress word is left-safe even when the word begins at the
 physical origin: the only left moves start from its high cell. -/
 theorem runtimeProgressReturn_marker_leftSafe (pre tail : List Bool) :
@@ -194,6 +253,82 @@ theorem runtimeProgressReturn_marker_leftSafe (pre tail : List Bool) :
     simp [run_succ, step, runtimeProgressReturnMachine, moveHead,
       List.getD_eq_getElem?_getD, writeAt] at hmove ⊢
 
+/-! ## Fixed exhaustion branch -/
+
+inductive RuntimeProgressExhaustState
+  | start | check | clearSentinelLo | more | final
+  deriving DecidableEq, Fintype
+
+/-- Inspect the pair immediately left of a freshly consumed `00` hole.
+An ordinary remaining `10` has high bit zero; the final `01` sentinel has
+high bit one. -/
+def runtimeProgressExhaustMachine : Machine where
+  State := RuntimeProgressExhaustState
+  fin := inferInstance
+  dec := inferInstance
+  start := .start
+  halt := fun s => decide (s = .more ∨ s = .final)
+  δ := fun s b =>
+    match s with
+    | .start => (.check, none, 0)
+    | .check =>
+        if b then (.clearSentinelLo, some false, 0)
+        else (.more, none, 1)
+    | .clearSentinelLo => (.final, some false, 1)
+    | .more => (.more, none, 2)
+    | .final => (.final, none, 2)
+  accept := fun s => decide (s = .final)
+
+/-- A preceding ordinary mark is detected and the head returns to the
+consumed hole, ready for the next universal forward pass. -/
+theorem runtimeProgressExhaust_more (pre tail : List Bool) :
+    run runtimeProgressExhaustMachine 2
+        ⟨runtimeProgressExhaustMachine.start, pre.length + 2,
+          pre ++ [true, false, false, false] ++ tail⟩ =
+      ⟨RuntimeProgressExhaustState.more, pre.length + 2,
+        pre ++ [true, false, false, false] ++ tail⟩ := by
+  rw [run_succ, run_succ, run_zero]
+  simp [step, runtimeProgressExhaustMachine, moveHead,
+    List.getD_eq_getElem?_getD]
+
+/-- With no progress word remaining, the adjacent `01` sentinel is consumed
+to `00` and the controller genuinely halts in its final state. -/
+theorem runtimeProgressExhaust_final (pre tail : List Bool) :
+    run runtimeProgressExhaustMachine 3
+        ⟨runtimeProgressExhaustMachine.start, pre.length + 2,
+          pre ++ [false, true, false, false] ++ tail⟩ =
+      ⟨RuntimeProgressExhaustState.final, pre.length + 1,
+        pre ++ [false, false, false, false] ++ tail⟩ := by
+  rw [run_succ, run_succ, run_succ, run_zero]
+  simp [step, runtimeProgressExhaustMachine, moveHead,
+    List.getD_eq_getElem?_getD, writeAt]
+
+theorem runtimeProgressExhaust_more_leftSafe (pre tail : List Bool) :
+    LeftSafeRun runtimeProgressExhaustMachine
+      ⟨runtimeProgressExhaustMachine.start, pre.length + 2,
+        pre ++ [true, false, false, false] ++ tail⟩ 2 := by
+  intro i hi _ hmove
+  interval_cases i <;>
+    simp [run_succ, step, runtimeProgressExhaustMachine, moveHead,
+      List.getD_eq_getElem?_getD] at hmove ⊢
+
+theorem runtimeProgressExhaust_final_leftSafe (pre tail : List Bool) :
+    LeftSafeRun runtimeProgressExhaustMachine
+      ⟨runtimeProgressExhaustMachine.start, pre.length + 2,
+        pre ++ [false, true, false, false] ++ tail⟩ 3 := by
+  intro i hi _ hmove
+  interval_cases i <;>
+    simp [run_succ, step, runtimeProgressExhaustMachine, moveHead,
+      List.getD_eq_getElem?_getD, writeAt] at hmove ⊢
+
+@[simp] theorem runtimeProgressExhaust_more_halts :
+    runtimeProgressExhaustMachine.halt RuntimeProgressExhaustState.more = true := by
+  simp [runtimeProgressExhaustMachine]
+
+@[simp] theorem runtimeProgressExhaust_final_halts :
+    runtimeProgressExhaustMachine.halt RuntimeProgressExhaustState.final = true := by
+  simp [runtimeProgressExhaustMachine]
+
 @[simp] theorem runtimeProgressReturn_done_halts :
     runtimeProgressReturnMachine.halt RuntimeProgressReturnState.done = true := by
   simp [runtimeProgressReturnMachine]
@@ -201,7 +336,13 @@ theorem runtimeProgressReturn_marker_leftSafe (pre tail : List Bool) :
 #print axioms runtimeProgressReturn_enter
 #print axioms runtimeProgressReturn_nonmarker
 #print axioms runtimeProgressReturn_nonmarkerPairs
+#print axioms passedSourceBlock_no_progressMark
+#print axioms runtimeProgressReturn_passed_progress
 #print axioms runtimeProgressReturn_marker
 #print axioms runtimeProgressReturn_marker_leftSafe
+#print axioms runtimeProgressExhaust_more
+#print axioms runtimeProgressExhaust_final
+#print axioms runtimeProgressExhaust_more_leftSafe
+#print axioms runtimeProgressExhaust_final_leftSafe
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeProgressReturn
