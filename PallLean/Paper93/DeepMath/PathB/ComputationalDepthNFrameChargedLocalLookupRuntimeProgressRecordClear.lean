@@ -329,6 +329,12 @@ private theorem progressWords_commute (n : Nat) :
       simp [List.replicate_succ, flattenPairs] at ih ⊢
       exact ih
 
+private theorem progressWords_add (m n : Nat) :
+    flattenPairs (List.replicate (m + n) (true, false)) =
+      flattenPairs (List.replicate m (true, false)) ++
+        flattenPairs (List.replicate n (true, false)) := by
+  rw [List.replicate_add, flattenPairs_append]
+
 /-- From the ordinary scan state, any nonzero pair prefix becomes a
 contiguous list of `10` progress words in one uninterrupted run. -/
 theorem runtimeProgressRecordClear_nonzeroPairs
@@ -422,6 +428,45 @@ theorem runtimeProgressRecordClear_nonzeroWorkspace
   simpa only [List.length_append, List.length_cons, List.length_nil,
     Nat.add_zero, List.append_assoc] using hr
 
+/-- The isolated-zero splice followed by an arbitrary nonzero remainder and
+the reserved marker.  This is the distinctive core of the false branch. -/
+theorem runtimeProgressRecordClear_isolatedZero_marker
+    (pre tail : List Bool) (next : Bool × Bool)
+    (rest : List (Bool × Bool))
+    (hnext : next.1 = true ∨ next.2 = true)
+    (hrest : ∀ p ∈ rest, p.1 = true ∨ p.2 = true) :
+    run runtimeProgressRecordClearMachine (6 + (2 * rest.length + 6))
+        ⟨RuntimeProgressRecordClearState.lo, pre.length,
+          pre ++ flattenPairs ([(false, false), next] ++ rest) ++
+            flattenPairs runtimePassedBoundaryMarker ++ tail⟩ =
+      ⟨RuntimeProgressRecordClearState.done,
+        pre.length + 4 + 2 * rest.length + 2,
+        pre ++ [true, false, true, false] ++
+          flattenPairs (List.replicate (rest.length + 1) (true, false)) ++
+          [false, false] ++ tail⟩ := by
+  rw [run_add]
+  have hz := runtimeProgressRecordClear_isolatedZero pre
+    (flattenPairs rest ++ flattenPairs runtimePassedBoundaryMarker ++ tail)
+    next.1 next.2 hnext
+  have hz' : run runtimeProgressRecordClearMachine 6
+      ⟨RuntimeProgressRecordClearState.lo, pre.length,
+        pre ++ flattenPairs ([(false, false), next] ++ rest) ++
+          flattenPairs runtimePassedBoundaryMarker ++ tail⟩ =
+    ⟨RuntimeProgressRecordClearState.lo, pre.length + 4,
+      pre ++ [true, false, true, false] ++ flattenPairs rest ++
+        flattenPairs runtimePassedBoundaryMarker ++ tail⟩ := by
+    simpa [flattenPairs, List.append_assoc] using hz
+  rw [hz']
+  have hr := runtimeProgressRecordClear_nonzeroPrefix_marker
+    (pre ++ [true, false, true, false]) tail rest hrest
+  have hpre : (pre ++ [true, false, true, false]).length = pre.length + 4 := by
+    simp
+  rw [hpre] at hr
+  have hend : pre.length + 4 + 2 * rest.length + 2 =
+      pre.length + 4 + (2 * rest.length + 2) := by omega
+  rw [hend]
+  simpa only [List.append_assoc] using hr
+
 @[simp] theorem runtimeProgressRecordClear_done_halts :
     runtimeProgressRecordClearMachine.halt
       RuntimeProgressRecordClearState.done = true := by
@@ -434,5 +479,6 @@ theorem runtimeProgressRecordClear_nonzeroWorkspace
 #print axioms runtimeProgressRecordClear_nonzeroPairs
 #print axioms runtimeProgressRecordClear_nonzeroPrefix_marker
 #print axioms runtimeProgressRecordClear_nonzeroWorkspace
+#print axioms runtimeProgressRecordClear_isolatedZero_marker
 
 end PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeProgressRecordClear
