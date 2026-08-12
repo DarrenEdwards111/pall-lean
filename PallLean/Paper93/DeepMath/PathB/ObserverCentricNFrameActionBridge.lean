@@ -3,6 +3,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthObserverTimeDebt
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthFoolingDebt
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthExpanderNoHiding
 import PallLean.Paper93.DeepMath.PathB.OperationalZeroBoundaryObstruction
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthUCRDTseitinBoundedReuse
 
 /-!
 # Observer-centric N-frame action bridge
@@ -28,6 +29,7 @@ namespace PallLean.Paper93.DeepMath.PathB.ObserverCentricNFrameActionBridge
 open PallLean.Paper93.DeepMath.PathB
 open PallLean.Paper93.DeepMath.PathB.ObserverTimeDebt
 open PallLean.Paper93.DeepMath.PathB.BoundaryDebt
+open PallLean.Paper93.DeepMath.PathB.UCRDTseitinBoundedReuse
 
 /-- Observer-time servicing data attached to a concrete trajectory-local
 N-frame minor.  `initialDebt_ge_liveRank` is the substantive semantic link:
@@ -1002,6 +1004,43 @@ theorem nonAmortizedTransitionCharge_iff (K T : Nat) :
   · intro hKT
     exact ⟨Fin.castLE hKT, Fin.castLE_injective hKT⟩
 
+/-! ## Bounded transition reuse
+
+Allowing reuse replaces the injective charge by the repository's existing
+bounded-fiber accounting.  The generic law is `K ≤ T * readK`; without an
+independently derived sub-total-use bound on `readK`, it gives no runtime
+lower bound.
+-/
+
+/-- `K` obligations charged to `T` transitions, with each transition serving
+at most `readK` obligations. -/
+abbrev BoundedTransitionReuse (K T readK : Nat) :=
+  BoundedReuseReconstruction K 1 T readK
+
+theorem obligations_le_transitions_mul_reuse
+    {K T readK : Nat} (R : BoundedTransitionReuse K T readK) :
+    K ≤ T * readK := by
+  simpa using direct_sum_le_resource_reuse R
+
+/-- Full amortization is always available for a nonempty transition pool: one
+physical transition may be declared to serve all `K` obligations, with reuse
+multiplicity exactly the total-use scale `K`. -/
+def fullTransitionAmortization (K : Nat) :
+    BoundedTransitionReuse K 1 K where
+  resourceOf := fun _ => 0
+  fiber_le := by
+    intro r
+    calc
+      Fintype.card
+          {x : Fin K × Fin 1 // (fun _ : Fin K × Fin 1 => (0 : Fin 1)) x = r}
+          ≤ Fintype.card (Fin K × Fin 1) := Fintype.card_subtype_le _
+      _ = K := by simp
+
+/-- The generic capacity bound is exactly saturated by full amortization and
+therefore supplies no separation. -/
+theorem fullTransitionAmortization_saturates (K : Nat) :
+    K = 1 * K := by simp
+
 #print axioms liveRank_le_action
 #print axioms GroundedTrajectoryNFrameActionCertificate.toActionCertificate
 #print axioms groundedCertificateOfFoolingSet
@@ -1040,5 +1079,8 @@ theorem nonAmortizedTransitionCharge_iff (K T : Nat) :
 #print axioms binaryTranscriptSeparated_card_le_pow
 #print axioms obligations_le_transitions_of_nonAmortizedCharge
 #print axioms nonAmortizedTransitionCharge_iff
+#print axioms obligations_le_transitions_mul_reuse
+#print axioms fullTransitionAmortization
+#print axioms fullTransitionAmortization_saturates
 
 end PallLean.Paper93.DeepMath.PathB.ObserverCentricNFrameActionBridge
