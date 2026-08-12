@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ObserverTrajectoryDCEW
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthObserverTimeDebt
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthFoolingDebt
 
 /-!
 # Observer-centric N-frame action bridge
@@ -84,6 +85,74 @@ def GroundedTrajectoryNFrameActionCertificate.toActionCertificate
       (merge_creates_debt cert.mustSeparate cert.initialView
         cert.mergedPairs_subset cert.mergedPairs_merged)
 
+/-- Construct the explicit merged-pair geometry canonically from a fooling set
+and a finite boundary view.  The merged family is exactly the filtered
+must-separate relation.  Pigeonhole counting supplies
+`P.card - m ≤ debtCount`, so it suffices that the N-frame live rank fit below
+that unavoidable collision count. -/
+def groundedCertificateOfFoolingSet
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine} {n : Nat}
+    (minor : TrajectoryGodMoveBoundaryMinor enc T n)
+    {X : Type*} [DecidableEq X]
+    {m : Nat}
+    (P : Finset X) (view : X → Fin m) (F : Finset (X × X))
+    (hfool : ∀ x ∈ P, ∀ y ∈ P, x ≠ y → (x, y) ∈ F)
+    (hrank : minor.liveRank ≤ P.card - m)
+    (debt : Nat → Nat) (rate : Nat → Nat) (horizon : Nat)
+    (hinitial : debt 0 = debtCount F view)
+    (hservice : ∀ t, debt t ≤ debt (t + 1) + rate t)
+    (hcleared : debt horizon = 0) :
+    GroundedTrajectoryNFrameActionCertificate minor X (Fin m) where
+  mustSeparate := F
+  initialView := view
+  mergedPairs := F.filter (fun p => view p.1 = view p.2)
+  mergedPairs_subset := Finset.filter_subset _ _
+  mergedPairs_merged := by
+    intro p hp
+    exact (Finset.mem_filter.mp hp).2
+  liveRank_le_mergedPairs := by
+    change minor.liveRank ≤ debtCount F view
+    exact le_trans hrank (foolingSet_forces_debt P view F hfool)
+  debt := debt
+  rate := rate
+  horizon := horizon
+  initialDebt := hinitial
+  service := hservice
+  cleared := hcleared
+
+/-- The minimal combinatorial certificate now required from SAT/N-frame
+geometry.  It contains a large continuation fooling set and a finite boundary
+view; the merged-pair family itself is derived, not supplied. -/
+structure TrajectoryNFrameFoolingCertificate
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine} {n : Nat}
+    (minor : TrajectoryGodMoveBoundaryMinor enc T n)
+    (X : Type*) [DecidableEq X] where
+  stateCount : Nat
+  sectors : Finset X
+  view : X → Fin stateCount
+  mustSeparate : Finset (X × X)
+  fooling : ∀ x ∈ sectors, ∀ y ∈ sectors, x ≠ y →
+    (x, y) ∈ mustSeparate
+  rank_fits_collisions : minor.liveRank ≤ sectors.card - stateCount
+  debt : Nat → Nat
+  rate : Nat → Nat
+  horizon : Nat
+  initialDebt : debt 0 = debtCount mustSeparate view
+  service : ∀ t, debt t ≤ debt (t + 1) + rate t
+  cleared : debt horizon = 0
+
+/-- A fooling-set certificate canonically produces the grounded merged-pair
+certificate. -/
+def TrajectoryNFrameFoolingCertificate.toGrounded
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine} {n : Nat}
+    {minor : TrajectoryGodMoveBoundaryMinor enc T n}
+    {X : Type*} [DecidableEq X]
+    (cert : TrajectoryNFrameFoolingCertificate minor X) :
+    GroundedTrajectoryNFrameActionCertificate minor X (Fin cert.stateCount) :=
+  groundedCertificateOfFoolingSet minor cert.sectors cert.view
+    cert.mustSeparate cert.fooling cert.rank_fits_collisions cert.debt
+    cert.rate cert.horizon cert.initialDebt cert.service cert.cleared
+
 /-- A correct observer carrying a trajectory-local N-frame minor must spend at
 least the minor's live rank in time-integrated boundary action. -/
 theorem liveRank_le_action
@@ -130,6 +199,25 @@ def HasGroundedTrajectoryNFrameActionCertificateAt
   ∃ (minor : TrajectoryGodMoveBoundaryMinor enc T n)
       (X S : Type) (_inst : DecidableEq S),
     Nonempty (GroundedTrajectoryNFrameActionCertificate minor X S)
+
+/-- Fixed-length certificate phrased only through a fooling set and finite
+boundary capacity. -/
+def HasTrajectoryNFrameFoolingCertificateAt
+    (enc : ThreeCNFEncoding) (T : TrajectoryObserverMachine) (n : Nat) : Prop :=
+  ∃ (minor : TrajectoryGodMoveBoundaryMinor enc T n)
+      (X : Type) (_inst : DecidableEq X),
+    Nonempty (TrajectoryNFrameFoolingCertificate minor X)
+
+/-- Fooling-set geometry supplies the fully grounded action certificate. -/
+theorem hasGroundedCertificate_of_fooling
+    {enc : ThreeCNFEncoding} {T : TrajectoryObserverMachine} {n : Nat}
+    (h : HasTrajectoryNFrameFoolingCertificateAt enc T n) :
+    HasGroundedTrajectoryNFrameActionCertificateAt enc T n := by
+  rcases h with ⟨minor, X, inst, hcert⟩
+  letI : DecidableEq X := inst
+  rcases hcert with ⟨cert⟩
+  exact ⟨minor, X, Fin cert.stateCount, inferInstance,
+    ⟨cert.toGrounded⟩⟩
 
 /-- Forgetting the explicit pair geometry yields the abstract action
 certificate used by the generic conservation cash-out. -/
@@ -225,9 +313,12 @@ theorem operationalSAT_action_lower_of_nframe_extraction
 
 #print axioms liveRank_le_action
 #print axioms GroundedTrajectoryNFrameActionCertificate.toActionCertificate
+#print axioms groundedCertificateOfFoolingSet
+#print axioms TrajectoryNFrameFoolingCertificate.toGrounded
 #print axioms binomial_le_action
 #print axioms binomial_le_action_of_grounded
 #print axioms hasTrajectoryCertificate_of_grounded
+#print axioms hasGroundedCertificate_of_fooling
 #print axioms nframeActionExtraction_of_grounded
 #print axioms action_gt_polynomial_of_certificate
 #print axioms operationalSAT_action_lower_of_nframe_extraction
