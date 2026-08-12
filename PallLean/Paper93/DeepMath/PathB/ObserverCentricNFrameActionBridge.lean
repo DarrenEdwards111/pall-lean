@@ -1139,6 +1139,39 @@ theorem nframe_runtime_lower_of_polynomialReuseAt
     n ^ e < T :=
   nframe_runtime_lower_of_polynomialReuse R hn20 hlog hanti
 
+/-- The polynomial-reuse property is not universal over obligation schedules.
+At the calibrated scale, the one-transition full-amortization schedule has
+reuse equal to the whole binomial family and therefore violates every chosen
+`n^c` cap.  Any successful anti-sharing theorem must exclude this schedule
+using concrete SAT/DTM semantics. -/
+theorem fullAmortization_not_polynomialReuseAt
+    {n c : Nat}
+    (hn20 : n ≥ 2 ^ 20)
+    (hlog : 4 * (c + 1) ≤ Nat.log 2 n) :
+    ¬ PolynomialReuseAt n c 1
+      (Nat.choose (n / 3) (Nat.log 2 n))
+      (fullTransitionAmortization
+        (Nat.choose (n / 3) (Nat.log 2 n))) := by
+  intro hreuse
+  have hgap := arithmetic_gap_for_exponent c n hn20 hlog
+  exact (Nat.not_lt_of_ge hreuse) hgap
+
+/-- Consequently there is no schedule-independent theorem asserting a
+polynomial reuse cap at the calibrated N-frame scale. -/
+theorem not_allSchedules_polynomialReuseAt
+    {n c : Nat}
+    (hn20 : n ≥ 2 ^ 20)
+    (hlog : 4 * (c + 1) ≤ Nat.log 2 n) :
+    ¬ (∀ (R : BoundedTransitionReuse
+          (Nat.choose (n / 3) (Nat.log 2 n)) 1
+          (Nat.choose (n / 3) (Nat.log 2 n))),
+        PolynomialReuseAt n c 1
+          (Nat.choose (n / 3) (Nat.log 2 n)) R) := by
+  intro hall
+  exact fullAmortization_not_polynomialReuseAt hn20 hlog
+    (hall (fullTransitionAmortization
+      (Nat.choose (n / 3) (Nat.log 2 n))))
+
 #print axioms liveRank_le_action
 #print axioms GroundedTrajectoryNFrameActionCertificate.toActionCertificate
 #print axioms groundedCertificateOfFoolingSet
@@ -1186,5 +1219,7 @@ theorem nframe_runtime_lower_of_polynomialReuseAt
 #print axioms nframe_runtime_or_reuse
 #print axioms nframe_runtime_lower_of_polynomialReuse
 #print axioms nframe_runtime_lower_of_polynomialReuseAt
+#print axioms fullAmortization_not_polynomialReuseAt
+#print axioms not_allSchedules_polynomialReuseAt
 
 end PallLean.Paper93.DeepMath.PathB.ObserverCentricNFrameActionBridge
