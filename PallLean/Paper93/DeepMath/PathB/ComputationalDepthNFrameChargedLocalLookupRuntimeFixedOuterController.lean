@@ -11,6 +11,7 @@ forward pass; `final` enters the sole genuine halt state.
 namespace PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeFixedOuterController
 
 open PallLean.Paper93.DeepMath.PathB.ComposableMachine
+open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupLeftBoundaryTerminal
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeSourceSelect
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeUniversalPassedShift
 open PallLean.Paper93.DeepMath.PathB.NFrameChargedLocalLookupRuntimeProgressReturn
@@ -155,6 +156,29 @@ theorem runtimeFixedOuterController_shift_run_handoff
   rw [run_succ, runtimeFixedOuterController_shift_run c t hno,
     runtimeFixedOuterController_shift_handoff _ hh]
 
+theorem runtimeFixedOuterController_shift_leftSafe
+    (c : Cfg runtimeUniversalPassedShiftMachine) (t : Nat)
+    (hno : ∀ i < t, runtimeUniversalPassedShiftMachine.halt
+      (run runtimeUniversalPassedShiftMachine i c).st = false)
+    (hsafe : LeftSafeRun runtimeUniversalPassedShiftMachine c t) :
+    LeftSafeRun runtimeFixedOuterControllerMachine (outerShiftCfg c) t := by
+  intro i hi hhalt hmove
+  have hrun := runtimeFixedOuterController_shift_run c i
+    (fun j hj => hno j (by omega))
+  rw [hrun] at hhalt hmove ⊢
+  simp only [outerShiftCfg] at hhalt hmove ⊢
+  have hlocalHalt : runtimeUniversalPassedShiftMachine.halt
+      (run runtimeUniversalPassedShiftMachine i c).st = false := hno i hi
+  simp [runtimeFixedOuterControllerMachine, hlocalHalt] at hmove
+  exact hsafe i hi hlocalHalt hmove
+
+theorem runtimeFixedOuterController_shift_handoff_leftSafe
+    (c : Cfg runtimeUniversalPassedShiftMachine)
+    (hh : runtimeUniversalPassedShiftMachine.halt c.st = true) :
+    LeftSafeRun runtimeFixedOuterControllerMachine (outerShiftCfg c) 1 := by
+  apply leftSafeRun_one_of_not_left
+  simp [runtimeFixedOuterControllerMachine, outerShiftCfg, hh]
+
 theorem runtimeFixedOuterController_return_run
     (c : Cfg runtimeProgressReturnMachine) (t : Nat)
     (hno : ∀ i < t, runtimeProgressReturnMachine.halt
@@ -181,6 +205,29 @@ theorem runtimeFixedOuterController_return_run_handoff
           (run runtimeProgressReturnMachine t c).tp⟩ := by
   rw [run_succ, runtimeFixedOuterController_return_run c t hno,
     runtimeFixedOuterController_return_handoff _ hh]
+
+theorem runtimeFixedOuterController_return_leftSafe
+    (c : Cfg runtimeProgressReturnMachine) (t : Nat)
+    (hno : ∀ i < t, runtimeProgressReturnMachine.halt
+      (run runtimeProgressReturnMachine i c).st = false)
+    (hsafe : LeftSafeRun runtimeProgressReturnMachine c t) :
+    LeftSafeRun runtimeFixedOuterControllerMachine (outerReturnCfg c) t := by
+  intro i hi hhalt hmove
+  have hrun := runtimeFixedOuterController_return_run c i
+    (fun j hj => hno j (by omega))
+  rw [hrun] at hhalt hmove ⊢
+  simp only [outerReturnCfg] at hhalt hmove ⊢
+  have hlocalHalt : runtimeProgressReturnMachine.halt
+      (run runtimeProgressReturnMachine i c).st = false := hno i hi
+  simp [runtimeFixedOuterControllerMachine, hlocalHalt] at hmove
+  exact hsafe i hi hlocalHalt hmove
+
+theorem runtimeFixedOuterController_return_handoff_leftSafe
+    (c : Cfg runtimeProgressReturnMachine)
+    (hh : runtimeProgressReturnMachine.halt c.st = true) :
+    LeftSafeRun runtimeFixedOuterControllerMachine (outerReturnCfg c) 1 := by
+  apply leftSafeRun_one_of_not_left
+  simp [runtimeFixedOuterControllerMachine, outerReturnCfg, hh]
 
 theorem runtimeFixedOuterController_exhaust_run
     (c : Cfg runtimeProgressExhaustMachine) (t : Nat)
@@ -228,6 +275,47 @@ theorem runtimeFixedOuterController_exhaust_final_run_handoff
   simp only [hrun] at hf ⊢
   subst hf
   exact runtimeFixedOuterController_final_handoff _ _
+
+theorem runtimeFixedOuterController_exhaust_leftSafe
+    (c : Cfg runtimeProgressExhaustMachine) (t : Nat)
+    (hno : ∀ i < t,
+      (run runtimeProgressExhaustMachine i c).st ≠ .more ∧
+      (run runtimeProgressExhaustMachine i c).st ≠ .final)
+    (hsafe : LeftSafeRun runtimeProgressExhaustMachine c t) :
+    LeftSafeRun runtimeFixedOuterControllerMachine (outerExhaustCfg c) t := by
+  intro i hi hhalt hmove
+  have hrun := runtimeFixedOuterController_exhaust_run c i
+    (fun j hj => hno j (by omega))
+  rw [hrun] at hhalt hmove ⊢
+  simp only [outerExhaustCfg] at hhalt hmove ⊢
+  have hlocalHalt : runtimeProgressExhaustMachine.halt
+      (run runtimeProgressExhaustMachine i c).st = false := by
+    change decide ((run runtimeProgressExhaustMachine i c).st = .more ∨
+      (run runtimeProgressExhaustMachine i c).st = .final) = false
+    simp only [decide_eq_false_iff_not]
+    push_neg
+    exact hno i hi
+  have hlocalMove : (runtimeProgressExhaustMachine.δ
+      (run runtimeProgressExhaustMachine i c).st
+      ((run runtimeProgressExhaustMachine i c).tp.getD
+        (run runtimeProgressExhaustMachine i c).hd false)).2.2 = 0 := by
+    simpa [runtimeFixedOuterControllerMachine, (hno i hi).1,
+      (hno i hi).2] using hmove
+  exact hsafe i hi hlocalHalt hlocalMove
+
+theorem runtimeFixedOuterController_more_handoff_leftSafe
+    (p : Nat) (T : List Bool) :
+    LeftSafeRun runtimeFixedOuterControllerMachine
+      ⟨RuntimeFixedOuterControllerState.exhaust .more, p, T⟩ 1 := by
+  apply leftSafeRun_one_of_not_left
+  simp [runtimeFixedOuterControllerMachine]
+
+theorem runtimeFixedOuterController_final_handoff_leftSafe
+    (p : Nat) (T : List Bool) :
+    LeftSafeRun runtimeFixedOuterControllerMachine
+      ⟨RuntimeFixedOuterControllerState.exhaust .final, p, T⟩ 1 := by
+  apply leftSafeRun_one_of_not_left
+  simp [runtimeFixedOuterControllerMachine]
 
 /-! ## Concrete first-halt facts -/
 
@@ -299,6 +387,52 @@ theorem runtimeFixedOuterController_exhaust_final_exact
     _ 3 (runtimeProgressExhaust_final_no_early pre tail) hh
   rw [hr] at h
   simpa using h
+
+theorem runtimeFixedOuterController_exhaust_more_exact_leftSafe
+    (pre tail : List Bool) :
+    LeftSafeRun runtimeFixedOuterControllerMachine
+      (outerExhaustCfg
+        ⟨runtimeProgressExhaustMachine.start, pre.length + 2,
+          pre ++ [true, false, false, false] ++ tail⟩) 3 := by
+  rw [show 3 = 2 + 1 by omega]
+  apply leftSafeRun_add
+  · apply runtimeFixedOuterController_exhaust_leftSafe
+    · exact runtimeProgressExhaust_more_no_early pre tail
+    · exact runtimeProgressExhaust_more_leftSafe pre tail
+  · rw [show run runtimeFixedOuterControllerMachine 2
+        (outerExhaustCfg
+          ⟨runtimeProgressExhaustMachine.start, pre.length + 2,
+            pre ++ [true, false, false, false] ++ tail⟩) =
+        ⟨RuntimeFixedOuterControllerState.exhaust .more, pre.length + 2,
+          pre ++ [true, false, false, false] ++ tail⟩ by
+      rw [runtimeFixedOuterController_exhaust_run _ 2
+        (runtimeProgressExhaust_more_no_early pre tail)]
+      rw [runtimeProgressExhaust_more]
+      rfl]
+    exact runtimeFixedOuterController_more_handoff_leftSafe _ _
+
+theorem runtimeFixedOuterController_exhaust_final_exact_leftSafe
+    (pre tail : List Bool) :
+    LeftSafeRun runtimeFixedOuterControllerMachine
+      (outerExhaustCfg
+        ⟨runtimeProgressExhaustMachine.start, pre.length + 2,
+          pre ++ [false, true, false, false] ++ tail⟩) 4 := by
+  rw [show 4 = 3 + 1 by omega]
+  apply leftSafeRun_add
+  · apply runtimeFixedOuterController_exhaust_leftSafe
+    · exact runtimeProgressExhaust_final_no_early pre tail
+    · exact runtimeProgressExhaust_final_leftSafe pre tail
+  · rw [show run runtimeFixedOuterControllerMachine 3
+        (outerExhaustCfg
+          ⟨runtimeProgressExhaustMachine.start, pre.length + 2,
+            pre ++ [false, true, false, false] ++ tail⟩) =
+        ⟨RuntimeFixedOuterControllerState.exhaust .final, pre.length + 1,
+          pre ++ [false, false, false, false] ++ tail⟩ by
+      rw [runtimeFixedOuterController_exhaust_run _ 3
+        (runtimeProgressExhaust_final_no_early pre tail)]
+      rw [runtimeProgressExhaust_final]
+      rfl]
+    exact runtimeFixedOuterController_final_handoff_leftSafe _ _
 
 /-! ## Complete uninterrupted controller rounds -/
 
@@ -621,13 +755,22 @@ theorem runtimeFixedOuterController_rounds
 #print axioms runtimeFixedOuterController_more_handoff
 #print axioms runtimeFixedOuterController_final_handoff
 #print axioms runtimeFixedOuterController_shift_run_handoff
+#print axioms runtimeFixedOuterController_shift_leftSafe
+#print axioms runtimeFixedOuterController_shift_handoff_leftSafe
 #print axioms runtimeFixedOuterController_return_run_handoff
+#print axioms runtimeFixedOuterController_return_leftSafe
+#print axioms runtimeFixedOuterController_return_handoff_leftSafe
 #print axioms runtimeFixedOuterController_exhaust_more_run_handoff
 #print axioms runtimeFixedOuterController_exhaust_final_run_handoff
+#print axioms runtimeFixedOuterController_exhaust_leftSafe
+#print axioms runtimeFixedOuterController_more_handoff_leftSafe
+#print axioms runtimeFixedOuterController_final_handoff_leftSafe
 #print axioms runtimeProgressExhaust_more_no_early
 #print axioms runtimeProgressExhaust_final_no_early
 #print axioms runtimeFixedOuterController_exhaust_more_exact
 #print axioms runtimeFixedOuterController_exhaust_final_exact
+#print axioms runtimeFixedOuterController_exhaust_more_exact_leftSafe
+#print axioms runtimeFixedOuterController_exhaust_final_exact_leftSafe
 #print axioms runtimeFixedOuterController_round_more
 #print axioms runtimeFixedOuterController_round_final
 #print axioms runtimeFixedOuterController_rounds
