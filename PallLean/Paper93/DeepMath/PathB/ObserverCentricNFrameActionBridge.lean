@@ -227,6 +227,48 @@ structure TrajectoryNFrameResidualNoncollapse
   rank_fits_residual_surplus :
     minor.liveRank ≤ 2 ^ residualDimension - 2 ^ boundaryExponent
 
+/-- Canonical DTM-level residual/action certificate.  This decisive interface
+contains no observer-supplied width or live-rank annotation.  Static residual
+surplus is compared directly with the N-frame binomial scale, while dynamic
+servicing is charged at one unit per actual DTM transition and must finish
+within the DTM's declared runtime. -/
+structure CanonicalDTMResidualActionCertificate
+    (M : TuringMachine.DTM) (n : Nat)
+    (C : Type*) [Fintype C] [DecidableEq C] where
+  residualDimension : Nat
+  boundaryExponent : Nat
+  residual : C → Fin (2 ^ residualDimension)
+  residual_surjective : Function.Surjective residual
+  view : C → Fin (2 ^ boundaryExponent)
+  binomial_fits_residual_surplus :
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
+      2 ^ residualDimension - 2 ^ boundaryExponent
+  debt : Nat → Nat
+  horizon : Nat
+  initialDebt : debt 0 = debtCount (residualFooling residual) view
+  service : ∀ t, debt t ≤ debt (t + 1) + 1
+  cleared : debt horizon = 0
+  horizon_le_runtime : horizon ≤ TuringMachine.timeSteps M n
+
+/-- Canonical action cash-out: an honest residual/action certificate forces the
+full binomial N-frame scale below the actual number of DTM transitions. -/
+theorem binomial_le_runtime_of_canonicalDTMCertificate
+    {M : TuringMachine.DTM} {n : Nat}
+    {C : Type*} [Fintype C] [DecidableEq C]
+    (cert : CanonicalDTMResidualActionCertificate M n C) :
+    Nat.choose (n / 3) (Nat.log 2 n) ≤ TuringMachine.timeSteps M n := by
+  have hdebt :
+      2 ^ cert.residualDimension - 2 ^ cert.boundaryExponent ≤ cert.debt 0 := by
+    rw [cert.initialDebt]
+    exact surjective_residual_forces_debt cert.residual
+      cert.residual_surjective cert.view
+  have haction : cert.debt 0 ≤ cert.horizon := by
+    have h := correct_needs_action cert.debt (fun _ => 1) cert.service
+      cert.horizon cert.cleared
+    simpa [observerTimeAction] using h
+  exact le_trans cert.binomial_fits_residual_surplus
+    (le_trans hdebt (le_trans haction cert.horizon_le_runtime))
+
 /-- Residual non-collapse compiles to static continuation geometry with no
 additional combinatorial premise. -/
 noncomputable def TrajectoryNFrameResidualNoncollapse.toGeometry
@@ -402,6 +444,23 @@ def HasTrajectoryNFrameResidualNoncollapseAt
       (C : Type) (_fintype : Fintype C) (_decEq : DecidableEq C),
     Nonempty (TrajectoryNFrameResidualNoncollapse minor C)
 
+/-- A concrete DTM has a canonical residual/action certificate at length `n`.
+No trajectory-observer presentation occurs in this predicate. -/
+def HasCanonicalDTMResidualActionCertificateAt
+    (M : TuringMachine.DTM) (n : Nat) : Prop :=
+  ∃ (C : Type) (_fintype : Fintype C) (_decEq : DecidableEq C),
+    Nonempty (CanonicalDTMResidualActionCertificate M n C)
+
+theorem binomial_le_runtime_of_hasCanonicalDTMCertificate
+    {M : TuringMachine.DTM} {n : Nat}
+    (h : HasCanonicalDTMResidualActionCertificateAt M n) :
+    Nat.choose (n / 3) (Nat.log 2 n) ≤ TuringMachine.timeSteps M n := by
+  rcases h with ⟨C, fintype, decEq, hcert⟩
+  letI : Fintype C := fintype
+  letI : DecidableEq C := decEq
+  rcases hcert with ⟨cert⟩
+  exact binomial_le_runtime_of_canonicalDTMCertificate cert
+
 /-- Static continuation geometry at one trajectory and input length. -/
 def HasTrajectoryNFrameContinuationGeometryAt
     (enc : ThreeCNFEncoding) (T : TrajectoryObserverMachine) (n : Nat) : Prop :=
@@ -550,6 +609,37 @@ def TimeExponentParametricOperationalSATResidualNoncollapse
     ∀ T : TrajectoryObserverMachine,
       OperationalTrajectoryObserverDecidesSATAtMost enc e T →
       HasTrajectoryNFrameResidualNoncollapseAt enc T n
+
+/-- Canonical DTM frontier with no observer annotations: every SAT-deciding DTM
+of exponent at most `e` must expose residual debt that can only be serviced by
+its actual transition budget. -/
+def TimeExponentParametricSATCanonicalDTMResidualAction
+    (enc : ThreeCNFEncoding) : Prop :=
+  ∀ e : Nat, ∃ n : Nat,
+    n ≥ 2 ^ 20 ∧
+    4 * (e + 1) ≤ Nat.log 2 n ∧
+    ∀ M : TuringMachine.DTM,
+      DTMDecidesSATWithEncodingAtMost enc e M →
+      HasCanonicalDTMResidualActionCertificateAt M n
+
+/-- The canonical DTM residual/action frontier directly rules out every
+polynomial-time SAT DTM.  The contradiction uses the real identity
+`timeSteps M n = n ^ M.timeBound`, not an observer width annotation. -/
+theorem no_DTMDecidesSAT_of_canonicalResidualAction
+    (enc : ThreeCNFEncoding)
+    (hprogram : TimeExponentParametricSATCanonicalDTMResidualAction enc) :
+    Not (∃ M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M) := by
+  rintro ⟨M, hdec⟩
+  rcases hprogram M.timeBound with ⟨n, hn20, hlog, hcert⟩
+  have hsat : DTMDecidesSATWithEncodingAtMost enc M.timeBound M :=
+    ⟨hdec, le_rfl⟩
+  have hlower :
+      Nat.choose (n / 3) (Nat.log 2 n) ≤ TuringMachine.timeSteps M n :=
+    binomial_le_runtime_of_hasCanonicalDTMCertificate (hcert M hsat)
+  have hgap :
+      n ^ M.timeBound < Nat.choose (n / 3) (Nat.log 2 n) :=
+    arithmetic_gap_for_exponent M.timeBound n hn20 hlog
+  exact (not_le_of_gt hgap) (by simpa [TuringMachine.timeSteps] using hlower)
 
 /-- Universal residual non-collapse gives the universal static geometry
 program.  It does not supply dynamic locality/servicing. -/
@@ -708,6 +798,9 @@ theorem operationalSAT_action_lower_of_nframe_extraction
 #print axioms TrajectoryNFrameFoolingCertificate.toGrounded
 #print axioms continuationGeometryOfSurjectiveResidual
 #print axioms hasContinuationGeometry_of_surjectiveResidual
+#print axioms binomial_le_runtime_of_canonicalDTMCertificate
+#print axioms binomial_le_runtime_of_hasCanonicalDTMCertificate
+#print axioms no_DTMDecidesSAT_of_canonicalResidualAction
 #print axioms TrajectoryNFrameResidualNoncollapse.toGeometry
 #print axioms hasContinuationGeometry_of_residualNoncollapse
 #print axioms continuationGeometry_of_residualNoncollapse
