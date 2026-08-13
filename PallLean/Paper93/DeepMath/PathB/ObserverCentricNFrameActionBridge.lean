@@ -2822,6 +2822,31 @@ theorem childDoubling_of_coneExcess_le_profileDimension
     2 * CEF ≤ CE := by
   omega
 
+/-- **Exact profile-versus-child frontier.**  Once the aggregate SAT profile
+cash-out `2*k + fresh ≤ CE` is known, either the desired child-cost doubling
+already holds or the child cone-excess strictly exceeds the independent
+restriction-profile dimension.  Hence all remaining nonlinear difficulty is
+localized in the strict gap `k < CEF`. -/
+theorem childDoubling_or_profileIncompressibilityGap
+    (k CE fresh CEF : Nat)
+    (hcashout : 2 * k + fresh ≤ CE) :
+    2 * CEF ≤ CE ∨ k < CEF := by
+  by_cases hchild : CEF ≤ k
+  · exact Or.inl
+      (childDoubling_of_coneExcess_le_profileDimension
+        k CE fresh CEF hcashout hchild)
+  · exact Or.inr (by omega)
+
+/-- Even adding the usual lower-bound polarity `k ≤ CEF` does not remove the
+gap: for every `k`, the profile cash-out and `k ≤ CEF` coexist with failed
+doubling at `CEF = k+1`.  A theorem closing the route must control the strict
+excess of circuit cost over profile dimension, not merely prove another lower
+bound on circuit cost. -/
+theorem profileLowerBound_does_not_close_childDoubling (k : Nat) :
+    ∃ (CE fresh CEF : Nat),
+      2 * k + fresh ≤ CE ∧ k ≤ CEF ∧ CE < 2 * CEF := by
+  exact ⟨2 * k, 0, k + 1, by omega⟩
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -2990,6 +3015,8 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms sat3SiblingRestrictionProfile_coneExcess
 #print axioms siblingProfileCashout_does_not_force_childDoubling
 #print axioms childDoubling_of_coneExcess_le_profileDimension
+#print axioms childDoubling_or_profileIncompressibilityGap
+#print axioms profileLowerBound_does_not_close_childDoubling
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
