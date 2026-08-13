@@ -3280,6 +3280,74 @@ theorem noNetSaving_gives_hybridRecurrence
     CE CE_L CE_R CE_mix CE_share shareLeft shareRight CEF fresh
     hpartition hmix hleft hright hnosaving
 
+/-- The concrete semantic signature left after all three proved restricted
+safeguards fail.  There is real cone overlap, that overlap is beneficial
+(hence cancellation-capable), and the mixed bank produces more usable
+one-sided content than its own gate count. -/
+structure GenuineNonlinearCancellationEscape
+    (coneL coneR coneUnion beneficialInter CE_share
+      shareLeft shareRight : Nat) : Prop where
+  cone_overlap : coneUnion < coneL + coneR
+  beneficial_intersection_pos : 0 < beneficialInter
+  nonlinear_net_saving : CE_share < shareLeft + shareRight
+
+/-- **Failure of the local recurrence forces genuinely nonlinear
+cancellation-sharing.**  Under the concrete cone and gate ledgers, a bad
+recurrence cannot be explained by formula fanout, no-cancellation semantics,
+or linear no-net-saving.  It must violate all three safeguards at once. -/
+theorem childRecurrence_failure_forces_genuineNonlinearCancellation
+    (CEF coneL coneR coneUnion beneficialInter
+      CE_L CE_R CE_mix CE_share shareLeft shareRight fresh CE : Nat)
+    (hchildConeL : CEF ≤ coneL)
+    (hchildConeR : CEF ≤ coneR)
+    (hconeUnion : coneL + coneR = coneUnion + beneficialInter)
+    (hconePartition : coneUnion + CE_mix ≤ CE)
+    (hgatePartition : CE_L + CE_R + CE_mix + CE_share ≤ CE)
+    (hmix : fresh ≤ CE_mix)
+    (hleft : CEF ≤ CE_L + shareLeft)
+    (hright : CEF ≤ CE_R + shareRight)
+    (hfail : CE < 2 * CEF + fresh) :
+    GenuineNonlinearCancellationEscape coneL coneR coneUnion
+      beneficialInter CE_share shareLeft shareRight := by
+  have hinter : 0 < beneficialInter := by
+    by_contra hzero
+    have hrec := noCancellationFreshness_with_disjointMixer_gives_recurrence
+      CEF coneL coneR coneUnion beneficialInter CE_mix fresh CE
+      hchildConeL hchildConeR hconeUnion (by omega) hmix hconePartition
+    omega
+  have hnet : CE_share < shareLeft + shareRight := by
+    by_contra hnosaving
+    have hrec := noNetSaving_gives_hybridRecurrence
+      CE CE_L CE_R CE_mix CE_share shareLeft shareRight CEF fresh
+      hgatePartition hmix hleft hright (by omega)
+    omega
+  exact ⟨by omega, hinter, hnet⟩
+
+/-- There is no fourth local case: under both honest ledgers, either the full
+recurrence holds or the circuit exhibits the genuine nonlinear cancellation
+signature. -/
+theorem childRecurrence_or_genuineNonlinearCancellation
+    (CEF coneL coneR coneUnion beneficialInter
+      CE_L CE_R CE_mix CE_share shareLeft shareRight fresh CE : Nat)
+    (hchildConeL : CEF ≤ coneL)
+    (hchildConeR : CEF ≤ coneR)
+    (hconeUnion : coneL + coneR = coneUnion + beneficialInter)
+    (hconePartition : coneUnion + CE_mix ≤ CE)
+    (hgatePartition : CE_L + CE_R + CE_mix + CE_share ≤ CE)
+    (hmix : fresh ≤ CE_mix)
+    (hleft : CEF ≤ CE_L + shareLeft)
+    (hright : CEF ≤ CE_R + shareRight) :
+    2 * CEF + fresh ≤ CE ∨
+      GenuineNonlinearCancellationEscape coneL coneR coneUnion
+        beneficialInter CE_share shareLeft shareRight := by
+  by_cases hrec : 2 * CEF + fresh ≤ CE
+  · exact Or.inl hrec
+  · exact Or.inr
+      (childRecurrence_failure_forces_genuineNonlinearCancellation
+        CEF coneL coneR coneUnion beneficialInter CE_L CE_R CE_mix
+        CE_share shareLeft shareRight fresh CE hchildConeL hchildConeR
+        hconeUnion hconePartition hgatePartition hmix hleft hright (by omega))
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -3473,6 +3541,8 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms formulaFreshness_with_disjointMixer_gives_recurrence
 #print axioms noCancellationFreshness_with_disjointMixer_gives_recurrence
 #print axioms noNetSaving_gives_hybridRecurrence
+#print axioms childRecurrence_failure_forces_genuineNonlinearCancellation
+#print axioms childRecurrence_or_genuineNonlinearCancellation
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
