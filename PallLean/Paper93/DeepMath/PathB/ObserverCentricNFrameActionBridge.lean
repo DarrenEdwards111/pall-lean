@@ -2890,6 +2890,61 @@ theorem childDoubling_failure_forces_profileGap_overrun
     k CE fresh CEF hcashout hprofileLower habsorb
   omega
 
+/-- **Multiscale profile-gap cash-out.**  If fresh geometry absorbs twice the
+uncaptured child complexity at every scale, every scale pays exact child-cost
+doubling.  The fresh term is consumed by that absorption, so this theorem does
+not claim the stronger doubling-plus-fresh recurrence. -/
+theorem profileGapAbsorption_gives_allScalesDoubling
+    (c : Nat) (T profile : Nat → Nat)
+    (hprofileLower : ∀ k, profile k ≤ T k)
+    (hcashout : ∀ k,
+      2 * profile k + c * 2 ^ (k + 1) ≤ T (k + 1))
+    (habsorb : ∀ k,
+      2 * (T k - profile k) ≤ c * 2 ^ (k + 1)) :
+    ∀ k, 2 * T k ≤ T (k + 1) := by
+  intro k
+  exact profileGap_absorbed_by_fresh_gives_childDoubling
+    (profile k) (T (k + 1)) (c * 2 ^ (k + 1)) (T k)
+    (hcashout k) (hprofileLower k) (habsorb k)
+
+/-- Exact doubling unrolls to the base-cost bound `T 0 * 2^b ≤ T b`.
+This is linear in the scale size `2^b`; retaining an unspent fresh margin is
+still necessary for the stronger `N log N` amplification. -/
+theorem allScalesDoubling_amplifies_base (T : Nat → Nat)
+    (hdouble : ∀ k, 2 * T k ≤ T (k + 1)) :
+    ∀ b, T 0 * 2 ^ b ≤ T b := by
+  intro b
+  induction b with
+  | zero => simp
+  | succ k ih =>
+      rw [pow_succ]
+      have hmul : 2 * (T 0 * 2 ^ k) ≤ 2 * T k :=
+        Nat.mul_le_mul_left 2 ih
+      calc
+        T 0 * (2 ^ k * 2) = 2 * (T 0 * 2 ^ k) := by ring
+        _ ≤ 2 * T k := hmul
+        _ ≤ T (k + 1) := hdouble k
+
+/-- **All-scale frontier.**  Under the aggregate SAT profile cash-out, either
+every recursive scale pays child-cost doubling, or a concrete scale exhibits
+fresh-budget overrun by the uncaptured nonlinear profile gap. -/
+theorem allScalesDoubling_or_exists_profileGapOverrun
+    (c : Nat) (T profile : Nat → Nat)
+    (hprofileLower : ∀ k, profile k ≤ T k)
+    (hcashout : ∀ k,
+      2 * profile k + c * 2 ^ (k + 1) ≤ T (k + 1)) :
+    (∀ k, 2 * T k ≤ T (k + 1)) ∨
+      ∃ k, c * 2 ^ (k + 1) < 2 * (T k - profile k) := by
+  by_cases hall : ∀ k, 2 * T k ≤ T (k + 1)
+  · exact Or.inl hall
+  · right
+    push_neg at hall
+    obtain ⟨k, hk⟩ := hall
+    refine ⟨k, ?_⟩
+    exact childDoubling_failure_forces_profileGap_overrun
+      (profile k) (T (k + 1)) (c * 2 ^ (k + 1)) (T k)
+      (hcashout k) (hprofileLower k) hk
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -3063,6 +3118,9 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms childRecurrence_deficit_eq_profileGap
 #print axioms profileGap_absorbed_by_fresh_gives_childDoubling
 #print axioms childDoubling_failure_forces_profileGap_overrun
+#print axioms profileGapAbsorption_gives_allScalesDoubling
+#print axioms allScalesDoubling_amplifies_base
+#print axioms allScalesDoubling_or_exists_profileGapOverrun
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
