@@ -2484,6 +2484,27 @@ theorem branch_doubling_failure_has_nonlinearThermodynamicEscape
       hpartition hmix hPL hPR
     omega
 
+/-- **Escape exclusion closes the branch.**  Under the same concrete
+partition and restriction hypotheses, proving that the combined nonlinear
+thermodynamic escape signature is absent is sufficient for the exact doubling
+bound.  This packages the remaining mathematical target as one negated
+semantic structure. -/
+theorem branch_doubling_of_no_nonlinearThermodynamicEscape
+    (CE CE_L CE_R CE_mix CE_share shareLeft shareRight CEF fresh : Nat)
+    (hpartition : CE_L + CE_R + CE_mix + CE_share ≤ CE)
+    (hL : CEF ≤ CE_L + CE_share) (hR : CEF ≤ CE_R + CE_share)
+    (hPL : CEF ≤ CE_L + shareLeft)
+    (hPR : CEF ≤ CE_R + shareRight)
+    (hmix : fresh ≤ CE_mix)
+    (hno : ¬ NonlinearThermodynamicEscape CE_share shareLeft shareRight fresh) :
+    2 * CEF ≤ CE := by
+  by_contra hfail
+  apply hno
+  apply branch_doubling_failure_has_nonlinearThermodynamicEscape
+    CE CE_L CE_R CE_mix CE_share shareLeft shareRight CEF fresh
+    hpartition hL hR hPL hPR hmix
+  omega
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -2638,6 +2659,7 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms failure_of_branch_doubling_forces_share_gt_fresh
 #print axioms failure_of_fresh_directSum_forces_nonlinear_net_saving
 #print axioms branch_doubling_failure_has_nonlinearThermodynamicEscape
+#print axioms branch_doubling_of_no_nonlinearThermodynamicEscape
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
