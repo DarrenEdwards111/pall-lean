@@ -2543,6 +2543,23 @@ theorem nonlinearThermodynamicEscape_does_not_force_doubling_failure :
     by omega, by omega, by omega, by omega, by omega, by omega,
     ⟨by omega, by omega⟩, by omega⟩
 
+/-- **Finite synthesis cannot certify the all-scale freshness theorem.**  For
+every tested cutoff there is a scale predicate that holds at every checked
+scale and fails immediately afterwards.  Consequently the repository's exact
+small-circuit searches are legitimate evidence, but no finite cutoff can
+replace the uniform nonlinear restriction-profile theorem needed by the
+amplification. -/
+theorem finiteFreshnessChecks_do_not_imply_uniformFreshness (cutoff : Nat) :
+    ∃ FreshAtScale : Nat → Prop,
+      (∀ k, k ≤ cutoff → FreshAtScale k) ∧
+      ¬ (∀ k, FreshAtScale k) := by
+  refine ⟨fun k => k ≤ cutoff, ?_, ?_⟩
+  · intro k hk
+    exact hk
+  · intro hall
+    have := hall (cutoff + 1)
+    omega
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -2700,6 +2717,7 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms branch_doubling_of_no_nonlinearThermodynamicEscape
 #print axioms branch_doubling_or_nonlinearThermodynamicEscape
 #print axioms nonlinearThermodynamicEscape_does_not_force_doubling_failure
+#print axioms finiteFreshnessChecks_do_not_imply_uniformFreshness
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
