@@ -1865,6 +1865,111 @@ theorem nframe_singleRunSchedule_iff_runtimeLower
     Nat.choose (n / 3) (Nat.log 2 n) ≤ TuringMachine.timeSteps M n :=
   nonempty_singleRunSchedule_iff hn input
 
+/-! ## Bounded-reuse single-run audit
+
+Allowing each event in the one run to serve at most `r` obligations changes
+the capacity target to `K <= T*r`.  The converse below constructs the schedule
+from exactly that inequality, so bounded-reuse charging also contains no
+semantic content beyond its desired arithmetic conclusion.
+-/
+
+/-- A bounded-reuse obligation schedule inside one concrete DTM run. -/
+structure SingleRunBoundedReuseObligationSchedule
+    (M : TuringMachine.DTM) (n K T r : Nat) where
+  positiveLength : 1 ≤ n
+  input : Fin n → Bool
+  eventOf : Fin K → Fin T
+  fiber_le : ∀ event : Fin T,
+    Fintype.card {k : Fin K // eventOf k = event} ≤ r
+
+/-- Bounded reuse inside one run gives exactly the usual capacity inequality. -/
+theorem obligations_le_singleRunTransitions_mul_reuse
+    {M : TuringMachine.DTM} {n K T r : Nat}
+    (S : SingleRunBoundedReuseObligationSchedule M n K T r) :
+    K ≤ T * r := by
+  let R : BoundedTransitionReuse K T r :=
+    { resourceOf := fun x => S.eventOf x.1
+      fiber_le := by
+        intro event
+        let forgetUnit :
+            {x : Fin K × Fin 1 // S.eventOf x.1 = event} →
+              {k : Fin K // S.eventOf k = event} :=
+          fun x => ⟨x.1.1, x.2⟩
+        have hinj : Function.Injective forgetUnit := by
+          intro x y hxy
+          apply Subtype.ext
+          apply Prod.ext
+          · exact congrArg Subtype.val hxy
+          · exact Subsingleton.elim _ _
+        exact (Fintype.card_le_of_injective forgetUnit hinj).trans
+          (S.fiber_le event) }
+  exact obligations_le_transitions_mul_reuse R
+
+/-- Arithmetic capacity alone constructs a balanced event assignment with
+fiber size at most `r`. -/
+noncomputable def singleRunBoundedReuseScheduleOfCapacity
+    {M : TuringMachine.DTM} {n K T r : Nat}
+    (hn : 1 ≤ n) (input : Fin n → Bool) (hcap : K ≤ T * r) :
+    SingleRunBoundedReuseObligationSchedule M n K T r := by
+  classical
+  let embed : Fin K → Fin (T * r) := Fin.castLE hcap
+  refine
+    { positiveLength := hn
+      input := input
+      eventOf := fun k =>
+        ⟨(embed k).val / r, by
+          have hv : (embed k).val < T * r := (embed k).isLt
+          by_cases hr : r = 0
+          · subst r
+            simp at hv
+          · exact (Nat.div_lt_iff_lt_mul (Nat.pos_of_ne_zero hr)).2 (by
+              simpa [Nat.mul_comm] using hv)⟩
+      fiber_le := ?_ }
+  intro event
+  by_cases hr : r = 0
+  · subst r
+    have hK : K = 0 := by omega
+    subst K
+    simp
+  · let fiberEmbed :
+        {k : Fin K //
+          (⟨(embed k).val / r, by
+            have hv : (embed k).val < T * r := (embed k).isLt
+            exact (Nat.div_lt_iff_lt_mul (Nat.pos_of_ne_zero hr)).2 (by
+              simpa [Nat.mul_comm] using hv)⟩ : Fin T) = event} → Fin r :=
+      fun k => ⟨(embed k.1).val % r, Nat.mod_lt _ (Nat.pos_of_ne_zero hr)⟩
+    have hinj : Function.Injective fiberEmbed := by
+      intro x y hxy
+      apply Subtype.ext
+      apply Fin.ext
+      have hdivx : (embed x.1).val / r = event.val :=
+        congrArg Fin.val x.2
+      have hdivy : (embed y.1).val / r = event.val :=
+        congrArg Fin.val y.2
+      have hembed : embed x.1 = embed y.1 := by
+        apply Fin.ext
+        have hmod : (embed x.1).val % r = (embed y.1).val % r :=
+          congrArg Fin.val hxy
+        have hx := Nat.mod_add_div (embed x.1).val r
+        have hy := Nat.mod_add_div (embed y.1).val r
+        rw [hdivx] at hx
+        rw [hdivy] at hy
+        omega
+      exact congrArg Fin.val ((Fin.castLE_injective hcap) hembed)
+    simpa using Fintype.card_le_of_injective fiberEmbed hinj
+
+/-- Exact bounded-reuse audit for one run. -/
+theorem nonempty_singleRunBoundedReuseSchedule_iff
+    {M : TuringMachine.DTM} {n K T r : Nat}
+    (hn : 1 ≤ n) (input : Fin n → Bool) :
+    Nonempty (SingleRunBoundedReuseObligationSchedule M n K T r) ↔
+      K ≤ T * r := by
+  constructor
+  · rintro ⟨S⟩
+    exact obligations_le_singleRunTransitions_mul_reuse S
+  · intro hcap
+    exact ⟨singleRunBoundedReuseScheduleOfCapacity hn input hcap⟩
+
 #print axioms liveRank_le_action
 #print axioms GroundedTrajectoryNFrameActionCertificate.toActionCertificate
 #print axioms groundedCertificateOfFoolingSet
@@ -1946,5 +2051,8 @@ theorem nframe_singleRunSchedule_iff_runtimeLower
 #print axioms singleRunScheduleOfLe
 #print axioms nonempty_singleRunSchedule_iff
 #print axioms nframe_singleRunSchedule_iff_runtimeLower
+#print axioms obligations_le_singleRunTransitions_mul_reuse
+#print axioms singleRunBoundedReuseScheduleOfCapacity
+#print axioms nonempty_singleRunBoundedReuseSchedule_iff
 
 end PallLean.Paper93.DeepMath.PathB.ObserverCentricNFrameActionBridge
