@@ -3754,6 +3754,22 @@ minimal-SAT/circuit semantics, not the full-mass inequality by itself.
 def offDiagonalThree : Finset (Fin 3 × Fin 3) :=
   Finset.univ.filter (fun ij => ij.1 ≠ ij.2)
 
+/-- The occupied columns in one row of `offDiagonalThree`. -/
+def offDiagonalRow (c : Fin 3) : Finset (Fin 3) :=
+  Finset.univ.filter (fun w => c ≠ w)
+
+/-- Every row of the obstruction has density `2/3`. -/
+theorem offDiagonalRow_card (c : Fin 3) :
+    (offDiagonalRow c).card = 2 := by
+  fin_cases c <;> decide
+
+/-- Every pair of distinct rows has codegree exactly one.  Thus the
+obstruction satisfies a uniform pairwise-spread law while still containing no
+`2 × 2` complete rectangle. -/
+theorem offDiagonalRow_pair_codegree (c c' : Fin 3) (hne : c ≠ c') :
+    (offDiagonalRow c ∩ offDiagonalRow c').card = 1 := by
+  fin_cases c <;> fin_cases c' <;> simp_all <;> decide
+
 /-- A pair of row/column sets forms a complete rectangle in `R`. -/
 abbrev ContainsCompleteRectangle
     (R : Finset (Fin 3 × Fin 3)) (C W : Finset (Fin 3)) : Prop :=
@@ -3989,6 +4005,8 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms childRecurrence_of_no_tripleNonlinearSATEscape
 #print axioms noTripleNonlinearSATEscape_amplifies
 #print axioms tripleNonlinearSATEscape_is_arithmetically_consistent
+#print axioms offDiagonalRow_card
+#print axioms offDiagonalRow_pair_codegree
 #print axioms offDiagonalThree_dense_without_two_by_two_rectangle
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
