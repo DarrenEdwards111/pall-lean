@@ -1475,6 +1475,94 @@ theorem duplicateCanonicalData_not_pairInjective
   have hval := congrArg Fin.val hk
   simp [k0, k1] at hval
 
+/-! ## Duplication-free canonical frontier
+
+We now strengthen extraction itself, rather than merely documenting the
+missing condition.  Every extracted binomial family must consist of distinct
+ordered input pairs.  This closes the duplicate-index loophole definitionally.
+-/
+
+/-- Canonical first-separation data together with semantic distinctness of all
+indexed obligations. -/
+structure InjectiveCanonicalDTMFirstSeparationData
+    (M : TuringMachine.DTM) (n K T : Nat) (S : Type*) where
+  data : CanonicalDTMFirstSeparationData M n K T S
+  pairInjective : data.PairInjective
+
+/-- Duplication-free N-frame data at one length. -/
+def HasInjectiveCanonicalDTMNFrameFirstSeparationDataAt
+    (M : TuringMachine.DTM) (n : Nat) : Prop :=
+  ∃ (S : Type) (_decEq : DecidableEq S),
+    Nonempty (InjectiveCanonicalDTMFirstSeparationData M n
+      (Nat.choose (n / 3) (Nat.log 2 n))
+      (TuringMachine.timeSteps M n) S)
+
+/-- The honest extraction program: SAT semantics must produce a binomial
+family of genuinely distinct ordered input pairs on actual DTM traces. -/
+def TimeExponentParametricSATInjectiveCanonicalPairExtraction
+    (enc : ThreeCNFEncoding) : Prop :=
+  ∀ e c : Nat, ∃ n : Nat,
+    n ≥ 2 ^ 20 ∧
+    4 * (e + c + 1) ≤ Nat.log 2 n ∧
+    ∀ M : TuringMachine.DTM,
+      DTMDecidesSATWithEncodingAtMost enc e M →
+      HasInjectiveCanonicalDTMNFrameFirstSeparationDataAt M n
+
+/-- Injective extraction forgets to the earlier weak extraction interface. -/
+theorem canonicalPairExtraction_of_injective
+    {enc : ThreeCNFEncoding}
+    (h : TimeExponentParametricSATInjectiveCanonicalPairExtraction enc) :
+    TimeExponentParametricSATCanonicalPairExtraction enc := by
+  intro e c
+  obtain ⟨n, hn20, hlog, hdata⟩ := h e c
+  refine ⟨n, hn20, hlog, ?_⟩
+  intro M hsat
+  obtain ⟨S, decEq, hD⟩ := hdata M hsat
+  obtain ⟨D⟩ := hD
+  exact ⟨S, decEq, ⟨D.data⟩⟩
+
+/-- Distinct-pair extraction plus the canonical fiber bound still yields the
+runtime contradiction, now without the duplicate-family loophole. -/
+theorem no_DTMDecidesSAT_of_injectiveCanonicalPairExtraction_and_fiberBound
+    (enc : ThreeCNFEncoding)
+    (hextract : TimeExponentParametricSATInjectiveCanonicalPairExtraction enc)
+    (hfiber : TimeExponentParametricSATCanonicalFiberBound enc) :
+    ¬ ∃ M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M :=
+  no_DTMDecidesSAT_of_canonicalPairExtraction_and_fiberBound enc
+    (canonicalPairExtraction_of_injective hextract) hfiber
+
+/-- Under nonexistence of SAT DTMs, even the strengthened injective extraction
+program is vacuously true. -/
+theorem injectiveCanonicalPairExtraction_of_no_DTMDecidesSAT
+    (enc : ThreeCNFEncoding)
+    (hno : ¬ ∃ M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M) :
+    TimeExponentParametricSATInjectiveCanonicalPairExtraction enc := by
+  intro e c
+  refine ⟨2 ^ (4 * (e + c + 1) + 20), ?_, ?_, ?_⟩
+  · exact Nat.pow_le_pow_right (by omega : 1 ≤ (2 : Nat)) (by omega)
+  · rw [Nat.log_pow]
+    · omega
+    · omega
+  · intro M hsat
+    exact False.elim (hno ⟨M, hsat.1⟩)
+
+/-- Final duplication-free audit: injective canonical extraction together with
+canonical fiber anti-concentration remains exactly equivalent to excluding all
+polynomial-time SAT DTMs.  Pair injectivity repairs the formulation, but does
+not make the missing mathematics weaker than separation. -/
+theorem injectiveCanonicalPairExtraction_and_fiberBound_iff_no_DTMDecidesSAT
+    (enc : ThreeCNFEncoding) :
+    (TimeExponentParametricSATInjectiveCanonicalPairExtraction enc ∧
+      TimeExponentParametricSATCanonicalFiberBound enc) ↔
+    ¬ ∃ M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M := by
+  constructor
+  · rintro ⟨hextract, hfiber⟩
+    exact no_DTMDecidesSAT_of_injectiveCanonicalPairExtraction_and_fiberBound
+      enc hextract hfiber
+  · intro hno
+    exact ⟨injectiveCanonicalPairExtraction_of_no_DTMDecidesSAT enc hno,
+      canonicalFiberBound_of_no_DTMDecidesSAT enc hno⟩
+
 #print axioms liveRank_le_action
 #print axioms GroundedTrajectoryNFrameActionCertificate.toActionCertificate
 #print axioms groundedCertificateOfFoolingSet
@@ -1536,5 +1624,9 @@ theorem duplicateCanonicalData_not_pairInjective
 #print axioms canonicalPairExtraction_and_fiberBound_iff_no_DTMDecidesSAT
 #print axioms duplicateCanonicalDTMFirstSeparationData
 #print axioms duplicateCanonicalData_not_pairInjective
+#print axioms canonicalPairExtraction_of_injective
+#print axioms no_DTMDecidesSAT_of_injectiveCanonicalPairExtraction_and_fiberBound
+#print axioms injectiveCanonicalPairExtraction_of_no_DTMDecidesSAT
+#print axioms injectiveCanonicalPairExtraction_and_fiberBound_iff_no_DTMDecidesSAT
 
 end PallLean.Paper93.DeepMath.PathB.ObserverCentricNFrameActionBridge
