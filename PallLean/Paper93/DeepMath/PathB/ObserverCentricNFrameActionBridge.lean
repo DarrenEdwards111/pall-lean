@@ -3797,6 +3797,47 @@ theorem offDiagonalThree_dense_without_two_by_two_rectangle :
     have hxx := hrect x hxC x hxW
     simp [offDiagonalThree] at hxx
 
+/-! ### The obstruction is realizable by actual circuit cones
+
+The `varsOf` origin of a balanced cut does not by itself exclude the
+off-diagonal pattern.  A six-gate circuit contains three binary wires whose
+cone supports are exactly the three off-diagonal rows.  Thus the missing law
+must use minimality and SAT semantics, not dependency-cone syntax alone.
+-/
+
+/-- Three variable gates followed by the three pairwise OR gates. -/
+def offDiagonalSupportCircuit : List (NFrameBoundaryTransducer.CGate 3) :=
+  [NFrameBoundaryTransducer.CGate.var ⟨0, by omega⟩,
+   NFrameBoundaryTransducer.CGate.var ⟨1, by omega⟩,
+   NFrameBoundaryTransducer.CGate.var ⟨2, by omega⟩,
+   NFrameBoundaryTransducer.CGate.bin (fun a b => a || b) 1 2,
+   NFrameBoundaryTransducer.CGate.bin (fun a b => a || b) 0 2,
+   NFrameBoundaryTransducer.CGate.bin (fun a b => a || b) 0 1]
+
+/-- The first pair gate reads exactly coordinates `1,2`. -/
+theorem offDiagonalSupportCircuit_varsOf_three :
+    NFrameBoundaryTransducer.varsOf offDiagonalSupportCircuit 3 =
+      { ⟨1, by omega⟩, ⟨2, by omega⟩ } := by
+  ext i
+  fin_cases i <;> simp [NFrameBoundaryTransducer.varsOf,
+    offDiagonalSupportCircuit, NFrameBoundaryTransducer.coneOf]
+
+/-- The second pair gate reads exactly coordinates `0,2`. -/
+theorem offDiagonalSupportCircuit_varsOf_four :
+    NFrameBoundaryTransducer.varsOf offDiagonalSupportCircuit 4 =
+      { ⟨0, by omega⟩, ⟨2, by omega⟩ } := by
+  ext i
+  fin_cases i <;> simp [NFrameBoundaryTransducer.varsOf,
+    offDiagonalSupportCircuit, NFrameBoundaryTransducer.coneOf]
+
+/-- The third pair gate reads exactly coordinates `0,1`. -/
+theorem offDiagonalSupportCircuit_varsOf_five :
+    NFrameBoundaryTransducer.varsOf offDiagonalSupportCircuit 5 =
+      { ⟨0, by omega⟩, ⟨1, by omega⟩ } := by
+  ext i
+  fin_cases i <;> simp [NFrameBoundaryTransducer.varsOf,
+    offDiagonalSupportCircuit, NFrameBoundaryTransducer.coneOf]
+
 /-! ### An asymptotic affine-incidence obstruction
 
 The finite `3 × 3` example is not a small-size accident.  Lines and points
@@ -4109,6 +4150,9 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms offDiagonalRow_card
 #print axioms offDiagonalRow_pair_codegree
 #print axioms offDiagonalThree_dense_without_two_by_two_rectangle
+#print axioms offDiagonalSupportCircuit_varsOf_three
+#print axioms offDiagonalSupportCircuit_varsOf_four
+#print axioms offDiagonalSupportCircuit_varsOf_five
 #print axioms AffineRectangleObstruction.no_two_by_two
 #print axioms AffineRectangleObstruction.common_point_unique
 #print axioms AffineRectangleObstruction.incidences_card
