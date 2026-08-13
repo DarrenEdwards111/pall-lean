@@ -5,6 +5,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthExpanderNoHiding
 import PallLean.Paper93.DeepMath.PathB.OperationalZeroBoundaryObstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthUCRDTseitinBoundedReuse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthThermodynamicObserver
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameInfoBoundaryTest
 
 /-!
 # Observer-centric N-frame action bridge
@@ -2030,6 +2031,47 @@ theorem freeThermodynamicFullAmortization
   simpa [Nat.mul_comm] using
     obligations_le_runLocalEvents_of_positiveHorizon K T hT
 
+/-! ## Information-boundary obstruction to charging reuse
+
+The repository's information-boundary test now meets the transition-reuse
+model directly.  A Landauer/entropy-bounded charge cannot certify a reuse
+multiplicity larger than the observer information.  Thus the fact that
+sharing crosses a physical boundary is not yet the positive-charge theorem:
+one must prove a charge exceeding the information carried by that boundary.
+-/
+
+/-- A proposed observer boundary whose charge is dominated by its information,
+together with the claim that this charge pays for every unit of reuse. -/
+structure InformationBoundedReuseCharge (r boundaryCharge information : Nat) : Prop where
+  charge_le_information : boundaryCharge ≤ information
+  reuse_le_charge : r ≤ boundaryCharge
+
+/-- An information-bounded thermodynamic boundary cannot certify reuse above
+its information content. -/
+theorem no_informationBoundedReuseCharge_of_information_lt_reuse
+    {r boundaryCharge information : Nat}
+    (hgap : information < r) :
+    ¬ InformationBoundedReuseCharge r boundaryCharge information := by
+  intro H
+  have hcharge := NFrameInfoBoundaryTest.charge_must_exceed_info_to_certify_sharing
+    (Cfg := Unit) (fun _ => boundaryCharge) (fun _ => information)
+    (fun _ => r) () H.reuse_le_charge hgap
+  exact Nat.not_lt_of_ge H.charge_le_information hcharge
+
+/-- **Thermodynamic-sharing frontier.**  If the observer boundary carries
+less information than the reuse multiplicity, no Landauer/information-bounded
+charge can justify the reuse cap needed by the runtime argument.  Any working
+charge must therefore be super-informational (for example an independently
+proved geometric/topological congestion charge), not entropy alone. -/
+theorem thermodynamicReuseCharge_must_exceed_information
+    {r boundaryCharge information : Nat}
+    (hreuse : r ≤ boundaryCharge)
+    (hgap : information < r) :
+    information < boundaryCharge :=
+  NFrameInfoBoundaryTest.charge_must_exceed_info_to_certify_sharing
+    (Cfg := Unit) (fun _ => boundaryCharge) (fun _ => information)
+    (fun _ => r) () hreuse hgap
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -2161,6 +2203,8 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms obligations_le_transitions_mul_thermodynamicEnergy
 #print axioms nonempty_freeThermodynamicReuseSchedule_iff
 #print axioms freeThermodynamicFullAmortization
+#print axioms no_informationBoundedReuseCharge_of_information_lt_reuse
+#print axioms thermodynamicReuseCharge_must_exceed_information
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
