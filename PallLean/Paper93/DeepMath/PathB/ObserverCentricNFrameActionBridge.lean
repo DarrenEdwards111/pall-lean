@@ -3596,6 +3596,88 @@ theorem cancellationProfileMargin_amplifies
     (hchildConeR k) (hconeUnion k) (hconePartition k)
     (hgatePartition k) (hmix k) (hleft k) (hright k) (habsorb k)
 
+/-- Named form of the sole remaining three-way semantic adversary.  Fresh
+geometry loses simultaneously to beneficial cancellation, nonlinear
+mass-production excess, and uncaptured SAT profile complexity. -/
+structure TripleNonlinearSATEscape
+    (fresh beneficialInter netSavingExcess profileGap margin : Nat) : Prop where
+  beneficial_overrun : fresh < beneficialInter + margin
+  netSaving_overrun : fresh < netSavingExcess + margin
+  profileGap_overrun : fresh < 2 * profileGap + margin
+
+/-- The nested minimum budget overrun is exactly the conjunction of all three
+semantic overruns. -/
+theorem tripleBudgetOverrun_iff_escape
+    (fresh beneficialInter netSavingExcess profileGap margin : Nat) :
+    fresh < min (min beneficialInter netSavingExcess) (2 * profileGap) +
+        margin ↔
+      TripleNonlinearSATEscape fresh beneficialInter netSavingExcess
+        profileGap margin := by
+  constructor
+  · intro h
+    refine ⟨?_, ?_, ?_⟩
+    · exact lt_of_lt_of_le h (Nat.add_le_add_right
+        (le_trans (min_le_left _ _) (min_le_left _ _)) _)
+    · exact lt_of_lt_of_le h (Nat.add_le_add_right
+        (le_trans (min_le_left _ _) (min_le_right _ _)) _)
+    · exact lt_of_lt_of_le h (Nat.add_le_add_right (min_le_right _ _) _)
+  · rintro ⟨hbeneficial, hnet, hprofile⟩
+    simp only [min_def]
+    split <;> split <;> omega
+
+/-- Failure of the desired recurrence forces all three nonlinear SAT escape
+conditions simultaneously. -/
+theorem childRecurrence_failure_has_tripleNonlinearSATEscape
+    (profile CEF coneL coneR coneUnion beneficialInter
+      CE_L CE_R CE_mix CE_share shareLeft shareRight fresh margin CE : Nat)
+    (hprofileLower : profile ≤ CEF)
+    (hprofileCashout : 2 * profile + fresh ≤ CE)
+    (hchildConeL : CEF ≤ coneL)
+    (hchildConeR : CEF ≤ coneR)
+    (hconeUnion : coneL + coneR = coneUnion + beneficialInter)
+    (hconePartition : coneUnion + CE_mix ≤ CE)
+    (hgatePartition : CE_L + CE_R + CE_mix + CE_share ≤ CE)
+    (hmix : fresh ≤ CE_mix)
+    (hleft : CEF ≤ CE_L + shareLeft)
+    (hright : CEF ≤ CE_R + shareRight)
+    (hfail : CE < 2 * CEF + margin) :
+    TripleNonlinearSATEscape fresh beneficialInter
+      (shareLeft + shareRight - CE_share) (CEF - profile) margin := by
+  apply (tripleBudgetOverrun_iff_escape fresh beneficialInter
+    (shareLeft + shareRight - CE_share) (CEF - profile) margin).mp
+  by_contra hbudget
+  have hrec := cancellationProfileMargin_gives_childRecurrence
+    profile CEF coneL coneR coneUnion beneficialInter CE_L CE_R CE_mix
+    CE_share shareLeft shareRight fresh margin CE hprofileLower
+    hprofileCashout hchildConeL hchildConeR hconeUnion hconePartition
+    hgatePartition hmix hleft hright (by omega)
+  omega
+
+/-- Excluding the named triple escape is precisely sufficient for the local
+doubling-plus-margin recurrence. -/
+theorem childRecurrence_of_no_tripleNonlinearSATEscape
+    (profile CEF coneL coneR coneUnion beneficialInter
+      CE_L CE_R CE_mix CE_share shareLeft shareRight fresh margin CE : Nat)
+    (hprofileLower : profile ≤ CEF)
+    (hprofileCashout : 2 * profile + fresh ≤ CE)
+    (hchildConeL : CEF ≤ coneL)
+    (hchildConeR : CEF ≤ coneR)
+    (hconeUnion : coneL + coneR = coneUnion + beneficialInter)
+    (hconePartition : coneUnion + CE_mix ≤ CE)
+    (hgatePartition : CE_L + CE_R + CE_mix + CE_share ≤ CE)
+    (hmix : fresh ≤ CE_mix)
+    (hleft : CEF ≤ CE_L + shareLeft)
+    (hright : CEF ≤ CE_R + shareRight)
+    (hno : ¬ TripleNonlinearSATEscape fresh beneficialInter
+      (shareLeft + shareRight - CE_share) (CEF - profile) margin) :
+    2 * CEF + margin ≤ CE := by
+  by_contra hfail
+  exact hno (childRecurrence_failure_has_tripleNonlinearSATEscape
+    profile CEF coneL coneR coneUnion beneficialInter CE_L CE_R CE_mix
+    CE_share shareLeft shareRight fresh margin CE hprofileLower
+    hprofileCashout hchildConeL hchildConeR hconeUnion hconePartition
+    hgatePartition hmix hleft hright (by omega))
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -3799,6 +3881,9 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms childRecurrence_deficit_le_min_cancellation_profileGap
 #print axioms cancellationProfileMargin_gives_childRecurrence
 #print axioms cancellationProfileMargin_amplifies
+#print axioms tripleBudgetOverrun_iff_escape
+#print axioms childRecurrence_failure_has_tripleNonlinearSATEscape
+#print axioms childRecurrence_of_no_tripleNonlinearSATEscape
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
