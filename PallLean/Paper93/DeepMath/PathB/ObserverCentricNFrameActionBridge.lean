@@ -3422,6 +3422,80 @@ theorem childRecurrence_failure_forces_cancellationBudgetOverrun
     hconePartition hgatePartition hmix hleft hright (by omega)
   omega
 
+/-- **Cancellation-excess multiscale amplifier.**  If at every recursive
+scale fresh geometry absorbs the smaller of beneficial cone intersection and
+nonlinear net-saving excess, while leaving a fixed positive margin, the
+existing recurrence amplifier yields the full `N log N` lower bound. -/
+theorem cancellationExcessMargin_amplifies
+    (freshRate marginRate : Nat)
+    (T coneL coneR coneUnion beneficialInter CE_L CE_R CE_mix CE_share
+      shareLeft shareRight : Nat → Nat)
+    (hchildConeL : ∀ k, T k ≤ coneL k)
+    (hchildConeR : ∀ k, T k ≤ coneR k)
+    (hconeUnion : ∀ k,
+      coneL k + coneR k = coneUnion k + beneficialInter k)
+    (hconePartition : ∀ k,
+      coneUnion k + CE_mix k ≤ T (k + 1))
+    (hgatePartition : ∀ k,
+      CE_L k + CE_R k + CE_mix k + CE_share k ≤ T (k + 1))
+    (hmix : ∀ k, freshRate * 2 ^ (k + 1) ≤ CE_mix k)
+    (hleft : ∀ k, T k ≤ CE_L k + shareLeft k)
+    (hright : ∀ k, T k ≤ CE_R k + shareRight k)
+    (habsorb : ∀ k,
+      min (beneficialInter k)
+          (shareLeft k + shareRight k - CE_share k) +
+        marginRate * 2 ^ (k + 1) ≤ freshRate * 2 ^ (k + 1)) :
+    ∀ b, marginRate * (b * 2 ^ b) ≤ T b := by
+  apply NFrameConeAmplify.coneExcess_amplify marginRate T
+  intro k
+  exact cancellationExcessMargin_gives_childRecurrence
+    (T k) (coneL k) (coneR k) (coneUnion k) (beneficialInter k)
+    (CE_L k) (CE_R k) (CE_mix k) (CE_share k)
+    (shareLeft k) (shareRight k) (freshRate * 2 ^ (k + 1))
+    (marginRate * 2 ^ (k + 1)) (T (k + 1))
+    (hchildConeL k) (hchildConeR k) (hconeUnion k)
+    (hconePartition k) (hgatePartition k) (hmix k)
+    (hleft k) (hright k) (habsorb k)
+
+/-- **All-scale cancellation frontier.**  Either every scale pays the
+doubling-plus-margin recurrence, or a concrete scale is returned where fresh
+geometry cannot cover even the smaller genuine cancellation excess plus the
+requested margin. -/
+theorem allScalesCancellationRecurrence_or_exists_budgetOverrun
+    (freshRate marginRate : Nat)
+    (T coneL coneR coneUnion beneficialInter CE_L CE_R CE_mix CE_share
+      shareLeft shareRight : Nat → Nat)
+    (hchildConeL : ∀ k, T k ≤ coneL k)
+    (hchildConeR : ∀ k, T k ≤ coneR k)
+    (hconeUnion : ∀ k,
+      coneL k + coneR k = coneUnion k + beneficialInter k)
+    (hconePartition : ∀ k,
+      coneUnion k + CE_mix k ≤ T (k + 1))
+    (hgatePartition : ∀ k,
+      CE_L k + CE_R k + CE_mix k + CE_share k ≤ T (k + 1))
+    (hmix : ∀ k, freshRate * 2 ^ (k + 1) ≤ CE_mix k)
+    (hleft : ∀ k, T k ≤ CE_L k + shareLeft k)
+    (hright : ∀ k, T k ≤ CE_R k + shareRight k) :
+    (∀ k, 2 * T k + marginRate * 2 ^ (k + 1) ≤ T (k + 1)) ∨
+      ∃ k, freshRate * 2 ^ (k + 1) <
+        min (beneficialInter k)
+            (shareLeft k + shareRight k - CE_share k) +
+          marginRate * 2 ^ (k + 1) := by
+  by_cases hall : ∀ k,
+      2 * T k + marginRate * 2 ^ (k + 1) ≤ T (k + 1)
+  · exact Or.inl hall
+  · right
+    push_neg at hall
+    obtain ⟨k, hk⟩ := hall
+    exact ⟨k, childRecurrence_failure_forces_cancellationBudgetOverrun
+      (T k) (coneL k) (coneR k) (coneUnion k) (beneficialInter k)
+      (CE_L k) (CE_R k) (CE_mix k) (CE_share k)
+      (shareLeft k) (shareRight k) (freshRate * 2 ^ (k + 1))
+      (marginRate * 2 ^ (k + 1)) (T (k + 1))
+      (hchildConeL k) (hchildConeR k) (hconeUnion k)
+      (hconePartition k) (hgatePartition k) (hmix k)
+      (hleft k) (hright k) hk⟩
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -3620,6 +3694,8 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms childRecurrence_deficit_le_min_cancellationExcess
 #print axioms cancellationExcessMargin_gives_childRecurrence
 #print axioms childRecurrence_failure_forces_cancellationBudgetOverrun
+#print axioms cancellationExcessMargin_amplifies
+#print axioms allScalesCancellationRecurrence_or_exists_budgetOverrun
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
