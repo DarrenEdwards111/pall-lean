@@ -3496,6 +3496,106 @@ theorem allScalesCancellationRecurrence_or_exists_budgetOverrun
       (hconePartition k) (hgatePartition k) (hmix k)
       (hleft k) (hright k) hk⟩
 
+/-- **Three-way SAT/cancellation deficit bound.**  Combining the concrete
+cancellation ledgers with the independent aggregate SAT restriction-profile
+cash-out bounds recurrence loss by the smallest of three quantities:
+beneficial cone intersection, nonlinear net-saving excess, and twice the
+uncaptured profile gap. -/
+theorem childRecurrence_deficit_le_min_cancellation_profileGap
+    (profile CEF coneL coneR coneUnion beneficialInter
+      CE_L CE_R CE_mix CE_share shareLeft shareRight fresh CE : Nat)
+    (hprofileLower : profile ≤ CEF)
+    (hprofileCashout : 2 * profile + fresh ≤ CE)
+    (hchildConeL : CEF ≤ coneL)
+    (hchildConeR : CEF ≤ coneR)
+    (hconeUnion : coneL + coneR = coneUnion + beneficialInter)
+    (hconePartition : coneUnion + CE_mix ≤ CE)
+    (hgatePartition : CE_L + CE_R + CE_mix + CE_share ≤ CE)
+    (hmix : fresh ≤ CE_mix)
+    (hleft : CEF ≤ CE_L + shareLeft)
+    (hright : CEF ≤ CE_R + shareRight) :
+    2 * CEF + fresh ≤ CE +
+      min (min beneficialInter (shareLeft + shareRight - CE_share))
+        (2 * (CEF - profile)) := by
+  have hcancel := childRecurrence_deficit_le_min_cancellationExcess
+    CEF coneL coneR coneUnion beneficialInter CE_L CE_R CE_mix CE_share
+    shareLeft shareRight fresh CE hchildConeL hchildConeR hconeUnion
+    hconePartition hgatePartition hmix hleft hright
+  have hprofile := childRecurrence_deficit_eq_profileGap
+    profile CE fresh CEF hprofileCashout hprofileLower
+  by_cases hle :
+      min beneficialInter (shareLeft + shareRight - CE_share) ≤
+        2 * (CEF - profile)
+  · rw [min_eq_left hle]
+    exact hcancel
+  · rw [min_eq_right (by omega)]
+    exact hprofile
+
+/-- Paying the smallest of the two cancellation excesses and the independent
+SAT profile-gap deficit, while retaining `margin`, closes the local
+doubling-plus-margin recurrence. -/
+theorem cancellationProfileMargin_gives_childRecurrence
+    (profile CEF coneL coneR coneUnion beneficialInter
+      CE_L CE_R CE_mix CE_share shareLeft shareRight fresh margin CE : Nat)
+    (hprofileLower : profile ≤ CEF)
+    (hprofileCashout : 2 * profile + fresh ≤ CE)
+    (hchildConeL : CEF ≤ coneL)
+    (hchildConeR : CEF ≤ coneR)
+    (hconeUnion : coneL + coneR = coneUnion + beneficialInter)
+    (hconePartition : coneUnion + CE_mix ≤ CE)
+    (hgatePartition : CE_L + CE_R + CE_mix + CE_share ≤ CE)
+    (hmix : fresh ≤ CE_mix)
+    (hleft : CEF ≤ CE_L + shareLeft)
+    (hright : CEF ≤ CE_R + shareRight)
+    (habsorb :
+      min (min beneficialInter (shareLeft + shareRight - CE_share))
+          (2 * (CEF - profile)) + margin ≤ fresh) :
+    2 * CEF + margin ≤ CE := by
+  have hdeficit := childRecurrence_deficit_le_min_cancellation_profileGap
+    profile CEF coneL coneR coneUnion beneficialInter CE_L CE_R CE_mix
+    CE_share shareLeft shareRight fresh CE hprofileLower hprofileCashout
+    hchildConeL hchildConeR hconeUnion hconePartition hgatePartition
+    hmix hleft hright
+  omega
+
+/-- **Unified multiscale amplifier.**  The strongest proved criterion permits
+each scale to close using whichever is smallest: beneficial cancellation,
+nonlinear net saving, or uncaptured SAT profile complexity. -/
+theorem cancellationProfileMargin_amplifies
+    (freshRate marginRate : Nat)
+    (T profile coneL coneR coneUnion beneficialInter CE_L CE_R CE_mix
+      CE_share shareLeft shareRight : Nat → Nat)
+    (hprofileLower : ∀ k, profile k ≤ T k)
+    (hprofileCashout : ∀ k,
+      2 * profile k + freshRate * 2 ^ (k + 1) ≤ T (k + 1))
+    (hchildConeL : ∀ k, T k ≤ coneL k)
+    (hchildConeR : ∀ k, T k ≤ coneR k)
+    (hconeUnion : ∀ k,
+      coneL k + coneR k = coneUnion k + beneficialInter k)
+    (hconePartition : ∀ k,
+      coneUnion k + CE_mix k ≤ T (k + 1))
+    (hgatePartition : ∀ k,
+      CE_L k + CE_R k + CE_mix k + CE_share k ≤ T (k + 1))
+    (hmix : ∀ k, freshRate * 2 ^ (k + 1) ≤ CE_mix k)
+    (hleft : ∀ k, T k ≤ CE_L k + shareLeft k)
+    (hright : ∀ k, T k ≤ CE_R k + shareRight k)
+    (habsorb : ∀ k,
+      min (min (beneficialInter k)
+          (shareLeft k + shareRight k - CE_share k))
+          (2 * (T k - profile k)) + marginRate * 2 ^ (k + 1) ≤
+        freshRate * 2 ^ (k + 1)) :
+    ∀ b, marginRate * (b * 2 ^ b) ≤ T b := by
+  apply NFrameConeAmplify.coneExcess_amplify marginRate T
+  intro k
+  exact cancellationProfileMargin_gives_childRecurrence
+    (profile k) (T k) (coneL k) (coneR k) (coneUnion k)
+    (beneficialInter k) (CE_L k) (CE_R k) (CE_mix k) (CE_share k)
+    (shareLeft k) (shareRight k) (freshRate * 2 ^ (k + 1))
+    (marginRate * 2 ^ (k + 1)) (T (k + 1))
+    (hprofileLower k) (hprofileCashout k) (hchildConeL k)
+    (hchildConeR k) (hconeUnion k) (hconePartition k)
+    (hgatePartition k) (hmix k) (hleft k) (hright k) (habsorb k)
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -3696,6 +3796,9 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms childRecurrence_failure_forces_cancellationBudgetOverrun
 #print axioms cancellationExcessMargin_amplifies
 #print axioms allScalesCancellationRecurrence_or_exists_budgetOverrun
+#print axioms childRecurrence_deficit_le_min_cancellation_profileGap
+#print axioms cancellationProfileMargin_gives_childRecurrence
+#print axioms cancellationProfileMargin_amplifies
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
