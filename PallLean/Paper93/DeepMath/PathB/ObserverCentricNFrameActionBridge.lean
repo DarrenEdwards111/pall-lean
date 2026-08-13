@@ -10,6 +10,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSeamForcesHub
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameBudgetCashout
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameCrossBranch
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameNonlinearShare
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameRestrictedFreshness
 
 /-!
 # Observer-centric N-frame action bridge
@@ -3219,6 +3220,66 @@ theorem simultaneousHybridEscape_is_arithmetically_consistent :
   · exact ⟨by omega, by omega⟩
   · omega
 
+/-! ## Restricted semantic regimes bypass the hybrid escape
+
+The simultaneous hybrid signature is only a necessary consequence of a bad
+general nonlinear recurrence; it is not itself incompatible with a good
+recurrence.  Consequently, the honest restricted-model cash-out is to derive
+the recurrence directly from the stronger semantic theorem available in that
+model.  The following lemmas connect the existing formula,
+no-cancellation/monotone, and no-net-saving/linear results to the same local
+interface used by the hybrid amplifier.
+-/
+
+/-- Formula freshness plus a disjoint mixer budget gives the complete local
+recurrence.  No profile-gap or sharing-count estimate is needed. -/
+theorem formulaFreshness_with_disjointMixer_gives_recurrence
+    (CEF coneL coneR coneUnion CE_mix fresh CE : Nat)
+    (hchildL : CEF ≤ coneL)
+    (hchildR : CEF ≤ coneR)
+    (hformula : coneL + coneR = coneUnion)
+    (hmix : fresh ≤ CE_mix)
+    (hpartition : coneUnion + CE_mix ≤ CE) :
+    2 * CEF + fresh ≤ CE := by
+  have hfresh : 2 * CEF ≤ coneUnion :=
+    NFrameRestrictedFreshness.formula_freshness
+      CEF coneL coneR coneUnion coneUnion
+      hchildL hchildR hformula (le_refl _)
+  omega
+
+/-- In a no-cancellation class (in particular the monotone regime modeled by
+the restricted theorem), freshness plus a disjoint mixer budget gives the
+complete local recurrence directly. -/
+theorem noCancellationFreshness_with_disjointMixer_gives_recurrence
+    (CEF coneL coneR coneUnion beneficialInter CE_mix fresh CE : Nat)
+    (hchildL : CEF ≤ coneL)
+    (hchildR : CEF ≤ coneR)
+    (hunion : coneL + coneR = coneUnion + beneficialInter)
+    (hnocancel : beneficialInter = 0)
+    (hmix : fresh ≤ CE_mix)
+    (hpartition : coneUnion + CE_mix ≤ CE) :
+    2 * CEF + fresh ≤ CE := by
+  have hfresh : 2 * CEF ≤ coneUnion :=
+    NFrameRestrictedFreshness.no_cancellation_freshness
+      CEF coneL coneR coneUnion coneUnion beneficialInter
+      hchildL hchildR hunion (le_refl _) hnocancel
+  omega
+
+/-- The already-proved no-net-saving condition, satisfied by the repository's
+linear/rank-nullity regime, also closes the complete local recurrence without
+using the hybrid escape prohibition. -/
+theorem noNetSaving_gives_hybridRecurrence
+    (CE CE_L CE_R CE_mix CE_share shareLeft shareRight CEF fresh : Nat)
+    (hpartition : CE_L + CE_R + CE_mix + CE_share ≤ CE)
+    (hmix : fresh ≤ CE_mix)
+    (hleft : CEF ≤ CE_L + shareLeft)
+    (hright : CEF ≤ CE_R + shareRight)
+    (hnosaving : shareLeft + shareRight ≤ CE_share) :
+    2 * CEF + fresh ≤ CE := by
+  exact NFrameNonlinearShare.direct_sum_from_no_net_saving
+    CE CE_L CE_R CE_mix CE_share shareLeft shareRight CEF fresh
+    hpartition hmix hleft hright hnosaving
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -3409,6 +3470,9 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms childRecurrence_of_no_simultaneousHybridEscape
 #print axioms noSimultaneousHybridEscape_amplifies
 #print axioms simultaneousHybridEscape_is_arithmetically_consistent
+#print axioms formulaFreshness_with_disjointMixer_gives_recurrence
+#print axioms noCancellationFreshness_with_disjointMixer_gives_recurrence
+#print axioms noNetSaving_gives_hybridRecurrence
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
