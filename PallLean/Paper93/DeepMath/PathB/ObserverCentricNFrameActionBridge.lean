@@ -1563,6 +1563,101 @@ theorem injectiveCanonicalPairExtraction_and_fiberBound_iff_no_DTMDecidesSAT
     exact ⟨injectiveCanonicalPairExtraction_of_no_DTMDecidesSAT enc hno,
       canonicalFiberBound_of_no_DTMDecidesSAT enc hno⟩
 
+/-! ## Initially-merged semantic repair
+
+Pair injectivity blocks duplication, but an unrestricted observation can still
+distinguish the two raw input configurations before the DTM performs any work.
+The next interface requires every obligation pair to be merged at time zero.
+Its canonical charge therefore records a genuine transition-created
+distinction rather than pre-existing visibility of the input tape.
+-/
+
+/-- Duplication-free canonical data whose two observed traces agree initially
+for every obligation. -/
+structure InitiallyMergedInjectiveCanonicalDTMFirstSeparationData
+    (M : TuringMachine.DTM) (n K T : Nat) (S : Type*) where
+  data : InjectiveCanonicalDTMFirstSeparationData M n K T S
+  initiallyMerged : ∀ k : Fin K,
+    data.data.observe
+      (TuringMachine.initialConfig M n data.data.positiveLength
+        (data.data.leftInput k)) =
+    data.data.observe
+      (TuringMachine.initialConfig M n data.data.positiveLength
+        (data.data.rightInput k))
+
+/-- Initially merged, distinct N-frame obligations at one input length. -/
+def HasInitiallyMergedInjectiveCanonicalDTMNFrameDataAt
+    (M : TuringMachine.DTM) (n : Nat) : Prop :=
+  ∃ (S : Type) (_decEq : DecidableEq S),
+    Nonempty (InitiallyMergedInjectiveCanonicalDTMFirstSeparationData M n
+      (Nat.choose (n / 3) (Nat.log 2 n))
+      (TuringMachine.timeSteps M n) S)
+
+/-- Fully repaired extraction program: obligations are distinct and invisible
+to the chosen observation before actual DTM transitions separate them. -/
+def TimeExponentParametricSATInitiallyMergedInjectiveExtraction
+    (enc : ThreeCNFEncoding) : Prop :=
+  ∀ e c : Nat, ∃ n : Nat,
+    n ≥ 2 ^ 20 ∧
+    4 * (e + c + 1) ≤ Nat.log 2 n ∧
+    ∀ M : TuringMachine.DTM,
+      DTMDecidesSATWithEncodingAtMost enc e M →
+      HasInitiallyMergedInjectiveCanonicalDTMNFrameDataAt M n
+
+/-- Initially-merged extraction forgets to injective extraction. -/
+theorem injectiveCanonicalPairExtraction_of_initiallyMerged
+    {enc : ThreeCNFEncoding}
+    (h : TimeExponentParametricSATInitiallyMergedInjectiveExtraction enc) :
+    TimeExponentParametricSATInjectiveCanonicalPairExtraction enc := by
+  intro e c
+  obtain ⟨n, hn20, hlog, hdata⟩ := h e c
+  refine ⟨n, hn20, hlog, ?_⟩
+  intro M hsat
+  obtain ⟨S, decEq, hD⟩ := hdata M hsat
+  obtain ⟨D⟩ := hD
+  exact ⟨S, decEq, ⟨D.data⟩⟩
+
+/-- The fully repaired extraction plus canonical anti-sharing still yields
+separation. -/
+theorem no_DTMDecidesSAT_of_initiallyMergedInjectiveExtraction_and_fiberBound
+    (enc : ThreeCNFEncoding)
+    (hextract : TimeExponentParametricSATInitiallyMergedInjectiveExtraction enc)
+    (hfiber : TimeExponentParametricSATCanonicalFiberBound enc) :
+    ¬ ∃ M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M :=
+  no_DTMDecidesSAT_of_injectiveCanonicalPairExtraction_and_fiberBound enc
+    (injectiveCanonicalPairExtraction_of_initiallyMerged hextract) hfiber
+
+/-- If SAT has no polynomial-time DTM, the initially-merged extraction target
+is vacuously inhabited, just like the weaker formulations. -/
+theorem initiallyMergedInjectiveExtraction_of_no_DTMDecidesSAT
+    (enc : ThreeCNFEncoding)
+    (hno : ¬ ∃ M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M) :
+    TimeExponentParametricSATInitiallyMergedInjectiveExtraction enc := by
+  intro e c
+  refine ⟨2 ^ (4 * (e + c + 1) + 20), ?_, ?_, ?_⟩
+  · exact Nat.pow_le_pow_right (by omega : 1 ≤ (2 : Nat)) (by omega)
+  · rw [Nat.log_pow]
+    · omega
+    · omega
+  · intro M hsat
+    exact False.elim (hno ⟨M, hsat.1⟩)
+
+/-- Exact audit of the fully repaired route.  Even with distinct obligations
+and time-zero merging, extraction plus polynomial canonical fibers is
+equivalent to the desired SAT lower bound. -/
+theorem initiallyMergedInjectiveExtraction_and_fiberBound_iff_no_DTMDecidesSAT
+    (enc : ThreeCNFEncoding) :
+    (TimeExponentParametricSATInitiallyMergedInjectiveExtraction enc ∧
+      TimeExponentParametricSATCanonicalFiberBound enc) ↔
+    ¬ ∃ M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M := by
+  constructor
+  · rintro ⟨hextract, hfiber⟩
+    exact no_DTMDecidesSAT_of_initiallyMergedInjectiveExtraction_and_fiberBound
+      enc hextract hfiber
+  · intro hno
+    exact ⟨initiallyMergedInjectiveExtraction_of_no_DTMDecidesSAT enc hno,
+      canonicalFiberBound_of_no_DTMDecidesSAT enc hno⟩
+
 #print axioms liveRank_le_action
 #print axioms GroundedTrajectoryNFrameActionCertificate.toActionCertificate
 #print axioms groundedCertificateOfFoolingSet
@@ -1628,5 +1723,9 @@ theorem injectiveCanonicalPairExtraction_and_fiberBound_iff_no_DTMDecidesSAT
 #print axioms no_DTMDecidesSAT_of_injectiveCanonicalPairExtraction_and_fiberBound
 #print axioms injectiveCanonicalPairExtraction_of_no_DTMDecidesSAT
 #print axioms injectiveCanonicalPairExtraction_and_fiberBound_iff_no_DTMDecidesSAT
+#print axioms injectiveCanonicalPairExtraction_of_initiallyMerged
+#print axioms no_DTMDecidesSAT_of_initiallyMergedInjectiveExtraction_and_fiberBound
+#print axioms initiallyMergedInjectiveExtraction_of_no_DTMDecidesSAT
+#print axioms initiallyMergedInjectiveExtraction_and_fiberBound_iff_no_DTMDecidesSAT
 
 end PallLean.Paper93.DeepMath.PathB.ObserverCentricNFrameActionBridge
