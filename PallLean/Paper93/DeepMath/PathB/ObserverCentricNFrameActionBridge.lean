@@ -3678,6 +3678,68 @@ theorem childRecurrence_of_no_tripleNonlinearSATEscape
     hprofileCashout hchildConeL hchildConeR hconeUnion hconePartition
     hgatePartition hmix hleft hright (by omega))
 
+/-- **Named triple-escape prohibition amplifies to `N log N`.**  This is the
+final all-scale semantic interface: ruling out the conjunction of the three
+nonlinear overruns at every recursive SAT scale feeds the existing amplifier
+without any additional accounting premise. -/
+theorem noTripleNonlinearSATEscape_amplifies
+    (freshRate marginRate : Nat)
+    (T profile coneL coneR coneUnion beneficialInter CE_L CE_R CE_mix
+      CE_share shareLeft shareRight : Nat → Nat)
+    (hprofileLower : ∀ k, profile k ≤ T k)
+    (hprofileCashout : ∀ k,
+      2 * profile k + freshRate * 2 ^ (k + 1) ≤ T (k + 1))
+    (hchildConeL : ∀ k, T k ≤ coneL k)
+    (hchildConeR : ∀ k, T k ≤ coneR k)
+    (hconeUnion : ∀ k,
+      coneL k + coneR k = coneUnion k + beneficialInter k)
+    (hconePartition : ∀ k,
+      coneUnion k + CE_mix k ≤ T (k + 1))
+    (hgatePartition : ∀ k,
+      CE_L k + CE_R k + CE_mix k + CE_share k ≤ T (k + 1))
+    (hmix : ∀ k, freshRate * 2 ^ (k + 1) ≤ CE_mix k)
+    (hleft : ∀ k, T k ≤ CE_L k + shareLeft k)
+    (hright : ∀ k, T k ≤ CE_R k + shareRight k)
+    (hno : ∀ k, ¬ TripleNonlinearSATEscape
+      (freshRate * 2 ^ (k + 1)) (beneficialInter k)
+      (shareLeft k + shareRight k - CE_share k)
+      (T k - profile k) (marginRate * 2 ^ (k + 1))) :
+    ∀ b, marginRate * (b * 2 ^ b) ≤ T b := by
+  apply NFrameConeAmplify.coneExcess_amplify marginRate T
+  intro k
+  exact childRecurrence_of_no_tripleNonlinearSATEscape
+    (profile k) (T k) (coneL k) (coneR k) (coneUnion k)
+    (beneficialInter k) (CE_L k) (CE_R k) (CE_mix k) (CE_share k)
+    (shareLeft k) (shareRight k) (freshRate * 2 ^ (k + 1))
+    (marginRate * 2 ^ (k + 1)) (T (k + 1))
+    (hprofileLower k) (hprofileCashout k) (hchildConeL k)
+    (hchildConeR k) (hconeUnion k) (hconePartition k)
+    (hgatePartition k) (hmix k) (hleft k) (hright k) (hno k)
+
+/-- **The triple escape remains arithmetically consistent.**  Concrete
+parameters satisfy the profile cash-out, cone ledger, gate ledger, mixer and
+restriction bounds, exhibit all three overruns, and fail the target recurrence.
+Thus the named prohibition must come from actual SAT/circuit semantics. -/
+theorem tripleNonlinearSATEscape_is_arithmetically_consistent :
+    ∃ (profile CEF coneL coneR coneUnion beneficialInter
+      CE_L CE_R CE_mix CE_share shareLeft shareRight fresh margin CE : Nat),
+      profile ≤ CEF ∧
+      2 * profile + fresh ≤ CE ∧
+      CEF ≤ coneL ∧ CEF ≤ coneR ∧
+      coneL + coneR = coneUnion + beneficialInter ∧
+      coneUnion + CE_mix ≤ CE ∧
+      CE_L + CE_R + CE_mix + CE_share ≤ CE ∧
+      fresh ≤ CE_mix ∧
+      CEF ≤ CE_L + shareLeft ∧
+      CEF ≤ CE_R + shareRight ∧
+      TripleNonlinearSATEscape fresh beneficialInter
+        (shareLeft + shareRight - CE_share) (CEF - profile) margin ∧
+      CE < 2 * CEF + margin := by
+  refine ⟨0, 2, 2, 2, 0, 4, 0, 0, 1, 3, 2, 2, 1, 1, 4, ?_⟩
+  refine ⟨by omega, by omega, by omega, by omega, by omega, by omega,
+    by omega, by omega, by omega, by omega, ?_, by omega⟩
+  exact ⟨by omega, by omega, by omega⟩
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -3884,6 +3946,8 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms tripleBudgetOverrun_iff_escape
 #print axioms childRecurrence_failure_has_tripleNonlinearSATEscape
 #print axioms childRecurrence_of_no_tripleNonlinearSATEscape
+#print axioms noTripleNonlinearSATEscape_amplifies
+#print axioms tripleNonlinearSATEscape_is_arithmetically_consistent
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
