@@ -4,6 +4,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthFoolingDebt
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthExpanderNoHiding
 import PallLean.Paper93.DeepMath.PathB.OperationalZeroBoundaryObstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthUCRDTseitinBoundedReuse
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthThermodynamicObserver
 
 /-!
 # Observer-centric N-frame action bridge
@@ -1970,6 +1971,65 @@ theorem nonempty_singleRunBoundedReuseSchedule_iff
   · intro hcap
     exact ⟨singleRunBoundedReuseScheduleOfCapacity hn input hcap⟩
 
+/-! ## Thermodynamic boundary of transition reuse
+
+This is the direct splice between the repository's thermodynamic sharing
+model and the physically valid one-run transition accounting above.  The
+thermodynamic premise is not merely decorative: a positive energy charge per
+unit of reuse converts a finite energy budget into a reuse cap.  At zero
+charge, the coupling collapses exactly to ordinary free fanout.
+-/
+
+/-- A one-run obligation schedule whose reuse multiplicity is charged against
+a thermodynamic energy budget. -/
+structure ThermodynamicSingleRunReuseSchedule
+    (M : TuringMachine.DTM) (n K T r eps energy : Nat) : Type where
+  schedule : SingleRunBoundedReuseObligationSchedule M n K T r
+  energy_bound : eps * r ≤ energy
+
+/-- **Thermodynamic sharing boundary.**  If every unit of transition reuse has
+positive energy cost, then a run serving `K` obligations in `T` transitions
+must satisfy `K ≤ T * energy`. -/
+theorem obligations_le_transitions_mul_thermodynamicEnergy
+    {M : TuringMachine.DTM} {n K T r eps energy : Nat}
+    (S : ThermodynamicSingleRunReuseSchedule M n K T r eps energy)
+    (hε : 1 ≤ eps) :
+    K ≤ T * energy := by
+  have hr : r ≤ energy := by
+    have h1 : 1 * r ≤ eps * r := Nat.mul_le_mul hε (Nat.le_refl r)
+    rw [Nat.one_mul] at h1
+    exact h1.trans S.energy_bound
+  exact (obligations_le_singleRunTransitions_mul_reuse S.schedule).trans
+    (Nat.mul_le_mul_left T hr)
+
+/-- With free sharing (`eps = 0`), thermodynamics adds no restriction: a
+thermodynamic schedule exists exactly when the underlying arithmetic capacity
+`K ≤ T*r` already holds. -/
+theorem nonempty_freeThermodynamicReuseSchedule_iff
+    {M : TuringMachine.DTM} {n K T r energy : Nat}
+    (hn : 1 ≤ n) (input : Fin n → Bool) :
+    Nonempty (ThermodynamicSingleRunReuseSchedule M n K T r 0 energy) ↔
+      K ≤ T * r := by
+  constructor
+  · rintro ⟨S⟩
+    exact obligations_le_singleRunTransitions_mul_reuse S.schedule
+  · intro hcap
+    exact ⟨{
+      schedule := singleRunBoundedReuseScheduleOfCapacity hn input hcap
+      energy_bound := ThermodynamicObserver.free_fanout_vacuous energy r
+    }⟩
+
+/-- Full one-run amortization survives every finite thermodynamic budget when
+fanout/reuse has zero charge.  Thus the physical boundary constrains sharing
+only after a positive charge has been derived for the computational model. -/
+theorem freeThermodynamicFullAmortization
+    {M : TuringMachine.DTM} {n K T energy : Nat}
+    (hn : 1 ≤ n) (hT : 1 ≤ T) (input : Fin n → Bool) :
+    Nonempty (ThermodynamicSingleRunReuseSchedule M n K T K 0 energy) := by
+  apply (nonempty_freeThermodynamicReuseSchedule_iff hn input).2
+  simpa [Nat.mul_comm] using
+    obligations_le_runLocalEvents_of_positiveHorizon K T hT
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -2098,6 +2158,9 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms obligations_le_singleRunTransitions_mul_reuse
 #print axioms singleRunBoundedReuseScheduleOfCapacity
 #print axioms nonempty_singleRunBoundedReuseSchedule_iff
+#print axioms obligations_le_transitions_mul_thermodynamicEnergy
+#print axioms nonempty_freeThermodynamicReuseSchedule_iff
+#print axioms freeThermodynamicFullAmortization
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
