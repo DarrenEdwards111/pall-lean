@@ -2505,6 +2505,26 @@ theorem branch_doubling_of_no_nonlinearThermodynamicEscape
     hpartition hL hR hPL hPR hmix
   omega
 
+/-- **Unconditional horizontal frontier.**  Every branch satisfying the
+concrete partition and restriction accounting either pays exact doubling or
+exhibits the complete nonlinear thermodynamic escape signature.  This is a
+true dichotomy, not an extra semantic assumption. -/
+theorem branch_doubling_or_nonlinearThermodynamicEscape
+    (CE CE_L CE_R CE_mix CE_share shareLeft shareRight CEF fresh : Nat)
+    (hpartition : CE_L + CE_R + CE_mix + CE_share ≤ CE)
+    (hL : CEF ≤ CE_L + CE_share) (hR : CEF ≤ CE_R + CE_share)
+    (hPL : CEF ≤ CE_L + shareLeft)
+    (hPR : CEF ≤ CE_R + shareRight)
+    (hmix : fresh ≤ CE_mix) :
+    2 * CEF ≤ CE ∨
+      NonlinearThermodynamicEscape CE_share shareLeft shareRight fresh := by
+  rcases le_or_gt (2 * CEF) CE with hpay | hfail
+  · exact Or.inl hpay
+  · exact Or.inr
+      (branch_doubling_failure_has_nonlinearThermodynamicEscape
+        CE CE_L CE_R CE_mix CE_share shareLeft shareRight CEF fresh
+        hpartition hL hR hPL hPR hmix hfail)
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -2660,6 +2680,7 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms failure_of_fresh_directSum_forces_nonlinear_net_saving
 #print axioms branch_doubling_failure_has_nonlinearThermodynamicEscape
 #print axioms branch_doubling_of_no_nonlinearThermodynamicEscape
+#print axioms branch_doubling_or_nonlinearThermodynamicEscape
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
