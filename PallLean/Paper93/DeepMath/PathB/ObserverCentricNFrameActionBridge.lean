@@ -2595,6 +2595,62 @@ theorem booleanRestrictionProfile_capacity_of_reconstruction {r g : Nat}
     _ = decode (encode y) := by rw [hxy]
     _ = y := hreconstruct y
 
+/-- Two Boolean observer banks have only the sum of their coordinate
+capacities.  Thus an aggregate family of `r` independent witnesses cannot be
+reconstructed by `g` mixed coordinates together with `p` pure coordinates
+unless `r ≤ g + p`. -/
+theorem pairedBooleanRestrictionProfile_capacity {r g p : Nat}
+    (profile : (Fin r → Bool) → (Fin g → Bool) × (Fin p → Bool))
+    (hprofile : Function.Injective profile) :
+    r ≤ g + p := by
+  have hcard : Fintype.card (Fin r → Bool) ≤
+      Fintype.card ((Fin g → Bool) × (Fin p → Bool)) :=
+    Fintype.card_le_of_injective profile hprofile
+  simp only [Fintype.card_fun, Fintype.card_fin, Fintype.card_bool,
+    Fintype.card_prod] at hcard
+  have hpow : 2 ^ r ≤ 2 ^ (g + p) := by
+    simpa [pow_add] using hcard
+  by_contra hrgp
+  have hlt : g + p < r := by omega
+  have hp : 2 ^ (g + p) < 2 ^ r := Nat.pow_lt_pow_right (by omega) hlt
+  omega
+
+/-- **SAT aggregate restriction-profile bridge.**  The repository's concrete
+block contexts generate `2^k` distinct SAT subfunctions.  Consequently, if
+each such subfunction is reconstructed from `g` mixed-gate bits and `p`
+pure-side bits, their joint restriction profile must satisfy `k ≤ g + p`.
+
+This is the aggregate form of `firewall_covers_distinction` specialized to
+the actual recursive SAT family.  It does not assume that the mixed bank is
+injective by itself; proving that the pure bank cannot absorb the required
+coordinates is the remaining nonlinear sharing problem. -/
+theorem sat3AggregateRestrictionProfile_capacity
+    (N : Nat) (hv : 1 ≤ NFrameBoundaryTransducer.sat3V N)
+    {k g p : Nat}
+    (hk : k + 1 ≤ NFrameBoundaryTransducer.sat3M N)
+    (hkv : k ≤ NFrameBoundaryTransducer.sat3V N)
+    (c : Fin (NFrameBoundaryTransducer.sat3M N))
+    (mixed : (Fin k → Bool) → (Fin g → Bool))
+    (pure : (Fin k → Bool) → (Fin p → Bool))
+    (reconstruct : (Fin g → Bool) → (Fin p → Bool) →
+      ((Fin N → Bool) → Bool))
+    (hrec : ∀ b uu,
+      NFrameBoundaryTransducer.sat3Family N
+          (NFrameBoundaryTransducer.sat3Patch N c
+            (NFrameBoundaryTransducer.sat3Context N c hk b) uu)
+        = reconstruct (mixed b) (pure b) uu) :
+    k ≤ g + p := by
+  apply pairedBooleanRestrictionProfile_capacity (fun b => (mixed b, pure b))
+  intro b b' hprofiles
+  by_contra hne
+  obtain ⟨uu, huu⟩ :=
+    NFrameBoundaryTransducer.sat3_block_subfunctions_distinct
+      N hv hk hkv c b b' hne
+  have hmixed : mixed b = mixed b' := congrArg Prod.fst hprofiles
+  have hpure : pure b = pure b' := congrArg Prod.snd hprofiles
+  apply huu
+  rw [hrec b uu, hrec b' uu, hmixed, hpure]
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -2755,6 +2811,8 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms finiteFreshnessChecks_do_not_imply_uniformFreshness
 #print axioms booleanRestrictionProfile_capacity
 #print axioms booleanRestrictionProfile_capacity_of_reconstruction
+#print axioms pairedBooleanRestrictionProfile_capacity
+#print axioms sat3AggregateRestrictionProfile_capacity
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
