@@ -3348,6 +3348,80 @@ theorem childRecurrence_or_genuineNonlinearCancellation
         CE_share shareLeft shareRight fresh CE hchildConeL hchildConeR
         hconeUnion hconePartition hgatePartition hmix hleft hright (by omega))
 
+/-- The recurrence deficit is bounded independently by beneficial cone
+intersection and by the mixed bank's nonlinear net-saving excess.  Hence the
+certified loss is their minimum. -/
+theorem childRecurrence_deficit_le_min_cancellationExcess
+    (CEF coneL coneR coneUnion beneficialInter
+      CE_L CE_R CE_mix CE_share shareLeft shareRight fresh CE : Nat)
+    (hchildConeL : CEF ≤ coneL)
+    (hchildConeR : CEF ≤ coneR)
+    (hconeUnion : coneL + coneR = coneUnion + beneficialInter)
+    (hconePartition : coneUnion + CE_mix ≤ CE)
+    (hgatePartition : CE_L + CE_R + CE_mix + CE_share ≤ CE)
+    (hmix : fresh ≤ CE_mix)
+    (hleft : CEF ≤ CE_L + shareLeft)
+    (hright : CEF ≤ CE_R + shareRight) :
+    2 * CEF + fresh ≤ CE +
+      min beneficialInter (shareLeft + shareRight - CE_share) := by
+  have hcone : 2 * CEF + fresh ≤ CE + beneficialInter := by
+    omega
+  have hshare : 2 * CEF + fresh ≤
+      CE + (shareLeft + shareRight - CE_share) := by
+    omega
+  by_cases hle : beneficialInter ≤ shareLeft + shareRight - CE_share
+  · rw [min_eq_left hle]
+    exact hcone
+  · rw [min_eq_right (by omega)]
+    exact hshare
+
+/-- If fresh geometry pays the smaller of the two genuine cancellation
+excesses and leaves `margin`, the desired doubling-plus-margin recurrence
+follows. -/
+theorem cancellationExcessMargin_gives_childRecurrence
+    (CEF coneL coneR coneUnion beneficialInter
+      CE_L CE_R CE_mix CE_share shareLeft shareRight fresh margin CE : Nat)
+    (hchildConeL : CEF ≤ coneL)
+    (hchildConeR : CEF ≤ coneR)
+    (hconeUnion : coneL + coneR = coneUnion + beneficialInter)
+    (hconePartition : coneUnion + CE_mix ≤ CE)
+    (hgatePartition : CE_L + CE_R + CE_mix + CE_share ≤ CE)
+    (hmix : fresh ≤ CE_mix)
+    (hleft : CEF ≤ CE_L + shareLeft)
+    (hright : CEF ≤ CE_R + shareRight)
+    (hbudget : min beneficialInter
+      (shareLeft + shareRight - CE_share) + margin ≤ fresh) :
+    2 * CEF + margin ≤ CE := by
+  have hdeficit := childRecurrence_deficit_le_min_cancellationExcess
+    CEF coneL coneR coneUnion beneficialInter CE_L CE_R CE_mix CE_share
+    shareLeft shareRight fresh CE hchildConeL hchildConeR hconeUnion
+    hconePartition hgatePartition hmix hleft hright
+  omega
+
+/-- Conversely, failure of doubling plus margin means fresh geometry cannot
+pay even the smaller of the beneficial-intersection and nonlinear-net-saving
+excesses. -/
+theorem childRecurrence_failure_forces_cancellationBudgetOverrun
+    (CEF coneL coneR coneUnion beneficialInter
+      CE_L CE_R CE_mix CE_share shareLeft shareRight fresh margin CE : Nat)
+    (hchildConeL : CEF ≤ coneL)
+    (hchildConeR : CEF ≤ coneR)
+    (hconeUnion : coneL + coneR = coneUnion + beneficialInter)
+    (hconePartition : coneUnion + CE_mix ≤ CE)
+    (hgatePartition : CE_L + CE_R + CE_mix + CE_share ≤ CE)
+    (hmix : fresh ≤ CE_mix)
+    (hleft : CEF ≤ CE_L + shareLeft)
+    (hright : CEF ≤ CE_R + shareRight)
+    (hfail : CE < 2 * CEF + margin) :
+    fresh < min beneficialInter
+      (shareLeft + shareRight - CE_share) + margin := by
+  by_contra hbudget
+  have hrec := cancellationExcessMargin_gives_childRecurrence
+    CEF coneL coneR coneUnion beneficialInter CE_L CE_R CE_mix CE_share
+    shareLeft shareRight fresh margin CE hchildConeL hchildConeR hconeUnion
+    hconePartition hgatePartition hmix hleft hright (by omega)
+  omega
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -3543,6 +3617,9 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms noNetSaving_gives_hybridRecurrence
 #print axioms childRecurrence_failure_forces_genuineNonlinearCancellation
 #print axioms childRecurrence_or_genuineNonlinearCancellation
+#print axioms childRecurrence_deficit_le_min_cancellationExcess
+#print axioms cancellationExcessMargin_gives_childRecurrence
+#print axioms childRecurrence_failure_forces_cancellationBudgetOverrun
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
