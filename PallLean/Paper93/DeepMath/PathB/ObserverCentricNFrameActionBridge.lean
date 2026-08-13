@@ -1275,7 +1275,90 @@ theorem nframe_runtime_or_canonicalDTMReuse
   exact nframe_runtime_or_reuse
     (D.boundedTransitionReuseOfCanonicalBound hbound) hn20 hlog
 
+/-- A polynomial fiber bound on the canonical first-separation map eliminates
+the sharing branch and forces a strict runtime lower bound. -/
+theorem nframe_runtime_lower_of_canonicalDTMReuseBound
+    {M : TuringMachine.DTM} {n e c T : Nat} {S : Type*} [DecidableEq S]
+    (D : CanonicalDTMFirstSeparationData M n
+      (Nat.choose (n / 3) (Nat.log 2 n)) T S)
+    (hbound : D.CanonicalReuseBound (n ^ c))
+    (hn20 : n ≥ 2 ^ 20)
+    (hlog : 4 * (e + c + 1) ≤ Nat.log 2 n) :
+    n ^ e < T := by
+  rcases D.nframe_runtime_or_canonicalDTMReuse hbound hn20 hlog with
+    htime | hre
+  · exact htime
+  · exact absurd hre (Nat.lt_irrefl _)
+
 end CanonicalDTMFirstSeparationData
+
+/-! ## Exact SAT/DTM semantic frontier
+
+The canonical map removes freedom from the accounting.  Two semantic tasks
+remain and are kept separate below:
+
+1. SAT correctness must generate the binomial family of concrete input pairs
+   whose actual traces separate within the declared runtime.
+2. Those canonical first-separation fibers must obey a polynomial cap.
+
+The second task is the anti-sharing lower bound.  The theorem below proves that
+after these data exist, no further combinatorial bridge is missing.
+-/
+
+/-- At length `n`, `M` exposes the full N-frame obligation family as concrete
+pairs of inputs, with charges derived from its real transition traces. -/
+def HasCanonicalDTMNFrameFirstSeparationDataAt
+    (M : TuringMachine.DTM) (n : Nat) : Prop :=
+  ∃ (S : Type) (_decEq : DecidableEq S),
+    Nonempty (CanonicalDTMFirstSeparationData M n
+      (Nat.choose (n / 3) (Nat.log 2 n))
+      (TuringMachine.timeSteps M n) S)
+
+/-- Extraction half of the frontier: SAT correctness supplies the canonical
+N-frame pair family at the calibrated length. -/
+def TimeExponentParametricSATCanonicalPairExtraction
+    (enc : ThreeCNFEncoding) : Prop :=
+  ∀ e c : Nat, ∃ n : Nat,
+    n ≥ 2 ^ 20 ∧
+    4 * (e + c + 1) ≤ Nat.log 2 n ∧
+    ∀ M : TuringMachine.DTM,
+      DTMDecidesSATWithEncodingAtMost enc e M →
+      HasCanonicalDTMNFrameFirstSeparationDataAt M n
+
+/-- Anti-concentration half of the frontier: every extracted canonical family
+has at most `n^c` obligations sharing one first separating transition.  The
+quantification is only over machine-derived maps, never arbitrary schedules. -/
+def TimeExponentParametricSATCanonicalFiberBound
+    (enc : ThreeCNFEncoding) : Prop :=
+  ∀ e : Nat, ∃ c : Nat, ∀ n : Nat, ∀ M : TuringMachine.DTM,
+    DTMDecidesSATWithEncodingAtMost enc e M →
+    ∀ (S : Type) (_decEq : DecidableEq S),
+      ∀ D : CanonicalDTMFirstSeparationData M n
+        (Nat.choose (n / 3) (Nat.log 2 n))
+        (TuringMachine.timeSteps M n) S,
+        D.CanonicalReuseBound (n ^ c)
+
+/-- SAT-derived canonical pairs plus canonical fiber anti-concentration rule
+out every polynomial-time SAT DTM.  This is the complete cash-out of the new
+machine-semantic formulation. -/
+theorem no_DTMDecidesSAT_of_canonicalPairExtraction_and_fiberBound
+    (enc : ThreeCNFEncoding)
+    (hextract : TimeExponentParametricSATCanonicalPairExtraction enc)
+    (hfiber : TimeExponentParametricSATCanonicalFiberBound enc) :
+    ¬ ∃ M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M := by
+  rintro ⟨M, hdec⟩
+  obtain ⟨c, hc⟩ := hfiber M.timeBound
+  obtain ⟨n, hn20, hlog, hdata⟩ := hextract M.timeBound c
+  have hsat : DTMDecidesSATWithEncodingAtMost enc M.timeBound M :=
+    ⟨hdec, le_rfl⟩
+  obtain ⟨S, decEq, hD⟩ := hdata M hsat
+  letI : DecidableEq S := decEq
+  obtain ⟨D⟩ := hD
+  have hlower : n ^ M.timeBound < TuringMachine.timeSteps M n :=
+    D.nframe_runtime_lower_of_canonicalDTMReuseBound
+      (hc n M hsat S inferInstance D) hn20 hlog
+  exact (Nat.lt_irrefl (n ^ M.timeBound)) (by
+    simpa [TuringMachine.timeSteps] using hlower)
 
 #print axioms liveRank_le_action
 #print axioms GroundedTrajectoryNFrameActionCertificate.toActionCertificate
@@ -1331,5 +1414,7 @@ end CanonicalDTMFirstSeparationData
 #print axioms CanonicalDTMFirstSeparationData.toBoundedTransitionReuse
 #print axioms CanonicalDTMFirstSeparationData.boundedTransitionReuseOfCanonicalBound
 #print axioms CanonicalDTMFirstSeparationData.nframe_runtime_or_canonicalDTMReuse
+#print axioms CanonicalDTMFirstSeparationData.nframe_runtime_lower_of_canonicalDTMReuseBound
+#print axioms no_DTMDecidesSAT_of_canonicalPairExtraction_and_fiberBound
 
 end PallLean.Paper93.DeepMath.PathB.ObserverCentricNFrameActionBridge
