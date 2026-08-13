@@ -3740,6 +3740,47 @@ theorem tripleNonlinearSATEscape_is_arithmetically_consistent :
     by omega, by omega, by omega, by omega, ?_, by omega⟩
   exact ⟨by omega, by omega, by omega⟩
 
+/-! ## Dense-grid obstruction to automatic rectangle extraction
+
+The full-mass horn in `sat3_private_band_squeeze` only certifies density of a
+selector grid.  Density alone cannot supply the clean rectangle needed by
+`sat3_multi_rectangle_census_local`: the off-diagonal relation on three
+points already occupies two thirds of the grid but contains no `2 × 2`
+complete rectangle.  Consequently the remaining extraction theorem must use
+minimal-SAT/circuit semantics, not the full-mass inequality by itself.
+-/
+
+/-- The six off-diagonal cells of the `3 × 3` Boolean grid. -/
+def offDiagonalThree : Finset (Fin 3 × Fin 3) :=
+  Finset.univ.filter (fun ij => ij.1 ≠ ij.2)
+
+/-- A pair of row/column sets forms a complete rectangle in `R`. -/
+abbrev ContainsCompleteRectangle
+    (R : Finset (Fin 3 × Fin 3)) (C W : Finset (Fin 3)) : Prop :=
+  ∀ c ∈ C, ∀ w ∈ W, (c, w) ∈ R
+
+/-- **Dense mass does not force even a `2 × 2` rectangle.**  The
+off-diagonal `3 × 3` grid has six cells, but every two rows and two columns
+meet on a missing diagonal cell.  This is the finite obstruction preventing
+the sign-squeeze full-mass horn from closing the rectangle route by generic
+density reasoning. -/
+theorem offDiagonalThree_dense_without_two_by_two_rectangle :
+    offDiagonalThree.card = 6 ∧
+    ∀ C W : Finset (Fin 3), C.card = 2 → W.card = 2 →
+      ¬ ContainsCompleteRectangle offDiagonalThree C W := by
+  constructor
+  · rfl
+  · intro C W hC hW hrect
+    have hU : (C ∪ W).card ≤ 3 := by
+      simpa using Finset.card_le_card (Finset.subset_univ (C ∪ W))
+    have hI : 0 < (C ∩ W).card := by
+      have hsum := Finset.card_union_add_card_inter C W
+      omega
+    obtain ⟨x, hx⟩ := Finset.card_pos.mp hI
+    obtain ⟨hxC, hxW⟩ := Finset.mem_inter.mp hx
+    have hxx := hrect x hxC x hxW
+    simp [offDiagonalThree] at hxx
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -3948,6 +3989,7 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms childRecurrence_of_no_tripleNonlinearSATEscape
 #print axioms noTripleNonlinearSATEscape_amplifies
 #print axioms tripleNonlinearSATEscape_is_arithmetically_consistent
+#print axioms offDiagonalThree_dense_without_two_by_two_rectangle
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
