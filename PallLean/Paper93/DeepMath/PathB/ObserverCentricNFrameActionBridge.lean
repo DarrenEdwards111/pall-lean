@@ -2560,6 +2560,41 @@ theorem finiteFreshnessChecks_do_not_imply_uniformFreshness (cutoff : Nat) :
     have := hall (cutoff + 1)
     omega
 
+/-- **Aggregate Boolean restriction-profile capacity.**  If all `r`
+independent binary restriction coordinates inject into the Boolean profiles
+exposed by `g` mixed gates, then at least `r` mixed gates are necessary.
+
+Unlike the per-distinction firewall, this theorem counts the whole family at
+once: the source contains `2^r` profiles while the target contains only
+`2^g`.  The remaining SAT-specific task is to construct this injection from
+the semantics of the recursive restriction family. -/
+theorem booleanRestrictionProfile_capacity {r g : Nat}
+    (profile : (Fin r → Bool) → (Fin g → Bool))
+    (hprofile : Function.Injective profile) :
+    r ≤ g := by
+  have hcard : Fintype.card (Fin r → Bool) ≤ Fintype.card (Fin g → Bool) :=
+    Fintype.card_le_of_injective profile hprofile
+  simp only [Fintype.card_fun, Fintype.card_fin, Fintype.card_bool] at hcard
+  by_contra hrg
+  have hgr : g < r := by omega
+  have hp : 2 ^ g < 2 ^ r := Nat.pow_lt_pow_right (by omega) hgr
+  omega
+
+/-- Reconstruction is the semantic form of aggregate profile injectivity.  If
+one can recover every `r`-bit restriction witness from the `g` mixed-gate
+outputs, then those outputs must contain at least `r` Boolean coordinates. -/
+theorem booleanRestrictionProfile_capacity_of_reconstruction {r g : Nat}
+    (encode : (Fin r → Bool) → (Fin g → Bool))
+    (decode : (Fin g → Bool) → (Fin r → Bool))
+    (hreconstruct : ∀ witness, decode (encode witness) = witness) :
+    r ≤ g := by
+  apply booleanRestrictionProfile_capacity encode
+  intro x y hxy
+  calc
+    x = decode (encode x) := (hreconstruct x).symm
+    _ = decode (encode y) := by rw [hxy]
+    _ = y := hreconstruct y
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -2718,6 +2753,8 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms branch_doubling_or_nonlinearThermodynamicEscape
 #print axioms nonlinearThermodynamicEscape_does_not_force_doubling_failure
 #print axioms finiteFreshnessChecks_do_not_imply_uniformFreshness
+#print axioms booleanRestrictionProfile_capacity
+#print axioms booleanRestrictionProfile_capacity_of_reconstruction
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
