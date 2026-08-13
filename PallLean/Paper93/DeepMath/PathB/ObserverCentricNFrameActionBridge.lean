@@ -3173,6 +3173,52 @@ theorem childRecurrence_of_no_simultaneousHybridEscape
     profile CE fresh CEF CE_share margin hprofileLower
     hprofileCashout hshareDeficit (by omega)
 
+/-- **Semantic prohibition cashes out to `N log N`.**  If the simultaneous
+hybrid escape is excluded at every recursive scale, the local recurrence
+holds everywhere and the existing amplifier supplies the full margin lower
+bound. -/
+theorem noSimultaneousHybridEscape_amplifies
+    (freshRate marginRate : Nat)
+    (T profile CE_share : Nat → Nat)
+    (hprofileLower : ∀ k, profile k ≤ T k)
+    (hprofileCashout : ∀ k,
+      2 * profile k + freshRate * 2 ^ (k + 1) ≤ T (k + 1))
+    (hshareDeficit : ∀ k,
+      2 * T k + freshRate * 2 ^ (k + 1) ≤ T (k + 1) + CE_share k)
+    (hno : ∀ k, ¬ SimultaneousHybridEscape
+      (freshRate * 2 ^ (k + 1)) (CE_share k)
+      (T k - profile k) (marginRate * 2 ^ (k + 1))) :
+    ∀ b, marginRate * (b * 2 ^ b) ≤ T b := by
+  apply NFrameConeAmplify.coneExcess_amplify marginRate T
+  intro k
+  exact childRecurrence_of_no_simultaneousHybridEscape
+    (profile k) (T (k + 1)) (freshRate * 2 ^ (k + 1))
+    (T k) (CE_share k) (marginRate * 2 ^ (k + 1))
+    (hprofileLower k) (hprofileCashout k) (hshareDeficit k) (hno k)
+
+/-- **The simultaneous escape is arithmetically consistent.**  Concrete
+parameters satisfy both certified deficit bounds and the full simultaneous
+escape signature while the target recurrence fails.  Therefore generic
+ledger arithmetic cannot exclude the adversary; a SAT-specific structural
+theorem is indispensable. -/
+theorem simultaneousHybridEscape_is_arithmetically_consistent :
+    ∃ (profile CE fresh CEF CE_share margin : Nat),
+      profile ≤ CEF ∧
+      2 * profile + fresh ≤ CE ∧
+      2 * CEF + fresh ≤ CE + CE_share ∧
+      SimultaneousHybridEscape fresh CE_share (CEF - profile) margin ∧
+      CE < 2 * CEF + margin := by
+  refine ⟨0, 1, 1, 2, 4, 1, ?_⟩
+  constructor
+  · omega
+  constructor
+  · omega
+  constructor
+  · omega
+  constructor
+  · exact ⟨by omega, by omega⟩
+  · omega
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -3361,6 +3407,8 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms hybridBudgetOverrun_iff_simultaneous
 #print axioms childRecurrence_failure_has_simultaneousHybridEscape
 #print axioms childRecurrence_of_no_simultaneousHybridEscape
+#print axioms noSimultaneousHybridEscape_amplifies
+#print axioms simultaneousHybridEscape_is_arithmetically_consistent
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
