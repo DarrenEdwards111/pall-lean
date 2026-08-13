@@ -3838,6 +3838,86 @@ theorem offDiagonalSupportCircuit_varsOf_five :
   fin_cases i <;> simp [NFrameBoundaryTransducer.varsOf,
     offDiagonalSupportCircuit, NFrameBoundaryTransducer.coneOf]
 
+/-! ### Dead-gate elimination still does not remove the obstruction
+
+The preceding six-gate witness leaves two pair gates dead relative to its last
+wire.  The next witness joins all three pair supports into one output.  Every
+interior wire is read later, and every pair-support wire belongs to the root
+cone.  Hence Normal Form IV (`minimal_wire_read`) and root ancestry alone still
+cannot distinguish the off-diagonal support design.  Functional minimality and
+the SAT restriction semantics must do the remaining work.
+-/
+
+/-- The off-diagonal pair gates, followed by a binary tree joining all three. -/
+def liveOffDiagonalSupportCircuit : List (NFrameBoundaryTransducer.CGate 3) :=
+  [NFrameBoundaryTransducer.CGate.var ⟨0, by omega⟩,
+   NFrameBoundaryTransducer.CGate.var ⟨1, by omega⟩,
+   NFrameBoundaryTransducer.CGate.var ⟨2, by omega⟩,
+   NFrameBoundaryTransducer.CGate.bin (fun a b => a || b) 1 2,
+   NFrameBoundaryTransducer.CGate.bin (fun a b => a || b) 0 2,
+   NFrameBoundaryTransducer.CGate.bin (fun a b => a || b) 0 1,
+   NFrameBoundaryTransducer.CGate.bin (fun a b => xor a b) 3 4,
+   NFrameBoundaryTransducer.CGate.bin (fun a b => xor a b) 6 5]
+
+/-- Every non-root wire in the live witness is read by a later gate. -/
+theorem liveOffDiagonalSupportCircuit_every_interior_wire_read
+    (p : ℕ) (hp : p < liveOffDiagonalSupportCircuit.length - 1) :
+    ∃ q, p < q ∧
+      NFrameBoundaryTransducer.readsWire p
+        (liveOffDiagonalSupportCircuit.getD q
+          (NFrameBoundaryTransducer.CGate.cst false)) = true := by
+  have hp' : p ≤ 6 := by
+    simp [liveOffDiagonalSupportCircuit] at hp
+    omega
+  interval_cases p
+  · exact ⟨4, by decide, by simp [liveOffDiagonalSupportCircuit,
+      NFrameBoundaryTransducer.readsWire]⟩
+  · exact ⟨3, by decide, by simp [liveOffDiagonalSupportCircuit,
+      NFrameBoundaryTransducer.readsWire]⟩
+  · exact ⟨3, by decide, by simp [liveOffDiagonalSupportCircuit,
+      NFrameBoundaryTransducer.readsWire]⟩
+  · exact ⟨6, by decide, by simp [liveOffDiagonalSupportCircuit,
+      NFrameBoundaryTransducer.readsWire]⟩
+  · exact ⟨6, by decide, by simp [liveOffDiagonalSupportCircuit,
+      NFrameBoundaryTransducer.readsWire]⟩
+  · exact ⟨7, by decide, by simp [liveOffDiagonalSupportCircuit,
+      NFrameBoundaryTransducer.readsWire]⟩
+  · exact ⟨7, by decide, by simp [liveOffDiagonalSupportCircuit,
+      NFrameBoundaryTransducer.readsWire]⟩
+
+/-- All three off-diagonal pair gates lie in the final output cone. -/
+theorem liveOffDiagonalSupportCircuit_pair_gates_in_root_cone :
+    ({3, 4, 5} : Finset ℕ) ⊆
+      NFrameBoundaryTransducer.coneOf liveOffDiagonalSupportCircuit 7 := by
+  intro p hp
+  simp at hp
+  rcases hp with rfl | rfl | rfl <;>
+    simp [liveOffDiagonalSupportCircuit, NFrameBoundaryTransducer.coneOf]
+
+/-- The three live pair gates retain exactly the off-diagonal supports. -/
+theorem liveOffDiagonalSupportCircuit_pair_varsOf :
+    NFrameBoundaryTransducer.varsOf liveOffDiagonalSupportCircuit 3 =
+        { ⟨1, by omega⟩, ⟨2, by omega⟩ } ∧
+    NFrameBoundaryTransducer.varsOf liveOffDiagonalSupportCircuit 4 =
+        { ⟨0, by omega⟩, ⟨2, by omega⟩ } ∧
+    NFrameBoundaryTransducer.varsOf liveOffDiagonalSupportCircuit 5 =
+        { ⟨0, by omega⟩, ⟨1, by omega⟩ } := by
+  constructor
+  · ext i
+    fin_cases i <;> simp [NFrameBoundaryTransducer.varsOf,
+      liveOffDiagonalSupportCircuit, NFrameBoundaryTransducer.coneOf]
+  constructor
+  · ext i
+    fin_cases i <;> simp [NFrameBoundaryTransducer.varsOf,
+      liveOffDiagonalSupportCircuit, NFrameBoundaryTransducer.coneOf]
+  · ext i
+    fin_cases i <;> simp [NFrameBoundaryTransducer.varsOf,
+      liveOffDiagonalSupportCircuit, NFrameBoundaryTransducer.coneOf]
+
+#print axioms liveOffDiagonalSupportCircuit_every_interior_wire_read
+#print axioms liveOffDiagonalSupportCircuit_pair_gates_in_root_cone
+#print axioms liveOffDiagonalSupportCircuit_pair_varsOf
+
 /-! ### An asymptotic affine-incidence obstruction
 
 The finite `3 × 3` example is not a small-size accident.  Lines and points
