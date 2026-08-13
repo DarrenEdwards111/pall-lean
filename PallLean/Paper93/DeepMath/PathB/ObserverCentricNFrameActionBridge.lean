@@ -6,6 +6,7 @@ import PallLean.Paper93.DeepMath.PathB.OperationalZeroBoundaryObstruction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthUCRDTseitinBoundedReuse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthThermodynamicObserver
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameInfoBoundaryTest
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSeamForcesHub
 
 /-!
 # Observer-centric N-frame action bridge
@@ -2072,6 +2073,64 @@ theorem thermodynamicReuseCharge_must_exceed_information
     (Cfg := Unit) (fun _ => boundaryCharge) (fun _ => information)
     (fun _ => r) () hreuse hgap
 
+/-! ## Geometric congestion: the seam-forced hub
+
+Unlike entropy, hub reach is genuinely sharing-sensitive: the repository
+proves that a hub serving `r` contexts has fan-in at least `r`.  Coupling that
+fact to the one-run schedule gives a valid geometric capacity theorem.  The
+remaining distinction is quantitative: merely being a hub does not bound its
+fan-in, and free fan-in realizes arbitrary reuse.
+-/
+
+/-- A one-run reuse schedule grounded in the actual seam-forced hub that
+serves those reused contexts. -/
+structure HubGroundedSingleRunReuseSchedule
+    (M : TuringMachine.DTM) (n K T r : Nat) : Type where
+  schedule : SingleRunBoundedReuseObligationSchedule M n K T r
+  hub : SeamForcesHub.Hub
+  hub_serves_reuse : hub.serves = r
+
+/-- **Geometric sharing charge.**  Hub reach replaces the failed entropy
+charge: `K` obligations served in `T` events are bounded by `T` times the
+hub's fan-in. -/
+theorem obligations_le_transitions_mul_hubFanIn
+    {M : TuringMachine.DTM} {n K T r : Nat}
+    (S : HubGroundedSingleRunReuseSchedule M n K T r) :
+    K ≤ T * S.hub.fanIn := by
+  have hr : r ≤ S.hub.fanIn := by
+    calc
+      r = S.hub.serves := S.hub_serves_reuse.symm
+      _ ≤ S.hub.fanIn := S.hub.capacity
+  exact (obligations_le_singleRunTransitions_mul_reuse S.schedule).trans
+    (Nat.mul_le_mul_left T hr)
+
+/-- A polynomial/finite reach cap on the seam hub therefore supplies the
+thermodynamic-style capacity inequality without appealing to Landauer
+information. -/
+theorem obligations_le_transitions_mul_hubReachBudget
+    {M : TuringMachine.DTM} {n K T r reachBudget : Nat}
+    (S : HubGroundedSingleRunReuseSchedule M n K T r)
+    (hreach : S.hub.fanIn ≤ reachBudget) :
+    K ≤ T * reachBudget :=
+  (obligations_le_transitions_mul_hubFanIn S).trans
+    (Nat.mul_le_mul_left T hreach)
+
+/-- **Free-reach escape.**  The qualitative fact that sharing creates a hub
+does not itself cap sharing.  For every `r ≥ 2` satisfying the ordinary
+capacity law, there is a hub-grounded schedule whose single hub has fan-in
+exactly `r`. -/
+theorem hubGroundedReuseSchedule_of_freeReach
+    {M : TuringMachine.DTM} {n K T r : Nat}
+    (hn : 1 ≤ n) (input : Fin n → Bool) (hr : 2 ≤ r)
+    (hcap : K ≤ T * r) :
+    Nonempty (HubGroundedSingleRunReuseSchedule M n K T r) := by
+  obtain ⟨H, hserves, _hfanIn⟩ := SeamForcesHub.hub_escapes r hr
+  exact ⟨{
+    schedule := singleRunBoundedReuseScheduleOfCapacity hn input hcap
+    hub := H
+    hub_serves_reuse := hserves
+  }⟩
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -2205,6 +2264,9 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms freeThermodynamicFullAmortization
 #print axioms no_informationBoundedReuseCharge_of_information_lt_reuse
 #print axioms thermodynamicReuseCharge_must_exceed_information
+#print axioms obligations_le_transitions_mul_hubFanIn
+#print axioms obligations_le_transitions_mul_hubReachBudget
+#print axioms hubGroundedReuseSchedule_of_freeReach
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
