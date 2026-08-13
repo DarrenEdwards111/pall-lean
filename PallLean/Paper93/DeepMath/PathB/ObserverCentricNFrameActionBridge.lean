@@ -3846,6 +3846,19 @@ theorem no_two_by_two
     apply hp
     exact Prod.ext hxx hyy
 
+/-- Two distinct affine lines have at most one common incident point.  Hence
+every intersection of two or more distinct row neighborhoods has cardinality
+at most one; passing from pairwise to higher-order incidence counts does not
+remove this obstruction. -/
+theorem common_point_unique
+    (l₁ l₂ : Line F) (hl : l₁ ≠ l₂)
+    (p₁ p₂ : Point F)
+    (h₁₁ : Incident l₁ p₁) (h₂₁ : Incident l₂ p₁)
+    (h₁₂ : Incident l₁ p₂) (h₂₂ : Incident l₂ p₂) :
+    p₁ = p₂ := by
+  by_contra hp
+  exact no_two_by_two l₁ l₂ p₁ p₂ hl hp h₁₁ h₁₂ h₂₁ h₂₂
+
 variable [Fintype F] [DecidableEq F]
 
 /-- Parameterize every incidence by its line and x-coordinate. -/
@@ -4097,6 +4110,7 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms offDiagonalRow_pair_codegree
 #print axioms offDiagonalThree_dense_without_two_by_two_rectangle
 #print axioms AffineRectangleObstruction.no_two_by_two
+#print axioms AffineRectangleObstruction.common_point_unique
 #print axioms AffineRectangleObstruction.incidences_card
 #print axioms AffineRectangleObstruction.mem_incidences_iff
 #print axioms transitionChargingAuditVerdict
