@@ -1970,6 +1970,50 @@ theorem nonempty_singleRunBoundedReuseSchedule_iff
   · intro hcap
     exact ⟨singleRunBoundedReuseScheduleOfCapacity hn input hcap⟩
 
+/-! ## Exhaustive accounting verdict
+
+The three physically distinct charging interpretations are now summarized in
+one proposition and one kernel theorem:
+
+* separate runs retain a factor `K` and are automatically capacitated;
+* one run with no reuse is equivalent to `K <= T`;
+* one run with reuse `r` is equivalent to `K <= T*r`.
+
+This is an exhaustive verdict about the accounting mechanisms formalized in
+this file.  None supplies an independent SAT lower bound.
+-/
+
+/-- The complete numerical content of the many-run, one-run non-amortized,
+and one-run bounded-reuse charging interpretations for fixed parameters. -/
+def TransitionChargingAuditVerdict
+    {M : TuringMachine.DTM} (n K T r : Nat)
+    (hn : 1 ≤ n) (input : Fin n → Bool) : Prop :=
+  (1 ≤ T → K ≤ K * T) ∧
+  (Nonempty (SingleRunNonAmortizedObligationSchedule M n K T) ↔ K ≤ T) ∧
+  (Nonempty (SingleRunBoundedReuseObligationSchedule M n K T r) ↔
+    K ≤ T * r)
+
+/-- **Exhaustive transition-charging audit.**  All three interpretations have
+exactly the numerical content stated above; no machine or SAT semantics enters
+the proof. -/
+theorem transitionChargingAuditVerdict
+    {M : TuringMachine.DTM} (n K T r : Nat)
+    (hn : 1 ≤ n) (input : Fin n → Bool) :
+    TransitionChargingAuditVerdict (M := M) n K T r hn input := by
+  refine ⟨obligations_le_runLocalEvents_of_positiveHorizon K T, ?_, ?_⟩
+  · exact nonempty_singleRunSchedule_iff hn input
+  · exact nonempty_singleRunBoundedReuseSchedule_iff hn input
+
+/-- N-frame specialization of the exhaustive verdict at the DTM's declared
+runtime. -/
+theorem nframeTransitionChargingAuditVerdict
+    {M : TuringMachine.DTM} {n r : Nat}
+    (hn : 1 ≤ n) (input : Fin n → Bool) :
+    TransitionChargingAuditVerdict (M := M) n
+      (Nat.choose (n / 3) (Nat.log 2 n))
+      (TuringMachine.timeSteps M n) r hn input :=
+  transitionChargingAuditVerdict _ _ _ _ hn input
+
 #print axioms liveRank_le_action
 #print axioms GroundedTrajectoryNFrameActionCertificate.toActionCertificate
 #print axioms groundedCertificateOfFoolingSet
@@ -2054,5 +2098,7 @@ theorem nonempty_singleRunBoundedReuseSchedule_iff
 #print axioms obligations_le_singleRunTransitions_mul_reuse
 #print axioms singleRunBoundedReuseScheduleOfCapacity
 #print axioms nonempty_singleRunBoundedReuseSchedule_iff
+#print axioms transitionChargingAuditVerdict
+#print axioms nframeTransitionChargingAuditVerdict
 
 end PallLean.Paper93.DeepMath.PathB.ObserverCentricNFrameActionBridge
