@@ -2525,6 +2525,24 @@ theorem branch_doubling_or_nonlinearThermodynamicEscape
         CE CE_L CE_R CE_mix CE_share shareLeft shareRight CEF fresh
         hpartition hL hR hPL hPR hmix hfail)
 
+/-- **The escape signature is necessary, not sufficient.**  There are
+numerical branch parameters satisfying all partition/restriction hypotheses
+and the full nonlinear thermodynamic escape signature while exact doubling
+still holds.  Hence the signature correctly identifies every failure, but it
+must not be read as a characterization of failure without additional
+SAT-machine semantics. -/
+theorem nonlinearThermodynamicEscape_does_not_force_doubling_failure :
+    ∃ (CE CE_L CE_R CE_mix CE_share shareLeft shareRight CEF fresh : Nat),
+      CE_L + CE_R + CE_mix + CE_share ≤ CE ∧
+      CEF ≤ CE_L + CE_share ∧ CEF ≤ CE_R + CE_share ∧
+      CEF ≤ CE_L + shareLeft ∧ CEF ≤ CE_R + shareRight ∧
+      fresh ≤ CE_mix ∧
+      NonlinearThermodynamicEscape CE_share shareLeft shareRight fresh ∧
+      2 * CEF ≤ CE := by
+  exact ⟨20, 4, 4, 4, 8, 5, 5, 6, 3,
+    by omega, by omega, by omega, by omega, by omega, by omega,
+    ⟨by omega, by omega⟩, by omega⟩
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -2681,6 +2699,7 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms branch_doubling_failure_has_nonlinearThermodynamicEscape
 #print axioms branch_doubling_of_no_nonlinearThermodynamicEscape
 #print axioms branch_doubling_or_nonlinearThermodynamicEscape
+#print axioms nonlinearThermodynamicEscape_does_not_force_doubling_failure
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
