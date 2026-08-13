@@ -1172,6 +1172,111 @@ theorem not_allSchedules_polynomialReuseAt
     (hall (fullTransitionAmortization
       (Nat.choose (n / 3) (Nat.log 2 n))))
 
+/-! ## Canonical first-separation schedule from an actual DTM
+
+The preceding counterexample rules out quantifying over arbitrary schedules.
+The following object instead starts with concrete pairs of DTM inputs and a
+fixed observation of their real run configurations.  Each obligation is
+charged, definitionally, to the first transition at which its two observed
+traces differ.  No charge map is supplied by the certificate.
+-/
+
+/-- `K` contextual obligations realized by pairs of actual inputs to `M`.
+Every pair must become distinguishable before transition `T`; the canonical
+charge below chooses its least separating transition. -/
+structure CanonicalDTMFirstSeparationData
+    (M : TuringMachine.DTM) (n K T : Nat) (S : Type*) where
+  positiveLength : 1 ≤ n
+  leftInput : Fin K → (Fin n → Bool)
+  rightInput : Fin K → (Fin n → Bool)
+  observe : TuringMachine.Configuration M (TuringMachine.tapeSize M n) → S
+  separatedWithin : ∀ k : Fin K, ∃ t : Nat, t < T ∧
+    observe (TuringMachine.run M n (t + 1)
+      (TuringMachine.initialConfig M n positiveLength (leftInput k))) ≠
+    observe (TuringMachine.run M n (t + 1)
+      (TuringMachine.initialConfig M n positiveLength (rightInput k)))
+
+namespace CanonicalDTMFirstSeparationData
+
+/-- The least physical transition that separates obligation `k`. -/
+noncomputable def firstSeparationTime
+    {M : TuringMachine.DTM} {n K T : Nat} {S : Type*} [DecidableEq S]
+    (D : CanonicalDTMFirstSeparationData M n K T S) (k : Fin K) : Nat :=
+  Nat.find (D.separatedWithin k)
+
+theorem firstSeparationTime_lt
+    {M : TuringMachine.DTM} {n K T : Nat} {S : Type*} [DecidableEq S]
+    (D : CanonicalDTMFirstSeparationData M n K T S) (k : Fin K) :
+    D.firstSeparationTime k < T :=
+  (Nat.find_spec (D.separatedWithin k)).1
+
+theorem separated_at_firstSeparationTime
+    {M : TuringMachine.DTM} {n K T : Nat} {S : Type*} [DecidableEq S]
+    (D : CanonicalDTMFirstSeparationData M n K T S) (k : Fin K) :
+    D.observe (TuringMachine.run M n (D.firstSeparationTime k + 1)
+      (TuringMachine.initialConfig M n D.positiveLength (D.leftInput k))) ≠
+    D.observe (TuringMachine.run M n (D.firstSeparationTime k + 1)
+      (TuringMachine.initialConfig M n D.positiveLength (D.rightInput k))) :=
+  (Nat.find_spec (D.separatedWithin k)).2
+
+/-- The canonical charge is derived from the traces, rather than included as
+free accounting data. -/
+noncomputable def canonicalCharge
+    {M : TuringMachine.DTM} {n K T : Nat} {S : Type*} [DecidableEq S]
+    (D : CanonicalDTMFirstSeparationData M n K T S) : Fin K → Fin T :=
+  fun k => ⟨D.firstSeparationTime k, D.firstSeparationTime_lt k⟩
+
+/-- Every canonical schedule has the trivial total-use bound `K`.  Improving
+this to a polynomial bound from SAT semantics is exactly the anti-sharing
+problem; the schedule itself is no longer arbitrary. -/
+noncomputable def toBoundedTransitionReuse
+    {M : TuringMachine.DTM} {n K T : Nat} {S : Type*} [DecidableEq S]
+    (D : CanonicalDTMFirstSeparationData M n K T S) :
+    BoundedTransitionReuse K T K where
+  resourceOf := fun x => D.canonicalCharge x.1
+  fiber_le := by
+    intro r
+    calc
+      Fintype.card
+          {x : Fin K × Fin 1 // (fun y => D.canonicalCharge y.1) x = r}
+          ≤ Fintype.card (Fin K × Fin 1) := Fintype.card_subtype_le _
+      _ = K := by simp
+
+/-- A reuse bound for the canonical map is just a bound on the number of
+actual trace pairs whose *first* separating transition is `r`. -/
+def CanonicalReuseBound
+    {M : TuringMachine.DTM} {n K T : Nat} {S : Type*} [DecidableEq S]
+    (D : CanonicalDTMFirstSeparationData M n K T S) (readK : Nat) : Prop :=
+  ∀ r : Fin T,
+    Fintype.card
+      {x : Fin K × Fin 1 // D.canonicalCharge x.1 = r} ≤ readK
+
+/-- A concrete fiber bound packages the canonical charge as a bounded-reuse
+schedule; no alternative obligation assignment can be chosen. -/
+noncomputable def boundedTransitionReuseOfCanonicalBound
+    {M : TuringMachine.DTM} {n K T readK : Nat} {S : Type*} [DecidableEq S]
+    (D : CanonicalDTMFirstSeparationData M n K T S)
+    (hbound : D.CanonicalReuseBound readK) :
+    BoundedTransitionReuse K T readK where
+  resourceOf := fun x => D.canonicalCharge x.1
+  fiber_le := hbound
+
+/-- The sharp N-frame dichotomy now applies to the canonical, machine-derived
+first-separation map.  The high-reuse branch refers to actual pairs of DTM
+traces sharing their first separating transition. -/
+theorem nframe_runtime_or_canonicalDTMReuse
+    {M : TuringMachine.DTM} {n e c T readK : Nat} {S : Type*} [DecidableEq S]
+    (D : CanonicalDTMFirstSeparationData M n
+      (Nat.choose (n / 3) (Nat.log 2 n)) T S)
+    (hbound : D.CanonicalReuseBound readK)
+    (hn20 : n ≥ 2 ^ 20)
+    (hlog : 4 * (e + c + 1) ≤ Nat.log 2 n) :
+    n ^ e < T ∨ n ^ c < readK := by
+  exact nframe_runtime_or_reuse
+    (D.boundedTransitionReuseOfCanonicalBound hbound) hn20 hlog
+
+end CanonicalDTMFirstSeparationData
+
 #print axioms liveRank_le_action
 #print axioms GroundedTrajectoryNFrameActionCertificate.toActionCertificate
 #print axioms groundedCertificateOfFoolingSet
@@ -1221,5 +1326,10 @@ theorem not_allSchedules_polynomialReuseAt
 #print axioms nframe_runtime_lower_of_polynomialReuseAt
 #print axioms fullAmortization_not_polynomialReuseAt
 #print axioms not_allSchedules_polynomialReuseAt
+#print axioms CanonicalDTMFirstSeparationData.firstSeparationTime_lt
+#print axioms CanonicalDTMFirstSeparationData.separated_at_firstSeparationTime
+#print axioms CanonicalDTMFirstSeparationData.toBoundedTransitionReuse
+#print axioms CanonicalDTMFirstSeparationData.boundedTransitionReuseOfCanonicalBound
+#print axioms CanonicalDTMFirstSeparationData.nframe_runtime_or_canonicalDTMReuse
 
 end PallLean.Paper93.DeepMath.PathB.ObserverCentricNFrameActionBridge
