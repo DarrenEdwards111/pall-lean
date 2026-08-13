@@ -1405,6 +1405,76 @@ theorem canonicalPairExtraction_and_fiberBound_iff_no_DTMDecidesSAT
     exact ⟨canonicalPairExtraction_of_no_DTMDecidesSAT enc hno,
       canonicalFiberBound_of_no_DTMDecidesSAT enc hno⟩
 
+/-! ## Duplicate-pair audit
+
+The pair-extraction predicate above still does not encode N-frame geometry:
+its `Fin K` indexing permits the same separating pair to be repeated `K`
+times.  The construction below makes that collapse explicit.  Consequently a
+non-vacuous extraction theorem must additionally prove pair injectivity (or a
+stronger residual-label embedding) from SAT/N-frame semantics.
+-/
+
+/-- One concrete separating pair can be copied into an arbitrarily large
+canonical family.  Thus cardinality of the index type alone is not cardinality
+of distinct semantic obligations. -/
+def duplicateCanonicalDTMFirstSeparationData
+    {M : TuringMachine.DTM} {n K T t : Nat} {S : Type*}
+    (hn : 1 ≤ n)
+    (left right : Fin n → Bool)
+    (observe : TuringMachine.Configuration M (TuringMachine.tapeSize M n) → S)
+    (ht : t < T)
+    (hsep :
+      observe (TuringMachine.run M n (t + 1)
+        (TuringMachine.initialConfig M n hn left)) ≠
+      observe (TuringMachine.run M n (t + 1)
+        (TuringMachine.initialConfig M n hn right))) :
+    CanonicalDTMFirstSeparationData M n K T S where
+  positiveLength := hn
+  leftInput := fun _ => left
+  rightInput := fun _ => right
+  observe := observe
+  separatedWithin := fun _ => ⟨t, ht, hsep⟩
+
+/-- Honest distinctness condition missing from the weak extraction predicate:
+different obligation indices must denote different ordered input pairs. -/
+def CanonicalDTMFirstSeparationData.PairInjective
+    {M : TuringMachine.DTM} {n K T : Nat} {S : Type*}
+    (D : CanonicalDTMFirstSeparationData M n K T S) : Prop :=
+  Function.Injective (fun k => (D.leftInput k, D.rightInput k))
+
+/-- A duplicated family with at least two indices cannot satisfy semantic pair
+injectivity. -/
+theorem duplicateCanonicalData_not_pairInjective
+    {M : TuringMachine.DTM} {n K T t : Nat} {S : Type*}
+    (hK : 2 ≤ K)
+    (hn : 1 ≤ n)
+    (left right : Fin n → Bool)
+    (observe : TuringMachine.Configuration M (TuringMachine.tapeSize M n) → S)
+    (ht : t < T)
+    (hsep :
+      observe (TuringMachine.run M n (t + 1)
+        (TuringMachine.initialConfig M n hn left)) ≠
+      observe (TuringMachine.run M n (t + 1)
+        (TuringMachine.initialConfig M n hn right))) :
+    ¬ CanonicalDTMFirstSeparationData.PairInjective
+      (duplicateCanonicalDTMFirstSeparationData
+        (K := K) hn left right observe ht hsep) := by
+  intro hinj
+  let k0 : Fin K := ⟨0, by omega⟩
+  let k1 : Fin K := ⟨1, by omega⟩
+  have hpair :
+      ((duplicateCanonicalDTMFirstSeparationData
+          (K := K) hn left right observe ht hsep).leftInput k0,
+        (duplicateCanonicalDTMFirstSeparationData
+          (K := K) hn left right observe ht hsep).rightInput k0) =
+      ((duplicateCanonicalDTMFirstSeparationData
+          (K := K) hn left right observe ht hsep).leftInput k1,
+        (duplicateCanonicalDTMFirstSeparationData
+          (K := K) hn left right observe ht hsep).rightInput k1) := rfl
+  have hk : k0 = k1 := hinj hpair
+  have hval := congrArg Fin.val hk
+  simp [k0, k1] at hval
+
 #print axioms liveRank_le_action
 #print axioms GroundedTrajectoryNFrameActionCertificate.toActionCertificate
 #print axioms groundedCertificateOfFoolingSet
@@ -1464,5 +1534,7 @@ theorem canonicalPairExtraction_and_fiberBound_iff_no_DTMDecidesSAT
 #print axioms canonicalPairExtraction_of_no_DTMDecidesSAT
 #print axioms canonicalFiberBound_of_no_DTMDecidesSAT
 #print axioms canonicalPairExtraction_and_fiberBound_iff_no_DTMDecidesSAT
+#print axioms duplicateCanonicalDTMFirstSeparationData
+#print axioms duplicateCanonicalData_not_pairInjective
 
 end PallLean.Paper93.DeepMath.PathB.ObserverCentricNFrameActionBridge
