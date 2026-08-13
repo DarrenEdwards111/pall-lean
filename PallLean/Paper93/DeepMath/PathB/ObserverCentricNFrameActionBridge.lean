@@ -7,6 +7,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthUCRDTseitinBoundedReuse
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthThermodynamicObserver
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameInfoBoundaryTest
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSeamForcesHub
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameBudgetCashout
 
 /-!
 # Observer-centric N-frame action bridge
@@ -2343,6 +2344,35 @@ theorem thermodynamicObserverFrontier_iff_no_DTMDecidesSAT
       Not (∃ M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M) :=
   singleLocalHubExtraction_iff_no_DTMDecidesSAT enc
 
+/-! ## Where the sharing boundary is already non-vacuous
+
+The failure of the universal DTM transfer must not be confused with failure of
+the geometric invariant itself.  In the repository's boundary-transducer
+circuit model, the selector/sign semantics, minimal-DAG normal forms, and
+fanout curvature have already been connected without an extraction premise.
+The resulting lower bound is modest (linear plus `Omega(sqrt N)`), but it is a
+genuine SAT-semantic sharing charge rather than a restatement of the desired
+runtime inequality.
+-/
+
+/-- **Non-vacuous restricted-model sharing boundary.**  Every minimal circuit
+for the encoded N-frame SAT family pays the full live-region reading cost plus
+an unconditional curvature term.  This is the proved setting in which
+geometric sharing congestion really does become computational cost. -/
+theorem restrictedCircuitSATSharingBoundary
+    (N : Nat) (hv : 1 ≤ NFrameBoundaryTransducer.sat3V N)
+    (hm3 : 3 ≤ NFrameBoundaryTransducer.sat3M N)
+    (c : List (NFrameBoundaryTransducer.CGate N))
+    (hcomp : NFrameBoundaryTransducer.computes c
+      (NFrameBoundaryTransducer.sat3Family N))
+    (hmin : c.length = NFrameBoundaryTransducer.cbudget
+      (NFrameBoundaryTransducer.sat3Family N)) :
+    64 * (NFrameBoundaryTransducer.sat3M N *
+        NFrameBoundaryTransducer.sat3D N) + NFrameBoundaryTransducer.sat3M N
+      ≤ 32 * NFrameBoundaryTransducer.cbudget
+          (NFrameBoundaryTransducer.sat3Family N) + 95 :=
+  NFrameBoundaryTransducer.sat3_cbudget_omega N hv hm3 c hcomp hmin
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -2491,6 +2521,7 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms distributed_local_spacetime_bound_is_automatic
 #print axioms thermodynamicLocalityAuditVerdict
 #print axioms thermodynamicObserverFrontier_iff_no_DTMDecidesSAT
+#print axioms restrictedCircuitSATSharingBoundary
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
