@@ -2794,6 +2794,34 @@ theorem sat3SiblingRestrictionProfile_coneExcess
   exact siblingProfileCapacity_cashout k CE CE_L CE_R CE_mix CE_share fresh
     hprofile hpartition hmix
 
+/-- **Profile dimension alone does not imply child-cost doubling.**  At every
+profile dimension `k`, there are gate-ledger parameters satisfying the exact
+sibling profile capacity, the four-way partition, and its cone-excess cash-out,
+while doubling fails for the slightly larger child cost `CEF = k + 1`.
+
+This formally prevents the logarithm of the SAT subfunction count from being
+silently identified with the circuit cone-excess of a child. -/
+theorem siblingProfileCashout_does_not_force_childDoubling (k : Nat) :
+    ∃ (CE CE_L CE_R CE_mix CE_share fresh CEF : Nat),
+      2 * k ≤ CE_share + CE_L + CE_R ∧
+      CE_L + CE_R + CE_mix + CE_share ≤ CE ∧
+      fresh ≤ CE_mix ∧
+      2 * k + fresh ≤ CE ∧
+      CE < 2 * CEF := by
+  refine ⟨2 * k, k, k, 0, 0, 0, k + 1, ?_⟩
+  omega
+
+/-- The missing quantitative bridge, isolated without circuit syntax: the
+profile cash-out yields child doubling as soon as the child cone-excess is no
+larger than the independent SAT profile dimension.  The preceding countermodel
+shows that this comparison is essential rather than arithmetic bookkeeping. -/
+theorem childDoubling_of_coneExcess_le_profileDimension
+    (k CE fresh CEF : Nat)
+    (hcashout : 2 * k + fresh ≤ CE)
+    (hchild : CEF ≤ k) :
+    2 * CEF ≤ CE := by
+  omega
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -2960,6 +2988,8 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms sat3SiblingRestrictionProfile_capacity
 #print axioms siblingProfileCapacity_cashout
 #print axioms sat3SiblingRestrictionProfile_coneExcess
+#print axioms siblingProfileCashout_does_not_force_childDoubling
+#print axioms childDoubling_of_coneExcess_le_profileDimension
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
