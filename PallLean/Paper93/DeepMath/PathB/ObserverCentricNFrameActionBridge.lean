@@ -1805,6 +1805,66 @@ theorem CanonicalDTMFirstSeparationData.runLocalEvent_ne_of_index_ne
     D.runLocalEventCharge i ≠ D.runLocalEventCharge j :=
   fun h => hij (D.runLocalEventCharge_injective h)
 
+/-! ## Single-run repair and circularity audit
+
+To obtain a one-run runtime lower bound, all `K` obligations must be charged to
+events of one concrete run.  If every event may discharge at most one
+obligation, the required charge is an injection `Fin K -> Fin T`.  The next
+theorems show this condition is exactly equivalent to `K <= T`; it is not an
+independently weaker bridge.
+-/
+
+/-- A physically valid non-amortized schedule inside one actual DTM run.  The
+configuration trace is explicit; `eventOf` selects one of its `T` transition
+events for each obligation. -/
+structure SingleRunNonAmortizedObligationSchedule
+    (M : TuringMachine.DTM) (n K T : Nat) where
+  positiveLength : 1 ≤ n
+  input : Fin n → Bool
+  eventOf : Fin K → Fin T
+  eventOf_injective : Function.Injective eventOf
+
+/-- A single-run non-amortized schedule immediately forces the runtime-event
+lower bound. -/
+theorem obligations_le_singleRunTransitions
+    {M : TuringMachine.DTM} {n K T : Nat}
+    (S : SingleRunNonAmortizedObligationSchedule M n K T) : K ≤ T := by
+  simpa using Fintype.card_le_of_injective S.eventOf S.eventOf_injective
+
+/-- Conversely, once `K <= T` is already known, any positive-length DTM input
+can be decorated with a single-run non-amortized schedule. -/
+def singleRunScheduleOfLe
+    {M : TuringMachine.DTM} {n K T : Nat}
+    (hn : 1 ≤ n) (input : Fin n → Bool) (hKT : K ≤ T) :
+    SingleRunNonAmortizedObligationSchedule M n K T where
+  positiveLength := hn
+  input := input
+  eventOf := Fin.castLE hKT
+  eventOf_injective := Fin.castLE_injective hKT
+
+/-- Exact audit: for a fixed concrete run input, existence of a one-use event
+charge is equivalent to the desired numerical runtime bound. -/
+theorem nonempty_singleRunSchedule_iff
+    {M : TuringMachine.DTM} {n K T : Nat}
+    (hn : 1 ≤ n) (input : Fin n → Bool) :
+    Nonempty (SingleRunNonAmortizedObligationSchedule M n K T) ↔ K ≤ T := by
+  constructor
+  · rintro ⟨S⟩
+    exact obligations_le_singleRunTransitions S
+  · intro hKT
+    exact ⟨singleRunScheduleOfLe hn input hKT⟩
+
+/-- At the N-frame scale, postulating a non-amortized single-run schedule is
+therefore literally equivalent to the binomial runtime lower bound. -/
+theorem nframe_singleRunSchedule_iff_runtimeLower
+    {M : TuringMachine.DTM} {n : Nat}
+    (hn : 1 ≤ n) (input : Fin n → Bool) :
+    Nonempty (SingleRunNonAmortizedObligationSchedule M n
+      (Nat.choose (n / 3) (Nat.log 2 n))
+      (TuringMachine.timeSteps M n)) ↔
+    Nat.choose (n / 3) (Nat.log 2 n) ≤ TuringMachine.timeSteps M n :=
+  nonempty_singleRunSchedule_iff hn input
+
 #print axioms liveRank_le_action
 #print axioms GroundedTrajectoryNFrameActionCertificate.toActionCertificate
 #print axioms groundedCertificateOfFoolingSet
@@ -1882,5 +1942,9 @@ theorem CanonicalDTMFirstSeparationData.runLocalEvent_ne_of_index_ne
 #print axioms obligations_le_runLocalEvents
 #print axioms obligations_le_runLocalEvents_of_positiveHorizon
 #print axioms CanonicalDTMFirstSeparationData.runLocalEvent_ne_of_index_ne
+#print axioms obligations_le_singleRunTransitions
+#print axioms singleRunScheduleOfLe
+#print axioms nonempty_singleRunSchedule_iff
+#print axioms nframe_singleRunSchedule_iff_runtimeLower
 
 end PallLean.Paper93.DeepMath.PathB.ObserverCentricNFrameActionBridge
