@@ -2651,6 +2651,94 @@ theorem sat3AggregateRestrictionProfile_capacity
   apply huu
   rw [hrec b uu, hrec b' uu, hmixed, hpure]
 
+/-- A common Boolean bank is charged only once when two independent witness
+families share it.  Injecting `rL + rR` independent coordinates into one
+`g`-bit mixed bank and two pure banks of sizes `pL`, `pR` forces the joint
+capacity inequality `rL + rR ≤ g + pL + pR`. -/
+theorem siblingBooleanRestrictionProfile_capacity
+    {rL rR g pL pR : Nat}
+    (profile : ((Fin rL → Bool) × (Fin rR → Bool)) →
+      ((Fin g → Bool) × (Fin pL → Bool)) × (Fin pR → Bool))
+    (hprofile : Function.Injective profile) :
+    rL + rR ≤ g + pL + pR := by
+  have hcard :
+      Fintype.card ((Fin rL → Bool) × (Fin rR → Bool)) ≤
+        Fintype.card (((Fin g → Bool) × (Fin pL → Bool)) ×
+          (Fin pR → Bool)) :=
+    Fintype.card_le_of_injective profile hprofile
+  simp only [Fintype.card_fun, Fintype.card_fin, Fintype.card_bool,
+    Fintype.card_prod] at hcard
+  have hpow : 2 ^ (rL + rR) ≤ 2 ^ (g + pL + pR) := by
+    simpa [pow_add] using hcard
+  by_contra hcap
+  have hlt : g + pL + pR < rL + rR := by omega
+  have hp : 2 ^ (g + pL + pR) < 2 ^ (rL + rR) :=
+    Nat.pow_lt_pow_right (by omega) hlt
+  omega
+
+/-- **Two-sibling SAT allocation law.**  Let two independently varying SAT
+block-context families share one mixed-gate profile while retaining separate
+pure profiles.  If each sibling subfunction is reconstructed from the common
+mixed profile and its own pure profile, then
+
+`2 * k ≤ g + pL + pR`.
+
+The mixed bank is counted once, so this is the desired horizontal aggregate
+accounting statement.  The remaining direct-sum issue is quantitative: relate
+`pL` and `pR` to the actual pure gate classes strongly enough that this bound
+forces the mixed/fresh cost. -/
+theorem sat3SiblingRestrictionProfile_capacity
+    (N : Nat) (hv : 1 ≤ NFrameBoundaryTransducer.sat3V N)
+    {k g pL pR : Nat}
+    (hk : k + 1 ≤ NFrameBoundaryTransducer.sat3M N)
+    (hkv : k ≤ NFrameBoundaryTransducer.sat3V N)
+    (cL cR : Fin (NFrameBoundaryTransducer.sat3M N))
+    (mixed : ((Fin k → Bool) × (Fin k → Bool)) → (Fin g → Bool))
+    (pureL : (Fin k → Bool) → (Fin pL → Bool))
+    (pureR : (Fin k → Bool) → (Fin pR → Bool))
+    (reconstructL : (Fin g → Bool) → (Fin pL → Bool) →
+      ((Fin N → Bool) → Bool))
+    (reconstructR : (Fin g → Bool) → (Fin pR → Bool) →
+      ((Fin N → Bool) → Bool))
+    (hrecL : ∀ bL bR uu,
+      NFrameBoundaryTransducer.sat3Family N
+          (NFrameBoundaryTransducer.sat3Patch N cL
+            (NFrameBoundaryTransducer.sat3Context N cL hk bL) uu)
+        = reconstructL (mixed (bL, bR)) (pureL bL) uu)
+    (hrecR : ∀ bL bR uu,
+      NFrameBoundaryTransducer.sat3Family N
+          (NFrameBoundaryTransducer.sat3Patch N cR
+            (NFrameBoundaryTransducer.sat3Context N cR hk bR) uu)
+        = reconstructR (mixed (bL, bR)) (pureR bR) uu) :
+    2 * k ≤ g + pL + pR := by
+  have hjoint : Function.Injective
+      (fun b : (Fin k → Bool) × (Fin k → Bool) =>
+        ((mixed b, pureL b.1), pureR b.2)) := by
+    intro b b' hprofiles
+    have hmixed : mixed b = mixed b' := congrArg (fun z => z.1.1) hprofiles
+    have hpureL : pureL b.1 = pureL b'.1 :=
+      congrArg (fun z => z.1.2) hprofiles
+    have hpureR : pureR b.2 = pureR b'.2 := congrArg Prod.snd hprofiles
+    have hbL : b.1 = b'.1 := by
+      by_contra hne
+      obtain ⟨uu, huu⟩ :=
+        NFrameBoundaryTransducer.sat3_block_subfunctions_distinct
+          N hv hk hkv cL b.1 b'.1 hne
+      apply huu
+      rw [hrecL b.1 b.2 uu, hrecL b'.1 b'.2 uu, hmixed, hpureL]
+    have hbR : b.2 = b'.2 := by
+      by_contra hne
+      obtain ⟨uu, huu⟩ :=
+        NFrameBoundaryTransducer.sat3_block_subfunctions_distinct
+          N hv hk hkv cR b.2 b'.2 hne
+      apply huu
+      rw [hrecR b.1 b.2 uu, hrecR b'.1 b'.2 uu, hmixed, hpureR]
+    exact Prod.ext hbL hbR
+  have hcap := siblingBooleanRestrictionProfile_capacity
+    (fun b : (Fin k → Bool) × (Fin k → Bool) =>
+      ((mixed b, pureL b.1), pureR b.2)) hjoint
+  simpa [two_mul] using hcap
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -2813,6 +2901,8 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms booleanRestrictionProfile_capacity_of_reconstruction
 #print axioms pairedBooleanRestrictionProfile_capacity
 #print axioms sat3AggregateRestrictionProfile_capacity
+#print axioms siblingBooleanRestrictionProfile_capacity
+#print axioms sat3SiblingRestrictionProfile_capacity
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
