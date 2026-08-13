@@ -3115,6 +3115,64 @@ theorem allScalesHybridRecurrence_or_exists_budgetOverrun
       (T k) (CE_share k) (marginRate * 2 ^ (k + 1))
       (hprofileLower k) (hprofileCashout k) (hshareDeficit k) hk⟩
 
+/-- The hybrid `min` overrun is exactly simultaneous failure of both
+certificates: fresh geometry loses to the sharing count plus margin and also
+to twice the uncaptured profile gap plus margin. -/
+theorem hybridBudgetOverrun_iff_simultaneous
+    (fresh CE_share profileGap margin : Nat) :
+    fresh < min CE_share (2 * profileGap) + margin ↔
+      fresh < CE_share + margin ∧
+      fresh < 2 * profileGap + margin := by
+  constructor
+  · intro h
+    constructor
+    · exact lt_of_lt_of_le h (Nat.add_le_add_right (min_le_left _ _) _)
+    · exact lt_of_lt_of_le h (Nat.add_le_add_right (min_le_right _ _) _)
+  · rintro ⟨hshare, hgap⟩
+    by_cases hle : CE_share ≤ 2 * profileGap
+    · rw [min_eq_left hle]
+      exact hshare
+    · rw [min_eq_right (by omega)]
+      exact hgap
+
+/-- Named semantic form of the sole remaining local adversary. -/
+structure SimultaneousHybridEscape
+    (fresh CE_share profileGap margin : Nat) : Prop where
+  share_overruns_fresh : fresh < CE_share + margin
+  profileGap_overruns_fresh : fresh < 2 * profileGap + margin
+
+/-- Failure of the desired recurrence produces the simultaneous sharing and
+profile-gap escape signature, not merely one of its components. -/
+theorem childRecurrence_failure_has_simultaneousHybridEscape
+    (profile CE fresh CEF CE_share margin : Nat)
+    (hprofileLower : profile ≤ CEF)
+    (hprofileCashout : 2 * profile + fresh ≤ CE)
+    (hshareDeficit : 2 * CEF + fresh ≤ CE + CE_share)
+    (hfail : CE < 2 * CEF + margin) :
+    SimultaneousHybridEscape fresh CE_share (CEF - profile) margin := by
+  have hover := childRecurrence_failure_forces_hybridBudgetOverrun
+    profile CE fresh CEF CE_share margin hprofileLower
+    hprofileCashout hshareDeficit hfail
+  obtain ⟨hshare, hgap⟩ := (hybridBudgetOverrun_iff_simultaneous
+    fresh CE_share (CEF - profile) margin).mp hover
+  exact ⟨hshare, hgap⟩
+
+/-- Conversely, excluding the simultaneous escape signature forces the
+doubling-plus-margin recurrence. -/
+theorem childRecurrence_of_no_simultaneousHybridEscape
+    (profile CE fresh CEF CE_share margin : Nat)
+    (hprofileLower : profile ≤ CEF)
+    (hprofileCashout : 2 * profile + fresh ≤ CE)
+    (hshareDeficit : 2 * CEF + fresh ≤ CE + CE_share)
+    (hno : ¬ SimultaneousHybridEscape
+      fresh CE_share (CEF - profile) margin) :
+    2 * CEF + margin ≤ CE := by
+  by_contra hfail
+  apply hno
+  exact childRecurrence_failure_has_simultaneousHybridEscape
+    profile CE fresh CEF CE_share margin hprofileLower
+    hprofileCashout hshareDeficit (by omega)
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -3300,6 +3358,9 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms childRecurrence_failure_forces_hybridBudgetOverrun
 #print axioms childRecurrence_or_hybridBudgetOverrun
 #print axioms allScalesHybridRecurrence_or_exists_budgetOverrun
+#print axioms hybridBudgetOverrun_iff_simultaneous
+#print axioms childRecurrence_failure_has_simultaneousHybridEscape
+#print axioms childRecurrence_of_no_simultaneousHybridEscape
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
