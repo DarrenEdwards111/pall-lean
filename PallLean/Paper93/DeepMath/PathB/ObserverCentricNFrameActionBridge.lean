@@ -2131,6 +2131,58 @@ theorem hubGroundedReuseSchedule_of_freeReach
     hub_serves_reuse := hserves
   }⟩
 
+/-! ## DTM-local spacetime ceiling
+
+A local Turing run cannot realize an instantaneous unbounded-fan-in gate.  The
+honest replacement is a hub whose reach is accumulated through its `T` local
+transition opportunities, hence at most `T+1`.  This yields a quadratic
+spacetime capacity.  It is a real improvement over free fan-in, but remains
+polynomial and therefore does not by itself produce the N-frame extraction.
+-/
+
+/-- A hub-grounded schedule whose geometric reach is local to a `T`-step DTM
+run.  `fanIn ≤ T+1` is the explicit machine-locality bridge. -/
+structure DTMLocalHubReuseSchedule
+    (M : TuringMachine.DTM) (n K T r : Nat) : Type where
+  grounded : HubGroundedSingleRunReuseSchedule M n K T r
+  fanIn_le_local_accesses : grounded.hub.fanIn ≤ T + 1
+
+/-- **Local DTM spacetime capacity.**  A `T`-step local run with one
+seam-grounded hub can service at most `T(T+1)` contextual obligations. -/
+theorem obligations_le_DTM_local_spacetime_capacity
+    {M : TuringMachine.DTM} {n K T r : Nat}
+    (S : DTMLocalHubReuseSchedule M n K T r) :
+    K ≤ T * (T + 1) :=
+  obligations_le_transitions_mul_hubReachBudget S.grounded
+    S.fanIn_le_local_accesses
+
+/-- The local-hub certificate is impossible beyond the quadratic spacetime
+capacity. -/
+theorem no_DTMLocalHubReuseSchedule_of_quadratic_gap
+    {M : TuringMachine.DTM} {n K T r : Nat}
+    (hgap : T * (T + 1) < K) :
+    IsEmpty (DTMLocalHubReuseSchedule M n K T r) :=
+  ⟨fun S => Nat.not_lt_of_ge
+    (obligations_le_DTM_local_spacetime_capacity S) hgap⟩
+
+/-- Conversely, whenever arithmetic capacity already permits reuse `r` and
+`r ≤ T+1`, the free-reach hub construction is DTM-local.  Thus the quadratic
+ceiling is the exact content of this locality abstraction, not an additional
+SAT lower bound. -/
+theorem DTMLocalHubReuseSchedule_of_capacity
+    {M : TuringMachine.DTM} {n K T r : Nat}
+    (hn : 1 ≤ n) (input : Fin n → Bool) (hr2 : 2 ≤ r)
+    (hrT : r ≤ T + 1) (hcap : K ≤ T * r) :
+    Nonempty (DTMLocalHubReuseSchedule M n K T r) := by
+  exact ⟨{
+    grounded := {
+      schedule := singleRunBoundedReuseScheduleOfCapacity hn input hcap
+      hub := ⟨r, r, r, hr2, hr2, le_rfl⟩
+      hub_serves_reuse := rfl
+    }
+    fanIn_le_local_accesses := hrT
+  }⟩
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -2267,6 +2319,9 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms obligations_le_transitions_mul_hubFanIn
 #print axioms obligations_le_transitions_mul_hubReachBudget
 #print axioms hubGroundedReuseSchedule_of_freeReach
+#print axioms obligations_le_DTM_local_spacetime_capacity
+#print axioms no_DTMLocalHubReuseSchedule_of_quadratic_gap
+#print axioms DTMLocalHubReuseSchedule_of_capacity
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
