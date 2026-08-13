@@ -2183,6 +2183,92 @@ theorem DTMLocalHubReuseSchedule_of_capacity
     fanIn_le_local_accesses := hrT
   }⟩
 
+/-! ## SAT extraction frontier and full quadratic cash-out -/
+
+/-- The exact remaining SAT-semantic assertion: at a calibrated length, every
+claimed exponent-`e` SAT DTM exposes the full binomial obligation family in
+one actual local hub/run. -/
+def TimeExponentParametricSATSingleLocalHubExtraction
+    (enc : ThreeCNFEncoding) : Prop :=
+  ∀ e : Nat, ∃ n : Nat,
+    n ≥ 2 ^ 20 ∧
+    4 * ((2 * e + 1) + 1) ≤ Nat.log 2 n ∧
+    ∀ M : TuringMachine.DTM,
+      DTMDecidesSATWithEncodingAtMost enc e M →
+      ∃ r : Nat, Nonempty (DTMLocalHubReuseSchedule M n
+        (Nat.choose (n / 3) (Nat.log 2 n))
+        (TuringMachine.timeSteps M n) r)
+
+/-- A polynomial DTM's quadratic local spacetime capacity remains bounded by
+the next calibrated polynomial exponent. -/
+theorem timeSteps_mul_succ_le_nextPolynomial
+    (M : TuringMachine.DTM) {n e : Nat}
+    (hn : 2 ≤ n) (he : M.timeBound ≤ e) :
+    TuringMachine.timeSteps M n * (TuringMachine.timeSteps M n + 1) ≤
+      n ^ (2 * e + 1) := by
+  have htime : TuringMachine.timeSteps M n ≤ n ^ e := by
+    simp only [TuringMachine.timeSteps]
+    exact Nat.pow_le_pow_right (by omega) he
+  have hpowpos : 1 ≤ n ^ e := Nat.one_le_pow e n (by omega)
+  have hsucc : n ^ e + 1 ≤ n ^ (e + 1) := by
+    rw [pow_succ]
+    nlinarith
+  calc
+    TuringMachine.timeSteps M n * (TuringMachine.timeSteps M n + 1)
+        ≤ n ^ e * (n ^ e + 1) := Nat.mul_le_mul htime (Nat.add_le_add_right htime 1)
+    _ ≤ n ^ e * n ^ (e + 1) := Nat.mul_le_mul_left _ hsucc
+    _ = n ^ (2 * e + 1) := by rw [← pow_add]; congr 1; omega
+
+/-- **Complete cash-out.**  Single-local-hub extraction contradicts every
+polynomial-time SAT DTM: locality gives a quadratic capacity, while the
+calibrated binomial family exceeds the corresponding polynomial. -/
+theorem no_DTMDecidesSAT_of_singleLocalHubExtraction
+    (enc : ThreeCNFEncoding)
+    (hextract : TimeExponentParametricSATSingleLocalHubExtraction enc) :
+    Not (∃ M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M) := by
+  rintro ⟨M, hdec⟩
+  rcases hextract M.timeBound with ⟨n, hn20, hlog, hlocal⟩
+  rcases hlocal M ⟨hdec, le_rfl⟩ with ⟨r, ⟨S⟩⟩
+  have hn2 : 2 ≤ n := le_trans (by norm_num : 2 ≤ 2 ^ 20) hn20
+  have hcapacity := obligations_le_DTM_local_spacetime_capacity S
+  have hpoly := timeSteps_mul_succ_le_nextPolynomial M hn2 le_rfl
+  have hchoose_le :
+      Nat.choose (n / 3) (Nat.log 2 n) ≤ n ^ (2 * M.timeBound + 1) :=
+    hcapacity.trans hpoly
+  have hgap :
+      n ^ (2 * M.timeBound + 1) <
+        Nat.choose (n / 3) (Nat.log 2 n) :=
+    arithmetic_gap_for_exponent (2 * M.timeBound + 1) n hn20 hlog
+  exact Nat.not_lt_of_ge hchoose_le hgap
+
+/-- If no encoded polynomial-time SAT DTM exists, the local-hub extraction
+property holds vacuously. -/
+theorem singleLocalHubExtraction_of_no_DTMDecidesSAT
+    (enc : ThreeCNFEncoding)
+    (hno : Not (∃ M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M)) :
+    TimeExponentParametricSATSingleLocalHubExtraction enc := by
+  intro e
+  let n := 2 ^ (4 * ((2 * e + 1) + 1) + 20)
+  refine ⟨n, ?_, ?_, ?_⟩
+  · dsimp [n]
+    exact Nat.pow_le_pow_right (by norm_num : 0 < (2 : Nat))
+      (by omega : 20 ≤ 4 * (2 * e + 1 + 1) + 20)
+  · dsimp [n]
+    rw [Nat.log_pow (by norm_num : 1 < 2)]
+    omega
+  · intro M hM
+    exact False.elim (hno ⟨M, hM.1⟩)
+
+/-- The proposed simultaneous local-hub extraction is exactly separation in
+this model.  All thermodynamic, geometric, locality, and arithmetic work after
+extraction is complete; extraction itself is the breakthrough. -/
+theorem singleLocalHubExtraction_iff_no_DTMDecidesSAT
+    (enc : ThreeCNFEncoding) :
+    TimeExponentParametricSATSingleLocalHubExtraction enc ↔
+      Not (∃ M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M) :=
+  ⟨no_DTMDecidesSAT_of_singleLocalHubExtraction enc,
+    singleLocalHubExtraction_of_no_DTMDecidesSAT enc⟩
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -2322,6 +2408,10 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms obligations_le_DTM_local_spacetime_capacity
 #print axioms no_DTMLocalHubReuseSchedule_of_quadratic_gap
 #print axioms DTMLocalHubReuseSchedule_of_capacity
+#print axioms timeSteps_mul_succ_le_nextPolynomial
+#print axioms no_DTMDecidesSAT_of_singleLocalHubExtraction
+#print axioms singleLocalHubExtraction_of_no_DTMDecidesSAT
+#print axioms singleLocalHubExtraction_iff_no_DTMDecidesSAT
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
