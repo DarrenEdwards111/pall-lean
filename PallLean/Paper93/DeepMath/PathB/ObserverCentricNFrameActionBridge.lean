@@ -2373,6 +2373,22 @@ theorem restrictedCircuitSATSharingBoundary
           (NFrameBoundaryTransducer.sat3Family N) + 95 :=
   NFrameBoundaryTransducer.sat3_cbudget_omega N hv hm3 c hcomp hmin
 
+/-- **Quantitative transfer audit.**  The entire left-hand demand certified by
+`restrictedCircuitSATSharingBoundary` is at most linear in the input length.
+Thus it is a genuine congestion charge, but it is compatible with the
+polynomial circuit upper bound obtained from a polynomial-time machine; this
+particular charge cannot by itself establish `SuperPolyCBudget`. -/
+theorem restrictedCircuitSharingDemand_le_linear (N : Nat) :
+    64 * (NFrameBoundaryTransducer.sat3M N *
+        NFrameBoundaryTransducer.sat3D N) + NFrameBoundaryTransducer.sat3M N
+      ≤ 65 * N := by
+  have hlive : NFrameBoundaryTransducer.sat3M N *
+      NFrameBoundaryTransducer.sat3D N ≤ N :=
+    Nat.div_mul_le_self N (NFrameBoundaryTransducer.sat3D N)
+  have hm : NFrameBoundaryTransducer.sat3M N ≤ N :=
+    Nat.div_le_self N (NFrameBoundaryTransducer.sat3D N)
+  omega
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -2522,6 +2538,7 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms thermodynamicLocalityAuditVerdict
 #print axioms thermodynamicObserverFrontier_iff_no_DTMDecidesSAT
 #print axioms restrictedCircuitSATSharingBoundary
+#print axioms restrictedCircuitSharingDemand_le_linear
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
