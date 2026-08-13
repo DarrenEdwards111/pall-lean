@@ -3797,6 +3797,94 @@ theorem offDiagonalThree_dense_without_two_by_two_rectangle :
     have hxx := hrect x hxC x hxW
     simp [offDiagonalThree] at hxx
 
+/-! ### An asymptotic affine-incidence obstruction
+
+The finite `3 × 3` example is not a small-size accident.  Lines and points
+over any finite field give a family with `q³` occupied cells in a
+`q² × q²` grid and no complete `2 × 2` rectangle.  This matches the
+pairwise/codegree barrier asymptotically and shows that a higher-order or
+circuit-shaped invariant is indispensable.
+-/
+
+namespace AffineRectangleObstruction
+
+variable {F : Type*} [Field F]
+
+abbrev Line (F : Type*) := F × F
+abbrev Point (F : Type*) := F × F
+
+/-- The point `(x,y)` lies on the affine line `(a,b)` when `y = ax+b`. -/
+def Incident (l : Line F) (p : Point F) : Prop :=
+  p.2 = l.1 * p.1 + l.2
+
+/-- **Affine incidence is rectangle-free.** Two distinct affine lines cannot
+both contain two distinct points. -/
+theorem no_two_by_two
+    (l₁ l₂ : Line F) (p₁ p₂ : Point F)
+    (hl : l₁ ≠ l₂) (hp : p₁ ≠ p₂)
+    (h₁₁ : Incident l₁ p₁) (h₁₂ : Incident l₁ p₂)
+    (h₂₁ : Incident l₂ p₁) : ¬ Incident l₂ p₂ := by
+  intro h₂₂
+  rcases l₁ with ⟨a₁, b₁⟩
+  rcases l₂ with ⟨a₂, b₂⟩
+  rcases p₁ with ⟨x₁, y₁⟩
+  rcases p₂ with ⟨x₂, y₂⟩
+  simp only [Incident] at h₁₁ h₁₂ h₂₁ h₂₂
+  have hxprod : (a₁ - a₂) * (x₁ - x₂) = 0 := by
+    linear_combination -h₁₁ + h₂₁ + h₁₂ - h₂₂
+  rcases mul_eq_zero.mp hxprod with ha | hx
+  · have hab : b₁ = b₂ := by
+      have haa : a₁ = a₂ := sub_eq_zero.mp ha
+      rw [haa] at h₁₁
+      linear_combination h₂₁ - h₁₁
+    apply hl
+    exact Prod.ext (sub_eq_zero.mp ha) hab
+  · have hxx : x₁ = x₂ := sub_eq_zero.mp hx
+    have hyy : y₁ = y₂ := by
+      rw [hxx] at h₁₁
+      exact h₁₁.trans h₁₂.symm
+    apply hp
+    exact Prod.ext hxx hyy
+
+variable [Fintype F] [DecidableEq F]
+
+/-- Parameterize every incidence by its line and x-coordinate. -/
+def incidenceEmbedding : (Line F × F) ↪ (Line F × Point F) where
+  toFun lx := (lx.1, (lx.2, lx.1.1 * lx.2 + lx.1.2))
+  inj' := by
+    intro lx lx' h
+    apply Prod.ext
+    · exact congrArg (fun z : Line F × Point F => z.1) h
+    · exact congrArg (fun z : Line F × Point F => z.2.1) h
+
+/-- The complete affine line-point incidence relation. -/
+def incidences : Finset (Line F × Point F) :=
+  Finset.univ.map incidenceEmbedding
+
+/-- With `q = |F|`, the affine incidence grid has exactly `q³` occupied
+cells inside its `q² × q²` line-point matrix. -/
+theorem incidences_card :
+    incidences (F := F).card =
+      Fintype.card F * Fintype.card F * Fintype.card F := by
+  simp [incidences, Fintype.card_prod, Nat.mul_assoc]
+
+/-- Membership in the enumerated relation is exactly affine incidence. -/
+theorem mem_incidences_iff (l : Line F) (p : Point F) :
+    (l, p) ∈ incidences (F := F) ↔ Incident l p := by
+  constructor
+  · intro h
+    simp [incidences, incidenceEmbedding] at h
+    obtain ⟨x, rfl⟩ := h
+    rfl
+  · intro h
+    apply Finset.mem_map.mpr
+    refine ⟨(l, p.1), Finset.mem_univ _, ?_⟩
+    apply Prod.ext
+    · rfl
+    · exact Prod.ext rfl h.symm
+
+end AffineRectangleObstruction
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -4008,6 +4096,9 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms offDiagonalRow_card
 #print axioms offDiagonalRow_pair_codegree
 #print axioms offDiagonalThree_dense_without_two_by_two_rectangle
+#print axioms AffineRectangleObstruction.no_two_by_two
+#print axioms AffineRectangleObstruction.incidences_card
+#print axioms AffineRectangleObstruction.mem_incidences_iff
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
