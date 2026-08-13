@@ -2269,6 +2269,50 @@ theorem singleLocalHubExtraction_iff_no_DTMDecidesSAT
   ⟨no_DTMDecidesSAT_of_singleLocalHubExtraction enc,
     singleLocalHubExtraction_of_no_DTMDecidesSAT enc⟩
 
+/-! ## Distributed local-hub audit
+
+The only alternative to simultaneous extraction is to keep one local hub per
+obligation/run.  Physical event identity then includes the run index, and the
+obligation factor returns.  The resulting bound is automatic at every
+positive horizon, even though each individual run obeys the quadratic local
+spacetime ceiling.
+-/
+
+/-- Run-local quadratic spacetime events: an obligation index, a transition
+time, and one of the at most `T+1` local access/reach slots. -/
+abbrev DistributedLocalHubEvent (K T : Nat) := Fin K × Fin T × Fin (T + 1)
+
+/-- Every obligation can be assigned injectively to its own run-local event
+at any positive transition horizon. -/
+def distributedLocalHubEventCharge
+    (K T : Nat) (hT : 1 ≤ T) : Fin K → DistributedLocalHubEvent K T :=
+  fun k => (k, ⟨0, hT⟩, ⟨0, by omega⟩)
+
+theorem distributedLocalHubEventCharge_injective
+    (K T : Nat) (hT : 1 ≤ T) :
+    Function.Injective (distributedLocalHubEventCharge K T hT) := by
+  intro x y hxy
+  exact congrArg (fun z => z.1) hxy
+
+/-- Honest distributed capacity retains the run factor:
+`K ≤ K*T*(T+1)`. -/
+theorem obligations_le_distributed_local_spacetime
+    (K T : Nat) (hT : 1 ≤ T) :
+    K ≤ K * T * (T + 1) := by
+  let charge := distributedLocalHubEventCharge K T hT
+  have hinj : Function.Injective charge :=
+    distributedLocalHubEventCharge_injective K T hT
+  have hcard := Fintype.card_le_of_injective charge hinj
+  simpa [DistributedLocalHubEvent, Nat.mul_assoc] using hcard
+
+/-- The distributed thermodynamic bound is automatic and cancels no
+obligation factor.  Consequently, per-run local hubs cannot replace the
+single-run extraction premise. -/
+theorem distributed_local_spacetime_bound_is_automatic
+    (K T : Nat) :
+    1 ≤ T → K ≤ K * T * (T + 1) :=
+  obligations_le_distributed_local_spacetime K T
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -2412,6 +2456,9 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms no_DTMDecidesSAT_of_singleLocalHubExtraction
 #print axioms singleLocalHubExtraction_of_no_DTMDecidesSAT
 #print axioms singleLocalHubExtraction_iff_no_DTMDecidesSAT
+#print axioms distributedLocalHubEventCharge_injective
+#print axioms obligations_le_distributed_local_spacetime
+#print axioms distributed_local_spacetime_bound_is_automatic
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
