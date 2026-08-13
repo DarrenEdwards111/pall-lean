@@ -2999,6 +2999,60 @@ theorem allScalesMarginRecurrence_or_exists_budgetOverrun
       (freshRate * 2 ^ (k + 1)) (marginRate * 2 ^ (k + 1))
       (hprofileLower k) (hcashout k) hk⟩
 
+/-- **Hybrid nonlinear deficit bound.**  The traditional gate partition says
+the recurrence deficit is at most `CE_share`; the aggregate SAT profile law
+says it is at most `2*(CEF-profile)`.  Therefore the actual certified deficit
+is bounded by their minimum. -/
+theorem childRecurrence_deficit_le_min_share_profileGap
+    (profile CE fresh CEF CE_share : Nat)
+    (hprofileLower : profile ≤ CEF)
+    (hprofileCashout : 2 * profile + fresh ≤ CE)
+    (hshareDeficit : 2 * CEF + fresh ≤ CE + CE_share) :
+    2 * CEF + fresh ≤ CE + min CE_share (2 * (CEF - profile)) := by
+  have hgap := childRecurrence_deficit_eq_profileGap
+    profile CE fresh CEF hprofileCashout hprofileLower
+  by_cases hle : CE_share ≤ 2 * (CEF - profile)
+  · rw [min_eq_left hle]
+    exact hshareDeficit
+  · rw [min_eq_right (by omega)]
+    exact hgap
+
+/-- A positive margin survives whenever fresh geometry pays the smaller of
+the sharing-gate deficit and twice the uncaptured profile gap.  This hybrid
+criterion can close a scale even when neither global route is known sharply. -/
+theorem hybridDeficitMargin_gives_childRecurrence
+    (profile CE fresh CEF CE_share margin : Nat)
+    (hprofileLower : profile ≤ CEF)
+    (hprofileCashout : 2 * profile + fresh ≤ CE)
+    (hshareDeficit : 2 * CEF + fresh ≤ CE + CE_share)
+    (habsorb : min CE_share (2 * (CEF - profile)) + margin ≤ fresh) :
+    2 * CEF + margin ≤ CE := by
+  have hmin := childRecurrence_deficit_le_min_share_profileGap
+    profile CE fresh CEF CE_share hprofileLower hprofileCashout hshareDeficit
+  omega
+
+/-- **Hybrid multiscale amplifier.**  At every scale it is enough for fresh
+geometry to absorb whichever certified deficit is smaller—share-gate count or
+uncaptured SAT profile complexity—while leaving a positive linear margin. -/
+theorem hybridShareProfileMargin_amplifies
+    (freshRate marginRate : Nat)
+    (T profile CE_share : Nat → Nat)
+    (hprofileLower : ∀ k, profile k ≤ T k)
+    (hprofileCashout : ∀ k,
+      2 * profile k + freshRate * 2 ^ (k + 1) ≤ T (k + 1))
+    (hshareDeficit : ∀ k,
+      2 * T k + freshRate * 2 ^ (k + 1) ≤ T (k + 1) + CE_share k)
+    (habsorb : ∀ k,
+      min (CE_share k) (2 * (T k - profile k)) +
+          marginRate * 2 ^ (k + 1) ≤ freshRate * 2 ^ (k + 1)) :
+    ∀ b, marginRate * (b * 2 ^ b) ≤ T b := by
+  apply NFrameConeAmplify.coneExcess_amplify marginRate T
+  intro k
+  exact hybridDeficitMargin_gives_childRecurrence
+    (profile k) (T (k + 1)) (freshRate * 2 ^ (k + 1))
+    (T k) (CE_share k) (marginRate * 2 ^ (k + 1))
+    (hprofileLower k) (hprofileCashout k) (hshareDeficit k) (habsorb k)
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -3178,6 +3232,9 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms profileGapMargin_amplifies
 #print axioms recurrenceMargin_failure_forces_profileGapBudgetOverrun
 #print axioms allScalesMarginRecurrence_or_exists_budgetOverrun
+#print axioms childRecurrence_deficit_le_min_share_profileGap
+#print axioms hybridDeficitMargin_gives_childRecurrence
+#print axioms hybridShareProfileMargin_amplifies
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
