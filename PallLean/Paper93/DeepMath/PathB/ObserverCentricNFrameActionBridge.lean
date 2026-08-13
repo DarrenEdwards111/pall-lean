@@ -2313,6 +2313,36 @@ theorem distributed_local_spacetime_bound_is_automatic
     1 ≤ T → K ≤ K * T * (T + 1) :=
   obligations_le_distributed_local_spacetime K T
 
+/-! ## Final thermodynamic-locality verdict -/
+
+/-- The complete numerical content of the thermodynamic/locality route at
+fixed parameters.  It records both physically honest event interpretations:
+one local run gives quadratic capacity, while `K` separate local runs retain
+the factor `K`. -/
+def ThermodynamicLocalityAuditVerdict
+    {M : TuringMachine.DTM} (n K T r : Nat) : Prop :=
+  (∀ S : DTMLocalHubReuseSchedule M n K T r, K ≤ T * (T + 1)) ∧
+  (1 ≤ T → K ≤ K * T * (T + 1))
+
+/-- **Exhaustive thermodynamic-locality audit.**  Local reach gives the useful
+quadratic law only when all obligations inhabit one run.  Across distinct
+runs, physical event identity restores the obligation factor and the bound is
+automatic. -/
+theorem thermodynamicLocalityAuditVerdict
+    {M : TuringMachine.DTM} (n K T r : Nat) :
+    ThermodynamicLocalityAuditVerdict (M := M) n K T r := by
+  exact ⟨obligations_le_DTM_local_spacetime_capacity,
+    distributed_local_spacetime_bound_is_automatic K T⟩
+
+/-- Final encoded-SAT classification: the only thermodynamic/locality premise
+that removes the run factor—the universal single-local-hub extraction—is
+logically equivalent to the desired no-polynomial-SAT-decider conclusion. -/
+theorem thermodynamicObserverFrontier_iff_no_DTMDecidesSAT
+    (enc : ThreeCNFEncoding) :
+    TimeExponentParametricSATSingleLocalHubExtraction enc ↔
+      Not (∃ M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M) :=
+  singleLocalHubExtraction_iff_no_DTMDecidesSAT enc
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -2459,6 +2489,8 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms distributedLocalHubEventCharge_injective
 #print axioms obligations_le_distributed_local_spacetime
 #print axioms distributed_local_spacetime_bound_is_automatic
+#print axioms thermodynamicLocalityAuditVerdict
+#print axioms thermodynamicObserverFrontier_iff_no_DTMDecidesSAT
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
