@@ -1751,6 +1751,60 @@ theorem SATSemanticExtraction_and_fiberBound_iff_no_DTMDecidesSAT
     exact ⟨SATSemanticExtraction_of_no_DTMDecidesSAT enc hno,
       canonicalFiberBound_of_no_DTMDecidesSAT enc hno⟩
 
+/-! ## Run-local transition-event audit
+
+The canonical charge above maps every obligation to a *time index* in
+`Fin T`.  But obligations are evaluated on different pairs of DTM runs.
+Transition `t` in run `k` and transition `t` in run `j` are different physical
+events.  The honest event space is therefore `Fin K × Fin T`, not `Fin T`.
+Once run identity is retained, the event charge is automatically injective and
+its capacity bound is only `K ≤ K*T`, which cannot imply `K ≤ T`.
+-/
+
+/-- Honest run-local event charged by obligation `k`: the event remembers both
+the run-family index and its canonical first-separation time. -/
+noncomputable def CanonicalDTMFirstSeparationData.runLocalEventCharge
+    {M : TuringMachine.DTM} {n K T : Nat} {S : Type*} [DecidableEq S]
+    (D : CanonicalDTMFirstSeparationData M n K T S) :
+    Fin K → Fin K × Fin T :=
+  fun k => (k, D.canonicalCharge k)
+
+/-- Run-local event charging is injective for purely structural reasons. -/
+theorem CanonicalDTMFirstSeparationData.runLocalEventCharge_injective
+    {M : TuringMachine.DTM} {n K T : Nat} {S : Type*} [DecidableEq S]
+    (D : CanonicalDTMFirstSeparationData M n K T S) :
+    Function.Injective D.runLocalEventCharge := by
+  intro i j hij
+  exact congrArg Prod.fst hij
+
+/-- The honest event capacity law retains the factor `K` for the number of
+separate runs.  This is the unconditional statement supported by physical
+transition events. -/
+theorem obligations_le_runLocalEvents
+    {M : TuringMachine.DTM} {n K T : Nat} {S : Type*} [DecidableEq S]
+    (D : CanonicalDTMFirstSeparationData M n K T S) :
+    K ≤ K * T := by
+  have hcard := Fintype.card_le_of_injective D.runLocalEventCharge
+    D.runLocalEventCharge_injective
+  simpa using hcard
+
+/-- When at least one transition exists, the run-local capacity law is
+automatic.  It contains no runtime lower bound regardless of the number of
+obligations. -/
+theorem obligations_le_runLocalEvents_of_positiveHorizon
+    (K T : Nat) (hT : 1 ≤ T) : K ≤ K * T := by
+  simpa using Nat.mul_le_mul_left K hT
+
+/-- A time-index collision does not identify physical events: two obligations
+with equal canonical times still have unequal run-local charges whenever their
+run indices differ. -/
+theorem CanonicalDTMFirstSeparationData.runLocalEvent_ne_of_index_ne
+    {M : TuringMachine.DTM} {n K T : Nat} {S : Type*} [DecidableEq S]
+    (D : CanonicalDTMFirstSeparationData M n K T S)
+    {i j : Fin K} (hij : i ≠ j) :
+    D.runLocalEventCharge i ≠ D.runLocalEventCharge j :=
+  fun h => hij (D.runLocalEventCharge_injective h)
+
 #print axioms liveRank_le_action
 #print axioms GroundedTrajectoryNFrameActionCertificate.toActionCertificate
 #print axioms groundedCertificateOfFoolingSet
@@ -1824,5 +1878,9 @@ theorem SATSemanticExtraction_and_fiberBound_iff_no_DTMDecidesSAT
 #print axioms no_DTMDecidesSAT_of_SATSemanticExtraction_and_fiberBound
 #print axioms SATSemanticExtraction_of_no_DTMDecidesSAT
 #print axioms SATSemanticExtraction_and_fiberBound_iff_no_DTMDecidesSAT
+#print axioms CanonicalDTMFirstSeparationData.runLocalEventCharge_injective
+#print axioms obligations_le_runLocalEvents
+#print axioms obligations_le_runLocalEvents_of_positiveHorizon
+#print axioms CanonicalDTMFirstSeparationData.runLocalEvent_ne_of_index_ne
 
 end PallLean.Paper93.DeepMath.PathB.ObserverCentricNFrameActionBridge
