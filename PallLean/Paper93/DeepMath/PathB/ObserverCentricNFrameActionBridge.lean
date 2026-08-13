@@ -2847,6 +2847,49 @@ theorem profileLowerBound_does_not_close_childDoubling (k : Nat) :
       2 * k + fresh ≤ CE ∧ k ≤ CEF ∧ CE < 2 * CEF := by
   exact ⟨2 * k, 0, k + 1, by omega⟩
 
+/-- **The profile-incompressibility gap is the exact recurrence deficit.**
+When `k ≤ CEF`, the SAT profile cash-out can be rewritten as
+
+`2*CEF + fresh ≤ CE + 2*(CEF-k)`.
+
+Thus no additional loss is hidden in the conversion from aggregate profiles
+to child cost: the entire deficit is twice the uncaptured child complexity. -/
+theorem childRecurrence_deficit_eq_profileGap
+    (k CE fresh CEF : Nat)
+    (hcashout : 2 * k + fresh ≤ CE)
+    (hprofileLower : k ≤ CEF) :
+    2 * CEF + fresh ≤ CE + 2 * (CEF - k) := by
+  omega
+
+/-- If the fresh geometric budget pays twice the uncaptured profile gap, the
+desired child-cost doubling survives.  This is the quantitative thermodynamic
+absorption condition exposed by the aggregate SAT profile theorem. -/
+theorem profileGap_absorbed_by_fresh_gives_childDoubling
+    (k CE fresh CEF : Nat)
+    (hcashout : 2 * k + fresh ≤ CE)
+    (hprofileLower : k ≤ CEF)
+    (habsorb : 2 * (CEF - k) ≤ fresh) :
+    2 * CEF ≤ CE := by
+  have hdeficit := childRecurrence_deficit_eq_profileGap
+    k CE fresh CEF hcashout hprofileLower
+  omega
+
+/-- Failure of child doubling forces the uncaptured profile gap to exceed
+half of the fresh budget.  This is the converse escape certificate: a circuit
+can evade growth only by producing child complexity not represented in the
+SAT restriction profiles faster than fresh geometry is created. -/
+theorem childDoubling_failure_forces_profileGap_overrun
+    (k CE fresh CEF : Nat)
+    (hcashout : 2 * k + fresh ≤ CE)
+    (hprofileLower : k ≤ CEF)
+    (hfail : CE < 2 * CEF) :
+    fresh < 2 * (CEF - k) := by
+  by_contra h
+  have habsorb : 2 * (CEF - k) ≤ fresh := by omega
+  have := profileGap_absorbed_by_fresh_gives_childDoubling
+    k CE fresh CEF hcashout hprofileLower habsorb
+  omega
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -3017,6 +3060,9 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms childDoubling_of_coneExcess_le_profileDimension
 #print axioms childDoubling_or_profileIncompressibilityGap
 #print axioms profileLowerBound_does_not_close_childDoubling
+#print axioms childRecurrence_deficit_eq_profileGap
+#print axioms profileGap_absorbed_by_fresh_gives_childDoubling
+#print axioms childDoubling_failure_forces_profileGap_overrun
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
