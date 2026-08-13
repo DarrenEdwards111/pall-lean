@@ -2739,6 +2739,61 @@ theorem sat3SiblingRestrictionProfile_capacity
       ((mixed b, pureL b.1), pureR b.2)) hjoint
   simpa [two_mul] using hcap
 
+/-- **Cone-excess cash-out of sibling profile capacity.**  When the two pure
+profile banks are realized by the pure-left and pure-right gate classes, and
+the common profile by the share-gate class, the four-way gate partition turns
+the joint capacity inequality directly into `2*k + fresh ≤ CE`. -/
+theorem siblingProfileCapacity_cashout
+    (k CE CE_L CE_R CE_mix CE_share fresh : Nat)
+    (hprofile : 2 * k ≤ CE_share + CE_L + CE_R)
+    (hpartition : CE_L + CE_R + CE_mix + CE_share ≤ CE)
+    (hmix : fresh ≤ CE_mix) :
+    2 * k + fresh ≤ CE := by
+  omega
+
+/-- **Concrete SAT sibling-profile cone-excess bound.**  Reconstruction of
+the two independent recursive SAT restriction families from the actual
+four-way gate banks yields the unconditional single-scale lower bound
+
+`2*k + fresh ≤ CE`.
+
+This is a genuine SAT-semantic cash-out of aggregate profile capacity.  Its
+current strength is logarithmic in the `2^k` subfunction family; identifying
+`k` with the full child cone-excess would be the stronger nonlinear direct-sum
+claim and is deliberately not assumed here. -/
+theorem sat3SiblingRestrictionProfile_coneExcess
+    (N : Nat) (hv : 1 ≤ NFrameBoundaryTransducer.sat3V N)
+    {k CE CE_L CE_R CE_mix CE_share fresh : Nat}
+    (hk : k + 1 ≤ NFrameBoundaryTransducer.sat3M N)
+    (hkv : k ≤ NFrameBoundaryTransducer.sat3V N)
+    (cL cR : Fin (NFrameBoundaryTransducer.sat3M N))
+    (mixed : ((Fin k → Bool) × (Fin k → Bool)) →
+      (Fin CE_share → Bool))
+    (pureL : (Fin k → Bool) → (Fin CE_L → Bool))
+    (pureR : (Fin k → Bool) → (Fin CE_R → Bool))
+    (reconstructL : (Fin CE_share → Bool) → (Fin CE_L → Bool) →
+      ((Fin N → Bool) → Bool))
+    (reconstructR : (Fin CE_share → Bool) → (Fin CE_R → Bool) →
+      ((Fin N → Bool) → Bool))
+    (hrecL : ∀ bL bR uu,
+      NFrameBoundaryTransducer.sat3Family N
+          (NFrameBoundaryTransducer.sat3Patch N cL
+            (NFrameBoundaryTransducer.sat3Context N cL hk bL) uu)
+        = reconstructL (mixed (bL, bR)) (pureL bL) uu)
+    (hrecR : ∀ bL bR uu,
+      NFrameBoundaryTransducer.sat3Family N
+          (NFrameBoundaryTransducer.sat3Patch N cR
+            (NFrameBoundaryTransducer.sat3Context N cR hk bR) uu)
+        = reconstructR (mixed (bL, bR)) (pureR bR) uu)
+    (hpartition : CE_L + CE_R + CE_mix + CE_share ≤ CE)
+    (hmix : fresh ≤ CE_mix) :
+    2 * k + fresh ≤ CE := by
+  have hprofile : 2 * k ≤ CE_share + CE_L + CE_R :=
+    sat3SiblingRestrictionProfile_capacity N hv hk hkv cL cR
+      mixed pureL pureR reconstructL reconstructR hrecL hrecR
+  exact siblingProfileCapacity_cashout k CE CE_L CE_R CE_mix CE_share fresh
+    hprofile hpartition hmix
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -2903,6 +2958,8 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms sat3AggregateRestrictionProfile_capacity
 #print axioms siblingBooleanRestrictionProfile_capacity
 #print axioms sat3SiblingRestrictionProfile_capacity
+#print axioms siblingProfileCapacity_cashout
+#print axioms sat3SiblingRestrictionProfile_coneExcess
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
