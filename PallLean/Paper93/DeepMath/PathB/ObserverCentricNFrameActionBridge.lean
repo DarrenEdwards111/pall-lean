@@ -3918,6 +3918,64 @@ theorem liveOffDiagonalSupportCircuit_pair_varsOf :
 #print axioms liveOffDiagonalSupportCircuit_pair_gates_in_root_cone
 #print axioms liveOffDiagonalSupportCircuit_pair_varsOf
 
+/-! ### Even constant-replacement irredundancy does not remove it
+
+A minimal circuit cannot contain a gate whose value may be fixed to a Boolean
+constant without changing the computed function: after fixing it, ordinary
+constant-wire surgery deletes that gate.  The live obstruction passes this
+semantic test too.  Each of its three off-diagonal pair gates is essential
+against *both* constant replacements.
+-/
+
+/-- Replace the gate at `p` by a Boolean constant, leaving the wire numbering
+unchanged.  This is the semantic precursor to constant-wire elimination. -/
+def forceCircuitGate {n : ℕ} (c : List (NFrameBoundaryTransducer.CGate n))
+    (p : ℕ) (b : Bool) : List (NFrameBoundaryTransducer.CGate n) :=
+  c.set p (NFrameBoundaryTransducer.CGate.cst b)
+
+/-- A gate is essential against constant replacement when neither Boolean
+constant can be substituted at that wire without changing the output on some
+input. -/
+def ConstantReplacementEssential {n : ℕ}
+    (c : List (NFrameBoundaryTransducer.CGate n)) (p : ℕ) : Prop :=
+  ∀ b, ∃ x : Fin n → Bool,
+    NFrameBoundaryTransducer.output c x ≠
+      NFrameBoundaryTransducer.output (forceCircuitGate c p b) x
+
+/-- The `{1,2}` pair gate is essential against both constant replacements. -/
+theorem liveOffDiagonalSupportCircuit_gate_three_constant_essential :
+    ConstantReplacementEssential liveOffDiagonalSupportCircuit 3 := by
+  intro b
+  cases b
+  · refine ⟨![false, false, true], ?_⟩
+    decide
+  · refine ⟨![true, false, false], ?_⟩
+    decide
+
+/-- The `{0,2}` pair gate is essential against both constant replacements. -/
+theorem liveOffDiagonalSupportCircuit_gate_four_constant_essential :
+    ConstantReplacementEssential liveOffDiagonalSupportCircuit 4 := by
+  intro b
+  cases b
+  · refine ⟨![false, false, true], ?_⟩
+    decide
+  · refine ⟨![false, true, false], ?_⟩
+    decide
+
+/-- The `{0,1}` pair gate is essential against both constant replacements. -/
+theorem liveOffDiagonalSupportCircuit_gate_five_constant_essential :
+    ConstantReplacementEssential liveOffDiagonalSupportCircuit 5 := by
+  intro b
+  cases b
+  · refine ⟨![true, false, false], ?_⟩
+    decide
+  · refine ⟨![false, false, true], ?_⟩
+    decide
+
+#print axioms liveOffDiagonalSupportCircuit_gate_three_constant_essential
+#print axioms liveOffDiagonalSupportCircuit_gate_four_constant_essential
+#print axioms liveOffDiagonalSupportCircuit_gate_five_constant_essential
+
 /-! ### An asymptotic affine-incidence obstruction
 
 The finite `3 × 3` example is not a small-size accident.  Lines and points
