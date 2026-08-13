@@ -3053,6 +3053,68 @@ theorem hybridShareProfileMargin_amplifies
     (T k) (CE_share k) (marginRate * 2 ^ (k + 1))
     (hprofileLower k) (hprofileCashout k) (hshareDeficit k) (habsorb k)
 
+/-- **Exact hybrid escape signature.**  If the target recurrence fails, then
+fresh geometry is insufficient to pay even the smaller certified deficit
+(share-gate count versus twice the uncaptured SAT profile gap) together with
+the requested margin. -/
+theorem childRecurrence_failure_forces_hybridBudgetOverrun
+    (profile CE fresh CEF CE_share margin : Nat)
+    (hprofileLower : profile ≤ CEF)
+    (hprofileCashout : 2 * profile + fresh ≤ CE)
+    (hshareDeficit : 2 * CEF + fresh ≤ CE + CE_share)
+    (hfail : CE < 2 * CEF + margin) :
+    fresh < min CE_share (2 * (CEF - profile)) + margin := by
+  by_contra h
+  have habsorb : min CE_share (2 * (CEF - profile)) + margin ≤ fresh := by
+    omega
+  have := hybridDeficitMargin_gives_childRecurrence
+    profile CE fresh CEF CE_share margin hprofileLower
+    hprofileCashout hshareDeficit habsorb
+  omega
+
+/-- **Unconditional hybrid local frontier.**  Every scale either pays the
+doubling-plus-margin recurrence or exhibits the exact hybrid budget overrun.
+There is no third accounting case. -/
+theorem childRecurrence_or_hybridBudgetOverrun
+    (profile CE fresh CEF CE_share margin : Nat)
+    (hprofileLower : profile ≤ CEF)
+    (hprofileCashout : 2 * profile + fresh ≤ CE)
+    (hshareDeficit : 2 * CEF + fresh ≤ CE + CE_share) :
+    2 * CEF + margin ≤ CE ∨
+      fresh < min CE_share (2 * (CEF - profile)) + margin := by
+  by_cases hrec : 2 * CEF + margin ≤ CE
+  · exact Or.inl hrec
+  · exact Or.inr (childRecurrence_failure_forces_hybridBudgetOverrun
+      profile CE fresh CEF CE_share margin hprofileLower
+      hprofileCashout hshareDeficit (by omega))
+
+/-- **All-scale hybrid frontier.**  Either every recursive scale satisfies the
+margin recurrence, or one concrete scale simultaneously defeats both the
+sharing-count and aggregate-profile deficit certificates relative to fresh
+geometry. -/
+theorem allScalesHybridRecurrence_or_exists_budgetOverrun
+    (freshRate marginRate : Nat)
+    (T profile CE_share : Nat → Nat)
+    (hprofileLower : ∀ k, profile k ≤ T k)
+    (hprofileCashout : ∀ k,
+      2 * profile k + freshRate * 2 ^ (k + 1) ≤ T (k + 1))
+    (hshareDeficit : ∀ k,
+      2 * T k + freshRate * 2 ^ (k + 1) ≤ T (k + 1) + CE_share k) :
+    (∀ k, 2 * T k + marginRate * 2 ^ (k + 1) ≤ T (k + 1)) ∨
+      ∃ k, freshRate * 2 ^ (k + 1) <
+        min (CE_share k) (2 * (T k - profile k)) +
+          marginRate * 2 ^ (k + 1) := by
+  by_cases hall : ∀ k,
+      2 * T k + marginRate * 2 ^ (k + 1) ≤ T (k + 1)
+  · exact Or.inl hall
+  · right
+    push_neg at hall
+    obtain ⟨k, hk⟩ := hall
+    exact ⟨k, childRecurrence_failure_forces_hybridBudgetOverrun
+      (profile k) (T (k + 1)) (freshRate * 2 ^ (k + 1))
+      (T k) (CE_share k) (marginRate * 2 ^ (k + 1))
+      (hprofileLower k) (hprofileCashout k) (hshareDeficit k) hk⟩
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -3235,6 +3297,9 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms childRecurrence_deficit_le_min_share_profileGap
 #print axioms hybridDeficitMargin_gives_childRecurrence
 #print axioms hybridShareProfileMargin_amplifies
+#print axioms childRecurrence_failure_forces_hybridBudgetOverrun
+#print axioms childRecurrence_or_hybridBudgetOverrun
+#print axioms allScalesHybridRecurrence_or_exists_budgetOverrun
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
