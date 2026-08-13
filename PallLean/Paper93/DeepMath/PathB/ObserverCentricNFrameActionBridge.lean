@@ -8,6 +8,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthThermodynamicObserver
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameInfoBoundaryTest
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSeamForcesHub
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameBudgetCashout
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameCrossBranch
 
 /-!
 # Observer-centric N-frame action bridge
@@ -2411,6 +2412,27 @@ theorem pointwiseScaleCharge_not_additive (K E : Nat)
   · rw [Finset.sum_const, Finset.card_range, smul_eq_mul]
     exact lt_mul_of_one_lt_left hE (by omega)
 
+/-! The horizontal audit has a stronger positive conclusion.  At one binary
+branch, the circuit partition isolates the only mechanism that can defeat
+doubling: gates depending on both input blocks below the legitimate mixer. -/
+
+/-- **Exact horizontal escape condition.**  Under the proved cross-branch
+partition/restriction hypotheses, failure of the desired doubling inequality
+forces the cancellation-sharing population to exceed the fresh mixer budget.
+Thus any successful SAT amplification proof may focus on the single semantic
+inequality `CE_share ≤ fresh`; every counterexample must violate it. -/
+theorem failure_of_branch_doubling_forces_share_gt_fresh
+    (CE CE_L CE_R CE_mix CE_share CEF fresh : Nat)
+    (hpartition : CE_L + CE_R + CE_mix + CE_share ≤ CE)
+    (hL : CEF ≤ CE_L + CE_share) (hR : CEF ≤ CE_R + CE_share)
+    (hmix : fresh ≤ CE_mix) (hfail : CE < 2 * CEF) :
+    fresh < CE_share := by
+  by_contra hnot
+  have habsorb : CE_share ≤ fresh := by omega
+  have hdoubling := NFrameCrossBranch.share_absorbed_gives_doubling
+    CE CE_L CE_R CE_mix CE_share CEF fresh hpartition hL hR hmix habsorb
+  omega
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -2562,6 +2584,7 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms restrictedCircuitSATSharingBoundary
 #print axioms restrictedCircuitSharingDemand_le_linear
 #print axioms pointwiseScaleCharge_not_additive
+#print axioms failure_of_branch_doubling_forces_share_gt_fresh
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
