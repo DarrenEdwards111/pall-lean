@@ -2455,6 +2455,35 @@ theorem failure_of_fresh_directSum_forces_nonlinear_net_saving
     hpartition hmix hPL hPR hnosaving
   omega
 
+/-- The complete signature of a cross-branch computation that escapes the
+geometric direct-sum recurrence. -/
+structure NonlinearThermodynamicEscape
+    (CE_share shareLeft shareRight fresh : Nat) : Prop where
+  share_overruns_fresh : fresh < CE_share
+  nonlinear_net_saving : CE_share < shareLeft + shareRight
+
+/-- **Combined escape theorem.**  If the same concrete branch defeats plain
+doubling, then it also defeats the stronger fresh-cost recurrence.  Hence its
+mixed gates must both overrun fresh geometry and mass-produce more usable
+one-sided computation than their population.  This is the exact conjunction
+that a SAT-specific invariant must rule out. -/
+theorem branch_doubling_failure_has_nonlinearThermodynamicEscape
+    (CE CE_L CE_R CE_mix CE_share shareLeft shareRight CEF fresh : Nat)
+    (hpartition : CE_L + CE_R + CE_mix + CE_share ≤ CE)
+    (hL : CEF ≤ CE_L + CE_share) (hR : CEF ≤ CE_R + CE_share)
+    (hPL : CEF ≤ CE_L + shareLeft)
+    (hPR : CEF ≤ CE_R + shareRight)
+    (hmix : fresh ≤ CE_mix) (hfail : CE < 2 * CEF) :
+    NonlinearThermodynamicEscape CE_share shareLeft shareRight fresh := by
+  refine ⟨?_, ?_⟩
+  · exact failure_of_branch_doubling_forces_share_gt_fresh
+      CE CE_L CE_R CE_mix CE_share CEF fresh
+      hpartition hL hR hmix hfail
+  · apply failure_of_fresh_directSum_forces_nonlinear_net_saving
+      CE CE_L CE_R CE_mix CE_share shareLeft shareRight CEF fresh
+      hpartition hmix hPL hPR
+    omega
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -2608,6 +2637,7 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms pointwiseScaleCharge_not_additive
 #print axioms failure_of_branch_doubling_forces_share_gt_fresh
 #print axioms failure_of_fresh_directSum_forces_nonlinear_net_saving
+#print axioms branch_doubling_failure_has_nonlinearThermodynamicEscape
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
