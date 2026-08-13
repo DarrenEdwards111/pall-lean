@@ -2389,6 +2389,28 @@ theorem restrictedCircuitSharingDemand_le_linear (N : Nat) :
     Nat.div_le_self N (NFrameBoundaryTransducer.sat3D N)
   omega
 
+/-! The natural next move is to repeat the charge over many scales.  Mere
+pointwise scale bounds do not justify summing, however: every scale may use
+the same geometric resource.  The following finite countermodel is the
+arithmetic core of the repository's “flat bus” obstruction. -/
+
+/-- **Flat-bus amplification obstruction.**  With at least two scales and a
+positive shared resource of size `E`, there is a scale-charge profile in
+which every individual scale is bounded by `E`, yet the formal sum of the
+scale charges exceeds `E`.  Consequently an additive amplification theorem
+must prove freshness/disjointness; pointwise SAT curvature bounds alone are
+insufficient. -/
+theorem pointwiseScaleCharge_not_additive (K E : Nat)
+    (hK : 2 ≤ K) (hE : 1 ≤ E) :
+    ∃ scaleCharge : Nat → Nat,
+      (∀ j, j < K → scaleCharge j ≤ E) ∧
+      E < ∑ j ∈ Finset.range K, scaleCharge j := by
+  refine ⟨fun _ => E, ?_, ?_⟩
+  · intro j hj
+    exact Nat.le_refl E
+  · rw [Finset.sum_const, Finset.card_range, smul_eq_mul]
+    exact lt_mul_of_one_lt_left hE (by omega)
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -2539,6 +2561,7 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms thermodynamicObserverFrontier_iff_no_DTMDecidesSAT
 #print axioms restrictedCircuitSATSharingBoundary
 #print axioms restrictedCircuitSharingDemand_le_linear
+#print axioms pointwiseScaleCharge_not_additive
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
