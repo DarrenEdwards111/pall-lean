@@ -9,6 +9,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameInfoBoundaryTest
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSeamForcesHub
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameBudgetCashout
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameCrossBranch
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameNonlinearShare
 
 /-!
 # Observer-centric N-frame action bridge
@@ -2433,6 +2434,27 @@ theorem failure_of_branch_doubling_forces_share_gt_fresh
     CE CE_L CE_R CE_mix CE_share CEF fresh hpartition hL hR hmix habsorb
   omega
 
+/-- **Nonlinear mass-production certificate.**  Under the concrete gate
+partition and restriction bounds, failure of the full fresh-cost direct sum
+can occur only if the mixed gates yield more usable pure-left plus pure-right
+content than there are mixed gates.  Linear sharing cannot realize this
+inequality (rank-nullity), so every escaping circuit must use genuinely
+nonlinear cross-branch mass production. -/
+theorem failure_of_fresh_directSum_forces_nonlinear_net_saving
+    (CE CE_L CE_R CE_mix CE_share shareLeft shareRight CEF fresh : Nat)
+    (hpartition : CE_L + CE_R + CE_mix + CE_share ≤ CE)
+    (hmix : fresh ≤ CE_mix)
+    (hPL : CEF ≤ CE_L + shareLeft)
+    (hPR : CEF ≤ CE_R + shareRight)
+    (hfail : CE < 2 * CEF + fresh) :
+    CE_share < shareLeft + shareRight := by
+  by_contra hnot
+  have hnosaving : shareLeft + shareRight ≤ CE_share := by omega
+  have hdirect := NFrameNonlinearShare.direct_sum_from_no_net_saving
+    CE CE_L CE_R CE_mix CE_share shareLeft shareRight CEF fresh
+    hpartition hmix hPL hPR hnosaving
+  omega
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -2585,6 +2607,7 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms restrictedCircuitSharingDemand_le_linear
 #print axioms pointwiseScaleCharge_not_additive
 #print axioms failure_of_branch_doubling_forces_share_gt_fresh
+#print axioms failure_of_fresh_directSum_forces_nonlinear_net_saving
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
