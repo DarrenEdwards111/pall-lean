@@ -1658,6 +1658,99 @@ theorem initiallyMergedInjectiveExtraction_and_fiberBound_iff_no_DTMDecidesSAT
     exact ⟨initiallyMergedInjectiveExtraction_of_no_DTMDecidesSAT enc hno,
       canonicalFiberBound_of_no_DTMDecidesSAT enc hno⟩
 
+/-! ## SAT-semantic obligation repair
+
+The initially-merged interface still permits arbitrary input pairs unrelated
+to SAT correctness.  We finally require each left input to encode a
+satisfiable formula and each right input to encode an unsatisfiable formula.
+Thus every demanded eventual distinction is semantically forced by a correct
+SAT decider, rather than chosen by the extraction certificate alone.
+-/
+
+/-- Fully SAT-grounded canonical obligations: distinct, initially merged, and
+carrying opposite SAT truth values under the repository encoding. -/
+structure SATSemanticCanonicalDTMFirstSeparationData
+    (enc : ThreeCNFEncoding) (M : TuringMachine.DTM)
+    (n K T : Nat) (S : Type*) where
+  data : InitiallyMergedInjectiveCanonicalDTMFirstSeparationData M n K T S
+  leftFormula : Fin K → PaperFaithfulSeparation.ThreeCNF
+  rightFormula : Fin K → PaperFaithfulSeparation.ThreeCNF
+  leftEncoded : ∀ k, enc.Encodes (data.data.data.leftInput k) (leftFormula k)
+  rightEncoded : ∀ k, enc.Encodes (data.data.data.rightInput k) (rightFormula k)
+  leftSatisfiable : ∀ k, (leftFormula k).IsSatisfiable
+  rightUnsatisfiable : ∀ k, ¬ (rightFormula k).IsSatisfiable
+
+/-- Fully SAT-semantic N-frame data at one length. -/
+def HasSATSemanticCanonicalDTMNFrameDataAt
+    (enc : ThreeCNFEncoding) (M : TuringMachine.DTM) (n : Nat) : Prop :=
+  ∃ (S : Type) (_decEq : DecidableEq S),
+    Nonempty (SATSemanticCanonicalDTMFirstSeparationData enc M n
+      (Nat.choose (n / 3) (Nat.log 2 n))
+      (TuringMachine.timeSteps M n) S)
+
+/-- The final honest extraction target for this route. -/
+def TimeExponentParametricSATSemanticCanonicalExtraction
+    (enc : ThreeCNFEncoding) : Prop :=
+  ∀ e c : Nat, ∃ n : Nat,
+    n ≥ 2 ^ 20 ∧
+    4 * (e + c + 1) ≤ Nat.log 2 n ∧
+    ∀ M : TuringMachine.DTM,
+      DTMDecidesSATWithEncodingAtMost enc e M →
+      HasSATSemanticCanonicalDTMNFrameDataAt enc M n
+
+/-- SAT-semantic extraction forgets to initially-merged injective extraction. -/
+theorem initiallyMergedInjectiveExtraction_of_SATSemantic
+    {enc : ThreeCNFEncoding}
+    (h : TimeExponentParametricSATSemanticCanonicalExtraction enc) :
+    TimeExponentParametricSATInitiallyMergedInjectiveExtraction enc := by
+  intro e c
+  obtain ⟨n, hn20, hlog, hdata⟩ := h e c
+  refine ⟨n, hn20, hlog, ?_⟩
+  intro M hsat
+  obtain ⟨S, decEq, hD⟩ := hdata M hsat
+  obtain ⟨D⟩ := hD
+  exact ⟨S, decEq, ⟨D.data⟩⟩
+
+/-- Fully SAT-grounded extraction plus canonical anti-sharing yields the SAT
+lower bound. -/
+theorem no_DTMDecidesSAT_of_SATSemanticExtraction_and_fiberBound
+    (enc : ThreeCNFEncoding)
+    (hextract : TimeExponentParametricSATSemanticCanonicalExtraction enc)
+    (hfiber : TimeExponentParametricSATCanonicalFiberBound enc) :
+    ¬ ∃ M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M :=
+  no_DTMDecidesSAT_of_initiallyMergedInjectiveExtraction_and_fiberBound enc
+    (initiallyMergedInjectiveExtraction_of_SATSemantic hextract) hfiber
+
+/-- With no SAT DTM, the fully semantic extraction program is vacuous. -/
+theorem SATSemanticExtraction_of_no_DTMDecidesSAT
+    (enc : ThreeCNFEncoding)
+    (hno : ¬ ∃ M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M) :
+    TimeExponentParametricSATSemanticCanonicalExtraction enc := by
+  intro e c
+  refine ⟨2 ^ (4 * (e + c + 1) + 20), ?_, ?_, ?_⟩
+  · exact Nat.pow_le_pow_right (by omega : 1 ≤ (2 : Nat)) (by omega)
+  · rw [Nat.log_pow]
+    · omega
+    · omega
+  · intro M hsat
+    exact False.elim (hno ⟨M, hsat.1⟩)
+
+/-- Final semantic audit: even after requiring opposite encoded SAT outcomes,
+distinct pairs, time-zero merging, actual DTM traces, and canonical charges,
+extraction plus polynomial fibers is exactly the separation statement. -/
+theorem SATSemanticExtraction_and_fiberBound_iff_no_DTMDecidesSAT
+    (enc : ThreeCNFEncoding) :
+    (TimeExponentParametricSATSemanticCanonicalExtraction enc ∧
+      TimeExponentParametricSATCanonicalFiberBound enc) ↔
+    ¬ ∃ M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M := by
+  constructor
+  · rintro ⟨hextract, hfiber⟩
+    exact no_DTMDecidesSAT_of_SATSemanticExtraction_and_fiberBound
+      enc hextract hfiber
+  · intro hno
+    exact ⟨SATSemanticExtraction_of_no_DTMDecidesSAT enc hno,
+      canonicalFiberBound_of_no_DTMDecidesSAT enc hno⟩
+
 #print axioms liveRank_le_action
 #print axioms GroundedTrajectoryNFrameActionCertificate.toActionCertificate
 #print axioms groundedCertificateOfFoolingSet
@@ -1727,5 +1820,9 @@ theorem initiallyMergedInjectiveExtraction_and_fiberBound_iff_no_DTMDecidesSAT
 #print axioms no_DTMDecidesSAT_of_initiallyMergedInjectiveExtraction_and_fiberBound
 #print axioms initiallyMergedInjectiveExtraction_of_no_DTMDecidesSAT
 #print axioms initiallyMergedInjectiveExtraction_and_fiberBound_iff_no_DTMDecidesSAT
+#print axioms initiallyMergedInjectiveExtraction_of_SATSemantic
+#print axioms no_DTMDecidesSAT_of_SATSemanticExtraction_and_fiberBound
+#print axioms SATSemanticExtraction_of_no_DTMDecidesSAT
+#print axioms SATSemanticExtraction_and_fiberBound_iff_no_DTMDecidesSAT
 
 end PallLean.Paper93.DeepMath.PathB.ObserverCentricNFrameActionBridge
