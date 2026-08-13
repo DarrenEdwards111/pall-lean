@@ -1360,6 +1360,51 @@ theorem no_DTMDecidesSAT_of_canonicalPairExtraction_and_fiberBound
   exact (Nat.lt_irrefl (n ^ M.timeBound)) (by
     simpa [TuringMachine.timeSteps] using hlower)
 
+/-- If no SAT-deciding DTM exists, canonical pair extraction is inhabited
+vacuously.  This converse audit matters: extraction cannot be advertised as
+an independently established consequence of the current SAT contract. -/
+theorem canonicalPairExtraction_of_no_DTMDecidesSAT
+    (enc : ThreeCNFEncoding)
+    (hno : ¬ ∃ M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M) :
+    TimeExponentParametricSATCanonicalPairExtraction enc := by
+  intro e c
+  refine ⟨2 ^ (4 * (e + c + 1) + 20), ?_, ?_, ?_⟩
+  · exact Nat.pow_le_pow_right (by omega : 1 ≤ (2 : Nat)) (by omega)
+  · rw [Nat.log_pow]
+    · omega
+    · omega
+  · intro M hsat
+    exact False.elim (hno ⟨M, hsat.1⟩)
+
+/-- Likewise, absence of SAT DTMs vacuously supplies every canonical fiber
+bound (already with exponent zero). -/
+theorem canonicalFiberBound_of_no_DTMDecidesSAT
+    (enc : ThreeCNFEncoding)
+    (hno : ¬ ∃ M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M) :
+    TimeExponentParametricSATCanonicalFiberBound enc := by
+  intro e
+  refine ⟨0, ?_⟩
+  intro n M hsat
+  exact False.elim (hno ⟨M, hsat.1⟩)
+
+/-- Exact logical audit: the conjunction of canonical pair extraction and
+canonical fiber anti-concentration is equivalent to nonexistence of a
+polynomial-time SAT DTM in the repository's machine model.  Therefore proving
+that conjunction is not a preliminary lemma toward P != NP; it is precisely
+the separation theorem in decomposed semantic form. -/
+theorem canonicalPairExtraction_and_fiberBound_iff_no_DTMDecidesSAT
+    (enc : ThreeCNFEncoding) :
+    (TimeExponentParametricSATCanonicalPairExtraction enc ∧
+      TimeExponentParametricSATCanonicalFiberBound enc) ↔
+    ¬ ∃ M : TuringMachine.DTM, DTMDecidesSATWithEncoding enc M := by
+  constructor
+  · rintro ⟨hextract, hfiber⟩
+    exact no_DTMDecidesSAT_of_canonicalPairExtraction_and_fiberBound
+      enc hextract hfiber
+  · intro hno
+    exact ⟨canonicalPairExtraction_of_no_DTMDecidesSAT enc hno,
+      canonicalFiberBound_of_no_DTMDecidesSAT enc hno⟩
+
 #print axioms liveRank_le_action
 #print axioms GroundedTrajectoryNFrameActionCertificate.toActionCertificate
 #print axioms groundedCertificateOfFoolingSet
@@ -1416,5 +1461,8 @@ theorem no_DTMDecidesSAT_of_canonicalPairExtraction_and_fiberBound
 #print axioms CanonicalDTMFirstSeparationData.nframe_runtime_or_canonicalDTMReuse
 #print axioms CanonicalDTMFirstSeparationData.nframe_runtime_lower_of_canonicalDTMReuseBound
 #print axioms no_DTMDecidesSAT_of_canonicalPairExtraction_and_fiberBound
+#print axioms canonicalPairExtraction_of_no_DTMDecidesSAT
+#print axioms canonicalFiberBound_of_no_DTMDecidesSAT
+#print axioms canonicalPairExtraction_and_fiberBound_iff_no_DTMDecidesSAT
 
 end PallLean.Paper93.DeepMath.PathB.ObserverCentricNFrameActionBridge
