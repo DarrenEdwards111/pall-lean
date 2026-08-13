@@ -2945,6 +2945,60 @@ theorem allScalesDoubling_or_exists_profileGapOverrun
       (profile k) (T (k + 1)) (c * 2 ^ (k + 1)) (T k)
       (hcashout k) (hprofileLower k) hk
 
+/-- **Leftover fresh margin restores the full amplifier.**  Here `freshRate`
+is the total geometric budget per scale and `marginRate` is the portion left
+after paying twice the uncaptured child/profile gap.  The leftover margin
+survives in the recurrence and yields `marginRate * N log N`. -/
+theorem profileGapMargin_amplifies
+    (freshRate marginRate : Nat) (T profile : Nat → Nat)
+    (hprofileLower : ∀ k, profile k ≤ T k)
+    (hcashout : ∀ k,
+      2 * profile k + freshRate * 2 ^ (k + 1) ≤ T (k + 1))
+    (hmargin : ∀ k,
+      2 * (T k - profile k) + marginRate * 2 ^ (k + 1) ≤
+        freshRate * 2 ^ (k + 1)) :
+    ∀ b, marginRate * (b * 2 ^ b) ≤ T b := by
+  apply NFrameConeAmplify.coneExcess_amplify marginRate T
+  intro k
+  have hgap := hprofileLower k
+  have hcash := hcashout k
+  have hm := hmargin k
+  omega
+
+/-- The margin condition is also the exact local frontier.  If the desired
+doubling-plus-margin recurrence fails at a scale, then the total fresh budget
+is strictly smaller than the profile-gap payment plus that margin. -/
+theorem recurrenceMargin_failure_forces_profileGapBudgetOverrun
+    (profile child next fresh margin : Nat)
+    (hprofileLower : profile ≤ child)
+    (hcashout : 2 * profile + fresh ≤ next)
+    (hfail : next < 2 * child + margin) :
+    fresh < 2 * (child - profile) + margin := by
+  omega
+
+/-- **All-scale margin frontier.**  Either the full margin recurrence holds at
+every level, or there is a concrete scale where fresh geometry cannot pay
+both the uncaptured nonlinear profile gap and the requested amplification
+margin. -/
+theorem allScalesMarginRecurrence_or_exists_budgetOverrun
+    (freshRate marginRate : Nat) (T profile : Nat → Nat)
+    (hprofileLower : ∀ k, profile k ≤ T k)
+    (hcashout : ∀ k,
+      2 * profile k + freshRate * 2 ^ (k + 1) ≤ T (k + 1)) :
+    (∀ k, 2 * T k + marginRate * 2 ^ (k + 1) ≤ T (k + 1)) ∨
+      ∃ k, freshRate * 2 ^ (k + 1) <
+        2 * (T k - profile k) + marginRate * 2 ^ (k + 1) := by
+  by_cases hall : ∀ k,
+      2 * T k + marginRate * 2 ^ (k + 1) ≤ T (k + 1)
+  · exact Or.inl hall
+  · right
+    push_neg at hall
+    obtain ⟨k, hk⟩ := hall
+    exact ⟨k, recurrenceMargin_failure_forces_profileGapBudgetOverrun
+      (profile k) (T k) (T (k + 1))
+      (freshRate * 2 ^ (k + 1)) (marginRate * 2 ^ (k + 1))
+      (hprofileLower k) (hcashout k) hk⟩
+
 /-! ## Exhaustive accounting verdict
 
 The three physically distinct charging interpretations are now summarized in
@@ -3121,6 +3175,9 @@ theorem nframeTransitionChargingAuditVerdict
 #print axioms profileGapAbsorption_gives_allScalesDoubling
 #print axioms allScalesDoubling_amplifies_base
 #print axioms allScalesDoubling_or_exists_profileGapOverrun
+#print axioms profileGapMargin_amplifies
+#print axioms recurrenceMargin_failure_forces_profileGapBudgetOverrun
+#print axioms allScalesMarginRecurrence_or_exists_budgetOverrun
 #print axioms transitionChargingAuditVerdict
 #print axioms nframeTransitionChargingAuditVerdict
 
