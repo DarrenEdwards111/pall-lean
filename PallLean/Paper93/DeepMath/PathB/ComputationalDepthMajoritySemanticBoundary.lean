@@ -149,6 +149,36 @@ instance (a₀ b₀ : Fin 3) (a₁ b₁ : Fin 4) (a₂ b₂ : Fin 5) :
   unfold liveThreeTransitionSchedule
   infer_instance
 
+inductive LiveScheduleShape
+  | parallel
+  | chainFirstResult
+  | chainPairInput
+  | chainThirdInput
+  deriving DecidableEq
+
+def rootOtherSource (a₂ b₂ : Fin 5) : Fin 5 :=
+  if a₂.val = 4 then b₂ else a₂
+
+def liveScheduleShape (a₀ b₀ : Fin 3) (a₁ b₁ : Fin 4)
+    (a₂ b₂ : Fin 5) : LiveScheduleShape :=
+  let d := rootOtherSource a₂ b₂
+  let secondReadsFirst := a₁.val = 3 ∨ b₁.val = 3
+  if d.val = 3 then
+    if secondReadsFirst then .chainFirstResult else .parallel
+  else if d.val = a₀.val ∨ d.val = b₀.val then
+    .chainPairInput
+  else
+    .chainThirdInput
+
+theorem liveScheduleShape_exhaustive
+    (a₀ b₀ : Fin 3) (a₁ b₁ : Fin 4) (a₂ b₂ : Fin 5)
+    (_h : liveThreeTransitionSchedule a₀ b₀ a₁ b₁ a₂ b₂) :
+    liveScheduleShape a₀ b₀ a₁ b₁ a₂ b₂ = .parallel ∨
+    liveScheduleShape a₀ b₀ a₁ b₁ a₂ b₂ = .chainFirstResult ∨
+    liveScheduleShape a₀ b₀ a₁ b₁ a₂ b₂ = .chainPairInput ∨
+    liveScheduleShape a₀ b₀ a₁ b₁ a₂ b₂ = .chainThirdInput := by
+  cases hshape : liveScheduleShape a₀ b₀ a₁ b₁ a₂ b₂ <;> simp
+
 theorem liveSchedule_parallel_01_02_ne_majority :
     ¬ ∃ op₀ op₁ op₂ : Fin 16, ∀ x : Fin 3 → Bool,
       threeBinaryProgram op₀ op₁ op₂ 0 1 0 2 3 4 x = majorityThreeFloor x := by
