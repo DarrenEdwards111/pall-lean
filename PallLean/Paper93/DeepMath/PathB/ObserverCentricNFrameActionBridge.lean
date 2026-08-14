@@ -4029,6 +4029,57 @@ theorem liveOffDiagonalSupportCircuit_not_minimal_for_output :
 #print axioms shorterMajorityCircuit_output_eq_liveOffDiagonal
 #print axioms liveOffDiagonalSupportCircuit_not_minimal_for_output
 
+/-! ### The exact collective-replacement interface for minimal circuits
+
+Local gate surgery is not the right endpoint.  A collective replacement is a
+whole circuit computing the same function with fewer gates.  Minimality rules
+out exactly these certificates.  Thus a future SAT poison-control theorem must
+construct such a certificate from an affine-design-like cone family unless the
+family pays the required fresh budget.
+-/
+
+/-- A semantic certificate that a circuit can be collectively recomputed with
+strictly fewer gates. -/
+structure CollectiveReplacementCertificate {n : ℕ}
+    (c : List (NFrameBoundaryTransducer.CGate n)) where
+  replacement : List (NFrameBoundaryTransducer.CGate n)
+  sameOutput : ∀ x, NFrameBoundaryTransducer.output replacement x =
+    NFrameBoundaryTransducer.output c x
+  shorter : replacement.length < c.length
+
+/-- A `cbudget`-minimal circuit admits no collective replacement certificate. -/
+theorem no_collectiveReplacement_of_minimal {n : ℕ}
+    (f : (Fin n → Bool) → Bool) (c : List (NFrameBoundaryTransducer.CGate n))
+    (hcomp : NFrameBoundaryTransducer.computes c f)
+    (hmin : c.length = NFrameBoundaryTransducer.cbudget f) :
+    ¬ Nonempty (CollectiveReplacementCertificate c) := by
+  rintro ⟨R⟩
+  have hRcomp : NFrameBoundaryTransducer.computes R.replacement f := by
+    intro x
+    rw [R.sameOutput x]
+    exact hcomp x
+  have hbudget : NFrameBoundaryTransducer.cbudget f ≤ R.replacement.length :=
+    Nat.sInf_le ⟨R.replacement, hRcomp, rfl⟩
+  have hshort := R.shorter
+  omega
+
+/-- The seven-gate majority implementation is the concrete collective
+replacement certificate for the live off-diagonal witness. -/
+def liveOffDiagonal_collectiveReplacement :
+    CollectiveReplacementCertificate liveOffDiagonalSupportCircuit where
+  replacement := shorterMajorityCircuit
+  sameOutput := shorterMajorityCircuit_output_eq_liveOffDiagonal
+  shorter := shorterMajorityCircuit_length_lt_liveOffDiagonal
+
+/-- Consequently, the generic minimality interface rejects the live witness
+without deleting or constant-folding any individual gate. -/
+theorem liveOffDiagonal_rejected_by_collective_minimality :
+    Nonempty (CollectiveReplacementCertificate liveOffDiagonalSupportCircuit) :=
+  ⟨liveOffDiagonal_collectiveReplacement⟩
+
+#print axioms no_collectiveReplacement_of_minimal
+#print axioms liveOffDiagonal_rejected_by_collective_minimality
+
 /-! ### An asymptotic affine-incidence obstruction
 
 The finite `3 × 3` example is not a small-size accident.  Lines and points
