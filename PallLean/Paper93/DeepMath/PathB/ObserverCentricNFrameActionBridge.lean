@@ -12,6 +12,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameCrossBranch
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameNonlinearShare
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameRestrictedFreshness
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCbudgetConeBound
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCollectiveReplacement
 
 /-!
 # Observer-centric N-frame action bridge
@@ -4038,31 +4039,6 @@ out exactly these certificates.  Thus a future SAT poison-control theorem must
 construct such a certificate from an affine-design-like cone family unless the
 family pays the required fresh budget.
 -/
-
-/-- A semantic certificate that a circuit can be collectively recomputed with
-strictly fewer gates. -/
-structure CollectiveReplacementCertificate {n : ℕ}
-    (c : List (NFrameBoundaryTransducer.CGate n)) where
-  replacement : List (NFrameBoundaryTransducer.CGate n)
-  sameOutput : ∀ x, NFrameBoundaryTransducer.output replacement x =
-    NFrameBoundaryTransducer.output c x
-  shorter : replacement.length < c.length
-
-/-- A `cbudget`-minimal circuit admits no collective replacement certificate. -/
-theorem no_collectiveReplacement_of_minimal {n : ℕ}
-    (f : (Fin n → Bool) → Bool) (c : List (NFrameBoundaryTransducer.CGate n))
-    (hcomp : NFrameBoundaryTransducer.computes c f)
-    (hmin : c.length = NFrameBoundaryTransducer.cbudget f) :
-    ¬ Nonempty (CollectiveReplacementCertificate c) := by
-  rintro ⟨R⟩
-  have hRcomp : NFrameBoundaryTransducer.computes R.replacement f := by
-    intro x
-    rw [R.sameOutput x]
-    exact hcomp x
-  have hbudget : NFrameBoundaryTransducer.cbudget f ≤ R.replacement.length :=
-    Nat.sInf_le ⟨R.replacement, hRcomp, rfl⟩
-  have hshort := R.shorter
-  omega
 
 /-- The seven-gate majority implementation is the concrete collective
 replacement certificate for the live off-diagonal witness. -/

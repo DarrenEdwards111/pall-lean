@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthTwelveGateShape
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCollectiveReplacement
 
 /-!
 # Three-bit majority lies above the dependency-cone floor
@@ -14,6 +15,7 @@ namespace PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer
 
 open PallLean.Paper93.DeepMath.PathB.SATFamilyCircuitFloor
 open PallLean.Paper93.DeepMath.PathB.CbudgetConeBound
+open PallLean.Paper93.DeepMath.PathB.ObserverCentricNFrameActionBridge
 
 /-- Three-bit majority, in a form with a verified seven-gate circuit. -/
 def majorityThreeFloor (x : Fin 3 → Bool) : Bool :=
@@ -291,6 +293,14 @@ theorem majoritySix_minimal (c : List (CGate 3))
   have hle : cbudget majorityThreeFloor ≤ c.length := Nat.sInf_le ⟨c, hcomp, rfl⟩
   have hlo := majorityThreeFloor_cbudget_lower
   omega
+
+/-- The observer/thermodynamic collective-replacement endpoint specialized to
+a hypothetical six-gate majority circuit. -/
+theorem majoritySix_no_collectiveReplacement (c : List (CGate 3))
+    (hcomp : computes c majorityThreeFloor) (hlen : c.length = 6) :
+    ¬ Nonempty (CollectiveReplacementCertificate c) := by
+  exact no_collectiveReplacement_of_minimal majorityThreeFloor c hcomp
+    (majoritySix_minimal c hcomp hlen)
 
 theorem majoritySix_cone_all (c : List (CGate 3))
     (hcomp : computes c majorityThreeFloor) (hlen : c.length = 6) :
