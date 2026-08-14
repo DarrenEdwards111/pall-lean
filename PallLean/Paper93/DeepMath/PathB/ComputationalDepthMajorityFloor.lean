@@ -302,6 +302,29 @@ theorem majoritySix_no_collectiveReplacement (c : List (CGate 3))
   exact no_collectiveReplacement_of_minimal majorityThreeFloor c hcomp
     (majoritySix_minimal c hcomp hlen)
 
+/-- The exact dynamic-boundary extraction obligation at the six-gate
+frontier: every six-gate majority realization yields a whole-circuit semantic
+replacement.  Unlike the numerical escape records, this proposition retains
+the circuit whose replacement must be constructed. -/
+def MajoritySixEscapeExtractor : Prop :=
+  ∀ (c : List (CGate 3)), computes c majorityThreeFloor → c.length = 6 →
+    Nonempty (CollectiveReplacementCertificate c)
+
+/-- Once the observer/thermodynamic escape horn is cashed out through the
+specialized extractor, the exact majority budget follows immediately. -/
+theorem majorityThreeFloor_cbudget_eq_seven_of_escapeExtractor
+    (hextract : MajoritySixEscapeExtractor) :
+    cbudget majorityThreeFloor = 7 := by
+  have hlo := majorityThreeFloor_cbudget_lower
+  have hhi := majorityThreeFloor_cbudget_upper
+  by_contra hne
+  have hbudget : cbudget majorityThreeFloor = 6 := by omega
+  obtain ⟨c, hcomp, hclen⟩ :=
+    Nat.sInf_mem (cbudget_set_nonempty majorityThreeFloor)
+  have hlen : c.length = 6 := hclen.trans hbudget
+  exact majoritySix_no_collectiveReplacement c hcomp hlen
+    (hextract c hcomp hlen)
+
 theorem majoritySix_cone_all (c : List (CGate 3))
     (hcomp : computes c majorityThreeFloor) (hlen : c.length = 6) :
     cone c = Finset.range 6 := by
