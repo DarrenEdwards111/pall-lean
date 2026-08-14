@@ -10,6 +10,8 @@ adjoins the truth table produced by one arbitrary Boolean binary operation.
 
 namespace PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer
 
+open PallLean.Paper93.DeepMath.PathB.CbudgetConeBound
+
 /-- An eight-row truth table for a Boolean function of three inputs. -/
 abbrev Truth3 := Fin 8 → Bool
 
@@ -136,6 +138,39 @@ def reverseCodedOp (op : Fin 16) : Fin 16 :=
 theorem codedBin_reverse (op : Fin 16) (a b : Bool) :
     codedBin (reverseCodedOp op) a b = codedBin op b a := by
   fin_cases op <;> cases a <;> cases b <;> decide
+
+def codeBooleanBinary (op : Bool → Bool → Bool) : Fin 16 :=
+  Fin.ofNat 16
+    ((if op false false then 1 else 0) +
+     (if op false true then 2 else 0) +
+     (if op true false then 4 else 0) +
+     (if op true true then 8 else 0))
+
+theorem codedBin_codeBooleanBinary (op : Bool → Bool → Bool) (a b : Bool) :
+    codedBin (codeBooleanBinary op) a b = op a b := by
+  by_cases h00 : op false false <;> by_cases h01 : op false true <;>
+    by_cases h10 : op true false <;> by_cases h11 : op true true <;>
+    cases a <;> cases b <;> simp_all [codedBin, codeBooleanBinary] <;> decide
+
+theorem majoritySix_coneVars_card_three (c : List (CGate 3))
+    (hcomp : computes c majorityThreeFloor) (hlen : c.length = 6) :
+    (coneVars c).card = 3 := by
+  rw [majoritySix_varsEq c hcomp hlen, majorityThreeFloor_depSet,
+    Finset.card_univ, Fintype.card_fin]
+
+open Classical in theorem majoritySix_nonvarPositions_card_three (c : List (CGate 3))
+    (hcomp : computes c majorityThreeFloor) (hlen : c.length = 6) :
+    ((Finset.range 6).filter
+      (fun w => ¬ ∃ i : Fin 3, c.getD w (.cst false) = CGate.var i)).card = 3 := by
+  have hpartition := Finset.card_filter_add_card_filter_not
+    (s := Finset.range 6)
+    (p := fun w => ∃ i : Fin 3, c.getD w (.cst false) = CGate.var i)
+  have hvars : ((Finset.range 6).filter
+      (fun w => ∃ i : Fin 3, c.getD w (.cst false) = CGate.var i)).card = 3 := by
+    rw [← majoritySix_cone_all c hcomp hlen]
+    exact majoritySix_coneVars_card_three c hcomp hlen
+  simp only [Finset.card_range] at hpartition
+  omega
 
 def permuteAssignment (σ : Equiv.Perm (Fin 3)) (x : Fin 3 → Bool) :
     Fin 3 → Bool := fun i => x (σ i)
@@ -754,6 +789,48 @@ theorem liveThreeTransition_semantic_exclusion :
   rintro ⟨op₀, op₁, op₂, a₀, b₀, a₁, b₁, a₂, b₂, hlive, hcomp⟩
   exact liveThreeTransitionSchedule_noMajority a₀ b₀ a₁ b₁ a₂ b₂ hlive
     ⟨op₀, op₁, op₂, hcomp⟩
+
+/-- The concrete transport object from a six-wire `CGate` circuit into the
+semantic observer trajectory. -/
+structure SixCircuitSemanticScheduleCertificate (c : List (CGate 3)) where
+  op₀ : Fin 16
+  op₁ : Fin 16
+  op₂ : Fin 16
+  a₀ : Fin 3
+  b₀ : Fin 3
+  a₁ : Fin 4
+  b₁ : Fin 4
+  a₂ : Fin 5
+  b₂ : Fin 5
+  live : liveThreeTransitionSchedule a₀ b₀ a₁ b₁ a₂ b₂
+  realizes : ∀ x : Fin 3 → Bool,
+    threeBinaryProgram op₀ op₁ op₂ a₀ b₀ a₁ b₁ a₂ b₂ x = output c x
+
+theorem no_sixCircuitSemanticScheduleCertificate
+    (c : List (CGate 3)) (hcomp : computes c majorityThreeFloor) :
+    ¬ Nonempty (SixCircuitSemanticScheduleCertificate c) := by
+  rintro ⟨cert⟩
+  apply liveThreeTransition_semantic_exclusion
+  exact ⟨cert.op₀, cert.op₁, cert.op₂, cert.a₀, cert.b₀, cert.a₁, cert.b₁,
+    cert.a₂, cert.b₂, cert.live, fun x => (cert.realizes x).trans (hcomp x)⟩
+
+/-- The sole remaining circuit-to-boundary transport obligation. -/
+def MajoritySixSemanticScheduleExtractor : Prop :=
+  ∀ (c : List (CGate 3)), computes c majorityThreeFloor → c.length = 6 →
+    Nonempty (SixCircuitSemanticScheduleCertificate c)
+
+theorem majorityThreeFloor_cbudget_eq_seven_of_semanticScheduleExtractor
+    (hextract : MajoritySixSemanticScheduleExtractor) :
+    cbudget majorityThreeFloor = 7 := by
+  have hlo := majorityThreeFloor_cbudget_lower
+  have hhi := majorityThreeFloor_cbudget_upper
+  by_contra hne
+  have hbudget : cbudget majorityThreeFloor = 6 := by omega
+  obtain ⟨c, hcomp, hclen⟩ :=
+    Nat.sInf_mem (cbudget_set_nonempty majorityThreeFloor)
+  have hlen : c.length = 6 := hclen.trans hbudget
+  exact no_sixCircuitSemanticScheduleCertificate c hcomp
+    (hextract c hcomp hlen)
 
 
 /- The semantic heart of the dynamic-boundary argument: no trajectory of
