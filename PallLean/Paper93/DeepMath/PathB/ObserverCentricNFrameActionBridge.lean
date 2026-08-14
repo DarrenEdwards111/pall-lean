@@ -3976,6 +3976,59 @@ theorem liveOffDiagonalSupportCircuit_gate_five_constant_essential :
 #print axioms liveOffDiagonalSupportCircuit_gate_four_constant_essential
 #print axioms liveOffDiagonalSupportCircuit_gate_five_constant_essential
 
+/-! ### Local essentiality still does not imply global minimality
+
+The three pair gates above are individually indispensable against constant
+replacement, but the circuit as a whole is not optimal.  Its output is the
+three-bit majority function, which admits a seven-gate implementation.  This
+is the precise distinction the unrestricted SAT argument must exploit:
+collective recomputation, not one-gate pruning.
+-/
+
+/-- A seven-gate majority circuit: `(x₀∧x₁) ∨ (x₂∧(x₀∨x₁))`. -/
+def shorterMajorityCircuit : List (NFrameBoundaryTransducer.CGate 3) :=
+  [NFrameBoundaryTransducer.CGate.var ⟨0, by omega⟩,
+   NFrameBoundaryTransducer.CGate.var ⟨1, by omega⟩,
+   NFrameBoundaryTransducer.CGate.var ⟨2, by omega⟩,
+   NFrameBoundaryTransducer.CGate.bin (fun a b => a && b) 0 1,
+   NFrameBoundaryTransducer.CGate.bin (fun a b => a || b) 0 1,
+   NFrameBoundaryTransducer.CGate.bin (fun a b => a && b) 2 4,
+   NFrameBoundaryTransducer.CGate.bin (fun a b => a || b) 3 5]
+
+/-- The collectively recomputed majority circuit is strictly shorter. -/
+theorem shorterMajorityCircuit_length_lt_liveOffDiagonal :
+    shorterMajorityCircuit.length < liveOffDiagonalSupportCircuit.length := by
+  decide
+
+/-- Despite the strict size reduction, both circuits compute the same Boolean
+function on every input. -/
+theorem shorterMajorityCircuit_output_eq_liveOffDiagonal :
+    ∀ x : Fin 3 → Bool,
+      NFrameBoundaryTransducer.output shorterMajorityCircuit x =
+        NFrameBoundaryTransducer.output liveOffDiagonalSupportCircuit x := by
+  decide
+
+/-- The live, root-connected, constant-essential off-diagonal witness is not a
+minimal circuit for its own output function. -/
+theorem liveOffDiagonalSupportCircuit_not_minimal_for_output :
+    liveOffDiagonalSupportCircuit.length ≠
+      NFrameBoundaryTransducer.cbudget
+        (NFrameBoundaryTransducer.output liveOffDiagonalSupportCircuit) := by
+  intro hmin
+  have hcomp : NFrameBoundaryTransducer.computes shorterMajorityCircuit
+      (NFrameBoundaryTransducer.output liveOffDiagonalSupportCircuit) := by
+    intro x
+    exact shorterMajorityCircuit_output_eq_liveOffDiagonal x
+  have hbudget : NFrameBoundaryTransducer.cbudget
+      (NFrameBoundaryTransducer.output liveOffDiagonalSupportCircuit) ≤
+        shorterMajorityCircuit.length :=
+    Nat.sInf_le ⟨shorterMajorityCircuit, hcomp, rfl⟩
+  norm_num [shorterMajorityCircuit, liveOffDiagonalSupportCircuit] at hbudget hmin
+  omega
+
+#print axioms shorterMajorityCircuit_output_eq_liveOffDiagonal
+#print axioms liveOffDiagonalSupportCircuit_not_minimal_for_output
+
 /-! ### An asymptotic affine-incidence obstruction
 
 The finite `3 × 3` example is not a small-size accident.  Lines and points
