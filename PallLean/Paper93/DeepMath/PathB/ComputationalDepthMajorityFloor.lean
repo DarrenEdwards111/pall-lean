@@ -85,8 +85,89 @@ theorem majorityThreeFloor_cbudget_frontier :
     6 ≤ cbudget majorityThreeFloor ∧ cbudget majorityThreeFloor ≤ 7 :=
   ⟨majorityThreeFloor_cbudget_lower, majorityThreeFloor_cbudget_upper⟩
 
+/-! ### Kernel classification of three-binary-gate programs
+
+To keep the finite check independent of dependent circuit syntax, binary
+operations are encoded by their four-row truth tables (`Fin 16`) and each
+source is an index into the inputs and already-computed gates. -/
+
+def codedBin (op : Fin 16) (a b : Bool) : Bool :=
+  (op.val.testBit (2 * a.toNat + b.toNat))
+
+def sourceThree (x : Fin 3 → Bool) (i : Fin 3) : Bool := x i
+
+def sourceFour (x : Fin 3 → Bool) (g₁ : Bool) (i : Fin 4) : Bool :=
+  if h : i.val < 3 then x ⟨i.val, h⟩ else g₁
+
+def sourceFive (x : Fin 3 → Bool) (g₁ g₂ : Bool) (i : Fin 5) : Bool :=
+  if h : i.val < 3 then x ⟨i.val, h⟩ else if i.val = 3 then g₁ else g₂
+
+def threeBinaryProgram
+    (op₁ op₂ op₃ : Fin 16) (a₁ b₁ : Fin 3) (a₂ b₂ : Fin 4)
+    (a₃ b₃ : Fin 5) (x : Fin 3 → Bool) : Bool :=
+  let g₁ := codedBin op₁ (sourceThree x a₁) (sourceThree x b₁)
+  let g₂ := codedBin op₂ (sourceFour x g₁ a₂) (sourceFour x g₁ b₂)
+  codedBin op₃ (sourceFive x g₁ g₂ a₃) (sourceFive x g₁ g₂ b₃)
+
+/-- The parallel topology computes two functions of input pairs and combines
+them at the root. -/
+def parallelThreeBinaryProgram
+    (op₁ op₂ op₃ : Fin 16) (a₁ b₁ a₂ b₂ : Fin 3)
+    (x : Fin 3 → Bool) : Bool :=
+  codedBin op₃
+    (codedBin op₁ (x a₁) (x b₁))
+    (codedBin op₂ (x a₂) (x b₂))
+
+/-- The live chain topology: the first result enters the second gate, whose
+result enters the root; the other root input is either a primary input or the
+first result.  Operand orientations lose no generality because operations range
+over all sixteen truth tables. -/
+def chainThreeBinaryProgram
+    (op₁ op₂ op₃ : Fin 16) (a₁ b₁ c : Fin 3) (d : Fin 4)
+    (x : Fin 3 → Bool) : Bool :=
+  let g₁ := codedBin op₁ (x a₁) (x b₁)
+  let g₂ := codedBin op₂ g₁ (x c)
+  codedBin op₃ g₂ (sourceFour x g₁ d)
+
+-- After liveness and bidependence, the parallel topology has a unique wiring
+-- up to permuting variables and reversing operands: two distinct input pairs
+-- sharing one coordinate.
+theorem parallelCanonical_ne_majority :
+    ¬ ∃ (op₁ op₂ op₃ : Fin 16),
+      ∀ x : Fin 3 → Bool,
+        parallelThreeBinaryProgram op₁ op₂ op₃ 0 1 0 2 x = majorityThreeFloor x := by
+  decide
+
+-- In the live chain, the first pair is combined with the third variable.  The
+-- root's remaining live source is, up to the pair symmetry, one of the first
+-- result, a member of the pair, or the third variable.
+set_option maxRecDepth 100000 in
+theorem chainCanonical_firstResult_ne_majority :
+    ¬ ∃ (op₁ op₂ op₃ : Fin 16),
+      ∀ x : Fin 3 → Bool,
+        chainThreeBinaryProgram op₁ op₂ op₃ 0 1 2 3 x = majorityThreeFloor x := by
+  decide
+
+set_option maxRecDepth 100000 in
+theorem chainCanonical_pairInput_ne_majority :
+    ¬ ∃ (op₁ op₂ op₃ : Fin 16),
+      ∀ x : Fin 3 → Bool,
+        chainThreeBinaryProgram op₁ op₂ op₃ 0 1 2 0 x = majorityThreeFloor x := by
+  decide
+
+set_option maxRecDepth 100000 in
+theorem chainCanonical_thirdInput_ne_majority :
+    ¬ ∃ (op₁ op₂ op₃ : Fin 16),
+      ∀ x : Fin 3 → Bool,
+        chainThreeBinaryProgram op₁ op₂ op₃ 0 1 2 2 x = majorityThreeFloor x := by
+  decide
+
 end PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer
 
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer.majorityThreeFloor_cbudget_lower
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer.majorityThreeFloor_cbudget_upper
 #print axioms PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer.majorityThreeFloor_cbudget_frontier
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer.parallelCanonical_ne_majority
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer.chainCanonical_firstResult_ne_majority
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer.chainCanonical_pairInput_ne_majority
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer.chainCanonical_thirdInput_ne_majority
