@@ -126,6 +126,53 @@ def ThreeTransitionProgram.eval (p : ThreeTransitionProgram)
   let g₁ := codedBin p.op₁ (source4 x g₀ p.left₁) (source4 x g₀ p.right₁)
   codedBin p.op₂ (source5 x g₀ g₁ p.left₂) (source5 x g₀ g₁ p.right₂)
 
+def scheduleInputSeen (a₀ b₀ : Fin 3) (a₁ b₁ : Fin 4)
+    (a₂ b₂ : Fin 5) (i : Fin 3) : Prop :=
+  a₂.val = i.val ∨ b₂.val = i.val ∨
+  a₁.val = i.val ∨ b₁.val = i.val ∨
+  a₀ = i ∨ b₀ = i
+
+instance (a₀ b₀ : Fin 3) (a₁ b₁ : Fin 4) (a₂ b₂ : Fin 5) (i : Fin 3) :
+    Decidable (scheduleInputSeen a₀ b₀ a₁ b₁ a₂ b₂ i) := by
+  unfold scheduleInputSeen
+  infer_instance
+
+def liveThreeTransitionSchedule (a₀ b₀ : Fin 3) (a₁ b₁ : Fin 4)
+    (a₂ b₂ : Fin 5) : Prop :=
+  a₀ ≠ b₀ ∧ a₁ ≠ b₁ ∧ a₂ ≠ b₂ ∧
+  (a₂.val = 4 ∨ b₂.val = 4) ∧
+  (a₂.val = 3 ∨ b₂.val = 3 ∨ a₁.val = 3 ∨ b₁.val = 3) ∧
+  ∀ i : Fin 3, scheduleInputSeen a₀ b₀ a₁ b₁ a₂ b₂ i
+
+instance (a₀ b₀ : Fin 3) (a₁ b₁ : Fin 4) (a₂ b₂ : Fin 5) :
+    Decidable (liveThreeTransitionSchedule a₀ b₀ a₁ b₁ a₂ b₂) := by
+  unfold liveThreeTransitionSchedule
+  infer_instance
+
+theorem liveSchedule_parallel_01_02_ne_majority :
+    ¬ ∃ op₀ op₁ op₂ : Fin 16, ∀ x : Fin 3 → Bool,
+      threeBinaryProgram op₀ op₁ op₂ 0 1 0 2 3 4 x = majorityThreeFloor x := by
+  simpa [threeBinaryProgram, parallelThreeBinaryProgram, sourceFour, sourceFive]
+    using parallelCanonical_ne_majority
+
+theorem liveSchedule_chain_firstResult_ne_majority :
+    ¬ ∃ op₀ op₁ op₂ : Fin 16, ∀ x : Fin 3 → Bool,
+      threeBinaryProgram op₀ op₁ op₂ 0 1 3 2 4 3 x = majorityThreeFloor x := by
+  simpa [threeBinaryProgram, chainThreeBinaryProgram, sourceFour, sourceFive]
+    using chainCanonical_firstResult_ne_majority
+
+theorem liveSchedule_chain_pairInput_ne_majority :
+    ¬ ∃ op₀ op₁ op₂ : Fin 16, ∀ x : Fin 3 → Bool,
+      threeBinaryProgram op₀ op₁ op₂ 0 1 3 2 4 0 x = majorityThreeFloor x := by
+  simpa [threeBinaryProgram, chainThreeBinaryProgram, sourceFour, sourceFive]
+    using chainCanonical_pairInput_ne_majority
+
+theorem liveSchedule_chain_thirdInput_ne_majority :
+    ¬ ∃ op₀ op₁ op₂ : Fin 16, ∀ x : Fin 3 → Bool,
+      threeBinaryProgram op₀ op₁ op₂ 0 1 3 2 4 2 x = majorityThreeFloor x := by
+  simpa [threeBinaryProgram, chainThreeBinaryProgram, sourceFour, sourceFive]
+    using chainCanonical_thirdInput_ne_majority
+
 /- The semantic heart of the dynamic-boundary argument: no trajectory of
 three arbitrary binary transitions from the three coordinate observers has
 majority as its final exposed wire. -/
