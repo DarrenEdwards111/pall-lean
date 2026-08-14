@@ -433,8 +433,332 @@ theorem noMajoritySchedule_chain_thirdInput (a b c : Fin 3) (hab : a ≠ b)
   simpa [NoMajoritySchedule] using
     liveSchedule_chain_thirdInput_distinct_ne_majority a b c hab hac hbc
 
+theorem noMajoritySchedule_pairClosed_rootThird_zero :
+    NoMajoritySchedule 0 1 3 0 4 2 := by
+  rintro ⟨op₀, op₁, op₂, hcomp⟩
+  apply majorityThreeFloor_no_split_three
+  refine ⟨(fun c z => codedBin op₂ z c),
+    (fun a b => codedBin op₁ (codedBin op₀ a b) a), ?_⟩
+  intro a b c
+  simpa [threeBinaryProgram, sourceThree, sourceFour, sourceFive] using
+    (hcomp ![a, b, c]).symm
+
+theorem noMajoritySchedule_pairClosed_rootThird_one :
+    NoMajoritySchedule 0 1 3 1 4 2 := by
+  rintro ⟨op₀, op₁, op₂, hcomp⟩
+  apply majorityThreeFloor_no_split_three
+  refine ⟨(fun c z => codedBin op₂ z c),
+    (fun a b => codedBin op₁ (codedBin op₀ a b) b), ?_⟩
+  intro a b c
+  simpa [threeBinaryProgram, sourceThree, sourceFour, sourceFive] using
+    (hcomp ![a, b, c]).symm
+
+theorem noMajoritySchedule_pairClosed_rootThird_left
+    (a b c : Fin 3) (hab : a ≠ b) (hac : a ≠ c) (hbc : b ≠ c) :
+    NoMajoritySchedule a b 3 (primarySource4 a) 4 (primarySource5 c) := by
+  rintro ⟨op₀, op₁, op₂, h⟩
+  apply noMajoritySchedule_pairClosed_rootThird_zero
+  refine ⟨op₀, op₁, op₂, ?_⟩
+  intro y
+  let σ := orderedTriplePerm a b c hab hac hbc
+  let x := permuteAssignment σ.symm y
+  have hp := threeBinaryProgram_permute σ op₀ op₁ op₂ 0 1 3 0 4 2 x
+  have hh := h x
+  have hmaj := majorityThreeFloor_permute σ.symm y
+  simpa [σ, x, permuteAssignment, liftSource4, liftSource5, primarySource4,
+    primarySource5] using hp.symm.trans (hh.trans hmaj)
+
+theorem noMajoritySchedule_pairClosed_rootThird_right
+    (a b c : Fin 3) (hab : a ≠ b) (hac : a ≠ c) (hbc : b ≠ c) :
+    NoMajoritySchedule a b 3 (primarySource4 b) 4 (primarySource5 c) := by
+  rintro ⟨op₀, op₁, op₂, h⟩
+  apply noMajoritySchedule_pairClosed_rootThird_one
+  refine ⟨op₀, op₁, op₂, ?_⟩
+  intro y
+  let σ := orderedTriplePerm a b c hab hac hbc
+  let x := permuteAssignment σ.symm y
+  have hp := threeBinaryProgram_permute σ op₀ op₁ op₂ 0 1 3 1 4 2 x
+  have hh := h x
+  have hmaj := majorityThreeFloor_permute σ.symm y
+  simpa [σ, x, permuteAssignment, liftSource4, liftSource5, primarySource4,
+    primarySource5] using hp.symm.trans (hh.trans hmaj)
+
+
+set_option maxHeartbeats 1000000 in
+theorem liveSchedule_0_1_noMajority
+    (a₁ b₁ : Fin 4) (a₂ b₂ : Fin 5)
+    (hlive : liveThreeTransitionSchedule 0 1 a₁ b₁ a₂ b₂) :
+    NoMajoritySchedule 0 1 a₁ b₁ a₂ b₂ := by
+  fin_cases a₁ <;> fin_cases b₁ <;> fin_cases a₂ <;> fin_cases b₂
+  all_goals first
+  | exfalso; revert hlive; decide
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_parallel 0 1 2 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_parallel 0 1 2 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_pairClosed_rootThird_left 0 1 2 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_left 0 1 2 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_parallel 1 0 2 (by decide) (by decide) (by decide)).reverse_first
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_parallel 1 0 2 (by decide) (by decide) (by decide)).reverse_first).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_pairClosed_rootThird_right 0 1 2 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_right 0 1 2 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_parallel 0 1 2 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_parallel 0 1 2 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_parallel 1 0 2 (by decide) (by decide) (by decide)).reverse_first).reverse_second
+  | simpa [primarySource4, primarySource5] using (((noMajoritySchedule_parallel 1 0 2 (by decide) (by decide) (by decide)).reverse_first).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_pairInput 0 1 2 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (((noMajoritySchedule_chain_pairInput 1 0 2 (by decide) (by decide) (by decide)).reverse_first).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_thirdInput 0 1 2 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_firstResult 0 1 2 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_pairInput 0 1 2 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_pairInput 1 0 2 (by decide) (by decide) (by decide)).reverse_first).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_thirdInput 0 1 2 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_firstResult 0 1 2 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_left 0 1 2 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_pairClosed_rootThird_left 0 1 2 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_right 0 1 2 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_pairClosed_rootThird_right 0 1 2 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_pairInput 0 1 2 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_pairInput 1 0 2 (by decide) (by decide) (by decide)).reverse_first).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_thirdInput 0 1 2 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_firstResult 0 1 2 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_chain_pairInput 0 1 2 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_pairInput 1 0 2 (by decide) (by decide) (by decide)).reverse_first
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_chain_thirdInput 0 1 2 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_chain_firstResult 0 1 2 (by decide) (by decide) (by decide)
+
+set_option maxHeartbeats 1000000 in
+theorem liveSchedule_0_2_noMajority
+    (a₁ b₁ : Fin 4) (a₂ b₂ : Fin 5)
+    (hlive : liveThreeTransitionSchedule 0 2 a₁ b₁ a₂ b₂) :
+    NoMajoritySchedule 0 2 a₁ b₁ a₂ b₂ := by
+  fin_cases a₁ <;> fin_cases b₁ <;> fin_cases a₂ <;> fin_cases b₂
+  all_goals first
+  | exfalso; revert hlive; decide
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_parallel 0 2 1 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_parallel 0 2 1 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_pairClosed_rootThird_left 0 2 1 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_left 0 2 1 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_parallel 0 2 1 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_parallel 0 2 1 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_parallel 2 0 1 (by decide) (by decide) (by decide)).reverse_first).reverse_second
+  | simpa [primarySource4, primarySource5] using (((noMajoritySchedule_parallel 2 0 1 (by decide) (by decide) (by decide)).reverse_first).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_pairInput 0 2 1 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_thirdInput 0 2 1 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (((noMajoritySchedule_chain_pairInput 2 0 1 (by decide) (by decide) (by decide)).reverse_first).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_firstResult 0 2 1 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_pairInput 0 2 1 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_thirdInput 0 2 1 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_pairInput 2 0 1 (by decide) (by decide) (by decide)).reverse_first).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_firstResult 0 2 1 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_parallel 2 0 1 (by decide) (by decide) (by decide)).reverse_first
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_parallel 2 0 1 (by decide) (by decide) (by decide)).reverse_first).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_pairClosed_rootThird_right 0 2 1 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_right 0 2 1 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_left 0 2 1 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_pairClosed_rootThird_left 0 2 1 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_pairInput 0 2 1 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_thirdInput 0 2 1 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_pairInput 2 0 1 (by decide) (by decide) (by decide)).reverse_first).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_firstResult 0 2 1 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_chain_pairInput 0 2 1 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_chain_thirdInput 0 2 1 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_pairInput 2 0 1 (by decide) (by decide) (by decide)).reverse_first
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_chain_firstResult 0 2 1 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_right 0 2 1 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_pairClosed_rootThird_right 0 2 1 (by decide) (by decide) (by decide)
+
+set_option maxHeartbeats 1000000 in
+theorem liveSchedule_1_0_noMajority
+    (a₁ b₁ : Fin 4) (a₂ b₂ : Fin 5)
+    (hlive : liveThreeTransitionSchedule 1 0 a₁ b₁ a₂ b₂) :
+    NoMajoritySchedule 1 0 a₁ b₁ a₂ b₂ := by
+  fin_cases a₁ <;> fin_cases b₁ <;> fin_cases a₂ <;> fin_cases b₂
+  all_goals first
+  | exfalso; revert hlive; decide
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_parallel 0 1 2 (by decide) (by decide) (by decide)).reverse_first
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_parallel 0 1 2 (by decide) (by decide) (by decide)).reverse_first).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_pairClosed_rootThird_right 1 0 2 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_right 1 0 2 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_parallel 1 0 2 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_parallel 1 0 2 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_pairClosed_rootThird_left 1 0 2 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_left 1 0 2 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_parallel 0 1 2 (by decide) (by decide) (by decide)).reverse_first).reverse_second
+  | simpa [primarySource4, primarySource5] using (((noMajoritySchedule_parallel 0 1 2 (by decide) (by decide) (by decide)).reverse_first).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_parallel 1 0 2 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_parallel 1 0 2 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (((noMajoritySchedule_chain_pairInput 0 1 2 (by decide) (by decide) (by decide)).reverse_first).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_pairInput 1 0 2 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_thirdInput 1 0 2 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_firstResult 1 0 2 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_pairInput 0 1 2 (by decide) (by decide) (by decide)).reverse_first).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_pairInput 1 0 2 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_thirdInput 1 0 2 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_firstResult 1 0 2 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_right 1 0 2 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_pairClosed_rootThird_right 1 0 2 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_left 1 0 2 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_pairClosed_rootThird_left 1 0 2 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_pairInput 0 1 2 (by decide) (by decide) (by decide)).reverse_first).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_pairInput 1 0 2 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_thirdInput 1 0 2 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_firstResult 1 0 2 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_pairInput 0 1 2 (by decide) (by decide) (by decide)).reverse_first
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_chain_pairInput 1 0 2 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_chain_thirdInput 1 0 2 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_chain_firstResult 1 0 2 (by decide) (by decide) (by decide)
+
+set_option maxHeartbeats 1000000 in
+theorem liveSchedule_1_2_noMajority
+    (a₁ b₁ : Fin 4) (a₂ b₂ : Fin 5)
+    (hlive : liveThreeTransitionSchedule 1 2 a₁ b₁ a₂ b₂) :
+    NoMajoritySchedule 1 2 a₁ b₁ a₂ b₂ := by
+  fin_cases a₁ <;> fin_cases b₁ <;> fin_cases a₂ <;> fin_cases b₂
+  all_goals first
+  | exfalso; revert hlive; decide
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_parallel 1 2 0 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_parallel 1 2 0 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_parallel 2 1 0 (by decide) (by decide) (by decide)).reverse_first).reverse_second
+  | simpa [primarySource4, primarySource5] using (((noMajoritySchedule_parallel 2 1 0 (by decide) (by decide) (by decide)).reverse_first).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_thirdInput 1 2 0 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_pairInput 1 2 0 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (((noMajoritySchedule_chain_pairInput 2 1 0 (by decide) (by decide) (by decide)).reverse_first).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_firstResult 1 2 0 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_thirdInput 1 2 0 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_pairInput 1 2 0 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_pairInput 2 1 0 (by decide) (by decide) (by decide)).reverse_first).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_firstResult 1 2 0 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_parallel 1 2 0 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_parallel 1 2 0 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_pairClosed_rootThird_left 1 2 0 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_left 1 2 0 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_parallel 2 1 0 (by decide) (by decide) (by decide)).reverse_first
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_parallel 2 1 0 (by decide) (by decide) (by decide)).reverse_first).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_pairClosed_rootThird_right 1 2 0 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_right 1 2 0 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_thirdInput 1 2 0 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_pairInput 1 2 0 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_pairInput 2 1 0 (by decide) (by decide) (by decide)).reverse_first).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_firstResult 1 2 0 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_chain_thirdInput 1 2 0 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_chain_pairInput 1 2 0 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_pairInput 2 1 0 (by decide) (by decide) (by decide)).reverse_first
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_chain_firstResult 1 2 0 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_left 1 2 0 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_pairClosed_rootThird_left 1 2 0 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_right 1 2 0 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_pairClosed_rootThird_right 1 2 0 (by decide) (by decide) (by decide)
+
+set_option maxHeartbeats 1000000 in
+theorem liveSchedule_2_0_noMajority
+    (a₁ b₁ : Fin 4) (a₂ b₂ : Fin 5)
+    (hlive : liveThreeTransitionSchedule 2 0 a₁ b₁ a₂ b₂) :
+    NoMajoritySchedule 2 0 a₁ b₁ a₂ b₂ := by
+  fin_cases a₁ <;> fin_cases b₁ <;> fin_cases a₂ <;> fin_cases b₂
+  all_goals first
+  | exfalso; revert hlive; decide
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_parallel 0 2 1 (by decide) (by decide) (by decide)).reverse_first
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_parallel 0 2 1 (by decide) (by decide) (by decide)).reverse_first).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_pairClosed_rootThird_right 2 0 1 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_right 2 0 1 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_parallel 0 2 1 (by decide) (by decide) (by decide)).reverse_first).reverse_second
+  | simpa [primarySource4, primarySource5] using (((noMajoritySchedule_parallel 0 2 1 (by decide) (by decide) (by decide)).reverse_first).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_parallel 2 0 1 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_parallel 2 0 1 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (((noMajoritySchedule_chain_pairInput 0 2 1 (by decide) (by decide) (by decide)).reverse_first).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_thirdInput 2 0 1 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_pairInput 2 0 1 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_firstResult 2 0 1 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_pairInput 0 2 1 (by decide) (by decide) (by decide)).reverse_first).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_thirdInput 2 0 1 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_pairInput 2 0 1 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_firstResult 2 0 1 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_parallel 2 0 1 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_parallel 2 0 1 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_pairClosed_rootThird_left 2 0 1 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_left 2 0 1 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_right 2 0 1 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_pairClosed_rootThird_right 2 0 1 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_pairInput 0 2 1 (by decide) (by decide) (by decide)).reverse_first).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_thirdInput 2 0 1 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_pairInput 2 0 1 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_firstResult 2 0 1 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_pairInput 0 2 1 (by decide) (by decide) (by decide)).reverse_first
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_chain_thirdInput 2 0 1 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_chain_pairInput 2 0 1 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_chain_firstResult 2 0 1 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_left 2 0 1 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_pairClosed_rootThird_left 2 0 1 (by decide) (by decide) (by decide)
+
+set_option maxHeartbeats 1000000 in
+theorem liveSchedule_2_1_noMajority
+    (a₁ b₁ : Fin 4) (a₂ b₂ : Fin 5)
+    (hlive : liveThreeTransitionSchedule 2 1 a₁ b₁ a₂ b₂) :
+    NoMajoritySchedule 2 1 a₁ b₁ a₂ b₂ := by
+  fin_cases a₁ <;> fin_cases b₁ <;> fin_cases a₂ <;> fin_cases b₂
+  all_goals first
+  | exfalso; revert hlive; decide
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_parallel 1 2 0 (by decide) (by decide) (by decide)).reverse_first).reverse_second
+  | simpa [primarySource4, primarySource5] using (((noMajoritySchedule_parallel 1 2 0 (by decide) (by decide) (by decide)).reverse_first).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_parallel 2 1 0 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_parallel 2 1 0 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_thirdInput 2 1 0 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (((noMajoritySchedule_chain_pairInput 1 2 0 (by decide) (by decide) (by decide)).reverse_first).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_pairInput 2 1 0 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_firstResult 2 1 0 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_thirdInput 2 1 0 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_pairInput 1 2 0 (by decide) (by decide) (by decide)).reverse_first).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_pairInput 2 1 0 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_firstResult 2 1 0 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_parallel 1 2 0 (by decide) (by decide) (by decide)).reverse_first
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_parallel 1 2 0 (by decide) (by decide) (by decide)).reverse_first).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_pairClosed_rootThird_right 2 1 0 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_right 2 1 0 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_parallel 2 1 0 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_parallel 2 1 0 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_pairClosed_rootThird_left 2 1 0 (by decide) (by decide) (by decide)).reverse_second).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_left 2 1 0 (by decide) (by decide) (by decide)).reverse_second
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_thirdInput 2 1 0 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using ((noMajoritySchedule_chain_pairInput 1 2 0 (by decide) (by decide) (by decide)).reverse_first).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_pairInput 2 1 0 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_firstResult 2 1 0 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_chain_thirdInput 2 1 0 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_chain_pairInput 1 2 0 (by decide) (by decide) (by decide)).reverse_first
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_chain_pairInput 2 1 0 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_chain_firstResult 2 1 0 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_right 2 1 0 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_pairClosed_rootThird_right 2 1 0 (by decide) (by decide) (by decide)
+  | simpa [primarySource4, primarySource5] using (noMajoritySchedule_pairClosed_rootThird_left 2 1 0 (by decide) (by decide) (by decide)).reverse_root
+  | simpa [primarySource4, primarySource5] using noMajoritySchedule_pairClosed_rootThird_left 2 1 0 (by decide) (by decide) (by decide)
+
+theorem liveThreeTransitionSchedule_noMajority
+    (a₀ b₀ : Fin 3) (a₁ b₁ : Fin 4) (a₂ b₂ : Fin 5)
+    (hlive : liveThreeTransitionSchedule a₀ b₀ a₁ b₁ a₂ b₂) :
+    NoMajoritySchedule a₀ b₀ a₁ b₁ a₂ b₂ := by
+  fin_cases a₀ <;> fin_cases b₀
+  all_goals first
+  | exact (hlive.1 rfl).elim
+  | exact liveSchedule_0_1_noMajority a₁ b₁ a₂ b₂ hlive
+  | exact liveSchedule_0_2_noMajority a₁ b₁ a₂ b₂ hlive
+  | exact liveSchedule_1_0_noMajority a₁ b₁ a₂ b₂ hlive
+  | exact liveSchedule_1_2_noMajority a₁ b₁ a₂ b₂ hlive
+  | exact liveSchedule_2_0_noMajority a₁ b₁ a₂ b₂ hlive
+  | exact liveSchedule_2_1_noMajority a₁ b₁ a₂ b₂ hlive
+
+theorem liveThreeTransition_semantic_exclusion :
+    ¬ ∃ (op₀ op₁ op₂ : Fin 16) (a₀ b₀ : Fin 3) (a₁ b₁ : Fin 4)
+        (a₂ b₂ : Fin 5),
+      liveThreeTransitionSchedule a₀ b₀ a₁ b₁ a₂ b₂ ∧
+      ∀ x : Fin 3 → Bool,
+        threeBinaryProgram op₀ op₁ op₂ a₀ b₀ a₁ b₁ a₂ b₂ x =
+          majorityThreeFloor x := by
+  rintro ⟨op₀, op₁, op₂, a₀, b₀, a₁, b₁, a₂, b₂, hlive, hcomp⟩
+  exact liveThreeTransitionSchedule_noMajority a₀ b₀ a₁ b₁ a₂ b₂ hlive
+    ⟨op₀, op₁, op₂, hcomp⟩
+
 
 /- The semantic heart of the dynamic-boundary argument: no trajectory of
 three arbitrary binary transitions from the three coordinate observers has
 majority as its final exposed wire. -/
 end PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer
+
+#print axioms PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer.liveThreeTransition_semantic_exclusion
