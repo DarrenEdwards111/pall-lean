@@ -140,6 +140,12 @@ theorem codedBin_reverse (op : Fin 16) (a b : Bool) :
 def permuteAssignment (σ : Equiv.Perm (Fin 3)) (x : Fin 3 → Bool) :
     Fin 3 → Bool := fun i => x (σ i)
 
+@[simp] theorem permuteAssignment_apply_symm (σ : Equiv.Perm (Fin 3))
+    (x : Fin 3 → Bool) :
+    permuteAssignment σ (permuteAssignment σ.symm x) = x := by
+  funext i
+  simp [permuteAssignment]
+
 def liftSource4 (σ : Equiv.Perm (Fin 3)) (i : Fin 4) : Fin 4 :=
   if h : i.val < 3 then ⟨(σ ⟨i.val, h⟩).val, by omega⟩ else 3
 
@@ -193,6 +199,35 @@ theorem threeBinaryProgram_reverse_root
     threeBinaryProgram op₀ op₁ (reverseCodedOp op₂) a₀ b₀ a₁ b₁ b₂ a₂ x =
       threeBinaryProgram op₀ op₁ op₂ a₀ b₀ a₁ b₁ a₂ b₂ x := by
   simp [threeBinaryProgram, codedBin_reverse]
+
+def orderedTriple (a b c : Fin 3) : Fin 3 → Fin 3 := fun i => ![a, b, c] i
+
+theorem orderedTriple_injective {a b c : Fin 3}
+    (hab : a ≠ b) (hac : a ≠ c) (hbc : b ≠ c) :
+    Function.Injective (orderedTriple a b c) := by
+  intro i j
+  fin_cases i <;> fin_cases j <;> simp_all [orderedTriple] <;> aesop
+
+noncomputable def orderedTriplePerm (a b c : Fin 3) (hab : a ≠ b) (hac : a ≠ c)
+    (hbc : b ≠ c) : Equiv.Perm (Fin 3) :=
+  Equiv.ofBijective (orderedTriple a b c)
+    (orderedTriple_injective hab hac hbc).bijective_of_finite
+
+@[simp] theorem orderedTriplePerm_zero (a b c : Fin 3) (hab : a ≠ b)
+    (hac : a ≠ c) (hbc : b ≠ c) :
+    orderedTriplePerm a b c hab hac hbc 0 = a := rfl
+
+@[simp] theorem orderedTriplePerm_one (a b c : Fin 3) (hab : a ≠ b)
+    (hac : a ≠ c) (hbc : b ≠ c) :
+    orderedTriplePerm a b c hab hac hbc 1 = b := rfl
+
+@[simp] theorem orderedTriplePerm_two (a b c : Fin 3) (hab : a ≠ b)
+    (hac : a ≠ c) (hbc : b ≠ c) :
+    orderedTriplePerm a b c hab hac hbc 2 = c := rfl
+
+def primarySource4 (i : Fin 3) : Fin 4 := ⟨i.val, by omega⟩
+
+def primarySource5 (i : Fin 3) : Fin 5 := ⟨i.val, by omega⟩
 
 def scheduleInputSeen (a₀ b₀ : Fin 3) (a₁ b₁ : Fin 4)
     (a₂ b₂ : Fin 5) (i : Fin 3) : Prop :=
@@ -270,6 +305,74 @@ theorem liveSchedule_chain_thirdInput_ne_majority :
       threeBinaryProgram op₀ op₁ op₂ 0 1 3 2 4 2 x = majorityThreeFloor x := by
   simpa [threeBinaryProgram, chainThreeBinaryProgram, sourceFour, sourceFive]
     using chainCanonical_thirdInput_ne_majority
+
+theorem liveSchedule_parallel_distinct_ne_majority
+    (a b c : Fin 3) (hab : a ≠ b) (hac : a ≠ c) (hbc : b ≠ c) :
+    ¬ ∃ op₀ op₁ op₂ : Fin 16, ∀ x : Fin 3 → Bool,
+      threeBinaryProgram op₀ op₁ op₂ a b (primarySource4 a) (primarySource4 c)
+        3 4 x = majorityThreeFloor x := by
+  rintro ⟨op₀, op₁, op₂, h⟩
+  apply liveSchedule_parallel_01_02_ne_majority
+  refine ⟨op₀, op₁, op₂, ?_⟩
+  intro y
+  let σ := orderedTriplePerm a b c hab hac hbc
+  let x := permuteAssignment σ.symm y
+  have hp := threeBinaryProgram_permute σ op₀ op₁ op₂ 0 1 0 2 3 4 x
+  have hh := h x
+  have hmaj := majorityThreeFloor_permute σ.symm y
+  simpa [σ, x, permuteAssignment, liftSource4, liftSource5, primarySource4] using
+    hp.symm.trans (hh.trans hmaj)
+
+theorem liveSchedule_chain_firstResult_distinct_ne_majority
+    (a b c : Fin 3) (hab : a ≠ b) (hac : a ≠ c) (hbc : b ≠ c) :
+    ¬ ∃ op₀ op₁ op₂ : Fin 16, ∀ x : Fin 3 → Bool,
+      threeBinaryProgram op₀ op₁ op₂ a b 3 (primarySource4 c) 4 3 x =
+        majorityThreeFloor x := by
+  rintro ⟨op₀, op₁, op₂, h⟩
+  apply liveSchedule_chain_firstResult_ne_majority
+  refine ⟨op₀, op₁, op₂, ?_⟩
+  intro y
+  let σ := orderedTriplePerm a b c hab hac hbc
+  let x := permuteAssignment σ.symm y
+  have hp := threeBinaryProgram_permute σ op₀ op₁ op₂ 0 1 3 2 4 3 x
+  have hh := h x
+  have hmaj := majorityThreeFloor_permute σ.symm y
+  simpa [σ, x, permuteAssignment, liftSource4, liftSource5, primarySource4] using
+    hp.symm.trans (hh.trans hmaj)
+
+theorem liveSchedule_chain_pairInput_distinct_ne_majority
+    (a b c : Fin 3) (hab : a ≠ b) (hac : a ≠ c) (hbc : b ≠ c) :
+    ¬ ∃ op₀ op₁ op₂ : Fin 16, ∀ x : Fin 3 → Bool,
+      threeBinaryProgram op₀ op₁ op₂ a b 3 (primarySource4 c) 4
+        (primarySource5 a) x = majorityThreeFloor x := by
+  rintro ⟨op₀, op₁, op₂, h⟩
+  apply liveSchedule_chain_pairInput_ne_majority
+  refine ⟨op₀, op₁, op₂, ?_⟩
+  intro y
+  let σ := orderedTriplePerm a b c hab hac hbc
+  let x := permuteAssignment σ.symm y
+  have hp := threeBinaryProgram_permute σ op₀ op₁ op₂ 0 1 3 2 4 0 x
+  have hh := h x
+  have hmaj := majorityThreeFloor_permute σ.symm y
+  simpa [σ, x, permuteAssignment, liftSource4, liftSource5, primarySource4,
+    primarySource5] using hp.symm.trans (hh.trans hmaj)
+
+theorem liveSchedule_chain_thirdInput_distinct_ne_majority
+    (a b c : Fin 3) (hab : a ≠ b) (hac : a ≠ c) (hbc : b ≠ c) :
+    ¬ ∃ op₀ op₁ op₂ : Fin 16, ∀ x : Fin 3 → Bool,
+      threeBinaryProgram op₀ op₁ op₂ a b 3 (primarySource4 c) 4
+        (primarySource5 c) x = majorityThreeFloor x := by
+  rintro ⟨op₀, op₁, op₂, h⟩
+  apply liveSchedule_chain_thirdInput_ne_majority
+  refine ⟨op₀, op₁, op₂, ?_⟩
+  intro y
+  let σ := orderedTriplePerm a b c hab hac hbc
+  let x := permuteAssignment σ.symm y
+  have hp := threeBinaryProgram_permute σ op₀ op₁ op₂ 0 1 3 2 4 2 x
+  have hh := h x
+  have hmaj := majorityThreeFloor_permute σ.symm y
+  simpa [σ, x, permuteAssignment, liftSource4, liftSource5, primarySource4,
+    primarySource5] using hp.symm.trans (hh.trans hmaj)
 
 /- The semantic heart of the dynamic-boundary argument: no trajectory of
 three arbitrary binary transitions from the three coordinate observers has
