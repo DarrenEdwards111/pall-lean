@@ -172,6 +172,168 @@ open Classical in theorem majoritySix_nonvarPositions_card_three (c : List (CGat
   simp only [Finset.card_range] at hpartition
   omega
 
+theorem majorityThreeFloor_ne_coordinate (i : Fin 3) :
+    ¬ ∀ x : Fin 3 → Bool, majorityThreeFloor x = x i := by
+  fin_cases i
+  · intro h
+    have := h ![true, false, false]
+    simp [majorityThreeFloor] at this
+  · intro h
+    have := h ![false, true, false]
+    simp [majorityThreeFloor] at this
+  · intro h
+    have := h ![false, false, true]
+    simp [majorityThreeFloor] at this
+
+theorem majoritySix_first_is_var (c : List (CGate 3))
+    (hcomp : computes c majorityThreeFloor) (hlen : c.length = 6) :
+    ∃ i : Fin 3, c.getD 0 (.cst false) = CGate.var i := by
+  rcases majoritySix_gate_dichotomy c hcomp hlen 0 (by omega) with hvar | hbin
+  · exact hvar
+  · obtain ⟨op, j, k, -, hj, hk, -⟩ := hbin
+    omega
+
+theorem majoritySix_root_is_bin (c : List (CGate 3))
+    (hcomp : computes c majorityThreeFloor) (hlen : c.length = 6) :
+    ∃ (op : Bool → Bool → Bool) (j k : ℕ),
+      c.getD 5 (.cst false) = CGate.bin op j k ∧ j < 5 ∧ k < 5 ∧ j ≠ k := by
+  rcases majoritySix_gate_dichotomy c hcomp hlen 5 (by omega) with hvar | hbin
+  · obtain ⟨i, hg⟩ := hvar
+    exfalso
+    apply majorityThreeFloor_ne_coordinate i
+    intro x
+    have hw := wire_eq c x (show 5 < c.length by omega)
+    rw [hg] at hw
+    simp only [evalGate] at hw
+    have hc := hcomp x
+    rw [output_eq_wire, hlen] at hc
+    exact hc.symm.trans hw
+  · exact hbin
+
+open Classical in theorem majoritySix_internalBinaryPositions_card_two
+    (c : List (CGate 3)) (hcomp : computes c majorityThreeFloor)
+    (hlen : c.length = 6) :
+    ((((Finset.range 6).filter
+      (fun w => ¬ ∃ i : Fin 3, c.getD w (.cst false) = CGate.var i)).erase 0).erase 5).card = 2 := by
+  let S := (Finset.range 6).filter
+    (fun w => ¬ ∃ i : Fin 3, c.getD w (.cst false) = CGate.var i)
+  have hScard : S.card = 3 := majoritySix_nonvarPositions_card_three c hcomp hlen
+  obtain ⟨i₀, hg₀⟩ := majoritySix_first_is_var c hcomp hlen
+  have h0 : 0 ∉ S := by
+    intro hm
+    change 0 ∈ (Finset.range 6).filter
+      (fun w => ¬ ∃ i : Fin 3, c.getD w (.cst false) = CGate.var i) at hm
+    rw [Finset.mem_filter] at hm
+    exact hm.2 ⟨i₀, hg₀⟩
+  obtain ⟨op, j, k, hg₅, -, -, -⟩ := majoritySix_root_is_bin c hcomp hlen
+  have h5 : 5 ∈ S := by
+    change 5 ∈ (Finset.range 6).filter
+      (fun w => ¬ ∃ i : Fin 3, c.getD w (.cst false) = CGate.var i)
+    rw [Finset.mem_filter]
+    refine ⟨by simp, ?_⟩
+    rintro ⟨i, hi⟩
+    rw [hg₅] at hi
+    cases hi
+  change ((S.erase 0).erase 5).card = 2
+  rw [Finset.erase_eq_self.mpr h0, Finset.card_erase_of_mem h5]
+  omega
+
+structure SixBinaryChronology (c : List (CGate 3)) where
+  first : ℕ
+  second : ℕ
+  first_pos : 0 < first
+  ordered : first < second
+  second_before_root : second < 5
+  first_nonvar : ¬ ∃ i : Fin 3, c.getD first (.cst false) = CGate.var i
+  second_nonvar : ¬ ∃ i : Fin 3, c.getD second (.cst false) = CGate.var i
+  exhaustive : ∀ w, w < 6 → w ≠ 0 → w ≠ 5 →
+    (¬ ∃ i : Fin 3, c.getD w (.cst false) = CGate.var i) →
+    w = first ∨ w = second
+
+open Classical in theorem majoritySix_binaryChronology
+    (c : List (CGate 3)) (hcomp : computes c majorityThreeFloor)
+    (hlen : c.length = 6) : Nonempty (SixBinaryChronology c) := by
+  let T := (((Finset.range 6).filter
+    (fun w => ¬ ∃ i : Fin 3, c.getD w (.cst false) = CGate.var i)).erase 0).erase 5
+  have hcard : T.card = 2 := majoritySix_internalBinaryPositions_card_two c hcomp hlen
+  obtain ⟨p, q, hpq, hT⟩ := Finset.card_eq_two.mp hcard
+  have hp : p ∈ T := by rw [hT]; simp
+  have hq : q ∈ T := by rw [hT]; simp
+  have hp5 : p ≠ 5 := (Finset.mem_erase.mp hp).1
+  have hpInner := (Finset.mem_erase.mp hp).2
+  have hp0 : p ≠ 0 := (Finset.mem_erase.mp hpInner).1
+  have hpBase := (Finset.mem_erase.mp hpInner).2
+  have hpFilter := Finset.mem_filter.mp hpBase
+  have hp6 : p < 6 := by
+    exact Finset.mem_range.mp hpFilter.1
+  have hpNonvar := hpFilter.2
+  have hq5 : q ≠ 5 := (Finset.mem_erase.mp hq).1
+  have hqInner := (Finset.mem_erase.mp hq).2
+  have hq0 : q ≠ 0 := (Finset.mem_erase.mp hqInner).1
+  have hqBase := (Finset.mem_erase.mp hqInner).2
+  have hqFilter := Finset.mem_filter.mp hqBase
+  have hq6 : q < 6 := by
+    exact Finset.mem_range.mp hqFilter.1
+  have hqNonvar := hqFilter.2
+  have hexhaust : ∀ w, w < 6 → w ≠ 0 → w ≠ 5 →
+      (¬ ∃ i : Fin 3, c.getD w (.cst false) = CGate.var i) → w = p ∨ w = q := by
+    intro w hw hw0 hw5 hnvar
+    have hwT : w ∈ T := by
+      apply Finset.mem_erase.mpr
+      refine ⟨hw5, Finset.mem_erase.mpr ⟨hw0, ?_⟩⟩
+      exact Finset.mem_filter.mpr ⟨Finset.mem_range.mpr hw, hnvar⟩
+    rw [hT] at hwT
+    simpa [eq_comm] using hwT
+  rcases lt_or_gt_of_ne hpq with hpqlt | hqplt
+  · exact ⟨⟨p, q, by omega, hpqlt, by omega, hpNonvar, hqNonvar, hexhaust⟩⟩
+  · exact ⟨⟨q, p, by omega, hqplt, by omega, hqNonvar, hpNonvar,
+      fun w hw hw0 hw5 hnvar =>
+        (hexhaust w hw hw0 hw5 hnvar).elim Or.inr Or.inl⟩⟩
+
+structure SixBinaryGateData (c : List (CGate 3)) extends SixBinaryChronology c where
+  op₀ : Bool → Bool → Bool
+  j₀ : ℕ
+  k₀ : ℕ
+  gate₀ : c.getD first (.cst false) = CGate.bin op₀ j₀ k₀
+  j₀_lt : j₀ < first
+  k₀_lt : k₀ < first
+  j₀_ne_k₀ : j₀ ≠ k₀
+  op₁ : Bool → Bool → Bool
+  j₁ : ℕ
+  k₁ : ℕ
+  gate₁ : c.getD second (.cst false) = CGate.bin op₁ j₁ k₁
+  j₁_lt : j₁ < second
+  k₁_lt : k₁ < second
+  j₁_ne_k₁ : j₁ ≠ k₁
+  op₂ : Bool → Bool → Bool
+  j₂ : ℕ
+  k₂ : ℕ
+  gate₂ : c.getD 5 (.cst false) = CGate.bin op₂ j₂ k₂
+  j₂_lt : j₂ < 5
+  k₂_lt : k₂ < 5
+  j₂_ne_k₂ : j₂ ≠ k₂
+
+open Classical in theorem majoritySix_binaryGateData
+    (c : List (CGate 3)) (hcomp : computes c majorityThreeFloor)
+    (hlen : c.length = 6) : Nonempty (SixBinaryGateData c) := by
+  obtain ⟨chron⟩ := majoritySix_binaryChronology c hcomp hlen
+  have hsecond6 : chron.second < 6 :=
+    lt_trans chron.second_before_root (by omega)
+  have hfirst6 : chron.first < 6 := lt_trans chron.ordered hsecond6
+  rcases majoritySix_gate_dichotomy c hcomp hlen chron.first hfirst6 with hvar₀ | hbin₀
+  · obtain ⟨i, hi⟩ := hvar₀
+    exact False.elim (chron.first_nonvar ⟨i, hi⟩)
+  · obtain ⟨op₀, j₀, k₀, gate₀, j₀_lt, k₀_lt, j₀_ne_k₀⟩ := hbin₀
+    rcases majoritySix_gate_dichotomy c hcomp hlen chron.second hsecond6 with hvar₁ | hbin₁
+    · obtain ⟨i, hi⟩ := hvar₁
+      exact False.elim (chron.second_nonvar ⟨i, hi⟩)
+    · obtain ⟨op₁, j₁, k₁, gate₁, j₁_lt, k₁_lt, j₁_ne_k₁⟩ := hbin₁
+      obtain ⟨op₂, j₂, k₂, gate₂, j₂_lt, k₂_lt, j₂_ne_k₂⟩ :=
+        majoritySix_root_is_bin c hcomp hlen
+      exact ⟨⟨chron, op₀, j₀, k₀, gate₀, j₀_lt, k₀_lt, j₀_ne_k₀,
+        op₁, j₁, k₁, gate₁, j₁_lt, k₁_lt, j₁_ne_k₁,
+        op₂, j₂, k₂, gate₂, j₂_lt, k₂_lt, j₂_ne_k₂⟩⟩
+
 def permuteAssignment (σ : Equiv.Perm (Fin 3)) (x : Fin 3 → Bool) :
     Fin 3 → Bool := fun i => x (σ i)
 
