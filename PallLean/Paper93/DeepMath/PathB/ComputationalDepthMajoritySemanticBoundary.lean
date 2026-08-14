@@ -200,6 +200,41 @@ theorem threeBinaryProgram_reverse_root
       threeBinaryProgram op₀ op₁ op₂ a₀ b₀ a₁ b₁ a₂ b₂ x := by
   simp [threeBinaryProgram, codedBin_reverse]
 
+def NoMajoritySchedule (a₀ b₀ : Fin 3) (a₁ b₁ : Fin 4)
+    (a₂ b₂ : Fin 5) : Prop :=
+  ¬ ∃ op₀ op₁ op₂ : Fin 16, ∀ x : Fin 3 → Bool,
+    threeBinaryProgram op₀ op₁ op₂ a₀ b₀ a₁ b₁ a₂ b₂ x = majorityThreeFloor x
+
+theorem NoMajoritySchedule.reverse_first {a₀ b₀ : Fin 3} {a₁ b₁ : Fin 4}
+    {a₂ b₂ : Fin 5} (h : NoMajoritySchedule a₀ b₀ a₁ b₁ a₂ b₂) :
+    NoMajoritySchedule b₀ a₀ a₁ b₁ a₂ b₂ := by
+  rintro ⟨op₀, op₁, op₂, hcomp⟩
+  apply h
+  refine ⟨reverseCodedOp op₀, op₁, op₂, ?_⟩
+  intro x
+  rw [threeBinaryProgram_reverse_first]
+  exact hcomp x
+
+theorem NoMajoritySchedule.reverse_second {a₀ b₀ : Fin 3} {a₁ b₁ : Fin 4}
+    {a₂ b₂ : Fin 5} (h : NoMajoritySchedule a₀ b₀ a₁ b₁ a₂ b₂) :
+    NoMajoritySchedule a₀ b₀ b₁ a₁ a₂ b₂ := by
+  rintro ⟨op₀, op₁, op₂, hcomp⟩
+  apply h
+  refine ⟨op₀, reverseCodedOp op₁, op₂, ?_⟩
+  intro x
+  rw [threeBinaryProgram_reverse_second]
+  exact hcomp x
+
+theorem NoMajoritySchedule.reverse_root {a₀ b₀ : Fin 3} {a₁ b₁ : Fin 4}
+    {a₂ b₂ : Fin 5} (h : NoMajoritySchedule a₀ b₀ a₁ b₁ a₂ b₂) :
+    NoMajoritySchedule a₀ b₀ a₁ b₁ b₂ a₂ := by
+  rintro ⟨op₀, op₁, op₂, hcomp⟩
+  apply h
+  refine ⟨op₀, op₁, reverseCodedOp op₂, ?_⟩
+  intro x
+  rw [threeBinaryProgram_reverse_root]
+  exact hcomp x
+
 def orderedTriple (a b c : Fin 3) : Fin 3 → Fin 3 := fun i => ![a, b, c] i
 
 theorem orderedTriple_injective {a b c : Fin 3}
@@ -373,6 +408,31 @@ theorem liveSchedule_chain_thirdInput_distinct_ne_majority
   have hmaj := majorityThreeFloor_permute σ.symm y
   simpa [σ, x, permuteAssignment, liftSource4, liftSource5, primarySource4,
     primarySource5] using hp.symm.trans (hh.trans hmaj)
+
+theorem noMajoritySchedule_parallel (a b c : Fin 3) (hab : a ≠ b)
+    (hac : a ≠ c) (hbc : b ≠ c) :
+    NoMajoritySchedule a b (primarySource4 a) (primarySource4 c) 3 4 := by
+  simpa [NoMajoritySchedule] using
+    liveSchedule_parallel_distinct_ne_majority a b c hab hac hbc
+
+theorem noMajoritySchedule_chain_firstResult (a b c : Fin 3) (hab : a ≠ b)
+    (hac : a ≠ c) (hbc : b ≠ c) :
+    NoMajoritySchedule a b 3 (primarySource4 c) 4 3 := by
+  simpa [NoMajoritySchedule] using
+    liveSchedule_chain_firstResult_distinct_ne_majority a b c hab hac hbc
+
+theorem noMajoritySchedule_chain_pairInput (a b c : Fin 3) (hab : a ≠ b)
+    (hac : a ≠ c) (hbc : b ≠ c) :
+    NoMajoritySchedule a b 3 (primarySource4 c) 4 (primarySource5 a) := by
+  simpa [NoMajoritySchedule] using
+    liveSchedule_chain_pairInput_distinct_ne_majority a b c hab hac hbc
+
+theorem noMajoritySchedule_chain_thirdInput (a b c : Fin 3) (hab : a ≠ b)
+    (hac : a ≠ c) (hbc : b ≠ c) :
+    NoMajoritySchedule a b 3 (primarySource4 c) 4 (primarySource5 c) := by
+  simpa [NoMajoritySchedule] using
+    liveSchedule_chain_thirdInput_distinct_ne_majority a b c hab hac hbc
+
 
 /- The semantic heart of the dynamic-boundary argument: no trajectory of
 three arbitrary binary transitions from the three coordinate observers has
