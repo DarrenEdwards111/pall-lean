@@ -11,6 +11,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameBudgetCashout
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameCrossBranch
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameNonlinearShare
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNFrameRestrictedFreshness
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCbudgetConeBound
 
 /-!
 # Observer-centric N-frame action bridge
@@ -4079,6 +4080,66 @@ theorem liveOffDiagonal_rejected_by_collective_minimality :
 
 #print axioms no_collectiveReplacement_of_minimal
 #print axioms liveOffDiagonal_rejected_by_collective_minimality
+
+/-! ### Kernel-certified majority synthesis frontier
+
+The external exact-synthesis spike reports that four binary gates are
+necessary, but importing that result through `native_decide` would weaken the
+kernel-only audit standard used here.  The production file records everything
+currently derivable without that shortcut: the concrete target, its three
+essential coordinates, the general cone lower bound, and the seven-gate upper
+bound.  Thus only the finite exclusion of five- and six-gate circuits remains.
+-/
+
+/-- The concrete three-bit majority function computed by the shorter circuit. -/
+def majorityThree : (Fin 3 → Bool) → Bool :=
+  NFrameBoundaryTransducer.output shorterMajorityCircuit
+
+/-- All three coordinates are essential for three-bit majority. -/
+theorem majorityThree_depSet :
+    PallLean.Paper93.DeepMath.PathB.SATFamilyCircuitFloor.depSet majorityThree =
+      (Finset.univ : Finset (Fin 3)) := by
+  rw [Finset.eq_univ_iff_forall]
+  intro i
+  fin_cases i
+  · exact PallLean.Paper93.DeepMath.PathB.SATFamilyCircuitFloor.mem_depSet.mpr
+      ⟨![false, true, false], true, by decide⟩
+  · exact PallLean.Paper93.DeepMath.PathB.SATFamilyCircuitFloor.mem_depSet.mpr
+      ⟨![true, false, false], true, by decide⟩
+  · exact PallLean.Paper93.DeepMath.PathB.SATFamilyCircuitFloor.mem_depSet.mpr
+      ⟨![true, false, false], true, by decide⟩
+
+/-- The general dependency-cone theorem gives the kernel lower frontier `5`. -/
+theorem majorityThree_cbudget_lower :
+    5 ≤ NFrameBoundaryTransducer.cbudget majorityThree := by
+  have h := PallLean.Paper93.DeepMath.PathB.CbudgetConeBound.cone_bound majorityThree
+  have h' : 6 ≤ NFrameBoundaryTransducer.cbudget majorityThree + 1 := by
+    simpa [majorityThree_depSet] using h
+  exact Nat.le_of_succ_le_succ (by simpa using h')
+
+/-- The verified seven-gate circuit gives the matching current upper frontier. -/
+theorem majorityThree_cbudget_upper :
+    NFrameBoundaryTransducer.cbudget majorityThree ≤ 7 := by
+  have hcomp : NFrameBoundaryTransducer.computes shorterMajorityCircuit majorityThree :=
+    fun _ => rfl
+  have h : NFrameBoundaryTransducer.cbudget majorityThree ≤
+      shorterMajorityCircuit.length :=
+    Nat.sInf_le ⟨shorterMajorityCircuit, hcomp, rfl⟩
+  norm_num [shorterMajorityCircuit] at h ⊢
+  exact h
+
+/-- Kernel-certified exact-synthesis frontier; the spike predicts the upper
+endpoint is exact, while production Lean leaves only sizes `5` and `6` to
+exclude. -/
+theorem majorityThree_cbudget_frontier :
+    5 ≤ NFrameBoundaryTransducer.cbudget majorityThree ∧
+      NFrameBoundaryTransducer.cbudget majorityThree ≤ 7 :=
+  ⟨majorityThree_cbudget_lower, majorityThree_cbudget_upper⟩
+
+#print axioms majorityThree_depSet
+#print axioms majorityThree_cbudget_lower
+#print axioms majorityThree_cbudget_upper
+#print axioms majorityThree_cbudget_frontier
 
 /-! ### An asymptotic affine-incidence obstruction
 
