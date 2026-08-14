@@ -126,6 +126,74 @@ def ThreeTransitionProgram.eval (p : ThreeTransitionProgram)
   let g₁ := codedBin p.op₁ (source4 x g₀ p.left₁) (source4 x g₀ p.right₁)
   codedBin p.op₂ (source5 x g₀ g₁ p.left₂) (source5 x g₀ g₁ p.right₂)
 
+def reverseCodedOp (op : Fin 16) : Fin 16 :=
+  Fin.ofNat 16
+    ((if codedBin op false false then 1 else 0) +
+     (if codedBin op true false then 2 else 0) +
+     (if codedBin op false true then 4 else 0) +
+     (if codedBin op true true then 8 else 0))
+
+theorem codedBin_reverse (op : Fin 16) (a b : Bool) :
+    codedBin (reverseCodedOp op) a b = codedBin op b a := by
+  fin_cases op <;> cases a <;> cases b <;> decide
+
+def permuteAssignment (σ : Equiv.Perm (Fin 3)) (x : Fin 3 → Bool) :
+    Fin 3 → Bool := fun i => x (σ i)
+
+def liftSource4 (σ : Equiv.Perm (Fin 3)) (i : Fin 4) : Fin 4 :=
+  if h : i.val < 3 then ⟨(σ ⟨i.val, h⟩).val, by omega⟩ else 3
+
+def liftSource5 (σ : Equiv.Perm (Fin 3)) (i : Fin 5) : Fin 5 :=
+  if h : i.val < 3 then ⟨(σ ⟨i.val, h⟩).val, by omega⟩ else i
+
+theorem sourceFour_liftSource4 (σ : Equiv.Perm (Fin 3))
+    (x : Fin 3 → Bool) (g : Bool) (i : Fin 4) :
+    sourceFour x g (liftSource4 σ i) = sourceFour (permuteAssignment σ x) g i := by
+  fin_cases i <;> simp [sourceFour, liftSource4, permuteAssignment]
+
+theorem sourceFive_liftSource5 (σ : Equiv.Perm (Fin 3))
+    (x : Fin 3 → Bool) (g₀ g₁ : Bool) (i : Fin 5) :
+    sourceFive x g₀ g₁ (liftSource5 σ i) =
+      sourceFive (permuteAssignment σ x) g₀ g₁ i := by
+  fin_cases i <;> simp [sourceFive, liftSource5, permuteAssignment]
+
+theorem majorityThreeFloor_permute (σ : Equiv.Perm (Fin 3))
+    (x : Fin 3 → Bool) :
+    majorityThreeFloor (permuteAssignment σ x) = majorityThreeFloor x := by
+  decide +revert
+
+theorem threeBinaryProgram_permute (σ : Equiv.Perm (Fin 3))
+    (op₀ op₁ op₂ : Fin 16) (a₀ b₀ : Fin 3) (a₁ b₁ : Fin 4)
+    (a₂ b₂ : Fin 5) (x : Fin 3 → Bool) :
+    threeBinaryProgram op₀ op₁ op₂ (σ a₀) (σ b₀)
+        (liftSource4 σ a₁) (liftSource4 σ b₁)
+        (liftSource5 σ a₂) (liftSource5 σ b₂) x =
+      threeBinaryProgram op₀ op₁ op₂ a₀ b₀ a₁ b₁ a₂ b₂
+        (permuteAssignment σ x) := by
+  simp [threeBinaryProgram, sourceThree, sourceFour_liftSource4,
+    sourceFive_liftSource5, permuteAssignment]
+
+theorem threeBinaryProgram_reverse_first
+    (op₀ op₁ op₂ : Fin 16) (a₀ b₀ : Fin 3) (a₁ b₁ : Fin 4)
+    (a₂ b₂ : Fin 5) (x : Fin 3 → Bool) :
+    threeBinaryProgram (reverseCodedOp op₀) op₁ op₂ b₀ a₀ a₁ b₁ a₂ b₂ x =
+      threeBinaryProgram op₀ op₁ op₂ a₀ b₀ a₁ b₁ a₂ b₂ x := by
+  simp [threeBinaryProgram, codedBin_reverse]
+
+theorem threeBinaryProgram_reverse_second
+    (op₀ op₁ op₂ : Fin 16) (a₀ b₀ : Fin 3) (a₁ b₁ : Fin 4)
+    (a₂ b₂ : Fin 5) (x : Fin 3 → Bool) :
+    threeBinaryProgram op₀ (reverseCodedOp op₁) op₂ a₀ b₀ b₁ a₁ a₂ b₂ x =
+      threeBinaryProgram op₀ op₁ op₂ a₀ b₀ a₁ b₁ a₂ b₂ x := by
+  simp [threeBinaryProgram, codedBin_reverse]
+
+theorem threeBinaryProgram_reverse_root
+    (op₀ op₁ op₂ : Fin 16) (a₀ b₀ : Fin 3) (a₁ b₁ : Fin 4)
+    (a₂ b₂ : Fin 5) (x : Fin 3 → Bool) :
+    threeBinaryProgram op₀ op₁ (reverseCodedOp op₂) a₀ b₀ a₁ b₁ b₂ a₂ x =
+      threeBinaryProgram op₀ op₁ op₂ a₀ b₀ a₁ b₁ a₂ b₂ x := by
+  simp [threeBinaryProgram, codedBin_reverse]
+
 def scheduleInputSeen (a₀ b₀ : Fin 3) (a₁ b₁ : Fin 4)
     (a₂ b₂ : Fin 5) (i : Fin 3) : Prop :=
   a₂.val = i.val ∨ b₂.val = i.val ∨
