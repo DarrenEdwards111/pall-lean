@@ -1,4 +1,4 @@
-import PallLean.Paper93.DeepMath.PathB.ComputationalDepthROTExtraction
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthTwelveGateShape
 
 /-!
 # Three-bit majority lies above the dependency-cone floor
@@ -13,6 +13,7 @@ implementation leaves the kernel-certified frontier `6 ≤ cbudget ≤ 7`.
 namespace PallLean.Paper93.DeepMath.PathB.NFrameBoundaryTransducer
 
 open PallLean.Paper93.DeepMath.PathB.SATFamilyCircuitFloor
+open PallLean.Paper93.DeepMath.PathB.CbudgetConeBound
 
 /-- Three-bit majority, in a form with a verified seven-gate circuit. -/
 def majorityThreeFloor (x : Fin 3 → Bool) : Bool :=
@@ -84,6 +85,254 @@ to exclude before the external exact value `7` is fully internalized. -/
 theorem majorityThreeFloor_cbudget_frontier :
     6 ≤ cbudget majorityThreeFloor ∧ cbudget majorityThreeFloor ≤ 7 :=
   ⟨majorityThreeFloor_cbudget_lower, majorityThreeFloor_cbudget_upper⟩
+
+/-! ### Six-gate normal form
+
+The last finite gap cannot be closed by asking the kernel to reduce all labelled
+programs at once: that term is unnecessarily enormous.  Instead we first use
+the circuit surgeries to force a six-gate implementation into the genuine
+`var`/`bin` basis. -/
+
+theorem majorityThreeFloor_not_constant (b : Bool)
+    (h : ∀ x, majorityThreeFloor x = b) : False := by
+  have h0 : (0 : Fin 3) ∈ depSet majorityThreeFloor := by
+    rw [majorityThreeFloor_depSet]
+    exact Finset.mem_univ _
+  obtain ⟨x, v, hx⟩ := mem_depSet.mp h0
+  exact hx (by rw [h, h])
+
+theorem majorityThreeFloor_not_depSet :
+    depSet (fun x => !(majorityThreeFloor x)) = (Finset.univ : Finset (Fin 3)) := by
+  rw [depSet_not, majorityThreeFloor_depSet]
+
+theorem majorityThreeFloor_not_cbudget_lower :
+    6 ≤ cbudget (fun x => !(majorityThreeFloor x)) := by
+  apply cbudget_above_floor_of_unsplittable (fun x => !(majorityThreeFloor x))
+      (0 : Fin 3) (1 : Fin 3) (2 : Fin 3) (by decide) (by decide) (by decide)
+      (fun _ => false)
+  · intro hs
+    exact majorityThreeFloor_no_split_one (split1_of_not hs)
+  · intro hs
+    exact majorityThreeFloor_no_split_two (split2_of_not hs)
+  · intro hs
+    exact majorityThreeFloor_no_split_three (split3_of_not hs)
+
+/-- A six-gate majority circuit has no constant gate, including at the root. -/
+theorem majoritySix_no_cst_mid (c₁ c₂ : List (CGate 3)) (b : Bool)
+    (hcomp : computes (c₁ ++ CGate.cst b :: c₂) majorityThreeFloor)
+    (hlen : c₁.length + c₂.length + 1 = 6) : False := by
+  have hcb := majorityThreeFloor_cbudget_lower
+  cases c₂ with
+  | cons g rest =>
+    have hle := cbudget_le_of_cst_mid c₁ (g :: rest) b majorityThreeFloor hcomp (by simp)
+    simp only [List.length_cons] at hle hlen
+    omega
+  | nil =>
+    refine majorityThreeFloor_not_constant b (fun x => ?_)
+    have hx := hcomp x
+    have hVlen : (runFrom x [] c₁).length = c₁.length := by
+      rw [runFrom_length]
+      simp
+    rw [← hx]
+    show (runFrom x [] (c₁ ++ [CGate.cst b])).getD
+      ((c₁ ++ [CGate.cst b]).length - 1) false = b
+    rw [runFrom_append]
+    show ((runFrom x [] c₁) ++ [evalGate x (runFrom x [] c₁) (CGate.cst b)]).getD
+      ((c₁ ++ [CGate.cst b]).length - 1) false = b
+    have hidx : (c₁ ++ [CGate.cst b]).length - 1 = (runFrom x [] c₁).length := by
+      rw [hVlen]
+      simp
+    rw [hidx, getD_concat]
+    rfl
+
+/-- A six-gate majority circuit has no unary gate.  At the root, the unary
+truth-table trichotomy would give a circuit of at most five gates for majority,
+its complement, or a constant. -/
+theorem majoritySix_no_un_mid (c₁ c₂ : List (CGate 3)) (op : Bool → Bool) (q : ℕ)
+    (hcomp : computes (c₁ ++ CGate.un op q :: c₂) majorityThreeFloor)
+    (hlen : c₁.length + c₂.length + 1 = 6) : False := by
+  have hcb := majorityThreeFloor_cbudget_lower
+  have hncb := majorityThreeFloor_not_cbudget_lower
+  cases c₂ with
+  | cons g rest =>
+    have hle := cbudget_le_of_un_mid c₁ (g :: rest) op q majorityThreeFloor hcomp (by simp)
+    simp only [List.length_cons] at hle hlen
+    omega
+  | nil =>
+    have hc₁len : c₁.length = 5 := by simpa using hlen
+    have hval : ∀ x, majorityThreeFloor x = op ((runFrom x [] c₁).getD q false) := by
+      intro x
+      have hx := hcomp x
+      rw [← hx]
+      show (runFrom x [] (c₁ ++ [CGate.un op q])).getD
+        ((c₁ ++ [CGate.un op q]).length - 1) false
+        = op ((runFrom x [] c₁).getD q false)
+      rw [runFrom_append]
+      show ((runFrom x [] c₁) ++ [evalGate x (runFrom x [] c₁) (CGate.un op q)]).getD
+        ((c₁ ++ [CGate.un op q]).length - 1) false
+        = op ((runFrom x [] c₁).getD q false)
+      have hV : (runFrom x [] c₁).length = c₁.length := by
+        rw [runFrom_length]
+        simp
+      have hi : (c₁ ++ [CGate.un op q]).length - 1 = (runFrom x [] c₁).length := by
+        rw [hV]
+        simp
+      rw [hi, getD_concat]
+      rfl
+    by_cases hq : q < c₁.length
+    · have htake : ∀ x, output (c₁.take (q + 1)) x =
+          (runFrom x [] c₁).getD q false := by
+        intro x
+        unfold output
+        have ht : (c₁.take (q + 1)).length = q + 1 := by
+          rw [List.length_take]
+          omega
+        rw [ht]
+        exact wire_prefix c₁ x (by omega) (by omega)
+      have htlen : (c₁.take (q + 1)).length = q + 1 := by
+        rw [List.length_take]
+        omega
+      rcases unary_shape op with hop | hop | hop
+      · exact majorityThreeFloor_not_constant (op false) (fun x => by rw [hval x, hop])
+      · have hc : computes (c₁.take (q + 1)) majorityThreeFloor := by
+          intro x
+          rw [htake x, ← hop ((runFrom x [] c₁).getD q false), ← hval x]
+        have hle : cbudget majorityThreeFloor ≤ q + 1 :=
+          le_trans (Nat.sInf_le ⟨_, hc, rfl⟩) (le_of_eq htlen)
+        omega
+      · have hc : computes (c₁.take (q + 1)) (fun x => !(majorityThreeFloor x)) := by
+          intro x
+          rw [htake x]
+          show (runFrom x [] c₁).getD q false = !(majorityThreeFloor x)
+          rw [hval x, hop, Bool.not_not]
+        have hle : cbudget (fun x => !(majorityThreeFloor x)) ≤ q + 1 :=
+          le_trans (Nat.sInf_le ⟨_, hc, rfl⟩) (le_of_eq htlen)
+        omega
+    · exact majorityThreeFloor_not_constant (op false) (fun x => by
+        rw [hval x]
+        have hV : (runFrom x [] c₁).length = c₁.length := by
+          rw [runFrom_length]
+          simp
+        rw [List.getD_eq_default _ _ (by omega)])
+
+/-- Every binary gate in a six-gate majority circuit reads two distinct earlier
+wires.  Any garbage or repeated read is extensionally a unary gate. -/
+theorem majoritySix_bins_genuine (c : List (CGate 3))
+    (hcomp : computes c majorityThreeFloor) (hlen : c.length = 6)
+    (p : ℕ) (hp : p < 6) (op : Bool → Bool → Bool) (j k : ℕ)
+    (hg : c.getD p (.cst false) = CGate.bin op j k) :
+    j < p ∧ k < p ∧ j ≠ k := by
+  have hs := split_at_getD c (show p < c.length by omega)
+  rw [hg] at hs
+  have hc := hcomp
+  rw [hs] at hc
+  have ht : (c.take p).length = p := by rw [List.length_take]; omega
+  have hd : (c.drop (p + 1)).length = c.length - (p + 1) := List.length_drop
+  have hlen' : (c.take p).length + (c.drop (p + 1)).length + 1 = 6 := by omega
+  by_cases hk : k < p
+  · by_cases hj : j < p
+    · refine ⟨hj, hk, ?_⟩
+      intro he
+      subst he
+      have hswap := computes_swap_mid (c.take p) (c.drop (p + 1))
+        (CGate.bin op j j) (CGate.un (fun v => op v v) j) majorityThreeFloor hc
+        (fun _ _ _ => rfl)
+      exact majoritySix_no_un_mid _ _ _ _ hswap hlen'
+    · exfalso
+      have hswap := computes_swap_mid (c.take p) (c.drop (p + 1))
+        (CGate.bin op j k) (CGate.un (fun v => op false v) k) majorityThreeFloor hc
+        (fun _ vals hv => by
+          have hj0 : vals.getD j false = false := List.getD_eq_default _ _ (by omega)
+          show (fun v => op false v) (vals.getD k false) =
+            op (vals.getD j false) (vals.getD k false)
+          rw [hj0])
+      exact majoritySix_no_un_mid _ _ _ _ hswap hlen'
+  · exfalso
+    have hswap := computes_swap_mid (c.take p) (c.drop (p + 1))
+      (CGate.bin op j k) (CGate.un (fun v => op v false) j) majorityThreeFloor hc
+      (fun _ vals hv => by
+        have hk0 : vals.getD k false = false := List.getD_eq_default _ _ (by omega)
+        show (fun v => op v false) (vals.getD j false) =
+          op (vals.getD j false) (vals.getD k false)
+        rw [hk0])
+    exact majoritySix_no_un_mid _ _ _ _ hswap hlen'
+
+theorem majoritySix_gate_dichotomy (c : List (CGate 3))
+    (hcomp : computes c majorityThreeFloor) (hlen : c.length = 6)
+    (p : ℕ) (hp : p < 6) :
+    (∃ i : Fin 3, c.getD p (.cst false) = CGate.var i) ∨
+    ∃ op j k, c.getD p (.cst false) = CGate.bin op j k ∧
+      j < p ∧ k < p ∧ j ≠ k := by
+  cases hg : c.getD p (.cst false) with
+  | var i => exact Or.inl ⟨i, rfl⟩
+  | cst b =>
+    have hs := split_at_getD c (show p < c.length by omega)
+    rw [hg] at hs
+    rw [hs] at hcomp
+    exfalso
+    apply majoritySix_no_cst_mid (c.take p) (c.drop (p + 1)) b hcomp
+    rw [List.length_take, List.length_drop]
+    omega
+  | un op q =>
+    have hs := split_at_getD c (show p < c.length by omega)
+    rw [hg] at hs
+    rw [hs] at hcomp
+    exfalso
+    apply majoritySix_no_un_mid (c.take p) (c.drop (p + 1)) op q hcomp
+    rw [List.length_take, List.length_drop]
+    omega
+  | bin op j k =>
+    obtain ⟨hj, hk, hjk⟩ := majoritySix_bins_genuine c hcomp hlen p hp op j k hg
+    exact Or.inr ⟨op, j, k, rfl, hj, hk, hjk⟩
+
+theorem majoritySix_minimal (c : List (CGate 3))
+    (hcomp : computes c majorityThreeFloor) (hlen : c.length = 6) :
+    c.length = cbudget majorityThreeFloor := by
+  have hle : cbudget majorityThreeFloor ≤ c.length := Nat.sInf_le ⟨c, hcomp, rfl⟩
+  have hlo := majorityThreeFloor_cbudget_lower
+  omega
+
+theorem majoritySix_cone_all (c : List (CGate 3))
+    (hcomp : computes c majorityThreeFloor) (hlen : c.length = 6) :
+    cone c = Finset.range 6 := by
+  have hlo := cone_lb_of_unsplittable majorityThreeFloor
+      (0 : Fin 3) (1 : Fin 3) (2 : Fin 3) (by decide) (by decide) (by decide)
+      (fun _ => false)
+      (by simpa [Split1, Function.update, Fin.cases] using majorityThreeFloor_no_split_one)
+      (by simpa [Split2, Function.update, Fin.cases] using majorityThreeFloor_no_split_two)
+      (by simpa [Split3, Function.update, Fin.cases] using majorityThreeFloor_no_split_three)
+      hcomp (by omega)
+  have hsub : cone c ⊆ Finset.range 6 := by
+    intro p hp
+    rw [Finset.mem_range]
+    have := (mem_cone.mp hp).1
+    omega
+  apply Finset.eq_of_subset_of_card_le hsub
+  rw [majorityThreeFloor_depSet, Finset.card_univ, Fintype.card_fin] at hlo
+  simpa using hlo
+
+theorem majoritySix_varsEq (c : List (CGate 3))
+    (hcomp : computes c majorityThreeFloor) (hlen : c.length = 6) :
+    (coneVars c).card = (depSet majorityThreeFloor).card := by
+  have hs : 0 < c.length := by omega
+  have hlo := depSet_card_le_coneVars majorityThreeFloor c hcomp hs
+  have hhi := cone_counting c hs
+  rw [majorityThreeFloor_depSet, Finset.card_univ, Fintype.card_fin] at hlo ⊢
+  omega
+
+theorem majoritySix_var_inj (c : List (CGate 3))
+    (hcomp : computes c majorityThreeFloor) (hlen : c.length = 6)
+    {w₁ w₂ : ℕ} {i : Fin 3} (h₁ : w₁ < 6) (h₂ : w₂ < 6)
+    (hg₁ : c.getD w₁ (.cst false) = CGate.var i)
+    (hg₂ : c.getD w₂ (.cst false) = CGate.var i) : w₁ = w₂ := by
+  apply var_injective_of_varsEq majorityThreeFloor c hcomp (by omega)
+      (majoritySix_varsEq c hcomp hlen)
+  · rw [majoritySix_cone_all c hcomp hlen, Finset.mem_range]
+    exact h₁
+  · rw [majoritySix_cone_all c hcomp hlen, Finset.mem_range]
+    exact h₂
+  · exact hg₁
+  · exact hg₂
 
 /-! ### Kernel classification of three-binary-gate programs
 
