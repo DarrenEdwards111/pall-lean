@@ -334,6 +334,142 @@ open Classical in theorem majoritySix_binaryGateData
         op₁, j₁, k₁, gate₁, j₁_lt, k₁_lt, j₁_ne_k₁,
         op₂, j₂, k₂, gate₂, j₂_lt, k₂_lt, j₂_ne_k₂⟩⟩
 
+theorem majoritySix_source_before_first_is_var (c : List (CGate 3))
+    (hcomp : computes c majorityThreeFloor) (hlen : c.length = 6)
+    (d : SixBinaryGateData c) {w : ℕ} (hw : w < d.first) :
+    ∃ i : Fin 3, c.getD w (.cst false) = CGate.var i := by
+  have hw6 : w < 6 := by
+    exact lt_trans hw (lt_trans d.ordered (lt_trans d.second_before_root (by omega)))
+  rcases majoritySix_gate_dichotomy c hcomp hlen w hw6 with hvar | hbin
+  · exact hvar
+  · obtain ⟨op, j, k, hg, hj, hk, hjk⟩ := hbin
+    have hnvar : ¬ ∃ i : Fin 3, c.getD w (.cst false) = CGate.var i := by
+      rintro ⟨i, hi⟩
+      rw [hg] at hi
+      cases hi
+    by_cases hw0 : w = 0
+    · subst hw0
+      omega
+    have hfirst5 : d.first < 5 := lt_trans d.ordered d.second_before_root
+    have hw5 : w ≠ 5 := Nat.ne_of_lt (lt_trans hw hfirst5)
+    rcases d.exhaustive w hw6 hw0 hw5 hnvar with hfirst | hsecond
+    · subst w
+      exact False.elim ((Nat.lt_irrefl d.first) hw)
+    · subst w
+      exact False.elim ((Nat.not_lt_of_ge (Nat.le_of_lt d.ordered)) hw)
+
+theorem majoritySix_source_before_second (c : List (CGate 3))
+    (hcomp : computes c majorityThreeFloor) (hlen : c.length = 6)
+    (d : SixBinaryGateData c) {w : ℕ} (hw : w < d.second) :
+    (∃ i : Fin 3, c.getD w (.cst false) = CGate.var i) ∨ w = d.first := by
+  have hw6 : w < 6 := lt_trans hw (lt_trans d.second_before_root (by omega))
+  rcases majoritySix_gate_dichotomy c hcomp hlen w hw6 with hvar | hbin
+  · exact Or.inl hvar
+  · obtain ⟨op, j, k, hg, hj, hk, hjk⟩ := hbin
+    have hnvar : ¬ ∃ i : Fin 3, c.getD w (.cst false) = CGate.var i := by
+      rintro ⟨i, hi⟩
+      rw [hg] at hi
+      cases hi
+    by_cases hw0 : w = 0
+    · subst hw0
+      omega
+    have hw5 : w ≠ 5 := Nat.ne_of_lt (lt_trans hw d.second_before_root)
+    rcases d.exhaustive w hw6 hw0 hw5 hnvar with hfirst | hsecond
+    · exact Or.inr hfirst
+    · subst w
+      exact False.elim ((Nat.lt_irrefl d.second) hw)
+
+theorem majoritySix_source_before_root (c : List (CGate 3))
+    (hcomp : computes c majorityThreeFloor) (hlen : c.length = 6)
+    (d : SixBinaryGateData c) {w : ℕ} (hw : w < 5) :
+    (∃ i : Fin 3, c.getD w (.cst false) = CGate.var i) ∨
+      w = d.first ∨ w = d.second := by
+  have hw6 : w < 6 := lt_trans hw (by omega)
+  rcases majoritySix_gate_dichotomy c hcomp hlen w hw6 with hvar | hbin
+  · exact Or.inl hvar
+  · obtain ⟨op, j, k, hg, hj, hk, hjk⟩ := hbin
+    have hnvar : ¬ ∃ i : Fin 3, c.getD w (.cst false) = CGate.var i := by
+      rintro ⟨i, hi⟩
+      rw [hg] at hi
+      cases hi
+    by_cases hw0 : w = 0
+    · subst hw0
+      omega
+    exact Or.inr (d.exhaustive w hw6 hw0 (by omega) hnvar)
+
+theorem wire_eq_of_var_gate (c : List (CGate 3)) (x : Fin 3 → Bool)
+    {p : ℕ} (hp : p < c.length) {i : Fin 3}
+    (hg : c.getD p (.cst false) = CGate.var i) : wire c x p = x i := by
+  rw [wire_eq c x hp, hg]
+  rfl
+
+theorem wire_eq_of_bin_gate (c : List (CGate 3)) (x : Fin 3 → Bool)
+    {p j k : ℕ} (hp : p < c.length) (hj : j < p) (hk : k < p)
+    {op : Bool → Bool → Bool}
+    (hg : c.getD p (.cst false) = CGate.bin op j k) :
+    wire c x p = op (wire c x j) (wire c x k) := by
+  rw [wire_eq c x hp, hg]
+  simp only [evalGate]
+  rw [wire_prefix c x hj (le_of_lt hp), wire_prefix c x hk (le_of_lt hp)]
+
+structure SixCompressedSourceData (c : List (CGate 3)) extends SixBinaryGateData c where
+  a₀ : Fin 3
+  b₀ : Fin 3
+  a₁ : Fin 4
+  b₁ : Fin 4
+  a₂ : Fin 5
+  b₂ : Fin 5
+  source_a₀ : ∀ x, sourceThree x a₀ = wire c x j₀
+  source_b₀ : ∀ x, sourceThree x b₀ = wire c x k₀
+  source_a₁ : ∀ x, sourceFour x (wire c x first) a₁ = wire c x j₁
+  source_b₁ : ∀ x, sourceFour x (wire c x first) b₁ = wire c x k₁
+  source_a₂ : ∀ x, sourceFive x (wire c x first) (wire c x second) a₂ = wire c x j₂
+  source_b₂ : ∀ x, sourceFive x (wire c x first) (wire c x second) b₂ = wire c x k₂
+
+open Classical in theorem majoritySix_compressedSourceData
+    (c : List (CGate 3)) (hcomp : computes c majorityThreeFloor)
+    (hlen : c.length = 6) : Nonempty (SixCompressedSourceData c) := by
+  obtain ⟨d⟩ := majoritySix_binaryGateData c hcomp hlen
+  have hlen6 : ∀ p, p < 6 → p < c.length := by intro p hp; omega
+  obtain ⟨a₀, ha₀⟩ := majoritySix_source_before_first_is_var c hcomp hlen d d.j₀_lt
+  obtain ⟨b₀, hb₀⟩ := majoritySix_source_before_first_is_var c hcomp hlen d d.k₀_lt
+  have hsa₀ : ∀ x, sourceThree x a₀ = wire c x d.j₀ := by
+    intro x
+    exact (wire_eq_of_var_gate c x (hlen6 _ (lt_trans d.j₀_lt
+      (lt_trans d.ordered (lt_trans d.second_before_root (by omega))))) ha₀).symm
+  have hsb₀ : ∀ x, sourceThree x b₀ = wire c x d.k₀ := by
+    intro x
+    exact (wire_eq_of_var_gate c x (hlen6 _ (lt_trans d.k₀_lt
+      (lt_trans d.ordered (lt_trans d.second_before_root (by omega))))) hb₀).symm
+  have enc4 : ∀ {w}, w < d.second → ∃ s : Fin 4,
+      ∀ x, sourceFour x (wire c x d.first) s = wire c x w := by
+    intro w hw
+    rcases majoritySix_source_before_second c hcomp hlen d hw with hvar | hfirst
+    · obtain ⟨i, hi⟩ := hvar
+      refine ⟨⟨i.val, by omega⟩, fun x => ?_⟩
+      simp only [sourceFour, dif_pos i.isLt]
+      exact (wire_eq_of_var_gate c x (hlen6 _ (lt_trans hw
+        (lt_trans d.second_before_root (by omega)))) hi).symm
+    · subst w
+      exact ⟨3, by intro x; simp [sourceFour]⟩
+  obtain ⟨a₁, hsa₁⟩ := enc4 d.j₁_lt
+  obtain ⟨b₁, hsb₁⟩ := enc4 d.k₁_lt
+  have enc5 : ∀ {w}, w < 5 → ∃ s : Fin 5,
+      ∀ x, sourceFive x (wire c x d.first) (wire c x d.second) s = wire c x w := by
+    intro w hw
+    rcases majoritySix_source_before_root c hcomp hlen d hw with hvar | hfirst | hsecond
+    · obtain ⟨i, hi⟩ := hvar
+      refine ⟨⟨i.val, by omega⟩, fun x => ?_⟩
+      simp only [sourceFive, dif_pos i.isLt]
+      exact (wire_eq_of_var_gate c x (hlen6 _ (lt_trans hw (by omega))) hi).symm
+    · subst w
+      exact ⟨3, by intro x; simp [sourceFive]⟩
+    · subst w
+      exact ⟨4, by intro x; simp [sourceFive]⟩
+  obtain ⟨a₂, hsa₂⟩ := enc5 d.j₂_lt
+  obtain ⟨b₂, hsb₂⟩ := enc5 d.k₂_lt
+  exact ⟨⟨d, a₀, b₀, a₁, b₁, a₂, b₂, hsa₀, hsb₀, hsa₁, hsb₁, hsa₂, hsb₂⟩⟩
+
 def permuteAssignment (σ : Equiv.Perm (Fin 3)) (x : Fin 3 → Bool) :
     Fin 3 → Bool := fun i => x (σ i)
 
