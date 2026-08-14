@@ -78,11 +78,27 @@ def packedBoundaryLayer : Nat → Finset PackedSemanticBoundary3
 def packedMajorityThree : PackedTruth3 :=
   packTruth (truthCode majorityThreeFloor)
 
+def packedFirstOutputs : Finset PackedTruth3 :=
+  initialPackedBoundary3.biUnion fun a =>
+    initialPackedBoundary3.biUnion fun b =>
+      Finset.univ.image fun op : Fin 16 => packedTruthBin op a b
+
 theorem initialPackedBoundary3_eq :
     initialPackedBoundary3 = {(240 : PackedTruth3), 204, 170} := by
   decide
 
 theorem packedMajorityThree_eq : packedMajorityThree = (232 : PackedTruth3) := by
+  decide
+
+set_option maxRecDepth 10000 in
+theorem packedFirstOutputs_eq : packedFirstOutputs =
+    ({0, 3, 5, 10, 12, 15, 17, 34, 48, 51, 60, 63, 68, 80, 85, 90, 95,
+      102, 119, 136, 153, 160, 165, 170, 175, 187, 192, 195, 204, 207, 221,
+      238, 240, 243, 245, 250, 252, 255} : Finset PackedTruth3) := by
+  decide
+
+theorem packedFirstOutputs_card : packedFirstOutputs.card = 38 := by
+  rw [packedFirstOutputs_eq]
   decide
 
 structure ThreeTransitionProgram where
