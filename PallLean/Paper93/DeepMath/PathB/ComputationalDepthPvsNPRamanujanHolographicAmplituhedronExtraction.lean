@@ -477,6 +477,41 @@ theorem decisionErrorEnergy_threshold_le_one
     simpa using Nat.mul_le_mul_left threshold hone
   exact le_trans hthreshold (le_trans hload (decisionErrorEnergy_le_one reported truth))
 
+/-- Decision-coupled energy over an entire finite hard family.  Unlike the
+single output bit, this load can be as large as the family itself while still
+vanishing under pointwise-correct decision. -/
+def familyDecisionErrorEnergy {X : Type} [Fintype X]
+    (reported truth : X -> Bool) : Nat :=
+  (Finset.univ.filter fun x => reported x ≠ truth x).card
+
+theorem familyDecisionErrorEnergy_eq_zero_of_correct
+    {X : Type} [Fintype X] (reported truth : X -> Bool)
+    (hCorrect : ∀ x, reported x = truth x) :
+    familyDecisionErrorEnergy reported truth = 0 := by
+  classical
+  simp [familyDecisionErrorEnergy, hCorrect]
+
+theorem familyDecisionErrorEnergy_eq_card_of_everywhere_wrong
+    {X : Type} [Fintype X] (reported truth : X -> Bool)
+    (hWrong : ∀ x, reported x ≠ truth x) :
+    familyDecisionErrorEnergy reported truth = Fintype.card X := by
+  classical
+  simp [familyDecisionErrorEnergy, hWrong]
+
+/-- The family-wide coupling solves “large load + terminal correctness”, but
+also exposes the batch-update escape: without a locality/causality theorem, one
+semantic update can replace an everywhere-wrong family prediction by `truth`
+and clear the entire load at once.  Thus a bounded per-step service rate still
+does not follow from correctness alone. -/
+theorem familyDecisionError_batch_clear
+    {X : Type} [Fintype X] (wrong truth : X -> Bool)
+    (hWrong : ∀ x, wrong x ≠ truth x) :
+    familyDecisionErrorEnergy wrong truth = Fintype.card X ∧
+      familyDecisionErrorEnergy truth truth = 0 := by
+  constructor
+  · exact familyDecisionErrorEnergy_eq_card_of_everywhere_wrong wrong truth hWrong
+  · exact familyDecisionErrorEnergy_eq_zero_of_correct truth truth (fun _ => rfl)
+
 /-- Decision correctness as a bare proposition cannot force an unrelated
 spring trajectory to have zero terminal energy.  This tiny no-go theorem guards
 the exact remaining semantic seam: terminal discharge needs a concrete coupling
@@ -841,6 +876,8 @@ end PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtrac
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.decisionHolonomy
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.decisionErrorEnergy_eq_zero_of_correct
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.decisionErrorEnergy_threshold_le_one
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.familyDecisionErrorEnergy_eq_zero_of_correct
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.familyDecisionError_batch_clear
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.correctness_alone_does_not_force_terminal_discharge
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.local_spring_law_allows_persistent_load
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_SATDecisionInP_of_asymmetricObserverBridge
