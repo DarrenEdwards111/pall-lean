@@ -268,6 +268,11 @@ structure NFrameLagrangianProjectionPayload (raw screen cell : Type) where
   unitAndIdentityMinorPreserving : Prop
   unitAndIdentityMinorPreserving_realized : unitAndIdentityMinorPreserving
 
+/-- Polynomial capacity with an explicit coefficient and degree.  This form is
+closed under finite sums without hiding the number of observer charts. -/
+def AtlasPolyBounded (f : Nat -> Nat) : Prop :=
+  ∃ c k, ∀ n, f n ≤ c * (n + 1) ^ k
+
 /-- A finite atlas of observer perspectives with genuinely different boundary
 interfaces.
 
@@ -285,11 +290,10 @@ structure HolographicObserverPerspectiveAtlas (raw : Type) where
   view : ∀ i, raw -> Boundary i
   observe : ∀ i, Boundary i -> ObservableInterface i
   capacityBits : Perspective -> Nat -> Nat
-  capacityBits_poly : ∀ i, PolyBounded (capacityBits i)
+  capacityBits_poly : ∀ i, AtlasPolyBounded (capacityBits i)
   totalCapacityBits : Nat -> Nat
   totalCapacityBits_eq_sum :
     ∀ n, totalCapacityBits n = ∑ i, capacityBits i n
-  totalCapacityBits_poly : PolyBounded totalCapacityBits
   overlapTransitionConsistency : Prop
   overlapTransitionConsistency_realized : overlapTransitionConsistency
   jointHardResidualFaithfulness : Prop
@@ -298,6 +302,41 @@ structure HolographicObserverPerspectiveAtlas (raw : Type) where
   atlasDerivedFromSolver_realized : atlasDerivedFromSolver
   aggregateProjectionCompatibility : Prop
   aggregateProjectionCompatibility_realized : aggregateProjectionCompatibility
+
+namespace HolographicObserverPerspectiveAtlas
+
+/-- A finite atlas of polynomial-capacity perspectives has polynomial total
+capacity.  The proof sums the coefficients and uses the sum of degrees as a
+uniform exponent, so no separate global polynomial-capacity assumption is
+needed. -/
+theorem totalCapacityBits_poly {raw : Type}
+    (A : HolographicObserverPerspectiveAtlas raw) :
+    AtlasPolyBounded A.totalCapacityBits := by
+  classical
+  letI : Fintype A.Perspective := A.perspectiveFintype
+  let c : A.Perspective -> Nat := fun i => Classical.choose (A.capacityBits_poly i)
+  let k : A.Perspective -> Nat := fun i =>
+    Classical.choose (Classical.choose_spec (A.capacityBits_poly i))
+  have hcap : ∀ i n, A.capacityBits i n ≤ c i * (n + 1) ^ k i := by
+    intro i n
+    exact Classical.choose_spec (Classical.choose_spec (A.capacityBits_poly i)) n
+  refine ⟨∑ i, c i, ∑ i, k i, ?_⟩
+  intro n
+  rw [A.totalCapacityBits_eq_sum]
+  calc
+    ∑ i, A.capacityBits i n ≤ ∑ i, c i * (n + 1) ^ k i := by
+      exact Finset.sum_le_sum (fun i _ => hcap i n)
+    _ ≤ ∑ i, c i * (n + 1) ^ (∑ j, k j) := by
+      apply Finset.sum_le_sum
+      intro i hi
+      apply Nat.mul_le_mul_left
+      apply Nat.pow_le_pow_right
+      · omega
+      · exact Finset.single_le_sum (fun _ _ => Nat.zero_le _) (Finset.mem_univ i)
+    _ = (∑ i, c i) * (n + 1) ^ (∑ i, k i) := by
+      rw [Finset.sum_mul]
+
+end HolographicObserverPerspectiveAtlas
 
 /-- The complete, honest certificate required for the holographic/N-frame
 route to close against one alleged polynomial-time SAT decider.
@@ -470,3 +509,4 @@ end PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtrac
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.CompleteHolographicNFrameBridgeFor.impossible
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_SATDecisionInP_of_completeHolographicNFrameBridge
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.completeHolographicNFrameBridge_iff_no_SATDecisionInP
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.HolographicObserverPerspectiveAtlas.totalCapacityBits_poly
