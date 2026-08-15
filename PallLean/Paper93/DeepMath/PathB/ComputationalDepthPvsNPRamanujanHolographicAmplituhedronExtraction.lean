@@ -800,6 +800,64 @@ theorem decisionTime_not_polyBounded
   decisionHolonomy_implies_not_poly
     (O.decisionHolonomy hCorrect) O.threshold_superPoly
 
+/-- Build the restricted rank observer from a dynamic run on independently
+anchored residual sectors.  This is the concrete connection between the sector
+orientation energy and bounded-precision Dynamic-SPDP. -/
+def ofAnchoredSectorRun
+    (F : TowerSpringDecisionPayload.AnchoredResidualSectorFamily)
+    (decisionTime : Nat -> Nat)
+    (prediction : Nat -> Nat -> ∀ s, F.Instance s -> Bool)
+    (truth : Nat -> ∀ s, F.Instance s -> Bool)
+    (rankGainBound threshold : Nat -> Nat)
+    (hrate : ∀ n, 0 < rankGainBound n)
+    (hinitial : ∀ n,
+      threshold n * rankGainBound n ≤
+        F.orientationEnergy (prediction n 0) (truth n))
+    (hlocal : ∀ n t,
+      F.orientationChangeCount (prediction n t) (prediction n (t + 1)) ≤
+        rankGainBound n)
+    (hterminal : ∀ n s x,
+      prediction n (decisionTime n) s x = truth n s x)
+    (hsuper : SuperPoly threshold) :
+    BoundedPrecisionDynamicSPDPRankObserver True decisionTime where
+  unresolvedRank := fun n t => F.orientationEnergy (prediction n t) (truth n)
+  initialRank := fun n => F.orientationEnergy (prediction n 0) (truth n)
+  rankGainBound := rankGainBound
+  threshold := threshold
+  rankGainBound_pos := hrate
+  initialRank_eq := fun _ => rfl
+  threshold_fits_initialRank := hinitial
+  transition_rank_gain_bounded := by
+    intro _ n
+    exact F.orientationEnergy_local_spring_law
+      (prediction n) (truth n) (rankGainBound n) (hlocal n)
+  correct_terminal_rank_zero := by
+    intro _ n
+    exact F.orientationEnergy_eq_zero_of_correct
+      (prediction n (decisionTime n)) (truth n) (hterminal n)
+  threshold_superPoly := hsuper
+
+/-- End-to-end restricted theorem for anchored Ramanujan-sector runs. -/
+theorem anchoredSectorRun_decisionTime_not_polyBounded
+    (F : TowerSpringDecisionPayload.AnchoredResidualSectorFamily)
+    (decisionTime : Nat -> Nat)
+    (prediction : Nat -> Nat -> ∀ s, F.Instance s -> Bool)
+    (truth : Nat -> ∀ s, F.Instance s -> Bool)
+    (rankGainBound threshold : Nat -> Nat)
+    (hrate : ∀ n, 0 < rankGainBound n)
+    (hinitial : ∀ n,
+      threshold n * rankGainBound n ≤
+        F.orientationEnergy (prediction n 0) (truth n))
+    (hlocal : ∀ n t,
+      F.orientationChangeCount (prediction n t) (prediction n (t + 1)) ≤
+        rankGainBound n)
+    (hterminal : ∀ n s x,
+      prediction n (decisionTime n) s x = truth n s x)
+    (hsuper : SuperPoly threshold) :
+    ¬ PolyBounded decisionTime := by
+  exact (ofAnchoredSectorRun F decisionTime prediction truth rankGainBound threshold
+    hrate hinitial hlocal hterminal hsuper).decisionTime_not_polyBounded trivial
+
 end BoundedPrecisionDynamicSPDPRankObserver
 
 /-- The only permitted connection between the asymmetric observers is the
@@ -1131,6 +1189,8 @@ end PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtrac
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.local_spring_law_allows_persistent_load
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.BoundedPrecisionDynamicSPDPRankObserver.decisionHolonomy
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.BoundedPrecisionDynamicSPDPRankObserver.decisionTime_not_polyBounded
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.BoundedPrecisionDynamicSPDPRankObserver.ofAnchoredSectorRun
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.BoundedPrecisionDynamicSPDPRankObserver.anchoredSectorRun_decisionTime_not_polyBounded
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_SATDecisionInP_of_asymmetricObserverBridge
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_asymmetricSATObserverBridgeFor_decider
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.asymmetricObserverBridge_iff_no_SATDecisionInP
