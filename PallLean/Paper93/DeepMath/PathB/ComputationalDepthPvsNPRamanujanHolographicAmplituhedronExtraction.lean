@@ -268,6 +268,37 @@ structure NFrameLagrangianProjectionPayload (raw screen cell : Type) where
   unitAndIdentityMinorPreserving : Prop
   unitAndIdentityMinorPreserving_realized : unitAndIdentityMinorPreserving
 
+/-- A finite atlas of observer perspectives with genuinely different boundary
+interfaces.
+
+Each perspective may expose different information about the same raw solver
+state.  The capacity accounting is global: `totalCapacityBits` must include all
+charts and the information needed to select/transition between them.  This
+prevents an exponential family of individually tiny observers from being called
+a polynomial-capacity observer. -/
+structure HolographicObserverPerspectiveAtlas (raw : Type) where
+  Perspective : Type
+  perspectiveFintype : Fintype Perspective
+  Boundary : Perspective -> Type
+  boundaryFintype : ∀ i, Fintype (Boundary i)
+  ObservableInterface : Perspective -> Type
+  view : ∀ i, raw -> Boundary i
+  observe : ∀ i, Boundary i -> ObservableInterface i
+  capacityBits : Perspective -> Nat -> Nat
+  capacityBits_poly : ∀ i, PolyBounded (capacityBits i)
+  totalCapacityBits : Nat -> Nat
+  totalCapacityBits_eq_sum :
+    ∀ n, totalCapacityBits n = ∑ i, capacityBits i n
+  totalCapacityBits_poly : PolyBounded totalCapacityBits
+  overlapTransitionConsistency : Prop
+  overlapTransitionConsistency_realized : overlapTransitionConsistency
+  jointHardResidualFaithfulness : Prop
+  jointHardResidualFaithfulness_realized : jointHardResidualFaithfulness
+  atlasDerivedFromSolver : Prop
+  atlasDerivedFromSolver_realized : atlasDerivedFromSolver
+  aggregateProjectionCompatibility : Prop
+  aggregateProjectionCompatibility_realized : aggregateProjectionCompatibility
+
 /-- The complete, honest certificate required for the holographic/N-frame
 route to close against one alleged polynomial-time SAT decider.
 
@@ -287,6 +318,8 @@ structure CompleteHolographicNFrameBridgeFor
   nframeLagrangianProjection :
     NFrameLagrangianProjectionPayload
       extraction.rawTranscript extraction.holographicScreen extraction.positiveCellType
+  observerPerspectiveAtlas :
+    HolographicObserverPerspectiveAtlas extraction.rawTranscript
 
 namespace CompleteHolographicNFrameBridgeFor
 
@@ -375,6 +408,15 @@ allowed polynomially many updates.  Moreover, a real-valued screen has no
 finite information bound without an explicit precision/description model.
 Those are the reasons `EfficientHolographicEncodingDecodingPayload` exposes
 finite precision, description length, update count, and codec cost separately.
+
+Multiple observer perspectives do not evade this accounting.  Different
+interfaces may legitimately see different features, but the joint view is one
+combined computational object.  Its information budget is the sum of the chart
+budgets plus chart-selection/transition information, and the charts must agree
+on overlaps.  `HolographicObserverPerspectiveAtlas` records exactly these
+requirements through `totalCapacityBits_eq_sum`, overlap consistency, joint
+hard-residual faithfulness, solver derivation, and compatibility with the
+aggregate holographic projection.
 
 Likewise, existence or minimisation of the N-frame Lagrangian does not imply
 that the selected projection preserves SAT labels or the SPDP identity minor.
