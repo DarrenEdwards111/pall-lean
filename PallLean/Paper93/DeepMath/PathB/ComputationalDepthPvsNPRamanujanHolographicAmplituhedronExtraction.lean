@@ -602,6 +602,71 @@ theorem anchoredOrientationEnergy_le_one
     anchoredOrientationEnergy anchor prediction truth ≤ 1 :=
   decisionErrorEnergy_le_one _ _
 
+/-- Direct sum of independently anchored residual sectors.  Each sector may
+have its own instance type and its own anchor; only the Boolean decision at the
+anchor is shared with the P observer. -/
+structure AnchoredResidualSectorFamily where
+  Sector : Type
+  sectorFintype : Fintype Sector
+  Instance : Sector -> Type
+  anchor : ∀ s, Instance s
+
+namespace AnchoredResidualSectorFamily
+
+/-- Number of sector orientations on which the current P predictions disagree
+with SAT truth. -/
+def orientationEnergy (F : AnchoredResidualSectorFamily)
+    (prediction truth : ∀ s, F.Instance s -> Bool) : Nat :=
+  letI : Fintype F.Sector := F.sectorFintype
+  familyDecisionErrorEnergy
+    (fun s => prediction s (F.anchor s))
+    (fun s => truth s (F.anchor s))
+
+/-- SAT correctness on every sector fixes every orientation and clears the
+direct-sum energy; no witness is reconstructed. -/
+theorem orientationEnergy_eq_zero_of_correct
+    (F : AnchoredResidualSectorFamily)
+    (prediction truth : ∀ s, F.Instance s -> Bool)
+    (hCorrect : ∀ s x, prediction s x = truth s x) :
+    F.orientationEnergy prediction truth = 0 := by
+  letI : Fintype F.Sector := F.sectorFintype
+  exact familyDecisionErrorEnergy_eq_zero_of_correct _ _
+    (fun s => hCorrect s (F.anchor s))
+
+/-- Independent complement errors carry one unit per anchored sector. -/
+theorem orientationEnergy_eq_sector_card_of_wrong_anchors
+    (F : AnchoredResidualSectorFamily)
+    (prediction truth : ∀ s, F.Instance s -> Bool)
+    (hWrong : ∀ s, prediction s (F.anchor s) ≠ truth s (F.anchor s)) :
+    F.orientationEnergy prediction truth = @Fintype.card F.Sector F.sectorFintype := by
+  letI : Fintype F.Sector := F.sectorFintype
+  exact familyDecisionErrorEnergy_eq_card_of_everywhere_wrong _ _ hWrong
+
+/-- Number of independently anchored sector orientations changed by one
+transition. -/
+def orientationChangeCount (F : AnchoredResidualSectorFamily)
+    (before after : ∀ s, F.Instance s -> Bool) : Nat :=
+  letI : Fintype F.Sector := F.sectorFintype
+  familyPredictionChangeCount
+    (fun s => before s (F.anchor s))
+    (fun s => after s (F.anchor s))
+
+/-- A polynomial bound on changed sector anchors yields the direct-sum local
+spring law. -/
+theorem orientationEnergy_local_spring_law
+    (F : AnchoredResidualSectorFamily)
+    (prediction : Nat -> ∀ s, F.Instance s -> Bool)
+    (truth : ∀ s, F.Instance s -> Bool) (rate : Nat)
+    (hlocal : ∀ t, F.orientationChangeCount (prediction t) (prediction (t + 1)) ≤ rate) :
+    ∀ t, F.orientationEnergy (prediction t) truth ≤
+      F.orientationEnergy (prediction (t + 1)) truth + rate := by
+  letI : Fintype F.Sector := F.sectorFintype
+  exact familyDecisionError_local_spring_law
+    (fun t s => prediction t s (F.anchor s))
+    (fun s => truth s (F.anchor s)) rate hlocal
+
+end AnchoredResidualSectorFamily
+
 /-- Decision correctness as a bare proposition cannot force an unrelated
 spring trajectory to have zero terminal energy.  This tiny no-go theorem guards
 the exact remaining semantic seam: terminal discharge needs a concrete coupling
@@ -974,6 +1039,9 @@ end PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtrac
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.uniform_bit_flip_violates_small_service_rate
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.uniform_quotient_erases_decision_orientation
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.anchoredOrientationEnergy_le_one
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.AnchoredResidualSectorFamily.orientationEnergy_eq_zero_of_correct
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.AnchoredResidualSectorFamily.orientationEnergy_eq_sector_card_of_wrong_anchors
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.AnchoredResidualSectorFamily.orientationEnergy_local_spring_law
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.correctness_alone_does_not_force_terminal_discharge
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.local_spring_law_allows_persistent_load
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_SATDecisionInP_of_asymmetricObserverBridge
