@@ -574,6 +574,34 @@ theorem uniform_bit_flip_violates_small_service_rate
   rw [uniform_bit_flip_changes_entire_family]
   exact Nat.not_le.mpr hlarge
 
+/-- An energy quotients out uniform batch flips when globally complementing all
+predictions leaves its value unchanged. -/
+def UniformComplementInvariant {X : Type}
+    (energy : (X -> Bool) -> Nat) : Prop :=
+  ∀ prediction, energy (fun x => !(prediction x)) = energy prediction
+
+/-- Quotienting out the uniform-flip escape also identifies the true decision
+function with its global complement.  Hence an unanchored quotient energy that
+vanishes on truth necessarily vanishes on the everywhere-wrong complement. -/
+theorem uniform_quotient_erases_decision_orientation
+    {X : Type} (energy : (X -> Bool) -> Nat) (truth : X -> Bool)
+    (hinvariant : UniformComplementInvariant energy)
+    (htruth : energy truth = 0) :
+    energy (fun x => !(truth x)) = 0 := by
+  rw [hinvariant truth, htruth]
+
+/-- A single anchored output bit restores orientation, but contributes at most
+one unit of decision-coupled energy.  Thus the anchor prevents identifying SAT
+with its complement but cannot by itself supply the super-polynomial load. -/
+def anchoredOrientationEnergy {X : Type}
+    (anchor : X) (prediction truth : X -> Bool) : Nat :=
+  decisionErrorEnergy (prediction anchor) (truth anchor)
+
+theorem anchoredOrientationEnergy_le_one
+    {X : Type} (anchor : X) (prediction truth : X -> Bool) :
+    anchoredOrientationEnergy anchor prediction truth ≤ 1 :=
+  decisionErrorEnergy_le_one _ _
+
 /-- Decision correctness as a bare proposition cannot force an unrelated
 spring trajectory to have zero terminal energy.  This tiny no-go theorem guards
 the exact remaining semantic seam: terminal discharge needs a concrete coupling
@@ -944,6 +972,8 @@ end PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtrac
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.familyDecisionError_local_spring_law
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.uniform_bit_flip_changes_entire_family
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.uniform_bit_flip_violates_small_service_rate
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.uniform_quotient_erases_decision_orientation
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.anchoredOrientationEnergy_le_one
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.correctness_alone_does_not_force_terminal_discharge
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.local_spring_law_allows_persistent_load
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_SATDecisionInP_of_asymmetricObserverBridge
