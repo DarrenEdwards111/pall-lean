@@ -1,6 +1,7 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthPvsNPRamanujanHolographicAmplituhedronExtraction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthPvsNPRamanujanQueryMERACompiler
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthPvsNPParityAC0pClass
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthNeciporukCapstone
 
 /-!
 # Restricted observer lower-bound corollaries
@@ -55,8 +56,24 @@ theorem no_smallAC0p_realization_for_parityCNF_SAT
   exact no_SATDecisionInClass_smallAC0pParity
     U p m t d lower hp2 ht1 hpt hlow hm
 
+/-! ## De Morgan formulas -/
+
+open PallLean.Paper93.DeepMath.PathB
+open PallLean.Paper93.DeepMath.PathB.NecHard
+
+/-- Headline Nečiporuk family lower bound.  At every block exponent `b ≥ 5`
+there is an explicit `hardF` instance on `N = nn b m` variables for which
+every De Morgan (`B₂`) formula requires at least `N²/(64b)` literal leaves. -/
+theorem exists_hardF_quadratic_over_log_formula_lower_bound
+    (b : Nat) (hb : 5 ≤ b) :
+    ∃ m, ∀ (F : BFormula (nn b m)),
+      (∀ x, BFormula.eval F x = hardF x) →
+      (nn b m) ^ 2 / (64 * b) ≤ BFormula.litCount F := by
+  exact hardF_rate_opt_family b hb
+
 end PallLean.Paper93.DeepMath.PathB.PvsNPRestrictedObserverCorollaries
 
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRestrictedObserverCorollaries.no_boundedMERA_routed_SAT_transcript_at_gap
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRestrictedObserverCorollaries.no_boundedMERA_compiler_for_SAT
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRestrictedObserverCorollaries.no_smallAC0p_realization_for_parityCNF_SAT
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRestrictedObserverCorollaries.exists_hardF_quadratic_over_log_formula_lower_bound
