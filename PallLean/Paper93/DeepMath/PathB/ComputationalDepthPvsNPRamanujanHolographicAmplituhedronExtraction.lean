@@ -388,6 +388,103 @@ theorem joint_boundary_card_ge_exp_of_fooling {raw : Type} {m : Nat}
 
 end HolographicObserverPerspectiveAtlas
 
+/-! ### Asymmetric NP and P observer perspectives
+
+The NP observer and the P observer are not charts of one joint atlas.  The NP
+observer receives a witness and may expose a God’s-eye view of the complete
+verification geometry.  The P observer receives only the instance and evolves
+through its own bounded computational boundary.  In particular, no map from
+the P boundary to the NP boundary, no common boundary type, and no recovery of
+the NP witness label is required below.
+-/
+
+/-- The God’s-eye NP perspective.  Its view is indexed by both an instance and
+a witness; its boundary is deliberately unrelated to the P boundary. -/
+structure NPVerifierGodEyePerspective (Instance Witness : Type)
+    (accepts : Instance -> Witness -> Prop) where
+  Boundary : Type
+  view : Instance -> Witness -> Boundary
+  verifierSound : Prop
+  verifierSound_realized : verifierSound
+  ramanujanWitnessGeometry : Prop
+  ramanujanWitnessGeometry_realized : ramanujanWitnessGeometry
+
+/-- The algorithmic P perspective.  It sees only the input instance.  Its
+finite state/transcript boundary and resource accounting do not include the
+NP observer's witness-bearing boundary. -/
+structure PDeciderBoundaryPerspective (Instance : Type) where
+  Boundary : Type
+  boundaryFintype : Fintype Boundary
+  view : Instance -> Boundary
+  answer : Boundary -> Bool
+  capacityBits : Nat -> Nat
+  capacityBits_poly : AtlasPolyBounded capacityBits
+
+/-- The only permitted connection between the asymmetric observers is the
+existential language semantics.  `decisionInvariant` must be an invariant of
+deciding `∃ w, accepts x w`; it may not demand witness or residual-label
+reconstruction.  The two last fields isolate the genuine missing mathematics:
+correct P-decision forces the invariant, while the Ramanujan/SPDP lower bound
+rules it out for a polynomial boundary. -/
+structure AsymmetricDecisionInvariantBridge
+    (Instance Witness : Type) (accepts : Instance -> Witness -> Prop) where
+  npObserver : NPVerifierGodEyePerspective Instance Witness accepts
+  pObserver : PDeciderBoundaryPerspective Instance
+  pDecidesExistential :
+    ∀ x, pObserver.answer (pObserver.view x) = true ↔ ∃ w, accepts x w
+  decisionInvariant : Prop
+  decisionInvariant_of_correct_decision :
+    (∀ x, pObserver.answer (pObserver.view x) = true ↔ ∃ w, accepts x w) ->
+      decisionInvariant
+  ramanujanSPDP_obstructs_decisionInvariant : decisionInvariant -> False
+
+namespace AsymmetricDecisionInvariantBridge
+
+/-- The asymmetric bridge closes using only the P-side decision invariant.
+The proof never combines boundaries and never asks the P observer to decode an
+NP witness or hard-residual label. -/
+theorem impossible {Instance Witness : Type}
+    {accepts : Instance -> Witness -> Prop}
+    (B : AsymmetricDecisionInvariantBridge Instance Witness accepts) : False :=
+  B.ramanujanSPDP_obstructs_decisionInvariant
+    (B.decisionInvariant_of_correct_decision B.pDecidesExistential)
+
+end AsymmetricDecisionInvariantBridge
+
+/-- SAT-specific asymmetric payload.  The abstract `Instance`, `Witness`, and
+verifier relation permit the Cook--Levin/Ramanujan development to choose its
+actual encoded objects without identifying either observer boundary. -/
+structure AsymmetricSATObserverBridgeFor
+    (U : MachineModel) (D : DecisionMachine U) (hD : DecidesSAT U D) where
+  Instance : Type
+  Witness : Type
+  accepts : Instance -> Witness -> Prop
+  observers : AsymmetricDecisionInvariantBridge Instance Witness accepts
+  derivedFromDecider : Prop
+  derivedFromDecider_realized : derivedFromDecider
+  cookLevinSPDPCompatibility : Prop
+  cookLevinSPDPCompatibility_realized : cookLevinSPDPCompatibility
+
+namespace AsymmetricSATObserverBridgeFor
+
+theorem impossible {U : MachineModel} {D : DecisionMachine U}
+    {hD : DecidesSAT U D} (B : AsymmetricSATObserverBridgeFor U D hD) : False :=
+  B.observers.impossible
+
+end AsymmetricSATObserverBridgeFor
+
+/-- The corrected asymmetric completion target.  Unlike the joint-atlas
+target, it never requires a P-time SAT decider to distinguish NP witnesses. -/
+abbrev AsymmetricSATObserverBridgeForPTimeSAT (U : MachineModel) : Type 1 :=
+  ∀ (D : DecisionMachine U) (hD : DecidesSAT U D),
+    AsymmetricSATObserverBridgeFor U D hD
+
+theorem no_SATDecisionInP_of_asymmetricObserverBridge {U : MachineModel}
+    (hBridge : AsymmetricSATObserverBridgeForPTimeSAT U) :
+    ¬ SATDecisionInP U := by
+  rintro ⟨D, hD⟩
+  exact (hBridge D hD).impossible
+
 /-- The complete, honest certificate required for the holographic/N-frame
 route to close against one alleged polynomial-time SAT decider.
 
@@ -519,15 +616,20 @@ finite information bound without an explicit precision/description model.
 Those are the reasons `EfficientHolographicEncodingDecodingPayload` exposes
 finite precision, description length, update count, and codec cost separately.
 
-Multiple observer perspectives do not evade this accounting.  Different
-interfaces may legitimately see different features, but the joint view is one
-combined computational object.  Its information budget is the sum of the chart
-budgets plus chart-selection/transition information, and the charts must agree
-on overlaps.  `HolographicObserverPerspectiveAtlas` records exactly these
-requirements through `totalCapacityBits_eq_sum`, overlap consistency, solver
-derivation, and compatibility with the aggregate holographic projection.  The
-completion certificate then binds the atlas to the actual hard family through
-`atlasJointPreservesLabels` and `atlasJointBoundaryPoly`.
+Multiple perspectives belonging to one computational observer do not evade
+capacity accounting: their joint information budget includes all charts and
+transitions.  `HolographicObserverPerspectiveAtlas` formalizes that statement.
+It must not, however, be used to merge the NP verifier with the P decider.  The
+NP observer may receive a witness and have a God’s-eye boundary wholly distinct
+from the P observer's algorithmic boundary.
+
+`AsymmetricDecisionInvariantBridge` is the corrected P-versus-NP interface.
+Its observers share only the semantics `decide x ↔ ∃ w, accepts x w`; it has no
+joint boundary and requires no P-side witness or residual-label reconstruction.
+The remaining separation theorem is correspondingly the construction of a
+decision invariant which (i) follows from correctly deciding this existential
+predicate with the P boundary and (ii) is obstructed by the Ramanujan/SPDP
+lower bound.  A witness-recovery lower bound cannot fill this field.
 
 Likewise, existence or minimisation of the N-frame Lagrangian does not imply
 that the selected projection preserves SAT labels or the SPDP identity minor.
@@ -585,3 +687,5 @@ end PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtrac
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.HolographicObserverPerspectiveAtlas.jointBoundary_card
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.HolographicObserverPerspectiveAtlas.joint_boundary_card_ge_exp_of_fooling
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.CompleteHolographicNFrameBridgeFor.impossible_via_observerAtlas
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.AsymmetricDecisionInvariantBridge.impossible
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_SATDecisionInP_of_asymmetricObserverBridge
