@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthPvsNPStructuredExtraction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDecisionHolonomy
+import Mathlib.Data.Fintype.Pi
 
 /-!
 # Ramanujan → holographic projection → amplituhedron extraction socket
@@ -336,6 +337,57 @@ theorem totalCapacityBits_poly {raw : Type}
     _ = (∑ i, c i) * (n + 1) ^ (∑ i, k i) := by
       rw [Finset.sum_mul]
 
+/-- The combined boundary seen by all observer perspectives. -/
+def JointBoundary {raw : Type} (A : HolographicObserverPerspectiveAtlas raw) : Type :=
+  ∀ i : A.Perspective, A.Boundary i
+
+/-- The combined observer records every perspective simultaneously. -/
+def jointView {raw : Type} (A : HolographicObserverPerspectiveAtlas raw) :
+    raw -> A.JointBoundary :=
+  fun r i => A.view i r
+
+/-- The joint boundary is finite because the atlas and every chart are finite. -/
+noncomputable def jointBoundaryFintype {raw : Type}
+    (A : HolographicObserverPerspectiveAtlas raw) : Fintype A.JointBoundary := by
+  classical
+  letI : Fintype A.Perspective := A.perspectiveFintype
+  letI : DecidableEq A.Perspective := Classical.decEq _
+  letI : ∀ i : A.Perspective, Fintype (A.Boundary i) := A.boundaryFintype
+  letI : ∀ i : A.Perspective, DecidableEq (A.Boundary i) := fun _ => Classical.decEq _
+  change Fintype (∀ i : A.Perspective, A.Boundary i)
+  infer_instance
+
+/-- Exact state count of the multi-perspective boundary: capacities multiply
+as state counts (equivalently, their logarithmic bit capacities add). -/
+theorem jointBoundary_card {raw : Type}
+    (A : HolographicObserverPerspectiveAtlas raw) :
+    @Fintype.card A.JointBoundary A.jointBoundaryFintype =
+      (@Finset.univ A.Perspective A.perspectiveFintype).prod
+        (fun i => @Fintype.card (A.Boundary i) (A.boundaryFintype i)) := by
+  classical
+  letI : Fintype A.Perspective := A.perspectiveFintype
+  letI : DecidableEq A.Perspective := Classical.decEq _
+  letI : ∀ i : A.Perspective, Fintype (A.Boundary i) := A.boundaryFintype
+  letI : ∀ i : A.Perspective, DecidableEq (A.Boundary i) := fun _ => Classical.decEq _
+  change Fintype.card (∀ i : A.Perspective, A.Boundary i) =
+    ∏ i, Fintype.card (A.Boundary i)
+  exact Fintype.card_pi
+
+/-- If the joint atlas preserves an `m`-bit hard fooling family, its combined
+boundary must contain at least `2^m` states.  Different perspectives can see
+different features, but jointly faithful observation pays the product of their
+state spaces. -/
+theorem joint_boundary_card_ge_exp_of_fooling {raw : Type} {m : Nat}
+    (A : HolographicObserverPerspectiveAtlas raw)
+    (rawObserver : TranscriptObserver raw)
+    (fam : FoolingResidualFamily m)
+    (hsound : SoundOnFoolingFamily
+      (fun x => A.jointView (rawObserver x)) fam) :
+    2 ^ m ≤ @Fintype.card A.JointBoundary A.jointBoundaryFintype := by
+  letI : Fintype A.JointBoundary := A.jointBoundaryFintype
+  exact transcript_boundary_card_ge_exp_of_fooling
+    (fun x => A.jointView (rawObserver x)) fam hsound
+
 end HolographicObserverPerspectiveAtlas
 
 /-- The complete, honest certificate required for the holographic/N-frame
@@ -510,3 +562,5 @@ end PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtrac
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_SATDecisionInP_of_completeHolographicNFrameBridge
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.completeHolographicNFrameBridge_iff_no_SATDecisionInP
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.HolographicObserverPerspectiveAtlas.totalCapacityBits_poly
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.HolographicObserverPerspectiveAtlas.jointBoundary_card
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.HolographicObserverPerspectiveAtlas.joint_boundary_card_ge_exp_of_fooling
