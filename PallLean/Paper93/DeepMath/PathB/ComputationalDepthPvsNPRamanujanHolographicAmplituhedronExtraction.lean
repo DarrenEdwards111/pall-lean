@@ -297,8 +297,6 @@ structure HolographicObserverPerspectiveAtlas (raw : Type) where
     ∀ n, totalCapacityBits n = ∑ i, capacityBits i n
   overlapTransitionConsistency : Prop
   overlapTransitionConsistency_realized : overlapTransitionConsistency
-  jointHardResidualFaithfulness : Prop
-  jointHardResidualFaithfulness_realized : jointHardResidualFaithfulness
   atlasDerivedFromSolver : Prop
   atlasDerivedFromSolver_realized : atlasDerivedFromSolver
   aggregateProjectionCompatibility : Prop
@@ -411,6 +409,13 @@ structure CompleteHolographicNFrameBridgeFor
       extraction.rawTranscript extraction.holographicScreen extraction.positiveCellType
   observerPerspectiveAtlas :
     HolographicObserverPerspectiveAtlas extraction.rawTranscript
+  atlasJointPreservesLabels :
+    SoundOnFoolingFamily
+      (fun x => observerPerspectiveAtlas.jointView (extraction.rawObserver x))
+      extraction.fam
+  atlasJointBoundaryPoly :
+    @Fintype.card observerPerspectiveAtlas.JointBoundary
+      observerPerspectiveAtlas.jointBoundaryFintype ≤ extraction.m ^ extraction.k
 
 namespace CompleteHolographicNFrameBridgeFor
 
@@ -439,6 +444,20 @@ cash-out; the extra fields record why the geometric projection is a legitimate
 solver-derived N-frame/SPDP construction rather than an arbitrary map. -/
 theorem impossible (B : CompleteHolographicNFrameBridgeFor U D hD) : False :=
   B.extraction.impossible
+
+/-- Direct contradiction through the combined multi-perspective boundary.
+
+This route uses no single preferred observer chart: joint label preservation
+forces at least `2^m` product states, while the solver-derived atlas certificate
+bounds the same product boundary by `m^k`. -/
+theorem impossible_via_observerAtlas
+    (B : CompleteHolographicNFrameBridgeFor U D hD) : False := by
+  letI : Fintype B.observerPerspectiveAtlas.JointBoundary :=
+    B.observerPerspectiveAtlas.jointBoundaryFintype
+  exact transcript_fooling_contradicts_poly_boundary
+    (fun x => B.observerPerspectiveAtlas.jointView (B.extraction.rawObserver x))
+    B.extraction.fam B.atlasJointPreservesLabels B.atlasJointBoundaryPoly
+    B.extraction.expGap
 
 end CompleteHolographicNFrameBridgeFor
 
@@ -505,9 +524,10 @@ interfaces may legitimately see different features, but the joint view is one
 combined computational object.  Its information budget is the sum of the chart
 budgets plus chart-selection/transition information, and the charts must agree
 on overlaps.  `HolographicObserverPerspectiveAtlas` records exactly these
-requirements through `totalCapacityBits_eq_sum`, overlap consistency, joint
-hard-residual faithfulness, solver derivation, and compatibility with the
-aggregate holographic projection.
+requirements through `totalCapacityBits_eq_sum`, overlap consistency, solver
+derivation, and compatibility with the aggregate holographic projection.  The
+completion certificate then binds the atlas to the actual hard family through
+`atlasJointPreservesLabels` and `atlasJointBoundaryPoly`.
 
 Likewise, existence or minimisation of the N-frame Lagrangian does not imply
 that the selected projection preserves SAT labels or the SPDP identity minor.
@@ -564,3 +584,4 @@ end PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtrac
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.HolographicObserverPerspectiveAtlas.totalCapacityBits_poly
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.HolographicObserverPerspectiveAtlas.jointBoundary_card
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.HolographicObserverPerspectiveAtlas.joint_boundary_card_ge_exp_of_fooling
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.CompleteHolographicNFrameBridgeFor.impossible_via_observerAtlas
