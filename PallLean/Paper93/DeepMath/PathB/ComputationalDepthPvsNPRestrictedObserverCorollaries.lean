@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthPvsNPRamanujanHolographicAmplituhedronExtraction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthPvsNPRamanujanQueryMERACompiler
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthPvsNPParityAC0pClass
 
 /-!
 # Restricted observer lower-bound corollaries
@@ -35,7 +36,27 @@ theorem no_boundedMERA_compiler_for_SAT
     ¬ DecidesSAT U D := by
   exact C.not_decidesSAT
 
+/-! ## Small bounded-depth modular circuits -/
+
+open PallLean.Paper93.DeepMath.PathB.PvsNPRestrictedDynamicTraceInvariant
+open PallLean.Paper93.DeepMath.PathB.PvsNPParityAC0pClass
+
+/-- Razborov--Smolensky restricted-model cash-out: under the explicit prime,
+degree, size, and input-length regime, no SAT decision machine has a circuit
+of depth at most `d` and size below `lower` in `AC⁰[p]` that realizes its
+answers on the parity-CNF family. -/
+theorem no_smallAC0p_realization_for_parityCNF_SAT
+    (U : MachineModel) (p m t d lower : Nat)
+    [Fact p.Prime] (hp2 : (2 : ZMod p) ≠ 0)
+    (ht1 : 1 ≤ t) (hpt : 1 ≤ (p - 1) * t)
+    (hlow : 4 * lower ≤ p ^ t)
+    (hm : 8 * (((p - 1) * t) ^ (d + 1)) ^ 2 ≤ m) :
+    ¬ SATDecisionInClass (SmallAC0pParityClass U p m d lower) := by
+  exact no_SATDecisionInClass_smallAC0pParity
+    U p m t d lower hp2 ht1 hpt hlow hm
+
 end PallLean.Paper93.DeepMath.PathB.PvsNPRestrictedObserverCorollaries
 
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRestrictedObserverCorollaries.no_boundedMERA_routed_SAT_transcript_at_gap
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRestrictedObserverCorollaries.no_boundedMERA_compiler_for_SAT
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRestrictedObserverCorollaries.no_smallAC0p_realization_for_parityCNF_SAT
