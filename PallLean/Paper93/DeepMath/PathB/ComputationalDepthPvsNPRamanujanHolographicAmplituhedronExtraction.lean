@@ -1,6 +1,7 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthPvsNPStructuredExtraction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDecisionHolonomy
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthBranchingProgramWidth
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthExpanderFoolingInstance
 import Mathlib.Data.Fintype.Pi
 
 /-!
@@ -881,6 +882,26 @@ theorem no_small_width_obliviousBP_for_hardF
   have hwidth := hardF_bp_width_ge k P hP a s has hblock
   omega
 
+/-! ### Concrete logarithmic-boundary observer corollary -/
+
+open PallLean.Paper93.DeepMath.PathB.BoundaryDebt
+
+/-- A logarithmic-boundary observer cannot clear the explicit hypercube debt
+before `2^(n-log n)-1` steps.  This is the concrete log-space-style restricted
+time lower bound. -/
+theorem no_logBoundary_hypercube_observer_before_threshold
+    (n T : Nat) (hlog : Nat.log 2 n ≤ n)
+    (hshort : T + 1 < 2 ^ (n - Nat.log 2 n))
+    (view0 : (Fin n -> Bool) -> Fin (2 ^ Nat.log 2 n))
+    (debt : Nat -> Nat)
+    (hinit : debt 0 = debtCount (hypercubeFool n) view0)
+    (hservice : ∀ t, debt t ≤ debt (t + 1) + 2 ^ Nat.log 2 n) :
+    debt T ≠ 0 := by
+  intro hcleared
+  have hlower := hypercube_lowBoundary_requires_superpoly_time
+    n (Nat.log 2 n) hlog view0 debt T hinit hservice hcleared
+  omega
+
 /-- The only permitted connection between the asymmetric observers is the
 existential language semantics.  The P-side invariant is now concrete:
 `decisionTime` is polynomially bounded because it is extracted from the alleged
@@ -1213,6 +1234,7 @@ end PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtrac
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.BoundedPrecisionDynamicSPDPRankObserver.ofAnchoredSectorRun
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.BoundedPrecisionDynamicSPDPRankObserver.anchoredSectorRun_decisionTime_not_polyBounded
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_small_width_obliviousBP_for_hardF
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_logBoundary_hypercube_observer_before_threshold
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_SATDecisionInP_of_asymmetricObserverBridge
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_asymmetricSATObserverBridgeFor_decider
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.asymmetricObserverBridge_iff_no_SATDecisionInP
