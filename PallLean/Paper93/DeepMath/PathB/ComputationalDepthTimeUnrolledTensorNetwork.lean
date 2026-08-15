@@ -89,6 +89,91 @@ theorem ofComposableMachine_decision_exact
       ComposableMachine.decideOut M x T := by
   rfl
 
+/-! ## Balanced transition-monoid compression -/
+
+/-- A binary contraction tree whose leaves are transition summaries.  At a
+node, the left time segment runs first and the right segment runs second. -/
+inductive CompositionTree (State : Type*) where
+  | leaf (transition : State → State)
+  | node (left right : CompositionTree State)
+
+namespace CompositionTree
+
+/-- Exact endomorphism represented by a composition tree. -/
+def eval {State : Type*} : CompositionTree State → (State → State)
+  | .leaf transition => transition
+  | .node left right => eval right ∘ eval left
+
+/-- Parallel contraction depth. -/
+def height {State : Type*} : CompositionTree State → Nat
+  | .leaf _ => 0
+  | .node left right => max (height left) (height right) + 1
+
+/-- Number of sequential transition leaves represented by the tree. -/
+def leafCount {State : Type*} : CompositionTree State → Nat
+  | .leaf _ => 1
+  | .node left right => leafCount left + leafCount right
+
+/-- The perfectly balanced summary tree for `2^d` repetitions of one local
+transition. -/
+def balancedPower {State : Type*} (step : State → State) : Nat → CompositionTree State
+  | 0 => .leaf step
+  | d + 1 =>
+      let half := balancedPower step d
+      .node half half
+
+theorem balancedPower_height {State : Type*} (step : State → State) (d : Nat) :
+    (balancedPower step d).height = d := by
+  induction d with
+  | zero => rfl
+  | succ d ih => simp [balancedPower, height, ih]
+
+theorem balancedPower_leafCount {State : Type*} (step : State → State) (d : Nat) :
+    (balancedPower step d).leafCount = 2 ^ d := by
+  induction d with
+  | zero => rfl
+  | succ d ih =>
+      simp only [balancedPower, leafCount, ih, pow_succ]
+      omega
+
+/-- Balanced contraction is semantically exact: depth `d` represents precisely
+`2^d` sequential transition steps. -/
+theorem balancedPower_eval {State : Type*} (step : State → State) (d : Nat) :
+    (balancedPower step d).eval = step^[2 ^ d] := by
+  induction d with
+  | zero => rfl
+  | succ d ih =>
+      funext x
+      simp only [balancedPower, eval, Function.comp_apply, ih, pow_succ]
+      rw [show 2 ^ d * 2 = 2 ^ d + 2 ^ d by omega]
+      exact (Function.iterate_add_apply step (2 ^ d) (2 ^ d) x).symm
+
+/-- Exact terminal-state form of balanced transition composition. -/
+theorem balancedPower_terminal {State : Type*}
+    (step : State → State) (start : State) (d : Nat) :
+    (balancedPower step d).eval start = run step start (2 ^ d) := by
+  rw [balancedPower_eval]
+  rfl
+
+end CompositionTree
+
+/-- For a finite configuration carrier, every internal wire of the balanced
+composition tree ranges over exactly the finite state space. -/
+def bondDimension (State : Type*) [Fintype State] : Nat := Fintype.card State
+
+theorem bondDimension_eq_card (State : Type*) [Fintype State] :
+    bondDimension State = Fintype.card State := rfl
+
+/-- Concrete machine instantiation: a power-of-two clocked run has an exact
+balanced transition tree of logarithmic depth `d`. -/
+theorem composableMachine_balanced_terminal
+    (M : ComposableMachine.Machine) (x : List Bool) (d : Nat) :
+    (CompositionTree.balancedPower (ComposableMachine.step M) d).eval
+        (ComposableMachine.init M x) =
+      ComposableMachine.run M (2 ^ d) (ComposableMachine.init M x) := by
+  exact CompositionTree.balancedPower_terminal
+    (ComposableMachine.step M) (ComposableMachine.init M x) d
+
 end PallLean.Paper93.DeepMath.PathB.TimeUnrolledTensorNetwork
 
 #print axioms PallLean.Paper93.DeepMath.PathB.TimeUnrolledTensorNetwork.canonical
@@ -97,3 +182,7 @@ end PallLean.Paper93.DeepMath.PathB.TimeUnrolledTensorNetwork
 #print axioms PallLean.Paper93.DeepMath.PathB.TimeUnrolledTensorNetwork.canonical_depth_eq_runtime
 #print axioms PallLean.Paper93.DeepMath.PathB.TimeUnrolledTensorNetwork.ofComposableMachine_terminal
 #print axioms PallLean.Paper93.DeepMath.PathB.TimeUnrolledTensorNetwork.ofComposableMachine_decision_exact
+#print axioms PallLean.Paper93.DeepMath.PathB.TimeUnrolledTensorNetwork.CompositionTree.balancedPower_height
+#print axioms PallLean.Paper93.DeepMath.PathB.TimeUnrolledTensorNetwork.CompositionTree.balancedPower_leafCount
+#print axioms PallLean.Paper93.DeepMath.PathB.TimeUnrolledTensorNetwork.CompositionTree.balancedPower_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.TimeUnrolledTensorNetwork.composableMachine_balanced_terminal
