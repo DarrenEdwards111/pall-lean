@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthPvsNPStructuredExtraction
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDecisionHolonomy
 
 /-!
 # Ramanujan → holographic projection → amplituhedron extraction socket
@@ -34,6 +35,7 @@ open SATDepthMachine
 open PallLean.Paper93.DeepMath.PathB.PvsNPTranscriptObserver
 open PallLean.Paper93.DeepMath.PathB.PvsNPStructuredExtraction
 open PallLean.Paper93.DeepMath.PathB.PvsNPPACAmplituhedronProjection
+open PallLean.Paper93.DeepMath.PathB.DecisionHolonomy
 
 /-- Abstract Ramanujan/expander boundary certificate for the H4 extraction route.
 
@@ -224,8 +226,18 @@ for both directions used by the reduction. -/
 structure EfficientHolographicEncodingDecodingPayload
     (U : MachineModel) (D : DecisionMachine U) (hD : DecidesSAT U D)
     (raw screen cell : Type) where
-  payload : Prop
-  realized : payload
+  descriptionBits : Nat -> Nat
+  finitePrecisionBits : Nat -> Nat
+  updateCount : Nat -> Nat
+  encodingCost : Nat -> Nat
+  decodingCost : Nat -> Nat
+  descriptionBits_poly : PolyBounded descriptionBits
+  finitePrecisionBits_poly : PolyBounded finitePrecisionBits
+  updateCount_poly : PolyBounded updateCount
+  encodingCost_poly : PolyBounded encodingCost
+  decodingCost_poly : PolyBounded decodingCost
+  derivedFromSolver : Prop
+  derivedFromSolver_realized : derivedFromSolver
 
 /-- SPDP/PAC and Cook--Levin compatibility payload.
 
@@ -233,8 +245,14 @@ A realization must prove the rank-faithful direction on the relevant hard
 derivative space; ordinary projection monotonicity alone is insufficient. -/
 structure SPDPCookLevinRankFaithfulCompatibilityPayload
     (raw screen cell : Type) where
-  payload : Prop
-  realized : payload
+  operationCompatibility : Prop
+  operationCompatibility_realized : operationCompatibility
+  cookLevinTargetCompatibility : Prop
+  cookLevinTargetCompatibility_realized : cookLevinTargetCompatibility
+  hardResidualKernelTrivial : Prop
+  hardResidualKernelTrivial_realized : hardResidualKernelTrivial
+  spdpRankFaithful : Prop
+  spdpRankFaithful_realized : spdpRankFaithful
 
 /-- N-frame Lagrangian construction payload for the selected holographic map.
 
@@ -242,8 +260,13 @@ This field certifies that the projection really arises from the intended
 N-frame variational construction.  It is deliberately separate from semantic
 preservation and SPDP rank faithfulness. -/
 structure NFrameLagrangianProjectionPayload (raw screen cell : Type) where
-  payload : Prop
-  realized : payload
+  isNFrameLagrangianMinimizer : Prop
+  isNFrameLagrangianMinimizer_realized : isNFrameLagrangianMinimizer
+  minimizerInducesHolographicProjection : Prop
+  minimizerInducesHolographicProjection_realized :
+    minimizerInducesHolographicProjection
+  unitAndIdentityMinorPreserving : Prop
+  unitAndIdentityMinorPreserving_realized : unitAndIdentityMinorPreserving
 
 /-- The complete, honest certificate required for the holographic/N-frame
 route to close against one alleged polynomial-time SAT decider.
@@ -307,6 +330,39 @@ theorem no_SATDecisionInP_of_completeHolographicNFrameBridge {U : MachineModel}
   intro hP
   rcases hP with ⟨D, hD⟩
   exact (hComplete D hD).impossible
+
+/-!
+### Why two-dimensional holography alone does not inhabit the certificate
+
+The area-law pressure test has the form
+
+```text
+capacityBits <= boundaryUses * R^2.
+```
+
+A static `R^2` boundary cannot recover an injective `R^3`-bit bulk label, but
+`R` sequential reuses attain `R * R^2 = R^3`.  Polynomial-time machines are
+allowed polynomially many updates.  Moreover, a real-valued screen has no
+finite information bound without an explicit precision/description model.
+Those are the reasons `EfficientHolographicEncodingDecodingPayload` exposes
+finite precision, description length, update count, and codec cost separately.
+
+Likewise, existence or minimisation of the N-frame Lagrangian does not imply
+that the selected projection preserves SAT labels or the SPDP identity minor.
+The zero/low-rank collapse is excluded only by the explicit unit/identity-minor
+and rank-faithfulness fields above.
+
+The exact remaining theorem is therefore the construction of
+
+```lean
+CompleteHolographicNFrameBridgeForPTimeSAT U
+```
+
+from the concrete semantics of every alleged polynomial-time SAT decider.
+Once supplied, `no_SATDecisionInP_of_completeHolographicNFrameBridge` closes
+the route.  This file does not assert that construction: doing so without
+realizing its fields would merely rename the P-versus-NP conjecture.
+-/
 
 /-!
 Route status:
