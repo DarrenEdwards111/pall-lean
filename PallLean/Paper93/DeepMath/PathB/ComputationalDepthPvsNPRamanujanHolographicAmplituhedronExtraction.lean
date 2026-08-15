@@ -490,6 +490,41 @@ theorem no_SATDecisionInP_of_asymmetricObserverBridge {U : MachineModel}
   rintro ⟨D, hD⟩
   exact (hBridge D hD).impossible
 
+/-- No alleged SAT decider can simultaneously carry polynomial decision time
+and the proposed super-polynomial decision-holonomy certificate.  This is a
+direct consistency check on the asymmetric interface, not a construction of
+the missing certificate. -/
+theorem no_asymmetricSATObserverBridgeFor_decider
+    {U : MachineModel} (D : DecisionMachine U) (hD : DecidesSAT U D) :
+    ¬ Nonempty (AsymmetricSATObserverBridgeFor U D hD) := by
+  rintro ⟨B⟩
+  exact B.impossible
+
+/-- Vacuous reverse direction used only for exact logical calibration.  If SAT
+is already known not to be in P, an alleged decider can be eliminated; this
+builds no observer and proves no Ramanujan/SPDP holonomy theorem. -/
+noncomputable def asymmetricObserverBridge_of_no_SATDecisionInP
+    {U : MachineModel} (hNo : ¬ SATDecisionInP U) :
+    AsymmetricSATObserverBridgeForPTimeSAT U := by
+  intro D hD
+  exact False.elim (hNo ⟨D, hD⟩)
+
+/-- Exact strength calibration of the corrected asymmetric completion target.
+
+Thus changing from a shared observer to the correct God’s-eye-NP / bounded-P
+perspectives repairs the quantifiers, but does not make the final construction
+routine: a universal Ramanujan/SPDP *decision*-holonomy extraction is logically
+equivalent to excluding polynomial-time SAT deciders. -/
+theorem asymmetricObserverBridge_iff_no_SATDecisionInP
+    {U : MachineModel} :
+    Nonempty (AsymmetricSATObserverBridgeForPTimeSAT U) ↔
+      ¬ SATDecisionInP U := by
+  constructor
+  · rintro ⟨hBridge⟩
+    exact no_SATDecisionInP_of_asymmetricObserverBridge hBridge
+  · intro hNo
+    exact ⟨asymmetricObserverBridge_of_no_SATDecisionInP hNo⟩
+
 /-- The complete, honest certificate required for the holographic/N-frame
 route to close against one alleged polynomial-time SAT decider.
 
@@ -694,3 +729,5 @@ end PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtrac
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.CompleteHolographicNFrameBridgeFor.impossible_via_observerAtlas
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.AsymmetricDecisionInvariantBridge.impossible
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_SATDecisionInP_of_asymmetricObserverBridge
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_asymmetricSATObserverBridgeFor_decider
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.asymmetricObserverBridge_iff_no_SATDecisionInP
