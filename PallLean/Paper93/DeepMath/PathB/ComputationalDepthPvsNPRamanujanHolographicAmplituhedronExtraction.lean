@@ -554,6 +554,26 @@ theorem familyDecisionError_local_spring_law
     (reported t) (reported (t + 1)) truth)
     (Nat.add_le_add_left (hlocal t) _)
 
+/-- A single uniform Boolean transition can change the induced prediction on
+every member of the hard family simultaneously.  Hence locality of the machine
+rule on one run does not imply locality across the family of runs. -/
+theorem uniform_bit_flip_changes_entire_family
+    {X : Type} [Fintype X] :
+    familyPredictionChangeCount (fun _ : X => false) (fun _ => true) =
+      Fintype.card X := by
+  classical
+  simp [familyPredictionChangeCount]
+
+/-- If the family is larger than the proposed service rate, the uniform flip
+is a concrete counterexample to that rate bound.  Any valid SAT theorem must
+therefore use additional Cook--Levin/Ramanujan sensitivity structure, not just
+the fact that each individual machine step is locally specified. -/
+theorem uniform_bit_flip_violates_small_service_rate
+    {X : Type} [Fintype X] (rate : Nat) (hlarge : rate < Fintype.card X) :
+    ¬ familyPredictionChangeCount (fun _ : X => false) (fun _ => true) ≤ rate := by
+  rw [uniform_bit_flip_changes_entire_family]
+  exact Nat.not_le.mpr hlarge
+
 /-- Decision correctness as a bare proposition cannot force an unrelated
 spring trajectory to have zero terminal energy.  This tiny no-go theorem guards
 the exact remaining semantic seam: terminal discharge needs a concrete coupling
@@ -922,6 +942,8 @@ end PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtrac
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.familyDecisionError_batch_clear
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.familyDecisionError_le_next_add_changes
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.familyDecisionError_local_spring_law
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.uniform_bit_flip_changes_entire_family
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.uniform_bit_flip_violates_small_service_rate
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.correctness_alone_does_not_force_terminal_discharge
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.local_spring_law_allows_persistent_load
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_SATDecisionInP_of_asymmetricObserverBridge
