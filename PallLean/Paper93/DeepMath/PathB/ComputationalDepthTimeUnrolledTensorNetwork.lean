@@ -174,6 +174,63 @@ theorem composableMachine_balanced_terminal
   exact CompositionTree.balancedPower_terminal
     (ComposableMachine.step M) (ComposableMachine.init M x) d
 
+/-! ## Time-inhomogeneous transition sequences -/
+
+/-- Run `count` transitions from a time-indexed transition family, beginning at
+absolute time `offset`. -/
+def runSequence {State : Type*} (transition : Nat → State → State)
+    (offset : Nat) : Nat → State → State
+  | 0, state => state
+  | count + 1, state =>
+      transition (offset + count) (runSequence transition offset count state)
+
+theorem runSequence_add {State : Type*} (transition : Nat → State → State)
+    (offset first second : Nat) (state : State) :
+    runSequence transition offset (first + second) state =
+      runSequence transition (offset + first) second
+        (runSequence transition offset first state) := by
+  induction second with
+  | zero => simp [runSequence]
+  | succ second ih =>
+      rw [Nat.add_succ, runSequence, ih, runSequence]
+      simp only [Nat.add_assoc]
+
+/-- Perfectly balanced composition of `2^d` consecutive, possibly different,
+time-indexed transitions starting at `offset`. -/
+def CompositionTree.balancedRange {State : Type*}
+    (transition : Nat → State → State) (offset : Nat) : Nat → CompositionTree State
+  | 0 => .leaf (transition offset)
+  | d + 1 =>
+      .node (balancedRange transition offset d)
+        (balancedRange transition (offset + 2 ^ d) d)
+
+theorem CompositionTree.balancedRange_height {State : Type*}
+    (transition : Nat → State → State) (offset d : Nat) :
+    (balancedRange transition offset d).height = d := by
+  induction d generalizing offset with
+  | zero => rfl
+  | succ d ih => simp [balancedRange, height, ih]
+
+theorem CompositionTree.balancedRange_leafCount {State : Type*}
+    (transition : Nat → State → State) (offset d : Nat) :
+    (balancedRange transition offset d).leafCount = 2 ^ d := by
+  induction d generalizing offset with
+  | zero => rfl
+  | succ d ih =>
+      simp only [balancedRange, leafCount, ih, pow_succ]
+      omega
+
+theorem CompositionTree.balancedRange_eval {State : Type*}
+    (transition : Nat → State → State) (offset d : Nat) (state : State) :
+    (balancedRange transition offset d).eval state =
+      runSequence transition offset (2 ^ d) state := by
+  induction d generalizing offset state with
+  | zero => rfl
+  | succ d ih =>
+      simp only [balancedRange, eval, Function.comp_apply, ih, pow_succ]
+      rw [show 2 ^ d * 2 = 2 ^ d + 2 ^ d by omega]
+      exact (runSequence_add transition offset (2 ^ d) (2 ^ d) state).symm
+
 end PallLean.Paper93.DeepMath.PathB.TimeUnrolledTensorNetwork
 
 #print axioms PallLean.Paper93.DeepMath.PathB.TimeUnrolledTensorNetwork.canonical
@@ -186,3 +243,6 @@ end PallLean.Paper93.DeepMath.PathB.TimeUnrolledTensorNetwork
 #print axioms PallLean.Paper93.DeepMath.PathB.TimeUnrolledTensorNetwork.CompositionTree.balancedPower_leafCount
 #print axioms PallLean.Paper93.DeepMath.PathB.TimeUnrolledTensorNetwork.CompositionTree.balancedPower_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.TimeUnrolledTensorNetwork.composableMachine_balanced_terminal
+#print axioms PallLean.Paper93.DeepMath.PathB.TimeUnrolledTensorNetwork.runSequence_add
+#print axioms PallLean.Paper93.DeepMath.PathB.TimeUnrolledTensorNetwork.CompositionTree.balancedRange_height
+#print axioms PallLean.Paper93.DeepMath.PathB.TimeUnrolledTensorNetwork.CompositionTree.balancedRange_eval
