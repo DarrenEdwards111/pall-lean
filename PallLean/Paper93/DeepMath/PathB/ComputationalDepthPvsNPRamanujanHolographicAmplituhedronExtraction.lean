@@ -445,6 +445,32 @@ structure TowerSpringDecisionPayload (Correct : Prop)
 
 namespace TowerSpringDecisionPayload
 
+/-- Decision correctness as a bare proposition cannot force an unrelated
+spring trajectory to have zero terminal energy.  This tiny no-go theorem guards
+the exact remaining semantic seam: terminal discharge needs a concrete coupling
+between the SAT decision and the Cook--Levin/Ramanujan energy, not merely the
+fact that the output bit is correct. -/
+theorem correctness_alone_does_not_force_terminal_discharge
+    (Correct : Prop) (hCorrect : Correct) (T : Nat) :
+    ¬ (∀ energy : Nat -> Nat, Correct -> energy T = 0) := by
+  intro hAll
+  have hOne : (fun _ : Nat => 1) T = 0 := hAll (fun _ => 1) hCorrect
+  norm_num at hOne
+
+/-- Likewise, the local spring inequality alone permits a permanently loaded
+constant trajectory.  Therefore the terminal-discharge field is essential to
+the time lower bound. -/
+theorem local_spring_law_allows_persistent_load (load rate : Nat) :
+    ∃ energy : Nat -> Nat,
+      energy 0 = load ∧
+      (∀ t, energy t ≤ energy (t + 1) + rate) ∧
+      (∀ t, energy t = load) := by
+  refine ⟨fun _ => load, rfl, ?_, ?_⟩
+  · intro t
+    exact Nat.le_add_right load rate
+  · intro t
+    rfl
+
 /-- Telescoping the local tower-step spring law proves the global discharge
 budget.  Thus the latter is no longer an assumed certificate field. -/
 theorem discharge_budget {Correct : Prop} {decisionTime : Nat -> Nat}
@@ -781,6 +807,8 @@ end PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtrac
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.AsymmetricDecisionInvariantBridge.impossible
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.discharge_budget
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.decisionHolonomy
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.correctness_alone_does_not_force_terminal_discharge
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.local_spring_law_allows_persistent_load
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_SATDecisionInP_of_asymmetricObserverBridge
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_asymmetricSATObserverBridgeFor_decider
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.asymmetricObserverBridge_iff_no_SATDecisionInP
