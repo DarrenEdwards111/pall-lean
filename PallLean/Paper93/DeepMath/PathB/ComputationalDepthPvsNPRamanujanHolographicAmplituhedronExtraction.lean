@@ -665,6 +665,28 @@ theorem orientationEnergy_local_spring_law
     (fun t s => prediction t s (F.anchor s))
     (fun s => truth s (F.anchor s)) rate hlocal
 
+/-- Merely indexing anchors by independent sectors does not yet make their
+computational updates independent: one uniform rule can flip every sector
+anchor in parallel. -/
+theorem uniform_flip_changes_every_sector_anchor
+    (F : AnchoredResidualSectorFamily) :
+    F.orientationChangeCount
+      (fun _ _ => false) (fun _ _ => true) =
+      @Fintype.card F.Sector F.sectorFintype := by
+  letI : Fintype F.Sector := F.sectorFintype
+  exact uniform_bit_flip_changes_entire_family
+
+/-- Therefore a small per-step sector service bound does not follow from the
+direct-sum indexing alone.  The sectors need a theorem of *computational*
+independence under the actual Cook--Levin transition semantics. -/
+theorem direct_sum_indexing_alone_violates_small_rate
+    (F : AnchoredResidualSectorFamily) (rate : Nat)
+    (hlarge : rate < @Fintype.card F.Sector F.sectorFintype) :
+    ¬ F.orientationChangeCount
+      (fun _ _ => false) (fun _ _ => true) ≤ rate := by
+  rw [F.uniform_flip_changes_every_sector_anchor]
+  exact Nat.not_le.mpr hlarge
+
 end AnchoredResidualSectorFamily
 
 /-- Decision correctness as a bare proposition cannot force an unrelated
@@ -1042,6 +1064,8 @@ end PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtrac
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.AnchoredResidualSectorFamily.orientationEnergy_eq_zero_of_correct
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.AnchoredResidualSectorFamily.orientationEnergy_eq_sector_card_of_wrong_anchors
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.AnchoredResidualSectorFamily.orientationEnergy_local_spring_law
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.AnchoredResidualSectorFamily.uniform_flip_changes_every_sector_anchor
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.AnchoredResidualSectorFamily.direct_sum_indexing_alone_violates_small_rate
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.correctness_alone_does_not_force_terminal_discharge
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.local_spring_law_allows_persistent_load
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_SATDecisionInP_of_asymmetricObserverBridge
