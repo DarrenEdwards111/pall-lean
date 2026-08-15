@@ -431,15 +431,33 @@ lower bound without identifying the two observer boundaries. -/
 structure TowerSpringDecisionPayload (Correct : Prop)
     (decisionTime : Nat -> Nat) where
   initialEnergy : Nat -> Nat
+  energy : Nat -> Nat -> Nat
   serviceRate : Nat -> Nat
   threshold : Nat -> Nat
   serviceRate_pos : ∀ n, 0 < serviceRate n
+  initialEnergy_eq : ∀ n, energy n 0 = initialEnergy n
   threshold_load : ∀ n, threshold n * serviceRate n ≤ initialEnergy n
-  correct_discharge_budget :
-    Correct -> ∀ n, initialEnergy n ≤ decisionTime n * serviceRate n
+  local_step_spring_law :
+    Correct -> ∀ n t, energy n t ≤ energy n (t + 1) + serviceRate n
+  correct_terminal_discharge :
+    Correct -> ∀ n, energy n (decisionTime n) = 0
   threshold_superPoly : SuperPoly threshold
 
 namespace TowerSpringDecisionPayload
+
+/-- Telescoping the local tower-step spring law proves the global discharge
+budget.  Thus the latter is no longer an assumed certificate field. -/
+theorem discharge_budget {Correct : Prop} {decisionTime : Nat -> Nat}
+    (S : TowerSpringDecisionPayload Correct decisionTime) (hCorrect : Correct)
+    (n : Nat) :
+    S.initialEnergy n ≤ decisionTime n * S.serviceRate n := by
+  have h := PallLean.Paper93.DeepMath.PathB.ObserverTimeDebt.correct_needs_action
+    (S.energy n) (fun _ => S.serviceRate n)
+    (S.local_step_spring_law hCorrect n) (decisionTime n)
+    (S.correct_terminal_discharge hCorrect n)
+  rw [← S.initialEnergy_eq n]
+  simpa [PallLean.Paper93.DeepMath.PathB.ObserverTimeDebt.observerTimeAction,
+    Finset.sum_const, Finset.card_range, nsmul_eq_mul] using h
 
 /-- A correct rate-limited spring discharge forces the desired pointwise
 decision-time holonomy. -/
@@ -448,7 +466,7 @@ theorem decisionHolonomy {Correct : Prop} {decisionTime : Nat -> Nat}
     DecisionHolonomyHyp decisionTime S.threshold := by
   intro n
   apply Nat.le_of_mul_le_mul_right
-  · exact le_trans (S.threshold_load n) (S.correct_discharge_budget hCorrect n)
+  · exact le_trans (S.threshold_load n) (S.discharge_budget hCorrect n)
   · exact S.serviceRate_pos n
 
 end TowerSpringDecisionPayload
@@ -761,6 +779,7 @@ end PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtrac
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.HolographicObserverPerspectiveAtlas.joint_boundary_card_ge_exp_of_fooling
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.CompleteHolographicNFrameBridgeFor.impossible_via_observerAtlas
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.AsymmetricDecisionInvariantBridge.impossible
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.discharge_budget
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.decisionHolonomy
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_SATDecisionInP_of_asymmetricObserverBridge
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_asymmetricSATObserverBridgeFor_decider
