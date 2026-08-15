@@ -21,6 +21,19 @@ on only `[propext, Classical.choice, Quot.sound]` (no custom axioms, no `sorry`)
 | [Forster](FORSTER_CAPSTONE.md) — `…ForsterCapstone` | sign-rank `≥ n/‖·‖`, Walsh UPP `≥ k/2` | complete (circuit-app fenced) |
 | [Tseitin proof-space](TSEITIN_SPACE_CAPSTONE.md) — `…TseitinSpaceCapstone` | resolution proof-space `Ω(\|V\|)` | restricted |
 
+## Exact three-bit majority circuit budget
+
+The repository also contains a fully kernel-checked exact result for the
+three-input majority function in the unrestricted binary-gate `CGate` model:
+
+- **[MAJORITY_CIRCUIT_CAPSTONE.md](MAJORITY_CIRCUIT_CAPSTONE.md)** —
+  `majorityThreeFloor_cbudget_eq_seven` proves that the minimum wire count is
+  exactly `7`.
+
+The binary gates may compute arbitrary Boolean functions.  The proof gives a
+seven-wire construction and excludes every six-wire circuit by compressing its
+three genuine binary transitions into a finite semantic observer schedule.
+
 These are genuine restricted-class results. **None is `NEXP ⊄ ACC⁰` or `P ≠ NP`**; the ledger states
 precisely why each stops where it does.
 
