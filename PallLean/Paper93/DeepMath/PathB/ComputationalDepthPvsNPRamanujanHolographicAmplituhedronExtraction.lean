@@ -421,33 +421,38 @@ structure PDeciderBoundaryPerspective (Instance : Type) where
   capacityBits_poly : AtlasPolyBounded capacityBits
 
 /-- The only permitted connection between the asymmetric observers is the
-existential language semantics.  `decisionInvariant` must be an invariant of
-deciding `∃ w, accepts x w`; it may not demand witness or residual-label
-reconstruction.  The two last fields isolate the genuine missing mathematics:
-correct P-decision forces the invariant, while the Ramanujan/SPDP lower bound
-rules it out for a polynomial boundary. -/
+existential language semantics.  The P-side invariant is now concrete:
+`decisionTime` is polynomially bounded because it is extracted from the alleged
+P decider, while Ramanujan/SPDP decision holonomy lower-bounds it by a
+super-polynomial threshold.  Nothing here demands witness or residual-label
+reconstruction. -/
 structure AsymmetricDecisionInvariantBridge
     (Instance Witness : Type) (accepts : Instance -> Witness -> Prop) where
   npObserver : NPVerifierGodEyePerspective Instance Witness accepts
   pObserver : PDeciderBoundaryPerspective Instance
   pDecidesExistential :
     ∀ x, pObserver.answer (pObserver.view x) = true ↔ ∃ w, accepts x w
-  decisionInvariant : Prop
-  decisionInvariant_of_correct_decision :
+  decisionTime : Nat -> Nat
+  threshold : Nat -> Nat
+  pDecisionTime_poly : PolyBounded decisionTime
+  ramanujanSPDP_decisionHolonomy :
     (∀ x, pObserver.answer (pObserver.view x) = true ↔ ∃ w, accepts x w) ->
-      decisionInvariant
-  ramanujanSPDP_obstructs_decisionInvariant : decisionInvariant -> False
+      DecisionHolonomyHyp decisionTime threshold
+  threshold_superPoly : SuperPoly threshold
 
 namespace AsymmetricDecisionInvariantBridge
 
-/-- The asymmetric bridge closes using only the P-side decision invariant.
+/-- The asymmetric bridge closes using only the P-side decision-time invariant.
+The proved generic decision-holonomy reduction says the holonomy lower bound
+makes `decisionTime` non-polynomial, contradicting the P-side polynomial bound.
 The proof never combines boundaries and never asks the P observer to decode an
 NP witness or hard-residual label. -/
 theorem impossible {Instance Witness : Type}
     {accepts : Instance -> Witness -> Prop}
-    (B : AsymmetricDecisionInvariantBridge Instance Witness accepts) : False :=
-  B.ramanujanSPDP_obstructs_decisionInvariant
-    (B.decisionInvariant_of_correct_decision B.pDecidesExistential)
+    (B : AsymmetricDecisionInvariantBridge Instance Witness accepts) : False := by
+  exact (decisionHolonomy_implies_not_poly
+    (B.ramanujanSPDP_decisionHolonomy B.pDecidesExistential)
+    B.threshold_superPoly) B.pDecisionTime_poly
 
 end AsymmetricDecisionInvariantBridge
 
