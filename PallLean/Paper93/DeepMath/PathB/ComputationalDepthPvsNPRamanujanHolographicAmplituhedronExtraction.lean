@@ -420,6 +420,39 @@ structure PDeciderBoundaryPerspective (Instance : Type) where
   capacityBits : Nat -> Nat
   capacityBits_poly : AtlasPolyBounded capacityBits
 
+/-- Rate-limited tower/spring realization of decision holonomy.
+
+`initialEnergy` is the Ramanujan/N-frame load stored in the NP-side witness
+geometry.  A correct P decision must discharge that load through its own
+boundary.  One tower step services at most `serviceRate n`, expressed by the
+global discharge budget.  The lower threshold fits inside the initial load at
+that same rate.  Positivity of the rate permits cancellation, producing a time
+lower bound without identifying the two observer boundaries. -/
+structure TowerSpringDecisionPayload (Correct : Prop)
+    (decisionTime : Nat -> Nat) where
+  initialEnergy : Nat -> Nat
+  serviceRate : Nat -> Nat
+  threshold : Nat -> Nat
+  serviceRate_pos : ∀ n, 0 < serviceRate n
+  threshold_load : ∀ n, threshold n * serviceRate n ≤ initialEnergy n
+  correct_discharge_budget :
+    Correct -> ∀ n, initialEnergy n ≤ decisionTime n * serviceRate n
+  threshold_superPoly : SuperPoly threshold
+
+namespace TowerSpringDecisionPayload
+
+/-- A correct rate-limited spring discharge forces the desired pointwise
+decision-time holonomy. -/
+theorem decisionHolonomy {Correct : Prop} {decisionTime : Nat -> Nat}
+    (S : TowerSpringDecisionPayload Correct decisionTime) (hCorrect : Correct) :
+    DecisionHolonomyHyp decisionTime S.threshold := by
+  intro n
+  apply Nat.le_of_mul_le_mul_right
+  · exact le_trans (S.threshold_load n) (S.correct_discharge_budget hCorrect n)
+  · exact S.serviceRate_pos n
+
+end TowerSpringDecisionPayload
+
 /-- The only permitted connection between the asymmetric observers is the
 existential language semantics.  The P-side invariant is now concrete:
 `decisionTime` is polynomially bounded because it is extracted from the alleged
@@ -433,12 +466,10 @@ structure AsymmetricDecisionInvariantBridge
   pDecidesExistential :
     ∀ x, pObserver.answer (pObserver.view x) = true ↔ ∃ w, accepts x w
   decisionTime : Nat -> Nat
-  threshold : Nat -> Nat
   pDecisionTime_poly : PolyBounded decisionTime
-  ramanujanSPDP_decisionHolonomy :
-    (∀ x, pObserver.answer (pObserver.view x) = true ↔ ∃ w, accepts x w) ->
-      DecisionHolonomyHyp decisionTime threshold
-  threshold_superPoly : SuperPoly threshold
+  towerSpring : TowerSpringDecisionPayload
+    (∀ x, pObserver.answer (pObserver.view x) = true ↔ ∃ w, accepts x w)
+    decisionTime
 
 namespace AsymmetricDecisionInvariantBridge
 
@@ -451,8 +482,8 @@ theorem impossible {Instance Witness : Type}
     {accepts : Instance -> Witness -> Prop}
     (B : AsymmetricDecisionInvariantBridge Instance Witness accepts) : False := by
   exact (decisionHolonomy_implies_not_poly
-    (B.ramanujanSPDP_decisionHolonomy B.pDecidesExistential)
-    B.threshold_superPoly) B.pDecisionTime_poly
+    (B.towerSpring.decisionHolonomy B.pDecidesExistential)
+    B.towerSpring.threshold_superPoly) B.pDecisionTime_poly
 
 end AsymmetricDecisionInvariantBridge
 
@@ -666,10 +697,12 @@ from the P observer's algorithmic boundary.
 `AsymmetricDecisionInvariantBridge` is the corrected P-versus-NP interface.
 Its observers share only the semantics `decide x ↔ ∃ w, accepts x w`; it has no
 joint boundary and requires no P-side witness or residual-label reconstruction.
-The remaining separation theorem is correspondingly the construction of a
-decision invariant which (i) follows from correctly deciding this existential
-predicate with the P boundary and (ii) is obstructed by the Ramanujan/SPDP
-lower bound.  A witness-recovery lower bound cannot fill this field.
+`TowerSpringDecisionPayload` refines its remaining invariant: the NP geometry
+stores an initial spring load, a P-boundary step has a bounded service rate, and
+a correct terminal decision must discharge the load.  Cancellation yields the
+decision-time lower bound.  The remaining separation theorem is the concrete
+SAT-specific proof of that rate-limited discharge budget and a super-polynomial
+load/rate threshold.  A witness-recovery lower bound cannot fill those fields.
 
 Likewise, existence or minimisation of the N-frame Lagrangian does not imply
 that the selected projection preserves SAT labels or the SPDP identity minor.
@@ -728,6 +761,7 @@ end PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtrac
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.HolographicObserverPerspectiveAtlas.joint_boundary_card_ge_exp_of_fooling
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.CompleteHolographicNFrameBridgeFor.impossible_via_observerAtlas
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.AsymmetricDecisionInvariantBridge.impossible
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.decisionHolonomy
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_SATDecisionInP_of_asymmetricObserverBridge
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_asymmetricSATObserverBridgeFor_decider
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.asymmetricObserverBridge_iff_no_SATDecisionInP
