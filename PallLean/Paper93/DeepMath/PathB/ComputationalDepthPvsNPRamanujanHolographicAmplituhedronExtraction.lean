@@ -741,6 +741,67 @@ theorem decisionHolonomy {Correct : Prop} {decisionTime : Nat -> Nat}
 
 end TowerSpringDecisionPayload
 
+/-! ### Restricted bounded-precision Dynamic-SPDP lower bound -/
+
+/-- A restricted Dynamic-SPDP observer whose unresolved semantic rank is a
+finite natural-number quantity and whose every transition has bounded rank
+gain.  These are model restrictions, not consequences of polynomial running
+time. -/
+structure BoundedPrecisionDynamicSPDPRankObserver
+    (Correct : Prop) (decisionTime : Nat -> Nat) where
+  unresolvedRank : Nat -> Nat -> Nat
+  initialRank : Nat -> Nat
+  rankGainBound : Nat -> Nat
+  threshold : Nat -> Nat
+  rankGainBound_pos : ∀ n, 0 < rankGainBound n
+  initialRank_eq : ∀ n, unresolvedRank n 0 = initialRank n
+  threshold_fits_initialRank :
+    ∀ n, threshold n * rankGainBound n ≤ initialRank n
+  transition_rank_gain_bounded :
+    Correct -> ∀ n t,
+      unresolvedRank n t ≤ unresolvedRank n (t + 1) + rankGainBound n
+  correct_terminal_rank_zero :
+    Correct -> ∀ n, unresolvedRank n (decisionTime n) = 0
+  threshold_superPoly : SuperPoly threshold
+
+namespace BoundedPrecisionDynamicSPDPRankObserver
+
+/-- Convert the restricted rank model into the already-proved tower/spring
+interface. -/
+def toTowerSpring {Correct : Prop} {decisionTime : Nat -> Nat}
+    (O : BoundedPrecisionDynamicSPDPRankObserver Correct decisionTime) :
+    TowerSpringDecisionPayload Correct decisionTime where
+  initialEnergy := O.initialRank
+  energy := O.unresolvedRank
+  serviceRate := O.rankGainBound
+  threshold := O.threshold
+  serviceRate_pos := O.rankGainBound_pos
+  initialEnergy_eq := O.initialRank_eq
+  threshold_load := O.threshold_fits_initialRank
+  local_step_spring_law := O.transition_rank_gain_bounded
+  correct_terminal_discharge := O.correct_terminal_rank_zero
+  threshold_superPoly := O.threshold_superPoly
+
+/-- Restricted-model decision-time lower bound. -/
+theorem decisionHolonomy {Correct : Prop} {decisionTime : Nat -> Nat}
+    (O : BoundedPrecisionDynamicSPDPRankObserver Correct decisionTime)
+    (hCorrect : Correct) :
+    DecisionHolonomyHyp decisionTime O.threshold :=
+  O.toTowerSpring.decisionHolonomy hCorrect
+
+/-- Main restricted separation theorem: a correct bounded-gain Dynamic-SPDP
+observer with super-polynomial unresolved-rank threshold cannot have
+polynomially bounded decision time. -/
+theorem decisionTime_not_polyBounded
+    {Correct : Prop} {decisionTime : Nat -> Nat}
+    (O : BoundedPrecisionDynamicSPDPRankObserver Correct decisionTime)
+    (hCorrect : Correct) :
+    ¬ PolyBounded decisionTime :=
+  decisionHolonomy_implies_not_poly
+    (O.decisionHolonomy hCorrect) O.threshold_superPoly
+
+end BoundedPrecisionDynamicSPDPRankObserver
+
 /-- The only permitted connection between the asymmetric observers is the
 existential language semantics.  The P-side invariant is now concrete:
 `decisionTime` is polynomially bounded because it is extracted from the alleged
@@ -1068,6 +1129,8 @@ end PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtrac
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.AnchoredResidualSectorFamily.direct_sum_indexing_alone_violates_small_rate
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.correctness_alone_does_not_force_terminal_discharge
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.local_spring_law_allows_persistent_load
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.BoundedPrecisionDynamicSPDPRankObserver.decisionHolonomy
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.BoundedPrecisionDynamicSPDPRankObserver.decisionTime_not_polyBounded
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_SATDecisionInP_of_asymmetricObserverBridge
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_asymmetricSATObserverBridgeFor_decider
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.asymmetricObserverBridge_iff_no_SATDecisionInP
