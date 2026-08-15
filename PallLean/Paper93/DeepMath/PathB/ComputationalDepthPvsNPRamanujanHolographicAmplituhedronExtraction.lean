@@ -484,6 +484,11 @@ def familyDecisionErrorEnergy {X : Type} [Fintype X]
     (reported truth : X -> Bool) : Nat :=
   (Finset.univ.filter fun x => reported x ≠ truth x).card
 
+/-- Number of hard-family predictions modified by one transition. -/
+def familyPredictionChangeCount {X : Type} [Fintype X]
+    (before after : X -> Bool) : Nat :=
+  (Finset.univ.filter fun x => before x ≠ after x).card
+
 theorem familyDecisionErrorEnergy_eq_zero_of_correct
     {X : Type} [Fintype X] (reported truth : X -> Bool)
     (hCorrect : ∀ x, reported x = truth x) :
@@ -511,6 +516,43 @@ theorem familyDecisionError_batch_clear
   constructor
   · exact familyDecisionErrorEnergy_eq_card_of_everywhere_wrong wrong truth hWrong
   · exact familyDecisionErrorEnergy_eq_zero_of_correct truth truth (fun _ => rfl)
+
+/-- A transition can remove no more classification errors than the number of
+family predictions it changes.  This is the concrete combinatorial spring law
+needed to turn transition locality into bounded debt service. -/
+theorem familyDecisionError_le_next_add_changes
+    {X : Type} [Fintype X]
+    (before after truth : X -> Bool) :
+    familyDecisionErrorEnergy before truth ≤
+      familyDecisionErrorEnergy after truth +
+        familyPredictionChangeCount before after := by
+  classical
+  let E₀ : Finset X := Finset.univ.filter fun x => before x ≠ truth x
+  let E₁ : Finset X := Finset.univ.filter fun x => after x ≠ truth x
+  let C : Finset X := Finset.univ.filter fun x => before x ≠ after x
+  have hsub : E₀ ⊆ E₁ ∪ C := by
+    intro x hx
+    have hwrong : before x ≠ truth x := (Finset.mem_filter.mp hx).2
+    by_cases hchange : before x = after x
+    · have hwrong' : after x ≠ truth x := by simpa [← hchange] using hwrong
+      exact Finset.mem_union_left C (Finset.mem_filter.mpr ⟨Finset.mem_univ x, hwrong'⟩)
+    · exact Finset.mem_union_right E₁
+        (Finset.mem_filter.mpr ⟨Finset.mem_univ x, hchange⟩)
+  change E₀.card ≤ E₁.card + C.card
+  exact le_trans (Finset.card_le_card hsub) (Finset.card_union_le E₁ C)
+
+/-- An explicit per-transition influence bound supplies the tower spring law
+for the family-wide decision energy. -/
+theorem familyDecisionError_local_spring_law
+    {X : Type} [Fintype X]
+    (reported : Nat -> X -> Bool) (truth : X -> Bool) (rate : Nat)
+    (hlocal : ∀ t, familyPredictionChangeCount (reported t) (reported (t + 1)) ≤ rate) :
+    ∀ t, familyDecisionErrorEnergy (reported t) truth ≤
+      familyDecisionErrorEnergy (reported (t + 1)) truth + rate := by
+  intro t
+  exact le_trans (familyDecisionError_le_next_add_changes
+    (reported t) (reported (t + 1)) truth)
+    (Nat.add_le_add_left (hlocal t) _)
 
 /-- Decision correctness as a bare proposition cannot force an unrelated
 spring trajectory to have zero terminal energy.  This tiny no-go theorem guards
@@ -878,6 +920,8 @@ end PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtrac
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.decisionErrorEnergy_threshold_le_one
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.familyDecisionErrorEnergy_eq_zero_of_correct
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.familyDecisionError_batch_clear
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.familyDecisionError_le_next_add_changes
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.familyDecisionError_local_spring_law
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.correctness_alone_does_not_force_terminal_discharge
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.local_spring_law_allows_persistent_load
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_SATDecisionInP_of_asymmetricObserverBridge
