@@ -331,6 +331,35 @@ theorem no_SATDecisionInP_of_completeHolographicNFrameBridge {U : MachineModel}
   rcases hP with ⟨D, hD⟩
   exact (hComplete D hD).impossible
 
+/-- Vacuous reverse construction used only to calibrate logical strength.
+
+If SAT is already known not to be decidable in polynomial time, every alleged
+decider hypothesis is contradictory, so the complete certificate family is
+inhabited by elimination.  This constructs no holographic projection. -/
+noncomputable def completeHolographicNFrameBridge_of_no_SATDecisionInP
+    {U : MachineModel} (hNo : ¬ SATDecisionInP U) :
+    CompleteHolographicNFrameBridgeForPTimeSAT U := by
+  intro D hD
+  exact False.elim (hNo ⟨D, hD⟩)
+
+/-- Exact logical calibration of the fully general completion target.
+
+Constructing the complete holographic/N-frame certificate for every alleged
+polynomial-time SAT decider is equivalent, in the abstract machine model, to
+proving that SAT has no polynomial-time decider.  Consequently this target
+cannot be discharged merely from projection existence, the area law, or
+Lagrangian minimisation; one of its semantic/rank-faithfulness fields must
+contain genuinely new separation-strength mathematics. -/
+theorem completeHolographicNFrameBridge_iff_no_SATDecisionInP
+    {U : MachineModel} :
+    Nonempty (CompleteHolographicNFrameBridgeForPTimeSAT U) ↔
+      ¬ SATDecisionInP U := by
+  constructor
+  · rintro ⟨hComplete⟩
+    exact no_SATDecisionInP_of_completeHolographicNFrameBridge hComplete
+  · intro hNo
+    exact ⟨completeHolographicNFrameBridge_of_no_SATDecisionInP hNo⟩
+
 /-!
 ### Why two-dimensional holography alone does not inhabit the certificate
 
@@ -398,3 +427,4 @@ end PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtrac
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_SATDecisionInP_of_RamanujanHolographicAmplituhedron_direct
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.CompleteHolographicNFrameBridgeFor.impossible
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_SATDecisionInP_of_completeHolographicNFrameBridge
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.completeHolographicNFrameBridge_iff_no_SATDecisionInP
