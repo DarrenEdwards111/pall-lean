@@ -445,6 +445,38 @@ structure TowerSpringDecisionPayload (Correct : Prop)
 
 namespace TowerSpringDecisionPayload
 
+/-- The canonical energy that is genuinely coupled to a Boolean decision: zero
+exactly when the reported bit equals the semantic truth bit. -/
+def decisionErrorEnergy (reported truth : Bool) : Nat :=
+  if reported = truth then 0 else 1
+
+theorem decisionErrorEnergy_eq_zero_of_correct {reported truth : Bool}
+    (h : reported = truth) : decisionErrorEnergy reported truth = 0 := by
+  simp [decisionErrorEnergy, h]
+
+/-- The honest output-coupled energy contains at most one unit of load. -/
+theorem decisionErrorEnergy_le_one (reported truth : Bool) :
+    decisionErrorEnergy reported truth ≤ 1 := by
+  simp only [decisionErrorEnergy]
+  split <;> omega
+
+/-- Consequently a positive-rate tower whose initial load is only Boolean
+decision error can support a threshold of at most one step.  It cannot provide
+the super-polynomial Ramanujan load required by the separation.
+
+This is the semantic-coupling dichotomy in theorem form: output-error energy
+has terminal correctness but no large load; witness/Ramanujan energy may have a
+large load but needs a new theorem connecting correct decision to discharge. -/
+theorem decisionErrorEnergy_threshold_le_one
+    (reported truth : Bool) (threshold rate : Nat)
+    (hrate : 0 < rate)
+    (hload : threshold * rate ≤ decisionErrorEnergy reported truth) :
+    threshold ≤ 1 := by
+  have hone : 1 ≤ rate := hrate
+  have hthreshold : threshold ≤ threshold * rate := by
+    simpa using Nat.mul_le_mul_left threshold hone
+  exact le_trans hthreshold (le_trans hload (decisionErrorEnergy_le_one reported truth))
+
 /-- Decision correctness as a bare proposition cannot force an unrelated
 spring trajectory to have zero terminal energy.  This tiny no-go theorem guards
 the exact remaining semantic seam: terminal discharge needs a concrete coupling
@@ -807,6 +839,8 @@ end PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtrac
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.AsymmetricDecisionInvariantBridge.impossible
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.discharge_budget
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.decisionHolonomy
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.decisionErrorEnergy_eq_zero_of_correct
+#print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.decisionErrorEnergy_threshold_le_one
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.correctness_alone_does_not_force_terminal_discharge
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.TowerSpringDecisionPayload.local_spring_law_allows_persistent_load
 #print axioms PallLean.Paper93.DeepMath.PathB.PvsNPRamanujanHolographicAmplituhedronExtraction.no_SATDecisionInP_of_asymmetricObserverBridge
