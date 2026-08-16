@@ -209,6 +209,10 @@ complexity.**
   Assignment renaming is invertible, decoded branches satisfy the transported signed clauses, every satisfying
   assignment is recovered, and the exact `3^m·2^r` branch count is invariant.  The residual syntactic step is extracting
   ordered endpoints and signs from each arbitrary proper matched clause before applying this transport.
+* `ComputationalDepth2CNFClauseExtraction.lean` — proper-clause syntax extraction (**proved**): every two-literal,
+  two-variable clause receives canonical `Fin 2` literal coordinates; the extracted endpoints are distinct, their
+  Boolean signs are retained, and original `evalClause` is equivalent to the signed-pair predicate.  This closes the
+  last local representation bridge needed by the verified width-two matching/cover pipeline.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
