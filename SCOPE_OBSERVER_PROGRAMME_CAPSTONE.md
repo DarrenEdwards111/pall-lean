@@ -217,6 +217,11 @@ complexity.**
   matching/cover dispatch, exact semantic correctness of every cover branch, proper signed-clause extraction, exact
   `3^m·2^r` canonical matching count, and strict subcube work accounting behind one theorem interface.  It assumes
   no width-three switching theorem and makes no P-versus-NP claim.
+* `ComputationalDepth3CNFMatchingCoverAccounting.lean` — first width-three stress test (**proved**): a signed ternary
+  clause has exactly seven local satisfying states; blocks of six disjoint clauses cost `7^6 < 2^17`; and a saturated
+  width-three matching gives either those independent clauses or a cover of fewer than `18k` variables.  Assigning the
+  cover reduces every residual clause to width at most two, and both accounting arms are strictly below `2^n`.  This
+  recovers a bounded-width SAT saving, not a polynomial-time algorithm or a P-versus-NP separation.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
