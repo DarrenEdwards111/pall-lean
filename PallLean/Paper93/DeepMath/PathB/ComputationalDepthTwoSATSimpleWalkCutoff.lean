@@ -66,6 +66,44 @@ theorem nonempty_of_reach (cls : List (Clause n)) {a b : Lit n} (h : Reach cls a
       obtain ⟨walk⟩ := ih
       exact ⟨walk.snoc ((mem_implicationEdges_iff cls b c).mpr hbc)⟩
 
+/-- Any vertex occurring on a walk is the endpoint of a prefix walk. -/
+theorem exists_prefix_to
+    {edges : List (Lit n × Lit n)} {a b c : Lit n}
+    (walk : EdgeWalk edges a b) (hc : c ∈ vertices walk) :
+    ∃ pre : EdgeWalk edges a c, List.IsPrefix (vertices pre) (vertices walk) := by
+  induction walk with
+  | nil =>
+      simp only [vertices_nil, List.mem_singleton] at hc
+      subst c
+      refine ⟨.nil _, ?_⟩
+      exact List.prefix_refl _
+  | @snoc b d walk edge ih =>
+      rw [vertices_snoc, List.mem_append] at hc
+      rcases hc with hc | hc
+      · obtain ⟨pre, hprefix⟩ := ih hc
+        have hp : vertices walk <+: vertices walk ++ [d] := List.prefix_append _ _
+        rw [← vertices_snoc walk edge] at hp
+        exact ⟨pre, hprefix.trans hp⟩
+      · simp only [List.mem_singleton] at hc
+        subst c
+        refine ⟨walk.snoc edge, ?_⟩
+        exact List.prefix_refl _
+
+/-- **Cycle erasure (proved): every directed walk has a simple walk with the same endpoints.** -/
+theorem exists_simple
+    {edges : List (Lit n × Lit n)} {a b : Lit n} (walk : EdgeWalk edges a b) :
+    ∃ simple : EdgeWalk edges a b, (vertices simple).Nodup := by
+  induction walk with
+  | nil => exact ⟨.nil _, by simp [vertices]⟩
+  | @snoc b c walk edge ih =>
+      obtain ⟨simple, hsimple⟩ := ih
+      by_cases hc : c ∈ vertices simple
+      · obtain ⟨pre, hprefix⟩ := exists_prefix_to simple hc
+        exact ⟨pre, hsimple.sublist hprefix.sublist⟩
+      · refine ⟨simple.snoc edge, ?_⟩
+        rw [vertices_snoc]
+        simpa using hsimple.append (by simp) (by simp [hc])
+
 /-- A simple walk never uses more vertices than the finite literal universe. -/
 theorem length_lt_card_of_nodup {edges : List (Lit n × Lit n)} {a b : Lit n}
     (walk : EdgeWalk edges a b) (hsimple : (vertices walk).Nodup) :
@@ -92,10 +130,26 @@ theorem simpleWalk_reachWithin_cutoff
   rw [card_literals] at hlt
   omega
 
+/-- **Uniform finite cutoff (proved): every semantic implication path is found by fuel `2n-1`.** -/
+theorem reachWithin_cutoff (cls : List (Clause n)) {a b : Lit n} (h : Reach cls a b) :
+    ReachWithin (implicationEdges cls) (2 * n - 1) a b := by
+  obtain ⟨walk⟩ := nonempty_of_reach cls h
+  obtain ⟨simple, hsimple⟩ := exists_simple walk
+  exact simpleWalk_reachWithin_cutoff simple hsimple
+
+/-- The fixed-fuel Boolean kernel decides semantic implication reachability exactly. -/
+theorem boundedReach_cutoff_iff (cls : List (Clause n)) (a b : Lit n) :
+    boundedReach (implicationEdges cls) (2 * n - 1) a b = true ↔ Reach cls a b := by
+  rw [boundedReach_eq_true_iff]
+  exact ⟨reachWithin_sound cls, reachWithin_cutoff cls⟩
+
 end EdgeWalk
 
 end PallLean.Paper93.DeepMath.PathB.TwoSATSimpleWalkCutoff
 
 #print axioms PallLean.Paper93.DeepMath.PathB.TwoSATSimpleWalkCutoff.EdgeWalk.nonempty_of_reach
+#print axioms PallLean.Paper93.DeepMath.PathB.TwoSATSimpleWalkCutoff.EdgeWalk.exists_simple
 #print axioms PallLean.Paper93.DeepMath.PathB.TwoSATSimpleWalkCutoff.EdgeWalk.length_lt_card_of_nodup
 #print axioms PallLean.Paper93.DeepMath.PathB.TwoSATSimpleWalkCutoff.EdgeWalk.simpleWalk_reachWithin_cutoff
+#print axioms PallLean.Paper93.DeepMath.PathB.TwoSATSimpleWalkCutoff.EdgeWalk.reachWithin_cutoff
+#print axioms PallLean.Paper93.DeepMath.PathB.TwoSATSimpleWalkCutoff.EdgeWalk.boundedReach_cutoff_iff

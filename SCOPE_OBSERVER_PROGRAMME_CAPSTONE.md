@@ -245,9 +245,10 @@ complexity.**
   a subsequent optimization/certification step.
 * `ComputationalDepthTwoSATSimpleWalkCutoff.lean` — explicit-walk cutoff layer (**proved**): converts semantic
   implication reachability into a typed walk over the executable edge list, converts each walk to bounded reachability
-  at its exact length, and proves every duplicate-free walk has fewer than `2n` edges and is therefore found at fuel
-  `2n-1`.  The sole missing link for a total fixed-fuel decider is now cycle erasure: replace any typed directed walk by
-  a duplicate-free walk with the same endpoints.
+  at its exact length, constructs a same-endpoint duplicate-free walk by recursively erasing closed subwalks, and
+  proves every such walk has fewer than `2n` edges.  Consequently fixed fuel `2n-1` decides semantic implication
+  reachability exactly.  This closes total correctness of the executable bounded kernel; its recursive enumeration is
+  not linear, so certifying a DFS/Kosaraju implementation remains an optimization obligation.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
