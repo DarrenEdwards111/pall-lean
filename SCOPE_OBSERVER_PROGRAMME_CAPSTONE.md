@@ -64,6 +64,10 @@ complexity.**
 
 * `ComputationalDepthObserverAlgorithmicSchema.lean` — `dpSat_beats_bruteforce` (**proved**): a low-boundary
   decomposition ⇒ DP over `2^B` boundary states beats brute force.  Williams as explicit hypothesis.
+* `ComputationalDepthObserverRestrictionDecomposition.lean` — the route-selected restriction-tree cash-out
+  (**proved**): `≤ 2^(n−saving)` leaves and residual boundary `≤ saving−1` imply total work `≤ 2^(n−1) < 2^n`.
+  Also proves the parity obstruction: output-only boundary stays one under every proper restriction, so the open
+  contraction lemma must use a structural/fanout-aware potential rather than final-output entropy alone.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
