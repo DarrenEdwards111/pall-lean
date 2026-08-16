@@ -130,6 +130,11 @@ complexity.**
   family has at most `2^d` classes rather than `2^q`.  The remaining structural dichotomy is now exact: force
   `d<q` (preferably a quantitative deficit) for some useful separator block, or confront independent projected-column
   families where the quotient rank saturates and affine collision reuse gives no saving.
+* `ComputationalDepthCrossBranchQuotientRankSaturation.lean` — quotient-rank saturation obstruction (**proved**):
+  if queried columns remain distinct after projection and their projected images are linearly independent, then
+  `d=q`, so no strict quotient-rank deficit exists.  Consequently parity-layer syntax alone cannot force universal
+  cross-branch collisions.  Any surviving theorem must obtain dependence from additional upper-layer/separator
+  structure, or cash restrictions into nonlinear gate collapse rather than linear parity-state compression.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
