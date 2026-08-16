@@ -73,6 +73,12 @@ complexity.**
   idempotent, so fanout does not duplicate charge; one wide `MOD` gate now pays one unit per fixed input.  Dense
   overlap exposes the next wall: raw credit is `#gates · #live`, exceeding the `n`-bit budget, so the surviving
   target is a separator-owned/normalized potential or an amortized high-overlap simplification lemma.
+* `ComputationalDepthNormalizedSeparatorPotential.lean` — normalized ownership test (**proved and falsified as a
+  complete potential**): charges each covered live variable once, hence credit `≤ #live`; monotone under restriction,
+  fanout-neutral, and bounded by `n` even for complete overlap/expander incidence.  But under full coverage fixing
+  `k` variables leaves credit `n−k`, so binary work is exactly `2^k·2^(n−k)=2^n`: **zero surplus**.  The next
+  invariant must obtain super-unit expected simplification or avoid exploring all branches via separator
+  factorization; normalization alone cannot yield fast SAT.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
