@@ -145,6 +145,11 @@ complexity.**
   `target-shift ∈ K`, equivalently equality of the shift and target quotient classes.  Hence every satisfiable branch
   belongs to one quotient class and Circuit-SAT for this restricted layer reduces to Gaussian elimination/span
   membership.  This is a genuine algorithmic collapse, but only for the named AND-of-`MOD₂` fragment.
+* `ComputationalDepthXorDNFCosetCollapse.lean` — XOR-DNF extension (**proved**): an OR of parity conjunctions accepts
+  a finite target set; residual SAT is equivalent to the branch quotient belonging to the image of those targets in
+  `V/K`.  There are at most as many relevant quotient classes as DNF terms, so polynomial-size XOR-DNF SAT reduces
+  to polynomially many span-membership tests.  The next boundary is a succinct upper representation (CNF/general
+  circuit/threshold) whose accepted profile set cannot simply be enumerated term by term.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
