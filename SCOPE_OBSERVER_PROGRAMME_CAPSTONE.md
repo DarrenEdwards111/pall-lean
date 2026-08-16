@@ -150,6 +150,11 @@ complexity.**
   `V/K`.  There are at most as many relevant quotient classes as DNF terms, so polynomial-size XOR-DNF SAT reduces
   to polynomially many span-membership tests.  The next boundary is a succinct upper representation (CNF/general
   circuit/threshold) whose accepted profile set cannot simply be enumerated term by term.
+* `ComputationalDepthXorCNFIdentityEmbedding.lean` — XOR-CNF boundary (**proved**): singleton parity supports recover
+  the original Boolean assignment coordinatewise, and any CNF evaluated on those parity outputs is exactly the
+  original CNF, with equivalent satisfiability.  Therefore the XOR-DNF target-list collapse cannot extend to CNF by
+  parity linear algebra alone: the singleton-support subfamily already preserves arbitrary CNF semantics.  Further
+  progress needs an actual CNF restriction/switching theorem or a different upper class with exploitable structure.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
