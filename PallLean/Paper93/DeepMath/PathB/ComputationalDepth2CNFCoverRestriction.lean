@@ -186,9 +186,89 @@ theorem unitLeaf_satisfiable_iff_consistent (ψ : CNF n) (hunit : IsUnitLeaf ψ)
       exact ⟨x, (evalCNF_iff_evalUnits_of_unitLeaf ψ hunit x).mpr hx⟩]
   exact unit_satisfiable_iff_consistent (leafUnits ψ)
 
+/-- Merge fixed values from `ρ` with an assignment on the remaining free variables. -/
+def mergeAssignment (ρ : PartialAssignment n) (free : Fin n → Bool) : Fin n → Bool := fun i =>
+  match ρ i with
+  | some b => b
+  | none => free i
+
+theorem mergeAssignment_completes (ρ : PartialAssignment n) (free : Fin n → Bool) :
+    Completes ρ (mergeAssignment ρ free) := by
+  intro v b hv
+  simp [mergeAssignment, hv]
+
+/-- Every literal occurring in a residual CNF is on a genuinely free variable. -/
+theorem residualCNF_literal_free
+    (ρ : PartialAssignment n) (φ : CNF n)
+    {clause : Finset (Literal n)} (hc : clause ∈ residualCNF ρ φ)
+    {l : Literal n} (hl : l ∈ clause) : ρ l.1 = none := by
+  simp only [residualCNF, Finset.mem_image] at hc
+  obtain ⟨source, -, rfl⟩ := hc
+  exact (Finset.mem_filter.mp hl).2
+
+/-- Merging fixed values cannot change evaluation of residual clauses. -/
+theorem evalCNF_mergeAssignment_residual_iff
+    (ρ : PartialAssignment n) (φ : CNF n) (free : Fin n → Bool) :
+    evalCNF (mergeAssignment ρ free) (residualCNF ρ φ) ↔
+      evalCNF free (residualCNF ρ φ) := by
+  constructor
+  · intro hx clause hc
+    obtain ⟨l, hl, hval⟩ := hx clause hc
+    refine ⟨l, hl, ?_⟩
+    simpa [evalLiteral, mergeAssignment, residualCNF_literal_free ρ φ hc hl] using hval
+  · intro hx clause hc
+    obtain ⟨l, hl, hval⟩ := hx clause hc
+    refine ⟨l, hl, ?_⟩
+    simpa [evalLiteral, mergeAssignment, residualCNF_literal_free ρ φ hc hl] using hval
+
+/-- The cover hypothesis makes every clause in the residual CNF have size at most one. -/
+theorem residualCNF_clause_card_le_one
+    (φ : CNF n) (cover : Finset (Fin n)) (ρ : PartialAssignment n)
+    (hwidth : ∀ clause ∈ φ, clause.card ≤ 2)
+    (hcover : LiteralCover φ cover) (hassign : AssignsCover ρ cover)
+    {residual : Finset (Literal n)} (hresidual : residual ∈ residualCNF ρ φ) :
+    residual.card ≤ 1 := by
+  simp only [residualCNF, Finset.mem_image] at hresidual
+  obtain ⟨source, hsource, rfl⟩ := hresidual
+  exact residualClause_card_le_one φ cover ρ hwidth hcover hassign
+    (Finset.mem_filter.mp hsource).1
+
+/-- Executable logical condition checked at a cover branch. -/
+def CoverLeafAccepts (ρ : PartialAssignment n) (φ : CNF n) : Prop :=
+  (∀ clause ∈ residualCNF ρ φ, clause.Nonempty) ∧
+    UnitConsistent (leafUnits (residualCNF ρ φ))
+
+/-- **End-to-end cover-branch correctness (proved).** -/
+theorem coverLeafAccepts_iff
+    (φ : CNF n) (cover : Finset (Fin n)) (ρ : PartialAssignment n)
+    (hwidth : ∀ clause ∈ φ, clause.card ≤ 2)
+    (hcover : LiteralCover φ cover) (hassign : AssignsCover ρ cover) :
+    CoverLeafAccepts ρ φ ↔ ∃ x, Completes ρ x ∧ evalCNF x φ := by
+  let ψ := residualCNF ρ φ
+  have hcard : ∀ clause ∈ ψ, clause.card ≤ 1 := by
+    intro clause hc
+    exact residualCNF_clause_card_le_one φ cover ρ hwidth hcover hassign hc
+  constructor
+  · rintro ⟨hnonempty, hconsistent⟩
+    have hunit : IsUnitLeaf ψ := fun clause hc => ⟨hnonempty clause hc, hcard clause hc⟩
+    obtain ⟨free, hfree⟩ := (unitLeaf_satisfiable_iff_consistent ψ hunit).mpr hconsistent
+    let x := mergeAssignment ρ free
+    refine ⟨x, mergeAssignment_completes ρ free, ?_⟩
+    apply (evalCNF_iff_residualCNF ρ x φ (mergeAssignment_completes ρ free)).mpr
+    exact (evalCNF_mergeAssignment_residual_iff ρ φ free).mpr hfree
+  · rintro ⟨x, hcomplete, hx⟩
+    have hψ : evalCNF x ψ := (evalCNF_iff_residualCNF ρ x φ hcomplete).mp hx
+    have hnonempty : ∀ clause ∈ ψ, clause.Nonempty := by
+      intro clause hc
+      obtain ⟨l, hl, -⟩ := hψ clause hc
+      exact ⟨l, hl⟩
+    have hunit : IsUnitLeaf ψ := fun clause hc => ⟨hnonempty clause hc, hcard clause hc⟩
+    exact ⟨hnonempty, (unitLeaf_satisfiable_iff_consistent ψ hunit).mp ⟨x, hψ⟩⟩
+
 end PallLean.Paper93.DeepMath.PathB.TwoCNFCoverRestriction
 
 #print axioms PallLean.Paper93.DeepMath.PathB.TwoCNFCoverRestriction.residualClause_card_le_one
 #print axioms PallLean.Paper93.DeepMath.PathB.TwoCNFCoverRestriction.unit_satisfiable_iff_consistent
 #print axioms PallLean.Paper93.DeepMath.PathB.TwoCNFCoverRestriction.evalCNF_iff_residualCNF
 #print axioms PallLean.Paper93.DeepMath.PathB.TwoCNFCoverRestriction.unitLeaf_satisfiable_iff_consistent
+#print axioms PallLean.Paper93.DeepMath.PathB.TwoCNFCoverRestriction.coverLeafAccepts_iff

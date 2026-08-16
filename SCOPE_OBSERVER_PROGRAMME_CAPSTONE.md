@@ -185,7 +185,9 @@ complexity.**
   the same variable, with an explicit canonical satisfying assignment.  Deleting satisfied clauses and replacing all
   others by their free literals preserves the original CNF semantics under every completion of the partial assignment;
   any nonempty unit leaf is equivalent to its collected unit constraints and is decided exactly by that consistency
-  test.  The remaining integration task is the completion/merge construction across every cover branch.
+  test.  Fixed cover values can be merged with the canonical free-variable assignment without changing residual
+  semantics, and `CoverLeafAccepts` (no empty residual clause plus unit consistency) is equivalent to existence of an
+  original satisfying assignment completing that branch.  This closes the small-cover arm end to end.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
