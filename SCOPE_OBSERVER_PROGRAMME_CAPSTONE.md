@@ -103,6 +103,11 @@ complexity.**
   shifted targets and profile multiplicity add no linear observer dimension.  The remaining load-bearing theorem is
   now a restriction-induced **rank/cell contraction with surplus**, or an algorithm that factors the affine state
   space without separately exploring every restriction branch.
+* `ComputationalDepthRankContractionAccounting.lean` — exact rank/branch accounting (**proved**): querying `q` bits
+  and independently enumerating a residual rank-`r` observer costs exactly `2^(q+r)`.  It beats an initial rank-`R`
+  state space iff `q+r<R`; rank loss equal to query cost gives exact zero surplus, and smaller loss cannot help.
+  Therefore the next class theorem must prove super-unit rank/cell contraction on sufficient Kraft weight, or abandon
+  independent branch exploration and establish reusable cross-branch factorization.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
