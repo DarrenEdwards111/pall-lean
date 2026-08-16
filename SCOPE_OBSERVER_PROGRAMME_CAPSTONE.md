@@ -227,6 +227,11 @@ complexity.**
   branching preserves residual saving but cannot amplify it by itself.  Instantiating the verified width-two
   half-cube bound gives a strict width-three cover-arm saving, while exposing the need for cross-branch reuse or a
   quantitatively stronger residual theorem to obtain additional observer surplus.
+* `ComputationalDepth2CNFSCCBridge.lean` — implication-graph semantic bridge (**proved**): translates list-based
+  literal-pair formulas into the observer pipeline's finset CNF syntax, preserves clause and formula evaluation,
+  proves width at most two, and imports the already-proved full SCC criterion `twosat_iff`.  Thus satisfiability in the
+  shared syntax is equivalent to no literal sharing an implication SCC with its negation.  A certified finite SCC
+  traversal and linear work bound remain algorithmic obligations; the existing completeness proof is semantic.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
