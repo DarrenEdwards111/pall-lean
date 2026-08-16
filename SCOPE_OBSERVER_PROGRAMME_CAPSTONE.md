@@ -85,6 +85,12 @@ complexity.**
   surplus.  The remaining wall is semantic transfer: for `MOD`, a deleted incidence changes a residue but need not
   remove a gate or lower continuation boundary.  Required next: turn accumulated overlap surplus into actual
   gate/boundary simplification for a named class, or produce a semantically-inert high-overlap counterfamily.
+* `ComputationalDepthSemanticOverlapTransferNoGo.lean` — semantic-transfer stress test (**proved**): `k` duplicate
+  wide parity gates have incidence `k·#live` and positive overlap surplus, yet every gate remains nonconstant while
+  one supported variable is free—so overlap surplus does not imply gate elimination.  Simultaneously all `k` gates
+  compute the same residual function, hence quotient to one semantic profile.  Consequence: any surviving potential
+  must measure overlap only **after semantic deduplication** of residual support/modulus/target functions; syntactic
+  gate-degree surplus is unsound.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
