@@ -204,6 +204,11 @@ complexity.**
   to the cover is connected directly to the proved end-to-end `CoverLeafAccepts` equivalence, and the combined
   dispatcher work is strictly below `2^n`.  The sole remaining 2-CNF formalization detail is transporting the arbitrary
   large matching into the canonical signed private-pair enumeration already proved correct.
+* `ComputationalDepth2CNFMatchingTransport.lean` — private-pair coordinate transport (**proved**): any finite variable
+  type of cardinality `2m+r` is equivalent to the canonical `m` matched pairs plus `r` remainder coordinates.
+  Assignment renaming is invertible, decoded branches satisfy the transported signed clauses, every satisfying
+  assignment is recovered, and the exact `3^m·2^r` branch count is invariant.  The residual syntactic step is extracting
+  ordered endpoints and signs from each arbitrary proper matched clause before applying this transport.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
