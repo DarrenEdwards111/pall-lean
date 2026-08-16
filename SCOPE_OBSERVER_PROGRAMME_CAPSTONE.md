@@ -155,6 +155,10 @@ complexity.**
   original CNF, with equivalent satisfiability.  Therefore the XOR-DNF target-list collapse cannot extend to CNF by
   parity linear algebra alone: the singleton-support subfamily already preserves arbitrary CNF semantics.  Further
   progress needs an actual CNF restriction/switching theorem or a different upper class with exploitable structure.
+* `ComputationalDepthXorCNFSwitchingCashout.lean` — conditional switching-certificate cash-out (**proved**): a
+  restriction tree with at most `2^(n-saving)` leaves and at most `2^(saving-1)` explicit XOR-DNF targets per leaf
+  needs at most `2^(n-1) < 2^n` span-membership tests.  This proves the complete arithmetic/algorithmic implication;
+  constructing such certificates for a named CNF class remains the single load-bearing switching theorem.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
