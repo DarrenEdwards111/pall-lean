@@ -108,6 +108,12 @@ complexity.**
   state space iff `q+r<R`; rank loss equal to query cost gives exact zero surplus, and smaller loss cannot help.
   Therefore the next class theorem must prove super-unit rank/cell contraction on sufficient Kraft weight, or abandon
   independent branch exploration and establish reusable cross-branch factorization.
+* `ComputationalDepthParityRankRestrictionNoGo.lean` — parity rank-contraction obstruction (**proved**): deleting
+  `q` input-column generators reduces their span rank by at most `q`.  Combined with exact accounting, independently
+  exploring all restriction branches costs at least the original parity observer state space, so super-unit rank loss
+  is impossible for restrictions that merely delete parity columns.  The parity branch of the algorithmic route must
+  therefore use **cross-branch reuse/separator factorization** (or nonlinear upper-layer collapse), not independent
+  rank-state enumeration.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
