@@ -125,6 +125,11 @@ complexity.**
   In particular, any nonzero queried column already in the kept span makes the zero and singleton branches collide,
   giving strict reuse.  Thus the separator target becomes quantitative: find query blocks with large dependence
   modulo the kept span, so the quotient rank (not raw query count) pays for the branch family.
+* `ComputationalDepthCrossBranchQuotientRank.lean` — exact quotient-rank bound (**proved**): projected queried
+  columns span a quotient space of rank `d ≤ q`; every residual branch coset lies in that span, hence the full branch
+  family has at most `2^d` classes rather than `2^q`.  The remaining structural dichotomy is now exact: force
+  `d<q` (preferably a quantitative deficit) for some useful separator block, or confront independent projected-column
+  families where the quotient rank saturates and affine collision reuse gives no saving.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
