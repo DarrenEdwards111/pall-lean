@@ -243,6 +243,11 @@ complexity.**
   reachability therefore certifies a genuine SCC conflict.  The next missing theorem is the uniform `2n-1` simple-path
   cutoff (cycle deletion), after which the bounded kernel becomes a total finite SCC decider; linear traversal remains
   a subsequent optimization/certification step.
+* `ComputationalDepthTwoSATSimpleWalkCutoff.lean` — explicit-walk cutoff layer (**proved**): converts semantic
+  implication reachability into a typed walk over the executable edge list, converts each walk to bounded reachability
+  at its exact length, and proves every duplicate-free walk has fewer than `2n` edges and is therefore found at fuel
+  `2n-1`.  The sole missing link for a total fixed-fuel decider is now cycle erasure: replace any typed directed walk by
+  a duplicate-free walk with the same endpoints.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
