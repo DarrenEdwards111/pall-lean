@@ -91,6 +91,12 @@ complexity.**
   compute the same residual function, hence quotient to one semantic profile.  Consequence: any surviving potential
   must measure overlap only **after semantic deduplication** of residual support/modulus/target functions; syntactic
   gate-degree surplus is unsound.
+* `ComputationalDepthSemanticProfileQuotient.lean` — residual fixed-modulus semantic quotient (**proved**): gates
+  are deduplicated by `(free support, shifted residue target)`; the quotient has at most `m · #distinct-supports`
+  profiles, and quotient incidence is at most that quantity times `#live`.  Thus duplicate multiplicity cannot fake
+  surplus, while any large post-quotient family forces many distinct residual supports.  Distinctness alone is not
+  yet compression-resistant: the next target is to connect these supports to linear rank / observer-cell count and
+  prove restriction-induced rank or cell collapse (or exhibit a high-rank counterfamily).
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
