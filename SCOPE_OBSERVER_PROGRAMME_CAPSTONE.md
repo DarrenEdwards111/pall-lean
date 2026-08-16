@@ -237,6 +237,12 @@ complexity.**
   `2n` literal vertices and `2m` edge-list entries.  It packages the linear `2(n+m)` traversal budget and proves the
   exact cover-arm exponent/slack condition.  This certifies the graph size and accounting, not Tarjan correctness;
   Mathlib's available Tarjan routine is meta-level and currently has no suitable correctness/work theorem.
+* `ComputationalDepthTwoSATBoundedReachability.lean` — executable reachability kernel (**proved**): defines a decidable
+  Boolean search for implication paths within finite fuel, proves monotonicity, proves every reported path sound for
+  semantic `Reach`, and proves every semantic reachability proof is found at some finite fuel.  Bounded mutual
+  reachability therefore certifies a genuine SCC conflict.  The next missing theorem is the uniform `2n-1` simple-path
+  cutoff (cycle deletion), after which the bounded kernel becomes a total finite SCC decider; linear traversal remains
+  a subsequent optimization/certification step.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
