@@ -34,6 +34,54 @@ def AssignsCover (ρ : PartialAssignment n) (cover : Finset (Fin n)) : Prop :=
 def LiteralCover (φ : CNF n) (cover : Finset (Fin n)) : Prop :=
   ∀ clause ∈ φ, ∃ l ∈ clause, l.1 ∈ cover
 
+/-- A total assignment agrees with every value fixed by `ρ`. -/
+def Completes (ρ : PartialAssignment n) (x : Fin n → Bool) : Prop :=
+  ∀ v b, ρ v = some b → x v = b
+
+/-- Delete satisfied clauses and retain only free literals in every other clause. -/
+noncomputable def residualCNF (ρ : PartialAssignment n) (φ : CNF n) : CNF n :=
+  (φ.filter fun clause => ¬clauseSatisfied ρ clause).image (residualClause ρ)
+
+/-- Under a completion, an unsatisfied original clause is equivalent to its residual clause. -/
+theorem evalClause_iff_residualClause
+    (ρ : PartialAssignment n) (x : Fin n → Bool) (clause : Finset (Literal n))
+    (hcomplete : Completes ρ x) (hunsat : ¬clauseSatisfied ρ clause) :
+    evalClause x clause ↔ evalClause x (residualClause ρ clause) := by
+  constructor
+  · rintro ⟨l, hl, hxl⟩
+    have hfree : ρ l.1 = none := by
+      cases hρ : ρ l.1 with
+      | none => rfl
+      | some b =>
+          have hxb : x l.1 = b := hcomplete l.1 b hρ
+          have : b = l.2 := hxb.symm.trans hxl
+          exact False.elim (hunsat ⟨l, hl, by simpa [this] using hρ⟩)
+    exact ⟨l, by simp [residualClause, hl, hfree], hxl⟩
+  · rintro ⟨l, hl, hxl⟩
+    exact ⟨l, (Finset.mem_filter.mp hl).1, hxl⟩
+
+/-- **Residual-CNF correctness (proved): restriction preserves semantics under every completion.** -/
+theorem evalCNF_iff_residualCNF
+    (ρ : PartialAssignment n) (x : Fin n → Bool) (φ : CNF n)
+    (hcomplete : Completes ρ x) :
+    evalCNF x φ ↔ evalCNF x (residualCNF ρ φ) := by
+  constructor
+  · intro hx residual hresidual
+    simp only [residualCNF, Finset.mem_image] at hresidual
+    obtain ⟨clause, hclause, rfl⟩ := hresidual
+    have hcMem : clause ∈ φ := (Finset.mem_filter.mp hclause).1
+    have hcUnsat : ¬clauseSatisfied ρ clause := (Finset.mem_filter.mp hclause).2
+    exact (evalClause_iff_residualClause ρ x clause hcomplete hcUnsat).mp (hx clause hcMem)
+  · intro hx clause hclause
+    by_cases hsatisfied : clauseSatisfied ρ clause
+    · obtain ⟨l, hl, hρl⟩ := hsatisfied
+      exact ⟨l, hl, hcomplete l.1 l.2 hρl⟩
+    · have hmem : residualClause ρ clause ∈ residualCNF ρ φ := by
+        apply Finset.mem_image.mpr
+        exact ⟨clause, Finset.mem_filter.mpr ⟨hclause, hsatisfied⟩, rfl⟩
+      exact (evalClause_iff_residualClause ρ x clause hcomplete hsatisfied).mpr
+        (hx (residualClause ρ clause) hmem)
+
 /-- **Cover restriction lemma (proved): surviving width-two clauses are unit or empty.** -/
 theorem residualClause_card_le_one
     (φ : CNF n) (cover : Finset (Fin n)) (ρ : PartialAssignment n)
@@ -102,7 +150,45 @@ theorem unit_satisfiable_iff_consistent (units : Finset (Literal n)) :
   · intro h
     exact ⟨unitAssignment units, unitAssignment_satisfies h⟩
 
+/-- A CNF leaf is genuinely unit: every clause is nonempty and has at most one literal. -/
+def IsUnitLeaf (ψ : CNF n) : Prop :=
+  ∀ clause ∈ ψ, clause.Nonempty ∧ clause.card ≤ 1
+
+/-- All literals occurring in a unit leaf. -/
+def leafUnits (ψ : CNF n) : Finset (Literal n) := ψ.biUnion id
+
+/-- A unit leaf is equivalent to the conjunction of its collected unit literals. -/
+theorem evalCNF_iff_evalUnits_of_unitLeaf
+    (ψ : CNF n) (hunit : IsUnitLeaf ψ) (x : Fin n → Bool) :
+    evalCNF x ψ ↔ EvalUnits x (leafUnits ψ) := by
+  constructor
+  · intro hx l hl
+    simp only [leafUnits, Finset.mem_biUnion] at hl
+    obtain ⟨clause, hcψ, hlc⟩ := hl
+    obtain ⟨w, hwc, hxw⟩ := hx clause hcψ
+    have hlw : l = w := Finset.card_le_one_iff.mp (hunit clause hcψ).2 hlc hwc
+    simpa [hlw] using hxw
+  · intro hx clause hcψ
+    obtain ⟨l, hlc⟩ := (hunit clause hcψ).1
+    have hlu : l ∈ leafUnits ψ := by
+      apply Finset.mem_biUnion.mpr
+      exact ⟨clause, hcψ, hlc⟩
+    exact ⟨l, hlc, hx l hlu⟩
+
+/-- **Unit-leaf solver correctness (proved).** -/
+theorem unitLeaf_satisfiable_iff_consistent (ψ : CNF n) (hunit : IsUnitLeaf ψ) :
+    (∃ x, evalCNF x ψ) ↔ UnitConsistent (leafUnits ψ) := by
+  rw [show (∃ x, evalCNF x ψ) ↔ ∃ x, EvalUnits x (leafUnits ψ) by
+    constructor
+    · rintro ⟨x, hx⟩
+      exact ⟨x, (evalCNF_iff_evalUnits_of_unitLeaf ψ hunit x).mp hx⟩
+    · rintro ⟨x, hx⟩
+      exact ⟨x, (evalCNF_iff_evalUnits_of_unitLeaf ψ hunit x).mpr hx⟩]
+  exact unit_satisfiable_iff_consistent (leafUnits ψ)
+
 end PallLean.Paper93.DeepMath.PathB.TwoCNFCoverRestriction
 
 #print axioms PallLean.Paper93.DeepMath.PathB.TwoCNFCoverRestriction.residualClause_card_le_one
 #print axioms PallLean.Paper93.DeepMath.PathB.TwoCNFCoverRestriction.unit_satisfiable_iff_consistent
+#print axioms PallLean.Paper93.DeepMath.PathB.TwoCNFCoverRestriction.evalCNF_iff_residualCNF
+#print axioms PallLean.Paper93.DeepMath.PathB.TwoCNFCoverRestriction.unitLeaf_satisfiable_iff_consistent

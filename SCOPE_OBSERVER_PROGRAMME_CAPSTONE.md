@@ -182,8 +182,10 @@ complexity.**
 * `ComputationalDepth2CNFCoverRestriction.lean` — semantic cover arm (**proved**): partial assignments delete fixed
   literals, and assigning every variable in a cover of a width-two CNF leaves each unsatisfied clause with cardinality
   at most one.  A finite unit-literal family is satisfiable exactly when no two literals demand different values from
-  the same variable, with an explicit canonical satisfying assignment.  The remaining integration task is to package
-  clause satisfaction/deletion and these unit constraints into the end-to-end restriction-tree solver.
+  the same variable, with an explicit canonical satisfying assignment.  Deleting satisfied clauses and replacing all
+  others by their free literals preserves the original CNF semantics under every completion of the partial assignment;
+  any nonempty unit leaf is equivalent to its collected unit constraints and is decided exactly by that consistency
+  test.  The remaining integration task is the completion/merge construction across every cover branch.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
