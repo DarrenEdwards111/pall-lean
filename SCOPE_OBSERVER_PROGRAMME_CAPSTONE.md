@@ -114,6 +114,12 @@ complexity.**
   is impossible for restrictions that merely delete parity columns.  The parity branch of the algorithmic route must
   therefore use **cross-branch reuse/separator factorization** (or nonlinear upper-layer collapse), not independent
   rank-state enumeration.
+* `ComputationalDepthCrossBranchAffineFactorization.lean` — affine branch quotient (**proved**): all residual shifts
+  from `q` queried parity columns are the deduplicated subset-sum family, of cardinality at most `2^q`; every semantic
+  or coset classifier likewise yields at most `2^q` residual classes.  A strict reduction is proved whenever two
+  distinct reachable shifts collide under the classifier.  Hence factorization is not automatic: the new decisive
+  lemma must force sufficiently many affine-class collisions (or give a sublinear batched algorithm even when the
+  classes remain distinct).
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
