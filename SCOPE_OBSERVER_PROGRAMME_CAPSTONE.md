@@ -164,6 +164,11 @@ complexity.**
   therefore constructs a switching certificate with one leaf, one target, and saving `n`, yielding strict sub-cube
   work.  This connects real CNF syntax to the cash-out without an assumed certificate; extending the construction to
   non-unit bounded-width CNF is the genuine switching step.
+* `ComputationalDepthDisjoint2CNFSwitching.lean` — constructive variable-disjoint width-two case (**proved**): one
+  positive binary clause has exactly three satisfying local states, hence three independent clauses have `27`
+  residual branches.  Since `27 ≤ 32`, `k` such blocks on `6k` variables construct a certificate with `27^k` leaves,
+  one target per leaf, and saving `k`, giving strict sub-`2^(6k)` work.  Overlapping width-two clauses are not covered;
+  controlling that dependency structure is the next switching/separator problem.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
