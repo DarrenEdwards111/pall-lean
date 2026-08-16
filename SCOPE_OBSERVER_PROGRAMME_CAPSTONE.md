@@ -140,6 +140,11 @@ complexity.**
   two distinct cosets can be separated by an upper predicate selecting one affine coset.  Thus an arbitrary nonlinear
   top gate guarantees no collapse beyond quotient rank; the next theorem must use a **named restricted upper class**
   (for example AND/OR/threshold structure) to force additional merging or elimination under restriction.
+* `ComputationalDepthDepth2AndParityCollapse.lean` — depth-2 AND-of-parity base case (**proved**): signed parity
+  literals specify one accepting target profile, and residual SAT on `K+shift` is exactly the linear membership test
+  `target-shift ∈ K`, equivalently equality of the shift and target quotient classes.  Hence every satisfiable branch
+  belongs to one quotient class and Circuit-SAT for this restricted layer reduces to Gaussian elimination/span
+  membership.  This is a genuine algorithmic collapse, but only for the named AND-of-`MOD₂` fragment.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
