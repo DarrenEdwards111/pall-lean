@@ -68,6 +68,11 @@ complexity.**
   (**proved**): `≤ 2^(n−saving)` leaves and residual boundary `≤ saving−1` imply total work `≤ 2^(n−1) < 2^n`.
   Also proves the parity obstruction: output-only boundary stays one under every proper restriction, so the open
   contraction lemma must use a structural/fanout-aware potential rather than final-output entropy alone.
+* `ComputationalDepthFanoutAwareIncidencePotential.lean` — first structural-potential stress test (**proved**):
+  fixing a variable decreases live-incidence credit by exactly its live gate degree; shared-gate insertion is
+  idempotent, so fanout does not duplicate charge; one wide `MOD` gate now pays one unit per fixed input.  Dense
+  overlap exposes the next wall: raw credit is `#gates · #live`, exceeding the `n`-bit budget, so the surviving
+  target is a separator-owned/normalized potential or an amortized high-overlap simplification lemma.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
