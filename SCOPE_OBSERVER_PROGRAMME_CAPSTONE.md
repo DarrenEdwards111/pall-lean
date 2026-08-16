@@ -213,6 +213,10 @@ complexity.**
   two-variable clause receives canonical `Fin 2` literal coordinates; the extracted endpoints are distinct, their
   Boolean signs are retained, and original `evalClause` is equivalent to the signed-pair predicate.  This closes the
   last local representation bridge needed by the verified width-two matching/cover pipeline.
+* `ComputationalDepth2CNFPipelineCapstone.lean` — aggregate width-two capstone (**proved**): packages the constructed
+  matching/cover dispatch, exact semantic correctness of every cover branch, proper signed-clause extraction, exact
+  `3^m·2^r` canonical matching count, and strict subcube work accounting behind one theorem interface.  It assumes
+  no width-three switching theorem and makes no P-versus-NP claim.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
