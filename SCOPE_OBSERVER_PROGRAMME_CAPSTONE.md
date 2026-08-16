@@ -174,6 +174,11 @@ complexity.**
   the matching size.  Thus at every threshold `t`, either there are at least `t` independent clauses (feeding the
   `27`-vs-`32` engine), or fewer than `2t` variables cover every clause (a separator/backdoor).  The next accounting
   theorem must combine these two arms into one uniform certificate without losing the exponential surplus.
+* `ComputationalDepth2CNFMatchingCoverCashout.lean` — uniform two-arm accounting (**proved**): at threshold `3k`,
+  the large-matching arm costs at most `27^k·2^(n-6k)` and the small-cover arm at most `2^(6k-1)`.  When `k ≥ 1` and
+  `6k ≤ n`, each is at most `2^(n-1)`, so their worst case is strictly below `2^n`.  This closes the numerical
+  matching/cover combination; a fully semantic end-to-end theorem still needs formal restriction plus general unit
+  propagation on the cover leaves.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
