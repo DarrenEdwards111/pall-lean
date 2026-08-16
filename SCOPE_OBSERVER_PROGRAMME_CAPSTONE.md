@@ -249,6 +249,11 @@ complexity.**
   proves every such walk has fewer than `2n` edges.  Consequently fixed fuel `2n-1` decides semantic implication
   reachability exactly.  This closes total correctness of the executable bounded kernel; its recursive enumeration is
   not linear, so certifying a DFS/Kosaraju implementation remains an optimization obligation.
+* `ComputationalDepthTwoSATExecutableDecision.lean` — total Boolean 2-SAT specification (**proved**): checks fixed-fuel
+  mutual reachability for every literal, proves each bounded conflict equivalent to a semantic complementary SCC, and
+  proves `decideTwoSAT cls = true ↔ TwoSat cls`.  This is an executable end-to-end correctness theorem, but the bounded
+  search implementation is not claimed linear.  It is now the precise trusted specification for a verified Kosaraju
+  refinement and its per-vertex/per-edge work proof.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
