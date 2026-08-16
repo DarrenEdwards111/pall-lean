@@ -188,6 +188,11 @@ complexity.**
   test.  Fixed cover values can be merged with the canonical free-variable assignment without changing residual
   semantics, and `CoverLeafAccepts` (no empty residual clause plus unit consistency) is equivalent to existence of an
   original satisfying assignment completing that branch.  This closes the small-cover arm end to end.
+* `ComputationalDepth2CNFLargeMatchingSemantics.lean` — semantic large-matching arm (**proved**): arbitrary signs on
+  a binary clause still yield exactly three satisfying local states.  For disjoint private variable pairs, branches
+  decode to total assignments satisfying every matched clause, and every satisfying assignment is recovered by a
+  branch.  With `3k` matched clauses and `r` remaining variables the exact branch count is `27^k·2^r`, matching the
+  previously proved work term.  The remaining full 2-CNF integration is algorithmic saturated-matching construction.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
