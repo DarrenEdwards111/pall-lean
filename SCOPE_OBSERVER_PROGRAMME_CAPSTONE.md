@@ -169,6 +169,11 @@ complexity.**
   residual branches.  Since `27 ≤ 32`, `k` such blocks on `6k` variables construct a certificate with `27^k` leaves,
   one target per leaf, and saving `k`, giving strict sub-`2^(6k)` work.  Overlapping width-two clauses are not covered;
   controlling that dependency structure is the next switching/separator problem.
+* `ComputationalDepth2CNFMatchingCover.lean` — width-two overlap bridge (**proved**): for clause supports of size at
+  most two, the variables owned by a saturated disjoint matching hit every clause and have cardinality at most twice
+  the matching size.  Thus at every threshold `t`, either there are at least `t` independent clauses (feeding the
+  `27`-vs-`32` engine), or fewer than `2t` variables cover every clause (a separator/backdoor).  The next accounting
+  theorem must combine these two arms into one uniform certificate without losing the exponential surplus.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
