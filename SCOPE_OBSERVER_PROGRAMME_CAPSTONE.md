@@ -79,6 +79,12 @@ complexity.**
   `k` variables leaves credit `n−k`, so binary work is exactly `2^k·2^(n−k)=2^n`: **zero surplus**.  The next
   invariant must obtain super-unit expected simplification or avoid exploring all branches via separator
   factorization; normalization alone cannot yield fast SAT.
+* `ComputationalDepthHighOverlapAmortization.lean` — high-overlap engine (**combinatorial half proved**): total
+  incidence equals the sum of live variable degrees; average incidence `> d` exposes a live variable of degree `> d`;
+  deleting it splits exact incidence destruction into one unit of query cost plus `degree−1` positive overlap
+  surplus.  The remaining wall is semantic transfer: for `MOD`, a deleted incidence changes a residue but need not
+  remove a gate or lower continuation boundary.  Required next: turn accumulated overlap surplus into actual
+  gate/boundary simplification for a named class, or produce a semantically-inert high-overlap counterfamily.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
