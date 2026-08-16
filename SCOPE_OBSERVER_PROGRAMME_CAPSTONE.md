@@ -179,6 +179,11 @@ complexity.**
   `6k ≤ n`, each is at most `2^(n-1)`, so their worst case is strictly below `2^n`.  This closes the numerical
   matching/cover combination; a fully semantic end-to-end theorem still needs formal restriction plus general unit
   propagation on the cover leaves.
+* `ComputationalDepth2CNFCoverRestriction.lean` — semantic cover arm (**proved**): partial assignments delete fixed
+  literals, and assigning every variable in a cover of a width-two CNF leaves each unsatisfied clause with cardinality
+  at most one.  A finite unit-literal family is satisfiable exactly when no two literals demand different values from
+  the same variable, with an explicit canonical satisfying assignment.  The remaining integration task is to package
+  clause satisfaction/deletion and these unit constraints into the end-to-end restriction-tree solver.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
