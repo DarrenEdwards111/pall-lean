@@ -232,6 +232,11 @@ complexity.**
   proves width at most two, and imports the already-proved full SCC criterion `twosat_iff`.  Thus satisfiability in the
   shared syntax is equivalent to no literal sharing an implication SCC with its negation.  A certified finite SCC
   traversal and linear work bound remain algorithmic obligations; the existing completeness proof is semantic.
+* `ComputationalDepthTwoSATSCCLinearBudget.lean` — finite implication-graph interface (**proved**): constructs the
+  explicit directed edge list, proves membership is exactly the semantic `Edge` relation, and establishes exactly
+  `2n` literal vertices and `2m` edge-list entries.  It packages the linear `2(n+m)` traversal budget and proves the
+  exact cover-arm exponent/slack condition.  This certifies the graph size and accounting, not Tarjan correctness;
+  Mathlib's available Tarjan routine is meta-level and currently has no suitable correctness/work theorem.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
