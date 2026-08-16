@@ -222,6 +222,11 @@ complexity.**
   width-three matching gives either those independent clauses or a cover of fewer than `18k` variables.  Assigning the
   cover reduces every residual clause to width at most two, and both accounting arms are strictly below `2^n`.  This
   recovers a bounded-width SAT saving, not a polynomial-time algorithm or a P-versus-NP separation.
+* `ComputationalDepth3CNFRecursiveCoverAccounting.lean` — residual-solver composition (**proved**): branching on `c`
+  cover variables and running a residual solver with `s` exponent bits of saving costs exactly `2^(n-s)`.  Thus cover
+  branching preserves residual saving but cannot amplify it by itself.  Instantiating the verified width-two
+  half-cube bound gives a strict width-three cover-arm saving, while exposing the need for cross-branch reuse or a
+  quantitatively stronger residual theorem to obtain additional observer surplus.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
