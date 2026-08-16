@@ -135,6 +135,11 @@ complexity.**
   `d=q`, so no strict quotient-rank deficit exists.  Consequently parity-layer syntax alone cannot force universal
   cross-branch collisions.  Any surviving theorem must obtain dependence from additional upper-layer/separator
   structure, or cash restrictions into nonlinear gate collapse rather than linear parity-state compression.
+* `ComputationalDepthUpperGateCosetSemantics.lean` — nonlinear upper-layer semantic boundary (**proved**): SAT of
+  any upper acceptance predicate is invariant within a kept-span coset, so quotient reuse is sound.  Conversely, any
+  two distinct cosets can be separated by an upper predicate selecting one affine coset.  Thus an arbitrary nonlinear
+  top gate guarantees no collapse beyond quotient rank; the next theorem must use a **named restricted upper class**
+  (for example AND/OR/threshold structure) to force additional merging or elimination under restriction.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
