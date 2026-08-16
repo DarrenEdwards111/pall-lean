@@ -198,6 +198,12 @@ complexity.**
   a pairwise-disjoint subfamily whose union intersects every nonempty input support, hence an explicit
   `SaturatedMatching` for the matching-or-cover theorem.  The remaining integration is transporting arbitrary matched
   clauses to the canonical signed private-pair enumeration and packaging the final two-arm solver theorem.
+* `ComputationalDepth2CNFFinalDispatcher.lean` — real-CNF structural dispatcher (**proved**): maps literal clauses to
+  variable supports, proves support covers are semantic literal covers, constructs the greedy matching/cover, and at
+  threshold `3k` returns either that many disjoint supports or a cover of fewer than `6k` variables.  Every assignment
+  to the cover is connected directly to the proved end-to-end `CoverLeafAccepts` equivalence, and the combined
+  dispatcher work is strictly below `2^n`.  The sole remaining 2-CNF formalization detail is transporting the arbitrary
+  large matching into the canonical signed private-pair enumeration already proved correct.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
