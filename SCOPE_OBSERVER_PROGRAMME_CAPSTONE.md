@@ -97,6 +97,12 @@ complexity.**
   surplus, while any large post-quotient family forces many distinct residual supports.  Distinctness alone is not
   yet compression-resistant: the next target is to connect these supports to linear rank / observer-cell count and
   prove restriction-induced rank or cell collapse (or exhibit a high-rank counterfamily).
+* `ComputationalDepthSemanticProfileRankTransfer.lean` — semantic quotient to parity rank bridge (**proved**): a
+  residual target shift is an affine translation of the parity observer and preserves its reachable-state count.
+  Consequently the residual observer has exactly `2^rank` states, and rank `≤ r` gives at most `2^r` states;
+  shifted targets and profile multiplicity add no linear observer dimension.  The remaining load-bearing theorem is
+  now a restriction-induced **rank/cell contraction with surplus**, or an algorithm that factors the affine state
+  space without separately exploring every restriction branch.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
