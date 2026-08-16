@@ -159,6 +159,11 @@ complexity.**
   restriction tree with at most `2^(n-saving)` leaves and at most `2^(saving-1)` explicit XOR-DNF targets per leaf
   needs at most `2^(n-1) < 2^n` span-membership tests.  This proves the complete arithmetic/algorithmic implication;
   constructing such certificates for a named CNF class remains the single load-bearing switching theorem.
+* `ComputationalDepthCompleteUnitCNFSwitching.lean` — first constructive CNF base case (**proved**): a complete unit
+  CNF contains one signed unit clause per coordinate and accepts exactly its designated target assignment.  It
+  therefore constructs a switching certificate with one leaf, one target, and saving `n`, yielding strict sub-cube
+  work.  This connects real CNF syntax to the cash-out without an assumed certificate; extending the construction to
+  non-unit bounded-width CNF is the genuine switching step.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
