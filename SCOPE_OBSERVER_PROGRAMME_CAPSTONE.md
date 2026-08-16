@@ -120,6 +120,11 @@ complexity.**
   distinct reachable shifts collide under the classifier.  Hence factorization is not automatic: the new decisive
   lemma must force sufficiently many affine-class collisions (or give a sublinear batched algorithm even when the
   classes remain distinct).
+* `ComputationalDepthCrossBranchCosetCollision.lean` — kept-span coset criterion (**proved**): two queried-branch
+  shifts define the same residual parity class exactly when their difference lies in the span of the kept columns.
+  In particular, any nonzero queried column already in the kept span makes the zero and singleton branches collide,
+  giving strict reuse.  Thus the separator target becomes quantitative: find query blocks with large dependence
+  modulo the kept span, so the quotient rank (not raw query count) pays for the branch family.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
