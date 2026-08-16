@@ -193,6 +193,11 @@ complexity.**
   decode to total assignments satisfying every matched clause, and every satisfying assignment is recovered by a
   branch.  With `3k` matched clauses and `r` remaining variables the exact branch count is `27^k·2^r`, matching the
   previously proved work term.  The remaining full 2-CNF integration is algorithmic saturated-matching construction.
+* `ComputationalDepth2CNFGreedyMatching.lean` — saturated matching construction (**proved**): a deterministic greedy
+  pass selects a subfamily exactly when the next support is disjoint from the variables already owned.  The output is
+  a pairwise-disjoint subfamily whose union intersects every nonempty input support, hence an explicit
+  `SaturatedMatching` for the matching-or-cover theorem.  The remaining integration is transporting arbitrary matched
+  clauses to the canonical signed private-pair enumeration and packaging the final two-arm solver theorem.
 * `ComputationalDepthObserverAlgorithmicExpanderSchema.lean` — `expander_observer_williams_schema`: wires
   engine 2 (expander amplification, hypothesis) → engine 1 (DP, proved) → engine 3 (Williams, hypothesis).
 * `…LowBoundaryFromStreaming`, `…LowBoundaryFromCrossings` — engine 1 **discharged** by *proved* low-boundary
