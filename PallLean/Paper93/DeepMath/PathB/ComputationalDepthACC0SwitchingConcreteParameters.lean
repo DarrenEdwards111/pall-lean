@@ -61,19 +61,33 @@ theorem widthTwo_blockSwitching_activeGap
   · norm_num
   · norm_num
 
-/-- The actual bad subset of the five-star shell at the chosen depth threshold. -/
-def widthTwoBad (cs : List (Clause 100)) (F : ℕ) : Finset (Restriction 100) :=
-  Finset.univ.filter fun ρ => stars ρ = 5 ∧ (blockStream cs F ρ).length = 3
+/-- The actual bad subset of the five-star shell at threshold three.  Fuel is fixed to the
+threshold, so `blockStream_length_le` ensures that equality to three captures every stream whose
+length is at least three. -/
+def widthTwoBad (cs : List (Clause 100)) : Finset (Restriction 100) :=
+  Finset.univ.filter fun ρ => stars ρ = 5 ∧ (blockStream cs 3 ρ).length = 3
 
-theorem widthTwoBad_stars (cs : List (Clause 100)) (F : ℕ) :
-    ∀ ρ ∈ widthTwoBad cs F, stars ρ = 5 := by
+theorem widthTwoBad_stars (cs : List (Clause 100)) :
+    ∀ ρ ∈ widthTwoBad cs, stars ρ = 5 := by
   intro ρ hρ
   exact (Finset.mem_filter.mp hρ).2.1
 
-theorem widthTwoBad_depth (cs : List (Clause 100)) (F : ℕ) :
-    ∀ ρ ∈ widthTwoBad cs F, (blockStream cs F ρ).length = 3 := by
+theorem widthTwoBad_depth (cs : List (Clause 100)) :
+    ∀ ρ ∈ widthTwoBad cs, (blockStream cs 3 ρ).length = 3 := by
   intro ρ hρ
   exact (Finset.mem_filter.mp hρ).2.2
+
+/-- Membership is exactly failure of the strict depth-three threshold inside the five-star shell. -/
+theorem mem_widthTwoBad_iff (cs : List (Clause 100)) (ρ : Restriction 100) :
+    ρ ∈ widthTwoBad cs ↔ stars ρ = 5 ∧ 3 ≤ (blockStream cs 3 ρ).length := by
+  rw [widthTwoBad, Finset.mem_filter]
+  simp only [Finset.mem_univ, true_and]
+  constructor
+  · rintro ⟨hstars, hlen⟩
+    exact ⟨hstars, hlen.ge⟩
+  · rintro ⟨hstars, hdeep⟩
+    refine ⟨hstars, Nat.le_antisymm ?_ hdeep⟩
+    exact blockStream_length_le cs 3 ρ
 
 /-- **Structural closure of the concrete parameter theorem.**
 
@@ -81,14 +95,14 @@ The bad set is now constructed internally as the exact depth-three slice of the 
 Thus callers supply no `Bad`, star-shell proof, depth-slice proof, partition, or numerical premise.
 -/
 theorem widthTwo_actualBad_activeGap
-    (cs : List (Clause 100)) (F : ℕ)
+    (cs : List (Clause 100))
     (hcons : ∀ T ∈ cs, Consistent T)
     (hw : ∀ T ∈ cs, T.lits.length ≤ 2) :
     ∃ i : Fin ((100).choose 5), goodBadWork 100 (100 - 5) (2 ^ (100 - 5))
-      (concreteBadCount (K := 5) (widthTwoBad cs F) i) (3 - 1)
+      (concreteBadCount (K := 5) (widthTwoBad cs) i) (3 - 1)
       ≤ 2 ^ (100 - 2) := by
-  exact widthTwo_blockSwitching_activeGap cs F hcons hw
-    (widthTwoBad_stars cs F) (widthTwoBad_depth cs F)
+  exact widthTwo_blockSwitching_activeGap cs 3 hcons hw
+    (widthTwoBad_stars cs) (widthTwoBad_depth cs)
 
 end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingConcreteParameters
 
