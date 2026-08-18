@@ -47,6 +47,30 @@ theorem good_restriction_collapses_to_twoCNF (cs : List (Clause 100))
   intro C hC
   exact Nat.le_of_lt_succ (hcollapse.2 C hC)
 
+/-- The corrected bad set is exactly the disjoint sum of depth shells three, four, and five. -/
+theorem depthCorrectBad_card_eq_shell_sum (cs : List (Clause 100)) :
+    (depthCorrectBad cs).card =
+      ∑ s ∈ Finset.Icc 3 5,
+        ((depthCorrectBad cs).filter fun ρ => (canonicalDT cs 5 ρ).depth = s).card := by
+  rw [Finset.card_eq_sum_card_fiberwise
+    (f := fun ρ : Restriction 100 => (canonicalDT cs 5 ρ).depth)
+    (t := Finset.Icc 3 5)]
+  intro ρ hρ
+  have hρ' : ρ ∈ depthCorrectBad cs := hρ
+  rw [mem_depthCorrectBad_iff] at hρ'
+  exact Finset.mem_Icc.mpr ⟨hρ'.2, canonicalDT_depth_le cs 5 ρ⟩
+
+/-- At the natural five-star density `p = 1/20`, the available unconditional F-independent
+canonical-depth cap for width two is already greater than one at depth three.  Consequently that
+theorem cannot supply the `1/8` tail used by the earlier block-stream arithmetic. -/
+theorem naturalDensity_findep_cap_not_dyadic :
+    ¬ (((2 * (1 / 20 : ℚ) / (1 - (1 / 20 : ℚ))) * (4 * 2 + 1)) ^ 3
+          / (1 - (2 * (1 / 20 : ℚ) / (1 - (1 / 20 : ℚ))) * (4 * 2 + 1))
+        ≤ 1 / (2 ^ 3 : ℚ)) := by
+  norm_num
+
 end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingDepthCorrectedBridge
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingDepthCorrectedBridge.good_restriction_collapses_to_twoCNF
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingDepthCorrectedBridge.depthCorrectBad_card_eq_shell_sum
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingDepthCorrectedBridge.naturalDensity_findep_cap_not_dyadic
