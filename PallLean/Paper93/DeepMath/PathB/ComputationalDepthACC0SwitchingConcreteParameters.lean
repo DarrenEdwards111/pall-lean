@@ -20,6 +20,8 @@ the closed tail is `(5/12)^3 / (1 - 5/48) = 125/1548 < 1/8`.  The active work bu
 
 namespace PallLean.Paper93.DeepMath.PathB.ACC0SwitchingConcreteParameters
 
+set_option maxRecDepth 10000
+
 open PallLean.Paper93.DeepMath.PathB
 open PallLean.Paper93.DeepMath.PathB.Depth3
 open PallLean.Paper93.DeepMath.PathB.SwitchingCounting
@@ -59,7 +61,37 @@ theorem widthTwo_blockSwitching_activeGap
   · norm_num
   · norm_num
 
+/-- The actual bad subset of the five-star shell at the chosen depth threshold. -/
+def widthTwoBad (cs : List (Clause 100)) (F : ℕ) : Finset (Restriction 100) :=
+  Finset.univ.filter fun ρ => stars ρ = 5 ∧ (blockStream cs F ρ).length = 3
+
+theorem widthTwoBad_stars (cs : List (Clause 100)) (F : ℕ) :
+    ∀ ρ ∈ widthTwoBad cs F, stars ρ = 5 := by
+  intro ρ hρ
+  exact (Finset.mem_filter.mp hρ).2.1
+
+theorem widthTwoBad_depth (cs : List (Clause 100)) (F : ℕ) :
+    ∀ ρ ∈ widthTwoBad cs F, (blockStream cs F ρ).length = 3 := by
+  intro ρ hρ
+  exact (Finset.mem_filter.mp hρ).2.2
+
+/-- **Structural closure of the concrete parameter theorem.**
+
+The bad set is now constructed internally as the exact depth-three slice of the five-star shell.
+Thus callers supply no `Bad`, star-shell proof, depth-slice proof, partition, or numerical premise.
+-/
+theorem widthTwo_actualBad_activeGap
+    (cs : List (Clause 100)) (F : ℕ)
+    (hcons : ∀ T ∈ cs, Consistent T)
+    (hw : ∀ T ∈ cs, T.lits.length ≤ 2) :
+    ∃ i : Fin ((100).choose 5), goodBadWork 100 (100 - 5) (2 ^ (100 - 5))
+      (concreteBadCount (K := 5) (widthTwoBad cs F) i) (3 - 1)
+      ≤ 2 ^ (100 - 2) := by
+  exact widthTwo_blockSwitching_activeGap cs F hcons hw
+    (widthTwoBad_stars cs F) (widthTwoBad_depth cs F)
+
 end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingConcreteParameters
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingConcreteParameters.widthTwo_tail_parameters
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingConcreteParameters.widthTwo_blockSwitching_activeGap
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingConcreteParameters.widthTwo_actualBad_activeGap
