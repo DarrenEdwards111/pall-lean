@@ -197,6 +197,64 @@ theorem localizeLiveLiteral_eval {n : ℕ} (τ : Restriction n)
         simp [Rung4Literal.eval, liftLiveAssignment, hv]
       · simp at h
 
+theorem localizeLiveLiteral_fixedVal {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) (l : Rung4Literal n)
+    (l' : Rung4Literal (stars τ)) (h : localizeLiveLiteral τ l = some l') :
+    litFixedVal σ l' = litFixedVal (liftLiveRestriction τ σ) l := by
+  cases l with
+  | pos v =>
+      simp only [localizeLiveLiteral] at h
+      split at h
+      · next hv =>
+        cases h
+        simp [litFixedVal, liftLiveRestriction, hv]
+      · simp at h
+  | neg v =>
+      simp only [localizeLiveLiteral] at h
+      split at h
+      · next hv =>
+        cases h
+        simp [litFixedVal, liftLiveRestriction, hv]
+      · simp at h
+
+theorem localizeLiveLiteral_litTrue {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) (l : Rung4Literal n)
+    (l' : Rung4Literal (stars τ)) (h : localizeLiveLiteral τ l = some l') :
+    litTrue σ l' = litTrue (liftLiveRestriction τ σ) l := by
+  unfold litTrue
+  rw [localizeLiveLiteral_fixedVal τ σ l l' h]
+
+theorem localizeLiveLiteral_litFree {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) (l : Rung4Literal n)
+    (l' : Rung4Literal (stars τ)) (h : localizeLiveLiteral τ l = some l') :
+    litFree σ l' = litFree (liftLiveRestriction τ σ) l := by
+  unfold litFree
+  rw [localizeLiveLiteral_fixedVal τ σ l l' h]
+
+theorem localizeLiveLiteral_litFalse {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) (l : Rung4Literal n)
+    (l' : Rung4Literal (stars τ)) (h : localizeLiveLiteral τ l = some l') :
+    litFalse σ l' = litFalse (liftLiveRestriction τ σ) l := by
+  unfold litFalse
+  rw [localizeLiveLiteral_fixedVal τ σ l l' h]
+
+theorem litKilled_eq_litFalse {n : ℕ} (τ : Restriction n) (l : Rung4Literal n) :
+    DTree.litKilled τ l = litFalse τ l := by
+  cases l with
+  | pos v => cases h : τ v with
+    | none => simp [DTree.litKilled, litFalse, litFixedVal, h]
+    | some b => cases b <;> simp [DTree.litKilled, litFalse, litFixedVal, h]
+  | neg v => cases h : τ v with
+    | none => simp [DTree.litKilled, litFalse, litFixedVal, h]
+    | some b => cases b <;> simp [DTree.litKilled, litFalse, litFixedVal, h]
+
+theorem clauseLive_eq_not_termFalsified {n : ℕ} (τ : Restriction n) (T : Clause n) :
+    DTree.clauseLive τ T = !termFalsified τ T := by
+  unfold DTree.clauseLive termFalsified
+  congr 2
+  funext l
+  exact litKilled_eq_litFalse τ l
+
 theorem localizeLiveLits_all_eval {n : ℕ} (τ : Restriction n)
     (x : Fin (stars τ) → Bool) : ∀ (ls : List (Rung4Literal n)),
     (∀ l ∈ ls, DTree.litKilled τ l = false) →
@@ -258,11 +316,186 @@ theorem localizeLiveClause_eval {n : ℕ} (τ : Restriction n)
     List.any_eq_true.mpr ⟨l, hl, hk⟩
   simp [DTree.clauseLive, hany] at hlive
 
+/-- Free-literal filtering commutes with localization, including list order.  This
+is the selector-order invariant used by the canonical decision tree. -/
+theorem localizeLiveClause_freeLits {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) (T : Clause n) :
+    freeLits σ (localizeLiveClause τ T) =
+      (freeLits (liftLiveRestriction τ σ) T).filterMap
+        (localizeLiveLiteral τ) := by
+  unfold localizeLiveClause freeLits
+  induction T.lits with
+  | nil => simp
+  | cons l ls ih =>
+      cases hloc : localizeLiveLiteral τ l with
+      | some l' =>
+          have hs := localizeLiveLiteral_litFree τ σ l l' hloc
+          cases hb : litFree σ l' <;> simp [hloc, hb, hb ▸ hs, ih]
+      | none =>
+          have hfixed : litFree (liftLiveRestriction τ σ) l = false := by
+            cases l with
+            | pos v =>
+                simp only [localizeLiveLiteral] at hloc
+                split at hloc
+                · simp at hloc
+                · next hv =>
+                  have hne : τ v ≠ none := by simpa [mem_freeVars] using hv
+                  obtain ⟨b, hb⟩ := Option.ne_none_iff_exists'.mp hne
+                  simp [litFree, litFixedVal, liftLiveRestriction, hv, hb]
+            | neg v =>
+                simp only [localizeLiveLiteral] at hloc
+                split at hloc
+                · simp at hloc
+                · next hv =>
+                  have hne : τ v ≠ none := by simpa [mem_freeVars] using hv
+                  obtain ⟨b, hb⟩ := Option.ne_none_iff_exists'.mp hne
+                  simp [litFree, litFixedVal, liftLiveRestriction, hv, hb]
+          simp [hloc, hfixed, ih]
+
+theorem localizeLiveLits_any_litFalse {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) : ∀ (ls : List (Rung4Literal n)),
+    (∀ l ∈ ls, DTree.litKilled τ l = false) →
+    (ls.filterMap (localizeLiveLiteral τ)).any (litFalse σ) =
+      ls.any (litFalse (liftLiveRestriction τ σ)) := by
+  intro ls
+  induction ls with
+  | nil => simp
+  | cons l ls ih =>
+      intro hkill
+      have hhead := hkill l (by simp)
+      have htail : ∀ q ∈ ls, DTree.litKilled τ q = false :=
+        fun q hq => hkill q (by simp [hq])
+      cases hloc : localizeLiveLiteral τ l with
+      | some l' =>
+          have hs := localizeLiveLiteral_litFalse τ σ l l' hloc
+          simp [hloc, hs, ih htail]
+      | none =>
+          have hfalse : litFalse (liftLiveRestriction τ σ) l = false := by
+            cases l with
+            | pos v =>
+                simp only [localizeLiveLiteral] at hloc
+                split at hloc
+                · simp at hloc
+                · next hv =>
+                  have hne : τ v ≠ none := by simpa [mem_freeVars] using hv
+                  obtain ⟨b, hb⟩ := Option.ne_none_iff_exists'.mp hne
+                  cases b <;> simp [DTree.litKilled, litFalse, litFixedVal,
+                    liftLiveRestriction, hv, hb] at hhead ⊢
+            | neg v =>
+                simp only [localizeLiveLiteral] at hloc
+                split at hloc
+                · simp at hloc
+                · next hv =>
+                  have hne : τ v ≠ none := by simpa [mem_freeVars] using hv
+                  obtain ⟨b, hb⟩ := Option.ne_none_iff_exists'.mp hne
+                  cases b <;> simp [DTree.litKilled, litFalse, litFixedVal,
+                    liftLiveRestriction, hv, hb] at hhead ⊢
+          simp [hloc, hfalse, ih htail]
+
+theorem localizeLiveClause_termFalsified {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) (T : Clause n)
+    (hlive : DTree.clauseLive τ T = true) :
+    termFalsified σ (localizeLiveClause τ T) =
+      termFalsified (liftLiveRestriction τ σ) T := by
+  unfold termFalsified localizeLiveClause
+  apply localizeLiveLits_any_litFalse
+  intro l hl
+  by_contra hk
+  rw [Bool.not_eq_false] at hk
+  have hany : T.lits.any (DTree.litKilled τ) = true :=
+    List.any_eq_true.mpr ⟨l, hl, hk⟩
+  simp [DTree.clauseLive, hany] at hlive
+
+theorem localizeLiveLits_all_litTrue {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) : ∀ (ls : List (Rung4Literal n)),
+    (∀ l ∈ ls, DTree.litKilled τ l = false) →
+    (ls.filterMap (localizeLiveLiteral τ)).all (litTrue σ) =
+      ls.all (litTrue (liftLiveRestriction τ σ)) := by
+  intro ls
+  induction ls with
+  | nil => simp
+  | cons l ls ih =>
+      intro hkill
+      have hhead := hkill l (by simp)
+      have htail : ∀ q ∈ ls, DTree.litKilled τ q = false :=
+        fun q hq => hkill q (by simp [hq])
+      cases hloc : localizeLiveLiteral τ l with
+      | some l' =>
+          have hs := localizeLiveLiteral_litTrue τ σ l l' hloc
+          simp [hloc, hs, ih htail]
+      | none =>
+          have htrue : litTrue (liftLiveRestriction τ σ) l = true := by
+            cases l with
+            | pos v =>
+                simp only [localizeLiveLiteral] at hloc
+                split at hloc
+                · simp at hloc
+                · next hv =>
+                  have hne : τ v ≠ none := by simpa [mem_freeVars] using hv
+                  obtain ⟨b, hb⟩ := Option.ne_none_iff_exists'.mp hne
+                  cases b <;> simp [DTree.litKilled, litTrue, litFixedVal,
+                    liftLiveRestriction, hv, hb] at hhead ⊢
+            | neg v =>
+                simp only [localizeLiveLiteral] at hloc
+                split at hloc
+                · simp at hloc
+                · next hv =>
+                  have hne : τ v ≠ none := by simpa [mem_freeVars] using hv
+                  obtain ⟨b, hb⟩ := Option.ne_none_iff_exists'.mp hne
+                  cases b <;> simp [DTree.litKilled, litTrue, litFixedVal,
+                    liftLiveRestriction, hv, hb] at hhead ⊢
+          simp [hloc, htrue, ih htail]
+
+theorem localizeLiveClause_termSat {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) (T : Clause n)
+    (hlive : DTree.clauseLive τ T = true) :
+    termSat σ (localizeLiveClause τ T) =
+      termSat (liftLiveRestriction τ σ) T := by
+  unfold termSat localizeLiveClause
+  apply localizeLiveLits_all_litTrue
+  intro l hl
+  by_contra hk
+  rw [Bool.not_eq_false] at hk
+  have hany : T.lits.any (DTree.litKilled τ) = true :=
+    List.any_eq_true.mpr ⟨l, hl, hk⟩
+  simp [DTree.clauseLive, hany] at hlive
+
 /-- Restrict a DNF to the current subcube, discard killed terms, and relabel all
 remaining free literals by the canonical live coordinates. -/
 noncomputable def localizeLiveDnf {n : ℕ} (τ : Restriction n)
     (cs : List (Clause n)) : List (Clause (stars τ)) :=
   (cs.filter (DTree.clauseLive τ)).map (localizeLiveClause τ)
+
+theorem localizeLiveDnf_anyTermSat {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) (cs : List (Clause n)) :
+    anyTermSat (localizeLiveDnf τ cs) σ =
+      anyTermSat cs (liftLiveRestriction τ σ) := by
+  apply DTree.bool_eq_of_iff
+  simp only [anyTermSat, localizeLiveDnf, List.any_eq_true,
+    List.mem_map, List.mem_filter]
+  constructor
+  · rintro ⟨S, ⟨T, ⟨hT, hlive⟩, rfl⟩, hsat⟩
+    exact ⟨T, hT, by rw [← localizeLiveClause_termSat τ σ T hlive]; exact hsat⟩
+  · rintro ⟨T, hT, hsat⟩
+    by_cases hlive : DTree.clauseLive τ T = true
+    · exact ⟨localizeLiveClause τ T, ⟨T, ⟨hT, hlive⟩, rfl⟩,
+        by rw [localizeLiveClause_termSat τ σ T hlive]; exact hsat⟩
+    · simp only [Bool.not_eq_true] at hlive
+      have hfτ : termFalsified τ T = true := by
+        rw [clauseLive_eq_not_termFalsified] at hlive
+        cases h : termFalsified τ T <;> simp [h] at hlive ⊢
+      have hf := termFalsified_mono (liftLiveRestriction_extends τ σ) hfτ
+      have hfalse : termSat (liftLiveRestriction τ σ) T = false := by
+        rw [termFalsified, List.any_eq_true] at hf
+        obtain ⟨l, hl, hlf⟩ := hf
+        rw [termSat]
+        by_contra hs
+        rw [Bool.not_eq_false, List.all_eq_true] at hs
+        have ht := hs l hl
+        rw [litTrue_eq_false_of_litFalse hlf] at ht
+        simp at ht
+      rw [hfalse] at hsat
+      simp at hsat
 
 /-- The localized DNF computes exactly the original ambient DNF throughout the
 current subcube. -/
@@ -754,3 +987,6 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveGates_width_le
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveDnf_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveGates_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveClause_freeLits
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveClause_termFalsified
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveDnf_anyTermSat
