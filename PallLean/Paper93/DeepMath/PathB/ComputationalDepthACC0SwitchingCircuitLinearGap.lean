@@ -275,12 +275,14 @@ theorem wideCircuit_shellBudget (G w m r : ℕ)
         circuit_shellBudget G (w * m) r hG (Nat.mul_pos hw hm) hr
 
 /-- **Uniform linear gap for arbitrary fixed gate count, width, and term count.** -/
-theorem wideCircuitLinearGap_selectedBucket_activeGap
+theorem wideCircuitLinearGap_selectedBucket_certificate
     (G w m r : ℕ) [NeZero G] [NeZero w] [NeZero m] [NeZero r]
     (gates : Fin G → List (Clause (1000 * (G * (w * m)) * r)))
     (hwidth : ∀ g, ∀ T ∈ gates g, T.lits.length ≤ w)
     (hterms : ∀ g, (gates g).length ≤ m) :
     ∃ i : Fin ((1000 * (G * (w * m)) * r).choose (20 * r)),
+      concreteBadCount (K := 20 * r) (circuitBad gates (20 * r) (10 * r)) i ≤
+        2 ^ ((1000 * (G * (w * m)) * r - 20 * r) - 9 * r - 1) ∧
       goodBadWork (1000 * (G * (w * m)) * r)
         (1000 * (G * (w * m)) * r - 20 * r)
         (2 ^ (1000 * (G * (w * m)) * r - 20 * r))
@@ -311,7 +313,7 @@ theorem wideCircuitLinearGap_selectedBucket_activeGap
     apply le_trans (Nat.mul_le_mul_right _ hcard)
     simpa [n] using wideCircuit_shellBudget G w m r hG hw hm hr
   have hsum := sum_concreteBadCount (Bad := circuitBad gates (20 * r) (10 * r)) hstars
-  apply aggregateTail_to_selectedBucket_activeGap n (n.choose (20 * r))
+  apply aggregateTail_to_selectedBucket_certificate n (n.choose (20 * r))
     (n - 20 * r) (9 * r) (10 * r - 1)
   · exact Nat.choose_pos hKn
   · omega
@@ -323,6 +325,22 @@ theorem wideCircuitLinearGap_selectedBucket_activeGap
         (N - 20 * R) + (10 * R - 1) ≤ N - 9 * R - 1 := by omega
     exact hwork hr hKn
 
+/-- Work-only projection of the stronger shared selected-bucket certificate. -/
+theorem wideCircuitLinearGap_selectedBucket_activeGap
+    (G w m r : ℕ) [NeZero G] [NeZero w] [NeZero m] [NeZero r]
+    (gates : Fin G → List (Clause (1000 * (G * (w * m)) * r)))
+    (hwidth : ∀ g, ∀ T ∈ gates g, T.lits.length ≤ w)
+    (hterms : ∀ g, (gates g).length ≤ m) :
+    ∃ i : Fin ((1000 * (G * (w * m)) * r).choose (20 * r)),
+      goodBadWork (1000 * (G * (w * m)) * r)
+        (1000 * (G * (w * m)) * r - 20 * r)
+        (2 ^ (1000 * (G * (w * m)) * r - 20 * r))
+        (concreteBadCount (K := 20 * r) (circuitBad gates (20 * r) (10 * r)) i)
+        (10 * r - 1) ≤ 2 ^ (1000 * (G * (w * m)) * r - 9 * r) := by
+  obtain ⟨i, _, hi⟩ :=
+    wideCircuitLinearGap_selectedBucket_certificate G w m r gates hwidth hterms
+  exact ⟨i, hi⟩
+
 end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap.circuit_good_semanticCollapse
@@ -330,3 +348,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap.circuitLinearGap_selectedBucket_activeGap
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap.layeredCircuitLinearGap_oneRound
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap.wideCircuitLinearGap_selectedBucket_activeGap
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap.wideCircuitLinearGap_selectedBucket_certificate

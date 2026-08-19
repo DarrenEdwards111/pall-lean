@@ -27,6 +27,42 @@ namespace PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout
 def goodBadWork (N q goodCount badCount residualDepth : ℕ) : ℕ :=
   goodCount * 2 ^ residualDepth + badCount * 2 ^ (N - q)
 
+/-- Work after recursively replacing every good bucket leaf by a child cover, while every bad leaf
+stops immediately and is brute-forced over the `K` remaining variables. -/
+def recursiveSpliceWork (K goodCount badCount childWork : ℕ) : ℕ :=
+  goodCount * childWork + badCount * 2 ^ K
+
+/-- **Recursive splice recurrence.**  The good arm and exceptional arm each consume one half of
+the target budget.  Thus a child saving `saving+1` bits and a current bad-count saving
+`saving+1` bits combine into a parent saving of `saving` bits, with no discarded branch. -/
+theorem recursiveSpliceWork_le (N q K goodCount badCount childWork saving : ℕ)
+    (hN : q + K = N) (hsq : saving + 1 ≤ q) (hsK : saving + 1 ≤ K)
+    (hgood : goodCount ≤ 2 ^ q)
+    (hchild : childWork ≤ 2 ^ (K - saving - 1))
+    (hbad : badCount ≤ 2 ^ (q - saving - 1)) :
+    recursiveSpliceWork K goodCount badCount childWork ≤ 2 ^ (N - saving) := by
+  unfold recursiveSpliceWork
+  have hg : goodCount * childWork ≤ 2 ^ (N - saving - 1) := by
+    calc
+      goodCount * childWork ≤ 2 ^ q * 2 ^ (K - saving - 1) :=
+        Nat.mul_le_mul hgood hchild
+      _ = 2 ^ (q + (K - saving - 1)) := by rw [Nat.pow_add]
+      _ = 2 ^ (N - saving - 1) := by congr 1 <;> omega
+  have hb : badCount * 2 ^ K ≤ 2 ^ (N - saving - 1) := by
+    calc
+      badCount * 2 ^ K ≤ 2 ^ (q - saving - 1) * 2 ^ K :=
+        Nat.mul_le_mul_right _ hbad
+      _ = 2 ^ ((q - saving - 1) + K) := by rw [Nat.pow_add]
+      _ = 2 ^ (N - saving - 1) := by congr 1 <;> omega
+  calc
+    goodCount * childWork + badCount * 2 ^ K
+        ≤ 2 ^ (N - saving - 1) + 2 ^ (N - saving - 1) := Nat.add_le_add hg hb
+    _ = 2 ^ (N - saving) := by
+      have hpos : 0 < N - saving := by omega
+      conv_rhs => rw [show N - saving = (N - saving - 1) + 1 by omega]
+      rw [pow_succ]
+      ring
+
 /-- Good-leaf work fits in half the final target under the combined branch/depth budget. -/
 theorem good_work_le_half_target (N q goodCount residualDepth saving : ℕ)
     (hleaves : goodCount ≤ 2 ^ q)
@@ -96,5 +132,6 @@ end PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout.good_work_le_half_target
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout.bad_work_le_half_target
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout.goodBadWork_le_active_gap
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout.recursiveSpliceWork_le
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout.goodBadWork_lt_bruteforce
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout.all_bad_zero_surplus
