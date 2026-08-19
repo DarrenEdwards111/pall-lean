@@ -236,9 +236,97 @@ theorem layeredCircuitLinearGap_oneRound
   · intro ρ hstars hgood
     exact layered_good_collapseRound C hAlt gates (20 * r) (10 * r) henum ρ hstars hgood
 
+/-! ## Arbitrary fixed bottom width -/
+
+/-- The existing circuit budget absorbs an arbitrary fixed width by treating `w*m` as the effective
+term parameter.  Its `(4wm)^t` label space dominates the required `(2wm)^t` space. -/
+theorem wideCircuit_shellBudget (G w m r : ℕ)
+    (hG : 0 < G) (hw : 0 < w) (hm : 0 < m) (hr : 0 < r) :
+    G * (∑ t ∈ Finset.Icc (10 * r) (20 * r),
+        (1000 * (G * (w * m)) * r).choose (20 * r - t) *
+          2 ^ (1000 * (G * (w * m)) * r - (20 * r - t)) * (2 * w * m) ^ t)
+        * 2 ^ (9 * r + 1)
+      ≤ (1000 * (G * (w * m)) * r).choose (20 * r) *
+          2 ^ (1000 * (G * (w * m)) * r - 20 * r) := by
+  have hdom :
+      G * (∑ t ∈ Finset.Icc (10 * r) (20 * r),
+        (1000 * (G * (w * m)) * r).choose (20 * r - t) *
+          2 ^ (1000 * (G * (w * m)) * r - (20 * r - t)) * (2 * w * m) ^ t)
+      ≤ G * (∑ t ∈ Finset.Icc (10 * r) (20 * r),
+        (1000 * (G * (w * m)) * r).choose (20 * r - t) *
+          2 ^ (1000 * (G * (w * m)) * r - (20 * r - t)) * (4 * (w * m)) ^ t) := by
+    apply Nat.mul_le_mul_left
+    apply Finset.sum_le_sum
+    intro t ht
+    apply Nat.mul_le_mul_left
+    exact Nat.pow_le_pow_left (by nlinarith : 2 * w * m ≤ 4 * (w * m)) t
+  calc
+    G * (∑ t ∈ Finset.Icc (10 * r) (20 * r),
+        (1000 * (G * (w * m)) * r).choose (20 * r - t) *
+          2 ^ (1000 * (G * (w * m)) * r - (20 * r - t)) * (2 * w * m) ^ t)
+        * 2 ^ (9 * r + 1)
+      ≤ (G * (∑ t ∈ Finset.Icc (10 * r) (20 * r),
+        (1000 * (G * (w * m)) * r).choose (20 * r - t) *
+          2 ^ (1000 * (G * (w * m)) * r - (20 * r - t)) * (4 * (w * m)) ^ t))
+          * 2 ^ (9 * r + 1) := Nat.mul_le_mul_right _ hdom
+    _ ≤ (1000 * (G * (w * m)) * r).choose (20 * r) *
+          2 ^ (1000 * (G * (w * m)) * r - 20 * r) := by
+      simpa [show 2 * 2 * (w * m) = 4 * (w * m) by ring] using
+        circuit_shellBudget G (w * m) r hG (Nat.mul_pos hw hm) hr
+
+/-- **Uniform linear gap for arbitrary fixed gate count, width, and term count.** -/
+theorem wideCircuitLinearGap_selectedBucket_activeGap
+    (G w m r : ℕ) [NeZero G] [NeZero w] [NeZero m] [NeZero r]
+    (gates : Fin G → List (Clause (1000 * (G * (w * m)) * r)))
+    (hwidth : ∀ g, ∀ T ∈ gates g, T.lits.length ≤ w)
+    (hterms : ∀ g, (gates g).length ≤ m) :
+    ∃ i : Fin ((1000 * (G * (w * m)) * r).choose (20 * r)),
+      goodBadWork (1000 * (G * (w * m)) * r)
+        (1000 * (G * (w * m)) * r - 20 * r)
+        (2 ^ (1000 * (G * (w * m)) * r - 20 * r))
+        (concreteBadCount (K := 20 * r) (circuitBad gates (20 * r) (10 * r)) i)
+        (10 * r - 1) ≤ 2 ^ (1000 * (G * (w * m)) * r - 9 * r) := by
+  let n := 1000 * (G * (w * m)) * r
+  have hG := NeZero.pos G
+  have hw := NeZero.pos w
+  have hm := NeZero.pos m
+  have hr := NeZero.pos r
+  have hprod : 0 < G * (w * m) := Nat.mul_pos hG (Nat.mul_pos hw hm)
+  have hcoef20 : 20 ≤ 1000 * (G * (w * m)) := by nlinarith
+  have hcoef30 : 30 ≤ 1000 * (G * (w * m)) := by nlinarith
+  have hKn : 20 * r ≤ n := by
+    dsimp [n]
+    exact Nat.mul_le_mul_right r hcoef20
+  have hsaveK : 9 * r + 1 + 20 * r ≤ n := by
+    dsimp [n]
+    calc
+      9 * r + 1 + 20 * r ≤ 30 * r := by omega
+      _ ≤ (1000 * (G * (w * m))) * r := Nat.mul_le_mul_right r hcoef30
+  have hsN : 9 * r + 1 ≤ n := by omega
+  have hstars : ∀ ρ ∈ circuitBad gates (20 * r) (10 * r), stars ρ = 20 * r :=
+    fun ρ hρ => circuitBad_stars gates (20 * r) (10 * r) ρ hρ
+  have hcard := circuitBad_card_le_shellSum gates (20 * r) (10 * r) hwidth hterms
+  have htail : (circuitBad gates (20 * r) (10 * r)).card * 2 ^ (9 * r + 1)
+      ≤ n.choose (20 * r) * 2 ^ (n - 20 * r) := by
+    apply le_trans (Nat.mul_le_mul_right _ hcard)
+    simpa [n] using wideCircuit_shellBudget G w m r hG hw hm hr
+  have hsum := sum_concreteBadCount (Bad := circuitBad gates (20 * r) (10 * r)) hstars
+  apply aggregateTail_to_selectedBucket_activeGap n (n.choose (20 * r))
+    (n - 20 * r) (9 * r) (10 * r - 1)
+  · exact Nat.choose_pos hKn
+  · omega
+  · exact Nat.sub_le n (20 * r)
+  · exact hsN
+  · rw [hsum]
+    exact htail
+  · have hwork {N R : ℕ} (hR : 0 < R) (h : 20 * R ≤ N) :
+        (N - 20 * R) + (10 * R - 1) ≤ N - 9 * R - 1 := by omega
+    exact hwork hr hKn
+
 end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap.circuit_good_semanticCollapse
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap.circuit_shellBudget
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap.circuitLinearGap_selectedBucket_activeGap
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap.layeredCircuitLinearGap_oneRound
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap.wideCircuitLinearGap_selectedBucket_activeGap
