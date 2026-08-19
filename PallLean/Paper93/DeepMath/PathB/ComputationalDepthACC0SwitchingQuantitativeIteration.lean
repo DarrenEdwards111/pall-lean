@@ -2,6 +2,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SwitchingCircuitLin
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3IteratedReduction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRoundCount2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsurvRoundREL2
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecursiveTowerSeq
 
 /-!
 # Varying-parameter iteration of corrected switching rounds
@@ -75,6 +76,8 @@ def concreteM : ℕ := 1000000
 def concreteT : ℕ := 30
 def concreteTerms : ℕ := concreteM * 2 ^ concreteT
 def concreteQ : ℕ := 16 * concreteT * concreteTerms
+def concreteB : ℕ := 8 * concreteQ
+def concreteSched (d r i : ℕ) : ℕ := r * concreteB ^ (d - i)
 
 /-- A fully numerical later-round certificate.  These constants are closed under collapse:
 width `30`, at most `10^6` bottom gates, and at most `10^6·2^30` clauses per gate. -/
@@ -150,6 +153,101 @@ theorem concreteTwoRoundChain {n F s₁ s₂ : ℕ} (hs₁ : 2 ≤ s₁) (hs₂ 
   intro x hx
   have hx₁ := agreeRestriction_of_extends hext₂ hx
   exact (Reduces.head hr₁.equivOn hx₁).trans (Reduces.head hr₂.equivOn hx)
+
+/-- Arbitrary-depth recursive nesting of the concrete closed switching round. -/
+theorem concreteDepthChain {n F d : ℕ} (s : ℕ → ℕ)
+    (hmono : ∀ i, s (i + 1) ≤ s i) (hpos : ∀ i < d, 2 ≤ s (i + 1))
+    (hgap : ∀ i < d, 7 * (s (i + 1) : ℚ) < (s i : ℚ) * (1 / concreteQ))
+    (hF : n ≤ F) (C₀ : Layered n) (τ₀ : Restriction n) (hAlt : AltO (d + 2) C₀)
+    (hbw : BottomWidth concreteT C₀) (hmc : BottomCount concreteTerms C₀)
+    (hcnt : (bottomGates C₀).length ≤ concreteM) (hstars : s 0 ≤ stars τ₀) :
+    ∃ Cd : Layered n, ∃ σ : Restriction n,
+      (∃ D : List (Clause n), Cd = Layered.dnf D) ∧ Extends τ₀ σ ∧ s d ≤ stars σ ∧
+      BottomWidth concreteT Cd ∧ BottomCount concreteTerms Cd ∧
+      (bottomGates Cd).length ≤ concreteM ∧
+      ∀ x, DTree.agreeRestriction σ x → Reduces x C₀ Cd := by
+  let Valid : ℕ → Layered n → Prop := fun i C =>
+    (if i ≤ d then AltO (d + 2 - i) C else True) ∧ BottomWidth concreteT C ∧
+      BottomCount concreteTerms C ∧ (bottomGates C).length ≤ concreteM
+  have hV₀ : Valid 0 C₀ := by
+    refine ⟨?_, hbw, hmc, hcnt⟩
+    simp only [Nat.zero_le, if_true, Nat.sub_zero]
+    exact hAlt
+  have horacle : ∀ (i : ℕ) (C : Layered n) (τ : Restriction n), Valid i C →
+      s i ≤ stars τ → ∃ (C' : Layered n) (ρ : Restriction n),
+        Extends τ ρ ∧ s (i + 1) ≤ stars ρ ∧ EquivOn ρ C C' ∧ Valid (i + 1) C' := by
+    intro i C τ hV hsτ
+    obtain ⟨hshape, hbwC, hmcC, hcntC⟩ := hV
+    by_cases hid : i < d
+    · have hgap' : 7 * (s (i + 1) : ℚ) < (stars τ : ℚ) * (1 / concreteQ) := by
+        have hp : (0 : ℚ) ≤ 1 / concreteQ := by positivity
+        have hsQ : (s i : ℚ) ≤ stars τ := by exact_mod_cast hsτ
+        exact lt_of_lt_of_le (hgap i hid) (mul_le_mul_of_nonneg_right hsQ hp)
+      obtain ⟨ρ, hext, hsurv, hr⟩ :=
+        exists_concreteAnalyticRound (hpos i hid) hF C τ hbwC hmcC hcntC hgap'
+      have hshape₀ : AltO (d + 2 - i) C := by
+        simpa [if_pos (le_of_lt hid)] using hshape
+      have hshape' : AltO (d + 2 - (i + 1)) (collapseRound F ρ C) := by
+        have hk : d + 2 - i = (d - 1 - i) + 3 := by omega
+        rw [hk] at hshape₀
+        have hred := collapseRound_AltO F ρ hshape₀
+        have hk' : d + 2 - (i + 1) = (d - 1 - i) + 2 := by omega
+        rwa [hk']
+      have hb := concreteAnalyticRound_closed hr (AltO_NonEmptyGates hshape₀) hcntC
+      refine ⟨collapseRound F ρ C, ρ, hext, hsurv, hr.equivOn, ?_, hb.1, hb.2.1, hb.2.2⟩
+      rw [if_pos (by omega : i + 1 ≤ d)]
+      exact hshape'
+    · refine ⟨C, τ, fun _ _ h => h, le_trans (hmono i) hsτ, ?_, ?_, hbwC, hmcC, hcntC⟩
+      · intro x _; rfl
+      · rw [if_neg (by omega : ¬ i + 1 ≤ d)]
+        trivial
+  obtain ⟨Cd, σ, hVd, hext, hsd, hred⟩ :=
+    recursive_tower_chain_surv_seq Valid s C₀ τ₀ hV₀ hstars horacle d
+  obtain ⟨hshape, hbwD, hmcD, hcntD⟩ := hVd
+  rw [if_pos (le_refl d), show d + 2 - d = 2 by omega] at hshape
+  obtain ⟨D, hD⟩ := AltO_two_dnf hshape
+  exact ⟨Cd, σ, ⟨D, hD⟩, hext, hsd, hbwD, hmcD, hcntD, hred⟩
+
+/-- The explicit base-`8·Q` geometric schedule leaves `r` live variables after `d` rounds. -/
+theorem concreteGeometricDepthChain {n F d r : ℕ} (hr : 2 ≤ r) (hF : n ≤ F)
+    (C₀ : Layered n) (τ₀ : Restriction n) (hAlt : AltO (d + 2) C₀)
+    (hbw : BottomWidth concreteT C₀) (hmc : BottomCount concreteTerms C₀)
+    (hcnt : (bottomGates C₀).length ≤ concreteM)
+    (hstars : concreteSched d r 0 ≤ stars τ₀) :
+    ∃ Cd : Layered n, ∃ σ : Restriction n,
+      (∃ D : List (Clause n), Cd = Layered.dnf D) ∧ Extends τ₀ σ ∧ r ≤ stars σ ∧
+      BottomWidth concreteT Cd ∧ BottomCount concreteTerms Cd ∧
+      (bottomGates Cd).length ≤ concreteM ∧
+      ∀ x, DTree.agreeRestriction σ x → Reduces x C₀ Cd := by
+  have hmono : ∀ i, concreteSched d r (i + 1) ≤ concreteSched d r i := by
+    intro i
+    unfold concreteSched
+    gcongr
+    all_goals first | omega | norm_num [concreteB, concreteQ, concreteT, concreteTerms, concreteM]
+  have hpos : ∀ i < d, 2 ≤ concreteSched d r (i + 1) := by
+    intro i hi
+    unfold concreteSched
+    exact le_trans hr (Nat.le_mul_of_pos_right r
+      (pow_pos (by norm_num [concreteB, concreteQ, concreteT, concreteTerms, concreteM]) _))
+  have hgap : ∀ i < d,
+      7 * (concreteSched d r (i + 1) : ℚ) <
+        (concreteSched d r i : ℚ) * (1 / concreteQ) := by
+    intro i hi
+    unfold concreteSched
+    have he : d - i = (d - (i + 1)) + 1 := by omega
+    rw [he, pow_succ]
+    push_cast
+    have hrQ : (0 : ℚ) < r := by exact_mod_cast (lt_of_lt_of_le (by norm_num : 0 < 2) hr)
+    have hBQ : (0 : ℚ) < concreteB := by
+      norm_num [concreteB, concreteQ, concreteT, concreteTerms, concreteM]
+    have hx : (0 : ℚ) < (r : ℚ) * (concreteB : ℚ) ^ (d - (i + 1)) :=
+      mul_pos hrQ (pow_pos hBQ _)
+    have hratio : (7 : ℚ) < (concreteB : ℚ) * (1 / concreteQ) := by
+      norm_num [concreteB, concreteQ, concreteT, concreteTerms, concreteM]
+    nlinarith
+  have h := concreteDepthChain (concreteSched d r) hmono hpos hgap hF C₀ τ₀ hAlt
+    hbw hmc hcnt hstars
+  simpa [concreteSched] using h
 
 /-- A chain of genuine good rounds drops an alternating tower by one level per round. -/
 theorem collapseSeq_AltO {n d : ℕ} (K : ℕ → ℕ)
@@ -317,3 +415,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_concreteAnalyticRound
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteAnalyticRound_closed
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteTwoRoundChain
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDepthChain
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteGeometricDepthChain
