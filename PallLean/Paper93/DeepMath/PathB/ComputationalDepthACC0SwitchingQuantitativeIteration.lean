@@ -19,6 +19,8 @@ open PallLean.Paper93.DeepMath.PathB.Depth3
 open PallLean.Paper93.DeepMath.PathB.Depth3.Layered
 open PallLean.Paper93.DeepMath.PathB.SwitchingCounting
 open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap
+open PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout
+open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingShellBuckets
 
 /-- The restriction-dependent circuit sequence produced by successive real `collapseRound`s. -/
 def collapseSeq {n : ℕ} (K : ℕ → ℕ) (ρ : ℕ → Restriction n) (C₀ : Layered n) :
@@ -78,6 +80,8 @@ def concreteTerms : ℕ := concreteM * 2 ^ concreteT
 def concreteQ : ℕ := 16 * concreteT * concreteTerms
 def concreteB : ℕ := 8 * concreteQ
 def concreteSched (d r i : ℕ) : ℕ := r * concreteB ^ (d - i)
+def concreteG : ℕ := 2 * concreteM
+def concreteScale : ℕ := 1000 * (concreteG * (concreteT * concreteTerms))
 
 /-- A fully numerical later-round certificate.  These constants are closed under collapse:
 width `30`, at most `10^6` bottom gates, and at most `10^6·2^30` clauses per gate. -/
@@ -249,6 +253,22 @@ theorem concreteGeometricDepthChain {n F d r : ℕ} (hr : 2 ≤ r) (hF : n ≤ F
     hbw hmc hcnt hstars
   simpa [concreteSched] using h
 
+/-- A fully deterministic, fully charged later-round bucket at the closed invariant constants. -/
+theorem concreteDeterministicRoundGap (r : ℕ) [NeZero r]
+    (gates : Fin concreteG → List (Clause (concreteScale * r)))
+    (hwidth : ∀ g, ∀ T ∈ gates g, T.lits.length ≤ concreteT)
+    (hterms : ∀ g, (gates g).length ≤ concreteTerms) :
+    ∃ i : Fin ((concreteScale * r).choose (20 * r)),
+      goodBadWork (concreteScale * r) (concreteScale * r - 20 * r)
+        (2 ^ (concreteScale * r - 20 * r))
+        (concreteBadCount (K := 20 * r) (circuitBad gates (20 * r) (10 * r)) i)
+        (10 * r - 1) ≤ 2 ^ (concreteScale * r - 9 * r) := by
+  letI : NeZero concreteG := ⟨by norm_num [concreteG, concreteM]⟩
+  letI : NeZero concreteT := ⟨by norm_num [concreteT]⟩
+  letI : NeZero concreteTerms := ⟨by norm_num [concreteTerms, concreteM, concreteT]⟩
+  simpa [concreteScale, concreteG] using
+    wideCircuitLinearGap_selectedBucket_activeGap concreteG concreteT concreteTerms r gates hwidth hterms
+
 /-- A chain of genuine good rounds drops an alternating tower by one level per round. -/
 theorem collapseSeq_AltO {n d : ℕ} (K : ℕ → ℕ)
     (ρ : ℕ → Restriction n) (C₀ : Layered n) (hAlt : AltO (d + 2) C₀) :
@@ -417,3 +437,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteTwoRoundChain
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDepthChain
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteGeometricDepthChain
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundGap
