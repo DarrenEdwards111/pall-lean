@@ -352,6 +352,48 @@ theorem localizeLiveClause_freeLits {n : ℕ} (τ : Restriction n)
                   simp [litFree, litFixedVal, liftLiveRestriction, hv, hb]
           simp [hloc, hfixed, ih]
 
+theorem exists_localizeLiveLiteral_of_free {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) (l : Rung4Literal n)
+    (hfree : litFree (liftLiveRestriction τ σ) l = true) :
+    ∃ l', localizeLiveLiteral τ l = some l' := by
+  cases l with
+  | pos v =>
+      by_cases hv : v ∈ freeVars τ
+      · exact ⟨Rung4Literal.pos ((liveCoordEquiv τ).symm ⟨v, hv⟩), by
+          simp [localizeLiveLiteral, hv]⟩
+      · have hne : τ v ≠ none := by simpa [mem_freeVars] using hv
+        obtain ⟨b, hb⟩ := Option.ne_none_iff_exists'.mp hne
+        simp [litFree, litFixedVal, liftLiveRestriction, hv, hb] at hfree
+  | neg v =>
+      by_cases hv : v ∈ freeVars τ
+      · exact ⟨Rung4Literal.neg ((liveCoordEquiv τ).symm ⟨v, hv⟩), by
+          simp [localizeLiveLiteral, hv]⟩
+      · have hne : τ v ≠ none := by simpa [mem_freeVars] using hv
+        obtain ⟨b, hb⟩ := Option.ne_none_iff_exists'.mp hne
+        simp [litFree, litFixedVal, liftLiveRestriction, hv, hb] at hfree
+
+theorem length_filterMap_eq_of_exists {A B : Type*} (f : A → Option B) :
+    ∀ (xs : List A), (∀ x ∈ xs, ∃ y, f x = some y) →
+      (xs.filterMap f).length = xs.length := by
+  intro xs
+  induction xs with
+  | nil => simp
+  | cons x xs ih =>
+      intro h
+      obtain ⟨y, hy⟩ := h x (by simp)
+      simp [hy, ih (fun z hz => h z (by simp [hz]))]
+
+theorem localizeLiveClause_freeLits_length {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) (T : Clause n) :
+    (freeLits σ (localizeLiveClause τ T)).length =
+      (freeLits (liftLiveRestriction τ σ) T).length := by
+  rw [localizeLiveClause_freeLits]
+  apply length_filterMap_eq_of_exists
+  intro l hl
+  have hfree : litFree (liftLiveRestriction τ σ) l = true :=
+    (List.mem_filter.mp hl).2
+  exact exists_localizeLiveLiteral_of_free τ σ l hfree
+
 theorem localizeLiveLits_any_litFalse {n : ℕ} (τ : Restriction n)
     (σ : Restriction (stars τ)) : ∀ (ls : List (Rung4Literal n)),
     (∀ l ∈ ls, DTree.litKilled τ l = false) →
@@ -496,6 +538,90 @@ theorem localizeLiveDnf_anyTermSat {n : ℕ} (τ : Restriction n)
         simp at ht
       rw [hfalse] at hsat
       simp at hsat
+
+theorem localizeLiveClause_activePred {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) (T : Clause n)
+    (hlive : DTree.clauseLive τ T = true) :
+    (!termFalsified σ (localizeLiveClause τ T) &&
+        decide (0 < (freeLits σ (localizeLiveClause τ T)).length)) =
+      (!termFalsified (liftLiveRestriction τ σ) T &&
+        decide (0 < (freeLits (liftLiveRestriction τ σ) T).length)) := by
+  rw [localizeLiveClause_termFalsified τ σ T hlive,
+    localizeLiveClause_freeLits_length]
+
+theorem localizeLiveDnf_cons {n : ℕ} (τ : Restriction n) (T : Clause n)
+    (cs : List (Clause n)) :
+    localizeLiveDnf τ (T :: cs) =
+      if DTree.clauseLive τ T then
+        localizeLiveClause τ T :: localizeLiveDnf τ cs
+      else localizeLiveDnf τ cs := by
+  unfold localizeLiveDnf
+  cases h : DTree.clauseLive τ T <;> simp [h]
+
+theorem localizeLiveDnf_findActive {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) : ∀ (cs : List (Clause n)),
+    (localizeLiveDnf τ cs).find? (fun T =>
+        !termFalsified σ T && decide (0 < (freeLits σ T).length)) =
+      (cs.find? (fun T => !termFalsified (liftLiveRestriction τ σ) T &&
+        decide (0 < (freeLits (liftLiveRestriction τ σ) T).length))).map
+          (localizeLiveClause τ) := by
+  intro cs
+  induction cs with
+  | nil => simp [localizeLiveDnf]
+  | cons T cs ih =>
+      by_cases hlive : DTree.clauseLive τ T = true
+      · have hp := localizeLiveClause_activePred τ σ T hlive
+        rw [localizeLiveDnf_cons, if_pos hlive]
+        cases hlocal : (!termFalsified σ (localizeLiveClause τ T) &&
+            decide (0 < (freeLits σ (localizeLiveClause τ T)).length))
+        · have hamb : (!termFalsified (liftLiveRestriction τ σ) T &&
+              decide (0 < (freeLits (liftLiveRestriction τ σ) T).length)) = false :=
+            hp ▸ hlocal
+          simp [hlocal, hamb, ih]
+        · have hamb : (!termFalsified (liftLiveRestriction τ σ) T &&
+              decide (0 < (freeLits (liftLiveRestriction τ σ) T).length)) = true :=
+            hp ▸ hlocal
+          simp [hlocal, hamb]
+      · have hfτ : termFalsified τ T = true := by
+          simp only [Bool.not_eq_true] at hlive
+          rw [clauseLive_eq_not_termFalsified] at hlive
+          cases h : termFalsified τ T <;> simp [h] at hlive ⊢
+        have hf := termFalsified_mono (liftLiveRestriction_extends τ σ) hfτ
+        rw [localizeLiveDnf_cons, if_neg hlive]
+        simp [hf, ih]
+
+theorem localizeLiveDnf_activeTerm {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) (cs : List (Clause n)) :
+    activeTerm (localizeLiveDnf τ cs) σ =
+      (activeTerm cs (liftLiveRestriction τ σ)).map (localizeLiveClause τ) := by
+  unfold activeTerm
+  rw [localizeLiveDnf_anyTermSat]
+  cases h : anyTermSat cs (liftLiveRestriction τ σ)
+  · simp [h, localizeLiveDnf_findActive]
+  · simp [h]
+
+/-- Fixing a relabelled live coordinate and then lifting is exactly the same
+restriction as lifting first and fixing the corresponding ambient coordinate. -/
+theorem liftLiveRestriction_fixVar {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) (i : Fin (stars τ)) (b : Bool) :
+    liftLiveRestriction τ (fixVar σ i b) =
+      fixVar (liftLiveRestriction τ σ) (liveCoordEquiv τ i) b := by
+  funext v
+  by_cases hvi : v = liveCoordEquiv τ i
+  · subst v
+    rw [liftLiveRestriction, dif_pos (liveCoordEquiv τ i).property]
+    rw [(liveCoordEquiv τ).symm_apply_apply i]
+    simp [fixVar]
+  · by_cases hv : v ∈ freeVars τ
+    · have hidx : (liveCoordEquiv τ).symm ⟨v, hv⟩ ≠ i := by
+        intro heq
+        apply hvi
+        have := congrArg (liveCoordEquiv τ) heq
+        simpa using congrArg Subtype.val this
+      rw [liftLiveRestriction, dif_pos hv, fixVar, Function.update_of_ne hidx,
+        fixVar, Function.update_of_ne hvi, liftLiveRestriction, dif_pos hv]
+    · rw [liftLiveRestriction, dif_neg hv, fixVar,
+        Function.update_of_ne hvi, liftLiveRestriction, dif_neg hv]
 
 /-- The localized DNF computes exactly the original ambient DNF throughout the
 current subcube. -/
@@ -990,3 +1116,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveClause_freeLits
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveClause_termFalsified
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveDnf_anyTermSat
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveDnf_activeTerm
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.liftLiveRestriction_fixVar
