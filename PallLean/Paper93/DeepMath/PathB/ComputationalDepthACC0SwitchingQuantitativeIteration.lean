@@ -140,6 +140,112 @@ noncomputable def liveRestrictionEquiv {n : ℕ} (τ : Restriction n) :
     apply Subtype.ext
     exact liftLiveRestriction_project_of_extends ρ.2
 
+/-- Relabel a literal whose variable is live in `τ`; fixed-coordinate literals
+are removed after the usual dead-term filtering. -/
+noncomputable def localizeLiveLiteral {n : ℕ} (τ : Restriction n) :
+    Rung4Literal n → Option (Rung4Literal (stars τ))
+  | Rung4Literal.pos v =>
+      if h : v ∈ freeVars τ then
+        some (Rung4Literal.pos ((liveCoordEquiv τ).symm ⟨v, h⟩))
+      else none
+  | Rung4Literal.neg v =>
+      if h : v ∈ freeVars τ then
+        some (Rung4Literal.neg ((liveCoordEquiv τ).symm ⟨v, h⟩))
+      else none
+
+/-- Extend an assignment on the live-coordinate cube to an ambient assignment,
+using the values fixed by `τ` off the live set. -/
+noncomputable def liftLiveAssignment {n : ℕ} (τ : Restriction n)
+    (x : Fin (stars τ) → Bool) : Fin n → Bool :=
+  fun v => if h : v ∈ freeVars τ
+    then x ((liveCoordEquiv τ).symm ⟨v, h⟩)
+    else (τ v).getD false
+
+theorem liftLiveAssignment_agrees {n : ℕ} (τ : Restriction n)
+    (x : Fin (stars τ) → Bool) :
+    DTree.agreeRestriction τ (liftLiveAssignment τ x) := by
+  intro v b hv
+  have hfixed : v ∉ freeVars τ := by
+    rw [mem_freeVars, hv]
+    simp
+  rw [liftLiveAssignment, dif_neg hfixed, hv]
+  simp
+
+@[simp] theorem liftLiveAssignment_apply_live {n : ℕ} (τ : Restriction n)
+    (x : Fin (stars τ) → Bool) (i : Fin (stars τ)) :
+    liftLiveAssignment τ x (liveCoordEquiv τ i) = x i := by
+  rw [liftLiveAssignment, dif_pos (liveCoordEquiv τ i).property]
+  simp
+
+theorem localizeLiveLiteral_eval {n : ℕ} (τ : Restriction n)
+    (x : Fin (stars τ) → Bool) (l : Rung4Literal n)
+    (l' : Rung4Literal (stars τ)) (h : localizeLiveLiteral τ l = some l') :
+    Rung4Literal.eval l' x = Rung4Literal.eval l (liftLiveAssignment τ x) := by
+  cases l with
+  | pos v =>
+      simp only [localizeLiveLiteral] at h
+      split at h
+      · next hv =>
+        cases h
+        simp [Rung4Literal.eval, liftLiveAssignment, hv]
+      · simp at h
+  | neg v =>
+      simp only [localizeLiveLiteral] at h
+      split at h
+      · next hv =>
+        cases h
+        simp [Rung4Literal.eval, liftLiveAssignment, hv]
+      · simp at h
+/-- A clause transported to the live-coordinate cube. -/
+noncomputable def localizeLiveClause {n : ℕ} (τ : Restriction n) (T : Clause n) :
+    Clause (stars τ) :=
+  ⟨T.lits.filterMap (localizeLiveLiteral τ)⟩
+
+/-- Restrict a DNF to the current subcube, discard killed terms, and relabel all
+remaining free literals by the canonical live coordinates. -/
+noncomputable def localizeLiveDnf {n : ℕ} (τ : Restriction n)
+    (cs : List (Clause n)) : List (Clause (stars τ)) :=
+  (cs.filter (DTree.clauseLive τ)).map (localizeLiveClause τ)
+
+theorem localizeLiveClause_width_le {n : ℕ} (τ : Restriction n) (T : Clause n) :
+    (localizeLiveClause τ T).lits.length ≤ T.lits.length := by
+  exact List.length_filterMap_le _ _
+
+theorem localizeLiveDnf_length_le {n : ℕ} (τ : Restriction n)
+    (cs : List (Clause n)) :
+    (localizeLiveDnf τ cs).length ≤ cs.length := by
+  rw [localizeLiveDnf, List.length_map]
+  exact List.length_filter_le _ _
+
+theorem localizeLiveDnf_width_le {n w : ℕ} (τ : Restriction n)
+    (cs : List (Clause n)) (hw : ∀ T ∈ cs, T.lits.length ≤ w) :
+    ∀ T ∈ localizeLiveDnf τ cs, T.lits.length ≤ w := by
+  intro T hT
+  rw [localizeLiveDnf, List.mem_map] at hT
+  obtain ⟨U, hU, rfl⟩ := hT
+  exact le_trans (localizeLiveClause_width_le τ U)
+    (hw U (List.mem_of_mem_filter hU))
+
+/-- Transport a whole indexed bottom-gate family to the current live-coordinate cube. -/
+noncomputable def localizeLiveGates {n G : ℕ} (τ : Restriction n)
+    (gates : Fin G → List (Clause n)) :
+    Fin G → List (Clause (stars τ)) :=
+  fun g => localizeLiveDnf τ (gates g)
+
+theorem localizeLiveGates_width_le {n G w : ℕ} (τ : Restriction n)
+    (gates : Fin G → List (Clause n))
+    (hw : ∀ g, ∀ T ∈ gates g, T.lits.length ≤ w) :
+    ∀ g, ∀ T ∈ localizeLiveGates τ gates g, T.lits.length ≤ w := by
+  intro g
+  exact localizeLiveDnf_width_le τ (gates g) (hw g)
+
+theorem localizeLiveGates_count_le {n G m : ℕ} (τ : Restriction n)
+    (gates : Fin G → List (Clause n))
+    (hm : ∀ g, (gates g).length ≤ m) :
+    ∀ g, (localizeLiveGates τ gates g).length ≤ m := by
+  intro g
+  exact le_trans (localizeLiveDnf_length_le τ (gates g)) (hm g)
+
 /-- The restriction-dependent circuit sequence produced by successive real `collapseRound`s. -/
 def collapseSeq {n : ℕ} (K : ℕ → ℕ) (ρ : ℕ → Restriction n) (C₀ : Layered n) :
     ℕ → Layered n
@@ -558,3 +664,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundGap
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.stars_liftLiveRestriction
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.liveRestrictionEquiv
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveLiteral_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveGates_width_le
